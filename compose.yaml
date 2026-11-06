@@ -1,0 +1,90 @@
+# Nova Imperium: the game server behind Caddy.
+#
+#   docker/init-env.sh     creates .env and the secret files; fill in .env
+#   docker compose up -d   starts the game
+#   docker compose exec app nova invite you@example.org   first invitation
+#   docker compose exec app nova admin <name>             make yourself admin
+#
+# This file is the production setup behind YOUR reverse proxy: Caddy serves
+# plain HTTP on 127.0.0.1:8080, your proxy adds HTTPS. Settings come from
+# `.env` (see `.env.example` and docs/configuration.md), secrets from files in
+# `secrets/`. Local demo with a mail sink: `docker/init-env.sh --demo`.
+
+name: nova-imperium
+
+services:
+  app:
+    image: ghcr.io/heiss/nova-imperium:${NOVA_VERSION:-latest}
+    build:
+      context: .
+      target: app
+    restart: unless-stopped
+    environment:
+      NOVA_PUBLIC_URL: ${NOVA_PUBLIC_URL:?set NOVA_PUBLIC_URL in .env, the address players open}
+      # Only Caddy reaches the game; it sets X-Real-IP.
+      NOVA_TRUST_PROXY: '1'
+      NOVA_SESSION_DAYS: ${NOVA_SESSION_DAYS:-}
+      NOVA_INVITE_DAYS: ${NOVA_INVITE_DAYS:-}
+      NOVA_RATE_LIMIT_ATTEMPTS: ${NOVA_RATE_LIMIT_ATTEMPTS:-}
+      NOVA_RATE_LIMIT_MINUTES: ${NOVA_RATE_LIMIT_MINUTES:-}
+      # Mail for the invitations (optional; without it the admin copies the link).
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-}
+      SMTP_TLS: ${SMTP_TLS:-}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      MAIL_FROM: ${MAIL_FROM:-}
+      # The SMTP password comes only from the secret file, never from .env.
+      SMTP_PASSWORD_FILE: /run/secrets/smtp_password
+    secrets:
+      - smtp_password
+    volumes:
+      # The SQLite database; survives restarts, updates and reboots.
+      - data:/data
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+
+  web:
+    image: caddy:2.11-alpine
+    restart: unless-stopped
+    depends_on:
+      app:
+        condition: service_healthy
+    ports:
+      - '${NOVA_BIND:-127.0.0.1}:${NOVA_HTTP_PORT:-8080}:80'
+    environment:
+      NOVA_TRUSTED_PROXIES: ${NOVA_TRUSTED_PROXIES:-private_ranges}
+    volumes:
+      - ./docker/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    read_only: true
+    cap_drop: [ALL]
+    cap_add: [NET_BIND_SERVICE]
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'wget',
+          '-q',
+          '-O',
+          '/dev/null',
+          'http://127.0.0.1:2020/healthz',
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+secrets:
+  smtp_password:
+    file: ./secrets/smtp_password
+
+volumes:
+  data:
+  caddy-data:
+  caddy-config:

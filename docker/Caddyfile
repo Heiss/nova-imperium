@@ -1,0 +1,40 @@
+# Caddy in front of the game: security headers, compression, the visitor's
+# address. Plain HTTP on 127.0.0.1 behind the operator's reverse proxy, which
+# adds HTTPS (see docs/operations.md).
+{
+	admin off
+	servers {
+		# The visitor's address comes from the X-Forwarded-For of the reverse
+		# proxy, read from the right, so a visitor cannot choose it.
+		trusted_proxies static {$NOVA_TRUSTED_PROXIES:private_ranges}
+		trusted_proxies_strict
+	}
+}
+
+# Health check of Docker, on a port that is not published.
+http://:2020 {
+	respond /healthz 200
+}
+
+:80 {
+	encode zstd gzip
+	# ">" replaces what the game sends, so these values always win. A unit
+	# test keeps them equal to src/server/http/security.ts.
+	header {
+		>Content-Security-Policy "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; font-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+		>X-Content-Type-Options nosniff
+		>Referrer-Policy no-referrer
+		>X-Frame-Options DENY
+		>Cross-Origin-Opener-Policy same-origin
+		>Cross-Origin-Resource-Policy same-origin
+		>Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
+		-Server
+		-Via
+	}
+	reverse_proxy app:8080 {
+		# The game trusts only this header (NOVA_TRUST_PROXY=1), set here,
+		# never taken from the visitor.
+		header_up X-Real-IP {client_ip}
+		header_up -X-Forwarded-For
+	}
+}
