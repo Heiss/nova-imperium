@@ -54,9 +54,9 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 
 # Level at the introduction (2026-11-06)
 
-* 23 test files, 185 unit tests; 99.5 % lines, 95.2 % branches.
+* 24 test files, 190 unit tests; 99.5 % lines, 95.4 % branches.
 * 11 E2E tests (8 game, 3 accessibility).
-* Mutation score: see the [Update log](/log.md) for the complete run.
+* Mutation score of the complete run: 92.6 % (2,403 killed, 10 timed out, 175 survived; client logic 96.9 %).
 
 # Risks
 
