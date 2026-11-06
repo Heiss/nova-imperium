@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nova Imperium – Classic Uni</title>
+<style>
+:root{--bg:#05070d;--box:rgba(12,17,30,.92);--line:#26365a;--th:#18233d;--txt:#c9d3e6;--dim:#7d8aa5;--link:#79a6ec;--m:#c9c9d6;--c:#7fd3f5;--d:#6fe0a8;--e:#f3d36b;--red:#ff6b6b;--green:#5fd18a;--orange:#ffae4a}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--txt);font:12px/1.45 Verdana,Tahoma,Arial,sans-serif}
+body{background:
+ radial-gradient(1px 1px at 20px 30px,#fff8,transparent),radial-gradient(1px 1px at 120px 80px,#fff6,transparent),
+ radial-gradient(1px 1px at 200px 150px,#fff9,transparent),radial-gradient(1.5px 1.5px at 260px 40px,#adf8,transparent),
+ radial-gradient(1px 1px at 70px 190px,#fff5,transparent),radial-gradient(1px 1px at 170px 220px,#fff7,transparent),var(--bg);
+ background-size:300px 250px;min-height:100vh}
+a,.lnk{color:var(--link);text-decoration:none;cursor:pointer}
+a:hover,.lnk:hover{color:#bcd5ff;text-decoration:underline}
+#app{display:grid;grid-template-columns:170px 1fr;grid-template-rows:auto 1fr;min-height:100vh;max-width:1200px;margin:0 auto}
+header{grid-column:1/3;display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;padding:10px 14px;border-bottom:1px solid var(--line);background:linear-gradient(#0d1426,#070b15)}
+.logo{font:bold 18px Georgia,serif;letter-spacing:2px;color:#e6ecff;text-shadow:0 0 8px #4d7cff}
+.logo small{display:block;font:10px Verdana;letter-spacing:1px;color:var(--dim)}
+.pinfo{color:var(--dim)}
+.pinfo b{color:#e6ecff}
+.resbar{display:flex;gap:16px;margin-left:auto;flex-wrap:wrap}
+.res{text-align:center;min-width:78px}
+.res .l{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px}
+.res .v{font-weight:bold}
+.res .v.full{color:var(--red)}
+.gem{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+nav{border-right:1px solid var(--line);padding:10px 8px;background:rgba(6,9,18,.7)}
+nav a{display:block;padding:5px 8px;margin-bottom:2px;border:1px solid transparent;border-radius:2px;color:#a9bfe6}
+nav a.on{background:var(--th);border-color:var(--line);color:#fff}
+nav .sep{height:1px;background:var(--line);margin:8px 0}
+nav .badge{background:var(--red);color:#fff;border-radius:8px;padding:0 6px;font-size:10px;margin-left:4px}
+main{padding:14px;min-width:0}
+h2{font:bold 14px Verdana;margin:0 0 10px;color:#e6ecff;letter-spacing:.5px}
+.box{background:var(--box);border:1px solid var(--line);margin-bottom:12px}
+.box>.hd{background:var(--th);padding:6px 10px;font-weight:bold;color:#a9c0ea;border-bottom:1px solid var(--line)}
+.box>.bd{padding:10px}
+table{border-collapse:collapse;width:100%}
+th,td{border:1px solid var(--line);padding:5px 7px;text-align:left;vertical-align:top}
+th{background:var(--th);color:#a9c0ea;font-weight:bold}
+td.n,th.n{text-align:right}
+.item{display:grid;grid-template-columns:96px 1fr 170px;gap:10px;padding:9px;border-bottom:1px solid var(--line);align-items:center}
+.item:last-child{border-bottom:0}
+.icon img{width:100%;height:100%;display:block}
+.icon{overflow:hidden;width:96px;height:96px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font:bold 18px Georgia,serif;color:#fff;text-shadow:0 1px 3px #000;border-radius:2px}
+.ic-b{background:radial-gradient(circle at 30% 30%,#a8793e,#3b2610)}
+.ic-r{background:radial-gradient(circle at 30% 30%,#8a5cd6,#25123f)}
+.ic-s{background:radial-gradient(circle at 30% 30%,#4f8ee0,#0d2448)}
+.ic-d{background:radial-gradient(circle at 30% 30%,#4ab27a,#0c3320)}
+.item .nm{font-weight:bold;color:#e6ecff}
+.item .lv{color:var(--dim);font-weight:normal}
+.item .ds{color:var(--dim);margin:3px 0}
+.cost span{margin-right:10px;white-space:nowrap}
+.bad{color:var(--red)}.good{color:var(--green)}.warn{color:var(--orange)}.dim{color:var(--dim)}
+.act{text-align:center}
+button,.btn{background:linear-gradient(#2a3d66,#1a2745);color:#e6ecff;border:1px solid #3d5486;padding:5px 10px;font:11px Verdana;cursor:pointer;border-radius:2px}
+button:hover{background:linear-gradient(#35508a,#203158)}
+button:disabled{opacity:.45;cursor:default}
+button.red{background:linear-gradient(#6a2a2a,#3d1515);border-color:#8a3c3c}
+button.small{padding:2px 6px;font-size:10px}
+input,select{background:#0a1020;color:#e6ecff;border:1px solid #33476f;padding:4px 6px;font:12px Verdana;border-radius:2px}
+input[type=number]{width:80px}
+input.c3{width:44px}
+.req{color:var(--red);font-size:11px}
+.planet{width:120px;height:120px;border-radius:50%;box-shadow:inset -18px -14px 30px #000c,0 0 20px #3a6cff55;flex:none}
+.ov{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.kv td:first-child{color:var(--dim);width:42%}
+.fl-attack{color:var(--red)}.fl-spy{color:var(--orange)}.fl-transport{color:var(--green)}.fl-back{color:#8fa6cf}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#1a2745;border:1px solid #3d5486;padding:9px 16px;z-index:50;max-width:90vw;box-shadow:0 4px 20px #000a}
+.toast.err{border-color:#8a3c3c;background:#3d1515}
+#modal{position:fixed;inset:0;background:#000a;display:none;align-items:center;justify-content:center;z-index:40}
+#modal .in{background:var(--box);border:1px solid var(--line);padding:16px;max-width:420px}
+.notice{padding:10px;border:1px solid var(--line);background:#0b1222;margin-bottom:12px}
+.rep{border-bottom:1px solid var(--line);padding:8px 10px}
+.rep .t{display:flex;justify-content:space-between;gap:10px;cursor:pointer}
+.rep.new .t b::before{content:"● ";color:var(--orange)}
+.rep .b{margin-top:8px;display:none}
+.rep.open .b{display:block}
+.mini th,.mini td{padding:3px 6px;font-size:11px}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.me td{background:#14203a}
+.gal td{white-space:nowrap}
+.flex{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+@media (max-width:760px){
+ #app{grid-template-columns:1fr}
+ header{grid-column:1}
+ nav{display:flex;overflow-x:auto;gap:2px;border-right:0;border-bottom:1px solid var(--line);padding:6px}
+ nav a{white-space:nowrap;margin:0}
+ nav .sep{display:none}
+ .item{grid-template-columns:64px 1fr}
+ .item .act{grid-column:1/3;text-align:left}
+ .icon{width:64px;height:64px;font-size:14px}
+ .cols{grid-template-columns:1fr}
+ .resbar{margin-left:0;gap:10px}
+}
+</style>
+</head>
+<body>
+<div id="app">
+ <header>
+  <div class="logo">NOVA IMPERIUM<small id="unisub">Classic Universum</small></div>
+  <div class="pinfo" id="pinfo"></div>
+  <div class="resbar" id="resbar"></div>
+ </header>
+ <nav id="menu"></nav>
+ <main id="view"><div class="notice">Lade Universum …</div></main>
+</div>
+<div id="modal"><div class="in" id="modalIn"></div></div>
+<script src="/game.js"></script>
+<script src="/art.js"></script>
+<script>
+"use strict";
+const {CFG, BUILD, RES, SHIPS, DEF, UNIT, MISSION} = GAME;
+const {pid, lvlCost, sumLevels, buildTime, researchTime, unitTime, afford, maxAfford, reqMissing, prod, caps, settle, settleR, distance, shipSpeed, fleetSpeed, flightMs, fuelFor, capacity, countUnits} = GAME;
+
+/* ===== Hilfen ===== */
+const $ = s => document.querySelector(s);
+const fmt = n => Math.floor(n||0).toLocaleString('de-DE');
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const coords = c => c ? `[${c.g}:${c.s}:${c.p}]` : '[?]';
+const clampInt = (v, lo, hi) => Math.max(lo, Math.min(hi, Math.floor(Number(v) || 0)));
+function dur(ms){ let s = Math.max(0, Math.ceil(ms/1000)); const d = Math.floor(s/86400); s %= 86400; const h = Math.floor(s/3600); s %= 3600; const m = Math.floor(s/60); s %= 60;
+ return (d ? d+'T ' : '') + (d||h ? h+'h ' : '') + (d||h||m ? String(m).padStart(h||d?2:1,'0')+'m ' : '') + String(s).padStart(2,'0')+'s'; }
+const dt = t => new Date(t).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'});
+
+/* ===== Zustand ===== */
+const S = {me:null, planet:null, fleets:[], reports:[], galaxy:[], gmap:{}, players:{}, off:0, view:'overview', gal:1, sys:1, ft:null, fm:'attack', openRep:{}, auth:null, busy:false};
+const nowT = () => Date.now() + S.off;
+const cd = end => end > nowT() ? `<span class="cd" data-end="${end}">${dur(end-nowT())}</span>` : '<span class="dim">gleich …</span>';
+const nameOf = uid => (S.players[uid] && S.players[uid].name) || 'Unbekannt';
+const isProtected = uid => ((S.players[uid]||{}).points||0)*5 < ((S.players[S.me.id]||{}).points||0);
+let CTX = null;
+
+function toast(msg, err){ const t = document.createElement('div'); t.className = 'toast' + (err?' err':''); t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 3500); }
+function modal(html){ $('#modalIn').innerHTML = html; $('#modal').style.display = html ? 'flex' : 'none'; }
+
+async function api(url, body){
+ const r = await fetch(url, {method: body ? 'POST' : 'GET', headers: body ? {'content-type':'application/json'} : {}, body: body ? JSON.stringify(body) : undefined, credentials:'same-origin'});
+ const j = await r.json().catch(() => ({error:'Keine Antwort vom Server.'}));
+ if (r.status === 401){ S.me = null; S.auth = S.auth || 'login'; render(true); throw new Error(j.error || 'Bitte einloggen.'); }
+ if (!r.ok) throw new Error(j.error || 'Fehler'); return j; }
+let lastKey = '';
+function apply(st){ if (!st) return; const key = JSON.stringify(Object.assign({}, st, {now:0})); const same = key === lastKey; lastKey = key; S.off = st.now - Date.now(); S.me = st.me; S.planet = st.planet; S.fleets = st.fleets; S.reports = st.reports; S.players = st.players;
+ S.galaxy = st.galaxy; S.gmap = {}; st.galaxy.forEach(p => S.gmap[p.id] = p); $('#unisub').textContent = `Classic Universum · Speed x${CFG.SPEED}`; if (!same) render(); }
+async function refresh(){ try { apply(await api('/api/state')); } catch(e){ if (S.me) console.warn(e); } }
+async function act(type, data){ try { const j = await api('/api/action', Object.assign({type}, data||{})); apply(j.state); if (j.msg) toast(j.msg); return true; } catch(e){ toast(e.message, true); return false; } }
+
+/* ===== Rendering ===== */
+let rq = null;
+function scheduleRender(){ if (rq) return; rq = setTimeout(() => { rq = null; render(); }, 80); }
+function render(fresh){
+ const view = $('#view'); const saved = {}; const focus = document.activeElement && document.activeElement.id;
+ if (!fresh) view.querySelectorAll('input[id],select[id]').forEach(i => saved[i.id] = i.value);
+ if (!S.me){ CTX = null; $('#menu').innerHTML = ''; $('#resbar').innerHTML = ''; $('#pinfo').innerHTML = ''; view.innerHTML = S.auth ? authHTML() : '<div class="notice">Lade …</div>'; return; }
+ if (!S.planet){ view.innerHTML = '<div class="notice">Du hast keinen Planeten. Bitte den Admin, eine neue Runde zu starten.</div>'; return; }
+ const now = nowT(); CTX = {P: settle(S.planet, now), R: settleR(S.me, now), now};
+ renderMenu(); updateBar(); $('#pinfo').innerHTML = `<b>${esc(CTX.P.name)}</b> ${coords(CTX.P)} · Kommandant <b>${esc(S.me.name)}</b> · <span class="lnk" data-act="logout">Logout</span>`;
+ view.innerHTML = (VIEWS[S.view] || VIEWS.overview)();
+ for (const [id,v] of Object.entries(saved)){ const el = document.getElementById(id); if (el && !el.hasAttribute('data-nokeep')) el.value = v; }
+ if (focus){ const el = document.getElementById(focus); if (el) el.focus(); }
+ if (S.view === 'fleet') fleetCalc();
+}
+function renderMenu(){
+ const unread = S.reports.filter(r => r.time > (S.me.readAt||0)).length;
+ const items = [['overview','Übersicht'],['buildings','Gebäude'],['resources','Rohstoffe'],['research','Forschung'],['shipyard','Schiffswerft'],['defense','Verteidigung'],'-',['fleet','Flotte'],['galaxy','Galaxie'],['messages','Nachrichten' + (unread ? `<span class="badge">${unread}</span>` : '')],['highscore','Highscore'],'-',['help','Hilfe & Optionen']];
+ $('#menu').innerHTML = items.map(i => i === '-' ? '<div class="sep"></div>' : `<a data-act="nav" data-v="${i[0]}" class="${S.view===i[0]?'on':''}">${i[1]}</a>`).join('');
+}
+function updateBar(){
+ if (!S.planet) return; const P = settle(S.planet, nowT()), pr = prod(P), cp = caps(P);
+ const r = (l, col, v, cap, per) => `<div class="res" title="${per}"><div class="l"><span class="gem" style="background:${col}"></span>${l}</div><div class="v ${v>=cap?'full':''}">${fmt(v)}</div></div>`;
+ $('#resbar').innerHTML = r('Metall','var(--m)',P.res.m,cp.m,`+${fmt(pr.m)}/h · Lager ${fmt(cp.m)}`) + r('Kristall','var(--c)',P.res.c,cp.c,`+${fmt(pr.c)}/h · Lager ${fmt(cp.c)}`) + r('Deuterium','var(--d)',P.res.d,cp.d,`+${fmt(pr.d)}/h · Lager ${fmt(cp.d)}`) +
+  `<div class="res"><div class="l"><span class="gem" style="background:var(--e)"></span>Energie</div><div class="v ${pr.eProd-pr.eUse<0?'bad':''}">${fmt(pr.eProd-pr.eUse)}/${fmt(pr.eProd)}</div></div>`;
+}
+function planetStyle(t){ const hot = Math.max(0, Math.min(1, (t+20)/140)); return `background:radial-gradient(circle at 35% 35%, hsl(${200-hot*180},55%,${45+hot*5}%), hsl(${220-hot*190},60%,18%))`; }
+const ranks = () => { const o = {}; Object.entries(S.players).sort((a,b) => b[1].points - a[1].points).forEach(([u],i) => o[u] = i+1); return o; };
+function costHTML(c, P, n=1){ const L = [['Metall',c[0]*n,P.res.m],['Kristall',c[1]*n,P.res.c],['Deuterium',c[2]*n,P.res.d]];
+ return '<div class="cost">' + L.filter(x=>x[1]>0).map(([k,v,have]) => `<span>${k}: <b class="${have>=v?'':'bad'}">${fmt(v)}</b></span>`).join('') + '</div>'; }
+function itemHTML(cls, key, d, levelTxt, body, action){
+ const src = window.NOVA_ART && NOVA_ART.artURI(key);
+ return `<div class="item"><div class="icon ${cls}">${src ? `<img src="${src}" alt="${d.n}">` : d.ab}</div><div><div class="nm">${d.n} <span class="lv">${levelTxt}</span></div>${d.ds?`<div class="ds">${d.ds}</div>`:''}${body}</div><div class="act">${action}</div></div>`; }
+
+const VIEWS = {};
+VIEWS.overview = () => {
+ const {P, R, now} = CTX, me = S.me.id, rk = ranks(), act = [];
+ if (P.bq) act.push(`<tr><td>Gebäude</td><td>${BUILD[P.bq.key].n} (Stufe ${P.bq.lvl})</td><td class="n">${cd(P.bq.end)}</td></tr>`);
+ if (R.rq) act.push(`<tr><td>Forschung</td><td>${RES[R.rq.key].n} (Stufe ${R.rq.lvl})</td><td class="n">${cd(R.rq.end)}</td></tr>`);
+ if (P.sq.length) act.push(`<tr><td>Werft</td><td>${P.sq.map(q => `${fmt(q.n)}× ${UNIT[q.key].n}`).join(', ')}</td><td class="n">${cd(P.sqT + P.sq[0].unit)} (nächste)</td></tr>`);
+ return `<h2>Übersicht – ${esc(P.name)} ${coords(P)}</h2>
+ <div class="box"><div class="hd">Flottenbewegungen</div><div class="bd">${fleetTable(true)}</div></div>
+ <div class="box"><div class="bd ov"><div class="planet" style="${planetStyle(P.temp)}"></div>
+ <table class="kv" style="flex:1;min-width:240px">
+ <tr><td>Planet</td><td>${esc(P.name)} <span class="lnk" data-act="rename">(umbenennen)</span></td></tr>
+ <tr><td>Position</td><td>${coords(P)}</td></tr><tr><td>Temperatur</td><td>ca. ${P.temp-40}°C bis ${P.temp}°C</td></tr>
+ <tr><td>Punkte</td><td>${fmt((S.players[me]||{}).points)} (Platz ${rk[me]||'-'} von ${Object.keys(S.players).length})</td></tr>
+ <tr><td>Serverzeit</td><td>${dt(now)}</td></tr></table></div></div>
+ <div class="box"><div class="hd">Aktivitäten</div><div class="bd">${act.length ? `<table>${act.join('')}</table>` : '<span class="dim">Nichts in Arbeit – deine Minen langweilen sich.</span>'}</div></div>`;
+};
+function fleetTable(includeIncoming){
+ const me = S.me.id, rows = [];
+ const list = S.fleets.filter(f => f.owner === me || includeIncoming).slice().sort((a,b) => (a.state==='out'?a.arr:a.ret) - (b.state==='out'?b.arr:b.ret));
+ for (const f of list){ const mine = f.owner === me, out = f.state === 'out', end = out ? f.arr : f.ret;
+  const cls = out ? 'fl-'+f.mission : 'fl-back'; const ships = Object.entries(f.ships||{}).filter(x=>x[1]>0).map(([k,n]) => `${fmt(n)} ${SHIPS[k].n}`).join(', ');
+  const txt = mine ? (out ? `Deine Flotte (${ships}) von ${coords(f.fromC)} erreicht ${coords(f.toC)} · ${MISSION[f.mission]}` : `Deine Flotte (${ships}) kehrt von ${coords(f.toC)} nach ${coords(f.fromC)} zurück`)
+   : `Eine fremde Flotte von <b>${esc(nameOf(f.owner))}</b> ${coords(f.fromC)} erreicht deinen Planeten ${coords(f.toC)} · ${MISSION[f.mission]}${ships ? ` (${ships})` : ''}`;
+  rows.push(`<tr><td class="n" style="width:110px">${cd(end)}</td><td class="${cls}">${txt}</td><td style="width:80px">${mine && out ? `<button class="small" data-act="recall" data-id="${esc(f.id)}">Rückruf</button>` : ''}</td></tr>`); }
+ return rows.length ? `<table>${rows.join('')}</table>` : '<span class="dim">Keine Flottenbewegungen.</span>';
+}
+VIEWS.buildings = () => { const {P, R} = CTX;
+ return `<h2>Gebäude</h2><div class="box">` + Object.entries(BUILD).map(([k,d]) => {
+  const L = P.b[k]||0, c = lvlCost(d, L+1), miss = reqMissing(d, P, R); let action;
+  if (P.bq && P.bq.key === k) action = `Ausbau auf Stufe ${P.bq.lvl}<br>${cd(P.bq.end)}<br><button class="small red" data-act="cancelBuild">Abbrechen</button>`;
+  else if (miss.length) action = '<span class="req">Voraussetzungen fehlen</span>';
+  else if (P.bq) action = '<span class="dim">Bauschleife belegt</span>';
+  else if (k === 'yard' && P.sq.length) action = '<span class="dim">Werft arbeitet gerade</span>';
+  else if (k === 'lab' && R.rq) action = '<span class="dim">Labor forscht gerade</span>';
+  else action = `<button data-act="build" data-k="${k}" ${afford(P,c)?'':'disabled'}>${L ? 'Ausbauen auf Stufe '+(L+1) : 'Bauen'}</button>`;
+  return itemHTML('ic-b', k, d, L ? `(Stufe ${L})` : '', costHTML(c, P) + `<div class="dim">Bauzeit: ${dur(buildTime(c,P))}</div>` + (miss.length ? `<div class="req">Benötigt: ${miss.join(', ')}</div>` : ''), action);
+ }).join('') + '</div>'; };
+VIEWS.research = () => { const {P, R} = CTX;
+ if (!(P.b.lab > 0)) return '<h2>Forschung</h2><div class="notice">Für Forschung brauchst du ein Forschungslabor.</div>';
+ return `<h2>Forschung</h2><div class="box">` + Object.entries(RES).map(([k,d]) => {
+  const L = R.research[k]||0, c = lvlCost(d, L+1), miss = reqMissing(d, P, R); let action;
+  if (R.rq && R.rq.key === k) action = `Forschung Stufe ${R.rq.lvl}<br>${cd(R.rq.end)}<br><button class="small red" data-act="cancelResearch">Abbrechen</button>`;
+  else if (miss.length) action = '<span class="req">Voraussetzungen fehlen</span>';
+  else if (R.rq) action = '<span class="dim">Es wird bereits geforscht</span>';
+  else if (P.bq && P.bq.key === 'lab') action = '<span class="dim">Labor wird ausgebaut</span>';
+  else action = `<button data-act="research" data-k="${k}" ${afford(P,c)?'':'disabled'}>Forschen${L?' (Stufe '+(L+1)+')':''}</button>`;
+  return itemHTML('ic-r', k, d, L ? `(Stufe ${L})` : '', costHTML(c, P) + `<div class="dim">Forschungszeit: ${dur(researchTime(c,P))}</div>` + (miss.length ? `<div class="req">Benötigt: ${miss.join(', ')}</div>` : ''), action);
+ }).join('') + '</div>'; };
+function yardView(title, defs, cls, have){ const {P, R} = CTX;
+ if (!(P.b.yard > 0)) return `<h2>${title}</h2><div class="notice">Dafür brauchst du eine Raumschiffwerft.</div>`;
+ const queue = P.sq.length ? `<div class="box"><div class="hd">Bauauftrag der Werft</div><div class="bd"><table>${P.sq.map((q,i) => `<tr><td>${fmt(q.n)}× ${UNIT[q.key].n}</td><td class="n">${i===0 ? 'nächste fertig in '+cd(P.sqT+q.unit) : 'je '+dur(q.unit)}</td></tr>`).join('')}</table></div></div>` : '';
+ const upg = P.bq && P.bq.key === 'yard';
+ return `<h2>${title}</h2>${queue}${upg ? '<div class="notice warn">Die Werft wird gerade ausgebaut und kann nicht produzieren.</div>' : ''}<div class="box">` + Object.entries(defs).map(([k,d]) => {
+  const c = d.cost, miss = reqMissing(d, P, R), tech = R.research, maxN = maxAfford(P, c);
+  const stats = `<div class="dim">Angriff ${fmt(d.atk*(1+0.1*(tech.weapons||0)))} · Schild ${fmt(d.sh*(1+0.1*(tech.shield||0)))} · Struktur ${fmt((c[0]+c[1])*(1+0.1*(tech.armor||0)))}${d.cargo!=null?` · Ladung ${fmt(d.cargo)}`:''}${d.speed?` · Tempo ${fmt(shipSpeed(k,R))}`:''}</div>`;
+  const action = miss.length ? '<span class="req">Voraussetzungen fehlen</span>' : `<div class="flex" style="justify-content:center"><input type="number" min="0" id="q_${k}" placeholder="0"> <span class="lnk" data-act="maxq" data-k="${k}" data-max="${maxN}">(max ${fmt(maxN)})</span></div><button style="margin-top:5px" data-act="order" data-k="${k}" ${upg?'disabled':''}>Bauen</button>`;
+  return itemHTML(cls, k, d, `(vorhanden: ${fmt(have[k]||0)})`, costHTML(c, P) + stats + `<div class="dim">Bauzeit: ${dur(unitTime(d,P))} je Einheit</div>` + (miss.length ? `<div class="req">Benötigt: ${miss.join(', ')}</div>` : ''), action);
+ }).join('') + '</div>'; }
+VIEWS.shipyard = () => yardView('Schiffswerft', SHIPS, 'ic-s', CTX.P.ships);
+VIEWS.defense = () => yardView('Verteidigung', DEF, 'ic-d', CTX.P.def);
+VIEWS.resources = () => {
+ const {P} = CTX, pr = prod(P), g = l => l*Math.pow(1.1,l), cp = caps(P), L = k => P.b[k]||0, pc = k => (P.pct[k]??100)/100, SP = CFG.SPEED;
+ const sel = k => `<select data-chg="pct" data-k="${k}" data-nokeep>${[100,90,80,70,60,50,40,30,20,10,0].map(v => `<option ${((P.pct[k]??100)===v)?'selected':''}>${v}</option>`).join('')}</select> %`;
+ return `<h2>Rohstoffe auf ${esc(P.name)}</h2><div class="box"><div class="hd">Produktion pro Stunde (Produktionsfaktor ${Math.round(pr.f*100)} %)</div><div class="bd"><table>
+ <tr><th></th><th class="n">Metall</th><th class="n">Kristall</th><th class="n">Deuterium</th><th class="n">Energie</th><th>Leistung</th></tr>
+ <tr><td>Grundeinkommen</td><td class="n">${fmt(20*SP)}</td><td class="n">${fmt(10*SP)}</td><td class="n">0</td><td class="n">0</td><td></td></tr>
+ <tr><td>Metallmine (Stufe ${L('metal')})</td><td class="n">${fmt(30*g(L('metal'))*pc('metal')*pr.f*SP)}</td><td class="n">0</td><td class="n">0</td><td class="n bad">-${fmt(10*g(L('metal'))*pc('metal'))}</td><td>${sel('metal')}</td></tr>
+ <tr><td>Kristallmine (Stufe ${L('crystal')})</td><td class="n">0</td><td class="n">${fmt(20*g(L('crystal'))*pc('crystal')*pr.f*SP)}</td><td class="n">0</td><td class="n bad">-${fmt(10*g(L('crystal'))*pc('crystal'))}</td><td>${sel('crystal')}</td></tr>
+ <tr><td>Deuteriumsynth. (Stufe ${L('deut')})</td><td class="n">0</td><td class="n">0</td><td class="n">${fmt(pr.d)}</td><td class="n bad">-${fmt(20*g(L('deut'))*pc('deut'))}</td><td>${sel('deut')}</td></tr>
+ <tr><td>Solarkraftwerk (Stufe ${L('solar')})</td><td class="n">0</td><td class="n">0</td><td class="n">0</td><td class="n good">${fmt(pr.eProd)}</td><td>${sel('solar')}</td></tr>
+ <tr><th>Lagerkapazität</th><th class="n">${fmt(cp.m)}</th><th class="n">${fmt(cp.c)}</th><th class="n">${fmt(cp.d)}</th><th class="n">-</th><th></th></tr>
+ <tr><th>Summe / Stunde</th><th class="n">${fmt(pr.m)}</th><th class="n">${fmt(pr.c)}</th><th class="n">${fmt(pr.d)}</th><th class="n">${fmt(pr.eProd-pr.eUse)}</th><th></th></tr>
+ <tr><td>pro Tag</td><td class="n">${fmt(pr.m*24)}</td><td class="n">${fmt(pr.c*24)}</td><td class="n">${fmt(pr.d*24)}</td><td></td><td></td></tr>
+ </table></div></div>`;
+};
+VIEWS.fleet = () => {
+ const {P, R} = CTX, slots = 1 + (R.research.computer||0), used = S.fleets.filter(f => f.owner === S.me.id).length, t = S.ft || {g:P.g, s:P.s, p:P.p};
+ const rows = Object.entries(SHIPS).filter(([k]) => (P.ships[k]||0) > 0).map(([k,d]) => `<tr><td>${d.n}</td><td class="n">${fmt(P.ships[k])}</td><td class="n">${fmt(shipSpeed(k,R))}</td><td><input type="number" min="0" class="fs" id="f_${k}" data-k="${k}" placeholder="0"> <span class="lnk" data-act="fmax" data-k="${k}">max</span></td></tr>`).join('');
+ return `<h2>Flotte</h2>
+ <div class="box"><div class="hd">Flotten unterwegs (${used} / ${slots} Slots)</div><div class="bd">${fleetTable(false)}</div></div>
+ ${rows ? `<div class="box"><div class="hd">1. Schiffe auswählen</div><div class="bd"><table><tr><th>Schiff</th><th class="n">vorhanden</th><th class="n">Tempo</th><th>Anzahl</th></tr>${rows}</table>
+  <div style="margin-top:6px"><span class="lnk" data-act="fall">alle Schiffe</span> · <span class="lnk" data-act="fnone">keine Schiffe</span></div></div></div>
+ <div class="box"><div class="hd">2. Ziel und Auftrag</div><div class="bd"><table class="kv">
+  <tr><td>Ziel</td><td><input class="c3" type="number" id="t_g" value="${t.g}" min="1" max="${CFG.GALAXIES}">:<input class="c3" type="number" id="t_s" value="${t.s}" min="1" max="${CFG.SYSTEMS}">:<input class="c3" type="number" id="t_p" value="${t.p}" min="1" max="${CFG.POSITIONS}"> <span id="t_info" class="dim"></span></td></tr>
+  <tr><td>Auftrag</td><td><select id="t_m">${Object.entries(MISSION).map(([k,v]) => `<option value="${k}" ${S.fm===k?'selected':''}>${v}</option>`).join('')}</select></td></tr>
+  <tr><td>Geschwindigkeit</td><td><select id="t_v">${[10,9,8,7,6,5,4,3,2,1].map(v => `<option value="${v}">${v*10} %</option>`).join('')}</select></td></tr>
+  <tr><td>Ladung (Metall / Kristall / Deuterium)</td><td><input type="number" id="c_m" min="0" placeholder="0"> <input type="number" id="c_c" min="0" placeholder="0"> <input type="number" id="c_d" min="0" placeholder="0"> <span class="lnk" data-act="cmax">alles</span></td></tr>
+  <tr><td>Entfernung</td><td id="i_dist">-</td></tr><tr><td>Flugdauer (eine Richtung)</td><td id="i_dur">-</td></tr>
+  <tr><td>Ankunft / Rückkehr</td><td id="i_arr">-</td></tr><tr><td>Treibstoff</td><td id="i_fuel">-</td></tr><tr><td>Laderaum</td><td id="i_cap">-</td></tr>
+ </table><div style="margin-top:10px"><button data-act="send" ${used>=slots?'disabled':''}>Flotte losschicken</button> ${used>=slots?'<span class="bad">Alle Flottenslots belegt (Computertechnik erhöht die Anzahl).</span>':''}</div></div></div>`
+ : '<div class="notice">Auf diesem Planeten stehen keine Schiffe. Baue welche in der Schiffswerft.</div>'}`;
+};
+function readFleetForm(){ const {P} = CTX, ships = {};
+ document.querySelectorAll('.fs').forEach(i => { const n = clampInt(i.value, 0, P.ships[i.dataset.k]||0); if (n > 0) ships[i.dataset.k] = n; });
+ return {ships, to:{g:clampInt($('#t_g').value,1,CFG.GALAXIES), s:clampInt($('#t_s').value,1,CFG.SYSTEMS), p:clampInt($('#t_p').value,1,CFG.POSITIONS)},
+  mission:$('#t_m').value, pct:clampInt($('#t_v').value,1,10), cargo:{m:clampInt($('#c_m').value,0,1e15), c:clampInt($('#c_c').value,0,1e15), d:clampInt($('#c_d').value,0,1e15)}}; }
+function fleetCalc(){
+ if (!$('#t_g') || !CTX) return; const F = readFleetForm(), {P, R} = CTX, target = S.gmap[pid(F.to)];
+ $('#t_info').innerHTML = target ? `${esc(target.name)} (${esc(nameOf(target.owner))})` : '<span class="bad">kein Planet</span>';
+ if (!countUnits(F.ships)){ ['i_dist','i_dur','i_arr','i_fuel','i_cap'].forEach(id => $('#'+id).textContent = '-'); return; }
+ const dist = distance(P, F.to), ms = flightMs(dist, fleetSpeed(F.ships, R), F.pct), fuel = fuelFor(F.ships, dist, F.pct), cap = capacity(F.ships), load = F.cargo.m + F.cargo.c + F.cargo.d, now = nowT();
+ $('#i_dist').textContent = fmt(dist); $('#i_dur').textContent = dur(ms); $('#i_arr').textContent = dt(now+ms) + ' / ' + dt(now+2*ms);
+ $('#i_fuel').innerHTML = `<span class="${fuel + F.cargo.d > P.res.d ? 'bad' : ''}">${fmt(fuel)}</span> Deuterium`;
+ $('#i_cap').innerHTML = `<span class="${load > cap ? 'bad' : ''}">${fmt(load)}</span> / ${fmt(cap)}`;
+}
+VIEWS.galaxy = () => {
+ const rk = ranks(), me = S.me.id; let rows = '';
+ for (let p = 1; p <= CFG.POSITIONS; p++){ const c = {g:S.gal, s:S.sys, p}, pl = S.gmap[pid(c)];
+  if (!pl){ rows += `<tr><td class="n">${p}</td><td colspan="3" class="dim">–</td></tr>`; continue; }
+  const mine = pl.owner === me, prot = !mine && isProtected(pl.owner), at = `data-g="${c.g}" data-s="${c.s}" data-p="${p}"`;
+  rows += `<tr class="${mine?'me':''}"><td class="n">${p}</td><td><span class="gem" style="border-radius:50%;${planetStyle(pl.temp)}"></span>${esc(pl.name)}</td>
+   <td>${esc(nameOf(pl.owner))} <span class="dim">(Platz ${rk[pl.owner]||'-'})</span>${prot?' <span class="good" title="Noobschutz">(n)</span>':''}</td>
+   <td>${mine ? '<span class="dim">dein Planet</span>' : `<span class="lnk" data-act="gspy" ${at}>Spionieren</span> · <span class="lnk" data-act="gfleet" data-m="attack" ${at}>Angreifen</span> · <span class="lnk" data-act="gfleet" data-m="transport" ${at}>Transport</span>`}</td></tr>`; }
+ return `<h2>Galaxie</h2><div class="box"><div class="bd flex">
+  Galaxie <button class="small" data-act="gnav" data-d="g-">◀</button><input class="c3" type="number" id="g_g" data-nokeep value="${S.gal}" min="1" max="${CFG.GALAXIES}"><button class="small" data-act="gnav" data-d="g+">▶</button>
+  System <button class="small" data-act="gnav" data-d="s-">◀</button><input class="c3" type="number" id="g_s" data-nokeep value="${S.sys}" min="1" max="${CFG.SYSTEMS}"><button class="small" data-act="gnav" data-d="s+">▶</button>
+  <button data-act="ggo">Anzeigen</button> <span class="lnk" data-act="ghome">zum Heimatsystem</span></div>
+  <table class="gal"><tr><th class="n">Pos</th><th>Planet</th><th>Spieler</th><th>Aktionen</th></tr>${rows}</table>
+  <div class="bd dim">Spionage schickt ${fmt(S.me.probes||1)} Sonde(n) – einstellbar unter „Hilfe &amp; Optionen“.</div></div>`;
+};
+VIEWS.highscore = () => {
+ const list = Object.entries(S.players).sort((a,b) => b[1].points - a[1].points);
+ return `<h2>Highscore</h2><div class="box"><table><tr><th class="n">Platz</th><th>Spieler</th><th>Heimatplanet</th><th class="n">Punkte</th></tr>` +
+  list.map(([u,x],i) => { const pl = S.galaxy.find(p => p.owner === u); return `<tr class="${u===S.me.id?'me':''}"><td class="n">${i+1}</td><td>${esc(x.name)}</td><td>${pl ? `${esc(pl.name)} <span class="lnk" data-act="gto" data-g="${pl.g}" data-s="${pl.s}">${coords(pl)}</span>` : '-'}</td><td class="n">${fmt(x.points)}</td></tr>`; }).join('') +
+  '</table></div><div class="dim">1 Punkt = 1.000 verbaute Rohstoffe (Gebäude, Forschung, Schiffe, Verteidigung).</div>';
+};
+let readPending = false;
+VIEWS.messages = () => {
+ const readAt = S.me.readAt || 0, list = S.reports.slice().sort((a,b) => b.time-a.time);
+ if (list.length && list[0].time > readAt && !readPending){ readPending = true; setTimeout(() => act('read').finally(() => readPending = false), 600); }
+ return `<h2>Nachrichten</h2><div class="box"><div class="hd flex" style="justify-content:space-between">Berichte (${list.length}) ${list.length ? '<button class="small red" data-act="delall">Alle löschen</button>' : ''}</div>` +
+  (list.length ? list.map(r => `<div class="rep ${r.time>readAt?'new':''} ${S.openRep[r.id]?'open':''}" id="rep_${esc(r.id)}"><div class="t" data-act="toggleRep" data-id="${esc(r.id)}"><b>${esc(r.title)}</b><span class="dim">${dt(r.time)} <span class="lnk" data-act="delrep" data-id="${esc(r.id)}">löschen</span></span></div><div class="b">${repBody(r)}</div></div>`).join('') : '<div class="bd dim">Keine Nachrichten.</div>') + '</div>';
+};
+function unitTable(before, after, keys){
+ const ks = keys.filter(k => (before[k]||0) > 0); if (!ks.length) return '<span class="dim">keine Einheiten</span>';
+ return `<table class="mini"><tr><th>Einheit</th><th class="n">vorher</th><th class="n">nachher</th><th class="n">Verlust</th></tr>${ks.map(k => `<tr><td>${UNIT[k].n}</td><td class="n">${fmt(before[k])}</td><td class="n">${fmt(after[k]||0)}</td><td class="n ${(before[k]-(after[k]||0))>0?'bad':''}">${fmt(before[k]-(after[k]||0))}</td></tr>`).join('')}</table>`; }
+const techLine = t => `Waffen ${(t.weapons||0)*10}% · Schilde ${(t.shield||0)*10}% · Panzerung ${(t.armor||0)*10}%`;
+const resLine = r => `Metall ${fmt(r.m)} · Kristall ${fmt(r.c)} · Deuterium ${fmt(r.d)}`;
+function repBody(r){
+ if (r.type === 'battle'){ const W = {att:'Der Angreifer hat die Schlacht gewonnen!', def:'Der Verteidiger hat die Schlacht gewonnen!', draw:'Die Schlacht endet unentschieden.'};
+  return `<div>Schlacht bei ${esc(r.name)} ${coords(r.coords)} · ${esc(r.rounds)} Runde(n)</div>
+  <div class="cols" style="margin-top:6px"><div><b class="fl-attack">Angreifer ${esc(r.attName)}</b><div class="dim">${techLine(r.attTech||{})}</div>${unitTable(r.attBefore||{}, r.attAfter||{}, Object.keys(SHIPS))}</div>
+  <div><b class="good">Verteidiger ${esc(r.defName)}</b><div class="dim">${techLine(r.defTech||{})}</div>${unitTable(r.defBefore||{}, r.defAfter||{}, Object.keys(UNIT))}${countUnits(r.rebuilt) ? `<div class="dim">Wiederhergestellte Verteidigung: ${Object.entries(r.rebuilt).map(([k,n]) => `${fmt(n)} ${DEF[k].n}`).join(', ')}</div>` : ''}</div></div>
+  <p><b>${W[r.winner]||''}</b>${r.loot && (r.loot.m+r.loot.c+r.loot.d) ? `<br>Erbeutet: ${resLine(r.loot)}` : ''}</p>`; }
+ if (r.type === 'spy'){ const sec = (t, o, keys) => o ? `<div style="margin-top:6px"><b>${t}</b><br>${keys.filter(k => (o[k]||0) > 0).map(k => `${(UNIT[k]||BUILD[k]||RES[k]).n}: ${fmt(o[k])}`).join(' · ') || '<span class="dim">keine</span>'}</div>` : '';
+  return `<div>Rohstoffe auf ${esc(r.name)} ${coords(r.coords)} (Spieler ${esc(r.defName)}):<br><b>${resLine(r.res)}</b></div>
+   ${sec('Flotte', r.ships, Object.keys(SHIPS))}${sec('Verteidigung', r.def, Object.keys(DEF))}${sec('Gebäude', r.b, Object.keys(BUILD))}${sec('Forschung', r.r, Object.keys(RES))}
+   <div class="dim" style="margin-top:6px">Chance auf Spionageabwehr: ${esc(r.counter)} %${r.lost ? ' – <span class="bad">deine Sonden wurden zerstört!</span>' : ''}${(!r.ships && !r.lost) ? ' · Mehr Sonden oder Spionagetechnik zeigen mehr Details.' : ''}</div>`; }
+ return `<div>${esc(r.text)}</div>`;
+}
+VIEWS.help = () => `<h2>Hilfe &amp; Optionen</h2>
+ <div class="box"><div class="hd">Optionen</div><div class="bd flex">Sonden pro Spionage aus der Galaxie: <input type="number" id="o_probes" min="1" value="${S.me.probes||1}"> <button data-act="saveopt">Speichern</button></div></div>
+ <div class="box"><div class="hd">Regeln dieses Universums</div><div class="bd"><ul style="margin:0;padding-left:18px">
+ <li>Speed-Universum <b>x${CFG.SPEED}</b>: Produktion, Bauzeiten und Flüge laufen ${CFG.SPEED}× so schnell wie im Original.</li>
+ <li>${CFG.GALAXIES} Galaxien × ${CFG.SYSTEMS} Systeme × ${CFG.POSITIONS} Positionen. Jeder Spieler hat einen Heimatplaneten.</li>
+ <li>Eine Bauschleife für Gebäude, eine Forschung gleichzeitig. Die Werft arbeitet Aufträge nacheinander ab.</li>
+ <li>Kampf wie damals: bis zu 6 Runden, Schilde laden jede Runde neu, Schnellfeuer, 70 % der zerstörten Verteidigung wird wiederaufgebaut.</li>
+ <li>Gewinnt der Angreifer, nimmt er bis zu 50 % der Rohstoffe mit, so viel in die Laderäume passt.</li>
+ <li>Noobschutz: Wer weniger als ein Fünftel deiner Punkte hat, ist vor deinen Angriffen und Spionagen geschützt (in der Galaxie mit (n) markiert).</li>
+ <li>Flottenslots: 1 + Stufe der Computertechnik. Der Server rechnet rund um die Uhr – auch wenn du offline bist.</li>
+ <li>Kein Premium, keine Dunkle Materie – nur Rohstoffe und Geduld.</li></ul></div></div>
+ ${S.me.admin ? `<div class="box"><div class="hd">Admin</div><div class="bd">Neue Runde: Alle Spieler behalten ihr Konto, bekommen aber einen frischen Planeten, Forschung wird zurückgesetzt. <button class="red" data-act="reset">Neue Runde starten</button></div></div>` : ''}`;
+function authHTML(){
+ const reg = S.auth === 'register';
+ return `<div class="box" style="max-width:460px;margin:30px auto"><div class="hd">${reg ? 'Neues Imperium gründen' : 'Login'}</div><div class="bd"><form id="authform"><table class="kv">
+ <tr><td>Name</td><td><input id="a_name" maxlength="20" autocomplete="username" required></td></tr>
+ <tr><td>Passwort</td><td><input id="a_pw" type="password" autocomplete="${reg?'new-password':'current-password'}" required></td></tr>
+ ${reg ? `<tr><td>Planetenname</td><td><input id="a_planet" maxlength="20" value="Heimatplanet"></td></tr>
+ <tr><td>Galaxie</td><td><select id="a_gal">${Array.from({length:CFG.GALAXIES},(_,i) => `<option value="${i+1}">${i+1}</option>`).join('')}</select> <span class="dim">gleiche wie deine Freunde = kürzere Flüge</span></td></tr>
+ <tr><td>Einladungscode</td><td><input id="a_inv" placeholder="falls der Server einen verlangt"></td></tr>` : ''}
+ </table><p><button type="submit">${reg ? 'Imperium gründen' : 'Einloggen'}</button> <span class="lnk" data-act="authswitch" style="margin-left:10px">${reg ? 'Ich habe schon ein Konto' : 'Neu hier? Registrieren'}</span></p></form></div></div>`;
+}
+
+/* ===== Aktionen ===== */
+const ACT = {};
+ACT.nav = d => { S.view = d.v; render(true); window.scrollTo(0,0); };
+ACT.logout = async () => { try { await api('/api/logout', {}); } catch(e){} S.me = null; S.auth = 'login'; render(true); };
+ACT.authswitch = () => { S.auth = S.auth === 'register' ? 'login' : 'register'; render(true); };
+ACT.build = d => act('build', {key:d.k});
+ACT.cancelBuild = () => act('cancelBuild');
+ACT.research = d => act('research', {key:d.k});
+ACT.cancelResearch = () => act('cancelResearch');
+ACT.maxq = d => { const i = $('#q_'+d.k); if (i) i.value = d.max; };
+ACT.order = async d => { const i = $('#q_'+d.k), n = clampInt(i && i.value, 0, 1e9); if (!n) return toast('Bitte eine Anzahl eingeben.', true); if (await act('order', {key:d.k, n})) { const j = $('#q_'+d.k); if (j) j.value = ''; } };
+ACT.rename = () => modal(`<p><b>Planet umbenennen</b></p><input id="rn" maxlength="20" value="${esc(CTX.P.name)}"> <button data-act="doRename">OK</button> <button data-act="closeModal">Abbrechen</button>`);
+ACT.doRename = () => { const n = ($('#rn').value||'').trim(); modal(''); if (n) act('rename', {name:n}); };
+ACT.closeModal = () => modal('');
+ACT.gnav = d => { const m = {'g-':[-1,0],'g+':[1,0],'s-':[0,-1],'s+':[0,1]}[d.d]; S.gal = clampInt(S.gal+m[0],1,CFG.GALAXIES); S.sys += m[1]; if (S.sys < 1) S.sys = CFG.SYSTEMS; if (S.sys > CFG.SYSTEMS) S.sys = 1; render(true); };
+ACT.ggo = () => { S.gal = clampInt($('#g_g').value,1,CFG.GALAXIES); S.sys = clampInt($('#g_s').value,1,CFG.SYSTEMS); render(true); };
+ACT.ghome = () => { S.gal = CTX.P.g; S.sys = CTX.P.s; render(true); };
+ACT.gto = d => { S.gal = +d.g; S.sys = +d.s; S.view = 'galaxy'; render(true); };
+ACT.gfleet = d => { S.ft = {g:+d.g, s:+d.s, p:+d.p}; S.fm = d.m; S.view = 'fleet'; render(true); window.scrollTo(0,0); };
+ACT.gspy = d => { const n = Math.min(CTX.P.ships.probe||0, S.me.probes||1); if (!n) return toast('Keine Spionagesonden auf dem Planeten.', true);
+ act('send', {ships:{probe:n}, to:{g:+d.g, s:+d.s, p:+d.p}, mission:'spy', pct:10, cargo:{m:0,c:0,d:0}}); };
+ACT.fmax = d => { const i = $('#f_'+d.k); if (i) { i.value = CTX.P.ships[d.k]||0; fleetCalc(); } };
+ACT.fall = () => { document.querySelectorAll('.fs').forEach(i => i.value = CTX.P.ships[i.dataset.k]||0); fleetCalc(); };
+ACT.fnone = () => { document.querySelectorAll('.fs').forEach(i => i.value = ''); fleetCalc(); };
+ACT.cmax = () => { const F = readFleetForm(), P = settle(S.planet, nowT()); const fuel = countUnits(F.ships) ? fuelFor(F.ships, distance(P, F.to), F.pct) : 0; let cap = capacity(F.ships);
+ const m = Math.min(Math.floor(P.res.m), cap); cap -= m; const c = Math.min(Math.floor(P.res.c), cap); cap -= c; const dd = Math.max(0, Math.min(Math.floor(P.res.d - fuel), cap));
+ $('#c_m').value = m; $('#c_c').value = c; $('#c_d').value = dd; fleetCalc(); };
+ACT.send = async () => { const F = readFleetForm(); if (await act('send', F)) { S.ft = null; render(true); } };
+ACT.recall = d => act('recall', {id:d.id});
+ACT.toggleRep = d => { S.openRep[d.id] = !S.openRep[d.id]; const r = document.getElementById('rep_'+d.id); if (r) r.classList.toggle('open'); };
+ACT.delrep = d => act('delrep', {id:d.id});
+ACT.delall = () => act('delall');
+ACT.saveopt = () => act('options', {probes: clampInt($('#o_probes').value, 1, 1e6)});
+ACT.reset = () => modal(`<p><b>Wirklich eine neue Runde starten?</b><br>Alle Planeten, Flotten und Forschungen werden gelöscht. Das kann nicht rückgängig gemacht werden.</p><button class="red" data-act="doReset">Ja, neue Runde</button> <button data-act="closeModal">Abbrechen</button>`);
+ACT.doReset = () => { modal(''); act('reset'); };
+
+document.addEventListener('click', e => { const el = e.target.closest('[data-act]'); if (!el || !ACT[el.dataset.act]) return; e.preventDefault(); ACT[el.dataset.act](el.dataset, el, e); });
+document.addEventListener('change', e => { const el = e.target; if (el.dataset && el.dataset.chg === 'pct') act('pct', {key:el.dataset.k, v:el.value}); if (S.view === 'fleet') fleetCalc(); });
+document.addEventListener('input', e => { if (S.view === 'fleet' && e.target.closest('main')) fleetCalc(); });
+document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.id && e.target.id.startsWith('g_')) ACT.ggo(); });
+document.addEventListener('submit', async e => { if (e.target.id !== 'authform') return; e.preventDefault();
+ const reg = S.auth === 'register', body = {name:$('#a_name').value, password:$('#a_pw').value};
+ if (reg) Object.assign(body, {planet:$('#a_planet').value, gal:$('#a_gal').value, invite:$('#a_inv').value});
+ try { const j = await api(reg ? '/api/register' : '/api/login', body); S.auth = null; S.view = 'overview'; apply(j.state);
+  if (S.planet){ S.gal = S.planet.g; S.sys = S.planet.s; } if (reg) toast(`Willkommen, ${S.me.name}! Dein Planet liegt bei ${coords(S.planet)}.`); render(true); }
+ catch(err){ toast(err.message, true); } });
+$('#modal').addEventListener('click', e => { if (e.target.id === 'modal') modal(''); });
+
+setInterval(() => { if (!CTX) return; const now = nowT(); let need = false;
+ document.querySelectorAll('.cd').forEach(el => { const left = +el.dataset.end - now; if (left <= 0){ if (!el.dataset.fired){ el.dataset.fired = 1; need = true; } el.textContent = 'fertig'; } else el.textContent = dur(left); });
+ updateBar(); if (need) { scheduleRender(); setTimeout(refresh, 1500); } }, 1000);
+setInterval(() => { if (S.me && !document.hidden) refresh(); }, 4000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden && S.me) refresh(); });
+
+(async () => { try { apply(await api('/api/state')); if (S.planet){ S.gal = S.planet.g; S.sys = S.planet.s; render(true); } } catch(e){ if (!S.me){ S.auth = S.auth || 'login'; render(true); } } })();
+</script>
+</body>
+</html>
