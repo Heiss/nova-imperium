@@ -12,8 +12,8 @@ importers:
         specifier: 13.0.3
         version: 13.0.3
       nodemailer:
-        specifier: 8.0.2
-        version: 8.0.2
+        specifier: 8.0.11
+        version: 8.0.11
     devDependencies:
       '@axe-core/playwright':
         specifier: 4.14.0
@@ -1486,8 +1486,8 @@ packages:
     resolution: {integrity: sha512-6li2QanLsAXpIH2R6j77MzRyvOyrvdTqlKtO4CgBdHGNvN99ZZfyxszHc5o5+IZBWD5u6Hzwg83JoGXmqZNG9Q==}
     engines: {node: '>=18'}
 
-  nodemailer@8.0.2:
-    resolution: {integrity: sha512-zbj002pZAIkWQFxyAaqoxvn+zoIwRnS40hgjqTXudKOOJkiFFgBeNqjgD3/YCR12sZnrghWYBY+yP1ZucdDRpw==}
+  nodemailer@8.0.11:
+    resolution: {integrity: sha512-nrO/pDAUKl+wXX+lx16tDLbnm0fW6sK/x8mgohaCpg+CdCEl482bD4tCuAZk2DyliruiNTIZxRCoWkDqJEnAiA==}
     engines: {node: '>=6.0.0'}
 
   npm-run-path@6.0.0:
@@ -3202,7 +3202,7 @@ snapshots:
 
   node-releases@2.0.63: {}
 
-  nodemailer@8.0.2: {}
+  nodemailer@8.0.11: {}
 
   npm-run-path@6.0.0:
     dependencies:
