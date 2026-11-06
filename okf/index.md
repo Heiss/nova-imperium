@@ -1,0 +1,36 @@
+---
+okf_version: "0.2"
+---
+
+# Overview
+
+* [Overview and goals](/overview.md) - purpose, scope, legend of the markers (E/V/U)
+* [History of the decisions](/history.md) - how the project came to be, from version 1 to this setup
+* [Open points](/open-points.md) - what the owner still decides or checks
+
+# Architecture
+
+* [System architecture](/architecture/system.md) - components, request flow, the game clock
+* [Docker operation](/architecture/docker.md) - services, volumes, secrets, hardening
+* [SQLite storage](/data/sqlite.md) - schema, migrations, transactions, backup
+
+# Features
+
+* [Invitations](/features/invitations.md) - registration only by invitation, mail or copied link
+* [Admin](/features/admin.md) - admins by the operator command, the admin panel, live universe settings
+
+# Security
+
+* [Security measures](/security/review.md) - what protects accounts, data and the browser, and what is open
+
+# Operations
+
+* [Test strategy](/ops/testing.md) - unit, equivalence, E2E, accessibility, mutation, gates
+* [Configuration](/ops/config.md) - environment variables, secret files, fail closed
+* [Branching and release](/ops/branching-release.md) - pull requests, CI Gate, CalVer tags, Renovate
+* [Languages](/ops/language.md) - development in English, game interface in German
+* [Defaults stay inside](/ops/defaults.md) - a fresh instance is closed and talks to nobody
+
+# Log
+
+* [Update log](/log.md)

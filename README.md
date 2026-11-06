@@ -1,69 +1,58 @@
-# Nova Imperium – Classic Uni
+# Nova Imperium
 
-Ein Weltraum-Browserspiel (mit eigenen Grafiken für alle 32 Gebäude, Forschungen, Schiffe und Verteidigungsanlagen in `public/art.js`) im Stil der alten Version von 2007/2008: Minen, Forschung, Werft, Verteidigung, Flotten, Spionage, Kämpfe und Highscore. Kein Premium, keine Dunkle Materie.
+A classic space strategy browser game for a group of friends, in the style of
+the browser games of 2007/2008: mines, research, shipyard, defense, fleets,
+espionage, battles and a highscore. No premium, no paid boosts. The interface
+is German; every building, research, ship and defense has its own drawn art.
 
-Der Server braucht **nur Node.js (Version 18 oder neuer)**, es gibt keine weiteren Pakete und kein `npm install`. Alle Spielstände liegen in einer einzigen Datei: `data/universe.json`.
+The server computes everything itself (production, building queues, flights,
+battles), also while nobody is online. Players only need a browser.
 
-## Schnellstart
-
-```bash
-node server.js
-```
-
-Danach im Browser `http://SERVER-IP:8080` öffnen. Wer sich **zuerst** registriert, wird Admin und kann später neue Runden starten.
-
-## Einstellungen (Umgebungsvariablen)
-
-| Variable      | Standard  | Bedeutung |
-|---------------|-----------|-----------|
-| `PORT`        | `8080`    | Port des Webservers |
-| `HOST`        | `0.0.0.0` | Adresse, auf der gelauscht wird (`127.0.0.1`, wenn ein Reverse-Proxy davor sitzt) |
-| `INVITE_CODE` | leer      | Wenn gesetzt, muss man diesen Code bei der Registrierung angeben – empfohlen, damit keine Fremden mitspielen |
-| `DATA_DIR`    | `./data`  | Ordner für den Spielstand |
-
-Beispiel:
-```bash
-PORT=8080 INVITE_CODE=kaffeetasse node server.js
-```
-
-Das Tempo und die Größe des Universums stehen oben in `public/game.js` (`SPEED`, `GALAXIES`, `SYSTEMS` …). Danach den Server neu starten.
-
-## Dauerhaft laufen lassen (Linux mit systemd)
+## Quick start
 
 ```bash
-sudo useradd --system --home /opt/nova-imperium nova
-sudo mkdir -p /opt/nova-imperium && sudo cp -r . /opt/nova-imperium
-sudo chown -R nova:nova /opt/nova-imperium
-sudo cp nova-imperium.service /etc/systemd/system/     # vorher INVITE_CODE darin anpassen
-sudo systemctl daemon-reload && sudo systemctl enable --now nova-imperium
-journalctl -u nova-imperium -f                         # Log ansehen
+git clone https://github.com/Heiss/nova-imperium.git && cd nova-imperium
+docker/init-env.sh                     # creates .env and secrets/
+$EDITOR .env                           # set NOVA_PUBLIC_URL (and SMTP if wanted)
+docker compose up -d
+docker compose exec app nova invite you@example.org   # prints your invitation link
+docker compose exec app nova admin YourName           # after you registered
 ```
 
-## Alternativ mit Docker
+The game listens on `127.0.0.1:8080`; put your reverse proxy with HTTPS in
+front. Just trying it out? `docker/init-env.sh --demo && docker compose up -d --build`
+starts it on http://localhost:8080 with a local mail sink on
+http://localhost:8025.
 
-```bash
-docker build -t nova-imperium .
-docker run -d --name nova -p 8080:8080 -e INVITE_CODE=kaffeetasse -v nova-data:/data --restart unless-stopped nova-imperium
-```
+## Documentation
 
-## HTTPS (empfohlen, wenn es eine Domain gibt)
+- [Getting started](docs/getting-started.md): installation, first admin, demo
+- [Configuration](docs/configuration.md): every setting in `.env` and the secret files
+- [Operations](docs/operations.md): reverse proxy, backup, updates, hardening
+- [Development](docs/development.md): layout, commands, quality gates
+- [Decisions](okf/index.md): why the project looks like this (OKF bundle)
 
-Die Passwörter gehen sonst unverschlüsselt durchs Netz. Am einfachsten mit **Caddy** (holt das Zertifikat automatisch). `/etc/caddy/Caddyfile`:
+## What is in it
 
-```
-spiel.example.de {
-    reverse_proxy 127.0.0.1:8080
-}
-```
+- Players join only by invitation: the admin enters an e-mail address, the
+  invitation goes out by mail (SMTP) or the admin copies the link. Links are
+  single-use and expire after 7 days.
+- Admins are made by the operator on the command line, never through the web.
+- The admin panel changes speed, size and start values of the universe live,
+  starts new rounds and manages invitations.
+- All data lives in SQLite in a Docker volume and survives restarts and reboots.
+- Settings through `.env`; secrets (the SMTP password) through files.
+- Caddy in front with a strict Content-Security-Policy.
 
-Dann den Spielserver mit `HOST=127.0.0.1` starten, damit er nur über Caddy erreichbar ist. Bei nginx muss `proxy_set_header X-Forwarded-Proto $scheme;` und `X-Forwarded-For` gesetzt werden.
+## Quality
 
-## Backup
+Every pull request runs lint with complexity limits, type check, unit tests
+with coverage (≥ 90 % lines, ≥ 85 % branches), mutation tests (score ≥ 80 %),
+browser tests (desktop and phone, no CSP violations), the Docker image with a
+Compose smoke test, gitleaks, `pnpm audit`, CodeQL and Trivy. One gate job
+collects them; only a green gate goes to review. The rules of the game are
+checked against the original version 1 to the last digit.
 
-Einfach `data/universe.json` kopieren. Der Server speichert alle 5 Sekunden und beim Beenden.
+## License
 
-## Was der Server macht
-
-- Er rechnet alles selbst: Rohstoffe, Bauaufträge, Flugzeiten und Kämpfe. Das läuft auch, wenn niemand online ist, und man kann nicht schummeln.
-- Passwörter werden mit scrypt gehasht gespeichert, Logins bleiben 30 Tage gültig.
-- Das Spiel ist für Freundesrunden mit bis zu einigen Dutzend Spielern gedacht.
+MIT, see [LICENSE](LICENSE).
