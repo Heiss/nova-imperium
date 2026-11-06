@@ -10,4 +10,5 @@
 * **Update**: Docker image (Node 26, non-root, no compiler or package manager), `compose.yaml` with Caddy (strict CSP), `compose.demo.yaml` with Mailpit, `docker/init-env.sh`, `docker/smoke.sh`.
 * **Update**: CI like muffelblog: lint with complexity gates, format, types, unit tests with coverage gate, Stryker (80 %), Playwright E2E with CSP and axe checks, image and Compose stack with smoke test and Trivy, gitleaks, `pnpm audit`, CodeQL; one gate job. Nightly mutation run, release workflow with CalVer and GHCR, Renovate.
 * **Fix** (found while porting): opening an invitation link in a tab that is already open did nothing (only the hash changes); a cookie part with a leading space gave an empty name; a too large request closed the connection instead of answering 400.
+* **Update**: Level at the introduction: 190 unit tests, 99.5 % lines and 95.4 % branches covered, mutation score 92.6 %, 11 E2E tests.
 * **Docs**: README, getting started, configuration, operations, development; this bundle.
