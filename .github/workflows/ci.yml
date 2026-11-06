@@ -42,6 +42,7 @@ jobs:
             echo "code=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
+          files=$(git diff --name-only "$base" "$HEAD_SHA")
           code=false
           while IFS= read -r file; do
             case "$file" in
@@ -50,7 +51,7 @@ jobs:
               *.md) ;;
               *) code=true ;;
             esac
-          done < <(git diff --name-only "$base" "$HEAD_SHA")
+          done <<< "$files"
           echo "code=$code" >> "$GITHUB_OUTPUT"
 
   check:
@@ -219,6 +220,8 @@ jobs:
       - name: Findings of severity high or above block
         run: node .github/scripts/codeql-gate.mjs sarif
 
+  # The single required status check for main. Evaluate even when a job fails
+  # or is skipped, and allow skips only when the workflow expects them.
   gate:
     name: CI Gate
     needs: [changes, security, codeql, check, e2e, mutation, compose]
@@ -237,15 +240,27 @@ jobs:
           COMPOSE: ${{ needs.compose.result }}
           EVENT: ${{ github.event_name }}
         run: |
-          if [ "$SECURITY" != "success" ]; then echo "Secrets or dependencies check failed: $SECURITY"; exit 1; fi
-          if [ "$CHANGES" != "success" ]; then echo "Change detection failed: $CHANGES"; exit 1; fi
+          require_success() {
+            if [ "$2" != "success" ]; then
+              echo "::error::$1 must succeed (result: $2)"
+              exit 1
+            fi
+          }
+
+          require_success "Detect changes" "$CHANGES"
+          require_success "Secrets and dependencies" "$SECURITY"
+
+          case "$CODE" in
+            true)
+              require_success "CodeQL" "$CODEQL"
+              require_success "Lint, types, unit tests and build" "$CHECK"
+              require_success "E2E tests" "$E2E"
+              require_success "Mutation tests" "$MUTATION"
+              ;;
+            false) echo "Documentation-only change." ;;
+            *) echo "::error::Missing or invalid change detection output: $CODE"; exit 1 ;;
+          esac
+
           if [ "$EVENT" = "pull_request" ] || [ "$CODE" = "true" ]; then
-            if [ "$COMPOSE" != "success" ]; then echo "Docker build or Compose checks failed: $COMPOSE"; exit 1; fi
-          fi
-          if [ "$CODE" = "true" ]; then
-            for result in "$CODEQL" "$CHECK" "$E2E" "$MUTATION"; do
-              if [ "$result" != "success" ]; then echo "A required job was not successful: $result"; exit 1; fi
-            done
-          else
-            echo "Only documentation changed, code checks are skipped."
+            require_success "Docker image and Compose stack" "$COMPOSE"
           fi
