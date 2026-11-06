@@ -1,0 +1,95 @@
+// Test setup for the server: a real SQLite database in memory, a clock the
+// test moves, a seeded random generator and readable ids.
+import { seeded } from '../test/fixtures.ts';
+import type { Planet } from '../shared/types.ts';
+import { hashPassword } from './auth.ts';
+import type { Config } from './config.ts';
+import { openDatabase } from './db/database.ts';
+import { Store, type User } from './db/store.ts';
+import type { Ctx } from './game/context.ts';
+
+export interface TestCtx extends Ctx {
+  clock: { t: number };
+}
+
+export function testCtx(start = 1_000_000, seed = 42): TestCtx {
+  const clock = { t: start };
+  let n = 0;
+  return {
+    store: new Store(openDatabase(':memory:')),
+    clock,
+    now: () => clock.t,
+    rng: seeded(seed),
+    id: () => `id${++n}`,
+  };
+}
+
+export const testConfig = (over: Partial<Config> = {}): Config => ({
+  host: '127.0.0.1',
+  port: 0,
+  dataDir: './data',
+  publicUrl: 'http://localhost:8080',
+  secureCookies: false,
+  trustProxy: false,
+  sessionDays: 30,
+  inviteDays: 7,
+  rateLimitAttempts: 20,
+  rateLimitMinutes: 10,
+  smtp: null,
+  ...over,
+});
+
+export function addUser(
+  ctx: Ctx,
+  name: string,
+  over: Partial<User> = {},
+): User {
+  const u: User = {
+    id: `u_${name}`,
+    name,
+    email: `${name.toLowerCase()}@example.org`,
+    salt: 'salt',
+    pw: hashPassword('secret1', 'salt'),
+    admin: false,
+    probes: 1,
+    readAt: 0,
+    created: ctx.now(),
+    research: {},
+    rq: null,
+    ...over,
+  };
+  ctx.store.saveUser(u);
+  return u;
+}
+
+export function addPlanet(
+  ctx: Ctx,
+  owner: string,
+  over: Partial<Planet> = {},
+): Planet {
+  const g = over.g ?? 1;
+  const s = over.s ?? 1;
+  const p = over.p ?? 5;
+  const planet: Planet = {
+    id: `p${g}_${s}_${p}`,
+    owner,
+    name: `Planet ${owner}`,
+    g,
+    s,
+    p,
+    temp: 50,
+    res: { m: 100000, c: 100000, d: 100000 },
+    b: {},
+    ships: {},
+    def: {},
+    bq: null,
+    sq: [],
+    sqT: null,
+    pct: {},
+    t: ctx.now(),
+    created: ctx.now(),
+    ...over,
+  };
+  ctx.store.savePlanet(planet);
+  return planet;
+}

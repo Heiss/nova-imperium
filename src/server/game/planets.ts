@@ -1,0 +1,68 @@
+// Places a new home planet: a random free position 4 to 12 in the wished
+// galaxy, otherwise the first free position of the universe.
+import { pid } from '../../shared/flight.ts';
+import type { Coords, Planet } from '../../shared/types.ts';
+import { type Ctx, fail, universe } from './context.ts';
+
+const TRIES = 300;
+
+function randomSpot(
+  ctx: Ctx,
+  gal: number,
+  free: (c: Coords) => boolean,
+): Coords | null {
+  const u = universe(ctx);
+  for (let i = 0; i < TRIES; i++) {
+    const c = {
+      g: gal,
+      s: 1 + Math.floor(ctx.rng() * u.systems),
+      p: 4 + Math.floor(ctx.rng() * 9),
+    };
+    if (free(c)) return c;
+  }
+  return null;
+}
+
+function firstSpot(ctx: Ctx, free: (c: Coords) => boolean): Coords | null {
+  const u = universe(ctx);
+  for (let g = 1; g <= u.galaxies; g++)
+    for (let s = 1; s <= u.systems; s++)
+      for (let p = 1; p <= u.positions; p++)
+        if (free({ g, s, p })) return { g, s, p };
+  return null;
+}
+
+export function placePlanet(
+  ctx: Ctx,
+  owner: string,
+  name: string,
+  gal: number,
+): Planet {
+  const used = new Set(ctx.store.planets().map((p) => p.id));
+  const free = (c: Coords): boolean => !used.has(pid(c));
+  const c =
+    randomSpot(ctx, gal, free) ??
+    firstSpot(ctx, free) ??
+    fail('Das Universum ist voll.');
+  const u = universe(ctx);
+  const t = ctx.now();
+  const planet: Planet = {
+    id: pid(c),
+    owner,
+    name,
+    ...c,
+    temp: Math.round(130 - (c.p - 1) * 10 + (ctx.rng() * 20 - 10)),
+    res: { m: u.startMetal, c: u.startCrystal, d: u.startDeuterium },
+    b: {},
+    ships: {},
+    def: {},
+    bq: null,
+    sq: [],
+    sqT: null,
+    pct: {},
+    t,
+    created: t,
+  };
+  ctx.store.savePlanet(planet);
+  return planet;
+}
