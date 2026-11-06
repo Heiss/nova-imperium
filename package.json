@@ -1,9 +1,56 @@
 {
   "name": "nova-imperium",
-  "version": "1.0.0",
-  "description": "Klassisches Weltraum-Browserspiel im Stil von 2007 – für Freundesrunden",
-  "main": "server.js",
-  "scripts": { "start": "node server.js" },
-  "engines": { "node": ">=18" },
-  "license": "MIT"
+  "version": "0.0.0",
+  "private": true,
+  "description": "Classic space strategy browser game for a small group of friends, self-hosted with Docker",
+  "license": "MIT",
+  "type": "module",
+  "packageManager": "pnpm@10.28.0",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "start": "node src/server/main.ts",
+    "cli": "node src/server/cli.ts",
+    "build": "node scripts/build-client.ts",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:mutation": "stryker run",
+    "test:e2e": "playwright test",
+    "check": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm test:coverage && pnpm build"
+  },
+  "dependencies": {
+    "better-sqlite3": "13.0.3",
+    "nodemailer": "8.0.2"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.14.0",
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "1.63.0",
+    "@stryker-mutator/core": "10.1.1",
+    "@stryker-mutator/vitest-runner": "10.1.1",
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/node": "^26.6.6",
+    "@types/nodemailer": "^8.0.2",
+    "@vitest/coverage-v8": "^5.1.0",
+    "esbuild": "^0.28.2",
+    "eslint": "^10.14.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-sonarjs": "4.2.2",
+    "globals": "^17.14.0",
+    "prettier": "^3.9.10",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.72.1",
+    "vitest": "^5.1.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  }
 }

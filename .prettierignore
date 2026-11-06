@@ -1,0 +1,11 @@
+pnpm-lock.yaml
+dist
+coverage/
+reports/
+.stryker-tmp/
+playwright-report
+test-results
+okf
+data
+secrets
+src/test/legacy
