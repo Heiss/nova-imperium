@@ -1,0 +1,154 @@
+import { describe, expect, it } from 'vitest';
+import { planet, U } from '../test/fixtures.ts';
+import { BUILD, RES, SHIPS } from './catalog.ts';
+import {
+  accrue,
+  afford,
+  buildTime,
+  capOf,
+  caps,
+  lvlCost,
+  maxAfford,
+  pay,
+  prod,
+  refund,
+  reqMissing,
+  researchTime,
+  sumLevels,
+  unitTime,
+} from './economy.ts';
+
+describe('costs', () => {
+  it('grow with the factor of the building, rounded down', () => {
+    expect(lvlCost(BUILD.metal!, 1)).toEqual([60, 15, 0]);
+    expect(lvlCost(BUILD.metal!, 2)).toEqual([90, 22, 0]);
+    expect(lvlCost(BUILD.crystal!, 3)).toEqual([122, 61, 0]);
+  });
+  it('double per level for research (no factor)', () => {
+    expect(lvlCost(RES.energy!, 1)).toEqual([0, 800, 400]);
+    expect(lvlCost(RES.energy!, 3)).toEqual([0, 3200, 1600]);
+  });
+  it('sum up over all levels', () => {
+    expect(sumLevels(BUILD.metal!, 0)).toBe(0);
+    expect(sumLevels(BUILD.metal!, 1)).toBe(75);
+    expect(sumLevels(BUILD.metal!, 2)).toBe(75 + 112);
+  });
+});
+
+describe('storage', () => {
+  it('starts at the base value and grows with 1.6^level', () => {
+    expect(capOf(0, U)).toBe(100000);
+    expect(capOf(1, U)).toBe(150000);
+    expect(capOf(3, U)).toBe(100000 + 50000 * 4);
+    expect(capOf(0, { ...U, baseStore: 20000 })).toBe(20000);
+  });
+  it('is read per resource from the storage buildings', () => {
+    expect(
+      caps(planet({ b: { smetal: 1, scrystal: 2, sdeut: 3 } }), U),
+    ).toEqual({
+      m: 150000,
+      c: 200000,
+      d: 300000,
+    });
+  });
+});
+
+describe('times', () => {
+  const p = planet({ b: { robot: 1, lab: 3, yard: 1 } });
+  it('depend on cost, building level and speed', () => {
+    expect(buildTime([5000, 5000, 0], p, U)).toBe(1440000);
+    expect(buildTime([5000, 5000, 0], planet(), U)).toBe(2880000);
+    expect(researchTime([1000, 1000, 0], p, U)).toBe(360000);
+    expect(unitTime(SHIPS.lf!, p, U)).toBe(576000);
+    expect(buildTime([5000, 5000, 0], p, { ...U, speed: 10 })).toBe(720000);
+  });
+  it('are at least one second', () => {
+    expect(buildTime([1, 0, 0], p, U)).toBe(1000);
+    expect(researchTime([1, 0, 0], p, U)).toBe(1000);
+    expect(unitTime({ cost: [1, 0, 0] }, p, U)).toBe(1000);
+  });
+});
+
+describe('paying', () => {
+  it('checks every resource', () => {
+    const p = planet({ res: { m: 100, c: 50, d: 10 } });
+    expect(afford(p, [100, 50, 10])).toBe(true);
+    expect(afford(p, [101, 50, 10])).toBe(false);
+    expect(afford(p, [100, 51, 10])).toBe(false);
+    expect(afford(p, [100, 50, 11])).toBe(false);
+    expect(afford(p, [50, 25, 5], 2)).toBe(true);
+    expect(afford(p, [50, 25, 5], 3)).toBe(false);
+  });
+  it('takes and gives back', () => {
+    const p = planet({ res: { m: 100, c: 50, d: 10 } });
+    pay(p, [10, 20, 5], 2);
+    expect(p.res).toEqual({ m: 80, c: 10, d: 0 });
+    refund(p, [10, 20, 5]);
+    expect(p.res).toEqual({ m: 90, c: 30, d: 5 });
+  });
+  it('counts how many units can be paid', () => {
+    const p = planet({ res: { m: 1000, c: 300, d: 0 } });
+    expect(maxAfford(p, [100, 100, 0])).toBe(3);
+    expect(maxAfford(p, [0, 0, 1])).toBe(0);
+    expect(maxAfford(p, [300, 0, 0])).toBe(3);
+  });
+});
+
+describe('requirements', () => {
+  it('name the missing buildings and research with their level', () => {
+    expect(
+      reqMissing(SHIPS.cr!, planet({ b: { yard: 4 } }), {
+        research: { impulse: 4 },
+      }),
+    ).toEqual(['Raumschiffwerft (Stufe 5)', 'Lasertechnik (Stufe 4)']);
+    expect(
+      reqMissing(SHIPS.cr!, planet({ b: { yard: 5 } }), {
+        research: { impulse: 4, laser: 4 },
+      }),
+    ).toEqual([]);
+    expect(reqMissing(BUILD.metal!, planet(), { research: {} })).toEqual([]);
+  });
+});
+
+describe('production', () => {
+  it('has a base income without mines', () => {
+    expect(prod(planet(), U)).toEqual({
+      m: 100,
+      c: 50,
+      d: 0,
+      eProd: 0,
+      eUse: 0,
+      f: 1,
+    });
+  });
+  it('is limited by energy', () => {
+    const p = planet({ b: { metal: 5, solar: 1 } });
+    const pr = prod(p, U);
+    expect(pr.eProd).toBeCloseTo(22, 10);
+    expect(pr.eUse).toBeCloseTo(80.5255, 3);
+    expect(pr.f).toBeCloseTo(22 / 80.5255, 4);
+    expect(pr.m).toBeCloseTo((20 + 30 * 8.05255 * pr.f) * 5, 3);
+  });
+  it('follows the production share and the temperature', () => {
+    const p = planet({
+      b: { deut: 2, solar: 10 },
+      temp: 100,
+      pct: { deut: 50 },
+    });
+    const pr = prod(p, U);
+    expect(pr.f).toBe(1);
+    expect(pr.d).toBeCloseTo(10 * 2 * 1.21 * (1.28 - 0.2) * 0.5 * 5, 6);
+    expect(pr.eUse).toBeCloseTo(20 * 2 * 1.21 * 0.5, 6);
+    // A temperature of 0 counts as 20, like in the original.
+    expect(prod({ ...p, temp: 0 }, U).d).toBe(prod({ ...p, temp: 20 }, U).d);
+    expect(prod({ ...p, pct: { solar: 0 } }, U).f).toBe(0);
+  });
+  it('accrues up to the storage limit and never above', () => {
+    const p = planet({ res: { m: 0, c: 99990, d: 200000 } });
+    accrue(p, 3600000, U);
+    expect(p.res).toEqual({ m: 100, c: 100000, d: 200000 });
+    accrue(p, 0, U);
+    accrue(p, -5, U);
+    expect(p.res.m).toBe(100);
+  });
+});
