@@ -1,0 +1,22 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "minimumReleaseAge": "3 days",
+  "packageRules": [
+    {
+      "matchUpdateTypes": ["patch"],
+      "automerge": true
+    }
+  ],
+  "customManagers": [
+    {
+      "description": "Images run by `docker run` in the CI (gitleaks, Trivy).",
+      "customType": "regex",
+      "managerFilePatterns": ["/^\\.github/workflows/ci\\.yml$/"],
+      "matchStrings": [
+        "(?<depName>zricethezav/gitleaks|aquasec/trivy):(?<currentValue>v?[0-9][0-9.]*)"
+      ],
+      "datasourceTemplate": "docker"
+    }
+  ]
+}

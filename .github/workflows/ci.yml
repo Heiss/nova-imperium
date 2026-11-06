@@ -1,0 +1,237 @@
+name: CI
+
+# Every pull request (against any branch) and every push to main runs the whole
+# suite. Only the gate job "CI Gate" is the required check of main: it always
+# runs and decides whether the skipped heavy jobs are fine (documentation only).
+on:
+  pull_request:
+  push:
+    branches: [main]
+  # The release workflow runs the whole suite again before it builds images.
+  workflow_call:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # Changes only to okf/, docs/ or Markdown files in the root do not start the
+  # heavy checks.
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.diff.outputs.code }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: diff
+        env:
+          EVENT: ${{ github.event_name }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PUSH_BEFORE: ${{ github.event.before }}
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          if [ "$EVENT" = "pull_request" ]; then base="$PR_BASE"; else base="$PUSH_BEFORE"; fi
+          if [ -z "$base" ] || [ "$base" = "0000000000000000000000000000000000000000" ]; then
+            echo "code=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          code=false
+          while IFS= read -r file; do
+            case "$file" in
+              okf/*|docs/*) ;;
+              */*) code=true ;;
+              *.md) ;;
+              *) code=true ;;
+            esac
+          done < <(git diff --name-only "$base" "$HEAD_SHA")
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+
+  check:
+    name: Lint, types, unit tests with coverage, build
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint --max-warnings 0
+      - run: pnpm format:check
+      - run: pnpm typecheck
+      # Blocks below 90 % lines and 85 % branches (vitest.config.ts).
+      - run: pnpm test:coverage
+      - run: pnpm build
+
+  e2e:
+    name: E2E tests (browser)
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm build
+      - run: pnpm test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report
+          retention-days: 7
+
+  # Incremental on pull requests and main (the result of the last run comes
+  # from the cache), complete on a release tag and every night (mutation.yml).
+  # A mutation score below 80 % fails the job (stryker.config.json).
+  mutation:
+    name: Mutation tests
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Result of the last run
+        uses: actions/cache@v4
+        with:
+          path: reports/stryker-incremental.json
+          key: stryker-${{ github.ref }}-${{ github.sha }}
+          restore-keys: |
+            stryker-${{ github.ref }}-
+            stryker-refs/heads/main-
+      - name: Incremental run
+        if: github.ref_type != 'tag'
+        run: pnpm test:mutation
+      - name: Complete run (release tag)
+        if: github.ref_type == 'tag'
+        run: pnpm test:mutation --force
+
+  compose:
+    name: Docker image and Compose stack
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: The production setup is valid, and a missing value is named
+        run: |
+          mkdir -p secrets && : > secrets/smtp_password
+          NOVA_PUBLIC_URL=https://game.example.org docker compose --env-file /dev/null -f compose.yaml config -q
+          if docker compose --env-file /dev/null -f compose.yaml config -q 2> missing.txt; then
+            echo 'compose.yaml must require NOVA_PUBLIC_URL'; exit 1
+          fi
+          grep NOVA_PUBLIC_URL missing.txt
+          rm secrets/smtp_password
+      # The demo: Mailpit as the mail sink, COMPOSE_FILE with compose.demo.yaml.
+      - run: docker/init-env.sh --demo
+      - run: docker compose up --detach --build --wait
+      - name: No critical holes in the image (Trivy; only those with a fix)
+        run: |
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:0.76.1 \
+            image --severity CRITICAL --ignore-unfixed --exit-code 1 --no-progress \
+            ghcr.io/heiss/nova-imperium:latest
+      - name: The image holds no compiler, package manager or tests
+        run: |
+          docker compose exec -T app sh -c '! command -v npm && ! command -v pnpm && ! command -v gcc && [ -z "$(find /app/src -name "*.test.ts")" ]'
+      - name: A wrong setting stops the start with a message
+        run: |
+          if docker compose run --rm --no-deps -e NOVA_SESSION_DAYS=0 app > wrong.txt 2>&1; then
+            echo 'the server must refuse NOVA_SESSION_DAYS=0'; exit 1
+          fi
+          grep 'NOVA_SESSION_DAYS' wrong.txt
+      - name: Smoke test (headers, invitation mail, registration, data after a restart)
+        run: docker/smoke.sh
+      - name: Logs
+        if: failure()
+        run: docker compose logs --no-color --tail 60
+      - run: docker compose down --volumes
+
+  # Secrets in the whole history and known holes in the production
+  # dependencies. Runs for every change, documentation included.
+  security:
+    name: Secrets and dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: No secrets in the history (gitleaks, exceptions in .gitleaksignore)
+        run: |
+          docker run --rm -v "$PWD:/repo" --entrypoint sh zricethezav/gitleaks:v8.30.1 -c \
+            'git config --global --add safe.directory /repo && cd /repo && gitleaks git . --redact --no-banner'
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: No known high or critical holes in the production dependencies
+        run: pnpm audit --prod --audit-level high
+
+  # Static analysis. A finding of security severity 7.0 or more blocks.
+  codeql:
+    name: CodeQL
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: github/codeql-action/init@v4
+        with:
+          languages: javascript-typescript
+          queries: security-extended
+      - uses: github/codeql-action/analyze@v4
+        with:
+          output: sarif
+      - name: Findings of severity high or above block
+        run: node .github/scripts/codeql-gate.mjs sarif
+
+  gate:
+    name: CI Gate
+    needs: [changes, security, codeql, check, e2e, mutation, compose]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Evaluate the result
+        env:
+          CHANGES: ${{ needs.changes.result }}
+          SECURITY: ${{ needs.security.result }}
+          CODE: ${{ needs.changes.outputs.code }}
+          CODEQL: ${{ needs.codeql.result }}
+          CHECK: ${{ needs.check.result }}
+          E2E: ${{ needs.e2e.result }}
+          MUTATION: ${{ needs.mutation.result }}
+          COMPOSE: ${{ needs.compose.result }}
+        run: |
+          if [ "$SECURITY" != "success" ]; then echo "Secrets or dependencies check failed: $SECURITY"; exit 1; fi
+          if [ "$CHANGES" != "success" ]; then echo "Change detection failed: $CHANGES"; exit 1; fi
+          if [ "$CODE" = "true" ]; then
+            for result in "$CODEQL" "$CHECK" "$E2E" "$MUTATION" "$COMPOSE"; do
+              if [ "$result" != "success" ]; then echo "A required job was not successful: $result"; exit 1; fi
+            done
+          else
+            echo "Only documentation changed, the heavy checks are skipped."
+          fi
