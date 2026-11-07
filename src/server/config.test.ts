@@ -32,6 +32,7 @@ describe('configuration', () => {
       secureCookies: true,
       trustProxy: false,
       sessionDays: 30,
+      passwordMinLength: 15,
       inviteDays: 7,
       rateLimitAttempts: 20,
       rateLimitMinutes: 10,

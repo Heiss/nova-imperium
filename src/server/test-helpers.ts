@@ -32,6 +32,7 @@ export const testConfig = (over: Partial<Config> = {}): Config => ({
   secureCookies: false,
   trustProxy: false,
   sessionDays: 30,
+  passwordMinLength: 15,
   inviteDays: 7,
   rateLimitAttempts: 20,
   rateLimitMinutes: 10,

@@ -135,6 +135,7 @@ function passwordRoutes(
   guard: (req: IncomingMessage) => void,
 ): Record<string, Handler> {
   const { ctx, cfg } = d;
+  const minimum = cfg.passwordMinLength;
   const signedOut = (): Reply => ({
     json: { ok: true },
     cookie: sessionCookie(cfg, null),
@@ -155,15 +156,16 @@ function passwordRoutes(
     },
     'POST /api/password/reset': ({ req, body }) => {
       guard(req);
-      security.resetPassword(ctx, body.token, body.password);
+      security.resetPassword(ctx, body.token, body.password, minimum);
       return signedOut();
     },
     'POST /api/password/change': (call) => {
       guard(call.req);
       const user = sessionUserOf(ctx, call);
-      if (call.body.password !== call.body.confirmation)
+      const { password, confirmation, current } = call.body;
+      if (password !== confirmation)
         throw new GameError('Die neuen Passwörter stimmen nicht überein.');
-      security.changePassword(ctx, user, call.body.current, call.body.password);
+      security.changePassword(ctx, user, current, password, minimum);
       return signedOut();
     },
     'POST /api/account/delete': (call) => {
@@ -189,6 +191,9 @@ function accountRoutes(
     cookie: sessionCookie(cfg, auth.startSession(ctx, cfg, u.id), remember),
   });
   return {
+    'GET /api/account/policy': () => ({
+      json: { passwordMinLength: cfg.passwordMinLength },
+    }),
     'GET /healthz': () => {
       ctx.store.db.prepare('SELECT 1').get();
       return { json: { ok: true } };
@@ -281,7 +286,7 @@ function loginRoutes(
       guard(req);
       const registration = body as unknown as auth.Registration;
       const user = ctx.store.tx(() => {
-        const u = auth.register(ctx, registration);
+        const u = auth.register(ctx, registration, cfg.passwordMinLength);
         record(ctx, {
           category: 'account',
           action: 'register',

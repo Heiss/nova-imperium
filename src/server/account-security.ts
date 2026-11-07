@@ -6,6 +6,7 @@ import {
   passwordMatches,
   validatePassword,
 } from './auth.ts';
+import { NUMBERS } from './config.ts';
 import type { User } from './db/store.ts';
 import { fail, type Ctx } from './game/context.ts';
 
@@ -65,8 +66,13 @@ export function issueReset(
   });
 }
 
-function replacePassword(ctx: Ctx, user: User, password: string): void {
-  validatePassword(password);
+function replacePassword(
+  ctx: Ctx,
+  user: User,
+  password: string,
+  minimum: number,
+): void {
+  validatePassword(password, minimum);
   const { pw, salt } = passwordFields(password);
   const update = ctx.store.db
     .prepare(
@@ -85,13 +91,19 @@ export function changePassword(
   user: User,
   old: unknown,
   next: unknown,
+  minimum: number = NUMBERS.passwordMinLength.def,
 ): void {
   if (!passwordMatches(user, String(old ?? '')))
     fail('Das bisherige Passwort ist falsch.');
-  ctx.store.tx(() => replacePassword(ctx, user, String(next ?? '')));
+  ctx.store.tx(() => replacePassword(ctx, user, String(next ?? ''), minimum));
 }
 
-export function resetPassword(ctx: Ctx, token: unknown, next: unknown): void {
+export function resetPassword(
+  ctx: Ctx,
+  token: unknown,
+  next: unknown,
+  minimum: number = NUMBERS.passwordMinLength.def,
+): void {
   ctx.store.tx(() => {
     const record = ctx.store.db
       .prepare(
@@ -101,7 +113,7 @@ export function resetPassword(ctx: Ctx, token: unknown, next: unknown): void {
       Pick<AccountToken, 'user_id'> | undefined;
     const user = record && ctx.store.user(record.user_id);
     if (!user) return fail('Dieser Link ist ungültig oder abgelaufen.');
-    replacePassword(ctx, user, String(next ?? ''));
+    replacePassword(ctx, user, String(next ?? ''), minimum);
     ctx.store.db.prepare('DELETE FROM passkeys WHERE user_id = ?').run(user.id);
   });
 }

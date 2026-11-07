@@ -28,14 +28,19 @@ const rules = (u: Universe): string => `<ul class="rules">
  <li>Flottenslots: 1 + Stufe der Computertechnik. Der Server rechnet rund um die Uhr – auch wenn du offline bist.</li>
  <li>Kein Premium, keine Dunkle Materie – nur Rohstoffe und Geduld.</li></ul>`;
 
+const passwordMinimum = (ui: Ui): string =>
+  ui.passwordMinLength === undefined
+    ? ''
+    : `minlength="${ui.passwordMinLength}"`;
+
 export const help = (v: V): string => `<h2>Hilfe &amp; Optionen</h2>
  ${box('Optionen', `<div class="flex">Sonden pro Spionage aus der Galaxie: <input type="number" id="o_probes" min="1" value="${v.s.me.probes || 1}" aria-label="Sonden pro Spionage"> <button data-act="saveopt">Speichern</button></div>`)}
  ${box(
    'Passwort ändern',
    `<form id="passwordform" class="flex">
  <label for="pw_current">Bisheriges Passwort</label> <input id="pw_current" type="password" autocomplete="current-password" required>
- <label for="pw_next">Neues Passwort</label> <input id="pw_next" type="password" autocomplete="new-password" minlength="15" required>
- <label for="pw_confirm">Neues Passwort wiederholen</label> <input id="pw_confirm" type="password" autocomplete="new-password" minlength="15" required>
+ <label for="pw_next">Neues Passwort</label> <input id="pw_next" type="password" autocomplete="new-password" ${passwordMinimum(v.ui)} required>
+ <label for="pw_confirm">Neues Passwort wiederholen</label> <input id="pw_confirm" type="password" autocomplete="new-password" ${passwordMinimum(v.ui)} required>
  <button type="submit">Passwort ändern</button></form>`,
  )}
  ${box('Passkeys', '<p>Auf unterstützten Geräten kannst du dich mit einem Passkey anmelden.</p><form id="passkeyform" class="flex"><label for="passkey-password">Passwort für neuen Passkey</label><input id="passkey-password" type="password" autocomplete="current-password" required><button type="submit">Passkey hinzufügen</button></form><p><button type="button" data-act="listPasskeys">Gespeicherte Passkeys anzeigen</button></p><div id="passkey-list"></div>')}
@@ -150,7 +155,7 @@ function extraAuth(ui: Ui): string | null {
     return authStep(
       'Neues Passwort festlegen',
       'resetform',
-      '<label for="pw_next">Neues Passwort (mindestens 15 Zeichen)</label> <input id="pw_next" type="password" autocomplete="new-password" minlength="15" required>',
+      `<label for="pw_next">Neues Passwort</label> <input id="pw_next" type="password" autocomplete="new-password" ${passwordMinimum(ui)} required>`,
       'Passwort speichern',
     );
   if (ui.auth === 'code')
@@ -176,7 +181,7 @@ export function auth(ui: Ui): string {
     : '<button class="small" type="button" data-act="forgot">Passwort vergessen?</button>';
   return `<div class="box auth"><div class="hd">${reg ? 'Neues Imperium gründen' : 'Login'}</div><div class="bd"><form id="authform"><table class="kv">
  <tr><td><label for="a_name">Name</label></td><td><input id="a_name" maxlength="20" autocomplete="username" required></td></tr>
- <tr><td><label for="a_pw">Passwort</label></td><td><input id="a_pw" type="password" autocomplete="${reg ? 'new-password' : 'current-password'}" ${reg ? 'minlength="15"' : ''} required></td></tr>
+ <tr><td><label for="a_pw">Passwort</label></td><td><input id="a_pw" type="password" autocomplete="${reg ? 'new-password' : 'current-password'}" ${reg ? passwordMinimum(ui) : ''} required></td></tr>
  ${reg ? registerRows(ui) : '<tr><td colspan="2"><label><input id="remember-login" type="checkbox"> Login auf diesem Gerät speichern</label></td></tr>'}
  </table><p><button type="submit">${reg ? 'Imperium gründen' : 'Einloggen'}</button> ${back}</p>${note}</form></div></div>`;
 }

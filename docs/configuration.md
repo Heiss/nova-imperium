@@ -19,6 +19,7 @@ this table and in `.env.example`, and that the defaults and ranges match.
 | `NOVA_DATA_DIR`            | `./data`     | folder                           | Folder of the SQLite database `nova.sqlite`. The image uses the volume `/data`.                                                |
 | `NOVA_TRUST_PROXY`         | `0`          | `0`, `1`                         | `1`: the client address is taken from `X-Real-IP` (set by Caddy). `compose.yaml` sets `1`. Never `1` without a proxy in front. |
 | `NOVA_SESSION_DAYS`        | `30`         | 1 to 365                         | Days a login stays valid.                                                                                                      |
+| `NOVA_PASSWORD_MIN_LENGTH` | `15`         | 8 to 200                         | Minimum length for registration, password changes and resets.                                                                  |
 | `NOVA_INVITE_DAYS`         | `7`          | 1 to 30                          | Days an invitation link stays valid.                                                                                           |
 | `NOVA_EMAIL_LOGIN_CODES`   | `0`          | `0`, `1`                         | Require a short-lived email code after password verification. Requires SMTP.                                                   |
 | `NOVA_WEB_PUSH`            | `0`          | `0`, `1`                         | Enable browser push notifications. Requires HTTPS.                                                                             |

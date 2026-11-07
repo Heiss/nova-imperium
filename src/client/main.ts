@@ -1270,8 +1270,25 @@ window.addEventListener('hashchange', () => {
   void openInvite(token).then(() => render(true));
 });
 
+async function loadPasswordPolicy(): Promise<void> {
+  const policy = await api('/api/account/policy').catch(() => null);
+  const minimum = policy?.passwordMinLength;
+  if (
+    typeof minimum === 'number' &&
+    Number.isSafeInteger(minimum) &&
+    minimum > 0
+  )
+    ui.passwordMinLength = minimum;
+}
+
 async function boot(): Promise<void> {
-  if (openReset()) return;
+  const policy = loadPasswordPolicy();
+  if (openReset()) {
+    await policy;
+    render();
+    return;
+  }
+  await policy;
   const invite = inviteToken();
   try {
     apply((await api('/api/state')) as unknown as GameState);

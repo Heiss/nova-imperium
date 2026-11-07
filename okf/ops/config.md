@@ -32,3 +32,7 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 See `docs/configuration.md`. Numeric values with their defaults: session days
 30, invitation days 7, rate limit 20 attempts per 10 minutes (the values of
 version 1), port 8080.
+
+`NOVA_PASSWORD_MIN_LENGTH` defaults to 15 characters and accepts 8 to 200.
+It applies at registration, password change and password reset. The server
+reads it at startup. Existing passwords remain usable.
