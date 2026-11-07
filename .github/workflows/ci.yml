@@ -1,8 +1,9 @@
 name: CI
 
 # Every pull request (against any branch) and every push to main runs the whole
-# suite. Only the gate job "CI Gate" is the required check of main: it always
-# runs and decides whether the skipped heavy jobs are fine (documentation only).
+# suite, with most heavy checks skipped for documentation-only changes.
+# The Docker build and Compose tests run on every pull request.
+# Only the gate job "CI Gate" is the required check of main.
 on:
   pull_request:
   push:
@@ -18,8 +19,8 @@ permissions:
   contents: read
 
 jobs:
-  # Changes only to okf/, docs/ or Markdown files in the root do not start the
-  # heavy checks.
+  # Changes only to okf/, docs/ or Markdown files in the root skip most heavy
+  # checks. Pull requests still run the Docker build and Compose tests.
   changes:
     name: Detect changes
     runs-on: ubuntu-latest
@@ -41,6 +42,7 @@ jobs:
             echo "code=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
+          files=$(git diff --name-only "$base" "$HEAD_SHA")
           code=false
           while IFS= read -r file; do
             case "$file" in
@@ -49,7 +51,7 @@ jobs:
               *.md) ;;
               *) code=true ;;
             esac
-          done < <(git diff --name-only "$base" "$HEAD_SHA")
+          done <<< "$files"
           echo "code=$code" >> "$GITHUB_OUTPUT"
 
   check:
@@ -129,8 +131,10 @@ jobs:
   compose:
     name: Docker image and Compose stack
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: github.event_name == 'pull_request' || needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
+    env:
+      NOVA_VERSION: ci-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - uses: actions/checkout@v4
       - name: The production setup is valid, and a missing value is named
@@ -144,12 +148,17 @@ jobs:
           rm secrets/smtp_password
       # The demo: Mailpit as the mail sink, COMPOSE_FILE with compose.demo.yaml.
       - run: docker/init-env.sh --demo
-      - run: docker compose up --detach --build --wait
+      - name: Make the demo secret readable by the container user
+        run: sudo chown 1000:1000 secrets/smtp_password
+      - name: Build the application image from the Dockerfile
+        run: docker compose build app
+      - name: Start the stack with the image built above
+        run: docker compose up --detach --no-build --wait
       - name: No critical holes in the image (Trivy; only those with a fix)
         run: |
           docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:0.76.1 \
             image --severity CRITICAL --ignore-unfixed --exit-code 1 --no-progress \
-            ghcr.io/heiss/nova-imperium:latest
+            "ghcr.io/heiss/nova-imperium:$NOVA_VERSION"
       - name: The image holds no compiler, package manager or tests
         run: |
           docker compose exec -T app sh -c '! command -v npm && ! command -v pnpm && ! command -v gcc && [ -z "$(find /app/src -name "*.test.ts")" ]'
@@ -164,7 +173,9 @@ jobs:
       - name: Logs
         if: failure()
         run: docker compose logs --no-color --tail 60
-      - run: docker compose down --volumes
+      - name: Remove the Compose stack
+        if: always()
+        run: docker compose down --volumes
 
   # Secrets in the whole history and known holes in the production
   # dependencies. Runs for every change, documentation included.
@@ -209,6 +220,8 @@ jobs:
       - name: Findings of severity high or above block
         run: node .github/scripts/codeql-gate.mjs sarif
 
+  # The single required status check for main. Evaluate even when a job fails
+  # or is skipped, and allow skips only when the workflow expects them.
   gate:
     name: CI Gate
     needs: [changes, security, codeql, check, e2e, mutation, compose]
@@ -225,13 +238,29 @@ jobs:
           E2E: ${{ needs.e2e.result }}
           MUTATION: ${{ needs.mutation.result }}
           COMPOSE: ${{ needs.compose.result }}
+          EVENT: ${{ github.event_name }}
         run: |
-          if [ "$SECURITY" != "success" ]; then echo "Secrets or dependencies check failed: $SECURITY"; exit 1; fi
-          if [ "$CHANGES" != "success" ]; then echo "Change detection failed: $CHANGES"; exit 1; fi
-          if [ "$CODE" = "true" ]; then
-            for result in "$CODEQL" "$CHECK" "$E2E" "$MUTATION" "$COMPOSE"; do
-              if [ "$result" != "success" ]; then echo "A required job was not successful: $result"; exit 1; fi
-            done
-          else
-            echo "Only documentation changed, the heavy checks are skipped."
+          require_success() {
+            if [ "$2" != "success" ]; then
+              echo "::error::$1 must succeed (result: $2)"
+              exit 1
+            fi
+          }
+
+          require_success "Detect changes" "$CHANGES"
+          require_success "Secrets and dependencies" "$SECURITY"
+
+          case "$CODE" in
+            true)
+              require_success "CodeQL" "$CODEQL"
+              require_success "Lint, types, unit tests and build" "$CHECK"
+              require_success "E2E tests" "$E2E"
+              require_success "Mutation tests" "$MUTATION"
+              ;;
+            false) echo "Documentation-only change." ;;
+            *) echo "::error::Missing or invalid change detection output: $CODE"; exit 1 ;;
+          esac
+
+          if [ "$EVENT" = "pull_request" ] || [ "$CODE" = "true" ]; then
+            require_success "Docker image and Compose stack" "$COMPOSE"
           fi
