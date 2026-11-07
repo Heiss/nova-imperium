@@ -1,3 +1,4 @@
+import { achievements } from './achievements.ts';
 import type { V } from './common.ts';
 import { research, resources } from './economy.ts';
 import { fleet } from './fleet.ts';
@@ -19,6 +20,7 @@ export const VIEWS: Record<string, (v: V) => string> = {
   guilds,
   messages,
   highscore,
+  achievements,
   help,
   admin,
 };
@@ -42,6 +44,7 @@ export function menu(admin: boolean): (MenuEntry | '-')[] {
     { view: 'messages', label: 'Nachrichten' },
     { view: 'highscore', label: 'Highscore' },
     { view: 'guilds', label: 'Gilden' },
+    { view: 'achievements', label: 'Achievements' },
     '-',
     { view: 'help', label: 'Hilfe & Optionen' },
   ];

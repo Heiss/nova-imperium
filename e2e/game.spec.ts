@@ -115,6 +115,28 @@ test('creates a guild and restores its profile after reload', async ({
   expect(w.problems).toEqual([]);
 });
 
+test('filters achievements and keeps tomorrow’s reward after claiming', async ({
+  page,
+}) => {
+  await register(page, uniqueName('Erfolg'));
+  await nav(page, 'achievements');
+  const next = page.getByText('Morgen bei fortgesetzter Serie:', {
+    exact: false,
+  });
+  await expect(next).toBeVisible();
+  const reward = await next.textContent();
+  await page.getByRole('button', { name: 'Tagesbelohnung abholen' }).click();
+  await expect(page.getByText('Abgeholt', { exact: true })).toBeVisible();
+  await expect(next).toHaveText(reward!);
+  await page.getByLabel('Kategorie', { exact: true }).selectOption('buildings');
+  await page.getByLabel('Suchen', { exact: true }).fill('Metallmine');
+  const visible = page.locator('[data-achievement]:visible');
+  await expect(visible.first()).toContainText('Metallmine');
+  await expect(
+    page.locator('[data-achievement]:visible:not([data-category=buildings])'),
+  ).toHaveCount(0);
+});
+
 test.describe('playing', () => {
   test('every page renders without CSP violations or script errors', async ({
     page,
