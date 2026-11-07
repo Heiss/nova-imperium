@@ -29,7 +29,7 @@ jobs:
       contents: write # GitHub release
       packages: write # GHCR
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Version and image name
         id: v
