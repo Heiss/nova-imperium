@@ -1,8 +1,10 @@
 // The browser glue: state, server calls, rendering, events and the clock.
 // The views are pure functions (views/), the logic is tested (logic/); this
 // file is run by the E2E suite.
+import { BUILD, RES } from '../shared/catalog.ts';
 import { pid } from '../shared/flight.ts';
 import { settle, settleR } from '../shared/settle.ts';
+import type { Levels, Queue } from '../shared/types.ts';
 import { clampInt, coords, dt, dur, esc, fmt } from './logic/format.ts';
 import {
   cargoMax,
@@ -30,8 +32,25 @@ let S: GameState | null = null;
 let offset = 0;
 let lastKey = '';
 let ctx: V | null = null;
+const completionNotices = new Set<string>();
+
+function gameView(view: string | null): string {
+  if (!view || !Object.hasOwn(VIEWS, view)) return 'overview';
+  return view === 'admin' && S && !S.me.admin ? 'overview' : view;
+}
+
+const viewFromUrl = (): string =>
+  gameView(new URLSearchParams(location.search).get('view'));
+
+function viewUrl(view: string): string {
+  const url = new URL(location.href);
+  url.searchParams.set('view', view);
+  url.hash = '';
+  return url.pathname + url.search;
+}
+
 const ui: Ui = {
-  view: 'overview',
+  view: viewFromUrl(),
   gal: 1,
   sys: 1,
   ft: null,
@@ -98,6 +117,11 @@ function apply(st: GameState | undefined): void {
   lastKey = key;
   offset = st.now - Date.now();
   S = st;
+  const view = gameView(ui.view);
+  if (view !== ui.view) {
+    ui.view = view;
+    history.replaceState(null, '', viewUrl(view));
+  }
   $('#unisub')!.textContent = `Classic Universum · Speed x${st.cfg.speed}`;
   if (!same) render();
 }
@@ -150,22 +174,62 @@ function keepInputs(view: HTMLElement, fresh: boolean): () => void {
 
 function renderLoggedOut(view: HTMLElement): void {
   ctx = null;
+  completionNotices.clear();
   $('#menu')!.innerHTML = '';
   $('#resbar')!.innerHTML = '';
   $('#pinfo')!.innerHTML = '';
   view.innerHTML = ui.auth ? auth(ui) : '<div class="notice">Lade …</div>';
 }
 
+function rememberUpgrade(
+  order: Queue | null,
+  levels: Levels,
+  catalog: Record<string, { n: string }>,
+  label: string,
+  now: number,
+): void {
+  if (!order || order.end > now || (levels[order.key] ?? 0) < order.lvl) return;
+  const name = catalog[order.key]?.n ?? order.key;
+  completionNotices.add(`${label}: ${name} (Stufe ${order.lvl}).`);
+}
+
+function rememberCompletions(previous: V, next: V): void {
+  if (previous.P.id !== next.P.id) return;
+  rememberUpgrade(previous.P.bq, next.P.b, BUILD, 'Ausbau fertig', next.now);
+  rememberUpgrade(
+    previous.R.rq,
+    next.R.research,
+    RES,
+    'Forschung fertig',
+    next.now,
+  );
+  const start = previous.P.sqT;
+  if (start === null || !previous.P.sq.length || next.P.sq.length) return;
+  const end = previous.P.sq.reduce((time, q) => time + q.n * q.unit, start);
+  if (end <= next.now) completionNotices.add('Werftauftrag fertig.');
+}
+
+function renderCompletions(view: HTMLElement): void {
+  if (!completionNotices.size) return;
+  const notice = document.createElement('div');
+  notice.className = 'notice';
+  notice.setAttribute('role', 'status');
+  notice.textContent = [...completionNotices].join(' ');
+  view.prepend(notice);
+}
+
 function render(fresh = false): void {
   const view = $('#view')!;
   if (!S) return renderLoggedOut(view);
   if (!S.planet) {
+    ctx = null;
     view.innerHTML =
       '<div class="notice">Du hast keinen Planeten. Bitte den Admin, eine neue Runde zu starten.</div>';
     return;
   }
   const restore = keepInputs(view, fresh);
   const now = nowT();
+  const previous = ctx;
   ctx = {
     s: S,
     P: settle(S.planet, now, S.cfg),
@@ -173,11 +237,14 @@ function render(fresh = false): void {
     now,
     ui,
   };
+  if (previous && !fresh) rememberCompletions(previous, ctx);
   renderMenu();
   updateBar();
   $('#pinfo')!.innerHTML =
     `<b>${esc(ctx.P.name)}</b> ${coords(ctx.P)} · Kommandant <b>${esc(S.me.name)}</b> · <span class="lnk" data-act="logout">Logout</span>`;
-  view.innerHTML = (VIEWS[ui.view] ?? VIEWS.overview!)(ctx);
+  const show = Object.entries(VIEWS).find(([name]) => name === ui.view)?.[1];
+  view.innerHTML = (show ?? VIEWS.overview!)(ctx);
+  renderCompletions(view);
   paintPlanets(view);
   restore();
   if (ui.view === 'fleet') fleetCalc();
@@ -191,7 +258,7 @@ function renderMenu(): void {
       if (i === '-') return '<div class="sep"></div>';
       const badge =
         i.view === 'messages' && n ? `<span class="badge">${n}</span>` : '';
-      return `<a href="#" data-act="nav" data-v="${i.view}" class="${ui.view === i.view ? 'on' : ''}">${esc(i.label)}${badge}</a>`;
+      return `<a href="${esc(viewUrl(i.view))}" data-act="nav" data-v="${i.view}" class="${ui.view === i.view ? 'on' : ''}">${esc(i.label)}${badge}</a>`;
     })
     .join('');
 }
@@ -292,7 +359,12 @@ const setInput = (sel: string, v: string | number): void => {
 
 // ----- actions -----
 
-const go = (view: string): void => {
+const go = (requested: string, push = true): void => {
+  const view = gameView(requested);
+  if (view !== ui.view) {
+    completionNotices.clear();
+    if (push) history.pushState(null, '', viewUrl(view));
+  }
   ui.view = view;
   render(true);
   window.scrollTo(0, 0);
@@ -463,7 +535,6 @@ async function submitAuth(): Promise<void> {
     const j = await api(reg ? '/api/register' : '/api/login', body);
     ui.auth = null;
     ui.invite = null;
-    ui.view = 'overview';
     apply(j.state as GameState);
     homeSystem();
     if (reg && S?.planet)
@@ -497,6 +568,8 @@ document.addEventListener('click', (e) => {
   const el = (e.target as HTMLElement).closest<HTMLElement>('[data-act]');
   const fn = el ? ACT[el.dataset.act!] : undefined;
   if (!el || !fn) return;
+  const modified = e.metaKey || e.ctrlKey || e.shiftKey || e.altKey;
+  if (el.dataset.act === 'nav' && (modified || e.button !== 0)) return;
   e.preventDefault();
   void fn({ ...el.dataset });
 });
@@ -527,9 +600,26 @@ $('#modal')!.addEventListener('click', (e) => {
 
 // ----- clock -----
 
+function queueDue(view: V, now: number): boolean {
+  const ship = view.P.sq[0];
+  const nextShip = ship ? (view.P.sqT ?? now) + ship.unit : Infinity;
+  return (
+    Math.min(
+      view.P.bq?.end ?? Infinity,
+      view.R.rq?.end ?? Infinity,
+      nextShip,
+    ) <= now
+  );
+}
+
 setInterval(() => {
   if (!ctx) return;
   const now = nowT();
+  if (queueDue(ctx, now)) {
+    render();
+    void refresh();
+    return;
+  }
   let due = false;
   document.querySelectorAll<HTMLElement>('.cd').forEach((el) => {
     const left = Number(el.dataset.end) - now;
@@ -554,7 +644,7 @@ document.addEventListener('visibilitychange', () => {
 
 async function openInvite(token: string): Promise<void> {
   // The token leaves the address bar at once (history, screenshots).
-  history.replaceState(null, '', location.pathname);
+  history.replaceState(null, '', location.pathname + location.search);
   try {
     const j = await api('/api/invite/check', { token });
     ui.invite = {
@@ -571,6 +661,10 @@ async function openInvite(token: string): Promise<void> {
 
 const inviteToken = (): string | undefined =>
   /^#invite=([\w-]+)$/.exec(location.hash)?.[1];
+
+window.addEventListener('popstate', () => {
+  if (!inviteToken()) go(viewFromUrl(), false);
+});
 
 // An invitation link opened in a tab that is already open only changes the hash.
 window.addEventListener('hashchange', () => {

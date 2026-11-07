@@ -96,6 +96,50 @@ test.describe('playing', () => {
     expect(w.problems).toEqual([]);
   });
 
+  test('the URL restores the view on reload and browser navigation', async ({
+    page,
+  }) => {
+    await register(page, uniqueName('Nav'));
+    const selected = page.locator('#menu a.on');
+    await nav(page, 'buildings');
+    await expect(page).toHaveURL(/\?view=buildings$/);
+    await page.reload();
+    await expect(selected).toHaveAttribute('data-v', 'buildings');
+    await nav(page, 'research');
+    await page.goBack();
+    await expect(selected).toHaveAttribute('data-v', 'buildings');
+    await page.goForward();
+    await expect(selected).toHaveAttribute('data-v', 'research');
+  });
+
+  test('an expired build restores the buttons and leaves a view notice', async ({
+    page,
+  }) => {
+    await page.clock.install();
+    await register(page, uniqueName('Fertig'));
+    await nav(page, 'buildings');
+    await page.click('[data-act=build][data-k=metal]');
+    await expect(page.getByText('Ausbau auf Stufe 1')).toBeVisible();
+
+    // Keep state refreshes pending to verify the UI updates before a reply.
+    await page.route('**/api/state', () => {});
+    const deadline = Number(
+      await page.locator('#view .cd').getAttribute('data-end'),
+    );
+    await page.clock.fastForward(
+      deadline - (await page.evaluate(() => Date.now())) + 3000,
+    );
+    await expect(page.locator('[data-act=build][data-k=metal]')).toBeEnabled();
+    await expect(page.locator('[data-act=cancelBuild]')).toHaveCount(0);
+    const notice = page
+      .getByRole('status')
+      .filter({ hasText: 'Ausbau fertig' });
+    await expect(notice).toBeVisible();
+    await nav(page, 'overview');
+    await nav(page, 'buildings');
+    await expect(notice).toHaveCount(0);
+  });
+
   test('build, cancel, set production and rename', async ({ page }) => {
     const w = watch(page);
     await register(page, uniqueName('Bau'));
