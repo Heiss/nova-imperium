@@ -84,10 +84,10 @@ Keep `.env` and `secrets/` in your own backup as well; they are not in Git.
 In a clean checkout of `main` with `origin` set to this GitHub repository, run:
 
 ```bash
-bash scripts/release.sh
+sh scripts/release.sh
 ```
 
-The script requires Bash, Git and curl.
+The script requires a POSIX shell, Git, curl and standard shell utilities.
 
 The script fetches `main` and the tags, verifies successful GitHub CI for that
 commit, and fast-forwards the local branch. It creates and pushes the next
