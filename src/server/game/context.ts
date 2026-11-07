@@ -4,6 +4,7 @@ import { randomBytes } from 'node:crypto';
 import type { Rng } from '../../shared/battle.ts';
 import type { Coords, Resources, Universe } from '../../shared/types.ts';
 import type { Report, Store } from '../db/store.ts';
+import { queuePush, type PushKind } from '../push-store.ts';
 
 export interface Ctx {
   store: Store;
@@ -50,11 +51,18 @@ export const resLine = (r: Resources): string =>
 export type ReportInput = Pick<Report, 'time' | 'type' | 'title'> &
   Record<string, unknown>;
 
-export function addReport(ctx: Ctx, uid: string, report: ReportInput): void {
+export function addReport(
+  ctx: Ctx,
+  uid: string,
+  report: ReportInput,
+  kind: PushKind = 'messages',
+): void {
   if (!ctx.store.user(uid)) return;
+  const id = ctx.id();
   ctx.store.addReport(
     uid,
-    { ...report, id: ctx.id() } as Report,
+    { ...report, id } as Report,
     universe(ctx).maxReports,
   );
+  queuePush(ctx, uid, kind, id, ctx.now());
 }

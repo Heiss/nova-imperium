@@ -24,6 +24,7 @@ export interface Config {
   rateLimitAttempts: number;
   rateLimitMinutes: number;
   emailLoginCodes: boolean;
+  webPush: boolean;
   smtp: SmtpConfig | null;
 }
 
@@ -62,6 +63,7 @@ export const SETTINGS = [
   'NOVA_DATA_DIR',
   'NOVA_TRUST_PROXY',
   'NOVA_EMAIL_LOGIN_CODES',
+  'NOVA_WEB_PUSH',
   ...Object.values(NUMBERS).map((n) => n.name),
   'SMTP_HOST',
   'SMTP_PORT',
@@ -197,11 +199,14 @@ export function loadConfig(
     rateLimitAttempts: c.number(NUMBERS.rateLimitAttempts),
     rateLimitMinutes: c.number(NUMBERS.rateLimitMinutes),
     emailLoginCodes: c.flag('NOVA_EMAIL_LOGIN_CODES'),
+    webPush: c.flag('NOVA_WEB_PUSH'),
     smtp: smtp(c),
   };
   if (config.emailLoginCodes && !config.smtp)
     c.errors.push(
       'NOVA_EMAIL_LOGIN_CODES requires SMTP_HOST and mail settings.',
     );
+  if (config.webPush && !config.secureCookies)
+    c.errors.push('NOVA_WEB_PUSH requires an HTTPS NOVA_PUBLIC_URL.');
   return c.errors.length ? { errors: c.errors } : { config };
 }

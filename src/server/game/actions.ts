@@ -14,6 +14,11 @@ import {
 } from '../../shared/economy.ts';
 import { settle, settleR } from '../../shared/settle.ts';
 import type { Planet, ResearchState } from '../../shared/types.ts';
+import {
+  cancelScheduledPush,
+  queuePush,
+  scheduleShipyard,
+} from '../push-store.ts';
 import type { User } from '../db/store.ts';
 import { type Ctx, fail, fmt, int, str, universe } from './context.ts';
 
@@ -62,6 +67,7 @@ export const build: Action = (ctx, u, d) => {
     cost: c,
   };
   ctx.store.savePlanet(p);
+  queuePush(ctx, u.id, 'buildings', String(t), p.bq.end);
   return null;
 };
 
@@ -70,6 +76,7 @@ export const cancelBuild: Action = (ctx, u) => {
   if (!p.bq) return null;
   refund(p, p.bq.cost);
   p.bq = null;
+  cancelScheduledPush(ctx, u.id, 'buildings');
   ctx.store.savePlanet(p);
   return null;
 };
@@ -101,6 +108,7 @@ export const research: Action = (ctx, u, d) => {
   };
   setResearch(ctx, u, r);
   ctx.store.savePlanet(p);
+  queuePush(ctx, u.id, 'research', String(t), r.rq.end);
   return null;
 };
 
@@ -110,6 +118,7 @@ export const cancelResearch: Action = (ctx, u) => {
   if (!r.rq) return null;
   refund(p, r.rq.cost);
   r.rq = null;
+  cancelScheduledPush(ctx, u.id, 'research');
   setResearch(ctx, u, r);
   ctx.store.savePlanet(p);
   return null;
@@ -131,6 +140,7 @@ export const order: Action = (ctx, u, d) => {
   if (!p.sq.length) p.sqT = ctx.now();
   p.sq.push({ key: k, n, unit: unitTime(def, p, universe(ctx)) });
   ctx.store.savePlanet(p);
+  scheduleShipyard(ctx, u.id, p.sqT!, p.sq);
   return `${fmt(n)}× ${def.n} in Auftrag gegeben.`;
 };
 
