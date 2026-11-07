@@ -17,7 +17,7 @@ okf_version: "0.2"
 # Features
 
 * [Invitations](/features/invitations.md) - registration only by invitation, mail or copied link
-* [Admin](/features/admin.md) - admins by the operator command, the admin panel, live universe settings
+* [Admin](/features/admin.md) - operator roles, diagnostics, audit log, moderation and live universe settings
 
 # Security
 
