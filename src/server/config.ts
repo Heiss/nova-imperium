@@ -20,6 +20,7 @@ export interface Config {
   secureCookies: boolean;
   trustProxy: boolean;
   sessionDays: number;
+  passwordMinLength: number;
   inviteDays: number;
   rateLimitAttempts: number;
   rateLimitMinutes: number;
@@ -38,9 +39,17 @@ export interface NumberSpec {
   max: number;
 }
 
+export const MAX_PASSWORD = 200;
+
 export const NUMBERS = {
   port: { name: 'NOVA_PORT', def: 8080, min: 1, max: 65535 },
   sessionDays: { name: 'NOVA_SESSION_DAYS', def: 30, min: 1, max: 365 },
+  passwordMinLength: {
+    name: 'NOVA_PASSWORD_MIN_LENGTH',
+    def: 15,
+    min: 8,
+    max: MAX_PASSWORD,
+  },
   inviteDays: { name: 'NOVA_INVITE_DAYS', def: 7, min: 1, max: 30 },
   rateLimitAttempts: {
     name: 'NOVA_RATE_LIMIT_ATTEMPTS',
@@ -195,6 +204,7 @@ export function loadConfig(
     secureCookies: url.startsWith('https:'),
     trustProxy: c.flag('NOVA_TRUST_PROXY'),
     sessionDays: c.number(NUMBERS.sessionDays),
+    passwordMinLength: c.number(NUMBERS.passwordMinLength),
     inviteDays: c.number(NUMBERS.inviteDays),
     rateLimitAttempts: c.number(NUMBERS.rateLimitAttempts),
     rateLimitMinutes: c.number(NUMBERS.rateLimitMinutes),

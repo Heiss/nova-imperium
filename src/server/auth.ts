@@ -6,14 +6,12 @@ import {
   scryptSync,
   timingSafeEqual,
 } from 'node:crypto';
-import type { Config } from './config.ts';
+import { type Config, MAX_PASSWORD, NUMBERS } from './config.ts';
 import type { Invitation, User } from './db/store.ts';
 import { type Ctx, fail, int, str } from './game/context.ts';
 import { ensureActive, suspension } from './game/moderation.ts';
 import { placePlanet } from './game/planets.ts';
 
-export const MIN_PASSWORD = 15;
-export const MAX_PASSWORD = 200;
 const DAY = 86400000;
 
 // OWASP's scrypt profile with 32 MiB and three parallelization rounds.
@@ -105,26 +103,35 @@ export interface Registration {
   gal: unknown;
 }
 
-function checkAccount(ctx: Ctx, name: string, pw: string): void {
+function checkAccount(
+  ctx: Ctx,
+  name: string,
+  pw: string,
+  minimum: number,
+): void {
   if (name.length < 2) fail('Der Name braucht mindestens 2 Zeichen.');
-  validatePassword(pw);
+  validatePassword(pw, minimum);
   if (ctx.store.userByName(name)) fail('Der Name ist schon vergeben.');
 }
 
-export function validatePassword(pw: string): void {
+export function validatePassword(pw: string, minimum: number): void {
   const length = [...pw].length;
-  if (length < MIN_PASSWORD)
-    fail(`Das Passwort braucht mindestens ${MIN_PASSWORD} Zeichen.`);
+  if (length < minimum)
+    fail(`Das Passwort braucht mindestens ${minimum} Zeichen.`);
   if (length > MAX_PASSWORD)
     fail(`Das Passwort darf höchstens ${MAX_PASSWORD} Zeichen haben.`);
 }
 
 /** Registers with an invitation. Nobody becomes admin here (see the CLI). */
-export function register(ctx: Ctx, d: Registration): User {
+export function register(
+  ctx: Ctx,
+  d: Registration,
+  minimum: number = NUMBERS.passwordMinLength.def,
+): User {
   const inv = openInvitation(ctx, d.token);
   const name = str(d.name, 20);
   const pw = String(d.password ?? '');
-  checkAccount(ctx, name, pw);
+  checkAccount(ctx, name, pw, minimum);
   if (ctx.store.userByEmail(inv.email))
     fail('Mit dieser Adresse spielt schon jemand.');
   const u: User = {

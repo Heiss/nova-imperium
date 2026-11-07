@@ -5,6 +5,7 @@ import { dur, esc, fmt } from '../logic/format.ts';
 import type { GameState } from '../logic/types.ts';
 
 export interface Ui {
+  passwordMinLength?: number;
   view: string;
   guild?: string | null;
   gal: number;

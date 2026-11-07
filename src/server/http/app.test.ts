@@ -761,6 +761,70 @@ describe('account security', () => {
     expect(mails).toHaveLength(1);
   });
 
+  it('uses the configured minimum for registration, password change and reset', async () => {
+    const mails: Mail[] = [];
+    const { call, setCookie } = await asAdmin({
+      cfg: { passwordMinLength: 10 },
+      mailer: async (mail) => void mails.push(mail),
+    });
+    expect((await call('GET', '/api/account/policy')).json).toEqual({
+      passwordMinLength: 10,
+    });
+    const invite = await call('POST', '/api/admin/invite', {
+      email: 'policy@example.org',
+    });
+    const token = String(invite.json?.link).split('#invite=')[1];
+    setCookie('');
+    const registration = { token, name: 'Policy', planet: 'P', gal: 1 };
+    const short = '123456789';
+    const first = '1234567890';
+    expect(
+      (
+        await call('POST', '/api/register', {
+          ...registration,
+          password: short,
+        })
+      ).json?.error,
+    ).toContain('mindestens 10 Zeichen');
+    expect(
+      (
+        await call('POST', '/api/register', {
+          ...registration,
+          password: first,
+        })
+      ).status,
+    ).toBe(200);
+    const change = (password: string) =>
+      call('POST', '/api/password/change', {
+        current: first,
+        password,
+        confirmation: password,
+      });
+    expect((await change(short)).json?.error).toContain(
+      'mindestens 10 Zeichen',
+    );
+    expect((await change('abcdefghij')).status).toBe(200);
+    await call('POST', '/api/password/forgot', { email: 'policy@example.org' });
+    await expect.poll(() => mails.length).toBe(2);
+    const reset = /#reset=([\w-]+)/.exec(mails[1]!.text)![1];
+    expect(
+      (
+        await call('POST', '/api/password/reset', {
+          token: reset,
+          password: short,
+        })
+      ).json?.error,
+    ).toContain('mindestens 10 Zeichen');
+    expect(
+      (
+        await call('POST', '/api/password/reset', {
+          token: reset,
+          password: first,
+        })
+      ).status,
+    ).toBe(200);
+  });
+
   it('rejects expired reset links and purges expired account tokens', async () => {
     const mails: Mail[] = [];
     const { ctx, call, app } = await start({
