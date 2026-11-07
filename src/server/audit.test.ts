@@ -1,6 +1,7 @@
 import { expect, it } from 'vitest';
 import {
   activity,
+  auditPage,
   audited,
   auditFilter,
   DAY,
@@ -91,4 +92,31 @@ it('keeps recent records, paginates without overlaps and removes expired data', 
   expect(ctx.store.db.prepare('SELECT day FROM player_activity').all()).toEqual(
     [{ day: 32 * DAY }],
   );
+});
+
+it('pages a stable filtered snapshot, clamps the last page, and accepts only offered limits', () => {
+  const ctx = testCtx(DAY);
+  for (let i = 0; i < 23; i++)
+    record(ctx, { category: 'game', action: 'build' });
+  record(ctx, { category: 'game', action: 'research' });
+  const first = auditPage(ctx, { action: 'build', limit: 7 }).result;
+  expect(first).toMatchObject({ count: 23, limit: 10, page: 1, pages: 3 });
+  expect(first.events).toHaveLength(10);
+  record(ctx, { category: 'game', action: 'build' });
+  const last = auditPage(ctx, {
+    action: 'build',
+    before: first.before,
+    page: 99,
+  }).result;
+  expect(last).toMatchObject({
+    page: 3,
+    count: 23,
+    events: [{ id: 3 }, { id: 2 }, { id: 1 }],
+  });
+  expect(auditPage(ctx, { action: 'build', limit: 25 }).result).toMatchObject({
+    page: 1,
+    pages: 1,
+    count: 24,
+    limit: 25,
+  });
 });

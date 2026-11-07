@@ -366,6 +366,36 @@ describe('http', () => {
     ]);
   });
 
+  it('broadcasts a server message as admin and audits the recipient count', async () => {
+    const { ctx, call } = await asAdmin();
+    const pilot = addUser(ctx, 'Pilot');
+    expect(
+      (await call('POST', '/api/admin/announce', { message: ' ' })).status,
+    ).toBe(400);
+    const sent = await call('POST', '/api/admin/announce', {
+      message: 'Neue Serverrunde',
+    });
+    expect(sent.json).toEqual({ recipients: 2 });
+    expect(ctx.store.reports(pilot.id)).toMatchObject([
+      { title: 'Servernachricht', text: 'Neue Serverrunde' },
+    ]);
+    const log = await call('POST', '/api/admin/events', {
+      action: 'announce',
+      outcome: 'ok',
+    });
+    expect(log.json?.events).toMatchObject([
+      { detail: '{"recipients":2}', actor: 'u_Boss' },
+    ]);
+    await call('POST', '/api/login', {
+      name: 'Pilot',
+      password: 'secret1',
+      remember: false,
+    });
+    expect(
+      (await call('POST', '/api/admin/announce', { message: 'Nein' })).status,
+    ).toBe(400);
+  });
+
   it('shows actions and orders, estimates activity and revokes access on suspension', async () => {
     const { ctx, call, setCookie } = await asAdmin();
     const boss = (
@@ -662,12 +692,19 @@ describe('account security', () => {
 
   it('requires the current password to change it and signs out existing sessions', async () => {
     const { call } = await asAdmin();
-    const change = (current: string) =>
+    const change = (
+      current: string,
+      confirmation = 'another test passphrase',
+    ) =>
       call('POST', '/api/password/change', {
         current,
+        confirmation,
         password: 'another test passphrase',
       });
     expect((await change('wrong')).status).toBe(400);
+    expect(
+      (await change('secret1', 'different test passphrase')).json?.error,
+    ).toContain('stimmen nicht überein');
     expect((await change('secret1')).status).toBe(200);
     expect((await call('GET', '/api/state')).status).toBe(401);
     expect(

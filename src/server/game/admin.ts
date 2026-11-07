@@ -2,7 +2,8 @@
 import { settle } from '../../shared/settle.ts';
 import { validateUniverse } from '../../shared/universe.ts';
 import type { Action } from './actions.ts';
-import { type Ctx, fail, universe } from './context.ts';
+import { addReport, type Ctx, fail, str, universe } from './context.ts';
+import { roundRules, startRoundRules } from './round.ts';
 import { placePlanet } from './planets.ts';
 
 export const requireAdmin = (u: { admin: boolean }): void => {
@@ -31,7 +32,12 @@ export const saveSettings: Action = (ctx, u, d) => {
 export function newRound(ctx: Ctx): void {
   ctx.store.deleteAllPlanets();
   ctx.store.deleteAllFleets();
-  ctx.store.db.prepare('DELETE FROM push_jobs').run();
+  ctx.store.db.exec(`
+    DELETE FROM push_jobs;
+    DELETE FROM achievement_progress;
+    DELETE FROM achievement_claims;
+    DELETE FROM daily_rewards;
+  `);
   const u = universe(ctx);
   for (const x of ctx.store.users()) {
     x.research = {};
@@ -48,8 +54,30 @@ export function newRound(ctx: Ctx): void {
   }
 }
 
-export const reset: Action = (ctx, u) => {
+export const reset: Action = (ctx, u, data, event) => {
   requireAdmin(u);
+  const before = roundRules(ctx);
+  const after = startRoundRules(ctx, data.rewards);
   newRound(ctx);
+  if (event) event.detail = { before, after };
   return 'Neue Runde gestartet – alle Spieler haben einen frischen Planeten.';
 };
+
+export function announce(ctx: Ctx, input: unknown): number {
+  if (typeof input !== 'string' || input.trim().length > 500)
+    return fail('Bitte eine Nachricht mit höchstens 500 Zeichen eingeben.');
+  const message = str(input, 500);
+  if (!message) return fail('Bitte eine Nachricht eingeben.');
+  const players = ctx.store.users();
+  const time = ctx.now();
+  for (const player of players) {
+    addReport(
+      ctx,
+      player.id,
+      { time, type: 'info', title: 'Servernachricht', text: message },
+      'messages',
+      `Servernachricht: ${message}`,
+    );
+  }
+  return players.length;
+}

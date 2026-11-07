@@ -71,3 +71,31 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 * **[V]** All values are checked together and every error is shown at once;
   nothing is saved if one value is wrong.
 * **[V]** Operator commands besides `admin`: `unadmin`, `admins`, `invite`.
+
+# Round rewards and menu hints
+
+* **[E]** Starting a new round offers independent checkboxes for achievements
+  and daily rewards. The dialog preselects the current round's settings.
+  Existing universes start with both enabled. The selections apply to the
+  new round and are included in the round-reset audit entry.
+* **[E]** Starting a round clears achievement progress, claimed achievements
+  and daily streaks. Disabled reward types neither collect progress nor accept
+  claims. The player menu shows only the enabled reward types.
+* **[E]** A red exclamation mark in the player menu identifies new messages,
+  available rewards, incoming fleets or pending guild applications. In the
+  current browser session it also marks detected building upgrades, research,
+  completed ship or defense orders and returned fleets. Opening the relevant
+  view clears its completion mark. Live indicators reflect the current state.
+
+# Admin tabs and announcements
+
+* **[E]** The admin opens separate tabs for the event log, players, orders,
+  invitations, universe settings and server announcements. Diagnostic queries
+  run for the active tab.
+* **[E]** The event log opens on the latest 10 matching entries. It offers
+  10, 25, 50 or 100 entries per page, with first, previous, next and last
+  controls. Paging excludes new events recorded after the current search began.
+* **[E]** An administrator can send a plain-text announcement of up to 500
+  characters. It is stored in each current player's inbox. Subscribed devices
+  receive the text via Web Push when enabled for the instance. The audit log
+  records the sender and the recipient count.

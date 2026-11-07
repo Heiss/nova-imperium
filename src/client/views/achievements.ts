@@ -44,8 +44,9 @@ function achievementRow(
   </article>`;
 }
 
-function daily(state: AchievementState): string {
-  const { streak, reward, next, claimed } = state.daily;
+function daily(state: AchievementState['daily']): string {
+  if (!state) return '';
+  const { streak, reward, next, claimed } = state;
   return box(
     'Tägliche Belohnung',
     `<p>Anmeldeserie: ${fmt(streak)} Tage (Tageswechsel um 00:00 UTC)</p>
@@ -71,6 +72,8 @@ function filters(): string {
 export function achievements(view: V): string {
   const state = view.s.achievements;
   if (!state) return '<h2>Achievements</h2>';
+  const rewards = daily(state.daily);
+  if (!view.s.round.achievements) return '<h2>Belohnungen</h2>' + rewards;
   const claimed = new Set(state.claimed);
   const rows: Record<Status, string[]> = { ready: [], open: [], claimed: [] };
   for (const item of ACHIEVEMENTS) {
@@ -83,5 +86,5 @@ export function achievements(view: V): string {
       return `<section data-achievement-group>${box(title, content || '<p>Keine Einträge.</p>')}</section>`;
     })
     .join('');
-  return `<h2>Achievements</h2>${daily(state)}${box('Filtern', filters())}${groups}`;
+  return `<h2>Achievements</h2>${rewards}${box('Filtern', filters())}${groups}`;
 }

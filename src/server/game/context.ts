@@ -56,6 +56,7 @@ export function addReport(
   uid: string,
   report: ReportInput,
   kind: PushKind = 'messages',
+  pushBody: string | null = null,
 ): void {
   if (!ctx.store.user(uid)) return;
   const id = ctx.id();
@@ -64,5 +65,5 @@ export function addReport(
     { ...report, id } as Report,
     universe(ctx).maxReports,
   );
-  queuePush(ctx, uid, kind, id, ctx.now());
+  queuePush(ctx, uid, kind, id, ctx.now(), pushBody);
 }

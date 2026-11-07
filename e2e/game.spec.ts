@@ -67,7 +67,19 @@ test.describe('accounts', () => {
     await form
       .getByLabel('Bisheriges Passwort')
       .fill('ein-sicheres-testpasswort');
-    await form.getByLabel('Neues Passwort').fill('ein-neues-testpasswort');
+    await form
+      .getByLabel('Neues Passwort', { exact: true })
+      .fill('ein-neues-testpasswort');
+    await form
+      .getByLabel('Neues Passwort wiederholen')
+      .fill('ein-falsches-testpasswort');
+    await form.getByRole('button', { name: 'Passwort ändern' }).click();
+    await expect(page.getByRole('alert')).toContainText(
+      'stimmen nicht überein',
+    );
+    await form
+      .getByLabel('Neues Passwort wiederholen')
+      .fill('ein-neues-testpasswort');
     await form.getByRole('button', { name: 'Passwort ändern' }).click();
     await expect(page.locator('.auth .hd')).toHaveText('Login');
     await login(page, name, 'ein-neues-testpasswort');
@@ -119,6 +131,8 @@ test('filters achievements and keeps tomorrow’s reward after claiming', async 
   page,
 }) => {
   await register(page, uniqueName('Erfolg'));
+  const badge = page.locator('#menu [data-v=achievements] .badge');
+  await expect(badge).toHaveAttribute('aria-label', 'Tagesbelohnung abholbar');
   await nav(page, 'achievements');
   const next = page.getByText('Morgen bei fortgesetzter Serie:', {
     exact: false,
@@ -128,6 +142,7 @@ test('filters achievements and keeps tomorrow’s reward after claiming', async 
   await page.getByRole('button', { name: 'Tagesbelohnung abholen' }).click();
   await expect(page.getByText('Abgeholt', { exact: true })).toBeVisible();
   await expect(next).toHaveText(reward!);
+  await expect(badge).toHaveCount(0);
   await page.getByLabel('Kategorie', { exact: true }).selectOption('buildings');
   await page.getByLabel('Suchen', { exact: true }).fill('Metallmine');
   const visible = page.locator('[data-achievement]:visible');
@@ -204,9 +219,14 @@ test.describe('playing', () => {
     const notice = page
       .getByRole('status')
       .filter({ hasText: 'Ausbau fertig' });
+    const badge = page.locator('#menu [data-v=buildings] .badge');
+    await expect(badge).toHaveAttribute('aria-label', 'Ausbau fertig');
     await expect(notice).toBeVisible();
     await nav(page, 'overview');
     await nav(page, 'buildings');
+    await expect(page.locator('#menu [data-v=buildings] .badge')).toHaveCount(
+      0,
+    );
     await expect(notice).toHaveCount(0);
   });
 
@@ -292,7 +312,9 @@ test.describe('playing', () => {
     );
     await nav(page, 'overview');
     await expect(page.locator('.fl-spy')).toContainText('Spionage');
-    await expect(page.locator('#menu .badge')).toBeVisible({ timeout: 30000 });
+    await expect(page.locator('#menu [data-v=messages] .badge')).toBeVisible({
+      timeout: 30000,
+    });
     await nav(page, 'messages');
     await page
       .locator('.rep .t', { hasText: 'Spionagebericht' })
@@ -330,6 +352,11 @@ test.describe('admin', () => {
     cli('admin', name);
     await page.reload();
     await nav(page, 'admin');
+    await expect(
+      page.getByRole('button', { name: 'Erste Seite' }),
+    ).toBeDisabled();
+    await expect(page.getByLabel('Pro Seite')).toHaveValue('10');
+    await page.getByRole('tab', { name: 'Spieler', exact: true }).click();
     await page
       .locator('[data-admin=stats]')
       .getByRole('button', { name: pilot, exact: true })
@@ -337,6 +364,9 @@ test.describe('admin', () => {
     await expect(
       page.getByRole('heading', { name: `Spielerakte · ${pilot}` }),
     ).toBeVisible();
+    await page
+      .getByRole('button', { name: 'Ereignisse zu diesem Spieler' })
+      .click();
     await expect(
       page.getByRole('row', { name: /game \/ build/ }),
     ).toContainText(pilot);
@@ -361,6 +391,7 @@ test.describe('admin', () => {
     await nav(page, 'admin');
     await expect(page.locator('h2')).toHaveText('Admin');
 
+    await page.getByRole('tab', { name: 'Einladungen' }).click();
     // Invitation without SMTP: the link is shown for copying.
     await page.fill('#inv_email', 'freund@example.org');
     await page.click('#inviteform button[type=submit]');
@@ -379,6 +410,7 @@ test.describe('admin', () => {
       page.locator('tr', { hasText: 'freund@example.org' }),
     ).toHaveCount(0);
 
+    await page.getByRole('tab', { name: 'Universum' }).click();
     // Settings: live, but the universe never shrinks below a planet.
     await page.fill('#set_speed', '7');
     await page.click('[data-act=saveSettings]');

@@ -9,15 +9,16 @@ export function queuePush(
   kind: PushKind,
   key: string,
   due: number,
+  body: string | null = null,
 ): void {
   ctx.store.db
     .prepare(
       `
-    INSERT OR IGNORE INTO push_jobs (endpoint, kind, event_key, due, retry_at)
-    SELECT endpoint, ?, ?, ?, ? FROM push_subscriptions WHERE user_id = ?
+    INSERT OR IGNORE INTO push_jobs (endpoint, kind, event_key, due, retry_at, body)
+    SELECT endpoint, ?, ?, ?, ?, ? FROM push_subscriptions WHERE user_id = ?
   `,
     )
-    .run(kind, key, due, due, uid);
+    .run(kind, key, due, due, body, uid);
 }
 
 export function cancelScheduledPush(

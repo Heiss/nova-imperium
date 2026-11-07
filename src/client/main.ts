@@ -16,6 +16,7 @@ import {
   unread,
   type FleetForm,
 } from './logic/game.ts';
+import { finishedYardOrders, menuHints } from './logic/menu-hints.ts';
 import type { GameState } from './logic/types.ts';
 import { afford, caps, lvlCost, maxAfford, prod } from '../shared/economy.ts';
 import type { Ui, V } from './views/common.ts';
@@ -24,7 +25,13 @@ import {
   loadInvitations,
   mountAdminDiagnostics,
 } from './views/admin-diagnostics.ts';
-import { auth } from './views/misc.ts';
+import {
+  ADMIN_TABS,
+  auth,
+  diagnosticTab,
+  roundDialog,
+  type AdminTab,
+} from './views/misc.ts';
 import { disablePush, enablePush } from './push.ts';
 import { mountBuildings } from './views/buildings.ts';
 
@@ -36,6 +43,7 @@ const val = (sel: string): string => $<HTMLInputElement>(sel)?.value ?? '';
 
 let S: GameState | null = null;
 let loginChallenge: string | null = null;
+let rememberLogin = false;
 let resetToken: string | null = null;
 let offset = 0;
 let lastKey = '';
@@ -45,14 +53,42 @@ let adminPanel: {
   diagnostics: HTMLElement;
   invitations: HTMLElement;
   user: string;
+  tab: AdminTab;
+  panel: ReturnType<typeof mountAdminDiagnostics>;
 } | null = null;
 let lastActivity = -Infinity;
 const completionNotices = new Set<string>();
+const completedMenu = new Map<string, string>();
+
+interface InstallPrompt extends Event {
+  prompt: () => Promise<unknown>;
+}
+let installPrompt: InstallPrompt | null = null;
+
+function updateInstallButton(): void {
+  const button = $('#pwa-install');
+  if (button) button.hidden = !installPrompt;
+}
+window.addEventListener('beforeinstallprompt', (event) => {
+  event.preventDefault();
+  installPrompt = event as InstallPrompt;
+  updateInstallButton();
+});
+window.addEventListener('appinstalled', () => {
+  installPrompt = null;
+  updateInstallButton();
+});
 
 function gameView(view: string | null): string {
   if (!view || (view !== 'buildings' && !Object.hasOwn(VIEWS, view)))
     return 'overview';
-  return view === 'admin' && S && !S.me.admin ? 'overview' : view;
+  if (view === 'admin' && S && !S.me.admin) return 'overview';
+  if (view === 'achievements' && !rewardsAvailable(S)) return 'overview';
+  return view;
+}
+
+function rewardsAvailable(state: GameState | null): boolean {
+  return !state || state.round.achievements || state.round.daily;
 }
 
 const viewFromUrl = (): string =>
@@ -140,6 +176,11 @@ function apply(st: GameState | undefined): void {
   const key = JSON.stringify({ ...st, now: 0 });
   const same = key === lastKey;
   lastKey = key;
+  if (S && (st.me.id !== S.me.id || st.round.number !== S.round.number)) {
+    completedMenu.clear();
+    completionNotices.clear();
+    ctx = null;
+  }
   offset = st.now - Date.now();
   S = st;
   const view = gameView(ui.view);
@@ -205,6 +246,7 @@ function renderLoggedOut(view: HTMLElement): void {
   ctx = null;
   unmountBuildings();
   completionNotices.clear();
+  completedMenu.clear();
   $('#menu')!.innerHTML = '';
   $('#resbar')!.innerHTML = '';
   $('#pinfo')!.innerHTML = '';
@@ -215,28 +257,54 @@ function rememberUpgrade(
   order: Queue | null,
   levels: Levels,
   catalog: Record<string, { n: string }>,
+  view: string,
   label: string,
   now: number,
 ): void {
   if (!order || order.end > now || (levels[order.key] ?? 0) < order.lvl) return;
   const name = catalog[order.key]?.n ?? order.key;
+  completedMenu.set(view, label);
   completionNotices.add(`${label}: ${name} (Stufe ${order.lvl}).`);
 }
 
 function rememberCompletions(previous: V, next: V): void {
   if (previous.P.id !== next.P.id) return;
-  rememberUpgrade(previous.P.bq, next.P.b, BUILD, 'Ausbau fertig', next.now);
+  rememberUpgrade(
+    previous.P.bq,
+    next.P.b,
+    BUILD,
+    'buildings',
+    'Ausbau fertig',
+    next.now,
+  );
   rememberUpgrade(
     previous.R.rq,
     next.R.research,
     RES,
+    'research',
     'Forschung fertig',
     next.now,
   );
-  const start = previous.P.sqT;
-  if (start === null || !previous.P.sq.length || next.P.sq.length) return;
-  const end = previous.P.sq.reduce((time, q) => time + q.n * q.unit, start);
-  if (end <= next.now) completionNotices.add('Werftauftrag fertig.');
+  for (const view of finishedYardOrders(previous.P, next.now)) {
+    completedMenu.set(view, 'Werftauftrag fertig');
+    completionNotices.add('Werftauftrag fertig.');
+  }
+  rememberFleetReturn(previous, next);
+}
+
+function rememberFleetReturn(previous: V, next: V): void {
+  const live = new Set(next.s.fleets.map((fleet) => fleet.id));
+  if (
+    previous.s.fleets.some(
+      (fleet) =>
+        fleet.owner === next.s.me.id &&
+        fleet.state === 'back' &&
+        fleet.ret !== undefined &&
+        fleet.ret <= next.now &&
+        !live.has(fleet.id),
+    )
+  )
+    completedMenu.set('fleet', 'Flotte zurückgekehrt');
 }
 
 function renderCompletions(view: HTMLElement): void {
@@ -277,12 +345,48 @@ function renderAdminPanel(target: HTMLElement, view: V): void {
   if (adminPanel?.user === view.s.me.id) {
     diagnostics.replaceWith(adminPanel.diagnostics);
     invitations.replaceWith(adminPanel.invitations);
+    paintAdminTab(adminPanel.tab);
     return;
   }
-  adminPanel = { diagnostics, invitations, user: view.s.me.id };
-  const panel = mountAdminDiagnostics(diagnostics, api, view.s.players);
-  void panel.refresh();
-  void loadInvitations(invitations, api);
+  const panel = mountAdminDiagnostics(
+    diagnostics,
+    api,
+    view.s.players,
+    openAdminTab,
+  );
+  adminPanel = {
+    diagnostics,
+    invitations,
+    user: view.s.me.id,
+    tab: 'events',
+    panel,
+  };
+  openAdminTab('events');
+}
+
+function paintAdminTab(tab: AdminTab): void {
+  const selected = diagnosticTab(tab) ? 'diagnostics' : tab;
+  const panel = $(`#admin-panel-${selected}`)!;
+  for (const item of document.querySelectorAll<HTMLElement>(
+    '#view [role=tabpanel]',
+  ))
+    item.hidden = item !== panel;
+  for (const button of document.querySelectorAll<HTMLButtonElement>(
+    '#view [role=tab]',
+  )) {
+    const active = button.dataset.tab === tab;
+    button.setAttribute('aria-selected', String(active));
+    button.tabIndex = active ? 0 : -1;
+  }
+  panel.setAttribute('aria-labelledby', `admin-tab-${tab}`);
+}
+
+function openAdminTab(tab: AdminTab, value?: string): void {
+  if (!adminPanel) return;
+  adminPanel.tab = tab;
+  paintAdminTab(tab);
+  if (diagnosticTab(tab)) void adminPanel.panel.open(tab, value);
+  if (tab === 'invitations') refreshInvitations();
 }
 
 function refreshInvitations(): void {
@@ -319,6 +423,7 @@ function render(fresh = false): void {
   $('#pinfo')!.innerHTML =
     `<b>${esc(ctx.P.name)}</b> ${coords(ctx.P)} · Kommandant <b>${esc(S.me.name)}</b> · <span class="lnk" data-act="logout">Logout</span>`;
   renderView(view, ctx);
+  if (ui.view === 'help') updateInstallButton();
   renderCompletions(view);
   paintPlanets(view);
   restore();
@@ -349,12 +454,19 @@ function filterAchievements(): void {
 }
 
 function renderMenu(): void {
-  const n = unread(S!.reports, S!.me.readAt || 0);
-  $('#menu')!.innerHTML = menu(S!.me.admin)
+  const state = S!;
+  const hints = menuHints(
+    state,
+    completedMenu,
+    unread(state.reports, state.me.readAt),
+  );
+  $('#menu')!.innerHTML = menu(state.me.admin, state.round)
     .map((i) => {
       if (i === '-') return '<div class="sep"></div>';
-      const badge =
-        i.view === 'messages' && n ? `<span class="badge">${n}</span>` : '';
+      const hint = hints.get(i.view);
+      const badge = hint
+        ? `<span class="badge" role="img" aria-label="${esc(hint)}" title="${esc(hint)}">!</span>`
+        : '';
       return `<a href="${esc(viewUrl(i.view))}" data-act="nav" data-v="${i.view}" class="${ui.view === i.view ? 'on' : ''}">${esc(i.label)}${badge}</a>`;
     })
     .join('');
@@ -493,6 +605,7 @@ const go = (
     completionNotices.clear();
     if (push) history.pushState(null, '', viewUrl(view, guild));
   }
+  completedMenu.delete(view);
   ui.view = view;
   ui.guild = view === 'guilds' ? guild : null;
   render(true);
@@ -647,13 +760,30 @@ const ACT: Record<string, (d: Data) => unknown> = {
   delrep: (d) => act('delrep', { id: d.id }),
   delall: () => act('delall'),
   saveopt: () => act('options', { probes: clampInt(val('#o_probes'), 1, 1e6) }),
-  reset: () =>
-    modal(
-      `<p><b>Wirklich eine neue Runde starten?</b><br>Alle Planeten, Flotten und Forschungen werden gelöscht. Das kann nicht rückgängig gemacht werden.</p><button class="red" data-act="doReset">Ja, neue Runde</button> <button data-act="closeModal">Abbrechen</button>`,
-    ),
+  adminTab: (d) => {
+    if (d.tab && Object.hasOwn(ADMIN_TABS, d.tab))
+      openAdminTab(d.tab as AdminTab);
+  },
+  installApp: async () => {
+    const prompt = installPrompt;
+    if (!prompt) return;
+    installPrompt = null;
+    updateInstallButton();
+    try {
+      await prompt.prompt();
+    } catch {
+      toast('Bitte installiere die App über das Browsermenü.', true);
+    }
+  },
+  reset: () => modal(roundDialog(S!.round)),
   doReset: () => {
+    const checked = (id: string) => $<HTMLInputElement>(id)!.checked;
+    const rewards = {
+      achievements: checked('#round-achievements'),
+      daily: checked('#round-daily'),
+    };
     modal('');
-    return act('reset');
+    return act('reset', { rewards });
   },
   saveSettings: () => {
     const keys = S!.admin!.specs.map((x) => x.key);
@@ -707,9 +837,11 @@ function continueLogin(reply: Record<string, unknown>): boolean {
 
 async function submitAuth(): Promise<void> {
   const reg = ui.auth === 'register' && ui.invite;
+  rememberLogin = Boolean($<HTMLInputElement>('#remember-login')?.checked);
   const body: Record<string, unknown> = {
     name: val('#a_name'),
     password: val('#a_pw'),
+    remember: rememberLogin,
   };
   if (reg)
     Object.assign(body, {
@@ -739,6 +871,7 @@ async function submitLoginCode(): Promise<void> {
     const j = await api('/api/login/code', {
       challenge: loginChallenge,
       code: val('#login_code'),
+      remember: rememberLogin,
     });
     loginChallenge = null;
     ui.auth = null;
@@ -764,10 +897,19 @@ async function submitForgot(): Promise<void> {
 }
 
 async function submitPassword(reset: boolean): Promise<void> {
+  const password = val('#pw_next');
+  const confirmation = val('#pw_confirm');
+  if (!reset && password !== confirmation) {
+    toast('Die neuen Passwörter stimmen nicht überein.', true);
+    $('#pw_confirm')?.focus();
+    return;
+  }
   try {
     await api(reset ? '/api/password/reset' : '/api/password/change', {
-      password: val('#pw_next'),
-      ...(reset ? { token: resetToken } : { current: val('#pw_current') }),
+      password,
+      ...(reset
+        ? { token: resetToken }
+        : { current: val('#pw_current'), confirmation }),
     });
     S = null;
     resetToken = null;
@@ -796,6 +938,29 @@ async function submitInvite(): Promise<void> {
   ui.lastLink = String(j.link);
   render(true);
   refreshInvitations();
+}
+
+let announcementPending = false;
+async function submitAnnouncement(): Promise<void> {
+  if (
+    announcementPending ||
+    !window.confirm('Servernachricht an alle Spieler senden?')
+  )
+    return;
+  announcementPending = true;
+  try {
+    const result = await api('/api/admin/announce', {
+      message: val('#announce-text'),
+    });
+    setInput('#announce-text', '');
+    toast(
+      `Servernachricht für ${Number(result.recipients)} Spieler veröffentlicht.`,
+    );
+  } catch (error) {
+    toast((error as Error).message, true);
+  } finally {
+    announcementPending = false;
+  }
 }
 
 function homeSystem(): void {
@@ -849,6 +1014,26 @@ document.addEventListener('input', (e) => {
   if (ui.view === 'fleet' && (e.target as HTMLElement).closest('main'))
     fleetCalc();
 });
+function adminTabKey(event: KeyboardEvent): void {
+  const selected = (event.target as HTMLElement).closest(
+    '[role=tab][data-tab]',
+  );
+  if (!selected) return;
+  const tabs = Object.keys(ADMIN_TABS) as AdminTab[];
+  const index = tabs.indexOf(adminPanel?.tab ?? 'events');
+  const moves: Record<string, number> = {
+    ArrowLeft: index - 1,
+    ArrowRight: index + 1,
+    Home: 0,
+    End: tabs.length - 1,
+  };
+  if (!Object.hasOwn(moves, event.key)) return;
+  event.preventDefault();
+  const tab = tabs[(moves[event.key]! + tabs.length) % tabs.length]!;
+  openAdminTab(tab);
+  $(`#admin-tab-${tab}`)?.focus();
+}
+document.addEventListener('keydown', adminTabKey);
 document.addEventListener('keydown', (e) => {
   const id = (e.target as HTMLElement).id;
   if (e.key === 'Enter' && id?.startsWith('g_')) ACT.ggo!({});
@@ -859,6 +1044,7 @@ document.addEventListener('submit', (e) => {
   const handlers = [
     ['authform', submitAuth],
     ['inviteform', submitInvite],
+    ['announceform', submitAnnouncement],
     ['guildform', submitGuild],
     ['codeform', submitLoginCode],
     ['forgotform', submitForgot],

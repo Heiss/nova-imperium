@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ACHIEVEMENTS, dailyReward } from '../../shared/achievements.ts';
 import { addPlanet, addUser, testCtx } from '../test-helpers.ts';
 import { achievementState, recordAchievementAction } from './achievements.ts';
+import { roundRules } from './round.ts';
 import { runAction } from './dispatch.ts';
 
 const DAY = 86_400_000;
@@ -52,6 +53,60 @@ describe('achievements', () => {
     });
   });
 
+  it('starts a fresh reward history and enforces each round option independently', () => {
+    const ctx = testCtx();
+    const u = addUser(ctx, 'Anna', { admin: true });
+    const p = addPlanet(ctx, u.id, { b: { metal: 1 } });
+    const id = 'buildings:metal:1';
+    runAction(ctx, u.id, { type: 'claimAchievement', id });
+    runAction(ctx, u.id, { type: 'claimDailyReward' });
+    expect(() =>
+      runAction(ctx, u.id, {
+        type: 'reset',
+        rewards: { achievements: false },
+      }),
+    ).toThrow('beide Belohnungseinstellungen');
+    expect(ctx.store.planet(p.id)?.b.metal).toBe(1);
+    runAction(ctx, u.id, {
+      type: 'reset',
+      rewards: { achievements: false, daily: true },
+    });
+    expect(roundRules(ctx)).toEqual({
+      number: 2,
+      achievements: false,
+      daily: true,
+    });
+    recordAchievementAction(ctx, u.id, 'send');
+    const current = ctx.store.user(u.id)!;
+    expect(achievementState(ctx, current)).toMatchObject({
+      progress: {},
+      claimed: [],
+      daily: { claimed: false, streak: 1 },
+    });
+    expect(
+      ctx.store.db.prepare('SELECT * FROM achievement_progress').all(),
+    ).toEqual([]);
+    expect(() =>
+      runAction(ctx, u.id, { type: 'claimAchievement', id }),
+    ).toThrow('deaktiviert');
+    runAction(ctx, u.id, { type: 'claimDailyReward' });
+    runAction(ctx, u.id, {
+      type: 'reset',
+      rewards: { achievements: true, daily: false },
+    });
+    expect(achievementState(ctx, ctx.store.user(u.id)!)).toEqual({
+      progress: {},
+      claimed: [],
+      daily: null,
+    });
+    expect(ctx.store.db.prepare('SELECT * FROM daily_rewards').all()).toEqual(
+      [],
+    );
+    expect(() => runAction(ctx, u.id, { type: 'claimDailyReward' })).toThrow(
+      'deaktiviert',
+    );
+  });
+
   it('shows the next reward, limits claims to once per UTC day, and resets a missed streak', () => {
     const ctx = testCtx(DAY - 1);
     const u = addUser(ctx, 'Anna');
@@ -77,7 +132,7 @@ describe('achievements', () => {
       reward: dailyReward(2),
     });
     ctx.clock.t += DAY * 2;
-    expect(achievementState(ctx, u).daily.streak).toBe(1);
+    expect(achievementState(ctx, u).daily?.streak).toBe(1);
     expect(dailyReward(20)).toEqual(dailyReward(7));
   });
 });

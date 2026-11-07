@@ -252,4 +252,8 @@ export const MIGRATIONS: readonly string[] = [
     until INTEGER
   ) STRICT;
   `,
+  // 7: retain announcement text until push delivery
+  `
+  ALTER TABLE push_jobs ADD COLUMN body TEXT;
+  `,
 ];

@@ -37,3 +37,7 @@ back. The hourly sweep removes events and activity data older than 30 days.
 Backups of the SQLite database include the data present at backup time.
 
 See [Admin](/features/admin.md) for the access rules and measurement method.
+
+Migration 7 adds an optional text body to queued push notifications, so server
+announcements keep their text until delivery. Round number and reward switches
+are stored as integer keys in the existing settings table.

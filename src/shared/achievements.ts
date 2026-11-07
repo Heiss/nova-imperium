@@ -106,8 +106,14 @@ export function dailyReward(streak: number): Cost {
   return [20 + 10 * day, 10 + 5 * day, 2 * day];
 }
 
+export interface RoundRules {
+  number: number;
+  achievements: boolean;
+  daily: boolean;
+}
+
 export interface AchievementState {
   progress: Record<string, number>;
   claimed: string[];
-  daily: { streak: number; claimed: boolean; reward: Cost; next: Cost };
+  daily: { streak: number; claimed: boolean; reward: Cost; next: Cost } | null;
 }

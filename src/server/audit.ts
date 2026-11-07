@@ -63,13 +63,7 @@ export function auditFilter(body: Record<string, unknown>, now: number) {
   };
 }
 
-export function events(ctx: Ctx, filter: ReturnType<typeof auditFilter>) {
-  return ctx.store.db
-    .prepare(
-      `
-    SELECT e.id, e.time, e.actor, u.name AS actorName, e.category, e.action,
-           e.outcome, e.target, e.request_id AS requestId, e.detail
-    FROM audit_events e LEFT JOIN users u ON u.id = e.actor
+const EVENT_WHERE = `
     WHERE e.id < @before AND e.time BETWEEN @since AND @until
       AND (@player = '' OR e.actor = @player OR e.target = @player)
       AND (@action = '' OR e.action = @action)
@@ -78,10 +72,55 @@ export function events(ctx: Ctx, filter: ReturnType<typeof auditFilter>) {
         OR json_extract(e.detail, '$.fleet') = @reference
         OR json_extract(e.detail, '$.origin') = @reference)
       AND (@outcome = '' OR e.outcome = @outcome)
-    ORDER BY e.id DESC LIMIT 51
+`;
+
+export function events(
+  ctx: Ctx,
+  filter: ReturnType<typeof auditFilter>,
+  limit = 51,
+  offset = 0,
+) {
+  return ctx.store.db
+    .prepare(
+      `
+    SELECT e.id, e.time, e.actor, u.name AS actorName, e.category, e.action,
+           e.outcome, e.target, e.request_id AS requestId, e.detail
+    FROM audit_events e LEFT JOIN users u ON u.id = e.actor
+    ${EVENT_WHERE}
+    ORDER BY e.id DESC LIMIT @limit OFFSET @offset
   `,
     )
-    .all(filter);
+    .all({ ...filter, limit, offset });
+}
+
+export function auditPage(ctx: Ctx, body: Record<string, unknown>) {
+  const filter = auditFilter(body, ctx.now());
+  const last = ctx.store.db
+    .prepare('SELECT COALESCE(MAX(id), 0) AS id FROM audit_events')
+    .get() as { id: number };
+  filter.before = Math.min(filter.before, last.id + 1);
+  const size = Number(body.limit);
+  const limit = [10, 25, 50, 100].includes(size) ? size : 10;
+  const { count } = ctx.store.db
+    .prepare(
+      `
+    SELECT COUNT(*) AS count FROM audit_events e ${EVENT_WHERE}
+  `,
+    )
+    .get(filter) as { count: number };
+  const pages = Math.max(1, Math.ceil(count / limit));
+  const page = int(body.page, 1, pages);
+  return {
+    filter,
+    result: {
+      events: events(ctx, filter, limit, (page - 1) * limit),
+      page,
+      pages,
+      count,
+      limit,
+      before: filter.before,
+    },
+  };
 }
 
 /** Count gaps between real interactions, excluding gaps above the idle limit. */
