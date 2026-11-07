@@ -40,39 +40,48 @@ test('displays an announcement received by the online-only push worker', async (
 }) => {
   await context.grantPermissions(['notifications']);
   await page.goto('/');
+  const cdp = await context.newCDPSession(page);
+  const registrationId = new Promise<string>((resolve) => {
+    cdp.on('ServiceWorker.workerRegistrationUpdated', ({ registrations }) => {
+      const current = registrations.find((item) => !item.isDeleted);
+      if (current) resolve(current.registrationId);
+    });
+  });
+  await cdp.send('ServiceWorker.enable');
   const registration = context.waitForEvent('serviceworker');
   await page.evaluate(async () => {
     await navigator.serviceWorker.register('/push-worker.js');
     await navigator.serviceWorker.ready;
   });
   const worker = await registration;
+  await worker.evaluate(() => {
+    const scope = globalThis as unknown as {
+      registration: ServiceWorkerRegistration;
+      testNotification?: { title: string; body?: string; data: unknown };
+    };
+    scope.registration.showNotification = async (title, options) => {
+      scope.testNotification = {
+        title,
+        body: options?.body,
+        data: options?.data,
+      };
+    };
+  });
   const text = 'Servernachricht: Wartung';
-  await worker.evaluate((title) => {
-    const Push = (
-      globalThis as unknown as {
-        PushEvent: new (type: string, init: { data: string }) => Event;
-      }
-    ).PushEvent;
-    self.dispatchEvent(
-      new Push('push', {
-        data: JSON.stringify({
-          title,
-          view: 'messages',
-          tag: 'announcement-test',
-        }),
-      }),
-    );
-  }, text);
+  await cdp.send('ServiceWorker.deliverPushMessage', {
+    origin: new URL(page.url()).origin,
+    registrationId: await registrationId,
+    data: JSON.stringify({
+      title: text,
+      view: 'messages',
+      tag: 'announcement-test',
+    }),
+  });
   await expect
     .poll(() =>
-      page.evaluate(async () => {
-        const registration = await navigator.serviceWorker.ready;
-        return (await registration.getNotifications()).map(
-          ({ body, data }) => ({ body, data }),
-        );
-      }),
+      worker.evaluate(() => Reflect.get(globalThis, 'testNotification')),
     )
-    .toContainEqual({ body: text, data: 'messages' });
+    .toEqual({ title: 'Nova Imperium', body: text, data: 'messages' });
   expect(await page.evaluate(() => caches.keys())).toEqual([]);
 });
 
