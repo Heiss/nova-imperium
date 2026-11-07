@@ -1,0 +1,61 @@
+<script lang="ts">
+  import type { Readable } from 'svelte/store';
+  import { BUILD } from '../../shared/catalog.ts';
+  import {
+    afford,
+    buildTime,
+    lvlCost,
+    reqMissing,
+  } from '../../shared/economy.ts';
+  import { artURI } from '../art.ts';
+  import { dur } from '../logic/format.ts';
+  import { buildState } from '../logic/game.ts';
+  import { costHTML, needs, type V } from './common.ts';
+
+  let { viewState }: { viewState: Readable<V> } = $props();
+</script>
+
+<h2>Gebäude</h2>
+<div class="box">
+  {#each Object.entries(BUILD) as [key, def] (key)}
+    {@const { P, R, now, s } = $viewState}
+    {@const level = P.b[key] ?? 0}
+    {@const cost = lvlCost(def, level + 1)}
+    {@const missing = reqMissing(def, P, R)}
+    {@const status = buildState(P, R, key, missing.length)}
+    {@const image = artURI(key)}
+    <div class="item">
+      <div class="icon ic-b">
+        {#if image}<img src={image} alt={def.n} />{:else}{def.ab}{/if}
+      </div>
+      <div>
+        <div class="nm">
+          {def.n} <span class="lv">{level ? `(Stufe ${level})` : ''}</span>
+        </div>
+        {@html costHTML(cost, P)}
+        <div class="dim">Bauzeit: {dur(buildTime(cost, P, s.cfg))}</div>
+        {@html needs(missing)}
+      </div>
+      <div class="act">
+        {#if status === 'running' && P.bq}
+          Ausbau auf Stufe {P.bq.lvl}<br />
+          <span class="cd" data-end={P.bq.end}>{dur(P.bq.end - now)}</span><br
+          />
+          <button class="small red" data-act="cancelBuild">Abbrechen</button>
+        {:else if status === 'missing'}
+          <span class="req">Voraussetzungen fehlen</span>
+        {:else if status === 'queueBusy'}
+          <span class="dim">Bauschleife belegt</span>
+        {:else if status === 'yardBusy'}
+          <span class="dim">Werft arbeitet gerade</span>
+        {:else if status === 'labBusy'}
+          <span class="dim">Labor forscht gerade</span>
+        {:else}
+          <button data-act="build" data-k={key} disabled={!afford(P, cost)}>
+            {level ? `Ausbauen auf Stufe ${level + 1}` : 'Bauen'}
+          </button>
+        {/if}
+      </div>
+    </div>
+  {/each}
+</div>

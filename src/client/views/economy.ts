@@ -1,7 +1,6 @@
 import { BUILD, RES } from '../../shared/catalog.ts';
 import {
   afford,
-  buildTime,
   caps,
   lvlCost,
   prod,
@@ -9,48 +8,8 @@ import {
   researchTime,
 } from '../../shared/economy.ts';
 import { dur, esc, fmt } from '../logic/format.ts';
-import { buildState, researchState } from '../logic/game.ts';
+import { researchState } from '../logic/game.ts';
 import { cd, costHTML, itemHTML, needs, type V } from './common.ts';
-
-function buildAction(v: V, k: string, level: number, miss: number): string {
-  const { P, R, now } = v;
-  const c = lvlCost(BUILD[k]!, level + 1);
-  const state = buildState(P, R, k, miss);
-  if (state === 'running')
-    return `Ausbau auf Stufe ${P.bq!.lvl}<br>${cd(P.bq!.end, now)}<br><button class="small red" data-act="cancelBuild">Abbrechen</button>`;
-  if (state === 'missing')
-    return '<span class="req">Voraussetzungen fehlen</span>';
-  if (state === 'queueBusy')
-    return '<span class="dim">Bauschleife belegt</span>';
-  if (state === 'yardBusy')
-    return '<span class="dim">Werft arbeitet gerade</span>';
-  if (state === 'labBusy')
-    return '<span class="dim">Labor forscht gerade</span>';
-  const label = level ? `Ausbauen auf Stufe ${level + 1}` : 'Bauen';
-  return `<button data-act="build" data-k="${k}" ${afford(P, c) ? '' : 'disabled'}>${label}</button>`;
-}
-
-export function buildings(v: V): string {
-  const { P, R, s } = v;
-  const items = Object.entries(BUILD).map(([k, d]) => {
-    const level = P.b[k] ?? 0;
-    const c = lvlCost(d, level + 1);
-    const miss = reqMissing(d, P, R);
-    const body =
-      costHTML(c, P) +
-      `<div class="dim">Bauzeit: ${dur(buildTime(c, P, s.cfg))}</div>` +
-      needs(miss);
-    return itemHTML(
-      'ic-b',
-      k,
-      d,
-      level ? `(Stufe ${level})` : '',
-      body,
-      buildAction(v, k, level, miss.length),
-    );
-  });
-  return `<h2>Gebäude</h2><div class="box">${items.join('')}</div>`;
-}
 
 function researchAction(v: V, k: string, level: number, miss: number): string {
   const { P, R, now } = v;

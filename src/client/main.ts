@@ -21,6 +21,7 @@ import { afford, caps, lvlCost, maxAfford, prod } from '../shared/economy.ts';
 import type { Ui, V } from './views/common.ts';
 import { menu, VIEWS } from './views/index.ts';
 import { auth } from './views/misc.ts';
+import { mountBuildings } from './views/buildings.ts';
 
 type Data = Record<string, string | undefined>;
 
@@ -32,10 +33,12 @@ let S: GameState | null = null;
 let offset = 0;
 let lastKey = '';
 let ctx: V | null = null;
+let buildingView: ReturnType<typeof mountBuildings> | null = null;
 const completionNotices = new Set<string>();
 
 function gameView(view: string | null): string {
-  if (!view || !Object.hasOwn(VIEWS, view)) return 'overview';
+  if (!view || (view !== 'buildings' && !Object.hasOwn(VIEWS, view)))
+    return 'overview';
   return view === 'admin' && S && !S.me.admin ? 'overview' : view;
 }
 
@@ -174,6 +177,7 @@ function keepInputs(view: HTMLElement, fresh: boolean): () => void {
 
 function renderLoggedOut(view: HTMLElement): void {
   ctx = null;
+  unmountBuildings();
   completionNotices.clear();
   $('#menu')!.innerHTML = '';
   $('#resbar')!.innerHTML = '';
@@ -210,12 +214,33 @@ function rememberCompletions(previous: V, next: V): void {
 }
 
 function renderCompletions(view: HTMLElement): void {
+  view.querySelector('#completion-notice')?.remove();
   if (!completionNotices.size) return;
   const notice = document.createElement('div');
+  notice.id = 'completion-notice';
   notice.className = 'notice';
   notice.setAttribute('role', 'status');
   notice.textContent = [...completionNotices].join(' ');
   view.prepend(notice);
+}
+
+function unmountBuildings(): void {
+  buildingView?.destroy();
+  buildingView = null;
+}
+
+function renderView(target: HTMLElement, view: V): void {
+  if (ui.view === 'buildings') {
+    if (buildingView) buildingView.update(view);
+    else {
+      target.replaceChildren();
+      buildingView = mountBuildings(target, view);
+    }
+    return;
+  }
+  unmountBuildings();
+  const show = Object.entries(VIEWS).find(([name]) => name === ui.view)?.[1];
+  target.innerHTML = (show ?? VIEWS.overview!)(view);
 }
 
 function render(fresh = false): void {
@@ -223,6 +248,7 @@ function render(fresh = false): void {
   if (!S) return renderLoggedOut(view);
   if (!S.planet) {
     ctx = null;
+    unmountBuildings();
     view.innerHTML =
       '<div class="notice">Du hast keinen Planeten. Bitte den Admin, eine neue Runde zu starten.</div>';
     return;
@@ -242,8 +268,7 @@ function render(fresh = false): void {
   updateBar();
   $('#pinfo')!.innerHTML =
     `<b>${esc(ctx.P.name)}</b> ${coords(ctx.P)} · Kommandant <b>${esc(S.me.name)}</b> · <span class="lnk" data-act="logout">Logout</span>`;
-  const show = Object.entries(VIEWS).find(([name]) => name === ui.view)?.[1];
-  view.innerHTML = (show ?? VIEWS.overview!)(ctx);
+  renderView(view, ctx);
   renderCompletions(view);
   paintPlanets(view);
   restore();
@@ -284,17 +309,13 @@ function updateBar(): Planet | undefined {
   return p;
 }
 
-function updatePurchaseButtons(p: Planet, research: Levels): void {
+function updateResearchButtons(p: Planet, research: Levels): void {
   document
-    .querySelectorAll<HTMLButtonElement>(
-      '#view button[data-act="build"], #view button[data-act="research"]',
-    )
+    .querySelectorAll<HTMLButtonElement>('#view button[data-act="research"]')
     .forEach((button) => {
       const key = button.dataset.k!;
-      const building = button.dataset.act === 'build';
-      const def = building ? BUILD[key]! : RES[key]!;
-      const level = (building ? p.b : research)[key] ?? 0;
-      button.disabled = !afford(p, lvlCost(def, level + 1));
+      const level = research[key] ?? 0;
+      button.disabled = !afford(p, lvlCost(RES[key]!, level + 1));
     });
 }
 
@@ -652,18 +673,21 @@ setInterval(() => {
     return;
   }
   let due = false;
-  document.querySelectorAll<HTMLElement>('.cd').forEach((el) => {
-    const left = Number(el.dataset.end) - now;
-    if (left > 0) return void (el.textContent = dur(left));
-    if (!el.dataset.fired) {
-      el.dataset.fired = '1';
-      due = true;
-    }
-    el.textContent = 'fertig';
-  });
+  document
+    .querySelectorAll<HTMLElement>(buildingView ? '.cd:not(#view *)' : '.cd')
+    .forEach((el) => {
+      const left = Number(el.dataset.end) - now;
+      if (left > 0) return void (el.textContent = dur(left));
+      if (!el.dataset.fired) {
+        el.dataset.fired = '1';
+        due = true;
+      }
+      el.textContent = 'fertig';
+    });
   const planet = updateBar();
   if (planet) {
-    updatePurchaseButtons(planet, ctx.R.research);
+    buildingView?.update({ ...ctx, P: planet, now });
+    updateResearchButtons(planet, ctx.R.research);
     updateShipyardButtons(planet);
   }
   if (due) setTimeout(() => void refresh(), 1500);

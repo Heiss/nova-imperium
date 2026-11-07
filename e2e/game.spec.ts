@@ -150,9 +150,13 @@ test.describe('playing', () => {
     await page.goto('/?view=buildings');
     const build = page.locator('[data-act=build][data-k=metal]');
     await expect(build).toBeDisabled();
+    await build.evaluate((button) =>
+      button.setAttribute('data-same-button', ''),
+    );
     await page.route('**/api/state', () => {});
     await page.clock.fastForward(5 * 60 * 1000);
     await expect(build).toBeEnabled();
+    await expect(build).toHaveAttribute('data-same-button', '');
     await expect(page).toHaveURL(/\?view=buildings$/);
   });
 
