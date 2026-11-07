@@ -30,6 +30,8 @@ const $ = <T extends HTMLElement = HTMLElement>(sel: string): T | null =>
 const val = (sel: string): string => $<HTMLInputElement>(sel)?.value ?? '';
 
 let S: GameState | null = null;
+let loginChallenge: string | null = null;
+let resetToken: string | null = null;
 let offset = 0;
 let lastKey = '';
 let ctx: V | null = null;
@@ -114,7 +116,7 @@ async function api(
 }
 
 function apply(st: GameState | undefined): void {
-  if (!st) return;
+  if (!st || resetToken) return;
   const key = JSON.stringify({ ...st, now: 0 });
   const same = key === lastKey;
   lastKey = key;
@@ -130,8 +132,10 @@ function apply(st: GameState | undefined): void {
 }
 
 async function refresh(): Promise<void> {
+  const player = S?.me.id;
   try {
-    apply((await api('/api/state')) as unknown as GameState);
+    const state = (await api('/api/state')) as unknown as GameState;
+    if (player && S?.me.id === player) apply(state);
   } catch (e) {
     if (S) console.warn(e);
   }
@@ -430,6 +434,16 @@ const ACT: Record<string, (d: Data) => unknown> = {
     ui.auth = 'login';
     render(true);
   },
+  forgot: () => {
+    ui.auth = 'forgot';
+    render(true);
+  },
+  authback: () => {
+    loginChallenge = null;
+    resetToken = null;
+    ui.auth = 'login';
+    render(true);
+  },
   authswitch: () => {
     ui.auth = ui.auth === 'register' ? 'login' : 'register';
     render(true);
@@ -571,6 +585,16 @@ async function adminCall(
 
 // ----- forms -----
 
+function continueLogin(reply: Record<string, unknown>): boolean {
+  if (!reply.loginRequired && typeof reply.challenge !== 'string') return false;
+  loginChallenge = typeof reply.challenge === 'string' ? reply.challenge : null;
+  ui.auth = loginChallenge ? 'code' : 'login';
+  ui.invite = null;
+  render(true);
+  if (reply.loginRequired) toast('Konto erstellt. Melde dich jetzt an.');
+  return true;
+}
+
 async function submitAuth(): Promise<void> {
   const reg = ui.auth === 'register' && ui.invite;
   const body: Record<string, unknown> = {
@@ -585,6 +609,7 @@ async function submitAuth(): Promise<void> {
     });
   try {
     const j = await api(reg ? '/api/register' : '/api/login', body);
+    if (continueLogin(j)) return;
     ui.auth = null;
     ui.invite = null;
     apply(j.state as GameState);
@@ -594,6 +619,51 @@ async function submitAuth(): Promise<void> {
         `Willkommen, ${S.me.name}! Dein Planet liegt bei ${coords(S.planet)}.`,
       );
     render(true);
+  } catch (e) {
+    toast((e as Error).message, true);
+  }
+}
+
+async function submitLoginCode(): Promise<void> {
+  try {
+    const j = await api('/api/login/code', {
+      challenge: loginChallenge,
+      code: val('#login_code'),
+    });
+    loginChallenge = null;
+    ui.auth = null;
+    apply(j.state as GameState);
+    homeSystem();
+    render(true);
+  } catch (e) {
+    toast((e as Error).message, true);
+  }
+}
+
+async function submitForgot(): Promise<void> {
+  try {
+    await api('/api/password/forgot', { email: val('#recovery_email') });
+    ui.auth = 'login';
+    render(true);
+    toast(
+      'Falls die Adresse hinterlegt ist, erhältst du einen Link per E-Mail.',
+    );
+  } catch (e) {
+    toast((e as Error).message, true);
+  }
+}
+
+async function submitPassword(reset: boolean): Promise<void> {
+  try {
+    await api(reset ? '/api/password/reset' : '/api/password/change', {
+      password: val('#pw_next'),
+      ...(reset ? { token: resetToken } : { current: val('#pw_current') }),
+    });
+    S = null;
+    resetToken = null;
+    ui.auth = 'login';
+    render(true);
+    toast('Passwort gespeichert. Melde dich mit deinem neuen Passwort an.');
   } catch (e) {
     toast((e as Error).message, true);
   }
@@ -642,9 +712,18 @@ document.addEventListener('keydown', (e) => {
 });
 document.addEventListener('submit', (e) => {
   const id = (e.target as HTMLElement).id;
-  if (id !== 'authform' && id !== 'inviteform') return;
+  const handlers = [
+    ['authform', submitAuth],
+    ['inviteform', submitInvite],
+    ['codeform', submitLoginCode],
+    ['forgotform', submitForgot],
+    ['resetform', () => submitPassword(true)],
+    ['passwordform', () => submitPassword(false)],
+  ] as const;
+  const handle = handlers.find(([form]) => form === id)?.[1];
+  if (!handle) return;
   e.preventDefault();
-  void (id === 'authform' ? submitAuth() : submitInvite());
+  void handle();
 });
 $('#modal')!.addEventListener('click', (e) => {
   if ((e.target as HTMLElement).id === 'modal') modal('');
@@ -718,6 +797,18 @@ async function openInvite(token: string): Promise<void> {
   }
 }
 
+function openReset(): boolean {
+  const token = /^#reset=([\w-]{43})$/.exec(location.hash)?.[1];
+  if (!token) return false;
+  history.replaceState(null, '', location.pathname + location.search);
+  resetToken = token;
+  loginChallenge = null;
+  S = null;
+  ui.auth = 'reset';
+  render(true);
+  return true;
+}
+
 const inviteToken = (): string | undefined =>
   /^#invite=([\w-]+)$/.exec(location.hash)?.[1];
 
@@ -727,12 +818,14 @@ window.addEventListener('popstate', () => {
 
 // An invitation link opened in a tab that is already open only changes the hash.
 window.addEventListener('hashchange', () => {
+  if (openReset()) return;
   const token = inviteToken();
   if (!token || S) return;
   void openInvite(token).then(() => render(true));
 });
 
 async function boot(): Promise<void> {
+  if (openReset()) return;
   const invite = inviteToken();
   try {
     apply((await api('/api/state')) as unknown as GameState);

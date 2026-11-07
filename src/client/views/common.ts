@@ -11,7 +11,7 @@ export interface Ui {
   ft: { g: number; s: number; p: number } | null;
   fm: string;
   openRep: Record<string, boolean>;
-  auth: 'login' | 'register' | null;
+  auth: 'login' | 'register' | 'forgot' | 'reset' | 'code' | null;
   invite: { token: string; email: string; galaxies: number } | null;
   lastLink: string | null;
 }

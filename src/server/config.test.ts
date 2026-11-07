@@ -35,8 +35,24 @@ describe('configuration', () => {
       inviteDays: 7,
       rateLimitAttempts: 20,
       rateLimitMinutes: 10,
+      emailLoginCodes: false,
       smtp: null,
     });
+  });
+
+  it('requires SMTP for email login codes', () => {
+    expect(errors({ ...base, NOVA_EMAIL_LOGIN_CODES: '1' })).toContain(
+      'NOVA_EMAIL_LOGIN_CODES requires SMTP_HOST and mail settings.',
+    );
+    expect(
+      ok({
+        ...base,
+        NOVA_EMAIL_LOGIN_CODES: '1',
+        SMTP_HOST: 'mail.example.org',
+        SMTP_PORT: '465',
+        MAIL_FROM: 'game@example.org',
+      }).emailLoginCodes,
+    ).toBe(true);
   });
 
   it('reads the values and trims them', () => {

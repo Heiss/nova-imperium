@@ -1,6 +1,7 @@
 // The HTTP interface: a JSON API under /api, the client files, /healthz.
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import * as auth from '../auth.ts';
+import * as security from '../account-security.ts';
 import type { Config } from '../config.ts';
 import type { User } from '../db/store.ts';
 import { requireAdmin } from '../game/admin.ts';
@@ -82,6 +83,78 @@ function sessionUserOf(ctx: Ctx, call: Call): User {
   return u;
 }
 
+async function beginLogin(d: AppDeps, u: User): Promise<Reply> {
+  if (!d.mailer)
+    throw new GameError('Anmeldecodes sind momentan nicht verfügbar.');
+  if (!u.email)
+    throw new GameError(
+      'Für dieses Konto ist keine E-Mail-Adresse hinterlegt.',
+    );
+  const { challenge, code } = security.issueLoginCode(d.ctx, u.id);
+  try {
+    await d.mailer({
+      to: u.email,
+      subject: 'Dein Anmeldecode für Nova Imperium',
+      text: `Dein Anmeldecode lautet ${code}. Er gilt einmal und für zehn Minuten.`,
+    });
+  } catch {
+    throw new GameError('Der Anmeldecode konnte nicht gesendet werden.');
+  }
+  return { json: { challenge } };
+}
+
+async function sendReset(d: AppDeps, email: unknown): Promise<void> {
+  if (!d.mailer) return;
+  const reset = security.issueReset(d.ctx, email);
+  if (!reset) return;
+  await d.mailer({
+    to: reset.email,
+    subject: 'Passwort für Nova Imperium zurücksetzen',
+    text: `Neues Passwort festlegen: ${d.cfg.publicUrl}/#reset=${reset.token}\n\nDer Link gilt einmal und für 30 Minuten. Wenn du das nicht angefordert hast, ignoriere diese E-Mail.`,
+  });
+}
+
+function passwordRoutes(
+  d: AppDeps,
+  guard: (req: IncomingMessage) => void,
+): Record<string, Handler> {
+  const { ctx, cfg } = d;
+  const signedOut = (): Reply => ({
+    json: { ok: true },
+    cookie: sessionCookie(cfg, null),
+  });
+  return {
+    'POST /api/password/forgot': ({ req, body }) => {
+      guard(req);
+      if (!d.mailer)
+        throw new GameError(
+          'Passwort-Wiederherstellung per E-Mail ist nicht eingerichtet.',
+        );
+      setImmediate(() => {
+        void sendReset(d, body.email).catch(() =>
+          d.log?.('Password reset mail failed'),
+        );
+      });
+      return { json: { ok: true } };
+    },
+    'POST /api/password/reset': ({ req, body }) => {
+      guard(req);
+      security.resetPassword(ctx, body.token, body.password);
+      return signedOut();
+    },
+    'POST /api/password/change': (call) => {
+      guard(call.req);
+      security.changePassword(
+        ctx,
+        sessionUserOf(ctx, call),
+        call.body.current,
+        call.body.password,
+      );
+      return signedOut();
+    },
+  };
+}
+
 /** Health check, invitations, registration, login and logout. */
 function accountRoutes(
   d: AppDeps,
@@ -109,12 +182,23 @@ function accountRoutes(
     'POST /api/register': ({ req, body }) => {
       guard(req);
       const registration = body as unknown as auth.Registration;
-      return enter(ctx.store.tx(() => auth.register(ctx, registration)));
+      const user = ctx.store.tx(() => auth.register(ctx, registration));
+      return cfg.emailLoginCodes
+        ? { json: { ok: true, loginRequired: true } }
+        : enter(user);
     },
     'POST /api/login': ({ req, body }) => {
       guard(req);
-      return enter(auth.login(ctx, body.name, body.password));
+      const user = auth.login(ctx, body.name, body.password);
+      return cfg.emailLoginCodes ? beginLogin(d, user) : enter(user);
     },
+    'POST /api/login/code': ({ req, body }) => {
+      guard(req);
+      if (!cfg.emailLoginCodes)
+        throw new GameError('Anmeldecodes sind nicht aktiviert.');
+      return enter(security.completeLogin(ctx, body.challenge, body.code));
+    },
+    ...passwordRoutes(d, guard),
     'POST /api/logout': ({ token }) => {
       auth.endSession(ctx, token);
       return { json: { ok: true }, cookie: sessionCookie(cfg, null) };
@@ -247,5 +331,11 @@ export function createApp(d: AppDeps): {
       fault(res, e, d.log);
     }
   };
-  return { handle, sweep: () => limiter.sweep() };
+  return {
+    handle,
+    sweep: () => {
+      limiter.sweep();
+      security.purgeAccountTokens(d.ctx);
+    },
+  };
 }

@@ -54,7 +54,7 @@ export const uniqueName = (base: string): string =>
 export async function register(
   page: Page,
   name: string,
-  password = 'geheim123',
+  password = 'ein-sicheres-testpasswort',
 ): Promise<void> {
   const email = `${name.toLowerCase()}@example.org`;
   await page.goto(inviteLink(email));
@@ -68,7 +68,7 @@ export async function register(
 export async function login(
   page: Page,
   name: string,
-  password = 'geheim123',
+  password = 'ein-sicheres-testpasswort',
 ): Promise<void> {
   await page.goto('/');
   await page.fill('#a_name', name);

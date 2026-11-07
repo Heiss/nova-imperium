@@ -37,7 +37,7 @@ curl -s "$MAIL/api/v1/messages" | grep -q 'Einladung zu Nova Imperium' && ok "in
 
 token="${link##*#invite=}"
 reg="$(curl -s -X POST -H 'content-type: application/json' \
-  -d "{\"token\":\"$token\",\"name\":\"$who\",\"password\":\"smoke-test-1\",\"gal\":1}" "$GAME/api/register")"
+  -d "{\"token\":\"$token\",\"name\":\"$who\",\"password\":\"smoke-test-passphrase\",\"gal\":1}" "$GAME/api/register")"
 case "$reg" in *'"ok":true'*) ok "registered with the invitation" ;; *) bad "registration: $reg" ;; esac
 docker compose exec -T app nova admin "$who" > /dev/null && ok "made admin through the CLI" || bad "admin command"
 
@@ -45,7 +45,7 @@ docker compose exec -T app nova admin "$who" > /dev/null && ok "made admin throu
 docker compose restart app > /dev/null
 i=0
 until [ "$(status "$GAME/healthz")" = "200" ] || [ $i -ge 30 ]; do i=$((i+1)); sleep 2; done
-login="$(curl -s -X POST -H 'content-type: application/json' -d "{\"name\":\"$who\",\"password\":\"smoke-test-1\"}" "$GAME/api/login")"
+login="$(curl -s -X POST -H 'content-type: application/json' -d "{\"name\":\"$who\",\"password\":\"smoke-test-passphrase\"}" "$GAME/api/login")"
 case "$login" in *'"admin":true'*) ok "player and admin right survive a restart" ;; *) bad "login after restart: $login" ;; esac
 
 exit $fail

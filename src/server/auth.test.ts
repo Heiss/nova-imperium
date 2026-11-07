@@ -1,3 +1,4 @@
+import { scryptSync } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import * as auth from './auth.ts';
 import { addUser, testConfig, testCtx } from './test-helpers.ts';
@@ -17,7 +18,7 @@ const reg = (
 ): auth.Registration => ({
   token,
   name: 'Neu',
-  password: 'secret1',
+  password: 'registration-passphrase',
   planet: 'Welt',
   gal: 2,
   ...over,
@@ -98,7 +99,7 @@ describe('registration', () => {
       admin: false,
       probes: 1,
     });
-    expect(auth.passwordMatches(u, 'secret1')).toBe(true);
+    expect(auth.passwordMatches(u, 'registration-passphrase')).toBe(true);
     const p = ctx.store.planetOfUser(u.id)!;
     expect(p).toMatchObject({ name: 'Welt', g: 2 });
     expect(() => auth.register(ctx, reg(token, { name: 'Zwei' }))).toThrow(
@@ -122,7 +123,7 @@ describe('registration', () => {
       'mindestens 2 Zeichen',
     );
     expect(() => auth.register(ctx, reg(token, { password: '12345' }))).toThrow(
-      'mindestens 6 Zeichen',
+      'mindestens 15 Zeichen',
     );
     expect(() =>
       auth.register(ctx, reg(token, { password: 'x'.repeat(201) })),
@@ -131,7 +132,10 @@ describe('registration', () => {
       'schon vergeben',
     );
     expect(
-      auth.register(ctx, reg(token, { name: 'Ab', password: '123456' })).name,
+      auth.register(
+        ctx,
+        reg(token, { name: 'Ab', password: 'a long passphrase' }),
+      ).name,
     ).toBe('Ab');
   });
 
@@ -156,6 +160,15 @@ describe('login and sessions', () => {
     expect(() => auth.login(ctx, undefined, undefined)).toThrow(
       'Name oder Passwort falsch.',
     );
+  });
+
+  it('upgrades an existing scrypt password without requiring a reset', () => {
+    const ctx = testCtx();
+    const old = scryptSync('secret1', 'old-salt', 64).toString('hex');
+    const user = addUser(ctx, 'Anna', { salt: 'old-salt', pw: old });
+    expect(auth.login(ctx, 'Anna', 'secret1').pw).toMatch(/^scrypt-v2:/);
+    expect(ctx.store.user(user.id)?.salt).not.toBe('old-salt');
+    expect(auth.login(ctx, 'Anna', 'secret1').id).toBe(user.id);
   });
 
   it('keeps a session for the configured days', () => {

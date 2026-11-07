@@ -11,12 +11,21 @@ import type { Invitation, User } from './db/store.ts';
 import { type Ctx, fail, int, str } from './game/context.ts';
 import { placePlanet } from './game/planets.ts';
 
-export const MIN_PASSWORD = 6;
+export const MIN_PASSWORD = 15;
 export const MAX_PASSWORD = 200;
 const DAY = 86400000;
 
+// OWASP's scrypt profile with 32 MiB and three parallelization rounds.
+const PROFILE = 'scrypt-v2:';
+const SCRYPT = { N: 32768, r: 8, p: 3, maxmem: 64 * 1024 * 1024 };
+
 export const hashPassword = (pw: string, salt: string): string =>
-  scryptSync(pw, salt, 64).toString('hex');
+  PROFILE + scryptSync(pw, salt, 64, SCRYPT).toString('hex');
+
+export function passwordFields(pw: string): Pick<User, 'salt' | 'pw'> {
+  const salt = randomBytes(16).toString('hex');
+  return { salt, pw: hashPassword(pw, salt) };
+}
 
 export const hashToken = (token: string): string =>
   createHash('sha256').update(token).digest('hex');
@@ -24,8 +33,10 @@ export const hashToken = (token: string): string =>
 export const newToken = (): string => randomBytes(32).toString('base64url');
 
 export function passwordMatches(u: User, pw: string): boolean {
-  const a = Buffer.from(hashPassword(pw, u.salt), 'hex');
-  const b = Buffer.from(u.pw, 'hex');
+  if (pw.length > MAX_PASSWORD * 2) return false;
+  const modern = u.pw.startsWith(PROFILE);
+  const a = scryptSync(pw, u.salt, 64, modern ? SCRYPT : {});
+  const b = Buffer.from(modern ? u.pw.slice(PROFILE.length) : u.pw, 'hex');
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
@@ -95,11 +106,16 @@ export interface Registration {
 
 function checkAccount(ctx: Ctx, name: string, pw: string): void {
   if (name.length < 2) fail('Der Name braucht mindestens 2 Zeichen.');
-  if (pw.length < MIN_PASSWORD)
-    fail(`Das Passwort braucht mindestens ${MIN_PASSWORD} Zeichen.`);
-  if (pw.length > MAX_PASSWORD)
-    fail(`Das Passwort darf höchstens ${MAX_PASSWORD} Zeichen haben.`);
+  validatePassword(pw);
   if (ctx.store.userByName(name)) fail('Der Name ist schon vergeben.');
+}
+
+export function validatePassword(pw: string): void {
+  const length = [...pw].length;
+  if (length < MIN_PASSWORD)
+    fail(`Das Passwort braucht mindestens ${MIN_PASSWORD} Zeichen.`);
+  if (length > MAX_PASSWORD)
+    fail(`Das Passwort darf höchstens ${MAX_PASSWORD} Zeichen haben.`);
 }
 
 /** Registers with an invitation. Nobody becomes admin here (see the CLI). */
@@ -110,13 +126,11 @@ export function register(ctx: Ctx, d: Registration): User {
   checkAccount(ctx, name, pw);
   if (ctx.store.userByEmail(inv.email))
     fail('Mit dieser Adresse spielt schon jemand.');
-  const salt = randomBytes(16).toString('hex');
   const u: User = {
     id: 'u' + ctx.id(),
     name,
     email: inv.email,
-    salt,
-    pw: hashPassword(pw, salt),
+    ...passwordFields(pw),
     admin: false,
     probes: 1,
     readAt: ctx.now(),
@@ -138,9 +152,23 @@ export function register(ctx: Ctx, d: Registration): User {
 
 export function login(ctx: Ctx, name: unknown, password: unknown): User {
   const u = ctx.store.userByName(str(name, 20));
-  if (!u || !passwordMatches(u, String(password ?? '')))
-    fail('Name oder Passwort falsch.');
-  return u!;
+  const pw = String(password ?? '');
+  if (!u) {
+    if (pw.length <= MAX_PASSWORD * 2) hashPassword(pw, 'unknown-account');
+    return fail('Name oder Passwort falsch.');
+  }
+  if (!passwordMatches(u, pw)) return fail('Name oder Passwort falsch.');
+  if (!u.pw.startsWith(PROFILE)) {
+    const upgraded = passwordFields(pw);
+    const update = ctx.store.db
+      .prepare(
+        'UPDATE users SET pw_hash = ?, salt = ? WHERE id = ? AND pw_hash = ? AND salt = ?',
+      )
+      .run(upgraded.pw, upgraded.salt, u.id, u.pw, u.salt);
+    if (!update.changes) return fail('Name oder Passwort falsch.');
+    Object.assign(u, upgraded);
+  }
+  return u;
 }
 
 // ----- sessions -----

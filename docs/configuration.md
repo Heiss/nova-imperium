@@ -20,10 +20,11 @@ this table and in `.env.example`, and that the defaults and ranges match.
 | `NOVA_TRUST_PROXY`         | `0`          | `0`, `1`                         | `1`: the client address is taken from `X-Real-IP` (set by Caddy). `compose.yaml` sets `1`. Never `1` without a proxy in front. |
 | `NOVA_SESSION_DAYS`        | `30`         | 1 to 365                         | Days a login stays valid.                                                                                                      |
 | `NOVA_INVITE_DAYS`         | `7`          | 1 to 30                          | Days an invitation link stays valid.                                                                                           |
+| `NOVA_EMAIL_LOGIN_CODES`   | `0`          | `0`, `1`                         | Require a short-lived email code after password verification. Requires SMTP.                                                   |
 | `NOVA_RATE_LIMIT_ATTEMPTS` | `20`         | 1 to 1000                        | Logins, registrations and invitation checks per client address and window.                                                     |
 | `NOVA_RATE_LIMIT_MINUTES`  | `10`         | 1 to 1440                        | Length of that window in minutes.                                                                                              |
 
-## Mail for invitations
+## Mail for invitations and account recovery
 
 Optional. Without `SMTP_HOST` no mail is sent and the admin copies the
 invitation link from the admin panel.
