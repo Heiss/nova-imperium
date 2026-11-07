@@ -3,6 +3,7 @@
 import { createServer, type Server } from 'node:http';
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
+import { purgeAudit } from './audit.ts';
 import type { Config } from './config.ts';
 import { openDatabase } from './db/database.ts';
 import { Store } from './db/store.ts';
@@ -50,6 +51,7 @@ function startGameClock(
   }, TICK_MS);
   const sweep = setInterval(() => {
     ctx.store.purgeSessions(ctx.now());
+    purgeAudit(ctx);
     sweepApp();
   }, SWEEP_MS);
   return () => {

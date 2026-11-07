@@ -14,6 +14,7 @@ import {
 } from '../../shared/economy.ts';
 import { settle, settleR } from '../../shared/settle.ts';
 import type { Planet, ResearchState } from '../../shared/types.ts';
+import type { AuditEntry } from '../audit.ts';
 import {
   cancelScheduledPush,
   queuePush,
@@ -23,7 +24,12 @@ import type { User } from '../db/store.ts';
 import { type Ctx, fail, fmt, int, str, universe } from './context.ts';
 
 export type Data = Record<string, unknown>;
-export type Action = (ctx: Ctx, u: User, d: Data) => string | null;
+export type Action = (
+  ctx: Ctx,
+  u: User,
+  d: Data,
+  event?: AuditEntry,
+) => string | null;
 
 export const MAX_SHIPYARD_ORDERS = 20;
 
@@ -49,7 +55,7 @@ const checkBuild = (p: Planet, r: ResearchState, k: string): void => {
   if (k === 'lab' && r.rq) fail('Das Labor forscht gerade.');
 };
 
-export const build: Action = (ctx, u, d) => {
+export const build: Action = (ctx, u, d, event) => {
   const k = String(d.key);
   const def = BUILD[k] ?? fail('Unbekanntes Gebäude.');
   const p = mine(ctx, u);
@@ -67,6 +73,7 @@ export const build: Action = (ctx, u, d) => {
     cost: c,
   };
   ctx.store.savePlanet(p);
+  if (event) event.detail = { planet: p.id, key: k, level: lvl, due: p.bq.end };
   queuePush(ctx, u.id, 'buildings', String(t), p.bq.end);
   return null;
 };
@@ -88,7 +95,7 @@ const checkResearch = (p: Planet, r: ResearchState, k: string): void => {
   if (reqMissing(RES[k]!, p, r).length) fail('Voraussetzungen fehlen.');
 };
 
-export const research: Action = (ctx, u, d) => {
+export const research: Action = (ctx, u, d, event) => {
   const k = String(d.key);
   const def = RES[k] ?? fail('Unbekannte Forschung.');
   const p = mine(ctx, u);
@@ -108,6 +115,7 @@ export const research: Action = (ctx, u, d) => {
   };
   setResearch(ctx, u, r);
   ctx.store.savePlanet(p);
+  if (event) event.detail = { planet: p.id, key: k, level: lvl, due: r.rq.end };
   queuePush(ctx, u.id, 'research', String(t), r.rq.end);
   return null;
 };
@@ -124,12 +132,16 @@ export const cancelResearch: Action = (ctx, u) => {
   return null;
 };
 
-export const order: Action = (ctx, u, d) => {
+function requireYard(p: Planet): void {
+  if (!((p.b.yard ?? 0) > 0)) fail('Du brauchst eine Raumschiffwerft.');
+  if (p.bq?.key === 'yard') fail('Die Werft wird ausgebaut.');
+}
+
+export const order: Action = (ctx, u, d, event) => {
   const k = String(d.key);
   const def = UNIT[k] ?? fail('Unbekannte Einheit.');
   const p = mine(ctx, u);
-  if (!((p.b.yard ?? 0) > 0)) fail('Du brauchst eine Raumschiffwerft.');
-  if (p.bq?.key === 'yard') fail('Die Werft wird ausgebaut.');
+  requireYard(p);
   if (reqMissing(def, p, researchOf(ctx, u)).length)
     fail('Voraussetzungen fehlen.');
   const n = Math.min(int(d.n, 0, 1e9), maxAfford(p, def.cost));
@@ -140,6 +152,7 @@ export const order: Action = (ctx, u, d) => {
   if (!p.sq.length) p.sqT = ctx.now();
   p.sq.push({ key: k, n, unit: unitTime(def, p, universe(ctx)) });
   ctx.store.savePlanet(p);
+  if (event) event.detail = { planet: p.id, key: k, units: n };
   scheduleShipyard(ctx, u.id, p.sqT!, p.sq);
   return `${fmt(n)}× ${def.n} in Auftrag gegeben.`;
 };

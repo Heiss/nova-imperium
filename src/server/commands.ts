@@ -1,5 +1,6 @@
 // Commands for the operator (docker compose exec app nova …). Making someone
 // admin is only possible here, never through the web.
+import { audited } from './audit.ts';
 import { createInvitation } from './auth.ts';
 import type { Config } from './config.ts';
 import type { Ctx } from './game/context.ts';
@@ -27,8 +28,19 @@ function setAdmin(
     o.err(`No player named "${name ?? ''}".`);
     return 1;
   }
-  u.admin = admin;
-  ctx.store.saveUser(u);
+  audited(
+    ctx,
+    {
+      category: 'admin.write',
+      action: admin ? 'grantAdmin' : 'revokeAdmin',
+      target: u.id,
+      detail: { source: 'operator', before: u.admin, after: admin },
+    },
+    () => {
+      u.admin = admin;
+      ctx.store.saveUser(u);
+    },
+  );
   o.out(`${u.name} is ${admin ? 'now' : 'no longer'} admin.`);
   return 0;
 }
@@ -40,9 +52,16 @@ async function invite(
   email: string | undefined,
   o: Output,
 ): Promise<number> {
-  const { invitation, link } = ctx.store.tx(() =>
-    createInvitation(ctx, cfg, null, email),
-  );
+  const entry = {
+    category: 'admin.write',
+    action: 'invite',
+    detail: { source: 'operator' },
+  } as const;
+  const { invitation, link } = audited(ctx, entry, () => {
+    const created = createInvitation(ctx, cfg, null, email);
+    Object.assign(entry.detail, { invitation: created.invitation.id });
+    return created;
+  });
   o.out(
     `Invitation for ${invitation.email}, valid until ${new Date(invitation.expires).toISOString()}:`,
   );
@@ -73,7 +92,15 @@ export async function runCommand(
     if (cmd === 'admin') return setAdmin(ctx, arg, true, o);
     if (cmd === 'unadmin') return setAdmin(ctx, arg, false, o);
     if (cmd === 'admins') {
-      const list = ctx.store.users().filter((u) => u.admin);
+      const list = audited(
+        ctx,
+        {
+          category: 'admin.read',
+          action: 'admins',
+          detail: { source: 'operator' },
+        },
+        () => ctx.store.users().filter((u) => u.admin),
+      );
       o.out(list.length ? list.map((u) => u.name).join('\n') : 'No admin yet.');
       return 0;
     }

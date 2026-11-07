@@ -20,6 +20,10 @@ import type { GameState } from './logic/types.ts';
 import { afford, caps, lvlCost, maxAfford, prod } from '../shared/economy.ts';
 import type { Ui, V } from './views/common.ts';
 import { menu, VIEWS } from './views/index.ts';
+import {
+  loadInvitations,
+  mountAdminDiagnostics,
+} from './views/admin-diagnostics.ts';
 import { auth } from './views/misc.ts';
 import { disablePush, enablePush } from './push.ts';
 import { mountBuildings } from './views/buildings.ts';
@@ -37,6 +41,12 @@ let offset = 0;
 let lastKey = '';
 let ctx: V | null = null;
 let buildingView: ReturnType<typeof mountBuildings> | null = null;
+let adminPanel: {
+  diagnostics: HTMLElement;
+  invitations: HTMLElement;
+  user: string;
+} | null = null;
+let lastActivity = -Infinity;
 const completionNotices = new Set<string>();
 
 function gameView(view: string | null): string {
@@ -115,8 +125,14 @@ async function api(
     render(true);
     throw new AuthError(String(j.error ?? 'Bitte einloggen.'));
   }
-  if (!r.ok) throw new Error(String(j.error ?? 'Fehler'));
+  if (!r.ok) throw apiError(r, j.error);
   return j;
+}
+
+function apiError(response: Response, error: unknown): Error {
+  const id =
+    response.status >= 500 ? response.headers.get('x-request-id') : null;
+  return new Error(String(error ?? 'Fehler') + (id ? ` Vorgang: ${id}` : ''));
 }
 
 function apply(st: GameState | undefined): void {
@@ -240,6 +256,7 @@ function unmountBuildings(): void {
 }
 
 function renderView(target: HTMLElement, view: V): void {
+  if (ui.view !== 'admin' || !view.s.me.admin) adminPanel = null;
   if (ui.view === 'buildings') {
     if (buildingView) buildingView.update(view);
     else {
@@ -251,11 +268,34 @@ function renderView(target: HTMLElement, view: V): void {
   unmountBuildings();
   const show = Object.entries(VIEWS).find(([name]) => name === ui.view)?.[1];
   target.innerHTML = (show ?? VIEWS.overview!)(view);
+  if (ui.view === 'admin' && view.s.me.admin) renderAdminPanel(target, view);
+}
+
+function renderAdminPanel(target: HTMLElement, view: V): void {
+  const diagnostics = target.querySelector<HTMLElement>('#admin-diagnostics')!;
+  const invitations = target.querySelector<HTMLElement>('#admin-invitations')!;
+  if (adminPanel?.user === view.s.me.id) {
+    diagnostics.replaceWith(adminPanel.diagnostics);
+    invitations.replaceWith(adminPanel.invitations);
+    return;
+  }
+  adminPanel = { diagnostics, invitations, user: view.s.me.id };
+  const panel = mountAdminDiagnostics(diagnostics, api, view.s.players);
+  void panel.refresh();
+  void loadInvitations(invitations, api);
+}
+
+function refreshInvitations(): void {
+  if (adminPanel) void loadInvitations(adminPanel.invitations, api);
 }
 
 function render(fresh = false): void {
   const view = $('#view')!;
-  if (!S) return renderLoggedOut(view);
+  if (!S) {
+    adminPanel = null;
+    lastActivity = -Infinity;
+    return renderLoggedOut(view);
+  }
   if (!S.planet) {
     ctx = null;
     unmountBuildings();
@@ -621,7 +661,10 @@ const ACT: Record<string, (d: Data) => unknown> = {
       settings: settingsFrom(keys, (k) => val(`#set_${k}`)),
     });
   },
-  revoke: (d) => adminCall('/api/admin/revoke', { id: d.id }),
+  revoke: async (d) => {
+    if (await adminCall('/api/admin/revoke', { id: d.id }))
+      refreshInvitations();
+  },
   copyLink: async () => {
     const input = $<HTMLInputElement>('#inv_link');
     if (!input) return;
@@ -752,6 +795,7 @@ async function submitInvite(): Promise<void> {
   if (!j) return;
   ui.lastLink = String(j.link);
   render(true);
+  refreshInvitations();
 }
 
 function homeSystem(): void {
@@ -762,6 +806,23 @@ function homeSystem(): void {
 }
 
 // ----- events -----
+
+function noteActivity(event: Event): void {
+  if (!S || !event.isTrusted || document.visibilityState !== 'visible') return;
+  const now = performance.now();
+  if (now - lastActivity < 10000) return;
+  lastActivity = now;
+  // An activity sample must not change the session UI or block the interaction.
+  void fetch('/api/activity', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: '{}',
+    credentials: 'same-origin',
+  }).catch(() => undefined);
+}
+
+document.addEventListener('click', noteActivity, { capture: true });
+document.addEventListener('keydown', noteActivity, { capture: true });
 
 document.addEventListener('click', (e) => {
   const el = (e.target as HTMLElement).closest<HTMLElement>('[data-act]');

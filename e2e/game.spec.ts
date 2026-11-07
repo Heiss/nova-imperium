@@ -315,6 +315,40 @@ test.describe('playing', () => {
 });
 
 test.describe('admin', () => {
+  test('an admin can inspect a player and audit the data access', async ({
+    page,
+    browser,
+  }) => {
+    const name = uniqueName('Audit');
+    const pilot = uniqueName('Pilot');
+    const other = await browser.newPage();
+    await register(other, pilot);
+    await nav(other, 'buildings');
+    await other.click('[data-act=build][data-k=metal]');
+    await expect(other.getByText('Ausbau auf Stufe 1')).toBeVisible();
+    await register(page, name);
+    cli('admin', name);
+    await page.reload();
+    await nav(page, 'admin');
+    await page
+      .locator('[data-admin=stats]')
+      .getByRole('button', { name: pilot, exact: true })
+      .click();
+    await expect(
+      page.getByRole('heading', { name: `Spielerakte · ${pilot}` }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('row', { name: /game \/ build/ }),
+    ).toContainText(pilot);
+    await page.getByLabel('Spieler', { exact: true }).selectOption('');
+    await page.getByLabel('Aktion', { exact: true }).fill('player');
+    await page.getByRole('button', { name: 'Anzeigen', exact: true }).click();
+    const audit = page.getByRole('row', { name: /admin.read \/ player/ });
+    await expect(audit).toContainText(name);
+    await expect(audit).toContainText(pilot);
+    await other.close();
+  });
+
   test('only an admin made by the operator sees the admin panel', async ({
     page,
   }) => {
@@ -334,7 +368,7 @@ test.describe('admin', () => {
       'Kein SMTP eingerichtet',
     );
     await expect(page.locator('#inv_link')).toHaveValue(/#invite=[\w-]{43}$/);
-    await expect(page.locator('table.mini')).toContainText(
+    await expect(page.locator('#admin-invitations table.mini')).toContainText(
       'freund@example.org',
     );
     await page

@@ -1,6 +1,7 @@
 import { queuePush } from '../push-store.ts';
 // What happens when a fleet arrives or comes home: transport, espionage,
 // battle with loot and rebuilt defense.
+import { record } from '../audit.ts';
 import { battle } from '../../shared/battle.ts';
 import { DEF, SHIPS } from '../../shared/catalog.ts';
 import { capacity, countUnits } from '../../shared/flight.ts';
@@ -220,6 +221,13 @@ function attack(ctx: Ctx, f: Fleet, t: Planet, att: Player, def: Player): void {
   t.ships = after.ships;
   t.def = after.def;
   ctx.store.savePlanet(t);
+  record(ctx, {
+    category: 'system',
+    action: 'battle',
+    actor: f.owner,
+    target: t.owner,
+    detail: { fleet: f.id, planet: t.id, winner: res.winner, scheduled: f.arr },
+  });
   battleReports(ctx, {
     f,
     t,

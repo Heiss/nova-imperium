@@ -1,12 +1,14 @@
 // The HTTP interface: a JSON API under /api, the client files, /healthz.
+import { randomUUID } from 'node:crypto';
+import { activity, audited, record, type AuditEntry } from '../audit.ts';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import * as auth from '../auth.ts';
 import * as security from '../account-security.ts';
 import type { Config } from '../config.ts';
 import type { User } from '../db/store.ts';
 import { requireAdmin } from '../game/admin.ts';
-import { type Ctx, GameError } from '../game/context.ts';
-import { runAction } from '../game/dispatch.ts';
+import { type Ctx, GameError, str } from '../game/context.ts';
+import { ACTIONS, runAction } from '../game/dispatch.ts';
 import { stateFor } from '../game/state.ts';
 import { type Mailer, invitationMail } from '../mail.ts';
 import {
@@ -17,6 +19,7 @@ import {
 import { RateLimiter } from './rate-limit.ts';
 import { clientIp, cookies, readJson } from './request.ts';
 import { SECURITY_HEADERS } from './security.ts';
+import { adminRoutes } from './admin.ts';
 import { loadStatic } from './static.ts';
 
 export interface AppDeps {
@@ -29,7 +32,8 @@ export interface AppDeps {
 
 export const COOKIE = 'nova_session';
 
-interface Call {
+export interface Call {
+  requestId: string;
   req: IncomingMessage;
   res: ServerResponse;
   body: Record<string, unknown>;
@@ -37,7 +41,7 @@ interface Call {
 }
 
 type Reply = { status?: number; json: unknown; cookie?: string };
-type Handler = (call: Call) => Reply | Promise<Reply>;
+export type Handler = (call: Call) => Reply | Promise<Reply>;
 
 function send(
   res: ServerResponse,
@@ -82,7 +86,7 @@ export function crossSite(req: IncomingMessage, cfg: Config): boolean {
 
 class Unauthorized extends Error {}
 
-function sessionUserOf(ctx: Ctx, call: Call): User {
+export function sessionUserOf(ctx: Ctx, call: Call): User {
   const u = auth.sessionUser(ctx, call.token);
   if (!u) throw new Unauthorized();
   return u;
@@ -184,31 +188,89 @@ function accountRoutes(
       const email = auth.openInvitation(ctx, body.token).email;
       return { json: { email, galaxies: ctx.store.universe().galaxies } };
     },
-    'POST /api/register': ({ req, body }) => {
+    ...loginRoutes(d, guard, enter),
+    ...passwordRoutes(d, guard),
+    'POST /api/logout': (call) => logoutReply(ctx, cfg, call),
+  };
+}
+
+function loginRoutes(
+  d: AppDeps,
+  guard: (req: IncomingMessage) => void,
+  enter: (u: User) => Reply,
+): Record<string, Handler> {
+  const { ctx, cfg } = d;
+  return {
+    'POST /api/register': ({ req, body, requestId }) => {
       guard(req);
       const registration = body as unknown as auth.Registration;
-      const user = ctx.store.tx(() => auth.register(ctx, registration));
+      const user = ctx.store.tx(() => {
+        const u = auth.register(ctx, registration);
+        record(ctx, {
+          category: 'account',
+          action: 'register',
+          actor: u.id,
+          requestId,
+        });
+        return u;
+      });
       return cfg.emailLoginCodes
         ? { json: { ok: true, loginRequired: true } }
         : enter(user);
     },
-    'POST /api/login': ({ req, body }) => {
+    'POST /api/login': ({ req, body, requestId }) => {
       guard(req);
-      const user = auth.login(ctx, body.name, body.password);
+      const actor = ctx.store.userByName(str(body.name, 20))?.id;
+      const action = cfg.emailLoginCodes ? 'loginPassword' : 'login';
+      const user = audited(
+        ctx,
+        { category: 'account', action, actor, requestId },
+        () => auth.login(ctx, body.name, body.password),
+      );
       return cfg.emailLoginCodes ? beginLogin(d, user) : enter(user);
     },
-    'POST /api/login/code': ({ req, body }) => {
+    'POST /api/login/code': ({ req, body, requestId }) => {
       guard(req);
       if (!cfg.emailLoginCodes)
         throw new GameError('Anmeldecodes sind nicht aktiviert.');
-      return enter(security.completeLogin(ctx, body.challenge, body.code));
-    },
-    ...passwordRoutes(d, guard),
-    'POST /api/logout': ({ token }) => {
-      auth.endSession(ctx, token);
-      return { json: { ok: true }, cookie: sessionCookie(cfg, null) };
+      return loginCodeReply(ctx, body, requestId, enter);
     },
   };
+}
+
+function logoutReply(ctx: Ctx, cfg: Config, { token, requestId }: Call): Reply {
+  const u = auth.sessionUser(ctx, token);
+  if (u)
+    audited(
+      ctx,
+      { category: 'account', action: 'logout', actor: u.id, requestId },
+      () => auth.endSession(ctx, token),
+    );
+  return { json: { ok: true }, cookie: sessionCookie(cfg, null) };
+}
+
+function loginCodeReply(
+  ctx: Ctx,
+  body: Call['body'],
+  requestId: string,
+  enter: (u: User) => Reply,
+): Reply {
+  const entry: AuditEntry = {
+    category: 'account',
+    action: 'loginCode',
+    requestId,
+  };
+  // Failed code checks increment the attempt counter. Keep that write even
+  // when verification throws, outside the session-and-audit transaction.
+  let user: User;
+  try {
+    user = security.completeLogin(ctx, body.challenge, body.code);
+  } catch (error) {
+    record(ctx, entry, error instanceof GameError ? 'rejected' : 'error');
+    throw error;
+  }
+  entry.actor = user.id;
+  return audited(ctx, entry, () => enter(user));
 }
 
 function pushRoutes(d: AppDeps): Record<string, Handler> {
@@ -247,31 +309,45 @@ function gameRoutes(d: AppDeps): Record<string, Handler> {
     'GET /api/state': (call) => ({
       json: stateFor(ctx, sessionUserOf(ctx, call)),
     }),
+    'POST /api/activity': (call) => {
+      activity(ctx, sessionUserOf(ctx, call));
+      return { json: { ok: true } };
+    },
     'POST /api/action': (call) => {
       const u = sessionUserOf(ctx, call);
-      const msg = runAction(ctx, u.id, call.body);
+      const msg = playerAction(ctx, u, call);
       return {
         json: { ok: true, msg, state: stateFor(ctx, ctx.store.user(u.id)!) },
       };
     },
-    'POST /api/admin/invite': (call) =>
-      invite(d, sessionUserOf(ctx, call), call.body.email),
-    'POST /api/admin/revoke': (call) => {
-      const u = sessionUserOf(ctx, call);
-      requireAdmin(u);
-      ctx.store.revokeInvitations(
-        { id: String(call.body.id ?? '') },
-        ctx.now(),
-      );
-      return {
-        json: {
-          ok: true,
-          msg: 'Einladung widerrufen.',
-          state: stateFor(ctx, u),
-        },
-      };
-    },
+    ...adminRoutes(
+      d,
+      (call) => sessionUserOf(ctx, call),
+      (call, u) => invite(d, u, call.body.email, call.requestId),
+    ),
   };
+}
+
+function playerAction(ctx: Ctx, u: User, call: Call): string | null {
+  const name = String(call.body.type);
+  const action = Object.hasOwn(ACTIONS, name) ? name : 'unknown';
+  const category =
+    action === 'settings' || action === 'reset' ? 'admin.write' : 'game';
+  const entry: AuditEntry = {
+    category,
+    action,
+    actor: u.id,
+    requestId: call.requestId,
+  };
+  return audited(ctx, entry, () => {
+    if (category === 'game')
+      entry.detail = { planet: ctx.store.planetOfUser(u.id)?.id };
+    const before =
+      action === 'settings' && u.admin ? ctx.store.universe() : null;
+    const msg = runAction(ctx, u.id, call.body, entry);
+    if (before) entry.detail = { before, after: ctx.store.universe() };
+    return msg;
+  });
 }
 
 /** Creates the invitation, then tries the mail. The link is always returned for copying. */
@@ -279,11 +355,21 @@ export async function invite(
   d: AppDeps,
   u: User,
   email: unknown,
+  requestId?: string,
 ): Promise<Reply> {
   requireAdmin(u);
-  const { invitation, link } = d.ctx.store.tx(() =>
-    auth.createInvitation(d.ctx, d.cfg, u.id, email),
-  );
+  const entry = {
+    category: 'admin.write',
+    action: 'invite',
+    actor: u.id,
+    requestId,
+    detail: {},
+  } as const;
+  const { invitation, link } = audited(d.ctx, entry, () => {
+    const created = auth.createInvitation(d.ctx, d.cfg, u.id, email);
+    Object.assign(entry.detail, { invitation: created.invitation.id });
+    return created;
+  });
   let mailed = false;
   let mailError: string | null = d.mailer
     ? null
@@ -310,6 +396,7 @@ async function handleApi(
   req: IncomingMessage,
   res: ServerResponse,
   path: string,
+  requestId: string,
 ): Promise<void> {
   const route = `${req.method} ${path}`;
   const handler = table.find(([registered]) => registered === route)?.[1];
@@ -318,6 +405,7 @@ async function handleApi(
     return json(res, 403, { error: 'Anfrage abgelehnt.' });
   const body = req.method === 'POST' ? await readJson(req) : {};
   const reply = await handler({
+    requestId,
     req,
     res,
     body,
@@ -326,11 +414,16 @@ async function handleApi(
   json(res, reply.status ?? 200, reply.json, reply.cookie);
 }
 
-function fault(res: ServerResponse, e: unknown, log: AppDeps['log']): void {
+function fault(
+  res: ServerResponse,
+  e: unknown,
+  log: AppDeps['log'],
+  requestId: string,
+): void {
   if (e instanceof GameError) return json(res, 400, { error: e.message });
   if (e instanceof Unauthorized)
     return json(res, 401, { error: 'Bitte einloggen.' });
-  log?.('Request failed', e);
+  log?.(`Request failed [${requestId}]`, e);
   json(res, 500, { error: 'Serverfehler.' });
 }
 
@@ -353,9 +446,12 @@ export function createApp(d: AppDeps): {
     res: ServerResponse,
   ): Promise<void> => {
     const path = (req.url ?? '/').split('?')[0]!;
+    const requestId = randomUUID();
     try {
-      if (path.startsWith('/api/') || path === '/healthz')
-        return await handleApi(table, d, req, res, path);
+      if (path.startsWith('/api/') || path === '/healthz') {
+        res.setHeader('x-request-id', requestId);
+        return await handleApi(table, d, req, res, path, requestId);
+      }
       if (req.method !== 'GET' && req.method !== 'HEAD')
         return json(res, 405, { error: 'Nicht erlaubt.' });
       const file = await loadStatic(d.publicDir, path);
@@ -363,7 +459,7 @@ export function createApp(d: AppDeps): {
         'cache-control': 'no-cache',
       });
     } catch (e) {
-      fault(res, e, d.log);
+      fault(res, e, d.log, requestId);
     }
   };
   return {

@@ -1,6 +1,7 @@
 import { createServer, type Server } from 'node:http';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
+import { startSession } from '../auth.ts';
 import type { Config } from '../config.ts';
 import type { Mail, Mailer } from '../mail.ts';
 import {
@@ -249,8 +250,7 @@ describe('http', () => {
     });
     expect(mails[0]!.text).toContain(link);
     expect(
-      (inv.json!.state as { admin: { invitations: unknown[] } }).admin
-        .invitations,
+      (await call('POST', '/api/admin/invitations', {})).json!.invitations,
     ).toHaveLength(1);
     const token = link.split('#invite=')[1]!;
     setCookie('');
@@ -314,6 +314,164 @@ describe('http', () => {
     });
   });
 
+  it('restricts and audits admin reads without exposing invitation secrets', async () => {
+    const { ctx, call, setCookie } = await asAdmin();
+    const boss = (
+      await call('POST', '/api/login', { name: 'Boss', password: 'secret1' })
+    ).set!;
+    const u = addUser(ctx, 'Pilot');
+    addPlanet(ctx, u.id, { p: 6 });
+    const invite = await call('POST', '/api/admin/invite', {
+      email: 'new@example.org',
+    });
+    const list = await call('POST', '/api/admin/invitations', {});
+    expect(list.json!.invitations).toMatchObject([
+      { email: 'new@example.org' },
+    ]);
+    expect(list.text).not.toMatch(/token|#invite/);
+    expect((await call('GET', '/api/state')).text).not.toContain(
+      'new@example.org',
+    );
+    const invalid = await call('POST', '/api/admin/player', {
+      player: 'missing',
+    });
+    expect(invalid.status).toBe(400);
+    const log = await call('POST', '/api/admin/events', { player: 'u_Boss' });
+    expect(log.json!.events).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          actor: 'u_Boss',
+          action: 'invitations',
+          requestId: list.headers.get('x-request-id'),
+        }),
+        expect.objectContaining({
+          actor: 'u_Boss',
+          action: 'player',
+          target: 'missing',
+          outcome: 'rejected',
+        }),
+      ]),
+    );
+    expect(log.text).not.toContain(String(invite.json!.link));
+    await call('POST', '/api/login', { name: 'Pilot', password: 'secret1' });
+    expect((await call('POST', '/api/admin/events', {})).status).toBe(400);
+    expect((await call('POST', '/api/admin/stats', {})).status).toBe(400);
+    setCookie(boss.split(';')[0]!);
+    const filtered = await call('POST', '/api/admin/events', {
+      action: 'events',
+      outcome: 'ok',
+    });
+    expect(filtered.json!.events).toMatchObject([
+      { action: 'events', category: 'admin.read' },
+    ]);
+  });
+
+  it('shows actions and orders, estimates activity and revokes access on suspension', async () => {
+    const { ctx, call, setCookie } = await asAdmin();
+    const boss = (
+      await call('POST', '/api/login', { name: 'Boss', password: 'secret1' })
+    ).set!.split(';')[0]!;
+    const u = addUser(ctx, 'Pilot');
+    addPlanet(ctx, u.id, { p: 6 });
+    const login = { name: 'Pilot', password: 'secret1' };
+    const session = (await call('POST', '/api/login', login)).set!.split(
+      ';',
+    )[0]!;
+    await call('POST', '/api/activity', {});
+    ctx.clock.t += 20000;
+    await call('POST', '/api/activity', {});
+    ctx.clock.t += 360000;
+    await call('GET', '/api/state');
+    const build = await call('POST', '/api/action', {
+      type: 'build',
+      key: 'metal',
+    });
+    expect(build.status).toBe(200);
+    const rejected = await call('POST', '/api/action', { type: 'bad-action' });
+    expect(rejected.status).toBe(400);
+    setCookie(boss);
+    expect(
+      (await call('POST', '/api/admin/player', { player: u.id })).json,
+    ).toMatchObject({
+      suspension: null,
+      days: [{ activeMs: 20000, actions: 1 }],
+    });
+    expect(
+      (await call('POST', '/api/admin/orders', { player: u.id })).json!.orders,
+    ).toMatchObject([
+      { kind: 'Gebäude', player: u.id, item: 'metal', id: 'p1_1_6' },
+    ]);
+    const log = await call('POST', '/api/admin/events', { player: u.id });
+    expect(log.json!.events).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          action: 'build',
+          outcome: 'ok',
+          requestId: build.headers.get('x-request-id'),
+        }),
+        expect.objectContaining({
+          action: 'unknown',
+          outcome: 'rejected',
+          requestId: rejected.headers.get('x-request-id'),
+        }),
+      ]),
+    );
+    const moderation = { player: u.id, reason: 'Support investigation' };
+    expect(
+      (
+        await call('POST', '/api/admin/moderate', {
+          ...moderation,
+          action: 'ban',
+          hours: 721,
+        })
+      ).status,
+    ).toBe(400);
+    expect(
+      (
+        await call('POST', '/api/admin/moderate', {
+          ...moderation,
+          action: 'ban',
+          hours: 1,
+        })
+      ).status,
+    ).toBe(200);
+    setCookie(session);
+    expect((await call('GET', '/api/state')).status).toBe(401);
+    expect((await call('POST', '/api/login', login)).status).toBe(400);
+    setCookie(boss);
+    expect(
+      (
+        await call('POST', '/api/admin/moderate', {
+          ...moderation,
+          action: 'unban',
+        })
+      ).status,
+    ).toBe(200);
+    expect((await call('POST', '/api/login', login)).status).toBe(200);
+    setCookie(boss);
+    expect(
+      (
+        await call('POST', '/api/admin/moderate', {
+          ...moderation,
+          action: 'revokeSessions',
+        })
+      ).status,
+    ).toBe(200);
+    const changes = await call('POST', '/api/admin/events', {
+      player: u.id,
+      action: 'ban',
+      outcome: 'ok',
+    });
+    expect(changes.json!.events).toMatchObject([
+      {
+        actor: 'u_Boss',
+        category: 'admin.write',
+        target: u.id,
+        detail: expect.stringContaining('Support investigation'),
+      },
+    ]);
+  });
+
   it('revokes invitations as admin only', async () => {
     const { ctx, call } = await asAdmin();
     await call('POST', '/api/admin/invite', { email: 'a@example.org' });
@@ -333,7 +491,7 @@ describe('http', () => {
     ctx.store.db.close();
     const r = await call('GET', '/healthz');
     expect(r).toMatchObject({ status: 500, json: { error: 'Serverfehler.' } });
-    expect(logs).toEqual(['Request failed']);
+    expect(logs).toEqual([expect.stringMatching(/^Request failed \[/)]);
   });
 
   it('sweeps the rate limiter', async () => {
@@ -378,6 +536,39 @@ describe('http', () => {
 });
 
 describe('account security', () => {
+  it('revokes an outstanding email login code when an admin suspends the account', async () => {
+    const mails: Mail[] = [];
+    const { ctx, cfg, call, setCookie } = await start({
+      cfg: { emailLoginCodes: true },
+      mailer: async (mail) => {
+        mails.push(mail);
+      },
+    });
+    const admin = addUser(ctx, 'Boss', { admin: true });
+    const pilot = addUser(ctx, 'Pilot');
+    const login = { name: pilot.name, password: 'secret1' };
+    const pending = await call('POST', '/api/login', login);
+    expect(pending.status).toBe(200);
+    const code = /\b\d{6}\b/.exec(mails[0]!.text)![0];
+    setCookie(`${COOKIE}=${startSession(ctx, cfg, admin.id)}`);
+    const body = { player: pilot.id, reason: 'Support review' };
+    expect(
+      (await call('POST', '/api/admin/moderate', { ...body, action: 'ban' }))
+        .status,
+    ).toBe(200);
+    expect(
+      (await call('POST', '/api/admin/moderate', { ...body, action: 'unban' }))
+        .status,
+    ).toBe(200);
+    setCookie('');
+    const reply = await call('POST', '/api/login/code', {
+      challenge: pending.json!.challenge,
+      code,
+    });
+    expect(reply.status).toBe(400);
+    expect(reply.set).toBeNull();
+  });
+
   it('requires a single-use code and limits guesses', async () => {
     const mails: Mail[] = [];
     const { ctx, call } = await start({
