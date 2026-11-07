@@ -426,6 +426,7 @@ input.c3 {
 @media (max-width: 760px) {
   #app {
     grid-template-columns: 1fr;
+    grid-template-rows: auto auto 1fr;
   }
   header {
     grid-column: 1;

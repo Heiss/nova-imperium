@@ -10,6 +10,17 @@ import {
   watch,
 } from './helpers.ts';
 
+test('login stays near the header @phone', async ({ page }) => {
+  await page.goto('/');
+  const login = page.locator('.auth');
+  await expect(
+    login.getByRole('button', { name: 'Einloggen' }),
+  ).toBeInViewport();
+  const header = (await page.locator('header').boundingBox())!;
+  const form = (await login.boundingBox())!;
+  expect(form.y - (header.y + header.height)).toBeLessThan(100);
+});
+
 test.describe('accounts', () => {
   test('nobody registers without an invitation', async ({ page }) => {
     const w = watch(page);
