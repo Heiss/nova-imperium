@@ -19,6 +19,10 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   built for linux/amd64 and linux/arm64 and pushed to
   `ghcr.io/heiss/nova-imperium:<tag>` and `:latest`, and a GitHub release is
   created. "Run workflow" by hand is a dry run.
+* **[E]** Run `node scripts/release.mjs` from a clean local `main`. It checks
+  GitHub CI on the fetched commit before fast-forwarding and pushing the next
+  annotated tag. The first release of each Europe/Berlin calendar month uses
+  micro version 0. A repeat on the same commit in that month reuses its tag.
 * **[E]** Renovate opens pull requests for dependencies and images, waits
   3 days after a release (`minimumReleaseAge`) and merges patch updates
   automatically once the CI is green.

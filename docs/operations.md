@@ -79,6 +79,21 @@ docker compose start app
 
 Keep `.env` and `secrets/` in your own backup as well; they are not in Git.
 
+## Create a release
+
+In a clean checkout of `main` with `origin` set to this GitHub repository, run:
+
+```bash
+node scripts/release.mjs
+```
+
+The script fetches `main` and the tags, verifies successful GitHub CI for that
+commit, and fast-forwards the local branch. It creates and pushes the next
+annotated CalVer tag for the current month in Europe/Berlin. A repeat in the
+same month reuses a tag already attached to that commit. Use `--dry-run` to
+preview the tag without updating the checked-out branch or pushing.
+The tag push triggers the release workflow and its own CI check.
+
 ## Updates
 
 Images are published for every release tag (`ghcr.io/heiss/nova-imperium`,
