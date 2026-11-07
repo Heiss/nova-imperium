@@ -6,6 +6,14 @@ import { reset, saveSettings } from './admin.ts';
 import { tick } from './arrival.ts';
 import { type Ctx, fail } from './context.ts';
 import { recall, send } from './fleet-actions.ts';
+import {
+  createGuild,
+  updateGuild,
+  applyToGuild,
+  reviewGuildApplication,
+  leaveGuild,
+  manageGuildMember,
+} from './guilds.ts';
 
 export const ACTIONS: Record<string, A.Action> = {
   build: A.build,
@@ -23,6 +31,12 @@ export const ACTIONS: Record<string, A.Action> = {
   recall,
   settings: saveSettings,
   reset,
+  createGuild,
+  updateGuild,
+  applyToGuild,
+  reviewGuildApplication,
+  leaveGuild,
+  manageGuildMember,
 };
 
 export function runAction(ctx: Ctx, uid: string, d: A.Data): string | null {

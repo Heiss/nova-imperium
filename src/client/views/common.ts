@@ -6,6 +6,7 @@ import type { GameState } from '../logic/types.ts';
 
 export interface Ui {
   view: string;
+  guild?: string | null;
   gal: number;
   sys: number;
   ft: { g: number; s: number; p: number } | null;

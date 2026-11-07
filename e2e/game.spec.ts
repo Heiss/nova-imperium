@@ -92,6 +92,29 @@ test.describe('accounts', () => {
   });
 });
 
+test('creates a guild and restores its profile after reload', async ({
+  page,
+}) => {
+  const w = watch(page);
+  const name = uniqueName('Gruender');
+  await register(page, name);
+  await nav(page, 'guilds');
+  await page.getByLabel('Kürzel').fill('NOVA');
+  await page.getByLabel('Name', { exact: true }).fill('Nova Allianz');
+  await page.getByLabel('Gildentext (Markdown)').fill('**Gemeinsam ins All**');
+  await page.getByRole('button', { name: 'Gilde gründen' }).click();
+  await expect(page).toHaveURL(/view=guilds&guild=/);
+  await page.reload();
+  await expect(
+    page.getByRole('heading', { name: '[NOVA] Nova Allianz' }),
+  ).toBeVisible();
+  await expect(
+    page.locator('strong', { hasText: 'Gemeinsam ins All' }),
+  ).toBeVisible();
+  await expect(page.getByRole('cell', { name, exact: true })).toBeVisible();
+  expect(w.problems).toEqual([]);
+});
+
 test.describe('playing', () => {
   test('every page renders without CSP violations or script errors', async ({
     page,

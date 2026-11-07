@@ -163,4 +163,19 @@ export const MIGRATIONS: readonly string[] = [
   CREATE INDEX account_tokens_user ON account_tokens(user_id, purpose, expires);
   CREATE INDEX account_tokens_expiry ON account_tokens(expires);
   `,
+  `
+  CREATE TABLE guilds (
+    id TEXT PRIMARY KEY,
+    tag TEXT NOT NULL COLLATE NOCASE UNIQUE,
+    name TEXT NOT NULL COLLATE NOCASE UNIQUE,
+    description TEXT NOT NULL,
+    founder TEXT NOT NULL REFERENCES users(id)
+  ) STRICT;
+  CREATE TABLE guild_members (
+    user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    guild_id TEXT NOT NULL REFERENCES guilds(id) ON DELETE CASCADE,
+    status TEXT NOT NULL CHECK (status IN ('pending', 'member'))
+  ) STRICT;
+  CREATE INDEX guild_members_guild ON guild_members(guild_id, status);
+  `,
 ];
