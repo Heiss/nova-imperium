@@ -1,3 +1,4 @@
+import type { AchievementState } from '../../shared/achievements.ts';
 // The state the server sends (GET /api/state).
 import type { UniverseSpec } from '../../shared/universe.ts';
 import type {
@@ -66,4 +67,33 @@ export interface GameState {
   players: Players;
   galaxy: GalaxyPlanet[];
   admin: AdminState | null;
+  achievements?: AchievementState;
+  guilds?: GuildState;
+}
+
+export interface GuildMember {
+  id: string;
+  name: string;
+  points: number;
+}
+
+export interface Guild {
+  id: string;
+  tag: string;
+  name: string;
+  founder: string;
+  html: string;
+  members: GuildMember[];
+  score: number;
+  average: number;
+}
+
+export interface GuildState {
+  directory: Guild[];
+  own: { id: string; status: 'member' | 'pending' } | null;
+  management: {
+    id: string;
+    description: string;
+    pending: Pick<GuildMember, 'id' | 'name'>[];
+  } | null;
 }

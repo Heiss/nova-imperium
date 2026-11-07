@@ -29,6 +29,7 @@ services:
       NOVA_RATE_LIMIT_MINUTES: ${NOVA_RATE_LIMIT_MINUTES:-}
       # Mail for the invitations (optional; without it the admin copies the link).
       NOVA_EMAIL_LOGIN_CODES: ${NOVA_EMAIL_LOGIN_CODES:-0}
+      NOVA_WEB_PUSH: ${NOVA_WEB_PUSH:-0}
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-}
       SMTP_TLS: ${SMTP_TLS:-}

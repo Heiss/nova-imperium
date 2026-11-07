@@ -2,21 +2,15 @@ import { describe, expect, it } from 'vitest';
 import { DEFAULT_UNIVERSE } from '../../shared/universe.ts';
 import { addPlanet, addUser, testCtx } from '../test-helpers.ts';
 import { migrate, openDatabase } from './database.ts';
+import { MIGRATIONS } from './schema.ts';
 
 describe('database', () => {
   it('migrates once and refuses a newer schema', () => {
     const db = openDatabase(':memory:');
-    expect(db.pragma('user_version', { simple: true })).toBe(3);
+    expect(db.pragma('user_version', { simple: true })).toBe(MIGRATIONS.length);
     expect(migrate(db)).toBe(0);
-    expect(
-      migrate(db, [
-        'SELECT 1',
-        'SELECT 2',
-        'SELECT 3',
-        'CREATE TABLE x (a INTEGER)',
-      ]),
-    ).toBe(1);
-    expect(() => migrate(db, ['SELECT 1'])).toThrow(/schema version 4/);
+    expect(migrate(db, [...MIGRATIONS, 'CREATE TABLE x (a INTEGER)'])).toBe(1);
+    expect(() => migrate(db)).toThrow(/newer image/);
     expect(db.pragma('foreign_keys', { simple: true })).toBe(1);
   });
 });

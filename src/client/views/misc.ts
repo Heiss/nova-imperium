@@ -36,6 +36,7 @@ export const help = (v: V): string => `<h2>Hilfe &amp; Optionen</h2>
  <label for="pw_next">Neues Passwort</label> <input id="pw_next" type="password" autocomplete="new-password" minlength="15" required>
  <button type="submit">Passwort ändern</button></form>`,
  )}
+ ${box('Browser-Benachrichtigungen', '<p>Meldungen zu Aufträgen, Flotten und neuen Nachrichten auf diesem Gerät.</p><button data-act="pushEnable">Aktivieren</button> <button data-act="pushDisable">Deaktivieren</button>')}
  ${box('Regeln dieses Universums', rules(v.s.cfg))}`;
 
 function settingsForm(s: GameState, a: AdminState): string {

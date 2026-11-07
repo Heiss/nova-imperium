@@ -36,6 +36,7 @@ export const testConfig = (over: Partial<Config> = {}): Config => ({
   rateLimitAttempts: 20,
   rateLimitMinutes: 10,
   emailLoginCodes: false,
+  webPush: false,
   smtp: null,
   ...over,
 });

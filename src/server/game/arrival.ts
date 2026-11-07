@@ -1,3 +1,4 @@
+import { queuePush } from '../push-store.ts';
 // What happens when a fleet arrives or comes home: transport, espionage,
 // battle with loot and rebuilt defense.
 import { record } from '../audit.ts';
@@ -279,12 +280,18 @@ export function comeHome(ctx: Ctx, f: Fleet): void {
     ctx.store.savePlanet(o);
     const sum = f.cargo.m + f.cargo.c + f.cargo.d;
     if (f.mission !== 'spy' || f.recalled)
-      addReport(ctx, f.owner, {
-        time: f.ret,
-        type: 'info',
-        title: `Rückkehr zu ${o.name} ${coords(f.fromC)}`,
-        text: `Deine Flotte ist zurück${sum ? ' und bringt ' + resLine(f.cargo) + ' mit' : ''}.`,
-      });
+      addReport(
+        ctx,
+        f.owner,
+        {
+          time: f.ret,
+          type: 'info',
+          title: `Rückkehr zu ${o.name} ${coords(f.fromC)}`,
+          text: `Deine Flotte ist zurück${sum ? ' und bringt ' + resLine(f.cargo) + ' mit' : ''}.`,
+        },
+        'fleet',
+      );
+    else queuePush(ctx, f.owner, 'fleet', f.id, ctx.now());
   }
   ctx.store.deleteFleet(f.id);
 }

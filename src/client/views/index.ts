@@ -1,7 +1,9 @@
+import { achievements } from './achievements.ts';
 import type { V } from './common.ts';
 import { research, resources } from './economy.ts';
 import { fleet } from './fleet.ts';
 import { galaxy } from './galaxy.ts';
+import { guilds } from './guilds.ts';
 import { messages } from './messages.ts';
 import { admin, help, highscore } from './misc.ts';
 import { overview } from './overview.ts';
@@ -15,8 +17,10 @@ export const VIEWS: Record<string, (v: V) => string> = {
   defense,
   fleet,
   galaxy,
+  guilds,
   messages,
   highscore,
+  achievements,
   help,
   admin,
 };
@@ -39,6 +43,8 @@ export function menu(admin: boolean): (MenuEntry | '-')[] {
     { view: 'galaxy', label: 'Galaxie' },
     { view: 'messages', label: 'Nachrichten' },
     { view: 'highscore', label: 'Highscore' },
+    { view: 'guilds', label: 'Gilden' },
+    { view: 'achievements', label: 'Achievements' },
     '-',
     { view: 'help', label: 'Hilfe & Optionen' },
   ];

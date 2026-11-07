@@ -11,6 +11,11 @@ import { type Ctx, GameError, str } from '../game/context.ts';
 import { ACTIONS, runAction } from '../game/dispatch.ts';
 import { stateFor } from '../game/state.ts';
 import { type Mailer, invitationMail } from '../mail.ts';
+import {
+  deletePushSubscription,
+  savePushSubscription,
+  vapidKeys,
+} from '../web-push.ts';
 import { RateLimiter } from './rate-limit.ts';
 import { clientIp, cookies, readJson } from './request.ts';
 import { SECURITY_HEADERS } from './security.ts';
@@ -268,6 +273,35 @@ function loginCodeReply(
   return audited(ctx, entry, () => enter(user));
 }
 
+function pushRoutes(d: AppDeps): Record<string, Handler> {
+  const user = (call: Call): User => {
+    const u = sessionUserOf(d.ctx, call);
+    if (!d.cfg.webPush)
+      throw new GameError(
+        'Browser-Benachrichtigungen sind auf diesem Server deaktiviert.',
+      );
+    return u;
+  };
+  return {
+    'GET /api/push/key': (call) => {
+      user(call);
+      return { json: { publicKey: vapidKeys(d.ctx).publicKey } };
+    },
+    'POST /api/push/subscribe': (call) => {
+      savePushSubscription(d.ctx, user(call).id, call.body);
+      return { json: { ok: true } };
+    },
+    'POST /api/push/unsubscribe': (call) => {
+      deletePushSubscription(
+        d.ctx,
+        sessionUserOf(d.ctx, call).id,
+        call.body.endpoint,
+      );
+      return { json: { ok: true } };
+    },
+  };
+}
+
 /** The game and the admin functions; all need a session. */
 function gameRoutes(d: AppDeps): Record<string, Handler> {
   const { ctx } = d;
@@ -405,6 +439,7 @@ export function createApp(d: AppDeps): {
   const table = Object.entries({
     ...accountRoutes(d, limiter),
     ...gameRoutes(d),
+    ...pushRoutes(d),
   });
   const handle = async (
     req: IncomingMessage,

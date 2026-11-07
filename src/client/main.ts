@@ -25,6 +25,7 @@ import {
   mountAdminDiagnostics,
 } from './views/admin-diagnostics.ts';
 import { auth } from './views/misc.ts';
+import { disablePush, enablePush } from './push.ts';
 import { mountBuildings } from './views/buildings.ts';
 
 type Data = Record<string, string | undefined>;
@@ -57,15 +58,18 @@ function gameView(view: string | null): string {
 const viewFromUrl = (): string =>
   gameView(new URLSearchParams(location.search).get('view'));
 
-function viewUrl(view: string): string {
+function viewUrl(view: string, guild: string | null = null): string {
   const url = new URL(location.href);
   url.searchParams.set('view', view);
+  if (view === 'guilds' && guild) url.searchParams.set('guild', guild);
+  else url.searchParams.delete('guild');
   url.hash = '';
   return url.pathname + url.search;
 }
 
 const ui: Ui = {
   view: viewFromUrl(),
+  guild: new URLSearchParams(location.search).get('guild'),
   gal: 1,
   sys: 1,
   ft: null,
@@ -184,7 +188,9 @@ function keepInputs(view: HTMLElement, fresh: boolean): () => void {
   const focus = document.activeElement?.id;
   if (!fresh)
     view
-      .querySelectorAll<HTMLInputElement>('input[id],select[id]')
+      .querySelectorAll<
+        HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+      >('input[id],select[id],textarea[id]')
       .forEach((i) => (saved[i.id] = i.value));
   return () => {
     for (const [id, v] of Object.entries(saved)) {
@@ -317,7 +323,29 @@ function render(fresh = false): void {
   paintPlanets(view);
   restore();
   if (ui.view === 'fleet') fleetCalc();
+  if (ui.view === 'achievements') filterAchievements();
   if (ui.view === 'messages') markRead();
+}
+
+function filterAchievements(): void {
+  const query = val('#achievement_search').trim().toLocaleLowerCase('de');
+  const category = val('#achievement_category');
+  const status = val('#achievement_status');
+  document
+    .querySelectorAll<HTMLElement>('[data-achievement]')
+    .forEach((item) => {
+      item.hidden =
+        (!!category && item.dataset.category !== category) ||
+        (!!status && item.dataset.status !== status) ||
+        !item.dataset.search!.includes(query);
+    });
+  document
+    .querySelectorAll<HTMLElement>('[data-achievement-group]')
+    .forEach((group) => {
+      group.hidden =
+        !!group.querySelector('[data-achievement]') &&
+        !group.querySelector('[data-achievement]:not([hidden])');
+    });
 }
 
 function renderMenu(): void {
@@ -455,20 +483,59 @@ const setInput = (sel: string, v: string | number): void => {
 
 // ----- actions -----
 
-const go = (requested: string, push = true): void => {
+const go = (
+  requested: string,
+  push = true,
+  guild: string | null = null,
+): void => {
   const view = gameView(requested);
-  if (view !== ui.view) {
+  if (view !== ui.view || guild !== ui.guild) {
     completionNotices.clear();
-    if (push) history.pushState(null, '', viewUrl(view));
+    if (push) history.pushState(null, '', viewUrl(view, guild));
   }
   ui.view = view;
+  ui.guild = view === 'guilds' ? guild : null;
   render(true);
   window.scrollTo(0, 0);
 };
 
+async function togglePush(enabled: boolean): Promise<void> {
+  try {
+    await (enabled ? enablePush : disablePush)(api);
+    toast(
+      enabled
+        ? 'Benachrichtigungen aktiviert.'
+        : 'Benachrichtigungen deaktiviert.',
+    );
+  } catch (e) {
+    toast((e as Error).message, true);
+  }
+}
+
 const ACT: Record<string, (d: Data) => unknown> = {
+  pushEnable: () => togglePush(true),
+  pushDisable: () => togglePush(false),
   nav: (d) => go(d.v ?? 'overview'),
+  guildView: (d) => go('guilds', true, d.id ?? null),
+  guildApply: (d) => act('applyToGuild', { id: d.id }),
+  guildLeave: (d) => {
+    if (!d.confirm || window.confirm(d.confirm)) return act('leaveGuild');
+  },
+  guildReview: (d) =>
+    act('reviewGuildApplication', { uid: d.uid, accept: d.accept === '1' }),
+  guildMember: (d) => {
+    const transfer = d.transfer === '1';
+    if (
+      window.confirm(
+        transfer ? 'Gildenleitung übergeben?' : 'Mitglied entfernen?',
+      )
+    )
+      return act('manageGuildMember', { uid: d.uid, transfer });
+  },
+  achievementClaim: (d) => act('claimAchievement', { id: d.id }),
+  dailyClaim: () => act('claimDailyReward'),
   logout: async () => {
+    await disablePush(api).catch(() => null);
     await api('/api/logout', {}).catch(() => null);
     S = null;
     ui.auth = 'login';
@@ -712,6 +779,16 @@ async function submitPassword(reset: boolean): Promise<void> {
   }
 }
 
+async function submitGuild(): Promise<void> {
+  const edit = $('#guildform')?.dataset.edit === '1';
+  const ok = await act(edit ? 'updateGuild' : 'createGuild', {
+    tag: val('#guild_tag'),
+    name: val('#guild_name'),
+    description: val('#guild_description'),
+  });
+  if (ok && !edit) go('guilds', true, S?.guilds?.own?.id ?? null);
+}
+
 async function submitInvite(): Promise<void> {
   const email = val('#inv_email').trim();
   const j = await adminCall('/api/admin/invite', { email });
@@ -752,7 +829,7 @@ document.addEventListener('click', (e) => {
   const fn = el ? ACT[el.dataset.act!] : undefined;
   if (!el || !fn) return;
   const modified = e.metaKey || e.ctrlKey || e.shiftKey || e.altKey;
-  if (el.dataset.act === 'nav' && (modified || e.button !== 0)) return;
+  if (el instanceof HTMLAnchorElement && (modified || e.button !== 0)) return;
   e.preventDefault();
   void fn({ ...el.dataset });
 });
@@ -761,8 +838,14 @@ document.addEventListener('change', (e) => {
   if (el.dataset?.chg === 'pct')
     void act('pct', { key: el.dataset.k, v: el.value });
   if (ui.view === 'fleet') fleetCalc();
+  if (ui.view === 'achievements') filterAchievements();
 });
 document.addEventListener('input', (e) => {
+  if (
+    ui.view === 'achievements' &&
+    (e.target as HTMLElement).id === 'achievement_search'
+  )
+    filterAchievements();
   if (ui.view === 'fleet' && (e.target as HTMLElement).closest('main'))
     fleetCalc();
 });
@@ -776,6 +859,7 @@ document.addEventListener('submit', (e) => {
   const handlers = [
     ['authform', submitAuth],
     ['inviteform', submitInvite],
+    ['guildform', submitGuild],
     ['codeform', submitLoginCode],
     ['forgotform', submitForgot],
     ['resetform', () => submitPassword(true)],
@@ -874,7 +958,8 @@ const inviteToken = (): string | undefined =>
   /^#invite=([\w-]+)$/.exec(location.hash)?.[1];
 
 window.addEventListener('popstate', () => {
-  if (!inviteToken()) go(viewFromUrl(), false);
+  if (!inviteToken())
+    go(viewFromUrl(), false, new URLSearchParams(location.search).get('guild'));
 });
 
 // An invitation link opened in a tab that is already open only changes the hash.

@@ -163,7 +163,65 @@ export const MIGRATIONS: readonly string[] = [
   CREATE INDEX account_tokens_user ON account_tokens(user_id, purpose, expires);
   CREATE INDEX account_tokens_expiry ON account_tokens(expires);
   `,
-  // 3: admin audit, activity estimates and account suspensions
+  `
+  CREATE TABLE guilds (
+    id TEXT PRIMARY KEY,
+    tag TEXT NOT NULL COLLATE NOCASE UNIQUE,
+    name TEXT NOT NULL COLLATE NOCASE UNIQUE,
+    description TEXT NOT NULL,
+    founder TEXT NOT NULL REFERENCES users(id)
+  ) STRICT;
+  CREATE TABLE guild_members (
+    user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    guild_id TEXT NOT NULL REFERENCES guilds(id) ON DELETE CASCADE,
+    status TEXT NOT NULL CHECK (status IN ('pending', 'member'))
+  ) STRICT;
+  CREATE INDEX guild_members_guild ON guild_members(guild_id, status);
+  `,
+  `
+  CREATE TABLE push_keys (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    public_key TEXT NOT NULL,
+    private_key TEXT NOT NULL
+  ) STRICT;
+  CREATE TABLE push_subscriptions (
+    endpoint TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    p256dh TEXT NOT NULL,
+    auth TEXT NOT NULL
+  ) STRICT;
+  CREATE INDEX push_subscription_user ON push_subscriptions(user_id);
+  CREATE TABLE push_jobs (
+    endpoint TEXT NOT NULL REFERENCES push_subscriptions(endpoint) ON DELETE CASCADE,
+    kind TEXT NOT NULL,
+    event_key TEXT NOT NULL,
+    due REAL NOT NULL,
+    retry_at REAL NOT NULL,
+    attempts INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (endpoint, kind, event_key)
+  ) STRICT;
+  CREATE INDEX push_due ON push_jobs(retry_at);
+  `,
+  `
+  CREATE TABLE achievement_progress (
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    metric TEXT NOT NULL,
+    value INTEGER NOT NULL,
+    PRIMARY KEY (user_id, metric)
+  ) STRICT;
+  CREATE TABLE achievement_claims (
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    achievement_id TEXT NOT NULL,
+    PRIMARY KEY (user_id, achievement_id)
+  ) STRICT;
+  CREATE TABLE daily_rewards (
+    user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    last_day INTEGER NOT NULL,
+    streak INTEGER NOT NULL,
+    claimed_day INTEGER
+  ) STRICT;
+  `,
+  // 6: admin audit, activity estimates and account suspensions
   `
   CREATE TABLE audit_events (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

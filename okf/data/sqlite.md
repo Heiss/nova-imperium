@@ -23,7 +23,7 @@ before upgrades.
 
 ## Admin data
 
-Migration 3 adds these tables:
+Migration 6 adds these tables:
 
 | Table | Data |
 | --- | --- |

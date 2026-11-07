@@ -31,6 +31,7 @@ export const saveSettings: Action = (ctx, u, d) => {
 export function newRound(ctx: Ctx): void {
   ctx.store.deleteAllPlanets();
   ctx.store.deleteAllFleets();
+  ctx.store.db.prepare('DELETE FROM push_jobs').run();
   const u = universe(ctx);
   for (const x of ctx.store.users()) {
     x.research = {};
