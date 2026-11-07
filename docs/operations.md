@@ -106,6 +106,14 @@ attempts. Confirm that every player has an address before enabling this option. 
 SMTP with TLS for production. Email codes are an additional
 check, and email access is also the recovery channel.
 
+## Browser notifications
+
+With an HTTPS public URL, set `NOVA_WEB_PUSH=1` and restart the app. Each
+player opts in under **Hilfe & Optionen** on each device. On iOS, open the
+installed Home Screen app before enabling notifications. The server needs
+outbound HTTPS to the browser's push provider. Back up the SQLite volume
+to preserve the server's push identity and device subscriptions.
+
 ## Hardening that is in place
 
 - The game runs as uid 1000, not root; both containers have a read-only root

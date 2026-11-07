@@ -36,6 +36,7 @@ describe('configuration', () => {
       rateLimitAttempts: 20,
       rateLimitMinutes: 10,
       emailLoginCodes: false,
+      webPush: false,
       smtp: null,
     });
   });
@@ -53,6 +54,13 @@ describe('configuration', () => {
         MAIL_FROM: 'game@example.org',
       }).emailLoginCodes,
     ).toBe(true);
+  });
+
+  it('requires HTTPS when Web Push is enabled', () => {
+    expect(ok({ ...base, NOVA_WEB_PUSH: '1' }).webPush).toBe(true);
+    expect(
+      errors({ NOVA_PUBLIC_URL: 'http://localhost:8080', NOVA_WEB_PUSH: '1' }),
+    ).toContain('NOVA_WEB_PUSH requires an HTTPS NOVA_PUBLIC_URL.');
   });
 
   it('reads the values and trims them', () => {

@@ -10,6 +10,7 @@ import { tick } from './game/arrival.ts';
 import { type Ctx, createCtx } from './game/context.ts';
 import { createApp } from './http/app.ts';
 import { createMailer, type Mailer } from './mail.ts';
+import { startPushDelivery } from './web-push.ts';
 
 export const DB_FILE = 'nova.sqlite';
 export const TICK_MS = 1000;
@@ -35,6 +36,28 @@ export function databaseFile(cfg: Config): string {
   return path.join(cfg.dataDir, DB_FILE);
 }
 
+function startGameClock(
+  ctx: Ctx,
+  sweepApp: () => void,
+  log: NonNullable<StartOptions['log']>,
+): () => void {
+  const clock = setInterval(() => {
+    try {
+      tick(ctx, log);
+    } catch (e) {
+      log('Tick failed', e);
+    }
+  }, TICK_MS);
+  const sweep = setInterval(() => {
+    ctx.store.purgeSessions(ctx.now());
+    sweepApp();
+  }, SWEEP_MS);
+  return () => {
+    clearInterval(clock);
+    clearInterval(sweep);
+  };
+}
+
 export async function startServer(o: StartOptions): Promise<Running> {
   const log =
     o.log ?? ((msg: string, e?: unknown) => console.error(msg, e ?? ''));
@@ -57,17 +80,12 @@ export async function startServer(o: StartOptions): Promise<Running> {
     { requestTimeout: 30000, headersTimeout: 20000 },
     (req, res) => void app.handle(req, res),
   );
-  const clock = setInterval(() => {
-    try {
-      tick(ctx, log);
-    } catch (e) {
-      log('Tick failed', e);
-    }
-  }, TICK_MS);
-  const sweep = setInterval(() => {
-    ctx.store.purgeSessions(ctx.now());
-    app.sweep();
-  }, SWEEP_MS);
+  const stopPush = o.cfg.webPush
+    ? startPushDelivery(ctx, o.cfg.publicUrl, () =>
+        log('Web Push delivery failed'),
+      )
+    : null;
+  const stopClock = startGameClock(ctx, app.sweep, log);
   await new Promise<void>((resolve) =>
     server.listen(o.cfg.port, o.cfg.host, resolve),
   );
@@ -75,8 +93,8 @@ export async function startServer(o: StartOptions): Promise<Running> {
   const port =
     typeof address === 'object' && address ? address.port : o.cfg.port;
   const stop = async (): Promise<void> => {
-    clearInterval(clock);
-    clearInterval(sweep);
+    stopClock();
+    await stopPush?.();
     server.closeAllConnections();
     await new Promise<void>((resolve) => server.close(() => resolve()));
     db.close();

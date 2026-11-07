@@ -21,6 +21,7 @@ this table and in `.env.example`, and that the defaults and ranges match.
 | `NOVA_SESSION_DAYS`        | `30`         | 1 to 365                         | Days a login stays valid.                                                                                                      |
 | `NOVA_INVITE_DAYS`         | `7`          | 1 to 30                          | Days an invitation link stays valid.                                                                                           |
 | `NOVA_EMAIL_LOGIN_CODES`   | `0`          | `0`, `1`                         | Require a short-lived email code after password verification. Requires SMTP.                                                   |
+| `NOVA_WEB_PUSH`            | `0`          | `0`, `1`                         | Enable browser push notifications. Requires HTTPS.                                                                             |
 | `NOVA_RATE_LIMIT_ATTEMPTS` | `20`         | 1 to 1000                        | Logins, registrations and invitation checks per client address and window.                                                     |
 | `NOVA_RATE_LIMIT_MINUTES`  | `10`         | 1 to 1440                        | Length of that window in minutes.                                                                                              |
 
