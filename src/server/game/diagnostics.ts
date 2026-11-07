@@ -54,10 +54,11 @@ export function playerDetail(ctx: Ctx, uid: string) {
   };
 }
 
-export function orders(ctx: Ctx, player: string) {
+export function orders(ctx: Ctx, player: string, reference: string) {
   return ctx.store.db
     .prepare(
       `
+    SELECT * FROM (
     SELECT 'Gebäude' AS kind, id, owner AS player, bq_key AS item, bq_end AS due, t AS processed
     FROM planets WHERE bq_end IS NOT NULL AND (@player = '' OR owner = @player)
     UNION ALL
@@ -71,8 +72,9 @@ export function orders(ctx: Ctx, player: string) {
     UNION ALL
     SELECT 'Flotte', id, owner, mission, CASE state WHEN 'out' THEN arr ELSE ret END, NULL
     FROM fleets WHERE (@player = '' OR owner = @player)
+    ) WHERE @reference = '' OR id = @reference
     ORDER BY due LIMIT 100
   `,
     )
-    .all({ player });
+    .all({ player, reference });
 }

@@ -65,7 +65,12 @@ function diagnosticRoutes(ctx: Ctx, read: Read): Record<string, Handler> {
     })),
     'POST /api/admin/orders': read('orders', (entry, { body }) => {
       entry.target = str(body.player, 40) || null;
-      return { orders: orders(ctx, entry.target ?? ''), now: ctx.now() };
+      const reference = str(body.reference, 40);
+      entry.detail = { reference };
+      return {
+        orders: orders(ctx, entry.target ?? '', reference),
+        now: ctx.now(),
+      };
     }),
     'POST /api/admin/events': read('events', (entry, { body }) => {
       const filter = auditFilter(body, ctx.now());

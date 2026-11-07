@@ -54,15 +54,15 @@ function panelTemplate(players: Players): string {
   return `
     <form id="diagnostics-filter">
       <div class="flex">
-        <label>Spieler <select name="player"><option value="">Alle</option>${Object.entries(
+        <label for="audit-player">Spieler</label><select id="audit-player" name="player"><option value="">Alle</option>${Object.entries(
           players,
         )
           .map(
             ([id, p]) => `<option value="${esc(id)}">${esc(p.name)}</option>`,
           )
-          .join('')}</select></label>
+          .join('')}</select>
         <label>Aktion <input name="action" maxlength="40" placeholder="z. B. build"></label>
-        <label>Ergebnis <select name="outcome"><option value="">Alle</option><option value="ok">Erfolgreich</option><option value="rejected">Abgelehnt</option><option value="error">Fehler</option></select></label>
+        <label for="audit-outcome">Ergebnis</label><select id="audit-outcome" name="outcome"><option value="">Alle</option><option value="ok">Erfolgreich</option><option value="rejected">Abgelehnt</option><option value="error">Fehler</option></select>
         <label>Vorgangs-ID <input name="requestId" maxlength="36"></label>
         <label>Planet / Flotte <input name="reference" maxlength="40"></label>
         <label>Von <input type="date" name="since"></label>
@@ -218,7 +218,7 @@ function panelActions(
     const player = page.player as string;
     const [stats, jobs, detail] = await Promise.all([
       call('stats'),
-      call('orders', { player }),
+      call('orders', { player, reference: page.reference }),
       player ? call('player', { player }) : null,
     ]);
     await loadEvents(false);
@@ -255,11 +255,13 @@ async function eventPage(
     ['Zeit', 'Akteur', 'Kategorie / Aktion', 'Ergebnis', 'Ziel', 'Details'],
     rows.map((r) => [
       dt(r.time),
-      r.actorName ? esc(r.actorName) : identify(r.actor),
+      r.actorName && r.actor
+        ? playerButton(r.actor, r.actorName)
+        : identify(r.actor),
       `${esc(r.category)} / ${esc(r.action)}`,
       esc(r.outcome),
       identify(r.target),
-      `<details><summary>Ereignis ${r.id}</summary>${r.requestId ? `<div>Vorgang <code>${esc(r.requestId)}</code></div>` : ''}<code>${esc(r.detail)}</code></details>`,
+      eventDetail(r),
     ]),
   );
   const more = data.more
@@ -272,6 +274,26 @@ async function eventPage(
       .insertAdjacentHTML('beforeend', eventTable + more);
   } else show('events', '<h3>Ereignisprotokoll</h3>' + eventTable + more);
   return rows.at(-1)?.id ?? 0;
+}
+
+function playerButton(id: string, name: string): string {
+  return `<button type="button" data-diagnostics="player" data-player="${esc(id)}">${esc(name)}</button>`;
+}
+
+function eventDetail(row: EventRow): string {
+  const detail = JSON.parse(row.detail) as { fleet?: string; planet?: string };
+  const refs = [detail.planet, detail.fleet].filter((id) => id !== undefined);
+  const links = refs
+    .map(
+      (id) =>
+        `<button type="button" data-diagnostics="reference" data-reference="${esc(id)}">Aufträge zu ${esc(id)}</button>`,
+    )
+    .join(' ');
+  const request = row.requestId
+    ? `<div>Vorgang <code>${esc(row.requestId)}</code></div>`
+    : '';
+  const title = row.action === 'battle' ? 'Kampfdetails' : 'Ereignis';
+  return `<details><summary>${title} ${row.id}</summary>${request}<code>${esc(row.detail)}</code><div class="flex">${links}</div></details>`;
 }
 
 function bindPanel(

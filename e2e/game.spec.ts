@@ -270,7 +270,7 @@ test.describe('playing', () => {
 });
 
 test.describe('admin', () => {
-  test('an admin can inspect a player and audit another admin read', async ({
+  test('an admin can inspect a player and audit the data access', async ({
     page,
     browser,
   }) => {
@@ -285,7 +285,10 @@ test.describe('admin', () => {
     cli('admin', name);
     await page.reload();
     await nav(page, 'admin');
-    await page.getByRole('button', { name: pilot, exact: true }).click();
+    await page
+      .locator('[data-admin=stats]')
+      .getByRole('button', { name: pilot, exact: true })
+      .click();
     await expect(
       page.getByRole('heading', { name: `Spielerakte · ${pilot}` }),
     ).toBeVisible();
