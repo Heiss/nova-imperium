@@ -5,6 +5,7 @@
     afford,
     buildTime,
     lvlCost,
+    prod,
     reqMissing,
   } from '../../shared/economy.ts';
   import { artURI } from '../art.ts';
@@ -13,6 +14,14 @@
   import { costHTML, needs, type V } from './common.ts';
 
   let { viewState }: { viewState: Readable<V> } = $props();
+  const energy = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 2 });
+
+  function energyChange(v: V, key: string, level: number): number {
+    const { P, s } = v;
+    const current = prod(P, s.cfg);
+    const next = prod({ ...P, b: { ...P.b, [key]: level + 1 } }, s.cfg);
+    return next.eProd - current.eProd - (next.eUse - current.eUse);
+  }
 </script>
 
 <h2>Gebäude</h2>
@@ -21,6 +30,7 @@
     {@const { P, R, now, s } = $viewState}
     {@const level = P.b[key] ?? 0}
     {@const cost = lvlCost(def, level + 1)}
+    {@const delta = energyChange($viewState, key, level)}
     {@const missing = reqMissing(def, P, R)}
     {@const status = buildState(P, R, key, missing.length)}
     {@const image = artURI(key)}
@@ -33,6 +43,12 @@
           {def.n} <span class="lv">{level ? `(Stufe ${level})` : ''}</span>
         </div>
         {@html costHTML(cost, P)}
+        {#if delta !== 0}
+          <div class="dim">
+            Energie auf Stufe {level + 1}: {energy.format(Math.abs(delta))}
+            {delta < 0 ? 'mehr Verbrauch' : 'mehr Produktion'}
+          </div>
+        {/if}
         <div class="dim">Bauzeit: {dur(buildTime(cost, P, s.cfg))}</div>
         {@html needs(missing)}
       </div>
