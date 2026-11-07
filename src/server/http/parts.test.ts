@@ -34,9 +34,9 @@ describe('request helpers', () => {
     );
     expect(cookies('a=1=2')).toEqual(new Map([['a', '1=2']]));
     expect(cookies(undefined)).toEqual(new Map());
-    expect(cookies('__proto__=value; constructor=another').get('__proto__')).toBe(
-      'value',
-    );
+    expect(
+      cookies('__proto__=value; constructor=another').get('__proto__'),
+    ).toBe('value');
     expect(cookies('a=first; a=last').get('a')).toBe('last');
   });
   it('choose the client address', () => {
