@@ -9,6 +9,7 @@ export const MIME: Readonly<Record<string, string>> = {
   '.svg': 'image/svg+xml',
   '.png': 'image/png',
   '.ico': 'image/x-icon',
+  '.webmanifest': 'application/manifest+json',
   '.map': 'application/json; charset=utf-8',
 };
 

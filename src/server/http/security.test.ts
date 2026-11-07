@@ -20,7 +20,7 @@ const caddyHeaders = (): Record<string, string> => {
 describe('security headers', () => {
   it('forbid inline scripts and styles and foreign sources', () => {
     expect(CSP).toBe(
-      "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; font-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
+      "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; font-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
     );
     expect(SECURITY_HEADERS).toEqual({
       'content-security-policy': CSP,
@@ -47,6 +47,7 @@ describe('security headers', () => {
       '.svg': 'image/svg+xml',
       '.png': 'image/png',
       '.ico': 'image/x-icon',
+      '.webmanifest': 'application/manifest+json',
       '.map': 'application/json; charset=utf-8',
     });
   });
