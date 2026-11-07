@@ -21,6 +21,7 @@ import { afford, caps, lvlCost, maxAfford, prod } from '../shared/economy.ts';
 import type { Ui, V } from './views/common.ts';
 import { menu, VIEWS } from './views/index.ts';
 import { auth } from './views/misc.ts';
+import { disablePush, enablePush } from './push.ts';
 import { mountBuildings } from './views/buildings.ts';
 
 type Data = Record<string, string | undefined>;
@@ -436,7 +437,22 @@ const go = (
   window.scrollTo(0, 0);
 };
 
+async function togglePush(enabled: boolean): Promise<void> {
+  try {
+    await (enabled ? enablePush : disablePush)(api);
+    toast(
+      enabled
+        ? 'Benachrichtigungen aktiviert.'
+        : 'Benachrichtigungen deaktiviert.',
+    );
+  } catch (e) {
+    toast((e as Error).message, true);
+  }
+}
+
 const ACT: Record<string, (d: Data) => unknown> = {
+  pushEnable: () => togglePush(true),
+  pushDisable: () => togglePush(false),
   nav: (d) => go(d.v ?? 'overview'),
   guildView: (d) => go('guilds', true, d.id ?? null),
   guildApply: (d) => act('applyToGuild', { id: d.id }),
@@ -455,6 +471,7 @@ const ACT: Record<string, (d: Data) => unknown> = {
       return act('manageGuildMember', { uid: d.uid, transfer });
   },
   logout: async () => {
+    await disablePush(api).catch(() => null);
     await api('/api/logout', {}).catch(() => null);
     S = null;
     ui.auth = 'login';
