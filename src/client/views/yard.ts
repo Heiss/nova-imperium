@@ -30,7 +30,7 @@ function stats(v: V, k: string, d: UnitDef): string {
 }
 
 function orderBox(k: string, maxN: number, upgrading: boolean): string {
-  return `<div class="flex center"><input type="number" min="0" id="q_${k}" placeholder="0" aria-label="Anzahl"> <span class="lnk" data-act="maxq" data-k="${k}" data-max="${maxN}">(max ${fmt(maxN)})</span></div><button class="mt" data-act="order" data-k="${k}" ${upgrading ? 'disabled' : ''}>Bauen</button>`;
+  return `<div class="flex center"><input type="number" min="0" id="q_${k}" placeholder="0" aria-label="Anzahl"> <span class="lnk" data-act="maxq" data-k="${k}" data-max="${maxN}">(max ${fmt(maxN)})</span></div><button class="mt" data-act="order" data-k="${k}" ${upgrading || maxN === 0 ? 'disabled' : ''}>Bauen</button>`;
 }
 
 function yard(
