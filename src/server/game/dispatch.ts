@@ -1,5 +1,6 @@
 // The list of actions a player can send and how one is run: first all due
 // fleets, then the action, everything in one transaction.
+import type { AuditEntry } from '../audit.ts';
 import type { User } from '../db/store.ts';
 import * as A from './actions.ts';
 import { reset, saveSettings } from './admin.ts';
@@ -25,7 +26,12 @@ export const ACTIONS: Record<string, A.Action> = {
   reset,
 };
 
-export function runAction(ctx: Ctx, uid: string, d: A.Data): string | null {
+export function runAction(
+  ctx: Ctx,
+  uid: string,
+  d: A.Data,
+  event?: AuditEntry,
+): string | null {
   const type = String(d.type);
   const fn = Object.hasOwn(ACTIONS, type)
     ? ACTIONS[type]!
@@ -33,6 +39,6 @@ export function runAction(ctx: Ctx, uid: string, d: A.Data): string | null {
   return ctx.store.tx(() => {
     tick(ctx);
     const u: User = ctx.store.user(uid) ?? fail('Bitte einloggen.');
-    return fn(ctx, u, d);
+    return fn(ctx, u, d, event);
   });
 }

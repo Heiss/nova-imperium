@@ -1,5 +1,5 @@
 import type { Universe } from '../../shared/types.ts';
-import { coords, dt, esc, fmt } from '../logic/format.ts';
+import { coords, esc, fmt } from '../logic/format.ts';
 import type { AdminState, GameState } from '../logic/types.ts';
 import { box, type Ui, type V } from './common.ts';
 
@@ -51,27 +51,19 @@ function settingsForm(s: GameState, a: AdminState): string {
   return `<table class="kv">${rows}</table><p class="dim">Änderungen wirken sofort. Laufende Bauaufträge und Flüge behalten ihre Endzeit.</p><button data-act="saveSettings">Einstellungen speichern</button>`;
 }
 
-function invitations(a: AdminState, ui: Ui): string {
-  const rows = a.invitations
-    .map(
-      (i) =>
-        `<tr><td>${esc(i.email)}</td><td>${dt(i.created)}</td><td>${dt(i.expires)}</td><td><button class="small red" data-act="revoke" data-id="${esc(i.id)}">Widerrufen</button></td></tr>`,
-    )
-    .join('');
-  const list = rows
-    ? `<table class="mini mt"><tr><th>Adresse</th><th>erstellt</th><th>gültig bis</th><th></th></tr>${rows}</table>`
-    : '<p class="dim">Keine offenen Einladungen.</p>';
+function invitations(ui: Ui): string {
   const link = ui.lastLink
     ? `<div class="notice mt">Einladungslink (gilt einmal, nur jetzt sichtbar):<br><input id="inv_link" class="wide" readonly value="${esc(ui.lastLink)}" aria-label="Einladungslink"> <button class="small" data-act="copyLink">Kopieren</button></div>`
     : '';
-  return `<form id="inviteform" class="flex"><label for="inv_email">E-Mail-Adresse</label> <input id="inv_email" type="email" required autocomplete="off" data-nokeep> <button type="submit">Einladen</button></form>${link}${list}`;
+  return `<form id="inviteform" class="flex"><label for="inv_email">E-Mail-Adresse</label> <input id="inv_email" type="email" required autocomplete="off" data-nokeep> <button type="submit">Einladen</button></form>${link}<div id="admin-invitations"></div>`;
 }
 
 export function admin(v: V): string {
   const a = v.s.admin;
   if (!a) return '<h2>Admin</h2><div class="notice">Nur für den Admin.</div>';
   return `<h2>Admin</h2>
- ${box('Einladungen', invitations(a, v.ui))}
+ ${box('Einladungen', invitations(v.ui))}
+ ${box('Diagnose und Protokoll', '<div id="admin-diagnostics"></div>')}
  ${box('Universum', settingsForm(v.s, a))}
  ${box('Neue Runde', 'Alle Spieler behalten ihr Konto, bekommen aber einen frischen Planeten, Forschung wird zurückgesetzt. <button class="red" data-act="reset">Neue Runde starten</button>')}`;
 }

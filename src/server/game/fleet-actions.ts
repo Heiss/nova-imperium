@@ -17,6 +17,7 @@ import type {
   Planet,
   Resources,
 } from '../../shared/types.ts';
+import type { AuditEntry } from '../audit.ts';
 import type { User } from '../db/store.ts';
 import { type Action, type Data, mine, researchOf } from './actions.ts';
 import { type Ctx, coords, fail, int, universe } from './context.ts';
@@ -99,7 +100,7 @@ function plan(ctx: Ctx, u: User, p: Planet, d: Data): Plan {
   };
 }
 
-export const send: Action = (ctx, u, d) => {
+export const send: Action = (ctx, u, d, event) => {
   const t = ctx.now();
   const p = mine(ctx, u);
   const { mission, ships, dest, cargo, pct } = plan(ctx, u, p, d);
@@ -138,10 +139,22 @@ export const send: Action = (ctx, u, d) => {
     recalled: false,
   };
   ctx.store.saveFleet(fleet);
+  if (event) logLaunch(event, fleet, dest.owner);
   return `Flotte unterwegs nach ${coords(fleet.toC)}.`;
 };
 
-export const recall: Action = (ctx, u, d) => {
+function logLaunch(event: AuditEntry, fleet: Fleet, target: string): void {
+  event.target = target;
+  event.detail = {
+    fleet: fleet.id,
+    planet: fleet.to,
+    origin: fleet.from,
+    mission: fleet.mission,
+    due: fleet.arr,
+  };
+}
+
+export const recall: Action = (ctx, u, d, event) => {
   const f = ctx.store.fleet(String(d.id));
   const t = ctx.now();
   if (!f || f.owner !== u.id || f.state !== 'out' || f.arr <= t)
@@ -151,5 +164,7 @@ export const recall: Action = (ctx, u, d) => {
   fleet.ret = t + (t - fleet.dep);
   fleet.recalled = true;
   ctx.store.saveFleet(fleet);
+  if (event)
+    event.detail = { fleet: fleet.id, planet: fleet.from, due: fleet.ret };
   return 'Flotte zurückgerufen.';
 };

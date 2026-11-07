@@ -6,12 +6,17 @@ import { migrate, openDatabase } from './database.ts';
 describe('database', () => {
   it('migrates once and refuses a newer schema', () => {
     const db = openDatabase(':memory:');
-    expect(db.pragma('user_version', { simple: true })).toBe(2);
+    expect(db.pragma('user_version', { simple: true })).toBe(3);
     expect(migrate(db)).toBe(0);
     expect(
-      migrate(db, ['SELECT 1', 'SELECT 2', 'CREATE TABLE x (a INTEGER)']),
+      migrate(db, [
+        'SELECT 1',
+        'SELECT 2',
+        'SELECT 3',
+        'CREATE TABLE x (a INTEGER)',
+      ]),
     ).toBe(1);
-    expect(() => migrate(db, ['SELECT 1'])).toThrow(/schema version 3/);
+    expect(() => migrate(db, ['SELECT 1'])).toThrow(/schema version 4/);
     expect(db.pragma('foreign_keys', { simple: true })).toBe(1);
   });
 });

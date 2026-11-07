@@ -54,12 +54,6 @@ export interface Players {
 
 export interface AdminState {
   specs: UniverseSpec[];
-  invitations: {
-    id: string;
-    email: string;
-    created: number;
-    expires: number;
-  }[];
 }
 
 export interface GameState {

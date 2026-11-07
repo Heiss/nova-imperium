@@ -118,3 +118,33 @@ check, and email access is also the recovery channel.
   fragment, so it is never sent to a server or logged.
 - Cross-site requests are refused (JSON only, `Origin` must match).
 - Rate limit on login, registration and invitation checks.
+
+## Admin diagnostics and audit data
+
+The admin panel records administrative reads of invitations, player activity,
+player details, stored orders and the audit log itself. Audit entries identify
+the account, the operation, the target or search scope, and the outcome. Operator
+commands run outside web accounts and are recorded as operator actions. Role
+changes record the old and new role. Web moderation requires a reason and can
+end sessions, suspend a player indefinitely or for up to 720 hours, or lift a
+suspension. Existing sessions stay invalid after a suspension ends.
+
+The event view shows account and game actions, battles and admin actions. An
+unexpected HTTP error includes a request ID that can be looked up in both the
+event view and server logs. Stored order due times reflect the database. For
+lazily settled buildings, research and shipyard orders, a due entry can be normal
+until the planet or player state is next persisted.
+
+Active minutes are estimated from clicks and key interactions in the visible
+game. Only intervals between received interaction samples up to five minutes
+apart are counted. Automatic state polls and a tab left open contribute no
+samples. Statistics use UTC days. Activity totals and successful actions cover
+today and the six preceding UTC days. The activity view highlights five rejected
+logins on an account within an hour or 30 game-action requests within a minute
+for manual review.
+
+The server retains the audit log and daily activity data for 30 days and
+purges old entries in its hourly cleanup. Collection starts after the update.
+Audit entries omit passwords, invitation and session tokens, and raw request
+bodies. Anyone with direct access to the database or its backups can read or
+change the stored audit data.

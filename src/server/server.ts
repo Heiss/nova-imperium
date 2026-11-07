@@ -3,6 +3,7 @@
 import { createServer, type Server } from 'node:http';
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
+import { purgeAudit } from './audit.ts';
 import type { Config } from './config.ts';
 import { openDatabase } from './db/database.ts';
 import { Store } from './db/store.ts';
@@ -66,6 +67,7 @@ export async function startServer(o: StartOptions): Promise<Running> {
   }, TICK_MS);
   const sweep = setInterval(() => {
     ctx.store.purgeSessions(ctx.now());
+    purgeAudit(ctx);
     app.sweep();
   }, SWEEP_MS);
   await new Promise<void>((resolve) =>

@@ -9,6 +9,7 @@ import {
 import type { Config } from './config.ts';
 import type { Invitation, User } from './db/store.ts';
 import { type Ctx, fail, int, str } from './game/context.ts';
+import { ensureActive, suspension } from './game/moderation.ts';
 import { placePlanet } from './game/planets.ts';
 
 export const MIN_PASSWORD = 15;
@@ -158,6 +159,7 @@ export function login(ctx: Ctx, name: unknown, password: unknown): User {
     return fail('Name oder Passwort falsch.');
   }
   if (!passwordMatches(u, pw)) return fail('Name oder Passwort falsch.');
+  ensureActive(ctx, u.id);
   if (!u.pw.startsWith(PROFILE)) {
     const upgraded = passwordFields(pw);
     const update = ctx.store.db
@@ -174,6 +176,7 @@ export function login(ctx: Ctx, name: unknown, password: unknown): User {
 // ----- sessions -----
 
 export function startSession(ctx: Ctx, cfg: Config, uid: string): string {
+  ensureActive(ctx, uid);
   const token = newToken();
   ctx.store.addSession(
     hashToken(token),
@@ -186,7 +189,7 @@ export function startSession(ctx: Ctx, cfg: Config, uid: string): string {
 export function sessionUser(ctx: Ctx, token: string | undefined): User | null {
   if (!token) return null;
   const uid = ctx.store.sessionUser(hashToken(token), ctx.now());
-  return uid ? ctx.store.user(uid) : null;
+  return uid && !suspension(ctx, uid) ? ctx.store.user(uid) : null;
 }
 
 export function endSession(ctx: Ctx, token: string | undefined): void {

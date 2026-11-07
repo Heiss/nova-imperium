@@ -203,7 +203,7 @@ describe('points and state', () => {
     expect(sa.cfg).toEqual(DEFAULT_UNIVERSE);
     const sb = stateFor(ctx, b) as {
       fleets: Record<string, unknown>[];
-      admin: { invitations: unknown[] };
+      admin: { specs: unknown[] };
       players: unknown;
       galaxy: unknown[];
       me: unknown;
@@ -213,7 +213,7 @@ describe('points and state', () => {
     expect(sb.fleets[0]!.ships).toEqual({});
     expect(sb.fleets[0]!.cargo).toBeUndefined();
     expect(sb.fleets[1]!.ships).toEqual({ lf: 1 });
-    expect(sb.admin.invitations).toEqual([]);
+    expect(sb.admin.specs.length).toBeGreaterThan(0);
     expect(sb.players).toEqual({
       u_Anna: { name: 'Anna', points: 12 },
       u_Bert: { name: 'Bert', points: 0 },

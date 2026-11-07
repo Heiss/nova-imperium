@@ -1,6 +1,6 @@
 // What one player sees: their planet, their and incoming fleets, reports,
 // the players with points, the galaxy. Foreign fleets show only what an
-// observer can see. The admin also gets the settings and the invitations.
+// observer can see. The admin also gets the settings specification.
 import { UNIVERSE_SPECS } from '../../shared/universe.ts';
 import type { Fleet } from '../../shared/types.ts';
 import type { User } from '../db/store.ts';
@@ -31,18 +31,6 @@ export const foreignView = (f: Fleet): ForeignFleet => ({
   arr: f.arr,
   ships: f.mission === 'attack' ? f.ships : {},
 });
-
-function adminPart(ctx: Ctx): object {
-  return {
-    specs: UNIVERSE_SPECS,
-    invitations: ctx.store.openInvitations(ctx.now()).map((i) => ({
-      id: i.id,
-      email: i.email,
-      created: i.created,
-      expires: i.expires,
-    })),
-  };
-}
 
 export function stateFor(ctx: Ctx, u: User): Record<string, unknown> {
   const p = ctx.store.planetOfUser(u.id);
@@ -85,6 +73,6 @@ export function stateFor(ctx: Ctx, u: User): Record<string, unknown> {
     reports: ctx.store.reports(u.id),
     players,
     galaxy,
-    admin: u.admin ? adminPart(ctx) : null,
+    admin: u.admin ? { specs: UNIVERSE_SPECS } : null,
   };
 }
