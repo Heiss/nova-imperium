@@ -26,12 +26,18 @@ describe('rate limiter', () => {
 
 describe('request helpers', () => {
   it('parse cookies and skip broken ones', () => {
-    expect(cookies('a=1; b = x%20y ;broken; c=%E0%A4%A; =z')).toEqual({
-      a: '1',
-      b: 'x y',
-    });
-    expect(cookies('a=1=2')).toEqual({ a: '1=2' });
-    expect(cookies(undefined)).toEqual({});
+    expect(cookies('a=1; b = x%20y ;broken; c=%E0%A4%A; =z')).toEqual(
+      new Map([
+        ['a', '1'],
+        ['b', 'x y'],
+      ]),
+    );
+    expect(cookies('a=1=2')).toEqual(new Map([['a', '1=2']]));
+    expect(cookies(undefined)).toEqual(new Map());
+    expect(
+      cookies('__proto__=value; constructor=another').get('__proto__'),
+    ).toBe('value');
+    expect(cookies('a=first; a=last').get('a')).toBe('last');
   });
   it('choose the client address', () => {
     const req = (ip: string | undefined, real?: string) =>
