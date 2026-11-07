@@ -1,5 +1,10 @@
 // The list of actions a player can send and how one is run: first all due
 // fleets, then the action, everything in one transaction.
+import {
+  claimAchievement,
+  claimDailyReward,
+  recordAchievementAction,
+} from './achievements.ts';
 import type { User } from '../db/store.ts';
 import * as A from './actions.ts';
 import { reset, saveSettings } from './admin.ts';
@@ -37,6 +42,8 @@ export const ACTIONS: Record<string, A.Action> = {
   reviewGuildApplication,
   leaveGuild,
   manageGuildMember,
+  claimAchievement,
+  claimDailyReward,
 };
 
 export function runAction(ctx: Ctx, uid: string, d: A.Data): string | null {
@@ -47,6 +54,8 @@ export function runAction(ctx: Ctx, uid: string, d: A.Data): string | null {
   return ctx.store.tx(() => {
     tick(ctx);
     const u: User = ctx.store.user(uid) ?? fail('Bitte einloggen.');
-    return fn(ctx, u, d);
+    const result = fn(ctx, u, d);
+    recordAchievementAction(ctx, uid, type);
+    return result;
   });
 }

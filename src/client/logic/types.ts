@@ -1,3 +1,4 @@
+import type { AchievementState } from '../../shared/achievements.ts';
 // The state the server sends (GET /api/state).
 import type { UniverseSpec } from '../../shared/universe.ts';
 import type {
@@ -72,6 +73,7 @@ export interface GameState {
   players: Players;
   galaxy: GalaxyPlanet[];
   admin: AdminState | null;
+  achievements?: AchievementState;
   guilds?: GuildState;
 }
 

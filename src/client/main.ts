@@ -283,7 +283,29 @@ function render(fresh = false): void {
   paintPlanets(view);
   restore();
   if (ui.view === 'fleet') fleetCalc();
+  if (ui.view === 'achievements') filterAchievements();
   if (ui.view === 'messages') markRead();
+}
+
+function filterAchievements(): void {
+  const query = val('#achievement_search').trim().toLocaleLowerCase('de');
+  const category = val('#achievement_category');
+  const status = val('#achievement_status');
+  document
+    .querySelectorAll<HTMLElement>('[data-achievement]')
+    .forEach((item) => {
+      item.hidden =
+        (!!category && item.dataset.category !== category) ||
+        (!!status && item.dataset.status !== status) ||
+        !item.dataset.search!.includes(query);
+    });
+  document
+    .querySelectorAll<HTMLElement>('[data-achievement-group]')
+    .forEach((group) => {
+      group.hidden =
+        !!group.querySelector('[data-achievement]') &&
+        !group.querySelector('[data-achievement]:not([hidden])');
+    });
 }
 
 function renderMenu(): void {
@@ -470,6 +492,8 @@ const ACT: Record<string, (d: Data) => unknown> = {
     )
       return act('manageGuildMember', { uid: d.uid, transfer });
   },
+  achievementClaim: (d) => act('claimAchievement', { id: d.id }),
+  dailyClaim: () => act('claimDailyReward'),
   logout: async () => {
     await disablePush(api).catch(() => null);
     await api('/api/logout', {}).catch(() => null);
@@ -753,8 +777,14 @@ document.addEventListener('change', (e) => {
   if (el.dataset?.chg === 'pct')
     void act('pct', { key: el.dataset.k, v: el.value });
   if (ui.view === 'fleet') fleetCalc();
+  if (ui.view === 'achievements') filterAchievements();
 });
 document.addEventListener('input', (e) => {
+  if (
+    ui.view === 'achievements' &&
+    (e.target as HTMLElement).id === 'achievement_search'
+  )
+    filterAchievements();
   if (ui.view === 'fleet' && (e.target as HTMLElement).closest('main'))
     fleetCalc();
 });
