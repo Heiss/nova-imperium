@@ -32,15 +32,16 @@ export function readJson(
   });
 }
 
-export function cookies(header: string | undefined): Record<string, string> {
-  const out: Record<string, string> = {};
+export function cookies(header: string | undefined): Map<string, string> {
+  const out = new Map<string, string>();
   for (const raw of (header ?? '').split(';')) {
     const part = raw.trim();
     const i = part.indexOf('=');
     if (i <= 0) continue;
     try {
-      out[part.slice(0, i).trim()] = decodeURIComponent(
-        part.slice(i + 1).trim(),
+      out.set(
+        part.slice(0, i).trim(),
+        decodeURIComponent(part.slice(i + 1).trim()),
       );
     } catch {
       // a broken cookie is ignored

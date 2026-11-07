@@ -187,13 +187,13 @@ export async function invite(
 }
 
 async function handleApi(
-  table: Record<string, Handler>,
+  table: ReadonlyMap<string, Handler>,
   d: AppDeps,
   req: IncomingMessage,
   res: ServerResponse,
   path: string,
 ): Promise<void> {
-  const handler = table[`${req.method} ${path}`];
+  const handler = table.get(`${req.method} ${path}`);
   if (!handler) return json(res, 404, { error: 'Nicht gefunden.' });
   if (crossSite(req, d.cfg))
     return json(res, 403, { error: 'Anfrage abgelehnt.' });
@@ -202,7 +202,7 @@ async function handleApi(
     req,
     res,
     body,
-    token: cookies(req.headers.cookie)[COOKIE],
+    token: cookies(req.headers.cookie).get(COOKIE),
   });
   json(res, reply.status ?? 200, reply.json, reply.cookie);
 }
@@ -224,7 +224,9 @@ export function createApp(d: AppDeps): {
     d.cfg.rateLimitMinutes * 60000,
     d.ctx.now,
   );
-  const table = { ...accountRoutes(d, limiter), ...gameRoutes(d) };
+  const table = new Map(
+    Object.entries({ ...accountRoutes(d, limiter), ...gameRoutes(d) }),
+  );
   const handle = async (
     req: IncomingMessage,
     res: ServerResponse,
