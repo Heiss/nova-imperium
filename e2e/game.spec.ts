@@ -140,6 +140,22 @@ test.describe('playing', () => {
     await expect(notice).toHaveCount(0);
   });
 
+  test('resource production enables an unaffordable build in place', async ({
+    page,
+  }) => {
+    await page.clock.install();
+    const name = uniqueName('Rohstoff');
+    await register(page, name);
+    seed({ name, res: { m: 59, c: 500, d: 0 } });
+    await page.goto('/?view=buildings');
+    const build = page.locator('[data-act=build][data-k=metal]');
+    await expect(build).toBeDisabled();
+    await page.route('**/api/state', () => {});
+    await page.clock.fastForward(5 * 60 * 1000);
+    await expect(build).toBeEnabled();
+    await expect(page).toHaveURL(/\?view=buildings$/);
+  });
+
   test('build, cancel, set production and rename', async ({ page }) => {
     const w = watch(page);
     await register(page, uniqueName('Bau'));

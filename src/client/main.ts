@@ -1,10 +1,10 @@
 // The browser glue: state, server calls, rendering, events and the clock.
 // The views are pure functions (views/), the logic is tested (logic/); this
 // file is run by the E2E suite.
-import { BUILD, RES } from '../shared/catalog.ts';
+import { BUILD, RES, UNIT } from '../shared/catalog.ts';
 import { pid } from '../shared/flight.ts';
 import { settle, settleR } from '../shared/settle.ts';
-import type { Levels, Queue } from '../shared/types.ts';
+import type { Levels, Planet, Queue } from '../shared/types.ts';
 import { clampInt, coords, dt, dur, esc, fmt } from './logic/format.ts';
 import {
   cargoMax,
@@ -17,7 +17,7 @@ import {
   type FleetForm,
 } from './logic/game.ts';
 import type { GameState } from './logic/types.ts';
-import { prod, caps } from '../shared/economy.ts';
+import { afford, caps, lvlCost, maxAfford, prod } from '../shared/economy.ts';
 import type { Ui, V } from './views/common.ts';
 import { menu, VIEWS } from './views/index.ts';
 import { auth } from './views/misc.ts';
@@ -263,7 +263,7 @@ function renderMenu(): void {
     .join('');
 }
 
-function updateBar(): void {
+function updateBar(): Planet | undefined {
   if (!S?.planet) return;
   const p = settle(S.planet, nowT(), S.cfg);
   const pr = prod(p, S.cfg);
@@ -281,6 +281,37 @@ function updateBar(): void {
     r('Kristall', 'c', p.res.c, cp.c, pr.c) +
     r('Deuterium', 'd', p.res.d, cp.d, pr.d) +
     `<div class="res"><div class="l"><span class="gem gem-e"></span>Energie</div><div class="v ${pr.eProd - pr.eUse < 0 ? 'bad' : ''}">${fmt(pr.eProd - pr.eUse)}/${fmt(pr.eProd)}</div></div>`;
+  return p;
+}
+
+function updatePurchaseButtons(p: Planet, research: Levels): void {
+  document
+    .querySelectorAll<HTMLButtonElement>(
+      '#view button[data-act="build"], #view button[data-act="research"]',
+    )
+    .forEach((button) => {
+      const key = button.dataset.k!;
+      const building = button.dataset.act === 'build';
+      const def = building ? BUILD[key]! : RES[key]!;
+      const level = (building ? p.b : research)[key] ?? 0;
+      button.disabled = !afford(p, lvlCost(def, level + 1));
+    });
+}
+
+function updateShipyardButtons(p: Planet): void {
+  document
+    .querySelectorAll<HTMLElement>('#view [data-act="maxq"]')
+    .forEach((max) => {
+      const count = maxAfford(p, UNIT[max.dataset.k!]!.cost);
+      if (max.dataset.max !== String(count)) {
+        max.dataset.max = String(count);
+        max.textContent = `(max ${fmt(count)})`;
+      }
+      const button = max
+        .closest('.act')!
+        .querySelector<HTMLButtonElement>('button')!;
+      button.disabled = p.bq?.key === 'yard' || count === 0;
+    });
 }
 
 let readPending = false;
@@ -630,7 +661,11 @@ setInterval(() => {
     }
     el.textContent = 'fertig';
   });
-  updateBar();
+  const planet = updateBar();
+  if (planet) {
+    updatePurchaseButtons(planet, ctx.R.research);
+    updateShipyardButtons(planet);
+  }
   if (due) setTimeout(() => void refresh(), 1500);
 }, 1000);
 setInterval(() => {
