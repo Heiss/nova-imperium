@@ -94,6 +94,18 @@ A rollback is the previous tag. Make a backup before an update: database
 migrations run at the start and are not undone by an older image (an older
 image refuses a newer database instead of damaging it).
 
+## Account security
+
+Players can change their password in **Hilfe & Optionen**. With SMTP configured,
+**Passwort vergessen?** sends a single-use link to the registered address. The
+link expires after 30 minutes. A password change or reset signs out all sessions.
+
+Set `NOVA_EMAIL_LOGIN_CODES=1` after verifying SMTP delivery to require a
+six-digit email code at sign-in. Codes expire after ten minutes and allow five
+attempts. Confirm that every player has an address before enabling this option. Configure
+SMTP with TLS for production. Email codes are an additional
+check, and email access is also the recovery channel.
+
 ## Hardening that is in place
 
 - The game runs as uid 1000, not root; both containers have a read-only root
@@ -101,7 +113,7 @@ image refuses a newer database instead of damaging it).
   `no-new-privileges`.
 - Only Caddy has a published port, bound to `127.0.0.1` by default.
 - Content-Security-Policy without inline scripts or styles; no foreign sources.
-- Passwords hashed with scrypt; session and invitation tokens are random and
+- Passwords hashed with scrypt (N=32768, r=8, p=3) and a random 128-bit salt; session and invitation tokens are random and
   only their SHA-256 is stored; the invitation token travels in the URL
   fragment, so it is never sent to a server or logged.
 - Cross-site requests are refused (JSON only, `Origin` must match).

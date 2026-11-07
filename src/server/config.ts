@@ -23,6 +23,7 @@ export interface Config {
   inviteDays: number;
   rateLimitAttempts: number;
   rateLimitMinutes: number;
+  emailLoginCodes: boolean;
   smtp: SmtpConfig | null;
 }
 
@@ -60,6 +61,7 @@ export const SETTINGS = [
   'NOVA_HOST',
   'NOVA_DATA_DIR',
   'NOVA_TRUST_PROXY',
+  'NOVA_EMAIL_LOGIN_CODES',
   ...Object.values(NUMBERS).map((n) => n.name),
   'SMTP_HOST',
   'SMTP_PORT',
@@ -194,7 +196,12 @@ export function loadConfig(
     inviteDays: c.number(NUMBERS.inviteDays),
     rateLimitAttempts: c.number(NUMBERS.rateLimitAttempts),
     rateLimitMinutes: c.number(NUMBERS.rateLimitMinutes),
+    emailLoginCodes: c.flag('NOVA_EMAIL_LOGIN_CODES'),
     smtp: smtp(c),
   };
+  if (config.emailLoginCodes && !config.smtp)
+    c.errors.push(
+      'NOVA_EMAIL_LOGIN_CODES requires SMTP_HOST and mail settings.',
+    );
   return c.errors.length ? { errors: c.errors } : { config };
 }

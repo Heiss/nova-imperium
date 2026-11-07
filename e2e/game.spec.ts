@@ -47,7 +47,7 @@ test.describe('accounts', () => {
     await expect(page).toHaveURL(/\/$/);
     await expect(page.locator('#a_email')).toHaveAttribute('readonly', '');
     await page.fill('#a_name', name);
-    await page.fill('#a_pw', 'geheim123');
+    await page.fill('#a_pw', 'ein-sicheres-testpasswort');
     await page.selectOption('#a_gal', '2');
     await page.click('button[type=submit]');
     await expect(page.locator('.toast')).toContainText(`Willkommen, ${name}!`);
@@ -57,6 +57,20 @@ test.describe('accounts', () => {
     await expect(other.locator('.toast.err')).toContainText('schon benutzt');
     await other.close();
     expect(w.problems).toEqual([]);
+  });
+
+  test('changes a password from the account options', async ({ page }) => {
+    const name = uniqueName('Passwort');
+    await register(page, name);
+    await nav(page, 'help');
+    const form = page.locator('#passwordform');
+    await form
+      .getByLabel('Bisheriges Passwort')
+      .fill('ein-sicheres-testpasswort');
+    await form.getByLabel('Neues Passwort').fill('ein-neues-testpasswort');
+    await form.getByRole('button', { name: 'Passwort ändern' }).click();
+    await expect(page.locator('.auth .hd')).toHaveText('Login');
+    await login(page, name, 'ein-neues-testpasswort');
   });
 
   test('log out and in again; a wrong password is refused', async ({

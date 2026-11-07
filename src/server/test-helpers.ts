@@ -35,9 +35,12 @@ export const testConfig = (over: Partial<Config> = {}): Config => ({
   inviteDays: 7,
   rateLimitAttempts: 20,
   rateLimitMinutes: 10,
+  emailLoginCodes: false,
   smtp: null,
   ...over,
 });
+
+const testPassword = hashPassword('secret1', 'salt');
 
 export function addUser(
   ctx: Ctx,
@@ -49,7 +52,7 @@ export function addUser(
     name,
     email: `${name.toLowerCase()}@example.org`,
     salt: 'salt',
-    pw: hashPassword('secret1', 'salt'),
+    pw: testPassword,
     admin: false,
     probes: 1,
     readAt: 0,

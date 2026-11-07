@@ -264,7 +264,7 @@ describe('http', () => {
     const reg = await call('POST', '/api/register', {
       token,
       name: 'Neu',
-      password: 'secret9',
+      password: 'registration-passphrase',
       planet: 'P',
       gal: 1,
     });
@@ -278,7 +278,7 @@ describe('http', () => {
         await call('POST', '/api/register', {
           token,
           name: 'Zwei',
-          password: 'secret9',
+          password: 'registration-passphrase',
         })
       ).status,
     ).toBe(400);
@@ -374,5 +374,118 @@ describe('http', () => {
         cfg,
       ),
     ).toBe(true);
+  });
+});
+
+describe('account security', () => {
+  it('requires a single-use code and limits guesses', async () => {
+    const mails: Mail[] = [];
+    const { ctx, call } = await start({
+      cfg: { emailLoginCodes: true },
+      mailer: async (mail) => {
+        mails.push(mail);
+      },
+    });
+    addUser(ctx, 'Anna');
+    const login = () =>
+      call('POST', '/api/login', { name: 'Anna', password: 'secret1' });
+    const begin = await login();
+    expect(begin.set).toBeNull();
+    expect((await call('GET', '/api/state')).status).toBe(401);
+    const code = /\b\d{6}\b/.exec(mails[0]!.text)![0];
+    const verify = (challenge: unknown, value: string) =>
+      call('POST', '/api/login/code', { challenge, code: value });
+    for (let i = 0; i < 5; i++)
+      expect((await verify(begin.json?.challenge, 'invalid')).status).toBe(400);
+    expect((await verify(begin.json?.challenge, code)).status).toBe(400);
+    const retry = await login();
+    const newCode = /\b\d{6}\b/.exec(mails[1]!.text)![0];
+    expect((await verify(retry.json?.challenge, newCode)).set).toContain(
+      'nova_session=',
+    );
+    expect((await verify(retry.json?.challenge, newCode)).status).toBe(400);
+  });
+
+  it('gives a uniform reset response and invalidates sessions and the link', async () => {
+    const mails: Mail[] = [];
+    const { ctx, call } = await start({
+      mailer: async (mail) => {
+        mails.push(mail);
+      },
+    });
+    addUser(ctx, 'Anna');
+    await call('POST', '/api/login', { name: 'Anna', password: 'secret1' });
+    const ask = (email: string) =>
+      call('POST', '/api/password/forgot', { email });
+    const unknown = await ask('unknown@example.org');
+    const known = await ask('anna@example.org');
+    expect(known.json).toEqual(unknown.json);
+    await expect.poll(() => mails.length).toBe(1);
+    await ask('anna@example.org');
+    const token = /#reset=([\w-]+)/.exec(mails[0]!.text)![1];
+    const update = () =>
+      call('POST', '/api/password/reset', {
+        token,
+        password: 'a new secure passphrase',
+      });
+    expect((await update()).status).toBe(200);
+    expect((await update()).status).toBe(400);
+    expect(ctx.store.db.prepare('SELECT * FROM sessions').all()).toEqual([]);
+    expect(
+      (await call('POST', '/api/login', { name: 'Anna', password: 'secret1' }))
+        .status,
+    ).toBe(400);
+    expect(
+      (
+        await call('POST', '/api/login', {
+          name: 'Anna',
+          password: 'a new secure passphrase',
+        })
+      ).status,
+    ).toBe(200);
+    expect(mails).toHaveLength(1);
+  });
+
+  it('rejects expired reset links and purges expired account tokens', async () => {
+    const mails: Mail[] = [];
+    const { ctx, call, app } = await start({
+      mailer: async (mail) => {
+        mails.push(mail);
+      },
+    });
+    addUser(ctx, 'Anna');
+    await call('POST', '/api/password/forgot', { email: 'anna@example.org' });
+    await expect.poll(() => mails.length).toBe(1);
+    const token = /#reset=([\w-]+)/.exec(mails[0]!.text)![1];
+    ctx.clock.t += 30 * 60_000;
+    const result = await call('POST', '/api/password/reset', {
+      token,
+      password: 'another test passphrase',
+    });
+    expect(result.status).toBe(400);
+    app.sweep();
+    expect(ctx.store.db.prepare('SELECT * FROM account_tokens').all()).toEqual(
+      [],
+    );
+  });
+
+  it('requires the current password to change it and signs out existing sessions', async () => {
+    const { call } = await asAdmin();
+    const change = (current: string) =>
+      call('POST', '/api/password/change', {
+        current,
+        password: 'another test passphrase',
+      });
+    expect((await change('wrong')).status).toBe(400);
+    expect((await change('secret1')).status).toBe(200);
+    expect((await call('GET', '/api/state')).status).toBe(401);
+    expect(
+      (
+        await call('POST', '/api/login', {
+          name: 'Boss',
+          password: 'another test passphrase',
+        })
+      ).status,
+    ).toBe(200);
   });
 });
