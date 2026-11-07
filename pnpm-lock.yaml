@@ -15,8 +15,8 @@ importers:
         specifier: 15.0.3
         version: 15.0.3
       nodemailer:
-        specifier: 10.0.6
-        version: 10.0.6
+        specifier: 10.3.1
+        version: 10.3.1
       web-push:
         specifier: 4.0.0
         version: 4.0.0
@@ -1638,8 +1638,8 @@ packages:
     resolution: {integrity: sha512-6li2QanLsAXpIH2R6j77MzRyvOyrvdTqlKtO4CgBdHGNvN99ZZfyxszHc5o5+IZBWD5u6Hzwg83JoGXmqZNG9Q==}
     engines: {node: '>=18'}
 
-  nodemailer@10.0.6:
-    resolution: {integrity: sha512-2u7OHvEQVVGvPo9Yhw/eN3xMO2Gnj2U2fGDP0BDpnRwJR//65AfGRQDiJqxix28gFRBvMqi2USA13x6RrfWuGg==}
+  nodemailer@10.3.1:
+    resolution: {integrity: sha512-uF0AFsJC07Y1vdW7p580DKAnh7rAO+4UPSSB3mDCPNDufoiaOebV6JmrzpxB14OjEEEiBsNdYoM2Y+fN8M7BBA==}
     engines: {node: '>=20.0.0'}
 
   npm-run-path@6.0.0:
@@ -3551,7 +3551,7 @@ snapshots:
 
   node-releases@2.0.63: {}
 
-  nodemailer@10.0.6: {}
+  nodemailer@10.3.1: {}
 
   npm-run-path@6.0.0:
     dependencies:
