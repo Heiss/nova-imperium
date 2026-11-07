@@ -7,6 +7,7 @@ import type { User } from '../db/store.ts';
 import { type Ctx, universe } from './context.ts';
 import { guildState } from './guilds.ts';
 import { achievementState } from './achievements.ts';
+import { roundRules } from './round.ts';
 import { pointsMap } from './points.ts';
 
 export interface ForeignFleet {
@@ -58,7 +59,9 @@ export function stateFor(ctx: Ctx, u: User): Record<string, unknown> {
     temp: x.temp,
     owner: x.owner,
   }));
+  const round = roundRules(ctx);
   return {
+    round,
     now: ctx.now(),
     cfg: universe(ctx),
     me: {
@@ -74,7 +77,7 @@ export function stateFor(ctx: Ctx, u: User): Record<string, unknown> {
     fleets,
     reports: ctx.store.reports(u.id),
     guilds: guildState(ctx, u.id, pts),
-    achievements: achievementState(ctx, u),
+    achievements: achievementState(ctx, u, round),
     players,
     galaxy,
     admin: u.admin ? { specs: UNIVERSE_SPECS } : null,

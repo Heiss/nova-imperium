@@ -4,7 +4,9 @@ import { activity, audited, record, type AuditEntry } from '../audit.ts';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import * as auth from '../auth.ts';
 import * as security from '../account-security.ts';
+import * as passkeys from '../passkeys.ts';
 import type { Config } from '../config.ts';
+import { deleteAccount } from '../delete-account.ts';
 import type { User } from '../db/store.ts';
 import { requireAdmin } from '../game/admin.ts';
 import { type Ctx, GameError, str } from '../game/context.ts';
@@ -69,10 +71,15 @@ const json = (
     ...(cookie ? { 'set-cookie': cookie } : {}),
   });
 
-export function sessionCookie(cfg: Config, token: string | null): string {
+export function sessionCookie(
+  cfg: Config,
+  token: string | null,
+  remember = true,
+): string {
   const secure = cfg.secureCookies ? '; Secure' : '';
   const life = token ? cfg.sessionDays * 86400 : 0;
-  return `${COOKIE}=${token ?? ''}; HttpOnly; Path=/; SameSite=Lax; Max-Age=${life}${secure}`;
+  const age = token && !remember ? '' : `; Max-Age=${life}`;
+  return `${COOKIE}=${token ?? ''}; HttpOnly; Path=/; SameSite=Lax${age}${secure}`;
 }
 
 /** Cross-site requests are refused: JSON only, and the Origin must be ours. */
@@ -153,12 +160,15 @@ function passwordRoutes(
     },
     'POST /api/password/change': (call) => {
       guard(call.req);
-      security.changePassword(
-        ctx,
-        sessionUserOf(ctx, call),
-        call.body.current,
-        call.body.password,
-      );
+      const user = sessionUserOf(ctx, call);
+      if (call.body.password !== call.body.confirmation)
+        throw new GameError('Die neuen Passwörter stimmen nicht überein.');
+      security.changePassword(ctx, user, call.body.current, call.body.password);
+      return signedOut();
+    },
+    'POST /api/account/delete': (call) => {
+      guard(call.req);
+      deleteAccount(ctx, sessionUserOf(ctx, call), call.body.password);
       return signedOut();
     },
   };
@@ -174,9 +184,9 @@ function accountRoutes(
     if (limiter.limited(clientIp(req, cfg.trustProxy)))
       throw new GameError('Zu viele Versuche – bitte später nochmal.');
   };
-  const enter = (u: User): Reply => ({
+  const enter = (u: User, remember = true): Reply => ({
     json: { ok: true, state: stateFor(ctx, u) },
-    cookie: sessionCookie(cfg, auth.startSession(ctx, cfg, u.id)),
+    cookie: sessionCookie(cfg, auth.startSession(ctx, cfg, u.id), remember),
   });
   return {
     'GET /healthz': () => {
@@ -190,14 +200,80 @@ function accountRoutes(
     },
     ...loginRoutes(d, guard, enter),
     ...passwordRoutes(d, guard),
+    ...passkeyRoutes(d, guard, enter),
     'POST /api/logout': (call) => logoutReply(ctx, cfg, call),
   };
+}
+
+function passkeyRoutes(
+  d: AppDeps,
+  guard: (req: IncomingMessage) => void,
+  enter: (u: User, remember?: boolean) => Reply,
+): Record<string, Handler> {
+  const { ctx, cfg } = d;
+  return {
+    'POST /api/passkeys/list': (call) => ({
+      json: { keys: passkeys.passkeysOf(ctx, sessionUserOf(ctx, call)) },
+    }),
+    'POST /api/passkeys/register/options': async (call) => {
+      guard(call.req);
+      const user = sessionUserOf(ctx, call);
+      const options = passkeys.registerPasskeyOptions(
+        ctx,
+        cfg,
+        user,
+        call.token!,
+        call.body.password,
+      );
+      return { json: await options };
+    },
+    'POST /api/passkeys/register': async (call) => {
+      guard(call.req);
+      const user = sessionUserOf(ctx, call);
+      await passkeys.registerPasskey(ctx, cfg, user, call.token!, call.body);
+      return { json: { ok: true } };
+    },
+    'POST /api/passkeys/remove': (call) => {
+      const user = sessionUserOf(ctx, call);
+      passkeys.removePasskey(ctx, user, call.body.id);
+      return { json: { ok: true } };
+    },
+    'POST /api/passkeys/login/options': async ({ req }) => {
+      guard(req);
+      return { json: await passkeys.passkeyLoginOptions(ctx, cfg) };
+    },
+    'POST /api/passkeys/login': async ({ req, body, requestId }) => {
+      guard(req);
+      const user = await passkeys.verifyPasskeyLogin(ctx, cfg, body);
+      return finishPasskeyLogin(
+        ctx,
+        user,
+        requestId,
+        body.remember === true,
+        enter,
+      );
+    },
+  };
+}
+
+function finishPasskeyLogin(
+  ctx: Ctx,
+  user: User,
+  requestId: string,
+  remember: boolean,
+  enter: (u: User, remember?: boolean) => Reply,
+): Reply {
+  return audited(
+    ctx,
+    { category: 'account', action: 'loginPasskey', actor: user.id, requestId },
+    () => enter(user, remember),
+  );
 }
 
 function loginRoutes(
   d: AppDeps,
   guard: (req: IncomingMessage) => void,
-  enter: (u: User) => Reply,
+  enter: (u: User, remember?: boolean) => Reply,
 ): Record<string, Handler> {
   const { ctx, cfg } = d;
   return {
@@ -227,7 +303,9 @@ function loginRoutes(
         { category: 'account', action, actor, requestId },
         () => auth.login(ctx, body.name, body.password),
       );
-      return cfg.emailLoginCodes ? beginLogin(d, user) : enter(user);
+      return cfg.emailLoginCodes
+        ? beginLogin(d, user)
+        : enter(user, body.remember !== false);
     },
     'POST /api/login/code': ({ req, body, requestId }) => {
       guard(req);
@@ -253,7 +331,7 @@ function loginCodeReply(
   ctx: Ctx,
   body: Call['body'],
   requestId: string,
-  enter: (u: User) => Reply,
+  enter: (u: User, remember?: boolean) => Reply,
 ): Reply {
   const entry: AuditEntry = {
     category: 'account',
@@ -270,7 +348,7 @@ function loginCodeReply(
     throw error;
   }
   entry.actor = user.id;
-  return audited(ctx, entry, () => enter(user));
+  return audited(ctx, entry, () => enter(user, body.remember !== false));
 }
 
 function pushRoutes(d: AppDeps): Record<string, Handler> {
@@ -278,7 +356,7 @@ function pushRoutes(d: AppDeps): Record<string, Handler> {
     const u = sessionUserOf(d.ctx, call);
     if (!d.cfg.webPush)
       throw new GameError(
-        'Browser-Benachrichtigungen sind auf diesem Server deaktiviert.',
+        'Browser-Benachrichtigungen sind auf diesem Server deaktiviert. Die Serverkonfiguration benötigt NOVA_WEB_PUSH=1 und eine HTTPS-Adresse.',
       );
     return u;
   };
@@ -467,6 +545,7 @@ export function createApp(d: AppDeps): {
     sweep: () => {
       limiter.sweep();
       security.purgeAccountTokens(d.ctx);
+      passkeys.purgePasskeyChallenges(d.ctx);
     },
   };
 }

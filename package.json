@@ -25,6 +25,8 @@
     "check": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm test:coverage && pnpm build"
   },
   "dependencies": {
+    "@simplewebauthn/browser": "14.0.0",
+    "@simplewebauthn/server": "14.1.0",
     "better-sqlite3": "13.0.3",
     "markdown-it": "15.0.3",
     "nodemailer": "10.3.1",

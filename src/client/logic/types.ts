@@ -1,4 +1,7 @@
-import type { AchievementState } from '../../shared/achievements.ts';
+import type {
+  AchievementState,
+  RoundRules,
+} from '../../shared/achievements.ts';
 // The state the server sends (GET /api/state).
 import type { UniverseSpec } from '../../shared/universe.ts';
 import type {
@@ -58,6 +61,7 @@ export interface AdminState {
 }
 
 export interface GameState {
+  round: RoundRules;
   now: number;
   cfg: Universe;
   me: Me;

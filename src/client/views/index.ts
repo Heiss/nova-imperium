@@ -1,3 +1,4 @@
+import type { RoundRules } from '../../shared/achievements.ts';
 import { achievements } from './achievements.ts';
 import type { V } from './common.ts';
 import { research, resources } from './economy.ts';
@@ -30,7 +31,7 @@ export interface MenuEntry {
   label: string;
 }
 
-export function menu(admin: boolean): (MenuEntry | '-')[] {
+export function menu(admin: boolean, round: RoundRules): (MenuEntry | '-')[] {
   const items: (MenuEntry | '-')[] = [
     { view: 'overview', label: 'Übersicht' },
     { view: 'buildings', label: 'Gebäude' },
@@ -44,10 +45,13 @@ export function menu(admin: boolean): (MenuEntry | '-')[] {
     { view: 'messages', label: 'Nachrichten' },
     { view: 'highscore', label: 'Highscore' },
     { view: 'guilds', label: 'Gilden' },
-    { view: 'achievements', label: 'Achievements' },
-    '-',
-    { view: 'help', label: 'Hilfe & Optionen' },
   ];
+  if (round.achievements || round.daily)
+    items.push({
+      view: 'achievements',
+      label: round.achievements ? 'Achievements' : 'Tagesbelohnung',
+    });
+  items.push('-', { view: 'help', label: 'Hilfe & Optionen' });
   if (admin) items.push({ view: 'admin', label: 'Admin' });
   return items;
 }

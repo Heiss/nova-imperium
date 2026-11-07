@@ -156,3 +156,18 @@ purges old entries in its hourly cleanup. Collection starts after the update.
 Audit entries omit passwords, invitation and session tokens, and raw request
 bodies. Anyone with direct access to the database or its backups can read or
 change the stored audit data.
+
+The login screen's “Login auf diesem Gerät speichern” option makes the session
+cookie persistent for the configured session lifetime after authentication.
+Without it, the browser receives a session cookie. Signing out or starting a
+new login still uses the configured authentication flow.
+
+An administrator can send a server announcement from the corresponding admin
+tab. All existing accounts receive it in the game inbox. With Web Push enabled,
+subscribed devices receive the announcement text as a browser notification.
+
+Passkeys are available in **Hilfe & Optionen** on HTTPS and localhost. Adding a
+passkey requires the current password. A verified passkey can sign in without an
+email code. The configured public URL determines the WebAuthn origin and host,
+so users must register a new passkey after switching to a different host.
+Password recovery revokes the account's registered passkeys.

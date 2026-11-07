@@ -18,6 +18,7 @@ okf_version: "0.2"
 
 * [Invitations](/features/invitations.md) - registration only by invitation, mail or copied link
 * [Admin](/features/admin.md) - operator roles, diagnostics, audit log, moderation and live universe settings
+* [Round, administration and sign-in update](/features/release-checklist.md) - combined release checklist
 
 # Security
 

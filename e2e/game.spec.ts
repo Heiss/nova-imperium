@@ -21,6 +21,70 @@ test('login stays near the header @phone', async ({ page }) => {
   expect(form.y - (header.y + header.height)).toBeLessThan(100);
 });
 
+test('offers home-screen installation on a phone @phone', async ({ page }) => {
+  await page.goto('/');
+  const offer = page.locator('#pwa-offer');
+  await expect(offer).toBeVisible();
+  await offer.getByRole('button', { name: 'App installieren' }).click();
+  await expect(
+    page.getByText('Zum Spielen brauchst du eine Internetverbindung.'),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'Schließen' }).click();
+  await offer.getByRole('button', { name: 'Später' }).click();
+  await expect(offer).toBeHidden();
+});
+
+test('displays an announcement received by the online-only push worker', async ({
+  page,
+  context,
+}) => {
+  await context.grantPermissions(['notifications']);
+  await page.goto('/');
+  const cdp = await context.newCDPSession(page);
+  const registrationId = new Promise<string>((resolve) => {
+    cdp.on('ServiceWorker.workerRegistrationUpdated', ({ registrations }) => {
+      const current = registrations.find((item) => !item.isDeleted);
+      if (current) resolve(current.registrationId);
+    });
+  });
+  await cdp.send('ServiceWorker.enable');
+  const registration = context.waitForEvent('serviceworker');
+  await page.evaluate(async () => {
+    await navigator.serviceWorker.register('/push-worker.js');
+    await navigator.serviceWorker.ready;
+  });
+  const worker = await registration;
+  await worker.evaluate(() => {
+    const scope = globalThis as unknown as {
+      registration: ServiceWorkerRegistration;
+      testNotification?: { title: string; body?: string; data: unknown };
+    };
+    scope.registration.showNotification = async (title, options) => {
+      scope.testNotification = {
+        title,
+        body: options?.body,
+        data: options?.data,
+      };
+    };
+  });
+  const text = 'Servernachricht: Wartung';
+  await cdp.send('ServiceWorker.deliverPushMessage', {
+    origin: new URL(page.url()).origin,
+    registrationId: await registrationId,
+    data: JSON.stringify({
+      title: text,
+      view: 'messages',
+      tag: 'announcement-test',
+    }),
+  });
+  await expect
+    .poll(() =>
+      worker.evaluate(() => Reflect.get(globalThis, 'testNotification')),
+    )
+    .toEqual({ title: 'Nova Imperium', body: text, data: 'messages' });
+  expect(await page.evaluate(() => caches.keys())).toEqual([]);
+});
+
 test.describe('accounts', () => {
   test('nobody registers without an invitation', async ({ page }) => {
     const w = watch(page);
@@ -59,6 +123,71 @@ test.describe('accounts', () => {
     expect(w.problems).toEqual([]);
   });
 
+  test('registers, uses and removes a passkey', async ({ page, context }) => {
+    const session = await context.newCDPSession(page);
+    await session.send('WebAuthn.enable');
+    await session.send('WebAuthn.addVirtualAuthenticator', {
+      options: {
+        protocol: 'ctap2',
+        transport: 'internal',
+        hasResidentKey: true,
+        hasUserVerification: true,
+        isUserVerified: true,
+        automaticPresenceSimulation: true,
+      },
+    });
+    const name = uniqueName('Passkey');
+    await register(page, name);
+    await nav(page, 'help');
+    await page
+      .getByLabel('Passwort für neuen Passkey')
+      .fill('ein-sicheres-testpasswort');
+    await page.getByRole('button', { name: 'Passkey hinzufügen' }).click();
+    await expect(
+      page.getByText('Passkey gespeichert.', { exact: true }),
+    ).toBeVisible();
+    await page.click('[data-act=logout]');
+    await page
+      .getByRole('checkbox', { name: 'Login auf diesem Gerät speichern' })
+      .check();
+    await page.getByRole('button', { name: 'Mit Passkey anmelden' }).click();
+    await expect(page.locator('#pinfo')).toContainText(name);
+    expect(
+      (await context.cookies()).find((cookie) => cookie.name === 'nova_session')
+        ?.expires,
+    ).toBeGreaterThan(0);
+    await nav(page, 'help');
+    await page
+      .getByRole('button', { name: 'Gespeicherte Passkeys anzeigen' })
+      .click();
+    page.once('dialog', (dialog) => void dialog.accept());
+    await page.getByRole('button', { name: 'Entfernen', exact: true }).click();
+    await expect(page.getByText('Keine Passkeys gespeichert.')).toBeVisible();
+  });
+
+  test('deletes the account only after password confirmation', async ({
+    page,
+  }) => {
+    await register(page, uniqueName('Loeschen'));
+    await nav(page, 'help');
+    await page
+      .getByRole('button', { name: 'Account löschen', exact: true })
+      .click();
+    await page.getByLabel('Passwort zur Bestätigung').fill('falsch');
+    await page
+      .getByRole('button', { name: 'Account endgültig löschen' })
+      .click();
+    await expect(page.getByRole('alert')).toContainText('Passwort ist falsch');
+    await page
+      .getByLabel('Passwort zur Bestätigung')
+      .fill('ein-sicheres-testpasswort');
+    await page
+      .getByRole('button', { name: 'Account endgültig löschen' })
+      .click();
+    await expect(page.getByText('Dein Account wurde gelöscht.')).toBeVisible();
+    await expect(page.locator('.auth .hd')).toHaveText('Login');
+  });
+
   test('changes a password from the account options', async ({ page }) => {
     const name = uniqueName('Passwort');
     await register(page, name);
@@ -67,7 +196,19 @@ test.describe('accounts', () => {
     await form
       .getByLabel('Bisheriges Passwort')
       .fill('ein-sicheres-testpasswort');
-    await form.getByLabel('Neues Passwort').fill('ein-neues-testpasswort');
+    await form
+      .getByLabel('Neues Passwort', { exact: true })
+      .fill('ein-neues-testpasswort');
+    await form
+      .getByLabel('Neues Passwort wiederholen')
+      .fill('ein-falsches-testpasswort');
+    await form.getByRole('button', { name: 'Passwort ändern' }).click();
+    await expect(page.getByRole('alert')).toContainText(
+      'stimmen nicht überein',
+    );
+    await form
+      .getByLabel('Neues Passwort wiederholen')
+      .fill('ein-neues-testpasswort');
     await form.getByRole('button', { name: 'Passwort ändern' }).click();
     await expect(page.locator('.auth .hd')).toHaveText('Login');
     await login(page, name, 'ein-neues-testpasswort');
@@ -119,6 +260,8 @@ test('filters achievements and keeps tomorrow’s reward after claiming', async 
   page,
 }) => {
   await register(page, uniqueName('Erfolg'));
+  const badge = page.locator('#menu [data-v=achievements] .badge');
+  await expect(badge).toHaveAttribute('aria-label', 'Tagesbelohnung abholbar');
   await nav(page, 'achievements');
   const next = page.getByText('Morgen bei fortgesetzter Serie:', {
     exact: false,
@@ -128,6 +271,7 @@ test('filters achievements and keeps tomorrow’s reward after claiming', async 
   await page.getByRole('button', { name: 'Tagesbelohnung abholen' }).click();
   await expect(page.getByText('Abgeholt', { exact: true })).toBeVisible();
   await expect(next).toHaveText(reward!);
+  await expect(badge).toHaveCount(0);
   await page.getByLabel('Kategorie', { exact: true }).selectOption('buildings');
   await page.getByLabel('Suchen', { exact: true }).fill('Metallmine');
   const visible = page.locator('[data-achievement]:visible');
@@ -204,9 +348,14 @@ test.describe('playing', () => {
     const notice = page
       .getByRole('status')
       .filter({ hasText: 'Ausbau fertig' });
+    const badge = page.locator('#menu [data-v=buildings] .badge');
+    await expect(badge).toHaveAttribute('aria-label', 'Ausbau fertig');
     await expect(notice).toBeVisible();
     await nav(page, 'overview');
     await nav(page, 'buildings');
+    await expect(page.locator('#menu [data-v=buildings] .badge')).toHaveCount(
+      0,
+    );
     await expect(notice).toHaveCount(0);
   });
 
@@ -292,7 +441,9 @@ test.describe('playing', () => {
     );
     await nav(page, 'overview');
     await expect(page.locator('.fl-spy')).toContainText('Spionage');
-    await expect(page.locator('#menu .badge')).toBeVisible({ timeout: 30000 });
+    await expect(page.locator('#menu [data-v=messages] .badge')).toBeVisible({
+      timeout: 30000,
+    });
     await nav(page, 'messages');
     await page
       .locator('.rep .t', { hasText: 'Spionagebericht' })
@@ -330,6 +481,11 @@ test.describe('admin', () => {
     cli('admin', name);
     await page.reload();
     await nav(page, 'admin');
+    await expect(
+      page.getByRole('button', { name: 'Erste Seite' }),
+    ).toBeDisabled();
+    await expect(page.getByLabel('Pro Seite')).toHaveValue('10');
+    await page.getByRole('tab', { name: 'Spieler', exact: true }).click();
     await page
       .locator('[data-admin=stats]')
       .getByRole('button', { name: pilot, exact: true })
@@ -337,6 +493,9 @@ test.describe('admin', () => {
     await expect(
       page.getByRole('heading', { name: `Spielerakte · ${pilot}` }),
     ).toBeVisible();
+    await page
+      .getByRole('button', { name: 'Ereignisse zu diesem Spieler' })
+      .click();
     await expect(
       page.getByRole('row', { name: /game \/ build/ }),
     ).toContainText(pilot);
@@ -361,6 +520,7 @@ test.describe('admin', () => {
     await nav(page, 'admin');
     await expect(page.locator('h2')).toHaveText('Admin');
 
+    await page.getByRole('tab', { name: 'Einladungen' }).click();
     // Invitation without SMTP: the link is shown for copying.
     await page.fill('#inv_email', 'freund@example.org');
     await page.click('#inviteform button[type=submit]');
@@ -379,6 +539,7 @@ test.describe('admin', () => {
       page.locator('tr', { hasText: 'freund@example.org' }),
     ).toHaveCount(0);
 
+    await page.getByRole('tab', { name: 'Universum' }).click();
     // Settings: live, but the universe never shrinks below a planet.
     await page.fill('#set_speed', '7');
     await page.click('[data-act=saveSettings]');

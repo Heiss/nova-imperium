@@ -25,6 +25,7 @@ interface Job extends Subscription {
   event_key: string;
   due: number;
   attempts: number;
+  body: string | null;
 }
 
 function supportedHost(host: string): boolean {
@@ -211,7 +212,11 @@ export async function deliverPush(ctx: Ctx, send: SendPush): Promise<void> {
     try {
       await send(
         job,
-        JSON.stringify({ title: TITLES[job.kind], view: job.kind, tag }),
+        JSON.stringify({
+          title: job.body ?? TITLES[job.kind],
+          view: job.kind,
+          tag,
+        }),
       );
       discard(ctx, job);
     } catch (error) {

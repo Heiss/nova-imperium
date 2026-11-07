@@ -67,6 +67,7 @@ function panelTemplate(players: Players): string {
         <label>Planet / Flotte <input name="reference" maxlength="40"></label>
         <label>Von <input type="date" name="since"></label>
         <label>Bis <input type="date" name="until"></label>
+        <label>Pro Seite <select name="limit"><option>10</option><option>25</option><option>50</option><option>100</option></select></label>
         <button type="submit">Anzeigen</button>
       </div>
     </form>
@@ -136,43 +137,43 @@ function orderPanel(
   );
 }
 
+export type DiagnosticTab = 'events' | 'players' | 'orders';
+type Show = (area: string, html: string) => void;
+type Call = (route: string, body?: object) => ReturnType<Api>;
+
 export function mountAdminDiagnostics(
   host: HTMLElement,
   api: Api,
   players: Players,
+  navigate: (tab: DiagnosticTab, value?: string) => void,
 ) {
   host.innerHTML = panelTemplate(players);
-  const filter = host.querySelector<HTMLFormElement>('#diagnostics-filter')!;
+  const filter = host.querySelector<HTMLFormElement>('form')!;
   const status = host.querySelector<HTMLElement>('[role=status]')!;
-  const show = (area: string, html: string) => {
+  const show: Show = (area, html) => {
     host.querySelector<HTMLElement>(`[data-admin="${area}"]`)!.innerHTML = html;
   };
   const identify = (id: string | null): string =>
     id ? esc(players[id]?.name ?? id) : '—';
-  const call = (route: string, body: object = {}) =>
-    api(`/api/admin/${route}`, body);
-  const notify = (message: string) => {
-    status.textContent = message;
-    status.hidden = !message;
-  };
-  let loading = false;
-
-  const actions = panelActions(host, filter, call, show, identify);
-  async function run(work: () => Promise<void>) {
-    if (loading) return;
-    loading = true;
-    notify('');
+  const call: Call = (route, body = {}) => api(`/api/admin/${route}`, body);
+  const controls = diagnosticsControls(host, filter, show, call, identify);
+  let request = 0;
+  const run = async (work: () => Promise<void>) => {
+    const id = ++request;
+    status.hidden = true;
     try {
       await work();
     } catch (error) {
-      notify((error as Error).message);
-    } finally {
-      loading = false;
+      if (id !== request) return;
+      status.textContent = (error as Error).message;
+      status.hidden = false;
     }
-  }
-
-  bindPanel(host, filter, actions, run, call, notify);
-  return { refresh: () => run(actions.loadOverview) };
+  };
+  bindPanel(host, filter, controls, run, call, navigate);
+  return {
+    open: (tab: DiagnosticTab, value?: string) =>
+      run(() => controls.open(tab, value)),
+  };
 }
 
 function readFilter(filter: HTMLFormElement): Record<string, unknown> {
@@ -192,66 +193,33 @@ function readFilter(filter: HTMLFormElement): Record<string, unknown> {
   };
 }
 
-function panelActions(
-  host: HTMLElement,
-  filter: HTMLFormElement,
-  call: (route: string, body?: object) => ReturnType<Api>,
-  show: (area: string, html: string) => void,
-  identify: (id: string | null) => string,
-) {
-  let page: Record<string, unknown> = {};
-  let cursor = 0;
-  const loadEvents = (append: boolean) =>
-    eventPage(
-      host,
-      call,
-      show,
-      identify,
-      { ...page, ...(append ? { before: cursor } : {}) },
-      append,
-    ).then((next) => {
-      cursor = next;
-    });
-
-  async function loadOverview() {
-    page = readFilter(filter);
-    const player = page.player as string;
-    const [stats, jobs, detail] = await Promise.all([
-      call('stats'),
-      call('orders', { player, reference: page.reference }),
-      player ? call('player', { player }) : null,
-    ]);
-    await loadEvents(false);
-    const people = stats.players as PlayerStats[];
-    show('stats', statsPanel(people));
-    const person = people.find((p) => p.id === player);
-    show(
-      'player',
-      detail && person
-        ? playerPanel(person, detail as unknown as PlayerDetail)
-        : '',
-    );
-    show(
-      'orders',
-      orderPanel(jobs.orders as Order[], Number(jobs.now), identify),
-    );
-  }
-
-  return { loadEvents, loadOverview };
+interface EventPage {
+  events: EventRow[];
+  page: number;
+  pages: number;
+  count: number;
+  limit: number;
+  before: number;
 }
 
-async function eventPage(
-  host: HTMLElement,
-  call: (route: string, body?: object) => ReturnType<Api>,
-  show: (area: string, html: string) => void,
-  identify: (id: string | null) => string,
-  page: object,
-  append: boolean,
-): Promise<number> {
-  const data = await call('events', page);
-  const rows = data.events as EventRow[];
+function eventPager(data: EventPage): string {
+  const { page, pages, count, limit } = data;
+  const button = (label: string, icon: string, to: number, disabled: boolean) =>
+    `<button type="button" data-diagnostics="page" data-page="${to}" aria-label="${label}" title="${label}" ${disabled ? 'disabled' : ''}>${icon}</button>`;
+  return `<div class="flex mt" aria-label="Protokollseiten" role="group">
+    ${button('Erste Seite', '«', 1, page === 1)}
+    ${button('Vorherige Seite', '‹', page - 1, page === 1)}
+    <span role="status">Seite ${page} von ${pages} · ${count} Ereignisse</span>
+    ${button('Nächste Seite', '›', page + 1, page === pages)}
+    ${button('Letzte Seite', '»', pages, page === pages)}
+  </div><p class="dim">${page === 1 ? `Die letzten ${Math.min(count, limit)} Ereignisse` : 'Ältere Ereignisse'}</p>`;
+}
 
-  const eventTable = table(
+function eventRows(
+  rows: EventRow[],
+  identify: (id: string | null) => string,
+): string {
+  return table(
     ['Zeit', 'Akteur', 'Kategorie / Aktion', 'Ergebnis', 'Ziel', 'Details'],
     rows.map((r) => [
       dt(r.time),
@@ -264,16 +232,94 @@ async function eventPage(
       eventDetail(r),
     ]),
   );
-  const more = data.more
-    ? '<button type="button" data-diagnostics="more">Ältere Ereignisse</button>'
-    : '';
-  if (append) {
-    host.querySelector('[data-diagnostics="more"]')?.remove();
-    host
-      .querySelector('[data-admin="events"]')!
-      .insertAdjacentHTML('beforeend', eventTable + more);
-  } else show('events', '<h3>Ereignisprotokoll</h3>' + eventTable + more);
-  return rows.at(-1)?.id ?? 0;
+}
+
+function eventLoader(
+  filter: HTMLFormElement,
+  call: Call,
+  show: Show,
+  identify: (id: string | null) => string,
+) {
+  let query: Record<string, unknown> = {};
+  let before = 0;
+  let request = 0;
+  return async (page?: number, player?: string) => {
+    const id = ++request;
+    if (player !== undefined)
+      (filter.elements.namedItem('player') as HTMLSelectElement).value = player;
+    if (page === undefined) {
+      query = readFilter(filter);
+      before = 0;
+    }
+    const data = (await call('events', {
+      ...query,
+      page: page ?? 1,
+      before,
+    })) as unknown as EventPage;
+    if (id !== request) return;
+    before = data.before;
+    show(
+      'events',
+      '<h3>Ereignisprotokoll</h3>' +
+        eventPager(data) +
+        eventRows(data.events, identify),
+    );
+  };
+}
+
+function playerLoader(call: Call, show: Show) {
+  let selected = '';
+  let request = 0;
+  return async (player = selected) => {
+    selected = player;
+    const id = ++request;
+    const [stats, detail] = await Promise.all([
+      call('stats'),
+      player ? call('player', { player }) : null,
+    ]);
+    if (id !== request) return;
+    const people = stats.players as PlayerStats[];
+    show('stats', statsPanel(people));
+    const person = people.find((p) => p.id === player);
+    show(
+      'player',
+      detail && person
+        ? playerPanel(person, detail as unknown as PlayerDetail)
+        : '',
+    );
+  };
+}
+
+function diagnosticsControls(
+  host: HTMLElement,
+  filter: HTMLFormElement,
+  show: Show,
+  call: Call,
+  identify: (id: string | null) => string,
+) {
+  const events = eventLoader(filter, call, show, identify);
+  const players = playerLoader(call, show);
+  const orders = async (reference = '') => {
+    const result = await call('orders', { reference });
+    show(
+      'orders',
+      orderPanel(result.orders as Order[], Number(result.now), identify),
+    );
+  };
+  const open = (tab: DiagnosticTab, value?: string) => {
+    filter.hidden = tab !== 'events';
+    for (const section of host.querySelectorAll<HTMLElement>('[data-admin]')) {
+      const area = section.dataset.admin;
+      section.hidden =
+        tab === 'players'
+          ? area !== 'stats' && area !== 'player'
+          : area !== tab;
+    }
+    if (tab === 'events') return events(undefined, value);
+    if (tab === 'players') return players(value);
+    return orders(value);
+  };
+  return { open, events, players };
 }
 
 function playerButton(id: string, name: string): string {
@@ -286,7 +332,7 @@ function eventDetail(row: EventRow): string {
   const links = refs
     .map(
       (id) =>
-        `<button type="button" data-diagnostics="reference" data-reference="${esc(id)}">Aufträge zu ${esc(id)}</button>`,
+        `<button type="button" data-diagnostics="orders" data-reference="${esc(id)}">Aufträge zu ${esc(id)}</button>`,
     )
     .join(' ');
   const request = row.requestId
@@ -299,33 +345,34 @@ function eventDetail(row: EventRow): string {
 function bindPanel(
   host: HTMLElement,
   filter: HTMLFormElement,
-  actions: ReturnType<typeof panelActions>,
+  controls: ReturnType<typeof diagnosticsControls>,
   run: (work: () => Promise<void>) => Promise<void>,
-  call: (route: string, body?: object) => ReturnType<Api>,
-  notify: (message: string) => void,
+  call: Call,
+  navigate: (tab: DiagnosticTab, value?: string) => void,
 ) {
-  const playerSelect = filter.elements.namedItem('player') as HTMLSelectElement;
   filter.addEventListener('submit', (event) => {
     event.preventDefault();
-    void run(actions.loadOverview);
+    void run(() => controls.events());
   });
+  filter
+    .querySelector('select[name=limit]')
+    ?.addEventListener('change', () => void run(() => controls.events()));
+  const actions: Record<string, (d: DOMStringMap) => void> = {
+    page: (d) => void run(() => controls.events(Number(d.page))),
+    player: (d) => navigate('players', d.player),
+    orders: (d) => navigate('orders', d.reference),
+    playerEvents: (d) => navigate('events', d.player),
+    reference: (d) => {
+      (filter.elements.namedItem('reference') as HTMLInputElement).value =
+        d.reference ?? '';
+      navigate('events');
+    },
+  };
   host.addEventListener('click', (event) => {
     const button = (event.target as Element).closest<HTMLButtonElement>(
       'button[data-diagnostics]',
     );
-    if (button?.dataset.diagnostics === 'more')
-      void run(() => actions.loadEvents(true));
-    if (button?.dataset.diagnostics === 'reference') {
-      filter.reset();
-      (filter.elements.namedItem('reference') as HTMLInputElement).value =
-        button.dataset.reference ?? '';
-      void run(actions.loadOverview);
-    }
-    if (button?.dataset.diagnostics === 'player') {
-      filter.reset();
-      playerSelect.value = button.dataset.player ?? '';
-      void run(actions.loadOverview);
-    }
+    if (button) actions[button.dataset.diagnostics!]?.(button.dataset);
   });
   host.addEventListener('submit', (event) => {
     const form = event.target as HTMLFormElement;
@@ -335,8 +382,7 @@ function bindPanel(
     if (!window.confirm('Diesen Eingriff ausführen?')) return;
     void run(async () => {
       await call('moderate', values);
-      await actions.loadOverview();
-      notify('Eingriff ausgeführt.');
+      await controls.players();
     });
   });
 }
@@ -356,7 +402,7 @@ function playerPanel(person: PlayerStats, detail: PlayerDetail): string {
     <button type="submit">Ausführen</button>
   </form>`;
   return (
-    `<h3>Spielerakte · ${esc(person.name)}</h3><p>${status}</p>` +
+    `<h3>Spielerakte · ${esc(person.name)}</h3><p>${status}</p><button type="button" data-diagnostics="playerEvents" data-player="${esc(person.id)}">Ereignisse zu diesem Spieler</button>` +
     table(
       ['Tag (UTC)', 'Aktive Min.', 'Aktionen'],
       detail.days.map((d) => [

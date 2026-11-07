@@ -102,6 +102,7 @@ export function resetPassword(ctx: Ctx, token: unknown, next: unknown): void {
     const user = record && ctx.store.user(record.user_id);
     if (!user) return fail('Dieser Link ist ungültig oder abgelaufen.');
     replacePassword(ctx, user, String(next ?? ''));
+    ctx.store.db.prepare('DELETE FROM passkeys WHERE user_id = ?').run(user.id);
   });
 }
 

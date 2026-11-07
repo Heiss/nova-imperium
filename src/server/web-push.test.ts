@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { build, cancelBuild } from './game/actions.ts';
+import { announce } from './game/admin.ts';
 import { addReport } from './game/context.ts';
 import { addPlanet, addUser, testCtx } from './test-helpers.ts';
 import {
@@ -66,6 +67,26 @@ describe('Web Push', () => {
     expect(send).toHaveBeenCalledWith(
       expect.objectContaining({ endpoint }),
       expect.stringContaining('Ausbau abgeschlossen'),
+    );
+  });
+
+  it('delivers the text of a server announcement to subscribed devices only', async () => {
+    const ctx = testCtx();
+    const anna = addUser(ctx, 'Anna');
+    const ben = addUser(ctx, 'Ben');
+    savePushSubscription(ctx, anna.id, { endpoint, keys });
+    expect(announce(ctx, 'Wartung heute Abend')).toBe(2);
+    for (const user of [anna, ben]) {
+      expect(ctx.store.reports(user.id)).toMatchObject([
+        { title: 'Servernachricht', text: 'Wartung heute Abend' },
+      ]);
+    }
+    const send = vi.fn(async () => {});
+    await deliverPush(ctx, send);
+    expect(send).toHaveBeenCalledOnce();
+    expect(send).toHaveBeenCalledWith(
+      expect.objectContaining({ endpoint }),
+      expect.stringContaining('Servernachricht: Wartung heute Abend'),
     );
   });
 

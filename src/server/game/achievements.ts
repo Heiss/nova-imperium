@@ -2,12 +2,15 @@ import {
   ACHIEVEMENTS,
   dailyReward,
   type AchievementState,
+  type RoundRules,
 } from '../../shared/achievements.ts';
 import { settle, settleR } from '../../shared/settle.ts';
 import type { Cost, Levels, Planet } from '../../shared/types.ts';
 import type { User } from '../db/store.ts';
 import type { Action } from './actions.ts';
 import { fail, universe, type Ctx } from './context.ts';
+
+import { roundRules } from './round.ts';
 
 const DAY = 86_400_000;
 const dayOf = (ctx: Ctx): number => Math.floor(ctx.now() / DAY);
@@ -72,25 +75,37 @@ function settledPlanet(ctx: Ctx, uid: string): Planet | null {
   return p && settle(p, ctx.now(), universe(ctx));
 }
 
-export function achievementState(ctx: Ctx, u: User): AchievementState {
+function dailyState(ctx: Ctx, uid: string): AchievementState['daily'] {
+  const day = dayOf(ctx);
+  const daily = recordDay(ctx, uid, day);
+  return {
+    streak: daily.streak,
+    claimed: daily.claimed_day === day,
+    reward: dailyReward(daily.streak),
+    next: dailyReward(daily.streak + 1),
+  };
+}
+
+export function achievementState(
+  ctx: Ctx,
+  u: User,
+  rules: RoundRules = roundRules(ctx),
+): AchievementState {
   return ctx.store.tx(() => {
-    const progress = recordProgress(ctx, u, settledPlanet(ctx, u.id));
-    const day = dayOf(ctx);
-    const daily = recordDay(ctx, u.id, day);
-    const rows = ctx.store.db
-      .prepare(
-        'SELECT achievement_id FROM achievement_claims WHERE user_id = ?',
-      )
-      .all(u.id) as { achievement_id: string }[];
+    const progress = rules.achievements
+      ? recordProgress(ctx, u, settledPlanet(ctx, u.id))
+      : {};
+    const rows = rules.achievements
+      ? (ctx.store.db
+          .prepare(
+            'SELECT achievement_id FROM achievement_claims WHERE user_id = ?',
+          )
+          .all(u.id) as { achievement_id: string }[])
+      : [];
     return {
       progress,
       claimed: rows.map((row) => row.achievement_id),
-      daily: {
-        streak: daily.streak,
-        claimed: daily.claimed_day === day,
-        reward: dailyReward(daily.streak),
-        next: dailyReward(daily.streak + 1),
-      },
+      daily: rules.daily ? dailyState(ctx, u.id) : null,
     };
   });
 }
@@ -103,6 +118,8 @@ function credit(ctx: Ctx, p: Planet, reward: Cost): void {
 }
 
 export const claimAchievement: Action = (ctx, u, data) => {
+  if (!roundRules(ctx).achievements)
+    fail('Achievements sind in dieser Runde deaktiviert.');
   const achievement =
     ACHIEVEMENTS.find((item) => item.id === data.id) ??
     fail('Unbekanntes Achievement.');
@@ -119,6 +136,8 @@ export const claimAchievement: Action = (ctx, u, data) => {
 };
 
 export const claimDailyReward: Action = (ctx, u) => {
+  if (!roundRules(ctx).daily)
+    fail('Tagesbelohnungen sind in dieser Runde deaktiviert.');
   const p = settledPlanet(ctx, u.id) ?? fail('Du brauchst einen Planeten.');
   const day = dayOf(ctx);
   const daily = recordDay(ctx, u.id, day);
@@ -142,7 +161,7 @@ export function recordAchievementAction(
 ): void {
   const metric =
     action === 'send' ? 'fleet:send' : action === 'order' ? 'yard:order' : null;
-  if (!metric) return;
+  if (!metric || !roundRules(ctx).achievements) return;
   ctx.store.db
     .prepare(
       `

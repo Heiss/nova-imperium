@@ -1,6 +1,6 @@
-import { audited, auditFilter, events, type AuditEntry } from '../audit.ts';
+import { audited, auditPage, type AuditEntry } from '../audit.ts';
 import type { User } from '../db/store.ts';
-import { requireAdmin } from '../game/admin.ts';
+import { announce, requireAdmin } from '../game/admin.ts';
 import { type Ctx, fail, str } from '../game/context.ts';
 import { orders, playerDetail, playerStats } from '../game/diagnostics.ts';
 import { moderate } from '../game/moderation.ts';
@@ -73,11 +73,10 @@ function diagnosticRoutes(ctx: Ctx, read: Read): Record<string, Handler> {
       };
     }),
     'POST /api/admin/events': read('events', (entry, { body }) => {
-      const filter = auditFilter(body, ctx.now());
+      const { filter, result } = auditPage(ctx, body);
       entry.target = filter.player || null;
-      entry.detail = filter;
-      const rows = events(ctx, filter);
-      return { events: rows.slice(0, 50), more: rows.length > 50 };
+      entry.detail = { ...filter, page: result.page, limit: result.limit };
+      return result;
     }),
     'POST /api/admin/player': read('player', (entry, { body }) => {
       entry.target = str(body.player, 40);
@@ -116,6 +115,7 @@ function moderationRoutes(
         },
       };
     }),
+    'POST /api/admin/announce': announcement(ctx, admin),
     'POST /api/admin/moderate': admin((call, u) => {
       const action = String(call.body.action);
       if (!['ban', 'unban', 'revokeSessions'].includes(action))
@@ -131,4 +131,21 @@ function moderationRoutes(
       return { json: { ok: true } };
     }),
   };
+}
+
+function announcement(ctx: Ctx, admin: Admin): Handler {
+  return admin((call, u) => {
+    const entry: AuditEntry = {
+      category: 'admin.write',
+      action: 'announce',
+      actor: u.id,
+      requestId: call.requestId,
+    };
+    const recipients = audited(ctx, entry, () => {
+      const count = announce(ctx, call.body.message);
+      entry.detail = { recipients: count };
+      return count;
+    });
+    return { json: { recipients } };
+  });
 }

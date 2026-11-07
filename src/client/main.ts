@@ -16,6 +16,7 @@ import {
   unread,
   type FleetForm,
 } from './logic/game.ts';
+import { finishedYardOrders, menuHints } from './logic/menu-hints.ts';
 import type { GameState } from './logic/types.ts';
 import { afford, caps, lvlCost, maxAfford, prod } from '../shared/economy.ts';
 import type { Ui, V } from './views/common.ts';
@@ -24,9 +25,17 @@ import {
   loadInvitations,
   mountAdminDiagnostics,
 } from './views/admin-diagnostics.ts';
-import { auth } from './views/misc.ts';
+import {
+  ADMIN_TABS,
+  auth,
+  diagnosticTab,
+  roundDialog,
+  type AdminTab,
+} from './views/misc.ts';
 import { disablePush, enablePush } from './push.ts';
 import { mountBuildings } from './views/buildings.ts';
+
+import { addPasskey, signInWithPasskey } from './passkeys.ts';
 
 type Data = Record<string, string | undefined>;
 
@@ -36,6 +45,7 @@ const val = (sel: string): string => $<HTMLInputElement>(sel)?.value ?? '';
 
 let S: GameState | null = null;
 let loginChallenge: string | null = null;
+let rememberLogin = false;
 let resetToken: string | null = null;
 let offset = 0;
 let lastKey = '';
@@ -45,14 +55,59 @@ let adminPanel: {
   diagnostics: HTMLElement;
   invitations: HTMLElement;
   user: string;
+  tab: AdminTab;
+  panel: ReturnType<typeof mountAdminDiagnostics>;
 } | null = null;
 let lastActivity = -Infinity;
 const completionNotices = new Set<string>();
+const completedMenu = new Map<string, string>();
+
+interface InstallPrompt extends Event {
+  prompt: () => Promise<unknown>;
+}
+let installPrompt: InstallPrompt | null = null;
+let installedHere = false;
+let installDismissed = false;
+const mobileInstall = matchMedia('(max-width: 800px) and (pointer: coarse)');
+const standalone = matchMedia('(display-mode: standalone)');
+
+function isInstalled(): boolean {
+  const platform = navigator as Navigator & { standalone?: boolean };
+  return installedHere || standalone.matches || platform.standalone === true;
+}
+
+function updateInstallButton(): void {
+  const button = $('#pwa-install');
+  if (button) button.hidden = !installPrompt || isInstalled();
+  const offer = $('#pwa-offer');
+  if (offer)
+    offer.hidden = !mobileInstall.matches || isInstalled() || installDismissed;
+}
+window.addEventListener('beforeinstallprompt', (event) => {
+  event.preventDefault();
+  installPrompt = event as InstallPrompt;
+  updateInstallButton();
+});
+window.addEventListener('appinstalled', () => {
+  installedHere = true;
+  installPrompt = null;
+  updateInstallButton();
+});
+
+mobileInstall.addEventListener('change', updateInstallButton);
+standalone.addEventListener('change', updateInstallButton);
+updateInstallButton();
 
 function gameView(view: string | null): string {
   if (!view || (view !== 'buildings' && !Object.hasOwn(VIEWS, view)))
     return 'overview';
-  return view === 'admin' && S && !S.me.admin ? 'overview' : view;
+  if (view === 'admin' && S && !S.me.admin) return 'overview';
+  if (view === 'achievements' && !rewardsAvailable(S)) return 'overview';
+  return view;
+}
+
+function rewardsAvailable(state: GameState | null): boolean {
+  return !state || state.round.achievements || state.round.daily;
 }
 
 const viewFromUrl = (): string =>
@@ -140,6 +195,11 @@ function apply(st: GameState | undefined): void {
   const key = JSON.stringify({ ...st, now: 0 });
   const same = key === lastKey;
   lastKey = key;
+  if (S && (st.me.id !== S.me.id || st.round.number !== S.round.number)) {
+    completedMenu.clear();
+    completionNotices.clear();
+    ctx = null;
+  }
   offset = st.now - Date.now();
   S = st;
   const view = gameView(ui.view);
@@ -205,6 +265,7 @@ function renderLoggedOut(view: HTMLElement): void {
   ctx = null;
   unmountBuildings();
   completionNotices.clear();
+  completedMenu.clear();
   $('#menu')!.innerHTML = '';
   $('#resbar')!.innerHTML = '';
   $('#pinfo')!.innerHTML = '';
@@ -215,28 +276,54 @@ function rememberUpgrade(
   order: Queue | null,
   levels: Levels,
   catalog: Record<string, { n: string }>,
+  view: string,
   label: string,
   now: number,
 ): void {
   if (!order || order.end > now || (levels[order.key] ?? 0) < order.lvl) return;
   const name = catalog[order.key]?.n ?? order.key;
+  completedMenu.set(view, label);
   completionNotices.add(`${label}: ${name} (Stufe ${order.lvl}).`);
 }
 
 function rememberCompletions(previous: V, next: V): void {
   if (previous.P.id !== next.P.id) return;
-  rememberUpgrade(previous.P.bq, next.P.b, BUILD, 'Ausbau fertig', next.now);
+  rememberUpgrade(
+    previous.P.bq,
+    next.P.b,
+    BUILD,
+    'buildings',
+    'Ausbau fertig',
+    next.now,
+  );
   rememberUpgrade(
     previous.R.rq,
     next.R.research,
     RES,
+    'research',
     'Forschung fertig',
     next.now,
   );
-  const start = previous.P.sqT;
-  if (start === null || !previous.P.sq.length || next.P.sq.length) return;
-  const end = previous.P.sq.reduce((time, q) => time + q.n * q.unit, start);
-  if (end <= next.now) completionNotices.add('Werftauftrag fertig.');
+  for (const view of finishedYardOrders(previous.P, next.now)) {
+    completedMenu.set(view, 'Werftauftrag fertig');
+    completionNotices.add('Werftauftrag fertig.');
+  }
+  rememberFleetReturn(previous, next);
+}
+
+function rememberFleetReturn(previous: V, next: V): void {
+  const live = new Set(next.s.fleets.map((fleet) => fleet.id));
+  if (
+    previous.s.fleets.some(
+      (fleet) =>
+        fleet.owner === next.s.me.id &&
+        fleet.state === 'back' &&
+        fleet.ret !== undefined &&
+        fleet.ret <= next.now &&
+        !live.has(fleet.id),
+    )
+  )
+    completedMenu.set('fleet', 'Flotte zurückgekehrt');
 }
 
 function renderCompletions(view: HTMLElement): void {
@@ -277,12 +364,48 @@ function renderAdminPanel(target: HTMLElement, view: V): void {
   if (adminPanel?.user === view.s.me.id) {
     diagnostics.replaceWith(adminPanel.diagnostics);
     invitations.replaceWith(adminPanel.invitations);
+    paintAdminTab(adminPanel.tab);
     return;
   }
-  adminPanel = { diagnostics, invitations, user: view.s.me.id };
-  const panel = mountAdminDiagnostics(diagnostics, api, view.s.players);
-  void panel.refresh();
-  void loadInvitations(invitations, api);
+  const panel = mountAdminDiagnostics(
+    diagnostics,
+    api,
+    view.s.players,
+    openAdminTab,
+  );
+  adminPanel = {
+    diagnostics,
+    invitations,
+    user: view.s.me.id,
+    tab: 'events',
+    panel,
+  };
+  openAdminTab('events');
+}
+
+function paintAdminTab(tab: AdminTab): void {
+  const selected = diagnosticTab(tab) ? 'diagnostics' : tab;
+  const panel = $(`#admin-panel-${selected}`)!;
+  for (const item of document.querySelectorAll<HTMLElement>(
+    '#view [role=tabpanel]',
+  ))
+    item.hidden = item !== panel;
+  for (const button of document.querySelectorAll<HTMLButtonElement>(
+    '#view [role=tab]',
+  )) {
+    const active = button.dataset.tab === tab;
+    button.setAttribute('aria-selected', String(active));
+    button.tabIndex = active ? 0 : -1;
+  }
+  panel.setAttribute('aria-labelledby', `admin-tab-${tab}`);
+}
+
+function openAdminTab(tab: AdminTab, value?: string): void {
+  if (!adminPanel) return;
+  adminPanel.tab = tab;
+  paintAdminTab(tab);
+  if (diagnosticTab(tab)) void adminPanel.panel.open(tab, value);
+  if (tab === 'invitations') refreshInvitations();
 }
 
 function refreshInvitations(): void {
@@ -319,6 +442,7 @@ function render(fresh = false): void {
   $('#pinfo')!.innerHTML =
     `<b>${esc(ctx.P.name)}</b> ${coords(ctx.P)} · Kommandant <b>${esc(S.me.name)}</b> · <span class="lnk" data-act="logout">Logout</span>`;
   renderView(view, ctx);
+  if (ui.view === 'help') updateInstallButton();
   renderCompletions(view);
   paintPlanets(view);
   restore();
@@ -349,12 +473,19 @@ function filterAchievements(): void {
 }
 
 function renderMenu(): void {
-  const n = unread(S!.reports, S!.me.readAt || 0);
-  $('#menu')!.innerHTML = menu(S!.me.admin)
+  const state = S!;
+  const hints = menuHints(
+    state,
+    completedMenu,
+    unread(state.reports, state.me.readAt),
+  );
+  $('#menu')!.innerHTML = menu(state.me.admin, state.round)
     .map((i) => {
       if (i === '-') return '<div class="sep"></div>';
-      const badge =
-        i.view === 'messages' && n ? `<span class="badge">${n}</span>` : '';
+      const hint = hints.get(i.view);
+      const badge = hint
+        ? `<span class="badge" role="img" aria-label="${esc(hint)}" title="${esc(hint)}">!</span>`
+        : '';
       return `<a href="${esc(viewUrl(i.view))}" data-act="nav" data-v="${i.view}" class="${ui.view === i.view ? 'on' : ''}">${esc(i.label)}${badge}</a>`;
     })
     .join('');
@@ -493,6 +624,7 @@ const go = (
     completionNotices.clear();
     if (push) history.pushState(null, '', viewUrl(view, guild));
   }
+  completedMenu.delete(view);
   ui.view = view;
   ui.guild = view === 'guilds' ? guild : null;
   render(true);
@@ -647,13 +779,54 @@ const ACT: Record<string, (d: Data) => unknown> = {
   delrep: (d) => act('delrep', { id: d.id }),
   delall: () => act('delall'),
   saveopt: () => act('options', { probes: clampInt(val('#o_probes'), 1, 1e6) }),
-  reset: () =>
+  adminTab: (d) => {
+    if (d.tab && Object.hasOwn(ADMIN_TABS, d.tab))
+      openAdminTab(d.tab as AdminTab);
+  },
+  listPasskeys: showPasskeys,
+  passkeyLogin: loginByPasskey,
+  removePasskey: async (d) => {
+    if (!window.confirm('Diesen Passkey entfernen?')) return;
+    try {
+      await api('/api/passkeys/remove', { id: d.id });
+      await showPasskeys();
+    } catch (error) {
+      toast((error as Error).message, true);
+    }
+  },
+  deleteAccount: () =>
     modal(
-      `<p><b>Wirklich eine neue Runde starten?</b><br>Alle Planeten, Flotten und Forschungen werden gelöscht. Das kann nicht rückgängig gemacht werden.</p><button class="red" data-act="doReset">Ja, neue Runde</button> <button data-act="closeModal">Abbrechen</button>`,
+      '<form id="deleteaccountform"><p>Dein Konto und deine Spielstände werden unwiderruflich gelöscht. Eine von dir geleitete Gilde wird aufgelöst.</p><p><label for="delete-account-password">Passwort zur Bestätigung</label> <input id="delete-account-password" type="password" autocomplete="current-password" required></p><button class="red" type="submit">Account endgültig löschen</button> <button type="button" data-act="closeModal">Abbrechen</button></form>',
     ),
+  dismissInstall: () => {
+    installDismissed = true;
+    updateInstallButton();
+  },
+  installApp: async () => {
+    const prompt = installPrompt;
+    if (!prompt) {
+      modal(
+        '<p>Öffne das Browsermenü und wähle „App installieren“ oder „Zum Startbildschirm hinzufügen“.</p><p>Auf iPhone und iPad in Safari: „Teilen“ → „Zum Home-Bildschirm“ → „Als Web-App öffnen“.</p><p>Zum Spielen brauchst du eine Internetverbindung.</p><button type="button" data-act="closeModal">Schließen</button>',
+      );
+      return;
+    }
+    installPrompt = null;
+    updateInstallButton();
+    try {
+      await prompt.prompt();
+    } catch {
+      toast('Bitte installiere die App über das Browsermenü.', true);
+    }
+  },
+  reset: () => modal(roundDialog(S!.round)),
   doReset: () => {
+    const checked = (id: string) => $<HTMLInputElement>(id)!.checked;
+    const rewards = {
+      achievements: checked('#round-achievements'),
+      daily: checked('#round-daily'),
+    };
     modal('');
-    return act('reset');
+    return act('reset', { rewards });
   },
   saveSettings: () => {
     const keys = S!.admin!.specs.map((x) => x.key);
@@ -707,9 +880,11 @@ function continueLogin(reply: Record<string, unknown>): boolean {
 
 async function submitAuth(): Promise<void> {
   const reg = ui.auth === 'register' && ui.invite;
+  rememberLogin = Boolean($<HTMLInputElement>('#remember-login')?.checked);
   const body: Record<string, unknown> = {
     name: val('#a_name'),
     password: val('#a_pw'),
+    remember: rememberLogin,
   };
   if (reg)
     Object.assign(body, {
@@ -734,11 +909,59 @@ async function submitAuth(): Promise<void> {
   }
 }
 
+async function loginByPasskey(): Promise<void> {
+  try {
+    const j = await signInWithPasskey(
+      api,
+      Boolean($<HTMLInputElement>('#remember-login')?.checked),
+    );
+    ui.auth = null;
+    apply(j.state as GameState);
+    homeSystem();
+    render(true);
+  } catch (error) {
+    toast((error as Error).message, true);
+  }
+}
+
+async function submitPasskey(): Promise<void> {
+  try {
+    await addPasskey(api, val('#passkey-password'));
+    setInput('#passkey-password', '');
+    toast('Passkey gespeichert.');
+    await showPasskeys();
+  } catch (error) {
+    toast((error as Error).message, true);
+  }
+}
+
+async function showPasskeys(): Promise<void> {
+  try {
+    const j = await api('/api/passkeys/list', {});
+    const keys = j.keys as { id: string; created: number }[];
+    const list = $('#passkey-list');
+    if (!list) return;
+    list.innerHTML = keys.length
+      ? '<ul>' +
+        keys
+          .map(
+            (key) =>
+              `<li>Erstellt am ${dt(key.created)} <button type="button" data-act="removePasskey" data-id="${esc(key.id)}">Entfernen</button></li>`,
+          )
+          .join('') +
+        '</ul>'
+      : '<p>Keine Passkeys gespeichert.</p>';
+  } catch (error) {
+    toast((error as Error).message, true);
+  }
+}
+
 async function submitLoginCode(): Promise<void> {
   try {
     const j = await api('/api/login/code', {
       challenge: loginChallenge,
       code: val('#login_code'),
+      remember: rememberLogin,
     });
     loginChallenge = null;
     ui.auth = null;
@@ -764,10 +987,19 @@ async function submitForgot(): Promise<void> {
 }
 
 async function submitPassword(reset: boolean): Promise<void> {
+  const password = val('#pw_next');
+  const confirmation = val('#pw_confirm');
+  if (!reset && password !== confirmation) {
+    toast('Die neuen Passwörter stimmen nicht überein.', true);
+    $('#pw_confirm')?.focus();
+    return;
+  }
   try {
     await api(reset ? '/api/password/reset' : '/api/password/change', {
-      password: val('#pw_next'),
-      ...(reset ? { token: resetToken } : { current: val('#pw_current') }),
+      password,
+      ...(reset
+        ? { token: resetToken }
+        : { current: val('#pw_current'), confirmation }),
     });
     S = null;
     resetToken = null;
@@ -776,6 +1008,28 @@ async function submitPassword(reset: boolean): Promise<void> {
     toast('Passwort gespeichert. Melde dich mit deinem neuen Passwort an.');
   } catch (e) {
     toast((e as Error).message, true);
+  }
+}
+
+async function submitAccountDeletion(): Promise<void> {
+  const button = $<HTMLButtonElement>(
+    '#deleteaccountform button[type=submit]',
+  )!;
+  if (button.disabled) return;
+  button.disabled = true;
+  try {
+    await api('/api/account/delete', {
+      password: val('#delete-account-password'),
+    });
+    await disablePush(async () => ({})).catch(() => null);
+    modal('');
+    S = null;
+    ui.auth = 'login';
+    render(true);
+    toast('Dein Account wurde gelöscht.');
+  } catch (error) {
+    toast((error as Error).message, true);
+    button.disabled = false;
   }
 }
 
@@ -796,6 +1050,29 @@ async function submitInvite(): Promise<void> {
   ui.lastLink = String(j.link);
   render(true);
   refreshInvitations();
+}
+
+let announcementPending = false;
+async function submitAnnouncement(): Promise<void> {
+  if (
+    announcementPending ||
+    !window.confirm('Servernachricht an alle Spieler senden?')
+  )
+    return;
+  announcementPending = true;
+  try {
+    const result = await api('/api/admin/announce', {
+      message: val('#announce-text'),
+    });
+    setInput('#announce-text', '');
+    toast(
+      `Servernachricht für ${Number(result.recipients)} Spieler veröffentlicht.`,
+    );
+  } catch (error) {
+    toast((error as Error).message, true);
+  } finally {
+    announcementPending = false;
+  }
 }
 
 function homeSystem(): void {
@@ -849,6 +1126,26 @@ document.addEventListener('input', (e) => {
   if (ui.view === 'fleet' && (e.target as HTMLElement).closest('main'))
     fleetCalc();
 });
+function adminTabKey(event: KeyboardEvent): void {
+  const selected = (event.target as HTMLElement).closest(
+    '[role=tab][data-tab]',
+  );
+  if (!selected) return;
+  const tabs = Object.keys(ADMIN_TABS) as AdminTab[];
+  const index = tabs.indexOf(adminPanel?.tab ?? 'events');
+  const moves: Record<string, number> = {
+    ArrowLeft: index - 1,
+    ArrowRight: index + 1,
+    Home: 0,
+    End: tabs.length - 1,
+  };
+  if (!Object.hasOwn(moves, event.key)) return;
+  event.preventDefault();
+  const tab = tabs[(moves[event.key]! + tabs.length) % tabs.length]!;
+  openAdminTab(tab);
+  $(`#admin-tab-${tab}`)?.focus();
+}
+document.addEventListener('keydown', adminTabKey);
 document.addEventListener('keydown', (e) => {
   const id = (e.target as HTMLElement).id;
   if (e.key === 'Enter' && id?.startsWith('g_')) ACT.ggo!({});
@@ -859,11 +1156,14 @@ document.addEventListener('submit', (e) => {
   const handlers = [
     ['authform', submitAuth],
     ['inviteform', submitInvite],
+    ['announceform', submitAnnouncement],
     ['guildform', submitGuild],
     ['codeform', submitLoginCode],
     ['forgotform', submitForgot],
     ['resetform', () => submitPassword(true)],
     ['passwordform', () => submitPassword(false)],
+    ['passkeyform', submitPasskey],
+    ['deleteaccountform', submitAccountDeletion],
   ] as const;
   const handle = handlers.find(([form]) => form === id)?.[1];
   if (!handle) return;

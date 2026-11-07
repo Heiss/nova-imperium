@@ -1,3 +1,4 @@
+import type { RoundRules } from '../../shared/achievements.ts';
 import type { Universe } from '../../shared/types.ts';
 import { coords, esc, fmt } from '../logic/format.ts';
 import type { AdminState, GameState } from '../logic/types.ts';
@@ -34,9 +35,13 @@ export const help = (v: V): string => `<h2>Hilfe &amp; Optionen</h2>
    `<form id="passwordform" class="flex">
  <label for="pw_current">Bisheriges Passwort</label> <input id="pw_current" type="password" autocomplete="current-password" required>
  <label for="pw_next">Neues Passwort</label> <input id="pw_next" type="password" autocomplete="new-password" minlength="15" required>
+ <label for="pw_confirm">Neues Passwort wiederholen</label> <input id="pw_confirm" type="password" autocomplete="new-password" minlength="15" required>
  <button type="submit">Passwort ändern</button></form>`,
  )}
+ ${box('Passkeys', '<p>Auf unterstützten Geräten kannst du dich mit einem Passkey anmelden.</p><form id="passkeyform" class="flex"><label for="passkey-password">Passwort für neuen Passkey</label><input id="passkey-password" type="password" autocomplete="current-password" required><button type="submit">Passkey hinzufügen</button></form><p><button type="button" data-act="listPasskeys">Gespeicherte Passkeys anzeigen</button></p><div id="passkey-list"></div>')}
+ ${box('App installieren', '<p>Öffne das Browsermenü und wähle „App installieren“ oder „Zum Startbildschirm hinzufügen“. Auf iPhone und iPad öffne Nova Imperium in Safari, tippe auf „Teilen“ und wähle „Zum Home-Bildschirm“ und „Als Web-App öffnen“. Zum Spielen brauchst du eine Internetverbindung.</p><button data-act="installApp" id="pwa-install" hidden>App installieren</button>')}
  ${box('Browser-Benachrichtigungen', '<p>Meldungen zu Aufträgen, Flotten und neuen Nachrichten auf diesem Gerät.</p><button data-act="pushEnable">Aktivieren</button> <button data-act="pushDisable">Deaktivieren</button>')}
+ ${box('Account löschen', '<p>Dein Konto und deine Spielstände werden dauerhaft gelöscht. Leitest du eine Gilde, wird sie aufgelöst.</p><button type="button" class="red" data-act="deleteAccount">Account löschen</button>')}
  ${box('Regeln dieses Universums', rules(v.s.cfg))}`;
 
 function settingsForm(s: GameState, a: AdminState): string {
@@ -59,14 +64,53 @@ function invitations(ui: Ui): string {
   return `<form id="inviteform" class="flex"><label for="inv_email">E-Mail-Adresse</label> <input id="inv_email" type="email" required autocomplete="off" data-nokeep> <button type="submit">Einladen</button></form>${link}<div id="admin-invitations"></div>`;
 }
 
+export function roundDialog(round: RoundRules): string {
+  return `<p><b>Wirklich eine neue Runde starten?</b><br>
+  Planeten, Flotten, Forschung, Nachrichten und Belohnungsfortschritt werden zurückgesetzt. Das kann nicht rückgängig gemacht werden.</p>
+  <fieldset><legend>Belohnungen für die neue Runde</legend>
+    <label><input type="checkbox" id="round-achievements" ${round.achievements ? 'checked' : ''}> Achievements aktivieren</label><br>
+    <label><input type="checkbox" id="round-daily" ${round.daily ? 'checked' : ''}> Tagesbelohnungen aktivieren</label>
+  </fieldset>
+  <p><button class="red" data-act="doReset">Ja, neue Runde</button> <button data-act="closeModal">Abbrechen</button></p>`;
+}
+
+export const ADMIN_TABS = {
+  events: 'Ereignisprotokoll',
+  players: 'Spieler',
+  orders: 'Aufträge',
+  invitations: 'Einladungen',
+  universe: 'Universum',
+  announce: 'Servernachricht',
+} as const;
+
+export type AdminTab = keyof typeof ADMIN_TABS;
+export const diagnosticTab = (
+  tab: string,
+): tab is 'events' | 'players' | 'orders' =>
+  tab === 'events' || tab === 'players' || tab === 'orders';
+
 export function admin(v: V): string {
   const a = v.s.admin;
   if (!a) return '<h2>Admin</h2><div class="notice">Nur für den Admin.</div>';
   return `<h2>Admin</h2>
- ${box('Einladungen', invitations(v.ui))}
- ${box('Diagnose und Protokoll', '<div id="admin-diagnostics"></div>')}
- ${box('Universum', settingsForm(v.s, a))}
- ${box('Neue Runde', 'Alle Spieler behalten ihr Konto, bekommen aber einen frischen Planeten, Forschung wird zurückgesetzt. <button class="red" data-act="reset">Neue Runde starten</button>')}`;
+    <div role="tablist" aria-label="Admin-Bereiche" class="flex">${Object.entries(
+      ADMIN_TABS,
+    )
+      .map(
+        ([key, label]) =>
+          `<button id="admin-tab-${key}" type="button" role="tab" aria-selected="false" aria-controls="admin-panel-${diagnosticTab(key) ? 'diagnostics' : key}" tabindex="-1" data-act="adminTab" data-tab="${key}">${label}</button>`,
+      )
+      .join('')}</div>
+    <section id="admin-panel-diagnostics" role="tabpanel" hidden>${box('Diagnose und Protokoll', '<div id="admin-diagnostics"></div>')}</section>
+    <section id="admin-panel-invitations" role="tabpanel" aria-labelledby="admin-tab-invitations" hidden>${box('Einladungen', invitations(v.ui))}</section>
+    <section id="admin-panel-universe" role="tabpanel" aria-labelledby="admin-tab-universe" hidden>
+      ${box('Universum', settingsForm(v.s, a))}
+      ${box('Neue Runde', 'Alle Spieler behalten ihr Konto und bekommen einen frischen Planeten. <button class="red" data-act="reset">Neue Runde starten</button>')}
+    </section>
+    <section id="admin-panel-announce" role="tabpanel" aria-labelledby="admin-tab-announce" hidden>${box(
+      'Servernachricht',
+      '<p>Die Nachricht geht an alle Spieler und per Push an Geräte mit aktivierten Benachrichtigungen.</p><form id="announceform"><label for="announce-text">Nachricht</label><br><textarea id="announce-text" maxlength="500" rows="4" required></textarea><p><button type="submit">An alle senden</button></p></form>',
+    )}</section>`;
 }
 
 function registerRows(ui: Ui): string {
@@ -126,13 +170,13 @@ export function auth(ui: Ui): string {
   const reg = ui.auth === 'register' && ui.invite !== null;
   const note = reg
     ? ''
-    : '<p class="dim">Ein Konto bekommst du nur mit einer Einladung vom Admin.</p>';
+    : '<p><button type="button" data-act="passkeyLogin">Mit Passkey anmelden</button></p><p class="dim">Ein Konto bekommst du nur mit einer Einladung vom Admin.</p>';
   const back = reg
     ? '<span class="lnk ml" data-act="authswitch">Ich habe schon ein Konto</span>'
     : '<button class="small" type="button" data-act="forgot">Passwort vergessen?</button>';
   return `<div class="box auth"><div class="hd">${reg ? 'Neues Imperium gründen' : 'Login'}</div><div class="bd"><form id="authform"><table class="kv">
  <tr><td><label for="a_name">Name</label></td><td><input id="a_name" maxlength="20" autocomplete="username" required></td></tr>
  <tr><td><label for="a_pw">Passwort</label></td><td><input id="a_pw" type="password" autocomplete="${reg ? 'new-password' : 'current-password'}" ${reg ? 'minlength="15"' : ''} required></td></tr>
- ${reg ? registerRows(ui) : ''}
+ ${reg ? registerRows(ui) : '<tr><td colspan="2"><label><input id="remember-login" type="checkbox"> Login auf diesem Gerät speichern</label></td></tr>'}
  </table><p><button type="submit">${reg ? 'Imperium gründen' : 'Einloggen'}</button> ${back}</p>${note}</form></div></div>`;
 }
