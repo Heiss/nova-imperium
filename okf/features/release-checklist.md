@@ -30,3 +30,8 @@ worker handles push notifications and leaves game requests on the network.
 The automated checks cover queue delivery and browser notification rendering.
 Delivery to a real device also needs an enabled HTTPS instance, browser
 permission and a working external push subscription.
+
+The release includes the compatible Renovate workflow updates for Docker QEMU
+and pnpm setup. The separate pnpm 12 and TypeScript 7 updates remain open
+because their CI currently fails on build-script permissions and toolchain
+compatibility, respectively.
