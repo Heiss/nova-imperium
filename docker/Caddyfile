@@ -21,7 +21,7 @@ http://:2020 {
 	# ">" replaces what the game sends, so these values always win. A unit
 	# test keeps them equal to src/server/http/security.ts.
 	header {
-		>Content-Security-Policy "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; font-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+		>Content-Security-Policy "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; font-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
 		>X-Content-Type-Options nosniff
 		>Referrer-Policy no-referrer
 		>X-Frame-Options DENY

@@ -5,7 +5,7 @@
 /** No inline scripts or styles; the SVG art is embedded as data: images. */
 export const CSP =
   "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; " +
-  "connect-src 'self'; font-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'";
+  "connect-src 'self'; font-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'";
 
 export const SECURITY_HEADERS: Readonly<Record<string, string>> = {
   'content-security-policy': CSP,
