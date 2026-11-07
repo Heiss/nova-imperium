@@ -13,7 +13,7 @@
     "start": "node src/server/main.ts",
     "cli": "node src/server/cli.ts",
     "build": "vite build",
-    "release": "bash scripts/release.sh",
+    "release": "sh scripts/release.sh",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
