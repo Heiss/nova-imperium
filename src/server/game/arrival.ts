@@ -31,6 +31,7 @@ function transport(ctx: Ctx, f: Fleet, t: Planet, att: Player): void {
     time: f.arr,
     type: 'info',
     title: `Transport erreicht ${coords(f.toC)}`,
+    participants: [f.owner, t.owner],
     text,
   });
   if (t.owner !== f.owner)
@@ -38,6 +39,7 @@ function transport(ctx: Ctx, f: Fleet, t: Planet, att: Player): void {
       time: f.arr,
       type: 'info',
       title: `Lieferung von ${att.name}`,
+      participants: [f.owner, t.owner],
       text,
     });
   turnBack(ctx, f, { cargo: { m: 0, c: 0, d: 0 } });
@@ -82,6 +84,7 @@ function spy(
     time: f.arr,
     type: 'spy',
     title: `Spionagebericht von ${t.name} ${coords(f.toC)}`,
+    participants: [f.owner, t.owner],
     name: t.name,
     defName: def.name,
     coords: f.toC,
@@ -99,6 +102,7 @@ function spy(
     time: f.arr,
     type: 'info',
     title: 'Spionageaktivität',
+    participants: [f.owner, t.owner],
     text,
   });
   if (lost) ctx.store.deleteFleet(f.id);
@@ -181,6 +185,7 @@ function battleReports(ctx: Ctx, x: Fight): void {
   const report = {
     time: f.arr,
     type: 'battle' as const,
+    participants: [f.owner, t.owner],
     name: t.name,
     coords: f.toC,
     attName: x.att.name,

@@ -45,3 +45,9 @@ are stored as integer keys in the existing settings table.
 Migration 8 stores passkey public keys and counters, and short-lived single-use
 WebAuthn challenges. Registration challenges are bound to the authenticated
 session. Account recovery removes previously registered passkeys.
+
+Account deletion runs in one transaction. Foreign-key cascades clear owned game,
+session, reward and push data. The deletion also removes led guilds and their
+memberships, linked audit and inbox records, invitations for the account address
+and active registration challenges. Incoming fleets belonging to other players
+turn back. Existing external backups are managed by the operator.

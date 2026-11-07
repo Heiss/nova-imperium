@@ -21,6 +21,61 @@ test('login stays near the header @phone', async ({ page }) => {
   expect(form.y - (header.y + header.height)).toBeLessThan(100);
 });
 
+test('offers home-screen installation on a phone @phone', async ({ page }) => {
+  await page.goto('/');
+  const offer = page.locator('#pwa-offer');
+  await expect(offer).toBeVisible();
+  await offer.getByRole('button', { name: 'App installieren' }).click();
+  await expect(
+    page.getByText('Zum Spielen brauchst du eine Internetverbindung.'),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'Schließen' }).click();
+  await offer.getByRole('button', { name: 'Später' }).click();
+  await expect(offer).toBeHidden();
+});
+
+test('displays an announcement received by the online-only push worker', async ({
+  page,
+  context,
+}) => {
+  await context.grantPermissions(['notifications']);
+  await page.goto('/');
+  const registration = context.waitForEvent('serviceworker');
+  await page.evaluate(async () => {
+    await navigator.serviceWorker.register('/push-worker.js');
+    await navigator.serviceWorker.ready;
+  });
+  const worker = await registration;
+  const text = 'Servernachricht: Wartung';
+  await worker.evaluate((title) => {
+    const Push = (
+      globalThis as unknown as {
+        PushEvent: new (type: string, init: { data: string }) => Event;
+      }
+    ).PushEvent;
+    self.dispatchEvent(
+      new Push('push', {
+        data: JSON.stringify({
+          title,
+          view: 'messages',
+          tag: 'announcement-test',
+        }),
+      }),
+    );
+  }, text);
+  await expect
+    .poll(() =>
+      page.evaluate(async () => {
+        const registration = await navigator.serviceWorker.ready;
+        return (await registration.getNotifications()).map(
+          ({ body, data }) => ({ body, data }),
+        );
+      }),
+    )
+    .toContainEqual({ body: text, data: 'messages' });
+  expect(await page.evaluate(() => caches.keys())).toEqual([]);
+});
+
 test.describe('accounts', () => {
   test('nobody registers without an invitation', async ({ page }) => {
     const w = watch(page);
@@ -99,6 +154,29 @@ test.describe('accounts', () => {
     page.once('dialog', (dialog) => void dialog.accept());
     await page.getByRole('button', { name: 'Entfernen', exact: true }).click();
     await expect(page.getByText('Keine Passkeys gespeichert.')).toBeVisible();
+  });
+
+  test('deletes the account only after password confirmation', async ({
+    page,
+  }) => {
+    await register(page, uniqueName('Loeschen'));
+    await nav(page, 'help');
+    await page
+      .getByRole('button', { name: 'Account löschen', exact: true })
+      .click();
+    await page.getByLabel('Passwort zur Bestätigung').fill('falsch');
+    await page
+      .getByRole('button', { name: 'Account endgültig löschen' })
+      .click();
+    await expect(page.getByRole('alert')).toContainText('Passwort ist falsch');
+    await page
+      .getByLabel('Passwort zur Bestätigung')
+      .fill('ein-sicheres-testpasswort');
+    await page
+      .getByRole('button', { name: 'Account endgültig löschen' })
+      .click();
+    await expect(page.getByText('Dein Account wurde gelöscht.')).toBeVisible();
+    await expect(page.locator('.auth .hd')).toHaveText('Login');
   });
 
   test('changes a password from the account options', async ({ page }) => {

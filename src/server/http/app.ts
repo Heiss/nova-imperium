@@ -6,6 +6,7 @@ import * as auth from '../auth.ts';
 import * as security from '../account-security.ts';
 import * as passkeys from '../passkeys.ts';
 import type { Config } from '../config.ts';
+import { deleteAccount } from '../delete-account.ts';
 import type { User } from '../db/store.ts';
 import { requireAdmin } from '../game/admin.ts';
 import { type Ctx, GameError, str } from '../game/context.ts';
@@ -163,6 +164,11 @@ function passwordRoutes(
       if (call.body.password !== call.body.confirmation)
         throw new GameError('Die neuen Passwörter stimmen nicht überein.');
       security.changePassword(ctx, user, call.body.current, call.body.password);
+      return signedOut();
+    },
+    'POST /api/account/delete': (call) => {
+      guard(call.req);
+      deleteAccount(ctx, sessionUserOf(ctx, call), call.body.password);
       return signedOut();
     },
   };

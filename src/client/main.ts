@@ -66,10 +66,22 @@ interface InstallPrompt extends Event {
   prompt: () => Promise<unknown>;
 }
 let installPrompt: InstallPrompt | null = null;
+let installedHere = false;
+let installDismissed = false;
+const mobileInstall = matchMedia('(max-width: 800px) and (pointer: coarse)');
+const standalone = matchMedia('(display-mode: standalone)');
+
+function isInstalled(): boolean {
+  const platform = navigator as Navigator & { standalone?: boolean };
+  return installedHere || standalone.matches || platform.standalone === true;
+}
 
 function updateInstallButton(): void {
   const button = $('#pwa-install');
-  if (button) button.hidden = !installPrompt;
+  if (button) button.hidden = !installPrompt || isInstalled();
+  const offer = $('#pwa-offer');
+  if (offer)
+    offer.hidden = !mobileInstall.matches || isInstalled() || installDismissed;
 }
 window.addEventListener('beforeinstallprompt', (event) => {
   event.preventDefault();
@@ -77,9 +89,14 @@ window.addEventListener('beforeinstallprompt', (event) => {
   updateInstallButton();
 });
 window.addEventListener('appinstalled', () => {
+  installedHere = true;
   installPrompt = null;
   updateInstallButton();
 });
+
+mobileInstall.addEventListener('change', updateInstallButton);
+standalone.addEventListener('change', updateInstallButton);
+updateInstallButton();
 
 function gameView(view: string | null): string {
   if (!view || (view !== 'buildings' && !Object.hasOwn(VIEWS, view)))
@@ -777,9 +794,22 @@ const ACT: Record<string, (d: Data) => unknown> = {
       toast((error as Error).message, true);
     }
   },
+  deleteAccount: () =>
+    modal(
+      '<form id="deleteaccountform"><p>Dein Konto und deine Spielstände werden unwiderruflich gelöscht. Eine von dir geleitete Gilde wird aufgelöst.</p><p><label for="delete-account-password">Passwort zur Bestätigung</label> <input id="delete-account-password" type="password" autocomplete="current-password" required></p><button class="red" type="submit">Account endgültig löschen</button> <button type="button" data-act="closeModal">Abbrechen</button></form>',
+    ),
+  dismissInstall: () => {
+    installDismissed = true;
+    updateInstallButton();
+  },
   installApp: async () => {
     const prompt = installPrompt;
-    if (!prompt) return;
+    if (!prompt) {
+      modal(
+        '<p>Öffne das Browsermenü und wähle „App installieren“ oder „Zum Startbildschirm hinzufügen“.</p><p>Auf iPhone und iPad in Safari: „Teilen“ → „Zum Home-Bildschirm“ → „Als Web-App öffnen“.</p><p>Zum Spielen brauchst du eine Internetverbindung.</p><button type="button" data-act="closeModal">Schließen</button>',
+      );
+      return;
+    }
     installPrompt = null;
     updateInstallButton();
     try {
@@ -981,6 +1011,28 @@ async function submitPassword(reset: boolean): Promise<void> {
   }
 }
 
+async function submitAccountDeletion(): Promise<void> {
+  const button = $<HTMLButtonElement>(
+    '#deleteaccountform button[type=submit]',
+  )!;
+  if (button.disabled) return;
+  button.disabled = true;
+  try {
+    await api('/api/account/delete', {
+      password: val('#delete-account-password'),
+    });
+    await disablePush(async () => ({})).catch(() => null);
+    modal('');
+    S = null;
+    ui.auth = 'login';
+    render(true);
+    toast('Dein Account wurde gelöscht.');
+  } catch (error) {
+    toast((error as Error).message, true);
+    button.disabled = false;
+  }
+}
+
 async function submitGuild(): Promise<void> {
   const edit = $('#guildform')?.dataset.edit === '1';
   const ok = await act(edit ? 'updateGuild' : 'createGuild', {
@@ -1111,6 +1163,7 @@ document.addEventListener('submit', (e) => {
     ['resetform', () => submitPassword(true)],
     ['passwordform', () => submitPassword(false)],
     ['passkeyform', submitPasskey],
+    ['deleteaccountform', submitAccountDeletion],
   ] as const;
   const handle = handlers.find(([form]) => form === id)?.[1];
   if (!handle) return;

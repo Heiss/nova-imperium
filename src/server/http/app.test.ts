@@ -566,6 +566,64 @@ describe('http', () => {
 });
 
 describe('account security', () => {
+  it('deletes the authenticated account and its guild, preserving other accounts', async () => {
+    const { call, ctx, cfg, setCookie } = await asAdmin();
+    const boss = ctx.store.userByName('Boss')!;
+    const member = addUser(ctx, 'Member');
+    addPlanet(ctx, member.id, { p: 8 });
+    ctx.store.db
+      .prepare("INSERT INTO guilds VALUES ('g', 'TAG', 'Guild', '', ?)")
+      .run(boss.id);
+    ctx.store.db
+      .prepare("INSERT INTO guild_members VALUES (?, 'g', 'member')")
+      .run(boss.id);
+    ctx.store.db
+      .prepare("INSERT INTO guild_members VALUES (?, 'g', 'member')")
+      .run(member.id);
+    ctx.store.addReport(
+      member.id,
+      {
+        id: 'related',
+        title: 'Shared report',
+        time: 1,
+        type: 'info',
+        participants: [boss.id, member.id],
+      },
+      10,
+    );
+    ctx.store.addReport(
+      member.id,
+      { id: 'unrelated', title: 'Other report', time: 2, type: 'info' },
+      10,
+    );
+    const other = startSession(ctx, cfg, boss.id);
+    expect(
+      (await call('POST', '/api/account/delete', { password: 'wrong' })).status,
+    ).toBe(400);
+    expect(ctx.store.user(boss.id)).not.toBeNull();
+    const result = await call('POST', '/api/account/delete', {
+      password: 'secret1',
+    });
+    expect(result.set).toContain('Max-Age=0');
+    expect(ctx.store.user(boss.id)).toBeNull();
+    expect(ctx.store.planetOfUser(boss.id)).toBeNull();
+    expect(ctx.store.user(member.id)).not.toBeNull();
+    expect(ctx.store.reports(member.id).map(({ id }) => id)).toEqual([
+      'unrelated',
+    ]);
+    expect(ctx.store.db.prepare('SELECT * FROM guilds').all()).toEqual([]);
+    expect(ctx.store.db.prepare('SELECT * FROM guild_members').all()).toEqual(
+      [],
+    );
+    expect(
+      ctx.store.db
+        .prepare('SELECT * FROM audit_events WHERE actor = ?')
+        .all(boss.id),
+    ).toEqual([]);
+    setCookie(`${COOKIE}=${other}`);
+    expect((await call('GET', '/api/state')).status).toBe(401);
+  });
+
   it('binds passkey registration to the verified session and consumes login challenges once', async () => {
     const { call, ctx, cfg, setCookie } = await asAdmin();
     const optionsPath = '/api/passkeys/register/options';
