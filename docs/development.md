@@ -11,7 +11,7 @@ NOVA_PUBLIC_URL=http://localhost:8080 pnpm cli invite me@example.org
 ```
 
 The server runs TypeScript directly (Node type stripping); only the browser
-client is bundled (esbuild).
+client is bundled with Vite. The building view is a Svelte component.
 
 ## Layout
 

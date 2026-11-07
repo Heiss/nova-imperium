@@ -1,5 +1,5 @@
 import type { V } from './common.ts';
-import { buildings, research, resources } from './economy.ts';
+import { research, resources } from './economy.ts';
 import { fleet } from './fleet.ts';
 import { galaxy } from './galaxy.ts';
 import { messages } from './messages.ts';
@@ -9,7 +9,6 @@ import { defense, shipyard } from './yard.ts';
 
 export const VIEWS: Record<string, (v: V) => string> = {
   overview,
-  buildings,
   resources,
   research,
   shipyard,
