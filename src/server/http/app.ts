@@ -4,6 +4,7 @@ import { activity, audited, record, type AuditEntry } from '../audit.ts';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import * as auth from '../auth.ts';
 import * as security from '../account-security.ts';
+import * as passkeys from '../passkeys.ts';
 import type { Config } from '../config.ts';
 import type { User } from '../db/store.ts';
 import { requireAdmin } from '../game/admin.ts';
@@ -193,8 +194,74 @@ function accountRoutes(
     },
     ...loginRoutes(d, guard, enter),
     ...passwordRoutes(d, guard),
+    ...passkeyRoutes(d, guard, enter),
     'POST /api/logout': (call) => logoutReply(ctx, cfg, call),
   };
+}
+
+function passkeyRoutes(
+  d: AppDeps,
+  guard: (req: IncomingMessage) => void,
+  enter: (u: User, remember?: boolean) => Reply,
+): Record<string, Handler> {
+  const { ctx, cfg } = d;
+  return {
+    'POST /api/passkeys/list': (call) => ({
+      json: { keys: passkeys.passkeysOf(ctx, sessionUserOf(ctx, call)) },
+    }),
+    'POST /api/passkeys/register/options': async (call) => {
+      guard(call.req);
+      const user = sessionUserOf(ctx, call);
+      const options = passkeys.registerPasskeyOptions(
+        ctx,
+        cfg,
+        user,
+        call.token!,
+        call.body.password,
+      );
+      return { json: await options };
+    },
+    'POST /api/passkeys/register': async (call) => {
+      guard(call.req);
+      const user = sessionUserOf(ctx, call);
+      await passkeys.registerPasskey(ctx, cfg, user, call.token!, call.body);
+      return { json: { ok: true } };
+    },
+    'POST /api/passkeys/remove': (call) => {
+      const user = sessionUserOf(ctx, call);
+      passkeys.removePasskey(ctx, user, call.body.id);
+      return { json: { ok: true } };
+    },
+    'POST /api/passkeys/login/options': async ({ req }) => {
+      guard(req);
+      return { json: await passkeys.passkeyLoginOptions(ctx, cfg) };
+    },
+    'POST /api/passkeys/login': async ({ req, body, requestId }) => {
+      guard(req);
+      const user = await passkeys.verifyPasskeyLogin(ctx, cfg, body);
+      return finishPasskeyLogin(
+        ctx,
+        user,
+        requestId,
+        body.remember === true,
+        enter,
+      );
+    },
+  };
+}
+
+function finishPasskeyLogin(
+  ctx: Ctx,
+  user: User,
+  requestId: string,
+  remember: boolean,
+  enter: (u: User, remember?: boolean) => Reply,
+): Reply {
+  return audited(
+    ctx,
+    { category: 'account', action: 'loginPasskey', actor: user.id, requestId },
+    () => enter(user, remember),
+  );
 }
 
 function loginRoutes(
@@ -472,6 +539,7 @@ export function createApp(d: AppDeps): {
     sweep: () => {
       limiter.sweep();
       security.purgeAccountTokens(d.ctx);
+      passkeys.purgePasskeyChallenges(d.ctx);
     },
   };
 }

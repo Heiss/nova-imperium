@@ -41,3 +41,7 @@ See [Admin](/features/admin.md) for the access rules and measurement method.
 Migration 7 adds an optional text body to queued push notifications, so server
 announcements keep their text until delivery. Round number and reward switches
 are stored as integer keys in the existing settings table.
+
+Migration 8 stores passkey public keys and counters, and short-lived single-use
+WebAuthn challenges. Registration challenges are bound to the authenticated
+session. Account recovery removes previously registered passkeys.

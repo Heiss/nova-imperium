@@ -35,6 +35,8 @@ import {
 import { disablePush, enablePush } from './push.ts';
 import { mountBuildings } from './views/buildings.ts';
 
+import { addPasskey, signInWithPasskey } from './passkeys.ts';
+
 type Data = Record<string, string | undefined>;
 
 const $ = <T extends HTMLElement = HTMLElement>(sel: string): T | null =>
@@ -764,6 +766,17 @@ const ACT: Record<string, (d: Data) => unknown> = {
     if (d.tab && Object.hasOwn(ADMIN_TABS, d.tab))
       openAdminTab(d.tab as AdminTab);
   },
+  listPasskeys: showPasskeys,
+  passkeyLogin: loginByPasskey,
+  removePasskey: async (d) => {
+    if (!window.confirm('Diesen Passkey entfernen?')) return;
+    try {
+      await api('/api/passkeys/remove', { id: d.id });
+      await showPasskeys();
+    } catch (error) {
+      toast((error as Error).message, true);
+    }
+  },
   installApp: async () => {
     const prompt = installPrompt;
     if (!prompt) return;
@@ -863,6 +876,53 @@ async function submitAuth(): Promise<void> {
     render(true);
   } catch (e) {
     toast((e as Error).message, true);
+  }
+}
+
+async function loginByPasskey(): Promise<void> {
+  try {
+    const j = await signInWithPasskey(
+      api,
+      Boolean($<HTMLInputElement>('#remember-login')?.checked),
+    );
+    ui.auth = null;
+    apply(j.state as GameState);
+    homeSystem();
+    render(true);
+  } catch (error) {
+    toast((error as Error).message, true);
+  }
+}
+
+async function submitPasskey(): Promise<void> {
+  try {
+    await addPasskey(api, val('#passkey-password'));
+    setInput('#passkey-password', '');
+    toast('Passkey gespeichert.');
+    await showPasskeys();
+  } catch (error) {
+    toast((error as Error).message, true);
+  }
+}
+
+async function showPasskeys(): Promise<void> {
+  try {
+    const j = await api('/api/passkeys/list', {});
+    const keys = j.keys as { id: string; created: number }[];
+    const list = $('#passkey-list');
+    if (!list) return;
+    list.innerHTML = keys.length
+      ? '<ul>' +
+        keys
+          .map(
+            (key) =>
+              `<li>Erstellt am ${dt(key.created)} <button type="button" data-act="removePasskey" data-id="${esc(key.id)}">Entfernen</button></li>`,
+          )
+          .join('') +
+        '</ul>'
+      : '<p>Keine Passkeys gespeichert.</p>';
+  } catch (error) {
+    toast((error as Error).message, true);
   }
 }
 
@@ -1050,6 +1110,7 @@ document.addEventListener('submit', (e) => {
     ['forgotform', submitForgot],
     ['resetform', () => submitPassword(true)],
     ['passwordform', () => submitPassword(false)],
+    ['passkeyform', submitPasskey],
   ] as const;
   const handle = handlers.find(([form]) => form === id)?.[1];
   if (!handle) return;

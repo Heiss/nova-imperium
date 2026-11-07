@@ -59,6 +59,48 @@ test.describe('accounts', () => {
     expect(w.problems).toEqual([]);
   });
 
+  test('registers, uses and removes a passkey', async ({ page, context }) => {
+    const session = await context.newCDPSession(page);
+    await session.send('WebAuthn.enable');
+    await session.send('WebAuthn.addVirtualAuthenticator', {
+      options: {
+        protocol: 'ctap2',
+        transport: 'internal',
+        hasResidentKey: true,
+        hasUserVerification: true,
+        isUserVerified: true,
+        automaticPresenceSimulation: true,
+      },
+    });
+    const name = uniqueName('Passkey');
+    await register(page, name);
+    await nav(page, 'help');
+    await page
+      .getByLabel('Passwort für neuen Passkey')
+      .fill('ein-sicheres-testpasswort');
+    await page.getByRole('button', { name: 'Passkey hinzufügen' }).click();
+    await expect(
+      page.getByText('Passkey gespeichert.', { exact: true }),
+    ).toBeVisible();
+    await page.click('[data-act=logout]');
+    await page
+      .getByRole('checkbox', { name: 'Login auf diesem Gerät speichern' })
+      .check();
+    await page.getByRole('button', { name: 'Mit Passkey anmelden' }).click();
+    await expect(page.locator('#pinfo')).toContainText(name);
+    expect(
+      (await context.cookies()).find((cookie) => cookie.name === 'nova_session')
+        ?.expires,
+    ).toBeGreaterThan(0);
+    await nav(page, 'help');
+    await page
+      .getByRole('button', { name: 'Gespeicherte Passkeys anzeigen' })
+      .click();
+    page.once('dialog', (dialog) => void dialog.accept());
+    await page.getByRole('button', { name: 'Entfernen', exact: true }).click();
+    await expect(page.getByText('Keine Passkeys gespeichert.')).toBeVisible();
+  });
+
   test('changes a password from the account options', async ({ page }) => {
     const name = uniqueName('Passwort');
     await register(page, name);

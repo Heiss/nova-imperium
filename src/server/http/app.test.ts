@@ -566,6 +566,42 @@ describe('http', () => {
 });
 
 describe('account security', () => {
+  it('binds passkey registration to the verified session and consumes login challenges once', async () => {
+    const { call, ctx, cfg, setCookie } = await asAdmin();
+    const optionsPath = '/api/passkeys/register/options';
+    expect(
+      (await call('POST', optionsPath, { password: 'wrong' })).status,
+    ).toBe(400);
+    const registration = await call('POST', optionsPath, {
+      password: 'secret1',
+    });
+    expect(registration.status).toBe(200);
+    const admin = ctx.store.userByName('Boss')!;
+    setCookie(`${COOKIE}=${startSession(ctx, cfg, admin.id)}`);
+    const body = { ceremony: registration.json?.ceremony, response: {} };
+    expect((await call('POST', '/api/passkeys/register', body)).status).toBe(
+      400,
+    );
+    expect(
+      ctx.store.db
+        .prepare('SELECT COUNT(*) AS n FROM passkey_challenges')
+        .get(),
+    ).toEqual({ n: 1 });
+    const login = await call('POST', '/api/passkeys/login/options', {});
+    const answer = { ceremony: login.json?.ceremony, response: {} };
+    expect((await call('POST', '/api/passkeys/login', answer)).status).toBe(
+      400,
+    );
+    expect((await call('POST', '/api/passkeys/login', answer)).status).toBe(
+      400,
+    );
+    expect(
+      ctx.store.db
+        .prepare('SELECT COUNT(*) AS n FROM passkey_challenges')
+        .get(),
+    ).toEqual({ n: 1 });
+  });
+
   it('revokes an outstanding email login code when an admin suspends the account', async () => {
     const mails: Mail[] = [];
     const { ctx, cfg, call, setCookie } = await start({

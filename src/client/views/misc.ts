@@ -38,6 +38,7 @@ export const help = (v: V): string => `<h2>Hilfe &amp; Optionen</h2>
  <label for="pw_confirm">Neues Passwort wiederholen</label> <input id="pw_confirm" type="password" autocomplete="new-password" minlength="15" required>
  <button type="submit">Passwort ändern</button></form>`,
  )}
+ ${box('Passkeys', '<p>Auf unterstützten Geräten kannst du dich mit einem Passkey anmelden.</p><form id="passkeyform" class="flex"><label for="passkey-password">Passwort für neuen Passkey</label><input id="passkey-password" type="password" autocomplete="current-password" required><button type="submit">Passkey hinzufügen</button></form><p><button type="button" data-act="listPasskeys">Gespeicherte Passkeys anzeigen</button></p><div id="passkey-list"></div>')}
  ${box('App installieren', '<p>Öffne das Browsermenü und wähle „App installieren“ oder „Zum Startbildschirm hinzufügen“. Auf iPhone und iPad öffne Nova Imperium in Safari, tippe auf „Teilen“ und wähle „Zum Home-Bildschirm“.</p><button data-act="installApp" id="pwa-install" hidden>App installieren</button>')}
  ${box('Browser-Benachrichtigungen', '<p>Meldungen zu Aufträgen, Flotten und neuen Nachrichten auf diesem Gerät.</p><button data-act="pushEnable">Aktivieren</button> <button data-act="pushDisable">Deaktivieren</button>')}
  ${box('Regeln dieses Universums', rules(v.s.cfg))}`;
@@ -168,7 +169,7 @@ export function auth(ui: Ui): string {
   const reg = ui.auth === 'register' && ui.invite !== null;
   const note = reg
     ? ''
-    : '<p class="dim">Ein Konto bekommst du nur mit einer Einladung vom Admin.</p>';
+    : '<p><button type="button" data-act="passkeyLogin">Mit Passkey anmelden</button></p><p class="dim">Ein Konto bekommst du nur mit einer Einladung vom Admin.</p>';
   const back = reg
     ? '<span class="lnk ml" data-act="authswitch">Ich habe schon ein Konto</span>'
     : '<button class="small" type="button" data-act="forgot">Passwort vergessen?</button>';

@@ -256,4 +256,22 @@ export const MIGRATIONS: readonly string[] = [
   `
   ALTER TABLE push_jobs ADD COLUMN body TEXT;
   `,
+  // 8: passkey credentials and short-lived WebAuthn challenges
+  `
+  CREATE TABLE passkeys (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    public_key BLOB NOT NULL,
+    counter INTEGER NOT NULL,
+    created INTEGER NOT NULL
+  ) STRICT;
+  CREATE INDEX passkeys_owner ON passkeys(user_id);
+  CREATE TABLE passkey_challenges (
+    id TEXT PRIMARY KEY,
+    challenge TEXT NOT NULL,
+    session_hash TEXT,
+    expires INTEGER NOT NULL
+  ) STRICT;
+  CREATE INDEX passkey_challenges_expiry ON passkey_challenges(expires);
+  `,
 ];
