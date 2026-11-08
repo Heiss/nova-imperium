@@ -66,6 +66,7 @@ export interface GameState {
   cfg: Universe;
   me: Me;
   planet: Planet | null;
+  homePlanet?: string | null;
   fleets: ClientFleet[];
   reports: Report[];
   players: Players;

@@ -132,6 +132,12 @@ const ART: Record<string, string> = {
     engine(18, 46, 1.2) +
     engine(18, 60, 1.2) +
     `<path d="M18 40 L68 38 L86 53 L68 68 L18 66Z" fill="url(#met)"/><rect x="26" y="43" width="14" height="20" fill="#c88a3a" stroke="#6b4a1e" stroke-width=".8"/><rect x="42" y="43" width="14" height="20" fill="#c88a3a" stroke="#6b4a1e" stroke-width=".8"/><path d="M68 46 L80 53 L68 60Z" fill="#7fe0ff"/>`,
+  colony:
+    space('#183c3e', '#050b14', 38) +
+    engine(20, 42, 1.1) +
+    engine(20, 58, 1.1) +
+    `<path d="M19 37 L58 33 L86 50 L58 67 L19 63Z" fill="url(#met)"/><path d="M25 40 L36 23 L64 35 M25 60 L36 77 L64 65" fill="url(#dark)"/>
+ <path d="M38 49 Q38 35 52 35 Q66 35 66 49 L66 55 L38 55Z" fill="#71d6ab" stroke="#d3ece8"/><path d="M35 57 H69 M41 62 H63" stroke="#27474d" stroke-width="3"/><path d="M71 46 L81 50 L71 54Z" fill="#7fe0ff"/>`,
   lf:
     space('#1a1f3d', '#03040c', 33) +
     engine(30, 50) +

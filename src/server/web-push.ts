@@ -98,14 +98,15 @@ export function savePushSubscription(
 
 function scheduleCurrentOrders(ctx: Ctx, uid: string): void {
   const now = ctx.now();
-  const planet = ctx.store.planetOfUser(uid);
   const research = ctx.store.user(uid)?.rq;
   if (research && research.end > now)
     queuePush(ctx, uid, 'research', String(research.start), research.end);
-  if (!planet) return;
-  const p = settle(planet, now, universe(ctx));
-  if (p.bq) queuePush(ctx, uid, 'buildings', String(p.bq.start), p.bq.end);
-  if (p.sqT !== null) scheduleShipyard(ctx, uid, p.sqT, p.sq);
+  for (const planet of ctx.store.playerPlanets(uid)) {
+    const p = settle(planet, now, universe(ctx));
+    if (p.bq)
+      queuePush(ctx, uid, 'buildings', `${p.id}:${p.bq.start}`, p.bq.end);
+    scheduleShipyard(ctx, p);
+  }
 }
 
 export function deletePushSubscription(

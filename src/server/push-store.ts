@@ -1,3 +1,4 @@
+import type { Planet } from '../shared/types.ts';
 import type { Ctx } from './game/context.ts';
 
 export type PushKind =
@@ -25,24 +26,22 @@ export function cancelScheduledPush(
   ctx: Ctx,
   uid: string,
   kind: PushKind,
+  keyPattern: string | null = null,
 ): void {
   ctx.store.db
     .prepare(
       `
     DELETE FROM push_jobs WHERE kind = ? AND due > ?
+    AND (? IS NULL OR event_key GLOB ?)
     AND endpoint IN (SELECT endpoint FROM push_subscriptions WHERE user_id = ?)
   `,
     )
-    .run(kind, ctx.now(), uid);
+    .run(kind, ctx.now(), keyPattern, keyPattern, uid);
 }
 
-export function scheduleShipyard(
-  ctx: Ctx,
-  uid: string,
-  start: number,
-  queue: { unit: number; n: number }[],
-): void {
-  const end = queue.reduce((time, item) => time + item.unit * item.n, start);
-  cancelScheduledPush(ctx, uid, 'shipyard');
-  queuePush(ctx, uid, 'shipyard', String(end), end);
+export function scheduleShipyard(ctx: Ctx, p: Planet): void {
+  if (p.sqT === null) return;
+  const end = p.sq.reduce((time, item) => time + item.unit * item.n, p.sqT);
+  cancelScheduledPush(ctx, p.owner, 'shipyard', `${p.id}:*`);
+  queuePush(ctx, p.owner, 'shipyard', `${p.id}:${end}`, end);
 }

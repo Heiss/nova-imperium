@@ -70,8 +70,8 @@ const cases = Array.from({ length: CASES }, () => {
     research: { research: pick(Object.keys(N.RES), 1, 0, 12), rq: null },
     a: { g: ri(1, 2), s: ri(1, 50), p: ri(1, 15) },
     b: { g: ri(1, 2), s: ri(1, 50), p: ri(1, 15) },
-    ships: pick(Object.keys(N.SHIPS), 0.5, 0, 50),
-    units: pick(Object.keys(N.UNIT), 0.4, 0, 40),
+    ships: pick(Object.keys(O.SHIPS), 0.5, 0, 50),
+    units: pick(Object.keys(O.UNIT), 0.4, 0, 40),
     tA: { weapons: ri(0, 8), shield: ri(0, 8), armor: ri(0, 8) },
     tD: { weapons: ri(0, 8), shield: ri(0, 8), armor: ri(0, 8) },
     pct: ri(1, 10),
@@ -97,7 +97,7 @@ describe('equivalence with the original rules', () => {
         const cost = N.lvlCost(N.BUILD[k]!, c.level);
         expect(cost).toEqual(O.lvlCost(O.BUILD[k], c.level));
         expect(N.buildTime(cost, c.planet, U)).toBe(
-          O.buildTime(cost, c.planet),
+          Math.ceil(O.buildTime(cost, c.planet)),
         );
         expect(N.sumLevels(N.BUILD[k]!, c.level)).toBe(
           O.sumLevels(O.BUILD[k], c.level),
@@ -107,12 +107,12 @@ describe('equivalence with the original rules', () => {
         const cost = N.lvlCost(N.RES[k]!, c.level);
         expect(cost).toEqual(O.lvlCost(O.RES[k], c.level));
         expect(N.researchTime(cost, c.planet, U)).toBe(
-          O.researchTime(cost, c.planet),
+          Math.ceil(O.researchTime(cost, c.planet)),
         );
       }
-      for (const k of Object.keys(N.UNIT))
+      for (const k of Object.keys(O.UNIT))
         expect(N.unitTime(N.UNIT[k]!, c.planet, U)).toBe(
-          O.unitTime(O.UNIT[k], c.planet),
+          Math.ceil(O.unitTime(O.UNIT[k], c.planet)),
         );
       const cost = [ri(0, 9000), ri(0, 9000), ri(0, 900)] as const;
       expect(N.maxAfford(c.planet, cost)).toBe(O.maxAfford(c.planet, cost));

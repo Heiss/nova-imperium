@@ -35,8 +35,27 @@ export const foreignView = (f: Fleet): ForeignFleet => ({
   ships: f.mission === 'attack' ? f.ships : {},
 });
 
-export function stateFor(ctx: Ctx, u: User): Record<string, unknown> {
-  const p = ctx.store.planetOfUser(u.id);
+function galaxyOf(ctx: Ctx) {
+  return ctx.store.planets().map((x) => ({
+    id: x.id,
+    name: x.name,
+    g: x.g,
+    s: x.s,
+    p: x.p,
+    temp: x.temp,
+    owner: x.owner,
+  }));
+}
+
+export function stateFor(
+  ctx: Ctx,
+  u: User,
+  selected?: unknown,
+): Record<string, unknown> {
+  const home = ctx.store.planetOfUser(u.id);
+  const requested =
+    typeof selected === 'string' ? ctx.store.planet(selected) : null;
+  const p = requested?.owner === u.id ? requested : home;
   const pts = pointsMap(ctx);
   const fleets = ctx.store
     .fleets()
@@ -50,15 +69,6 @@ export function stateFor(ctx: Ctx, u: User): Record<string, unknown> {
       .users()
       .map((x) => [x.id, { name: x.name, points: pts[x.id] ?? 0 }]),
   );
-  const galaxy = ctx.store.planets().map((x) => ({
-    id: x.id,
-    name: x.name,
-    g: x.g,
-    s: x.s,
-    p: x.p,
-    temp: x.temp,
-    owner: x.owner,
-  }));
   const round = roundRules(ctx);
   return {
     round,
@@ -74,12 +84,13 @@ export function stateFor(ctx: Ctx, u: User): Record<string, unknown> {
       admin: u.admin,
     },
     planet: p,
+    homePlanet: home?.id ?? null,
     fleets,
     reports: ctx.store.reports(u.id),
     guilds: guildState(ctx, u.id, pts),
     achievements: achievementState(ctx, u, round),
     players,
-    galaxy,
+    galaxy: galaxyOf(ctx),
     admin: u.admin ? { specs: UNIVERSE_SPECS } : null,
   };
 }

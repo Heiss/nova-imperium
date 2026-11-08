@@ -11,11 +11,11 @@ describe('catalog', () => {
   it('equals the catalog of version 1', () => {
     expect(C.BUILD).toEqual(O.BUILD);
     expect(C.RES).toEqual(O.RES);
-    expect(C.SHIPS).toEqual(O.SHIPS);
+    expect(C.SHIPS).toEqual({ ...O.SHIPS, colony: C.SHIPS.colony });
     expect(C.DEF).toEqual(O.DEF);
-    expect(C.UNIT).toEqual(O.UNIT);
+    expect(C.UNIT).toEqual({ ...O.UNIT, colony: C.SHIPS.colony });
     expect(C.DRIVE_BONUS).toEqual(O.DRIVE_BONUS);
-    expect(C.MISSION).toEqual(O.MISSION);
+    expect(C.MISSION).toEqual({ ...O.MISSION, colonize: 'Kolonisieren' });
   });
   it('tells ships from defense', () => {
     expect(C.isShip('lf')).toBe(true);

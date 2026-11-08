@@ -57,7 +57,7 @@ export interface ResearchState {
   rq: Queue | null;
 }
 
-export type Mission = 'attack' | 'transport' | 'spy';
+export type Mission = 'attack' | 'transport' | 'spy' | 'colonize';
 export type FleetState = 'out' | 'back';
 
 export interface Fleet {

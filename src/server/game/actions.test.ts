@@ -26,6 +26,17 @@ describe('buildings', () => {
     ctx.clock.t += 21600;
     expect(A.mine(ctx, u).b.metal).toBe(1);
   });
+  it('persists a solar upgrade with a fractional calculated duration', () => {
+    const { ctx, u, p } = setup({ b: { robot: 1, solar: 1 } });
+    ctx.store.saveUniverse({ ...ctx.store.universe(), speed: 7 });
+    expect(A.build(ctx, u, { key: 'solar' })).toBeNull();
+    const due = p().bq!.end;
+    expect(Number.isInteger(due)).toBe(true);
+    ctx.clock.t = due - 1;
+    expect(A.mine(ctx, u).b.solar).toBe(1);
+    ctx.clock.t = due;
+    expect(A.mine(ctx, u).b.solar).toBe(2);
+  });
   it('are refused when busy, missing requirements or resources', () => {
     const { ctx, u } = setup({ res: { m: 10, c: 10, d: 0 }, b: { robot: 2 } });
     expect(() => A.build(ctx, u, { key: 'nope' })).toThrow(

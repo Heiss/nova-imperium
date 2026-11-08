@@ -303,6 +303,18 @@ export const SHIPS: Record<string, ShipDef> = {
       },
     },
   },
+  colony: {
+    n: 'Kolonialschiff',
+    ab: 'KS',
+    cost: [10000, 20000, 10000],
+    atk: 50,
+    sh: 100,
+    cargo: 7500,
+    speed: 2500,
+    fuel: 1000,
+    drive: 'impulse',
+    req: { b: { yard: 4 }, r: { impulse: 3 } },
+  },
   lf: {
     n: 'Leichter Jäger',
     ab: 'LJ',
@@ -486,6 +498,7 @@ export const MISSION = {
   attack: 'Angreifen',
   transport: 'Transport',
   spy: 'Spionage',
+  colonize: 'Kolonisieren',
 } as const;
 
 /** Buildings whose production share the player sets on the resources page. */

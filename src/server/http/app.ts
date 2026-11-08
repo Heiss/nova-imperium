@@ -390,7 +390,13 @@ function gameRoutes(d: AppDeps): Record<string, Handler> {
   const { ctx } = d;
   return {
     'GET /api/state': (call) => ({
-      json: stateFor(ctx, sessionUserOf(ctx, call)),
+      json: stateFor(
+        ctx,
+        sessionUserOf(ctx, call),
+        new URL(call.req.url ?? '/', 'http://localhost').searchParams.get(
+          'planet',
+        ),
+      ),
     }),
     'POST /api/activity': (call) => {
       activity(ctx, sessionUserOf(ctx, call));
@@ -400,7 +406,11 @@ function gameRoutes(d: AppDeps): Record<string, Handler> {
       const u = sessionUserOf(ctx, call);
       const msg = playerAction(ctx, u, call);
       return {
-        json: { ok: true, msg, state: stateFor(ctx, ctx.store.user(u.id)!) },
+        json: {
+          ok: true,
+          msg,
+          state: stateFor(ctx, ctx.store.user(u.id)!, call.body.planet),
+        },
       };
     },
     ...adminRoutes(
@@ -423,8 +433,16 @@ function playerAction(ctx: Ctx, u: User, call: Call): string | null {
     requestId: call.requestId,
   };
   return audited(ctx, entry, () => {
-    if (category === 'game')
-      entry.detail = { planet: ctx.store.planetOfUser(u.id)?.id };
+    if (category === 'game') {
+      const id = call.body.planet;
+      const selected = typeof id === 'string' ? ctx.store.planet(id) : null;
+      entry.detail = {
+        planet:
+          selected?.owner === u.id
+            ? selected.id
+            : ctx.store.planetOfUser(u.id)?.id,
+      };
+    }
     const before =
       action === 'settings' && u.admin ? ctx.store.universe() : null;
     const msg = runAction(ctx, u.id, call.body, entry);

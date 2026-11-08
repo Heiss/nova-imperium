@@ -70,9 +70,32 @@ const loadCargo = (p: Planet, mission: Mission, raw: unknown): Resources => {
 interface Plan {
   mission: Mission;
   ships: Levels;
-  dest: Planet;
+  dest: Coords;
+  targetOwner: string | null;
   cargo: Resources;
   pct: number;
+}
+
+function checkDestination(
+  ctx: Ctx,
+  u: User,
+  p: Planet,
+  mission: Mission,
+  occupied: Planet | null,
+  ships: Levels,
+): void {
+  if (mission === 'colonize') {
+    if (occupied) fail('Diese Position ist bereits besetzt.');
+    if (!ships.colony) fail('Du brauchst ein Kolonialschiff.');
+  } else {
+    checkTarget(
+      ctx,
+      u,
+      p,
+      occupied ?? fail('An dieser Position gibt es keinen Planeten.'),
+      mission,
+    );
+  }
 }
 
 function plan(ctx: Ctx, u: User, p: Planet, d: Data): Plan {
@@ -85,16 +108,16 @@ function plan(ctx: Ctx, u: User, p: Planet, d: Data): Plan {
     1 + (researchOf(ctx, u).research.computer ?? 0)
   )
     fail('Alle Flottenslots belegt.');
-  const dest =
-    ctx.store.planet(pid(target(ctx, d))) ??
-    fail('An dieser Position gibt es keinen Planeten.');
-  checkTarget(ctx, u, p, dest, mission);
+  const dest = target(ctx, d);
+  const occupied = ctx.store.planet(pid(dest));
+  checkDestination(ctx, u, p, mission, occupied, ships);
   if (mission === 'spy' && Object.keys(ships).some((k) => k !== 'probe'))
     fail('Spionage nur mit Spionagesonden.');
   return {
     mission,
     ships,
     dest,
+    targetOwner: occupied?.owner ?? null,
     cargo: loadCargo(p, mission, d.cargo),
     pct: int(d.pct, 1, 10),
   };
@@ -102,8 +125,8 @@ function plan(ctx: Ctx, u: User, p: Planet, d: Data): Plan {
 
 export const send: Action = (ctx, u, d, event) => {
   const t = ctx.now();
-  const p = mine(ctx, u);
-  const { mission, ships, dest, cargo, pct } = plan(ctx, u, p, d);
+  const p = mine(ctx, u, d.planet);
+  const { mission, ships, dest, targetOwner, cargo, pct } = plan(ctx, u, p, d);
   const dist = distance(p, dest);
   const ms = flightMs(
     dist,
@@ -127,8 +150,8 @@ export const send: Action = (ctx, u, d, event) => {
     owner: u.id,
     from: p.id,
     fromC: { g: p.g, s: p.s, p: p.p },
-    to: dest.id,
-    toC: { g: dest.g, s: dest.s, p: dest.p },
+    to: pid(dest),
+    toC: dest,
     mission,
     ships,
     cargo,
@@ -139,12 +162,16 @@ export const send: Action = (ctx, u, d, event) => {
     recalled: false,
   };
   ctx.store.saveFleet(fleet);
-  if (event) logLaunch(event, fleet, dest.owner);
+  if (event) logLaunch(event, fleet, targetOwner);
   return `Flotte unterwegs nach ${coords(fleet.toC)}.`;
 };
 
-function logLaunch(event: AuditEntry, fleet: Fleet, target: string): void {
-  event.target = target;
+function logLaunch(
+  event: AuditEntry,
+  fleet: Fleet,
+  target: string | null,
+): void {
+  if (target !== null) event.target = target;
   event.detail = {
     fleet: fleet.id,
     planet: fleet.to,
