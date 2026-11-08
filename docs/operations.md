@@ -94,11 +94,15 @@ commit, and fast-forwards the local branch. It creates and pushes the next
 annotated CalVer tag for the current month in Europe/Berlin. A repeat in the
 same month reuses a tag already attached to that commit. Use `--dry-run` to
 preview the tag without updating the checked-out branch or pushing.
-The tag push triggers the release workflow and its own CI check.
+The release workflow checks for a successful CI push run on `main` for the
+exact tagged commit before it builds and publishes the image. Every push to
+`main` runs the full test suite, including all mutation tests. GitHub records
+manually pushed tags before the workflow starts. If CI is missing or failed,
+the tag exists in Git, and the release workflow stops before the image build.
 
 ## Updates
 
-Images are published for every release tag (`ghcr.io/heiss/nova-imperium`,
+Images are published for release tags with successful CI (`ghcr.io/heiss/nova-imperium`,
 CalVer like `26.11.0`). Pin a version in `.env` and pull it:
 
 ```bash
