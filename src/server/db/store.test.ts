@@ -1,8 +1,10 @@
+import Database from 'better-sqlite3';
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_UNIVERSE } from '../../shared/universe.ts';
 import { addPlanet, addUser, testCtx } from '../test-helpers.ts';
 import { migrate, openDatabase } from './database.ts';
 import { MIGRATIONS } from './schema.ts';
+import { Store } from './store.ts';
 
 describe('database', () => {
   it('migrates once and refuses a newer schema', () => {
@@ -12,6 +14,37 @@ describe('database', () => {
     expect(migrate(db, [...MIGRATIONS, 'CREATE TABLE x (a INTEGER)'])).toBe(1);
     expect(() => migrate(db)).toThrow(/newer image/);
     expect(db.pragma('foreign_keys', { simple: true })).toBe(1);
+  });
+  it('preserves ships of an in-flight fleet when adding colonization', () => {
+    const ctx = testCtx();
+    const db = new Database(':memory:');
+    db.pragma('foreign_keys = ON');
+    migrate(db, MIGRATIONS.slice(0, 8));
+    const store = new Store(db);
+    const owner = addUser({ ...ctx, store }, 'Anna').id;
+    const fleet = {
+      id: 'f1',
+      owner,
+      from: 'p1_1_5',
+      fromC: { g: 1, s: 1, p: 5 },
+      to: 'p1_1_6',
+      toC: { g: 1, s: 1, p: 6 },
+      mission: 'transport' as const,
+      ships: { sc: 2 },
+      cargo: { m: 100, c: 0, d: 0 },
+      dep: 1,
+      arr: 2,
+      ret: 3,
+      state: 'out' as const,
+      recalled: false,
+    };
+    store.saveFleet(fleet);
+    expect(migrate(db)).toBe(1);
+    expect(store.fleet(fleet.id)).toEqual(fleet);
+    expect(db.pragma('foreign_key_check')).toEqual([]);
+    store.deleteFleet(fleet.id);
+    expect(db.prepare('SELECT * FROM fleet_ships').all()).toEqual([]);
+    db.close();
   });
 });
 
@@ -68,7 +101,11 @@ describe('store', () => {
       bq: { key: 'metal', lvl: 4, start: 1, end: 2, cost: [3, 4, 5] },
     });
     const back = ctx.store.planet(p.id)!;
-    expect(back).toEqual({ ...p, ships: { lf: 2 } });
+    expect(back).toEqual({
+      ...p,
+      ships: { lf: 2 },
+      sq: [{ ...p.sq[0], unit: 1001 }, p.sq[1]],
+    });
     back.b = { metal: 4 };
     back.def = {};
     back.sq = [];

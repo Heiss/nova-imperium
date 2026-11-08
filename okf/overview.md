@@ -32,7 +32,7 @@ the muffelblog bundle whose rules this project follows:
   energy, building and research times, flight time, fuel, battle) are rebuilt.
 * **[E]** No premium, no paid boosts.
 * **[E]** Scope: the core (planets, resources, buildings, research, shipyard,
-  defense, galaxy, attacks, espionage, transports). One home planet per player.
+  defense, galaxy, attacks, espionage, transports and [colonization](/features/colonization.md)).
 * **[E]** Universe of version 1: speed x5, 2 galaxies × 50 systems × 15
   positions. Since this setup the admin changes these values in the admin
   panel (see [Admin](/features/admin.md)).
@@ -52,7 +52,7 @@ the muffelblog bundle whose rules this project follows:
 
 # Non-goals (for now)
 
-* Extensions of the classic game (colony ships, recyclers, more ships,
-  several planets, debris fields, moons, alliances, messages between players,
+* Extensions of the classic game (recyclers, more ships,
+  debris fields, moons, alliances, messages between players,
   missiles) are possible later steps, not decided.
 * No translation of the game interface.

@@ -10,6 +10,8 @@ import type { Fleet, Levels, Planet, Resources } from '../../shared/types.ts';
 import type { User } from '../db/store.ts';
 import { type Ctx, addReport, coords, resLine, universe } from './context.ts';
 
+import { createPlanet } from './planets.ts';
+
 const UNKNOWN = { name: 'Unbekannt', research: {}, rq: null };
 type Player = Pick<User, 'name' | 'research' | 'rq'>;
 
@@ -254,18 +256,41 @@ function attack(ctx: Ctx, f: Fleet, t: Planet, att: Player, def: Player): void {
   turnBack(ctx, f, { ships: res.att, cargo });
 }
 
+function unsuitableTarget(ctx: Ctx, f: Fleet): void {
+  addReport(ctx, f.owner, {
+    time: f.arr,
+    type: 'info',
+    title: 'Flotte kehrt um',
+    text: `An ${coords(f.toC)} wurde kein passendes Ziel gefunden. Deine Flotte kehrt zurück.`,
+  });
+  turnBack(ctx, f);
+}
+
+function colonize(ctx: Ctx, f: Fleet, occupied: Planet | null): void {
+  const u = universe(ctx);
+  const { g, s, p } = f.toC;
+  if (occupied || g > u.galaxies || s > u.systems || p > u.positions)
+    return unsuitableTarget(ctx, f);
+  createPlanet(ctx, f.owner, 'Kolonie', f.toC, f.arr, f.cargo);
+  addReport(ctx, f.owner, {
+    time: f.arr,
+    type: 'info',
+    title: `Kolonie gegründet ${coords(f.toC)}`,
+    text: 'Dein Kolonialschiff hat eine neue Kolonie gegründet.',
+  });
+  const ships = { ...f.ships };
+  if (ships.colony === 1) delete ships.colony;
+  else ships.colony = ships.colony! - 1;
+  if (!countUnits(ships)) return ctx.store.deleteFleet(f.id);
+  turnBack(ctx, f, { ships, cargo: { m: 0, c: 0, d: 0 } });
+}
+
 export function arrive(ctx: Ctx, f: Fleet): void {
   const t0 = ctx.store.planet(f.to);
+  if (f.mission === 'colonize') return colonize(ctx, f, t0);
+  if (!t0 || (f.mission !== 'transport' && t0.owner === f.owner))
+    return unsuitableTarget(ctx, f);
   const att = player(ctx, f.owner);
-  if (!t0 || (f.mission !== 'transport' && t0.owner === f.owner)) {
-    addReport(ctx, f.owner, {
-      time: f.arr,
-      type: 'info',
-      title: 'Flotte kehrt um',
-      text: `An ${coords(f.toC)} wurde kein passendes Ziel gefunden. Deine Flotte kehrt zurück.`,
-    });
-    return turnBack(ctx, f);
-  }
   const t = settle(t0, f.arr, universe(ctx));
   const def = player(ctx, t.owner);
   if (f.mission === 'transport') return transport(ctx, f, t, att);

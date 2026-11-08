@@ -33,7 +33,8 @@ export function sumLevels(
   return total;
 }
 
-const hours = (h: number, u: Universe): number => (h * 3600000) / u.speed;
+const hours = (h: number, u: Universe): number =>
+  Math.ceil((h * 3600000) / u.speed);
 const lv = (levels: Levels, key: string): number => levels[key] ?? 0;
 const MIN_TIME = 1000;
 

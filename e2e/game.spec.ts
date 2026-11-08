@@ -400,6 +400,50 @@ test.describe('playing', () => {
     expect(w.problems).toEqual([]);
   });
 
+  test('builds solar and switches to a newly founded colony', async ({
+    page,
+  }) => {
+    const w = watch(page);
+    const name = uniqueName('Kolonie');
+    await register(page, name);
+    seed({
+      name,
+      b: { robot: 10, yard: 4 },
+      ships: { colony: 1 },
+      research: { impulse: 3 },
+      res: { m: 100000, c: 100000, d: 100000 },
+    });
+    await page.reload();
+    await nav(page, 'buildings');
+    await page.click('[data-act=build][data-k=solar]');
+    await expect(page.getByText('Ausbau auf Stufe 1')).toBeVisible();
+    await nav(page, 'galaxy');
+    await page.getByText('zum Heimatsystem').click();
+    await page.getByRole('button', { name: 'Kolonisieren' }).first().click();
+    await expect(page.getByLabel('Auftrag')).toHaveValue('colonize');
+    await page.getByLabel('Anzahl Kolonialschiff').fill('1');
+    await page.locator('#c_m').fill('400');
+    await page.getByRole('button', { name: 'Flotte losschicken' }).click();
+    await expect(page.locator('.toast').last()).toContainText(
+      'Flotte unterwegs',
+    );
+    seed({ name, landColonyFleet: true });
+    const selector = page.getByLabel('Aktiver Planet');
+    const colony = selector
+      .locator('option')
+      .filter({ hasText: /^Kolonie \[/ });
+    await expect(colony).toHaveCount(1);
+    await selector.selectOption((await colony.getAttribute('value'))!);
+    await expect(page.locator('#pinfo b').first()).toHaveText('Kolonie');
+    await nav(page, 'overview');
+    await expect(page.locator('h2')).toContainText('Kolonie');
+    await page.click('[data-act=rename]');
+    await page.fill('#rn', 'Neue Welt');
+    await page.click('[data-act=doRename]');
+    await expect(page.locator('h2')).toContainText('Neue Welt');
+    expect(w.problems).toEqual([]);
+  });
+
   test('ships are ordered, a fleet flies, spies and comes home', async ({
     page,
   }) => {

@@ -33,9 +33,18 @@ export type Action = (
 
 export const MAX_SHIPYARD_ORDERS = 20;
 
-/** The home planet of the player, moved forward to now. */
-export function mine(ctx: Ctx, u: User): Planet {
-  const p = ctx.store.planetOfUser(u.id) ?? fail('Du hast keinen Planeten.');
+/** The selected planet, or the home planet for callers without a selection. */
+export function mine(ctx: Ctx, u: User, id?: unknown): Planet {
+  const p =
+    id === undefined
+      ? ctx.store.planetOfUser(u.id)
+      : ctx.store.planet(String(id));
+  if (!p || p.owner !== u.id)
+    return fail(
+      id === undefined
+        ? 'Du hast keinen Planeten.'
+        : 'Du hast keinen Zugriff auf diesen Planeten.',
+    );
   return settle(p, ctx.now(), universe(ctx));
 }
 
@@ -58,7 +67,7 @@ const checkBuild = (p: Planet, r: ResearchState, k: string): void => {
 export const build: Action = (ctx, u, d, event) => {
   const k = String(d.key);
   const def = BUILD[k] ?? fail('Unbekanntes Gebäude.');
-  const p = mine(ctx, u);
+  const p = mine(ctx, u, d.planet);
   checkBuild(p, researchOf(ctx, u), k);
   const lvl = (p.b[k] ?? 0) + 1;
   const c = lvlCost(def, lvl);
@@ -74,16 +83,16 @@ export const build: Action = (ctx, u, d, event) => {
   };
   ctx.store.savePlanet(p);
   if (event) event.detail = { planet: p.id, key: k, level: lvl, due: p.bq.end };
-  queuePush(ctx, u.id, 'buildings', String(t), p.bq.end);
+  queuePush(ctx, u.id, 'buildings', `${p.id}:${t}`, p.bq.end);
   return null;
 };
 
-export const cancelBuild: Action = (ctx, u) => {
-  const p = mine(ctx, u);
+export const cancelBuild: Action = (ctx, u, d) => {
+  const p = mine(ctx, u, d.planet);
   if (!p.bq) return null;
   refund(p, p.bq.cost);
+  cancelScheduledPush(ctx, u.id, 'buildings', `${p.id}:${p.bq.start}`);
   p.bq = null;
-  cancelScheduledPush(ctx, u.id, 'buildings');
   ctx.store.savePlanet(p);
   return null;
 };
@@ -140,7 +149,7 @@ function requireYard(p: Planet): void {
 export const order: Action = (ctx, u, d, event) => {
   const k = String(d.key);
   const def = UNIT[k] ?? fail('Unbekannte Einheit.');
-  const p = mine(ctx, u);
+  const p = mine(ctx, u, d.planet);
   requireYard(p);
   if (reqMissing(def, p, researchOf(ctx, u)).length)
     fail('Voraussetzungen fehlen.');
@@ -153,14 +162,14 @@ export const order: Action = (ctx, u, d, event) => {
   p.sq.push({ key: k, n, unit: unitTime(def, p, universe(ctx)) });
   ctx.store.savePlanet(p);
   if (event) event.detail = { planet: p.id, key: k, units: n };
-  scheduleShipyard(ctx, u.id, p.sqT!, p.sq);
+  scheduleShipyard(ctx, p);
   return `${fmt(n)}× ${def.n} in Auftrag gegeben.`;
 };
 
 export const pct: Action = (ctx, u, d) => {
   const k = String(d.key);
   if (!(PRODUCERS as readonly string[]).includes(k)) fail('Ungültig.');
-  const p = mine(ctx, u);
+  const p = mine(ctx, u, d.planet);
   p.pct[k] = Math.round(int(d.v, 0, 100) / 10) * 10;
   ctx.store.savePlanet(p);
   return null;
@@ -169,7 +178,7 @@ export const pct: Action = (ctx, u, d) => {
 export const rename: Action = (ctx, u, d) => {
   const n = str(d.name, 20);
   if (!n) fail('Bitte einen Namen eingeben.');
-  const p = mine(ctx, u);
+  const p = mine(ctx, u, d.planet);
   p.name = n;
   ctx.store.savePlanet(p);
   return null;

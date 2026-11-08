@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { addPlanet, addUser, testCtx } from '../test-helpers.ts';
 import { recall, send } from './fleet-actions.ts';
+import { tick } from './arrival.ts';
+import { runAction } from './dispatch.ts';
+import { stateFor } from './state.ts';
 
 function setup() {
   const ctx = testCtx();
@@ -88,7 +91,7 @@ describe('sending fleets', () => {
   });
   it('refuses wrong orders', () => {
     const { ctx, a, b } = setup();
-    expect(() => send(ctx, a, go({ mission: 'colonize' }))).toThrow(
+    expect(() => send(ctx, a, go({ mission: 'unknown' }))).toThrow(
       'Unbekannter Auftrag.',
     );
     expect(() => send(ctx, a, go({ ships: {} }))).toThrow(
@@ -170,5 +173,89 @@ describe('recall', () => {
     expect(() => recall(ctx, a, { id: 'x' })).toThrow('Rückruf');
     ctx.clock.t = f.arr;
     expect(() => recall(ctx, a, { id: f.id })).toThrow('Rückruf');
+  });
+});
+
+describe('colonization', () => {
+  const to = { g: 1, s: 1, p: 6 };
+  const mission = go({
+    mission: 'colonize',
+    ships: { colony: 1, sc: 1 },
+    to,
+    cargo: { m: 400 },
+  });
+  const colonyId = 'p1_1_6';
+
+  it('builds a colony ship, settles a new world and returns its escort', () => {
+    const { ctx, a, b } = setup();
+    const home = ctx.store.planetOfUser(a.id)!;
+    home.b.yard = 4;
+    ctx.store.savePlanet(home);
+    expect(() =>
+      runAction(ctx, a.id, { type: 'order', key: 'colony', n: 1 }),
+    ).toThrow('Voraussetzungen fehlen.');
+    a.research.impulse = 3;
+    ctx.store.saveUser(a);
+    runAction(ctx, a.id, { type: 'order', key: 'colony', n: 1 });
+    ctx.clock.t += ctx.store.planet(home.id)!.sq[0]!.unit;
+    runAction(ctx, a.id, { ...mission, type: 'send' });
+    const fleet = ctx.store.fleets()[0]!;
+    expect(fleet.ships).toEqual({ colony: 1, sc: 1 });
+    ctx.clock.t = fleet.arr;
+    tick(ctx);
+    expect(ctx.store.planet(colonyId)).toMatchObject({
+      owner: a.id,
+      res: { m: 400, c: 0, d: 0 },
+      created: fleet.arr,
+    });
+    expect(ctx.store.fleet(fleet.id)).toMatchObject({
+      state: 'back',
+      ships: { sc: 1 },
+      cargo: { m: 0, c: 0, d: 0 },
+    });
+    expect(stateFor(ctx, a, colonyId).planet).toMatchObject({ id: colonyId });
+    expect(stateFor(ctx, b, colonyId).planet).toMatchObject({ owner: b.id });
+    expect(() =>
+      runAction(ctx, b.id, {
+        type: 'rename',
+        planet: colonyId,
+        name: 'wrong owner',
+      }),
+    ).toThrow('Zugriff');
+    runAction(ctx, a.id, { type: 'rename', planet: colonyId, name: 'Nova' });
+    expect(ctx.store.planet(colonyId)?.name).toBe('Nova');
+    expect(ctx.store.planetOfUser(a.id)?.id).toBe(home.id);
+    ctx.clock.t = fleet.ret;
+    tick(ctx);
+    expect(ctx.store.planet(home.id)?.ships).toMatchObject({ sc: 2 });
+    expect(ctx.store.planet(home.id)?.ships.colony).toBeUndefined();
+  });
+
+  it('rejects invalid launches and returns ships and cargo if another fleet arrives first', () => {
+    const { ctx, a, b } = setup();
+    expect(() => send(ctx, a, mission)).toThrow('Kolonialschiff');
+    const home = ctx.store.planetOfUser(a.id)!;
+    home.ships.colony = 1;
+    ctx.store.savePlanet(home);
+    const other = ctx.store.planetOfUser(b.id)!;
+    other.ships.colony = 1;
+    ctx.store.savePlanet(other);
+    expect(() => send(ctx, a, { ...mission, to: other })).toThrow('besetzt');
+    send(ctx, a, mission);
+    send(ctx, b, mission);
+    const [first, second] = ctx.store.fleets().sort((x, y) => x.arr - y.arr);
+    expect(first?.owner).toBe(a.id);
+    ctx.clock.t = second!.arr;
+    tick(ctx);
+    expect(ctx.store.planet(colonyId)?.owner).toBe(a.id);
+    expect(ctx.store.fleet(second!.id)).toMatchObject({
+      state: 'back',
+      ships: { colony: 1 },
+      cargo: { m: 400 },
+    });
+    ctx.clock.t = second!.ret;
+    tick(ctx);
+    expect(ctx.store.planet(other.id)?.ships.colony).toBe(1);
+    expect(ctx.store.fleet(second!.id)).toBeNull();
   });
 });

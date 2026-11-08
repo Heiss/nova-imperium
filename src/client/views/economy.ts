@@ -27,6 +27,10 @@ function researchAction(v: V, k: string, level: number, miss: number): string {
 }
 
 export function research(v: V): string {
+  const home = v.s.homePlanet;
+  if (home && v.P.id !== home) {
+    return `<h2>Forschung</h2><div class="notice">Die Forschung findet auf deinem Heimatplaneten statt. <button data-act="selectPlanet" data-id="${esc(home)}">Zum Heimatplaneten</button></div>`;
+  }
   const { P, R, s } = v;
   if (!((P.b.lab ?? 0) > 0))
     return '<h2>Forschung</h2><div class="notice">Für Forschung brauchst du ein Forschungslabor.</div>';

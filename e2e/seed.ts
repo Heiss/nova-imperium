@@ -14,6 +14,13 @@ const d = JSON.parse(process.argv[2] ?? '{}');
 const u = store.userByName(d.name);
 if (!u) throw new Error(`no player ${d.name}`);
 store.tx(() => {
+  if (d.landColonyFleet) {
+    store.db
+      .prepare(
+        "UPDATE fleets SET arr = ? WHERE owner = ? AND mission = 'colonize' AND state = 'out'",
+      )
+      .run(Date.now(), u.id);
+  }
   if (d.research) store.saveUser({ ...u, research: d.research });
   const p = store.planetOfUser(u.id)!;
   store.savePlanet({

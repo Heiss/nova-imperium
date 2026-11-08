@@ -240,7 +240,7 @@ export class Store {
       ).map((x) => ({
         key: x.key as string,
         n: x.n as number,
-        unit: x.unit_ms as number,
+        unit: Math.ceil(x.unit_ms as number),
       })),
       sqT: (r.sq_t as number | null) ?? null,
       pct: levels(
@@ -268,6 +268,13 @@ export class Store {
         )
         .get(uid) as Row,
     );
+  }
+
+  playerPlanets(uid: string): Planet[] {
+    const rows = this.db
+      .prepare('SELECT * FROM planets WHERE owner = ? ORDER BY created, id')
+      .all(uid) as Row[];
+    return rows.map((r) => this.planetOf(r)!);
   }
 
   planets(): Planet[] {

@@ -1,7 +1,7 @@
 // Places a new home planet: a random free position 4 to 12 in the wished
 // galaxy, otherwise the first free position of the universe.
 import { pid } from '../../shared/flight.ts';
-import type { Coords, Planet } from '../../shared/types.ts';
+import type { Coords, Planet, Resources } from '../../shared/types.ts';
 import { type Ctx, fail, universe } from './context.ts';
 
 const TRIES = 300;
@@ -45,14 +45,28 @@ export function placePlanet(
     firstSpot(ctx, free) ??
     fail('Das Universum ist voll.');
   const u = universe(ctx);
-  const t = ctx.now();
+  return createPlanet(ctx, owner, name, c, ctx.now(), {
+    m: u.startMetal,
+    c: u.startCrystal,
+    d: u.startDeuterium,
+  });
+}
+
+export function createPlanet(
+  ctx: Ctx,
+  owner: string,
+  name: string,
+  c: Coords,
+  t: number,
+  res: Resources,
+): Planet {
   const planet: Planet = {
     id: pid(c),
     owner,
     name,
     ...c,
     temp: Math.round(130 - (c.p - 1) * 10 + (ctx.rng() * 20 - 10)),
-    res: { m: u.startMetal, c: u.startCrystal, d: u.startDeuterium },
+    res,
     b: {},
     ships: {},
     def: {},

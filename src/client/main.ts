@@ -190,7 +190,7 @@ function apiError(response: Response, error: unknown): Error {
   return new Error(String(error ?? 'Fehler') + (id ? ` Vorgang: ${id}` : ''));
 }
 
-function apply(st: GameState | undefined): void {
+function apply(st: GameState | undefined, fresh = false): void {
   if (!st || resetToken) return;
   const key = JSON.stringify({ ...st, now: 0 });
   const same = key === lastKey;
@@ -208,14 +208,50 @@ function apply(st: GameState | undefined): void {
     history.replaceState(null, '', viewUrl(view));
   }
   $('#unisub')!.textContent = `Classic Universum · Speed x${st.cfg.speed}`;
-  if (!same) render();
+  if (!same || fresh) render(fresh);
+}
+
+function stateUrl(planet?: string): string {
+  return planet
+    ? `/api/state?planet=${encodeURIComponent(planet)}`
+    : '/api/state';
+}
+
+let planetRequest = 0;
+
+async function selectPlanet(id: string): Promise<void> {
+  const request = ++planetRequest;
+  const player = S?.me.id;
+  try {
+    const state = (await api(stateUrl(id))) as unknown as GameState;
+    if (
+      request !== planetRequest ||
+      !player ||
+      S?.me.id !== player ||
+      state.planet?.id !== id
+    )
+      return;
+    completedMenu.clear();
+    completionNotices.clear();
+    ctx = null;
+    apply(state, true);
+  } catch (e) {
+    toast((e as Error).message, true);
+  }
+}
+
+function stillOnPlanet(player?: string, planet?: string): boolean {
+  return !!S && S.me.id === player && S.planet?.id === planet;
 }
 
 async function refresh(): Promise<void> {
   const player = S?.me.id;
+  const planet = S?.planet?.id;
   try {
-    const state = (await api('/api/state')) as unknown as GameState;
-    if (player && S?.me.id === player) apply(state);
+    const state = (await api(
+      stateUrl(planet === S?.homePlanet ? undefined : planet),
+    )) as unknown as GameState;
+    if (stillOnPlanet(player, planet)) apply(state);
   } catch (e) {
     if (S) console.warn(e);
   }
@@ -223,8 +259,10 @@ async function refresh(): Promise<void> {
 
 async function act(type: string, data: object = {}): Promise<boolean> {
   try {
-    const j = await api('/api/action', { type, ...data });
-    apply(j.state as GameState);
+    const planet = S?.planet?.id;
+    const player = S?.me.id;
+    const j = await api('/api/action', { type, planet, ...data });
+    if (stillOnPlanet(player, planet)) apply(j.state as GameState);
     if (j.msg) toast(String(j.msg));
     return true;
   } catch (e) {
@@ -412,6 +450,17 @@ function refreshInvitations(): void {
   if (adminPanel) void loadInvitations(adminPanel.invitations, api);
 }
 
+function renderPlanetHeader({ s, P }: V): void {
+  const owned = s.galaxy.filter((p) => p.owner === s.me.id);
+  const activeId = P.id;
+  const selector =
+    owned.length > 1
+      ? ` · <select id="planet_select" aria-label="Aktiver Planet">${owned.map((p) => `<option value="${esc(p.id)}" ${p.id === activeId ? 'selected' : ''}>${esc(p.name)} ${coords(p)}</option>`).join('')}</select>`
+      : '';
+  $('#pinfo')!.innerHTML =
+    `<b>${esc(P.name)}</b> ${coords(P)} · Kommandant <b>${esc(s.me.name)}</b> · <span class="lnk" data-act="logout">Logout</span>${selector}`;
+}
+
 function render(fresh = false): void {
   const view = $('#view')!;
   if (!S) {
@@ -439,8 +488,7 @@ function render(fresh = false): void {
   if (previous && !fresh) rememberCompletions(previous, ctx);
   renderMenu();
   updateBar();
-  $('#pinfo')!.innerHTML =
-    `<b>${esc(ctx.P.name)}</b> ${coords(ctx.P)} · Kommandant <b>${esc(S.me.name)}</b> · <span class="lnk" data-act="logout">Logout</span>`;
+  renderPlanetHeader(ctx);
   renderView(view, ctx);
   if (ui.view === 'help') updateInstallButton();
   renderCompletions(view);
@@ -585,7 +633,9 @@ function fleetCalc(): void {
   const target = S.galaxy.find((p) => p.id === pid(f.to));
   $('#t_info')!.innerHTML = target
     ? `${esc(target.name)} (${esc(nameOf(S.players, target.owner))})`
-    : '<span class="bad">kein Planet</span>';
+    : f.mission === 'colonize'
+      ? 'Freie Position'
+      : '<span class="bad">kein Planet</span>';
   const pv = fleetPreview(ctx.P, ctx.R, f, S.cfg);
   const set = (id: string, html: string): void =>
     void ($(`#${id}`)!.innerHTML = html);
@@ -716,9 +766,13 @@ const ACT: Record<string, (d: Data) => unknown> = {
     ui.sys = clampInt(val('#g_s'), 1, S!.cfg.systems);
     render(true);
   },
+  selectPlanet: (d) => {
+    if (d.id) return selectPlanet(d.id);
+  },
   ghome: () => {
-    ui.gal = ctx!.P.g;
-    ui.sys = ctx!.P.s;
+    const home = S!.galaxy.find((p) => p.id === S!.homePlanet) ?? ctx!.P;
+    ui.gal = home.g;
+    ui.sys = home.s;
     render(true);
   },
   gto: (d) => {
@@ -1112,6 +1166,7 @@ document.addEventListener('click', (e) => {
 });
 document.addEventListener('change', (e) => {
   const el = e.target as HTMLSelectElement;
+  if (el.id === 'planet_select') void selectPlanet(el.value);
   if (el.dataset?.chg === 'pct')
     void act('pct', { key: el.dataset.k, v: el.value });
   if (ui.view === 'fleet') fleetCalc();

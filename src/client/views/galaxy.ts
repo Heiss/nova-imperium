@@ -7,13 +7,19 @@ function row(v: V, p: number, rk: Record<string, number>): string {
   const { s, ui } = v;
   const c = { g: ui.gal, s: ui.sys, p };
   const pl = s.galaxy.find((x) => x.id === pid(c));
-  if (!pl)
-    return `<tr><td class="n">${p}</td><td colspan="3" class="dim">–</td></tr>`;
+  const at = `data-g="${c.g}" data-s="${c.s}" data-p="${p}"`;
+  if (!pl) {
+    const action = v.P.ships.colony
+      ? `<button class="small" data-act="gfleet" data-m="colonize" ${at}>Kolonisieren</button>`
+      : '';
+    return `<tr><td class="n">${p}</td><td colspan="2" class="dim">–</td><td>${action}</td></tr>`;
+  }
   const mine = pl.owner === s.me.id;
   const prot = !mine && isProtected(s.players, s.me.id, pl.owner);
-  const at = `data-g="${c.g}" data-s="${c.s}" data-p="${p}"`;
   const actions = mine
-    ? '<span class="dim">dein Planet</span>'
+    ? pl.id === v.P.id
+      ? '<span class="dim">Aktiver Planet</span>'
+      : `<button class="small" data-act="selectPlanet" data-id="${esc(pl.id)}">Wechseln</button> · <button class="small" data-act="gfleet" data-m="transport" ${at}>Transport</button>`
     : `<span class="lnk" data-act="gspy" ${at}>Spionieren</span> · <span class="lnk" data-act="gfleet" data-m="attack" ${at}>Angreifen</span> · <span class="lnk" data-act="gfleet" data-m="transport" ${at}>Transport</span>`;
   return `<tr class="${mine ? 'me' : ''}"><td class="n">${p}</td><td>${planetBall(pl.temp, 'gem round')}${esc(pl.name)}</td>
    <td>${esc(nameOf(s.players, pl.owner))} <span class="dim">(Platz ${rk[pl.owner] ?? '-'})</span>${prot ? ' <span class="good" title="Noobschutz">(n)</span>' : ''}</td>

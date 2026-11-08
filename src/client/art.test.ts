@@ -17,8 +17,8 @@ describe('art', () => {
     );
   });
   it('is the same as in version 1', () => {
-    expect(ART_KEYS.sort()).toEqual(legacy.keys.slice().sort());
-    for (const k of ART_KEYS) expect(artURI(k)).toBe(legacy.artURI(k));
+    for (const k of legacy.keys) expect(artURI(k)).toBe(legacy.artURI(k));
+    expect(artURI('colony')).toMatch(/^data:image\/svg\+xml/);
     expect(artURI('nope')).toBeNull();
   });
 });
