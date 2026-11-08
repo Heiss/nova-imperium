@@ -14,7 +14,7 @@ description: Requirements and verification checklist for the combined release pu
 - [x] Password change: require matching new-password fields and reject mismatches on the server.
 - [x] Account deletion: require password confirmation, erase account data and dissolve any guild the account leads.
 - [x] Sign-in: verify the email-code path for new sign-ins, offer an explicit persistent sign-in choice, and make passkey registration available from account options.
-- [x] PWA: explain how to install from supported browsers and how to enable notifications for the instance and device.
+- [x] PWA: explain how to install from supported browsers and how to enable notifications for the instance and device. The mobile install offer stays dismissed in the same browser after choosing “Später”.
 
 # Release gate
 

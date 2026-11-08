@@ -32,6 +32,9 @@ test('offers home-screen installation on a phone @phone', async ({ page }) => {
   await page.getByRole('button', { name: 'Schließen' }).click();
   await offer.getByRole('button', { name: 'Später' }).click();
   await expect(offer).toBeHidden();
+  await page.reload();
+  await expect(page.locator('.auth')).toBeVisible();
+  await expect(offer).toBeHidden();
 });
 
 test('displays an announcement received by the online-only push worker', async ({
