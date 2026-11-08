@@ -13,6 +13,9 @@ case "$#:${1:-}" in
   *) fail 'Usage: sh scripts/release.sh [--dry-run]' ;;
 esac
 
+[ -n "${NOVA_RELEASE_EXPECTED_SHA:-}" ] ||
+  fail 'Release tags are created by GitHub Actions after successful CI on main.'
+
 repo=Heiss/nova-imperium
 origin_pattern='^(https://github[.]com/|git@github[.]com:|ssh://git@github[.]com/)heiss/nova-imperium([.]git)?/?$'
 branch=$(git branch --show-current)
@@ -29,12 +32,20 @@ fi
 
 git fetch --tags origin main
 commit=$(git rev-parse 'FETCH_HEAD^{commit}')
+if [ "$commit" != "$NOVA_RELEASE_EXPECTED_SHA" ]; then
+  printf '%s\n' 'Main has moved since this CI run. Skipping the automatic tag.'
+  exit 0
+fi
 git merge-base --is-ancestor HEAD "$commit" ||
   fail 'Local main has commits that are not on origin/main.'
 
 # Let GitHub filter by commit, workflow, branch, event and successful status.
 api="https://api.github.com/repos/$repo/actions/workflows/ci.yml/runs"
-result=$(curl --fail --silent --show-error --max-time 15 \
+set --
+if [ -n "${NOVA_RELEASE_CI_TOKEN:-}" ]; then
+  set -- --header "Authorization: Bearer $NOVA_RELEASE_CI_TOKEN"
+fi
+result=$(curl --fail --silent --show-error --max-time 15 "$@" \
   "$api?branch=main&event=push&head_sha=$commit&status=success&per_page=1") ||
   fail 'Could not check GitHub CI.'
 successful_runs='^[[:space:]]*\{[[:space:]]*"total_count"[[:space:]]*:[[:space:]]*[1-9][0-9]*[[:space:]]*,'

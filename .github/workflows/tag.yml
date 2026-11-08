@@ -1,0 +1,43 @@
+name: Tag tested main
+
+on:
+  workflow_run:
+    workflows: [CI]
+    branches: [main]
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: tag-tested-main
+  cancel-in-progress: false
+
+jobs:
+  tag:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      vars.RELEASE_APP_ID != ''
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/create-github-app-token@v3
+        id: app
+        with:
+          app-id: ${{ vars.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          permission-contents: write
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+          token: ${{ steps.app.outputs.token }}
+      - name: Tag the tested commit if it is still main
+        env:
+          NOVA_RELEASE_EXPECTED_SHA: ${{ github.event.workflow_run.head_sha }}
+          NOVA_RELEASE_CI_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name 'Nova Imperium Release'
+          git config user.email 'nova-imperium-release@users.noreply.github.com'
+          sh scripts/release.sh

@@ -22,8 +22,8 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   (`e2e/a11y.spec.ts`). A look with a screen reader and the keyboard is still
   open.
 * **[E]** Mutation tests with Stryker, a score below 80 % blocks;
-  incremental on pull requests and `main`, complete every night and on a
-  release tag.
+  incremental on pull requests, complete on every push to `main` and
+  every night. Tag workflows verify the earlier CI result.
 * **[E]** Coverage blocks below 90 % of the lines and 85 % of the branches.
 * **[E]** ESLint blocks: cyclomatic complexity ≤ 10, cognitive complexity
   (sonarjs) ≤ 10, nesting ≤ 4, functions ≤ 50 lines (tests are free of the
@@ -65,4 +65,4 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   build, Compose stack with smoke test, gitleaks); the first run on GitHub is
   the proof.
 * Mutation tests take minutes; the incremental run keeps pull requests fast,
-  the nightly run is the complete one.
+  pushes to `main` and the nightly workflow test every mutant.
