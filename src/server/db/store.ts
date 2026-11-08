@@ -98,9 +98,9 @@ export class Store {
     this.db = db;
   }
 
-  /** Runs `fn` in one transaction: all or nothing. */
+  /** Reserve the writer before reads, so a concurrent commit cannot stale the snapshot. */
   tx<T>(fn: () => T): T {
-    return this.db.transaction(fn)();
+    return this.db.transaction(fn).immediate();
   }
 
   // ----- settings -----

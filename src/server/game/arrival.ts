@@ -1,3 +1,4 @@
+import { isDatabaseBusy } from '../db/database.ts';
 import { queuePush } from '../push-store.ts';
 // What happens when a fleet arrives or comes home: transport, espionage,
 // battle with loot and rebuilt defense.
@@ -331,16 +332,19 @@ export function tick(
   ctx: Ctx,
   log: (msg: string, e: unknown) => void = console.error,
 ): number {
-  const due = ctx.store.dueFleets(ctx.now());
+  const now = ctx.now();
+  const due = ctx.store.dueFleets(now);
   for (const f of due) {
     try {
       ctx.store.tx(() => {
         const live = ctx.store.fleet(f.id);
-        if (!live) return;
+        if (!live || (live.state === 'out' ? live.arr : live.ret) > now) return;
         if (live.state === 'out') arrive(ctx, live);
         else comeHome(ctx, live);
       });
     } catch (e) {
+      // Leave the fleet in place for the next tick when another writer holds the lock.
+      if (isDatabaseBusy(e)) break;
       log(`Fleet ${f.id} failed and was removed`, e);
       ctx.store.deleteFleet(f.id);
     }

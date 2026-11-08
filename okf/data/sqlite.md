@@ -14,7 +14,11 @@ audit data.
 On startup, the database enables foreign keys and uses WAL mode for on-disk
 databases. Migrations are applied in order in a transaction, with the current
 schema version recorded in SQLite's `user_version`. Store operations can group
-related updates in a transaction.
+related updates in a transaction. Write transactions acquire the writer lock
+before reading, so competing writers use the configured busy timeout instead
+of invalidating a snapshot midway through an action. The client retries a
+game action once when the server explicitly reports that it rolled back due
+to contention. Fleet arrivals remain queued when the writer lock is busy.
 
 In Docker Compose, the named data volume persists the database across container
 replacements. Follow the [backup and restore procedure](../../docs/operations.md#backup-and-restore)

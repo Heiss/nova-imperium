@@ -4,6 +4,11 @@ import { MIGRATIONS } from './schema.ts';
 
 export type Db = Database.Database;
 
+export function isDatabaseBusy(error: unknown): boolean {
+  if (!(error instanceof Database.SqliteError)) return false;
+  return error.code === 'SQLITE_BUSY' || error.code.startsWith('SQLITE_BUSY_');
+}
+
 export function migrate(
   db: Db,
   migrations: readonly string[] = MIGRATIONS,

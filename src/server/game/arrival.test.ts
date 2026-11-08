@@ -1,3 +1,4 @@
+import Database from 'better-sqlite3';
 import { describe, expect, it } from 'vitest';
 import type { Fleet } from '../../shared/types.ts';
 import { addPlanet, addUser, testCtx } from '../test-helpers.ts';
@@ -308,6 +309,21 @@ describe('tick', () => {
     expect(tick(broken, (m) => logged.push(m))).toBe(1);
     expect(logged).toEqual(['Fleet f1 failed and was removed']);
     expect(ctx.store.fleet('f1')).toBeNull();
+  });
+  it('leaves a fleet queued when the database writer is busy', () => {
+    const { ctx } = setup();
+    fleet(ctx);
+    const store = Object.create(ctx.store, {
+      tx: {
+        value: () => {
+          throw new Database.SqliteError('database is locked', 'SQLITE_BUSY');
+        },
+      },
+    });
+    tick({ ...ctx, store });
+    expect(ctx.store.fleet('f1')?.state).toBe('out');
+    tick(ctx);
+    expect(ctx.store.fleet('f1')?.state).toBe('back');
   });
   it('skips a fleet that disappeared meanwhile', () => {
     const { ctx } = setup();

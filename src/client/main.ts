@@ -161,6 +161,7 @@ class AuthError extends Error {}
 async function api(
   url: string,
   body?: unknown,
+  retryBusy = true,
 ): Promise<Record<string, unknown>> {
   const r = await fetch(url, {
     method: body ? 'POST' : 'GET',
@@ -180,8 +181,20 @@ async function api(
     render(true);
     throw new AuthError(String(j.error ?? 'Bitte einloggen.'));
   }
+  if (isRetryableAction(r, j, retryBusy)) {
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    return api(url, body, false);
+  }
   if (!r.ok) throw apiError(r, j.error);
   return j;
+}
+
+function isRetryableAction(
+  response: Response,
+  body: Record<string, unknown>,
+  retry: boolean,
+): boolean {
+  return retry && response.status === 503 && body.code === 'ACTION_DB_BUSY';
 }
 
 function apiError(response: Response, error: unknown): Error {
