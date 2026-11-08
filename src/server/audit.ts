@@ -1,3 +1,4 @@
+import { isDatabaseBusy } from './db/database.ts';
 import type { User } from './db/store.ts';
 import { type Ctx, GameError, int, str } from './game/context.ts';
 
@@ -43,8 +44,17 @@ export function audited<T>(ctx: Ctx, entry: AuditEntry, work: () => T): T {
       return result;
     });
   } catch (error) {
-    record(ctx, entry, error instanceof GameError ? 'rejected' : 'error');
+    if (!isDatabaseBusy(error)) recordFailure(ctx, entry, error);
     throw error;
+  }
+}
+
+function recordFailure(ctx: Ctx, entry: AuditEntry, error: unknown): void {
+  try {
+    record(ctx, entry, error instanceof GameError ? 'rejected' : 'error');
+  } catch (auditError) {
+    // A busy audit write must not turn a rejected action into a retry.
+    if (!isDatabaseBusy(auditError)) throw auditError;
   }
 }
 

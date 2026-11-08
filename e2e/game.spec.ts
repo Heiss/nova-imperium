@@ -379,6 +379,24 @@ test.describe('playing', () => {
     await expect(page).toHaveURL(/\?view=buildings$/);
   });
 
+  test('retries a build once when SQLite is busy', async ({ page }) => {
+    await register(page, uniqueName('Retry'));
+    await nav(page, 'buildings');
+    let attempts = 0;
+    await page.route('**/api/action', async (route) => {
+      attempts++;
+      if (attempts === 1) {
+        await route.fulfill({ status: 503, json: { code: 'ACTION_DB_BUSY' } });
+      } else {
+        await route.continue();
+      }
+    });
+    await page.click('[data-act=build][data-k=metal]');
+    await expect(page.getByText('Ausbau auf Stufe 1')).toBeVisible();
+    await expect(page.locator('#resbar')).toContainText('440');
+    expect(attempts).toBe(2);
+  });
+
   test('build, cancel, set production and rename', async ({ page }) => {
     const w = watch(page);
     await register(page, uniqueName('Bau'));

@@ -7,6 +7,7 @@ import * as security from '../account-security.ts';
 import * as passkeys from '../passkeys.ts';
 import type { Config } from '../config.ts';
 import { deleteAccount } from '../delete-account.ts';
+import { isDatabaseBusy } from '../db/database.ts';
 import type { User } from '../db/store.ts';
 import { requireAdmin } from '../game/admin.ts';
 import { type Ctx, GameError, str } from '../game/context.ts';
@@ -385,6 +386,30 @@ function pushRoutes(d: AppDeps): Record<string, Handler> {
   };
 }
 
+const DATABASE_BUSY =
+  'Die Datenbank ist gerade beschäftigt. Bitte versuche es gleich noch einmal.';
+
+function actionReply(ctx: Ctx, u: User, call: Call): Reply {
+  let msg: string | null;
+  try {
+    msg = playerAction(ctx, u, call);
+  } catch (error) {
+    if (!isDatabaseBusy(error)) throw error;
+    // The audited action did not commit. Only this response permits an automatic retry.
+    return {
+      status: 503,
+      json: { error: DATABASE_BUSY, code: 'ACTION_DB_BUSY' },
+    };
+  }
+  return {
+    json: {
+      ok: true,
+      msg,
+      state: stateFor(ctx, ctx.store.user(u.id)!, call.body.planet),
+    },
+  };
+}
+
 /** The game and the admin functions; all need a session. */
 function gameRoutes(d: AppDeps): Record<string, Handler> {
   const { ctx } = d;
@@ -402,17 +427,8 @@ function gameRoutes(d: AppDeps): Record<string, Handler> {
       activity(ctx, sessionUserOf(ctx, call));
       return { json: { ok: true } };
     },
-    'POST /api/action': (call) => {
-      const u = sessionUserOf(ctx, call);
-      const msg = playerAction(ctx, u, call);
-      return {
-        json: {
-          ok: true,
-          msg,
-          state: stateFor(ctx, ctx.store.user(u.id)!, call.body.planet),
-        },
-      };
-    },
+    'POST /api/action': (call) =>
+      actionReply(ctx, sessionUserOf(ctx, call), call),
     ...adminRoutes(
       d,
       (call) => sessionUserOf(ctx, call),
@@ -524,6 +540,7 @@ function fault(
   if (e instanceof GameError) return json(res, 400, { error: e.message });
   if (e instanceof Unauthorized)
     return json(res, 401, { error: 'Bitte einloggen.' });
+  if (isDatabaseBusy(e)) return json(res, 503, { error: DATABASE_BUSY });
   log?.(`Request failed [${requestId}]`, e);
   json(res, 500, { error: 'Serverfehler.' });
 }

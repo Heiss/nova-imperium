@@ -1,3 +1,7 @@
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { openDatabase } from '../db/database.ts';
+import { Store } from '../db/store.ts';
 import { createServer, type Server } from 'node:http';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -28,9 +32,14 @@ afterEach(async () => {
 });
 
 async function start(
-  over: { cfg?: Partial<Config>; mailer?: Mailer | null; logs?: string[] } = {},
+  over: {
+    cfg?: Partial<Config>;
+    mailer?: Mailer | null;
+    logs?: string[];
+    ctx?: TestCtx;
+  } = {},
 ) {
-  const ctx: TestCtx = testCtx();
+  const ctx = over.ctx ?? testCtx();
   const cfg = testConfig(over.cfg);
   const app = createApp({
     ctx,
@@ -90,6 +99,63 @@ async function asAdmin(over: Parameters<typeof start>[0] = {}) {
 }
 
 describe('http', () => {
+  it('retries a blocked build without a stale snapshot or a duplicate charge', async () => {
+    const dir = mkdtempSync(path.join(tmpdir(), 'nova-lock-'));
+    const file = path.join(dir, 'game.sqlite');
+    const db = openDatabase(file);
+    const writer = openDatabase(file);
+    try {
+      const ctx = { ...testCtx(), store: new Store(db) };
+      db.pragma('busy_timeout = 0');
+      const { cfg, call, setCookie } = await start({ ctx });
+      const user = addUser(ctx, 'Anna');
+      const planet = addPlanet(ctx, user.id);
+      setCookie(`${COOKIE}=${startSession(ctx, cfg, user.id)}`);
+      const action = { type: 'build', key: 'metal' };
+
+      // A write committed after a deferred read reproduces the production error.
+      expect(() =>
+        db.transaction(() => {
+          db.prepare('SELECT * FROM planets').get();
+          writer
+            .prepare('UPDATE planets SET name = ? WHERE id = ?')
+            .run('Renamed', planet.id);
+          db.prepare('UPDATE planets SET name = ? WHERE id = ?').run(
+            'Stale',
+            planet.id,
+          );
+        })(),
+      ).toThrow(expect.objectContaining({ code: 'SQLITE_BUSY_SNAPSHOT' }));
+
+      writer.exec('BEGIN IMMEDIATE');
+      const busy = await call('POST', '/api/action', action);
+      expect(busy.status).toBe(503);
+      expect(busy.json?.code).toBe('ACTION_DB_BUSY');
+      const activity = await call('POST', '/api/activity', {});
+      expect(activity.status).toBe(503);
+      expect(activity.json?.code).toBeUndefined();
+      expect(ctx.store.planet(planet.id)?.bq).toBeNull();
+      writer.exec('COMMIT');
+
+      expect((await call('POST', '/api/action', action)).status).toBe(200);
+      expect(ctx.store.planet(planet.id)).toMatchObject({
+        name: 'Renamed',
+        bq: { key: 'metal', lvl: 1 },
+        res: { m: planet.res.m - 60, c: planet.res.c - 15 },
+      });
+      expect(
+        db
+          .prepare("SELECT outcome FROM audit_events WHERE action = 'build'")
+          .all(),
+      ).toEqual([{ outcome: 'ok' }]);
+      expect((await call('POST', '/api/activity', {})).status).toBe(200);
+    } finally {
+      writer.close();
+      db.close();
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it('serves the client with security headers and blocks path traversal', async () => {
     const { call } = await start();
     const page = await call('GET', '/');
