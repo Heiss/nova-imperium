@@ -19,10 +19,12 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   for the exact tagged commit. It then builds the image for linux/amd64 and linux/arm64 and pushed to
   `ghcr.io/heiss/nova-imperium:<tag>` and `:latest`, and a GitHub release is
   created. "Run workflow" by hand is a dry run.
-* **[E]** Run `sh scripts/release.sh` from a clean local `main`. It checks
-  GitHub CI on the fetched commit before fast-forwarding and pushing the next
-  annotated tag. The first release of each Europe/Berlin calendar month uses
-  micro version 0. A repeat on the same commit in that month reuses its tag.
+* **[E]** After successful push CI, GitHub Actions tags the tested commit if it
+  is still the tip of `main`. The automatic tag uses the release App token
+  so the tag push starts the image workflow. The first release each month
+  in Europe/Berlin uses micro version 0, and a repeat on the same commit
+  within the month reuses its tag. The tag ruleset reserves creation for the
+  release App.
 * **[E]** Renovate opens pull requests for dependencies and images, waits
   3 days after a release (`minimumReleaseAge`) and merges patch updates
   automatically once the CI is green.

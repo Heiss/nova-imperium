@@ -79,26 +79,19 @@ docker compose start app
 
 Keep `.env` and `secrets/` in your own backup as well; they are not in Git.
 
-## Create a release
+## Automatic releases
 
-In a clean checkout of `main` with `origin` set to this GitHub repository, run:
+Install the release GitHub App on this repository with Contents read and write.
+Set the Actions secret `RELEASE_APP_PRIVATE_KEY` to its PEM key, then set the
+Actions variable `RELEASE_APP_ID` to enable automatic tagging. The workflow
+runs after successful push CI on `main` and tags that exact commit if it is
+still the tip of `main`. A newer commit needs its own successful CI run.
+The App's tag push triggers the image release workflow, which independently
+verifies successful CI for that commit before building or publishing.
+Tags use `YY.M.MICRO` in Europe/Berlin, starting at 0 each month.
 
-```bash
-sh scripts/release.sh
-```
-
-The script requires a POSIX shell, Git, curl and standard shell utilities.
-
-The script fetches `main` and the tags, verifies successful GitHub CI for that
-commit, and fast-forwards the local branch. It creates and pushes the next
-annotated CalVer tag for the current month in Europe/Berlin. A repeat in the
-same month reuses a tag already attached to that commit. Use `--dry-run` to
-preview the tag without updating the checked-out branch or pushing.
-The release workflow checks for a successful CI push run on `main` for the
-exact tagged commit before it builds and publishes the image. Every push to
-`main` runs the full test suite, including all mutation tests. GitHub records
-manually pushed tags before the workflow starts. If CI is missing or failed,
-the tag exists in Git, and the release workflow stops before the image build.
+To restrict tag creation to the release App, grant only that App bypass access
+in the tag ruleset and activate the ruleset after verifying automatic tagging.
 
 ## Updates
 
