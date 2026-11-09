@@ -1,0 +1,102 @@
+name: Bug report
+description: Something in the game, the server or the operation does not work as documented.
+title: '[Bug]: '
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Write in English; quote texts of the game interface in German.
+        Never paste passwords, invitation links, session cookies or secrets. Report security problems privately to the owner, not here.
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Preflight
+      options:
+        - label: I searched the existing issues for a duplicate.
+          required: true
+        - label: This report contains no secrets or personal data of other players.
+          required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      multiple: true
+      options:
+        - Ships
+        - Defense
+        - Research
+        - Buildings
+        - Fleet missions
+        - Battle
+        - Economy and resources
+        - Galaxy and universe
+        - Game interface
+        - Admin and accounts
+        - Operations, CI and security
+        - Other
+    validations:
+      required: true
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      options:
+        - Blocker – the game or the server cannot be used
+        - Major – a feature is wrong, no workaround
+        - Minor – wrong, but a workaround exists
+        - Cosmetic – text, layout or style
+    validations:
+      required: true
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Log in as …
+        2. Open …
+        3. Click …
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+      description: Link the rule, doc or OKF concept that defines it, if any.
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behaviour
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Release tag (CalVer, for example `26.11.0`) or commit.
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Browser and device
+      placeholder: Firefox 140, desktop
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Server log or browser console, with secrets removed.
+      render: shell
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Screenshots, universe settings, frequency.
