@@ -1,0 +1,505 @@
+/* Design draft "interface v2" for Nova Imperium. Static mockup only, not used
+   by the game. Colours follow the icon set (gold frame, dark bronze ground). */
+@font-face {
+  font-family: Cinzel;
+  font-weight: 600;
+  src: url('fonts/cinzel-latin-600-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: Cinzel;
+  font-weight: 800;
+  src: url('fonts/cinzel-latin-800-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'EB Garamond';
+  font-weight: 400;
+  src: url('fonts/eb-garamond-latin-400-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'EB Garamond';
+  font-weight: 400;
+  font-style: italic;
+  src: url('fonts/eb-garamond-latin-400-italic.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'EB Garamond';
+  font-weight: 600;
+  src: url('fonts/eb-garamond-latin-600-normal.woff2') format('woff2');
+}
+
+:root {
+  --bg: #0d0a08;
+  --panel: #1a1411;
+  --panel-2: #231a14;
+  --line: #3b2f22;
+  --gold: #d4a537;
+  --gold-hi: #f1d27a;
+  --text: #e9dfc8;
+  --muted: #9a8c74;
+  --ok: #8fbf6a;
+  --bad: #e0614a;
+  --ember: #e08a2a;
+  --m: #c9c2b6;
+  --c: #7fd3f5;
+  --d: #6fe0a8;
+  --e: #f3d36b;
+}
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+  color: var(--text);
+  font:
+    16px/1.45 'EB Garamond',
+    Georgia,
+    serif;
+}
+body {
+  background: var(--bg) radial-gradient(ellipse at top, #2a1a12 0%, #0d0a08 60%)
+    fixed;
+  min-height: 100vh;
+}
+a {
+  color: var(--gold-hi);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+.dim {
+  color: var(--muted);
+}
+.bad {
+  color: var(--bad);
+}
+.ok {
+  color: var(--ok);
+}
+
+/* ---------- Shell ---------- */
+.app {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  grid-template-rows: auto 1fr;
+  max-width: 1240px;
+  min-height: 100vh;
+  margin: 0 auto;
+}
+header {
+  grid-column: 1 / 3;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 22px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+  background: linear-gradient(#1c130d, #0f0b08);
+  box-shadow: inset 0 -1px 0 #000;
+}
+.logo {
+  font:
+    800 22px Cinzel,
+    serif;
+  letter-spacing: 0.14em;
+  color: var(--gold);
+  text-shadow: 0 0 10px #6c4811;
+}
+.logo small {
+  display: block;
+  font:
+    italic 13px 'EB Garamond',
+    serif;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  text-shadow: none;
+}
+.pinfo b {
+  color: var(--gold-hi);
+  font-weight: 600;
+}
+.resbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-left: auto;
+}
+.res {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 118px;
+  padding: 4px 10px 4px 4px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+.res img {
+  width: 32px;
+  height: 32px;
+  display: block;
+}
+.res .l {
+  font:
+    600 10px Cinzel,
+    serif;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+.res .v {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.res.full .v {
+  color: var(--bad);
+}
+
+nav {
+  padding: 14px 10px;
+  border-right: 1px solid var(--line);
+  background: rgb(13 10 8 / 0.6);
+}
+nav a {
+  display: block;
+  padding: 6px 10px;
+  margin-bottom: 2px;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  color: var(--text);
+  font:
+    600 13px Cinzel,
+    serif;
+  letter-spacing: 0.06em;
+}
+nav a:hover {
+  border-color: var(--line);
+  text-decoration: none;
+}
+nav a[aria-current='page'] {
+  color: var(--gold-hi);
+  background: var(--panel-2);
+  border-color: var(--gold);
+}
+nav hr {
+  border: 0;
+  border-top: 1px solid var(--line);
+  margin: 10px 4px;
+}
+.badge {
+  display: inline-block;
+  min-width: 18px;
+  margin-left: 6px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: #a3141a;
+  color: #fff;
+  font:
+    600 11px/18px 'EB Garamond',
+    serif;
+  text-align: center;
+}
+
+main {
+  padding: 16px 20px 40px;
+}
+h2 {
+  margin: 0 0 14px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--line);
+  font:
+    800 22px Cinzel,
+    serif;
+  letter-spacing: 0.08em;
+  color: var(--gold);
+}
+h2 .dim {
+  font-weight: 600;
+  font-size: 16px;
+  letter-spacing: 0.04em;
+}
+
+/* ---------- Boxes ---------- */
+.box {
+  margin-bottom: 16px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+.box > h3 {
+  margin: 0;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--line);
+  font:
+    600 14px Cinzel,
+    serif;
+  letter-spacing: 0.08em;
+  color: var(--gold);
+}
+.box > .bd {
+  padding: 12px 14px;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+td,
+th {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: middle;
+}
+tr:last-child td {
+  border-bottom: 0;
+}
+.kv td:first-child {
+  width: 34%;
+  color: var(--muted);
+}
+.n {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.mini {
+  width: 32px;
+  height: 32px;
+  vertical-align: middle;
+}
+
+/* ---------- Overview ---------- */
+.planet {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 16px;
+  align-items: center;
+}
+.planet-ball {
+  width: 160px;
+  height: 160px;
+  margin: 0 auto;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 35% 30%,
+    #c9d98a 0%,
+    #6f8f2c 45%,
+    #1e2a0b 100%
+  );
+  box-shadow:
+    0 0 0 3px #0d0a08,
+    0 0 0 5px var(--gold),
+    0 0 26px #6c4811;
+}
+.fl-out {
+  color: var(--ok);
+}
+.fl-back {
+  color: var(--muted);
+}
+.fl-enemy {
+  color: var(--bad);
+}
+
+/* ---------- Buildings ---------- */
+.items {
+  display: grid;
+  gap: 10px;
+}
+.item {
+  display: grid;
+  grid-template-columns: 112px 1fr auto;
+  gap: 16px;
+  align-items: center;
+  padding: 10px 14px 10px 10px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  transition: border-color 0.15s;
+}
+.item:hover {
+  border-color: var(--gold);
+}
+.item > img {
+  width: 112px;
+  height: 112px;
+  display: block;
+}
+.item.locked > img {
+  filter: grayscale(0.85) brightness(0.6);
+}
+.item.running {
+  border-color: var(--ember);
+  box-shadow: 0 0 0 1px var(--ember) inset;
+}
+.nm {
+  font:
+    600 17px Cinzel,
+    serif;
+  letter-spacing: 0.04em;
+  color: var(--gold-hi);
+}
+.nm .lv {
+  font:
+    italic 15px 'EB Garamond',
+    serif;
+  color: var(--muted);
+  letter-spacing: 0;
+}
+.desc {
+  margin: 2px 0 6px;
+  font-style: italic;
+  color: var(--muted);
+}
+.cost {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+}
+.cost span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-variant-numeric: tabular-nums;
+}
+.cost img {
+  width: 22px;
+  height: 22px;
+}
+.meta {
+  margin-top: 4px;
+  font-size: 15px;
+  color: var(--muted);
+}
+.req {
+  color: var(--bad);
+}
+.act {
+  min-width: 190px;
+  text-align: center;
+}
+button {
+  padding: 7px 16px;
+  font:
+    600 13px Cinzel,
+    serif;
+  letter-spacing: 0.06em;
+  color: #1a1206;
+  background: linear-gradient(#f1d27a, #b8842a);
+  border: 1px solid #0d0a08;
+  border-radius: 3px;
+  box-shadow:
+    inset 0 1px 0 #fff6cc,
+    0 0 0 1px #6c4811;
+  cursor: pointer;
+}
+button:hover {
+  filter: brightness(1.1);
+}
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--gold-hi);
+  outline-offset: 2px;
+}
+button:disabled {
+  color: var(--muted);
+  background: var(--panel-2);
+  box-shadow: 0 0 0 1px var(--line);
+  cursor: not-allowed;
+}
+button.red {
+  color: #fff;
+  background: linear-gradient(#c2392a, #6e140f);
+  box-shadow:
+    inset 0 1px 0 #ff9a8a,
+    0 0 0 1px #4a0508;
+}
+.cd {
+  display: block;
+  margin: 4px 0 6px;
+  font:
+    600 18px 'EB Garamond',
+    serif;
+  font-variant-numeric: tabular-nums;
+  color: var(--ember);
+}
+.progress {
+  height: 6px;
+  margin: 0 0 8px;
+  background: #0d0a08;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.progress > i {
+  display: block;
+  height: 100%;
+  width: 62%;
+  background: linear-gradient(90deg, #7b4c17, var(--ember), var(--gold-hi));
+}
+
+.note {
+  margin-top: 24px;
+  padding: 8px 12px;
+  border: 1px dashed var(--line);
+  border-radius: 4px;
+  color: var(--muted);
+  font-style: italic;
+}
+
+/* ---------- Phone ---------- */
+@media (max-width: 760px) {
+  .app {
+    grid-template-columns: 1fr;
+  }
+  header {
+    grid-column: 1;
+    gap: 8px;
+    padding: 10px 12px;
+  }
+  .resbar {
+    margin-left: 0;
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .res {
+    min-width: 0;
+  }
+  nav {
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+    padding: 8px 12px;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  nav a {
+    flex: none;
+    margin: 0;
+  }
+  nav hr {
+    display: none;
+  }
+  main {
+    padding: 12px 12px 32px;
+  }
+  .planet {
+    grid-template-columns: 1fr;
+  }
+  .item {
+    grid-template-columns: 72px 1fr;
+    gap: 10px 12px;
+  }
+  .item > img {
+    width: 72px;
+    height: 72px;
+  }
+  .act {
+    grid-column: 1 / 3;
+    min-width: 0;
+  }
+  .act button {
+    width: 100%;
+  }
+}

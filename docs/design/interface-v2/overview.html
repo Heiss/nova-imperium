@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Übersicht – Nova Imperium (Designentwurf)</title>
+    <link rel="stylesheet" href="design.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header>
+        <div class="logo">
+          NOVA IMPERIUM<small>Classic Universum · Speed x5</small>
+        </div>
+        <div class="pinfo">
+          <b>Heimatplanet</b> <span class="dim">[1:50:7]</span> · Kommandant
+          <b>Kaiser</b> ·
+          <a href="#">Logout</a>
+        </div>
+        <div class="resbar" aria-label="Rohstoffe">
+          <div class="res">
+            <img src="icons/resources/metal.svg" alt="" />
+            <div>
+              <div class="l">Metall</div>
+              <div class="v">1.284</div>
+            </div>
+          </div>
+          <div class="res">
+            <img src="icons/resources/crystal.svg" alt="" />
+            <div>
+              <div class="l">Kristall</div>
+              <div class="v">620</div>
+            </div>
+          </div>
+          <div class="res">
+            <img src="icons/resources/deuterium.svg" alt="" />
+            <div>
+              <div class="l">Deuterium</div>
+              <div class="v">140</div>
+            </div>
+          </div>
+          <div class="res">
+            <img src="icons/resources/energy.svg" alt="" />
+            <div>
+              <div class="l">Energie</div>
+              <div class="v">12/66</div>
+            </div>
+          </div>
+        </div>
+      </header>
+      <nav aria-label="Hauptmenü">
+        <a href="overview.html" aria-current="page">Übersicht</a>
+        <a href="buildings.html">Gebäude</a>
+        <a href="#">Rohstoffe</a>
+        <a href="#">Forschung</a>
+        <a href="#">Schiffswerft</a>
+        <a href="#">Verteidigung</a>
+        <hr />
+        <a href="#">Flotte</a>
+        <a href="#">Galaxie</a>
+        <a href="#">Nachrichten <span class="badge">2</span></a>
+        <a href="#">Highscore</a>
+        <a href="#">Gilden</a>
+        <a href="#">Achievements <span class="badge">1</span></a>
+        <hr />
+        <a href="#">Hilfe &amp; Optionen</a>
+      </nav>
+      <main>
+        <h2>Übersicht <span class="dim">– Heimatplanet [1:50:7]</span></h2>
+        <section class="box">
+          <h3>Flottenbewegungen</h3>
+          <div class="bd">
+            <table>
+              <tr>
+                <td class="n">0:03:12</td>
+                <td class="fl-enemy">
+                  Eine fremde Flotte von <b>Statthalter</b> [1:48:3] erreicht
+                  deinen Planeten [1:50:7] · Spionage (1 Spionagesonde)
+                </td>
+                <td></td>
+              </tr>
+              <tr>
+                <td class="n">0:12:40</td>
+                <td class="fl-out">
+                  <img class="mini" src="icons/ships/small_cargo.svg" alt="" />
+                  Deine Flotte (2 Kleiner Transporter) von [1:50:7] erreicht
+                  [1:50:9] · Transport
+                </td>
+                <td><button>Rückruf</button></td>
+              </tr>
+              <tr>
+                <td class="n">0:31:05</td>
+                <td class="fl-back">
+                  <img
+                    class="mini"
+                    src="icons/ships/espionage_probe.svg"
+                    alt=""
+                  />
+                  Deine Flotte (1 Spionagesonde) kehrt von [1:49:4] nach
+                  [1:50:7] zurück
+                </td>
+                <td></td>
+              </tr>
+            </table>
+          </div>
+        </section>
+        <section class="box">
+          <h3>Planet</h3>
+          <div class="bd planet">
+            <div class="planet-ball" role="img" aria-label="Heimatplanet"></div>
+            <table class="kv">
+              <tr>
+                <td>Planet</td>
+                <td>Heimatplanet <a href="#">(umbenennen)</a></td>
+              </tr>
+              <tr>
+                <td>Position</td>
+                <td>[1:50:7]</td>
+              </tr>
+              <tr>
+                <td>Temperatur</td>
+                <td>ca. 32°C bis 72°C</td>
+              </tr>
+              <tr>
+                <td>Punkte</td>
+                <td>1.412 (Platz 3 von 7)</td>
+              </tr>
+              <tr>
+                <td>Serverzeit</td>
+                <td>09.11., 23:55:35</td>
+              </tr>
+            </table>
+          </div>
+        </section>
+        <section class="box">
+          <h3>Aktivitäten</h3>
+          <div class="bd">
+            <table>
+              <tr>
+                <td>
+                  <img
+                    class="mini"
+                    src="icons/buildings/metal_mine.svg"
+                    alt=""
+                  />
+                </td>
+                <td>Gebäude</td>
+                <td>Metallmine (Stufe 4)</td>
+                <td class="n">0:44</td>
+              </tr>
+              <tr>
+                <td>
+                  <img
+                    class="mini"
+                    src="icons/research/energy_technology.svg"
+                    alt=""
+                  />
+                </td>
+                <td>Forschung</td>
+                <td>Energietechnik (Stufe 2)</td>
+                <td class="n">6:10</td>
+              </tr>
+              <tr>
+                <td>
+                  <img
+                    class="mini"
+                    src="icons/ships/light_fighter.svg"
+                    alt=""
+                  />
+                </td>
+                <td>Werft</td>
+                <td>5× Leichter Jäger</td>
+                <td class="n">0:52 (nächste)</td>
+              </tr>
+            </table>
+          </div>
+        </section>
+        <p class="note">
+          Designentwurf mit Beispieldaten – keine Implementierung. Icons:
+          <code>docs/design/interface-v2/icons/</code>.
+        </p>
+      </main>
+    </div>
+  </body>
+</html>
