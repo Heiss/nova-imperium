@@ -67,7 +67,9 @@ const checkBuild = (p: Planet, r: ResearchState, k: string): void => {
 export const build: Action = (ctx, u, d, event) => {
   const k = String(d.key);
   const def = BUILD[k] ?? fail('Unbekanntes Gebäude.');
-  const p = mine(ctx, u, d.planet);
+  // „at“: a requirement on another own planet (issue #64); the answer keeps
+  // showing d.planet.
+  const p = mine(ctx, u, d.at ?? d.planet);
   checkBuild(p, researchOf(ctx, u), k);
   const lvl = (p.b[k] ?? 0) + 1;
   const c = lvlCost(def, lvl);

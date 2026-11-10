@@ -51,6 +51,8 @@
   --red: #ee7660;
   --green: #9ccb76;
   --orange: #f0a050;
+  /* A requirement whose next level can start now (issue #64, D5). */
+  --ready: #9ccb76;
   --head: Cinzel, Georgia, serif;
   --body: 'EB Garamond', Georgia, serif;
 }
@@ -353,6 +355,62 @@ th.n {
 .req {
   color: var(--red);
   font-size: 15px;
+}
+/* Unmet requirements as a list (issue #64): startable ones in --ready with a
+   button, the others in the error colour with the reason. */
+.needs {
+  margin-top: 6px;
+}
+.needs-h {
+  font: 600 12px var(--head);
+  letter-spacing: 0.06em;
+  color: var(--dim);
+}
+.needs ul {
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.need {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 4px 0 4px 10px;
+  border-left: 3px solid var(--red);
+}
+.need + .need {
+  margin-top: 4px;
+}
+.need.missing .need-nm {
+  color: var(--red);
+}
+.need.ready {
+  border-left-color: var(--ready);
+}
+.need.ready .need-nm {
+  color: var(--ready);
+}
+.need .via,
+.need .why {
+  color: var(--dim);
+  font-size: 15px;
+}
+.need .why .cost {
+  display: inline-flex;
+}
+button.go {
+  flex: none;
+  color: #10200a;
+  background: linear-gradient(#c6e6a6, #6f9a4a);
+  box-shadow:
+    inset 0 1px 0 #e8f6da,
+    0 0 0 1px #3d5a26;
+}
+button.go:disabled {
+  color: var(--dim);
+  background: var(--box-2);
+  box-shadow: 0 0 0 1px var(--line);
 }
 .cd {
   color: var(--ember);

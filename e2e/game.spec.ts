@@ -398,6 +398,59 @@ test.describe('playing', () => {
     expect(attempts).toBe(2);
   });
 
+  test('lists all missing requirements and starts the next one (#64)', async ({
+    page,
+  }) => {
+    const w = watch(page);
+    const name = uniqueName('Plan');
+    await register(page, name);
+    seed({ name, res: { m: 5000, c: 5000, d: 5000 } });
+    await page.goto('/?view=buildings');
+    const yard = page.locator('.item').filter({ hasText: 'Raumschiffwerft' });
+    const robot = yard.locator('.need').filter({ hasText: 'Roboterfabrik' });
+    await expect(robot).toContainText('Stufe 2 (aktuell 0)');
+    await expect(robot).toHaveClass(/ready/);
+    await robot.getByRole('button', { name: 'Jetzt bauen' }).click();
+    await expect(page.locator('.item.running')).toContainText('Roboterfabrik');
+    await expect(page).toHaveURL(/\?view=buildings$/);
+    await expect(robot).toContainText('Bauschleife belegt');
+    await expect(
+      robot.getByRole('button', { name: 'Jetzt bauen' }),
+    ).toBeDisabled();
+    expect(w.problems).toEqual([]);
+  });
+
+  test('starts a research requirement of a ship, indirect ones included (#64)', async ({
+    page,
+  }) => {
+    const w = watch(page);
+    const name = uniqueName('Jaeger');
+    await register(page, name);
+    seed({
+      name,
+      b: { robot: 2, yard: 1, lab: 1 },
+      res: { m: 50000, c: 50000, d: 50000 },
+    });
+    await page.goto('/?view=shipyard');
+    const fighter = page.locator('.item').filter({ hasText: 'Leichter Jäger' });
+    const comb = fighter.locator('.need').filter({
+      has: page.locator('.need-nm', { hasText: /^Verbrennungstriebwerk$/ }),
+    });
+    const energy = fighter.locator('.need').filter({
+      has: page.locator('.need-nm', { hasText: /^Energietechnik$/ }),
+    });
+    await expect(comb).toHaveClass(/missing/);
+    await expect(comb).toContainText('braucht Energietechnik (Stufe 1)');
+    await expect(energy).toContainText('für Verbrennungstriebwerk');
+    await energy.getByRole('button', { name: 'Jetzt forschen' }).click();
+    await expect(energy).toContainText('Es wird bereits geforscht');
+    await expect(
+      energy.getByRole('button', { name: 'Jetzt forschen' }),
+    ).toBeDisabled();
+    await expect(page).toHaveURL(/\?view=shipyard$/);
+    expect(w.problems).toEqual([]);
+  });
+
   test('build, cancel, set production and rename', async ({ page }) => {
     const w = watch(page);
     await register(page, uniqueName('Bau'));
