@@ -18,4 +18,4 @@ by the game; it is the reference for the design issue.
   License 1.1, see the `OFL-*.txt` files), so no request leaves the server.
 - `screenshots/`: `current-*` is the interface today, `mockup-*` the draft;
   desktop 1280 px full page, phone as the Pixel 7 viewport (412 × 915).
-  `mockup-planets-animated.webp` is recorded at 15× speed.
+  `mockup-planets-animated.webp` is recorded in real time (8 s, 25 fps).

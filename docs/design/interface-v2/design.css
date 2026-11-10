@@ -650,14 +650,14 @@ button.red {
 }
 
 /* ---------- Planets: layered, animated (CSS only) ----------
-   Layers: surface texture (turns slowly), clouds (drift faster), day/night
+   Layers: surface texture (turns slowly, 3–9 min per tile), clouds (drift faster), day/night
    shading, atmosphere rim and glow (breathes). Textures are tileable SVGs in
    planets/, so a translateX of one tile loops without a seam. */
 .pl {
   --size: 160px;
   --atmo: #6fb8ff;
-  --turn: 120s;
-  --drift: 70s;
+  --turn: 360s;
+  --drift: 210s;
   position: relative;
   width: var(--size);
   height: var(--size);
@@ -729,7 +729,7 @@ button.red {
   );
   filter: blur(4px);
   opacity: 0.55;
-  animation: pl-breathe 9s ease-in-out infinite alternate;
+  animation: pl-breathe 15s ease-in-out infinite alternate;
 }
 @keyframes pl-breathe {
   to {
@@ -749,7 +749,7 @@ button.red {
 }
 .pl-wasser {
   --atmo: #7fd3ff;
-  --drift: 55s;
+  --drift: 165s;
 }
 .pl-wasser .pl-surface {
   background-image: url('planets/wasser-surface.svg');
@@ -759,7 +759,7 @@ button.red {
 }
 .pl-dschungel {
   --atmo: #8fe0b0;
-  --drift: 90s;
+  --drift: 270s;
 }
 .pl-dschungel .pl-surface {
   background-image: url('planets/dschungel-surface.svg');
@@ -780,8 +780,8 @@ button.red {
 }
 .pl-wueste {
   --atmo: #f0a050;
-  --turn: 150s;
-  --drift: 40s;
+  --turn: 450s;
+  --drift: 120s;
 }
 .pl-wueste .pl-surface {
   background-image: url('planets/wueste-surface.svg');
@@ -792,8 +792,8 @@ button.red {
 }
 .pl-eis {
   --atmo: #cfefff;
-  --turn: 180s;
-  --drift: 100s;
+  --turn: 540s;
+  --drift: 300s;
 }
 .pl-eis .pl-surface {
   background-image: url('planets/eis-surface.svg');
@@ -805,8 +805,8 @@ button.red {
 /* Gas giant: bands turn fast, the upper band layer even faster. */
 .pl-gas {
   --atmo: #f5d29a;
-  --turn: 60s;
-  --drift: 38s;
+  --turn: 180s;
+  --drift: 114s;
 }
 .pl-gas .pl-surface {
   background-image: url('planets/gas-surface.svg');
