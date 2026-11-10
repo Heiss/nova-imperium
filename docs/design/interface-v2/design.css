@@ -156,12 +156,12 @@ header {
   color: var(--bad);
 }
 
-nav {
+.app > nav {
   padding: 14px 10px;
   border-right: 1px solid var(--line);
   background: rgb(13 10 8 / 0.6);
 }
-nav a {
+.app > nav a {
   display: block;
   padding: 6px 10px;
   margin-bottom: 2px;
@@ -173,16 +173,16 @@ nav a {
     serif;
   letter-spacing: 0.06em;
 }
-nav a:hover {
+.app > nav a:hover {
   border-color: var(--line);
   text-decoration: none;
 }
-nav a[aria-current='page'] {
+.app > nav a[aria-current='page'] {
   color: var(--gold-hi);
   background: var(--panel-2);
   border-color: var(--gold);
 }
-nav hr {
+.app > nav hr {
   border: 0;
   border-top: 1px solid var(--line);
   margin: 10px 4px;
@@ -466,21 +466,6 @@ button.red {
   .res {
     min-width: 0;
   }
-  nav {
-    display: flex;
-    gap: 4px;
-    overflow-x: auto;
-    padding: 8px 12px;
-    border-right: 0;
-    border-bottom: 1px solid var(--line);
-  }
-  nav a {
-    flex: none;
-    margin: 0;
-  }
-  nav hr {
-    display: none;
-  }
   main {
     padding: 12px 12px 32px;
   }
@@ -501,5 +486,181 @@ button.red {
   }
   .act button {
     width: 100%;
+  }
+}
+
+/* ---------- Phone navigation: bottom tab bar + "Mehr" bottom sheet ---------- */
+.tabbar,
+.sheet {
+  display: none;
+}
+@media (max-width: 760px) {
+  .app > nav {
+    display: none;
+  }
+  body {
+    padding-bottom: calc(64px + env(safe-area-inset-bottom));
+  }
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    padding-top: calc(8px + env(safe-area-inset-top));
+  }
+  .logo {
+    font-size: 17px;
+  }
+  .logo small,
+  .pinfo {
+    display: none;
+  }
+  .resbar {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 4px;
+  }
+  .res {
+    flex-direction: column;
+    gap: 0;
+    padding: 4px 2px;
+    text-align: center;
+  }
+  .res img {
+    width: 28px;
+    height: 28px;
+  }
+  .res .l {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .res .v {
+    font-size: 14px;
+  }
+  .tabbar {
+    position: fixed;
+    inset: auto 0 0;
+    z-index: 20;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    padding: 4px 4px env(safe-area-inset-bottom);
+    background: linear-gradient(#1c130d, #0d0a08);
+    border-top: 1px solid var(--gold);
+    box-shadow: 0 -6px 18px rgb(0 0 0 / 0.6);
+  }
+  .tab {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    min-height: 56px;
+    color: var(--muted);
+    font:
+      600 10px Cinzel,
+      serif;
+    letter-spacing: 0.02em;
+    text-decoration: none;
+  }
+  .tab:hover {
+    text-decoration: none;
+  }
+  .tab svg {
+    width: 26px;
+    height: 26px;
+  }
+  .tab[aria-current='page'] {
+    color: var(--gold-hi);
+  }
+  .tab[aria-current='page']::before {
+    content: '';
+    position: absolute;
+    top: -5px;
+    left: 25%;
+    right: 25%;
+    height: 3px;
+    border-radius: 0 0 3px 3px;
+    background: var(--gold);
+  }
+  .tab .badge {
+    position: absolute;
+    top: 4px;
+    left: calc(50% + 6px);
+    margin: 0;
+  }
+  .tab .dot {
+    position: absolute;
+    top: 8px;
+    left: calc(50% + 10px);
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #a3141a;
+    box-shadow: 0 0 0 2px #0d0a08;
+  }
+  .sheet:target {
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    display: block;
+  }
+  .sheet-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgb(0 0 0 / 0.6);
+  }
+  .sheet-panel {
+    position: absolute;
+    inset: auto 0 0;
+    max-height: 80vh;
+    overflow-y: auto;
+    padding: 6px 12px calc(12px + env(safe-area-inset-bottom));
+    background: var(--panel);
+    border-top: 1px solid var(--gold);
+    border-radius: 14px 14px 0 0;
+  }
+  .sheet-handle {
+    width: 40px;
+    height: 4px;
+    margin: 4px auto 8px;
+    border-radius: 2px;
+    background: var(--line);
+  }
+  .sheet h3 {
+    margin: 0 4px 6px;
+    font:
+      600 14px Cinzel,
+      serif;
+    letter-spacing: 0.08em;
+    color: var(--gold);
+  }
+  .sheet ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .sheet li a {
+    display: flex;
+    align-items: center;
+    min-height: 48px;
+    padding: 0 8px;
+    border-bottom: 1px solid var(--line);
+    color: var(--text);
+    font:
+      600 14px Cinzel,
+      serif;
+    letter-spacing: 0.04em;
+  }
+  .sheet li a svg {
+    width: 16px;
+    height: 16px;
+    margin-left: auto;
+    color: var(--muted);
+  }
+  .sheet li:last-child a {
+    border-bottom: 0;
   }
 }
