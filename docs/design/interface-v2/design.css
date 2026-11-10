@@ -657,7 +657,7 @@ button.red {
   --size: 160px;
   --atmo: #6fb8ff;
   --turn: 180s;
-  --drift: 105s;
+  --drift: 52s;
   position: relative;
   width: var(--size);
   height: var(--size);
@@ -749,7 +749,7 @@ button.red {
 }
 .pl-wasser {
   --atmo: #7fd3ff;
-  --drift: 82s;
+  --drift: 41s;
 }
 .pl-wasser .pl-surface {
   background-image: url('planets/wasser-surface.svg');
@@ -759,7 +759,7 @@ button.red {
 }
 .pl-dschungel {
   --atmo: #8fe0b0;
-  --drift: 135s;
+  --drift: 68s;
 }
 .pl-dschungel .pl-surface {
   background-image: url('planets/dschungel-surface.svg');
@@ -781,7 +781,7 @@ button.red {
 .pl-wueste {
   --atmo: #f0a050;
   --turn: 225s;
-  --drift: 60s;
+  --drift: 30s;
 }
 .pl-wueste .pl-surface {
   background-image: url('planets/wueste-surface.svg');
@@ -793,7 +793,7 @@ button.red {
 .pl-eis {
   --atmo: #cfefff;
   --turn: 270s;
-  --drift: 150s;
+  --drift: 75s;
 }
 .pl-eis .pl-surface {
   background-image: url('planets/eis-surface.svg');
@@ -806,7 +806,7 @@ button.red {
 .pl-gas {
   --atmo: #f5d29a;
   --turn: 90s;
-  --drift: 57s;
+  --drift: 28s;
 }
 .pl-gas .pl-surface {
   background-image: url('planets/gas-surface.svg');
