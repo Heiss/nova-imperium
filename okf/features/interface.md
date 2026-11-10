@@ -55,7 +55,7 @@ generated: { by: claude-code/web, at: 2026-11-10T19:00:00Z }
 * **[E]** Existing planets get their type by the rule (D4.1). The type is a
   pure function of the coordinates (`src/shared/planet-type.ts`), so no
   stored column and no migration are needed.
-* **[V]** Variant = (galaxy + system + slot − 3) mod 3, so neighbours differ.
+* **[V]** Variant = (galaxy + system + slot) mod 3, so neighbours differ.
 
 # Design draft
 

@@ -1,4 +1,10 @@
-import { existsSync, mkdtempSync, readdirSync, rmSync } from 'node:fs';
+import {
+  existsSync,
+  mkdtempSync,
+  readdirSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import Database from 'better-sqlite3';
@@ -85,6 +91,35 @@ describe('backup before migrations', () => {
     expect(rows(path.join(dir, 'nova.sqlite.v2.bak'))).toEqual([1, 2]);
   });
 
+  it('counts versions with more digits and ignores look-alike files', () => {
+    openDatabase(file, STEPS.slice(0, 2)).close();
+    const decoys = [
+      'nova.sqlite.v0.old',
+      'nova.sqlite.vx12.bak',
+      'nova.sqlite.v12x.bak',
+      'nova.sqlite.v.bak',
+      'xnova.sqlite.v0.bak',
+    ];
+    for (const f of [
+      ...decoys,
+      'nova.sqlite.v1.bak',
+      'nova.sqlite.v10.bak',
+      'nova.sqlite.v11.bak',
+    ])
+      writeFileSync(path.join(dir, f), '');
+    openDatabase(file, STEPS.slice(0, 3)).close();
+    const left = readdirSync(dir);
+    for (const f of decoys) expect(left, f).toContain(f);
+    expect(backups()).toEqual(
+      [
+        'nova.sqlite.v10.bak',
+        'nova.sqlite.v11.bak',
+        'nova.sqlite.v2.bak',
+        ...decoys.filter((f) => f.endsWith('.bak')),
+      ].sort(),
+    );
+  });
+
   it('leaves other files alone', () => {
     openDatabase(path.join(dir, 'other.sqlite'), STEPS.slice(0, 1)).close();
     openDatabase(path.join(dir, 'other.sqlite'), STEPS.slice(0, 2)).close();
@@ -104,6 +139,9 @@ describe('backup before migrations', () => {
     expect(error?.message).toContain('Migration from schema version 2 failed');
     expect(error?.message).toContain(bak);
     expect(error?.message).toContain('no such table: nope');
+    expect(error?.message).toContain('changed nothing');
+    expect(error?.message).toContain(`copy it over ${file}`);
+    expect(error?.message).toContain(`delete ${file}-wal and ${file}-shm`);
     expect(error?.cause).toBeInstanceOf(Error);
     expect(existsSync(bak)).toBe(true);
     expect(version(file)).toBe(2);

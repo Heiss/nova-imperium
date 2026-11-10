@@ -9,10 +9,10 @@ describe('planet look', () => {
   it('follows type and variant of the coordinates', () => {
     expect(planetLook({ g: 1, s: 50, p: 7 })).toEqual({
       type: 'normal',
-      variant: (1 + 50 + 7 - 3) % 3,
+      variant: (1 + 50 + 7) % 3,
       name: 'Normaler Planet',
-      surface: `/planets/normal-${(1 + 50 + 7 - 3) % 3}-surface.svg`,
-      clouds: `/planets/normal-${(1 + 50 + 7 - 3) % 3}-clouds.svg`,
+      surface: `/planets/normal-${(1 + 50 + 7) % 3}-surface.svg`,
+      clouds: `/planets/normal-${(1 + 50 + 7) % 3}-clouds.svg`,
     });
     expect(planetLook({ g: 2, s: 3, p: 13 }).type).toBe('gas');
   });

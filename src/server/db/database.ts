@@ -64,8 +64,8 @@ function backup(
   migrations: readonly string[],
 ): string | null {
   const current = db.pragma('user_version', { simple: true }) as number;
-  if (file === ':memory:' || current === 0 || current >= migrations.length)
-    return null;
+  // ':memory:' is always new (version 0), so it never gets a copy.
+  if (current === 0 || current >= migrations.length) return null;
   const target = backupName(file, current);
   rmSync(target, { force: true });
   db.prepare('VACUUM INTO ?').run(target);

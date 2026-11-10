@@ -28,7 +28,7 @@ const ROWS: readonly (readonly [PlanetType, PlanetType])[] = [
 ];
 
 /** Slots 1 to 3 share the first row, then every row has two slots. */
-const row = (p: number): number => (p <= 3 ? 0 : Math.floor((p - 2) / 2));
+const row = (p: number): number => Math.max(0, Math.floor((p - 2) / 2));
 
 /** Slots beyond the table (16 to 20) are gas giants (owner decision). */
 export function planetType(c: Pick<Coords, 's' | 'p'>): PlanetType {
@@ -42,4 +42,4 @@ export const PLANET_VARIANTS = 3;
 
 /** Neighbours in a system get different variants. */
 export const planetVariant = (c: Coords): number =>
-  (c.g + c.s + c.p - 3) % PLANET_VARIANTS;
+  (c.g + c.s + c.p) % PLANET_VARIANTS;

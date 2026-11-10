@@ -1,5 +1,5 @@
 // Caddy (docker/Caddyfile) and the server send the same security headers.
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { CSP, SECURITY_HEADERS } from './security.ts';
@@ -48,7 +48,19 @@ describe('security headers', () => {
       '.png': 'image/png',
       '.ico': 'image/x-icon',
       '.webmanifest': 'application/manifest+json',
+      '.woff2': 'font/woff2',
+      '.txt': 'text/plain; charset=utf-8',
       '.map': 'application/json; charset=utf-8',
     });
+  });
+  it('know a type for every kind of file of the client', () => {
+    const exts = new Set<string>();
+    const walk = (dir: string): void => {
+      for (const e of readdirSync(dir, { withFileTypes: true }))
+        if (e.isDirectory()) walk(path.join(dir, e.name));
+        else exts.add(path.extname(e.name));
+    };
+    walk(path.resolve(import.meta.dirname, '../../client/static'));
+    for (const ext of exts) expect(MIME, ext).toHaveProperty([ext]);
   });
 });

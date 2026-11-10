@@ -404,8 +404,11 @@ test.describe('playing', () => {
     await nav(page, 'buildings');
     await page.click('[data-act=build][data-k=metal]');
     await expect(page.getByText('Ausbau auf Stufe 1')).toBeVisible();
+    await expect(page.locator('.item.running')).toHaveCount(1);
+    await expect(page.getByLabel('Fortschritt Ausbau')).toBeVisible();
     await expect(page.locator('#resbar')).toContainText('440');
     await page.click('[data-act=cancelBuild]');
+    await expect(page.locator('.item.running')).toHaveCount(0);
     await expect(page.locator('[data-act=build][data-k=metal]')).toBeEnabled();
     await expect(page.locator('#resbar')).toContainText('500');
     await nav(page, 'resources');

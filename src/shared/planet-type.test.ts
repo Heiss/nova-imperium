@@ -56,7 +56,7 @@ describe('planet type', () => {
     expect(planetVariant({ g: 1, s: 1, p: 3 })).toBe(2);
     expect(planetVariant({ g: 1, s: 2, p: 1 })).toBe(1);
     expect(planetVariant({ g: 2, s: 1, p: 1 })).toBe(1);
-    expect(planetVariant({ g: 9, s: 499, p: 20 })).toBe((9 + 499 + 20 - 3) % 3);
+    expect(planetVariant({ g: 9, s: 499, p: 20 })).toBe((9 + 499 + 20) % 3);
   });
   it('gives neighbours in a system different variants', () => {
     const seen = new Set(

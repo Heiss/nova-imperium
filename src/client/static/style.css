@@ -312,6 +312,30 @@ th.n {
 .act {
   text-align: center;
 }
+.item.running {
+  background: rgb(224 138 42 / 0.08);
+  box-shadow: inset 3px 0 0 var(--ember);
+}
+.act progress {
+  display: block;
+  width: 100%;
+  height: 6px;
+  margin: 6px 0 8px;
+  appearance: none;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: #0d0a08;
+  overflow: hidden;
+}
+.act progress::-webkit-progress-bar {
+  background: #0d0a08;
+}
+.act progress::-webkit-progress-value {
+  background: linear-gradient(90deg, #7b4c17, var(--ember), var(--gold-hi));
+}
+.act progress::-moz-progress-bar {
+  background: linear-gradient(90deg, #7b4c17, var(--ember), var(--gold-hi));
+}
 
 /* ---------- Text colours ---------- */
 .bad {
