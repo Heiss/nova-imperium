@@ -39,10 +39,10 @@ migrations), Atlas (`migrate lint` against the Git base) and GitLab
 * **[E]** `src/server/db/schema.snapshot.sql` holds the schema after all
   migrations; the unit test fails when it differs. A pull request with a new
   migration updates it, so the review shows the resulting schema.
-* **[V]** Not covered: two pull requests that each pass against an older
-  `main` and conflict only in meaning. GitHub tests the merge result at the
-  time of the last push; "Require branches to be up to date" closes the gap
-  (owner, [O9](/open-points.md)).
+* **[E]** "Require branches to be up to date before merging" is enabled for
+  `main` ([O9](/open-points.md)), so a pull request is checked against the
+  current `main` and two pull requests that conflict only in meaning cannot
+  both pass against an older `main`.
 * **[V]** Not covered: upgrades on real data (new constraints, `INSERT …
   SELECT *` during a table rebuild, cascades on `DROP TABLE` with foreign
   keys on). Only migration 9 has an upgrade test with data.
