@@ -1,6 +1,6 @@
 # Requirements list – mockup
 
-Mockup for issue #64, current design (`src/client/static/style.css`).
+Mockup for issue #64, Interface v2 (#62, `src/client/static/style.css`).
 Sample data; the layout and texts are proposals **[V]**.
 
 - `before.html` / `before.png` – today: only direct requirements, one red line (real `needs()`)
@@ -12,3 +12,6 @@ Sample data; the layout and texts are proposals **[V]**.
 
 The HTML files are generated from the real catalog, `reqMissing`, `lvlCost` and render helpers.
 The additional CSS (`.reqs`) is inline in `after.html` and only a proposal.
+
+The HTML files reference `/style.css`, `/fonts/` and `/icons/` absolutely: open them through a server whose root is
+`src/client/static/` with the mockup files beside it, or look at the PNGs.
