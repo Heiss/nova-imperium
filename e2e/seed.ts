@@ -1,7 +1,7 @@
 // Changes the database of the running E2E server directly, for situations the
 // UI would need hours to reach (ships in the hangar). Usage:
 //   node e2e/seed.ts '<json>'   with { name, res?, b?, ships?, def?, research?,
-//   clearQueue? (a finished build), colony? ({ s?, p?, name?, b?, res? }: an own planet,
+//   clearQueue? (a finished build), colony? ({ g?, s?, p?, name?, b?, res? }: an own planet,
 //   by default on slot 15 of the home system) }
 import { openDatabase } from '../src/server/db/database.ts';
 import { Store } from '../src/server/db/store.ts';
@@ -38,7 +38,7 @@ function updateHome(p: Planet): void {
 
 /** Slot 15 of the home system by default: new players are placed on 4 to 12 only. */
 function addColony(p: Planet): void {
-  const c = { g: p.g, s: d.colony.s ?? p.s, p: d.colony.p ?? 15 };
+  const c = { g: d.colony.g ?? p.g, s: d.colony.s ?? p.s, p: d.colony.p ?? 15 };
   store.savePlanet({
     ...p,
     ...c,

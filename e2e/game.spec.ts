@@ -829,7 +829,9 @@ test.describe('admin', () => {
     ).toHaveCount(0);
 
     await page.getByRole('tab', { name: 'Universum' }).click();
-    // Settings: live, but the universe never shrinks below a planet.
+    // Settings: live, but the universe never shrinks below a planet. The
+    // planet in galaxy 2 comes from this test, not from an earlier one.
+    seed({ name, colony: { g: 2, s: 1, p: 15, name: 'Außenposten' } });
     await page.fill('#set_speed', '7');
     await page.click('[data-act=saveSettings]');
     await expect(page.locator('#unisub')).toHaveText(
