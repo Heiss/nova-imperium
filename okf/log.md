@@ -1,6 +1,7 @@
 # Update log
 
 ## 2026-11-10
+* **Update**: Property-based upgrade tests of every migration on generated data (fast-check), nightly with a random seed; changing migrations need their own upgrade test (see [SQLite](/data/sqlite.md)).
 * **Update**: Interface v2 with the Nova Imperium icon set, phone tab bar with „Mehr“ sheet, animated planets per type with a switch „Animationen“ (issue #61, see [Interface](/features/interface.md)).
 * **Update**: Planet type by slot and system parity, look only (issue #52).
 * **Update**: The server backs up the database before migrations (`nova.sqlite.v<version>.bak`, newest three kept; see [SQLite](/data/sqlite.md)).
