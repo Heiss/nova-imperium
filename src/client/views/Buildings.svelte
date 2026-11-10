@@ -8,7 +8,7 @@
     prod,
     reqMissing,
   } from '../../shared/economy.ts';
-  import { artURI } from '../art.ts';
+  import { iconURL } from '../logic/icons.ts';
   import { dur } from '../logic/format.ts';
   import { buildState } from '../logic/game.ts';
   import { costHTML, needs, type V } from './common.ts';
@@ -33,8 +33,8 @@
     {@const delta = energyChange($viewState, key, level)}
     {@const missing = reqMissing(def, P, R)}
     {@const status = buildState(P, R, key, missing.length)}
-    {@const image = artURI(key)}
-    <div class="item">
+    {@const image = iconURL(key)}
+    <div class="item" class:running={status === 'running'}>
       <div class="icon ic-b">
         {#if image}<img src={image} alt={def.n} />{:else}{def.ab}{/if}
       </div>
@@ -55,8 +55,12 @@
       <div class="act">
         {#if status === 'running' && P.bq}
           Ausbau auf Stufe {P.bq.lvl}<br />
-          <span class="cd" data-end={P.bq.end}>{dur(P.bq.end - now)}</span><br
-          />
+          <span class="cd" data-end={P.bq.end}>{dur(P.bq.end - now)}</span>
+          <progress
+            max={P.bq.end - P.bq.start}
+            value={Math.min(now - P.bq.start, P.bq.end - P.bq.start)}
+            aria-label="Fortschritt Ausbau"
+          ></progress>
           <button class="small red" data-act="cancelBuild">Abbrechen</button>
         {:else if status === 'missing'}
           <span class="req">Voraussetzungen fehlen</span>

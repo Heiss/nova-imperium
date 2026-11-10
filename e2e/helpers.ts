@@ -77,5 +77,13 @@ export async function login(
   await expect(page.locator('h2')).toContainText('Übersicht');
 }
 
-export const nav = (page: Page, view: string) =>
-  page.click(`#menu [data-v=${view}]`);
+/** Opens a view: the side menu on a desktop, tab bar or „Mehr“ on a phone. */
+export async function nav(page: Page, view: string): Promise<void> {
+  const side = page.locator(`#menu [data-v=${view}]`);
+  if (await side.isVisible()) return side.click();
+  const tab = page.locator(`#tabbar [data-v=${view}]`);
+  if (await tab.isVisible()) return tab.click();
+  await page.click('#tabbar [data-act=moreOpen]');
+  await page.click(`#more-list [data-v=${view}]`);
+  await expect(page.locator('#more')).not.toBeVisible();
+}

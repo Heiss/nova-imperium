@@ -2,7 +2,8 @@ import { BUILD, MISSION, RES, SHIPS, UNIT } from '../../shared/catalog.ts';
 import { coords, dt, esc, fmt } from '../logic/format.ts';
 import { fleetEnd, nameOf, ranks, sortFleets } from '../logic/game.ts';
 import type { ClientFleet } from '../logic/types.ts';
-import { box, cd, planetBall, type V } from './common.ts';
+import { planetLook } from '../logic/planet.ts';
+import { box, cd, planetHTML, type V } from './common.ts';
 
 const shipList = (f: ClientFleet): string =>
   Object.entries(f.ships ?? {})
@@ -68,10 +69,10 @@ export function overview(v: V): string {
   const rk = ranks(s.players);
   return `<h2>Übersicht – ${esc(P.name)} ${coords(P)}</h2>
  ${box('Flottenbewegungen', fleetTable(v, true))}
- <div class="box"><div class="bd ov">${planetBall(P.temp)}
+ <div class="box"><div class="bd ov">${planetHTML(P)}
  <table class="kv kv-grow">
  <tr><td>Planet</td><td>${esc(P.name)} <span class="lnk" data-act="rename">(umbenennen)</span></td></tr>
- <tr><td>Position</td><td>${coords(P)}</td></tr><tr><td>Temperatur</td><td>ca. ${P.temp - 40}°C bis ${P.temp}°C</td></tr>
+ <tr><td>Position</td><td>${coords(P)}</td></tr><tr><td>Planetentyp</td><td>${planetLook(P).name}</td></tr><tr><td>Temperatur</td><td>ca. ${P.temp - 40}°C bis ${P.temp}°C</td></tr>
  <tr><td>Punkte</td><td>${fmt(s.players[me]?.points)} (Platz ${rk[me] ?? '-'} von ${Object.keys(s.players).length})</td></tr>
  <tr><td>Serverzeit</td><td>${dt(v.now)}</td></tr></table></div></div>
  ${box('Aktivitäten', activities(v))}`;
