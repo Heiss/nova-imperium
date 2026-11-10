@@ -3,7 +3,9 @@
 A classic space strategy browser game for a group of friends, in the style of
 the browser games of 2007/2008: mines, research, shipyard, defense, fleets,
 espionage, battles and a highscore. No premium, no paid boosts. The interface
-is German; every building, research, ship and defense has its own drawn art.
+is German; every building, research, ship and defense has its own icon, and
+planets turn with drifting clouds in the look of their type. On a phone the
+menu is a tab bar at the bottom.
 
 The server computes everything itself (production, building queues, flights,
 battles), also while nobody is online. Players only need a browser.

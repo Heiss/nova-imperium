@@ -303,10 +303,11 @@ test.describe('playing', () => {
       await nav(page, view);
       await expect(page.locator('#menu a.on')).toHaveAttribute('data-v', view);
     }
-    await expect(page.locator('.planet')).toHaveCSS(
+    await expect(page.locator('.pl .pl-surface')).toHaveCSS(
       'background-image',
-      /radial-gradient/,
+      /\/planets\/[a-z]+-[0-2]-surface\.svg/,
     );
+    await expect(page.locator('.kv')).toContainText('Planetentyp');
     expect(w.problems).toEqual([]);
   });
 
@@ -403,8 +404,11 @@ test.describe('playing', () => {
     await nav(page, 'buildings');
     await page.click('[data-act=build][data-k=metal]');
     await expect(page.getByText('Ausbau auf Stufe 1')).toBeVisible();
+    await expect(page.locator('.item.running')).toHaveCount(1);
+    await expect(page.getByLabel('Fortschritt Ausbau')).toBeVisible();
     await expect(page.locator('#resbar')).toContainText('440');
     await page.click('[data-act=cancelBuild]');
+    await expect(page.locator('.item.running')).toHaveCount(0);
     await expect(page.locator('[data-act=build][data-k=metal]')).toBeEnabled();
     await expect(page.locator('#resbar')).toContainText('500');
     await nav(page, 'resources');
@@ -518,12 +522,42 @@ test.describe('playing', () => {
   test('the layout works on a phone @phone', async ({ page }) => {
     const w = watch(page);
     await register(page, uniqueName('Handy'));
-    await nav(page, 'buildings');
-    const width = await page.evaluate(
-      () => document.documentElement.scrollWidth - window.innerWidth,
+    await expect(page.locator('#menu')).toBeHidden();
+    await expect(page.locator('#tabbar')).toBeVisible();
+    const overflow = (): Promise<number> =>
+      page.evaluate(
+        () => document.documentElement.scrollWidth - window.innerWidth,
+      );
+    await page.click('#tabbar [data-v=buildings]');
+    await expect(page.locator('#tabbar a.on')).toHaveAttribute(
+      'data-v',
+      'buildings',
     );
-    expect(width).toBeLessThanOrEqual(0);
+    expect(await overflow()).toBeLessThanOrEqual(0);
+    await page.click('#tabbar [data-act=moreOpen]');
+    await expect(page.locator('#more')).toBeVisible();
+    await page.click('#more-list [data-v=galaxy]');
+    await expect(page.locator('#more')).toBeHidden();
+    await expect(page.locator('h2')).toContainText('Galaxie');
+    await expect(page.locator('#tabbar [data-act=moreOpen]')).toHaveClass(/on/);
+    expect(await overflow()).toBeLessThanOrEqual(0);
     expect(w.problems).toEqual([]);
+  });
+
+  test('planet animations can be turned off for this device', async ({
+    page,
+  }) => {
+    await register(page, uniqueName('Ruhe'));
+    const surface = page.locator('.pl .pl-surface');
+    await expect(surface).not.toHaveCSS('animation-name', 'none');
+    await nav(page, 'help');
+    await page.getByLabel('Animationen').uncheck();
+    await nav(page, 'overview');
+    await expect(surface).toHaveCSS('animation-name', 'none');
+    await page.reload();
+    await expect(surface).toHaveCSS('animation-name', 'none');
+    await nav(page, 'help');
+    await expect(page.getByLabel('Animationen')).not.toBeChecked();
   });
 });
 

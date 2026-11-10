@@ -20,6 +20,18 @@ of invalidating a snapshot midway through an action. The client retries a
 game action once when the server explicitly reports that it rolled back due
 to contention. Fleet arrivals remain queued when the writer lock is busy.
 
+**[E]** Before migrations run on an existing database file, the server writes
+`VACUUM INTO` a consistent copy with the old schema version next to it
+(`nova.sqlite.v<version>.bak`) and keeps the newest three (owner decision,
+2026-11-10). A new database and `:memory:` get no copy. A failing migration
+rolls back in its transaction; the server then stops with an error that names
+the backup and the manual restore (overwrite the file, delete `-wal` and
+`-shm`). Code: `src/server/db/database.ts`, tests `database.test.ts`.
+
+In Docker Compose, the named data volume persists the database across container
+replacements. Follow the [backup and restore procedure](../../docs/operations.md#backup-and-restore)
+before upgrades.
+
 ## Released migrations are append-only
 
 A database only runs the migrations above its `user_version`. A moved,
@@ -46,10 +58,6 @@ migrations), Atlas (`migrate lint` against the Git base) and GitLab
 * **[V]** Not covered: upgrades on real data (new constraints, `INSERT …
   SELECT *` during a table rebuild, cascades on `DROP TABLE` with foreign
   keys on). Only migration 9 has an upgrade test with data.
-
-In Docker Compose, the named data volume persists the database across container
-replacements. Follow the [backup and restore procedure](../../docs/operations.md#backup-and-restore)
-before upgrades.
 
 
 ## Admin data

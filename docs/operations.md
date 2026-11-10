@@ -104,9 +104,25 @@ docker compose pull
 docker compose up -d
 ```
 
-A rollback is the previous tag. Make a backup before an update: database
-migrations run at the start and are not undone by an older image (an older
-image refuses a newer database instead of damaging it).
+A rollback is the previous tag. Database migrations run at the start and are
+not undone by an older image (an older image refuses a newer database instead
+of damaging it). Before it migrates an existing database, the server writes a
+consistent copy with the old schema version next to it, for example
+`nova.sqlite.v8.bak`, and keeps the newest three. A migration runs in one
+transaction: if it fails, the server does not start, the database stays
+unchanged and the error names the backup. To roll back after a migration,
+stop the app, put the backup in place and start the previous tag:
+
+```bash
+docker compose stop app
+docker run --rm -v nova-imperium_data:/data alpine sh -c \
+  'cp /data/nova.sqlite.v8.bak /data/nova.sqlite && rm -f /data/nova.sqlite-wal /data/nova.sqlite-shm && chown 1000:1000 /data/nova.sqlite'
+# NOVA_VERSION=<previous tag> in .env
+docker compose up -d
+```
+
+The automatic copy lives in the same volume; keep your own backup (above)
+against the loss of the volume.
 
 ## Account security
 

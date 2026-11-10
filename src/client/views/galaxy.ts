@@ -1,7 +1,7 @@
 import { pid } from '../../shared/flight.ts';
 import { esc, fmt } from '../logic/format.ts';
 import { isProtected, nameOf, ranks } from '../logic/game.ts';
-import { planetBall, type V } from './common.ts';
+import { planetHTML, type V } from './common.ts';
 
 function row(v: V, p: number, rk: Record<string, number>): string {
   const { s, ui } = v;
@@ -21,7 +21,7 @@ function row(v: V, p: number, rk: Record<string, number>): string {
       ? '<span class="dim">Aktiver Planet</span>'
       : `<button class="small" data-act="selectPlanet" data-id="${esc(pl.id)}">Wechseln</button> · <button class="small" data-act="gfleet" data-m="transport" ${at}>Transport</button>`
     : `<span class="lnk" data-act="gspy" ${at}>Spionieren</span> · <span class="lnk" data-act="gfleet" data-m="attack" ${at}>Angreifen</span> · <span class="lnk" data-act="gfleet" data-m="transport" ${at}>Transport</span>`;
-  return `<tr class="${mine ? 'me' : ''}"><td class="n">${p}</td><td>${planetBall(pl.temp, 'gem round')}${esc(pl.name)}</td>
+  return `<tr class="${mine ? 'me' : ''}"><td class="n">${p}</td><td><span class="gal-pl">${planetHTML(pl, true)}${esc(pl.name)}</span></td>
    <td>${esc(nameOf(s.players, pl.owner))} <span class="dim">(Platz ${rk[pl.owner] ?? '-'})</span>${prot ? ' <span class="good" title="Noobschutz">(n)</span>' : ''}</td>
    <td>${actions}</td></tr>`;
 }

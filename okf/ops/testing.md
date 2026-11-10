@@ -43,7 +43,7 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 
 | Kind | Where | What it proves |
 |---|---|---|
-| Equivalence | `src/shared/equivalence.test.ts`, `catalog.test.ts`, `src/client/art.test.ts` | The TypeScript rules compute exactly what version 1 computed: 400 random cases with a fixed seed for production, settling, costs, times, flights, and battles with the same random stream; catalog and all 32 pictures are identical. Version 1 is frozen in `src/test/legacy/`. |
+| Equivalence | `src/shared/equivalence.test.ts`, `catalog.test.ts` | The TypeScript rules compute exactly what version 1 computed: 400 random cases with a fixed seed for production, settling, costs, times, flights, and battles with the same random stream; the catalog is identical. Version 1 is frozen in `src/test/legacy/`. The pictures of version 1 were replaced by the icon set (issue #61, D5); `src/client/logic/icons.test.ts` checks that every catalog entry has an existing icon. |
 | Unit | `src/**/*.test.ts` | Rules, store (real SQLite in memory), actions, arrivals, admin, accounts, configuration, mail, operator commands, HTTP API (a real server on a free port), client logic. |
 | Sync | `src/server/docs.test.ts`, `src/server/http/security.test.ts` | Every setting is in the docs, `.env.example` and `compose.yaml`; links resolve; the Caddyfile sends the same security headers as the server. |
 | E2E | `e2e/game.spec.ts` | Invitation, single use, login, building, production share, renaming, shipyard, fleet form, espionage with report, admin panel (invite, copy link, revoke, live settings, grow-only), phone layout. |
@@ -54,7 +54,7 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 
 * **[V]** Measured: `src/shared`, `src/server`, `src/client/logic`. Not
   measured, like the Astro templates in muffelblog: the HTML templates
-  (`src/client/views`), the art data (`src/client/art.ts`), the browser glue
+  (`src/client/views`), the browser glue
   (`src/client/main.ts`) and the process entry points (`main.ts`, `cli.ts`).
   The E2E suite and the Compose job run them.
 
