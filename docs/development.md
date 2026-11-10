@@ -15,15 +15,17 @@ client is bundled with Vite. The building view is a Svelte component.
 
 ## Layout
 
-| Folder       | Content                                                                        |
-| ------------ | ------------------------------------------------------------------------------ |
-| `src/shared` | The rules of the game, used by server and browser                              |
-| `src/server` | HTTP server, SQLite store, game actions, accounts, mail, CLI                   |
-| `src/client` | Browser client: `logic/` (tested), `views/` (HTML templates), `main.ts` (glue) |
-| `src/test`   | Test fixtures and the frozen version 1 (`legacy/`) for the equivalence tests   |
-| `e2e`        | Playwright suite against the real server                                       |
-| `docker`     | Caddyfile, init and smoke scripts, the `nova` command                          |
-| `okf`        | Decisions and their history (OKF bundle)                                       |
+| Folder        | Content                                                                        |
+| ------------- | ------------------------------------------------------------------------------ |
+| `src/shared`  | The rules of the game, used by server and browser                              |
+| `src/server`  | HTTP server, SQLite store, game actions, accounts, mail, CLI                   |
+| `src/client`  | Browser client: `logic/` (tested), `views/` (HTML templates), `main.ts` (glue) |
+| `src/test`    | Test fixtures and the frozen version 1 (`legacy/`) for the equivalence tests   |
+| `e2e`         | Playwright suite against the real server                                       |
+| `docker`      | Caddyfile, init and smoke scripts, the `nova` command                          |
+| `scripts`     | Release script; `planet-textures.ts` writes `src/client/static/planets/`       |
+| `docs/design` | Design draft of interface v2 with the full icon set (not used by the game)     |
+| `okf`         | Decisions and their history (OKF bundle)                                       |
 
 ## Checks
 

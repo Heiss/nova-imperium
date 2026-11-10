@@ -11,16 +11,23 @@ import {
   fleetPreview,
   galaxyStep,
   nameOf,
-  planetColors,
   settingsFrom,
   unread,
   type FleetForm,
 } from './logic/game.ts';
+import { resourceIconURL, type ResourceKey } from './logic/icons.ts';
 import { finishedYardOrders, menuHints } from './logic/menu-hints.ts';
+import { ANIMATION_KEY, animationsOn } from './logic/planet.ts';
 import type { GameState } from './logic/types.ts';
 import { afford, caps, lvlCost, maxAfford, prod } from '../shared/economy.ts';
 import type { Ui, V } from './views/common.ts';
-import { menu, VIEWS } from './views/index.ts';
+import {
+  menu,
+  phoneMenu,
+  TAB_GLYPHS,
+  VIEWS,
+  type MenuEntry,
+} from './views/index.ts';
 import {
   loadInvitations,
   mountAdminDiagnostics,
@@ -133,7 +140,20 @@ const ui: Ui = {
   auth: null,
   invite: null,
   lastLink: null,
+  animations: animationsOn(() => localStorage.getItem(ANIMATION_KEY)),
 };
+document.documentElement.classList.toggle('no-anim', !ui.animations);
+
+/** Planet animations on or off for this viewer (issue #61, D9). */
+function setAnimations(on: boolean): void {
+  ui.animations = on;
+  document.documentElement.classList.toggle('no-anim', !on);
+  try {
+    localStorage.setItem(ANIMATION_KEY, on ? 'on' : 'off');
+  } catch {
+    // Without storage the choice lasts until the page is reloaded.
+  }
+}
 
 const nowT = (): number => Date.now() + offset;
 
@@ -286,11 +306,15 @@ async function act(type: string, data: object = {}): Promise<boolean> {
 
 // ----- rendering -----
 
-/** Paints planets from data-temp (CSSOM is allowed by the CSP, style="" is not). */
+/** Sets the planet textures from data-surface/data-clouds (CSSOM is allowed by the CSP, style="" is not). */
 function paintPlanets(root: ParentNode): void {
-  root.querySelectorAll<HTMLElement>('[data-temp]').forEach((el) => {
-    const c = planetColors(Number(el.dataset.temp));
-    el.style.background = `radial-gradient(circle at 35% 35%, ${c.inner}, ${c.outer})`;
+  root.querySelectorAll<HTMLElement>('[data-surface]').forEach((el) => {
+    const layer = (cls: string, url: string): void => {
+      el.querySelector<HTMLElement>(cls)!.style.backgroundImage =
+        `url("${url}")`;
+    };
+    layer('.pl-surface', el.dataset.surface!);
+    layer('.pl-clouds', el.dataset.clouds!);
   });
 }
 
@@ -318,6 +342,8 @@ function renderLoggedOut(view: HTMLElement): void {
   completionNotices.clear();
   completedMenu.clear();
   $('#menu')!.innerHTML = '';
+  $('#tabbar')!.innerHTML = '';
+  $('#more-list')!.innerHTML = '';
   $('#resbar')!.innerHTML = '';
   $('#pinfo')!.innerHTML = '';
   view.innerHTML = ui.auth ? auth(ui) : '<div class="notice">Lade …</div>';
@@ -533,6 +559,51 @@ function filterAchievements(): void {
     });
 }
 
+function menuBadge(hint: string | undefined): string {
+  return hint
+    ? `<span class="badge" role="img" aria-label="${esc(hint)}" title="${esc(hint)}">!</span>`
+    : '';
+}
+
+function menuLink(
+  i: MenuEntry,
+  hint: string | undefined,
+  inner: string,
+): string {
+  const current = ui.view === i.view ? ' aria-current="page"' : '';
+  return `<a href="${esc(viewUrl(i.view))}" data-act="nav" data-v="${i.view}" class="${ui.view === i.view ? 'on' : ''}"${current}>${inner}${menuBadge(hint)}</a>`;
+}
+
+/** Phone: tab bar and the list of the „Mehr“ sheet. */
+function renderPhoneMenu(
+  items: (MenuEntry | '-')[],
+  hints: Map<string, string>,
+): void {
+  const { tabs, more } = phoneMenu(items);
+  const moreHint = more.some((i) => hints.has(i.view));
+  const moreOn = more.some((i) => i.view === ui.view);
+  $('#tabbar')!.innerHTML =
+    tabs
+      .map((i) =>
+        menuLink(
+          i,
+          hints.get(i.view),
+          `${TAB_GLYPHS[i.view]}<span>${esc(i.label)}</span>`,
+        ),
+      )
+      .join('') +
+    `<button type="button" class="${moreOn ? 'on' : ''}" data-act="moreOpen" aria-haspopup="dialog">${TAB_GLYPHS.more}<span>Mehr</span>${moreHint ? '<span class="dot" role="img" aria-label="Neues unter Mehr"></span>' : ''}</button>`;
+  $('#more-list')!.innerHTML = more
+    .map((i) =>
+      menuLink(
+        i,
+        hints.get(i.view),
+        `<span>${esc(i.label)}</span>${TAB_GLYPHS.chevron}`,
+      ),
+    )
+    .join('');
+}
+
 function renderMenu(): void {
   const state = S!;
   const hints = menuHints(
@@ -540,16 +611,15 @@ function renderMenu(): void {
     completedMenu,
     unread(state.reports, state.me.readAt),
   );
-  $('#menu')!.innerHTML = menu(state.me.admin, state.round)
-    .map((i) => {
-      if (i === '-') return '<div class="sep"></div>';
-      const hint = hints.get(i.view);
-      const badge = hint
-        ? `<span class="badge" role="img" aria-label="${esc(hint)}" title="${esc(hint)}">!</span>`
-        : '';
-      return `<a href="${esc(viewUrl(i.view))}" data-act="nav" data-v="${i.view}" class="${ui.view === i.view ? 'on' : ''}">${esc(i.label)}${badge}</a>`;
-    })
+  const items = menu(state.me.admin, state.round);
+  $('#menu')!.innerHTML = items
+    .map((i) =>
+      i === '-'
+        ? '<div class="sep"></div>'
+        : menuLink(i, hints.get(i.view), esc(i.label)),
+    )
     .join('');
+  renderPhoneMenu(items, hints);
 }
 
 function updateBar(): Planet | undefined {
@@ -557,19 +627,21 @@ function updateBar(): Planet | undefined {
   const p = settle(S.planet, nowT(), S.cfg);
   const pr = prod(p, S.cfg);
   const cp = caps(p, S.cfg);
+  const icon = (key: ResourceKey): string =>
+    `<img class="ri" src="${resourceIconURL(key)}" alt="" width="28" height="28">`;
   const r = (
     label: string,
-    cls: string,
+    key: ResourceKey,
     v: number,
     cap: number,
     per: number,
   ): string =>
-    `<div class="res" title="+${fmt(per)}/h · Lager ${fmt(cap)}"><div class="l"><span class="gem gem-${cls}"></span>${label}</div><div class="v ${v >= cap ? 'full' : ''}">${fmt(v)}</div></div>`;
+    `<div class="res" title="+${fmt(per)}/h · Lager ${fmt(cap)}">${icon(key)}<div><div class="l">${label}</div><div class="v ${v >= cap ? 'full' : ''}">${fmt(v)}</div></div></div>`;
   $('#resbar')!.innerHTML =
-    r('Metall', 'm', p.res.m, cp.m, pr.m) +
-    r('Kristall', 'c', p.res.c, cp.c, pr.c) +
-    r('Deuterium', 'd', p.res.d, cp.d, pr.d) +
-    `<div class="res"><div class="l"><span class="gem gem-e"></span>Energie</div><div class="v ${pr.eProd - pr.eUse < 0 ? 'bad' : ''}">${fmt(pr.eProd - pr.eUse)}/${fmt(pr.eProd)}</div></div>`;
+    r('Metall', 'metal', p.res.m, cp.m, pr.m) +
+    r('Kristall', 'crystal', p.res.c, cp.c, pr.c) +
+    r('Deuterium', 'deuterium', p.res.d, cp.d, pr.d) +
+    `<div class="res">${icon('energy')}<div><div class="l">Energie</div><div class="v ${pr.eProd - pr.eUse < 0 ? 'bad' : ''}">${fmt(pr.eProd - pr.eUse)}/${fmt(pr.eProd)}</div></div></div>`;
   return p;
 }
 
@@ -688,6 +760,7 @@ const go = (
     if (push) history.pushState(null, '', viewUrl(view, guild));
   }
   completedMenu.delete(view);
+  closeMore();
   ui.view = view;
   ui.guild = view === 'guilds' ? guild : null;
   render(true);
@@ -707,7 +780,13 @@ async function togglePush(enabled: boolean): Promise<void> {
   }
 }
 
+function closeMore(): void {
+  const more = $<HTMLDialogElement>('#more');
+  if (more?.open) more.close();
+}
+
 const ACT: Record<string, (d: Data) => unknown> = {
+  moreOpen: () => $<HTMLDialogElement>('#more')!.showModal(),
   pushEnable: () => togglePush(true),
   pushDisable: () => togglePush(false),
   nav: (d) => go(d.v ?? 'overview'),
@@ -1180,6 +1259,8 @@ document.addEventListener('click', (e) => {
 document.addEventListener('change', (e) => {
   const el = e.target as HTMLSelectElement;
   if (el.id === 'planet_select') void selectPlanet(el.value);
+  if (el.id === 'o_anim')
+    setAnimations((el as unknown as HTMLInputElement).checked);
   if (el.dataset?.chg === 'pct')
     void act('pct', { key: el.dataset.k, v: el.value });
   if (ui.view === 'fleet') fleetCalc();
@@ -1237,6 +1318,10 @@ document.addEventListener('submit', (e) => {
   if (!handle) return;
   e.preventDefault();
   void handle();
+});
+// The „Mehr“ sheet closes on a tap beside it (on the backdrop).
+$('#more')!.addEventListener('click', (e) => {
+  if (e.target === e.currentTarget) closeMore();
 });
 $('#modal')!.addEventListener('click', (e) => {
   if ((e.target as HTMLElement).id === 'modal') modal('');

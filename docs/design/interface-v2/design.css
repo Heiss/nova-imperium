@@ -1,0 +1,872 @@
+/* Design draft "interface v2" for Nova Imperium. Static mockup only, not used
+   by the game. Colours follow the icon set (gold frame, dark bronze ground). */
+@font-face {
+  font-family: Cinzel;
+  font-weight: 600;
+  src: url('fonts/cinzel-latin-600-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: Cinzel;
+  font-weight: 800;
+  src: url('fonts/cinzel-latin-800-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'EB Garamond';
+  font-weight: 400;
+  src: url('fonts/eb-garamond-latin-400-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'EB Garamond';
+  font-weight: 400;
+  font-style: italic;
+  src: url('fonts/eb-garamond-latin-400-italic.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'EB Garamond';
+  font-weight: 600;
+  src: url('fonts/eb-garamond-latin-600-normal.woff2') format('woff2');
+}
+
+:root {
+  --bg: #0d0a08;
+  --panel: #1a1411;
+  --panel-2: #231a14;
+  --line: #3b2f22;
+  --gold: #d4a537;
+  --gold-hi: #f1d27a;
+  --text: #e9dfc8;
+  --muted: #9a8c74;
+  --ok: #8fbf6a;
+  --bad: #e0614a;
+  --ember: #e08a2a;
+  --m: #c9c2b6;
+  --c: #7fd3f5;
+  --d: #6fe0a8;
+  --e: #f3d36b;
+}
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+  color: var(--text);
+  font:
+    16px/1.45 'EB Garamond',
+    Georgia,
+    serif;
+}
+body {
+  background: var(--bg) radial-gradient(ellipse at top, #2a1a12 0%, #0d0a08 60%)
+    fixed;
+  min-height: 100vh;
+}
+a {
+  color: var(--gold-hi);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+.dim {
+  color: var(--muted);
+}
+.bad {
+  color: var(--bad);
+}
+.ok {
+  color: var(--ok);
+}
+
+/* ---------- Shell ---------- */
+.app {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  grid-template-rows: auto 1fr;
+  max-width: 1240px;
+  min-height: 100vh;
+  margin: 0 auto;
+}
+header {
+  grid-column: 1 / 3;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 22px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+  background: linear-gradient(#1c130d, #0f0b08);
+  box-shadow: inset 0 -1px 0 #000;
+}
+.logo {
+  font:
+    800 22px Cinzel,
+    serif;
+  letter-spacing: 0.14em;
+  color: var(--gold);
+  text-shadow: 0 0 10px #6c4811;
+}
+.logo small {
+  display: block;
+  font:
+    italic 13px 'EB Garamond',
+    serif;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  text-shadow: none;
+}
+.pinfo b {
+  color: var(--gold-hi);
+  font-weight: 600;
+}
+.resbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-left: auto;
+}
+.res {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 118px;
+  padding: 4px 10px 4px 4px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+.res img {
+  width: 32px;
+  height: 32px;
+  display: block;
+}
+.res .l {
+  font:
+    600 10px Cinzel,
+    serif;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+.res .v {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.res.full .v {
+  color: var(--bad);
+}
+
+.app > nav {
+  padding: 14px 10px;
+  border-right: 1px solid var(--line);
+  background: rgb(13 10 8 / 0.6);
+}
+.app > nav a {
+  display: block;
+  padding: 6px 10px;
+  margin-bottom: 2px;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  color: var(--text);
+  font:
+    600 13px Cinzel,
+    serif;
+  letter-spacing: 0.06em;
+}
+.app > nav a:hover {
+  border-color: var(--line);
+  text-decoration: none;
+}
+.app > nav a[aria-current='page'] {
+  color: var(--gold-hi);
+  background: var(--panel-2);
+  border-color: var(--gold);
+}
+.app > nav hr {
+  border: 0;
+  border-top: 1px solid var(--line);
+  margin: 10px 4px;
+}
+.badge {
+  display: inline-block;
+  min-width: 18px;
+  margin-left: 6px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: #a3141a;
+  color: #fff;
+  font:
+    600 11px/18px 'EB Garamond',
+    serif;
+  text-align: center;
+}
+
+main {
+  padding: 16px 20px 40px;
+}
+h2 {
+  margin: 0 0 14px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--line);
+  font:
+    800 22px Cinzel,
+    serif;
+  letter-spacing: 0.08em;
+  color: var(--gold);
+}
+h2 .dim {
+  font-weight: 600;
+  font-size: 16px;
+  letter-spacing: 0.04em;
+}
+
+/* ---------- Boxes ---------- */
+.box {
+  margin-bottom: 16px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+.box > h3 {
+  margin: 0;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--line);
+  font:
+    600 14px Cinzel,
+    serif;
+  letter-spacing: 0.08em;
+  color: var(--gold);
+}
+.box > .bd {
+  padding: 12px 14px;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+td,
+th {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: middle;
+}
+tr:last-child td {
+  border-bottom: 0;
+}
+.kv td:first-child {
+  width: 34%;
+  color: var(--muted);
+}
+.n {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.mini {
+  width: 32px;
+  height: 32px;
+  vertical-align: middle;
+}
+
+/* ---------- Overview ---------- */
+.planet {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 16px;
+  align-items: center;
+}
+.fl-out {
+  color: var(--ok);
+}
+.fl-back {
+  color: var(--muted);
+}
+.fl-enemy {
+  color: var(--bad);
+}
+
+/* ---------- Buildings ---------- */
+.items {
+  display: grid;
+  gap: 10px;
+}
+.item {
+  display: grid;
+  grid-template-columns: 112px 1fr auto;
+  gap: 16px;
+  align-items: center;
+  padding: 10px 14px 10px 10px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  transition: border-color 0.15s;
+}
+.item:hover {
+  border-color: var(--gold);
+}
+.item > img {
+  width: 112px;
+  height: 112px;
+  display: block;
+}
+.item.locked > img {
+  filter: grayscale(0.85) brightness(0.6);
+}
+.item.running {
+  border-color: var(--ember);
+  box-shadow: 0 0 0 1px var(--ember) inset;
+}
+.nm {
+  font:
+    600 17px Cinzel,
+    serif;
+  letter-spacing: 0.04em;
+  color: var(--gold-hi);
+}
+.nm .lv {
+  font:
+    italic 15px 'EB Garamond',
+    serif;
+  color: var(--muted);
+  letter-spacing: 0;
+}
+.desc {
+  margin: 2px 0 6px;
+  font-style: italic;
+  color: var(--muted);
+}
+.cost {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+}
+.cost span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-variant-numeric: tabular-nums;
+}
+.cost img {
+  width: 22px;
+  height: 22px;
+}
+.meta {
+  margin-top: 4px;
+  font-size: 15px;
+  color: var(--muted);
+}
+.req {
+  color: var(--bad);
+}
+.act {
+  min-width: 190px;
+  text-align: center;
+}
+button {
+  padding: 7px 16px;
+  font:
+    600 13px Cinzel,
+    serif;
+  letter-spacing: 0.06em;
+  color: #1a1206;
+  background: linear-gradient(#f1d27a, #b8842a);
+  border: 1px solid #0d0a08;
+  border-radius: 3px;
+  box-shadow:
+    inset 0 1px 0 #fff6cc,
+    0 0 0 1px #6c4811;
+  cursor: pointer;
+}
+button:hover {
+  filter: brightness(1.1);
+}
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--gold-hi);
+  outline-offset: 2px;
+}
+button:disabled {
+  color: var(--muted);
+  background: var(--panel-2);
+  box-shadow: 0 0 0 1px var(--line);
+  cursor: not-allowed;
+}
+button.red {
+  color: #fff;
+  background: linear-gradient(#c2392a, #6e140f);
+  box-shadow:
+    inset 0 1px 0 #ff9a8a,
+    0 0 0 1px #4a0508;
+}
+.cd {
+  display: block;
+  margin: 4px 0 6px;
+  font:
+    600 18px 'EB Garamond',
+    serif;
+  font-variant-numeric: tabular-nums;
+  color: var(--ember);
+}
+.progress {
+  height: 6px;
+  margin: 0 0 8px;
+  background: #0d0a08;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.progress > i {
+  display: block;
+  height: 100%;
+  width: 62%;
+  background: linear-gradient(90deg, #7b4c17, var(--ember), var(--gold-hi));
+}
+
+.note {
+  margin-top: 24px;
+  padding: 8px 12px;
+  border: 1px dashed var(--line);
+  border-radius: 4px;
+  color: var(--muted);
+  font-style: italic;
+}
+
+/* ---------- Phone ---------- */
+@media (max-width: 760px) {
+  .app {
+    grid-template-columns: 1fr;
+  }
+  header {
+    grid-column: 1;
+    gap: 8px;
+    padding: 10px 12px;
+  }
+  .resbar {
+    margin-left: 0;
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .res {
+    min-width: 0;
+  }
+  main {
+    padding: 12px 12px 32px;
+  }
+  .planet {
+    grid-template-columns: 1fr;
+  }
+  .item {
+    grid-template-columns: 72px 1fr;
+    gap: 10px 12px;
+  }
+  .item > img {
+    width: 72px;
+    height: 72px;
+  }
+  .act {
+    grid-column: 1 / 3;
+    min-width: 0;
+  }
+  .act button {
+    width: 100%;
+  }
+}
+
+/* ---------- Phone navigation: bottom tab bar + "Mehr" bottom sheet ---------- */
+.tabbar,
+.sheet {
+  display: none;
+}
+@media (max-width: 760px) {
+  .app > nav {
+    display: none;
+  }
+  body {
+    padding-bottom: calc(64px + env(safe-area-inset-bottom));
+  }
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    padding-top: calc(8px + env(safe-area-inset-top));
+  }
+  .logo {
+    font-size: 17px;
+  }
+  .logo small,
+  .pinfo {
+    display: none;
+  }
+  .resbar {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 4px;
+  }
+  .res {
+    flex-direction: column;
+    gap: 0;
+    padding: 4px 2px;
+    text-align: center;
+  }
+  .res img {
+    width: 28px;
+    height: 28px;
+  }
+  .res .l {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .res .v {
+    font-size: 14px;
+  }
+  .tabbar {
+    position: fixed;
+    inset: auto 0 0;
+    z-index: 20;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    padding: 4px 4px env(safe-area-inset-bottom);
+    background: linear-gradient(#1c130d, #0d0a08);
+    border-top: 1px solid var(--gold);
+    box-shadow: 0 -6px 18px rgb(0 0 0 / 0.6);
+  }
+  .tab {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    min-height: 56px;
+    color: var(--muted);
+    font:
+      600 10px Cinzel,
+      serif;
+    letter-spacing: 0.02em;
+    text-decoration: none;
+  }
+  .tab:hover {
+    text-decoration: none;
+  }
+  .tab svg {
+    width: 26px;
+    height: 26px;
+  }
+  .tab[aria-current='page'] {
+    color: var(--gold-hi);
+  }
+  .tab[aria-current='page']::before {
+    content: '';
+    position: absolute;
+    top: -5px;
+    left: 25%;
+    right: 25%;
+    height: 3px;
+    border-radius: 0 0 3px 3px;
+    background: var(--gold);
+  }
+  .tab .badge {
+    position: absolute;
+    top: 4px;
+    left: calc(50% + 6px);
+    margin: 0;
+  }
+  .tab .dot {
+    position: absolute;
+    top: 8px;
+    left: calc(50% + 10px);
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #a3141a;
+    box-shadow: 0 0 0 2px #0d0a08;
+  }
+  .sheet:target {
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    display: block;
+  }
+  .sheet-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgb(0 0 0 / 0.6);
+  }
+  .sheet-panel {
+    position: absolute;
+    inset: auto 0 0;
+    max-height: 80vh;
+    overflow-y: auto;
+    padding: 6px 12px calc(12px + env(safe-area-inset-bottom));
+    background: var(--panel);
+    border-top: 1px solid var(--gold);
+    border-radius: 14px 14px 0 0;
+  }
+  .sheet-handle {
+    width: 40px;
+    height: 4px;
+    margin: 4px auto 8px;
+    border-radius: 2px;
+    background: var(--line);
+  }
+  .sheet h3 {
+    margin: 0 4px 6px;
+    font:
+      600 14px Cinzel,
+      serif;
+    letter-spacing: 0.08em;
+    color: var(--gold);
+  }
+  .sheet ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .sheet li a {
+    display: flex;
+    align-items: center;
+    min-height: 48px;
+    padding: 0 8px;
+    border-bottom: 1px solid var(--line);
+    color: var(--text);
+    font:
+      600 14px Cinzel,
+      serif;
+    letter-spacing: 0.04em;
+  }
+  .sheet li a svg {
+    width: 16px;
+    height: 16px;
+    margin-left: auto;
+    color: var(--muted);
+  }
+  .sheet li:last-child a {
+    border-bottom: 0;
+  }
+}
+
+/* ---------- Planets: layered, animated (CSS only) ----------
+   Layers: surface texture (turns slowly, 1.5–4.5 min per tile), clouds (drift faster), day/night
+   shading, atmosphere rim and glow (breathes). Textures are tileable SVGs in
+   planets/, so a translateX of one tile loops without a seam. */
+.pl {
+  --size: 160px;
+  --atmo: #6fb8ff;
+  --turn: 180s;
+  --drift: 52s;
+  position: relative;
+  width: var(--size);
+  height: var(--size);
+  margin: 0 auto;
+  border-radius: 50%;
+  isolation: isolate;
+}
+.pl-body {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 50%;
+  background: #000;
+}
+.pl-surface,
+.pl-clouds {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 200%;
+  height: 100%;
+  background-repeat: repeat-x;
+  background-size: 50% 100%;
+  will-change: transform;
+  animation: pl-turn var(--turn) linear infinite;
+}
+.pl-clouds {
+  animation-duration: var(--drift);
+  opacity: 0.9;
+}
+@keyframes pl-turn {
+  to {
+    transform: translateX(-50%);
+  }
+}
+/* Light from the upper left, night side lower right, limb darkening. */
+.pl-shade {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background:
+    radial-gradient(
+      circle at 30% 28%,
+      rgb(255 255 255 / 0.22) 0,
+      rgb(255 255 255 / 0) 32%
+    ),
+    radial-gradient(
+      circle at 36% 34%,
+      rgb(0 0 0 / 0) 42%,
+      rgb(0 0 0 / 0.55) 66%,
+      rgb(0 0 0 / 0.92) 88%
+    );
+  box-shadow:
+    inset 4px 3px 10px -2px var(--atmo),
+    inset -10px -12px 22px rgb(0 0 0 / 0.7);
+}
+/* Atmosphere: halo around the planet that breathes slowly. */
+.pl::after {
+  content: '';
+  position: absolute;
+  inset: -7%;
+  z-index: -1;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 42% 40%,
+    var(--atmo) 0,
+    color-mix(in srgb, var(--atmo) 45%, transparent) 62%,
+    transparent 71%
+  );
+  filter: blur(4px);
+  opacity: 0.55;
+  animation: pl-breathe 7.5s ease-in-out infinite alternate;
+}
+@keyframes pl-breathe {
+  to {
+    opacity: 0.9;
+    transform: scale(1.025);
+  }
+}
+
+.pl-normal {
+  --atmo: #6fb8ff;
+}
+.pl-normal .pl-surface {
+  background-image: url('planets/normal-surface.svg');
+}
+.pl-normal .pl-clouds {
+  background-image: url('planets/normal-clouds.svg');
+}
+.pl-wasser {
+  --atmo: #7fd3ff;
+  --drift: 41s;
+}
+.pl-wasser .pl-surface {
+  background-image: url('planets/wasser-surface.svg');
+}
+.pl-wasser .pl-clouds {
+  background-image: url('planets/wasser-clouds.svg');
+}
+.pl-dschungel {
+  --atmo: #8fe0b0;
+  --drift: 68s;
+}
+.pl-dschungel .pl-surface {
+  background-image: url('planets/dschungel-surface.svg');
+}
+.pl-dschungel .pl-clouds {
+  background-image: url('planets/dschungel-clouds.svg');
+  opacity: 1;
+}
+.pl-trocken {
+  --atmo: #d9b98a;
+}
+.pl-trocken .pl-surface {
+  background-image: url('planets/trocken-surface.svg');
+}
+.pl-trocken .pl-clouds {
+  background-image: url('planets/trocken-clouds.svg');
+  opacity: 0.6;
+}
+.pl-wueste {
+  --atmo: #f0a050;
+  --turn: 225s;
+  --drift: 30s;
+}
+.pl-wueste .pl-surface {
+  background-image: url('planets/wueste-surface.svg');
+}
+.pl-wueste .pl-clouds {
+  background-image: url('planets/wueste-clouds.svg');
+  opacity: 0.45;
+}
+.pl-eis {
+  --atmo: #cfefff;
+  --turn: 270s;
+  --drift: 75s;
+}
+.pl-eis .pl-surface {
+  background-image: url('planets/eis-surface.svg');
+}
+.pl-eis .pl-clouds {
+  background-image: url('planets/eis-clouds.svg');
+  opacity: 0.55;
+}
+/* Gas giant: bands turn fast, the upper band layer even faster. */
+.pl-gas {
+  --atmo: #f5d29a;
+  --turn: 90s;
+  --drift: 28s;
+}
+.pl-gas .pl-surface {
+  background-image: url('planets/gas-surface.svg');
+}
+.pl-gas .pl-clouds {
+  background-image: url('planets/gas-clouds.svg');
+  opacity: 0.5;
+}
+
+/* Small planets (Galaxie, planet list): no animation, no halo pulse. */
+.pl-static .pl-surface,
+.pl-static .pl-clouds,
+.pl-static::after {
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .pl-surface,
+  .pl-clouds,
+  .pl::after {
+    animation: none;
+  }
+}
+
+/* ---------- Planet type gallery ---------- */
+.pl-grid {
+  display: grid;
+  margin-bottom: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+}
+.pl-card {
+  padding: 22px 14px 14px;
+  text-align: center;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+.pl-card .pl {
+  --size: 140px;
+  margin-bottom: 16px;
+}
+.pl-card h3 {
+  margin: 0;
+  font:
+    600 16px Cinzel,
+    serif;
+  letter-spacing: 0.06em;
+  color: var(--gold-hi);
+}
+.pl-card p {
+  margin: 4px 0 0;
+  font-size: 15px;
+}
+.pl-sizes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  align-items: center;
+}
+.pl-sizes .pl {
+  --size: 48px;
+  margin: 0;
+}
