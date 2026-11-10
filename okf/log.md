@@ -1,5 +1,8 @@
 # Update log
 
+## 2026-11-10
+* **Update**: CI job "Migrations append-only" in the CI Gate: released migrations must not be moved, removed or changed; schema snapshot test (`src/server/db/schema.snapshot.sql`). Modelled after Flyway, sqlx, Atlas and GitLab ([SQLite storage](/data/sqlite.md)).
+
 ## 2026-11-06
 * **Update**: Version 2 of the game published unchanged on the session branch (owner's request).
 * **Update**: Rules of the muffelblog bundle adopted; four rounds of decisions with the owner (see [History](/history.md)).

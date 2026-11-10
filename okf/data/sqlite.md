@@ -20,6 +20,33 @@ of invalidating a snapshot midway through an action. The client retries a
 game action once when the server explicitly reports that it rolled back due
 to contention. Fleet arrivals remain queued when the writer lock is busy.
 
+## Released migrations are append-only
+
+A database only runs the migrations above its `user_version`. A moved,
+removed or changed migration is therefore skipped silently on existing
+databases. Released means merged to `main`, because every green push to
+`main` is tagged. Rules, after Flyway and sqlx (checksums of applied
+migrations), Atlas (`migrate lint` against the Git base) and GitLab
+(committed `structure.sql`):
+
+* **[E]** A schema change is a new entry at the end of `MIGRATIONS`. A wrong
+  migration is corrected by a further migration, never by an edit.
+* **[E]** The CI job "Migrations append-only"
+  (`.github/scripts/migrations-gate.mjs`) requires the migrations of the base
+  commit to be an unchanged prefix, byte for byte. It is part of the CI Gate
+  for every change, documentation included, and runs again on every push to
+  `main`, so a failed run there also stops the automatic tag.
+* **[E]** `src/server/db/schema.snapshot.sql` holds the schema after all
+  migrations; the unit test fails when it differs. A pull request with a new
+  migration updates it, so the review shows the resulting schema.
+* **[V]** Not covered: two pull requests that each pass against an older
+  `main` and conflict only in meaning. GitHub tests the merge result at the
+  time of the last push; "Require branches to be up to date" closes the gap
+  (owner, [O9](/open-points.md)).
+* **[V]** Not covered: upgrades on real data (new constraints, `INSERT …
+  SELECT *` during a table rebuild, cascades on `DROP TABLE` with foreign
+  keys on). Only migration 9 has an upgrade test with data.
+
 In Docker Compose, the named data volume persists the database across container
 replacements. Follow the [backup and restore procedure](../../docs/operations.md#backup-and-restore)
 before upgrades.

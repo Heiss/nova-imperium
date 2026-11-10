@@ -38,7 +38,13 @@ pnpm test:coverage   # Vitest; blocks below 90 % lines / 85 % branches
 pnpm test:mutation   # Stryker; blocks below a mutation score of 80 %
 pnpm build && pnpm test:e2e   # Playwright, desktop and phone
 docker compose up -d --build && docker/smoke.sh   # the stack (after docker/init-env.sh --demo)
+node .github/scripts/migrations-gate.mjs origin/main   # released migrations unchanged
 ```
+
+A schema change is a new migration at the end of `src/server/db/schema.ts`;
+a released migration is never moved, removed or changed. Update the schema
+snapshot with `pnpm vitest run src/server/db/schema.test.ts -u` and review
+its diff.
 
 Write the test first. Tests check behavior, not markup; no test is skipped or
 disabled to make the CI green. Details: `okf/ops/testing.md`.

@@ -193,6 +193,30 @@ jobs:
       - name: No known high or critical holes in the production dependencies
         run: pnpm audit --prod --audit-level high
 
+  # A released migration is never moved, removed or changed; existing
+  # databases would skip it silently. Compares the checked-out change (the
+  # merge result of a pull request) with the base of the pull request, or a
+  # push to main with the previous tip of main. Runs for every change.
+  migrations:
+    name: Migrations append-only
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+      - name: Released migrations are unchanged
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
+            echo "::error::No base commit to compare the migrations with."
+            exit 1
+          fi
+          node .github/scripts/migrations-gate.mjs "$BASE"
+
   # Static analysis. A finding of security severity 7.0 or more blocks.
   codeql:
     name: CodeQL
@@ -221,7 +245,8 @@ jobs:
   # or is skipped, and allow skips only when the workflow expects them.
   gate:
     name: CI Gate
-    needs: [changes, security, codeql, check, e2e, mutation, compose]
+    needs:
+      [changes, security, migrations, codeql, check, e2e, mutation, compose]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -229,6 +254,7 @@ jobs:
         env:
           CHANGES: ${{ needs.changes.result }}
           SECURITY: ${{ needs.security.result }}
+          MIGRATIONS: ${{ needs.migrations.result }}
           CODE: ${{ needs.changes.outputs.code }}
           CODEQL: ${{ needs.codeql.result }}
           CHECK: ${{ needs.check.result }}
@@ -246,6 +272,7 @@ jobs:
 
           require_success "Detect changes" "$CHANGES"
           require_success "Secrets and dependencies" "$SECURITY"
+          require_success "Migrations append-only" "$MIGRATIONS"
 
           if [ "$EVENT" = "push" ] && [ "$CODE" != "true" ]; then
             echo "::error::Pushes to main must run the full suite."

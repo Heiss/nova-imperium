@@ -1,5 +1,6 @@
 // Versioned migrations of the SQLite database. A migration is never changed
 // after it was released; a change of the schema is a new entry at the end.
+// The CI job "Migrations append-only" enforces this (migration-history.ts).
 
 export const MIGRATIONS: readonly string[] = [
   // 1: the first schema

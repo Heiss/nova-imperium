@@ -49,7 +49,8 @@ http://localhost:8025.
 Every pull request runs lint with complexity limits, type check, unit tests
 with coverage (≥ 90 % lines, ≥ 85 % branches), mutation tests (score ≥ 80 %),
 browser tests (desktop and phone, no CSP violations), the Docker image with a
-Compose smoke test, gitleaks, `pnpm audit`, CodeQL and Trivy. One gate job
+Compose smoke test, gitleaks, `pnpm audit`, CodeQL, Trivy and a check that
+released database migrations stay unchanged. One gate job
 collects them; only a green gate goes to review. The rules of the game are
 checked against the original version 1 to the last digit.
 
