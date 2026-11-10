@@ -275,22 +275,6 @@ tr:last-child td {
   gap: 16px;
   align-items: center;
 }
-.planet-ball {
-  width: 160px;
-  height: 160px;
-  margin: 0 auto;
-  border-radius: 50%;
-  background: radial-gradient(
-    circle at 35% 30%,
-    #c9d98a 0%,
-    #6f8f2c 45%,
-    #1e2a0b 100%
-  );
-  box-shadow:
-    0 0 0 3px #0d0a08,
-    0 0 0 5px var(--gold),
-    0 0 26px #6c4811;
-}
 .fl-out {
   color: var(--ok);
 }
@@ -663,4 +647,226 @@ button.red {
   .sheet li:last-child a {
     border-bottom: 0;
   }
+}
+
+/* ---------- Planets: layered, animated (CSS only) ----------
+   Layers: surface texture (turns slowly), clouds (drift faster), day/night
+   shading, atmosphere rim and glow (breathes). Textures are tileable SVGs in
+   planets/, so a translateX of one tile loops without a seam. */
+.pl {
+  --size: 160px;
+  --atmo: #6fb8ff;
+  --turn: 120s;
+  --drift: 70s;
+  position: relative;
+  width: var(--size);
+  height: var(--size);
+  margin: 0 auto;
+  border-radius: 50%;
+  isolation: isolate;
+}
+.pl-body {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 50%;
+  background: #000;
+}
+.pl-surface,
+.pl-clouds {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 200%;
+  height: 100%;
+  background-repeat: repeat-x;
+  background-size: 50% 100%;
+  will-change: transform;
+  animation: pl-turn var(--turn) linear infinite;
+}
+.pl-clouds {
+  animation-duration: var(--drift);
+  opacity: 0.9;
+}
+@keyframes pl-turn {
+  to {
+    transform: translateX(-50%);
+  }
+}
+/* Light from the upper left, night side lower right, limb darkening. */
+.pl-shade {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background:
+    radial-gradient(
+      circle at 30% 28%,
+      rgb(255 255 255 / 0.22) 0,
+      rgb(255 255 255 / 0) 32%
+    ),
+    radial-gradient(
+      circle at 36% 34%,
+      rgb(0 0 0 / 0) 42%,
+      rgb(0 0 0 / 0.55) 66%,
+      rgb(0 0 0 / 0.92) 88%
+    );
+  box-shadow:
+    inset 4px 3px 10px -2px var(--atmo),
+    inset -10px -12px 22px rgb(0 0 0 / 0.7);
+}
+/* Atmosphere: halo around the planet that breathes slowly. */
+.pl::after {
+  content: '';
+  position: absolute;
+  inset: -7%;
+  z-index: -1;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 42% 40%,
+    var(--atmo) 0,
+    color-mix(in srgb, var(--atmo) 45%, transparent) 62%,
+    transparent 71%
+  );
+  filter: blur(4px);
+  opacity: 0.55;
+  animation: pl-breathe 9s ease-in-out infinite alternate;
+}
+@keyframes pl-breathe {
+  to {
+    opacity: 0.9;
+    transform: scale(1.025);
+  }
+}
+
+.pl-normal {
+  --atmo: #6fb8ff;
+}
+.pl-normal .pl-surface {
+  background-image: url('planets/normal-surface.svg');
+}
+.pl-normal .pl-clouds {
+  background-image: url('planets/normal-clouds.svg');
+}
+.pl-wasser {
+  --atmo: #7fd3ff;
+  --drift: 55s;
+}
+.pl-wasser .pl-surface {
+  background-image: url('planets/wasser-surface.svg');
+}
+.pl-wasser .pl-clouds {
+  background-image: url('planets/wasser-clouds.svg');
+}
+.pl-dschungel {
+  --atmo: #8fe0b0;
+  --drift: 90s;
+}
+.pl-dschungel .pl-surface {
+  background-image: url('planets/dschungel-surface.svg');
+}
+.pl-dschungel .pl-clouds {
+  background-image: url('planets/dschungel-clouds.svg');
+  opacity: 1;
+}
+.pl-trocken {
+  --atmo: #d9b98a;
+}
+.pl-trocken .pl-surface {
+  background-image: url('planets/trocken-surface.svg');
+}
+.pl-trocken .pl-clouds {
+  background-image: url('planets/trocken-clouds.svg');
+  opacity: 0.6;
+}
+.pl-wueste {
+  --atmo: #f0a050;
+  --turn: 150s;
+  --drift: 40s;
+}
+.pl-wueste .pl-surface {
+  background-image: url('planets/wueste-surface.svg');
+}
+.pl-wueste .pl-clouds {
+  background-image: url('planets/wueste-clouds.svg');
+  opacity: 0.45;
+}
+.pl-eis {
+  --atmo: #cfefff;
+  --turn: 180s;
+  --drift: 100s;
+}
+.pl-eis .pl-surface {
+  background-image: url('planets/eis-surface.svg');
+}
+.pl-eis .pl-clouds {
+  background-image: url('planets/eis-clouds.svg');
+  opacity: 0.55;
+}
+/* Gas giant: bands turn fast, the upper band layer even faster. */
+.pl-gas {
+  --atmo: #f5d29a;
+  --turn: 60s;
+  --drift: 38s;
+}
+.pl-gas .pl-surface {
+  background-image: url('planets/gas-surface.svg');
+}
+.pl-gas .pl-clouds {
+  background-image: url('planets/gas-clouds.svg');
+  opacity: 0.5;
+}
+
+/* Small planets (Galaxie, planet list): no animation, no halo pulse. */
+.pl-static .pl-surface,
+.pl-static .pl-clouds,
+.pl-static::after {
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .pl-surface,
+  .pl-clouds,
+  .pl::after {
+    animation: none;
+  }
+}
+
+/* ---------- Planet type gallery ---------- */
+.pl-grid {
+  display: grid;
+  margin-bottom: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+}
+.pl-card {
+  padding: 22px 14px 14px;
+  text-align: center;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+.pl-card .pl {
+  --size: 140px;
+  margin-bottom: 16px;
+}
+.pl-card h3 {
+  margin: 0;
+  font:
+    600 16px Cinzel,
+    serif;
+  letter-spacing: 0.06em;
+  color: var(--gold-hi);
+}
+.pl-card p {
+  margin: 4px 0 0;
+  font-size: 15px;
+}
+.pl-sizes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  align-items: center;
+}
+.pl-sizes .pl {
+  --size: 48px;
+  margin: 0;
 }
