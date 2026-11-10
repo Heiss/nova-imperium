@@ -8,7 +8,7 @@
     prod,
     reqMissing,
   } from '../../shared/economy.ts';
-  import { artURI } from '../art.ts';
+  import { iconURL } from '../logic/icons.ts';
   import { dur } from '../logic/format.ts';
   import { buildState } from '../logic/game.ts';
   import { costHTML, needs, type V } from './common.ts';
@@ -33,7 +33,7 @@
     {@const delta = energyChange($viewState, key, level)}
     {@const missing = reqMissing(def, P, R)}
     {@const status = buildState(P, R, key, missing.length)}
-    {@const image = artURI(key)}
+    {@const image = iconURL(key)}
     <div class="item">
       <div class="icon ic-b">
         {#if image}<img src={image} alt={def.n} />{:else}{def.ab}{/if}

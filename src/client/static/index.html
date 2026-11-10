@@ -2,12 +2,15 @@
 <html lang="de">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
     <title>Nova Imperium – Classic Uni</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="apple-touch-icon" href="/icon-192.png" />
-    <meta name="theme-color" content="#05070d" />
+    <meta name="theme-color" content="#0d0a08" />
     <link rel="stylesheet" href="/style.css" />
     <script type="module" src="/app.js"></script>
   </head>
@@ -28,6 +31,12 @@
       <nav id="menu" aria-label="Hauptmenü"></nav>
       <main id="view"><div class="notice">Lade Universum …</div></main>
     </div>
+    <nav id="tabbar" aria-label="Hauptmenü (Telefon)"></nav>
+    <dialog id="more" aria-labelledby="more-title">
+      <div class="sheet-handle" aria-hidden="true"></div>
+      <p id="more-title" class="sheet-title">Mehr</p>
+      <div id="more-list"></div>
+    </dialog>
     <div id="modal" role="dialog" aria-modal="true">
       <div class="in" id="modalIn"></div>
     </div>

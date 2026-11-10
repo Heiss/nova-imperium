@@ -9,7 +9,6 @@ import {
   isProtected,
   nameOf,
   newestFirst,
-  planetColors,
   ranks,
   researchState,
   settingsFrom,
@@ -38,22 +37,6 @@ describe('players', () => {
   it('name players', () => {
     expect(nameOf(players, 'a')).toBe('Anna');
     expect(nameOf(players, 'x')).toBe('Unbekannt');
-  });
-});
-
-describe('planet colors', () => {
-  it('go from cold blue to hot red', () => {
-    expect(planetColors(-20)).toEqual({
-      inner: 'hsl(200,55%,45%)',
-      outer: 'hsl(220,60%,18%)',
-    });
-    expect(planetColors(120)).toEqual({
-      inner: 'hsl(20,55%,50%)',
-      outer: 'hsl(30,60%,18%)',
-    });
-    expect(planetColors(-100)).toEqual(planetColors(-20));
-    expect(planetColors(500)).toEqual(planetColors(120));
-    expect(planetColors(50).inner).toBe('hsl(110,55%,47.5%)');
   });
 });
 

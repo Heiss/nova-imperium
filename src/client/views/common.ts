@@ -1,7 +1,13 @@
 // Pieces shared by the views. Everything that comes from players goes through esc().
-import type { Cost, Planet, ResearchState } from '../../shared/types.ts';
-import { artURI } from '../art.ts';
+import type {
+  Coords,
+  Cost,
+  Planet,
+  ResearchState,
+} from '../../shared/types.ts';
 import { dur, esc, fmt } from '../logic/format.ts';
+import { iconURL, type ResourceKey, resourceIconURL } from '../logic/icons.ts';
+import { planetLook } from '../logic/planet.ts';
 import type { GameState } from '../logic/types.ts';
 
 export interface Ui {
@@ -16,6 +22,8 @@ export interface Ui {
   auth: 'login' | 'register' | 'forgot' | 'reset' | 'code' | null;
   invite: { token: string; email: string; galaxies: number } | null;
   lastLink: string | null;
+  /** Planet animations of this viewer (Hilfe & Optionen, issue #61 D9). */
+  animations: boolean;
 }
 
 /** What every view gets: the state, the planet and research moved to now. */
@@ -34,18 +42,24 @@ export const cd = (end: number, now: number): string =>
     : '<span class="dim">gleich …</span>';
 
 const COST_NAMES = ['Metall', 'Kristall', 'Deuterium'] as const;
+const COST_ICONS: ResourceKey[] = ['metal', 'crystal', 'deuterium'];
 const HAVE = ['m', 'c', 'd'] as const;
+
+/** A small resource icon whose alt text names the resource. */
+export const resIcon = (key: ResourceKey, name: string): string =>
+  `<img class="ri" src="${resourceIconURL(key)}" alt="${name}" width="20" height="20">`;
 
 export function costHTML(c: Cost, p: Planet, n = 1): string {
   const parts = COST_NAMES.map((name, i) => ({
     name,
+    icon: resIcon(COST_ICONS[i]!, name),
     v: c[i]! * n,
     have: p.res[HAVE[i]!],
   }))
     .filter((x) => x.v > 0)
     .map(
       (x) =>
-        `<span>${x.name}: <b class="${x.have >= x.v ? '' : 'bad'}">${fmt(x.v)}</b></span>`,
+        `<span>${x.icon}<b class="${x.have >= x.v ? '' : 'bad'}">${fmt(x.v)}</b></span>`,
     );
   return `<div class="cost">${parts.join('')}</div>`;
 }
@@ -64,7 +78,7 @@ export function itemHTML(
   body: string,
   action: string,
 ): string {
-  const src = artURI(key);
+  const src = iconURL(key);
   const icon = src ? `<img src="${src}" alt="${esc(d.n)}">` : d.ab;
   const ds = d.ds ? `<div class="ds">${d.ds}</div>` : '';
   return `<div class="item"><div class="icon ${cls}">${icon}</div><div><div class="nm">${d.n} <span class="lv">${level}</span></div>${ds}${body}</div><div class="act">${action}</div></div>`;
@@ -76,6 +90,12 @@ export const box = (title: string, body: string, cls = ''): string =>
 export const needs = (miss: string[]): string =>
   miss.length ? `<div class="req">Benötigt: ${miss.join(', ')}</div>` : '';
 
-/** A planet ball; main.ts paints it from data-temp (no inline styles under the CSP). */
-export const planetBall = (temp: number, cls = 'planet'): string =>
-  `<div class="${cls}" data-temp="${temp}"></div>`;
+/**
+ * A layered planet (issue #61, D7): the surface turns, the clouds drift, the
+ * atmosphere breathes. main.ts sets the textures from data-surface and
+ * data-clouds (no inline styles under the CSP). `still` is for small planets.
+ */
+export function planetHTML(c: Coords, still = false): string {
+  const look = planetLook(c);
+  return `<div class="pl pl-${look.type}${still ? ' pl-still' : ''}" role="img" aria-label="${look.name}" data-surface="${look.surface}" data-clouds="${look.clouds}"><div class="pl-body"><div class="pl-surface"></div><div class="pl-clouds"></div><div class="pl-shade"></div></div></div>`;
+}

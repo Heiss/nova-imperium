@@ -1,5 +1,10 @@
 # Update log
 
+## 2026-11-10
+* **Update**: Interface v2 with the Nova Imperium icon set, phone tab bar with „Mehr“ sheet, animated planets per type with a switch „Animationen“ (issue #61, see [Interface](/features/interface.md)).
+* **Update**: Planet type by slot and system parity, look only (issue #52).
+* **Update**: The server backs up the database before migrations (`nova.sqlite.v<version>.bak`, newest three kept; see [SQLite](/data/sqlite.md)).
+
 ## 2026-11-06
 * **Update**: Version 2 of the game published unchanged on the session branch (owner's request).
 * **Update**: Rules of the muffelblog bundle adopted; four rounds of decisions with the owner (see [History](/history.md)).
