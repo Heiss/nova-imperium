@@ -5,3 +5,4 @@ export * from './economy.ts';
 export * from './settle.ts';
 export * from './flight.ts';
 export * from './battle.ts';
+export * from './planet-type.ts';
