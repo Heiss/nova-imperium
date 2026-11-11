@@ -1,5 +1,5 @@
 import { MISSION, SHIPS } from '../../shared/catalog.ts';
-import { shipSpeed } from '../../shared/flight.ts';
+import { fleetSlots, shipSpeed } from '../../shared/flight.ts';
 import { fmt } from '../logic/format.ts';
 import { fleetTable } from './overview.ts';
 import { box, type V } from './common.ts';
@@ -39,7 +39,7 @@ function targetForm(v: V, slotsFull: boolean): string {
 }
 
 export function fleet(v: V): string {
-  const slots = 1 + (v.R.research.computer ?? 0);
+  const slots = fleetSlots(v.R);
   const used = v.s.fleets.filter((f) => f.owner === v.s.me.id).length;
   const rows = shipRows(v);
   const head = box(

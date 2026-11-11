@@ -7,3 +7,5 @@ export * from './flight.ts';
 export * from './battle.ts';
 export * from './planet-type.ts';
 export * from './yard.ts';
+export * from './lab.ts';
+export * from './protection.ts';

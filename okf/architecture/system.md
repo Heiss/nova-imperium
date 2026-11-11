@@ -20,6 +20,12 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 | Operator command | `src/server/commands.ts` | `nova admin|unadmin|admins|invite`. |
 | Client | `src/client` | `logic/` (tested functions), `views/` (HTML templates), `main.ts` (events, server calls, clock). Bundled by esbuild into `dist/public`. |
 
+**[E]** A game rule that the server checks and the browser shows lives once,
+in `src/shared`, and both sides call it (owner, 2026-11-11): the shipyard
+lock (`yard.ts`), the lab lock (`lab.ts`), noob protection (`protection.ts`)
+and the fleet slots (`fleetSlots` in `flight.ts`). Messages stay with the
+caller; the rule does not.
+
 # Request flow
 
 1. **[E]** Caddy receives the request from the operator's proxy, sets the

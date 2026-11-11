@@ -12,6 +12,7 @@ import {
   researchTime,
   unitTime,
 } from '../../shared/economy.ts';
+import { labUpgrading, waitsForLab } from '../../shared/lab.ts';
 import { settle, settleR } from '../../shared/settle.ts';
 import { waitsForYard, YARD_LOCK, yardLockedBy } from '../../shared/yard.ts';
 import type { Planet, ResearchState } from '../../shared/types.ts';
@@ -62,7 +63,7 @@ const checkBuild = (p: Planet, r: ResearchState, k: string): void => {
   if (p.bq) fail('Es wird bereits gebaut.');
   if (reqMissing(BUILD[k]!, p, r).length) fail('Voraussetzungen fehlen.');
   if (waitsForYard(p, k)) fail('Die Werft arbeitet gerade.');
-  if (k === 'lab' && r.rq) fail('Das Labor forscht gerade.');
+  if (waitsForLab(r, k)) fail('Das Labor forscht gerade.');
 };
 
 export const build: Action = (ctx, u, d, event) => {
@@ -103,7 +104,7 @@ export const cancelBuild: Action = (ctx, u, d) => {
 const checkResearch = (p: Planet, r: ResearchState, k: string): void => {
   if (!((p.b.lab ?? 0) > 0)) fail('Du brauchst ein Forschungslabor.');
   if (r.rq) fail('Es wird bereits geforscht.');
-  if (p.bq?.key === 'lab') fail('Das Labor wird ausgebaut.');
+  if (labUpgrading(p)) fail('Das Labor wird ausgebaut.');
   if (reqMissing(RES[k]!, p, r).length) fail('Voraussetzungen fehlen.');
 };
 

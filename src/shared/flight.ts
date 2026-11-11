@@ -4,6 +4,10 @@ import type { Coords, Levels, ResearchState, Universe } from './types.ts';
 
 export const pid = (c: Coords): string => `p${c.g}_${c.s}_${c.p}`;
 
+/** Fleets a player can have in flight at once: 1 + Computertechnik. */
+export const fleetSlots = (r: Pick<ResearchState, 'research'>): number =>
+  1 + (r.research.computer ?? 0);
+
 export function distance(a: Coords, b: Coords): number {
   if (a.g !== b.g) return 20000 * Math.abs(a.g - b.g);
   if (a.s !== b.s) return 2700 + 95 * Math.abs(a.s - b.s);

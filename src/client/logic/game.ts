@@ -8,6 +8,8 @@ import {
   flightMs,
   fuelFor,
 } from '../../shared/flight.ts';
+import { labUpgrading, waitsForLab } from '../../shared/lab.ts';
+import { isProtected as protects } from '../../shared/protection.ts';
 import { waitsForYard } from '../../shared/yard.ts';
 import type {
   Coords,
@@ -31,7 +33,7 @@ export const isProtected = (
   players: Players,
   me: string,
   other: string,
-): boolean => (players[other]?.points ?? 0) * 5 < (players[me]?.points ?? 0);
+): boolean => protects(players[me]?.points ?? 0, players[other]?.points ?? 0);
 
 export const nameOf = (players: Players, id: string): string =>
   players[id]?.name ?? 'Unbekannt';
@@ -55,7 +57,7 @@ export function buildState(
   if (missing) return 'missing';
   if (p.bq) return 'queueBusy';
   if (waitsForYard(p, key)) return 'yardBusy';
-  if (key === 'lab' && r.rq) return 'labBusy';
+  if (waitsForLab(r, key)) return 'labBusy';
   return 'ready';
 }
 
@@ -71,7 +73,7 @@ export function researchState(
   if (r.rq?.key === key) return 'running';
   if (missing) return 'missing';
   if (r.rq) return 'busy';
-  if (p.bq?.key === 'lab') return 'labBusy';
+  if (labUpgrading(p)) return 'labBusy';
   return 'ready';
 }
 
