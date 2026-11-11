@@ -9,7 +9,7 @@
 //   node scripts/mutation-gate.ts            check
 //   node scripts/mutation-gate.ts --update   raise the floors to the current
 //                                            scores (never lowers one)
-import { readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 
 export interface Standard {
   securityTarget: number;
@@ -62,14 +62,27 @@ export function check(
   return failures;
 }
 
-/** Raises every floor to the current score; files that are gone lose theirs. */
+/**
+ * Raises every floor to the current score. A file missing from the report
+ * keeps its floor (a run of some files only must not erase the others);
+ * a file that no longer exists loses it.
+ */
 export function update(
   scores: Record<string, number>,
   standard: Standard,
+  exists: (file: string) => boolean = existsSync,
 ): Standard {
   const floors: Record<string, number> = {};
-  for (const file of Object.keys(scores).sort())
-    floors[file] = Math.max(standard.floors[file] ?? 0, scores[file]!);
+  const files = new Set([
+    ...Object.keys(standard.floors),
+    ...Object.keys(scores),
+  ]);
+  for (const file of [...files].sort()) {
+    const was = standard.floors[file];
+    const now = scores[file];
+    if (now !== undefined) floors[file] = Math.max(was ?? 0, now);
+    else if (was !== undefined && exists(file)) floors[file] = was;
+  }
   return { ...standard, floors };
 }
 

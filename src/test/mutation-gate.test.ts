@@ -60,7 +60,7 @@ describe('mutation gate', () => {
     ]);
   });
 
-  it('raises floors, never lowers them, and drops files that are gone', () => {
+  it('raises floors, never lowers them, and drops files that no longer exist', () => {
     const next = update(
       {
         'src/server/auth.ts': 91,
@@ -78,10 +78,17 @@ describe('mutation gate', () => {
       [...Object.keys(next.floors)].sort(),
     );
     expect(next.security).toEqual(standard.security);
-    expect(update({ 'src/server/auth.ts': 80 }, standard).floors).toEqual({
-      'src/server/auth.ts': 83.75,
-    });
+    const exists = (file: string) => file !== 'src/shared/a.ts';
+    expect(
+      update({ 'src/server/auth.ts': 80 }, standard, exists).floors,
+    ).toEqual({ 'src/server/auth.ts': 83.75 });
     expect(standard.floors['src/server/auth.ts']).toBe(83.75);
+  });
+
+  it('keeps the floor of a file left out of a partial run', () => {
+    expect(
+      update({ 'src/server/auth.ts': 85 }, standard, () => true).floors,
+    ).toEqual({ 'src/server/auth.ts': 85, 'src/shared/a.ts': 70 });
   });
 
   it('skips files without counted mutants', () => {
