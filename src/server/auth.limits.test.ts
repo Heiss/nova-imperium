@@ -102,6 +102,7 @@ describe('registration limits', () => {
       token: link.split('#invite=')[1]!,
       name: 'Neu',
       password: 'x'.repeat(MAX),
+      planet: 'Welt',
       gal: 1,
     });
     expect(u.id).toMatch(/^uid\d+$/);
