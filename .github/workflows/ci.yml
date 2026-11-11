@@ -160,7 +160,7 @@ jobs:
         run: docker compose up --detach --no-build --wait
       - name: No critical holes in the image (Trivy; only those with a fix)
         run: |
-          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:0.76.2 \
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:0.76.2@sha256:8f6bb947dbc528902e11f2f5be52f7b519f6a39d5d148f41166f2040499768fb \
             image --severity CRITICAL --ignore-unfixed --exit-code 1 --no-progress \
             "ghcr.io/heiss/nova-imperium:$NOVA_VERSION"
       - name: The image holds no compiler, package manager or tests
@@ -193,7 +193,7 @@ jobs:
           fetch-depth: 0
       - name: No secrets in the history (gitleaks, exceptions in .gitleaksignore)
         run: |
-          docker run --rm -v "$PWD:/repo" --entrypoint sh zricethezav/gitleaks:v8.30.1 -c \
+          docker run --rm -v "$PWD:/repo" --entrypoint sh zricethezav/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f -c \
             'git config --global --add safe.directory /repo && cd /repo && gitleaks git . --redact --no-banner'
       - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
@@ -241,7 +241,8 @@ jobs:
           persist-credentials: false
       - name: actionlint
         run: |
-          docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.12 -color
+          docker run --rm -v "$PWD:/repo:ro" -w /repo \
+            rhysd/actionlint:1.7.12@sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667 -color
       - name: zizmor
         env:
           GH_TOKEN: ${{ github.token }}
