@@ -79,6 +79,22 @@ export const BUILD: Record<string, BuildingDef> = {
     f: 2,
     ds: 'Verkürzt die Bauzeit von Gebäuden.',
   },
+  // Issue #48. Not in version 1; the classic values (owner, 2026-11-11).
+  nanite: {
+    n: 'Nanitenfabrik',
+    ab: 'Na',
+    cost: [1000000, 500000, 100000],
+    f: 2,
+    ds: 'Halbiert die Bauzeit von Gebäuden, Schiffen und Verteidigung pro Stufe.',
+    req: {
+      b: {
+        robot: 10,
+      },
+      r: {
+        computer: 10,
+      },
+    },
+  },
   yard: {
     n: 'Raumschiffwerft',
     ab: 'Wf',

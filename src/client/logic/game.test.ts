@@ -87,6 +87,14 @@ describe('button states', () => {
     ).toBe('yardBusy');
     expect(
       buildState(
+        planet({ sq: [{ key: 'lf', n: 1, unit: 1 }] }),
+        r,
+        'nanite',
+        0,
+      ),
+    ).toBe('yardBusy');
+    expect(
+      buildState(
         planet(),
         {
           research: {},

@@ -9,13 +9,23 @@ const O: any = require('../test/legacy/game.cjs');
 
 describe('catalog', () => {
   it('equals the catalog of version 1', () => {
-    expect(C.BUILD).toEqual(O.BUILD);
+    expect(C.BUILD).toEqual({ ...O.BUILD, nanite: C.BUILD.nanite });
     expect(C.RES).toEqual(O.RES);
     expect(C.SHIPS).toEqual({ ...O.SHIPS, colony: C.SHIPS.colony });
     expect(C.DEF).toEqual(O.DEF);
     expect(C.UNIT).toEqual({ ...O.UNIT, colony: C.SHIPS.colony });
     expect(C.DRIVE_BONUS).toEqual(O.DRIVE_BONUS);
     expect(C.MISSION).toEqual({ ...O.MISSION, colonize: 'Kolonisieren' });
+  });
+  it('has the Nanitenfabrik with the classic values (#48)', () => {
+    expect(C.BUILD.nanite).toEqual({
+      n: 'Nanitenfabrik',
+      ab: 'Na',
+      cost: [1000000, 500000, 100000],
+      f: 2,
+      ds: 'Halbiert die Bauzeit von Gebäuden, Schiffen und Verteidigung pro Stufe.',
+      req: { b: { robot: 10 }, r: { computer: 10 } },
+    });
   });
   it('tells ships from defense', () => {
     expect(C.isShip('lf')).toBe(true);

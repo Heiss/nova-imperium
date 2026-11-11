@@ -1,6 +1,7 @@
 # Update log
 
 ## 2026-11-11
+* **Update**: Nanitenfabrik (issue #48): halves building and shipyard times per level, locks the shipyard like the Werft; the lock rules moved to `src/shared/yard.ts` (see [Nanitenfabrik](/features/nanite-factory.md)).
 * **Update**: CodeQL runs for documentation-only pull requests too; without its result the ruleset of `main` blocked their merge (#65).
 
 ## 2026-11-10

@@ -8,6 +8,7 @@ import {
   flightMs,
   fuelFor,
 } from '../../shared/flight.ts';
+import { waitsForYard } from '../../shared/yard.ts';
 import type {
   Coords,
   Levels,
@@ -53,7 +54,7 @@ export function buildState(
   if (p.bq?.key === key) return 'running';
   if (missing) return 'missing';
   if (p.bq) return 'queueBusy';
-  if (key === 'yard' && p.sq.length) return 'yardBusy';
+  if (waitsForYard(p, key)) return 'yardBusy';
   if (key === 'lab' && r.rq) return 'labBusy';
   return 'ready';
 }

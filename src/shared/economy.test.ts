@@ -62,6 +62,16 @@ describe('times', () => {
     expect(unitTime(SHIPS.lf!, p, U)).toBe(576000);
     expect(buildTime([5000, 5000, 0], p, { ...U, speed: 10 })).toBe(720000);
   });
+  it('halve per level of the Nanitenfabrik, but not research (#48)', () => {
+    const n = (nanite: number) =>
+      planet({ b: { robot: 1, lab: 3, yard: 1, nanite } });
+    expect(buildTime([5000, 5000, 0], n(1), U)).toBe(720000);
+    expect(buildTime([5000, 5000, 0], n(3), U)).toBe(180000);
+    expect(unitTime(SHIPS.lf!, n(1), U)).toBe(288000);
+    expect(unitTime(SHIPS.lf!, n(2), U)).toBe(144000);
+    expect(researchTime([1000, 1000, 0], n(5), U)).toBe(360000);
+    expect(buildTime([1, 0, 0], n(10), U)).toBe(1000);
+  });
   it('are at least one second', () => {
     expect(buildTime([1, 0, 0], p, U)).toBe(1000);
     expect(researchTime([1, 0, 0], p, U)).toBe(1000);
