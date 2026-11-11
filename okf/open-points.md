@@ -17,7 +17,6 @@ their result.
 | O1 | systemd unit | Version 1 had `nova-imperium.service`. It was removed because the start changed (build step, `.env`, secrets) and only Docker is tested. Options: leave it out; add an untested unit with `EnvironmentFile`; add a tested unit with a CI job. |
 | O2 | Minimum password length | Kept at 6 like version 1. Options: keep 6; 8; 12; a passphrase rule. |
 | O3 | Ranges of the universe settings | Proposals in [Admin](/features/admin.md) (speed 1 to 100, galaxies up to 9, …). Confirm or change. |
-| O4 | Merging | Who merges pull requests of the assistant: the owner after review (today), or the assistant after a green CI Gate (as in muffelblog). |
 
 # B. Tasks of the owner
 
@@ -44,3 +43,4 @@ their result.
 |---|---|
 | Interface never clicked through (hand-over note) | Covered by the E2E suite on every pull request. |
 | Old JSON state | Not imported (round 1). |
+| O4 Merging | The assistant merges its pull requests itself after a green CI Gate and with no open review findings (owner, 2026-11-10). |

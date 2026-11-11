@@ -17,6 +17,12 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 * **[E]** E2E tests with Playwright in the browser against the real server and
   a fresh database (`e2e/`), desktop and phone size. Every page records
   Content-Security-Policy violations and script errors; there must be none.
+* **[E]** Every pull request brings E2E tests for each of its acceptance
+  criteria that a player can see or do in the browser (owner, 2026-11-10).
+  Logic that the browser cannot reach in reasonable time (for example a build
+  that takes hours) is set up with `e2e/seed.ts` (planet, research, a
+  colony, a finished queue). A test that passes at once is checked once by
+  breaking the code it covers. Existing gaps are collected in an issue.
 * **[E]** Accessibility with axe (WCAG 2.1 A and AA) on the login and all 12
   views, with a self-test that proves the check finds problems
   (`e2e/a11y.spec.ts`). A look with a screen reader and the keyboard is still

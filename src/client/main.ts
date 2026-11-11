@@ -74,7 +74,16 @@ interface InstallPrompt extends Event {
 }
 let installPrompt: InstallPrompt | null = null;
 let installedHere = false;
-let installDismissed = false;
+const INSTALL_DISMISSED_KEY = 'nova.pwa.install-dismissed';
+let installDismissed = readInstallDismissal();
+
+function readInstallDismissal(): boolean {
+  try {
+    return localStorage.getItem(INSTALL_DISMISSED_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
 const mobileInstall = matchMedia('(max-width: 800px) and (pointer: coarse)');
 const standalone = matchMedia('(display-mode: standalone)');
 
@@ -500,6 +509,13 @@ function renderPlanetHeader({ s, P }: V): void {
     `<b>${esc(P.name)}</b> ${coords(P)} · Kommandant <b>${esc(s.me.name)}</b> · <span class="lnk" data-act="logout">Logout</span>${selector}`;
 }
 
+/** The view state moved to now; H is the home planet (P itself on home). */
+function viewAt(state: GameState, planet: Planet, now: number): V {
+  const here = settle(planet, now, state.cfg);
+  const home = state.home ? settle(state.home, now, state.cfg) : here;
+  return { s: state, P: here, H: home, R: settleR(state.me, now), now, ui };
+}
+
 function render(fresh = false): void {
   const view = $('#view')!;
   if (!S) {
@@ -517,13 +533,7 @@ function render(fresh = false): void {
   const restore = keepInputs(view, fresh);
   const now = nowT();
   const previous = ctx;
-  ctx = {
-    s: S,
-    P: settle(S.planet, now, S.cfg),
-    R: settleR(S.me, now),
-    now,
-    ui,
-  };
+  ctx = viewAt(S, S.planet, now);
   if (previous && !fresh) rememberCompletions(previous, ctx);
   renderMenu();
   updateBar();
@@ -647,7 +657,10 @@ function updateBar(): Planet | undefined {
 
 function updateResearchButtons(p: Planet, research: Levels): void {
   document
-    .querySelectorAll<HTMLButtonElement>('#view button[data-act="research"]')
+    // „Jetzt forschen“ (.go) carries its own state from the requirement list.
+    .querySelectorAll<HTMLButtonElement>(
+      '#view button[data-act="research"]:not(.go)',
+    )
     .forEach((button) => {
       const key = button.dataset.k!;
       const level = research[key] ?? 0;
@@ -829,7 +842,7 @@ const ACT: Record<string, (d: Data) => unknown> = {
     ui.auth = ui.auth === 'register' ? 'login' : 'register';
     render(true);
   },
-  build: (d) => act('build', { key: d.k }),
+  build: (d) => act('build', { key: d.k, at: d.at }),
   cancelBuild: () => act('cancelBuild'),
   research: (d) => act('research', { key: d.k }),
   cancelResearch: () => act('cancelResearch'),
@@ -946,6 +959,11 @@ const ACT: Record<string, (d: Data) => unknown> = {
     ),
   dismissInstall: () => {
     installDismissed = true;
+    try {
+      localStorage.setItem(INSTALL_DISMISSED_KEY, '1');
+    } catch {
+      // The offer still stays hidden in this tab when storage is unavailable.
+    }
     updateInstallButton();
   },
   installApp: async () => {
@@ -1363,7 +1381,12 @@ setInterval(() => {
     });
   const planet = updateBar();
   if (planet) {
-    buildingView?.update({ ...ctx, P: planet, now });
+    buildingView?.update({
+      ...ctx,
+      P: planet,
+      H: S?.home ? ctx.H : planet,
+      now,
+    });
     updateResearchButtons(planet, ctx.R.research);
     updateShipyardButtons(planet);
   }

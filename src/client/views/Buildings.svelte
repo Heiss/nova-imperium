@@ -11,7 +11,7 @@
   import { iconURL } from '../logic/icons.ts';
   import { dur } from '../logic/format.ts';
   import { buildState } from '../logic/game.ts';
-  import { costHTML, needs, type V } from './common.ts';
+  import { costHTML, requirementsHTML, type V } from './common.ts';
 
   let { viewState }: { viewState: Readable<V> } = $props();
   const energy = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 2 });
@@ -50,7 +50,7 @@
           </div>
         {/if}
         <div class="dim">Bauzeit: {dur(buildTime(cost, P, s.cfg))}</div>
-        {@html needs(missing)}
+        {@html requirementsHTML($viewState, def.req, 'here')}
       </div>
       <div class="act">
         {#if status === 'running' && P.bq}

@@ -2,6 +2,9 @@
 
 ## 2026-11-10
 * **Update**: Property-based upgrade tests of every migration on generated data (fast-check), nightly with a random seed; changing migrations need their own upgrade test (see [SQLite](/data/sqlite.md)).
+* **Update**: Requirements list with indirect requirements, startable ones in `--ready` with „Jetzt bauen“/„Jetzt forschen“ (issue #64, see [Requirements list](/features/requirements.md)).
+* **Decision**: O4 – the assistant merges its pull requests after a green CI Gate.
+* **Decision**: every pull request brings E2E tests for its acceptance criteria (see [Test strategy](/ops/testing.md)).
 * **Update**: Interface v2 with the Nova Imperium icon set, phone tab bar with „Mehr“ sheet, animated planets per type with a switch „Animationen“ (issue #61, see [Interface](/features/interface.md)).
 * **Update**: Planet type by slot and system parity, look only (issue #52).
 * **Update**: The server backs up the database before migrations (`nova.sqlite.v<version>.bak`, newest three kept; see [SQLite](/data/sqlite.md)).

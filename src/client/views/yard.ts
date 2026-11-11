@@ -3,7 +3,7 @@ import { maxAfford, reqMissing, unitTime } from '../../shared/economy.ts';
 import { shipSpeed } from '../../shared/flight.ts';
 import type { Levels } from '../../shared/types.ts';
 import { dur, fmt } from '../logic/format.ts';
-import { cd, costHTML, itemHTML, needs, type V } from './common.ts';
+import { cd, costHTML, itemHTML, requirementsHTML, type V } from './common.ts';
 
 function queue(v: V): string {
   const { P, now } = v;
@@ -53,7 +53,7 @@ function yard(
       costHTML(d.cost, P) +
       stats(v, k, d) +
       `<div class="dim">Bauzeit: ${dur(unitTime(d, P, s.cfg))} je Einheit</div>` +
-      needs(miss);
+      requirementsHTML(v, d.req, 'here');
     return itemHTML(
       cls,
       k,
