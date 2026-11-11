@@ -17,6 +17,16 @@ describe('catalog', () => {
     expect(C.DRIVE_BONUS).toEqual(O.DRIVE_BONUS);
     expect(C.MISSION).toEqual({ ...O.MISSION, colonize: 'Kolonisieren' });
   });
+  it('has the Nanitenfabrik with the classic values (#48)', () => {
+    expect(C.BUILD.nanite).toEqual({
+      n: 'Nanitenfabrik',
+      ab: 'Na',
+      cost: [1000000, 500000, 100000],
+      f: 2,
+      ds: 'Halbiert die Bauzeit von Gebäuden, Schiffen und Verteidigung pro Stufe.',
+      req: { b: { robot: 10 }, r: { computer: 10 } },
+    });
+  });
   it('tells ships from defense', () => {
     expect(C.isShip('lf')).toBe(true);
     expect(C.isShip('rl')).toBe(false);

@@ -1,14 +1,8 @@
-import {
-  DEF,
-  isYardLock,
-  SHIPS,
-  UNIT,
-  type UnitDef,
-  YARD_LOCK,
-} from '../../shared/catalog.ts';
+import { DEF, SHIPS, UNIT, type UnitDef } from '../../shared/catalog.ts';
 import { maxAfford, reqMissing, unitTime } from '../../shared/economy.ts';
 import { shipSpeed } from '../../shared/flight.ts';
 import type { Levels } from '../../shared/types.ts';
+import { YARD_LOCK, yardLockedBy } from '../../shared/yard.ts';
 import { dur, fmt } from '../logic/format.ts';
 import { cd, costHTML, itemHTML, requirementsHTML, type V } from './common.ts';
 
@@ -50,12 +44,12 @@ function yard(
   const { P, R, s } = v;
   if (!((P.b.yard ?? 0) > 0))
     return `<h2>${title}</h2><div class="notice">Dafür brauchst du eine Raumschiffwerft.</div>`;
-  const upgrading = !!P.bq && isYardLock(P.bq.key);
+  const lock = yardLockedBy(P);
   const items = Object.entries(defs).map(([k, d]) => {
     const miss = reqMissing(d, P, R);
     const action = miss.length
       ? '<span class="req">Voraussetzungen fehlen</span>'
-      : orderBox(k, maxAfford(P, d.cost), upgrading);
+      : orderBox(k, maxAfford(P, d.cost), !!lock);
     const body =
       costHTML(d.cost, P) +
       stats(v, k, d) +
@@ -70,9 +64,7 @@ function yard(
       action,
     );
   });
-  const warn = upgrading
-    ? `<div class="notice warn">${lockNotice(P.bq!.key)}</div>`
-    : '';
+  const warn = lock ? `<div class="notice warn">${lockNotice(lock)}</div>` : '';
   return `<h2>${title}</h2>${queue(v)}${warn}<div class="box">${items.join('')}</div>`;
 }
 

@@ -82,6 +82,32 @@ describe('buildings', () => {
       'Das Labor forscht gerade.',
     );
   });
+  it('start the Nanitenfabrik only with an idle shipyard (#48)', () => {
+    const res = { m: 2e6, c: 2e6, d: 2e6 };
+    const research = { research: { computer: 10 } };
+    const busy = setup(
+      {
+        res,
+        b: { robot: 10, yard: 1 },
+        sq: [{ key: 'rl', n: 9, unit: 1e9 }],
+        sqT: 1_000_000,
+      },
+      research,
+    );
+    expect(() => A.build(busy.ctx, busy.u, { key: 'nanite' })).toThrow(
+      'Die Werft arbeitet gerade.',
+    );
+    const idle = setup({ res, b: { robot: 10, yard: 1 } }, research);
+    expect(A.build(idle.ctx, idle.u, { key: 'nanite' })).toBeNull();
+    expect(idle.p().bq).toMatchObject({
+      key: 'nanite',
+      lvl: 1,
+      cost: [1000000, 500000, 100000],
+    });
+    expect(() => A.order(idle.ctx, idle.u, { key: 'rl', n: 1 })).toThrow(
+      'Die Nanitenfabrik wird ausgebaut.',
+    );
+  });
   it('can be cancelled with a full refund', () => {
     const { ctx, u, p } = setup({ res: { m: 1000, c: 1000, d: 0 } });
     expect(A.cancelBuild(ctx, u, {})).toBeNull();

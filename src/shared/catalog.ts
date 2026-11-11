@@ -137,18 +137,6 @@ export const BUILD: Record<string, BuildingDef> = {
   },
 };
 
-/**
- * Buildings that stop the shipyard while they are upgraded, and that wait for
- * an idle shipyard before an upgrade starts (classic rule; #48, D1).
- */
-export const YARD_LOCK: Readonly<Record<string, string>> = {
-  yard: 'Werft',
-  nanite: 'Nanitenfabrik',
-};
-
-export const isYardLock = (key: string): boolean =>
-  Object.hasOwn(YARD_LOCK, key);
-
 export const RES: Record<string, ResearchDef> = {
   energy: {
     n: 'Energietechnik',

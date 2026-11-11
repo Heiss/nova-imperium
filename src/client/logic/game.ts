@@ -1,6 +1,5 @@
 // Logic of the interface that is not HTML: ranks, protection, what a button
 // shows, the preview of a flight, the cargo button, galaxy navigation.
-import { isYardLock } from '../../shared/catalog.ts';
 import {
   capacity,
   countUnits,
@@ -9,6 +8,7 @@ import {
   flightMs,
   fuelFor,
 } from '../../shared/flight.ts';
+import { waitsForYard } from '../../shared/yard.ts';
 import type {
   Coords,
   Levels,
@@ -54,7 +54,7 @@ export function buildState(
   if (p.bq?.key === key) return 'running';
   if (missing) return 'missing';
   if (p.bq) return 'queueBusy';
-  if (isYardLock(key) && p.sq.length) return 'yardBusy';
+  if (waitsForYard(p, key)) return 'yardBusy';
   if (key === 'lab' && r.rq) return 'labBusy';
   return 'ready';
 }

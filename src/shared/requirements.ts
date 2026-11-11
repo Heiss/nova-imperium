@@ -4,8 +4,9 @@
 // planet are built there, the buildings that research needs on the home
 // planet (owner decision). Research is always started and paid on the home
 // planet (D4).
-import { BUILD, isYardLock, RES } from './catalog.ts';
+import { BUILD, RES } from './catalog.ts';
 import { afford, lvlCost, reqMissing } from './economy.ts';
+import { waitsForYard } from './yard.ts';
 import type {
   Cost,
   Levels,
@@ -137,7 +138,7 @@ function busyReason(n: Need, p: Planet, r: ResearchState): string | undefined {
     return p.bq?.key === 'lab' ? 'Labor wird ausgebaut' : undefined;
   }
   if (p.bq) return 'Bauschleife belegt';
-  if (isYardLock(n.key) && p.sq.length) return 'Werft arbeitet gerade';
+  if (waitsForYard(p, n.key)) return 'Werft arbeitet gerade';
   if (n.key === 'lab' && r.rq) return 'Das Labor forscht gerade';
   return undefined;
 }
