@@ -45,3 +45,9 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 * **[E]** The assistant merges its own pull requests with a squash merge
   once the CI Gate is green and no review finding is open (owner decision O4,
   2026-11-10).
+* **[E]** CodeRabbit reviews every pull request when it is opened or marked
+  ready, not drafts and not later pushes (`.coderabbit.yaml`, owner
+  2026-11-11). It comments and does not request changes. Under O4 a finding
+  „blocks“ when it concerns security or is marked „Critical“: it is fixed
+  before the merge. Every other finding gets an answer in its thread (fixed,
+  or why not) before the merge.

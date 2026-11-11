@@ -2,6 +2,7 @@
 
 ## 2026-11-11
 * **Update**: Migrations fail closed: the backup is checked before a migration, without a good backup the server does not start; tested with real data per version, as a process and as a Docker upgrade from the last release (see [SQLite storage](/data/sqlite.md)).
+* **Update**: CodeRabbit reviews pull requests (`.coderabbit.yaml`); security and „Critical“ findings block a merge under O4 (see [Branching and release](/ops/branching-release.md)).
 * **Update**: knip, jscpd and dependency-cruiser block in CI; 27 unused exports and `@types/markdown-it` removed, one copied block in `src/server/http/app.ts` replaced by the types `Guard` and `Enter` (see [Test strategy](/ops/testing.md)).
 * **Update**: Lab lock, noob protection and fleet slots live once in `src/shared` (`lab.ts`, `protection.ts`, `fleetSlots`), used by the server and the browser; no change of behaviour (see [System architecture](/architecture/system.md)).
 * **Update**: Nanitenfabrik (issue #48): halves building and shipyard times per level, locks the shipyard like the Werft; the lock rules moved to `src/shared/yard.ts` (see [Nanitenfabrik](/features/nanite-factory.md)).
