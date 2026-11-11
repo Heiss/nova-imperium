@@ -59,9 +59,9 @@ module.exports = {
     },
   ],
   options: {
-    doNotFollow: { path: 'node_modules' },
+    // Not followed, but imports into them stay visible to the rules.
+    doNotFollow: { path: 'node_modules|^src/test/legacy/' },
     tsConfig: { fileName: 'tsconfig.json' },
     tsPreCompilationDeps: true,
-    exclude: { path: '^src/test/legacy/' },
   },
 };
