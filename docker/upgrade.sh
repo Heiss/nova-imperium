@@ -18,6 +18,11 @@ schema() {
   docker compose exec -T app node -e \
     "const D=require('better-sqlite3');const d=new D('/data/nova.sqlite',{readonly:true});console.log(d.pragma('user_version',{simple:true}))"
 }
+# The schema version the image under test migrates to.
+expected() {
+  docker compose exec -T app node -e \
+    "import('/app/src/server/db/schema.ts').then((m) => console.log(m.MIGRATIONS.length))"
+}
 
 i=0
 until [ "$(status "$GAME/healthz")" = "200" ] || [ $i -ge 60 ]; do i=$((i+1)); sleep 2; done
@@ -35,10 +40,13 @@ if [ "$step" = before ]; then
 else
   from="$(cat "$state")"
   to="$(schema)"
-  echo "schema version: $from -> $to"
+  want="$(expected || true)"
+  echo "schema version: $from -> $to (image: $want)"
   login="$(curl -s -X POST -H 'content-type: application/json' -d "{\"name\":\"$who\",\"password\":\"$pass\"}" "$GAME/api/login")"
   case "$login" in *'"admin":true'*) ok "player and admin right survive the upgrade" ;; *) bad "login after the upgrade: $login" ;; esac
-  if [ "$to" -lt "$from" ]; then
+  if [ -z "$want" ] || [ "$to" -ne "$want" ]; then
+    bad "schema version $to, the image expects $want"
+  elif [ "$to" -lt "$from" ]; then
     bad "schema version went down"
   elif [ "$to" -gt "$from" ]; then
     docker compose exec -T app test -s "/data/nova.sqlite.v$from.bak" &&
