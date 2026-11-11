@@ -74,7 +74,16 @@ interface InstallPrompt extends Event {
 }
 let installPrompt: InstallPrompt | null = null;
 let installedHere = false;
-let installDismissed = false;
+const INSTALL_DISMISSED_KEY = 'nova.pwa.install-dismissed';
+let installDismissed = readInstallDismissal();
+
+function readInstallDismissal(): boolean {
+  try {
+    return localStorage.getItem(INSTALL_DISMISSED_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
 const mobileInstall = matchMedia('(max-width: 800px) and (pointer: coarse)');
 const standalone = matchMedia('(display-mode: standalone)');
 
@@ -946,6 +955,11 @@ const ACT: Record<string, (d: Data) => unknown> = {
     ),
   dismissInstall: () => {
     installDismissed = true;
+    try {
+      localStorage.setItem(INSTALL_DISMISSED_KEY, '1');
+    } catch {
+      // The offer still stays hidden in this tab when storage is unavailable.
+    }
     updateInstallButton();
   },
   installApp: async () => {
