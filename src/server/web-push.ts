@@ -192,7 +192,7 @@ function retry(ctx: Ctx, job: Job, error: unknown): void {
 
 type SendPush = (job: Subscription, payload: string) => Promise<unknown>;
 
-export function pushSender(ctx: Ctx, subject: string): SendPush {
+function pushSender(ctx: Ctx, subject: string): SendPush {
   const vapidDetails = { subject, ...vapidKeys(ctx) };
   return (job, payload) =>
     sendNotification(

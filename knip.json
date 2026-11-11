@@ -1,0 +1,15 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": [
+    "src/client/static/push-worker.js",
+    "e2e/seed.ts",
+    "scripts/*.ts",
+    ".github/scripts/*.mjs"
+  ],
+  "project": [
+    "src/**/*.{ts,svelte}",
+    "e2e/**/*.ts",
+    "scripts/**/*.ts",
+    ".github/scripts/*.mjs"
+  ]
+}

@@ -29,7 +29,7 @@ export const saveSettings: Action = (ctx, u, d) => {
   return 'Einstellungen gespeichert.';
 };
 
-export function newRound(ctx: Ctx): void {
+function newRound(ctx: Ctx): void {
   ctx.store.deleteAllPlanets();
   ctx.store.deleteAllFleets();
   ctx.store.db.exec(`

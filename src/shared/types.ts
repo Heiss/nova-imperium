@@ -2,7 +2,6 @@
 
 export type Cost = readonly [number, number, number];
 export type Levels = Record<string, number>;
-export type ResKey = 'm' | 'c' | 'd';
 
 export interface Resources {
   m: number;
@@ -29,7 +28,7 @@ export interface Queue {
   cost: Cost;
 }
 
-export interface ShipyardItem {
+interface ShipyardItem {
   key: string;
   n: number;
   unit: number;
@@ -58,7 +57,7 @@ export interface ResearchState {
 }
 
 export type Mission = 'attack' | 'transport' | 'spy' | 'colonize';
-export type FleetState = 'out' | 'back';
+type FleetState = 'out' | 'back';
 
 export interface Fleet {
   id: string;

@@ -67,6 +67,10 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint --max-warnings 0
+      # Dead code, copied code and import rules (knip, jscpd, dependency-cruiser).
+      - run: pnpm lint:dead
+      - run: pnpm lint:dupes
+      - run: pnpm lint:deps
       - run: pnpm format:check
       - run: pnpm typecheck
       # Blocks below 90 % lines and 85 % branches (vitest.config.ts).

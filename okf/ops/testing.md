@@ -45,6 +45,14 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   Checkouts keep no credentials, except the tag workflow, which pushes the
   tag. Its `workflow_run` trigger is accepted on purpose: it runs only after
   a successful CI push run on `main` and checks out `main`.
+* **[E]** Code hygiene blocks in the job „Lint, types, unit tests …“
+  (owner, 2026-11-11): knip (`knip.json`: no unused files, exports or
+  dependencies), jscpd (`.jscpd.json`: no copied block of 50 tokens or more
+  in production code; tests, E2E and version 1 are excluded) and
+  dependency-cruiser (`.dependency-cruiser.cjs`: `src/shared` imports neither
+  server nor client, the client never the server and the reverse, production
+  code no test helpers, server and shared code no dev dependencies, no
+  circular imports at runtime).
 * **[E]** Security gates: gitleaks over the whole history, `pnpm audit --prod`
   (high blocks), CodeQL `security-extended` (severity ≥ 7.0 blocks), Trivy on
   the image (critical with a fix blocks). CodeQL runs for every pull
