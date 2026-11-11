@@ -22,7 +22,8 @@ const pick = (keys: string[], chance: number, lo: number, hi: number): Levels =>
 
 function randomPlanet(): Planet {
   const t0 = ri(0, 1e6);
-  const b = pick(Object.keys(N.BUILD), 0.7, 0, 15);
+  // Version 1 knows no Nanitenfabrik (#48): its planets have level 0.
+  const b = pick(Object.keys(O.BUILD), 0.7, 0, 15);
   const p: Planet = {
     id: 'x',
     owner: 'u',
@@ -93,7 +94,7 @@ describe('equivalence with the original rules', () => {
 
   it('costs and times', () => {
     for (const c of cases) {
-      for (const k of Object.keys(N.BUILD)) {
+      for (const k of Object.keys(O.BUILD)) {
         const cost = N.lvlCost(N.BUILD[k]!, c.level);
         expect(cost).toEqual(O.lvlCost(O.BUILD[k], c.level));
         expect(N.buildTime(cost, c.planet, U)).toBe(
