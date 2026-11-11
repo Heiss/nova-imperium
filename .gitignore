@@ -10,3 +10,4 @@ test-results/
 secrets/*
 !secrets/.gitkeep
 .DS_Store
+upgrade-from.txt
