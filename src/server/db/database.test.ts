@@ -1,5 +1,7 @@
 import {
+  copyFileSync,
   existsSync,
+  mkdirSync,
   mkdtempSync,
   readdirSync,
   rmSync,
@@ -9,7 +11,15 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import Database from 'better-sqlite3';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { BACKUPS_KEPT, openDatabase } from './database.ts';
+import fc from 'fast-check';
+import {
+  describeSchema,
+  plansBefore,
+  populate,
+  snapshot,
+} from '../../test/migrations.ts';
+import { BACKUPS_KEPT, openDatabase, verifyBackup } from './database.ts';
+import { MIGRATIONS } from './schema.ts';
 
 const STEPS = [
   'CREATE TABLE a (x INTEGER)',
@@ -153,4 +163,142 @@ describe('backup before migrations', () => {
       openDatabase(':memory:', ['INSERT INTO nope VALUES (1)']),
     ).toThrow(/^no such table: nope$/);
   });
+});
+
+describe('fail closed', () => {
+  const unchanged = (): void => {
+    expect(version(file)).toBe(2);
+    expect(rows(file)).toEqual([1]);
+  };
+
+  it('does not migrate when the backup cannot be written', () => {
+    openDatabase(file, STEPS.slice(0, 2)).close();
+    // A folder where the backup file should go: the copy fails.
+    mkdirSync(path.join(dir, 'nova.sqlite.v2.bak', 'x'), { recursive: true });
+    let error: Error | undefined;
+    try {
+      openDatabase(file, STEPS.slice(0, 3));
+    } catch (e) {
+      error = e as Error;
+    }
+    expect(error?.message).toMatch(
+      /^No good backup of schema version 2 at .*nova\.sqlite\.v2\.bak: .*Nova Imperium does not start and did not migrate; the database is unchanged\.$/,
+    );
+    expect(error?.cause).toBeInstanceOf(Error);
+    unchanged();
+  });
+
+  it('does not migrate when the backup fails its check', () => {
+    openDatabase(file, STEPS.slice(0, 2)).close();
+    const refuse = (): void => {
+      throw new Error('rows differ');
+    };
+    expect(() => openDatabase(file, STEPS.slice(0, 3), refuse)).toThrow(
+      /No good backup of schema version 2 .*: rows differ\./,
+    );
+    unchanged();
+    // The other backups stay: nothing was pruned for a bad copy.
+    expect(backups()).toEqual(['nova.sqlite.v2.bak']);
+  });
+
+  it('checks integrity, version and rows of a backup', () => {
+    openDatabase(file, STEPS.slice(0, 3)).close();
+    const db = new Database(file);
+    const good = path.join(dir, 'good.bak');
+    db.prepare('VACUUM INTO ?').run(good);
+    expect(() => verifyBackup(db, good, 3)).not.toThrow();
+    expect(() => verifyBackup(db, good, 2)).toThrow(
+      'schema version 3 instead of 2',
+    );
+    db.exec('INSERT INTO a VALUES (9)');
+    expect(() => verifyBackup(db, good, 3)).toThrow(
+      'table a has 3 rows, the backup 2',
+    );
+    db.exec('CREATE TABLE b (y INTEGER)');
+    db.exec('DELETE FROM a WHERE x = 9');
+    expect(() => verifyBackup(db, good, 3)).toThrow(
+      'table b has 0 rows, the backup no',
+    );
+    db.exec('DROP TABLE b');
+    const extra = path.join(dir, 'extra.bak');
+    db.prepare('VACUUM INTO ?').run(extra);
+    const withC = new Database(extra);
+    withC.exec('CREATE TABLE c (z INTEGER)');
+    withC.close();
+    expect(() => verifyBackup(db, extra, 3)).toThrow(
+      'table c has no rows, the backup 0',
+    );
+    const junk = path.join(dir, 'junk.bak');
+    writeFileSync(junk, 'not a database file at all, not at all');
+    expect(() => verifyBackup(db, junk, 3)).toThrow();
+    const missing = path.join(dir, 'missing.bak');
+    expect(() => verifyBackup(db, missing, 3)).toThrow();
+    expect(existsSync(missing)).toBe(false);
+    db.close();
+  });
+
+  it('refuses a backup that opens but is damaged', () => {
+    // An index whose definition no longer matches its entries: the file
+    // opens and counts its rows, only the integrity check finds it.
+    const source = new Database(file);
+    source.exec('CREATE TABLE a (x INTEGER); CREATE INDEX ax ON a(x)');
+    source.exec('INSERT INTO a VALUES (1), (2), (3)');
+    const bad = path.join(dir, 'bad.bak');
+    source.prepare('VACUUM INTO ?').run(bad);
+    const damage = new Database(bad);
+    damage.unsafeMode(true);
+    damage.pragma('writable_schema = ON');
+    damage.exec(
+      "UPDATE sqlite_master SET sql = 'CREATE INDEX ax ON a(x + 1)' WHERE name = 'ax'",
+    );
+    damage.close();
+    expect(() => verifyBackup(source, bad, 0)).toThrow(
+      'integrity check: row 1 missing from index ax',
+    );
+    source.close();
+  });
+});
+
+describe('upgrade of real data with backup and restore', () => {
+  // Every released version with generated data (src/test/migrations.ts):
+  // the backup holds exactly the old data, and restoring it gives back the
+  // old database unchanged.
+  const snapshotOf = (f: string) => {
+    const db = new Database(f, { readonly: true });
+    try {
+      return snapshot(db);
+    } finally {
+      db.close();
+    }
+  };
+
+  it.each(MIGRATIONS.slice(1).map((_, i) => i + 1))(
+    'from schema version %i',
+    (from) => {
+      for (const plan of fc.sample(plansBefore(from + 1), {
+        numRuns: 3,
+        seed: from,
+      })) {
+        rmSync(file, { force: true });
+        for (const f of readdirSync(dir)) rmSync(path.join(dir, f));
+        const old = openDatabase(file, MIGRATIONS.slice(0, from));
+        populate(old, describeSchema(old), plan);
+        old.close();
+        const before = snapshotOf(file);
+
+        openDatabase(file).close();
+        const bak = path.join(dir, `nova.sqlite.v${from}.bak`);
+        expect(version(file)).toBe(MIGRATIONS.length);
+        expect(version(bak)).toBe(from);
+        expect(snapshotOf(bak)).toEqual(before);
+
+        // The restore described in the error message and docs/operations.md.
+        copyFileSync(bak, file);
+        rmSync(`${file}-wal`, { force: true });
+        rmSync(`${file}-shm`, { force: true });
+        openDatabase(file, MIGRATIONS.slice(0, from)).close();
+        expect(snapshotOf(file)).toEqual(before);
+      }
+    },
+  );
 });

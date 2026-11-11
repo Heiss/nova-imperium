@@ -28,6 +28,23 @@ rolls back in its transaction; the server then stops with an error that names
 the backup and the manual restore (overwrite the file, delete `-wal` and
 `-shm`). Code: `src/server/db/database.ts`, tests `database.test.ts`.
 
+**[E]** Fail closed (owner, 2026-11-11: „lieber startet es nicht“): the copy
+is checked before the migration runs (`verifyBackup`: `integrity_check`,
+schema version, rows per table). If it cannot be written or fails the check,
+the server neither migrates nor starts, and the database stays as it was.
+Tested at three levels:
+
+* `database.test.ts`: a copy that cannot be written, a copy that fails the
+  check, the check itself, and for every released version generated data
+  (`src/test/migrations.ts`) that the backup holds unchanged and that the
+  documented restore gives back unchanged.
+* `src/server/start.test.ts`: the real server process exits with the message
+  when the copy fails, and the database file is byte for byte the same.
+* CI job „Docker image and Compose stack“ (`docker/upgrade.sh`): the last
+  release (`ghcr.io/heiss/nova-imperium:latest`) writes a player, then the
+  image under test starts on the same volume; the player and the admin right
+  survive, and a migration leaves the backup of the old schema version.
+
 In Docker Compose, the named data volume persists the database across container
 replacements. Follow the [backup and restore procedure](../../docs/operations.md#backup-and-restore)
 before upgrades.
