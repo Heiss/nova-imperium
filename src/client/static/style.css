@@ -52,7 +52,7 @@
   --green: #9ccb76;
   --orange: #f0a050;
   /* A requirement whose next level can start now (issue #64, D5). */
-  --ready: #9ccb76;
+  --ready: #f0a050;
   --head: Cinzel, Georgia, serif;
   --body: 'EB Garamond', Georgia, serif;
 }
@@ -401,11 +401,11 @@ th.n {
 }
 button.go {
   flex: none;
-  color: #10200a;
-  background: linear-gradient(#c6e6a6, #6f9a4a);
+  color: #2a1606;
+  background: linear-gradient(#f8c88e, #c27628);
   box-shadow:
-    inset 0 1px 0 #e8f6da,
-    0 0 0 1px #3d5a26;
+    inset 0 1px 0 #ffe6c4,
+    0 0 0 1px #6b3d12;
 }
 button.go:disabled {
   color: var(--dim);

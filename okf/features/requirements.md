@@ -16,8 +16,8 @@ generated: { by: claude-code/web, at: 2026-11-10T21:00:00Z }
 * **[E]** An entry shows „Name – Stufe N (aktuell M)“; an indirect one adds
   „für …“ (the first requirement that needs it).
 * **[E]** „Sofort startbar“: the next level has its own requirements met and
-  the resources are enough (D2). It is drawn in `--ready` (#9ccb76, owner
-  decision after #61) with a border, the others in the error colour with the
+  the resources are enough (D2). It is drawn in `--ready` (#f0a050, the
+  value of `--orange`, owner decision D5) with a border, the others in the error colour with the
   reason („braucht …“, „zu wenig …“). The line below a startable one shows
   the cost of the next level.
 * **[E]** „Jetzt bauen“ / „Jetzt forschen“ start only the next level (D3);
