@@ -38,6 +38,12 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 * **[E]** Security gates: gitleaks over the whole history, `pnpm audit --prod`
   (high blocks), CodeQL `security-extended` (severity ≥ 7.0 blocks), Trivy on
   the image (critical with a fix blocks).
+* **[E]** Migrations are append-only: the job "Migrations append-only"
+  compares `MIGRATIONS` with the base of the pull request (or the previous
+  tip of `main` on a push) and blocks when a released migration was moved,
+  removed or changed, whitespace included. It runs for every change. A schema
+  snapshot (`src/server/db/schema.snapshot.sql`) shows the resulting schema in
+  the review. See [SQLite storage](/data/sqlite.md).
 
 # Kinds of tests in this project
 

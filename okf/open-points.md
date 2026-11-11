@@ -26,6 +26,7 @@ their result.
 | O6 | Renovate | Install the Renovate app for the repository. |
 | O7 | GHCR | After the first tag the package is private; set it public or log in on the server. |
 | O8 | First run on the server | Domain, reverse proxy, `.env`, SMTP password file, first invitation and `nova admin`. |
+| O9 | Up-to-date branches | Settled 2026-11-10: "Require branches to be up to date before merging" is enabled for `main` (owner), so the migration check and all other checks run against the current `main` ([SQLite storage](/data/sqlite.md)). |
 
 # C. Unverified
 
