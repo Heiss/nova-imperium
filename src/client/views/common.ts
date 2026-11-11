@@ -3,11 +3,19 @@ import type {
   Coords,
   Cost,
   Planet,
+  Requirements,
   ResearchState,
 } from '../../shared/types.ts';
 import { dur, esc, fmt } from '../logic/format.ts';
 import { iconURL, type ResourceKey, resourceIconURL } from '../logic/icons.ts';
 import { planetLook } from '../logic/planet.ts';
+import {
+  type Need,
+  type NeedState,
+  needState,
+  type Places,
+  unmetRequirements,
+} from '../../shared/requirements.ts';
 import type { GameState } from '../logic/types.ts';
 
 export interface Ui {
@@ -30,6 +38,8 @@ export interface Ui {
 export interface V {
   s: GameState;
   P: Planet;
+  /** The home planet moved to now; the same object as P on the home planet. */
+  H: Planet;
   R: ResearchState;
   now: number;
   ui: Ui;
@@ -87,8 +97,47 @@ export function itemHTML(
 export const box = (title: string, body: string, cls = ''): string =>
   `<div class="box${cls ? ' ' + cls : ''}"><div class="hd">${title}</div><div class="bd">${body}</div></div>`;
 
-export const needs = (miss: string[]): string =>
-  miss.length ? `<div class="req">Benötigt: ${miss.join(', ')}</div>` : '';
+/** Where a building requirement stands, when it is not the shown planet. */
+const placeNote = (v: V, n: Need): string =>
+  n.kind === 'b' && n.planet !== v.P.id ? ' · auf dem Heimatplaneten' : '';
+
+/** The line below a requirement: why it waits, or what its next level costs. */
+function whyLine(v: V, n: Need, st: NeedState): string {
+  if (!st.ready) return st.reason!;
+  if (st.busy) return st.busy;
+  const payer = n.kind === 'r' || n.planet !== v.P.id ? v.H : v.P;
+  return `Stufe ${n.have + 1}: ${costHTML(st.cost, payer)}`;
+}
+
+/** „Jetzt bauen“ / „Jetzt forschen“ for a requirement that can start now. */
+function startButton(n: Need, st: NeedState): string {
+  if (!st.ready) return '';
+  const build = n.kind === 'b';
+  const at = build ? ` data-at="${esc(n.planet)}"` : '';
+  return `<button class="small go" data-act="${build ? 'build' : 'research'}" data-k="${n.key}"${at}${st.busy ? ' disabled' : ''}>${build ? 'Jetzt bauen' : 'Jetzt forschen'}</button>`;
+}
+
+function needItem(v: V, n: Need, pl: Places): string {
+  const st = needState(n, pl);
+  const via = n.via ? ` <span class="via">· für ${esc(n.via)}</span>` : '';
+  return `<li class="need ${st.ready ? 'ready' : 'missing'}"><div><b class="need-nm">${esc(n.name)}</b> – Stufe ${n.level} (aktuell ${n.have})${placeNote(v, n)}${via}<div class="why">${whyLine(v, n, st)}</div></div>${startButton(n, st)}</li>`;
+}
+
+/**
+ * All unmet requirements of an entry, indirect ones included (issue #64).
+ * `at`: where the entry itself is built: 'here' for buildings, ships and
+ * defense, 'home' for research.
+ */
+export function requirementsHTML(
+  v: V,
+  req: Requirements | undefined,
+  at: 'here' | 'home',
+): string {
+  const pl: Places = { here: v.P, home: v.H, research: v.R };
+  const list = unmetRequirements(req, at, pl);
+  if (!list.length) return '';
+  return `<div class="needs"><div class="needs-h">Benötigt:</div><ul>${list.map((n) => needItem(v, n, pl)).join('')}</ul></div>`;
+}
 
 /**
  * A layered planet (issue #61, D7): the surface turns, the clouds drift, the

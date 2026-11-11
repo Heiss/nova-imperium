@@ -67,6 +67,8 @@ export interface GameState {
   me: Me;
   planet: Planet | null;
   homePlanet?: string | null;
+  /** The home planet when a colony is shown (issue #64); otherwise null. */
+  home?: Planet | null;
   fleets: ClientFleet[];
   reports: Report[];
   players: Players;

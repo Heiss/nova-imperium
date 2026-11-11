@@ -77,12 +77,19 @@ export async function login(
   await expect(page.locator('h2')).toContainText('Übersicht');
 }
 
-/** Opens a view: the side menu on a desktop, tab bar or „Mehr“ on a phone. */
+/** Views in the phone tab bar; the others are under „Mehr“ (issue #61). */
+const TABS = ['overview', 'buildings', 'fleet', 'messages'];
+
+/**
+ * Opens a view: the side menu on a desktop, tab bar or „Mehr“ on a phone.
+ * The layout follows the viewport width (the CSS breakpoint is 760 px), not
+ * a snapshot of what is visible: right after a reload the menu may not be
+ * drawn yet. Every click waits for its element.
+ */
 export async function nav(page: Page, view: string): Promise<void> {
-  const side = page.locator(`#menu [data-v=${view}]`);
-  if (await side.isVisible()) return side.click();
-  const tab = page.locator(`#tabbar [data-v=${view}]`);
-  if (await tab.isVisible()) return tab.click();
+  const phone = (page.viewportSize()?.width ?? 1280) <= 760;
+  if (!phone) return page.click(`#menu [data-v=${view}]`);
+  if (TABS.includes(view)) return page.click(`#tabbar [data-v=${view}]`);
   await page.click('#tabbar [data-act=moreOpen]');
   await page.click(`#more-list [data-v=${view}]`);
   await expect(page.locator('#more')).not.toBeVisible();

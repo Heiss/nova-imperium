@@ -9,7 +9,7 @@ import {
 } from '../../shared/economy.ts';
 import { dur, esc, fmt } from '../logic/format.ts';
 import { researchState } from '../logic/game.ts';
-import { cd, costHTML, itemHTML, needs, type V } from './common.ts';
+import { cd, costHTML, itemHTML, requirementsHTML, type V } from './common.ts';
 
 function researchAction(v: V, k: string, level: number, miss: number): string {
   const { P, R, now } = v;
@@ -41,7 +41,7 @@ export function research(v: V): string {
     const body =
       costHTML(c, P) +
       `<div class="dim">Forschungszeit: ${dur(researchTime(c, P, s.cfg))}</div>` +
-      needs(miss);
+      requirementsHTML(v, d.req, 'home');
     return itemHTML(
       'ic-r',
       k,

@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Mockup – nur direkte Voraussetzungen, alles rot</title>
+    <link rel="stylesheet" href="/style.css" />
+    <style>
+      .mock {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 16px;
+      }
+      .mock .cap {
+        color: var(--dim);
+        margin: 0 0 8px;
+      }
+      .reqs {
+        margin-top: 6px;
+        font-size: 15px;
+      }
+      .reqs .rhd {
+        color: var(--dim);
+      }
+      .reqs ul {
+        list-style: none;
+        margin: 2px 0 0;
+        padding: 0;
+      }
+      .reqs li {
+        border-left: 3px solid var(--red);
+        padding: 2px 0 2px 8px;
+        margin: 3px 0;
+      }
+      .reqs li.miss .rn {
+        color: var(--red);
+      }
+      .reqs li.ready {
+        border-left-color: var(--orange);
+      }
+      .reqs li.ready .rn {
+        color: var(--orange);
+        font-weight: bold;
+      }
+      .reqs .rh,
+      .reqs .via,
+      .reqs .rwhy {
+        color: var(--dim);
+      }
+      .reqs .via {
+        font-style: italic;
+      }
+      .reqs .rwhy {
+        font-size: 13px;
+      }
+      .reqs button.rgo {
+        margin-left: 6px;
+      }
+      .reqs button.rgo:disabled {
+        opacity: 0.55;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="mock">
+      <p class="cap">Heute – nur direkte Voraussetzungen, alles rot</p>
+      <h2>Schiffswerft · Forschung (Auszug)</h2>
+      <div class="box">
+        <div class="item">
+          <div class="icon ic-s">
+            <img src="/icons/ships/espionage_probe.svg" alt="Spionagesonde" />
+          </div>
+          <div>
+            <div class="nm">
+              Spionagesonde <span class="lv">(vorhanden: 0)</span>
+            </div>
+            <div class="cost">
+              <span
+                ><img
+                  class="ri"
+                  src="/icons/resources/small/crystal.svg"
+                  alt="Kristall"
+                  width="20"
+                  height="20"
+                /><b class="">1.000</b></span
+              >
+            </div>
+            <div class="dim">Bauzeit: 8m 00s je Einheit</div>
+            <div class="req">
+              Benötigt: Raumschiffwerft (Stufe 3), Verbrennungstriebwerk (Stufe
+              3)
+            </div>
+          </div>
+          <div class="act"><span class="req">Voraussetzungen fehlen</span></div>
+        </div>
+        <div class="item">
+          <div class="icon ic-r">
+            <img
+              src="/icons/research/shielding_technology.svg"
+              alt="Schildtechnik"
+            />
+          </div>
+          <div>
+            <div class="nm">Schildtechnik <span class="lv"></span></div>
+            <div class="ds">+10 % Schilde pro Stufe.</div>
+            <div class="cost">
+              <span
+                ><img
+                  class="ri"
+                  src="/icons/resources/small/metal.svg"
+                  alt="Metall"
+                  width="20"
+                  height="20"
+                /><b class="">200</b></span
+              ><span
+                ><img
+                  class="ri"
+                  src="/icons/resources/small/crystal.svg"
+                  alt="Kristall"
+                  width="20"
+                  height="20"
+                /><b class="">600</b></span
+              >
+            </div>
+            <div class="dim">Forschungszeit: 9m 36s</div>
+            <div class="req">
+              Benötigt: Forschungslabor (Stufe 6), Energietechnik (Stufe 3)
+            </div>
+          </div>
+          <div class="act"><span class="req">Voraussetzungen fehlen</span></div>
+        </div>
+      </div>
+    </main>
+  </body>
+</html>
