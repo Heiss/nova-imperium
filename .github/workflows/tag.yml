@@ -1,7 +1,9 @@
 name: Tag tested main
 
 on:
-  workflow_run:
+  # Safe here: runs only after a successful CI push run on main of this
+  # repository and checks out main, never code of a pull request.
+  workflow_run: # zizmor: ignore[dangerous-triggers]
     workflows: [CI]
     branches: [main]
     types: [completed]
@@ -23,16 +25,17 @@ jobs:
       vars.RELEASE_APP_ID != ''
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/create-github-app-token@v3
+      - uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3
         id: app
         with:
           app-id: ${{ vars.RELEASE_APP_ID }}
           private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
           permission-contents: write
-      - uses: actions/checkout@v7
+      # Keeps the credentials: scripts/release.sh pushes the tag.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: main
-          token: ${{ steps.app.outputs.token }}
+          token: ${{ steps.app.outputs.token }} # zizmor: ignore[artipacked]
       - name: Tag the tested commit if it is still main
         env:
           NOVA_RELEASE_EXPECTED_SHA: ${{ github.event.workflow_run.head_sha }}

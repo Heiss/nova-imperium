@@ -1,6 +1,6 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:recommended"],
+  "extends": ["config:recommended", "helpers:pinGitHubActionDigests"],
   "minimumReleaseAge": "3 days",
   "packageRules": [
     {
@@ -10,13 +10,22 @@
   ],
   "customManagers": [
     {
-      "description": "Images run by `docker run` in the CI (gitleaks, Trivy).",
+      "description": "Images run by `docker run` in the CI (gitleaks, Trivy, actionlint).",
       "customType": "regex",
       "managerFilePatterns": ["/^\\.github/workflows/ci\\.yml$/"],
       "matchStrings": [
-        "(?<depName>zricethezav/gitleaks|aquasec/trivy):(?<currentValue>v?[0-9][0-9.]*)"
+        "(?<depName>zricethezav/gitleaks|aquasec/trivy|rhysd/actionlint):(?<currentValue>v?[0-9][0-9.]*)"
       ],
       "datasourceTemplate": "docker"
+    },
+    {
+      "description": "zizmor, run by pipx in the CI.",
+      "customType": "regex",
+      "managerFilePatterns": ["/^\\.github/workflows/ci\\.yml$/"],
+      "matchStrings": [
+        "pipx run (?<depName>zizmor)==(?<currentValue>[0-9][0-9.]*)"
+      ],
+      "datasourceTemplate": "pypi"
     }
   ]
 }

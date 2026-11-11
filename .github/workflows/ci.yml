@@ -24,10 +24,11 @@ jobs:
     outputs:
       code: ${{ steps.diff.outputs.code }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         if: github.event_name == 'pull_request'
         with:
           fetch-depth: 0
+          persist-credentials: false
       - id: diff
         env:
           EVENT: ${{ github.event_name }}
@@ -56,9 +57,11 @@ jobs:
     if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version-file: .node-version
           cache: pnpm
@@ -76,9 +79,11 @@ jobs:
     if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version-file: .node-version
           cache: pnpm
@@ -86,7 +91,7 @@ jobs:
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm build
       - run: pnpm test:e2e
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: failure()
         with:
           name: playwright-report
@@ -101,15 +106,17 @@ jobs:
     if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version-file: .node-version
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Result of the last run
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: reports/stryker-incremental.json
           key: stryker-${{ github.ref }}-${{ github.sha }}
@@ -131,7 +138,9 @@ jobs:
     env:
       NOVA_VERSION: ci-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
       - name: The production setup is valid, and a missing value is named
         run: |
           mkdir -p secrets && : > secrets/smtp_password
@@ -178,15 +187,16 @@ jobs:
     name: Secrets and dependencies
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
+          persist-credentials: false
           fetch-depth: 0
       - name: No secrets in the history (gitleaks, exceptions in .gitleaksignore)
         run: |
           docker run --rm -v "$PWD:/repo" --entrypoint sh zricethezav/gitleaks:v8.30.1 -c \
             'git config --global --add safe.directory /repo && cd /repo && gitleaks git . --redact --no-banner'
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v7
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version-file: .node-version
           cache: pnpm
@@ -202,10 +212,11 @@ jobs:
     name: Migrations append-only
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
+          persist-credentials: false
           fetch-depth: 0
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version-file: .node-version
       - name: Released migrations are unchanged
@@ -217,6 +228,24 @@ jobs:
             exit 1
           fi
           node .github/scripts/migrations-gate.mjs "$BASE"
+
+  # The workflows themselves: actionlint (syntax, expressions, shell) and
+  # zizmor (security, e.g. unpinned actions, persisted credentials).
+  # Runs for every change, documentation included.
+  workflows:
+    name: Workflow lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: actionlint
+        run: |
+          docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.12 -color
+      - name: zizmor
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: pipx run zizmor==1.32.0 --format github .github/workflows
 
   # Static analysis. A finding of security severity 7.0 or more blocks. Runs
   # for every change, documentation included: the ruleset of main waits for a
@@ -231,12 +260,14 @@ jobs:
       contents: read
       security-events: write
     steps:
-      - uses: actions/checkout@v7
-      - uses: github/codeql-action/init@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: github/codeql-action/init@33d7b85da1a04171e211befe2c739303b9a4c066 # v4
         with:
           languages: javascript-typescript
           queries: security-extended
-      - uses: github/codeql-action/analyze@v4
+      - uses: github/codeql-action/analyze@33d7b85da1a04171e211befe2c739303b9a4c066 # v4
         with:
           output: sarif
       - name: Findings of severity high or above block
@@ -247,7 +278,17 @@ jobs:
   gate:
     name: CI Gate
     needs:
-      [changes, security, migrations, codeql, check, e2e, mutation, compose]
+      [
+        changes,
+        security,
+        migrations,
+        workflows,
+        codeql,
+        check,
+        e2e,
+        mutation,
+        compose,
+      ]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -256,6 +297,7 @@ jobs:
           CHANGES: ${{ needs.changes.result }}
           SECURITY: ${{ needs.security.result }}
           MIGRATIONS: ${{ needs.migrations.result }}
+          WORKFLOWS: ${{ needs.workflows.result }}
           CODE: ${{ needs.changes.outputs.code }}
           CODEQL: ${{ needs.codeql.result }}
           CHECK: ${{ needs.check.result }}
@@ -274,6 +316,7 @@ jobs:
           require_success "Detect changes" "$CHANGES"
           require_success "Secrets and dependencies" "$SECURITY"
           require_success "Migrations append-only" "$MIGRATIONS"
+          require_success "Workflow lint" "$WORKFLOWS"
           require_success "CodeQL" "$CODEQL"
 
           if [ "$EVENT" = "push" ] && [ "$CODE" != "true" ]; then
