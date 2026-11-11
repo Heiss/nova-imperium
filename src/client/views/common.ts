@@ -56,7 +56,7 @@ const COST_ICONS: ResourceKey[] = ['metal', 'crystal', 'deuterium'];
 const HAVE = ['m', 'c', 'd'] as const;
 
 /** A small resource icon whose alt text names the resource. */
-export const resIcon = (key: ResourceKey, name: string): string =>
+const resIcon = (key: ResourceKey, name: string): string =>
   `<img class="ri" src="${resourceIconURL(key)}" alt="${name}" width="20" height="20">`;
 
 export function costHTML(c: Cost, p: Planet, n = 1): string {

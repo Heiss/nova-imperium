@@ -33,7 +33,7 @@ export type Action = (
   event?: AuditEntry,
 ) => string | null;
 
-export const MAX_SHIPYARD_ORDERS = 20;
+const MAX_SHIPYARD_ORDERS = 20;
 
 /** The selected planet, or the home planet for callers without a selection. */
 export function mine(ctx: Ctx, u: User, id?: unknown): Planet {

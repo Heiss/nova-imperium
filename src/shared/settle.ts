@@ -4,7 +4,7 @@ import { isShip } from './catalog.ts';
 import { accrue } from './economy.ts';
 import type { Planet, ResearchState, Universe } from './types.ts';
 
-export const clone = <T>(o: T): T => structuredClone(o);
+const clone = <T>(o: T): T => structuredClone(o);
 
 function completeBuilding(p: Planet, t: number): void {
   if (p.bq && p.bq.end <= t) {

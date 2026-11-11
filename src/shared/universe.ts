@@ -3,7 +3,7 @@
 // server check and the documentation table read this list.
 import type { Universe } from './types.ts';
 
-export type UniverseKey = keyof Universe;
+type UniverseKey = keyof Universe;
 
 export interface UniverseSpec {
   key: UniverseKey;

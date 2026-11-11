@@ -1,0 +1,14 @@
+{
+  "threshold": 0,
+  "minTokens": 50,
+  "reporters": ["console"],
+  "pattern": "**/*.{ts,svelte,mjs}",
+  "ignore": [
+    "**/node_modules/**",
+    "**/dist/**",
+    "src/test/legacy/**",
+    "**/*.test.ts",
+    "e2e/**"
+  ],
+  "gitignore": true
+}

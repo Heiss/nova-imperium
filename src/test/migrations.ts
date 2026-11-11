@@ -10,7 +10,7 @@ import { MIGRATIONS } from '../server/db/schema.ts';
 
 type Value = string | number | Uint8Array | null;
 type Ref = { table: string; column: string };
-export type Column = {
+type Column = {
   name: string;
   type: string;
   notNull: boolean;
@@ -84,7 +84,7 @@ function byDependencies(tables: Table[]): Table[] {
   return ordered;
 }
 
-export function describeSchema(db: Db): Table[] {
+function describeSchema(db: Db): Table[] {
   const rows = db
     .prepare(
       `SELECT name, sql FROM sqlite_master
@@ -123,7 +123,7 @@ function columnValue(c: Column): fc.Arbitrary<Value> {
 }
 
 /** Up to `maxRows` rows per table for the given schema. */
-export function planOf(tables: Table[], maxRows = 6): fc.Arbitrary<Plan> {
+function planOf(tables: Table[], maxRows = 6): fc.Arbitrary<Plan> {
   const perTable: Record<string, fc.Arbitrary<Record<string, Value>[]>> = {};
   for (const t of tables) {
     const row = fc.record(
@@ -171,7 +171,7 @@ function tryInsert(insert: Statement, values: Record<string, Value>): void {
 }
 
 /** Inserts the plan; rows that SQLite rejects are skipped. */
-export function populate(db: Db, tables: Table[], plan: Plan): void {
+function populate(db: Db, tables: Table[], plan: Plan): void {
   for (const t of tables) {
     const names = t.columns.map((c) => `"${c.name}"`).join(', ');
     const params = t.columns.map((c) => `@${c.name}`).join(', ');

@@ -38,6 +38,14 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   (sonarjs) ≤ 10, nesting ≤ 4, functions ≤ 50 lines (tests are free of the
   length rule). The dense code of version 1 was rebuilt into small functions;
   no place is exempted.
+* **[E]** Code hygiene blocks in the job „Lint, types, unit tests …“
+  (owner, 2026-11-11): knip (`knip.json`: no unused files, exports or
+  dependencies), jscpd (`.jscpd.json`: no copied block of 50 tokens or more
+  in production code; tests, E2E and version 1 are excluded) and
+  dependency-cruiser (`.dependency-cruiser.cjs`: `src/shared` imports neither
+  server nor client, the client never the server and the reverse, production
+  code no test helpers, server and shared code no dev dependencies, no
+  circular imports at runtime).
 * **[E]** Security gates: gitleaks over the whole history, `pnpm audit --prod`
   (high blocks), CodeQL `security-extended` (severity ≥ 7.0 blocks), Trivy on
   the image (critical with a fix blocks). CodeQL runs for every pull
