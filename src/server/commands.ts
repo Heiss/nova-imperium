@@ -10,7 +10,9 @@ export const USAGE = `Usage: nova <command>
   admin <name>      make the player <name> admin
   unadmin <name>    take the admin rights of <name>
   admins            list the admins
-  invite <email>    create an invitation (prints the link, sends a mail if SMTP is set)`;
+  invite <email>    create an invitation (prints the link, sends a mail if SMTP is set)
+  maintenance on|off|status
+                    keep players out with „Wartung“ (works without the database)`;
 
 export interface Output {
   out: (line: string) => void;

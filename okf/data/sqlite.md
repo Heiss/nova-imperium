@@ -24,26 +24,43 @@ to contention. Fleet arrivals remain queued when the writer lock is busy.
 `VACUUM INTO` a consistent copy with the old schema version next to it
 (`nova.sqlite.v<version>.bak`) and keeps the newest three (owner decision,
 2026-11-10). A new database and `:memory:` get no copy. A failing migration
-rolls back in its transaction; the server then stops with an error that names
-the backup and the manual restore (overwrite the file, delete `-wal` and
+rolls back in its transaction; the server then stays in maintenance with an
+error that names the backup and the manual restore (overwrite the file, delete `-wal` and
 `-shm`). Code: `src/server/db/database.ts`, tests `database.test.ts`.
 
 **[E]** Fail closed (owner, 2026-11-11: „lieber startet es nicht“): the copy
 is checked before the migration runs (`verifyBackup`: `integrity_check`,
 schema version, rows per table). If it cannot be written or fails the check,
-the server neither migrates nor starts, and the database stays as it was.
+the server does not migrate and the database stays as it was. The server does
+not start the game: it stays in maintenance (issue #80, see below).
 Tested at three levels:
 
 * `database.test.ts`: a copy that cannot be written, a copy that fails the
   check, the check itself, and for every released version generated data
   (`src/test/migrations.ts`) that the backup holds unchanged and that the
   documented restore gives back unchanged.
-* `src/server/start.test.ts`: the real server process exits with the message
-  when the copy fails, and the database file is byte for byte the same.
+* `src/server/start.test.ts`: the real server process logs the message, stays
+  in maintenance (503 „Wartung“, health check 503, no exit) when the copy
+  fails, and the database file is byte for byte the same.
 * CI job „Docker image and Compose stack“ (`docker/upgrade.sh`): the last
   release (`ghcr.io/heiss/nova-imperium:latest`) writes a player, then the
   image under test starts on the same volume; the player and the admin right
   survive, and a migration leaves the backup of the old schema version.
+
+**[E]** Maintenance (owner, 2026-11-11, issue #80): the server listens at once
+and runs backup and migration in a worker thread
+(`src/server/db/migrate-worker.ts`); meanwhile every request gets 503
+„Wartung“ (`src/server/maintenance.ts`). After a refused migration it stays in
+the state „stopped“ instead of exiting: 503, health check 503, the database
+is never opened, no restart loop, back after a reboot (`restart:
+unless-stopped`; `on-failure:N` was rejected because Docker does not restart
+it after a reboot). The operator switches planned maintenance with
+`nova maintenance on|off|status` (a file in the data volume, works without
+the database). When the game does not answer at all, Caddy shows
+`docker/maintenance.html` (`handle_errors 502 503 504`) and starts without a
+healthy game. The client shows a banner and checks `/healthz` every 15 s.
+Tests: `src/server/maintenance.test.ts`, `src/server/start.test.ts`,
+`src/client/logic/maintenance.test.ts`, `docker/smoke.sh` in CI.
 
 In Docker Compose, the named data volume persists the database across container
 replacements. Follow the [backup and restore procedure](../../docs/operations.md#backup-and-restore)

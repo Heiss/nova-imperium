@@ -22,14 +22,17 @@ describe('server', () => {
       expect(first.port).toBeGreaterThan(0);
       const res = await fetch(`http://127.0.0.1:${first.port}/healthz`);
       expect(await res.json()).toEqual({ ok: true });
-      first.ctx.store.saveUniverse({ ...first.ctx.store.universe(), speed: 7 });
+      first.ctx!.store.saveUniverse({
+        ...first.ctx!.store.universe(),
+        speed: 7,
+      });
       await first.stop();
       const second = await startServer({
         cfg,
         publicDir: PUBLIC,
         log: () => {},
       });
-      expect(second.ctx.store.universe().speed).toBe(7);
+      expect(second.ctx!.store.universe().speed).toBe(7);
       await second.stop();
     } finally {
       rmSync(dir, { recursive: true, force: true });

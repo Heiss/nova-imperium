@@ -1,6 +1,7 @@
 #!/bin/sh
 # Smoke test of the running demo stack (compose.yaml + compose.demo.yaml):
-# headers through Caddy, invitation by mail, registration, data after a restart.
+# headers through Caddy, invitation by mail, registration, data after a restart,
+# maintenance by command and the maintenance page when the game is down.
 #   docker/smoke.sh [game-url] [mailpit-url]
 set -eu
 GAME="${1:-http://localhost:8080}"
@@ -47,5 +48,28 @@ i=0
 until [ "$(status "$GAME/healthz")" = "200" ] || [ $i -ge 30 ]; do i=$((i+1)); sleep 2; done
 login="$(curl -s -X POST -H 'content-type: application/json' -d "{\"name\":\"$who\",\"password\":\"smoke-test-passphrase\"}" "$GAME/api/login")"
 case "$login" in *'"admin":true'*) ok "player and admin right survive a restart" ;; *) bad "login after restart: $login" ;; esac
+
+# Maintenance by the operator: players get 503 „Wartung“, the health check stays good.
+docker compose exec -T app nova maintenance on > /dev/null
+check "maintenance keeps players out" 503 "$(status "$GAME/api/state")"
+maint="$(curl -s -D - --max-time 10 "$GAME/api/state" | tr -d '\r' | tr '[:upper:]' '[:lower:]')"
+case "$maint" in *"nova-maintenance: planned"*) ok "maintenance header" ;; *) bad "no maintenance header" ;; esac
+check "health check during maintenance" 200 "$(status "$GAME/healthz")"
+docker compose exec -T app nova maintenance off > /dev/null
+check "maintenance off" 401 "$(status "$GAME/api/state")"
+
+# The game is down: Caddy answers with its maintenance page, not 502.
+docker compose stop app > /dev/null
+check "maintenance page while the game is down" 503 "$(status "$GAME/")"
+down="$(curl -s -D - --max-time 10 "$GAME/" | tr -d '\r')"
+case "$down" in *"Nova Imperium ist gerade nicht erreichbar"*) ok "maintenance page text" ;; *) bad "maintenance page missing" ;; esac
+case "$(printf '%s' "$down" | tr '[:upper:]' '[:lower:]')" in
+  *"content-security-policy: default-src 'none'"*) ok "maintenance page with CSP" ;;
+  *) bad "maintenance page without CSP" ;;
+esac
+docker compose start app > /dev/null
+i=0
+until [ "$(status "$GAME/healthz")" = "200" ] || [ $i -ge 30 ]; do i=$((i+1)); sleep 2; done
+check "game back after the stop" 200 "$(status "$GAME/healthz")"
 
 exit $fail

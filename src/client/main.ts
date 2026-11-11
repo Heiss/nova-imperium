@@ -18,6 +18,7 @@ import {
 } from './logic/game.ts';
 import { resourceIconURL, type ResourceKey } from './logic/icons.ts';
 import { finishedYardOrders, menuHints } from './logic/menu-hints.ts';
+import { gameIsBack, maintenanceNotice } from './logic/maintenance.ts';
 import { ANIMATION_KEY, animationsOn } from './logic/planet.ts';
 import type { GameState } from './logic/types.ts';
 import { afford, caps, lvlCost, maxAfford, prod } from '../shared/economy.ts';
@@ -169,7 +170,57 @@ const nowT = (): number => Date.now() + offset;
 
 // ----- messages -----
 
+// ----- maintenance (issue #80) -----
+
+const MAINTENANCE_POLL_MS = 15000;
+let maintenance: string | null = null;
+
+/** A banner over the game while the server is in maintenance; checks back. */
+function showMaintenance(text: string): void {
+  let banner = $('#maintenance');
+  if (!banner) {
+    banner = document.createElement('div');
+    banner.id = 'maintenance';
+    banner.className = 'maintenance';
+    banner.setAttribute('role', 'status');
+    document.body.prepend(banner);
+  }
+  banner.textContent = `Wartung – ${text}`;
+  if (maintenance === null) setTimeout(checkBack, MAINTENANCE_POLL_MS);
+  maintenance = text;
+}
+
+async function checkBack(): Promise<void> {
+  try {
+    const r = await fetch('/healthz', { cache: 'no-store' });
+    const body = (await r.json().catch(() => ({}))) as Record<string, unknown>;
+    if (gameIsBack(r.status, body)) {
+      maintenance = null;
+      $('#maintenance')?.remove();
+      void refresh();
+      return;
+    }
+  } catch {
+    // still down
+  }
+  setTimeout(checkBack, MAINTENANCE_POLL_MS);
+}
+
+/** Shows the banner and ends the request when the server is in maintenance. */
+function stopOnMaintenance(r: Response, body: Record<string, unknown>): void {
+  const notice = maintenanceNotice(
+    r.status,
+    r.headers.get('nova-maintenance'),
+    body,
+  );
+  if (!notice) return;
+  showMaintenance(notice);
+  throw new Error(notice);
+}
+
 function toast(msg: string, err = false): void {
+  // The banner already says it.
+  if (msg === maintenance) return;
   const t = document.createElement('div');
   t.className = 'toast' + (err ? ' err' : '');
   t.setAttribute('role', err ? 'alert' : 'status');
@@ -205,6 +256,7 @@ async function api(
     string,
     unknown
   >;
+  stopOnMaintenance(r, j);
   if (r.status === 401) {
     S = null;
     ui.auth ??= 'login';

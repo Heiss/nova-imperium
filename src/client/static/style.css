@@ -1009,3 +1009,13 @@ textarea:focus-visible {
   gap: 6px;
   margin-top: 6px;
 }
+/* Maintenance banner (issue #80): stays until the server is back. */
+.maintenance {
+  position: sticky;
+  top: 0;
+  padding: 9px 16px;
+  background: #3a1410;
+  border-bottom: 1px solid var(--red);
+  text-align: center;
+  z-index: 60;
+}

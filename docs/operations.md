@@ -44,7 +44,30 @@ docker compose exec app nova invite friend@example.org   # invitation (prints th
 docker compose exec app nova admin Name                   # make admin
 docker compose exec app nova unadmin Name                 # take admin away
 docker compose exec app nova admins                       # list admins
+docker compose exec app nova maintenance on               # keep players out („Wartung“)
+docker compose exec app nova maintenance off              # let them back in
+docker compose exec app nova maintenance status
 ```
+
+## Maintenance
+
+Players get HTTP 503 with a German maintenance message and the header
+`Nova-Maintenance`; an open game shows a banner and checks back every 15
+seconds. This happens in four cases:
+
+| Case                                                       | Who answers                                      | `/healthz` |
+| ---------------------------------------------------------- | ------------------------------------------------ | ---------- |
+| A migration runs (with its backup)                         | the game (`update`)                              | 503        |
+| A migration was refused (no good backup, failed migration) | the game (`stopped`)                             | 503        |
+| `nova maintenance on`                                      | the game (`planned`)                             | 200        |
+| The game does not answer (starting, crashed, stopped)      | Caddy, `docker/maintenance.html` (`unreachable`) | –          |
+
+After a refused migration the game does not exit: it stays in maintenance,
+never opens the database and stays unhealthy, so Docker does not restart it
+in a loop and it is back after a reboot. The reason is in
+`docker compose logs app`. Fix it (see Updates) and restart the container.
+`nova maintenance` works without the database, so it also runs during a
+migration. The switch is the file `maintenance` in the data volume.
 
 ## Logs and health
 
@@ -110,10 +133,10 @@ of damaging it). Before it migrates an existing database, the server writes a
 consistent copy with the old schema version next to it, for example
 `nova.sqlite.v8.bak`, and keeps the newest three. It checks the copy first
 (integrity, schema version, rows per table); if the copy cannot be written
-or fails the check, the server does not start and does not migrate. A
-migration runs in one
-transaction: if it fails, the server does not start, the database stays
-unchanged and the error names the backup. To roll back after a migration,
+or fails the check, the server does not migrate and stays in maintenance
+(see Maintenance). A migration runs in one transaction: if it fails, the
+server stays in maintenance, the database stays unchanged and the error
+names the backup. To roll back after a migration,
 stop the app, put the backup in place and start the previous tag:
 
 ```bash

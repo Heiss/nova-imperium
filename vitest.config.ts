@@ -18,6 +18,8 @@ export default defineConfig({
         '**/*.test.ts',
         'src/server/main.ts',
         'src/server/cli.ts',
+        // Runs in a worker thread; tested through maintenance.test.ts.
+        'src/server/db/migrate-worker.ts',
         'src/server/test-helpers.ts',
         'src/test/**',
       ],
