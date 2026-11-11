@@ -45,7 +45,7 @@
     "src/server/game/round.ts": 94.28,
     "src/server/game/state.ts": 85.45,
     "src/server/http/admin.ts": 97.53,
-    "src/server/http/app.ts": 80.84,
+    "src/server/http/app.ts": 94.52,
     "src/server/http/rate-limit.ts": 96,
     "src/server/http/request.ts": 97.18,
     "src/server/http/security.ts": 100,
