@@ -1,7 +1,8 @@
 name: CI
 
 # Every push to main runs the full suite. Documentation-only pull requests
-# can skip the heavier checks, except the Docker build and Compose tests.
+# can skip the heavier checks, except CodeQL, the Docker build and the
+# Compose tests.
 # Only the gate job "CI Gate" is the required check of main.
 on:
   pull_request:
@@ -217,11 +218,11 @@ jobs:
           fi
           node .github/scripts/migrations-gate.mjs "$BASE"
 
-  # Static analysis. A finding of security severity 7.0 or more blocks.
+  # Static analysis. A finding of security severity 7.0 or more blocks. Runs
+  # for every change, documentation included: the ruleset of main waits for a
+  # CodeQL result of the exact commit, and a skipped job uploads none.
   codeql:
     name: CodeQL
-    needs: changes
-    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     env:
       # Apply the same full analysis to pull requests and main.
@@ -273,6 +274,7 @@ jobs:
           require_success "Detect changes" "$CHANGES"
           require_success "Secrets and dependencies" "$SECURITY"
           require_success "Migrations append-only" "$MIGRATIONS"
+          require_success "CodeQL" "$CODEQL"
 
           if [ "$EVENT" = "push" ] && [ "$CODE" != "true" ]; then
             echo "::error::Pushes to main must run the full suite."
@@ -281,7 +283,6 @@ jobs:
 
           case "$CODE" in
             true)
-              require_success "CodeQL" "$CODEQL"
               require_success "Lint, types, unit tests and build" "$CHECK"
               require_success "E2E tests" "$E2E"
               require_success "Mutation tests" "$MUTATION"
