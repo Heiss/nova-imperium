@@ -47,6 +47,7 @@ describe('server start', () => {
         NOVA_DATA_DIR: dir,
       },
     });
+    const exited = new Promise((r) => child.once('exit', r));
     let stderr = '';
     let stdout = '';
     child.stderr.on('data', (c: Buffer) => (stderr += c.toString()));
@@ -65,7 +66,7 @@ describe('server start', () => {
       expect(child.exitCode).toBeNull();
     } finally {
       child.kill();
-      await new Promise((r) => child.once('exit', r));
+      await exited;
     }
     expect(stderr).toContain(`No good backup of schema version ${from}`);
     expect(stderr).toContain('did not migrate; the database is unchanged');

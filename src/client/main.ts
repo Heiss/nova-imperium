@@ -197,7 +197,8 @@ async function checkBack(): Promise<void> {
     if (gameIsBack(r.status, body)) {
       maintenance = null;
       $('#maintenance')?.remove();
-      void refresh();
+      // Maintenance during the first load left no state: load from scratch.
+      void (S ? refresh() : boot());
       return;
     }
   } catch {
