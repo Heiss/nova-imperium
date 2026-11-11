@@ -18,23 +18,30 @@ export function readJson(
       else chunks.push(c);
     });
     req.on('end', () => {
-      const text = Buffer.concat(chunks).toString('utf8');
-      try {
-        const value: unknown = text ? JSON.parse(text) : {};
-        if (value === null || typeof value !== 'object' || Array.isArray(value))
-          throw new Error('not an object');
-        resolve(value as Record<string, unknown>);
-      } catch {
-        reject(new GameError('Ungültige Anfrage.'));
-      }
+      const value = parse(Buffer.concat(chunks).toString('utf8'));
+      if (isRecord(value)) resolve(value);
+      else reject(new GameError('Ungültige Anfrage.'));
     });
     req.on('error', reject);
   });
 }
 
+/** An empty body is an empty object; broken JSON is undefined. */
+function parse(text: string): unknown {
+  if (!text) return {};
+  try {
+    return JSON.parse(text) as unknown;
+  } catch {
+    return undefined;
+  }
+}
+
+const isRecord = (v: unknown): v is Record<string, unknown> =>
+  typeof v === 'object' && v !== null && !Array.isArray(v);
+
 export function cookies(header: string | undefined): Map<string, string> {
   const out = new Map<string, string>();
-  for (const raw of (header ?? '').split(';')) {
+  for (const raw of header?.split(';') ?? []) {
     const part = raw.trim();
     const i = part.indexOf('=');
     if (i <= 0) continue;
