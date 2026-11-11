@@ -21,8 +21,11 @@ const running = await startServer({
   publicDir: path.join(root, 'dist/public'),
 });
 console.log(
-  `Nova Imperium listens on http://${config.host}:${running.port} (public address ${config.publicUrl}, ` +
-    `mail ${config.smtp ? 'on' : 'off'})`,
+  running.ctx
+    ? `Nova Imperium listens on http://${config.host}:${running.port} (public address ${config.publicUrl}, ` +
+        `mail ${config.smtp ? 'on' : 'off'})`
+    : `Nova Imperium answers "Wartung" on port ${running.port}: the database was not migrated (reason above). ` +
+        'Fix the cause and restart the container.',
 );
 const stop = (): void => {
   console.log('Stopping …');

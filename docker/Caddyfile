@@ -16,8 +16,8 @@ http://:2020 {
 	respond /healthz 200
 }
 
-:80 {
-	encode zstd gzip
+# Security headers for the game and for the maintenance page.
+(security) {
 	# ">" replaces what the game sends, so these values always win. A unit
 	# test keeps them equal to src/server/http/security.ts.
 	header {
@@ -31,10 +31,29 @@ http://:2020 {
 		-Server
 		-Via
 	}
+}
+
+:80 {
+	encode zstd gzip
+	import security
 	reverse_proxy app:8080 {
 		# The game trusts only this header (NOVA_TRUST_PROXY=1), set here,
 		# never taken from the visitor.
 		header_up X-Real-IP {client_ip}
 		header_up -X-Forwarded-For
+	}
+	# The game does not answer (it is starting, stopped or gone): a static
+	# maintenance page instead of a bare 502 (issue #80). The game's own 503
+	# during a migration passes through unchanged.
+	handle_errors 502 503 504 {
+		import security
+		header Cache-Control no-store
+		header Retry-After 30
+		header Nova-Maintenance unreachable
+		root * /srv
+		rewrite * /maintenance.html
+		file_server {
+			status 503
+		}
 	}
 }

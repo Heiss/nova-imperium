@@ -920,3 +920,32 @@ test.describe('admin', () => {
     expect(w.problems).toEqual([]);
   });
 });
+
+test('loads the game after maintenance that interrupted the first load (#80)', async ({
+  page,
+}) => {
+  const name = uniqueName('wartung');
+  await register(page, name);
+  await page.clock.install();
+  let first = true;
+  await page.route('**/api/state', async (route) => {
+    if (!first) return route.continue();
+    first = false;
+    await route.fulfill({
+      status: 503,
+      headers: { 'nova-maintenance': 'update', 'retry-after': '30' },
+      contentType: 'application/json',
+      body: JSON.stringify({
+        error: 'Nova Imperium wird aktualisiert.',
+        maintenance: 'update',
+      }),
+    });
+  });
+  await page.goto('/');
+  await expect(page.locator('#maintenance')).toContainText(
+    'Wartung – Nova Imperium wird aktualisiert.',
+  );
+  await page.clock.fastForward(15000);
+  await expect(page.locator('#maintenance')).toHaveCount(0);
+  await expect(page.locator('h2')).toContainText('Übersicht');
+});

@@ -53,15 +53,18 @@ services:
   web:
     image: caddy:2.11-alpine
     restart: unless-stopped
+    # Caddy starts even when the game is not healthy (migrating or stopped)
+    # and then shows docker/maintenance.html instead of nothing (issue #80).
     depends_on:
       app:
-        condition: service_healthy
+        condition: service_started
     ports:
       - '${NOVA_BIND:-127.0.0.1}:${NOVA_HTTP_PORT:-8080}:80'
     environment:
       NOVA_TRUSTED_PROXIES: ${NOVA_TRUSTED_PROXIES:-private_ranges}
     volumes:
       - ./docker/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./docker/maintenance.html:/srv/maintenance.html:ro
       - caddy-data:/data
       - caddy-config:/config
     read_only: true
