@@ -1,6 +1,13 @@
 // The actions of a player on their planet. Each one runs inside a transaction
 // (see dispatch.ts) and saves what it changes.
-import { BUILD, PRODUCERS, RES, UNIT } from '../../shared/catalog.ts';
+import {
+  BUILD,
+  isYardLock,
+  PRODUCERS,
+  RES,
+  UNIT,
+  YARD_LOCK,
+} from '../../shared/catalog.ts';
 import {
   afford,
   buildTime,
@@ -60,7 +67,7 @@ function setResearch(ctx: Ctx, u: User, r: ResearchState): void {
 const checkBuild = (p: Planet, r: ResearchState, k: string): void => {
   if (p.bq) fail('Es wird bereits gebaut.');
   if (reqMissing(BUILD[k]!, p, r).length) fail('Voraussetzungen fehlen.');
-  if (k === 'yard' && p.sq.length) fail('Die Werft arbeitet gerade.');
+  if (isYardLock(k) && p.sq.length) fail('Die Werft arbeitet gerade.');
   if (k === 'lab' && r.rq) fail('Das Labor forscht gerade.');
 };
 
@@ -145,7 +152,8 @@ export const cancelResearch: Action = (ctx, u) => {
 
 function requireYard(p: Planet): void {
   if (!((p.b.yard ?? 0) > 0)) fail('Du brauchst eine Raumschiffwerft.');
-  if (p.bq?.key === 'yard') fail('Die Werft wird ausgebaut.');
+  if (p.bq && isYardLock(p.bq.key))
+    fail(`Die ${YARD_LOCK[p.bq.key]} wird ausgebaut.`);
 }
 
 export const order: Action = (ctx, u, d, event) => {

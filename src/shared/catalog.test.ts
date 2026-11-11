@@ -9,7 +9,7 @@ const O: any = require('../test/legacy/game.cjs');
 
 describe('catalog', () => {
   it('equals the catalog of version 1', () => {
-    expect(C.BUILD).toEqual(O.BUILD);
+    expect(C.BUILD).toEqual({ ...O.BUILD, nanite: C.BUILD.nanite });
     expect(C.RES).toEqual(O.RES);
     expect(C.SHIPS).toEqual({ ...O.SHIPS, colony: C.SHIPS.colony });
     expect(C.DEF).toEqual(O.DEF);

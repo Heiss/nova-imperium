@@ -1,4 +1,11 @@
-import { DEF, SHIPS, UNIT, type UnitDef } from '../../shared/catalog.ts';
+import {
+  DEF,
+  isYardLock,
+  SHIPS,
+  UNIT,
+  type UnitDef,
+  YARD_LOCK,
+} from '../../shared/catalog.ts';
 import { maxAfford, reqMissing, unitTime } from '../../shared/economy.ts';
 import { shipSpeed } from '../../shared/flight.ts';
 import type { Levels } from '../../shared/types.ts';
@@ -43,7 +50,7 @@ function yard(
   const { P, R, s } = v;
   if (!((P.b.yard ?? 0) > 0))
     return `<h2>${title}</h2><div class="notice">Dafür brauchst du eine Raumschiffwerft.</div>`;
-  const upgrading = P.bq?.key === 'yard';
+  const upgrading = !!P.bq && isYardLock(P.bq.key);
   const items = Object.entries(defs).map(([k, d]) => {
     const miss = reqMissing(d, P, R);
     const action = miss.length
@@ -64,10 +71,15 @@ function yard(
     );
   });
   const warn = upgrading
-    ? '<div class="notice warn">Die Werft wird gerade ausgebaut und kann nicht produzieren.</div>'
+    ? `<div class="notice warn">${lockNotice(P.bq!.key)}</div>`
     : '';
   return `<h2>${title}</h2>${queue(v)}${warn}<div class="box">${items.join('')}</div>`;
 }
+
+const lockNotice = (key: string): string =>
+  key === 'yard'
+    ? 'Die Werft wird gerade ausgebaut und kann nicht produzieren.'
+    : `Die ${YARD_LOCK[key]} wird gerade ausgebaut, die Werft kann nicht produzieren.`;
 
 export const shipyard = (v: V): string =>
   yard(v, 'Schiffswerft', SHIPS, 'ic-s', v.P.ships);

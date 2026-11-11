@@ -38,8 +38,14 @@ const hours = (h: number, u: Universe): number =>
 const lv = (levels: Levels, key: string): number => levels[key] ?? 0;
 const MIN_TIME = 1000;
 
+/** Each level of the Nanitenfabrik halves building and shipyard times (#48). */
+const nanite = (p: Pick<Planet, 'b'>): number => Math.pow(2, lv(p.b, 'nanite'));
+
 export const buildTime = (c: Cost, p: Pick<Planet, 'b'>, u: Universe): number =>
-  Math.max(MIN_TIME, hours((c[0] + c[1]) / (2500 * (1 + lv(p.b, 'robot'))), u));
+  Math.max(
+    MIN_TIME,
+    hours((c[0] + c[1]) / (2500 * (1 + lv(p.b, 'robot')) * nanite(p)), u),
+  );
 
 export const researchTime = (
   c: Cost,
@@ -55,7 +61,10 @@ export const unitTime = (
 ): number =>
   Math.max(
     MIN_TIME,
-    hours((d.cost[0] + d.cost[1]) / (2500 * (1 + lv(p.b, 'yard'))), u),
+    hours(
+      (d.cost[0] + d.cost[1]) / (2500 * (1 + lv(p.b, 'yard')) * nanite(p)),
+      u,
+    ),
   );
 
 export const afford = (p: Pick<Planet, 'res'>, c: Cost, n = 1): boolean =>

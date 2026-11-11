@@ -1,7 +1,7 @@
 // The browser glue: state, server calls, rendering, events and the clock.
 // The views are pure functions (views/), the logic is tested (logic/); this
 // file is run by the E2E suite.
-import { BUILD, RES, UNIT } from '../shared/catalog.ts';
+import { BUILD, isYardLock, RES, UNIT } from '../shared/catalog.ts';
 import { pid } from '../shared/flight.ts';
 import { settle, settleR } from '../shared/settle.ts';
 import type { Levels, Planet, Queue } from '../shared/types.ts';
@@ -680,7 +680,7 @@ function updateShipyardButtons(p: Planet): void {
       const button = max
         .closest('.act')!
         .querySelector<HTMLButtonElement>('button')!;
-      button.disabled = p.bq?.key === 'yard' || count === 0;
+      button.disabled = (!!p.bq && isYardLock(p.bq.key)) || count === 0;
     });
 }
 

@@ -79,6 +79,22 @@ export const BUILD: Record<string, BuildingDef> = {
     f: 2,
     ds: 'Verkürzt die Bauzeit von Gebäuden.',
   },
+  // Issue #48. Not in version 1; the classic values (owner, 2026-11-11).
+  nanite: {
+    n: 'Nanitenfabrik',
+    ab: 'Na',
+    cost: [1000000, 500000, 100000],
+    f: 2,
+    ds: 'Halbiert die Bauzeit von Gebäuden, Schiffen und Verteidigung pro Stufe.',
+    req: {
+      b: {
+        robot: 10,
+      },
+      r: {
+        computer: 10,
+      },
+    },
+  },
   yard: {
     n: 'Raumschiffwerft',
     ab: 'Wf',
@@ -120,6 +136,18 @@ export const BUILD: Record<string, BuildingDef> = {
     ds: 'Erhöht die Lagerkapazität für Deuterium.',
   },
 };
+
+/**
+ * Buildings that stop the shipyard while they are upgraded, and that wait for
+ * an idle shipyard before an upgrade starts (classic rule; #48, D1).
+ */
+export const YARD_LOCK: Readonly<Record<string, string>> = {
+  yard: 'Werft',
+  nanite: 'Nanitenfabrik',
+};
+
+export const isYardLock = (key: string): boolean =>
+  Object.hasOwn(YARD_LOCK, key);
 
 export const RES: Record<string, ResearchDef> = {
   energy: {
