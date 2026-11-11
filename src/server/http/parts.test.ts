@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import path from 'node:path';
 import { RateLimiter } from './rate-limit.ts';
-import { clientIp, cookies } from './request.ts';
+import { PassThrough } from 'node:stream';
+import type { IncomingMessage } from 'node:http';
+import { GameError } from '../game/context.ts';
+import { clientIp, cookies, readJson } from './request.ts';
 import { loadStatic, resolveStatic } from './static.ts';
 
 describe('rate limiter', () => {
@@ -38,6 +41,32 @@ describe('request helpers', () => {
       cookies('__proto__=value; constructor=another').get('__proto__'),
     ).toBe('value');
     expect(cookies('a=first; a=last').get('a')).toBe('last');
+  });
+  it('read a JSON object body up to the limit', async () => {
+    const send = (chunks: string[], limit?: number) => {
+      const req = new PassThrough();
+      const body = readJson(req as unknown as IncomingMessage, limit);
+      for (const c of chunks) req.write(c);
+      req.end();
+      return body;
+    };
+    await expect(send(['{"a":', '1}'])).resolves.toEqual({ a: 1 });
+    await expect(send([])).resolves.toEqual({});
+    await expect(send(['{"a":1}'], 7)).resolves.toEqual({ a: 1 });
+    await expect(send(['{"a":1}'], 6)).rejects.toThrow(
+      new GameError('Anfrage zu groß.'),
+    );
+    for (const text of ['null', '5', '"x"', 'true', '[1]', '{broken'])
+      await expect(send([text])).rejects.toThrow(
+        new GameError('Ungültige Anfrage.'),
+      );
+  });
+  it('pass on a broken connection while reading', async () => {
+    const req = new PassThrough();
+    const body = readJson(req as unknown as IncomingMessage);
+    const error = new Error('reset');
+    req.destroy(error);
+    await expect(body).rejects.toBe(error);
   });
   it('choose the client address', () => {
     const req = (ip: string | undefined, real?: string) =>
