@@ -11,7 +11,7 @@ export const CATEGORIES = {
   yard: 'Werft',
 } as const;
 
-export type AchievementCategory = keyof typeof CATEGORIES;
+type AchievementCategory = keyof typeof CATEGORIES;
 
 export interface Achievement {
   id: string;

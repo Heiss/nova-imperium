@@ -2,7 +2,7 @@
 import type { IncomingMessage } from 'node:http';
 import { GameError } from '../game/context.ts';
 
-export const MAX_BODY = 65536;
+const MAX_BODY = 65536;
 
 export function readJson(
   req: IncomingMessage,

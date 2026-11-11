@@ -13,7 +13,7 @@ import type {
   Universe,
 } from '../../shared/types.ts';
 
-export interface Me {
+interface Me {
   id: string;
   name: string;
   research: Levels;
@@ -45,7 +45,7 @@ export interface Report {
   [k: string]: unknown;
 }
 
-export interface GalaxyPlanet extends Coords {
+interface GalaxyPlanet extends Coords {
   id: string;
   name: string;
   temp: number;
@@ -78,7 +78,7 @@ export interface GameState {
   guilds?: GuildState;
 }
 
-export interface GuildMember {
+interface GuildMember {
   id: string;
   name: string;
   points: number;
