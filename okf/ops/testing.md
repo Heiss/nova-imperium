@@ -30,9 +30,17 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 * **[E]** Property-based upgrade tests of every migration on generated data
   (fast-check), and an own upgrade test for every migration that changes
   existing tables or data; see [SQLite storage](/data/sqlite.md).
-* **[E]** Mutation tests with Stryker, a score below 80 % blocks;
-  incremental on pull requests, complete on every push to `main` and
-  every night. Tag workflows verify the earlier CI result.
+* **[E]** Mutation tests with Stryker, a total score below 80 % blocks;
+  incremental on pull requests and on pushes to `main` (unchanged code keeps
+  its cached result), complete every night (owner, 2026-11-11). Tag
+  workflows verify the earlier CI result.
+* **[E]** Mutation standard per file (owner, 2026-11-11,
+  `mutation-standard.json`, `scripts/mutation-gate.ts`): no file may fall
+  below its recorded floor; a new file needs 80 %, a new security file 90 %.
+  Security files (authentication, sessions, passkeys, admin rights,
+  moderation, account deletion, audit, request limits) aim for 90 %; the
+  pull request that adds tests raises the floors with
+  `node scripts/mutation-gate.ts --update`. Floors never go down.
 * **[E]** Coverage blocks below 90 % of the lines and 85 % of the branches.
 * **[E]** ESLint blocks: cyclomatic complexity ≤ 10, cognitive complexity
   (sonarjs) ≤ 10, nesting ≤ 4, functions ≤ 50 lines (tests are free of the
@@ -98,5 +106,7 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   step by step (lint, types, tests, coverage, Stryker, Playwright, image
   build, Compose stack with smoke test, gitleaks); the first run on GitHub is
   the proof.
-* Mutation tests take minutes; the incremental run keeps pull requests fast,
-  pushes to `main` and the nightly workflow test every mutant.
+* Mutation tests take minutes; the incremental run keeps pull requests and
+  pushes to `main` fast. Stryker's incremental mode only notices changes in
+  mutated files and tests, not in helpers or configuration; the complete
+  nightly run catches what it misses.

@@ -1,0 +1,18 @@
+{
+  "securityTarget": 90,
+  "newFile": 80,
+  "security": [
+    "src/server/account-security.ts",
+    "src/server/audit.ts",
+    "src/server/auth.ts",
+    "src/server/delete-account.ts",
+    "src/server/game/moderation.ts",
+    "src/server/http/admin.ts",
+    "src/server/http/app.ts",
+    "src/server/http/rate-limit.ts",
+    "src/server/http/request.ts",
+    "src/server/http/security.ts",
+    "src/server/passkeys.ts"
+  ],
+  "floors": {}
+}

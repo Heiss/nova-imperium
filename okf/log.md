@@ -1,6 +1,7 @@
 # Update log
 
 ## 2026-11-11
+* **Update**: Mutation standard per file: no file below its recorded floor, new files 80 %, new security files 90 %; security files aim for 90 %. Pushes to `main` run Stryker incrementally, the nightly run stays complete (see [Test strategy](/ops/testing.md)).
 * **Update**: Workflow lint (actionlint, zizmor) in the CI Gate; all actions pinned to commit hashes, checkouts without persisted credentials (see [Test strategy](/ops/testing.md)).
 * **Update**: Migrations fail closed: the backup is checked before a migration, without a good backup the server does not start; tested with real data per version, as a process and as a Docker upgrade from the last release (see [SQLite storage](/data/sqlite.md)).
 * **Update**: CodeRabbit reviews pull requests (`.coderabbit.yaml`); security and „Critical“ findings block a merge under O4 (see [Branching and release](/ops/branching-release.md)).
