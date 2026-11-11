@@ -40,7 +40,9 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   no place is exempted.
 * **[E]** Security gates: gitleaks over the whole history, `pnpm audit --prod`
   (high blocks), CodeQL `security-extended` (severity ≥ 7.0 blocks), Trivy on
-  the image (critical with a fix blocks).
+  the image (critical with a fix blocks). CodeQL runs for every pull
+  request, documentation included, because the ruleset of `main` requires a
+  CodeQL result for the exact commit (owner, 2026-11-11).
 * **[E]** Migrations are append-only: the job "Migrations append-only"
   compares `MIGRATIONS` with the base of the pull request (or the previous
   tip of `main` on a push) and blocks when a released migration was moved,

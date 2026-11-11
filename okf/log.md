@@ -1,5 +1,8 @@
 # Update log
 
+## 2026-11-11
+* **Update**: CodeQL runs for documentation-only pull requests too; without its result the ruleset of `main` blocked their merge (#65).
+
 ## 2026-11-10
 * **Update**: Property-based upgrade tests of every migration on generated data (fast-check), nightly with a random seed; changing migrations need their own upgrade test (see [SQLite](/data/sqlite.md)).
 * **Update**: Requirements list with indirect requirements, startable ones in `--ready` with „Jetzt bauen“/„Jetzt forschen“ (issue #64, see [Requirements list](/features/requirements.md)).
