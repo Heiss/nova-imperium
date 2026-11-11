@@ -13,7 +13,7 @@ export interface Ctx {
   id: () => string;
 }
 
-export const randomId = (): string => randomBytes(9).toString('base64url');
+const randomId = (): string => randomBytes(9).toString('base64url');
 
 export function createCtx(
   store: Store,

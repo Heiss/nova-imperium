@@ -67,7 +67,7 @@ function spyBody(r: Report): string {
    <div class="dim mt">Chance auf Spionageabwehr: ${esc(r.counter)} %${lost}${hint}</div>`;
 }
 
-export function reportBody(r: Report): string {
+function reportBody(r: Report): string {
   if (r.type === 'battle') return battleBody(r);
   if (r.type === 'spy') return spyBody(r);
   return `<div>${esc(r.text)}</div>`;

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { addPlanet, addUser, testCtx } from '../test-helpers.ts';
+import type { AuditEntry } from '../audit.ts';
 import * as A from './actions.ts';
 
 function setup(planet = {}, user = {}) {
@@ -107,6 +108,29 @@ describe('buildings', () => {
     expect(() => A.order(idle.ctx, idle.u, { key: 'rl', n: 1 })).toThrow(
       'Die Nanitenfabrik wird ausgebaut.',
     );
+  });
+  it('name planet, level and due time in the audit event', () => {
+    const { ctx, u, p } = setup({
+      res: { m: 9000, c: 9000, d: 9000 },
+      b: { lab: 1 },
+    });
+    const built: AuditEntry = { category: 'game', action: 'build' };
+    A.build(ctx, u, { key: 'metal' }, built);
+    expect(built.detail).toEqual({
+      planet: p().id,
+      key: 'metal',
+      level: 1,
+      due: p().bq!.end,
+    });
+    A.cancelBuild(ctx, u, {});
+    const researched: AuditEntry = { category: 'game', action: 'research' };
+    A.research(ctx, u, { key: 'energy' }, researched);
+    expect(researched.detail).toEqual({
+      planet: p().id,
+      key: 'energy',
+      level: 1,
+      due: ctx.store.user(u.id)!.rq!.end,
+    });
   });
   it('can be cancelled with a full refund', () => {
     const { ctx, u, p } = setup({ res: { m: 1000, c: 1000, d: 0 } });

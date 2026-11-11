@@ -22,7 +22,7 @@ export interface ResearchDef {
 
 export type DriveKey = 'comb' | 'impulse' | 'hdrive';
 
-export interface UnitDefBase {
+interface UnitDefBase {
   n: string;
   ab: string;
   cost: Cost;

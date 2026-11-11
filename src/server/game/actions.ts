@@ -15,7 +15,7 @@ import {
 import { labUpgrading, waitsForLab } from '../../shared/lab.ts';
 import { settle, settleR } from '../../shared/settle.ts';
 import { waitsForYard, YARD_LOCK, yardLockedBy } from '../../shared/yard.ts';
-import type { Planet, ResearchState } from '../../shared/types.ts';
+import type { Cost, Planet, Queue, ResearchState } from '../../shared/types.ts';
 import type { AuditEntry } from '../audit.ts';
 import {
   cancelScheduledPush,
@@ -33,7 +33,7 @@ export type Action = (
   event?: AuditEntry,
 ) => string | null;
 
-export const MAX_SHIPYARD_ORDERS = 20;
+const MAX_SHIPYARD_ORDERS = 20;
 
 /** The selected planet, or the home planet for callers without a selection. */
 export function mine(ctx: Ctx, u: User, id?: unknown): Planet {
@@ -66,6 +66,28 @@ const checkBuild = (p: Planet, r: ResearchState, k: string): void => {
   if (waitsForLab(r, k)) fail('Das Labor forscht gerade.');
 };
 
+/**
+ * Pays the next level of `def` on `p` and returns its queue entry; the audit
+ * event gets the planet, key, level and due time.
+ */
+function payNextLevel(
+  ctx: Ctx,
+  p: Planet,
+  next: { def: { cost: Cost; f?: number }; key: string; have: number },
+  time: (c: Cost) => number,
+  event: AuditEntry | undefined,
+): Queue {
+  const lvl = next.have + 1;
+  const cost = lvlCost(next.def, lvl);
+  if (!afford(p, cost)) fail('Nicht genug Rohstoffe.');
+  pay(p, cost);
+  const start = ctx.now();
+  const q = { key: next.key, lvl, start, end: start + time(cost), cost };
+  if (event)
+    event.detail = { planet: p.id, key: q.key, level: lvl, due: q.end };
+  return q;
+}
+
 export const build: Action = (ctx, u, d, event) => {
   const k = String(d.key);
   const def = BUILD[k] ?? fail('Unbekanntes Gebäude.');
@@ -73,21 +95,16 @@ export const build: Action = (ctx, u, d, event) => {
   // showing d.planet.
   const p = mine(ctx, u, d.at ?? d.planet);
   checkBuild(p, researchOf(ctx, u), k);
-  const lvl = (p.b[k] ?? 0) + 1;
-  const c = lvlCost(def, lvl);
-  if (!afford(p, c)) fail('Nicht genug Rohstoffe.');
-  pay(p, c);
-  const t = ctx.now();
-  p.bq = {
-    key: k,
-    lvl,
-    start: t,
-    end: t + buildTime(c, p, universe(ctx)),
-    cost: c,
-  };
+  const q = payNextLevel(
+    ctx,
+    p,
+    { def, key: k, have: p.b[k] ?? 0 },
+    (c) => buildTime(c, p, universe(ctx)),
+    event,
+  );
+  p.bq = q;
   ctx.store.savePlanet(p);
-  if (event) event.detail = { planet: p.id, key: k, level: lvl, due: p.bq.end };
-  queuePush(ctx, u.id, 'buildings', `${p.id}:${t}`, p.bq.end);
+  queuePush(ctx, u.id, 'buildings', `${p.id}:${q.start}`, q.end);
   return null;
 };
 
@@ -114,22 +131,17 @@ export const research: Action = (ctx, u, d, event) => {
   const p = mine(ctx, u);
   const r = researchOf(ctx, u);
   checkResearch(p, r, k);
-  const lvl = (r.research[k] ?? 0) + 1;
-  const c = lvlCost(def, lvl);
-  if (!afford(p, c)) fail('Nicht genug Rohstoffe.');
-  pay(p, c);
-  const t = ctx.now();
-  r.rq = {
-    key: k,
-    lvl,
-    start: t,
-    end: t + researchTime(c, p, universe(ctx)),
-    cost: c,
-  };
+  const q = payNextLevel(
+    ctx,
+    p,
+    { def, key: k, have: r.research[k] ?? 0 },
+    (c) => researchTime(c, p, universe(ctx)),
+    event,
+  );
+  r.rq = q;
   setResearch(ctx, u, r);
   ctx.store.savePlanet(p);
-  if (event) event.detail = { planet: p.id, key: k, level: lvl, due: r.rq.end };
-  queuePush(ctx, u.id, 'research', String(t), r.rq.end);
+  queuePush(ctx, u.id, 'research', String(q.start), q.end);
   return null;
 };
 

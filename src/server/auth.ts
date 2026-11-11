@@ -41,7 +41,7 @@ export function passwordMatches(u: User, pw: string): boolean {
 
 // ----- invitations -----
 
-export const EMAIL = /^[^\s@<>"',;]+@[^\s@<>"',;]+\.[^\s@<>"',;]+$/;
+const EMAIL = /^[^\s@<>"',;]+@[^\s@<>"',;]+\.[^\s@<>"',;]+$/;
 
 export function inviteLink(cfg: Config, token: string): string {
   // The token is in the fragment: browsers never send it to a server or in a Referer.
