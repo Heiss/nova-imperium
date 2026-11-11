@@ -97,11 +97,12 @@ function main(): void {
     const s = scores[f];
     if (s !== undefined && s < standard.securityTarget)
       console.log(
-        `::notice file=${f}::${s} % of the ${standard.securityTarget} % target for security files`,
+        `::notice file=${f}::${f}: ${s} % of the ${standard.securityTarget} % target for security files`,
       );
   }
   const failures = check(scores, standard);
-  for (const f of failures) console.log(`::error::Mutation score fell: ${f}`);
+  for (const f of failures)
+    console.log(`::error::Mutation score below the floor: ${f}`);
   if (failures.length) process.exit(1);
   console.log(
     `All ${Object.keys(scores).length} files at or above their floor.`,
