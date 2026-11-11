@@ -1,6 +1,7 @@
 # Update log
 
 ## 2026-11-11
+* **Update**: Workflow lint (actionlint, zizmor) in the CI Gate; all actions pinned to commit hashes, checkouts without persisted credentials (see [Test strategy](/ops/testing.md)).
 * **Update**: Migrations fail closed: the backup is checked before a migration, without a good backup the server does not start; tested with real data per version, as a process and as a Docker upgrade from the last release (see [SQLite storage](/data/sqlite.md)).
 * **Update**: CodeRabbit reviews pull requests (`.coderabbit.yaml`); security and „Critical“ findings block a merge under O4 (see [Branching and release](/ops/branching-release.md)).
 * **Update**: knip, jscpd and dependency-cruiser block in CI; 27 unused exports and `@types/markdown-it` removed, one copied block in `src/server/http/app.ts` replaced by the types `Guard` and `Enter` (see [Test strategy](/ops/testing.md)).

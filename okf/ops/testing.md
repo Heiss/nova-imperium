@@ -38,6 +38,13 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   (sonarjs) ≤ 10, nesting ≤ 4, functions ≤ 50 lines (tests are free of the
   length rule). The dense code of version 1 was rebuilt into small functions;
   no place is exempted.
+* **[E]** The workflows are checked by the job „Workflow lint“ for every
+  change (owner, 2026-11-11): actionlint (syntax, expressions, shell) and
+  zizmor (security). Every action is pinned to a commit hash with the version
+  as a comment; Renovate updates both (`helpers:pinGitHubActionDigests`).
+  Checkouts keep no credentials, except the tag workflow, which pushes the
+  tag. Its `workflow_run` trigger is accepted on purpose: it runs only after
+  a successful CI push run on `main` and checks out `main`.
 * **[E]** Code hygiene blocks in the job „Lint, types, unit tests …“
   (owner, 2026-11-11): knip (`knip.json`: no unused files, exports or
   dependencies), jscpd (`.jscpd.json`: no copied block of 50 tokens or more
