@@ -20,7 +20,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "test:mutation": "stryker run",
+    "test:mutation": "MIGRATION_RUNS=10 stryker run",
     "test:e2e": "playwright test",
     "check": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm test:coverage && pnpm build"
   },
@@ -48,6 +48,7 @@
     "eslint": "^10.14.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-sonarjs": "4.2.2",
+    "fast-check": "^4.10.2",
     "globals": "^17.14.0",
     "prettier": "^3.9.10",
     "prettier-plugin-svelte": "4.1.1",

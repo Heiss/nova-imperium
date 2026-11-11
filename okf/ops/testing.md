@@ -27,6 +27,9 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   views, with a self-test that proves the check finds problems
   (`e2e/a11y.spec.ts`). A look with a screen reader and the keyboard is still
   open.
+* **[E]** Property-based upgrade tests of every migration on generated data
+  (fast-check), and an own upgrade test for every migration that changes
+  existing tables or data; see [SQLite storage](/data/sqlite.md).
 * **[E]** Mutation tests with Stryker, a score below 80 % blocks;
   incremental on pull requests, complete on every push to `main` and
   every night. Tag workflows verify the earlier CI result.
@@ -51,6 +54,7 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 |---|---|---|
 | Equivalence | `src/shared/equivalence.test.ts`, `catalog.test.ts` | The TypeScript rules compute exactly what version 1 computed: 400 random cases with a fixed seed for production, settling, costs, times, flights, and battles with the same random stream; the catalog is identical. Version 1 is frozen in `src/test/legacy/`. The pictures of version 1 were replaced by the icon set (issue #61, D5); `src/client/logic/icons.test.ts` checks that every catalog entry has an existing icon. |
 | Unit | `src/**/*.test.ts` | Rules, store (real SQLite in memory), actions, arrivals, admin, accounts, configuration, mail, operator commands, HTTP API (a real server on a free port), client logic. |
+| Upgrade | `src/server/db/migrations.property.test.ts`, `src/server/db/upgrades/` | Every migration runs on generated valid data of the version before (100 per pull request, 1000 nightly with a random seed); changing migrations have their own upgrade test. |
 | Sync | `src/server/docs.test.ts`, `src/server/http/security.test.ts` | Every setting is in the docs, `.env.example` and `compose.yaml`; links resolve; the Caddyfile sends the same security headers as the server. |
 | E2E | `e2e/game.spec.ts` | Invitation, single use, login, building, production share, renaming, shipyard, fleet form, espionage with report, admin panel (invite, copy link, revoke, live settings, grow-only), phone layout. |
 | Accessibility | `e2e/a11y.spec.ts` | axe on every view. |

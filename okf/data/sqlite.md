@@ -55,9 +55,8 @@ migrations), Atlas (`migrate lint` against the Git base) and GitLab
   `main` ([O9](/open-points.md)), so a pull request is checked against the
   current `main` and two pull requests that conflict only in meaning cannot
   both pass against an older `main`.
-* **[V]** Not covered: upgrades on real data (new constraints, `INSERT …
-  SELECT *` during a table rebuild, cascades on `DROP TABLE` with foreign
-  keys on). Only migration 9 has an upgrade test with data.
+* **[E]** Upgrades on data are tested on generated databases; see
+  [Upgrade tests on generated data](#upgrade-tests-on-generated-data).
 
 
 ## Admin data
@@ -90,3 +89,33 @@ session, reward and push data. The deletion also removes led guilds and their
 memberships, linked audit and inbox records, invitations for the account address
 and active registration challenges. Incoming fleets belonging to other players
 turn back. Existing external backups are managed by the operator.
+
+## Upgrade tests on generated data
+
+A migration must work on every database the previous version could have
+written, not only on an empty one (owner decision, 2026-11-10: property-based
+tests together with an own test for each changing migration).
+
+* **[E]** `src/test/migrations.ts` derives a generator of valid data from the
+  schema of any version: column types (`STRICT`), `NOT NULL`, foreign keys and
+  the CHECK forms `x IN (...)` and `x = n`. Values are chosen to collide
+  (`NOCASE` names, empty strings, Unicode, number limits). Rows that SQLite
+  rejects are skipped, so every generated database is a possible one.
+* **[E]** `src/server/db/migrations.property.test.ts` runs each migration on
+  such databases (fast-check). It must not fail, and `integrity_check` and
+  `foreign_key_check` must be clean afterwards. Pull requests: 100 databases
+  per migration, fixed seed. Nightly (`migrations-nightly.yml`): 1000 with a
+  random seed; a failure prints the seed to reproduce with `MIGRATION_SEED`.
+  Stryker uses 10 runs (`MIGRATION_RUNS`).
+* **[E]** A migration that changes or removes an existing schema entry or
+  existing rows needs its own test `src/server/db/upgrades/migration-<n>.test.ts`
+  that checks the data after the upgrade. The decision is made by the effect on
+  generated data, not by the SQL text; `ALTER TABLE … ADD COLUMN` counts as a
+  change. Migrations 7 and 9 have such tests; pure `CREATE` migrations need
+  none.
+* **[E]** A self-test proves that the checks find a migration that fails on
+  existing data and that the classification tells changes from new tables.
+* **[V]** Limits: generated data covers what the constraints allow, not what
+  only real players produce; a change that hits no generated row is classified
+  as additive; other CHECK forms are only met by chance.
+

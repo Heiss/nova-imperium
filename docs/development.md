@@ -48,5 +48,10 @@ a released migration is never moved, removed or changed. Update the schema
 snapshot with `pnpm vitest run src/server/db/schema.test.ts -u` and review
 its diff.
 
+A migration that changes existing tables or data needs its own test
+`src/server/db/upgrades/migration-<n>.test.ts`; the property-based upgrade
+test tells which ones. Reproduce a nightly failure with
+`MIGRATION_SEED=<seed> pnpm vitest run src/server/db/migrations.property.test.ts`.
+
 Write the test first. Tests check behavior, not markup; no test is skipped or
 disabled to make the CI green. Details: `okf/ops/testing.md`.
