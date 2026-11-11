@@ -6,6 +6,7 @@
 // planet (D4).
 import { BUILD, RES } from './catalog.ts';
 import { afford, lvlCost, reqMissing } from './economy.ts';
+import { labUpgrading, waitsForLab } from './lab.ts';
 import { waitsForYard } from './yard.ts';
 import type {
   Cost,
@@ -135,11 +136,11 @@ const lacking = (p: Planet, c: Cost): string[] =>
 function busyReason(n: Need, p: Planet, r: ResearchState): string | undefined {
   if (n.kind === 'r') {
     if (r.rq) return 'Es wird bereits geforscht';
-    return p.bq?.key === 'lab' ? 'Labor wird ausgebaut' : undefined;
+    return labUpgrading(p) ? 'Labor wird ausgebaut' : undefined;
   }
   if (p.bq) return 'Bauschleife belegt';
   if (waitsForYard(p, n.key)) return 'Werft arbeitet gerade';
-  if (n.key === 'lab' && r.rq) return 'Das Labor forscht gerade';
+  if (waitsForLab(r, n.key)) return 'Das Labor forscht gerade';
   return undefined;
 }
 

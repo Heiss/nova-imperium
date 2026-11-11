@@ -4,6 +4,7 @@ import {
   capacity,
   countUnits,
   distance,
+  fleetSlots,
   fleetSpeed,
   flightMs,
   fuelFor,
@@ -103,10 +104,7 @@ function plan(ctx: Ctx, u: User, p: Planet, d: Data): Plan {
   if (!Object.hasOwn(MISSION, mission)) fail('Unbekannter Auftrag.');
   const ships = pickShips(p, d.ships);
   if (!countUnits(ships)) fail('Keine Schiffe ausgewählt.');
-  if (
-    ctx.store.fleetCount(u.id) >=
-    1 + (researchOf(ctx, u).research.computer ?? 0)
-  )
+  if (ctx.store.fleetCount(u.id) >= fleetSlots(researchOf(ctx, u)))
     fail('Alle Flottenslots belegt.');
   const dest = target(ctx, d);
   const occupied = ctx.store.planet(pid(dest));
