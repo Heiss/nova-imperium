@@ -84,7 +84,7 @@ function byDependencies(tables: Table[]): Table[] {
   return ordered;
 }
 
-function describeSchema(db: Db): Table[] {
+export function describeSchema(db: Db): Table[] {
   const rows = db
     .prepare(
       `SELECT name, sql FROM sqlite_master
@@ -171,7 +171,7 @@ function tryInsert(insert: Statement, values: Record<string, Value>): void {
 }
 
 /** Inserts the plan; rows that SQLite rejects are skipped. */
-function populate(db: Db, tables: Table[], plan: Plan): void {
+export function populate(db: Db, tables: Table[], plan: Plan): void {
   for (const t of tables) {
     const names = t.columns.map((c) => `"${c.name}"`).join(', ');
     const params = t.columns.map((c) => `@${c.name}`).join(', ');

@@ -149,10 +149,21 @@ jobs:
       - run: docker/init-env.sh --demo
       - name: Make the demo secret readable by the container user
         run: sudo chown 1000:1000 secrets/smtp_password
+      # Upgrade as on the server (owner, 2026-11-11): the last release writes
+      # data, then the new image starts on the same volume.
+      - name: Start the last release and write data
+        env:
+          NOVA_VERSION: latest
+        run: |
+          docker compose pull app
+          docker compose up --detach --no-build --wait
+          docker/upgrade.sh before
       - name: Build the application image from the Dockerfile
         run: docker compose build app
       - name: Start the stack with the image built above
         run: docker compose up --detach --no-build --wait
+      - name: Data of the last release survive the upgrade
+        run: docker/upgrade.sh after
       - name: No critical holes in the image (Trivy; only those with a fix)
         run: |
           docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:0.76.2 \

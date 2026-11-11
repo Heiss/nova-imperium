@@ -68,6 +68,7 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 | Sync | `src/server/docs.test.ts`, `src/server/http/security.test.ts` | Every setting is in the docs, `.env.example` and `compose.yaml`; links resolve; the Caddyfile sends the same security headers as the server. |
 | E2E | `e2e/game.spec.ts` | Invitation, single use, login, building, production share, renaming, shipyard, fleet form, espionage with report, admin panel (invite, copy link, revoke, live settings, grow-only), phone layout. |
 | Accessibility | `e2e/a11y.spec.ts` | axe on every view. |
+| Upgrade | `docker/upgrade.sh` in the same job | The last release writes data, the new image starts on the same volume: the data survive, a migration leaves a backup (fail closed, see [SQLite storage](/data/sqlite.md)). |
 | Stack | `docker/smoke.sh` in the CI job "Docker image and Compose stack" | Headers through Caddy, uid 1000, invitation mail in Mailpit, registration with its link, admin by command, data after a restart; plus: image without compiler, package manager or tests; a wrong setting stops the start; Trivy. |
 
 # Scope of coverage and mutation
