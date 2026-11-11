@@ -33,6 +33,9 @@ The same checks run in the CI on every pull request; the gate job "CI Gate"
 must be green before a pull request goes to review.
 
 ```bash
+pnpm lint:dead       # knip: unused files, exports, dependencies
+pnpm lint:dupes      # jscpd: copied code
+pnpm lint:deps       # dependency-cruiser: import rules
 pnpm lint            # ESLint incl. complexity ≤ 10, cognitive ≤ 10, depth ≤ 4, functions ≤ 50 lines
 pnpm format:check    # Prettier
 pnpm typecheck       # tsc

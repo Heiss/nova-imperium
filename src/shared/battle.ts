@@ -28,7 +28,7 @@ interface Unit {
 
 const bonus = (tech: Levels, key: string): number => 1 + 0.1 * (tech[key] ?? 0);
 
-export const MAX_ROUNDS = 6;
+const MAX_ROUNDS = 6;
 
 export function buildSide(side: Side): Unit[] {
   const out: Unit[] = [];

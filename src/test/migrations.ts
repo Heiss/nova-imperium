@@ -10,7 +10,7 @@ import { MIGRATIONS } from '../server/db/schema.ts';
 
 type Value = string | number | Uint8Array | null;
 type Ref = { table: string; column: string };
-export type Column = {
+type Column = {
   name: string;
   type: string;
   notNull: boolean;
@@ -123,7 +123,7 @@ function columnValue(c: Column): fc.Arbitrary<Value> {
 }
 
 /** Up to `maxRows` rows per table for the given schema. */
-export function planOf(tables: Table[], maxRows = 6): fc.Arbitrary<Plan> {
+function planOf(tables: Table[], maxRows = 6): fc.Arbitrary<Plan> {
   const perTable: Record<string, fc.Arbitrary<Record<string, Value>[]>> = {};
   for (const t of tables) {
     const row = fc.record(

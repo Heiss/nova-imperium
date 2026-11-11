@@ -14,8 +14,8 @@ import { createMailer, type Mailer } from './mail.ts';
 import { startPushDelivery } from './web-push.ts';
 
 export const DB_FILE = 'nova.sqlite';
-export const TICK_MS = 1000;
-export const SWEEP_MS = 3600000;
+const TICK_MS = 1000;
+const SWEEP_MS = 3600000;
 
 export interface Running {
   server: Server;

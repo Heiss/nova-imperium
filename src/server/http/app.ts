@@ -44,6 +44,10 @@ export interface Call {
 }
 
 type Reply = { status?: number; json: unknown; cookie?: string };
+/** Refuses a request that exceeds the rate limit. */
+type Guard = (req: IncomingMessage) => void;
+/** Starts a session for a signed-in user. */
+type Enter = (u: User, remember?: boolean) => Reply;
 export type Handler = (call: Call) => Reply | Promise<Reply>;
 
 function send(
@@ -94,7 +98,7 @@ export function crossSite(req: IncomingMessage, cfg: Config): boolean {
 
 class Unauthorized extends Error {}
 
-export function sessionUserOf(ctx: Ctx, call: Call): User {
+function sessionUserOf(ctx: Ctx, call: Call): User {
   const u = auth.sessionUser(ctx, call.token);
   if (!u) throw new Unauthorized();
   return u;
@@ -131,10 +135,7 @@ async function sendReset(d: AppDeps, email: unknown): Promise<void> {
   });
 }
 
-function passwordRoutes(
-  d: AppDeps,
-  guard: (req: IncomingMessage) => void,
-): Record<string, Handler> {
+function passwordRoutes(d: AppDeps, guard: Guard): Record<string, Handler> {
   const { ctx, cfg } = d;
   const minimum = cfg.passwordMinLength;
   const signedOut = (): Reply => ({
@@ -213,8 +214,8 @@ function accountRoutes(
 
 function passkeyRoutes(
   d: AppDeps,
-  guard: (req: IncomingMessage) => void,
-  enter: (u: User, remember?: boolean) => Reply,
+  guard: Guard,
+  enter: Enter,
 ): Record<string, Handler> {
   const { ctx, cfg } = d;
   return {
@@ -267,7 +268,7 @@ function finishPasskeyLogin(
   user: User,
   requestId: string,
   remember: boolean,
-  enter: (u: User, remember?: boolean) => Reply,
+  enter: Enter,
 ): Reply {
   return audited(
     ctx,
@@ -278,8 +279,8 @@ function finishPasskeyLogin(
 
 function loginRoutes(
   d: AppDeps,
-  guard: (req: IncomingMessage) => void,
-  enter: (u: User, remember?: boolean) => Reply,
+  guard: Guard,
+  enter: Enter,
 ): Record<string, Handler> {
   const { ctx, cfg } = d;
   return {
@@ -337,7 +338,7 @@ function loginCodeReply(
   ctx: Ctx,
   body: Call['body'],
   requestId: string,
-  enter: (u: User, remember?: boolean) => Reply,
+  enter: Enter,
 ): Reply {
   const entry: AuditEntry = {
     category: 'account',
@@ -468,7 +469,7 @@ function playerAction(ctx: Ctx, u: User, call: Call): string | null {
 }
 
 /** Creates the invitation, then tries the mail. The link is always returned for copying. */
-export async function invite(
+async function invite(
   d: AppDeps,
   u: User,
   email: unknown,
