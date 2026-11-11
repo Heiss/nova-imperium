@@ -3,6 +3,7 @@
 // and resets, passkey routes (WebAuthn check replaced) and invitations.
 import * as webauthn from '@simplewebauthn/server';
 import { describe, expect, it, vi } from 'vitest';
+import { createInvitation } from '../auth.ts';
 import type { Mail } from '../mail.ts';
 import { addPlanet, addUser } from '../test-helpers.ts';
 import { asAdmin, start } from '../../test/http.ts';
@@ -349,5 +350,289 @@ describe('player actions', () => {
       before,
       after: ctx.store.universe(),
     });
+  });
+});
+
+describe('push routes', () => {
+  const subscription = {
+    endpoint: 'https://fcm.googleapis.com/fcm/send/abc',
+    keys: {
+      p256dh: Buffer.alloc(65, 4).toString('base64url'),
+      auth: Buffer.alloc(16, 1).toString('base64url'),
+    },
+  };
+
+  it('refuses subscriptions while web push is off, but always unsubscribes', async () => {
+    const { call } = await player();
+    await call('POST', '/api/login', { name: 'Anna', password: 'secret1' });
+    const off = {
+      error:
+        'Browser-Benachrichtigungen sind auf diesem Server deaktiviert. Die Serverkonfiguration benötigt NOVA_WEB_PUSH=1 und eine HTTPS-Adresse.',
+    };
+    expect((await call('GET', '/api/push/key')).json).toEqual(off);
+    expect(
+      (await call('POST', '/api/push/subscribe', subscription)).json,
+    ).toEqual(off);
+    expect(
+      (
+        await call('POST', '/api/push/unsubscribe', {
+          endpoint: subscription.endpoint,
+        })
+      ).json,
+    ).toEqual({ ok: true });
+  });
+
+  it('hands out the key and stores and removes a subscription', async () => {
+    const { ctx, call } = await player({ cfg: { webPush: true } });
+    expect((await call('GET', '/api/push/key')).status).toBe(401);
+    await call('POST', '/api/login', { name: 'Anna', password: 'secret1' });
+    expect((await call('GET', '/api/push/key')).json).toEqual({
+      publicKey: expect.stringMatching(/^[\w-]{87}$/),
+    });
+    expect(
+      (await call('POST', '/api/push/subscribe', subscription)).json,
+    ).toEqual({ ok: true });
+    const count = () =>
+      (
+        ctx.store.db
+          .prepare('SELECT COUNT(*) AS n FROM push_subscriptions')
+          .get() as { n: number }
+      ).n;
+    expect(count()).toBe(1);
+    await call('POST', '/api/push/unsubscribe', {
+      endpoint: subscription.endpoint,
+    });
+    expect(count()).toBe(0);
+  });
+});
+
+describe('account audit and replies', () => {
+  const rows = (ctx: { store: { db: import('better-sqlite3').Database } }) =>
+    ctx.store.db
+      .prepare(
+        "SELECT category, action, actor, outcome FROM audit_events WHERE category = 'account' ORDER BY id",
+      )
+      .all();
+
+  it('registers with a remembered session, or asks for a code first', async () => {
+    for (const emailLoginCodes of [false, true]) {
+      const { call, ctx, cfg } = await start({ cfg: { emailLoginCodes } });
+      const { link } = createInvitation(ctx, cfg, null, 'neu@example.org');
+      const reply = await call('POST', '/api/register', {
+        token: link.split('#invite=')[1],
+        name: 'Neu',
+        password: 'registration-passphrase',
+        planet: 'Welt',
+        gal: 1,
+      });
+      if (emailLoginCodes) {
+        expect(reply.json).toEqual({ ok: true, loginRequired: true });
+        expect(reply.set).toBeNull();
+      } else {
+        expect(reply.json).toMatchObject({ ok: true });
+        expect(reply.set).toMatch(/; Max-Age=\d+$/);
+      }
+      expect(rows(ctx)).toEqual([
+        {
+          category: 'account',
+          action: 'register',
+          actor: expect.stringMatching(/^u/),
+          outcome: 'ok',
+        },
+      ]);
+    }
+  });
+
+  it('audits password and code logins, a refused code and logout', async () => {
+    const mails: Mail[] = [];
+    const codes = await player({
+      cfg: { emailLoginCodes: true },
+      mailer: async (m) => void mails.push(m),
+    });
+    const { challenge } = (
+      await codes.call('POST', '/api/login', {
+        name: 'Anna',
+        password: 'secret1',
+      })
+    ).json as { challenge: string };
+    const code = /\d{6}/.exec(mails[0]!.text)![0];
+    expect(
+      (await codes.call('POST', '/api/login/code', { challenge, code: 'x' }))
+        .json,
+    ).toEqual({ error: 'Der Anmeldecode ist ungültig oder abgelaufen.' });
+    const entered = await codes.call('POST', '/api/login/code', {
+      challenge,
+      code,
+      remember: false,
+    });
+    expect(entered.json).toMatchObject({ ok: true });
+    expect(entered.set).not.toContain('Max-Age');
+    expect(rows(codes.ctx)).toEqual([
+      {
+        category: 'account',
+        action: 'loginPassword',
+        actor: 'u_Anna',
+        outcome: 'ok',
+      },
+      {
+        category: 'account',
+        action: 'loginCode',
+        actor: null,
+        outcome: 'rejected',
+      },
+      {
+        category: 'account',
+        action: 'loginCode',
+        actor: 'u_Anna',
+        outcome: 'ok',
+      },
+    ]);
+
+    const plain = await player();
+    await plain.call('POST', '/api/logout', {});
+    await plain.call('POST', '/api/login', {
+      name: 'Anna',
+      password: 'secret1',
+    });
+    await plain.call('POST', '/api/logout', {});
+    expect(rows(plain.ctx)).toEqual([
+      { category: 'account', action: 'login', actor: 'u_Anna', outcome: 'ok' },
+      { category: 'account', action: 'logout', actor: 'u_Anna', outcome: 'ok' },
+    ]);
+  });
+
+  it('signs out with an empty cookie after a reset, a change and a deletion', async () => {
+    const mails: Mail[] = [];
+    const { call } = await player({
+      mailer: async (m) => void mails.push(m),
+    });
+    await call('POST', '/api/password/forgot', { email: 'anna@example.org' });
+    await tick();
+    const token = mails[0]!.text.split('#reset=')[1]!.split('\n')[0];
+    const reset = await call('POST', '/api/password/reset', {
+      token,
+      password: 'a brand new passphrase',
+    });
+    expect(reset.json).toEqual({ ok: true });
+    expect(reset.set).toBe(SIGNED_OUT);
+    await call('POST', '/api/login', {
+      name: 'Anna',
+      password: 'a brand new passphrase',
+    });
+    const changed = await call('POST', '/api/password/change', {
+      current: 'a brand new passphrase',
+      password: 'another long passphrase',
+      confirmation: 'another long passphrase',
+    });
+    expect(changed.json).toEqual({ ok: true });
+    expect(changed.set).toBe(SIGNED_OUT);
+    await call('POST', '/api/login', {
+      name: 'Anna',
+      password: 'another long passphrase',
+    });
+    const deleted = await call('POST', '/api/account/delete', {
+      password: 'another long passphrase',
+    });
+    expect(deleted.json).toEqual({ ok: true });
+    expect(deleted.set).toBe(SIGNED_OUT);
+  });
+});
+
+describe('game requests', () => {
+  it('answers activity, reads the selected planet and names the error cases', async () => {
+    const logs: string[] = [];
+    const { ctx, call, app } = await player({ logs });
+    expect((await call('GET', '/api/state')).json).toEqual({
+      error: 'Bitte einloggen.',
+    });
+    await call('POST', '/api/login', { name: 'Anna', password: 'secret1' });
+    addPlanet(ctx, 'u_Anna', { p: 7 });
+    expect((await call('POST', '/api/activity', {})).json).toEqual({
+      ok: true,
+    });
+    const state = await call('GET', '/api/state?planet=p1_1_7');
+    expect(state.json).toMatchObject({ planet: { id: 'p1_1_7' } });
+    expect(
+      (
+        await call(
+          'POST',
+          '/api/action',
+          { type: 'rename', name: 'X' },
+          {
+            origin: 'https://evil.example',
+          },
+        )
+      ).json,
+    ).toEqual({ error: 'Anfrage abgelehnt.' });
+    expect((await call('DELETE', '/x')).json).toEqual({
+      error: 'Nicht erlaubt.',
+    });
+    ctx.store.db.close();
+    const broken = await call('POST', '/api/activity', {});
+    expect(broken.json).toEqual({ error: 'Serverfehler.' });
+    expect(logs).toEqual([
+      expect.stringMatching(/^Request failed \[[0-9a-f-]{36}\]$/),
+    ]);
+    expect(() => app.sweep()).toThrow();
+  });
+
+  it('audits a round reset as an admin write without a planet', async () => {
+    const { ctx, call } = await asAdmin();
+    await call('POST', '/api/action', { type: 'reset' });
+    expect(
+      ctx.store.db
+        .prepare(
+          "SELECT category, detail FROM audit_events WHERE action = 'reset'",
+        )
+        .get(),
+    ).toMatchObject({ category: 'admin.write' });
+    const plain = await player();
+    await plain.call('POST', '/api/login', {
+      name: 'Anna',
+      password: 'secret1',
+    });
+    await plain.call('POST', '/api/action', { type: 'settings', settings: {} });
+    expect(
+      plain.ctx.store.db
+        .prepare(
+          "SELECT category, outcome, detail FROM audit_events WHERE action = 'settings'",
+        )
+        .get(),
+    ).toEqual({ category: 'admin.write', outcome: 'rejected', detail: '{}' });
+  });
+});
+
+describe('rate limit window and sweep', () => {
+  it('opens again after the configured minutes and forgets old windows', async () => {
+    const { ctx, call, app } = await start({
+      cfg: { rateLimitAttempts: 1, rateLimitMinutes: 2 },
+    });
+    const check = () => call('POST', '/api/invite/check', { token: 'x' });
+    await check();
+    expect((await check()).json).toEqual({
+      error: 'Zu viele Versuche – bitte später nochmal.',
+    });
+    ctx.clock.t += 2 * 60000 - 1;
+    expect((await check()).json).toEqual({
+      error: 'Zu viele Versuche – bitte später nochmal.',
+    });
+    ctx.clock.t += 1;
+    expect((await check()).json).not.toEqual({
+      error: 'Zu viele Versuche – bitte später nochmal.',
+    });
+    ctx.store.db
+      .prepare("INSERT INTO passkey_challenges VALUES ('c', 'x', NULL, ?)")
+      .run(ctx.now());
+    ctx.store.db
+      .prepare(
+        "INSERT INTO account_tokens (token_hash, user_id, purpose, expires) SELECT 't', id, 'reset', ? FROM users LIMIT 1",
+      )
+      .run(ctx.now());
+    app.sweep();
+    expect(
+      ctx.store.db
+        .prepare('SELECT COUNT(*) AS n FROM passkey_challenges')
+        .get(),
+    ).toEqual({ n: 0 });
   });
 });
