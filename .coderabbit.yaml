@@ -1,0 +1,53 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+# AI review of every pull request (owner, 2026-11-11). CodeRabbit comments and
+# never requests changes. Which findings block a merge is decided by O4 in
+# okf/ops/branching-release.md: security findings and „Critical“ ones.
+language: en-US
+reviews:
+  profile: chill
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  auto_review:
+    enabled: true
+    # Review when a pull request is opened or marked ready, not drafts and
+    # not every later push (owner, 2026-11-11).
+    drafts: false
+    auto_incremental_review: false
+  path_filters:
+    - '!pnpm-lock.yaml'
+    - '!src/test/legacy/**'
+    - '!docs/design/**'
+    - '!**/*.svg'
+  path_instructions:
+    - path: 'src/server/**'
+      instructions: >-
+        Security first: authentication, sessions, passkeys, account
+        recovery and deletion, authorization of every action, input
+        validation, rate limits, SQL through prepared statements only,
+        secrets never logged. Flag any game rule computed here that should
+        live in src/shared.
+    - path: 'src/shared/**'
+      instructions: >-
+        Pure game rules used by the server and the browser alike. No I/O,
+        no imports from src/server or src/client. Values of version 1 must
+        stay identical (equivalence tests).
+    - path: 'src/client/**'
+      instructions: >-
+        The interface is German; check the German texts. No inline scripts
+        or styles (strict Content-Security-Policy). Rules come from
+        src/shared, not from new client code.
+    - path: 'src/server/db/schema.ts'
+      instructions: >-
+        Released migrations are append-only: a moved, removed or changed
+        migration is a blocking error. New migrations go at the end.
+    - path: '.github/workflows/**'
+      instructions: >-
+        Actions pinned to commit hashes, least permissions, no persisted
+        credentials unless the job pushes.
+    - path: 'okf/**'
+      instructions: >-
+        OKF bundle of decisions. Check that markers (E, V, U) and links are
+        consistent; do not judge the decisions themselves.
+chat:
+  auto_reply: true
