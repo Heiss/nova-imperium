@@ -401,6 +401,170 @@ test.describe('playing', () => {
     expect(attempts).toBe(2);
   });
 
+  test('lists all missing requirements and starts the next one (#64)', async ({
+    page,
+  }) => {
+    const w = watch(page);
+    const name = uniqueName('Plan');
+    await register(page, name);
+    seed({ name, res: { m: 5000, c: 5000, d: 5000 } });
+    await page.goto('/?view=buildings');
+    const yard = page.locator('.item').filter({ hasText: 'Raumschiffwerft' });
+    const robot = yard.locator('.need').filter({ hasText: 'Roboterfabrik' });
+    await expect(robot).toContainText('Stufe 2 (aktuell 0)');
+    await expect(robot).toHaveClass(/ready/);
+    await robot.getByRole('button', { name: 'Jetzt bauen' }).click();
+    await expect(page.locator('.item.running')).toContainText('Roboterfabrik');
+    await expect(page).toHaveURL(/\?view=buildings$/);
+    await expect(robot).toContainText('Bauschleife belegt');
+    await expect(
+      robot.getByRole('button', { name: 'Jetzt bauen' }),
+    ).toBeDisabled();
+    expect(w.problems).toEqual([]);
+  });
+
+  test('starts a research requirement of a ship, indirect ones included (#64)', async ({
+    page,
+  }) => {
+    const w = watch(page);
+    const name = uniqueName('Jaeger');
+    await register(page, name);
+    seed({
+      name,
+      b: { robot: 2, yard: 1, lab: 1 },
+      res: { m: 50000, c: 50000, d: 50000 },
+    });
+    await page.goto('/?view=shipyard');
+    const fighter = page.locator('.item').filter({ hasText: 'Leichter Jäger' });
+    const comb = fighter.locator('.need').filter({
+      has: page.locator('.need-nm', { hasText: /^Verbrennungstriebwerk$/ }),
+    });
+    const energy = fighter.locator('.need').filter({
+      has: page.locator('.need-nm', { hasText: /^Energietechnik$/ }),
+    });
+    await expect(comb).toHaveClass(/missing/);
+    await expect(comb).toContainText('braucht Energietechnik (Stufe 1)');
+    await expect(energy).toContainText('für Verbrennungstriebwerk');
+    await energy.getByRole('button', { name: 'Jetzt forschen' }).click();
+    await expect(energy).toContainText('Es wird bereits geforscht');
+    await expect(
+      energy.getByRole('button', { name: 'Jetzt forschen' }),
+    ).toBeDisabled();
+    await expect(page).toHaveURL(/\?view=shipyard$/);
+    expect(w.problems).toEqual([]);
+  });
+
+  test('research view: start a missing research, lab upgrade blocks it (#64)', async ({
+    page,
+  }) => {
+    const w = watch(page);
+    const name = uniqueName('Labor');
+    await register(page, name);
+    seed({
+      name,
+      b: { lab: 1 },
+      research: { energy: 1 },
+      res: { m: 50000, c: 50000, d: 50000 },
+    });
+    await page.goto('/?view=buildings');
+    await page.click('[data-act=build][data-k=lab]');
+    await nav(page, 'research');
+    const laser = page
+      .locator('.item')
+      .filter({ has: page.locator('.nm', { hasText: /^\s*Lasertechnik/ }) });
+    const energy = laser.locator('.need').filter({
+      has: page.locator('.need-nm', { hasText: /^Energietechnik$/ }),
+    });
+    await expect(energy).toContainText('Stufe 2 (aktuell 1)');
+    await expect(energy).toContainText('Labor wird ausgebaut');
+    await expect(
+      energy.getByRole('button', { name: 'Jetzt forschen' }),
+    ).toBeDisabled();
+    await nav(page, 'buildings');
+    await page.click('[data-act=cancelBuild]');
+    await nav(page, 'research');
+    await energy.getByRole('button', { name: 'Jetzt forschen' }).click();
+    await expect(energy).toContainText('Es wird bereits geforscht');
+    await expect(page).toHaveURL(/\?view=research$/);
+    expect(w.problems).toEqual([]);
+  });
+
+  test('from a colony the lab is built on the home planet (#64)', async ({
+    page,
+  }) => {
+    const w = watch(page);
+    const name = uniqueName('Siedler');
+    await register(page, name);
+    seed({
+      name,
+      res: { m: 50000, c: 50000, d: 50000 },
+      colony: {
+        b: { robot: 2, yard: 1 },
+        res: { m: 50000, c: 50000, d: 50000 },
+      },
+    });
+    await page.reload();
+    const selector = page.getByLabel('Aktiver Planet');
+    const colony = selector
+      .locator('option')
+      .filter({ hasText: /^Kolonie \[/ });
+    await selector.selectOption((await colony.getAttribute('value'))!);
+    await expect(page.locator('#pinfo b').first()).toHaveText('Kolonie');
+    await nav(page, 'shipyard');
+    const fighter = page
+      .locator('.item')
+      .filter({ has: page.locator('.nm', { hasText: /^\s*Leichter Jäger/ }) });
+    const lab = fighter.locator('.need').filter({
+      has: page.locator('.need-nm', { hasText: /^Forschungslabor$/ }),
+    });
+    await expect(lab).toContainText('auf dem Heimatplaneten');
+    await expect(lab).toHaveClass(/ready/);
+    await lab.getByRole('button', { name: 'Jetzt bauen' }).click();
+    await expect(lab).toContainText('Bauschleife belegt');
+    await expect(page.locator('#pinfo b').first()).toHaveText('Kolonie');
+    await expect(page).toHaveURL(/\?view=shipyard$/);
+    const home = selector
+      .locator('option')
+      .filter({ hasText: /^Heimatplanet \[/ });
+    await selector.selectOption((await home.getAttribute('value'))!);
+    await nav(page, 'buildings');
+    await expect(page.locator('.item.running')).toContainText(
+      'Forschungslabor',
+    );
+    expect(w.problems).toEqual([]);
+  });
+
+  test('a requirement two levels away is built level by level (#64, D3)', async ({
+    page,
+  }) => {
+    const w = watch(page);
+    const name = uniqueName('Stufen');
+    await register(page, name);
+    seed({ name, res: { m: 50000, c: 50000, d: 50000 } });
+    await page.goto('/?view=buildings');
+    const yard = page
+      .locator('.item')
+      .filter({ has: page.locator('.nm', { hasText: /^\s*Raumschiffwerft/ }) });
+    const robot = yard.locator('.need').filter({
+      has: page.locator('.need-nm', { hasText: /^Roboterfabrik$/ }),
+    });
+    await robot.getByRole('button', { name: 'Jetzt bauen' }).click();
+    await expect(page.locator('.item.running')).toContainText(
+      'Ausbau auf Stufe 1',
+    );
+    seed({ name, b: { robot: 1 }, clearQueue: true });
+    await page.reload();
+    await expect(robot).toContainText('Stufe 2 (aktuell 1)');
+    await robot.getByRole('button', { name: 'Jetzt bauen' }).click();
+    await expect(page.locator('.item.running')).toContainText(
+      'Ausbau auf Stufe 2',
+    );
+    seed({ name, b: { robot: 2 }, clearQueue: true });
+    await page.reload();
+    await expect(yard.locator('.needs')).toHaveCount(0);
+    expect(w.problems).toEqual([]);
+  });
+
   test('build, cancel, set production and rename', async ({ page }) => {
     const w = watch(page);
     await register(page, uniqueName('Bau'));
@@ -522,6 +686,35 @@ test.describe('playing', () => {
     expect(w.problems).toEqual([]);
   });
 
+  test('defense lists requirements with reasons on a phone (#64) @phone', async ({
+    page,
+  }) => {
+    const w = watch(page);
+    const name = uniqueName('Wall');
+    await register(page, name);
+    seed({ name, b: { robot: 2, yard: 2, lab: 1 } });
+    await page.goto('/?view=defense');
+    const light = page.locator('.item').filter({
+      has: page.locator('.nm', { hasText: /^\s*Leichtes Lasergeschütz/ }),
+    });
+    const energy = light.locator('.need').filter({
+      has: page.locator('.need-nm', { hasText: /^Energietechnik$/ }),
+    });
+    await expect(energy).toHaveClass(/missing/);
+    await expect(energy).toContainText('zu wenig Kristall, Deuterium');
+    await expect(
+      light.locator('.need').filter({
+        has: page.locator('.need-nm', { hasText: /^Lasertechnik$/ }),
+      }),
+    ).toContainText('braucht Energietechnik (Stufe 2)');
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth - window.innerWidth,
+      ),
+    ).toBeLessThanOrEqual(0);
+    expect(w.problems).toEqual([]);
+  });
+
   test('the layout works on a phone @phone', async ({ page }) => {
     const w = watch(page);
     await register(page, uniqueName('Handy'));
@@ -639,7 +832,9 @@ test.describe('admin', () => {
     ).toHaveCount(0);
 
     await page.getByRole('tab', { name: 'Universum' }).click();
-    // Settings: live, but the universe never shrinks below a planet.
+    // Settings: live, but the universe never shrinks below a planet. The
+    // planet in galaxy 2 comes from this test, not from an earlier one.
+    seed({ name, colony: { g: 2, s: 1, p: 15, name: 'Außenposten' } });
     await page.fill('#set_speed', '7');
     await page.click('[data-act=saveSettings]');
     await expect(page.locator('#unisub')).toHaveText(

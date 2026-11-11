@@ -215,6 +215,10 @@ describe('colonization', () => {
     });
     expect(stateFor(ctx, a, colonyId).planet).toMatchObject({ id: colonyId });
     expect(stateFor(ctx, b, colonyId).planet).toMatchObject({ owner: b.id });
+    // On a colony the home planet comes along (requirements of issue #64).
+    expect(stateFor(ctx, a, colonyId).home).toMatchObject({ id: home.id });
+    expect(stateFor(ctx, a).home).toBeNull();
+    expect(stateFor(ctx, b, colonyId).home).toBeNull();
     expect(() =>
       runAction(ctx, b.id, {
         type: 'rename',

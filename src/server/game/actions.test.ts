@@ -26,6 +26,20 @@ describe('buildings', () => {
     ctx.clock.t += 21600;
     expect(A.mine(ctx, u).b.metal).toBe(1);
   });
+  it('build on another own planet given by „at“ (issue #64)', () => {
+    const { ctx, u, p } = setup({ res: { m: 1000, c: 1000, d: 0 } });
+    const colony = addPlanet(ctx, u.id, { s: 2, res: { m: 0, c: 0, d: 0 } });
+    expect(
+      A.build(ctx, u, { key: 'metal', planet: colony.id, at: p().id }),
+    ).toBeNull();
+    expect(p().bq?.key).toBe('metal');
+    expect(ctx.store.planet(colony.id)!.bq).toBeNull();
+    const other = addUser(ctx, 'Bert');
+    const foreign = addPlanet(ctx, other.id, { s: 3 });
+    expect(() => A.build(ctx, u, { key: 'metal', at: foreign.id })).toThrow(
+      'Du hast keinen Zugriff auf diesen Planeten.',
+    );
+  });
   it('persists a solar upgrade with a fractional calculated duration', () => {
     const { ctx, u, p } = setup({ b: { robot: 1, solar: 1 } });
     ctx.store.saveUniverse({ ...ctx.store.universe(), speed: 7 });

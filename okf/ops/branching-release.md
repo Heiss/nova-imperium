@@ -42,6 +42,6 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 
 # Proposals
 
-* **[V]** The assistant does not merge its own pull requests here; the owner
-  reviews and merges (in muffelblog the owner allowed the assistant to merge
-  after a green CI; for this project that was not asked).
+* **[E]** The assistant merges its own pull requests with a squash merge
+  once the CI Gate is green and no review finding is open (owner decision O4,
+  2026-11-10).

@@ -85,6 +85,8 @@ export function stateFor(
     },
     planet: p,
     homePlanet: home?.id ?? null,
+    // The home planet itself when a colony is shown: research is paid there.
+    home: home && p?.id !== home.id ? home : null,
     fleets,
     reports: ctx.store.reports(u.id),
     guilds: guildState(ctx, u.id, pts),
