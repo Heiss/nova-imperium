@@ -35,15 +35,6 @@ export const isProtected = (
 export const nameOf = (players: Players, id: string): string =>
   players[id]?.name ?? 'Unbekannt';
 
-/** Colors of a planet: blue and cold to red and hot. */
-export function planetColors(temp: number): { inner: string; outer: string } {
-  const hot = Math.max(0, Math.min(1, (temp + 20) / 140));
-  return {
-    inner: `hsl(${200 - hot * 180},55%,${45 + hot * 5}%)`,
-    outer: `hsl(${220 - hot * 190},60%,18%)`,
-  };
-}
-
 export const fleetEnd = (f: ClientFleet): number =>
   f.state === 'out' ? f.arr : (f.ret ?? f.arr);
 

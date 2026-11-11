@@ -1,0 +1,120 @@
+name: Feature or game content
+description: Propose a new feature, game content (ship, defense, research, building, mission) or a change of a game rule.
+title: '[Feature]: '
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Write in English; quote texts of the game interface in German (see `okf/ops/language.md`).
+        Mark every statement as in the OKF bundle: **[E]** confirmed by the owner, **[V]** proposal, **[U]** unverified.
+        Do not invent rules or numbers: name the source, or list the point under "Open decisions".
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Preflight
+      options:
+        - label: I searched the existing issues and pull requests for a duplicate.
+          required: true
+        - label: I checked `okf/overview.md` (scope and non-goals) and `okf/open-points.md`.
+          required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      multiple: true
+      options:
+        - Ships
+        - Defense
+        - Research
+        - Buildings
+        - Fleet missions
+        - Battle
+        - Economy and resources
+        - Galaxy and universe
+        - Game interface
+        - Admin and accounts
+        - Operations, CI and security
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: One or two sentences on what changes for the players or the operator.
+    validations:
+      required: true
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Problem and motivation
+      description: Why is this needed? What is missing or wrong today? Link the code that shows the current state.
+    validations:
+      required: true
+  - type: textarea
+    id: rules
+    attributes:
+      label: Rules and behaviour
+      description: The exact behaviour. For game content give every number (costs, stats, requirements, formulas) as a table or in LaTeX/code.
+      placeholder: |
+        | Property | Value | Source | Marker |
+        |---|---|---|---|
+    validations:
+      required: true
+  - type: textarea
+    id: sources
+    attributes:
+      label: Sources
+      description: Where the rules come from. Name conflicting sources and which one wins.
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies and prerequisites
+      description: Features, data, migrations or decisions that must exist first. Link issues with `#number`.
+  - type: textarea
+    id: decisions
+    attributes:
+      label: Open decisions for the owner
+      description: One block per decision with 3 to 5 options and a recommendation.
+      placeholder: |
+        **D1 – Topic**
+        1. Option A (recommended) – trade-off
+        2. Option B – trade-off
+        3. Option C – trade-off
+  - type: textarea
+    id: ui
+    attributes:
+      label: Game interface (German)
+      description: New or changed texts, views and messages as players see them.
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Testable statements; the issue is done when all are checked.
+      placeholder: |
+        - [ ] Given …, when …, then …
+    validations:
+      required: true
+  - type: textarea
+    id: tests
+    attributes:
+      label: Test plan
+      description: Which kinds of tests prove it (see `okf/ops/testing.md`).
+      value: |
+        - [ ] Unit tests (Vitest), written first for new logic
+        - [ ] Equivalence and catalog tests adapted where the rules change
+        - [ ] E2E (Playwright, desktop and phone)
+        - [ ] Accessibility (axe) on changed views
+        - [ ] Mutation score ≥ 80 %, coverage ≥ 90 % lines / 85 % branches
+        - [ ] OKF bundle and docs updated
+  - type: textarea
+    id: out-of-scope
+    attributes:
+      label: Out of scope
+      description: What this issue deliberately does not cover.
+  - type: textarea
+    id: risks
+    attributes:
+      label: Risks and balance
+      description: Effects on balance, performance, database migrations, security or existing rounds.
