@@ -29,7 +29,7 @@
     "@simplewebauthn/server": "14.1.0",
     "better-sqlite3": "13.0.3",
     "markdown-it": "15.0.3",
-    "nodemailer": "10.3.1",
+    "nodemailer": "10.4.0",
     "web-push": "4.0.0"
   },
   "devDependencies": {
