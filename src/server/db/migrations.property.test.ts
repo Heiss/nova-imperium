@@ -31,6 +31,7 @@ function consistentUpgrade(
   n: number,
   migrations: readonly string[],
   numRuns = RUNS,
+  shrink = true,
 ): void {
   fc.assert(
     fc.property(plansBefore(n, migrations), (plan) => {
@@ -38,7 +39,8 @@ function consistentUpgrade(
       expect(result.integrity).toBe('ok');
       expect(result.foreignKeys).toEqual([]);
     }),
-    { numRuns, seed: SEED },
+    // Without shrinking, a failure ends at the first counterexample.
+    { numRuns, seed: SEED, endOnFailure: !shrink },
   );
 }
 
@@ -68,14 +70,14 @@ describe.each(MIGRATIONS.map((_, i) => i + 1))('migration %i', (n) => {
 
 // The checks above must find problems; these migrations are deliberately bad
 // or harmless and run after the real ones.
-describe('self-test of the migration checks', () => {
+describe('self-test of the migration checks', { timeout: TIMEOUT }, () => {
   const next = MIGRATIONS.length + 1;
   const withExtra = (sql: string): string[] => [...MIGRATIONS, sql];
 
   /** The error behind the property failure, or null when it held. */
   const failure = (migrations: readonly string[]): string | null => {
     try {
-      consistentUpgrade(next, migrations, 50);
+      consistentUpgrade(next, migrations, 50, false);
       return null;
     } catch (error) {
       return String((error as Error).cause);
