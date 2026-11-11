@@ -941,3 +941,110 @@ describe('account security', () => {
     ).toBe(200);
   });
 });
+
+describe('admin routes', () => {
+  const audit = (ctx: TestCtx) =>
+    ctx.store.db
+      .prepare(
+        'SELECT category, action, target, outcome, detail FROM audit_events ORDER BY id',
+      )
+      .all() as {
+      category: string;
+      action: string;
+      target: string | null;
+      outcome: string;
+      detail: string;
+    }[];
+
+  it('audits every read with its target and filter', async () => {
+    const { call, ctx } = await asAdmin();
+    const stats = await call('POST', '/api/admin/stats', {});
+    expect(stats.json).toEqual({
+      players: expect.arrayContaining([
+        expect.objectContaining({ id: 'u_Boss' }),
+      ]),
+    });
+    expect(
+      (await call('POST', '/api/admin/orders', { reference: 'p1' })).json,
+    ).toEqual({ orders: [], now: ctx.now() });
+    await call('POST', '/api/admin/orders', { player: 'u_Boss' });
+    await call('POST', '/api/admin/events', { limit: 25 });
+    await call('POST', '/api/admin/events', { player: 'u_Boss' });
+    const rows = audit(ctx).filter((r) => r.category === 'admin.read');
+    expect(rows.map(({ action, target }) => ({ action, target }))).toEqual([
+      { action: 'stats', target: null },
+      { action: 'orders', target: null },
+      { action: 'orders', target: 'u_Boss' },
+      { action: 'events', target: null },
+      { action: 'events', target: 'u_Boss' },
+    ]);
+    expect(JSON.parse(rows[1]!.detail)).toEqual({ reference: 'p1' });
+    expect(JSON.parse(rows[3]!.detail)).toMatchObject({
+      page: 1,
+      limit: 25,
+      player: '',
+    });
+  });
+
+  it('names the reason when a player, an action or an invitation is unknown', async () => {
+    const { call, ctx } = await asAdmin();
+    for (const [url, body, msg] of [
+      ['/api/admin/player', { player: 'nobody' }, 'Spieler nicht gefunden.'],
+      ['/api/admin/moderate', { action: 'delete' }, 'Unbekannte Aktion.'],
+      [
+        '/api/admin/revoke',
+        { id: 'missing' },
+        'Einladung nicht gefunden oder bereits widerrufen.',
+      ],
+    ] as const) {
+      const r = await call('POST', url, body);
+      expect(r.status).toBe(400);
+      expect(r.json).toEqual({ error: msg });
+    }
+    expect(
+      audit(ctx)
+        .filter((r) => r.category.startsWith('admin'))
+        .map(({ category, action, outcome }) => ({
+          category,
+          action,
+          outcome,
+        })),
+    ).toEqual([
+      { category: 'admin.read', action: 'player', outcome: 'rejected' },
+      { category: 'admin.write', action: 'revoke', outcome: 'rejected' },
+    ]);
+  });
+
+  it('answers a moderation with ok and audits an announcement as a write', async () => {
+    const { call, ctx } = await asAdmin();
+    addUser(ctx, 'Target');
+    expect(
+      (
+        await call('POST', '/api/admin/moderate', {
+          action: 'revokeSessions',
+          player: 'u_Target',
+          reason: 'Test',
+        })
+      ).json,
+    ).toEqual({ ok: true });
+    expect(
+      (await call('POST', '/api/admin/announce', { message: 'Hallo' })).json,
+    ).toEqual({ recipients: 2 });
+    expect(
+      audit(ctx)
+        .filter((r) => r.category.startsWith('admin'))
+        .map(({ category, action, target }) => ({
+          category,
+          action,
+          target,
+        })),
+    ).toEqual([
+      {
+        category: 'admin.write',
+        action: 'revokeSessions',
+        target: 'u_Target',
+      },
+      { category: 'admin.write', action: 'announce', target: null },
+    ]);
+  });
+});
