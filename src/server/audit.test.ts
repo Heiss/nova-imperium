@@ -209,6 +209,9 @@ it('keeps audit entries for 30 days', () => {
   ).toEqual(['recent', 'old']);
   ctx.clock.t += 1;
   purgeAudit(ctx);
+  expect(ctx.store.db.prepare('SELECT action FROM audit_events').all()).toEqual(
+    [{ action: 'recent' }],
+  );
   expect(
     events(ctx, auditFilter({}, ctx.now())).map(
       (e) => (e as { action: string }).action,

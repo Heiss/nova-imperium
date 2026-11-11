@@ -623,16 +623,17 @@ describe('rate limit window and sweep', () => {
     ctx.store.db
       .prepare("INSERT INTO passkey_challenges VALUES ('c', 'x', NULL, ?)")
       .run(ctx.now());
+    addUser(ctx, 'Anna');
     ctx.store.db
       .prepare(
-        "INSERT INTO account_tokens (token_hash, user_id, purpose, expires) SELECT 't', id, 'reset', ? FROM users LIMIT 1",
+        "INSERT INTO account_tokens (token_hash, user_id, purpose, expires) VALUES ('t', 'u_Anna', 'reset', ?)",
       )
       .run(ctx.now());
+    const count = (table: string) =>
+      ctx.store.db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get();
+    expect(count('account_tokens')).toEqual({ n: 1 });
     app.sweep();
-    expect(
-      ctx.store.db
-        .prepare('SELECT COUNT(*) AS n FROM passkey_challenges')
-        .get(),
-    ).toEqual({ n: 0 });
+    expect(count('passkey_challenges')).toEqual({ n: 0 });
+    expect(count('account_tokens')).toEqual({ n: 0 });
   });
 });

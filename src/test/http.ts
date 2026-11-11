@@ -16,17 +16,16 @@ import {
 } from '../server/test-helpers.ts';
 
 const PUBLIC = path.resolve(import.meta.dirname, 'public');
-let server: Server | null = null;
+// Every server a test starts; a test may start several.
+const servers: Server[] = [];
 
 export const close = async (): Promise<void> => {
-  server?.closeAllConnections();
-  await new Promise((r) => (server ? server.close(r) : r(null)));
+  const open = servers.splice(0);
+  for (const s of open) s.closeAllConnections();
+  await Promise.all(open.map((s) => new Promise((r) => s.close(r))));
 };
 
-afterEach(async () => {
-  await close();
-  server = null;
-});
+afterEach(close);
 
 export async function start(
   over: {
@@ -45,8 +44,9 @@ export async function start(
     publicDir: PUBLIC,
     log: (m) => over.logs?.push(m),
   });
-  server = createServer((req, res) => void app.handle(req, res));
-  await new Promise<void>((r) => server!.listen(0, '127.0.0.1', r));
+  const server = createServer((req, res) => void app.handle(req, res));
+  servers.push(server);
+  await new Promise<void>((r) => server.listen(0, '127.0.0.1', r));
   const port = (server.address() as { port: number }).port;
   const client = fetcher(`http://127.0.0.1:${port}`);
   return { ctx, cfg, app, ...client };
