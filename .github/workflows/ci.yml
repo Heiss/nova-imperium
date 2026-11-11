@@ -103,7 +103,8 @@ jobs:
           retention-days: 7
 
   # Pull requests reuse the last result. Every push to main tests all mutants.
-  # A mutation score below 80 % fails the job (stryker.config.json).
+  # A total mutation score below 80 % fails the job (stryker.config.json),
+  # a file below its floor fails it too (mutation-standard.json).
   mutation:
     name: Mutation tests
     needs: changes
@@ -127,12 +128,12 @@ jobs:
           restore-keys: |
             stryker-${{ github.ref }}-
             stryker-refs/heads/main-
+      # Incremental on pull requests and on main: unchanged code keeps its
+      # cached result. The nightly run (mutation.yml) is always complete.
       - name: Incremental run
-        if: github.event_name == 'pull_request'
         run: pnpm test:mutation
-      - name: Complete run (main)
-        if: github.event_name == 'push'
-        run: pnpm test:mutation --force
+      - name: No file below its floor (mutation-standard.json)
+        run: node scripts/mutation-gate.ts
 
   compose:
     name: Docker image and Compose stack

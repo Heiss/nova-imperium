@@ -31,3 +31,5 @@ jobs:
           restore-keys: |
             stryker-${{ github.ref }}-
       - run: pnpm test:mutation --force
+      - name: No file below its floor (mutation-standard.json)
+        run: node scripts/mutation-gate.ts

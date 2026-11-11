@@ -41,6 +41,7 @@ pnpm format:check    # Prettier
 pnpm typecheck       # tsc
 pnpm test:coverage   # Vitest; blocks below 90 % lines / 85 % branches
 pnpm test:mutation   # Stryker; blocks below a mutation score of 80 %
+node scripts/mutation-gate.ts   # after Stryker: no file below its floor (--update raises the floors)
 pnpm build && pnpm test:e2e   # Playwright, desktop and phone
 docker compose up -d --build && docker/smoke.sh   # the stack (after docker/init-env.sh --demo)
 node .github/scripts/migrations-gate.mjs origin/main   # released migrations unchanged
