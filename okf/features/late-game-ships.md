@@ -116,7 +116,9 @@ All values are the classic ones on owiki.de, confirmed by the owner
   Hyperraumantrieb 8 mit dem Hyperraumantrieb.“
 * **[V]** Data model of the drive switch: the base `drive` and `speed` stay,
   an optional `drives` list of `{ drive, speed, from: { research, level } }`
-  replaces them once reached; the last reached entry wins.
+  replaces them once reached; the last reached entry wins. Built before the
+  migration of the [Design patterns](/architecture/patterns.md); `activeDrive()`
+  is the function `drive: (research) => DriveKey` of `mobile` there.
 * **[V]** The Werft shows the speed with the active drive in brackets, e.g.
   „Tempo 8.800 (Impulstriebwerk)“, only for ships with a drive switch; the
   fleet view shows the current speed.
