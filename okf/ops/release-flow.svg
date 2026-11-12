@@ -87,7 +87,7 @@
   <text class="small" x="338" y="332">data, smoke test; SBOM (issue #83)</text>
   <text class="small" x="338" y="356">texts checked again: German, match</text>
   <text class="small" x="338" y="372">their PRs (Claude + CodeRabbit)</text>
-  <text class="small" x="338" y="396">stays open while work is merged</text>
+  <text class="small" x="338" y="396">green run: image 26.11.19-rc.N, „next“</text>
 
   <rect class="box rel" x="658" y="256" width="278" height="150" rx="8"/>
   <text class="head" x="670" y="278">Merge = release</text>
@@ -105,7 +105,7 @@
   <!-- Lane 3 -->
   <rect class="box pub" x="24" y="468" width="300" height="72" rx="8"/>
   <text class="head" x="36" y="490">release.yml</text>
-  <text class="small" x="36" y="510">image ghcr.io/heiss/nova-imperium:26.11.19</text>
+  <text class="small" x="36" y="510">image 26.11.19, latest, stable</text>
   <text class="small" x="36" y="526">GitHub release, notes = CHANGELOG section</text>
 
   <rect class="box pub" x="356" y="468" width="260" height="72" rx="8"/>

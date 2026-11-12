@@ -65,12 +65,26 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   release pull request is a draft from before the push of its branch until
   the check after the push found no other release branch with its version
   (a draft cannot be merged); a failed or cancelled run leaves it a draft,
-  and the next run picks a free version and marks it ready. Each rebuild
-  therefore marks it ready again, which also starts a CodeRabbit review of
-  the texts.
-  `release.yml` publishes the image and a GitHub release whose
-  notes are the section of `CHANGELOG.md`, followed by GitHub's list of pull
-  requests.
+  and the next run picks a free version and marks it ready. CodeRabbit
+  reviews it when it is opened; later rebuilds are not reviewed again
+  (`auto_incremental_review: false`, seen on pull request #88), a review can
+  be asked for with `@coderabbitai review`.
+  `release.yml` publishes the image as `<version>`; its serialized job
+  „latest and stable“ then points both aliases at the image of the newest
+  release tag, whichever run gets there (a re-run of an older release or a
+  hotfix of an older line never moves them back),
+  and a GitHub release whose notes are the section of `CHANGELOG.md`,
+  followed by GitHub's list of pull requests.
+* **[E]** Release candidates (owner, 2026-11-12): every green CI run of a
+  release pull request publishes `<version>-rc.<N>` and moves `next` to it
+  when that run is still the head of the release branch
+  (`.github/workflows/rc-image.yml`). N is the number of merges on the base
+  branch since the last release. In the candidate, `VERSION` holds
+  `<version>-rc.<N>`; the game treats it as a development build and sends
+  no update message. `latest` and `stable` point to the newest release
+  only, so no operator gets a candidate by accident; a staging instance
+  runs `next`. Candidate numbers are not Git tags (the release flow finds
+  the last release tag by pattern).
 * **[E]** Ordinary pull requests run the Docker image, Trivy, the Compose stack
   and the upgrade test only when a file of the image build, its start or the
   upgrade changes: `Dockerfile`, `docker/`, `compose*.yaml`, dependencies,

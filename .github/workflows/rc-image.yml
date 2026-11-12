@@ -1,0 +1,101 @@
+name: Release candidate image
+
+# Every green CI run of a release pull request publishes a release candidate
+# image for staging (owner, 2026-11-12): ghcr.io/heiss/nova-imperium:
+# <version>-rc.<N> and the moving tag "next". N counts the merges on the base
+# branch since the last release, so rc.3 holds three merged pull requests.
+# The release itself (release.yml) publishes <version>, latest and stable.
+on:
+  # Safe here: runs only after a successful CI run of a pull request from a
+  # release/* branch of this repository that the release App pushed; the
+  # job has no secrets and may only write packages.
+  workflow_run: # zizmor: ignore[dangerous-triggers]
+    workflows: [CI]
+    types: [completed]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rc-image-${{ github.event.workflow_run.head_branch }}
+  cancel-in-progress: true
+
+jobs:
+  image:
+    name: Release candidate image
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      startsWith(github.event.workflow_run.head_branch, 'release/') &&
+      github.event.workflow_run.actor.login == 'nova-imperium-release[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write # GHCR
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Version and candidate number
+        id: v
+        run: |
+          version=$(tr -d '[:space:]' < VERSION)
+          if ! printf '%s' "$version" | grep -Eq '^[0-9]{2}\.([1-9]|1[0-2])\.(0|[1-9][0-9]*)$'; then
+            echo "::error::VERSION holds \"$version\", not CalVer YY.M.MICRO."
+            exit 1
+          fi
+          # The release pull request is one commit on top of its base branch.
+          last=$(git describe --tags --abbrev=0 --match '[0-9]*.[0-9]*.[0-9]*' HEAD^ 2> /dev/null || true)
+          if [ -n "$last" ]; then n=$(git rev-list --count --first-parent "$last..HEAD^"); else n=$(git rev-list --count --first-parent HEAD^); fi
+          [ "$n" -ge 1 ] || n=1
+          rc="$version-rc.$n"
+          owner="${GITHUB_REPOSITORY_OWNER,,}"
+          echo "image=ghcr.io/${owner}/nova-imperium" >> "$GITHUB_OUTPUT"
+          echo "rc=$rc" >> "$GITHUB_OUTPUT"
+          # The game shows the candidate as a development build: no update
+          # message on staging (src/server/news.ts accepts CalVer only).
+          printf '%s\n' "$rc" > VERSION
+          echo "Release candidate $rc"
+
+      # A re-run of an older CI run publishes its own candidate again but
+      # does not move "next" back: only the current head of the release
+      # branch gets it. Runs of one branch do not overlap (concurrency).
+      - name: Is this the current head of the release branch?
+        id: head
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ github.event.workflow_run.head_branch }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          current=$(gh api "repos/$GITHUB_REPOSITORY/branches/$BRANCH" --jq .commit.sha)
+          if [ "$current" = "$SHA" ]; then
+            echo "next=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "next=false" >> "$GITHUB_OUTPUT"
+            echo "$BRANCH moved on to $current: \"next\" stays where it is."
+          fi
+
+      - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push the candidate
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
+        with:
+          context: .
+          target: app
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ steps.v.outputs.image }}:${{ steps.v.outputs.rc }}
+            ${{ steps.head.outputs.next == 'true' && format('{0}:next', steps.v.outputs.image) || '' }}

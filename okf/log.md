@@ -3,6 +3,7 @@
 ## 2026-11-12
 
 * **Feature**: Release loop: `.claude/loop.md` for a bare `/loop` - plan the release with the owner (infrastructure first), clarify, build, make the release pull request ready, stop (see [Release loop](/ops/loop.md)).
+* **Update**: Release candidate images `<version>-rc.<N>` and `next` for every green release pull request; releases are also tagged `stable`, `latest` stays the newest release (see [Branching and release](/ops/branching-release.md)).
 
 * **Update**: `CHANGELOG.md` holds the player-visible changes of the releases 26.11.0 to 26.11.18, filled in once from their pull requests (see [Changelog in the game](/features/changelog.md)).
 * **Feature**: „Neuigkeiten“ in the game: the page from `CHANGELOG.md`, the dot on the menu item and one message per new version with the first three entries; `CHANGELOG.md` and `VERSION` are part of the image (see [Changelog in the game](/features/changelog.md)).
