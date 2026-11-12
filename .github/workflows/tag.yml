@@ -30,6 +30,10 @@ jobs:
       github.event.workflow_run.event == 'push' &&
       github.event.workflow_run.head_repository.full_name == github.repository &&
       vars.RELEASE_APP_ID != ''
+    # The key is an environment secret: only jobs on main and hotfix/**, which
+    # change only through pull requests with a green CI Gate, receive it
+    # (owner, 2026-11-12; CodeRabbit security finding on pull request #84).
+    environment: release
     runs-on: ubuntu-latest
     steps:
       - uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3

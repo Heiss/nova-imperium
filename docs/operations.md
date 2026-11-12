@@ -117,9 +117,10 @@ Europe/Berlin, starting at 0 each month. Details and the flow diagram:
 `okf/ops/branching-release.md`.
 
 Setup: install the release GitHub App on this repository with Contents and
-Pull requests read and write. Set the Actions secret
-`RELEASE_APP_PRIVATE_KEY` to its PEM key and the Actions variable
-`RELEASE_APP_ID`. Create the label `kein-changelog` for pull requests that
+Pull requests read and write. Create the environment `release` with the
+deployment branches `main` and `hotfix/**`, set its secret
+`RELEASE_APP_PRIVATE_KEY` to the App's PEM key (not as a repository secret),
+and set the Actions variable `RELEASE_APP_ID`. Create the label `kein-changelog` for pull requests that
 players cannot notice. To restrict tag creation to the release App, grant
 only that App bypass access in the tag ruleset.
 

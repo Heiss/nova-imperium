@@ -114,7 +114,15 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   a green CI Gate (owner decision, 2026-11-12). `tag.yml` runs
   `scripts/release.sh` of a hotfix branch with the release App's token; the
   rule keeps unreviewed scripts out of it (CodeRabbit security finding on
-  pull request #84).
+  pull request #84). Rulesets „hotfix“ (deletion, pull request with 0
+  approvals, CI Gate up to date, no force push; no bypass) and
+  „hotfix-anlegen“ (restrict creations; bypass: repository admin), set up
+  2026-11-12.
+* Environment `release` (Settings → Environments): deployment branches
+  `main` and `hotfix/**`, no required reviewers (owner, 2026-11-12). Move
+  `RELEASE_APP_PRIVATE_KEY` from the repository secrets into it and delete
+  the repository secret; `release-pr.yml` and `tag.yml` use the environment,
+  so a workflow on any other branch cannot read the key.
 * Install the Renovate app for the repository.
 * After the first release: set the GHCR package to public, or log in with a
   token that has `read:packages` on the server.
