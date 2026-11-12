@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { planet, U } from '../test/fixtures.ts';
+import { accrue, satEnergy } from './economy.ts';
 import { settle, settleR } from './settle.ts';
 
 const H = 3600000;
@@ -27,6 +28,68 @@ describe('settle', () => {
     expect(p.bq).toBeNull();
     // First hour base income (100), second hour with metal mine 1 (energy factor 0).
     expect(p.res.m).toBe(700);
+  });
+  it('counts a Solarsatellit from the moment the shipyard finishes it (#46)', () => {
+    const src = planet({
+      temp: 8,
+      b: { metal: 5, crystal: 3, solar: 1 },
+      sq: [
+        { key: 'lf', n: 3, unit: H / 12 },
+        { key: 'sat', n: 2, unit: H / 2 },
+      ],
+      sqT: 0,
+    });
+    const p = settle(src, 2 * H, U);
+    expect(p.ships).toEqual({ lf: 3, sat: 2 });
+    expect(p.sq).toEqual([]);
+    expect(p.sqT).toBeNull();
+    // By hand: no energy until the first satellite at 3/4 h, one satellite
+    // until 5/4 h, two after that.
+    const want = planet({ temp: 8, b: { metal: 5, crystal: 3, solar: 1 } });
+    accrue(want, (3 * H) / 4, U);
+    want.ships = { sat: 1 };
+    accrue(want, H / 2, U);
+    want.ships = { sat: 2 };
+    accrue(want, (3 * H) / 4, U);
+    expect(satEnergy(8)).toBe(22);
+    expect(p.res).toEqual(want.res);
+    expect(p.res.m).toBeGreaterThan(
+      settle(
+        planet({ temp: 8, b: { metal: 5, crystal: 3, solar: 1 } }),
+        2 * H,
+        U,
+      ).res.m,
+    );
+  });
+  it('splits nothing for units that do not produce', () => {
+    const src = planet({
+      b: { metal: 5, solar: 3 },
+      sq: [{ key: 'lf', n: 3, unit: H / 3 }],
+      sqT: 0,
+    });
+    const p = settle(src, 2 * H, U);
+    const want = planet({ b: { metal: 5, solar: 3 } });
+    accrue(want, 2 * H, U);
+    expect(p.res).toEqual(want.res);
+    expect(p.ships).toEqual({ lf: 3 });
+  });
+  it('waits for a satellite that is not finished yet', () => {
+    const src = planet({
+      temp: 8,
+      b: { metal: 5 },
+      sq: [{ key: 'sat', n: 1, unit: 3 * H }],
+      sqT: 0,
+    });
+    const p = settle(src, 2 * H, U);
+    expect(p.ships.sat).toBeUndefined();
+    expect(p.sqT).toBe(0);
+    const idle = planet({
+      temp: 8,
+      b: { metal: 5 },
+      sq: [{ key: 'sat', n: 1, unit: H }],
+      sqT: null,
+    });
+    expect(settle(idle, 2 * H, U).ships.sat).toBeUndefined();
   });
   it('keeps a building that is not finished', () => {
     const src = planet({

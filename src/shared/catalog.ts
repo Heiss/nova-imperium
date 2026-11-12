@@ -436,6 +436,19 @@ export const SHIPS: Record<string, ShipDef> = {
       },
     },
   },
+  sat: {
+    n: 'Solarsatellit',
+    ab: 'SA',
+    cost: [0, 2000, 500],
+    atk: 1,
+    sh: 1,
+    cargo: 0,
+    speed: 0,
+    fuel: 0,
+    drive: 'comb',
+    req: { b: { yard: 1 } },
+    ds: 'Liefert Energie, je wärmer der Planet, desto mehr. Kann nicht fliegen.',
+  },
 };
 
 export const DEF: Record<string, DefenseDef> = {
@@ -517,8 +530,12 @@ export const MISSION = {
   colonize: 'Kolonisieren',
 } as const;
 
-/** Buildings whose production share the player sets on the resources page. */
-export const PRODUCERS = ['metal', 'crystal', 'deut', 'solar'] as const;
+/** Producers whose share the player sets on the resources page. */
+export const PRODUCERS = ['metal', 'crystal', 'deut', 'solar', 'sat'] as const;
 
 export const isShip = (key: string): boolean => Object.hasOwn(SHIPS, key);
 export const isDefense = (key: string): boolean => Object.hasOwn(DEF, key);
+
+/** Ships that can be sent; the Solarsatellit (speed 0) stays at its planet. */
+export const canFly = (key: string): boolean =>
+  isShip(key) && SHIPS[key]!.speed > 0;
