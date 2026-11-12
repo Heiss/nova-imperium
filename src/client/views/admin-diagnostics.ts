@@ -115,7 +115,7 @@ function orderPanel(
   identify: (id: string) => string,
 ): string {
   return (
-    '<h3>Aufträge</h3><p class="dim">Die nächsten 100 nach Sollzeit. Gebäude, Forschung und Werft können beim Abruf des Spielzustands berechnet werden.</p>' +
+    '<h3>Aufträge</h3><p class="dim">Die nächsten 100 nach Sollzeit. Gebäude, Forschung und Schiffsschmiede können beim Abruf des Spielzustands berechnet werden.</p>' +
     table(
       [
         'Typ / Auftrag',

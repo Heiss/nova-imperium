@@ -9,7 +9,7 @@
     prod,
     reqMissing,
   } from '../../shared/economy.ts';
-  import { explanation } from '../logic/explain.ts';
+  import { explanation, paragraphs } from '../logic/explain.ts';
   import { iconURL } from '../logic/icons.ts';
   import { dur } from '../logic/format.ts';
   import { buildState } from '../logic/game.ts';
@@ -70,7 +70,7 @@
         {/if}
         {#if key === 'fusion'}
           <div class="dim">
-            Deuteriumverbrauch auf Stufe {level + 1}: {energy.format(
+            Promethiumverbrauch auf Stufe {level + 1}: {energy.format(
               (fusionUse(level + 1, s.cfg) * (P.pct.fusion ?? 100)) / 100,
             )} pro Stunde
           </div>
@@ -78,7 +78,9 @@
         <div class="dim">Bauzeit: {dur(buildTime(cost, P, s.cfg))}</div>
         {@html requirementsHTML($viewState, def.req)}
         {#if ex}
-          <div class="ex" id={ex.panel} hidden={!ex.open}><p>{ex.text}</p></div>
+          <div class="ex" id={ex.panel} hidden={!ex.open}>
+            {#each paragraphs(ex.text) as text, i (i)}<p>{text}</p>{/each}
+          </div>
         {/if}
       </div>
       <div class="act">
@@ -92,13 +94,13 @@
           ></progress>
           <button class="small red" data-act="cancelBuild">Abbrechen</button>
         {:else if status === 'missing'}
-          <span class="req">Voraussetzungen fehlen</span>
+          <span class="req">Das Wissen ist noch verschlossen</span>
         {:else if status === 'queueBusy'}
           <span class="dim">Bauschleife belegt</span>
         {:else if status === 'yardBusy'}
-          <span class="dim">Werft arbeitet gerade</span>
+          <span class="dim">Schiffsschmiede arbeitet gerade</span>
         {:else if status === 'labBusy'}
-          <span class="dim">Labor forscht gerade</span>
+          <span class="dim">Scholarium forscht gerade</span>
         {:else}
           <button data-act="build" data-k={key} disabled={!afford(P, cost)}>
             {level ? `Ausbauen auf Stufe ${level + 1}` : 'Bauen'}

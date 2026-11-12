@@ -30,7 +30,7 @@ const pickShips = (p: Planet, wanted: unknown): Levels => {
     if (!isShip(k)) continue;
     const m = Math.min(int(n, 0, 1e12), p.ships[k] ?? 0);
     if (m <= 0) continue;
-    if (!canFly(k)) fail('Solarsatelliten können nicht fliegen.');
+    if (!canFly(k)) fail('Sonnenreliquiare können nicht fliegen.');
     ships[k] = m;
   }
   return ships;
@@ -93,7 +93,7 @@ function checkDestination(
 ): void {
   if (mission === 'colonize') {
     if (occupied) fail('Diese Position ist bereits besetzt.');
-    if (!ships.colony) fail('Du brauchst ein Kolonialschiff.');
+    if (!ships.colony) fail('Du brauchst eine Kolonistenarche.');
   } else {
     checkTarget(
       ctx,
@@ -116,7 +116,7 @@ function plan(ctx: Ctx, u: User, p: Planet, d: Data): Plan {
   const occupied = ctx.store.planet(pid(dest));
   checkDestination(ctx, u, p, mission, occupied, ships);
   if (mission === 'spy' && Object.keys(ships).some((k) => k !== 'probe'))
-    fail('Spionage nur mit Spionagesonden.');
+    fail('Auspex-Erkundung nur mit Spähschädeln.');
   return {
     mission,
     ships,
@@ -142,7 +142,7 @@ export const send: Action = (ctx, u, d, event) => {
   if (cargo.m + cargo.c + cargo.d > capacity(ships))
     fail('Nicht genug Laderaum.');
   if (p.res.d < fuel + cargo.d)
-    fail('Nicht genug Deuterium für Treibstoff und Ladung.');
+    fail('Nicht genug Promethium für Treibstoff und Ladung.');
   for (const [k, n] of Object.entries(ships))
     p.ships[k] = (p.ships[k] ?? 0) - n;
   p.res.m -= cargo.m;

@@ -2,5 +2,5 @@
 art: neu
 ---
 
-Schlachtkreuzer und Zerstörer: zwei neue Kriegsschiffe in der Schiffswerft,
-beide mit Hyperraumantrieb.
+Jagdkreuzer und Vernichter: zwei neue Kriegsschiffe in der Schiffsschmiede,
+beide mit Warp-Antrieb.

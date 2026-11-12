@@ -61,11 +61,11 @@ describe('buildings', () => {
       'Unbekanntes Gebäude.',
     );
     expect(() => A.build(ctx, u, { key: 'metal' })).toThrow(
-      'Nicht genug Rohstoffe.',
+      'Der Zehnte reicht nicht aus.',
     );
     const { ctx: c2, u: u2 } = setup();
     expect(() => A.build(c2, u2, { key: 'yard' })).toThrow(
-      'Voraussetzungen fehlen.',
+      'Das Wissen ist noch verschlossen.',
     );
     A.build(c2, u2, { key: 'metal' });
     expect(() => A.build(c2, u2, { key: 'crystal' })).toThrow(
@@ -79,11 +79,11 @@ describe('buildings', () => {
       sqT: 1_000_000,
     });
     expect(() => A.build(ctx, u, { key: 'yard' })).toThrow(
-      'Die Werft arbeitet gerade.',
+      'Die Schiffsschmiede arbeitet gerade.',
     );
     A.research(ctx, u, { key: 'energy' });
     expect(() => A.build(ctx, u, { key: 'lab' })).toThrow(
-      'Das Labor forscht gerade.',
+      'Das Scholarium forscht gerade.',
     );
   });
   it('start the Nanitenfabrik only with an idle shipyard (#48)', () => {
@@ -99,7 +99,7 @@ describe('buildings', () => {
       research,
     );
     expect(() => A.build(busy.ctx, busy.u, { key: 'nanite' })).toThrow(
-      'Die Werft arbeitet gerade.',
+      'Die Schiffsschmiede arbeitet gerade.',
     );
     const idle = setup({ res, b: { robot: 10, yard: 1 } }, research);
     expect(A.build(idle.ctx, idle.u, { key: 'nanite' })).toBeNull();
@@ -109,7 +109,7 @@ describe('buildings', () => {
       cost: [1000000, 500000, 100000],
     });
     expect(() => A.order(idle.ctx, idle.u, { key: 'rl', n: 1 })).toThrow(
-      'Die Nanitenfabrik wird ausgebaut.',
+      'Die Machina-Schwarmhalle wird ausgebaut.',
     );
   });
   it('name planet, level and due time in the audit event', () => {
@@ -153,15 +153,13 @@ describe('buildings', () => {
 describe('research', () => {
   it('needs a lab and runs one at a time', () => {
     const { ctx, u, p, me } = setup();
-    expect(() => A.research(ctx, u, { key: 'energy' })).toThrow(
-      'Forschungslabor',
-    );
+    expect(() => A.research(ctx, u, { key: 'energy' })).toThrow('Scholarium');
     const { ctx: c2, u: u2, p: p2, me: me2 } = setup({ b: { lab: 1 } });
     expect(() => A.research(c2, u2, { key: 'nope' })).toThrow(
       'Unbekannte Forschung.',
     );
     expect(() => A.research(c2, u2, { key: 'laser' })).toThrow(
-      'Voraussetzungen fehlen.',
+      'Das Wissen ist noch verschlossen.',
     );
     A.research(c2, u2, { key: 'energy' });
     expect(me2().rq).toMatchObject({
@@ -182,7 +180,7 @@ describe('research', () => {
       bq: { key: 'lab', lvl: 2, start: 0, end: 2e6, cost: [0, 0, 0] },
     });
     expect(() => A.research(ctx, u, { key: 'energy' })).toThrow(
-      'Das Labor wird ausgebaut.',
+      'Das Scholarium wird ausgebaut.',
     );
     ctx.clock.t = 2e6;
     A.research(ctx, me(), { key: 'energy' });
@@ -203,7 +201,7 @@ describe('research', () => {
   it('is refused without resources', () => {
     const { ctx, u } = setup({ b: { lab: 1 }, res: { m: 0, c: 0, d: 0 } });
     expect(() => A.research(ctx, u, { key: 'energy' })).toThrow(
-      'Nicht genug Rohstoffe.',
+      'Der Zehnte reicht nicht aus.',
     );
   });
 });
@@ -239,7 +237,7 @@ describe('research on any own planet with a lab (#49)', () => {
   it('needs a lab on the planet where it starts', () => {
     const { ctx, u, col } = twoPlanets({ b: { lab: 5 } });
     expect(() => A.research(ctx, u, { key: 'energy', planet: col.id })).toThrow(
-      'Du brauchst ein Forschungslabor.',
+      'Du brauchst ein Scholarium.',
     );
   });
 
@@ -250,7 +248,7 @@ describe('research on any own planet with a lab (#49)', () => {
       { research: { hyper: 3 } },
     );
     expect(() => A.research(ctx, u, { key: 'hdrive', planet: col.id })).toThrow(
-      'Voraussetzungen fehlen.',
+      'Das Wissen ist noch verschlossen.',
     );
     A.research(ctx, me(), { key: 'hdrive' });
     expect(me().rq).toMatchObject({ key: 'hdrive' });
@@ -293,12 +291,12 @@ describe('research on any own planet with a lab (#49)', () => {
       { b: { lab: 1 }, bq: labUpgrade(9e9) },
     );
     expect(() => A.research(ctx, u, { key: 'energy', planet: col.id })).toThrow(
-      'Das Labor wird ausgebaut.',
+      'Das Scholarium wird ausgebaut.',
     );
     A.research(ctx, u, { key: 'energy' });
     ctx.store.savePlanet({ ...ctx.store.planet(col.id)!, bq: null });
     expect(() => A.build(ctx, me(), { key: 'lab', planet: col.id })).toThrow(
-      'Das Labor forscht gerade.',
+      'Das Scholarium forscht gerade.',
     );
   });
 
@@ -439,7 +437,7 @@ describe('Gravitonforschung (#49)', () => {
     const { ctx, u, p, me } = setup({ b: { lab: 12, solar: 58 } });
     const short = Math.ceil(300000 - prod(p(), ctx.store.universe()).eProd);
     expect(() => A.research(ctx, u, { key: 'graviton' })).toThrow(
-      `Zu wenig Energie: Gravitonforschung braucht eine Energieproduktion von 300.000, es fehlen ${short.toLocaleString('de-DE')}.`,
+      `Zu wenig Energie: Gravitonen-Mysterium braucht eine Energieproduktion von 300.000, es fehlen ${short.toLocaleString('de-DE')}.`,
     );
     expect(me().rq).toBeNull();
     ctx.store.savePlanet({ ...p(), b: { lab: 12, solar: 59 } });
@@ -487,7 +485,7 @@ describe('Gravitonforschung (#49)', () => {
   it('checks the requirements before the energy', () => {
     const { ctx, u } = setup({ b: { lab: 11 } });
     expect(() => A.research(ctx, u, { key: 'graviton' })).toThrow(
-      'Voraussetzungen fehlen.',
+      'Das Wissen ist noch verschlossen.',
     );
   });
 });
@@ -499,7 +497,7 @@ describe('shipyard', () => {
       res: { m: 5000, c: 0, d: 0 },
     });
     expect(A.order(ctx, u, { key: 'rl', n: 9 })).toBe(
-      '2× Raketenwerfer in Auftrag gegeben.',
+      '2× Raketenbatterie in Auftrag gegeben.',
     );
     expect(p().sq).toEqual([{ key: 'rl', n: 2, unit: 288000 }]);
     expect(p().sqT).toBe(ctx.now());
@@ -519,21 +517,21 @@ describe('shipyard', () => {
     const { ctx, u } = setup();
     expect(() => A.order(ctx, u, { key: 'x' })).toThrow('Unbekannte Einheit.');
     expect(() => A.order(ctx, u, { key: 'rl', n: 1 })).toThrow(
-      'Raumschiffwerft',
+      'Orbitale Schiffsschmiede',
     );
     const s = setup({
       b: { yard: 1 },
       bq: { key: 'yard', lvl: 2, start: 0, end: 9e9, cost: [0, 0, 0] },
     });
     expect(() => A.order(s.ctx, s.u, { key: 'rl', n: 1 })).toThrow(
-      'Die Werft wird ausgebaut.',
+      'Die Schiffsschmiede wird ausgebaut.',
     );
     const t = setup({ b: { yard: 1 } });
     expect(() => A.order(t.ctx, t.u, { key: 'gauss', n: 1 })).toThrow(
-      'Voraussetzungen fehlen.',
+      'Das Wissen ist noch verschlossen.',
     );
     expect(() => A.order(t.ctx, t.u, { key: 'rl', n: 0 })).toThrow(
-      'Nicht genug Rohstoffe.',
+      'Der Zehnte reicht nicht aus.',
     );
     const full = Array.from({ length: 20 }, () => ({
       key: 'rl',
@@ -542,13 +540,13 @@ describe('shipyard', () => {
     }));
     const v = setup({ b: { yard: 1 }, sq: full, sqT: 1 });
     expect(() => A.order(v.ctx, v.u, { key: 'rl', n: 1 })).toThrow(
-      'Die Bauliste der Werft ist voll.',
+      'Die Bauliste der Schiffsschmiede ist voll.',
     );
   });
 });
 
 describe('shield domes (#50)', () => {
-  const ONCE = 'Diese Schildkuppel gibt es nur einmal pro Planet.';
+  const ONCE = 'Diesen Schutzdom gibt es nur einmal pro Planet.';
   const domeSetup = (planet = {}) =>
     setup(
       { b: { yard: 6 }, res: { m: 1e6, c: 1e6, d: 1e6 }, ...planet },
@@ -557,10 +555,10 @@ describe('shield domes (#50)', () => {
   it('orders one dome of each kind', () => {
     const { ctx, u, p } = domeSetup();
     expect(A.order(ctx, u, { key: 'ssd', n: 1 })).toBe(
-      '1× Kleine Schildkuppel in Auftrag gegeben.',
+      '1× Kleiner Schutzdom in Auftrag gegeben.',
     );
     expect(A.order(ctx, u, { key: 'lsd', n: 1 })).toBe(
-      '1× Große Schildkuppel in Auftrag gegeben.',
+      '1× Großer Schutzdom in Auftrag gegeben.',
     );
     expect(p().sq.map((q) => [q.key, q.n])).toEqual([
       ['ssd', 1],
@@ -592,11 +590,11 @@ describe('shield domes (#50)', () => {
   it('checks the requirements before the limit and the resources after it', () => {
     const { ctx, u } = setup({ b: { yard: 1 }, def: { ssd: 1 } });
     expect(() => A.order(ctx, u, { key: 'ssd', n: 1 })).toThrow(
-      'Voraussetzungen fehlen.',
+      'Das Wissen ist noch verschlossen.',
     );
     const poor = domeSetup({ res: { m: 0, c: 0, d: 0 } });
     expect(() => A.order(poor.ctx, poor.u, { key: 'ssd', n: 1 })).toThrow(
-      'Nicht genug Rohstoffe.',
+      'Der Zehnte reicht nicht aus.',
     );
   });
   it('leaves the other new defense unlimited', () => {
@@ -605,10 +603,10 @@ describe('shield domes (#50)', () => {
       { research: { ion: 4, plasma: 7 } },
     );
     expect(A.order(ctx, u, { key: 'ionc', n: 5 })).toBe(
-      '5× Ionengeschütz in Auftrag gegeben.',
+      '5× Ionenlanze in Auftrag gegeben.',
     );
     expect(A.order(ctx, u, { key: 'pt', n: 2 })).toBe(
-      '2× Plasmawerfer in Auftrag gegeben.',
+      '2× Plasmabatterie in Auftrag gegeben.',
     );
     expect(p().sq.map((q) => [q.key, q.n])).toEqual([
       ['ionc', 5],

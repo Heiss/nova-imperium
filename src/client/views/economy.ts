@@ -41,11 +41,11 @@ function researchAction(
   if (state === 'running')
     return `Forschung Stufe ${R.rq!.lvl}<br>auf ${esc(researchPlace(v))}<br>${cd(R.rq!.end, now)}<br><button class="small red" data-act="cancelResearch">Abbrechen</button>`;
   if (state === 'missing')
-    return '<span class="req">Voraussetzungen fehlen</span>';
+    return '<span class="req">Das Wissen ist noch verschlossen</span>';
   if (state === 'busy')
     return '<span class="dim">Es wird bereits geforscht</span>';
   if (state === 'labBusy')
-    return '<span class="dim">Labor wird ausgebaut</span>';
+    return '<span class="dim">Scholarium wird ausgebaut</span>';
   if (state === 'energy')
     return `<span class="req">Zu wenig Energie: es fehlen ${fmt(short)}</span>`;
   return `<button data-act="research" data-k="${k}" ${afford(P, c) ? '' : 'disabled'}>Forschen${level ? ` (Stufe ${level + 1})` : ''}</button>`;
@@ -62,8 +62,8 @@ function noLab(v: V): string {
         ` <button data-act="selectPlanet" data-id="${esc(p.id)}">Zu ${esc(p.name)}</button>`,
     );
   const text = others.length
-    ? 'Auf diesem Planeten gibt es kein Forschungslabor. Geforscht wird auf einem deiner Planeten mit Forschungslabor.'
-    : 'Für Forschung brauchst du ein Forschungslabor.';
+    ? 'Auf diesem Planeten gibt es kein Scholarium. Geforscht wird auf einem deiner Planeten mit Scholarium.'
+    : 'Für Forschung brauchst du ein Scholarium.';
   return `<h2>Forschung</h2><div class="notice">${text}${others.join('')}</div>`;
 }
 
@@ -71,9 +71,9 @@ function noLab(v: V): string {
 function labLine(v: V): string {
   const ifn = v.R.research.ifn ?? 0;
   const net = ifn
-    ? ` · Intergalaktisches Forschungsnetzwerk: bis zu ${ifn} weitere${ifn === 1 ? 's Labor' : ' Labore'}`
+    ? ` · Sternennetz der Gelehrten: bis zu ${ifn} weitere${ifn === 1 ? 's Scholarium' : ' Scholarien'}`
     : '';
-  return `<div class="dim">Forschungslabor Stufe ${v.P.b.lab ?? 0}${net}</div>`;
+  return `<div class="dim">Scholarium Stufe ${v.P.b.lab ?? 0}${net}</div>`;
 }
 
 function researchItem(v: V, k: string, d: ResearchDef): string {
@@ -82,7 +82,7 @@ function researchItem(v: V, k: string, d: ResearchDef): string {
   const c = lvlCost(d, level + 1);
   const lab = networkLab(k, labSite(P), s.labs, R.research.ifn ?? 0);
   const linked =
-    lab === (P.b.lab ?? 0) ? '' : ` (Labore zusammen Stufe ${lab})`;
+    lab === (P.b.lab ?? 0) ? '' : ` (Scholarien zusammen Stufe ${lab})`;
   const short = energyShort(d, level + 1, P, s.cfg, R.research);
   const energy = {
     need: energyNeed(d, level + 1),
@@ -146,7 +146,7 @@ function fusionRow(v: V, fu: ReturnType<typeof fusionNow>): string {
   const note = fu.throttled
     ? ` <span class="req">gedrosselt auf ${fmt(fu.share)} %</span>`
     : '';
-  return `<tr><td>Fusionskraftwerk (Stufe ${v.P.b.fusion ?? 0})</td>${cell('0')}${cell('0')}${cell(`-${fmt(fu.d)}`, 'n bad')}${cell(fmt(fu.e), 'n good')}<td>${shareSelect(v, 'fusion')}${note}</td></tr>`;
+  return `<tr><td>Fusionssanktum (Stufe ${v.P.b.fusion ?? 0})</td>${cell('0')}${cell('0')}${cell(`-${fmt(fu.d)}`, 'n bad')}${cell(fmt(fu.e), 'n good')}<td>${shareSelect(v, 'fusion')}${note}</td></tr>`;
 }
 
 function producerRows(v: V): string {
@@ -161,11 +161,11 @@ function producerRows(v: V): string {
     cell(`-${fmt(f * g(L(k)) * pc(k))}`, 'n bad');
   return [
     `<tr><td>Grundeinkommen</td>${cell(fmt(20 * sp))}${cell(fmt(10 * sp))}${cell('0')}${cell('0')}<td></td></tr>`,
-    `<tr><td>Metallmine (Stufe ${L('metal')})</td>${cell(fmt(30 * g(L('metal')) * pc('metal') * pr.f * sp))}${cell('0')}${cell('0')}${use('metal', 10)}<td>${shareSelect(v, 'metal')}</td></tr>`,
-    `<tr><td>Kristallmine (Stufe ${L('crystal')})</td>${cell('0')}${cell(fmt(20 * g(L('crystal')) * pc('crystal') * pr.f * sp))}${cell('0')}${use('crystal', 10)}<td>${shareSelect(v, 'crystal')}</td></tr>`,
-    `<tr><td>Deuteriumsynth. (Stufe ${L('deut')})</td>${cell('0')}${cell('0')}${cell(fmt(pr.d + fu.d))}${use('deut', 20)}<td>${shareSelect(v, 'deut')}</td></tr>`,
-    `<tr><td>Solarkraftwerk (Stufe ${L('solar')})</td>${cell('0')}${cell('0')}${cell('0')}${cell(fmt(pr.eProd - eSat - fu.e), 'n good')}<td>${shareSelect(v, 'solar')}</td></tr>`,
-    `<tr><td>Solarsatelliten (${fmt(P.ships.sat ?? 0)})</td>${cell('0')}${cell('0')}${cell('0')}${cell(fmt(eSat), 'n good')}<td>${shareSelect(v, 'sat')}</td></tr>`,
+    `<tr><td>Adamant-Tiefbohrung (Stufe ${L('metal')})</td>${cell(fmt(30 * g(L('metal')) * pc('metal') * pr.f * sp))}${cell('0')}${cell('0')}${use('metal', 10)}<td>${shareSelect(v, 'metal')}</td></tr>`,
+    `<tr><td>Psikristall-Steinbruch (Stufe ${L('crystal')})</td>${cell('0')}${cell(fmt(20 * g(L('crystal')) * pc('crystal') * pr.f * sp))}${cell('0')}${use('crystal', 10)}<td>${shareSelect(v, 'crystal')}</td></tr>`,
+    `<tr><td>Promethium-Raffinerie (Stufe ${L('deut')})</td>${cell('0')}${cell('0')}${cell(fmt(pr.d + fu.d))}${use('deut', 20)}<td>${shareSelect(v, 'deut')}</td></tr>`,
+    `<tr><td>Sonnenkathedrale (Stufe ${L('solar')})</td>${cell('0')}${cell('0')}${cell('0')}${cell(fmt(pr.eProd - eSat - fu.e), 'n good')}<td>${shareSelect(v, 'solar')}</td></tr>`,
+    `<tr><td>Sonnenreliquiare (${fmt(P.ships.sat ?? 0)})</td>${cell('0')}${cell('0')}${cell('0')}${cell(fmt(eSat), 'n good')}<td>${shareSelect(v, 'sat')}</td></tr>`,
     fusionRow(v, fu),
   ].join('');
 }
@@ -175,7 +175,7 @@ export function resources(v: V): string {
   const pr = production(P, s.cfg, R.research);
   const cp = caps(P, s.cfg);
   return `<h2>Rohstoffe auf ${esc(P.name)}</h2><div class="box"><div class="hd">Produktion pro Stunde (Produktionsfaktor ${Math.round(pr.f * 100)} %)</div><div class="bd"><table>
- <tr><th></th><th class="n">Metall</th><th class="n">Kristall</th><th class="n">Deuterium</th><th class="n">Energie</th><th>Leistung</th></tr>
+ <tr><th></th><th class="n">Adamant</th><th class="n">Psikristall</th><th class="n">Promethium</th><th class="n">Energie</th><th>Leistung</th></tr>
  ${producerRows(v)}
  <tr><th>Lagerkapazität</th><th class="n">${fmt(cp.m)}</th><th class="n">${fmt(cp.c)}</th><th class="n">${fmt(cp.d)}</th><th class="n">-</th><th></th></tr>
  <tr><th>Summe / Stunde</th><th class="n">${fmt(pr.m)}</th><th class="n">${fmt(pr.c)}</th><th class="n">${fmt(pr.d)}</th><th class="n">${fmt(pr.eProd - pr.eUse)}</th><th></th></tr>

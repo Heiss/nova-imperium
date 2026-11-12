@@ -112,7 +112,10 @@ describe('requirements', () => {
       reqMissing(SHIPS.cr!, planet({ b: { yard: 4 } }), {
         research: { impulse: 4 },
       }),
-    ).toEqual(['Raumschiffwerft (Stufe 5)', 'Lasertechnik (Stufe 4)']);
+    ).toEqual([
+      'Orbitale Schiffsschmiede (Stufe 5)',
+      'Lichtlanzen-Lehre (Stufe 4)',
+    ]);
     expect(
       reqMissing(SHIPS.cr!, planet({ b: { yard: 5 } }), {
         research: { impulse: 4, laser: 4 },
@@ -126,9 +129,9 @@ describe('requirements', () => {
         research: { laser: 11, hyper: 5, hdrive: 4 },
       }),
     ).toEqual([
-      'Raumschiffwerft (Stufe 8)',
-      'Lasertechnik (Stufe 12)',
-      'Hyperraumantrieb (Stufe 5)',
+      'Orbitale Schiffsschmiede (Stufe 8)',
+      'Lichtlanzen-Lehre (Stufe 12)',
+      'Warp-Antrieb (Stufe 5)',
     ]);
     expect(
       reqMissing(SHIPS.bc!, planet({ b: { yard: 8 } }), {
@@ -139,7 +142,7 @@ describe('requirements', () => {
       reqMissing(SHIPS.dr!, planet({ b: { yard: 8 } }), {
         research: { hyper: 4, hdrive: 6 },
       }),
-    ).toEqual(['Raumschiffwerft (Stufe 9)', 'Hyperraumtechnik (Stufe 5)']);
+    ).toEqual(['Orbitale Schiffsschmiede (Stufe 9)', 'Warp-Theorie (Stufe 5)']);
     expect(
       reqMissing(SHIPS.dr!, planet({ b: { yard: 9 } }), {
         research: { hyper: 5, hdrive: 6 },
@@ -153,28 +156,28 @@ describe('requirements', () => {
         4,
         'ion',
         4,
-        ['Raumschiffwerft (Stufe 4)', 'Ionentechnik (Stufe 4)'],
+        ['Orbitale Schiffsschmiede (Stufe 4)', 'Ionen-Lehre (Stufe 4)'],
       ],
       [
         'pt',
         8,
         'plasma',
         7,
-        ['Raumschiffwerft (Stufe 8)', 'Plasmatechnik (Stufe 7)'],
+        ['Orbitale Schiffsschmiede (Stufe 8)', 'Plasma-Lehre (Stufe 7)'],
       ],
       [
         'ssd',
         1,
         'shield',
         2,
-        ['Raumschiffwerft (Stufe 1)', 'Schildtechnik (Stufe 2)'],
+        ['Orbitale Schiffsschmiede (Stufe 1)', 'Refraktionsfelder (Stufe 2)'],
       ],
       [
         'lsd',
         6,
         'shield',
         6,
-        ['Raumschiffwerft (Stufe 6)', 'Schildtechnik (Stufe 6)'],
+        ['Orbitale Schiffsschmiede (Stufe 6)', 'Refraktionsfelder (Stufe 6)'],
       ],
     ];
     for (const [k, yard, tech, level, missing] of cases) {
@@ -196,9 +199,9 @@ describe('Bomber requirements', () => {
         research: { impulse: 5, plasma: 4, hdrive: 8 },
       }),
     ).toEqual([
-      'Raumschiffwerft (Stufe 8)',
-      'Impulstriebwerk (Stufe 6)',
-      'Plasmatechnik (Stufe 5)',
+      'Orbitale Schiffsschmiede (Stufe 8)',
+      'Plasma-Impulsantrieb (Stufe 6)',
+      'Plasma-Lehre (Stufe 5)',
     ]);
     expect(
       reqMissing(SHIPS.bb!, planet({ b: { yard: 8 } }), {
@@ -215,10 +218,10 @@ describe('Todesstern', () => {
         research: { hyper: 5, hdrive: 6 },
       }),
     ).toEqual([
-      'Raumschiffwerft (Stufe 12)',
-      'Hyperraumtechnik (Stufe 6)',
-      'Hyperraumantrieb (Stufe 7)',
-      'Gravitonforschung (Stufe 1)',
+      'Orbitale Schiffsschmiede (Stufe 12)',
+      'Warp-Theorie (Stufe 6)',
+      'Warp-Antrieb (Stufe 7)',
+      'Gravitonen-Mysterium (Stufe 1)',
     ]);
     expect(
       reqMissing(SHIPS.dstar!, planet({ b: { yard: 12 } }), {

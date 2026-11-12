@@ -41,7 +41,8 @@ the ships fly back.
   CHECK; fleets in flight keep everything and get 0, see
   [SQLite storage](/data/sqlite.md)).
 * Arrival (`src/server/game/arrival.ts`): `deploy()` puts the ships and the
-  cargo plus ⌊fuel / 2⌋ deuterium on the target with `land()` (also above the
+  cargo plus `deployFuel()` (`src/shared/flight.ts`, ⌊fuel / 2⌋) as
+  Promethium on the target with `land()` (also above the
   storage limit, as a transport) and deletes the fleet; there is no return
   flight. `fits()`: when the target is gone or no longer the player's, the
   fleet turns back with its cargo and the report „Flotte kehrt um“, like a
@@ -56,13 +57,21 @@ the ships fly back.
   „Verlegung erreicht [g:s:p]“, text „Deine Flotte bleibt auf ‹Planet›
   [g:s:p] und liefert ‹Ladung›, davon N übriger Treibstoff.“; push as a
   message, like the transport report.
-* **[E]** (owner, 2026-11-12) Galaxy: a button „Verlegung“ next to „Wechseln · Transport“ for
-  another own planet; it opens the fleet form with the target and the
+* **[E]** (owner, 2026-11-12) Sternenkarte (galaxy view): a button „Verlegung“ next to
+  „Wechseln · Versorgungsflug“ (#94 names) for another own planet; it opens the fleet form with the target and the
   mission. On a phone the player and action cells of the galaxy wrap, so the
   table no longer widens the page (it did with two own planets before).
+  With the names of #94 the longest action, „Versorgungsflug“, still did,
+  so on a phone the galaxy cells are also tighter and its small buttons
+  have no letter spacing (**[V]**, 2026-11-12).
 * **[E]** (owner, 2026-11-12) The fleet form shows „‹Ankunft› / –“ for a deploy, as there is no
   return; the fleet list has no own colour for a deploy (like colonization).
-* Tests: `src/server/game/fleet.test.ts` (target rules, cargo and fuel,
+* Names (#94, [Grimdark naming](/features/naming.md)): „Verlegung“ is
+  already in the grimdark style and stays; `src/test/naming.ts` lists it in
+  `MISSIONS` with the classic „Stationieren“. The report shows the cargo with
+  `resLine()` in the new resource names (Adamant, Psikristall, Promethium);
+  the new texts say „Treibstoff“, no classic word.
+* Tests: `src/shared/flight.test.ts` (`deployFuel`), `src/server/game/fleet.test.ts` (target rules, cargo and fuel,
   slot until arrival, ships and cargo plus half the fuel at the target via
   the action, recall), `arrival.test.ts` (above the storage limit, odd fuel
   rounded down, target lost or foreign), `src/server/db/store.test.ts`,

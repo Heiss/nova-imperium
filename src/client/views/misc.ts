@@ -23,11 +23,11 @@ export function highscore(v: V): string {
 const rules = (u: Universe): string => `<ul class="rules">
  <li>Speed-Universum <b>x${u.speed}</b>: Produktion, Bauzeiten und Flüge laufen ${u.speed}× so schnell wie im Original.</li>
  <li>${u.galaxies} Galaxien × ${u.systems} Systeme × ${u.positions} Positionen. Jeder Spieler hat einen Heimatplaneten.</li>
- <li>Eine Bauschleife für Gebäude, eine Forschung gleichzeitig. Die Werft arbeitet Aufträge nacheinander ab.</li>
+ <li>Eine Bauschleife für Gebäude, eine Forschung gleichzeitig. Die Schiffsschmiede arbeitet Aufträge nacheinander ab.</li>
  <li>Kampf wie damals: bis zu 6 Runden, Schilde laden jede Runde neu, Schnellfeuer, 70 % der zerstörten Verteidigung wird wiederaufgebaut.</li>
  <li>Gewinnt der Angreifer, nimmt er bis zu 50 % der Rohstoffe mit, so viel in die Laderäume passt.</li>
- <li>Noobschutz: Wer weniger als ein Fünftel deiner Punkte hat, ist vor deinen Angriffen und Spionagen geschützt (in der Galaxie mit (n) markiert).</li>
- <li>Flottenslots: 1 + Stufe der Computertechnik. Der Server rechnet rund um die Uhr – auch wenn du offline bist.</li>
+ <li>Noobschutz: Wer weniger als ein Fünftel deiner Punkte hat, ist vor deinen Angriffen und Auspex-Erkundungen geschützt (auf der Sternenkarte mit (n) markiert).</li>
+ <li>Flottenslots: 1 + Stufe der Kogitator-Doktrin. Der Server rechnet rund um die Uhr – auch wenn du offline bist.</li>
  <li>Kein Premium, keine Dunkle Materie – nur Rohstoffe und Geduld.</li></ul>`;
 
 const passwordMinimum = (ui: Ui): string =>
@@ -36,7 +36,7 @@ const passwordMinimum = (ui: Ui): string =>
     : `minlength="${ui.passwordMinLength}"`;
 
 export const help = (v: V): string => `<h2>Hilfe &amp; Optionen</h2>
- ${box('Optionen', `<div class="flex">Sonden pro Spionage aus der Galaxie: <input type="number" id="o_probes" min="1" value="${v.s.me.probes || 1}" aria-label="Sonden pro Spionage"></div><div class="flex mt"><label for="o_explain">Erklärungstexte:</label> <select id="o_explain">${explainOptionsHTML(v.s.me.explain)}</select></div><p><button data-act="saveopt">Speichern</button></p>`)}
+ ${box('Optionen', `<div class="flex">Spähschädel pro Auspex-Erkundung von der Sternenkarte: <input type="number" id="o_probes" min="1" value="${v.s.me.probes || 1}" aria-label="Spähschädel pro Auspex-Erkundung"></div><div class="flex mt"><label for="o_explain">Erklärungstexte:</label> <select id="o_explain">${explainOptionsHTML(v.s.me.explain)}</select></div><p><button data-act="saveopt">Speichern</button></p>`)}
  ${box('Darstellung', `<label class="switch"><input type="checkbox" id="o_anim" ${v.ui.animations ? 'checked' : ''}> Animationen</label><p class="dim">Planeten drehen sich, Wolken ziehen. Gilt für dieses Gerät; ist im System „Bewegung reduzieren“ eingestellt, bleibt alles ruhig.</p>`)}
  ${box(
    'Passwort ändern',

@@ -65,7 +65,7 @@ export function orders(ctx: Ctx, player: string, reference: string) {
     SELECT 'Forschung', id, id, rq_key, rq_end, NULL
     FROM users WHERE rq_end IS NOT NULL AND (@player = '' OR id = @player)
     UNION ALL
-    SELECT 'Werft', p.id, p.owner, q.key,
+    SELECT 'Schiffsschmiede', p.id, p.owner, q.key,
       CAST(p.sq_t + SUM(q.n * q.unit_ms) OVER (PARTITION BY p.id ORDER BY q.pos) AS INTEGER), p.t
     FROM planets p JOIN shipyard_queue q ON q.planet_id = p.id
     WHERE (@player = '' OR p.owner = @player)

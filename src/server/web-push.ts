@@ -5,9 +5,9 @@ import { fail, universe, type Ctx } from './game/context.ts';
 import { queuePush, scheduleShipyard, type PushKind } from './push-store.ts';
 
 const TITLES: Record<PushKind, string> = {
-  buildings: 'Ausbau abgeschlossen',
+  buildings: 'Das Werk ist vollbracht',
   research: 'Forschung abgeschlossen',
-  shipyard: 'Werftauftrag abgeschlossen',
+  shipyard: 'Auftrag der Schiffsschmiede abgeschlossen',
   fleet: 'Flottenereignis',
   messages: 'Neue Nachricht',
 };

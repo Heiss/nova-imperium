@@ -118,7 +118,7 @@ describe('sending fleets', () => {
     );
     expect(() =>
       send(ctx, a, go({ mission: 'spy', ships: { lf: 1, probe: 1 } })),
-    ).toThrow('nur mit Spionagesonden');
+    ).toThrow('nur mit Spähschädeln');
     expect(() =>
       send(
         ctx,
@@ -130,7 +130,7 @@ describe('sending fleets', () => {
     home.ships.sat = 4;
     ctx.store.savePlanet(home);
     expect(() => send(ctx, a, go({ ships: { lf: 1, sat: 2 } }))).toThrow(
-      'Solarsatelliten können nicht fliegen.',
+      'Sonnenreliquiare können nicht fliegen.',
     );
     expect(ctx.store.planetOfUser(a.id)!.ships).toMatchObject({
       lf: 10,
@@ -151,7 +151,7 @@ describe('sending fleets', () => {
     const p = ctx.store.planetOfUser(a.id)!;
     p.res.d = 5;
     ctx.store.savePlanet(p);
-    expect(() => send(ctx, a, go())).toThrow('Nicht genug Deuterium');
+    expect(() => send(ctx, a, go())).toThrow('Nicht genug Promethium');
   });
   it('respects the fleet slots', () => {
     const { ctx, a } = setup();
@@ -216,7 +216,7 @@ describe('colonization', () => {
     ctx.store.savePlanet(home);
     expect(() =>
       runAction(ctx, a.id, { type: 'order', key: 'colony', n: 1 }),
-    ).toThrow('Voraussetzungen fehlen.');
+    ).toThrow('Das Wissen ist noch verschlossen.');
     a.research.impulse = 3;
     ctx.store.saveUser(a);
     runAction(ctx, a.id, { type: 'order', key: 'colony', n: 1 });
@@ -264,7 +264,7 @@ describe('colonization', () => {
 
   it('rejects invalid launches and returns ships and cargo if another fleet arrives first', () => {
     const { ctx, a, b } = setup();
-    expect(() => send(ctx, a, mission)).toThrow('Kolonialschiff');
+    expect(() => send(ctx, a, mission)).toThrow('Kolonistenarche');
     const home = ctx.store.planetOfUser(a.id)!;
     home.ships.colony = 1;
     ctx.store.savePlanet(home);
@@ -379,7 +379,7 @@ describe('deploy (#129)', () => {
     });
     expect(ctx.store.reports(a.id)[0]).toMatchObject({
       title: 'Verlegung erreicht [1:1:7]',
-      text: 'Deine Flotte bleibt auf Kolonie [1:1:7] und liefert Metall 1.000 · Kristall 500 · Deuterium 203, davon 3 übriger Treibstoff.',
+      text: 'Deine Flotte bleibt auf Kolonie [1:1:7] und liefert Adamant 1.000 · Psikristall 500 · Promethium 203, davon 3 übriger Treibstoff.',
     });
     // Nothing comes back home, and the slot is free again.
     ctx.clock.t = f.ret;
@@ -416,7 +416,7 @@ describe('deploy (#129)', () => {
     expect(ctx.store.planet(colonyId)).toEqual(colony);
     expect(ctx.store.reports(a.id)[0]).toMatchObject({
       title: 'Rückkehr zu Planet u_Anna [1:1:5]',
-      text: 'Deine Flotte ist zurück und bringt Metall 1.000 · Kristall 500 · Deuterium 200 mit.',
+      text: 'Deine Flotte ist zurück und bringt Adamant 1.000 · Psikristall 500 · Promethium 200 mit.',
     });
   });
 });

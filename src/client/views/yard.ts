@@ -25,7 +25,7 @@ function queue(v: V): string {
       return `<tr><td>${fmt(q.n)}× ${UNIT[q.key]?.n}</td><td class="n">${when}</td></tr>`;
     })
     .join('');
-  return `<div class="box"><div class="hd">Bauauftrag der Werft</div><div class="bd"><table>${rows}</table></div></div>`;
+  return `<div class="box"><div class="hd">Bauauftrag der Schiffsschmiede</div><div class="bd"><table>${rows}</table></div></div>`;
 }
 
 /** Speed of a flying ship; a ship that switches its drive names it (#57). */
@@ -42,7 +42,7 @@ function stats(v: V, k: string, d: UnitDef): string {
   const cargo = ship ? ` · Ladung ${fmt(ship.cargo)}` : '';
   const speed = ship ? speedText(v, k) : '';
   const energy =
-    k === 'sat' ? ` · Energie ${fmt(satEnergy(v.P.temp))} je Satellit` : '';
+    k === 'sat' ? ` · Energie ${fmt(satEnergy(v.P.temp))} je Reliquiar` : '';
   return `<div class="dim">Angriff ${fmt(d.atk * (1 + 0.1 * (tech.weapons ?? 0)))} · Schild ${fmt(d.sh * (1 + 0.1 * (tech.shield ?? 0)))} · Struktur ${fmt((c[0] + c[1]) * (1 + 0.1 * (tech.armor ?? 0)))}${cargo}${speed}${energy}</div>`;
 }
 
@@ -60,12 +60,12 @@ function yard(
 ): string {
   const { P, R, s } = v;
   if (!((P.b.yard ?? 0) > 0))
-    return `<h2>${title}</h2><div class="notice">Dafür brauchst du eine Raumschiffwerft.</div>`;
+    return `<h2>${title}</h2><div class="notice">Dafür brauchst du eine Orbitale Schiffsschmiede.</div>`;
   const lock = yardLockedBy(P);
   const items = Object.entries(defs).map(([k, d]) => {
     const miss = reqMissing(d, P, R);
     const action = miss.length
-      ? '<span class="req">Voraussetzungen fehlen</span>'
+      ? '<span class="req">Das Wissen ist noch verschlossen</span>'
       : orderBox(k, orderMax(P, k), !!lock);
     const body =
       costHTML(d.cost, P) +
@@ -88,10 +88,10 @@ function yard(
 
 const lockNotice = (key: string): string =>
   key === 'yard'
-    ? 'Die Werft wird gerade ausgebaut und kann nicht produzieren.'
-    : `Die ${YARD_LOCK[key]} wird gerade ausgebaut, die Werft kann nicht produzieren.`;
+    ? 'Die Schiffsschmiede wird gerade ausgebaut und kann nicht produzieren.'
+    : `Die ${YARD_LOCK[key]} wird gerade ausgebaut, die Schiffsschmiede kann nicht produzieren.`;
 
 export const shipyard = (v: V): string =>
-  yard(v, 'Schiffswerft', SHIPS, 'ic-s', v.P.ships);
+  yard(v, 'Schiffsschmiede', SHIPS, 'ic-s', v.P.ships);
 export const defense = (v: V): string =>
   yard(v, 'Verteidigung', DEF, 'ic-d', v.P.def);

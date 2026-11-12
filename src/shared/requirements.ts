@@ -112,7 +112,7 @@ export interface NeedState {
   energy?: number;
 }
 
-const RES_NAMES = ['Metall', 'Kristall', 'Deuterium'] as const;
+const RES_NAMES = ['Adamant', 'Psikristall', 'Promethium'] as const;
 const HAVE = ['m', 'c', 'd'] as const;
 
 const lacking = (p: Planet, c: Cost, energy: boolean): string[] => [
@@ -123,11 +123,11 @@ const lacking = (p: Planet, c: Cost, energy: boolean): string[] => [
 function busyReason(n: Need, p: Planet, r: ResearchState): string | undefined {
   if (n.kind === 'r') {
     if (r.rq) return 'Es wird bereits geforscht';
-    return labUpgrading(p) ? 'Labor wird ausgebaut' : undefined;
+    return labUpgrading(p) ? 'Scholarium wird ausgebaut' : undefined;
   }
   if (p.bq) return 'Bauschleife belegt';
-  if (waitsForYard(p, n.key)) return 'Werft arbeitet gerade';
-  if (waitsForLab(r, n.key)) return 'Das Labor forscht gerade';
+  if (waitsForYard(p, n.key)) return 'Schiffsschmiede arbeitet gerade';
+  if (waitsForLab(r, n.key)) return 'Das Scholarium forscht gerade';
   return undefined;
 }
 

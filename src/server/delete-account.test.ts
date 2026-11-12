@@ -81,6 +81,69 @@ describe('deleteAccount', () => {
     ]);
   });
 
+  it('removes its spy and battle reports under the old and the new titles (#94)', () => {
+    const { ctx, gone, stay } = setup();
+    const spy = (id: string, title: string, name: string) => ({
+      id,
+      time: 1,
+      type: 'info' as const,
+      title,
+      text: `Eine fremde Flotte von ${name} [1:1:4] wurde in der Nähe deines Planeten Heim [1:1:9] gesichtet.`,
+    });
+    const battle = (id: string, title: string, attName: string) => ({
+      id,
+      time: 1,
+      type: 'battle' as const,
+      title,
+      attName,
+      defName: 'Stay',
+    });
+    // Reports stored before the grimdark naming keep their classic titles.
+    ctx.store.addReport(
+      stay.id,
+      spy('old-spy', 'Spionageaktivität', 'Gone'),
+      10,
+    );
+    ctx.store.addReport(
+      stay.id,
+      spy('new-spy', 'Auspex-Aktivität', 'Gone'),
+      10,
+    );
+    ctx.store.addReport(
+      stay.id,
+      spy('other-spy', 'Auspex-Aktivität', 'Else'),
+      10,
+    );
+    ctx.store.addReport(
+      stay.id,
+      spy('other-title', 'Lieferung von Else', 'Gone'),
+      10,
+    );
+    ctx.store.addReport(
+      stay.id,
+      battle('old-hit', 'Angriff auf Heim [1:1:9] durch Gone', 'Gone'),
+      10,
+    );
+    ctx.store.addReport(
+      stay.id,
+      battle(
+        'new-hit',
+        'Feindkontakt! Heim [1:1:9] wird von Gone angegriffen',
+        'Gone',
+      ),
+      10,
+    );
+
+    deleteAccount(ctx, gone, 'secret1');
+
+    expect(
+      ctx.store
+        .reports(stay.id)
+        .map((r) => r.id)
+        .sort(),
+    ).toEqual(['other-spy', 'other-title']);
+  });
+
   it('sends fleets on their way to its planets home', () => {
     const { ctx, gone } = setup();
     const now = ctx.now();

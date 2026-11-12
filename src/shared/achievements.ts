@@ -8,7 +8,7 @@ export const CATEGORIES = {
   ships: 'Schiffe',
   defense: 'Verteidigung',
   fleet: 'Flotten',
-  yard: 'Werft',
+  yard: 'Schiffsschmiede',
 } as const;
 
 type AchievementCategory = keyof typeof CATEGORIES;
@@ -95,7 +95,7 @@ export const ACHIEVEMENTS: readonly Achievement[] = [
   ...series(
     'yard',
     'order',
-    (n) => `${n} Werftaufträge erteilen`,
+    (n) => `${n} Aufträge an die Schiffsschmiede erteilen`,
     ACTIONS,
     (n) => [n * 12, n * 6, n * 2],
   ),

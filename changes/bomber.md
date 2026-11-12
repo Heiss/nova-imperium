@@ -2,6 +2,6 @@
 art: neu
 ---
 
-Bomber: neues Kriegsschiff in der Schiffswerft, stark gegen Raketenwerfer
-und Lasergeschütze. Er fliegt mit dem Impulstriebwerk, ab Hyperraumantrieb 8
-schneller mit dem Hyperraumantrieb.
+Belagerungsbomber: neues Kriegsschiff in der Schiffsschmiede, stark gegen
+Raketenbatterien und Lichtlanzen. Er fliegt mit dem Plasma-Impulsantrieb, ab
+Warp-Antrieb 8 schneller mit dem Warp-Antrieb.

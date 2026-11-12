@@ -57,15 +57,15 @@ function section(title: string, o: unknown, keys: string[]): string {
 
 function spyBody(r: Report): string {
   const lost = r.lost
-    ? ' – <span class="bad">deine Sonden wurden zerstört!</span>'
+    ? ' – <span class="bad">deine Spähschädel wurden zerstört!</span>'
     : '';
   const hint =
     !r.ships && !r.lost
-      ? ' · Mehr Sonden oder Spionagetechnik zeigen mehr Details.'
+      ? ' · Mehr Spähschädel oder Auspex-Lehre zeigen mehr Details.'
       : '';
   return `<div>Rohstoffe auf ${esc(r.name)} ${coords(r.coords as Coords)} (Spieler ${esc(r.defName)}):<br><b>${resLine(r.res as Resources)}</b></div>
    ${section('Flotte', r.ships, Object.keys(SHIPS))}${section('Verteidigung', r.def, Object.keys(DEF))}${section('Gebäude', r.b, Object.keys(BUILD))}${section('Forschung', r.r, Object.keys(RES))}
-   <div class="dim mt">Chance auf Spionageabwehr: ${esc(r.counter)} %${lost}${hint}</div>`;
+   <div class="dim mt">Chance auf Auspex-Abwehr: ${esc(r.counter)} %${lost}${hint}</div>`;
 }
 
 function reportBody(r: Report): string {

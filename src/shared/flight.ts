@@ -80,6 +80,9 @@ export function fuelFor(ships: Levels, dist: number, pct: number): number {
   return Math.round(f) + 1;
 }
 
+/** What a deploy unloads of the fuel it burnt: half, rounded down (#129). */
+export const deployFuel = (fuel: number): number => Math.floor(fuel / 2);
+
 export const capacity = (ships: Levels): number =>
   Object.entries(ships).reduce(
     (a, [k, n]) => a + (SHIPS[k] ? SHIPS[k].cargo * n : 0),

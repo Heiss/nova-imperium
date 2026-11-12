@@ -66,7 +66,7 @@ describe('Web Push', () => {
     expect(send).toHaveBeenCalledTimes(1);
     expect(send).toHaveBeenCalledWith(
       expect.objectContaining({ endpoint }),
-      expect.stringContaining('Ausbau abgeschlossen'),
+      expect.stringContaining('Das Werk ist vollbracht'),
     );
   });
 
