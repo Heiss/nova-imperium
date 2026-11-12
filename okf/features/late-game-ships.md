@@ -57,6 +57,8 @@ All values are the classic ones on owiki.de, confirmed by the owner
   stays a non-goal for now (D1, D3, owner, 2026-11-12).
 * **[E]** A rapid fire value against a unit is added when both units exist
   (#60 D4).
+* **[E]** Build order: Schlachtkreuzer → Zerstörer → Bomber → Todesstern,
+  each after its prerequisites (#56 D2, owner, 2026-11-12).
 * **[V]** German interface: Werft gets three entries; the icons exist
   (`battlecruiser.svg`, `destroyer.svg`, `bomber.svg` in the interface v2
   set). The Bomber shows its current drive.
