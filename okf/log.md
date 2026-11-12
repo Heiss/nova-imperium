@@ -2,6 +2,7 @@
 
 ## 2026-11-12
 
+* **Decision**: #126 clarified: server errors, browser errors of signed-in players and problem reports in SQLite for 30 days, admin tab „Fehler“, ZIP download (fflate, JSON Lines, audit log included, with player names); in this release (see [Error log](/features/error-log.md)).
 * **Feature**: Todesstern (#60): classic values, Werft 12, Hyperraumtechnik 6, Hyperraumantrieb 7, Gravitonforschung 1, speed 100 with the Hyperraumantrieb, fuel 1, rapid fire against every existing unit (1,250 against probe and Solarsatellit over the general 5, 100 against the Ionengeschütz), none against the Plasmawerfer and the domes, none against it; key `dstar`, abbreviation `TS`, icon of the interface v2 set (see [Late-game combat ships](/features/late-game-ships.md), [Defense](/features/defense-ion-plasma-domes.md)).
 * **Decision**: Agents run Stryker locally only for changed logic files near their floor; data and interface files are left to the CI mutation job (see [Release loop](/ops/loop.md)).
 * **Feature**: Ionengeschütz, Plasmawerfer, Kleine and Große Schildkuppel (#50): four defense units with the classic values, keys `ionc`, `pt`, `ssd`, `lsd`; a dome at most once per planet (existing and queued ones count, an order of two is refused); no rapid fire on or against them yet; icons of the interface v2 set (see [Defense](/features/defense-ion-plasma-domes.md)).
