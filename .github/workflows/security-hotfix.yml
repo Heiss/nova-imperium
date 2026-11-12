@@ -163,6 +163,13 @@ jobs:
             exit 0
           fi
           if other_on_its_way; then exit 0; fi
+          # A release from before the release pull request (26.11.18 and
+          # older) has no release-pr.sh: its hotfix branch could not release.
+          if ! git cat-file -e "$TAG:scripts/release-pr.sh" 2> /dev/null; then
+            echo "::warning::Release $TAG predates the release pull request: no automatic hotfix."
+            issue "Sicherheits-Hotfix sec-$ID" "$(printf 'Trivy found these holes in the image of release %s (stable). This release is older than the release pull request, so no automatic hotfix is possible: release main (its release pull request) to fix them; the next scan checks the new release.\n\n%s\n' "$TAG" "$list")"
+            exit 0
+          fi
           echo "start=true" >> "$GITHUB_OUTPUT"
           issue "Sicherheits-Hotfix sec-$ID" "$(printf 'Trivy found these holes in the image of release %s (stable). The security hotfix workflow builds %s from the tag; its pull requests merge themselves when the CI Gate is green. After the release, merge %s back into main.\n\n%s\n' "$TAG" "$branch" "$branch" "$list")"
 

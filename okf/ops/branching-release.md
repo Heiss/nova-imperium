@@ -171,6 +171,11 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   the newest base image digest is the one the release already has; then it
   fails on every scan until the digest changes. A new digest that still
   holds the hole is released, and the next scan reports it as not closed.
+* **[E]** A release older than the release pull request (26.11.18 and
+  older, no `scripts/release-pr.sh`) gets no automatic hotfix: its hotfix
+  branch could not release. The issue says to release `main` instead; the
+  first scan on 2026-11-12 found two High holes in `zlib1g` of the base
+  image of 26.11.18 (issue #97).
 * **[E]** The base image is pinned to its digest in the `Dockerfile`;
   Renovate opens a pull request for a new digest.
 
