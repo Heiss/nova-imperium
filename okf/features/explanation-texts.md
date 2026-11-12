@@ -6,10 +6,13 @@ description: Long explanation texts for catalog entries with a display option pe
 
 # Explanation texts
 
-Issue #63, milestone `next release` (owner, 2026-11-12). The content rules of
-the issue are decided there ([E]): lore, what it does, what a further level or
-more units change; costs, time and energy stay visible separately; statements
-must match the code.
+Issue #63, milestone `next release` (owner, 2026-11-12). The content rule of
+the issue (lore, what it does, what a further level or more units change) is
+replaced ([E], owner, 2026-11-12): two paragraphs, one or two sentences of
+lore, then „So funktioniert es:“ with the mechanics precisely in words, no
+numbers and no formulas; statements must match the code. Short and precise
+([E], owner 2026-11-12): the lore one sentence, the mechanics at most three, at most about 350
+characters (see [Grimdark naming](/features/naming.md)).
 
 * **[E]** Display option „Immer anzeigen“ / „(?)-Symbol“ / „Ausblenden“ is
   stored on the server per player, a new column like `probes`, with a
@@ -39,7 +42,11 @@ must match the code.
   mode.
 * Catalog: optional field `lt` (long text) for buildings, research, ships and
   defense. The panel shows `lt`, else `ds` (D4); an entry without either has
-  neither (?) nor panel (today the ships and the defense).
+  neither (?) nor panel. Since the branch of #94 every entry on `main` has
+  an `lt` ([E], grimdark style, confirmed by the owner 2026-11-12, see
+  [Grimdark naming](/features/naming.md)), so the ships and the defense
+  get the (?) too; the entries of #50 and #60 got theirs with the rename
+  ([E], owner 2026-11-12).
 * Interface: `src/client/logic/explain.ts` decides per entry and mode;
   `itemHTML` (research, shipyard, defense) and `Buildings.svelte` render it.
   The buildings view now shows the short `ds` too (D5). The (?) is a
@@ -51,12 +58,17 @@ must match the code.
   its button „Speichern“.
 * **[V]** Design after the mockup `docs/design/explanations/` (`button.exq`,
   `.ex` in `src/client/static/style.css`); the (?) is 24 px instead of 20 px,
-  the minimum target size of WCAG 2.2. The text is plain text, escaped, in
-  one paragraph; the structure of the texts of #94 (lore, what it does, per
-  level) may need more.
-* Tests: `src/shared/explain.test.ts`, `src/client/logic/explain.test.ts`,
+  the minimum target size of WCAG 2.2. The text is plain text, escaped; a
+  blank line splits it into paragraphs, one `<p>` each (**[E]**, owner,
+  2026-11-12, for the two paragraphs of #94).
+* Tests: `src/shared/explain.test.ts` (also every catalog entry has an
+  `lt` but the list `LATER`, and no classic name in it),
+  `src/client/logic/explain.test.ts`,
   `src/server/db/upgrades/migration-10.test.ts`, the option in
   `actions.test.ts`, `store.test.ts` and `auth.test.ts`; E2E in
   `e2e/game.spec.ts` („explanation texts (#63)“: click, keyboard, tap on a
   phone, all three modes after a reload) and `e2e/a11y.spec.ts` (closed,
-  opened and always shown).
+  opened and always shown). The E2E test checks that the panel shows `lt`
+  (Adamant-Tiefbohrung, Auspex-Lehre, Spähschädel, Sonnenkathedrale); an entry
+  without any text is left to the unit tests, as no catalog entry on
+  `main` is one.

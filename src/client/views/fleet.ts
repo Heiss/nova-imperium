@@ -32,10 +32,10 @@ function targetForm(v: V, slotsFull: boolean): string {
   <tr><td>Ziel</td><td><input class="c3" type="number" id="t_g" value="${t.g}" min="1" max="${u.galaxies}" aria-label="Galaxie">:<input class="c3" type="number" id="t_s" value="${t.s}" min="1" max="${u.systems}" aria-label="System">:<input class="c3" type="number" id="t_p" value="${t.p}" min="1" max="${u.positions}" aria-label="Position"> <span id="t_info" class="dim"></span></td></tr>
   <tr><td>Auftrag</td><td><select id="t_m" aria-label="Auftrag">${missions}</select></td></tr>
   <tr><td>Geschwindigkeit</td><td><select id="t_v" aria-label="Geschwindigkeit">${speeds}</select></td></tr>
-  <tr><td>Ladung (Metall / Kristall / Deuterium)</td><td><input type="number" id="c_m" min="0" placeholder="0" aria-label="Metall"> <input type="number" id="c_c" min="0" placeholder="0" aria-label="Kristall"> <input type="number" id="c_d" min="0" placeholder="0" aria-label="Deuterium"> <span class="lnk" data-act="cmax">alles</span></td></tr>
+  <tr><td>Ladung (Adamant / Psikristall / Promethium)</td><td><input type="number" id="c_m" min="0" placeholder="0" aria-label="Adamant"> <input type="number" id="c_c" min="0" placeholder="0" aria-label="Psikristall"> <input type="number" id="c_d" min="0" placeholder="0" aria-label="Promethium"> <span class="lnk" data-act="cmax">alles</span></td></tr>
   <tr><td>Entfernung</td><td id="i_dist">-</td></tr><tr><td>Flugdauer (eine Richtung)</td><td id="i_dur">-</td></tr>
   <tr><td>Ankunft / Rückkehr</td><td id="i_arr">-</td></tr><tr><td>Treibstoff</td><td id="i_fuel">-</td></tr><tr><td>Laderaum</td><td id="i_cap">-</td></tr>
- </table><div class="mt10"><button data-act="send" ${slotsFull ? 'disabled' : ''}>Flotte losschicken</button> ${slotsFull ? '<span class="bad">Alle Flottenslots belegt (Computertechnik erhöht die Anzahl).</span>' : ''}</div>`;
+ </table><div class="mt10"><button data-act="send" ${slotsFull ? 'disabled' : ''}>Flotte losschicken</button> ${slotsFull ? '<span class="bad">Alle Flottenslots belegt (Kogitator-Doktrin erhöht die Anzahl).</span>' : ''}</div>`;
 }
 
 export function fleet(v: V): string {
@@ -47,7 +47,7 @@ export function fleet(v: V): string {
     fleetTable(v, false),
   );
   if (!rows)
-    return `<h2>Flotte</h2>${head}<div class="notice">Auf diesem Planeten stehen keine Schiffe. Baue welche in der Schiffswerft.</div>`;
+    return `<h2>Flotte</h2>${head}<div class="notice">Auf diesem Planeten stehen keine Schiffe. Baue welche in der Schiffsschmiede.</div>`;
   const pick = `<table><tr><th>Schiff</th><th class="n">vorhanden</th><th class="n">Tempo</th><th>Anzahl</th></tr>${rows}</table>
   <div class="mt"><span class="lnk" data-act="fall">alle Schiffe</span> · <span class="lnk" data-act="fnone">keine Schiffe</span></div>`;
   return `<h2>Flotte</h2>${head}${box('1. Schiffe auswählen', pick)}${box('2. Ziel und Auftrag', targetForm(v, used >= slots))}`;

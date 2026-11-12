@@ -152,6 +152,22 @@ describe('energy of Gravitonforschung', () => {
     );
   });
 
+  it('starts with the energy of Solarsatelliten alone and is refused one satellite below (#46)', () => {
+    // No Solarkraftwerk, no Fusionskraftwerk: at 50 °C one satellite gives
+    // ⌊50 / 4 + 20⌋ = 32, so 9,375 satellites give exactly 300,000.
+    const sats = (n: number) =>
+      planet({ temp: 50, b: { lab: 12 }, ships: { sat: n } });
+    const enough = sats(9375);
+    expect(enough.b).not.toHaveProperty('solar');
+    expect(enough.b).not.toHaveProperty('fusion');
+    expect(prod(enough, U).eProd).toBe(300000);
+    expect(energyShort(graviton, 1, enough, U)).toBe(0);
+    const below = sats(9374);
+    expect(prod(below, U).eProd).toBe(299968);
+    expect(prod(below, U).eProd).toBeLessThan(energyNeed(graviton, 1));
+    expect(energyShort(graviton, 1, below, U)).toBe(32);
+  });
+
   it('counts only the share of the Solarkraftwerk that runs', () => {
     const p = planet({ b: { solar: 59 }, pct: { solar: 50 } });
     expect(energyShort(graviton, 1, p, U)).toBeGreaterThan(0);

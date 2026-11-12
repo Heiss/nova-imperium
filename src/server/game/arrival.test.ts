@@ -199,14 +199,14 @@ describe('arrival', () => {
     let rep = ctx.store.reports('u_Anna')[0]!;
     expect(rep).toMatchObject({
       type: 'spy',
-      title: 'Spionagebericht von Beta [1:2:6]',
+      title: 'Auspex-Bericht von Beta [1:2:6]',
       defName: 'Bert',
       res: { m: 9000, c: 6000, d: 3000 },
       counter: 0,
       lost: false,
     });
     expect(rep.ships).toBeUndefined();
-    expect(titles(ctx, 'u_Bert')).toEqual(['Spionageaktivität']);
+    expect(titles(ctx, 'u_Bert')).toEqual(['Auspex-Aktivität']);
     expect(ctx.store.fleet('f1')?.state).toBe('back');
     arrive(ctx, fleet(ctx, { id: 'f2', mission: 'spy', ships: { probe: 8 } }));
     rep = ctx.store.reports('u_Anna')[0]!;
@@ -225,7 +225,7 @@ describe('arrival', () => {
       lost: true,
     });
     expect(ctx.store.reports('u_Bert')[0]!.text).toContain(
-      'Die Sonden wurden abgeschossen!',
+      'Die Spähschädel wurden abgeschossen!',
     );
     expect(ctx.store.fleet('f1')).toBeNull();
   });
@@ -247,7 +247,7 @@ describe('arrival', () => {
     });
     expect(t.def).toEqual(rep.rebuilt);
     expect(titles(ctx, 'u_Bert')).toEqual([
-      'Angriff auf Beta [1:2:6] durch Anna',
+      'Feindkontakt! Beta [1:2:6] wird von Anna angegriffen',
     ]);
   });
   it('Solarsatelliten defend and are destroyed like ships (#46)', () => {
@@ -288,7 +288,7 @@ describe('coming home', () => {
     expect(ctx.store.fleet('f1')).toBeNull();
     expect(ctx.store.reports('u_Anna')[0]).toMatchObject({
       title: 'Rückkehr zu Alpha [1:1:5]',
-      text: 'Deine Flotte ist zurück und bringt Metall 1 · Kristall 2 · Deuterium 3 mit.',
+      text: 'Deine Flotte ist zurück und bringt Adamant 1 · Psikristall 2 · Promethium 3 mit.',
     });
   });
   it('a spy fleet comes home quietly unless recalled; an empty fleet reports without cargo', () => {

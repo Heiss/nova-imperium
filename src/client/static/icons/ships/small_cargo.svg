@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="Kleiner Transporter"><title>Kleiner Transporter</title><defs>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="Frachtläufer"><title>Frachtläufer</title><defs>
 <linearGradient id="steel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f6f3ec"/><stop offset=".18" stop-color="#d2ccc2"/><stop offset=".42" stop-color="#7a736a"/><stop offset=".6" stop-color="#a59e94"/><stop offset=".84" stop-color="#555049"/><stop offset="1" stop-color="#2a2522"/></linearGradient>
 <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff6cc"/><stop offset=".2" stop-color="#ebc55c"/><stop offset=".45" stop-color="#9a681a"/><stop offset=".62" stop-color="#d4a23e"/><stop offset=".85" stop-color="#6c4811"/><stop offset="1" stop-color="#3a2509"/></linearGradient>
 <linearGradient id="iron" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5a524b"/><stop offset=".5" stop-color="#2c2622"/><stop offset="1" stop-color="#110d0b"/></linearGradient>

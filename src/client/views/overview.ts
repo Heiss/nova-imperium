@@ -55,7 +55,7 @@ function activities(v: V): string {
   if (P.sq.length) {
     const list = P.sq.map((q) => `${fmt(q.n)}× ${UNIT[q.key]?.n}`).join(', ');
     rows.push(
-      `<tr><td>Werft</td><td>${list}</td><td class="n">${cd((P.sqT ?? now) + P.sq[0]!.unit, now)} (nächste)</td></tr>`,
+      `<tr><td>Schiffsschmiede</td><td>${list}</td><td class="n">${cd((P.sqT ?? now) + P.sq[0]!.unit, now)} (nächste)</td></tr>`,
     );
   }
   return rows.length

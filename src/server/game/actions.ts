@@ -87,9 +87,10 @@ function setResearch(ctx: Ctx, u: User, r: ResearchState): void {
 
 const checkBuild = (p: Planet, r: ResearchState, k: string): void => {
   if (p.bq) fail('Es wird bereits gebaut.');
-  if (reqMissing(BUILD[k]!, p, r).length) fail('Voraussetzungen fehlen.');
-  if (waitsForYard(p, k)) fail('Die Werft arbeitet gerade.');
-  if (waitsForLab(r, k)) fail('Das Labor forscht gerade.');
+  if (reqMissing(BUILD[k]!, p, r).length)
+    fail('Das Wissen ist noch verschlossen.');
+  if (waitsForYard(p, k)) fail('Die Schiffsschmiede arbeitet gerade.');
+  if (waitsForLab(r, k)) fail('Das Scholarium forscht gerade.');
 };
 
 /**
@@ -105,7 +106,7 @@ function payNextLevel(
 ): Queue {
   const lvl = next.have + 1;
   const cost = lvlCost(next.def, lvl);
-  if (!afford(p, cost)) fail('Nicht genug Rohstoffe.');
+  if (!afford(p, cost)) fail('Der Zehnte reicht nicht aus.');
   pay(p, cost);
   const start = ctx.now();
   const q = { key: next.key, lvl, start, end: start + time(cost), cost };
@@ -145,10 +146,11 @@ export const cancelBuild: Action = (ctx, u, d) => {
 };
 
 const checkResearch = (p: Planet, r: ResearchState, k: string): void => {
-  if (!((p.b.lab ?? 0) > 0)) fail('Du brauchst ein Forschungslabor.');
+  if (!((p.b.lab ?? 0) > 0)) fail('Du brauchst ein Scholarium.');
   if (r.rq) fail('Es wird bereits geforscht.');
-  if (labUpgrading(p)) fail('Das Labor wird ausgebaut.');
-  if (reqMissing(RES[k]!, p, r).length) fail('Voraussetzungen fehlen.');
+  if (labUpgrading(p)) fail('Das Scholarium wird ausgebaut.');
+  if (reqMissing(RES[k]!, p, r).length)
+    fail('Das Wissen ist noch verschlossen.');
 };
 
 /** Gravitonforschung: the starting planet must produce enough energy (#49). */
@@ -211,7 +213,8 @@ export const cancelResearch: Action = (ctx, u) => {
 };
 
 function requireYard(p: Planet): void {
-  if (!((p.b.yard ?? 0) > 0)) fail('Du brauchst eine Raumschiffwerft.');
+  if (!((p.b.yard ?? 0) > 0))
+    fail('Du brauchst eine Orbitale Schiffsschmiede.');
   const lock = yardLockedBy(p);
   if (lock) fail(`Die ${YARD_LOCK[lock]} wird ausgebaut.`);
 }
@@ -222,14 +225,14 @@ export const order: Action = (ctx, u, d, event) => {
   const p = mine(ctx, u, d.planet);
   requireYard(p);
   if (reqMissing(def, p, researchOf(ctx, u)).length)
-    fail('Voraussetzungen fehlen.');
+    fail('Das Wissen ist noch verschlossen.');
   const want = int(d.n, 0, 1e9);
   if (want > unitRoom(p, k))
-    fail('Diese Schildkuppel gibt es nur einmal pro Planet.');
+    fail('Diesen Schutzdom gibt es nur einmal pro Planet.');
   const n = Math.min(want, maxAfford(p, def.cost));
-  if (n <= 0) fail('Nicht genug Rohstoffe.');
+  if (n <= 0) fail('Der Zehnte reicht nicht aus.');
   if (p.sq.length >= MAX_SHIPYARD_ORDERS)
-    fail('Die Bauliste der Werft ist voll.');
+    fail('Die Bauliste der Schiffsschmiede ist voll.');
   pay(p, def.cost, n);
   if (!p.sq.length) p.sqT = ctx.now();
   p.sq.push({ key: k, n, unit: unitTime(def, p, universe(ctx)) });
