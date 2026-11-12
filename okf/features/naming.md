@@ -31,12 +31,21 @@ reviewed.
   2026-11-12).
 * **[U]** Whether words like „Auspex“, „Promethium“ or „Servitor“ are free to
   use was not checked legally.
-* **[V]** Gaps of the package: the Nanitenfabrik (#48, built in #71) is only
-  in its planned list, not in `BUILD`, so the script would leave it classic;
-  the ten new entries of this release have no abbreviation (`ab`) yet. The
-  abbreviations must stay unique.
+* **[E]** All proposed names of the package below are taken over, including
+  those of the new entries of this release and the Nanitenfabrik
+  („Machina-Schwarmhalle“) (owner, 2026-11-12).
+* **[E]** Abbreviations of the 15 new entries as in the table below; every
+  abbreviation stays unique, checked by a unit test (owner, 2026-11-12).
+* **[E]** Missions and interface texts as proposed. „Sternenkarte“ is only
+  the name of the menu entry and the page; „Galaxie“ stays as the coordinate
+  (for example „Galaxie 1“). „Allianz → Gilde“ is void: the game already says
+  „Gilde“ (owner, 2026-11-12). The `MISSION` values are display texts only;
+  the stored ids are the keys.
+* **[E]** The rename is done by hand in a reviewed diff, with the values of
+  this concept as data. The package script `apply-40k-texts.mjs` is not used
+  (owner, 2026-11-12).
 
-## Proposed names [V]
+## Names [E]
 
 Resources: Metall → Adamant, Kristall → Psikristall, Deuterium → Promethium,
 Energie stays.
@@ -48,7 +57,7 @@ Energie stays.
 | deut | Deuteriumsynthetisierer | Promethium-Raffinerie | PR |
 | solar | Solarkraftwerk | Sonnenkathedrale | SK |
 | robot | Roboterfabrik | Servitorenschmiede | SF |
-| nanite | Nanitenfabrik | Machina-Schwarmhalle | – |
+| nanite | Nanitenfabrik | Machina-Schwarmhalle | MS |
 | yard | Raumschiffwerft | Orbitale Schiffsschmiede | OS |
 | lab | Forschungslabor | Scholarium | SC |
 | smetal | Metallspeicher | Adamant-Gewölbe | AG |
@@ -78,15 +87,25 @@ Energie stays.
 | hl | Schweres Lasergeschütz | Schwere Lichtlanze | SL |
 | gauss | Gaußkanone | Massebeschleuniger | MB |
 
-New entries of this release (`ab` open):
+New entries of this release **[E]**:
 
-| Issue | Classic | Name |
-|---|---|---|
-| #46 | Solarsatellit | Sonnenreliquiar **[E]** |
-| #47 | Fusionskraftwerk | Fusionssanktum **[E]** |
-| #49 | Ionentechnik / Plasmatechnik / Gravitonforschung | Ionen-Lehre / Plasma-Lehre / Gravitonen-Mysterium |
-| #50 | Ionengeschütz / Plasmawerfer | Ionenlanze / Plasmabatterie |
-| #50 | Kleine / Große Schildkuppel | Kleiner / Großer Schutzdom |
+| Issue | Classic | Name | `ab` |
+|---|---|---|---|
+| #46 | Solarsatellit | Sonnenreliquiar | SR |
+| #47 | Fusionskraftwerk | Fusionssanktum | FS |
+| #48 | Nanitenfabrik | Machina-Schwarmhalle | MS |
+| #49 | Ionentechnik | Ionen-Lehre | IL |
+| #49 | Plasmatechnik | Plasma-Lehre | PL |
+| #49 | Gravitonforschung | Gravitonen-Mysterium | GM |
+| #49 | Intergalaktisches Forschungsnetzwerk | Sternennetz der Gelehrten | SN |
+| #50 | Ionengeschütz | Ionenlanze | IN |
+| #50 | Plasmawerfer | Plasmabatterie | PA |
+| #50 | Kleine Schildkuppel | Kleiner Schutzdom | SD |
+| #50 | Große Schildkuppel | Großer Schutzdom | GD |
+| #58 | Schlachtkreuzer | Jagdkreuzer | JK |
+| #59 | Zerstörer | Vernichter | VN |
+| #57 | Bomber | Belagerungsbomber | BB |
+| #60 | Todesstern | Weltenbrecher | WB |
 
 Missions (only if `MISSION` values are display texts, not stored ids):
 attack → Sturmangriff, transport → Versorgungsflug, spy → Auspex-Erkundung,
@@ -99,9 +118,8 @@ Flotte kehrt heim.“, „Spionagebericht“ → „Auspex-Bericht“, „Trümm
 „Wrackfeld“, „Galaxie“ → „Sternenkarte“, „Allianz“ → „Gilde“, „Angriff“ →
 „Feindkontakt! Zu den Waffen!“.
 
-Later issues (#45, #51–#60): Bergungsbarke, Bergung, Weltenformer,
+Later issues (#45, #51–#55), [V]: Bergungsbarke, Bergung, Weltenformer,
 Gartenwelt, Ozeanwelt, Dschungelwelt, Ödwelt, Wüstenwelt, Eiswelt, Gasriese,
 Mondfeste, Auspex-Phalanx, Warp-Tor, Raketenkrypta, Abfangrakete,
 Orbitalrakete, Gildenarsenal, Wacht halten, Belagerungsbomber, Jagdkreuzer,
-Vernichter, Weltenbrecher; IFN → Sternennetz der Gelehrten, Expeditionstechnik
-→ Kreuzzugs-Kartografie (package order).
+Expeditionstechnik → Kreuzzugs-Kartografie (package order).
