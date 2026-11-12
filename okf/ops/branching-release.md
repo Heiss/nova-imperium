@@ -119,6 +119,10 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   severity; Dependabot's own security updates are off, so no hole gets two
   pull requests.
 
+* **[E]** Every push to `main` runs the full suite with an incremental mutation
+  run (owner, 2026-11-11); the release pull request and the nightly run in
+  `.github/workflows/mutation.yml` test every mutant.
+
 ## Security hotfix (owner, 2026-11-12)
 
 * **[E]** A hole rated High or Critical in the published release goes to
@@ -128,14 +132,17 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 * **[E]** Source: the image of the newest release tag (what `stable` names),
   scanned by Trivy every hour and after every release
   (`.github/workflows/security-hotfix.yml`). Dependabot alerts only look at
-  `main`; a hole fixed there is still in `stable`. npm packages are rated by
-  GitHub (GHSA, `VendorSeverity.ghsa`), the base image by Trivy; only holes
-  with a fix count.
+  `main`; a hole fixed there is still in `stable`. Only holes with a fix
+  count. npm packages are rated by GitHub (GHSA, `VendorSeverity.ghsa`);
+  without a GitHub rating, Trivy's own rating decides. Everything else (the
+  base image) is rated by Trivy.
 * **[E]** The fix is applied again on the release tag, not cherry-picked
-  (`scripts/security-hotfix.ts`): a dependency of `package.json` gets the
-  fixed version, any other package a pnpm override `<name>@<<fixed>`; a hole
-  in the base image pins the newest digest of `node:26-slim`. The
-  fragment says „Sicherheitsupdate“ without package names.
+  (`scripts/security-hotfix.ts`): every older copy of a package gets a pnpm
+  override `<name>@<<fixed>`, a dependency of `package.json` also gets the
+  fixed version; the job then checks that `pnpm-lock.yaml` holds no version
+  below a fix. A hole in the base image pins the newest digest of
+  `node:26-slim`. The fragment says „Sicherheitsupdate“ without package
+  names.
 * **[E]** The release App creates `hotfix/sec-<id>` (bypass in the ruleset
   „hotfix-anlegen“, creation only) and the pull request `sec-fix/<id>` into
   it; that pull request and the release pull request of `hotfix/sec-*`
@@ -143,21 +150,28 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   owner merges `hotfix/sec-*` back into `main`; `tag.yml` opens that pull
   request. While a released hotfix is not merged back, the release pull
   request of `main` stays a draft (`scripts/release-pr.sh`): its release
-  would drop the fix from `stable`. After every hotfix release, `tag.yml` rebuilds the release pull
-  request of `main`, so its version is newer than the hotfix and its release
-  becomes `stable` again.
-* **[E]** The id is a hash of the fixed packages and the base image holes:
-  the same holes never start a second hotfix. One hotfix at a time: a new one waits until
-  a release tag holds the fix commit of every other `hotfix/sec-*`, because a second
-  hotfix from the same tag would release without the first fix. When the hotfix is released and
-  the scan of the newest release still finds them, an issue says so and nothing is
-  retried. When the newest base image has no fix yet, the hotfix job fails
-  every hour until it has one.
+  would drop the fix from `stable`. After every hotfix release, `tag.yml`
+  rebuilds the release pull request of `main`, so its version is newer than
+  the hotfix and its release becomes `stable` again.
+* **[E]** The id is a hash of the fixed packages and the base image holes, so
+  the same plan never starts a second hotfix; a scan with a different set
+  of holes has another id and starts a new one. One hotfix at a time: a new
+  one waits while another `hotfix/sec-*` is on its way (its fix commit or
+  an open fix pull request exists and no release tag holds it), because a
+  second hotfix from the same tag would release without the first fix.
+* **[E]** When a released hotfix comes back with the same id (the scan of the
+  newest release still finds the same plan), an issue says so and nothing
+  is retried. A branch the job created without a fix pull request is
+  finished by the next scan while it still starts at the newest release;
+  otherwise an issue asks the owner to delete it.
+* **[E]** The job does not scan the new base image before it starts: it
+  only fails when the fix changes nothing (`package.json`,
+  `pnpm-lock.yaml` and `Dockerfile` as in the release), for example when
+  the newest base image digest is the one the release already has; then it
+  fails on every scan until the digest changes. A new digest that still
+  holds the hole is released, and the next scan reports it as not closed.
 * **[E]** The base image is pinned to its digest in the `Dockerfile`;
   Renovate opens a pull request for a new digest.
-* **[E]** Every push to `main` runs the full suite with an incremental mutation
-  run (owner, 2026-11-11); the release pull request and the nightly run in
-  `.github/workflows/mutation.yml` test every mutant.
 
 # Tasks of the owner (one-time)
 

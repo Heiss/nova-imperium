@@ -9,6 +9,8 @@
 //   node scripts/security-hotfix.ts apply <plan.json> [base-digest]
 //        pin the fixed versions in package.json, pin the base image to
 //        base-digest when the plan needs it, write the changelog fragment
+//   node scripts/security-hotfix.ts verify <plan.json>     fail when
+//        pnpm-lock.yaml still holds a version below a fix
 import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
 
@@ -65,23 +67,41 @@ export interface Plan {
   findings: Finding[];
 }
 
-/** Compares two versions numerically, part by part ("1.10.0" > "1.9.2"). */
-export function compareVersions(a: string, b: string): number {
-  const parts = (v: string) =>
-    v
-      .replace(/^v/, '')
-      .split(/[.+-]/)
-      .map((p) => (/^\d+$/.test(p) ? Number(p) : p));
-  const pa = parts(a);
-  const pb = parts(b);
-  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
-    const x = pa[i] ?? 0;
-    const y = pb[i] ?? 0;
+/** A numeric part as a number, a missing one as 0, any other as text. */
+const part = (p: string | undefined): number | string =>
+  p === undefined ? 0 : /^\d+$/.test(p) ? Number(p) : p;
+
+function compareParts(a: readonly string[], b: readonly string[]): number {
+  for (let i = 0; i < Math.max(a.length, b.length); i++) {
+    const x = part(a[i]);
+    const y = part(b[i]);
     if (x === y) continue;
     if (typeof x === 'number' && typeof y === 'number') return x - y;
     return String(x) < String(y) ? -1 : 1;
   }
   return 0;
+}
+
+/**
+ * Compares two versions numerically, part by part ("1.10.0" > "1.9.2"); a
+ * prerelease comes before its release ("1.2.3-beta" < "1.2.3"), build
+ * metadata after "+" does not count.
+ */
+export function compareVersions(a: string, b: string): number {
+  const split = (v: string): [string[], string] => {
+    const core = v.replace(/^v/, '').split('+')[0] ?? '';
+    const dash = core.indexOf('-');
+    return dash < 0
+      ? [core.split('.'), '']
+      : [core.slice(0, dash).split('.'), core.slice(dash + 1)];
+  };
+  const [ma, pa] = split(a);
+  const [mb, pb] = split(b);
+  const release = compareParts(ma, mb);
+  if (release !== 0 || pa === pb) return release;
+  if (!pa) return 1;
+  if (!pb) return -1;
+  return compareParts(pa.split('.'), pb.split('.'));
 }
 
 /**
@@ -98,15 +118,18 @@ export function fixedVersion(installed: string, listed: string): string {
   return above[0] ?? '';
 }
 
-/** GitHub's rating (GHSA) for npm packages, Trivy's rating otherwise. */
-export function severityOf(v: TrivyVulnerability): string {
-  const ghsa = v.VendorSeverity?.ghsa;
+/**
+ * npm packages: GitHub's rating (GHSA), Trivy's own rating when GitHub has
+ * none. Everything else (the base image): Trivy's rating.
+ */
+export function severityOf(v: TrivyVulnerability, npm: boolean): string {
+  const ghsa = npm ? v.VendorSeverity?.ghsa : undefined;
   return ghsa === undefined ? v.Severity : (VENDOR[ghsa] ?? v.Severity);
 }
 
 /** One hole as a finding, or null when it does not start a hotfix. */
 function toFinding(result: TrivyResult, v: TrivyVulnerability): Finding | null {
-  const severity = severityOf(v);
+  const severity = severityOf(v, result.Type === 'node-pkg');
   if (!URGENT.has(severity) || !v.FixedVersion) return null;
   const app = result.Type === 'node-pkg' && APP_MODULES.test(v.PkgPath ?? '');
   const fixed = app
@@ -166,8 +189,9 @@ interface PackageJson {
 }
 
 /**
- * A direct dependency gets the fixed version (package.json pins exact
- * versions); any other package an override for every older version.
+ * Every older copy of the package gets the fixed version through a pnpm
+ * override; a direct dependency also gets it in package.json, which pins
+ * exact versions.
  */
 export function pinPackages(
   pkg: PackageJson,
@@ -177,13 +201,35 @@ export function pinPackages(
   for (const fix of fixes) {
     if (next.dependencies && fix.name in next.dependencies) {
       next.dependencies[fix.name] = fix.version;
-    } else {
-      next.pnpm ??= {};
-      next.pnpm.overrides ??= {};
-      next.pnpm.overrides[`${fix.name}@<${fix.version}`] = fix.version;
     }
+    next.pnpm ??= {};
+    next.pnpm.overrides ??= {};
+    next.pnpm.overrides[`${fix.name}@<${fix.version}`] = fix.version;
   }
   return next;
+}
+
+/**
+ * Packages of the plan that pnpm-lock.yaml still holds below their fixed
+ * version, as "name@version".
+ */
+export function stillVulnerable(
+  lock: string,
+  fixes: readonly PackageFix[],
+): string[] {
+  const wanted = new Map(fixes.map((f) => [f.name, f.version]));
+  const left = new Set<string>();
+  const key = /^ {2}'?((?:@[^@/\s']+\/)?[^@\s'(]+)@(\d[^(':\s]*)/;
+  for (const line of lock.split('\n')) {
+    const m = key.exec(line);
+    if (!m) continue;
+    const [, name = '', version = ''] = m;
+    const fixed = wanted.get(name);
+    if (fixed && compareVersions(version, fixed) < 0) {
+      left.add(`${name}@${version}`);
+    }
+  }
+  return [...left].sort();
 }
 
 /** Pins every FROM of the base image to the digest. */
@@ -239,8 +285,20 @@ function main(): number {
     return 0;
   }
   if (command === 'apply' && file) return apply(file, digest);
+  if (command === 'verify' && file) {
+    const p = JSON.parse(readFileSync(file, 'utf8')) as Plan;
+    const left = stillVulnerable(
+      readFileSync('pnpm-lock.yaml', 'utf8'),
+      p.packages,
+    );
+    if (left.length > 0) {
+      console.error(`pnpm-lock.yaml still holds: ${left.join(', ')}`);
+      return 1;
+    }
+    return 0;
+  }
   console.error(
-    'Usage: security-hotfix.ts plan <trivy.json> | apply <plan.json> [base-digest]',
+    'Usage: security-hotfix.ts plan <trivy.json> | apply <plan.json> [base-digest] | verify <plan.json>',
   );
   return 1;
 }

@@ -8,6 +8,7 @@ import {
   pinPackages,
   plan,
   severityOf,
+  stillVulnerable,
   type TrivyReport,
 } from '../../scripts/security-hotfix.ts';
 import { parseFragment } from '../../scripts/changelog.ts';
@@ -46,6 +47,15 @@ describe('security hotfix: versions', () => {
     expect(compareVersions('1.0.0-alpha', '1.0.0-beta')).toBe(-1);
   });
 
+  it('put a prerelease before its release and ignore build metadata', () => {
+    expect(compareVersions('1.2.3-beta', '1.2.3')).toBe(-1);
+    expect(compareVersions('1.2.3', '1.2.3-beta')).toBe(1);
+    expect(compareVersions('1.2.3-beta.2', '1.2.3-beta.10')).toBeLessThan(0);
+    expect(compareVersions('1.2.3+build.5', '1.2.3')).toBe(0);
+    expect(compareVersions('1.2.4-rc.1', '1.2.3')).toBeGreaterThan(0);
+    expect(fixedVersion('1.2.3-beta', '1.2.3')).toBe('1.2.3');
+  });
+
   it('take the lowest fix above the installed version', () => {
     expect(fixedVersion('1.2.3', '2.0.1, 1.2.5')).toBe('1.2.5');
     expect(fixedVersion('2.0.0', '1.2.5, 2.0.1')).toBe('2.0.1');
@@ -57,23 +67,48 @@ describe('security hotfix: versions', () => {
     expect(
       severityOf(
         vuln({ Severity: 'MEDIUM', VendorSeverity: { ghsa: 3, nvd: 2 } }),
+        true,
       ),
     ).toBe('HIGH');
     expect(
-      severityOf(vuln({ Severity: 'HIGH', VendorSeverity: { ghsa: 2 } })),
+      severityOf(vuln({ Severity: 'HIGH', VendorSeverity: { ghsa: 2 } }), true),
     ).toBe('MEDIUM');
     expect(
-      severityOf(vuln({ Severity: 'CRITICAL', VendorSeverity: { nvd: 1 } })),
+      severityOf(
+        vuln({ Severity: 'CRITICAL', VendorSeverity: { nvd: 1 } }),
+        true,
+      ),
     ).toBe('CRITICAL');
     expect(
-      severityOf(vuln({ Severity: 'LOW', VendorSeverity: { ghsa: 4 } })),
+      severityOf(vuln({ Severity: 'LOW', VendorSeverity: { ghsa: 4 } }), true),
     ).toBe('CRITICAL');
     expect(
-      severityOf(vuln({ Severity: 'LOW', VendorSeverity: { ghsa: 1 } })),
+      severityOf(vuln({ Severity: 'LOW', VendorSeverity: { ghsa: 1 } }), true),
     ).toBe('LOW');
     expect(
-      severityOf(vuln({ Severity: 'HIGH', VendorSeverity: { ghsa: 9 } })),
+      severityOf(vuln({ Severity: 'HIGH', VendorSeverity: { ghsa: 9 } }), true),
     ).toBe('HIGH');
+  });
+
+  it('rate the base image by Trivy, even with a GHSA rating', () => {
+    expect(
+      severityOf(
+        vuln({ Severity: 'HIGH', VendorSeverity: { ghsa: 2 } }),
+        false,
+      ),
+    ).toBe('HIGH');
+    const os: TrivyReport = {
+      Results: [
+        {
+          Target: 'debian',
+          Type: 'debian',
+          Vulnerabilities: [
+            vuln({ PkgPath: undefined, VendorSeverity: { ghsa: 2 } }),
+          ],
+        },
+      ],
+    };
+    expect(findings(os).map((f) => f.severity)).toEqual(['HIGH']);
   });
 });
 
@@ -189,7 +224,7 @@ describe('security hotfix: plan', () => {
 });
 
 describe('security hotfix: apply', () => {
-  it('pin a direct dependency, override any other package', () => {
+  it('override every older copy and pin a direct dependency', () => {
     const pkg = {
       name: 'x',
       dependencies: { foo: '1.2.3' },
@@ -205,7 +240,7 @@ describe('security hotfix: apply', () => {
       dependencies: { foo: '1.2.5' },
       pnpm: {
         onlyBuiltDependencies: ['esbuild'],
-        overrides: { 'deep@<2.0.1': '2.0.1' },
+        overrides: { 'foo@<1.2.5': '1.2.5', 'deep@<2.0.1': '2.0.1' },
       },
     });
     expect(pkg.dependencies.foo).toBe('1.2.3');
@@ -217,6 +252,40 @@ describe('security hotfix: apply', () => {
         { name: 'deep', version: '1.0.0' },
       ]),
     ).toEqual({ pnpm: { overrides: { a: '1', 'deep@<1.0.0': '1.0.0' } } });
+  });
+
+  it('find versions below a fix in pnpm-lock.yaml', () => {
+    const lock = [
+      'lockfileVersion: 9.0',
+      'overrides:',
+      '  foo@<1.2.5: 1.2.5',
+      'importers:',
+      '  .:',
+      '    dependencies:',
+      '      foo:',
+      '        version: 1.2.3',
+      'packages:',
+      '  foo@1.2.3:',
+      "  '@scope/bar@2.0.0':",
+      '  foo@1.2.5:',
+      'snapshots:',
+      '  foo@1.2.3(peer@1.0.0):',
+      "  '@scope/bar@2.0.0(x@1)':",
+      '  other@0.0.1:',
+    ].join('\n');
+    const fixes = [
+      { name: 'foo', version: '1.2.5' },
+      { name: '@scope/bar', version: '2.1.0' },
+      { name: 'missing', version: '1.0.0' },
+    ];
+    expect(stillVulnerable(lock, fixes)).toEqual([
+      '@scope/bar@2.0.0',
+      'foo@1.2.3',
+    ]);
+    expect(stillVulnerable(lock, [{ name: 'foo', version: '1.2.3' }])).toEqual(
+      [],
+    );
+    expect(stillVulnerable('', fixes)).toEqual([]);
   });
 
   it('pin every FROM of the base image to the digest', () => {
