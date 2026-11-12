@@ -122,7 +122,7 @@ jobs:
           if git rev-parse -q --verify "refs/remotes/origin/$branch" > /dev/null; then
             if released "$ID"; then
               echo "::warning::$branch is released, and $TAG still has these holes."
-              issue "Sicherheits-Hotfix sec-$ID hat die Lücke nicht geschlossen" "$(printf 'The release of `%s` is out, but the scan of release %s still finds these holes. Nothing is retried automatically.\n\n%s\n' "$branch" "$TAG" "$list")"
+              issue "Sicherheits-Hotfix sec-$ID hat die Lücke nicht geschlossen" "$(printf 'The release of %s is out, but the scan of release %s still finds these holes. Nothing is retried automatically.\n\n%s\n' "$branch" "$TAG" "$list")"
             else
               echo "$branch is still on its way to a release."
             fi
@@ -138,7 +138,7 @@ jobs:
             fi
           done
           echo "start=true" >> "$GITHUB_OUTPUT"
-          issue "Sicherheits-Hotfix sec-$ID" "$(printf 'Trivy found these holes in the image of release %s (stable). The workflow „Security hotfix“ builds `%s` from the tag; its pull requests merge themselves when the CI Gate is green. After the release, merge `%s` back into main.\n\n%s\n' "$TAG" "$branch" "$branch" "$list")"
+          issue "Sicherheits-Hotfix sec-$ID" "$(printf 'Trivy found these holes in the image of release %s (stable). The security hotfix workflow builds %s from the tag; its pull requests merge themselves when the CI Gate is green. After the release, merge %s back into main.\n\n%s\n' "$TAG" "$branch" "$branch" "$list")"
 
       - name: Keep the plan for the hotfix job
         if: steps.state.outputs.start == 'true'
@@ -222,5 +222,5 @@ jobs:
           git push --quiet --force origin "HEAD:refs/heads/$fix"
           gh pr create --base "$branch" --head "$fix" \
             --title "Sicherheitsupdate für Release $TAG (sec-$ID)" \
-            --body "Built by the workflow „Security hotfix“ from release $TAG; see the issue „Sicherheits-Hotfix sec-$ID“. It merges itself when the CI Gate is green; the release pull request of \`$branch\` follows the same way."
+            --body "Built by the workflow 'Security hotfix' from release $TAG; see the issue 'Sicherheits-Hotfix sec-$ID'. It merges itself when the CI Gate is green; the release pull request of \`$branch\` follows the same way."
           gh pr merge --auto --squash "$fix"
