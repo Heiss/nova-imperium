@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import { describe, expect, it, vi } from 'vitest';
 import { ERROR_FIELDS } from '../shared/error-log.ts';
 import { DAY, purgeAudit } from './audit.ts';
@@ -16,7 +17,9 @@ import { GameError } from './game/context.ts';
 import { addUser, testCtx, type TestCtx } from './test-helpers.ts';
 
 const ID = '0f8e2b7a-1c3d-4e5f-8a9b-0c1d2e3f4a5b';
-const TOKEN = 'Xk3_9qPzR2-vN8wLm4TtY7bCe1Hs6JuA0oGdFiQ5rWy'; // 43 characters
+// A 43-character token like an invitation token, made at run time so the
+// history holds no secret-looking literal (gitleaks).
+const TOKEN = randomBytes(32).toString('base64url');
 
 const rows = (ctx: TestCtx) =>
   ctx.store.db
