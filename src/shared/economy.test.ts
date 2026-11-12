@@ -14,6 +14,8 @@ import {
   refund,
   reqMissing,
   researchTime,
+  satEnergy,
+  satPower,
   sumLevels,
   unitTime,
 } from './economy.ts';
@@ -152,6 +154,32 @@ describe('production', () => {
     // A temperature of 0 counts as 20, like in the original.
     expect(prod({ ...p, temp: 0 }, U).d).toBe(prod({ ...p, temp: 20 }, U).d);
     expect(prod({ ...p, pct: { solar: 0 } }, U).f).toBe(0);
+  });
+  it('gives every Solarsatellit ⌊temp / 4 + 20⌋ energy (#46)', () => {
+    expect(satEnergy(8)).toBe(22);
+    expect(satEnergy(120)).toBe(50);
+    expect(satEnergy(130)).toBe(52);
+    expect(satEnergy(-10)).toBe(17);
+    expect(satEnergy(-11)).toBe(17);
+    expect(satEnergy(-12)).toBe(17);
+    expect(satEnergy(-13)).toBe(16);
+    expect(satEnergy(-80)).toBe(0);
+    expect(satEnergy(-200)).toBe(0);
+  });
+  it('adds the satellites at their share to the energy', () => {
+    const p = planet({ b: { metal: 5, solar: 1 }, temp: 8 });
+    const base = prod(p, U);
+    const withSats = prod({ ...p, ships: { sat: 3 } }, U);
+    expect(withSats.eProd).toBeCloseTo(base.eProd + 66, 10);
+    expect(withSats.eUse).toBe(base.eUse);
+    expect(withSats.f).toBeCloseTo(Math.min(1, (22 + 66) / base.eUse), 10);
+    const half = prod({ ...p, ships: { sat: 3 }, pct: { sat: 50 } }, U);
+    expect(half.eProd).toBeCloseTo(base.eProd + 33, 10);
+    const off = prod({ ...p, ships: { sat: 3 }, pct: { sat: 0 } }, U);
+    expect(off.eProd).toBe(base.eProd);
+    expect(satPower({ ...p, ships: { sat: 3 }, pct: {} })).toBe(66);
+    expect(satPower({ ...p, ships: {}, pct: {} })).toBe(0);
+    expect(satPower({ b: {}, pct: {}, temp: 8 })).toBe(0);
   });
   it('accrues up to the storage limit and never above', () => {
     const p = planet({ res: { m: 0, c: 99990, d: 200000 } });
