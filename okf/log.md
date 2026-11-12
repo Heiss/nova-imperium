@@ -2,6 +2,7 @@
 
 ## 2026-11-12
 
+* **Feature**: Fusionskraftwerk (#47): key `fusion`, energy 30 · F · (1.05 + 0.01 · T)^F with the Energietechnik of the owner, deuterium use 10 · F · 1.1^F × speed, own share; at an empty stock it is throttled to the share where use equals production (bisection), `accrue` splits where the stock runs empty and `settle` where Energietechnik finishes; Gravitonforschung counts its energy (see [Fusionskraftwerk](/features/fusion-reactor.md)).
 * **Decision**: #47 clarified: Fusionskraftwerk with the classic values; use × universe speed; at an empty deuterium stock the reactor is throttled to use = production (see [Fusionskraftwerk](/features/fusion-reactor.md)).
 * **Decision**: Design patterns for the planned features: catalog entries as typed components, texts apart from rules, settling with generic events, one strategy per mission, repositories per aggregate, generic Svelte components, feature folders with a generated index; the migration starts after the running release; O11: a place is coordinates plus kind (see [Design patterns](/architecture/patterns.md)).
 * **Feature**: Ionentechnik, Plasmatechnik, Gravitonforschung and the Intergalaktisches Forschungsnetzwerk (#49): research starts and is paid on any own planet with a Forschungslabor, IFN adds the highest other labs that meet the lab requirement, Gravitonforschung needs 300,000 · 3^(level − 1) energy production; migration 11 stores the starting planet; the requirements list works on the shown planet (see [Research](/features/research-ion-plasma-graviton.md)).

@@ -24,7 +24,8 @@ export const saveSettings: Action = (ctx, u, d) => {
   if (!checked.ok) return fail(checked.errors.join(' '));
   const old = universe(ctx);
   const t = ctx.now();
-  for (const p of ctx.store.planets()) ctx.store.savePlanet(settle(p, t, old));
+  for (const p of ctx.store.planets())
+    ctx.store.savePlanet(settle(p, t, old, ctx.store.user(p.owner)));
   ctx.store.saveUniverse(checked.value);
   return 'Einstellungen gespeichert.';
 };

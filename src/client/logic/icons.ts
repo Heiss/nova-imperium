@@ -5,6 +5,7 @@ const FILES: Record<string, string> = {
   crystal: 'buildings/crystal_mine',
   deut: 'buildings/deuterium_synthesizer',
   solar: 'buildings/solar_plant',
+  fusion: 'buildings/fusion_reactor',
   robot: 'buildings/robotics_factory',
   nanite: 'buildings/nanite_factory',
   yard: 'buildings/shipyard',

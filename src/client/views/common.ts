@@ -22,7 +22,7 @@ import {
   type Places,
   unmetRequirements,
 } from '../../shared/requirements.ts';
-import { prod } from '../../shared/economy.ts';
+import { production } from '../../shared/economy.ts';
 import type { GameState } from '../logic/types.ts';
 
 export interface Ui {
@@ -136,7 +136,10 @@ function whyLine(v: V, n: Need, st: NeedState): string {
   if (!st.ready) return st.reason!;
   if (st.busy) return st.busy;
   const energy = st.energy
-    ? { need: st.energy, production: prod(v.P, v.s.cfg).eProd }
+    ? {
+        need: st.energy,
+        production: production(v.P, v.s.cfg, v.R.research).eProd,
+      }
     : undefined;
   return `Stufe ${n.have + 1}: ${costHTML(st.cost, v.P, 1, energy)}`;
 }

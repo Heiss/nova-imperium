@@ -873,6 +873,79 @@ test.describe('playing', () => {
     expect(w.problems).toEqual([]);
   });
 
+  test('the Fusionskraftwerk burns deuterium for energy and is throttled at an empty stock (#47)', async ({
+    page,
+  }) => {
+    const w = watch(page);
+    const name = uniqueName('Fusion');
+    await register(page, name);
+    seed({ name, res: { m: 10000, c: 10000, d: 10000 } });
+    await page.goto('/?view=buildings');
+    const item = page.locator('.item').filter({
+      has: page.locator('.nm', { hasText: /^\s*Fusionskraftwerk/ }),
+    });
+    await expect(
+      item.getByRole('img', { name: 'Fusionskraftwerk' }),
+    ).toHaveAttribute('src', '/icons/buildings/fusion_reactor.svg');
+    await expect(item.locator('.cost').first()).toHaveText(/900.*360.*180/);
+    await expect(item.locator('.needs')).toContainText(
+      'Deuteriumsynthetisierer',
+    );
+    await expect(item.locator('.needs')).toContainText('Energietechnik');
+    await expect(item.locator('.act')).toContainText('Voraussetzungen fehlen');
+    seed({
+      name,
+      b: { deut: 5, lab: 1 },
+      research: { energy: 3 },
+      clearQueue: true,
+    });
+    await page.reload();
+    await expect(item.locator('.needs')).toHaveCount(0);
+    await expect(item).toContainText(
+      'Deuteriumverbrauch auf Stufe 1: 55 pro Stunde',
+    );
+    await expect(page.locator('[data-act=build][data-k=fusion]')).toBeEnabled();
+
+    // Level 3 with Energietechnik 3: 90 · 1.08³ ≈ 113 energy, and
+    // 30 · 1.1³ · speed 5 ≈ 199.7 deuterium per hour.
+    seed({
+      name,
+      b: { deut: 9, fusion: 3 },
+      research: { energy: 3 },
+      temp: 20,
+      res: { m: 0, c: 0, d: 50000 },
+    });
+    await page.goto('/?view=resources');
+    const row = page.locator('tr', { hasText: 'Fusionskraftwerk (Stufe 3)' });
+    await expect(row.locator('td.good')).toHaveText('113');
+    await expect(row.locator('td.bad')).toHaveText('-199');
+    await expect(row).not.toContainText('gedrosselt');
+    // Energy in total: 113.4 minus 20 · 9 · 1.1⁹ ≈ 424.4 for the mine.
+    const sum = page.locator('tr', { hasText: 'Summe / Stunde' });
+    await expect(sum.locator('th').nth(4)).toHaveText('-312');
+    await page.selectOption('select[data-k=fusion]', '50');
+    await expect(row.locator('td.good')).toHaveText('56');
+    await expect(row.locator('td.bad')).toHaveText('-99');
+
+    // Deuterium 5 makes about 499 per hour, the reactor 8 wants about 857:
+    // with an empty stock it runs at about 58 % and the stock stays at 0.
+    seed({
+      name,
+      b: { deut: 5, fusion: 8 },
+      research: { energy: 3 },
+      temp: 20,
+      res: { m: 0, c: 0, d: 0 },
+      pct: {},
+    });
+    await page.reload();
+    const dry = page.locator('tr', { hasText: 'Fusionskraftwerk (Stufe 8)' });
+    await expect(dry).toContainText('gedrosselt auf 58 %');
+    await expect(dry.locator('select[data-k=fusion]')).toHaveValue('100');
+    await expect(sum.locator('th').nth(3)).toHaveText('0');
+    await expect(stock(page, 'Deuterium')).toHaveText('0');
+    expect(w.problems).toEqual([]);
+  });
+
   test('build, cancel, set production and rename', async ({ page }) => {
     const w = watch(page);
     await register(page, uniqueName('Bau'));

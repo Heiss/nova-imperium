@@ -292,8 +292,8 @@ export function arrive(ctx: Ctx, f: Fleet): void {
   if (!t0 || (f.mission !== 'transport' && t0.owner === f.owner))
     return unsuitableTarget(ctx, f);
   const att = player(ctx, f.owner);
-  const t = settle(t0, f.arr, universe(ctx));
-  const def = player(ctx, t.owner);
+  const def = player(ctx, t0.owner);
+  const t = settle(t0, f.arr, universe(ctx), def);
   if (f.mission === 'transport') return transport(ctx, f, t, att);
   if (f.mission === 'spy') return spy(ctx, f, t, att, def);
   attack(ctx, f, t, att, def);
@@ -302,7 +302,7 @@ export function arrive(ctx: Ctx, f: Fleet): void {
 export function comeHome(ctx: Ctx, f: Fleet): void {
   const o0 = ctx.store.planet(f.from);
   if (o0 && o0.owner === f.owner) {
-    const o = settle(o0, f.ret, universe(ctx));
+    const o = settle(o0, f.ret, universe(ctx), player(ctx, f.owner));
     for (const [k, n] of Object.entries(f.ships))
       o.ships[k] = (o.ships[k] ?? 0) + n;
     o.res.m += f.cargo.m;

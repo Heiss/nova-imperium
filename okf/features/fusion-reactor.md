@@ -34,3 +34,69 @@ they are (2026-11-12).
 * **[V]** German interface: Gebäude „Fusionskraftwerk“ with new art, energy
   and deuterium use per level; Rohstoffe a line with energy (+), deuterium
   (−) and its share.
+
+## Code
+
+* **[V]** Key `fusion` in `BUILD` (`src/shared/catalog.ts`), after the
+  Solarkraftwerk; abbreviation `Fu` (no other entry uses it); short text
+  „Erzeugt Energie aus Deuterium; Energietechnik steigert die Leistung.“
+  `PRODUCERS` has `fusion`, so the server accepts its share like the others.
+* **[V]** Energietechnik reaches the production as a third, optional
+  parameter: `prod(p, u, research)` takes the owner's research levels
+  (`Levels`, default `{}`); `fusionEnergy(F, T)` and `fusionUse(F, u)` are the
+  two formulas. The reactor adds `fusionEnergy · share` to `eProd` and takes
+  `fusionUse · share` from `d`, which can now be negative. Without a reactor
+  both terms are 0 and the result is the one of version 1 to the last digit;
+  the equivalence test also passes the research now.
+* **[V]** Throttling (D1): `fusionThrottle(p, u, research)` is null unless the
+  stock is 0 and `prod().d < 0`; then `balancedShare()` bisects the share in
+  [0, set share] until the interval is one floating point step wide (no
+  tolerance constant) and returns the side where the net deuterium is ≥ 0.
+  The net production is concave in the share (the mine grows with
+  `f = min(1, …)`, the use is linear), so there is exactly one crossing.
+  `production()` is the production as it runs: at the throttled share, with
+  `d` exactly 0. The resources page, the resource bar and the energy check of
+  Gravitonforschung use it.
+* **[V]** Breakpoints: `accrue()` computes when a falling stock reaches 0,
+  adds the production up to then, sets the stock to exactly 0 and adds the
+  rest with `production()`. A use always lowers the stock, also above the
+  storage limit (growth still stops at the limit). `settle(p, until, u, r)`
+  takes the owner's `ResearchState` as stored and splits where a running
+  Energietechnik finishes, only for a planet with a reactor; the research
+  levels of each segment come from `settleR`. Without a reactor and without
+  satellites the split is the one of version 1.
+* **[V]** Callers that store the planet pass the owner's research: `mine()`
+  of the actions, the admin's speed change, the arrival at a target and the
+  return home; the browser passes its own research. Callers that only read
+  levels or queues (labs, points, achievements, push) do not.
+* **[V]** The stored research forgets when Energietechnik finished as soon as
+  the next research starts. Before that, `settleReactors()`
+  (`src/server/game/actions.ts`) settles and stores every own planet with a
+  reactor (or one being built), so a planet settled later still uses the old
+  level up to that end.
+
+## Interface (German)
+
+* **[V]** Gebäude: „Fusionskraftwerk“ with the icon
+  `icons/buildings/fusion_reactor.svg` of the interface v2 set, its costs,
+  requirements, the energy change of the next level (with Energietechnik)
+  and „Deuteriumverbrauch auf Stufe n: x pro Stunde“ at the set share.
+* **[V]** Rohstoffe: a line „Fusionskraftwerk (Stufe n)“ with deuterium (−),
+  energy (+) and its share select; the Deuteriumsynthetisierer line shows the
+  mine alone. When throttled: „gedrosselt auf x %“ (rounded down) next to the
+  select, which keeps the set share; the sum shows the running production.
+
+## Tests
+
+* `src/shared/fusion.test.ts`: formulas with Energietechnik and speed, share,
+  solar + satellites + fusion together, the throttled share (use =
+  production, the closed form below the kink of `f`, one crossing,
+  monotone in the mine and the reactor), the breakpoint in `accrue`, and a
+  fast-check property: settling in one step or in many gives the same stock
+  (1e-6 + 1e-9 relative) and the stock is never below 0, with a running
+  Energietechnik and a reactor being built.
+* `catalog.test.ts`, `research.test.ts` (Gravitonforschung counts the
+  reactor), `equivalence.test.ts` (research passed, version 1 unchanged),
+  `src/server/game/actions.test.ts`, `admin.test.ts`, `arrival.test.ts`.
+* E2E „the Fusionskraftwerk burns deuterium for energy and is throttled at
+  an empty stock (#47)“; the E2E seed takes `pct`.

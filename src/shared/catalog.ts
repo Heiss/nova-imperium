@@ -88,6 +88,22 @@ export const BUILD: Record<string, BuildingDef> = {
     f: 1.5,
     ds: 'Liefert Energie für die Minen.',
   },
+  // Issue #47. Not in version 1; the classic values (owner, 2026-11-12).
+  fusion: {
+    n: 'Fusionskraftwerk',
+    ab: 'Fu',
+    cost: [900, 360, 180],
+    f: 1.8,
+    ds: 'Erzeugt Energie aus Deuterium; Energietechnik steigert die Leistung.',
+    req: {
+      b: {
+        deut: 5,
+      },
+      r: {
+        energy: 3,
+      },
+    },
+  },
   robot: {
     n: 'Roboterfabrik',
     ab: 'Ro',
@@ -607,7 +623,14 @@ export const MISSION = {
 } as const;
 
 /** Producers whose share the player sets on the resources page. */
-export const PRODUCERS = ['metal', 'crystal', 'deut', 'solar', 'sat'] as const;
+export const PRODUCERS = [
+  'metal',
+  'crystal',
+  'deut',
+  'solar',
+  'sat',
+  'fusion',
+] as const;
 
 export const isShip = (key: string): boolean => Object.hasOwn(SHIPS, key);
 export const isDefense = (key: string): boolean => Object.hasOwn(DEF, key);
