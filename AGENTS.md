@@ -11,6 +11,7 @@ needs.
   `okf/overview.md`
 - Open points: `okf/open-points.md`
 - Rules of development (tests, gates, language): `okf/ops/`
+- Release loop for `/loop`: `.claude/loop.md` (`okf/ops/loop.md`)
 
 Rules: do not invent anything, ask the owner about open points and offer 3 to
 5 options per decision. Development is in English, the game interface is
