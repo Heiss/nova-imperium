@@ -163,8 +163,8 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   newest release still finds the same plan), an issue says so and nothing
   is retried. A branch the job created without a fix pull request is
   finished by the next scan while it still starts at the newest release and
-  no other hotfix is on its way;
-  otherwise an issue asks the owner to delete it.
+  no other hotfix is on its way. When it no longer starts at the newest
+  release, an issue asks the owner to delete it.
 * **[E]** The job does not scan the new base image before it starts: it
   only fails when the fix changes nothing (`package.json`,
   `pnpm-lock.yaml` and `Dockerfile` as in the release), for example when
