@@ -56,6 +56,7 @@ function yard(
       `<div class="dim">Bauzeit: ${dur(unitTime(d, P, s.cfg))} je Einheit</div>` +
       requirementsHTML(v, d.req, 'here');
     return itemHTML(
+      v,
       cls,
       k,
       d,

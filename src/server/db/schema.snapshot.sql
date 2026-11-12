@@ -277,4 +277,5 @@ CREATE TABLE users (
     rq_cost_m INTEGER,
     rq_cost_c INTEGER,
     rq_cost_d INTEGER
-  ) STRICT;
+  , explain_mode TEXT NOT NULL DEFAULT 'icon'
+    CHECK (explain_mode IN ('always', 'icon', 'hidden'))) STRICT;

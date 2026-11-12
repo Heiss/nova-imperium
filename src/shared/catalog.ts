@@ -9,6 +9,8 @@ export interface BuildingDef {
   cost: Cost;
   f: number;
   ds: string;
+  /** Long explanation text (issue #63); without it the short `ds` stands in. */
+  lt?: string;
   req?: Requirements;
 }
 
@@ -17,6 +19,8 @@ export interface ResearchDef {
   ab: string;
   cost: Cost;
   ds: string;
+  /** Long explanation text (issue #63); without it the short `ds` stands in. */
+  lt?: string;
   req: Requirements;
 }
 
@@ -31,6 +35,8 @@ interface UnitDefBase {
   req: Requirements;
   rf?: Record<string, number>;
   ds?: string;
+  /** Long explanation text (issue #63); without it the short `ds` stands in. */
+  lt?: string;
 }
 
 export interface ShipDef extends UnitDefBase {

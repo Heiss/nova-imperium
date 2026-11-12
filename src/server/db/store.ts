@@ -14,6 +14,7 @@ import {
   UNIVERSE_SPECS,
   type UsedSize,
 } from '../../shared/universe.ts';
+import type { ExplainMode } from '../../shared/explain.ts';
 import type { Db } from './database.ts';
 
 export interface User {
@@ -24,6 +25,8 @@ export interface User {
   pw: string;
   admin: boolean;
   probes: number;
+  /** Display option of the explanation texts (issue #63). */
+  explain: ExplainMode;
   readAt: number;
   created: number;
   research: Levels;
@@ -149,6 +152,7 @@ export class Store {
       pw: r.pw_hash as string,
       admin: r.admin === 1,
       probes: r.probes as number,
+      explain: r.explain_mode as ExplainMode,
       readAt: r.read_at as number,
       created: r.created as number,
       research: levels(research, 'key', 'level'),
@@ -184,13 +188,13 @@ export class Store {
   saveUser(u: User): void {
     this.db
       .prepare(
-        `INSERT INTO users (id, name, email, salt, pw_hash, admin, probes, read_at, created,
+        `INSERT INTO users (id, name, email, salt, pw_hash, admin, probes, explain_mode, read_at, created,
            rq_key, rq_lvl, rq_start, rq_end, rq_cost_m, rq_cost_c, rq_cost_d)
-         VALUES (@id, @name, @email, @salt, @pw, @admin, @probes, @readAt, @created,
+         VALUES (@id, @name, @email, @salt, @pw, @admin, @probes, @explain, @readAt, @created,
            @rq_key, @rq_lvl, @rq_start, @rq_end, @rq_cost_m, @rq_cost_c, @rq_cost_d)
          ON CONFLICT(id) DO UPDATE SET name = excluded.name, email = excluded.email,
            salt = excluded.salt, pw_hash = excluded.pw_hash, admin = excluded.admin,
-           probes = excluded.probes, read_at = excluded.read_at, rq_key = excluded.rq_key,
+           probes = excluded.probes, explain_mode = excluded.explain_mode, read_at = excluded.read_at, rq_key = excluded.rq_key,
            rq_lvl = excluded.rq_lvl, rq_start = excluded.rq_start, rq_end = excluded.rq_end,
            rq_cost_m = excluded.rq_cost_m, rq_cost_c = excluded.rq_cost_c, rq_cost_d = excluded.rq_cost_d`,
       )

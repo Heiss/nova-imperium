@@ -225,6 +225,7 @@ describe('points and state', () => {
       research: {},
       rq: null,
       probes: 1,
+      explain: 'icon',
       readAt: 0,
       admin: true,
     });

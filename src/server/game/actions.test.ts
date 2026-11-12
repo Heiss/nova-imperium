@@ -284,6 +284,25 @@ describe('planet settings', () => {
     A.options(ctx, u, { probes: 5 });
     expect(me().probes).toBe(5);
   });
+  it('save the display option of the explanation texts (issue #63)', () => {
+    const { ctx, u, me } = setup();
+    expect(me().explain).toBe('icon');
+    for (const explain of ['always', 'hidden', 'icon']) {
+      expect(A.options(ctx, u, { probes: 2, explain })).toBe('Gespeichert.');
+      expect(me()).toMatchObject({ probes: 2, explain });
+    }
+    A.options(ctx, u, { probes: 3, explain: 'hidden' });
+    A.options(ctx, u, { probes: 4 });
+    expect(me()).toMatchObject({ probes: 4, explain: 'hidden' });
+  });
+  it('refuse an unknown display option and change nothing', () => {
+    const { ctx, u, me } = setup({}, { probes: 3, explain: 'always' });
+    for (const explain of ['', 'never', 'ICON', null, 1, ['icon']])
+      expect(() => A.options(ctx, { ...u }, { probes: 9, explain })).toThrow(
+        'Ungültig.',
+      );
+    expect(me()).toMatchObject({ probes: 3, explain: 'always' });
+  });
 });
 
 describe('reports', () => {

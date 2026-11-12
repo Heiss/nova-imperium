@@ -2,6 +2,7 @@
 
 ## 2026-11-12
 
+* **Feature**: Explanation texts (#63): option „Erklärungstexte“ in „Hilfe & Optionen“ (Immer anzeigen, Als (?)-Symbol, Ausblenden; default (?)), stored per player by migration 10; a (?) button opens an inline panel below the entry; the panel shows the short `ds` until #94 brings the long texts; the buildings view shows `ds` too (see [Explanation texts](/features/explanation-texts.md)).
 * **Decision**: #63 clarified: display option per player on the server, default „(?)-Symbol“, inline panel; mechanism now, the long texts with the rename #94 (see [Explanation texts](/features/explanation-texts.md)).
 * **Update**: Security hotfix: releases older than the release pull request get no automatic hotfix, the issue says to release `main`; first scan found two High holes in `zlib1g` of 26.11.18 (issue #97) (see [Branching and release](/ops/branching-release.md)).
 * **Feature**: Security hotfix: Trivy scans `stable` every hour; a High or Critical hole with a fix becomes `hotfix/sec-<id>` from the release tag and releases itself when the CI Gate is green; the base image is pinned to its digest (see [Branching and release](/ops/branching-release.md)).

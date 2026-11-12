@@ -43,6 +43,7 @@ export function research(v: V): string {
       `<div class="dim">Forschungszeit: ${dur(researchTime(c, P, s.cfg))}</div>` +
       requirementsHTML(v, d.req, 'home');
     return itemHTML(
+      v,
       'ic-r',
       k,
       d,

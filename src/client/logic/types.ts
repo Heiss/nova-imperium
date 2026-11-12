@@ -3,6 +3,7 @@ import type {
   RoundRules,
 } from '../../shared/achievements.ts';
 // The state the server sends (GET /api/state).
+import type { ExplainMode } from '../../shared/explain.ts';
 import type { UniverseSpec } from '../../shared/universe.ts';
 import type {
   Coords,
@@ -19,6 +20,8 @@ interface Me {
   research: Levels;
   rq: Queue | null;
   probes: number;
+  /** Display option of the explanation texts (issue #63). */
+  explain: ExplainMode;
   readAt: number;
   admin: boolean;
 }

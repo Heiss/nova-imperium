@@ -8,6 +8,7 @@
     prod,
     reqMissing,
   } from '../../shared/economy.ts';
+  import { explanation } from '../logic/explain.ts';
   import { iconURL } from '../logic/icons.ts';
   import { dur } from '../logic/format.ts';
   import { buildState } from '../logic/game.ts';
@@ -34,14 +35,27 @@
     {@const missing = reqMissing(def, P, R)}
     {@const status = buildState(P, R, key, missing.length)}
     {@const image = iconURL(key)}
+    {@const ex = explanation(key, def, s.me.explain, $viewState.ui.openEx)}
     <div class="item" class:running={status === 'running'}>
       <div class="icon ic-b">
         {#if image}<img src={image} alt={def.n} />{:else}{def.ab}{/if}
       </div>
       <div>
         <div class="nm">
-          {def.n} <span class="lv">{level ? `(Stufe ${level})` : ''}</span>
+          {def.n}
+          <span class="lv">{level ? `(Stufe ${level})` : ''}</span
+          >{#if ex?.toggle}<button
+              type="button"
+              class="exq"
+              id={ex.button}
+              data-act="explain"
+              data-k={key}
+              aria-expanded={ex.open}
+              aria-controls={ex.panel}
+              aria-label={`Erklärung zu ${def.n}`}>?</button
+            >{/if}
         </div>
+        <div class="ds">{def.ds}</div>
         {@html costHTML(cost, P)}
         {#if delta !== 0}
           <div class="dim">
@@ -51,6 +65,9 @@
         {/if}
         <div class="dim">Bauzeit: {dur(buildTime(cost, P, s.cfg))}</div>
         {@html requirementsHTML($viewState, def.req, 'here')}
+        {#if ex}
+          <div class="ex" id={ex.panel} hidden={!ex.open}><p>{ex.text}</p></div>
+        {/if}
       </div>
       <div class="act">
         {#if status === 'running' && P.bq}
