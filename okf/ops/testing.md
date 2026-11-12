@@ -63,7 +63,9 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   circular imports at runtime).
 * **[E]** Security gates: gitleaks over the whole history, `pnpm audit --prod`
   (high blocks), CodeQL `security-extended` (severity ≥ 7.0 blocks), Trivy on
-  the image (critical with a fix blocks). CodeQL runs for every pull
+  the image (critical with a fix blocks; in a release pull request, a pull
+  request into and a push to `hotfix/**` high with a fix blocks too, owner
+  2026-11-12). CodeQL runs for every pull
   request, documentation included, because the ruleset of `main` requires a
   CodeQL result for the exact commit (owner, 2026-11-11).
 * **[E]** Migrations are append-only: the job "Migrations append-only"

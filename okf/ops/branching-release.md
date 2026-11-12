@@ -181,6 +181,14 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   this as a comment, once); the
   first scan on 2026-11-12 found two High holes in `zlib1g` of the base
   image of 26.11.18 (issue #97).
+* **[E]** What goes out as a release is checked before it goes out (owner,
+  2026-11-12, CodeRabbit security finding on pull request #105): in a
+  release pull request, a pull request into `hotfix/**` and a push to
+  `hotfix/**`, Trivy in the CI blocks High and Critical holes with a fix;
+  other pull requests block only Critical ones, so a new High hole does not
+  stop feature work. Pull requests into `hotfix/**` always build the image.
+  Trivy's own rating decides there, not GitHub's (GHSA) as in the hourly
+  scan.
 * **[E]** Debian's security updates go into the image that runs (owner,
   2026-11-12): `apt-get full-upgrade` after `FROM … AS app`, which fails when an
   update stays held back,, so a Debian fix

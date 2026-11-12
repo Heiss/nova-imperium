@@ -38,6 +38,7 @@ jobs:
           EVENT: ${{ github.event_name }}
           PR_BASE: ${{ github.event.pull_request.base.sha }}
           PR_HEAD_REF: ${{ github.head_ref }}
+          PR_BASE_REF: ${{ github.base_ref }}
           HEAD_SHA: ${{ github.sha }}
         run: |
           if [ "$EVENT" = "push" ] || [ -z "$PR_BASE" ]; then
@@ -48,8 +49,10 @@ jobs:
           files=$(git diff --name-only "$PR_BASE" "$HEAD_SHA")
           code=false
           image=false
-          # A release pull request runs everything.
+          # A release pull request and every pull request into a hotfix
+          # branch run everything: they lead straight to a release.
           case "$PR_HEAD_REF" in release/*) code=true; image=true ;; esac
+          case "$PR_BASE_REF" in hotfix/*) code=true; image=true ;; esac
           while IFS= read -r file; do
             case "$file" in
               okf/*|docs/*|changes/*) ;;
@@ -216,10 +219,24 @@ jobs:
         run: docker compose up --detach --no-build --wait
       - name: Data of the last release survive the upgrade
         run: docker/upgrade.sh after
-      - name: No critical holes in the image (Trivy; only those with a fix)
+      # Critical holes with a fix block every image. What goes out as a
+      # release (a release pull request, a pull request into or a push to
+      # hotfix/**) is also blocked by High ones (owner, 2026-11-12); other
+      # pull requests are not, so a new High hole does not stop feature
+      # work, and the hourly scan of stable (security-hotfix.yml) covers it.
+      - name: No critical holes in the image, no high ones in a release (Trivy; only those with a fix)
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+          BASE_REF: ${{ github.base_ref }}
+          REF: ${{ github.ref }}
         run: |
+          severity=CRITICAL
+          case "$HEAD_REF" in release/*) severity=HIGH,CRITICAL ;; esac
+          case "$BASE_REF" in hotfix/*) severity=HIGH,CRITICAL ;; esac
+          case "$REF" in refs/heads/hotfix/*) severity=HIGH,CRITICAL ;; esac
+          echo "Blocking severities: $severity"
           docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:0.76.2@sha256:8f6bb947dbc528902e11f2f5be52f7b519f6a39d5d148f41166f2040499768fb \
-            image --severity CRITICAL --ignore-unfixed --exit-code 1 --no-progress \
+            image --severity "$severity" --ignore-unfixed --exit-code 1 --no-progress \
             "ghcr.io/heiss/nova-imperium:$NOVA_VERSION"
       - name: The image holds no compiler, package manager or tests
         run: |
