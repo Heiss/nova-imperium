@@ -84,10 +84,10 @@ they are (2026-11-12).
   planet when a colony is shown), which only the home planet rule of the
   requirements list needed.
 * **[V]** Storage: the running research keeps the planet where it started
-  (`rq.planet`, column `users.rq_planet`, migration 10). A cancel refunds
+  (`rq.planet`, column `users.rq_planet`, migration 11). A cancel refunds
   that planet from any planet; research started before #49 has none and is
   refunded to the home planet. Upgrade test
-  `src/server/db/upgrades/migration-10.test.ts`.
+  `src/server/db/upgrades/migration-11.test.ts`.
 * **[V]** Research view („Forschung auf <Planet>“): the active planet
   researches; a line shows its lab level and, with IFN, how many labs may
   join; the research time names the summed level („Labore zusammen Stufe
@@ -107,7 +107,7 @@ they are (2026-11-12).
 * Tests: `src/shared/research.test.ts`, `requirements.test.ts`,
   `catalog.test.ts`, `src/server/game/actions.test.ts`,
   `src/server/game/fleet.test.ts` (state), `src/client/logic/game.test.ts`,
-  `migration-10.test.ts`; E2E „from a colony the lab is built on the colony
+  `migration-11.test.ts`; E2E „from a colony the lab is built on the colony
   itself“, „research starts on a colony with its own lab and is paid
   there“, „the research network (IFN) links a colony lab and shortens
   research“, „Gravitonforschung needs 300,000 energy production“ (#49). The

@@ -81,6 +81,7 @@ export function stateFor(
       research: u.research,
       rq: u.rq,
       probes: u.probes,
+      explain: u.explain,
       readAt: u.readAt,
       admin: u.admin,
     },

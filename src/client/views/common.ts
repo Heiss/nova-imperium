@@ -8,6 +8,11 @@ import type {
   ResearchState,
 } from '../../shared/types.ts';
 import { dur, esc, fmt } from '../logic/format.ts';
+import {
+  explainButtonHTML,
+  explainPanelHTML,
+  explanation,
+} from '../logic/explain.ts';
 import { iconURL, type ResourceKey, resourceIconURL } from '../logic/icons.ts';
 import { planetLook } from '../logic/planet.ts';
 import {
@@ -29,6 +34,8 @@ export interface Ui {
   ft: { g: number; s: number; p: number } | null;
   fm: string;
   openRep: Record<string, boolean>;
+  /** Entries whose explanation the player opened with the (?) (issue #63). */
+  openEx: Record<string, boolean>;
   auth: 'login' | 'register' | 'forgot' | 'reset' | 'code' | null;
   invite: { token: string; email: string; galaxies: number } | null;
   lastLink: string | null;
@@ -98,9 +105,15 @@ export interface ItemDef {
   n: string;
   ab: string;
   ds?: string;
+  lt?: string;
 }
 
+/**
+ * A row of research, shipyard or defense. The short `ds` is always shown
+ * (issue #63, D5); the explanation follows the display mode of the player.
+ */
 export function itemHTML(
+  v: V,
   cls: string,
   key: string,
   d: ItemDef,
@@ -111,7 +124,8 @@ export function itemHTML(
   const src = iconURL(key);
   const icon = src ? `<img src="${src}" alt="${esc(d.n)}">` : d.ab;
   const ds = d.ds ? `<div class="ds">${d.ds}</div>` : '';
-  return `<div class="item"><div class="icon ${cls}">${icon}</div><div><div class="nm">${d.n} <span class="lv">${level}</span></div>${ds}${body}</div><div class="act">${action}</div></div>`;
+  const ex = explanation(key, d, v.s.me.explain, v.ui.openEx);
+  return `<div class="item"><div class="icon ${cls}">${icon}</div><div><div class="nm">${d.n} <span class="lv">${level}</span>${explainButtonHTML(ex)}</div>${ds}${body}${explainPanelHTML(ex)}</div><div class="act">${action}</div></div>`;
 }
 
 export const box = (title: string, body: string, cls = ''): string =>

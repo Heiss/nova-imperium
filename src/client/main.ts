@@ -193,6 +193,7 @@ const ui: Ui = {
   ft: null,
   fm: 'attack',
   openRep: {},
+  openEx: {},
   auth: null,
   invite: null,
   lastLink: null,
@@ -527,6 +528,19 @@ function renderCompletions(view: HTMLElement): void {
   notice.setAttribute('role', 'status');
   notice.textContent = [...completionNotices].join(' ');
   view.prepend(notice);
+}
+
+/** Opens or closes the explanation below an entry (issue #63, D3). */
+function toggleExplanation(key: string): void {
+  const open = !ui.openEx[key];
+  ui.openEx[key] = open;
+  // Svelte keeps the focused button and only changes its attributes.
+  if (buildingView && ctx) return buildingView.update({ ...ctx });
+  document
+    .getElementById(`exq_${key}`)
+    ?.setAttribute('aria-expanded', String(open));
+  const panel = document.getElementById(`ex_${key}`);
+  if (panel) panel.hidden = !open;
 }
 
 function unmountBuildings(): void {
@@ -1045,7 +1059,12 @@ const ACT: Record<string, (d: Data) => unknown> = {
   },
   delrep: (d) => act('delrep', { id: d.id }),
   delall: () => act('delall'),
-  saveopt: () => act('options', { probes: clampInt(val('#o_probes'), 1, 1e6) }),
+  explain: (d) => toggleExplanation(d.k!),
+  saveopt: () =>
+    act('options', {
+      probes: clampInt(val('#o_probes'), 1, 1e6),
+      explain: val('#o_explain'),
+    }),
   adminTab: (d) => {
     if (d.tab && Object.hasOwn(ADMIN_TABS, d.tab))
       openAdminTab(d.tab as AdminTab);

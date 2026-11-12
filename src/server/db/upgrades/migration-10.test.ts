@@ -1,35 +1,47 @@
 import { describe, expect, it } from 'vitest';
+import { DEFAULT_EXPLAIN } from '../../../shared/explain.ts';
 import { databaseAt } from '../../../test/migrations.ts';
 import { migrate } from '../database.ts';
 import { MIGRATIONS } from '../schema.ts';
-import { Store } from '../store.ts';
 
-// Migration 10 adds the planet where the running research started (#49).
+// Migration 10 adds the display option of the explanation texts (issue #63).
 describe('upgrade to migration 10', () => {
-  it('keeps running research; it has no planet and counts as the home planet', () => {
+  it('keeps existing players and gives them the default „(?)-Symbol“ (D2)', () => {
     const db = databaseAt(9);
     db.exec(`
-      INSERT INTO users (id, name, salt, pw_hash, created,
-        rq_key, rq_lvl, rq_start, rq_end, rq_cost_m, rq_cost_c, rq_cost_d)
-      VALUES ('u1', 'Anna', 's', 'h', 1, 'energy', 2, 10, 20, 0, 1600, 800),
-        ('u2', 'Bert', 's', 'h', 1, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
-      INSERT INTO user_research VALUES ('u1', 'energy', 1);
+      INSERT INTO users (id, name, email, salt, pw_hash, admin, probes, read_at, created)
+        VALUES ('u1', 'Anna', 'anna@example.org', 's', 'h', 1, 7, 5, 1),
+               ('u2', 'Bert', NULL, 't', 'i', 0, 1, 0, 2);
     `);
+    const before = db.prepare('SELECT * FROM users ORDER BY id').all();
     expect(migrate(db, MIGRATIONS.slice(0, 10))).toBe(1);
-    const store = new Store(db);
-    expect(store.user('u1')).toMatchObject({
-      research: { energy: 1 },
-      rq: { key: 'energy', lvl: 2, start: 10, end: 20, cost: [0, 1600, 800] },
-    });
-    expect(store.user('u1')!.rq).not.toHaveProperty('planet');
-    expect(store.user('u2')!.rq).toBeNull();
-    const u = store.user('u1')!;
-    store.saveUser({ ...u, rq: { ...u.rq!, planet: 'p1' } });
-    expect(store.user('u1')!.rq).toMatchObject({ key: 'energy', planet: 'p1' });
-    store.saveUser({ ...u, rq: null });
-    expect(
-      db.prepare('SELECT rq_key, rq_planet FROM users WHERE id = ?').get('u1'),
-    ).toEqual({ rq_key: null, rq_planet: null });
+    const after = db.prepare('SELECT * FROM users ORDER BY id').all();
+    expect(after).toEqual(
+      before.map((row) => ({
+        ...(row as object),
+        explain_mode: DEFAULT_EXPLAIN,
+      })),
+    );
+    db.close();
+  });
+
+  it('accepts only the three modes', () => {
+    const db = databaseAt(10);
+    const add = (id: string, mode: string) =>
+      db
+        .prepare(
+          `INSERT INTO users (id, name, salt, pw_hash, created, explain_mode)
+           VALUES (?, ?, 's', 'h', 1, ?)`,
+        )
+        .run(id, id, mode);
+    for (const mode of ['always', 'icon', 'hidden']) add(mode, mode);
+    expect(() => add('bad', 'never')).toThrow(/CHECK constraint failed/);
+    expect(() =>
+      db.exec(
+        `INSERT INTO users (id, name, salt, pw_hash, created, explain_mode)
+         VALUES ('null', 'null', 's', 'h', 1, NULL)`,
+      ),
+    ).toThrow(/NOT NULL constraint failed/);
     db.close();
   });
 });

@@ -12,6 +12,7 @@ import {
   researchTime,
   unitTime,
 } from '../../shared/economy.ts';
+import { type ExplainMode, isExplainMode } from '../../shared/explain.ts';
 import { labUpgrading, waitsForLab } from '../../shared/lab.ts';
 import {
   energyNeed,
@@ -234,8 +235,15 @@ export const rename: Action = (ctx, u, d) => {
   return null;
 };
 
+/** A display option of the explanation texts (issue #63), or a refusal. */
+const explainMode = (x: unknown): ExplainMode =>
+  isExplainMode(x) ? x : fail('Ungültig.');
+
 export const options: Action = (ctx, u, d) => {
+  // An older client sends no display option; the stored one stays.
+  const explain = d.explain === undefined ? u.explain : explainMode(d.explain);
   u.probes = int(d.probes, 1, 1e6);
+  u.explain = explain;
   ctx.store.saveUser(u);
   return 'Gespeichert.';
 };

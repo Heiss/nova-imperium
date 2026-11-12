@@ -10,7 +10,7 @@ describe('upgrade to migration 9', () => {
   it('preserves ships of an in-flight fleet when adding colonization', () => {
     const db = databaseAt(8);
     const store = new Store(db);
-    // Plain SQL: the Store of today writes columns that version 8 lacks.
+    // Written with the columns of version 8: the store writes the newest schema.
     db.exec(
       "INSERT INTO users (id, name, salt, pw_hash, created) VALUES ('u_Anna', 'Anna', 's', 'h', 1)",
     );

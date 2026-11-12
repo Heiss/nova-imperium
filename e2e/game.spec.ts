@@ -1,4 +1,4 @@
-import { expect, type Page, test } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import {
   cli,
   inviteLink,
@@ -1152,6 +1152,126 @@ test.describe('playing', () => {
     await expect(surface).toHaveCSS('animation-name', 'none');
     await nav(page, 'help');
     await expect(page.getByLabel('Animationen')).not.toBeChecked();
+  });
+});
+
+test.describe('explanation texts (#63)', () => {
+  const question = (page: Page, name: string): Locator =>
+    page.getByRole('button', { name: `Erklärung zu ${name}` });
+  const row = (page: Page, name: string): Locator =>
+    page.locator('.item').filter({
+      has: page.locator('.nm', { hasText: new RegExp(`^\\s*${name}\\b`) }),
+    });
+
+  /** Chooses the display option in „Hilfe & Optionen“ and saves it. */
+  async function choose(page: Page, label: string): Promise<void> {
+    await nav(page, 'help');
+    await page.getByLabel('Erklärungstexte').selectOption({ label });
+    await page.click('[data-act=saveopt]');
+    await expect(page.locator('.toast').last()).toContainText('Gespeichert.');
+  }
+
+  test('the (?) opens the text by click and keyboard; the option changes the lists and survives a reload', async ({
+    page,
+  }) => {
+    const w = watch(page);
+    const name = uniqueName('Lies');
+    await register(page, name);
+    seed({ name, b: { lab: 1, robot: 2, yard: 2 } });
+    await page.goto('/?view=buildings');
+
+    // Default „(?)-Symbol“ (D2): the short text is shown, the long one behind the (?).
+    const mine = row(page, 'Metallmine');
+    const mineText = mine.locator('.ex');
+    const mineQ = question(page, 'Metallmine');
+    await expect(mine.locator('.ds')).toHaveText(
+      'Fördert Metall, den wichtigsten Grundrohstoff.',
+    );
+    await expect(mineQ).toHaveAttribute('aria-expanded', 'false');
+    await expect(mineQ).toHaveAttribute('aria-controls', 'ex_metal');
+    await expect(mineText).toBeHidden();
+    await mineQ.click();
+    await expect(mineText).toBeVisible();
+    await expect(mineText).toHaveText(
+      'Fördert Metall, den wichtigsten Grundrohstoff.',
+    );
+    await expect(mineQ).toHaveAttribute('aria-expanded', 'true');
+    await expect(mineQ).toBeFocused();
+    await page.keyboard.press('Enter');
+    await expect(mineText).toBeHidden();
+    await expect(mineQ).toHaveAttribute('aria-expanded', 'false');
+    await page.keyboard.press('Space');
+    await expect(mineText).toBeVisible();
+    await expect(row(page, 'Kristallmine').locator('.ex')).toBeHidden();
+
+    await nav(page, 'research');
+    const spy = row(page, 'Spionagetechnik');
+    const spyQ = question(page, 'Spionagetechnik');
+    await expect(spy.locator('.ex')).toBeHidden();
+    await spyQ.focus();
+    await page.keyboard.press('Enter');
+    await expect(spy.locator('.ex')).toHaveText(
+      'Bessere Spionageberichte, bessere Abwehr.',
+    );
+    await expect(spyQ).toHaveAttribute('aria-expanded', 'true');
+    await page.keyboard.press('Space');
+    await expect(spy.locator('.ex')).toBeHidden();
+    await spyQ.click();
+    await expect(spy.locator('.ex')).toBeVisible();
+
+    // An entry without any text has neither (?) nor panel (D4).
+    await nav(page, 'shipyard');
+    await expect(row(page, 'Spionagesonde')).toBeVisible();
+    await expect(question(page, 'Spionagesonde')).toHaveCount(0);
+    await expect(row(page, 'Spionagesonde').locator('.ex')).toHaveCount(0);
+    // Ships with a description (Solarsatellit, #46) do get the (?).
+    await expect(question(page, 'Solarsatellit')).toHaveCount(1);
+
+    await choose(page, 'Immer anzeigen');
+    await nav(page, 'buildings');
+    await expect(mineText).toBeVisible();
+    await expect(page.locator('#view .exq')).toHaveCount(0);
+    await page.reload();
+    await expect(mineText).toBeVisible();
+    await expect(page.locator('#view .exq')).toHaveCount(0);
+    await nav(page, 'research');
+    await expect(spy.locator('.ex')).toBeVisible();
+    await expect(page.locator('#view .exq')).toHaveCount(0);
+
+    await choose(page, 'Ausblenden');
+    await nav(page, 'buildings');
+    await expect(page.locator('#view .ex')).toHaveCount(0);
+    await expect(page.locator('#view .exq')).toHaveCount(0);
+    await expect(mine.locator('.ds')).toBeVisible();
+    await page.reload();
+    await expect(mine.locator('.ds')).toBeVisible();
+    await expect(page.locator('#view .ex')).toHaveCount(0);
+    await nav(page, 'research');
+    await expect(spy.locator('.ds')).toBeVisible();
+    await expect(page.locator('#view .ex, #view .exq')).toHaveCount(0);
+    await nav(page, 'help');
+    await expect(page.getByLabel('Erklärungstexte')).toHaveValue('hidden');
+    expect(w.problems).toEqual([]);
+  });
+
+  test('a tap on the (?) opens and closes the text on a phone @phone', async ({
+    page,
+  }) => {
+    const w = watch(page);
+    await register(page, uniqueName('Tipp'));
+    await page.click('#tabbar [data-v=buildings]');
+    const text = row(page, 'Solarkraftwerk').locator('.ex');
+    await expect(text).toBeHidden();
+    await question(page, 'Solarkraftwerk').tap();
+    await expect(text).toHaveText('Liefert Energie für die Minen.');
+    await question(page, 'Solarkraftwerk').tap();
+    await expect(text).toBeHidden();
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth - window.innerWidth,
+      ),
+    ).toBeLessThanOrEqual(0);
+    expect(w.problems).toEqual([]);
   });
 });
 

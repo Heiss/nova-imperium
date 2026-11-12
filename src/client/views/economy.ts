@@ -90,6 +90,7 @@ function researchItem(v: V, k: string, d: ResearchDef): string {
     `<div class="dim">Forschungszeit: ${dur(researchTime(c, { b: { lab } }, s.cfg))}${linked}</div>` +
     requirementsHTML(v, d.req);
   return itemHTML(
+    v,
     'ic-r',
     k,
     d,
