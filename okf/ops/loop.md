@@ -17,7 +17,12 @@ tasks).
 * **[E]** One step per iteration, chosen from the state on GitHub in this
   order: finish the own open pull request, make the release ready (all
   issues of the milestone closed), plan the release (no open milestone),
-  clarify the next issue, build it (owner, 2026-11-12).
+  clarify the next issue, build it (owner, 2026-11-12). Releasing needs an
+  open milestone, so a closed one never triggers it again.
+* **[V]** Questions to the owner are asked with the question tool inside the
+  iteration; the iteration waits for the answer and continues with it. An
+  issue counts as clarified when it has a comment that starts with
+  `Geklärt` and lists the decisions with the OKF link.
 * **[E]** The loop asks the owner first what a release should bring, with
   proposals from the open issues; **infrastructure first**, features after
   it (owner, 2026-11-12). The chosen issues form the milestone

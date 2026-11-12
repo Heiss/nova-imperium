@@ -15,9 +15,12 @@ interface is German.
      `release/main`) with its CI and its release candidate image;
    - the milestone `next release` with its open and closed issues.
 2. Do the first step below that applies, and only that one.
-3. End the iteration: while you wait on CI or a review, schedule the next
-   wake-up in 20 to 30 minutes (GitHub events wake you earlier); while you
-   wait on an answer of the owner, do not schedule anything.
+3. Ask the owner with the question tool inside the iteration: the
+   iteration waits for the answer and goes on with it, so the loop never
+   waits without a question on screen.
+4. End the iteration: when the next step can start at once, wake up again
+   in one to two minutes; while you wait on CI or a review, in 20 to 30
+   minutes (GitHub events wake you earlier).
 
 ## Steps, in this order
 
@@ -26,7 +29,7 @@ interface is German.
    Conflict: merge `main` into the branch. Merge under O4 (green CI Gate,
    no open security or critical finding, every finding answered). Only one
    own pull request is open at a time.
-2. **Make the release ready** when the milestone `next release` exists and
+2. **Make the release ready** when the milestone `next release` is open and
    all its issues are closed: the release pull request must be green
    (complete mutation run, image, Trivy, upgrade test), its texts checked
    (German, matching their pull requests, nothing internal), and a
@@ -44,11 +47,14 @@ interface is German.
    - create the milestone with the chosen issues. Wait for the answer;
      never pick on your own.
 4. **Clarify the next open issue** of the milestone (infrastructure first,
-   then the lowest number). Do not start while anything is unclear: ask the
-   owner with 3 to 5 options per decision, mark your recommendation,
-   red-team it first. Record the decisions in the OKF bundle (E, V, U) and
-   in the issue.
-5. **Build the issue** in one pull request from `main` (branch `claude/…`):
+   then the lowest number) while it has no comment that starts with
+   `Geklärt`. Do not start while anything is unclear: ask the owner with 3
+   to 5 options per decision, mark your recommendation, red-team it first.
+   Record the decisions in the OKF bundle (E, V, U), then write one comment
+   on the issue that starts with `Geklärt` and lists the decisions with a
+   link to the OKF concept. That comment ends this step for the issue.
+5. **Build the next open issue** that has a `Geklärt` comment, in one pull
+   request from `main` (branch `claude/…`):
    code, tests (mutation floors, new files 80 %, security files 90 %), a
    German changelog fragment in `changes/` or the label `kein-changelog`,
    OKF and docs. Run `pnpm check` and the relevant E2E tests before every
