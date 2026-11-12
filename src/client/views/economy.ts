@@ -1,4 +1,4 @@
-import { BUILD, RES, type ResearchDef } from '../../shared/catalog.ts';
+import { BUILD, RES, type ResearchDef, UNIT } from '../../shared/catalog.ts';
 import {
   afford,
   caps,
@@ -6,6 +6,7 @@ import {
   prod,
   reqMissing,
   researchTime,
+  satPower,
 } from '../../shared/economy.ts';
 import {
   energyNeed,
@@ -113,7 +114,7 @@ function shareSelect(v: V, k: string): string {
   const options = SHARES.map(
     (x) => `<option ${current === x ? 'selected' : ''}>${x}</option>`,
   ).join('');
-  return `<select data-chg="pct" data-k="${k}" data-nokeep aria-label="Leistung ${BUILD[k]?.n}">${options}</select> %`;
+  return `<select data-chg="pct" data-k="${k}" data-nokeep aria-label="Leistung ${BUILD[k]?.n ?? UNIT[k]?.n}">${options}</select> %`;
 }
 
 function producerRows(v: V): string {
@@ -122,6 +123,7 @@ function producerRows(v: V): string {
   const L = (k: string): number => P.b[k] ?? 0;
   const pc = (k: string): number => (P.pct[k] ?? 100) / 100;
   const sp = s.cfg.speed;
+  const eSat = satPower(P);
   const cell = (x: string, cls = 'n'): string => `<td class="${cls}">${x}</td>`;
   const use = (k: string, f: number): string =>
     cell(`-${fmt(f * g(L(k)) * pc(k))}`, 'n bad');
@@ -130,7 +132,8 @@ function producerRows(v: V): string {
     `<tr><td>Metallmine (Stufe ${L('metal')})</td>${cell(fmt(30 * g(L('metal')) * pc('metal') * pr.f * sp))}${cell('0')}${cell('0')}${use('metal', 10)}<td>${shareSelect(v, 'metal')}</td></tr>`,
     `<tr><td>Kristallmine (Stufe ${L('crystal')})</td>${cell('0')}${cell(fmt(20 * g(L('crystal')) * pc('crystal') * pr.f * sp))}${cell('0')}${use('crystal', 10)}<td>${shareSelect(v, 'crystal')}</td></tr>`,
     `<tr><td>Deuteriumsynth. (Stufe ${L('deut')})</td>${cell('0')}${cell('0')}${cell(fmt(pr.d))}${use('deut', 20)}<td>${shareSelect(v, 'deut')}</td></tr>`,
-    `<tr><td>Solarkraftwerk (Stufe ${L('solar')})</td>${cell('0')}${cell('0')}${cell('0')}${cell(fmt(pr.eProd), 'n good')}<td>${shareSelect(v, 'solar')}</td></tr>`,
+    `<tr><td>Solarkraftwerk (Stufe ${L('solar')})</td>${cell('0')}${cell('0')}${cell('0')}${cell(fmt(pr.eProd - eSat), 'n good')}<td>${shareSelect(v, 'solar')}</td></tr>`,
+    `<tr><td>Solarsatelliten (${fmt(P.ships.sat ?? 0)})</td>${cell('0')}${cell('0')}${cell('0')}${cell(fmt(eSat), 'n good')}<td>${shareSelect(v, 'sat')}</td></tr>`,
   ].join('');
 }
 

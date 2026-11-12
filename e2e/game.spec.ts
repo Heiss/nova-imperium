@@ -839,6 +839,40 @@ test.describe('playing', () => {
     expect(w.problems).toEqual([]);
   });
 
+  test('Solarsatelliten give energy by temperature and never fly (#46)', async ({
+    page,
+  }) => {
+    const w = watch(page);
+    const name = uniqueName('Sat');
+    await register(page, name);
+    seed({ name, b: { yard: 1 }, temp: 8, res: { m: 0, c: 10000, d: 10000 } });
+    await page.goto('/?view=shipyard');
+    const item = page
+      .locator('.item')
+      .filter({ has: page.locator('.nm', { hasText: /^\s*Solarsatellit/ }) });
+    await expect(
+      item.getByRole('img', { name: 'Solarsatellit' }),
+    ).toHaveAttribute('src', '/icons/ships/solar_satellite.svg');
+    await expect(item).toContainText('Energie 22 je Satellit');
+    await expect(item).not.toContainText('Tempo');
+    await page.fill('#q_sat', '2');
+    await page.click('[data-act=order][data-k=sat]');
+    await expect(
+      page.locator('.box', { hasText: 'Bauauftrag der Werft' }),
+    ).toContainText('2× Solarsatellit');
+
+    seed({ name, ships: { sat: 3, lf: 1 }, temp: 8 });
+    await page.goto('/?view=resources');
+    const row = page.locator('tr', { hasText: 'Solarsatelliten (3)' });
+    await expect(row.locator('td.good')).toHaveText('66');
+    await page.selectOption('select[data-k=sat]', '50');
+    await expect(row.locator('td.good')).toHaveText('33');
+    await page.goto('/?view=fleet');
+    await expect(page.locator('#f_lf')).toBeVisible();
+    await expect(page.locator('#f_sat')).toHaveCount(0);
+    expect(w.problems).toEqual([]);
+  });
+
   test('build, cancel, set production and rename', async ({ page }) => {
     const w = watch(page);
     await register(page, uniqueName('Bau'));

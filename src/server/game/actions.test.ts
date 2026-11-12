@@ -453,6 +453,8 @@ describe('planet settings', () => {
     A.pct(ctx, u, { key: 'solar', v: 999 });
     expect(p().pct.solar).toBe(100);
     expect(() => A.pct(ctx, u, { key: 'lab', v: 10 })).toThrow('Ungültig.');
+    A.pct(ctx, u, { key: 'sat', v: 30 });
+    expect(p().pct.sat).toBe(30);
   });
   it('rename the planet', () => {
     const { ctx, u, p } = setup();
