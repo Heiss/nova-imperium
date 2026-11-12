@@ -36,7 +36,7 @@ the ships fly back.
   fuel and fleet slots are checked like for every mission, noob protection
   does not apply. The flight takes a fleet slot until it arrives.
 * Fuel: `Fleet.fuel` holds the fuel burnt at the start (`fuelFor()`), for
-  every mission. **[V]** Stored in the new column `fleets.fuel` (migration
+  every mission. **[E]** (owner, 2026-11-12) Stored in the new column `fleets.fuel` (migration
   13, which rebuilds `fleets` and `fleet_ships` for the new mission in the
   CHECK; fleets in flight keep everything and get 0, see
   [SQLite storage](/data/sqlite.md)).
@@ -49,18 +49,18 @@ the ships fly back.
 * Recall: unchanged; ships and cargo come back to the start planet with the
   usual return report, the burnt fuel is not refunded (no recall refunds
   fuel).
-* **[V]** Refusal „Verlegung nur zu einem eigenen Planeten.“; the start
+* **[E]** (owner, 2026-11-12) Refusal „Verlegung nur zu einem eigenen Planeten.“; the start
   planet keeps „Das ist dein eigener Planet.“ and an empty position „An
   dieser Position gibt es keinen Planeten.“
-* **[V]** Report for the owner, in the style of the transport report: title
+* **[E]** (owner, 2026-11-12) Report for the owner, in the style of the transport report: title
   „Verlegung erreicht [g:s:p]“, text „Deine Flotte bleibt auf ‹Planet›
   [g:s:p] und liefert ‹Ladung›, davon N übriger Treibstoff.“; push as a
   message, like the transport report.
-* **[V]** Galaxy: a button „Verlegung“ next to „Wechseln · Transport“ for
+* **[E]** (owner, 2026-11-12) Galaxy: a button „Verlegung“ next to „Wechseln · Transport“ for
   another own planet; it opens the fleet form with the target and the
   mission. On a phone the player and action cells of the galaxy wrap, so the
   table no longer widens the page (it did with two own planets before).
-* **[V]** The fleet form shows „‹Ankunft› / –“ for a deploy, as there is no
+* **[E]** (owner, 2026-11-12) The fleet form shows „‹Ankunft› / –“ for a deploy, as there is no
   return; the fleet list has no own colour for a deploy (like colonization).
 * Tests: `src/server/game/fleet.test.ts` (target rules, cargo and fuel,
   slot until arrival, ships and cargo plus half the fuel at the target via

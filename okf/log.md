@@ -2,6 +2,7 @@
 
 ## 2026-11-12
 
+* **Decision**: The owner confirmed the proposals of #129: fuel column, refusal and report texts, galaxy button, phone wrap, „–“ as return time (see [Deploy mission](/features/deploy.md)).
 * **Feature**: Deploy mission „Verlegung“ (#129): key `deploy`, only to another own planet; ships and cargo stay at the target (also above the storage limit) with half the burnt fuel rounded down, the fleet ends there; a recall brings everything back to the start, a lost target sends the fleet home; migration 13 stores the burnt fuel per fleet; a „Verlegung“ button in the galaxy (see [Deploy mission](/features/deploy.md)).
 * **Decision**: #129 clarified: deploy mission „Verlegung“ (classic „Stationieren“) to own planets, cargo and half the used fuel unloaded at the target, recall back to the start; in this release (see [Deploy mission](/features/deploy.md)).
 * **Decision**: A gitleaks finding that is only a sample value in a test goes into `.gitleaksignore` with its fingerprint when it stays in the history; the test now makes its token at run time (#126; see [Test strategy](/ops/testing.md)).
