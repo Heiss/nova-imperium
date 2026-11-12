@@ -6,6 +6,7 @@ import { planet, U } from '../test/fixtures.ts';
 import {
   accrue,
   balancedShare,
+  caps,
   fusionEnergy,
   fusionThrottle,
   fusionUse,
@@ -173,6 +174,21 @@ describe('throttling at an empty deuterium stock (#47 D1)', () => {
       d: 0,
       eProd: 0,
     });
+  });
+  it('does not throttle an empty stock whose net deuterium is exactly 0', () => {
+    // No mine and no reactor: production and use are both 0, nothing falls.
+    const idle = planet({ res: { m: 0, c: 0, d: 0 } });
+    expect(prod(idle, U, r).d).toBe(0);
+    expect(fusionThrottle(idle, U, r)).toBeNull();
+    expect(production(idle, U, r)).toEqual(prod(idle, U, r));
+  });
+  it('stops growth at the storage limit but lets a use lower any stock', () => {
+    const full = planet({ b: { deut: 5 }, res: { m: 2e6, c: 0, d: 0 } });
+    const cap = caps(full, U).m;
+    accrue(full, 3600000, U, r);
+    expect(full.res.m).toBe(2e6);
+    expect(full.res.c).toBeGreaterThan(0);
+    expect(cap).toBeLessThan(2e6);
   });
   it('does not throttle while there is deuterium or enough production', () => {
     expect(fusionThrottle({ ...dry, res: { m: 0, c: 0, d: 1 } }, U, r)).toBe(

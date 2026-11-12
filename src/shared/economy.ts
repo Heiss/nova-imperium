@@ -245,9 +245,10 @@ function addUp(
   cp: Record<'m' | 'c' | 'd', number>,
 ): void {
   const h = ms / 3600000;
+  // Growth stops at the storage limit (a stock above it stays), a use lowers
+  // any stock: min(stock + change, max(stock, limit)) covers both.
   for (const k of KEYS)
-    if (pr[k] < 0) p.res[k] += pr[k] * h;
-    else if (p.res[k] < cp[k]) p.res[k] = Math.min(cp[k], p.res[k] + pr[k] * h);
+    p.res[k] = Math.min(p.res[k] + pr[k] * h, Math.max(p.res[k], cp[k]));
 }
 
 /** Milliseconds until a falling stock is empty; Infinity when it does not fall. */
