@@ -86,15 +86,15 @@ describe('battle', () => {
     expect(lsd?.maxShield).toBeCloseTo(13000, 9);
     expect(lsd?.attack).toBeCloseTo(1.1, 9);
   });
-  it('gives no unit rapid fire against or from the new defense (#50)', () => {
+  it('gives only the Bomber rapid fire against the new defense (#50, #57)', () => {
     const fresh = ['ionc', 'pt', 'ssd', 'lsd'];
     const all = [
-      ...['sc', 'lc', 'colony', 'lf', 'hf', 'cr', 'bs', 'bc', 'dr'],
+      ...['sc', 'lc', 'colony', 'lf', 'hf', 'cr', 'bs', 'bc', 'dr', 'bb'],
       ...['probe', 'sat', 'rl', 'll', 'hl', 'gauss', ...fresh],
     ];
     for (const a of all)
       for (const t of fresh) {
-        expect(rapid(a, t)).toBe(1);
+        expect(rapid(a, t)).toBe(a === 'bb' && t === 'ionc' ? 10 : 1);
         expect(rapid(t, a)).toBe(1);
       }
   });
@@ -142,6 +142,41 @@ describe('battle', () => {
     expect(d.winner).toBe('draw');
     expect(d.rounds).toBe(6);
     expect(d.def).toEqual({ lsd: 1 });
+  });
+  it('builds the Bomber with hull (M + K) / 10 (#57)', () => {
+    const [bb] = buildSide({ units: { bb: 1 }, tech: {} });
+    expect(bb).toEqual({
+      key: 'bb',
+      hull: 7500,
+      maxHull: 7500,
+      shield: 500,
+      maxShield: 500,
+      attack: 1000,
+    });
+    const [boosted] = buildSide({
+      units: { bb: 1 },
+      tech: { armor: 2, shield: 1, weapons: 3 },
+    });
+    expect(boosted?.maxHull).toBeCloseTo(9000, 9);
+    expect(boosted?.maxShield).toBeCloseTo(550, 9);
+    expect(boosted?.attack).toBeCloseTo(1300, 9);
+  });
+  it('knows the rapid fire of the Bomber (#57)', () => {
+    expect(rapid('bb', 'rl')).toBe(20);
+    expect(rapid('bb', 'll')).toBe(20);
+    expect(rapid('bb', 'hl')).toBe(10);
+    expect(rapid('bb', 'ionc')).toBe(10);
+    expect(rapid('bb', 'pt')).toBe(1);
+    expect(rapid('bb', 'probe')).toBe(5);
+    expect(rapid('bb', 'sat')).toBe(5);
+    // None against the Gaußkanone (classic, before 2019).
+    expect(rapid('bb', 'gauss')).toBe(1);
+    for (const t of ['sc', 'lc', 'colony', 'lf', 'hf', 'cr', 'bs', 'bc', 'dr'])
+      expect(rapid('bb', t)).toBe(1);
+    for (const a of ['lf', 'hf', 'cr', 'bs', 'bc', 'dr', 'rl', 'll', 'hl'])
+      expect(rapid(a, 'bb')).toBe(1);
+    expect(rapid('gauss', 'bb')).toBe(1);
+    expect(rapid('bb', 'bb')).toBe(1);
   });
   it('knows rapid fire', () => {
     expect(rapid('cr', 'lf')).toBe(6);

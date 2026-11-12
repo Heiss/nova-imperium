@@ -189,6 +189,25 @@ describe('requirements', () => {
   });
 });
 
+describe('Bomber requirements', () => {
+  it('name what the Bomber needs (#57)', () => {
+    expect(
+      reqMissing(SHIPS.bb!, planet({ b: { yard: 7 } }), {
+        research: { impulse: 5, plasma: 4, hdrive: 8 },
+      }),
+    ).toEqual([
+      'Raumschiffwerft (Stufe 8)',
+      'Impulstriebwerk (Stufe 6)',
+      'Plasmatechnik (Stufe 5)',
+    ]);
+    expect(
+      reqMissing(SHIPS.bb!, planet({ b: { yard: 8 } }), {
+        research: { impulse: 6, plasma: 5 },
+      }),
+    ).toEqual([]);
+  });
+});
+
 describe('production', () => {
   it('has a base income without mines', () => {
     expect(prod(planet(), U)).toEqual({

@@ -1,12 +1,13 @@
 import {
   DEF,
+  RES,
   SHIPS,
   UNIT,
   type UnitDef,
   canFly,
 } from '../../shared/catalog.ts';
 import { reqMissing, satEnergy, unitTime } from '../../shared/economy.ts';
-import { shipSpeed } from '../../shared/flight.ts';
+import { activeDrive, shipSpeed } from '../../shared/flight.ts';
 import type { Levels } from '../../shared/types.ts';
 import { orderMax, YARD_LOCK, yardLockedBy } from '../../shared/yard.ts';
 import { dur, fmt } from '../logic/format.ts';
@@ -27,12 +28,19 @@ function queue(v: V): string {
   return `<div class="box"><div class="hd">Bauauftrag der Werft</div><div class="bd"><table>${rows}</table></div></div>`;
 }
 
+/** Speed of a flying ship; a ship that switches its drive names it (#57). */
+function speedText(v: V, k: string): string {
+  const drive = SHIPS[k]!.drives ? activeDrive(k, v.R)!.drive : null;
+  const name = drive ? ` (${RES[drive]!.n})` : '';
+  return ` · Tempo ${fmt(shipSpeed(k, v.R))}${name}`;
+}
+
 function stats(v: V, k: string, d: UnitDef): string {
   const tech = v.R.research;
   const c = d.cost;
   const ship = canFly(k) ? SHIPS[k] : undefined;
   const cargo = ship ? ` · Ladung ${fmt(ship.cargo)}` : '';
-  const speed = ship ? ` · Tempo ${fmt(shipSpeed(k, v.R))}` : '';
+  const speed = ship ? speedText(v, k) : '';
   const energy =
     k === 'sat' ? ` · Energie ${fmt(satEnergy(v.P.temp))} je Satellit` : '';
   return `<div class="dim">Angriff ${fmt(d.atk * (1 + 0.1 * (tech.weapons ?? 0)))} · Schild ${fmt(d.sh * (1 + 0.1 * (tech.shield ?? 0)))} · Struktur ${fmt((c[0] + c[1]) * (1 + 0.1 * (tech.armor ?? 0)))}${cargo}${speed}${energy}</div>`;

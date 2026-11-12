@@ -91,3 +91,42 @@ All values are the classic ones on owiki.de, confirmed by the owner
   (`reqMissing`), `src/server/game/admin.test.ts` (points),
   `src/client/logic/icons.test.ts`; E2E „Schlachtkreuzer and Zerstörer are
   built and fly (#58, #59)“ and its phone variant in `e2e/game.spec.ts`.
+
+# Bomber in the code
+
+* Catalog: `SHIPS.bb` (Bomber) in `src/shared/catalog.ts`, after the
+  Zerstörer. Base drive `impulse` with speed 4,000; `drives` lists the
+  switch `{ drive: 'hdrive', speed: 5,000, from: { research: 'hdrive',
+  level: 8 } }`. Requires Werft 8, Impulstriebwerk 6, Plasmatechnik 5.
+* Drive: `activeDrive()` in `src/shared/flight.ts` returns the base drive or
+  the last entry of `drives` whose research level is reached; `shipSpeed()`,
+  and with it `fleetSpeed()`, flight time and the fleet view, use it. Ships
+  without `drives` keep their single drive, so the version 1 equivalence is
+  unchanged. Fuel stays 1,000 with both drives (`fuelFor()` does not depend
+  on the drive).
+* Rapid fire in `rf`: `bb` against `rl` 20, `ll` 20, `hl` 10, `ionc` 10
+  (with #50); none against `gauss` or `pt`. The 5 against the probe and the
+  Solarsatellit come from the general rule of `rapid()`. The Todesstern's 25
+  against the Bomber comes with #60.
+* Hull 7,500, shield 500, attack 1,000 from `buildSide()`; points by cost
+  (`src/server/game/points.ts`).
+* **[V]** Key `bb`, abbreviation `BO` (unique among all `ab` values),
+  description „Stark gegen Raketenwerfer, Laser- und Ionengeschütze; fliegt
+  ab Hyperraumantrieb 8 mit dem Hyperraumantrieb.“
+* **[V]** Data model of the drive switch: the base `drive` and `speed` stay,
+  an optional `drives` list of `{ drive, speed, from: { research, level } }`
+  replaces them once reached; the last reached entry wins. Built before the
+  migration of the [Design patterns](/architecture/patterns.md); `activeDrive()`
+  is the function `drive: (research) => DriveKey` of `mobile` there.
+* **[V]** The Werft shows the speed with the active drive in brackets, e.g.
+  „Tempo 8.800 (Impulstriebwerk)“, only for ships with a drive switch; the
+  fleet view shows the current speed.
+* Icon `bomber.svg` from the interface v2 set in
+  `src/client/static/icons/ships/`, mapped in `src/client/logic/icons.ts`.
+* Tests: `src/shared/catalog.test.ts` (values, order, version 1 equivalence
+  with `bb` added), `battle.test.ts` (hull, tech bonus, rapid fire both ways,
+  none against the Gaußkanone), `flight.test.ts` (speed below and from
+  Hyperraumantrieb 8, mixed fleets, fuel, cargo), `economy.test.ts`
+  (`reqMissing`), `src/server/game/admin.test.ts` (points); E2E „the Bomber
+  is built, switches its drive at Hyperraumantrieb 8 and flies (#57)“ and
+  its phone variant in `e2e/game.spec.ts`.

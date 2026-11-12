@@ -21,6 +21,7 @@ describe('catalog', () => {
       colony: C.SHIPS.colony,
       bc: C.SHIPS.bc,
       dr: C.SHIPS.dr,
+      bb: C.SHIPS.bb,
       sat: C.SHIPS.sat,
     };
     const addedDef = {
@@ -122,11 +123,41 @@ describe('catalog', () => {
       ds: 'Schweres Kriegsschiff – stark gegen Lasergeschütze und Schlachtkreuzer.',
     });
   });
+  it('has the Bomber with the classic values and its drive switch (#57)', () => {
+    expect(C.SHIPS.bb).toEqual({
+      n: 'Bomber',
+      ab: 'BO',
+      cost: [50000, 25000, 15000],
+      atk: 1000,
+      sh: 500,
+      cargo: 500,
+      speed: 4000,
+      fuel: 1000,
+      drive: 'impulse',
+      drives: [
+        {
+          drive: 'hdrive',
+          speed: 5000,
+          from: { research: 'hdrive', level: 8 },
+        },
+      ],
+      req: { b: { yard: 8 }, r: { impulse: 6, plasma: 5 } },
+      rf: { rl: 20, ll: 20, hl: 10, ionc: 10 },
+      ds: 'Stark gegen Raketenwerfer, Laser- und Ionengeschütze; fliegt ab Hyperraumantrieb 8 mit dem Hyperraumantrieb.',
+    });
+    // The Werft lists it after the Zerstörer.
+    const keys = Object.keys(C.SHIPS);
+    expect(keys.indexOf('bb')).toBe(keys.indexOf('dr') + 1);
+    // Only the Bomber switches its drive.
+    expect(
+      Object.keys(C.SHIPS).filter((k) => C.SHIPS[k]!.drives !== undefined),
+    ).toEqual(['bb']);
+  });
   it('gives the new ships abbreviations no other entry uses', () => {
     const all = [C.BUILD, C.RES, C.SHIPS, C.DEF].flatMap((defs) =>
       Object.values(defs).map((d) => d.ab),
     );
-    for (const ab of [C.SHIPS.bc!.ab, C.SHIPS.dr!.ab])
+    for (const ab of [C.SHIPS.bc!.ab, C.SHIPS.dr!.ab, C.SHIPS.bb!.ab])
       expect(all.filter((x) => x === ab)).toEqual([ab]);
   });
   it('has Ionengeschütz, Plasmawerfer and both shield domes with the classic values (#50)', () => {
@@ -210,6 +241,8 @@ describe('catalog', () => {
     expect(C.isShip('lf')).toBe(true);
     expect(C.isShip('bc')).toBe(true);
     expect(C.isShip('dr')).toBe(true);
+    expect(C.isShip('bb')).toBe(true);
+    expect(C.canFly('bb')).toBe(true);
     expect(C.isShip('rl')).toBe(false);
     expect(C.isShip('toString')).toBe(false);
     expect(C.isDefense('rl')).toBe(true);

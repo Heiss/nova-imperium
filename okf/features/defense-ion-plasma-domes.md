@@ -43,8 +43,8 @@ Not in version 1. Missiles are #54.
   `src/shared/catalog.ts`, after the Gaußkanone. Hull, shield and attack come
   from `buildSide()` in `src/shared/battle.ts` (hull 800, 10,000, 2,000 and
   10,000 before Raumschiffpanzerung); bounce below 1 % of the shield and the
-  explosion below 70 % hull are unchanged. No `rf` on or against them;
-  `rapid()` gives 1 both ways (the Bomber's 10 comes with #57).
+  explosion below 70 % hull are unchanged. Only the Bomber has rapid fire
+  against them: `SHIPS.bb.rf.ionc` 10; otherwise `rapid()` gives 1 both ways.
 * Once per planet: the domes carry `once: true` (`DefenseDef`).
   `unitRoom()` in `src/shared/yard.ts` counts the planet's dome and the units
   of it in the shipyard queue; `orderMax()` is the smaller of that room and
