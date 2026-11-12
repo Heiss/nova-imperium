@@ -2,6 +2,7 @@
 
 ## 2026-11-12
 
+* **Feature**: Long explanation texts [V] (#94 with #63): every building, research, ship and defense on `main` gets an `lt` in the grimdark style with the new names, checked against the code; names, `ab`, `ds` and icons stay classic until the rename after #123 and #60; tests require an `lt` for every entry but `LATER` (#50, #60) and forbid the classic names; Gravitonforschung test with Solarsatelliten only (see [Grimdark naming](/features/naming.md)).
 * **Decision**: Grimdark naming at the end of the release in one pull request; new features are built with classic names; Solarsatellit → Sonnenreliquiar, Fusionskraftwerk → Fusionssanktum (see [Grimdark naming](/features/naming.md)).
 * **Feature**: Fusionskraftwerk (#47): key `fusion`, energy 30 · F · (1.05 + 0.01 · T)^F with the Energietechnik of the owner, deuterium use 10 · F · 1.1^F × speed, own share; at an empty stock it is throttled to the share where use equals production (bisection), `accrue` splits where the stock runs empty and `settle` where Energietechnik finishes; Gravitonforschung counts its energy (see [Fusionskraftwerk](/features/fusion-reactor.md)).
 * **Decision**: #47 clarified: Fusionskraftwerk with the classic values; use × universe speed; at an empty deuterium stock the reactor is throttled to use = production (see [Fusionskraftwerk](/features/fusion-reactor.md)).

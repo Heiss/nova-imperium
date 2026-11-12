@@ -39,7 +39,10 @@ must match the code.
   mode.
 * Catalog: optional field `lt` (long text) for buildings, research, ships and
   defense. The panel shows `lt`, else `ds` (D4); an entry without either has
-  neither (?) nor panel (today the ships and the defense).
+  neither (?) nor panel. Since the branch of #94 every entry on `main` has
+  an `lt` ([V], drafts in the grimdark style, see
+  [Grimdark naming](/features/naming.md)), so the ships and the defense
+  get the (?) too; the entries of #50 and #60 get theirs later.
 * Interface: `src/client/logic/explain.ts` decides per entry and mode;
   `itemHTML` (research, shipyard, defense) and `Buildings.svelte` render it.
   The buildings view now shows the short `ds` too (D5). The (?) is a
@@ -54,9 +57,14 @@ must match the code.
   the minimum target size of WCAG 2.2. The text is plain text, escaped, in
   one paragraph; the structure of the texts of #94 (lore, what it does, per
   level) may need more.
-* Tests: `src/shared/explain.test.ts`, `src/client/logic/explain.test.ts`,
+* Tests: `src/shared/explain.test.ts` (also every catalog entry has an
+  `lt` but the list `LATER`, and no classic name in it),
+  `src/client/logic/explain.test.ts`,
   `src/server/db/upgrades/migration-10.test.ts`, the option in
   `actions.test.ts`, `store.test.ts` and `auth.test.ts`; E2E in
   `e2e/game.spec.ts` („explanation texts (#63)“: click, keyboard, tap on a
   phone, all three modes after a reload) and `e2e/a11y.spec.ts` (closed,
-  opened and always shown).
+  opened and always shown). The E2E test checks that the panel shows `lt`
+  (Metallmine, Spionagetechnik, Spionagesonde, Solarkraftwerk); an entry
+  without any text is left to the unit tests, as no catalog entry on
+  `main` is one.

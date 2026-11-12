@@ -9,6 +9,7 @@ import {
   uniqueName,
   watch,
 } from './helpers.ts';
+import { BUILD, RES, SHIPS } from '../src/shared/catalog.ts';
 
 /** Seconds of a duration like "1h 02m 03s". */
 const seconds = (text: string): number =>
@@ -1329,7 +1330,7 @@ test.describe('explanation texts (#63)', () => {
     seed({ name, b: { lab: 1, robot: 2, yard: 2 } });
     await page.goto('/?view=buildings');
 
-    // Default „(?)-Symbol“ (D2): the short text is shown, the long one behind the (?).
+    // Default „(?)-Symbol“ (D2): the short text is shown, the long one (#94) behind the (?).
     const mine = row(page, 'Metallmine');
     const mineText = mine.locator('.ex');
     const mineQ = question(page, 'Metallmine');
@@ -1341,9 +1342,8 @@ test.describe('explanation texts (#63)', () => {
     await expect(mineText).toBeHidden();
     await mineQ.click();
     await expect(mineText).toBeVisible();
-    await expect(mineText).toHaveText(
-      'Fördert Metall, den wichtigsten Grundrohstoff.',
-    );
+    await expect(mineText).toHaveText(BUILD.metal!.lt!);
+    await expect(mineText).not.toHaveText(BUILD.metal!.ds);
     await expect(mineQ).toHaveAttribute('aria-expanded', 'true');
     await expect(mineQ).toBeFocused();
     await page.keyboard.press('Enter');
@@ -1359,21 +1359,24 @@ test.describe('explanation texts (#63)', () => {
     await expect(spy.locator('.ex')).toBeHidden();
     await spyQ.focus();
     await page.keyboard.press('Enter');
-    await expect(spy.locator('.ex')).toHaveText(
-      'Bessere Spionageberichte, bessere Abwehr.',
-    );
+    await expect(spy.locator('.ex')).toHaveText(RES.spy!.lt!);
     await expect(spyQ).toHaveAttribute('aria-expanded', 'true');
     await page.keyboard.press('Space');
     await expect(spy.locator('.ex')).toBeHidden();
     await spyQ.click();
     await expect(spy.locator('.ex')).toBeVisible();
 
-    // An entry without any text has neither (?) nor panel (D4).
+    // Ships without a short description now have a long text (#94): the
+    // Spionagesonde gets the (?) and its panel. An entry without any text
+    // has neither (D4); no catalog entry on main is one, the unit tests of
+    // explain.ts cover it.
     await nav(page, 'shipyard');
-    await expect(row(page, 'Spionagesonde')).toBeVisible();
-    await expect(question(page, 'Spionagesonde')).toHaveCount(0);
-    await expect(row(page, 'Spionagesonde').locator('.ex')).toHaveCount(0);
-    // Ships with a description (Solarsatellit, #46) do get the (?).
+    const probe = row(page, 'Spionagesonde');
+    await expect(probe).toBeVisible();
+    await expect(probe.locator('.ex')).toBeHidden();
+    await question(page, 'Spionagesonde').click();
+    await expect(probe.locator('.ex')).toHaveText(SHIPS.probe!.lt!);
+    // Ships with a description (Solarsatellit, #46) get the (?) too.
     await expect(question(page, 'Solarsatellit')).toHaveCount(1);
 
     await choose(page, 'Immer anzeigen');
@@ -1412,7 +1415,7 @@ test.describe('explanation texts (#63)', () => {
     const text = row(page, 'Solarkraftwerk').locator('.ex');
     await expect(text).toBeHidden();
     await question(page, 'Solarkraftwerk').tap();
-    await expect(text).toHaveText('Liefert Energie für die Minen.');
+    await expect(text).toHaveText(BUILD.solar!.lt!);
     await question(page, 'Solarkraftwerk').tap();
     await expect(text).toBeHidden();
     expect(

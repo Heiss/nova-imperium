@@ -10,7 +10,9 @@ Source: the owner's package `nova-imperium-40k` (`texte-40k.json`,
 `apply-40k-texts.mjs`, README, 2026-11-10), given to Claude on 2026-11-12.
 Nothing of it is applied on `main` yet; every catalog entry and icon title
 still has its classic name. The script `apply-40k-texts.mjs` was not run or
-reviewed.
+reviewed. The branch `claude/grimdark-naming` prepares the rename: it brings
+the long texts first (see „Long texts [V]“ below); the names follow after
+#123 and #60 are merged (owner, 2026-11-12).
 
 * **[E]** Timing: the features of the milestone `next release` (#46, #47,
   #49, #50) are built with their classic names. At the end of the release one
@@ -123,3 +125,33 @@ Gartenwelt, Ozeanwelt, Dschungelwelt, Ödwelt, Wüstenwelt, Eiswelt, Gasriese,
 Mondfeste, Auspex-Phalanx, Warp-Tor, Raketenkrypta, Abfangrakete,
 Orbitalrakete, Gildenarsenal, Wacht halten;
 Expeditionstechnik → Kreuzzugs-Kartografie (package order).
+
+## Long texts [V]
+
+Drafted by Claude on 2026-11-12 for the owner to confirm; the field `lt` of
+every building, research, ship and defense entry on `main` in
+`src/shared/catalog.ts` (43 entries) holds them. The panel of #63 shows `lt`
+instead of the short `ds` ([Explanation texts](/features/explanation-texts.md)).
+
+* Already with the new names of this concept, resources included (Adamant,
+  Psikristall, Promethium), while `n`, `ab`, `ds`, keys, values, icons and
+  interface texts stay classic until the rename.
+* Content as decided for #63: lore, what the entry does, what a further
+  level or more units change. Costs, times and energy values are not
+  repeated; the texts have no numbers. Each statement was checked against
+  the code (`economy.ts`, `research.ts`, `flight.ts`, `battle.ts`, `lab.ts`,
+  `yard.ts`, `arrival.ts`, `fleet-actions.ts`).
+* Plain text, two to four sentences, one paragraph. Rapid fire is called
+  „Schnellfeuer“; the rebuilt defense after a battle is „ein großer Teil“.
+* Not yet written, because the entries are not on `main`: Ionengeschütz
+  (`ionc`), Plasmawerfer (`pt`), Kleine and Große Schildkuppel (`ssd`,
+  `lsd`) of #50 and the Todesstern (`dstar`) of #60. The list `LATER` in
+  `src/shared/explain.test.ts` names them and may only shrink.
+* Texts that name other entries must change with them: Lichtlanzen-Lehre,
+  Plasma-Lehre and Ionen-Lehre name what they unlock today, the defense
+  texts and the ship texts name who has rapid fire against whom (the
+  Ionengeschütz and the Todesstern add rapid fire).
+* `src/shared/explain.test.ts` checks: every entry on `main` but `LATER`
+  has a text; no text says a classic name this concept replaces (its own
+  table, not read from this file); two to four sentences, plain text,
+  other than `ds`; no protected Games Workshop name.

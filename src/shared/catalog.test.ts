@@ -7,30 +7,49 @@ const require = createRequire(import.meta.url);
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const O: any = require('../test/legacy/game.cjs');
 
+/**
+ * The entries without their long text `lt`: version 1 had none, the texts
+ * came with #63 and #94; every other field stays the one of version 1.
+ */
+const withoutLt = <T extends { lt?: string }>(
+  defs: Record<string, T>,
+): Record<string, Omit<T, 'lt'>> =>
+  Object.fromEntries(
+    Object.entries(defs).map(([k, def]) => {
+      const rest = { ...def };
+      delete rest.lt;
+      return [k, rest];
+    }),
+  );
+
+/** A long text is there: the exact wording is the owner's to confirm (#94). */
+const LT = expect.stringMatching(/\S/);
+
 describe('catalog', () => {
-  it('equals the catalog of version 1', () => {
-    expect(C.BUILD).toEqual({
+  it('equals the catalog of version 1, apart from the long texts', () => {
+    expect(withoutLt(C.BUILD)).toEqual({
       ...O.BUILD,
-      nanite: C.BUILD.nanite,
-      fusion: C.BUILD.fusion,
+      nanite: withoutLt(C.BUILD).nanite,
+      fusion: withoutLt(C.BUILD).fusion,
     });
-    expect(C.RES).toEqual({
+    expect(withoutLt(C.RES)).toEqual({
       ...O.RES,
-      ion: C.RES.ion,
-      plasma: C.RES.plasma,
-      graviton: C.RES.graviton,
-      ifn: C.RES.ifn,
+      ion: withoutLt(C.RES).ion,
+      plasma: withoutLt(C.RES).plasma,
+      graviton: withoutLt(C.RES).graviton,
+      ifn: withoutLt(C.RES).ifn,
     });
+    const ships = withoutLt(C.SHIPS);
     const added = {
-      colony: C.SHIPS.colony,
-      bc: C.SHIPS.bc,
-      dr: C.SHIPS.dr,
-      bb: C.SHIPS.bb,
-      sat: C.SHIPS.sat,
+      colony: ships.colony,
+      bc: ships.bc,
+      dr: ships.dr,
+      bb: ships.bb,
+      sat: ships.sat,
     };
-    expect(C.SHIPS).toEqual({ ...O.SHIPS, ...added });
-    expect(C.DEF).toEqual(O.DEF);
-    expect(C.UNIT).toEqual({ ...O.UNIT, ...added });
+    expect(ships).toEqual({ ...O.SHIPS, ...added });
+    expect(withoutLt(C.DEF)).toEqual(O.DEF);
+    expect(withoutLt(C.UNIT)).toEqual({ ...O.UNIT, ...added });
     expect(C.DRIVE_BONUS).toEqual(O.DRIVE_BONUS);
     expect(C.MISSION).toEqual({ ...O.MISSION, colonize: 'Kolonisieren' });
   });
@@ -41,6 +60,7 @@ describe('catalog', () => {
       cost: [1000000, 500000, 100000],
       f: 2,
       ds: 'Halbiert die Bauzeit von Gebäuden, Schiffen und Verteidigung pro Stufe.',
+      lt: LT,
       req: { b: { robot: 10 }, r: { computer: 10 } },
     });
   });
@@ -51,6 +71,7 @@ describe('catalog', () => {
       cost: [900, 360, 180],
       f: 1.8,
       ds: 'Erzeugt Energie aus Deuterium; Energietechnik steigert die Leistung.',
+      lt: LT,
       req: { b: { deut: 5 }, r: { energy: 3 } },
     });
     const all = [C.BUILD, C.RES, C.UNIT].flatMap((d) =>
@@ -117,6 +138,7 @@ describe('catalog', () => {
       req: { b: { yard: 8 }, r: { laser: 12, hyper: 5, hdrive: 5 } },
       rf: { sc: 3, lc: 3, hf: 4, cr: 4, bs: 7 },
       ds: 'Schnell und stark gegen Transporter, Kreuzer und Schlachtschiffe.',
+      lt: LT,
     });
   });
   it('has the Zerstörer with the classic values (#59)', () => {
@@ -133,6 +155,7 @@ describe('catalog', () => {
       req: { b: { yard: 9 }, r: { hdrive: 6, hyper: 5 } },
       rf: { ll: 10, bc: 2 },
       ds: 'Schweres Kriegsschiff – stark gegen Lasergeschütze und Schlachtkreuzer.',
+      lt: LT,
     });
   });
   it('has the Bomber with the classic values and its drive switch (#57)', () => {
@@ -156,6 +179,7 @@ describe('catalog', () => {
       req: { b: { yard: 8 }, r: { impulse: 6, plasma: 5 } },
       rf: { rl: 20, ll: 20, hl: 10 },
       ds: 'Stark gegen Raketenwerfer und Lasergeschütze; fliegt ab Hyperraumantrieb 8 mit dem Hyperraumantrieb.',
+      lt: LT,
     });
     // The Werft lists it after the Zerstörer.
     const keys = Object.keys(C.SHIPS);
@@ -185,6 +209,7 @@ describe('catalog', () => {
       drive: 'comb',
       req: { b: { yard: 1 } },
       ds: 'Liefert Energie, je wärmer der Planet, desto mehr. Kann nicht fliegen.',
+      lt: LT,
     });
   });
   it('knows which ships can fly', () => {

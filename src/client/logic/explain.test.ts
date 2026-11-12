@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BUILD, SHIPS } from '../../shared/catalog.ts';
+import { BUILD, DEF, SHIPS } from '../../shared/catalog.ts';
 import {
   explainButtonHTML,
   explainMode,
@@ -19,7 +19,7 @@ describe('explanation of an entry per display mode (issue #63)', () => {
       button: 'exq_metal',
       panel: 'ex_metal',
       name: 'Metallmine',
-      text: metal.ds,
+      text: metal.lt,
       toggle: false,
       open: true,
     });
@@ -50,10 +50,23 @@ describe('explanation of an entry per display mode (issue #63)', () => {
     );
   });
 
+  it('shows the short ds when an entry has no long text (D4)', () => {
+    const short = { n: 'Erzmine', ds: 'Kurz.' };
+    expect(explanation('x', short, 'always', {})!.text).toBe('Kurz.');
+  });
+
   it('gives an entry without any text neither panel nor (?)', () => {
-    expect(SHIPS.probe!.ds).toBeUndefined();
     for (const mode of ['always', 'icon', 'hidden'] as const)
-      expect(explanation('probe', SHIPS.probe!, mode, {})).toBeNull();
+      expect(explanation('x', { n: 'Sonde' }, mode, {})).toBeNull();
+  });
+
+  it('gives the ships and the defense the (?) with their long text (#94)', () => {
+    expect(SHIPS.probe!.ds).toBeUndefined();
+    expect(explanation('probe', SHIPS.probe!, 'icon', {})).toMatchObject({
+      toggle: true,
+      text: SHIPS.probe!.lt,
+    });
+    expect(explanation('rl', DEF.rl!, 'always', {})!.text).toBe(DEF.rl!.lt);
   });
 
   it('uses the (?) for a missing or unknown mode (default D2)', () => {
