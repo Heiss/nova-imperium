@@ -49,11 +49,24 @@ interface UnitDefBase {
   lt?: string;
 }
 
+/**
+ * A drive a ship switches to once the player has researched `from` (issue
+ * #57): it replaces the base `drive` and `speed` of the ship.
+ */
+interface DriveSwitch {
+  drive: DriveKey;
+  speed: number;
+  from: { research: string; level: number };
+}
+
 export interface ShipDef extends UnitDefBase {
   cargo: number;
+  /** Base speed with the base `drive`. */
   speed: number;
   fuel: number;
   drive: DriveKey;
+  /** Later drives; the last one whose research is reached flies the ship. */
+  drives?: DriveSwitch[];
 }
 
 export type DefenseDef = UnitDefBase;
@@ -507,6 +520,25 @@ export const SHIPS: Record<string, ShipDef> = {
     req: { b: { yard: 9 }, r: { hdrive: 6, hyper: 5 } },
     rf: { ll: 10, bc: 2 },
     ds: 'Schweres Kriegsschiff – stark gegen Lasergeschütze und Schlachtkreuzer.',
+  },
+  // Issue #57, classic before the update of 2019-12-13 (owner, 2026-11-12):
+  // Impulstriebwerk, from Hyperraumantrieb 8 the Hyperraumantrieb.
+  bb: {
+    n: 'Bomber',
+    ab: 'BO',
+    cost: [50000, 25000, 15000],
+    atk: 1000,
+    sh: 500,
+    cargo: 500,
+    speed: 4000,
+    fuel: 1000,
+    drive: 'impulse',
+    drives: [
+      { drive: 'hdrive', speed: 5000, from: { research: 'hdrive', level: 8 } },
+    ],
+    req: { b: { yard: 8 }, r: { impulse: 6, plasma: 5 } },
+    rf: { rl: 20, ll: 20, hl: 10 },
+    ds: 'Stark gegen Raketenwerfer und Lasergeschütze; fliegt ab Hyperraumantrieb 8 mit dem Hyperraumantrieb.',
   },
   probe: {
     n: 'Spionagesonde',

@@ -177,6 +177,14 @@ describe('points and state', () => {
     expect(pointsMap(ctx)).toEqual({ u_Anna: 295 });
   });
 
+  it('count the Bomber by its cost (#57)', () => {
+    const ctx = testCtx();
+    addUser(ctx, 'Anna');
+    addPlanet(ctx, 'u_Anna', { ships: { bb: 2, dr: 1 } });
+    // bb 2 × 90,000 + dr 125,000 = 305,000
+    expect(pointsMap(ctx)).toEqual({ u_Anna: 305 });
+  });
+
   it('shows own fleets fully and incoming foreign ones partly', () => {
     const ctx = testCtx();
     const a = addUser(ctx, 'Anna');
