@@ -127,6 +127,19 @@ jobs:
             prs=$(gh pr list --head "sec-fix/$1" --state open --json number --jq '.[0].number // empty') || exit 1
             [ -z "$prs" ]
           }
+          # One hotfix at a time: a second one from the same tag would
+          # release without the first fix and move stable back.
+          other_on_its_way() {
+            for ref in $(git for-each-ref --format='%(refname:short)' 'refs/remotes/origin/hotfix/sec-*'); do
+              other=${ref#origin/hotfix/sec-}
+              [ "$other" = "$ID" ] && continue
+              if ! released "$other" && ! incomplete "$other"; then
+                echo "hotfix/sec-$other is still on its way: this one waits for its release."
+                return 0
+              fi
+            done
+            return 1
+          }
           list=$(node -e "
             for (const f of require('./plan.json').findings)
               console.log('- ' + f.severity + ' ' + f.id + ': ' + f.package + ' ' + f.installed + ' → ' + f.fixed + ' (' + (f.layer === 'app' ? 'package.json' : 'base image') + ')');
@@ -139,23 +152,17 @@ jobs:
             elif ! incomplete "$ID"; then
               echo "$branch is still on its way to a release."
             elif [ "$(git rev-parse "origin/$branch")" = "$(git rev-parse "$TAG^{commit}")" ]; then
-              echo "$branch has no fix pull request yet: the hotfix job finishes it."
-              echo "start=true" >> "$GITHUB_OUTPUT"
+              if ! other_on_its_way; then
+                echo "$branch has no fix pull request yet: the hotfix job finishes it."
+                echo "start=true" >> "$GITHUB_OUTPUT"
+              fi
             else
               echo "::warning::$branch has no fix and no longer starts at the newest release $TAG."
               issue "Sicherheits-Hotfix sec-$ID ist unvollständig" "$(printf '%s has no fix pull request and does not start at the newest release %s. Delete the branch (the ruleset hotfix blocks deletion; allow it once) so that the next scan starts the hotfix again.\n\n%s\n' "$branch" "$TAG" "$list")"
             fi
             exit 0
           fi
-          # One hotfix at a time: a second one from the same tag would
-          # release without the first fix and move stable back.
-          for ref in $(git for-each-ref --format='%(refname:short)' 'refs/remotes/origin/hotfix/sec-*'); do
-            other=${ref#origin/hotfix/sec-}
-            if ! released "$other" && ! incomplete "$other"; then
-              echo "hotfix/sec-$other is still on its way: this one waits for its release."
-              exit 0
-            fi
-          done
+          if other_on_its_way; then exit 0; fi
           echo "start=true" >> "$GITHUB_OUTPUT"
           issue "Sicherheits-Hotfix sec-$ID" "$(printf 'Trivy found these holes in the image of release %s (stable). The security hotfix workflow builds %s from the tag; its pull requests merge themselves when the CI Gate is green. After the release, merge %s back into main.\n\n%s\n' "$TAG" "$branch" "$branch" "$list")"
 
