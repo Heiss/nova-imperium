@@ -62,6 +62,9 @@ jobs:
     # (owner, 2026-11-12; CodeRabbit security finding on pull request #84).
     environment: release
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write # start the release pull request of main after a hotfix
     steps:
       - uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3
         id: app
@@ -69,6 +72,7 @@ jobs:
           app-id: ${{ vars.RELEASE_APP_ID }}
           private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
           permission-contents: write
+          permission-pull-requests: write
       # Keeps the credentials: scripts/release.sh pushes the tag.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -84,3 +88,34 @@ jobs:
           git config user.name 'Nova Imperium Release'
           git config user.email 'nova-imperium-release@users.noreply.github.com'
           sh scripts/release.sh
+
+      # A hotfix took the next version: the release pull request of main is
+      # rebuilt now, so it takes a newer one and its release becomes stable
+      # (release.yml points stable at the newest tag). A security hotfix
+      # also opens its pull request back into main; the owner merges it
+      # (owner, 2026-11-12).
+      - name: After a hotfix release
+        if: startsWith(github.event.workflow_run.head_branch, 'hotfix/')
+        env:
+          SHA: ${{ github.event.workflow_run.head_sha }}
+          BRANCH: ${{ github.event.workflow_run.head_branch }}
+          GH_TOKEN: ${{ github.token }}
+          APP_TOKEN: ${{ steps.app.outputs.token }}
+        run: |
+          version=$(tr -d '[:space:]' < VERSION)
+          git fetch --quiet --tags origin
+          if [ "$(git rev-parse -q --verify "refs/tags/$version^{commit}" || true)" != "$SHA" ]; then
+            echo "This run tagged nothing: no follow-up."
+            exit 0
+          fi
+          gh workflow run release-pr.yml --ref main
+          case "$BRANCH" in
+            hotfix/sec-*)
+              open=$(GH_TOKEN="$APP_TOKEN" gh pr list --head "$BRANCH" --base main --state open --json number --jq '.[0].number // empty')
+              if [ -z "$open" ]; then
+                GH_TOKEN="$APP_TOKEN" gh pr create --base main --head "$BRANCH" \
+                  --title "Sicherheits-Hotfix $version zurück nach main" \
+                  --body "Release $version from \`$BRANCH\` is published. Merge it back into main (owner); its version is not tagged again."
+              fi
+              ;;
+          esac

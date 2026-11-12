@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # Base: Node 26 (see .node-version); pnpm in the version of package.json.
-FROM node:26-slim AS base
+FROM node:26-slim@sha256:e6bedef217677b276c591795e169840edd9096dbf13f29df8ef8d1856b8820bc AS base
 WORKDIR /app
 ENV CI=true
 COPY package.json ./
@@ -24,7 +24,7 @@ COPY . .
 RUN pnpm build && pnpm prune --prod --ignore-scripts && touch VERSION
 
 # The image that runs: no compilers, no pnpm, not root, no tests.
-FROM node:26-slim AS app
+FROM node:26-slim@sha256:e6bedef217677b276c591795e169840edd9096dbf13f29df8ef8d1856b8820bc AS app
 WORKDIR /app
 ENV NODE_ENV=production \
     NOVA_HOST=0.0.0.0 \
