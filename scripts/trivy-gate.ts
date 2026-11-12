@@ -9,6 +9,7 @@
 //        two pull requests that each fix one of two holes do not block
 //        each other
 import { readFileSync } from 'node:fs';
+import { runCli } from './cli.ts';
 
 interface Vulnerability {
   VulnerabilityID: string;
@@ -77,11 +78,4 @@ function main(): number {
   return 1;
 }
 
-if (import.meta.main) {
-  try {
-    process.exitCode = main();
-  } catch (error) {
-    console.error(error instanceof Error ? error.message : error);
-    process.exitCode = 1;
-  }
-}
+if (import.meta.main) runCli(main);
