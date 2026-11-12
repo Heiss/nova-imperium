@@ -2,7 +2,7 @@
 
 ## 2026-11-12
 
-* **Decision**: #50 clarified: Ionengeschütz (cost wiki value, [U]), Plasmawerfer, Kleine and Große Schildkuppel with the classic values; domes once per planet and rebuilt like defense; rapid fire of the Bomber with #57 (see [Defense](/features/defense-ion-plasma-domes.md)).
+* **Decision**: #50 clarified: Ionengeschütz (classic cost 2,000 / 6,000 from owiki.de), Plasmawerfer, Kleine and Große Schildkuppel with the classic values; domes once per planet and rebuilt like defense; rapid fire of the Bomber with #57 (see [Defense](/features/defense-ion-plasma-domes.md)).
 * **Feature**: Release loop: `.claude/loop.md` for a bare `/loop` - plan the release with the owner (infrastructure first), clarify, build, make the release pull request ready, stop (see [Release loop](/ops/loop.md)).
 * **Update**: Release candidate images `<version>-rc.<N>` and `next` for every green release pull request; releases are also tagged `stable`, `latest` stays the newest release (see [Branching and release](/ops/branching-release.md)).
 
