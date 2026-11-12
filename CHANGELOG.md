@@ -4,7 +4,7 @@
 
 ### Neu
 
-- Wartung: Während eines Updates zeigt das Spiel eine Wartungsseite oder einen Hinweis statt einer Fehlermeldung und lädt von selbst weiter, sobald der Server wieder da ist.
+- Wartung: Während eines Updates zeigt das Spiel eine Wartungsseite statt einer Fehlermeldung. Bist du schon im Spiel, erscheint ein Hinweis, und das Spiel lädt von selbst weiter, sobald der Server wieder da ist.
 
 ## Version 26.11.14 – 11.11.2026
 
@@ -64,7 +64,7 @@
 - Gilden mit eigenem Profiltext.
 - Benachrichtigungen im Browser, wenn du sie einschaltest.
 - Vor einem Gebäudeausbau zeigt das Spiel, wie sich deine Energie ändert.
-- Passwort vergessen: Du setzt es per E-Mail zurück. Wo der Server es anbietet, meldest du dich auch mit einem Code per E-Mail an.
+- Passwort vergessen: Verschickt der Server E-Mails, setzt du es per E-Mail zurück. Ist es eingeschaltet, fragt die Anmeldung nach dem Passwort zusätzlich einen Code per E-Mail ab.
 
 ### Geändert
 
