@@ -40,7 +40,7 @@ must match the code.
 * Catalog: optional field `lt` (long text) for buildings, research, ships and
   defense. The panel shows `lt`, else `ds` (D4); an entry without either has
   neither (?) nor panel. Since the branch of #94 every entry on `main` has
-  an `lt` ([V], drafts in the grimdark style, see
+  an `lt` ([E], grimdark style, confirmed by the owner 2026-11-12, see
   [Grimdark naming](/features/naming.md)), so the ships and the defense
   get the (?) too; the entries of #50 and #60 get theirs later.
 * Interface: `src/client/logic/explain.ts` decides per entry and mode;

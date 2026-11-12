@@ -11,7 +11,7 @@ Source: the owner's package `nova-imperium-40k` (`texte-40k.json`,
 Nothing of it is applied on `main` yet; every catalog entry and icon title
 still has its classic name. The script `apply-40k-texts.mjs` was not run or
 reviewed. The branch `claude/grimdark-naming` prepares the rename: it brings
-the long texts first (see „Long texts [V]“ below); the names follow after
+the long texts first (see „Long texts [E]“ below); the names follow after
 #123 and #60 are merged (owner, 2026-11-12).
 
 * **[E]** Timing: the features of the milestone `next release` (#46, #47,
@@ -126,11 +126,12 @@ Mondfeste, Auspex-Phalanx, Warp-Tor, Raketenkrypta, Abfangrakete,
 Orbitalrakete, Gildenarsenal, Wacht halten;
 Expeditionstechnik → Kreuzzugs-Kartografie (package order).
 
-## Long texts [V]
+## Long texts [E]
 
-Drafted by Claude on 2026-11-12 for the owner to confirm; the field `lt` of
-every building, research, ship and defense entry on `main` in
-`src/shared/catalog.ts` (43 entries) holds them. The panel of #63 shows `lt`
+Drafted by Claude on 2026-11-12; the owner confirmed all 43 texts as they
+are (owner, 2026-11-12). The field `lt` of every building, research, ship
+and defense entry on `main` in `src/shared/catalog.ts` (43 entries) holds
+them. The panel of #63 shows `lt`
 instead of the short `ds` ([Explanation texts](/features/explanation-texts.md)).
 
 * Already with the new names of this concept, resources included (Adamant,
@@ -145,8 +146,9 @@ instead of the short `ds` ([Explanation texts](/features/explanation-texts.md)).
   „Schnellfeuer“; the rebuilt defense after a battle is „ein großer Teil“.
 * Not yet written, because the entries are not on `main`: Ionengeschütz
   (`ionc`), Plasmawerfer (`pt`), Kleine and Große Schildkuppel (`ssd`,
-  `lsd`) of #50 and the Todesstern (`dstar`) of #60. The list `LATER` in
-  `src/shared/explain.test.ts` names them and may only shrink.
+  `lsd`) of #50 and the Todesstern (`dstar`) of #60; they and the changes
+  below are drafted [V] with the rename and confirmed there. The list
+  `LATER` in `src/shared/explain.test.ts` names them and may only shrink.
 * Texts that name other entries must change with them: Lichtlanzen-Lehre,
   Plasma-Lehre and Ionen-Lehre name what they unlock today, the defense
   texts and the ship texts name who has rapid fire against whom (the
