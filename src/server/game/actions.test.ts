@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { RES } from '../../shared/catalog.ts';
 import { lvlCost, prod, researchTime } from '../../shared/economy.ts';
+import { settle } from '../../shared/settle.ts';
 import { addPlanet, addUser, testCtx, type TestCtx } from '../test-helpers.ts';
 import type { AuditEntry } from '../audit.ts';
 import * as A from './actions.ts';
@@ -344,6 +345,95 @@ describe('research on any own planet with a lab (#49)', () => {
   });
 });
 
+describe('Fusionskraftwerk and Energietechnik (#47)', () => {
+  const H = 3600000;
+  const energyDone = (ctx: TestCtx) => ({
+    research: { energy: 3 },
+    rq: {
+      key: 'energy',
+      lvl: 4,
+      start: ctx.now(),
+      end: ctx.now() + H,
+      cost: [0, 800, 400] as const,
+      planet: 'p1_1_5',
+    },
+  });
+  const reactor = {
+    b: { deut: 9, fusion: 6, metal: 12 },
+    temp: 30,
+    res: { m: 0, c: 0, d: 50000 },
+  };
+
+  it('settles the planets with a reactor before a new research forgets when Energietechnik finished', () => {
+    const ctx = testCtx();
+    const u = addUser(ctx, 'Anna', energyDone(ctx));
+    addPlanet(ctx, u.id, { b: { lab: 1 } });
+    const col = addPlanet(ctx, u.id, { s: 2, ...reactor });
+    const quiet = addPlanet(ctx, u.id, { s: 3, b: { metal: 12 } });
+    const built = addPlanet(ctx, u.id, {
+      s: 4,
+      b: { deut: 9, metal: 12 },
+      bq: {
+        key: 'fusion',
+        lvl: 1,
+        start: 0,
+        end: ctx.now() + 1,
+        cost: [1, 1, 1],
+      },
+    });
+    const start = ctx.now();
+    ctx.clock.t += 3 * H;
+    const want = settle(col, ctx.now(), ctx.store.universe(), u);
+    const wantBuilt = settle(built, ctx.now(), ctx.store.universe(), u);
+    expect(A.research(ctx, u, { key: 'laser' })).toBeNull();
+    expect(ctx.store.user(u.id)!.rq).toMatchObject({ key: 'laser' });
+    expect(ctx.store.planet(col.id)).toEqual(want);
+    expect(ctx.store.planet(built.id)).toEqual(wantBuilt);
+    expect(ctx.store.planet(quiet.id)!.t).toBe(start);
+    // Settled later without the end, the whole time would count level 4.
+    const late = settle(col, ctx.now(), ctx.store.universe(), {
+      research: { energy: 4 },
+      rq: null,
+    });
+    expect(late.res.m).toBeGreaterThan(want.res.m);
+  });
+
+  it('leaves the planets alone while Energietechnik runs or other research ends', () => {
+    const ctx = testCtx();
+    const running = energyDone(ctx);
+    const u = addUser(ctx, 'Anna', running);
+    const home = addPlanet(ctx, u.id, { b: { lab: 1 } });
+    const col = addPlanet(ctx, u.id, { s: 2, ...reactor });
+    ctx.clock.t += H / 2;
+    expect(A.cancelResearch(ctx, u, {})).toBeNull();
+    expect(ctx.store.planet(col.id)!.t).toBe(col.t);
+    const other = addUser(ctx, 'Bert', {
+      research: { energy: 3 },
+      rq: { ...running.rq, key: 'laser', lvl: 1 },
+    });
+    addPlanet(ctx, other.id, { s: 5, b: { lab: 1 } });
+    const col2 = addPlanet(ctx, other.id, { s: 6, ...reactor });
+    ctx.clock.t += 3 * H;
+    expect(A.research(ctx, other, { key: 'energy' })).toBeNull();
+    expect(ctx.store.planet(col2.id)!.t).toBe(col2.t);
+    expect(home.t).toBe(col.t);
+  });
+
+  it('produces with the Energietechnik of the player', () => {
+    const { ctx, u, p } = setup(reactor, { research: { energy: 8 } });
+    const src = p();
+    ctx.clock.t += H;
+    A.rename(ctx, u, { name: 'Reaktor' });
+    const r = { research: { energy: 8 }, rq: null };
+    expect(p().res).toEqual(
+      settle(src, ctx.now(), ctx.store.universe(), r).res,
+    );
+    expect(p().res.m).toBeGreaterThan(
+      settle(src, ctx.now(), ctx.store.universe()).res.m,
+    );
+  });
+});
+
 describe('Gravitonforschung (#49)', () => {
   it('starts only with 300,000 energy production on the starting planet', () => {
     const { ctx, u, p, me } = setup({ b: { lab: 12, solar: 58 } });
@@ -379,6 +469,18 @@ describe('Gravitonforschung (#49)', () => {
       A.research(ctx, u, { key: 'graviton', planet: col.id }),
     ).toThrow('Zu wenig Energie');
     A.research(ctx, me(), { key: 'graviton' });
+    expect(me().rq).toMatchObject({ key: 'graviton' });
+  });
+
+  it('counts the Fusionskraftwerk with the Energietechnik of the player (#47)', () => {
+    // Solarkraftwerk 58 lacks about 8,100; a reactor of level 20 gives about
+    // 1,600 without Energietechnik and about 9,800 with level 10.
+    const { ctx, u, me } = setup({ b: { lab: 12, solar: 58, fusion: 20 } });
+    expect(() => A.research(ctx, u, { key: 'graviton' })).toThrow(
+      'Zu wenig Energie',
+    );
+    ctx.store.saveUser({ ...me(), research: { energy: 10 } });
+    expect(A.research(ctx, me(), { key: 'graviton' })).toBeNull();
     expect(me().rq).toMatchObject({ key: 'graviton' });
   });
 
@@ -525,6 +627,8 @@ describe('planet settings', () => {
     expect(() => A.pct(ctx, u, { key: 'lab', v: 10 })).toThrow('Ungültig.');
     A.pct(ctx, u, { key: 'sat', v: 30 });
     expect(p().pct.sat).toBe(30);
+    A.pct(ctx, u, { key: 'fusion', v: 60 });
+    expect(p().pct.fusion).toBe(60);
   });
   it('rename the planet', () => {
     const { ctx, u, p } = setup();

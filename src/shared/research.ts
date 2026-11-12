@@ -2,9 +2,9 @@
 // server and the browser: the research network (IFN) that links further labs
 // for the research time, and the energy production Gravitonforschung needs.
 import { RES, type ResearchDef } from './catalog.ts';
-import { prod } from './economy.ts';
+import { production } from './economy.ts';
 import { labUpgrading } from './lab.ts';
-import type { Planet, Universe } from './types.ts';
+import type { Levels, Planet, Universe } from './types.ts';
 
 /** One own planet as the research network sees it. */
 export interface LabSite {
@@ -49,11 +49,18 @@ export const energyNeed = (
 
 /**
  * How much energy production `p` lacks for level `level` of `d`, rounded
- * up; 0 when it is enough. The production counts, not the use (#49).
+ * up; 0 when it is enough. The production counts, not the use (#49), with
+ * the Fusionskraftwerk as it runs: `research` holds Energietechnik, and a
+ * reactor throttled at an empty stock counts its throttled share (#47).
  */
 export const energyShort = (
   d: Pick<ResearchDef, 'energy'>,
   level: number,
-  p: Pick<Planet, 'b' | 'pct' | 'temp'>,
+  p: Pick<Planet, 'b' | 'pct' | 'temp' | 'res'>,
   u: Universe,
-): number => Math.max(0, Math.ceil(energyNeed(d, level) - prod(p, u).eProd));
+  research: Levels = {},
+): number =>
+  Math.max(
+    0,
+    Math.ceil(energyNeed(d, level) - production(p, u, research).eProd),
+  );

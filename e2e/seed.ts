@@ -1,6 +1,6 @@
 // Changes the database of the running E2E server directly, for situations the
 // UI would need hours to reach (ships in the hangar). Usage:
-//   node e2e/seed.ts '<json>'   with { name, res?, b?, ships?, def?, temp?, research?,
+//   node e2e/seed.ts '<json>'   with { name, res?, b?, ships?, def?, temp?, pct?, research?,
 //   clearQueue? (a finished build), colony? ({ g?, s?, p?, name?, b?, res? }: an own planet,
 //   by default on slot 15 of the home system) }
 import { openDatabase } from '../src/server/db/database.ts';
@@ -33,6 +33,7 @@ function updateHome(p: Planet): void {
     ships: d.ships ?? p.ships,
     def: d.def ?? p.def,
     temp: d.temp ?? p.temp,
+    pct: d.pct ?? p.pct,
     bq: d.clearQueue ? null : p.bq,
   });
 }

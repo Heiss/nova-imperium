@@ -9,7 +9,11 @@ const O: any = require('../test/legacy/game.cjs');
 
 describe('catalog', () => {
   it('equals the catalog of version 1', () => {
-    expect(C.BUILD).toEqual({ ...O.BUILD, nanite: C.BUILD.nanite });
+    expect(C.BUILD).toEqual({
+      ...O.BUILD,
+      nanite: C.BUILD.nanite,
+      fusion: C.BUILD.fusion,
+    });
     expect(C.RES).toEqual({
       ...O.RES,
       ion: C.RES.ion,
@@ -45,6 +49,20 @@ describe('catalog', () => {
       ds: 'Halbiert die Bauzeit von Gebäuden, Schiffen und Verteidigung pro Stufe.',
       req: { b: { robot: 10 }, r: { computer: 10 } },
     });
+  });
+  it('has the Fusionskraftwerk with the classic values (#47)', () => {
+    expect(C.BUILD.fusion).toEqual({
+      n: 'Fusionskraftwerk',
+      ab: 'Fu',
+      cost: [900, 360, 180],
+      f: 1.8,
+      ds: 'Erzeugt Energie aus Deuterium; Energietechnik steigert die Leistung.',
+      req: { b: { deut: 5 }, r: { energy: 3 } },
+    });
+    const all = [C.BUILD, C.RES, C.UNIT].flatMap((d) =>
+      Object.values(d).map((x) => x.ab),
+    );
+    expect(all.filter((ab) => ab === 'Fu')).toEqual(['Fu']);
   });
   it('has Ionen-, Plasmatechnik, Gravitonforschung and IFN with the classic values (#49)', () => {
     expect(C.RES.ion).toMatchObject({
@@ -251,6 +269,13 @@ describe('catalog', () => {
       expect(C.canFly(k)).toBe(false);
     }
     expect(C.isDefense('lf')).toBe(false);
-    expect(C.PRODUCERS).toEqual(['metal', 'crystal', 'deut', 'solar', 'sat']);
+    expect(C.PRODUCERS).toEqual([
+      'metal',
+      'crystal',
+      'deut',
+      'solar',
+      'sat',
+      'fusion',
+    ]);
   });
 });

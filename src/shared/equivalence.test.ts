@@ -22,7 +22,8 @@ const pick = (keys: string[], chance: number, lo: number, hi: number): Levels =>
 
 function randomPlanet(): Planet {
   const t0 = ri(0, 1e6);
-  // Version 1 knows no Nanitenfabrik (#48): its planets have level 0.
+  // Version 1 knows no Nanitenfabrik (#48) and no Fusionskraftwerk (#47):
+  // its planets have level 0.
   const b = pick(Object.keys(O.BUILD), 0.7, 0, 15);
   const p: Planet = {
     id: 'x',
@@ -87,7 +88,14 @@ describe('equivalence with the original rules', () => {
       expect(N.settle(c.planet, c.until, U)).toEqual(
         O.settle(c.planet, c.until),
       );
+      // The research of the owner changes nothing without a Fusionskraftwerk.
+      expect(N.settle(c.planet, c.until, U, c.research)).toEqual(
+        O.settle(c.planet, c.until),
+      );
       expect(N.prod(c.planet, U)).toEqual(O.prod(c.planet));
+      expect(N.prod(c.planet, U, c.research.research)).toEqual(
+        O.prod(c.planet),
+      );
       expect(N.caps(c.planet, U)).toEqual(O.caps(c.planet));
     }
   });
