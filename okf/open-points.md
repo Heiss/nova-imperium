@@ -46,4 +46,4 @@ their result.
 | Interface never clicked through (hand-over note) | Covered by the E2E suite on every pull request. |
 | Old JSON state | Not imported (round 1). |
 | O4 Merging | The assistant merges its pull requests itself after a green CI Gate and with no open review findings (owner, 2026-11-10). |
-| O11 Model of places | Coordinates plus kind (`planet \| moon \| debris`), moons as rows of `planets`, debris in its own table, position 16 with #93; built as migration step 8 before #45 and #53 (owner, 2026-11-12, [Design patterns](/architecture/patterns.md)). |
+| O11 Model of places | Coordinates plus kind (`planet \| moon \| debris`), debris in its own table, position 16 with #93; built as migration step 8 (#119) before #45 and #53. How a moon is stored (a row of `planets`) is a proposal (owner, 2026-11-12, [Design patterns](/architecture/patterns.md)). |
