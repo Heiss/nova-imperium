@@ -1,5 +1,16 @@
-import { DEF, SHIPS, UNIT, type UnitDef } from '../../shared/catalog.ts';
-import { maxAfford, reqMissing, unitTime } from '../../shared/economy.ts';
+import {
+  DEF,
+  SHIPS,
+  UNIT,
+  type UnitDef,
+  canFly,
+} from '../../shared/catalog.ts';
+import {
+  maxAfford,
+  reqMissing,
+  satEnergy,
+  unitTime,
+} from '../../shared/economy.ts';
 import { shipSpeed } from '../../shared/flight.ts';
 import type { Levels } from '../../shared/types.ts';
 import { YARD_LOCK, yardLockedBy } from '../../shared/yard.ts';
@@ -24,10 +35,12 @@ function queue(v: V): string {
 function stats(v: V, k: string, d: UnitDef): string {
   const tech = v.R.research;
   const c = d.cost;
-  const ship = SHIPS[k];
+  const ship = canFly(k) ? SHIPS[k] : undefined;
   const cargo = ship ? ` · Ladung ${fmt(ship.cargo)}` : '';
   const speed = ship ? ` · Tempo ${fmt(shipSpeed(k, v.R))}` : '';
-  return `<div class="dim">Angriff ${fmt(d.atk * (1 + 0.1 * (tech.weapons ?? 0)))} · Schild ${fmt(d.sh * (1 + 0.1 * (tech.shield ?? 0)))} · Struktur ${fmt((c[0] + c[1]) * (1 + 0.1 * (tech.armor ?? 0)))}${cargo}${speed}</div>`;
+  const energy =
+    k === 'sat' ? ` · Energie ${fmt(satEnergy(v.P.temp))} je Satellit` : '';
+  return `<div class="dim">Angriff ${fmt(d.atk * (1 + 0.1 * (tech.weapons ?? 0)))} · Schild ${fmt(d.sh * (1 + 0.1 * (tech.shield ?? 0)))} · Struktur ${fmt((c[0] + c[1]) * (1 + 0.1 * (tech.armor ?? 0)))}${cargo}${speed}${energy}</div>`;
 }
 
 function orderBox(k: string, maxN: number, upgrading: boolean): string {

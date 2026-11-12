@@ -671,6 +671,40 @@ test.describe('playing', () => {
     expect(w.problems).toEqual([]);
   });
 
+  test('Solarsatelliten give energy by temperature and never fly (#46)', async ({
+    page,
+  }) => {
+    const w = watch(page);
+    const name = uniqueName('Sat');
+    await register(page, name);
+    seed({ name, b: { yard: 1 }, temp: 8, res: { m: 0, c: 10000, d: 10000 } });
+    await page.goto('/?view=shipyard');
+    const item = page
+      .locator('.item')
+      .filter({ has: page.locator('.nm', { hasText: /^\s*Solarsatellit/ }) });
+    await expect(
+      item.getByRole('img', { name: 'Solarsatellit' }),
+    ).toHaveAttribute('src', '/icons/ships/solar_satellite.svg');
+    await expect(item).toContainText('Energie 22 je Satellit');
+    await expect(item).not.toContainText('Tempo');
+    await page.fill('#q_sat', '2');
+    await page.click('[data-act=order][data-k=sat]');
+    await expect(
+      page.locator('.box', { hasText: 'Bauauftrag der Werft' }),
+    ).toContainText('2× Solarsatellit');
+
+    seed({ name, ships: { sat: 3, lf: 1 }, temp: 8 });
+    await page.goto('/?view=resources');
+    const row = page.locator('tr', { hasText: 'Solarsatelliten (3)' });
+    await expect(row.locator('td.good')).toHaveText('66');
+    await page.selectOption('select[data-k=sat]', '50');
+    await expect(row.locator('td.good')).toHaveText('33');
+    await page.goto('/?view=fleet');
+    await expect(page.locator('#f_lf')).toBeVisible();
+    await expect(page.locator('#f_sat')).toHaveCount(0);
+    expect(w.problems).toEqual([]);
+  });
+
   test('build, cancel, set production and rename', async ({ page }) => {
     const w = watch(page);
     await register(page, uniqueName('Bau'));
@@ -789,6 +823,96 @@ test.describe('playing', () => {
       .first()
       .click();
     await expect(page.locator('.rep.open')).toContainText('Rohstoffe auf');
+    expect(w.problems).toEqual([]);
+  });
+
+  test('Schlachtkreuzer and Zerstörer are built and fly (#58, #59)', async ({
+    page,
+  }) => {
+    const w = watch(page);
+    const name = uniqueName('Kreuzer');
+    await register(page, name);
+    seed({
+      name,
+      b: { robot: 2, yard: 9, lab: 7 },
+      research: { energy: 5, shield: 5, laser: 12, hyper: 5, hdrive: 6 },
+      ships: { bc: 2, dr: 1 },
+      res: { m: 200000, c: 200000, d: 100000 },
+      colony: {},
+    });
+    await page.goto('/?view=shipyard');
+    const item = (nm: string) =>
+      page.locator('.item').filter({
+        has: page.locator('.nm', { hasText: new RegExp(`^\\s*${nm}`) }),
+      });
+    const bc = item('Schlachtkreuzer');
+    const dr = item('Zerstörer');
+    await expect(
+      bc.getByRole('img', { name: 'Schlachtkreuzer' }),
+    ).toHaveAttribute('src', '/icons/ships/battlecruiser.svg');
+    await expect(dr.getByRole('img', { name: 'Zerstörer' })).toHaveAttribute(
+      'src',
+      '/icons/ships/destroyer.svg',
+    );
+    await expect(bc).toContainText(
+      'Angriff 700 · Schild 600 · Struktur 70.000 · Ladung 750 · Tempo 28.000',
+    );
+    await expect(dr).toContainText(
+      'Angriff 2.000 · Schild 750 · Struktur 110.000 · Ladung 2.000 · Tempo 14.000',
+    );
+    await expect(bc.locator('.needs')).toHaveCount(0);
+    await expect(dr.locator('.needs')).toHaveCount(0);
+    await page.fill('#q_bc', '1');
+    await page.click('[data-act=order][data-k=bc]');
+    await expect(page.locator('.toast').last()).toContainText(
+      '1× Schlachtkreuzer in Auftrag gegeben.',
+    );
+    await page.fill('#q_dr', '1');
+    await page.click('[data-act=order][data-k=dr]');
+    await expect(page.locator('.toast').last()).toContainText(
+      '1× Zerstörer in Auftrag gegeben.',
+    );
+
+    await nav(page, 'fleet');
+    await page.getByLabel('Anzahl Schlachtkreuzer').fill('2');
+    await page.getByLabel('Anzahl Zerstörer').fill('1');
+    await page.getByLabel('Position', { exact: true }).fill('15');
+    await page.getByLabel('Auftrag').selectOption('transport');
+    await expect(page.locator('#i_cap')).toContainText('3.500');
+    await page.getByRole('button', { name: 'Flotte losschicken' }).click();
+    await expect(page.locator('.toast').last()).toContainText(
+      'Flotte unterwegs',
+    );
+    await expect(page.locator('.fl-transport')).toContainText(
+      '2 Schlachtkreuzer, 1 Zerstörer',
+    );
+    expect(w.problems).toEqual([]);
+  });
+
+  test('the shipyard shows Schlachtkreuzer and Zerstörer on a phone (#58, #59) @phone', async ({
+    page,
+  }) => {
+    const w = watch(page);
+    const name = uniqueName('Zerst');
+    await register(page, name);
+    seed({ name, b: { robot: 2, yard: 8, lab: 7 }, research: { hdrive: 5 } });
+    await page.goto('/?view=shipyard');
+    await expect(
+      page.getByRole('img', { name: 'Schlachtkreuzer' }),
+    ).toBeVisible();
+    const dr = page.locator('.item').filter({
+      has: page.locator('.nm', { hasText: /^\s*Zerstörer/ }),
+    });
+    await expect(dr.getByRole('img', { name: 'Zerstörer' })).toBeVisible();
+    await expect(
+      dr.locator('.need-nm', { hasText: /^Raumschiffwerft$/ }),
+    ).toBeVisible();
+    await expect(dr.locator('[data-act=order]')).toHaveCount(0);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth - window.innerWidth,
+      ),
+    ).toBeLessThanOrEqual(0);
     expect(w.problems).toEqual([]);
   });
 
