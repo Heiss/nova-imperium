@@ -16,6 +16,9 @@ reviewed.
   #49, #50) are built with their classic names. At the end of the release one
   pull request renames every entry at once, so the game never shows mixed
   names (owner, 2026-11-12). Issue: see the milestone `next release`.
+* **[E]** The rename pull request also brings the long explanation texts of
+  #63 in the grimdark style, drafted by Claude as [V] for the owner to confirm
+  ([Explanation texts](/features/explanation-texts.md), owner, 2026-11-12).
 * **[E]** Only display texts change (`n`, `ab`, `ds`, icon `<title>` and
   `aria-label`, interface texts). Keys, game values, database columns and API
   fields stay (package README).
