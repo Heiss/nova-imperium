@@ -133,40 +133,45 @@ export function updateText(
  * world has nobody to tell. Returns the number of players told.
  */
 export function announceUpdate(ctx: Ctx, news: News): number {
-  if (!news.version) return 0;
-  const current = versionNumber(news.version)!;
-  const row = ctx.store.db
-    .prepare('SELECT value FROM settings WHERE key = ?')
-    .get(SETTING) as { value: number } | undefined;
-  // The highest version that ever ran: rolling back and forward again does
-  // not repeat the message.
-  if (row && row.value >= current) return 0;
-  ctx.store.db
-    .prepare(
-      'INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
-    )
-    .run(SETTING, current);
-  const text = updateText(
-    news.version,
-    entriesSince(news.versions, row ? row.value : current - 1, current),
-  );
-  if (!text) return 0;
-  const players = ctx.store.users();
-  const time = ctx.now();
-  for (const player of players)
-    addReport(
-      ctx,
-      player.id,
-      {
-        time,
-        type: 'info',
-        title: `Neu in Version ${news.version}`,
-        text,
-        // The browser shows the lines and a link to „Neuigkeiten“.
-        news: news.version,
-      },
-      'messages',
-      `Nova Imperium ${news.version} ist da.`,
+  const version = news.version;
+  if (!version) return 0;
+  const current = versionNumber(version)!;
+  // One transaction: a failed report leaves the old version stored, so the
+  // next start tries again.
+  return ctx.store.tx(() => {
+    const row = ctx.store.db
+      .prepare('SELECT value FROM settings WHERE key = ?')
+      .get(SETTING) as { value: number } | undefined;
+    // The highest version that ever ran: rolling back and forward again does
+    // not repeat the message.
+    if (row && row.value >= current) return 0;
+    ctx.store.db
+      .prepare(
+        'INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
+      )
+      .run(SETTING, current);
+    const text = updateText(
+      version,
+      entriesSince(news.versions, row ? row.value : current - 1, current),
     );
-  return players.length;
+    if (!text) return 0;
+    const players = ctx.store.users();
+    const time = ctx.now();
+    for (const player of players)
+      addReport(
+        ctx,
+        player.id,
+        {
+          time,
+          type: 'info',
+          title: `Neu in Version ${version}`,
+          text,
+          // The browser shows the lines and a link to „Neuigkeiten“.
+          news: version,
+        },
+        'messages',
+        `Nova Imperium ${version} ist da.`,
+      );
+    return players.length;
+  });
 }

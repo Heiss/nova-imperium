@@ -106,11 +106,16 @@ function seeNews(): void {
 }
 
 let newsLoading = false;
+/** Counts the reloads of the news; an answer of an older load is dropped. */
+let newsLoad = 0;
 async function loadNews(): Promise<void> {
   if (ui.news || newsLoading) return;
   newsLoading = true;
+  const load = newsLoad;
   try {
-    ui.news = (await api('/api/news')) as unknown as NewsData;
+    const news = (await api('/api/news')) as unknown as NewsData;
+    if (load !== newsLoad) return;
+    ui.news = news;
     if (S) render();
   } catch (e) {
     console.warn(e);
@@ -239,6 +244,10 @@ async function checkBack(): Promise<void> {
     if (gameIsBack(r.status, body)) {
       maintenance = null;
       $('#maintenance')?.remove();
+      // An update may have brought a new version: load its news again.
+      ui.news = null;
+      newsLoading = false;
+      newsLoad++;
       // Maintenance during the first load left no state: load from scratch.
       void (S ? refresh() : boot());
       return;

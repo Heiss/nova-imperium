@@ -218,6 +218,21 @@ describe('update message', () => {
     expect(ctx.store.reports(anna.id)).toHaveLength(1);
   });
 
+  it('keeps the old version when a message cannot be written, so the next start retries', () => {
+    const ctx = testCtx();
+    const anna = addUser(ctx, 'Anna');
+    announceUpdate(ctx, at('26.10.5'));
+    const id = ctx.id;
+    ctx.id = () => {
+      throw new Error('disk full');
+    };
+    expect(() => announceUpdate(ctx, at('26.11.1'))).toThrow('disk full');
+    expect(stored(ctx)).toBe(2_610_005);
+    ctx.id = id;
+    expect(announceUpdate(ctx, at('26.11.1'))).toBe(1);
+    expect(ctx.store.reports(anna.id)).toHaveLength(1);
+  });
+
   it('stays silent for an update without entries but remembers it', () => {
     const ctx = testCtx();
     const anna = addUser(ctx, 'Anna');
