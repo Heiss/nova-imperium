@@ -100,6 +100,12 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ steps.v.outputs.tag }}
         run: |
+          # A re-run of the whole workflow keeps the existing release, so the
+          # aliases job still runs.
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            echo "The release $TAG exists already."
+            exit 0
+          fi
           node scripts/changelog.ts notes "$TAG" > notes.md
           gh release create "$TAG" --verify-tag --title "$TAG" --notes-file notes.md --generate-notes
 
