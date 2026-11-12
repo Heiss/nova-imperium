@@ -1,9 +1,18 @@
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { DAY } from './audit.ts';
 import { tick } from './game/arrival.ts';
-import { databaseFile, DB_FILE, jobFailure, startServer } from './server.ts';
+import {
+  clockBeat,
+  databaseFile,
+  DB_FILE,
+  hourlySweep,
+  jobFailure,
+  pushFailure,
+  startServer,
+} from './server.ts';
 import { addUser, testConfig, testCtx } from './test-helpers.ts';
 
 const PUBLIC = path.resolve(import.meta.dirname, '../test/public');
@@ -166,5 +175,151 @@ describe('server', () => {
         message: 'Fleet f1 failed and was removed: Error: lost planet',
       },
     ]);
+  });
+});
+
+// The background jobs of the running server (issue #126): each failure is
+// logged as before and lands in the error log.
+describe('background jobs', () => {
+  const errors = (ctx: ReturnType<typeof testCtx>) =>
+    ctx.store.db
+      .prepare('SELECT action, version, message FROM error_events')
+      .all();
+  const addFleet = (ctx: ReturnType<typeof testCtx>, state: string) =>
+    ctx.store.db
+      .prepare(
+        `INSERT INTO fleets VALUES ('f1', 'u_Anna', 'p1', 1, 1, 1, 'p2', 1, 1, 2,
+          'transport', 0, 0, 0, 0, 1, 2, ?, 0)`,
+      )
+      .run(state);
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  it('a clock beat lands due fleets quietly', () => {
+    const ctx = testCtx();
+    addUser(ctx, 'Anna');
+    addFleet(ctx, 'back');
+    const log = vi.fn();
+    clockBeat(ctx, log, '26.11.21');
+    expect(ctx.store.fleet('f1')).toBeNull();
+    expect(log).not.toHaveBeenCalled();
+    expect(errors(ctx)).toEqual([]);
+  });
+
+  it('a clock beat records a failed arrival and a failed tick', () => {
+    const ctx = testCtx();
+    addUser(ctx, 'Anna');
+    addFleet(ctx, 'out');
+    const log = vi.fn();
+    vi.spyOn(ctx.store, 'planet').mockImplementation(() => {
+      throw new Error('lost planet');
+    });
+    clockBeat(ctx, log, '26.11.21');
+    const broken = new Error('no fleets');
+    vi.spyOn(ctx.store, 'dueFleets').mockImplementation(() => {
+      throw broken;
+    });
+    clockBeat(ctx, log, null);
+    expect(log.mock.calls).toEqual([
+      ['Fleet f1 failed and was removed', expect.any(Error)],
+      ['Tick failed', broken],
+    ]);
+    expect(errors(ctx)).toEqual([
+      {
+        action: 'arrival',
+        version: '26.11.21',
+        message: 'Fleet f1 failed and was removed: Error: lost planet',
+      },
+      { action: 'tick', version: '', message: 'Tick failed: Error: no fleets' },
+    ]);
+  });
+
+  it('the hourly sweep purges sessions, audit and error log and the app', () => {
+    const ctx = testCtx(40 * DAY);
+    addUser(ctx, 'Anna');
+    ctx.store.db.exec(`
+      INSERT INTO sessions VALUES ('old', 'u_Anna', ${40 * DAY}),
+        ('new', 'u_Anna', ${40 * DAY + 1});
+      INSERT INTO audit_events (time, category, action, outcome, detail)
+      VALUES (1, 'system', 'old', 'ok', '{}');
+      INSERT INTO error_events (kind, time, first, action, page, version,
+        browser, message, detail, report)
+      VALUES ('server', 1, 1, 'old', '', '', '', '', '', '');
+    `);
+    const sweepApp = vi.fn();
+    const log = vi.fn();
+    hourlySweep(ctx, sweepApp, log, null);
+    expect(
+      ctx.store.db.prepare('SELECT token_hash FROM sessions').pluck().all(),
+    ).toEqual(['new']);
+    expect(
+      ctx.store.db.prepare('SELECT COUNT(*) FROM audit_events').pluck().get(),
+    ).toBe(0);
+    expect(errors(ctx)).toEqual([]);
+    expect(sweepApp).toHaveBeenCalledTimes(1);
+    expect(log).not.toHaveBeenCalled();
+  });
+
+  it('a failed sweep is logged and recorded instead of thrown', () => {
+    const ctx = testCtx();
+    const log = vi.fn();
+    const broken = new Error('sweep broke');
+    hourlySweep(
+      ctx,
+      () => {
+        throw broken;
+      },
+      log,
+      '26.11.21',
+    );
+    expect(log.mock.calls).toEqual([['Sweep failed', broken]]);
+    expect(errors(ctx)).toEqual([
+      {
+        action: 'sweep',
+        version: '26.11.21',
+        message: 'Sweep failed: Error: sweep broke',
+      },
+    ]);
+  });
+
+  it('a failed push delivery keeps its short console line', () => {
+    const ctx = testCtx();
+    const log = vi.fn();
+    pushFailure(ctx, log, '26.11.21')(new Error('gone'));
+    expect(log.mock.calls).toEqual([['Web Push delivery failed']]);
+    expect(errors(ctx)).toEqual([
+      { action: 'push', version: '26.11.21', message: 'Error: gone' },
+    ]);
+  });
+
+  it('the running server beats every second, sweeps every hour and stops both', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
+    const logs: unknown[][] = [];
+    const s = await startServer({
+      cfg: testConfig(),
+      publicDir: PUBLIC,
+      dbFile: ':memory:',
+      mailer: null,
+      log: (...args) => logs.push(args),
+    });
+    const ctx = s.ctx!;
+    const due = vi.spyOn(ctx.store, 'dueFleets');
+    const purge = vi.spyOn(ctx.store, 'purgeSessions');
+    vi.advanceTimersByTime(999);
+    expect(due).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(1);
+    expect(due).toHaveBeenCalledTimes(1);
+    expect(purge).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(3600000 - 1000);
+    expect(purge).toHaveBeenCalledTimes(1);
+    expect(due).toHaveBeenCalledTimes(3600);
+    await s.stop();
+    vi.advanceTimersByTime(2 * 3600000);
+    expect(due).toHaveBeenCalledTimes(3600);
+    expect(purge).toHaveBeenCalledTimes(1);
+    expect(logs).toEqual([]);
   });
 });

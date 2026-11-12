@@ -73,31 +73,57 @@ export function jobFailure(
   };
 }
 
+/** One beat of the game clock: lands due fleets, records what fails. */
+export function clockBeat(ctx: Ctx, log: Log, version: string | null): void {
+  try {
+    tick(ctx, jobFailure(ctx, log, 'arrival', version));
+  } catch (e) {
+    jobFailure(ctx, log, 'tick', version)('Tick failed', e);
+  }
+}
+
+/** The hourly cleanup: sessions, audit and error log, the app's limits. */
+export function hourlySweep(
+  ctx: Ctx,
+  sweepApp: () => void,
+  log: Log,
+  version: string | null,
+): void {
+  try {
+    ctx.store.purgeSessions(ctx.now());
+    purgeAudit(ctx);
+    sweepApp();
+  } catch (e) {
+    jobFailure(ctx, log, 'sweep', version)('Sweep failed', e);
+  }
+}
+
+/**
+ * A failed Web Push delivery: the console keeps its short line, because push
+ * errors can name endpoints; the error log gets the scrubbed error.
+ */
+export function pushFailure(
+  ctx: Ctx,
+  log: Log,
+  version: string | null,
+): (error: unknown) => void {
+  return (error) => {
+    log('Web Push delivery failed');
+    noteServerError(ctx, { action: 'push', error, version }, log);
+  };
+}
+
 function startGameClock(
   ctx: Ctx,
   sweepApp: () => void,
   log: Log,
   version: string | null,
 ): () => void {
-  const arrival = jobFailure(ctx, log, 'arrival', version);
-  const failedTick = jobFailure(ctx, log, 'tick', version);
-  const failedSweep = jobFailure(ctx, log, 'sweep', version);
-  const clock = setInterval(() => {
-    try {
-      tick(ctx, arrival);
-    } catch (e) {
-      failedTick('Tick failed', e);
-    }
-  }, TICK_MS);
-  const sweep = setInterval(() => {
-    try {
-      ctx.store.purgeSessions(ctx.now());
-      purgeAudit(ctx);
-      sweepApp();
-    } catch (e) {
-      failedSweep('Sweep failed', e);
-    }
-  }, SWEEP_MS);
+  const clock = setInterval(() => clockBeat(ctx, log, version), TICK_MS);
+  const sweep = setInterval(
+    () => hourlySweep(ctx, sweepApp, log, version),
+    SWEEP_MS,
+  );
   return () => {
     clearInterval(clock);
     clearInterval(sweep);
@@ -208,12 +234,11 @@ function openGame(
     news,
   });
   const stopPush = o.cfg.webPush
-    ? startPushDelivery(ctx, o.cfg.publicUrl, (error) => {
-        // The console keeps the short line; push errors can name endpoints.
-        log('Web Push delivery failed');
-        const failure = { action: 'push', error, version: news.version };
-        noteServerError(ctx, failure, log);
-      })
+    ? startPushDelivery(
+        ctx,
+        o.cfg.publicUrl,
+        pushFailure(ctx, log, news.version),
+      )
     : null;
   const stopClock = startGameClock(ctx, app.sweep, log, news.version);
   return {

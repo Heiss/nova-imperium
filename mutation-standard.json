@@ -64,7 +64,7 @@
     "src/server/news.ts": 97.81,
     "src/server/passkeys.ts": 97.22,
     "src/server/push-store.ts": 20,
-    "src/server/server.ts": 55.33,
+    "src/server/server.ts": 75.21,
     "src/server/web-push.ts": 58.19,
     "src/shared/achievements.ts": 35.18,
     "src/shared/battle.ts": 96.26,
