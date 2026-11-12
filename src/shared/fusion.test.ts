@@ -300,28 +300,37 @@ function build(c: ReactorCase): { p: Planet; r: ResearchState } {
 const close = (a: number, b: number): boolean =>
   Math.abs(a - b) <= 1e-6 + 1e-9 * Math.abs(b);
 
+// 300 cases take well under a second, but much longer under the coverage
+// instrumentation of Stryker; like the migration property tests, the test
+// gets its own time limit instead of fewer cases.
+const PROPERTY_TIMEOUT = 60_000;
+
 describe('settling with a Fusionskraftwerk (#47)', () => {
-  it('gives the same stock in one step or in many', () => {
-    fc.assert(
-      fc.property(reactorCase, (c) => {
-        const { p, r } = build(c);
-        const once = settle(p, c.until, U, r);
-        let step = p;
-        for (const t of [...c.cuts.filter((x) => x < c.until)].sort(
-          (x, y) => x - y,
-        )) {
-          step = settle(step, t, U, r);
-          expect(step.res.d).toBeGreaterThanOrEqual(0);
-        }
-        step = settle(step, c.until, U, r);
-        expect(once.res.d).toBeGreaterThanOrEqual(0);
-        for (const k of ['m', 'c', 'd'] as const)
-          expect(close(step.res[k], once.res[k])).toBe(true);
-        expect(step.b).toEqual(once.b);
-      }),
-      { numRuns: 300, seed: 47 },
-    );
-  });
+  it(
+    'gives the same stock in one step or in many',
+    () => {
+      fc.assert(
+        fc.property(reactorCase, (c) => {
+          const { p, r } = build(c);
+          const once = settle(p, c.until, U, r);
+          let step = p;
+          for (const t of [...c.cuts.filter((x) => x < c.until)].sort(
+            (x, y) => x - y,
+          )) {
+            step = settle(step, t, U, r);
+            expect(step.res.d).toBeGreaterThanOrEqual(0);
+          }
+          step = settle(step, c.until, U, r);
+          expect(once.res.d).toBeGreaterThanOrEqual(0);
+          for (const k of ['m', 'c', 'd'] as const)
+            expect(close(step.res[k], once.res[k])).toBe(true);
+          expect(step.b).toEqual(once.b);
+        }),
+        { numRuns: 300, seed: 47 },
+      );
+    },
+    PROPERTY_TIMEOUT,
+  );
   it('splits where Energietechnik finishes', () => {
     const p = planet({
       b: { deut: 9, fusion: 6, metal: 12, crystal: 9 },
