@@ -26,6 +26,10 @@ lock (`yard.ts`), the lab lock (`lab.ts`), noob protection (`protection.ts`)
 and the fleet slots (`fleetSlots` in `flight.ts`). Messages stay with the
 caller; the rule does not.
 
+**[E]** The patterns for new rules, entries and views, and the migration to
+them, are in [Design patterns](/architecture/patterns.md) (owner,
+2026-11-12).
+
 # Request flow
 
 1. **[E]** Caddy receives the request from the operator's proxy, sets the

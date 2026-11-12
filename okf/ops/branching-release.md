@@ -134,8 +134,8 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   scanned by Trivy every hour and after every release
   (`.github/workflows/security-hotfix.yml`). Dependabot alerts only look at
   `main`; a hole fixed there is still in `stable`. Only holes with a fix
-  count. npm packages are rated by GitHub (GHSA, `VendorSeverity.ghsa`);
-  without a GitHub rating, Trivy's own rating decides. Everything else (the
+  count. npm packages are rated by the higher of GitHub's rating (GHSA,
+  `VendorSeverity.ghsa`) and Trivy's own. Everything else (the
   base image) is rated by Trivy.
 * **[E]** The fix is applied again on the release tag, not cherry-picked
   (`scripts/security-hotfix.ts`): every older copy of a package gets a pnpm
@@ -169,10 +169,12 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 * **[E]** The job does not scan the new image before it starts. A hole in
   the base image always changes the `Dockerfile` (`ARG OS_UPDATES=sec-<id>`,
   and the newest digest when there is one), so its hotfix rebuilds the image
-  with Debian's current security updates. If the hole is still there, for
-  example because Debian has no fix for that architecture yet, the release
-  goes out anyway and the next scan reports the same plan id as not closed;
-  nothing is retried automatically. The job fails only when `package.json`,
+  with Debian's current security updates. If a High or Critical hole with
+  a fix is still in the new image, the Trivy gate of the CI blocks the fix
+  pull request (see below), so the hotfix does not release; the open fix
+  pull request keeps later scans waiting, and the owner decides; nothing is
+  retried automatically. The CI and the scan see only the `amd64` image, so
+  a hole left only in the `arm64` image is not caught. The job fails only when `package.json`,
   `pnpm-lock.yaml` and `Dockerfile` stay as in the release.
 * **[E]** A release older than the release pull request (26.11.18 and
   older, no `scripts/release-pr.sh`) gets no automatic hotfix: its hotfix
@@ -181,6 +183,19 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   this as a comment, once); the
   first scan on 2026-11-12 found two High holes in `zlib1g` of the base
   image of 26.11.18 (issue #97).
+* **[E]** What goes out as a release is checked before it goes out (owner,
+  2026-11-12, CodeRabbit security finding on pull request #105): in a
+  release pull request, a pull request into `hotfix/**` and a push to
+  `hotfix/**`, Trivy in the CI blocks every High and Critical hole with a
+  fix. Other pull requests block only on the Critical holes they bring in:
+  the CI also builds and scans the image of the base branch and leaves out
+  what is there already (`scripts/trivy-gate.ts`), so two Renovate pull
+  requests that each fix one of two holes do not block each other (owner,
+  2026-11-12). Pushes to `main` block on every Critical hole. Pull requests
+  into `hotfix/**` always build the image.
+* **[E]** The hourly scan rates an npm hole by the higher of GitHub's rating
+  (GHSA) and Trivy's own, so every hole the CI gate (Trivy's rating) blocks
+  in a hotfix is in the hotfix plan (owner, 2026-11-12).
 * **[E]** Debian's security updates go into the image that runs (owner,
   2026-11-12): `apt-get full-upgrade` after `FROM … AS app`, which fails when an
   update stays held back,, so a Debian fix
