@@ -142,14 +142,51 @@ jobs:
           path: playwright-report
           retention-days: 7
 
-  # Pull requests reuse the last result. Every push to main tests all mutants.
-  # A total mutation score below 80 % fails the job (stryker.config.json),
-  # a file below its floor fails it too (mutation-standard.json).
-  mutation:
-    name: Mutation tests
+  # Mutation tests in 4 parallel shards (owner, 2026-11-12, #131). The plan
+  # splits the files Stryker mutates once for all shards, by their mutant
+  # count in the last merged report, else by their lines
+  # (scripts/mutation-shards.ts).
+  mutation-plan:
+    name: Mutation plan
     needs: changes
     if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
+    outputs:
+      plan: ${{ steps.plan.outputs.plan }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version-file: .node-version
+      - name: Merged report of the last run (the weights)
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: reports/mutation/mutation.json
+          key: stryker-report-${{ github.ref }}-${{ github.sha }}
+          restore-keys: |
+            stryker-report-${{ github.ref }}-
+            stryker-report-refs/heads/main-
+      - name: Split the mutated files into 4 shards
+        id: plan
+        run: |
+          plan=$(node scripts/mutation-shards.ts plan)
+          echo "plan=$plan" >> "$GITHUB_OUTPUT"
+
+  # Each shard keeps its own incremental result: unchanged code keeps its
+  # cached result on pull requests and on main. A release pull request and
+  # the nightly run (mutation.yml) test every mutant. A shard runs without
+  # Stryker's break threshold; the gate below checks the merged report.
+  mutation-shard:
+    name: Mutation tests (shard ${{ matrix.shard }} of 4)
+    needs: [changes, mutation-plan]
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -160,25 +197,66 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Result of the last run
+      - name: Result of the last run of this shard
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: reports/stryker-incremental.json
-          key: stryker-${{ github.ref }}-${{ github.sha }}
+          key: stryker-shard${{ matrix.shard }}-${{ github.ref }}-${{ github.sha }}
           restore-keys: |
-            stryker-${{ github.ref }}-
-            stryker-refs/heads/main-
-      # Incremental on pull requests and on main: unchanged code keeps its
-      # cached result. A release pull request and the nightly run
-      # (mutation.yml) test every mutant.
+            stryker-shard${{ matrix.shard }}-${{ github.ref }}-
+            stryker-shard${{ matrix.shard }}-refs/heads/main-
+      - name: Configuration of this shard
+        env:
+          MUTATION_PLAN: ${{ needs.mutation-plan.outputs.plan }}
+          SHARD: ${{ matrix.shard }}
+        run: node scripts/mutation-shards.ts config "$SHARD"
       - name: Incremental run
         if: ${{ !startsWith(github.head_ref, 'release/') }}
-        run: pnpm test:mutation
+        run: pnpm test:mutation reports/stryker-shard.config.json
       - name: Complete run (release pull request)
         if: startsWith(github.head_ref, 'release/')
-        run: pnpm test:mutation --force
-      - name: No file below its floor (mutation-standard.json)
-        run: node scripts/mutation-gate.ts
+        run: pnpm test:mutation reports/stryker-shard.config.json --force
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: mutation-shard-${{ matrix.shard }}
+          path: reports/mutation/mutation.json
+          if-no-files-found: error
+          overwrite: true
+          retention-days: 7
+
+  # Merges the 4 shard reports (every shard once, with exactly its files)
+  # and checks them as one run: a total mutation score below 80 % fails
+  # (break threshold of stryker.config.json), a file below its floor fails
+  # too (mutation-standard.json).
+  mutation:
+    name: Mutation tests
+    needs: [changes, mutation-plan, mutation-shard]
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version-file: .node-version
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          pattern: mutation-shard-*
+          path: reports/shards
+      - name: Merge the shard reports
+        id: merge
+        env:
+          MUTATION_PLAN: ${{ needs.mutation-plan.outputs.plan }}
+        run: node scripts/mutation-shards.ts merge reports/mutation/mutation.json reports/shards/*/mutation.json
+      - name: Total score and no file below its floor (mutation-standard.json)
+        run: node scripts/mutation-gate.ts --report reports/mutation/mutation.json
+      - name: Keep the merged report for the next plan
+        if: always() && steps.merge.outcome == 'success'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: reports/mutation/mutation.json
+          key: stryker-report-${{ github.ref }}-${{ github.sha }}
 
   compose:
     name: Docker image and Compose stack
@@ -407,6 +485,8 @@ jobs:
         fragments,
         check,
         e2e,
+        mutation-plan,
+        mutation-shard,
         mutation,
         compose,
       ]
@@ -425,6 +505,8 @@ jobs:
           CODEQL: ${{ needs.codeql.result }}
           CHECK: ${{ needs.check.result }}
           E2E: ${{ needs.e2e.result }}
+          MUTATION_PLAN: ${{ needs.mutation-plan.result }}
+          MUTATION_SHARDS: ${{ needs.mutation-shard.result }}
           MUTATION: ${{ needs.mutation.result }}
           COMPOSE: ${{ needs.compose.result }}
           EVENT: ${{ github.event_name }}
@@ -454,6 +536,8 @@ jobs:
             true)
               require_success "Lint, types, unit tests and build" "$CHECK"
               require_success "E2E tests" "$E2E"
+              require_success "Mutation plan" "$MUTATION_PLAN"
+              require_success "Mutation tests (shards)" "$MUTATION_SHARDS"
               require_success "Mutation tests" "$MUTATION"
               ;;
             false) echo "Documentation-only change." ;;

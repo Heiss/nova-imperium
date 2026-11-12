@@ -1,7 +1,10 @@
 name: Mutation tests (nightly)
 
-# Complete Stryker run every night on main. It also refreshes the cached result
-# that the incremental runs of the pull requests start from.
+# Complete Stryker run every night on main, in 4 shards like the CI (owner,
+# 2026-11-12, #131). It also refreshes the cached result of every shard and
+# the merged report that the incremental runs of the pull requests start
+# from. "Run workflow" on another branch runs the same complete sharded run
+# there: the proof run of #131 (gh workflow run mutation.yml --ref <branch>).
 on:
   schedule:
     - cron: '23 2 * * *'
@@ -11,9 +14,40 @@ permissions:
   contents: read
 
 jobs:
-  mutation:
-    name: Mutation tests (complete)
+  mutation-plan:
+    name: Mutation plan
     runs-on: ubuntu-latest
+    outputs:
+      plan: ${{ steps.plan.outputs.plan }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version-file: .node-version
+      - name: Merged report of the last run (the weights)
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: reports/mutation/mutation.json
+          key: stryker-report-${{ github.ref }}-${{ github.sha }}-${{ github.run_id }}
+          restore-keys: |
+            stryker-report-${{ github.ref }}-
+            stryker-report-refs/heads/main-
+      - name: Split the mutated files into 4 shards
+        id: plan
+        run: |
+          plan=$(node scripts/mutation-shards.ts plan)
+          echo "plan=$plan" >> "$GITHUB_OUTPUT"
+
+  mutation-shard:
+    name: Mutation tests (complete, shard ${{ matrix.shard }} of 4)
+    needs: mutation-plan
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -27,9 +61,58 @@ jobs:
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: reports/stryker-incremental.json
-          key: stryker-${{ github.ref }}-${{ github.sha }}-${{ github.run_id }}
+          key: stryker-shard${{ matrix.shard }}-${{ github.ref }}-${{ github.sha }}-${{ github.run_id }}
           restore-keys: |
-            stryker-${{ github.ref }}-
-      - run: pnpm test:mutation --force
-      - name: No file below its floor (mutation-standard.json)
-        run: node scripts/mutation-gate.ts
+            stryker-shard${{ matrix.shard }}-${{ github.ref }}-
+      - name: Configuration of this shard
+        env:
+          MUTATION_PLAN: ${{ needs.mutation-plan.outputs.plan }}
+          SHARD: ${{ matrix.shard }}
+        run: node scripts/mutation-shards.ts config "$SHARD"
+      - run: pnpm test:mutation reports/stryker-shard.config.json --force
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: mutation-shard-${{ matrix.shard }}
+          path: reports/mutation/mutation.json
+          if-no-files-found: error
+          overwrite: true
+          retention-days: 7
+
+  # The same gate as in the CI: total score (80 %) and every file floor on
+  # the merged report. The merged report is kept as an artifact, so a run can
+  # be compared with an earlier one.
+  mutation:
+    name: Mutation tests (complete)
+    needs: [mutation-plan, mutation-shard]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version-file: .node-version
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          pattern: mutation-shard-*
+          path: reports/shards
+      - name: Merge the shard reports
+        id: merge
+        env:
+          MUTATION_PLAN: ${{ needs.mutation-plan.outputs.plan }}
+        run: node scripts/mutation-shards.ts merge reports/mutation/mutation.json reports/shards/*/mutation.json
+      - name: Total score and no file below its floor (mutation-standard.json)
+        run: node scripts/mutation-gate.ts --report reports/mutation/mutation.json
+      - name: Keep the merged report for the next plan
+        if: always() && steps.merge.outcome == 'success'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: reports/mutation/mutation.json
+          key: stryker-report-${{ github.ref }}-${{ github.sha }}-${{ github.run_id }}
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        if: always() && steps.merge.outcome == 'success'
+        with:
+          name: mutation-report
+          path: reports/mutation/mutation.json
+          overwrite: true
+          retention-days: 30
