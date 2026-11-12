@@ -118,6 +118,32 @@ describe('requirements', () => {
     ).toEqual([]);
     expect(reqMissing(BUILD.metal!, planet(), { research: {} })).toEqual([]);
   });
+  it('name what the Schlachtkreuzer and the Zerstörer need (#58, #59)', () => {
+    expect(
+      reqMissing(SHIPS.bc!, planet({ b: { yard: 7 } }), {
+        research: { laser: 11, hyper: 5, hdrive: 4 },
+      }),
+    ).toEqual([
+      'Raumschiffwerft (Stufe 8)',
+      'Lasertechnik (Stufe 12)',
+      'Hyperraumantrieb (Stufe 5)',
+    ]);
+    expect(
+      reqMissing(SHIPS.bc!, planet({ b: { yard: 8 } }), {
+        research: { laser: 12, hyper: 5, hdrive: 5 },
+      }),
+    ).toEqual([]);
+    expect(
+      reqMissing(SHIPS.dr!, planet({ b: { yard: 8 } }), {
+        research: { hyper: 4, hdrive: 6 },
+      }),
+    ).toEqual(['Raumschiffwerft (Stufe 9)', 'Hyperraumtechnik (Stufe 5)']);
+    expect(
+      reqMissing(SHIPS.dr!, planet({ b: { yard: 9 } }), {
+        research: { hyper: 5, hdrive: 6 },
+      }),
+    ).toEqual([]);
+  });
 });
 
 describe('production', () => {

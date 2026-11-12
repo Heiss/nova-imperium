@@ -26,6 +26,43 @@ describe('battle', () => {
     expect(side[0]?.attack).toBeCloseTo(65, 9);
     expect(buildSide({ units: { lf: 1 }, tech: {} })[0]).toEqual(unit());
   });
+  it('builds Schlachtkreuzer and Zerstörer with hull (M + K) / 10 (#58, #59)', () => {
+    const [bc] = buildSide({ units: { bc: 1 }, tech: {} });
+    expect(bc).toEqual({
+      key: 'bc',
+      hull: 7000,
+      maxHull: 7000,
+      shield: 400,
+      maxShield: 400,
+      attack: 700,
+    });
+    const [dr] = buildSide({
+      units: { dr: 1 },
+      tech: { armor: 2, shield: 1, weapons: 3 },
+    });
+    expect(dr?.maxHull).toBeCloseTo(13200, 9);
+    expect(dr?.maxShield).toBeCloseTo(550, 9);
+    expect(dr?.attack).toBeCloseTo(2600, 9);
+  });
+  it('knows the rapid fire of Schlachtkreuzer and Zerstörer (#58, #59)', () => {
+    expect(rapid('bc', 'sc')).toBe(3);
+    expect(rapid('bc', 'lc')).toBe(3);
+    expect(rapid('bc', 'hf')).toBe(4);
+    expect(rapid('bc', 'cr')).toBe(4);
+    expect(rapid('bc', 'bs')).toBe(7);
+    expect(rapid('bc', 'probe')).toBe(5);
+    expect(rapid('bc', 'lf')).toBe(1);
+    expect(rapid('bc', 'dr')).toBe(1);
+    expect(rapid('dr', 'll')).toBe(10);
+    expect(rapid('dr', 'bc')).toBe(2);
+    expect(rapid('dr', 'probe')).toBe(5);
+    expect(rapid('dr', 'bs')).toBe(1);
+    expect(rapid('dr', 'hl')).toBe(1);
+    for (const a of ['lf', 'hf', 'cr', 'bs', 'bc', 'rl', 'll', 'hl', 'gauss'])
+      expect(rapid(a, 'dr')).toBe(1);
+    for (const a of ['lf', 'hf', 'cr', 'bs', 'rl', 'll', 'hl', 'gauss'])
+      expect(rapid(a, 'bc')).toBe(1);
+  });
   it('knows rapid fire', () => {
     expect(rapid('cr', 'lf')).toBe(6);
     expect(rapid('hf', 'sc')).toBe(3);

@@ -37,6 +37,22 @@ describe('flights', () => {
     expect(shipSpeed('bs', { research: { hdrive: 2 } })).toBe(16000);
     expect(shipSpeed('rl', { research: {} })).toBe(0);
   });
+  it('fly Schlachtkreuzer and Zerstörer with the Hyperraumantrieb, +30 % per level (#58, #59)', () => {
+    expect(shipSpeed('bc', { research: {} })).toBe(10000);
+    expect(
+      shipSpeed('bc', { research: { hdrive: 5, impulse: 9, comb: 9 } }),
+    ).toBe(25000);
+    expect(shipSpeed('dr', { research: {} })).toBe(5000);
+    expect(shipSpeed('dr', { research: { hdrive: 6 } })).toBe(14000);
+    expect(fleetSpeed({ bc: 2, dr: 1 }, { research: { hdrive: 6 } })).toBe(
+      14000,
+    );
+  });
+  it('fuel and cargo of Schlachtkreuzer and Zerstörer (#58, #59)', () => {
+    expect(fuelFor({ bc: 1 }, 35000, 10)).toBe(1001);
+    expect(fuelFor({ dr: 2 }, 3500, 5)).toBe(451);
+    expect(capacity({ bc: 2, dr: 1 })).toBe(3500);
+  });
   it('use the slowest ship of the fleet', () => {
     expect(fleetSpeed({ lf: 1, sc: 2, bs: 0 }, { research: {} })).toBe(5000);
     expect(fleetSpeed({}, { research: {} })).toBe(Infinity);
