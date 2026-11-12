@@ -99,7 +99,8 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 
 * **[E]** When `main` holds no unreleased work, a hotfix is a normal release
   pull request. Otherwise: the owner creates `hotfix/<name>` from the last
-  release tag (`git push origin <tag>:refs/heads/hotfix/<name>`), the fix
+  release tag (`git push origin '<tag>^{commit}:refs/heads/hotfix/<name>'`; release
+  tags are annotated, a branch must point at the commit), the fix
   goes into it through a pull request with its fragment, and the workflow
   builds a release pull request into `hotfix/<name>` the same way; its merge
   tags the next version. Then `hotfix/<name>` is merged back into `main`,
