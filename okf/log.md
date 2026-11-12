@@ -2,6 +2,7 @@
 
 ## 2026-11-12
 
+* **Decision**: #47 clarified: Fusionskraftwerk with the classic values; use × universe speed; at an empty deuterium stock the reactor is throttled to use = production (see [Fusionskraftwerk](/features/fusion-reactor.md)).
 * **Feature**: Release loop: `.claude/loop.md` for a bare `/loop` - plan the release with the owner (infrastructure first), clarify, build, make the release pull request ready, stop (see [Release loop](/ops/loop.md)).
 * **Update**: Release candidate images `<version>-rc.<N>` and `next` for every green release pull request; releases are also tagged `stable`, `latest` stays the newest release (see [Branching and release](/ops/branching-release.md)).
 
