@@ -236,6 +236,46 @@ test.describe('accounts', () => {
   });
 });
 
+test('shows „Neuigkeiten“ with a dot until opened on this device (#81)', async ({
+  page,
+}) => {
+  const w = watch(page);
+  // The E2E server has no released CHANGELOG.md: the test brings its own.
+  await page.route('**/api/news', (route) =>
+    route.fulfill({
+      json: {
+        version: '26.11.1',
+        versions: [
+          {
+            version: '26.11.1',
+            date: '12.11.2026',
+            entries: [{ kind: 'neu', text: 'Neuigkeiten im Menü.' }],
+          },
+          {
+            version: '26.11.0',
+            date: '01.11.2026',
+            entries: [{ kind: 'behoben', text: 'Ein Fehler ist weg.' }],
+          },
+        ],
+      },
+    }),
+  );
+  await register(page, uniqueName('Leser'));
+  const badge = page.locator('#menu [data-v=news] .badge');
+  await expect(badge).toHaveAttribute('aria-label', 'Neu in Version 26.11.1');
+  await nav(page, 'news');
+  await expect(page.locator('h2')).toHaveText('Neuigkeiten');
+  await expect(
+    page.getByText('Version 26.11.1 – 12.11.2026', { exact: true }),
+  ).toBeVisible();
+  await expect(page.getByText('Ein Fehler ist weg.')).toBeVisible();
+  await expect(badge).toHaveCount(0);
+  await page.goto('/?view=overview');
+  await expect(page.locator('#menu [data-v=news]')).toBeVisible();
+  await expect(badge).toHaveCount(0);
+  expect(w.problems).toEqual([]);
+});
+
 test('creates a guild and restores its profile after reload', async ({
   page,
 }) => {
@@ -300,6 +340,7 @@ test.describe('playing', () => {
       'galaxy',
       'messages',
       'highscore',
+      'news',
       'help',
       'overview',
     ]) {

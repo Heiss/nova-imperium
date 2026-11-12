@@ -19,6 +19,12 @@ import {
 import { resourceIconURL, type ResourceKey } from './logic/icons.ts';
 import { finishedYardOrders, menuHints } from './logic/menu-hints.ts';
 import { gameIsBack, maintenanceNotice } from './logic/maintenance.ts';
+import {
+  latestNews,
+  NEWS_SEEN_KEY,
+  type NewsData,
+  newsHint,
+} from './logic/news.ts';
 import { ANIMATION_KEY, animationsOn } from './logic/planet.ts';
 import type { GameState } from './logic/types.ts';
 import { afford, caps, lvlCost, maxAfford, prod } from '../shared/economy.ts';
@@ -78,6 +84,40 @@ let installPrompt: InstallPrompt | null = null;
 let installedHere = false;
 const INSTALL_DISMISSED_KEY = 'nova.pwa.install-dismissed';
 let installDismissed = readInstallDismissal();
+
+function readNewsSeen(): string | null {
+  try {
+    return localStorage.getItem(NEWS_SEEN_KEY);
+  } catch {
+    return null;
+  }
+}
+
+/** Opening „Neuigkeiten“ clears the dot on this device (issue #81). */
+function seeNews(): void {
+  const latest = latestNews(ui.news);
+  if (!latest || latest === ui.newsSeen) return;
+  ui.newsSeen = latest;
+  try {
+    localStorage.setItem(NEWS_SEEN_KEY, latest);
+  } catch {
+    // Without storage the dot comes back on the next visit.
+  }
+}
+
+let newsLoading = false;
+async function loadNews(): Promise<void> {
+  if (ui.news || newsLoading) return;
+  newsLoading = true;
+  try {
+    ui.news = (await api('/api/news')) as unknown as NewsData;
+    if (S) render();
+  } catch (e) {
+    console.warn(e);
+  } finally {
+    newsLoading = false;
+  }
+}
 
 function readInstallDismissal(): boolean {
   try {
@@ -152,6 +192,8 @@ const ui: Ui = {
   invite: null,
   lastLink: null,
   animations: animationsOn(() => localStorage.getItem(ANIMATION_KEY)),
+  news: null,
+  newsSeen: readNewsSeen(),
 };
 document.documentElement.classList.toggle('no-anim', !ui.animations);
 
@@ -298,6 +340,7 @@ function apply(st: GameState | undefined, fresh = false): void {
   }
   offset = st.now - Date.now();
   S = st;
+  void loadNews();
   const view = gameView(ui.view);
   if (view !== ui.view) {
     ui.view = view;
@@ -670,11 +713,14 @@ function renderPhoneMenu(
 
 function renderMenu(): void {
   const state = S!;
+  if (ui.view === 'news') seeNews();
   const hints = menuHints(
     state,
     completedMenu,
     unread(state.reports, state.me.readAt),
   );
+  const news = newsHint(ui.news, ui.newsSeen);
+  if (news) hints.set('news', news);
   const items = menu(state.me.admin, state.round);
   $('#menu')!.innerHTML = items
     .map((i) =>

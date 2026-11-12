@@ -39,6 +39,53 @@ describe('server', () => {
     }
   });
 
+  it('tells the players about a new version at the start and serves the news', async () => {
+    const dir = mkdtempSync(path.join(tmpdir(), 'nova-'));
+    try {
+      const cfg = testConfig({ dataDir: path.join(dir, 'data') });
+      const logs: string[] = [];
+      const versions = [
+        {
+          version: '26.11.1',
+          date: '12.11.2026',
+          entries: [{ kind: 'neu' as const, text: 'Neuigkeiten.' }],
+        },
+      ];
+      const first = await startServer({
+        cfg,
+        publicDir: PUBLIC,
+        log: (m) => logs.push(m),
+        news: { version: '26.11.0', versions },
+      });
+      first
+        .ctx!.store.db.prepare(
+          "INSERT INTO users (id, name, salt, pw_hash, created) VALUES ('u1', 'Anna', 's', 'h', 0)",
+        )
+        .run();
+      await first.stop();
+      const second = await startServer({
+        cfg,
+        publicDir: PUBLIC,
+        log: (m) => logs.push(m),
+        news: { version: '26.11.1', versions },
+      });
+      expect(second.ctx!.store.reports('u1')).toMatchObject([
+        { title: 'Neu in Version 26.11.1' },
+      ]);
+      expect(logs).toEqual(['Told 1 players about version 26.11.1.']);
+      await second.stop();
+      const third = await startServer({
+        cfg,
+        publicDir: PUBLIC,
+        log: () => {},
+      });
+      expect(third.ctx!.store.reports('u1')).toHaveLength(1);
+      await third.stop();
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it('creates a mailer when SMTP is set', async () => {
     const cfg = testConfig({
       smtp: {

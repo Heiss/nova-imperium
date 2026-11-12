@@ -24,6 +24,7 @@ describe('phone menu', () => {
       'highscore',
       'guilds',
       'achievements',
+      'news',
       'help',
     ]);
   });

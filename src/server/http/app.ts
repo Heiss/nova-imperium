@@ -24,6 +24,7 @@ import { clientIp, cookies, readJson } from './request.ts';
 import { SECURITY_HEADERS } from './security.ts';
 import { adminRoutes } from './admin.ts';
 import { loadStatic } from './static.ts';
+import type { News } from '../news.ts';
 
 export interface AppDeps {
   ctx: Ctx;
@@ -31,6 +32,8 @@ export interface AppDeps {
   mailer: Mailer | null;
   publicDir: string;
   log?: (msg: string, e?: unknown) => void;
+  /** „Neuigkeiten“ from CHANGELOG.md (news.ts). */
+  news?: News;
 }
 
 export const COOKIE = 'nova_session';
@@ -424,6 +427,10 @@ function gameRoutes(d: AppDeps): Record<string, Handler> {
         ),
       ),
     }),
+    'GET /api/news': (call) => {
+      sessionUserOf(ctx, call);
+      return { json: d.news ?? { version: null, versions: [] } };
+    },
     'POST /api/activity': (call) => {
       activity(ctx, sessionUserOf(ctx, call));
       return { json: { ok: true } };

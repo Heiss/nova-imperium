@@ -22,6 +22,7 @@ import {
   plannedMaintenance,
   type Phase,
 } from './maintenance.ts';
+import { announceUpdate, type News } from './news.ts';
 import { startPushDelivery } from './web-push.ts';
 
 export const DB_FILE = 'nova.sqlite';
@@ -44,6 +45,8 @@ export interface StartOptions {
   log?: (msg: string, e?: unknown) => void;
   /** Backs up and migrates the database; by default in a worker thread. */
   migrate?: (file: string) => Promise<void>;
+  /** CHANGELOG.md and VERSION of the image (news.ts); none in tests. */
+  news?: News;
 }
 
 export function databaseFile(cfg: Config): string {
@@ -166,12 +169,16 @@ function openGame(
 ) {
   const db = openDatabase(file);
   const ctx = createCtx(new Store(db));
+  const news = o.news ?? { version: null, versions: [] };
+  const told = announceUpdate(ctx, news);
+  if (told) log(`Told ${told} players about version ${news.version}.`);
   const app = createApp({
     ctx,
     cfg: o.cfg,
     mailer: mailerOf(o),
     publicDir: o.publicDir,
     log,
+    news,
   });
   const stopPush = o.cfg.webPush
     ? startPushDelivery(ctx, o.cfg.publicUrl, () =>

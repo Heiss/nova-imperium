@@ -116,6 +116,12 @@ release with the changelog section as notes. Tags use `YY.M.MICRO` in
 Europe/Berlin, starting at 0 each month. Details and the flow diagram:
 `okf/ops/branching-release.md`.
 
+The image contains `CHANGELOG.md` and `VERSION`. The game shows the
+changelog under „Neuigkeiten“; on the first start of a newer version every
+player gets one message with the first three entries since the version that
+ran before. The very first start with this feature only remembers the
+version.
+
 Setup: install the release GitHub App on this repository with Contents and
 Pull requests read and write. Create the environment `release` with the
 deployment branches `main` and `hotfix/**`, set its secret
