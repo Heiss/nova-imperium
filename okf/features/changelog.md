@@ -14,6 +14,10 @@ request and baked into the image with it.
 * **[E]** Source: `CHANGELOG.md` of the released commit, German, for players;
   a section per version („## Version 26.11.19 – 12.11.2026“) with „Neu“,
   „Geändert“, „Behoben“.
+* **[E]** The 19 releases before the release pull request (26.11.0 to
+  26.11.18) are filled in by hand once, written by Claude from their pull
+  requests, one section per version with its tag date; versions without a
+  change players notice have no section (owner, 2026-11-12).
 * **[E]** Claude writes the texts in German and checks that they match the
   pull request; the release pull request checks them again.
 * **[E]** Players see the version number with the date („Version 26.11.19 –
