@@ -129,6 +129,12 @@ Migration 11 stores the planet where the running research started
 started before has no planet and is refunded to the home planet
 (`upgrades/migration-11.test.ts`).
 
+Migration 12 rebuilds `fleets` and `fleet_ships` (like migration 9) for the
+deploy mission `deploy` in the CHECK and adds `fleets.fuel`, the fuel a
+fleet burnt at the start (`INTEGER NOT NULL DEFAULT 0`; issue #129, see
+[Deploy mission](/features/deploy.md)). Fleets in flight keep their data and
+ships and get 0 (`upgrades/migration-12.test.ts`).
+
 Account deletion runs in one transaction. Foreign-key cascades clear owned game,
 session, reward and push data. The deletion also removes led guilds and their
 memberships, linked audit and inbox records, invitations for the account address
@@ -156,7 +162,7 @@ tests together with an own test for each changing migration).
   existing rows needs its own test `src/server/db/upgrades/migration-<n>.test.ts`
   that checks the data after the upgrade. The decision is made by the effect on
   generated data, not by the SQL text; `ALTER TABLE … ADD COLUMN` counts as a
-  change. Migrations 7, 9, 10 and 11 have such tests; pure `CREATE` migrations need
+  change. Migrations 7, 9, 10, 11 and 12 have such tests; pure `CREATE` migrations need
   none.
 * **[E]** A self-test proves that the checks find a migration that fails on
   existing data and that the classification tells changes from new tables.

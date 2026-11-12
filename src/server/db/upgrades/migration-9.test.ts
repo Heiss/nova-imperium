@@ -10,10 +10,16 @@ describe('upgrade to migration 9', () => {
   it('preserves ships of an in-flight fleet when adding colonization', () => {
     const db = databaseAt(8);
     const store = new Store(db);
-    // Written with the columns of version 8: the store writes the newest schema.
-    db.exec(
-      "INSERT INTO users (id, name, salt, pw_hash, created) VALUES ('u_Anna', 'Anna', 's', 'h', 1)",
-    );
+    // Written with the columns of version 8; the store writes the newest
+    // schema, which has more fleet columns since migration 12.
+    db.exec(`
+      INSERT INTO users (id, name, salt, pw_hash, created) VALUES ('u_Anna', 'Anna', 's', 'h', 1);
+      INSERT INTO fleets (id, owner, from_planet, from_g, from_s, from_p, to_planet, to_g, to_s, to_p,
+        mission, cargo_m, cargo_c, cargo_d, dep, arr, ret, state, recalled)
+      VALUES ('f1', 'u_Anna', 'p1_1_5', 1, 1, 5, 'p1_1_6', 1, 1, 6,
+        'transport', 100, 0, 0, 1, 2, 3, 'out', 0);
+      INSERT INTO fleet_ships VALUES ('f1', 'sc', 2);
+    `);
     const owner = 'u_Anna';
     const fleet = {
       id: 'f1',
@@ -31,7 +37,6 @@ describe('upgrade to migration 9', () => {
       state: 'out' as const,
       recalled: false,
     };
-    store.saveFleet(fleet);
     expect(migrate(db, MIGRATIONS.slice(0, 9))).toBe(1);
     expect(store.fleet(fleet.id)).toEqual(fleet);
     expect(db.pragma('foreign_key_check')).toEqual([]);

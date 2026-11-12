@@ -134,6 +134,7 @@ describe('store', () => {
       cargo: { m: 1, c: 2, d: 3 },
       dep: 0,
       recalled: false,
+      fuel: 41,
     };
     ctx.store.saveFleet({ ...base, id: 'f1', arr: 50, ret: 100, state: 'out' });
     ctx.store.saveFleet({ ...base, id: 'f2', arr: 10, ret: 40, state: 'back' });

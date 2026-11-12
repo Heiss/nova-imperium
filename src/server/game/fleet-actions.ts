@@ -55,6 +55,10 @@ function checkTarget(
 ): void {
   if (to.id === p.id) fail('Das ist dein eigener Planet.');
   if (mission === 'transport') return;
+  if (mission === 'deploy') {
+    if (to.owner !== u.id) fail('Verlegung nur zu einem eigenen Planeten.');
+    return;
+  }
   if (to.owner === u.id) fail('Eigene Planeten kann man nicht angreifen.');
   if (isProtected(u.id, to.owner, pointsMap(ctx)))
     fail('Dieser Spieler steht unter Noobschutz.');
@@ -160,6 +164,7 @@ export const send: Action = (ctx, u, d, event) => {
     ret: t + 2 * ms,
     state: 'out',
     recalled: false,
+    fuel,
   };
   ctx.store.saveFleet(fleet);
   if (event) logLaunch(event, fleet, targetOwner);

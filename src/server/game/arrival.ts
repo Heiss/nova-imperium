@@ -1,7 +1,7 @@
 import { isDatabaseBusy } from '../db/database.ts';
 import { queuePush } from '../push-store.ts';
-// What happens when a fleet arrives or comes home: transport, espionage,
-// battle with loot and rebuilt defense.
+// What happens when a fleet arrives or comes home: transport, deploy,
+// espionage, battle with loot and rebuilt defense.
 import { record } from '../audit.ts';
 import { battle } from '../../shared/battle.ts';
 import { DEF, SHIPS } from '../../shared/catalog.ts';
@@ -9,7 +9,14 @@ import { capacity, countUnits } from '../../shared/flight.ts';
 import { settle, settleR } from '../../shared/settle.ts';
 import type { Fleet, Levels, Planet, Resources } from '../../shared/types.ts';
 import type { User } from '../db/store.ts';
-import { type Ctx, addReport, coords, resLine, universe } from './context.ts';
+import {
+  type Ctx,
+  addReport,
+  coords,
+  fmt,
+  resLine,
+  universe,
+} from './context.ts';
 
 import { createPlanet } from './planets.ts';
 
@@ -24,10 +31,17 @@ function turnBack(ctx: Ctx, f: Fleet, change: Partial<Fleet> = {}): void {
   ctx.store.saveFleet(f);
 }
 
+/** Puts ships and cargo onto a planet, also above its storage limit. */
+function land(p: Planet, ships: Levels, cargo: Resources): void {
+  for (const [k, n] of Object.entries(ships))
+    p.ships[k] = (p.ships[k] ?? 0) + n;
+  p.res.m += cargo.m;
+  p.res.c += cargo.c;
+  p.res.d += cargo.d;
+}
+
 function transport(ctx: Ctx, f: Fleet, t: Planet, att: Player): void {
-  t.res.m += f.cargo.m;
-  t.res.c += f.cargo.c;
-  t.res.d += f.cargo.d;
+  land(t, {}, f.cargo);
   ctx.store.savePlanet(t);
   const text = `Eine Flotte von ${att.name} erreicht ${t.name} ${coords(f.toC)} und liefert ${resLine(f.cargo)}.`;
   addReport(ctx, f.owner, {
@@ -286,14 +300,39 @@ function colonize(ctx: Ctx, f: Fleet, occupied: Planet | null): void {
   turnBack(ctx, f, { ships, cargo: { m: 0, c: 0, d: 0 } });
 }
 
+/**
+ * A deploy stays at the target with its ships and cargo, plus half of the
+ * fuel it burnt, rounded down; the fleet ends there (#129).
+ */
+function deploy(ctx: Ctx, f: Fleet, t: Planet): void {
+  const rest = Math.floor(f.fuel / 2);
+  const load = { ...f.cargo, d: f.cargo.d + rest };
+  land(t, f.ships, load);
+  ctx.store.savePlanet(t);
+  addReport(ctx, f.owner, {
+    time: f.arr,
+    type: 'info',
+    title: `Verlegung erreicht ${coords(f.toC)}`,
+    text: `Deine Flotte bleibt auf ${t.name} ${coords(f.toC)} und liefert ${resLine(load)}, davon ${fmt(rest)} übriger Treibstoff.`,
+  });
+  ctx.store.deleteFleet(f.id);
+}
+
+/** A deploy needs an own planet, a transport any, the others a foreign one. */
+function fits(f: Fleet, t: Planet | null): t is Planet {
+  if (!t) return false;
+  if (f.mission === 'transport') return true;
+  return (t.owner === f.owner) === (f.mission === 'deploy');
+}
+
 export function arrive(ctx: Ctx, f: Fleet): void {
   const t0 = ctx.store.planet(f.to);
   if (f.mission === 'colonize') return colonize(ctx, f, t0);
-  if (!t0 || (f.mission !== 'transport' && t0.owner === f.owner))
-    return unsuitableTarget(ctx, f);
+  if (!fits(f, t0)) return unsuitableTarget(ctx, f);
   const att = player(ctx, f.owner);
   const def = player(ctx, t0.owner);
   const t = settle(t0, f.arr, universe(ctx), def);
+  if (f.mission === 'deploy') return deploy(ctx, f, t);
   if (f.mission === 'transport') return transport(ctx, f, t, att);
   if (f.mission === 'spy') return spy(ctx, f, t, att, def);
   attack(ctx, f, t, att, def);
@@ -303,11 +342,7 @@ export function comeHome(ctx: Ctx, f: Fleet): void {
   const o0 = ctx.store.planet(f.from);
   if (o0 && o0.owner === f.owner) {
     const o = settle(o0, f.ret, universe(ctx), player(ctx, f.owner));
-    for (const [k, n] of Object.entries(f.ships))
-      o.ships[k] = (o.ships[k] ?? 0) + n;
-    o.res.m += f.cargo.m;
-    o.res.c += f.cargo.c;
-    o.res.d += f.cargo.d;
+    land(o, f.ships, f.cargo);
     ctx.store.savePlanet(o);
     const sum = f.cargo.m + f.cargo.c + f.cargo.d;
     if (f.mission !== 'spy' || f.recalled)

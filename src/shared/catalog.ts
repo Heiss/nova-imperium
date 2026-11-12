@@ -730,6 +730,7 @@ export const MISSION = {
   transport: 'Transport',
   spy: 'Spionage',
   colonize: 'Kolonisieren',
+  deploy: 'Verlegung',
 } as const;
 
 /** Producers whose share the player sets on the resources page. */

@@ -62,7 +62,7 @@ export interface ResearchState {
   rq: ResearchQueue | null;
 }
 
-export type Mission = 'attack' | 'transport' | 'spy' | 'colonize';
+export type Mission = 'attack' | 'transport' | 'spy' | 'colonize' | 'deploy';
 type FleetState = 'out' | 'back';
 
 export interface Fleet {
@@ -80,6 +80,8 @@ export interface Fleet {
   ret: number;
   state: FleetState;
   recalled: boolean;
+  /** Fuel burnt at the start; a deploy unloads half of it at the target (#129). */
+  fuel: number;
 }
 
 /** The settings of one universe. The admin changes them in the admin panel. */

@@ -39,7 +39,11 @@ describe('catalog', () => {
     expect(C.DEF).toEqual({ ...O.DEF, ...addedDef });
     expect(C.UNIT).toEqual({ ...O.UNIT, ...added, ...addedDef });
     expect(C.DRIVE_BONUS).toEqual(O.DRIVE_BONUS);
-    expect(C.MISSION).toEqual({ ...O.MISSION, colonize: 'Kolonisieren' });
+    expect(C.MISSION).toEqual({
+      ...O.MISSION,
+      colonize: 'Kolonisieren',
+      deploy: 'Verlegung',
+    });
   });
   it('has the Nanitenfabrik with the classic values (#48)', () => {
     expect(C.BUILD.nanite).toEqual({

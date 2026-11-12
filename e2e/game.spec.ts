@@ -1463,6 +1463,102 @@ test.describe('playing', () => {
     expect(w.problems).toEqual([]);
   });
 
+  /** The count of a ship in the fleet view of the active planet. */
+  const shipCount = (page: Page, ship: string): Locator =>
+    page
+      .locator('tr')
+      .filter({ has: page.locator('input.fs'), hasText: ship })
+      .locator('td.n')
+      .first();
+
+  test('a Verlegung moves part of a fleet with its cargo to an own colony for good (#129)', async ({
+    page,
+  }) => {
+    const w = watch(page);
+    const name = uniqueName('Verleg');
+    await register(page, name);
+    seed({
+      name,
+      ships: { sc: 3, lf: 2 },
+      res: { m: 100000, c: 100000, d: 100000 },
+      colony: { p: 14, name: 'Vorposten', res: { m: 0, c: 0, d: 0 } },
+    });
+    await page.goto('/?view=fleet');
+    await page.getByLabel('Anzahl Kleiner Transporter').fill('2');
+    await page.getByLabel('Position', { exact: true }).fill('14');
+    await page.getByLabel('Auftrag').selectOption('deploy');
+    await expect(
+      page.getByLabel('Auftrag').locator('option:checked'),
+    ).toHaveText('Verlegung');
+    await page.locator('#c_m').fill('3000');
+    await expect(page.locator('#i_arr')).toContainText(' / –');
+    await page.getByRole('button', { name: 'Flotte losschicken' }).click();
+    await expect(page.locator('.toast').last()).toContainText(
+      'Flotte unterwegs nach',
+    );
+    await expect(page.locator('.fl-deploy')).toContainText(
+      '2 Kleiner Transporter',
+    );
+    await expect(page.locator('.fl-deploy')).toContainText('Verlegung');
+    await expect(shipCount(page, 'Kleiner Transporter')).toHaveText('1');
+
+    seed({ name, landFleet: 'deploy' });
+    await expect(page.locator('.fl-deploy')).toHaveCount(0, {
+      timeout: 30000,
+    });
+    await expect(shipCount(page, 'Kleiner Transporter')).toHaveText('1');
+    await choosePlanet(page, 'Vorposten');
+    await expect(shipCount(page, 'Kleiner Transporter')).toHaveText('2');
+    await expect(page.locator('#f_lf')).toHaveCount(0);
+    await nav(page, 'messages');
+    await page.locator('.rep .t', { hasText: 'Verlegung erreicht' }).click();
+    await expect(page.locator('.rep.open')).toContainText(
+      'Deine Flotte bleibt auf Vorposten',
+    );
+    expect(w.problems).toEqual([]);
+  });
+
+  test('a Verlegung starts from the galaxy and lands on the colony on a phone (#129) @phone', async ({
+    page,
+  }) => {
+    const w = watch(page);
+    const name = uniqueName('VerlH');
+    await register(page, name);
+    seed({
+      name,
+      ships: { lf: 3 },
+      res: { m: 100000, c: 100000, d: 100000 },
+      colony: { p: 13, name: 'Vorposten', res: { m: 0, c: 0, d: 0 } },
+    });
+    await page.goto('/?view=galaxy');
+    await page.getByText('zum Heimatsystem').click();
+    const row = page.locator('tr', { hasText: 'Vorposten' });
+    await expect(row.getByRole('button', { name: 'Verlegung' })).toBeVisible();
+    // Against the device width: a too wide table also widens innerWidth.
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth),
+    ).toBeLessThanOrEqual(page.viewportSize()!.width);
+    await row.getByRole('button', { name: 'Verlegung' }).click();
+    await expect(page.getByLabel('Auftrag')).toHaveValue('deploy');
+    await expect(page.getByLabel('Position', { exact: true })).toHaveValue(
+      '13',
+    );
+    await page.getByLabel('Anzahl Leichter Jäger').fill('2');
+    await page.getByRole('button', { name: 'Flotte losschicken' }).click();
+    await expect(page.locator('.toast').last()).toContainText(
+      'Flotte unterwegs nach',
+    );
+    await expect(page.locator('.fl-deploy')).toContainText('2 Leichter Jäger');
+    seed({ name, landFleet: 'deploy' });
+    await expect(page.locator('.fl-deploy')).toHaveCount(0, {
+      timeout: 30000,
+    });
+    await expect(shipCount(page, 'Leichter Jäger')).toHaveText('1');
+    await choosePlanet(page, 'Vorposten');
+    await expect(shipCount(page, 'Leichter Jäger')).toHaveText('2');
+    expect(w.problems).toEqual([]);
+  });
+
   test('defense lists requirements with reasons on a phone (#64) @phone', async ({
     page,
   }) => {

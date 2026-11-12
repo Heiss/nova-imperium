@@ -48,6 +48,7 @@ const fleet = (
     ret: ctx.now() + 100,
     state: 'out',
     recalled: false,
+    fuel: 0,
     ...over,
   };
   ctx.store.saveFleet(f);
@@ -188,6 +189,63 @@ describe('arrival', () => {
       }),
     );
     expect(titles(ctx, 'u_Anna')).toEqual(['Transport erreicht [1:3:3]']);
+  });
+  it('a deploy stays with ships and cargo, also above the storage limit (#129)', () => {
+    const { ctx } = setup();
+    addPlanet(ctx, 'u_Anna', {
+      g: 1,
+      s: 3,
+      p: 3,
+      name: 'Gamma',
+      created: 5e6,
+      ships: { lf: 4 },
+      res: { m: 9e6, c: 8e6, d: 7e6 },
+    });
+    arrive(
+      ctx,
+      fleet(ctx, {
+        mission: 'deploy',
+        to: 'p1_3_3',
+        toC: { g: 1, s: 3, p: 3 },
+        ships: { lf: 1, bs: 2 },
+        cargo: { m: 100, c: 200, d: 300 },
+        fuel: 41,
+      }),
+    );
+    const t = ctx.store.planet('p1_3_3')!;
+    expect(t.ships).toEqual({ lf: 5, bs: 2 });
+    expect(t.res).toEqual({ m: 9e6 + 100, c: 8e6 + 200, d: 7e6 + 300 + 20 });
+    expect(ctx.store.fleet('f1')).toBeNull();
+    expect(titles(ctx, 'u_Anna')).toEqual(['Verlegung erreicht [1:3:3]']);
+    expect(ctx.store.reports('u_Anna')[0]!.text).toBe(
+      'Deine Flotte bleibt auf Gamma [1:3:3] und liefert Metall 100 · Kristall 200 · Deuterium 320, davon 20 übriger Treibstoff.',
+    );
+  });
+  it('a deploy turns back with its cargo when the target is not own or gone (#129)', () => {
+    const { ctx } = setup();
+    const lost = { mission: 'deploy' as const, cargo: { m: 1, c: 2, d: 3 } };
+    arrive(ctx, fleet(ctx, { ...lost, fuel: 9 }));
+    arrive(ctx, fleet(ctx, { ...lost, id: 'f2', to: 'p9_9_9' }));
+    for (const id of ['f1', 'f2'])
+      expect(ctx.store.fleet(id)).toMatchObject({
+        state: 'back',
+        ships: { lf: 1 },
+        cargo: { m: 1, c: 2, d: 3 },
+      });
+    expect(ctx.store.planet('p1_2_6')).toMatchObject({
+      ships: {},
+      res: { m: 9000, c: 6000, d: 3000 },
+    });
+    expect(titles(ctx, 'u_Anna')).toEqual([
+      'Flotte kehrt um',
+      'Flotte kehrt um',
+    ]);
+    expect(titles(ctx, 'u_Bert')).toEqual([]);
+    comeHome(ctx, ctx.store.fleet('f1')!);
+    expect(ctx.store.planet('p1_1_5')).toMatchObject({
+      ships: { lf: 1 },
+      res: { m: 100001, c: 100002, d: 100003 },
+    });
   });
   it('spies: more probes show more', () => {
     const { ctx } = setup({ ships: {}, def: { rl: 2 }, b: { metal: 3 } });

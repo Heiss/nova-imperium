@@ -855,6 +855,10 @@ textarea:focus-visible {
 }
 
 @media (max-width: 760px) {
+  /* Player and actions wrap instead of widening the page (#129). */
+  .gal td:nth-child(n + 3) {
+    white-space: normal;
+  }
   #app {
     grid-template-columns: 1fr;
     grid-template-rows: auto 1fr;
