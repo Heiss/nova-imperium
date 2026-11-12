@@ -2,6 +2,7 @@
 
 ## 2026-11-12
 
+* **Feature**: Grimdark naming applied (#94): `n`, `ab`, missions, resources, interface texts and icon titles with the new names; keys, values and stored ids stay; short texts with the new names and three wrong drive lists fixed [V]; long texts for Ionenlanze, Plasmabatterie, both Schutzdome and the Weltenbrecher, 15 texts updated for #50 and #60 [V]; a test forbids the classic names in every display text (see [Grimdark naming](/features/naming.md)).
 * **Decision**: The owner confirmed the 43 long explanation texts of #94 as they are (see [Grimdark naming](/features/naming.md)).
 * **Feature**: Long explanation texts [V] (#94 with #63): every building, research, ship and defense on `main` gets an `lt` in the grimdark style with the new names, checked against the code; names, `ab`, `ds` and icons stay classic until the rename after #123 and #60; tests require an `lt` for every entry but `LATER` (#50, #60) and forbid the classic names; Gravitonforschung test with Solarsatelliten only (see [Grimdark naming](/features/naming.md)).
 * **Decision**: Grimdark naming at the end of the release in one pull request; new features are built with classic names; Solarsatellit → Sonnenreliquiar, Fusionskraftwerk → Fusionssanktum (see [Grimdark naming](/features/naming.md)).

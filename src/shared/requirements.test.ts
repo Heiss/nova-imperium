@@ -37,40 +37,40 @@ describe('unmet requirements', () => {
       {
         kind: 'b',
         key: 'yard',
-        name: 'Raumschiffwerft',
+        name: 'Orbitale Schiffsschmiede',
         level: 2,
         have: 0,
       },
       {
         kind: 'r',
         key: 'comb',
-        name: 'Verbrennungstriebwerk',
+        name: 'Promethium-Brennkammer',
         level: 2,
         have: 0,
       },
       {
         kind: 'b',
         key: 'robot',
-        name: 'Roboterfabrik',
+        name: 'Servitorenschmiede',
         level: 2,
         have: 0,
-        via: 'Raumschiffwerft',
+        via: 'Orbitale Schiffsschmiede',
       },
       {
         kind: 'b',
         key: 'lab',
-        name: 'Forschungslabor',
+        name: 'Scholarium',
         level: 1,
         have: 0,
-        via: 'Verbrennungstriebwerk',
+        via: 'Promethium-Brennkammer',
       },
       {
         kind: 'r',
         key: 'energy',
-        name: 'Energietechnik',
+        name: 'Machina-Energetik',
         level: 1,
         have: 0,
-        via: 'Verbrennungstriebwerk',
+        via: 'Promethium-Brennkammer',
       },
     ]);
   });
@@ -103,7 +103,7 @@ describe('unmet requirements', () => {
     const list = unmetRequirements(UNIT.hf!.req, places(h, R()));
     expect(list.find((n) => n.key === 'lab')).toMatchObject({
       level: 2,
-      via: 'Raumschiffpanzerung',
+      via: 'Adamant-Panzerung',
     });
   });
 
@@ -128,7 +128,7 @@ describe('unmet requirements', () => {
       {
         kind: 'b',
         key: 'lab',
-        name: 'Forschungslabor',
+        name: 'Scholarium',
         level: 3,
         have: 2,
       },
@@ -183,7 +183,7 @@ describe('need state', () => {
     const h = home({ res: { m: 1e6, c: 1e6, d: 1e6 } });
     expect(needState(need('yard', 'b'), places(h, R()))).toMatchObject({
       ready: false,
-      reason: 'braucht Roboterfabrik (Stufe 2)',
+      reason: 'braucht Servitorenschmiede (Stufe 2)',
     });
   });
 
@@ -191,11 +191,11 @@ describe('need state', () => {
     const h = home({ res: { m: 1000, c: 100, d: 10 } });
     expect(needState(need('robot', 'b'), places(h, R()))).toMatchObject({
       ready: false,
-      reason: 'zu wenig Kristall, Deuterium',
+      reason: 'zu wenig Psikristall, Promethium',
     });
     const poor = home({ res: { m: 0, c: 1000, d: 1000 } });
     expect(needState(need('robot', 'b'), places(poor, R()))).toMatchObject({
-      reason: 'zu wenig Metall',
+      reason: 'zu wenig Adamant',
     });
   });
 
@@ -216,7 +216,7 @@ describe('need state', () => {
     const noLab = colony({ res: { m: 1e6, c: 1e6, d: 1e6 } });
     expect(needState(need('energy', 'r'), places(noLab, R()))).toMatchObject({
       ready: false,
-      reason: 'braucht Forschungslabor (Stufe 1)',
+      reason: 'braucht Scholarium (Stufe 1)',
     });
     const poor = colony({ b: { lab: 1 }, res: { m: 0, c: 0, d: 0 } });
     expect(needState(need('energy', 'r'), places(poor, R())).ready).toBe(false);
@@ -236,7 +236,7 @@ describe('need state', () => {
     // The requirements come first.
     const small = colony({ b: { lab: 5, solar: 59 } });
     expect(needState(graviton, places(small, R())).reason).toBe(
-      'braucht Forschungslabor (Stufe 12)',
+      'braucht Scholarium (Stufe 12)',
     );
     const sunny = colony({ b: { lab: 12, solar: 59 } });
     expect(needState(graviton, places(sunny, R()))).toEqual({
@@ -276,7 +276,7 @@ describe('need state', () => {
       sq: [{ key: 'lf', n: 1, unit: 1 }],
     });
     expect(needState(need('yard', 'b'), places(yard, R())).busy).toBe(
-      'Werft arbeitet gerade',
+      'Schiffsschmiede arbeitet gerade',
     );
     const lab = home({ res: rich });
     expect(
@@ -284,7 +284,7 @@ describe('need state', () => {
         need('lab', 'b'),
         places(lab, R({}, { ...q, key: 'energy' } as never)),
       ).busy,
-    ).toBe('Das Labor forscht gerade');
+    ).toBe('Das Scholarium forscht gerade');
     const labHome = home({ res: rich, b: { lab: 1 } });
     expect(
       needState(
@@ -298,7 +298,7 @@ describe('need state', () => {
       bq: { ...q, key: 'lab' },
     });
     expect(needState(need('energy', 'r'), places(upgrading, R())).busy).toBe(
-      'Labor wird ausgebaut',
+      'Scholarium wird ausgebaut',
     );
     expect(
       needState(need('energy', 'r'), places(labHome, R())).busy,

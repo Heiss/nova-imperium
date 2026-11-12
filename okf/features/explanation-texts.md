@@ -42,7 +42,8 @@ must match the code.
   neither (?) nor panel. Since the branch of #94 every entry on `main` has
   an `lt` ([E], grimdark style, confirmed by the owner 2026-11-12, see
   [Grimdark naming](/features/naming.md)), so the ships and the defense
-  get the (?) too; the entries of #50 and #60 get theirs later.
+  get the (?) too; the entries of #50 and #60 got theirs with the rename
+  ([V]).
 * Interface: `src/client/logic/explain.ts` decides per entry and mode;
   `itemHTML` (research, shipyard, defense) and `Buildings.svelte` render it.
   The buildings view now shows the short `ds` too (D5). The (?) is a
@@ -65,6 +66,6 @@ must match the code.
   `e2e/game.spec.ts` („explanation texts (#63)“: click, keyboard, tap on a
   phone, all three modes after a reload) and `e2e/a11y.spec.ts` (closed,
   opened and always shown). The E2E test checks that the panel shows `lt`
-  (Metallmine, Spionagetechnik, Spionagesonde, Solarkraftwerk); an entry
+  (Adamant-Tiefbohrung, Auspex-Lehre, Spähschädel, Sonnenkathedrale); an entry
   without any text is left to the unit tests, as no catalog entry on
   `main` is one.

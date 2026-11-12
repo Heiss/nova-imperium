@@ -1,45 +1,71 @@
-// Names, descriptions, costs and values of all units are those of version 1.
+// Costs and values of all units are those of version 1; the display texts
+// are those of the grimdark naming (#94), compared through its table.
 import { createRequire } from 'node:module';
 import { describe, expect, it } from 'vitest';
+import { MISSIONS, NAMES, RESOURCES, renamed } from '../test/naming.ts';
 import * as C from './catalog.ts';
 
 const require = createRequire(import.meta.url);
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const O: any = require('../test/legacy/game.cjs');
 
-/**
- * The entries without their long text `lt`: version 1 had none, the texts
- * came with #63 and #94; every other field stays the one of version 1.
- */
-const withoutLt = <T extends { lt?: string }>(
+const DISPLAY = ['n', 'ab', 'ds', 'lt'] as const;
+
+/** The game values of the entries: everything but the display texts. */
+const values = <T extends object>(
   defs: Record<string, T>,
-): Record<string, Omit<T, 'lt'>> =>
+): Record<string, Partial<T>> =>
   Object.fromEntries(
     Object.entries(defs).map(([k, def]) => {
-      const rest = { ...def };
-      delete rest.lt;
-      return [k, rest];
+      const rest = { ...def } as Record<string, unknown>;
+      for (const field of DISPLAY) delete rest[field];
+      return [k, rest as unknown as Partial<T>];
     }),
   );
 
-/** A long text is there: the exact wording is the owner's to confirm (#94). */
+/** A long text is there: the exact wording is the owner's (#94). */
 const LT = expect.stringMatching(/\S/);
 
+/**
+ * Short texts of version 1 that changed beyond the names (#94, [V] for the
+ * owner): wrong drive lists and the Hyperraum, now the Warp.
+ */
+const CHANGED_DS: Readonly<Record<string, string>> = {
+  comb: '+10 % Geschwindigkeit pro Stufe (Frachtläufer, Lastbarken, Abfangjäger, Spähschädel).',
+  impulse:
+    '+20 % pro Stufe (Kolonistenarchen, Sturmjäger, Fregatten; Belagerungsbomber bis Warp-Antrieb 8).',
+  hyper: 'Erschließt den Warp.',
+  hdrive:
+    '+30 % pro Stufe (Kathedralschiffe, Jagdkreuzer, Vernichter, Weltenbrecher; Belagerungsbomber ab Stufe 8).',
+  spy: 'Bessere Auspex-Berichte, bessere Abwehr.',
+};
+
+/** A short text of version 1 with the new names of entries and resources. */
+const withNewNames = (ds: string): string =>
+  Object.entries(RESOURCES).reduce(
+    (text, [classic, name]) =>
+      text.replace(
+        new RegExp(`(?<![\\p{L}-])${classic}(?!\\p{L})`, 'gu'),
+        name,
+      ),
+    renamed(ds),
+  );
+
 describe('catalog', () => {
-  it('equals the catalog of version 1, apart from the long texts', () => {
-    expect(withoutLt(C.BUILD)).toEqual({
-      ...O.BUILD,
-      nanite: withoutLt(C.BUILD).nanite,
-      fusion: withoutLt(C.BUILD).fusion,
+  it('has the game values of version 1', () => {
+    expect(values(C.BUILD)).toEqual({
+      ...values(O.BUILD),
+      nanite: values(C.BUILD).nanite,
+      fusion: values(C.BUILD).fusion,
     });
-    expect(withoutLt(C.RES)).toEqual({
-      ...O.RES,
-      ion: withoutLt(C.RES).ion,
-      plasma: withoutLt(C.RES).plasma,
-      graviton: withoutLt(C.RES).graviton,
-      ifn: withoutLt(C.RES).ifn,
+    expect(values(C.RES)).toEqual({
+      ...values(O.RES),
+      ion: values(C.RES).ion,
+      plasma: values(C.RES).plasma,
+      graviton: values(C.RES).graviton,
+      ifn: values(C.RES).ifn,
     });
-    const ships = withoutLt(C.SHIPS);
+    const ships = values(C.SHIPS);
     const added = {
       colony: ships.colony,
       bc: ships.bc,
@@ -48,23 +74,64 @@ describe('catalog', () => {
       dstar: ships.dstar,
       sat: ships.sat,
     };
-    const defs = withoutLt(C.DEF);
+    const defs = values(C.DEF);
     const addedDef = {
       ionc: defs.ionc,
       pt: defs.pt,
       ssd: defs.ssd,
       lsd: defs.lsd,
     };
-    expect(ships).toEqual({ ...O.SHIPS, ...added });
-    expect(defs).toEqual({ ...O.DEF, ...addedDef });
-    expect(withoutLt(C.UNIT)).toEqual({ ...O.UNIT, ...added, ...addedDef });
+    expect(ships).toEqual({ ...values(O.SHIPS), ...added });
+    expect(defs).toEqual({ ...values(O.DEF), ...addedDef });
+    expect(values(C.UNIT)).toEqual({
+      ...values(O.UNIT),
+      ...added,
+      ...addedDef,
+    });
     expect(C.DRIVE_BONUS).toEqual(O.DRIVE_BONUS);
-    expect(C.MISSION).toEqual({ ...O.MISSION, colonize: 'Kolonisieren' });
+  });
+  it('names every entry as the grimdark naming decides, version 1 had the classic names (#94)', () => {
+    const all = { ...C.BUILD, ...C.RES, ...C.UNIT };
+    expect(Object.keys(all).sort()).toEqual(Object.keys(NAMES).sort());
+    for (const [k, def] of Object.entries(all)) {
+      expect({ n: def.n, ab: def.ab }, k).toEqual({
+        n: NAMES[k]!.name,
+        ab: NAMES[k]!.ab,
+      });
+    }
+    const old = { ...O.BUILD, ...O.RES, ...O.UNIT };
+    for (const [k, def] of Object.entries(old) as [string, { n: string }][])
+      expect(def.n, k).toBe(NAMES[k]!.classic);
+  });
+  it('keeps the short texts of version 1 with the new names (#94)', () => {
+    const old = { ...O.BUILD, ...O.RES, ...O.UNIT };
+    const all: Record<string, { ds?: string }> = {
+      ...C.BUILD,
+      ...C.RES,
+      ...C.UNIT,
+    };
+    for (const [k, def] of Object.entries(old) as [string, { ds?: string }][])
+      expect(all[k]!.ds, k).toBe(
+        def.ds === undefined
+          ? undefined
+          : (CHANGED_DS[k] ?? withNewNames(def.ds)),
+      );
+  });
+  it('shows the missions with their new names; the stored ids stay (#94)', () => {
+    expect(Object.keys(C.MISSION)).toEqual([
+      ...Object.keys(O.MISSION),
+      'colonize',
+    ]);
+    expect(C.MISSION).toEqual(
+      Object.fromEntries(Object.entries(MISSIONS).map(([k, m]) => [k, m.name])),
+    );
+    for (const [k, name] of Object.entries(O.MISSION))
+      expect(name).toBe(MISSIONS[k as keyof typeof MISSIONS].classic);
   });
   it('has the Nanitenfabrik with the classic values (#48)', () => {
     expect(C.BUILD.nanite).toEqual({
-      n: 'Nanitenfabrik',
-      ab: 'Na',
+      n: 'Machina-Schwarmhalle',
+      ab: 'MS',
       cost: [1000000, 500000, 100000],
       f: 2,
       ds: 'Halbiert die Bauzeit von Gebäuden, Schiffen und Verteidigung pro Stufe.',
@@ -74,42 +141,42 @@ describe('catalog', () => {
   });
   it('has the Fusionskraftwerk with the classic values (#47)', () => {
     expect(C.BUILD.fusion).toEqual({
-      n: 'Fusionskraftwerk',
-      ab: 'Fu',
+      n: 'Fusionssanktum',
+      ab: 'FS',
       cost: [900, 360, 180],
       f: 1.8,
-      ds: 'Erzeugt Energie aus Deuterium; Energietechnik steigert die Leistung.',
+      ds: 'Erzeugt Energie aus Promethium; Machina-Energetik steigert die Leistung.',
       lt: LT,
       req: { b: { deut: 5 }, r: { energy: 3 } },
     });
     const all = [C.BUILD, C.RES, C.UNIT].flatMap((d) =>
       Object.values(d).map((x) => x.ab),
     );
-    expect(all.filter((ab) => ab === 'Fu')).toEqual(['Fu']);
+    expect(all.filter((ab) => ab === 'FS')).toEqual(['FS']);
   });
   it('has Ionen-, Plasmatechnik, Gravitonforschung and IFN with the classic values (#49)', () => {
     expect(C.RES.ion).toMatchObject({
-      n: 'Ionentechnik',
-      ab: 'Io',
+      n: 'Ionen-Lehre',
+      ab: 'IL',
       cost: [1000, 300, 100],
       req: { b: { lab: 4 }, r: { laser: 5, energy: 4 } },
     });
     expect(C.RES.plasma).toMatchObject({
-      n: 'Plasmatechnik',
-      ab: 'Pl',
+      n: 'Plasma-Lehre',
+      ab: 'PL',
       cost: [2000, 4000, 1000],
       req: { b: { lab: 4 }, r: { energy: 8, laser: 10, ion: 5 } },
     });
     expect(C.RES.graviton).toMatchObject({
-      n: 'Gravitonforschung',
-      ab: 'Gr',
+      n: 'Gravitonen-Mysterium',
+      ab: 'GM',
       cost: [0, 0, 0],
       energy: { base: 300000, f: 3 },
       req: { b: { lab: 12 } },
     });
     expect(C.RES.ifn).toMatchObject({
-      n: 'Intergalaktisches Forschungsnetzwerk',
-      ab: 'IF',
+      n: 'Sternennetz der Gelehrten',
+      ab: 'SN',
       cost: [240000, 400000, 160000],
       req: { b: { lab: 10 }, r: { computer: 8, hyper: 8 } },
     });
@@ -134,8 +201,8 @@ describe('catalog', () => {
   });
   it('has the Schlachtkreuzer with the classic values (#58)', () => {
     expect(C.SHIPS.bc).toEqual({
-      n: 'Schlachtkreuzer',
-      ab: 'SK',
+      n: 'Jagdkreuzer',
+      ab: 'JK',
       cost: [30000, 40000, 15000],
       atk: 700,
       sh: 400,
@@ -145,14 +212,14 @@ describe('catalog', () => {
       drive: 'hdrive',
       req: { b: { yard: 8 }, r: { laser: 12, hyper: 5, hdrive: 5 } },
       rf: { sc: 3, lc: 3, hf: 4, cr: 4, bs: 7 },
-      ds: 'Schnell und stark gegen Transporter, Kreuzer und Schlachtschiffe.',
+      ds: 'Schnell und stark gegen Frachtläufer, Lastbarken, Fregatten und Kathedralschiffe.',
       lt: LT,
     });
   });
   it('has the Zerstörer with the classic values (#59)', () => {
     expect(C.SHIPS.dr).toEqual({
-      n: 'Zerstörer',
-      ab: 'ZE',
+      n: 'Vernichter',
+      ab: 'VN',
       cost: [60000, 50000, 15000],
       atk: 2000,
       sh: 500,
@@ -162,14 +229,14 @@ describe('catalog', () => {
       drive: 'hdrive',
       req: { b: { yard: 9 }, r: { hdrive: 6, hyper: 5 } },
       rf: { ll: 10, bc: 2 },
-      ds: 'Schweres Kriegsschiff – stark gegen Lasergeschütze und Schlachtkreuzer.',
+      ds: 'Schweres Kriegsschiff – stark gegen Lichtlanzen und Jagdkreuzer.',
       lt: LT,
     });
   });
   it('has the Bomber with the classic values and its drive switch (#57)', () => {
     expect(C.SHIPS.bb).toEqual({
-      n: 'Bomber',
-      ab: 'BO',
+      n: 'Belagerungsbomber',
+      ab: 'BB',
       cost: [50000, 25000, 15000],
       atk: 1000,
       sh: 500,
@@ -186,7 +253,7 @@ describe('catalog', () => {
       ],
       req: { b: { yard: 8 }, r: { impulse: 6, plasma: 5 } },
       rf: { rl: 20, ll: 20, hl: 10, ionc: 10 },
-      ds: 'Stark gegen Raketenwerfer, Laser- und Ionengeschütze; fliegt ab Hyperraumantrieb 8 mit dem Hyperraumantrieb.',
+      ds: 'Stark gegen Raketenbatterien, Lichtlanzen und Ionenlanzen; fliegt ab Warp-Antrieb 8 mit dem Warp-Antrieb.',
       lt: LT,
     });
     // The Werft lists it after the Zerstörer.
@@ -199,8 +266,8 @@ describe('catalog', () => {
   });
   it('has the Todesstern with the classic values (#60)', () => {
     expect(C.SHIPS.dstar).toEqual({
-      n: 'Todesstern',
-      ab: 'TS',
+      n: 'Weltenbrecher',
+      ab: 'WB',
       cost: [5000000, 4000000, 1000000],
       atk: 200000,
       sh: 50000,
@@ -229,6 +296,7 @@ describe('catalog', () => {
         ionc: 100,
       },
       ds: 'Gewaltige Kampfstation; zerstört fast alles mit Schnellfeuer.',
+      lt: LT,
     });
     // The Werft lists it after the Bomber.
     const keys = Object.keys(C.SHIPS);
@@ -257,42 +325,46 @@ describe('catalog', () => {
   });
   it('has Ionengeschütz, Plasmawerfer and both shield domes with the classic values (#50)', () => {
     expect(C.DEF.ionc).toEqual({
-      n: 'Ionengeschütz',
-      ab: 'IG',
+      n: 'Ionenlanze',
+      ab: 'IN',
       cost: [2000, 6000, 0],
       atk: 150,
       sh: 500,
       req: { b: { yard: 4 }, r: { ion: 4 } },
       ds: 'Geschütz mit starkem Schild, das viele Treffer einsteckt.',
+      lt: LT,
     });
     expect(C.DEF.pt).toEqual({
-      n: 'Plasmawerfer',
-      ab: 'PW',
+      n: 'Plasmabatterie',
+      ab: 'PA',
       cost: [50000, 50000, 30000],
       atk: 3000,
       sh: 300,
       req: { b: { yard: 8 }, r: { plasma: 7 } },
       ds: 'Die stärkste Waffe der Verteidigung: feuert Plasma mit gewaltiger Wucht.',
+      lt: LT,
     });
     expect(C.DEF.ssd).toEqual({
-      n: 'Kleine Schildkuppel',
-      ab: 'KSK',
+      n: 'Kleiner Schutzdom',
+      ab: 'SD',
       cost: [10000, 10000, 0],
       atk: 1,
       sh: 2000,
       req: { b: { yard: 1 }, r: { shield: 2 } },
       once: true,
       ds: 'Kuppel mit starkem Schild über dem Planeten; schwache Schüsse prallen ab. Nur eine pro Planet.',
+      lt: LT,
     });
     expect(C.DEF.lsd).toEqual({
-      n: 'Große Schildkuppel',
-      ab: 'GSK',
+      n: 'Großer Schutzdom',
+      ab: 'GD',
       cost: [50000, 50000, 0],
       atk: 1,
       sh: 10000,
       req: { b: { yard: 6 }, r: { shield: 6 } },
       once: true,
       ds: 'Die größere Kuppel mit fünffachem Schild; nur starke Schüsse dringen durch. Nur eine pro Planet.',
+      lt: LT,
     });
     // Only the domes are limited; no new unit has rapid fire (#50, D2).
     expect(
@@ -312,8 +384,8 @@ describe('catalog', () => {
   });
   it('has the Solarsatellit with the classic values (#46)', () => {
     expect(C.SHIPS.sat).toEqual({
-      n: 'Solarsatellit',
-      ab: 'SA',
+      n: 'Sonnenreliquiar',
+      ab: 'SR',
       cost: [0, 2000, 500],
       atk: 1,
       sh: 1,

@@ -80,8 +80,8 @@ test.describe('accessibility (axe)', () => {
       found.push(...(await violations(page)).map((v) => `${label}: ${v}`));
     };
     for (const [view, entry] of [
-      ['buildings', 'Metallmine'],
-      ['research', 'Energietechnik'],
+      ['buildings', 'Adamant-Tiefbohrung'],
+      ['research', 'Machina-Energetik'],
     ] as const) {
       await nav(page, view);
       await check(`${view} closed`);

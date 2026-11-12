@@ -18,7 +18,7 @@ describe('explanation of an entry per display mode (issue #63)', () => {
       key: 'metal',
       button: 'exq_metal',
       panel: 'ex_metal',
-      name: 'Metallmine',
+      name: 'Adamant-Tiefbohrung',
       text: metal.lt,
       toggle: false,
       open: true,

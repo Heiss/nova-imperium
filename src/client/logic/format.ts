@@ -48,7 +48,7 @@ export const dt = (t: number): string =>
   });
 
 export const resLine = (r: Resources): string =>
-  `Metall ${fmt(r.m)} · Kristall ${fmt(r.c)} · Deuterium ${fmt(r.d)}`;
+  `Adamant ${fmt(r.m)} · Psikristall ${fmt(r.c)} · Promethium ${fmt(r.d)}`;
 
 export const techLine = (t: Levels): string =>
   `Waffen ${(t.weapons ?? 0) * 10}% · Schilde ${(t.shield ?? 0) * 10}% · Panzerung ${(t.armor ?? 0) * 10}%`;

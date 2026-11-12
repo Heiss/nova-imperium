@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { CLASSIC, classicIn, says } from '../test/naming.ts';
 import { BUILD, DEF, RES, SHIPS } from './catalog.ts';
 import {
   DEFAULT_EXPLAIN,
@@ -46,94 +47,11 @@ describe('long text of a catalog entry', () => {
 });
 
 /**
- * Entries that get their long text later, in the pull request that brings
- * them to `main` or in the rename (#94). The list may only shrink: an entry
- * with a long text must leave it.
+ * Entries that get their long text later. Empty since the rename (#94):
+ * every entry has its text, and a new entry brings its own. The list may
+ * only shrink: an entry with a long text must leave it.
  */
-const LATER: readonly string[] = [
-  'ionc', // Ionengeschütz (#50)
-  'pt', // Plasmawerfer (#50)
-  'ssd', // Kleine Schildkuppel (#50)
-  'lsd', // Große Schildkuppel (#50)
-  'dstar', // Todesstern (#60)
-];
-
-/**
- * Classic names and the names of the grimdark naming that replace them
- * (okf/features/naming.md, decided by the owner on 2026-11-12). The long
- * texts already use the new names, so none may say a classic one.
- */
-const CLASSIC: Readonly<Record<string, string>> = {
-  Metall: 'Adamant',
-  Kristall: 'Psikristall',
-  Deuterium: 'Promethium',
-  Metallmine: 'Adamant-Tiefbohrung',
-  Kristallmine: 'Psikristall-Steinbruch',
-  Deuteriumsynthetisierer: 'Promethium-Raffinerie',
-  Solarkraftwerk: 'Sonnenkathedrale',
-  Fusionskraftwerk: 'Fusionssanktum',
-  Roboterfabrik: 'Servitorenschmiede',
-  Nanitenfabrik: 'Machina-Schwarmhalle',
-  Raumschiffwerft: 'Orbitale Schiffsschmiede',
-  Werft: 'Schiffsschmiede',
-  Forschungslabor: 'Scholarium',
-  Labor: 'Scholarium',
-  Metallspeicher: 'Adamant-Gewölbe',
-  Kristallspeicher: 'Psikristall-Reliquiar',
-  Deuteriumtank: 'Promethium-Zisterne',
-  Energietechnik: 'Machina-Energetik',
-  Lasertechnik: 'Lichtlanzen-Lehre',
-  Verbrennungstriebwerk: 'Promethium-Brennkammer',
-  Impulstriebwerk: 'Plasma-Impulsantrieb',
-  Hyperraumtechnik: 'Warp-Theorie',
-  Hyperraumantrieb: 'Warp-Antrieb',
-  Hyperraum: 'Warp',
-  Spionagetechnik: 'Auspex-Lehre',
-  Computertechnik: 'Kogitator-Doktrin',
-  Waffentechnik: 'Waffensegnung',
-  Schildtechnik: 'Refraktionsfelder',
-  Raumschiffpanzerung: 'Adamant-Panzerung',
-  Ionentechnik: 'Ionen-Lehre',
-  Plasmatechnik: 'Plasma-Lehre',
-  Gravitonforschung: 'Gravitonen-Mysterium',
-  'Intergalaktisches Forschungsnetzwerk': 'Sternennetz der Gelehrten',
-  Forschungsnetzwerk: 'Sternennetz der Gelehrten',
-  'Kleiner Transporter': 'Frachtläufer',
-  'Großer Transporter': 'Lastbarke',
-  Transporter: 'Frachtläufer',
-  Kolonialschiff: 'Kolonistenarche',
-  'Leichter Jäger': 'Abfangjäger',
-  'Schwerer Jäger': 'Sturmjäger',
-  Kreuzer: 'Fregatte',
-  Schlachtschiff: 'Kathedralschiff',
-  Schlachtkreuzer: 'Jagdkreuzer',
-  Zerstörer: 'Vernichter',
-  Bomber: 'Belagerungsbomber',
-  Todesstern: 'Weltenbrecher',
-  Spionagesonde: 'Spähschädel',
-  Sonde: 'Spähschädel',
-  Solarsatellit: 'Sonnenreliquiar',
-  Satellit: 'Sonnenreliquiar',
-  Raketenwerfer: 'Raketenbatterie',
-  'Leichtes Lasergeschütz': 'Lichtlanze',
-  'Schweres Lasergeschütz': 'Schwere Lichtlanze',
-  Lasergeschütz: 'Lichtlanze',
-  Gaußkanone: 'Massebeschleuniger',
-  Ionengeschütz: 'Ionenlanze',
-  Plasmawerfer: 'Plasmabatterie',
-  Schildkuppel: 'Schutzdom',
-  Spionagebericht: 'Auspex-Bericht',
-  Trümmerfeld: 'Wrackfeld',
-  Allianz: 'Gilde',
-};
-
-/**
- * Whether `text` says `name` as a word or at the start of a compound
- * („Deuteriumvorrat“), case-sensitive. A new name that ends in the classic
- * one in lower case („Jagdkreuzer“, „Psikristall“) is not a match.
- */
-const says = (text: string, name: string): boolean =>
-  new RegExp(`(?<![\\p{L}-])${name}`, 'u').test(text);
+const LATER: readonly string[] = [];
 
 const CATALOG = { BUILD, RES, SHIPS, DEF } as const;
 const entries = Object.entries(CATALOG).flatMap(([part, defs]) =>
@@ -142,7 +60,7 @@ const entries = Object.entries(CATALOG).flatMap(([part, defs]) =>
   ),
 );
 
-describe('long texts of the catalog (#94, drafts for the owner)', () => {
+describe('long texts of the catalog (#94)', () => {
   it('cover every entry on main but the ones listed for later', () => {
     const missing = entries
       .filter(({ key, def }) => !LATER.includes(key) && !def.lt?.trim())
@@ -160,9 +78,9 @@ describe('long texts of the catalog (#94, drafts for the owner)', () => {
 
   it('use no classic name that the grimdark naming replaces', () => {
     const found = entries.flatMap(({ key, def }) =>
-      Object.keys(CLASSIC)
-        .filter((name) => says(def.lt ?? '', name))
-        .map((name) => `${key}: ${name} → ${CLASSIC[name]}`),
+      classicIn(def.lt ?? '').map(
+        (name) => `${key}: ${name} → ${CLASSIC[name]}`,
+      ),
     );
     expect(found).toEqual([]);
   });

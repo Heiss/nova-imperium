@@ -7,7 +7,7 @@ import { queuePush, scheduleShipyard, type PushKind } from './push-store.ts';
 const TITLES: Record<PushKind, string> = {
   buildings: 'Ausbau abgeschlossen',
   research: 'Forschung abgeschlossen',
-  shipyard: 'Werftauftrag abgeschlossen',
+  shipyard: 'Auftrag der Schiffsschmiede abgeschlossen',
   fleet: 'Flottenereignis',
   messages: 'Neue Nachricht',
 };

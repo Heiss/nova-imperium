@@ -2,7 +2,6 @@
 art: neu
 ---
 
-Ionengeschütz, Plasmawerfer, Kleine und Große Schildkuppel: vier neue
-Anlagen in der Verteidigung. Jede Schildkuppel gibt es nur einmal pro
-Planet. Der Bomber hat
-Schnellfeuer gegen das Ionengeschütz.
+Ionenlanze, Plasmabatterie, Kleiner und Großer Schutzdom: vier neue Anlagen
+in der Verteidigung. Jeden Schutzdom gibt es nur einmal pro Planet. Der
+Belagerungsbomber hat Schnellfeuer gegen die Ionenlanze.

@@ -8,11 +8,9 @@ description: The rename of all display names to a dark sci-fi style, its timing 
 
 Source: the owner's package `nova-imperium-40k` (`texte-40k.json`,
 `apply-40k-texts.mjs`, README, 2026-11-10), given to Claude on 2026-11-12.
-Nothing of it is applied on `main` yet; every catalog entry and icon title
-still has its classic name. The script `apply-40k-texts.mjs` was not run or
-reviewed. The branch `claude/grimdark-naming` prepares the rename: it brings
-the long texts first (see „Long texts [E]“ below); the names follow after
-#123 and #60 are merged (owner, 2026-11-12).
+The branch `claude/grimdark-naming` applies it after #123, #121 and #125
+were merged (owner, 2026-11-12); see „Applied“ below. The script
+`apply-40k-texts.mjs` was not run or reviewed.
 
 * **[E]** Timing: the features of the milestone `next release` (#46, #47,
   #49, #50) are built with their classic names. At the end of the release one
@@ -126,6 +124,88 @@ Mondfeste, Auspex-Phalanx, Warp-Tor, Raketenkrypta, Abfangrakete,
 Orbitalrakete, Gildenarsenal, Wacht halten;
 Expeditionstechnik → Kreuzzugs-Kartografie (package order).
 
+## Applied (#94)
+
+Done by hand on the branch `claude/grimdark-naming` (2026-11-12), with the
+tables above as data; keys, game values, database columns, API fields and
+stored mission ids stay.
+
+* Catalog (`src/shared/catalog.ts`): `n` and `ab` of all 48 entries,
+  `MISSION` display texts (the stored ids are the keys; `fleet-actions.ts`
+  checks the key, `overview.ts` and the fleet form show the value).
+* Resources everywhere in the interface: resource bar, costs, cargo,
+  production table, reports, rewards, the fuel line, the admin labels
+  „Start-Adamant“, „Start-Psikristall“, „Start-Promethium“.
+* Interface texts of the table: „Der Zehnte reicht nicht aus.“ (server),
+  „Das Wissen ist noch verschlossen.“ (server; without the period in the
+  lists, as before), „Die Flotte kehrt heim“ (menu mark of the fleet),
+  „Auspex-Bericht von …“ (report title), „Sternenkarte“ (menu entry and
+  page heading only; „Galaxie“ stays as the coordinate, also in the fleet
+  form, the admin settings and the help text „Galaxien × Systeme“).
+* Icons: `<title>` and `aria-label` of every catalog and resource icon.
+* **[V]** Short forms the concept does not list, renamed the same way:
+  Werft → Schiffsschmiede (menu entry „Schiffsschmiede“, lock and busy
+  messages, „Bauauftrag der Schiffsschmiede“, overview row, admin
+  diagnostics, achievement category), Labor/Labore → Scholarium/Scholarien
+  (lab messages, research view), Sonden → Spähschädel (help option, galaxy
+  hint, spy report, server messages), Solarsatelliten → Sonnenreliquiare
+  (production row, server message), „je Satellit“ → „je Reliquiar“,
+  Intergalaktisches Forschungsnetzwerk → Sternennetz der Gelehrten
+  (research view), Computertechnik → Kogitator-Doktrin (fleet slots hint,
+  help), Kolonialschiff → Kolonistenarche (colony report, server message),
+  „Spionage nur mit Spionagesonden.“ → „Auspex-Erkundung nur mit
+  Spähschädeln.“, „Deuteriumverbrauch“ → „Promethiumverbrauch“,
+  „Werftauftrag fertig/abgeschlossen“ → „Auftrag der Schiffsschmiede
+  fertig/abgeschlossen“ (menu mark, push title), „Werftaufträge erteilen“ →
+  „Aufträge an die Schiffsschmiede erteilen“ (achievements), „Diese
+  Schildkuppel …“ → „Diesen Schutzdom gibt es nur einmal pro Planet.“, the
+  galaxy links Kolonisieren/Spionieren/Angreifen/Transport → the mission
+  names, the help text „Angriffen und Auspex-Erkundungen … auf der
+  Sternenkarte“, and the unreleased changelog fragments in `changes/`.
+* Not renamed, open for the owner ([U]): „Bau abgeschlossen → Das Werk ist
+  vollbracht.“ has no exact text in the game (the push titles say
+  „Ausbau abgeschlossen“ and „Forschung abgeschlossen“, the menu „Ausbau
+  fertig“); „Angriff → Feindkontakt! Zu den Waffen!“ has no matching text
+  either (the defender's report title is „Angriff auf ‹Planet› durch
+  ‹Spieler›“, the shipyard shows the attack value „Angriff“); „Trümmerfeld“
+  does not exist yet (#45); „Spionageaktivität“ (report title, also matched
+  by account deletion in `delete-account.ts`) and „Spionageabwehr“ (report
+  texts) have no name in the concept. `CHANGELOG.md` keeps its released
+  sections and the design mockups in `docs/design/` keep the classic names.
+* Tests: `src/test/naming.ts` holds the tables; `src/test/naming.test.ts`
+  checks that no catalog text, mission, interface or server string literal,
+  Svelte markup or icon shows a classic word (names, resources, the short
+  forms above, the interface texts of the table); `catalog.test.ts`
+  compares every game value with version 1 exactly and the names, `ab` and
+  short texts through the table; `equivalence.test.ts` maps the requirement
+  names of version 1 through the table; `icons.test.ts` checks `<title>`
+  and `aria-label` against the catalog.
+
+### Short texts [V]
+
+Pure name swaps (Metall → Adamant and so on) are not listed. Changed beyond
+the names:
+
+* `comb`: „+10 % Geschwindigkeit pro Stufe (Transporter, Jäger, Sonden).“ →
+  „+10 % Geschwindigkeit pro Stufe (Frachtläufer, Lastbarken, Abfangjäger,
+  Spähschädel).“ (the Sturmjäger flies with the Plasma-Impulsantrieb).
+* `impulse`: „+20 % pro Stufe (Schwere Jäger, Kreuzer).“ → „+20 % pro Stufe
+  (Kolonistenarchen, Sturmjäger, Fregatten; Belagerungsbomber bis
+  Warp-Antrieb 8).“
+* `hdrive`: „+30 % pro Stufe (Schlachtschiffe).“ → „+30 % pro Stufe
+  (Kathedralschiffe, Jagdkreuzer, Vernichter, Weltenbrecher;
+  Belagerungsbomber ab Stufe 8).“ (also wrong before).
+* `hyper`: „Erschließt den Hyperraum.“ → „Erschließt den Warp.“
+* `spy`: „Bessere Spionageberichte, bessere Abwehr.“ → „Bessere
+  Auspex-Berichte, bessere Abwehr.“
+* `bc`: „Schnell und stark gegen Transporter, Kreuzer und Schlachtschiffe.“
+  → „Schnell und stark gegen Frachtläufer, Lastbarken, Fregatten und
+  Kathedralschiffe.“
+* `bb`: „Stark gegen Raketenwerfer, Laser- und Ionengeschütze; fliegt ab
+  Hyperraumantrieb 8 mit dem Hyperraumantrieb.“ → „Stark gegen
+  Raketenbatterien, Lichtlanzen und Ionenlanzen; fliegt ab Warp-Antrieb 8
+  mit dem Warp-Antrieb.“
+
 ## Long texts [E]
 
 Drafted by Claude on 2026-11-12; the owner confirmed all 43 texts as they
@@ -144,15 +224,15 @@ instead of the short `ds` ([Explanation texts](/features/explanation-texts.md)).
   `yard.ts`, `arrival.ts`, `fleet-actions.ts`).
 * Plain text, two to four sentences, one paragraph. Rapid fire is called
   „Schnellfeuer“; the rebuilt defense after a battle is „ein großer Teil“.
-* Not yet written, because the entries are not on `main`: Ionengeschütz
-  (`ionc`), Plasmawerfer (`pt`), Kleine and Große Schildkuppel (`ssd`,
-  `lsd`) of #50 and the Todesstern (`dstar`) of #60; they and the changes
-  below are drafted [V] with the rename and confirmed there. The list
-  `LATER` in `src/shared/explain.test.ts` names them and may only shrink.
-* Texts that name other entries must change with them: Lichtlanzen-Lehre,
-  Plasma-Lehre and Ionen-Lehre name what they unlock today, the defense
-  texts and the ship texts name who has rapid fire against whom (the
-  Ionengeschütz and the Todesstern add rapid fire).
+* **[V]** New with the rename (#94), for `ionc`, `pt`, `ssd`, `lsd` and
+  `dstar`; the list `LATER` in `src/shared/explain.test.ts` is empty now.
+* **[V]** Changed with the rename, because #50 and #60 brought new
+  requirements and rapid fire: `hyper`, `hdrive` (the Weltenbrecher), `ion`
+  (the Ionenlanze), `plasma` (the Plasmabatterie), `graviton` (unlocks the
+  Weltenbrecher), `bb` (rapid fire against the Ionenlanze) and the texts
+  that name who has rapid fire against them: `sc`, `lc`, `lf`, `hf`, `cr`,
+  `bs`, `bc`, `rl`, `ll`, `hl` (the Weltenbrecher added). The other 27 stay
+  as confirmed.
 * `src/shared/explain.test.ts` checks: every entry on `main` but `LATER`
   has a text; no text says a classic name this concept replaces (its own
   table, not read from this file); two to four sentences, plain text,

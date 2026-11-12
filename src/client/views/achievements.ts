@@ -16,7 +16,7 @@ const statusLabels = {
 type Status = keyof typeof statusLabels;
 
 const rewardText = ([m, c, d]: Cost): string =>
-  `Metall ${fmt(m)} · Kristall ${fmt(c)} · Deuterium ${fmt(d)}`;
+  `Adamant ${fmt(m)} · Psikristall ${fmt(c)} · Promethium ${fmt(d)}`;
 
 function statusOf(
   item: Achievement,

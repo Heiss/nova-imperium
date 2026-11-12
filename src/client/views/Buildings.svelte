@@ -70,7 +70,7 @@
         {/if}
         {#if key === 'fusion'}
           <div class="dim">
-            Deuteriumverbrauch auf Stufe {level + 1}: {energy.format(
+            Promethiumverbrauch auf Stufe {level + 1}: {energy.format(
               (fusionUse(level + 1, s.cfg) * (P.pct.fusion ?? 100)) / 100,
             )} pro Stunde
           </div>
@@ -92,13 +92,13 @@
           ></progress>
           <button class="small red" data-act="cancelBuild">Abbrechen</button>
         {:else if status === 'missing'}
-          <span class="req">Voraussetzungen fehlen</span>
+          <span class="req">Das Wissen ist noch verschlossen</span>
         {:else if status === 'queueBusy'}
           <span class="dim">Bauschleife belegt</span>
         {:else if status === 'yardBusy'}
-          <span class="dim">Werft arbeitet gerade</span>
+          <span class="dim">Schiffsschmiede arbeitet gerade</span>
         {:else if status === 'labBusy'}
-          <span class="dim">Labor forscht gerade</span>
+          <span class="dim">Scholarium forscht gerade</span>
         {:else}
           <button data-act="build" data-k={key} disabled={!afford(P, cost)}>
             {level ? `Ausbauen auf Stufe ${level + 1}` : 'Bauen'}

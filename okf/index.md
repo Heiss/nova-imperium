@@ -21,7 +21,7 @@ okf_version: "0.2"
 * [Interface v2 and planet types](/features/interface.md) - icon set, phone navigation, animated planets, planet type rule
 * [Requirements list](/features/requirements.md) - all unmet requirements, startable ones with a button
 * [Nanitenfabrik](/features/nanite-factory.md) - halves building and shipyard times, shared shipyard lock
-* [Grimdark naming](/features/naming.md) - rename of all display names at the end of the release, decided and proposed names
+* [Grimdark naming](/features/naming.md) - rename of all display names (#94), the names, what is applied, short and long texts
 * [Ionengeschütz, Plasmawerfer and shield domes](/features/defense-ion-plasma-domes.md) - defense of #50, domes once per planet
 * [Ionentechnik, Plasmatechnik, Gravitonforschung and IFN](/features/research-ion-plasma-graviton.md) - new research of #49, energy check of Gravitonforschung, research on any planet with a lab, research network
 * [Explanation texts](/features/explanation-texts.md) - long texts with a display option per player (#63)

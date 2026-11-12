@@ -8,8 +8,8 @@ import type { Planet } from './types.ts';
 
 /** The buildings that lock the shipyard, with the short name for messages. */
 export const YARD_LOCK: Readonly<Record<string, string>> = {
-  yard: 'Werft',
-  nanite: 'Nanitenfabrik',
+  yard: 'Schiffsschmiede',
+  nanite: 'Machina-Schwarmhalle',
 };
 
 const locks = (key: string): boolean => Object.hasOwn(YARD_LOCK, key);

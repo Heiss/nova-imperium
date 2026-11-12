@@ -339,9 +339,9 @@ test('filters achievements and keeps tomorrow’s reward after claiming', async 
   await expect(next).toHaveText(reward!);
   await expect(badge).toHaveCount(0);
   await page.getByLabel('Kategorie', { exact: true }).selectOption('buildings');
-  await page.getByLabel('Suchen', { exact: true }).fill('Metallmine');
+  await page.getByLabel('Suchen', { exact: true }).fill('Adamant-Tiefbohrung');
   const visible = page.locator('[data-achievement]:visible');
-  await expect(visible.first()).toContainText('Metallmine');
+  await expect(visible.first()).toContainText('Adamant-Tiefbohrung');
   await expect(
     page.locator('[data-achievement]:visible:not([data-category=buildings])'),
   ).toHaveCount(0);
@@ -473,12 +473,19 @@ test.describe('playing', () => {
     await register(page, name);
     seed({ name, res: { m: 5000, c: 5000, d: 5000 } });
     await page.goto('/?view=buildings');
-    const yard = page.locator('.item').filter({ hasText: 'Raumschiffwerft' });
-    const robot = yard.locator('.need').filter({ hasText: 'Roboterfabrik' });
+    // By the name only: the long texts (#94) of other entries name it too.
+    const yard = page.locator('.item').filter({
+      has: page.locator('.nm', { hasText: /^\s*Orbitale Schiffsschmiede/ }),
+    });
+    const robot = yard.locator('.need').filter({
+      has: page.locator('.need-nm', { hasText: /^Servitorenschmiede$/ }),
+    });
     await expect(robot).toContainText('Stufe 2 (aktuell 0)');
     await expect(robot).toHaveClass(/ready/);
     await robot.getByRole('button', { name: 'Jetzt bauen' }).click();
-    await expect(page.locator('.item.running')).toContainText('Roboterfabrik');
+    await expect(page.locator('.item.running')).toContainText(
+      'Servitorenschmiede',
+    );
     await expect(page).toHaveURL(/\?view=buildings$/);
     await expect(robot).toContainText('Bauschleife belegt');
     await expect(
@@ -499,16 +506,19 @@ test.describe('playing', () => {
       res: { m: 50000, c: 50000, d: 50000 },
     });
     await page.goto('/?view=shipyard');
-    const fighter = page.locator('.item').filter({ hasText: 'Leichter Jäger' });
+    // By the name only: the long texts (#94) of other entries name it too.
+    const fighter = page.locator('.item').filter({
+      has: page.locator('.nm', { hasText: /^\s*Abfangjäger/ }),
+    });
     const comb = fighter.locator('.need').filter({
-      has: page.locator('.need-nm', { hasText: /^Verbrennungstriebwerk$/ }),
+      has: page.locator('.need-nm', { hasText: /^Promethium-Brennkammer$/ }),
     });
     const energy = fighter.locator('.need').filter({
-      has: page.locator('.need-nm', { hasText: /^Energietechnik$/ }),
+      has: page.locator('.need-nm', { hasText: /^Machina-Energetik$/ }),
     });
     await expect(comb).toHaveClass(/missing/);
-    await expect(comb).toContainText('braucht Energietechnik (Stufe 1)');
-    await expect(energy).toContainText('für Verbrennungstriebwerk');
+    await expect(comb).toContainText('braucht Machina-Energetik (Stufe 1)');
+    await expect(energy).toContainText('für Promethium-Brennkammer');
     await energy.getByRole('button', { name: 'Jetzt forschen' }).click();
     await expect(energy).toContainText('Es wird bereits geforscht');
     await expect(
@@ -533,14 +543,14 @@ test.describe('playing', () => {
     await page.goto('/?view=buildings');
     await page.click('[data-act=build][data-k=lab]');
     await nav(page, 'research');
-    const laser = page
-      .locator('.item')
-      .filter({ has: page.locator('.nm', { hasText: /^\s*Lasertechnik/ }) });
+    const laser = page.locator('.item').filter({
+      has: page.locator('.nm', { hasText: /^\s*Lichtlanzen-Lehre/ }),
+    });
     const energy = laser.locator('.need').filter({
-      has: page.locator('.need-nm', { hasText: /^Energietechnik$/ }),
+      has: page.locator('.need-nm', { hasText: /^Machina-Energetik$/ }),
     });
     await expect(energy).toContainText('Stufe 2 (aktuell 1)');
-    await expect(energy).toContainText('Labor wird ausgebaut');
+    await expect(energy).toContainText('Scholarium wird ausgebaut');
     await expect(
       energy.getByRole('button', { name: 'Jetzt forschen' }),
     ).toBeDisabled();
@@ -572,9 +582,9 @@ test.describe('playing', () => {
     await nav(page, 'shipyard');
     const fighter = page
       .locator('.item')
-      .filter({ has: page.locator('.nm', { hasText: /^\s*Leichter Jäger/ }) });
+      .filter({ has: page.locator('.nm', { hasText: /^\s*Abfangjäger/ }) });
     const lab = fighter.locator('.need').filter({
-      has: page.locator('.need-nm', { hasText: /^Forschungslabor$/ }),
+      has: page.locator('.need-nm', { hasText: /^Scholarium$/ }),
     });
     await expect(lab).toHaveClass(/ready/);
     await expect(lab).not.toContainText('Heimatplanet');
@@ -583,9 +593,7 @@ test.describe('playing', () => {
     await expect(page.locator('#pinfo b').first()).toHaveText('Kolonie');
     await expect(page).toHaveURL(/\?view=shipyard$/);
     await nav(page, 'buildings');
-    await expect(page.locator('.item.running')).toContainText(
-      'Forschungslabor',
-    );
+    await expect(page.locator('.item.running')).toContainText('Scholarium');
     await choosePlanet(page, 'Heimatplanet');
     await expect(page.locator('#pinfo b').first()).toHaveText('Heimatplanet');
     await expect(page.locator('.item.running')).toHaveCount(0);
@@ -606,27 +614,27 @@ test.describe('playing', () => {
     await page.goto('/?view=research');
     // The home planet has no lab: the research view offers the colony.
     await expect(page.locator('.notice')).toContainText(
-      'Auf diesem Planeten gibt es kein Forschungslabor.',
+      'Auf diesem Planeten gibt es kein Scholarium.',
     );
     await page.getByRole('button', { name: 'Zu Kolonie' }).click();
     await expect(page.locator('#pinfo b').first()).toHaveText('Kolonie');
     await expect(page.locator('h2')).toHaveText('Forschung auf Kolonie');
-    const energy = page
-      .locator('.item')
-      .filter({ has: page.locator('.nm', { hasText: /^\s*Energietechnik/ }) });
+    const energy = page.locator('.item').filter({
+      has: page.locator('.nm', { hasText: /^\s*Machina-Energetik/ }),
+    });
     await energy.locator('[data-act=research]').click();
     await expect(energy.locator('.act')).toContainText('auf Kolonie');
     // Energietechnik costs 800 crystal and 400 deuterium, paid on the colony.
-    await expect(stock(page, 'Kristall')).toHaveText(/^8\.2\d\d$/);
-    await expect(stock(page, 'Deuterium')).toHaveText(/^8\.6\d\d$/);
+    await expect(stock(page, 'Psikristall')).toHaveText(/^8\.2\d\d$/);
+    await expect(stock(page, 'Promethium')).toHaveText(/^8\.6\d\d$/);
     await choosePlanet(page, 'Heimatplanet');
-    await expect(stock(page, 'Kristall')).toHaveText(/^50\.\d{3}$/);
+    await expect(stock(page, 'Psikristall')).toHaveText(/^50\.\d{3}$/);
     await nav(page, 'overview');
-    await expect(page.getByText('Energietechnik (Stufe 1)')).toBeVisible();
+    await expect(page.getByText('Machina-Energetik (Stufe 1)')).toBeVisible();
     await choosePlanet(page, 'Kolonie');
     await nav(page, 'research');
     await energy.locator('[data-act=cancelResearch]').click();
-    await expect(stock(page, 'Kristall')).toHaveText(/^9\.0\d\d$/);
+    await expect(stock(page, 'Psikristall')).toHaveText(/^9\.0\d\d$/);
     expect(w.problems).toEqual([]);
   });
 
@@ -656,40 +664,42 @@ test.describe('playing', () => {
       );
     await page.goto('/?view=research');
     await expect(
-      item(/^\s*Intergalaktisches Forschungsnetzwerk/).getByRole('img', {
-        name: 'Intergalaktisches Forschungsnetzwerk',
+      item(/^\s*Sternennetz der Gelehrten/).getByRole('img', {
+        name: 'Sternennetz der Gelehrten',
       }),
     ).toHaveAttribute(
       'src',
       '/icons/research/intergalactic_research_network.svg',
     );
-    const shield = await time(/^\s*Schildtechnik/);
-    const hdrive = await time(/^\s*Hyperraumantrieb/);
+    const shield = await time(/^\s*Refraktionsfelder/);
+    const hdrive = await time(/^\s*Warp-Antrieb/);
     seed({ name, research: { ...research, ifn: 1 } });
     await page.reload();
     await expect(page.locator('h2 + .dim')).toContainText(
-      'Intergalaktisches Forschungsnetzwerk: bis zu 1 weiteres Labor',
+      'Sternennetz der Gelehrten: bis zu 1 weiteres Scholarium',
     );
     // Labs 10 and 6 research Schildtechnik like lab 16: 11/17 of the time.
     await expect(
-      item(/^\s*Schildtechnik/).locator('.dim', { hasText: 'Forschungszeit' }),
-    ).toContainText('Labore zusammen Stufe 16');
+      item(/^\s*Refraktionsfelder/).locator('.dim', {
+        hasText: 'Forschungszeit',
+      }),
+    ).toContainText('Scholarien zusammen Stufe 16');
     expect(
-      Math.abs((await time(/^\s*Schildtechnik/)) - (shield * 11) / 17),
+      Math.abs((await time(/^\s*Refraktionsfelder/)) - (shield * 11) / 17),
     ).toBeLessThanOrEqual(1);
     // Hyperraumantrieb needs lab 7: the colony lab 6 does not join.
     await expect(
-      item(/^\s*Hyperraumantrieb/).locator('.dim', {
+      item(/^\s*Warp-Antrieb/).locator('.dim', {
         hasText: 'Forschungszeit',
       }),
-    ).not.toContainText('Labore zusammen');
-    expect(await time(/^\s*Hyperraumantrieb/)).toBe(hdrive);
+    ).not.toContainText('Scholarien zusammen');
+    expect(await time(/^\s*Warp-Antrieb/)).toBe(hdrive);
     const before = Date.now();
-    await item(/^\s*Schildtechnik/)
+    await item(/^\s*Refraktionsfelder/)
       .locator('[data-act=research]')
       .click();
     const left = seconds(
-      (await item(/^\s*Schildtechnik/)
+      (await item(/^\s*Refraktionsfelder/)
         .locator('.cd')
         .textContent())!,
     );
@@ -709,7 +719,7 @@ test.describe('playing', () => {
     seed({ name, b: { lab: 12, solar: 58 } });
     await page.goto('/?view=research');
     const graviton = page.locator('.item').filter({
-      has: page.locator('.nm', { hasText: /^\s*Gravitonforschung/ }),
+      has: page.locator('.nm', { hasText: /^\s*Gravitonen-Mysterium/ }),
     });
     await expect(
       graviton.getByRole('img', { name: 'Energieproduktion' }),
@@ -729,7 +739,7 @@ test.describe('playing', () => {
       return ((await r.json()) as { error?: string }).error;
     });
     expect(refused).toMatch(
-      /^Zu wenig Energie: Gravitonforschung braucht eine Energieproduktion von 300\.000, es fehlen [\d.]+\.$/,
+      /^Zu wenig Energie: Gravitonen-Mysterium braucht eine Energieproduktion von 300\.000, es fehlen [\d.]+\.$/,
     );
     seed({ name, b: { lab: 12, solar: 59 } });
     await page.reload();
@@ -752,11 +762,11 @@ test.describe('playing', () => {
     await register(page, name);
     seed({ name, res: { m: 50000, c: 50000, d: 50000 } });
     await page.goto('/?view=buildings');
-    const yard = page
-      .locator('.item')
-      .filter({ has: page.locator('.nm', { hasText: /^\s*Raumschiffwerft/ }) });
+    const yard = page.locator('.item').filter({
+      has: page.locator('.nm', { hasText: /^\s*Orbitale Schiffsschmiede/ }),
+    });
     const robot = yard.locator('.need').filter({
-      has: page.locator('.need-nm', { hasText: /^Roboterfabrik$/ }),
+      has: page.locator('.need-nm', { hasText: /^Servitorenschmiede$/ }),
     });
     await robot.getByRole('button', { name: 'Jetzt bauen' }).click();
     await expect(page.locator('.item.running')).toContainText(
@@ -807,11 +817,11 @@ test.describe('playing', () => {
       );
     const times = async () => {
       await page.goto('/?view=buildings');
-      const building = await time(/^\s*Metallmine/, 'Bauzeit');
+      const building = await time(/^\s*Adamant-Tiefbohrung/, 'Bauzeit');
       await page.goto('/?view=shipyard');
-      const ship = await time(/^\s*Leichter Jäger/, 'Bauzeit');
+      const ship = await time(/^\s*Abfangjäger/, 'Bauzeit');
       await page.goto('/?view=research');
-      const research = await time(/^\s*Energietechnik/, 'Forschungszeit');
+      const research = await time(/^\s*Machina-Energetik/, 'Forschungszeit');
       return { building, ship, research };
     };
     const before = await times();
@@ -825,17 +835,23 @@ test.describe('playing', () => {
 
     await page.goto('/?view=buildings');
     await expect(
-      item(/^\s*Nanitenfabrik/).getByRole('img', { name: 'Nanitenfabrik' }),
+      item(/^\s*Machina-Schwarmhalle/).getByRole('img', {
+        name: 'Machina-Schwarmhalle',
+      }),
     ).toHaveAttribute('src', '/icons/buildings/nanite_factory.svg');
     await page.click('[data-act=build][data-k=nanite]');
-    await expect(page.locator('.item.running')).toContainText('Nanitenfabrik');
+    await expect(page.locator('.item.running')).toContainText(
+      'Machina-Schwarmhalle',
+    );
     await page.goto('/?view=shipyard');
     await expect(page.locator('.notice.warn')).toHaveText(
-      'Die Nanitenfabrik wird gerade ausgebaut, die Werft kann nicht produzieren.',
+      'Die Machina-Schwarmhalle wird gerade ausgebaut, die Schiffsschmiede kann nicht produzieren.',
     );
     // The Raketenwerfer needs only the shipyard, so it shows an order button.
     await page.goto('/?view=defense');
-    await expect(page.locator('.notice.warn')).toContainText('Nanitenfabrik');
+    await expect(page.locator('.notice.warn')).toContainText(
+      'Machina-Schwarmhalle',
+    );
     await expect(page.locator('[data-act=order][data-k=rl]')).toBeDisabled();
     expect(w.problems).toEqual([]);
   });
@@ -850,21 +866,21 @@ test.describe('playing', () => {
     await page.goto('/?view=shipyard');
     const item = page
       .locator('.item')
-      .filter({ has: page.locator('.nm', { hasText: /^\s*Solarsatellit/ }) });
+      .filter({ has: page.locator('.nm', { hasText: /^\s*Sonnenreliquiar/ }) });
     await expect(
-      item.getByRole('img', { name: 'Solarsatellit' }),
+      item.getByRole('img', { name: 'Sonnenreliquiar' }),
     ).toHaveAttribute('src', '/icons/ships/solar_satellite.svg');
-    await expect(item).toContainText('Energie 22 je Satellit');
+    await expect(item).toContainText('Energie 22 je Reliquiar');
     await expect(item).not.toContainText('Tempo');
     await page.fill('#q_sat', '2');
     await page.click('[data-act=order][data-k=sat]');
     await expect(
-      page.locator('.box', { hasText: 'Bauauftrag der Werft' }),
-    ).toContainText('2× Solarsatellit');
+      page.locator('.box', { hasText: 'Bauauftrag der Schiffsschmiede' }),
+    ).toContainText('2× Sonnenreliquiar');
 
     seed({ name, ships: { sat: 3, lf: 1 }, temp: 8 });
     await page.goto('/?view=resources');
-    const row = page.locator('tr', { hasText: 'Solarsatelliten (3)' });
+    const row = page.locator('tr', { hasText: 'Sonnenreliquiare (3)' });
     await expect(row.locator('td.good')).toHaveText('66');
     await page.selectOption('select[data-k=sat]', '50');
     await expect(row.locator('td.good')).toHaveText('33');
@@ -883,17 +899,17 @@ test.describe('playing', () => {
     seed({ name, res: { m: 10000, c: 10000, d: 10000 } });
     await page.goto('/?view=buildings');
     const item = page.locator('.item').filter({
-      has: page.locator('.nm', { hasText: /^\s*Fusionskraftwerk/ }),
+      has: page.locator('.nm', { hasText: /^\s*Fusionssanktum/ }),
     });
     await expect(
-      item.getByRole('img', { name: 'Fusionskraftwerk' }),
+      item.getByRole('img', { name: 'Fusionssanktum' }),
     ).toHaveAttribute('src', '/icons/buildings/fusion_reactor.svg');
     await expect(item.locator('.cost').first()).toHaveText(/900.*360.*180/);
-    await expect(item.locator('.needs')).toContainText(
-      'Deuteriumsynthetisierer',
+    await expect(item.locator('.needs')).toContainText('Promethium-Raffinerie');
+    await expect(item.locator('.needs')).toContainText('Machina-Energetik');
+    await expect(item.locator('.act')).toContainText(
+      'Das Wissen ist noch verschlossen',
     );
-    await expect(item.locator('.needs')).toContainText('Energietechnik');
-    await expect(item.locator('.act')).toContainText('Voraussetzungen fehlen');
     seed({
       name,
       b: { deut: 5, lab: 1 },
@@ -903,7 +919,7 @@ test.describe('playing', () => {
     await page.reload();
     await expect(item.locator('.needs')).toHaveCount(0);
     await expect(item).toContainText(
-      'Deuteriumverbrauch auf Stufe 1: 55 pro Stunde',
+      'Promethiumverbrauch auf Stufe 1: 55 pro Stunde',
     );
     await expect(page.locator('[data-act=build][data-k=fusion]')).toBeEnabled();
 
@@ -917,7 +933,7 @@ test.describe('playing', () => {
       res: { m: 0, c: 0, d: 50000 },
     });
     await page.goto('/?view=resources');
-    const row = page.locator('tr', { hasText: 'Fusionskraftwerk (Stufe 3)' });
+    const row = page.locator('tr', { hasText: 'Fusionssanktum (Stufe 3)' });
     await expect(row.locator('td.good')).toHaveText('113');
     await expect(row.locator('td.bad')).toHaveText('-199');
     await expect(row).not.toContainText('gedrosselt');
@@ -939,11 +955,11 @@ test.describe('playing', () => {
       pct: {},
     });
     await page.reload();
-    const dry = page.locator('tr', { hasText: 'Fusionskraftwerk (Stufe 8)' });
+    const dry = page.locator('tr', { hasText: 'Fusionssanktum (Stufe 8)' });
     await expect(dry).toContainText('gedrosselt auf 58 %');
     await expect(dry.locator('select[data-k=fusion]')).toHaveValue('100');
     await expect(sum.locator('th').nth(3)).toHaveText('0');
-    await expect(stock(page, 'Deuterium')).toHaveText('0');
+    await expect(stock(page, 'Promethium')).toHaveText('0');
     expect(w.problems).toEqual([]);
   });
 
@@ -990,9 +1006,9 @@ test.describe('playing', () => {
     await expect(page.getByText('Ausbau auf Stufe 1')).toBeVisible();
     await nav(page, 'galaxy');
     await page.getByText('zum Heimatsystem').click();
-    await page.getByRole('button', { name: 'Kolonisieren' }).first().click();
+    await page.getByRole('button', { name: 'Landnahme' }).first().click();
     await expect(page.getByLabel('Auftrag')).toHaveValue('colonize');
-    await page.getByLabel('Anzahl Kolonialschiff').fill('1');
+    await page.getByLabel('Anzahl Kolonistenarche').fill('1');
     await page.locator('#c_m').fill('400');
     await page.getByRole('button', { name: 'Flotte losschicken' }).click();
     await expect(page.locator('.toast').last()).toContainText(
@@ -1037,7 +1053,7 @@ test.describe('playing', () => {
     await page.fill('#q_lf', '2');
     await page.click('[data-act=order][data-k=lf]');
     await expect(page.locator('.toast').last()).toContainText(
-      '2× Leichter Jäger in Auftrag gegeben.',
+      '2× Abfangjäger in Auftrag gegeben.',
     );
     await nav(page, 'fleet');
     await page.fill('#f_sc', '1');
@@ -1049,19 +1065,19 @@ test.describe('playing', () => {
     await nav(page, 'highscore');
     const target = page.locator('tr', { hasText: b }).locator('[data-act=gto]');
     await target.click();
-    await expect(page.locator('h2')).toHaveText('Galaxie');
+    await expect(page.locator('h2')).toHaveText('Sternenkarte');
     await page.locator('tr', { hasText: b }).locator('[data-act=gspy]').click();
     await expect(page.locator('.toast').last()).toContainText(
       'Flotte unterwegs',
     );
     await nav(page, 'overview');
-    await expect(page.locator('.fl-spy')).toContainText('Spionage');
+    await expect(page.locator('.fl-spy')).toContainText('Auspex-Erkundung');
     await expect(page.locator('#menu [data-v=messages] .badge')).toBeVisible({
       timeout: 30000,
     });
     await nav(page, 'messages');
     await page
-      .locator('.rep .t', { hasText: 'Spionagebericht' })
+      .locator('.rep .t', { hasText: 'Auspex-Bericht' })
       .first()
       .click();
     await expect(page.locator('.rep.open')).toContainText('Rohstoffe auf');
@@ -1072,7 +1088,7 @@ test.describe('playing', () => {
     page,
   }) => {
     const w = watch(page);
-    const name = uniqueName('Kreuzer');
+    const name = uniqueName('Fregatte');
     await register(page, name);
     seed({
       name,
@@ -1087,12 +1103,13 @@ test.describe('playing', () => {
       page.locator('.item').filter({
         has: page.locator('.nm', { hasText: new RegExp(`^\\s*${nm}`) }),
       });
-    const bc = item('Schlachtkreuzer');
-    const dr = item('Zerstörer');
-    await expect(
-      bc.getByRole('img', { name: 'Schlachtkreuzer' }),
-    ).toHaveAttribute('src', '/icons/ships/battlecruiser.svg');
-    await expect(dr.getByRole('img', { name: 'Zerstörer' })).toHaveAttribute(
+    const bc = item('Jagdkreuzer');
+    const dr = item('Vernichter');
+    await expect(bc.getByRole('img', { name: 'Jagdkreuzer' })).toHaveAttribute(
+      'src',
+      '/icons/ships/battlecruiser.svg',
+    );
+    await expect(dr.getByRole('img', { name: 'Vernichter' })).toHaveAttribute(
       'src',
       '/icons/ships/destroyer.svg',
     );
@@ -1107,17 +1124,17 @@ test.describe('playing', () => {
     await page.fill('#q_bc', '1');
     await page.click('[data-act=order][data-k=bc]');
     await expect(page.locator('.toast').last()).toContainText(
-      '1× Schlachtkreuzer in Auftrag gegeben.',
+      '1× Jagdkreuzer in Auftrag gegeben.',
     );
     await page.fill('#q_dr', '1');
     await page.click('[data-act=order][data-k=dr]');
     await expect(page.locator('.toast').last()).toContainText(
-      '1× Zerstörer in Auftrag gegeben.',
+      '1× Vernichter in Auftrag gegeben.',
     );
 
     await nav(page, 'fleet');
-    await page.getByLabel('Anzahl Schlachtkreuzer').fill('2');
-    await page.getByLabel('Anzahl Zerstörer').fill('1');
+    await page.getByLabel('Anzahl Jagdkreuzer').fill('2');
+    await page.getByLabel('Anzahl Vernichter').fill('1');
     await page.getByLabel('Position', { exact: true }).fill('15');
     await page.getByLabel('Auftrag').selectOption('transport');
     await expect(page.locator('#i_cap')).toContainText('3.500');
@@ -1126,7 +1143,7 @@ test.describe('playing', () => {
       'Flotte unterwegs',
     );
     await expect(page.locator('.fl-transport')).toContainText(
-      '2 Schlachtkreuzer, 1 Zerstörer',
+      '2 Jagdkreuzer, 1 Vernichter',
     );
     expect(w.problems).toEqual([]);
   });
@@ -1139,15 +1156,13 @@ test.describe('playing', () => {
     await register(page, name);
     seed({ name, b: { robot: 2, yard: 8, lab: 7 }, research: { hdrive: 5 } });
     await page.goto('/?view=shipyard');
-    await expect(
-      page.getByRole('img', { name: 'Schlachtkreuzer' }),
-    ).toBeVisible();
+    await expect(page.getByRole('img', { name: 'Jagdkreuzer' })).toBeVisible();
     const dr = page.locator('.item').filter({
-      has: page.locator('.nm', { hasText: /^\s*Zerstörer/ }),
+      has: page.locator('.nm', { hasText: /^\s*Vernichter/ }),
     });
-    await expect(dr.getByRole('img', { name: 'Zerstörer' })).toBeVisible();
+    await expect(dr.getByRole('img', { name: 'Vernichter' })).toBeVisible();
     await expect(
-      dr.locator('.need-nm', { hasText: /^Raumschiffwerft$/ }),
+      dr.locator('.need-nm', { hasText: /^Orbitale Schiffsschmiede$/ }),
     ).toBeVisible();
     await expect(dr.locator('[data-act=order]')).toHaveCount(0);
     expect(
@@ -1177,23 +1192,19 @@ test.describe('playing', () => {
         has: page.locator('.nm', { hasText: new RegExp(`^\\s*${nm}`) }),
       });
     const units = [
+      ['Ionenlanze', 'ion_cannon', 'Angriff 150 · Schild 800 · Struktur 8.000'],
       [
-        'Ionengeschütz',
-        'ion_cannon',
-        'Angriff 150 · Schild 800 · Struktur 8.000',
-      ],
-      [
-        'Plasmawerfer',
+        'Plasmabatterie',
         'plasma_turret',
         'Angriff 3.000 · Schild 480 · Struktur 100.000',
       ],
       [
-        'Kleine Schildkuppel',
+        'Kleiner Schutzdom',
         'small_shield_dome',
         'Angriff 1 · Schild 3.200 · Struktur 20.000',
       ],
       [
-        'Große Schildkuppel',
+        'Großer Schutzdom',
         'large_shield_dome',
         'Angriff 1 · Schild 16.000 · Struktur 100.000',
       ],
@@ -1206,36 +1217,36 @@ test.describe('playing', () => {
       await expect(item(nm)).toContainText(stats);
     }
     // Plasmatechnik 6 of 7: the Plasmawerfer lists what is missing.
-    const pt = item('Plasmawerfer');
+    const pt = item('Plasmabatterie');
     await expect(
-      pt.locator('.need-nm', { hasText: /^Plasmatechnik$/ }),
+      pt.locator('.need-nm', { hasText: /^Plasma-Lehre$/ }),
     ).toBeVisible();
     await expect(pt.locator('[data-act=order]')).toHaveCount(0);
-    await expect(item('Ionengeschütz').locator('.needs')).toHaveCount(0);
-    await expect(item('Ionengeschütz').locator('.lv')).toHaveText(
+    await expect(item('Ionenlanze').locator('.needs')).toHaveCount(0);
+    await expect(item('Ionenlanze').locator('.lv')).toHaveText(
       '(vorhanden: 0)',
     );
 
-    const small = item('Kleine Schildkuppel');
-    const large = item('Große Schildkuppel');
+    const small = item('Kleiner Schutzdom');
+    const large = item('Großer Schutzdom');
     await expect(small.locator('.lv')).toHaveText('(vorhanden: 0 · max. 1)');
     await expect(small.locator('[data-act=maxq]')).toHaveText('(max 1)');
     await expect(large.locator('.lv')).toHaveText('(vorhanden: 1 · max. 1)');
     await expect(large.locator('[data-act=maxq]')).toHaveText('(max 0)');
     await expect(large.locator('[data-act=order]')).toBeDisabled();
 
-    const refused = 'Diese Schildkuppel gibt es nur einmal pro Planet.';
+    const refused = 'Diesen Schutzdom gibt es nur einmal pro Planet.';
     await page.fill('#q_ssd', '2');
     await page.click('[data-act=order][data-k=ssd]');
     await expect(page.locator('.toast').last()).toContainText(refused);
     await page.fill('#q_ssd', '1');
     await page.click('[data-act=order][data-k=ssd]');
     await expect(page.locator('.toast').last()).toContainText(
-      '1× Kleine Schildkuppel in Auftrag gegeben.',
+      '1× Kleiner Schutzdom in Auftrag gegeben.',
     );
     await expect(
-      page.locator('.box', { hasText: 'Bauauftrag der Werft' }),
-    ).toContainText('1× Kleine Schildkuppel');
+      page.locator('.box', { hasText: 'Bauauftrag der Schiffsschmiede' }),
+    ).toContainText('1× Kleiner Schutzdom');
     await expect(small.locator('[data-act=maxq]')).toHaveText('(max 0)');
     await expect(small.locator('[data-act=order]')).toBeDisabled();
     // A second order, as from another device that still shows the button.
@@ -1269,21 +1280,21 @@ test.describe('playing', () => {
         has: page.locator('.nm', { hasText: new RegExp(`^\\s*${nm}`) }),
       });
     for (const nm of [
-      'Ionengeschütz',
-      'Plasmawerfer',
-      'Kleine Schildkuppel',
-      'Große Schildkuppel',
+      'Ionenlanze',
+      'Plasmabatterie',
+      'Kleiner Schutzdom',
+      'Großer Schutzdom',
     ])
       await expect(item(nm).getByRole('img', { name: nm })).toBeVisible();
     await expect(
-      item('Ionengeschütz').locator('.need-nm', { hasText: /^Ionentechnik$/ }),
+      item('Ionenlanze').locator('.need-nm', { hasText: /^Ionen-Lehre$/ }),
     ).toBeVisible();
     await expect(
-      item('Große Schildkuppel').locator('.need-nm', {
-        hasText: /^Schildtechnik$/,
+      item('Großer Schutzdom').locator('.need-nm', {
+        hasText: /^Refraktionsfelder$/,
       }),
     ).toBeVisible();
-    const small = item('Kleine Schildkuppel');
+    const small = item('Kleiner Schutzdom');
     await expect(small.locator('.needs')).toHaveCount(0);
     await expect(small).toContainText('max. 1');
     await expect(small.locator('[data-act=order]')).toBeEnabled();
@@ -1299,7 +1310,7 @@ test.describe('playing', () => {
     page,
   }) => {
     const w = watch(page);
-    const name = uniqueName('Bomber');
+    const name = uniqueName('Belagerungsbomber');
     await register(page, name);
     const base = {
       name,
@@ -1310,31 +1321,33 @@ test.describe('playing', () => {
     seed({ ...base, research: { impulse: 6, plasma: 5 }, colony: {} });
     await page.goto('/?view=shipyard');
     const bb = page.locator('.item').filter({
-      has: page.locator('.nm', { hasText: /^\s*Bomber/ }),
+      has: page.locator('.nm', { hasText: /^\s*Belagerungsbomber/ }),
     });
-    await expect(bb.getByRole('img', { name: 'Bomber' })).toHaveAttribute(
-      'src',
-      '/icons/ships/bomber.svg',
-    );
+    await expect(
+      bb.getByRole('img', { name: 'Belagerungsbomber' }),
+    ).toHaveAttribute('src', '/icons/ships/bomber.svg');
     await expect(bb).toContainText(
-      'Angriff 1.000 · Schild 500 · Struktur 75.000 · Ladung 500 · Tempo 8.800 (Impulstriebwerk)',
+      'Angriff 1.000 · Schild 500 · Struktur 75.000 · Ladung 500 · Tempo 8.800 (Plasma-Impulsantrieb)',
     );
     await expect(bb.locator('.needs')).toHaveCount(0);
 
     seed({ ...base, research: { impulse: 6, plasma: 5, hdrive: 8 } });
     await page.reload();
-    await expect(bb).toContainText('Tempo 17.000 (Hyperraumantrieb)');
+    await expect(bb).toContainText('Tempo 17.000 (Warp-Antrieb)');
     await page.fill('#q_bb', '1');
     await page.click('[data-act=order][data-k=bb]');
     await expect(page.locator('.toast').last()).toContainText(
-      '1× Bomber in Auftrag gegeben.',
+      '1× Belagerungsbomber in Auftrag gegeben.',
     );
 
     await nav(page, 'fleet');
     await expect(
-      page.locator('tr', { hasText: 'Bomber' }).locator('td.n').nth(1),
+      page
+        .locator('tr', { hasText: 'Belagerungsbomber' })
+        .locator('td.n')
+        .nth(1),
     ).toHaveText('17.000');
-    await page.getByLabel('Anzahl Bomber').fill('2');
+    await page.getByLabel('Anzahl Belagerungsbomber').fill('2');
     await page.getByLabel('Position', { exact: true }).fill('15');
     await page.getByLabel('Auftrag').selectOption('transport');
     await expect(page.locator('#i_cap')).toContainText('1.000');
@@ -1342,7 +1355,9 @@ test.describe('playing', () => {
     await expect(page.locator('.toast').last()).toContainText(
       'Flotte unterwegs',
     );
-    await expect(page.locator('.fl-transport')).toContainText('2 Bomber');
+    await expect(page.locator('.fl-transport')).toContainText(
+      '2 Belagerungsbomber',
+    );
     expect(w.problems).toEqual([]);
   });
 
@@ -1355,12 +1370,14 @@ test.describe('playing', () => {
     seed({ name, b: { robot: 2, yard: 8, lab: 7 }, research: { impulse: 6 } });
     await page.goto('/?view=shipyard');
     const bb = page.locator('.item').filter({
-      has: page.locator('.nm', { hasText: /^\s*Bomber/ }),
+      has: page.locator('.nm', { hasText: /^\s*Belagerungsbomber/ }),
     });
-    await expect(bb.getByRole('img', { name: 'Bomber' })).toBeVisible();
-    await expect(bb).toContainText('Tempo 8.800 (Impulstriebwerk)');
     await expect(
-      bb.locator('.need-nm', { hasText: /^Plasmatechnik$/ }),
+      bb.getByRole('img', { name: 'Belagerungsbomber' }),
+    ).toBeVisible();
+    await expect(bb).toContainText('Tempo 8.800 (Plasma-Impulsantrieb)');
+    await expect(
+      bb.locator('.need-nm', { hasText: /^Plasma-Lehre$/ }),
     ).toBeVisible();
     await expect(bb.locator('[data-act=order]')).toHaveCount(0);
     expect(
@@ -1389,14 +1406,13 @@ test.describe('playing', () => {
       t.trim(),
     );
     const at = (nm: string) => names.findIndex((t) => t.startsWith(nm));
-    expect(at('Todesstern')).toBe(at('Bomber') + 1);
+    expect(at('Weltenbrecher')).toBe(at('Belagerungsbomber') + 1);
     const ts = page.locator('.item').filter({
-      has: page.locator('.nm', { hasText: /^\s*Todesstern/ }),
+      has: page.locator('.nm', { hasText: /^\s*Weltenbrecher/ }),
     });
-    await expect(ts.getByRole('img', { name: 'Todesstern' })).toHaveAttribute(
-      'src',
-      '/icons/ships/deathstar.svg',
-    );
+    await expect(
+      ts.getByRole('img', { name: 'Weltenbrecher' }),
+    ).toHaveAttribute('src', '/icons/ships/deathstar.svg');
     await expect(ts).toContainText(
       'Angriff 200.000 · Schild 50.000 · Struktur 9.000.000 · Ladung 1.000.000 · Tempo 310',
     );
@@ -1415,23 +1431,25 @@ test.describe('playing', () => {
     await page.fill('#q_dstar', '1');
     await page.click('[data-act=order][data-k=dstar]');
     await expect(page.locator('.toast').last()).toContainText(
-      '1× Todesstern in Auftrag gegeben.',
+      '1× Weltenbrecher in Auftrag gegeben.',
     );
 
     await nav(page, 'fleet');
     await expect(
-      page.locator('tr', { hasText: 'Todesstern' }).locator('td.n').nth(1),
+      page.locator('tr', { hasText: 'Weltenbrecher' }).locator('td.n').nth(1),
     ).toHaveText('310');
-    await page.getByLabel('Anzahl Todesstern').fill('1');
+    await page.getByLabel('Anzahl Weltenbrecher').fill('1');
     await page.getByLabel('Position', { exact: true }).fill('15');
     await page.getByLabel('Auftrag').selectOption('transport');
     await expect(page.locator('#i_cap')).toContainText('1.000.000');
-    await expect(page.locator('#i_fuel')).toHaveText('1 Deuterium');
+    await expect(page.locator('#i_fuel')).toHaveText('1 Promethium');
     await page.getByRole('button', { name: 'Flotte losschicken' }).click();
     await expect(page.locator('.toast').last()).toContainText(
       'Flotte unterwegs',
     );
-    await expect(page.locator('.fl-transport')).toContainText('1 Todesstern');
+    await expect(page.locator('.fl-transport')).toContainText(
+      '1 Weltenbrecher',
+    );
     expect(w.problems).toEqual([]);
   });
 
@@ -1448,12 +1466,12 @@ test.describe('playing', () => {
     });
     await page.goto('/?view=shipyard');
     const ts = page.locator('.item').filter({
-      has: page.locator('.nm', { hasText: /^\s*Todesstern/ }),
+      has: page.locator('.nm', { hasText: /^\s*Weltenbrecher/ }),
     });
-    await expect(ts.getByRole('img', { name: 'Todesstern' })).toBeVisible();
+    await expect(ts.getByRole('img', { name: 'Weltenbrecher' })).toBeVisible();
     await expect(ts).toContainText('Tempo 310');
     await expect(
-      ts.locator('.need-nm', { hasText: /^Gravitonforschung$/ }),
+      ts.locator('.need-nm', { hasText: /^Gravitonen-Mysterium$/ }),
     ).toBeVisible();
     await expect(ts.locator('[data-act=order]')).toHaveCount(0);
     expect(
@@ -1473,18 +1491,18 @@ test.describe('playing', () => {
     seed({ name, b: { robot: 2, yard: 2, lab: 1 } });
     await page.goto('/?view=defense');
     const light = page.locator('.item').filter({
-      has: page.locator('.nm', { hasText: /^\s*Leichtes Lasergeschütz/ }),
+      has: page.locator('.nm', { hasText: /^\s*Lichtlanze/ }),
     });
     const energy = light.locator('.need').filter({
-      has: page.locator('.need-nm', { hasText: /^Energietechnik$/ }),
+      has: page.locator('.need-nm', { hasText: /^Machina-Energetik$/ }),
     });
     await expect(energy).toHaveClass(/missing/);
-    await expect(energy).toContainText('zu wenig Kristall, Deuterium');
+    await expect(energy).toContainText('zu wenig Psikristall, Promethium');
     await expect(
       light.locator('.need').filter({
-        has: page.locator('.need-nm', { hasText: /^Lasertechnik$/ }),
+        has: page.locator('.need-nm', { hasText: /^Lichtlanzen-Lehre$/ }),
       }),
-    ).toContainText('braucht Energietechnik (Stufe 2)');
+    ).toContainText('braucht Machina-Energetik (Stufe 2)');
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth - window.innerWidth,
@@ -1512,7 +1530,7 @@ test.describe('playing', () => {
     await expect(page.locator('#more')).toBeVisible();
     await page.click('#more-list [data-v=galaxy]');
     await expect(page.locator('#more')).toBeHidden();
-    await expect(page.locator('h2')).toContainText('Galaxie');
+    await expect(page.locator('h2')).toContainText('Sternenkarte');
     await expect(page.locator('#tabbar [data-act=moreOpen]')).toHaveClass(/on/);
     expect(await overflow()).toBeLessThanOrEqual(0);
     expect(w.problems).toEqual([]);
@@ -1561,11 +1579,11 @@ test.describe('explanation texts (#63)', () => {
     await page.goto('/?view=buildings');
 
     // Default „(?)-Symbol“ (D2): the short text is shown, the long one (#94) behind the (?).
-    const mine = row(page, 'Metallmine');
+    const mine = row(page, 'Adamant-Tiefbohrung');
     const mineText = mine.locator('.ex');
-    const mineQ = question(page, 'Metallmine');
+    const mineQ = question(page, 'Adamant-Tiefbohrung');
     await expect(mine.locator('.ds')).toHaveText(
-      'Fördert Metall, den wichtigsten Grundrohstoff.',
+      'Fördert Adamant, den wichtigsten Grundrohstoff.',
     );
     await expect(mineQ).toHaveAttribute('aria-expanded', 'false');
     await expect(mineQ).toHaveAttribute('aria-controls', 'ex_metal');
@@ -1581,11 +1599,13 @@ test.describe('explanation texts (#63)', () => {
     await expect(mineQ).toHaveAttribute('aria-expanded', 'false');
     await page.keyboard.press('Space');
     await expect(mineText).toBeVisible();
-    await expect(row(page, 'Kristallmine').locator('.ex')).toBeHidden();
+    await expect(
+      row(page, 'Psikristall-Steinbruch').locator('.ex'),
+    ).toBeHidden();
 
     await nav(page, 'research');
-    const spy = row(page, 'Spionagetechnik');
-    const spyQ = question(page, 'Spionagetechnik');
+    const spy = row(page, 'Auspex-Lehre');
+    const spyQ = question(page, 'Auspex-Lehre');
     await expect(spy.locator('.ex')).toBeHidden();
     await spyQ.focus();
     await page.keyboard.press('Enter');
@@ -1601,13 +1621,13 @@ test.describe('explanation texts (#63)', () => {
     // has neither (D4); no catalog entry on main is one, the unit tests of
     // explain.ts cover it.
     await nav(page, 'shipyard');
-    const probe = row(page, 'Spionagesonde');
+    const probe = row(page, 'Spähschädel');
     await expect(probe).toBeVisible();
     await expect(probe.locator('.ex')).toBeHidden();
-    await question(page, 'Spionagesonde').click();
+    await question(page, 'Spähschädel').click();
     await expect(probe.locator('.ex')).toHaveText(SHIPS.probe!.lt!);
     // Ships with a description (Solarsatellit, #46) get the (?) too.
-    await expect(question(page, 'Solarsatellit')).toHaveCount(1);
+    await expect(question(page, 'Sonnenreliquiar')).toHaveCount(1);
 
     await choose(page, 'Immer anzeigen');
     await nav(page, 'buildings');
@@ -1642,11 +1662,11 @@ test.describe('explanation texts (#63)', () => {
     const w = watch(page);
     await register(page, uniqueName('Tipp'));
     await page.click('#tabbar [data-v=buildings]');
-    const text = row(page, 'Solarkraftwerk').locator('.ex');
+    const text = row(page, 'Sonnenkathedrale').locator('.ex');
     await expect(text).toBeHidden();
-    await question(page, 'Solarkraftwerk').tap();
+    await question(page, 'Sonnenkathedrale').tap();
     await expect(text).toHaveText(BUILD.solar!.lt!);
-    await question(page, 'Solarkraftwerk').tap();
+    await question(page, 'Sonnenkathedrale').tap();
     await expect(text).toBeHidden();
     expect(
       await page.evaluate(

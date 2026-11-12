@@ -52,7 +52,7 @@ describe('format', () => {
   });
   it('writes resources and technology', () => {
     expect(resLine({ m: 1000, c: 2.5, d: 0 })).toBe(
-      'Metall 1.000 · Kristall 2 · Deuterium 0',
+      'Adamant 1.000 · Psikristall 2 · Promethium 0',
     );
     expect(techLine({ weapons: 2, armor: 1 })).toBe(
       'Waffen 20% · Schilde 0% · Panzerung 10%',

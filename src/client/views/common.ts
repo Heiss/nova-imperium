@@ -62,7 +62,7 @@ export const cd = (end: number, now: number): string =>
     ? `<span class="cd" data-end="${end}">${dur(end - now)}</span>`
     : '<span class="dim">gleich …</span>';
 
-const COST_NAMES = ['Metall', 'Kristall', 'Deuterium'] as const;
+const COST_NAMES = ['Adamant', 'Psikristall', 'Promethium'] as const;
 const COST_ICONS: ResourceKey[] = ['metal', 'crystal', 'deuterium'];
 const HAVE = ['m', 'c', 'd'] as const;
 

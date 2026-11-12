@@ -117,7 +117,7 @@ describe('sending fleets', () => {
     );
     expect(() =>
       send(ctx, a, go({ mission: 'spy', ships: { lf: 1, probe: 1 } })),
-    ).toThrow('nur mit Spionagesonden');
+    ).toThrow('nur mit Spähschädeln');
     expect(() =>
       send(
         ctx,
@@ -129,7 +129,7 @@ describe('sending fleets', () => {
     home.ships.sat = 4;
     ctx.store.savePlanet(home);
     expect(() => send(ctx, a, go({ ships: { lf: 1, sat: 2 } }))).toThrow(
-      'Solarsatelliten können nicht fliegen.',
+      'Sonnenreliquiare können nicht fliegen.',
     );
     expect(ctx.store.planetOfUser(a.id)!.ships).toMatchObject({
       lf: 10,
@@ -150,7 +150,7 @@ describe('sending fleets', () => {
     const p = ctx.store.planetOfUser(a.id)!;
     p.res.d = 5;
     ctx.store.savePlanet(p);
-    expect(() => send(ctx, a, go())).toThrow('Nicht genug Deuterium');
+    expect(() => send(ctx, a, go())).toThrow('Nicht genug Promethium');
   });
   it('respects the fleet slots', () => {
     const { ctx, a } = setup();
@@ -215,7 +215,7 @@ describe('colonization', () => {
     ctx.store.savePlanet(home);
     expect(() =>
       runAction(ctx, a.id, { type: 'order', key: 'colony', n: 1 }),
-    ).toThrow('Voraussetzungen fehlen.');
+    ).toThrow('Das Wissen ist noch verschlossen.');
     a.research.impulse = 3;
     ctx.store.saveUser(a);
     runAction(ctx, a.id, { type: 'order', key: 'colony', n: 1 });
@@ -263,7 +263,7 @@ describe('colonization', () => {
 
   it('rejects invalid launches and returns ships and cargo if another fleet arrives first', () => {
     const { ctx, a, b } = setup();
-    expect(() => send(ctx, a, mission)).toThrow('Kolonialschiff');
+    expect(() => send(ctx, a, mission)).toThrow('Kolonistenarche');
     const home = ctx.store.planetOfUser(a.id)!;
     home.ships.colony = 1;
     ctx.store.savePlanet(home);

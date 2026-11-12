@@ -4,6 +4,7 @@
 import { createRequire } from 'node:module';
 import { describe, expect, it } from 'vitest';
 import { seeded, U } from '../test/fixtures.ts';
+import { renamed } from '../test/naming.ts';
 import * as N from './index.ts';
 import type { Levels, Planet } from './types.ts';
 
@@ -125,8 +126,10 @@ describe('equivalence with the original rules', () => {
         );
       const cost = [ri(0, 9000), ri(0, 9000), ri(0, 900)] as const;
       expect(N.maxAfford(c.planet, cost)).toBe(O.maxAfford(c.planet, cost));
+      // The same requirements and levels; the names are those of the
+      // grimdark naming (#94), mapped through its table.
       expect(N.reqMissing(N.SHIPS.cr!, c.planet, c.research)).toEqual(
-        O.reqMissing(O.SHIPS.cr, c.planet, c.research),
+        O.reqMissing(O.SHIPS.cr, c.planet, c.research).map(renamed),
       );
     }
   });

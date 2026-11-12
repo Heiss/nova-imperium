@@ -2,6 +2,6 @@
 art: neu
 ---
 
-Fusionskraftwerk: erzeugt Energie aus Deuterium, mit Energietechnik mehr.
-Seinen Anteil stellst du auf der Rohstoffseite ein. Ist kein Deuterium mehr
+Fusionssanktum: erzeugt Energie aus Promethium, mit Machina-Energetik mehr.
+Seinen Anteil stellst du auf der Rohstoffseite ein. Ist kein Promethium mehr
 da, drosselt es sich selbst, sodass der Vorrat nie unter 0 fällt.

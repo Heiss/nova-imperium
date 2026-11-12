@@ -46,7 +46,7 @@ export const coords = (c: Coords): string => `[${c.g}:${c.s}:${c.p}]`;
 export const fmt = (n: number): string =>
   Math.floor(n || 0).toLocaleString('de-DE');
 export const resLine = (r: Resources): string =>
-  `Metall ${fmt(r.m)} · Kristall ${fmt(r.c)} · Deuterium ${fmt(r.d)}`;
+  `Adamant ${fmt(r.m)} · Psikristall ${fmt(r.c)} · Promethium ${fmt(r.d)}`;
 
 export type ReportInput = Pick<Report, 'time' | 'type' | 'title'> &
   Record<string, unknown>;

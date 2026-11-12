@@ -498,8 +498,8 @@ function rememberCompletions(previous: V, next: V): void {
     next.now,
   );
   for (const view of finishedYardOrders(previous.P, next.now)) {
-    completedMenu.set(view, 'Werftauftrag fertig');
-    completionNotices.add('Werftauftrag fertig.');
+    completedMenu.set(view, 'Auftrag der Schiffsschmiede fertig');
+    completionNotices.add('Auftrag der Schiffsschmiede fertig.');
   }
   rememberFleetReturn(previous, next);
 }
@@ -516,7 +516,7 @@ function rememberFleetReturn(previous: V, next: V): void {
         !live.has(fleet.id),
     )
   )
-    completedMenu.set('fleet', 'Flotte zurückgekehrt');
+    completedMenu.set('fleet', 'Die Flotte kehrt heim');
 }
 
 function renderCompletions(view: HTMLElement): void {
@@ -771,9 +771,9 @@ function updateBar(): Planet | undefined {
   ): string =>
     `<div class="res" title="${per < 0 ? '' : '+'}${fmt(per)}/h · Lager ${fmt(cap)}">${icon(key)}<div><div class="l">${label}</div><div class="v ${v >= cap ? 'full' : ''}">${fmt(v)}</div></div></div>`;
   $('#resbar')!.innerHTML =
-    r('Metall', 'metal', p.res.m, cp.m, pr.m) +
-    r('Kristall', 'crystal', p.res.c, cp.c, pr.c) +
-    r('Deuterium', 'deuterium', p.res.d, cp.d, pr.d) +
+    r('Adamant', 'metal', p.res.m, cp.m, pr.m) +
+    r('Psikristall', 'crystal', p.res.c, cp.c, pr.c) +
+    r('Promethium', 'deuterium', p.res.d, cp.d, pr.d) +
     `<div class="res">${icon('energy')}<div><div class="l">Energie</div><div class="v ${pr.eProd - pr.eUse < 0 ? 'bad' : ''}">${fmt(pr.eProd - pr.eUse)}/${fmt(pr.eProd)}</div></div></div>`;
   return p;
 }
@@ -870,7 +870,7 @@ function fleetCalc(): void {
   set('i_arr', `${dt(now + pv.ms)} / ${dt(now + 2 * pv.ms)}`);
   set(
     'i_fuel',
-    `<span class="${pv.fuelShort ? 'bad' : ''}">${fmt(pv.fuel)}</span> Deuterium`,
+    `<span class="${pv.fuelShort ? 'bad' : ''}">${fmt(pv.fuel)}</span> Promethium`,
   );
   set(
     'i_cap',
@@ -1015,7 +1015,7 @@ const ACT: Record<string, (d: Data) => unknown> = {
   },
   gspy: (d) => {
     const n = Math.min(ctx!.P.ships.probe ?? 0, S!.me.probes || 1);
-    if (!n) return toast('Keine Spionagesonden auf dem Planeten.', true);
+    if (!n) return toast('Keine Spähschädel auf dem Planeten.', true);
     return act('send', {
       ships: { probe: n },
       to: { g: Number(d.g), s: Number(d.s), p: Number(d.p) },
