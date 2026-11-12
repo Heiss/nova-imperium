@@ -12,6 +12,7 @@ import { Worker } from 'node:worker_threads';
 import { purgeAudit } from './audit.ts';
 import type { Config } from './config.ts';
 import { openDatabase } from './db/database.ts';
+import { noteServerError } from './error-log.ts';
 import { Store } from './db/store.ts';
 import { tick } from './game/arrival.ts';
 import { type Ctx, createCtx } from './game/context.ts';
@@ -54,22 +55,48 @@ export function databaseFile(cfg: Config): string {
   return path.join(cfg.dataDir, DB_FILE);
 }
 
+type Log = NonNullable<StartOptions['log']>;
+
+/**
+ * Logs a failed background job as before and records it in the error log
+ * (issue #126); `action` names the job.
+ */
+export function jobFailure(
+  ctx: Ctx,
+  log: Log,
+  action: string,
+  version: string | null = null,
+): (msg: string, e: unknown) => void {
+  return (msg, error) => {
+    log(msg, error);
+    noteServerError(ctx, { action, error, context: msg, version }, log);
+  };
+}
+
 function startGameClock(
   ctx: Ctx,
   sweepApp: () => void,
-  log: NonNullable<StartOptions['log']>,
+  log: Log,
+  version: string | null,
 ): () => void {
+  const arrival = jobFailure(ctx, log, 'arrival', version);
+  const failedTick = jobFailure(ctx, log, 'tick', version);
+  const failedSweep = jobFailure(ctx, log, 'sweep', version);
   const clock = setInterval(() => {
     try {
-      tick(ctx, log);
+      tick(ctx, arrival);
     } catch (e) {
-      log('Tick failed', e);
+      failedTick('Tick failed', e);
     }
   }, TICK_MS);
   const sweep = setInterval(() => {
-    ctx.store.purgeSessions(ctx.now());
-    purgeAudit(ctx);
-    sweepApp();
+    try {
+      ctx.store.purgeSessions(ctx.now());
+      purgeAudit(ctx);
+      sweepApp();
+    } catch (e) {
+      failedSweep('Sweep failed', e);
+    }
   }, SWEEP_MS);
   return () => {
     clearInterval(clock);
@@ -181,11 +208,14 @@ function openGame(
     news,
   });
   const stopPush = o.cfg.webPush
-    ? startPushDelivery(ctx, o.cfg.publicUrl, () =>
-        log('Web Push delivery failed'),
-      )
+    ? startPushDelivery(ctx, o.cfg.publicUrl, (error) => {
+        // The console keeps the short line; push errors can name endpoints.
+        log('Web Push delivery failed');
+        const failure = { action: 'push', error, version: news.version };
+        noteServerError(ctx, failure, log);
+      })
     : null;
-  const stopClock = startGameClock(ctx, app.sweep, log);
+  const stopClock = startGameClock(ctx, app.sweep, log, news.version);
   return {
     ctx,
     handle: (req: IncomingMessage, res: ServerResponse): void =>

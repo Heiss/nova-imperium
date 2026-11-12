@@ -45,6 +45,8 @@ export interface Ui {
   news: NewsData | null;
   /** The newest version whose news were opened on this device. */
   newsSeen: string | null;
+  /** Request ID of the last API answer, for „Problem melden“ (issue #126). */
+  lastRequestId?: string | null;
 }
 
 /** What every view gets: the state, the planet and research moved to now. */

@@ -2,9 +2,12 @@
 // UI would need hours to reach (ships in the hangar). Usage:
 //   node e2e/seed.ts '<json>'   with { name, res?, b?, ships?, def?, temp?, pct?, research?,
 //   clearQueue? (a finished build), colony? ({ g?, s?, p?, name?, b?, res? }: an own planet,
-//   by default on slot 15 of the home system) }
+//   by default on slot 15 of the home system), serverError? (a message: an
+//   unexpected server error of this player in the error log, issue #126) }
 import { openDatabase } from '../src/server/db/database.ts';
 import { Store } from '../src/server/db/store.ts';
+import { recordServerError } from '../src/server/error-log.ts';
+import { createCtx } from '../src/server/game/context.ts';
 import { databaseFile } from '../src/server/server.ts';
 import { loadConfig } from '../src/server/config.ts';
 import { readFileSync } from 'node:fs';
@@ -64,5 +67,11 @@ store.tx(() => {
   const p = store.planetOfUser(u.id)!;
   updateHome(p);
   if (d.colony) addColony(p);
+  if (d.serverError)
+    recordServerError(createCtx(store), {
+      action: 'POST /api/action',
+      error: new Error(d.serverError),
+      player: u.id,
+    });
 });
 store.db.close();

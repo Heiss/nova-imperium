@@ -8,6 +8,15 @@ import { orderMax, yardLockedBy } from '../shared/yard.ts';
 import type { Levels, Planet, Queue } from '../shared/types.ts';
 import { clampInt, coords, dt, dur, esc, fmt } from './logic/format.ts';
 import {
+  apiFailure,
+  type ClientError,
+  createReporter,
+  describeError,
+  ERRORS_URL,
+  failedCall,
+  reportFormHTML,
+} from './logic/error-report.ts';
+import {
   cargoMax,
   fleetPreview,
   galaxyStep,
@@ -40,6 +49,7 @@ import {
   loadInvitations,
   mountAdminDiagnostics,
 } from './views/admin-diagnostics.ts';
+import { downloadErrors, mountAdminErrors } from './views/admin-errors.ts';
 import {
   ADMIN_TABS,
   auth,
@@ -69,9 +79,11 @@ let buildingView: ReturnType<typeof mountBuildings> | null = null;
 let adminPanel: {
   diagnostics: HTMLElement;
   invitations: HTMLElement;
+  errors: HTMLElement;
   user: string;
   tab: AdminTab;
   panel: ReturnType<typeof mountAdminDiagnostics>;
+  errorPanel: ReturnType<typeof mountAdminErrors>;
 } | null = null;
 let lastActivity = -Infinity;
 const completionNotices = new Set<string>();
@@ -278,9 +290,82 @@ function toast(msg: string, err = false): void {
   t.className = 'toast' + (err ? ' err' : '');
   t.setAttribute('role', err ? 'alert' : 'status');
   t.textContent = msg;
+  // Signed-in players can report every error message (issue #126).
+  const offer = err && S !== null;
+  if (offer) t.append(reportOffer(msg));
   document.body.appendChild(t);
-  setTimeout(() => t.remove(), 3500);
+  setTimeout(() => t.remove(), offer ? 8000 : 3500);
 }
+
+function reportOffer(msg: string): HTMLButtonElement {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'small';
+  button.textContent = 'Problem melden';
+  Object.assign(button.dataset, {
+    act: 'reportProblem',
+    message: msg,
+    page: ui.view,
+    request: ui.lastRequestId ?? '',
+  });
+  return button;
+}
+
+/** The form „Problem melden“ in a dialog, filled from the error message. */
+function openReport(d: Data): void {
+  modal(
+    reportFormHTML('reportform-dialog', {
+      source: 'toast',
+      page: d.page ?? ui.view,
+      version: ui.news?.version ?? '',
+      requestId: d.request || null,
+      message: d.message,
+    }) + '<button type="button" data-act="closeModal">Abbrechen</button>',
+  );
+  $('#reportform-dialog-text')?.focus();
+}
+
+async function submitReport(id: string): Promise<void> {
+  const form = $<HTMLFormElement>(`#${id}`);
+  if (!form) return;
+  try {
+    const j = await api('/api/report', Object.fromEntries(new FormData(form)));
+    form.reset();
+    if (id === 'reportform-dialog') modal('');
+    toast(String(j.msg));
+  } catch (e) {
+    toast((e as Error).message, true);
+  }
+}
+
+// ----- error log (issue #126) -----
+
+/** Sends script errors and failed calls; never through api(), so no loop. */
+const reportError: (error: ClientError) => void = createReporter({
+  send: (body) =>
+    fetch(ERRORS_URL, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+      credentials: 'same-origin',
+    }),
+  context: () => ({
+    signedIn: S !== null,
+    page: ui.view,
+    version: ui.news?.version ?? '',
+    browser: navigator.userAgent,
+  }),
+  now: Date.now,
+});
+window.addEventListener('error', (event) =>
+  reportError({
+    kind: 'error',
+    ...describeError(event.error ?? event.message),
+  }),
+);
+window.addEventListener('unhandledrejection', (event) =>
+  reportError({ kind: 'rejection', ...describeError(event.reason) }),
+);
 
 function modal(html: string): void {
   const m = $('#modal')!;
@@ -297,12 +382,8 @@ async function api(
   body?: unknown,
   retryBusy = true,
 ): Promise<Record<string, unknown>> {
-  const r = await fetch(url, {
-    method: body ? 'POST' : 'GET',
-    headers: body ? { 'content-type': 'application/json' } : {},
-    body: body ? JSON.stringify(body) : undefined,
-    credentials: 'same-origin',
-  });
+  const r = await request(url, body);
+  ui.lastRequestId = r.headers.get('x-request-id') ?? ui.lastRequestId;
   const j = (await r
     .json()
     .catch(() => ({ error: 'Keine Antwort vom Server.' }))) as Record<
@@ -320,8 +401,26 @@ async function api(
     await new Promise((resolve) => setTimeout(resolve, 300));
     return api(url, body, false);
   }
-  if (!r.ok) throw apiError(r, j.error);
+  if (!r.ok) {
+    if (failedCall(r.status))
+      reportError(apiFailure(url, r.status, r.headers.get('x-request-id')));
+    throw apiError(r, j.error);
+  }
   return j;
+}
+
+async function request(url: string, body?: unknown): Promise<Response> {
+  try {
+    return await fetch(url, {
+      method: body ? 'POST' : 'GET',
+      headers: body ? { 'content-type': 'application/json' } : {},
+      body: body ? JSON.stringify(body) : undefined,
+      credentials: 'same-origin',
+    });
+  } catch (error) {
+    reportError(apiFailure(url, null));
+    throw error;
+  }
 }
 
 function isRetryableAction(
@@ -567,9 +666,11 @@ function renderView(target: HTMLElement, view: V): void {
 function renderAdminPanel(target: HTMLElement, view: V): void {
   const diagnostics = target.querySelector<HTMLElement>('#admin-diagnostics')!;
   const invitations = target.querySelector<HTMLElement>('#admin-invitations')!;
+  const errors = target.querySelector<HTMLElement>('#admin-errors')!;
   if (adminPanel?.user === view.s.me.id) {
     diagnostics.replaceWith(adminPanel.diagnostics);
     invitations.replaceWith(adminPanel.invitations);
+    errors.replaceWith(adminPanel.errors);
     paintAdminTab(adminPanel.tab);
     return;
   }
@@ -582,9 +683,11 @@ function renderAdminPanel(target: HTMLElement, view: V): void {
   adminPanel = {
     diagnostics,
     invitations,
+    errors,
     user: view.s.me.id,
     tab: 'events',
     panel,
+    errorPanel: mountAdminErrors(errors, api, downloadErrors, Date.now()),
   };
   openAdminTab('events');
 }
@@ -612,6 +715,7 @@ function openAdminTab(tab: AdminTab, value?: string): void {
   paintAdminTab(tab);
   if (diagnosticTab(tab)) void adminPanel.panel.open(tab, value);
   if (tab === 'invitations') refreshInvitations();
+  if (tab === 'errors') void adminPanel.errorPanel.open();
 }
 
 function refreshInvitations(): void {
@@ -1074,6 +1178,7 @@ const ACT: Record<string, (d: Data) => unknown> = {
       openAdminTab(d.tab as AdminTab);
   },
   listPasskeys: showPasskeys,
+  reportProblem: openReport,
   passkeyLogin: loginByPasskey,
   removePasskey: async (d) => {
     if (!window.confirm('Diesen Passkey entfernen?')) return;
@@ -1462,6 +1567,8 @@ document.addEventListener('submit', (e) => {
     ['passwordform', () => submitPassword(false)],
     ['passkeyform', submitPasskey],
     ['deleteaccountform', submitAccountDeletion],
+    ['reportform', () => submitReport('reportform')],
+    ['reportform-dialog', () => submitReport('reportform-dialog')],
   ] as const;
   const handle = handlers.find(([form]) => form === id)?.[1];
   if (!handle) return;

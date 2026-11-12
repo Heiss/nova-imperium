@@ -23,6 +23,7 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 | Input | body limit 64 KB, JSON objects only, numbers clamped, names cleaned of control characters | [E] kept |
 | Files | static files only below the client folder | [E] kept |
 | Database | prepared statements only; foreign keys; transactions | [V] |
+| Error log | Server errors, browser errors and problem reports are scrubbed before storing (no passwords, tokens, login codes, email addresses; never request bodies); browser errors only from signed-in players, 20 per minute and 200 per day, reports 5 per hour; list and ZIP download for admins only, audited as admin reads; kept 30 days (issue #126, [Error log](/features/error-log.md)) | [E], [V] rules |
 | Secrets | from files (`NAME_FILE`), both ways set = no start; nothing secret in the repository (gitleaks in CI) | [E] |
 | Containers | non-root, read-only root, no capabilities, `no-new-privileges`, only Caddy published on 127.0.0.1 | [V] |
 | Supply chain | lockfile, `pnpm audit` (high blocks), Renovate with 3 days of waiting, CodeQL, Trivy, pinned CI images | [E] like muffelblog |

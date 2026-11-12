@@ -600,6 +600,7 @@ describe('game requests', () => {
     expect(broken.json).toEqual({ error: 'Serverfehler.' });
     expect(logs).toEqual([
       expect.stringMatching(/^Request failed \[[0-9a-f-]{36}\]$/),
+      'Error log write failed',
     ]);
     expect(() => app.sweep()).toThrow();
   });

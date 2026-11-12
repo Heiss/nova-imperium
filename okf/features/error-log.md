@@ -39,3 +39,77 @@ them to Claude for analysis.
 * **[V]** German labels: tab „Fehler“, button „Herunterladen“, form
   „Problem melden“ with „Was ist passiert?“ and „Absenden“, answer
   „Danke, die Meldung ist angekommen.“
+* **[V]** A failed API call is an answer of 500 or more outside maintenance,
+  or a call without an answer. Refusals (400) and „Bitte einloggen“ (401) are
+  expected and not recorded.
+* **[V]** Equal browser errors are merged per player and UTC day: the
+  counter rises and the time moves to the last occurrence; the first stays.
+  The list orders by the first record, newest first, so paging stays stable.
+* **[V]** Limits are fixed windows per player in the server's memory (like
+  the login limit) and start again after a restart. Over the limit a browser
+  error gets 429 and is dropped; a report gets „Zu viele Meldungen – bitte
+  in einer Stunde nochmal.“ A call refused by the minute does not count for
+  the day, an empty report does not count.
+* **[V]** Field limits: message 500, stack 4,000, page 40, version 20,
+  browser 200, action 80 characters; report text 1,000.
+* **[V]** Scrubbing (`scrub` in `src/server/error-log.ts`) before storing,
+  on every text including the report: the value after a name that hints at
+  a secret (`password`, `passwort`, `token`, `secret`, `session`, `cookie`,
+  `salt`, `hash`, `code`, `challenge`, `auth`, `email`), email addresses,
+  tokens (a run of 32 or more letters, digits, `-` and `_`, or of 20 or more
+  with both digits and letters; request IDs stay) and six-digit numbers
+  (login codes; not stack positions). Server errors keep only name, message
+  and stack of the exception; request bodies, headers and queries are never
+  read into the log.
+* **[V]** Deleting an account deletes its errors and reports (foreign key
+  `ON DELETE CASCADE`), like its audit entries.
+* **[V]** Version: the browser sends the version it loaded with
+  „Neuigkeiten“; without one, and for server errors, the running version.
+* **[V]** Background jobs recorded: the game clock and fleet arrivals
+  (`tick`, `arrival`), the hourly cleanup (`sweep`, which so far was not
+  caught at all), Web Push delivery (`push`) and the password reset mail
+  (`mail`). Settling runs inside requests and is covered by their 500.
+* **[V]** Further labels: box „Problem melden“ in „Hilfe & Optionen“; the
+  line „Seite: … · Version: … · Letzter Vorgang: … · Meldung: …“ above the
+  text; in the tab „Fehler“ the filter „Art“ (Alle, Serverfehler,
+  Browserfehler, Problemmeldungen), „Anzahl je Seite“, „Zeitraum von“ and
+  „bis“. An error message with the offer stays 8 seconds instead of 3.5.
+* **[V]** The download is a POST with JSON like every other admin call
+  (cross-site protection), not a link; the list of the tab is audited as
+  the admin read `errors`, the download as `errorDownload` with range and
+  counts.
+
+# Code, interface and tests
+
+* Storage: table `error_events` of migration 12 (kind, time of the last and
+  `first` occurrence, player, request ID, action, page, version, browser,
+  message, detail, count, report), see [SQLite storage](/data/sqlite.md).
+  `purgeAudit` in `src/server/audit.ts` deletes it after 30 days in the
+  hourly cleanup.
+* Server: `src/server/error-log.ts` scrubs, limits and stores; `fault` in
+  `src/server/http/app.ts` records every 500 with route, request ID and the
+  player of the session; `jobFailure` in `src/server/server.ts` wraps the
+  background jobs. The console lines stay as they were; a failing write is
+  logged as „Error log write failed“ and never thrown.
+* Endpoints: `POST /api/errors` and `POST /api/report` for signed-in
+  players (`src/server/http/errors.ts`, limits with `RateLimiter`);
+  `POST /api/admin/errors` (page) and `POST /api/admin/errors/download`
+  (ZIP, `src/server/error-export.ts`: `errors.jsonl` with server and browser
+  errors, `reports.jsonl`, `audit.jsonl`, filtered by the time of the last
+  occurrence) for admins only. Limits and kinds are shared in
+  `src/shared/error-log.ts`.
+* Browser: `src/client/logic/error-report.ts` (reporter, form); `main.ts`
+  listens to `error` and `unhandledrejection`, reports failed calls from
+  `api()` and sends with a plain `fetch`, so a failed report is never
+  reported again; nothing is sent while nobody is signed in. The tab
+  „Fehler“ is `src/client/views/admin-errors.ts` with the pager of the event
+  log.
+* Tests: `src/server/error-log.test.ts` (scrubbing, limits of the fields,
+  merging, list, retention, account deletion), `error-export.test.ts`
+  (unzipped JSON lines), `http/errors.test.ts` (sign-in, 20/200 and 5 per
+  hour, 500 without body, admin only, download audited),
+  `server.test.ts` (background jobs), `upgrades/migration-12.test.ts`,
+  `src/client/logic/error-report.test.ts`; E2E `e2e/error-log.spec.ts`
+  (form, toast offer, tab, paging, download, desktop and phone) and axe in
+  `e2e/a11y.spec.ts`. Security files with a 90 % mutation target:
+  `error-log.ts`, `error-export.ts`, `http/errors.ts`.

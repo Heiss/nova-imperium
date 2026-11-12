@@ -91,14 +91,16 @@ function fetcher(base: string) {
     });
     const set = res.headers.get('set-cookie');
     if (set) cookie = set.split(';')[0]!;
-    const text = await res.text();
+    // The bytes too, for the ZIP of the error log download.
+    const bytes = new Uint8Array(await res.arrayBuffer());
+    const text = new TextDecoder().decode(bytes);
     let json: Record<string, unknown> | null = null;
     try {
       json = JSON.parse(text) as Record<string, unknown>;
     } catch {
       // not JSON
     }
-    return { status: res.status, headers: res.headers, json, text, set };
+    return { status: res.status, headers: res.headers, json, text, bytes, set };
   };
   return { call, setCookie: (c: string) => (cookie = c) };
 }
