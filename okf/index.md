@@ -35,6 +35,7 @@ okf_version: "0.2"
 * [Test strategy](/ops/testing.md) - unit, equivalence, E2E, accessibility, mutation, gates
 * [Configuration](/ops/config.md) - environment variables, secret files, fail closed
 * [Branching and release](/ops/branching-release.md) - pull requests with changelog fragments, CI Gate, release pull request, CalVer tags, hotfixes, Renovate
+* [Release loop](/ops/loop.md) - `/loop` with `.claude/loop.md`: plan with the owner, clarify, build, make the release ready, stop
 * [Languages](/ops/language.md) - development in English, game interface in German
 * [Defaults stay inside](/ops/defaults.md) - a fresh instance is closed and talks to nobody
 
