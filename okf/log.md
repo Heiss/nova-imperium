@@ -2,6 +2,7 @@
 
 ## 2026-11-12
 
+* **Feature**: Ionentechnik, Plasmatechnik, Gravitonforschung and the Intergalaktisches Forschungsnetzwerk (#49): research starts and is paid on any own planet with a Forschungslabor, IFN adds the highest other labs that meet the lab requirement, Gravitonforschung needs 300,000 · 3^(level − 1) energy production; migration 10 stores the starting planet; the requirements list works on the shown planet (see [Research](/features/research-ion-plasma-graviton.md)).
 * **Decision**: Milestone `next release` = #46, #47, #49, #50. #49 clarified: Ionentechnik, Plasmatechnik and Gravitonforschung with the classic values; Gravitonforschung checks 300,000 energy production (classic); IFN classic with research on any planet with a lab (decided again the same day); Expeditionstechnik moves to a new issue for expeditions (see [Research](/features/research-ion-plasma-graviton.md)).
 * **Feature**: Security hotfix: Trivy scans `stable` every hour; a High or Critical hole with a fix becomes `hotfix/sec-<id>` from the release tag and releases itself when the CI Gate is green; the base image is pinned to its digest (see [Branching and release](/ops/branching-release.md)).
 * **Feature**: Release loop: `.claude/loop.md` for a bare `/loop` - plan the release with the owner (infrastructure first), clarify, build, make the release pull request ready, stop (see [Release loop](/ops/loop.md)).

@@ -58,3 +58,57 @@ they are (2026-11-12).
   can't start and a German message names the missing energy.
 * **[V]** New art and German descriptions for the three entries, in the style
   of the existing ones; the owner checks the texts in the pull request.
+
+# Code, interface and tests
+
+* **[V]** Keys and abbreviations: `ion` (Io), `plasma` (Pl), `graviton` (Gr),
+  `ifn` (IF) in `RES` (`src/shared/catalog.ts`); no other entry uses these
+  abbreviations (test in `catalog.test.ts`).
+* **[V]** German descriptions, for the owner to check in the pull request:
+  Ionentechnik „Beschleunigte Ionen – Basis für Ionenwaffen.“, Plasmatechnik
+  „Gebändigtes Plasma – Basis für Plasmawaffen.“, Gravitonforschung „Kostet
+  keine Rohstoffe, braucht aber eine gewaltige Energieproduktion.“, IFN
+  „Vernetzt pro Stufe ein weiteres Forschungslabor deiner Planeten.“
+* **[V]** The energy requirement is the optional field `energy: { base, f }`
+  of `ResearchDef` (Gravitonforschung: 300,000, factor 3). `energyNeed` and
+  `energyShort` in `src/shared/research.ts` compare it with
+  `prod().eProd` of the starting planet, rounded up. Server refusal: „Zu
+  wenig Energie: Gravitonforschung braucht eine Energieproduktion von
+  300.000, es fehlen …“. The research time is the minimum of one second
+  because the resource cost is 0.
+* **[V]** The research network is one pure function, `networkLab` in
+  `src/shared/research.ts`, used by the action `research` and by the
+  research view; `labSite` describes a planet for it (lab level, lab being
+  upgraded). The state of the game carries `labs`, the lab of every own
+  planet moved to the time of the request; it replaces `home` (the home
+  planet when a colony is shown), which only the home planet rule of the
+  requirements list needed.
+* **[V]** Storage: the running research keeps the planet where it started
+  (`rq.planet`, column `users.rq_planet`, migration 10). A cancel refunds
+  that planet from any planet; research started before #49 has none and is
+  refunded to the home planet. Upgrade test
+  `src/server/db/upgrades/migration-10.test.ts`.
+* **[V]** Research view („Forschung auf <Planet>“): the active planet
+  researches; a line shows its lab level and, with IFN, how many labs may
+  join; the research time names the summed level („Labore zusammen Stufe
+  16“) when other labs join; the running research names its planet. Without
+  a lab the view offers the own planets that have one. Gravitonforschung
+  shows the energy production as a cost with the energy icon and „Zu wenig
+  Energie: es fehlen …“ instead of the button.
+* **[V]** Requirements list ([Requirements list](/features/requirements.md)):
+  everything is built and researched on the shown planet; a ready research
+  need that lacks energy says „zu wenig Energie“.
+* Icons from the interface v2 set: `ion_technology.svg`,
+  `plasma_technology.svg`, `graviton_technology.svg`,
+  `intergalactic_research_network.svg`.
+* Like every research, the four get the level achievements automatically;
+  those of Gravitonforschung reward nothing, because it costs no resources
+  and the reward is 5 % of the level cost.
+* Tests: `src/shared/research.test.ts`, `requirements.test.ts`,
+  `catalog.test.ts`, `src/server/game/actions.test.ts`,
+  `src/server/game/fleet.test.ts` (state), `src/client/logic/game.test.ts`,
+  `migration-10.test.ts`; E2E „from a colony the lab is built on the colony
+  itself“, „research starts on a colony with its own lab and is paid
+  there“, „the research network (IFN) links a colony lab and shortens
+  research“, „Gravitonforschung needs 300,000 energy production“ (#49). The
+  equivalence test with version 1 compares only the research of version 1.
