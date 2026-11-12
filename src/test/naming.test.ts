@@ -3,6 +3,8 @@
 // interface, the server messages or the icons.
 import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
+import { parse } from 'svelte/compiler';
+import ts from 'typescript';
 import { describe, expect, it } from 'vitest';
 import { BUILD, DEF, MISSION, RES, SHIPS } from '../shared/catalog.ts';
 import { CLASSIC, classicIn, NAMES, renamed, says } from './naming.ts';
@@ -20,22 +22,55 @@ function sources(dir: string, ext: RegExp): string[] {
     .filter((f) => !f.endsWith('test-helpers.ts'));
 }
 
-/** String literals of a TypeScript file, comments left out. */
-const literals = (code: string): string[] =>
-  code
-    .replace(/\/\*[\s\S]*?\*\//g, '')
-    .replace(/^\s*\/\/.*$/gm, '')
-    .match(/'(?:[^'\\\n]|\\.)*'|"(?:[^"\\\n]|\\.)*"|`(?:[^`\\]|\\.)*`/g) ?? [];
+/** String literals and template texts of TypeScript code, read by its parser. */
+function literals(code: string): string[] {
+  const out: string[] = [];
+  const visit = (node: ts.Node): void => {
+    if (ts.isStringLiteralLike(node) || ts.isTemplateLiteralToken(node))
+      out.push(node.text);
+    ts.forEachChild(node, visit);
+  };
+  visit(ts.createSourceFile('x.ts', code, ts.ScriptTarget.Latest, true));
+  return out;
+}
 
-/** What a Svelte component shows: its markup and the literals of its script. */
-const svelte = (code: string): string[] => {
-  const script = /<script[^>]*>([\s\S]*?)<\/script>/.exec(code)?.[1] ?? '';
-  const markup = code
-    .replace(/<script[^>]*>[\s\S]*?<\/script>/, '')
-    .replace(/<style[^>]*>[\s\S]*?<\/style>/, '')
-    .replace(/<!--[\s\S]*?-->/g, '');
-  return [...literals(script), markup];
-};
+/**
+ * What a Svelte component shows, read by the Svelte parser: the text and
+ * attribute nodes of its markup and the string literals of its scripts and
+ * markup expressions. Comments and styles are not read.
+ */
+function svelte(code: string): string[] {
+  const out: string[] = [];
+  const visit = (node: unknown): void => {
+    if (!node || typeof node !== 'object') return;
+    if (Array.isArray(node)) return node.forEach(visit);
+    const n = node as Record<string, unknown>;
+    out.push(...shown(n));
+    for (const [key, child] of Object.entries(n))
+      if (!SKIP.has(key)) visit(child);
+  };
+  const ast = parse(code, { modern: true });
+  visit([ast.fragment, ast.instance, ast.module]);
+  return out;
+}
+
+/** The text a node of the Svelte syntax tree shows itself. */
+function shown(n: Record<string, unknown>): string[] {
+  if (n.type === 'Text') return [String(n.data)];
+  if (n.type === 'Literal' && typeof n.value === 'string') return [n.value];
+  if (n.type === 'TemplateElement')
+    return [(n.value as { cooked: string }).cooked];
+  return [];
+}
+const SKIP = new Set(['parent', 'leadingComments', 'trailingComments', 'css']);
+
+/**
+ * Classic words a file may still say, and why: account deletion also finds
+ * spy reports stored before the rename under their classic title.
+ */
+const ALLOWED: readonly string[] = [
+  'server/delete-account.ts: Spionageaktivität',
+];
 
 /** Every classic word in `texts`, as „file: word“. */
 const found = (file: string, texts: string[]): string[] =>
@@ -78,13 +113,13 @@ describe('grimdark naming (#94)', () => {
   });
 
   it('shows no classic name in the interface, the server messages or the icons', () => {
-    const ts = [
+    const files = [
       ...sources('client', /\.ts$/),
       ...sources('server', /\.ts$/),
       ...sources('shared', /\.ts$/),
     ];
     const hits = [
-      ...ts.flatMap((f) =>
+      ...files.flatMap((f) =>
         found(f, literals(readFileSync(path.join(ROOT, f), 'utf8'))),
       ),
       ...sources('client', /\.svelte$/).flatMap((f) =>
@@ -94,8 +129,10 @@ describe('grimdark naming (#94)', () => {
         found(f, [readFileSync(path.join(ROOT, f), 'utf8')]),
       ),
     ];
-    expect(ts.length).toBeGreaterThan(50);
-    expect(hits).toEqual([]);
+    expect(files.length).toBeGreaterThan(50);
+    expect(hits.filter((h) => !ALLOWED.includes(h))).toEqual([]);
+    // Each allowed word is still needed; remove it once it is not.
+    expect(ALLOWED.filter((a) => !hits.includes(a))).toEqual([]);
   });
 
   it('notices a classic name in the interface (self-test)', () => {
@@ -104,8 +141,27 @@ describe('grimdark naming (#94)', () => {
     ).toEqual(['x.ts: Nicht genug Rohstoffe']);
     expect(found('x.ts', literals('// Metallmine\nconst b = 1;'))).toEqual([]);
     expect(
+      found('x.ts', literals('/* Labor */ const c = `${1} Sonde`; // Werft')),
+    ).toEqual(['x.ts: Sonde']);
+    expect(
       found('X.svelte', svelte('<script>const n = 1;</script><p>Werft</p>')),
     ).toEqual(['X.svelte: Werft']);
+    // Text, attributes, script and markup literals count; comments and
+    // styles do not, as the Svelte parser reads them.
+    const component = [
+      '<script>// Metallmine\n/* Labor */ const a = `x${1}Sonde`;</script>',
+      '<script context="module">const b = "Satellit";</script>',
+      '<style>p::after { content: "Werft"; }</style>',
+      '<!-- Kreuzer --><p title="Bomber">{a ? "Kristall" : b}</p>',
+    ].join('');
+    expect(found('Y.svelte', svelte(component)).sort()).toEqual(
+      [
+        'Y.svelte: Bomber',
+        'Y.svelte: Kristall',
+        'Y.svelte: Satellit',
+        'Y.svelte: Sonde',
+      ].sort(),
+    );
     expect(Object.keys(CLASSIC)).toContain('Labor');
   });
 });

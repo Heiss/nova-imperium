@@ -67,10 +67,21 @@ export const explainButtonHTML = (ex: Explanation | null): string =>
     ? `<button type="button" class="exq" id="${ex.button}" data-act="explain" data-k="${ex.key}" aria-expanded="${ex.open}" aria-controls="${ex.panel}" aria-label="Erklärung zu ${esc(ex.name)}">?</button>`
     : '';
 
-/** The panel below the entry. */
+/**
+ * The paragraphs of a text, split at blank lines: a long text has the lore
+ * first and „So funktioniert es:“ second (#94).
+ */
+export const paragraphs = (text: string): string[] =>
+  text.split('\n\n').map((p) => p.trim());
+
+/** The panel below the entry, one escaped paragraph each. */
 export const explainPanelHTML = (ex: Explanation | null): string =>
   ex
-    ? `<div class="ex" id="${ex.panel}"${ex.open ? '' : ' hidden'}><p>${esc(ex.text)}</p></div>`
+    ? `<div class="ex" id="${ex.panel}"${ex.open ? '' : ' hidden'}>${paragraphs(
+        ex.text,
+      )
+        .map((p) => `<p>${esc(p)}</p>`)
+        .join('')}</div>`
     : '';
 
 /** The choices of the option, the current mode selected. */

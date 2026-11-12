@@ -11,6 +11,9 @@ import {
 } from './helpers.ts';
 import { BUILD, RES, SHIPS } from '../src/shared/catalog.ts';
 
+/** The paragraphs of a long text (#94): the lore, then „So funktioniert es:“. */
+const lines = (text: string): string[] => text.split('\n\n');
+
 /** Seconds of a duration like "1h 02m 03s". */
 const seconds = (text: string): number =>
   [...text.matchAll(/(\d+)([Thms])/g)].reduce(
@@ -1590,7 +1593,8 @@ test.describe('explanation texts (#63)', () => {
     await expect(mineText).toBeHidden();
     await mineQ.click();
     await expect(mineText).toBeVisible();
-    await expect(mineText).toHaveText(BUILD.metal!.lt!);
+    // The long text in two paragraphs: the lore, then „So funktioniert es:“ (#94).
+    await expect(mineText.locator('p')).toHaveText(lines(BUILD.metal!.lt!));
     await expect(mineText).not.toHaveText(BUILD.metal!.ds);
     await expect(mineQ).toHaveAttribute('aria-expanded', 'true');
     await expect(mineQ).toBeFocused();
@@ -1609,7 +1613,7 @@ test.describe('explanation texts (#63)', () => {
     await expect(spy.locator('.ex')).toBeHidden();
     await spyQ.focus();
     await page.keyboard.press('Enter');
-    await expect(spy.locator('.ex')).toHaveText(RES.spy!.lt!);
+    await expect(spy.locator('.ex p')).toHaveText(lines(RES.spy!.lt!));
     await expect(spyQ).toHaveAttribute('aria-expanded', 'true');
     await page.keyboard.press('Space');
     await expect(spy.locator('.ex')).toBeHidden();
@@ -1625,7 +1629,7 @@ test.describe('explanation texts (#63)', () => {
     await expect(probe).toBeVisible();
     await expect(probe.locator('.ex')).toBeHidden();
     await question(page, 'Spähschädel').click();
-    await expect(probe.locator('.ex')).toHaveText(SHIPS.probe!.lt!);
+    await expect(probe.locator('.ex p')).toHaveText(lines(SHIPS.probe!.lt!));
     // Ships with a description (Solarsatellit, #46) get the (?) too.
     await expect(question(page, 'Sonnenreliquiar')).toHaveCount(1);
 
@@ -1665,7 +1669,7 @@ test.describe('explanation texts (#63)', () => {
     const text = row(page, 'Sonnenkathedrale').locator('.ex');
     await expect(text).toBeHidden();
     await question(page, 'Sonnenkathedrale').tap();
-    await expect(text).toHaveText(BUILD.solar!.lt!);
+    await expect(text.locator('p')).toHaveText(lines(BUILD.solar!.lt!));
     await question(page, 'Sonnenkathedrale').tap();
     await expect(text).toBeHidden();
     expect(

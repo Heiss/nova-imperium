@@ -162,19 +162,31 @@ stored mission ids stay.
   galaxy links Kolonisieren/Spionieren/Angreifen/Transport → the mission
   names, the help text „Angriffen und Auspex-Erkundungen … auf der
   Sternenkarte“, and the unreleased changelog fragments in `changes/`.
-* Not renamed, open for the owner ([U]): „Bau abgeschlossen → Das Werk ist
-  vollbracht.“ has no exact text in the game (the push titles say
-  „Ausbau abgeschlossen“ and „Forschung abgeschlossen“, the menu „Ausbau
-  fertig“); „Angriff → Feindkontakt! Zu den Waffen!“ has no matching text
-  either (the defender's report title is „Angriff auf ‹Planet› durch
-  ‹Spieler›“, the shipyard shows the attack value „Angriff“); „Trümmerfeld“
-  does not exist yet (#45); „Spionageaktivität“ (report title, also matched
-  by account deletion in `delete-account.ts`) and „Spionageabwehr“ (report
-  texts) have no name in the concept. `CHANGELOG.md` keeps its released
-  sections and the design mockups in `docs/design/` keep the classic names.
+* **[E]** Decided by the owner for the open cases (2026-11-12):
+  * „Bau abgeschlossen“: the push title of a finished building is „Das Werk
+    ist vollbracht“ (was „Ausbau abgeschlossen“; the push has no body with
+    planet or building). „Forschung abgeschlossen“ stays.
+  * „Angriff“: the defender's battle report title is „Feindkontakt!
+    ‹Planet› ‹Koordinaten› wird von ‹Spieler› angegriffen“ (was „Angriff
+    auf ‹Planet› ‹Koordinaten› durch ‹Spieler›“). No code matches it: account
+    deletion finds battle reports by the names in their body (`attName`,
+    `defName`), so old and new titles go alike; a test proves both.
+  * Short forms confirmed: Werft → Schiffsschmiede, Labor → Scholarium,
+    „Auftrag der Schiffsschmiede“, no period in list and menu marks.
+  * „Spionageaktivität“ → „Auspex-Aktivität“ (report title of the spied
+    player), „Spionageabwehr“ → „Auspex-Abwehr“ (report texts). Account
+    deletion (`delete-account.ts`) matches both titles, so reports stored
+    before the rename still go with the account; a test with an old-title
+    report proves it. This is the only classic word the naming test allows
+    (`ALLOWED` in `src/test/naming.test.ts`).
+* „Trümmerfeld“ does not exist yet (#45). `CHANGELOG.md` keeps its
+  released sections and the design mockups in `docs/design/` keep the
+  classic names.
 * Tests: `src/test/naming.ts` holds the tables; `src/test/naming.test.ts`
-  checks that no catalog text, mission, interface or server string literal,
-  Svelte markup or icon shows a classic word (names, resources, the short
+  checks that no catalog text, mission, interface or server string literal
+  (read with the TypeScript parser), Svelte text, attribute or literal (read
+  with the Svelte parser, comments and styles left out) or icon shows a
+  classic word (names, resources, the short
   forms above, the interface texts of the table); `catalog.test.ts`
   compares every game value with version 1 exactly and the names, `ab` and
   short texts through the table; `equivalence.test.ts` maps the requirement
@@ -206,34 +218,32 @@ the names:
   Raketenbatterien, Lichtlanzen und Ionenlanzen; fliegt ab Warp-Antrieb 8
   mit dem Warp-Antrieb.“
 
-## Long texts [E]
+## Long texts
 
-Drafted by Claude on 2026-11-12; the owner confirmed all 43 texts as they
-are (owner, 2026-11-12). The field `lt` of every building, research, ship
-and defense entry on `main` in `src/shared/catalog.ts` (43 entries) holds
-them. The panel of #63 shows `lt`
-instead of the short `ds` ([Explanation texts](/features/explanation-texts.md)).
-
-* Already with the new names of this concept, resources included (Adamant,
-  Psikristall, Promethium), while `n`, `ab`, `ds`, keys, values, icons and
-  interface texts stay classic until the rename.
-* Content as decided for #63: lore, what the entry does, what a further
-  level or more units change. Costs, times and energy values are not
-  repeated; the texts have no numbers. Each statement was checked against
-  the code (`economy.ts`, `research.ts`, `flight.ts`, `battle.ts`, `lab.ts`,
-  `yard.ts`, `arrival.ts`, `fleet-actions.ts`).
-* Plain text, two to four sentences, one paragraph. Rapid fire is called
-  „Schnellfeuer“; the rebuilt defense after a battle is „ein großer Teil“.
-* **[V]** New with the rename (#94), for `ionc`, `pt`, `ssd`, `lsd` and
-  `dstar`; the list `LATER` in `src/shared/explain.test.ts` is empty now.
-* **[V]** Changed with the rename, because #50 and #60 brought new
-  requirements and rapid fire: `hyper`, `hdrive` (the Weltenbrecher), `ion`
-  (the Ionenlanze), `plasma` (the Plasmabatterie), `graviton` (unlocks the
-  Weltenbrecher), `bb` (rapid fire against the Ionenlanze) and the texts
-  that name who has rapid fire against them: `sc`, `lc`, `lf`, `hf`, `cr`,
-  `bs`, `bc`, `rl`, `ll`, `hl` (the Weltenbrecher added). The other 27 stay
-  as confirmed.
-* `src/shared/explain.test.ts` checks: every entry on `main` but `LATER`
-  has a text; no text says a classic name this concept replaces (its own
-  table, not read from this file); two to four sentences, plain text,
-  other than `ds`; no protected Games Workshop name.
+* **[E]** Content rule, replaces the one of #63 for all 48 entries (owner,
+  2026-11-12): two paragraphs. The first is one or two sentences of lore;
+  the second starts with „So funktioniert es:“ and explains the mechanics
+  precisely in words: what the entry affects and where (this planet or all
+  planets), what a further level or more units change, lock rules, what it
+  unlocks; for ships and defense their role, drive, cargo and fuel, rapid
+  fire in both directions, shots that bounce off a shield, rebuilding after
+  a battle, once per planet.
+* **[E]** Only words, no numbers and no formulas (owner: „nur Worte, keine
+  Zahlen“), so nothing goes stale; no exact factors either. Every statement
+  is checked against the code (`economy.ts`, `research.ts`, `flight.ts`,
+  `battle.ts`, `lab.ts`, `yard.ts`, `arrival.ts`, `fleet-actions.ts`,
+  `actions.ts`).
+* **[E]** The short `ds` stays a short, cost-free one-liner.
+* **[E]** The panel shows the two paragraphs as two escaped `<p>`, split at
+  the blank line (`paragraphs()` in `src/client/logic/explain.ts`).
+* **[V]** All 48 texts are drafts for the owner: the field `lt` of each
+  entry in `src/shared/catalog.ts`. The 43 texts confirmed earlier were
+  written again under the new rule.
+* Rapid fire is called „Schnellfeuer“ and explained once per text („nach
+  einem Schuss … mit einer gewissen Chance sofort erneut feuern“); the
+  rebuilt defense is „ein großer Teil“, by chance for a few.
+* `src/shared/explain.test.ts` checks: every entry has a text (the list
+  `LATER` is empty and may only shrink); exactly two paragraphs, the lore
+  of one or two sentences, the second starting with „So funktioniert es:“;
+  no digit; plain text, other than `ds`; no classic name of this concept;
+  no protected Games Workshop name.

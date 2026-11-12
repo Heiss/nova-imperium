@@ -2,6 +2,9 @@ import { passwordMatches } from './auth.ts';
 import type { User } from './db/store.ts';
 import { coords, type Ctx, fail } from './game/context.ts';
 
+// Spy activity reports stored before the grimdark naming (#94) keep their
+// classic title, so both titles are matched. Battle reports are matched by
+// the names in their body, whatever their title says.
 function removeLinkedReports(ctx: Ctx, user: User): void {
   const db = ctx.store.db;
   const reports = db
@@ -13,7 +16,7 @@ function removeLinkedReports(ctx: Ctx, user: User): void {
       OR json_extract(body, '$.defName') = @name
       OR (type = 'info' AND (
         title = 'Lieferung von ' || @name
-        OR (title = 'Spionageaktivität' AND instr(json_extract(body, '$.text'),
+        OR (title IN ('Auspex-Aktivität', 'Spionageaktivität') AND instr(json_extract(body, '$.text'),
           'Eine fremde Flotte von ' || @name || ' [') = 1)
       ))
     RETURNING id

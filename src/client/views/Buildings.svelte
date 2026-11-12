@@ -9,7 +9,7 @@
     prod,
     reqMissing,
   } from '../../shared/economy.ts';
-  import { explanation } from '../logic/explain.ts';
+  import { explanation, paragraphs } from '../logic/explain.ts';
   import { iconURL } from '../logic/icons.ts';
   import { dur } from '../logic/format.ts';
   import { buildState } from '../logic/game.ts';
@@ -78,7 +78,9 @@
         <div class="dim">Bauzeit: {dur(buildTime(cost, P, s.cfg))}</div>
         {@html requirementsHTML($viewState, def.req)}
         {#if ex}
-          <div class="ex" id={ex.panel} hidden={!ex.open}><p>{ex.text}</p></div>
+          <div class="ex" id={ex.panel} hidden={!ex.open}>
+            {#each paragraphs(ex.text) as text, i (i)}<p>{text}</p>{/each}
+          </div>
         {/if}
       </div>
       <div class="act">

@@ -6,6 +6,7 @@ import {
   explainOptionsHTML,
   explainPanelHTML,
   explanation,
+  paragraphs,
   type Explanation,
 } from './explain.ts';
 
@@ -115,6 +116,27 @@ describe('the (?) button and the panel', () => {
     expect(explainPanelHTML(icon(true))).toContain(
       'Lang &amp; &quot;breit&quot;.',
     );
+  });
+
+  it('shows each paragraph of a long text as its own escaped paragraph (#94)', () => {
+    const two = {
+      n: 'X',
+      lt: 'Sage <alt>.\n\nSo funktioniert es: A & B.',
+    };
+    const html = explainPanelHTML(explanation('x', two, 'always', {}));
+    expect(html).toBe(
+      '<div class="ex" id="ex_x"><p>Sage &lt;alt&gt;.</p><p>So funktioniert es: A &amp; B.</p></div>',
+    );
+    expect(explainPanelHTML(icon(false))).toBe(
+      '<div class="ex" id="ex_x" hidden><p>Lang &amp; &quot;breit&quot;.</p></div>',
+    );
+  });
+
+  it('splits a text into its paragraphs at blank lines only', () => {
+    expect(paragraphs('Eins.\n\nZwei.')).toEqual(['Eins.', 'Zwei.']);
+    expect(paragraphs('Eins.\nnoch eins.')).toEqual(['Eins.\nnoch eins.']);
+    expect(paragraphs(' Eins. \n\n Zwei. ')).toEqual(['Eins.', 'Zwei.']);
+    expect(paragraphs(BUILD.lab!.lt!)).toHaveLength(2);
   });
 
   it('has no button when the panel is always open, and nothing when hidden', () => {

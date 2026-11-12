@@ -139,6 +139,10 @@ export const CLASSIC: Readonly<Record<string, string>> = {
   'Nicht genug Rohstoffe': 'Der Zehnte reicht nicht aus.',
   'Voraussetzungen fehlen': 'Das Wissen ist noch verschlossen.',
   'Flotte zurückgekehrt': 'Die Flotte kehrt heim.',
+  'Ausbau abgeschlossen': 'Das Werk ist vollbracht',
+  'Angriff auf': 'Feindkontakt! … wird von … angegriffen',
+  Spionageaktivität: 'Auspex-Aktivität',
+  Spionageabwehr: 'Auspex-Abwehr',
 };
 
 /**

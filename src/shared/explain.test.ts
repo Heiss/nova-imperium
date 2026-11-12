@@ -85,16 +85,26 @@ describe('long texts of the catalog (#94)', () => {
     expect(found).toEqual([]);
   });
 
-  it('are plain text of two to four sentences, other than the short ds', () => {
+  it('have the lore and then „So funktioniert es:“, in two paragraphs (#94)', () => {
     for (const { key, def } of entries.filter(({ def }) => def.lt)) {
-      const lt = def.lt!;
-      const sentences = lt.split(/(?<=[.!?])\s+/);
-      expect(sentences.length, key).toBeGreaterThanOrEqual(2);
-      expect(sentences.length, key).toBeLessThanOrEqual(4);
-      expect(lt, key).toMatch(/^[A-ZÄÖÜ].*[.!?]$/su);
-      expect(lt, key).not.toMatch(/[<>\n]|\s{2}/);
-      expect(lt, key).not.toBe(def.ds);
+      const parts = def.lt!.split('\n\n');
+      expect(parts, key).toHaveLength(2);
+      const [lore, how] = parts as [string, string];
+      const sentences = lore.split(/(?<=[.!?])\s+/);
+      expect(sentences.length, key).toBeGreaterThanOrEqual(1);
+      expect(sentences.length, key).toBeLessThanOrEqual(2);
+      expect(how.startsWith('So funktioniert es: '), key).toBe(true);
+      for (const part of parts) {
+        expect(part, key).toMatch(/^[A-ZÄÖÜ].*[.!?]$/su);
+        expect(part, key).not.toMatch(/[<>\n]|\s{2}/);
+      }
+      expect(def.lt, key).not.toBe(def.ds);
     }
+  });
+
+  it('say no number, only words (#94)', () => {
+    for (const { key, def } of entries)
+      expect(def.lt ?? '', key).not.toMatch(/\d|%/);
   });
 
   it('find a classic name as a word or the start of a compound only', () => {

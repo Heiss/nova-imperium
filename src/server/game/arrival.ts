@@ -100,11 +100,11 @@ function spy(
     lost,
     ...shown,
   });
-  const text = `Eine fremde Flotte von ${att.name} ${coords(f.fromC)} wurde in der Nähe deines Planeten ${t.name} ${coords(f.toC)} gesichtet. Chance auf Spionageabwehr: ${chance} %.${lost ? ' Die Spähschädel wurden abgeschossen!' : ''}`;
+  const text = `Eine fremde Flotte von ${att.name} ${coords(f.fromC)} wurde in der Nähe deines Planeten ${t.name} ${coords(f.toC)} gesichtet. Chance auf Auspex-Abwehr: ${chance} %.${lost ? ' Die Spähschädel wurden abgeschossen!' : ''}`;
   addReport(ctx, t.owner, {
     time: f.arr,
     type: 'info',
-    title: 'Spionageaktivität',
+    title: 'Auspex-Aktivität',
     participants: [f.owner, t.owner],
     text,
   });
@@ -206,7 +206,7 @@ function battleReports(ctx: Ctx, x: Fight): void {
   };
   const won = `Kampfbericht ${coords(f.toC)} – ${WON[x.res.winner]}`;
   addReport(ctx, f.owner, { ...report, title: won });
-  const hit = `Angriff auf ${t.name} ${coords(f.toC)} durch ${x.att.name}`;
+  const hit = `Feindkontakt! ${t.name} ${coords(f.toC)} wird von ${x.att.name} angegriffen`;
   addReport(ctx, t.owner, { ...report, title: hit });
 }
 
