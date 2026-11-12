@@ -5,15 +5,10 @@ import {
   type UnitDef,
   canFly,
 } from '../../shared/catalog.ts';
-import {
-  maxAfford,
-  reqMissing,
-  satEnergy,
-  unitTime,
-} from '../../shared/economy.ts';
+import { reqMissing, satEnergy, unitTime } from '../../shared/economy.ts';
 import { shipSpeed } from '../../shared/flight.ts';
 import type { Levels } from '../../shared/types.ts';
-import { YARD_LOCK, yardLockedBy } from '../../shared/yard.ts';
+import { orderMax, YARD_LOCK, yardLockedBy } from '../../shared/yard.ts';
 import { dur, fmt } from '../logic/format.ts';
 import { cd, costHTML, itemHTML, requirementsHTML, type V } from './common.ts';
 
@@ -44,7 +39,8 @@ function stats(v: V, k: string, d: UnitDef): string {
 }
 
 function orderBox(k: string, maxN: number, upgrading: boolean): string {
-  return `<div class="flex center"><input type="number" min="0" id="q_${k}" placeholder="0" aria-label="Anzahl"> <span class="lnk" data-act="maxq" data-k="${k}" data-max="${maxN}">(max ${fmt(maxN)})</span></div><button class="mt" data-act="order" data-k="${k}" ${upgrading || maxN === 0 ? 'disabled' : ''}>Bauen</button>`;
+  const once = DEF[k]?.once ? ' max="1"' : '';
+  return `<div class="flex center"><input type="number" min="0"${once} id="q_${k}" placeholder="0" aria-label="Anzahl"> <span class="lnk" data-act="maxq" data-k="${k}" data-max="${maxN}">(max ${fmt(maxN)})</span></div><button class="mt" data-act="order" data-k="${k}" ${upgrading || maxN === 0 ? 'disabled' : ''}>Bauen</button>`;
 }
 
 function yard(
@@ -62,7 +58,7 @@ function yard(
     const miss = reqMissing(d, P, R);
     const action = miss.length
       ? '<span class="req">Voraussetzungen fehlen</span>'
-      : orderBox(k, maxAfford(P, d.cost), !!lock);
+      : orderBox(k, orderMax(P, k), !!lock);
     const body =
       costHTML(d.cost, P) +
       stats(v, k, d) +
@@ -73,7 +69,7 @@ function yard(
       cls,
       k,
       d,
-      `(vorhanden: ${fmt(have[k] ?? 0)})`,
+      `(vorhanden: ${fmt(have[k] ?? 0)}${DEF[k]?.once ? ' · max. 1' : ''})`,
       body,
       action,
     );

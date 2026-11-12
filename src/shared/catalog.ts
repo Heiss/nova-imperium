@@ -56,7 +56,10 @@ export interface ShipDef extends UnitDefBase {
   drive: DriveKey;
 }
 
-export type DefenseDef = UnitDefBase;
+export interface DefenseDef extends UnitDefBase {
+  /** At most one per planet, the shield domes (#50, D3). */
+  once?: true;
+}
 export type UnitDef = ShipDef | DefenseDef;
 
 export const BUILD: Record<string, BuildingDef> = {
@@ -588,6 +591,46 @@ export const DEF: Record<string, DefenseDef> = {
         shield: 1,
       },
     },
+  },
+  // Issue #50. Not in version 1; the classic values (owner, 2026-11-12).
+  // No unit has rapid fire against these four, and they have none.
+  ionc: {
+    n: 'Ionengeschütz',
+    ab: 'IG',
+    cost: [2000, 6000, 0],
+    atk: 150,
+    sh: 500,
+    req: { b: { yard: 4 }, r: { ion: 4 } },
+    ds: 'Geschütz mit starkem Schild, das viele Treffer einsteckt.',
+  },
+  pt: {
+    n: 'Plasmawerfer',
+    ab: 'PW',
+    cost: [50000, 50000, 30000],
+    atk: 3000,
+    sh: 300,
+    req: { b: { yard: 8 }, r: { plasma: 7 } },
+    ds: 'Die stärkste Waffe der Verteidigung: feuert Plasma mit gewaltiger Wucht.',
+  },
+  ssd: {
+    n: 'Kleine Schildkuppel',
+    ab: 'KSK',
+    cost: [10000, 10000, 0],
+    atk: 1,
+    sh: 2000,
+    req: { b: { yard: 1 }, r: { shield: 2 } },
+    once: true,
+    ds: 'Kuppel mit starkem Schild über dem Planeten; schwache Schüsse prallen ab. Nur eine pro Planet.',
+  },
+  lsd: {
+    n: 'Große Schildkuppel',
+    ab: 'GSK',
+    cost: [50000, 50000, 0],
+    atk: 1,
+    sh: 10000,
+    req: { b: { yard: 6 }, r: { shield: 6 } },
+    once: true,
+    ds: 'Die größere Kuppel mit fünffachem Schild; nur starke Schüsse dringen durch. Nur eine pro Planet.',
   },
 };
 

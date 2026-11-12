@@ -35,3 +35,50 @@ Not in version 1. Missiles are #54.
   owiki.de; the owner took them over unchanged.
 * **[V]** German interface: Verteidigung gets four entries with new art; the
   domes show „max. 1“.
+
+# Code, interface and tests
+
+* Catalog: `DEF.ionc` (Ionengeschütz), `DEF.pt` (Plasmawerfer), `DEF.ssd`
+  (Kleine Schildkuppel) and `DEF.lsd` (Große Schildkuppel) in
+  `src/shared/catalog.ts`, after the Gaußkanone. Hull, shield and attack come
+  from `buildSide()` in `src/shared/battle.ts` (hull 800, 10,000, 2,000 and
+  10,000 before Raumschiffpanzerung); bounce below 1 % of the shield and the
+  explosion below 70 % hull are unchanged. No `rf` on or against them;
+  `rapid()` gives 1 both ways (the Bomber's 10 comes with #57).
+* Once per planet: the domes carry `once: true` (`DefenseDef`).
+  `unitRoom()` in `src/shared/yard.ts` counts the planet's dome and the units
+  of it in the shipyard queue; `orderMax()` is the smaller of that room and
+  what the planet can pay. The action `order` (`src/server/game/actions.ts`)
+  refuses an order larger than the room before it looks at the resources, so
+  an order of two domes is refused even when only one can be paid.
+  `afterBattle()` and `rebuild()` (`src/server/game/arrival.ts`) are
+  unchanged: a destroyed dome is rebuilt with the same 70 % chance.
+* Interface: the defense view shows „(vorhanden: N · max. 1)“ for a dome; the
+  „(max N)“ link and the order button use `orderMax()`, so a planet with its
+  dome built or queued sees „(max 0)“ and a disabled button; the number field
+  has `max="1"`.
+* Points: the cost counts like for every unit (`src/server/game/points.ts`);
+  achievements per defense come automatically (`src/shared/achievements.ts`).
+* **[V]** Keys `ionc`, `pt`, `ssd`, `lsd` (the research keys `ion` and
+  `plasma` are taken); abbreviations `IG`, `PW`, `KSK`, `GSK` (unique among
+  all `ab` values; `KS` and `GK` are taken).
+* **[V]** Descriptions (`ds`, shown with a (?) by #63): „Geschütz mit starkem
+  Schild, das viele Treffer einsteckt.“, „Die stärkste Waffe der
+  Verteidigung: feuert Plasma mit gewaltiger Wucht.“, „Kuppel mit starkem
+  Schild über dem Planeten; schwache Schüsse prallen ab. Nur eine pro
+  Planet.“, „Die größere Kuppel mit fünffachem Schild; nur starke Schüsse
+  dringen durch. Nur eine pro Planet.“
+* **[V]** Message of a refused dome: „Diese Schildkuppel gibt es nur einmal
+  pro Planet.“; the field `once` and the helpers `unitRoom()`/`orderMax()`.
+* Icons `ion_cannon.svg`, `plasma_turret.svg`, `small_shield_dome.svg` and
+  `large_shield_dome.svg` from the interface v2 set in
+  `src/client/static/icons/defense/`, mapped in `src/client/logic/icons.ts`.
+* Tests: `src/shared/catalog.test.ts` (values, version 1 equivalence with the
+  new keys added like `colony`, unique abbreviations), `economy.test.ts`
+  (`reqMissing`), `battle.test.ts` (hull, tech bonus, no rapid fire, bounce,
+  explosion, two battles), `yard.test.ts` (`unitRoom`, `orderMax`),
+  `src/server/game/actions.test.ts` (existing dome, queued dome, order of
+  two, order of the checks), `admin.test.ts` (points),
+  `src/client/logic/icons.test.ts`; E2E „Ionengeschütz, Plasmawerfer and the
+  shield domes; a dome only once (#50)“ and its phone variant in
+  `e2e/game.spec.ts`.

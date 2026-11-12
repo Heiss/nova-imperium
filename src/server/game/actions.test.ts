@@ -445,6 +445,76 @@ describe('shipyard', () => {
   });
 });
 
+describe('shield domes (#50)', () => {
+  const ONCE = 'Diese Schildkuppel gibt es nur einmal pro Planet.';
+  const domeSetup = (planet = {}) =>
+    setup(
+      { b: { yard: 6 }, res: { m: 1e6, c: 1e6, d: 1e6 }, ...planet },
+      { research: { shield: 6 } },
+    );
+  it('orders one dome of each kind', () => {
+    const { ctx, u, p } = domeSetup();
+    expect(A.order(ctx, u, { key: 'ssd', n: 1 })).toBe(
+      '1× Kleine Schildkuppel in Auftrag gegeben.',
+    );
+    expect(A.order(ctx, u, { key: 'lsd', n: 1 })).toBe(
+      '1× Große Schildkuppel in Auftrag gegeben.',
+    );
+    expect(p().sq.map((q) => [q.key, q.n])).toEqual([
+      ['ssd', 1],
+      ['lsd', 1],
+    ]);
+    expect(p().res).toEqual({ m: 940000, c: 940000, d: 1e6 });
+  });
+  it('refuses a second dome that is already queued', () => {
+    const { ctx, u, p } = domeSetup();
+    A.order(ctx, u, { key: 'ssd', n: 1 });
+    expect(() => A.order(ctx, u, { key: 'ssd', n: 1 })).toThrow(ONCE);
+    expect(p().sq).toHaveLength(1);
+    expect(p().res.m).toBe(990000);
+  });
+  it('refuses a dome the planet already has', () => {
+    const { ctx, u, p } = domeSetup({ def: { lsd: 1 } });
+    expect(() => A.order(ctx, u, { key: 'lsd', n: 1 })).toThrow(ONCE);
+    expect(p().sq).toEqual([]);
+    expect(p().res.m).toBe(1e6);
+  });
+  it('refuses an order of two domes at once, even if only one can be paid', () => {
+    const { ctx, u, p } = domeSetup();
+    expect(() => A.order(ctx, u, { key: 'ssd', n: 2 })).toThrow(ONCE);
+    const poor = domeSetup({ res: { m: 15000, c: 15000, d: 0 } });
+    expect(() => A.order(poor.ctx, poor.u, { key: 'ssd', n: 2 })).toThrow(ONCE);
+    expect(p().sq).toEqual([]);
+    expect(poor.p().sq).toEqual([]);
+  });
+  it('checks the requirements before the limit and the resources after it', () => {
+    const { ctx, u } = setup({ b: { yard: 1 }, def: { ssd: 1 } });
+    expect(() => A.order(ctx, u, { key: 'ssd', n: 1 })).toThrow(
+      'Voraussetzungen fehlen.',
+    );
+    const poor = domeSetup({ res: { m: 0, c: 0, d: 0 } });
+    expect(() => A.order(poor.ctx, poor.u, { key: 'ssd', n: 1 })).toThrow(
+      'Nicht genug Rohstoffe.',
+    );
+  });
+  it('leaves the other new defense unlimited', () => {
+    const { ctx, u, p } = setup(
+      { b: { yard: 8 }, res: { m: 1e6, c: 1e6, d: 1e6 }, def: { ionc: 3 } },
+      { research: { ion: 4, plasma: 7 } },
+    );
+    expect(A.order(ctx, u, { key: 'ionc', n: 5 })).toBe(
+      '5× Ionengeschütz in Auftrag gegeben.',
+    );
+    expect(A.order(ctx, u, { key: 'pt', n: 2 })).toBe(
+      '2× Plasmawerfer in Auftrag gegeben.',
+    );
+    expect(p().sq.map((q) => [q.key, q.n])).toEqual([
+      ['ionc', 5],
+      ['pt', 2],
+    ]);
+  });
+});
+
 describe('planet settings', () => {
   it('set the production share in steps of 10', () => {
     const { ctx, u, p } = setup();

@@ -2,6 +2,7 @@
 
 ## 2026-11-12
 
+* **Feature**: Ionengeschütz, Plasmawerfer, Kleine and Große Schildkuppel (#50): four defense units with the classic values, keys `ionc`, `pt`, `ssd`, `lsd`; a dome at most once per planet (existing and queued ones count, an order of two is refused); no rapid fire on or against them yet; icons of the interface v2 set (see [Defense](/features/defense-ion-plasma-domes.md)).
 * **Decision**: #50 clarified: Ionengeschütz (classic cost 2,000 / 6,000 from owiki.de), Plasmawerfer, Kleine and Große Schildkuppel with the classic values; domes once per planet and rebuilt like defense; rapid fire of the Bomber with #57 (see [Defense](/features/defense-ion-plasma-domes.md)).
 * **Feature**: Ionentechnik, Plasmatechnik, Gravitonforschung and the Intergalaktisches Forschungsnetzwerk (#49): research starts and is paid on any own planet with a Forschungslabor, IFN adds the highest other labs that meet the lab requirement, Gravitonforschung needs 300,000 · 3^(level − 1) energy production; migration 11 stores the starting planet; the requirements list works on the shown planet (see [Research](/features/research-ion-plasma-graviton.md)).
 * **Decision**: Milestone `next release` = #46, #47, #49, #50. #49 clarified: Ionentechnik, Plasmatechnik and Gravitonforschung with the classic values; Gravitonforschung checks 300,000 energy production (classic); IFN classic with research on any planet with a lab (decided again the same day); Expeditionstechnik moves to a new issue for expeditions (see [Research](/features/research-ion-plasma-graviton.md)).

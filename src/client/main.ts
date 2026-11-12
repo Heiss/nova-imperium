@@ -1,10 +1,10 @@
 // The browser glue: state, server calls, rendering, events and the clock.
 // The views are pure functions (views/), the logic is tested (logic/); this
 // file is run by the E2E suite.
-import { BUILD, RES, UNIT } from '../shared/catalog.ts';
+import { BUILD, RES } from '../shared/catalog.ts';
 import { pid } from '../shared/flight.ts';
 import { settle, settleR } from '../shared/settle.ts';
-import { yardLockedBy } from '../shared/yard.ts';
+import { orderMax, yardLockedBy } from '../shared/yard.ts';
 import type { Levels, Planet, Queue } from '../shared/types.ts';
 import { clampInt, coords, dt, dur, esc, fmt } from './logic/format.ts';
 import {
@@ -27,7 +27,7 @@ import {
 } from './logic/news.ts';
 import { ANIMATION_KEY, animationsOn } from './logic/planet.ts';
 import type { GameState } from './logic/types.ts';
-import { afford, caps, lvlCost, maxAfford, prod } from '../shared/economy.ts';
+import { afford, caps, lvlCost, prod } from '../shared/economy.ts';
 import type { Ui, V } from './views/common.ts';
 import {
   menu,
@@ -794,7 +794,7 @@ function updateShipyardButtons(p: Planet): void {
   document
     .querySelectorAll<HTMLElement>('#view [data-act="maxq"]')
     .forEach((max) => {
-      const count = maxAfford(p, UNIT[max.dataset.k!]!.cost);
+      const count = orderMax(p, max.dataset.k!);
       if (max.dataset.max !== String(count)) {
         max.dataset.max = String(count);
         max.textContent = `(max ${fmt(count)})`;
