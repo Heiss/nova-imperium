@@ -247,6 +247,34 @@ export function pinBase(dockerfile: string, digest: string): string {
   return dockerfile.replace(from, `$1${BASE_IMAGE}@${digest}$3`);
 }
 
+/** Debian's security updates in the image that runs (Dockerfile). */
+const OS_UPDATES = (id: string) =>
+  [
+    `ARG OS_UPDATES=sec-${id}`,
+    'RUN apt-get update \\',
+    ' && apt-get upgrade -y --no-install-recommends \\',
+    ' && rm -rf /var/lib/apt/lists/*',
+  ].join('\n');
+
+/**
+ * Sets the default of OS_UPDATES to the hotfix id, so the hotfix changes the
+ * Dockerfile even when the base image digest is the same and its build
+ * fetches Debian's security updates again. A release from before the OS
+ * updates (26.11.19 and older) gets them right after `FROM … AS app`.
+ */
+export function markOsUpdates(dockerfile: string, id: string): string {
+  if (!/^[a-f0-9]+$/.test(id)) throw new Error(`Not a hotfix id: "${id}"`);
+  const arg = /^ARG OS_UPDATES=\S*$/m;
+  if (arg.test(dockerfile)) {
+    return dockerfile.replace(arg, `ARG OS_UPDATES=sec-${id}`);
+  }
+  const app = /^FROM \S+ AS app\n/m;
+  if (!app.test(dockerfile)) {
+    throw new Error('The Dockerfile has no stage "app".');
+  }
+  return dockerfile.replace(app, (from) => `${from}${OS_UPDATES(id)}\n`);
+}
+
 /** The German fragment for „Neuigkeiten“: no package names, no internals. */
 export function fragment(): string {
   return [
@@ -271,7 +299,7 @@ function apply(file: string, digest: string | undefined): number {
     if (!digest)
       throw new Error('The plan needs the digest of the base image.');
     const docker = readFileSync('Dockerfile', 'utf8');
-    writeFileSync('Dockerfile', pinBase(docker, digest));
+    writeFileSync('Dockerfile', markOsUpdates(pinBase(docker, digest), p.id));
   }
   mkdirSync('changes', { recursive: true });
   writeFileSync(`changes/sicherheit-${p.id}.md`, fragment());

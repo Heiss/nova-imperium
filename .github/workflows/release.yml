@@ -82,6 +82,10 @@ jobs:
           push: ${{ steps.v.outputs.publish == 'true' }}
           tags: |
             ${{ steps.v.outputs.image }}:${{ steps.v.outputs.tag }}
+          # Debian's security updates are fetched fresh for every release,
+          # not taken from the layer cache (Dockerfile, OS_UPDATES).
+          build-args: |
+            OS_UPDATES=${{ github.run_id }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 

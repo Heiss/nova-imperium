@@ -25,6 +25,15 @@ RUN pnpm build && pnpm prune --prod --ignore-scripts && touch VERSION
 
 # The image that runs: no compilers, no pnpm, not root, no tests.
 FROM node:26-slim@sha256:e6bedef217677b276c591795e169840edd9096dbf13f29df8ef8d1856b8820bc AS app
+# Debian's security updates on top of the base image (owner, 2026-11-12): a
+# fix in Debian reaches the image before the official Node image is rebuilt.
+# Every release build sets OS_UPDATES (release.yml), so the layer cache never
+# keeps old packages; a security hotfix of the base image changes its default
+# (scripts/security-hotfix.ts).
+ARG OS_UPDATES=none
+RUN apt-get update \
+ && apt-get upgrade -y --no-install-recommends \
+ && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 ENV NODE_ENV=production \
     NOVA_HOST=0.0.0.0 \

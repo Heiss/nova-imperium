@@ -178,6 +178,15 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   this as a comment, once); the
   first scan on 2026-11-12 found two High holes in `zlib1g` of the base
   image of 26.11.18 (issue #97).
+* **[E]** Debian's security updates go into the image that runs (owner,
+  2026-11-12): `apt-get upgrade` after `FROM … AS app`, so a Debian fix
+  reaches the image before the official Node image is rebuilt (2× High in
+  `zlib1g` of 26.11.19 had a Debian fix but no new `node:26-slim`). Every
+  release build passes `OS_UPDATES` (the run id), so the layer cache never
+  keeps old packages; a hotfix of the base image sets the default
+  `ARG OS_UPDATES=sec-<id>` (and adds the block to a release from before it),
+  so the hotfix always changes the `Dockerfile` and fetches the updates again.
+  Builds are no longer bit-identical for the same commit.
 * **[E]** The base image is pinned to its digest in the `Dockerfile`;
   Renovate opens a pull request for a new digest.
 

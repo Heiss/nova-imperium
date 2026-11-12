@@ -4,6 +4,7 @@ import {
   findings,
   fixedVersion,
   fragment,
+  markOsUpdates,
   pinBase,
   pinPackages,
   plan,
@@ -286,6 +287,24 @@ describe('security hotfix: apply', () => {
       [],
     );
     expect(stillVulnerable('', fixes)).toEqual([]);
+  });
+
+  it('set the OS updates default to the hotfix id', () => {
+    const docker = 'FROM x AS app\nARG OS_UPDATES=none\nRUN apt-get upgrade\n';
+    expect(markOsUpdates(docker, 'abc123')).toBe(
+      'FROM x AS app\nARG OS_UPDATES=sec-abc123\nRUN apt-get upgrade\n',
+    );
+    expect(markOsUpdates('ARG OS_UPDATES=sec-old\n', 'ff')).toBe(
+      'ARG OS_UPDATES=sec-ff\n',
+    );
+    expect(
+      markOsUpdates('FROM x AS base\nFROM y AS app\nWORKDIR /app\n', 'ab'),
+    ).toBe(
+      'FROM x AS base\nFROM y AS app\nARG OS_UPDATES=sec-ab\nRUN apt-get update \\\n && apt-get upgrade -y --no-install-recommends \\\n && rm -rf /var/lib/apt/lists/*\nWORKDIR /app\n',
+    );
+    expect(() => markOsUpdates('FROM x\n', 'ab')).toThrow('no stage "app"');
+    expect(() => markOsUpdates(docker, 'x y')).toThrow('Not a hotfix id');
+    expect(() => markOsUpdates(docker, '')).toThrow('Not a hotfix id');
   });
 
   it('pin every FROM of the base image to the digest', () => {
