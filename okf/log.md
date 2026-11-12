@@ -2,6 +2,7 @@
 
 ## 2026-11-12
 
+* **Decision**: Release loop: up to two own pull requests at a time, built by subagents in their own worktrees (see [Release loop](/ops/loop.md)).
 * **Feature**: Explanation texts (#63): option „Erklärungstexte“ in „Hilfe & Optionen“ (Immer anzeigen, Als (?)-Symbol, Ausblenden; default (?)), stored per player by migration 10; a (?) button opens an inline panel below the entry; the panel shows the short `ds` until #94 brings the long texts; the buildings view shows `ds` too (see [Explanation texts](/features/explanation-texts.md)).
 * **Decision**: #63 clarified: display option per player on the server, default „(?)-Symbol“, inline panel; mechanism now, the long texts with the rename #94 (see [Explanation texts](/features/explanation-texts.md)).
 * **Feature**: Schlachtkreuzer and Zerstörer (#58, #59): two ships with the classic values, rapid fire and the Hyperraumantrieb; keys `bc` and `dr`, abbreviations `SK` and `ZE`, icons of the interface v2 set (see [Late-game combat ships](/features/late-game-ships.md)).

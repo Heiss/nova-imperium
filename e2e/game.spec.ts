@@ -1055,7 +1055,9 @@ test.describe('explanation texts (#63)', () => {
     await nav(page, 'shipyard');
     await expect(row(page, 'Spionagesonde')).toBeVisible();
     await expect(question(page, 'Spionagesonde')).toHaveCount(0);
-    await expect(page.locator('#view .ex')).toHaveCount(0);
+    await expect(row(page, 'Spionagesonde').locator('.ex')).toHaveCount(0);
+    // Ships with a description (Solarsatellit, #46) do get the (?).
+    await expect(question(page, 'Solarsatellit')).toHaveCount(1);
 
     await choose(page, 'Immer anzeigen');
     await nav(page, 'buildings');
