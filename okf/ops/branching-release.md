@@ -105,8 +105,12 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 * Release App: grant „Pull requests: Read and write“ in addition to
   „Contents“, so it can open the release pull request (open point O10).
 * Create the label `kein-changelog`. Branches `release/*` must allow force
-  pushes by the release App (they are rebuilt); `hotfix/*` branches need the
-  same CI Gate rule as `main` when they are protected.
+  pushes by the release App (they are rebuilt).
+* Protect `hotfix/**` like `main`: changes only through a pull request with
+  a green CI Gate (owner decision, 2026-11-12). `tag.yml` runs
+  `scripts/release.sh` of a hotfix branch with the release App's token; the
+  rule keeps unreviewed scripts out of it (CodeRabbit security finding on
+  pull request #84).
 * Install the Renovate app for the repository.
 * After the first release: set the GHCR package to public, or log in with a
   token that has `read:packages` on the server.
