@@ -112,6 +112,49 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 * **[E]** Renovate opens pull requests for dependencies and images, waits
   3 days after a release (`minimumReleaseAge`) and merges patch updates
   automatically once the CI is green.
+  Its security pull requests (from GitHub's Dependabot alerts) wait for
+  nothing: `vulnerabilityAlerts` sets `minimumReleaseAge` to null for every
+  severity by default, checked in Renovate's documentation (owner,
+  2026-11-12: „so lassen, alle sofort“). Renovate has no matcher for the
+  severity; Dependabot's own security updates are off, so no hole gets two
+  pull requests.
+
+## Security hotfix (owner, 2026-11-12)
+
+* **[E]** A hole rated High or Critical in the published release goes to
+  `stable` at once, as a hotfix of the last release tag without the
+  unreleased work of `main`: „lieber ein kaputtes Deployment für eine
+  kritische Sicherheitslücke als ein gehacktes System“.
+* **[E]** Source: the image of the newest release tag (what `stable` names),
+  scanned by Trivy every hour and after every release
+  (`.github/workflows/security-hotfix.yml`). Dependabot alerts only look at
+  `main`; a hole fixed there is still in `stable`. npm packages are rated by
+  GitHub (GHSA, `VendorSeverity.ghsa`), the base image by Trivy; only holes
+  with a fix count.
+* **[E]** The fix is applied again on the release tag, not cherry-picked
+  (`scripts/security-hotfix.ts`): a dependency of `package.json` gets the
+  fixed version, any other package a pnpm override `<name>@<<fixed>`; a hole
+  in the base image pins the newest digest of `node:26-slim`. The
+  fragment says „Sicherheitsupdate“ without package names.
+* **[E]** The release App creates `hotfix/sec-<id>` (bypass in the ruleset
+  „hotfix-anlegen“, creation only) and the pull request `sec-fix/<id>` into
+  it; that pull request and the release pull request of `hotfix/sec-*`
+  merge themselves when the CI Gate is green (`gh pr merge --auto`). The
+  owner merges `hotfix/sec-*` back into `main`; `tag.yml` opens that pull
+  request. While a released hotfix is not merged back, the release pull
+  request of `main` stays a draft (`scripts/release-pr.sh`): its release
+  would drop the fix from `stable`. After every hotfix release, `tag.yml` rebuilds the release pull
+  request of `main`, so its version is newer than the hotfix and its release
+  becomes `stable` again.
+* **[E]** The id is a hash of the fixed packages and the base image holes:
+  the same holes never start a second hotfix. One hotfix at a time: a new one waits until
+  a release tag holds the fix commit of every other `hotfix/sec-*`, because a second
+  hotfix from the same tag would release without the first fix. When the hotfix is released and
+  the scan of the newest release still finds them, an issue says so and nothing is
+  retried. When the newest base image has no fix yet, the hotfix job fails
+  every hour until it has one.
+* **[E]** The base image is pinned to its digest in the `Dockerfile`;
+  Renovate opens a pull request for a new digest.
 * **[E]** Every push to `main` runs the full suite with an incremental mutation
   run (owner, 2026-11-11); the release pull request and the nightly run in
   `.github/workflows/mutation.yml` test every mutant.
@@ -142,6 +185,9 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   (owner, 2026-11-12). `release-pr.yml` uses it after every push to `main`,
   because it rebuilds the release pull request each time.
 * Install the Renovate app for the repository.
+* Security hotfix (2026-11-12): Dependabot alerts on (done), Dependabot
+  security updates off, „Allow auto-merge“ on (Settings → General), and the
+  release App as bypass in the ruleset „hotfix-anlegen“.
 * After the first release: set the GHCR package to public, or log in with a
   token that has `read:packages` on the server.
 

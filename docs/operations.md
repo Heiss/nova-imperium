@@ -138,6 +138,18 @@ release pull request, then merge `hotfix/<name>` back into `main`.
 git push origin 26.11.19:refs/heads/hotfix/26.11.20
 ```
 
+Security hotfixes run by themselves: every hour and after every release, the
+workflow „Security hotfix“ scans the image of the newest release with Trivy.
+A hole rated High or Critical (npm packages by GitHub's rating) that has a
+fix starts `hotfix/sec-<id>` from the release tag with the fixed versions
+or the newest base image; its pull request and its release pull request
+merge themselves when the CI Gate is green, so `stable` gets the fix without
+the unreleased work of `main`. An issue „Sicherheits-Hotfix sec-<id>“
+reports it; merge the pull request `hotfix/sec-<id>` → `main` afterwards.
+Setup: Dependabot alerts on, Dependabot security updates off (Renovate
+opens those pull requests), „Allow auto-merge“ on, and the release App as
+bypass in the ruleset that restricts creating `hotfix/**`.
+
 ## Updates
 
 Images are published for release tags with successful CI (`ghcr.io/heiss/nova-imperium`,

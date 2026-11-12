@@ -1,0 +1,226 @@
+name: Security hotfix
+
+# Holes rated High or Critical in the published image "stable" go out as a
+# hotfix of the last release, without the unreleased work on main (owner,
+# 2026-11-12): every hour and after every release, Trivy scans the image of
+# the newest release tag. A hole with a fix starts hotfix/sec-<id> from that
+# tag; a pull request with the fixed versions (scripts/security-hotfix.ts)
+# merges itself when its CI is green, and so does the release pull request of
+# the hotfix branch. The owner merges the hotfix back into main.
+# See okf/ops/branching-release.md.
+on:
+  schedule:
+    - cron: '17 * * * *'
+  # Safe here: scans the image of the newest release tag and checks out
+  # main; it never runs code of the triggering run.
+  workflow_run: # zizmor: ignore[dangerous-triggers]
+    workflows: [Release]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-hotfix
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    name: Scan stable
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read # pull the private image from GHCR
+      issues: write # report a hotfix or a hole it did not close
+    outputs:
+      id: ${{ steps.plan.outputs.id }}
+      tag: ${{ steps.tag.outputs.tag }}
+      start: ${{ steps.state.outputs.start }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version-file: .node-version
+          package-manager-cache: false
+
+      # The newest release tag is what "stable" names (release.yml, aliases).
+      - name: Newest release
+        id: tag
+        run: |
+          newest=$(git tag --list | grep -E '^[0-9]{2}\.([1-9]|1[0-2])\.(0|[1-9][0-9]*)$' |
+            sort -t. -k1,1n -k2,2n -k3,3n | tail -n 1)
+          if [ -z "$newest" ]; then echo 'No release yet.'; exit 0; fi
+          echo "tag=$newest" >> "$GITHUB_OUTPUT"
+          echo "image=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/nova-imperium:$newest" >> "$GITHUB_OUTPUT"
+
+      - name: Log in to GHCR
+        if: steps.tag.outputs.tag != ''
+        uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # No severity filter here: npm holes are rated by GitHub (GHSA), which
+      # can be higher than Trivy's own rating; the script filters.
+      - name: Scan the image (Trivy, holes with a fix only)
+        if: steps.tag.outputs.tag != ''
+        env:
+          IMAGE: ${{ steps.tag.outputs.image }}
+        run: |
+          docker pull --quiet "$IMAGE"
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v "$PWD:/out" \
+            aquasec/trivy:0.76.2@sha256:8f6bb947dbc528902e11f2f5be52f7b519f6a39d5d148f41166f2040499768fb \
+            image --scanners vuln --ignore-unfixed --format json --output /out/trivy.json \
+            --no-progress "$IMAGE"
+
+      - name: Plan
+        id: plan
+        if: steps.tag.outputs.tag != ''
+        run: |
+          node scripts/security-hotfix.ts plan trivy.json > plan.json
+          id=$(node -p "require('./plan.json').id")
+          echo "id=$id" >> "$GITHUB_OUTPUT"
+          node -e "
+            const p = require('./plan.json');
+            for (const f of p.findings) console.log(f.severity, f.id, f.package, f.installed, '->', f.fixed, '(' + f.layer + ')');
+            if (!p.id) console.log('No hole rated High or Critical with a fix.');
+          "
+
+      # A hotfix is released when a release tag holds the commit
+      # "… (sec-<id>)" of its branch. A new hotfix starts only when every
+      # other one is released. When hotfix/sec-<id> is released and the
+      # newest release still has these holes, an issue says so. Each issue
+      # is opened once.
+      - name: New, on its way or not closed?
+        id: state
+        if: steps.plan.outputs.id != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ID: ${{ steps.plan.outputs.id }}
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          branch="hotfix/sec-$ID"
+          issue() {
+            open=$(gh issue list --state open --search "\"$1\" in:title" --json title --jq ".[] | select(.title == \"$1\") | .title")
+            [ -n "$open" ] || gh issue create --title "$1" --body "$2"
+          }
+          released() {
+            fix=$(git log -1 --format=%H --grep "(sec-$1)" "origin/hotfix/sec-$1" 2> /dev/null || true)
+            [ -n "$fix" ] && git tag --contains "$fix" | grep -Eq '^[0-9]{2}\.([1-9]|1[0-2])\.(0|[1-9][0-9]*)$'
+          }
+          list=$(node -e "
+            for (const f of require('./plan.json').findings)
+              console.log('- ' + f.severity + ' ' + f.id + ': ' + f.package + ' ' + f.installed + ' → ' + f.fixed + ' (' + (f.layer === 'app' ? 'package.json' : 'base image') + ')');
+          ")
+          echo "start=false" >> "$GITHUB_OUTPUT"
+          if git rev-parse -q --verify "refs/remotes/origin/$branch" > /dev/null; then
+            if released "$ID"; then
+              echo "::warning::$branch is released, and $TAG still has these holes."
+              issue "Sicherheits-Hotfix sec-$ID hat die Lücke nicht geschlossen" "$(printf 'The release of `%s` is out, but the scan of release %s still finds these holes. Nothing is retried automatically.\n\n%s\n' "$branch" "$TAG" "$list")"
+            else
+              echo "$branch is still on its way to a release."
+            fi
+            exit 0
+          fi
+          # One hotfix at a time: a second one from the same tag would
+          # release without the first fix and move stable back.
+          for ref in $(git for-each-ref --format='%(refname:short)' 'refs/remotes/origin/hotfix/sec-*'); do
+            other=${ref#origin/hotfix/sec-}
+            if ! released "$other"; then
+              echo "hotfix/sec-$other is still on its way: this one waits for its release."
+              exit 0
+            fi
+          done
+          echo "start=true" >> "$GITHUB_OUTPUT"
+          issue "Sicherheits-Hotfix sec-$ID" "$(printf 'Trivy found these holes in the image of release %s (stable). The workflow „Security hotfix“ builds `%s` from the tag; its pull requests merge themselves when the CI Gate is green. After the release, merge `%s` back into main.\n\n%s\n' "$TAG" "$branch" "$branch" "$list")"
+
+      - name: Keep the plan for the hotfix job
+        if: steps.state.outputs.start == 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: plan
+          path: plan.json
+          retention-days: 7
+
+  hotfix:
+    name: Start the hotfix
+    needs: scan
+    if: needs.scan.outputs.start == 'true'
+    # The release App creates hotfix/sec-* (bypass in the ruleset
+    # „hotfix-anlegen“, owner 2026-11-12) and opens the pull request; its key
+    # is an environment secret for main and hotfix/** only.
+    environment: release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3
+        id: app
+        with:
+          app-id: ${{ vars.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+      # The scripts of main, the code of the release tag.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: main
+          path: tools
+          persist-credentials: false
+      # Keeps the credentials: this job pushes the hotfix branches.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ needs.scan.outputs.tag }}
+          path: repo
+          token: ${{ steps.app.outputs.token }} # zizmor: ignore[artipacked]
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6
+        with:
+          package_json_file: repo/package.json
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version-file: repo/.node-version
+          # No cache in a workflow that pushes.
+          package-manager-cache: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: plan
+
+      - name: Apply the fixed versions
+        working-directory: repo
+        env:
+          TAG: ${{ needs.scan.outputs.tag }}
+        run: |
+          digest=$(docker buildx imagetools inspect node:26-slim | awk '/^Digest:/ { print $2; exit }')
+          node ../tools/scripts/security-hotfix.ts apply ../plan.json "$digest"
+          # The lockfile only: no install, no package scripts.
+          pnpm install --lockfile-only --ignore-scripts
+          if git diff --quiet -- package.json pnpm-lock.yaml Dockerfile; then
+            echo "::error::The fixed versions are already in release $TAG: the base image has no fix yet, or the scan and the fix disagree."
+            exit 1
+          fi
+          git diff --stat
+
+      - name: Push the hotfix branch and its pull request
+        working-directory: repo
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+          ID: ${{ needs.scan.outputs.id }}
+          TAG: ${{ needs.scan.outputs.tag }}
+        run: |
+          branch="hotfix/sec-$ID"
+          fix="sec-fix/$ID"
+          git push --quiet origin "refs/tags/$TAG:refs/heads/$branch"
+          git switch --quiet -c "$fix"
+          git add -A package.json pnpm-lock.yaml Dockerfile changes
+          git -c user.name='Nova Imperium Release' \
+            -c user.email='nova-imperium-release@users.noreply.github.com' \
+            commit --quiet -m "Security update for release $TAG (sec-$ID)"
+          git push --quiet --force origin "HEAD:refs/heads/$fix"
+          gh pr create --base "$branch" --head "$fix" \
+            --title "Sicherheitsupdate für Release $TAG (sec-$ID)" \
+            --body "Built by the workflow „Security hotfix“ from release $TAG; see the issue „Sicherheits-Hotfix sec-$ID“. It merges itself when the CI Gate is green; the release pull request of \`$branch\` follows the same way."
+          gh pr merge --auto --squash "$fix"
