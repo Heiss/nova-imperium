@@ -62,8 +62,10 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   moved on in the meantime, as long as it is still part of the branch.
   A version that is already the tag of another release (two release pull
   requests picked it at the same moment) fails the tag job loudly; the
-  release pull request workflow also stops when another release branch
-  holds its version, and a second run picks the next one.
+  release pull request workflow checks before and after its push whether
+  another release branch holds its version; if so it turns its release pull
+  request into a draft (a draft cannot be merged) and fails, and a second
+  run picks the next version and marks it ready again.
   `release.yml` publishes the image and a GitHub release whose
   notes are the section of `CHANGELOG.md`, followed by GitHub's list of pull
   requests.

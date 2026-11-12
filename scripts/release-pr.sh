@@ -52,18 +52,23 @@ git add -A CHANGELOG.md VERSION changes
 git -c user.name='Nova Imperium Release' \
   -c user.email='nova-imperium-release@users.noreply.github.com' \
   commit --quiet -m "Release $version"
-git push --quiet --force origin "HEAD:refs/heads/$branch"
-
 # Release pull requests of main and of a hotfix are rebuilt by separate runs;
-# two runs at the same moment could pick the same version. The later one
-# sees the other branch now and stops; running it again picks the next one.
-git fetch --quiet origin '+refs/heads/release/*:refs/remotes/origin/release/*'
-for ref in $(git for-each-ref --format='%(refname)' refs/remotes/origin/release/); do
-  [ "$ref" = "refs/remotes/origin/$branch" ] && continue
-  if [ "$(git show "$ref:VERSION" 2> /dev/null | tr -d '[:space:]')" = "$version" ]; then
-    fail "${ref#refs/remotes/origin/} holds $version too: run this workflow again."
-  fi
-done
+# two runs at the same moment could pick the same version. Checked before the
+# push, and again after it for a run that pushed in between.
+taken_by() {
+  git fetch --quiet origin '+refs/heads/release/*:refs/remotes/origin/release/*'
+  for ref in $(git for-each-ref --format='%(refname)' refs/remotes/origin/release/); do
+    [ "$ref" = "refs/remotes/origin/$branch" ] && continue
+    if [ "$(git show "$ref:VERSION" 2> /dev/null | tr -d '[:space:]')" = "$version" ]; then
+      printf '%s\n' "${ref#refs/remotes/origin/}"
+      return
+    fi
+  done
+}
+other=$(taken_by)
+[ -z "$other" ] || fail "$other holds $version too: run this workflow again."
+git push --quiet --force origin "HEAD:refs/heads/$branch"
+other=$(taken_by)
 
 # Squash merges end their subject with the pull request number.
 pulls=$(git log --format='- %s' "$range" | grep -E '\(#[0-9]+\)$' || true)
@@ -88,5 +93,14 @@ if [ -n "$open" ]; then
 else
   gh pr create --base "$base" --head "$branch" \
     --title "Release $version" --body-file release-body.md
+  open=$(gh pr list --head "$branch" --base "$base" --state open \
+    --json number --jq '.[0].number // empty')
 fi
+# A draft cannot be merged: a release pull request whose version another
+# release branch holds stays a draft until a new run picks a free version.
+if [ -n "$other" ]; then
+  gh pr ready --undo "$open"
+  fail "$other holds $version too: the release pull request is a draft now; run this workflow again."
+fi
+gh pr ready "$open" > /dev/null 2>&1 || true
 printf 'Release pull request for %s is up to date.\n' "$version"
