@@ -115,15 +115,23 @@ export interface Production {
 
 const growth = (l: number): number => l * Math.pow(1.1, l);
 
-export function prod(
-  p: Pick<Planet, 'b' | 'pct' | 'temp'>,
-  u: Universe,
-): Production {
+/** Energy of one Solarsatellit: ⌊maximum temperature / 4 + 20⌋, never below 0. */
+export const satEnergy = (temp: number): number =>
+  Math.max(0, Math.floor(temp / 4 + 20));
+
+type ProdPlanet = Pick<Planet, 'b' | 'pct' | 'temp'> &
+  Partial<Pick<Planet, 'ships'>>;
+
+/** Energy of all Solarsatelliten of a planet at their production share. */
+export const satPower = (p: ProdPlanet): number =>
+  ((p.ships?.sat ?? 0) * satEnergy(p.temp) * (p.pct.sat ?? 100)) / 100;
+
+export function prod(p: ProdPlanet, u: Universe): Production {
   const g = (k: string): number => growth(lv(p.b, k));
   const pc = (k: string): number => (p.pct[k] ?? 100) / 100;
   // The order of the factors is the one of the original formulas, so the
   // floating point results are the same to the last digit.
-  const eProd = 20 * g('solar') * pc('solar');
+  const eProd = 20 * g('solar') * pc('solar') + satPower(p);
   const eUse =
     10 * g('metal') * pc('metal') +
     10 * g('crystal') * pc('crystal') +

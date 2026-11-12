@@ -51,9 +51,15 @@ export interface Planet extends Coords {
   created: number;
 }
 
+/** The running research and the own planet where it started and was paid (#49). */
+export interface ResearchQueue extends Queue {
+  /** Missing for research started before #49: that was the home planet. */
+  planet?: string;
+}
+
 export interface ResearchState {
   research: Levels;
-  rq: Queue | null;
+  rq: ResearchQueue | null;
 }
 
 export type Mission = 'attack' | 'transport' | 'spy' | 'colonize';

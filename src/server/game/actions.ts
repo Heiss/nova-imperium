@@ -12,7 +12,15 @@ import {
   researchTime,
   unitTime,
 } from '../../shared/economy.ts';
+import { type ExplainMode, isExplainMode } from '../../shared/explain.ts';
 import { labUpgrading, waitsForLab } from '../../shared/lab.ts';
+import {
+  energyNeed,
+  energyShort,
+  type LabSite,
+  labSite,
+  networkLab,
+} from '../../shared/research.ts';
 import { settle, settleR } from '../../shared/settle.ts';
 import { waitsForYard, YARD_LOCK, yardLockedBy } from '../../shared/yard.ts';
 import type { Cost, Planet, Queue, ResearchState } from '../../shared/types.ts';
@@ -125,30 +133,56 @@ const checkResearch = (p: Planet, r: ResearchState, k: string): void => {
   if (reqMissing(RES[k]!, p, r).length) fail('Voraussetzungen fehlen.');
 };
 
+/** Gravitonforschung: the starting planet must produce enough energy (#49). */
+function checkEnergy(ctx: Ctx, p: Planet, k: string, level: number): void {
+  const def = RES[k]!;
+  const short = energyShort(def, level, p, universe(ctx));
+  if (short > 0)
+    fail(
+      `Zu wenig Energie: ${def.n} braucht eine Energieproduktion von ${fmt(energyNeed(def, level))}, es fehlen ${fmt(short)}.`,
+    );
+}
+
+/** The labs of all own planets, moved to now, for the research network (#49). */
+export const ownLabs = (ctx: Ctx, uid: string): LabSite[] =>
+  ctx.store
+    .playerPlanets(uid)
+    .map((x) => labSite(settle(x, ctx.now(), universe(ctx))));
+
+/** Starts research on the selected own planet, which pays it (#49). */
 export const research: Action = (ctx, u, d, event) => {
   const k = String(d.key);
   const def = RES[k] ?? fail('Unbekannte Forschung.');
-  const p = mine(ctx, u);
+  const p = mine(ctx, u, d.planet);
   const r = researchOf(ctx, u);
+  const have = r.research[k] ?? 0;
   checkResearch(p, r, k);
+  checkEnergy(ctx, p, k, have + 1);
+  const lab = networkLab(
+    k,
+    labSite(p),
+    ownLabs(ctx, u.id),
+    r.research.ifn ?? 0,
+  );
   const q = payNextLevel(
     ctx,
     p,
-    { def, key: k, have: r.research[k] ?? 0 },
-    (c) => researchTime(c, p, universe(ctx)),
+    { def, key: k, have },
+    (c) => researchTime(c, { b: { lab } }, universe(ctx)),
     event,
   );
-  r.rq = q;
+  r.rq = { ...q, planet: p.id };
   setResearch(ctx, u, r);
   ctx.store.savePlanet(p);
   queuePush(ctx, u.id, 'research', String(q.start), q.end);
   return null;
 };
 
+/** Refunds the planet where the research started (the home planet before #49). */
 export const cancelResearch: Action = (ctx, u) => {
-  const p = mine(ctx, u);
   const r = researchOf(ctx, u);
   if (!r.rq) return null;
+  const p = mine(ctx, u, r.rq.planet);
   refund(p, r.rq.cost);
   r.rq = null;
   cancelScheduledPush(ctx, u.id, 'research');
@@ -201,8 +235,15 @@ export const rename: Action = (ctx, u, d) => {
   return null;
 };
 
+/** A display option of the explanation texts (issue #63), or a refusal. */
+const explainMode = (x: unknown): ExplainMode =>
+  isExplainMode(x) ? x : fail('Ungültig.');
+
 export const options: Action = (ctx, u, d) => {
+  // An older client sends no display option; the stored one stays.
+  const explain = d.explain === undefined ? u.explain : explainMode(d.explain);
   u.probes = int(d.probes, 1, 1e6);
+  u.explain = explain;
   ctx.store.saveUser(u);
   return 'Gespeichert.';
 };

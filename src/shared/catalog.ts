@@ -9,7 +9,18 @@ export interface BuildingDef {
   cost: Cost;
   f: number;
   ds: string;
+  /** Long explanation text (issue #63); without it the short `ds` stands in. */
+  lt?: string;
   req?: Requirements;
+}
+
+/**
+ * Energy production a research needs on the planet where it starts: `base` at
+ * level 1, times `f` per further level. It is checked, not consumed (#49).
+ */
+interface EnergyNeed {
+  base: number;
+  f: number;
 }
 
 export interface ResearchDef {
@@ -17,7 +28,10 @@ export interface ResearchDef {
   ab: string;
   cost: Cost;
   ds: string;
+  /** Long explanation text (issue #63); without it the short `ds` stands in. */
+  lt?: string;
   req: Requirements;
+  energy?: EnergyNeed;
 }
 
 export type DriveKey = 'comb' | 'impulse' | 'hdrive';
@@ -31,6 +45,8 @@ interface UnitDefBase {
   req: Requirements;
   rf?: Record<string, number>;
   ds?: string;
+  /** Long explanation text (issue #63); without it the short `ds` stands in. */
+  lt?: string;
 }
 
 export interface ShipDef extends UnitDefBase {
@@ -278,6 +294,36 @@ export const RES: Record<string, ResearchDef> = {
     },
     ds: '+10 % Strukturpunkte pro Stufe.',
   },
+  // Issue #49. Not in version 1; the classic values (owner, 2026-11-12).
+  ion: {
+    n: 'Ionentechnik',
+    ab: 'Io',
+    cost: [1000, 300, 100],
+    req: { b: { lab: 4 }, r: { laser: 5, energy: 4 } },
+    ds: 'Beschleunigte Ionen – Basis für Ionenwaffen.',
+  },
+  plasma: {
+    n: 'Plasmatechnik',
+    ab: 'Pl',
+    cost: [2000, 4000, 1000],
+    req: { b: { lab: 4 }, r: { energy: 8, laser: 10, ion: 5 } },
+    ds: 'Gebändigtes Plasma – Basis für Plasmawaffen.',
+  },
+  graviton: {
+    n: 'Gravitonforschung',
+    ab: 'Gr',
+    cost: [0, 0, 0],
+    energy: { base: 300000, f: 3 },
+    req: { b: { lab: 12 } },
+    ds: 'Kostet keine Rohstoffe, braucht aber eine gewaltige Energieproduktion.',
+  },
+  ifn: {
+    n: 'Intergalaktisches Forschungsnetzwerk',
+    ab: 'IF',
+    cost: [240000, 400000, 160000],
+    req: { b: { lab: 10 }, r: { computer: 8, hyper: 8 } },
+    ds: 'Vernetzt pro Stufe ein weiteres Forschungslabor deiner Planeten.',
+  },
 };
 
 export const SHIPS: Record<string, ShipDef> = {
@@ -416,6 +462,36 @@ export const SHIPS: Record<string, ShipDef> = {
       },
     },
   },
+  // Issues #58 and #59. Not in version 1; the classic values (owner,
+  // 2026-11-12). Every ship has rapid fire 5 against the probe (battle.ts).
+  bc: {
+    n: 'Schlachtkreuzer',
+    ab: 'SK',
+    cost: [30000, 40000, 15000],
+    atk: 700,
+    sh: 400,
+    cargo: 750,
+    speed: 10000,
+    fuel: 250,
+    drive: 'hdrive',
+    req: { b: { yard: 8 }, r: { laser: 12, hyper: 5, hdrive: 5 } },
+    rf: { sc: 3, lc: 3, hf: 4, cr: 4, bs: 7 },
+    ds: 'Schnell und stark gegen Transporter, Kreuzer und Schlachtschiffe.',
+  },
+  dr: {
+    n: 'Zerstörer',
+    ab: 'ZE',
+    cost: [60000, 50000, 15000],
+    atk: 2000,
+    sh: 500,
+    cargo: 2000,
+    speed: 5000,
+    fuel: 1000,
+    drive: 'hdrive',
+    req: { b: { yard: 9 }, r: { hdrive: 6, hyper: 5 } },
+    rf: { ll: 10, bc: 2 },
+    ds: 'Schweres Kriegsschiff – stark gegen Lasergeschütze und Schlachtkreuzer.',
+  },
   probe: {
     n: 'Spionagesonde',
     ab: 'So',
@@ -435,6 +511,19 @@ export const SHIPS: Record<string, ShipDef> = {
         spy: 2,
       },
     },
+  },
+  sat: {
+    n: 'Solarsatellit',
+    ab: 'SA',
+    cost: [0, 2000, 500],
+    atk: 1,
+    sh: 1,
+    cargo: 0,
+    speed: 0,
+    fuel: 0,
+    drive: 'comb',
+    req: { b: { yard: 1 } },
+    ds: 'Liefert Energie, je wärmer der Planet, desto mehr. Kann nicht fliegen.',
   },
 };
 
@@ -517,8 +606,12 @@ export const MISSION = {
   colonize: 'Kolonisieren',
 } as const;
 
-/** Buildings whose production share the player sets on the resources page. */
-export const PRODUCERS = ['metal', 'crystal', 'deut', 'solar'] as const;
+/** Producers whose share the player sets on the resources page. */
+export const PRODUCERS = ['metal', 'crystal', 'deut', 'solar', 'sat'] as const;
 
 export const isShip = (key: string): boolean => Object.hasOwn(SHIPS, key);
 export const isDefense = (key: string): boolean => Object.hasOwn(DEF, key);
+
+/** Ships that can be sent; the Solarsatellit (speed 0) stays at its planet. */
+export const canFly = (key: string): boolean =>
+  isShip(key) && SHIPS[key]!.speed > 0;

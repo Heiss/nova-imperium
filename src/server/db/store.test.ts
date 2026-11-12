@@ -44,6 +44,26 @@ describe('store', () => {
     expect(ctx.store.users().map((x) => x.name)).toEqual(['Anna', 'Bert']);
   });
 
+  it('saves the display option of the explanation texts (issue #63)', () => {
+    const ctx = testCtx();
+    const u = addUser(ctx, 'Anna');
+    expect(ctx.store.user(u.id)!.explain).toBe('icon');
+    for (const mode of ['always', 'hidden', 'icon'] as const) {
+      ctx.store.saveUser({ ...u, explain: mode });
+      expect(ctx.store.user(u.id)!.explain).toBe(mode);
+    }
+  });
+
+  it('reads the default display option of a player stored without one', () => {
+    const ctx = testCtx();
+    ctx.store.db
+      .prepare(
+        `INSERT INTO users (id, name, salt, pw_hash, created) VALUES ('u1', 'Alt', 's', 'h', 1)`,
+      )
+      .run();
+    expect(ctx.store.user('u1')!.explain).toBe('icon');
+  });
+
   it('refuses a second user with the same name in other case', () => {
     const ctx = testCtx();
     addUser(ctx, 'Anna');

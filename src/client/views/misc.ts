@@ -1,5 +1,6 @@
 import type { RoundRules } from '../../shared/achievements.ts';
 import type { Universe } from '../../shared/types.ts';
+import { explainOptionsHTML } from '../logic/explain.ts';
 import { coords, esc, fmt } from '../logic/format.ts';
 import type { AdminState, GameState } from '../logic/types.ts';
 import { box, type Ui, type V } from './common.ts';
@@ -34,7 +35,7 @@ const passwordMinimum = (ui: Ui): string =>
     : `minlength="${ui.passwordMinLength}"`;
 
 export const help = (v: V): string => `<h2>Hilfe &amp; Optionen</h2>
- ${box('Optionen', `<div class="flex">Sonden pro Spionage aus der Galaxie: <input type="number" id="o_probes" min="1" value="${v.s.me.probes || 1}" aria-label="Sonden pro Spionage"> <button data-act="saveopt">Speichern</button></div>`)}
+ ${box('Optionen', `<div class="flex">Sonden pro Spionage aus der Galaxie: <input type="number" id="o_probes" min="1" value="${v.s.me.probes || 1}" aria-label="Sonden pro Spionage"></div><div class="flex mt"><label for="o_explain">Erklärungstexte:</label> <select id="o_explain">${explainOptionsHTML(v.s.me.explain)}</select></div><p><button data-act="saveopt">Speichern</button></p>`)}
  ${box('Darstellung', `<label class="switch"><input type="checkbox" id="o_anim" ${v.ui.animations ? 'checked' : ''}> Animationen</label><p class="dim">Planeten drehen sich, Wolken ziehen. Gilt für dieses Gerät; ist im System „Bewegung reduzieren“ eingestellt, bleibt alles ruhig.</p>`)}
  ${box(
    'Passwort ändern',

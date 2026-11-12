@@ -24,12 +24,15 @@ generated: { by: claude-code/web, at: 2026-11-10T21:00:00Z }
   the view stays. While the queue is used the button is disabled and the
   reason is shown („Bauschleife belegt“, „Werft arbeitet gerade“, „Das Labor
   forscht gerade“, „Es wird bereits geforscht“, „Labor wird ausgebaut“).
-* **[E]** Research is checked and paid on the home planet (D4). The buildings
-  that research needs (Forschungslabor) belong to the home planet, also when
-  a colony is shown; „Jetzt bauen“ builds them there (owner decision). For
-  this the state of a colony carries the home planet (`home`), and the
-  action `build` takes an optional `at` (an own planet) while the answer
-  keeps showing the selected planet.
+* **[E]** Research is checked and paid on the shown planet, and the
+  buildings it needs (Forschungslabor) are built there (issue #49, owner,
+  2026-11-12: research starts on any own planet with a lab). This replaces
+  D4 and the owner decision to build them on the home planet; the state no
+  longer carries `home`. The action `build` still takes an optional `at`
+  (an own planet), which the client no longer sends.
+* **[V]** A research need that lacks energy production
+  (Gravitonforschung) is not ready: „zu wenig Energie“; its cost line shows
+  the energy production with the energy icon.
 * **[E]** No confirmation dialog: cancelling refunds the full cost.
 * **[E]** The catalog has no circular requirements (test in
   `src/shared/requirements.test.ts`).

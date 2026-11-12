@@ -74,6 +74,20 @@ if [ -n "$open" ]; then gh pr ready --undo "$open"; fi
 git push --quiet --force origin "HEAD:refs/heads/$branch"
 other=$(taken_by)
 
+# A released hotfix that is not merged back yet: releasing main now would
+# drop its fix from stable (owner, 2026-11-12). The pull request stays a
+# draft until the hotfix branch is merged into main.
+unmerged=
+if [ "$base" = main ]; then
+  for ref in $(git for-each-ref --format='%(refname:short)' refs/remotes/origin/hotfix/); do
+    t=$(git describe --tags --abbrev=0 --match '[0-9]*.[0-9]*.[0-9]*' "$ref" 2> /dev/null) || continue
+    # Merged back: the tag is part of HEAD, or (squash merge) VERSION held it.
+    git merge-base --is-ancestor "$t" HEAD && continue
+    [ -n "$(git log -1 --format=%H -G "^$(printf '%s' "$t" | sed 's/[.]/[.]/g')\$" HEAD -- VERSION)" ] && continue
+    unmerged="$unmerged ${ref#origin/}"
+  done
+fi
+
 # Squash merges end their subject with the pull request number.
 pulls=$(git log --format='- %s' "$range" | grep -E '\(#[0-9]+\)$' || true)
 {
@@ -90,6 +104,9 @@ pulls=$(git log --format='- %s' "$range" | grep -E '\(#[0-9]+\)$' || true)
   printf -- '- [ ] CI Gate green: complete mutation run, image, Trivy, upgrade test, smoke test\n'
   printf -- '- [ ] The issues of this release are closed or moved to the next one\n\n'
   printf '_Rebuilt automatically after every push to `%s`; do not edit this branch._\n' "$base"
+  if [ -n "$unmerged" ]; then
+    printf '\n**Draft:** merge the released hotfix branch(es)%s back into `main` first; this release would drop their fixes from `stable`.\n' "$unmerged"
+  fi
 } > release-body.md
 
 if [ -n "$open" ]; then
@@ -103,5 +120,14 @@ fi
 if [ -n "$other" ]; then
   fail "$other holds $version too: the release pull request stays a draft; run this workflow again."
 fi
+if [ -n "$unmerged" ]; then
+  printf 'Released hotfix not in %s yet:%s. The release pull request stays a draft.\n' "$base" "$unmerged"
+  exit 0
+fi
 gh pr ready "$open"
+# A security hotfix releases itself when its CI is green (owner, 2026-11-12;
+# .github/workflows/security-hotfix.yml). Every other release is the owner's.
+case "$base" in
+  hotfix/sec-*) gh pr merge --auto --squash "$open" ;;
+esac
 printf 'Release pull request for %s is up to date.\n' "$version"

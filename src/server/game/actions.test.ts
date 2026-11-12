@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { addPlanet, addUser, testCtx } from '../test-helpers.ts';
+import { RES } from '../../shared/catalog.ts';
+import { lvlCost, prod, researchTime } from '../../shared/economy.ts';
+import { addPlanet, addUser, testCtx, type TestCtx } from '../test-helpers.ts';
 import type { AuditEntry } from '../audit.ts';
 import * as A from './actions.ts';
 
@@ -205,6 +207,189 @@ describe('research', () => {
   });
 });
 
+describe('research on any own planet with a lab (#49)', () => {
+  const rich = { m: 1e6, c: 1e6, d: 1e6 };
+  function twoPlanets(home = {}, colony = {}, user = {}) {
+    const s = setup({ res: rich, ...home }, user);
+    const col = addPlanet(s.ctx, s.u.id, { s: 2, res: rich, ...colony });
+    const c = () => s.ctx.store.planet(col.id)!;
+    return { ...s, col, c };
+  }
+  const time = (ctx: TestCtx, key: string, lab: number) =>
+    researchTime(lvlCost(RES[key]!, 1), { b: { lab } }, ctx.store.universe());
+  const labUpgrade = (end: number) => ({
+    key: 'lab',
+    lvl: 7,
+    start: 0,
+    end,
+    cost: [0, 0, 0] as const,
+  });
+
+  it('starts on a colony with its own lab and pays there', () => {
+    const { ctx, u, p, c, col, me } = twoPlanets({}, { b: { lab: 1 } });
+    expect(A.research(ctx, u, { key: 'energy', planet: col.id })).toBeNull();
+    expect(me().rq).toMatchObject({ key: 'energy', lvl: 1, planet: col.id });
+    expect(c().res).toEqual({ m: 1e6, c: 1e6 - 800, d: 1e6 - 400 });
+    expect(p().res).toEqual(rich);
+    ctx.clock.t = me().rq!.end;
+    expect(A.researchOf(ctx, me()).research.energy).toBe(1);
+  });
+
+  it('needs a lab on the planet where it starts', () => {
+    const { ctx, u, col } = twoPlanets({ b: { lab: 5 } });
+    expect(() => A.research(ctx, u, { key: 'energy', planet: col.id })).toThrow(
+      'Du brauchst ein Forschungslabor.',
+    );
+  });
+
+  it('checks the lab requirement against the starting planet', () => {
+    const { ctx, u, col, me } = twoPlanets(
+      { b: { lab: 7 } },
+      { b: { lab: 1 } },
+      { research: { hyper: 3 } },
+    );
+    expect(() => A.research(ctx, u, { key: 'hdrive', planet: col.id })).toThrow(
+      'Voraussetzungen fehlen.',
+    );
+    A.research(ctx, me(), { key: 'hdrive' });
+    expect(me().rq).toMatchObject({ key: 'hdrive' });
+  });
+
+  it('runs one research at a time over all planets', () => {
+    const { ctx, u, col, me } = twoPlanets(
+      { b: { lab: 1 } },
+      { b: { lab: 1 } },
+    );
+    A.research(ctx, u, { key: 'energy' });
+    expect(() =>
+      A.research(ctx, me(), { key: 'computer', planet: col.id }),
+    ).toThrow('Es wird bereits geforscht.');
+  });
+
+  it('refunds the planet where it started, from any planet', () => {
+    const { ctx, u, p, c, col, me } = twoPlanets({}, { b: { lab: 1 } });
+    A.research(ctx, u, { key: 'energy', planet: col.id });
+    A.cancelResearch(ctx, me(), { planet: p().id });
+    expect(me().rq).toBeNull();
+    expect(c().res).toEqual(rich);
+    expect(p().res).toEqual(rich);
+  });
+
+  it('refunds research started before #49 on the home planet', () => {
+    const { ctx, u, p, me } = twoPlanets({ b: { lab: 1 } }, { b: { lab: 1 } });
+    A.research(ctx, u, { key: 'energy' });
+    const { planet, ...old } = me().rq!;
+    expect(planet).toBe(p().id);
+    ctx.store.saveUser({ ...me(), rq: old });
+    ctx.store.savePlanet({ ...p(), res: { m: 0, c: 0, d: 0 } });
+    A.cancelResearch(ctx, me(), {});
+    expect(p().res).toEqual({ m: 0, c: 800, d: 400 });
+  });
+
+  it('keeps the lab lock: no start beside an upgrade, no upgrade beside research', () => {
+    const { ctx, u, col, me } = twoPlanets(
+      { b: { lab: 1 } },
+      { b: { lab: 1 }, bq: labUpgrade(9e9) },
+    );
+    expect(() => A.research(ctx, u, { key: 'energy', planet: col.id })).toThrow(
+      'Das Labor wird ausgebaut.',
+    );
+    A.research(ctx, u, { key: 'energy' });
+    ctx.store.savePlanet({ ...ctx.store.planet(col.id)!, bq: null });
+    expect(() => A.build(ctx, me(), { key: 'lab', planet: col.id })).toThrow(
+      'Das Labor forscht gerade.',
+    );
+  });
+
+  it('links labs with IFN: labs 10 and 6 research Schildtechnik like lab 16', () => {
+    const user = { research: { ifn: 1, energy: 3, hyper: 3 } };
+    const shield = twoPlanets({ b: { lab: 10 } }, { b: { lab: 6 } }, user);
+    A.research(shield.ctx, shield.u, { key: 'shield' });
+    const rq = shield.me().rq!;
+    expect(rq.end - rq.start).toBe(time(shield.ctx, 'shield', 16));
+    expect(time(shield.ctx, 'shield', 16)).toBeLessThan(
+      time(shield.ctx, 'shield', 10),
+    );
+    // Hyperraumantrieb needs lab 7: the lab 6 stays out.
+    const hdrive = twoPlanets({ b: { lab: 10 } }, { b: { lab: 6 } }, user);
+    A.research(hdrive.ctx, hdrive.u, { key: 'hdrive' });
+    const hq = hdrive.me().rq!;
+    expect(hq.end - hq.start).toBe(time(hdrive.ctx, 'hdrive', 10));
+  });
+
+  it('links no lab without IFN and none that is being upgraded', () => {
+    const alone = twoPlanets({ b: { lab: 10 } }, { b: { lab: 6 } });
+    A.research(alone.ctx, alone.u, { key: 'energy' });
+    const a = alone.me().rq!;
+    expect(a.end - a.start).toBe(time(alone.ctx, 'energy', 10));
+    const busy = twoPlanets(
+      { b: { lab: 10 } },
+      { b: { lab: 6 }, bq: labUpgrade(9e9) },
+      { research: { ifn: 1 } },
+    );
+    A.research(busy.ctx, busy.u, { key: 'energy' });
+    const b = busy.me().rq!;
+    expect(b.end - b.start).toBe(time(busy.ctx, 'energy', 10));
+  });
+
+  it('counts a lab whose upgrade has finished at its new level', () => {
+    const s = twoPlanets(
+      { b: { lab: 10 } },
+      { b: { lab: 6 }, bq: labUpgrade(1) },
+      { research: { ifn: 1 } },
+    );
+    A.research(s.ctx, s.u, { key: 'energy' });
+    const q = s.me().rq!;
+    expect(q.end - q.start).toBe(time(s.ctx, 'energy', 17));
+  });
+});
+
+describe('Gravitonforschung (#49)', () => {
+  it('starts only with 300,000 energy production on the starting planet', () => {
+    const { ctx, u, p, me } = setup({ b: { lab: 12, solar: 58 } });
+    const short = Math.ceil(300000 - prod(p(), ctx.store.universe()).eProd);
+    expect(() => A.research(ctx, u, { key: 'graviton' })).toThrow(
+      `Zu wenig Energie: Gravitonforschung braucht eine Energieproduktion von 300.000, es fehlen ${short.toLocaleString('de-DE')}.`,
+    );
+    expect(me().rq).toBeNull();
+    ctx.store.savePlanet({ ...p(), b: { lab: 12, solar: 59 } });
+    expect(A.research(ctx, me(), { key: 'graviton' })).toBeNull();
+    const rq = me().rq!;
+    expect(rq).toMatchObject({ key: 'graviton', lvl: 1, cost: [0, 0, 0] });
+    // The minimum research time, and neither resources nor energy are used.
+    expect(rq.end - rq.start).toBe(1000);
+    expect(p().res).toEqual({ m: 100000, c: 100000, d: 100000 });
+    expect(prod(p(), ctx.store.universe()).eProd).toBeGreaterThan(300000);
+  });
+
+  it('needs three times the energy for the next level', () => {
+    const { ctx, u } = setup(
+      { b: { lab: 12, solar: 59 } },
+      { research: { graviton: 1 } },
+    );
+    expect(() => A.research(ctx, u, { key: 'graviton' })).toThrow(
+      'braucht eine Energieproduktion von 900.000',
+    );
+  });
+
+  it('checks the energy of the starting planet, not of the home planet', () => {
+    const { ctx, u, me } = setup({ b: { lab: 12, solar: 59 } });
+    const col = addPlanet(ctx, u.id, { s: 2, b: { lab: 12 } });
+    expect(() =>
+      A.research(ctx, u, { key: 'graviton', planet: col.id }),
+    ).toThrow('Zu wenig Energie');
+    A.research(ctx, me(), { key: 'graviton' });
+    expect(me().rq).toMatchObject({ key: 'graviton' });
+  });
+
+  it('checks the requirements before the energy', () => {
+    const { ctx, u } = setup({ b: { lab: 11 } });
+    expect(() => A.research(ctx, u, { key: 'graviton' })).toThrow(
+      'Voraussetzungen fehlen.',
+    );
+  });
+});
+
 describe('shipyard', () => {
   it('orders as many units as can be paid', () => {
     const { ctx, u, p } = setup({
@@ -268,6 +453,8 @@ describe('planet settings', () => {
     A.pct(ctx, u, { key: 'solar', v: 999 });
     expect(p().pct.solar).toBe(100);
     expect(() => A.pct(ctx, u, { key: 'lab', v: 10 })).toThrow('Ungültig.');
+    A.pct(ctx, u, { key: 'sat', v: 30 });
+    expect(p().pct.sat).toBe(30);
   });
   it('rename the planet', () => {
     const { ctx, u, p } = setup();
@@ -283,6 +470,25 @@ describe('planet settings', () => {
     expect(me().probes).toBe(1);
     A.options(ctx, u, { probes: 5 });
     expect(me().probes).toBe(5);
+  });
+  it('save the display option of the explanation texts (issue #63)', () => {
+    const { ctx, u, me } = setup();
+    expect(me().explain).toBe('icon');
+    for (const explain of ['always', 'hidden', 'icon']) {
+      expect(A.options(ctx, u, { probes: 2, explain })).toBe('Gespeichert.');
+      expect(me()).toMatchObject({ probes: 2, explain });
+    }
+    A.options(ctx, u, { probes: 3, explain: 'hidden' });
+    A.options(ctx, u, { probes: 4 });
+    expect(me()).toMatchObject({ probes: 4, explain: 'hidden' });
+  });
+  it('refuse an unknown display option and change nothing', () => {
+    const { ctx, u, me } = setup({}, { probes: 3, explain: 'always' });
+    for (const explain of ['', 'never', 'ICON', null, 1, ['icon']])
+      expect(() => A.options(ctx, { ...u }, { probes: 9, explain })).toThrow(
+        'Ungültig.',
+      );
+    expect(me()).toMatchObject({ probes: 3, explain: 'always' });
   });
 });
 
