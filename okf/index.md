@@ -11,6 +11,7 @@ okf_version: "0.2"
 # Architecture
 
 * [System architecture](/architecture/system.md) - components, request flow, the game clock
+* [Design patterns](/architecture/patterns.md) - catalog components, economy events, missions, repositories, Svelte components, feature folders, migration order
 * [Docker operation](/architecture/docker.md) - services, volumes, secrets, hardening
 * [SQLite storage](/data/sqlite.md) - schema, migrations, transactions, backup
 
