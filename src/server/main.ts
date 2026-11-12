@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadConfig } from './config.ts';
+import { loadNews } from './news.ts';
 import { startServer } from './server.ts';
 
 const loaded = loadConfig(process.env, (f) => readFileSync(f, 'utf8'));
@@ -19,6 +20,7 @@ const root = path.resolve(
 const running = await startServer({
   cfg: config,
   publicDir: path.join(root, 'dist/public'),
+  news: loadNews(root),
 });
 console.log(
   running.ctx

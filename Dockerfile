@@ -19,7 +19,9 @@ RUN --mount=type=secret,id=ca,required=false \
 # The client bundle, then only the production dependencies stay.
 FROM deps AS build
 COPY . .
-RUN pnpm build && pnpm prune --prod --ignore-scripts
+# VERSION exists from the first release on; without it the server runs as
+# a development build and sends no update message (src/server/news.ts).
+RUN pnpm build && pnpm prune --prod --ignore-scripts && touch VERSION
 
 # The image that runs: no compilers, no pnpm, not root, no tests.
 FROM node:26-slim AS app
@@ -33,6 +35,8 @@ COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/src/shared ./src/shared
 COPY --from=build /app/src/server ./src/server
+# „Neuigkeiten“ for the players and the running version (issue #81).
+COPY --from=build /app/CHANGELOG.md /app/VERSION ./
 COPY docker/nova /usr/local/bin/nova
 RUN find src -name '*.test.ts' -delete \
  && rm -f src/server/test-helpers.ts \

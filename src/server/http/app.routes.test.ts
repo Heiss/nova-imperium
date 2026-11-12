@@ -538,6 +538,34 @@ describe('account audit and replies', () => {
   });
 });
 
+describe('news', () => {
+  it('serves „Neuigkeiten“ to logged-in players only, empty without a changelog', async () => {
+    const news = {
+      version: '26.11.1',
+      versions: [
+        {
+          version: '26.11.1',
+          date: '12.11.2026',
+          entries: [{ kind: 'neu' as const, text: 'Neuigkeiten.' }],
+        },
+      ],
+    };
+    const { call } = await player({ news });
+    expect((await call('GET', '/api/news')).status).toBe(401);
+    await call('POST', '/api/login', { name: 'Anna', password: 'secret1' });
+    expect((await call('GET', '/api/news')).json).toEqual(news);
+    const plain = await player();
+    await plain.call('POST', '/api/login', {
+      name: 'Anna',
+      password: 'secret1',
+    });
+    expect((await plain.call('GET', '/api/news')).json).toEqual({
+      version: null,
+      versions: [],
+    });
+  });
+});
+
 describe('game requests', () => {
   it('answers activity, reads the selected planet and names the error cases', async () => {
     const logs: string[] = [];

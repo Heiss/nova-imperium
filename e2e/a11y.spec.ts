@@ -29,6 +29,7 @@ const VIEWS = [
   'galaxy',
   'messages',
   'highscore',
+  'news',
   'help',
   'admin',
 ];

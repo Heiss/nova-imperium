@@ -3,6 +3,7 @@ import { countUnits } from '../../shared/flight.ts';
 import type { Coords, Levels, Resources } from '../../shared/types.ts';
 import { coords, dt, esc, fmt, resLine, techLine } from '../logic/format.ts';
 import { newestFirst } from '../logic/game.ts';
+import { updateMessageHTML } from '../logic/news.ts';
 import type { Report } from '../logic/types.ts';
 import type { V } from './common.ts';
 
@@ -70,6 +71,8 @@ function spyBody(r: Report): string {
 function reportBody(r: Report): string {
   if (r.type === 'battle') return battleBody(r);
   if (r.type === 'spy') return spyBody(r);
+  if (typeof r.news === 'string')
+    return updateMessageHTML(String(r.text ?? ''), '?view=news');
   return `<div>${esc(r.text)}</div>`;
 }
 
