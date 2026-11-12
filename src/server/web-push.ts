@@ -229,7 +229,7 @@ export async function deliverPush(ctx: Ctx, send: SendPush): Promise<void> {
 export function startPushDelivery(
   ctx: Ctx,
   subject: string,
-  onFailure: () => void,
+  onFailure: (error: unknown) => void,
 ): () => Promise<void> {
   const send = pushSender(ctx, subject);
   let pending: Promise<void> | null = null;

@@ -1,5 +1,6 @@
 import type { RoundRules } from '../../shared/achievements.ts';
 import type { Universe } from '../../shared/types.ts';
+import { reportFormHTML } from '../logic/error-report.ts';
 import { explainOptionsHTML } from '../logic/explain.ts';
 import { coords, esc, fmt } from '../logic/format.ts';
 import type { AdminState, GameState } from '../logic/types.ts';
@@ -48,6 +49,15 @@ export const help = (v: V): string => `<h2>Hilfe &amp; Optionen</h2>
  ${box('Passkeys', '<p>Auf unterstützten Geräten kannst du dich mit einem Passkey anmelden.</p><form id="passkeyform" class="flex"><label for="passkey-password">Passwort für neuen Passkey</label><input id="passkey-password" type="password" autocomplete="current-password" required><button type="submit">Passkey hinzufügen</button></form><p><button type="button" data-act="listPasskeys">Gespeicherte Passkeys anzeigen</button></p><div id="passkey-list"></div>')}
  ${box('App installieren', '<p>Öffne das Browsermenü und wähle „App installieren“ oder „Zum Startbildschirm hinzufügen“. Auf iPhone und iPad öffne Nova Imperium in Safari, tippe auf „Teilen“ und wähle „Zum Home-Bildschirm“ und „Als Web-App öffnen“. Zum Spielen brauchst du eine Internetverbindung.</p><button data-act="installApp" id="pwa-install" hidden>App installieren</button>')}
  ${box('Browser-Benachrichtigungen', '<p>Meldungen zu Aufträgen, Flotten und neuen Nachrichten auf diesem Gerät.</p><button data-act="pushEnable">Aktivieren</button> <button data-act="pushDisable">Deaktivieren</button>')}
+ ${box(
+   'Problem melden',
+   reportFormHTML('reportform', {
+     source: 'form',
+     page: v.ui.view,
+     version: v.ui.news?.version ?? '',
+     requestId: v.ui.lastRequestId ?? null,
+   }),
+ )}
  ${box('Account löschen', '<p>Dein Konto und deine Spielstände werden dauerhaft gelöscht. Leitest du eine Gilde, wird sie aufgelöst.</p><button type="button" class="red" data-act="deleteAccount">Account löschen</button>')}
  ${box('Regeln dieses Universums', rules(v.s.cfg))}`;
 
@@ -85,6 +95,7 @@ export const ADMIN_TABS = {
   events: 'Ereignisprotokoll',
   players: 'Spieler',
   orders: 'Aufträge',
+  errors: 'Fehler',
   invitations: 'Einladungen',
   universe: 'Universum',
   announce: 'Servernachricht',
@@ -109,6 +120,7 @@ export function admin(v: V): string {
       )
       .join('')}</div>
     <section id="admin-panel-diagnostics" role="tabpanel" hidden>${box('Diagnose und Protokoll', '<div id="admin-diagnostics"></div>')}</section>
+    <section id="admin-panel-errors" role="tabpanel" aria-labelledby="admin-tab-errors" hidden>${box('Fehler', '<div id="admin-errors"></div>')}</section>
     <section id="admin-panel-invitations" role="tabpanel" aria-labelledby="admin-tab-invitations" hidden>${box('Einladungen', invitations(v.ui))}</section>
     <section id="admin-panel-universe" role="tabpanel" aria-labelledby="admin-tab-universe" hidden>
       ${box('Universum', settingsForm(v.s, a))}

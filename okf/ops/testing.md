@@ -61,6 +61,11 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   server nor client, the client never the server and the reverse, production
   code no test helpers, server and shared code no dev dependencies, no
   circular imports at runtime).
+* **[E]** A gitleaks finding that is no secret (a sample value in a test)
+  is removed from the code; when it stays in the history, its fingerprint
+  goes into `.gitleaksignore` (`commit:file:rule:line`), named in the pull
+  request. First case: the sample token of `src/server/error-log.test.ts`
+  in commit f45319c (#126, owner, 2026-11-12).
 * **[E]** Security gates: gitleaks over the whole history, `pnpm audit --prod`
   (high blocks), CodeQL `security-extended` (severity ≥ 7.0 blocks), Trivy on
   the image (holes with a fix: in a release pull request, a pull request into

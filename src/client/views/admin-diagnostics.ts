@@ -44,7 +44,7 @@ interface Invitation {
 }
 
 const minutes = (ms: number): string => fmt(Math.round(ms / 60000));
-const table = (headers: string[], rows: string[][]): string =>
+export const table = (headers: string[], rows: string[][]): string =>
   rows.length
     ? `<div class="admin-table"><table class="mini"><thead><tr>${headers.map((h) => `<th scope="col">${h}</th>`).join('')}</tr></thead>
        <tbody>${rows.map((r) => `<tr>${r.map((c) => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`
@@ -176,7 +176,7 @@ export function mountAdminDiagnostics(
   };
 }
 
-function readFilter(filter: HTMLFormElement): Record<string, unknown> {
+export function readFilter(filter: HTMLFormElement): Record<string, unknown> {
   const fields = new FormData(filter);
   const date = (name: string, end = false): number => {
     const value = fields.get(name);
@@ -202,17 +202,34 @@ interface EventPage {
   before: number;
 }
 
-function eventPager(data: EventPage): string {
+interface PagerWords {
+  /** The data attribute the page buttons carry, e.g. `data-diagnostics`. */
+  attribute: string;
+  group: string;
+  items: string;
+}
+
+const EVENT_PAGES: PagerWords = {
+  attribute: 'data-diagnostics',
+  group: 'Protokollseiten',
+  items: 'Ereignisse',
+};
+
+/** First, previous, next and last page of an admin list. */
+export function pager(
+  data: Pick<EventPage, 'page' | 'pages' | 'count' | 'limit'>,
+  words: PagerWords = EVENT_PAGES,
+): string {
   const { page, pages, count, limit } = data;
   const button = (label: string, icon: string, to: number, disabled: boolean) =>
-    `<button type="button" data-diagnostics="page" data-page="${to}" aria-label="${label}" title="${label}" ${disabled ? 'disabled' : ''}>${icon}</button>`;
-  return `<div class="flex mt" aria-label="Protokollseiten" role="group">
+    `<button type="button" ${words.attribute}="page" data-page="${to}" aria-label="${label}" title="${label}" ${disabled ? 'disabled' : ''}>${icon}</button>`;
+  return `<div class="flex mt" aria-label="${words.group}" role="group">
     ${button('Erste Seite', '«', 1, page === 1)}
     ${button('Vorherige Seite', '‹', page - 1, page === 1)}
-    <span role="status">Seite ${page} von ${pages} · ${count} Ereignisse</span>
+    <span role="status">Seite ${page} von ${pages} · ${count} ${words.items}</span>
     ${button('Nächste Seite', '›', page + 1, page === pages)}
     ${button('Letzte Seite', '»', pages, page === pages)}
-  </div><p class="dim">${page === 1 ? `Die letzten ${Math.min(count, limit)} Ereignisse` : 'Ältere Ereignisse'}</p>`;
+  </div><p class="dim">${page === 1 ? `Die letzten ${Math.min(count, limit)} ${words.items}` : `Ältere ${words.items}`}</p>`;
 }
 
 function eventRows(
@@ -261,7 +278,7 @@ function eventLoader(
     show(
       'events',
       '<h3>Ereignisprotokoll</h3>' +
-        eventPager(data) +
+        pager(data) +
         eventRows(data.events, identify),
     );
   };
