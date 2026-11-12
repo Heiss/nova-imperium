@@ -99,7 +99,8 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 
 * **[E]** When `main` holds no unreleased work, a hotfix is a normal release
   pull request. Otherwise: the owner creates `hotfix/<name>` from the last
-  release tag (`git push origin <tag>:refs/heads/hotfix/<name>`), the fix
+  release tag (`git push origin '<tag>^{commit}:refs/heads/hotfix/<name>'`; release
+  tags are annotated, a branch must point at the commit), the fix
   goes into it through a pull request with its fragment, and the workflow
   builds a release pull request into `hotfix/<name>` the same way; its merge
   tags the next version. Then `hotfix/<name>` is merged back into `main`,
@@ -112,9 +113,86 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 * **[E]** Renovate opens pull requests for dependencies and images, waits
   3 days after a release (`minimumReleaseAge`) and merges patch updates
   automatically once the CI is green.
+  Its security pull requests (from GitHub's Dependabot alerts) wait for
+  nothing: `vulnerabilityAlerts` sets `minimumReleaseAge` to null for every
+  severity by default, checked in Renovate's documentation (owner,
+  2026-11-12: „so lassen, alle sofort“). Renovate has no matcher for the
+  severity; Dependabot's own security updates are off, so no hole gets two
+  pull requests.
+
 * **[E]** Every push to `main` runs the full suite with an incremental mutation
   run (owner, 2026-11-11); the release pull request and the nightly run in
   `.github/workflows/mutation.yml` test every mutant.
+
+## Security hotfix (owner, 2026-11-12)
+
+* **[E]** A hole rated High or Critical in the published release goes to
+  `stable` at once, as a hotfix of the last release tag without the
+  unreleased work of `main`: „lieber ein kaputtes Deployment für eine
+  kritische Sicherheitslücke als ein gehacktes System“.
+* **[E]** Source: the image of the newest release tag (what `stable` names),
+  scanned by Trivy every hour and after every release
+  (`.github/workflows/security-hotfix.yml`). Dependabot alerts only look at
+  `main`; a hole fixed there is still in `stable`. Only holes with a fix
+  count. npm packages are rated by GitHub (GHSA, `VendorSeverity.ghsa`);
+  without a GitHub rating, Trivy's own rating decides. Everything else (the
+  base image) is rated by Trivy.
+* **[E]** The fix is applied again on the release tag, not cherry-picked
+  (`scripts/security-hotfix.ts`): every older copy of a package gets a pnpm
+  override `<name>@<<fixed>`, a dependency of `package.json` also gets the
+  fixed version; the job then checks that `pnpm-lock.yaml` holds no version
+  below a fix. A hole in the base image pins the newest digest of
+  `node:26-slim`. The fragment says „Sicherheitsupdate“ without package
+  names.
+* **[E]** The release App creates `hotfix/sec-<id>` (bypass in the ruleset
+  „hotfix-anlegen“, creation only) and the pull request `sec-fix/<id>` into
+  it; that pull request and the release pull request of `hotfix/sec-*`
+  merge themselves when the CI Gate is green (`gh pr merge --auto`). The
+  owner merges `hotfix/sec-*` back into `main`; `tag.yml` opens that pull
+  request. While a released hotfix is not merged back, the release pull
+  request of `main` stays a draft (`scripts/release-pr.sh`): its release
+  would drop the fix from `stable`. After every hotfix release, `tag.yml`
+  rebuilds the release pull request of `main`, so its version is newer than
+  the hotfix and its release becomes `stable` again.
+* **[E]** The id is a hash of the fixed packages and the base image holes, so
+  the same plan never starts a second hotfix; a scan with a different set
+  of holes has another id and starts a new one. One hotfix at a time: a new
+  one waits while another `hotfix/sec-*` is on its way (its fix commit or
+  an open fix pull request exists and no release tag holds it), because a
+  second hotfix from the same tag would release without the first fix.
+* **[E]** When a released hotfix comes back with the same id (the scan of the
+  newest release still finds the same plan), an issue says so and nothing
+  is retried. A branch the job created without a fix pull request is
+  finished by the next scan while it still starts at the newest release and
+  no other hotfix is on its way. When it no longer starts at the newest
+  release, an issue asks the owner to delete it.
+* **[E]** The job does not scan the new image before it starts. A hole in
+  the base image always changes the `Dockerfile` (`ARG OS_UPDATES=sec-<id>`,
+  and the newest digest when there is one), so its hotfix rebuilds the image
+  with Debian's current security updates. If the hole is still there, for
+  example because Debian has no fix for that architecture yet, the release
+  goes out anyway and the next scan reports the same plan id as not closed;
+  nothing is retried automatically. The job fails only when `package.json`,
+  `pnpm-lock.yaml` and `Dockerfile` stay as in the release.
+* **[E]** A release older than the release pull request (26.11.18 and
+  older, no `scripts/release-pr.sh`) gets no automatic hotfix: its hotfix
+  branch could not release, so neither a new nor a resumed hotfix starts.
+  The issue says to release `main` instead (an issue opened earlier gets
+  this as a comment, once); the
+  first scan on 2026-11-12 found two High holes in `zlib1g` of the base
+  image of 26.11.18 (issue #97).
+* **[E]** Debian's security updates go into the image that runs (owner,
+  2026-11-12): `apt-get full-upgrade` after `FROM … AS app`, which fails when an
+  update stays held back,, so a Debian fix
+  reaches the image before the official Node image is rebuilt (2× High in
+  `zlib1g` of 26.11.19 had a Debian fix but no new `node:26-slim`). Every
+  release build passes `OS_UPDATES` (run id and attempt), so the layer cache never
+  keeps old packages; a hotfix of the base image sets the default
+  `ARG OS_UPDATES=sec-<id>` (and adds the block to a release from before it),
+  so the hotfix always changes the `Dockerfile` and fetches the updates again.
+  Builds are no longer bit-identical for the same commit.
+* **[E]** The base image is pinned to its digest in the `Dockerfile`;
+  Renovate opens a pull request for a new digest.
 
 # Tasks of the owner (one-time)
 
@@ -142,6 +220,9 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   (owner, 2026-11-12). `release-pr.yml` uses it after every push to `main`,
   because it rebuilds the release pull request each time.
 * Install the Renovate app for the repository.
+* Security hotfix (2026-11-12): Dependabot alerts on (done), Dependabot
+  security updates off, „Allow auto-merge“ on (Settings → General), and the
+  release App as bypass in the ruleset „hotfix-anlegen“.
 * After the first release: set the GHCR package to public, or log in with a
   token that has `read:packages` on the server.
 

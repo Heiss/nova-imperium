@@ -152,6 +152,14 @@ describe('points and state', () => {
     expect(isProtected('u_Anna', 'x', {})).toBe(false);
   });
 
+  it('count Schlachtkreuzer and Zerstörer by their cost (#58, #59)', () => {
+    const ctx = testCtx();
+    addUser(ctx, 'Anna');
+    addPlanet(ctx, 'u_Anna', { ships: { bc: 2, dr: 1 } });
+    // bc 2 × 85,000 + dr 125,000 = 295,000
+    expect(pointsMap(ctx)).toEqual({ u_Anna: 295 });
+  });
+
   it('shows own fleets fully and incoming foreign ones partly', () => {
     const ctx = testCtx();
     const a = addUser(ctx, 'Anna');
@@ -225,6 +233,7 @@ describe('points and state', () => {
       research: {},
       rq: null,
       probes: 1,
+      explain: 'icon',
       readAt: 0,
       admin: true,
     });

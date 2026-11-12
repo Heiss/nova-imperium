@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Mockup – (?)-Symbol</title>
+    <link rel="stylesheet" href="/style.css" />
+    <style>
+      .mock {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 16px;
+      }
+      .mock .cap {
+        color: var(--dim);
+        margin: 0 0 8px;
+      }
+      .ex {
+        border-left: 2px solid var(--line);
+        margin: 8px 0 2px;
+        padding: 2px 0 2px 10px;
+        line-height: 1.45;
+      }
+      .ex p {
+        margin: 4px 0;
+      }
+      .ex .lore {
+        font-style: italic;
+        color: var(--dim);
+      }
+      .ex b {
+        color: var(--gold-hi);
+      }
+      button.exq {
+        min-width: 0;
+        width: 20px;
+        height: 20px;
+        padding: 0;
+        border-radius: 50%;
+        font-size: 12px;
+        line-height: 18px;
+        margin-left: 6px;
+        vertical-align: 2px;
+      }
+      button.exq[aria-expanded='true'] {
+        outline: 2px solid var(--gold-hi);
+        outline-offset: 1px;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="mock">
+      <p class="cap">Mockup (Beispieldaten, Texte [V]) – Modus „(?)-Symbol“</p>
+      <h2>Gebäude · Forschung · Schiffswerft (Auszug)</h2>
+      <div class="box">
+        <div class="item">
+          <div class="icon ic-b">
+            <img src="/icons/buildings/metal_mine.svg" alt="Metallmine" />
+          </div>
+          <div>
+            <div class="nm">
+              Metallmine <span class="lv">(Stufe 5)</span>
+              <button
+                class="exq"
+                aria-expanded="false"
+                aria-controls="ex_metal_icon"
+                aria-label="Erklärung zu Metallmine"
+              >
+                ?
+              </button>
+            </div>
+            <div class="ds">Fördert Metall, den wichtigsten Grundrohstoff.</div>
+            <div class="cost">
+              <span
+                ><img
+                  class="ri"
+                  src="/icons/resources/small/metal.svg"
+                  alt="Metall"
+                  width="20"
+                  height="20"
+                /><b class="">455</b></span
+              ><span
+                ><img
+                  class="ri"
+                  src="/icons/resources/small/crystal.svg"
+                  alt="Kristall"
+                  width="20"
+                  height="20"
+                /><b class="">113</b></span
+              >
+            </div>
+            <div class="dim">Energie auf Stufe 6: 25,77 mehr Verbrauch</div>
+            <div class="dim">Bauzeit: 4m 33s</div>
+            <div class="ex" id="ex_metal_icon" hidden>
+              <p class="lore">
+                Tief unter der Kruste deiner Welt fressen sich Bohrköpfe durch
+                Erzadern, die älter sind als die Sterne über dir. Solange die
+                Minen dröhnen, steht keine Werft still.
+              </p>
+              <p>
+                <b>Was es macht:</b> Metall ist der Grundstoff für fast alles:
+                Gebäude, Schiffe und Verteidigung. Die Mine fördert rund um die
+                Uhr, auch wenn du nicht eingeloggt bist – bis der Metallspeicher
+                voll ist.
+              </p>
+              <p>
+                <b>Mit jeder Stufe:</b> Die Förderung wächst schneller als die
+                Stufe (30 · Stufe · 1,1<sup>Stufe</sup> pro Stunde, plus 20
+                Grundförderung), ebenso der Energieverbrauch (10 · Stufe ·
+                1,1<sup>Stufe</sup>). Reicht die Energie nicht, fördern alle
+                Minen anteilig weniger. Stufe 6 bringt hier +76 Metall pro
+                Stunde.
+              </p>
+            </div>
+          </div>
+          <div class="act"><button>Ausbauen auf Stufe 6</button></div>
+        </div>
+        <div class="item">
+          <div class="icon ic-b">
+            <img
+              src="/icons/buildings/research_lab.svg"
+              alt="Forschungslabor"
+            />
+          </div>
+          <div>
+            <div class="nm">
+              Forschungslabor <span class="lv">(Stufe 3)</span>
+              <button
+                class="exq"
+                aria-expanded="false"
+                aria-controls="ex_lab_icon"
+                aria-label="Erklärung zu Forschungslabor"
+              >
+                ?
+              </button>
+            </div>
+            <div class="ds">Ermöglicht und beschleunigt Forschung.</div>
+            <div class="cost">
+              <span
+                ><img
+                  class="ri"
+                  src="/icons/resources/small/metal.svg"
+                  alt="Metall"
+                  width="20"
+                  height="20"
+                /><b class="">1.600</b></span
+              ><span
+                ><img
+                  class="ri"
+                  src="/icons/resources/small/crystal.svg"
+                  alt="Kristall"
+                  width="20"
+                  height="20"
+                /><b class="bad">3.200</b></span
+              ><span
+                ><img
+                  class="ri"
+                  src="/icons/resources/small/deuterium.svg"
+                  alt="Deuterium"
+                  width="20"
+                  height="20"
+                /><b class="bad">1.600</b></span
+              >
+            </div>
+            <div class="dim">Bauzeit: 38m 24s</div>
+            <div class="ex" id="ex_lab_icon" hidden>
+              <p class="lore">
+                Hinter Panzerglas und Kühlschächten arbeiten deine klügsten
+                Köpfe an Dingen, für die es noch keine Worte gibt.
+              </p>
+              <p>
+                <b>Was es macht:</b> Ohne Labor keine Forschung. Geforscht wird
+                nur auf dem Heimatplaneten, die Ergebnisse gelten für dein
+                ganzes Imperium. Während geforscht wird, kann das Labor nicht
+                ausgebaut werden – und umgekehrt.
+              </p>
+              <p>
+                <b>Mit jeder Stufe:</b> Forschung wird schneller: Zeit = (Metall
+                + Kristall) ÷ (1.000 · (1 + Laborstufe)) Stunden.
+                Spionagetechnik Stufe 2 dauert hier 36m 00s, mit Stufe 4 nur 28m
+                48s. Höhere Stufen schalten Forschung frei: Hyperraumtechnik
+                (7), Hyperraumantrieb (7), Waffentechnik (4), Schildtechnik (6).
+              </p>
+            </div>
+          </div>
+          <div class="act"><button disabled>Ausbauen auf Stufe 4</button></div>
+        </div>
+        <div class="item">
+          <div class="icon ic-r">
+            <img
+              src="/icons/research/espionage_technology.svg"
+              alt="Spionagetechnik"
+            />
+          </div>
+          <div>
+            <div class="nm">
+              Spionagetechnik <span class="lv">(Stufe 1)</span>
+              <button
+                class="exq"
+                aria-expanded="false"
+                aria-controls="ex_spy_icon"
+                aria-label="Erklärung zu Spionagetechnik"
+              >
+                ?
+              </button>
+            </div>
+            <div class="ds">Bessere Spionageberichte, bessere Abwehr.</div>
+            <div class="cost">
+              <span
+                ><img
+                  class="ri"
+                  src="/icons/resources/small/metal.svg"
+                  alt="Metall"
+                  width="20"
+                  height="20"
+                /><b class="">400</b></span
+              ><span
+                ><img
+                  class="ri"
+                  src="/icons/resources/small/crystal.svg"
+                  alt="Kristall"
+                  width="20"
+                  height="20"
+                /><b class="">2.000</b></span
+              ><span
+                ><img
+                  class="ri"
+                  src="/icons/resources/small/deuterium.svg"
+                  alt="Deuterium"
+                  width="20"
+                  height="20"
+                /><b class="">400</b></span
+              >
+            </div>
+            <div class="dim">Forschungszeit: 36m 00s</div>
+            <div class="ex" id="ex_spy_icon" hidden>
+              <p class="lore">
+                Wer mehr weiß, lebt länger. Deine Agenten verfeinern Tarnfelder,
+                Sensoren und verschlüsselte Funkstrecken.
+              </p>
+              <p>
+                <b>Was es macht:</b> Verbessert deine Spionageberichte und
+                erschwert es anderen, dich auszuspähen.
+              </p>
+              <p>
+                <b>Mit jeder Stufe:</b> Zählt der Unterschied Δ zu deinem Ziel:
+                Er geht quadratisch in den Spionagewert ein (Sonden + Δ², bei
+                Rückstand Sonden − Δ²). Jede Stufe Vorsprung halbiert die
+                Chance, dass deine Sonden abgeschossen werden. Stufe 2 schaltet
+                die Spionagesonde frei.
+              </p>
+            </div>
+          </div>
+          <div class="act"><button>Forschen (Stufe 2)</button></div>
+        </div>
+        <div class="item">
+          <div class="icon ic-s">
+            <img src="/icons/ships/espionage_probe.svg" alt="Spionagesonde" />
+          </div>
+          <div>
+            <div class="nm">
+              Spionagesonde <span class="lv">(vorhanden: 0)</span>
+              <button
+                class="exq"
+                aria-expanded="true"
+                aria-controls="ex_probe_icon"
+                aria-label="Erklärung zu Spionagesonde"
+              >
+                ?
+              </button>
+            </div>
+            <div class="ds">Späht fremde Planeten aus.</div>
+            <div class="cost">
+              <span
+                ><img
+                  class="ri"
+                  src="/icons/resources/small/crystal.svg"
+                  alt="Kristall"
+                  width="20"
+                  height="20"
+                /><b class="">1.000</b></span
+              >
+            </div>
+            <div class="dim">
+              Angriff 0 · Schild 0 · Struktur 1.000 · Ladung 0 · Tempo
+              100.000.000
+            </div>
+            <div class="dim">Bauzeit: 8m 00s je Einheit</div>
+            <div class="req">
+              Benötigt: Raumschiffwerft (Stufe 3), Spionagetechnik (Stufe 2)
+            </div>
+            <div class="ex" id="ex_probe_icon">
+              <p class="lore">
+                Kaum größer als ein Rettungsboot und schneller als alles andere
+                im Universum: ein Auge, das kurz hinsieht und wieder
+                verschwindet.
+              </p>
+              <p>
+                <b>Was es macht:</b> Fliegt zu einem fremden Planeten und
+                schickt dir einen Spionagebericht. Sie kämpft nicht und trägt
+                keine Ladung. Rohstoffe zeigt jeder Bericht.
+              </p>
+              <p>
+                <b>Mehr Sonden:</b> holen mehr Informationen. Spionagewert =
+                Anzahl Sonden ± Δ² (Δ = Unterschied der Spionagetechnik): ab 2
+                siehst du die Flotte, ab 3 die Verteidigung, ab 5 die Gebäude,
+                ab 7 die Forschung. Die Abwehrchance hängt von der Flotte am
+                Ziel und von Δ ab, nicht von der Zahl deiner Sonden; wird die
+                Abwehr ausgelöst, ist die ganze Sondenflotte verloren. Wie viele
+                Sonden die Galaxie schickt, stellst du unter „Hilfe &amp;
+                Optionen“ ein.
+              </p>
+            </div>
+          </div>
+          <div class="act"><span class="req">Voraussetzungen fehlen</span></div>
+        </div>
+      </div>
+    </main>
+  </body>
+</html>

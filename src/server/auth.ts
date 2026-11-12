@@ -6,6 +6,7 @@ import {
   scryptSync,
   timingSafeEqual,
 } from 'node:crypto';
+import { DEFAULT_EXPLAIN } from '../shared/explain.ts';
 import { type Config, MAX_PASSWORD, NUMBERS } from './config.ts';
 import type { Invitation, User } from './db/store.ts';
 import { type Ctx, fail, int, str } from './game/context.ts';
@@ -141,6 +142,7 @@ export function register(
     ...passwordFields(pw),
     admin: false,
     probes: 1,
+    explain: DEFAULT_EXPLAIN,
     readAt: ctx.now(),
     created: ctx.now(),
     research: {},

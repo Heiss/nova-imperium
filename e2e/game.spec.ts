@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import {
   cli,
   inviteLink,
@@ -9,6 +9,28 @@ import {
   uniqueName,
   watch,
 } from './helpers.ts';
+
+/** Seconds of a duration like "1h 02m 03s". */
+const seconds = (text: string): number =>
+  [...text.matchAll(/(\d+)([Thms])/g)].reduce(
+    (sum, [, n, unit]) =>
+      sum + Number(n) * { T: 86400, h: 3600, m: 60, s: 1 }[unit!]!,
+    0,
+  );
+
+/** Selects an own planet by its name in the header. */
+async function choosePlanet(page: Page, name: string): Promise<void> {
+  const selector = page.getByLabel('Aktiver Planet');
+  const option = selector
+    .locator('option')
+    .filter({ hasText: new RegExp(`^${name} \\[`) });
+  await selector.selectOption((await option.getAttribute('value'))!);
+  await expect(page.locator('#pinfo b').first()).toHaveText(name);
+}
+
+/** The amount of a resource in the bar, as shown. */
+const stock = (page: Page, label: string) =>
+  page.locator('#resbar .res').filter({ hasText: label }).locator('.v');
 
 test('login stays near the header @phone', async ({ page }) => {
   await page.goto('/');
@@ -530,7 +552,7 @@ test.describe('playing', () => {
     expect(w.problems).toEqual([]);
   });
 
-  test('from a colony the lab is built on the home planet (#64)', async ({
+  test('from a colony the lab is built on the colony itself (#49)', async ({
     page,
   }) => {
     const w = watch(page);
@@ -545,12 +567,7 @@ test.describe('playing', () => {
       },
     });
     await page.reload();
-    const selector = page.getByLabel('Aktiver Planet');
-    const colony = selector
-      .locator('option')
-      .filter({ hasText: /^Kolonie \[/ });
-    await selector.selectOption((await colony.getAttribute('value'))!);
-    await expect(page.locator('#pinfo b').first()).toHaveText('Kolonie');
+    await choosePlanet(page, 'Kolonie');
     await nav(page, 'shipyard');
     const fighter = page
       .locator('.item')
@@ -558,20 +575,171 @@ test.describe('playing', () => {
     const lab = fighter.locator('.need').filter({
       has: page.locator('.need-nm', { hasText: /^Forschungslabor$/ }),
     });
-    await expect(lab).toContainText('auf dem Heimatplaneten');
     await expect(lab).toHaveClass(/ready/);
+    await expect(lab).not.toContainText('Heimatplanet');
     await lab.getByRole('button', { name: 'Jetzt bauen' }).click();
     await expect(lab).toContainText('Bauschleife belegt');
     await expect(page.locator('#pinfo b').first()).toHaveText('Kolonie');
     await expect(page).toHaveURL(/\?view=shipyard$/);
-    const home = selector
-      .locator('option')
-      .filter({ hasText: /^Heimatplanet \[/ });
-    await selector.selectOption((await home.getAttribute('value'))!);
     await nav(page, 'buildings');
     await expect(page.locator('.item.running')).toContainText(
       'Forschungslabor',
     );
+    await choosePlanet(page, 'Heimatplanet');
+    await expect(page.locator('#pinfo b').first()).toHaveText('Heimatplanet');
+    await expect(page.locator('.item.running')).toHaveCount(0);
+    expect(w.problems).toEqual([]);
+  });
+
+  test('research starts on a colony with its own lab and is paid there (#49)', async ({
+    page,
+  }) => {
+    const w = watch(page);
+    const name = uniqueName('Forscher');
+    await register(page, name);
+    seed({
+      name,
+      res: { m: 50000, c: 50000, d: 50000 },
+      colony: { b: { lab: 1 }, res: { m: 9000, c: 9000, d: 9000 } },
+    });
+    await page.goto('/?view=research');
+    // The home planet has no lab: the research view offers the colony.
+    await expect(page.locator('.notice')).toContainText(
+      'Auf diesem Planeten gibt es kein Forschungslabor.',
+    );
+    await page.getByRole('button', { name: 'Zu Kolonie' }).click();
+    await expect(page.locator('#pinfo b').first()).toHaveText('Kolonie');
+    await expect(page.locator('h2')).toHaveText('Forschung auf Kolonie');
+    const energy = page
+      .locator('.item')
+      .filter({ has: page.locator('.nm', { hasText: /^\s*Energietechnik/ }) });
+    await energy.locator('[data-act=research]').click();
+    await expect(energy.locator('.act')).toContainText('auf Kolonie');
+    // Energietechnik costs 800 crystal and 400 deuterium, paid on the colony.
+    await expect(stock(page, 'Kristall')).toHaveText(/^8\.2\d\d$/);
+    await expect(stock(page, 'Deuterium')).toHaveText(/^8\.6\d\d$/);
+    await choosePlanet(page, 'Heimatplanet');
+    await expect(stock(page, 'Kristall')).toHaveText(/^50\.\d{3}$/);
+    await nav(page, 'overview');
+    await expect(page.getByText('Energietechnik (Stufe 1)')).toBeVisible();
+    await choosePlanet(page, 'Kolonie');
+    await nav(page, 'research');
+    await energy.locator('[data-act=cancelResearch]').click();
+    await expect(stock(page, 'Kristall')).toHaveText(/^9\.0\d\d$/);
+    expect(w.problems).toEqual([]);
+  });
+
+  test('the research network (IFN) links a colony lab and shortens research (#49)', async ({
+    page,
+  }) => {
+    const w = watch(page);
+    const name = uniqueName('Netz');
+    await register(page, name);
+    const research = { energy: 3, hyper: 3 };
+    seed({
+      name,
+      b: { lab: 10 },
+      research,
+      res: { m: 1e6, c: 1e6, d: 1e6 },
+      colony: { b: { lab: 6 } },
+    });
+    const item = (nm: RegExp) =>
+      page
+        .locator('.item')
+        .filter({ has: page.locator('.nm', { hasText: nm }) });
+    const time = async (nm: RegExp): Promise<number> =>
+      seconds(
+        (await item(nm)
+          .locator('.dim', { hasText: 'Forschungszeit' })
+          .textContent())!,
+      );
+    await page.goto('/?view=research');
+    await expect(
+      item(/^\s*Intergalaktisches Forschungsnetzwerk/).getByRole('img', {
+        name: 'Intergalaktisches Forschungsnetzwerk',
+      }),
+    ).toHaveAttribute(
+      'src',
+      '/icons/research/intergalactic_research_network.svg',
+    );
+    const shield = await time(/^\s*Schildtechnik/);
+    const hdrive = await time(/^\s*Hyperraumantrieb/);
+    seed({ name, research: { ...research, ifn: 1 } });
+    await page.reload();
+    await expect(page.locator('h2 + .dim')).toContainText(
+      'Intergalaktisches Forschungsnetzwerk: bis zu 1 weiteres Labor',
+    );
+    // Labs 10 and 6 research Schildtechnik like lab 16: 11/17 of the time.
+    await expect(
+      item(/^\s*Schildtechnik/).locator('.dim', { hasText: 'Forschungszeit' }),
+    ).toContainText('Labore zusammen Stufe 16');
+    expect(
+      Math.abs((await time(/^\s*Schildtechnik/)) - (shield * 11) / 17),
+    ).toBeLessThanOrEqual(1);
+    // Hyperraumantrieb needs lab 7: the colony lab 6 does not join.
+    await expect(
+      item(/^\s*Hyperraumantrieb/).locator('.dim', {
+        hasText: 'Forschungszeit',
+      }),
+    ).not.toContainText('Labore zusammen');
+    expect(await time(/^\s*Hyperraumantrieb/)).toBe(hdrive);
+    const before = Date.now();
+    await item(/^\s*Schildtechnik/)
+      .locator('[data-act=research]')
+      .click();
+    const left = seconds(
+      (await item(/^\s*Schildtechnik/)
+        .locator('.cd')
+        .textContent())!,
+    );
+    expect(Math.abs(left - (shield * 11) / 17)).toBeLessThanOrEqual(
+      2 + (Date.now() - before) / 1000,
+    );
+    expect(w.problems).toEqual([]);
+  });
+
+  test('Gravitonforschung needs 300,000 energy production (#49)', async ({
+    page,
+  }) => {
+    const w = watch(page);
+    const name = uniqueName('Graviton');
+    await register(page, name);
+    // Solarkraftwerk 58 produces about 291,900 energy, 59 about 326,600.
+    seed({ name, b: { lab: 12, solar: 58 } });
+    await page.goto('/?view=research');
+    const graviton = page.locator('.item').filter({
+      has: page.locator('.nm', { hasText: /^\s*Gravitonforschung/ }),
+    });
+    await expect(
+      graviton.getByRole('img', { name: 'Energieproduktion' }),
+    ).toBeVisible();
+    await expect(graviton.locator('.cost b')).toHaveText('300.000');
+    await expect(graviton.locator('.cost b')).toHaveClass('bad');
+    await expect(graviton.locator('.act')).toContainText(
+      /Zu wenig Energie: es fehlen [\d.]+/,
+    );
+    await expect(graviton.locator('[data-act=research]')).toHaveCount(0);
+    const refused = await page.evaluate(async () => {
+      const r = await fetch('/api/action', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ type: 'research', key: 'graviton' }),
+      });
+      return ((await r.json()) as { error?: string }).error;
+    });
+    expect(refused).toMatch(
+      /^Zu wenig Energie: Gravitonforschung braucht eine Energieproduktion von 300\.000, es fehlen [\d.]+\.$/,
+    );
+    seed({ name, b: { lab: 12, solar: 59 } });
+    await page.reload();
+    await expect(graviton.locator('.cost b')).not.toHaveClass('bad');
+    await expect(
+      graviton.locator('.dim', { hasText: 'Forschungszeit' }),
+    ).toHaveText('Forschungszeit: 01s');
+    await graviton.locator('[data-act=research]').click();
+    await expect(graviton.locator('.lv')).toHaveText('(Stufe 1)', {
+      timeout: 15000,
+    });
     expect(w.problems).toEqual([]);
   });
 
@@ -668,6 +836,40 @@ test.describe('playing', () => {
     await page.goto('/?view=defense');
     await expect(page.locator('.notice.warn')).toContainText('Nanitenfabrik');
     await expect(page.locator('[data-act=order][data-k=rl]')).toBeDisabled();
+    expect(w.problems).toEqual([]);
+  });
+
+  test('Solarsatelliten give energy by temperature and never fly (#46)', async ({
+    page,
+  }) => {
+    const w = watch(page);
+    const name = uniqueName('Sat');
+    await register(page, name);
+    seed({ name, b: { yard: 1 }, temp: 8, res: { m: 0, c: 10000, d: 10000 } });
+    await page.goto('/?view=shipyard');
+    const item = page
+      .locator('.item')
+      .filter({ has: page.locator('.nm', { hasText: /^\s*Solarsatellit/ }) });
+    await expect(
+      item.getByRole('img', { name: 'Solarsatellit' }),
+    ).toHaveAttribute('src', '/icons/ships/solar_satellite.svg');
+    await expect(item).toContainText('Energie 22 je Satellit');
+    await expect(item).not.toContainText('Tempo');
+    await page.fill('#q_sat', '2');
+    await page.click('[data-act=order][data-k=sat]');
+    await expect(
+      page.locator('.box', { hasText: 'Bauauftrag der Werft' }),
+    ).toContainText('2× Solarsatellit');
+
+    seed({ name, ships: { sat: 3, lf: 1 }, temp: 8 });
+    await page.goto('/?view=resources');
+    const row = page.locator('tr', { hasText: 'Solarsatelliten (3)' });
+    await expect(row.locator('td.good')).toHaveText('66');
+    await page.selectOption('select[data-k=sat]', '50');
+    await expect(row.locator('td.good')).toHaveText('33');
+    await page.goto('/?view=fleet');
+    await expect(page.locator('#f_lf')).toBeVisible();
+    await expect(page.locator('#f_sat')).toHaveCount(0);
     expect(w.problems).toEqual([]);
   });
 
@@ -792,6 +994,96 @@ test.describe('playing', () => {
     expect(w.problems).toEqual([]);
   });
 
+  test('Schlachtkreuzer and Zerstörer are built and fly (#58, #59)', async ({
+    page,
+  }) => {
+    const w = watch(page);
+    const name = uniqueName('Kreuzer');
+    await register(page, name);
+    seed({
+      name,
+      b: { robot: 2, yard: 9, lab: 7 },
+      research: { energy: 5, shield: 5, laser: 12, hyper: 5, hdrive: 6 },
+      ships: { bc: 2, dr: 1 },
+      res: { m: 200000, c: 200000, d: 100000 },
+      colony: {},
+    });
+    await page.goto('/?view=shipyard');
+    const item = (nm: string) =>
+      page.locator('.item').filter({
+        has: page.locator('.nm', { hasText: new RegExp(`^\\s*${nm}`) }),
+      });
+    const bc = item('Schlachtkreuzer');
+    const dr = item('Zerstörer');
+    await expect(
+      bc.getByRole('img', { name: 'Schlachtkreuzer' }),
+    ).toHaveAttribute('src', '/icons/ships/battlecruiser.svg');
+    await expect(dr.getByRole('img', { name: 'Zerstörer' })).toHaveAttribute(
+      'src',
+      '/icons/ships/destroyer.svg',
+    );
+    await expect(bc).toContainText(
+      'Angriff 700 · Schild 600 · Struktur 70.000 · Ladung 750 · Tempo 28.000',
+    );
+    await expect(dr).toContainText(
+      'Angriff 2.000 · Schild 750 · Struktur 110.000 · Ladung 2.000 · Tempo 14.000',
+    );
+    await expect(bc.locator('.needs')).toHaveCount(0);
+    await expect(dr.locator('.needs')).toHaveCount(0);
+    await page.fill('#q_bc', '1');
+    await page.click('[data-act=order][data-k=bc]');
+    await expect(page.locator('.toast').last()).toContainText(
+      '1× Schlachtkreuzer in Auftrag gegeben.',
+    );
+    await page.fill('#q_dr', '1');
+    await page.click('[data-act=order][data-k=dr]');
+    await expect(page.locator('.toast').last()).toContainText(
+      '1× Zerstörer in Auftrag gegeben.',
+    );
+
+    await nav(page, 'fleet');
+    await page.getByLabel('Anzahl Schlachtkreuzer').fill('2');
+    await page.getByLabel('Anzahl Zerstörer').fill('1');
+    await page.getByLabel('Position', { exact: true }).fill('15');
+    await page.getByLabel('Auftrag').selectOption('transport');
+    await expect(page.locator('#i_cap')).toContainText('3.500');
+    await page.getByRole('button', { name: 'Flotte losschicken' }).click();
+    await expect(page.locator('.toast').last()).toContainText(
+      'Flotte unterwegs',
+    );
+    await expect(page.locator('.fl-transport')).toContainText(
+      '2 Schlachtkreuzer, 1 Zerstörer',
+    );
+    expect(w.problems).toEqual([]);
+  });
+
+  test('the shipyard shows Schlachtkreuzer and Zerstörer on a phone (#58, #59) @phone', async ({
+    page,
+  }) => {
+    const w = watch(page);
+    const name = uniqueName('Zerst');
+    await register(page, name);
+    seed({ name, b: { robot: 2, yard: 8, lab: 7 }, research: { hdrive: 5 } });
+    await page.goto('/?view=shipyard');
+    await expect(
+      page.getByRole('img', { name: 'Schlachtkreuzer' }),
+    ).toBeVisible();
+    const dr = page.locator('.item').filter({
+      has: page.locator('.nm', { hasText: /^\s*Zerstörer/ }),
+    });
+    await expect(dr.getByRole('img', { name: 'Zerstörer' })).toBeVisible();
+    await expect(
+      dr.locator('.need-nm', { hasText: /^Raumschiffwerft$/ }),
+    ).toBeVisible();
+    await expect(dr.locator('[data-act=order]')).toHaveCount(0);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth - window.innerWidth,
+      ),
+    ).toBeLessThanOrEqual(0);
+    expect(w.problems).toEqual([]);
+  });
+
   test('defense lists requirements with reasons on a phone (#64) @phone', async ({
     page,
   }) => {
@@ -860,6 +1152,126 @@ test.describe('playing', () => {
     await expect(surface).toHaveCSS('animation-name', 'none');
     await nav(page, 'help');
     await expect(page.getByLabel('Animationen')).not.toBeChecked();
+  });
+});
+
+test.describe('explanation texts (#63)', () => {
+  const question = (page: Page, name: string): Locator =>
+    page.getByRole('button', { name: `Erklärung zu ${name}` });
+  const row = (page: Page, name: string): Locator =>
+    page.locator('.item').filter({
+      has: page.locator('.nm', { hasText: new RegExp(`^\\s*${name}\\b`) }),
+    });
+
+  /** Chooses the display option in „Hilfe & Optionen“ and saves it. */
+  async function choose(page: Page, label: string): Promise<void> {
+    await nav(page, 'help');
+    await page.getByLabel('Erklärungstexte').selectOption({ label });
+    await page.click('[data-act=saveopt]');
+    await expect(page.locator('.toast').last()).toContainText('Gespeichert.');
+  }
+
+  test('the (?) opens the text by click and keyboard; the option changes the lists and survives a reload', async ({
+    page,
+  }) => {
+    const w = watch(page);
+    const name = uniqueName('Lies');
+    await register(page, name);
+    seed({ name, b: { lab: 1, robot: 2, yard: 2 } });
+    await page.goto('/?view=buildings');
+
+    // Default „(?)-Symbol“ (D2): the short text is shown, the long one behind the (?).
+    const mine = row(page, 'Metallmine');
+    const mineText = mine.locator('.ex');
+    const mineQ = question(page, 'Metallmine');
+    await expect(mine.locator('.ds')).toHaveText(
+      'Fördert Metall, den wichtigsten Grundrohstoff.',
+    );
+    await expect(mineQ).toHaveAttribute('aria-expanded', 'false');
+    await expect(mineQ).toHaveAttribute('aria-controls', 'ex_metal');
+    await expect(mineText).toBeHidden();
+    await mineQ.click();
+    await expect(mineText).toBeVisible();
+    await expect(mineText).toHaveText(
+      'Fördert Metall, den wichtigsten Grundrohstoff.',
+    );
+    await expect(mineQ).toHaveAttribute('aria-expanded', 'true');
+    await expect(mineQ).toBeFocused();
+    await page.keyboard.press('Enter');
+    await expect(mineText).toBeHidden();
+    await expect(mineQ).toHaveAttribute('aria-expanded', 'false');
+    await page.keyboard.press('Space');
+    await expect(mineText).toBeVisible();
+    await expect(row(page, 'Kristallmine').locator('.ex')).toBeHidden();
+
+    await nav(page, 'research');
+    const spy = row(page, 'Spionagetechnik');
+    const spyQ = question(page, 'Spionagetechnik');
+    await expect(spy.locator('.ex')).toBeHidden();
+    await spyQ.focus();
+    await page.keyboard.press('Enter');
+    await expect(spy.locator('.ex')).toHaveText(
+      'Bessere Spionageberichte, bessere Abwehr.',
+    );
+    await expect(spyQ).toHaveAttribute('aria-expanded', 'true');
+    await page.keyboard.press('Space');
+    await expect(spy.locator('.ex')).toBeHidden();
+    await spyQ.click();
+    await expect(spy.locator('.ex')).toBeVisible();
+
+    // An entry without any text has neither (?) nor panel (D4).
+    await nav(page, 'shipyard');
+    await expect(row(page, 'Spionagesonde')).toBeVisible();
+    await expect(question(page, 'Spionagesonde')).toHaveCount(0);
+    await expect(row(page, 'Spionagesonde').locator('.ex')).toHaveCount(0);
+    // Ships with a description (Solarsatellit, #46) do get the (?).
+    await expect(question(page, 'Solarsatellit')).toHaveCount(1);
+
+    await choose(page, 'Immer anzeigen');
+    await nav(page, 'buildings');
+    await expect(mineText).toBeVisible();
+    await expect(page.locator('#view .exq')).toHaveCount(0);
+    await page.reload();
+    await expect(mineText).toBeVisible();
+    await expect(page.locator('#view .exq')).toHaveCount(0);
+    await nav(page, 'research');
+    await expect(spy.locator('.ex')).toBeVisible();
+    await expect(page.locator('#view .exq')).toHaveCount(0);
+
+    await choose(page, 'Ausblenden');
+    await nav(page, 'buildings');
+    await expect(page.locator('#view .ex')).toHaveCount(0);
+    await expect(page.locator('#view .exq')).toHaveCount(0);
+    await expect(mine.locator('.ds')).toBeVisible();
+    await page.reload();
+    await expect(mine.locator('.ds')).toBeVisible();
+    await expect(page.locator('#view .ex')).toHaveCount(0);
+    await nav(page, 'research');
+    await expect(spy.locator('.ds')).toBeVisible();
+    await expect(page.locator('#view .ex, #view .exq')).toHaveCount(0);
+    await nav(page, 'help');
+    await expect(page.getByLabel('Erklärungstexte')).toHaveValue('hidden');
+    expect(w.problems).toEqual([]);
+  });
+
+  test('a tap on the (?) opens and closes the text on a phone @phone', async ({
+    page,
+  }) => {
+    const w = watch(page);
+    await register(page, uniqueName('Tipp'));
+    await page.click('#tabbar [data-v=buildings]');
+    const text = row(page, 'Solarkraftwerk').locator('.ex');
+    await expect(text).toBeHidden();
+    await question(page, 'Solarkraftwerk').tap();
+    await expect(text).toHaveText('Liefert Energie für die Minen.');
+    await question(page, 'Solarkraftwerk').tap();
+    await expect(text).toBeHidden();
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth - window.innerWidth,
+      ),
+    ).toBeLessThanOrEqual(0);
+    expect(w.problems).toEqual([]);
   });
 });
 

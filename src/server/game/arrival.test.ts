@@ -215,6 +215,15 @@ describe('arrival', () => {
       'Angriff auf Beta [1:2:6] durch Anna',
     ]);
   });
+  it('Solarsatelliten defend and are destroyed like ships (#46)', () => {
+    const { ctx } = setup({ ships: { sat: 5 } });
+    arrive(ctx, fleet(ctx, { ships: { bs: 10 } }));
+    const t = ctx.store.planet('p1_2_6')!;
+    expect(t.ships.sat ?? 0).toBe(0);
+    const rep = ctx.store.reports('u_Anna')[0]!;
+    expect(rep).toMatchObject({ type: 'battle', winner: 'att' });
+    expect(rep.defBefore).toMatchObject({ sat: 5 });
+  });
   it('a lost attack removes the fleet and keeps the defenders', () => {
     const { ctx } = setup({ def: { gauss: 20 }, ships: { cr: 2 } });
     arrive(ctx, fleet(ctx, { ships: { lf: 1 } }));

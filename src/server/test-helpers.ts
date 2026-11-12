@@ -1,6 +1,7 @@
 // Test setup for the server: a real SQLite database in memory, a clock the
 // test moves, a seeded random generator and readable ids.
 import { seeded } from '../test/fixtures.ts';
+import { DEFAULT_EXPLAIN } from '../shared/explain.ts';
 import type { Planet } from '../shared/types.ts';
 import { hashPassword } from './auth.ts';
 import type { Config } from './config.ts';
@@ -57,6 +58,7 @@ export function addUser(
     pw: testPassword,
     admin: false,
     probes: 1,
+    explain: DEFAULT_EXPLAIN,
     readAt: 0,
     created: ctx.now(),
     research: {},
