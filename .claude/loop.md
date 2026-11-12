@@ -64,6 +64,10 @@ interface is German.
 ## Never
 
 - Merge a release pull request: the owner decides every release.
+- Write the release pull request, `CHANGELOG.md` or `VERSION` by hand: the
+  workflow „Release pull request“ (`scripts/release-pr.sh`) builds them
+  from the fragments and the Git history. To refresh it, run that
+  workflow; to change a text, fix its fragment in a pull request.
 - Skip, weaken or delete a test, lower a mutation floor, or disable a check
   to get green.
 - Push to `main` or a release branch, rewrite shared history, or change

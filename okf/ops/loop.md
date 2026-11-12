@@ -31,6 +31,11 @@ tasks).
   request is green with its candidate image, the loop tells the owner and
   **stops**. The owner merges the release pull request; that is the release
   (owner, 2026-11-12, [Branching and release](/ops/branching-release.md)).
+* **[E]** The release pull request, `CHANGELOG.md` and `VERSION` come only
+  from `scripts/release-pr.sh`: the changelog section from the fragments,
+  the version from the tags, the list of pull requests from the Git
+  history (squash commits ending in `(#N)`). The loop never writes them
+  by hand; it refreshes them by running the workflow (owner, 2026-11-12).
 * **[E]** The rules of the project stay as they are: ask instead of
   assuming, 3 to 5 options per decision, merges under O4, one own pull
   request at a time, never a merge of a release pull request.
