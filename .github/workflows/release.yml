@@ -1,6 +1,7 @@
 name: Release
 
-# A tag like 26.11.0 (CalVer YY.M.MICRO, no "v") builds and publishes the image,
+# A tag like 26.11.0 (CalVer YY.M.MICRO, no "v") builds and publishes the image
+# as 26.11.0, latest and stable (release candidates: rc-image.yml, „next“),
 # but only when CI already passed on main or hotfix/* for the tagged commit.
 # Tags come from merged release pull requests (tag.yml); the release notes are
 # the German section of CHANGELOG.md.
@@ -78,6 +79,7 @@ jobs:
           tags: |
             ${{ steps.v.outputs.image }}:${{ steps.v.outputs.tag }}
             ${{ steps.v.outputs.publish == 'true' && format('{0}:latest', steps.v.outputs.image) || '' }}
+            ${{ steps.v.outputs.publish == 'true' && format('{0}:stable', steps.v.outputs.image) || '' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
