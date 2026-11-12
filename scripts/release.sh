@@ -40,18 +40,19 @@ if ! printf '%s\n' "$fetch_url" "$push_url" |
 fi
 
 git fetch --tags origin "$release_branch"
-commit=$(git rev-parse 'FETCH_HEAD^{commit}')
-if [ "$commit" != "$NOVA_RELEASE_EXPECTED_SHA" ]; then
-  printf '%s\n' "$release_branch has moved since this CI run. Skipping the tag."
-  exit 0
-fi
+tip=$(git rev-parse 'FETCH_HEAD^{commit}')
+commit=$(git rev-parse "$NOVA_RELEASE_EXPECTED_SHA^{commit}")
+# The CI run's own commit is tagged, also when the branch has moved on since:
+# a pull request merged right after the release must not drop its tag.
+git merge-base --is-ancestor "$commit" "$tip" ||
+  fail "$commit is not on $release_branch: no tag."
 # Only the merge of a release pull request changes VERSION.
 if git diff --quiet "$commit^" "$commit" -- VERSION; then
   printf '%s\n' 'VERSION is unchanged: no release pull request, no tag.'
   exit 0
 fi
-git merge-base --is-ancestor HEAD "$commit" ||
-  fail 'Local main has commits that are not on origin/main.'
+git merge-base --is-ancestor HEAD "$tip" ||
+  fail "Local $release_branch has commits that are not on origin/$release_branch."
 
 # Let GitHub filter by commit, workflow, branch, event and successful status.
 api="https://api.github.com/repos/$repo/actions/workflows/ci.yml/runs"

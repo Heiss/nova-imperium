@@ -132,6 +132,8 @@ describe('fragment check', () => {
     expect(missingFragment(game, ['kein-changelog'])).toBeNull();
     expect(missingFragment([...game, 'changes/eco.md'], [])).toBeNull();
     expect(missingFragment([...game, 'changes/README.md'], [])).not.toBeNull();
+    expect(missingFragment([...game, 'changes/sub/eco.md'], [])).not.toBeNull();
+    expect(missingFragment([...game, 'changes/eco.txt'], [])).not.toBeNull();
     expect(
       missingFragment(['src/server/http/app.ts', 'okf/x.md'], []),
     ).toBeNull();

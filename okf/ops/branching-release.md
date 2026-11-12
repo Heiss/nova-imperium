@@ -45,7 +45,9 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   branch `release/main` from it: the fragments become a German section of
   `CHANGELOG.md` („## Version 26.11.19 – 12.11.2026“, new before changed
   before fixed), `VERSION` holds the next CalVer version, the fragments are
-  removed. It opens or updates the pull request with the section, the
+  removed. The version is the next one not taken by a tag, by `VERSION` or by
+  another open release branch (`release/hotfix/*` against `release/main`).
+  It opens or updates the pull request with the section, the
   pull requests since the last tag and a checklist; with nothing new since
   the last tag it closes it. It uses the release App's token, because a pull
   request opened with `GITHUB_TOKEN` starts no CI.
@@ -56,13 +58,17 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 * **[E]** Merging it is the release: after the CI push run, `tag.yml` tags the
   commit with the version in `VERSION` (`scripts/release.sh`). Only a commit
   that changes `VERSION` is tagged; a version that is already a tag is not
-  tagged again. `release.yml` publishes the image and a GitHub release whose
+  tagged again. The commit of the CI run is tagged even when the branch has
+  moved on in the meantime, as long as it is still part of the branch.
+  `release.yml` publishes the image and a GitHub release whose
   notes are the section of `CHANGELOG.md`, followed by GitHub's list of pull
   requests.
 * **[E]** Ordinary pull requests run the Docker image, Trivy, the Compose stack
-  and the upgrade test only when the image can change: `Dockerfile`,
-  `docker/`, `compose*.yaml`, dependencies, `.node-version`, the database
-  code, the server start and the CI workflow. Everything else runs as before.
+  and the upgrade test only when a file of the image build, its start or the
+  upgrade changes: `Dockerfile`, `docker/`, `compose*.yaml`, dependencies,
+  `.node-version`, the database code, the server start and the CI workflow.
+  Game code alone does not build the image in its pull request; every push
+  to `main` and the release pull request do.
 * **[E]** The operator decides which release to roll out (`NOVA_VERSION`);
   skipping releases is fine. The game shows every version since the one that
   ran before ([Changelog in the game](/features/changelog.md)).
@@ -74,10 +80,12 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   release tag (`git push origin <tag>:refs/heads/hotfix/<name>`), the fix
   goes into it through a pull request with its fragment, and the workflow
   builds a release pull request into `hotfix/<name>` the same way; its merge
-  tags the next version. Then `hotfix/<name>` is merged back into `main`;
-  its version is already a tag and is not tagged again.
+  tags the next version. Then `hotfix/<name>` is merged back into `main`,
+  after its tag exists; its version is not tagged again, and the release
+  pull request of `main` is rebuilt on top of it.
 * **[E]** CI and the tag workflow run for pushes to `main` and `hotfix/**`; the
-  migration check treats the first push of a hotfix branch as unchanged.
+  migration check compares the first push of a hotfix branch with the release
+  tag it starts from.
 
 * **[E]** Renovate opens pull requests for dependencies and images, waits
   3 days after a release (`minimumReleaseAge`) and merges patch updates

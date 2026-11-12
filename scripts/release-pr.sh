@@ -19,11 +19,16 @@ case "$base" in
 esac
 branch="release/$base"
 
-# The merge of a release pull request itself: tag.yml takes over.
+# The merge of a release pull request itself: tag.yml takes over. A hotfix
+# merged back into main also changes VERSION, but to a version that is
+# tagged already: then the release pull request of main is rebuilt.
 if git rev-parse -q --verify HEAD^ > /dev/null &&
   ! git diff --quiet HEAD^ HEAD -- VERSION; then
-  printf '%s\n' 'This push changed VERSION: a release is being tagged.'
-  exit 0
+  current=$(tr -d '[:space:]' < VERSION)
+  if [ -z "$(git tag --list "$current")" ]; then
+    printf 'This push released %s: tag.yml tags it.\n' "$current"
+    exit 0
+  fi
 fi
 
 last=$(git describe --tags --abbrev=0 --match '[0-9]*.[0-9]*.[0-9]*' HEAD 2> /dev/null || true)
@@ -40,7 +45,7 @@ if [ -z "$(git rev-list "$range")" ]; then
   exit 0
 fi
 
-version=$(node scripts/changelog.ts next-version)
+version=$(node scripts/changelog.ts next-version "$branch")
 git switch --quiet -C "$branch"
 section=$(node scripts/changelog.ts release "$version")
 git add -A CHANGELOG.md VERSION changes

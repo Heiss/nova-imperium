@@ -55,8 +55,8 @@
   <text class="small" x="510" y="104">mutation (incremental, floors)</text>
   <text class="small" x="510" y="120">Changelog fragments check</text>
   <text class="small" x="510" y="144">Docker image, Trivy, Compose,</text>
-  <text class="small" x="510" y="160">upgrade test: only when the</text>
-  <text class="small" x="510" y="176">image can change</text>
+  <text class="small" x="510" y="160">upgrade test: only when build,</text>
+  <text class="small" x="510" y="176">start or upgrade files change</text>
 
   <rect class="box dev" x="760" y="44" width="176" height="150" rx="8"/>
   <text class="head" x="772" y="66">Squash merge</text>

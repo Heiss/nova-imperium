@@ -283,9 +283,11 @@ jobs:
           CREATED: ${{ github.event.created }}
           REF: ${{ github.ref }}
         run: |
-          # A new hotfix branch starts at a release tag: nothing to compare.
+          # A new hotfix branch has no previous tip: compare it with the
+          # release tag it starts from, so commits pushed with it count.
           if [ "$CREATED" = "true" ] && [ "${REF#refs/heads/hotfix/}" != "$REF" ]; then
-            BASE=$(git rev-parse HEAD)
+            BASE=$(git describe --tags --abbrev=0 --match '[0-9]*.[0-9]*.[0-9]*' HEAD) ||
+              { echo "::error::A hotfix branch starts at a release tag."; exit 1; }
           fi
           if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
             echo "::error::No base commit to compare the migrations with."
@@ -407,6 +409,6 @@ jobs:
 
           case "$IMAGE" in
             true) require_success "Docker image and Compose stack" "$COMPOSE" ;;
-            false) echo "The image cannot change: no Docker build needed." ;;
+            false) echo "No Docker, dependency or start-up file changed: the image is built on main and in the release pull request." ;;
             *) echo "::error::Missing or invalid image detection output: $IMAGE"; exit 1 ;;
           esac

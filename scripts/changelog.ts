@@ -5,7 +5,8 @@
 //
 //   node scripts/changelog.ts check <base-sha>      fragments valid, and one
 //        present when the pull request changes the game (CI)
-//   node scripts/changelog.ts next-version           CalVer of the next release
+//   node scripts/changelog.ts next-version [branch]  CalVer of the next
+//        release; branch is the release branch being rebuilt
 //   node scripts/changelog.ts release <version>      write CHANGELOG.md and
 //        VERSION, remove the fragments, print the section
 //   node scripts/changelog.ts notes <version>        the section of a release
@@ -132,8 +133,13 @@ export function missingFragment(
   if (labels.includes(SKIP_LABEL)) return null;
   const game = changed.filter((f) => PLAYER_PATHS.some((p) => f.startsWith(p)));
   if (!game.length) return null;
+  // Only a top-level file is read by the release; deletions are not passed.
   const fragment = changed.some(
-    (f) => f.startsWith(`${DIR}/`) && f.endsWith('.md') && !isReadme(f),
+    (f) =>
+      f.startsWith(`${DIR}/`) &&
+      !f.slice(DIR.length + 1).includes('/') &&
+      f.endsWith('.md') &&
+      !isReadme(f),
   );
   return fragment
     ? null
@@ -169,12 +175,21 @@ function readFragments(): Fragment[] {
 }
 
 const git = (...args: string[]): string =>
-  execFileSync('git', args, { encoding: 'utf8' }).trim();
+  execFileSync('git', args, {
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  }).trim();
 
 function check(base: string | undefined): number {
   if (!base) throw new Error('Usage: changelog.ts check <base-sha>');
   readFragments();
-  const changed = git('diff', '--name-only', `${base}...HEAD`)
+  // Added, copied, modified or renamed files: a deleted fragment is none.
+  const changed = git(
+    'diff',
+    '--name-only',
+    '--diff-filter=ACMR',
+    `${base}...HEAD`,
+  )
     .split('\n')
     .filter(Boolean);
   const labels = (process.env.PR_LABELS ?? '').split(',').filter(Boolean);
@@ -212,13 +227,31 @@ function notes(version: string | undefined): number {
 }
 
 /**
- * Every tag, and the version in VERSION: a merged release pull request is
- * not tagged yet while its CI push run is still running.
+ * Every tag, the version in VERSION (a merged release pull request is not
+ * tagged yet while its CI push run is still running) and the versions held
+ * by the other open release branches (release/main and release/hotfix/*
+ * must not pick the same one). `own` is the release branch being rebuilt.
  */
-function usedVersions(): string[] {
-  const tags = git('tag', '--list').split('\n').filter(Boolean);
-  const current = readIfPresent(VERSION)?.trim() ?? '';
-  return current ? [...tags, current] : tags;
+function usedVersions(own: string | undefined): string[] {
+  const used = git('tag', '--list').split('\n').filter(Boolean);
+  const current = readIfPresent(VERSION)?.trim();
+  if (current) used.push(current);
+  const prefix = 'refs/remotes/origin/';
+  const branches = git(
+    'for-each-ref',
+    '--format=%(refname)',
+    `${prefix}release/`,
+  )
+    .split('\n')
+    .filter((ref) => ref && ref !== `${prefix}${own ?? ''}`);
+  for (const ref of branches) {
+    try {
+      used.push(git('show', `${ref}:${VERSION}`).trim());
+    } catch {
+      // A release branch without VERSION reserves nothing.
+    }
+  }
+  return used;
 }
 
 function main(): number {
@@ -227,7 +260,7 @@ function main(): number {
     case 'check':
       return check(arg);
     case 'next-version':
-      console.log(nextVersion(usedVersions(), new Date()));
+      console.log(nextVersion(usedVersions(arg), new Date()));
       return 0;
     case 'release':
       return release(arg);
@@ -235,7 +268,7 @@ function main(): number {
       return notes(arg);
     default:
       console.error(
-        'Usage: changelog.ts check <base> | next-version | release <version> | notes <version>',
+        'Usage: changelog.ts check <base> | next-version [branch] | release <version> | notes <version>',
       );
       return 1;
   }
