@@ -34,6 +34,17 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   incremental on pull requests and on pushes to `main` (unchanged code keeps
   its cached result), complete every night (owner, 2026-11-11). Tag
   workflows verify the earlier CI result.
+* **[E]** Mutation runs are sharded into 4 parallel jobs everywhere: pull
+  requests and pushes to `main` (incremental), the release pull request and
+  the nightly run (complete). A script splits the mutated files by their
+  mutant count in the last report, largest first onto the emptiest job; a
+  file without a count weighs by its lines. Each job keeps its own
+  incremental cache. A gate job merges the four reports and checks the total
+  score (80 %) and every per-file floor exactly as before; no mutant and no
+  check is dropped (owner, 2026-11-12, #131).
+* **[E]** Before the merge of #131, one complete sharded run in its pull
+  request is compared with the last nightly run: the total score and every
+  file score must match (owner, 2026-11-12).
 * **[E]** Mutation standard per file (owner, 2026-11-11,
   `mutation-standard.json`, `scripts/mutation-gate.ts`): no file may fall
   below its recorded floor; a new file needs 80 %, a new security file 90 %.
