@@ -62,18 +62,21 @@ export function buildState(
 }
 
 export type ResearchUiState =
-  'running' | 'missing' | 'busy' | 'labBusy' | 'ready';
+  'running' | 'missing' | 'busy' | 'labBusy' | 'energy' | 'ready';
 
+/** `short`: the energy production the planet lacks (Gravitonforschung, #49). */
 export function researchState(
   p: Planet,
   r: ResearchState,
   key: string,
   missing: number,
+  short = 0,
 ): ResearchUiState {
   if (r.rq?.key === key) return 'running';
   if (missing) return 'missing';
   if (r.rq) return 'busy';
   if (labUpgrading(p)) return 'labBusy';
+  if (short > 0) return 'energy';
   return 'ready';
 }
 

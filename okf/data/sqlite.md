@@ -118,6 +118,17 @@ Migration 8 stores passkey public keys and counters, and short-lived single-use
 WebAuthn challenges. Registration challenges are bound to the authenticated
 session. Account recovery removes previously registered passkeys.
 
+Migration 10 adds the display option of the explanation texts per player,
+`users.explain_mode` (`always`, `icon` or `hidden`, CHECK, `NOT NULL DEFAULT
+'icon'`; issue #63, see [Explanation texts](/features/explanation-texts.md)).
+Existing players get „(?)-Symbol“; their other data stay as they were
+(`upgrades/migration-10.test.ts`).
+
+Migration 11 stores the planet where the running research started
+(`users.rq_planet`, issue #49), so a cancel refunds that planet. Research
+started before has no planet and is refunded to the home planet
+(`upgrades/migration-11.test.ts`).
+
 Account deletion runs in one transaction. Foreign-key cascades clear owned game,
 session, reward and push data. The deletion also removes led guilds and their
 memberships, linked audit and inbox records, invitations for the account address
@@ -145,7 +156,7 @@ tests together with an own test for each changing migration).
   existing rows needs its own test `src/server/db/upgrades/migration-<n>.test.ts`
   that checks the data after the upgrade. The decision is made by the effect on
   generated data, not by the SQL text; `ALTER TABLE … ADD COLUMN` counts as a
-  change. Migrations 7 and 9 have such tests; pure `CREATE` migrations need
+  change. Migrations 7, 9, 10 and 11 have such tests; pure `CREATE` migrations need
   none.
 * **[E]** A self-test proves that the checks find a migration that fails on
   existing data and that the classification tells changes from new tables.

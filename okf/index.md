@@ -21,6 +21,8 @@ okf_version: "0.2"
 * [Interface v2 and planet types](/features/interface.md) - icon set, phone navigation, animated planets, planet type rule
 * [Requirements list](/features/requirements.md) - all unmet requirements, startable ones with a button
 * [Nanitenfabrik](/features/nanite-factory.md) - halves building and shipyard times, shared shipyard lock
+* [Ionentechnik, Plasmatechnik, Gravitonforschung and IFN](/features/research-ion-plasma-graviton.md) - new research of #49, energy check of Gravitonforschung, research on any planet with a lab, research network
+* [Explanation texts](/features/explanation-texts.md) - long texts with a display option per player (#63)
 * [Late-game combat ships](/features/late-game-ships.md) - Schlachtkreuzer, Zerstörer, Bomber, Todesstern of #56, classic values, drive switch
 * [Solarsatellit](/features/solar-satellite.md) - energy satellite of #46, temperature formula, share, battle role
 * [Changelog in the game](/features/changelog.md) - „Neuigkeiten“, update message and hint from CHANGELOG.md

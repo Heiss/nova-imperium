@@ -6,6 +6,7 @@ import type {
   Levels,
   Planet,
   Queue,
+  ResearchQueue,
   Universe,
 } from '../../shared/types.ts';
 import { isShip } from '../../shared/catalog.ts';
@@ -14,6 +15,7 @@ import {
   UNIVERSE_SPECS,
   type UsedSize,
 } from '../../shared/universe.ts';
+import type { ExplainMode } from '../../shared/explain.ts';
 import type { Db } from './database.ts';
 
 export interface User {
@@ -24,10 +26,12 @@ export interface User {
   pw: string;
   admin: boolean;
   probes: number;
+  /** Display option of the explanation texts (issue #63). */
+  explain: ExplainMode;
   readAt: number;
   created: number;
   research: Levels;
-  rq: Queue | null;
+  rq: ResearchQueue | null;
 }
 
 export interface Report {
@@ -65,6 +69,12 @@ const queueOf = (r: Row, p: 'bq' | 'rq'): Queue | null =>
           r[`${p}_cost_d`] as number,
         ],
       };
+
+/** The running research; `rq_planet` is empty for research started before #49. */
+function researchQueueOf(r: Row): ResearchQueue | null {
+  const q = queueOf(r, 'rq');
+  return q && r.rq_planet != null ? { ...q, planet: r.rq_planet as string } : q;
+}
 
 const QUEUE_FIELDS = [
   'key',
@@ -149,10 +159,11 @@ export class Store {
       pw: r.pw_hash as string,
       admin: r.admin === 1,
       probes: r.probes as number,
+      explain: r.explain_mode as ExplainMode,
       readAt: r.read_at as number,
       created: r.created as number,
       research: levels(research, 'key', 'level'),
-      rq: queueOf(r, 'rq'),
+      rq: researchQueueOf(r),
     };
   }
 
@@ -184,17 +195,23 @@ export class Store {
   saveUser(u: User): void {
     this.db
       .prepare(
-        `INSERT INTO users (id, name, email, salt, pw_hash, admin, probes, read_at, created,
-           rq_key, rq_lvl, rq_start, rq_end, rq_cost_m, rq_cost_c, rq_cost_d)
-         VALUES (@id, @name, @email, @salt, @pw, @admin, @probes, @readAt, @created,
-           @rq_key, @rq_lvl, @rq_start, @rq_end, @rq_cost_m, @rq_cost_c, @rq_cost_d)
+        `INSERT INTO users (id, name, email, salt, pw_hash, admin, probes, explain_mode, read_at, created,
+           rq_key, rq_lvl, rq_start, rq_end, rq_cost_m, rq_cost_c, rq_cost_d, rq_planet)
+         VALUES (@id, @name, @email, @salt, @pw, @admin, @probes, @explain, @readAt, @created,
+           @rq_key, @rq_lvl, @rq_start, @rq_end, @rq_cost_m, @rq_cost_c, @rq_cost_d, @rq_planet)
          ON CONFLICT(id) DO UPDATE SET name = excluded.name, email = excluded.email,
            salt = excluded.salt, pw_hash = excluded.pw_hash, admin = excluded.admin,
-           probes = excluded.probes, read_at = excluded.read_at, rq_key = excluded.rq_key,
+           probes = excluded.probes, explain_mode = excluded.explain_mode, read_at = excluded.read_at, rq_key = excluded.rq_key,
            rq_lvl = excluded.rq_lvl, rq_start = excluded.rq_start, rq_end = excluded.rq_end,
-           rq_cost_m = excluded.rq_cost_m, rq_cost_c = excluded.rq_cost_c, rq_cost_d = excluded.rq_cost_d`,
+           rq_cost_m = excluded.rq_cost_m, rq_cost_c = excluded.rq_cost_c, rq_cost_d = excluded.rq_cost_d,
+           rq_planet = excluded.rq_planet`,
       )
-      .run({ ...u, admin: u.admin ? 1 : 0, ...queueParams(u.rq, 'rq') });
+      .run({
+        ...u,
+        admin: u.admin ? 1 : 0,
+        ...queueParams(u.rq, 'rq'),
+        rq_planet: u.rq?.planet ?? null,
+      });
     this.db.prepare('DELETE FROM user_research WHERE user_id = ?').run(u.id);
     const put = this.db.prepare(
       'INSERT INTO user_research (user_id, key, level) VALUES (?, ?, ?)',

@@ -9,7 +9,18 @@ export interface BuildingDef {
   cost: Cost;
   f: number;
   ds: string;
+  /** Long explanation text (issue #63); without it the short `ds` stands in. */
+  lt?: string;
   req?: Requirements;
+}
+
+/**
+ * Energy production a research needs on the planet where it starts: `base` at
+ * level 1, times `f` per further level. It is checked, not consumed (#49).
+ */
+interface EnergyNeed {
+  base: number;
+  f: number;
 }
 
 export interface ResearchDef {
@@ -17,7 +28,10 @@ export interface ResearchDef {
   ab: string;
   cost: Cost;
   ds: string;
+  /** Long explanation text (issue #63); without it the short `ds` stands in. */
+  lt?: string;
   req: Requirements;
+  energy?: EnergyNeed;
 }
 
 export type DriveKey = 'comb' | 'impulse' | 'hdrive';
@@ -31,6 +45,8 @@ interface UnitDefBase {
   req: Requirements;
   rf?: Record<string, number>;
   ds?: string;
+  /** Long explanation text (issue #63); without it the short `ds` stands in. */
+  lt?: string;
 }
 
 export interface ShipDef extends UnitDefBase {
@@ -277,6 +293,36 @@ export const RES: Record<string, ResearchDef> = {
       },
     },
     ds: '+10 % Strukturpunkte pro Stufe.',
+  },
+  // Issue #49. Not in version 1; the classic values (owner, 2026-11-12).
+  ion: {
+    n: 'Ionentechnik',
+    ab: 'Io',
+    cost: [1000, 300, 100],
+    req: { b: { lab: 4 }, r: { laser: 5, energy: 4 } },
+    ds: 'Beschleunigte Ionen – Basis für Ionenwaffen.',
+  },
+  plasma: {
+    n: 'Plasmatechnik',
+    ab: 'Pl',
+    cost: [2000, 4000, 1000],
+    req: { b: { lab: 4 }, r: { energy: 8, laser: 10, ion: 5 } },
+    ds: 'Gebändigtes Plasma – Basis für Plasmawaffen.',
+  },
+  graviton: {
+    n: 'Gravitonforschung',
+    ab: 'Gr',
+    cost: [0, 0, 0],
+    energy: { base: 300000, f: 3 },
+    req: { b: { lab: 12 } },
+    ds: 'Kostet keine Rohstoffe, braucht aber eine gewaltige Energieproduktion.',
+  },
+  ifn: {
+    n: 'Intergalaktisches Forschungsnetzwerk',
+    ab: 'IF',
+    cost: [240000, 400000, 160000],
+    req: { b: { lab: 10 }, r: { computer: 8, hyper: 8 } },
+    ds: 'Vernetzt pro Stufe ein weiteres Forschungslabor deiner Planeten.',
   },
 };
 

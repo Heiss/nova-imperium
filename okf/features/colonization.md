@@ -15,7 +15,10 @@ title: Colony ships
   resources.
 * Players can switch planets in the header or in the galaxy. Buildings,
   production, the shipyard and fleet departures belong to the active planet.
-  Research and rewards use the home planet.
+  Research starts on the active planet when it has a Forschungslabor and is
+  paid there; still one research at a time per player. Rewards use the home
+  planet (owner, 2026-11-12, see
+  [Research](/features/research-ion-plasma-graviton.md)).
 * Database migration 9 preserves existing fleets and adds the colonization
   mission. Building and research timers round up to full milliseconds so that
   SQLite can store their deadlines in integer columns.

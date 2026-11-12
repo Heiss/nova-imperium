@@ -135,7 +135,7 @@ last release tag, merge the fix into it through a pull request, merge its
 release pull request, then merge `hotfix/<name>` back into `main`.
 
 ```bash
-git push origin 26.11.19:refs/heads/hotfix/26.11.20
+git push origin '26.11.19^{commit}:refs/heads/hotfix/26.11.20'
 ```
 
 Security hotfixes run by themselves: every hour and after every release, the

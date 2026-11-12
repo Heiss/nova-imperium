@@ -257,8 +257,9 @@ jobs:
           branch="hotfix/sec-$ID"
           fix="sec-fix/$ID"
           # An incomplete branch from an earlier run starts at $TAG already.
+          # Release tags are annotated: the branch points at their commit.
           if ! git ls-remote --exit-code --heads origin "$branch" > /dev/null; then
-            git push --quiet origin "refs/tags/$TAG:refs/heads/$branch"
+            git push --quiet origin "$TAG^{commit}:refs/heads/$branch"
           fi
           git switch --quiet -c "$fix"
           git add -A package.json pnpm-lock.yaml Dockerfile changes

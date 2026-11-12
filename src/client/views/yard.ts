@@ -67,8 +67,9 @@ function yard(
       costHTML(d.cost, P) +
       stats(v, k, d) +
       `<div class="dim">Bauzeit: ${dur(unitTime(d, P, s.cfg))} je Einheit</div>` +
-      requirementsHTML(v, d.req, 'here');
+      requirementsHTML(v, d.req);
     return itemHTML(
+      v,
       cls,
       k,
       d,
