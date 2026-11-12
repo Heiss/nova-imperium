@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import { databaseAt } from '../../../test/migrations.ts';
-import { addUser, testCtx } from '../../test-helpers.ts';
 import { migrate } from '../database.ts';
 import { MIGRATIONS } from '../schema.ts';
 import { Store } from '../store.ts';
@@ -9,10 +8,13 @@ import { Store } from '../store.ts';
 // queued building and shipyard pushes by the home planet.
 describe('upgrade to migration 9', () => {
   it('preserves ships of an in-flight fleet when adding colonization', () => {
-    const ctx = testCtx();
     const db = databaseAt(8);
     const store = new Store(db);
-    const owner = addUser({ ...ctx, store }, 'Anna').id;
+    // Plain SQL: the Store of today writes columns that version 8 lacks.
+    db.exec(
+      "INSERT INTO users (id, name, salt, pw_hash, created) VALUES ('u_Anna', 'Anna', 's', 'h', 1)",
+    );
+    const owner = 'u_Anna';
     const fleet = {
       id: 'f1',
       owner,
@@ -30,7 +32,7 @@ describe('upgrade to migration 9', () => {
       recalled: false,
     };
     store.saveFleet(fleet);
-    expect(migrate(db)).toBe(1);
+    expect(migrate(db, MIGRATIONS.slice(0, 9))).toBe(1);
     expect(store.fleet(fleet.id)).toEqual(fleet);
     expect(db.pragma('foreign_key_check')).toEqual([]);
     store.deleteFleet(fleet.id);

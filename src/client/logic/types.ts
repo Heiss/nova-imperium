@@ -3,13 +3,14 @@ import type {
   RoundRules,
 } from '../../shared/achievements.ts';
 // The state the server sends (GET /api/state).
+import type { LabSite } from '../../shared/research.ts';
 import type { UniverseSpec } from '../../shared/universe.ts';
 import type {
   Coords,
   Fleet,
   Levels,
   Planet,
-  Queue,
+  ResearchQueue,
   Universe,
 } from '../../shared/types.ts';
 
@@ -17,7 +18,7 @@ interface Me {
   id: string;
   name: string;
   research: Levels;
-  rq: Queue | null;
+  rq: ResearchQueue | null;
   probes: number;
   readAt: number;
   admin: boolean;
@@ -67,8 +68,8 @@ export interface GameState {
   me: Me;
   planet: Planet | null;
   homePlanet?: string | null;
-  /** The home planet when a colony is shown (issue #64); otherwise null. */
-  home?: Planet | null;
+  /** The labs of all own planets, for the research network (issue #49). */
+  labs: LabSite[];
   fleets: ClientFleet[];
   reports: Report[];
   players: Players;

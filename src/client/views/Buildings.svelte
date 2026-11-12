@@ -50,7 +50,7 @@
           </div>
         {/if}
         <div class="dim">Bauzeit: {dur(buildTime(cost, P, s.cfg))}</div>
-        {@html requirementsHTML($viewState, def.req, 'here')}
+        {@html requirementsHTML($viewState, def.req)}
       </div>
       <div class="act">
         {#if status === 'running' && P.bq}

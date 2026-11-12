@@ -17,6 +17,7 @@ import {
   type Places,
   unmetRequirements,
 } from '../../shared/requirements.ts';
+import { prod } from '../../shared/economy.ts';
 import type { GameState } from '../logic/types.ts';
 
 export interface Ui {
@@ -43,8 +44,6 @@ export interface Ui {
 export interface V {
   s: GameState;
   P: Planet;
-  /** The home planet moved to now; the same object as P on the home planet. */
-  H: Planet;
   R: ResearchState;
   now: number;
   ui: Ui;
@@ -64,17 +63,33 @@ const HAVE = ['m', 'c', 'd'] as const;
 const resIcon = (key: ResourceKey, name: string): string =>
   `<img class="ri" src="${resourceIconURL(key)}" alt="${name}" width="20" height="20">`;
 
-export function costHTML(c: Cost, p: Planet, n = 1): string {
+const costPart = (icon: string, v: number, have: number): string =>
+  `<span>${icon}<b class="${have >= v ? '' : 'bad'}">${fmt(v)}</b></span>`;
+
+/**
+ * The cost in resources; `energy` is an energy production the planet must
+ * have (Gravitonforschung, #49), `production` what it has.
+ */
+export function costHTML(
+  c: Cost,
+  p: Planet,
+  n = 1,
+  energy?: { need: number; production: number },
+): string {
   const parts = COST_NAMES.map((name, i) => ({
-    name,
     icon: resIcon(COST_ICONS[i]!, name),
     v: c[i]! * n,
     have: p.res[HAVE[i]!],
   }))
     .filter((x) => x.v > 0)
-    .map(
-      (x) =>
-        `<span>${x.icon}<b class="${x.have >= x.v ? '' : 'bad'}">${fmt(x.v)}</b></span>`,
+    .map((x) => costPart(x.icon, x.v, x.have));
+  if (energy?.need)
+    parts.push(
+      costPart(
+        resIcon('energy', 'Energieproduktion'),
+        energy.need,
+        energy.production,
+      ),
     );
   return `<div class="cost">${parts.join('')}</div>`;
 }
@@ -102,44 +117,36 @@ export function itemHTML(
 export const box = (title: string, body: string, cls = ''): string =>
   `<div class="box${cls ? ' ' + cls : ''}"><div class="hd">${title}</div><div class="bd">${body}</div></div>`;
 
-/** Where a building requirement stands, when it is not the shown planet. */
-const placeNote = (v: V, n: Need): string =>
-  n.kind === 'b' && n.planet !== v.P.id ? ' · auf dem Heimatplaneten' : '';
-
 /** The line below a requirement: why it waits, or what its next level costs. */
 function whyLine(v: V, n: Need, st: NeedState): string {
   if (!st.ready) return st.reason!;
   if (st.busy) return st.busy;
-  const payer = n.kind === 'r' || n.planet !== v.P.id ? v.H : v.P;
-  return `Stufe ${n.have + 1}: ${costHTML(st.cost, payer)}`;
+  const energy = st.energy
+    ? { need: st.energy, production: prod(v.P, v.s.cfg).eProd }
+    : undefined;
+  return `Stufe ${n.have + 1}: ${costHTML(st.cost, v.P, 1, energy)}`;
 }
 
 /** „Jetzt bauen“ / „Jetzt forschen“ for a requirement that can start now. */
 function startButton(n: Need, st: NeedState): string {
   if (!st.ready) return '';
   const build = n.kind === 'b';
-  const at = build ? ` data-at="${esc(n.planet)}"` : '';
-  return `<button class="small go" data-act="${build ? 'build' : 'research'}" data-k="${n.key}"${at}${st.busy ? ' disabled' : ''}>${build ? 'Jetzt bauen' : 'Jetzt forschen'}</button>`;
+  return `<button class="small go" data-act="${build ? 'build' : 'research'}" data-k="${n.key}"${st.busy ? ' disabled' : ''}>${build ? 'Jetzt bauen' : 'Jetzt forschen'}</button>`;
 }
 
 function needItem(v: V, n: Need, pl: Places): string {
   const st = needState(n, pl);
   const via = n.via ? ` <span class="via">· für ${esc(n.via)}</span>` : '';
-  return `<li class="need ${st.ready ? 'ready' : 'missing'}"><div><b class="need-nm">${esc(n.name)}</b> – Stufe ${n.level} (aktuell ${n.have})${placeNote(v, n)}${via}<div class="why">${whyLine(v, n, st)}</div></div>${startButton(n, st)}</li>`;
+  return `<li class="need ${st.ready ? 'ready' : 'missing'}"><div><b class="need-nm">${esc(n.name)}</b> – Stufe ${n.level} (aktuell ${n.have})${via}<div class="why">${whyLine(v, n, st)}</div></div>${startButton(n, st)}</li>`;
 }
 
 /**
  * All unmet requirements of an entry, indirect ones included (issue #64).
- * `at`: where the entry itself is built: 'here' for buildings, ships and
- * defense, 'home' for research.
+ * Everything is built and researched on the shown planet (issue #49).
  */
-export function requirementsHTML(
-  v: V,
-  req: Requirements | undefined,
-  at: 'here' | 'home',
-): string {
-  const pl: Places = { here: v.P, home: v.H, research: v.R };
-  const list = unmetRequirements(req, at, pl);
+export function requirementsHTML(v: V, req: Requirements | undefined): string {
+  const pl: Places = { here: v.P, research: v.R, cfg: v.s.cfg };
+  const list = unmetRequirements(req, pl);
   if (!list.length) return '';
   return `<div class="needs"><div class="needs-h">Benötigt:</div><ul>${list.map((n) => needItem(v, n, pl)).join('')}</ul></div>`;
 }
