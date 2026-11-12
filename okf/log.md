@@ -2,6 +2,7 @@
 
 ## 2026-11-12
 
+* **Decision**: „More ships“ is no longer a non-goal; owiki.de is the first source of the classic rules (see [Overview](/overview.md)).
 * **Decision**: #46 clarified: Solarsatellit with the classic values as an exception to the non-goal „more ships“; energy ⌊(temp + 140) / 6⌋ per satellite, own share, points yes, fleet slots no (see [Solarsatellit](/features/solar-satellite.md)).
 * **Feature**: Release loop: `.claude/loop.md` for a bare `/loop` - plan the release with the owner (infrastructure first), clarify, build, make the release pull request ready, stop (see [Release loop](/ops/loop.md)).
 * **Update**: Release candidate images `<version>-rc.<N>` and `next` for every green release pull request; releases are also tagged `stable`, `latest` stays the newest release (see [Branching and release](/ops/branching-release.md)).

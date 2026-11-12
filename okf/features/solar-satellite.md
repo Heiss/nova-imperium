@@ -10,9 +10,8 @@ Issue #46, milestone `next release` with #47, #49 and #50 (owner, 2026-11-12).
 Not in version 1; the classic values of the issue, confirmed by the owner as
 they are (2026-11-12).
 
-* **[E]** The non-goal „more ships“ ([Overview](/overview.md)) stays. The
-  Solarsatellit is an exception, like the colony ship (#38). Every further
-  ship needs the owner's approval again (owner, 2026-11-12).
+* **[E]** „More ships“ is no longer a non-goal ([Overview](/overview.md),
+  owner, 2026-11-12).
 * **[E]** Costs 0 metal, 2,000 crystal, 500 deuterium. Attack 1, shield 1,
   structure 2,000 (hull 200 in the engine, (M + K) / 10). Cargo, speed and
   fuel 0: it can't be sent in any fleet; the server refuses it. Requires

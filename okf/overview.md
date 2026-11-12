@@ -30,6 +30,10 @@ the muffelblog bundle whose rules this project follows:
 * **[E]** The game is new code and new art; no scripts or graphics of the
   original game are used. Only the formulas of the classic rules (production,
   energy, building and research times, flight time, fuel, battle) are rebuilt.
+* **[E]** Source of the classic rules: owiki.de first; its version notes
+  separate classic values (before version 1.0) from later changes.
+  ogame.fandom.com is the second source. A value counts as classic when the
+  owiki page dates it before 1.0 (owner, 2026-11-12).
 * **[E]** No premium, no paid boosts.
 * **[E]** Scope: the core (planets, resources, buildings, research, shipyard,
   defense, galaxy, attacks, espionage, transports and [colonization](/features/colonization.md)).
@@ -52,7 +56,7 @@ the muffelblog bundle whose rules this project follows:
 
 # Non-goals (for now)
 
-* Extensions of the classic game (recyclers, more ships,
-  debris fields, moons, alliances, messages between players,
-  missiles) are possible later steps, not decided.
+* Extensions of the classic game (recyclers, debris fields, moons,
+  alliances, messages between players, missiles) are possible later steps,
+  not decided. „More ships“ is no longer a non-goal (owner, 2026-11-12).
 * No translation of the game interface.
