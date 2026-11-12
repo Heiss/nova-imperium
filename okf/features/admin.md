@@ -95,6 +95,10 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 * **[E]** The event log opens on the latest 10 matching entries. It offers
   10, 25, 50 or 100 entries per page, with first, previous, next and last
   controls. Paging excludes new events recorded after the current search began.
+* **[E]** The tab „Fehler“ lists server errors, browser errors and problem
+  reports with the paging of the event log, and downloads them with the
+  audit log as a ZIP; both are admin reads in the audit log (issue #126, see
+  [Error log and problem reports](/features/error-log.md)).
 * **[E]** An administrator can send a plain-text announcement of up to 500
   characters. It is stored in each current player's inbox. Subscribed devices
   receive the text via Web Push when enabled for the instance. The audit log

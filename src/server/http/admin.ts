@@ -1,5 +1,7 @@
 import { audited, auditPage, type AuditEntry } from '../audit.ts';
 import type { User } from '../db/store.ts';
+import { errorExport, exportRange } from '../error-export.ts';
+import { errorPage } from '../error-log.ts';
 import { announce, requireAdmin } from '../game/admin.ts';
 import { type Ctx, fail, str } from '../game/context.ts';
 import { orders, playerDetail, playerStats } from '../game/diagnostics.ts';
@@ -38,6 +40,7 @@ export function adminRoutes(
 
   return {
     ...diagnosticRoutes(ctx, read),
+    ...errorLogRoutes(ctx, read, admin),
     ...moderationRoutes(d, admin, invite),
   };
 }
@@ -82,6 +85,36 @@ function diagnosticRoutes(ctx: Ctx, read: Read): Record<string, Handler> {
       entry.target = str(body.player, 40);
       if (!ctx.store.user(entry.target)) fail('Spieler nicht gefunden.');
       return playerDetail(ctx, entry.target);
+    }),
+  };
+}
+
+/** The admin tab „Fehler“ and its download (issue #126), both admin reads. */
+function errorLogRoutes(
+  ctx: Ctx,
+  read: Read,
+  admin: Admin,
+): Record<string, Handler> {
+  return {
+    'POST /api/admin/errors': read('errors', (entry, { body }) => {
+      const { filter, result } = errorPage(ctx, body);
+      entry.detail = { kind: filter.kind, page: result.page };
+      return result;
+    }),
+    'POST /api/admin/errors/download': admin((call, u) => {
+      const range = exportRange(call.body, ctx.now());
+      const entry: AuditEntry = {
+        category: 'admin.read',
+        action: 'errorDownload',
+        actor: u.id,
+        requestId: call.requestId,
+      };
+      const { name, zip } = audited(ctx, entry, () => {
+        const result = errorExport(ctx, range);
+        entry.detail = { ...range, ...result.counts };
+        return result;
+      });
+      return { file: { type: 'application/zip', name, body: zip } };
     }),
   };
 }

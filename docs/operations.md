@@ -256,6 +256,24 @@ Audit entries omit passwords, invitation and session tokens, and raw request
 bodies. Anyone with direct access to the database or its backups can read or
 change the stored audit data.
 
+## Error log and problem reports
+
+Unexpected server errors (an HTTP 500, a failed fleet arrival, the game
+clock, the hourly cleanup, Web Push delivery, a failed password reset mail)
+are written to the console as before and also stored in the database. So
+are script errors, unhandled rejections and failed API calls in the
+browsers of signed-in players (at most 20 a minute and 200 a day per
+player; equal errors are counted, not repeated) and the problem reports
+players send from „Hilfe & Optionen“ or from an error message (at most 5 an
+hour). Before a text is stored, values of secret-looking fields, email
+addresses, long tokens and six-digit codes are replaced; request bodies are
+never stored. The admin tab „Fehler“ lists them and downloads a ZIP with
+`errors.jsonl`, `reports.jsonl` and `audit.jsonl` for a time range (default:
+the last 7 days); the file contains player names and its download is
+recorded in the audit log. The entries are kept for 30 days like the audit
+log. A failing write of the error log shows up in the console as
+`Error log write failed`.
+
 The login screen's “Login auf diesem Gerät speichern” option makes the session
 cookie persistent for the configured session lifetime after authentication.
 Without it, the browser receives a session cookie. Signing out or starting a

@@ -12,6 +12,7 @@ import { Worker } from 'node:worker_threads';
 import { purgeAudit } from './audit.ts';
 import type { Config } from './config.ts';
 import { openDatabase } from './db/database.ts';
+import { noteServerError } from './error-log.ts';
 import { Store } from './db/store.ts';
 import { tick } from './game/arrival.ts';
 import { type Ctx, createCtx } from './game/context.ts';
@@ -54,23 +55,75 @@ export function databaseFile(cfg: Config): string {
   return path.join(cfg.dataDir, DB_FILE);
 }
 
-function startGameClock(
+type Log = NonNullable<StartOptions['log']>;
+
+/**
+ * Logs a failed background job as before and records it in the error log
+ * (issue #126); `action` names the job.
+ */
+export function jobFailure(
+  ctx: Ctx,
+  log: Log,
+  action: string,
+  version: string | null = null,
+): (msg: string, e: unknown) => void {
+  return (msg, error) => {
+    log(msg, error);
+    noteServerError(ctx, { action, error, context: msg, version }, log);
+  };
+}
+
+/** One beat of the game clock: lands due fleets, records what fails. */
+export function clockBeat(ctx: Ctx, log: Log, version: string | null): void {
+  try {
+    tick(ctx, jobFailure(ctx, log, 'arrival', version));
+  } catch (e) {
+    jobFailure(ctx, log, 'tick', version)('Tick failed', e);
+  }
+}
+
+/** The hourly cleanup: sessions, audit and error log, the app's limits. */
+export function hourlySweep(
   ctx: Ctx,
   sweepApp: () => void,
-  log: NonNullable<StartOptions['log']>,
-): () => void {
-  const clock = setInterval(() => {
-    try {
-      tick(ctx, log);
-    } catch (e) {
-      log('Tick failed', e);
-    }
-  }, TICK_MS);
-  const sweep = setInterval(() => {
+  log: Log,
+  version: string | null,
+): void {
+  try {
     ctx.store.purgeSessions(ctx.now());
     purgeAudit(ctx);
     sweepApp();
-  }, SWEEP_MS);
+  } catch (e) {
+    jobFailure(ctx, log, 'sweep', version)('Sweep failed', e);
+  }
+}
+
+/**
+ * A failed Web Push delivery: the console keeps its short line, because push
+ * errors can name endpoints; the error log gets the scrubbed error.
+ */
+export function pushFailure(
+  ctx: Ctx,
+  log: Log,
+  version: string | null,
+): (error: unknown) => void {
+  return (error) => {
+    log('Web Push delivery failed');
+    noteServerError(ctx, { action: 'push', error, version }, log);
+  };
+}
+
+function startGameClock(
+  ctx: Ctx,
+  sweepApp: () => void,
+  log: Log,
+  version: string | null,
+): () => void {
+  const clock = setInterval(() => clockBeat(ctx, log, version), TICK_MS);
+  const sweep = setInterval(
+    () => hourlySweep(ctx, sweepApp, log, version),
+    SWEEP_MS,
+  );
   return () => {
     clearInterval(clock);
     clearInterval(sweep);
@@ -181,11 +234,13 @@ function openGame(
     news,
   });
   const stopPush = o.cfg.webPush
-    ? startPushDelivery(ctx, o.cfg.publicUrl, () =>
-        log('Web Push delivery failed'),
+    ? startPushDelivery(
+        ctx,
+        o.cfg.publicUrl,
+        pushFailure(ctx, log, news.version),
       )
     : null;
-  const stopClock = startGameClock(ctx, app.sweep, log);
+  const stopClock = startGameClock(ctx, app.sweep, log, news.version);
   return {
     ctx,
     handle: (req: IncomingMessage, res: ServerResponse): void =>

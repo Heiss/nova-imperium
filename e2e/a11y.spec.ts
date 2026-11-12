@@ -103,4 +103,36 @@ test.describe('accessibility (axe)', () => {
     }
     expect(found).toEqual([]);
   });
+
+  test('the tab „Fehler“ and the dialog „Problem melden“ have no violations (#126)', async ({
+    page,
+  }) => {
+    const name = uniqueName('AxeErr');
+    await register(page, name);
+    cli('admin', name);
+    seed({ name, serverError: 'Axe-Testfehler' });
+    await page.reload();
+    const found: string[] = [];
+    await nav(page, 'admin');
+    await page.getByRole('tab', { name: 'Fehler' }).click();
+    const row = page.getByRole('row', { name: /Axe-Testfehler/ });
+    await row.getByText(/^Eintrag \d+$/).click();
+    await expect(row.locator('pre')).toBeVisible();
+    found.push(...(await violations(page)).map((v) => `errors: ${v}`));
+    await nav(page, 'buildings');
+    await page.route(
+      '**/api/action',
+      (route) =>
+        route.fulfill({ status: 500, json: { error: 'Serverfehler.' } }),
+      { times: 1 },
+    );
+    await page.click('[data-act=build][data-k=metal]');
+    const offer = page.getByRole('button', { name: 'Problem melden' });
+    await expect(offer).toBeVisible();
+    found.push(...(await violations(page)).map((v) => `toast: ${v}`));
+    await offer.click();
+    await expect(page.locator('#reportform-dialog')).toBeVisible();
+    found.push(...(await violations(page)).map((v) => `dialog: ${v}`));
+    expect(found).toEqual([]);
+  });
 });
