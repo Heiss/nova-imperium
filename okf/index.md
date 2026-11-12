@@ -20,6 +20,7 @@ okf_version: "0.2"
 * [Interface v2 and planet types](/features/interface.md) - icon set, phone navigation, animated planets, planet type rule
 * [Requirements list](/features/requirements.md) - all unmet requirements, startable ones with a button
 * [Nanitenfabrik](/features/nanite-factory.md) - halves building and shipyard times, shared shipyard lock
+* [Grimdark naming](/features/naming.md) - rename of all display names at the end of the release, decided and proposed names
 * [Changelog in the game](/features/changelog.md) - „Neuigkeiten“, update message and hint from CHANGELOG.md
 
 * [Invitations](/features/invitations.md) - registration only by invitation, mail or copied link
