@@ -60,6 +60,15 @@ const entries = Object.entries(CATALOG).flatMap(([part, defs]) =>
   ),
 );
 
+/**
+ * Limits of a long text ([V], owner, 2026-11-12: „präzise, aber nicht
+ * ausufernd“): the lore one sentence, the mechanics at most three, all of it
+ * at most about 350 characters.
+ */
+const MAX_SENTENCES = 3;
+const MAX_LENGTH = 350;
+const sentences = (text: string): number => text.split(/(?<=[.!?])\s+/).length;
+
 describe('long texts of the catalog (#94)', () => {
   it('cover every entry on main but the ones listed for later', () => {
     const missing = entries
@@ -90,10 +99,10 @@ describe('long texts of the catalog (#94)', () => {
       const parts = def.lt!.split('\n\n');
       expect(parts, key).toHaveLength(2);
       const [lore, how] = parts as [string, string];
-      const sentences = lore.split(/(?<=[.!?])\s+/);
-      expect(sentences.length, key).toBeGreaterThanOrEqual(1);
-      expect(sentences.length, key).toBeLessThanOrEqual(2);
+      expect(sentences(lore), key).toBe(1);
       expect(how.startsWith('So funktioniert es: '), key).toBe(true);
+      expect(sentences(how), key).toBeLessThanOrEqual(MAX_SENTENCES);
+      expect(def.lt!.length, key).toBeLessThanOrEqual(MAX_LENGTH);
       for (const part of parts) {
         expect(part, key).toMatch(/^[A-ZÄÖÜ].*[.!?]$/su);
         expect(part, key).not.toMatch(/[<>\n]|\s{2}/);

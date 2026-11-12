@@ -10,8 +10,9 @@ Issue #63, milestone `next release` (owner, 2026-11-12). The content rule of
 the issue (lore, what it does, what a further level or more units change) is
 replaced ([E], owner, 2026-11-12): two paragraphs, one or two sentences of
 lore, then „So funktioniert es:“ with the mechanics precisely in words, no
-numbers and no formulas; statements must match the code (see
-[Grimdark naming](/features/naming.md)).
+numbers and no formulas; statements must match the code. Short and precise
+([V]): the lore one sentence, the mechanics at most three, at most about 350
+characters (see [Grimdark naming](/features/naming.md)).
 
 * **[E]** Display option „Immer anzeigen“ / „(?)-Symbol“ / „Ausblenden“ is
   stored on the server per player, a new column like `probes`, with a

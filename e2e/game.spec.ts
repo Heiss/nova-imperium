@@ -1405,6 +1405,10 @@ test.describe('playing', () => {
     };
     seed({ ...base, b: { robot: 2, yard: 12, lab: 7 }, colony: {} });
     await page.goto('/?view=shipyard');
+    // Read the order only once the list is rendered (it was flaky before).
+    await expect(
+      page.locator('.item .nm', { hasText: /^\s*Weltenbrecher/ }),
+    ).toBeVisible();
     const names = (await page.locator('.item .nm').allTextContents()).map((t) =>
       t.trim(),
     );

@@ -236,14 +236,21 @@ the names:
 * **[E]** The short `ds` stays a short, cost-free one-liner.
 * **[E]** The panel shows the two paragraphs as two escaped `<p>`, split at
   the blank line (`paragraphs()` in `src/client/logic/explain.ts`).
+* **[V]** Short and precise, not sprawling (owner, 2026-11-12): the lore
+  exactly one sentence, the mechanics at most three sentences with only
+  what a player needs to decide (what it affects and where, what a level
+  changes, rapid fire in both directions, locks, once per planet), at most
+  about 350 characters in all. Prerequisites are listed only where they
+  are the point (Warp-Theorie, Lichtlanzen-, Ionen- and Plasma-Lehre,
+  Gravitonen-Mysterium); „Eine Flotte fliegt so schnell wie ihr langsamstes
+  Schiff“ only in the drive texts.
 * **[V]** All 48 texts are drafts for the owner: the field `lt` of each
-  entry in `src/shared/catalog.ts`. The 43 texts confirmed earlier were
-  written again under the new rule.
-* Rapid fire is called „Schnellfeuer“ and explained once per text („nach
-  einem Schuss … mit einer gewissen Chance sofort erneut feuern“); the
-  rebuilt defense is „ein großer Teil“, by chance for a few.
+  entry in `src/shared/catalog.ts`, written again under these limits.
+* Rapid fire is called „Schnellfeuer“ (explained once, in the Frachtläufer
+  text); the rebuilt defense is „ein großer Teil“, for a dome „oft“.
 * `src/shared/explain.test.ts` checks: every entry has a text (the list
   `LATER` is empty and may only shrink); exactly two paragraphs, the lore
-  of one or two sentences, the second starting with „So funktioniert es:“;
-  no digit; plain text, other than `ds`; no classic name of this concept;
-  no protected Games Workshop name.
+  one sentence, the second starting with „So funktioniert es:“ and at most
+  three sentences, at most 350 characters; no digit; plain text, other
+  than `ds`; no classic name of this concept; no protected Games Workshop
+  name.
