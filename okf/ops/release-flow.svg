@@ -1,0 +1,149 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 700" width="960" height="700" font-family="Helvetica, Arial, sans-serif" font-size="13">
+  <title>Nova Imperium: release flow with a release pull request (owner, 2026-11-12)</title>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#444"/>
+    </marker>
+    <style>
+      .box { fill: #ffffff; stroke: #444; stroke-width: 1.4; rx: 8; }
+      .dev { fill: #eef4ff; stroke: #3b6fd4; }
+      .rel { fill: #fff6e6; stroke: #d48a1e; }
+      .pub { fill: #eaf7ee; stroke: #2f8f4e; }
+      .fix { fill: #fdecec; stroke: #c43c3c; }
+      .lane { fill: none; stroke: #bbb; stroke-dasharray: 5 4; }
+      .head { font-weight: bold; font-size: 14px; }
+      .small { font-size: 11.5px; fill: #333; }
+      .lanelabel { font-size: 12px; fill: #777; font-weight: bold; letter-spacing: 1px; }
+      .flow { stroke: #444; stroke-width: 1.6; fill: none; marker-end: url(#arrow); }
+      .hot { stroke: #c43c3c; stroke-width: 1.6; fill: none; marker-end: url(#arrow); stroke-dasharray: 6 4; }
+    </style>
+  </defs>
+  <rect width="960" height="700" fill="#ffffff"/>
+
+  <!-- Lanes -->
+  <rect class="lane" x="10" y="10" width="940" height="200" rx="10"/>
+  <text class="lanelabel" text-anchor="end" x="938" y="30">1  EVERY PULL REQUEST</text>
+  <rect class="lane" x="10" y="222" width="940" height="200" rx="10"/>
+  <text class="lanelabel" text-anchor="end" x="938" y="242">2  RELEASE PULL REQUEST (THE BUTTON)</text>
+  <rect class="lane" x="10" y="434" width="940" height="120" rx="10"/>
+  <text class="lanelabel" text-anchor="end" x="938" y="454">3  PUBLISH AND ROLL OUT</text>
+  <rect class="lane" x="10" y="566" width="940" height="124" rx="10"/>
+  <text class="lanelabel" text-anchor="end" x="938" y="586">HOTFIX (ONLY WHEN MAIN HOLDS UNRELEASED WORK)</text>
+
+  <!-- Lane 1 -->
+  <rect class="box dev" x="24" y="44" width="190" height="150" rx="8"/>
+  <text class="head" x="36" y="66">Issue</text>
+  <text class="small" x="36" y="88">classified at the start</text>
+  <text class="small" x="36" y="104">of a cycle: milestone</text>
+  <text class="small" x="36" y="120">„next release“ or later</text>
+  <text class="small" x="36" y="144">Only its pull requests</text>
+  <text class="small" x="36" y="160">are merged: merge =</text>
+  <text class="small" x="36" y="176">part of the next release</text>
+
+  <rect class="box dev" x="246" y="44" width="220" height="150" rx="8"/>
+  <text class="head" x="258" y="66">Short-lived branch + PR</text>
+  <text class="small" x="258" y="88">code, tests, docs</text>
+  <text class="small" x="258" y="110">changes/&lt;name&gt;.md (German,</text>
+  <text class="small" x="258" y="126">art: neu / geändert / behoben),</text>
+  <text class="small" x="258" y="142">or label „kein-changelog“</text>
+  <text class="small" x="258" y="166">Claude writes and reviews</text>
+  <text class="small" x="258" y="182">the text</text>
+
+  <rect class="box dev" x="498" y="44" width="230" height="150" rx="8"/>
+  <text class="head" x="510" y="66">CI Gate of the PR</text>
+  <text class="small" x="510" y="88">lint, types, unit, E2E, CodeQL,</text>
+  <text class="small" x="510" y="104">mutation (incremental, floors)</text>
+  <text class="small" x="510" y="120">Changelog fragments check</text>
+  <text class="small" x="510" y="144">Docker image, Trivy, Compose,</text>
+  <text class="small" x="510" y="160">upgrade test: only when build,</text>
+  <text class="small" x="510" y="176">start or upgrade files change</text>
+
+  <rect class="box dev" x="760" y="44" width="176" height="150" rx="8"/>
+  <text class="head" x="772" y="66">Squash merge</text>
+  <text class="small" x="772" y="88">into main after a green</text>
+  <text class="small" x="772" y="104">CI Gate and CodeRabbit</text>
+  <text class="small" x="772" y="120">(O4)</text>
+  <text class="small" x="772" y="144">No tag, no image:</text>
+  <text class="small" x="772" y="160">main only collects</text>
+
+  <path class="flow" d="M214,119 H244"/>
+  <path class="flow" d="M466,119 H496"/>
+  <path class="flow" d="M728,119 H758"/>
+
+  <!-- Lane 2 -->
+  <rect class="box rel" x="24" y="256" width="270" height="150" rx="8"/>
+  <text class="head" x="36" y="278">Workflow „Release pull request“</text>
+  <text class="small" x="36" y="300">after every push to main:</text>
+  <text class="small" x="36" y="316">rebuilds release/main from main</text>
+  <text class="small" x="36" y="340">changes/* → CHANGELOG.md section</text>
+  <text class="small" x="36" y="356">VERSION = next CalVer (26.11.19)</text>
+  <text class="small" x="36" y="372">PR list since the last tag</text>
+  <text class="small" x="36" y="396">nothing new → PR closed</text>
+
+  <rect class="box rel" x="326" y="256" width="300" height="150" rx="8"/>
+  <text class="head" x="338" y="278">Release PR „Release 26.11.19“</text>
+  <text class="small" x="338" y="300">runs everything: complete mutation run,</text>
+  <text class="small" x="338" y="316">image, Trivy, Compose, upgrade with real</text>
+  <text class="small" x="338" y="332">data, smoke test; SBOM (issue #83)</text>
+  <text class="small" x="338" y="356">texts checked again: German, match</text>
+  <text class="small" x="338" y="372">their PRs (Claude + CodeRabbit)</text>
+  <text class="small" x="338" y="396">stays open while work is merged</text>
+
+  <rect class="box rel" x="658" y="256" width="278" height="150" rx="8"/>
+  <text class="head" x="670" y="278">Merge = release</text>
+  <text class="small" x="670" y="300">the owner decides when enough</text>
+  <text class="small" x="670" y="316">is in it</text>
+  <text class="small" x="670" y="340">CI push run on main, then</text>
+  <text class="small" x="670" y="356">tag.yml tags the commit with the</text>
+  <text class="small" x="670" y="372">version in VERSION (only commits</text>
+  <text class="small" x="670" y="388">that change VERSION are tagged)</text>
+
+  <path class="flow" d="M848,194 V214 H159 V254"/>
+  <path class="flow" d="M294,331 H324"/>
+  <path class="flow" d="M626,331 H656"/>
+
+  <!-- Lane 3 -->
+  <rect class="box pub" x="24" y="468" width="300" height="72" rx="8"/>
+  <text class="head" x="36" y="490">release.yml</text>
+  <text class="small" x="36" y="510">image ghcr.io/heiss/nova-imperium:26.11.19</text>
+  <text class="small" x="36" y="526">GitHub release, notes = CHANGELOG section</text>
+
+  <rect class="box pub" x="356" y="468" width="260" height="72" rx="8"/>
+  <text class="head" x="368" y="490">Operator rolls out</text>
+  <text class="small" x="368" y="510">NOVA_VERSION in .env, any release,</text>
+  <text class="small" x="368" y="526">skipping some is fine</text>
+
+  <rect class="box pub" x="648" y="468" width="288" height="72" rx="8"/>
+  <text class="head" x="660" y="490">Game (issue #81)</text>
+  <text class="small" x="660" y="510">„Neuigkeiten“ with every version and date;</text>
+  <text class="small" x="660" y="526">update message with the first three entries</text>
+
+  <path class="flow" d="M797,406 V426 H174 V466"/>
+  <path class="flow" d="M324,504 H354"/>
+  <path class="flow" d="M616,504 H646"/>
+
+  <!-- Hotfix lane -->
+  <rect class="box fix" x="24" y="600" width="210" height="76" rx="8"/>
+  <text class="head" x="36" y="622">hotfix/26.11.20</text>
+  <text class="small" x="36" y="642">branch from the last release</text>
+  <text class="small" x="36" y="658">tag, e.g. 26.11.19</text>
+
+  <rect class="box fix" x="266" y="600" width="200" height="76" rx="8"/>
+  <text class="head" x="278" y="622">Fix PR into hotfix/*</text>
+  <text class="small" x="278" y="642">with its fragment,</text>
+  <text class="small" x="278" y="658">same CI Gate</text>
+
+  <rect class="box fix" x="498" y="600" width="210" height="76" rx="8"/>
+  <text class="head" x="510" y="622">Release PR of hotfix/*</text>
+  <text class="small" x="510" y="642">same workflow, merge =</text>
+  <text class="small" x="510" y="658">tag + image</text>
+
+  <rect class="box fix" x="740" y="600" width="196" height="76" rx="8"/>
+  <text class="head" x="752" y="622">Merge back into main</text>
+  <text class="small" x="752" y="642">the existing tag is not</text>
+  <text class="small" x="752" y="658">tagged again</text>
+
+  <path class="hot" d="M234,638 H264"/>
+  <path class="hot" d="M466,638 H496"/>
+  <path class="hot" d="M708,638 H738"/>
+</svg>

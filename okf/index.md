@@ -20,6 +20,7 @@ okf_version: "0.2"
 * [Interface v2 and planet types](/features/interface.md) - icon set, phone navigation, animated planets, planet type rule
 * [Requirements list](/features/requirements.md) - all unmet requirements, startable ones with a button
 * [Nanitenfabrik](/features/nanite-factory.md) - halves building and shipyard times, shared shipyard lock
+* [Changelog in the game](/features/changelog.md) - „Neuigkeiten“, update message and hint from CHANGELOG.md
 
 * [Invitations](/features/invitations.md) - registration only by invitation, mail or copied link
 * [Admin](/features/admin.md) - operator roles, diagnostics, audit log, moderation and live universe settings
@@ -33,7 +34,7 @@ okf_version: "0.2"
 
 * [Test strategy](/ops/testing.md) - unit, equivalence, E2E, accessibility, mutation, gates
 * [Configuration](/ops/config.md) - environment variables, secret files, fail closed
-* [Branching and release](/ops/branching-release.md) - pull requests, CI Gate, CalVer tags, Renovate
+* [Branching and release](/ops/branching-release.md) - pull requests with changelog fragments, CI Gate, release pull request, CalVer tags, hotfixes, Renovate
 * [Languages](/ops/language.md) - development in English, game interface in German
 * [Defaults stay inside](/ops/defaults.md) - a fresh instance is closed and talks to nobody
 

@@ -1,19 +1,26 @@
-name: Tag tested main
+name: Tag a merged release
 
+# A merged release pull request changes VERSION; after its successful CI push
+# run, scripts/release.sh tags that commit with the version (owner,
+# 2026-11-12). Every other push is not tagged.
 on:
-  # Safe here: runs only after a successful CI push run on main of this
-  # repository and checks out main, never code of a pull request.
+  # Safe here: runs only after a successful CI push run on main or hotfix/*
+  # of this repository and checks out that branch, never pull request code.
   workflow_run: # zizmor: ignore[dangerous-triggers]
     workflows: [CI]
-    branches: [main]
+    branches: [main, 'hotfix/**']
     types: [completed]
 
 permissions:
   contents: read
   actions: read
 
+# One group per commit: a single shared group keeps only one pending run, so
+# a release commit waiting behind another run could be dropped by the run of
+# a later commit. Different commits never compete for the same tag; a taken
+# version fails scripts/release.sh loudly.
 concurrency:
-  group: tag-tested-main
+  group: tag-${{ github.event.workflow_run.head_sha }}
   cancel-in-progress: false
 
 jobs:
@@ -23,6 +30,10 @@ jobs:
       github.event.workflow_run.event == 'push' &&
       github.event.workflow_run.head_repository.full_name == github.repository &&
       vars.RELEASE_APP_ID != ''
+    # The key is an environment secret: only jobs on main and hotfix/**, which
+    # change only through pull requests with a green CI Gate, receive it
+    # (owner, 2026-11-12; CodeRabbit security finding on pull request #84).
+    environment: release
     runs-on: ubuntu-latest
     steps:
       - uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3
@@ -34,11 +45,13 @@ jobs:
       # Keeps the credentials: scripts/release.sh pushes the tag.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          ref: main
+          ref: ${{ github.event.workflow_run.head_branch }}
+          fetch-depth: 0
           token: ${{ steps.app.outputs.token }} # zizmor: ignore[artipacked]
-      - name: Tag the tested commit if it is still main
+      - name: Tag the release if this commit changed VERSION
         env:
           NOVA_RELEASE_EXPECTED_SHA: ${{ github.event.workflow_run.head_sha }}
+          NOVA_RELEASE_BRANCH: ${{ github.event.workflow_run.head_branch }}
           NOVA_RELEASE_CI_TOKEN: ${{ github.token }}
         run: |
           git config user.name 'Nova Imperium Release'

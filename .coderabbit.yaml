@@ -47,6 +47,18 @@ reviews:
       instructions: >-
         Actions pinned to commit hashes, least permissions, no persisted
         credentials unless the job pushes.
+    - path: 'changes/**'
+      instructions: >-
+        Changelog fragments for players (changes/README.md): German, written
+        for players, one change per file, front matter "art" is neu,
+        geändert or behoben, at most 300 characters, no headings. Check that
+        the text matches what the pull request really changes, and that it
+        reveals no internals, secrets or hidden game mechanics.
+    - path: 'CHANGELOG.md'
+      instructions: >-
+        Written by the release pull request from changes/. German, for
+        players. Check that every entry still matches its pull request and
+        that the sections are complete; never edited by hand otherwise.
     - path: 'okf/**'
       instructions: >-
         OKF bundle of decisions. Check that markers (E, V, U) and links are
