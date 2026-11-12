@@ -80,15 +80,28 @@ describe('scrub', () => {
     );
     expect(scrub('11111111111111111111')).toBe('11111111111111111111');
     expect(scrub(`${ID}0`)).toBe('[token]');
+    expect(scrub(`0${ID}`)).toBe('[token]');
   });
 
   it('removes six-digit codes, not stack positions or longer numbers', () => {
     expect(scrub('Dein Code 123456.')).toBe('Dein Code [code].');
+    // A code before a colon is still a code (CodeRabbit on #128).
+    expect(scrub('123456: it failed')).toBe('[code]: it failed');
     expect(scrub('(app.js:1:123456)')).toBe('(app.js:1:123456)');
-    expect(scrub('at 1.123456 and 123456:7 and x123456')).toBe(
-      'at 1.123456 and 123456:7 and x123456',
+    expect(scrub('at file.ts:123456:7')).toBe('at file.ts:123456:7');
+    expect(scrub('at 1.123456 and x123456 and 123456x')).toBe(
+      'at 1.123456 and x123456 and 123456x',
     );
     expect(scrub('1234567 12345')).toBe('1234567 12345');
+  });
+
+  it('removes values after short and German password names (#128)', () => {
+    expect(scrub('pw=secret1 and pwd: x')).toBe(
+      'pw=[redacted] and pwd: [redacted]',
+    );
+    expect(scrub('passwd=a kennwort=b Kennwort: c')).toBe(
+      'passwd=[redacted] kennwort=[redacted] Kennwort: [redacted]',
+    );
   });
 });
 
@@ -171,6 +184,24 @@ describe('server errors', () => {
         version: '',
       },
       { action: 'tick', message: 'Error: no stack', detail: '' },
+    ]);
+  });
+
+  it('takes only a request ID that is exactly a UUID string', () => {
+    const ctx = testCtx();
+    const ids = [ID, `x${ID}`, `${ID}x`, [ID], { toString: () => ID }];
+    for (const requestId of ids)
+      recordServerError(ctx, {
+        action: 'x',
+        error: 'y',
+        requestId: requestId as string,
+      });
+    expect(rows(ctx).map((r) => r.request_id)).toEqual([
+      ID,
+      null,
+      null,
+      null,
+      null,
     ]);
   });
 
@@ -382,6 +413,10 @@ describe('the admin list', () => {
       limit: 25,
     });
     expect(errorPage(ctx, { kind: 'nonsense' }).filter.kind).toBe('');
+    expect(errorPage(ctx, { kind: 'client' }).result).toMatchObject({
+      count: 1,
+      errors: [{ kind: 'client' }],
+    });
   });
 
   it('pages a stable snapshot and clamps the page', () => {

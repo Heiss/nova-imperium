@@ -331,7 +331,8 @@ async function submitReport(id: string): Promise<void> {
   try {
     const j = await api('/api/report', Object.fromEntries(new FormData(form)));
     form.reset();
-    if (id === 'reportform-dialog') modal('');
+    // Close the dialog only if it is still this one, not one opened since.
+    if (id === 'reportform-dialog' && form.isConnected) modal('');
     toast(String(j.msg));
   } catch (e) {
     toast((e as Error).message, true);
@@ -377,6 +378,14 @@ function modal(html: string): void {
 
 class AuthError extends Error {}
 
+/** The session is gone (401): back to the login, then stop the caller. */
+function signedOut(error: unknown): never {
+  S = null;
+  ui.auth ??= 'login';
+  render(true);
+  throw new AuthError(String(error ?? 'Bitte einloggen.'));
+}
+
 async function api(
   url: string,
   body?: unknown,
@@ -391,12 +400,7 @@ async function api(
     unknown
   >;
   stopOnMaintenance(r, j);
-  if (r.status === 401) {
-    S = null;
-    ui.auth ??= 'login';
-    render(true);
-    throw new AuthError(String(j.error ?? 'Bitte einloggen.'));
-  }
+  if (r.status === 401) signedOut(j.error);
   if (isRetryableAction(r, j, retryBusy)) {
     await new Promise((resolve) => setTimeout(resolve, 300));
     return api(url, body, false);
@@ -687,7 +691,12 @@ function renderAdminPanel(target: HTMLElement, view: V): void {
     user: view.s.me.id,
     tab: 'events',
     panel,
-    errorPanel: mountAdminErrors(errors, api, downloadErrors, Date.now()),
+    errorPanel: mountAdminErrors(
+      errors,
+      api,
+      (body) => downloadErrors(body, signedOut),
+      Date.now(),
+    ),
   };
   openAdminTab('events');
 }

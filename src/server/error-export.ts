@@ -9,9 +9,13 @@ import { type Ctx, int } from './game/context.ts';
 
 const DEFAULT_DAYS = 7;
 
+/** Whether the request names a value; 0 is a value. */
+const given = (value: unknown): boolean =>
+  value !== undefined && value !== null;
+
 export function exportRange(body: Record<string, unknown>, now: number) {
-  const until = body.until ? int(body.until, 0, now) : now;
-  const since = body.since
+  const until = given(body.until) ? int(body.until, 0, now) : now;
+  const since = given(body.since)
     ? int(body.since, 0, until)
     : Math.max(0, until - DEFAULT_DAYS * DAY);
   return { since, until };

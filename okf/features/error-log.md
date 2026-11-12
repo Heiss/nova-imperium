@@ -55,11 +55,13 @@ them to Claude for analysis.
   browser 200, action 80 characters; report text 1,000 (owner, 2026-11-12).
 * **[E]** Scrubbing (`scrub` in `src/server/error-log.ts`) before storing,
   on every text including the report: the value after a name that hints at
-  a secret (`password`, `passwort`, `token`, `secret`, `session`, `cookie`,
-  `salt`, `hash`, `code`, `challenge`, `auth`, `email`), email addresses,
-  tokens (a run of 32 or more letters, digits, `-` and `_`, or of 20 or more
-  with both digits and letters; request IDs stay) and six-digit numbers
-  (login codes; not stack positions). Server errors keep only name, message
+  a secret (`password`, `passwort`, `passwd`, `pw`, `kennwort`, `token`,
+  `secret`, `session`, `cookie`, `salt`, `hash`, `code`, `challenge`,
+  `auth`, `email`; `pw`, `passwd` and `kennwort` added after the review of
+  #128), email addresses, tokens (a run of 32 or more letters, digits, `-`
+  and `_`, or of 20 or more with both digits and letters; request IDs stay)
+  and six-digit numbers (login codes, also before a colon; not stack
+  positions, which follow a colon). Server errors keep only name, message
   and stack of the exception; request bodies, headers and queries are never
   read into the log (owner, 2026-11-12).
 * **[E]** Deleting an account deletes its errors and reports (foreign key
@@ -80,6 +82,15 @@ them to Claude for analysis.
   (cross-site protection), not a link; the list of the tab is audited as
   the admin read `errors`, the download as `errorDownload` with range and
   counts (owner, 2026-11-12).
+* **[V]** „Default 7 days“ in the tab means 7 calendar days: „Zeitraum von“
+  is six days before today, „bis“ is today, each day whole (from 00:00 of
+  the first to the end of the last day, local time). A request without a
+  range takes the 7 × 24 hours before now; an explicit 0 counts as a value
+  (review of #128).
+* **[V]** A lost session (401) during the download goes back to the login
+  like every other call; a failure of an outdated list request is not
+  shown; a late answer to a report closes its dialog only if it is still
+  open (review of #128).
 
 # Code, interface and tests
 

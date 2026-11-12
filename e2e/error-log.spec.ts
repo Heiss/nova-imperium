@@ -16,9 +16,10 @@ const jsonLines = (data: Uint8Array | undefined): Record<string, unknown>[] =>
     .filter(Boolean)
     .map((line) => JSON.parse(line) as Record<string, unknown>);
 
-/** A date for <input type="date"> in the local time of the browser. */
-const dateValue = (time: number): string => {
+/** A date for <input type="date"> in local time, `back` calendar days ago. */
+const dateValue = (time: number, back = 0): string => {
   const d = new Date(time);
+  d.setDate(d.getDate() - back);
   const two = (n: number): string => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${two(d.getMonth() + 1)}-${two(d.getDate())}`;
 };
@@ -161,8 +162,9 @@ test.describe('error log and problem reports (#126)', () => {
     await tab.getByLabel('Anzahl je Seite').selectOption('25');
     await expect(tab.getByRole('row', { name: /Testfehler 0/ })).toBeVisible();
 
+    // 7 calendar days: today and the six before.
     await expect(tab.getByLabel('Zeitraum von')).toHaveValue(
-      dateValue(Date.now() - 7 * 86400000),
+      dateValue(Date.now(), 6),
     );
     await expect(tab.getByLabel('bis')).toHaveValue(dateValue(Date.now()));
     const files = await downloadZip(page, tab);
@@ -196,6 +198,81 @@ test.describe('error log and problem reports (#126)', () => {
       page.getByRole('row', { name: /admin.read \/ errorDownload/ }),
     ).toContainText(name);
     expect(w.problems).toEqual([]);
+  });
+
+  test('a late answer to a report closes no dialog opened since (#128)', async ({
+    page,
+  }) => {
+    await register(page, uniqueName('Spaet'));
+    await nav(page, 'buildings');
+    const dialog = await reportFromToast(page);
+    let release = (): void => {};
+    const held = new Promise<void>((resolve) => (release = resolve));
+    await page.route(
+      '**/api/report',
+      async (route) => {
+        await held;
+        await route.continue();
+      },
+      { times: 1 },
+    );
+    await dialog.getByLabel('Was ist passiert?').fill('Langsame Meldung.');
+    await dialog.getByRole('button', { name: 'Absenden' }).click();
+    await page.keyboard.press('Escape');
+    await expect(dialog).toHaveCount(0);
+    await nav(page, 'help');
+    await page.click('[data-act=deleteAccount]');
+    const other = page.locator('#deleteaccountform');
+    await expect(other).toBeVisible();
+    release();
+    await expect(page.locator('.toast').last()).toHaveText(THANKS);
+    await expect(other).toBeVisible();
+  });
+
+  test('a lost session during the download goes back to the login (#128)', async ({
+    page,
+  }) => {
+    const name = uniqueName('Abgelaufen');
+    await register(page, name);
+    const tab = await openErrorTab(page, name);
+    await page.route('**/api/admin/errors/download', (route) =>
+      route.fulfill({ status: 401, json: { error: 'Bitte einloggen.' } }),
+    );
+    await tab.getByRole('button', { name: 'Herunterladen' }).click();
+    await expect(page.locator('.auth .hd')).toHaveText('Login');
+  });
+
+  test('a failure of an outdated list request stays hidden (#128)', async ({
+    page,
+  }) => {
+    const name = uniqueName('Veraltet');
+    await register(page, name);
+    cli('admin', name);
+    await page.reload();
+    await nav(page, 'admin');
+    let first = true;
+    await page.route('**/api/admin/errors', async (route) => {
+      if (!first) return route.continue();
+      first = false;
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await route.fulfill({ status: 400, json: { error: 'Veraltet.' } });
+    });
+    const outdated = page.waitForResponse(
+      (r) => r.url().endsWith('/api/admin/errors') && r.status() === 400,
+    );
+    await page.getByRole('tab', { name: 'Fehler' }).click();
+    const tab = page.locator('#admin-errors');
+    await tab.getByLabel('Art').selectOption('report');
+    await expect(
+      tab.getByRole('group', { name: 'Fehlerseiten' }),
+    ).toBeVisible();
+    await outdated;
+    // Let the page handle the late answer before looking.
+    await page.evaluate(
+      () => new Promise((resolve) => setTimeout(resolve, 300)),
+    );
+    await expect(tab.locator('.notice')).toBeHidden();
+    await expect(tab.getByLabel('Art')).toHaveValue('report');
   });
 
   test('a player without admin rights has no tab „Fehler“', async ({

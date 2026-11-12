@@ -14,13 +14,14 @@ import { type Ctx, fail, int } from './game/context.ts';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 // A value after a name that hints at a secret: password=…, "token": "…".
 const SECRET_FIELD =
-  /(?<![\w-])([\w-]*(?:passwor[dt]|token|secret|session|cookie|salt|hash|code|challenge|auth|e-?mail)[\w-]*)(["']?\s*[:=]\s*)("[^"]*"|'[^']*'|[^\s,;&}"')\]]+)/gi;
+  /(?<![\w-])([\w-]*(?:passwor[dt]|passwd|pw|kennwort|token|secret|session|cookie|salt|hash|code|challenge|auth|e-?mail)[\w-]*)(["']?\s*[:=]\s*)("[^"]*"|'[^']*'|[^\s,;&}"')\]]+)/gi;
 const EMAIL =
   /(?<![^\s@<>()[\]"',;:/\\])[^\s@<>()[\]"',;:/\\]+@[^\s@<>()[\]"',;:/\\]+\.[^\s@<>()[\]"',;:/\\]+/g;
 // Starts only at the beginning of a run of token characters, so it stays linear.
 const WORD = /(?<![\w-])[\w-]{20,}/g;
-// Six digits on their own, like an email login code; not a column of a stack frame.
-const CODE = /(?<![\w:.])\d{6}(?![\w:])/g;
+// Six digits on their own, like an email login code; not a position of a
+// stack frame (`file.ts:123456:7`), which follows a colon.
+const CODE = /(?<![\w:.])\d{6}(?!\w)/g;
 // eslint-disable-next-line no-control-regex
 const CONTROL = /[\u0000-\u001f\u007f]+/g;
 // eslint-disable-next-line no-control-regex

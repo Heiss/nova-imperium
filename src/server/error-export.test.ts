@@ -18,6 +18,17 @@ describe('export range', () => {
       since: 43 * DAY,
       until: 50 * DAY,
     });
+    // An explicit 0 is a value, not a missing one (CodeRabbit on #128).
+    expect(exportRange({ since: 0 }, now)).toEqual({ since: 0, until: now });
+    expect(exportRange({ since: 0, until: 0 }, now)).toEqual({
+      since: 0,
+      until: 0,
+    });
+    expect(exportRange({ until: 0 }, now)).toEqual({ since: 0, until: 0 });
+    expect(exportRange({ since: null, until: null }, now)).toEqual({
+      since: 93 * DAY,
+      until: now,
+    });
     expect(exportRange({ since: 10, until: 20 }, now)).toEqual({
       since: 10,
       until: 20,

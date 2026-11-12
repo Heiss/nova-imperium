@@ -45,18 +45,21 @@ const PAGES = {
   items: 'Einträge',
 };
 
-const DAY = 86400000;
-/** A date for <input type="date"> in local time. */
-const dateValue = (time: number): string => {
+/** A date for <input type="date"> in local time, `back` calendar days ago. */
+const dateValue = (time: number, back = 0): string => {
   const d = new Date(time);
+  d.setDate(d.getDate() - back);
   const two = (n: number): string => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${two(d.getMonth() + 1)}-${two(d.getDate())}`;
 };
 
+// The last 7 calendar days: today and the six before, whole days, like the
+// server's default of 7 days (readFilter takes the start of the first and
+// the end of the last day).
 function template(now: number): string {
   return `
     <form id="errors-download" class="flex">
-      <label>Zeitraum von <input type="date" name="since" value="${dateValue(now - 7 * DAY)}" required></label>
+      <label>Zeitraum von <input type="date" name="since" value="${dateValue(now, 6)}" required></label>
       <label>bis <input type="date" name="until" value="${dateValue(now)}" required></label>
       <button type="submit">Herunterladen</button>
     </form>
@@ -97,8 +100,14 @@ function rows(errors: ErrorRow[]): string {
   );
 }
 
-/** Saves the ZIP the server answers with, under the name it gives. */
-export async function downloadErrors(body: object): Promise<void> {
+/**
+ * Saves the ZIP the server answers with, under the name it gives. A lost
+ * session (401) goes to `signedOut`, the same way as every other call.
+ */
+export async function downloadErrors(
+  body: object,
+  signedOut: (error: unknown) => never,
+): Promise<void> {
   const r = await fetch('/api/admin/errors/download', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
@@ -107,6 +116,7 @@ export async function downloadErrors(body: object): Promise<void> {
   });
   if (!r.ok) {
     const j = (await r.json().catch(() => ({}))) as { error?: string };
+    if (r.status === 401) signedOut(j.error);
     throw new Error(j.error ?? 'Der Download ist fehlgeschlagen.');
   }
   const header = r.headers.get('content-disposition') ?? '';
@@ -123,6 +133,31 @@ export async function downloadErrors(body: object): Promise<void> {
   setTimeout(() => URL.revokeObjectURL(url), 10000);
 }
 
+/** Loads a page of the list; only the newest request shows its result. */
+function listLoader(filter: HTMLFormElement, list: HTMLElement, api: Api) {
+  let before = 0;
+  let request = 0;
+  return async (page?: number): Promise<void> => {
+    const id = ++request;
+    if (page === undefined) before = 0;
+    let data: ErrorPage;
+    try {
+      data = (await api('/api/admin/errors', {
+        ...Object.fromEntries(new FormData(filter)),
+        page: page ?? 1,
+        before,
+      })) as unknown as ErrorPage;
+    } catch (error) {
+      // A newer list request owns the status; an old failure stays quiet.
+      if (id !== request) return;
+      throw error;
+    }
+    if (id !== request) return;
+    before = data.before;
+    list.innerHTML = pager(data, PAGES) + rows(data.errors);
+  };
+}
+
 export function mountAdminErrors(
   host: HTMLElement,
   api: Api,
@@ -134,20 +169,7 @@ export function mountAdminErrors(
   const range = host.querySelector<HTMLFormElement>('#errors-download')!;
   const status = host.querySelector<HTMLElement>('[role=status]')!;
   const list = host.querySelector<HTMLElement>('[data-errors-list]')!;
-  let before = 0;
-  let request = 0;
-  const load = async (page?: number): Promise<void> => {
-    const id = ++request;
-    if (page === undefined) before = 0;
-    const data = (await api('/api/admin/errors', {
-      ...Object.fromEntries(new FormData(filter)),
-      page: page ?? 1,
-      before,
-    })) as unknown as ErrorPage;
-    if (id !== request) return;
-    before = data.before;
-    list.innerHTML = pager(data, PAGES) + rows(data.errors);
-  };
+  const load = listLoader(filter, list, api);
   const run = async (work: () => Promise<void>): Promise<void> => {
     status.hidden = true;
     try {

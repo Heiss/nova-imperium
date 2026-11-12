@@ -37,7 +37,7 @@
     "src/server/db/store.ts": 98.99,
     "src/server/delete-account.ts": 100,
     "src/server/error-export.ts": 100,
-    "src/server/error-log.ts": 96.77,
+    "src/server/error-log.ts": 97.29,
     "src/server/game/achievements.ts": 88.34,
     "src/server/game/actions.ts": 95.18,
     "src/server/game/admin.ts": 72.22,
