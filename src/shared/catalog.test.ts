@@ -44,22 +44,26 @@ describe('catalog', () => {
   it('has Ionen-, Plasmatechnik, Gravitonforschung and IFN with the classic values (#49)', () => {
     expect(C.RES.ion).toMatchObject({
       n: 'Ionentechnik',
+      ab: 'Io',
       cost: [1000, 300, 100],
       req: { b: { lab: 4 }, r: { laser: 5, energy: 4 } },
     });
     expect(C.RES.plasma).toMatchObject({
       n: 'Plasmatechnik',
+      ab: 'Pl',
       cost: [2000, 4000, 1000],
       req: { b: { lab: 4 }, r: { energy: 8, laser: 10, ion: 5 } },
     });
     expect(C.RES.graviton).toMatchObject({
       n: 'Gravitonforschung',
+      ab: 'Gr',
       cost: [0, 0, 0],
       energy: { base: 300000, f: 3 },
       req: { b: { lab: 12 } },
     });
     expect(C.RES.ifn).toMatchObject({
       n: 'Intergalaktisches Forschungsnetzwerk',
+      ab: 'IF',
       cost: [240000, 400000, 160000],
       req: { b: { lab: 10 }, r: { computer: 8, hyper: 8 } },
     });
