@@ -121,5 +121,5 @@ Flotte kehrt heim.“, „Spionagebericht“ → „Auspex-Bericht“, „Trümm
 Later issues (#45, #51–#55), [V]: Bergungsbarke, Bergung, Weltenformer,
 Gartenwelt, Ozeanwelt, Dschungelwelt, Ödwelt, Wüstenwelt, Eiswelt, Gasriese,
 Mondfeste, Auspex-Phalanx, Warp-Tor, Raketenkrypta, Abfangrakete,
-Orbitalrakete, Gildenarsenal, Wacht halten, Belagerungsbomber, Jagdkreuzer,
+Orbitalrakete, Gildenarsenal, Wacht halten;
 Expeditionstechnik → Kreuzzugs-Kartografie (package order).
