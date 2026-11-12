@@ -40,7 +40,10 @@ they are (2026-11-12).
   `prod()`; without satellites the result is the one of version 1. `PRODUCERS`
   has `sat`, so its share is set like the Solarkraftwerk's. `rapid()` gives
   every ship but the probe and the satellite 5 against probe and satellite.
-  Debris only once #45 exists.
+  `settle()` (`src/shared/settle.ts`) splits production when the shipyard
+  finishes a satellite, so its energy counts from that moment; without
+  satellites in the queue the split is the one of version 1. Debris only once
+  #45 exists.
 * The interface: Werft „Solarsatellit“ with the icon of the interface v2 set
   and „Energie n je Satellit“ for the active planet, no cargo and speed;
   Rohstoffe a line „Solarsatelliten (n)“ with energy and share; Flotte does
