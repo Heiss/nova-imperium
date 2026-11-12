@@ -1,7 +1,9 @@
 name: Release
 
 # A tag like 26.11.0 (CalVer YY.M.MICRO, no "v") builds and publishes the image,
-# but only when CI already passed on main for the tagged commit.
+# but only when CI already passed on main or hotfix/* for the tagged commit.
+# Tags come from merged release pull requests (tag.yml); the release notes are
+# the German section of CHANGELOG.md.
 # "Run workflow" by hand builds the image without publishing (dry run).
 on:
   push:
@@ -42,16 +44,16 @@ jobs:
             echo "publish=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Require successful CI on main for the tagged commit
+      - name: Require successful CI on main or hotfix/* for the tagged commit
         if: steps.v.outputs.publish == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           commit=$(git rev-parse 'HEAD^{commit}')
           runs=$(gh api --jq '.total_count' \
-            "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?branch=main&event=push&head_sha=$commit&status=success&per_page=1")
+            "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?event=push&head_sha=$commit&status=success&per_page=1")
           if ! printf '%s\n' "$runs" | grep -Eq '^[1-9][0-9]*$'; then
-            echo "::error::No successful CI push run on main for $commit. Release blocked."
+            echo "::error::No successful CI push run for $commit. Release blocked."
             exit 1
           fi
 
@@ -79,9 +81,20 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        if: steps.v.outputs.publish == 'true'
+        with:
+          node-version-file: .node-version
+          # No cache in a workflow that publishes or pushes.
+          package-manager-cache: false
+
+      # The German section of CHANGELOG.md, then GitHub's list of the pull
+      # requests since the previous release.
       - name: GitHub release
         if: steps.v.outputs.publish == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ steps.v.outputs.tag }}
-        run: gh release create "$TAG" --verify-tag --title "$TAG" --generate-notes
+        run: |
+          node scripts/changelog.ts notes "$TAG" > notes.md
+          gh release create "$TAG" --verify-tag --title "$TAG" --notes-file notes.md --generate-notes

@@ -1,13 +1,16 @@
 name: CI
 
-# Every push to main runs the full suite. Documentation-only pull requests
-# can skip the heavier checks, except CodeQL, the Docker build and the
-# Compose tests.
+# Every push to main or hotfix/* runs the full suite. Pull requests run what
+# their changes need: documentation only skips the code checks; the Docker
+# image, Trivy and the Compose stack with the upgrade test run when the image
+# can change, and always in a release pull request (owner, 2026-11-12).
 # Only the gate job "CI Gate" is the required check of main.
 on:
   pull_request:
+    # labeled/unlabeled: the label "kein-changelog" changes the fragment check.
+    types: [opened, synchronize, reopened, labeled, unlabeled]
   push:
-    branches: [main]
+    branches: [main, 'hotfix/**']
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.event_name == 'push' && github.run_id || github.ref }}
@@ -23,6 +26,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       code: ${{ steps.diff.outputs.code }}
+      image: ${{ steps.diff.outputs.image }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         if: github.event_name == 'pull_request'
@@ -33,23 +37,56 @@ jobs:
         env:
           EVENT: ${{ github.event_name }}
           PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_REF: ${{ github.head_ref }}
           HEAD_SHA: ${{ github.sha }}
         run: |
           if [ "$EVENT" = "push" ] || [ -z "$PR_BASE" ]; then
             echo "code=true" >> "$GITHUB_OUTPUT"
+            echo "image=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           files=$(git diff --name-only "$PR_BASE" "$HEAD_SHA")
           code=false
+          image=false
+          # A release pull request runs everything.
+          case "$PR_HEAD_REF" in release/*) code=true; image=true ;; esac
           while IFS= read -r file; do
             case "$file" in
-              okf/*|docs/*) ;;
+              okf/*|docs/*|changes/*) ;;
               */*) code=true ;;
               *.md) ;;
               *) code=true ;;
             esac
+            # What can change the image, its start, the stack or the upgrade.
+            case "$file" in
+              Dockerfile|.dockerignore|compose*.yaml|docker/*|package.json|pnpm-lock.yaml|.node-version) image=true ;;
+              src/server/db/*|src/server/main.ts|src/server/server.ts|src/server/config.ts|src/server/cli.ts|src/server/maintenance.ts) image=true ;;
+              .github/workflows/ci.yml) image=true ;;
+            esac
           done <<< "$files"
           echo "code=$code" >> "$GITHUB_OUTPUT"
+          echo "image=$image" >> "$GITHUB_OUTPUT"
+
+  # Every pull request that changes the game brings a German changelog
+  # fragment in changes/, or carries the label "kein-changelog"; all
+  # fragments must be well-formed (scripts/changelog.ts).
+  fragments:
+    name: Changelog fragments
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version-file: .node-version
+      - name: A fragment for game changes, every fragment well-formed
+        env:
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
+        run: node scripts/changelog.ts check "$PR_BASE"
 
   check:
     name: Lint, types, unit tests with coverage, build
@@ -129,16 +166,21 @@ jobs:
             stryker-${{ github.ref }}-
             stryker-refs/heads/main-
       # Incremental on pull requests and on main: unchanged code keeps its
-      # cached result. The nightly run (mutation.yml) is always complete.
+      # cached result. A release pull request and the nightly run
+      # (mutation.yml) test every mutant.
       - name: Incremental run
+        if: ${{ !startsWith(github.head_ref, 'release/') }}
         run: pnpm test:mutation
+      - name: Complete run (release pull request)
+        if: startsWith(github.head_ref, 'release/')
+        run: pnpm test:mutation --force
       - name: No file below its floor (mutation-standard.json)
         run: node scripts/mutation-gate.ts
 
   compose:
     name: Docker image and Compose stack
     needs: changes
-    if: github.event_name == 'pull_request' || needs.changes.outputs.code == 'true'
+    if: needs.changes.outputs.image == 'true'
     runs-on: ubuntu-latest
     env:
       NOVA_VERSION: ci-${{ github.run_id }}-${{ github.run_attempt }}
@@ -238,7 +280,13 @@ jobs:
       - name: Released migrations are unchanged
         env:
           BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          CREATED: ${{ github.event.created }}
+          REF: ${{ github.ref }}
         run: |
+          # A new hotfix branch starts at a release tag: nothing to compare.
+          if [ "$CREATED" = "true" ] && [ "${REF#refs/heads/hotfix/}" != "$REF" ]; then
+            BASE=$(git rev-parse HEAD)
+          fi
           if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
             echo "::error::No base commit to compare the migrations with."
             exit 1
@@ -301,6 +349,7 @@ jobs:
         migrations,
         workflows,
         codeql,
+        fragments,
         check,
         e2e,
         mutation,
@@ -316,6 +365,8 @@ jobs:
           MIGRATIONS: ${{ needs.migrations.result }}
           WORKFLOWS: ${{ needs.workflows.result }}
           CODE: ${{ needs.changes.outputs.code }}
+          IMAGE: ${{ needs.changes.outputs.image }}
+          FRAGMENTS: ${{ needs.fragments.result }}
           CODEQL: ${{ needs.codeql.result }}
           CHECK: ${{ needs.check.result }}
           E2E: ${{ needs.e2e.result }}
@@ -336,9 +387,12 @@ jobs:
           require_success "Workflow lint" "$WORKFLOWS"
           require_success "CodeQL" "$CODEQL"
 
-          if [ "$EVENT" = "push" ] && [ "$CODE" != "true" ]; then
-            echo "::error::Pushes to main must run the full suite."
+          if [ "$EVENT" = "push" ] && { [ "$CODE" != "true" ] || [ "$IMAGE" != "true" ]; }; then
+            echo "::error::Pushes to main and hotfix/* must run the full suite."
             exit 1
+          fi
+          if [ "$EVENT" = "pull_request" ]; then
+            require_success "Changelog fragments" "$FRAGMENTS"
           fi
 
           case "$CODE" in
@@ -351,6 +405,8 @@ jobs:
             *) echo "::error::Missing or invalid change detection output: $CODE"; exit 1 ;;
           esac
 
-          if [ "$EVENT" = "pull_request" ] || [ "$CODE" = "true" ]; then
-            require_success "Docker image and Compose stack" "$COMPOSE"
-          fi
+          case "$IMAGE" in
+            true) require_success "Docker image and Compose stack" "$COMPOSE" ;;
+            false) echo "The image cannot change: no Docker build needed." ;;
+            *) echo "::error::Missing or invalid image detection output: $IMAGE"; exit 1 ;;
+          esac

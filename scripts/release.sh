@@ -1,4 +1,8 @@
 #!/bin/sh
+# Tags a release after a successful CI push run (called by tag.yml). Since
+# 2026-11-12 only a merged release pull request is a release: the tag is the
+# version in VERSION, and only a commit that changed VERSION is tagged.
+# NOVA_RELEASE_BRANCH is main, or hotfix/<name> for a hotfix.
 set -eu
 
 fail() {
@@ -14,12 +18,17 @@ case "$#:${1:-}" in
 esac
 
 [ -n "${NOVA_RELEASE_EXPECTED_SHA:-}" ] ||
-  fail 'Release tags are created by GitHub Actions after successful CI on main.'
+  fail 'Release tags are created by GitHub Actions after successful CI.'
+release_branch=${NOVA_RELEASE_BRANCH:-main}
+case "$release_branch" in
+  main|hotfix/*) ;;
+  *) fail "Releases come from main or hotfix/*, not $release_branch." ;;
+esac
 
 repo=Heiss/nova-imperium
 origin_pattern='^(https://github[.]com/|git@github[.]com:|ssh://git@github[.]com/)heiss/nova-imperium([.]git)?/?$'
 branch=$(git branch --show-current)
-[ "$branch" = main ] || fail 'Switch to main before creating a release.'
+[ "$branch" = "$release_branch" ] || fail "Switch to $release_branch before creating a release."
 changes=$(git status --porcelain)
 [ -z "$changes" ] || fail 'Commit or stash local changes before creating a release.'
 fetch_url=$(git remote get-url --all origin)
@@ -30,10 +39,15 @@ if ! printf '%s\n' "$fetch_url" "$push_url" |
   fail "Set origin to the canonical GitHub repository ($repo)."
 fi
 
-git fetch --tags origin main
+git fetch --tags origin "$release_branch"
 commit=$(git rev-parse 'FETCH_HEAD^{commit}')
 if [ "$commit" != "$NOVA_RELEASE_EXPECTED_SHA" ]; then
-  printf '%s\n' 'Main has moved since this CI run. Skipping the automatic tag.'
+  printf '%s\n' "$release_branch has moved since this CI run. Skipping the tag."
+  exit 0
+fi
+# Only the merge of a release pull request changes VERSION.
+if git diff --quiet "$commit^" "$commit" -- VERSION; then
+  printf '%s\n' 'VERSION is unchanged: no release pull request, no tag.'
   exit 0
 fi
 git merge-base --is-ancestor HEAD "$commit" ||
@@ -46,40 +60,25 @@ if [ -n "${NOVA_RELEASE_CI_TOKEN:-}" ]; then
   set -- --header "Authorization: Bearer $NOVA_RELEASE_CI_TOKEN"
 fi
 result=$(curl --fail --silent --show-error --max-time 15 "$@" \
-  "$api?branch=main&event=push&head_sha=$commit&status=success&per_page=1") ||
+  "$api?branch=$release_branch&event=push&head_sha=$commit&status=success&per_page=1") ||
   fail 'Could not check GitHub CI.'
 successful_runs='^[[:space:]]*\{[[:space:]]*"total_count"[[:space:]]*:[[:space:]]*[1-9][0-9]*[[:space:]]*,'
 short_commit=$(printf '%.7s' "$commit")
 printf '%s' "$result" | tr '\r\n' '  ' | grep -Eq "$successful_runs" ||
-  fail "Wait for successful CI on main at $short_commit. https://github.com/$repo/actions/workflows/ci.yml"
+  fail "Wait for successful CI on $release_branch at $short_commit. https://github.com/$repo/actions/workflows/ci.yml"
 
-calendar=$(TZ=Europe/Berlin date '+%y.%m')
-month=${calendar#*.}
-prefix="${calendar%.*}.${month#0}"
-tags=$(git tag --list --sort=-version:refname "$prefix.*")
-on_commit=$(git tag --points-at "$commit")
+tag=$(git show "$commit:VERSION" | tr -d '[:space:]')
+printf '%s' "$tag" | grep -Eq '^[0-9]{2}\.([1-9]|1[0-2])\.(0|[1-9][0-9]*)$' ||
+  fail "VERSION holds \"$tag\", not CalVer YY.M.MICRO."
 existing=''
-latest=''
-while IFS= read -r candidate; do
-  micro=${candidate#"$prefix."}
-  case "$micro" in
-    ''|*[!0-9]*|0?*) continue ;;
-  esac
-  [ -n "$latest" ] || latest=$micro
-  if printf '%s\n' "$on_commit" | grep -Fqx "$candidate"; then
-    existing=$candidate
-    break
+if git rev-parse -q --verify "refs/tags/$tag" > /dev/null; then
+  if [ "$(git rev-parse "$tag^{commit}")" = "$commit" ]; then
+    existing=$tag
+  else
+    # A hotfix merged back into main carries the hotfix's VERSION.
+    printf '%s\n' "$tag already exists on another commit: nothing to tag."
+    exit 0
   fi
-done <<TAGS
-$tags
-TAGS
-
-tag=$existing
-if [ -z "$tag" ]; then
-  [ "${#latest}" -lt 19 ] || fail 'The latest CalVer number is too large.'
-  next=0
-  if [ -n "$latest" ]; then next=$((latest + 1)); fi
-  tag="$prefix.$next"
 fi
 
 if "$dry_run"; then
@@ -87,7 +86,6 @@ if "$dry_run"; then
   exit 0
 fi
 
-git merge --ff-only "$commit"
 if [ -z "$existing" ]; then git tag -a "$tag" "$commit" -m "Release $tag"; fi
 git push origin "refs/tags/$tag" ||
   fail "Could not push $tag. Retry with: git push origin refs/tags/$tag"

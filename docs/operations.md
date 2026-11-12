@@ -102,19 +102,34 @@ docker compose start app
 
 Keep `.env` and `secrets/` in your own backup as well; they are not in Git.
 
-## Automatic releases
+## Releases
 
-Install the release GitHub App on this repository with Contents read and write.
-Set the Actions secret `RELEASE_APP_PRIVATE_KEY` to its PEM key, then set the
-Actions variable `RELEASE_APP_ID` to enable automatic tagging. The workflow
-runs after successful push CI on `main` and tags that exact commit if it is
-still the tip of `main`. A newer commit needs its own successful CI run.
-The App's tag push triggers the image release workflow, which independently
-verifies successful CI for that commit before building or publishing.
-Tags use `YY.M.MICRO` in Europe/Berlin, starting at 0 each month.
+A release is the merge of the release pull request „Release <version>“. The
+workflow „Release pull request“ keeps it up to date after every push to
+`main`: it bundles the German changelog fragments in `changes/` into
+`CHANGELOG.md`, sets the next version in `VERSION` and lists the pull
+requests since the last release. The release pull request runs every check
+(complete mutation run, image, Trivy, Compose stack, upgrade test). Merge it
+when enough is in it; after the CI push run, `tag.yml` tags the commit with
+the version in `VERSION`, and the tag publishes the image and a GitHub
+release with the changelog section as notes. Tags use `YY.M.MICRO` in
+Europe/Berlin, starting at 0 each month. Details and the flow diagram:
+`okf/ops/branching-release.md`.
 
-To restrict tag creation to the release App, grant only that App bypass access
-in the tag ruleset and activate the ruleset after verifying automatic tagging.
+Setup: install the release GitHub App on this repository with Contents and
+Pull requests read and write. Set the Actions secret
+`RELEASE_APP_PRIVATE_KEY` to its PEM key and the Actions variable
+`RELEASE_APP_ID`. Create the label `kein-changelog` for pull requests that
+players cannot notice. To restrict tag creation to the release App, grant
+only that App bypass access in the tag ruleset.
+
+Hotfix while `main` holds unreleased work: create `hotfix/<name>` from the
+last release tag, merge the fix into it through a pull request, merge its
+release pull request, then merge `hotfix/<name>` back into `main`.
+
+```bash
+git push origin 26.11.19:refs/heads/hotfix/26.11.20
+```
 
 ## Updates
 

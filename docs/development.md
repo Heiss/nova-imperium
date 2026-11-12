@@ -45,6 +45,7 @@ node scripts/mutation-gate.ts   # after Stryker: no file below its floor (--upda
 pnpm build && pnpm test:e2e   # Playwright, desktop and phone
 docker compose up -d --build && docker/smoke.sh   # the stack (after docker/init-env.sh --demo)
 node .github/scripts/migrations-gate.mjs origin/main   # released migrations unchanged
+node scripts/changelog.ts check origin/main             # a German changelog fragment for game changes
 ```
 
 A schema change is a new migration at the end of `src/server/db/schema.ts`;
@@ -59,3 +60,10 @@ test tells which ones. Reproduce a nightly failure with
 
 Write the test first. Tests check behavior, not markup; no test is skipped or
 disabled to make the CI green. Details: `okf/ops/testing.md`.
+
+## Changelog fragments
+
+A pull request that players can notice adds `changes/<name>.md` in German (see
+`changes/README.md`); the release pull request turns the fragments into
+`CHANGELOG.md`. Pull requests without a visible change carry the label
+`kein-changelog`.

@@ -1,5 +1,8 @@
 # Update log
 
+## 2026-11-12
+* **Update**: Releases only through the release pull request: every player-visible pull request brings a German fragment in `changes/`, the release pull request bundles them into `CHANGELOG.md` and `VERSION` and runs every check, its merge tags the release; hotfixes from `hotfix/*`; the Docker and Compose checks run on pull requests only when the image can change (see [Branching and release](/ops/branching-release.md), [Changelog in the game](/features/changelog.md)).
+
 ## 2026-11-11
 * **Update**: Maintenance mode (issue #80): 503 „Wartung“ while a migration runs, after a refused migration (no exit, no restart loop) and with `nova maintenance on`; Caddy shows a maintenance page when the game does not answer; the client shows a banner (see [SQLite storage](/data/sqlite.md)).
 * **Update**: Mutation standard per file: no file below its recorded floor, new files 80 %, new security files 90 %; security files aim for 90 %. Pushes to `main` run Stryker incrementally, the nightly run stays complete (see [Test strategy](/ops/testing.md)).

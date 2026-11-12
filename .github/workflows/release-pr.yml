@@ -1,0 +1,48 @@
+name: Release pull request
+
+# Keeps one pull request "Release <version>" open per branch to release (owner,
+# 2026-11-12): it bundles the fragments in changes/ into CHANGELOG.md and sets
+# VERSION. Merging it is the release button. See scripts/release-pr.sh and
+# okf/ops/branching-release.md.
+on:
+  push:
+    branches: [main, 'hotfix/**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-pr-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  release-pr:
+    name: Build the release pull request
+    # The release App's token, so that CI runs on the pull request (pull
+    # requests opened with GITHUB_TOKEN start no workflows).
+    if: vars.RELEASE_APP_ID != ''
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3
+        id: app
+        with:
+          app-id: ${{ vars.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+      # Keeps the credentials: scripts/release-pr.sh pushes release/<branch>.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          token: ${{ steps.app.outputs.token }} # zizmor: ignore[artipacked]
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version-file: .node-version
+          # No cache in a workflow that publishes or pushes.
+          package-manager-cache: false
+      - name: Build or close the release pull request
+        env:
+          BASE: ${{ github.ref_name }}
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+        run: sh scripts/release-pr.sh
