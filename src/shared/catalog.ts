@@ -69,7 +69,10 @@ export interface ShipDef extends UnitDefBase {
   drives?: DriveSwitch[];
 }
 
-export type DefenseDef = UnitDefBase;
+export interface DefenseDef extends UnitDefBase {
+  /** At most one per planet, the shield domes (#50, D3). */
+  once?: true;
+}
 export type UnitDef = ShipDef | DefenseDef;
 
 export const BUILD: Record<string, BuildingDef> = {
@@ -573,9 +576,44 @@ export const SHIPS: Record<string, ShipDef> = {
       { drive: 'hdrive', speed: 5000, from: { research: 'hdrive', level: 8 } },
     ],
     req: { b: { yard: 8 }, r: { impulse: 6, plasma: 5 } },
-    rf: { rl: 20, ll: 20, hl: 10 },
-    ds: 'Stark gegen Raketenwerfer und Lasergeschütze; fliegt ab Hyperraumantrieb 8 mit dem Hyperraumantrieb.',
+    rf: { rl: 20, ll: 20, hl: 10, ionc: 10 },
+    ds: 'Stark gegen Raketenwerfer, Laser- und Ionengeschütze; fliegt ab Hyperraumantrieb 8 mit dem Hyperraumantrieb.',
     lt: 'Der Belagerungsbomber trägt Plasmaladungen, die Verteidigungsstellungen in glühende Krater verwandeln. Er hat Schnellfeuer gegen Raketenbatterien, Lichtlanzen und Schwere Lichtlanzen. Er fliegt mit dem Plasma-Impulsantrieb, bis der Warp-Antrieb weit genug erforscht ist, und dann mit diesem.',
+  },
+  // Issue #60, classic values (owner, 2026-11-12). Its 1,250 against the probe
+  // and the Solarsatellit replace the general 5 of rapid() in battle.ts. None
+  // against the Plasmawerfer and the shield domes (#50).
+  dstar: {
+    n: 'Todesstern',
+    ab: 'TS',
+    cost: [5000000, 4000000, 1000000],
+    atk: 200000,
+    sh: 50000,
+    cargo: 1000000,
+    speed: 100,
+    fuel: 1,
+    drive: 'hdrive',
+    req: { b: { yard: 12 }, r: { hyper: 6, hdrive: 7, graviton: 1 } },
+    rf: {
+      probe: 1250,
+      sat: 1250,
+      colony: 250,
+      sc: 250,
+      lc: 250,
+      lf: 200,
+      hf: 100,
+      cr: 33,
+      bs: 30,
+      bb: 25,
+      bc: 15,
+      dr: 5,
+      rl: 200,
+      ll: 200,
+      hl: 100,
+      gauss: 50,
+      ionc: 100,
+    },
+    ds: 'Gewaltige Kampfstation; zerstört fast alles mit Schnellfeuer.',
   },
   probe: {
     n: 'Spionagesonde',
@@ -679,6 +717,46 @@ export const DEF: Record<string, DefenseDef> = {
       },
     },
     lt: 'Der Massebeschleuniger schleudert Adamantgeschosse mit solcher Wucht, dass selbst schwere Rümpfe bersten; er ist das Rückgrat jeder Planetenwehr gegen schwere Flotten. Nach einem Kampf wird ein großer Teil der zerstörten Anlagen wieder instand gesetzt.',
+  },
+  // Issue #50. Not in version 1; the classic values (owner, 2026-11-12).
+  // No unit has rapid fire against these four, and they have none.
+  ionc: {
+    n: 'Ionengeschütz',
+    ab: 'IG',
+    cost: [2000, 6000, 0],
+    atk: 150,
+    sh: 500,
+    req: { b: { yard: 4 }, r: { ion: 4 } },
+    ds: 'Geschütz mit starkem Schild, das viele Treffer einsteckt.',
+  },
+  pt: {
+    n: 'Plasmawerfer',
+    ab: 'PW',
+    cost: [50000, 50000, 30000],
+    atk: 3000,
+    sh: 300,
+    req: { b: { yard: 8 }, r: { plasma: 7 } },
+    ds: 'Die stärkste Waffe der Verteidigung: feuert Plasma mit gewaltiger Wucht.',
+  },
+  ssd: {
+    n: 'Kleine Schildkuppel',
+    ab: 'KSK',
+    cost: [10000, 10000, 0],
+    atk: 1,
+    sh: 2000,
+    req: { b: { yard: 1 }, r: { shield: 2 } },
+    once: true,
+    ds: 'Kuppel mit starkem Schild über dem Planeten; schwache Schüsse prallen ab. Nur eine pro Planet.',
+  },
+  lsd: {
+    n: 'Große Schildkuppel',
+    ab: 'GSK',
+    cost: [50000, 50000, 0],
+    atk: 1,
+    sh: 10000,
+    req: { b: { yard: 6 }, r: { shield: 6 } },
+    once: true,
+    ds: 'Die größere Kuppel mit fünffachem Schild; nur starke Schüsse dringen durch. Nur eine pro Planet.',
   },
 };
 

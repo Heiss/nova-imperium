@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { planet, U } from '../test/fixtures.ts';
-import { BUILD, RES, SHIPS } from './catalog.ts';
+import { BUILD, DEF, RES, SHIPS } from './catalog.ts';
 import {
   accrue,
   afford,
@@ -146,6 +146,47 @@ describe('requirements', () => {
       }),
     ).toEqual([]);
   });
+  it('name what the new defense needs (#50)', () => {
+    const cases: [string, number, string, number, string[]][] = [
+      [
+        'ionc',
+        4,
+        'ion',
+        4,
+        ['Raumschiffwerft (Stufe 4)', 'Ionentechnik (Stufe 4)'],
+      ],
+      [
+        'pt',
+        8,
+        'plasma',
+        7,
+        ['Raumschiffwerft (Stufe 8)', 'Plasmatechnik (Stufe 7)'],
+      ],
+      [
+        'ssd',
+        1,
+        'shield',
+        2,
+        ['Raumschiffwerft (Stufe 1)', 'Schildtechnik (Stufe 2)'],
+      ],
+      [
+        'lsd',
+        6,
+        'shield',
+        6,
+        ['Raumschiffwerft (Stufe 6)', 'Schildtechnik (Stufe 6)'],
+      ],
+    ];
+    for (const [k, yard, tech, level, missing] of cases) {
+      const d = DEF[k]!;
+      const below = { research: { [tech]: level - 1 } };
+      const enough = { research: { [tech]: level } };
+      expect(reqMissing(d, planet({ b: { yard: yard - 1 } }), below)).toEqual(
+        missing,
+      );
+      expect(reqMissing(d, planet({ b: { yard } }), enough)).toEqual([]);
+    }
+  });
 });
 
 describe('Bomber requirements', () => {
@@ -164,6 +205,33 @@ describe('Bomber requirements', () => {
         research: { impulse: 6, plasma: 5 },
       }),
     ).toEqual([]);
+  });
+});
+
+describe('Todesstern', () => {
+  it('names what the Todesstern needs (#60)', () => {
+    expect(
+      reqMissing(SHIPS.dstar!, planet({ b: { yard: 11 } }), {
+        research: { hyper: 5, hdrive: 6 },
+      }),
+    ).toEqual([
+      'Raumschiffwerft (Stufe 12)',
+      'Hyperraumtechnik (Stufe 6)',
+      'Hyperraumantrieb (Stufe 7)',
+      'Gravitonforschung (Stufe 1)',
+    ]);
+    expect(
+      reqMissing(SHIPS.dstar!, planet({ b: { yard: 12 } }), {
+        research: { hyper: 6, hdrive: 7, graviton: 1 },
+      }),
+    ).toEqual([]);
+  });
+  it('takes 9,000,000 / (2,500 × 13) hours, halved per Nanitenfabrik level (#60)', () => {
+    const at = (nanite: number) => planet({ b: { yard: 12, nanite } });
+    // 276.9 hours at speed 1, about 55 h 23 min at ×5.
+    expect(unitTime(SHIPS.dstar!, at(0), U)).toBe(199384616);
+    expect(unitTime(SHIPS.dstar!, at(1), U)).toBe(99692308);
+    expect(unitTime(SHIPS.dstar!, at(3), U)).toBe(24923077);
   });
 });
 

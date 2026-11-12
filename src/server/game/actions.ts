@@ -22,7 +22,12 @@ import {
   networkLab,
 } from '../../shared/research.ts';
 import { settle, settleR } from '../../shared/settle.ts';
-import { waitsForYard, YARD_LOCK, yardLockedBy } from '../../shared/yard.ts';
+import {
+  unitRoom,
+  waitsForYard,
+  YARD_LOCK,
+  yardLockedBy,
+} from '../../shared/yard.ts';
 import type { Cost, Planet, Queue, ResearchState } from '../../shared/types.ts';
 import type { AuditEntry } from '../audit.ts';
 import {
@@ -218,7 +223,10 @@ export const order: Action = (ctx, u, d, event) => {
   requireYard(p);
   if (reqMissing(def, p, researchOf(ctx, u)).length)
     fail('Voraussetzungen fehlen.');
-  const n = Math.min(int(d.n, 0, 1e9), maxAfford(p, def.cost));
+  const want = int(d.n, 0, 1e9);
+  if (want > unitRoom(p, k))
+    fail('Diese Schildkuppel gibt es nur einmal pro Planet.');
+  const n = Math.min(want, maxAfford(p, def.cost));
   if (n <= 0) fail('Nicht genug Rohstoffe.');
   if (p.sq.length >= MAX_SHIPYARD_ORDERS)
     fail('Die Bauliste der Werft ist voll.');

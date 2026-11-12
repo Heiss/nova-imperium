@@ -177,12 +177,28 @@ describe('points and state', () => {
     expect(pointsMap(ctx)).toEqual({ u_Anna: 295 });
   });
 
+  it('count the new defense by its cost (#50)', () => {
+    const ctx = testCtx();
+    addUser(ctx, 'Anna');
+    addPlanet(ctx, 'u_Anna', { def: { ionc: 3, pt: 1, ssd: 1, lsd: 1 } });
+    // ionc 3 × 8,000 + pt 130,000 + ssd 20,000 + lsd 100,000 = 274,000
+    expect(pointsMap(ctx)).toEqual({ u_Anna: 274 });
+  });
+
   it('count the Bomber by its cost (#57)', () => {
     const ctx = testCtx();
     addUser(ctx, 'Anna');
     addPlanet(ctx, 'u_Anna', { ships: { bb: 2, dr: 1 } });
     // bb 2 × 90,000 + dr 125,000 = 305,000
     expect(pointsMap(ctx)).toEqual({ u_Anna: 305 });
+  });
+
+  it('count the Todesstern by its cost (#60)', () => {
+    const ctx = testCtx();
+    addUser(ctx, 'Anna');
+    addPlanet(ctx, 'u_Anna', { ships: { dstar: 1, bb: 1 } });
+    // dstar 10,000,000 + bb 90,000 = 10,090,000
+    expect(pointsMap(ctx)).toEqual({ u_Anna: 10090 });
   });
 
   it('shows own fleets fully and incoming foreign ones partly', () => {
