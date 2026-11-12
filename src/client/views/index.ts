@@ -5,6 +5,7 @@ import { research, resources } from './economy.ts';
 import { fleet } from './fleet.ts';
 import { galaxy } from './galaxy.ts';
 import { guilds } from './guilds.ts';
+import { newsHTML } from '../logic/news.ts';
 import { messages } from './messages.ts';
 import { admin, help, highscore } from './misc.ts';
 import { overview } from './overview.ts';
@@ -22,6 +23,7 @@ export const VIEWS: Record<string, (v: V) => string> = {
   messages,
   highscore,
   achievements,
+  news: (v) => `<h2>Neuigkeiten</h2>${newsHTML(v.ui.news)}`,
   help,
   admin,
 };
@@ -51,7 +53,11 @@ export function menu(admin: boolean, round: RoundRules): (MenuEntry | '-')[] {
       view: 'achievements',
       label: round.achievements ? 'Achievements' : 'Tagesbelohnung',
     });
-  items.push('-', { view: 'help', label: 'Hilfe & Optionen' });
+  items.push(
+    '-',
+    { view: 'news', label: 'Neuigkeiten' },
+    { view: 'help', label: 'Hilfe & Optionen' },
+  );
   if (admin) items.push({ view: 'admin', label: 'Admin' });
   return items;
 }

@@ -227,6 +227,18 @@ h2 {
 .box > .bd {
   padding: 12px 14px;
 }
+/* „Neuigkeiten“ (issue #81): one box per version, grouped by kind. */
+.box.news h3 {
+  font-size: 1em;
+  margin: 0.6em 0 0.2em;
+}
+.box.news h3:first-child {
+  margin-top: 0;
+}
+.box.news ul {
+  margin: 0 0 0.4em;
+  padding-left: 1.2em;
+}
 table {
   border-collapse: collapse;
   width: 100%;

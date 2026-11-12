@@ -1,3 +1,4 @@
+import type { NewsData } from '../logic/news.ts';
 // Pieces shared by the views. Everything that comes from players goes through esc().
 import type {
   Coords,
@@ -32,6 +33,10 @@ export interface Ui {
   lastLink: string | null;
   /** Planet animations of this viewer (Hilfe & Optionen, issue #61 D9). */
   animations: boolean;
+  /** „Neuigkeiten“ from the server, null until loaded (issue #81). */
+  news: NewsData | null;
+  /** The newest version whose news were opened on this device. */
+  newsSeen: string | null;
 }
 
 /** What every view gets: the state, the planet and research moved to now. */

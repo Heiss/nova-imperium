@@ -27,8 +27,28 @@ request and baked into the image with it.
   device in the browser (no migration).
 * **[V]** Order of the entries and „first three“: new before changed before
   fixed, within a kind by file name (`scripts/changelog.ts`).
-* **[V]** The image gets its version as a build argument; the server keeps
-  the version that ran before in the `settings` table.
+* **[E]** The image contains `CHANGELOG.md` and `VERSION` of the released
+  commit; there is no build argument (owner, 2026-11-12). Without `VERSION`
+  (development) the server sends no update message.
+* **[E]** The first start with this feature (no version stored yet) sends
+  the players the entries of the running version only; a new world has no
+  players to tell (owner, 2026-11-12, replacing „only remember“ of the same
+  day).
+* **[V]** The server keeps the highest version that ever ran in the
+  `settings` table (key `version`, YY·100000 + M·1000 + MICRO). After a
+  rollback and the way forward again, the message is not sent twice.
+* **[V]** The server reads `CHANGELOG.md` once at the start and serves the
+  sections as data (`GET /api/news`, logged-in players); the browser renders
+  them escaped, no Markdown in the browser. Chosen by Claude, the owner had
+  no preference (2026-11-12).
+* **[V]** The menu item „Neuigkeiten“ stands right before „Hilfe & Optionen“;
+  on a phone it is under „Mehr“. The dot is the menu badge with the text
+  „Neu in Version …“; opening the page stores the newest version in the
+  browser (`nova.news.seen`). Chosen by Claude, the owner had no preference.
+* **[V]** The update message is a normal message („Neu in Version …“) with
+  the hint, the first three entries, the number of further ones and a link
+  to „Neuigkeiten“; it also goes out as push notification like every
+  message.
 
-Not built yet: the page „Neuigkeiten“, the update message and the dot follow
-in their own pull request.
+Built in `src/server/news.ts`, `src/client/logic/news.ts`, the view `news`
+and the Dockerfile.

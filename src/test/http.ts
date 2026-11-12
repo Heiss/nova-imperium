@@ -7,6 +7,7 @@ import { afterEach, expect } from 'vitest';
 import type { Config } from '../server/config.ts';
 import { createApp } from '../server/http/app.ts';
 import type { Mailer } from '../server/mail.ts';
+import type { News } from '../server/news.ts';
 import {
   addPlanet,
   addUser,
@@ -33,6 +34,7 @@ export async function start(
     mailer?: Mailer | null;
     logs?: string[];
     ctx?: TestCtx;
+    news?: News;
   } = {},
 ) {
   const ctx = over.ctx ?? testCtx();
@@ -43,6 +45,7 @@ export async function start(
     mailer: over.mailer ?? null,
     publicDir: PUBLIC,
     log: (m) => over.logs?.push(m),
+    news: over.news,
   });
   const server = createServer((req, res) => void app.handle(req, res));
   servers.push(server);
