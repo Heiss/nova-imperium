@@ -56,6 +56,24 @@ describe('trivy gate', () => {
     expect(
       blocking(report(v('A', 'a'), v('N', 'n')), base).map((h) => h.key),
     ).toEqual(['N n debian']);
+    // The OS result's Target names the image; the same hole still matches.
+    const os = (target: string): Report => ({
+      Results: [
+        {
+          Target: target,
+          Class: 'os-pkgs',
+          Type: 'debian',
+          Vulnerabilities: [v('A', 'zlib1g')],
+        },
+      ],
+    });
+    expect(
+      blocking(
+        os('ghcr.io/x/app:pr (debian 13.2)'),
+        os('nova-base:ci (debian 13.1)'),
+      ),
+    ).toEqual([]);
+    expect(holes(os('img (debian 13.2)'))[0]?.key).toBe('A zlib1g debian');
     // The same id in another package or place is another hole.
     expect(blocking(report(v('A', 'other')), base).map((h) => h.key)).toEqual([
       'A other debian',

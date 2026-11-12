@@ -21,12 +21,29 @@ interface Vulnerability {
 }
 export interface Report {
   Results?:
-    { Target: string; Vulnerabilities?: Vulnerability[] | null }[] | null;
+    | {
+        Target: string;
+        Class?: string;
+        Type?: string;
+        Vulnerabilities?: Vulnerability[] | null;
+      }[]
+    | null;
 }
 
 export interface Hole {
   key: string;
   line: string;
+}
+
+type Result = NonNullable<Report['Results']>[number];
+
+// The Target of an OS result names the image ("nova-base:ci (debian 13.2)"),
+// so the same hole of the base and of the pull request's image would get
+// different keys; the OS family does not.
+function placeOf(result: Result, v: Vulnerability): string {
+  if (v.PkgPath) return v.PkgPath;
+  if (result.Class === 'os-pkgs' && result.Type) return result.Type;
+  return result.Target;
 }
 
 /** Every hole with a fix in a report, keyed by id, package and place. */
@@ -35,7 +52,7 @@ export function holes(report: Report): Hole[] {
   for (const result of report.Results ?? []) {
     for (const v of result.Vulnerabilities ?? []) {
       if (!v.FixedVersion) continue;
-      const place = v.PkgPath || result.Target;
+      const place = placeOf(result, v);
       found.push({
         key: `${v.VulnerabilityID} ${v.PkgName} ${place}`,
         line: `${v.Severity ?? '?'} ${v.VulnerabilityID}: ${v.PkgName} ${v.InstalledVersion ?? '?'} → ${v.FixedVersion} (${place})`,

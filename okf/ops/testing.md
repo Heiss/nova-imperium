@@ -66,7 +66,8 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   the image (holes with a fix: in a release pull request, a pull request into
   and a push to `hotfix/**` high and critical block; other pull requests
   block on the critical holes they bring in, compared with the image of the
-  base branch; owner 2026-11-12). CodeQL runs for every pull
+  base branch; a push to `main` blocks on every critical hole; owner
+  2026-11-12). CodeQL runs for every pull
   request, documentation included, because the ruleset of `main` requires a
   CodeQL result for the exact commit (owner, 2026-11-11).
 * **[E]** Migrations are append-only: the job "Migrations append-only"

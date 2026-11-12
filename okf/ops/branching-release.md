@@ -169,10 +169,12 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 * **[E]** The job does not scan the new image before it starts. A hole in
   the base image always changes the `Dockerfile` (`ARG OS_UPDATES=sec-<id>`,
   and the newest digest when there is one), so its hotfix rebuilds the image
-  with Debian's current security updates. If the hole is still there, for
-  example because Debian has no fix for that architecture yet, the release
-  goes out anyway and the next scan reports the same plan id as not closed;
-  nothing is retried automatically. The job fails only when `package.json`,
+  with Debian's current security updates. If a High or Critical hole with
+  a fix is still in the new image, the Trivy gate of the CI blocks the fix
+  pull request (see below), so the hotfix does not release; the open fix
+  pull request keeps later scans waiting, and the owner decides; nothing is
+  retried automatically. The CI and the scan see only the `amd64` image, so
+  a hole left only in the `arm64` image is not caught. The job fails only when `package.json`,
   `pnpm-lock.yaml` and `Dockerfile` stay as in the release.
 * **[E]** A release older than the release pull request (26.11.18 and
   older, no `scripts/release-pr.sh`) gets no automatic hotfix: its hotfix
