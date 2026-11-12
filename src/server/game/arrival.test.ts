@@ -1,5 +1,6 @@
 import Database from 'better-sqlite3';
 import { describe, expect, it } from 'vitest';
+import { settle } from '../../shared/settle.ts';
 import type { Fleet } from '../../shared/types.ts';
 import { addPlanet, addUser, testCtx } from '../test-helpers.ts';
 import {
@@ -140,6 +141,40 @@ describe('arrival', () => {
     });
     expect(titles(ctx, 'u_Anna')).toEqual(['Transport erreicht [1:2:6]']);
     expect(titles(ctx, 'u_Bert')).toEqual(['Lieferung von Anna']);
+  });
+  it('settles a target and a home planet with the research of their owners (#47)', () => {
+    const reactor = {
+      b: { deut: 9, fusion: 6, metal: 12 },
+      res: { m: 0, c: 0, d: 50000 },
+    };
+    const { ctx } = setup(reactor);
+    ctx.store.saveUser({
+      ...ctx.store.user('u_Bert')!,
+      research: { energy: 9 },
+    });
+    const home = { ...ctx.store.planet('p1_1_5')!, ...reactor };
+    ctx.store.savePlanet(home);
+    ctx.store.saveUser({
+      ...ctx.store.user('u_Anna')!,
+      research: { energy: 7 },
+    });
+    const target = ctx.store.planet('p1_2_6')!;
+    const u = ctx.store.universe();
+    ctx.clock.t += 3600000;
+    arrive(
+      ctx,
+      fleet(ctx, { mission: 'transport', ships: { sc: 1 }, arr: ctx.now() }),
+    );
+    const bert = { research: { energy: 9 }, rq: null };
+    expect(ctx.store.planet('p1_2_6')!.res).toEqual(
+      settle(target, ctx.now(), u, bert).res,
+    );
+    ctx.clock.t += 3600000;
+    comeHome(ctx, { ...ctx.store.fleet('f1')!, ret: ctx.now() });
+    const anna = { research: { energy: 7 }, rq: null };
+    expect(ctx.store.planet('p1_1_5')!.res).toEqual(
+      settle(home, ctx.now(), u, anna).res,
+    );
   });
   it('a transport to an own planet sends one report', () => {
     const { ctx } = setup();

@@ -22,7 +22,12 @@ import {
   networkLab,
 } from '../../shared/research.ts';
 import { settle, settleR } from '../../shared/settle.ts';
-import { waitsForYard, YARD_LOCK, yardLockedBy } from '../../shared/yard.ts';
+import {
+  unitRoom,
+  waitsForYard,
+  YARD_LOCK,
+  yardLockedBy,
+} from '../../shared/yard.ts';
 import type { Cost, Planet, Queue, ResearchState } from '../../shared/types.ts';
 import type { AuditEntry } from '../audit.ts';
 import {
@@ -55,13 +60,26 @@ export function mine(ctx: Ctx, u: User, id?: unknown): Planet {
         ? 'Du hast keinen Planeten.'
         : 'Du hast keinen Zugriff auf diesen Planeten.',
     );
-  return settle(p, ctx.now(), universe(ctx));
+  return settle(p, ctx.now(), universe(ctx), u);
 }
 
 export const researchOf = (ctx: Ctx, u: User): ResearchState =>
   settleR(u, ctx.now());
 
+/**
+ * The stored research forgets when Energietechnik finished once a new
+ * research starts. The planets with a Fusionskraftwerk take that end into
+ * their production first (#47), so it does not matter when they are settled.
+ */
+function settleReactors(ctx: Ctx, u: User): void {
+  if (u.rq?.key !== 'energy' || u.rq.end > ctx.now()) return;
+  for (const x of ctx.store.playerPlanets(u.id))
+    if ((x.b.fusion ?? 0) > 0 || x.bq?.key === 'fusion')
+      ctx.store.savePlanet(settle(x, ctx.now(), universe(ctx), u));
+}
+
 function setResearch(ctx: Ctx, u: User, r: ResearchState): void {
+  settleReactors(ctx, u);
   u.research = r.research;
   u.rq = r.rq;
   ctx.store.saveUser(u);
@@ -134,9 +152,10 @@ const checkResearch = (p: Planet, r: ResearchState, k: string): void => {
 };
 
 /** Gravitonforschung: the starting planet must produce enough energy (#49). */
-function checkEnergy(ctx: Ctx, p: Planet, k: string, level: number): void {
+function checkEnergy(ctx: Ctx, p: Planet, r: ResearchState, k: string): void {
   const def = RES[k]!;
-  const short = energyShort(def, level, p, universe(ctx));
+  const level = (r.research[k] ?? 0) + 1;
+  const short = energyShort(def, level, p, universe(ctx), r.research);
   if (short > 0)
     fail(
       `Zu wenig Energie: ${def.n} braucht eine Energieproduktion von ${fmt(energyNeed(def, level))}, es fehlen ${fmt(short)}.`,
@@ -157,7 +176,7 @@ export const research: Action = (ctx, u, d, event) => {
   const r = researchOf(ctx, u);
   const have = r.research[k] ?? 0;
   checkResearch(p, r, k);
-  checkEnergy(ctx, p, k, have + 1);
+  checkEnergy(ctx, p, r, k);
   const lab = networkLab(
     k,
     labSite(p),
@@ -204,7 +223,10 @@ export const order: Action = (ctx, u, d, event) => {
   requireYard(p);
   if (reqMissing(def, p, researchOf(ctx, u)).length)
     fail('Voraussetzungen fehlen.');
-  const n = Math.min(int(d.n, 0, 1e9), maxAfford(p, def.cost));
+  const want = int(d.n, 0, 1e9);
+  if (want > unitRoom(p, k))
+    fail('Diese Schildkuppel gibt es nur einmal pro Planet.');
+  const n = Math.min(want, maxAfford(p, def.cost));
   if (n <= 0) fail('Nicht genug Rohstoffe.');
   if (p.sq.length >= MAX_SHIPYARD_ORDERS)
     fail('Die Bauliste der Werft ist voll.');

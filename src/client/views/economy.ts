@@ -2,8 +2,11 @@ import { BUILD, RES, type ResearchDef, UNIT } from '../../shared/catalog.ts';
 import {
   afford,
   caps,
+  fusionEnergy,
+  fusionThrottle,
+  fusionUse,
   lvlCost,
-  prod,
+  production,
   reqMissing,
   researchTime,
   satPower,
@@ -80,10 +83,10 @@ function researchItem(v: V, k: string, d: ResearchDef): string {
   const lab = networkLab(k, labSite(P), s.labs, R.research.ifn ?? 0);
   const linked =
     lab === (P.b.lab ?? 0) ? '' : ` (Labore zusammen Stufe ${lab})`;
-  const short = energyShort(d, level + 1, P, s.cfg);
+  const short = energyShort(d, level + 1, P, s.cfg, R.research);
   const energy = {
     need: energyNeed(d, level + 1),
-    production: prod(P, s.cfg).eProd,
+    production: production(P, s.cfg, R.research).eProd,
   };
   const body =
     costHTML(c, P, 1, energy) +
@@ -118,29 +121,58 @@ function shareSelect(v: V, k: string): string {
   return `<select data-chg="pct" data-k="${k}" data-nokeep aria-label="Leistung ${BUILD[k]?.n ?? UNIT[k]?.n}">${options}</select> %`;
 }
 
+const cell = (x: string, cls = 'n'): string => `<td class="${cls}">${x}</td>`;
+
+/** The Fusionskraftwerk as it runs: its share, energy and deuterium use (#47). */
+function fusionNow(v: V): {
+  share: number;
+  throttled: boolean;
+  e: number;
+  d: number;
+} {
+  const { P, R, s } = v;
+  const level = P.b.fusion ?? 0;
+  const throttle = fusionThrottle(P, s.cfg, R.research);
+  const share = throttle ?? P.pct.fusion ?? 100;
+  return {
+    share,
+    throttled: throttle !== null,
+    e: (fusionEnergy(level, R.research.energy ?? 0) * share) / 100,
+    d: (fusionUse(level, s.cfg) * share) / 100,
+  };
+}
+
+function fusionRow(v: V, fu: ReturnType<typeof fusionNow>): string {
+  const note = fu.throttled
+    ? ` <span class="req">gedrosselt auf ${fmt(fu.share)} %</span>`
+    : '';
+  return `<tr><td>Fusionskraftwerk (Stufe ${v.P.b.fusion ?? 0})</td>${cell('0')}${cell('0')}${cell(`-${fmt(fu.d)}`, 'n bad')}${cell(fmt(fu.e), 'n good')}<td>${shareSelect(v, 'fusion')}${note}</td></tr>`;
+}
+
 function producerRows(v: V): string {
-  const { P, s } = v;
-  const pr = prod(P, s.cfg);
+  const { P, R, s } = v;
+  const pr = production(P, s.cfg, R.research);
   const L = (k: string): number => P.b[k] ?? 0;
   const pc = (k: string): number => (P.pct[k] ?? 100) / 100;
   const sp = s.cfg.speed;
   const eSat = satPower(P);
-  const cell = (x: string, cls = 'n'): string => `<td class="${cls}">${x}</td>`;
+  const fu = fusionNow(v);
   const use = (k: string, f: number): string =>
     cell(`-${fmt(f * g(L(k)) * pc(k))}`, 'n bad');
   return [
     `<tr><td>Grundeinkommen</td>${cell(fmt(20 * sp))}${cell(fmt(10 * sp))}${cell('0')}${cell('0')}<td></td></tr>`,
     `<tr><td>Metallmine (Stufe ${L('metal')})</td>${cell(fmt(30 * g(L('metal')) * pc('metal') * pr.f * sp))}${cell('0')}${cell('0')}${use('metal', 10)}<td>${shareSelect(v, 'metal')}</td></tr>`,
     `<tr><td>Kristallmine (Stufe ${L('crystal')})</td>${cell('0')}${cell(fmt(20 * g(L('crystal')) * pc('crystal') * pr.f * sp))}${cell('0')}${use('crystal', 10)}<td>${shareSelect(v, 'crystal')}</td></tr>`,
-    `<tr><td>Deuteriumsynth. (Stufe ${L('deut')})</td>${cell('0')}${cell('0')}${cell(fmt(pr.d))}${use('deut', 20)}<td>${shareSelect(v, 'deut')}</td></tr>`,
-    `<tr><td>Solarkraftwerk (Stufe ${L('solar')})</td>${cell('0')}${cell('0')}${cell('0')}${cell(fmt(pr.eProd - eSat), 'n good')}<td>${shareSelect(v, 'solar')}</td></tr>`,
+    `<tr><td>Deuteriumsynth. (Stufe ${L('deut')})</td>${cell('0')}${cell('0')}${cell(fmt(pr.d + fu.d))}${use('deut', 20)}<td>${shareSelect(v, 'deut')}</td></tr>`,
+    `<tr><td>Solarkraftwerk (Stufe ${L('solar')})</td>${cell('0')}${cell('0')}${cell('0')}${cell(fmt(pr.eProd - eSat - fu.e), 'n good')}<td>${shareSelect(v, 'solar')}</td></tr>`,
     `<tr><td>Solarsatelliten (${fmt(P.ships.sat ?? 0)})</td>${cell('0')}${cell('0')}${cell('0')}${cell(fmt(eSat), 'n good')}<td>${shareSelect(v, 'sat')}</td></tr>`,
+    fusionRow(v, fu),
   ].join('');
 }
 
 export function resources(v: V): string {
-  const { P, s } = v;
-  const pr = prod(P, s.cfg);
+  const { P, R, s } = v;
+  const pr = production(P, s.cfg, R.research);
   const cp = caps(P, s.cfg);
   return `<h2>Rohstoffe auf ${esc(P.name)}</h2><div class="box"><div class="hd">Produktion pro Stunde (Produktionsfaktor ${Math.round(pr.f * 100)} %)</div><div class="bd"><table>
  <tr><th></th><th class="n">Metall</th><th class="n">Kristall</th><th class="n">Deuterium</th><th class="n">Energie</th><th>Leistung</th></tr>

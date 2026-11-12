@@ -105,16 +105,15 @@ All values are the classic ones on owiki.de, confirmed by the owner
   without `drives` keep their single drive, so the version 1 equivalence is
   unchanged. Fuel stays 1,000 with both drives (`fuelFor()` does not depend
   on the drive).
-* Rapid fire in `rf`: `bb` against `rl` 20, `ll` 20, `hl` 10; none against
-  `gauss`. The 5 against the probe and the Solarsatellit come from the
-  general rule of `rapid()`. The 10 against the Ionengeschütz follows when
-  the Ionengeschütz (#50) is on `main` (#60 D4); the Todesstern's 25 against
-  the Bomber came with #60.
+* Rapid fire in `rf`: `bb` against `rl` 20, `ll` 20, `hl` 10, `ionc` 10
+  (with #50); none against `gauss` or `pt`. The 5 against the probe and the
+  Solarsatellit come from the general rule of `rapid()`. The Todesstern's 25
+  against the Bomber came with #60.
 * Hull 7,500, shield 500, attack 1,000 from `buildSide()`; points by cost
   (`src/server/game/points.ts`).
 * **[V]** Key `bb`, abbreviation `BO` (unique among all `ab` values),
-  description „Stark gegen Raketenwerfer und Lasergeschütze; fliegt ab
-  Hyperraumantrieb 8 mit dem Hyperraumantrieb.“
+  description „Stark gegen Raketenwerfer, Laser- und Ionengeschütze; fliegt
+  ab Hyperraumantrieb 8 mit dem Hyperraumantrieb.“
 * **[V]** Data model of the drive switch: the base `drive` and `speed` stay,
   an optional `drives` list of `{ drive, speed, from: { research, level } }`
   replaces them once reached; the last reached entry wins. Built before the
@@ -148,19 +147,17 @@ All values are the classic ones on owiki.de, confirmed by the owner
   level (D6).
 * Rapid fire in `rf`: `probe` 1,250, `sat` 1,250, `colony` 250, `sc` 250,
   `lc` 250, `lf` 200, `hf` 100, `cr` 33, `bs` 30, `bb` 25, `bc` 15, `dr` 5,
-  `rl` 200, `ll` 200, `hl` 100, `gauss` 50. The catalog value wins in
-  `rapid()`, so the 1,250 against the probe and the Solarsatellit replaces
-  the general 5. No unit has an entry against `dstar`.
-* Ionengeschütz: its 100 is not in `rf` yet, the Ionengeschütz (#50) is not
-  on `main` (#60 D4). When it lands, `ionc: 100` is one line in `rf` and
-  one line in the value test of `catalog.test.ts`. `battle.test.ts`
-  requires a value against every other unit, so it fails until then; the
-  Plasmawerfer and the shield domes of #50 are no targets and go into its
-  `noTarget` list.
+  `rl` 200, `ll` 200, `hl` 100, `gauss` 50, `ionc` 100 (#50); none against
+  `pt`, `ssd` and `lsd`. The catalog value wins in `rapid()`, so the 1,250
+  against the probe and the Solarsatellit replaces the general 5. No unit
+  has an entry against `dstar`.
+* `battle.test.ts` requires a value against every other unit except those
+  in its `noTarget` list (`dstar`, `pt`, `ssd`, `lsd`): a unit added later
+  fails there until it gets a value or joins the list.
 * Hull 900,000, shield 50,000, attack 200,000 from `buildSide()`. A hit
   below 1 % of the shield (500 at shield tech 0) bounces off: at equal tech
-  only the Schlachtschiff, Schlachtkreuzer, Zerstörer, Bomber, Gaußkanone
-  and Todesstern hurt it. Points by cost, 10,000 per Todesstern
+  only the Schlachtschiff, Schlachtkreuzer, Zerstörer, Bomber, Gaußkanone,
+  Plasmawerfer and Todesstern hurt it; the Ionengeschütz (150) does not. Points by cost, 10,000 per Todesstern
   (`src/server/game/points.ts`).
 * No mission „Zerstören“: it comes with the moons (#53, #95).
 * **[V]** Description „Gewaltige Kampfstation; zerstört fast alles mit

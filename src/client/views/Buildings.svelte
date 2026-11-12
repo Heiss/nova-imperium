@@ -4,6 +4,7 @@
   import {
     afford,
     buildTime,
+    fusionUse,
     lvlCost,
     prod,
     reqMissing,
@@ -18,9 +19,13 @@
   const energy = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 2 });
 
   function energyChange(v: V, key: string, level: number): number {
-    const { P, s } = v;
-    const current = prod(P, s.cfg);
-    const next = prod({ ...P, b: { ...P.b, [key]: level + 1 } }, s.cfg);
+    const { P, R, s } = v;
+    const current = prod(P, s.cfg, R.research);
+    const next = prod(
+      { ...P, b: { ...P.b, [key]: level + 1 } },
+      s.cfg,
+      R.research,
+    );
     return next.eProd - current.eProd - (next.eUse - current.eUse);
   }
 </script>
@@ -61,6 +66,13 @@
           <div class="dim">
             Energie auf Stufe {level + 1}: {energy.format(Math.abs(delta))}
             {delta < 0 ? 'mehr Verbrauch' : 'mehr Produktion'}
+          </div>
+        {/if}
+        {#if key === 'fusion'}
+          <div class="dim">
+            Deuteriumverbrauch auf Stufe {level + 1}: {energy.format(
+              (fusionUse(level + 1, s.cfg) * (P.pct.fusion ?? 100)) / 100,
+            )} pro Stunde
           </div>
         {/if}
         <div class="dim">Bauzeit: {dur(buildTime(cost, P, s.cfg))}</div>

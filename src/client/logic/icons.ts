@@ -5,6 +5,7 @@ const FILES: Record<string, string> = {
   crystal: 'buildings/crystal_mine',
   deut: 'buildings/deuterium_synthesizer',
   solar: 'buildings/solar_plant',
+  fusion: 'buildings/fusion_reactor',
   robot: 'buildings/robotics_factory',
   nanite: 'buildings/nanite_factory',
   yard: 'buildings/shipyard',
@@ -44,6 +45,10 @@ const FILES: Record<string, string> = {
   ll: 'defense/light_laser',
   hl: 'defense/heavy_laser',
   gauss: 'defense/gauss_cannon',
+  ionc: 'defense/ion_cannon',
+  pt: 'defense/plasma_turret',
+  ssd: 'defense/small_shield_dome',
+  lsd: 'defense/large_shield_dome',
 };
 
 export const ICON_KEYS = Object.keys(FILES);

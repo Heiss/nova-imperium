@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { planet, U } from '../test/fixtures.ts';
 import { RES } from './catalog.ts';
-import { prod, researchTime } from './economy.ts';
+import { fusionEnergy, fusionThrottle, prod, researchTime } from './economy.ts';
 import {
   energyNeed,
   energyShort,
@@ -111,6 +111,45 @@ describe('energy of Gravitonforschung', () => {
     const p = planet({ b: { solar: 59, metal: 40, crystal: 40 } });
     expect(prod(p, U).eUse).toBeGreaterThan(0);
     expect(energyShort(graviton, 1, p, U)).toBe(0);
+  });
+
+  it('counts the Fusionskraftwerk with Energietechnik (#47)', () => {
+    // Solarkraftwerk 58 alone lacks about 8,100; a reactor of level 12
+    // gives 30 · 12 · 1.05^12 ≈ 646 without and about 2,064 with
+    // Energietechnik 10, at 100 %.
+    const p = planet({
+      b: { solar: 58, fusion: 12 },
+      res: { m: 0, c: 0, d: 1000 },
+    });
+    const lacking = 300000 - prod(solar(58), U).eProd;
+    expect(energyShort(graviton, 1, p, U)).toBe(
+      Math.ceil(lacking - fusionEnergy(12, 0)),
+    );
+    expect(energyShort(graviton, 1, p, U, { energy: 10 })).toBe(
+      Math.ceil(lacking - fusionEnergy(12, 10)),
+    );
+    const big = planet({ b: { solar: 58, fusion: 20 }, res: p.res });
+    expect(lacking).toBeLessThan(fusionEnergy(20, 10));
+    expect(energyShort(graviton, 1, big, U, { energy: 10 })).toBe(0);
+  });
+
+  it('counts a reactor throttled at an empty stock at its throttled share (#47)', () => {
+    const p = planet({
+      b: { solar: 58, fusion: 20, deut: 10 },
+      res: { m: 0, c: 0, d: 0 },
+    });
+    const r = { energy: 10 };
+    const s = fusionThrottle(p, U, r)!;
+    expect(s).toBeLessThan(100);
+    expect(energyShort(graviton, 1, p, U, r)).toBe(
+      Math.max(
+        0,
+        Math.ceil(300000 - prod({ ...p, pct: { fusion: s } }, U, r).eProd),
+      ),
+    );
+    expect(energyShort(graviton, 1, p, U, r)).toBeGreaterThan(
+      energyShort(graviton, 1, { ...p, res: { m: 0, c: 0, d: 1 } }, U, r),
+    );
   });
 
   it('counts only the share of the Solarkraftwerk that runs', () => {

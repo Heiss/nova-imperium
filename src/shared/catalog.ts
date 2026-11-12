@@ -69,7 +69,10 @@ export interface ShipDef extends UnitDefBase {
   drives?: DriveSwitch[];
 }
 
-export type DefenseDef = UnitDefBase;
+export interface DefenseDef extends UnitDefBase {
+  /** At most one per planet, the shield domes (#50, D3). */
+  once?: true;
+}
 export type UnitDef = ShipDef | DefenseDef;
 
 export const BUILD: Record<string, BuildingDef> = {
@@ -100,6 +103,22 @@ export const BUILD: Record<string, BuildingDef> = {
     cost: [75, 30, 0],
     f: 1.5,
     ds: 'Liefert Energie für die Minen.',
+  },
+  // Issue #47. Not in version 1; the classic values (owner, 2026-11-12).
+  fusion: {
+    n: 'Fusionskraftwerk',
+    ab: 'Fu',
+    cost: [900, 360, 180],
+    f: 1.8,
+    ds: 'Erzeugt Energie aus Deuterium; Energietechnik steigert die Leistung.',
+    req: {
+      b: {
+        deut: 5,
+      },
+      r: {
+        energy: 3,
+      },
+    },
   },
   robot: {
     n: 'Roboterfabrik',
@@ -521,12 +540,12 @@ export const SHIPS: Record<string, ShipDef> = {
       { drive: 'hdrive', speed: 5000, from: { research: 'hdrive', level: 8 } },
     ],
     req: { b: { yard: 8 }, r: { impulse: 6, plasma: 5 } },
-    rf: { rl: 20, ll: 20, hl: 10 },
-    ds: 'Stark gegen Raketenwerfer und Lasergeschütze; fliegt ab Hyperraumantrieb 8 mit dem Hyperraumantrieb.',
+    rf: { rl: 20, ll: 20, hl: 10, ionc: 10 },
+    ds: 'Stark gegen Raketenwerfer, Laser- und Ionengeschütze; fliegt ab Hyperraumantrieb 8 mit dem Hyperraumantrieb.',
   },
   // Issue #60, classic values (owner, 2026-11-12). Its 1,250 against the probe
-  // and the Solarsatellit replace the general 5 of rapid() in battle.ts. The
-  // 100 against the Ionengeschütz follows with the Ionengeschütz (#50, D4).
+  // and the Solarsatellit replace the general 5 of rapid() in battle.ts. None
+  // against the Plasmawerfer and the shield domes (#50).
   dstar: {
     n: 'Todesstern',
     ab: 'TS',
@@ -555,6 +574,7 @@ export const SHIPS: Record<string, ShipDef> = {
       ll: 200,
       hl: 100,
       gauss: 50,
+      ionc: 100,
     },
     ds: 'Gewaltige Kampfstation; zerstört fast alles mit Schnellfeuer.',
   },
@@ -655,6 +675,46 @@ export const DEF: Record<string, DefenseDef> = {
       },
     },
   },
+  // Issue #50. Not in version 1; the classic values (owner, 2026-11-12).
+  // No unit has rapid fire against these four, and they have none.
+  ionc: {
+    n: 'Ionengeschütz',
+    ab: 'IG',
+    cost: [2000, 6000, 0],
+    atk: 150,
+    sh: 500,
+    req: { b: { yard: 4 }, r: { ion: 4 } },
+    ds: 'Geschütz mit starkem Schild, das viele Treffer einsteckt.',
+  },
+  pt: {
+    n: 'Plasmawerfer',
+    ab: 'PW',
+    cost: [50000, 50000, 30000],
+    atk: 3000,
+    sh: 300,
+    req: { b: { yard: 8 }, r: { plasma: 7 } },
+    ds: 'Die stärkste Waffe der Verteidigung: feuert Plasma mit gewaltiger Wucht.',
+  },
+  ssd: {
+    n: 'Kleine Schildkuppel',
+    ab: 'KSK',
+    cost: [10000, 10000, 0],
+    atk: 1,
+    sh: 2000,
+    req: { b: { yard: 1 }, r: { shield: 2 } },
+    once: true,
+    ds: 'Kuppel mit starkem Schild über dem Planeten; schwache Schüsse prallen ab. Nur eine pro Planet.',
+  },
+  lsd: {
+    n: 'Große Schildkuppel',
+    ab: 'GSK',
+    cost: [50000, 50000, 0],
+    atk: 1,
+    sh: 10000,
+    req: { b: { yard: 6 }, r: { shield: 6 } },
+    once: true,
+    ds: 'Die größere Kuppel mit fünffachem Schild; nur starke Schüsse dringen durch. Nur eine pro Planet.',
+  },
 };
 
 export const UNIT: Record<string, UnitDef> = { ...SHIPS, ...DEF };
@@ -673,7 +733,14 @@ export const MISSION = {
 } as const;
 
 /** Producers whose share the player sets on the resources page. */
-export const PRODUCERS = ['metal', 'crystal', 'deut', 'solar', 'sat'] as const;
+export const PRODUCERS = [
+  'metal',
+  'crystal',
+  'deut',
+  'solar',
+  'sat',
+  'fusion',
+] as const;
 
 export const isShip = (key: string): boolean => Object.hasOwn(SHIPS, key);
 export const isDefense = (key: string): boolean => Object.hasOwn(DEF, key);

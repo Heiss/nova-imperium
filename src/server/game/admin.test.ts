@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { settle } from '../../shared/settle.ts';
 import { DEFAULT_UNIVERSE } from '../../shared/universe.ts';
 import { addPlanet, addUser, testCtx } from '../test-helpers.ts';
 import { reset, saveSettings } from './admin.ts';
@@ -28,6 +29,22 @@ describe('admin', () => {
     expect(ctx.store.universe().speed).toBe(10);
     expect(ctx.store.planetOfUser(u.id)!.res.m).toBe(100);
     expect(ctx.store.planetOfUser(u.id)!.t).toBe(ctx.now());
+  });
+
+  it('settles a Fusionskraftwerk with the Energietechnik of its owner (#47)', () => {
+    const ctx = testCtx();
+    const u = addUser(ctx, 'Anna', { admin: true, research: { energy: 9 } });
+    const src = addPlanet(ctx, u.id, {
+      b: { deut: 9, fusion: 6, metal: 12 },
+      res: { m: 0, c: 0, d: 50000 },
+    });
+    ctx.clock.t += 3600000;
+    saveSettings(ctx, u, { settings: { ...DEFAULT_UNIVERSE, speed: 10 } });
+    const want = settle(src, ctx.now(), DEFAULT_UNIVERSE, u);
+    expect(ctx.store.planetOfUser(u.id)!.res).toEqual(want.res);
+    expect(want.res.m).toBeGreaterThan(
+      settle(src, ctx.now(), DEFAULT_UNIVERSE).res.m,
+    );
   });
 
   it('refuses invalid settings with all errors and changes nothing', () => {
@@ -158,6 +175,14 @@ describe('points and state', () => {
     addPlanet(ctx, 'u_Anna', { ships: { bc: 2, dr: 1 } });
     // bc 2 × 85,000 + dr 125,000 = 295,000
     expect(pointsMap(ctx)).toEqual({ u_Anna: 295 });
+  });
+
+  it('count the new defense by its cost (#50)', () => {
+    const ctx = testCtx();
+    addUser(ctx, 'Anna');
+    addPlanet(ctx, 'u_Anna', { def: { ionc: 3, pt: 1, ssd: 1, lsd: 1 } });
+    // ionc 3 × 8,000 + pt 130,000 + ssd 20,000 + lsd 100,000 = 274,000
+    expect(pointsMap(ctx)).toEqual({ u_Anna: 274 });
   });
 
   it('count the Bomber by its cost (#57)', () => {

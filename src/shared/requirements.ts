@@ -144,7 +144,8 @@ export function needState(n: Need, pl: Places): NeedState {
   const missing = reqMissing(def, p, pl.research);
   if (missing.length)
     return { ...base, reason: `braucht ${missing.join(', ')}` };
-  const short = energyShort(research, level, p, pl.cfg) > 0;
+  const short =
+    energyShort(research, level, p, pl.cfg, pl.research.research) > 0;
   if (!afford(p, cost) || short)
     return {
       ...base,

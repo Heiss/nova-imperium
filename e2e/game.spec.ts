@@ -873,6 +873,79 @@ test.describe('playing', () => {
     expect(w.problems).toEqual([]);
   });
 
+  test('the Fusionskraftwerk burns deuterium for energy and is throttled at an empty stock (#47)', async ({
+    page,
+  }) => {
+    const w = watch(page);
+    const name = uniqueName('Fusion');
+    await register(page, name);
+    seed({ name, res: { m: 10000, c: 10000, d: 10000 } });
+    await page.goto('/?view=buildings');
+    const item = page.locator('.item').filter({
+      has: page.locator('.nm', { hasText: /^\s*Fusionskraftwerk/ }),
+    });
+    await expect(
+      item.getByRole('img', { name: 'Fusionskraftwerk' }),
+    ).toHaveAttribute('src', '/icons/buildings/fusion_reactor.svg');
+    await expect(item.locator('.cost').first()).toHaveText(/900.*360.*180/);
+    await expect(item.locator('.needs')).toContainText(
+      'Deuteriumsynthetisierer',
+    );
+    await expect(item.locator('.needs')).toContainText('Energietechnik');
+    await expect(item.locator('.act')).toContainText('Voraussetzungen fehlen');
+    seed({
+      name,
+      b: { deut: 5, lab: 1 },
+      research: { energy: 3 },
+      clearQueue: true,
+    });
+    await page.reload();
+    await expect(item.locator('.needs')).toHaveCount(0);
+    await expect(item).toContainText(
+      'Deuteriumverbrauch auf Stufe 1: 55 pro Stunde',
+    );
+    await expect(page.locator('[data-act=build][data-k=fusion]')).toBeEnabled();
+
+    // Level 3 with Energietechnik 3: 90 · 1.08³ ≈ 113 energy, and
+    // 30 · 1.1³ · speed 5 ≈ 199.7 deuterium per hour.
+    seed({
+      name,
+      b: { deut: 9, fusion: 3 },
+      research: { energy: 3 },
+      temp: 20,
+      res: { m: 0, c: 0, d: 50000 },
+    });
+    await page.goto('/?view=resources');
+    const row = page.locator('tr', { hasText: 'Fusionskraftwerk (Stufe 3)' });
+    await expect(row.locator('td.good')).toHaveText('113');
+    await expect(row.locator('td.bad')).toHaveText('-199');
+    await expect(row).not.toContainText('gedrosselt');
+    // Energy in total: 113.4 minus 20 · 9 · 1.1⁹ ≈ 424.4 for the mine.
+    const sum = page.locator('tr', { hasText: 'Summe / Stunde' });
+    await expect(sum.locator('th').nth(4)).toHaveText('-312');
+    await page.selectOption('select[data-k=fusion]', '50');
+    await expect(row.locator('td.good')).toHaveText('56');
+    await expect(row.locator('td.bad')).toHaveText('-99');
+
+    // Deuterium 5 makes about 499 per hour, the reactor 8 wants about 857:
+    // with an empty stock it runs at about 58 % and the stock stays at 0.
+    seed({
+      name,
+      b: { deut: 5, fusion: 8 },
+      research: { energy: 3 },
+      temp: 20,
+      res: { m: 0, c: 0, d: 0 },
+      pct: {},
+    });
+    await page.reload();
+    const dry = page.locator('tr', { hasText: 'Fusionskraftwerk (Stufe 8)' });
+    await expect(dry).toContainText('gedrosselt auf 58 %');
+    await expect(dry.locator('select[data-k=fusion]')).toHaveValue('100');
+    await expect(sum.locator('th').nth(3)).toHaveText('0');
+    await expect(stock(page, 'Deuterium')).toHaveText('0');
+    expect(w.problems).toEqual([]);
+  });
+
   test('build, cancel, set production and rename', async ({ page }) => {
     const w = watch(page);
     await register(page, uniqueName('Bau'));
@@ -1076,6 +1149,143 @@ test.describe('playing', () => {
       dr.locator('.need-nm', { hasText: /^Raumschiffwerft$/ }),
     ).toBeVisible();
     await expect(dr.locator('[data-act=order]')).toHaveCount(0);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth - window.innerWidth,
+      ),
+    ).toBeLessThanOrEqual(0);
+    expect(w.problems).toEqual([]);
+  });
+
+  test('Ionengeschütz, Plasmawerfer and the shield domes; a dome only once (#50)', async ({
+    page,
+  }) => {
+    const w = watch(page);
+    const name = uniqueName('Kuppel');
+    await register(page, name);
+    seed({
+      name,
+      b: { robot: 2, yard: 8, lab: 7 },
+      research: { energy: 8, laser: 10, ion: 5, plasma: 6, shield: 6 },
+      def: { lsd: 1 },
+      res: { m: 500000, c: 500000, d: 100000 },
+    });
+    await page.goto('/?view=defense');
+    const item = (nm: string) =>
+      page.locator('.item').filter({
+        has: page.locator('.nm', { hasText: new RegExp(`^\\s*${nm}`) }),
+      });
+    const units = [
+      [
+        'Ionengeschütz',
+        'ion_cannon',
+        'Angriff 150 · Schild 800 · Struktur 8.000',
+      ],
+      [
+        'Plasmawerfer',
+        'plasma_turret',
+        'Angriff 3.000 · Schild 480 · Struktur 100.000',
+      ],
+      [
+        'Kleine Schildkuppel',
+        'small_shield_dome',
+        'Angriff 1 · Schild 3.200 · Struktur 20.000',
+      ],
+      [
+        'Große Schildkuppel',
+        'large_shield_dome',
+        'Angriff 1 · Schild 16.000 · Struktur 100.000',
+      ],
+    ] as const;
+    for (const [nm, file, stats] of units) {
+      await expect(item(nm).getByRole('img', { name: nm })).toHaveAttribute(
+        'src',
+        `/icons/defense/${file}.svg`,
+      );
+      await expect(item(nm)).toContainText(stats);
+    }
+    // Plasmatechnik 6 of 7: the Plasmawerfer lists what is missing.
+    const pt = item('Plasmawerfer');
+    await expect(
+      pt.locator('.need-nm', { hasText: /^Plasmatechnik$/ }),
+    ).toBeVisible();
+    await expect(pt.locator('[data-act=order]')).toHaveCount(0);
+    await expect(item('Ionengeschütz').locator('.needs')).toHaveCount(0);
+    await expect(item('Ionengeschütz').locator('.lv')).toHaveText(
+      '(vorhanden: 0)',
+    );
+
+    const small = item('Kleine Schildkuppel');
+    const large = item('Große Schildkuppel');
+    await expect(small.locator('.lv')).toHaveText('(vorhanden: 0 · max. 1)');
+    await expect(small.locator('[data-act=maxq]')).toHaveText('(max 1)');
+    await expect(large.locator('.lv')).toHaveText('(vorhanden: 1 · max. 1)');
+    await expect(large.locator('[data-act=maxq]')).toHaveText('(max 0)');
+    await expect(large.locator('[data-act=order]')).toBeDisabled();
+
+    const refused = 'Diese Schildkuppel gibt es nur einmal pro Planet.';
+    await page.fill('#q_ssd', '2');
+    await page.click('[data-act=order][data-k=ssd]');
+    await expect(page.locator('.toast').last()).toContainText(refused);
+    await page.fill('#q_ssd', '1');
+    await page.click('[data-act=order][data-k=ssd]');
+    await expect(page.locator('.toast').last()).toContainText(
+      '1× Kleine Schildkuppel in Auftrag gegeben.',
+    );
+    await expect(
+      page.locator('.box', { hasText: 'Bauauftrag der Werft' }),
+    ).toContainText('1× Kleine Schildkuppel');
+    await expect(small.locator('[data-act=maxq]')).toHaveText('(max 0)');
+    await expect(small.locator('[data-act=order]')).toBeDisabled();
+    // A second order, as from another device that still shows the button.
+    const second = await page.evaluate(async () => {
+      const r = await fetch('/api/action', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ type: 'order', key: 'ssd', n: 1 }),
+      });
+      return { ok: r.ok, body: (await r.json()) as { error?: string } };
+    });
+    expect(second).toEqual({ ok: false, body: { error: refused } });
+    expect(w.problems).toEqual([]);
+  });
+
+  test('defense shows the new units with icons and requirements on a phone (#50) @phone', async ({
+    page,
+  }) => {
+    const w = watch(page);
+    const name = uniqueName('Schild');
+    await register(page, name);
+    seed({
+      name,
+      b: { robot: 2, yard: 1, lab: 1 },
+      research: { shield: 2 },
+      res: { m: 20000, c: 20000, d: 0 },
+    });
+    await page.goto('/?view=defense');
+    const item = (nm: string) =>
+      page.locator('.item').filter({
+        has: page.locator('.nm', { hasText: new RegExp(`^\\s*${nm}`) }),
+      });
+    for (const nm of [
+      'Ionengeschütz',
+      'Plasmawerfer',
+      'Kleine Schildkuppel',
+      'Große Schildkuppel',
+    ])
+      await expect(item(nm).getByRole('img', { name: nm })).toBeVisible();
+    await expect(
+      item('Ionengeschütz').locator('.need-nm', { hasText: /^Ionentechnik$/ }),
+    ).toBeVisible();
+    await expect(
+      item('Große Schildkuppel').locator('.need-nm', {
+        hasText: /^Schildtechnik$/,
+      }),
+    ).toBeVisible();
+    const small = item('Kleine Schildkuppel');
+    await expect(small.locator('.needs')).toHaveCount(0);
+    await expect(small).toContainText('max. 1');
+    await expect(small.locator('[data-act=order]')).toBeEnabled();
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth - window.innerWidth,

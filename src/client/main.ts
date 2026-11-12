@@ -1,10 +1,10 @@
 // The browser glue: state, server calls, rendering, events and the clock.
 // The views are pure functions (views/), the logic is tested (logic/); this
 // file is run by the E2E suite.
-import { BUILD, RES, UNIT } from '../shared/catalog.ts';
+import { BUILD, RES } from '../shared/catalog.ts';
 import { pid } from '../shared/flight.ts';
 import { settle, settleR } from '../shared/settle.ts';
-import { yardLockedBy } from '../shared/yard.ts';
+import { orderMax, yardLockedBy } from '../shared/yard.ts';
 import type { Levels, Planet, Queue } from '../shared/types.ts';
 import { clampInt, coords, dt, dur, esc, fmt } from './logic/format.ts';
 import {
@@ -27,7 +27,7 @@ import {
 } from './logic/news.ts';
 import { ANIMATION_KEY, animationsOn } from './logic/planet.ts';
 import type { GameState } from './logic/types.ts';
-import { afford, caps, lvlCost, maxAfford, prod } from '../shared/economy.ts';
+import { afford, caps, lvlCost, production } from '../shared/economy.ts';
 import type { Ui, V } from './views/common.ts';
 import {
   menu,
@@ -631,7 +631,7 @@ function renderPlanetHeader({ s, P }: V): void {
 
 /** The view state moved to now. */
 function viewAt(state: GameState, planet: Planet, now: number): V {
-  const here = settle(planet, now, state.cfg);
+  const here = settle(planet, now, state.cfg, state.me);
   return { s: state, P: here, R: settleR(state.me, now), now, ui };
 }
 
@@ -756,8 +756,9 @@ function renderMenu(): void {
 
 function updateBar(): Planet | undefined {
   if (!S?.planet) return;
-  const p = settle(S.planet, nowT(), S.cfg);
-  const pr = prod(p, S.cfg);
+  const now = nowT();
+  const p = settle(S.planet, now, S.cfg, S.me);
+  const pr = production(p, S.cfg, settleR(S.me, now).research);
   const cp = caps(p, S.cfg);
   const icon = (key: ResourceKey): string =>
     `<img class="ri" src="${resourceIconURL(key)}" alt="" width="28" height="28">`;
@@ -768,7 +769,7 @@ function updateBar(): Planet | undefined {
     cap: number,
     per: number,
   ): string =>
-    `<div class="res" title="+${fmt(per)}/h · Lager ${fmt(cap)}">${icon(key)}<div><div class="l">${label}</div><div class="v ${v >= cap ? 'full' : ''}">${fmt(v)}</div></div></div>`;
+    `<div class="res" title="${per < 0 ? '' : '+'}${fmt(per)}/h · Lager ${fmt(cap)}">${icon(key)}<div><div class="l">${label}</div><div class="v ${v >= cap ? 'full' : ''}">${fmt(v)}</div></div></div>`;
   $('#resbar')!.innerHTML =
     r('Metall', 'metal', p.res.m, cp.m, pr.m) +
     r('Kristall', 'crystal', p.res.c, cp.c, pr.c) +
@@ -794,7 +795,7 @@ function updateShipyardButtons(p: Planet): void {
   document
     .querySelectorAll<HTMLElement>('#view [data-act="maxq"]')
     .forEach((max) => {
-      const count = maxAfford(p, UNIT[max.dataset.k!]!.cost);
+      const count = orderMax(p, max.dataset.k!);
       if (max.dataset.max !== String(count)) {
         max.dataset.max = String(count);
         max.textContent = `(max ${fmt(count)})`;
@@ -1040,7 +1041,10 @@ const ACT: Record<string, (d: Data) => unknown> = {
     fleetCalc();
   },
   cmax: () => {
-    const c = cargoMax(settle(S!.planet!, nowT(), S!.cfg), readFleetForm());
+    const c = cargoMax(
+      settle(S!.planet!, nowT(), S!.cfg, S!.me),
+      readFleetForm(),
+    );
     setInput('#c_m', c.m);
     setInput('#c_c', c.c);
     setInput('#c_d', c.d);
