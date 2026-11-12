@@ -3,6 +3,7 @@
 ## 2026-11-12
 
 * **Update**: Debian security updates in the image (`apt-get upgrade`, fresh for every release); a base image hotfix works without a new Node image (see [Branching and release](/ops/branching-release.md)).
+* **Feature**: Schlachtkreuzer and Zerstörer (#58, #59): two ships with the classic values, rapid fire and the Hyperraumantrieb; keys `bc` and `dr`, abbreviations `SK` and `ZE`, icons of the interface v2 set (see [Late-game combat ships](/features/late-game-ships.md)).
 * **Feature**: Solarsatellit (issue #46): built in the shipyard, never flies, ⌊max. temperature / 4 + 20⌋ energy each with its own share, fights as a defender (see [Solarsatellit](/features/solar-satellite.md)).
 * **Decision**: „More ships“ is no longer a non-goal; owiki.de is the first source of the classic rules (see [Overview](/overview.md)).
 * **Decision**: #46 clarified: Solarsatellit with the classic values; energy ⌊temp / 4 + 20⌋ per satellite (classic, owiki.de), own share, points yes, fleet slots no (see [Solarsatellit](/features/solar-satellite.md)).
