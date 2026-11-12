@@ -59,6 +59,12 @@ function addColony(p: Planet): void {
     pct: {},
     created: Date.now(),
   });
+  // Two test players can share a home system, so slot 15 may hold an older
+  // colony of an earlier test. savePlanet keeps `created` on a conflict, and
+  // the oldest planet is the home planet: the reused slot would become it.
+  store.db
+    .prepare('UPDATE planets SET created = ? WHERE id = ?')
+    .run(Date.now(), `p${c.g}_${c.s}_${c.p}`);
 }
 
 store.tx(() => {
