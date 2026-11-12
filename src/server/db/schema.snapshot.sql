@@ -10,6 +10,10 @@ CREATE INDEX audit_target ON audit_events(target, id);
 
 CREATE INDEX audit_time ON audit_events(time);
 
+CREATE INDEX error_events_player ON error_events(player, kind, time);
+
+CREATE INDEX error_events_time ON error_events(time);
+
 CREATE INDEX fleets_owner ON fleets(owner);
 
 CREATE INDEX guild_members_guild ON guild_members(guild_id, status);
@@ -67,6 +71,23 @@ CREATE TABLE daily_rewards (
     last_day INTEGER NOT NULL,
     streak INTEGER NOT NULL,
     claimed_day INTEGER
+  ) STRICT;
+
+CREATE TABLE error_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    kind TEXT NOT NULL CHECK (kind IN ('server', 'client', 'report')),
+    time INTEGER NOT NULL,
+    first INTEGER NOT NULL,
+    player TEXT REFERENCES users(id) ON DELETE CASCADE,
+    request_id TEXT,
+    action TEXT NOT NULL,
+    page TEXT NOT NULL,
+    version TEXT NOT NULL,
+    browser TEXT NOT NULL,
+    message TEXT NOT NULL,
+    detail TEXT NOT NULL,
+    count INTEGER NOT NULL DEFAULT 1,
+    report TEXT NOT NULL
   ) STRICT;
 
 CREATE TABLE fleet_ships (

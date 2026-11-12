@@ -507,7 +507,11 @@ describe('http', () => {
     ctx.store.db.close();
     const r = await call('GET', '/healthz');
     expect(r).toMatchObject({ status: 500, json: { error: 'Serverfehler.' } });
-    expect(logs).toEqual([expect.stringMatching(/^Request failed \[/)]);
+    // The error log cannot be written either; that is logged, never thrown.
+    expect(logs).toEqual([
+      expect.stringMatching(/^Request failed \[/),
+      'Error log write failed',
+    ]);
   });
 
   it('sweeps the rate limiter', async () => {

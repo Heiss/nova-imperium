@@ -37,7 +37,7 @@ the ships fly back.
   does not apply. The flight takes a fleet slot until it arrives.
 * Fuel: `Fleet.fuel` holds the fuel burnt at the start (`fuelFor()`), for
   every mission. **[V]** Stored in the new column `fleets.fuel` (migration
-  12, which rebuilds `fleets` and `fleet_ships` for the new mission in the
+  13, which rebuilds `fleets` and `fleet_ships` for the new mission in the
   CHECK; fleets in flight keep everything and get 0, see
   [SQLite storage](/data/sqlite.md)).
 * Arrival (`src/server/game/arrival.ts`): `deploy()` puts the ships and the
@@ -66,7 +66,7 @@ the ships fly back.
   slot until arrival, ships and cargo plus half the fuel at the target via
   the action, recall), `arrival.test.ts` (above the storage limit, odd fuel
   rounded down, target lost or foreign), `src/server/db/store.test.ts`,
-  `upgrades/migration-12.test.ts` (fleets in flight survive, `deploy`
+  `upgrades/migration-13.test.ts` (fleets in flight survive, `deploy`
   accepted), `upgrades/migration-9.test.ts` (writes the fleet with the
   columns of version 8); E2E „a Verlegung moves part of a fleet with its
   cargo to an own colony for good (#129)“ and the phone variant from the

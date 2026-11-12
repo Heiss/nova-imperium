@@ -109,8 +109,6 @@ export function auditPage(ctx: Ctx, body: Record<string, unknown>) {
     .prepare('SELECT COALESCE(MAX(id), 0) AS id FROM audit_events')
     .get() as { id: number };
   filter.before = Math.min(filter.before, last.id + 1);
-  const size = Number(body.limit);
-  const limit = [10, 25, 50, 100].includes(size) ? size : 10;
   const { count } = ctx.store.db
     .prepare(
       `
@@ -118,12 +116,11 @@ export function auditPage(ctx: Ctx, body: Record<string, unknown>) {
   `,
     )
     .get(filter) as { count: number };
-  const pages = Math.max(1, Math.ceil(count / limit));
-  const page = int(body.page, 1, pages);
+  const { page, pages, limit, offset } = pageWindow(body, count);
   return {
     filter,
     result: {
-      events: events(ctx, filter, limit, (page - 1) * limit),
+      events: events(ctx, filter, limit, offset),
       page,
       pages,
       count,
@@ -131,6 +128,15 @@ export function auditPage(ctx: Ctx, body: Record<string, unknown>) {
       before: filter.before,
     },
   };
+}
+
+/** The page sizes of the admin lists: 10, 25, 50 or 100, else 10. */
+export function pageWindow(body: Record<string, unknown>, count: number) {
+  const size = Number(body.limit);
+  const limit = [10, 25, 50, 100].includes(size) ? size : 10;
+  const pages = Math.max(1, Math.ceil(count / limit));
+  const page = int(body.page, 1, pages);
+  return { page, pages, limit, offset: (page - 1) * limit };
 }
 
 /** Count gaps between real interactions, excluding gaps above the idle limit. */
@@ -167,6 +173,8 @@ export function activity(ctx: Ctx, user: User): void {
 export function purgeAudit(ctx: Ctx): void {
   const cutoff = ctx.now() - RETENTION;
   ctx.store.db.prepare('DELETE FROM audit_events WHERE time < ?').run(cutoff);
+  // The error log of issue #126 is kept as long as the audit log.
+  ctx.store.db.prepare('DELETE FROM error_events WHERE time < ?').run(cutoff);
   ctx.store.db
     .prepare('DELETE FROM player_activity WHERE day + ? <= ?')
     .run(DAY, cutoff);

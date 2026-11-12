@@ -337,7 +337,28 @@ export const MIGRATIONS: readonly string[] = [
   `
   ALTER TABLE users ADD COLUMN rq_planet TEXT;
   `,
-  // 12: the deploy mission and the fuel a fleet burnt (issue #129)
+  // 12: server errors, browser errors and problem reports (issue #126)
+  `
+  CREATE TABLE error_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    kind TEXT NOT NULL CHECK (kind IN ('server', 'client', 'report')),
+    time INTEGER NOT NULL,
+    first INTEGER NOT NULL,
+    player TEXT REFERENCES users(id) ON DELETE CASCADE,
+    request_id TEXT,
+    action TEXT NOT NULL,
+    page TEXT NOT NULL,
+    version TEXT NOT NULL,
+    browser TEXT NOT NULL,
+    message TEXT NOT NULL,
+    detail TEXT NOT NULL,
+    count INTEGER NOT NULL DEFAULT 1,
+    report TEXT NOT NULL
+  ) STRICT;
+  CREATE INDEX error_events_time ON error_events(time);
+  CREATE INDEX error_events_player ON error_events(player, kind, time);
+  `,
+  // 13: the deploy mission and the fuel a fleet burnt (issue #129)
   `
   ALTER TABLE fleet_ships RENAME TO old_fleet_ships;
   ALTER TABLE fleets RENAME TO old_fleets;

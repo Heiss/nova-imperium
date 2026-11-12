@@ -11,7 +11,7 @@ describe('upgrade to migration 9', () => {
     const db = databaseAt(8);
     const store = new Store(db);
     // Written with the columns of version 8; the store writes the newest
-    // schema, which has more fleet columns since migration 12.
+    // schema, which has more fleet columns since migration 13.
     db.exec(`
       INSERT INTO users (id, name, salt, pw_hash, created) VALUES ('u_Anna', 'Anna', 's', 'h', 1);
       INSERT INTO fleets (id, owner, from_planet, from_g, from_s, from_p, to_planet, to_g, to_s, to_p,

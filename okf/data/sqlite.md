@@ -129,11 +129,21 @@ Migration 11 stores the planet where the running research started
 started before has no planet and is refunded to the home planet
 (`upgrades/migration-11.test.ts`).
 
-Migration 12 rebuilds `fleets` and `fleet_ships` (like migration 9) for the
+Migration 12 adds the error log of issue #126, table `error_events`: kind
+(`server`, `client`, `report`, CHECK), time of the last and `first`
+occurrence, player (`ON DELETE CASCADE`), request ID, action, page, version,
+browser, message, detail (stack), count of merged browser errors and the
+report text; indexes on the time and on player, kind and time. The hourly
+sweep deletes rows older than 30 days together with the audit log. Only a
+new table: existing data stay as they were (`upgrades/migration-12.test.ts`,
+which also checks the CHECK and the cascade). See
+[Error log and problem reports](/features/error-log.md).
+
+Migration 13 rebuilds `fleets` and `fleet_ships` (like migration 9) for the
 deploy mission `deploy` in the CHECK and adds `fleets.fuel`, the fuel a
 fleet burnt at the start (`INTEGER NOT NULL DEFAULT 0`; issue #129, see
 [Deploy mission](/features/deploy.md)). Fleets in flight keep their data and
-ships and get 0 (`upgrades/migration-12.test.ts`).
+ships and get 0 (`upgrades/migration-13.test.ts`).
 
 Account deletion runs in one transaction. Foreign-key cascades clear owned game,
 session, reward and push data. The deletion also removes led guilds and their
@@ -162,8 +172,8 @@ tests together with an own test for each changing migration).
   existing rows needs its own test `src/server/db/upgrades/migration-<n>.test.ts`
   that checks the data after the upgrade. The decision is made by the effect on
   generated data, not by the SQL text; `ALTER TABLE … ADD COLUMN` counts as a
-  change. Migrations 7, 9, 10, 11 and 12 have such tests; pure `CREATE` migrations need
-  none.
+  change. Migrations 7, 9, 10, 11 and 13 have such tests; pure `CREATE` migrations need
+  none (migration 12 has one anyway, for its CHECK and cascade).
 * **[E]** A self-test proves that the checks find a migration that fails on
   existing data and that the classification tells changes from new tables.
 * **[V]** Limits: generated data covers what the constraints allow, not what

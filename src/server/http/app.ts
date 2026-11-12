@@ -7,6 +7,7 @@ import * as security from '../account-security.ts';
 import * as passkeys from '../passkeys.ts';
 import type { Config } from '../config.ts';
 import { deleteAccount } from '../delete-account.ts';
+import { noteServerError } from '../error-log.ts';
 import { isDatabaseBusy } from '../db/database.ts';
 import type { User } from '../db/store.ts';
 import { requireAdmin } from '../game/admin.ts';
@@ -23,6 +24,7 @@ import { RateLimiter } from './rate-limit.ts';
 import { clientIp, cookies, readJson } from './request.ts';
 import { SECURITY_HEADERS } from './security.ts';
 import { adminRoutes } from './admin.ts';
+import { errorRoutes } from './errors.ts';
 import { loadStatic } from './static.ts';
 import type { News } from '../news.ts';
 
@@ -46,7 +48,13 @@ export interface Call {
   token: string | undefined;
 }
 
-type Reply = { status?: number; json: unknown; cookie?: string };
+type Reply = {
+  status?: number;
+  json?: unknown;
+  cookie?: string;
+  /** A download instead of JSON (the ZIP of the admin tab „Fehler“). */
+  file?: { type: string; name: string; body: Uint8Array };
+};
 /** Refuses a request that exceeds the rate limit. */
 type Guard = (req: IncomingMessage) => void;
 /** Starts a session for a signed-in user. */
@@ -57,7 +65,7 @@ function send(
   res: ServerResponse,
   status: number,
   type: string,
-  body: string | Buffer,
+  body: string | Uint8Array,
   extra: Record<string, string> = {},
 ): void {
   res.writeHead(status, {
@@ -153,9 +161,14 @@ function passwordRoutes(d: AppDeps, guard: Guard): Record<string, Handler> {
           'Passwort-Wiederherstellung per E-Mail ist nicht eingerichtet.',
         );
       setImmediate(() => {
-        void sendReset(d, body.email).catch(() =>
-          d.log?.('Password reset mail failed'),
-        );
+        void sendReset(d, body.email).catch((error: unknown) => {
+          d.log?.('Password reset mail failed');
+          noteServerError(
+            ctx,
+            { action: 'mail', error, version: d.news?.version },
+            d.log,
+          );
+        });
       });
       return { json: { ok: true } };
     },
@@ -536,21 +549,54 @@ async function handleApi(
     body,
     token: cookies(req.headers.cookie).get(COOKIE),
   });
+  if (reply.file)
+    return send(res, 200, reply.file.type, reply.file.body, {
+      'cache-control': 'no-store',
+      'content-disposition': `attachment; filename="${reply.file.name}"`,
+    });
   json(res, reply.status ?? 200, reply.json, reply.cookie);
 }
 
 function fault(
+  d: AppDeps,
+  req: IncomingMessage,
   res: ServerResponse,
   e: unknown,
-  log: AppDeps['log'],
-  requestId: string,
+  { requestId, path }: { requestId: string; path: string },
 ): void {
   if (e instanceof GameError) return json(res, 400, { error: e.message });
   if (e instanceof Unauthorized)
     return json(res, 401, { error: 'Bitte einloggen.' });
   if (isDatabaseBusy(e)) return json(res, 503, { error: DATABASE_BUSY });
-  log?.(`Request failed [${requestId}]`, e);
+  d.log?.(`Request failed [${requestId}]`, e);
+  recordFault(d, req, e, { requestId, path });
   json(res, 500, { error: 'Serverfehler.' });
+}
+
+/** An unexpected error of a request goes into the error log (issue #126). */
+function recordFault(
+  d: AppDeps,
+  req: IncomingMessage,
+  error: unknown,
+  { requestId, path }: { requestId: string; path: string },
+): void {
+  let user: User | null = null;
+  try {
+    user = auth.sessionUser(d.ctx, cookies(req.headers.cookie).get(COOKIE));
+  } catch {
+    // Without a working database the error is recorded without a player.
+  }
+  noteServerError(
+    d.ctx,
+    {
+      action: `${req.method} ${path}`,
+      error,
+      requestId,
+      player: user?.id ?? null,
+      version: d.news?.version,
+    },
+    d.log,
+  );
 }
 
 export function createApp(d: AppDeps): {
@@ -562,10 +608,12 @@ export function createApp(d: AppDeps): {
     d.cfg.rateLimitMinutes * 60000,
     d.ctx.now,
   );
+  const errors = errorRoutes(d, (call) => sessionUserOf(d.ctx, call));
   const table = Object.entries({
     ...accountRoutes(d, limiter),
     ...gameRoutes(d),
     ...pushRoutes(d),
+    ...errors.routes,
   });
   const handle = async (
     req: IncomingMessage,
@@ -585,13 +633,14 @@ export function createApp(d: AppDeps): {
         'cache-control': 'no-cache',
       });
     } catch (e) {
-      fault(res, e, d.log, requestId);
+      fault(d, req, res, e, { requestId, path });
     }
   };
   return {
     handle,
     sweep: () => {
       limiter.sweep();
+      errors.sweep();
       security.purgeAccountTokens(d.ctx);
       passkeys.purgePasskeyChallenges(d.ctx);
     },

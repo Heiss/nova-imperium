@@ -1042,6 +1042,20 @@ textarea:focus-visible {
 .admin-table details code {
   overflow-wrap: anywhere;
 }
+/* Error log (issue #126): stack traces wrap inside the table. */
+.admin-table details pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-width: 60ch;
+  font-size: 0.85em;
+}
+.toast button {
+  margin-left: 10px;
+}
+.report-form textarea {
+  width: 100%;
+  max-width: 520px;
+}
 #pwa-offer:not([hidden]) {
   display: flex;
   flex-wrap: wrap;
