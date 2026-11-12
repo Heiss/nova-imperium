@@ -2,6 +2,7 @@
 
 ## 2026-11-12
 
+* **Feature**: Solarsatellit (issue #46): built in the shipyard, never flies, ⌊max. temperature / 4 + 20⌋ energy each with its own share, fights as a defender (see [Solarsatellit](/features/solar-satellite.md)).
 * **Decision**: „More ships“ is no longer a non-goal; owiki.de is the first source of the classic rules (see [Overview](/overview.md)).
 * **Decision**: #46 clarified: Solarsatellit with the classic values; energy ⌊temp / 4 + 20⌋ per satellite (classic, owiki.de), own share, points yes, fleet slots no (see [Solarsatellit](/features/solar-satellite.md)).
 * **Feature**: Security hotfix: Trivy scans `stable` every hour; a High or Critical hole with a fix becomes `hotfix/sec-<id>` from the release tag and releases itself when the CI Gate is green; the base image is pinned to its digest (see [Branching and release](/ops/branching-release.md)).

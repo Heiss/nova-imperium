@@ -1,5 +1,5 @@
 // Sending and recalling fleets.
-import { MISSION, SHIPS } from '../../shared/catalog.ts';
+import { MISSION, SHIPS, canFly } from '../../shared/catalog.ts';
 import {
   capacity,
   countUnits,
@@ -29,6 +29,7 @@ const pickShips = (p: Planet, wanted: unknown): Levels => {
   for (const [k, n] of Object.entries((wanted as Levels | null) ?? {})) {
     if (!SHIPS[k]) continue;
     const m = Math.min(int(n, 0, 1e12), p.ships[k] ?? 0);
+    if (m > 0 && !canFly(k)) fail('Solarsatelliten können nicht fliegen.');
     if (m > 0) ships[k] = m;
   }
   return ships;

@@ -29,14 +29,23 @@ they are (2026-11-12).
 * **[E]** It fights as a defender, can be destroyed, and every ship except
   the Spionagesonde and the satellite itself has rapid fire 5 against it
   (owner, 2026-11-12; owiki.de lists no rapid fire of the probe).
-* **[V]** Internal key `sat`.
 * **[E]** Its cost counts to the points; it takes no fleet slot (D3 = 1,
   owner, 2026-11-12).
 * **[U]** The values are from the owner's comparison and the wiki (sources
   in #46); the owner took them over unchanged.
-* **[V]** The engine gives the default rapid fire 5 only against the probe
-  (`rapid()`, `src/shared/battle.ts`); it gets a second default for the
-  satellite. Debris only once #45 exists.
-* **[V]** German interface: Werft „Solarsatellit“ with new art and the energy
-  per satellite on the active planet; Rohstoffe a line „Solarsatelliten (n)“
-  with energy and share; Flotte doesn't offer it.
+* The code: key `sat`, abbreviation `SA` in `SHIPS` (`src/shared/catalog.ts`),
+  speed 0. `canFly()` keeps it out of the fleet view and the server refuses
+  it („Solarsatelliten können nicht fliegen.“, `fleet-actions.ts`).
+  `satEnergy()` and `satPower()` in `src/shared/economy.ts` add its energy to
+  `prod()`; without satellites the result is the one of version 1. `PRODUCERS`
+  has `sat`, so its share is set like the Solarkraftwerk's. `rapid()` gives
+  every ship but the probe and the satellite 5 against probe and satellite.
+  Debris only once #45 exists.
+* The interface: Werft „Solarsatellit“ with the icon of the interface v2 set
+  and „Energie n je Satellit“ for the active planet, no cargo and speed;
+  Rohstoffe a line „Solarsatelliten (n)“ with energy and share; Flotte does
+  not offer it.
+* Tests: `catalog.test.ts`, `economy.test.ts`, `battle.test.ts`,
+  `src/server/game/fleet.test.ts`, `arrival.test.ts`, `actions.test.ts`, E2E
+  „Solarsatelliten give energy by temperature and never fly (#46)“; the E2E
+  seed takes `temp`.
