@@ -55,7 +55,9 @@ export function buildSide(side: Side): Unit[] {
 export function rapid(a: string, t: string): number {
   const rf = UNIT[a]?.rf?.[t];
   if (rf) return rf;
-  if (t === 'probe' && SHIPS[a] && a !== 'probe') return 5;
+  // Every ship but the probe and the satellite has rapid fire 5 against both.
+  const easy = t === 'probe' || t === 'sat';
+  if (easy && SHIPS[a] && a !== 'probe' && a !== 'sat') return 5;
   return 1;
 }
 

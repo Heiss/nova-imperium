@@ -146,6 +146,8 @@ or the newest base image; its pull request and its release pull request
 merge themselves when the CI Gate is green, so `stable` gets the fix without
 the unreleased work of `main`. An issue „Sicherheits-Hotfix sec-<id>“
 reports it; merge the pull request `hotfix/sec-<id>` → `main` afterwards.
+The image installs Debian's security updates at build time, so a fix in
+Debian does not wait for a new official Node image.
 Setup: Dependabot alerts on, Dependabot security updates off (Renovate
 opens those pull requests), „Allow auto-merge“ on, and the release App as
 bypass in the ruleset that restricts creating `hotfix/**`.
