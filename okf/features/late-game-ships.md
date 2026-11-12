@@ -1,12 +1,12 @@
 ---
 type: feature
-title: Schlachtkreuzer, Zerstörer and Bomber
-description: The three combat ships of issues #57, #58 and #59, their classic values from owiki.de, rapid fire and the drive switch of the Bomber.
+title: Schlachtkreuzer, Zerstörer, Bomber and Todesstern
+description: The combat ships of the epic #56 (issues #57 to #60), their classic values from owiki.de, rapid fire and the drive switch of the Bomber.
 ---
 
-# Schlachtkreuzer, Zerstörer and Bomber
+# Schlachtkreuzer, Zerstörer, Bomber and Todesstern
 
-Issues #58, #59 and #57 (parent #56), milestone `next release` (owner,
+Epic #56 with #58, #59, #57 and #60, milestone `next release` (owner,
 2026-11-12). „More ships“ is no longer a non-goal ([Overview](/overview.md)).
 All values are the classic ones on owiki.de, confirmed by the owner
 (2026-11-12). Hull in the engine = (metal + crystal) / 10.
@@ -39,10 +39,26 @@ All values are the classic ones on owiki.de, confirmed by the owner
   - Bomber against Spionagesonde 5, Solarsatellit 5, Raketenwerfer 20,
     Leichtes Lasergeschütz 20, Schweres Lasergeschütz 10, Ionengeschütz 10;
     **none** against the Gaußkanone and the Plasmawerfer (added only in 2019).
-* **[E]** A rapid fire value against a unit is added when both units exist;
-  the Todesstern's values come with #60.
+* **[E]** Todesstern (#60): 5,000,000 metal, 4,000,000 crystal, 1,000,000
+  deuterium; structure 9,000,000 (hull 900,000), shield 50,000, attack
+  200,000; cargo 1,000,000; speed 100 with the Hyperraumantrieb; fuel 1.
+  Requires Werft 12, Hyperraumtechnik 6, Hyperraumantrieb 7,
+  Gravitonforschung 1 (#49). Key `dstar`, abbreviation `TS` (D5). Classic
+  numbers unchanged; the Nanitenfabrik shortens the build time (D6) (owner,
+  2026-11-12).
+* **[E]** Todesstern rapid fire: Spionagesonde 1,250, Solarsatellit 1,250,
+  Kolonialschiff 250, Kleiner and Großer Transporter 250, Leichter Jäger 200,
+  Schwerer Jäger 100, Kreuzer 33, Schlachtschiff 30, Bomber 25,
+  Schlachtkreuzer 15, Zerstörer 5, Raketenwerfer 200, Leichtes
+  Lasergeschütz 200, Schweres Lasergeschütz 100, Ionengeschütz 100,
+  Gaußkanone 50. No unit has rapid fire against it.
+* **[E]** Scope of #60: the ship now; the mission „Zerstören“ (moon
+  destruction) comes later with the moons (#53) in its own issue. „Moons“
+  stays a non-goal for now (D1, D3, owner, 2026-11-12).
+* **[E]** A rapid fire value against a unit is added when both units exist
+  (#60 D4).
 * **[V]** German interface: Werft gets three entries; the icons exist
   (`battlecruiser.svg`, `destroyer.svg`, `bomber.svg` in the interface v2
   set). The Bomber shows its current drive.
-* Sources: owiki.de pages Schlachtkreuzer, Zerstörer, Bomber,
+* Sources: owiki.de pages Schlachtkreuzer, Zerstörer, Bomber, Todesstern,
   Hyperraumantrieb (read 2026-11-12).

@@ -2,6 +2,7 @@
 
 ## 2026-11-12
 
+* **Decision**: Epic #56 in the release; #60 clarified: Todesstern as a ship with the classic values, mission „Zerstören“ later with the moons (see [Ships](/features/late-game-ships.md)).
 * **Decision**: #57, #58, #59 clarified: Bomber, Schlachtkreuzer and Zerstörer with the classic values of owiki.de; Bomber fuel 1,000, drive switch at Hyperraumantrieb 8, no rapid fire against Gaußkanone and Plasmawerfer (see [Ships](/features/late-game-ships.md)).
 * **Feature**: Security hotfix: Trivy scans `stable` every hour; a High or Critical hole with a fix becomes `hotfix/sec-<id>` from the release tag and releases itself when the CI Gate is green; the base image is pinned to its digest (see [Branching and release](/ops/branching-release.md)).
 * **Feature**: Release loop: `.claude/loop.md` for a bare `/loop` - plan the release with the owner (infrastructure first), clarify, build, make the release pull request ready, stop (see [Release loop](/ops/loop.md)).

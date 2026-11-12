@@ -20,7 +20,7 @@ okf_version: "0.2"
 * [Interface v2 and planet types](/features/interface.md) - icon set, phone navigation, animated planets, planet type rule
 * [Requirements list](/features/requirements.md) - all unmet requirements, startable ones with a button
 * [Nanitenfabrik](/features/nanite-factory.md) - halves building and shipyard times, shared shipyard lock
-* [Schlachtkreuzer, Zerstörer and Bomber](/features/late-game-ships.md) - combat ships of #57, #58, #59, classic values, drive switch
+* [Late-game combat ships](/features/late-game-ships.md) - Schlachtkreuzer, Zerstörer, Bomber, Todesstern of #56, classic values, drive switch
 * [Changelog in the game](/features/changelog.md) - „Neuigkeiten“, update message and hint from CHANGELOG.md
 
 * [Invitations](/features/invitations.md) - registration only by invitation, mail or copied link
