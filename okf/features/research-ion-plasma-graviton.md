@@ -1,7 +1,7 @@
 ---
 type: feature
-title: Ionentechnik, Plasmatechnik and Gravitonforschung
-description: The research added by issue #49, its values, the energy check of Gravitonforschung and what stays out.
+title: Ionentechnik, Plasmatechnik, Gravitonforschung and IFN
+description: The research added by issue #49, its values, the energy check of Gravitonforschung, the research network (IFN) with research on any planet, and what stays out.
 ---
 
 # Ionentechnik, Plasmatechnik and Gravitonforschung
@@ -10,10 +10,27 @@ Issue #49, milestone `next release` with #46, #47 and #50 (owner, 2026-11-12).
 Not in version 1; the classic values of the issue, confirmed by the owner as
 they are (2026-11-12).
 
-* **[E]** Scope: Ionentechnik, Plasmatechnik and Gravitonforschung. The
-  Intergalaktisches Forschungsnetzwerk stays out of this release; research
-  keeps running on the home planet ([Colony ships](/features/colonization.md))
-  (owner, 2026-11-12).
+* **[E]** Scope: Ionentechnik, Plasmatechnik, Gravitonforschung and the
+  Intergalaktisches Forschungsnetzwerk (IFN), classic (owner, 2026-11-12;
+  replaces the first decision of the same day to leave IFN out).
+* **[E]** IFN: 240,000 metal, 400,000 crystal, 160,000 deuterium at level 1,
+  factor 2. Requires Forschungslabor 10, Computertechnik 8,
+  Hyperraumtechnik 8. Introduced with v0.70a, before 1.0 (owiki.de).
+* **[E]** Research may start on any own planet with a Forschungslabor, and its
+  cost is paid on that planet. This replaces „Research uses the home planet“
+  in [Colony ships](/features/colonization.md); rewards stay on the home
+  planet. Still one research at a time per player (owner, 2026-11-12).
+* **[E]** Each IFN level links one more own lab: the researching planet's lab
+  plus the IFN level many highest other labs. A lab joins only if its own
+  level meets the lab requirement of the research; the levels of all joined
+  labs are added and count as one lab for the research time. Example: labs 10
+  and 6 research Schildtechnik like lab 16, Hyperraumantrieb (needs lab 7)
+  like lab 10 (owiki.de, owner, 2026-11-12).
+* **[E]** The lab lock stays (`src/shared/lab.ts`): no lab is upgraded while
+  research runs, and research does not start on a planet whose lab is being
+  upgraded.
+* **[U]** Whether a lab that is being upgraded on another planet joins the
+  network is not on owiki.de. **[V]** It does not join.
 * **[E]** Expeditionstechnik stays out of this issue. It comes with a new
   issue for expeditions, together with the expeditions themselves (owner,
   2026-11-12, #49 D3).

@@ -2,7 +2,7 @@
 
 ## 2026-11-12
 
-* **Decision**: Milestone `next release` = #46, #47, #49, #50. #49 clarified: Ionentechnik, Plasmatechnik and Gravitonforschung with the classic values; Gravitonforschung checks 300,000 energy production (classic); IFN out; Expeditionstechnik moves to a new issue for expeditions (see [Research](/features/research-ion-plasma-graviton.md)).
+* **Decision**: Milestone `next release` = #46, #47, #49, #50. #49 clarified: Ionentechnik, Plasmatechnik and Gravitonforschung with the classic values; Gravitonforschung checks 300,000 energy production (classic); IFN classic with research on any planet with a lab (decided again the same day); Expeditionstechnik moves to a new issue for expeditions (see [Research](/features/research-ion-plasma-graviton.md)).
 * **Feature**: Release loop: `.claude/loop.md` for a bare `/loop` - plan the release with the owner (infrastructure first), clarify, build, make the release pull request ready, stop (see [Release loop](/ops/loop.md)).
 * **Update**: Release candidate images `<version>-rc.<N>` and `next` for every green release pull request; releases are also tagged `stable`, `latest` stays the newest release (see [Branching and release](/ops/branching-release.md)).
 
