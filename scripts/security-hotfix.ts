@@ -251,8 +251,9 @@ export function pinBase(dockerfile: string, digest: string): string {
 const OS_UPDATES = (id: string) =>
   [
     `ARG OS_UPDATES=sec-${id}`,
-    'RUN apt-get update \\',
-    ' && apt-get upgrade -y --no-install-recommends \\',
+    'RUN apt-get update --error-on=any \\',
+    ' && apt-get full-upgrade -y --no-install-recommends \\',
+    " && if apt-get -s full-upgrade | grep -q '^Inst'; then echo 'Debian updates were held back.' >&2; exit 1; fi \\",
     ' && rm -rf /var/lib/apt/lists/*',
   ].join('\n');
 

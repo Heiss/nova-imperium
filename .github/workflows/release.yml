@@ -85,7 +85,7 @@ jobs:
           # Debian's security updates are fetched fresh for every release,
           # not taken from the layer cache (Dockerfile, OS_UPDATES).
           build-args: |
-            OS_UPDATES=${{ github.run_id }}
+            OS_UPDATES=${{ github.run_id }}-${{ github.run_attempt }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 

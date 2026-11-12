@@ -300,7 +300,17 @@ describe('security hotfix: apply', () => {
     expect(
       markOsUpdates('FROM x AS base\nFROM y AS app\nWORKDIR /app\n', 'ab'),
     ).toBe(
-      'FROM x AS base\nFROM y AS app\nARG OS_UPDATES=sec-ab\nRUN apt-get update \\\n && apt-get upgrade -y --no-install-recommends \\\n && rm -rf /var/lib/apt/lists/*\nWORKDIR /app\n',
+      [
+        'FROM x AS base',
+        'FROM y AS app',
+        'ARG OS_UPDATES=sec-ab',
+        'RUN apt-get update --error-on=any \\',
+        ' && apt-get full-upgrade -y --no-install-recommends \\',
+        " && if apt-get -s full-upgrade | grep -q '^Inst'; then echo 'Debian updates were held back.' >&2; exit 1; fi \\",
+        ' && rm -rf /var/lib/apt/lists/*',
+        'WORKDIR /app',
+        '',
+      ].join('\n'),
     );
     expect(() => markOsUpdates('FROM x\n', 'ab')).toThrow('no stage "app"');
     expect(() => markOsUpdates(docker, 'x y')).toThrow('Not a hotfix id');

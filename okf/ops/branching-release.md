@@ -165,12 +165,14 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   finished by the next scan while it still starts at the newest release and
   no other hotfix is on its way. When it no longer starts at the newest
   release, an issue asks the owner to delete it.
-* **[E]** The job does not scan the new base image before it starts: it
-  only fails when the fix changes nothing (`package.json`,
-  `pnpm-lock.yaml` and `Dockerfile` as in the release), for example when
-  the newest base image digest is the one the release already has; then it
-  fails on every scan until the digest changes. A new digest that still
-  holds the hole is released, and the next scan reports it as not closed.
+* **[E]** The job does not scan the new image before it starts. A hole in
+  the base image always changes the `Dockerfile` (`ARG OS_UPDATES=sec-<id>`,
+  and the newest digest when there is one), so its hotfix rebuilds the image
+  with Debian's current security updates. If the hole is still there, for
+  example because Debian has no fix for that architecture yet, the release
+  goes out anyway and the next scan reports the same plan id as not closed;
+  nothing is retried automatically. The job fails only when `package.json`,
+  `pnpm-lock.yaml` and `Dockerfile` stay as in the release.
 * **[E]** A release older than the release pull request (26.11.18 and
   older, no `scripts/release-pr.sh`) gets no automatic hotfix: its hotfix
   branch could not release, so neither a new nor a resumed hotfix starts.
@@ -179,10 +181,11 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   first scan on 2026-11-12 found two High holes in `zlib1g` of the base
   image of 26.11.18 (issue #97).
 * **[E]** Debian's security updates go into the image that runs (owner,
-  2026-11-12): `apt-get upgrade` after `FROM … AS app`, so a Debian fix
+  2026-11-12): `apt-get full-upgrade` after `FROM … AS app`, which fails when an
+  update stays held back,, so a Debian fix
   reaches the image before the official Node image is rebuilt (2× High in
   `zlib1g` of 26.11.19 had a Debian fix but no new `node:26-slim`). Every
-  release build passes `OS_UPDATES` (the run id), so the layer cache never
+  release build passes `OS_UPDATES` (run id and attempt), so the layer cache never
   keeps old packages; a hotfix of the base image sets the default
   `ARG OS_UPDATES=sec-<id>` (and adds the block to a release from before it),
   so the hotfix always changes the `Dockerfile` and fetches the updates again.

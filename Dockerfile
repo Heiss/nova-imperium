@@ -31,8 +31,9 @@ FROM node:26-slim@sha256:e6bedef217677b276c591795e169840edd9096dbf13f29df8ef8d18
 # keeps old packages; a security hotfix of the base image changes its default
 # (scripts/security-hotfix.ts).
 ARG OS_UPDATES=none
-RUN apt-get update \
- && apt-get upgrade -y --no-install-recommends \
+RUN apt-get update --error-on=any \
+ && apt-get full-upgrade -y --no-install-recommends \
+ && if apt-get -s full-upgrade | grep -q '^Inst'; then echo 'Debian updates were held back.' >&2; exit 1; fi \
  && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 ENV NODE_ENV=production \
