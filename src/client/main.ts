@@ -629,11 +629,10 @@ function renderPlanetHeader({ s, P }: V): void {
     `<b>${esc(P.name)}</b> ${coords(P)} · Kommandant <b>${esc(s.me.name)}</b> · <span class="lnk" data-act="logout">Logout</span>${selector}`;
 }
 
-/** The view state moved to now; H is the home planet (P itself on home). */
+/** The view state moved to now. */
 function viewAt(state: GameState, planet: Planet, now: number): V {
   const here = settle(planet, now, state.cfg);
-  const home = state.home ? settle(state.home, now, state.cfg) : here;
-  return { s: state, P: here, H: home, R: settleR(state.me, now), now, ui };
+  return { s: state, P: here, R: settleR(state.me, now), now, ui };
 }
 
 function render(fresh = false): void {
@@ -965,7 +964,7 @@ const ACT: Record<string, (d: Data) => unknown> = {
     ui.auth = ui.auth === 'register' ? 'login' : 'register';
     render(true);
   },
-  build: (d) => act('build', { key: d.k, at: d.at }),
+  build: (d) => act('build', { key: d.k }),
   cancelBuild: () => act('cancelBuild'),
   research: (d) => act('research', { key: d.k }),
   cancelResearch: () => act('cancelResearch'),
@@ -1512,7 +1511,6 @@ setInterval(() => {
     buildingView?.update({
       ...ctx,
       P: planet,
-      H: S?.home ? ctx.H : planet,
       now,
     });
     updateResearchButtons(planet, ctx.R.research);

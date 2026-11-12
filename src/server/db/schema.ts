@@ -333,4 +333,8 @@ export const MIGRATIONS: readonly string[] = [
   ALTER TABLE users ADD COLUMN explain_mode TEXT NOT NULL DEFAULT 'icon'
     CHECK (explain_mode IN ('always', 'icon', 'hidden'));
   `,
+  // 11: the planet where the running research started (issue #49)
+  `
+  ALTER TABLE users ADD COLUMN rq_planet TEXT;
+  `,
 ];

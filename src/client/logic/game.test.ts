@@ -136,6 +136,20 @@ describe('button states', () => {
       ),
     ).toBe('ready');
   });
+  it('of research without enough energy production (#49)', () => {
+    const rq = {
+      research: {},
+      rq: { key: 'energy', lvl: 1, start: 0, end: 1, cost: [0, 0, 0] as const },
+    };
+    expect(researchState(planet(), r, 'graviton', 0, 1)).toBe('energy');
+    expect(researchState(planet(), r, 'graviton', 0, 0)).toBe('ready');
+    expect(researchState(planet(), r, 'graviton', 1, 1)).toBe('missing');
+    expect(researchState(planet(), rq, 'graviton', 0, 1)).toBe('busy');
+    const upgrading = planet({
+      bq: { key: 'lab', lvl: 2, start: 0, end: 1, cost: [0, 0, 0] },
+    });
+    expect(researchState(upgrading, r, 'graviton', 0, 1)).toBe('labBusy');
+  });
 });
 
 describe('fleet form', () => {

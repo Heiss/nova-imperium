@@ -64,7 +64,7 @@
           </div>
         {/if}
         <div class="dim">Bauzeit: {dur(buildTime(cost, P, s.cfg))}</div>
-        {@html requirementsHTML($viewState, def.req, 'here')}
+        {@html requirementsHTML($viewState, def.req)}
         {#if ex}
           <div class="ex" id={ex.panel} hidden={!ex.open}><p>{ex.text}</p></div>
         {/if}
