@@ -69,9 +69,10 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   reviews it when it is opened; later rebuilds are not reviewed again
   (`auto_incremental_review: false`, seen on pull request #88), a review can
   be asked for with `@coderabbitai review`.
-  `release.yml` publishes the image as `<version>`, plus `latest` and
-  `stable` when it is the newest release tag (a re-run of an older release
-  or a hotfix of an older line does not move them back),
+  `release.yml` publishes the image as `<version>`; its serialized job
+  „latest and stable“ then points both aliases at the image of the newest
+  release tag, whichever run gets there (a re-run of an older release or a
+  hotfix of an older line never moves them back),
   and a GitHub release whose notes are the section of `CHANGELOG.md`,
   followed by GitHub's list of pull requests.
 * **[E]** Release candidates (owner, 2026-11-12): every green CI run of a

@@ -1,7 +1,8 @@
 name: Release
 
 # A tag like 26.11.0 (CalVer YY.M.MICRO, no "v") builds and publishes the image
-# as 26.11.0, latest and stable (release candidates: rc-image.yml, „next“),
+# as 26.11.0; the job "aliases" points latest and stable at the newest
+# release (release candidates: rc-image.yml, „next“),
 # but only when CI already passed on main or hotfix/* for the tagged commit.
 # Tags come from merged release pull requests (tag.yml); the release notes are
 # the German section of CHANGELOG.md.
@@ -22,6 +23,9 @@ jobs:
       actions: read # Prior CI runs
       contents: write # GitHub release
       packages: write # GHCR
+    outputs:
+      image: ${{ steps.v.outputs.image }}
+      publish: ${{ steps.v.outputs.publish }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -29,8 +33,6 @@ jobs:
 
       - name: Version and image name
         id: v
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
           owner="${GITHUB_REPOSITORY_OWNER,,}"
           echo "image=ghcr.io/${owner}/nova-imperium" >> "$GITHUB_OUTPUT"
@@ -42,18 +44,6 @@ jobs:
             fi
             echo "tag=$tag" >> "$GITHUB_OUTPUT"
             echo "publish=true" >> "$GITHUB_OUTPUT"
-            # latest and stable name the newest release: a re-run of an
-            # older release, or a hotfix of an older line, publishes only
-            # its own version.
-            newest=$(gh api --paginate "repos/$GITHUB_REPOSITORY/tags?per_page=100" --jq '.[].name' |
-              grep -E '^[0-9]{2}\.([1-9]|1[0-2])\.(0|[1-9][0-9]*)$' |
-              sort -t. -k1,1n -k2,2n -k3,3n | tail -n 1)
-            if [ "$tag" = "$newest" ]; then
-              echo "newest=true" >> "$GITHUB_OUTPUT"
-            else
-              echo "newest=false" >> "$GITHUB_OUTPUT"
-              echo "$tag is not the newest release ($newest): no latest or stable."
-            fi
           else
             echo "tag=dry-run" >> "$GITHUB_OUTPUT"
             echo "publish=false" >> "$GITHUB_OUTPUT"
@@ -92,8 +82,6 @@ jobs:
           push: ${{ steps.v.outputs.publish == 'true' }}
           tags: |
             ${{ steps.v.outputs.image }}:${{ steps.v.outputs.tag }}
-            ${{ steps.v.outputs.newest == 'true' && format('{0}:latest', steps.v.outputs.image) || '' }}
-            ${{ steps.v.outputs.newest == 'true' && format('{0}:stable', steps.v.outputs.image) || '' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -114,3 +102,45 @@ jobs:
         run: |
           node scripts/changelog.ts notes "$TAG" > notes.md
           gh release create "$TAG" --verify-tag --title "$TAG" --notes-file notes.md --generate-notes
+
+  # latest and stable always name the newest release tag, whichever release
+  # run gets here and in whatever order: the job looks the newest tag up
+  # itself and points both aliases at its image. Runs are serialized; a run
+  # waiting here may be replaced by a later one, which sets the same result.
+  # A re-run of an older release or a hotfix of an older line never moves
+  # them back.
+  aliases:
+    name: latest and stable
+    needs: image
+    if: needs.image.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write # GHCR
+    concurrency:
+      group: release-aliases
+      cancel-in-progress: false
+    steps:
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Point latest and stable at the newest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          IMAGE: ${{ needs.image.outputs.image }}
+        run: |
+          newest=$(gh api --paginate "repos/$GITHUB_REPOSITORY/tags?per_page=100" --jq '.[].name' |
+            grep -E '^[0-9]{2}\.([1-9]|1[0-2])\.(0|[1-9][0-9]*)$' |
+            sort -t. -k1,1n -k2,2n -k3,3n | tail -n 1)
+          if ! docker buildx imagetools inspect "$IMAGE:$newest" > /dev/null 2>&1; then
+            echo "The image $newest is not published yet; its own run sets the aliases."
+            exit 0
+          fi
+          docker buildx imagetools create -t "$IMAGE:latest" -t "$IMAGE:stable" "$IMAGE:$newest"
+          echo "latest and stable now point to $newest."
