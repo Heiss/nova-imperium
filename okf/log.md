@@ -2,7 +2,7 @@
 
 ## 2026-11-12
 
-* **Decision**: Design patterns for the planned features: catalog entries as typed components, texts apart from rules, settling with generic events, one strategy per mission, repositories per aggregate, generic Svelte components, feature folders with a generated index; the migration starts after the running release (see [Design patterns](/architecture/patterns.md)).
+* **Decision**: Design patterns for the planned features: catalog entries as typed components, texts apart from rules, settling with generic events, one strategy per mission, repositories per aggregate, generic Svelte components, feature folders with a generated index; the migration starts after the running release; O11: a place is coordinates plus kind (see [Design patterns](/architecture/patterns.md)).
 * **Update**: Debian security updates in the image (`apt-get upgrade`, fresh for every release); a base image hotfix works without a new Node image (see [Branching and release](/ops/branching-release.md)).
 * **Feature**: Schlachtkreuzer and Zerstörer (#58, #59): two ships with the classic values, rapid fire and the Hyperraumantrieb; keys `bc` and `dr`, abbreviations `SK` and `ZE`, icons of the interface v2 set (see [Late-game combat ships](/features/late-game-ships.md)).
 * **Feature**: Solarsatellit (issue #46): built in the shipyard, never flies, ⌊max. temperature / 4 + 20⌋ energy each with its own share, fights as a defender (see [Solarsatellit](/features/solar-satellite.md)).

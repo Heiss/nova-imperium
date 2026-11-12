@@ -99,9 +99,24 @@ choice of the patterns to the assistant's recommendation below
 
 ## 6. Places
 
-* **[V]** A place becomes coordinates plus a kind (`planet | moon | debris`)
-  instead of the `pid()` string. This needs its own decision before #45 and
-  #53 (open point O11).
+* **[E]** A place is coordinates plus a kind:
+  `Place = Coords & { kind: 'planet' | 'moon' | 'debris' }` (O11, owner,
+  2026-11-12).
+* **[V]** The id stays derived from the place, with the kind as prefix:
+  `placeId()` replaces `pid()` and gives `p1_2_3`, `m1_2_3`, `d1_2_3`.
+  Existing planet ids already start with `p` and stay unchanged.
+* **[V]** A moon is a row of `planets` with `kind = 'moon'`; buildings,
+  ships, defense and queues hang on it through `planet_id` as for a planet.
+  `UNIQUE (g, s, p)` becomes `UNIQUE (g, s, p, kind)`, which in SQLite needs
+  a rebuild of the table (append-only migration with the upgrade tests).
+* **[E]** Debris fields get their own table: no owner, no buildings, no
+  production (owner, 2026-11-12).
+* **[E]** Position 16 (expeditions, #93) is decided with #93 (owner,
+  2026-11-12).
+* **[V]** `distance()` already returns 5 for the same coordinates, which is
+  the distance planet ↔ moon (#53). A moon is removed with its planet by
+  its coordinates; no parent column is needed. Missions check the kind of
+  the target in `canSend`; `placement` and `fields` read it for moons.
 
 ## 7. Server actions: commands
 
@@ -176,4 +191,8 @@ src/client/                state, components (generic), views
   5. Missions as strategies.
   6. Repositories per aggregate.
   7. Client state module and generic components; `main.ts` shrinks per view.
-  8. Places (O11) before #45 and #53; battle with several parties with #55.
+  8. Places (O11), its own pull request before #45 and #53 (owner,
+     2026-11-12).
+
+* **[E]** The battle with several parties is no migration step; it is built
+  with #55.
