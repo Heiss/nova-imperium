@@ -31,6 +31,14 @@ const go = (over = {}) => ({
 });
 
 describe('sending fleets', () => {
+  it('ignores ships asked for with 0 or not on the planet, satellites too (#46)', () => {
+    const { ctx, a } = setup();
+    expect(() => send(ctx, a, go({ ships: { sat: 2 } }))).toThrow(
+      'Keine Schiffe ausgewählt.',
+    );
+    send(ctx, a, go({ ships: { lf: 2, sc: 0, sat: 0, bs: 4 } }));
+    expect(ctx.store.fleets()[0]!.ships).toEqual({ lf: 2 });
+  });
   it('takes ships, fuel and cargo and starts the flight', () => {
     const { ctx, a } = setup();
     expect(
@@ -128,6 +136,9 @@ describe('sending fleets', () => {
       sat: 4,
     });
     expect(ctx.store.fleets()).toEqual([]);
+    expect(() => send(ctx, a, go({ ships: { toString: 3 } }))).toThrow(
+      'Keine Schiffe ausgewählt.',
+    );
     addPlanet(ctx, a.id, { g: 1, s: 3, p: 3, created: 2e6 });
     expect(() => send(ctx, a, go({ to: { g: 1, s: 3, p: 3 } }))).toThrow(
       'Eigene Planeten',
