@@ -11,7 +11,7 @@ the issue (lore, what it does, what a further level or more units change) is
 replaced ([E], owner, 2026-11-12): two paragraphs, one or two sentences of
 lore, then „So funktioniert es:“ with the mechanics precisely in words, no
 numbers and no formulas; statements must match the code. Short and precise
-([V]): the lore one sentence, the mechanics at most three, at most about 350
+([E], owner 2026-11-12): the lore one sentence, the mechanics at most three, at most about 350
 characters (see [Grimdark naming](/features/naming.md)).
 
 * **[E]** Display option „Immer anzeigen“ / „(?)-Symbol“ / „Ausblenden“ is
@@ -46,7 +46,7 @@ characters (see [Grimdark naming](/features/naming.md)).
   an `lt` ([E], grimdark style, confirmed by the owner 2026-11-12, see
   [Grimdark naming](/features/naming.md)), so the ships and the defense
   get the (?) too; the entries of #50 and #60 got theirs with the rename
-  ([V]).
+  ([E], owner 2026-11-12).
 * Interface: `src/client/logic/explain.ts` decides per entry and mode;
   `itemHTML` (research, shipyard, defense) and `Buildings.svelte` render it.
   The buildings view now shows the short `ds` too (D5). The (?) is a

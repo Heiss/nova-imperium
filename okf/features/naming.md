@@ -143,7 +143,8 @@ stored mission ids stay.
   page heading only; „Galaxie“ stays as the coordinate, also in the fleet
   form, the admin settings and the help text „Galaxien × Systeme“).
 * Icons: `<title>` and `aria-label` of every catalog and resource icon.
-* **[V]** Short forms the concept does not list, renamed the same way:
+* **[E]** Short forms the concept does not list, renamed the same way
+  (owner, 2026-11-12):
   Werft → Schiffsschmiede (menu entry „Schiffsschmiede“, lock and busy
   messages, „Bauauftrag der Schiffsschmiede“, overview row, admin
   diagnostics, achievement category), Labor/Labore → Scholarium/Scholarien
@@ -193,7 +194,9 @@ stored mission ids stay.
   names of version 1 through the table; `icons.test.ts` checks `<title>`
   and `aria-label` against the catalog.
 
-### Short texts [V]
+### Short texts [E]
+
+Confirmed by the owner (2026-11-12).
 
 Pure name swaps (Metall → Adamant and so on) are not listed. Changed beyond
 the names:
@@ -236,7 +239,7 @@ the names:
 * **[E]** The short `ds` stays a short, cost-free one-liner.
 * **[E]** The panel shows the two paragraphs as two escaped `<p>`, split at
   the blank line (`paragraphs()` in `src/client/logic/explain.ts`).
-* **[V]** Short and precise, not sprawling (owner, 2026-11-12): the lore
+* **[E]** Short and precise, not sprawling (owner, 2026-11-12): the lore
   exactly one sentence, the mechanics at most three sentences with only
   what a player needs to decide (what it affects and where, what a level
   changes, rapid fire in both directions, locks, once per planet), at most
@@ -244,8 +247,9 @@ the names:
   are the point (Warp-Theorie, Lichtlanzen-, Ionen- and Plasma-Lehre,
   Gravitonen-Mysterium); „Eine Flotte fliegt so schnell wie ihr langsamstes
   Schiff“ only in the drive texts.
-* **[V]** All 48 texts are drafts for the owner: the field `lt` of each
-  entry in `src/shared/catalog.ts`, written again under these limits.
+* **[E]** All 48 texts, the field `lt` of each entry in
+  `src/shared/catalog.ts`, written again under these limits and confirmed
+  by the owner (2026-11-12).
 * Rapid fire is called „Schnellfeuer“ (explained once, in the Frachtläufer
   text); the rebuilt defense is „ein großer Teil“, for a dome „oft“.
 * `src/shared/explain.test.ts` checks: every entry has a text (the list

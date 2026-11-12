@@ -61,7 +61,7 @@ const entries = Object.entries(CATALOG).flatMap(([part, defs]) =>
 );
 
 /**
- * Limits of a long text ([V], owner, 2026-11-12: „präzise, aber nicht
+ * Limits of a long text ([E], owner, 2026-11-12: „präzise, aber nicht
  * ausufernd“): the lore one sentence, the mechanics at most three, all of it
  * at most about 350 characters.
  */
