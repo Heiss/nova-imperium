@@ -63,7 +63,7 @@ the ships fly back.
   table no longer widens the page (it did with two own planets before).
   With the names of #94 the longest action, „Versorgungsflug“, still did,
   so on a phone the galaxy cells are also tighter and its small buttons
-  have no letter spacing (**[V]**, 2026-11-12).
+  have no letter spacing (**[E]**, owner, 2026-11-12).
 * **[E]** (owner, 2026-11-12) The fleet form shows „‹Ankunft› / –“ for a deploy, as there is no
   return; the fleet list has no own colour for a deploy (like colonization).
 * Names (#94, [Grimdark naming](/features/naming.md)): „Verlegung“ is
