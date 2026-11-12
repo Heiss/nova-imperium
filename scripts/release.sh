@@ -75,10 +75,12 @@ existing=''
 if git rev-parse -q --verify "refs/tags/$tag" > /dev/null; then
   if [ "$(git rev-parse "$tag^{commit}")" = "$commit" ]; then
     existing=$tag
-  else
+  elif git merge-base --is-ancestor "$tag^{commit}" "$commit"; then
     # A hotfix merged back into main carries the hotfix's VERSION.
-    printf '%s\n' "$tag already exists on another commit: nothing to tag."
+    printf '%s\n' "$tag is the release of a merged-back hotfix: nothing to tag."
     exit 0
+  else
+    fail "$tag is already the tag of another release: this release is not tagged. Fix VERSION through a new release pull request."
   fi
 fi
 

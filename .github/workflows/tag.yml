@@ -15,8 +15,12 @@ permissions:
   contents: read
   actions: read
 
+# One group per commit: a single shared group keeps only one pending run, so
+# a release commit waiting behind another run could be dropped by the run of
+# a later commit. Different commits never compete for the same tag; a taken
+# version fails scripts/release.sh loudly.
 concurrency:
-  group: tag-release
+  group: tag-${{ github.event.workflow_run.head_sha }}
   cancel-in-progress: false
 
 jobs:

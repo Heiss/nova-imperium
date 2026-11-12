@@ -134,6 +134,14 @@ describe('fragment check', () => {
     expect(missingFragment([...game, 'changes/README.md'], [])).not.toBeNull();
     expect(missingFragment([...game, 'changes/sub/eco.md'], [])).not.toBeNull();
     expect(missingFragment([...game, 'changes/eco.txt'], [])).not.toBeNull();
+    // A deleted fragment is none; a deleted game file still needs one.
+    expect(
+      missingFragment(
+        ['src/client/old.ts', 'changes/eco.md'],
+        [],
+        ['src/client/old.ts', 'changes/eco.md'],
+      ),
+    ).not.toBeNull();
     expect(
       missingFragment(['src/server/http/app.ts', 'okf/x.md'], []),
     ).toBeNull();

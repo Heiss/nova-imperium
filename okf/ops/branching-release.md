@@ -60,6 +60,10 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   that changes `VERSION` is tagged; a version that is already a tag is not
   tagged again. The commit of the CI run is tagged even when the branch has
   moved on in the meantime, as long as it is still part of the branch.
+  A version that is already the tag of another release (two release pull
+  requests picked it at the same moment) fails the tag job loudly; the
+  release pull request workflow also stops when another release branch
+  holds its version, and a second run picks the next one.
   `release.yml` publishes the image and a GitHub release whose
   notes are the section of `CHANGELOG.md`, followed by GitHub's list of pull
   requests.

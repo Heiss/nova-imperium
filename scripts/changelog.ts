@@ -125,17 +125,23 @@ export const germanDate = (now: Date): string =>
     year: 'numeric',
   }).format(now);
 
-/** Why a pull request needs a fragment it does not have, or null. */
+/**
+ * Why a pull request needs a fragment it does not have, or null. `changed`
+ * holds every changed path, deletions included; a deleted fragment does not
+ * count, a deleted game file does.
+ */
 export function missingFragment(
   changed: readonly string[],
   labels: readonly string[],
+  deleted: readonly string[] = [],
 ): string | null {
   if (labels.includes(SKIP_LABEL)) return null;
   const game = changed.filter((f) => PLAYER_PATHS.some((p) => f.startsWith(p)));
   if (!game.length) return null;
-  // Only a top-level file is read by the release; deletions are not passed.
+  // Only a top-level file that still exists is read by the release.
   const fragment = changed.some(
     (f) =>
+      !deleted.includes(f) &&
       f.startsWith(`${DIR}/`) &&
       !f.slice(DIR.length + 1).includes('/') &&
       f.endsWith('.md') &&
@@ -183,17 +189,12 @@ const git = (...args: string[]): string =>
 function check(base: string | undefined): number {
   if (!base) throw new Error('Usage: changelog.ts check <base-sha>');
   readFragments();
-  // Added, copied, modified or renamed files: a deleted fragment is none.
-  const changed = git(
-    'diff',
-    '--name-only',
-    '--diff-filter=ACMR',
-    `${base}...HEAD`,
-  )
-    .split('\n')
-    .filter(Boolean);
+  const list = (...filter: string[]): string[] =>
+    git('diff', '--name-only', '--no-renames', ...filter, `${base}...HEAD`)
+      .split('\n')
+      .filter(Boolean);
   const labels = (process.env.PR_LABELS ?? '').split(',').filter(Boolean);
-  const reason = missingFragment(changed, labels);
+  const reason = missingFragment(list(), labels, list('--diff-filter=D'));
   if (reason) {
     console.log(`::error::${reason}`);
     return 1;

@@ -54,6 +54,17 @@ git -c user.name='Nova Imperium Release' \
   commit --quiet -m "Release $version"
 git push --quiet --force origin "HEAD:refs/heads/$branch"
 
+# Release pull requests of main and of a hotfix are rebuilt by separate runs;
+# two runs at the same moment could pick the same version. The later one
+# sees the other branch now and stops; running it again picks the next one.
+git fetch --quiet origin '+refs/heads/release/*:refs/remotes/origin/release/*'
+for ref in $(git for-each-ref --format='%(refname)' refs/remotes/origin/release/); do
+  [ "$ref" = "refs/remotes/origin/$branch" ] && continue
+  if [ "$(git show "$ref:VERSION" 2> /dev/null | tr -d '[:space:]')" = "$version" ]; then
+    fail "${ref#refs/remotes/origin/} holds $version too: run this workflow again."
+  fi
+done
+
 # Squash merges end their subject with the pull request number.
 pulls=$(git log --format='- %s' "$range" | grep -E '\(#[0-9]+\)$' || true)
 {
