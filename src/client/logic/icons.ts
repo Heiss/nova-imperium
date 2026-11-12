@@ -33,6 +33,7 @@ const FILES: Record<string, string> = {
   bc: 'ships/battlecruiser',
   dr: 'ships/destroyer',
   probe: 'ships/espionage_probe',
+  sat: 'ships/solar_satellite',
   rl: 'defense/rocket_launcher',
   ll: 'defense/light_laser',
   hl: 'defense/heavy_laser',

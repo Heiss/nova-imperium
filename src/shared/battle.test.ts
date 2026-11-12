@@ -70,6 +70,14 @@ describe('battle', () => {
     expect(rapid('probe', 'probe')).toBe(1);
     expect(rapid('rl', 'probe')).toBe(1);
     expect(rapid('lf', 'sc')).toBe(1);
+    // Solarsatellit (#46): 5 from every ship but the probe; it has none itself.
+    expect(rapid('lf', 'sat')).toBe(5);
+    expect(rapid('bs', 'sat')).toBe(5);
+    expect(rapid('probe', 'sat')).toBe(1);
+    expect(rapid('sat', 'sat')).toBe(1);
+    expect(rapid('sat', 'probe')).toBe(1);
+    expect(rapid('sat', 'lf')).toBe(1);
+    expect(rapid('rl', 'sat')).toBe(1);
   });
   it('lets shields absorb small hits and ignores hits below 1 % of the shield', () => {
     const t = unit({ shield: 1000, maxShield: 1000 });

@@ -12,7 +12,7 @@
 //   node scripts/security-hotfix.ts verify <plan.json>     fail when
 //        pnpm-lock.yaml still holds a version below a fix
 import { createHash } from 'node:crypto';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 
 /** Severities that start a hotfix (owner: High and above). */
 const URGENT = new Set(['HIGH', 'CRITICAL']);
@@ -273,6 +273,7 @@ function apply(file: string, digest: string | undefined): number {
     const docker = readFileSync('Dockerfile', 'utf8');
     writeFileSync('Dockerfile', pinBase(docker, digest));
   }
+  mkdirSync('changes', { recursive: true });
   writeFileSync(`changes/sicherheit-${p.id}.md`, fragment());
   return 0;
 }
