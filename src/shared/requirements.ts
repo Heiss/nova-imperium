@@ -1,19 +1,19 @@
 // All unmet requirements of an entry, the indirect ones included, and whether
 // the next level of each can be started now (issue #64, D1–D5).
-// Buildings belong to a planet: the requirements of an entry on the shown
-// planet are built there, the buildings that research needs on the home
-// planet (owner decision). Research is always started and paid on the home
-// planet (D4).
+// Everything belongs to the shown planet: research starts and is paid on any
+// own planet with a Forschungslabor, so the buildings it needs are built
+// there too (issue #49, replaces the home planet rule of #64 D4).
 import { BUILD, RES } from './catalog.ts';
 import { afford, lvlCost, reqMissing } from './economy.ts';
 import { labUpgrading, waitsForLab } from './lab.ts';
+import { energyNeed, energyShort } from './research.ts';
 import { waitsForYard } from './yard.ts';
 import type {
   Cost,
-  Levels,
   Planet,
   Requirements,
   ResearchState,
+  Universe,
 } from './types.ts';
 
 export interface Need {
@@ -24,50 +24,36 @@ export interface Need {
   level: number;
   /** The level today. */
   have: number;
-  /** The planet id where the next level is built (research: the home planet). */
-  planet: string;
   /** The name of the requirement that needs this one (indirect only). */
   via?: string;
 }
 
 export interface Places {
   here: Planet;
-  home: Planet;
   research: ResearchState;
+  cfg: Universe;
 }
 
-type At = 'here' | 'home';
 interface Step {
   kind: 'b' | 'r';
   key: string;
   level: number;
-  at: At;
   via?: string;
 }
 
 const defOf = (kind: 'b' | 'r', key: string) =>
   (kind === 'b' ? BUILD : RES)[key];
 
-const levelsOf = (s: Step, pl: Places): Levels =>
-  s.kind === 'r' ? pl.research.research : pl[s.at].b;
-
-/** The direct requirements of an entry as steps; research always counts from home. */
-function stepsOf(req: Requirements | undefined, at: At, via?: string): Step[] {
-  const b = Object.entries(req?.b ?? {}).map(([key, level]): Step => ({
-    kind: 'b',
-    key,
-    level,
-    at,
-    via,
-  }));
-  const r = Object.entries(req?.r ?? {}).map(([key, level]): Step => ({
-    kind: 'r',
-    key,
-    level,
-    at: 'home',
-    via,
-  }));
-  return [...b, ...r];
+/** The direct requirements of an entry as steps. */
+function stepsOf(req: Requirements | undefined, via?: string): Step[] {
+  const of = (kind: 'b' | 'r') =>
+    Object.entries(req?.[kind] ?? {}).map(([key, level]): Step => ({
+      kind,
+      key,
+      level,
+      via,
+    }));
+  return [...of('b'), ...of('r')];
 }
 
 function add(found: Map<string, Need>, id: string, need: Need): boolean {
@@ -83,7 +69,8 @@ function add(found: Map<string, Need>, id: string, need: Need): boolean {
 
 /** The need of an unmet step, or null when the step is met. */
 function needOf(s: Step, pl: Places): Need | null {
-  const have = levelsOf(s, pl)[s.key] ?? 0;
+  const levels = s.kind === 'r' ? pl.research.research : pl.here.b;
+  const have = levels[s.key] ?? 0;
   if (have >= s.level) return null;
   const need: Need = {
     kind: s.kind,
@@ -91,7 +78,6 @@ function needOf(s: Step, pl: Places): Need | null {
     name: defOf(s.kind, s.key)?.n ?? s.key,
     level: s.level,
     have,
-    planet: s.kind === 'r' ? pl.home.id : pl[s.at].id,
   };
   if (s.via) need.via = s.via;
   return need;
@@ -100,18 +86,15 @@ function needOf(s: Step, pl: Places): Need | null {
 /** Breadth first, so the direct requirements come first; each one once. */
 export function unmetRequirements(
   req: Requirements | undefined,
-  at: At,
   pl: Places,
 ): Need[] {
   const found = new Map<string, Need>();
-  const queue = stepsOf(req, at);
+  const queue = stepsOf(req);
   while (queue.length) {
     const s = queue.shift()!;
     const need = needOf(s, pl);
-    if (need && add(found, `${s.kind}:${need.planet}:${s.key}`, need)) {
-      const next = s.kind === 'r' ? 'home' : s.at;
-      queue.push(...stepsOf(defOf(s.kind, s.key)?.req, next, need.name));
-    }
+    if (need && add(found, `${s.kind}:${s.key}`, need))
+      queue.push(...stepsOf(defOf(s.kind, s.key)?.req, need.name));
   }
   return [...found.values()];
 }
@@ -125,13 +108,17 @@ export interface NeedState {
   busy?: string;
   /** Cost of the next level. */
   cost: Cost;
+  /** Energy production the next level needs (Gravitonforschung, #49). */
+  energy?: number;
 }
 
 const RES_NAMES = ['Metall', 'Kristall', 'Deuterium'] as const;
 const HAVE = ['m', 'c', 'd'] as const;
 
-const lacking = (p: Planet, c: Cost): string[] =>
-  RES_NAMES.filter((_, i) => p.res[HAVE[i]!] < c[i]!);
+const lacking = (p: Planet, c: Cost, energy: boolean): string[] => [
+  ...RES_NAMES.filter((_, i) => p.res[HAVE[i]!] < c[i]!),
+  ...(energy ? ['Energie'] : []),
+];
 
 function busyReason(n: Need, p: Planet, r: ResearchState): string | undefined {
   if (n.kind === 'r') {
@@ -145,18 +132,25 @@ function busyReason(n: Need, p: Planet, r: ResearchState): string | undefined {
 }
 
 export function needState(n: Need, pl: Places): NeedState {
-  const p = n.planet === pl.here.id ? pl.here : pl.home;
+  const p = pl.here;
   const def = defOf(n.kind, n.key)!;
-  const cost = lvlCost(def, n.have + 1);
+  const level = n.have + 1;
+  const cost = lvlCost(def, level);
+  const research = n.kind === 'r' ? RES[n.key]! : {};
+  const energy = energyNeed(research, level);
+  const base: NeedState = energy
+    ? { ready: false, cost, energy }
+    : { ready: false, cost };
   const missing = reqMissing(def, p, pl.research);
   if (missing.length)
-    return { ready: false, reason: `braucht ${missing.join(', ')}`, cost };
-  if (!afford(p, cost))
+    return { ...base, reason: `braucht ${missing.join(', ')}` };
+  const short =
+    energyShort(research, level, p, pl.cfg, pl.research.research) > 0;
+  if (!afford(p, cost) || short)
     return {
-      ready: false,
-      reason: `zu wenig ${lacking(p, cost).join(', ')}`,
-      cost,
+      ...base,
+      reason: `zu wenig ${lacking(p, cost, short).join(', ')}`,
     };
   const busy = busyReason(n, p, pl.research);
-  return busy ? { ready: true, busy, cost } : { ready: true, cost };
+  return busy ? { ...base, ready: true, busy } : { ...base, ready: true };
 }

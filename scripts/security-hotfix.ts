@@ -12,7 +12,8 @@
 //   node scripts/security-hotfix.ts verify <plan.json>     fail when
 //        pnpm-lock.yaml still holds a version below a fix
 import { createHash } from 'node:crypto';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { runCli } from './cli.ts';
 
 /** Severities that start a hotfix (owner: High and above). */
 const URGENT = new Set(['HIGH', 'CRITICAL']);
@@ -118,13 +119,24 @@ export function fixedVersion(installed: string, listed: string): string {
   return above[0] ?? '';
 }
 
+const RANK: Record<string, number> = {
+  UNKNOWN: 0,
+  LOW: 1,
+  MEDIUM: 2,
+  HIGH: 3,
+  CRITICAL: 4,
+};
+
 /**
- * npm packages: GitHub's rating (GHSA), Trivy's own rating when GitHub has
- * none. Everything else (the base image): Trivy's rating.
+ * npm packages: the higher of GitHub's rating (GHSA) and Trivy's own, so
+ * every hole the CI gate (Trivy's rating) blocks is in the plan (owner,
+ * 2026-11-12). Everything else (the base image): Trivy's rating.
  */
 export function severityOf(v: TrivyVulnerability, npm: boolean): string {
   const ghsa = npm ? v.VendorSeverity?.ghsa : undefined;
-  return ghsa === undefined ? v.Severity : (VENDOR[ghsa] ?? v.Severity);
+  const github = ghsa === undefined ? undefined : VENDOR[ghsa];
+  if (!github) return v.Severity;
+  return (RANK[github] ?? 0) > (RANK[v.Severity] ?? 0) ? github : v.Severity;
 }
 
 /** One hole as a finding, or null when it does not start a hotfix. */
@@ -247,6 +259,37 @@ export function pinBase(dockerfile: string, digest: string): string {
   return dockerfile.replace(from, `$1${BASE_IMAGE}@${digest}$3`);
 }
 
+/** Debian's security updates in the image that runs (Dockerfile). */
+/** The upgrade, one Dockerfile line per entry, joined with " \\". */
+const OS_UPGRADE = [
+  String.raw`RUN apt-get update --error-on=any`,
+  String.raw` && apt-get full-upgrade -y --no-install-recommends`,
+  String.raw` && out="$(apt-get -s full-upgrade)"`,
+  String.raw` && if ! printf '%s\n' "$out" | grep -qx '0 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.'; then printf '%s\n' "$out" >&2; echo 'Debian updates were held back.' >&2; exit 1; fi`,
+  String.raw` && rm -rf /var/lib/apt/lists/*`,
+].join(' \\\n');
+
+const OS_UPDATES = (id: string) => `ARG OS_UPDATES=sec-${id}\n${OS_UPGRADE}`;
+
+/**
+ * Sets the default of OS_UPDATES to the hotfix id, so the hotfix changes the
+ * Dockerfile even when the base image digest is the same and its build
+ * fetches Debian's security updates again. A release from before the OS
+ * updates (26.11.19 and older) gets them right after `FROM … AS app`.
+ */
+export function markOsUpdates(dockerfile: string, id: string): string {
+  if (!/^[a-f0-9]+$/.test(id)) throw new Error(`Not a hotfix id: "${id}"`);
+  const arg = /^ARG OS_UPDATES=\S*$/m;
+  if (arg.test(dockerfile)) {
+    return dockerfile.replace(arg, `ARG OS_UPDATES=sec-${id}`);
+  }
+  const app = /^FROM \S+ AS app\n/m;
+  if (!app.test(dockerfile)) {
+    throw new Error('The Dockerfile has no stage "app".');
+  }
+  return dockerfile.replace(app, (from) => `${from}${OS_UPDATES(id)}\n`);
+}
+
 /** The German fragment for „Neuigkeiten“: no package names, no internals. */
 export function fragment(): string {
   return [
@@ -271,8 +314,9 @@ function apply(file: string, digest: string | undefined): number {
     if (!digest)
       throw new Error('The plan needs the digest of the base image.');
     const docker = readFileSync('Dockerfile', 'utf8');
-    writeFileSync('Dockerfile', pinBase(docker, digest));
+    writeFileSync('Dockerfile', markOsUpdates(pinBase(docker, digest), p.id));
   }
+  mkdirSync('changes', { recursive: true });
   writeFileSync(`changes/sicherheit-${p.id}.md`, fragment());
   return 0;
 }
@@ -303,11 +347,4 @@ function main(): number {
   return 1;
 }
 
-if (import.meta.main) {
-  try {
-    process.exitCode = main();
-  } catch (error) {
-    console.error(error instanceof Error ? error.message : error);
-    process.exitCode = 1;
-  }
-}
+if (import.meta.main) runCli(main);

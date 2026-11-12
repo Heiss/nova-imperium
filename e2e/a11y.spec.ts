@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import { cli, nav, register, uniqueName } from './helpers.ts';
+import { cli, nav, register, seed, uniqueName } from './helpers.ts';
 
 // Automated accessibility check (axe, WCAG 2.1 A and AA), as in muffelblog. It
 // finds a part of the problems only: it does not replace a look with a screen
@@ -64,6 +64,42 @@ test.describe('accessibility (axe)', () => {
       await nav(page, view);
       await expect(page.locator('#menu a.on')).toHaveAttribute('data-v', view);
       found.push(...(await violations(page)).map((v) => `${view}: ${v}`));
+    }
+    expect(found).toEqual([]);
+  });
+
+  test('the explanation texts have no violations, closed, opened and always shown (#63)', async ({
+    page,
+  }) => {
+    const name = uniqueName('AxeEx');
+    await register(page, name);
+    seed({ name, b: { lab: 1, yard: 2 } });
+    await page.reload();
+    const found: string[] = [];
+    const check = async (label: string): Promise<void> => {
+      found.push(...(await violations(page)).map((v) => `${label}: ${v}`));
+    };
+    for (const [view, entry] of [
+      ['buildings', 'Metallmine'],
+      ['research', 'Energietechnik'],
+    ] as const) {
+      await nav(page, view);
+      await check(`${view} closed`);
+      await page.getByRole('button', { name: `Erklärung zu ${entry}` }).click();
+      await expect(page.locator('#view .ex').first()).toBeVisible();
+      await check(`${view} opened`);
+    }
+    await nav(page, 'help');
+    await page
+      .getByLabel('Erklärungstexte')
+      .selectOption({ label: 'Immer anzeigen' });
+    await page.click('[data-act=saveopt]');
+    await expect(page.locator('.toast').last()).toContainText('Gespeichert.');
+    await check('help');
+    for (const view of ['buildings', 'research'] as const) {
+      await nav(page, view);
+      await expect(page.locator('#view .ex').first()).toBeVisible();
+      await check(`${view} always`);
     }
     expect(found).toEqual([]);
   });

@@ -4,6 +4,7 @@
 import { UNIVERSE_SPECS } from '../../shared/universe.ts';
 import type { Fleet } from '../../shared/types.ts';
 import type { User } from '../db/store.ts';
+import { ownLabs } from './actions.ts';
 import { type Ctx, universe } from './context.ts';
 import { guildState } from './guilds.ts';
 import { achievementState } from './achievements.ts';
@@ -80,13 +81,13 @@ export function stateFor(
       research: u.research,
       rq: u.rq,
       probes: u.probes,
+      explain: u.explain,
       readAt: u.readAt,
       admin: u.admin,
     },
     planet: p,
     homePlanet: home?.id ?? null,
-    // The home planet itself when a colony is shown: research is paid there.
-    home: home && p?.id !== home.id ? home : null,
+    labs: ownLabs(ctx, u.id),
     fleets,
     reports: ctx.store.reports(u.id),
     guilds: guildState(ctx, u.id, pts),

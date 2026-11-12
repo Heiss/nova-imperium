@@ -99,7 +99,8 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 
 * **[E]** When `main` holds no unreleased work, a hotfix is a normal release
   pull request. Otherwise: the owner creates `hotfix/<name>` from the last
-  release tag (`git push origin <tag>:refs/heads/hotfix/<name>`), the fix
+  release tag (`git push origin '<tag>^{commit}:refs/heads/hotfix/<name>'`; release
+  tags are annotated, a branch must point at the commit), the fix
   goes into it through a pull request with its fragment, and the workflow
   builds a release pull request into `hotfix/<name>` the same way; its merge
   tags the next version. Then `hotfix/<name>` is merged back into `main`,
@@ -133,8 +134,8 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   scanned by Trivy every hour and after every release
   (`.github/workflows/security-hotfix.yml`). Dependabot alerts only look at
   `main`; a hole fixed there is still in `stable`. Only holes with a fix
-  count. npm packages are rated by GitHub (GHSA, `VendorSeverity.ghsa`);
-  without a GitHub rating, Trivy's own rating decides. Everything else (the
+  count. npm packages are rated by the higher of GitHub's rating (GHSA,
+  `VendorSeverity.ghsa`) and Trivy's own. Everything else (the
   base image) is rated by Trivy.
 * **[E]** The fix is applied again on the release tag, not cherry-picked
   (`scripts/security-hotfix.ts`): every older copy of a package gets a pnpm
@@ -165,12 +166,46 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   finished by the next scan while it still starts at the newest release and
   no other hotfix is on its way. When it no longer starts at the newest
   release, an issue asks the owner to delete it.
-* **[E]** The job does not scan the new base image before it starts: it
-  only fails when the fix changes nothing (`package.json`,
-  `pnpm-lock.yaml` and `Dockerfile` as in the release), for example when
-  the newest base image digest is the one the release already has; then it
-  fails on every scan until the digest changes. A new digest that still
-  holds the hole is released, and the next scan reports it as not closed.
+* **[E]** The job does not scan the new image before it starts. A hole in
+  the base image always changes the `Dockerfile` (`ARG OS_UPDATES=sec-<id>`,
+  and the newest digest when there is one), so its hotfix rebuilds the image
+  with Debian's current security updates. If a High or Critical hole with
+  a fix is still in the new image, the Trivy gate of the CI blocks the fix
+  pull request (see below), so the hotfix does not release; the open fix
+  pull request keeps later scans waiting, and the owner decides; nothing is
+  retried automatically. The CI and the scan see only the `amd64` image, so
+  a hole left only in the `arm64` image is not caught. The job fails only when `package.json`,
+  `pnpm-lock.yaml` and `Dockerfile` stay as in the release.
+* **[E]** A release older than the release pull request (26.11.18 and
+  older, no `scripts/release-pr.sh`) gets no automatic hotfix: its hotfix
+  branch could not release, so neither a new nor a resumed hotfix starts.
+  The issue says to release `main` instead (an issue opened earlier gets
+  this as a comment, once); the
+  first scan on 2026-11-12 found two High holes in `zlib1g` of the base
+  image of 26.11.18 (issue #97).
+* **[E]** What goes out as a release is checked before it goes out (owner,
+  2026-11-12, CodeRabbit security finding on pull request #105): in a
+  release pull request, a pull request into `hotfix/**` and a push to
+  `hotfix/**`, Trivy in the CI blocks every High and Critical hole with a
+  fix. Other pull requests block only on the Critical holes they bring in:
+  the CI also builds and scans the image of the base branch and leaves out
+  what is there already (`scripts/trivy-gate.ts`), so two Renovate pull
+  requests that each fix one of two holes do not block each other (owner,
+  2026-11-12). Pushes to `main` block on every Critical hole. Pull requests
+  into `hotfix/**` always build the image.
+* **[E]** The hourly scan rates an npm hole by the higher of GitHub's rating
+  (GHSA) and Trivy's own, so every hole the CI gate (Trivy's rating) blocks
+  in a hotfix is in the hotfix plan (owner, 2026-11-12).
+* **[E]** Debian's security updates go into the image that runs (owner,
+  2026-11-12): `apt-get full-upgrade` after `FROM … AS app`, which fails when an
+  update stays held back,, so a Debian fix
+  reaches the image before the official Node image is rebuilt (2× High in
+  `zlib1g` of 26.11.19 had a Debian fix but no new `node:26-slim`). Every
+  release build passes `OS_UPDATES` (run id and attempt), so the layer cache never
+  keeps old packages; a hotfix of the base image sets the default
+  `ARG OS_UPDATES=sec-<id>` (and adds the block to a release from before it),
+  so the hotfix always changes the `Dockerfile` and fetches the updates again.
+  Builds are no longer bit-identical for the same commit.
 * **[E]** The base image is pinned to its digest in the `Dockerfile`;
   Renovate opens a pull request for a new digest.
 

@@ -31,6 +31,14 @@ const go = (over = {}) => ({
 });
 
 describe('sending fleets', () => {
+  it('ignores ships asked for with 0 or not on the planet, satellites too (#46)', () => {
+    const { ctx, a } = setup();
+    expect(() => send(ctx, a, go({ ships: { sat: 2 } }))).toThrow(
+      'Keine Schiffe ausgewählt.',
+    );
+    send(ctx, a, go({ ships: { lf: 2, sc: 0, sat: 0, bs: 4 } }));
+    expect(ctx.store.fleets()[0]!.ships).toEqual({ lf: 2 });
+  });
   it('takes ships, fuel and cargo and starts the flight', () => {
     const { ctx, a } = setup();
     expect(
@@ -117,6 +125,20 @@ describe('sending fleets', () => {
         go({ mission: 'transport', ships: { lf: 1 }, cargo: { m: 51 } }),
       ),
     ).toThrow('Laderaum');
+    const home = ctx.store.planetOfUser(a.id)!;
+    home.ships.sat = 4;
+    ctx.store.savePlanet(home);
+    expect(() => send(ctx, a, go({ ships: { lf: 1, sat: 2 } }))).toThrow(
+      'Solarsatelliten können nicht fliegen.',
+    );
+    expect(ctx.store.planetOfUser(a.id)!.ships).toMatchObject({
+      lf: 10,
+      sat: 4,
+    });
+    expect(ctx.store.fleets()).toEqual([]);
+    expect(() => send(ctx, a, go({ ships: { toString: 3 } }))).toThrow(
+      'Keine Schiffe ausgewählt.',
+    );
     addPlanet(ctx, a.id, { g: 1, s: 3, p: 3, created: 2e6 });
     expect(() => send(ctx, a, go({ to: { g: 1, s: 3, p: 3 } }))).toThrow(
       'Eigene Planeten',
@@ -215,10 +237,14 @@ describe('colonization', () => {
     });
     expect(stateFor(ctx, a, colonyId).planet).toMatchObject({ id: colonyId });
     expect(stateFor(ctx, b, colonyId).planet).toMatchObject({ owner: b.id });
-    // On a colony the home planet comes along (requirements of issue #64).
-    expect(stateFor(ctx, a, colonyId).home).toMatchObject({ id: home.id });
-    expect(stateFor(ctx, a).home).toBeNull();
-    expect(stateFor(ctx, b, colonyId).home).toBeNull();
+    // The labs of all own planets come along for the research network (#49).
+    expect(stateFor(ctx, a, colonyId).labs).toEqual([
+      { id: home.id, lab: 0, upgrading: false },
+      { id: colonyId, lab: 0, upgrading: false },
+    ]);
+    expect(stateFor(ctx, b, colonyId).labs).toEqual([
+      { id: ctx.store.planetOfUser(b.id)!.id, lab: 0, upgrading: false },
+    ]);
     expect(() =>
       runAction(ctx, b.id, {
         type: 'rename',

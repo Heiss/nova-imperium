@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { U } from '../test/fixtures.ts';
 import {
+  activeDrive,
   capacity,
   countUnits,
   distance,
@@ -36,6 +37,73 @@ describe('flights', () => {
     expect(shipSpeed('cr', { research: { impulse: 1 } })).toBe(18000);
     expect(shipSpeed('bs', { research: { hdrive: 2 } })).toBe(16000);
     expect(shipSpeed('rl', { research: {} })).toBe(0);
+  });
+  it('fly Schlachtkreuzer and Zerstörer with the Hyperraumantrieb, +30 % per level (#58, #59)', () => {
+    expect(shipSpeed('bc', { research: {} })).toBe(10000);
+    expect(
+      shipSpeed('bc', { research: { hdrive: 5, impulse: 9, comb: 9 } }),
+    ).toBe(25000);
+    expect(shipSpeed('dr', { research: {} })).toBe(5000);
+    expect(shipSpeed('dr', { research: { hdrive: 6 } })).toBe(14000);
+    expect(fleetSpeed({ bc: 2, dr: 1 }, { research: { hdrive: 6 } })).toBe(
+      14000,
+    );
+  });
+  it('fuel and cargo of Schlachtkreuzer and Zerstörer (#58, #59)', () => {
+    expect(fuelFor({ bc: 1 }, 35000, 10)).toBe(1001);
+    expect(fuelFor({ dr: 2 }, 3500, 5)).toBe(451);
+    expect(capacity({ bc: 2, dr: 1 })).toBe(3500);
+  });
+  it('fly the Bomber with the Impulstriebwerk below Hyperraumantrieb 8 (#57)', () => {
+    expect(shipSpeed('bb', { research: {} })).toBe(4000);
+    expect(shipSpeed('bb', { research: { impulse: 6 } })).toBe(
+      4000 * (1 + 0.2 * 6),
+    );
+    expect(
+      shipSpeed('bb', { research: { impulse: 6, hdrive: 7, comb: 9 } }),
+    ).toBe(8800);
+    expect(activeDrive('bb', { research: { impulse: 6, hdrive: 7 } })).toEqual({
+      drive: 'impulse',
+      speed: 4000,
+    });
+  });
+  it('switch the Bomber to the Hyperraumantrieb from level 8 (#57)', () => {
+    expect(shipSpeed('bb', { research: { impulse: 6, hdrive: 8 } })).toBe(
+      5000 * (1 + 0.3 * 8),
+    );
+    expect(shipSpeed('bb', { research: { impulse: 20, hdrive: 9 } })).toBe(
+      18500,
+    );
+    expect(activeDrive('bb', { research: { hdrive: 8 } })).toEqual({
+      drive: 'hdrive',
+      speed: 5000,
+    });
+  });
+  it('keep the single drive of every other ship (#57)', () => {
+    expect(activeDrive('lf', { research: { hdrive: 8 } })).toEqual({
+      drive: 'comb',
+      speed: 12500,
+    });
+    expect(activeDrive('bs', { research: {} })).toEqual({
+      drive: 'hdrive',
+      speed: 10000,
+    });
+    expect(activeDrive('rl', { research: {} })).toBeNull();
+    expect(activeDrive('toString', { research: {} })).toBeNull();
+  });
+  it('let the Bomber set the speed of a mixed fleet with its active drive (#57)', () => {
+    const before = { research: { impulse: 6, hdrive: 7 } };
+    expect(fleetSpeed({ bb: 3, bs: 2, cr: 1 }, before)).toBe(8800);
+    const after = { research: { impulse: 6, hdrive: 8 } };
+    expect(fleetSpeed({ bb: 3, bs: 2, cr: 1 }, after)).toBe(17000);
+    expect(fleetSpeed({ bb: 1, dr: 1 }, after)).toBe(17000);
+    expect(fleetSpeed({ bb: 0, dr: 1 }, after)).toBe(17000);
+    expect(fleetSpeed({ bb: 1, colony: 1 }, after)).toBe(2500 * 2.2);
+  });
+  it('fuel and cargo of the Bomber, the same with both drives (#57)', () => {
+    expect(fuelFor({ bb: 1 }, 35000, 10)).toBe(4001);
+    expect(fuelFor({ bb: 2, bc: 1 }, 3500, 5)).toBe(507);
+    expect(capacity({ bb: 2, bc: 1 })).toBe(1750);
   });
   it('use the slowest ship of the fleet', () => {
     expect(fleetSpeed({ lf: 1, sc: 2, bs: 0 }, { research: {} })).toBe(5000);

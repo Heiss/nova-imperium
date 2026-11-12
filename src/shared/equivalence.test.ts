@@ -22,7 +22,8 @@ const pick = (keys: string[], chance: number, lo: number, hi: number): Levels =>
 
 function randomPlanet(): Planet {
   const t0 = ri(0, 1e6);
-  // Version 1 knows no Nanitenfabrik (#48): its planets have level 0.
+  // Version 1 knows no Nanitenfabrik (#48) and no Fusionskraftwerk (#47):
+  // its planets have level 0.
   const b = pick(Object.keys(O.BUILD), 0.7, 0, 15);
   const p: Planet = {
     id: 'x',
@@ -68,7 +69,7 @@ const cases = Array.from({ length: CASES }, () => {
   return {
     planet,
     until: planet.t + ri(0, 2e7),
-    research: { research: pick(Object.keys(N.RES), 1, 0, 12), rq: null },
+    research: { research: pick(Object.keys(O.RES), 1, 0, 12), rq: null },
     a: { g: ri(1, 2), s: ri(1, 50), p: ri(1, 15) },
     b: { g: ri(1, 2), s: ri(1, 50), p: ri(1, 15) },
     ships: pick(Object.keys(O.SHIPS), 0.5, 0, 50),
@@ -87,7 +88,14 @@ describe('equivalence with the original rules', () => {
       expect(N.settle(c.planet, c.until, U)).toEqual(
         O.settle(c.planet, c.until),
       );
+      // The research of the owner changes nothing without a Fusionskraftwerk.
+      expect(N.settle(c.planet, c.until, U, c.research)).toEqual(
+        O.settle(c.planet, c.until),
+      );
       expect(N.prod(c.planet, U)).toEqual(O.prod(c.planet));
+      expect(N.prod(c.planet, U, c.research.research)).toEqual(
+        O.prod(c.planet),
+      );
       expect(N.caps(c.planet, U)).toEqual(O.caps(c.planet));
     }
   });
@@ -104,7 +112,7 @@ describe('equivalence with the original rules', () => {
           O.sumLevels(O.BUILD[k], c.level),
         );
       }
-      for (const k of Object.keys(N.RES)) {
+      for (const k of Object.keys(O.RES)) {
         const cost = N.lvlCost(N.RES[k]!, c.level);
         expect(cost).toEqual(O.lvlCost(O.RES[k], c.level));
         expect(N.researchTime(cost, c.planet, U)).toBe(

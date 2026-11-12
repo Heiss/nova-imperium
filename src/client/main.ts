@@ -27,7 +27,13 @@ import {
 } from './logic/news.ts';
 import { ANIMATION_KEY, animationsOn } from './logic/planet.ts';
 import type { GameState } from './logic/types.ts';
-import { afford, caps, lvlCost, maxAfford, prod } from '../shared/economy.ts';
+import {
+  afford,
+  caps,
+  lvlCost,
+  maxAfford,
+  production,
+} from '../shared/economy.ts';
 import type { Ui, V } from './views/common.ts';
 import {
   menu,
@@ -193,6 +199,7 @@ const ui: Ui = {
   ft: null,
   fm: 'attack',
   openRep: {},
+  openEx: {},
   auth: null,
   invite: null,
   lastLink: null,
@@ -529,6 +536,19 @@ function renderCompletions(view: HTMLElement): void {
   view.prepend(notice);
 }
 
+/** Opens or closes the explanation below an entry (issue #63, D3). */
+function toggleExplanation(key: string): void {
+  const open = !ui.openEx[key];
+  ui.openEx[key] = open;
+  // Svelte keeps the focused button and only changes its attributes.
+  if (buildingView && ctx) return buildingView.update({ ...ctx });
+  document
+    .getElementById(`exq_${key}`)
+    ?.setAttribute('aria-expanded', String(open));
+  const panel = document.getElementById(`ex_${key}`);
+  if (panel) panel.hidden = !open;
+}
+
 function unmountBuildings(): void {
   buildingView?.destroy();
   buildingView = null;
@@ -615,11 +635,10 @@ function renderPlanetHeader({ s, P }: V): void {
     `<b>${esc(P.name)}</b> ${coords(P)} · Kommandant <b>${esc(s.me.name)}</b> · <span class="lnk" data-act="logout">Logout</span>${selector}`;
 }
 
-/** The view state moved to now; H is the home planet (P itself on home). */
+/** The view state moved to now. */
 function viewAt(state: GameState, planet: Planet, now: number): V {
-  const here = settle(planet, now, state.cfg);
-  const home = state.home ? settle(state.home, now, state.cfg) : here;
-  return { s: state, P: here, H: home, R: settleR(state.me, now), now, ui };
+  const here = settle(planet, now, state.cfg, state.me);
+  return { s: state, P: here, R: settleR(state.me, now), now, ui };
 }
 
 function render(fresh = false): void {
@@ -743,8 +762,9 @@ function renderMenu(): void {
 
 function updateBar(): Planet | undefined {
   if (!S?.planet) return;
-  const p = settle(S.planet, nowT(), S.cfg);
-  const pr = prod(p, S.cfg);
+  const now = nowT();
+  const p = settle(S.planet, now, S.cfg, S.me);
+  const pr = production(p, S.cfg, settleR(S.me, now).research);
   const cp = caps(p, S.cfg);
   const icon = (key: ResourceKey): string =>
     `<img class="ri" src="${resourceIconURL(key)}" alt="" width="28" height="28">`;
@@ -755,7 +775,7 @@ function updateBar(): Planet | undefined {
     cap: number,
     per: number,
   ): string =>
-    `<div class="res" title="+${fmt(per)}/h · Lager ${fmt(cap)}">${icon(key)}<div><div class="l">${label}</div><div class="v ${v >= cap ? 'full' : ''}">${fmt(v)}</div></div></div>`;
+    `<div class="res" title="${per < 0 ? '' : '+'}${fmt(per)}/h · Lager ${fmt(cap)}">${icon(key)}<div><div class="l">${label}</div><div class="v ${v >= cap ? 'full' : ''}">${fmt(v)}</div></div></div>`;
   $('#resbar')!.innerHTML =
     r('Metall', 'metal', p.res.m, cp.m, pr.m) +
     r('Kristall', 'crystal', p.res.c, cp.c, pr.c) +
@@ -951,7 +971,7 @@ const ACT: Record<string, (d: Data) => unknown> = {
     ui.auth = ui.auth === 'register' ? 'login' : 'register';
     render(true);
   },
-  build: (d) => act('build', { key: d.k, at: d.at }),
+  build: (d) => act('build', { key: d.k }),
   cancelBuild: () => act('cancelBuild'),
   research: (d) => act('research', { key: d.k }),
   cancelResearch: () => act('cancelResearch'),
@@ -1027,7 +1047,10 @@ const ACT: Record<string, (d: Data) => unknown> = {
     fleetCalc();
   },
   cmax: () => {
-    const c = cargoMax(settle(S!.planet!, nowT(), S!.cfg), readFleetForm());
+    const c = cargoMax(
+      settle(S!.planet!, nowT(), S!.cfg, S!.me),
+      readFleetForm(),
+    );
     setInput('#c_m', c.m);
     setInput('#c_c', c.c);
     setInput('#c_d', c.d);
@@ -1046,7 +1069,12 @@ const ACT: Record<string, (d: Data) => unknown> = {
   },
   delrep: (d) => act('delrep', { id: d.id }),
   delall: () => act('delall'),
-  saveopt: () => act('options', { probes: clampInt(val('#o_probes'), 1, 1e6) }),
+  explain: (d) => toggleExplanation(d.k!),
+  saveopt: () =>
+    act('options', {
+      probes: clampInt(val('#o_probes'), 1, 1e6),
+      explain: val('#o_explain'),
+    }),
   adminTab: (d) => {
     if (d.tab && Object.hasOwn(ADMIN_TABS, d.tab))
       openAdminTab(d.tab as AdminTab);
@@ -1493,7 +1521,6 @@ setInterval(() => {
     buildingView?.update({
       ...ctx,
       P: planet,
-      H: S?.home ? ctx.H : planet,
       now,
     });
     updateResearchButtons(planet, ctx.R.research);

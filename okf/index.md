@@ -11,6 +11,7 @@ okf_version: "0.2"
 # Architecture
 
 * [System architecture](/architecture/system.md) - components, request flow, the game clock
+* [Design patterns](/architecture/patterns.md) - catalog components, economy events, missions, repositories, Svelte components, feature folders, migration order
 * [Docker operation](/architecture/docker.md) - services, volumes, secrets, hardening
 * [SQLite storage](/data/sqlite.md) - schema, migrations, transactions, backup
 
@@ -21,6 +22,11 @@ okf_version: "0.2"
 * [Requirements list](/features/requirements.md) - all unmet requirements, startable ones with a button
 * [Nanitenfabrik](/features/nanite-factory.md) - halves building and shipyard times, shared shipyard lock
 * [Grimdark naming](/features/naming.md) - rename of all display names at the end of the release, decided and proposed names
+* [Ionentechnik, Plasmatechnik, Gravitonforschung and IFN](/features/research-ion-plasma-graviton.md) - new research of #49, energy check of Gravitonforschung, research on any planet with a lab, research network
+* [Explanation texts](/features/explanation-texts.md) - long texts with a display option per player (#63)
+* [Late-game combat ships](/features/late-game-ships.md) - Schlachtkreuzer, Zerstörer, Bomber, Todesstern of #56, classic values, drive switch
+* [Solarsatellit](/features/solar-satellite.md) - energy satellite of #46, temperature formula, share, battle role
+* [Fusionskraftwerk](/features/fusion-reactor.md) - deuterium-burning power plant of #47, throttling at an empty stock
 * [Changelog in the game](/features/changelog.md) - „Neuigkeiten“, update message and hint from CHANGELOG.md
 
 * [Invitations](/features/invitations.md) - registration only by invitation, mail or copied link

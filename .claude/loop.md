@@ -24,11 +24,14 @@ interface is German.
 
 ## Steps, in this order
 
-1. **Finish your open pull request.** Red CI: find the root cause and fix
+1. **Finish your open pull requests.** Red CI: find the root cause and fix
    it. Review findings: fix what is real, answer every thread, resolve.
    Conflict: merge `main` into the branch. Merge under O4 (green CI Gate,
-   no open security or critical finding, every finding answered). Only one
-   own pull request is open at a time.
+   no open security or critical finding, every finding answered). Up to two
+   own pull requests may be open at a time: while they only wait for CI or
+   a review, go on with the next step; a subagent builds an issue that
+   doesn't depend on the open ones in its own git worktree, and you review
+   its diff before you open its pull request.
 2. **Make the release ready** when the milestone `next release` is open and
    all its issues are closed: the release pull request must be green
    (complete mutation run, image, Trivy, upgrade test), its texts checked

@@ -145,6 +145,22 @@ jobs:
               console.log('- ' + f.severity + ' ' + f.id + ': ' + f.package + ' ' + f.installed + ' → ' + f.fixed + ' (' + (f.layer === 'app' ? 'package.json' : 'base image') + ')');
           ")
           echo "start=false" >> "$GITHUB_OUTPUT"
+          # A release from before the release pull request (26.11.18 and
+          # older) has no release-pr.sh: a hotfix branch from it could not
+          # release, so neither a new nor a resumed hotfix starts. An issue
+          # opened earlier with the hotfix text gets the instruction once.
+          if ! git cat-file -e "$TAG:scripts/release-pr.sh" 2> /dev/null; then
+            echo "::warning::Release $TAG predates the release pull request: no automatic hotfix."
+            title="Sicherheits-Hotfix sec-$ID"
+            text=$(printf 'Release %s is older than the release pull request, so no automatic hotfix is possible: release main (its release pull request) to fix these holes; the next scan checks the new release.' "$TAG")
+            open=$(gh issue list --state open --search "\"$title\" in:title" --json number,title --jq ".[] | select(.title == \"$title\") | .number" | head -n 1)
+            if [ -z "$open" ]; then
+              gh issue create --title "$title" --body "$(printf '%s\n\n%s\n' "$text" "$list")"
+            elif ! gh issue view "$open" --json body,comments --jq '.body, .comments[].body' | grep -qF 'older than the release pull request'; then
+              gh issue comment "$open" --body "$text"
+            fi
+            exit 0
+          fi
           if git rev-parse -q --verify "refs/remotes/origin/$branch" > /dev/null; then
             if released "$ID"; then
               echo "::warning::$branch is released, and $TAG still has these holes."
@@ -241,8 +257,9 @@ jobs:
           branch="hotfix/sec-$ID"
           fix="sec-fix/$ID"
           # An incomplete branch from an earlier run starts at $TAG already.
+          # Release tags are annotated: the branch points at their commit.
           if ! git ls-remote --exit-code --heads origin "$branch" > /dev/null; then
-            git push --quiet origin "refs/tags/$TAG:refs/heads/$branch"
+            git push --quiet origin "$TAG^{commit}:refs/heads/$branch"
           fi
           git switch --quiet -c "$fix"
           git add -A package.json pnpm-lock.yaml Dockerfile changes

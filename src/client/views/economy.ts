@@ -1,57 +1,113 @@
-import { BUILD, RES } from '../../shared/catalog.ts';
+import { BUILD, RES, type ResearchDef, UNIT } from '../../shared/catalog.ts';
 import {
   afford,
   caps,
+  fusionEnergy,
+  fusionThrottle,
+  fusionUse,
   lvlCost,
-  prod,
+  production,
   reqMissing,
   researchTime,
+  satPower,
 } from '../../shared/economy.ts';
+import {
+  energyNeed,
+  energyShort,
+  labSite,
+  networkLab,
+} from '../../shared/research.ts';
 import { dur, esc, fmt } from '../logic/format.ts';
 import { researchState } from '../logic/game.ts';
 import { cd, costHTML, itemHTML, requirementsHTML, type V } from './common.ts';
 
-function researchAction(v: V, k: string, level: number, miss: number): string {
+/** The name of the own planet where the running research started (#49). */
+function researchPlace(v: V): string {
+  const id = v.R.rq?.planet ?? v.s.homePlanet;
+  if (id === v.P.id) return v.P.name;
+  return v.s.galaxy.find((p) => p.id === id)?.name ?? '';
+}
+
+function researchAction(
+  v: V,
+  k: string,
+  level: number,
+  miss: number,
+  short: number,
+): string {
   const { P, R, now } = v;
   const c = lvlCost(RES[k]!, level + 1);
-  const state = researchState(P, R, k, miss);
+  const state = researchState(P, R, k, miss, short);
   if (state === 'running')
-    return `Forschung Stufe ${R.rq!.lvl}<br>${cd(R.rq!.end, now)}<br><button class="small red" data-act="cancelResearch">Abbrechen</button>`;
+    return `Forschung Stufe ${R.rq!.lvl}<br>auf ${esc(researchPlace(v))}<br>${cd(R.rq!.end, now)}<br><button class="small red" data-act="cancelResearch">Abbrechen</button>`;
   if (state === 'missing')
     return '<span class="req">Voraussetzungen fehlen</span>';
   if (state === 'busy')
     return '<span class="dim">Es wird bereits geforscht</span>';
   if (state === 'labBusy')
     return '<span class="dim">Labor wird ausgebaut</span>';
+  if (state === 'energy')
+    return `<span class="req">Zu wenig Energie: es fehlen ${fmt(short)}</span>`;
   return `<button data-act="research" data-k="${k}" ${afford(P, c) ? '' : 'disabled'}>Forschen${level ? ` (Stufe ${level + 1})` : ''}</button>`;
 }
 
-export function research(v: V): string {
-  const home = v.s.homePlanet;
-  if (home && v.P.id !== home) {
-    return `<h2>Forschung</h2><div class="notice">Die Forschung findet auf deinem Heimatplaneten statt. <button data-act="selectPlanet" data-id="${esc(home)}">Zum Heimatplaneten</button></div>`;
-  }
-  const { P, R, s } = v;
-  if (!((P.b.lab ?? 0) > 0))
-    return '<h2>Forschung</h2><div class="notice">Für Forschung brauchst du ein Forschungslabor.</div>';
-  const items = Object.entries(RES).map(([k, d]) => {
-    const level = R.research[k] ?? 0;
-    const c = lvlCost(d, level + 1);
-    const miss = reqMissing(d, P, R);
-    const body =
-      costHTML(c, P) +
-      `<div class="dim">Forschungszeit: ${dur(researchTime(c, P, s.cfg))}</div>` +
-      requirementsHTML(v, d.req, 'home');
-    return itemHTML(
-      'ic-r',
-      k,
-      d,
-      level ? `(Stufe ${level})` : '',
-      body,
-      researchAction(v, k, level, miss.length),
+/** Without a lab here: the own planets that have one (#49). */
+function noLab(v: V): string {
+  const others = v.s.labs
+    .filter((l) => l.lab > 0 && l.id !== v.P.id)
+    .map((l) => v.s.galaxy.find((p) => p.id === l.id))
+    .filter((p) => !!p)
+    .map(
+      (p) =>
+        ` <button data-act="selectPlanet" data-id="${esc(p.id)}">Zu ${esc(p.name)}</button>`,
     );
-  });
-  return `<h2>Forschung</h2><div class="box">${items.join('')}</div>`;
+  const text = others.length
+    ? 'Auf diesem Planeten gibt es kein Forschungslabor. Geforscht wird auf einem deiner Planeten mit Forschungslabor.'
+    : 'Für Forschung brauchst du ein Forschungslabor.';
+  return `<h2>Forschung</h2><div class="notice">${text}${others.join('')}</div>`;
+}
+
+/** The lab of this planet and how many others the IFN may link. */
+function labLine(v: V): string {
+  const ifn = v.R.research.ifn ?? 0;
+  const net = ifn
+    ? ` · Intergalaktisches Forschungsnetzwerk: bis zu ${ifn} weitere${ifn === 1 ? 's Labor' : ' Labore'}`
+    : '';
+  return `<div class="dim">Forschungslabor Stufe ${v.P.b.lab ?? 0}${net}</div>`;
+}
+
+function researchItem(v: V, k: string, d: ResearchDef): string {
+  const { P, R, s } = v;
+  const level = R.research[k] ?? 0;
+  const c = lvlCost(d, level + 1);
+  const lab = networkLab(k, labSite(P), s.labs, R.research.ifn ?? 0);
+  const linked =
+    lab === (P.b.lab ?? 0) ? '' : ` (Labore zusammen Stufe ${lab})`;
+  const short = energyShort(d, level + 1, P, s.cfg, R.research);
+  const energy = {
+    need: energyNeed(d, level + 1),
+    production: production(P, s.cfg, R.research).eProd,
+  };
+  const body =
+    costHTML(c, P, 1, energy) +
+    `<div class="dim">Forschungszeit: ${dur(researchTime(c, { b: { lab } }, s.cfg))}${linked}</div>` +
+    requirementsHTML(v, d.req);
+  return itemHTML(
+    v,
+    'ic-r',
+    k,
+    d,
+    level ? `(Stufe ${level})` : '',
+    body,
+    researchAction(v, k, level, reqMissing(d, P, R).length, short),
+  );
+}
+
+/** Research starts on the shown planet when it has a lab (#49). */
+export function research(v: V): string {
+  if (!((v.P.b.lab ?? 0) > 0)) return noLab(v);
+  const items = Object.entries(RES).map(([k, d]) => researchItem(v, k, d));
+  return `<h2>Forschung auf ${esc(v.P.name)}</h2>${labLine(v)}<div class="box">${items.join('')}</div>`;
 }
 
 const SHARES = [100, 90, 80, 70, 60, 50, 40, 30, 20, 10, 0];
@@ -62,30 +118,61 @@ function shareSelect(v: V, k: string): string {
   const options = SHARES.map(
     (x) => `<option ${current === x ? 'selected' : ''}>${x}</option>`,
   ).join('');
-  return `<select data-chg="pct" data-k="${k}" data-nokeep aria-label="Leistung ${BUILD[k]?.n}">${options}</select> %`;
+  return `<select data-chg="pct" data-k="${k}" data-nokeep aria-label="Leistung ${BUILD[k]?.n ?? UNIT[k]?.n}">${options}</select> %`;
+}
+
+const cell = (x: string, cls = 'n'): string => `<td class="${cls}">${x}</td>`;
+
+/** The Fusionskraftwerk as it runs: its share, energy and deuterium use (#47). */
+function fusionNow(v: V): {
+  share: number;
+  throttled: boolean;
+  e: number;
+  d: number;
+} {
+  const { P, R, s } = v;
+  const level = P.b.fusion ?? 0;
+  const throttle = fusionThrottle(P, s.cfg, R.research);
+  const share = throttle ?? P.pct.fusion ?? 100;
+  return {
+    share,
+    throttled: throttle !== null,
+    e: (fusionEnergy(level, R.research.energy ?? 0) * share) / 100,
+    d: (fusionUse(level, s.cfg) * share) / 100,
+  };
+}
+
+function fusionRow(v: V, fu: ReturnType<typeof fusionNow>): string {
+  const note = fu.throttled
+    ? ` <span class="req">gedrosselt auf ${fmt(fu.share)} %</span>`
+    : '';
+  return `<tr><td>Fusionskraftwerk (Stufe ${v.P.b.fusion ?? 0})</td>${cell('0')}${cell('0')}${cell(`-${fmt(fu.d)}`, 'n bad')}${cell(fmt(fu.e), 'n good')}<td>${shareSelect(v, 'fusion')}${note}</td></tr>`;
 }
 
 function producerRows(v: V): string {
-  const { P, s } = v;
-  const pr = prod(P, s.cfg);
+  const { P, R, s } = v;
+  const pr = production(P, s.cfg, R.research);
   const L = (k: string): number => P.b[k] ?? 0;
   const pc = (k: string): number => (P.pct[k] ?? 100) / 100;
   const sp = s.cfg.speed;
-  const cell = (x: string, cls = 'n'): string => `<td class="${cls}">${x}</td>`;
+  const eSat = satPower(P);
+  const fu = fusionNow(v);
   const use = (k: string, f: number): string =>
     cell(`-${fmt(f * g(L(k)) * pc(k))}`, 'n bad');
   return [
     `<tr><td>Grundeinkommen</td>${cell(fmt(20 * sp))}${cell(fmt(10 * sp))}${cell('0')}${cell('0')}<td></td></tr>`,
     `<tr><td>Metallmine (Stufe ${L('metal')})</td>${cell(fmt(30 * g(L('metal')) * pc('metal') * pr.f * sp))}${cell('0')}${cell('0')}${use('metal', 10)}<td>${shareSelect(v, 'metal')}</td></tr>`,
     `<tr><td>Kristallmine (Stufe ${L('crystal')})</td>${cell('0')}${cell(fmt(20 * g(L('crystal')) * pc('crystal') * pr.f * sp))}${cell('0')}${use('crystal', 10)}<td>${shareSelect(v, 'crystal')}</td></tr>`,
-    `<tr><td>Deuteriumsynth. (Stufe ${L('deut')})</td>${cell('0')}${cell('0')}${cell(fmt(pr.d))}${use('deut', 20)}<td>${shareSelect(v, 'deut')}</td></tr>`,
-    `<tr><td>Solarkraftwerk (Stufe ${L('solar')})</td>${cell('0')}${cell('0')}${cell('0')}${cell(fmt(pr.eProd), 'n good')}<td>${shareSelect(v, 'solar')}</td></tr>`,
+    `<tr><td>Deuteriumsynth. (Stufe ${L('deut')})</td>${cell('0')}${cell('0')}${cell(fmt(pr.d + fu.d))}${use('deut', 20)}<td>${shareSelect(v, 'deut')}</td></tr>`,
+    `<tr><td>Solarkraftwerk (Stufe ${L('solar')})</td>${cell('0')}${cell('0')}${cell('0')}${cell(fmt(pr.eProd - eSat - fu.e), 'n good')}<td>${shareSelect(v, 'solar')}</td></tr>`,
+    `<tr><td>Solarsatelliten (${fmt(P.ships.sat ?? 0)})</td>${cell('0')}${cell('0')}${cell('0')}${cell(fmt(eSat), 'n good')}<td>${shareSelect(v, 'sat')}</td></tr>`,
+    fusionRow(v, fu),
   ].join('');
 }
 
 export function resources(v: V): string {
-  const { P, s } = v;
-  const pr = prod(P, s.cfg);
+  const { P, R, s } = v;
+  const pr = production(P, s.cfg, R.research);
   const cp = caps(P, s.cfg);
   return `<h2>Rohstoffe auf ${esc(P.name)}</h2><div class="box"><div class="hd">Produktion pro Stunde (Produktionsfaktor ${Math.round(pr.f * 100)} %)</div><div class="bd"><table>
  <tr><th></th><th class="n">Metall</th><th class="n">Kristall</th><th class="n">Deuterium</th><th class="n">Energie</th><th>Leistung</th></tr>

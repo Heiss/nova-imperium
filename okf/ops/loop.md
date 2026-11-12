@@ -37,8 +37,12 @@ tasks).
   history (squash commits ending in `(#N)`). The loop never writes them
   by hand; it refreshes them by running the workflow (owner, 2026-11-12).
 * **[E]** The rules of the project stay as they are: ask instead of
-  assuming, 3 to 5 options per decision, merges under O4, one own pull
-  request at a time, never a merge of a release pull request.
+  assuming, 3 to 5 options per decision, merges under O4, never a merge of a
+  release pull request.
+* **[E]** Up to two own pull requests may be open at a time; subagents build
+  issues that don't depend on each other in their own git worktrees, Claude
+  reviews each diff and opens, finishes and merges the pull requests itself
+  (owner, 2026-11-12; replaces „one own pull request at a time“).
 * **[V]** Guards from loop engineering practice: a stop condition a machine
   can check (milestone closed, release pull request green), the state read
   fresh in every iteration, small reviewable steps, tests never weakened,

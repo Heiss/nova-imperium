@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { settle } from '../../shared/settle.ts';
 import { DEFAULT_UNIVERSE } from '../../shared/universe.ts';
 import { addPlanet, addUser, testCtx } from '../test-helpers.ts';
 import { reset, saveSettings } from './admin.ts';
@@ -28,6 +29,22 @@ describe('admin', () => {
     expect(ctx.store.universe().speed).toBe(10);
     expect(ctx.store.planetOfUser(u.id)!.res.m).toBe(100);
     expect(ctx.store.planetOfUser(u.id)!.t).toBe(ctx.now());
+  });
+
+  it('settles a Fusionskraftwerk with the Energietechnik of its owner (#47)', () => {
+    const ctx = testCtx();
+    const u = addUser(ctx, 'Anna', { admin: true, research: { energy: 9 } });
+    const src = addPlanet(ctx, u.id, {
+      b: { deut: 9, fusion: 6, metal: 12 },
+      res: { m: 0, c: 0, d: 50000 },
+    });
+    ctx.clock.t += 3600000;
+    saveSettings(ctx, u, { settings: { ...DEFAULT_UNIVERSE, speed: 10 } });
+    const want = settle(src, ctx.now(), DEFAULT_UNIVERSE, u);
+    expect(ctx.store.planetOfUser(u.id)!.res).toEqual(want.res);
+    expect(want.res.m).toBeGreaterThan(
+      settle(src, ctx.now(), DEFAULT_UNIVERSE).res.m,
+    );
   });
 
   it('refuses invalid settings with all errors and changes nothing', () => {
@@ -152,6 +169,22 @@ describe('points and state', () => {
     expect(isProtected('u_Anna', 'x', {})).toBe(false);
   });
 
+  it('count Schlachtkreuzer and Zerstörer by their cost (#58, #59)', () => {
+    const ctx = testCtx();
+    addUser(ctx, 'Anna');
+    addPlanet(ctx, 'u_Anna', { ships: { bc: 2, dr: 1 } });
+    // bc 2 × 85,000 + dr 125,000 = 295,000
+    expect(pointsMap(ctx)).toEqual({ u_Anna: 295 });
+  });
+
+  it('count the Bomber by its cost (#57)', () => {
+    const ctx = testCtx();
+    addUser(ctx, 'Anna');
+    addPlanet(ctx, 'u_Anna', { ships: { bb: 2, dr: 1 } });
+    // bb 2 × 90,000 + dr 125,000 = 305,000
+    expect(pointsMap(ctx)).toEqual({ u_Anna: 305 });
+  });
+
   it('shows own fleets fully and incoming foreign ones partly', () => {
     const ctx = testCtx();
     const a = addUser(ctx, 'Anna');
@@ -225,6 +258,7 @@ describe('points and state', () => {
       research: {},
       rq: null,
       probes: 1,
+      explain: 'icon',
       readAt: 0,
       admin: true,
     });

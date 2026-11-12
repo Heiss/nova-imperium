@@ -1,5 +1,5 @@
 // Distance, speed, flight time, fuel and cargo of fleets.
-import { DRIVE_BONUS, SHIPS } from './catalog.ts';
+import { DRIVE_BONUS, type DriveKey, SHIPS, isShip } from './catalog.ts';
 import type { Coords, Levels, ResearchState, Universe } from './types.ts';
 
 export const pid = (c: Coords): string => `p${c.g}_${c.s}_${c.p}`;
@@ -15,15 +15,36 @@ export function distance(a: Coords, b: Coords): number {
   return 5;
 }
 
+export interface ActiveDrive {
+  drive: DriveKey;
+  speed: number;
+}
+
+/**
+ * The drive a ship flies with and its base speed: the base drive, or the last
+ * drive switch whose research the player has reached (the Bomber, #57). Null
+ * for anything that is not a ship.
+ */
+export function activeDrive(
+  key: string,
+  r: Pick<ResearchState, 'research'>,
+): ActiveDrive | null {
+  if (!isShip(key)) return null;
+  const ship = SHIPS[key]!;
+  let active: ActiveDrive = { drive: ship.drive, speed: ship.speed };
+  for (const d of ship.drives ?? [])
+    if ((r.research[d.from.research] ?? 0) >= d.from.level)
+      active = { drive: d.drive, speed: d.speed };
+  return active;
+}
+
 export function shipSpeed(
   key: string,
   r: Pick<ResearchState, 'research'>,
 ): number {
-  const ship = SHIPS[key];
-  if (!ship) return 0;
-  return (
-    ship.speed * (1 + DRIVE_BONUS[ship.drive] * (r.research[ship.drive] ?? 0))
-  );
+  const a = activeDrive(key, r);
+  if (!a) return 0;
+  return a.speed * (1 + DRIVE_BONUS[a.drive] * (r.research[a.drive] ?? 0));
 }
 
 /** The slowest ship sets the speed. Infinity for an empty fleet. */
