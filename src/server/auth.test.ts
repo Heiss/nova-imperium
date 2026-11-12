@@ -107,6 +107,13 @@ describe('registration', () => {
     );
   });
 
+  it('shows a new player the explanation texts behind the (?) icon (#63, D2)', () => {
+    const { ctx, token } = invited();
+    const u = auth.register(ctx, reg(token));
+    expect(u.explain).toBe('icon');
+    expect(ctx.store.user(u.id)!.explain).toBe('icon');
+  });
+
   it('uses defaults for planet name and galaxy', () => {
     const { ctx, token } = invited();
     const u = auth.register(ctx, reg(token, { planet: '', gal: 99 }));

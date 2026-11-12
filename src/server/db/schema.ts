@@ -328,4 +328,9 @@ export const MIGRATIONS: readonly string[] = [
   WHERE push_jobs.endpoint = home.endpoint AND home.planet IS NOT NULL
     AND kind IN ('buildings', 'shipyard');
   `,
+  // 10: display option of the explanation texts per player (issue #63)
+  `
+  ALTER TABLE users ADD COLUMN explain_mode TEXT NOT NULL DEFAULT 'icon'
+    CHECK (explain_mode IN ('always', 'icon', 'hidden'));
+  `,
 ];
