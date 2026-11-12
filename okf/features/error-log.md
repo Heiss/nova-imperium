@@ -39,20 +39,21 @@ them to Claude for analysis.
 * **[V]** German labels: tab „Fehler“, button „Herunterladen“, form
   „Problem melden“ with „Was ist passiert?“ and „Absenden“, answer
   „Danke, die Meldung ist angekommen.“
-* **[V]** A failed API call is an answer of 500 or more outside maintenance,
+* **[E]** A failed API call is an answer of 500 or more outside maintenance,
   or a call without an answer. Refusals (400) and „Bitte einloggen“ (401) are
-  expected and not recorded.
-* **[V]** Equal browser errors are merged per player and UTC day: the
+  expected and not recorded (owner, 2026-11-12).
+* **[E]** Equal browser errors are merged per player and UTC day: the
   counter rises and the time moves to the last occurrence; the first stays.
-  The list orders by the first record, newest first, so paging stays stable.
-* **[V]** Limits are fixed windows per player in the server's memory (like
+  The list orders by the first record, newest first, so paging stays stable
+  (owner, 2026-11-12).
+* **[E]** Limits are fixed windows per player in the server's memory (like
   the login limit) and start again after a restart. Over the limit a browser
   error gets 429 and is dropped; a report gets „Zu viele Meldungen – bitte
   in einer Stunde nochmal.“ A call refused by the minute does not count for
-  the day, an empty report does not count.
-* **[V]** Field limits: message 500, stack 4,000, page 40, version 20,
-  browser 200, action 80 characters; report text 1,000.
-* **[V]** Scrubbing (`scrub` in `src/server/error-log.ts`) before storing,
+  the day, an empty report does not count (owner, 2026-11-12).
+* **[E]** Field limits: message 500, stack 4,000, page 40, version 20,
+  browser 200, action 80 characters; report text 1,000 (owner, 2026-11-12).
+* **[E]** Scrubbing (`scrub` in `src/server/error-log.ts`) before storing,
   on every text including the report: the value after a name that hints at
   a secret (`password`, `passwort`, `token`, `secret`, `session`, `cookie`,
   `salt`, `hash`, `code`, `challenge`, `auth`, `email`), email addresses,
@@ -60,9 +61,9 @@ them to Claude for analysis.
   with both digits and letters; request IDs stay) and six-digit numbers
   (login codes; not stack positions). Server errors keep only name, message
   and stack of the exception; request bodies, headers and queries are never
-  read into the log.
-* **[V]** Deleting an account deletes its errors and reports (foreign key
-  `ON DELETE CASCADE`), like its audit entries.
+  read into the log (owner, 2026-11-12).
+* **[E]** Deleting an account deletes its errors and reports (foreign key
+  `ON DELETE CASCADE`), like its audit entries (owner, 2026-11-12).
 * **[V]** Version: the browser sends the version it loaded with
   „Neuigkeiten“; without one, and for server errors, the running version.
 * **[V]** Background jobs recorded: the game clock and fleet arrivals
@@ -73,11 +74,12 @@ them to Claude for analysis.
   line „Seite: … · Version: … · Letzter Vorgang: … · Meldung: …“ above the
   text; in the tab „Fehler“ the filter „Art“ (Alle, Serverfehler,
   Browserfehler, Problemmeldungen), „Anzahl je Seite“, „Zeitraum von“ and
-  „bis“. An error message with the offer stays 8 seconds instead of 3.5.
-* **[V]** The download is a POST with JSON like every other admin call
+  „bis“. An error message with the offer stays 8 seconds instead of 3.5
+  ([E] for the 8 seconds, owner, 2026-11-12).
+* **[E]** The download is a POST with JSON like every other admin call
   (cross-site protection), not a link; the list of the tab is audited as
   the admin read `errors`, the download as `errorDownload` with range and
-  counts.
+  counts (owner, 2026-11-12).
 
 # Code, interface and tests
 

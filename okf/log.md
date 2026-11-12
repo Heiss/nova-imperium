@@ -2,6 +2,7 @@
 
 ## 2026-11-12
 
+* **Decision**: The owner confirmed the proposals of #126: failed API call, merge per UTC day, in-memory limits, field limits, scrubbing, deletion with the account, the 8-second toast and the download as POST (see [Error log](/features/error-log.md)).
 * **Feature**: Error log (#126): migration 12 `error_events`; unexpected server errors (500, fleet arrivals, background jobs), browser errors of signed-in players (20 a minute, 200 a day, merged per day) and problem reports (5 an hour, „Hilfe & Optionen“ and „Problem melden“ at every error message), scrubbed and kept 30 days; admin tab „Fehler“ with paging and a ZIP download (fflate, JSON Lines with the audit log, audited) (see [Error log](/features/error-log.md)).
 * **Decision**: #126 clarified: server errors, browser errors of signed-in players and problem reports in SQLite for 30 days, admin tab „Fehler“, ZIP download (fflate, JSON Lines, audit log included, with player names); in this release (see [Error log](/features/error-log.md)).
 * **Feature**: Todesstern (#60): classic values, Werft 12, Hyperraumtechnik 6, Hyperraumantrieb 7, Gravitonforschung 1, speed 100 with the Hyperraumantrieb, fuel 1, rapid fire against every existing unit (1,250 against probe and Solarsatellit over the general 5, 100 against the Ionengeschütz), none against the Plasmawerfer and the domes, none against it; key `dstar`, abbreviation `TS`, icon of the interface v2 set (see [Late-game combat ships](/features/late-game-ships.md), [Defense](/features/defense-ion-plasma-domes.md)).
