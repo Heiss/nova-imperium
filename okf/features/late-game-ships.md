@@ -76,7 +76,8 @@ All values are the classic ones on owiki.de, confirmed by the owner
 * Rapid fire in `rf`: `bc` against `sc` 3, `lc` 3, `hf` 4, `cr` 4, `bs` 7;
   `dr` against `ll` 10, `bc` 2. The 5 against the probe is the general rule
   of `rapid()` and is not repeated in the catalog. The Solarsatellit gets
-  its 5 by the general rule of #96; the Todesstern values follow with #60.
+  its 5 by the general rule of #96; the Todesstern values came with #60
+  (see „Todesstern in the code“).
 * Points: the cost counts like for every unit (`src/server/game/points.ts`);
   achievements per ship come automatically (`src/shared/achievements.ts`).
 * **[V]** Keys `bc` and `dr`; abbreviations `SK` and `ZE` (unique among all
@@ -107,7 +108,7 @@ All values are the classic ones on owiki.de, confirmed by the owner
 * Rapid fire in `rf`: `bb` against `rl` 20, `ll` 20, `hl` 10, `ionc` 10
   (with #50); none against `gauss` or `pt`. The 5 against the probe and the
   Solarsatellit come from the general rule of `rapid()`. The Todesstern's 25
-  against the Bomber comes with #60.
+  against the Bomber came with #60.
 * Hull 7,500, shield 500, attack 1,000 from `buildSide()`; points by cost
   (`src/server/game/points.ts`).
 * **[V]** Key `bb`, abbreviation `BO` (unique among all `ab` values),
@@ -130,3 +131,45 @@ All values are the classic ones on owiki.de, confirmed by the owner
   (`reqMissing`), `src/server/game/admin.test.ts` (points); E2E „the Bomber
   is built, switches its drive at Hyperraumantrieb 8 and flies (#57)“ and
   its phone variant in `e2e/game.spec.ts`.
+
+# Todesstern in the code
+
+* Catalog: `SHIPS.dstar` (Todesstern) in `src/shared/catalog.ts`, after the
+  Bomber, so the Werft lists it last before the Spionagesonde and the
+  Solarsatellit. It flies with `drive: 'hdrive'`, base speed 100: 310 at
+  Hyperraumantrieb 7, the least it is built with (`shipSpeed()` in
+  `src/shared/flight.ts`); a fleet with a Todesstern flies at its speed.
+  Fuel 1 per ship adds next to nothing; `fuelFor()` keeps its minimum of 1.
+  Requires Werft 12, Hyperraumtechnik 6, Hyperraumantrieb 7,
+  Gravitonforschung 1 (`graviton` of #49).
+* Build time by `unitTime()` like every unit: 9,000,000 / (2,500 × 13)
+  hours at Werft 12, about 55 h 23 min at ×5, halved per Nanitenfabrik
+  level (D6).
+* Rapid fire in `rf`: `probe` 1,250, `sat` 1,250, `colony` 250, `sc` 250,
+  `lc` 250, `lf` 200, `hf` 100, `cr` 33, `bs` 30, `bb` 25, `bc` 15, `dr` 5,
+  `rl` 200, `ll` 200, `hl` 100, `gauss` 50, `ionc` 100 (#50); none against
+  `pt`, `ssd` and `lsd`. The catalog value wins in `rapid()`, so the 1,250
+  against the probe and the Solarsatellit replaces the general 5. No unit
+  has an entry against `dstar`.
+* `battle.test.ts` requires a value against every other unit except those
+  in its `noTarget` list (`dstar`, `pt`, `ssd`, `lsd`): a unit added later
+  fails there until it gets a value or joins the list.
+* Hull 900,000, shield 50,000, attack 200,000 from `buildSide()`. A hit
+  below 1 % of the shield (500 at shield tech 0) bounces off: at equal tech
+  only the Schlachtschiff, Schlachtkreuzer, Zerstörer, Bomber, Gaußkanone,
+  Plasmawerfer and Todesstern hurt it; the Ionengeschütz (150) does not. Points by cost, 10,000 per Todesstern
+  (`src/server/game/points.ts`).
+* No mission „Zerstören“: it comes with the moons (#53, #95).
+* **[V]** Description „Gewaltige Kampfstation; zerstört fast alles mit
+  Schnellfeuer.“
+* Icon `deathstar.svg` from the interface v2 set in
+  `src/client/static/icons/ships/`, mapped in `src/client/logic/icons.ts`.
+* Tests: `src/shared/catalog.test.ts` (values, order, requirements and
+  rapid fire targets exist, none against it, version 1 equivalence with
+  `dstar` added), `battle.test.ts` (hull, tech bonus, rapid fire against
+  every other unit, 1,250 over the general 5, none against it, bouncing
+  hits), `flight.test.ts` (speed, mixed fleet, flight time, fuel, cargo),
+  `economy.test.ts` (`reqMissing`, build time with the Nanitenfabrik),
+  `src/server/game/admin.test.ts` (points), `src/client/logic/icons.test.ts`;
+  E2E „the Todesstern is built after the Bomber, faster with the
+  Nanitenfabrik, and flies (#60)“ and its phone variant in `e2e/game.spec.ts`.

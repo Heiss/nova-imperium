@@ -105,6 +105,29 @@ describe('flights', () => {
     expect(fuelFor({ bb: 2, bc: 1 }, 3500, 5)).toBe(507);
     expect(capacity({ bb: 2, bc: 1 })).toBe(1750);
   });
+  it('fly the Todesstern slowly with the Hyperraumantrieb (#60)', () => {
+    expect(shipSpeed('dstar', { research: {} })).toBe(100);
+    // Hyperraumantrieb 7, the least it can be built with: 100 × 3.1.
+    expect(shipSpeed('dstar', { research: { hdrive: 7, impulse: 9 } })).toBe(
+      310,
+    );
+    expect(shipSpeed('dstar', { research: { hdrive: 10 } })).toBe(400);
+    const r = { research: { hdrive: 7, impulse: 6, comb: 6 } };
+    expect(fleetSpeed({ dstar: 1, bs: 3, lf: 5 }, r)).toBe(310);
+    expect(fleetSpeed({ dstar: 0, bs: 3 }, r)).toBe(31000);
+    // Neighbouring systems at full speed and ×5: about 1 h 51 min.
+    const a = { g: 1, s: 1, p: 5 };
+    expect(flightMs(distance(a, { ...a, s: 2 }), 310, 10, U)).toBe(6648731);
+  });
+  it('fuel and cargo of the Todesstern (#60)', () => {
+    // Fuel 1 per ship: next to nothing, but never below the minimum of 1.
+    expect(fuelFor({ dstar: 1 }, 35000, 10)).toBe(5);
+    expect(fuelFor({ dstar: 3 }, 3500, 5)).toBe(2);
+    expect(fuelFor({ dstar: 1, bs: 1 }, 3500, 5)).toBe(
+      fuelFor({ bs: 1 }, 3500, 5),
+    );
+    expect(capacity({ dstar: 2, bb: 1 })).toBe(2000500);
+  });
   it('use the slowest ship of the fleet', () => {
     expect(fleetSpeed({ lf: 1, sc: 2, bs: 0 }, { research: {} })).toBe(5000);
     expect(fleetSpeed({}, { research: {} })).toBe(Infinity);

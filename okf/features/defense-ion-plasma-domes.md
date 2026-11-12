@@ -28,9 +28,9 @@ Not in version 1. Missiles are #54.
   battle like any defense (`rebuild()`, `src/server/game/arrival.ts`)
   (D3 = 1, owner, 2026-11-12).
 * **[E]** Rapid fire only for units that exist. Bomber (#57, classic):
-  10 against the Ionengeschütz, none against the Plasmawerfer; the
-  Todesstern's comes with #60 (D2, owner, 2026-11-12). No unit has rapid fire
-  against the domes.
+  10 against the Ionengeschütz, none against the Plasmawerfer; Todesstern
+  (#60): 100 against the Ionengeschütz, none against the Plasmawerfer and the
+  domes (D2, owner, 2026-11-12). No unit has rapid fire against the domes.
 * **[U]** The other values are from the wiki (sources in #50) and match
   owiki.de; the owner took them over unchanged.
 * **[V]** German interface: Verteidigung gets four entries with new art; the
@@ -43,8 +43,9 @@ Not in version 1. Missiles are #54.
   `src/shared/catalog.ts`, after the Gaußkanone. Hull, shield and attack come
   from `buildSide()` in `src/shared/battle.ts` (hull 800, 10,000, 2,000 and
   10,000 before Raumschiffpanzerung); bounce below 1 % of the shield and the
-  explosion below 70 % hull are unchanged. Only the Bomber has rapid fire
-  against them: `SHIPS.bb.rf.ionc` 10; otherwise `rapid()` gives 1 both ways.
+  explosion below 70 % hull are unchanged. Only the Bomber and the
+  Todesstern have rapid fire against them: `SHIPS.bb.rf.ionc` 10,
+  `SHIPS.dstar.rf.ionc` 100 (#60); otherwise `rapid()` gives 1 both ways.
 * Once per planet: the domes carry `once: true` (`DefenseDef`).
   `unitRoom()` in `src/shared/yard.ts` counts the planet's dome and the units
   of it in the shipyard queue; `orderMax()` is the smaller of that room and

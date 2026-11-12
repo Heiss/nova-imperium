@@ -208,6 +208,33 @@ describe('Bomber requirements', () => {
   });
 });
 
+describe('Todesstern', () => {
+  it('names what the Todesstern needs (#60)', () => {
+    expect(
+      reqMissing(SHIPS.dstar!, planet({ b: { yard: 11 } }), {
+        research: { hyper: 5, hdrive: 6 },
+      }),
+    ).toEqual([
+      'Raumschiffwerft (Stufe 12)',
+      'Hyperraumtechnik (Stufe 6)',
+      'Hyperraumantrieb (Stufe 7)',
+      'Gravitonforschung (Stufe 1)',
+    ]);
+    expect(
+      reqMissing(SHIPS.dstar!, planet({ b: { yard: 12 } }), {
+        research: { hyper: 6, hdrive: 7, graviton: 1 },
+      }),
+    ).toEqual([]);
+  });
+  it('takes 9,000,000 / (2,500 × 13) hours, halved per Nanitenfabrik level (#60)', () => {
+    const at = (nanite: number) => planet({ b: { yard: 12, nanite } });
+    // 276.9 hours at speed 1, about 55 h 23 min at ×5.
+    expect(unitTime(SHIPS.dstar!, at(0), U)).toBe(199384616);
+    expect(unitTime(SHIPS.dstar!, at(1), U)).toBe(99692308);
+    expect(unitTime(SHIPS.dstar!, at(3), U)).toBe(24923077);
+  });
+});
+
 describe('production', () => {
   it('has a base income without mines', () => {
     expect(prod(planet(), U)).toEqual({

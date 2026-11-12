@@ -193,6 +193,14 @@ describe('points and state', () => {
     expect(pointsMap(ctx)).toEqual({ u_Anna: 305 });
   });
 
+  it('count the Todesstern by its cost (#60)', () => {
+    const ctx = testCtx();
+    addUser(ctx, 'Anna');
+    addPlanet(ctx, 'u_Anna', { ships: { dstar: 1, bb: 1 } });
+    // dstar 10,000,000 + bb 90,000 = 10,090,000
+    expect(pointsMap(ctx)).toEqual({ u_Anna: 10090 });
+  });
+
   it('shows own fleets fully and incoming foreign ones partly', () => {
     const ctx = testCtx();
     const a = addUser(ctx, 'Anna');

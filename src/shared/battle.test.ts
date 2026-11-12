@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { seeded, sequence } from '../test/fixtures.ts';
 import { battle, buildSide, count, hit, rapid } from './battle.ts';
+import { UNIT } from './catalog.ts';
 
 const unit = (over = {}) => ({
   key: 'lf',
@@ -86,16 +87,20 @@ describe('battle', () => {
     expect(lsd?.maxShield).toBeCloseTo(13000, 9);
     expect(lsd?.attack).toBeCloseTo(1.1, 9);
   });
-  it('gives only the Bomber rapid fire against the new defense (#50, #57)', () => {
+  it('gives only the Bomber and the Todesstern rapid fire against the new defense (#50, #57, #60)', () => {
     const fresh = ['ionc', 'pt', 'ssd', 'lsd'];
     const all = [
       ...['sc', 'lc', 'colony', 'lf', 'hf', 'cr', 'bs', 'bc', 'dr', 'bb'],
-      ...['probe', 'sat', 'rl', 'll', 'hl', 'gauss', ...fresh],
+      ...['dstar', 'probe', 'sat', 'rl', 'll', 'hl', 'gauss', ...fresh],
     ];
+    // Only against the Ionengeschütz: Bomber 10, Todesstern 100.
+    const expected: Record<string, number> = { bb: 10, dstar: 100 };
     for (const a of all)
       for (const t of fresh) {
-        expect(rapid(a, t)).toBe(a === 'bb' && t === 'ionc' ? 10 : 1);
-        expect(rapid(t, a)).toBe(1);
+        expect(rapid(a, t), `${a} → ${t}`).toBe(
+          t === 'ionc' ? (expected[a] ?? 1) : 1,
+        );
+        expect(rapid(t, a), `${t} → ${a}`).toBe(1);
       }
   });
   it('lets hits below 1 % of a dome shield bounce off (#50)', () => {
@@ -177,6 +182,64 @@ describe('battle', () => {
       expect(rapid(a, 'bb')).toBe(1);
     expect(rapid('gauss', 'bb')).toBe(1);
     expect(rapid('bb', 'bb')).toBe(1);
+  });
+  it('builds the Todesstern with hull (M + K) / 10 (#60)', () => {
+    const [ts] = buildSide({ units: { dstar: 1 }, tech: {} });
+    expect(ts).toEqual({
+      key: 'dstar',
+      hull: 900000,
+      maxHull: 900000,
+      shield: 50000,
+      maxShield: 50000,
+      attack: 200000,
+    });
+    const [boosted] = buildSide({
+      units: { dstar: 1 },
+      tech: { armor: 2, shield: 1, weapons: 3 },
+    });
+    expect(boosted?.maxHull).toBeCloseTo(1080000, 9);
+    expect(boosted?.maxShield).toBeCloseTo(55000, 9);
+    expect(boosted?.attack).toBeCloseTo(260000, 9);
+  });
+  it('knows the rapid fire of the Todesstern (#60)', () => {
+    // 1,250 against the probe and the Solarsatellit, not the general 5.
+    expect(rapid('dstar', 'probe')).toBe(1250);
+    expect(rapid('dstar', 'sat')).toBe(1250);
+    expect(rapid('dstar', 'colony')).toBe(250);
+    expect(rapid('dstar', 'lf')).toBe(200);
+    expect(rapid('dstar', 'cr')).toBe(33);
+    expect(rapid('dstar', 'bb')).toBe(25);
+    expect(rapid('dstar', 'dr')).toBe(5);
+    expect(rapid('dstar', 'gauss')).toBe(50);
+    expect(rapid('dstar', 'ionc')).toBe(100);
+    // None against itself, the Plasmawerfer and the shield domes (#50, #60).
+    const noTarget = ['dstar', 'pt', 'ssd', 'lsd'];
+    for (const t of noTarget) expect(rapid('dstar', t), t).toBe(1);
+    // Every other unit is a target with its own value (#60 D4): a unit added
+    // later fails here until it has one or joins `noTarget`.
+    const rf = UNIT.dstar!.rf!;
+    for (const t of Object.keys(UNIT).filter((k) => !noTarget.includes(k))) {
+      expect(rf[t], t).toBeGreaterThan(1);
+      expect(rapid('dstar', t)).toBe(rf[t]);
+    }
+  });
+  it('gives no unit rapid fire against the Todesstern (#60)', () => {
+    for (const a of Object.keys(UNIT)) expect(rapid(a, 'dstar'), a).toBe(1);
+  });
+  it('lets hits below 1 % of its shield bounce off a Todesstern (#60)', () => {
+    // At equal tech only units with an attack of 500 or more hurt it.
+    const attack = (k: string): number =>
+      buildSide({ units: { [k]: 1 }, tech: {} })[0]!.attack;
+    const ts = buildSide({ units: { dstar: 1 }, tech: {} })[0]!;
+    const small = ['sc', 'lc', 'colony', 'lf', 'hf', 'cr', 'probe', 'sat'];
+    const defense = ['rl', 'll', 'hl', 'ionc', 'ssd', 'lsd'];
+    for (const k of [...small, ...defense]) hit(ts, attack(k), () => 0);
+    expect(ts.shield).toBe(50000);
+    for (const k of ['bs', 'bc', 'dr', 'bb', 'gauss', 'pt'])
+      hit(ts, attack(k), () => 0);
+    // 50,000 − 1,000 − 700 − 2,000 − 1,000 − 1,100 − 3,000
+    expect(ts.shield).toBe(41200);
+    expect(ts.hull).toBe(900000);
   });
   it('knows rapid fire', () => {
     expect(rapid('cr', 'lf')).toBe(6);
