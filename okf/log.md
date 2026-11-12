@@ -2,6 +2,7 @@
 
 ## 2026-11-12
 
+* **Decision**: Claude bundles pushes: no documentation-only push while a pull request's CI runs; sharding the mutation tests is #131 for the next release (see [Release loop](/ops/loop.md)).
 * **Decision**: The owner confirmed the 48 shortened long texts, their limits, the changed short texts and the renamed short forms of #94 (see [Grimdark naming](/features/naming.md)).
 * **Decision**: #94 long texts shorter: lore one sentence, mechanics at most three sentences, at most about 350 characters, checked by a test [V]; all 48 rewritten (see [Grimdark naming](/features/naming.md)).
 * **Decision**: #94 clarified: long texts in two paragraphs, lore and „So funktioniert es:“ with the mechanics in words, no numbers, all 48 rewritten [V], the panel shows two paragraphs; push title „Das Werk ist vollbracht“; battle report title „Feindkontakt! … wird von … angegriffen“; Auspex-Aktivität and Auspex-Abwehr, account deletion still finds old spy reports; short forms Schiffsschmiede and Scholarium confirmed (see [Grimdark naming](/features/naming.md), [Explanation texts](/features/explanation-texts.md)).
