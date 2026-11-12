@@ -25,6 +25,7 @@ okf_version: "0.2"
 * [Explanation texts](/features/explanation-texts.md) - long texts with a display option per player (#63)
 * [Late-game combat ships](/features/late-game-ships.md) - Schlachtkreuzer, Zerstörer, Bomber, Todesstern of #56, classic values, drive switch
 * [Solarsatellit](/features/solar-satellite.md) - energy satellite of #46, temperature formula, share, battle role
+* [Fusionskraftwerk](/features/fusion-reactor.md) - deuterium-burning power plant of #47, throttling at an empty stock
 * [Changelog in the game](/features/changelog.md) - „Neuigkeiten“, update message and hint from CHANGELOG.md
 
 * [Invitations](/features/invitations.md) - registration only by invitation, mail or copied link

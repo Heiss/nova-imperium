@@ -2,7 +2,7 @@
 // production, the finished building, the finished units of the shipyard.
 import { isShip } from './catalog.ts';
 import { accrue } from './economy.ts';
-import type { Planet, ResearchState, Universe } from './types.ts';
+import type { Levels, Planet, ResearchState, Universe } from './types.ts';
 
 const clone = <T>(o: T): T => structuredClone(o);
 
@@ -24,21 +24,52 @@ function nextSatellite(p: Planet): number {
   return Infinity;
 }
 
+/** The research levels of the owner at `t`, the running research once it is done. */
+const levelsAt = (r: ResearchState | null | undefined, t: number): Levels =>
+  r ? settleR(r, t).research : {};
+
+/**
+ * When Energietechnik finishes after `t`, if `p` has a Fusionskraftwerk
+ * whose energy it changes (#47); otherwise Infinity.
+ */
+function techChange(
+  p: Planet,
+  r: ResearchState | null | undefined,
+  t: number,
+): number {
+  const q = r?.rq;
+  const feels = q?.key === 'energy' && (p.b.fusion ?? 0) > 0;
+  return feels && q.end > t ? q.end : Infinity;
+}
+
 /**
  * Production and shipyard up to `until`. Production is split where it
- * changes: at the end of the building and when a Solarsatellit is finished
- * (its energy counts from then on). Building and running shipyard first
- * catch up to `from`, so every split point is later than `t`. Without satellites in the
- * queue the split is the one of version 1.
+ * changes: at the end of the building, when a Solarsatellit is finished
+ * (its energy counts from then on) and when Energietechnik finishes for a
+ * Fusionskraftwerk; `accrue` splits where the deuterium stock runs empty.
+ * Building and running shipyard first catch up to `from`, so every split
+ * point is later than `t`. Without satellites in the queue and without a
+ * Fusionskraftwerk the split is the one of version 1.
  */
-function produce(p: Planet, from: number, until: number, u: Universe): void {
+function produce(
+  p: Planet,
+  from: number,
+  until: number,
+  u: Universe,
+  r: ResearchState | null | undefined,
+): void {
   completeBuilding(p, from);
   catchUp(p, from);
   let t = from;
   while (t < until) {
-    // Both are later than t: what ends at t is completed at the loop's end.
-    const e = Math.min(until, p.bq?.end ?? until, nextSatellite(p));
-    accrue(p, e - t, u);
+    // All are later than t: what ends at t is completed at the loop's end.
+    const e = Math.min(
+      until,
+      p.bq?.end ?? until,
+      nextSatellite(p),
+      techChange(p, r, t),
+    );
+    accrue(p, e - t, u, levelsAt(r, t));
     t = e;
     completeBuilding(p, t);
     catchUp(p, t);
@@ -69,12 +100,21 @@ function catchUp(p: Planet, t: number): void {
   if (p.sqT !== null) runShipyard(p, t);
 }
 
-/** A copy of the planet as it is at `until` (never earlier than its last state). */
-export function settle(src: Planet, until: number, u: Universe): Planet {
+/**
+ * A copy of the planet as it is at `until` (never earlier than its last
+ * state). `r` is the research of the owner as stored, its running research
+ * included; only a Fusionskraftwerk reads it (#47).
+ */
+export function settle(
+  src: Planet,
+  until: number,
+  u: Universe,
+  r?: ResearchState | null,
+): Planet {
   const p = clone(src);
   const from = p.t;
   const end = Math.max(until, from);
-  produce(p, from, end, u);
+  produce(p, from, end, u, r);
   // A shipyard without a start time starts now.
   runShipyard(p, end);
   p.t = end;
