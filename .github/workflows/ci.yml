@@ -190,7 +190,13 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
+          # The Trivy gate builds the image of the base branch too.
+          fetch-depth: 0
           persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version-file: .node-version
+          package-manager-cache: false
       - name: The production setup is valid, and a missing value is named
         run: |
           mkdir -p secrets && : > secrets/smtp_password
@@ -219,25 +225,55 @@ jobs:
         run: docker compose up --detach --no-build --wait
       - name: Data of the last release survive the upgrade
         run: docker/upgrade.sh after
-      # Critical holes with a fix block every image. What goes out as a
-      # release (a release pull request, a pull request into or a push to
-      # hotfix/**) is also blocked by High ones (owner, 2026-11-12); other
-      # pull requests are not, so a new High hole does not stop feature
-      # work, and the hourly scan of stable (security-hotfix.yml) covers it.
-      - name: No critical holes in the image, no high ones in a release (Trivy; only those with a fix)
+      # Trivy gate (owner, 2026-11-12), holes with a fix only. What goes out
+      # as a release (a release pull request, a pull request into or a push
+      # to hotfix/**) blocks on every High and Critical hole. Every other
+      # run blocks on Critical; a pull request only on the Critical holes
+      # it brings in: the image of its base branch is scanned too, so two
+      # Renovate pull requests that each fix one of two holes do not block
+      # each other (scripts/trivy-gate.ts).
+      - name: Trivy gate mode
+        id: gate
         env:
+          EVENT: ${{ github.event_name }}
           HEAD_REF: ${{ github.head_ref }}
           BASE_REF: ${{ github.base_ref }}
           REF: ${{ github.ref }}
         run: |
           severity=CRITICAL
-          case "$HEAD_REF" in release/*) severity=HIGH,CRITICAL ;; esac
-          case "$BASE_REF" in hotfix/*) severity=HIGH,CRITICAL ;; esac
-          case "$REF" in refs/heads/hotfix/*) severity=HIGH,CRITICAL ;; esac
-          echo "Blocking severities: $severity"
-          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:0.76.2@sha256:8f6bb947dbc528902e11f2f5be52f7b519f6a39d5d148f41166f2040499768fb \
-            image --severity "$severity" --ignore-unfixed --exit-code 1 --no-progress \
-            "ghcr.io/heiss/nova-imperium:$NOVA_VERSION"
+          mode=new
+          [ "$EVENT" = pull_request ] || mode=all
+          case "$HEAD_REF" in release/*) severity=HIGH,CRITICAL; mode=all ;; esac
+          case "$BASE_REF" in hotfix/*) severity=HIGH,CRITICAL; mode=all ;; esac
+          case "$REF" in refs/heads/hotfix/*) severity=HIGH,CRITICAL; mode=all ;; esac
+          echo "severity=$severity" >> "$GITHUB_OUTPUT"
+          echo "mode=$mode" >> "$GITHUB_OUTPUT"
+          echo "Blocking: $severity, $([ "$mode" = new ] && echo 'only holes this pull request brings in' || echo 'every hole')"
+      - name: Build the image of the base branch
+        if: steps.gate.outputs.mode == 'new'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          git worktree add --detach ../base "$BASE_SHA"
+          docker build --target app --tag nova-base:ci ../base
+      - name: Trivy gate (holes with a fix only)
+        env:
+          SEVERITY: ${{ steps.gate.outputs.severity }}
+          MODE: ${{ steps.gate.outputs.mode }}
+        run: |
+          scan() {
+            docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v "$PWD:/out" \
+              aquasec/trivy:0.76.2@sha256:8f6bb947dbc528902e11f2f5be52f7b519f6a39d5d148f41166f2040499768fb \
+              image --scanners vuln --severity "$SEVERITY" --ignore-unfixed --format json \
+              --output "/out/$2" --no-progress "$1"
+          }
+          scan "ghcr.io/heiss/nova-imperium:$NOVA_VERSION" trivy-image.json
+          if [ "$MODE" = new ]; then
+            scan nova-base:ci trivy-base.json
+            node scripts/trivy-gate.ts trivy-image.json trivy-base.json
+          else
+            node scripts/trivy-gate.ts trivy-image.json
+          fi
       - name: The image holds no compiler, package manager or tests
         run: |
           docker compose exec -T app sh -c '! command -v npm && ! command -v pnpm && ! command -v gcc && [ -z "$(find /app/src -name "*.test.ts")" ]'

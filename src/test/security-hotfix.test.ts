@@ -65,7 +65,7 @@ describe('security hotfix: versions', () => {
     expect(fixedVersion('1.2.3', '')).toBe('');
   });
 
-  it('rate npm packages by GitHub (GHSA), others by Trivy', () => {
+  it('rate npm packages by the higher of GitHub (GHSA) and Trivy', () => {
     expect(
       severityOf(
         vuln({ Severity: 'MEDIUM', VendorSeverity: { ghsa: 3, nvd: 2 } }),
@@ -74,7 +74,7 @@ describe('security hotfix: versions', () => {
     ).toBe('HIGH');
     expect(
       severityOf(vuln({ Severity: 'HIGH', VendorSeverity: { ghsa: 2 } }), true),
-    ).toBe('MEDIUM');
+    ).toBe('HIGH');
     expect(
       severityOf(
         vuln({ Severity: 'CRITICAL', VendorSeverity: { nvd: 1 } }),

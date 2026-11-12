@@ -118,13 +118,24 @@ export function fixedVersion(installed: string, listed: string): string {
   return above[0] ?? '';
 }
 
+const RANK: Record<string, number> = {
+  UNKNOWN: 0,
+  LOW: 1,
+  MEDIUM: 2,
+  HIGH: 3,
+  CRITICAL: 4,
+};
+
 /**
- * npm packages: GitHub's rating (GHSA), Trivy's own rating when GitHub has
- * none. Everything else (the base image): Trivy's rating.
+ * npm packages: the higher of GitHub's rating (GHSA) and Trivy's own, so
+ * every hole the CI gate (Trivy's rating) blocks is in the plan (owner,
+ * 2026-11-12). Everything else (the base image): Trivy's rating.
  */
 export function severityOf(v: TrivyVulnerability, npm: boolean): string {
   const ghsa = npm ? v.VendorSeverity?.ghsa : undefined;
-  return ghsa === undefined ? v.Severity : (VENDOR[ghsa] ?? v.Severity);
+  const github = ghsa === undefined ? undefined : VENDOR[ghsa];
+  if (!github) return v.Severity;
+  return (RANK[github] ?? 0) > (RANK[v.Severity] ?? 0) ? github : v.Severity;
 }
 
 /** One hole as a finding, or null when it does not start a hotfix. */
