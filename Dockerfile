@@ -33,7 +33,8 @@ FROM node:26-slim@sha256:e6bedef217677b276c591795e169840edd9096dbf13f29df8ef8d18
 ARG OS_UPDATES=none
 RUN apt-get update --error-on=any \
  && apt-get full-upgrade -y --no-install-recommends \
- && if apt-get -s full-upgrade | grep -q '^Inst'; then echo 'Debian updates were held back.' >&2; exit 1; fi \
+ && out="$(apt-get -s full-upgrade)" \
+ && if ! printf '%s\n' "$out" | grep -qx '0 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.'; then printf '%s\n' "$out" >&2; echo 'Debian updates were held back.' >&2; exit 1; fi \
  && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 ENV NODE_ENV=production \

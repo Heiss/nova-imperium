@@ -248,14 +248,16 @@ export function pinBase(dockerfile: string, digest: string): string {
 }
 
 /** Debian's security updates in the image that runs (Dockerfile). */
-const OS_UPDATES = (id: string) =>
-  [
-    `ARG OS_UPDATES=sec-${id}`,
-    'RUN apt-get update --error-on=any \\',
-    ' && apt-get full-upgrade -y --no-install-recommends \\',
-    " && if apt-get -s full-upgrade | grep -q '^Inst'; then echo 'Debian updates were held back.' >&2; exit 1; fi \\",
-    ' && rm -rf /var/lib/apt/lists/*',
-  ].join('\n');
+/** The upgrade, one Dockerfile line per entry, joined with " \\". */
+const OS_UPGRADE = [
+  String.raw`RUN apt-get update --error-on=any`,
+  String.raw` && apt-get full-upgrade -y --no-install-recommends`,
+  String.raw` && out="$(apt-get -s full-upgrade)"`,
+  String.raw` && if ! printf '%s\n' "$out" | grep -qx '0 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.'; then printf '%s\n' "$out" >&2; echo 'Debian updates were held back.' >&2; exit 1; fi`,
+  String.raw` && rm -rf /var/lib/apt/lists/*`,
+].join(' \\\n');
+
+const OS_UPDATES = (id: string) => `ARG OS_UPDATES=sec-${id}\n${OS_UPGRADE}`;
 
 /**
  * Sets the default of OS_UPDATES to the hotfix id, so the hotfix changes the

@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
   compareVersions,
@@ -289,6 +290,15 @@ describe('security hotfix: apply', () => {
     expect(stillVulnerable('', fixes)).toEqual([]);
   });
 
+  it('insert the same OS updates block as the Dockerfile has', () => {
+    const inserted = markOsUpdates('FROM x AS app\n', 'ab')
+      .split('\n')
+      .slice(2)
+      .join('\n')
+      .trim();
+    expect(readFileSync('Dockerfile', 'utf8')).toContain(inserted);
+  });
+
   it('set the OS updates default to the hotfix id', () => {
     const docker = 'FROM x AS app\nARG OS_UPDATES=none\nRUN apt-get upgrade\n';
     expect(markOsUpdates(docker, 'abc123')).toBe(
@@ -304,10 +314,13 @@ describe('security hotfix: apply', () => {
         'FROM x AS base',
         'FROM y AS app',
         'ARG OS_UPDATES=sec-ab',
-        'RUN apt-get update --error-on=any \\',
-        ' && apt-get full-upgrade -y --no-install-recommends \\',
-        " && if apt-get -s full-upgrade | grep -q '^Inst'; then echo 'Debian updates were held back.' >&2; exit 1; fi \\",
-        ' && rm -rf /var/lib/apt/lists/*',
+        [
+          String.raw`RUN apt-get update --error-on=any`,
+          String.raw` && apt-get full-upgrade -y --no-install-recommends`,
+          String.raw` && out="$(apt-get -s full-upgrade)"`,
+          String.raw` && if ! printf '%s\n' "$out" | grep -qx '0 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.'; then printf '%s\n' "$out" >&2; echo 'Debian updates were held back.' >&2; exit 1; fi`,
+          String.raw` && rm -rf /var/lib/apt/lists/*`,
+        ].join(' \\\n'),
         'WORKDIR /app',
         '',
       ].join('\n'),
