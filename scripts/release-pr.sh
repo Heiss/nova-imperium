@@ -67,6 +67,10 @@ taken_by() {
 }
 other=$(taken_by)
 [ -z "$other" ] || fail "$other holds $version too: run this workflow again."
+# A draft cannot be merged: the release pull request is a draft from before
+# the push until the check after it passed, so a failed or cancelled run
+# never leaves a duplicate version mergeable.
+if [ -n "$open" ]; then gh pr ready --undo "$open"; fi
 git push --quiet --force origin "HEAD:refs/heads/$branch"
 other=$(taken_by)
 
@@ -91,16 +95,13 @@ pulls=$(git log --format='- %s' "$range" | grep -E '\(#[0-9]+\)$' || true)
 if [ -n "$open" ]; then
   gh pr edit "$open" --title "Release $version" --body-file release-body.md
 else
-  gh pr create --base "$base" --head "$branch" \
+  gh pr create --draft --base "$base" --head "$branch" \
     --title "Release $version" --body-file release-body.md
   open=$(gh pr list --head "$branch" --base "$base" --state open \
     --json number --jq '.[0].number // empty')
 fi
-# A draft cannot be merged: a release pull request whose version another
-# release branch holds stays a draft until a new run picks a free version.
 if [ -n "$other" ]; then
-  gh pr ready --undo "$open"
-  fail "$other holds $version too: the release pull request is a draft now; run this workflow again."
+  fail "$other holds $version too: the release pull request stays a draft; run this workflow again."
 fi
-gh pr ready "$open" > /dev/null 2>&1 || true
+gh pr ready "$open"
 printf 'Release pull request for %s is up to date.\n' "$version"
