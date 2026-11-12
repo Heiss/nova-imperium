@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { planet, U } from '../test/fixtures.ts';
-import { BUILD, RES, SHIPS } from './catalog.ts';
+import { BUILD, DEF, RES, SHIPS } from './catalog.ts';
 import {
   accrue,
   afford,
@@ -145,6 +145,47 @@ describe('requirements', () => {
         research: { hyper: 5, hdrive: 6 },
       }),
     ).toEqual([]);
+  });
+  it('name what the new defense needs (#50)', () => {
+    const cases: [string, number, string, number, string[]][] = [
+      [
+        'ionc',
+        4,
+        'ion',
+        4,
+        ['Raumschiffwerft (Stufe 4)', 'Ionentechnik (Stufe 4)'],
+      ],
+      [
+        'pt',
+        8,
+        'plasma',
+        7,
+        ['Raumschiffwerft (Stufe 8)', 'Plasmatechnik (Stufe 7)'],
+      ],
+      [
+        'ssd',
+        1,
+        'shield',
+        2,
+        ['Raumschiffwerft (Stufe 1)', 'Schildtechnik (Stufe 2)'],
+      ],
+      [
+        'lsd',
+        6,
+        'shield',
+        6,
+        ['Raumschiffwerft (Stufe 6)', 'Schildtechnik (Stufe 6)'],
+      ],
+    ];
+    for (const [k, yard, tech, level, missing] of cases) {
+      const d = DEF[k]!;
+      const below = { research: { [tech]: level - 1 } };
+      const enough = { research: { [tech]: level } };
+      expect(reqMissing(d, planet({ b: { yard: yard - 1 } }), below)).toEqual(
+        missing,
+      );
+      expect(reqMissing(d, planet({ b: { yard } }), enough)).toEqual([]);
+    }
   });
 });
 

@@ -44,6 +44,10 @@ const FILES: Record<string, string> = {
   ll: 'defense/light_laser',
   hl: 'defense/heavy_laser',
   gauss: 'defense/gauss_cannon',
+  ionc: 'defense/ion_cannon',
+  pt: 'defense/plasma_turret',
+  ssd: 'defense/small_shield_dome',
+  lsd: 'defense/large_shield_dome',
 };
 
 export const ICON_KEYS = Object.keys(FILES);

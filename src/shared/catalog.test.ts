@@ -28,9 +28,15 @@ describe('catalog', () => {
       bb: C.SHIPS.bb,
       sat: C.SHIPS.sat,
     };
+    const addedDef = {
+      ionc: C.DEF.ionc,
+      pt: C.DEF.pt,
+      ssd: C.DEF.ssd,
+      lsd: C.DEF.lsd,
+    };
     expect(C.SHIPS).toEqual({ ...O.SHIPS, ...added });
-    expect(C.DEF).toEqual(O.DEF);
-    expect(C.UNIT).toEqual({ ...O.UNIT, ...added });
+    expect(C.DEF).toEqual({ ...O.DEF, ...addedDef });
+    expect(C.UNIT).toEqual({ ...O.UNIT, ...added, ...addedDef });
     expect(C.DRIVE_BONUS).toEqual(O.DRIVE_BONUS);
     expect(C.MISSION).toEqual({ ...O.MISSION, colonize: 'Kolonisieren' });
   });
@@ -154,8 +160,8 @@ describe('catalog', () => {
         },
       ],
       req: { b: { yard: 8 }, r: { impulse: 6, plasma: 5 } },
-      rf: { rl: 20, ll: 20, hl: 10 },
-      ds: 'Stark gegen Raketenwerfer und Lasergeschütze; fliegt ab Hyperraumantrieb 8 mit dem Hyperraumantrieb.',
+      rf: { rl: 20, ll: 20, hl: 10, ionc: 10 },
+      ds: 'Stark gegen Raketenwerfer, Laser- und Ionengeschütze; fliegt ab Hyperraumantrieb 8 mit dem Hyperraumantrieb.',
     });
     // The Werft lists it after the Zerstörer.
     const keys = Object.keys(C.SHIPS);
@@ -171,6 +177,61 @@ describe('catalog', () => {
     );
     for (const ab of [C.SHIPS.bc!.ab, C.SHIPS.dr!.ab, C.SHIPS.bb!.ab])
       expect(all.filter((x) => x === ab)).toEqual([ab]);
+  });
+  it('has Ionengeschütz, Plasmawerfer and both shield domes with the classic values (#50)', () => {
+    expect(C.DEF.ionc).toEqual({
+      n: 'Ionengeschütz',
+      ab: 'IG',
+      cost: [2000, 6000, 0],
+      atk: 150,
+      sh: 500,
+      req: { b: { yard: 4 }, r: { ion: 4 } },
+      ds: 'Geschütz mit starkem Schild, das viele Treffer einsteckt.',
+    });
+    expect(C.DEF.pt).toEqual({
+      n: 'Plasmawerfer',
+      ab: 'PW',
+      cost: [50000, 50000, 30000],
+      atk: 3000,
+      sh: 300,
+      req: { b: { yard: 8 }, r: { plasma: 7 } },
+      ds: 'Die stärkste Waffe der Verteidigung: feuert Plasma mit gewaltiger Wucht.',
+    });
+    expect(C.DEF.ssd).toEqual({
+      n: 'Kleine Schildkuppel',
+      ab: 'KSK',
+      cost: [10000, 10000, 0],
+      atk: 1,
+      sh: 2000,
+      req: { b: { yard: 1 }, r: { shield: 2 } },
+      once: true,
+      ds: 'Kuppel mit starkem Schild über dem Planeten; schwache Schüsse prallen ab. Nur eine pro Planet.',
+    });
+    expect(C.DEF.lsd).toEqual({
+      n: 'Große Schildkuppel',
+      ab: 'GSK',
+      cost: [50000, 50000, 0],
+      atk: 1,
+      sh: 10000,
+      req: { b: { yard: 6 }, r: { shield: 6 } },
+      once: true,
+      ds: 'Die größere Kuppel mit fünffachem Schild; nur starke Schüsse dringen durch. Nur eine pro Planet.',
+    });
+    // Only the domes are limited; no new unit has rapid fire (#50, D2).
+    expect(
+      Object.keys(C.UNIT).filter((k) => (C.UNIT[k] as C.DefenseDef).once),
+    ).toEqual(['ssd', 'lsd']);
+    for (const k of ['ionc', 'pt', 'ssd', 'lsd'])
+      expect(C.DEF[k]).not.toHaveProperty('rf');
+  });
+  it('gives the new defense abbreviations no other entry uses (#50)', () => {
+    const all = [C.BUILD, C.RES, C.UNIT].flatMap((defs) =>
+      Object.values(defs).map((d) => d.ab),
+    );
+    for (const k of ['ionc', 'pt', 'ssd', 'lsd']) {
+      const ab = C.DEF[k]!.ab;
+      expect(all.filter((x) => x === ab)).toEqual([ab]);
+    }
   });
   it('has the Solarsatellit with the classic values (#46)', () => {
     expect(C.SHIPS.sat).toEqual({
@@ -203,6 +264,10 @@ describe('catalog', () => {
     expect(C.isShip('rl')).toBe(false);
     expect(C.isShip('toString')).toBe(false);
     expect(C.isDefense('rl')).toBe(true);
+    for (const k of ['ionc', 'pt', 'ssd', 'lsd']) {
+      expect(C.isDefense(k)).toBe(true);
+      expect(C.canFly(k)).toBe(false);
+    }
     expect(C.isDefense('lf')).toBe(false);
     expect(C.PRODUCERS).toEqual([
       'metal',

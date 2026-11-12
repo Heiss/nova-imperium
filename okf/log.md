@@ -2,6 +2,8 @@
 
 ## 2026-11-12
 
+* **Feature**: Ionengeschütz, Plasmawerfer, Kleine and Große Schildkuppel (#50): four defense units with the classic values, keys `ionc`, `pt`, `ssd`, `lsd`; a dome at most once per planet (existing and queued ones count, an order of two is refused); no rapid fire on or against them yet; icons of the interface v2 set (see [Defense](/features/defense-ion-plasma-domes.md)).
+* **Decision**: #50 clarified: Ionengeschütz (classic cost 2,000 / 6,000 from owiki.de), Plasmawerfer, Kleine and Große Schildkuppel with the classic values; domes once per planet and rebuilt like defense; rapid fire of the Bomber with #57 (see [Defense](/features/defense-ion-plasma-domes.md)).
 * **Feature**: Fusionskraftwerk (#47): key `fusion`, energy 30 · F · (1.05 + 0.01 · T)^F with the Energietechnik of the owner, deuterium use 10 · F · 1.1^F × speed, own share; at an empty stock it is throttled to the share where use equals production (bisection), `accrue` splits where the stock runs empty and `settle` where Energietechnik finishes; Gravitonforschung counts its energy (see [Fusionskraftwerk](/features/fusion-reactor.md)).
 * **Decision**: #47 clarified: Fusionskraftwerk with the classic values; use × universe speed; at an empty deuterium stock the reactor is throttled to use = production (see [Fusionskraftwerk](/features/fusion-reactor.md)).
 * **Feature**: Bomber (#57): classic values, rapid fire against Raketenwerfer, Leichtes and Schweres Lasergeschütz, the Impulstriebwerk and from Hyperraumantrieb 8 the Hyperraumantrieb (`ShipDef.drives`, `activeDrive()`); key `bb`, abbreviation `BO`, icon of the interface v2 set; the Werft names the active drive (see [Late-game combat ships](/features/late-game-ships.md)).

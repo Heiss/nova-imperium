@@ -1157,6 +1157,143 @@ test.describe('playing', () => {
     expect(w.problems).toEqual([]);
   });
 
+  test('Ionengeschütz, Plasmawerfer and the shield domes; a dome only once (#50)', async ({
+    page,
+  }) => {
+    const w = watch(page);
+    const name = uniqueName('Kuppel');
+    await register(page, name);
+    seed({
+      name,
+      b: { robot: 2, yard: 8, lab: 7 },
+      research: { energy: 8, laser: 10, ion: 5, plasma: 6, shield: 6 },
+      def: { lsd: 1 },
+      res: { m: 500000, c: 500000, d: 100000 },
+    });
+    await page.goto('/?view=defense');
+    const item = (nm: string) =>
+      page.locator('.item').filter({
+        has: page.locator('.nm', { hasText: new RegExp(`^\\s*${nm}`) }),
+      });
+    const units = [
+      [
+        'Ionengeschütz',
+        'ion_cannon',
+        'Angriff 150 · Schild 800 · Struktur 8.000',
+      ],
+      [
+        'Plasmawerfer',
+        'plasma_turret',
+        'Angriff 3.000 · Schild 480 · Struktur 100.000',
+      ],
+      [
+        'Kleine Schildkuppel',
+        'small_shield_dome',
+        'Angriff 1 · Schild 3.200 · Struktur 20.000',
+      ],
+      [
+        'Große Schildkuppel',
+        'large_shield_dome',
+        'Angriff 1 · Schild 16.000 · Struktur 100.000',
+      ],
+    ] as const;
+    for (const [nm, file, stats] of units) {
+      await expect(item(nm).getByRole('img', { name: nm })).toHaveAttribute(
+        'src',
+        `/icons/defense/${file}.svg`,
+      );
+      await expect(item(nm)).toContainText(stats);
+    }
+    // Plasmatechnik 6 of 7: the Plasmawerfer lists what is missing.
+    const pt = item('Plasmawerfer');
+    await expect(
+      pt.locator('.need-nm', { hasText: /^Plasmatechnik$/ }),
+    ).toBeVisible();
+    await expect(pt.locator('[data-act=order]')).toHaveCount(0);
+    await expect(item('Ionengeschütz').locator('.needs')).toHaveCount(0);
+    await expect(item('Ionengeschütz').locator('.lv')).toHaveText(
+      '(vorhanden: 0)',
+    );
+
+    const small = item('Kleine Schildkuppel');
+    const large = item('Große Schildkuppel');
+    await expect(small.locator('.lv')).toHaveText('(vorhanden: 0 · max. 1)');
+    await expect(small.locator('[data-act=maxq]')).toHaveText('(max 1)');
+    await expect(large.locator('.lv')).toHaveText('(vorhanden: 1 · max. 1)');
+    await expect(large.locator('[data-act=maxq]')).toHaveText('(max 0)');
+    await expect(large.locator('[data-act=order]')).toBeDisabled();
+
+    const refused = 'Diese Schildkuppel gibt es nur einmal pro Planet.';
+    await page.fill('#q_ssd', '2');
+    await page.click('[data-act=order][data-k=ssd]');
+    await expect(page.locator('.toast').last()).toContainText(refused);
+    await page.fill('#q_ssd', '1');
+    await page.click('[data-act=order][data-k=ssd]');
+    await expect(page.locator('.toast').last()).toContainText(
+      '1× Kleine Schildkuppel in Auftrag gegeben.',
+    );
+    await expect(
+      page.locator('.box', { hasText: 'Bauauftrag der Werft' }),
+    ).toContainText('1× Kleine Schildkuppel');
+    await expect(small.locator('[data-act=maxq]')).toHaveText('(max 0)');
+    await expect(small.locator('[data-act=order]')).toBeDisabled();
+    // A second order, as from another device that still shows the button.
+    const second = await page.evaluate(async () => {
+      const r = await fetch('/api/action', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ type: 'order', key: 'ssd', n: 1 }),
+      });
+      return { ok: r.ok, body: (await r.json()) as { error?: string } };
+    });
+    expect(second).toEqual({ ok: false, body: { error: refused } });
+    expect(w.problems).toEqual([]);
+  });
+
+  test('defense shows the new units with icons and requirements on a phone (#50) @phone', async ({
+    page,
+  }) => {
+    const w = watch(page);
+    const name = uniqueName('Schild');
+    await register(page, name);
+    seed({
+      name,
+      b: { robot: 2, yard: 1, lab: 1 },
+      research: { shield: 2 },
+      res: { m: 20000, c: 20000, d: 0 },
+    });
+    await page.goto('/?view=defense');
+    const item = (nm: string) =>
+      page.locator('.item').filter({
+        has: page.locator('.nm', { hasText: new RegExp(`^\\s*${nm}`) }),
+      });
+    for (const nm of [
+      'Ionengeschütz',
+      'Plasmawerfer',
+      'Kleine Schildkuppel',
+      'Große Schildkuppel',
+    ])
+      await expect(item(nm).getByRole('img', { name: nm })).toBeVisible();
+    await expect(
+      item('Ionengeschütz').locator('.need-nm', { hasText: /^Ionentechnik$/ }),
+    ).toBeVisible();
+    await expect(
+      item('Große Schildkuppel').locator('.need-nm', {
+        hasText: /^Schildtechnik$/,
+      }),
+    ).toBeVisible();
+    const small = item('Kleine Schildkuppel');
+    await expect(small.locator('.needs')).toHaveCount(0);
+    await expect(small).toContainText('max. 1');
+    await expect(small.locator('[data-act=order]')).toBeEnabled();
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth - window.innerWidth,
+      ),
+    ).toBeLessThanOrEqual(0);
+    expect(w.problems).toEqual([]);
+  });
+
   test('the Bomber is built, switches its drive at Hyperraumantrieb 8 and flies (#57)', async ({
     page,
   }) => {

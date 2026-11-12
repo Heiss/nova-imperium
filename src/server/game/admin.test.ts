@@ -177,6 +177,14 @@ describe('points and state', () => {
     expect(pointsMap(ctx)).toEqual({ u_Anna: 295 });
   });
 
+  it('count the new defense by its cost (#50)', () => {
+    const ctx = testCtx();
+    addUser(ctx, 'Anna');
+    addPlanet(ctx, 'u_Anna', { def: { ionc: 3, pt: 1, ssd: 1, lsd: 1 } });
+    // ionc 3 × 8,000 + pt 130,000 + ssd 20,000 + lsd 100,000 = 274,000
+    expect(pointsMap(ctx)).toEqual({ u_Anna: 274 });
+  });
+
   it('count the Bomber by its cost (#57)', () => {
     const ctx = testCtx();
     addUser(ctx, 'Anna');

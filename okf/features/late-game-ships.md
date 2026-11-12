@@ -104,16 +104,15 @@ All values are the classic ones on owiki.de, confirmed by the owner
   without `drives` keep their single drive, so the version 1 equivalence is
   unchanged. Fuel stays 1,000 with both drives (`fuelFor()` does not depend
   on the drive).
-* Rapid fire in `rf`: `bb` against `rl` 20, `ll` 20, `hl` 10; none against
-  `gauss`. The 5 against the probe and the Solarsatellit come from the
-  general rule of `rapid()`. The 10 against the Ionengeschütz follows when
-  the Ionengeschütz (#50) is on `main` (#60 D4); the Todesstern's 25 against
-  the Bomber comes with #60.
+* Rapid fire in `rf`: `bb` against `rl` 20, `ll` 20, `hl` 10, `ionc` 10
+  (with #50); none against `gauss` or `pt`. The 5 against the probe and the
+  Solarsatellit come from the general rule of `rapid()`. The Todesstern's 25
+  against the Bomber comes with #60.
 * Hull 7,500, shield 500, attack 1,000 from `buildSide()`; points by cost
   (`src/server/game/points.ts`).
 * **[V]** Key `bb`, abbreviation `BO` (unique among all `ab` values),
-  description „Stark gegen Raketenwerfer und Lasergeschütze; fliegt ab
-  Hyperraumantrieb 8 mit dem Hyperraumantrieb.“
+  description „Stark gegen Raketenwerfer, Laser- und Ionengeschütze; fliegt
+  ab Hyperraumantrieb 8 mit dem Hyperraumantrieb.“
 * **[V]** Data model of the drive switch: the base `drive` and `speed` stay,
   an optional `drives` list of `{ drive, speed, from: { research, level } }`
   replaces them once reached; the last reached entry wins. Built before the
