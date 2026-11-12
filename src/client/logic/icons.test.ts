@@ -22,6 +22,9 @@ describe('icons', () => {
       expect(onDisk(url), url).toBe(true);
     }
   });
+  it('shows the Todesstern with the deathstar of the icon set (#60)', () => {
+    expect(iconURL('dstar')).toBe('/icons/ships/deathstar.svg');
+  });
   it('knows no picture for an unknown key', () => {
     expect(iconURL('nope')).toBeNull();
     expect(iconURL('toString')).toBeNull();

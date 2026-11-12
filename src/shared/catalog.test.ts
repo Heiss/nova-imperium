@@ -22,6 +22,7 @@ describe('catalog', () => {
       bc: C.SHIPS.bc,
       dr: C.SHIPS.dr,
       bb: C.SHIPS.bb,
+      dstar: C.SHIPS.dstar,
       sat: C.SHIPS.sat,
     };
     expect(C.SHIPS).toEqual({ ...O.SHIPS, ...added });
@@ -147,11 +148,61 @@ describe('catalog', () => {
       Object.keys(C.SHIPS).filter((k) => C.SHIPS[k]!.drives !== undefined),
     ).toEqual(['bb']);
   });
+  it('has the Todesstern with the classic values (#60)', () => {
+    expect(C.SHIPS.dstar).toEqual({
+      n: 'Todesstern',
+      ab: 'TS',
+      cost: [5000000, 4000000, 1000000],
+      atk: 200000,
+      sh: 50000,
+      cargo: 1000000,
+      speed: 100,
+      fuel: 1,
+      drive: 'hdrive',
+      req: { b: { yard: 12 }, r: { hyper: 6, hdrive: 7, graviton: 1 } },
+      rf: {
+        probe: 1250,
+        sat: 1250,
+        colony: 250,
+        sc: 250,
+        lc: 250,
+        lf: 200,
+        hf: 100,
+        cr: 33,
+        bs: 30,
+        bb: 25,
+        bc: 15,
+        dr: 5,
+        rl: 200,
+        ll: 200,
+        hl: 100,
+        gauss: 50,
+      },
+      ds: 'Gewaltige Kampfstation; zerstört fast alles mit Schnellfeuer.',
+    });
+    // The Werft lists it after the Bomber.
+    const keys = Object.keys(C.SHIPS);
+    expect(keys.indexOf('dstar')).toBe(keys.indexOf('bb') + 1);
+    // Its requirements are existing buildings and research.
+    const req = C.SHIPS.dstar!.req;
+    for (const k of Object.keys(req.b ?? {})) expect(C.BUILD).toHaveProperty(k);
+    for (const k of Object.keys(req.r ?? {})) expect(C.RES).toHaveProperty(k);
+    // Rapid fire only against units that exist (#60 D4).
+    for (const t of Object.keys(C.SHIPS.dstar!.rf!))
+      expect(C.UNIT).toHaveProperty(t);
+  });
+  it('gives no unit rapid fire against the Todesstern (#60)', () => {
+    const against = Object.keys(C.UNIT).filter(
+      (k) => C.UNIT[k]!.rf?.dstar !== undefined,
+    );
+    expect(against).toEqual([]);
+  });
   it('gives the new ships abbreviations no other entry uses', () => {
     const all = [C.BUILD, C.RES, C.SHIPS, C.DEF].flatMap((defs) =>
       Object.values(defs).map((d) => d.ab),
     );
-    for (const ab of [C.SHIPS.bc!.ab, C.SHIPS.dr!.ab, C.SHIPS.bb!.ab])
+    const added = [C.SHIPS.bc!, C.SHIPS.dr!, C.SHIPS.bb!, C.SHIPS.dstar!];
+    for (const { ab } of added)
       expect(all.filter((x) => x === ab)).toEqual([ab]);
   });
   it('has the Solarsatellit with the classic values (#46)', () => {
@@ -182,6 +233,9 @@ describe('catalog', () => {
     expect(C.isShip('dr')).toBe(true);
     expect(C.isShip('bb')).toBe(true);
     expect(C.canFly('bb')).toBe(true);
+    expect(C.isShip('dstar')).toBe(true);
+    expect(C.isDefense('dstar')).toBe(false);
+    expect(C.canFly('dstar')).toBe(true);
     expect(C.isShip('rl')).toBe(false);
     expect(C.isShip('toString')).toBe(false);
     expect(C.isDefense('rl')).toBe(true);
