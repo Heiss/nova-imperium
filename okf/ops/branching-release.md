@@ -122,7 +122,11 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   `main` and `hotfix/**`, no required reviewers (owner, 2026-11-12). Move
   `RELEASE_APP_PRIVATE_KEY` from the repository secrets into it and delete
   the repository secret; `release-pr.yml` and `tag.yml` use the environment,
-  so a workflow on any other branch cannot read the key.
+  so a workflow on any other branch cannot read the key. `tag.yml` first
+  checks without the key whether the commit changes `VERSION`; only a
+  release uses the environment, so only releases appear as deployments
+  (owner, 2026-11-12). `release-pr.yml` uses it after every push to `main`,
+  because it rebuilds the release pull request each time.
 * Install the Renovate app for the repository.
 * After the first release: set the GHCR package to public, or log in with a
   token that has `read:packages` on the server.
