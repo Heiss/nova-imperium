@@ -50,6 +50,11 @@ tasks).
   `icons.ts` are left to the CI mutation job. A local run does not speed up
   the CI, which keeps its own incremental cache; it only saves a red run
   (owner, 2026-11-12).
+* **[E]** Claude bundles pushes: while the CI of a pull request runs, no
+  push of documentation or OKF alone (for example confirmed [V] → [E]); such
+  changes go with the next code push, or are pushed before the pull request
+  is marked ready. Every push cancels the running CI and starts all jobs
+  again (owner, 2026-11-12).
 * **[V]** Guards from loop engineering practice: a stop condition a machine
   can check (milestone closed, release pull request green), the state read
   fresh in every iteration, small reviewable steps, tests never weakened,
