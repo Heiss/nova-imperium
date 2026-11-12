@@ -10,13 +10,7 @@
 //        VERSION, remove the fragments, print the section
 //   node scripts/changelog.ts notes <version>        the section of a release
 import { execFileSync } from 'node:child_process';
-import {
-  existsSync,
-  readdirSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from 'node:fs';
+import { readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
 export const KINDS = ['neu', 'geändert', 'behoben'] as const;
@@ -149,9 +143,27 @@ export function missingFragment(
 const isReadme = (f: string): boolean =>
   path.basename(f).toLowerCase() === 'readme.md';
 
+/** The file's text, or null when it does not exist (no check-then-read race). */
+function readIfPresent(file: string): string | null {
+  try {
+    return readFileSync(file, 'utf8');
+  } catch (e) {
+    if ((e as NodeJS.ErrnoException).code === 'ENOENT') return null;
+    throw e;
+  }
+}
+
+function fragmentFiles(): string[] {
+  try {
+    return readdirSync(DIR);
+  } catch (e) {
+    if ((e as NodeJS.ErrnoException).code === 'ENOENT') return [];
+    throw e;
+  }
+}
+
 function readFragments(): Fragment[] {
-  if (!existsSync(DIR)) return [];
-  return readdirSync(DIR)
+  return fragmentFiles()
     .filter((f) => f.endsWith('.md') && !isReadme(f))
     .map((f) => parseFragment(f, readFileSync(path.join(DIR, f), 'utf8')));
 }
@@ -179,7 +191,7 @@ function release(version: string | undefined): number {
   if (!version || !/^\d{2}\.([1-9]|1[0-2])\.(0|[1-9]\d*)$/.test(version))
     throw new Error('Usage: changelog.ts release <YY.M.MICRO>');
   const fragments = readFragments();
-  const old = existsSync(CHANGELOG) ? readFileSync(CHANGELOG, 'utf8') : TITLE;
+  const old = readIfPresent(CHANGELOG) ?? TITLE;
   const part = fragments.length
     ? section(version, germanDate(new Date()), fragments)
     : '';
@@ -191,7 +203,7 @@ function release(version: string | undefined): number {
 }
 
 function notes(version: string | undefined): number {
-  const text = existsSync(CHANGELOG) ? readFileSync(CHANGELOG, 'utf8') : '';
+  const text = readIfPresent(CHANGELOG) ?? '';
   process.stdout.write(
     sectionOf(text, version ?? '') ??
       'Keine für Spieler sichtbaren Änderungen.\n',
@@ -205,9 +217,7 @@ function notes(version: string | undefined): number {
  */
 function usedVersions(): string[] {
   const tags = git('tag', '--list').split('\n').filter(Boolean);
-  const current = existsSync(VERSION)
-    ? readFileSync(VERSION, 'utf8').trim()
-    : '';
+  const current = readIfPresent(VERSION)?.trim() ?? '';
   return current ? [...tags, current] : tags;
 }
 
