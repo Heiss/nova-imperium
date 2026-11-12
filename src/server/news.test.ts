@@ -172,14 +172,28 @@ describe('update message', () => {
         .get() as { value: number } | undefined
     )?.value;
 
-  it('only remembers the version on the first start and in development nothing', () => {
+  it('tells only the running version on the first start, in development nothing', () => {
+    const empty = testCtx();
+    expect(announceUpdate(empty, at('26.11.1'))).toBe(0);
+    expect(stored(empty)).toBe(2_611_001);
     const ctx = testCtx();
     const anna = addUser(ctx, 'Anna');
     expect(announceUpdate(ctx, at(null))).toBe(0);
     expect(stored(ctx)).toBeUndefined();
-    expect(announceUpdate(ctx, at('26.11.0'))).toBe(0);
-    expect(stored(ctx)).toBe(2_611_000);
-    expect(ctx.store.reports(anna.id)).toEqual([]);
+    ctx.store.db
+      .prepare("INSERT INTO push_subscriptions VALUES ('e', ?, 'k', 'a')")
+      .run(anna.id);
+    expect(announceUpdate(ctx, at('26.11.1'))).toBe(1);
+    expect(stored(ctx)).toBe(2_611_001);
+    const [report] = ctx.store.reports(anna.id);
+    expect(report!.text).toContain('• Ein Fehler ist weg.');
+    expect(report!.text).not.toContain('Nanitenfabrik');
+    expect(
+      ctx.store.db.prepare('SELECT kind, body FROM push_jobs').all(),
+    ).toEqual([{ kind: 'messages', body: 'Nova Imperium 26.11.1 ist da.' }]);
+    expect(report!.text).toContain(
+      'Alle Versionen stehen unter „Neuigkeiten“.',
+    );
   });
 
   it('tells every player once per new version, never after a rollback', () => {
@@ -207,9 +221,13 @@ describe('update message', () => {
   it('stays silent for an update without entries but remembers it', () => {
     const ctx = testCtx();
     const anna = addUser(ctx, 'Anna');
-    announceUpdate(ctx, at('26.11.1'));
-    expect(announceUpdate(ctx, at('26.11.2'))).toBe(0);
-    expect(stored(ctx)).toBe(2_611_002);
-    expect(ctx.store.reports(anna.id)).toEqual([]);
+    expect(announceUpdate(ctx, at('26.11.0'))).toBe(1);
+    expect(announceUpdate(ctx, at('26.11.2'))).toBe(1);
+    expect(ctx.store.reports(anna.id)[0]!.text).toContain(
+      'Neuigkeiten im Menü',
+    );
+    expect(announceUpdate(ctx, at('26.11.3'))).toBe(0);
+    expect(stored(ctx)).toBe(2_611_003);
+    expect(ctx.store.reports(anna.id)).toHaveLength(2);
   });
 });

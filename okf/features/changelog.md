@@ -30,8 +30,10 @@ request and baked into the image with it.
 * **[E]** The image contains `CHANGELOG.md` and `VERSION` of the released
   commit; there is no build argument (owner, 2026-11-12). Without `VERSION`
   (development) the server sends no update message.
-* **[E]** The first start with this feature only remembers the version and
-  sends no message (owner, 2026-11-12).
+* **[E]** The first start with this feature (no version stored yet) sends
+  the players the entries of the running version only; a new world has no
+  players to tell (owner, 2026-11-12, replacing „only remember“ of the same
+  day).
 * **[V]** The server keeps the highest version that ever ran in the
   `settings` table (key `version`, YY·100000 + M·1000 + MICRO). After a
   rollback and the way forward again, the message is not sent twice.

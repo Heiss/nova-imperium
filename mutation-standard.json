@@ -54,7 +54,7 @@
     "src/server/http/static.ts": 83.72,
     "src/server/mail.ts": 83.33,
     "src/server/maintenance.ts": 80.64,
-    "src/server/news.ts": 96.4,
+    "src/server/news.ts": 97.81,
     "src/server/passkeys.ts": 97.22,
     "src/server/push-store.ts": 20,
     "src/server/server.ts": 55.33,

@@ -125,11 +125,12 @@ export function updateText(
 }
 
 /**
- * Called once at every start. The first start with this feature only
- * remembers the version (owner, 2026-11-12); a newer version sends every
- * player one message; the same or an older version (rollback) sends none
- * and is not stored.
- * Returns the number of players told.
+ * Called once at every start. A newer version than the one stored sends
+ * every player one message; the same or an older version (rollback) sends
+ * none and is not stored. Without a stored version (the first start with
+ * this feature) the message holds only the entries of the running version
+ * (owner, 2026-11-12): a world with players hears about it once, a new
+ * world has nobody to tell. Returns the number of players told.
  */
 export function announceUpdate(ctx: Ctx, news: News): number {
   if (!news.version) return 0;
@@ -145,10 +146,9 @@ export function announceUpdate(ctx: Ctx, news: News): number {
       'INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
     )
     .run(SETTING, current);
-  if (!row) return 0;
   const text = updateText(
     news.version,
-    entriesSince(news.versions, row.value, current),
+    entriesSince(news.versions, row ? row.value : current - 1, current),
   );
   if (!text) return 0;
   const players = ctx.store.users();
