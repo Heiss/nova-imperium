@@ -35,8 +35,8 @@ interface is German.
 2. **Make the release ready** when the milestone `next release` is open and
    all its issues are closed: the release pull request must be green
    (complete mutation run, image, Trivy, upgrade test), its texts checked
-   (German, matching their pull requests, nothing internal), and a
-   candidate image `<version>-rc.<N>` published. Then tell the owner in
+   (German, matching their pull requests, one entry per feature, nothing
+   internal), and a candidate image `<version>-rc.<N>` published. Then tell the owner in
    German: version, what is in it, the staging image (`NOVA_VERSION=next`),
    and that merging the release pull request releases it. Close the
    milestone and **stop the loop**.
