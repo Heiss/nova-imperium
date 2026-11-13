@@ -54,6 +54,41 @@ choice of the patterns to the assistant's recommendation below
   in the folder of its entry.
 * **[V]** No ECS framework and no runtime registry of systems: components
   are plain fields, the rule modules are plain functions.
+* **[E]** Decided for the first pull request of #114 (owner, 2026-11-13):
+  all 49 entries get `src/features/<key>/entry.ts`; only `produces`,
+  `consumes`, `storage` and `leveled` become components, every other field
+  moves unchanged and becomes a component in its group's pull request. Each
+  `entry.ts` exports its `kind` (building, research, ship, defense) and a
+  numeric `order`; `catalog.ts` builds `BUILD`, `RES`, `SHIPS`, `DEF` and
+  `UNIT` from the generated index by kind and order, today's order stays and
+  the core holds no key list. `produces` and `consumes` are one rate
+  function per resource plus a production order; the base income (20
+  Adamant, 10 Kristall) is a core constant; `prod()` stays bit-identical,
+  proven by a property test against the old `prod()`. `leveled` is
+  `{ cost, f? }` with the default 2 in `lvlCost`; `storage` is
+  `{ res: 'm' | 'c' | 'd' }` with the capacity formula in the core. One file
+  per component under `src/core/components/`, its contract test next to it.
+* **[E]** Built with #114 (production group): `entry.ts` exports `kind`,
+  `order`, its components (`leveled`, `produces`, `consumes`, `storage`)
+  and the remaining fields as `def`; `catalog.ts` adds the texts of the key
+  from `src/core/texts.ts` (#113 moves them). `src/core/components/`
+  holds `leveled.ts` (`lvlCost`, `sumLevels`), `storage.ts` (`capOf`,
+  `capacities`), `produces.ts` (`BASE_INCOME`, `energyMade`, `made`: base
+  income plus the rates times the universe speed, never below 0) and
+  `consumes.ts` (`energyUsed`, `left`); `economy.ts` keeps its exports and
+  composes them in `prod()` and `caps()`. `PRODUCTION`, `STORAGE` and
+  `PRODUCERS` are derived from the components; `PRODUCERS` stays deeply
+  equal (it was [V] in #114). The level of a ship in a rate is its number on
+  the planet (Solarsatellit).
+* **[V]** Choices of #114 within the decisions above, for the owner to
+  confirm: the `order` values step by 10 (room for new entries without
+  renumbering); the production order is the field `order` of `produces`,
+  and an entry that consumes also produces (contract test); the formulas
+  the rates share (`growth`, `grows`, Solarsatellit and Fusionskraftwerk)
+  are in `src/core/rates.ts`, because the resources page and the shipyard
+  still show them until `ProducerTable`; the throttle of the
+  Fusionskraftwerk (`balancedShare`) still names its key and becomes
+  generic with the events of #115.
 
 ## 2. Texts apart from rules
 
@@ -230,6 +265,7 @@ src/client/                state, components (generic), views
   requests.
 * **[E]** Built with #112: the folders `src/features/` and
   `src/features/missions/` exist (`.gitkeep`); no entry has moved yet.
+  Since #114 every catalog entry has its folder with `entry.ts`.
   `scripts/gen-features.ts` writes `src/features/index.gen.ts` with
   `ENTRIES` (each `<key>/entry.ts`) and `MISSIONS` (each
   `missions/<m>/rules.ts`) as lists of `[key, module]` pairs sorted by key.
@@ -281,6 +317,14 @@ src/client/                state, components (generic), views
   has it (for example: `produces` is finite and ≥ 0, `combat` has a hull
   > 0). A new entry is checked without new test code; its own tests cover
   only what is its own.
+* **[E]** Built with #114 for the production group: the contract tests are
+  `src/core/components/<component>.test.ts`; they read every entry with the
+  component from the generated index (rates finite and ≥ 0 for levels 0 to
+  60 on generated planets, nothing at level 0, one production order and one
+  store per resource each, costs whole and never falling for levels 1 to
+  60). `src/core/production.test.ts` compares `prod()` bit for bit with the
+  `prod()` from before #114 on generated planets, with Fusionskraftwerk and
+  Solarsatelliten.
 
 # Migration
 
@@ -300,7 +344,7 @@ src/client/                state, components (generic), views
      per component group: production (`produces`, `consumes`, `storage`,
      `leveled`), combat (`combat`, `unit`), flight (`mobile`), limits
      (`limit`, `energyThreshold`), then `ProducerTable` (owner, 2026-11-13,
-     #114).
+     #114). The production group is built (#114, first pull request).
   4. Generic events in `settle` with the property tests.
   5. Missions as strategies.
   6. Repositories per aggregate.
