@@ -91,6 +91,12 @@ describe('paying', () => {
     expect(afford(p, [50, 25, 5], 2)).toBe(true);
     expect(afford(p, [50, 25, 5], 3)).toBe(false);
   });
+  it('checks every resource for all units together', () => {
+    const p = planet({ res: { m: 100, c: 50, d: 10 } });
+    expect(afford(p, [60, 1, 1], 2)).toBe(false);
+    expect(afford(p, [1, 30, 1], 2)).toBe(false);
+    expect(afford(p, [1, 1, 6], 2)).toBe(false);
+  });
   it('takes and gives back', () => {
     const p = planet({ res: { m: 100, c: 50, d: 10 } });
     pay(p, [10, 20, 5], 2);
@@ -122,6 +128,13 @@ describe('requirements', () => {
       }),
     ).toEqual([]);
     expect(reqMissing(BUILD.metal!, planet(), { research: {} })).toEqual([]);
+  });
+  it('name a requirement without a catalog entry by its key', () => {
+    expect(
+      reqMissing({ req: { b: { gone: 2 }, r: { lost: 1 } } }, planet(), {
+        research: {},
+      }),
+    ).toEqual(['gone (Stufe 2)', 'lost (Stufe 1)']);
   });
   it('name what the Schlachtkreuzer and the Zerstörer need (#58, #59)', () => {
     expect(

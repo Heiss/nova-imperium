@@ -3,6 +3,7 @@
 import { createRequire } from 'node:module';
 import { describe, expect, it } from 'vitest';
 import { MISSIONS, NAMES, RESOURCES, renamed } from '../test/naming.ts';
+import { ENTRIES } from '../features/index.gen.ts';
 import * as C from './catalog.ts';
 
 const require = createRequire(import.meta.url);
@@ -460,6 +461,97 @@ describe('catalog', () => {
       'solar',
       'sat',
       'fusion',
+    ]);
+  });
+});
+
+// The entries live in src/features/<key>/entry.ts (#114): each has a kind and
+// an order, and the tables keep the order of the game from before (owner,
+// 2026-11-13). The lists below are that order, as players see it.
+describe('catalog from the entry folders', () => {
+  it('keeps the order of the game in every table', () => {
+    expect(Object.keys(C.BUILD)).toEqual([
+      'metal',
+      'crystal',
+      'deut',
+      'solar',
+      'fusion',
+      'robot',
+      'nanite',
+      'terraformer',
+      'yard',
+      'lab',
+      'smetal',
+      'scrystal',
+      'sdeut',
+    ]);
+    expect(Object.keys(C.RES)).toEqual([
+      'energy',
+      'laser',
+      'comb',
+      'impulse',
+      'hyper',
+      'hdrive',
+      'spy',
+      'computer',
+      'weapons',
+      'shield',
+      'armor',
+      'ion',
+      'plasma',
+      'graviton',
+      'ifn',
+    ]);
+    const ships = [
+      'sc',
+      'lc',
+      'colony',
+      'lf',
+      'hf',
+      'cr',
+      'bs',
+      'bc',
+      'dr',
+      'bb',
+      'dstar',
+      'probe',
+      'sat',
+    ];
+    const defense = ['rl', 'll', 'hl', 'gauss', 'ionc', 'pt', 'ssd', 'lsd'];
+    expect(Object.keys(C.SHIPS)).toEqual(ships);
+    expect(Object.keys(C.DEF)).toEqual(defense);
+    expect(Object.keys(C.UNIT)).toEqual([...ships, ...defense]);
+  });
+
+  it('has one folder per entry, each with its kind and its own order', () => {
+    expect(ENTRIES).toHaveLength(49);
+    const kinds = {
+      building: C.BUILD,
+      research: C.RES,
+      ship: C.SHIPS,
+      defense: C.DEF,
+    };
+    for (const [kind, table] of Object.entries(kinds)) {
+      const own = ENTRIES.filter(([, e]) => e.kind === kind);
+      expect(own.map(([k]) => k).sort()).toEqual(Object.keys(table).sort());
+      const orders = own.map(([, e]) => e.order);
+      expect(new Set(orders).size, kind).toBe(orders.length);
+    }
+  });
+
+  it('lists the producers and the stores from their components', () => {
+    expect(C.PRODUCTION.map((e) => [e.key, e.kind])).toEqual([
+      ['metal', 'building'],
+      ['crystal', 'building'],
+      ['deut', 'building'],
+      ['solar', 'building'],
+      ['sat', 'ship'],
+      ['fusion', 'building'],
+    ]);
+    expect(C.STORAGE).toEqual([
+      { key: 'smetal', storage: { res: 'm' } },
+      { key: 'scrystal', storage: { res: 'c' } },
+      { key: 'sdeut', storage: { res: 'd' } },
     ]);
   });
 });
