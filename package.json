@@ -58,6 +58,7 @@
     "knip": "6.44.2",
     "prettier": "^3.9.10",
     "prettier-plugin-svelte": "4.1.1",
+    "smtp-server": "3.21.4",
     "svelte": "5.57.3",
     "svelte-check": "4.7.8",
     "typescript": "^6.0.3",
