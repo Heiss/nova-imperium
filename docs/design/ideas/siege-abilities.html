@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Studie – Fähigkeiten im Bodenkampf</title>
+    <link rel="stylesheet" href="/style.css" />
+    <link rel="stylesheet" href="mock.css" />
+    <style>
+      .war {
+        display: grid;
+        grid-template-columns: 1fr 290px;
+        gap: 14px;
+      }
+      .board {
+        background: var(--box);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 8px;
+      }
+      .bar {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 8px;
+        margin-top: 12px;
+      }
+      .ab {
+        background: var(--box);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 8px;
+        text-align: center;
+        font-size: 14px;
+      }
+      .ab.sel {
+        outline: 2px solid var(--ember);
+      }
+      .ab.off {
+        opacity: 0.45;
+      }
+      .ab b {
+        display: block;
+        font: 600 14px var(--head);
+        color: var(--gold-hi);
+        margin: 4px 0 2px;
+      }
+      .ab .c {
+        color: var(--dim);
+        font-size: 13px;
+      }
+      .cp {
+        display: grid;
+        grid-template-columns: 14px 1fr auto;
+        gap: 8px;
+        align-items: center;
+        font-size: 15px;
+        padding: 3px 0;
+      }
+      .cp i {
+        width: 12px;
+        height: 12px;
+        border-radius: 2px;
+      }
+      .top {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 10px;
+      }
+      .bp {
+        font: 800 18px var(--head);
+        color: var(--gold-hi);
+      }
+    </style>
+  </head>
+  <body>
+    <main class="mock" style="max-width: 1240px">
+      <p class="cap">
+        Studie [V] · Bodenkampf · Fähigkeiten, Kontrollpunkte, Sicht des
+        Angreifers beim Zielen des Orbitalschlags · bewusst unbalanciert
+      </p>
+      <div class="top">
+        <h2 style="margin: 0; border: 0">Bodenkampf · Kolonie Varn</h2>
+        <span
+          ><span class="pill hot">Runde 22 / 48</span>
+          <span class="bp">Befehlspunkte 7</span></span
+        >
+      </div>
+      <div class="war">
+        <div class="board">
+          <svg
+            id="hex"
+            viewBox="0 0 860 520"
+            width="100%"
+            role="img"
+            aria-label="Schlachtfeld mit Kontrollpunkten, Landezone, Tunnelausgängen, Zielkreis des Orbitalschlags und vermuteten Minen"
+          ></svg>
+        </div>
+        <aside>
+          <div class="box">
+            <div class="hd">Kontrollpunkte</div>
+            <div class="bd">
+              <div class="cp">
+                <i style="background: #ee7660"></i><span>Kommandohöhe</span
+                ><span class="good">deine · Orbitalschlag</span>
+              </div>
+              <div class="cp">
+                <i style="background: #7fd3f5"></i><span>Sensorturm</span
+                ><span class="bad">Gegner · Aufdecken</span>
+              </div>
+              <div class="cp">
+                <i style="background: #9a8c74"></i><span>Generator</span
+                ><span class="dim">umkämpft (2 Runden)</span>
+              </div>
+              <div class="cp">
+                <i style="background: #7fd3f5"></i><span>Rohstofflager</span
+                ><span class="bad">Gegner · +Beute</span>
+              </div>
+            </div>
+          </div>
+          <div class="box">
+            <div class="hd">Ereignis</div>
+            <div class="bd" style="font-size: 15px">
+              <b>Sandsturm</b> in 2 Runden: Fernkampf-Reichweite −2 für alle,
+              Sicht 1. Danach drehen die Lavaspalten.
+            </div>
+          </div>
+          <div class="box">
+            <div class="hd">Orbitalschlag zielen</div>
+            <div class="bd" style="font-size: 15px">
+              Radius 1 · 40 Schaden · trifft <b>alle</b> Einheiten, auch eigene
+              · braucht ein Schiff mit Bombardement im Orbit · kostet 3
+              Befehlspunkte und 2.000 Promethium aus dem Nachschub.
+              <div style="margin-top: 8px">
+                <button class="go">Schlag planen (Zug 3)</button>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </div>
+      <div class="bar" aria-label="Fähigkeiten">
+        <div class="ab sel">
+          ☄<b>Orbitalschlag</b><span class="c">3 BP · Kommandohöhe</span>
+        </div>
+        <div class="ab">
+          ✈<b>Luftschlag</b><span class="c">2 BP · Bomber im Orbit (#57)</span>
+        </div>
+        <div class="ab">
+          ⬇<b>Landungskapsel</b
+          ><span class="c">4 BP · Verstärkung irgendwo</span>
+        </div>
+        <div class="ab">
+          ☁<b>Rauchwand</b
+          ><span class="c">1 BP · blockiert Sicht 2 Runden</span>
+        </div>
+        <div class="ab off">
+          ⚡<b>EMP</b><span class="c">Generator nötig</span>
+        </div>
+        <div class="ab">
+          ✚<b>Kampfrausch</b><span class="c">2 BP · +1 Aktion, −10 LP</span>
+        </div>
+      </div>
+      <p class="note">
+        Der Verteidiger hat eine eigene Leiste: <b>Minen legen</b> (aus dem
+        Raketensilo, #54), <b>Schildfeld</b> (aus den Schildkuppeln, #50),
+        <b>Tunnelsprung</b>, <b>Sperrfeuer</b> der verbliebenen Geschütze,
+        <b>Miliz</b> (Bevölkerung kämpft mit, kostet Förderung).
+      </p>
+    </main>
+    <script>
+      const svg = document.getElementById('hex');
+      const R = 30,
+        W = Math.sqrt(3) * R,
+        COLS = 15,
+        ROWS = 11;
+      const center = (c, r) => [
+        W * c + (r % 2 ? W / 2 : 0) + W / 2 + 6,
+        1.5 * R * r + R + 6,
+      ];
+      const special = {
+        '2,9': ['#3a1420', 'LZ', '#ee7660'],
+        '3,9': ['#3a1420', 'LZ', '#ee7660'],
+        '2,8': ['#3a1420', 'LZ', '#ee7660'],
+        '6,4': ['#3a2c18', '⚑', '#ee7660'],
+        '11,2': ['#1a2430', '◉', '#7fd3f5'],
+        '8,7': ['#1d3a2a', 'ϟ', '#9a8c74'],
+        '12,8': ['#2b2219', '▣', '#7fd3f5'],
+        '13,4': ['#120d0a', '◯', '#7fd3f5'],
+        '10,9': ['#120d0a', '◯', '#7fd3f5'],
+        '9,4': ['#3a2c18', '▭', '#d4a537'],
+        '10,5': ['#3a2c18', '▭', '#d4a537'],
+        '4,2': ['#2a3010', '☢', '#d6e05a'],
+        '5,2': ['#2a3010', '☢', '#d6e05a'],
+        '7,9': ['#1d3a2a', '✚', '#9ccb76'],
+      };
+      const strike = new Set([
+        '10,5',
+        '9,5',
+        '11,5',
+        '10,4',
+        '11,4',
+        '10,6',
+        '11,6',
+      ]);
+      const mines = ['8,5', '8,6', '9,7'];
+      let out = '';
+      for (let r = 0; r < ROWS; r++)
+        for (let c = 0; c < COLS; c++) {
+          const [x, y] = center(c, r);
+          const pts = [0, 1, 2, 3, 4, 5]
+            .map((i) => {
+              const a = (Math.PI / 180) * (60 * i - 30);
+              return `${(x + R * Math.cos(a)).toFixed(1)},${(y + R * Math.sin(a)).toFixed(1)}`;
+            })
+            .join(' ');
+          const sp = special[`${c},${r}`];
+          const inStrike = strike.has(`${c},${r}`);
+          out += `<polygon points="${pts}" fill="${sp ? sp[0] : '#231a14'}" stroke="${inStrike ? '#ee7660' : '#3b2f22'}" stroke-width="${inStrike ? 3 : 1}"/>`;
+          if (inStrike)
+            out += `<polygon points="${pts}" fill="#ee7660" opacity="0.18"/>`;
+          if (sp)
+            out += `<text x="${x}" y="${y + 6}" text-anchor="middle" font-size="18" fill="${sp[2]}" font-family="Cinzel, serif">${sp[1]}</text>`;
+        }
+      // tunnel link, underground (defender knowledge, shown dashed)
+      const [ax, ay] = center(13, 4),
+        [bx, by] = center(10, 9);
+      out += `<path d="M${ax} ${ay} Q ${ax + 60} ${(ay + by) / 2} ${bx} ${by}" stroke="#7fd3f5" stroke-width="2" stroke-dasharray="4 6" fill="none" opacity="0.6"/>`;
+      for (const m of mines) {
+        const [c, r] = m.split(',').map(Number),
+          [x, y] = center(c, r);
+        out += `<text x="${x}" y="${y + 6}" text-anchor="middle" font-size="18" fill="#a8997f">?</text>`;
+      }
+      const unit = (c, r, l, side) => {
+        const [x, y] = center(c, r),
+          col = side === 'a' ? '#ee7660' : '#7fd3f5';
+        return `<circle cx="${x}" cy="${y - 2}" r="15" fill="#0d0a08" stroke="${col}" stroke-width="3"/><text x="${x}" y="${y + 4}" text-anchor="middle" font-family="Cinzel, serif" font-size="14" fill="${col}">${l}</text>`;
+      };
+      out +=
+        unit(6, 5, 'S', 'a') +
+        unit(5, 4, 'L', 'a') +
+        unit(3, 8, 'M', 'a') +
+        unit(7, 7, 'S', 'a');
+      out +=
+        unit(10, 4, 'W', 'd') +
+        unit(11, 5, 'W', 'd') +
+        unit(11, 3, 'F', 'd') +
+        unit(12, 7, 'B', 'd');
+      const [sx, sy] = center(10, 5);
+      out += `<circle cx="${sx}" cy="${sy}" r="8" fill="#ee7660"/>`;
+      svg.innerHTML = out;
+    </script>
+  </body>
+</html>
