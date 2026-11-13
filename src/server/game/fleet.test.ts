@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { fieldsOf } from '../../shared/fields.ts';
 import { settle } from '../../shared/settle.ts';
 import { type TestCtx, addPlanet, addUser, testCtx } from '../test-helpers.ts';
 import { recall, send } from './fleet-actions.ts';
@@ -230,7 +231,12 @@ describe('colonization', () => {
       owner: a.id,
       res: { m: 400, c: 0, d: 0 },
       created: fleet.arr,
+      unlimited: false,
     });
+    // Fields at random in the range of position 6: 146 to 242 (#51).
+    const fields = fieldsOf(ctx.store.planet(colonyId)!.diameter);
+    expect(fields).toBeGreaterThanOrEqual(146);
+    expect(fields).toBeLessThanOrEqual(242);
     expect(ctx.store.fleet(fleet.id)).toMatchObject({
       state: 'back',
       ships: { sc: 1 },

@@ -8,6 +8,7 @@ const FILES: Record<string, string> = {
   fusion: 'buildings/fusion_reactor',
   robot: 'buildings/robotics_factory',
   nanite: 'buildings/nanite_factory',
+  terraformer: 'buildings/terraformer',
   yard: 'buildings/shipyard',
   lab: 'buildings/research_lab',
   smetal: 'buildings/metal_storage',

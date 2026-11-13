@@ -106,6 +106,7 @@ New entries of this release **[E]**:
 | #59 | Zerstörer | Vernichter | VN |
 | #57 | Bomber | Belagerungsbomber | BB |
 | #60 | Todesstern | Weltenbrecher | WB |
+| #51 | Terraformer | Weltenschmiede ([E], owner 2026-11-13) | WE ([V], #51) |
 
 Missions (only if `MISSION` values are display texts, not stored ids):
 attack → Sturmangriff, transport → Versorgungsflug, spy → Auspex-Erkundung,

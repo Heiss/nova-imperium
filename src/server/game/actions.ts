@@ -13,6 +13,7 @@ import {
   unitTime,
 } from '../../shared/economy.ts';
 import { type ExplainMode, isExplainMode } from '../../shared/explain.ts';
+import { fieldsFull } from '../../shared/fields.ts';
 import { labUpgrading, waitsForLab } from '../../shared/lab.ts';
 import {
   energyNeed,
@@ -85,13 +86,34 @@ function setResearch(ctx: Ctx, u: User, r: ResearchState): void {
   ctx.store.saveUser(u);
 }
 
-const checkBuild = (p: Planet, r: ResearchState, k: string): void => {
+/**
+ * The energy production a level needs on the planet where it starts: the
+ * Gravitonforschung (#49) and the Weltenschmiede (#51). Checked, not used up.
+ */
+function checkEnergy(
+  ctx: Ctx,
+  p: Planet,
+  r: ResearchState,
+  def: { n: string; energy?: { base: number; f: number } },
+  level: number,
+): void {
+  const short = energyShort(def, level, p, universe(ctx), r.research);
+  if (short > 0)
+    fail(
+      `Zu wenig Energie: ${def.n} braucht eine Energieproduktion von ${fmt(energyNeed(def, level))}, es fehlen ${fmt(short)}.`,
+    );
+}
+
+function checkBuild(ctx: Ctx, p: Planet, r: ResearchState, k: string): void {
   if (p.bq) fail('Es wird bereits gebaut.');
   if (reqMissing(BUILD[k]!, p, r).length)
     fail('Das Wissen ist noch verschlossen.');
   if (waitsForYard(p, k)) fail('Die Schiffsschmiede arbeitet gerade.');
   if (waitsForLab(r, k)) fail('Das Scholarium forscht gerade.');
-};
+  // Every building level takes a field (#51).
+  if (fieldsFull(p, universe(ctx))) fail('Keine freien Felder.');
+  checkEnergy(ctx, p, r, BUILD[k]!, (p.b[k] ?? 0) + 1);
+}
 
 /**
  * Pays the next level of `def` on `p` and returns its queue entry; the audit
@@ -121,7 +143,7 @@ export const build: Action = (ctx, u, d, event) => {
   // „at“: a requirement on another own planet (issue #64); the answer keeps
   // showing d.planet.
   const p = mine(ctx, u, d.at ?? d.planet);
-  checkBuild(p, researchOf(ctx, u), k);
+  checkBuild(ctx, p, researchOf(ctx, u), k);
   const q = payNextLevel(
     ctx,
     p,
@@ -153,17 +175,6 @@ const checkResearch = (p: Planet, r: ResearchState, k: string): void => {
     fail('Das Wissen ist noch verschlossen.');
 };
 
-/** Gravitonforschung: the starting planet must produce enough energy (#49). */
-function checkEnergy(ctx: Ctx, p: Planet, r: ResearchState, k: string): void {
-  const def = RES[k]!;
-  const level = (r.research[k] ?? 0) + 1;
-  const short = energyShort(def, level, p, universe(ctx), r.research);
-  if (short > 0)
-    fail(
-      `Zu wenig Energie: ${def.n} braucht eine Energieproduktion von ${fmt(energyNeed(def, level))}, es fehlen ${fmt(short)}.`,
-    );
-}
-
 /** The labs of all own planets, moved to now, for the research network (#49). */
 export const ownLabs = (ctx: Ctx, uid: string): LabSite[] =>
   ctx.store
@@ -178,7 +189,7 @@ export const research: Action = (ctx, u, d, event) => {
   const r = researchOf(ctx, u);
   const have = r.research[k] ?? 0;
   checkResearch(p, r, k);
-  checkEnergy(ctx, p, r, k);
+  checkEnergy(ctx, p, r, def, have + 1);
   const lab = networkLab(
     k,
     labSite(p),

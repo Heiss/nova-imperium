@@ -1,5 +1,7 @@
 // Places a new home planet: a random free position 4 to 12 in the wished
-// galaxy, otherwise the first free position of the universe.
+// galaxy, otherwise the first free position of the universe. A home planet
+// has 163 fields, a colony a random number in the range of its position (#51).
+import { colonyDiameter, HOME_DIAMETER } from '../../shared/fields.ts';
 import { pid } from '../../shared/flight.ts';
 import type { Coords, Planet, Resources } from '../../shared/types.ts';
 import { type Ctx, fail, universe } from './context.ts';
@@ -45,11 +47,15 @@ export function placePlanet(
     firstSpot(ctx, free) ??
     fail('Das Universum ist voll.');
   const u = universe(ctx);
-  return createPlanet(ctx, owner, name, c, ctx.now(), {
-    m: u.startMetal,
-    c: u.startCrystal,
-    d: u.startDeuterium,
-  });
+  return createPlanet(
+    ctx,
+    owner,
+    name,
+    c,
+    ctx.now(),
+    { m: u.startMetal, c: u.startCrystal, d: u.startDeuterium },
+    HOME_DIAMETER,
+  );
 }
 
 export function createPlanet(
@@ -59,13 +65,17 @@ export function createPlanet(
   c: Coords,
   t: number,
   res: Resources,
+  diameter?: number,
 ): Planet {
+  const temp = Math.round(130 - (c.p - 1) * 10 + (ctx.rng() * 20 - 10));
   const planet: Planet = {
     id: pid(c),
     owner,
     name,
     ...c,
-    temp: Math.round(130 - (c.p - 1) * 10 + (ctx.rng() * 20 - 10)),
+    temp,
+    diameter: diameter ?? colonyDiameter(c.p, ctx.rng),
+    unlimited: false,
     res,
     b: {},
     ships: {},

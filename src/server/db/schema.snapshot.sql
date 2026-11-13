@@ -202,7 +202,8 @@ CREATE TABLE planets (
     bq_end INTEGER,
     bq_cost_m INTEGER,
     bq_cost_c INTEGER,
-    bq_cost_d INTEGER,
+    bq_cost_d INTEGER, diameter INTEGER NOT NULL DEFAULT 0, unlimited INTEGER NOT NULL DEFAULT 0
+    CHECK (unlimited IN (0, 1)),
     UNIQUE (g, s, p)
   ) STRICT;
 

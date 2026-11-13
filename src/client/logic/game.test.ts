@@ -107,6 +107,19 @@ describe('button states', () => {
     expect(buildState(planet(), r, 'lab', 0)).toBe('ready');
     expect(buildState(planet(), r, 'yard', 0)).toBe('ready');
   });
+  it('of buildings on a full planet or without energy (#51)', () => {
+    const busy = planet({
+      bq: { key: 'metal', lvl: 1, start: 0, end: 9, cost: [0, 0, 0] },
+    });
+    expect(buildState(busy, r, 'metal', 0, true)).toBe('running');
+    expect(buildState(busy, r, 'crystal', 1, true)).toBe('missing');
+    expect(buildState(busy, r, 'crystal', 0, true)).toBe('full');
+    expect(buildState(planet(), r, 'crystal', 0, true, 5)).toBe('full');
+    expect(buildState(planet(), r, 'crystal', 0, false)).toBe('ready');
+    expect(buildState(planet(), r, 'terraformer', 0, false, 1)).toBe('energy');
+    expect(buildState(planet(), r, 'terraformer', 0, false, 0)).toBe('ready');
+    expect(buildState(busy, r, 'terraformer', 0, false, 1)).toBe('queueBusy');
+  });
   it('of research', () => {
     const rq = {
       research: {},

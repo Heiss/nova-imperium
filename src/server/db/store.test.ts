@@ -103,6 +103,26 @@ describe('store', () => {
     expect(ctx.store.planet('none')).toBeNull();
   });
 
+  it('saves the diameter and the field limit of a planet (#51)', () => {
+    const ctx = testCtx();
+    addUser(ctx, 'Anna');
+    const p = addPlanet(ctx, 'u_Anna', { diameter: 11234 });
+    expect(ctx.store.planet(p.id)).toMatchObject({
+      diameter: 11234,
+      unlimited: false,
+    });
+    ctx.store.savePlanet({ ...p, diameter: 9999, unlimited: true });
+    expect(ctx.store.planet(p.id)).toMatchObject({
+      diameter: 9999,
+      unlimited: true,
+    });
+    expect(
+      ctx.store.db
+        .prepare('SELECT diameter, unlimited FROM planets WHERE id = ?')
+        .get(p.id),
+    ).toEqual({ diameter: 9999, unlimited: 1 });
+  });
+
   it('finds the home planet, all planets and the used size', () => {
     const ctx = testCtx();
     addUser(ctx, 'Anna');

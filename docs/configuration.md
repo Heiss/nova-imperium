@@ -64,7 +64,8 @@ once at the start, a trailing line break is removed. Setting both `NAME` and
 
 ## Universe settings
 
-Speed, size of the universe, storage and start resources are not environment
-variables: the admin changes them in the admin panel of the game, live. The
+Speed, size of the universe, storage, start resources and the extra fields
+per planet are not environment variables: the admin changes them in the
+admin panel of the game, live. The
 size (galaxies, systems, positions) can only grow, never below a coordinate
 where a planet lies. Ranges: `src/shared/universe.ts`.

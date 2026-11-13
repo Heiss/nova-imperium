@@ -70,6 +70,14 @@ export const UNIVERSE_SPECS: readonly UniverseSpec[] = [
     max: 10000000,
     def: 0,
   },
+  // Issue #51, D4 (owner, 2026-11-13).
+  {
+    key: 'extraFields',
+    label: 'Zusatzfelder pro Planet',
+    min: 0,
+    max: 100,
+    def: 0,
+  },
 ];
 
 export const DEFAULT_UNIVERSE: Universe = Object.fromEntries(

@@ -68,6 +68,39 @@ test.describe('accessibility (axe)', () => {
     expect(found).toEqual([]);
   });
 
+  test('the fields, a full planet and the Weltenschmiede have no violations (#51)', async ({
+    page,
+  }) => {
+    const name = uniqueName('AxeFeld');
+    await register(page, name);
+    const found: string[] = [];
+    const check = async (label: string): Promise<void> => {
+      found.push(...(await violations(page)).map((v) => `${label}: ${v}`));
+    };
+    // Full, with the Weltenschmiede short of energy in its row.
+    seed({
+      name,
+      b: { robot: 10, nanite: 1, solar: 13, metal: 40, crystal: 40, deut: 59 },
+      research: { energy: 12 },
+    });
+    await page.reload();
+    await expect(page.locator('.kv')).toContainText('163/163 Felder');
+    await check('overview full');
+    await nav(page, 'buildings');
+    await expect(page.locator('#fields')).toHaveText('Felder: 163 / 163');
+    await check('buildings full');
+    // Free fields: the Weltenschmiede waits for energy.
+    seed({ name, b: { robot: 10, nanite: 1, solar: 13 } });
+    await page.reload();
+    await expect(page.locator('#view')).toContainText('Zu wenig Energie');
+    await check('buildings energy');
+    seed({ name, unlimited: true });
+    await page.reload();
+    await expect(page.locator('#fields')).toHaveText('Felder: 24 / unbegrenzt');
+    await check('buildings unlimited');
+    expect(found).toEqual([]);
+  });
+
   test('the explanation texts have no violations, closed, opened and always shown (#63)', async ({
     page,
   }) => {
