@@ -24,9 +24,7 @@ function suspended() {
   const u = addUser(ctx, 'Banned', {
     ...auth.passwordFields('a long passphrase'),
   });
-  ctx.store.db
-    .prepare("INSERT INTO suspensions VALUES (?, 'Spam', NULL)")
-    .run(u.id);
+  ctx.db.prepare("INSERT INTO suspensions VALUES (?, 'Spam', NULL)").run(u.id);
   return { ctx, u };
 }
 
@@ -69,9 +67,9 @@ describe('scrypt work', () => {
   it('keeps a modern hash on login and upgrades only legacy ones', () => {
     const ctx = testCtx();
     const u = addUser(ctx, 'Anna');
-    const before = ctx.store.user(u.id)!;
+    const before = ctx.players.get(u.id)!;
     auth.login(ctx, 'Anna', 'secret1');
-    expect(ctx.store.user(u.id)).toMatchObject({
+    expect(ctx.players.get(u.id)).toMatchObject({
       salt: before.salt,
       pw: before.pw,
     });
@@ -87,9 +85,9 @@ describe('suspended accounts', () => {
     expect(() => auth.startSession(ctx, cfg, u.id)).toThrow(
       new GameError('Dieses Konto ist gesperrt.'),
     );
-    ctx.store.addSession(auth.hashToken('t'), u.id, ctx.now() + 1000);
+    ctx.players.addSession(auth.hashToken('t'), u.id, ctx.now() + 1000);
     expect(auth.sessionUser(ctx, 't')).toBeNull();
-    ctx.store.db.prepare('DELETE FROM suspensions').run();
+    ctx.db.prepare('DELETE FROM suspensions').run();
     expect(auth.sessionUser(ctx, 't')?.id).toBe(u.id);
   });
 });

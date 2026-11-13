@@ -1,13 +1,20 @@
-// What the game logic needs from outside: the store, the clock, chance and ids.
-// Tests pass a fixed clock and a seeded generator.
+// What the game logic needs from outside: the repositories with their unit of
+// work, the clock, chance and ids. Tests pass a fixed clock and a seeded
+// generator.
 import { randomBytes } from 'node:crypto';
 import type { Rng } from '../../core/battle.ts';
 import type { Coords, Resources, Universe } from '../../core/types.ts';
-import type { Report, Store } from '../db/store.ts';
+import type { Db } from '../db/database.ts';
+import type { Repositories } from '../db/repos/index.ts';
+import type { Report } from '../db/repos/reports.ts';
+import type { Store } from '../db/store.ts';
 import { queuePush, type PushKind } from '../push-store.ts';
 
-export interface Ctx {
-  store: Store;
+export interface Ctx extends Repositories {
+  /** The unit of work: one immediate SQLite transaction. Repositories never open one. */
+  tx: <T>(fn: () => T) => T;
+  /** For the SQL that has no repository yet (#117). */
+  db: Db;
   now: () => number;
   rng: Rng;
   id: () => string;
@@ -17,9 +24,17 @@ const randomId = (): string => randomBytes(9).toString('base64url');
 
 export function createCtx(
   store: Store,
-  over: Partial<Omit<Ctx, 'store'>> = {},
+  over: Partial<Pick<Ctx, 'now' | 'rng' | 'id'>> = {},
 ): Ctx {
-  return { store, now: Date.now, rng: Math.random, id: randomId, ...over };
+  return {
+    ...store.repos,
+    db: store.db,
+    tx: (fn) => store.tx(fn),
+    now: Date.now,
+    rng: Math.random,
+    id: randomId,
+    ...over,
+  };
 }
 
 /** A mistake of the player: the message is shown to them. */
@@ -29,7 +44,7 @@ export const fail = (message: string): never => {
   throw new GameError(message);
 };
 
-export const universe = (ctx: Ctx): Universe => ctx.store.universe();
+export const universe = (ctx: Ctx): Universe => ctx.admin.universe();
 
 export const int = (v: unknown, lo: number, hi: number): number =>
   Math.max(lo, Math.min(hi, Math.floor(Number(v) || 0)));
@@ -58,12 +73,8 @@ export function addReport(
   kind: PushKind = 'messages',
   pushBody: string | null = null,
 ): void {
-  if (!ctx.store.user(uid)) return;
+  if (!ctx.players.get(uid)) return;
   const id = ctx.id();
-  ctx.store.addReport(
-    uid,
-    { ...report, id } as Report,
-    universe(ctx).maxReports,
-  );
+  ctx.reports.add(uid, { ...report, id } as Report, universe(ctx).maxReports);
   queuePush(ctx, uid, kind, id, ctx.now(), pushBody);
 }

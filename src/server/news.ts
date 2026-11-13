@@ -138,14 +138,14 @@ export function announceUpdate(ctx: Ctx, news: News): number {
   const current = versionNumber(version)!;
   // One transaction: a failed report leaves the old version stored, so the
   // next start tries again.
-  return ctx.store.tx(() => {
-    const row = ctx.store.db
+  return ctx.tx(() => {
+    const row = ctx.db
       .prepare('SELECT value FROM settings WHERE key = ?')
       .get(SETTING) as { value: number } | undefined;
     // The highest version that ever ran: rolling back and forward again does
     // not repeat the message.
     if (row && row.value >= current) return 0;
-    ctx.store.db
+    ctx.db
       .prepare(
         'INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
       )
@@ -155,7 +155,7 @@ export function announceUpdate(ctx: Ctx, news: News): number {
       entriesSince(news.versions, row ? row.value : current - 1, current),
     );
     if (!text) return 0;
-    const players = ctx.store.users();
+    const players = ctx.players.all();
     const time = ctx.now();
     for (const player of players)
       addReport(

@@ -25,17 +25,17 @@ export function pointsMap(ctx: Ctx): Record<string, number> {
   const t = ctx.now();
   const u = universe(ctx);
   const pts: Record<string, number> = {};
-  for (const user of ctx.store.users())
+  for (const user of ctx.players.all())
     pts[user.id] = levelValue(settleR(user, t).research, RES);
   // Every planet and fleet has an owner (foreign keys of the database).
-  for (const p of ctx.store.planets()) {
+  for (const p of ctx.planets.all()) {
     const s = settle(p, t, u);
     pts[p.owner] =
       (pts[p.owner] ?? 0) +
       levelValue(s.b, BUILD) +
       unitValue({ ...s.ships, ...s.def }, UNIT);
   }
-  for (const f of ctx.store.fleets())
+  for (const f of ctx.fleets.all())
     pts[f.owner] = (pts[f.owner] ?? 0) + unitValue(f.ships, SHIPS);
   for (const k of Object.keys(pts)) pts[k] = Math.floor(pts[k]! / 1000);
   return pts;
