@@ -184,7 +184,9 @@ choice of the patterns to the assistant's recommendation below
   deletion, arrivals, registration) stay where they were. The game logic of
   guilds, round, audit and moderation stays in its file; only the SQL
   moved. Players and admin data hold sessions, audit and moderation SQL, so
-  they are security files of the mutation standard (90 %). Still raw
+  they are security files of the mutation standard (90 %); so are the
+  invitations, whose tokens decide who may register (owner, 2026-11-13).
+  Still raw
   through `ctx.db`: `achievements.ts`, `push-store.ts`, `web-push.ts`,
   `passkeys.ts`, `account-security.ts`, `error-log.ts`, `error-export.ts`,
   `news.ts`, `diagnostics.ts`, `delete-account.ts`, `game/admin.ts` (new
