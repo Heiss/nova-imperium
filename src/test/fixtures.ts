@@ -7,6 +7,7 @@ export const U: Universe = { ...DEFAULT_UNIVERSE };
 export function planet(over: Partial<Planet> = {}): Planet {
   return {
     id: 'p1_1_5',
+    kind: 'planet',
     owner: 'u1',
     name: 'Heimat',
     g: 1,
