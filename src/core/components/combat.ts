@@ -50,7 +50,9 @@ export function rapidFire(
   target: string,
   t: Fighter | undefined,
 ): number {
-  const rf = attacker?.combat.rf?.[target];
+  const own = attacker?.combat.rf;
+  // Only an own entry counts: `toString` or `constructor` is no target.
+  const rf = own && Object.hasOwn(own, target) ? own[target] : undefined;
   if (rf) return rf;
   const ship = attacker?.kind === 'ship' && !attacker.combat.easy;
   return ship && t?.combat.easy ? EASY_RAPID_FIRE : 1;

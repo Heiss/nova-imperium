@@ -138,6 +138,10 @@ function battle(
 const KEYS = [...Object.keys(UNIT), 'nope'];
 /** Rapid fire also asked for keys of entries that do not fight. */
 const PAIRS = [...KEYS, 'metal', 'energy'];
+// Inherited names of a plain object. The version before answered them with
+// the inherited value (5 against an easy target, or the function `Object`
+// as rapid fire); they never reach a battle, and now they are unknown keys.
+const INHERITED = ['constructor', 'toString', '__proto__'];
 
 const sideOf = (max: number): fc.Arbitrary<Side> =>
   fc.record({
@@ -181,6 +185,14 @@ describe('battle from the components equals battle before (#114)', () => {
     for (const a of PAIRS)
       for (const t of PAIRS)
         expect(N.rapid(a, t), `${a} → ${t}`).toBe(rapid(a, t));
+  });
+
+  it('treats inherited names as unknown keys: rapid fire 1', () => {
+    for (const name of INHERITED)
+      for (const other of PAIRS) {
+        expect(N.rapid(name, other), `${name} → ${other}`).toBe(1);
+        expect(N.rapid(other, name), `${other} → ${name}`).toBe(1);
+      }
   });
 
   it('gives the same result with the same random stream, draw for draw', () => {

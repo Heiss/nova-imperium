@@ -57,7 +57,11 @@ export function buildSide(side: Side): Unit[] {
 
 /** Rapid fire of `a` against `t`: the chance to shoot again is (r - 1) / r. */
 export const rapid = (a: string, t: string): number =>
-  rapidFire(FIGHTERS[a], t, FIGHTERS[t]);
+  rapidFire(fighter(a), t, fighter(t));
+
+/** The fighter of a key; an inherited name such as `constructor` is none. */
+const fighter = (key: string) =>
+  Object.hasOwn(FIGHTERS, key) ? FIGHTERS[key] : undefined;
 
 export function hit(target: Unit, dmg: number, rng: Rng): void {
   if (target.hull <= 0) return;
