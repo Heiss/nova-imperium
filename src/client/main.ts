@@ -1,9 +1,10 @@
 // The browser glue: state, server calls, rendering, events and the clock.
 // The views are pure functions (views/), the logic is tested (logic/); this
 // file is run by the E2E suite.
-import { BUILD, RES } from '../core/catalog.ts';
+import { RES } from '../core/catalog.ts';
 import { pid } from '../core/flight.ts';
 import { settle, settleR } from '../core/settle.ts';
+import { text } from '../core/text.ts';
 import { orderMax, yardLockedBy } from '../core/yard.ts';
 import type { Levels, Planet, Queue } from '../core/types.ts';
 import { clampInt, coords, dt, dur, esc, fmt } from './logic/format.ts';
@@ -571,13 +572,12 @@ function renderLoggedOut(view: HTMLElement): void {
 function rememberUpgrade(
   order: Queue | null,
   levels: Levels,
-  catalog: Record<string, { n: string }>,
   view: string,
   label: string,
   now: number,
 ): void {
   if (!order || order.end > now || (levels[order.key] ?? 0) < order.lvl) return;
-  const name = catalog[order.key]?.n ?? order.key;
+  const name = text(order.key)?.n ?? order.key;
   completedMenu.set(view, label);
   completionNotices.add(`${label}: ${name} (Stufe ${order.lvl}).`);
 }
@@ -587,7 +587,6 @@ function rememberCompletions(previous: V, next: V): void {
   rememberUpgrade(
     previous.P.bq,
     next.P.b,
-    BUILD,
     'buildings',
     'Ausbau fertig',
     next.now,
@@ -595,7 +594,6 @@ function rememberCompletions(previous: V, next: V): void {
   rememberUpgrade(
     previous.R.rq,
     next.R.research,
-    RES,
     'research',
     'Forschung fertig',
     next.now,

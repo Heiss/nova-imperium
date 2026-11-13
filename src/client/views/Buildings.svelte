@@ -11,6 +11,7 @@
   } from '../../core/economy.ts';
   import { fieldsFull } from '../../core/fields.ts';
   import { energyNeed, energyShort } from '../../core/research.ts';
+  import { text } from '../../core/text.ts';
   import { explanation, paragraphs } from '../logic/explain.ts';
   import { fieldsLine } from '../logic/fields.ts';
   import { iconURL } from '../logic/icons.ts';
@@ -55,14 +56,15 @@
     {@const short = energyShort(def, level + 1, P, s.cfg, R.research)}
     {@const status = buildState(P, R, key, missing.length, full, short)}
     {@const image = iconURL(key)}
-    {@const ex = explanation(key, def, s.me.explain, $viewState.ui.openEx)}
+    {@const t = text(key)!}
+    {@const ex = explanation(key, t, s.me.explain, $viewState.ui.openEx)}
     <div class="item" class:running={status === 'running'}>
       <div class="icon ic-b">
-        {#if image}<img src={image} alt={def.n} />{:else}{def.ab}{/if}
+        {#if image}<img src={image} alt={t.n} />{:else}{t.ab}{/if}
       </div>
       <div>
         <div class="nm">
-          {def.n}
+          {t.n}
           <span class="lv">{level ? `(Stufe ${level})` : ''}</span
           >{#if ex?.toggle}<button
               type="button"
@@ -72,10 +74,10 @@
               data-k={key}
               aria-expanded={ex.open}
               aria-controls={ex.panel}
-              aria-label={`Erklärung zu ${def.n}`}>?</button
+              aria-label={`Erklärung zu ${t.n}`}>?</button
             >{/if}
         </div>
-        <div class="ds">{def.ds}</div>
+        <div class="ds">{t.ds}</div>
         {@html costHTML(cost, P, 1, energyCost($viewState, key, level + 1))}
         {#if delta !== 0}
           <div class="dim">

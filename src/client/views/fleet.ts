@@ -1,5 +1,6 @@
 import { MISSION, SHIPS, canFly } from '../../core/catalog.ts';
 import { fleetSlots, shipSpeed } from '../../core/flight.ts';
+import { text } from '../../core/text.ts';
 import { fmt } from '../logic/format.ts';
 import { fleetTable } from './overview.ts';
 import { box, type V } from './common.ts';
@@ -9,8 +10,8 @@ function shipRows(v: V): string {
   return Object.entries(SHIPS)
     .filter(([k]) => (P.ships[k] ?? 0) > 0 && canFly(k))
     .map(
-      ([k, d]) =>
-        `<tr><td>${d.n}</td><td class="n">${fmt(P.ships[k])}</td><td class="n">${fmt(shipSpeed(k, R))}</td><td><input type="number" min="0" class="fs" id="f_${k}" data-k="${k}" placeholder="0" aria-label="Anzahl ${d.n}"> <span class="lnk" data-act="fmax" data-k="${k}">max</span></td></tr>`,
+      ([k]) =>
+        `<tr><td>${text(k)!.n}</td><td class="n">${fmt(P.ships[k])}</td><td class="n">${fmt(shipSpeed(k, R))}</td><td><input type="number" min="0" class="fs" id="f_${k}" data-k="${k}" placeholder="0" aria-label="Anzahl ${text(k)!.n}"> <span class="lnk" data-act="fmax" data-k="${k}">max</span></td></tr>`,
     )
     .join('');
 }
