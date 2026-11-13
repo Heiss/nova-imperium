@@ -855,10 +855,12 @@ textarea:focus-visible {
 }
 
 @media (max-width: 760px) {
-  /* Player and actions wrap, and the cells are tighter, instead of
-     widening the page (#129; the longest action is „Versorgungsflug“). */
-  .gal td:nth-child(n + 3) {
+  /* Planet, player and actions wrap, and the cells are tighter, instead of
+     widening the page (#129; the longest action is „Versorgungsflug“).
+     Long names without spaces break anywhere. */
+  .gal td:nth-child(n + 2) {
     white-space: normal;
+    overflow-wrap: anywhere;
   }
   .gal th,
   .gal td {
