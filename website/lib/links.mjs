@@ -21,6 +21,10 @@ import {
 } from './pages.mjs';
 
 const EXTERNAL = /^([a-z][a-z\d+.-]*:|\/\/)/i;
+const IMAGE = /\.(avif|gif|jpe?g|png|svg|webp)$/i;
+
+/** Whether a URL names an image file (by its extension). */
+export const isImageFile = (url) => IMAGE.test(url.replace(/[?#].*$/, ''));
 
 /** The repository path a link points to, with its hash, or null. */
 export function repoTarget(url, source) {

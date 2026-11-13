@@ -18,6 +18,7 @@ import {
 import path from 'node:path';
 import { parse, stringify } from 'yaml';
 import { repoTarget } from '../lib/links.mjs';
+import { imageUrls } from '../lib/raw.mjs';
 import {
   GENERATED_DIRS,
   GITHUB,
@@ -67,9 +68,12 @@ export function titleAndBody(source, data, body, override) {
   return { title, body: h1 && isTitle ? body.slice(h1[0].length) : body };
 }
 
-/** Copies the images a page shows next to its copy. */
+/**
+ * Copies the images a page shows next to its copy: inline images and the
+ * definitions of full, collapsed and shortcut image references.
+ */
 function copyImages(source, body, outFile) {
-  for (const [, url] of body.matchAll(/!\[[^\]]*\]\(([^)\s]+)/g)) {
+  for (const url of imageUrls(body)) {
     const target = repoTarget(url, source);
     if (!target || url.startsWith('/')) continue;
     const dest = path.resolve(path.dirname(outFile), url);

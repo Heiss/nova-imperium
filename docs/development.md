@@ -33,8 +33,13 @@ The same checks run in the CI. Every push to `main` and `hotfix/**` runs all
 of them; a pull request runs what its changes need: a change of
 documentation only (`okf/`, `docs/`, `changes/`, `website/`, Markdown at the
 top level) skips the code checks, and the Docker image, Trivy and the
-Compose stack run only when the image can change, always in a release pull
-request. The gate job "CI Gate" must be green before a pull request goes to
+Compose stack run only when one of `Dockerfile`, `.dockerignore`,
+`compose*.yaml`, `docker/`, `package.json`, `pnpm-lock.yaml`,
+`.node-version`, `src/server/db/`, the server start (`main.ts`, `server.ts`,
+`config.ts`, `cli.ts`, `maintenance.ts` in `src/server/`) or
+`.github/workflows/ci.yml` changes – game code alone does not build the
+image – and always in a release pull request and in a pull request into
+`hotfix/**`. The gate job "CI Gate" must be green before a pull request goes to
 review.
 
 ```bash

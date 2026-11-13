@@ -527,6 +527,7 @@ jobs:
           cache-dependency-path: website/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
       - run: pnpm format:check
+      - run: pnpm test
       - name: Build, every internal link checked
         run: pnpm build
 

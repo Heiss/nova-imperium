@@ -58,8 +58,11 @@ browser tests (desktop and phone, no CSP violations), the Docker image with a
 Compose smoke test, gitleaks, `pnpm audit`, CodeQL, Trivy and a check that
 released database migrations stay unchanged. Every push to `main` runs all of
 them; a pull request skips the code checks when it changes documentation
-only, and builds the image only when the image can change (always in a
-release pull request). One gate job collects them; only a green gate goes to
+only, and builds the image only when a file of the image build, its start
+or the upgrade changes (`Dockerfile`, `docker/`, `compose*.yaml`,
+dependencies, `.node-version`, `src/server/db/`, the server start files,
+`ci.yml`; game code alone does not), and always in a release pull request
+and in a pull request into a hotfix branch. One gate job collects them; only a green gate goes to
 review. The rules of the game are
 checked against the original version 1 to the last digit.
 

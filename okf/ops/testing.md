@@ -15,10 +15,16 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 * **[E]** Every push to `main` and `hotfix/**` runs the full suite; a pull
   request runs what its changes need (owner, 2026-11-12): a change of
   documentation only (`okf/`, `docs/`, `changes/`, `website/`, Markdown
-  at the top level) skips the code checks (lint, unit, E2E and mutation tests); the
-  Docker image, Trivy and the Compose stack with the upgrade test run only
-  when the image can change, and always in a release pull request and in a
-  pull request into `hotfix/**` (`.github/workflows/ci.yml`). This replaces
+  at the top level) skips the code checks (lint, unit, E2E and mutation
+  tests); the Docker image, Trivy and the Compose stack with the upgrade
+  test run only when the pull request changes one of
+  `Dockerfile`, `.dockerignore`, `compose*.yaml`, `docker/`, `package.json`,
+  `pnpm-lock.yaml`, `.node-version`, `src/server/db/`, the server start
+  (`main.ts`, `server.ts`, `config.ts`, `cli.ts`, `maintenance.ts` in
+  `src/server/`) or `.github/workflows/ci.yml` – game code
+  alone (for example `src/server/game/`) does not build the image – and
+  always in a release pull request and in a pull request into `hotfix/**`
+  (job „Detect changes“ in `.github/workflows/ci.yml`). This replaces
   the earlier rule of round 1 that the whole suite runs on every pull
   request.
 * **[E]** Unit tests with Vitest; tests come first for new logic and check

@@ -5,7 +5,7 @@
 //   - the OKF markers **[E]**, **[V]** and **[U]** become small badges.
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { resolveLink } from './links.mjs';
+import { isImageFile, resolveLink } from './links.mjs';
 import { REPO_ROOT } from './pages.mjs';
 
 /** The repository path of the page being rendered. */
@@ -51,8 +51,10 @@ export const novaMarkdown = {
   link(node, ctx) {
     rewrite(node, ctx, false);
   },
+  // A definition of an image file serves an image reference (![a][ref]);
+  // its file is copied next to the page like an inline image.
   definition(node, ctx) {
-    rewrite(node, ctx, false);
+    rewrite(node, ctx, isImageFile(node.url));
   },
   image(node, ctx) {
     rewrite(node, ctx, true);
