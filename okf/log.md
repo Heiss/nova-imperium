@@ -1,5 +1,9 @@
 # Update log
 
+## 2026-11-13
+
+* **Decision**: #51 clarified: fields by the wiki ranges per position (16 to 20 like 15), home planet 163, one field per building level, Weltenschmiede +5 fields per level with the classic values, no limit for existing planets until the next round, admin setting „Zusatzfelder pro Planet“ (see [Planet fields](/features/fields.md)).
+
 ## 2026-11-12
 
 * **Update**: `src/shared/achievements.ts` has its own test of names, targets and rewards; a complete run after #127 scored it 33.33 %, below its floor 35.18 %; with the test a complete local run scores 100 %. The floor stays 35.18 % until a complete CI run confirms the new score, because incremental runs keep cached results for unchanged mutants (see [Test strategy](/ops/testing.md)).
