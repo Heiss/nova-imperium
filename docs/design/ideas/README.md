@@ -28,6 +28,7 @@ Building on fields (#158):
 
 - `planet-surface.html` / `.png` – a colony surface with field properties and neighbour bonuses
 - `planet-tiles.html` / `.png` – catalog of field properties and neighbourhoods
+- `planet-footprints.html` / `.png` – buildings that grow over more fields with every level
 
 The world AI (#159):
 
