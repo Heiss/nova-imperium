@@ -142,7 +142,7 @@ jobs:
           path: playwright-report
           retention-days: 7
 
-  # Mutation tests in 4 parallel shards (owner, 2026-11-12, #131). The plan
+  # Mutation tests in 6 parallel shards (owner, 2026-11-12 and 2026-11-13, #131). The plan
   # splits the files Stryker mutates once for all shards, by their mutant
   # count in the last merged report, else by their lines
   # (scripts/mutation-shards.ts).
@@ -177,7 +177,7 @@ jobs:
             stryker-weights-refs/heads/main-
             stryker-report-${{ github.ref }}-
             stryker-report-refs/heads/main-
-      - name: Split the mutated files into 4 shards
+      - name: Split the mutated files into 6 shards
         id: plan
         run: |
           plan=$(node scripts/mutation-shards.ts plan)
@@ -188,14 +188,14 @@ jobs:
   # the nightly run (mutation.yml) test every mutant. A shard runs without
   # Stryker's break threshold; the gate below checks the merged report.
   mutation-shard:
-    name: Mutation tests (shard ${{ matrix.shard }} of 4)
+    name: Mutation tests (shard ${{ matrix.shard }} of 6)
     needs: [changes, mutation-plan]
     if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4]
+        shard: [1, 2, 3, 4, 5, 6]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -233,7 +233,7 @@ jobs:
           overwrite: true
           retention-days: 7
 
-  # Merges the 4 shard reports (every shard once, with exactly its files)
+  # Merges the 6 shard reports (every shard once, with exactly its files)
   # and checks them as one run: a total mutation score below 80 % fails
   # (break threshold of stryker.config.json), a file below its floor fails
   # too (mutation-standard.json).

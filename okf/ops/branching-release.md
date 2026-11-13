@@ -61,7 +61,7 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   the last tag it closes it. It uses the release App's token, because a pull
   request opened with `GITHUB_TOKEN` starts no CI.
 * **[E]** The release pull request runs every check: complete mutation run
-  (in 4 parallel shards, merged by a gate job, see
+  (in 6 parallel shards, merged by a gate job, see
   [Test strategy](/ops/testing.md), #131),
   Docker image, Trivy, Compose stack, upgrade test with the data of the last
   release, smoke test, and later the SBOM (issue #83). The texts are checked

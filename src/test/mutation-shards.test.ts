@@ -199,7 +199,7 @@ describe('mutation shards: cutting a large file', () => {
     };
     // total 120, half a shard of 4 is 15
     expect(
-      units({ 'big.ts': 60, 'small.ts': 15, 'big.svelte': 45 }, last, read),
+      units({ 'big.ts': 60, 'small.ts': 15, 'big.svelte': 45 }, last, read, 4),
     ).toEqual({
       'big.ts:1-5': 1,
       'big.ts:6-9': 1,
@@ -271,12 +271,25 @@ describe('mutation shards: the split', () => {
   it('is the same for the same weights, whatever their order', () => {
     const w = { x: 3, a: 3, m: 3, b: 1, c: 8 };
     const reversed = Object.fromEntries(Object.entries(w).reverse());
+    expect(split(reversed, 4)).toEqual(split(w, 4));
+    expect(split(w, 4)).toEqual([['c'], ['a', 'b'], ['m'], ['x']]);
     expect(split(reversed)).toEqual(split(w));
-    expect(split(w)).toEqual([['c'], ['a', 'b'], ['m'], ['x']]);
   });
 
   it('leaves a shard empty when there are fewer files than shards', () => {
-    expect(split({ a: 2, b: 1 })).toEqual([['a'], ['b'], [], []]);
+    expect(split({ a: 2, b: 1 }, 4)).toEqual([['a'], ['b'], [], []]);
+  });
+
+  it('splits into 6 shards by default (owner, 2026-11-13)', () => {
+    expect(SHARDS).toBe(6);
+    expect(split({ a: 6, b: 5, c: 4, d: 3, e: 2, f: 1, g: 1 })).toEqual([
+      ['a'],
+      ['b'],
+      ['c'],
+      ['d'],
+      ['e'],
+      ['f', 'g'],
+    ]);
   });
 
   it('splits the real files completely, once each, and balanced', () => {

@@ -2,6 +2,7 @@
 
 ## 2026-11-13
 
+* **Decision**: #131 six shards instead of four (owner): the second proof run took 16.5 to 19 minutes per shard on equal runners, above the target of about 12 to 15; the planner and the workflows run 6 shards (see [Test strategy](/ops/testing.md)).
 * **Decision**: #131 split by estimated run time instead of mutant count: the test time of the mutants in the last report (static mutants weigh what they cost), files heavier than half a shard cut into line ranges between top-level statements; the complete sharded run had one shard at 44 minutes and the others at 7 to 14 (see [Test strategy](/ops/testing.md)).
 * **Update**: #131 proof run (complete, 4 shards): every file score as in the unsharded release run, except `catalog.ts` without the 180 text mutants and two timeouts instead of kills in `settle.ts` (same score); shards 22, 13, 18 and 36 minutes. The weights now come from the last complete run, not an incremental one (owner: improve before the merge; see [Test strategy](/ops/testing.md)).
 * **Decision**: the owner confirms the proposals of #51: the texts „Felder: 54 / unbegrenzt“ and „Durchmesser: 14.254 km (54 Felder, unbegrenzt)“, the diameters of existing planets, the limit for colonies founded after the upgrade, and the abbreviation `WE`, short and long text and art of the Weltenschmiede (see [Planet fields](/features/fields.md)).

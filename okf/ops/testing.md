@@ -60,7 +60,11 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   incremental on pull requests and on pushes to `main` (unchanged code keeps
   its cached result), complete every night (owner, 2026-11-11). Tag
   workflows verify the earlier CI result.
-* **[E]** Mutation runs are sharded into 4 parallel jobs everywhere: pull
+* **[E]** Mutation runs are sharded into 6 parallel jobs everywhere (owner,
+  2026-11-13: 4 jobs took 16.5 to 19 minutes each and missed the target of
+  about 12 to 15 minutes; with 6 the measured times give about 41.5
+  mutant-minutes per job, about 12 to 16 minutes; 8 would gain nothing,
+  because the largest piece of `catalog.ts` alone weighs 40): pull
   requests and pushes to `main` (incremental), the release pull request and
   the nightly run (complete). A script splits the mutated files by their
   estimated run time, heaviest first onto the emptiest job: the test time
@@ -69,7 +73,7 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   than half a job is cut into line ranges between its top-level statements
   (owner, 2026-11-13: the split by mutant count left one job at 44 minutes
   and the others at 7 to 14). Each job keeps its own incremental cache. A
-  gate job merges the four reports and checks the total score (80 %) and
+  gate job merges the six reports and checks the total score (80 %) and
   every per-file floor exactly as before; no mutant and no check is dropped
   (owner, 2026-11-12, #131).
 * **[E]** Before the merge of #131, one complete sharded run in its pull
@@ -173,7 +177,7 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
     (equal weights by name) onto the lightest shard (the first of equal
     ones); then neighbouring pieces of a shard become one range and a file
     with all its pieces on one shard is whole again. It prints the plan as
-    JSON: 4 sorted lists of `mutate` entries, `file` or `file:from-to`.
+    JSON: 6 sorted lists of `mutate` entries, `file` or `file:from-to`.
   * `config <n>` writes `reports/stryker-shard.config.json`: the
     configuration of `stryker.config.json` with only the files of shard n
     and `thresholds.break: null`, and prunes the shard's incremental file to
@@ -200,8 +204,8 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   `stryker.config.json` (80 %; the shards run without it) and prints every
   file with its counts and the total, so two runs can be compared.
 * **[V]** Jobs in `ci.yml`: „Mutation plan“ (`mutation-plan`, once, the plan
-  as job output), „Mutation tests (shard N of 4)“ (`mutation-shard`, matrix
-  1 to 4, `fail-fast: false`, incremental, `--force` when the head branch is
+  as job output), „Mutation tests (shard N of 6)“ (`mutation-shard`, matrix
+  1 to 6, `fail-fast: false`, incremental, `--force` when the head branch is
   `release/*`, uploads `mutation-shard-N`), „Mutation tests“ (`mutation`,
   the gate: merge, total, floors). The CI Gate requires all three when code
   changed. `mutation.yml` (nightly and „Run workflow“) runs the same three

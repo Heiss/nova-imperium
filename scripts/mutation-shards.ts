@@ -3,7 +3,7 @@
 // merges their reports again for the gate (scripts/mutation-gate.ts).
 //
 //   node scripts/mutation-shards.ts plan
-//        prints the plan, a JSON list of 4 lists of "mutate" entries: the
+//        prints the plan, a JSON list of 6 lists of "mutate" entries: the
 //        files of the "mutate" globs in stryker.config.json, weighed by the
 //        test time of their mutants in the last report
 //        (reports/mutation/mutation.json) or else by their lines; a file
@@ -32,7 +32,7 @@ import { dirname, matchesGlob } from 'node:path';
 import type * as TS from 'typescript';
 import { runCli } from './cli.ts';
 
-export const SHARDS = 4;
+export const SHARDS = 6;
 const CONFIG = 'stryker.config.json';
 const REPORT = 'reports/mutation/mutation.json';
 const SHARD_CONFIG = 'reports/stryker-shard.config.json';
