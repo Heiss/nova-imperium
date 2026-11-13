@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BUILD, DEF, SHIPS } from '../../core/catalog.ts';
+import { text } from '../../core/text.ts';
 import {
   explainButtonHTML,
   explainMode,
@@ -10,7 +10,7 @@ import {
   type Explanation,
 } from './explain.ts';
 
-const metal = BUILD.metal!;
+const metal = text('metal')!;
 const withText = { n: 'Erzmine <A&B>', ds: 'Kurz.', lt: 'Lang & "breit".' };
 
 describe('explanation of an entry per display mode (issue #63)', () => {
@@ -62,12 +62,15 @@ describe('explanation of an entry per display mode (issue #63)', () => {
   });
 
   it('gives the ships and the defense the (?) with their long text (#94)', () => {
-    expect(SHIPS.probe!.ds).toBeUndefined();
-    expect(explanation('probe', SHIPS.probe!, 'icon', {})).toMatchObject({
+    // Since #113 they have a short text too; the panel shows the long one.
+    expect(text('probe')!.lt).not.toBe(text('probe')!.ds);
+    expect(explanation('probe', text('probe')!, 'icon', {})).toMatchObject({
       toggle: true,
-      text: SHIPS.probe!.lt,
+      text: text('probe')!.lt,
     });
-    expect(explanation('rl', DEF.rl!, 'always', {})!.text).toBe(DEF.rl!.lt);
+    expect(explanation('rl', text('rl')!, 'always', {})!.text).toBe(
+      text('rl')!.lt,
+    );
   });
 
   it('uses the (?) for a missing or unknown mode (default D2)', () => {
@@ -136,7 +139,7 @@ describe('the (?) button and the panel', () => {
     expect(paragraphs('Eins.\n\nZwei.')).toEqual(['Eins.', 'Zwei.']);
     expect(paragraphs('Eins.\nnoch eins.')).toEqual(['Eins.\nnoch eins.']);
     expect(paragraphs(' Eins. \n\n Zwei. ')).toEqual(['Eins.', 'Zwei.']);
-    expect(paragraphs(BUILD.lab!.lt!)).toHaveLength(2);
+    expect(paragraphs(text('lab')!.lt!)).toHaveLength(2);
   });
 
   it('has no button when the panel is always open, and nothing when hidden', () => {

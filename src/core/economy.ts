@@ -1,11 +1,12 @@
 // Costs, times, production and storage. A straight port of the original
 // formulas; the universe settings come in as a parameter. Production and
 // storage come from the components of the entries (#114).
-import { BUILD, PRODUCTION, RES, STORAGE } from './catalog.ts';
+import { PRODUCTION, STORAGE } from './catalog.ts';
 import { energyUsed, left } from './components/consumes.ts';
 import { energyMade, made } from './components/produces.ts';
 import { capacities } from './components/storage.ts';
 import { satsEnergy } from './rates.ts';
+import { text } from './text.ts';
 import type {
   Cost,
   Levels,
@@ -71,14 +72,10 @@ export const maxAfford = (p: Pick<Planet, 'res'>, c: Cost): number =>
     Math.min(...KEYS.map((k, i) => (c[i] ? p.res[k] / (c[i] ?? 1) : Infinity))),
   );
 
-const missing = (
-  need: Levels | undefined,
-  have: Levels,
-  names: Record<string, { n: string }>,
-): string[] =>
+const missing = (need: Levels | undefined, have: Levels): string[] =>
   Object.entries(need ?? {})
     .filter(([k, l]) => lv(have, k) < l)
-    .map(([k, l]) => `${names[k]?.n ?? k} (Stufe ${l})`);
+    .map(([k, l]) => `${text(k)?.n ?? k} (Stufe ${l})`);
 
 /** Names of the requirements that are not met, for example "Forschungslabor (Stufe 3)". */
 export function reqMissing(
@@ -86,10 +83,7 @@ export function reqMissing(
   p: Pick<Planet, 'b'>,
   r: Pick<ResearchState, 'research'>,
 ): string[] {
-  return [
-    ...missing(d.req?.b, p.b, BUILD),
-    ...missing(d.req?.r, r.research, RES),
-  ];
+  return [...missing(d.req?.b, p.b), ...missing(d.req?.r, r.research)];
 }
 
 export interface Production {

@@ -23,6 +23,7 @@ import {
   unmetRequirements,
 } from '../../core/requirements.ts';
 import { production } from '../../core/economy.ts';
+import { text } from '../../core/text.ts';
 import type { GameState } from '../logic/types.ts';
 
 export interface Ui {
@@ -103,13 +104,6 @@ export function costHTML(
   return `<div class="cost">${parts.join('')}</div>`;
 }
 
-export interface ItemDef {
-  n: string;
-  ab: string;
-  ds?: string;
-  lt?: string;
-}
-
 /**
  * A row of research, shipyard or defense. The short `ds` is always shown
  * (issue #63, D5); the explanation follows the display mode of the player.
@@ -118,11 +112,11 @@ export function itemHTML(
   v: V,
   cls: string,
   key: string,
-  d: ItemDef,
   level: string,
   body: string,
   action: string,
 ): string {
+  const d = text(key)!;
   const src = iconURL(key);
   const icon = src ? `<img src="${src}" alt="${esc(d.n)}">` : d.ab;
   const ds = d.ds ? `<div class="ds">${d.ds}</div>` : '';

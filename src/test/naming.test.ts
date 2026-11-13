@@ -7,6 +7,7 @@ import { parse } from 'svelte/compiler';
 import ts from 'typescript';
 import { describe, expect, it } from 'vitest';
 import { BUILD, DEF, MISSION, RES, SHIPS } from '../core/catalog.ts';
+import { text } from '../core/text.ts';
 import { CLASSIC, classicIn, NAMES, renamed, says } from './naming.ts';
 
 const ROOT = path.resolve(import.meta.dirname, '..');
@@ -77,6 +78,8 @@ const found = (file: string, texts: string[]): string[] =>
   texts.flatMap((t) => classicIn(t).map((w) => `${file}: ${w}`));
 
 const CATALOG = { ...BUILD, ...RES, ...SHIPS, ...DEF };
+/** The display texts of every catalog entry (#113). */
+const TEXTS = Object.keys(CATALOG).map((k) => [k, text(k)!] as const);
 
 describe('grimdark naming (#94)', () => {
   it('finds a classic word as a word or the start of a compound only', () => {
@@ -99,15 +102,15 @@ describe('grimdark naming (#94)', () => {
   });
 
   it('shows no classic name in a name, short or long text of the catalog', () => {
-    const hits = Object.entries(CATALOG).flatMap(([k, d]) =>
-      found(k, [d.n, d.ab, d.ds ?? '', d.lt ?? '']),
+    const hits = TEXTS.flatMap(([k, d]) =>
+      found(k, [d.n, d.ab, d.ds, d.lt ?? '']),
     );
     expect(hits).toEqual([]);
     expect(found('MISSION', Object.values(MISSION))).toEqual([]);
   });
 
   it('keeps every abbreviation unique', () => {
-    const abs = Object.values(CATALOG).map((d) => d.ab);
+    const abs = TEXTS.map(([, d]) => d.ab);
     expect(new Set(abs).size).toBe(abs.length);
     expect(Object.keys(NAMES).sort()).toEqual(Object.keys(CATALOG).sort());
   });

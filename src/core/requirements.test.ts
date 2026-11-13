@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { planet, U } from '../test/fixtures.ts';
 import { BUILD, RES, UNIT } from './catalog.ts';
 import { needState, unmetRequirements, type Places } from './requirements.ts';
+import { text } from './text.ts';
 import type { Planet, ResearchState } from './types.ts';
 
 const home = (over: Partial<Planet> = {}): Planet =>
@@ -168,7 +169,7 @@ describe('need state', () => {
   const need = (key: string, kind: 'b' | 'r') => ({
     kind,
     key,
-    name: (kind === 'b' ? BUILD : RES)[key]!.n,
+    name: text(key)!.n,
     level: 3,
     have: 0,
   });
