@@ -13,6 +13,8 @@ export default defineConfig(
       '**/playwright-report/**',
       '**/test-results/**',
       'okf/**',
+      // The documentation website has its own package and checks (ci.yml).
+      'website/**',
       'coverage/**',
       'reports/**',
       '.stryker-tmp/**',

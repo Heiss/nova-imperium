@@ -170,7 +170,9 @@ choice of the patterns to the assistant's recommendation below
     `ctx.tx`; SQL that moves into a repository loses its own transaction to
     the caller; one test file per repository against SQLite in memory.
   * Every statement moves verbatim: the same text and parameter order, no
-    rewrite, no optimisation, no new index.
+    rewrite, no optimisation, no new index. One exception, same text and
+    parameter: `DELETE FROM guild_members WHERE user_id = ?` stood three
+    times in `guilds.ts` and is now the one method `guilds.removeMember`.
 * **[E]** Built with #117: `src/server/db/repos/` holds one file per
   aggregate, each a typed interface (`Players`, `Planets`, `Fleets`,
   `Reports`, `Guilds`, `Invitations`, `Admin`) and its better-sqlite3 class;
