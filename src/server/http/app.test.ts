@@ -1,7 +1,6 @@
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { openDatabase } from '../db/database.ts';
-import { Store } from '../db/store.ts';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { startSession } from '../auth.ts';
@@ -25,7 +24,7 @@ describe('http', () => {
     const db = openDatabase(file);
     const writer = openDatabase(file);
     try {
-      const ctx = { ...testCtx(), store: new Store(db) };
+      const ctx = testCtx(undefined, undefined, db);
       db.pragma('busy_timeout = 0');
       const { cfg, call, setCookie } = await start({ ctx });
       const user = addUser(ctx, 'Anna');
@@ -54,11 +53,11 @@ describe('http', () => {
       const activity = await call('POST', '/api/activity', {});
       expect(activity.status).toBe(503);
       expect(activity.json?.code).toBeUndefined();
-      expect(ctx.store.planet(planet.id)?.bq).toBeNull();
+      expect(ctx.planets.get(planet.id)?.bq).toBeNull();
       writer.exec('COMMIT');
 
       expect((await call('POST', '/api/action', action)).status).toBe(200);
-      expect(ctx.store.planet(planet.id)).toMatchObject({
+      expect(ctx.planets.get(planet.id)).toMatchObject({
         name: 'Renamed',
         bq: { key: 'metal', lvl: 1 },
         res: { m: planet.res.m - 60, c: planet.res.c - 15 },
@@ -258,7 +257,7 @@ describe('http', () => {
     expect((reg.json!.state as { me: { admin: boolean } }).me.admin).toBe(
       false,
     );
-    expect(ctx.store.userByName('Neu')?.email).toBe('new@example.org');
+    expect(ctx.players.byName('Neu')?.email).toBe('new@example.org');
     expect(
       (
         await call('POST', '/api/register', {
@@ -362,7 +361,7 @@ describe('http', () => {
       message: 'Neue Serverrunde',
     });
     expect(sent.json).toEqual({ recipients: 2 });
-    expect(ctx.store.reports(pilot.id)).toMatchObject([
+    expect(ctx.reports.ofPlayer(pilot.id)).toMatchObject([
       { title: 'Servernachricht', text: 'Neue Serverrunde' },
     ]);
     const log = await call('POST', '/api/admin/events', {
@@ -491,11 +490,11 @@ describe('http', () => {
   it('revokes invitations as admin only', async () => {
     const { ctx, call } = await asAdmin();
     await call('POST', '/api/admin/invite', { email: 'a@example.org' });
-    const id = ctx.store.openInvitations(ctx.now())[0]!.id;
+    const id = ctx.invitations.open(ctx.now())[0]!.id;
     const r = await call('POST', '/api/admin/revoke', { id });
     expect(r.json).toMatchObject({ ok: true, msg: 'Einladung widerrufen.' });
-    expect(ctx.store.openInvitations(ctx.now())).toEqual([]);
-    ctx.store.saveUser({ ...ctx.store.userByName('Boss')!, admin: false });
+    expect(ctx.invitations.open(ctx.now())).toEqual([]);
+    ctx.players.save({ ...ctx.players.byName('Boss')!, admin: false });
     expect((await call('POST', '/api/admin/revoke', {})).json).toEqual({
       error: 'Nur der Admin darf das.',
     });
@@ -504,7 +503,7 @@ describe('http', () => {
   it('answers 500 without details on an unexpected error', async () => {
     const logs: string[] = [];
     const { ctx, call } = await start({ logs });
-    ctx.store.db.close();
+    ctx.db.close();
     const r = await call('GET', '/healthz');
     expect(r).toMatchObject({ status: 500, json: { error: 'Serverfehler.' } });
     // The error log cannot be written either; that is logged, never thrown.
@@ -558,19 +557,19 @@ describe('http', () => {
 describe('account security', () => {
   it('deletes the authenticated account and its guild, preserving other accounts', async () => {
     const { call, ctx, cfg, setCookie } = await asAdmin();
-    const boss = ctx.store.userByName('Boss')!;
+    const boss = ctx.players.byName('Boss')!;
     const member = addUser(ctx, 'Member');
     addPlanet(ctx, member.id, { p: 8 });
-    ctx.store.db
+    ctx.db
       .prepare("INSERT INTO guilds VALUES ('g', 'TAG', 'Guild', '', ?)")
       .run(boss.id);
-    ctx.store.db
+    ctx.db
       .prepare("INSERT INTO guild_members VALUES (?, 'g', 'member')")
       .run(boss.id);
-    ctx.store.db
+    ctx.db
       .prepare("INSERT INTO guild_members VALUES (?, 'g', 'member')")
       .run(member.id);
-    ctx.store.addReport(
+    ctx.reports.add(
       member.id,
       {
         id: 'related',
@@ -581,7 +580,7 @@ describe('account security', () => {
       },
       10,
     );
-    ctx.store.addReport(
+    ctx.reports.add(
       member.id,
       { id: 'unrelated', title: 'Other report', time: 2, type: 'info' },
       10,
@@ -590,25 +589,21 @@ describe('account security', () => {
     expect(
       (await call('POST', '/api/account/delete', { password: 'wrong' })).status,
     ).toBe(400);
-    expect(ctx.store.user(boss.id)).not.toBeNull();
+    expect(ctx.players.get(boss.id)).not.toBeNull();
     const result = await call('POST', '/api/account/delete', {
       password: 'secret1',
     });
     expect(result.set).toContain('Max-Age=0');
-    expect(ctx.store.user(boss.id)).toBeNull();
-    expect(ctx.store.planetOfUser(boss.id)).toBeNull();
-    expect(ctx.store.user(member.id)).not.toBeNull();
-    expect(ctx.store.reports(member.id).map(({ id }) => id)).toEqual([
+    expect(ctx.players.get(boss.id)).toBeNull();
+    expect(ctx.planets.home(boss.id)).toBeNull();
+    expect(ctx.players.get(member.id)).not.toBeNull();
+    expect(ctx.reports.ofPlayer(member.id).map(({ id }) => id)).toEqual([
       'unrelated',
     ]);
-    expect(ctx.store.db.prepare('SELECT * FROM guilds').all()).toEqual([]);
-    expect(ctx.store.db.prepare('SELECT * FROM guild_members').all()).toEqual(
-      [],
-    );
+    expect(ctx.db.prepare('SELECT * FROM guilds').all()).toEqual([]);
+    expect(ctx.db.prepare('SELECT * FROM guild_members').all()).toEqual([]);
     expect(
-      ctx.store.db
-        .prepare('SELECT * FROM audit_events WHERE actor = ?')
-        .all(boss.id),
+      ctx.db.prepare('SELECT * FROM audit_events WHERE actor = ?').all(boss.id),
     ).toEqual([]);
     setCookie(`${COOKIE}=${other}`);
     expect((await call('GET', '/api/state')).status).toBe(401);
@@ -624,16 +619,14 @@ describe('account security', () => {
       password: 'secret1',
     });
     expect(registration.status).toBe(200);
-    const admin = ctx.store.userByName('Boss')!;
+    const admin = ctx.players.byName('Boss')!;
     setCookie(`${COOKIE}=${startSession(ctx, cfg, admin.id)}`);
     const body = { ceremony: registration.json?.ceremony, response: {} };
     expect((await call('POST', '/api/passkeys/register', body)).status).toBe(
       400,
     );
     expect(
-      ctx.store.db
-        .prepare('SELECT COUNT(*) AS n FROM passkey_challenges')
-        .get(),
+      ctx.db.prepare('SELECT COUNT(*) AS n FROM passkey_challenges').get(),
     ).toEqual({ n: 1 });
     const login = await call('POST', '/api/passkeys/login/options', {});
     const answer = { ceremony: login.json?.ceremony, response: {} };
@@ -644,9 +637,7 @@ describe('account security', () => {
       400,
     );
     expect(
-      ctx.store.db
-        .prepare('SELECT COUNT(*) AS n FROM passkey_challenges')
-        .get(),
+      ctx.db.prepare('SELECT COUNT(*) AS n FROM passkey_challenges').get(),
     ).toEqual({ n: 1 });
   });
 
@@ -735,7 +726,7 @@ describe('account security', () => {
       });
     expect((await update()).status).toBe(200);
     expect((await update()).status).toBe(400);
-    expect(ctx.store.db.prepare('SELECT * FROM sessions').all()).toEqual([]);
+    expect(ctx.db.prepare('SELECT * FROM sessions').all()).toEqual([]);
     expect(
       (await call('POST', '/api/login', { name: 'Anna', password: 'secret1' }))
         .status,
@@ -833,9 +824,7 @@ describe('account security', () => {
     });
     expect(result.status).toBe(400);
     app.sweep();
-    expect(ctx.store.db.prepare('SELECT * FROM account_tokens').all()).toEqual(
-      [],
-    );
+    expect(ctx.db.prepare('SELECT * FROM account_tokens').all()).toEqual([]);
   });
 
   it('requires the current password to change it and signs out existing sessions', async () => {
@@ -868,7 +857,7 @@ describe('account security', () => {
 
 describe('admin routes', () => {
   const audit = (ctx: TestCtx) =>
-    ctx.store.db
+    ctx.db
       .prepare(
         'SELECT category, action, target, outcome, detail FROM audit_events ORDER BY id',
       )

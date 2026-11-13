@@ -90,7 +90,7 @@ export function hourlySweep(
   version: string | null,
 ): void {
   try {
-    ctx.store.purgeSessions(ctx.now());
+    ctx.players.purgeSessions(ctx.now());
     purgeAudit(ctx);
     sweepApp();
   } catch (e) {

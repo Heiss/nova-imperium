@@ -22,7 +22,7 @@ const MIN = 15;
 function setup() {
   const ctx = testCtx();
   const user = addUser(ctx, 'Pilot');
-  const db = ctx.store.db;
+  const db = ctx.db;
   db.prepare('INSERT INTO sessions VALUES (?, ?, 9e9)').run('s', user.id);
   const count = (table: string) =>
     (
@@ -62,7 +62,7 @@ describe('password reset', () => {
     );
     const { token } = issueReset(ctx, user.email)!;
     resetPassword(ctx, token, NEW, MIN);
-    const after = ctx.store.user(user.id)!;
+    const after = ctx.players.get(user.id)!;
     expect(passwordMatches(after, NEW)).toBe(true);
     expect(count('sessions')).toBe(0);
     expect(count('account_tokens')).toBe(0);
@@ -113,7 +113,7 @@ describe('password change', () => {
       () => changePassword(ctx, user, 'secret1', 'another passphrase', MIN),
       'Das Passwort wurde bereits geändert.',
     );
-    expect(passwordMatches(ctx.store.user(user.id)!, NEW)).toBe(true);
+    expect(passwordMatches(ctx.players.get(user.id)!, NEW)).toBe(true);
   });
 });
 

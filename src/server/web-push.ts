@@ -73,8 +73,8 @@ export function savePushSubscription(
   const keys = body.keys as Record<string, unknown> | undefined;
   const p256dh = subscriptionKey(keys?.p256dh, 65);
   const auth = subscriptionKey(keys?.auth, 16);
-  ctx.store.tx(() => {
-    const db = ctx.store.db;
+  ctx.tx(() => {
+    const db = ctx.db;
     const count = db
       .prepare(
         'SELECT count(*) AS n FROM push_subscriptions WHERE user_id = ? AND endpoint != ?',
@@ -98,10 +98,10 @@ export function savePushSubscription(
 
 function scheduleCurrentOrders(ctx: Ctx, uid: string): void {
   const now = ctx.now();
-  const research = ctx.store.user(uid)?.rq;
+  const research = ctx.players.get(uid)?.rq;
   if (research && research.end > now)
     queuePush(ctx, uid, 'research', String(research.start), research.end);
-  for (const planet of ctx.store.playerPlanets(uid)) {
+  for (const planet of ctx.planets.ofOwner(uid)) {
     const p = settle(planet, now, universe(ctx));
     if (p.bq)
       queuePush(ctx, uid, 'buildings', `${p.id}:${p.bq.start}`, p.bq.end);
@@ -114,7 +114,7 @@ export function deletePushSubscription(
   uid: string,
   endpoint: unknown,
 ): void {
-  ctx.store.db
+  ctx.db
     .prepare(
       'DELETE FROM push_subscriptions WHERE endpoint = ? AND user_id = ?',
     )
@@ -122,8 +122,8 @@ export function deletePushSubscription(
 }
 
 export function vapidKeys(ctx: Ctx): { publicKey: string; privateKey: string } {
-  const db = ctx.store.db;
-  return ctx.store.tx(() => {
+  const db = ctx.db;
+  return ctx.tx(() => {
     const existing = db
       .prepare(
         'SELECT public_key AS publicKey, private_key AS privateKey FROM push_keys WHERE id = 1',
@@ -140,10 +140,8 @@ export function vapidKeys(ctx: Ctx): { publicKey: string; privateKey: string } {
 }
 
 function pending(ctx: Ctx, now: number): Job[] {
-  ctx.store.db
-    .prepare('DELETE FROM push_jobs WHERE due <= ?')
-    .run(now - TTL * 1000);
-  return ctx.store.db
+  ctx.db.prepare('DELETE FROM push_jobs WHERE due <= ?').run(now - TTL * 1000);
+  return ctx.db
     .prepare(
       `
     SELECT j.*, s.p256dh, s.auth FROM push_jobs j
@@ -155,7 +153,7 @@ function pending(ctx: Ctx, now: number): Job[] {
 }
 
 function discard(ctx: Ctx, job: Job): void {
-  ctx.store.db
+  ctx.db
     .prepare(
       'DELETE FROM push_jobs WHERE endpoint = ? AND kind = ? AND event_key = ?',
     )
@@ -165,7 +163,7 @@ function discard(ctx: Ctx, job: Job): void {
 function retry(ctx: Ctx, job: Job, error: unknown): void {
   const status = (error as { statusCode?: number } | null)?.statusCode;
   if (status === 404 || status === 410) {
-    ctx.store.db
+    ctx.db
       .prepare('DELETE FROM push_subscriptions WHERE endpoint = ?')
       .run(job.endpoint);
   } else if (
@@ -174,7 +172,7 @@ function retry(ctx: Ctx, job: Job, error: unknown): void {
   ) {
     discard(ctx, job);
   } else {
-    ctx.store.db
+    ctx.db
       .prepare(
         `
       UPDATE push_jobs SET attempts = attempts + 1, retry_at = ?

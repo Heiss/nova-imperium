@@ -40,7 +40,7 @@ export function placePlanet(
   name: string,
   gal: number,
 ): Planet {
-  const used = new Set(ctx.store.planets().map((p) => p.id));
+  const used = new Set(ctx.planets.all().map((p) => p.id));
   const free = (c: Coords): boolean => !used.has(pid(c));
   const c =
     randomSpot(ctx, gal, free) ??
@@ -87,6 +87,6 @@ export function createPlanet(
     t,
     created: t,
   };
-  ctx.store.savePlanet(planet);
+  ctx.planets.save(planet);
   return planet;
 }

@@ -5,23 +5,33 @@ import { DEFAULT_EXPLAIN } from '../core/explain.ts';
 import type { Planet } from '../core/types.ts';
 import { hashPassword } from './auth.ts';
 import type { Config } from './config.ts';
-import { openDatabase } from './db/database.ts';
-import { Store, type User } from './db/store.ts';
-import type { Ctx } from './game/context.ts';
+import { openDatabase, type Db } from './db/database.ts';
+import type { User } from './db/repos/players.ts';
+import { Store } from './db/store.ts';
+import { createCtx, type Ctx } from './game/context.ts';
 
 export interface TestCtx extends Ctx {
   clock: { t: number };
+  /** The facade over the same repositories, for the store tests (#117). */
+  store: Store;
 }
 
-export function testCtx(start = 1_000_000, seed = 42): TestCtx {
+export function testCtx(
+  start = 1_000_000,
+  seed = 42,
+  db: Db = openDatabase(':memory:'),
+): TestCtx {
   const clock = { t: start };
   let n = 0;
+  const store = new Store(db);
   return {
-    store: new Store(openDatabase(':memory:')),
+    ...createCtx(store, {
+      now: () => clock.t,
+      rng: seeded(seed),
+      id: () => `id${++n}`,
+    }),
+    store,
     clock,
-    now: () => clock.t,
-    rng: seeded(seed),
-    id: () => `id${++n}`,
   };
 }
 
@@ -65,7 +75,7 @@ export function addUser(
     rq: null,
     ...over,
   };
-  ctx.store.saveUser(u);
+  ctx.players.save(u);
   return u;
 }
 
@@ -99,6 +109,6 @@ export function addPlanet(
     created: ctx.now(),
     ...over,
   };
-  ctx.store.savePlanet(planet);
+  ctx.planets.save(planet);
   return planet;
 }

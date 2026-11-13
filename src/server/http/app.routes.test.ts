@@ -268,7 +268,7 @@ describe('passkey routes', () => {
     expect(entered.json).toMatchObject({ ok: true, state: expect.any(Object) });
     expect(entered.set).toMatch(/; Max-Age=\d+$/);
     expect(
-      ctx.store.db
+      ctx.db
         .prepare(
           "SELECT actor, outcome FROM audit_events WHERE action = 'loginPasskey'",
         )
@@ -285,7 +285,7 @@ describe('passkey routes', () => {
 
   it('logs in without remembering when not asked to', async () => {
     const { ctx, call } = await player({ cfg });
-    ctx.store.db
+    ctx.db
       .prepare("INSERT INTO passkeys VALUES ('key', 'u_Anna', x'01', 0, 0)")
       .run();
     const login = await call('POST', '/api/passkeys/login/options', {});
@@ -318,7 +318,7 @@ describe('player actions', () => {
     await act(7);
     await call('POST', '/api/action', { type: 'nonsense' });
     expect(
-      ctx.store.db
+      ctx.db
         .prepare(
           "SELECT category, action, detail FROM audit_events WHERE actor = 'u_Anna' AND action != 'login' ORDER BY id",
         )
@@ -333,14 +333,14 @@ describe('player actions', () => {
 
   it('audits universe settings as an admin write with before and after', async () => {
     const { ctx, call } = await asAdmin();
-    const before = ctx.store.universe();
+    const before = ctx.admin.universe();
     const reply = await call('POST', '/api/action', {
       type: 'settings',
       settings: { ...before, speed: 3 },
     });
     expect(reply.json).toMatchObject({ ok: true });
-    expect(ctx.store.universe().speed).toBe(3);
-    const row = ctx.store.db
+    expect(ctx.admin.universe().speed).toBe(3);
+    const row = ctx.db
       .prepare(
         "SELECT category, detail FROM audit_events WHERE action = 'settings'",
       )
@@ -348,7 +348,7 @@ describe('player actions', () => {
     expect(row.category).toBe('admin.write');
     expect(JSON.parse(row.detail)).toEqual({
       before,
-      after: ctx.store.universe(),
+      after: ctx.admin.universe(),
     });
   });
 });
@@ -394,7 +394,7 @@ describe('push routes', () => {
     ).toEqual({ ok: true });
     const count = () =>
       (
-        ctx.store.db
+        ctx.db
           .prepare('SELECT COUNT(*) AS n FROM push_subscriptions')
           .get() as { n: number }
       ).n;
@@ -407,8 +407,8 @@ describe('push routes', () => {
 });
 
 describe('account audit and replies', () => {
-  const rows = (ctx: { store: { db: import('better-sqlite3').Database } }) =>
-    ctx.store.db
+  const rows = (ctx: { db: import('better-sqlite3').Database }) =>
+    ctx.db
       .prepare(
         "SELECT category, action, actor, outcome FROM audit_events WHERE category = 'account' ORDER BY id",
       )
@@ -595,7 +595,7 @@ describe('game requests', () => {
     expect((await call('DELETE', '/x')).json).toEqual({
       error: 'Nicht erlaubt.',
     });
-    ctx.store.db.close();
+    ctx.db.close();
     const broken = await call('POST', '/api/activity', {});
     expect(broken.json).toEqual({ error: 'Serverfehler.' });
     expect(logs).toEqual([
@@ -609,7 +609,7 @@ describe('game requests', () => {
     const { ctx, call } = await asAdmin();
     await call('POST', '/api/action', { type: 'reset' });
     expect(
-      ctx.store.db
+      ctx.db
         .prepare(
           "SELECT category, detail FROM audit_events WHERE action = 'reset'",
         )
@@ -622,7 +622,7 @@ describe('game requests', () => {
     });
     await plain.call('POST', '/api/action', { type: 'settings', settings: {} });
     expect(
-      plain.ctx.store.db
+      plain.ctx.db
         .prepare(
           "SELECT category, outcome, detail FROM audit_events WHERE action = 'settings'",
         )
@@ -649,17 +649,17 @@ describe('rate limit window and sweep', () => {
     expect((await check()).json).not.toEqual({
       error: 'Zu viele Versuche – bitte später nochmal.',
     });
-    ctx.store.db
+    ctx.db
       .prepare("INSERT INTO passkey_challenges VALUES ('c', 'x', NULL, ?)")
       .run(ctx.now());
     addUser(ctx, 'Anna');
-    ctx.store.db
+    ctx.db
       .prepare(
         "INSERT INTO account_tokens (token_hash, user_id, purpose, expires) VALUES ('t', 'u_Anna', 'reset', ?)",
       )
       .run(ctx.now());
     const count = (table: string) =>
-      ctx.store.db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get();
+      ctx.db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get();
     expect(count('account_tokens')).toEqual({ n: 1 });
     app.sweep();
     expect(count('passkey_challenges')).toEqual({ n: 0 });

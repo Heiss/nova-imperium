@@ -46,12 +46,12 @@ it('rolls back a failing action and keeps the correlated audit entry', () => {
         requestId: 'request',
       },
       () => {
-        ctx.store.saveUniverse({ ...ctx.store.universe(), speed: 99 });
+        ctx.admin.saveUniverse({ ...ctx.admin.universe(), speed: 99 });
         throw new Error('database fault');
       },
     ),
   ).toThrow('database fault');
-  expect(ctx.store.universe().speed).toBe(5);
+  expect(ctx.admin.universe().speed).toBe(5);
   expect(
     events(ctx, auditFilter({ requestId: 'request' }, ctx.now())),
   ).toMatchObject([
@@ -89,11 +89,11 @@ it('keeps recent records, paginates without overlaps and removes expired data', 
   );
   purgeAudit(ctx);
   expect(
-    ctx.store.db.prepare('SELECT id FROM audit_events ORDER BY id').all(),
+    ctx.db.prepare('SELECT id FROM audit_events ORDER BY id').all(),
   ).toEqual([{ id: 2 }, { id: 3 }]);
-  expect(ctx.store.db.prepare('SELECT day FROM player_activity').all()).toEqual(
-    [{ day: 32 * DAY }],
-  );
+  expect(ctx.db.prepare('SELECT day FROM player_activity').all()).toEqual([
+    { day: 32 * DAY },
+  ]);
 });
 
 it('pages a stable filtered snapshot, clamps the last page, and accepts only offered limits', () => {
@@ -147,9 +147,9 @@ it('records a rejected action as rejected, a busy database not at all', () => {
 
 it('keeps the original error when the audit write is busy, not when it fails otherwise', () => {
   const ctx = testCtx();
-  const prepare = ctx.store.db.prepare.bind(ctx.store.db);
+  const prepare = ctx.db.prepare.bind(ctx.db);
   let auditFault: Error = busy();
-  vi.spyOn(ctx.store.db, 'prepare').mockImplementation((sql: string) => {
+  vi.spyOn(ctx.db, 'prepare').mockImplementation((sql: string) => {
     if (sql.includes('INSERT INTO audit_events')) throw auditFault;
     return prepare(sql);
   });
@@ -167,7 +167,7 @@ it('counts activity at the exact limits: 10 s between samples, 5 min idle, midni
   const u = addUser(ctx, 'Pilot');
   const active = () =>
     (
-      ctx.store.db
+      ctx.db
         .prepare('SELECT SUM(active_ms) AS ms FROM player_activity')
         .get() as { ms: number }
     ).ms;
@@ -209,12 +209,25 @@ it('keeps audit entries for 30 days', () => {
   ).toEqual(['recent', 'old']);
   ctx.clock.t += 1;
   purgeAudit(ctx);
-  expect(ctx.store.db.prepare('SELECT action FROM audit_events').all()).toEqual(
-    [{ action: 'recent' }],
-  );
+  expect(ctx.db.prepare('SELECT action FROM audit_events').all()).toEqual([
+    { action: 'recent' },
+  ]);
   expect(
     events(ctx, auditFilter({}, ctx.now())).map(
       (e) => (e as { action: string }).action,
     ),
   ).toEqual(['recent']);
+});
+
+it('leaves the previous day alone when the last sample is exactly midnight (#117)', () => {
+  const ctx = testCtx(10 * DAY);
+  const u = addUser(ctx, 'Pilot');
+  activity(ctx, u);
+  ctx.clock.t += 20000;
+  const previousDay = vi.spyOn(ctx.admin, 'addActiveTime');
+  activity(ctx, u);
+  expect(previousDay).not.toHaveBeenCalled();
+  expect(playerDetail(ctx, u.id).days).toMatchObject([
+    { day: 10 * DAY, activeMs: 20000 },
+  ]);
 });

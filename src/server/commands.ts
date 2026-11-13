@@ -25,7 +25,7 @@ function setAdmin(
   admin: boolean,
   o: Output,
 ): number {
-  const u = name ? ctx.store.userByName(name) : null;
+  const u = name ? ctx.players.byName(name) : null;
   if (!u) {
     o.err(`No player named "${name ?? ''}".`);
     return 1;
@@ -40,7 +40,7 @@ function setAdmin(
     },
     () => {
       u.admin = admin;
-      ctx.store.saveUser(u);
+      ctx.players.save(u);
     },
   );
   o.out(`${u.name} is ${admin ? 'now' : 'no longer'} admin.`);
@@ -101,7 +101,7 @@ export async function runCommand(
           action: 'admins',
           detail: { source: 'operator' },
         },
-        () => ctx.store.users().filter((u) => u.admin),
+        () => ctx.players.all().filter((u) => u.admin),
       );
       o.out(list.length ? list.map((u) => u.name).join('\n') : 'No admin yet.');
       return 0;

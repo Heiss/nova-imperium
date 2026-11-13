@@ -9,7 +9,7 @@ import type { Config } from '../config.ts';
 import { deleteAccount } from '../delete-account.ts';
 import { noteServerError } from '../error-log.ts';
 import { isDatabaseBusy } from '../db/database.ts';
-import type { User } from '../db/store.ts';
+import type { User } from '../db/repos/players.ts';
 import { requireAdmin } from '../game/admin.ts';
 import { type Ctx, GameError, str } from '../game/context.ts';
 import { ACTIONS, runAction } from '../game/dispatch.ts';
@@ -213,13 +213,13 @@ function accountRoutes(
       json: { passwordMinLength: cfg.passwordMinLength },
     }),
     'GET /healthz': () => {
-      ctx.store.db.prepare('SELECT 1').get();
+      ctx.db.prepare('SELECT 1').get();
       return { json: { ok: true } };
     },
     'POST /api/invite/check': ({ req, body }) => {
       guard(req);
       const email = auth.openInvitation(ctx, body.token).email;
-      return { json: { email, galaxies: ctx.store.universe().galaxies } };
+      return { json: { email, galaxies: ctx.admin.universe().galaxies } };
     },
     ...loginRoutes(d, guard, enter),
     ...passwordRoutes(d, guard),
@@ -303,7 +303,7 @@ function loginRoutes(
     'POST /api/register': ({ req, body, requestId }) => {
       guard(req);
       const registration = body as unknown as auth.Registration;
-      const user = ctx.store.tx(() => {
+      const user = ctx.tx(() => {
         const u = auth.register(ctx, registration, cfg.passwordMinLength);
         record(ctx, {
           category: 'account',
@@ -319,7 +319,7 @@ function loginRoutes(
     },
     'POST /api/login': ({ req, body, requestId }) => {
       guard(req);
-      const actor = ctx.store.userByName(str(body.name, 20))?.id;
+      const actor = ctx.players.byName(str(body.name, 20))?.id;
       const action = cfg.emailLoginCodes ? 'loginPassword' : 'login';
       const user = audited(
         ctx,
@@ -422,7 +422,7 @@ function actionReply(ctx: Ctx, u: User, call: Call): Reply {
     json: {
       ok: true,
       msg,
-      state: stateFor(ctx, ctx.store.user(u.id)!, call.body.planet),
+      state: stateFor(ctx, ctx.players.get(u.id)!, call.body.planet),
     },
   };
 }
@@ -472,18 +472,16 @@ function playerAction(ctx: Ctx, u: User, call: Call): string | null {
   return audited(ctx, entry, () => {
     if (category === 'game') {
       const id = call.body.planet;
-      const selected = typeof id === 'string' ? ctx.store.planet(id) : null;
+      const selected = typeof id === 'string' ? ctx.planets.get(id) : null;
       entry.detail = {
         planet:
-          selected?.owner === u.id
-            ? selected.id
-            : ctx.store.planetOfUser(u.id)?.id,
+          selected?.owner === u.id ? selected.id : ctx.planets.home(u.id)?.id,
       };
     }
     const before =
-      action === 'settings' && u.admin ? ctx.store.universe() : null;
+      action === 'settings' && u.admin ? ctx.admin.universe() : null;
     const msg = runAction(ctx, u.id, call.body, entry);
-    if (before) entry.detail = { before, after: ctx.store.universe() };
+    if (before) entry.detail = { before, after: ctx.admin.universe() };
     return msg;
   });
 }
