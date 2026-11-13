@@ -34,6 +34,12 @@ reviews:
         Pure game rules used by the server and the browser alike. No I/O,
         no imports from src/server or src/client. Values of version 1 must
         stay identical (equivalence tests).
+    - path: 'src/features/**'
+      instructions: >-
+        One folder per catalog entry or mission (okf/architecture/patterns.md,
+        sections 10 and 11). A feature imports src/core and its own files,
+        never another feature; only its *.server.ts parts may use the server.
+        Values of version 1 must stay identical (equivalence tests).
     - path: 'src/client/**'
       instructions: >-
         The interface is German; check the German texts. No inline scripts

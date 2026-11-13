@@ -117,6 +117,7 @@ describe('grimdark naming (#94)', () => {
       ...sources('client', /\.ts$/),
       ...sources('server', /\.ts$/),
       ...sources('core', /\.ts$/),
+      ...sources('features', /\.ts$/),
     ];
     const hits = [
       ...files.flatMap((f) =>

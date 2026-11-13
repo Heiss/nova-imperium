@@ -11,3 +11,4 @@ secrets/*
 !secrets/.gitkeep
 .DS_Store
 upgrade-from.txt
+/src/features/index.gen.ts

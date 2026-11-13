@@ -5,6 +5,7 @@
   "vitest": { "configFile": "vitest.config.ts" },
   "mutate": [
     "src/core/**/*.ts",
+    "src/features/**/*.ts",
     "src/server/**/*.ts",
     "src/client/logic/**/*.ts",
     "!**/*.test.ts",
@@ -13,6 +14,7 @@
     "!src/server/db/migrate-worker.ts",
     "!src/server/test-helpers.ts",
     "!src/core/texts.ts",
+    "!src/features/index.gen.ts",
     "!src/test/**"
   ],
   "coverageAnalysis": "perTest",

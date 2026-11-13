@@ -145,6 +145,8 @@ describe('fragment check', () => {
     expect(
       missingFragment(['src/server/http/app.ts', 'okf/x.md'], []),
     ).toBeNull();
+    // The entries and missions in their feature folders are game code (#112).
+    expect(missingFragment(['src/features/sat/entry.ts'], [])).not.toBeNull();
     expect(
       missingFragment(
         [
