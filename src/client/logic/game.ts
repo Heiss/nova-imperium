@@ -45,20 +45,45 @@ export const sortFleets = (list: ClientFleet[]): ClientFleet[] =>
   list.slice().sort((a, b) => fleetEnd(a) - fleetEnd(b));
 
 export type BuildState =
-  'running' | 'missing' | 'queueBusy' | 'yardBusy' | 'labBusy' | 'ready';
+  | 'running'
+  | 'missing'
+  | 'full'
+  | 'queueBusy'
+  | 'yardBusy'
+  | 'labBusy'
+  | 'energy'
+  | 'ready';
 
+/**
+ * `full`: the planet has no free field (#51); `short`: the energy production
+ * the planet lacks (Weltenschmiede, #51).
+ */
 export function buildState(
   p: Planet,
   r: ResearchState,
   key: string,
   missing: number,
+  full = false,
+  short = 0,
 ): BuildState {
   if (p.bq?.key === key) return 'running';
   if (missing) return 'missing';
+  return buildWait(p, r, key, full, short);
+}
+
+/** What a building whose requirements are met waits for, if anything. */
+function buildWait(
+  p: Planet,
+  r: ResearchState,
+  key: string,
+  full: boolean,
+  short: number,
+): BuildState {
+  if (full) return 'full';
   if (p.bq) return 'queueBusy';
   if (waitsForYard(p, key)) return 'yardBusy';
   if (waitsForLab(r, key)) return 'labBusy';
-  return 'ready';
+  return short > 0 ? 'energy' : 'ready';
 }
 
 export type ResearchUiState =

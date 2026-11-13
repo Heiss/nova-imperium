@@ -3,6 +3,16 @@
 // names are German: the interface of the game is German.
 import type { Cost, Requirements } from './types.ts';
 
+/**
+ * Energy production a research needs on the planet where it starts, or a
+ * building on its planet: `base` at level 1, times `f` per further level. It
+ * is checked, not consumed (#49, #51).
+ */
+interface EnergyNeed {
+  base: number;
+  f: number;
+}
+
 export interface BuildingDef {
   n: string;
   ab: string;
@@ -12,15 +22,9 @@ export interface BuildingDef {
   /** Long explanation text (issue #63); without it the short `ds` stands in. */
   lt?: string;
   req?: Requirements;
-}
-
-/**
- * Energy production a research needs on the planet where it starts: `base` at
- * level 1, times `f` per further level. It is checked, not consumed (#49).
- */
-interface EnergyNeed {
-  base: number;
-  f: number;
+  energy?: EnergyNeed;
+  /** Fields every level adds to its planet (Weltenschmiede, #51). */
+  fields?: number;
 }
 
 export interface ResearchDef {
@@ -149,6 +153,26 @@ export const BUILD: Record<string, BuildingDef> = {
       },
     },
     lt: 'Zahllose winzige Machina-Konstrukte formen Stahl und Stein schneller als jede Hand.\n\nSo funktioniert es: Jede Stufe verkürzt auf diesem Planeten die Bauzeit von Gebäuden, Schiffen und Verteidigung erneut kräftig, nicht aber die Forschung. Während des Ausbaus nimmt die Schiffsschmiede keine Aufträge an, und er ist erst möglich, wenn sie leer ist.',
+  },
+  // Issue #51, the classic Terraformer. Not in version 1; the classic values
+  // (owner, 2026-11-13).
+  terraformer: {
+    n: 'Weltenschmiede',
+    ab: 'WE',
+    cost: [0, 50000, 100000],
+    f: 2,
+    ds: '+5 Felder pro Stufe. Braucht eine Energieproduktion, verbraucht sie aber nicht.',
+    req: {
+      b: {
+        nanite: 1,
+      },
+      r: {
+        energy: 12,
+      },
+    },
+    energy: { base: 1000, f: 2 },
+    fields: 5,
+    lt: 'Die Weltenschmiede bricht Gebirge, füllt Schluchten und hämmert aus totem Fels neuen Baugrund.\n\nSo funktioniert es: Jede Stufe schafft auf diesem Planeten mehrere neue Felder für Gebäude und belegt selbst eines. Der Planet muss genug Energie erzeugen; verbraucht wird sie nicht, und jede Stufe verlangt mehr.',
   },
   yard: {
     n: 'Orbitale Schiffsschmiede',

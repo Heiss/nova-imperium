@@ -1,4 +1,5 @@
 import { BUILD, MISSION, RES, SHIPS, UNIT } from '../../shared/catalog.ts';
+import { diameterLine } from '../logic/fields.ts';
 import { coords, dt, esc, fmt } from '../logic/format.ts';
 import { fleetEnd, nameOf, ranks, sortFleets } from '../logic/game.ts';
 import type { ClientFleet } from '../logic/types.ts';
@@ -73,6 +74,7 @@ export function overview(v: V): string {
  <table class="kv kv-grow">
  <tr><td>Planet</td><td>${esc(P.name)} <span class="lnk" data-act="rename">(umbenennen)</span></td></tr>
  <tr><td>Position</td><td>${coords(P)}</td></tr><tr><td>Planetentyp</td><td>${planetLook(P).name}</td></tr><tr><td>Temperatur</td><td>ca. ${P.temp - 40}°C bis ${P.temp}°C</td></tr>
+ <tr><td>Durchmesser</td><td>${diameterLine(P, s.cfg)}</td></tr>
  <tr><td>Punkte</td><td>${fmt(s.players[me]?.points)} (Platz ${rk[me] ?? '-'} von ${Object.keys(s.players).length})</td></tr>
  <tr><td>Serverzeit</td><td>${dt(v.now)}</td></tr></table></div></div>
  ${box('Aktivitäten', activities(v))}`;
