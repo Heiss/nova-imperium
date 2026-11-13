@@ -5,6 +5,7 @@
 // there too (issue #49, replaces the home planet rule of #64 D4).
 import { BUILD, RES } from './catalog.ts';
 import { afford, lvlCost, reqMissing } from './economy.ts';
+import { fieldsFull } from './fields.ts';
 import { labUpgrading, waitsForLab } from './lab.ts';
 import { energyNeed, energyShort } from './research.ts';
 import { waitsForYard } from './yard.ts';
@@ -108,7 +109,10 @@ export interface NeedState {
   busy?: string;
   /** Cost of the next level. */
   cost: Cost;
-  /** Energy production the next level needs (Gravitonforschung, #49). */
+  /**
+   * Energy production the next level needs (Gravitonforschung #49,
+   * Weltenschmiede #51).
+   */
   energy?: number;
 }
 
@@ -136,16 +140,17 @@ export function needState(n: Need, pl: Places): NeedState {
   const def = defOf(n.kind, n.key)!;
   const level = n.have + 1;
   const cost = lvlCost(def, level);
-  const research = n.kind === 'r' ? RES[n.key]! : {};
-  const energy = energyNeed(research, level);
+  const energy = energyNeed(def, level);
   const base: NeedState = energy
     ? { ready: false, cost, energy }
     : { ready: false, cost };
   const missing = reqMissing(def, p, pl.research);
   if (missing.length)
     return { ...base, reason: `braucht ${missing.join(', ')}` };
-  const short =
-    energyShort(research, level, p, pl.cfg, pl.research.research) > 0;
+  // Every building level takes a field (#51).
+  if (n.kind === 'b' && fieldsFull(p, pl.cfg))
+    return { ...base, reason: 'Keine freien Felder' };
+  const short = energyShort(def, level, p, pl.cfg, pl.research.research) > 0;
   if (!afford(p, cost) || short)
     return {
       ...base,

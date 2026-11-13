@@ -19,6 +19,8 @@ describe('universe settings', () => {
       startMetal: 500,
       startCrystal: 500,
       startDeuterium: 0,
+      // Added by #51, D4: no extra fields by default.
+      extraFields: 0,
     });
     for (const s of UNIVERSE_SPECS) {
       expect(s.def).toBeGreaterThanOrEqual(s.min);
@@ -54,6 +56,29 @@ describe('universe settings', () => {
     expect(validateUniverse({ ...DEFAULT_UNIVERSE, speed: 'x' }, used).ok).toBe(
       false,
     );
+  });
+  it('take 0 to 100 extra fields per planet (#51, D4)', () => {
+    const spec = UNIVERSE_SPECS.find((s) => s.key === 'extraFields');
+    expect(spec).toEqual({
+      key: 'extraFields',
+      label: 'Zusatzfelder pro Planet',
+      min: 0,
+      max: 100,
+      def: 0,
+    });
+    for (const extraFields of [0, 100])
+      expect(
+        validateUniverse({ ...DEFAULT_UNIVERSE, extraFields }, used).ok,
+      ).toBe(true);
+    expect(
+      validateUniverse({ ...DEFAULT_UNIVERSE, extraFields: 101 }, used),
+    ).toEqual({
+      ok: false,
+      errors: ['Zusatzfelder pro Planet: ganze Zahl von 0 bis 100.'],
+    });
+    expect(
+      validateUniverse({ ...DEFAULT_UNIVERSE, extraFields: -1 }, used).ok,
+    ).toBe(false);
   });
   it('report all errors at once', () => {
     const r = validateUniverse({}, used);

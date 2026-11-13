@@ -13,6 +13,8 @@ export function planet(over: Partial<Planet> = {}): Planet {
     s: 1,
     p: 5,
     temp: 50,
+    diameter: 12800,
+    unlimited: false,
     res: { m: 500, c: 500, d: 0 },
     b: {},
     ships: {},

@@ -85,6 +85,8 @@ export function addPlanet(
     s,
     p,
     temp: 50,
+    diameter: 12800,
+    unlimited: false,
     res: { m: 100000, c: 100000, d: 100000 },
     b: {},
     ships: {},

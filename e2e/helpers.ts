@@ -1,10 +1,16 @@
 import { execFileSync } from 'node:child_process';
+import { randomInt } from 'node:crypto';
 import { expect, type Page } from '@playwright/test';
-import { E2E_ENV } from './env.ts';
+import { E2E_ENV, E2E_MAILBOX, E2E_MAIL_ENV, E2E_MAIL_URL } from './env.ts';
+import { mailsTo } from './mail.ts';
 
-const run = (script: string, args: string[]): string =>
+const run = (
+  script: string,
+  args: string[],
+  env: Record<string, string> = E2E_ENV,
+): string =>
   execFileSync(process.execPath, [script, ...args], {
-    env: { ...process.env, ...E2E_ENV },
+    env: { ...process.env, ...env },
     encoding: 'utf8',
   });
 
@@ -14,6 +20,33 @@ export const cli = (...args: string[]): string =>
 
 export const seed = (data: object): string =>
   run('e2e/seed.ts', [JSON.stringify(data)]);
+
+/** `cli` and `seed` against the second server, the one that sends mails (#68). */
+export const mailCli = (...args: string[]): string =>
+  run('src/server/cli.ts', args, E2E_MAIL_ENV);
+
+export const mailSeed = (data: object): string =>
+  run('e2e/seed.ts', [JSON.stringify(data)], E2E_MAIL_ENV);
+
+/** Waits for a mail to `to` that matches `pattern`; the newest one counts. */
+export async function mail(
+  to: string,
+  pattern: RegExp,
+): Promise<RegExpExecArray> {
+  const found: { match: RegExpExecArray | null } = { match: null };
+  await expect
+    .poll(
+      () => {
+        const texts = mailsTo(E2E_MAILBOX, to).reverse();
+        found.match =
+          texts.map((t) => pattern.exec(t)).find((m) => m !== null) ?? null;
+        return found.match !== null;
+      },
+      { message: `a mail to ${to} with ${pattern}`, timeout: 10000 },
+    )
+    .toBe(true);
+  return found.match!;
+}
 
 export function inviteLink(email: string): string {
   const link = cli('invite', email)
@@ -47,16 +80,23 @@ export function watch(page: Page): { problems: string[] } {
   return { problems };
 }
 
-let count = 0;
+/**
+ * A player name no other test uses: the base (at most 14 characters) and 6
+ * random base-36 characters, at most 20 in all. A counter and the clock
+ * repeated across Playwright workers, which each start the counter anew
+ * (#68: a repeat run invited an address that already existed).
+ */
 export const uniqueName = (base: string): string =>
-  `${base}${++count}${Date.now() % 1000}`.slice(0, 20);
+  `${base.slice(0, 14)}${randomInt(36 ** 6)
+    .toString(36)
+    .padStart(6, '0')}`;
 
 export async function register(
   page: Page,
   name: string,
   password = 'ein-sicheres-testpasswort',
 ): Promise<void> {
-  const email = `${name.toLowerCase()}@example.org`;
+  const email = emailOf(name);
   await page.goto(inviteLink(email));
   await expect(page.locator('#a_email')).toHaveValue(email);
   await page.fill('#a_name', name);
@@ -76,6 +116,61 @@ export async function login(
   await page.click('button[type=submit]');
   await expect(page.locator('h2')).toContainText('Übersicht');
 }
+
+/** The e-mail address the helpers give a player. */
+export const emailOf = (name: string): string =>
+  `${name.toLowerCase()}@example.org`;
+
+/**
+ * Registers on the mail server with the link of the invitation mail. The
+ * server asks for a login afterwards: `loginByCode`.
+ */
+export async function registerByMail(
+  page: Page,
+  name: string,
+  password = 'ein-sicheres-testpasswort',
+): Promise<void> {
+  mailCli('invite', emailOf(name));
+  const [link] = await mail(emailOf(name), /^http:\S+#invite=[\w-]+$/m);
+  await page.goto(link);
+  await page.fill('#a_name', name);
+  await page.fill('#a_pw', password);
+  await page.click('button[type=submit]');
+  await expect(page.locator('.toast').last()).toContainText(
+    'Konto erstellt. Melde dich jetzt an.',
+  );
+}
+
+/** Logs in on the mail server with the password and the code from the mail. */
+export async function loginByCode(
+  page: Page,
+  name: string,
+  password = 'ein-sicheres-testpasswort',
+): Promise<void> {
+  await page.goto(E2E_MAIL_URL);
+  await page.fill('#a_name', name);
+  await page.fill('#a_pw', password);
+  await page.click('button[type=submit]');
+  await expect(page.locator('.auth .hd')).toHaveText('Anmeldecode');
+  const [, code] = await mail(emailOf(name), /Anmeldecode lautet (\d{6})\./);
+  await page.getByLabel('Sechsstelliger Code aus deiner E-Mail').fill(code!);
+  await page.getByRole('button', { name: 'Anmelden' }).click();
+  await expect(page.locator('h2')).toContainText('Übersicht');
+}
+
+/** Selects an own planet by its name in the header. */
+export async function choosePlanet(page: Page, name: string): Promise<void> {
+  const selector = page.getByLabel('Aktiver Planet');
+  const option = selector
+    .locator('option')
+    .filter({ hasText: new RegExp(`^${name} \\[`) });
+  await selector.selectOption((await option.getAttribute('value'))!);
+  await expect(page.locator('#pinfo b').first()).toHaveText(name);
+}
+
+/** The amount of a resource in the bar, as shown. */
+export const stock = (page: Page, label: string) =>
+  page.locator('#resbar .res').filter({ hasText: label }).locator('.v');
 
 /** Views in the phone tab bar; the others are under „Mehr“ (issue #61). */
 const TABS = ['overview', 'buildings', 'fleet', 'messages'];

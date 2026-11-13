@@ -12,6 +12,16 @@ import {
 } from './texts.ts';
 import type { Cost, Requirements } from './types.ts';
 
+/**
+ * Energy production a research needs on the planet where it starts, or a
+ * building on its planet: `base` at level 1, times `f` per further level. It
+ * is checked, not consumed (#49, #51).
+ */
+interface EnergyNeed {
+  base: number;
+  f: number;
+}
+
 export interface BuildingDef {
   n: string;
   ab: string;
@@ -21,15 +31,9 @@ export interface BuildingDef {
   /** Long explanation text (issue #63); without it the short `ds` stands in. */
   lt?: string;
   req?: Requirements;
-}
-
-/**
- * Energy production a research needs on the planet where it starts: `base` at
- * level 1, times `f` per further level. It is checked, not consumed (#49).
- */
-interface EnergyNeed {
-  base: number;
-  f: number;
+  energy?: EnergyNeed;
+  /** Fields every level adds to its planet (Weltenschmiede, #51). */
+  fields?: number;
 }
 
 export interface ResearchDef {
@@ -137,6 +141,23 @@ export const BUILD: Record<string, BuildingDef> = {
         computer: 10,
       },
     },
+  },
+  // Issue #51, the classic Terraformer. Not in version 1; the classic values
+  // (owner, 2026-11-13).
+  terraformer: {
+    ...BUILD_TEXT.terraformer,
+    cost: [0, 50000, 100000],
+    f: 2,
+    req: {
+      b: {
+        nanite: 1,
+      },
+      r: {
+        energy: 12,
+      },
+    },
+    energy: { base: 1000, f: 2 },
+    fields: 5,
   },
   yard: {
     ...BUILD_TEXT.yard,

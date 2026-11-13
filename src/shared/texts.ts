@@ -70,6 +70,12 @@ export const BUILD_TEXT = {
     ds: 'Halbiert die Bauzeit von Gebäuden, Schiffen und Verteidigung pro Stufe.',
     lt: 'Zahllose winzige Machina-Konstrukte formen Stahl und Stein schneller als jede Hand.\n\nSo funktioniert es: Jede Stufe verkürzt auf diesem Planeten die Bauzeit von Gebäuden, Schiffen und Verteidigung erneut kräftig, nicht aber die Forschung. Während des Ausbaus nimmt die Schiffsschmiede keine Aufträge an, und er ist erst möglich, wenn sie leer ist.',
   },
+  terraformer: {
+    n: 'Weltenschmiede',
+    ab: 'WE',
+    ds: '+5 Felder pro Stufe. Braucht eine Energieproduktion, verbraucht sie aber nicht.',
+    lt: 'Die Weltenschmiede bricht Gebirge, füllt Schluchten und hämmert aus totem Fels neuen Baugrund.\n\nSo funktioniert es: Jede Stufe schafft auf diesem Planeten mehrere neue Felder für Gebäude und belegt selbst eines. Der Planet muss genug Energie erzeugen; verbraucht wird sie nicht, und jede Stufe verlangt mehr.',
+  },
   yard: {
     n: 'Orbitale Schiffsschmiede',
     ab: 'OS',

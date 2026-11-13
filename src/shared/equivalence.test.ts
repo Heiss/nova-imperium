@@ -34,6 +34,9 @@ function randomPlanet(): Planet {
     s: 1,
     p: 5,
     temp: ri(-40, 140),
+    // Version 1 knows no fields (#51); settling does not read them.
+    diameter: 12800,
+    unlimited: true,
     res: { m: ri(0, 2e5), c: ri(0, 2e5), d: ri(0, 1e5) },
     b,
     ships: {},

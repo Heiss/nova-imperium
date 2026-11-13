@@ -145,6 +145,15 @@ fleet burnt at the start (`INTEGER NOT NULL DEFAULT 0`; issue #129, see
 [Deploy mission](/features/deploy.md)). Fleets in flight keep their data and
 ships and get 0 (`upgrades/migration-13.test.ts`).
 
+Migration 14 adds the diameter and the field limit of a planet (issue #51,
+see [Planet fields](/features/fields.md)): `planets.diameter` (km, `INTEGER
+NOT NULL DEFAULT 0`) and `planets.unlimited` (`0` or `1`, CHECK, `NOT NULL
+DEFAULT 0`). Every planet that exists at the upgrade gets `unlimited = 1`,
+no field limit until the next round; the home planet (the oldest planet of
+its owner) gets 12,800 km, a colony a diameter drawn with `random()` from
+the field range of its position (16 and above like 15). Other data stay as
+they were (`upgrades/migration-14.test.ts`).
+
 Account deletion runs in one transaction. Foreign-key cascades clear owned game,
 session, reward and push data. The deletion also removes led guilds and their
 memberships, linked audit and inbox records, invitations for the account address
@@ -172,7 +181,7 @@ tests together with an own test for each changing migration).
   existing rows needs its own test `src/server/db/upgrades/migration-<n>.test.ts`
   that checks the data after the upgrade. The decision is made by the effect on
   generated data, not by the SQL text; `ALTER TABLE … ADD COLUMN` counts as a
-  change. Migrations 7, 9, 10, 11 and 13 have such tests; pure `CREATE` migrations need
+  change. Migrations 7, 9, 10, 11, 13 and 14 have such tests; pure `CREATE` migrations need
   none (migration 12 has one anyway, for its CHECK and cascade).
 * **[E]** A self-test proves that the checks find a migration that fails on
   existing data and that the classification tells changes from new tables.

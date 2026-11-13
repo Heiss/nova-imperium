@@ -57,6 +57,7 @@ describe('catalog', () => {
       ...values(O.BUILD),
       nanite: values(C.BUILD).nanite,
       fusion: values(C.BUILD).fusion,
+      terraformer: values(C.BUILD).terraformer,
     });
     expect(values(C.RES)).toEqual({
       ...values(O.RES),
@@ -154,6 +155,35 @@ describe('catalog', () => {
       Object.values(d).map((x) => x.ab),
     );
     expect(all.filter((ab) => ab === 'FS')).toEqual(['FS']);
+  });
+  it('has the Terraformer as Weltenschmiede with the classic values (#51)', () => {
+    expect(C.BUILD.terraformer).toEqual({
+      n: 'Weltenschmiede',
+      ab: 'WE',
+      cost: [0, 50000, 100000],
+      f: 2,
+      ds: '+5 Felder pro Stufe. Braucht eine Energieproduktion, verbraucht sie aber nicht.',
+      lt: LT,
+      req: { b: { nanite: 1 }, r: { energy: 12 } },
+      energy: { base: 1000, f: 2 },
+      fields: 5,
+    });
+    // The buildings page lists it after the Machina-Schwarmhalle.
+    const keys = Object.keys(C.BUILD);
+    expect(keys.indexOf('terraformer')).toBe(keys.indexOf('nanite') + 1);
+    // Only the Weltenschmiede adds fields or needs energy among the buildings.
+    expect(Object.keys(C.BUILD).filter((k) => C.BUILD[k]!.fields)).toEqual([
+      'terraformer',
+    ]);
+    expect(Object.keys(C.BUILD).filter((k) => C.BUILD[k]!.energy)).toEqual([
+      'terraformer',
+    ]);
+    const all = [C.BUILD, C.RES, C.UNIT].flatMap((d) =>
+      Object.entries(d).map(([k, x]) => [k, x.ab] as const),
+    );
+    expect(all.filter(([, a]) => a === 'WE').map(([k]) => k)).toEqual([
+      'terraformer',
+    ]);
   });
   it('has Ionen-, Plasmatechnik, Gravitonforschung and IFN with the classic values (#49)', () => {
     expect(C.RES.ion).toMatchObject({

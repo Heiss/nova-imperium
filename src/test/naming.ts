@@ -22,6 +22,7 @@ export const NAMES: Readonly<
   fusion: { classic: 'Fusionskraftwerk', name: 'Fusionssanktum', ab: 'FS' },
   robot: { classic: 'Roboterfabrik', name: 'Servitorenschmiede', ab: 'SF' },
   nanite: { classic: 'Nanitenfabrik', name: 'Machina-Schwarmhalle', ab: 'MS' },
+  terraformer: { classic: 'Terraformer', name: 'Weltenschmiede', ab: 'WE' },
   yard: {
     classic: 'Raumschiffwerft',
     name: 'Orbitale Schiffsschmiede',

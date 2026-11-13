@@ -39,6 +39,10 @@ export interface Planet extends Coords {
   owner: string;
   name: string;
   temp: number;
+  /** Diameter in km; the fields follow from it (#51). */
+  diameter: number;
+  /** A planet from before the fields (#51): no field limit until a new round. */
+  unlimited: boolean;
   res: Resources;
   b: Levels;
   ships: Levels;
@@ -95,4 +99,6 @@ export interface Universe {
   startMetal: number;
   startCrystal: number;
   startDeuterium: number;
+  /** Fields added to every planet (#51). */
+  extraFields: number;
 }

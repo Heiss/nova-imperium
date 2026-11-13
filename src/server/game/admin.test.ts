@@ -87,6 +87,32 @@ describe('admin', () => {
     expect(ctx.store.planetOfUser(b.id)).not.toBeNull();
     expect(ctx.store.reports(b.id)).toEqual([]);
   });
+
+  it('a new round ends the planets without a field limit (#51)', () => {
+    const ctx = testCtx();
+    const a = addUser(ctx, 'Anna', { admin: true });
+    addPlanet(ctx, a.id, { unlimited: true, diameter: 15000 });
+    reset(ctx, a, {});
+    expect(ctx.store.planetOfUser(a.id)).toMatchObject({
+      diameter: 12800,
+      unlimited: false,
+    });
+  });
+
+  it('saves the extra fields per planet with the other settings (#51)', () => {
+    const ctx = testCtx();
+    const u = addUser(ctx, 'Anna', { admin: true });
+    saveSettings(ctx, u, {
+      settings: { ...DEFAULT_UNIVERSE, extraFields: 30 },
+    });
+    expect(ctx.store.universe().extraFields).toBe(30);
+    expect(() =>
+      saveSettings(ctx, u, {
+        settings: { ...DEFAULT_UNIVERSE, extraFields: 101 },
+      }),
+    ).toThrow('Zusatzfelder pro Planet: ganze Zahl von 0 bis 100.');
+    expect(ctx.store.universe().extraFields).toBe(30);
+  });
 });
 
 describe('placing planets', () => {
@@ -107,6 +133,9 @@ describe('placing planets', () => {
       res: { m: 7, c: 8, d: 9 },
       t: ctx.now(),
       created: ctx.now(),
+      // A home planet has 163 fields (#51).
+      diameter: 12800,
+      unlimited: false,
     });
     expect(p.p).toBeGreaterThanOrEqual(4);
     expect(p.p).toBeLessThanOrEqual(12);

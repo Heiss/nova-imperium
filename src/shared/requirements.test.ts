@@ -256,6 +256,51 @@ describe('need state', () => {
     ).toBe('zu wenig Energie');
   });
 
+  it('names the missing energy of the Weltenschmiede (#51)', () => {
+    const forge = { ...need('terraformer', 'b'), have: 0 };
+    const rich = { m: 1e6, c: 1e6, d: 1e6 };
+    const research = R({ energy: 12 });
+    // Solar level 13 makes 897 energy, level 14 makes 1,063.
+    const dim = colony({ b: { nanite: 1, solar: 13 }, res: rich });
+    expect(needState(forge, places(dim, research))).toEqual({
+      ready: false,
+      reason: 'zu wenig Energie',
+      cost: [0, 50000, 100000],
+      energy: 1000,
+    });
+    const lit = colony({ b: { nanite: 1, solar: 14 }, res: rich });
+    expect(needState(forge, places(lit, research))).toEqual({
+      ready: true,
+      cost: [0, 50000, 100000],
+      energy: 1000,
+    });
+    expect(
+      needState({ ...forge, have: 1 }, places(lit, research)),
+    ).toMatchObject({ ready: false, reason: 'zu wenig Energie', energy: 2000 });
+  });
+
+  it('refuses a building on a planet without a free field (#51)', () => {
+    const rich = { m: 1e6, c: 1e6, d: 1e6 };
+    const full = colony({ diameter: 10000, b: { metal: 100 }, res: rich });
+    expect(needState(need('robot', 'b'), places(full, R()))).toEqual({
+      ready: false,
+      reason: 'Keine freien Felder',
+      cost: [400, 120, 200],
+    });
+    // The requirements come first.
+    expect(needState(need('yard', 'b'), places(full, R())).reason).toBe(
+      'braucht Servitorenschmiede (Stufe 2)',
+    );
+    // Research takes no field.
+    const lab = { ...full, b: { metal: 99, lab: 1 } };
+    expect(needState(need('energy', 'r'), places(lab, R())).ready).toBe(true);
+    // One free field is enough; a planet from before the fields has no limit.
+    const free = { ...full, b: { metal: 99 } };
+    expect(needState(need('robot', 'b'), places(free, R())).ready).toBe(true);
+    const old = { ...full, unlimited: true };
+    expect(needState(need('robot', 'b'), places(old, R())).ready).toBe(true);
+  });
+
   it('stays ready but busy while a queue is used', () => {
     const rich = { m: 1e6, c: 1e6, d: 1e6 };
     const q = {
