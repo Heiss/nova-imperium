@@ -17,8 +17,10 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 * **[E]** Release: a Git tag in CalVer `YY.M.MICRO` (for example `26.11.0`,
   no `v`). The tag workflow verifies a successful CI push run for the exact
   tagged commit. It then builds the image for linux/amd64 and linux/arm64 and
-  pushes it to `ghcr.io/heiss/nova-imperium:<tag>` and `:latest`, and a GitHub
-  release is created. "Run workflow" by hand is a dry run.
+  pushes it to `ghcr.io/heiss/nova-imperium:<tag>`; its job „latest and
+  stable“ points `:latest` and `:stable` at the image of the newest release
+  tag (see below), and a GitHub release is created. "Run workflow" by hand is
+  a dry run.
 
 ## Release pull request (owner, 2026-11-12)
 

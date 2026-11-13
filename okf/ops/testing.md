@@ -10,8 +10,17 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 # Decisions
 
 * **[E]** The rules of muffelblog apply (round 1: "exactly muffelblog, at
-  once"): the whole suite runs on every pull request; only a green "CI Gate"
-  goes to review. No test is skipped or disabled to make the CI green.
+  once"): only a green "CI Gate" goes to review. No test is skipped or
+  disabled to make the CI green.
+* **[E]** Every push to `main` and `hotfix/**` runs the full suite; a pull
+  request runs what its changes need (owner, 2026-11-12): a change of
+  documentation only (`okf/`, `docs/`, `changes/`, `website/`, Markdown
+  at the top level) skips the code checks (lint, unit, E2E and mutation tests); the
+  Docker image, Trivy and the Compose stack with the upgrade test run only
+  when the image can change, and always in a release pull request and in a
+  pull request into `hotfix/**` (`.github/workflows/ci.yml`). This replaces
+  the earlier rule of round 1 that the whole suite runs on every pull
+  request.
 * **[E]** Unit tests with Vitest; tests come first for new logic and check
   behavior, not markup.
 * **[E]** E2E tests with Playwright in the browser against the real server and
@@ -76,9 +85,14 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   change (owner, 2026-11-11): actionlint (syntax, expressions, shell) and
   zizmor (security). Every action is pinned to a commit hash with the version
   as a comment; Renovate updates both (`helpers:pinGitHubActionDigests`).
-  Checkouts keep no credentials, except the tag workflow, which pushes the
-  tag. Its `workflow_run` trigger is accepted on purpose: it runs only after
-  a successful CI push run on `main` and checks out `main`.
+  Checkouts keep no credentials, except where a job pushes with the release
+  App's token: `tag.yml` (`scripts/release.sh` pushes the tag),
+  `release-pr.yml` (`scripts/release-pr.sh` pushes `release/<branch>`) and
+  the hotfix job of `security-hotfix.yml` (it pushes the hotfix branches).
+  The `workflow_run` trigger of `tag.yml` is accepted on purpose: it runs
+  only after a successful CI push run on `main` or `hotfix/**` of this
+  repository and checks out the head branch of that run (`main` or
+  `hotfix/**`), never pull request code.
 * **[E]** Code hygiene blocks in the job „Lint, types, unit tests …“
   (owner, 2026-11-11): knip (`knip.json`: no unused files, exports or
   dependencies), jscpd (`.jscpd.json`: no copied block of 50 tokens or more
@@ -93,7 +107,8 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   request. First case: the sample token of `src/server/error-log.test.ts`
   in commit f45319c (#126, owner, 2026-11-12).
 * **[E]** Security gates: gitleaks over the whole history, `pnpm audit --prod`
-  (high blocks), CodeQL `security-extended` (severity ≥ 7.0 blocks), Trivy on
+  (high blocks), CodeQL `security-extended` (severity ≥ 7.0 and every result of level
+  „error“ block, `.github/scripts/codeql-gate.mjs`), Trivy on
   the image (holes with a fix: in a release pull request, a pull request into
   and a push to `hotfix/**` high and critical block; other pull requests
   block on the critical holes they bring in, compared with the image of the
