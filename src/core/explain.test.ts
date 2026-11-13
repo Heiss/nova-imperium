@@ -7,6 +7,7 @@ import {
   isExplainMode,
   longText,
 } from './explain.ts';
+import { text } from './text.ts';
 
 describe('explanation display modes (issue #63)', () => {
   it('are always, the (?) icon and hidden; the icon is the default (D2)', () => {
@@ -32,11 +33,11 @@ describe('long text of a catalog entry', () => {
   });
 
   it('is the long text, not the short ds, for the catalog entries (#94)', () => {
-    expect(longText(BUILD.metal!)).toBe(BUILD.metal!.lt);
-    expect(longText(RES.spy!)).toBe(RES.spy!.lt);
-    expect(longText(SHIPS.probe!)).toBe(SHIPS.probe!.lt);
-    expect(longText(DEF.rl!)).toBe(DEF.rl!.lt);
-    expect(BUILD.metal!.lt).not.toBe(BUILD.metal!.ds);
+    expect(longText(text('metal')!)).toBe(text('metal')!.lt);
+    expect(longText(text('spy')!)).toBe(text('spy')!.lt);
+    expect(longText(text('probe')!)).toBe(text('probe')!.lt);
+    expect(longText(text('rl')!)).toBe(text('rl')!.lt);
+    expect(text('metal')!.lt).not.toBe(text('metal')!.ds);
   });
 
   it('is missing for an entry without any text', () => {
@@ -55,9 +56,7 @@ const LATER: readonly string[] = [];
 
 const CATALOG = { BUILD, RES, SHIPS, DEF } as const;
 const entries = Object.entries(CATALOG).flatMap(([part, defs]) =>
-  Object.entries(defs as Record<string, { lt?: string; ds?: string }>).map(
-    ([key, def]) => ({ part, key, def }),
-  ),
+  Object.keys(defs).map((key) => ({ part, key, def: text(key)! })),
 );
 
 /**

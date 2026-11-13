@@ -8,21 +8,15 @@
 // its other fields unchanged in `def`. This file builds the tables of the
 // game from them, in the order of the game (owner, 2026-11-13).
 //
-// The names and texts are German, the interface of the game is German; they
-// live in texts.ts, which is not mutation-tested, and each entry gets the
-// texts of its key (owner, 2026-11-12, #131).
+// The display texts are not here: each entry has them in its own
+// src/features/<key>/texts.de.ts, read through `text(key)` of text.ts
+// (owner, 2026-11-13, #113). The mission names are in texts.ts (#131).
 import { ENTRIES } from '../features/index.gen.ts';
 import type { Consumes } from './components/consumes.ts';
 import type { Leveled } from './components/leveled.ts';
 import type { Produces } from './components/produces.ts';
 import type { Storage } from './components/storage.ts';
-import {
-  BUILD_TEXT,
-  DEF_TEXT,
-  MISSION_TEXT,
-  RES_TEXT,
-  SHIP_TEXT,
-} from './texts.ts';
+import { MISSION_TEXT } from './texts.ts';
 import type { Cost, Requirements } from './types.ts';
 
 /**
@@ -36,12 +30,7 @@ interface EnergyNeed {
 }
 
 export interface BuildingDef extends Leveled {
-  n: string;
-  ab: string;
   f: number;
-  ds: string;
-  /** Long explanation text (issue #63); without it the short `ds` stands in. */
-  lt?: string;
   req?: Requirements;
   energy?: EnergyNeed;
   /** Fields every level adds to its planet (Weltenschmiede, #51). */
@@ -49,11 +38,6 @@ export interface BuildingDef extends Leveled {
 }
 
 export interface ResearchDef extends Leveled {
-  n: string;
-  ab: string;
-  ds: string;
-  /** Long explanation text (issue #63); without it the short `ds` stands in. */
-  lt?: string;
   req: Requirements;
   energy?: EnergyNeed;
 }
@@ -61,16 +45,11 @@ export interface ResearchDef extends Leveled {
 export type DriveKey = 'comb' | 'impulse' | 'hdrive';
 
 interface UnitDefBase {
-  n: string;
-  ab: string;
   cost: Cost;
   atk: number;
   sh: number;
   req: Requirements;
   rf?: Record<string, number>;
-  ds?: string;
-  /** Long explanation text (issue #63); without it the short `ds` stands in. */
-  lt?: string;
 }
 
 /**
@@ -99,17 +78,14 @@ export interface DefenseDef extends UnitDefBase {
 }
 export type UnitDef = ShipDef | DefenseDef;
 
-/** The display texts; they come from texts.ts by the key of the entry. */
-type Texts = 'n' | 'ab' | 'ds' | 'lt';
-
-/** The fields of a building besides its texts and its `leveled` component. */
-export type BuildingFields = Omit<BuildingDef, Texts | keyof Leveled>;
-/** The fields of a research besides its texts and its `leveled` component. */
-export type ResearchFields = Omit<ResearchDef, Texts | keyof Leveled>;
-/** The fields of a ship besides its texts. */
-export type ShipFields = Omit<ShipDef, Texts>;
-/** The fields of a defense besides its texts. */
-export type DefenseFields = Omit<DefenseDef, Texts>;
+/** The fields of a building besides its `leveled` component. */
+export type BuildingFields = Omit<BuildingDef, keyof Leveled>;
+/** The fields of a research besides its `leveled` component. */
+export type ResearchFields = Omit<ResearchDef, keyof Leveled>;
+/** The fields of a ship. */
+export type ShipFields = ShipDef;
+/** The fields of a defense. */
+export type DefenseFields = DefenseDef;
 
 /** The production components; every entry that consumes also produces. */
 interface Producing {
@@ -152,14 +128,13 @@ const ofKind = <K extends Entry['kind']>(
       e[1].kind === kind,
   );
 
-/** A table of the game: the texts of the key, then the values of the entry. */
+/** A table of the game: a copy of the values of each entry of a kind. */
 const table = <T, K extends Entry['kind']>(
   kind: K,
-  texts: Record<string, object>,
   values: (e: Extract<Entry, { kind: K }>) => object,
 ): Record<string, T> =>
   Object.fromEntries(
-    ofKind(kind).map(([key, e]) => [key, { ...texts[key], ...values(e) } as T]),
+    ofKind(kind).map(([key, e]) => [key, { ...values(e) } as T]),
   );
 
 const levels = (e: { leveled: Leveled; def?: object }): object => ({
@@ -167,18 +142,10 @@ const levels = (e: { leveled: Leveled; def?: object }): object => ({
   ...e.def,
 });
 
-export const BUILD = table<BuildingDef, 'building'>(
-  'building',
-  BUILD_TEXT,
-  levels,
-);
-export const RES = table<ResearchDef, 'research'>('research', RES_TEXT, levels);
-export const SHIPS = table<ShipDef, 'ship'>('ship', SHIP_TEXT, (e) => e.def);
-export const DEF = table<DefenseDef, 'defense'>(
-  'defense',
-  DEF_TEXT,
-  (e) => e.def,
-);
+export const BUILD = table<BuildingDef, 'building'>('building', levels);
+export const RES = table<ResearchDef, 'research'>('research', levels);
+export const SHIPS = table<ShipDef, 'ship'>('ship', (e) => e.def);
+export const DEF = table<DefenseDef, 'defense'>('defense', (e) => e.def);
 
 export const UNIT: Record<string, UnitDef> = { ...SHIPS, ...DEF };
 
