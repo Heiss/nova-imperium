@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_EXPLAIN } from '../../../shared/explain.ts';
+import { DEFAULT_EXPLAIN } from '../../../core/explain.ts';
 import { databaseAt } from '../../../test/migrations.ts';
 import { migrate } from '../database.ts';
 import { MIGRATIONS } from '../schema.ts';

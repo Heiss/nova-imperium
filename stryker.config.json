@@ -4,7 +4,8 @@
   "plugins": ["@stryker-mutator/vitest-runner"],
   "vitest": { "configFile": "vitest.config.ts" },
   "mutate": [
-    "src/shared/**/*.ts",
+    "src/core/**/*.ts",
+    "src/features/**/*.ts",
     "src/server/**/*.ts",
     "src/client/logic/**/*.ts",
     "!**/*.test.ts",
@@ -12,7 +13,8 @@
     "!src/server/cli.ts",
     "!src/server/db/migrate-worker.ts",
     "!src/server/test-helpers.ts",
-    "!src/shared/texts.ts",
+    "!src/core/texts.ts",
+    "!src/features/index.gen.ts",
     "!src/test/**"
   ],
   "coverageAnalysis": "perTest",

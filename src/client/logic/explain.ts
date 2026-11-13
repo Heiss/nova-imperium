@@ -6,7 +6,7 @@ import {
   type ExplainMode,
   isExplainMode,
   longText,
-} from '../../shared/explain.ts';
+} from '../../core/explain.ts';
 import { esc } from './format.ts';
 
 /** Labels of the option „Erklärungstexte“ (drafts of the issue, [V]). */

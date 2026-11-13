@@ -131,7 +131,7 @@ Done by hand on the branch `claude/grimdark-naming` (2026-11-12), with the
 tables above as data; keys, game values, database columns, API fields and
 stored mission ids stay.
 
-* Catalog (`src/shared/catalog.ts`): `n` and `ab` of all 48 entries,
+* Catalog (`src/core/catalog.ts`): `n` and `ab` of all 48 entries,
   `MISSION` display texts (the stored ids are the keys; `fleet-actions.ts`
   checks the key, `overview.ts` and the fleet form show the value).
 * Resources everywhere in the interface: resource bar, costs, cargo,
@@ -249,11 +249,11 @@ the names:
   Gravitonen-Mysterium); „Eine Flotte fliegt so schnell wie ihr langsamstes
   Schiff“ only in the drive texts.
 * **[E]** All 48 texts, the field `lt` of each entry in
-  `src/shared/catalog.ts`, written again under these limits and confirmed
+  `src/core/catalog.ts`, written again under these limits and confirmed
   by the owner (2026-11-12).
 * Rapid fire is called „Schnellfeuer“ (explained once, in the Frachtläufer
   text); the rebuilt defense is „ein großer Teil“, for a dome „oft“.
-* `src/shared/explain.test.ts` checks: every entry has a text (the list
+* `src/core/explain.test.ts` checks: every entry has a text (the list
   `LATER` is empty and may only shrink); exactly two paragraphs, the lore
   one sentence, the second starting with „So funktioniert es:“ and at most
   three sentences, at most 350 characters; no digit; plain text, other

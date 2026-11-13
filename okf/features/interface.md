@@ -53,7 +53,7 @@ generated: { by: claude-code/web, at: 2026-11-10T19:00:00Z }
 * **[E]** Slots 16 to 20 (universes with more than 15 positions) are gas
   giants (owner decision).
 * **[E]** Existing planets get their type by the rule (D4.1). The type is a
-  pure function of the coordinates (`src/shared/planet-type.ts`), so no
+  pure function of the coordinates (`src/core/planet-type.ts`), so no
   stored column and no migration are needed.
 * **[V]** Variant = (galaxy + system + slot) mod 3, so neighbours differ.
 

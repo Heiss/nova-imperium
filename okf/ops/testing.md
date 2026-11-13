@@ -96,12 +96,12 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   file score must match (owner, 2026-11-12).
 * **[E]** Display texts are not mutation-tested (owner, 2026-11-12, #131):
   the names, abbreviations, short and long texts of the catalog and the
-  mission names live in `src/shared/texts.ts`, which Stryker leaves out
+  mission names live in `src/core/texts.ts`, which Stryker leaves out
   (`stryker.config.json`); it has no floor in `mutation-standard.json`.
   Each text was a static mutant that reloaded every test, most of the time
   of a run. Their exactness is guarded by the catalog, naming and
   explanation tests (`catalog.test.ts`, `src/test/naming.test.ts`,
-  `explain.test.ts`) and `src/shared/texts.test.ts` (every catalog entry
+  `explain.test.ts`) and `src/core/texts.test.ts` (every catalog entry
   has its texts, no text without an entry). Game values stay mutated in
   `catalog.ts`. See [Design patterns](/architecture/patterns.md).
 * **[E]** Mutation standard per file (owner, 2026-11-11,
@@ -132,10 +132,12 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   (owner, 2026-11-11): knip (`knip.json`: no unused files, exports or
   dependencies), jscpd (`.jscpd.json`: no copied block of 50 tokens or more
   in production code; tests, E2E and version 1 are excluded) and
-  dependency-cruiser (`.dependency-cruiser.cjs`: `src/shared` imports neither
+  dependency-cruiser (`.dependency-cruiser.cjs`: `src/core` imports neither
   server nor client, the client never the server and the reverse, production
-  code no test helpers, server and shared code no dev dependencies, no
-  circular imports at runtime).
+  code no test helpers, server, core and feature code no dev dependencies,
+  no circular imports at runtime; the boundaries of the feature folders,
+  see [Design patterns](/architecture/patterns.md), section 11, tested by
+  `src/test/boundaries.test.ts` on a small project per rule).
 * **[E]** A gitleaks finding that is no secret (a sample value in a test)
   is removed from the code; when it stays in the history, its fingerprint
   goes into `.gitleaksignore` (`commit:file:rule:line`), named in the pull
@@ -162,7 +164,7 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 
 | Kind | Where | What it proves |
 |---|---|---|
-| Equivalence | `src/shared/equivalence.test.ts`, `catalog.test.ts` | The TypeScript rules compute exactly what version 1 computed: 400 random cases with a fixed seed for production, settling, costs, times, flights, and battles with the same random stream; the catalog is identical. Version 1 is frozen in `src/test/legacy/`. The pictures of version 1 were replaced by the icon set (issue #61, D5); `src/client/logic/icons.test.ts` checks that every catalog entry has an existing icon. |
+| Equivalence | `src/core/equivalence.test.ts`, `catalog.test.ts` | The TypeScript rules compute exactly what version 1 computed: 400 random cases with a fixed seed for production, settling, costs, times, flights, and battles with the same random stream; the catalog is identical. Version 1 is frozen in `src/test/legacy/`. The pictures of version 1 were replaced by the icon set (issue #61, D5); `src/client/logic/icons.test.ts` checks that every catalog entry has an existing icon. |
 | Unit | `src/**/*.test.ts` | Rules, store (real SQLite in memory), actions, arrivals, admin, accounts, configuration, mail, operator commands, HTTP API (a real server on a free port), client logic. |
 | Upgrade | `src/server/db/migrations.property.test.ts`, `src/server/db/upgrades/` | Every migration runs on generated valid data of the version before (100 per pull request, 1000 nightly with a random seed); changing migrations have their own upgrade test. |
 | Sync | `src/server/docs.test.ts`, `src/server/http/security.test.ts` | Every setting is in the docs, `.env.example` and `compose.yaml`; links resolve; the Caddyfile sends the same security headers as the server. |
@@ -247,7 +249,7 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   (`gh workflow run mutation.yml --ref main` before the merge). The gate
   log lists every file with its counts; Stryker's table of the unsharded run
   shows the same counts.
-* **[V]** Text module (#131): `src/shared/texts.ts` exports `BUILD_TEXT`,
+* **[V]** Text module (#131): `src/core/texts.ts` exports `BUILD_TEXT`,
   `RES_TEXT`, `SHIP_TEXT`, `DEF_TEXT` (`n`, `ab`, `ds`, `lt` keyed by the
   entry key) and `MISSION_TEXT`; every catalog entry starts with
   `...BUILD_TEXT.<key>` and so on, `MISSION` takes its values from
@@ -260,12 +262,12 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 
 # Scope of coverage and mutation
 
-* **[V]** Measured: `src/shared`, `src/server`, `src/client/logic`. Not
+* **[V]** Measured: `src/core`, `src/server`, `src/client/logic`. Not
   measured, like the Astro templates in muffelblog: the HTML templates
   (`src/client/views`), the browser glue
   (`src/client/main.ts`) and the process entry points (`main.ts`, `cli.ts`).
   The E2E suite and the Compose job run them.
-* **[E]** Not mutated: the display texts in `src/shared/texts.ts` (see the
+* **[E]** Not mutated: the display texts in `src/core/texts.ts` (see the
   decision above); they count for the coverage.
 
 # Level at the introduction (2026-11-06)

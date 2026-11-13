@@ -1,6 +1,6 @@
-import { BUILD, DEF, RES, SHIPS, UNIT } from '../../shared/catalog.ts';
-import { countUnits } from '../../shared/flight.ts';
-import type { Coords, Levels, Resources } from '../../shared/types.ts';
+import { BUILD, DEF, RES, SHIPS, UNIT } from '../../core/catalog.ts';
+import { countUnits } from '../../core/flight.ts';
+import type { Coords, Levels, Resources } from '../../core/types.ts';
 import { coords, dt, esc, fmt, resLine, techLine } from '../logic/format.ts';
 import { newestFirst } from '../logic/game.ts';
 import { updateMessageHTML } from '../logic/news.ts';

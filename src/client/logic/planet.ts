@@ -5,8 +5,8 @@ import {
   type PlanetType,
   planetType,
   planetVariant,
-} from '../../shared/planet-type.ts';
-import type { Coords } from '../../shared/types.ts';
+} from '../../core/planet-type.ts';
+import type { Coords } from '../../core/types.ts';
 
 export interface PlanetLook {
   type: PlanetType;

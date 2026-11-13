@@ -1,5 +1,5 @@
-import { MISSION } from '../../shared/catalog.ts';
-import { pid } from '../../shared/flight.ts';
+import { MISSION } from '../../core/catalog.ts';
+import { pid } from '../../core/flight.ts';
 import { esc, fmt } from '../logic/format.ts';
 import { isProtected, nameOf, ranks } from '../logic/game.ts';
 import { planetHTML, type V } from './common.ts';

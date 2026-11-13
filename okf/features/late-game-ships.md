@@ -29,7 +29,7 @@ All values are the classic ones on owiki.de, confirmed by the owner
   +20 % per Impulstriebwerk level; from Hyperraumantrieb 8 with the
   Hyperraumantrieb, base speed 5,000, +30 % per Hyperraumantrieb level. The
   drive becomes a function of the player's research (`ShipDef.drive`,
-  `shipSpeed()` in `src/shared/flight.ts`).
+  `shipSpeed()` in `src/core/flight.ts`).
 * **[E]** Rapid fire, classic:
   - Schlachtkreuzer against Kleiner Transporter 3, Großer Transporter 3,
     Schwerer Jäger 4, Kreuzer 4, Schlachtschiff 7, Spionagesonde 5,
@@ -68,10 +68,10 @@ All values are the classic ones on owiki.de, confirmed by the owner
 # Schlachtkreuzer and Zerstörer in the code
 
 * Catalog: `SHIPS.bc` (Schlachtkreuzer) and `SHIPS.dr` (Zerstörer) in
-  `src/shared/catalog.ts`, between the Schlachtschiff and the Spionagesonde.
-  Both fly with `drive: 'hdrive'`; `shipSpeed()` in `src/shared/flight.ts`
+  `src/core/catalog.ts`, between the Schlachtschiff and the Spionagesonde.
+  Both fly with `drive: 'hdrive'`; `shipSpeed()` in `src/core/flight.ts`
   adds 30 % per Hyperraumantrieb level. Hull, shield and attack come from
-  `buildSide()` in `src/shared/battle.ts` (hull 7,000 and 11,000 before
+  `buildSide()` in `src/core/battle.ts` (hull 7,000 and 11,000 before
   Raumschiffpanzerung); the shipyard shows the structure (M + K).
 * Rapid fire in `rf`: `bc` against `sc` 3, `lc` 3, `hf` 4, `cr` 4, `bs` 7;
   `dr` against `ll` 10, `bc` 2. The 5 against the probe is the general rule
@@ -79,14 +79,14 @@ All values are the classic ones on owiki.de, confirmed by the owner
   its 5 by the general rule of #96; the Todesstern values came with #60
   (see „Todesstern in the code“).
 * Points: the cost counts like for every unit (`src/server/game/points.ts`);
-  achievements per ship come automatically (`src/shared/achievements.ts`).
+  achievements per ship come automatically (`src/core/achievements.ts`).
 * **[V]** Keys `bc` and `dr`; abbreviations `SK` and `ZE` (unique among all
   `ab` values); descriptions „Schnell und stark gegen Transporter, Kreuzer
   und Schlachtschiffe.“ and „Schweres Kriegsschiff – stark gegen
   Lasergeschütze und Schlachtkreuzer.“ (the first ships with a `ds`).
 * Icons `battlecruiser.svg` and `destroyer.svg` from the interface v2 set in
   `src/client/static/icons/ships/`, mapped in `src/client/logic/icons.ts`.
-* Tests: `src/shared/catalog.test.ts` (values, version 1 equivalence with the
+* Tests: `src/core/catalog.test.ts` (values, version 1 equivalence with the
   new keys added like `colony`), `battle.test.ts` (hull, tech bonus, rapid
   fire both ways), `flight.test.ts` (speed, fuel, cargo), `economy.test.ts`
   (`reqMissing`), `src/server/game/admin.test.ts` (points),
@@ -95,11 +95,11 @@ All values are the classic ones on owiki.de, confirmed by the owner
 
 # Bomber in the code
 
-* Catalog: `SHIPS.bb` (Bomber) in `src/shared/catalog.ts`, after the
+* Catalog: `SHIPS.bb` (Bomber) in `src/core/catalog.ts`, after the
   Zerstörer. Base drive `impulse` with speed 4,000; `drives` lists the
   switch `{ drive: 'hdrive', speed: 5,000, from: { research: 'hdrive',
   level: 8 } }`. Requires Werft 8, Impulstriebwerk 6, Plasmatechnik 5.
-* Drive: `activeDrive()` in `src/shared/flight.ts` returns the base drive or
+* Drive: `activeDrive()` in `src/core/flight.ts` returns the base drive or
   the last entry of `drives` whose research level is reached; `shipSpeed()`,
   and with it `fleetSpeed()`, flight time and the fleet view, use it. Ships
   without `drives` keep their single drive, so the version 1 equivalence is
@@ -124,7 +124,7 @@ All values are the classic ones on owiki.de, confirmed by the owner
   fleet view shows the current speed.
 * Icon `bomber.svg` from the interface v2 set in
   `src/client/static/icons/ships/`, mapped in `src/client/logic/icons.ts`.
-* Tests: `src/shared/catalog.test.ts` (values, order, version 1 equivalence
+* Tests: `src/core/catalog.test.ts` (values, order, version 1 equivalence
   with `bb` added), `battle.test.ts` (hull, tech bonus, rapid fire both ways,
   none against the Gaußkanone), `flight.test.ts` (speed below and from
   Hyperraumantrieb 8, mixed fleets, fuel, cargo), `economy.test.ts`
@@ -134,11 +134,11 @@ All values are the classic ones on owiki.de, confirmed by the owner
 
 # Todesstern in the code
 
-* Catalog: `SHIPS.dstar` (Todesstern) in `src/shared/catalog.ts`, after the
+* Catalog: `SHIPS.dstar` (Todesstern) in `src/core/catalog.ts`, after the
   Bomber, so the Werft lists it last before the Spionagesonde and the
   Solarsatellit. It flies with `drive: 'hdrive'`, base speed 100: 310 at
   Hyperraumantrieb 7, the least it is built with (`shipSpeed()` in
-  `src/shared/flight.ts`); a fleet with a Todesstern flies at its speed.
+  `src/core/flight.ts`); a fleet with a Todesstern flies at its speed.
   Fuel 1 per ship adds next to nothing; `fuelFor()` keeps its minimum of 1.
   Requires Werft 12, Hyperraumtechnik 6, Hyperraumantrieb 7,
   Gravitonforschung 1 (`graviton` of #49).
@@ -164,7 +164,7 @@ All values are the classic ones on owiki.de, confirmed by the owner
   Schnellfeuer.“
 * Icon `deathstar.svg` from the interface v2 set in
   `src/client/static/icons/ships/`, mapped in `src/client/logic/icons.ts`.
-* Tests: `src/shared/catalog.test.ts` (values, order, requirements and
+* Tests: `src/core/catalog.test.ts` (values, order, requirements and
   rapid fire targets exist, none against it, version 1 equivalence with
   `dstar` added), `battle.test.ts` (hull, tech bonus, rapid fire against
   every other unit, 1,250 over the general 5, none against it, bouncing

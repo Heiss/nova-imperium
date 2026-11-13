@@ -89,8 +89,8 @@ die Werft, solange sie ausgebaut wird.
   <version>:“. `CHANGELOG.md` is never edited by hand.
 
 The CI job „Changelog fragments“ (`scripts/changelog.ts check`) requires a
-fragment when a pull request changes `src/client`, `src/shared` or
-`src/server/game`, unless the pull request carries the label
+fragment when a pull request changes `src/client`, `src/core`,
+`src/features` or `src/server/game`, unless the pull request carries the label
 **`kein-changelog`** – for refactoring, tests, tooling, docs and everything
 else players cannot notice. It also checks the form of every fragment. The
 release pull request turns the fragments into a section of `CHANGELOG.md`
@@ -108,14 +108,18 @@ release pull request turns the fragments into a section of `CHANGELOG.md`
   length rule (`eslint.config.js`).
 - **knip** finds unused files, exports and dependencies (`knip.json`),
   **jscpd** copied blocks of 50 tokens or more in production code
-  (`.jscpd.json`), **dependency-cruiser** forbidden imports: `src/shared`
-  imports neither server nor client, the client never the server and the
-  reverse, production code no test helpers, server and shared code no dev
-  dependencies, no circular imports (`.dependency-cruiser.cjs`).
+  (`.jscpd.json`), **dependency-cruiser** forbidden imports: `src/core`
+  imports neither server nor client and sees the features only through the
+  generated index, a feature imports no other feature and stays pure except
+  its `*.server.ts` parts, which only the server and tests import, the
+  client never the server and the reverse, production code no test helpers,
+  server, core and feature code no dev dependencies, no circular imports
+  (`.dependency-cruiser.cjs`).
 - **Coverage** of at least 90 % of the lines and 85 % of the branches
   (`vitest.config.ts`); a mutation score of at least 80 %
   (`stryker.config.json`).
-- **Architecture**: the rules of the game live once in `src/shared`; see
+- **Architecture**: the rules of the game live once in `src/core`, one folder
+  per catalog entry and mission in `src/features`; see
   [System architecture](/okf/architecture/system.md) and
   [Design patterns](/okf/architecture/patterns.md).
 

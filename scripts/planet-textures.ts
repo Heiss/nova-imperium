@@ -4,11 +4,8 @@
 // Run: node scripts/planet-textures.ts
 import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import {
-  PLANET_TYPE_NAMES,
-  PLANET_VARIANTS,
-} from '../src/shared/planet-type.ts';
-import type { PlanetType } from '../src/shared/planet-type.ts';
+import { PLANET_TYPE_NAMES, PLANET_VARIANTS } from '../src/core/planet-type.ts';
+import type { PlanetType } from '../src/core/planet-type.ts';
 
 const W = 512;
 const H = 256;

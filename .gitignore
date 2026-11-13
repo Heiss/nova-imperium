@@ -19,3 +19,4 @@ website/src/content/docs/decisions/
 website/src/content/docs/getting-started/
 website/src/content/docs/contributing/
 website/src/content/docs/operations/
+/src/features/index.gen.ts

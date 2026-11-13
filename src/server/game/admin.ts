@@ -1,6 +1,6 @@
 // Admin actions on the universe: change the settings live, start a new round.
-import { settle } from '../../shared/settle.ts';
-import { validateUniverse } from '../../shared/universe.ts';
+import { settle } from '../../core/settle.ts';
+import { validateUniverse } from '../../core/universe.ts';
 import type { Action } from './actions.ts';
 import { addReport, type Ctx, fail, str, universe } from './context.ts';
 import { roundRules, startRoundRules } from './round.ts';

@@ -13,7 +13,7 @@ by the game; it is the reference for the design issue.
 - [design.css](design.css): colours, type and components of the draft. No
   inline styles or scripts, so it fits the Content-Security-Policy of the game.
 - `icons/`: the 63 SVG icons as delivered (128 × 128, German `<title>`). The
-  mockup uses only icons of content that `src/shared/catalog.ts` knows.
+  mockup uses only icons of content that `src/core/catalog.ts` knows.
 - `fonts/`: Cinzel and EB Garamond as self-hosted WOFF2 (SIL Open Font
   License 1.1, see the `OFL-*.txt` files), so no request leaves the server.
 - `screenshots/`: `current-*` is the interface today, `mockup-*` the draft;

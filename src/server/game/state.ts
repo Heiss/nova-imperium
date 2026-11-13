@@ -1,8 +1,8 @@
 // What one player sees: their planet, their and incoming fleets, reports,
 // the players with points, the galaxy. Foreign fleets show only what an
 // observer can see. The admin also gets the settings specification.
-import { UNIVERSE_SPECS } from '../../shared/universe.ts';
-import type { Fleet } from '../../shared/types.ts';
+import { UNIVERSE_SPECS } from '../../core/universe.ts';
+import type { Fleet } from '../../core/types.ts';
 import type { User } from '../db/store.ts';
 import { ownLabs } from './actions.ts';
 import { type Ctx, universe } from './context.ts';

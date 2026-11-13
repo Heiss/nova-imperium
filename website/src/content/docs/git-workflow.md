@@ -79,8 +79,8 @@ flowchart TD
 ## Changelog fragments or `kein-changelog`
 
 A pull request that players can notice adds a German fragment
-`changes/<name>.md`; a pull request that changes `src/client`, `src/shared`
-or `src/server/game` without one fails the job „Changelog fragments“,
+`changes/<name>.md`; a pull request that changes `src/client`, `src/core`,
+`src/features` or `src/server/game` without one fails the job „Changelog fragments“,
 unless it carries the label `kein-changelog`. Adding or removing the label
 re-runs the CI (`ci.yml` listens to `labeled` and `unlabeled`). The
 fragments wait in `changes/` until the release pull request bundles them.

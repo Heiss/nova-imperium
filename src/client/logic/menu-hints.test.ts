@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import type { Planet } from '../../shared/types.ts';
+import type { Planet } from '../../core/types.ts';
 import { finishedYardOrders, menuHints } from './menu-hints.ts';
 import type { GameState } from './types.ts';
 

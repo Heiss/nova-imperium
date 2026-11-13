@@ -36,7 +36,7 @@ characters (see [Grimdark naming](/features/naming.md)).
 * Option: column `users.explain_mode` (`always`, `icon`, `hidden`, default
   `icon`, CHECK), added by migration 10 (see [SQLite storage](/data/sqlite.md));
   existing players get the default. The modes and the fallback to `ds` live in
-  `src/shared/explain.ts`. The action `options` takes `explain` next to
+  `src/core/explain.ts`. The action `options` takes `explain` next to
   `probes` and refuses another value („Ungültig.“).
 * **[V]** Without `explain` (an older client) the action keeps the stored
   mode.
@@ -61,7 +61,7 @@ characters (see [Grimdark naming](/features/naming.md)).
   the minimum target size of WCAG 2.2. The text is plain text, escaped; a
   blank line splits it into paragraphs, one `<p>` each (**[E]**, owner,
   2026-11-12, for the two paragraphs of #94).
-* Tests: `src/shared/explain.test.ts` (also every catalog entry has an
+* Tests: `src/core/explain.test.ts` (also every catalog entry has an
   `lt` but the list `LATER`, and no classic name in it),
   `src/client/logic/explain.test.ts`,
   `src/server/db/upgrades/migration-10.test.ts`, the option in

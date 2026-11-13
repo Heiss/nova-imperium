@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ACHIEVEMENTS, dailyReward } from '../../shared/achievements.ts';
+import { ACHIEVEMENTS, dailyReward } from '../../core/achievements.ts';
 import { addPlanet, addUser, testCtx } from '../test-helpers.ts';
 import { achievementState, recordAchievementAction } from './achievements.ts';
 import { roundRules } from './round.ts';

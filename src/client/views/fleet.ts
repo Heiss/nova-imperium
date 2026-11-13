@@ -1,5 +1,5 @@
-import { MISSION, SHIPS, canFly } from '../../shared/catalog.ts';
-import { fleetSlots, shipSpeed } from '../../shared/flight.ts';
+import { MISSION, SHIPS, canFly } from '../../core/catalog.ts';
+import { fleetSlots, shipSpeed } from '../../core/flight.ts';
 import { fmt } from '../logic/format.ts';
 import { fleetTable } from './overview.ts';
 import { box, type V } from './common.ts';

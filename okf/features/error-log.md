@@ -110,7 +110,7 @@ them to Claude for analysis.
   (ZIP, `src/server/error-export.ts`: `errors.jsonl` with server and browser
   errors, `reports.jsonl`, `audit.jsonl`, filtered by the time of the last
   occurrence) for admins only. Limits and kinds are shared in
-  `src/shared/error-log.ts`.
+  `src/core/error-log.ts`.
 * Browser: `src/client/logic/error-report.ts` (reporter, form); `main.ts`
   listens to `error` and `unhandledrejection`, reports failed calls from
   `api()` and sends with a plain `fetch`, so a failed report is never

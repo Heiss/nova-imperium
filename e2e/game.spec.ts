@@ -11,8 +11,8 @@ import {
   uniqueName,
   watch,
 } from './helpers.ts';
-import { BUILD, RES, SHIPS } from '../src/shared/catalog.ts';
-import { fieldRange, fieldsOf } from '../src/shared/fields.ts';
+import { BUILD, RES, SHIPS } from '../src/core/catalog.ts';
+import { fieldRange, fieldsOf } from '../src/core/fields.ts';
 
 /** The paragraphs of a long text (#94): the lore, then „So funktioniert es:“. */
 const lines = (text: string): string[] => text.split('\n\n');

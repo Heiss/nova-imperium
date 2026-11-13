@@ -6,7 +6,7 @@ import path from 'node:path';
 import { parse } from 'svelte/compiler';
 import ts from 'typescript';
 import { describe, expect, it } from 'vitest';
-import { BUILD, DEF, MISSION, RES, SHIPS } from '../shared/catalog.ts';
+import { BUILD, DEF, MISSION, RES, SHIPS } from '../core/catalog.ts';
 import { CLASSIC, classicIn, NAMES, renamed, says } from './naming.ts';
 
 const ROOT = path.resolve(import.meta.dirname, '..');
@@ -116,7 +116,8 @@ describe('grimdark naming (#94)', () => {
     const files = [
       ...sources('client', /\.ts$/),
       ...sources('server', /\.ts$/),
-      ...sources('shared', /\.ts$/),
+      ...sources('core', /\.ts$/),
+      ...sources('features', /\.ts$/),
     ];
     const hits = [
       ...files.flatMap((f) =>

@@ -27,9 +27,9 @@ they are (2026-11-12).
   in #47); the owner took them over unchanged.
 * **[V]** The throttled share is a fixed point: the reactor's energy changes
   the mine factor `f`, which changes the deuterium production
-  (`prod()`, `src/shared/economy.ts`). It is found numerically (for example
+  (`prod()`, `src/core/economy.ts`). It is found numerically (for example
   by bisection) and tested for monotonicity. `accrue` gets a breakpoint at
-  the moment the stock reaches 0; `src/shared/settle.ts` stays exact and the
+  the moment the stock reaches 0; `src/core/settle.ts` stays exact and the
   equivalence tests of version 1 stay unchanged.
 * **[V]** German interface: Gebäude „Fusionskraftwerk“ with new art, energy
   and deuterium use per level; Rohstoffe a line with energy (+), deuterium
@@ -37,7 +37,7 @@ they are (2026-11-12).
 
 ## Code
 
-* **[V]** Key `fusion` in `BUILD` (`src/shared/catalog.ts`), after the
+* **[V]** Key `fusion` in `BUILD` (`src/core/catalog.ts`), after the
   Solarkraftwerk; abbreviation `Fu` (no other entry uses it); short text
   „Erzeugt Energie aus Deuterium; Energietechnik steigert die Leistung.“
   `PRODUCERS` has `fusion`, so the server accepts its share like the others.
@@ -88,7 +88,7 @@ they are (2026-11-12).
 
 ## Tests
 
-* `src/shared/fusion.test.ts`: formulas with Energietechnik and speed, share,
+* `src/core/fusion.test.ts`: formulas with Energietechnik and speed, share,
   solar + satellites + fusion together, the throttled share (use =
   production, the closed form below the kink of `f`, one crossing,
   monotone in the mine and the reactor), the breakpoint in `accrue`, and a

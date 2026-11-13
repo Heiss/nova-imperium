@@ -16,7 +16,7 @@ check of `main`. The rules behind it are in
 | Job                                          | What it checks                                                                                                                                                                                                                                                                                                                    | When it runs                                                                 |
 | -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
 | Detect changes                               | Decides from the changed files whether the code checks, the Docker image and the website run (see below).                                                                                                                                                                                                                         | Always.                                                                      |
-| Changelog fragments                          | Every fragment in `changes/` is well-formed; a pull request that changes `src/client`, `src/shared` or `src/server/game` brings one, unless it has the label `kein-changelog` (`scripts/changelog.ts check`).                                                                                                                     | Pull requests.                                                               |
+| Changelog fragments                          | Every fragment in `changes/` is well-formed; a pull request that changes `src/client`, `src/core`, `src/features` or `src/server/game` brings one, unless it has the label `kein-changelog` (`scripts/changelog.ts check`).                                                                                                       | Pull requests.                                                               |
 | Lint, types, unit tests with coverage, build | ESLint with `--max-warnings 0`, knip, jscpd, dependency-cruiser, Prettier, `svelte-check`, Vitest with coverage (blocks below 90 % lines and 85 % branches), `vite build`.                                                                                                                                                        | When the code changes.                                                       |
 | E2E tests (browser)                          | Playwright in Chromium against the real server: the game flows on desktop and phone size, accessibility with axe; the report is kept 7 days when it fails.                                                                                                                                                                        | When the code changes.                                                       |
 | Mutation plan                                | Splits the files Stryker mutates into 6 shards by their estimated run time (`scripts/mutation-shards.ts plan`); the plan is the job's output.                                                                                                                                                                                     | When the code changes.                                                       |
@@ -114,9 +114,10 @@ flowchart LR
   like the CI) and in a release pull request. Stryker's incremental mode
   notices only changes in mutated files and tests, not in helpers or
   configuration; the complete run catches what it misses.
-- **Mutated**: `src/shared`, `src/server` and `src/client/logic`, without
-  the tests, the process entry points, the test helpers and the display
-  texts of `src/shared/texts.ts` (`stryker.config.json`).
+- **Mutated**: `src/core`, `src/features`, `src/server` and
+  `src/client/logic`, without the tests, the process entry points, the test
+  helpers and the display texts of `src/core/texts.ts`
+  (`stryker.config.json`).
 - **Per-file floors** (`mutation-standard.json`): no file may fall below its
   recorded floor; a new file needs 80 %, a security file (authentication,
   sessions, passkeys, admin rights, moderation, account deletion, audit,
@@ -165,7 +166,8 @@ reviews every pull request once, when it is opened or marked ready – not
 drafts, not later pushes – in English with the profile „chill“, comments
 and never requests changes. It skips `pnpm-lock.yaml`, the frozen version 1,
 `docs/design/` and SVG files, and has instructions per path: security first
-in `src/server`, pure rules in `src/shared`, German texts and the
+in `src/server`, pure rules in `src/core`, features that import no other
+feature in `src/features`, German texts and the
 Content-Security-Policy in `src/client`, append-only migrations, pinned
 actions, the German changelog texts and the OKF markers. Which findings
 block a merge is rule O4 ([Git workflow](git-workflow.md#the-pull-request-flow)).
