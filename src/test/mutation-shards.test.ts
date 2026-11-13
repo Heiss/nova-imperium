@@ -1,14 +1,22 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
+import ts from 'typescript';
 import {
+  costs,
   coverage,
+  cuts,
+  entryOf,
+  join,
   merge,
+  type Mutant,
   mutatedFiles,
+  pieces,
   prune,
   type Report,
   SHARDS,
   shardConfig,
   split,
+  units,
   weigh,
 } from '../../scripts/mutation-shards.ts';
 
@@ -17,6 +25,15 @@ const lines = (file: string) => readFileSync(file, 'utf8').split('\n').length;
 const mutants = (n: number) => Array.from({ length: n }, () => ({}));
 const sum = (files: string[], w: Record<string, number>) =>
   files.reduce((total, f) => total + w[f]!, 0);
+const at = (line: number, end = line, extra: Partial<Mutant> = {}): Mutant => ({
+  location: {
+    start: { line, column: 2 },
+    end: { line: end, column: 9 },
+  },
+  mutatorName: 'StringLiteral',
+  replacement: '""',
+  ...extra,
+});
 const report = (mutate: string[], files: string[]): Report => ({
   config: { mutate },
   files: Object.fromEntries(files.map((f) => [f, { mutants: mutants(1) }])),
@@ -75,6 +92,170 @@ describe('mutation shards: the files', () => {
       'a.ts': 100,
       'c.ts': 30,
     });
+  });
+});
+
+describe('mutation shards: the cost', () => {
+  it('weighs a mutant by its test time, a missing one by the mean of its kind', () => {
+    const last: Report = {
+      files: {
+        'a.ts': {
+          mutants: [
+            { duration: 10 },
+            { duration: 30 },
+            { duration: 4000, static: true },
+            { static: true },
+            {},
+          ],
+        },
+        'b.ts': { mutants: [{ duration: 2000, static: true }] },
+      },
+    };
+    const cost = costs(last);
+    // static mean (4000 + 2000) / 2, other mean (10 + 30) / 2
+    expect(cost.mutant({ static: true })).toBe(3000);
+    expect(cost.mutant({})).toBe(20);
+    expect(cost.mutant({ duration: 7, static: true })).toBe(7);
+    expect(cost.line).toBe(20);
+    const length = (f: string) => ({ 'c.ts': 5 })[f]!;
+    expect(weigh(['a.ts', 'b.ts', 'c.ts'], last, length)).toEqual({
+      'a.ts': 10 + 30 + 4000 + 3000 + 20,
+      'b.ts': 2000,
+      'c.ts': 100,
+    });
+  });
+
+  it('falls back to the other kind, and to counting without any time', () => {
+    const onlyStatic = costs({
+      files: { 'a.ts': { mutants: [{ duration: 600, static: true }] } },
+    });
+    expect(onlyStatic.mutant({})).toBe(600);
+    expect(onlyStatic.line).toBe(600);
+    const onlyOther = costs({
+      files: { 'a.ts': { mutants: [{ duration: 8 }] } },
+    });
+    expect(onlyOther.mutant({ static: true })).toBe(8);
+    const untimed: (Report | undefined)[] = [
+      undefined,
+      { files: {} },
+      { files: { 'a.ts': { mutants: [{}] } } },
+    ];
+    for (const none of untimed) {
+      const cost = costs(none);
+      expect(cost.mutant({ duration: 50, static: true })).toBe(1);
+      expect(cost.line).toBe(1);
+    }
+  });
+});
+
+describe('mutation shards: cutting a large file', () => {
+  const source = [
+    "import { x } from './x.ts';", // 1
+    '', // 2
+    'export const A = {', // 3
+    "  a: 'a',", // 4
+    '};', // 5
+    '// about B', // 6
+    'export const B = [1,', // 7
+    '  2];', // 8
+    'const C = 1; const D = 2;', // 9
+    'export function f() {', // 10
+    '  return C + D;', // 11
+    '}', // 12
+  ].join('\n');
+
+  it('cuts after a top-level statement, not between two on one line', () => {
+    expect(cuts('x.ts', source)).toEqual([1, 5, 8, 9]);
+  });
+
+  it('reads a mutate entry: a file or its lines', () => {
+    expect(entryOf('src/a.ts')).toEqual({ file: 'src/a.ts' });
+    expect(entryOf('src/a.ts:3-17')).toEqual({
+      file: 'src/a.ts',
+      from: 3,
+      to: 17,
+    });
+    expect(entryOf('src/a.ts:3')).toEqual({ file: 'src/a.ts:3' });
+  });
+
+  it('weighs each piece by the mutants starting in it; empty pieces join a neighbour', () => {
+    const mutants = [at(4), at(4), at(7, 8), at(11)];
+    expect(pieces('x.ts', source, mutants, () => 5)).toEqual({
+      'x.ts:1-5': 10,
+      'x.ts:6-9': 5,
+      'x.ts:10-12': 5,
+    });
+    expect(pieces('x.ts', source, [at(11)], () => 5)).toEqual({
+      'x.ts:1-12': 5,
+    });
+    expect(pieces('x.ts', source, [], () => 5)).toEqual({ 'x.ts:1-12': 0 });
+  });
+
+  it('cuts only TypeScript files heavier than half a shard into pieces', () => {
+    const read = (f: string) =>
+      f === 'big.ts' ? source : 'const a = 1;\nconst b = 2;';
+    const last: Report = {
+      files: { 'big.ts': { mutants: [at(4), at(7), at(11)] } },
+    };
+    // total 120, half a shard of 4 is 15
+    expect(
+      units({ 'big.ts': 60, 'small.ts': 15, 'big.svelte': 45 }, last, read),
+    ).toEqual({
+      'big.ts:1-5': 1,
+      'big.ts:6-9': 1,
+      'big.ts:10-12': 1,
+      'small.ts': 15,
+      'big.svelte': 45,
+    });
+    // one piece only: the file stays whole
+    expect(
+      units({ 'one.ts': 60, 'b.ts': 1 }, undefined, () => 'const a = 1;'),
+    ).toEqual({
+      'one.ts': 60,
+      'b.ts': 1,
+    });
+  });
+
+  it('joins neighbouring pieces of a shard, and a file with all pieces on one shard', () => {
+    expect(
+      join([
+        ['b.ts:1-5', 'a.ts', 'b.ts:9-12'],
+        ['b.ts:6-8', 'c.ts:1-4', 'c.ts:5-9'],
+        ['d.ts:10-20', 'd.ts:1-9', 'd.ts:21-30'],
+        [],
+      ]),
+    ).toEqual([
+      ['a.ts', 'b.ts:1-5', 'b.ts:9-12'],
+      ['b.ts:6-8', 'c.ts'],
+      ['d.ts'],
+      [],
+    ]);
+    expect(join([['e.ts:1-3', 'e.ts:7-9'], ['e.ts:4-6']])).toEqual([
+      ['e.ts:1-3', 'e.ts:7-9'],
+      ['e.ts:4-6'],
+    ]);
+    expect(join([['f.ts:5-9', 'f.ts:1-4'], ['g.ts']])).toEqual([
+      ['f.ts'],
+      ['g.ts'],
+    ]);
+  });
+
+  it('cuts the real catalog so that every top-level statement lies in one piece', () => {
+    const file = 'src/shared/catalog.ts';
+    const text = readFileSync(file, 'utf8');
+    const ranges = Object.keys(pieces(file, text, [], () => 1)).map(entryOf);
+    expect(ranges).toEqual([{ file, from: 1, to: lines(file) }]);
+    const at = [0, ...cuts(file, text), lines(file)];
+    const sf = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true);
+    const line = (pos: number) =>
+      sf.getLineAndCharacterOfPosition(pos).line + 1;
+    expect(at.length).toBeGreaterThan(5);
+    for (const statement of sf.statements) {
+      const from = line(statement.getStart(sf));
+      const to = line(statement.end);
+      const piece = at.findIndex((cut) => cut >= from);
+      expect(at[piece]! >= to, `${from}-${to}`).toBe(true);
+    }
   });
 });
 
@@ -162,6 +343,111 @@ describe('mutation shards: one shard', () => {
       files: { 'a.ts': { mutants: mutants(1) } },
     });
     expect(Object.keys(last.files)).toEqual(['a.ts', 'c.ts']);
+  });
+});
+
+describe('mutation shards: a file cut into ranges', () => {
+  const plan = [
+    ['a.ts', 'cat.ts:1-50'],
+    ['cat.ts:51-80', 'cat.ts:91-100'],
+    ['cat.ts:81-90'],
+    ['b.ts'],
+  ];
+  const lengths = (f: string) => ({ 'cat.ts': 100 })[f]!;
+  const shard = (mutate: string[], mutants: Mutant[]): Report => ({
+    config: { mutate },
+    files: { 'cat.ts': { mutants } },
+  });
+  const reports = [
+    {
+      ...shard(plan[0]!, [at(3), at(50)]),
+      files: {
+        'a.ts': { mutants: [at(1)] },
+        'cat.ts': { mutants: [at(3), at(50)] },
+      },
+    },
+    shard(plan[1]!, [at(51, 80), at(95)]),
+    shard(plan[2]!, [at(81), at(90)]),
+    report(['b.ts'], ['b.ts']),
+  ];
+
+  it('keeps only the mutants of its ranges of the incremental result', () => {
+    const last: Report = {
+      files: {
+        'cat.ts': {
+          mutants: [at(3), at(50, 51), at(60), at(95), at(100, 101)],
+        },
+        'a.ts': { mutants: [at(1)] },
+        'z.ts': { mutants: [at(1)] },
+      },
+    };
+    expect(prune(last, plan[1]!)).toEqual({
+      files: { 'cat.ts': { mutants: [at(60), at(95)] } },
+    });
+    expect(prune(last, plan[0]!)).toEqual({
+      files: { 'cat.ts': { mutants: [at(3)] }, 'a.ts': { mutants: [at(1)] } },
+    });
+    expect(prune(last, ['cat.ts:1-50', 'cat.ts'])).toEqual({
+      files: { 'cat.ts': last.files['cat.ts']! },
+    });
+  });
+
+  it('accepts the shards of a cut file and joins its mutants', () => {
+    expect(coverage(plan, reports, lengths)).toEqual([]);
+    const merged = merge(reports, stryker.thresholds);
+    expect(merged.files['cat.ts']!.mutants).toEqual([
+      at(3),
+      at(50),
+      at(51, 80),
+      at(95),
+      at(81),
+      at(90),
+    ]);
+    expect(merged.files['a.ts']!.mutants).toEqual([at(1)]);
+  });
+
+  it('names a mutant outside the lines of its shard, and one reported twice', () => {
+    const wrong = [
+      reports[0]!,
+      shard(plan[1]!, [at(51, 80), at(95), at(45)]),
+      reports[2]!,
+      reports[3]!,
+    ];
+    expect(coverage(plan, wrong, lengths)).toEqual([
+      'cat.ts: 1 mutants in the report of shard 2 are outside its lines',
+    ]);
+    const twice = [
+      reports[0]!,
+      reports[1]!,
+      shard(plan[2]!, [at(81), at(95)]),
+      reports[3]!,
+    ];
+    expect(coverage(plan, twice, lengths)).toEqual([
+      'cat.ts: 1 mutants in the report of shard 3 are outside its lines',
+      'cat.ts: the mutant 95:2-95:9 StringLiteral "" is in two shard reports',
+    ]);
+  });
+
+  it('names lines in no shard or in two, and a file both whole and cut', () => {
+    const gaps = [
+      ['cat.ts:3-50'],
+      ['cat.ts:40-60'],
+      ['cat.ts:70-90'],
+      ['cat.ts'],
+    ];
+    const runs = gaps.map((mutate) => ({ config: { mutate }, files: {} }));
+    expect(coverage(gaps, runs, lengths)).toEqual([
+      'cat.ts is in the plan whole and in ranges',
+      'cat.ts: lines 1-2 are in no shard',
+      'cat.ts: lines 40-50 are in two shards',
+      'cat.ts: lines 61-69 are in no shard',
+      'cat.ts: lines 91-100 are in no shard',
+    ]);
+    expect(coverage(gaps.slice(0, 3), runs.slice(0, 3))).toEqual([
+      'cat.ts: lines 1-2 are in no shard',
+      'cat.ts: lines 40-50 are in two shards',
+      'cat.ts: lines 61-69 are in no shard',
+    ]);
   });
 });
 

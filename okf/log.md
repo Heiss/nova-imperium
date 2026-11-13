@@ -1,5 +1,9 @@
 # Update log
 
+## 2026-11-13
+
+* **Decision**: #131 split by estimated run time instead of mutant count: the test time of the mutants in the last report (static mutants weigh what they cost), files heavier than half a shard cut into line ranges between top-level statements; the complete sharded run had one shard at 44 minutes and the others at 7 to 14 (see [Test strategy](/ops/testing.md)).
+
 ## 2026-11-12
 
 * **Code**: #131 built: mutation plan job, 4 shards with their own caches and a gate job on the merged report in the CI and the nightly run (`scripts/mutation-shards.ts`, `mutation-gate.ts --report`); owner decision: display texts are not mutation-tested, the catalog texts moved to `src/shared/texts.ts`, guarded by the catalog, naming and explanation tests (see [Test strategy](/ops/testing.md)).

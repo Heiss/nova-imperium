@@ -37,11 +37,15 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 * **[E]** Mutation runs are sharded into 4 parallel jobs everywhere: pull
   requests and pushes to `main` (incremental), the release pull request and
   the nightly run (complete). A script splits the mutated files by their
-  mutant count in the last report, largest first onto the emptiest job; a
-  file without a count weighs by its lines. Each job keeps its own
-  incremental cache. A gate job merges the four reports and checks the total
-  score (80 %) and every per-file floor exactly as before; no mutant and no
-  check is dropped (owner, 2026-11-12, #131).
+  estimated run time, heaviest first onto the emptiest job: the test time
+  of their mutants in the last report, so static mutants weigh what they
+  cost; a file the report does not know weighs by its lines. A file heavier
+  than half a job is cut into line ranges between its top-level statements
+  (owner, 2026-11-13: the split by mutant count left one job at 44 minutes
+  and the others at 7 to 14). Each job keeps its own incremental cache. A
+  gate job merges the four reports and checks the total score (80 %) and
+  every per-file floor exactly as before; no mutant and no check is dropped
+  (owner, 2026-11-12, #131).
 * **[E]** Before the merge of #131, one complete sharded run in its pull
   request is compared with the last nightly run: the total score and every
   file score must match (owner, 2026-11-12).
@@ -121,20 +125,36 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 * **[V]** `scripts/mutation-shards.ts` (tests in
   `src/test/mutation-shards.test.ts`):
   * `plan` lists the files of the `mutate` globs of `stryker.config.json`
-    (in order, `!` removes), weighs each by its mutants in
-    `reports/mutation/mutation.json` (the merged report of the last run,
-    restored from the cache) or else by its lines, and splits them greedily,
-    heaviest first (equal weights by name) onto the lightest shard (the
-    first of equal ones). It prints the plan as JSON: 4 sorted file lists.
+    (in order, `!` removes) and weighs each by the test time (`duration`) of
+    its mutants in `reports/mutation/mutation.json` (the merged report of
+    the last run, restored from the cache); a mutant without a time costs
+    the mean of its kind (static or not), a report without times counts
+    mutants, a file the report does not know costs its lines times the mean
+    of a mutant that is not static. A TypeScript file heavier than half a
+    shard is cut after each top-level statement that the next one does not
+    share (TypeScript parser, so the plan job installs the dependencies);
+    each piece weighs its mutants by their start line, and a piece without
+    weight joins its neighbour. Stryker mutates a node only when it lies
+    wholly in one range, and no node spans two top-level statements, so no
+    mutant is lost; one statement (for example `RES` in `catalog.ts`) stays
+    one piece. The pieces and files are split greedily, heaviest first
+    (equal weights by name) onto the lightest shard (the first of equal
+    ones); then neighbouring pieces of a shard become one range and a file
+    with all its pieces on one shard is whole again. It prints the plan as
+    JSON: 4 sorted lists of `mutate` entries, `file` or `file:from-to`.
   * `config <n>` writes `reports/stryker-shard.config.json`: the
     configuration of `stryker.config.json` with only the files of shard n
     and `thresholds.break: null`, and prunes the shard's incremental file to
-    its files. Stryker keeps and reports again the old results of files it
+    its files and, of a cut file, to the mutants wholly in its ranges. Stryker keeps and reports again the old results of files it
     does not mutate this time; without the pruning a file that moved to
     another shard would be reported twice (seen locally).
   * `merge <out> <report>...` checks that every shard of the plan ran once,
     matched by the `mutate` list in its report, and reported only its own
-    files and no file twice; then it writes the union of the files with the
+    files and no file twice; a cut file may be in several reports, but each
+    shard reports only mutants in its ranges, no mutant is in two reports,
+    and its ranges cover it from line 1 to its last line without overlap.
+    Then it writes the union of the files (the mutants of a cut file
+    joined) with the
     thresholds of `stryker.config.json`, without `testFiles` and `config`
     (test ids are numbered per shard). Stryker leaves files without mutants
     (`types.ts`, `index.ts`) out of its report, so completeness is checked
