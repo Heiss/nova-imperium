@@ -108,7 +108,7 @@ CREATE TABLE fleets (
     to_g INTEGER NOT NULL,
     to_s INTEGER NOT NULL,
     to_p INTEGER NOT NULL,
-    mission TEXT NOT NULL CHECK (mission IN ('attack', 'transport', 'spy', 'colonize')),
+    mission TEXT NOT NULL CHECK (mission IN ('attack', 'transport', 'spy', 'colonize', 'deploy')),
     cargo_m REAL NOT NULL,
     cargo_c REAL NOT NULL,
     cargo_d REAL NOT NULL,
@@ -116,7 +116,8 @@ CREATE TABLE fleets (
     arr INTEGER NOT NULL,
     ret INTEGER NOT NULL,
     state TEXT NOT NULL CHECK (state IN ('out', 'back')),
-    recalled INTEGER NOT NULL DEFAULT 0
+    recalled INTEGER NOT NULL DEFAULT 0,
+    fuel INTEGER NOT NULL DEFAULT 0
   ) STRICT;
 
 CREATE TABLE guild_members (

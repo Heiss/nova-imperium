@@ -4,6 +4,7 @@ import {
   activeDrive,
   capacity,
   countUnits,
+  deployFuel,
   distance,
   fleetSlots,
   fleetSpeed,
@@ -145,6 +146,13 @@ describe('flights', () => {
     );
     expect(fuelFor({ nope: 3 }, 3500, 5)).toBe(1);
     expect(capacity({ sc: 2, lc: 1, nope: 9 })).toBe(35000);
+  });
+  it('give a deploy half the burnt fuel, rounded down (#129)', () => {
+    expect(deployFuel(41)).toBe(20);
+    expect(deployFuel(40)).toBe(20);
+    expect(deployFuel(7)).toBe(3);
+    expect(deployFuel(1)).toBe(0);
+    expect(deployFuel(0)).toBe(0);
   });
   it('count units', () => {
     expect(countUnits({ a: 2, b: 3 })).toBe(5);

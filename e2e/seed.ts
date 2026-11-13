@@ -2,8 +2,9 @@
 // UI would need hours to reach (ships in the hangar). Usage:
 //   node e2e/seed.ts '<json>'   with { name, res?, b?, ships?, def?, temp?, pct?, research?,
 //   clearQueue? (a finished build), colony? ({ g?, s?, p?, name?, b?, res? }: an own planet,
-//   by default on slot 15 of the home system), serverError? (a message: an
-//   unexpected server error of this player in the error log, issue #126) }
+//   by default on slot 15 of the home system), landColonyFleet?, landFleet? (a mission:
+//   its outbound fleets arrive now), serverError? (a message: an unexpected server
+//   error of this player in the error log, issue #126) }
 import { openDatabase } from '../src/server/db/database.ts';
 import { Store } from '../src/server/db/store.ts';
 import { recordServerError } from '../src/server/error-log.ts';
@@ -20,12 +21,13 @@ const u = store.userByName(d.name);
 if (!u) throw new Error(`no player ${d.name}`);
 type Planet = NonNullable<ReturnType<Store['planetOfUser']>>;
 
-function landColonyFleet(id: string): void {
+/** Lets the player's outbound fleets of one mission arrive now. */
+function landFleet(id: string, mission: string): void {
   store.db
     .prepare(
-      "UPDATE fleets SET arr = ? WHERE owner = ? AND mission = 'colonize' AND state = 'out'",
+      "UPDATE fleets SET arr = ? WHERE owner = ? AND mission = ? AND state = 'out'",
     )
-    .run(Date.now(), id);
+    .run(Date.now(), id, mission);
 }
 
 function updateHome(p: Planet): void {
@@ -68,7 +70,8 @@ function addColony(p: Planet): void {
 }
 
 store.tx(() => {
-  if (d.landColonyFleet) landColonyFleet(u.id);
+  if (d.landColonyFleet) landFleet(u.id, 'colonize');
+  if (d.landFleet) landFleet(u.id, d.landFleet);
   if (d.research) store.saveUser({ ...u, research: d.research });
   const p = store.planetOfUser(u.id)!;
   updateHome(p);

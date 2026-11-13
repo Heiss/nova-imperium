@@ -24,6 +24,7 @@ export const MISSION_TEXT = {
   transport: 'Versorgungsflug',
   spy: 'Auspex-Erkundung',
   colonize: 'Landnahme',
+  deploy: 'Verlegung',
 } as const;
 
 export const BUILD_TEXT = {

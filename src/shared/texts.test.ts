@@ -54,6 +54,7 @@ describe('display texts', () => {
       'transport',
       'spy',
       'colonize',
+      'deploy',
     ]);
   });
 });

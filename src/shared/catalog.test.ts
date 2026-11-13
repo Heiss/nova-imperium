@@ -121,6 +121,7 @@ describe('catalog', () => {
     expect(Object.keys(C.MISSION)).toEqual([
       ...Object.keys(O.MISSION),
       'colonize',
+      'deploy',
     ]);
     expect(C.MISSION).toEqual(
       Object.fromEntries(Object.entries(MISSIONS).map(([k, m]) => [k, m.name])),

@@ -114,6 +114,7 @@ export const MISSIONS = {
   transport: { classic: 'Transport', name: 'Versorgungsflug' },
   spy: { classic: 'Spionage', name: 'Auspex-Erkundung' },
   colonize: { classic: 'Kolonisieren', name: 'Landnahme' },
+  deploy: { classic: 'Stationieren', name: 'Verlegung' },
 } as const;
 
 /**

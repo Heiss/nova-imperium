@@ -655,6 +655,7 @@ export const MISSION = {
   transport: MISSION_TEXT.transport,
   spy: MISSION_TEXT.spy,
   colonize: MISSION_TEXT.colonize,
+  deploy: MISSION_TEXT.deploy,
 } as const;
 
 /** Producers whose share the player sets on the resources page. */
