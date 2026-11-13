@@ -2079,12 +2079,14 @@ test.describe('admin', () => {
     await expect(page.locator('.toast.err').last()).toContainText(
       'Zusatzfelder pro Planet: ganze Zahl von 0 bis 100.',
     );
-    await extra.fill('12');
-    await page.click('[data-act=saveSettings]');
-    await expect(page.locator('.toast').last()).toContainText(
-      'Einstellungen gespeichert.',
-    );
     try {
+      // Inside the try: a failed save or check must still reset the
+      // setting that the whole E2E run shares.
+      await extra.fill('12');
+      await page.click('[data-act=saveSettings]');
+      await expect(page.locator('.toast').last()).toContainText(
+        'Einstellungen gespeichert.',
+      );
       await nav(page, 'buildings');
       await expect(page.locator('#fields')).toHaveText('Felder: 0 / 175');
       await nav(page, 'overview');
