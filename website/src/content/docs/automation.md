@@ -56,8 +56,9 @@ of the environment `release`, available only to jobs on `main` and
 | Documentation website (`pages.yml`)                         | Every push to `main`; by hand.                                                                                | This site on GitHub Pages (environment `github-pages`); one deployment at a time.                                                                                                                                                                                                                        |
 
 Renovate is an app, not a workflow: its `renovate/…` pull requests go
-through the CI like any other, and patch updates merge themselves when the
-CI Gate is green ([Git workflow](git-workflow.md#renovate)).
+through the CI like any other, and patch updates and security fixes up to
+minor merge themselves when the CI Gate is green
+([Git workflow](git-workflow.md#renovate)).
 
 ## Security hotfix
 

@@ -144,6 +144,38 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   2026-11-12: „so lassen, alle sofort“). Renovate has no matcher for the
   severity; Dependabot's own security updates are off, so no hole gets two
   pull requests.
+* **[E]** Security pull requests merge themselves up to minor updates
+  (owner, 2026-11-13, #148): `vulnerabilityAlerts.packageRules` in
+  `renovate.json` sets `automerge` for patch updates, for minor updates
+  of a current version from 1.0 on, and for pin and digest updates
+  (`pin`, `pinDigest`, `digest`), once the CI Gate is green. A major
+  update waits for the owner. Versions below 1.0 (`0.x`) count like major
+  updates: only a patch merges itself, a minor update waits for the owner.
+  Development dependencies follow the same rule.
+* **[E]** A red security pull request is handled by the release loop like
+  its own (owner, 2026-11-13, #148): it finds the root cause and fixes it
+  in its own `claude/…` pull request, never by a push to the Renovate
+  branch; if it cannot, it asks the owner. That fix pull request does not
+  count toward the limit of two open own pull requests (security first;
+  [Release loop](/ops/loop.md)).
+* **[E]** Renovate applies the content of `vulnerabilityAlerts` as `force`
+  on the package rule of every alert, over every other rule
+  (`lib/workers/repository/init/vulnerability.ts`, `lib/config/utils.ts`);
+  its nested `packageRules` are evaluated per update type. Proven before
+  the merge of #148 with Renovate 44.239.1 on the local platform
+  (`--platform=local --dry-run=lookup`, `LOG_LEVEL=trace`; the alert
+  source stubbed with synthetic Dependabot alerts, the rest of Renovate
+  unchanged): patch, minor and development-dependency patch and minor
+  updates got `automerge: true`; the major, the development major and the
+  `0.x` minor update got `automerge: false`; an ordinary minor update kept
+  `automerge: false`. With the previous `renovate.json` the minor security
+  updates got `automerge: false`. The stub covers npm only: GitHub Actions
+  alerts were not tried, because the run could not reach GitHub's API.
+  The pin and digest rule passes `renovate-config-validator --strict`, but
+  its behaviour was not observed: npm alerts give version updates (the
+  alert forces `rangeStrategy: update-lockfile`, a range dependency got a
+  minor update, not a pin), and the digest cases (GitHub Actions) need
+  GitHub's API. The first such security pull request on GitHub shows it.
 
 * **[E]** Every push to `main` runs the full suite with an incremental mutation
   run (owner, 2026-11-11); the release pull request and the nightly run in
