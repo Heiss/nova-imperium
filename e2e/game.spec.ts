@@ -1,11 +1,13 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import {
+  choosePlanet,
   cli,
   inviteLink,
   login,
   nav,
   register,
   seed,
+  stock,
   uniqueName,
   watch,
 } from './helpers.ts';
@@ -21,20 +23,6 @@ const seconds = (text: string): number =>
       sum + Number(n) * { T: 86400, h: 3600, m: 60, s: 1 }[unit!]!,
     0,
   );
-
-/** Selects an own planet by its name in the header. */
-async function choosePlanet(page: Page, name: string): Promise<void> {
-  const selector = page.getByLabel('Aktiver Planet');
-  const option = selector
-    .locator('option')
-    .filter({ hasText: new RegExp(`^${name} \\[`) });
-  await selector.selectOption((await option.getAttribute('value'))!);
-  await expect(page.locator('#pinfo b').first()).toHaveText(name);
-}
-
-/** The amount of a resource in the bar, as shown. */
-const stock = (page: Page, label: string) =>
-  page.locator('#resbar .res').filter({ hasText: label }).locator('.v');
 
 test('login stays near the header @phone', async ({ page }) => {
   await page.goto('/');
