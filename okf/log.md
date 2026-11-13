@@ -1,5 +1,9 @@
 # Update log
 
+## 2026-11-13
+
+* **Decision**: #53 clarified: moons from the whole Trümmerfeld (1 % per 100,000, at most 20 %), diameter by the owiki.de formula, fields without limit, Mondzitadelle, Auspex-Phalanx (classic simple scan) and Warp-Tor with modern levels, moons also by the admin, three pull requests in this release (see [Moons](/features/moons.md)).
+
 ## 2026-11-12
 
 * **Update**: `src/shared/achievements.ts` has its own test of names, targets and rewards; a complete run after #127 scored it 33.33 %, below its floor 35.18 %; with the test a complete local run scores 100 %. The floor stays 35.18 % until a complete CI run confirms the new score, because incremental runs keep cached results for unchanged mutants (see [Test strategy](/ops/testing.md)).

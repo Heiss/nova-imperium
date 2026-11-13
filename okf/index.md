@@ -29,6 +29,7 @@ okf_version: "0.2"
 * [Solarsatellit](/features/solar-satellite.md) - energy satellite of #46, temperature formula, share, battle role
 * [Fusionskraftwerk](/features/fusion-reactor.md) - deuterium-burning power plant of #47, throttling at an empty stock
 * [Deploy mission „Verlegung“](/features/deploy.md) - moving ships and cargo to another own planet for good (#129)
+* [Moons](/features/moons.md) - moons from debris, Mondzitadelle, Auspex-Phalanx and Warp-Tor (#53)
 * [Error log and problem reports](/features/error-log.md) - server and browser errors, problem reports, admin tab „Fehler“ and download (#126)
 * [Changelog in the game](/features/changelog.md) - „Neuigkeiten“, update message and hint from CHANGELOG.md
 

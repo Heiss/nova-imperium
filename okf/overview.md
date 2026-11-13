@@ -56,7 +56,7 @@ the muffelblog bundle whose rules this project follows:
 
 # Non-goals (for now)
 
-* Extensions of the classic game (recyclers, debris fields, moons,
-  alliances, messages between players, missiles) are possible later steps,
-  not decided. „More ships“ is no longer a non-goal (owner, 2026-11-12).
+* Extensions of the classic game (alliances, messages between players,
+  missiles) are possible later steps, not decided. Moons are planned in #53
+  (owner, 2026-11-13, [Moons](/features/moons.md)). „More ships“ is no longer a non-goal (owner, 2026-11-12).
 * No translation of the game interface.
