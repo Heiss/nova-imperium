@@ -26,7 +26,8 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   always in a release pull request and in a pull request into `hotfix/**`
   (job „Detect changes“ in `.github/workflows/ci.yml`). This replaces
   the earlier rule of round 1 that the whole suite runs on every pull
-  request.
+  request. The mutation tests run in a pull request only when it changes
+  what they test (#146, below).
 * **[E]** Unit tests with Vitest; tests come first for new logic and check
   behavior, not markup.
 * **[E]** E2E tests with Playwright in the browser against the real server and
@@ -72,9 +73,11 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   (fast-check), and an own upgrade test for every migration that changes
   existing tables or data; see [SQLite storage](/data/sqlite.md).
 * **[E]** Mutation tests with Stryker, a total score below 80 % blocks;
-  incremental on pull requests and on pushes to `main` (unchanged code keeps
-  its cached result), complete every night (owner, 2026-11-11). Tag
-  workflows verify the earlier CI result.
+  incremental on pull requests (only those that change what they test,
+  #146; the release pull request of `main` keeps its complete run) and on
+  pushes to `main` (unchanged code keeps its cached result),
+  complete every night (owner, 2026-11-11). Tag workflows verify the
+  earlier CI result.
 * **[E]** Mutation runs are sharded into 6 parallel jobs everywhere (owner,
   2026-11-13: 4 jobs took 16.5 to 19 minutes each and missed the target of
   about 12 to 15 minutes; with 6 the measured times give about 41.5
@@ -94,6 +97,42 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 * **[E]** Before the merge of #131, one complete sharded run in its pull
   request is compared with the last nightly run: the total score and every
   file score must match (owner, 2026-11-12).
+* **[E]** A pull request runs the mutation jobs only when it changes what
+  they test (owner, 2026-11-13, #146): a file of the `mutate` globs of
+  `stryker.config.json`, a test file, or one of `stryker.config.json`,
+  `mutation-standard.json`, `vitest.config.ts`, `scripts/mutation-*.ts`
+  and `tsconfig.json`; or when its lockfile diff changes a version of
+  `@stryker-mutator/*`, `vitest` or `typescript`. Other dependency updates
+  (Renovate, the fix of a security hotfix) and the `Dockerfile` skip them:
+  the mutants and the tests stay the same, and lint, types, unit tests,
+  build, E2E, the image, Trivy, the Compose stack and the upgrade test
+  secure such a change. Pushes to `main` and `hotfix/**` keep the full
+  suite with the mutation run on every push; that also keeps the shard
+  caches and the weights current. The release pull request of a hotfix
+  branch changes only `CHANGELOG.md`, `VERSION` and `changes/`, so it
+  compares with the release tag the hotfix branch starts from, with the
+  same rules as above: a hotfix that changes a mutated file, a test or the
+  mutation configuration runs the mutation jobs, and so does one whose
+  lockfile changes a version of the test tool chain; other dependency or
+  `Dockerfile` changes do not. When no release tag lies below the base
+  of such a release pull request, „Detect changes“ fails, as the
+  migration check does (owner, 2026-11-13). The release pull request of
+  `main` keeps its complete run; #147 decides about it. Risk: a change
+  that alters the results without touching these files is found by the
+  nightly complete run only, up to a day later. Stryker's incremental mode would not notice
+  such a change either (checked in its documentation before the build,
+  2026-11-13; this replaces the [U] of the issue): „Stryker will not
+  detect any changes you've made in files other than mutated files and
+  test files“, and „Any other changes to your environment are not
+  detected, such as updates to other files, updated (dev) dependencies, …“
+  ([Incremental, Limitations](https://stryker-mutator.io/docs/stryker-js/incremental/)).
+  An incremental run of a dependency update reuses every result and only
+  repeats the dry run.
+* **[E]** Test files for #146 (owner, 2026-11-13, O12): what Vitest
+  runs (`test.include` of `vitest.config.ts`, `src/**/*.test.ts`) and the
+  test helpers it imports (`src/test/**`, `src/server/test-helpers.ts`, as
+  in the rule `tests-stay-out` of `.dependency-cruiser.cjs`). The E2E
+  tests (`e2e/`) are not: Stryker does not run them.
 * **[E]** Display texts are not mutation-tested (owner, 2026-11-12, #131):
   the names, abbreviations, short and long texts of the catalog and the
   mission names live in `src/core/texts.ts`, which Stryker leaves out
@@ -244,9 +283,10 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   as job output), „Mutation tests (shard N of 6)“ (`mutation-shard`, matrix
   1 to 6, `fail-fast: false`, incremental, `--force` when the head branch is
   `release/*`, uploads `mutation-shard-N`), „Mutation tests“ (`mutation`,
-  the gate: merge, total, floors). The CI Gate requires all three when code
-  changed. `mutation.yml` (nightly and „Run workflow“) runs the same three
-  jobs complete and keeps the merged report as the artifact
+  the gate: merge, total, floors). The CI Gate requires all three when the
+  output `mutation` of „Detect changes“ is `true`, and accepts their skip
+  only when it is `false` (#146). `mutation.yml` (nightly and „Run
+  workflow“) runs the same three jobs complete and keeps the merged report as the artifact
   `mutation-report` for 30 days.
 * **[V]** Caches: per shard `stryker-shard<N>-<ref>-<sha>` (nightly with
   `-<run id>`), restored from the same shard on the same ref, then on
@@ -254,6 +294,25 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   job when the merge succeeded and restored by the plan job (the weights).
   The first run after the merge has no shard caches and tests every mutant
   once; a file that moves to another shard is tested again there.
+* **[V]** `scripts/mutation-changes.ts <from> <to>` (tests in
+  `src/test/mutation-changes.test.ts`, #146) prints `true` or `false` and
+  the reasons on stderr. It reads the changed files with
+  `git diff --name-only --no-renames` (a moved file counts with its old
+  and its new path) and matches them against the `mutate` globs of
+  `stryker.config.json` (in order, the last matching pattern decides, as
+  in the plan; a test checks that both agree on every file of `src/`),
+  the test files and the mutation configuration. When `pnpm-lock.yaml`
+  changed, it compares the keys `name@version` of the section `packages`
+  of both lockfiles for the tool chain; it fails when the new lockfile
+  names no version of one of the tools, so a changed lockfile format never
+  skips the run unnoticed. „Detect changes“ sets up Node for it (no
+  dependencies) and writes the output `mutation`: `true` on a push and in
+  the release pull request of `main`; in the release pull request of a
+  hotfix branch the script compares the release tag below the base
+  (`git describe --tags --abbrev=0 --match '[0-9]*.[0-9]*.[0-9]*'`, as
+  the migration check does) with the merge commit, and fails without
+  such a tag (decision above); every other pull request compares its
+  base with the merge commit.
 * **[V]** Proof run (decision above): „Run workflow“ of „Mutation tests
   (nightly)“ on a branch runs the complete sharded run there:
   `gh workflow run mutation.yml --ref <branch>`. The display texts leave
