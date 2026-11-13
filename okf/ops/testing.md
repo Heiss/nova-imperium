@@ -60,6 +60,35 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   incremental on pull requests and on pushes to `main` (unchanged code keeps
   its cached result), complete every night (owner, 2026-11-11). Tag
   workflows verify the earlier CI result.
+* **[E]** Mutation runs are sharded into 6 parallel jobs everywhere (owner,
+  2026-11-13: 4 jobs took 16.5 to 19 minutes each and missed the target of
+  about 12 to 15 minutes; with 6 the measured times give about 41.5
+  mutant-minutes per job, about 12 to 16 minutes; 8 would gain nothing,
+  because the largest piece of `catalog.ts` alone weighs 40): pull
+  requests and pushes to `main` (incremental), the release pull request and
+  the nightly run (complete). A script splits the mutated files by their
+  estimated run time, heaviest first onto the emptiest job: the test time
+  of their mutants in the last report, so static mutants weigh what they
+  cost; a file the report does not know weighs by its lines. A file heavier
+  than half a job is cut into line ranges between its top-level statements
+  (owner, 2026-11-13: the split by mutant count left one job at 44 minutes
+  and the others at 7 to 14). Each job keeps its own incremental cache. A
+  gate job merges the six reports and checks the total score (80 %) and
+  every per-file floor exactly as before; no mutant and no check is dropped
+  (owner, 2026-11-12, #131).
+* **[E]** Before the merge of #131, one complete sharded run in its pull
+  request is compared with the last nightly run: the total score and every
+  file score must match (owner, 2026-11-12).
+* **[E]** Display texts are not mutation-tested (owner, 2026-11-12, #131):
+  the names, abbreviations, short and long texts of the catalog and the
+  mission names live in `src/shared/texts.ts`, which Stryker leaves out
+  (`stryker.config.json`); it has no floor in `mutation-standard.json`.
+  Each text was a static mutant that reloaded every test, most of the time
+  of a run. Their exactness is guarded by the catalog, naming and
+  explanation tests (`catalog.test.ts`, `src/test/naming.test.ts`,
+  `explain.test.ts`) and `src/shared/texts.test.ts` (every catalog entry
+  has its texts, no text without an entry). Game values stay mutated in
+  `catalog.ts`. See [Design patterns](/architecture/patterns.md).
 * **[E]** Mutation standard per file (owner, 2026-11-11,
   `mutation-standard.json`, `scripts/mutation-gate.ts`): no file may fall
   below its recorded floor; a new file needs 80 %, a new security file 90 %.
@@ -121,6 +150,93 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 | Upgrade | `docker/upgrade.sh` in the same job | The last release writes data, the new image starts on the same volume: the data survive, a migration leaves a backup (fail closed, see [SQLite storage](/data/sqlite.md)). |
 | Stack | `docker/smoke.sh` in the CI job "Docker image and Compose stack" | Headers through Caddy, uid 1000, invitation mail in Mailpit, registration with its link, admin by command, data after a restart, maintenance by `nova maintenance on\|off` and the Caddy maintenance page with the game stopped; plus: image without compiler, package manager or tests; a wrong setting stops the start; Trivy. |
 
+# Code of the sharded mutation runs (#131)
+
+* **[V]** `scripts/mutation-shards.ts` (tests in
+  `src/test/mutation-shards.test.ts`):
+  * `plan` lists the files of the `mutate` globs of `stryker.config.json`
+    (in order, `!` removes) and weighs each by the test time (`duration`) of
+    its mutants in `reports/mutation/mutation.json`, restored from the cache:
+    the merged report of the last **complete** run (`stryker-weights-…`,
+    saved by `mutation.yml` and by a release pull request), else the last
+    merged report. The first complete sharded run planned with an
+    incremental report: its reused results put shard 4 at 56 instead of 101
+    mutant-minutes, 36 instead of about 22 minutes (owner, 2026-11-13). In
+    that run the reported times matched the wall time of every shard
+    (factor 0.35 to 0.41). A mutant without a time costs
+    the mean of its kind (static or not), a report without times counts
+    mutants, a file the report does not know costs its lines times the mean
+    of a mutant that is not static. A TypeScript file heavier than half a
+    shard is cut after each top-level statement that the next one does not
+    share (TypeScript parser, so the plan job installs the dependencies);
+    each piece weighs its mutants by their start line, and a piece without
+    weight joins its neighbour. Stryker mutates a node only when it lies
+    wholly in one range, and no node spans two top-level statements, so no
+    mutant is lost; one statement (for example `RES` in `catalog.ts`) stays
+    one piece. The pieces and files are split greedily, heaviest first
+    (equal weights by name) onto the lightest shard (the first of equal
+    ones); then neighbouring pieces of a shard become one range and a file
+    with all its pieces on one shard is whole again. It prints the plan as
+    JSON: 6 sorted lists of `mutate` entries, `file` or `file:from-to`.
+  * `config <n>` writes `reports/stryker-shard.config.json`: the
+    configuration of `stryker.config.json` with only the files of shard n
+    and `thresholds.break: null`, and prunes the shard's incremental file to
+    its files and, of a cut file, to the mutants wholly in its ranges; a
+    cut file whose source changed since the cached run starts without its
+    cache, because Stryker moves cached mutants of a changed file to their
+    new lines and reports a moved one outside the ranges again (CodeRabbit
+    on #133). Stryker keeps and reports again the old results of files it
+    does not mutate this time; without the pruning a file that moved to
+    another shard would be reported twice (seen locally).
+  * `merge <out> <report>...` checks that every shard of the plan ran once,
+    matched by the `mutate` list in its report, and reported only its own
+    files and no file twice; a cut file may be in several reports, but each
+    shard reports only mutants in its ranges, no mutant is in two reports,
+    and its ranges cover it from line 1 to its last line without overlap.
+    Then it writes the union of the files (the mutants of a cut file
+    joined) with the
+    thresholds of `stryker.config.json`, without `testFiles` and `config`
+    (test ids are numbered per shard). Stryker leaves files without mutants
+    (`types.ts`, `index.ts`) out of its report, so completeness is checked
+    by the lists, not by the files present.
+* **[V]** `scripts/mutation-gate.ts --report <path>` reads the merged report;
+  it now also fails a total below the break threshold of
+  `stryker.config.json` (80 %; the shards run without it) and prints every
+  file with its counts and the total, so two runs can be compared.
+* **[V]** Jobs in `ci.yml`: „Mutation plan“ (`mutation-plan`, once, the plan
+  as job output), „Mutation tests (shard N of 6)“ (`mutation-shard`, matrix
+  1 to 6, `fail-fast: false`, incremental, `--force` when the head branch is
+  `release/*`, uploads `mutation-shard-N`), „Mutation tests“ (`mutation`,
+  the gate: merge, total, floors). The CI Gate requires all three when code
+  changed. `mutation.yml` (nightly and „Run workflow“) runs the same three
+  jobs complete and keeps the merged report as the artifact
+  `mutation-report` for 30 days.
+* **[V]** Caches: per shard `stryker-shard<N>-<ref>-<sha>` (nightly with
+  `-<run id>`), restored from the same shard on the same ref, then on
+  `main`; the merged report `stryker-report-<ref>-<sha>`, saved by the gate
+  job when the merge succeeded and restored by the plan job (the weights).
+  The first run after the merge has no shard caches and tests every mutant
+  once; a file that moves to another shard is tested again there.
+* **[V]** Proof run (decision above): „Run workflow“ of „Mutation tests
+  (nightly)“ on a branch runs the complete sharded run there:
+  `gh workflow run mutation.yml --ref <branch>`. The display texts leave
+  the mutated code in the same pull request, so `catalog.ts` and the total
+  differ from a run before it; the like-for-like proof is a branch with the
+  sharding commit only on the same `main` as a complete unsharded run
+  (`gh workflow run mutation.yml --ref main` before the merge). The gate
+  log lists every file with its counts; Stryker's table of the unsharded run
+  shows the same counts.
+* **[V]** Text module (#131): `src/shared/texts.ts` exports `BUILD_TEXT`,
+  `RES_TEXT`, `SHIP_TEXT`, `DEF_TEXT` (`n`, `ab`, `ds`, `lt` keyed by the
+  entry key) and `MISSION_TEXT`; every catalog entry starts with
+  `...BUILD_TEXT.<key>` and so on, `MISSION` takes its values from
+  `MISSION_TEXT`. The objects are equal to before; only the order of the
+  fields inside an entry changed (texts first). Measured locally (2026-11-13):
+  `catalog.ts` had 426 mutants, 420 of them static (180 of them the texts);
+  now 246, 240 static (empty objects and lists, drive names, `once`), score
+  99.59 % (245 killed, 1 survived) above its floor of 98.76 %, 19 minutes
+  for this file alone with 4 test runners.
+
 # Scope of coverage and mutation
 
 * **[V]** Measured: `src/shared`, `src/server`, `src/client/logic`. Not
@@ -128,6 +244,8 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   (`src/client/views`), the browser glue
   (`src/client/main.ts`) and the process entry points (`main.ts`, `cli.ts`).
   The E2E suite and the Compose job run them.
+* **[E]** Not mutated: the display texts in `src/shared/texts.ts` (see the
+  decision above); they count for the coverage.
 
 # Level at the introduction (2026-11-06)
 
