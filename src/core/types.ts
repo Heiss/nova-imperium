@@ -20,6 +20,9 @@ export interface Coords {
   p: number;
 }
 
+/** A place is coordinates plus a kind (O11, #119); its id is `placeId()`. */
+export type Place = Coords & { kind: 'planet' | 'moon' | 'debris' };
+
 export interface Queue {
   key: string;
   lvl: number;
@@ -36,6 +39,8 @@ interface ShipyardItem {
 
 export interface Planet extends Coords {
   id: string;
+  /** A moon is a row of the planets too (#53); debris has its own table. */
+  kind: 'planet' | 'moon';
   owner: string;
   name: string;
   temp: number;

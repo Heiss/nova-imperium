@@ -8,8 +8,8 @@ import {
   fleetSpeed,
   flightMs,
   fuelFor,
-  pid,
 } from '../../core/flight.ts';
+import { placeId } from '../../core/place.ts';
 import type {
   Coords,
   Fleet,
@@ -113,7 +113,7 @@ function plan(ctx: Ctx, u: User, p: Planet, d: Data): Plan {
   if (ctx.fleets.count(u.id) >= fleetSlots(researchOf(ctx, u)))
     fail('Alle Flottenslots belegt.');
   const dest = target(ctx, d);
-  const occupied = ctx.planets.get(pid(dest));
+  const occupied = ctx.planets.get(placeId({ ...dest, kind: 'planet' }));
   checkDestination(ctx, u, p, mission, occupied, ships);
   if (mission === 'spy' && Object.keys(ships).some((k) => k !== 'probe'))
     fail('Auspex-Erkundung nur mit Spähschädeln.');
@@ -154,7 +154,7 @@ export const send: Action = (ctx, u, d, event) => {
     owner: u.id,
     from: p.id,
     fromC: { g: p.g, s: p.s, p: p.p },
-    to: pid(dest),
+    to: placeId({ ...dest, kind: 'planet' }),
     toC: dest,
     mission,
     ships,
