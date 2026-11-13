@@ -48,6 +48,7 @@ okf_version: "0.2"
 * [Release loop](/ops/loop.md) - `/loop` with `.claude/loop.md`: plan with the owner, clarify, build, make the release ready, stop
 * [Languages](/ops/language.md) - development in English, game interface in German
 * [Defaults stay inside](/ops/defaults.md) - a fresh instance is closed and talks to nobody
+* [Documentation website](/ops/website.md) - Starlight site on GitHub Pages from okf/ and docs/, with agents.md
 
 # Log
 

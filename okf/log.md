@@ -6,6 +6,10 @@
 * **Decision**: #68 clarified: the E2E gaps in one pull request, fleet and battle first; flights, battles and queues set up with `e2e/seed.ts`; mails through an SMTP sink in the E2E start (see [Test strategy](/ops/testing.md)).
 * **Decision**: #135 and #136 clarified: the wrong texts of 26.11.22 stay in `CHANGELOG.md` and are corrected by two fragments `art: behoben` („Korrektur zu 26.11.22: …“) in the next release; a pull request that extends a feature of the coming release changes its fragment instead of adding one, and the release text check looks for two entries about one feature (see [Branching and release](/ops/branching-release.md)).
 
+## 2026-11-13
+
+* **Decision**: documentation website on GitHub Pages with Astro Starlight in `website/`, English, the whole OKF bundle, published after every push to `main`, seven sections with the Git workflow, checks and automation, a generated raw `agents.md` with every page as raw Markdown, and the repository „About“ (see [Documentation website](/ops/website.md)).
+
 ## 2026-11-12
 
 * **Update**: `src/shared/achievements.ts` has its own test of names, targets and rewards; a complete run after #127 scored it 33.33 %, below its floor 35.18 %; with the test a complete local run scores 100 %. The floor stays 35.18 % until a complete CI run confirms the new score, because incremental runs keep cached results for unchanged mutants (see [Test strategy](/ops/testing.md)).
