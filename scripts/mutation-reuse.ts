@@ -6,14 +6,19 @@
 //     request (not an ancestor of the base);
 //   - the commit the CI tests (refs/pull/N/merge) has the tree of the head,
 //     so main did not move since the merge;
-//   - the merge (first parent..head) changes no file the pull request
-//     changes against main, no test file and no file of the mutation
-//     configuration (the lists of scripts/mutation-changes.ts, #146);
+//   - the merge (first parent..head) changes no file of the mutation run
+//     (a mutated file, a test file or the mutation configuration, as in
+//     scripts/mutation-changes.ts, #146) that the pull request changes
+//     against main too, and does not change the versions of the test tool
+//     chain in the lockfile (revised by the owner, 2026-11-13); other files
+//     from main (documentation, okf/, other tests, other code) do not
+//     count, the push run of main and the nightly complete run test them;
 //   - the newest check run "Mutation tests" of the first parent, read
 //     through the API, is a success.
 // Anything else, a failing git or API call included, runs the mutation jobs
-// as before. The CI Gate checks the green run again before it accepts the
-// skip.
+// as before. A head that took over a result has a skipped "Mutation tests",
+// so the next merge of main runs the jobs: reuse happens once in a row. The
+// CI Gate checks the green run again before it accepts the skip.
 //
 //   node scripts/mutation-reuse.ts decide <base> <tested> <head>
 //        prints "reuse" or "true", the reasons on stderr
@@ -24,7 +29,7 @@
 // (the job needs the permission "checks: read").
 import { execFileSync } from 'node:child_process';
 import { runCli } from './cli.ts';
-import { matchesAny, MUTATION_CONFIG, TEST_FILES } from './mutation-changes.ts';
+import { lockfileReason, readMutate, reason } from './mutation-changes.ts';
 
 /** The gate job of the mutation run in ci.yml, whose result is taken over. */
 export const CHECK = 'Mutation tests';
@@ -59,22 +64,24 @@ export function notGreen(
 }
 
 /**
- * Why the files of the merge keep the earlier result from counting: a file
- * the pull request changes too, a test file or the mutation configuration.
+ * Why the files of the merge keep the earlier result from counting: a file of
+ * the mutation run (mutated, a test or the mutation configuration, by the
+ * "mutate" globs <mutate>) that the pull request changes too. Any other file
+ * of the merge does not count.
  */
 export function mergeReasons(
   merged: readonly string[],
   changed: readonly string[],
+  mutate: readonly string[],
 ): string[] {
   const own = new Set(changed);
   return merged.flatMap((file) => {
-    if (own.has(file))
-      return [`the merge changes ${file}, a file of the pull request`];
-    if (matchesAny(file, TEST_FILES))
-      return [`the merge changes ${file}, a test file`];
-    if (matchesAny(file, MUTATION_CONFIG))
-      return [`the merge changes ${file}, which configures the mutation run`];
-    return [];
+    const why = own.has(file) ? reason(file, mutate) : undefined;
+    return why
+      ? [
+          `the merge changes a file of the mutation run the pull request changes too: ${why}`,
+        ]
+      : [];
   });
 }
 
@@ -91,13 +98,14 @@ const isAncestor = (git: Run, commit: string, of: string): boolean =>
 /**
  * The first parent of <head> whose result the pull request may take over,
  * and every reason against it from the history. <base> is the base commit,
- * <tested> the merge commit the CI tests. git runs a git command and returns
- * its output.
+ * <tested> the merge commit the CI tests, <mutate> the "mutate" globs of
+ * stryker.config.json. git runs a git command and returns its output.
  */
 export function mergeOfMain(
   base: string,
   tested: string,
   head: string,
+  mutate: readonly string[],
   git: Run,
 ): { parent?: string; reasons: string[] } {
   const parents = git(['rev-list', '--parents', '-n', '1', head])
@@ -120,9 +128,14 @@ export function mergeOfMain(
       `the tested commit ${tested} differs from the head ${head}: main moved after the merge`,
     );
   if (reasons.length) return { parent, reasons };
+  const files = names(git, parent, head);
+  const tools = lockfileReason(files, parent, head, git);
   return {
     parent,
-    reasons: mergeReasons(names(git, parent, head), names(git, base, tested)),
+    reasons: [
+      ...mergeReasons(files, names(git, base, tested), mutate),
+      ...(tools ? [`in the merge, ${tools}`] : []),
+    ],
   };
 }
 
@@ -157,6 +170,7 @@ const message = (error: unknown): string =>
 export function decide(
   [base, tested, head]: readonly string[],
   repo: string,
+  mutate: readonly string[],
   git: Run,
   gh: Run,
 ): string {
@@ -164,7 +178,7 @@ export function decide(
     throw new Error('Usage: mutation-reuse.ts decide <base> <tested> <head>');
   let reasons: string[];
   try {
-    const found = mergeOfMain(base, tested, head, git);
+    const found = mergeOfMain(base, tested, head, mutate, git);
     reasons = found.reasons;
     if (!reasons.length) {
       const sha = found.parent!;
@@ -214,17 +228,22 @@ const runner =
       stdio: ['ignore', 'pipe', 'inherit'],
     });
 
-/** Runs a command: decide prints its answer, verify answers by exit code. */
+/**
+ * Runs a command: decide prints its answer, verify answers by exit code.
+ * decide reads the "mutate" globs of stryker.config.json in the working
+ * directory unless <mutate> gives them.
+ */
 export function main(
   args: readonly string[] = process.argv.slice(2),
   repo: string | undefined = process.env.GITHUB_REPOSITORY,
   git: Run = runner('git'),
   gh: Run = runner('gh'),
+  mutate?: readonly string[],
 ): number {
   const [command, ...rest] = args;
   if (!repo) throw new Error('GITHUB_REPOSITORY names no repository.');
   if (command === 'decide') {
-    console.log(decide(rest, repo, git, gh));
+    console.log(decide(rest, repo, mutate ?? readMutate(), git, gh));
     return 0;
   }
   if (command === 'verify' && rest[0]) return verified(rest[0], repo, gh);

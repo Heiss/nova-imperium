@@ -99,46 +99,69 @@ describe('mutation reuse: the earlier result', () => {
   });
 });
 
-describe('mutation reuse: the files of the merge', () => {
-  it('takes over when the merge leaves the pull request, the tests and the configuration alone', () => {
-    expect(
-      mergeReasons(
-        ['README.md', 'src/core/economy.ts', 'Dockerfile', 'e2e/game.spec.ts'],
-        ['src/core/fleet.ts', 'src/core/fleet.test.ts', 'okf/log.md'],
-      ),
-    ).toEqual([]);
-    expect(mergeReasons([], ['src/core/fleet.ts'])).toEqual([]);
-  });
+const stryker = JSON.parse(readFileSync('stryker.config.json', 'utf8'));
+const mutate: string[] = stryker.mutate;
 
-  it('names a file of the pull request, a test file and the configuration', () => {
+/** The reason of a file of the mutation run that both sides change. */
+const shared = (why: string): string =>
+  `the merge changes a file of the mutation run the pull request changes too: ${why}`;
+
+describe('mutation reuse: the files of the merge', () => {
+  it('takes over when the merge leaves the mutation run of the pull request alone', () => {
+    // Documentation, okf/, other code, other tests and the configuration
+    // from main do not count, not even okf/log.md that both change.
     expect(
       mergeReasons(
         [
+          'README.md',
           'okf/log.md',
+          'okf/ops/testing.md',
+          'src/core/economy.ts',
           'src/core/economy.test.ts',
           'src/test/fixtures.ts',
           'src/server/test-helpers.ts',
           'stryker.config.json',
           'scripts/mutation-gate.ts',
-          'src/core/economy.ts',
+          'Dockerfile',
+          'e2e/game.spec.ts',
         ],
-        ['okf/log.md', 'src/core/fleet.ts'],
+        ['src/core/fleet.ts', 'src/core/fleet.test.ts', 'okf/log.md'],
+        mutate,
       ),
-    ).toEqual([
-      'the merge changes okf/log.md, a file of the pull request',
-      'the merge changes src/core/economy.test.ts, a test file',
-      'the merge changes src/test/fixtures.ts, a test file',
-      'the merge changes src/server/test-helpers.ts, a test file',
-      'the merge changes stryker.config.json, which configures the mutation run',
-      'the merge changes scripts/mutation-gate.ts, which configures the mutation run',
-    ]);
+    ).toEqual([]);
+    expect(mergeReasons([], ['src/core/fleet.ts'], mutate)).toEqual([]);
   });
 
-  it('names a test file the pull request changes as a file of the pull request', () => {
+  it('ignores a shared file outside the mutation run', () => {
+    const files = [
+      'okf/log.md',
+      'src/core/texts.ts',
+      'src/features/fleet/texts.de.ts',
+      'e2e/game.spec.ts',
+      'package.json',
+    ];
+    expect(mergeReasons(files, files, mutate)).toEqual([]);
+  });
+
+  it('names a mutated file, a test file and the configuration that both change', () => {
+    const files = [
+      'okf/log.md',
+      'src/core/fleet.ts',
+      'src/core/fleet.test.ts',
+      'src/test/fixtures.ts',
+      'src/server/test-helpers.ts',
+      'stryker.config.json',
+      'scripts/mutation-gate.ts',
+    ];
     expect(
-      mergeReasons(['src/core/fleet.test.ts'], ['src/core/fleet.test.ts']),
+      mergeReasons(files, [...files, 'src/core/other.ts'], mutate),
     ).toEqual([
-      'the merge changes src/core/fleet.test.ts, a file of the pull request',
+      shared('src/core/fleet.ts is mutated (stryker.config.json)'),
+      shared('src/core/fleet.test.ts is a test file'),
+      shared('src/test/fixtures.ts is a test file'),
+      shared('src/server/test-helpers.ts is a test file'),
+      shared('stryker.config.json configures the mutation run'),
+      shared('scripts/mutation-gate.ts configures the mutation run'),
     ]);
   });
 });
@@ -151,6 +174,21 @@ const lines = (first: string, last: string): string =>
   [first, ...Array.from({ length: 10 }, (_, i) => `line ${i}`), last, ''].join(
     '\n',
   );
+
+/** A pnpm lockfile (version 9) with the test tool chain and <other>. */
+const lockfile = (vitest: string, other: string): string =>
+  [
+    "lockfileVersion: '9.0'",
+    '',
+    'packages:',
+    '',
+    ...[
+      "'@stryker-mutator/core@10.1.1'",
+      'typescript@6.0.3',
+      `vitest@${vitest}`,
+      other,
+    ].flatMap((p) => [`  ${p}:`, '    resolution: {integrity: sha512-x}', '']),
+  ].join('\n');
 
 /** A Git repository in a temporary folder, as the CI checks it out. */
 function repository() {
@@ -197,6 +235,10 @@ function repository() {
     'okf/log.md': lines('log', 'end'),
     'src/core/economy.ts': 'export const a = 1;\n',
     'src/core/economy.test.ts': 'test\n',
+    'src/core/fleet.ts': lines('fleet', 'end'),
+    'src/core/fleet.test.ts': lines('fleet test', 'end'),
+    'vitest.config.ts': lines('config', 'end'),
+    'pnpm-lock.yaml': lockfile('5.1.0', 'zod@4.0.0'),
   });
   return { dir, git, sha, commit, merge, tested };
 }
@@ -208,15 +250,18 @@ describe('mutation reuse: the history (real Git)', () => {
   });
 
   /**
-   * A pull request with one commit on the first commit of main, then <main>
-   * on main, then main merged into the pull request.
+   * A pull request with one commit on the first commit of main that changes
+   * the first line of fleet.ts, its test, vitest.config.ts and okf/log.md,
+   * then <main> on main, then main merged into the pull request.
    */
   function scenario(mainFiles: Record<string, string>) {
     const r = repository();
     repos.push(r.dir);
     r.git(['checkout', '-q', '-b', 'feature']);
     const p1 = r.commit({
-      'src/core/fleet.ts': 'export const f = 1;\n',
+      'src/core/fleet.ts': lines('fleet pull request', 'end'),
+      'src/core/fleet.test.ts': lines('fleet test pull request', 'end'),
+      'vitest.config.ts': lines('config pull request', 'end'),
       'okf/log.md': lines('pull request', 'end'),
     });
     r.git(['checkout', '-q', 'main']);
@@ -226,33 +271,53 @@ describe('mutation reuse: the history (real Git)', () => {
     return { ...r, p1, base, head };
   }
 
+  /** The answer of the history for the merge of the scenario. */
+  const decided = (s: ReturnType<typeof scenario>) =>
+    mergeOfMain(s.base, s.tested(s.base, s.head), s.head, mutate, s.git);
+
   it('takes over after a merge of main that touches other files', () => {
-    const s = scenario({ 'README.md': 'game 2\n', 'src/core/economy.ts': '2' });
-    expect(
-      mergeOfMain(s.base, s.tested(s.base, s.head), s.head, s.git),
-    ).toEqual({ parent: s.p1, reasons: [] });
-  });
-
-  it('runs the jobs when the merge changes a file of the pull request', () => {
-    const s = scenario({ 'okf/log.md': lines('log', 'main') });
-    expect(
-      mergeOfMain(s.base, s.tested(s.base, s.head), s.head, s.git),
-    ).toEqual({
-      parent: s.p1,
-      reasons: ['the merge changes okf/log.md, a file of the pull request'],
-    });
-  });
-
-  it('runs the jobs when the merge changes a test or the configuration', () => {
+    // Other code, another test, a test helper, the mutation configuration
+    // the pull request leaves alone, and a lockfile change outside the test
+    // tool chain.
     const s = scenario({
+      'README.md': 'game 2\n',
+      'src/core/economy.ts': 'export const a = 2;\n',
       'src/core/economy.test.ts': 'test 2\n',
-      'vitest.config.ts': 'config\n',
+      'src/test/fixtures.ts': 'fixtures\n',
+      'stryker.config.json': '{}\n',
+      'pnpm-lock.yaml': lockfile('5.1.0', 'zod@4.1.0'),
     });
-    expect(
-      mergeOfMain(s.base, s.tested(s.base, s.head), s.head, s.git).reasons,
-    ).toEqual([
-      'the merge changes src/core/economy.test.ts, a test file',
-      'the merge changes vitest.config.ts, which configures the mutation run',
+    expect(decided(s)).toEqual({ parent: s.p1, reasons: [] });
+  });
+
+  it('takes over when both change only a file outside the mutation run', () => {
+    const s = scenario({ 'okf/log.md': lines('log', 'main') });
+    expect(decided(s)).toEqual({ parent: s.p1, reasons: [] });
+  });
+
+  it('runs the jobs when the merge changes a mutated file of the pull request', () => {
+    const s = scenario({ 'src/core/fleet.ts': lines('fleet', 'main') });
+    expect(decided(s)).toEqual({
+      parent: s.p1,
+      reasons: [shared('src/core/fleet.ts is mutated (stryker.config.json)')],
+    });
+  });
+
+  it('runs the jobs when the merge changes a test or the configuration of the pull request', () => {
+    const s = scenario({
+      'src/core/fleet.test.ts': lines('fleet test', 'main'),
+      'vitest.config.ts': lines('config', 'main'),
+    });
+    expect(decided(s).reasons).toEqual([
+      shared('src/core/fleet.test.ts is a test file'),
+      shared('vitest.config.ts configures the mutation run'),
+    ]);
+  });
+
+  it('runs the jobs when the merge changes the test tool chain', () => {
+    const s = scenario({ 'pnpm-lock.yaml': lockfile('5.2.0', 'zod@4.0.0') });
+    expect(decided(s).reasons).toEqual([
+      'in the merge, pnpm-lock.yaml changes the test tool chain: -vitest@5.1.0 +vitest@5.2.0',
     ]);
   });
 
@@ -261,7 +326,7 @@ describe('mutation reuse: the history (real Git)', () => {
     s.git(['checkout', '-q', 'main']);
     const newer = s.commit({ 'docs/x.md': 'x\n' });
     const tested = s.tested(newer, s.head);
-    expect(mergeOfMain(newer, tested, s.head, s.git)).toEqual({
+    expect(mergeOfMain(newer, tested, s.head, mutate, s.git)).toEqual({
       parent: s.p1,
       reasons: [
         `the tested commit ${tested} differs from the head ${s.head}: main moved after the merge`,
@@ -271,13 +336,13 @@ describe('mutation reuse: the history (real Git)', () => {
 
   it('runs the jobs when the head is no merge', () => {
     const s = scenario({ 'README.md': 'game 2\n' });
-    const next = s.commit({ 'src/core/fleet.ts': 'export const f = 2;\n' });
-    expect(mergeOfMain(s.base, s.tested(s.base, next), next, s.git)).toEqual({
-      reasons: [`${next} is not a merge of two commits`],
-    });
-    expect(mergeOfMain(s.base, s.tested(s.base, s.p1), s.p1, s.git)).toEqual({
-      reasons: [`${s.p1} is not a merge of two commits`],
-    });
+    const next = s.commit({ 'src/core/economy.ts': 'export const a = 3;\n' });
+    expect(
+      mergeOfMain(s.base, s.tested(s.base, next), next, mutate, s.git),
+    ).toEqual({ reasons: [`${next} is not a merge of two commits`] });
+    expect(
+      mergeOfMain(s.base, s.tested(s.base, s.p1), s.p1, mutate, s.git),
+    ).toEqual({ reasons: [`${s.p1} is not a merge of two commits`] });
   });
 
   it('runs the jobs when the head merged another branch than main', () => {
@@ -287,7 +352,7 @@ describe('mutation reuse: the history (real Git)', () => {
     s.git(['checkout', '-q', 'feature']);
     const head = s.merge('other');
     expect(
-      mergeOfMain(s.base, s.tested(s.base, head), head, s.git).reasons,
+      mergeOfMain(s.base, s.tested(s.base, head), head, mutate, s.git).reasons,
     ).toEqual([`the second parent ${other} is not a commit of main`]);
   });
 
@@ -297,7 +362,7 @@ describe('mutation reuse: the history (real Git)', () => {
     s.git(['checkout', '-q', '-B', 'feature', s.base]);
     const head = s.merge(s.p1);
     expect(
-      mergeOfMain(s.base, s.tested(s.base, head), head, s.git).reasons,
+      mergeOfMain(s.base, s.tested(s.base, head), head, mutate, s.git).reasons,
     ).toEqual([
       `the second parent ${s.p1} is not a commit of main`,
       `the first parent ${s.base} is not a commit of the pull request`,
@@ -331,7 +396,9 @@ describe('mutation reuse: the commands', () => {
     const { error } = output();
     const git = history('README.md\0', 'src/core/fleet.ts\0');
     const gh = fake({ [runsCall('p1')]: runsAnswer(run()) });
-    expect(decide(['base', 'tested', 'head'], REPO, git, gh)).toBe('reuse');
+    expect(decide(['base', 'tested', 'head'], REPO, mutate, git, gh)).toBe(
+      'reuse',
+    );
     expect(error.mock.calls).toEqual([
       [
         'The head only merged main: the mutation result of its first parent is taken over.',
@@ -342,12 +409,12 @@ describe('mutation reuse: the commands', () => {
   it('decides true with the reasons otherwise', () => {
     const { error } = output();
     const git = history('src/core/fleet.ts\0', 'src/core/fleet.ts\0');
-    expect(decide(['base', 'tested', 'head'], REPO, git, fake({}))).toBe(
-      'true',
-    );
+    expect(
+      decide(['base', 'tested', 'head'], REPO, mutate, git, fake({})),
+    ).toBe('true');
     expect(error.mock.calls).toEqual([
       [
-        'Mutation jobs run: the merge changes src/core/fleet.ts, a file of the pull request',
+        `Mutation jobs run: ${shared('src/core/fleet.ts is mutated (stryker.config.json)')}`,
       ],
     ]);
   });
@@ -358,7 +425,9 @@ describe('mutation reuse: the commands', () => {
     const gh = fake({
       [runsCall('p1')]: runsAnswer(run({ conclusion: 'cancelled' })),
     });
-    expect(decide(['base', 'tested', 'head'], REPO, git, gh)).toBe('true');
+    expect(decide(['base', 'tested', 'head'], REPO, mutate, git, gh)).toBe(
+      'true',
+    );
     expect(error.mock.calls).toEqual([
       [`Mutation jobs run: the newest check run "${CHECK}" of p1 is cancelled`],
     ]);
@@ -367,12 +436,12 @@ describe('mutation reuse: the commands', () => {
   it('decides true when git or the API fails', () => {
     const { error } = output();
     const git = history('README.md\0', '');
-    expect(decide(['base', 'tested', 'head'], REPO, git, fake({}))).toBe(
-      'true',
-    );
-    expect(decide(['base', 'tested', 'head'], REPO, fake({}), fake({}))).toBe(
-      'true',
-    );
+    expect(
+      decide(['base', 'tested', 'head'], REPO, mutate, git, fake({})),
+    ).toBe('true');
+    expect(
+      decide(['base', 'tested', 'head'], REPO, mutate, fake({}), fake({})),
+    ).toBe('true');
     expect(error.mock.calls).toEqual([
       [
         `Mutation jobs run: cannot check the earlier result: unknown: ${runsCall('p1')}`,
@@ -390,7 +459,7 @@ describe('mutation reuse: the commands', () => {
       ['base', 'tested', ''],
       ['base', 'tested'],
     ])
-      expect(() => decide(args, REPO, fake({}), fake({}))).toThrow(
+      expect(() => decide(args, REPO, mutate, fake({}), fake({}))).toThrow(
         'Usage: mutation-reuse.ts decide <base> <tested> <head>',
       );
   });
@@ -433,6 +502,16 @@ describe('mutation reuse: the commands', () => {
     });
     expect(main(['decide', 'base', 'tested', 'head'], REPO, git, gh)).toBe(0);
     expect(log.mock.calls).toEqual([['reuse']]);
+    error.mockClear();
+    // decide reads the mutate globs of stryker.config.json.
+    const own = history('src/core/fleet.ts\0', 'src/core/fleet.ts\0');
+    expect(main(['decide', 'base', 'tested', 'head'], REPO, own, gh)).toBe(0);
+    expect(log.mock.calls).toEqual([['reuse'], ['true']]);
+    expect(error.mock.calls).toEqual([
+      [
+        `Mutation jobs run: ${shared('src/core/fleet.ts is mutated (stryker.config.json)')}`,
+      ],
+    ]);
     error.mockClear();
     expect(main(['verify', 'head'], REPO, git, gh)).toBe(0);
     expect(error.mock.calls).toEqual([

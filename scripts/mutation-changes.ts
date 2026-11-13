@@ -141,19 +141,37 @@ export function reasons(
     to,
   ]).split('\0');
   const found = files.flatMap((f) => reason(f, mutate) ?? []);
-  if (files.includes(LOCKFILE)) {
-    const show = (rev: string): string => {
-      try {
-        return git(['show', `${rev}:${LOCKFILE}`]);
-      } catch {
-        return '';
-      }
-    };
-    const tools = toolChainReason(show(from), show(to));
-    if (tools) found.push(tools);
-  }
+  const tools = lockfileReason(files, from, to, git);
+  if (tools) found.push(tools);
   return found;
 }
+
+/**
+ * Why the lockfile change from <from> to <to> runs the mutation jobs, or
+ * undefined; <files> are the files the change touches, so an untouched
+ * lockfile is not read. A lockfile missing at <from> counts as empty. Also
+ * used by scripts/mutation-reuse.ts for a merge of main (#167).
+ */
+export function lockfileReason(
+  files: readonly string[],
+  from: string,
+  to: string,
+  git: (args: string[]) => string,
+): string | undefined {
+  if (!files.includes(LOCKFILE)) return undefined;
+  const show = (rev: string): string => {
+    try {
+      return git(['show', `${rev}:${LOCKFILE}`]);
+    } catch {
+      return '';
+    }
+  };
+  return toolChainReason(show(from), show(to));
+}
+
+/** The "mutate" globs of stryker.config.json in the working directory. */
+export const readMutate = (): string[] =>
+  (JSON.parse(readFileSync(CONFIG, 'utf8')) as { mutate: string[] }).mutate;
 
 const runGit = (args: string[]): string =>
   execFileSync('git', args, {
@@ -172,10 +190,7 @@ export function main(
     console.error('Usage: mutation-changes.ts <from> [<to>]');
     return 1;
   }
-  const { mutate } = JSON.parse(readFileSync(CONFIG, 'utf8')) as {
-    mutate: string[];
-  };
-  const found = reasons(from, to, mutate, git);
+  const found = reasons(from, to, readMutate(), git);
   for (const r of found) console.error(`Mutation jobs run: ${r}`);
   if (!found.length)
     console.error(

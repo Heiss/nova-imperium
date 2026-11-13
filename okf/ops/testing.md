@@ -141,15 +141,30 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   of the release loop; „mutation only on `main`“ and a merge queue were
   not chosen). The earlier result is the check run „Mutation tests“ of the
   first parent of the head, read through the API; it must be `success`.
-  The jobs need `checks: read`; no cache and no artifact. The merge
-  (first parent..head) must change no file the pull request itself
-  changes against `main`, no test file and no file of the mutation
-  configuration (both as in #146); otherwise the full mutation jobs run.
-  If the earlier green result cannot be found (a cancelled or deleted run,
-  a first parent that is not a commit of the pull request), the mutation
-  jobs run as before. Risk: a change from `main` can change the result of
-  the pull request's code without touching its files (a shared helper);
-  the push run of `main` after the merge finds it.
+  The jobs need `checks: read`; no cache and no artifact. If the earlier
+  green result cannot be found (a cancelled or deleted run, a first
+  parent that is not a commit of the pull request), the mutation jobs run
+  as before.
+* **[E]** Which merge of `main` blocks the takeover (owner, 2026-11-13,
+  revised on #167 after the first build measured the earlier rule: it
+  would have taken over 0 of 10 merges, every one changed `okf/log.md`
+  and nine brought in test files). The full mutation jobs run when the
+  merge (first parent..head) changes a file of the mutation run (a
+  mutated file by the `mutate` globs of `stryker.config.json`, a test
+  file or a file of the mutation configuration, as defined in #146) that
+  the pull request itself changes against `main` too, or when its
+  lockfile changes the test tool chain (`@stryker-mutator/*`, `vitest`,
+  `typescript`, the check of #146). Other files from `main`
+  (documentation, `okf/`, other tests, other code) do not block. This
+  replaces „no file the pull request changes“ and lifts „no test file“
+  of the first decision. The push run of `main` and the nightly complete
+  run still test everything. Risk: a change from `main` can change the
+  result of the pull request's code without touching its files (a shared
+  helper, another test, a mutation configuration the pull request leaves
+  alone); the push run of `main` after the merge finds it.
+* **[E]** The takeover happens once in a row (owner, 2026-11-13, #167): a
+  head that took over a result has a skipped „Mutation tests“, so the
+  next merge of `main` runs the jobs again.
   Checked before the build (2026-11-13, replaces the [U] of #167):
   the `GITHUB_TOKEN` is an installation access token of the GitHub Actions
   app, limited to the repository of the workflow, and the permission
@@ -354,10 +369,13 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   reasons on stderr: the head has two parents; the second is an ancestor
   of the base (a commit of `main`), the first is not (a commit of the pull
   request); the tested commit has the tree of the head (main did not move
-  after the merge, so the tested code is the head's); the merge
-  (`git diff --no-renames` first parent..head) changes no file of
-  base..tested, no test file and no file of the mutation configuration
-  (the lists of `mutation-changes.ts`); and the newest check run (highest
+  after the merge, so the tested code is the head's); no file of the merge
+  (`git diff --no-renames` first parent..head) that base..tested changes
+  too is a file of the mutation run (`reason` of `mutation-changes.ts`
+  with the `mutate` globs of the checked-out `stryker.config.json`); the
+  merge's lockfile keeps the test tool chain (`lockfileReason` of
+  `mutation-changes.ts`, a lockfile without a tool version fails and so
+  runs the jobs); and the newest check run (highest
   id) named exactly „Mutation tests“ of the app `github-actions` on the
   first parent completed with `success` (`gh api`, `check_name`,
   `filter=all`). A skipped one does not count, so a head that took over a
@@ -368,10 +386,30 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   `verify <head>` found the first parent of the head (Git data API) with a
   green „Mutation tests“ again; for that it checks out `scripts/` and sets
   up Node only in that case. A push with `reuse` fails as before (the full
-  suite). Measured on the merges of `main` into #162, #164, #165 and #166
-  (2026-11-13): none of the ten would have taken over a result, every one
-  changed `okf/log.md`, which each pull request changes too, and nine of
-  them changed test files.
+  suite).
+* **[V]** Measured (2026-11-13, #167) with `mergeOfMain` and the check
+  runs of the API on the ten merges of `main` into #162, #164, #165 and
+  #166 (base = second parent, tested = the merge; whether `main` moved
+  before the CI ran cannot be told afterwards). The earlier rule took
+  over 0 of 10. The revised rule passes 9 of 10 on the files and the tool
+  chain (no merge changed the test tool chain); with the green check run
+  of the first parent, 3 of 10 would have taken over the result:
+  - #162 `1729c60`: reuse.
+  - #162 `fb2c016`: first parent `6bf7f3e` has no „Mutation tests“ (it
+    was pushed together with the merge).
+  - #164 `7931307`: reuse.
+  - #164 `dc20542`: the newest „Mutation tests“ of `7f41314` was
+    cancelled.
+  - #164 `7f41314`: first parent `b534eb6` has no „Mutation tests“.
+  - #165 `666a75d`: the newest „Mutation tests“ of `75c0c53` was
+    cancelled.
+  - #165 `75c0c53`: reuse.
+  - #165 `710359d`: the newest „Mutation tests“ of `0a7f40a` was
+    cancelled.
+  - #165 `0a7f40a`: first parent `bddd266` has no „Mutation tests“.
+  - #166 `29c685c`: blocked, `main` and the pull request both change
+    `src/server/game/actions.ts` (mutated); its first parent's run was
+    cancelled too.
 * **[V]** Proof run (decision above): „Run workflow“ of „Mutation tests
   (nightly)“ on a branch runs the complete sharded run there:
   `gh workflow run mutation.yml --ref <branch>`. The display texts leave
