@@ -2,6 +2,7 @@
 
 ## 2026-11-13
 
+* **Code**: #112 built: `src/shared` renamed to `src/core` (every import, config, floor and document); `src/features/` and `src/features/missions/` with the generated, not checked-in index `src/features/index.gen.ts` (`scripts/gen-features.ts`, chained in the scripts of `package.json`, the E2E start and the Docker build); the boundary rules in `.dependency-cruiser.cjs` with their tests; no entry moved, no change of behaviour (see [Design patterns](/architecture/patterns.md)).
 * **Decision**: #111 order of the migration confirmed; #112 renames `src/shared` to `src/core` in one pull request and chains the index generator explicitly in the scripts; #113 splits the `texts.ts` of #131 per entry and adds `text(key)` (see [Design patterns](/architecture/patterns.md)).
 * **Decision**: #114 one pull request per component group; #117 aggregates by game object; #118 catalog views first; #115, #116 and #119 have no open decision (see [Design patterns](/architecture/patterns.md)).
 * **Decision**: #131 six shards instead of four (owner): the second proof run took 16.5 to 19 minutes per shard on equal runners, above the target of about 12 to 15; the planner and the workflows run 6 shards (see [Test strategy](/ops/testing.md)).

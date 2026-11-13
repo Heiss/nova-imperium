@@ -165,6 +165,7 @@ choice of the patterns to the assistant's recommendation below
 src/core/                  economy, settle, battle, flight, components/
 src/features/<key>/        entry.ts, texts.de.ts, *.server.ts, *.test.ts
 src/features/missions/<m>/ rules.ts, arrive.server.ts, *.test.ts
+src/features/index.gen.ts  generated index, not checked in
 src/server/                http, db/repos, game (commands)
 src/client/                state, components (generic), views
 ```
@@ -180,6 +181,28 @@ src/client/                state, components (generic), views
   without a bundler (`node src/server/main.ts`), so there is no glob import,
   and a checked-in generated file still collides between parallel pull
   requests.
+* **[E]** Built with #112: the folders `src/features/` and
+  `src/features/missions/` exist (`.gitkeep`); no entry has moved yet.
+  `scripts/gen-features.ts` writes `src/features/index.gen.ts` with
+  `ENTRIES` (each `<key>/entry.ts`) and `MISSIONS` (each
+  `missions/<m>/rules.ts`) as lists of `[key, module]` pairs sorted by key.
+  A list, not an object, because knip counts a module passed on as a whole
+  as used. A folder without its file, or whose name is not a key, stops the
+  script. The `*.server.ts` parts are not in this index, because the
+  browser uses it too; their registry comes with the first server part
+  (#116). The script writes only when the index changed, through a
+  temporary file and a rename.
+* **[E]** Built with #112, where the index is written first: the scripts
+  `start`, `cli`, `build`, `typecheck`, `test`, `test:watch`,
+  `test:coverage`, `test:mutation`, `lint:dead`, `lint:deps` and `check`;
+  the two E2E server starts (`playwright.config.ts`); the Dockerfile
+  through `pnpm build`, and the image copies `src/features`; the CI jobs
+  through these scripts (the nightly upgrade test runs `pnpm test <file>`).
+* **[E]** Built with #112: Vitest coverage and the Stryker `mutate` globs
+  measure `src/features` and leave the generated index out; knip takes the
+  index as an entry; jscpd skips it through `.gitignore`; Vite needs no
+  setting, it follows the imports. The changelog check counts
+  `src/features` as game code.
 * **[V]** If the generated index turns out to be a burden, the fallback is
   a hand-kept index, sorted, one line per entry.
 
@@ -189,6 +212,20 @@ src/client/                state, components (generic), views
   a feature may import `src/core`, never another feature; `src/core` sees
   features only through the generated index; `*.server.ts` only from the
   server. No workspace packages: reuse stays inside the project.
+* **[E]** Built with #112 as the rules `feature-not-feature` (a folder
+  `src/features/<key>/` or `src/features/missions/<m>/` imports only its own
+  files besides the core; the index of all features is no exception),
+  `core-sees-features-through-index` and `server-parts-on-server`
+  (`*.server.ts` only from `src/server`, other `*.server.ts` and tests).
+  The rules that were there stay; `shared-stays-pure` is now
+  `core-stays-pure`. `src/test/boundaries.test.ts` runs the real rules on a
+  small project per rule: each violation fails, the allowed imports pass.
+* **[V]** Built with #112 beyond the decision, for the owner to confirm:
+  `feature-stays-pure` (the files of a feature other than `*.server.ts` and
+  tests import neither server nor client, because the core reaches them
+  through the index and the browser runs them); `server-not-client` and
+  `server-runtime-deps` (no dev dependencies) cover the `*.server.ts` parts
+  and `src/features` too; tests may import a `*.server.ts` part.
 
 ## 12. Tests per component
 

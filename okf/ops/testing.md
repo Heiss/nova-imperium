@@ -114,8 +114,10 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   in production code; tests, E2E and version 1 are excluded) and
   dependency-cruiser (`.dependency-cruiser.cjs`: `src/core` imports neither
   server nor client, the client never the server and the reverse, production
-  code no test helpers, server and core code no dev dependencies, no
-  circular imports at runtime).
+  code no test helpers, server, core and feature code no dev dependencies,
+  no circular imports at runtime; the boundaries of the feature folders,
+  see [Design patterns](/architecture/patterns.md), section 11, tested by
+  `src/test/boundaries.test.ts` on a small project per rule).
 * **[E]** A gitleaks finding that is no secret (a sample value in a test)
   is removed from the code; when it stays in the history, its fingerprint
   goes into `.gitleaksignore` (`commit:file:rule:line`), named in the pull

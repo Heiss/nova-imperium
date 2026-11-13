@@ -12,6 +12,7 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 | Part | Folder | Role |
 |---|---|---|
 | Rules | `src/core` | Catalog, costs, times, production, settling a planet to a point in time, flights, battle. Pure functions, used by server and browser. The universe settings are a parameter. |
+| Features | `src/features` | One folder per catalog entry and per mission; the core reaches them only through the generated index `index.gen.ts` (#112, still empty; see [Design patterns](/architecture/patterns.md)). |
 | Store | `src/server/db` | SQLite through better-sqlite3: schema, migrations, mapping of the game objects to tables. |
 | Game | `src/server/game` | Actions of the players, fleet arrivals, points, the state a player sees, admin actions. Clock, chance and ids are injected. |
 | Accounts | `src/server/auth.ts` | Invitations, registration, login, sessions. |
