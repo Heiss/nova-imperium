@@ -1,4 +1,5 @@
 import { execFileSync } from 'node:child_process';
+import { randomInt } from 'node:crypto';
 import { expect, type Page } from '@playwright/test';
 import { E2E_ENV, E2E_MAILBOX, E2E_MAIL_ENV, E2E_MAIL_URL } from './env.ts';
 import { mailsTo } from './mail.ts';
@@ -79,9 +80,16 @@ export function watch(page: Page): { problems: string[] } {
   return { problems };
 }
 
-let count = 0;
+/**
+ * A player name no other test uses: the base (at most 14 characters) and 6
+ * random base-36 characters, at most 20 in all. A counter and the clock
+ * repeated across Playwright workers, which each start the counter anew
+ * (#68: a repeat run invited an address that already existed).
+ */
 export const uniqueName = (base: string): string =>
-  `${base}${++count}${Date.now() % 1000}`.slice(0, 20);
+  `${base.slice(0, 14)}${randomInt(36 ** 6)
+    .toString(36)
+    .padStart(6, '0')}`;
 
 export async function register(
   page: Page,
