@@ -111,10 +111,12 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   branch changes only `CHANGELOG.md`, `VERSION` and `changes/`, so it
   compares with the release tag the hotfix branch starts from: a hotfix
   with code in `src/` runs the mutation jobs, one with only dependency or
-  `Dockerfile` changes does not. The release pull request of `main` keeps
-  its complete run; #147 decides about it. Risk: a change that alters the
-  results without touching these files is found by the nightly complete
-  run only, up to a day later. Stryker's incremental mode would not notice
+  `Dockerfile` changes does not. When no release tag lies below the base
+  of such a release pull request, „Detect changes“ fails, as the
+  migration check does (owner, 2026-11-13). The release pull request of
+  `main` keeps its complete run; #147 decides about it. Risk: a change
+  that alters the results without touching these files is found by the
+  nightly complete run only, up to a day later. Stryker's incremental mode would not notice
   such a change either (checked in its documentation before the build,
   2026-11-13; this replaces the [U] of the issue): „Stryker will not
   detect any changes you've made in files other than mutated files and
@@ -123,7 +125,7 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   ([Incremental, Limitations](https://stryker-mutator.io/docs/stryker-js/incremental/)).
   An incremental run of a dependency update reuses every result and only
   repeats the dry run.
-* **[V]** Test files for #146 (to be confirmed by the owner): what Vitest
+* **[E]** Test files for #146 (owner, 2026-11-13, O12): what Vitest
   runs (`test.include` of `vitest.config.ts`, `src/**/*.test.ts`) and the
   test helpers it imports (`src/test/**`, `src/server/test-helpers.ts`, as
   in the rule `tests-stay-out` of `.dependency-cruiser.cjs`). The E2E
@@ -291,8 +293,8 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   the release pull request of `main`; in the release pull request of a
   hotfix branch the script compares the release tag below the base
   (`git describe --tags --abbrev=0 --match '[0-9]*.[0-9]*.[0-9]*'`, as
-  the migration check does) with the merge commit, and without such a tag
-  the jobs run with a warning; every other pull request compares its
+  the migration check does) with the merge commit, and fails without
+  such a tag (decision above); every other pull request compares its
   base with the merge commit.
 * **[V]** Proof run (decision above): „Run workflow“ of „Mutation tests
   (nightly)“ on a branch runs the complete sharded run there:

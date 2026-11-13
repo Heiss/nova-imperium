@@ -98,12 +98,11 @@ jobs:
           # main runs them as before (#147 decides).
           case "$PR_HEAD_REF" in
             release/hotfix/*)
-              if from=$(git describe --tags --abbrev=0 --match '[0-9]*.[0-9]*.[0-9]*' "$PR_BASE"); then
-                mutation=$(node scripts/mutation-changes.ts "$from" "$HEAD_SHA")
-              else
-                echo "::warning::No release tag below the hotfix branch: the mutation jobs run."
-                mutation=true
-              fi
+              # Without a release tag below it the check fails, as the
+              # migration check does (owner, 2026-11-13, #146).
+              from=$(git describe --tags --abbrev=0 --match '[0-9]*.[0-9]*.[0-9]*' "$PR_BASE") ||
+                { echo "::error::A hotfix branch starts at a release tag."; exit 1; }
+              mutation=$(node scripts/mutation-changes.ts "$from" "$HEAD_SHA")
               ;;
             release/*) mutation=true ;;
             *) mutation=$(node scripts/mutation-changes.ts "$PR_BASE" "$HEAD_SHA") ;;

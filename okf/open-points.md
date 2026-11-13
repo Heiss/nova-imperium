@@ -17,7 +17,6 @@ their result.
 | O1 | systemd unit | Version 1 had `nova-imperium.service`. It was removed because the start changed (build step, `.env`, secrets) and only Docker is tested. Options: leave it out; add an untested unit with `EnvironmentFile`; add a tested unit with a CI job. |
 | O2 | Minimum password length | Kept at 6 like version 1. Options: keep 6; 8; 12; a passphrase rule. |
 | O3 | Ranges of the universe settings | Proposals in [Admin](/features/admin.md) (speed 1 to 100, galaxies up to 9, …). Confirm or change. |
-| O12 | Test files of the mutation skip (#146) | Built as proposal: what Vitest runs (`src/**/*.test.ts`) and the test helpers (`src/test/**`, `src/server/test-helpers.ts`) start the mutation jobs ([Test strategy](/ops/testing.md)). Options: this proposal; only `*.test.ts` (a helper change skips); the proposal plus `e2e/` (Stryker does not run it); every file in `src/`. |
 
 # B. Tasks of the owner
 
@@ -48,3 +47,4 @@ their result.
 | Old JSON state | Not imported (round 1). |
 | O4 Merging | The assistant merges its pull requests itself after a green CI Gate and with no open review findings (owner, 2026-11-10). |
 | O11 Model of places | Coordinates plus kind (`planet \| moon \| debris`), debris in its own table, position 16 with #93; built as migration step 8 (#119) before #45 and #53. How a moon is stored (a row of `planets`) is a proposal (owner, 2026-11-12, [Design patterns](/architecture/patterns.md)). |
+| O12 Test files of the mutation skip | What Vitest runs (`src/**/*.test.ts`) and the test helpers (`src/test/**`, `src/server/test-helpers.ts`) start the mutation jobs of a pull request; `e2e/` does not (owner, 2026-11-13, #146, [Test strategy](/ops/testing.md)). |

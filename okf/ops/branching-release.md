@@ -129,7 +129,8 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   test (owner, 2026-11-13, #146): the release pull request compares with
   the release tag the hotfix branch starts from, so a hotfix with code in
   `src/` runs them, and one with only dependency or `Dockerfile` changes
-  (as a rule a security hotfix) does not; every other check still runs,
+  (as a rule a security hotfix) does not; without a release tag below its
+  base the check fails, as the migration check does; every other check still runs,
   and every push to `hotfix/**` runs the mutation jobs. The release pull
   request of `main` keeps its complete mutation run (#147). See
   [Test strategy](/ops/testing.md).
