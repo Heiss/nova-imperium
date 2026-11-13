@@ -1,4 +1,4 @@
-import { BUILD, RES, type ResearchDef, UNIT } from '../../core/catalog.ts';
+import { RES, type ResearchDef } from '../../core/catalog.ts';
 import {
   afford,
   caps,
@@ -17,6 +17,7 @@ import {
   labSite,
   networkLab,
 } from '../../core/research.ts';
+import { text } from '../../core/text.ts';
 import { dur, esc, fmt } from '../logic/format.ts';
 import { researchState } from '../logic/game.ts';
 import { cd, costHTML, itemHTML, requirementsHTML, type V } from './common.ts';
@@ -96,7 +97,6 @@ function researchItem(v: V, k: string, d: ResearchDef): string {
     v,
     'ic-r',
     k,
-    d,
     level ? `(Stufe ${level})` : '',
     body,
     researchAction(v, k, level, reqMissing(d, P, R).length, short),
@@ -118,7 +118,7 @@ function shareSelect(v: V, k: string): string {
   const options = SHARES.map(
     (x) => `<option ${current === x ? 'selected' : ''}>${x}</option>`,
   ).join('');
-  return `<select data-chg="pct" data-k="${k}" data-nokeep aria-label="Leistung ${BUILD[k]?.n ?? UNIT[k]?.n}">${options}</select> %`;
+  return `<select data-chg="pct" data-k="${k}" data-nokeep aria-label="Leistung ${text(k)?.n}">${options}</select> %`;
 }
 
 const cell = (x: string, cls = 'n'): string => `<td class="${cls}">${x}</td>`;

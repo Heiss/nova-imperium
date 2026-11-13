@@ -70,8 +70,8 @@ choice of the patterns to the assistant's recommendation below
   per component under `src/core/components/`, its contract test next to it.
 * **[E]** Built with #114 (production group): `entry.ts` exports `kind`,
   `order`, its components (`leveled`, `produces`, `consumes`, `storage`)
-  and the remaining fields as `def`; `catalog.ts` adds the texts of the key
-  from `src/core/texts.ts` (#113 moves them). `src/core/components/`
+  and the remaining fields as `def`; `catalog.ts` added the texts of the key
+  from `src/core/texts.ts` until #113 moved them into the entry folders. `src/core/components/`
   holds `leveled.ts` (`lvlCost`, `sumLevels`), `storage.ts` (`capOf`,
   `capacities`), `produces.ts` (`BASE_INCOME`, `energyMade`, `made`: base
   income plus the rates times the universe speed, never below 0) and
@@ -106,6 +106,31 @@ choice of the patterns to the assistant's recommendation below
   in one data file that Stryker leaves out): after #112 it splits that file
   into one `texts.de.ts` per entry and adds the accessor `text(key)`; the
   text files stay out of the mutation run (owner, 2026-11-13).
+* **[E]** Decided for #113 (owner, 2026-11-13): the mission names stay in
+  `src/core/texts.ts`, still left out by Stryker, until #116 moves them into
+  the mission folders; `text(key)` covers the catalog entries only (`spy` is
+  both a research and a mission). The 12 classic ships and defenses that
+  never had a short text get one in #113 (see
+  [Grimdark naming](/features/naming.md)); after that every entry needs a
+  name, an abbreviation and a short text.
+* **[E]** Built with #113: every entry folder holds `texts.de.ts` beside
+  `entry.ts`; `scripts/gen-features.ts` stops on an entry folder without
+  either, and lists the text files as `TEXTS` in the generated index beside
+  `ENTRIES`. `src/core/text.ts` holds the type `EntryText` (`n`, `ab`, `ds`,
+  optional `lt`) and `text(key)`, undefined for a key that is no entry;
+  server and browser read every name, abbreviation, short and long text
+  through it, and `BuildingDef`, `ResearchDef`, `ShipDef` and `DefenseDef`
+  hold no text. Stryker leaves `src/features/**/texts.de.ts` out like
+  `src/core/texts.ts`; `src/core/text.ts` is mutated.
+  `src/core/text.test.ts` fails on a missing name, abbreviation or short
+  text, an abbreviation used twice, a text file without an entry and a text
+  field in a rule.
+* **[E]** Choices of #113 within the decisions above, confirmed by the
+  owner (2026-11-13): each `texts.de.ts` exports one object `texts` typed with
+  `EntryText` (not single exports `n`, `ab`, …), so the compiler checks
+  every file on its own; the index has its own list `TEXTS` instead of a
+  third element in `ENTRIES`; the accessor is its own file `text.ts`,
+  because `texts.ts` is not mutated.
 
 ## 3. Economy: piecewise linear with generic events
 
@@ -295,10 +320,12 @@ src/client/                state, components (generic), views
   requests.
 * **[E]** Built with #112: the folders `src/features/` and
   `src/features/missions/` exist (`.gitkeep`); no entry has moved yet.
-  Since #114 every catalog entry has its folder with `entry.ts`.
+  Since #114 every catalog entry has its folder with `entry.ts`, since #113
+  also with `texts.de.ts`.
   `scripts/gen-features.ts` writes `src/features/index.gen.ts` with
-  `ENTRIES` (each `<key>/entry.ts`) and `MISSIONS` (each
-  `missions/<m>/rules.ts`) as lists of `[key, module]` pairs sorted by key.
+  `ENTRIES` (each `<key>/entry.ts`), since #113 `TEXTS` (each
+  `<key>/texts.de.ts`), and `MISSIONS` (each `missions/<m>/rules.ts`) as
+  lists of `[key, module]` pairs sorted by key.
   A list, not an object, because knip counts a module passed on as a whole
   as used. A folder without its file, or whose name is not a key, stops the
   script. The `*.server.ts` parts are not in this index, because the
@@ -366,9 +393,13 @@ src/client/                state, components (generic), views
   behaviour (equivalence and E2E tests green); the owner confirmed it on
   2026-11-13 (#111): #112 first; then #113, #114, #116, #117 in parallel;
   #68 before #116, #117 and #118; #114 before #115; #113 and #114 before
-  #118; #117 before #119 before #45 and #53 (and #95):
+  #118; #117 before #119 before #45 and #53 (and #95). #113 starts after
+  the first pull request of #114, because the index requires `entry.ts` in
+  every entry folder; the other #114 pull requests run in parallel with
+  #113 (owner, 2026-11-13, replaces „#113 and #114 in parallel“):
   1. Folder skeleton, generated index, boundary rules.
-  2. Texts apart from rules (after #94).
+  2. Texts apart from rules (after #94 and the first pull request of #114;
+     built with #113).
   3. Components of the catalog with contract tests; production from the
      components; the resources page from `ProducerTable`. One pull request
      per component group: production (`produces`, `consumes`, `storage`,

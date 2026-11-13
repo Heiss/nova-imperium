@@ -9,6 +9,7 @@ import {
 } from './achievements.ts';
 import { BUILD, DEF, RES, SHIPS } from './catalog.ts';
 import { lvlCost } from './economy.ts';
+import { text } from './text.ts';
 
 const LEVELS = [1, 2, 3, 5, 8, 10, 12, 15, 20];
 const UNITS = [1, 5, 10, 25, 50, 100, 250, 500];
@@ -51,7 +52,7 @@ describe('achievements', () => {
       id: 'buildings:metal:1',
       metric: 'buildings:metal',
       category: 'buildings',
-      title: `${BUILD.metal!.n} auf Stufe 1`,
+      title: `${text('metal')!.n} auf Stufe 1`,
       target: 1,
       // 60 × 5 % = 3, 15 × 5 % = 0.75 → 1, nothing stays 0
       reward: [3, 1, 0],
@@ -64,7 +65,7 @@ describe('achievements', () => {
       );
     const energy = of('research:energy');
     expect(energy.map((a) => a.title)).toEqual(
-      LEVELS.map((n) => `${RES.energy!.n} auf Stufe ${n}`),
+      LEVELS.map((n) => `${text('energy')!.n} auf Stufe ${n}`),
     );
     expect(energy.every((a) => a.category === 'research')).toBe(true);
   });
@@ -73,7 +74,7 @@ describe('achievements', () => {
     const probe = of('ships:probe');
     expect(probe.map((a) => a.target)).toEqual(UNITS);
     expect(probe.map((a) => a.title)).toEqual(
-      UNITS.map((n) => `${n}× ${SHIPS.probe!.n} besitzen`),
+      UNITS.map((n) => `${n}× ${text('probe')!.n} besitzen`),
     );
     // 1,000 crystal × 2.5 % per unit
     expect(probe[0]!.reward).toEqual([0, 25, 0]);

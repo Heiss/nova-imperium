@@ -116,7 +116,8 @@ flowchart LR
   configuration; the complete run catches what it misses.
 - **Mutated**: `src/core`, `src/features`, `src/server` and
   `src/client/logic`, without the tests, the process entry points, the test
-  helpers and the display texts of `src/core/texts.ts`
+  helpers and the display texts of `src/core/texts.ts` and
+  `src/features/<key>/texts.de.ts`
   (`stryker.config.json`).
 - **Per-file floors** (`mutation-standard.json`): no file may fall below its
   recorded floor; a new file needs 80 %, a security file (authentication,

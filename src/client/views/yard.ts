@@ -1,13 +1,7 @@
-import {
-  DEF,
-  RES,
-  SHIPS,
-  UNIT,
-  type UnitDef,
-  canFly,
-} from '../../core/catalog.ts';
+import { DEF, SHIPS, type UnitDef, canFly } from '../../core/catalog.ts';
 import { reqMissing, satEnergy, unitTime } from '../../core/economy.ts';
 import { activeDrive, shipSpeed } from '../../core/flight.ts';
+import { text } from '../../core/text.ts';
 import type { Levels } from '../../core/types.ts';
 import { orderMax, YARD_LOCK, yardLockedBy } from '../../core/yard.ts';
 import { dur, fmt } from '../logic/format.ts';
@@ -22,7 +16,7 @@ function queue(v: V): string {
         i === 0
           ? 'nächste fertig in ' + cd((P.sqT ?? now) + q.unit, now)
           : 'je ' + dur(q.unit);
-      return `<tr><td>${fmt(q.n)}× ${UNIT[q.key]?.n}</td><td class="n">${when}</td></tr>`;
+      return `<tr><td>${fmt(q.n)}× ${text(q.key)?.n}</td><td class="n">${when}</td></tr>`;
     })
     .join('');
   return `<div class="box"><div class="hd">Bauauftrag der Schiffsschmiede</div><div class="bd"><table>${rows}</table></div></div>`;
@@ -31,7 +25,7 @@ function queue(v: V): string {
 /** Speed of a flying ship; a ship that switches its drive names it (#57). */
 function speedText(v: V, k: string): string {
   const drive = SHIPS[k]!.drives ? activeDrive(k, v.R)!.drive : null;
-  const name = drive ? ` (${RES[drive]!.n})` : '';
+  const name = drive ? ` (${text(drive)!.n})` : '';
   return ` · Tempo ${fmt(shipSpeed(k, v.R))}${name}`;
 }
 
@@ -76,7 +70,6 @@ function yard(
       v,
       cls,
       k,
-      d,
       `(vorhanden: ${fmt(have[k] ?? 0)}${DEF[k]?.once ? ' · max. 1' : ''})`,
       body,
       action,

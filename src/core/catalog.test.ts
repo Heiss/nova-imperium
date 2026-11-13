@@ -4,7 +4,27 @@ import { createRequire } from 'node:module';
 import { describe, expect, it } from 'vitest';
 import { MISSIONS, NAMES, RESOURCES, renamed } from '../test/naming.ts';
 import { ENTRIES } from '../features/index.gen.ts';
-import * as C from './catalog.ts';
+import * as Catalog from './catalog.ts';
+import { text } from './text.ts';
+
+/**
+ * The entries of a table with their display texts, which live apart from
+ * the rules since #113 and are read through `text(key)`.
+ */
+const withTexts = <T extends object>(defs: Record<string, T>) =>
+  Object.fromEntries(
+    Object.entries(defs).map(([k, def]) => [k, { ...text(k)!, ...def }]),
+  );
+
+/** The catalog as the tests below read it: every entry with its texts. */
+const C = {
+  ...Catalog,
+  BUILD: withTexts(Catalog.BUILD),
+  RES: withTexts(Catalog.RES),
+  SHIPS: withTexts(Catalog.SHIPS),
+  DEF: withTexts(Catalog.DEF),
+  UNIT: withTexts(Catalog.UNIT),
+};
 
 const require = createRequire(import.meta.url);
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -39,6 +59,26 @@ const CHANGED_DS: Readonly<Record<string, string>> = {
   hdrive:
     '+30 % pro Stufe (Kathedralschiffe, Jagdkreuzer, Vernichter, Weltenbrecher; Belagerungsbomber ab Stufe 8).',
   spy: 'Bessere Auspex-Berichte, bessere Abwehr.',
+};
+
+/**
+ * Short texts of the 12 classic ships and defenses, which never had one, not
+ * even in version 1 (owner, 2026-11-13, #113: confirmed exactly as listed).
+ */
+const NEW_DS: Readonly<Record<string, string>> = {
+  sc: 'Kleiner Frachter für Lieferungen und Beute.',
+  lc: 'Großer, schnellerer Frachter; trägt ein Vielfaches eines Frachtläufers.',
+  colony: 'Gründet eine Kolonie auf einer freien Position.',
+  lf: 'Billiger Jäger, der in großer Zahl feindliches Feuer bindet.',
+  hf: 'Gepanzerter Jäger mit Schnellfeuer gegen Frachtläufer.',
+  cr: 'Schnelles Kriegsschiff – stark gegen Abfangjäger und Raketenbatterien.',
+  bs: 'Schweres Kriegsschiff, das hart zuschlägt und viel aushält.',
+  probe:
+    'Schnellstes Schiff; erkundet fremde Welten per Auspex, trägt keine Fracht.',
+  rl: 'Die billigste Verteidigung eines Planeten.',
+  ll: 'Leichtes Strahlgeschütz zur Verteidigung des Planeten.',
+  hl: 'Schweres Strahlgeschütz, das stärkere Schilde durchschlägt.',
+  gauss: 'Schweres Geschütz; nur der Weltenbrecher hat Schnellfeuer gegen ihn.',
 };
 
 /** A short text of version 1 with the new names of entries and resources. */
@@ -115,9 +155,20 @@ describe('catalog', () => {
     for (const [k, def] of Object.entries(old) as [string, { ds?: string }][])
       expect(all[k]!.ds, k).toBe(
         def.ds === undefined
-          ? undefined
+          ? NEW_DS[k]
           : (CHANGED_DS[k] ?? withNewNames(def.ds)),
       );
+  });
+  it("gives the 12 entries without a short text in version 1 the owner's short texts (#113)", () => {
+    const old = { ...O.BUILD, ...O.RES, ...O.UNIT } as Record<
+      string,
+      { ds?: string }
+    >;
+    const without = Object.keys(old).filter((k) => old[k]!.ds === undefined);
+    // The Kolonistenarche came after version 1, without a short text too.
+    expect(old).not.toHaveProperty('colony');
+    expect([...without, 'colony'].sort()).toEqual(Object.keys(NEW_DS).sort());
+    for (const [k, ds] of Object.entries(NEW_DS)) expect(text(k)!.ds).toBe(ds);
   });
   it('shows the missions with their new names; the stored ids stay (#94)', () => {
     expect(Object.keys(C.MISSION)).toEqual([
@@ -400,7 +451,7 @@ describe('catalog', () => {
     });
     // Only the domes are limited; no new unit has rapid fire (#50, D2).
     expect(
-      Object.keys(C.UNIT).filter((k) => (C.UNIT[k] as C.DefenseDef).once),
+      Object.keys(C.UNIT).filter((k) => (C.UNIT[k] as Catalog.DefenseDef).once),
     ).toEqual(['ssd', 'lsd']);
     for (const k of ['ionc', 'pt', 'ssd', 'lsd'])
       expect(C.DEF[k]).not.toHaveProperty('rf');
