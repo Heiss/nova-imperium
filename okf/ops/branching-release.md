@@ -40,6 +40,15 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   (`scripts/changelog.ts check`) requires a fragment when a pull request
   changes `src/client`, `src/shared` or `src/server/game`, unless it carries
   the label `kein-changelog`, and checks the form of every fragment.
+* **[E]** A pull request that extends a feature of the coming release whose
+  fragment is still in `changes/` changes that fragment instead of adding
+  one; the text check of the release pull request looks for two entries
+  about one feature (owner, 2026-11-13, #136: 26.11.22 had two entries on
+  the explanation texts).
+* **[E]** A wrong text in a published changelog section stays as it is;
+  the next release corrects it with a fragment `art: behoben` that starts
+  with „Korrektur zu <version>:“ (owner, 2026-11-13, #135, #136).
+  `CHANGELOG.md` is never edited by hand.
 * **[E]** The workflow „Release pull request“ (`.github/workflows/release-pr.yml`,
   `scripts/release-pr.sh`) runs after every push to `main` and rebuilds the
   branch `release/main` from it: the fragments become a German section of

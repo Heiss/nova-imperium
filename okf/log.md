@@ -4,6 +4,7 @@
 
 * **Decision**: #131 split by estimated run time instead of mutant count: the test time of the mutants in the last report (static mutants weigh what they cost), files heavier than half a shard cut into line ranges between top-level statements; the complete sharded run had one shard at 44 minutes and the others at 7 to 14 (see [Test strategy](/ops/testing.md)).
 * **Update**: #131 proof run (complete, 4 shards): every file score as in the unsharded release run, except `catalog.ts` without the 180 text mutants and two timeouts instead of kills in `settle.ts` (same score); shards 22, 13, 18 and 36 minutes. The weights now come from the last complete run, not an incremental one (owner: improve before the merge; see [Test strategy](/ops/testing.md)).
+* **Decision**: #135 and #136 clarified: the wrong texts of 26.11.22 stay in `CHANGELOG.md` and are corrected by two fragments `art: behoben` („Korrektur zu 26.11.22: …“) in the next release; a pull request that extends a feature of the coming release changes its fragment instead of adding one, and the release text check looks for two entries about one feature (see [Branching and release](/ops/branching-release.md)).
 
 ## 2026-11-12
 
