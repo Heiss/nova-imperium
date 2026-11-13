@@ -33,7 +33,7 @@ describe('achievements', () => {
     expect(() =>
       runAction(ctx, u.id, { type: 'claimAchievement', id }),
     ).toThrow('schon abgeholt');
-    expect(ctx.store.planet(p.id)?.res.m).toBe(p.res.m + reward[0]);
+    expect(ctx.planets.get(p.id)?.res.m).toBe(p.res.m + reward[0]);
     expect(achievementState(ctx, u).claimed).toEqual([id]);
   });
 
@@ -42,7 +42,7 @@ describe('achievements', () => {
     const u = addUser(ctx, 'Anna');
     const p = addPlanet(ctx, u.id, { ships: { sc: 5 } });
     expect(achievementState(ctx, u).progress['ships:sc']).toBe(5);
-    ctx.store.savePlanet({ ...p, ships: {} });
+    ctx.planets.save({ ...p, ships: {} });
     recordAchievementAction(ctx, u.id, 'send');
     recordAchievementAction(ctx, u.id, 'order');
     recordAchievementAction(ctx, u.id, 'order');
@@ -66,7 +66,7 @@ describe('achievements', () => {
         rewards: { achievements: false },
       }),
     ).toThrow('beide Belohnungseinstellungen');
-    expect(ctx.store.planet(p.id)?.b.metal).toBe(1);
+    expect(ctx.planets.get(p.id)?.b.metal).toBe(1);
     runAction(ctx, u.id, {
       type: 'reset',
       rewards: { achievements: false, daily: true },
@@ -77,15 +77,15 @@ describe('achievements', () => {
       daily: true,
     });
     recordAchievementAction(ctx, u.id, 'send');
-    const current = ctx.store.user(u.id)!;
+    const current = ctx.players.get(u.id)!;
     expect(achievementState(ctx, current)).toMatchObject({
       progress: {},
       claimed: [],
       daily: { claimed: false, streak: 1 },
     });
-    expect(
-      ctx.store.db.prepare('SELECT * FROM achievement_progress').all(),
-    ).toEqual([]);
+    expect(ctx.db.prepare('SELECT * FROM achievement_progress').all()).toEqual(
+      [],
+    );
     expect(() =>
       runAction(ctx, u.id, { type: 'claimAchievement', id }),
     ).toThrow('deaktiviert');
@@ -94,14 +94,12 @@ describe('achievements', () => {
       type: 'reset',
       rewards: { achievements: true, daily: false },
     });
-    expect(achievementState(ctx, ctx.store.user(u.id)!)).toEqual({
+    expect(achievementState(ctx, ctx.players.get(u.id)!)).toEqual({
       progress: {},
       claimed: [],
       daily: null,
     });
-    expect(ctx.store.db.prepare('SELECT * FROM daily_rewards').all()).toEqual(
-      [],
-    );
+    expect(ctx.db.prepare('SELECT * FROM daily_rewards').all()).toEqual([]);
     expect(() => runAction(ctx, u.id, { type: 'claimDailyReward' })).toThrow(
       'deaktiviert',
     );

@@ -19,7 +19,7 @@ import type {
   Resources,
 } from '../../core/types.ts';
 import type { AuditEntry } from '../audit.ts';
-import type { User } from '../db/store.ts';
+import type { User } from '../db/repos/players.ts';
 import { type Action, type Data, mine, researchOf } from './actions.ts';
 import { type Ctx, coords, fail, int, universe } from './context.ts';
 import { isProtected, pointsMap } from './points.ts';
@@ -110,10 +110,10 @@ function plan(ctx: Ctx, u: User, p: Planet, d: Data): Plan {
   if (!Object.hasOwn(MISSION, mission)) fail('Unbekannter Auftrag.');
   const ships = pickShips(p, d.ships);
   if (!countUnits(ships)) fail('Keine Schiffe ausgewählt.');
-  if (ctx.store.fleetCount(u.id) >= fleetSlots(researchOf(ctx, u)))
+  if (ctx.fleets.count(u.id) >= fleetSlots(researchOf(ctx, u)))
     fail('Alle Flottenslots belegt.');
   const dest = target(ctx, d);
-  const occupied = ctx.store.planet(pid(dest));
+  const occupied = ctx.planets.get(pid(dest));
   checkDestination(ctx, u, p, mission, occupied, ships);
   if (mission === 'spy' && Object.keys(ships).some((k) => k !== 'probe'))
     fail('Auspex-Erkundung nur mit Spähschädeln.');
@@ -148,7 +148,7 @@ export const send: Action = (ctx, u, d, event) => {
   p.res.m -= cargo.m;
   p.res.c -= cargo.c;
   p.res.d -= cargo.d + fuel;
-  ctx.store.savePlanet(p);
+  ctx.planets.save(p);
   const fleet: Fleet = {
     id: ctx.id(),
     owner: u.id,
@@ -166,7 +166,7 @@ export const send: Action = (ctx, u, d, event) => {
     recalled: false,
     fuel,
   };
-  ctx.store.saveFleet(fleet);
+  ctx.fleets.save(fleet);
   if (event) logLaunch(event, fleet, targetOwner);
   return `Flotte unterwegs nach ${coords(fleet.toC)}.`;
 };
@@ -187,7 +187,7 @@ function logLaunch(
 }
 
 export const recall: Action = (ctx, u, d, event) => {
-  const f = ctx.store.fleet(String(d.id));
+  const f = ctx.fleets.get(String(d.id));
   const t = ctx.now();
   if (!f || f.owner !== u.id || f.state !== 'out' || f.arr <= t)
     fail('Rückruf nicht mehr möglich.');
@@ -195,7 +195,7 @@ export const recall: Action = (ctx, u, d, event) => {
   fleet.state = 'back';
   fleet.ret = t + (t - fleet.dep);
   fleet.recalled = true;
-  ctx.store.saveFleet(fleet);
+  ctx.fleets.save(fleet);
   if (event)
     event.detail = { fleet: fleet.id, planet: fleet.from, due: fleet.ret };
   return 'Flotte zurückgerufen.';

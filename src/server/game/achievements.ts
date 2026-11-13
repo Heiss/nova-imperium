@@ -6,7 +6,7 @@ import {
 } from '../../core/achievements.ts';
 import { settle, settleR } from '../../core/settle.ts';
 import type { Cost, Levels, Planet } from '../../core/types.ts';
-import type { User } from '../db/store.ts';
+import type { User } from '../db/repos/players.ts';
 import type { Action } from './actions.ts';
 import { fail, universe, type Ctx } from './context.ts';
 
@@ -21,7 +21,7 @@ interface Daily {
 }
 
 function recordDay(ctx: Ctx, uid: string, day: number): Daily {
-  const db = ctx.store.db;
+  const db = ctx.db;
   db.prepare(
     `
     INSERT INTO daily_rewards (user_id, last_day, streak) VALUES (?, ?, 1)
@@ -37,7 +37,7 @@ function recordDay(ctx: Ctx, uid: string, day: number): Daily {
 }
 
 function progressOf(ctx: Ctx, uid: string): Record<string, number> {
-  const rows = ctx.store.db
+  const rows = ctx.db
     .prepare('SELECT metric, value FROM achievement_progress WHERE user_id = ?')
     .all(uid) as { metric: string; value: number }[];
   return Object.fromEntries(rows.map((r) => [r.metric, r.value]));
@@ -49,7 +49,7 @@ function recordProgress(
   p: Planet | null,
 ): Record<string, number> {
   const progress = new Map(Object.entries(progressOf(ctx, u.id)));
-  const put = ctx.store.db.prepare(`
+  const put = ctx.db.prepare(`
     INSERT INTO achievement_progress VALUES (?, ?, ?)
     ON CONFLICT(user_id, metric) DO UPDATE SET value = max(value, excluded.value)
   `);
@@ -71,7 +71,7 @@ function recordProgress(
 }
 
 function settledPlanet(ctx: Ctx, uid: string): Planet | null {
-  const p = ctx.store.planetOfUser(uid);
+  const p = ctx.planets.home(uid);
   return p && settle(p, ctx.now(), universe(ctx));
 }
 
@@ -91,12 +91,12 @@ export function achievementState(
   u: User,
   rules: RoundRules = roundRules(ctx),
 ): AchievementState {
-  return ctx.store.tx(() => {
+  return ctx.tx(() => {
     const progress = rules.achievements
       ? recordProgress(ctx, u, settledPlanet(ctx, u.id))
       : {};
     const rows = rules.achievements
-      ? (ctx.store.db
+      ? (ctx.db
           .prepare(
             'SELECT achievement_id FROM achievement_claims WHERE user_id = ?',
           )
@@ -114,7 +114,7 @@ function credit(ctx: Ctx, p: Planet, reward: Cost): void {
   p.res.m += reward[0];
   p.res.c += reward[1];
   p.res.d += reward[2];
-  ctx.store.savePlanet(p);
+  ctx.planets.save(p);
 }
 
 export const claimAchievement: Action = (ctx, u, data) => {
@@ -127,7 +127,7 @@ export const claimAchievement: Action = (ctx, u, data) => {
   const progress = recordProgress(ctx, u, p);
   if ((progress[achievement.metric] ?? 0) < achievement.target)
     fail('Dieses Achievement ist noch offen.');
-  const insert = ctx.store.db
+  const insert = ctx.db
     .prepare('INSERT OR IGNORE INTO achievement_claims VALUES (?, ?)')
     .run(u.id, achievement.id);
   if (!insert.changes) fail('Diese Belohnung wurde schon abgeholt.');
@@ -141,7 +141,7 @@ export const claimDailyReward: Action = (ctx, u) => {
   const p = settledPlanet(ctx, u.id) ?? fail('Du brauchst einen Planeten.');
   const day = dayOf(ctx);
   const daily = recordDay(ctx, u.id, day);
-  const update = ctx.store.db
+  const update = ctx.db
     .prepare(
       `
     UPDATE daily_rewards SET claimed_day = ?
@@ -162,7 +162,7 @@ export function recordAchievementAction(
   const metric =
     action === 'send' ? 'fleet:send' : action === 'order' ? 'yard:order' : null;
   if (!metric || !roundRules(ctx).achievements) return;
-  ctx.store.db
+  ctx.db
     .prepare(
       `
     INSERT INTO achievement_progress VALUES (?, ?, 1)

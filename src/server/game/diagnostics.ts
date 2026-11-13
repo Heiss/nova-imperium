@@ -5,7 +5,7 @@ import { suspension } from './moderation.ts';
 export function playerStats(ctx: Ctx) {
   const now = ctx.now();
   const since = Math.floor(now / DAY) * DAY - 6 * DAY;
-  return ctx.store.db
+  return ctx.db
     .prepare(
       `
     WITH activity AS (
@@ -30,7 +30,7 @@ export function playerStats(ctx: Ctx) {
 export function playerDetail(ctx: Ctx, uid: string) {
   return {
     suspension: suspension(ctx, uid) ?? null,
-    days: ctx.store.db
+    days: ctx.db
       .prepare(
         `
       WITH days AS (
@@ -55,7 +55,7 @@ export function playerDetail(ctx: Ctx, uid: string) {
 }
 
 export function orders(ctx: Ctx, player: string, reference: string) {
-  return ctx.store.db
+  return ctx.db
     .prepare(
       `
     SELECT * FROM (

@@ -7,7 +7,7 @@ import {
   validatePassword,
 } from './auth.ts';
 import { NUMBERS } from './config.ts';
-import type { User } from './db/store.ts';
+import type { User } from './db/repos/players.ts';
 import { fail, type Ctx } from './game/context.ts';
 
 const RESET_LIFE = 30 * 60_000;
@@ -30,7 +30,7 @@ function saveToken(
   life: number,
   code: string | null,
 ): void {
-  ctx.store.db
+  ctx.db
     .prepare(
       `
     INSERT INTO account_tokens (token_hash, user_id, purpose, code_hash, expires)
@@ -50,11 +50,11 @@ export function issueReset(
   const email = String(raw ?? '')
     .trim()
     .toLowerCase();
-  const user = ctx.store.userByEmail(email);
+  const user = ctx.players.byEmail(email);
   const address = user?.email;
   if (!user || !address) return null;
-  return ctx.store.tx(() => {
-    const pending = ctx.store.db
+  return ctx.tx(() => {
+    const pending = ctx.db
       .prepare(
         "SELECT 1 FROM account_tokens WHERE user_id = ? AND purpose = 'reset' AND expires > ?",
       )
@@ -74,16 +74,14 @@ function replacePassword(
 ): void {
   validatePassword(password, minimum);
   const { pw, salt } = passwordFields(password);
-  const update = ctx.store.db
+  const update = ctx.db
     .prepare(
       'UPDATE users SET pw_hash = ?, salt = ? WHERE id = ? AND pw_hash = ? AND salt = ?',
     )
     .run(pw, salt, user.id, user.pw, user.salt);
   if (!update.changes) fail('Das Passwort wurde bereits geändert.');
-  ctx.store.db.prepare('DELETE FROM sessions WHERE user_id = ?').run(user.id);
-  ctx.store.db
-    .prepare('DELETE FROM account_tokens WHERE user_id = ?')
-    .run(user.id);
+  ctx.db.prepare('DELETE FROM sessions WHERE user_id = ?').run(user.id);
+  ctx.db.prepare('DELETE FROM account_tokens WHERE user_id = ?').run(user.id);
 }
 
 export function changePassword(
@@ -95,7 +93,7 @@ export function changePassword(
 ): void {
   if (!passwordMatches(user, String(old ?? '')))
     fail('Das bisherige Passwort ist falsch.');
-  ctx.store.tx(() => replacePassword(ctx, user, String(next ?? ''), minimum));
+  ctx.tx(() => replacePassword(ctx, user, String(next ?? ''), minimum));
 }
 
 export function resetPassword(
@@ -104,17 +102,17 @@ export function resetPassword(
   next: unknown,
   minimum: number = NUMBERS.passwordMinLength.def,
 ): void {
-  ctx.store.tx(() => {
-    const record = ctx.store.db
+  ctx.tx(() => {
+    const record = ctx.db
       .prepare(
         "SELECT user_id FROM account_tokens WHERE token_hash = ? AND purpose = 'reset' AND expires > ?",
       )
       .get(hashToken(String(token ?? '')), ctx.now()) as
       Pick<AccountToken, 'user_id'> | undefined;
-    const user = record && ctx.store.user(record.user_id);
+    const user = record && ctx.players.get(record.user_id);
     if (!user) return fail('Dieser Link ist ungültig oder abgelaufen.');
     replacePassword(ctx, user, String(next ?? ''), minimum);
-    ctx.store.db.prepare('DELETE FROM passkeys WHERE user_id = ?').run(user.id);
+    ctx.db.prepare('DELETE FROM passkeys WHERE user_id = ?').run(user.id);
   });
 }
 
@@ -138,7 +136,7 @@ export function issueLoginCode(
 
 function verifyCode(ctx: Ctx, challenge: string, code: string): User | null {
   const hash = hashToken(challenge);
-  const record = ctx.store.db
+  const record = ctx.db
     .prepare(
       "SELECT * FROM account_tokens WHERE token_hash = ? AND purpose = 'login' AND expires > ? AND attempts < ?",
     )
@@ -147,17 +145,15 @@ function verifyCode(ctx: Ctx, challenge: string, code: string): User | null {
   const expected = Buffer.from(record.code_hash ?? '', 'hex');
   const actual = Buffer.from(hashToken(challenge + code), 'hex');
   if (expected.length !== actual.length || !timingSafeEqual(expected, actual)) {
-    ctx.store.db
+    ctx.db
       .prepare(
         'UPDATE account_tokens SET attempts = attempts + 1 WHERE token_hash = ?',
       )
       .run(hash);
     return null;
   }
-  ctx.store.db
-    .prepare('DELETE FROM account_tokens WHERE token_hash = ?')
-    .run(hash);
-  return ctx.store.user(record.user_id);
+  ctx.db.prepare('DELETE FROM account_tokens WHERE token_hash = ?').run(hash);
+  return ctx.players.get(record.user_id);
 }
 
 export function completeLogin(
@@ -165,7 +161,7 @@ export function completeLogin(
   challenge: unknown,
   code: unknown,
 ): User {
-  const user = ctx.store.tx(() =>
+  const user = ctx.tx(() =>
     verifyCode(ctx, String(challenge ?? ''), String(code ?? '').trim()),
   );
   if (!user) return fail('Der Anmeldecode ist ungültig oder abgelaufen.');
@@ -173,7 +169,7 @@ export function completeLogin(
 }
 
 export function purgeAccountTokens(ctx: Ctx): void {
-  ctx.store.db
+  ctx.db
     .prepare('DELETE FROM account_tokens WHERE expires <= ?')
     .run(ctx.now());
 }
