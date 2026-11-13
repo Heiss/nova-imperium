@@ -10,7 +10,6 @@ import {
   fleetSpeed,
   flightMs,
   fuelFor,
-  pid,
   shipSpeed,
 } from './flight.ts';
 
@@ -18,9 +17,6 @@ describe('flights', () => {
   it('allow one fleet plus one per level of Computertechnik', () => {
     expect(fleetSlots({ research: {} })).toBe(1);
     expect(fleetSlots({ research: { computer: 4 } })).toBe(5);
-  });
-  it('build the planet id from the coordinates', () => {
-    expect(pid({ g: 2, s: 33, p: 7 })).toBe('p2_33_7');
   });
   it('measure distances between galaxies, systems and positions', () => {
     expect(distance({ g: 1, s: 1, p: 1 }, { g: 3, s: 9, p: 9 })).toBe(40000);

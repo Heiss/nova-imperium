@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { placeId } from '../../../core/place.ts';
 import { addPlanet, addUser, testCtx } from '../../test-helpers.ts';
 
 describe('planets repository', () => {
@@ -102,5 +103,35 @@ describe('planets repository', () => {
     expect(
       ctx.db.prepare('SELECT COUNT(*) FROM planet_buildings').pluck().get(),
     ).toBe(0);
+  });
+
+  it('stores the kind of a place on insert, never on update (#119)', () => {
+    const ctx = testCtx();
+    addUser(ctx, 'Anna');
+    const p = addPlanet(ctx, 'u_Anna');
+    expect(ctx.planets.get(p.id)?.kind).toBe('planet');
+    // A moon at the same coordinates is another row with its own id.
+    const moon = addPlanet(ctx, 'u_Anna', {
+      id: placeId({ ...p, kind: 'moon' }),
+      kind: 'moon',
+      name: 'Mond',
+    });
+    expect(ctx.planets.get('m1_1_5')).toEqual(moon);
+    // The kind of a place never changes once it is stored.
+    ctx.planets.save({ ...p, kind: 'moon', name: 'Neu' });
+    expect(ctx.planets.get(p.id)).toMatchObject({
+      kind: 'planet',
+      name: 'Neu',
+    });
+    expect(
+      ctx.db.prepare('SELECT id, kind FROM planets ORDER BY id').all(),
+    ).toEqual([
+      { id: 'm1_1_5', kind: 'moon' },
+      { id: 'p1_1_5', kind: 'planet' },
+    ]);
+    // Two places of the same kind at the same coordinates are refused.
+    expect(() => addPlanet(ctx, 'u_Anna', { id: 'p_other' })).toThrow(
+      'UNIQUE constraint failed: planets.g, planets.s, planets.p, planets.kind',
+    );
   });
 });

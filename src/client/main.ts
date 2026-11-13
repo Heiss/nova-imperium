@@ -2,7 +2,7 @@
 // The views are pure functions (views/), the logic is tested (logic/); this
 // file is run by the E2E suite.
 import { BUILD, RES } from '../core/catalog.ts';
-import { pid } from '../core/flight.ts';
+import { placeId } from '../core/place.ts';
 import { settle, settleR } from '../core/settle.ts';
 import { orderMax, yardLockedBy } from '../core/yard.ts';
 import type { Levels, Planet, Queue } from '../core/types.ts';
@@ -964,7 +964,9 @@ function readFleetForm(): FleetForm {
 function fleetCalc(): void {
   if (!$('#t_g') || !ctx || !S) return;
   const f = readFleetForm();
-  const target = S.galaxy.find((p) => p.id === pid(f.to));
+  const target = S.galaxy.find(
+    (p) => p.id === placeId({ ...f.to, kind: 'planet' }),
+  );
   $('#t_info')!.innerHTML = target
     ? `${esc(target.name)} (${esc(nameOf(S.players, target.owner))})`
     : f.mission === 'colonize'
