@@ -540,8 +540,18 @@ describe('mutation reuse: the commands', () => {
     const usage =
       'Usage: mutation-reuse.ts decide <base> <tested> <head> | verify <head>';
     expect(error.mock.calls).toEqual([[usage], [usage], [usage]]);
-    expect(() =>
-      main(['verify', 'head'], undefined, fake({}), fake({})),
-    ).toThrow('GITHUB_REPOSITORY names no repository.');
+    expect(() => main(['verify', 'head'], '', fake({}), fake({}))).toThrow(
+      'GITHUB_REPOSITORY names no repository.',
+    );
+    // The default reads GITHUB_REPOSITORY, which the CI sets; the test must
+    // not depend on where it runs.
+    vi.stubEnv('GITHUB_REPOSITORY', '');
+    try {
+      expect(() =>
+        main(['verify', 'head'], undefined, fake({}), fake({})),
+      ).toThrow('GITHUB_REPOSITORY names no repository.');
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 });
