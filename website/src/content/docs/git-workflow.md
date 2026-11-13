@@ -216,11 +216,11 @@ the GitHub Actions and the images the CI runs (`renovate.json`):
   nothing; Dependabot's own security updates are off, so no hole gets two
   pull requests.
 - Patch updates merge themselves once the CI Gate is green.
-- Security pull requests merge themselves for patch and minor updates
-  (`vulnerabilityAlerts` in `renovate.json`, also for development
-  dependencies); below version 1.0 only a patch does. A major security
-  update waits for the owner, and a red security pull request is fixed by
-  the release loop or goes to the owner
+- Security pull requests merge themselves for patch, minor, pin and
+  digest updates (`vulnerabilityAlerts` in `renovate.json`, also for
+  development dependencies); below version 1.0 only a patch does. A major
+  security update waits for the owner, and a red security pull request is
+  fixed by the release loop in its own pull request or goes to the owner
   ([Branching and release](/okf/ops/branching-release.md)).
 - Custom managers keep the digests of gitleaks, Trivy and actionlint and
   the version of zizmor in `ci.yml` up to date.

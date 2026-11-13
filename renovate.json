@@ -20,6 +20,11 @@
         "matchUpdateTypes": ["minor"],
         "matchCurrentVersion": ">=1.0.0",
         "automerge": true
+      },
+      {
+        "description": "Pin and digest security updates merge themselves too (owner, 2026-11-13, #148).",
+        "matchUpdateTypes": ["pin", "pinDigest", "digest"],
+        "automerge": true
       }
     ]
   },
