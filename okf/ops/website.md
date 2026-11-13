@@ -1,7 +1,7 @@
 ---
 type: ops
 title: Documentation website
-description: The public documentation website on GitHub Pages: Astro Starlight in website/, built from okf/ and docs/, with a generated agents.md for agents.
+description: 'The public documentation website on GitHub Pages: Astro Starlight in website/, built from okf/ and docs/, with a generated agents.md for agents.'
 ---
 
 # Documentation website
