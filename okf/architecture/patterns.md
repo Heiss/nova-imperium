@@ -134,6 +134,10 @@ choice of the patterns to the assistant's recommendation below
 * **[E]** One repository per aggregate (planet, fleet, player, guild, …)
   instead of the single `Store` class. The SQLite transaction of
   `runAction` is the unit of work. `Ctx` carries the repositories.
+* **[E]** The aggregates are cut by game object (owner, 2026-11-13, #117):
+  players and accounts; planets with buildings, ships, defense and queues;
+  fleets; reports; guilds; invitations and admin data. The exact cut follows
+  the code in the pull request.
 * **[E]** Tests use SQLite in memory, no hand-written fakes.
 
 ## 9. Client: generic Svelte components
@@ -143,6 +147,9 @@ choice of the patterns to the assistant's recommendation below
 * **[E]** Generic components render from the catalog: `CatalogList`
   (buildings, research, shipyard, defense) and `ProducerTable` (resources).
   A new entry needs no new HTML.
+* **[E]** The catalog views are converted first (buildings, research,
+  shipyard, defense), where #45, #51 and #53 add the most; then the other
+  views (owner, 2026-11-13, #118).
 
 ## 10. Layout and registration
 
@@ -198,7 +205,11 @@ src/client/                state, components (generic), views
   1. Folder skeleton, generated index, boundary rules.
   2. Texts apart from rules (after #94).
   3. Components of the catalog with contract tests; production from the
-     components; the resources page from `ProducerTable`.
+     components; the resources page from `ProducerTable`. One pull request
+     per component group: production (`produces`, `consumes`, `storage`,
+     `leveled`), combat (`combat`, `unit`), flight (`mobile`), limits
+     (`limit`, `energyThreshold`), then `ProducerTable` (owner, 2026-11-13,
+     #114).
   4. Generic events in `settle` with the property tests.
   5. Missions as strategies.
   6. Repositories per aggregate.

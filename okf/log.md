@@ -7,6 +7,7 @@
 ## 2026-11-13
 
 * **Decision**: #111 order of the migration confirmed; #112 renames `src/shared` to `src/core` in one pull request and chains the index generator explicitly in the scripts; #113 splits the `texts.ts` of #131 per entry and adds `text(key)` (see [Design patterns](/architecture/patterns.md)).
+* **Decision**: #114 one pull request per component group; #117 aggregates by game object; #118 catalog views first; #115, #116 and #119 have no open decision (see [Design patterns](/architecture/patterns.md)).
 
 ## 2026-11-12
 
