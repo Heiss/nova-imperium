@@ -12,6 +12,7 @@
     "!src/server/cli.ts",
     "!src/server/db/migrate-worker.ts",
     "!src/server/test-helpers.ts",
+    "!src/shared/texts.ts",
     "!src/test/**"
   ],
   "coverageAnalysis": "perTest",

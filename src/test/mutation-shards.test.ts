@@ -56,6 +56,9 @@ describe('mutation shards: the files', () => {
       expect(files).not.toContain(left);
     expect(files.filter((f) => f.startsWith('src/test/'))).toEqual([]);
     expect(files.filter((f) => f.startsWith('src/client/views/'))).toEqual([]);
+    // Display texts are not mutated (owner, 2026-11-12); the rules are.
+    expect(files).not.toContain('src/shared/texts.ts');
+    expect(files).toContain('src/shared/catalog.ts');
   });
 
   it('weighs a file by its mutants in the last report, else by its lines', () => {
