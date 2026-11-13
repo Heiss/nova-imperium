@@ -33,7 +33,7 @@ The world AI (#159):
 
 - `crisis.html` / `.png` – the AI's phases, territory, attack and the bonuses for fighting it
 
-The star map (see the idea issue „Star map“):
+The star map (#160):
 
 - `map-galaxy.html` / `.png` – the galaxy as a spiral of systems with influence, fleets in flight and fog
 - `map-system.html` / `.png` – one system with orbits, planets, moon, debris, the belt and approaching fleets
