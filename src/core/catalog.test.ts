@@ -70,7 +70,7 @@ const NEW_DS: Readonly<Record<string, string>> = {
   lc: 'Großer, schnellerer Frachter; trägt ein Vielfaches eines Frachtläufers.',
   colony: 'Gründet eine Kolonie auf einer freien Position.',
   lf: 'Billiger Jäger, der in großer Zahl feindliches Feuer bindet.',
-  hf: 'Schwerer Jäger mit Schnellfeuer gegen Frachtläufer.',
+  hf: 'Gepanzerter Jäger mit Schnellfeuer gegen Frachtläufer.',
   cr: 'Schnelles Kriegsschiff – stark gegen Abfangjäger und Raketenbatterien.',
   bs: 'Schweres Kriegsschiff, das hart zuschlägt und viel aushält.',
   probe:

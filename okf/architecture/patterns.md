@@ -125,8 +125,8 @@ choice of the patterns to the assistant's recommendation below
   `src/core/text.test.ts` fails on a missing name, abbreviation or short
   text, an abbreviation used twice, a text file without an entry and a text
   field in a rule.
-* **[V]** Choices of #113 within the decisions above, for the owner to
-  confirm: each `texts.de.ts` exports one object `texts` typed with
+* **[E]** Choices of #113 within the decisions above, confirmed by the
+  owner (2026-11-13): each `texts.de.ts` exports one object `texts` typed with
   `EntryText` (not single exports `n`, `ab`, …), so the compiler checks
   every file on its own; the index has its own list `TEXTS` instead of a
   third element in `ENTRIES`; the accessor is its own file `text.ts`,

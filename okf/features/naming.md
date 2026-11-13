@@ -239,7 +239,7 @@ the names:
 | `lc` | Lastbarke | Großer, schnellerer Frachter; trägt ein Vielfaches eines Frachtläufers. |
 | `colony` | Kolonistenarche | Gründet eine Kolonie auf einer freien Position. |
 | `lf` | Abfangjäger | Billiger Jäger, der in großer Zahl feindliches Feuer bindet. |
-| `hf` | Sturmjäger | Schwerer Jäger mit Schnellfeuer gegen Frachtläufer. |
+| `hf` | Sturmjäger | Gepanzerter Jäger mit Schnellfeuer gegen Frachtläufer. |
 | `cr` | Fregatte | Schnelles Kriegsschiff – stark gegen Abfangjäger und Raketenbatterien. |
 | `bs` | Kathedralschiff | Schweres Kriegsschiff, das hart zuschlägt und viel aushält. |
 | `probe` | Spähschädel | Schnellstes Schiff; erkundet fremde Welten per Auspex, trägt keine Fracht. |
@@ -247,6 +247,12 @@ the names:
 | `ll` | Lichtlanze | Leichtes Strahlgeschütz zur Verteidigung des Planeten. |
 | `hl` | Schwere Lichtlanze | Schweres Strahlgeschütz, das stärkere Schilde durchschlägt. |
 | `gauss` | Massebeschleuniger | Schweres Geschütz; nur der Weltenbrecher hat Schnellfeuer gegen ihn. |
+
+* **[E]** `hf`: „Gepanzerter Jäger mit Schnellfeuer gegen Frachtläufer.“
+  replaces the first confirmed wording „Schwerer Jäger mit Schnellfeuer
+  gegen Frachtläufer.“, because that held the classic name „Schwerer
+  Jäger“, which the naming test forbids; no test exception (owner,
+  2026-11-13).
 
 * The shipyard and defense lists show them under the name, as for every
   other entry (`itemHTML` in `src/client/views/common.ts`); the (?) panel
