@@ -574,6 +574,12 @@ describe('catalog from the entry folders', () => {
     expect(Object.keys(C.UNIT)).toEqual([...ships, ...defense]);
   });
 
+  it('lists every ship and defense with its kind as a fighter, and nothing else (#114)', () => {
+    expect(Object.keys(C.FIGHTERS).sort()).toEqual(Object.keys(C.UNIT).sort());
+    for (const [k, f] of Object.entries(C.FIGHTERS))
+      expect(f.kind, k).toBe(C.isShip(k) ? 'ship' : 'defense');
+  });
+
   it('has one folder per entry, each with its kind and its own order', () => {
     expect(ENTRIES).toHaveLength(49);
     const kinds = {

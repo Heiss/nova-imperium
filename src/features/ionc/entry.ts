@@ -3,13 +3,19 @@
 // shield domes, and they have none.
 
 import type { DefenseFields } from '../../core/catalog.ts';
+import type { Combat } from '../../core/components/combat.ts';
+import type { Unit } from '../../core/components/unit.ts';
 
 export const kind = 'defense';
 export const order = 50;
-export const def: DefenseFields = {
+export const unit: Unit = {
   cost: [2000, 6000, 0],
+};
+export const combat: Combat = {
   atk: 150,
   sh: 500,
+};
+export const def: DefenseFields = {
   req: {
     b: {
       yard: 4,
