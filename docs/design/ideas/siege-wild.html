@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Studie – Wilde Mechaniken im Bodenkampf</title>
+    <link rel="stylesheet" href="/style.css" />
+    <link rel="stylesheet" href="mock.css" />
+    <style>
+      .war {
+        display: grid;
+        grid-template-columns: 1fr 300px;
+        gap: 14px;
+      }
+      .board {
+        background: var(--box);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 8px;
+      }
+      .leg {
+        display: grid;
+        grid-template-columns: 18px 1fr;
+        gap: 8px;
+        font-size: 15px;
+        padding: 3px 0;
+        align-items: start;
+      }
+      .leg i {
+        width: 14px;
+        height: 14px;
+        border-radius: 3px;
+        margin-top: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="mock" style="max-width: 1240px">
+      <p class="cap">
+        Studie [V] · Bodenkampf · Runde 3 der Ideen: Tag-Nacht-Grenze,
+        schrumpfendes Feld, Einheimische, Veteranen, Moral · bewusst wild
+      </p>
+      <h2>Bodenkampf · Runde 41 von 48 · Endphase</h2>
+      <div class="war">
+        <div class="board">
+          <svg
+            id="hex"
+            viewBox="0 0 860 520"
+            width="100%"
+            role="img"
+            aria-label="Schlachtfeld mit Nachtseite, verbrannter Randzone, einheimischen Kreaturen und einem Veteranen"
+          ></svg>
+        </div>
+        <aside>
+          <div class="box">
+            <div class="hd">Was hier passiert</div>
+            <div class="bd">
+              <div class="leg">
+                <i style="background: #0b1424; border: 1px solid #7fd3f5"></i
+                ><span
+                  ><b>Nachtseite</b> wandert jede Runde ein Feld: Einheiten dort
+                  sind unsichtbar ohne Sensor.</span
+                >
+              </div>
+              <div class="leg">
+                <i style="background: #5a1a10"></i
+                ><span
+                  ><b>Verbrannte Erde</b>: ab Runde 36 brennt der Orbit den Rand
+                  ab, jede Runde ein Ring – zwingt zur Entscheidung.</span
+                >
+              </div>
+              <div class="leg">
+                <i style="background: #2a3010; border: 1px solid #d6e05a"></i
+                ><span
+                  ><b>Einheimische</b>: Kreaturen greifen jeden an, der ihr Nest
+                  betritt. Wer das Nest hält, zähmt sie für 3 Runden.</span
+                >
+              </div>
+              <div class="leg">
+                <i style="background: #d4a537"></i
+                ><span
+                  ><b>Veteran</b> „Hauptmann Orrin“ – überlebte 3 Belagerungen,
+                  steigt auf, nimmt Fähigkeiten mit in die nächste.</span
+                >
+              </div>
+              <div class="leg">
+                <i style="background: #f0a050"></i
+                ><span
+                  ><b>Moral</b>: eine Einheit unter 25 % LP ohne Anführer in 2
+                  Feldern flieht einen Zug lang.</span
+                >
+              </div>
+              <div class="leg">
+                <i style="background: #b08cf0"></i
+                ><span
+                  ><b>Zeitzünder</b>: Sprengladung, geht in 2 Runden hoch – auch
+                  wenn eigene Einheiten danebenstehen.</span
+                >
+              </div>
+            </div>
+          </div>
+          <div class="box">
+            <div class="hd">Gildenhilfe</div>
+            <div class="bd" style="font-size: 15px">
+              <b>Kaiser</b> (Gilde „Sternenwacht“) schickt einen Trupp per
+              Landungskapsel. Er steuert ihn selbst – der Bodenkampf wird zu
+              dritt.
+            </div>
+          </div>
+        </aside>
+      </div>
+    </main>
+    <script>
+      const svg = document.getElementById('hex');
+      const R = 30,
+        W = Math.sqrt(3) * R,
+        COLS = 15,
+        ROWS = 11;
+      const center = (c, r) => [
+        W * c + (r % 2 ? W / 2 : 0) + W / 2 + 6,
+        1.5 * R * r + R + 6,
+      ];
+      let out = '';
+      for (let r = 0; r < ROWS; r++)
+        for (let c = 0; c < COLS; c++) {
+          const [x, y] = center(c, r);
+          const pts = [0, 1, 2, 3, 4, 5]
+            .map((i) => {
+              const a = (Math.PI / 180) * (60 * i - 30);
+              return `${(x + R * Math.cos(a)).toFixed(1)},${(y + R * Math.sin(a)).toFixed(1)}`;
+            })
+            .join(' ');
+          const edge = r === 0 || r === ROWS - 1 || c === 0 || c === COLS - 1;
+          const night = c >= 9 && !edge;
+          const nest = ['4,3', '5,3', '4,4'].includes(`${c},${r}`);
+          let fill = '#231a14',
+            stroke = '#3b2f22';
+          if (edge) {
+            fill = '#5a1a10';
+            stroke = '#ee7660';
+          } else if (nest) {
+            fill = '#2a3010';
+            stroke = '#d6e05a';
+          } else if (night) {
+            fill = '#0b1424';
+            stroke = '#1d3048';
+          }
+          out += `<polygon points="${pts}" fill="${fill}" stroke="${stroke}" stroke-width="1.2"/>`;
+          if (edge && (c + r) % 3 === 0)
+            out += `<text x="${x}" y="${y + 6}" text-anchor="middle" font-size="16" fill="#f0a050">🔥</text>`;
+        }
+      const [nx] = center(9, 1);
+      out += `<line x1="${nx - W / 2}" y1="40" x2="${nx - W / 2}" y2="480" stroke="#7fd3f5" stroke-width="3" stroke-dasharray="10 6"/>`;
+      out += `<text x="${nx + 10}" y="70" font-family="Cinzel, serif" font-size="15" fill="#7fd3f5">Nacht →</text>`;
+      const unit = (c, r, l, col, extra = '') => {
+        const [x, y] = center(c, r);
+        return `<circle cx="${x}" cy="${y}" r="16" fill="#0d0a08" stroke="${col}" stroke-width="3" ${extra}/><text x="${x}" y="${y + 5}" text-anchor="middle" font-family="Cinzel, serif" font-size="14" fill="${col}">${l}</text>`;
+      };
+      out += unit(3, 6, '★', '#d4a537', 'stroke-width="5"');
+      out +=
+        unit(5, 6, 'S', '#ee7660') +
+        unit(6, 7, 'S', '#f0a050', 'stroke-dasharray="4 3"');
+      out +=
+        unit(10, 4, 'W', '#7fd3f5', 'opacity="0.35"') +
+        unit(11, 6, 'B', '#7fd3f5', 'opacity="0.35"');
+      out += unit(4, 3, '✶', '#d6e05a') + unit(5, 3, '✶', '#d6e05a');
+      out += unit(7, 2, 'K', '#9ccb76');
+      const [bx, by] = center(8, 5);
+      out += `<rect x="${bx - 10}" y="${by - 10}" width="20" height="20" fill="#b08cf0"/><text x="${bx}" y="${by + 30}" text-anchor="middle" font-family="Cinzel, serif" font-size="14" fill="#b08cf0">2</text>`;
+      svg.innerHTML = out;
+    </script>
+  </body>
+</html>

@@ -18,6 +18,11 @@ Ground troops and siege (#155):
 - `siege-phone.html` / `.png` – the same on a phone (390 px)
 - `siege-tiles.html` / `.png` – catalog of field types (positions, one-side fields, control points, hazards)
 - `siege-abilities.html` / `.png` – abilities, command points, control points, orbital strike
+- `siege-wild.html` / `.png` – night line, burning edge, natives, veterans, morale, time bombs
+
+Galaxy events (see the idea issue „Galaxy events“):
+
+- `galaxy-events.html` / `.png` – ion storm, wormhole, relic, supernova, bounty, galactic council
 
 The HTML files reference `/style.css`, `/fonts/` and `/icons/` absolutely:
 serve them from a root that holds `src/client/static/` with this folder beside
