@@ -490,6 +490,151 @@ describe('Gravitonforschung (#49)', () => {
   });
 });
 
+describe('planet fields and the Weltenschmiede (#51)', () => {
+  const FORGE = {
+    b: { nanite: 1, solar: 14 },
+    res: { m: 0, c: 1e6, d: 1e6 },
+  };
+
+  it('refuse a building level on a planet without a free field', () => {
+    // 10,000 km: 100 fields, all taken.
+    const { ctx, u, p } = setup({ diameter: 10000, b: { metal: 100 } });
+    expect(() => A.build(ctx, u, { key: 'crystal' })).toThrow(
+      'Keine freien Felder.',
+    );
+    expect(() => A.build(ctx, u, { key: 'metal' })).toThrow(
+      'Keine freien Felder.',
+    );
+    expect(p().bq).toBeNull();
+    expect(p().res).toEqual({ m: 100000, c: 100000, d: 100000 });
+  });
+
+  it('take the last free field', () => {
+    const { ctx, u, p } = setup({ diameter: 10000, b: { metal: 99 } });
+    expect(A.build(ctx, u, { key: 'crystal' })).toBeNull();
+    ctx.clock.t = p().bq!.end;
+    expect(A.mine(ctx, u).b).toEqual({ metal: 99, crystal: 1 });
+    expect(() => A.build(ctx, u, { key: 'crystal' })).toThrow(
+      'Keine freien Felder.',
+    );
+  });
+
+  it('leave research, ships and defense free of fields', () => {
+    const { ctx, u, p } = setup({
+      diameter: 10000,
+      b: { lab: 1, robot: 2, yard: 1, metal: 96 },
+    });
+    expect(A.research(ctx, u, { key: 'energy' })).toBeNull();
+    expect(A.order(ctx, u, { key: 'rl', n: 2 })).toBe(
+      '2× Raketenbatterie in Auftrag gegeben.',
+    );
+    expect(A.order(ctx, u, { key: 'sat', n: 1 })).toBe(
+      '1× Sonnenreliquiar in Auftrag gegeben.',
+    );
+    expect(p().sq).toHaveLength(2);
+  });
+
+  it('get the extra fields of the universe at once', () => {
+    const { ctx, u } = setup({ diameter: 10000, b: { metal: 100 } });
+    ctx.store.saveUniverse({ ...ctx.store.universe(), extraFields: 1 });
+    expect(A.build(ctx, u, { key: 'crystal' })).toBeNull();
+  });
+
+  it('have no limit on a planet from before the fields', () => {
+    const { ctx, u } = setup({
+      diameter: 10000,
+      unlimited: true,
+      b: { metal: 300 },
+    });
+    expect(A.build(ctx, u, { key: 'crystal' })).toBeNull();
+  });
+
+  it('build the Weltenschmiede with 1,000 energy production, not used up', () => {
+    const { ctx, u, p, me } = setup(
+      { ...FORGE, b: { nanite: 1, solar: 13 } },
+      { research: { energy: 12 } },
+    );
+    const short = Math.ceil(1000 - prod(p(), ctx.store.universe()).eProd);
+    expect(() => A.build(ctx, u, { key: 'terraformer' })).toThrow(
+      `Zu wenig Energie: Weltenschmiede braucht eine Energieproduktion von 1.000, es fehlen ${short.toLocaleString('de-DE')}.`,
+    );
+    expect(p().bq).toBeNull();
+    ctx.store.savePlanet({ ...p(), b: FORGE.b });
+    const before = prod(p(), ctx.store.universe());
+    expect(A.build(ctx, me(), { key: 'terraformer' })).toBeNull();
+    expect(p().bq).toMatchObject({
+      key: 'terraformer',
+      lvl: 1,
+      cost: [0, 50000, 100000],
+    });
+    expect(p().res).toEqual({ m: 0, c: 950000, d: 900000 });
+    // The energy is checked, not used: production stays as it was.
+    ctx.clock.t = p().bq!.end;
+    const after = A.mine(ctx, u);
+    expect(after.b.terraformer).toBe(1);
+    expect(prod(after, ctx.store.universe())).toEqual(before);
+  });
+
+  it('need twice the energy for the next level of the Weltenschmiede', () => {
+    const { ctx, u } = setup(
+      { ...FORGE, b: { nanite: 1, solar: 14, terraformer: 1 } },
+      { research: { energy: 12 } },
+    );
+    expect(() => A.build(ctx, u, { key: 'terraformer' })).toThrow(
+      'braucht eine Energieproduktion von 2.000',
+    );
+  });
+
+  it('check the requirements of the Weltenschmiede before its energy', () => {
+    const { ctx, u } = setup(
+      { res: FORGE.res, b: { nanite: 1 } },
+      { research: { energy: 11 } },
+    );
+    expect(() => A.build(ctx, u, { key: 'terraformer' })).toThrow(
+      'Das Wissen ist noch verschlossen.',
+    );
+  });
+
+  it('give five fields per level of the Weltenschmiede, which takes one itself', () => {
+    // 100 fields, 99 taken: the Weltenschmiede takes the last one.
+    const filled = {
+      metal: 20,
+      crystal: 20,
+      deut: 20,
+      smetal: 15,
+      scrystal: 9,
+    };
+    const { ctx, u, p } = setup(
+      {
+        diameter: 10000,
+        res: { m: 1e9, c: 1e9, d: 1e9 },
+        b: { nanite: 1, solar: 14, ...filled },
+      },
+      { research: { energy: 12 } },
+    );
+    expect(A.build(ctx, u, { key: 'terraformer' })).toBeNull();
+    ctx.clock.t = p().bq!.end;
+    ctx.store.savePlanet(A.mine(ctx, u));
+    // 105 fields, 100 taken: five more levels fit, the sixth does not.
+    for (let level = 1; level <= 5; level++) {
+      expect(A.build(ctx, u, { key: 'sdeut' })).toBeNull();
+      ctx.clock.t = p().bq!.end;
+      ctx.store.savePlanet(A.mine(ctx, u));
+      expect(p().b.sdeut).toBe(level);
+    }
+    expect(p().b).toEqual({
+      nanite: 1,
+      solar: 14,
+      ...filled,
+      terraformer: 1,
+      sdeut: 5,
+    });
+    expect(() => A.build(ctx, u, { key: 'sdeut' })).toThrow(
+      'Keine freien Felder.',
+    );
+  });
+});
+
 describe('shipyard', () => {
   it('orders as many units as can be paid', () => {
     const { ctx, u, p } = setup({

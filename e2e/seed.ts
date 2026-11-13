@@ -1,6 +1,7 @@
 // Changes the database of the running E2E server directly, for situations the
 // UI would need hours to reach (ships in the hangar). Usage:
 //   node e2e/seed.ts '<json>'   with { name, res?, b?, ships?, def?, temp?, pct?, research?,
+//   diameter?, unlimited? (the fields of the home planet, #51),
 //   clearQueue? (a finished build), colony? ({ g?, s?, p?, name?, b?, res? }: an own planet,
 //   by default on slot 15 of the home system), landColonyFleet?, landFleet? (a mission:
 //   its outbound fleets arrive now), returnFleet? (the returning fleets come home now),
@@ -53,6 +54,15 @@ function yardStart(p: Planet, n: number): number | null {
   return Date.now() - ms;
 }
 
+/** The queues and the last update of the home planet, moved as asked. */
+function timers(p: Planet): Pick<Planet, 'bq' | 'sqT' | 't'> {
+  return {
+    bq: d.clearQueue ? null : p.bq,
+    sqT: d.finishUnits ? yardStart(p, d.finishUnits) : p.sqT,
+    t: d.settledAgo ? Date.now() - d.settledAgo : p.t,
+  };
+}
+
 function updateHome(p: Planet): void {
   store.savePlanet({
     ...p,
@@ -61,10 +71,10 @@ function updateHome(p: Planet): void {
     ships: d.ships ?? p.ships,
     def: d.def ?? p.def,
     temp: d.temp ?? p.temp,
+    diameter: d.diameter ?? p.diameter,
+    unlimited: d.unlimited ?? p.unlimited,
     pct: d.pct ?? p.pct,
-    bq: d.clearQueue ? null : p.bq,
-    sqT: d.finishUnits ? yardStart(p, d.finishUnits) : p.sqT,
-    t: d.settledAgo ? Date.now() - d.settledAgo : p.t,
+    ...timers(p),
   });
 }
 

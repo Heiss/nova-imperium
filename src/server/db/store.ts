@@ -235,6 +235,8 @@ export class Store {
       s: r.s as number,
       p: r.p as number,
       temp: r.temp as number,
+      diameter: r.diameter as number,
+      unlimited: r.unlimited === 1,
       res: { m: r.res_m as number, c: r.res_c as number, d: r.res_d as number },
       b: levels(
         q('SELECT key, level FROM planet_buildings WHERE planet_id = ?'),
@@ -304,12 +306,12 @@ export class Store {
   savePlanet(p: Planet): void {
     this.db
       .prepare(
-        `INSERT INTO planets (id, owner, name, g, s, p, temp, res_m, res_c, res_d, t, created, sq_t,
-           bq_key, bq_lvl, bq_start, bq_end, bq_cost_m, bq_cost_c, bq_cost_d)
-         VALUES (@id, @owner, @name, @g, @s, @p, @temp, @res_m, @res_c, @res_d, @t, @created, @sq_t,
-           @bq_key, @bq_lvl, @bq_start, @bq_end, @bq_cost_m, @bq_cost_c, @bq_cost_d)
+        `INSERT INTO planets (id, owner, name, g, s, p, temp, diameter, unlimited, res_m, res_c, res_d,
+           t, created, sq_t, bq_key, bq_lvl, bq_start, bq_end, bq_cost_m, bq_cost_c, bq_cost_d)
+         VALUES (@id, @owner, @name, @g, @s, @p, @temp, @diameter, @unlimited, @res_m, @res_c, @res_d,
+           @t, @created, @sq_t, @bq_key, @bq_lvl, @bq_start, @bq_end, @bq_cost_m, @bq_cost_c, @bq_cost_d)
          ON CONFLICT(id) DO UPDATE SET owner = excluded.owner, name = excluded.name,
-           temp = excluded.temp, res_m = excluded.res_m, res_c = excluded.res_c, res_d = excluded.res_d,
+           temp = excluded.temp, diameter = excluded.diameter, unlimited = excluded.unlimited, res_m = excluded.res_m, res_c = excluded.res_c, res_d = excluded.res_d,
            t = excluded.t, sq_t = excluded.sq_t, bq_key = excluded.bq_key, bq_lvl = excluded.bq_lvl,
            bq_start = excluded.bq_start, bq_end = excluded.bq_end, bq_cost_m = excluded.bq_cost_m,
            bq_cost_c = excluded.bq_cost_c, bq_cost_d = excluded.bq_cost_d`,
@@ -322,6 +324,8 @@ export class Store {
         s: p.s,
         p: p.p,
         temp: p.temp,
+        diameter: p.diameter,
+        unlimited: Number(p.unlimited),
         res_m: p.res.m,
         res_c: p.res.c,
         res_d: p.res.d,

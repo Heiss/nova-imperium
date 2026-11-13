@@ -9,9 +9,12 @@
     prod,
     reqMissing,
   } from '../../shared/economy.ts';
+  import { fieldsFull } from '../../shared/fields.ts';
+  import { energyNeed, energyShort } from '../../shared/research.ts';
   import { explanation, paragraphs } from '../logic/explain.ts';
+  import { fieldsLine } from '../logic/fields.ts';
   import { iconURL } from '../logic/icons.ts';
-  import { dur } from '../logic/format.ts';
+  import { dur, fmt } from '../logic/format.ts';
   import { buildState } from '../logic/game.ts';
   import { costHTML, requirementsHTML, type V } from './common.ts';
 
@@ -28,9 +31,19 @@
     );
     return next.eProd - current.eProd - (next.eUse - current.eUse);
   }
+
+  /** The energy production a level needs (Weltenschmiede, #51), if any. */
+  function energyCost(v: V, key: string, level: number) {
+    const need = energyNeed(BUILD[key]!, level);
+    if (!need) return undefined;
+    return { need, production: prod(v.P, v.s.cfg, v.R.research).eProd };
+  }
 </script>
 
 <h2>Gebäude</h2>
+<div class="dim" id="fields">
+  {fieldsLine($viewState.P, $viewState.s.cfg)}
+</div>
 <div class="box">
   {#each Object.entries(BUILD) as [key, def] (key)}
     {@const { P, R, now, s } = $viewState}
@@ -38,7 +51,9 @@
     {@const cost = lvlCost(def, level + 1)}
     {@const delta = energyChange($viewState, key, level)}
     {@const missing = reqMissing(def, P, R)}
-    {@const status = buildState(P, R, key, missing.length)}
+    {@const full = fieldsFull(P, s.cfg)}
+    {@const short = energyShort(def, level + 1, P, s.cfg, R.research)}
+    {@const status = buildState(P, R, key, missing.length, full, short)}
     {@const image = iconURL(key)}
     {@const ex = explanation(key, def, s.me.explain, $viewState.ui.openEx)}
     <div class="item" class:running={status === 'running'}>
@@ -61,7 +76,7 @@
             >{/if}
         </div>
         <div class="ds">{def.ds}</div>
-        {@html costHTML(cost, P)}
+        {@html costHTML(cost, P, 1, energyCost($viewState, key, level + 1))}
         {#if delta !== 0}
           <div class="dim">
             Energie auf Stufe {level + 1}: {energy.format(Math.abs(delta))}
@@ -101,6 +116,10 @@
           <span class="dim">Schiffsschmiede arbeitet gerade</span>
         {:else if status === 'labBusy'}
           <span class="dim">Scholarium forscht gerade</span>
+        {:else if status === 'full'}
+          <span class="req">Keine freien Felder.</span>
+        {:else if status === 'energy'}
+          <span class="req">Zu wenig Energie: es fehlen {fmt(short)}</span>
         {:else}
           <button data-act="build" data-k={key} disabled={!afford(P, cost)}>
             {level ? `Ausbauen auf Stufe ${level + 1}` : 'Bauen'}
