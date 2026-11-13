@@ -1,5 +1,9 @@
 # Update log
 
+## 2026-11-13
+
+* **Decision**: #68 clarified: the E2E gaps in one pull request, fleet and battle first; flights, battles and queues set up with `e2e/seed.ts`; mails through an SMTP sink in the E2E start (see [Test strategy](/ops/testing.md)).
+
 ## 2026-11-12
 
 * **Update**: `src/shared/achievements.ts` has its own test of names, targets and rewards; a complete run after #127 scored it 33.33 %, below its floor 35.18 %; with the test a complete local run scores 100 %. The floor stays 35.18 % until a complete CI run confirms the new score, because incremental runs keep cached results for unchanged mutants (see [Test strategy](/ops/testing.md)).

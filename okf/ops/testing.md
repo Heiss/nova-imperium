@@ -23,6 +23,22 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   that takes hours) is set up with `e2e/seed.ts` (planet, research, a
   colony, a finished queue). A test that passes at once is checked once by
   breaking the code it covers. Existing gaps are collected in an issue.
+* **[E]** The gaps of #68 (game flows without a browser test, the table in
+  the issue) are closed in one pull request (owner, 2026-11-13), fleet and
+  battle first (attack with battle report and loot, transport arriving,
+  recall, the max buttons, too little fuel, all fleet slots used, noob
+  protection), then guilds, accounts, admin and the rest. Each area is
+  checked against the specs again first; a flow that turns out covered is
+  named in the pull request.
+* **[E]** Flights, battles and queues of these tests are set up through
+  `e2e/seed.ts` in the test database (land any fleet at once, finish a
+  queue), as the colony test does; the server gets no test clock and no
+  test-only code (owner, 2026-11-13, #68).
+* **[E]** Mails in E2E tests (for example „Passwort vergessen“) go through
+  real SMTP to a small mail sink that the E2E start runs on 127.0.0.1
+  (`smtp-server` of the nodemailer project, a dev dependency); the test
+  reads the link from the received mail. No production code changes for it
+  (owner, 2026-11-13, #68).
 * **[E]** Accessibility with axe (WCAG 2.1 A and AA) on the login and all 12
   views, with a self-test that proves the check finds problems
   (`e2e/a11y.spec.ts`). A look with a screen reader and the keyboard is still
