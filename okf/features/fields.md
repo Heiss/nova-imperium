@@ -44,9 +44,9 @@ Homeplanet, Terraformer); the owner confirmed them on 2026-11-13.
 * **[E]** Texts (owner, 2026-11-13, proposal A): overview „Durchmesser:
   12.800 km (54/163 Felder)“; buildings „Felder: 54 / 163“; a full planet
   „Keine freien Felder.“
-* **[V]** A planet without a limit shows „Felder: 54 / unbegrenzt“; its
+* **[E]** A planet without a limit shows „Felder: 54 / unbegrenzt“; its
   diameter is drawn from the range of its position. The short and long text
-  and the art of the Weltenschmiede are proposed in the pull request.
+  and the art of the Weltenschmiede below (owner, 2026-11-13).
 
 # Code, interface and tests
 
@@ -55,18 +55,20 @@ Homeplanet, Terraformer); the owner confirmed them on 2026-11-13.
   (the table, clamped to 1 to 15), `colonyDiameter(position, rng)`,
   `usedFields(p)` (the sum of the building levels), `maxFields(p, u)` (null
   without a limit) and `fieldsFull(p, u)`.
-* **[V]** A colony first draws its fields evenly in the range of its
+* **[E]** A colony first draws its fields evenly in the range of its
   position, then its diameter evenly among the diameters with exactly that
   many fields, with the seeded `ctx.rng` of the game. The home planet gets
-  12,800 km (163 fields).
+  12,800 km (163 fields) (owner, 2026-11-13).
 * Storage: `Planet.diameter` (km) and `Planet.unlimited`, columns of
   `planets`, migration 14 (see [SQLite storage](/data/sqlite.md)). A new
-  round places new planets, which follow the rule. Colonies founded and
-  players who register after the upgrade get a limit at once, because only
-  the planets that exist at the migration keep none.
-* **[V]** Existing planets after the upgrade: the home planet (the oldest
+  round places new planets, which follow the rule. **[E]** Colonies founded
+  and players who register after the upgrade get a limit at once, because
+  only the planets that exist at the migration keep none (owner,
+  2026-11-13).
+* **[E]** Existing planets after the upgrade: the home planet (the oldest
   planet of its owner) gets 12,800 km, a colony a diameter drawn by SQLite's
-  `random()` from the range of its position; both show „unbegrenzt“.
+  `random()` from the range of its position; both show „unbegrenzt“
+  (owner, 2026-11-13).
 * Catalog: `terraformer` in `BUILD` after the Machina-Schwarmhalle, with two
   new optional fields of `BuildingDef`: `energy` (as for research: `base`,
   `f`; checked, not used up, the Gravitonen-Mysterium pattern of #49) and
@@ -88,9 +90,10 @@ Homeplanet, Terraformer); the owner confirmed them on 2026-11-13.
   energy icon and „Zu wenig Energie: es fehlen …“ instead of the button. In
   the requirements list a building need on a full planet says „Keine
   freien Felder“ (no period, like the other reasons there).
-* **[V]** Texts of a planet without a limit: buildings „Felder: 54 /
-  unbegrenzt“, overview „Durchmesser: 14.254 km (54 Felder, unbegrenzt)“.
-* **[V]** Weltenschmiede: abbreviation `WE` (unique, `WS` is the
+* **[E]** Texts of a planet without a limit: buildings „Felder: 54 /
+  unbegrenzt“, overview „Durchmesser: 14.254 km (54 Felder, unbegrenzt)“
+  (owner, 2026-11-13).
+* **[E]** Weltenschmiede: abbreviation `WE` (unique, `WS` is the
   Waffensegnung); short text „+5 Felder pro Stufe. Braucht eine
   Energieproduktion, verbraucht sie aber nicht.“; long text „Die
   Weltenschmiede bricht Gebirge, füllt Schluchten und hämmert aus totem Fels
@@ -99,7 +102,8 @@ Homeplanet, Terraformer); the owner confirmed them on 2026-11-13.
   Planet muss genug Energie erzeugen; verbraucht wird sie nicht, und jede
   Stufe verlangt mehr.“; art: the Terraformer of the interface v2 icon set
   (`docs/design/interface-v2/icons/buildings/terraformer.svg`, half a green
-  world, half bare rock), renamed in `<title>` and `aria-label`.
+  world, half bare rock), renamed in `<title>` and `aria-label` (owner,
+  2026-11-13).
 * Tests: `src/shared/fields.test.ts`, `requirements.test.ts`,
   `catalog.test.ts`, `universe.test.ts`, `src/client/logic/fields.test.ts`,
   `game.test.ts`, `src/server/game/actions.test.ts`, `admin.test.ts`,

@@ -2,6 +2,7 @@
 
 ## 2026-11-13
 
+* **Decision**: the owner confirms the proposals of #51: the texts „Felder: 54 / unbegrenzt“ and „Durchmesser: 14.254 km (54 Felder, unbegrenzt)“, the diameters of existing planets, the limit for colonies founded after the upgrade, and the abbreviation `WE`, short and long text and art of the Weltenschmiede (see [Planet fields](/features/fields.md)).
 * **Feature**: #51 built: planets have a diameter and fields, every building level takes one, a full planet refuses a new level („Keine freien Felder.“); the Weltenschmiede adds five fields per level and needs its energy as production; migration 14 leaves the existing planets without a limit until the next round; admin setting „Zusatzfelder pro Planet“ (see [Planet fields](/features/fields.md)).
 * **Decision**: #51 clarified: fields by the wiki ranges per position (16 to 20 like 15), home planet 163, one field per building level, Weltenschmiede +5 fields per level with the classic values, no limit for existing planets until the next round, admin setting „Zusatzfelder pro Planet“ (see [Planet fields](/features/fields.md)).
 * **Decision**: #135 and #136 clarified: the wrong texts of 26.11.22 stay in `CHANGELOG.md` and are corrected by two fragments `art: behoben` („Korrektur zu 26.11.22: …“) in the next release; a pull request that extends a feature of the coming release changes its fragment instead of adding one, and the release text check looks for two entries about one feature (see [Branching and release](/ops/branching-release.md)).
