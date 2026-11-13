@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { BUILD, RES, UNIT } from '../../shared/catalog.ts';
+import { BUILD, RES, UNIT } from '../../core/catalog.ts';
 import { ICON_KEYS, iconURL, resourceIconURL } from './icons.ts';
 
 const STATIC = path.resolve(import.meta.dirname, '../static');

@@ -28,8 +28,8 @@ reviews:
         recovery and deletion, authorization of every action, input
         validation, rate limits, SQL through prepared statements only,
         secrets never logged. Flag any game rule computed here that should
-        live in src/shared.
-    - path: 'src/shared/**'
+        live in src/core.
+    - path: 'src/core/**'
       instructions: >-
         Pure game rules used by the server and the browser alike. No I/O,
         no imports from src/server or src/client. Values of version 1 must
@@ -38,7 +38,7 @@ reviews:
       instructions: >-
         The interface is German; check the German texts. No inline scripts
         or styles (strict Content-Security-Policy). Rules come from
-        src/shared, not from new client code.
+        src/core, not from new client code.
     - path: 'src/server/db/schema.ts'
       instructions: >-
         Released migrations are append-only: a moved, removed or changed

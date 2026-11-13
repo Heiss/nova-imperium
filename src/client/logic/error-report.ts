@@ -6,7 +6,7 @@ import {
   CLIENT_ERRORS_PER_MINUTE,
   ERROR_FIELDS,
   type ClientErrorKind,
-} from '../../shared/error-log.ts';
+} from '../../core/error-log.ts';
 import { esc } from './format.ts';
 
 export const ERRORS_URL = '/api/errors';

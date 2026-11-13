@@ -1,5 +1,5 @@
 // Import rules between the parts of the game (dependency-cruiser).
-// The rules of the game live once in src/shared; the server and the browser
+// The rules of the game live once in src/core; the server and the browser
 // both use them, never each other (okf/architecture/system.md).
 /** @type {import('dependency-cruiser').IConfiguration} */
 module.exports = {
@@ -16,10 +16,10 @@ module.exports = {
       },
     },
     {
-      name: 'shared-stays-pure',
+      name: 'core-stays-pure',
       severity: 'error',
-      comment: 'src/shared is used by the server and the browser alike.',
-      from: { path: '^src/shared/' },
+      comment: 'src/core is used by the server and the browser alike.',
+      from: { path: '^src/core/' },
       to: { path: '^src/(server|client)/' },
     },
     {
@@ -52,7 +52,7 @@ module.exports = {
       severity: 'error',
       comment: 'The image installs production dependencies only (Dockerfile).',
       from: {
-        path: '^src/(server|shared)/',
+        path: '^src/(server|core)/',
         pathNot: '\\.test\\.ts$|test-helpers\\.ts$',
       },
       to: { dependencyTypes: ['npm-dev'] },

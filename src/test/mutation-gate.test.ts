@@ -18,7 +18,7 @@ const standard: Standard = {
   securityTarget: 90,
   newFile: 80,
   security: ['src/server/auth.ts', 'src/server/new-secret.ts'],
-  floors: { 'src/server/auth.ts': 83.75, 'src/shared/a.ts': 70 },
+  floors: { 'src/server/auth.ts': 83.75, 'src/core/a.ts': 70 },
 };
 
 describe('mutation gate', () => {
@@ -41,7 +41,7 @@ describe('mutation gate', () => {
       min: 90,
       why: 'new security file',
     });
-    expect(floorOf('src/shared/b.ts', standard)).toEqual({
+    expect(floorOf('src/core/b.ts', standard)).toEqual({
       min: 80,
       why: 'new file',
     });
@@ -52,14 +52,14 @@ describe('mutation gate', () => {
       check(
         {
           'src/server/auth.ts': 83.75,
-          'src/shared/a.ts': 69.99,
+          'src/core/a.ts': 69.99,
           'src/server/new-secret.ts': 89.99,
-          'src/shared/b.ts': 80,
+          'src/core/b.ts': 80,
         },
         standard,
       ),
     ).toEqual([
-      'src/shared/a.ts: 69.99 % < 70 % (recorded floor)',
+      'src/core/a.ts: 69.99 % < 70 % (recorded floor)',
       'src/server/new-secret.ts: 89.99 % < 90 % (new security file)',
     ]);
   });
@@ -68,21 +68,21 @@ describe('mutation gate', () => {
     const next = update(
       {
         'src/server/auth.ts': 91,
-        'src/shared/a.ts': 60,
-        'src/shared/c.ts': 85,
+        'src/core/a.ts': 60,
+        'src/core/c.ts': 85,
       },
       standard,
     );
     expect(next.floors).toEqual({
       'src/server/auth.ts': 91,
-      'src/shared/a.ts': 70,
-      'src/shared/c.ts': 85,
+      'src/core/a.ts': 70,
+      'src/core/c.ts': 85,
     });
     expect(Object.keys(next.floors)).toEqual(
       [...Object.keys(next.floors)].sort(),
     );
     expect(next.security).toEqual(standard.security);
-    const exists = (file: string) => file !== 'src/shared/a.ts';
+    const exists = (file: string) => file !== 'src/core/a.ts';
     expect(
       update({ 'src/server/auth.ts': 80 }, standard, exists).floors,
     ).toEqual({ 'src/server/auth.ts': 83.75 });
@@ -92,26 +92,26 @@ describe('mutation gate', () => {
   it('keeps the floor of a file left out of a partial run', () => {
     expect(
       update({ 'src/server/auth.ts': 85 }, standard, () => true).floors,
-    ).toEqual({ 'src/server/auth.ts': 85, 'src/shared/a.ts': 70 });
+    ).toEqual({ 'src/server/auth.ts': 85, 'src/core/a.ts': 70 });
   });
 
   it('skips files without counted mutants', () => {
     expect(
       scoresOf({
         files: {
-          'src/shared/types.ts': { mutants: [] },
-          'src/shared/a.ts': { mutants: m('Killed', 'Survived') },
+          'src/core/types.ts': { mutants: [] },
+          'src/core/a.ts': { mutants: m('Killed', 'Survived') },
         },
       }),
-    ).toEqual({ 'src/shared/a.ts': 50 });
+    ).toEqual({ 'src/core/a.ts': 50 });
   });
 
   it('scores the total over all files, as Stryker counts "All files"', () => {
     const merged = {
       files: {
-        'src/shared/a.ts': { mutants: m('Killed', 'Survived', 'Ignored') },
-        'src/shared/b.ts': { mutants: m('Timeout', 'Killed', 'NoCoverage') },
-        'src/shared/types.ts': { mutants: [] },
+        'src/core/a.ts': { mutants: m('Killed', 'Survived', 'Ignored') },
+        'src/core/b.ts': { mutants: m('Timeout', 'Killed', 'NoCoverage') },
+        'src/core/types.ts': { mutants: [] },
       },
     };
     expect(totalOf(merged)).toBe(60);
@@ -144,7 +144,7 @@ describe('mutation gate', () => {
     expect(
       table({
         files: {
-          'src/shared/b.ts': {
+          'src/core/b.ts': {
             mutants: m(
               'Killed',
               'Timeout',
@@ -155,12 +155,12 @@ describe('mutation gate', () => {
               'Ignored',
             ),
           },
-          'src/shared/a.ts': { mutants: [] },
+          'src/core/a.ts': { mutants: [] },
         },
       }),
     ).toEqual([
-      'src/shared/a.ts: - % (killed 0, timeout 0, survived 0, no coverage 0, errors 0)',
-      'src/shared/b.ts: 50 % (killed 1, timeout 1, survived 1, no coverage 1, errors 2)',
+      'src/core/a.ts: - % (killed 0, timeout 0, survived 0, no coverage 0, errors 0)',
+      'src/core/b.ts: 50 % (killed 1, timeout 1, survived 1, no coverage 1, errors 2)',
     ]);
   });
 });

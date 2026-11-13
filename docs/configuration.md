@@ -68,4 +68,4 @@ Speed, size of the universe, storage, start resources and the extra fields
 per planet are not environment variables: the admin changes them in the
 admin panel of the game, live. The
 size (galaxies, systems, positions) can only grow, never below a coordinate
-where a planet lies. Ranges: `src/shared/universe.ts`.
+where a planet lies. Ranges: `src/core/universe.ts`.

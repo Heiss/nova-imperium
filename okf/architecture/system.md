@@ -11,7 +11,7 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 
 | Part | Folder | Role |
 |---|---|---|
-| Rules | `src/shared` | Catalog, costs, times, production, settling a planet to a point in time, flights, battle. Pure functions, used by server and browser. The universe settings are a parameter. |
+| Rules | `src/core` | Catalog, costs, times, production, settling a planet to a point in time, flights, battle. Pure functions, used by server and browser. The universe settings are a parameter. |
 | Store | `src/server/db` | SQLite through better-sqlite3: schema, migrations, mapping of the game objects to tables. |
 | Game | `src/server/game` | Actions of the players, fleet arrivals, points, the state a player sees, admin actions. Clock, chance and ids are injected. |
 | Accounts | `src/server/auth.ts` | Invitations, registration, login, sessions. |
@@ -21,7 +21,7 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 | Client | `src/client` | `logic/` (tested functions), `views/` (HTML templates), `main.ts` (events, server calls, clock). Bundled by esbuild into `dist/public`. |
 
 **[E]** A game rule that the server checks and the browser shows lives once,
-in `src/shared`, and both sides call it (owner, 2026-11-11): the shipyard
+in `src/core`, and both sides call it (owner, 2026-11-11): the shipyard
 lock (`yard.ts`), the lab lock (`lab.ts`), noob protection (`protection.ts`)
 and the fleet slots (`fleetSlots` in `flight.ts`). Messages stay with the
 caller; the rule does not.

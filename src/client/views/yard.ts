@@ -5,11 +5,11 @@ import {
   UNIT,
   type UnitDef,
   canFly,
-} from '../../shared/catalog.ts';
-import { reqMissing, satEnergy, unitTime } from '../../shared/economy.ts';
-import { activeDrive, shipSpeed } from '../../shared/flight.ts';
-import type { Levels } from '../../shared/types.ts';
-import { orderMax, YARD_LOCK, yardLockedBy } from '../../shared/yard.ts';
+} from '../../core/catalog.ts';
+import { reqMissing, satEnergy, unitTime } from '../../core/economy.ts';
+import { activeDrive, shipSpeed } from '../../core/flight.ts';
+import type { Levels } from '../../core/types.ts';
+import { orderMax, YARD_LOCK, yardLockedBy } from '../../core/yard.ts';
 import { dur, fmt } from '../logic/format.ts';
 import { cd, costHTML, itemHTML, requirementsHTML, type V } from './common.ts';
 

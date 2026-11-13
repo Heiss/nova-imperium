@@ -1,7 +1,7 @@
 import Database from 'better-sqlite3';
 import { describe, expect, it } from 'vitest';
-import { settle } from '../../shared/settle.ts';
-import type { Fleet } from '../../shared/types.ts';
+import { settle } from '../../core/settle.ts';
+import type { Fleet } from '../../core/types.ts';
 import { addPlanet, addUser, testCtx } from '../test-helpers.ts';
 import {
   arrive,

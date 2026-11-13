@@ -1,6 +1,6 @@
 import { defineConfig } from 'vitest/config';
 
-// The logic of the game is measured: the shared rules, the server and the
+// The logic of the game is measured: the core rules, the server and the
 // logic of the browser client. Not counted, like the Astro templates in
 // muffelblog: the HTML templates of the client, the SVG art, the browser glue
 // and the thin process entry points. The E2E suite and the Compose job run them.
@@ -10,7 +10,7 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       include: [
-        'src/shared/**/*.ts',
+        'src/core/**/*.ts',
         'src/server/**/*.ts',
         'src/client/logic/**/*.ts',
       ],

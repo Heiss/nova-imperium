@@ -28,8 +28,8 @@ the ships fly back.
 
 # Code, interface and tests
 
-* Mission `deploy` in `MISSION` (`src/shared/catalog.ts`, „Verlegung“) and
-  `Mission` (`src/shared/types.ts`); the fleet form, the overview and the
+* Mission `deploy` in `MISSION` (`src/core/catalog.ts`, „Verlegung“) and
+  `Mission` (`src/core/types.ts`); the fleet form, the overview and the
   fleet list take it from `MISSION`.
 * Send (`src/server/game/fleet-actions.ts`): `checkTarget()` lets a deploy
   fly only to an own planet; the start planet, an empty position, cargo,
@@ -41,7 +41,7 @@ the ships fly back.
   CHECK; fleets in flight keep everything and get 0, see
   [SQLite storage](/data/sqlite.md)).
 * Arrival (`src/server/game/arrival.ts`): `deploy()` puts the ships and the
-  cargo plus `deployFuel()` (`src/shared/flight.ts`, ⌊fuel / 2⌋) as
+  cargo plus `deployFuel()` (`src/core/flight.ts`, ⌊fuel / 2⌋) as
   Promethium on the target with `land()` (also above the
   storage limit, as a transport) and deletes the fleet; there is no return
   flight. `fits()`: when the target is gone or no longer the player's, the
@@ -71,7 +71,7 @@ the ships fly back.
   `MISSIONS` with the classic „Stationieren“. The report shows the cargo with
   `resLine()` in the new resource names (Adamant, Psikristall, Promethium);
   the new texts say „Treibstoff“, no classic word.
-* Tests: `src/shared/flight.test.ts` (`deployFuel`), `src/server/game/fleet.test.ts` (target rules, cargo and fuel,
+* Tests: `src/core/flight.test.ts` (`deployFuel`), `src/server/game/fleet.test.ts` (target rules, cargo and fuel,
   slot until arrival, ships and cargo plus half the fuel at the target via
   the action, recall), `arrival.test.ts` (above the storage limit, odd fuel
   rounded down, target lost or foreign), `src/server/db/store.test.ts`,

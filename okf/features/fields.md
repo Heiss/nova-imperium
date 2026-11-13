@@ -50,7 +50,7 @@ Homeplanet, Terraformer); the owner confirmed them on 2026-11-13.
 
 # Code, interface and tests
 
-* Rules in `src/shared/fields.ts`, used by the server and the browser:
+* Rules in `src/core/fields.ts`, used by the server and the browser:
   `fieldsOf(diameter)` = ⌊diameter² / 1,000,000⌋, `fieldRange(position)`
   (the table, clamped to 1 to 15), `colonyDiameter(position, rng)`,
   `usedFields(p)` (the sum of the building levels), `maxFields(p, u)` (null
@@ -80,7 +80,7 @@ Homeplanet, Terraformer); the owner confirmed them on 2026-11-13.
   Weltenschmiede braucht eine Energieproduktion von 1.000, es fehlen …“
   (the check of the Gravitonforschung, now one function for both).
 * Universe setting `extraFields` („Zusatzfelder pro Planet“, 0 to 100,
-  default 0) in `src/shared/universe.ts`; the admin panel shows it with the
+  default 0) in `src/core/universe.ts`; the admin panel shows it with the
   others, and it counts at once for every planet with a limit.
 * Interface: overview row „Durchmesser“ with `diameterLine()`, buildings
   line „Felder: 54 / 163“ above the list with `fieldsLine()`
@@ -104,7 +104,7 @@ Homeplanet, Terraformer); the owner confirmed them on 2026-11-13.
   (`docs/design/interface-v2/icons/buildings/terraformer.svg`, half a green
   world, half bare rock), renamed in `<title>` and `aria-label` (owner,
   2026-11-13).
-* Tests: `src/shared/fields.test.ts`, `requirements.test.ts`,
+* Tests: `src/core/fields.test.ts`, `requirements.test.ts`,
   `catalog.test.ts`, `universe.test.ts`, `src/client/logic/fields.test.ts`,
   `game.test.ts`, `src/server/game/actions.test.ts`, `admin.test.ts`,
   `fleet.test.ts` (a colony in its range), `src/server/db/store.test.ts`,

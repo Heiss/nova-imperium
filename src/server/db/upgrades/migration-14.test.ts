@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fieldRange, fieldsOf } from '../../../shared/fields.ts';
+import { fieldRange, fieldsOf } from '../../../core/fields.ts';
 import { databaseAt } from '../../../test/migrations.ts';
 import { migrate } from '../database.ts';
 import { MIGRATIONS } from '../schema.ts';

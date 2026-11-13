@@ -61,7 +61,7 @@ describe('mutation shards: the files', () => {
   it('finds the files of stryker.config.json, without tests and entry points', () => {
     const files = mutatedFiles(stryker.mutate);
     expect(files.length).toBeGreaterThan(40);
-    expect(files).toContain('src/shared/economy.ts');
+    expect(files).toContain('src/core/economy.ts');
     expect(files).toContain('src/client/logic/format.ts');
     expect(files.filter((f) => f.endsWith('.test.ts'))).toEqual([]);
     for (const left of [
@@ -74,8 +74,8 @@ describe('mutation shards: the files', () => {
     expect(files.filter((f) => f.startsWith('src/test/'))).toEqual([]);
     expect(files.filter((f) => f.startsWith('src/client/views/'))).toEqual([]);
     // Display texts are not mutated (owner, 2026-11-12); the rules are.
-    expect(files).not.toContain('src/shared/texts.ts');
-    expect(files).toContain('src/shared/catalog.ts');
+    expect(files).not.toContain('src/core/texts.ts');
+    expect(files).toContain('src/core/catalog.ts');
   });
 
   it('weighs a file by its mutants in the last report, else by its lines', () => {
@@ -241,7 +241,7 @@ describe('mutation shards: cutting a large file', () => {
   });
 
   it('cuts the real catalog so that every top-level statement lies in one piece', () => {
-    const file = 'src/shared/catalog.ts';
+    const file = 'src/core/catalog.ts';
     const text = readFileSync(file, 'utf8');
     const ranges = Object.keys(pieces(file, text, [], () => 1)).map(entryOf);
     expect(ranges).toEqual([{ file, from: 1, to: lines(file) }]);

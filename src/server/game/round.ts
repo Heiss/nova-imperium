@@ -1,4 +1,4 @@
-import type { RoundRules } from '../../shared/achievements.ts';
+import type { RoundRules } from '../../core/achievements.ts';
 import { type Ctx, fail } from './context.ts';
 
 export function roundRules(ctx: Ctx): RoundRules {

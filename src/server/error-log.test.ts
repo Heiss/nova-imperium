@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { describe, expect, it, vi } from 'vitest';
-import { ERROR_FIELDS } from '../shared/error-log.ts';
+import { ERROR_FIELDS } from '../core/error-log.ts';
 import { DAY, purgeAudit } from './audit.ts';
 import { deleteAccount } from './delete-account.ts';
 import {

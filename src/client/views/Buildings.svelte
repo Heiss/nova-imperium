@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Readable } from 'svelte/store';
-  import { BUILD } from '../../shared/catalog.ts';
+  import { BUILD } from '../../core/catalog.ts';
   import {
     afford,
     buildTime,
@@ -8,9 +8,9 @@
     lvlCost,
     prod,
     reqMissing,
-  } from '../../shared/economy.ts';
-  import { fieldsFull } from '../../shared/fields.ts';
-  import { energyNeed, energyShort } from '../../shared/research.ts';
+  } from '../../core/economy.ts';
+  import { fieldsFull } from '../../core/fields.ts';
+  import { energyNeed, energyShort } from '../../core/research.ts';
   import { explanation, paragraphs } from '../logic/explain.ts';
   import { fieldsLine } from '../logic/fields.ts';
   import { iconURL } from '../logic/icons.ts';

@@ -27,7 +27,7 @@ The open issues bring the same kinds of rules again and again (read on
 | Admin parameters of rules | #45 D2, #51 D4 |
 
 Without a pattern each of them becomes an `if (key === …)` in a shared
-file, and parallel pull requests collide in `src/shared/catalog.ts`.
+file, and parallel pull requests collide in `src/core/catalog.ts`.
 
 **[E]** The owner chose the goals (2026-11-12): reuse inside Nova Imperium
 only (no package for other projects); all layers (rules, game, store,
@@ -63,11 +63,11 @@ choice of the patterns to the assistant's recommendation below
   rule file.
 * **[V]** First step (#131, owner 2026-11-12: display texts are not
   mutation-tested): the display texts of the catalog and the mission names
-  are in `src/shared/texts.ts`, keyed by the entry key, and each catalog
+  are in `src/core/texts.ts`, keyed by the entry key, and each catalog
   entry spreads its texts; Stryker leaves the file out (see
   [Test strategy](/ops/testing.md)). The per-feature `texts.de.ts` follow
   with the folder skeleton.
-* **[E]** #113 builds on `src/shared/texts.ts` of #131 (all display texts
+* **[E]** #113 builds on `src/core/texts.ts` of #131 (all display texts
   in one data file that Stryker leaves out): after #112 it splits that file
   into one `texts.de.ts` per entry and adds the accessor `text(key)`; the
   text files stay out of the mutation run (owner, 2026-11-13).

@@ -3,10 +3,7 @@
 // log (purgeAudit). Every text is scrubbed before it is stored: no
 // passwords, session or invitation tokens, email login codes or email
 // addresses; request bodies are never stored.
-import {
-  CLIENT_ERROR_KINDS,
-  ERROR_FIELDS as MAX,
-} from '../shared/error-log.ts';
+import { CLIENT_ERROR_KINDS, ERROR_FIELDS as MAX } from '../core/error-log.ts';
 import { DAY, pageWindow } from './audit.ts';
 import type { User } from './db/store.ts';
 import { type Ctx, fail, int } from './game/context.ts';

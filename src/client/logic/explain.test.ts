@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BUILD, DEF, SHIPS } from '../../shared/catalog.ts';
+import { BUILD, DEF, SHIPS } from '../../core/catalog.ts';
 import {
   explainButtonHTML,
   explainMode,

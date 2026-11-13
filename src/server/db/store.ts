@@ -8,14 +8,14 @@ import type {
   Queue,
   ResearchQueue,
   Universe,
-} from '../../shared/types.ts';
-import { isShip } from '../../shared/catalog.ts';
+} from '../../core/types.ts';
+import { isShip } from '../../core/catalog.ts';
 import {
   DEFAULT_UNIVERSE,
   UNIVERSE_SPECS,
   type UsedSize,
-} from '../../shared/universe.ts';
-import type { ExplainMode } from '../../shared/explain.ts';
+} from '../../core/universe.ts';
+import type { ExplainMode } from '../../core/explain.ts';
 import type { Db } from './database.ts';
 
 export interface User {

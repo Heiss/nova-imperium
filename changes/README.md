@@ -24,7 +24,7 @@ Nanitenfabrik: halbiert die Bau- und Werftzeiten jeder Stufe und sperrt
 die Werft, solange sie ausgebaut wird.
 ```
 
-A pull request that changes `src/client`, `src/shared` or `src/server/game`
+A pull request that changes `src/client`, `src/core` or `src/server/game`
 needs a fragment; the CI check „Changelog fragments“ enforces it. Changes
 players cannot notice (refactoring, tests, tooling) carry the label
 `kein-changelog` instead.

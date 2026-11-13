@@ -4,7 +4,7 @@ import {
   CLIENT_ERRORS_PER_DAY,
   CLIENT_ERRORS_PER_MINUTE,
   REPORTS_PER_HOUR,
-} from '../../shared/error-log.ts';
+} from '../../core/error-log.ts';
 import { DAY } from '../audit.ts';
 import type { User } from '../db/store.ts';
 import { readReport, recordClientError, recordReport } from '../error-log.ts';

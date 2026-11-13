@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { RES } from '../../shared/catalog.ts';
-import { lvlCost, prod, researchTime } from '../../shared/economy.ts';
-import { settle } from '../../shared/settle.ts';
+import { RES } from '../../core/catalog.ts';
+import { lvlCost, prod, researchTime } from '../../core/economy.ts';
+import { settle } from '../../core/settle.ts';
 import { addPlanet, addUser, testCtx, type TestCtx } from '../test-helpers.ts';
 import type { AuditEntry } from '../audit.ts';
 import * as A from './actions.ts';

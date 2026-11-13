@@ -1,5 +1,5 @@
-import type { RoundRules } from '../../shared/achievements.ts';
-import type { Universe } from '../../shared/types.ts';
+import type { RoundRules } from '../../core/achievements.ts';
+import type { Universe } from '../../core/types.ts';
 import { reportFormHTML } from '../logic/error-report.ts';
 import { explainOptionsHTML } from '../logic/explain.ts';
 import { coords, esc, fmt } from '../logic/format.ts';

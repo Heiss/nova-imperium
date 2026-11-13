@@ -1,4 +1,4 @@
-import type { Planet } from '../shared/types.ts';
+import type { Planet } from '../core/types.ts';
 import type { Ctx } from './game/context.ts';
 
 export type PushKind =

@@ -1,8 +1,8 @@
 // Test setup for the server: a real SQLite database in memory, a clock the
 // test moves, a seeded random generator and readable ids.
 import { seeded } from '../test/fixtures.ts';
-import { DEFAULT_EXPLAIN } from '../shared/explain.ts';
-import type { Planet } from '../shared/types.ts';
+import { DEFAULT_EXPLAIN } from '../core/explain.ts';
+import type { Planet } from '../core/types.ts';
 import { hashPassword } from './auth.ts';
 import type { Config } from './config.ts';
 import { openDatabase } from './db/database.ts';

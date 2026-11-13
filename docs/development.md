@@ -17,7 +17,7 @@ client is bundled with Vite. The building view is a Svelte component.
 
 | Folder        | Content                                                                        |
 | ------------- | ------------------------------------------------------------------------------ |
-| `src/shared`  | The rules of the game, used by server and browser                              |
+| `src/core`    | The rules of the game, used by server and browser                              |
 | `src/server`  | HTTP server, SQLite store, game actions, accounts, mail, CLI                   |
 | `src/client`  | Browser client: `logic/` (tested), `views/` (HTML templates), `main.ts` (glue) |
 | `src/test`    | Test fixtures and the frozen version 1 (`legacy/`) for the equivalence tests   |

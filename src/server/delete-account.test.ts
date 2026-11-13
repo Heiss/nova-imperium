@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Fleet } from '../shared/types.ts';
+import type { Fleet } from '../core/types.ts';
 import { deleteAccount } from './delete-account.ts';
 import { GameError } from './game/context.ts';
 import { addPlanet, addUser, testCtx } from './test-helpers.ts';

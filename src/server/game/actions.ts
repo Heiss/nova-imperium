@@ -1,6 +1,6 @@
 // The actions of a player on their planet. Each one runs inside a transaction
 // (see dispatch.ts) and saves what it changes.
-import { BUILD, PRODUCERS, RES, UNIT } from '../../shared/catalog.ts';
+import { BUILD, PRODUCERS, RES, UNIT } from '../../core/catalog.ts';
 import {
   afford,
   buildTime,
@@ -11,25 +11,25 @@ import {
   reqMissing,
   researchTime,
   unitTime,
-} from '../../shared/economy.ts';
-import { type ExplainMode, isExplainMode } from '../../shared/explain.ts';
-import { fieldsFull } from '../../shared/fields.ts';
-import { labUpgrading, waitsForLab } from '../../shared/lab.ts';
+} from '../../core/economy.ts';
+import { type ExplainMode, isExplainMode } from '../../core/explain.ts';
+import { fieldsFull } from '../../core/fields.ts';
+import { labUpgrading, waitsForLab } from '../../core/lab.ts';
 import {
   energyNeed,
   energyShort,
   type LabSite,
   labSite,
   networkLab,
-} from '../../shared/research.ts';
-import { settle, settleR } from '../../shared/settle.ts';
+} from '../../core/research.ts';
+import { settle, settleR } from '../../core/settle.ts';
 import {
   unitRoom,
   waitsForYard,
   YARD_LOCK,
   yardLockedBy,
-} from '../../shared/yard.ts';
-import type { Cost, Planet, Queue, ResearchState } from '../../shared/types.ts';
+} from '../../core/yard.ts';
+import type { Cost, Planet, Queue, ResearchState } from '../../core/types.ts';
 import type { AuditEntry } from '../audit.ts';
 import {
   cancelScheduledPush,

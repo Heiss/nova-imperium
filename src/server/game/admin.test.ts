@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { settle } from '../../shared/settle.ts';
-import { DEFAULT_UNIVERSE } from '../../shared/universe.ts';
+import { settle } from '../../core/settle.ts';
+import { DEFAULT_UNIVERSE } from '../../core/universe.ts';
 import { addPlanet, addUser, testCtx } from '../test-helpers.ts';
 import { reset, saveSettings } from './admin.ts';
 import { runAction } from './dispatch.ts';

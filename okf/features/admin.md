@@ -65,7 +65,7 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 | Extra fields per planet („Zusatzfelder pro Planet“, #51) | 0 (not in version 1) | 0 to 100, [E] owner 2026-11-13 |
 
 * **[V]** The ranges above are proposals; the source is
-  `src/shared/universe.ts`.
+  `src/core/universe.ts`.
 * **[V]** Before new values are saved, every planet is settled to now with
   the old values, so the time before the change keeps the old speed. Running
   buildings, research, shipyard units and flights keep their end time.

@@ -6,7 +6,7 @@ import type {
   Planet,
   Requirements,
   ResearchState,
-} from '../../shared/types.ts';
+} from '../../core/types.ts';
 import { dur, esc, fmt } from '../logic/format.ts';
 import {
   explainButtonHTML,
@@ -21,8 +21,8 @@ import {
   needState,
   type Places,
   unmetRequirements,
-} from '../../shared/requirements.ts';
-import { production } from '../../shared/economy.ts';
+} from '../../core/requirements.ts';
+import { production } from '../../core/economy.ts';
 import type { GameState } from '../logic/types.ts';
 
 export interface Ui {

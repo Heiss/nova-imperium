@@ -7,7 +7,7 @@ Sample data; all texts are proposals **[V]**.
 - `icon.html` / `icon.png` – mode „(?)-Symbol“, the probe opened
 
 The HTML files are generated from the real render helpers
-(`costHTML`, `needs`, `artURI`) and the real formulas of `src/shared/economy.ts`.
+(`costHTML`, `needs`, `artURI`) and the real formulas of `src/core/economy.ts`.
 The additional CSS (`.ex`, `button.exq`) is inline in each file and only a proposal.
 
 The HTML files reference `/style.css`, `/fonts/` and `/icons/` absolutely: open them through a server whose root is

@@ -3,11 +3,11 @@ import { queuePush } from '../push-store.ts';
 // What happens when a fleet arrives or comes home: transport, deploy,
 // espionage, battle with loot and rebuilt defense.
 import { record } from '../audit.ts';
-import { battle } from '../../shared/battle.ts';
-import { DEF, SHIPS } from '../../shared/catalog.ts';
-import { capacity, countUnits, deployFuel } from '../../shared/flight.ts';
-import { settle, settleR } from '../../shared/settle.ts';
-import type { Fleet, Levels, Planet, Resources } from '../../shared/types.ts';
+import { battle } from '../../core/battle.ts';
+import { DEF, SHIPS } from '../../core/catalog.ts';
+import { capacity, countUnits, deployFuel } from '../../core/flight.ts';
+import { settle, settleR } from '../../core/settle.ts';
+import type { Fleet, Levels, Planet, Resources } from '../../core/types.ts';
 import type { User } from '../db/store.ts';
 import {
   type Ctx,

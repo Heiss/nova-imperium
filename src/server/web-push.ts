@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { generateVAPIDKeys, sendNotification } from 'web-push';
-import { settle } from '../shared/settle.ts';
+import { settle } from '../core/settle.ts';
 import { fail, universe, type Ctx } from './game/context.ts';
 import { queuePush, scheduleShipyard, type PushKind } from './push-store.ts';
 

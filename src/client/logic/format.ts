@@ -1,5 +1,5 @@
 // Formatting for the German interface.
-import type { Coords, Levels, Resources } from '../../shared/types.ts';
+import type { Coords, Levels, Resources } from '../../core/types.ts';
 
 export const fmt = (n: number | null | undefined): string =>
   Math.floor(n || 0).toLocaleString('de-DE');

@@ -44,7 +44,7 @@ ENV NODE_ENV=production \
 COPY --from=build /app/package.json ./
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
-COPY --from=build /app/src/shared ./src/shared
+COPY --from=build /app/src/core ./src/core
 COPY --from=build /app/src/server ./src/server
 # „Neuigkeiten“ for the players and the running version (issue #81).
 COPY --from=build /app/CHANGELOG.md /app/VERSION ./

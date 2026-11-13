@@ -125,9 +125,9 @@ describe('versions', () => {
 
 describe('fragment check', () => {
   it('needs a fragment for game code, unless labelled', () => {
-    const game = ['src/shared/economy.ts', 'src/client/main.ts'];
+    const game = ['src/core/economy.ts', 'src/client/main.ts'];
     expect(missingFragment(game, [])).toBe(
-      'The game changes (src/shared/economy.ts, src/client/main.ts) need a fragment in changes/ (German, see changes/README.md), or the label "kein-changelog".',
+      'The game changes (src/core/economy.ts, src/client/main.ts) need a fragment in changes/ (German, see changes/README.md), or the label "kein-changelog".',
     );
     expect(missingFragment(game, ['kein-changelog'])).toBeNull();
     expect(missingFragment([...game, 'changes/eco.md'], [])).toBeNull();
@@ -149,7 +149,7 @@ describe('fragment check', () => {
       missingFragment(
         [
           'src/server/game/a.ts',
-          'src/shared/b.ts',
+          'src/core/b.ts',
           'src/client/c.ts',
           'src/client/d.ts',
         ],
