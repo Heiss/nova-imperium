@@ -3,6 +3,7 @@
 ## 2026-11-13
 
 * **Decision**: #45 clarified: Bergungsbarke with the classic Recycler values, Trümmerfelder from 30 % of destroyed ships until harvested, mission „Bergung“ with at least one Bergungsbarke and the cargo of all ships, symbol and button in the Sternenkarte, report texts (see [Trümmerfelder](/features/debris.md)).
+* **Decision**: #135 and #136 clarified: the wrong texts of 26.11.22 stay in `CHANGELOG.md` and are corrected by two fragments `art: behoben` („Korrektur zu 26.11.22: …“) in the next release; a pull request that extends a feature of the coming release changes its fragment instead of adding one, and the release text check looks for two entries about one feature (see [Branching and release](/ops/branching-release.md)).
 
 ## 2026-11-12
 

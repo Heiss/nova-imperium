@@ -1,11 +1,15 @@
 # Changelog fragments
 
-Every pull request that players can notice adds one file here (owner,
-2026-11-12). The release pull request bundles all files into a German
+Every pull request that players can notice adds one file here, or changes
+the fragment of its feature that is still here (owner, 2026-11-12,
+2026-11-13). The release pull request bundles all files into a German
 section of `CHANGELOG.md`, which the game shows under „Neuigkeiten“, and
 removes them. See `okf/ops/branching-release.md`.
 
 - One file per change, named after it: `changes/nanitenfabrik.md`.
+- A pull request that extends a feature of the coming release, whose
+  fragment is still here, changes that fragment instead of adding a second
+  one, so players read one entry per feature (owner, 2026-11-13, #136).
 - German, written for players: what changes for them, no code, no internals,
   nothing a player should find out by playing. At most 300 characters, no
   headings.
