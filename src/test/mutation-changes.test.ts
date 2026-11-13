@@ -144,7 +144,7 @@ describe('mutation changes: the files', () => {
 
   it('counts every mutation script as configuration', () => {
     const scripts = globSync('scripts/mutation-*.ts');
-    expect(scripts.length).toBe(3);
+    expect(scripts.length).toBe(4);
     for (const file of scripts.map((f) => f.split('\\').join('/')))
       expect(reason(file, mutate)).toBe(`${file} configures the mutation run`);
     expect(MUTATION_CONFIG).toContain('scripts/mutation-*.ts');

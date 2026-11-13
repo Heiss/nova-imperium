@@ -74,7 +74,9 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   existing tables or data; see [SQLite storage](/data/sqlite.md).
 * **[E]** Mutation tests with Stryker, a total score below 80 % blocks;
   incremental on pull requests (only those that change what they test,
-  #146; the release pull request of `main` keeps its complete run) and on
+  #146; a head that only merged `main` takes over the green result of the
+  head before, #167; the release pull request of `main` keeps its
+  complete run) and on
   pushes to `main` (unchanged code keeps its cached result),
   complete every night (owner, 2026-11-11). Tag workflows verify the
   earlier CI result.
@@ -133,6 +135,34 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   test helpers it imports (`src/test/**`, `src/server/test-helpers.ts`, as
   in the rule `tests-stay-out` of `.dependency-cruiser.cjs`). The E2E
   tests (`e2e/`) are not: Stryker does not run them.
+* **[E]** A pull request into `main` whose newest head only merged `main`
+  takes over the mutation result of the head before instead of mutating
+  again (owner, 2026-11-13, #167, chosen with #141 to cut the waiting time
+  of the release loop; „mutation only on `main`“ and a merge queue were
+  not chosen). The earlier result is the check run „Mutation tests“ of the
+  first parent of the head, read through the API; it must be `success`.
+  The jobs need `checks: read`; no cache and no artifact. The merge
+  (first parent..head) must change no file the pull request itself
+  changes against `main`, no test file and no file of the mutation
+  configuration (both as in #146); otherwise the full mutation jobs run.
+  If the earlier green result cannot be found (a cancelled or deleted run,
+  a first parent that is not a commit of the pull request), the mutation
+  jobs run as before. Risk: a change from `main` can change the result of
+  the pull request's code without touching its files (a shared helper);
+  the push run of `main` after the merge finds it.
+  Checked before the build (2026-11-13, replaces the [U] of #167):
+  the `GITHUB_TOKEN` is an installation access token of the GitHub Actions
+  app, limited to the repository of the workflow, and the permission
+  `checks: read` covers „List check runs for a Git reference“
+  (`GET /repos/{owner}/{repo}/commits/{ref}/check-runs`) for any commit of
+  that repository (GitHub docs: „GITHUB_TOKEN“, the permission table of
+  the workflow syntax, and the permissions required for GitHub Apps; read
+  from the sources of github/docs, the site was not reachable). Setting
+  `permissions` on a job sets every permission not named to `none`, so the
+  jobs name `contents: read` too. The check runs of a pull request run sit
+  on its head commit, not on the merge commit `refs/pull/N/merge`
+  (checked on #165: „Mutation tests“ of head `666a75d` from the run of
+  event `pull_request`). The first run in a pull request proves the token.
 * **[E]** Display texts are not mutation-tested (owner, 2026-11-12, #131):
   the names, abbreviations, short and long texts of the catalog and the
   mission names live in `src/core/texts.ts`, which Stryker leaves out
@@ -285,7 +315,8 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   `release/*`, uploads `mutation-shard-N`), „Mutation tests“ (`mutation`,
   the gate: merge, total, floors). The CI Gate requires all three when the
   output `mutation` of „Detect changes“ is `true`, and accepts their skip
-  only when it is `false` (#146). `mutation.yml` (nightly and „Run
+  only when it is `false` (#146) or `reuse` (#167, below); any other value
+  fails. `mutation.yml` (nightly and „Run
   workflow“) runs the same three jobs complete and keeps the merged report as the artifact
   `mutation-report` for 30 days.
 * **[V]** Caches: per shard `stryker-shard<N>-<ref>-<sha>` (nightly with
@@ -313,6 +344,34 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   the migration check does) with the merge commit, and fails without
   such a tag (decision above); every other pull request compares its
   base with the merge commit.
+* **[V]** `scripts/mutation-reuse.ts` (tests in
+  `src/test/mutation-reuse.test.ts`, #167). „Detect changes“ calls
+  `decide <base> <tested> <head>` when `mutation-changes.ts` said `true`
+  in a pull request into `main` that is not a release pull request:
+  `<tested>` is the merge commit the CI checks out (`github.sha`), `<head>`
+  the head commit of the branch (`pull_request.head.sha`), where the
+  check runs are. It prints `reuse` when all hold, else `true` with the
+  reasons on stderr: the head has two parents; the second is an ancestor
+  of the base (a commit of `main`), the first is not (a commit of the pull
+  request); the tested commit has the tree of the head (main did not move
+  after the merge, so the tested code is the head's); the merge
+  (`git diff --no-renames` first parent..head) changes no file of
+  base..tested, no test file and no file of the mutation configuration
+  (the lists of `mutation-changes.ts`); and the newest check run (highest
+  id) named exactly „Mutation tests“ of the app `github-actions` on the
+  first parent completed with `success` (`gh api`, `check_name`,
+  `filter=all`). A skipped one does not count, so a head that took over a
+  result cannot pass it on: the next merge of `main` runs the jobs. Any
+  failing git or API call prints `true`. The three mutation jobs then do
+  not run. The CI Gate, with `checks: read`, accepts `reuse` only in a
+  pull request whose three mutation jobs were skipped, and only after
+  `verify <head>` found the first parent of the head (Git data API) with a
+  green „Mutation tests“ again; for that it checks out `scripts/` and sets
+  up Node only in that case. A push with `reuse` fails as before (the full
+  suite). Measured on the merges of `main` into #162, #164, #165 and #166
+  (2026-11-13): none of the ten would have taken over a result, every one
+  changed `okf/log.md`, which each pull request changes too, and nine of
+  them changed test files.
 * **[V]** Proof run (decision above): „Run workflow“ of „Mutation tests
   (nightly)“ on a branch runs the complete sharded run there:
   `gh workflow run mutation.yml --ref <branch>`. The display texts leave

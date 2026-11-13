@@ -5,7 +5,9 @@ name: CI
 # image, Trivy and the Compose stack with the upgrade test run when the image
 # can change, and always in a release pull request (owner, 2026-11-12). The
 # mutation tests run when a pull request changes what Stryker mutates, a test,
-# the mutation configuration or the test tool chain (#146).
+# the mutation configuration or the test tool chain (#146), and take over the
+# green result of the previous head when the newest head only merged main
+# (#167).
 # The documentation website is built when its sources change (#144).
 # Only the gate job "CI Gate" is the required check of main.
 on:
@@ -27,6 +29,10 @@ jobs:
   changes:
     name: Detect changes
     runs-on: ubuntu-latest
+    # checks: read for the check runs of the previous head (#167).
+    permissions:
+      contents: read
+      checks: read
     outputs:
       code: ${{ steps.diff.outputs.code }}
       image: ${{ steps.diff.outputs.image }}
@@ -50,7 +56,9 @@ jobs:
           PR_BASE: ${{ github.event.pull_request.base.sha }}
           PR_HEAD_REF: ${{ github.head_ref }}
           PR_BASE_REF: ${{ github.base_ref }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
           HEAD_SHA: ${{ github.sha }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           if [ "$EVENT" = "push" ] || [ -z "$PR_BASE" ]; then
             {
@@ -107,6 +115,17 @@ jobs:
             release/*) mutation=true ;;
             *) mutation=$(node scripts/mutation-changes.ts "$PR_BASE" "$HEAD_SHA") ;;
           esac
+          # A pull request into main whose newest head only merged main takes
+          # over the green mutation result of the head before (output
+          # "reuse", scripts/mutation-reuse.ts, owner, 2026-11-13, #167).
+          # $HEAD_SHA is the merge commit the CI tests, $PR_HEAD the head
+          # commit of the branch, on which the check runs are.
+          if [ "$mutation" = true ] && [ "$PR_BASE_REF" = main ]; then
+            case "$PR_HEAD_REF" in
+              release/*) ;;
+              *) mutation=$(node scripts/mutation-reuse.ts decide "$PR_BASE" "$HEAD_SHA" "$PR_HEAD") ;;
+            esac
+          fi
           {
             echo "code=$code"
             echo "image=$image"
@@ -191,7 +210,8 @@ jobs:
   # the test time of their mutants in the last complete run, else in the last
   # merged report, else by their lines (scripts/mutation-shards.ts). A pull
   # request runs them only when it changes what they test (output mutation,
-  # #146); a push to main or hotfix/** always runs them.
+  # #146), and skips them when it takes over the result of the head before
+  # (#167); a push to main or hotfix/** always runs them.
   mutation-plan:
     name: Mutation plan
     needs: changes
@@ -585,7 +605,22 @@ jobs:
       ]
     if: always()
     runs-on: ubuntu-latest
+    # checks: read to verify a mutation result taken over (#167).
+    permissions:
+      contents: read
+      checks: read
     steps:
+      # Only to verify a mutation result taken over (#167).
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        if: needs.changes.outputs.mutation == 'reuse'
+        with:
+          persist-credentials: false
+          sparse-checkout: scripts
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        if: needs.changes.outputs.mutation == 'reuse'
+        with:
+          node-version-file: .node-version
+          package-manager-cache: false
       - name: Evaluate the result
         env:
           CHANGES: ${{ needs.changes.result }}
@@ -606,6 +641,8 @@ jobs:
           SITE_SOURCES: ${{ needs.changes.outputs.site }}
           SITE: ${{ needs.site.result }}
           EVENT: ${{ github.event_name }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           require_success() {
             if [ "$2" != "success" ]; then
@@ -638,7 +675,9 @@ jobs:
           esac
 
           # The mutation jobs may be skipped only when the change detection
-          # found nothing they test (#146).
+          # found nothing they test (#146), or when the pull request takes
+          # over the green result of the head before; the gate finds that
+          # green run again (#167).
           case "$MUTATED" in
             true)
               require_success "Mutation plan" "$MUTATION_PLAN"
@@ -646,6 +685,15 @@ jobs:
               require_success "Mutation tests" "$MUTATION"
               ;;
             false) echo "No mutated file, test, mutation configuration or test tool chain changed: the mutation jobs run on every push to main and hotfix/** and every night." ;;
+            reuse)
+              if [ "$EVENT" != "pull_request" ] || [ "$MUTATION_PLAN" != "skipped" ] || [ "$MUTATION_SHARDS" != "skipped" ] || [ "$MUTATION" != "skipped" ]; then
+                echo "::error::A mutation result is taken over only in a pull request whose mutation jobs are skipped."
+                exit 1
+              fi
+              node scripts/mutation-reuse.ts verify "$PR_HEAD" ||
+                { echo "::error::The mutation result to take over was not found."; exit 1; }
+              echo "The head only merged main: the green mutation result of the head before is taken over."
+              ;;
             *) echo "::error::Missing or invalid mutation detection output: $MUTATED"; exit 1 ;;
           esac
 

@@ -42,8 +42,10 @@ export const MUTATION_CONFIG = [
 /** Packages whose update can change the mutation results. */
 export const TOOL_CHAIN = ['@stryker-mutator/*', 'vitest', 'typescript'];
 
-const matchesAny = (path: string, patterns: readonly string[]): boolean =>
-  patterns.some((p) => matchesGlob(path, p));
+export const matchesAny = (
+  path: string,
+  patterns: readonly string[],
+): boolean => patterns.some((p) => matchesGlob(path, p));
 
 /**
  * Whether Stryker mutates the file: the "mutate" patterns in their order, the
