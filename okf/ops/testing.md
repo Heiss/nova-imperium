@@ -39,7 +39,7 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   (`smtp-server` of the nodemailer project, a dev dependency); the test
   reads the link from the received mail. No production code changes for it
   (owner, 2026-11-13, #68).
-* **[V]** The mail tests of #68 run against a second server of the E2E
+* **[E]** The mail tests of #68 run against a second server of the E2E
   start (`e2e/env.ts`: port 8098, SMTP to the sink on 127.0.0.1:8025, login
   codes on), because SMTP and login codes on the first server would change
   the existing tests (the admin's „Kein SMTP eingerichtet“ and every login).
@@ -48,7 +48,7 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   reset touches no planet of the other tests. `e2e/seed.ts` lands any
   mission (`landFleet`), brings returning fleets home (`returnFleet`),
   finishes units of the shipyard queue (`finishUnits`) and dates the home
-  planet back (`settledAgo`).
+  planet back (`settledAgo`) (owner, 2026-11-13, #68).
 * **[E]** Accessibility with axe (WCAG 2.1 A and AA) on the login and all 12
   views, with a self-test that proves the check finds problems
   (`e2e/a11y.spec.ts`). A look with a screen reader and the keyboard is still
@@ -144,10 +144,12 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 * Flows of #68 found covered already: „Abbrechen“ of a research with refund
   („research starts on a colony with its own lab and is paid there“) and the
   daily reward („filters achievements and keeps tomorrow’s reward after
-  claiming“).
-* **[U]** Push: a real subscription needs `NOVA_WEB_PUSH=1` with an HTTPS
-  address and a push service; the E2E server has neither, so the test covers
-  the refusal of such a server and „Deaktivieren“ only.
+  claiming“, which now also checks that the resource bar rises by the
+  reward of day 1, owner 2026-11-13).
+* **[E]** Push in the E2E suite: the test covers the notice of a server
+  without Web Push and „Deaktivieren“; sending stays with the unit tests of
+  `web-push.ts` (owner, 2026-11-13, #68). A real subscription would need
+  `NOVA_WEB_PUSH=1` with an HTTPS address and a push service.
 
 # Risks
 

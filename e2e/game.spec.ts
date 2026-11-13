@@ -325,8 +325,26 @@ test('filters achievements and keeps tomorrow’s reward after claiming', async 
   });
   await expect(next).toBeVisible();
   const reward = await next.textContent();
+  const amount = async (label: string): Promise<number> =>
+    Number((await stock(page, label).textContent())!.replaceAll('.', ''));
+  const before = {
+    m: await amount('Adamant'),
+    c: await amount('Psikristall'),
+    d: await amount('Promethium'),
+  };
   await page.getByRole('button', { name: 'Tagesbelohnung abholen' }).click();
   await expect(page.getByText('Abgeholt', { exact: true })).toBeVisible();
+  // A new player claims on day 1 of the streak: dailyReward(1) is 30 Adamant,
+  // 15 Psikristall, 2 Promethium. The base income (100 Adamant and 50
+  // Psikristall an hour, no Promethium without a mine) may add one more unit
+  // to the bar between the two readings, so those two allow 1 more.
+  await expect
+    .poll(async () => (await amount('Promethium')) - before.d)
+    .toBe(2);
+  expect((await amount('Adamant')) - before.m).toBeGreaterThanOrEqual(30);
+  expect((await amount('Adamant')) - before.m).toBeLessThanOrEqual(31);
+  expect((await amount('Psikristall')) - before.c).toBeGreaterThanOrEqual(15);
+  expect((await amount('Psikristall')) - before.c).toBeLessThanOrEqual(16);
   await expect(next).toHaveText(reward!);
   await expect(badge).toHaveCount(0);
   await page.getByLabel('Kategorie', { exact: true }).selectOption('buildings');
