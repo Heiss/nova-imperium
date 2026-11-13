@@ -30,12 +30,16 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Merged report of the last run (the weights)
+      # The weights come from the last complete run: an incremental report
+      # reuses old results, whose times did not match the run (#131).
+      - name: Merged report of the last complete run (the weights)
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: reports/mutation/mutation.json
-          key: stryker-report-${{ github.ref }}-${{ github.sha }}-${{ github.run_id }}
+          key: stryker-weights-${{ github.ref }}-${{ github.sha }}-${{ github.run_id }}
           restore-keys: |
+            stryker-weights-${{ github.ref }}-
+            stryker-weights-refs/heads/main-
             stryker-report-${{ github.ref }}-
             stryker-report-refs/heads/main-
       - name: Split the mutated files into 4 shards
@@ -107,12 +111,12 @@ jobs:
         run: node scripts/mutation-shards.ts merge reports/mutation/mutation.json reports/shards/*/mutation.json
       - name: Total score and no file below its floor (mutation-standard.json)
         run: node scripts/mutation-gate.ts --report reports/mutation/mutation.json
-      - name: Keep the merged report for the next plan
+      - name: Keep the merged report as the weights of the next plans
         if: always() && steps.merge.outcome == 'success'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: reports/mutation/mutation.json
-          key: stryker-report-${{ github.ref }}-${{ github.sha }}-${{ github.run_id }}
+          key: stryker-weights-${{ github.ref }}-${{ github.sha }}-${{ github.run_id }}
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: always() && steps.merge.outcome == 'success'
         with:

@@ -164,12 +164,17 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Merged report of the last run (the weights)
+      # The weights come from the last complete run (nightly or release pull
+      # request): an incremental report reuses old results, whose times did
+      # not match the run (#131). Without one, the last merged report.
+      - name: Merged report of the last complete run (the weights)
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: reports/mutation/mutation.json
-          key: stryker-report-${{ github.ref }}-${{ github.sha }}
+          key: stryker-weights-${{ github.ref }}-${{ github.sha }}
           restore-keys: |
+            stryker-weights-${{ github.ref }}-
+            stryker-weights-refs/heads/main-
             stryker-report-${{ github.ref }}-
             stryker-report-refs/heads/main-
       - name: Split the mutated files into 4 shards
@@ -261,6 +266,14 @@ jobs:
         with:
           path: reports/mutation/mutation.json
           key: stryker-report-${{ github.ref }}-${{ github.sha }}
+      # A release pull request tests every mutant: its report is a complete
+      # one and serves as the weights too.
+      - name: Keep a complete report as the weights of the next plans
+        if: always() && steps.merge.outcome == 'success' && startsWith(github.head_ref, 'release/')
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: reports/mutation/mutation.json
+          key: stryker-weights-${{ github.ref }}-${{ github.sha }}
 
   compose:
     name: Docker image and Compose stack

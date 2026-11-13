@@ -126,8 +126,14 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   `src/test/mutation-shards.test.ts`):
   * `plan` lists the files of the `mutate` globs of `stryker.config.json`
     (in order, `!` removes) and weighs each by the test time (`duration`) of
-    its mutants in `reports/mutation/mutation.json` (the merged report of
-    the last run, restored from the cache); a mutant without a time costs
+    its mutants in `reports/mutation/mutation.json`, restored from the cache:
+    the merged report of the last **complete** run (`stryker-weights-…`,
+    saved by `mutation.yml` and by a release pull request), else the last
+    merged report. The first complete sharded run planned with an
+    incremental report: its reused results put shard 4 at 56 instead of 101
+    mutant-minutes, 36 instead of about 22 minutes (owner, 2026-11-13). In
+    that run the reported times matched the wall time of every shard
+    (factor 0.35 to 0.41). A mutant without a time costs
     the mean of its kind (static or not), a report without times counts
     mutants, a file the report does not know costs its lines times the mean
     of a mutant that is not static. A TypeScript file heavier than half a
