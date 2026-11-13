@@ -220,7 +220,8 @@ src/client/                state, components (generic), views
   The rules that were there stay; `shared-stays-pure` is now
   `core-stays-pure`. `src/test/boundaries.test.ts` runs the real rules on a
   small project per rule: each violation fails, the allowed imports pass.
-* **[V]** Built with #112 beyond the decision, for the owner to confirm:
+* **[E]** Built with #112 beyond the first decision and confirmed by the
+  owner (2026-11-13):
   `feature-stays-pure` (the files of a feature other than `*.server.ts` and
   tests import neither server nor client, because the core reaches them
   through the index and the browser runs them); `server-not-client` and

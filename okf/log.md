@@ -2,6 +2,7 @@
 
 ## 2026-11-13
 
+* **Decision**: the owner confirms the extra boundary rules of #112 (`feature-stays-pure`, `*.server.ts` under `server-not-client` and `server-runtime-deps`, tests may import `*.server.ts`) and `src/features/` as game code for the changelog check (see [Design patterns](/architecture/patterns.md)).
 * **Code**: #112 built: `src/shared` renamed to `src/core` (every import, config, floor and document); `src/features/` and `src/features/missions/` with the generated, not checked-in index `src/features/index.gen.ts` (`scripts/gen-features.ts`, chained in the scripts of `package.json`, the E2E start and the Docker build); the boundary rules in `.dependency-cruiser.cjs` with their tests; no entry moved, no change of behaviour (see [Design patterns](/architecture/patterns.md)).
 * **Decision**: #111 order of the migration confirmed; #112 renames `src/shared` to `src/core` in one pull request and chains the index generator explicitly in the scripts; #113 splits the `texts.ts` of #131 per entry and adds `text(key)` (see [Design patterns](/architecture/patterns.md)).
 * **Decision**: #114 one pull request per component group; #117 aggregates by game object; #118 catalog views first; #115, #116 and #119 have no open decision (see [Design patterns](/architecture/patterns.md)).

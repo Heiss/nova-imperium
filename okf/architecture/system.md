@@ -19,7 +19,7 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 | HTTP | `src/server/http` | JSON API under `/api`, the client files, `/healthz`, security headers, rate limit. |
 | Mail | `src/server/mail.ts` | Invitation mails through nodemailer. |
 | Operator command | `src/server/commands.ts` | `nova admin|unadmin|admins|invite`. |
-| Client | `src/client` | `logic/` (tested functions), `views/` (HTML templates), `main.ts` (events, server calls, clock). Bundled by esbuild into `dist/public`. |
+| Client | `src/client` | `logic/` (tested functions), `views/` (HTML templates), `main.ts` (events, server calls, clock). Bundled by Vite into `dist/public`. |
 
 **[E]** A game rule that the server checks and the browser shows lives once,
 in `src/core`, and both sides call it (owner, 2026-11-11): the shipyard
@@ -58,4 +58,4 @@ them, are in [Design patterns](/architecture/patterns.md) (owner,
   is loaded from `prebuilds/`).
 * **[E]** `nodemailer`: SMTP for the invitations.
 * Development only: TypeScript, Vitest, Stryker, ESLint (with sonarjs),
-  Prettier, Playwright with axe, esbuild.
+  Prettier, Playwright with axe, Vite.
