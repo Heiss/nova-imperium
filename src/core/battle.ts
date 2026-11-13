@@ -1,6 +1,9 @@
 // The battle: up to 6 rounds, shields recharge every round, rapid fire,
-// explosions of badly damaged units. `rng` is injectable for tests.
-import { SHIPS, UNIT } from './catalog.ts';
+// explosions of badly damaged units. `rng` is injectable for tests. The
+// values of a unit come from its components `unit` and `combat`, read only
+// through their rule module (#114).
+import { FIGHTERS } from './catalog.ts';
+import { rapidFire, strength } from './components/combat.ts';
 import type { Levels } from './types.ts';
 
 export type Rng = () => number;
@@ -33,11 +36,12 @@ const MAX_ROUNDS = 6;
 export function buildSide(side: Side): Unit[] {
   const out: Unit[] = [];
   for (const [key, n] of Object.entries(side.units)) {
-    const d = UNIT[key];
-    if (!d) continue;
-    const maxHull = ((d.cost[0] + d.cost[1]) / 10) * bonus(side.tech, 'armor');
-    const maxShield = d.sh * bonus(side.tech, 'shield');
-    const attack = d.atk * bonus(side.tech, 'weapons');
+    const f = FIGHTERS[key];
+    if (!f) continue;
+    const s = strength(f);
+    const maxHull = s.hull * bonus(side.tech, 'armor');
+    const maxShield = s.shield * bonus(side.tech, 'shield');
+    const attack = s.attack * bonus(side.tech, 'weapons');
     for (let i = 0; i < n; i++)
       out.push({
         key,
@@ -52,14 +56,8 @@ export function buildSide(side: Side): Unit[] {
 }
 
 /** Rapid fire of `a` against `t`: the chance to shoot again is (r - 1) / r. */
-export function rapid(a: string, t: string): number {
-  const rf = UNIT[a]?.rf?.[t];
-  if (rf) return rf;
-  // Every ship but the probe and the satellite has rapid fire 5 against both.
-  const easy = t === 'probe' || t === 'sat';
-  if (easy && SHIPS[a] && a !== 'probe' && a !== 'sat') return 5;
-  return 1;
-}
+export const rapid = (a: string, t: string): number =>
+  rapidFire(FIGHTERS[a], t, FIGHTERS[t]);
 
 export function hit(target: Unit, dmg: number, rng: Rng): void {
   if (target.hull <= 0) return;

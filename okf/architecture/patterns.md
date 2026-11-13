@@ -89,6 +89,35 @@ choice of the patterns to the assistant's recommendation below
   still show them until `ProducerTable`; the throttle of the
   Fusionskraftwerk (`balancedShare`) still names its key and becomes
   generic with the events of #115.
+* **[E]** Decided for the second pull request of #114, the combat group
+  (owner, 2026-11-13): `unit` is `{ cost }`, the cost of one piece, the
+  counterpart of `leveled`; `req` stays in `def`, „once per planet“ waits
+  for `limit` and the flight fields wait for `mobile`. `combat` is
+  `{ atk, sh, rf? }` with today's names; the hull is not stored but derived
+  from `unit.cost` ((Adamant + Psikristall) / 10) in the rule module
+  `src/core/components/combat.ts`, and the contract test checks that it is
+  above 0. The default rapid fire against easy targets is the flag
+  `easy: true` in `combat` of the Spähschädel and the Sonnenreliquiar plus a
+  core constant 5 instead of the key list in `battle.ts`: every ship that is
+  not easy itself and names no rapid fire against the target gets 5, defense
+  gets none (replaces the [V] „a field of `combat` instead of a key list“ of
+  #114). Only `battle.ts` reads the new components, through the rule
+  module; the shipyard, points, the server unit check and the battle
+  reports keep reading the `UNIT`, `SHIPS` and `DEF` tables until #118, as
+  the first pull request left the resources page. The test that scans `src`
+  for catalog keys comes with the last pull request of #114 (`ProducerTable`).
+  The exports stay deeply equal and battles bit-identical, proven by a
+  property test against the old `battle()`.
+* **[E]** Built with #114 (combat group): the ship and defense entries
+  export `unit` and `combat`, and `def` keeps their other fields
+  (`ShipFields`, `DefenseFields`). `src/core/components/unit.ts` holds the
+  type `Unit`; `src/core/components/combat.ts` holds `Combat`,
+  `EASY_RAPID_FIRE`, `strength` (hull, shield and attack of one piece before
+  the research bonus) and `rapidFire`. `catalog.ts` derives `FIGHTERS`
+  (every entry with `unit` and `combat`, by key, with its kind) and builds
+  `SHIPS`, `DEF` and `UNIT` from `unit`, `combat` without `easy` and `def`,
+  deeply equal to before; `battle.ts` reads `FIGHTERS` through `strength`
+  and `rapidFire` and keeps its exports.
 
 ## 2. Texts apart from rules
 
@@ -352,6 +381,15 @@ src/client/                state, components (generic), views
   60). `src/core/production.test.ts` compares `prod()` bit for bit with the
   `prod()` from before #114 on generated planets, with Fusionskraftwerk and
   Solarsatelliten.
+* **[E]** Built with #114 for the combat group:
+  `src/core/components/unit.test.ts` (on every ship and defense only, the
+  cost of a piece three whole numbers ≥ 0, not all 0) and
+  `src/core/components/combat.test.ts` (with every `unit`; hull, shield and
+  attack finite and above 0; rapid fire whole and above 1 against an entry
+  that fights; only ships are easy). `src/core/battle-reference.test.ts`
+  compares `buildSide()`, `rapid()` for every pair and `battle()` with the
+  same random stream, draw for draw, bit for bit with `battle.ts` from
+  before the combat components on generated sides.
 
 # Migration
 
@@ -375,7 +413,8 @@ src/client/                state, components (generic), views
      per component group: production (`produces`, `consumes`, `storage`,
      `leveled`), combat (`combat`, `unit`), flight (`mobile`), limits
      (`limit`, `energyThreshold`), then `ProducerTable` (owner, 2026-11-13,
-     #114). The production group is built (#114, first pull request).
+     #114). The production group is built (#114, first pull request), and
+     the combat group (#114, second pull request).
   4. Generic events in `settle` with the property tests.
   5. Missions as strategies.
   6. Repositories per aggregate.

@@ -116,7 +116,9 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   (`src/core/components/<component>.test.ts`), which runs for every entry
   that has the component, read from the generated index; a new entry needs
   no new test code. A property test (`src/core/production.test.ts`) keeps
-  `prod()` bit-identical to its form before #114 (owner, 2026-11-13). See
+  `prod()` bit-identical to its form before #114 (owner, 2026-11-13), and
+  `src/core/battle-reference.test.ts` keeps `battle()` bit-identical to its
+  form before the combat components (#114, second pull request). See
   [Design patterns](/architecture/patterns.md), section 12.
 * **[E]** Mutation standard per file (owner, 2026-11-11,
   `mutation-standard.json`, `scripts/mutation-gate.ts`): no file may fall
