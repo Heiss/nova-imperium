@@ -51,7 +51,9 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   pull requests since the last tag and a checklist; with nothing new since
   the last tag it closes it. It uses the release App's token, because a pull
   request opened with `GITHUB_TOKEN` starts no CI.
-* **[E]** The release pull request runs every check: complete mutation run,
+* **[E]** The release pull request runs every check: complete mutation run
+  (in 4 parallel shards, merged by a gate job, see
+  [Test strategy](/ops/testing.md), #131),
   Docker image, Trivy, Compose stack, upgrade test with the data of the last
   release, smoke test, and later the SBOM (issue #83). The texts are checked
   by Claude and CodeRabbit (`.coderabbit.yaml`, `changes/**`, `CHANGELOG.md`).
@@ -122,7 +124,9 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 
 * **[E]** Every push to `main` runs the full suite with an incremental mutation
   run (owner, 2026-11-11); the release pull request and the nightly run in
-  `.github/workflows/mutation.yml` test every mutant.
+  `.github/workflows/mutation.yml` test every mutant. All of them run in 4
+  parallel shards with a gate job on the merged report (owner, 2026-11-12,
+  #131).
 
 ## Security hotfix (owner, 2026-11-12)
 

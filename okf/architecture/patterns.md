@@ -61,6 +61,12 @@ choice of the patterns to the assistant's recommendation below
   its own text file (`texts.de.ts`), keyed by the entry key. Rules contain
   no German text. Renaming (#94) and explanations (#63) then never touch a
   rule file.
+* **[V]** First step (#131, owner 2026-11-12: display texts are not
+  mutation-tested): the display texts of the catalog and the mission names
+  are in `src/shared/texts.ts`, keyed by the entry key, and each catalog
+  entry spreads its texts; Stryker leaves the file out (see
+  [Test strategy](/ops/testing.md)). The per-feature `texts.de.ts` follow
+  with the folder skeleton.
 
 ## 3. Economy: piecewise linear with generic events
 

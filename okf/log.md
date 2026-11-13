@@ -2,6 +2,7 @@
 
 ## 2026-11-12
 
+* **Code**: #131 built: mutation plan job, 4 shards with their own caches and a gate job on the merged report in the CI and the nightly run (`scripts/mutation-shards.ts`, `mutation-gate.ts --report`); owner decision: display texts are not mutation-tested, the catalog texts moved to `src/shared/texts.ts`, guarded by the catalog, naming and explanation tests (see [Test strategy](/ops/testing.md)).
 * **Decision**: #131 clarified: mutation runs sharded into 4 parallel jobs everywhere, split by mutant count, one incremental cache per job, a gate job merges the reports and checks score and floors as before; proven by one complete sharded run compared with the nightly run; in this release (see [Test strategy](/ops/testing.md)).
 * **Decision**: The owner confirmed the 48 shortened long texts, their limits, the changed short texts and the renamed short forms of #94 (see [Grimdark naming](/features/naming.md)).
 * **Decision**: #94 long texts shorter: lore one sentence, mechanics at most three sentences, at most about 350 characters, checked by a test [V]; all 48 rewritten (see [Grimdark naming](/features/naming.md)).
