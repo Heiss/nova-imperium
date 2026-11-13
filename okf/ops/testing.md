@@ -139,7 +139,15 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   explanation tests (`catalog.test.ts`, `src/test/naming.test.ts`,
   `explain.test.ts`) and `src/core/texts.test.ts` (every catalog entry
   has its texts, no text without an entry). Game values stay mutated in
-  `catalog.ts`. See [Design patterns](/architecture/patterns.md).
+  `catalog.ts`, and since #114 in the `src/features/<key>/entry.ts` of
+  each entry. See [Design patterns](/architecture/patterns.md).
+* **[E]** Contract tests per component (#114): each component under
+  `src/core/components/` has its test next to it
+  (`src/core/components/<component>.test.ts`), which runs for every entry
+  that has the component, read from the generated index; a new entry needs
+  no new test code. A property test (`src/core/production.test.ts`) keeps
+  `prod()` bit-identical to its form before #114 (owner, 2026-11-13). See
+  [Design patterns](/architecture/patterns.md), section 12.
 * **[E]** Mutation standard per file (owner, 2026-11-11,
   `mutation-standard.json`, `scripts/mutation-gate.ts`): no file may fall
   below its recorded floor; a new file needs 80 %, a new security file 90 %.
