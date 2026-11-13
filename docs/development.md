@@ -48,7 +48,14 @@ Compose stack run only when one of `Dockerfile`, `.dockerignore`,
 `config.ts`, `cli.ts`, `maintenance.ts` in `src/server/`) or
 `.github/workflows/ci.yml` changes – game code alone does not build the
 image – and always in a release pull request and in a pull request into
-`hotfix/**`. The gate job "CI Gate" must be green before a pull request goes to
+`hotfix/**`. The mutation tests run in a pull request only when it changes a
+file Stryker mutates (the `mutate` globs of `stryker.config.json`), a test
+file (`src/**/*.test.ts`, `src/test/`, `src/server/test-helpers.ts`), the
+mutation configuration (`stryker.config.json`, `mutation-standard.json`,
+`vitest.config.ts`, `scripts/mutation-*.ts`, `tsconfig.json`) or the
+versions of `@stryker-mutator/*`, `vitest` or `typescript` in
+`pnpm-lock.yaml`; `node scripts/mutation-changes.ts $(git merge-base origin/main HEAD)` tells
+whether a branch does. The gate job "CI Gate" must be green before a pull request goes to
 review.
 
 ```bash
