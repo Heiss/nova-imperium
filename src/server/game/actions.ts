@@ -36,7 +36,7 @@ import {
   queuePush,
   scheduleShipyard,
 } from '../push-store.ts';
-import type { User } from '../db/store.ts';
+import type { User } from '../db/repos/players.ts';
 import { type Ctx, fail, fmt, int, str, universe } from './context.ts';
 
 export type Data = Record<string, unknown>;
@@ -52,9 +52,7 @@ const MAX_SHIPYARD_ORDERS = 20;
 /** The selected planet, or the home planet for callers without a selection. */
 export function mine(ctx: Ctx, u: User, id?: unknown): Planet {
   const p =
-    id === undefined
-      ? ctx.store.planetOfUser(u.id)
-      : ctx.store.planet(String(id));
+    id === undefined ? ctx.planets.home(u.id) : ctx.planets.get(String(id));
   if (!p || p.owner !== u.id)
     return fail(
       id === undefined
@@ -74,16 +72,16 @@ export const researchOf = (ctx: Ctx, u: User): ResearchState =>
  */
 function settleReactors(ctx: Ctx, u: User): void {
   if (u.rq?.key !== 'energy' || u.rq.end > ctx.now()) return;
-  for (const x of ctx.store.playerPlanets(u.id))
+  for (const x of ctx.planets.ofOwner(u.id))
     if ((x.b.fusion ?? 0) > 0 || x.bq?.key === 'fusion')
-      ctx.store.savePlanet(settle(x, ctx.now(), universe(ctx), u));
+      ctx.planets.save(settle(x, ctx.now(), universe(ctx), u));
 }
 
 function setResearch(ctx: Ctx, u: User, r: ResearchState): void {
   settleReactors(ctx, u);
   u.research = r.research;
   u.rq = r.rq;
-  ctx.store.saveUser(u);
+  ctx.players.save(u);
 }
 
 /**
@@ -152,7 +150,7 @@ export const build: Action = (ctx, u, d, event) => {
     event,
   );
   p.bq = q;
-  ctx.store.savePlanet(p);
+  ctx.planets.save(p);
   queuePush(ctx, u.id, 'buildings', `${p.id}:${q.start}`, q.end);
   return null;
 };
@@ -163,7 +161,7 @@ export const cancelBuild: Action = (ctx, u, d) => {
   refund(p, p.bq.cost);
   cancelScheduledPush(ctx, u.id, 'buildings', `${p.id}:${p.bq.start}`);
   p.bq = null;
-  ctx.store.savePlanet(p);
+  ctx.planets.save(p);
   return null;
 };
 
@@ -177,8 +175,8 @@ const checkResearch = (p: Planet, r: ResearchState, k: string): void => {
 
 /** The labs of all own planets, moved to now, for the research network (#49). */
 export const ownLabs = (ctx: Ctx, uid: string): LabSite[] =>
-  ctx.store
-    .playerPlanets(uid)
+  ctx.planets
+    .ofOwner(uid)
     .map((x) => labSite(settle(x, ctx.now(), universe(ctx))));
 
 /** Starts research on the selected own planet, which pays it (#49). */
@@ -205,7 +203,7 @@ export const research: Action = (ctx, u, d, event) => {
   );
   r.rq = { ...q, planet: p.id };
   setResearch(ctx, u, r);
-  ctx.store.savePlanet(p);
+  ctx.planets.save(p);
   queuePush(ctx, u.id, 'research', String(q.start), q.end);
   return null;
 };
@@ -219,7 +217,7 @@ export const cancelResearch: Action = (ctx, u) => {
   r.rq = null;
   cancelScheduledPush(ctx, u.id, 'research');
   setResearch(ctx, u, r);
-  ctx.store.savePlanet(p);
+  ctx.planets.save(p);
   return null;
 };
 
@@ -247,7 +245,7 @@ export const order: Action = (ctx, u, d, event) => {
   pay(p, def.cost, n);
   if (!p.sq.length) p.sqT = ctx.now();
   p.sq.push({ key: k, n, unit: unitTime(def, p, universe(ctx)) });
-  ctx.store.savePlanet(p);
+  ctx.planets.save(p);
   if (event) event.detail = { planet: p.id, key: k, units: n };
   scheduleShipyard(ctx, p);
   return `${fmt(n)}× ${def.n} in Auftrag gegeben.`;
@@ -258,7 +256,7 @@ export const pct: Action = (ctx, u, d) => {
   if (!(PRODUCERS as readonly string[]).includes(k)) fail('Ungültig.');
   const p = mine(ctx, u, d.planet);
   p.pct[k] = Math.round(int(d.v, 0, 100) / 10) * 10;
-  ctx.store.savePlanet(p);
+  ctx.planets.save(p);
   return null;
 };
 
@@ -267,7 +265,7 @@ export const rename: Action = (ctx, u, d) => {
   if (!n) fail('Bitte einen Namen eingeben.');
   const p = mine(ctx, u, d.planet);
   p.name = n;
-  ctx.store.savePlanet(p);
+  ctx.planets.save(p);
   return null;
 };
 
@@ -280,22 +278,22 @@ export const options: Action = (ctx, u, d) => {
   const explain = d.explain === undefined ? u.explain : explainMode(d.explain);
   u.probes = int(d.probes, 1, 1e6);
   u.explain = explain;
-  ctx.store.saveUser(u);
+  ctx.players.save(u);
   return 'Gespeichert.';
 };
 
 export const read: Action = (ctx, u) => {
-  u.readAt = Math.max(0, ...ctx.store.reports(u.id).map((r) => r.time));
-  ctx.store.saveUser(u);
+  u.readAt = Math.max(0, ...ctx.reports.ofPlayer(u.id).map((r) => r.time));
+  ctx.players.save(u);
   return null;
 };
 
 export const delrep: Action = (ctx, u, d) => {
-  ctx.store.deleteReport(u.id, String(d.id));
+  ctx.reports.delete(u.id, String(d.id));
   return null;
 };
 
 export const delall: Action = (ctx, u) => {
-  ctx.store.deleteReports(u.id);
+  ctx.reports.deleteAll(u.id);
   return null;
 };

@@ -22,9 +22,10 @@ const ID = '0f8e2b7a-1c3d-4e5f-8a9b-0c1d2e3f4a5b';
 const TOKEN = randomBytes(32).toString('base64url');
 
 const rows = (ctx: TestCtx) =>
-  ctx.store.db
-    .prepare('SELECT * FROM error_events ORDER BY id')
-    .all() as Record<string, unknown>[];
+  ctx.db.prepare('SELECT * FROM error_events ORDER BY id').all() as Record<
+    string,
+    unknown
+  >[];
 
 describe('scrub', () => {
   it('removes values of fields that hint at secrets', () => {
@@ -208,7 +209,7 @@ describe('server errors', () => {
   it('logs a failed write instead of throwing', () => {
     const ctx = testCtx();
     const log = vi.fn();
-    ctx.store.db.close();
+    ctx.db.close();
     expect(() =>
       noteServerError(ctx, { action: 'x', error: new Error('y') }, log),
     ).not.toThrow();

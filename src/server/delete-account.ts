@@ -1,12 +1,12 @@
 import { passwordMatches } from './auth.ts';
-import type { User } from './db/store.ts';
+import type { User } from './db/repos/players.ts';
 import { coords, type Ctx, fail } from './game/context.ts';
 
 // Spy activity reports stored before the grimdark naming (#94) keep their
 // classic title, so both titles are matched. Battle reports are matched by
 // the names in their body, whatever their title says.
 function removeLinkedReports(ctx: Ctx, user: User): void {
-  const db = ctx.store.db;
+  const db = ctx.db;
   const reports = db
     .prepare(
       `
@@ -30,7 +30,7 @@ function removeLinkedReports(ctx: Ctx, user: User): void {
       AND instr(json_extract(body, '$.text'), ' ' || ? || ' und liefert ') > 0
     RETURNING id
   `);
-  for (const planet of ctx.store.planets().filter((p) => p.owner === user.id)) {
+  for (const planet of ctx.planets.all().filter((p) => p.owner === user.id)) {
     const position = coords(planet);
     reports.push(
       ...(deleteTransport.all(position, position) as { id: string }[]),
@@ -44,7 +44,7 @@ function removeLinkedReports(ctx: Ctx, user: User): void {
 
 function detachIncomingFleets(ctx: Ctx, user: User): void {
   const now = ctx.now();
-  ctx.store.db
+  ctx.db
     .prepare(
       `
     UPDATE fleets SET state = 'back',
@@ -60,8 +60,8 @@ function detachIncomingFleets(ctx: Ctx, user: User): void {
 export function deleteAccount(ctx: Ctx, user: User, password: unknown): void {
   if (typeof password !== 'string' || !passwordMatches(user, password))
     fail('Das bisherige Passwort ist falsch.');
-  ctx.store.tx(() => {
-    const db = ctx.store.db;
+  ctx.tx(() => {
+    const db = ctx.db;
     detachIncomingFleets(ctx, user);
     removeLinkedReports(ctx, user);
     db.prepare('DELETE FROM guilds WHERE founder = ?').run(user.id);

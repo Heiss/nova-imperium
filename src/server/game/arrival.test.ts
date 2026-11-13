@@ -51,12 +51,12 @@ const fleet = (
     fuel: 0,
     ...over,
   };
-  ctx.store.saveFleet(f);
+  ctx.fleets.save(f);
   return f;
 };
 
 const titles = (ctx: ReturnType<typeof testCtx>, uid: string) =>
-  ctx.store.reports(uid).map((r) => r.title);
+  ctx.reports.ofPlayer(uid).map((r) => r.title);
 
 describe('helpers', () => {
   it('compute the spy score and the counter chance', () => {
@@ -116,10 +116,10 @@ describe('arrival', () => {
   it('turns back without a fitting target', () => {
     const { ctx } = setup();
     arrive(ctx, fleet(ctx, { to: 'p9_9_9' }));
-    expect(ctx.store.fleet('f1')?.state).toBe('back');
+    expect(ctx.fleets.get('f1')?.state).toBe('back');
     expect(titles(ctx, 'u_Anna')).toEqual(['Flotte kehrt um']);
     arrive(ctx, fleet(ctx, { id: 'f2', to: 'p1_1_5' }));
-    expect(ctx.store.fleet('f2')?.state).toBe('back');
+    expect(ctx.fleets.get('f2')?.state).toBe('back');
   });
   it('delivers a transport and empties the cargo', () => {
     const { ctx } = setup();
@@ -131,12 +131,12 @@ describe('arrival', () => {
         cargo: { m: 100, c: 200, d: 300 },
       }),
     );
-    expect(ctx.store.planet('p1_2_6')!.res).toMatchObject({
+    expect(ctx.planets.get('p1_2_6')!.res).toMatchObject({
       m: 9100,
       c: 6200,
       d: 3300,
     });
-    expect(ctx.store.fleet('f1')).toMatchObject({
+    expect(ctx.fleets.get('f1')).toMatchObject({
       state: 'back',
       cargo: { m: 0, c: 0, d: 0 },
     });
@@ -149,31 +149,31 @@ describe('arrival', () => {
       res: { m: 0, c: 0, d: 50000 },
     };
     const { ctx } = setup(reactor);
-    ctx.store.saveUser({
-      ...ctx.store.user('u_Bert')!,
+    ctx.players.save({
+      ...ctx.players.get('u_Bert')!,
       research: { energy: 9 },
     });
-    const home = { ...ctx.store.planet('p1_1_5')!, ...reactor };
-    ctx.store.savePlanet(home);
-    ctx.store.saveUser({
-      ...ctx.store.user('u_Anna')!,
+    const home = { ...ctx.planets.get('p1_1_5')!, ...reactor };
+    ctx.planets.save(home);
+    ctx.players.save({
+      ...ctx.players.get('u_Anna')!,
       research: { energy: 7 },
     });
-    const target = ctx.store.planet('p1_2_6')!;
-    const u = ctx.store.universe();
+    const target = ctx.planets.get('p1_2_6')!;
+    const u = ctx.admin.universe();
     ctx.clock.t += 3600000;
     arrive(
       ctx,
       fleet(ctx, { mission: 'transport', ships: { sc: 1 }, arr: ctx.now() }),
     );
     const bert = { research: { energy: 9 }, rq: null };
-    expect(ctx.store.planet('p1_2_6')!.res).toEqual(
+    expect(ctx.planets.get('p1_2_6')!.res).toEqual(
       settle(target, ctx.now(), u, bert).res,
     );
     ctx.clock.t += 3600000;
-    comeHome(ctx, { ...ctx.store.fleet('f1')!, ret: ctx.now() });
+    comeHome(ctx, { ...ctx.fleets.get('f1')!, ret: ctx.now() });
     const anna = { research: { energy: 7 }, rq: null };
-    expect(ctx.store.planet('p1_1_5')!.res).toEqual(
+    expect(ctx.planets.get('p1_1_5')!.res).toEqual(
       settle(home, ctx.now(), u, anna).res,
     );
   });
@@ -212,12 +212,12 @@ describe('arrival', () => {
         fuel: 41,
       }),
     );
-    const t = ctx.store.planet('p1_3_3')!;
+    const t = ctx.planets.get('p1_3_3')!;
     expect(t.ships).toEqual({ lf: 5, bs: 2 });
     expect(t.res).toEqual({ m: 9e6 + 100, c: 8e6 + 200, d: 7e6 + 300 + 20 });
-    expect(ctx.store.fleet('f1')).toBeNull();
+    expect(ctx.fleets.get('f1')).toBeNull();
     expect(titles(ctx, 'u_Anna')).toEqual(['Verlegung erreicht [1:3:3]']);
-    expect(ctx.store.reports('u_Anna')[0]!.text).toBe(
+    expect(ctx.reports.ofPlayer('u_Anna')[0]!.text).toBe(
       'Deine Flotte bleibt auf Gamma [1:3:3] und liefert Adamant 100 · Psikristall 200 · Promethium 320, davon 20 übriger Treibstoff.',
     );
   });
@@ -227,12 +227,12 @@ describe('arrival', () => {
     arrive(ctx, fleet(ctx, { ...lost, fuel: 9 }));
     arrive(ctx, fleet(ctx, { ...lost, id: 'f2', to: 'p9_9_9' }));
     for (const id of ['f1', 'f2'])
-      expect(ctx.store.fleet(id)).toMatchObject({
+      expect(ctx.fleets.get(id)).toMatchObject({
         state: 'back',
         ships: { lf: 1 },
         cargo: { m: 1, c: 2, d: 3 },
       });
-    expect(ctx.store.planet('p1_2_6')).toMatchObject({
+    expect(ctx.planets.get('p1_2_6')).toMatchObject({
       ships: {},
       res: { m: 9000, c: 6000, d: 3000 },
     });
@@ -241,20 +241,20 @@ describe('arrival', () => {
       'Flotte kehrt um',
     ]);
     expect(titles(ctx, 'u_Bert')).toEqual([]);
-    comeHome(ctx, ctx.store.fleet('f1')!);
-    expect(ctx.store.planet('p1_1_5')).toMatchObject({
+    comeHome(ctx, ctx.fleets.get('f1')!);
+    expect(ctx.planets.get('p1_1_5')).toMatchObject({
       ships: { lf: 1 },
       res: { m: 100001, c: 100002, d: 100003 },
     });
   });
   it('spies: more probes show more', () => {
     const { ctx } = setup({ ships: {}, def: { rl: 2 }, b: { metal: 3 } });
-    ctx.store.saveUser({
-      ...ctx.store.user('u_Bert')!,
+    ctx.players.save({
+      ...ctx.players.get('u_Bert')!,
       research: { spy: 1, energy: 2 },
     });
     arrive(ctx, fleet(ctx, { mission: 'spy', ships: { probe: 1 } }));
-    let rep = ctx.store.reports('u_Anna')[0]!;
+    let rep = ctx.reports.ofPlayer('u_Anna')[0]!;
     expect(rep).toMatchObject({
       type: 'spy',
       title: 'Auspex-Bericht von Beta [1:2:6]',
@@ -265,9 +265,9 @@ describe('arrival', () => {
     });
     expect(rep.ships).toBeUndefined();
     expect(titles(ctx, 'u_Bert')).toEqual(['Auspex-Aktivität']);
-    expect(ctx.store.fleet('f1')?.state).toBe('back');
+    expect(ctx.fleets.get('f1')?.state).toBe('back');
     arrive(ctx, fleet(ctx, { id: 'f2', mission: 'spy', ships: { probe: 8 } }));
-    rep = ctx.store.reports('u_Anna')[0]!;
+    rep = ctx.reports.ofPlayer('u_Anna')[0]!;
     expect(rep).toMatchObject({
       ships: {},
       def: { rl: 2 },
@@ -278,25 +278,25 @@ describe('arrival', () => {
   it('spy probes can be shot down', () => {
     const { ctx } = setup({ ships: { lf: 10000 } });
     arrive(ctx, fleet(ctx, { mission: 'spy', ships: { probe: 1 } }));
-    expect(ctx.store.reports('u_Anna')[0]).toMatchObject({
+    expect(ctx.reports.ofPlayer('u_Anna')[0]).toMatchObject({
       counter: 100,
       lost: true,
     });
-    expect(ctx.store.reports('u_Bert')[0]!.text).toContain(
+    expect(ctx.reports.ofPlayer('u_Bert')[0]!.text).toContain(
       'Die Spähschädel wurden abgeschossen!',
     );
-    expect(ctx.store.fleet('f1')).toBeNull();
+    expect(ctx.fleets.get('f1')).toBeNull();
   });
   it('an attack that wins takes loot and the defense is partly rebuilt', () => {
     const { ctx } = setup({ def: { rl: 1 } });
     arrive(ctx, fleet(ctx, { ships: { bs: 30 } }));
-    const t = ctx.store.planet('p1_2_6')!;
-    const f = ctx.store.fleet('f1')!;
+    const t = ctx.planets.get('p1_2_6')!;
+    const f = ctx.fleets.get('f1')!;
     expect(f.state).toBe('back');
     expect(f.ships).toEqual({ bs: 30 });
     expect(f.cargo).toEqual({ m: 4500, c: 3000, d: 1500 });
     expect(t.res).toMatchObject({ m: 4500, c: 3000, d: 1500 });
-    const rep = ctx.store.reports('u_Anna')[0]!;
+    const rep = ctx.reports.ofPlayer('u_Anna')[0]!;
     expect(rep).toMatchObject({
       type: 'battle',
       winner: 'att',
@@ -311,17 +311,17 @@ describe('arrival', () => {
   it('Solarsatelliten defend and are destroyed like ships (#46)', () => {
     const { ctx } = setup({ ships: { sat: 5 } });
     arrive(ctx, fleet(ctx, { ships: { bs: 10 } }));
-    const t = ctx.store.planet('p1_2_6')!;
+    const t = ctx.planets.get('p1_2_6')!;
     expect(t.ships.sat ?? 0).toBe(0);
-    const rep = ctx.store.reports('u_Anna')[0]!;
+    const rep = ctx.reports.ofPlayer('u_Anna')[0]!;
     expect(rep).toMatchObject({ type: 'battle', winner: 'att' });
     expect(rep.defBefore).toMatchObject({ sat: 5 });
   });
   it('a lost attack removes the fleet and keeps the defenders', () => {
     const { ctx } = setup({ def: { gauss: 20 }, ships: { cr: 2 } });
     arrive(ctx, fleet(ctx, { ships: { lf: 1 } }));
-    expect(ctx.store.fleet('f1')).toBeNull();
-    const t = ctx.store.planet('p1_2_6')!;
+    expect(ctx.fleets.get('f1')).toBeNull();
+    const t = ctx.planets.get('p1_2_6')!;
     expect(t.def).toEqual({ gauss: 20 });
     expect(t.ships).toEqual({ cr: 2 });
     expect(t.res).toMatchObject({ m: 9000, c: 6000, d: 3000 });
@@ -340,11 +340,11 @@ describe('coming home', () => {
         cargo: { m: 1, c: 2, d: 3 },
       }),
     );
-    const p = ctx.store.planet('p1_1_5')!;
+    const p = ctx.planets.get('p1_1_5')!;
     expect(p.ships.lf).toBe(2);
     expect(p.res).toMatchObject({ m: 100001, c: 100002, d: 100003 });
-    expect(ctx.store.fleet('f1')).toBeNull();
-    expect(ctx.store.reports('u_Anna')[0]).toMatchObject({
+    expect(ctx.fleets.get('f1')).toBeNull();
+    expect(ctx.reports.ofPlayer('u_Anna')[0]).toMatchObject({
       title: 'Rückkehr zu Alpha [1:1:5]',
       text: 'Deine Flotte ist zurück und bringt Adamant 1 · Psikristall 2 · Promethium 3 mit.',
     });
@@ -355,7 +355,7 @@ describe('coming home', () => {
       ctx,
       fleet(ctx, { mission: 'spy', state: 'back', ships: { probe: 1 } }),
     );
-    expect(ctx.store.reports('u_Anna')).toEqual([]);
+    expect(ctx.reports.ofPlayer('u_Anna')).toEqual([]);
     comeHome(
       ctx,
       fleet(ctx, {
@@ -366,15 +366,15 @@ describe('coming home', () => {
         recalled: true,
       }),
     );
-    expect(ctx.store.reports('u_Anna')[0]!.text).toBe(
+    expect(ctx.reports.ofPlayer('u_Anna')[0]!.text).toBe(
       'Deine Flotte ist zurück.',
     );
   });
   it('is lost when the home planet is gone', () => {
     const { ctx } = setup();
     comeHome(ctx, fleet(ctx, { state: 'back', from: 'p9_9_9' }));
-    expect(ctx.store.fleet('f1')).toBeNull();
-    expect(ctx.store.reports('u_Anna')).toEqual([]);
+    expect(ctx.fleets.get('f1')).toBeNull();
+    expect(ctx.reports.ofPlayer('u_Anna')).toEqual([]);
   });
 });
 
@@ -389,10 +389,10 @@ describe('tick', () => {
     expect(tick(ctx)).toBe(0);
     ctx.clock.t += 10;
     expect(tick(ctx)).toBe(1);
-    expect(ctx.store.fleet('f1')?.state).toBe('back');
+    expect(ctx.fleets.get('f1')?.state).toBe('back');
     ctx.clock.t += 10;
     expect(tick(ctx)).toBe(1);
-    expect(ctx.store.fleet('f1')).toBeNull();
+    expect(ctx.fleets.get('f1')).toBeNull();
   });
   it('logs and removes a fleet that fails', () => {
     const { ctx } = setup();
@@ -400,8 +400,8 @@ describe('tick', () => {
     const logged: string[] = [];
     const broken = {
       ...ctx,
-      store: Object.create(ctx.store, {
-        planet: {
+      planets: Object.create(ctx.planets, {
+        get: {
           value: () => {
             throw new Error('x');
           },
@@ -410,28 +410,24 @@ describe('tick', () => {
     };
     expect(tick(broken, (m) => logged.push(m))).toBe(1);
     expect(logged).toEqual(['Fleet f1 failed and was removed']);
-    expect(ctx.store.fleet('f1')).toBeNull();
+    expect(ctx.fleets.get('f1')).toBeNull();
   });
   it('leaves a fleet queued when the database writer is busy', () => {
     const { ctx } = setup();
     fleet(ctx);
-    const store = Object.create(ctx.store, {
-      tx: {
-        value: () => {
-          throw new Database.SqliteError('database is locked', 'SQLITE_BUSY');
-        },
-      },
-    });
-    tick({ ...ctx, store });
-    expect(ctx.store.fleet('f1')?.state).toBe('out');
+    const tx = () => {
+      throw new Database.SqliteError('database is locked', 'SQLITE_BUSY');
+    };
+    tick({ ...ctx, tx });
+    expect(ctx.fleets.get('f1')?.state).toBe('out');
     tick(ctx);
-    expect(ctx.store.fleet('f1')?.state).toBe('back');
+    expect(ctx.fleets.get('f1')?.state).toBe('back');
   });
   it('skips a fleet that disappeared meanwhile', () => {
     const { ctx } = setup();
     fleet(ctx);
-    const store = Object.create(ctx.store, { fleet: { value: () => null } });
-    expect(tick({ ...ctx, store })).toBe(1);
-    expect(ctx.store.reports('u_Anna')).toEqual([]);
+    const fleets = Object.create(ctx.fleets, { get: { value: () => null } });
+    expect(tick({ ...ctx, fleets })).toBe(1);
+    expect(ctx.reports.ofPlayer('u_Anna')).toEqual([]);
   });
 });

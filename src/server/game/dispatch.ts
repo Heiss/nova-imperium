@@ -6,7 +6,7 @@ import {
   claimDailyReward,
   recordAchievementAction,
 } from './achievements.ts';
-import type { User } from '../db/store.ts';
+import type { User } from '../db/repos/players.ts';
 import * as A from './actions.ts';
 import { reset, saveSettings } from './admin.ts';
 import { tick } from './arrival.ts';
@@ -57,9 +57,9 @@ export function runAction(
   const fn = Object.hasOwn(ACTIONS, type)
     ? ACTIONS[type]!
     : fail('Unbekannte Aktion.');
-  return ctx.store.tx(() => {
+  return ctx.tx(() => {
     tick(ctx);
-    const u: User = ctx.store.user(uid) ?? fail('Bitte einloggen.');
+    const u: User = ctx.players.get(uid) ?? fail('Bitte einloggen.');
     const result = fn(ctx, u, d, event);
     recordAchievementAction(ctx, uid, type);
     return result;

@@ -5,7 +5,7 @@
 // addresses; request bodies are never stored.
 import { CLIENT_ERROR_KINDS, ERROR_FIELDS as MAX } from '../core/error-log.ts';
 import { DAY, pageWindow } from './audit.ts';
-import type { User } from './db/store.ts';
+import type { User } from './db/repos/players.ts';
 import { type Ctx, fail, int } from './game/context.ts';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -70,7 +70,7 @@ interface Row {
 }
 
 function insert(ctx: Ctx, row: Row): void {
-  ctx.store.db
+  ctx.db
     .prepare(
       `
     INSERT INTO error_events (kind, time, first, player, request_id, action,
@@ -167,7 +167,7 @@ export function recordClientError(
     report: '',
   };
   const now = ctx.now();
-  const merged = ctx.store.db
+  const merged = ctx.db
     .prepare(
       `
     UPDATE error_events SET count = count + 1, time = @now
@@ -214,7 +214,7 @@ const ERROR_WHERE = `
 
 /** One page of the admin tab „Fehler“, newest first, like the event log. */
 export function errorPage(ctx: Ctx, body: Record<string, unknown>) {
-  const db = ctx.store.db;
+  const db = ctx.db;
   const last = db
     .prepare('SELECT COALESCE(MAX(id), 0) AS id FROM error_events')
     .get() as { id: number };

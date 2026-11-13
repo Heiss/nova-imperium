@@ -5,6 +5,8 @@
     "src/server/account-security.ts",
     "src/server/audit.ts",
     "src/server/auth.ts",
+    "src/server/db/repos/admin.ts",
+    "src/server/db/repos/players.ts",
     "src/server/delete-account.ts",
     "src/server/error-export.ts",
     "src/server/error-log.ts",

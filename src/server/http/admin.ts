@@ -1,5 +1,5 @@
 import { audited, auditPage, type AuditEntry } from '../audit.ts';
-import type { User } from '../db/store.ts';
+import type { User } from '../db/repos/players.ts';
 import { errorExport, exportRange } from '../error-export.ts';
 import { errorPage } from '../error-log.ts';
 import { announce, requireAdmin } from '../game/admin.ts';
@@ -54,8 +54,8 @@ type Admin = (work: (call: Call, u: User) => ReturnType<Handler>) => Handler;
 function diagnosticRoutes(ctx: Ctx, read: Read): Record<string, Handler> {
   return {
     'POST /api/admin/invitations': read('invitations', () => ({
-      invitations: ctx.store
-        .openInvitations(ctx.now())
+      invitations: ctx.invitations
+        .open(ctx.now())
         .map(({ id, email, created, expires }) => ({
           id,
           email,
@@ -83,7 +83,7 @@ function diagnosticRoutes(ctx: Ctx, read: Read): Record<string, Handler> {
     }),
     'POST /api/admin/player': read('player', (entry, { body }) => {
       entry.target = str(body.player, 40);
-      if (!ctx.store.user(entry.target)) fail('Spieler nicht gefunden.');
+      if (!ctx.players.get(entry.target)) fail('Spieler nicht gefunden.');
       return playerDetail(ctx, entry.target);
     }),
   };
@@ -137,7 +137,7 @@ function moderationRoutes(
         detail: { invitation: id },
       } as const;
       audited(ctx, entry, () => {
-        if (!id || !ctx.store.revokeInvitations({ id }, ctx.now()))
+        if (!id || !ctx.invitations.revoke({ id }, ctx.now()))
           fail('Einladung nicht gefunden oder bereits widerrufen.');
       });
       return {

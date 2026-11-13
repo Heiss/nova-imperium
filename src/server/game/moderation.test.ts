@@ -8,7 +8,7 @@ function setup() {
   const ctx = testCtx();
   const admin = addUser(ctx, 'Admin', { admin: true });
   const player = addUser(ctx, 'Player');
-  const db = ctx.store.db;
+  const db = ctx.db;
   const session = db.prepare('INSERT INTO sessions VALUES (?, ?, 9e9)');
   session.run('s1', player.id);
   session.run('s2', player.id);
