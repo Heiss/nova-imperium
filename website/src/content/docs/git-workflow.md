@@ -17,7 +17,7 @@ trigger each other.
 ```mermaid
 flowchart TD
   work["claude/… and other work branches"] -->|"pull request, squash merge"| main
-  renovate["renovate/…"] -->|"pull request, patch updates merge themselves"| main
+  renovate["renovate/…"] -->|"pull request, patch updates and security fixes up to minor merge themselves"| main
   main -->|"rebuilt after every push"| relmain["release/main"]
   relmain -->|"release pull request, merged by the owner"| main
   tag(["release tag, e.g. 26.11.22"]) -->|"created from the tag"| hotfix["hotfix/…"]
@@ -216,6 +216,12 @@ the GitHub Actions and the images the CI runs (`renovate.json`):
   nothing; Dependabot's own security updates are off, so no hole gets two
   pull requests.
 - Patch updates merge themselves once the CI Gate is green.
+- Security pull requests merge themselves for patch, minor, pin and
+  digest updates (`vulnerabilityAlerts` in `renovate.json`, also for
+  development dependencies); below version 1.0 only a patch does. A major
+  security update waits for the owner, and a red security pull request is
+  fixed by the release loop in its own pull request or goes to the owner
+  ([Branching and release](/okf/ops/branching-release.md)).
 - Custom managers keep the digests of gitleaks, Trivy and actionlint and
   the version of zizmor in `ci.yml` up to date.
 
