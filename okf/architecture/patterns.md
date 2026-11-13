@@ -181,6 +181,36 @@ choice of the patterns to the assistant's recommendation below
   a rebuild of the table (append-only migration with the upgrade tests).
 * **[E]** Debris fields get their own table: no owner, no buildings, no
   production (owner, 2026-11-12).
+* **[E]** Decisions after the first build attempt of #119 (owner,
+  2026-11-13):
+  * Debris table `debris (id TEXT PRIMARY KEY, g, s, p INTEGER NOT NULL,
+    res_m REAL NOT NULL, res_c REAL NOT NULL, UNIQUE (g, s, p)) STRICT`,
+    created empty. The id is `d<g>_<s>_<p>`, so a fleet can target it like
+    a planet; one row per position, because a field adds up (#45); only
+    Adamant and Psikristall (#45); REAL like the planet stocks, so the 30 %
+    share is not rounded.
+  * `planets.kind TEXT NOT NULL DEFAULT 'planet' CHECK (kind IN ('planet',
+    'moon'))`; debris has its own table. `UNIQUE (g, s, p)` becomes
+    `UNIQUE (g, s, p, kind)`.
+  * `Planet` gets `kind: 'planet' | 'moon'`. The planet repository reads it
+    and writes it on insert, never in the update part of the upsert. The
+    galaxy list and the client stay unchanged.
+  * `parsePlaceId(id): Place | null` is the inverse of `placeId()`: null for
+    anything that is not a canonical `[pmd]<g>_<s>_<p>` (positive integers,
+    no leading zeros), so that `placeId(parsePlaceId(x)) === x`; it never
+    throws on untrusted ids.
+  * The kind of a fleet's origin and target comes from the prefix of
+    `from_planet` and `to_planet`; the fleets tables do not change.
+* **[E]** Built with #119: `Place` in `src/core/types.ts`, `placeId()` and
+  `parsePlaceId()` in `src/core/place.ts` (`pid()` is gone from
+  `flight.ts`; its five uses build a place of kind `planet`). Migration 15
+  rebuilds `planets` with `kind` and its four child tables
+  (`planet_buildings`, `planet_units`, `planet_production`,
+  `shipyard_queue`) and `planets_owner`, because migrations run with
+  `foreign_keys = ON` and dropping the old `planets` would delete their
+  rows; every planet keeps its id and becomes kind `planet`. It adds the
+  empty table `debris`; no code reads or writes it before #45 (see
+  [SQLite storage](/data/sqlite.md)).
 * **[E]** Position 16 (expeditions, #93) is decided with #93 (owner,
   2026-11-12).
 * **[V]** `distance()` already returns 5 for the same coordinates, which is
@@ -381,7 +411,7 @@ src/client/                state, components (generic), views
   6. Repositories per aggregate.
   7. Client state module and generic components; `main.ts` shrinks per view.
   8. Places (O11), its own pull request before #45 and #53 (owner,
-     2026-11-12).
+     2026-11-12). Built with #119.
 
 * **[E]** The battle with several parties is no migration step; it is built
   with #55.

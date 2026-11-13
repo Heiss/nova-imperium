@@ -28,6 +28,7 @@ function randomPlanet(): Planet {
   const b = pick(Object.keys(O.BUILD), 0.7, 0, 15);
   const p: Planet = {
     id: 'x',
+    kind: 'planet',
     owner: 'u',
     name: 'n',
     g: 1,

@@ -1,6 +1,6 @@
 // Planets (#117): a planet with its buildings, ships, defense, production
 // shares and queues. The children are written with their planet, always.
-import type { Planet } from '../../../core/types.ts';
+import type { Levels, Planet } from '../../../core/types.ts';
 import { isShip } from '../../../core/catalog.ts';
 import type { UsedSize } from '../../../core/universe.ts';
 import type { Db } from '../database.ts';
@@ -32,8 +32,15 @@ export class SqlitePlanets implements Planets {
     const units = q(
       'SELECT kind, key, count FROM planet_units WHERE planet_id = ?',
     );
+    const unitsOf = (kind: string): Levels =>
+      levels(
+        units.filter((u) => u.kind === kind),
+        'key',
+        'count',
+      );
     return {
       id: r.id as string,
+      kind: r.kind as Planet['kind'],
       owner: r.owner as string,
       name: r.name as string,
       g: r.g as number,
@@ -48,16 +55,8 @@ export class SqlitePlanets implements Planets {
         'key',
         'level',
       ),
-      ships: levels(
-        units.filter((u) => u.kind === 'ship'),
-        'key',
-        'count',
-      ),
-      def: levels(
-        units.filter((u) => u.kind === 'defense'),
-        'key',
-        'count',
-      ),
+      ships: unitsOf('ship'),
+      def: unitsOf('defense'),
       bq: queueOf(r, 'bq'),
       sq: q(
         'SELECT key, n, unit_ms FROM shipyard_queue WHERE planet_id = ? ORDER BY pos',
@@ -110,9 +109,9 @@ export class SqlitePlanets implements Planets {
   save(p: Planet): void {
     this.db
       .prepare(
-        `INSERT INTO planets (id, owner, name, g, s, p, temp, diameter, unlimited, res_m, res_c, res_d,
+        `INSERT INTO planets (id, kind, owner, name, g, s, p, temp, diameter, unlimited, res_m, res_c, res_d,
            t, created, sq_t, bq_key, bq_lvl, bq_start, bq_end, bq_cost_m, bq_cost_c, bq_cost_d)
-         VALUES (@id, @owner, @name, @g, @s, @p, @temp, @diameter, @unlimited, @res_m, @res_c, @res_d,
+         VALUES (@id, @kind, @owner, @name, @g, @s, @p, @temp, @diameter, @unlimited, @res_m, @res_c, @res_d,
            @t, @created, @sq_t, @bq_key, @bq_lvl, @bq_start, @bq_end, @bq_cost_m, @bq_cost_c, @bq_cost_d)
          ON CONFLICT(id) DO UPDATE SET owner = excluded.owner, name = excluded.name,
            temp = excluded.temp, diameter = excluded.diameter, unlimited = excluded.unlimited, res_m = excluded.res_m, res_c = excluded.res_c, res_d = excluded.res_d,
@@ -122,6 +121,7 @@ export class SqlitePlanets implements Planets {
       )
       .run({
         id: p.id,
+        kind: p.kind,
         owner: p.owner,
         name: p.name,
         g: p.g,

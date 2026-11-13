@@ -89,6 +89,7 @@ export function addPlanet(
   const p = over.p ?? 5;
   const planet: Planet = {
     id: `p${g}_${s}_${p}`,
+    kind: 'planet',
     owner,
     name: `Planet ${owner}`,
     g,

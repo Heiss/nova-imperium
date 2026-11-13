@@ -2,8 +2,6 @@
 import { DRIVE_BONUS, type DriveKey, SHIPS, isShip } from './catalog.ts';
 import type { Coords, Levels, ResearchState, Universe } from './types.ts';
 
-export const pid = (c: Coords): string => `p${c.g}_${c.s}_${c.p}`;
-
 /** Fleets a player can have in flight at once: 1 + Computertechnik. */
 export const fleetSlots = (r: Pick<ResearchState, 'research'>): number =>
   1 + (r.research.computer ?? 0);
