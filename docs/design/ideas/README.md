@@ -42,7 +42,7 @@ The star map (#160):
 - `map-zoom.html` / `.png` / `.gif` – fixed zoom levels universe → galaxy → system → planet, interactive (click, mouse wheel, Esc, breadcrumbs); `?demo=1` plays the recorded run
 - `map-endless.html` / `.gif` – one continuous world with free zoom and no fades; planets with the game's textures; ships in orbit (own live, others from the last espionage); own planets down to the building view (#158); `?demo=1` plays the recorded run
 
-Guild research (see the idea issue „Guild research“):
+Guild research (#170):
 
 - `guild-research.html` / `.png` – the guild's research tree with four branches, contributions and the research panel
 
