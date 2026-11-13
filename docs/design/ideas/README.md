@@ -20,7 +20,7 @@ Ground troops and siege (#155):
 - `siege-abilities.html` / `.png` – abilities, command points, control points, orbital strike
 - `siege-wild.html` / `.png` – night line, burning edge, natives, veterans, morale, time bombs
 
-Galaxy events (see the idea issue „Galaxy events“):
+Galaxy events (#157):
 
 - `galaxy-events.html` / `.png` – ion storm, wormhole, relic, supernova, bounty, galactic council
 
