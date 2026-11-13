@@ -28,7 +28,20 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 * **[E]** The player record combines the timeline, daily activity and actions
   with the player's stored building, research, shipyard and fleet orders.
   Orders expose scheduled times and due status. A due record can reflect lazy
-  settlement of game state. Event details link to related order references.
+  settlement of game state.
+* **[E]** The details of an event offer „Ereignisse zu <id>“ for each planet
+  and fleet reference of the event (`planet` and `fleet` of its detail). The
+  button fills the filter „Planet / Flotte“ and shows the event log filtered
+  by that reference, which matches `planet`, `fleet` and `origin` of an
+  event's detail. So it works after the event too, when the order is long
+  gone. The event log offers no „Aufträge zu …“ buttons; the tab „Aufträge“
+  keeps its own reference buttons (owner, 2026-11-13, #151).
+* **[V]** The button keeps the other filters of the event log, as the
+  reference buttons of the tab „Aufträge“ do, and `origin` (the start
+  planet of a fleet order) gets no button of its own (#151).
+* **[V]** A change of the admin panel only gets no changelog fragment
+  (label `kein-changelog`), unless the owner wants admin changes in the
+  changelog (#151).
 * **[E]** The audit log records administrative reads of invitations, player
   records, activity statistics, orders and the audit log itself. Entries
   identify the admin, the dataset, any target or filter scope, the time and
