@@ -24,6 +24,15 @@ Galaxy events (#157):
 
 - `galaxy-events.html` / `.png` – ion storm, wormhole, relic, supernova, bounty, galactic council
 
+Building on fields (see the idea issue „Building on fields“):
+
+- `planet-surface.html` / `.png` – a colony surface with field properties and neighbour bonuses
+- `planet-tiles.html` / `.png` – catalog of field properties and neighbourhoods
+
+The world AI (see the idea issue „World AI“):
+
+- `crisis.html` / `.png` – the AI's phases, territory, attack and the bonuses for fighting it
+
 The HTML files reference `/style.css`, `/fonts/` and `/icons/` absolutely:
 serve them from a root that holds `src/client/static/` with this folder beside
 it, or look at the PNGs.
