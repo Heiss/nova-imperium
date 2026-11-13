@@ -28,6 +28,10 @@ http://localhost:8025.
 
 ## Documentation
 
+The documentation website, <https://heiss.github.io/nova-imperium/>, brings
+all of it together with the Git workflow, the checks and the automation
+(built from `docs/` and `okf/` by `website/`).
+
 - [Getting started](docs/getting-started.md): installation, first admin, demo
 - [Configuration](docs/configuration.md): every setting in `.env` and the secret files
 - [Operations](docs/operations.md): reverse proxy, backup, updates, hardening
