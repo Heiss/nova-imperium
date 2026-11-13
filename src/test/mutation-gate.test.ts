@@ -1,10 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
   check,
+  checkTotal,
   floorOf,
+  reportPath,
   score,
   scoresOf,
   type Standard,
+  table,
+  totalOf,
   update,
 } from '../../scripts/mutation-gate.ts';
 
@@ -100,5 +104,63 @@ describe('mutation gate', () => {
         },
       }),
     ).toEqual({ 'src/shared/a.ts': 50 });
+  });
+
+  it('scores the total over all files, as Stryker counts "All files"', () => {
+    const merged = {
+      files: {
+        'src/shared/a.ts': { mutants: m('Killed', 'Survived', 'Ignored') },
+        'src/shared/b.ts': { mutants: m('Timeout', 'Killed', 'NoCoverage') },
+        'src/shared/types.ts': { mutants: [] },
+      },
+    };
+    expect(totalOf(merged)).toBe(60);
+    expect(totalOf({ files: {} })).toBeNull();
+  });
+
+  it('fails a total below the break threshold; equal passes, null checks nothing', () => {
+    expect(checkTotal(79.99, 80)).toEqual([
+      '79.99 % < 80 % (break threshold of stryker.config.json)',
+    ]);
+    expect(checkTotal(80, 80)).toEqual([]);
+    expect(checkTotal(null, 80)).toEqual([]);
+    expect(checkTotal(10, null)).toEqual([]);
+  });
+
+  it('reads the report after --report, else the one Stryker writes', () => {
+    expect(reportPath([])).toBe('reports/mutation/mutation.json');
+    expect(reportPath(['--update'])).toBe('reports/mutation/mutation.json');
+    expect(reportPath(['--report', 'merged.json'])).toBe('merged.json');
+    expect(reportPath(['--update', '--report', 'm.json'])).toBe('m.json');
+    expect(() => reportPath(['--report'])).toThrow(
+      '--report needs the path of a report.',
+    );
+    expect(() => reportPath(['--report', '--update'])).toThrow(
+      '--report needs the path of a report.',
+    );
+  });
+
+  it('lists every file with its counts, sorted', () => {
+    expect(
+      table({
+        files: {
+          'src/shared/b.ts': {
+            mutants: m(
+              'Killed',
+              'Timeout',
+              'Survived',
+              'NoCoverage',
+              'CompileError',
+              'RuntimeError',
+              'Ignored',
+            ),
+          },
+          'src/shared/a.ts': { mutants: [] },
+        },
+      }),
+    ).toEqual([
+      'src/shared/a.ts: - % (killed 0, timeout 0, survived 0, no coverage 0, errors 0)',
+      'src/shared/b.ts: 50 % (killed 1, timeout 1, survived 1, no coverage 1, errors 2)',
+    ]);
   });
 });
