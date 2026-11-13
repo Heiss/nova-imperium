@@ -100,7 +100,7 @@ pulls=$(git log --format='- %s' "$range" | grep -E '\(#[0-9]+\)$' || true)
   fi
   printf '## Pull requests since %s\n\n%s\n\n' "${last:-the start}" "${pulls:-- (direct commits only)}"
   printf '## Before the merge\n\n'
-  printf -- '- [ ] Texts checked: German, match their pull requests, nothing internal or secret\n'
+  printf -- '- [ ] Texts checked: German, match their pull requests, one entry per feature, nothing internal or secret\n'
   printf -- '- [ ] CI Gate green: complete mutation run, image, Trivy, upgrade test, smoke test\n'
   printf -- '- [ ] The issues of this release are closed or moved to the next one\n\n'
   printf '_Rebuilt automatically after every push to `%s`; do not edit this branch._\n' "$base"
