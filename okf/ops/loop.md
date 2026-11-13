@@ -45,8 +45,9 @@ tasks).
   (owner, 2026-11-12; replaces „one own pull request at a time“).
 * **[E]** A red security pull request of Renovate (from GitHub's Dependabot
   alerts, `[SECURITY]` at the end of its title) is handled like an own pull
-  request in the first step (owner, 2026-11-13, #148; patch, minor, pin
-  and digest security updates merge themselves, see
+  request in the first step (owner, 2026-11-13, #148; patch, pin and
+  digest security updates merge themselves, minor ones from version 1.0
+  on; a major one and a minor one below 1.0 wait for the owner, see
   [Branching and release](/ops/branching-release.md)): the loop finds the
   root cause and fixes it in its own `claude/…` pull request, never by a
   push to the Renovate branch; if it cannot, it asks the owner. That fix
