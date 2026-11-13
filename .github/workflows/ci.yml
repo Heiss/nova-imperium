@@ -3,7 +3,9 @@ name: CI
 # Every push to main or hotfix/* runs the full suite. Pull requests run what
 # their changes need: documentation only skips the code checks; the Docker
 # image, Trivy and the Compose stack with the upgrade test run when the image
-# can change, and always in a release pull request (owner, 2026-11-12).
+# can change, and always in a release pull request (owner, 2026-11-12). The
+# mutation tests run when a pull request changes what Stryker mutates, a test,
+# the mutation configuration or the test tool chain (#146).
 # The documentation website is built when its sources change (#144).
 # Only the gate job "CI Gate" is the required check of main.
 on:
@@ -28,6 +30,7 @@ jobs:
     outputs:
       code: ${{ steps.diff.outputs.code }}
       image: ${{ steps.diff.outputs.image }}
+      mutation: ${{ steps.diff.outputs.mutation }}
       site: ${{ steps.diff.outputs.site }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -35,6 +38,12 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+      # scripts/mutation-changes.ts needs Node only, no dependencies.
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        if: github.event_name == 'pull_request'
+        with:
+          node-version-file: .node-version
+          package-manager-cache: false
       - id: diff
         env:
           EVENT: ${{ github.event_name }}
@@ -47,6 +56,7 @@ jobs:
             {
               echo "code=true"
               echo "image=true"
+              echo "mutation=true"
               echo "site=true"
             } >> "$GITHUB_OUTPUT"
             exit 0
@@ -78,9 +88,29 @@ jobs:
               okf/*|docs/*|website/*|.github/workflows/ci.yml|.github/workflows/pages.yml) site=true ;;
             esac
           done <<< "$files"
+          # The mutation jobs run when the changes touch a file of the mutate
+          # globs of stryker.config.json, a test file, the mutation
+          # configuration or the versions of Stryker, Vitest or TypeScript in
+          # the lockfile (scripts/mutation-changes.ts, owner, 2026-11-13,
+          # #146). The release pull request of a hotfix branch changes only
+          # CHANGELOG.md, VERSION and changes/: it compares with the release
+          # tag the hotfix branch starts from. The release pull request of
+          # main runs them as before (#147 decides).
+          case "$PR_HEAD_REF" in
+            release/hotfix/*)
+              # Without a release tag below it the check fails, as the
+              # migration check does (owner, 2026-11-13, #146).
+              from=$(git describe --tags --abbrev=0 --match '[0-9]*.[0-9]*.[0-9]*' "$PR_BASE") ||
+                { echo "::error::A hotfix branch starts at a release tag."; exit 1; }
+              mutation=$(node scripts/mutation-changes.ts "$from" "$HEAD_SHA")
+              ;;
+            release/*) mutation=true ;;
+            *) mutation=$(node scripts/mutation-changes.ts "$PR_BASE" "$HEAD_SHA") ;;
+          esac
           {
             echo "code=$code"
             echo "image=$image"
+            echo "mutation=$mutation"
             echo "site=$site"
           } >> "$GITHUB_OUTPUT"
 
@@ -159,11 +189,13 @@ jobs:
   # Mutation tests in 6 parallel shards (owner, 2026-11-12 and 2026-11-13,
   # #131). The plan splits the files Stryker mutates once for all shards, by
   # the test time of their mutants in the last complete run, else in the last
-  # merged report, else by their lines (scripts/mutation-shards.ts).
+  # merged report, else by their lines (scripts/mutation-shards.ts). A pull
+  # request runs them only when it changes what they test (output mutation,
+  # #146); a push to main or hotfix/** always runs them.
   mutation-plan:
     name: Mutation plan
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: needs.changes.outputs.mutation == 'true'
     runs-on: ubuntu-latest
     outputs:
       plan: ${{ steps.plan.outputs.plan }}
@@ -204,7 +236,7 @@ jobs:
   mutation-shard:
     name: Mutation tests (shard ${{ matrix.shard }} of 6)
     needs: [changes, mutation-plan]
-    if: needs.changes.outputs.code == 'true'
+    if: needs.changes.outputs.mutation == 'true'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -254,7 +286,7 @@ jobs:
   mutation:
     name: Mutation tests
     needs: [changes, mutation-plan, mutation-shard]
-    if: needs.changes.outputs.code == 'true'
+    if: needs.changes.outputs.mutation == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -562,6 +594,7 @@ jobs:
           WORKFLOWS: ${{ needs.workflows.result }}
           CODE: ${{ needs.changes.outputs.code }}
           IMAGE: ${{ needs.changes.outputs.image }}
+          MUTATED: ${{ needs.changes.outputs.mutation }}
           FRAGMENTS: ${{ needs.fragments.result }}
           CODEQL: ${{ needs.codeql.result }}
           CHECK: ${{ needs.check.result }}
@@ -587,7 +620,7 @@ jobs:
           require_success "Workflow lint" "$WORKFLOWS"
           require_success "CodeQL" "$CODEQL"
 
-          if [ "$EVENT" = "push" ] && { [ "$CODE" != "true" ] || [ "$IMAGE" != "true" ] || [ "$SITE_SOURCES" != "true" ]; }; then
+          if [ "$EVENT" = "push" ] && { [ "$CODE" != "true" ] || [ "$IMAGE" != "true" ] || [ "$MUTATED" != "true" ] || [ "$SITE_SOURCES" != "true" ]; }; then
             echo "::error::Pushes to main and hotfix/* must run the full suite."
             exit 1
           fi
@@ -599,12 +632,21 @@ jobs:
             true)
               require_success "Lint, types, unit tests and build" "$CHECK"
               require_success "E2E tests" "$E2E"
+              ;;
+            false) echo "Documentation-only change." ;;
+            *) echo "::error::Missing or invalid change detection output: $CODE"; exit 1 ;;
+          esac
+
+          # The mutation jobs may be skipped only when the change detection
+          # found nothing they test (#146).
+          case "$MUTATED" in
+            true)
               require_success "Mutation plan" "$MUTATION_PLAN"
               require_success "Mutation tests (shards)" "$MUTATION_SHARDS"
               require_success "Mutation tests" "$MUTATION"
               ;;
-            false) echo "Documentation-only change." ;;
-            *) echo "::error::Missing or invalid change detection output: $CODE"; exit 1 ;;
+            false) echo "No mutated file, test, mutation configuration or test tool chain changed: the mutation jobs run on every push to main and hotfix/** and every night." ;;
+            *) echo "::error::Missing or invalid mutation detection output: $MUTATED"; exit 1 ;;
           esac
 
           case "$IMAGE" in
