@@ -17,6 +17,7 @@ their result.
 | O1 | systemd unit | Version 1 had `nova-imperium.service`. It was removed because the start changed (build step, `.env`, secrets) and only Docker is tested. Options: leave it out; add an untested unit with `EnvironmentFile`; add a tested unit with a CI job. |
 | O2 | Minimum password length | Kept at 6 like version 1. Options: keep 6; 8; 12; a passphrase rule. |
 | O3 | Ranges of the universe settings | Proposals in [Admin](/features/admin.md) (speed 1 to 100, galaxies up to 9, …). Confirm or change. |
+| O12 | Test files of the mutation skip (#146) | Built as proposal: what Vitest runs (`src/**/*.test.ts`) and the test helpers (`src/test/**`, `src/server/test-helpers.ts`) start the mutation jobs ([Test strategy](/ops/testing.md)). Options: this proposal; only `*.test.ts` (a helper change skips); the proposal plus `e2e/` (Stryker does not run it); every file in `src/`. |
 
 # B. Tasks of the owner
 

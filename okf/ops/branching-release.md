@@ -65,7 +65,8 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   request opened with `GITHUB_TOKEN` starts no CI.
 * **[E]** The release pull request runs every check: complete mutation run
   (in 6 parallel shards, merged by a gate job, see
-  [Test strategy](/ops/testing.md), #131),
+  [Test strategy](/ops/testing.md), #131; the one of a hotfix branch only
+  when the hotfix changes what the mutation tests test, see Hotfix),
   Docker image, Trivy, Compose stack, upgrade test with the data of the last
   release, smoke test, and later the SBOM (issue #83). The texts are checked
   by Claude and CodeRabbit (`.coderabbit.yaml`, `changes/**`, `CHANGELOG.md`).
@@ -123,6 +124,15 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 * **[E]** CI and the tag workflow run for pushes to `main` and `hotfix/**`; the
   migration check compares the first push of a hotfix branch with the release
   tag it starts from.
+* **[E]** The pull requests into a hotfix branch and its release pull
+  request run the mutation jobs only when the hotfix changes what they
+  test (owner, 2026-11-13, #146): the release pull request compares with
+  the release tag the hotfix branch starts from, so a hotfix with code in
+  `src/` runs them, and one with only dependency or `Dockerfile` changes
+  (as a rule a security hotfix) does not; every other check still runs,
+  and every push to `hotfix/**` runs the mutation jobs. The release pull
+  request of `main` keeps its complete mutation run (#147). See
+  [Test strategy](/ops/testing.md).
 
 * **[E]** Renovate opens pull requests for dependencies and images, waits
   3 days after a release (`minimumReleaseAge`) and merges patch updates

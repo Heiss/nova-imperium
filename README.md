@@ -62,7 +62,9 @@ only, and builds the image only when a file of the image build, its start
 or the upgrade changes (`Dockerfile`, `docker/`, `compose*.yaml`,
 dependencies, `.node-version`, `src/server/db/`, the server start files,
 `ci.yml`; game code alone does not), and always in a release pull request
-and in a pull request into a hotfix branch. One gate job collects them; only a green gate goes to
+and in a pull request into a hotfix branch. The mutation tests run in a pull
+request only when it changes a mutated file, a test, the mutation
+configuration or the versions of Stryker, Vitest or TypeScript. One gate job collects them; only a green gate goes to
 review. The rules of the game are
 checked against the original version 1 to the last digit.
 
