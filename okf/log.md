@@ -2,6 +2,8 @@
 
 ## 2026-11-13
 
+* **Decision**: #111 order of the migration confirmed; #112 renames `src/shared` to `src/core` in one pull request and chains the index generator explicitly in the scripts; #113 splits the `texts.ts` of #131 per entry and adds `text(key)` (see [Design patterns](/architecture/patterns.md)).
+* **Decision**: #114 one pull request per component group; #117 aggregates by game object; #118 catalog views first; #115, #116 and #119 have no open decision (see [Design patterns](/architecture/patterns.md)).
 * **Decision**: #131 six shards instead of four (owner): the second proof run took 16.5 to 19 minutes per shard on equal runners, above the target of about 12 to 15; the planner and the workflows run 6 shards (see [Test strategy](/ops/testing.md)).
 * **Decision**: #131 split by estimated run time instead of mutant count: the test time of the mutants in the last report (static mutants weigh what they cost), files heavier than half a shard cut into line ranges between top-level statements; the complete sharded run had one shard at 44 minutes and the others at 7 to 14 (see [Test strategy](/ops/testing.md)).
 * **Update**: #131 proof run (complete, 4 shards): every file score as in the unsharded release run, except `catalog.ts` without the 180 text mutants and two timeouts instead of kills in `settle.ts` (same score); shards 22, 13, 18 and 36 minutes. The weights now come from the last complete run, not an incremental one (owner: improve before the merge; see [Test strategy](/ops/testing.md)).
@@ -11,11 +13,6 @@
 * **Code**: #68 built: 15 E2E tests in `e2e/flows.spec.ts` for the flows without a browser test (attack, transport, recall, fleet form limits, noob protection, galaxy, shipyard queue, reports, probes option, guilds, login code and „Passwort vergessen“ by mail, invitation link, new round, push refusal, storage and energy); `e2e/seed.ts` lands any mission, brings fleets home, finishes shipyard units and dates a planet back; a second E2E server sends its mails to an `smtp-server` sink on 127.0.0.1; research cancel and the daily reward were covered already (see [Test strategy](/ops/testing.md)).
 * **Decision**: #68 clarified: the E2E gaps in one pull request, fleet and battle first; flights, battles and queues set up with `e2e/seed.ts`; mails through an SMTP sink in the E2E start (see [Test strategy](/ops/testing.md)).
 * **Decision**: #135 and #136 clarified: the wrong texts of 26.11.22 stay in `CHANGELOG.md` and are corrected by two fragments `art: behoben` („Korrektur zu 26.11.22: …“) in the next release; a pull request that extends a feature of the coming release changes its fragment instead of adding one, and the release text check looks for two entries about one feature (see [Branching and release](/ops/branching-release.md)).
-
-## 2026-11-13
-
-* **Decision**: #111 order of the migration confirmed; #112 renames `src/shared` to `src/core` in one pull request and chains the index generator explicitly in the scripts; #113 splits the `texts.ts` of #131 per entry and adds `text(key)` (see [Design patterns](/architecture/patterns.md)).
-* **Decision**: #114 one pull request per component group; #117 aggregates by game object; #118 catalog views first; #115, #116 and #119 have no open decision (see [Design patterns](/architecture/patterns.md)).
 
 ## 2026-11-12
 
