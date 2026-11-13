@@ -133,6 +133,28 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   2026-11-12: „so lassen, alle sofort“). Renovate has no matcher for the
   severity; Dependabot's own security updates are off, so no hole gets two
   pull requests.
+* **[E]** Security pull requests merge themselves up to minor updates
+  (owner, 2026-11-13, #148): `vulnerabilityAlerts.packageRules` in
+  `renovate.json` sets `automerge` for patch updates and for minor updates
+  of a current version from 1.0 on, once the CI Gate is green. A major
+  update waits for the owner. Versions below 1.0 (`0.x`) count like major
+  updates: only a patch merges itself, a minor update waits for the owner.
+  Development dependencies follow the same rule. A red security pull
+  request is handled by the release loop like its own
+  ([Release loop](/ops/loop.md)).
+* **[E]** Renovate applies the content of `vulnerabilityAlerts` as `force`
+  on the package rule of every alert, over every other rule
+  (`lib/workers/repository/init/vulnerability.ts`, `lib/config/utils.ts`);
+  its nested `packageRules` are evaluated per update type. Proven before
+  the merge of #148 with Renovate 44.239.1 on the local platform
+  (`--platform=local --dry-run=lookup`, `LOG_LEVEL=trace`; the alert
+  source stubbed with synthetic Dependabot alerts, the rest of Renovate
+  unchanged): patch, minor and development-dependency patch and minor
+  updates got `automerge: true`; the major, the development major and the
+  `0.x` minor update got `automerge: false`; an ordinary minor update kept
+  `automerge: false`. With the previous `renovate.json` the minor security
+  updates got `automerge: false`. The stub covers npm only: GitHub Actions
+  alerts were not tried, because the run could not reach GitHub's API.
 
 * **[E]** Every push to `main` runs the full suite with an incremental mutation
   run (owner, 2026-11-11); the release pull request and the nightly run in

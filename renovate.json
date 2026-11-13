@@ -8,6 +8,21 @@
       "automerge": true
     }
   ],
+  "vulnerabilityAlerts": {
+    "packageRules": [
+      {
+        "description": "Security pull requests merge themselves for patch updates (owner, 2026-11-13, #148).",
+        "matchUpdateTypes": ["patch"],
+        "automerge": true
+      },
+      {
+        "description": "Minor security updates merge themselves from version 1.0 on; below 1.0 a minor update counts like a major one and waits for the owner (#148).",
+        "matchUpdateTypes": ["minor"],
+        "matchCurrentVersion": ">=1.0.0",
+        "automerge": true
+      }
+    ]
+  },
   "customManagers": [
     {
       "description": "Images run by `docker run` in the CI (gitleaks, Trivy, actionlint), pinned to their digests.",

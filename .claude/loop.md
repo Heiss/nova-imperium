@@ -11,6 +11,8 @@ interface is German.
 1. Read the state from GitHub, never from memory:
    - your open pull requests (branches `claude/*`) with CI, review threads
      and merge conflicts;
+   - Renovate's open security pull requests (`[SECURITY]` at the end of
+     the title) with their CI;
    - the open release pull request (`Release <version>`, branch
      `release/main`) with its CI and its release candidate image;
    - the milestone `next release` with its open and closed issues.
@@ -26,7 +28,10 @@ interface is German.
 
 1. **Finish your open pull requests.** Red CI: find the root cause and fix
    it. Review findings: fix what is real, answer every thread, resolve.
-   Conflict: merge `main` into the branch. Merge under O4 (green CI Gate,
+   Conflict: merge `main` into the branch. A red security pull request of
+   Renovate counts as your own: find the root cause and fix it in your own
+   pull request; if you cannot, ask the owner (patch and minor security
+   updates merge themselves). Merge under O4 (green CI Gate,
    no open security or critical finding, every finding answered). Up to two
    own pull requests may be open at a time: while they only wait for CI or
    a review, go on with the next step; a subagent builds an issue that

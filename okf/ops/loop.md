@@ -43,6 +43,12 @@ tasks).
   issues that don't depend on each other in their own git worktrees, Claude
   reviews each diff and opens, finishes and merges the pull requests itself
   (owner, 2026-11-12; replaces „one own pull request at a time“).
+* **[E]** A red security pull request of Renovate (from GitHub's Dependabot
+  alerts, `[SECURITY]` at the end of its title) is handled like an own pull
+  request in the first step: the loop finds the root cause and fixes it in
+  its own pull request; if it cannot, it asks the owner (owner, 2026-11-13,
+  #148; patch and minor security updates merge themselves, see
+  [Branching and release](/ops/branching-release.md)).
 * **[E]** Local Stryker runs before a push only for changed logic files whose
   score is less than about 2 points above their floor in
   `mutation-standard.json` (for example `economy.ts`, `settle.ts`,
