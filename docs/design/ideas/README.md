@@ -40,7 +40,8 @@ The star map (#160):
 - `map-system.html` / `.png` – one system with orbits, planets, moon, debris, the belt and approaching fleets
 - `map-intel.html` / `.png` – the guild's situation map with battle heat, markers and a time slider
 - `map-zoom.html` / `.png` / `.gif` – fixed zoom levels universe → galaxy → system → planet, interactive (click, mouse wheel, Esc, breadcrumbs); `?demo=1` plays the recorded run
+- `map-endless.html` / `.gif` – one continuous world with free zoom and no fades; planets with the game's textures; ships in orbit (own live, others from the last espionage); own planets down to the building view (#158); `?demo=1` plays the recorded run
 
-The HTML files reference `/style.css`, `/fonts/` and `/icons/` absolutely:
+The HTML files reference `/style.css`, `/fonts/`, `/icons/` and `/planets/` absolutely:
 serve them from a root that holds `src/client/static/` with this folder beside
 it, or look at the PNGs.
