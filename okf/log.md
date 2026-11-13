@@ -1,5 +1,9 @@
 # Update log
 
+## 2026-11-13
+
+* **Decision**: #135 and #136 clarified: the wrong texts of 26.11.22 stay in `CHANGELOG.md` and are corrected by two fragments `art: behoben` („Korrektur zu 26.11.22: …“) in the next release; a pull request that extends a feature of the coming release changes its fragment instead of adding one, and the release text check looks for two entries about one feature (see [Branching and release](/ops/branching-release.md)).
+
 ## 2026-11-12
 
 * **Update**: `src/shared/achievements.ts` has its own test of names, targets and rewards; a complete run after #127 scored it 33.33 %, below its floor 35.18 %; with the test a complete local run scores 100 %. The floor stays 35.18 % until a complete CI run confirms the new score, because incremental runs keep cached results for unchanged mutants (see [Test strategy](/ops/testing.md)).
