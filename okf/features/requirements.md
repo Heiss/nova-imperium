@@ -33,9 +33,10 @@ generated: { by: claude-code/web, at: 2026-11-10T21:00:00Z }
 * **[V]** A research need that lacks energy production
   (Gravitonforschung) is not ready: „zu wenig Energie“; its cost line shows
   the energy production with the energy icon.
-* **[V]** The same for a building need that lacks energy production
+* **[E]** The same for a building need that lacks energy production
   (Weltenschmiede, #51); a building need on a planet without a free field
-  is not ready: „Keine freien Felder“ (see [Planet fields](/features/fields.md)).
+  is not ready: „Keine freien Felder“, without a period like the other
+  reasons of the list (owner, 2026-11-13; see [Planet fields](/features/fields.md)).
 * **[E]** No confirmation dialog: cancelling refunds the full cost.
 * **[E]** The catalog has no circular requirements (test in
   `src/shared/requirements.test.ts`).

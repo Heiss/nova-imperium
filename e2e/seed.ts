@@ -54,6 +54,15 @@ function yardStart(p: Planet, n: number): number | null {
   return Date.now() - ms;
 }
 
+/** The queues and the last update of the home planet, moved as asked. */
+function timers(p: Planet): Pick<Planet, 'bq' | 'sqT' | 't'> {
+  return {
+    bq: d.clearQueue ? null : p.bq,
+    sqT: d.finishUnits ? yardStart(p, d.finishUnits) : p.sqT,
+    t: d.settledAgo ? Date.now() - d.settledAgo : p.t,
+  };
+}
+
 function updateHome(p: Planet): void {
   store.savePlanet({
     ...p,
@@ -65,9 +74,7 @@ function updateHome(p: Planet): void {
     diameter: d.diameter ?? p.diameter,
     unlimited: d.unlimited ?? p.unlimited,
     pct: d.pct ?? p.pct,
-    bq: d.clearQueue ? null : p.bq,
-    sqT: d.finishUnits ? yardStart(p, d.finishUnits) : p.sqT,
-    t: d.settledAgo ? Date.now() - d.settledAgo : p.t,
+    ...timers(p),
   });
 }
 
