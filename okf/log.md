@@ -12,6 +12,11 @@
 * **Decision**: #68 clarified: the E2E gaps in one pull request, fleet and battle first; flights, battles and queues set up with `e2e/seed.ts`; mails through an SMTP sink in the E2E start (see [Test strategy](/ops/testing.md)).
 * **Decision**: #135 and #136 clarified: the wrong texts of 26.11.22 stay in `CHANGELOG.md` and are corrected by two fragments `art: behoben` („Korrektur zu 26.11.22: …“) in the next release; a pull request that extends a feature of the coming release changes its fragment instead of adding one, and the release text check looks for two entries about one feature (see [Branching and release](/ops/branching-release.md)).
 
+## 2026-11-13
+
+* **Decision**: #111 order of the migration confirmed; #112 renames `src/shared` to `src/core` in one pull request and chains the index generator explicitly in the scripts; #113 splits the `texts.ts` of #131 per entry and adds `text(key)` (see [Design patterns](/architecture/patterns.md)).
+* **Decision**: #114 one pull request per component group; #117 aggregates by game object; #118 catalog views first; #115, #116 and #119 have no open decision (see [Design patterns](/architecture/patterns.md)).
+
 ## 2026-11-12
 
 * **Code**: #131 built: mutation plan job, 4 shards with their own caches and a gate job on the merged report in the CI and the nightly run (`scripts/mutation-shards.ts`, `mutation-gate.ts --report`); owner decision: display texts are not mutation-tested, the catalog texts moved to `src/shared/texts.ts`, guarded by the catalog, naming and explanation tests (see [Test strategy](/ops/testing.md)).
