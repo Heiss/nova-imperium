@@ -156,10 +156,10 @@ jobs:
           path: playwright-report
           retention-days: 7
 
-  # Mutation tests in 6 parallel shards (owner, 2026-11-12 and 2026-11-13, #131). The plan
-  # splits the files Stryker mutates once for all shards, by their mutant
-  # count in the last merged report, else by their lines
-  # (scripts/mutation-shards.ts).
+  # Mutation tests in 6 parallel shards (owner, 2026-11-12 and 2026-11-13,
+  # #131). The plan splits the files Stryker mutates once for all shards, by
+  # the test time of their mutants in the last complete run, else in the last
+  # merged report, else by their lines (scripts/mutation-shards.ts).
   mutation-plan:
     name: Mutation plan
     needs: changes
