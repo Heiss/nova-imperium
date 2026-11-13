@@ -4,6 +4,7 @@
 
 * **Code**: #68 built: 15 E2E tests in `e2e/flows.spec.ts` for the flows without a browser test (attack, transport, recall, fleet form limits, noob protection, galaxy, shipyard queue, reports, probes option, guilds, login code and „Passwort vergessen“ by mail, invitation link, new round, push refusal, storage and energy); `e2e/seed.ts` lands any mission, brings fleets home, finishes shipyard units and dates a planet back; a second E2E server sends its mails to an `smtp-server` sink on 127.0.0.1; research cancel and the daily reward were covered already (see [Test strategy](/ops/testing.md)).
 * **Decision**: #68 clarified: the E2E gaps in one pull request, fleet and battle first; flights, battles and queues set up with `e2e/seed.ts`; mails through an SMTP sink in the E2E start (see [Test strategy](/ops/testing.md)).
+* **Decision**: #135 and #136 clarified: the wrong texts of 26.11.22 stay in `CHANGELOG.md` and are corrected by two fragments `art: behoben` („Korrektur zu 26.11.22: …“) in the next release; a pull request that extends a feature of the coming release changes its fragment instead of adding one, and the release text check looks for two entries about one feature (see [Branching and release](/ops/branching-release.md)).
 
 ## 2026-11-12
 
