@@ -89,6 +89,35 @@ choice of the patterns to the assistant's recommendation below
   still show them until `ProducerTable`; the throttle of the
   Fusionskraftwerk (`balancedShare`) still names its key and becomes
   generic with the events of #115.
+* **[E]** Decided for the second pull request of #114, the combat group
+  (owner, 2026-11-13): `unit` is `{ cost }`, the cost of one piece, the
+  counterpart of `leveled`; `req` stays in `def`, „once per planet“ waits
+  for `limit` and the flight fields wait for `mobile`. `combat` is
+  `{ atk, sh, rf? }` with today's names; the hull is not stored but derived
+  from `unit.cost` ((Adamant + Psikristall) / 10) in the rule module
+  `src/core/components/combat.ts`, and the contract test checks that it is
+  above 0. The default rapid fire against easy targets is the flag
+  `easy: true` in `combat` of the Spähschädel and the Sonnenreliquiar plus a
+  core constant 5 instead of the key list in `battle.ts`: every ship that is
+  not easy itself and names no rapid fire against the target gets 5, defense
+  gets none (replaces the [V] „a field of `combat` instead of a key list“ of
+  #114). Only `battle.ts` reads the new components, through the rule
+  module; the shipyard, points, the server unit check and the battle
+  reports keep reading the `UNIT`, `SHIPS` and `DEF` tables until #118, as
+  the first pull request left the resources page. The test that scans `src`
+  for catalog keys comes with the last pull request of #114 (`ProducerTable`).
+  The exports stay deeply equal and battles bit-identical, proven by a
+  property test against the old `battle()`.
+* **[E]** Built with #114 (combat group): the ship and defense entries
+  export `unit` and `combat`, and `def` keeps their other fields
+  (`ShipFields`, `DefenseFields`). `src/core/components/unit.ts` holds the
+  type `Unit`; `src/core/components/combat.ts` holds `Combat`,
+  `EASY_RAPID_FIRE`, `strength` (hull, shield and attack of one piece before
+  the research bonus) and `rapidFire`. `catalog.ts` derives `FIGHTERS`
+  (every entry with `unit` and `combat`, by key, with its kind) and builds
+  `SHIPS`, `DEF` and `UNIT` from `unit`, `combat` without `easy` and `def`,
+  deeply equal to before; `battle.ts` reads `FIGHTERS` through `strength`
+  and `rapidFire` and keeps its exports.
 
 ## 2. Texts apart from rules
 
@@ -181,6 +210,36 @@ choice of the patterns to the assistant's recommendation below
   a rebuild of the table (append-only migration with the upgrade tests).
 * **[E]** Debris fields get their own table: no owner, no buildings, no
   production (owner, 2026-11-12).
+* **[E]** Decisions after the first build attempt of #119 (owner,
+  2026-11-13):
+  * Debris table `debris (id TEXT PRIMARY KEY, g, s, p INTEGER NOT NULL,
+    res_m REAL NOT NULL, res_c REAL NOT NULL, UNIQUE (g, s, p)) STRICT`,
+    created empty. The id is `d<g>_<s>_<p>`, so a fleet can target it like
+    a planet; one row per position, because a field adds up (#45); only
+    Adamant and Psikristall (#45); REAL like the planet stocks, so the 30 %
+    share is not rounded.
+  * `planets.kind TEXT NOT NULL DEFAULT 'planet' CHECK (kind IN ('planet',
+    'moon'))`; debris has its own table. `UNIQUE (g, s, p)` becomes
+    `UNIQUE (g, s, p, kind)`.
+  * `Planet` gets `kind: 'planet' | 'moon'`. The planet repository reads it
+    and writes it on insert, never in the update part of the upsert. The
+    galaxy list and the client stay unchanged.
+  * `parsePlaceId(id): Place | null` is the inverse of `placeId()`: null for
+    anything that is not a canonical `[pmd]<g>_<s>_<p>` (positive integers,
+    no leading zeros), so that `placeId(parsePlaceId(x)) === x`; it never
+    throws on untrusted ids.
+  * The kind of a fleet's origin and target comes from the prefix of
+    `from_planet` and `to_planet`; the fleets tables do not change.
+* **[E]** Built with #119: `Place` in `src/core/types.ts`, `placeId()` and
+  `parsePlaceId()` in `src/core/place.ts` (`pid()` is gone from
+  `flight.ts`; its five uses build a place of kind `planet`). Migration 15
+  rebuilds `planets` with `kind` and its four child tables
+  (`planet_buildings`, `planet_units`, `planet_production`,
+  `shipyard_queue`) and `planets_owner`, because migrations run with
+  `foreign_keys = ON` and dropping the old `planets` would delete their
+  rows; every planet keeps its id and becomes kind `planet`. It adds the
+  empty table `debris`; no code reads or writes it before #45 (see
+  [SQLite storage](/data/sqlite.md)).
 * **[E]** Position 16 (expeditions, #93) is decided with #93 (owner,
   2026-11-12).
 * **[V]** `distance()` already returns 5 for the same coordinates, which is
@@ -352,6 +411,15 @@ src/client/                state, components (generic), views
   60). `src/core/production.test.ts` compares `prod()` bit for bit with the
   `prod()` from before #114 on generated planets, with Fusionskraftwerk and
   Solarsatelliten.
+* **[E]** Built with #114 for the combat group:
+  `src/core/components/unit.test.ts` (on every ship and defense only, the
+  cost of a piece three whole numbers ≥ 0, not all 0) and
+  `src/core/components/combat.test.ts` (with every `unit`; hull, shield and
+  attack finite and above 0; rapid fire whole and above 1 against an entry
+  that fights; only ships are easy). `src/core/battle-reference.test.ts`
+  compares `buildSide()`, `rapid()` for every pair and `battle()` with the
+  same random stream, draw for draw, bit for bit with `battle.ts` from
+  before the combat components on generated sides.
 
 # Migration
 
@@ -375,13 +443,14 @@ src/client/                state, components (generic), views
      per component group: production (`produces`, `consumes`, `storage`,
      `leveled`), combat (`combat`, `unit`), flight (`mobile`), limits
      (`limit`, `energyThreshold`), then `ProducerTable` (owner, 2026-11-13,
-     #114). The production group is built (#114, first pull request).
+     #114). The production group is built (#114, first pull request), and
+     the combat group (#114, second pull request).
   4. Generic events in `settle` with the property tests.
   5. Missions as strategies.
   6. Repositories per aggregate.
   7. Client state module and generic components; `main.ts` shrinks per view.
   8. Places (O11), its own pull request before #45 and #53 (owner,
-     2026-11-12).
+     2026-11-12). Built with #119.
 
 * **[E]** The battle with several parties is no migration step; it is built
   with #55.

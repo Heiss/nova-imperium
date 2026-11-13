@@ -73,6 +73,16 @@ CREATE TABLE daily_rewards (
     claimed_day INTEGER
   ) STRICT;
 
+CREATE TABLE debris (
+    id TEXT PRIMARY KEY,
+    g INTEGER NOT NULL,
+    s INTEGER NOT NULL,
+    p INTEGER NOT NULL,
+    res_m REAL NOT NULL,
+    res_c REAL NOT NULL,
+    UNIQUE (g, s, p)
+  ) STRICT;
+
 CREATE TABLE error_events (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     kind TEXT NOT NULL CHECK (kind IN ('server', 'client', 'report')),
@@ -202,9 +212,11 @@ CREATE TABLE planets (
     bq_end INTEGER,
     bq_cost_m INTEGER,
     bq_cost_c INTEGER,
-    bq_cost_d INTEGER, diameter INTEGER NOT NULL DEFAULT 0, unlimited INTEGER NOT NULL DEFAULT 0
-    CHECK (unlimited IN (0, 1)),
-    UNIQUE (g, s, p)
+    bq_cost_d INTEGER,
+    diameter INTEGER NOT NULL DEFAULT 0,
+    unlimited INTEGER NOT NULL DEFAULT 0 CHECK (unlimited IN (0, 1)),
+    kind TEXT NOT NULL DEFAULT 'planet' CHECK (kind IN ('planet', 'moon')),
+    UNIQUE (g, s, p, kind)
   ) STRICT;
 
 CREATE TABLE player_activity (

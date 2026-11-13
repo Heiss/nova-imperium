@@ -2,13 +2,25 @@
 // Impulstriebwerk, from Hyperraumantrieb 8 the Hyperraumantrieb.
 
 import type { ShipFields } from '../../core/catalog.ts';
+import type { Combat } from '../../core/components/combat.ts';
+import type { Unit } from '../../core/components/unit.ts';
 
 export const kind = 'ship';
 export const order = 100;
-export const def: ShipFields = {
+export const unit: Unit = {
   cost: [50000, 25000, 15000],
+};
+export const combat: Combat = {
   atk: 1000,
   sh: 500,
+  rf: {
+    rl: 20,
+    ll: 20,
+    hl: 10,
+    ionc: 10,
+  },
+};
+export const def: ShipFields = {
   cargo: 500,
   speed: 4000,
   fuel: 1000,
@@ -31,11 +43,5 @@ export const def: ShipFields = {
       impulse: 6,
       plasma: 5,
     },
-  },
-  rf: {
-    rl: 20,
-    ll: 20,
-    hl: 10,
-    ionc: 10,
   },
 };
