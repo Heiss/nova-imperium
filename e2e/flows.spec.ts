@@ -345,6 +345,10 @@ test.describe('galaxy, shipyard and options (#68)', () => {
     const name = uniqueName('Karte');
     await register(page, name);
     seed({ name, colony: {} });
+    // A second colony far away shows that Enter loads the typed system.
+    const far = uniqueName('Fern');
+    seed({ name, colony: { g: 2, s: 7, p: 15, name: far } });
+    const farRow = page.locator('table.gal tr', { hasText: far });
     await page.goto('/?view=galaxy');
     await expect(page.locator('#pinfo')).toContainText(/\[\d+:\d+:\d+\]/);
     const [, g, s] = /\[(\d+):(\d+):\d+\]/.exec(
@@ -368,9 +372,12 @@ test.describe('galaxy, shipyard and options (#68)', () => {
     await page.getByRole('button', { name: 'nächstes System' }).click();
     await expect(sys).toHaveValue('1');
     await sys.fill('7');
+    await expect(farRow).toHaveCount(0);
     await sys.press('Enter');
     await expect(sys).toHaveValue('7');
     await expect(gal).toHaveValue('2');
+    await expect(farRow).toContainText(name);
+    await expect(farRow.locator('td.n')).toHaveText('15');
     await page.getByText('zum Heimatsystem').click();
     await expect(gal).toHaveValue(g!);
     await expect(sys).toHaveValue(s!);
@@ -657,6 +664,11 @@ test.describe('admin (#68)', () => {
       has: page.locator('.nm', { hasText: /^\s*Adamant-Tiefbohrung/ }),
     });
     await expect(mine.locator('.lv')).toHaveText('(Stufe 5)');
+    const energy = page.locator('.item').filter({
+      has: page.locator('.nm', { hasText: /^\s*Machina-Energetik/ }),
+    });
+    await nav(page, 'research');
+    await expect(energy.locator('.lv')).toHaveText('(Stufe 2)');
     await nav(page, 'admin');
     await page.getByRole('tab', { name: 'Universum' }).click();
     await page.getByRole('button', { name: 'Neue Runde starten' }).click();
@@ -675,6 +687,11 @@ test.describe('admin (#68)', () => {
     await expect(page.locator('.notice')).toHaveText(
       'Für Forschung brauchst du ein Scholarium.',
     );
+    // A Scholarium on the new planet shows the research: back to level 0.
+    mailSeed({ name, b: { lab: 1 } });
+    await page.reload();
+    await expect(energy.locator('.lv')).toHaveText('');
+    await expect(energy.locator('[data-act=research]')).toHaveText('Forschen');
     mailCli('unadmin', name);
     expect(w.problems).toEqual([]);
   });
