@@ -157,6 +157,7 @@ describe('points and state', () => {
       ret: 9e12,
       state: 'out',
       recalled: false,
+      fuel: 0,
     });
     // energy 1200 + metal 75 + lf 4000 + rl 2000 + bs 60000 = 67275
     expect(pointsMap(ctx)).toEqual({ u_Anna: 67, u_Bert: 0 });
@@ -217,6 +218,7 @@ describe('points and state', () => {
       arr: 9e12,
       ret: 9e12,
       recalled: false,
+      fuel: 0,
     };
     ctx.store.saveFleet({
       ...base,

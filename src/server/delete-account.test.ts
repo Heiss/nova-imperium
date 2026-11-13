@@ -37,6 +37,7 @@ function fleet(over: Partial<Fleet>): Fleet {
     ret: 1_000_000 + 1100,
     state: 'out',
     recalled: false,
+    fuel: 0,
     ...over,
   };
 }

@@ -139,6 +139,12 @@ new table: existing data stay as they were (`upgrades/migration-12.test.ts`,
 which also checks the CHECK and the cascade). See
 [Error log and problem reports](/features/error-log.md).
 
+Migration 13 rebuilds `fleets` and `fleet_ships` (like migration 9) for the
+deploy mission `deploy` in the CHECK and adds `fleets.fuel`, the fuel a
+fleet burnt at the start (`INTEGER NOT NULL DEFAULT 0`; issue #129, see
+[Deploy mission](/features/deploy.md)). Fleets in flight keep their data and
+ships and get 0 (`upgrades/migration-13.test.ts`).
+
 Account deletion runs in one transaction. Foreign-key cascades clear owned game,
 session, reward and push data. The deletion also removes led guilds and their
 memberships, linked audit and inbox records, invitations for the account address
@@ -166,7 +172,7 @@ tests together with an own test for each changing migration).
   existing rows needs its own test `src/server/db/upgrades/migration-<n>.test.ts`
   that checks the data after the upgrade. The decision is made by the effect on
   generated data, not by the SQL text; `ALTER TABLE … ADD COLUMN` counts as a
-  change. Migrations 7, 9, 10 and 11 have such tests; pure `CREATE` migrations need
+  change. Migrations 7, 9, 10, 11 and 13 have such tests; pure `CREATE` migrations need
   none (migration 12 has one anyway, for its CHECK and cascade).
 * **[E]** A self-test proves that the checks find a migration that fails on
   existing data and that the classification tells changes from new tables.

@@ -855,6 +855,19 @@ textarea:focus-visible {
 }
 
 @media (max-width: 760px) {
+  /* Player and actions wrap, and the cells are tighter, instead of
+     widening the page (#129; the longest action is „Versorgungsflug“). */
+  .gal td:nth-child(n + 3) {
+    white-space: normal;
+  }
+  .gal th,
+  .gal td {
+    padding: 6px 4px;
+  }
+  .gal button.small {
+    padding: 3px 6px;
+    letter-spacing: 0;
+  }
   #app {
     grid-template-columns: 1fr;
     grid-template-rows: auto 1fr;

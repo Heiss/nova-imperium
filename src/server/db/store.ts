@@ -386,6 +386,7 @@ export class Store {
       ret: r.ret as number,
       state: r.state as Fleet['state'],
       recalled: r.recalled === 1,
+      fuel: r.fuel as number,
     };
   }
 
@@ -424,9 +425,9 @@ export class Store {
     this.db
       .prepare(
         `INSERT INTO fleets (id, owner, from_planet, from_g, from_s, from_p, to_planet, to_g, to_s, to_p,
-           mission, cargo_m, cargo_c, cargo_d, dep, arr, ret, state, recalled)
+           mission, cargo_m, cargo_c, cargo_d, dep, arr, ret, state, recalled, fuel)
          VALUES (@id, @owner, @from, @from_g, @from_s, @from_p, @to, @to_g, @to_s, @to_p,
-           @mission, @cargo_m, @cargo_c, @cargo_d, @dep, @arr, @ret, @state, @recalled)
+           @mission, @cargo_m, @cargo_c, @cargo_d, @dep, @arr, @ret, @state, @recalled, @fuel)
          ON CONFLICT(id) DO UPDATE SET cargo_m = excluded.cargo_m, cargo_c = excluded.cargo_c,
            cargo_d = excluded.cargo_d, ret = excluded.ret, state = excluded.state, recalled = excluded.recalled`,
       )
@@ -450,6 +451,7 @@ export class Store {
         ret: f.ret,
         state: f.state,
         recalled: f.recalled ? 1 : 0,
+        fuel: f.fuel,
       });
     this.db.prepare('DELETE FROM fleet_ships WHERE fleet_id = ?').run(f.id);
     const put = this.db.prepare('INSERT INTO fleet_ships VALUES (?, ?, ?)');

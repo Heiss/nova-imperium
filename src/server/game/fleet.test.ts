@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { addPlanet, addUser, testCtx } from '../test-helpers.ts';
+import { settle } from '../../shared/settle.ts';
+import { type TestCtx, addPlanet, addUser, testCtx } from '../test-helpers.ts';
 import { recall, send } from './fleet-actions.ts';
 import { tick } from './arrival.ts';
 import { runAction } from './dispatch.ts';
@@ -287,5 +288,135 @@ describe('colonization', () => {
     tick(ctx);
     expect(ctx.store.planet(other.id)?.ships.colony).toBe(1);
     expect(ctx.store.fleet(second!.id)).toBeNull();
+  });
+});
+
+describe('deploy (#129)', () => {
+  const colonyAt = { g: 1, s: 1, p: 7 };
+  const colonyId = 'p1_1_7';
+  const order = (over = {}) =>
+    go({
+      mission: 'deploy',
+      ships: { lf: 2, sc: 1 },
+      to: colonyAt,
+      cargo: { m: 1000, c: 500, d: 200 },
+      ...over,
+    });
+
+  function withColony() {
+    const s = setup();
+    addPlanet(s.ctx, s.a.id, {
+      ...colonyAt,
+      name: 'Kolonie',
+      created: 2e6,
+      res: { m: 10, c: 20, d: 30 },
+    });
+    return s;
+  }
+
+  /** The stock of a planet at time t without any fleet. */
+  const stockAt = (ctx: TestCtx, id: string, t: number) =>
+    settle(ctx.store.planet(id)!, t, ctx.store.universe(), {
+      research: {},
+      rq: null,
+    }).res;
+
+  it('flies only to another own planet', () => {
+    const { ctx, a } = withColony();
+    expect(() => send(ctx, a, order({ to: { g: 1, s: 2, p: 6 } }))).toThrow(
+      'Verlegung nur zu einem eigenen Planeten.',
+    );
+    expect(() => send(ctx, a, order({ to: { g: 1, s: 1, p: 5 } }))).toThrow(
+      'Das ist dein eigener Planet.',
+    );
+    expect(() => send(ctx, a, order({ to: { g: 1, s: 1, p: 9 } }))).toThrow(
+      'An dieser Position gibt es keinen Planeten.',
+    );
+    expect(() => send(ctx, a, order({ cargo: { m: 50000 } }))).toThrow(
+      'Nicht genug Laderaum.',
+    );
+    expect(ctx.store.fleets()).toEqual([]);
+  });
+
+  it('is not stopped by the noob protection of the attack rules', () => {
+    const { ctx, a } = withColony();
+    const home = ctx.store.planetOfUser(a.id)!;
+    home.b = { metal: 30 };
+    ctx.store.savePlanet(home);
+    expect(send(ctx, a, order())).toBe('Flotte unterwegs nach [1:1:7].');
+  });
+
+  it('keeps ships and cargo at the target with half the fuel, and ends the flight', () => {
+    const { ctx, a } = withColony();
+    // 1,010 away at full speed: 2 lf and 1 sc burn 7, half rounded down is 3.
+    expect(runAction(ctx, a.id, { ...order(), type: 'send' })).toBe(
+      'Flotte unterwegs nach [1:1:7].',
+    );
+    const f = ctx.store.fleets()[0]!;
+    expect(f).toMatchObject({
+      mission: 'deploy',
+      to: colonyId,
+      ships: { lf: 2, sc: 1 },
+      cargo: { m: 1000, c: 500, d: 200 },
+      fuel: 7,
+      state: 'out',
+    });
+    const home = ctx.store.planetOfUser(a.id)!;
+    expect(home.ships).toEqual({ lf: 8, sc: 1, probe: 3 });
+    expect(home.res).toEqual({ m: 49000, c: 39500, d: 30000 - 200 - 7 });
+    // The flight takes a fleet slot until it arrives.
+    expect(() => send(ctx, a, order())).toThrow('Alle Flottenslots belegt.');
+    const before = stockAt(ctx, colonyId, f.arr);
+    ctx.clock.t = f.arr;
+    tick(ctx);
+    expect(ctx.store.fleets()).toEqual([]);
+    const colony = ctx.store.planet(colonyId)!;
+    expect(colony.ships).toEqual({ lf: 2, sc: 1 });
+    expect(colony.res).toEqual({
+      m: before.m + 1000,
+      c: before.c + 500,
+      d: before.d + 200 + 3,
+    });
+    expect(ctx.store.reports(a.id)[0]).toMatchObject({
+      title: 'Verlegung erreicht [1:1:7]',
+      text: 'Deine Flotte bleibt auf Kolonie [1:1:7] und liefert Adamant 1.000 · Psikristall 500 · Promethium 203, davon 3 übriger Treibstoff.',
+    });
+    // Nothing comes back home, and the slot is free again.
+    ctx.clock.t = f.ret;
+    tick(ctx);
+    expect(ctx.store.planetOfUser(a.id)!.ships).toEqual({
+      lf: 8,
+      sc: 1,
+      probe: 3,
+    });
+    expect(send(ctx, a, order({ ships: { lf: 1 }, cargo: {} }))).toContain(
+      'unterwegs',
+    );
+  });
+
+  it('a recall brings ships and cargo back to the start planet; the fuel stays burnt', () => {
+    const { ctx, a } = withColony();
+    send(ctx, a, order());
+    const f = ctx.store.fleets()[0]!;
+    const colony = ctx.store.planet(colonyId)!;
+    ctx.clock.t += 1000;
+    expect(recall(ctx, a, { id: f.id })).toBe('Flotte zurückgerufen.');
+    const ret = ctx.store.fleet(f.id)!.ret;
+    const before = stockAt(ctx, 'p1_1_5', ret);
+    ctx.clock.t = ret;
+    tick(ctx);
+    expect(ctx.store.fleets()).toEqual([]);
+    const home = ctx.store.planetOfUser(a.id)!;
+    expect(home.ships).toEqual({ lf: 10, sc: 2, probe: 3 });
+    expect(home.res).toEqual({
+      m: before.m + 1000,
+      c: before.c + 500,
+      d: before.d + 200,
+    });
+    expect(ctx.store.planet(colonyId)).toEqual(colony);
+    expect(ctx.store.reports(a.id)[0]).toMatchObject({
+      title: 'Rückkehr zu Planet u_Anna [1:1:5]',
+      text: 'Deine Flotte ist zurück und bringt Adamant 1.000 · Psikristall 500 · Promethium 200 mit.',
+    });
   });
 });

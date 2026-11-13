@@ -778,6 +778,7 @@ export const MISSION = {
   transport: 'Versorgungsflug',
   spy: 'Auspex-Erkundung',
   colonize: 'Landnahme',
+  deploy: 'Verlegung',
 } as const;
 
 /** Producers whose share the player sets on the resources page. */

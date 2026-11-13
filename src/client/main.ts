@@ -980,7 +980,9 @@ function fleetCalc(): void {
   const now = nowT();
   set('i_dist', fmt(pv.dist));
   set('i_dur', dur(pv.ms));
-  set('i_arr', `${dt(now + pv.ms)} / ${dt(now + 2 * pv.ms)}`);
+  // A deploy stays at its target and has no return (#129).
+  const back = f.mission === 'deploy' ? '–' : dt(now + 2 * pv.ms);
+  set('i_arr', `${dt(now + pv.ms)} / ${back}`);
   set(
     'i_fuel',
     `<span class="${pv.fuelShort ? 'bad' : ''}">${fmt(pv.fuel)}</span> Promethium`,
