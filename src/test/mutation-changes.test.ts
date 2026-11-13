@@ -64,7 +64,7 @@ const fakeGit =
     if (answer === undefined) throw new Error(`git ${args.join(' ')}`);
     return answer;
   };
-const diff = 'diff --name-only --no-renames base head';
+const diff = 'diff --name-only -z --no-renames base head';
 
 describe('mutation changes: the files', () => {
   it('applies the mutate patterns in order; the last match decides', () => {
@@ -177,7 +177,12 @@ describe('mutation changes: the test tool chain', () => {
 
   it('reads the real lockfile', () => {
     const found = toolChain(readFileSync('pnpm-lock.yaml', 'utf8'));
-    expect(found).toContain('@stryker-mutator/core@10.1.1');
+    const core = (
+      JSON.parse(readFileSync('package.json', 'utf8')) as {
+        devDependencies: Record<string, string>;
+      }
+    ).devDependencies['@stryker-mutator/core'];
+    expect(found).toContain(`@stryker-mutator/core@${core}`);
     expect(found.some((v) => v.startsWith('vitest@'))).toBe(true);
     expect(found.some((v) => v.startsWith('typescript@'))).toBe(true);
     expect(found.every((v) => !v.includes('('))).toBe(true);
@@ -229,7 +234,7 @@ describe('mutation changes: the test tool chain', () => {
 describe('mutation changes: the diff', () => {
   it('skips a change of dependencies and the Dockerfile', () => {
     const git = fakeGit({
-      [diff]: 'Dockerfile\npackage.json\npnpm-lock.yaml\n',
+      [diff]: 'Dockerfile\0package.json\0pnpm-lock.yaml\0',
       'show base:pnpm-lock.yaml': LOCK,
       'show head:pnpm-lock.yaml': LOCK.replace(
         'packages:\n',
@@ -242,7 +247,7 @@ describe('mutation changes: the diff', () => {
   it('lists every reason: files and the tool chain', () => {
     const git = fakeGit({
       [diff]:
-        'README.md\nsrc/core/economy.ts\nsrc/old.test.ts\npnpm-lock.yaml\n',
+        'README.md\0src/core/economy.ts\0src/old.test.ts\0pnpm-lock.yaml\0',
       'show base:pnpm-lock.yaml': LOCK,
       'show head:pnpm-lock.yaml': LOCK.replace(
         "'@stryker-mutator/core@10.1.1'",
@@ -256,8 +261,15 @@ describe('mutation changes: the diff', () => {
     ]);
   });
 
+  it('reads paths with unusual characters unquoted (NUL-delimited)', () => {
+    const git = fakeGit({ [diff]: 'src/test/\u00e4 b.ts\0' });
+    expect(reasons('base', 'head', mutate, git)).toEqual([
+      'src/test/\u00e4 b.ts is a test file',
+    ]);
+  });
+
   it('reads the lockfiles only when the lockfile changed', () => {
-    const git = fakeGit({ [diff]: 'src/client/views/Galaxy.svelte\n' });
+    const git = fakeGit({ [diff]: 'src/client/views/Galaxy.svelte\0' });
     expect(reasons('base', 'head', mutate, git)).toEqual([]);
     expect(reasons('base', 'head', mutate, fakeGit({ [diff]: '' }))).toEqual(
       [],
@@ -266,7 +278,7 @@ describe('mutation changes: the diff', () => {
 
   it('takes a lockfile missing before the change as empty', () => {
     const git = fakeGit({
-      [diff]: 'pnpm-lock.yaml\n',
+      [diff]: 'pnpm-lock.yaml\0',
       'show head:pnpm-lock.yaml': LOCK,
     });
     expect(reasons('base', 'head', mutate, git)).toHaveLength(1);
@@ -274,7 +286,7 @@ describe('mutation changes: the diff', () => {
 
   it('fails when git fails', () => {
     expect(() => reasons('base', 'head', mutate, fakeGit({}))).toThrow(
-      'git diff --name-only --no-renames base head',
+      'git diff --name-only -z --no-renames base head',
     );
   });
 });
@@ -290,7 +302,7 @@ describe('mutation changes: the command', () => {
 
   it('prints true and the reasons when the jobs run', () => {
     const { log, error } = output();
-    const git = fakeGit({ [diff]: 'src/core/economy.ts\nvitest.config.ts\n' });
+    const git = fakeGit({ [diff]: 'src/core/economy.ts\0vitest.config.ts\0' });
     expect(main(['base', 'head'], git)).toBe(0);
     expect(log.mock.calls).toEqual([['true']]);
     expect(error.mock.calls).toEqual([
@@ -304,7 +316,7 @@ describe('mutation changes: the command', () => {
   it('prints false when nothing of the mutation run changed', () => {
     const { log, error } = output();
     const git = fakeGit({
-      'diff --name-only --no-renames base HEAD': 'Dockerfile\n',
+      'diff --name-only -z --no-renames base HEAD': 'Dockerfile\0',
     });
     expect(main(['base'], git)).toBe(0);
     expect(log.mock.calls).toEqual([['false']]);

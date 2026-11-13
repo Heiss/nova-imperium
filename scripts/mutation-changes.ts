@@ -128,10 +128,16 @@ export function reasons(
   mutate: readonly string[],
   git: (args: string[]) => string,
 ): string[] {
-  // Without rename detection a moved file shows its old and new path.
-  const files = git(['diff', '--name-only', '--no-renames', from, to]).split(
-    '\n',
-  );
+  // Without rename detection a moved file shows its old and new path; -z
+  // keeps paths with unusual characters unquoted.
+  const files = git([
+    'diff',
+    '--name-only',
+    '-z',
+    '--no-renames',
+    from,
+    to,
+  ]).split('\0');
   const found = files.flatMap((f) => reason(f, mutate) ?? []);
   if (files.includes(LOCKFILE)) {
     const show = (rev: string): string => {

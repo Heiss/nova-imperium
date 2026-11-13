@@ -74,7 +74,8 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   existing tables or data; see [SQLite storage](/data/sqlite.md).
 * **[E]** Mutation tests with Stryker, a total score below 80 % blocks;
   incremental on pull requests (only those that change what they test,
-  #146) and on pushes to `main` (unchanged code keeps its cached result),
+  #146; the release pull request of `main` keeps its complete run) and on
+  pushes to `main` (unchanged code keeps its cached result),
   complete every night (owner, 2026-11-11). Tag workflows verify the
   earlier CI result.
 * **[E]** Mutation runs are sharded into 6 parallel jobs everywhere (owner,
@@ -109,9 +110,11 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   suite with the mutation run on every push; that also keeps the shard
   caches and the weights current. The release pull request of a hotfix
   branch changes only `CHANGELOG.md`, `VERSION` and `changes/`, so it
-  compares with the release tag the hotfix branch starts from: a hotfix
-  with code in `src/` runs the mutation jobs, one with only dependency or
-  `Dockerfile` changes does not. When no release tag lies below the base
+  compares with the release tag the hotfix branch starts from, with the
+  same rules as above: a hotfix that changes a mutated file, a test or the
+  mutation configuration runs the mutation jobs, and so does one whose
+  lockfile changes a version of the test tool chain; other dependency or
+  `Dockerfile` changes do not. When no release tag lies below the base
   of such a release pull request, „Detect changes“ fails, as the
   migration check does (owner, 2026-11-13). The release pull request of
   `main` keeps its complete run; #147 decides about it. Risk: a change
