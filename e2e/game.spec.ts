@@ -1,11 +1,13 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import {
+  choosePlanet,
   cli,
   inviteLink,
   login,
   nav,
   register,
   seed,
+  stock,
   uniqueName,
   watch,
 } from './helpers.ts';
@@ -21,20 +23,6 @@ const seconds = (text: string): number =>
       sum + Number(n) * { T: 86400, h: 3600, m: 60, s: 1 }[unit!]!,
     0,
   );
-
-/** Selects an own planet by its name in the header. */
-async function choosePlanet(page: Page, name: string): Promise<void> {
-  const selector = page.getByLabel('Aktiver Planet');
-  const option = selector
-    .locator('option')
-    .filter({ hasText: new RegExp(`^${name} \\[`) });
-  await selector.selectOption((await option.getAttribute('value'))!);
-  await expect(page.locator('#pinfo b').first()).toHaveText(name);
-}
-
-/** The amount of a resource in the bar, as shown. */
-const stock = (page: Page, label: string) =>
-  page.locator('#resbar .res').filter({ hasText: label }).locator('.v');
 
 test('login stays near the header @phone', async ({ page }) => {
   await page.goto('/');
@@ -337,8 +325,26 @@ test('filters achievements and keeps tomorrow’s reward after claiming', async 
   });
   await expect(next).toBeVisible();
   const reward = await next.textContent();
+  const amount = async (label: string): Promise<number> =>
+    Number((await stock(page, label).textContent())!.replaceAll('.', ''));
+  const before = {
+    m: await amount('Adamant'),
+    c: await amount('Psikristall'),
+    d: await amount('Promethium'),
+  };
   await page.getByRole('button', { name: 'Tagesbelohnung abholen' }).click();
   await expect(page.getByText('Abgeholt', { exact: true })).toBeVisible();
+  // A new player claims on day 1 of the streak: dailyReward(1) is 30 Adamant,
+  // 15 Psikristall, 2 Promethium. The base income (100 Adamant and 50
+  // Psikristall an hour, no Promethium without a mine) may add one more unit
+  // to the bar between the two readings, so those two allow 1 more.
+  await expect
+    .poll(async () => (await amount('Promethium')) - before.d)
+    .toBe(2);
+  expect((await amount('Adamant')) - before.m).toBeGreaterThanOrEqual(30);
+  expect((await amount('Adamant')) - before.m).toBeLessThanOrEqual(31);
+  expect((await amount('Psikristall')) - before.c).toBeGreaterThanOrEqual(15);
+  expect((await amount('Psikristall')) - before.c).toBeLessThanOrEqual(16);
   await expect(next).toHaveText(reward!);
   await expect(badge).toHaveCount(0);
   await page.getByLabel('Kategorie', { exact: true }).selectOption('buildings');
