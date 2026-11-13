@@ -2,7 +2,7 @@
 
 ## 2026-11-12
 
-* **Update**: `src/shared/achievements.ts` has its own test of names, targets and rewards; its mutation score rises from 33.33 % (below its floor 35.18 % in a complete run after #127) to 100 % (see [Test strategy](/ops/testing.md)).
+* **Update**: `src/shared/achievements.ts` has its own test of names, targets and rewards; a complete run after #127 scored it 33.33 %, below its floor 35.18 %; with the test a complete local run scores 100 %. The floor stays 35.18 % until a complete CI run confirms the new score, because incremental runs keep cached results for unchanged mutants (see [Test strategy](/ops/testing.md)).
 * **Decision**: The owner confirmed the proposals of #129: fuel column, refusal and report texts, galaxy button, phone wrap, „–“ as return time (see [Deploy mission](/features/deploy.md)).
 * **Feature**: Deploy mission „Verlegung“ (#129): key `deploy`, only to another own planet; ships and cargo stay at the target (also above the storage limit) with half the burnt fuel rounded down, the fleet ends there; a recall brings everything back to the start, a lost target sends the fleet home; migration 13 stores the burnt fuel per fleet; a „Verlegung“ button in the galaxy (see [Deploy mission](/features/deploy.md)).
 * **Decision**: #129 clarified: deploy mission „Verlegung“ (classic „Stationieren“) to own planets, cargo and half the used fuel unloaded at the target, recall back to the start; in this release (see [Deploy mission](/features/deploy.md)).
