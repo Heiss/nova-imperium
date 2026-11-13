@@ -66,7 +66,31 @@ model of places (#119, O11) and fields (#51, [Planet fields](/features/fields.md
 * **[V]** Short and long texts, abbreviations and art of the three buildings
   and of the moon are proposed in the pull requests.
 
+# Mission „Mondbruch“ (#95)
+
+Issue #95, split off from #60 (owner, 2026-11-12); clarified 2026-11-13 with
+owiki.de „Mond“ (section Zerstörung, formula images). Built after the moons.
+
+* **[E]** Name „Mondbruch“ (classic „Zerstören“), grimdark style of #127
+  (owner, 2026-11-13).
+* **[E]** The fleet needs at least one Weltenbrecher; other ships fly along
+  and fight (owner, 2026-11-13). Only against a moon.
+* **[E]** The fleet first fights the fleet and defense of the moon; only
+  after a won battle (or an undefended moon) the rolls follow. Two
+  independent rolls (owiki.de, owner, 2026-11-13):
+  * moon destroyed with min(100, (100 − √d) · √n) %, d the diameter in km,
+    n the Weltenbrecher of the fleet;
+  * the Weltenbrecher of the fleet are lost with √d / 2 %; the other ships
+    stay.
+  Example: 4,000 km and one Weltenbrecher: 36.75 % and 31.6 %.
+* **[E]** No debris from a destroyed moon or from lost Weltenbrecher; fleets
+  flying to a destroyed moon land at its planet (owiki.de, owner,
+  2026-11-13).
+* **[E]** Reports (owner, 2026-11-13, proposal A): „Der Mond ist zerbrochen
+  (Chance x %).“, „Der Mond hält stand (Chance x %).“, „Die Weltenbrecher
+  wurden vom eigenen Schuss zerrissen (Chance y %).“; for the owner „Dein
+  Mond bei [g:s:p] wurde zerstört.“
+
 # Out of scope
 
-* Moon destruction (#95), Abfangraketen (#54), giving up or tearing down a
-  moon.
+* Abfangraketen (#54), giving up or tearing down a moon.

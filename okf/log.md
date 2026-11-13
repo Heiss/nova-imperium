@@ -3,6 +3,7 @@
 ## 2026-11-13
 
 * **Decision**: #53 clarified: moons from the whole Trümmerfeld (1 % per 100,000, at most 20 %), diameter by the owiki.de formula, fields without limit, Mondzitadelle, Auspex-Phalanx (classic simple scan) and Warp-Tor with modern levels, moons also by the admin, three pull requests in this release (see [Moons](/features/moons.md)).
+* **Decision**: #95 clarified: mission „Mondbruch“ with at least one Weltenbrecher and escort, the owiki.de formulas for destruction and loss after a won battle, only the Weltenbrecher are lost, no debris, report texts (see [Moons](/features/moons.md)).
 
 ## 2026-11-12
 
