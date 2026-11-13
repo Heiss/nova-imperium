@@ -1,5 +1,6 @@
 import { BUILD, DEF, RES, SHIPS, UNIT } from '../../core/catalog.ts';
 import { countUnits } from '../../core/flight.ts';
+import { text } from '../../core/text.ts';
 import type { Coords, Levels, Resources } from '../../core/types.ts';
 import { coords, dt, esc, fmt, resLine, techLine } from '../logic/format.ts';
 import { newestFirst } from '../logic/game.ts';
@@ -13,7 +14,7 @@ function unitTable(before: Levels, after: Levels, keys: string[]): string {
   const rows = ks.map((k) => {
     const b = before[k]!;
     const a = after[k] ?? 0;
-    return `<tr><td>${UNIT[k]?.n}</td><td class="n">${fmt(b)}</td><td class="n">${fmt(a)}</td><td class="n ${b - a > 0 ? 'bad' : ''}">${fmt(b - a)}</td></tr>`;
+    return `<tr><td>${text(k)?.n}</td><td class="n">${fmt(b)}</td><td class="n">${fmt(a)}</td><td class="n ${b - a > 0 ? 'bad' : ''}">${fmt(b - a)}</td></tr>`;
   });
   return `<table class="mini"><tr><th>Einheit</th><th class="n">vorher</th><th class="n">nachher</th><th class="n">Verlust</th></tr>${rows.join('')}</table>`;
 }
@@ -33,7 +34,7 @@ function battleBody(r: Report): string {
     ? `<div class="dim">Wiederhergestellte Verteidigung: ${Object.entries(
         rebuilt,
       )
-        .map(([k, n]) => `${fmt(n)} ${DEF[k]?.n}`)
+        .map(([k, n]) => `${fmt(n)} ${text(k)?.n}`)
         .join(', ')}</div>`
     : '';
   const lootLine =
@@ -44,13 +45,11 @@ function battleBody(r: Report): string {
   <p><b>${WINNER[String(r.winner)] ?? ''}</b>${lootLine}</p>`;
 }
 
-const NAMES: Record<string, { n: string }> = { ...UNIT, ...BUILD, ...RES };
-
 function section(title: string, o: unknown, keys: string[]): string {
   if (!o) return '';
   const list = keys
     .filter((k) => (lv(o)[k] ?? 0) > 0)
-    .map((k) => `${NAMES[k]?.n}: ${fmt(lv(o)[k])}`)
+    .map((k) => `${text(k)?.n}: ${fmt(lv(o)[k])}`)
     .join(' · ');
   return `<div class="mt"><b>${title}</b><br>${list || '<span class="dim">keine</span>'}</div>`;
 }

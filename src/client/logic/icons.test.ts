@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { BUILD, RES, UNIT } from '../../core/catalog.ts';
+import { text } from '../../core/text.ts';
 import { ICON_KEYS, iconURL, resourceIconURL } from './icons.ts';
 
 const STATIC = path.resolve(import.meta.dirname, '../static');
@@ -23,10 +24,9 @@ describe('icons', () => {
     }
   });
   it('names every picture like its entry for screen readers (#94)', () => {
-    const all = { ...BUILD, ...RES, ...UNIT };
     for (const k of ICON_KEYS) {
       const svg = readFileSync(path.join(STATIC, iconURL(k)!), 'utf8');
-      const n = all[k]!.n;
+      const n = text(k)!.n;
       expect(svg, k).toContain(`aria-label="${n}"`);
       expect(svg, k).toContain(`<title>${n}</title>`);
     }

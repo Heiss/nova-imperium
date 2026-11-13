@@ -23,6 +23,7 @@ import {
   networkLab,
 } from '../../core/research.ts';
 import { settle, settleR } from '../../core/settle.ts';
+import { text } from '../../core/text.ts';
 import {
   unitRoom,
   waitsForYard,
@@ -94,13 +95,14 @@ function checkEnergy(
   ctx: Ctx,
   p: Planet,
   r: ResearchState,
-  def: { n: string; energy?: { base: number; f: number } },
+  k: string,
+  def: { energy?: { base: number; f: number } },
   level: number,
 ): void {
   const short = energyShort(def, level, p, universe(ctx), r.research);
   if (short > 0)
     fail(
-      `Zu wenig Energie: ${def.n} braucht eine Energieproduktion von ${fmt(energyNeed(def, level))}, es fehlen ${fmt(short)}.`,
+      `Zu wenig Energie: ${text(k)!.n} braucht eine Energieproduktion von ${fmt(energyNeed(def, level))}, es fehlen ${fmt(short)}.`,
     );
 }
 
@@ -112,7 +114,7 @@ function checkBuild(ctx: Ctx, p: Planet, r: ResearchState, k: string): void {
   if (waitsForLab(r, k)) fail('Das Scholarium forscht gerade.');
   // Every building level takes a field (#51).
   if (fieldsFull(p, universe(ctx))) fail('Keine freien Felder.');
-  checkEnergy(ctx, p, r, BUILD[k]!, (p.b[k] ?? 0) + 1);
+  checkEnergy(ctx, p, r, k, BUILD[k]!, (p.b[k] ?? 0) + 1);
 }
 
 /**
@@ -189,7 +191,7 @@ export const research: Action = (ctx, u, d, event) => {
   const r = researchOf(ctx, u);
   const have = r.research[k] ?? 0;
   checkResearch(p, r, k);
-  checkEnergy(ctx, p, r, def, have + 1);
+  checkEnergy(ctx, p, r, k, def, have + 1);
   const lab = networkLab(
     k,
     labSite(p),
@@ -250,7 +252,7 @@ export const order: Action = (ctx, u, d, event) => {
   ctx.store.savePlanet(p);
   if (event) event.detail = { planet: p.id, key: k, units: n };
   scheduleShipyard(ctx, p);
-  return `${fmt(n)}× ${def.n} in Auftrag gegeben.`;
+  return `${fmt(n)}× ${text(k)!.n} in Auftrag gegeben.`;
 };
 
 export const pct: Action = (ctx, u, d) => {

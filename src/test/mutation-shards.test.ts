@@ -73,9 +73,13 @@ describe('mutation shards: the files', () => {
       expect(files).not.toContain(left);
     expect(files.filter((f) => f.startsWith('src/test/'))).toEqual([]);
     expect(files.filter((f) => f.startsWith('src/client/views/'))).toEqual([]);
-    // Display texts are not mutated (owner, 2026-11-12); the rules are.
+    // Display texts are not mutated (owner, 2026-11-12); the rules are. The
+    // texts of each entry are in its folder since #113 (owner, 2026-11-13).
     expect(files).not.toContain('src/core/texts.ts');
     expect(files).toContain('src/core/catalog.ts');
+    expect(files.filter((f) => f.endsWith('texts.de.ts'))).toEqual([]);
+    expect(files).toContain('src/core/text.ts');
+    expect(files).toContain('src/features/metal/entry.ts');
   });
 
   it('weighs a file by its mutants in the last report, else by its lines', () => {

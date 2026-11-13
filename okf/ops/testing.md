@@ -98,11 +98,17 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   the names, abbreviations, short and long texts of the catalog and the
   mission names live in `src/core/texts.ts`, which Stryker leaves out
   (`stryker.config.json`); it has no floor in `mutation-standard.json`.
+  Since #113 the texts of each catalog entry live in
+  `src/features/<key>/texts.de.ts`, which Stryker leaves out the same way
+  (owner, 2026-11-13); `src/core/texts.ts` keeps the mission names, and the
+  accessor `text(key)` (`src/core/text.ts`) is mutated.
   Each text was a static mutant that reloaded every test, most of the time
   of a run. Their exactness is guarded by the catalog, naming and
   explanation tests (`catalog.test.ts`, `src/test/naming.test.ts`,
-  `explain.test.ts`) and `src/core/texts.test.ts` (every catalog entry
-  has its texts, no text without an entry). Game values stay mutated in
+  `explain.test.ts`) and `src/core/text.test.ts` (#113: every catalog entry
+  has a name, an abbreviation and a short text, abbreviations are unique,
+  no text without an entry); `src/test/mutation-shards.test.ts` checks that
+  no text file is mutated. Game values stay mutated in
   `catalog.ts`, and since #114 in the `src/features/<key>/entry.ts` of
   each entry. See [Design patterns](/architecture/patterns.md).
 * **[E]** Contract tests per component (#114): each component under
@@ -275,8 +281,9 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   (`src/client/views`), the browser glue
   (`src/client/main.ts`) and the process entry points (`main.ts`, `cli.ts`).
   The E2E suite and the Compose job run them.
-* **[E]** Not mutated: the display texts in `src/core/texts.ts` (see the
-  decision above); they count for the coverage.
+* **[E]** Not mutated: the display texts in `src/core/texts.ts` and
+  `src/features/<key>/texts.de.ts` (see the decision above); they count
+  for the coverage.
 
 # Level at the introduction (2026-11-06)
 

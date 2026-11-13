@@ -1,5 +1,6 @@
 import { BUILD, DEF, RES, SHIPS } from './catalog.ts';
 import { lvlCost } from './economy.ts';
+import { text } from './text.ts';
 import type { Cost } from './types.ts';
 
 export const CATEGORIES = {
@@ -58,7 +59,7 @@ function levels(
     series(
       category,
       key,
-      (n) => `${def.n} auf Stufe ${n}`,
+      (n) => `${text(key)!.n} auf Stufe ${n}`,
       LEVELS,
       (n) => fraction(lvlCost(def, n), 0.05),
     ),
@@ -73,7 +74,7 @@ function units(
     series(
       category,
       key,
-      (n) => `${n}× ${def.n} besitzen`,
+      (n) => `${n}× ${text(key)!.n} besitzen`,
       UNITS,
       (n) => fraction(def.cost, n * 0.025),
     ),
