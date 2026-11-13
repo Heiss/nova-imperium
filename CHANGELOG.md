@@ -1,5 +1,25 @@
 # Neuigkeiten
 
+## Version 26.11.22 – 13.11.2026
+
+### Neu
+
+- Belagerungsbomber: neues Kriegsschiff in der Schiffsschmiede, stark gegen Raketenbatterien und Lichtlanzen. Er fliegt mit dem Plasma-Impulsantrieb, ab Warp-Antrieb 8 schneller mit dem Warp-Antrieb.
+- Ausführliche Erklärungstexte für Gebäude, Forschung, Schiffe und Verteidigung: Das (?) zeigt jetzt eine längere Erklärung, auch bei Schiffen und Verteidigungsanlagen.
+- Erklärungstexte: Ein (?) neben Gebäuden und Forschungen klappt eine Erklärung auf. Unter „Hilfe & Optionen“ wählst du „Immer anzeigen“, „Als (?)-Symbol“ oder „Ausblenden“. Gebäude zeigen jetzt auch ihre Kurzbeschreibung.
+- Neue Forschungen: Ionen-Lehre, Plasma-Lehre, Gravitonen-Mysterium und das Sternennetz der Gelehrten. Geforscht wird jetzt auf jedem deiner Planeten mit Scholarium, bezahlt auf diesem Planeten. Das Sternennetz verbindet weitere Scholarien und verkürzt so die Forschungszeit.
+- Fusionssanktum: erzeugt Energie aus Promethium, mit Machina-Energetik mehr. Seinen Anteil stellst du auf der Rohstoffseite ein. Ist kein Promethium mehr da, drosselt es sich selbst, sodass der Vorrat nie unter 0 fällt.
+- Problem melden: In „Hilfe & Optionen“ und bei jeder Fehlermeldung kannst du dem Admin beschreiben, was passiert ist. Fehler im Spiel werden 30 Tage gespeichert, damit der Admin sie finden und beheben kann.
+- Jagdkreuzer und Vernichter: zwei neue Kriegsschiffe in der Schiffsschmiede, beide mit Warp-Antrieb.
+- Sonnenreliquiar: wird in der Schiffsschmiede gebaut, fliegt nie und liefert Energie – je wärmer der Planet, desto mehr. Seinen Anteil stellst du auf der Rohstoffseite ein. Bei einem Angriff kämpft es mit und kann zerstört werden.
+- Weltenbrecher: das stärkste Schiff der Schiffsschmiede, nach dem Belagerungsbomber. Sehr teuer und sehr langsam, zerstört mit Schnellfeuer fast alles, und kein Schiff und keine Verteidigung hat Schnellfeuer gegen ihn. Braucht das Gravitonen-Mysterium.
+- Verlegung: ein neuer Flottenauftrag zu einem anderen eigenen Planeten. Schiffe und Ladung bleiben dort, dazu die Hälfte des verbrauchten Treibstoffs. Auf der Sternenkarte gibt es dafür einen eigenen Knopf.
+- Ionenlanze, Plasmabatterie, Kleiner und Großer Schutzdom: vier neue Anlagen in der Verteidigung. Jeden Schutzdom gibt es nur einmal pro Planet. Der Belagerungsbomber hat Schnellfeuer gegen die Ionenlanze.
+
+### Geändert
+
+- Neue, düstere Namen: Aus Metall, Kristall und Deuterium werden Adamant, Psikristall und Promethium; alle Gebäude, Forschungen, Schiffe, Verteidigungsanlagen und Aufträge tragen neue Namen, die Galaxie heißt jetzt Sternenkarte. Werte und Spielregeln bleiben gleich.
+
 ## Version 26.11.21 – 12.11.2026
 
 ### Behoben
