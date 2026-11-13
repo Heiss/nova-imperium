@@ -1,8 +1,8 @@
 // What the game logic needs from outside: the store, the clock, chance and ids.
 // Tests pass a fixed clock and a seeded generator.
 import { randomBytes } from 'node:crypto';
-import type { Rng } from '../../shared/battle.ts';
-import type { Coords, Resources, Universe } from '../../shared/types.ts';
+import type { Rng } from '../../core/battle.ts';
+import type { Coords, Resources, Universe } from '../../core/types.ts';
 import type { Report, Store } from '../db/store.ts';
 import { queuePush, type PushKind } from '../push-store.ts';
 

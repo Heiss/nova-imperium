@@ -16,7 +16,9 @@ RUN --mount=type=secret,id=ca,required=false \
     if [ -f /run/secrets/ca ]; then export NODE_EXTRA_CA_CERTS=/run/secrets/ca; fi; \
     pnpm install --frozen-lockfile
 
-# The client bundle, then only the production dependencies stay.
+# The client bundle, then only the production dependencies stay. pnpm build
+# first writes the feature index src/features/index.gen.ts (not checked in,
+# scripts/gen-features.ts); the image copies it with src/features.
 FROM deps AS build
 COPY . .
 # VERSION exists from the first release on; without it the server runs as
@@ -44,7 +46,8 @@ ENV NODE_ENV=production \
 COPY --from=build /app/package.json ./
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
-COPY --from=build /app/src/shared ./src/shared
+COPY --from=build /app/src/core ./src/core
+COPY --from=build /app/src/features ./src/features
 COPY --from=build /app/src/server ./src/server
 # „Neuigkeiten“ for the players and the running version (issue #81).
 COPY --from=build /app/CHANGELOG.md /app/VERSION ./

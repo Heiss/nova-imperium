@@ -26,7 +26,7 @@ they are (2026-11-12).
   labs are added and count as one lab for the research time. Example: labs 10
   and 6 research Schildtechnik like lab 16, Hyperraumantrieb (needs lab 7)
   like lab 10 (owiki.de, owner, 2026-11-12).
-* **[E]** The lab lock stays (`src/shared/lab.ts`): no lab is upgraded while
+* **[E]** The lab lock stays (`src/core/lab.ts`): no lab is upgraded while
   research runs, and research does not start on a planet whose lab is being
   upgraded.
 * **[U]** Whether a lab that is being upgraded on another planet joins the
@@ -45,7 +45,7 @@ they are (2026-11-12).
   (owner, 2026-11-12).
 * **[E]** Gravitonforschung: no metal, crystal or deuterium; 300,000 energy
   at level 1, ×3 per level. Requires Forschungslabor 12. Research time one
-  second (`MIN_TIME` in `src/shared/economy.ts`). Prerequisite of the
+  second (`MIN_TIME` in `src/core/economy.ts`). Prerequisite of the
   Todesstern (#60) (owner, 2026-11-12).
 * **[E]** Energy check, classic (#60 D2 = 1): the research starts only when
   the planet's energy production is at least 300,000 · 3^(level − 1). The
@@ -62,7 +62,7 @@ they are (2026-11-12).
 # Code, interface and tests
 
 * **[V]** Keys and abbreviations: `ion` (Io), `plasma` (Pl), `graviton` (Gr),
-  `ifn` (IF) in `RES` (`src/shared/catalog.ts`); no other entry uses these
+  `ifn` (IF) in `RES` (`src/core/catalog.ts`); no other entry uses these
   abbreviations (test in `catalog.test.ts`).
 * **[V]** German descriptions, for the owner to check in the pull request:
   Ionentechnik „Beschleunigte Ionen – Basis für Ionenwaffen.“, Plasmatechnik
@@ -71,13 +71,13 @@ they are (2026-11-12).
   „Vernetzt pro Stufe ein weiteres Forschungslabor deiner Planeten.“
 * **[V]** The energy requirement is the optional field `energy: { base, f }`
   of `ResearchDef` (Gravitonforschung: 300,000, factor 3). `energyNeed` and
-  `energyShort` in `src/shared/research.ts` compare it with
+  `energyShort` in `src/core/research.ts` compare it with
   `prod().eProd` of the starting planet, rounded up. Server refusal: „Zu
   wenig Energie: Gravitonforschung braucht eine Energieproduktion von
   300.000, es fehlen …“. The research time is the minimum of one second
   because the resource cost is 0.
 * **[V]** The research network is one pure function, `networkLab` in
-  `src/shared/research.ts`, used by the action `research` and by the
+  `src/core/research.ts`, used by the action `research` and by the
   research view; `labSite` describes a planet for it (lab level, lab being
   upgraded). The state of the game carries `labs`, the lab of every own
   planet moved to the time of the request; it replaces `home` (the home
@@ -104,7 +104,7 @@ they are (2026-11-12).
 * Like every research, the four get the level achievements automatically;
   those of Gravitonforschung reward nothing, because it costs no resources
   and the reward is 5 % of the level cost.
-* Tests: `src/shared/research.test.ts`, `requirements.test.ts`,
+* Tests: `src/core/research.test.ts`, `requirements.test.ts`,
   `catalog.test.ts`, `src/server/game/actions.test.ts`,
   `src/server/game/fleet.test.ts` (state), `src/client/logic/game.test.ts`,
   `migration-11.test.ts`; E2E „from a colony the lab is built on the colony

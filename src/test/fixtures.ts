@@ -1,6 +1,6 @@
 // Builders for test data. Not part of the measured code.
-import { DEFAULT_UNIVERSE } from '../shared/universe.ts';
-import type { Planet, Universe } from '../shared/types.ts';
+import { DEFAULT_UNIVERSE } from '../core/universe.ts';
+import type { Planet, Universe } from '../core/types.ts';
 
 export const U: Universe = { ...DEFAULT_UNIVERSE };
 

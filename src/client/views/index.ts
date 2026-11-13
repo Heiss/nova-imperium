@@ -1,4 +1,4 @@
-import type { RoundRules } from '../../shared/achievements.ts';
+import type { RoundRules } from '../../core/achievements.ts';
 import { achievements } from './achievements.ts';
 import type { V } from './common.ts';
 import { research, resources } from './economy.ts';

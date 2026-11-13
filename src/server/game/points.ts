@@ -1,9 +1,9 @@
 // Points: 1 point per 1,000 resources in buildings, research, ships and defense.
-import { BUILD, RES, SHIPS, UNIT } from '../../shared/catalog.ts';
-import { sumLevels } from '../../shared/economy.ts';
-import { isProtected as protects } from '../../shared/protection.ts';
-import { settle, settleR } from '../../shared/settle.ts';
-import type { Levels } from '../../shared/types.ts';
+import { BUILD, RES, SHIPS, UNIT } from '../../core/catalog.ts';
+import { sumLevels } from '../../core/economy.ts';
+import { isProtected as protects } from '../../core/protection.ts';
+import { settle, settleR } from '../../core/settle.ts';
+import type { Levels } from '../../core/types.ts';
 import { type Ctx, universe } from './context.ts';
 
 const unitValue = (units: Levels, defs: typeof UNIT): number => {

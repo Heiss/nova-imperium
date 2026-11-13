@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { fieldsOf } from '../../shared/fields.ts';
-import { settle } from '../../shared/settle.ts';
+import { fieldsOf } from '../../core/fields.ts';
+import { settle } from '../../core/settle.ts';
 import { type TestCtx, addPlanet, addUser, testCtx } from '../test-helpers.ts';
 import { recall, send } from './fleet-actions.ts';
 import { tick } from './arrival.ts';

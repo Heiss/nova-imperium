@@ -12,7 +12,7 @@ generated: { by: claude-code/web, at: 2026-11-10T21:00:00Z }
 * **[E]** Gebäude, Forschung, Schiffswerft and Verteidigung list all unmet
   requirements of an entry under „Benötigt:“, one per line, indirect ones
   included, flat and without duplicates; the highest required level wins
-  (D1). Code: `src/shared/requirements.ts`, `src/client/views/common.ts`.
+  (D1). Code: `src/core/requirements.ts`, `src/client/views/common.ts`.
 * **[E]** An entry shows „Name – Stufe N (aktuell M)“; an indirect one adds
   „für …“ (the first requirement that needs it).
 * **[E]** „Sofort startbar“: the next level has its own requirements met and
@@ -39,4 +39,4 @@ generated: { by: claude-code/web, at: 2026-11-10T21:00:00Z }
   reasons of the list (owner, 2026-11-13; see [Planet fields](/features/fields.md)).
 * **[E]** No confirmation dialog: cancelling refunds the full cost.
 * **[E]** The catalog has no circular requirements (test in
-  `src/shared/requirements.test.ts`).
+  `src/core/requirements.test.ts`).

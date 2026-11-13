@@ -38,8 +38,9 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   text and reviews it against the pull request; the release pull request
   checks it again. The CI check „Changelog fragments“
   (`scripts/changelog.ts check`) requires a fragment when a pull request
-  changes `src/client`, `src/shared` or `src/server/game`, unless it carries
-  the label `kein-changelog`, and checks the form of every fragment.
+  changes `src/client`, `src/core`, `src/features` or `src/server/game`,
+  unless it carries the label `kein-changelog`, and checks the form of
+  every fragment.
 * **[E]** A pull request that extends a feature of the coming release whose
   fragment is still in `changes/` changes that fragment instead of adding
   one; the text check of the release pull request looks for two entries

@@ -3,9 +3,9 @@ import {
   dailyReward,
   type AchievementState,
   type RoundRules,
-} from '../../shared/achievements.ts';
-import { settle, settleR } from '../../shared/settle.ts';
-import type { Cost, Levels, Planet } from '../../shared/types.ts';
+} from '../../core/achievements.ts';
+import { settle, settleR } from '../../core/settle.ts';
+import type { Cost, Levels, Planet } from '../../core/types.ts';
 import type { User } from '../db/store.ts';
 import type { Action } from './actions.ts';
 import { fail, universe, type Ctx } from './context.ts';

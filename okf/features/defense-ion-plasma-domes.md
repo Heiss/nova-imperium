@@ -40,14 +40,14 @@ Not in version 1. Missiles are #54.
 
 * Catalog: `DEF.ionc` (Ionengeschütz), `DEF.pt` (Plasmawerfer), `DEF.ssd`
   (Kleine Schildkuppel) and `DEF.lsd` (Große Schildkuppel) in
-  `src/shared/catalog.ts`, after the Gaußkanone. Hull, shield and attack come
-  from `buildSide()` in `src/shared/battle.ts` (hull 800, 10,000, 2,000 and
+  `src/core/catalog.ts`, after the Gaußkanone. Hull, shield and attack come
+  from `buildSide()` in `src/core/battle.ts` (hull 800, 10,000, 2,000 and
   10,000 before Raumschiffpanzerung); bounce below 1 % of the shield and the
   explosion below 70 % hull are unchanged. Only the Bomber and the
   Todesstern have rapid fire against them: `SHIPS.bb.rf.ionc` 10,
   `SHIPS.dstar.rf.ionc` 100 (#60); otherwise `rapid()` gives 1 both ways.
 * Once per planet: the domes carry `once: true` (`DefenseDef`).
-  `unitRoom()` in `src/shared/yard.ts` counts the planet's dome and the units
+  `unitRoom()` in `src/core/yard.ts` counts the planet's dome and the units
   of it in the shipyard queue; `orderMax()` is the smaller of that room and
   what the planet can pay. The action `order` (`src/server/game/actions.ts`)
   refuses an order larger than the room before it looks at the resources, so
@@ -59,7 +59,7 @@ Not in version 1. Missiles are #54.
   dome built or queued sees „(max 0)“ and a disabled button; the number field
   has `max="1"`.
 * Points: the cost counts like for every unit (`src/server/game/points.ts`);
-  achievements per defense come automatically (`src/shared/achievements.ts`).
+  achievements per defense come automatically (`src/core/achievements.ts`).
 * **[V]** Keys `ionc`, `pt`, `ssd`, `lsd` (the research keys `ion` and
   `plasma` are taken); abbreviations `IG`, `PW`, `KSK`, `GSK` (unique among
   all `ab` values; `KS` and `GK` are taken).
@@ -74,7 +74,7 @@ Not in version 1. Missiles are #54.
 * Icons `ion_cannon.svg`, `plasma_turret.svg`, `small_shield_dome.svg` and
   `large_shield_dome.svg` from the interface v2 set in
   `src/client/static/icons/defense/`, mapped in `src/client/logic/icons.ts`.
-* Tests: `src/shared/catalog.test.ts` (values, version 1 equivalence with the
+* Tests: `src/core/catalog.test.ts` (values, version 1 equivalence with the
   new keys added like `colony`, unique abbreviations), `economy.test.ts`
   (`reqMissing`), `battle.test.ts` (hull, tech bonus, no rapid fire, bounce,
   explosion, two battles), `yard.test.ts` (`unitRoom`, `orderMax`),

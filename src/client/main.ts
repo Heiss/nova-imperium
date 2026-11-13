@@ -1,11 +1,11 @@
 // The browser glue: state, server calls, rendering, events and the clock.
 // The views are pure functions (views/), the logic is tested (logic/); this
 // file is run by the E2E suite.
-import { BUILD, RES } from '../shared/catalog.ts';
-import { pid } from '../shared/flight.ts';
-import { settle, settleR } from '../shared/settle.ts';
-import { orderMax, yardLockedBy } from '../shared/yard.ts';
-import type { Levels, Planet, Queue } from '../shared/types.ts';
+import { BUILD, RES } from '../core/catalog.ts';
+import { pid } from '../core/flight.ts';
+import { settle, settleR } from '../core/settle.ts';
+import { orderMax, yardLockedBy } from '../core/yard.ts';
+import type { Levels, Planet, Queue } from '../core/types.ts';
 import { clampInt, coords, dt, dur, esc, fmt } from './logic/format.ts';
 import {
   apiFailure,
@@ -36,7 +36,7 @@ import {
 } from './logic/news.ts';
 import { ANIMATION_KEY, animationsOn } from './logic/planet.ts';
 import type { GameState } from './logic/types.ts';
-import { afford, caps, lvlCost, production } from '../shared/economy.ts';
+import { afford, caps, lvlCost, production } from '../core/economy.ts';
 import type { Ui, V } from './views/common.ts';
 import {
   menu,

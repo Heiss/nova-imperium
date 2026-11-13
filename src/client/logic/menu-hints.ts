@@ -1,6 +1,6 @@
-import { ACHIEVEMENTS } from '../../shared/achievements.ts';
-import { isShip } from '../../shared/catalog.ts';
-import type { Planet } from '../../shared/types.ts';
+import { ACHIEVEMENTS } from '../../core/achievements.ts';
+import { isShip } from '../../core/catalog.ts';
+import type { Planet } from '../../core/types.ts';
 import type { GameState } from './types.ts';
 
 export function finishedYardOrders(planet: Planet, now: number): Set<string> {

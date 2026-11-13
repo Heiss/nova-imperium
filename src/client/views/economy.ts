@@ -1,4 +1,4 @@
-import { BUILD, RES, type ResearchDef, UNIT } from '../../shared/catalog.ts';
+import { BUILD, RES, type ResearchDef, UNIT } from '../../core/catalog.ts';
 import {
   afford,
   caps,
@@ -10,13 +10,13 @@ import {
   reqMissing,
   researchTime,
   satPower,
-} from '../../shared/economy.ts';
+} from '../../core/economy.ts';
 import {
   energyNeed,
   energyShort,
   labSite,
   networkLab,
-} from '../../shared/research.ts';
+} from '../../core/research.ts';
 import { dur, esc, fmt } from '../logic/format.ts';
 import { researchState } from '../logic/game.ts';
 import { cd, costHTML, itemHTML, requirementsHTML, type V } from './common.ts';

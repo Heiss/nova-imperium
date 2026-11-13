@@ -1,4 +1,4 @@
-import { BUILD, MISSION, RES, SHIPS, UNIT } from '../../shared/catalog.ts';
+import { BUILD, MISSION, RES, SHIPS, UNIT } from '../../core/catalog.ts';
 import { diameterLine } from '../logic/fields.ts';
 import { coords, dt, esc, fmt } from '../logic/format.ts';
 import { fleetEnd, nameOf, ranks, sortFleets } from '../logic/game.ts';

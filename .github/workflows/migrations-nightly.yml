@@ -3,7 +3,7 @@ name: Migration upgrade tests (nightly)
 # The property-based upgrade tests of every migration with a random seed and
 # 1000 generated databases each. Pull requests run 100 with a fixed seed. A
 # failure prints the seed; reproduce it locally with
-#   MIGRATION_SEED=<seed> pnpm vitest run src/server/db/migrations.property.test.ts
+#   MIGRATION_SEED=<seed> pnpm test src/server/db/migrations.property.test.ts
 on:
   schedule:
     - cron: '41 3 * * *'
@@ -26,7 +26,8 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm vitest run src/server/db/migrations.property.test.ts
+      # pnpm test writes the feature index first (scripts/gen-features.ts).
+      - run: pnpm test src/server/db/migrations.property.test.ts
         env:
           MIGRATION_SEED: random
           MIGRATION_RUNS: '1000'

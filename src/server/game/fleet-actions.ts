@@ -1,5 +1,5 @@
 // Sending and recalling fleets.
-import { MISSION, canFly, isShip } from '../../shared/catalog.ts';
+import { MISSION, canFly, isShip } from '../../core/catalog.ts';
 import {
   capacity,
   countUnits,
@@ -9,7 +9,7 @@ import {
   flightMs,
   fuelFor,
   pid,
-} from '../../shared/flight.ts';
+} from '../../core/flight.ts';
 import type {
   Coords,
   Fleet,
@@ -17,7 +17,7 @@ import type {
   Mission,
   Planet,
   Resources,
-} from '../../shared/types.ts';
+} from '../../core/types.ts';
 import type { AuditEntry } from '../audit.ts';
 import type { User } from '../db/store.ts';
 import { type Action, type Data, mine, researchOf } from './actions.ts';

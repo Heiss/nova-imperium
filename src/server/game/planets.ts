@@ -1,9 +1,9 @@
 // Places a new home planet: a random free position 4 to 12 in the wished
 // galaxy, otherwise the first free position of the universe. A home planet
 // has 163 fields, a colony a random number in the range of its position (#51).
-import { colonyDiameter, HOME_DIAMETER } from '../../shared/fields.ts';
-import { pid } from '../../shared/flight.ts';
-import type { Coords, Planet, Resources } from '../../shared/types.ts';
+import { colonyDiameter, HOME_DIAMETER } from '../../core/fields.ts';
+import { pid } from '../../core/flight.ts';
+import type { Coords, Planet, Resources } from '../../core/types.ts';
 import { type Ctx, fail, universe } from './context.ts';
 
 const TRIES = 300;

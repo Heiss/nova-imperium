@@ -13,19 +13,28 @@ NOVA_PUBLIC_URL=http://localhost:8080 pnpm cli invite me@example.org
 The server runs TypeScript directly (Node type stripping); only the browser
 client is bundled with Vite. The building view is a Svelte component.
 
+Without a bundler there is no glob import, so `scripts/gen-features.ts`
+writes the index of the feature folders, `src/features/index.gen.ts`, which
+is not checked in. The scripts of `package.json` (`start`, `cli`, `build`,
+`typecheck`, `test`, `test:coverage`, `test:mutation`, `lint:dead`,
+`lint:deps`, `check`), the E2E server start and the Docker build write it
+first. After a fresh clone or a new feature folder, run
+`node scripts/gen-features.ts` once to bring an editor up to date.
+
 ## Layout
 
-| Folder        | Content                                                                        |
-| ------------- | ------------------------------------------------------------------------------ |
-| `src/shared`  | The rules of the game, used by server and browser                              |
-| `src/server`  | HTTP server, SQLite store, game actions, accounts, mail, CLI                   |
-| `src/client`  | Browser client: `logic/` (tested), `views/` (HTML templates), `main.ts` (glue) |
-| `src/test`    | Test fixtures and the frozen version 1 (`legacy/`) for the equivalence tests   |
-| `e2e`         | Playwright suite against the real server                                       |
-| `docker`      | Caddyfile, init and smoke scripts, the `nova` command                          |
-| `scripts`     | Release script; `planet-textures.ts` writes `src/client/static/planets/`       |
-| `docs/design` | Design draft of interface v2 with the full icon set (not used by the game)     |
-| `okf`         | Decisions and their history (OKF bundle)                                       |
+| Folder         | Content                                                                        |
+| -------------- | ------------------------------------------------------------------------------ |
+| `src/core`     | The rules of the game, used by server and browser                              |
+| `src/features` | One folder per catalog entry and per mission (`missions/`); index generated    |
+| `src/server`   | HTTP server, SQLite store, game actions, accounts, mail, CLI                   |
+| `src/client`   | Browser client: `logic/` (tested), `views/` (HTML templates), `main.ts` (glue) |
+| `src/test`     | Test fixtures and the frozen version 1 (`legacy/`) for the equivalence tests   |
+| `e2e`          | Playwright suite against the real server                                       |
+| `docker`       | Caddyfile, init and smoke scripts, the `nova` command                          |
+| `scripts`      | Release script; `planet-textures.ts` writes `src/client/static/planets/`       |
+| `docs/design`  | Design draft of interface v2 with the full icon set (not used by the game)     |
+| `okf`          | Decisions and their history (OKF bundle)                                       |
 
 ## Checks
 
@@ -50,13 +59,13 @@ node scripts/changelog.ts check origin/main             # a German changelog fra
 
 A schema change is a new migration at the end of `src/server/db/schema.ts`;
 a released migration is never moved, removed or changed. Update the schema
-snapshot with `pnpm vitest run src/server/db/schema.test.ts -u` and review
+snapshot with `pnpm test src/server/db/schema.test.ts -u` and review
 its diff.
 
 A migration that changes existing tables or data needs its own test
 `src/server/db/upgrades/migration-<n>.test.ts`; the property-based upgrade
 test tells which ones. Reproduce a nightly failure with
-`MIGRATION_SEED=<seed> pnpm vitest run src/server/db/migrations.property.test.ts`.
+`MIGRATION_SEED=<seed> pnpm test src/server/db/migrations.property.test.ts`.
 
 Write the test first. Tests check behavior, not markup; no test is skipped or
 disabled to make the CI green. Details: `okf/ops/testing.md`.

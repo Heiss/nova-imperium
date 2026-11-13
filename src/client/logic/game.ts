@@ -7,10 +7,10 @@ import {
   fleetSpeed,
   flightMs,
   fuelFor,
-} from '../../shared/flight.ts';
-import { labUpgrading, waitsForLab } from '../../shared/lab.ts';
-import { isProtected as protects } from '../../shared/protection.ts';
-import { waitsForYard } from '../../shared/yard.ts';
+} from '../../core/flight.ts';
+import { labUpgrading, waitsForLab } from '../../core/lab.ts';
+import { isProtected as protects } from '../../core/protection.ts';
+import { waitsForYard } from '../../core/yard.ts';
 import type {
   Coords,
   Levels,
@@ -18,7 +18,7 @@ import type {
   ResearchState,
   Resources,
   Universe,
-} from '../../shared/types.ts';
+} from '../../core/types.ts';
 import type { ClientFleet, Players, Report } from './types.ts';
 
 export function ranks(players: Players): Record<string, number> {

@@ -27,7 +27,12 @@ const CHANGELOG = 'CHANGELOG.md';
 const VERSION = 'VERSION';
 export const SKIP_LABEL = 'kein-changelog';
 /** Paths whose changes players can notice; they need a fragment. */
-const PLAYER_PATHS = ['src/client/', 'src/shared/', 'src/server/game/'];
+const PLAYER_PATHS = [
+  'src/client/',
+  'src/core/',
+  'src/features/',
+  'src/server/game/',
+];
 const TITLE = '# Neuigkeiten';
 
 export interface Fragment {

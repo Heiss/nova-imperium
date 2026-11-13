@@ -1,11 +1,8 @@
-import type {
-  AchievementState,
-  RoundRules,
-} from '../../shared/achievements.ts';
+import type { AchievementState, RoundRules } from '../../core/achievements.ts';
 // The state the server sends (GET /api/state).
-import type { LabSite } from '../../shared/research.ts';
-import type { ExplainMode } from '../../shared/explain.ts';
-import type { UniverseSpec } from '../../shared/universe.ts';
+import type { LabSite } from '../../core/research.ts';
+import type { ExplainMode } from '../../core/explain.ts';
+import type { UniverseSpec } from '../../core/universe.ts';
 import type {
   Coords,
   Fleet,
@@ -13,7 +10,7 @@ import type {
   Planet,
   ResearchQueue,
   Universe,
-} from '../../shared/types.ts';
+} from '../../core/types.ts';
 
 interface Me {
   id: string;

@@ -10,22 +10,22 @@
     "node": ">=22.18"
   },
   "scripts": {
-    "start": "node src/server/main.ts",
-    "cli": "node src/server/cli.ts",
-    "build": "vite build",
+    "start": "node scripts/gen-features.ts && node src/server/main.ts",
+    "cli": "node scripts/gen-features.ts && node src/server/cli.ts",
+    "build": "node scripts/gen-features.ts && vite build",
     "lint": "eslint .",
-    "lint:dead": "knip --no-progress",
+    "lint:dead": "node scripts/gen-features.ts && knip --no-progress",
     "lint:dupes": "jscpd src scripts .github/scripts",
-    "lint:deps": "depcruise src e2e scripts --config .dependency-cruiser.cjs --output-type err",
+    "lint:deps": "node scripts/gen-features.ts && depcruise src e2e scripts --config .dependency-cruiser.cjs --output-type err",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "typecheck": "svelte-check --tsconfig ./tsconfig.json",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage",
-    "test:mutation": "MIGRATION_RUNS=10 stryker run",
+    "typecheck": "node scripts/gen-features.ts && svelte-check --tsconfig ./tsconfig.json",
+    "test": "node scripts/gen-features.ts && vitest run",
+    "test:watch": "node scripts/gen-features.ts && vitest",
+    "test:coverage": "node scripts/gen-features.ts && vitest run --coverage",
+    "test:mutation": "node scripts/gen-features.ts && MIGRATION_RUNS=10 stryker run",
     "test:e2e": "playwright test",
-    "check": "pnpm lint && pnpm lint:dead && pnpm lint:dupes && pnpm lint:deps && pnpm format:check && pnpm typecheck && pnpm test:coverage && pnpm build"
+    "check": "node scripts/gen-features.ts && pnpm lint && pnpm lint:dead && pnpm lint:dupes && pnpm lint:deps && pnpm format:check && pnpm typecheck && pnpm test:coverage && pnpm build"
   },
   "dependencies": {
     "@simplewebauthn/browser": "14.0.0",

@@ -11,17 +11,18 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 
 | Part | Folder | Role |
 |---|---|---|
-| Rules | `src/shared` | Catalog, costs, times, production, settling a planet to a point in time, flights, battle. Pure functions, used by server and browser. The universe settings are a parameter. |
+| Rules | `src/core` | Catalog, costs, times, production, settling a planet to a point in time, flights, battle. Pure functions, used by server and browser. The universe settings are a parameter. |
+| Features | `src/features` | One folder per catalog entry and per mission; the core reaches them only through the generated index `index.gen.ts` (#112, still empty; see [Design patterns](/architecture/patterns.md)). |
 | Store | `src/server/db` | SQLite through better-sqlite3: schema, migrations, mapping of the game objects to tables. |
 | Game | `src/server/game` | Actions of the players, fleet arrivals, points, the state a player sees, admin actions. Clock, chance and ids are injected. |
 | Accounts | `src/server/auth.ts` | Invitations, registration, login, sessions. |
 | HTTP | `src/server/http` | JSON API under `/api`, the client files, `/healthz`, security headers, rate limit. |
 | Mail | `src/server/mail.ts` | Invitation mails through nodemailer. |
 | Operator command | `src/server/commands.ts` | `nova admin|unadmin|admins|invite`. |
-| Client | `src/client` | `logic/` (tested functions), `views/` (HTML templates), `main.ts` (events, server calls, clock). Bundled by esbuild into `dist/public`. |
+| Client | `src/client` | `logic/` (tested functions), `views/` (HTML templates), `main.ts` (events, server calls, clock). Bundled by Vite into `dist/public`. |
 
 **[E]** A game rule that the server checks and the browser shows lives once,
-in `src/shared`, and both sides call it (owner, 2026-11-11): the shipyard
+in `src/core`, and both sides call it (owner, 2026-11-11): the shipyard
 lock (`yard.ts`), the lab lock (`lab.ts`), noob protection (`protection.ts`)
 and the fleet slots (`fleetSlots` in `flight.ts`). Messages stay with the
 caller; the rule does not.
@@ -57,4 +58,4 @@ them, are in [Design patterns](/architecture/patterns.md) (owner,
   is loaded from `prebuilds/`).
 * **[E]** `nodemailer`: SMTP for the invitations.
 * Development only: TypeScript, Vitest, Stryker, ESLint (with sonarjs),
-  Prettier, Playwright with axe, esbuild.
+  Prettier, Playwright with axe, Vite.

@@ -1,7 +1,7 @@
 // The fields of a planet as the interface shows them (#51): the overview
 // next to the diameter, the buildings page above the list.
-import { maxFields, usedFields } from '../../shared/fields.ts';
-import type { Planet, Universe } from '../../shared/types.ts';
+import { maxFields, usedFields } from '../../core/fields.ts';
+import type { Planet, Universe } from '../../core/types.ts';
 import { fmt } from './format.ts';
 
 type FieldPlanet = Pick<Planet, 'b' | 'diameter' | 'unlimited'>;

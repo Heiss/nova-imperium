@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_UNIVERSE } from '../../shared/universe.ts';
+import { DEFAULT_UNIVERSE } from '../../core/universe.ts';
 import { addPlanet, addUser, testCtx } from '../test-helpers.ts';
 import { migrate, openDatabase } from './database.ts';
 import { MIGRATIONS } from './schema.ts';

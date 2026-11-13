@@ -3,8 +3,8 @@ import {
   CATEGORIES,
   type Achievement,
   type AchievementState,
-} from '../../shared/achievements.ts';
-import type { Cost } from '../../shared/types.ts';
+} from '../../core/achievements.ts';
+import type { Cost } from '../../core/types.ts';
 import { esc, fmt } from '../logic/format.ts';
 import { box, type V } from './common.ts';
 

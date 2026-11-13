@@ -33,14 +33,14 @@ they are (2026-11-12).
   owner, 2026-11-12).
 * **[U]** The values are from the owner's comparison and the wiki (sources
   in #46); the owner took them over unchanged.
-* The code: key `sat`, abbreviation `SA` in `SHIPS` (`src/shared/catalog.ts`),
+* The code: key `sat`, abbreviation `SA` in `SHIPS` (`src/core/catalog.ts`),
   speed 0. `canFly()` keeps it out of the fleet view and the server refuses
   it („Solarsatelliten können nicht fliegen.“, `fleet-actions.ts`).
-  `satEnergy()` and `satPower()` in `src/shared/economy.ts` add its energy to
+  `satEnergy()` and `satPower()` in `src/core/economy.ts` add its energy to
   `prod()`; without satellites the result is the one of version 1. `PRODUCERS`
   has `sat`, so its share is set like the Solarkraftwerk's. `rapid()` gives
   every ship but the probe and the satellite 5 against probe and satellite.
-  `settle()` (`src/shared/settle.ts`) splits production when the shipyard
+  `settle()` (`src/core/settle.ts`) splits production when the shipyard
   finishes a satellite, so its energy counts from that moment; without
   satellites in the queue the split is the one of version 1. Debris only once
   #45 exists.

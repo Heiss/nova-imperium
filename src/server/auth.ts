@@ -6,7 +6,7 @@ import {
   scryptSync,
   timingSafeEqual,
 } from 'node:crypto';
-import { DEFAULT_EXPLAIN } from '../shared/explain.ts';
+import { DEFAULT_EXPLAIN } from '../core/explain.ts';
 import { type Config, MAX_PASSWORD, NUMBERS } from './config.ts';
 import type { Invitation, User } from './db/store.ts';
 import { type Ctx, fail, int, str } from './game/context.ts';
