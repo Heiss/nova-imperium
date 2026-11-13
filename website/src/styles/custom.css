@@ -1,0 +1,26 @@
+/* The OKF markers **[E]**, **[V]** and **[U]** as badges (lib/markdown.mjs).
+   Starlight swaps the -low and -high shades between dark and light mode. */
+.okf-marker {
+  display: inline-block;
+  padding: 0 0.35em;
+  border: 1px solid;
+  border-radius: 0.25em;
+  font-size: 0.8em;
+  font-family: var(--sl-font-mono);
+  line-height: 1.4;
+}
+.okf-marker-e {
+  color: var(--sl-color-green-high);
+  background: var(--sl-color-green-low);
+  border-color: var(--sl-color-green);
+}
+.okf-marker-v {
+  color: var(--sl-color-orange-high);
+  background: var(--sl-color-orange-low);
+  border-color: var(--sl-color-orange);
+}
+.okf-marker-u {
+  color: var(--sl-color-red-high);
+  background: var(--sl-color-red-low);
+  border-color: var(--sl-color-red);
+}

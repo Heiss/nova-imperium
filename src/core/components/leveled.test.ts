@@ -21,6 +21,13 @@ describe('leveled: contract for every entry that has it', () => {
     );
   });
 
+  it('gives every building its own factor and no research one (owner, #114)', () => {
+    for (const [key, e] of ENTRIES) {
+      if (e.kind === 'building') expect(e.leveled.f, key).toBeGreaterThan(1);
+      if (e.kind === 'research') expect('f' in e.leveled, key).toBe(false);
+    }
+  });
+
   it.each(LEVELED)(
     '%s: costs whole non-negative amounts that never fall, levels 1 to 60',
     (_, leveled) => {

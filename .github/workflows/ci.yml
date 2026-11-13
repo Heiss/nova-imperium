@@ -4,6 +4,7 @@ name: CI
 # their changes need: documentation only skips the code checks; the Docker
 # image, Trivy and the Compose stack with the upgrade test run when the image
 # can change, and always in a release pull request (owner, 2026-11-12).
+# The documentation website is built when its sources change (#144).
 # Only the gate job "CI Gate" is the required check of main.
 on:
   pull_request:
@@ -27,6 +28,7 @@ jobs:
     outputs:
       code: ${{ steps.diff.outputs.code }}
       image: ${{ steps.diff.outputs.image }}
+      site: ${{ steps.diff.outputs.site }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         if: github.event_name == 'pull_request'
@@ -42,20 +44,25 @@ jobs:
           HEAD_SHA: ${{ github.sha }}
         run: |
           if [ "$EVENT" = "push" ] || [ -z "$PR_BASE" ]; then
-            echo "code=true" >> "$GITHUB_OUTPUT"
-            echo "image=true" >> "$GITHUB_OUTPUT"
+            {
+              echo "code=true"
+              echo "image=true"
+              echo "site=true"
+            } >> "$GITHUB_OUTPUT"
             exit 0
           fi
           files=$(git diff --name-only "$PR_BASE" "$HEAD_SHA")
           code=false
           image=false
+          site=false
           # A release pull request and every pull request into a hotfix
           # branch run everything: they lead straight to a release.
-          case "$PR_HEAD_REF" in release/*) code=true; image=true ;; esac
-          case "$PR_BASE_REF" in hotfix/*) code=true; image=true ;; esac
+          case "$PR_HEAD_REF" in release/*) code=true; image=true; site=true ;; esac
+          case "$PR_BASE_REF" in hotfix/*) code=true; image=true; site=true ;; esac
           while IFS= read -r file; do
+            # The website (website/) is documentation: it has its own job.
             case "$file" in
-              okf/*|docs/*|changes/*) ;;
+              okf/*|docs/*|changes/*|website/*) ;;
               */*) code=true ;;
               *.md) ;;
               *) code=true ;;
@@ -66,9 +73,16 @@ jobs:
               src/server/db/*|src/server/main.ts|src/server/server.ts|src/server/config.ts|src/server/cli.ts|src/server/maintenance.ts) image=true ;;
               .github/workflows/ci.yml) image=true ;;
             esac
+            # What the documentation website is built from (okf/ops/website.md).
+            case "$file" in
+              okf/*|docs/*|website/*|.github/workflows/ci.yml|.github/workflows/pages.yml) site=true ;;
+            esac
           done <<< "$files"
-          echo "code=$code" >> "$GITHUB_OUTPUT"
-          echo "image=$image" >> "$GITHUB_OUTPUT"
+          {
+            echo "code=$code"
+            echo "image=$image"
+            echo "site=$site"
+          } >> "$GITHUB_OUTPUT"
 
   # Every pull request that changes the game brings a German changelog
   # fragment in changes/, or carries the label "kein-changelog"; all
@@ -142,10 +156,10 @@ jobs:
           path: playwright-report
           retention-days: 7
 
-  # Mutation tests in 6 parallel shards (owner, 2026-11-12 and 2026-11-13, #131). The plan
-  # splits the files Stryker mutates once for all shards, by their mutant
-  # count in the last merged report, else by their lines
-  # (scripts/mutation-shards.ts).
+  # Mutation tests in 6 parallel shards (owner, 2026-11-12 and 2026-11-13,
+  # #131). The plan splits the files Stryker mutates once for all shards, by
+  # the test time of their mutants in the last complete run, else in the last
+  # merged report, else by their lines (scripts/mutation-shards.ts).
   mutation-plan:
     name: Mutation plan
     needs: changes
@@ -488,6 +502,35 @@ jobs:
       - name: Findings of severity high or above block
         run: node .github/scripts/codeql-gate.mjs sarif
 
+  # The documentation website (okf/ops/website.md): website/ builds the
+  # pages of okf/ and docs/, and the build fails on every broken internal
+  # link (starlight-links-validator). pages.yml publishes it from main.
+  site:
+    name: Documentation website
+    needs: changes
+    if: needs.changes.outputs.site == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: website
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6
+        with:
+          package_json_file: website/package.json
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+          cache-dependency-path: website/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm format:check
+      - run: pnpm test
+      - name: Build, every internal link checked
+        run: pnpm build
+
   # The single required status check for main. Evaluate even when a job fails
   # or is skipped, and allow skips only when the workflow expects them.
   gate:
@@ -506,6 +549,7 @@ jobs:
         mutation-shard,
         mutation,
         compose,
+        site,
       ]
     if: always()
     runs-on: ubuntu-latest
@@ -526,6 +570,8 @@ jobs:
           MUTATION_SHARDS: ${{ needs.mutation-shard.result }}
           MUTATION: ${{ needs.mutation.result }}
           COMPOSE: ${{ needs.compose.result }}
+          SITE_SOURCES: ${{ needs.changes.outputs.site }}
+          SITE: ${{ needs.site.result }}
           EVENT: ${{ github.event_name }}
         run: |
           require_success() {
@@ -541,7 +587,7 @@ jobs:
           require_success "Workflow lint" "$WORKFLOWS"
           require_success "CodeQL" "$CODEQL"
 
-          if [ "$EVENT" = "push" ] && { [ "$CODE" != "true" ] || [ "$IMAGE" != "true" ]; }; then
+          if [ "$EVENT" = "push" ] && { [ "$CODE" != "true" ] || [ "$IMAGE" != "true" ] || [ "$SITE_SOURCES" != "true" ]; }; then
             echo "::error::Pushes to main and hotfix/* must run the full suite."
             exit 1
           fi
@@ -565,4 +611,10 @@ jobs:
             true) require_success "Docker image and Compose stack" "$COMPOSE" ;;
             false) echo "No Docker, dependency or start-up file changed: the image is built on main and in the release pull request." ;;
             *) echo "::error::Missing or invalid image detection output: $IMAGE"; exit 1 ;;
+          esac
+
+          case "$SITE_SOURCES" in
+            true) require_success "Documentation website" "$SITE" ;;
+            false) echo "Nothing the documentation website is built from changed." ;;
+            *) echo "::error::Missing or invalid website detection output: $SITE_SOURCES"; exit 1 ;;
           esac
