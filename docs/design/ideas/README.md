@@ -33,6 +33,12 @@ The world AI (#159):
 
 - `crisis.html` / `.png` – the AI's phases, territory, attack and the bonuses for fighting it
 
+The star map (see the idea issue „Star map“):
+
+- `map-galaxy.html` / `.png` – the galaxy as a spiral of systems with influence, fleets in flight and fog
+- `map-system.html` / `.png` – one system with orbits, planets, moon, debris, the belt and approaching fleets
+- `map-intel.html` / `.png` – the guild's situation map with battle heat, markers and a time slider
+
 The HTML files reference `/style.css`, `/fonts/` and `/icons/` absolutely:
 serve them from a root that holds `src/client/static/` with this folder beside
 it, or look at the PNGs.
