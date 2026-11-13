@@ -26,6 +26,21 @@ const IMAGE = /\.(avif|gif|jpe?g|png|svg|webp)$/i;
 /** Whether a URL names an image file (by its extension). */
 export const isImageFile = (url) => IMAGE.test(url.replace(/[?#].*$/, ''));
 
+/** Identifiers of the definitions that image references (![a][ref]) use. */
+export function imageReferences(tree) {
+  const ids = new Set();
+  const walk = (node) => {
+    if (node.type === 'imageReference') ids.add(node.identifier);
+    for (const child of node.children ?? []) walk(child);
+  };
+  walk(tree);
+  return ids;
+}
+
+/** Whether a definition is used as an image, by reference or by its file. */
+export const imageDefinition = (node, imageRefs) =>
+  imageRefs.has(node.identifier) || isImageFile(node.url);
+
 /** The repository path a link points to, with its hash, or null. */
 export function repoTarget(url, source) {
   if (!url || url.startsWith('#') || EXTERNAL.test(url)) return null;

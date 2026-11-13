@@ -5,7 +5,7 @@
 //   - the OKF markers **[E]**, **[V]** and **[U]** become small badges.
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { isImageFile, resolveLink } from './links.mjs';
+import { imageDefinition, imageReferences, resolveLink } from './links.mjs';
 import { REPO_ROOT } from './pages.mjs';
 
 /** The repository path of the page being rendered. */
@@ -46,15 +46,23 @@ const MARKERS = {
   U: 'Unverified: not proven yet, must be checked',
 };
 
+// The identifiers of the image references of each document, collected before
+// its definitions are visited (keyed by the document's data bag).
+const IMAGE_REFS = new WeakMap();
+
 export const novaMarkdown = {
   name: 'nova-imperium-site',
+  before(root, ctx) {
+    IMAGE_REFS.set(ctx.data, imageReferences(root));
+  },
   link(node, ctx) {
     rewrite(node, ctx, false);
   },
-  // A definition of an image file serves an image reference (![a][ref]);
-  // its file is copied next to the page like an inline image.
+  // A definition used by an image reference (![a][ref]), or of an image file,
+  // is an image: its file is copied next to the page like an inline image.
   definition(node, ctx) {
-    rewrite(node, ctx, isImageFile(node.url));
+    const refs = IMAGE_REFS.get(ctx.data) ?? new Set();
+    rewrite(node, ctx, imageDefinition(node, refs));
   },
   image(node, ctx) {
     rewrite(node, ctx, true);

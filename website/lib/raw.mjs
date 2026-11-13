@@ -4,7 +4,7 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fromMarkdown } from 'mdast-util-from-markdown';
-import { isImageFile, resolveLink } from './links.mjs';
+import { imageDefinition, imageReferences, resolveLink } from './links.mjs';
 import { REPO_ROOT } from './pages.mjs';
 
 const LINKS = new Set(['link', 'image', 'definition']);
@@ -34,22 +34,6 @@ export function urlOffset(text, node) {
   const m = node.type === 'definition' ? matches[0] : matches.at(-1);
   const last = m.index + m[0].length;
   return start.offset + last;
-}
-
-/** Whether a definition is used as an image, by reference or by its file. */
-function imageDefinition(node, imageRefs) {
-  return imageRefs.has(node.identifier) || isImageFile(node.url);
-}
-
-/** Identifiers of the definitions that image references use. */
-function imageReferences(tree) {
-  const ids = new Set();
-  const walk = (node) => {
-    if (node.type === 'imageReference') ids.add(node.identifier);
-    for (const child of node.children ?? []) walk(child);
-  };
-  walk(tree);
-  return ids;
 }
 
 /**
