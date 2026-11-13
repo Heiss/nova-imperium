@@ -54,7 +54,10 @@ export interface Mutant {
 }
 
 export interface Report {
-  files: Record<string, { mutants: Mutant[]; [key: string]: unknown }>;
+  files: Record<
+    string,
+    { mutants: Mutant[]; source?: string; [key: string]: unknown }
+  >;
   testFiles?: unknown;
   thresholds?: unknown;
   [key: string]: unknown;
@@ -349,24 +352,27 @@ function inside(m: Mutant, ranges: Lines[] | null): boolean {
  * be reported twice, with an old result. So each shard starts from its own
  * files only, and of a file cut into ranges from the mutants in its ranges.
  */
-export function prune(report: Report, entries: readonly string[]): Report {
+export function prune(
+  report: Report,
+  entries: readonly string[],
+  source: (file: string) => string | undefined = () => undefined,
+): Report {
   const own = rangesOf(entries);
-  return {
-    ...report,
-    files: Object.fromEntries(
-      Object.entries(report.files)
-        .filter(([file]) => own.has(file))
-        .map(([file, f]) => [
-          file,
-          own.get(file)
-            ? {
-                ...f,
-                mutants: f.mutants.filter((m) => inside(m, own.get(file)!)),
-              }
-            : f,
-        ]),
-    ),
-  };
+  const files: Report['files'] = {};
+  for (const [file, f] of Object.entries(report.files)) {
+    if (!own.has(file)) continue;
+    const ranges = own.get(file);
+    if (!ranges) files[file] = f;
+    // Stryker moves the cached mutants of a changed file to their new lines
+    // and reports a moved one outside the ranges again; the cached lines
+    // say nothing then, so a changed cut file starts without its cache.
+    else if (f.source !== undefined && f.source === source(file))
+      files[file] = {
+        ...f,
+        mutants: f.mutants.filter((m) => inside(m, ranges)),
+      };
+  }
+  return { ...report, files };
 }
 
 /** Lines of one cut file in no shard or in two. */
@@ -581,7 +587,12 @@ function config(n: string | undefined): number {
   );
   writeJson(SHARD_CONFIG, shard);
   if (existsSync(INCREMENTAL))
-    writeJson(INCREMENTAL, prune(readJson<Report>(INCREMENTAL), shard.mutate));
+    writeJson(
+      INCREMENTAL,
+      prune(readJson<Report>(INCREMENTAL), shard.mutate, (f) =>
+        existsSync(f) ? read(f) : undefined,
+      ),
+    );
   console.log(
     `Shard ${n}: ${shard.mutate.length} entries in ${SHARD_CONFIG}:\n  ${shard.mutate.join('\n  ')}`,
   );

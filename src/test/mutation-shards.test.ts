@@ -375,19 +375,42 @@ describe('mutation shards: a file cut into ranges', () => {
     const last: Report = {
       files: {
         'cat.ts': {
+          source: 'v1',
           mutants: [at(3), at(50, 51), at(60), at(95), at(100, 101)],
         },
         'a.ts': { mutants: [at(1)] },
         'z.ts': { mutants: [at(1)] },
       },
     };
-    expect(prune(last, plan[1]!)).toEqual({
-      files: { 'cat.ts': { mutants: [at(60), at(95)] } },
+    const same = (f: string) => (f === 'cat.ts' ? 'v1' : undefined);
+    const cat = (mutants: Mutant[]) => ({ source: 'v1', mutants });
+    expect(prune(last, plan[1]!, same)).toEqual({
+      files: { 'cat.ts': cat([at(60), at(95)]) },
     });
-    expect(prune(last, plan[0]!)).toEqual({
-      files: { 'cat.ts': { mutants: [at(3)] }, 'a.ts': { mutants: [at(1)] } },
+    expect(prune(last, plan[0]!, same)).toEqual({
+      files: { 'cat.ts': cat([at(3)]), 'a.ts': { mutants: [at(1)] } },
     });
-    expect(prune(last, ['cat.ts:1-50', 'cat.ts'])).toEqual({
+    expect(prune(last, ['cat.ts:1-50', 'cat.ts'], same)).toEqual({
+      files: { 'cat.ts': last.files['cat.ts']! },
+    });
+  });
+
+  it('drops the cache of a cut file whose source changed or is unknown', () => {
+    // Stryker moves the cached mutants of a changed file to their new lines
+    // and reports one outside the ranges again, so the old lines tell nothing.
+    const last: Report = {
+      files: {
+        'cat.ts': { source: 'v1', mutants: [at(3), at(60)] },
+        'a.ts': { source: 'old', mutants: [at(1)] },
+        'old.ts': { mutants: [at(1)] },
+      },
+    };
+    const changed = (f: string) => ({ 'cat.ts': 'v2', 'a.ts': 'new' })[f];
+    expect(prune(last, [...plan[0]!, 'old.ts:1-9'], changed)).toEqual({
+      files: { 'a.ts': { source: 'old', mutants: [at(1)] } },
+    });
+    expect(prune(last, plan[1]!)).toEqual({ files: {} });
+    expect(prune(last, ['cat.ts'], changed)).toEqual({
       files: { 'cat.ts': last.files['cat.ts']! },
     });
   });

@@ -177,7 +177,11 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   * `config <n>` writes `reports/stryker-shard.config.json`: the
     configuration of `stryker.config.json` with only the files of shard n
     and `thresholds.break: null`, and prunes the shard's incremental file to
-    its files and, of a cut file, to the mutants wholly in its ranges. Stryker keeps and reports again the old results of files it
+    its files and, of a cut file, to the mutants wholly in its ranges; a
+    cut file whose source changed since the cached run starts without its
+    cache, because Stryker moves cached mutants of a changed file to their
+    new lines and reports a moved one outside the ranges again (CodeRabbit
+    on #133). Stryker keeps and reports again the old results of files it
     does not mutate this time; without the pruning a file that moved to
     another shard would be reported twice (seen locally).
   * `merge <out> <report>...` checks that every shard of the plan ran once,
