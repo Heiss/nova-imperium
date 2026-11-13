@@ -38,8 +38,18 @@ first. After a fresh clone or a new feature folder, run
 
 ## Checks
 
-The same checks run in the CI on every pull request; the gate job "CI Gate"
-must be green before a pull request goes to review.
+The same checks run in the CI. Every push to `main` and `hotfix/**` runs all
+of them; a pull request runs what its changes need: a change of
+documentation only (`okf/`, `docs/`, `changes/`, `website/`, Markdown at the
+top level) skips the code checks, and the Docker image, Trivy and the
+Compose stack run only when one of `Dockerfile`, `.dockerignore`,
+`compose*.yaml`, `docker/`, `package.json`, `pnpm-lock.yaml`,
+`.node-version`, `src/server/db/`, the server start (`main.ts`, `server.ts`,
+`config.ts`, `cli.ts`, `maintenance.ts` in `src/server/`) or
+`.github/workflows/ci.yml` changes – game code alone does not build the
+image – and always in a release pull request and in a pull request into
+`hotfix/**`. The gate job "CI Gate" must be green before a pull request goes to
+review.
 
 ```bash
 pnpm lint:dead       # knip: unused files, exports, dependencies
@@ -47,7 +57,7 @@ pnpm lint:dupes      # jscpd: copied code
 pnpm lint:deps       # dependency-cruiser: import rules
 pnpm lint            # ESLint incl. complexity ≤ 10, cognitive ≤ 10, depth ≤ 4, functions ≤ 50 lines
 pnpm format:check    # Prettier
-pnpm typecheck       # tsc
+pnpm typecheck       # svelte-check (TypeScript and Svelte)
 pnpm test:coverage   # Vitest; blocks below 90 % lines / 85 % branches
 pnpm test:mutation   # Stryker; blocks below a mutation score of 80 %
 node scripts/mutation-gate.ts   # after Stryker: no file below its floor (--update raises the floors)

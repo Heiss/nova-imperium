@@ -1,5 +1,5 @@
-// Sharded mutation runs (owner, 2026-11-12, #131). Stryker runs in 4
-// parallel jobs; this script splits the files it mutates between them and
+// Sharded mutation runs (owner, 2026-11-12 and 2026-11-13, #131). Stryker
+// runs in 6 parallel jobs; this script splits the files it mutates between them and
 // merges their reports again for the gate (scripts/mutation-gate.ts).
 //
 //   node scripts/mutation-shards.ts plan
@@ -11,15 +11,18 @@
 //        top-level statements ("file:from-to"); the heaviest first onto the
 //        emptiest shard (owner, 2026-11-13, #131)
 //   node scripts/mutation-shards.ts config <n>
-//        writes the Stryker configuration of shard n (1 to 4) of the plan in
+//        writes the Stryker configuration of shard n (1 to 6) of the plan in
 //        MUTATION_PLAN to reports/stryker-shard.config.json: the same
 //        configuration with only its files and without the break threshold,
 //        which the gate checks on the merged report; the incremental file
 //        (reports/stryker-incremental.json) keeps only the shard's files
+//        and lines; a cut file whose source changed starts without it
 //   node scripts/mutation-shards.ts merge <out> <report>...
-//        merges the shard reports into one (union of the files) and fails
-//        unless each shard of the plan in MUTATION_PLAN ran exactly once
-//        with exactly its files and reported only them
+//        merges the shard reports into one (union of the files, the mutants
+//        of a cut file joined) and fails unless each shard of the plan in
+//        MUTATION_PLAN ran exactly once with exactly its entries, reported
+//        only its files and lines, no mutant twice, and the ranges of every
+//        cut file cover it completely
 import {
   existsSync,
   globSync,
