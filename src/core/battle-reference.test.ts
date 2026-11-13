@@ -136,6 +136,8 @@ function battle(
 // ---- end of the reference ----
 
 const KEYS = [...Object.keys(UNIT), 'nope'];
+/** Rapid fire also asked for keys of entries that do not fight. */
+const PAIRS = [...KEYS, 'metal', 'energy'];
 
 const sideOf = (max: number): fc.Arbitrary<Side> =>
   fc.record({
@@ -176,8 +178,8 @@ describe('battle from the components equals battle before (#114)', () => {
   });
 
   it('has the rapid fire of before for every pair, unknown keys included', () => {
-    for (const a of KEYS)
-      for (const t of KEYS)
+    for (const a of PAIRS)
+      for (const t of PAIRS)
         expect(N.rapid(a, t), `${a} → ${t}`).toBe(rapid(a, t));
   });
 
