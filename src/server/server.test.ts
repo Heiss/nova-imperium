@@ -32,8 +32,8 @@ describe('server', () => {
       expect(first.port).toBeGreaterThan(0);
       const res = await fetch(`http://127.0.0.1:${first.port}/healthz`);
       expect(await res.json()).toEqual({ ok: true });
-      first.ctx!.store.saveUniverse({
-        ...first.ctx!.store.universe(),
+      first.ctx!.admin.saveUniverse({
+        ...first.ctx!.admin.universe(),
         speed: 7,
       });
       await first.stop();
@@ -42,7 +42,7 @@ describe('server', () => {
         publicDir: PUBLIC,
         log: () => {},
       });
-      expect(second.ctx!.store.universe().speed).toBe(7);
+      expect(second.ctx!.admin.universe().speed).toBe(7);
       await second.stop();
     } finally {
       rmSync(dir, { recursive: true, force: true });
@@ -68,7 +68,7 @@ describe('server', () => {
         news: { version: '26.11.0', versions },
       });
       first
-        .ctx!.store.db.prepare(
+        .ctx!.db.prepare(
           "INSERT INTO users (id, name, salt, pw_hash, created) VALUES ('u1', 'Anna', 's', 'h', 0)",
         )
         .run();
@@ -79,7 +79,7 @@ describe('server', () => {
         log: (m) => logs.push(m),
         news: { version: '26.11.1', versions },
       });
-      expect(second.ctx!.store.reports('u1')).toMatchObject([
+      expect(second.ctx!.reports.ofPlayer('u1')).toMatchObject([
         { title: 'Neu in Version 26.11.1' },
       ]);
       expect(logs).toEqual(['Told 1 players about version 26.11.1.']);
@@ -89,7 +89,7 @@ describe('server', () => {
         publicDir: PUBLIC,
         log: () => {},
       });
-      expect(third.ctx!.store.reports('u1')).toHaveLength(1);
+      expect(third.ctx!.reports.ofPlayer('u1')).toHaveLength(1);
       await third.stop();
     } finally {
       rmSync(dir, { recursive: true, force: true });
@@ -123,7 +123,7 @@ describe('server', () => {
       ['Tick failed', 'x'],
     ]);
     expect(
-      ctx.store.db
+      ctx.db
         .prepare('SELECT kind, action, version, message FROM error_events')
         .all(),
     ).toEqual([
@@ -145,7 +145,7 @@ describe('server', () => {
   it('records a fleet that fails on arrival (#126)', () => {
     const ctx = testCtx();
     addUser(ctx, 'Anna');
-    ctx.store.db
+    ctx.db
       .prepare(
         `INSERT INTO fleets VALUES ('f1', 'u_Anna', 'p1', 1, 1, 1, 'p2', 1, 1, 2,
           'transport', 0, 0, 0, 0, 1, 2, 'out', 0, 0)`,
@@ -153,13 +153,13 @@ describe('server', () => {
       .run();
     const broken = {
       ...ctx,
-      store: Object.create(ctx.store, {
-        planet: {
+      planets: Object.create(ctx.planets, {
+        get: {
           value: () => {
             throw new Error('lost planet');
           },
         },
-      }) as typeof ctx.store,
+      }) as typeof ctx.planets,
     };
     expect(
       tick(
@@ -168,7 +168,7 @@ describe('server', () => {
       ),
     ).toBe(1);
     expect(
-      ctx.store.db.prepare('SELECT action, message FROM error_events').all(),
+      ctx.db.prepare('SELECT action, message FROM error_events').all(),
     ).toEqual([
       {
         action: 'arrival',
@@ -182,11 +182,9 @@ describe('server', () => {
 // logged as before and lands in the error log.
 describe('background jobs', () => {
   const errors = (ctx: ReturnType<typeof testCtx>) =>
-    ctx.store.db
-      .prepare('SELECT action, version, message FROM error_events')
-      .all();
+    ctx.db.prepare('SELECT action, version, message FROM error_events').all();
   const addFleet = (ctx: ReturnType<typeof testCtx>, state: string) =>
-    ctx.store.db
+    ctx.db
       .prepare(
         `INSERT INTO fleets VALUES ('f1', 'u_Anna', 'p1', 1, 1, 1, 'p2', 1, 1, 2,
           'transport', 0, 0, 0, 0, 1, 2, ?, 0, 0)`,
@@ -204,7 +202,7 @@ describe('background jobs', () => {
     addFleet(ctx, 'back');
     const log = vi.fn();
     clockBeat(ctx, log, '26.11.21');
-    expect(ctx.store.fleet('f1')).toBeNull();
+    expect(ctx.fleets.get('f1')).toBeNull();
     expect(log).not.toHaveBeenCalled();
     expect(errors(ctx)).toEqual([]);
   });
@@ -214,12 +212,12 @@ describe('background jobs', () => {
     addUser(ctx, 'Anna');
     addFleet(ctx, 'out');
     const log = vi.fn();
-    vi.spyOn(ctx.store, 'planet').mockImplementation(() => {
+    vi.spyOn(ctx.planets, 'get').mockImplementation(() => {
       throw new Error('lost planet');
     });
     clockBeat(ctx, log, '26.11.21');
     const broken = new Error('no fleets');
-    vi.spyOn(ctx.store, 'dueFleets').mockImplementation(() => {
+    vi.spyOn(ctx.fleets, 'due').mockImplementation(() => {
       throw broken;
     });
     clockBeat(ctx, log, null);
@@ -240,7 +238,7 @@ describe('background jobs', () => {
   it('the hourly sweep purges sessions, audit and error log and the app', () => {
     const ctx = testCtx(40 * DAY);
     addUser(ctx, 'Anna');
-    ctx.store.db.exec(`
+    ctx.db.exec(`
       INSERT INTO sessions VALUES ('old', 'u_Anna', ${40 * DAY}),
         ('new', 'u_Anna', ${40 * DAY + 1});
       INSERT INTO audit_events (time, category, action, outcome, detail)
@@ -253,10 +251,10 @@ describe('background jobs', () => {
     const log = vi.fn();
     hourlySweep(ctx, sweepApp, log, null);
     expect(
-      ctx.store.db.prepare('SELECT token_hash FROM sessions').pluck().all(),
+      ctx.db.prepare('SELECT token_hash FROM sessions').pluck().all(),
     ).toEqual(['new']);
     expect(
-      ctx.store.db.prepare('SELECT COUNT(*) FROM audit_events').pluck().get(),
+      ctx.db.prepare('SELECT COUNT(*) FROM audit_events').pluck().get(),
     ).toBe(0);
     expect(errors(ctx)).toEqual([]);
     expect(sweepApp).toHaveBeenCalledTimes(1);
@@ -306,8 +304,8 @@ describe('background jobs', () => {
       log: (...args) => logs.push(args),
     });
     const ctx = s.ctx!;
-    const due = vi.spyOn(ctx.store, 'dueFleets');
-    const purge = vi.spyOn(ctx.store, 'purgeSessions');
+    const due = vi.spyOn(ctx.fleets, 'due');
+    const purge = vi.spyOn(ctx.players, 'purgeSessions');
     vi.advanceTimersByTime(999);
     expect(due).not.toHaveBeenCalled();
     vi.advanceTimersByTime(1);

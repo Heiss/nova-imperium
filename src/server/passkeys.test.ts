@@ -35,9 +35,9 @@ function setup() {
   const ctx = testCtx();
   const user = addUser(ctx, 'Anna');
   const token = newToken();
-  ctx.store.addSession(hashToken(token), user.id, ctx.now() + 9e9);
+  ctx.players.addSession(hashToken(token), user.id, ctx.now() + 9e9);
   const challenges = () =>
-    ctx.store.db
+    ctx.db
       .prepare(
         'SELECT challenge, session_hash, expires FROM passkey_challenges',
       )
@@ -170,7 +170,7 @@ describe('passkey registration', () => {
       expectedRPID: 'nova.example.org',
       requireUserVerification: true,
     });
-    expect(ctx.store.db.prepare('SELECT * FROM passkeys').all()).toEqual([
+    expect(ctx.db.prepare('SELECT * FROM passkeys').all()).toEqual([
       {
         id: 'cred-9',
         user_id: user.id,
@@ -191,7 +191,7 @@ describe('passkey registration', () => {
     const ask = async () =>
       (await registerPasskeyOptions(ctx, cfg, user, token, 'secret1')).ceremony;
     const other = newToken();
-    ctx.store.addSession(hashToken(other), user.id, ctx.now() + 9e9);
+    ctx.players.addSession(hashToken(other), user.id, ctx.now() + 9e9);
     const first = await ask();
     await expect(
       registerPasskey(ctx, cfg, user, other, { ceremony: first }),
@@ -235,7 +235,7 @@ describe('passkey registration', () => {
     }
     const ceremony = await ask();
     verifyRegistration.mockImplementationOnce(async () => {
-      ctx.store.deleteSession(hashToken(token));
+      ctx.players.deleteSession(hashToken(token));
       return registered();
     });
     await expect(
@@ -286,7 +286,7 @@ describe('passkey login', () => {
       },
       requireUserVerification: true,
     });
-    expect(ctx.store.db.prepare('SELECT counter FROM passkeys').get()).toEqual({
+    expect(ctx.db.prepare('SELECT counter FROM passkeys').get()).toEqual({
       counter: 9,
     });
     await expect(verifyPasskeyLogin(ctx, cfg, body)).rejects.toThrow(INVALID);
@@ -318,7 +318,7 @@ describe('passkey login', () => {
     await expect(
       verifyPasskeyLogin(ctx, cfg, loginBody(await ask(), user.id)),
     ).rejects.toThrow(INVALID);
-    expect(ctx.store.db.prepare('SELECT counter FROM passkeys').get()).toEqual({
+    expect(ctx.db.prepare('SELECT counter FROM passkeys').get()).toEqual({
       counter: 3,
     });
   });
@@ -327,7 +327,7 @@ describe('passkey login', () => {
     const { ctx, user } = await withPasskey();
     const { ceremony } = await passkeyLoginOptions(ctx, cfg);
     verifyAuthentication.mockImplementationOnce(async () => {
-      ctx.store.db.prepare('UPDATE passkeys SET counter = 5').run();
+      ctx.db.prepare('UPDATE passkeys SET counter = 5').run();
       return authenticated(true, 4);
     });
     await expect(
@@ -340,7 +340,7 @@ describe('passkey list and removal', () => {
   it('lists keys oldest first and removes only own ones', async () => {
     const { ctx, user } = setup();
     const other = addUser(ctx, 'Other');
-    const insert = ctx.store.db.prepare(
+    const insert = ctx.db.prepare(
       "INSERT INTO passkeys VALUES (?, ?, x'00', 0, ?)",
     );
     insert.run('new', user.id, 20);

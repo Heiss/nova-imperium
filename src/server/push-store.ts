@@ -12,7 +12,7 @@ export function queuePush(
   due: number,
   body: string | null = null,
 ): void {
-  ctx.store.db
+  ctx.db
     .prepare(
       `
     INSERT OR IGNORE INTO push_jobs (endpoint, kind, event_key, due, retry_at, body)
@@ -28,7 +28,7 @@ export function cancelScheduledPush(
   kind: PushKind,
   keyPattern: string | null = null,
 ): void {
-  ctx.store.db
+  ctx.db
     .prepare(
       `
     DELETE FROM push_jobs WHERE kind = ? AND due > ?

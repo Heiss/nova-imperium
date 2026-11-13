@@ -20,16 +20,17 @@ async function player(over: Parameters<typeof start>[0] = {}) {
   return s;
 }
 
-const errorRows = (ctx: { store: { db: import('better-sqlite3').Database } }) =>
-  ctx.store.db
-    .prepare('SELECT * FROM error_events ORDER BY id')
-    .all() as Record<string, unknown>[];
+const errorRows = (ctx: { db: import('better-sqlite3').Database }) =>
+  ctx.db.prepare('SELECT * FROM error_events ORDER BY id').all() as Record<
+    string,
+    unknown
+  >[];
 
 const auditOf = (
-  ctx: { store: { db: import('better-sqlite3').Database } },
+  ctx: { db: import('better-sqlite3').Database },
   action: string,
 ) =>
-  ctx.store.db
+  ctx.db
     .prepare(
       'SELECT actor, category, outcome, detail FROM audit_events WHERE action = ?',
     )
@@ -167,7 +168,7 @@ describe('server errors', () => {
   it('records a 500 with route, request ID, player and version, never the body', async () => {
     const logs: string[] = [];
     const { ctx, call } = await player({ logs });
-    vi.spyOn(ctx.store, 'universe').mockImplementation(() => {
+    vi.spyOn(ctx.admin, 'universe').mockImplementation(() => {
       throw new Error('failed for anna@example.org with password=hunter2');
     });
     const r = await call('POST', '/api/action?x=1', {
@@ -194,8 +195,8 @@ describe('server errors', () => {
 
   it('records a 500 without a valid session as without a player', async () => {
     const { ctx, call, setCookie } = await start();
-    const prepare = ctx.store.db.prepare.bind(ctx.store.db);
-    vi.spyOn(ctx.store.db, 'prepare').mockImplementation((sql: string) => {
+    const prepare = ctx.db.prepare.bind(ctx.db);
+    vi.spyOn(ctx.db, 'prepare').mockImplementation((sql: string) => {
       if (sql === 'SELECT 1') throw new Error('boom');
       return prepare(sql);
     });
@@ -231,7 +232,7 @@ describe('admin tab „Fehler“', () => {
     const s = await asAdmin({ news: NEWS });
     const { ctx, call } = s;
     addUser(ctx, 'Anna');
-    ctx.store.db
+    ctx.db
       .prepare(
         `INSERT INTO error_events (kind, time, first, player, action, page,
           version, browser, message, detail, report)
@@ -254,7 +255,7 @@ describe('admin tab „Fehler“', () => {
         detail: JSON.stringify({ kind: 'report', page: 1 }),
       },
     ]);
-    ctx.store.saveUser({ ...ctx.store.userByName('Boss')!, admin: false });
+    ctx.players.save({ ...ctx.players.byName('Boss')!, admin: false });
     expect((await call('POST', '/api/admin/errors', {})).json).toEqual({
       error: 'Nur der Admin darf das.',
     });
@@ -268,7 +269,7 @@ describe('admin tab „Fehler“', () => {
     ctx.clock.t = 20 * DAY;
     addUser(ctx, 'Anna');
     await call('POST', '/api/admin/stats', {});
-    ctx.store.db
+    ctx.db
       .prepare(
         `INSERT INTO error_events (kind, time, first, player, action, page,
           version, browser, message, detail, report)
@@ -309,7 +310,7 @@ describe('admin tab „Fehler“', () => {
     });
     expect(unzipLines(narrow.bytes)['errors.jsonl']).toEqual([]);
 
-    ctx.store.saveUser({ ...ctx.store.userByName('Boss')!, admin: false });
+    ctx.players.save({ ...ctx.players.byName('Boss')!, admin: false });
     const refused = await call('POST', '/api/admin/errors/download', {});
     expect(refused).toMatchObject({
       status: 400,

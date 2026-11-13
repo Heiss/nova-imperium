@@ -13,8 +13,9 @@ audit data.
 
 On startup, the database enables foreign keys and uses WAL mode for on-disk
 databases. Migrations are applied in order in a transaction, with the current
-schema version recorded in SQLite's `user_version`. Store operations can group
-related updates in a transaction. Write transactions acquire the writer lock
+schema version recorded in SQLite's `user_version`. The caller groups
+related updates in a transaction (`ctx.tx`); a repository never opens one
+(#117, see [Design patterns](/architecture/patterns.md)). Write transactions acquire the writer lock
 before reading, so competing writers use the configured busy timeout instead
 of invalidating a snapshot midway through an action. The client retries a
 game action once when the server explicitly reports that it rolled back due

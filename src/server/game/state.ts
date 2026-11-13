@@ -3,7 +3,7 @@
 // observer can see. The admin also gets the settings specification.
 import { UNIVERSE_SPECS } from '../../core/universe.ts';
 import type { Fleet } from '../../core/types.ts';
-import type { User } from '../db/store.ts';
+import type { User } from '../db/repos/players.ts';
 import { ownLabs } from './actions.ts';
 import { type Ctx, universe } from './context.ts';
 import { guildState } from './guilds.ts';
@@ -37,7 +37,7 @@ export const foreignView = (f: Fleet): ForeignFleet => ({
 });
 
 function galaxyOf(ctx: Ctx) {
-  return ctx.store.planets().map((x) => ({
+  return ctx.planets.all().map((x) => ({
     id: x.id,
     name: x.name,
     g: x.g,
@@ -53,21 +53,21 @@ export function stateFor(
   u: User,
   selected?: unknown,
 ): Record<string, unknown> {
-  const home = ctx.store.planetOfUser(u.id);
+  const home = ctx.planets.home(u.id);
   const requested =
-    typeof selected === 'string' ? ctx.store.planet(selected) : null;
+    typeof selected === 'string' ? ctx.planets.get(selected) : null;
   const p = requested?.owner === u.id ? requested : home;
   const pts = pointsMap(ctx);
-  const fleets = ctx.store
-    .fleets()
+  const fleets = ctx.fleets
+    .all()
     .filter(
       (f) =>
         f.owner === u.id || (p !== null && f.state === 'out' && f.to === p.id),
     )
     .map((f) => (f.owner === u.id ? f : foreignView(f)));
   const players = Object.fromEntries(
-    ctx.store
-      .users()
+    ctx.players
+      .all()
       .map((x) => [x.id, { name: x.name, points: pts[x.id] ?? 0 }]),
   );
   const round = roundRules(ctx);
@@ -89,7 +89,7 @@ export function stateFor(
     homePlanet: home?.id ?? null,
     labs: ownLabs(ctx, u.id),
     fleets,
-    reports: ctx.store.reports(u.id),
+    reports: ctx.reports.ofPlayer(u.id),
     guilds: guildState(ctx, u.id, pts),
     achievements: achievementState(ctx, u, round),
     players,

@@ -50,14 +50,14 @@ describe('deleteAccount', () => {
         new GameError('Das bisherige Passwort ist falsch.'),
       );
     }
-    expect(ctx.store.user(gone.id)).not.toBeNull();
+    expect(ctx.players.get(gone.id)).not.toBeNull();
   });
 
   it('removes transport reports to its own planets only, with their push jobs', () => {
     const { ctx, gone, stay, home, other } = setup();
-    ctx.store.addReport(stay.id, transport('to-gone', '[1:1:4]'), 10);
-    ctx.store.addReport(stay.id, transport('to-stay', '[1:1:9]'), 10);
-    const db = ctx.store.db;
+    ctx.reports.add(stay.id, transport('to-gone', '[1:1:4]'), 10);
+    ctx.reports.add(stay.id, transport('to-stay', '[1:1:9]'), 10);
+    const db = ctx.db;
     db.prepare("INSERT INTO push_subscriptions VALUES ('e', ?, 'k', 'a')").run(
       stay.id,
     );
@@ -72,7 +72,7 @@ describe('deleteAccount', () => {
 
     deleteAccount(ctx, gone, 'secret1');
 
-    expect(ctx.store.reports(stay.id).map((r) => r.id)).toEqual(['to-stay']);
+    expect(ctx.reports.ofPlayer(stay.id).map((r) => r.id)).toEqual(['to-stay']);
     expect(
       db.prepare('SELECT kind, event_key FROM push_jobs ORDER BY kind').all(),
     ).toEqual([
@@ -99,32 +99,20 @@ describe('deleteAccount', () => {
       defName: 'Stay',
     });
     // Reports stored before the grimdark naming keep their classic titles.
-    ctx.store.addReport(
-      stay.id,
-      spy('old-spy', 'Spionageaktivität', 'Gone'),
-      10,
-    );
-    ctx.store.addReport(
-      stay.id,
-      spy('new-spy', 'Auspex-Aktivität', 'Gone'),
-      10,
-    );
-    ctx.store.addReport(
-      stay.id,
-      spy('other-spy', 'Auspex-Aktivität', 'Else'),
-      10,
-    );
-    ctx.store.addReport(
+    ctx.reports.add(stay.id, spy('old-spy', 'Spionageaktivität', 'Gone'), 10);
+    ctx.reports.add(stay.id, spy('new-spy', 'Auspex-Aktivität', 'Gone'), 10);
+    ctx.reports.add(stay.id, spy('other-spy', 'Auspex-Aktivität', 'Else'), 10);
+    ctx.reports.add(
       stay.id,
       spy('other-title', 'Lieferung von Else', 'Gone'),
       10,
     );
-    ctx.store.addReport(
+    ctx.reports.add(
       stay.id,
       battle('old-hit', 'Angriff auf Heim [1:1:9] durch Gone', 'Gone'),
       10,
     );
-    ctx.store.addReport(
+    ctx.reports.add(
       stay.id,
       battle(
         'new-hit',
@@ -137,8 +125,8 @@ describe('deleteAccount', () => {
     deleteAccount(ctx, gone, 'secret1');
 
     expect(
-      ctx.store
-        .reports(stay.id)
+      ctx.reports
+        .ofPlayer(stay.id)
         .map((r) => r.id)
         .sort(),
     ).toEqual(['other-spy', 'other-title']);
@@ -147,20 +135,20 @@ describe('deleteAccount', () => {
   it('sends fleets on their way to its planets home', () => {
     const { ctx, gone } = setup();
     const now = ctx.now();
-    ctx.store.saveFleet(fleet({ id: 'out' }));
-    ctx.store.saveFleet(
+    ctx.fleets.save(fleet({ id: 'out' }));
+    ctx.fleets.save(
       fleet({ id: 'late', dep: now - 900, arr: now - 100, ret: now + 9000 }),
     );
-    ctx.store.saveFleet(
+    ctx.fleets.save(
       fleet({ id: 'back', state: 'back', ret: now + 700, recalled: false }),
     );
-    ctx.store.saveFleet(
+    ctx.fleets.save(
       fleet({ id: 'elsewhere', to: 'p1_1_9', toC: { g: 1, s: 1, p: 9 } }),
     );
 
     deleteAccount(ctx, gone, 'secret1');
 
-    const out = ctx.store.fleet('out')!;
+    const out = ctx.fleets.get('out')!;
     expect(out).toMatchObject({
       state: 'back',
       recalled: true,
@@ -168,17 +156,17 @@ describe('deleteAccount', () => {
       to: 'p1_1_9',
       toC: { g: 1, s: 1, p: 9 },
     });
-    expect(ctx.store.fleet('late')).toMatchObject({
+    expect(ctx.fleets.get('late')).toMatchObject({
       state: 'back',
       ret: now + 800,
     });
-    expect(ctx.store.fleet('back')).toMatchObject({
+    expect(ctx.fleets.get('back')).toMatchObject({
       state: 'back',
       recalled: false,
       ret: now + 700,
       to: 'p1_1_9',
     });
-    expect(ctx.store.fleet('elsewhere')).toMatchObject({
+    expect(ctx.fleets.get('elsewhere')).toMatchObject({
       state: 'out',
       ret: now + 1100,
     });
@@ -186,7 +174,7 @@ describe('deleteAccount', () => {
 
   it('removes its invitations, audit entries and passkey challenges', () => {
     const { ctx, gone, stay } = setup();
-    const db = ctx.store.db;
+    const db = ctx.db;
     const count = (sql: string) =>
       (db.prepare(`SELECT COUNT(*) AS n FROM ${sql}`).get() as { n: number }).n;
     db.prepare(
@@ -218,7 +206,7 @@ describe('deleteAccount', () => {
     expect(
       db.prepare('SELECT id FROM passkey_challenges ORDER BY id').all(),
     ).toEqual([{ id: 'c-login' }, { id: 'c-stay' }]);
-    expect(ctx.store.user(gone.id)).toBeNull();
-    expect(ctx.store.user(stay.id)).not.toBeNull();
+    expect(ctx.players.get(gone.id)).toBeNull();
+    expect(ctx.players.get(stay.id)).not.toBeNull();
   });
 });

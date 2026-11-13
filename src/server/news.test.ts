@@ -167,7 +167,7 @@ describe('update message', () => {
   const at = (version: string | null): News => ({ version, versions });
   const stored = (ctx: ReturnType<typeof testCtx>) =>
     (
-      ctx.store.db
+      ctx.db
         .prepare("SELECT value FROM settings WHERE key = 'version'")
         .get() as { value: number } | undefined
     )?.value;
@@ -180,17 +180,17 @@ describe('update message', () => {
     const anna = addUser(ctx, 'Anna');
     expect(announceUpdate(ctx, at(null))).toBe(0);
     expect(stored(ctx)).toBeUndefined();
-    ctx.store.db
+    ctx.db
       .prepare("INSERT INTO push_subscriptions VALUES ('e', ?, 'k', 'a')")
       .run(anna.id);
     expect(announceUpdate(ctx, at('26.11.1'))).toBe(1);
     expect(stored(ctx)).toBe(2_611_001);
-    const [report] = ctx.store.reports(anna.id);
+    const [report] = ctx.reports.ofPlayer(anna.id);
     expect(report!.text).toContain('• Ein Fehler ist weg.');
     expect(report!.text).not.toContain('Nanitenfabrik');
-    expect(
-      ctx.store.db.prepare('SELECT kind, body FROM push_jobs').all(),
-    ).toEqual([{ kind: 'messages', body: 'Nova Imperium 26.11.1 ist da.' }]);
+    expect(ctx.db.prepare('SELECT kind, body FROM push_jobs').all()).toEqual([
+      { kind: 'messages', body: 'Nova Imperium 26.11.1 ist da.' },
+    ]);
     expect(report!.text).toContain(
       'Alle Versionen stehen unter „Neuigkeiten“.',
     );
@@ -202,7 +202,7 @@ describe('update message', () => {
     const ben = addUser(ctx, 'Ben');
     announceUpdate(ctx, at('26.10.5'));
     expect(announceUpdate(ctx, at('26.11.1'))).toBe(2);
-    const [report] = ctx.store.reports(anna.id);
+    const [report] = ctx.reports.ofPlayer(anna.id);
     expect(report).toMatchObject({
       type: 'info',
       title: 'Neu in Version 26.11.1',
@@ -210,12 +210,12 @@ describe('update message', () => {
     });
     expect(report!.text).toContain('• Neuigkeiten im Menü.');
     expect(report!.text).toContain('… und 1 weitere Änderung.');
-    expect(ctx.store.reports(ben.id)).toHaveLength(1);
+    expect(ctx.reports.ofPlayer(ben.id)).toHaveLength(1);
     expect(announceUpdate(ctx, at('26.11.1'))).toBe(0);
     expect(announceUpdate(ctx, at('26.11.0'))).toBe(0);
     expect(stored(ctx)).toBe(2_611_001);
     expect(announceUpdate(ctx, at('26.11.1'))).toBe(0);
-    expect(ctx.store.reports(anna.id)).toHaveLength(1);
+    expect(ctx.reports.ofPlayer(anna.id)).toHaveLength(1);
   });
 
   it('keeps the old version when a message cannot be written, so the next start retries', () => {
@@ -230,7 +230,7 @@ describe('update message', () => {
     expect(stored(ctx)).toBe(2_610_005);
     ctx.id = id;
     expect(announceUpdate(ctx, at('26.11.1'))).toBe(1);
-    expect(ctx.store.reports(anna.id)).toHaveLength(1);
+    expect(ctx.reports.ofPlayer(anna.id)).toHaveLength(1);
   });
 
   it('stays silent for an update without entries but remembers it', () => {
@@ -238,11 +238,11 @@ describe('update message', () => {
     const anna = addUser(ctx, 'Anna');
     expect(announceUpdate(ctx, at('26.11.0'))).toBe(1);
     expect(announceUpdate(ctx, at('26.11.2'))).toBe(1);
-    expect(ctx.store.reports(anna.id)[0]!.text).toContain(
+    expect(ctx.reports.ofPlayer(anna.id)[0]!.text).toContain(
       'Neuigkeiten im Menü',
     );
     expect(announceUpdate(ctx, at('26.11.3'))).toBe(0);
     expect(stored(ctx)).toBe(2_611_003);
-    expect(ctx.store.reports(anna.id)).toHaveLength(2);
+    expect(ctx.reports.ofPlayer(anna.id)).toHaveLength(2);
   });
 });
