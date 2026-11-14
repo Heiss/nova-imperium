@@ -5,6 +5,10 @@ name: Release candidate image
 # <version>-rc.<N> and the moving tag "next". N counts the merges on the base
 # branch since the last release, so rc.3 holds three merged pull requests.
 # The release itself (release.yml) publishes <version>, latest and stable.
+# The release pull request of main gets its candidate from its full run only:
+# the cheap run of the draft ends with a red CI Gate on purpose, and the full
+# run is started by the release App's labels (release-ready.yml), so its actor
+# is the release App as below (#147).
 on:
   # Safe here: runs only after a successful CI run of a pull request from a
   # release/* branch of this repository that the release App pushed; the
