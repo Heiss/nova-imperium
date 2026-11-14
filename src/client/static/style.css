@@ -708,6 +708,9 @@ textarea:focus-visible {
   align-items: center;
   gap: 10px;
 }
+.gal .debris {
+  vertical-align: middle;
+}
 
 /* ---------- Messages, toasts, modal ---------- */
 .toast {

@@ -254,6 +254,22 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   room for units and the energy need and shortage bit-identical to their
   form before the limits group (#114, fourth pull request). See
   [Design patterns](/architecture/patterns.md), section 12.
+* **[E]** The rows of the resources page (#114, `ProducerTable`): the
+  property test `src/core/producer-rows.test.ts` checks that the rows of
+  `producerRows()` add up to `prod()` of the planet as it runs, bit for bit
+  where `prod()` adds in the same order (owner, 2026-11-14).
+* **[E]** No comparison with a catalog key outside `src/features/` (#114,
+  owner, 2026-11-14): `src/test/catalog-keys.test.ts` reads `src` with the
+  TypeScript and Svelte parsers, as `src/test/naming.test.ts` does, and
+  fails on a comparison (`===`, `!==`, `case`, `includes` on a fixed list)
+  with a key from the folder names under `src/features/`. Its named
+  allow-list (file, key, count, issue) counts the hits per file and key;
+  the test fails when the real count is higher (a new comparison) and when
+  it is lower (the stale count must be lowered), so counts only fall
+  (owner, 2026-11-14). The lab and shipyard locks are allowed with #183;
+  the report type `spy` (a word equal to a key) is allowed for good, as
+  `permanent` (owner, 2026-11-14). See
+  [Design patterns](/architecture/patterns.md), section 12.
 * **[E]** Missions as strategies (#116, owner, 2026-11-14): contract tests
   for the rules of every mission (`src/core/missions.test.ts`) and for its
   server part (`src/server/game/missions.test.ts`) read the generated
@@ -266,7 +282,17 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   generated worlds and fleets (fixed fast-check seed 116) it builds two
   equal databases in memory, runs both versions, and compares the answer or
   message, every table and the next random number; a third case checks
-  that the generated cases reach every message and every arrival.
+  that the generated cases reach every message and every arrival. Since
+  #45 it generates the five missions and the ships it knew (the Bergung and
+  the Bergungsbarke have their own tests), and its frozen reference has the
+  debris rule of #45, written there on its own: 30 % of the Adamant and
+  Psikristall of the ships both sides lost, Sonnenreliquiare included, no
+  defense, no Promethium, added to the field at the position, and the field
+  `debris` of both battle reports. So it compares every table and report
+  bit for bit again, debris rows included, and fails when the rule in the
+  code changes (owner, 2026-11-14, #45). It also checks the debris on its
+  own (exactly the debris of the losses the report lists, only a battle
+  leaves a field) and that the generated battles leave fields.
 * **[E]** Mutation standard per file (owner, 2026-11-11,
   `mutation-standard.json`, `scripts/mutation-gate.ts`): no file may fall
   below its recorded floor; a new file needs 80 %, a new security file 90 %.

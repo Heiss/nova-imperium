@@ -8,11 +8,11 @@ import { BUILD, DEF, RES, SHIPS } from './catalog.ts';
 import { text } from './text.ts';
 
 const KEYS = [BUILD, RES, SHIPS, DEF].flatMap((defs) => Object.keys(defs));
-const DISPLAY = ['n', 'ab', 'ds', 'lt'];
+const DISPLAY = ['n', 'ab', 'ds', 'lt', 'plural', 'per'];
 
 describe('display texts of the catalog (#113)', () => {
   it('has one text file per entry and none without an entry', () => {
-    expect(KEYS).toHaveLength(49);
+    expect(KEYS).toHaveLength(50);
     expect(TEXTS.map(([k]) => k)).toEqual(ENTRIES.map(([k]) => k));
     expect(TEXTS.map(([k]) => k).sort()).toEqual([...KEYS].sort());
   });

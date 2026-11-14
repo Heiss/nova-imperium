@@ -3,7 +3,12 @@
 // storage come from the components of the entries (#114).
 import { PRODUCTION, STORAGE } from './catalog.ts';
 import { energyUsed, left } from './components/consumes.ts';
-import { energyMade, made } from './components/produces.ts';
+import {
+  BASE_INCOME,
+  energyMade,
+  made,
+  type MineCtx,
+} from './components/produces.ts';
 import { capacities } from './components/storage.ts';
 import { satsEnergy } from './rates.ts';
 import { text } from './text.ts';
@@ -13,6 +18,7 @@ import type {
   Planet,
   Requirements,
   ResearchState,
+  Resources,
   Universe,
 } from './types.ts';
 
@@ -105,6 +111,8 @@ export const satPower = (p: ProdPlanet): number =>
 /** The entries with production components on a planet, in the production order. */
 const running = (p: ProdPlanet, u: Universe, research: Levels) =>
   PRODUCTION.map(({ key, kind, produces, consumes }) => ({
+    key,
+    kind,
     produces,
     consumes,
     ctx: {
@@ -116,6 +124,15 @@ const running = (p: ProdPlanet, u: Universe, research: Levels) =>
       u,
     },
   }));
+
+type Running = ReturnType<typeof running>;
+
+/** The energy made and used and the energy factor `f` of the mines. */
+function factor(list: Running): Pick<Production, 'eProd' | 'eUse' | 'f'> {
+  const eProd = energyMade(list);
+  const eUse = energyUsed(list);
+  return { eProd, eUse, f: eUse <= 0 ? 1 : Math.min(1, eProd / eUse) };
+}
 
 /**
  * Production per hour at the set shares, from the `produces` and `consumes`
@@ -131,9 +148,7 @@ export function prod(
   research: Levels = {},
 ): Production {
   const list = running(p, u, research);
-  const eProd = energyMade(list);
-  const eUse = energyUsed(list);
-  const f = eUse <= 0 ? 1 : Math.min(1, eProd / eUse);
+  const { eProd, eUse, f } = factor(list);
   const net = (res: 'm' | 'c' | 'd'): number =>
     left(made(list, res, f, u), list, res);
   return { m: net('m'), c: net('c'), d: net('d'), eProd, eUse, f };
@@ -181,15 +196,122 @@ export function fusionThrottle(
   return balancedShare(p, u, research);
 }
 
+/** The planet as it runs now: with the Fusionskraftwerk at its throttled share, if any. */
+function asRuns<P extends StockPlanet>(p: P, u: Universe, research: Levels): P {
+  const share = fusionThrottle(p, u, research);
+  return share === null ? p : atShare(p, share);
+}
+
 /** Production per hour as it runs now: with a throttled Fusionskraftwerk the deuterium stays at 0. */
 export function production(
   p: StockPlanet,
   u: Universe,
   research: Levels = {},
 ): Production {
-  const share = fusionThrottle(p, u, research);
-  if (share === null) return prod(p, u, research);
-  return { ...prod(atShare(p, share), u, research), d: 0 };
+  const runs = asRuns(p, u, research);
+  const pr = prod(runs, u, research);
+  return runs === p ? pr : { ...pr, d: 0 };
+}
+
+/** Energy or a resource: what an entry makes or uses per hour. */
+type Flow = Partial<Record<keyof Resources | 'e', number>>;
+
+/** One producer on the resources page (#114). */
+export interface ProducerRow {
+  key: string;
+  kind: Running[number]['kind'];
+  /** The level of a building, the number of a ship. */
+  level: number;
+  /** The share in % it runs at: the set one, or the throttled one. */
+  pct: number;
+  /** Whether it runs below its set share (#47 D1). */
+  throttled: boolean;
+  /** Made per hour; a resource times the universe speed, as in prod(). */
+  made: Flow;
+  /** Used per hour, as prod() subtracts it. */
+  used: Flow;
+}
+
+/** The rates of `fns` on `ctx` that exist, each times `times`. */
+function rates<C>(
+  fns: Partial<Record<keyof Flow, (c: C) => number>> | undefined,
+  ctx: C,
+  keys: readonly (keyof Flow)[],
+  times = 1,
+): Flow {
+  const out: Flow = {};
+  for (const r of keys) {
+    const rate = fns?.[r];
+    if (rate) out[r] = rate(ctx) * times;
+  }
+  return out;
+}
+
+function producerRow(
+  { key, kind, produces, consumes, ctx }: Running[number],
+  f: number,
+  set: number,
+): ProducerRow {
+  const mine: MineCtx = { ...ctx, f };
+  return {
+    key,
+    kind,
+    level: ctx.level,
+    pct: ctx.pct,
+    throttled: ctx.pct !== set,
+    made: {
+      ...rates(produces, mine, KEYS, ctx.u.speed),
+      ...rates(produces, mine, ['e']),
+    },
+    used: rates(consumes, ctx, [...KEYS, 'e']),
+  };
+}
+
+/**
+ * The rows of the resources page (#114): the base income and every entry
+ * with production components, in the production order, from the same list,
+ * energy factor `f` and throttled share as production(). The rows add up
+ * to prod() of the planet as it runs; the browser computes no formula.
+ */
+export function producerRows(
+  p: StockPlanet,
+  u: Universe,
+  research: Levels = {},
+): { f: number; base: Resources; rows: ProducerRow[] } {
+  const list = running(asRuns(p, u, research), u, research);
+  const { f } = factor(list);
+  return {
+    f,
+    base: {
+      m: BASE_INCOME.m * u.speed,
+      c: BASE_INCOME.c * u.speed,
+      d: BASE_INCOME.d * u.speed,
+    },
+    rows: list.map((x) => producerRow(x, f, p.pct[x.key] ?? 100)),
+  };
+}
+
+/** What an entry uses per hour of each resource at `level` and its set share, from its `consumes` (#114). */
+export function useAt(
+  key: string,
+  level: number,
+  p: ProdPlanet,
+  u: Universe,
+  research: Levels = {},
+): Partial<Resources> {
+  const x = running(p, u, research).find((e) => e.key === key);
+  return x ? rates(x.consumes, { ...x.ctx, level }, KEYS) : {};
+}
+
+/** Energy per hour of one piece of a ship with `produces` on `p`, at full share; undefined for any other key (#114). */
+export function pieceEnergy(
+  key: string,
+  p: Pick<Planet, 'temp'>,
+  u: Universe,
+  research: Levels = {},
+): number | undefined {
+  const x = PRODUCTION.find((e) => e.key === key && e.kind === 'ship');
+  return x?.produces.e?.({ level: 1, pct: 100, temp: p.temp, research, u });
 }
 
 /** The storage limits of a planet, from the `storage` components (#114). */

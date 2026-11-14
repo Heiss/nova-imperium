@@ -51,12 +51,13 @@ export type BuildState =
   | 'queueBusy'
   | 'yardBusy'
   | 'labBusy'
-  | 'energy'
+  | 'noEnergy'
   | 'ready';
 
 /**
- * `full`: the planet has no free field (#51); `short`: the energy production
- * the planet lacks (Weltenschmiede, #51).
+ * `full`: the planet has no free field (#51); `noEnergy`: the planet lacks
+ * energy production; `short`: the energy production the planet lacks
+ * (Weltenschmiede, #51).
  */
 export function buildState(
   p: Planet,
@@ -83,11 +84,11 @@ function buildWait(
   if (p.bq) return 'queueBusy';
   if (waitsForYard(p, key)) return 'yardBusy';
   if (waitsForLab(r, key)) return 'labBusy';
-  return short > 0 ? 'energy' : 'ready';
+  return short > 0 ? 'noEnergy' : 'ready';
 }
 
 export type ResearchUiState =
-  'running' | 'missing' | 'busy' | 'labBusy' | 'energy' | 'ready';
+  'running' | 'missing' | 'busy' | 'labBusy' | 'noEnergy' | 'ready';
 
 /** `short`: the energy production the planet lacks (Gravitonforschung, #49). */
 export function researchState(
@@ -101,7 +102,7 @@ export function researchState(
   if (missing) return 'missing';
   if (r.rq) return 'busy';
   if (labUpgrading(p)) return 'labBusy';
-  if (short > 0) return 'energy';
+  if (short > 0) return 'noEnergy';
   return 'ready';
 }
 

@@ -118,7 +118,7 @@ CREATE TABLE fleets (
     to_g INTEGER NOT NULL,
     to_s INTEGER NOT NULL,
     to_p INTEGER NOT NULL,
-    mission TEXT NOT NULL CHECK (mission IN ('attack', 'transport', 'spy', 'colonize', 'deploy')),
+    mission TEXT NOT NULL CHECK (mission IN ('attack', 'transport', 'spy', 'colonize', 'deploy', 'harvest')),
     cargo_m REAL NOT NULL,
     cargo_c REAL NOT NULL,
     cargo_d REAL NOT NULL,

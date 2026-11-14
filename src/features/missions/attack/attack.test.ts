@@ -126,4 +126,44 @@ describe('attack', () => {
     });
     expect(ctx.planets.get('p1_2_6')!.def.pt).toBe(50);
   });
+
+  it('leaves 30 % of the destroyed ships as a Trümmerfeld and says so in both reports (#45)', () => {
+    // A Lastbarke (6,000 / 6,000 / 2,000) dies at 50 Plasmabatterien.
+    const { ctx, f, at } = setup({ lc: 1 }, { pt: 50 });
+    onArrive(ctx, f, at);
+    const debris = { m: 1800, c: 1800 };
+    expect(ctx.debris.all()).toEqual([
+      { id: 'd1_2_6', g: 1, s: 2, p: 6, ...debris },
+    ]);
+    expect(ctx.reports.ofPlayer('u_Anna')[0]).toMatchObject({ debris });
+    expect(ctx.reports.ofPlayer('u_Bert')[0]).toMatchObject({ debris });
+  });
+
+  it('adds to the Trümmerfeld that lies at the position (#45)', () => {
+    const { ctx, f, at } = setup({ lc: 1 }, { pt: 50 });
+    ctx.debris.add({ g: 1, s: 2, p: 6 }, { m: 100, c: 0.5 });
+    onArrive(ctx, f, at);
+    expect(ctx.debris.all()).toEqual([
+      { id: 'd1_2_6', g: 1, s: 2, p: 6, m: 1900, c: 1800.5 },
+    ]);
+    // The report names the debris of this battle.
+    expect(ctx.reports.ofPlayer('u_Anna')[0]).toMatchObject({
+      debris: { m: 1800, c: 1800 },
+    });
+  });
+
+  it('leaves no Trümmerfeld when only defense is destroyed (#45)', () => {
+    const { ctx, f, at } = setup({ bs: 20 }, { rl: 2 });
+    onArrive(ctx, f, at);
+    // The Kathedralschiffe survive; the defense that falls leaves nothing.
+    expect(ctx.fleets.get('f1')!.ships).toEqual({ bs: 20 });
+    expect(ctx.reports.ofPlayer('u_Anna')[0]).toMatchObject({
+      defBefore: { rl: 2 },
+      defAfter: {},
+    });
+    expect(ctx.debris.all()).toEqual([]);
+    expect(ctx.reports.ofPlayer('u_Anna')[0]).toMatchObject({
+      debris: { m: 0, c: 0 },
+    });
+  });
 });

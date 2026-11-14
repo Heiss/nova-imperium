@@ -171,6 +171,14 @@ debris fields of #45. `upgrades/migration-15.test.ts` checks hand-written
 data, the cascade and the new constraints, and on generated data of version
 14 that every table keeps its rows.
 
+Migration 16 (issue #45, see [Trümmerfelder](/features/debris.md))
+rebuilds `fleets` and `fleet_ships` like migration 13 for the mission
+`harvest` (Bergung) in the CHECK of `fleets.mission`; a Bergung flies to
+the place of a Trümmerfeld (`to_planet` `d<g>_<s>_<p>`), which needs no
+column. Fleets in flight keep every column and their ships
+(`upgrades/migration-16.test.ts`). The table `debris` of migration 15 is
+used from #45 on: one row per position, added up by every battle there.
+
 Account deletion runs in one transaction. Foreign-key cascades clear owned game,
 session, reward and push data. The deletion also removes led guilds and their
 memberships, linked audit and inbox records, invitations for the account address
@@ -198,7 +206,7 @@ tests together with an own test for each changing migration).
   existing rows needs its own test `src/server/db/upgrades/migration-<n>.test.ts`
   that checks the data after the upgrade. The decision is made by the effect on
   generated data, not by the SQL text; `ALTER TABLE … ADD COLUMN` counts as a
-  change. Migrations 7, 9, 10, 11, 13, 14 and 15 have such tests; pure `CREATE` migrations need
+  change. Migrations 7, 9, 10, 11, 13, 14, 15 and 16 have such tests; pure `CREATE` migrations need
   none (migration 12 has one anyway, for its CHECK and cascade).
 * **[E]** A self-test proves that the checks find a migration that fails on
   existing data and that the classification tells changes from new tables.
