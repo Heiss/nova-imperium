@@ -560,15 +560,10 @@ describe('account security', () => {
     const boss = ctx.players.byName('Boss')!;
     const member = addUser(ctx, 'Member');
     addPlanet(ctx, member.id, { p: 8 });
-    ctx.db
-      .prepare("INSERT INTO guilds VALUES ('g', 'TAG', 'Guild', '', ?)")
-      .run(boss.id);
-    ctx.db
-      .prepare("INSERT INTO guild_members VALUES (?, 'g', 'member')")
-      .run(boss.id);
-    ctx.db
-      .prepare("INSERT INTO guild_members VALUES (?, 'g', 'member')")
-      .run(member.id);
+    // With its ranks (#163): the guild, its ranks and memberships go together.
+    ctx.guilds.create('g', 'TAG', 'Guild', '', boss.id);
+    ctx.guilds.apply(member.id, 'g');
+    ctx.guilds.accept(member.id);
     ctx.reports.add(
       member.id,
       {
@@ -602,6 +597,7 @@ describe('account security', () => {
     ]);
     expect(ctx.db.prepare('SELECT * FROM guilds').all()).toEqual([]);
     expect(ctx.db.prepare('SELECT * FROM guild_members').all()).toEqual([]);
+    expect(ctx.db.prepare('SELECT * FROM guild_ranks').all()).toEqual([]);
     expect(
       ctx.db.prepare('SELECT * FROM audit_events WHERE actor = ?').all(boss.id),
     ).toEqual([]);
