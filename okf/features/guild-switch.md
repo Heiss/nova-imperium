@@ -37,6 +37,14 @@ einer runde (de-)aktivieren“.
   switch (owner, 2026-11-14).
 * **[E]** A round started with guilds on behaves as before: the guilds
   stay (issue #191, acceptance criteria).
+* **[E]** Warning in the dialog: a fixed sentence below the checkbox,
+  always shown, whatever the box shows (owner, 2026-11-14, O14 a).
+* **[E]** „Account löschen“: the sentence about a led guild is hidden
+  while guilds are off, in the box of „Hilfe & Optionen“ and in its dialog
+  (owner, 2026-11-14, O14 c).
+* **[E]** The push kinds „Gildenereignisse“ and „Nachrichten im
+  Gilden-Chat“ are decided with #169; until then they stay shown in „Hilfe
+  & Optionen“ (owner, 2026-11-14, O14 b, as recommended).
 
 # Proposals
 
@@ -49,7 +57,11 @@ einer runde (de-)aktivieren“.
   as the achievements do when both rewards are off.
 * **[V]** The checkbox stands in its own paragraph below the box
   „Belohnungen für die neue Runde“, so the legend of the rewards stays
-  true; it has no hint text of its own (open point O14).
+  true (O14 d: stays as built, as recommended, without an owner answer).
+* **[V]** The warning reads „Ohne Gilden werden alle Gilden mit
+  Mitgliedern, Bewerbungen und Rängen gelöscht.“, in the same paragraph
+  below the box; the box names it with `aria-describedby`, so a screen
+  reader reads it with the box. #169 adds the chat when it exists.
 * **[V]** A new round without a guild choice (an older client) keeps the
   current one, as a reset without reward choices does; a choice that is
   not yes or no is refused with „Bitte auswählen, ob Gilden in der neuen
@@ -80,7 +92,10 @@ einer runde (de-)aktivieren“.
 * `stateFor` sends `guilds: null` while off, and `round.guilds` always.
 * Client: `menu()` adds „Gilden“ only when `round.guilds`; `gameView`
   turns the guild view into the overview; `roundDialog` has the checkbox
-  `round-guilds`; `doReset` sends it.
+  `round-guilds` with the warning `round-guilds-note`; `doReset` sends it.
+  `deleteAccountBox(round)` and `deleteAccountDialog(round)` in
+  `src/client/views/misc.ts` add the sentence about a led guild only when
+  `round.guilds`.
 
 # Tests
 
@@ -96,13 +111,19 @@ einer runde (de-)aktivieren“.
 * `src/server/db/repos/guilds.test.ts`: `deleteAll` with its cascades.
 * `src/client/views/index.test.ts`, `src/client/views/misc.test.ts`,
   `src/client/logic/menu-hints.test.ts`: no „Gilden“ in the menu and under
-  „Mehr“, the checkbox preselected, no mark for applications.
+  „Mehr“, the checkbox preselected, the warning below it in both states
+  and named as its description, the sentence about a led guild in the box
+  and the dialog „Account löschen“ only with guilds, no mark for
+  applications.
 * `e2e/guild-switch.spec.ts`, desktop and phone, on the mail server (its
   own universe): the admin founds a guild with a member, starts a round
   with the box unchecked; for both players the guild view opens the
   overview, „Gilden“ is not in the menu, the state has no guild data and
   the server refuses founding, leaving and dissolving; the next dialog
   shows the box unchecked; a round with guilds on brings „Gilden“ back
-  without the old guild. axe on the dialog (on and off) and on the
-  overview without guilds; `e2e/a11y.spec.ts` checks the dialog on the
+  without the old guild. Both dialogs show the warning, which is the box's
+  accessible description; the member's „Account löschen“ (box and dialog)
+  names a led guild before, not while guilds are off, and again after.
+  axe on the dialog (on and off), on the overview, the options and the
+  deletion dialog without guilds; `e2e/a11y.spec.ts` checks the dialog on the
   main server without starting the round.

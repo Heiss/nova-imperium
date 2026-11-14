@@ -2,7 +2,12 @@
 import { describe, expect, it } from 'vitest';
 import type { GameState } from '../logic/types.ts';
 import type { V } from './common.ts';
-import { highscore, roundDialog } from './misc.ts';
+import {
+  deleteAccountBox,
+  deleteAccountDialog,
+  highscore,
+  roundDialog,
+} from './misc.ts';
 
 describe('highscore', () => {
   it('shows the planet of a player, also when its moon comes first (#53)', () => {
@@ -37,5 +42,67 @@ describe('the dialog „Neue Runde“', () => {
     const off = box(roundDialog({ ...rules, guilds: false }));
     expect(off).toContain('Gilden (mit Chat)');
     expect(off).not.toMatch(/checked/);
+  });
+});
+
+describe('the warning below the box „Gilden (mit Chat)“ (#191)', () => {
+  const rules = { number: 1, achievements: true, daily: true };
+  const WARNING =
+    'Ohne Gilden werden alle Gilden mit Mitgliedern, Bewerbungen und Rängen gelöscht.';
+
+  it('stands below the box, always, and the box names it as its description', () => {
+    for (const guilds of [true, false]) {
+      const html = roundDialog({ ...rules, guilds });
+      const box = html.indexOf('id="round-guilds"');
+      const note = html.indexOf(
+        `<span id="round-guilds-note">${WARNING}</span>`,
+      );
+      expect(box, String(guilds)).toBeGreaterThan(-1);
+      expect(note, String(guilds)).toBeGreaterThan(box);
+      expect(html).toMatch(
+        /<input type="checkbox" id="round-guilds" aria-describedby="round-guilds-note"/,
+      );
+      expect(html.indexOf('data-act="doReset"')).toBeGreaterThan(note);
+    }
+  });
+});
+
+describe('„Account löschen“ in a round with or without guilds (#191)', () => {
+  const rules = { number: 1, achievements: true, daily: true };
+  const on = { ...rules, guilds: true };
+  const off = { ...rules, guilds: false };
+
+  it('the box names a led guild only while guilds are on', () => {
+    expect(deleteAccountBox(on)).toContain(
+      '<p>Dein Konto und deine Spielstände werden dauerhaft gelöscht. Leitest du eine Gilde, wird sie aufgelöst.</p>',
+    );
+    expect(deleteAccountBox(off)).toContain(
+      '<p>Dein Konto und deine Spielstände werden dauerhaft gelöscht.</p>',
+    );
+    expect(deleteAccountBox(off)).not.toContain('Gilde');
+    for (const r of [on, off])
+      expect(deleteAccountBox(r)).toContain(
+        '<button type="button" class="red" data-act="deleteAccount">Account löschen</button>',
+      );
+  });
+
+  it('the dialog names a led guild only while guilds are on', () => {
+    expect(deleteAccountDialog(on)).toContain(
+      '<p>Dein Konto und deine Spielstände werden unwiderruflich gelöscht. Eine von dir geleitete Gilde wird aufgelöst.</p>',
+    );
+    expect(deleteAccountDialog(off)).toContain(
+      '<p>Dein Konto und deine Spielstände werden unwiderruflich gelöscht.</p>',
+    );
+    expect(deleteAccountDialog(off)).not.toContain('Gilde');
+    for (const r of [on, off]) {
+      const html = deleteAccountDialog(r);
+      expect(html).toMatch(/^<form id="deleteaccountform">/);
+      expect(html).toContain(
+        '<label for="delete-account-password">Passwort zur Bestätigung</label> <input id="delete-account-password" type="password" autocomplete="current-password" required>',
+      );
+      expect(html).toContain(
+        '<button class="red" type="submit">Account endgültig löschen</button> <button type="button" data-act="closeModal">Abbrechen</button></form>',
+      );
+    }
   });
 });

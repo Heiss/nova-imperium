@@ -72,8 +72,23 @@ export const help = (v: V): string => `<h2>Hilfe &amp; Optionen</h2>
      requestId: v.ui.lastRequestId ?? null,
    }),
  )}
- ${box('Account löschen', '<p>Dein Konto und deine Spielstände werden dauerhaft gelöscht. Leitest du eine Gilde, wird sie aufgelöst.</p><button type="button" class="red" data-act="deleteAccount">Account löschen</button>')}
+ ${deleteAccountBox(v.s.round)}
  ${box('Regeln dieses Universums', rules(v.s.cfg))}`;
+
+/** A sentence about guilds, only in a round with guilds (#191). */
+const guildNote = (round: RoundRules, sentence: string): string =>
+  round.guilds ? ` ${sentence}` : '';
+
+/** The box „Account löschen“ of the options. */
+export const deleteAccountBox = (round: RoundRules): string =>
+  box(
+    'Account löschen',
+    `<p>Dein Konto und deine Spielstände werden dauerhaft gelöscht.${guildNote(round, 'Leitest du eine Gilde, wird sie aufgelöst.')}</p><button type="button" class="red" data-act="deleteAccount">Account löschen</button>`,
+  );
+
+/** The confirmation of „Account löschen“ with the password. */
+export const deleteAccountDialog = (round: RoundRules): string =>
+  `<form id="deleteaccountform"><p>Dein Konto und deine Spielstände werden unwiderruflich gelöscht.${guildNote(round, 'Eine von dir geleitete Gilde wird aufgelöst.')}</p><p><label for="delete-account-password">Passwort zur Bestätigung</label> <input id="delete-account-password" type="password" autocomplete="current-password" required></p><button class="red" type="submit">Account endgültig löschen</button> <button type="button" data-act="closeModal">Abbrechen</button></form>`;
 
 function settingsForm(s: GameState, a: AdminState): string {
   const rows = a.specs
@@ -102,7 +117,8 @@ export function roundDialog(round: RoundRules): string {
     <label><input type="checkbox" id="round-achievements" ${round.achievements ? 'checked' : ''}> Achievements aktivieren</label><br>
     <label><input type="checkbox" id="round-daily" ${round.daily ? 'checked' : ''}> Tagesbelohnungen aktivieren</label>
   </fieldset>
-  <p><label><input type="checkbox" id="round-guilds" ${round.guilds ? 'checked' : ''}> Gilden (mit Chat)</label></p>
+  <p><label><input type="checkbox" id="round-guilds" aria-describedby="round-guilds-note" ${round.guilds ? 'checked' : ''}> Gilden (mit Chat)</label><br>
+  <span id="round-guilds-note">Ohne Gilden werden alle Gilden mit Mitgliedern, Bewerbungen und Rängen gelöscht.</span></p>
   <p><button class="red" data-act="doReset">Ja, neue Runde</button> <button data-act="closeModal">Abbrechen</button></p>`;
 }
 

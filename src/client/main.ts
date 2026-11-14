@@ -62,6 +62,7 @@ import { downloadErrors, mountAdminErrors } from './views/admin-errors.ts';
 import {
   ADMIN_TABS,
   auth,
+  deleteAccountDialog,
   diagnosticTab,
   roundDialog,
   endzeitDialog,
@@ -1314,10 +1315,7 @@ const ACT: Record<string, (d: Data) => unknown> = {
       toast((error as Error).message, true);
     }
   },
-  deleteAccount: () =>
-    modal(
-      '<form id="deleteaccountform"><p>Dein Konto und deine Spielstände werden unwiderruflich gelöscht. Eine von dir geleitete Gilde wird aufgelöst.</p><p><label for="delete-account-password">Passwort zur Bestätigung</label> <input id="delete-account-password" type="password" autocomplete="current-password" required></p><button class="red" type="submit">Account endgültig löschen</button> <button type="button" data-act="closeModal">Abbrechen</button></form>',
-    ),
+  deleteAccount: () => modal(deleteAccountDialog(client.game!.round)),
   dismissInstall: () => {
     installDismissed = true;
     try {

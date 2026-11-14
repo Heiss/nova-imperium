@@ -267,6 +267,11 @@ test.describe('accessibility (axe)', () => {
     await page.getByRole('tab', { name: 'Universum' }).click();
     await page.getByRole('button', { name: 'Neue Runde starten' }).click();
     await expect(page.getByLabel('Gilden (mit Chat)')).toBeChecked();
+    await expect(
+      page.getByText(
+        'Ohne Gilden werden alle Gilden mit Mitgliedern, Bewerbungen und Rängen gelöscht.',
+      ),
+    ).toBeVisible();
     const found = (await violations(page)).map((v) => `dialog: ${v}`);
     // Only looked at: a new round would reset every planet of this server.
     await page.getByRole('button', { name: 'Abbrechen' }).click();

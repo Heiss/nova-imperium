@@ -26,6 +26,8 @@ import { E2E_MAIL_URL } from './env.ts';
 const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
 const OFF = 'Gilden sind in dieser Runde abgeschaltet.';
 const BOX = 'Gilden (mit Chat)';
+const WARNING =
+  'Ohne Gilden werden alle Gilden mit Mitgliedern, Bewerbungen und Rängen gelöscht.';
 
 const lastToast = (page: Page): Locator => page.locator('.toast').last();
 /** The menu entry „Gilden“: the side menu on a desktop, „Mehr“ on a phone. */
@@ -64,7 +66,50 @@ async function openRoundDialog(page: Page): Promise<Locator> {
   await expect(
     page.getByText('Wirklich eine neue Runde starten?'),
   ).toBeVisible();
-  return page.getByLabel(BOX);
+  // The warning stands below the box, whatever the box shows (owner,
+  // 2026-11-14), and the box names it as its description.
+  const box = page.getByLabel(BOX);
+  await expect(page.getByText(WARNING)).toBeVisible();
+  await expect(box).toHaveAccessibleDescription(WARNING);
+  return box;
+}
+
+const LED = {
+  box: 'Leitest du eine Gilde, wird sie aufgelöst.',
+  dialog: 'Eine von dir geleitete Gilde wird aufgelöst.',
+};
+
+/**
+ * „Account löschen“ in the options and its dialog: the sentence about a led
+ * guild only in a round with guilds (owner, 2026-11-14). Only looked at.
+ */
+async function accountDeletion(
+  page: Page,
+  guilds: boolean,
+  found: string[],
+): Promise<void> {
+  const count = guilds ? 1 : 0;
+  await nav(page, 'help');
+  await expect(
+    page.getByText(
+      'Dein Konto und deine Spielstände werden dauerhaft gelöscht.',
+    ),
+  ).toBeVisible();
+  await expect(page.getByText(LED.box)).toHaveCount(count);
+  if (!guilds)
+    found.push(...(await violations(page, 'options without guilds')));
+  await page
+    .getByRole('button', { name: 'Account löschen', exact: true })
+    .click();
+  await expect(
+    page.getByText(
+      'Dein Konto und deine Spielstände werden unwiderruflich gelöscht.',
+    ),
+  ).toBeVisible();
+  await expect(page.getByText(LED.dialog)).toHaveCount(count);
+  if (!guilds)
+    found.push(...(await violations(page, 'deletion dialog without guilds')));
+  await page.getByRole('button', { name: 'Abbrechen' }).click();
 }
 
 async function startRound(page: Page): Promise<void> {
@@ -91,7 +136,9 @@ async function switchFlow(page: Page, browser: Browser): Promise<void> {
   await page.getByLabel('Name', { exact: true }).fill(`Schalter ${tag}`);
   await page.getByRole('button', { name: 'Gilde gründen' }).click();
   await expect(page.getByRole('heading', { name: title })).toBeVisible();
-  const pm = await browser.newPage();
+  // A context of its own: axe runs only on a page of browser.newContext().
+  const memberContext = await browser.newContext();
+  const pm = await memberContext.newPage();
   problems.push(watch(pm));
   await registerByMail(pm, member);
   await loginByCode(pm, member);
@@ -102,6 +149,8 @@ async function switchFlow(page: Page, browser: Browser): Promise<void> {
   await page.reload();
   await page.getByRole('button', { name: 'Annehmen' }).click();
   await expect(lastToast(page)).toContainText('Bewerbung angenommen.');
+
+  await accountDeletion(pm, true, found);
 
   // The dialog „Neue Runde“ shows the current setting: on.
   const box = await openRoundDialog(page);
@@ -123,6 +172,7 @@ async function switchFlow(page: Page, browser: Browser): Promise<void> {
   }
   expect(await refusal(page, { type: 'dissolveGuild', tag })).toBe(OFF);
   found.push(...(await violations(page, 'overview without guilds')));
+  await accountDeletion(pm, false, found);
 
   // The next dialog shows the current setting: off. On again brings guilds
   // back, without the old guild.
@@ -139,7 +189,8 @@ async function switchFlow(page: Page, browser: Browser): Promise<void> {
   ).toBeVisible();
   await pm.reload();
   await expect(guildEntry(pm).first()).toBeAttached();
-  await pm.close();
+  await accountDeletion(pm, true, found);
+  await memberContext.close();
   mailCli('unadmin', admin);
   expect(found).toEqual([]);
   expect(problems.flatMap((w) => w.problems)).toEqual([]);
