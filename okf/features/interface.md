@@ -22,6 +22,21 @@ generated: { by: claude-code/web, at: 2026-11-10T19:00:00Z }
 * **[E]** Phone (≤ 760 px): bottom tab bar with Übersicht, Gebäude, Flotte,
   Nachrichten and „Mehr“; „Mehr“ opens a bottom sheet (`<dialog>`) with the
   other entries. The desktop keeps the side menu.
+* **[E]** No view is wider than a phone of 360 px (owner, 2026-11-14, #189
+  D7, fixed at once as a bug); `e2e/phone-overflow.spec.ts` visits every
+  view and every tab of the admin at 360 px and fails on a page that
+  scrolls sideways.
+* **[V]** How (#189 D7, until the phone view of #189): on a phone the
+  resources table shows every row as a block of its own (the name, the four
+  values in two columns, each with its column head, then the share).
+* **[E]** Highscore on a phone (owner, 2026-11-14, #189 D7): the column
+  „Heimatplanet“ is hidden and its coordinates link [g:s:p] (to the system
+  on the Sternenkarte) stands small below the player name. A long name
+  breaks only when it does not fit („Umbruch nur im Notfall“, owner,
+  2026-11-14, after CodeRabbit on #207: 20 × „W“ ran over the points at
+  360 px); normal names stay on one line.
+  The desktop keeps the column. The link is rendered once and only moved by
+  CSS, so neither layout has a duplicate for the keyboard or a screen reader.
 * **[E]** Planets are layered CSS pictures (D7): a tileable surface that
   turns, clouds that drift, day and night shading and a breathing atmosphere
   halo in the colour of the type. Three fixed variants per type (D8),

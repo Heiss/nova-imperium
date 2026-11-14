@@ -16,7 +16,9 @@ describe('highscore', () => {
       ],
     } as unknown as GameState;
     const html = highscore({ s } as V);
-    expect(html).toContain('<td>Heimat <span class="lnk" data-act="gto"');
+    expect(html).toContain(
+      '<td><span class="home">Heimat</span> <span class="lnk" data-act="gto"',
+    );
     expect(html).not.toContain('Mond');
   });
 });

@@ -76,6 +76,33 @@ test.describe('accessibility (axe)', () => {
     expect(found).toEqual([]);
   });
 
+  test('the resources page and the highscore have no violations on a phone (#189) @phone', async ({
+    page,
+  }) => {
+    const name = uniqueName('AxeRohH');
+    await register(page, name);
+    // Every kind of producer and a throttled one with its note.
+    seed({
+      name,
+      b: { metal: 30, crystal: 28, deut: 5, solar: 30, fusion: 8 },
+      ships: { sat: 1200 },
+      research: { energy: 3 },
+      temp: 20,
+      res: { m: 0, c: 0, d: 0 },
+    });
+    await page.setViewportSize({ width: 360, height: 800 });
+    await page.goto('/?view=resources');
+    await expect(page.locator('#view')).toContainText('gedrosselt auf 58 %');
+    const found = (await violations(page)).map((v) => `resources: ${v}`);
+    // The coordinates below the name instead of the column „Heimatplanet“.
+    await page.goto('/?view=highscore');
+    await expect(
+      page.locator('tr.me [data-act=gto]').filter({ visible: true }),
+    ).toHaveCount(1);
+    found.push(...(await violations(page)).map((v) => `highscore: ${v}`));
+    expect(found).toEqual([]);
+  });
+
   test('a Trümmerfeld on the Sternenkarte and the fleet form of a Bergung have no violations (#45)', async ({
     page,
   }) => {
