@@ -81,6 +81,25 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   pushes to `main` (unchanged code keeps its cached result),
   complete every night (owner, 2026-11-11). Tag workflows verify the
   earlier CI result.
+* **[E]** Static mutants always run again (owner, 2026-11-14, #201):
+  before every incremental run, the step „Static mutants run again“
+  (`scripts/mutation-shards.ts drop-static`) removes the cached results of
+  the static mutants from the incremental file of the shard; every other
+  result stays cached. The release pull request and the nightly run stay
+  complete (`--force`). A static mutant changes code that runs when its
+  module loads (`static: true` in the report, written by StrykerJS for a
+  mutant with static coverage, also when tests cover it as well); it has
+  no coverage per test (`coveredBy: []`) and every test runs against it.
+  StrykerJS 10.1.1 takes over the old result of a mutant that is not
+  killed unless a test that covers it was added, and a static mutant never
+  gets one: #197 added a test that kills `guilds.ts:16:57`
+  (`linkify: true`), but the cache of `main` kept „Survived“ and shard 2
+  failed (run 43598386538). A mutant missing from the incremental file is
+  new to Stryker and runs. Cost: the nightly run of 2026-11-14
+  (43578903192) has 1031 static mutants of 6069, 158 of 252
+  mutant-minutes (39 to 85 % per shard), so an incremental shard takes
+  about as long as the static part of its complete run instead of 2 to 5
+  minutes.
 * **[E]** Mutation runs are sharded into 6 parallel jobs everywhere (owner,
   2026-11-13: 4 jobs took 16.5 to 19 minutes each and missed the target of
   about 12 to 15 minutes; with 6 the measured times give about 41.5
@@ -436,6 +455,15 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
     on #133). Stryker keeps and reports again the old results of files it
     does not mutate this time; without the pruning a file that moved to
     another shard would be reported twice (seen locally).
+  * `drop-static` (#201) removes every mutant with `static: true` from
+    `reports/stryker-incremental.json` and keeps the rest of the file;
+    without the file it does nothing, and a file that is not a report (no
+    `files`, a file without its list of mutants, broken JSON) fails the
+    step, as it fails `config`. Shown locally on `guilds.ts` (184 mutants,
+    4 static): with a new test that kills `linkify: true`, an incremental
+    run without the step reused 183 of 184 results and kept „Survived“;
+    after the step it reused 180, ran the 4 static ones and reported it
+    killed.
   * `merge <out> <report>...` checks that every shard of the plan ran once,
     matched by the `mutate` list in its report, and reported only its own
     files and no file twice; a cut file may be in several reports, but each
@@ -453,8 +481,8 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   file with its counts and the total, so two runs can be compared.
 * **[V]** Jobs in `ci.yml`: „Mutation plan“ (`mutation-plan`, once, the plan
   as job output), „Mutation tests (shard N of 6)“ (`mutation-shard`, matrix
-  1 to 6, `fail-fast: false`, incremental, `--force` when the head branch is
-  `release/*`, uploads `mutation-shard-N`), „Mutation tests“ (`mutation`,
+  1 to 6, `fail-fast: false`, incremental after `drop-static` (#201),
+  `--force` when the head branch is `release/*`, uploads `mutation-shard-N`), „Mutation tests“ (`mutation`,
   the gate: merge, total, floors). The CI Gate requires all three when the
   output `mutation` of „Detect changes“ is `true`, and accepts their skip
   only when it is `false` (#146) or `reuse` (#167, below); any other value
