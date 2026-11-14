@@ -20,7 +20,7 @@ export const DRIVE_BONUS: Record<DriveKey, number> = {
  * A drive a ship switches to once the player has researched `from` (issue
  * #57): it replaces the base `drive` and `speed` of the ship.
  */
-export interface DriveSwitch {
+interface DriveSwitch {
   drive: DriveKey;
   speed: number;
   from: { research: string; level: number };
