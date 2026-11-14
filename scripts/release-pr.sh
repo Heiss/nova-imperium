@@ -5,6 +5,11 @@
 # push to BASE. The branch release/<BASE> is rebuilt from BASE each time:
 # the fragments in changes/ become a section of CHANGELOG.md, VERSION holds
 # the next CalVer version. Merging the pull request is the release.
+# The release pull request of main stays a draft after every rebuild: its CI
+# runs the cheap checks only; marking it "Ready for review" starts the full
+# run (.github/workflows/release-ready.yml, owner, 2026-11-13 and
+# 2026-11-14, #147). A release pull request of a hotfix branch is marked
+# ready here and runs fully at once.
 set -eu
 
 fail() {
@@ -101,11 +106,19 @@ pulls=$(git log --format='- %s' "$range" | grep -E '\(#[0-9]+\)$' || true)
   printf '## Pull requests since %s\n\n%s\n\n' "${last:-the start}" "${pulls:-- (direct commits only)}"
   printf '## Before the merge\n\n'
   printf -- '- [ ] Texts checked: German, match their pull requests, one entry per feature, nothing internal or secret\n'
-  printf -- '- [ ] CI Gate green: complete mutation run, image, Trivy, upgrade test, smoke test\n'
+  if [ "$base" = main ]; then
+    printf -- '- [ ] Marked „Ready for review“, and its full run green: CI Gate with complete mutation run, image, Trivy, upgrade test, smoke test\n'
+    printf -- '- [ ] Candidate image `%s-rc.<N>` published\n' "$version"
+  else
+    printf -- '- [ ] CI Gate green: complete mutation run, image, Trivy, upgrade test, smoke test\n'
+  fi
   printf -- '- [ ] The issues of this release are closed or moved to the next one\n\n'
   printf '_Rebuilt automatically after every push to `%s`; do not edit this branch._\n' "$base"
+  if [ "$base" = main ]; then
+    printf '\n**Draft until the release is made ready.** After every rebuild this pull request is a draft: its CI runs only the cheap checks, and its CI Gate fails on purpose. „Ready for review“ starts the full run and, when it is green, the candidate image; the next rebuild sets it back to draft.\n'
+  fi
   if [ -n "$unmerged" ]; then
-    printf '\n**Draft:** merge the released hotfix branch(es)%s back into `main` first; this release would drop their fixes from `stable`.\n' "$unmerged"
+    printf '\n**Draft:** merge the released hotfix branch(es)%s back into `main` first; this release would drop their fixes from `stable`. Do not mark it ready until then.\n' "$unmerged"
   fi
 } > release-body.md
 
@@ -122,6 +135,12 @@ if [ -n "$other" ]; then
 fi
 if [ -n "$unmerged" ]; then
   printf 'Released hotfix not in %s yet:%s. The release pull request stays a draft.\n' "$base" "$unmerged"
+  exit 0
+fi
+# The release pull request of main stays a draft until the release is made
+# ready (#147); a hotfix release runs fully at once.
+if [ "$base" = main ]; then
+  printf 'Release pull request for %s is up to date; it stays a draft until it is marked ready.\n' "$version"
   exit 0
 fi
 gh pr ready "$open"

@@ -1,0 +1,61 @@
+name: Release ready
+
+# Marking the release pull request of main "Ready for review" starts its
+# full CI run (owner, 2026-11-13 and 2026-11-14, #147). ci.yml decides cheap
+# or full from the draft state of the event that starts it, and does not
+# listen to ready_for_review: every pull request would get a run, and a
+# skipped CI Gate counts as a success. This job adds the label "voller-lauf"
+# with the release App's token and removes it again; both events start
+# ci.yml (labeled, unlabeled) with draft false, and the second run cancels
+# the first (same concurrency group). Events caused by GITHUB_TOKEN would
+# start no workflow; those of the App do. Every other pull request, the
+# release pull requests of hotfix branches included, is left alone.
+on:
+  # pull_request_target: the workflow of the default branch runs, with
+  # GITHUB_REF main, so the environment "release" (deployment branches main
+  # and hotfix/**) hands out the App key; a pull_request run would have
+  # refs/pull/N/merge. Safe here: no checkout and no code of the pull
+  # request; the job only labels the pull request of the branch release/main
+  # of this repository.
+  pull_request_target: # zizmor: ignore[dangerous-triggers]
+    types: [ready_for_review]
+    branches: [main]
+
+permissions: {}
+
+jobs:
+  full-run:
+    name: Start the full run of the release pull request
+    if: >-
+      vars.RELEASE_APP_ID != '' &&
+      github.event.pull_request.head.ref == 'release/main' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.base.ref == 'main'
+    # The key is an environment secret, as in release-pr.yml.
+    environment: release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3
+        id: app
+        with:
+          app-id: ${{ vars.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          # Labels of a pull request and of the repository.
+          permission-pull-requests: write
+      - name: Add and remove the label "voller-lauf"
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+          NUMBER: ${{ github.event.pull_request.number }}
+          LABEL: voller-lauf
+        run: |
+          # The label is created the first time it is needed.
+          if ! gh api "repos/$GITHUB_REPOSITORY/labels/$LABEL" --silent 2> /dev/null; then
+            gh api --method POST "repos/$GITHUB_REPOSITORY/labels" --silent \
+              -f name="$LABEL" -f color=0e8a16 \
+              -f description='Starts the full CI run of the release pull request (release-ready.yml, #147)'
+          fi
+          # A label left over from a cancelled run gives no "labeled" event;
+          # the removal still starts the full run.
+          gh api --method POST "repos/$GITHUB_REPOSITORY/issues/$NUMBER/labels" --silent -f "labels[]=$LABEL"
+          gh api --method DELETE "repos/$GITHUB_REPOSITORY/issues/$NUMBER/labels/$LABEL" --silent
+          echo "The full run of the release pull request #$NUMBER starts (ci.yml, labeled and unlabeled)."

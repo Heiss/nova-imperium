@@ -43,10 +43,18 @@ interface is German.
    doesn't depend on the open ones in its own git worktree, and you review
    its diff before you open its pull request.
 2. **Make the release ready** when the milestone `next release` is open and
-   all its issues are closed: the release pull request must be green
-   (complete mutation run, image, Trivy, upgrade test), its texts checked
-   (German, matching their pull requests, one entry per feature, nothing
-   internal), and a candidate image `<version>-rc.<N>` published. Then tell the owner in
+   all its issues are closed. The release pull request is a draft after
+   every rebuild: its cheap run checks only secrets, dependencies,
+   migrations, workflows, CodeQL and the changelog, and its CI Gate is red
+   on purpose (#147). Check its texts (German, matching their pull
+   requests, one entry per feature, nothing internal) and its cheap jobs;
+   then mark it „Ready for review“, which starts the full run. Do not mark
+   it ready while its body says that a released hotfix is not merged back,
+   or while the last run of the workflow „Release pull request“ failed.
+   Wait until the CI Gate of the full run is green (complete mutation run,
+   image, Trivy, upgrade test) and the candidate image `<version>-rc.<N>`
+   is published; a push to `main` meanwhile sets it back to draft, so mark
+   it ready again. Then tell the owner in
    German: version, what is in it, the staging image (`NOVA_VERSION=next`),
    and that merging the release pull request releases it. Close the
    milestone and **stop the loop**.

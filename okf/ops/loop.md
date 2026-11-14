@@ -31,6 +31,20 @@ tasks).
   request is green with its candidate image, the loop tells the owner and
   **stops**. The owner merges the release pull request; that is the release
   (owner, 2026-11-12, [Branching and release](/ops/branching-release.md)).
+* **[E]** The release pull request of `main` is a draft with the cheap run
+  after every rebuild; its CI Gate is red on purpose (owner, 2026-11-13 and
+  2026-11-14, #147, [Branching and release](/ops/branching-release.md)).
+  In the step „Make the release ready“ the loop checks the single cheap
+  jobs and the texts, then marks it „Ready for review“: that starts the
+  full run (`release-ready.yml`). It waits for the green CI Gate of that
+  run and for the candidate image, then tells the owner. A rebuild during
+  the wait (a push to `main`) sets it back to draft: the loop marks it
+  ready again.
+* **[V]** The loop does not mark it ready while its body says that a
+  released hotfix is not merged back, or while the last run of „Release
+  pull request“ failed (a version held by another release branch): before
+  #147 the workflow kept it a draft in both cases, now only the draft
+  that every rebuild has shows it.
 * **[E]** The release pull request, `CHANGELOG.md` and `VERSION` come only
   from `scripts/release-pr.sh`: the changelog section from the fragments,
   the version from the tags, the list of pull requests from the Git

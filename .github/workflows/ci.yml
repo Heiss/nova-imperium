@@ -8,11 +8,20 @@ name: CI
 # the mutation configuration or the test tool chain (#146), and take over the
 # green result of the previous head when the newest head only merged main
 # (#167).
+# The release pull request of main is a draft after every rebuild: its run
+# is the cheap one (the checks that run for every change and the changelog
+# check), and its CI Gate fails on purpose, so neither a merge nor a
+# candidate image (rc-image.yml) follows it. Marking it "Ready for review"
+# starts the full run: release-ready.yml adds and removes the label
+# "voller-lauf", and those events carry draft false (owner, 2026-11-13 and
+# 2026-11-14, #147). A release pull request of a hotfix branch runs fully.
 # The documentation website is built when its sources change (#144).
 # Only the gate job "CI Gate" is the required check of main.
 on:
   pull_request:
-    # labeled/unlabeled: the label "kein-changelog" changes the fragment check.
+    # labeled/unlabeled: the label "kein-changelog" changes the fragment
+    # check; the label "voller-lauf" starts the full run of the release pull
+    # request of main (release-ready.yml, #147).
     types: [opened, synchronize, reopened, labeled, unlabeled]
   push:
     branches: [main, 'hotfix/**']
@@ -57,6 +66,7 @@ jobs:
           PR_HEAD_REF: ${{ github.head_ref }}
           PR_BASE_REF: ${{ github.base_ref }}
           PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          PR_DRAFT: ${{ github.event.pull_request.draft }}
           HEAD_SHA: ${{ github.sha }}
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -66,6 +76,21 @@ jobs:
               echo "image=true"
               echo "mutation=true"
               echo "site=true"
+            } >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # The draft release pull request of main runs the cheap checks
+          # only; its CI Gate fails on purpose. The draft state comes from
+          # the event that started this run: a rebuild sets it to draft
+          # before its push (scripts/release-pr.sh), the labels of
+          # release-ready.yml come after "Ready for review" (#147).
+          if [ "$PR_HEAD_REF" = release/main ] && [ "$PR_BASE_REF" = main ] && [ "$PR_DRAFT" = true ]; then
+            echo "Draft release pull request of main: the cheap run. \"Ready for review\" starts the full run."
+            {
+              echo "code=false"
+              echo "image=false"
+              echo "mutation=false"
+              echo "site=false"
             } >> "$GITHUB_OUTPUT"
             exit 0
           fi
@@ -103,7 +128,7 @@ jobs:
           # #146). The release pull request of a hotfix branch changes only
           # CHANGELOG.md, VERSION and changes/: it compares with the release
           # tag the hotfix branch starts from. The release pull request of
-          # main runs them as before (#147 decides).
+          # main runs them in its full run (#147).
           case "$PR_HEAD_REF" in
             release/hotfix/*)
               # Without a release tag below it the check fails, as the
@@ -642,6 +667,9 @@ jobs:
           SITE: ${{ needs.site.result }}
           EVENT: ${{ github.event_name }}
           PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          HEAD_REF: ${{ github.head_ref }}
+          BASE_REF: ${{ github.base_ref }}
+          PR_DRAFT: ${{ github.event.pull_request.draft }}
           GH_TOKEN: ${{ github.token }}
         run: |
           require_success() {
@@ -663,6 +691,35 @@ jobs:
           fi
           if [ "$EVENT" = "pull_request" ]; then
             require_success "Changelog fragments" "$FRAGMENTS"
+          fi
+
+          # The draft release pull request of main: the cheap checks above
+          # passed, and the gate fails on purpose, so the draft is never
+          # green without the full run and rc-image.yml publishes no
+          # candidate from it (owner, 2026-11-14, #147).
+          if [ "$EVENT" = "pull_request" ] && [ "$HEAD_REF" = release/main ] && [ "$BASE_REF" = main ] && [ "$PR_DRAFT" = true ]; then
+            echo "::error::Draft release pull request of main: the cheap checks passed. The full run starts with \"Ready for review\"."
+            exit 1
+          fi
+          # Every other release pull request runs every check; the one of a
+          # hotfix branch runs the mutation jobs by its changes since the
+          # release tag (#146).
+          if [ "$EVENT" = "pull_request" ]; then
+            case "$HEAD_REF" in
+              release/*)
+                if [ "$CODE" != "true" ] || [ "$IMAGE" != "true" ] || [ "$SITE_SOURCES" != "true" ]; then
+                  echo "::error::A release pull request must run every check."
+                  exit 1
+                fi
+                case "$HEAD_REF:$MUTATED" in
+                  release/hotfix/*:false | *:true) ;;
+                  *)
+                    echo "::error::A release pull request must run the mutation jobs (result of the detection: $MUTATED)."
+                    exit 1
+                    ;;
+                esac
+                ;;
+            esac
           fi
 
           case "$CODE" in
