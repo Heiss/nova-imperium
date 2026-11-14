@@ -54,7 +54,10 @@ interface is German.
    then mark it „Ready for review“, which starts the full run. Do not mark
    it ready while its body says that a released hotfix is not merged back
    (the workflow „Release ready“ refuses it and sets it back to draft), or
-   while the last run of the workflow „Release pull request“ failed.
+   while the last run of the workflow „Release pull request“ failed, or
+   while its run for the current `main` commit has not completed
+   successfully: a rebuild that is still running pushes a new head after
+   you marked the pull request ready.
    Wait until the CI Gate of the full run is green (complete mutation run,
    image, Trivy, upgrade test) and the candidate image `<version>-rc.<N>`
    is published; a push to `main` meanwhile sets it back to draft, so mark
@@ -69,8 +72,11 @@ interface is German.
    candidate image) and tell the owner again, saying that `main` moved and
    the release pull request was rebuilt. That message is the only notice:
    no comment on the release pull request, no issue. While it stays ready
-   and green, only wait. Once the release pull request from `release/main`
-   is merged, **stop the loop**.
+   and green, only wait. After a restart of `/loop` you cannot know whether
+   you told the owner already: tell them once more, then wait. When the
+   loop is about to end (seven days, or the session) before the release is
+   merged, tell the owner to start `/loop` again. Once the release pull
+   request from `release/main` is merged, **stop the loop**.
 3. **Plan the release** when no open issue has the label `ready`,
    `in progress` or `in review` and no release pull request is open. Ask
    the owner what the release should bring:

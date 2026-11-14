@@ -78,6 +78,17 @@ tasks).
   (#149). The owner decided this first with the milestone („stays open
   until the release is merged“); with labels the open release pull
   request takes its place.
+* **[E]** The loop marks the release pull request ready only after the
+  run of „Release pull request“ for the current `main` commit has
+  completed successfully: a rebuild still running would push a new head
+  after the ready mark and leave it ready without a full run (CodeRabbit
+  on #184, fixed 2026-11-14).
+* **[E]** After a restart the loop does not know whether it told the owner
+  about a ready and green release pull request: it tells the owner once
+  more and then waits (owner, 2026-11-14). When the loop is about to end
+  (seven days or the session) before the release is merged, it tells the
+  owner, who starts `/loop` again; the new loop finds the state on GitHub
+  (owner, 2026-11-14).
 * **[E]** While a released hotfix is not merged back, „Ready for review“
   is refused: „Release ready“ sets the pull request back to draft and
   comments why (owner, 2026-11-14, #147); the loop does not mark it ready
