@@ -6,11 +6,15 @@
 // random draws are the same too. The reference below is
 // src/server/game/arrival.ts (without `tick`, which did not change) and the
 // sending part of src/server/game/fleet-actions.ts as they were on main
-// before #116, copied unchanged but for the `export` keywords.
+// before #116, copied unchanged but for the `export` keywords and the
+// debris rule of #45 (owner, 2026-11-14), which the reference writes on its
+// own (`refDebris`, `refLeaveDebris`) so that it compares the debris rows
+// and the report field `debris` bit for bit too.
 import Database from 'better-sqlite3';
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import { battle } from '../../core/battle.ts';
+import { type Debris, debrisOf, isEmpty } from '../../core/debris.ts';
 import { DEF, MISSION, SHIPS, canFly, isShip } from '../../core/catalog.ts';
 import {
   capacity,
@@ -207,6 +211,45 @@ function afterBattle(
   return { rebuilt, def, ships };
 }
 
+// The debris rule of #45, written here on its own and not taken from
+// src/core/debris.ts or the repository `debris`, so that the comparison
+// fails when the rule changes (owner, 2026-11-14): 30 % of the Adamant and
+// Psikristall of the ships both sides lost, Sonnenreliquiare included, no
+// defense, no Promethium, added to the field at the position.
+const REF_DEBRIS_SHARE = 0.3;
+
+function refDebris(sides: [before: Levels, after: Levels][]): {
+  m: number;
+  c: number;
+} {
+  let m = 0;
+  let c = 0;
+  for (const [before, after] of sides)
+    for (const [k, n] of Object.entries(before)) {
+      const lost = n - (after[k] ?? 0);
+      if (!Object.hasOwn(SHIPS, k) || lost <= 0) continue;
+      m += SHIPS[k]!.cost[0] * lost;
+      c += SHIPS[k]!.cost[1] * lost;
+    }
+  return { m: m * REF_DEBRIS_SHARE, c: c * REF_DEBRIS_SHARE };
+}
+
+/** Adds the debris to the field at the position; nothing makes no field. */
+function refLeaveDebris(
+  ctx: Ctx,
+  { g, s, p }: Coords,
+  d: { m: number; c: number },
+): void {
+  if (d.m <= 0 && d.c <= 0) return;
+  ctx.db
+    .prepare(
+      `INSERT INTO debris (id, g, s, p, res_m, res_c) VALUES (?, ?, ?, ?, ?, ?)
+       ON CONFLICT(id) DO UPDATE SET res_m = res_m + excluded.res_m,
+         res_c = res_c + excluded.res_c`,
+    )
+    .run(`d${g}_${s}_${p}`, g, s, p, d.m, d.c);
+}
+
 const tech = (r: Levels): Levels => ({
   weapons: r.weapons ?? 0,
   shield: r.shield ?? 0,
@@ -230,6 +273,7 @@ interface Fight {
   res: ReturnType<typeof battle>;
   rebuilt: Levels;
   loot: Resources;
+  debris: { m: number; c: number };
 }
 
 function battleReports(ctx: Ctx, x: Fight): void {
@@ -250,6 +294,7 @@ function battleReports(ctx: Ctx, x: Fight): void {
     defAfter: x.res.def,
     rebuilt: x.rebuilt,
     loot: x.loot,
+    debris: x.debris,
     attTech: tech(x.attR),
     defTech: tech(x.defR),
   };
@@ -268,6 +313,11 @@ function attack(ctx: Ctx, f: Fleet, t: Planet, att: Player, def: Player): void {
     { units: defBefore, tech: defR },
     ctx.rng,
   );
+  const debris = refDebris([
+    [f.ships, res.att],
+    [defBefore, res.def],
+  ]);
+  refLeaveDebris(ctx, f.toC, debris);
   const after = afterBattle(ctx, t, res.def);
   const free = capacity(res.att) - (f.cargo.m + f.cargo.c + f.cargo.d);
   const loot =
@@ -296,6 +346,7 @@ function attack(ctx: Ctx, f: Fleet, t: Planet, att: Player, def: Player): void {
     res,
     rebuilt: after.rebuilt,
     loot,
+    debris,
   });
   if (!countUnits(res.att)) return ctx.fleets.delete(f.id);
   const cargo = {
@@ -565,8 +616,23 @@ function logLaunch(
 
 const TEMPLATE = openDatabase(':memory:').serialize();
 const NOW = 1_000_000;
-const MISSIONS = Object.keys(MISSION) as Mission[];
-const FLYING = Object.keys(SHIPS).filter(canFly);
+/**
+ * The missions the reference knows: those before #45. The Bergung of #45
+ * has its own tests (src/features/missions/harvest/).
+ */
+const MISSIONS: Mission[] = [
+  'attack',
+  'transport',
+  'spy',
+  'colonize',
+  'deploy',
+];
+/**
+ * The ships before #45, so that the generated cases stay those of #116
+ * (the generators draw from these lists).
+ */
+const SHIP_KEYS = Object.keys(SHIPS).filter((k) => k !== 'recycler');
+const FLYING = SHIP_KEYS.filter(canFly);
 const TECH = ['spy', 'weapons', 'shield', 'armor', 'computer', 'comb'];
 
 /** Anna sends; Bert is as strong as she is, Cora has nothing (noob protection). */
@@ -645,8 +711,8 @@ const worlds: fc.Arbitrary<World> = fc.record({
   build: fc.constantFrom(0, 3, 12),
   annaTech: levels(TECH, 12),
   defTech: levels(TECH, 12),
-  home: levels(Object.keys(SHIPS), 40),
-  ships: levels(Object.keys(SHIPS), 30),
+  home: levels(SHIP_KEYS, 40),
+  ships: levels(SHIP_KEYS, 30),
   def: levels(Object.keys(DEF), 60),
   res: stock,
 });
@@ -753,7 +819,7 @@ const orders: fc.Arbitrary<Order> = fc
       { weight: 1, arbitrary: fc.constantFrom('nope', 'constructor', '') },
     ),
     target: targets,
-    ships: levels([...Object.keys(SHIPS), 'nope'], 25),
+    ships: levels([...SHIP_KEYS, 'nope'], 25),
     cargo: fc.record({ m: load, c: load, d: load }),
     pct: fc.integer({ min: 0, max: 11 }),
     busy: fc.constantFrom(0, 0, 1, 3),
@@ -805,6 +871,56 @@ function order(w: World, o: Order, act: Action) {
   return result;
 }
 
+// The reference knows the debris rule of #45, so the comparison takes every
+// table and report as they are, debris rows and the report field `debris`
+// included. `checkDebris` checks them once more on their own: they hold
+// exactly 30 % of the ships the report lists as lost, and only a battle
+// leaves a field.
+
+type Dump = Record<string, unknown[]>;
+type ReportRow = { type: string; body: string };
+
+const isDump = (x: unknown): x is Dump =>
+  typeof x === 'object' && x !== null && 'debris' in x;
+
+/**
+ * The Trümmerfeld after a flight: the losses of its battle report, or none.
+ * Whether the flight left a field.
+ */
+function checkDebris(x: Flight, r: ReturnType<typeof fly>): boolean {
+  const last = r.steps.filter(isDump).at(-1)!;
+  const battles = (last.reports as ReportRow[])
+    .filter((row) => row.type === 'battle')
+    .map((row) => JSON.parse(row.body) as Record<string, Levels | Debris>);
+  if (!battles.length) {
+    expect(last.debris).toEqual([]);
+    return false;
+  }
+  expect(x.mission).toBe('attack');
+  const b = battles[0]!;
+  const debris = debrisOf([
+    { before: b.attBefore as Levels, after: b.attAfter as Levels },
+    { before: b.defBefore as Levels, after: b.defAfter as Levels },
+  ]);
+  for (const report of battles) expect(report.debris).toEqual(debris);
+  const { g, s, p } = TARGETS[x.target];
+  expect(last.debris).toEqual(
+    isEmpty(debris)
+      ? []
+      : [
+          {
+            id: placeId({ g, s, p, kind: 'debris' }),
+            g,
+            s,
+            p,
+            res_m: debris.m,
+            res_c: debris.c,
+          },
+        ],
+  );
+  return !isEmpty(debris);
+}
+
 // Every case closes its database: 1600 open in-memory databases filled the
 // memory of a mutation shard with four test runners. About 3 s per case on
 // a laptop, slower with coverage: the default limit of 5 s is too short.
@@ -813,14 +929,19 @@ describe(
   { timeout: 60_000 },
   () => {
     it('arrive and come home bit for bit, with the same random draws', () => {
+      let fields = 0;
       fc.assert(
         fc.property(worlds, flights, (w, x) => {
-          expect(fly(w, x, N.arrive, N.comeHome)).toEqual(
-            fly(w, x, arrive, comeHome),
-          );
+          // N is today's code; arrive and comeHome are the reference above.
+          const today = fly(w, x, N.arrive, N.comeHome);
+          if (checkDebris(x, today)) fields++;
+          expect(today).toEqual(fly(w, x, arrive, comeHome));
         }),
         { seed: 116, numRuns: 400 },
       );
+      // The generated battles leave Trümmerfelder, so the comparison
+      // covers the debris rows and the report field with values.
+      expect(fields).toBeGreaterThan(0);
     });
 
     it('send with the same answers, messages and changes', () => {

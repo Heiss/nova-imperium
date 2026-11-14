@@ -1,30 +1,43 @@
 import { MISSION } from '../../core/missions.ts';
 import { placeId } from '../../core/place.ts';
+import { debrisAt, debrisMark, harvestButton } from '../logic/debris.ts';
 import { esc, fmt } from '../logic/format.ts';
 import { isProtected, nameOf, ranks } from '../logic/game.ts';
 import { planetHTML, type V } from './common.ts';
+
+/** Actions joined like the others; empty ones are left out. */
+const join = (...actions: string[]): string =>
+  actions.filter(Boolean).join(' · ');
+
+/** The actions at an own or a foreign planet. */
+function planetActions(v: V, id: string, mine: boolean, at: string): string {
+  if (!mine)
+    return `<span class="lnk" data-act="gspy" ${at}>Auspex-Erkundung</span> · <span class="lnk" data-act="gfleet" data-m="attack" ${at}>Sturmangriff</span> · <span class="lnk" data-act="gfleet" data-m="transport" ${at}>Versorgungsflug</span>`;
+  return id === v.P.id
+    ? '<span class="dim">Aktiver Planet</span>'
+    : `<button class="small" data-act="selectPlanet" data-id="${esc(id)}">Wechseln</button> · <button class="small" data-act="gfleet" data-m="transport" ${at}>Versorgungsflug</button> · <button class="small" data-act="gfleet" data-m="deploy" ${at}>${MISSION.deploy}</button>`;
+}
 
 function row(v: V, p: number, rk: Record<string, number>): string {
   const { s, ui } = v;
   const c = { g: ui.gal, s: ui.sys, p };
   const pl = s.galaxy.find((x) => x.id === placeId({ ...c, kind: 'planet' }));
   const at = `data-g="${c.g}" data-s="${c.s}" data-p="${p}"`;
+  // A Trümmerfeld for every player, with its button (#45).
+  const field = debrisAt(s.debris, c);
+  const mark = field ? ` ${debrisMark(field)}` : '';
+  const harvest = field ? harvestButton(c) : '';
   if (!pl) {
-    const action = v.P.ships.colony
+    const colonize = v.P.ships.colony
       ? `<button class="small" data-act="gfleet" data-m="colonize" ${at}>Landnahme</button>`
       : '';
-    return `<tr><td class="n">${p}</td><td colspan="2" class="dim">–</td><td>${action}</td></tr>`;
+    return `<tr><td class="n">${p}</td><td colspan="2"><span class="dim">–</span>${mark}</td><td>${join(colonize, harvest)}</td></tr>`;
   }
   const mine = pl.owner === s.me.id;
   const prot = !mine && isProtected(s.players, s.me.id, pl.owner);
-  const actions = mine
-    ? pl.id === v.P.id
-      ? '<span class="dim">Aktiver Planet</span>'
-      : `<button class="small" data-act="selectPlanet" data-id="${esc(pl.id)}">Wechseln</button> · <button class="small" data-act="gfleet" data-m="transport" ${at}>Versorgungsflug</button> · <button class="small" data-act="gfleet" data-m="deploy" ${at}>${MISSION.deploy}</button>`
-    : `<span class="lnk" data-act="gspy" ${at}>Auspex-Erkundung</span> · <span class="lnk" data-act="gfleet" data-m="attack" ${at}>Sturmangriff</span> · <span class="lnk" data-act="gfleet" data-m="transport" ${at}>Versorgungsflug</span>`;
-  return `<tr class="${mine ? 'me' : ''}"><td class="n">${p}</td><td><span class="gal-pl">${planetHTML(pl, true)}${esc(pl.name)}</span></td>
+  return `<tr class="${mine ? 'me' : ''}"><td class="n">${p}</td><td><span class="gal-pl">${planetHTML(pl, true)}${esc(pl.name)}${mark}</span></td>
    <td>${esc(nameOf(s.players, pl.owner))} <span class="dim">(Platz ${rk[pl.owner] ?? '-'})</span>${prot ? ' <span class="good" title="Noobschutz">(n)</span>' : ''}</td>
-   <td>${actions}</td></tr>`;
+   <td>${join(planetActions(v, pl.id, mine, at), harvest)}</td></tr>`;
 }
 
 export function galaxy(v: V): string {

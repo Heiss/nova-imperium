@@ -30,6 +30,7 @@ okf_version: "0.2"
 * [Fusionskraftwerk](/features/fusion-reactor.md) - deuterium-burning power plant of #47, throttling at an empty stock
 * [Deploy mission „Verlegung“](/features/deploy.md) - moving ships and cargo to another own planet for good (#129)
 * [Planet fields and the Weltenschmiede](/features/fields.md) - limited fields per planet and the building that adds them (#51)
+* [Bergungsbarke, Trümmerfelder and „Bergung“](/features/debris.md) - debris of destroyed ships and the harvest mission (#45)
 * [Error log and problem reports](/features/error-log.md) - server and browser errors, problem reports, admin tab „Fehler“ and download (#126)
 * [Changelog in the game](/features/changelog.md) - „Neuigkeiten“, update message and hint from CHANGELOG.md
 
