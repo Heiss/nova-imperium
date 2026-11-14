@@ -299,7 +299,8 @@ jobs:
           retention-days: 7
 
   # Each shard keeps its own incremental result: unchanged code keeps its
-  # cached result on pull requests and on main. A release pull request and
+  # cached result on pull requests and on main, except the static mutants,
+  # which always run again (#201). A release pull request and
   # the nightly run (mutation.yml) test every mutant. A shard runs without
   # Stryker's break threshold; the gate below checks the merged report.
   mutation-shard:
@@ -334,6 +335,14 @@ jobs:
           MUTATION_PLAN: ${{ needs.mutation-plan.outputs.plan }}
           SHARD: ${{ matrix.shard }}
         run: node scripts/mutation-shards.ts config "$SHARD"
+      # A static mutant (code run when its module loads, so every test runs
+      # against it) never gets an added covering test, and Stryker takes
+      # over its old result even when a new test kills it now. So static
+      # mutants always run again; every other result stays (owner,
+      # 2026-11-14, #201).
+      - name: Static mutants run again
+        if: ${{ !startsWith(github.head_ref, 'release/') }}
+        run: node scripts/mutation-shards.ts drop-static
       - name: Incremental run
         if: ${{ !startsWith(github.head_ref, 'release/') }}
         run: pnpm test:mutation reports/stryker-shard.config.json
