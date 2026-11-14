@@ -243,7 +243,9 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   form before the combat components (#114, second pull request), and
   `src/core/flight-reference.test.ts` keeps speed, fuel and cargo of a
   fleet bit-identical to their form before the flight component (#114,
-  third pull request). See
+  third pull request), and `src/core/limits-reference.test.ts` keeps the
+  room for units and the energy need and shortage bit-identical to their
+  form before the limits group (#114, fourth pull request). See
   [Design patterns](/architecture/patterns.md), section 12.
 * **[E]** The rows of the resources page (#114, `ProducerTable`): the
   property test `src/core/producer-rows.test.ts` checks that the rows of

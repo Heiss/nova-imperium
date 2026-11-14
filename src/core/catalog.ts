@@ -6,8 +6,9 @@
 // patterns.md, sections 1 and 10; #114). An entry exports its `kind`, its
 // `order` within the kind, its components and, until their own pull request,
 // its other fields unchanged in `def`. Ships and defense have the components
-// `unit` and `combat` since the second pull request of #114, and every ship
-// that flies `mobile` since the third. This file builds the tables of the
+// `unit` and `combat` since the second pull request of #114, every ship
+// that flies `mobile` since the third, and the limits group (`limit`,
+// `energyThreshold`) since the fourth. This file builds the tables of the
 // game from them, in the order of the game (owner, 2026-11-13).
 //
 // The display texts are not here: each entry has them in its own
@@ -16,7 +17,9 @@
 import { ENTRIES } from '../features/index.gen.ts';
 import type { Combat, Fighter } from './components/combat.ts';
 import type { Consumes } from './components/consumes.ts';
+import type { EnergyThreshold } from './components/energy-threshold.ts';
 import type { Leveled } from './components/leveled.ts';
+import type { Limit } from './components/limit.ts';
 import {
   DRIVE_BONUS,
   type DriveKey,
@@ -29,27 +32,19 @@ import type { Unit } from './components/unit.ts';
 import { MISSION_TEXT } from './texts.ts';
 import type { Cost, Requirements } from './types.ts';
 
-/**
- * Energy production a research needs on the planet where it starts, or a
- * building on its planet: `base` at level 1, times `f` per further level. It
- * is checked, not consumed (#49, #51).
- */
-interface EnergyNeed {
-  base: number;
-  f: number;
-}
-
 export interface BuildingDef extends Leveled {
   f: number;
   req?: Requirements;
-  energy?: EnergyNeed;
+  /** The component `energyThreshold`, under its name of version 1 until #118. */
+  energy?: EnergyThreshold;
   /** Fields every level adds to its planet (Weltenschmiede, #51). */
   fields?: number;
 }
 
 export interface ResearchDef extends Leveled {
   req: Requirements;
-  energy?: EnergyNeed;
+  /** The component `energyThreshold`, under its name of version 1 until #118. */
+  energy?: EnergyThreshold;
 }
 
 export { DRIVE_BONUS, type DriveKey };
@@ -65,22 +60,28 @@ interface UnitDefBase {
 export interface ShipDef extends UnitDefBase, Mobile {}
 
 export interface DefenseDef extends UnitDefBase {
-  /** At most one per planet, the shield domes (#50, D3). */
+  /**
+   * At most one per planet, the shield domes (#50, D3): a `limit` of 1, as
+   * the table had it until #118.
+   */
   once?: true;
 }
 export type UnitDef = ShipDef | DefenseDef;
 
-/** The fields of a building besides its `leveled` component. */
-export type BuildingFields = Omit<BuildingDef, keyof Leveled>;
-/** The fields of a research besides its `leveled` component. */
-export type ResearchFields = Omit<ResearchDef, keyof Leveled>;
+/** The fields of a building besides its `leveled` and `energyThreshold` components. */
+export type BuildingFields = Omit<BuildingDef, keyof Leveled | 'energy'>;
+/** The fields of a research besides its `leveled` and `energyThreshold` components. */
+export type ResearchFields = Omit<ResearchDef, keyof Leveled | 'energy'>;
 /** The fields of a ship besides its `unit`, `combat` and `mobile` components. */
 export type ShipFields = Omit<
   ShipDef,
   keyof Unit | keyof Combat | keyof Mobile
 >;
-/** The fields of a defense besides its `unit` and `combat` components. */
-export type DefenseFields = Omit<DefenseDef, keyof Unit | keyof Combat>;
+/** The fields of a defense besides its `unit`, `combat` and `limit` components. */
+export type DefenseFields = Omit<
+  DefenseDef,
+  keyof Unit | keyof Combat | 'once'
+>;
 
 /** The production components; every entry that consumes also produces. */
 interface Producing {
@@ -97,12 +98,14 @@ type Entry =
       order: number;
       leveled: Required<Leveled>;
       storage?: Storage;
+      energyThreshold?: EnergyThreshold;
       def?: BuildingFields;
     })
   | (Idle & {
       kind: 'research';
       order: number;
       leveled: Leveled;
+      energyThreshold?: EnergyThreshold;
       def: ResearchFields;
     })
   | (Producing & {
@@ -119,6 +122,7 @@ type Entry =
       order: number;
       unit: Unit;
       combat: Combat;
+      limit?: Limit;
       def: DefenseFields;
     });
 
@@ -146,8 +150,14 @@ const table = <T, K extends Entry['kind']>(
     ofKind(kind).map(([key, e]) => [key, { ...values(e) } as T]),
   );
 
-const levels = (e: { leveled: Leveled; def?: object }): object => ({
+/** A building or research as the table had it: `energyThreshold` is `energy`. */
+const levels = (e: {
+  leveled: Leveled;
+  energyThreshold?: EnergyThreshold;
+  def?: object;
+}): object => ({
   ...e.leveled,
+  ...(e.energyThreshold && { energy: e.energyThreshold }),
   ...e.def,
 });
 
@@ -164,10 +174,17 @@ const pieces = (e: { unit: Unit; combat: Combat; def: object }): object => {
 const ship = (e: Extract<Entry, { kind: 'ship' }>): object =>
   pieces({ ...e, def: { ...(e.mobile ?? STATIONARY), ...e.def } });
 
+/** A defense as the table had it: a `limit` of 1 is `once: true`. */
+const defense = (e: Extract<Entry, { kind: 'defense' }>): object =>
+  pieces({
+    ...e,
+    def: { ...e.def, ...(e.limit?.perPlanet === 1 && { once: true }) },
+  });
+
 export const BUILD = table<BuildingDef, 'building'>('building', levels);
 export const RES = table<ResearchDef, 'research'>('research', levels);
 export const SHIPS = table<ShipDef, 'ship'>('ship', ship);
-export const DEF = table<DefenseDef, 'defense'>('defense', pieces);
+export const DEF = table<DefenseDef, 'defense'>('defense', defense);
 
 export const UNIT: Record<string, UnitDef> = { ...SHIPS, ...DEF };
 
@@ -199,6 +216,13 @@ export const FIGHTERS: Readonly<Record<string, Fighter>> = Object.fromEntries(
 export const MOBILE: Readonly<Record<string, Mobile>> = Object.fromEntries(
   ofKind('ship').flatMap(([key, e]) =>
     e.mobile ? [[key, e.mobile] as const] : [],
+  ),
+);
+
+/** The defense with a `limit` component, by key: at most so many per planet. */
+export const LIMIT: Readonly<Record<string, Limit>> = Object.fromEntries(
+  ofKind('defense').flatMap(([key, e]) =>
+    e.limit ? [[key, e.limit] as const] : [],
   ),
 );
 
