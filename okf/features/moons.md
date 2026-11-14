@@ -206,6 +206,64 @@ places (#119) and the fields (#51).
   `e2e/seed.ts` (option `moon`); the sentence about the Trabant is checked
   by the unit tests of the report and the attack.
 
+## Decided for the second pull request (Auspex-Phalanx)
+
+* **[E]** Endzeit gift (#161) and the moon buildings (owner, 2026-11-14,
+  „Geklärt, Nachtrag 2“): the gift raises only buildings that may stand at
+  its target, checked with the component `placement`; `moonbase` and every
+  other moon-only building are skipped on the home planet. Research is not
+  a building and is raised as before. Without it the gift would raise the
+  Mondzitadelle on the home planet once the Auspex-Phalanx requires
+  Mondzitadelle 1.
+
+## Built (second pull request, first part)
+
+Only what the owner decided; the building itself waits for the open points
+below.
+
+* Endzeit gift: `standing(levels, kind)` in `src/core/endzeit.ts` keeps the
+  levels that `buildable` allows on the kind of place; `giftArrive` raises
+  `standing(need.b, t.kind)` on the home planet, the research unchanged.
+  Tests: `src/core/endzeit.test.ts` (moon-only skipped on a planet,
+  planet-only skipped on a moon, a key without `placement` as a planet
+  building, a property over the catalog) and
+  `src/server/game/endzeit-placement.test.ts` (the arrival with gift levels
+  that name the Mondzitadelle: it is skipped, the other buildings and the
+  research are raised; failed before the change).
+* The decided rules of the phalanx in `src/core/phalanx.ts`, not yet used by
+  a building or an action: `phalanxRange(level)` level² − 1 systems (below 0
+  at level 0); `SCAN_COST` 5,000 Promethium; `scanRefusal(kind, owner,
+  scanner)` refuses a moon (`moon`), a Trümmerfeld (`notPlanet`) and an own
+  planet (`own`, the decided „foreign planet“); `scanFlights(fleets, id)`
+  every fleet of every player whose start or target is the planet, as the
+  leg it flies now (ships, origin, target, arrival), without cargo, owner,
+  mission and fuel; flights of the planet's moon are not the planet's.
+  Tests: `src/core/phalanx.test.ts` (unit and property).
+* **[V]** Proposals of this part, for the owner to confirm:
+  * a fleet flying back shows the leg from its target to its start with the
+    return as arrival, also after a recall; an outbound fleet shows only its
+    arrival at the target, not its return;
+  * the flights are listed by arrival, the first first;
+  * the gift of the Endzeit shows like any fleet, from and to the home
+    planet.
+
+## Open for the second pull request (owner)
+
+Asked with options and a recommendation in the report of the build; the
+Auspex-Phalanx as a building, its scan action, its interface, the E2E and
+axe tests wait for them.
+
+* The key of the building (and its place in the order after the
+  Mondzitadelle).
+* Which galaxy and which systems count for the range (the same galaxy, a
+  wrap around the end of the galaxy).
+* What a scan of an empty position and of a planet without flights shows,
+  and whether it is charged.
+* The interface: where the scan starts, how the result is shown, its texts.
+* Whether a scan shows the mission and the owner of a flight, the return of
+  an outbound fleet, and how a recalled fleet and the Endzeit gift appear
+  (the [V] above).
+
 # Mission „Mondbruch“ (#95)
 
 Issue #95, split off from #60 (owner, 2026-11-12); clarified 2026-11-13 with

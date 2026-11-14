@@ -1,6 +1,7 @@
 // „Endzeit“ (#161): what the gift holds and the levels it raises (D1, D2).
+import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
-import { BUILD, MOBILE, RES, SHIPS, UNIT } from './catalog.ts';
+import { BUILD, MOBILE, RES, SHIPS, UNIT, buildable } from './catalog.ts';
 import {
   GIFT_DEFAULT_MINUTES,
   GIFT_MINIMUM,
@@ -13,6 +14,7 @@ import {
   highest,
   overtaken,
   raise,
+  standing,
 } from './endzeit.ts';
 import type { Requirements } from './types.ts';
 
@@ -135,5 +137,47 @@ describe('a running order the gift overtakes', () => {
     expect(overtaken({ key: 'metal', lvl: 1 }, levels)).toBe(false);
     expect(overtaken(null, levels)).toBe(false);
     expect(overtaken(undefined, levels)).toBe(false);
+  });
+});
+
+// „Geklärt, Nachtrag 2“ of #53 (owner, 2026-11-14): the gift raises only the
+// buildings that may stand at its target, checked with `placement`.
+describe('the buildings the gift raises at its target', () => {
+  it('skips the moon-only buildings on a planet', () => {
+    expect(standing({ moonbase: 1, robot: 20, yard: 12 }, 'planet')).toEqual({
+      robot: 20,
+      yard: 12,
+    });
+  });
+
+  it('keeps the buildings of both kinds and drops the planet-only ones on a moon', () => {
+    expect(
+      standing({ moonbase: 1, robot: 20, metal: 4, lab: 20 }, 'moon'),
+    ).toEqual({ moonbase: 1, robot: 20 });
+  });
+
+  it('keeps an unknown key off a moon, as a building without placement', () => {
+    expect(standing({ ghost: 3 }, 'planet')).toEqual({ ghost: 3 });
+    expect(standing({ ghost: 3 }, 'moon')).toEqual({});
+    expect(standing({}, 'planet')).toEqual({});
+  });
+
+  it('keeps exactly the levels that may stand there (property)', () => {
+    const keys = [...Object.keys(BUILD), 'ghost'];
+    fc.assert(
+      fc.property(
+        fc.dictionary(
+          fc.constantFrom(...keys),
+          fc.integer({ min: 0, max: 50 }),
+        ),
+        fc.constantFrom('planet' as const, 'moon' as const),
+        (levels, kind) => {
+          const out = standing(levels, kind);
+          for (const [key, level] of Object.entries(levels))
+            expect(out[key]).toBe(buildable(key, kind) ? level : undefined);
+          expect(Object.keys(out).every((k) => buildable(k, kind))).toBe(true);
+        },
+      ),
+    );
   });
 });
