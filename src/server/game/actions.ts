@@ -34,6 +34,7 @@ import type { Cost, Planet, Queue, ResearchState } from '../../core/types.ts';
 import type { AuditEntry } from '../audit.ts';
 import {
   cancelScheduledPush,
+  orderPush,
   queuePush,
   scheduleShipyard,
 } from '../push-store.ts';
@@ -156,7 +157,7 @@ export const build: Action = (ctx, u, d, event) => {
   );
   p.bq = q;
   ctx.planets.save(p);
-  queuePush(ctx, u.id, 'buildings', `${p.id}:${q.start}`, q.end);
+  queuePush(ctx, u.id, orderPush('buildings', `${p.id}:${q.start}`, q.end));
   return null;
 };
 
@@ -209,7 +210,7 @@ export const research: Action = (ctx, u, d, event) => {
   r.rq = { ...q, planet: p.id };
   setResearch(ctx, u, r);
   ctx.planets.save(p);
-  queuePush(ctx, u.id, 'research', String(q.start), q.end);
+  queuePush(ctx, u.id, orderPush('research', String(q.start), q.end));
   return null;
 };
 

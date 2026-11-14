@@ -6,10 +6,12 @@
 // random draws are the same too. The reference below is
 // src/server/game/arrival.ts (without `tick`, which did not change) and the
 // sending part of src/server/game/fleet-actions.ts as they were on main
-// before #116, copied unchanged but for the `export` keywords and the
+// before #116, copied unchanged but for the `export` keywords, the
 // debris rule of #45 (owner, 2026-11-14), which the reference writes on its
 // own (`refDebris`, `refLeaveDebris`) so that it compares the debris rows
-// and the report field `debris` bit for bit too.
+// and the report field `debris` bit for bit too, and the push kinds of #192
+// (the argument of `addReport` and `queuePush`, the same kinds as today's
+// code).
 import Database from 'better-sqlite3';
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
@@ -83,21 +85,31 @@ function transport(ctx: Ctx, f: Fleet, t: Planet, att: Player): void {
   land(t, {}, f.cargo);
   ctx.planets.save(t);
   const text = `Eine Flotte von ${att.name} erreicht ${t.name} ${coords(f.toC)} und liefert ${resLine(f.cargo)}.`;
-  addReport(ctx, f.owner, {
-    time: f.arr,
-    type: 'info',
-    title: `Transport erreicht ${coords(f.toC)}`,
-    participants: [f.owner, t.owner],
-    text,
-  });
-  if (t.owner !== f.owner)
-    addReport(ctx, t.owner, {
+  addReport(
+    ctx,
+    f.owner,
+    {
       time: f.arr,
       type: 'info',
-      title: `Lieferung von ${att.name}`,
+      title: `Transport erreicht ${coords(f.toC)}`,
       participants: [f.owner, t.owner],
       text,
-    });
+    },
+    { topic: 'fleet' },
+  );
+  if (t.owner !== f.owner)
+    addReport(
+      ctx,
+      t.owner,
+      {
+        time: f.arr,
+        type: 'info',
+        title: `Lieferung von ${att.name}`,
+        participants: [f.owner, t.owner],
+        text,
+      },
+      { topic: 'delivery' },
+    );
   turnBack(ctx, f, { cargo: { m: 0, c: 0, d: 0 } });
 }
 
@@ -136,31 +148,41 @@ function spy(
   const shown = Object.fromEntries(
     SPY_LEVELS.filter(([min]) => score >= min).map(([, k]) => [k, details[k]]),
   );
-  addReport(ctx, f.owner, {
-    time: f.arr,
-    type: 'spy',
-    title: `Auspex-Bericht von ${t.name} ${coords(f.toC)}`,
-    participants: [f.owner, t.owner],
-    name: t.name,
-    defName: def.name,
-    coords: f.toC,
-    res: {
-      m: Math.floor(t.res.m),
-      c: Math.floor(t.res.c),
-      d: Math.floor(t.res.d),
+  addReport(
+    ctx,
+    f.owner,
+    {
+      time: f.arr,
+      type: 'spy',
+      title: `Auspex-Bericht von ${t.name} ${coords(f.toC)}`,
+      participants: [f.owner, t.owner],
+      name: t.name,
+      defName: def.name,
+      coords: f.toC,
+      res: {
+        m: Math.floor(t.res.m),
+        c: Math.floor(t.res.c),
+        d: Math.floor(t.res.d),
+      },
+      counter: chance,
+      lost,
+      ...shown,
     },
-    counter: chance,
-    lost,
-    ...shown,
-  });
+    { topic: 'fleet' },
+  );
   const text = `Eine fremde Flotte von ${att.name} ${coords(f.fromC)} wurde in der Nähe deines Planeten ${t.name} ${coords(f.toC)} gesichtet. Chance auf Auspex-Abwehr: ${chance} %.${lost ? ' Die Spähschädel wurden abgeschossen!' : ''}`;
-  addReport(ctx, t.owner, {
-    time: f.arr,
-    type: 'info',
-    title: 'Auspex-Aktivität',
-    participants: [f.owner, t.owner],
-    text,
-  });
+  addReport(
+    ctx,
+    t.owner,
+    {
+      time: f.arr,
+      type: 'info',
+      title: 'Auspex-Aktivität',
+      participants: [f.owner, t.owner],
+      text,
+    },
+    { topic: 'spied' },
+  );
   if (lost) ctx.fleets.delete(f.id);
   else turnBack(ctx, f);
 }
@@ -299,9 +321,9 @@ function battleReports(ctx: Ctx, x: Fight): void {
     defTech: tech(x.defR),
   };
   const won = `Kampfbericht ${coords(f.toC)} – ${WON[x.res.winner]}`;
-  addReport(ctx, f.owner, { ...report, title: won });
+  addReport(ctx, f.owner, { ...report, title: won }, { topic: 'fleet' });
   const hit = `Feindkontakt! ${t.name} ${coords(f.toC)} wird von ${x.att.name} angegriffen`;
-  addReport(ctx, t.owner, { ...report, title: hit });
+  addReport(ctx, t.owner, { ...report, title: hit }, { topic: 'attacked' });
 }
 
 function attack(ctx: Ctx, f: Fleet, t: Planet, att: Player, def: Player): void {
@@ -358,12 +380,17 @@ function attack(ctx: Ctx, f: Fleet, t: Planet, att: Player, def: Player): void {
 }
 
 function unsuitableTarget(ctx: Ctx, f: Fleet): void {
-  addReport(ctx, f.owner, {
-    time: f.arr,
-    type: 'info',
-    title: 'Flotte kehrt um',
-    text: `An ${coords(f.toC)} wurde kein passendes Ziel gefunden. Deine Flotte kehrt zurück.`,
-  });
+  addReport(
+    ctx,
+    f.owner,
+    {
+      time: f.arr,
+      type: 'info',
+      title: 'Flotte kehrt um',
+      text: `An ${coords(f.toC)} wurde kein passendes Ziel gefunden. Deine Flotte kehrt zurück.`,
+    },
+    { topic: 'fleet' },
+  );
   turnBack(ctx, f);
 }
 
@@ -373,12 +400,17 @@ function colonize(ctx: Ctx, f: Fleet, occupied: Planet | null): void {
   if (occupied || g > u.galaxies || s > u.systems || p > u.positions)
     return unsuitableTarget(ctx, f);
   createPlanet(ctx, f.owner, 'Kolonie', f.toC, f.arr, f.cargo);
-  addReport(ctx, f.owner, {
-    time: f.arr,
-    type: 'info',
-    title: `Kolonie gegründet ${coords(f.toC)}`,
-    text: 'Deine Kolonistenarche hat eine neue Kolonie gegründet.',
-  });
+  addReport(
+    ctx,
+    f.owner,
+    {
+      time: f.arr,
+      type: 'info',
+      title: `Kolonie gegründet ${coords(f.toC)}`,
+      text: 'Deine Kolonistenarche hat eine neue Kolonie gegründet.',
+    },
+    { topic: 'fleet' },
+  );
   const ships = { ...f.ships };
   if (ships.colony === 1) delete ships.colony;
   else ships.colony = ships.colony! - 1;
@@ -395,12 +427,17 @@ function deploy(ctx: Ctx, f: Fleet, t: Planet): void {
   const load = { ...f.cargo, d: f.cargo.d + rest };
   land(t, f.ships, load);
   ctx.planets.save(t);
-  addReport(ctx, f.owner, {
-    time: f.arr,
-    type: 'info',
-    title: `Verlegung erreicht ${coords(f.toC)}`,
-    text: `Deine Flotte bleibt auf ${t.name} ${coords(f.toC)} und liefert ${resLine(load)}, davon ${fmt(rest)} übriger Treibstoff.`,
-  });
+  addReport(
+    ctx,
+    f.owner,
+    {
+      time: f.arr,
+      type: 'info',
+      title: `Verlegung erreicht ${coords(f.toC)}`,
+      text: `Deine Flotte bleibt auf ${t.name} ${coords(f.toC)} und liefert ${resLine(load)}, davon ${fmt(rest)} übriger Treibstoff.`,
+    },
+    { topic: 'fleet' },
+  );
   ctx.fleets.delete(f.id);
 }
 
@@ -441,9 +478,15 @@ function comeHome(ctx: Ctx, f: Fleet): void {
           title: `Rückkehr zu ${o.name} ${coords(f.fromC)}`,
           text: `Deine Flotte ist zurück${sum ? ' und bringt ' + resLine(f.cargo) + ' mit' : ''}.`,
         },
-        'fleet',
+        { topic: 'fleet', kind: 'fleet' },
       );
-    else queuePush(ctx, f.owner, 'fleet', f.id, ctx.now());
+    else
+      queuePush(ctx, f.owner, {
+        kind: 'fleet',
+        topic: 'fleet',
+        key: f.id,
+        due: ctx.now(),
+      });
   }
   ctx.fleets.delete(f.id);
 }

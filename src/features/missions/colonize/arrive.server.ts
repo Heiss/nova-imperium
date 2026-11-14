@@ -9,12 +9,17 @@ import { createPlanet } from '../../../server/game/planets.ts';
 
 export function onArrive(ctx: Ctx, f: Fleet): void {
   createPlanet(ctx, f.owner, 'Kolonie', f.toC, f.arr, f.cargo);
-  addReport(ctx, f.owner, {
-    time: f.arr,
-    type: 'info',
-    title: `Kolonie gegründet ${coords(f.toC)}`,
-    text: 'Deine Kolonistenarche hat eine neue Kolonie gegründet.',
-  });
+  addReport(
+    ctx,
+    f.owner,
+    {
+      time: f.arr,
+      type: 'info',
+      title: `Kolonie gegründet ${coords(f.toC)}`,
+      text: 'Deine Kolonistenarche hat eine neue Kolonie gegründet.',
+    },
+    { topic: 'fleet' },
+  );
   const ships = { ...f.ships };
   if (ships.colony === 1) delete ships.colony;
   else ships.colony = ships.colony! - 1;

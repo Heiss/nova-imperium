@@ -1,7 +1,13 @@
 // Versorgungsflug (#116): no check of its own; it unloads at the target.
 import { describe, expect, it } from 'vitest';
 import type { Fleet } from '../../../core/types.ts';
-import { addPlanet, addUser, testCtx } from '../../../server/test-helpers.ts';
+import {
+  addPlanet,
+  addUser,
+  queuedPushes,
+  subscribePush,
+  testCtx,
+} from '../../../server/test-helpers.ts';
 import { onArrive } from './arrive.server.ts';
 import * as rules from './rules.ts';
 import { canSend } from './rules.ts';
@@ -78,5 +84,16 @@ describe('transport', () => {
     const { ctx, f, at } = setup('u_Anna');
     onArrive(ctx, f, at);
     expect(ctx.reports.ofPlayer('u_Anna')).toHaveLength(1);
+  });
+
+  it('pushes its arrival to the sender and the delivery to the receiver (#192)', () => {
+    const { ctx, f, at } = setup('u_Bert');
+    subscribePush(ctx, 'u_Anna');
+    subscribePush(ctx, 'u_Bert');
+    onArrive(ctx, f, at);
+    expect(queuedPushes(ctx)).toEqual([
+      { user: 'u_Anna', kind: 'messages', topic: 'fleet' },
+      { user: 'u_Bert', kind: 'messages', topic: 'delivery' },
+    ]);
   });
 });

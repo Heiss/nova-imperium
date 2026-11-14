@@ -111,9 +111,9 @@ function battleReports(ctx: Ctx, x: Fight): void {
     defTech: tech(x.defR),
   };
   const won = `Kampfbericht ${coords(f.toC)} – ${WON[x.res.winner]}`;
-  addReport(ctx, f.owner, { ...report, title: won });
+  addReport(ctx, f.owner, { ...report, title: won }, { topic: 'fleet' });
   const hit = `Feindkontakt! ${t.name} ${coords(f.toC)} wird von ${x.att.name} angegriffen`;
-  addReport(ctx, t.owner, { ...report, title: hit });
+  addReport(ctx, t.owner, { ...report, title: hit }, { topic: 'attacked' });
 }
 
 /** The debris step: 30 % of the ships both sides lost lie at the position (#45). */

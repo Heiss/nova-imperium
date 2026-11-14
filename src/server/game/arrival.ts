@@ -36,15 +36,20 @@ const SERVERS: ReadonlyMap<string, MissionServer> = new Map<
 
 /** A fleet whose target no longer fits flies back with what it carries. */
 function unsuitableTarget(ctx: Ctx, f: Fleet, kind: TargetKind): void {
-  addReport(ctx, f.owner, {
-    time: f.arr,
-    type: 'info',
-    title: 'Flotte kehrt um',
-    text:
-      kind === 'debris'
-        ? 'An der Position war kein Trümmerfeld mehr.'
-        : `An ${coords(f.toC)} wurde kein passendes Ziel gefunden. Deine Flotte kehrt zurück.`,
-  });
+  addReport(
+    ctx,
+    f.owner,
+    {
+      time: f.arr,
+      type: 'info',
+      title: 'Flotte kehrt um',
+      text:
+        kind === 'debris'
+          ? 'An der Position war kein Trümmerfeld mehr.'
+          : `An ${coords(f.toC)} wurde kein passendes Ziel gefunden. Deine Flotte kehrt zurück.`,
+    },
+    { topic: 'fleet' },
+  );
   turnBack(ctx, f);
 }
 
@@ -91,9 +96,15 @@ export function comeHome(ctx: Ctx, f: Fleet): void {
           title: `Rückkehr zu ${o.name} ${coords(f.fromC)}`,
           text: `Deine Flotte ist zurück${sum ? ' und bringt ' + resLine(f.cargo) + ' mit' : ''}.`,
         },
-        'fleet',
+        { topic: 'fleet', kind: 'fleet' },
       );
-    else queuePush(ctx, f.owner, 'fleet', f.id, ctx.now());
+    else
+      queuePush(ctx, f.owner, {
+        kind: 'fleet',
+        topic: 'fleet',
+        key: f.id,
+        due: ctx.now(),
+      });
   }
   ctx.fleets.delete(f.id);
 }

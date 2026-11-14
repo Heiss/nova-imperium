@@ -33,6 +33,7 @@ okf_version: "0.2"
 * [Bergungsbarke, Trümmerfelder and „Bergung“](/features/debris.md) - debris of destroyed ships and the harvest mission (#45)
 * [Error log and problem reports](/features/error-log.md) - server and browser errors, problem reports, admin tab „Fehler“ and download (#126)
 * [Changelog in the game](/features/changelog.md) - „Neuigkeiten“, update message and hint from CHANGELOG.md
+* [Push settings per kind](/features/push-settings.md) - which kinds of Web Push a player gets, per account for all devices (#192)
 
 * [Invitations](/features/invitations.md) - registration only by invitation, mail or copied link
 * [Admin](/features/admin.md) - operator roles, diagnostics, audit log, moderation and live universe settings

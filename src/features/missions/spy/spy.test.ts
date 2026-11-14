@@ -2,7 +2,13 @@
 // warning for the defender, and the probes may be shot down.
 import { describe, expect, it } from 'vitest';
 import type { Fleet, Levels } from '../../../core/types.ts';
-import { addPlanet, addUser, testCtx } from '../../../server/test-helpers.ts';
+import {
+  addPlanet,
+  addUser,
+  queuedPushes,
+  subscribePush,
+  testCtx,
+} from '../../../server/test-helpers.ts';
 import { counterChance, onArrive, spyScore } from './arrive.server.ts';
 import * as rules from './rules.ts';
 import { canSend } from './rules.ts';
@@ -110,5 +116,16 @@ describe('spy', () => {
       / Die Spähschädel wurden abgeschossen!$/,
     );
     expect(ctx.fleets.get('f1')).toBeNull();
+  });
+
+  it('pushes the report to the spy and the activity to the defender (#192)', () => {
+    const { ctx, f, at } = setup(5, {});
+    subscribePush(ctx, 'u_Anna');
+    subscribePush(ctx, 'u_Bert');
+    onArrive(ctx, f, at);
+    expect(queuedPushes(ctx)).toEqual([
+      { user: 'u_Anna', kind: 'messages', topic: 'fleet' },
+      { user: 'u_Bert', kind: 'messages', topic: 'spied' },
+    ]);
   });
 });

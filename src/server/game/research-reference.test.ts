@@ -5,7 +5,8 @@
 // every table. The reference below is the research action of
 // src/server/game/actions.ts as it was on main before #115, with
 // settleReactors() and the private helpers it calls, copied unchanged but
-// for the names of the copies.
+// for the names of the copies and the push argument of #192 (`orderPush`,
+// the same kind as today's code).
 import Database from 'better-sqlite3';
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
@@ -36,7 +37,7 @@ import type {
 import type { AuditEntry } from '../audit.ts';
 import { openDatabase } from '../db/database.ts';
 import type { User } from '../db/repos/players.ts';
-import { queuePush } from '../push-store.ts';
+import { orderPush, queuePush } from '../push-store.ts';
 import { addPlanet, addUser, testCtx } from '../test-helpers.ts';
 import * as A from './actions.ts';
 import { type Action, mine, ownLabs, researchOf } from './actions.ts';
@@ -123,7 +124,7 @@ const research: Action = (ctx, u, d, event) => {
   r.rq = { ...q, planet: p.id };
   setResearch(ctx, u, r);
   ctx.planets.save(p);
-  queuePush(ctx, u.id, 'research', String(q.start), q.end);
+  queuePush(ctx, u.id, orderPush('research', String(q.start), q.end));
   return null;
 };
 
