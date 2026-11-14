@@ -5,11 +5,19 @@
 //   node scripts/mutation-shards.ts plan
 //        prints the plan, a JSON list of 6 lists of "mutate" entries: the
 //        files of the "mutate" globs in stryker.config.json, weighed by the
-//        test time of their mutants in the last report
-//        (reports/mutation/mutation.json) or else by their lines; a file
+//        test time of their mutants in the weights of the state
+//        (reports/mutation-state.json), else in the last report
+//        (reports/mutation/mutation.json), else by their lines; a file
 //        heavier than half a shard is cut into line ranges between its
-//        top-level statements ("file:from-to"); the heaviest first onto the
-//        emptiest shard (owner, 2026-11-13, #131)
+//        top-level statements ("file:from-to") (owner, 2026-11-13, #131).
+//        Every file and range stays on its shard of the plan in the state;
+//        new ones go onto the lightest shard, and a shard above 1.5 times
+//        the mean gives entries to the lightest (owner, 2026-11-13, #141).
+//        It writes the state again with the new plan for the gate job.
+//   node scripts/mutation-shards.ts weights <state> <report>
+//        takes the test time of every mutant the merged report ran into the
+//        weights of the state; a mutant without a time (a result Stryker
+//        took over) keeps its old one (owner, 2026-11-13, #141)
 //   node scripts/mutation-shards.ts config <n>
 //        writes the Stryker configuration of shard n (1 to 6) of the plan in
 //        MUTATION_PLAN to reports/stryker-shard.config.json: the same
@@ -36,8 +44,14 @@ import type * as TS from 'typescript';
 import { runCli } from './cli.ts';
 
 export const SHARDS = 6;
+/**
+ * A shard may weigh up to this times the mean of all shards before the
+ * plan moves entries away from it (#141).
+ */
+export const TOLERANCE = 1.5;
 const CONFIG = 'stryker.config.json';
 const REPORT = 'reports/mutation/mutation.json';
+const STATE = 'reports/mutation-state.json';
 const SHARD_CONFIG = 'reports/stryker-shard.config.json';
 const INCREMENTAL = 'reports/stryker-incremental.json';
 
@@ -283,25 +297,194 @@ export function join(plan: readonly string[][]): string[][] {
 }
 
 /**
- * Greedy split: the heaviest file first onto the shard with the least
- * weight (the first of equal shards); equal weights in name order. Each
- * shard lists its files sorted. The same weights give the same plan.
+ * Greedy split, the plan without a previous one: the heaviest file first
+ * onto the shard with the least weight (the first of equal shards); equal
+ * weights in name order. Each shard lists its files sorted. The same
+ * weights give the same plan.
  */
 export function split(
   weights: Record<string, number>,
   shards = SHARDS,
 ): string[][] {
-  const plan: string[][] = Array.from({ length: shards }, () => []);
-  const load: number[] = new Array<number>(shards).fill(0);
-  const order = Object.entries(weights).sort(
-    ([a, wa], [b, wb]) => wb - wa || (a < b ? -1 : 1),
-  );
-  for (const [file, weight] of order) {
-    const emptiest = load.indexOf(Math.min(...load));
-    plan[emptiest]!.push(file);
-    load[emptiest]! += weight;
+  return settle(weights, undefined, shards).plan;
+}
+
+/**
+ * The shard (0-based) of the previous plan that held a unit of the split:
+ * the one with its whole file, or with the range of the file that holds
+ * the unit's first line (line 1 for a whole file). Undefined for a unit the
+ * previous plan does not know.
+ */
+export function shardOf(
+  previous: readonly (readonly string[])[],
+  unit: string,
+): number | undefined {
+  const u = entryOf(unit);
+  const line = u.from ?? 1;
+  const holds = (entry: string): boolean => {
+    const e = entryOf(entry);
+    if (e.file !== u.file) return false;
+    return e.from === undefined || (line >= e.from && line <= e.to!);
+  };
+  const shard = previous.findIndex((entries) => entries.some(holds));
+  return shard === -1 ? undefined : shard;
+}
+
+/** The lightest shard, the first of equal ones. */
+const lightest = (load: readonly number[]): number =>
+  load.indexOf(Math.min(...load));
+
+/**
+ * The unit an overfull shard gives away: of those that fit onto the
+ * lightest shard without lifting it above the limit, the lightest one that
+ * brings the shard within the limit alone, else the heaviest one; equal
+ * weights by name. Undefined when none fits.
+ */
+function giveAway(
+  units: readonly string[],
+  weights: Record<string, number>,
+  excess: number,
+  room: number,
+): string | undefined {
+  const fit = units
+    .filter((u) => weights[u]! > 0 && weights[u]! <= room)
+    .sort((a, b) => weights[a]! - weights[b]! || (a < b ? -1 : 1));
+  return fit.find((u) => weights[u]! >= excess) ?? fit.at(-1);
+}
+
+/** A plan of units, how much each shard weighs and which units moved or are new. */
+export interface Settled {
+  plan: string[][];
+  load: number[];
+  moved: string[];
+  added: string[];
+}
+
+/**
+ * Moves units away from every shard above the limit onto the lightest,
+ * until it is within the limit or no unit fits.
+ */
+function relieve(
+  settled: Settled,
+  weights: Record<string, number>,
+  limit: number,
+): void {
+  const { plan, load, moved } = settled;
+  plan.forEach((units, s) => {
+    for (;;) {
+      const t = lightest(load);
+      const unit =
+        load[s]! > limit
+          ? giveAway(units, weights, load[s]! - limit, limit - load[t]!)
+          : undefined;
+      if (unit === undefined) return;
+      units.splice(units.indexOf(unit), 1);
+      plan[t]!.push(unit);
+      load[s]! -= weights[unit]!;
+      load[t]! += weights[unit]!;
+      moved.push(unit);
+    }
+  });
+}
+
+/**
+ * Stable split (owner, 2026-11-13, #141): every unit stays on its shard of
+ * the previous plan, so the shard keeps its cached results; new units go
+ * onto the lightest shard, heaviest first (equal weights by name). Only a
+ * shard above tolerance times the mean gives units away. Without a
+ * previous plan of as many shards every unit is new, which is the greedy
+ * split. Each shard lists its units sorted; the same input gives the same
+ * plan.
+ */
+export function settle(
+  weights: Record<string, number>,
+  previous?: readonly (readonly string[])[],
+  shards = SHARDS,
+  tolerance = TOLERANCE,
+): Settled {
+  const known = previous?.length === shards ? previous : [];
+  const settled: Settled = {
+    plan: Array.from({ length: shards }, () => []),
+    load: new Array<number>(shards).fill(0),
+    moved: [],
+    added: [],
+  };
+  const put = (unit: string, shard: number): void => {
+    settled.plan[shard]!.push(unit);
+    settled.load[shard]! += weights[unit]!;
+  };
+  for (const unit of Object.keys(weights)) {
+    const shard = shardOf(known, unit);
+    if (shard === undefined) settled.added.push(unit);
+    else put(unit, shard);
   }
-  return plan.map((files) => files.sort());
+  settled.added.sort((a, b) => weights[b]! - weights[a]! || (a < b ? -1 : 1));
+  for (const unit of settled.added) put(unit, lightest(settled.load));
+  const total = settled.load.reduce((t, w) => t + w, 0);
+  relieve(settled, weights, (total / shards) * tolerance);
+  settled.plan.forEach((units) => units.sort());
+  return settled;
+}
+
+/** The fields of a mutant the weights keep. */
+function slimmed(m: Mutant): Mutant {
+  const kept: Mutant = {};
+  for (const field of [
+    'location',
+    'mutatorName',
+    'replacement',
+    'static',
+    'duration',
+  ] as const)
+    if (m[field] !== undefined) Object.assign(kept, { [field]: m[field] });
+  return kept;
+}
+
+/** The weights of a report: per file its mutants with place, kind and time only. */
+export function slim(report: Report | undefined): Report {
+  const files: Report['files'] = {};
+  for (const [file, f] of Object.entries(report?.files ?? {}))
+    files[file] = { mutants: f.mutants.map(slimmed) };
+  return { files };
+}
+
+/**
+ * The mutants of a file in a new run, a mutant without a time with the
+ * time of the same mutant in the old weights: the one at the same place
+ * with the same change, else (its lines moved) the next old one of the
+ * same kind that no new mutant has at its place, in order.
+ */
+function carry(now: readonly Mutant[], old: readonly Mutant[]): Mutant[] {
+  const kind = (m: Mutant) => `${m.mutatorName} ${m.replacement} ${!!m.static}`;
+  const exact = new Map(old.map((m) => [keyOf(m), m]));
+  const placed = new Set(now.map(keyOf));
+  const moved = new Map<string, Mutant[]>();
+  for (const m of old.filter((o) => !placed.has(keyOf(o))))
+    moved.set(kind(m), [...(moved.get(kind(m)) ?? []), m]);
+  return now.map((m) => {
+    const same = exact.get(keyOf(m)) ?? moved.get(kind(m))?.shift();
+    return typeof m.duration !== 'number' && typeof same?.duration === 'number'
+      ? { ...m, duration: same.duration }
+      : m;
+  });
+}
+
+/**
+ * The weights after a run (owner, 2026-11-13, #141): the files of its
+ * merged report, every mutant with its time in this run; a mutant the run
+ * took over from an earlier one has no time in the report (StrykerJS
+ * copies only status, statusReason and testsCompleted) and keeps its old
+ * time. No smoothing: the latest time counts.
+ */
+export function reweigh(previous: Report | undefined, run: Report): Report {
+  const files: Report['files'] = {};
+  for (const [file, f] of Object.entries(run.files))
+    files[file] = {
+      mutants: carry(f.mutants, previous?.files[file]?.mutants ?? []).map(
+        slimmed,
+      ),
+    };
+  return { files };
 }
 
 /** The Stryker configuration of shard n (1-based) of the plan. */
@@ -551,35 +734,97 @@ function lastReport(): Report | undefined {
 const read = (file: string): string => readFileSync(file, 'utf8');
 const lineCount = (file: string): number => read(file).split('\n').length;
 
+/**
+ * What a plan leaves for the next one (#141): the plan that ran and the
+ * weights of the mutants, kept in a cache by the gate job.
+ */
+export interface State {
+  plan: string[][];
+  weights: Report;
+}
+
+/** A state read from JSON, or undefined when it has not the expected form. */
+export function stateOf(value: unknown): State | undefined {
+  const s = value as Partial<State> | null;
+  const plan = s?.plan;
+  const files: unknown = s?.weights?.files;
+  // Every file record has its mutants, so weigh() never reads a broken one.
+  const valid =
+    Array.isArray(plan) &&
+    plan.every(
+      (e) => Array.isArray(e) && e.every((x) => typeof x === 'string'),
+    ) &&
+    typeof files === 'object' &&
+    files !== null &&
+    Object.values(files).every(
+      (f: unknown) =>
+        typeof f === 'object' &&
+        f !== null &&
+        Array.isArray((f as { mutants?: unknown }).mutants),
+    );
+  return valid ? (s as State) : undefined;
+}
+
+function lastState(): State | undefined {
+  try {
+    return stateOf(readJson<unknown>(STATE));
+  } catch {
+    return undefined;
+  }
+}
+
+function source(state: State | undefined, report: Report | undefined): string {
+  if (state)
+    return 'the test time of their mutants in the weights of the last run, else their lines';
+  return report
+    ? 'the test time of their mutants in the last report, else their lines (no state)'
+    : 'their lines (no state and no last report)';
+}
+
 function plan(): number {
   const config = readJson<StrykerConfig>(CONFIG);
-  const report = lastReport();
+  const state = lastState();
+  const report = state?.weights ?? lastReport();
   const files = mutatedFiles(config.mutate);
   const weights = units(weigh(files, report, lineCount), report, read);
-  const shards = join(split(weights));
-  console.error(
-    `${files.length} files, weighed by ${report ? 'the test time of their mutants in the last report, else their lines' : 'their lines (no last report)'}:`,
-  );
+  const settled = settle(weights, state?.plan);
+  const shards = join(settled.plan);
+  writeJson(STATE, { plan: shards, weights: slim(report) } satisfies State);
+  console.error(`${files.length} files, weighed by ${source(state, report)}:`);
   shards.forEach((s, i) => {
-    const sum = Object.entries(weights)
-      .filter(([unit]) => s.some((e) => covers(e, unit)))
-      .reduce((total, [, w]) => total + w, 0);
     const cut = s.filter((e) => entryOf(e).from !== undefined);
     console.error(
-      `  shard ${i + 1}: ${s.length} entries, weight ${Math.round(sum)}${cut.length ? ` (${cut.join(', ')})` : ''}`,
+      `  shard ${i + 1}: ${s.length} entries, weight ${Math.round(settled.load[i]!)}${cut.length ? ` (${cut.join(', ')})` : ''}`,
     );
   });
+  console.error(
+    `${settled.added.length} new entries onto the lightest shard${settled.added.length ? `: ${settled.added.join(', ')}` : ''}`,
+  );
+  console.error(
+    `${settled.moved.length} entries moved off a shard above ${TOLERANCE} times the mean${settled.moved.length ? `: ${settled.moved.join(', ')}` : ''}`,
+  );
   console.log(JSON.stringify(shards));
   return 0;
 }
 
-/** Whether a joined entry of the plan holds a unit of the split. */
-function covers(entry: string, unit: string): boolean {
-  const e = entryOf(entry);
-  const u = entryOf(unit);
-  if (e.file !== u.file) return false;
-  if (e.from === undefined || u.from === undefined) return true;
-  return u.from >= e.from && u.to! <= e.to!;
+function updateWeights(
+  file: string | undefined,
+  run: string | undefined,
+): number {
+  if (!file || !run) {
+    console.error('Usage: mutation-shards.ts weights <state> <report>');
+    return 1;
+  }
+  const state = stateOf(readJson<unknown>(file));
+  if (!state) throw new Error(`${file} is no plan state.`);
+  const weights = reweigh(state.weights, readJson<Report>(run));
+  writeJson(file, { ...state, weights } satisfies State);
+  const all = Object.values(weights.files).flatMap((f) => f.mutants);
+  const timed = all.filter((m) => typeof m.duration === 'number').length;
+  console.log(
+    `Weights of ${all.length} mutants in ${file}, ${timed} with a time.`,
+  );
+  return 0;
 }
 
 function config(n: string | undefined): number {
@@ -622,8 +867,9 @@ function main(): number {
   if (command === 'plan') return plan();
   if (command === 'config') return config(args[0]);
   if (command === 'merge') return mergeReports(args[0], args.slice(1));
+  if (command === 'weights') return updateWeights(args[0], args[1]);
   console.error(
-    'Usage: mutation-shards.ts plan | config <n> | merge <out> <report>...',
+    'Usage: mutation-shards.ts plan | config <n> | merge <out> <report>... | weights <state> <report>',
   );
   return 1;
 }
