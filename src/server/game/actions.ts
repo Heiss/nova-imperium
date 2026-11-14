@@ -22,7 +22,7 @@ import {
   labSite,
   networkLab,
 } from '../../core/research.ts';
-import { settle, settleR } from '../../core/settle.ts';
+import { feelsResearch, settle, settleR } from '../../core/settle.ts';
 import { text } from '../../core/text.ts';
 import {
   unitRoom,
@@ -67,19 +67,22 @@ export const researchOf = (ctx: Ctx, u: User): ResearchState =>
   settleR(u, ctx.now());
 
 /**
- * The stored research forgets when Energietechnik finished once a new
- * research starts. The planets with a Fusionskraftwerk take that end into
- * their production first (#47), so it does not matter when they are settled.
+ * The stored research forgets when a research finished once a new one
+ * starts. The planets whose production it changes (Energietechnik for a
+ * Fusionskraftwerk, #47), now or once their building is finished, take
+ * that end into their production first (#115), so it does not matter when
+ * they are settled.
  */
-function settleReactors(ctx: Ctx, u: User): void {
-  if (u.rq?.key !== 'energy' || u.rq.end > ctx.now()) return;
+function settleResearchEnd(ctx: Ctx, u: User): void {
+  const q = u.rq;
+  if (!q || q.end > ctx.now()) return;
   for (const x of ctx.planets.ofOwner(u.id))
-    if ((x.b.fusion ?? 0) > 0 || x.bq?.key === 'fusion')
+    if (feelsResearch(x, universe(ctx), u.research, q.key))
       ctx.planets.save(settle(x, ctx.now(), universe(ctx), u));
 }
 
 function setResearch(ctx: Ctx, u: User, r: ResearchState): void {
-  settleReactors(ctx, u);
+  settleResearchEnd(ctx, u);
   u.research = r.research;
   u.rq = r.rq;
   ctx.players.save(u);

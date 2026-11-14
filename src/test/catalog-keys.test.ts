@@ -41,14 +41,6 @@ interface Allowed {
  * generic).
  */
 const ALLOWED: readonly Allowed[] = [
-  // When the next Solarsatellit is finished (nextSatellite) and when
-  // Energietechnik changes a Fusionskraftwerk (techChange): the generic
-  // events of settle.
-  { file: 'core/settle.ts', key: 'sat', count: 1, issue: '#115' },
-  { file: 'core/settle.ts', key: 'energy', count: 1, issue: '#115' },
-  // The reactors settle when Energietechnik finishes (settleReactors).
-  { file: 'server/game/actions.ts', key: 'energy', count: 1, issue: '#115' },
-  { file: 'server/game/actions.ts', key: 'fusion', count: 1, issue: '#115' },
   // The lab lock and the shipyard lock without catalog keys.
   { file: 'core/lab.ts', key: 'lab', count: 2, issue: '#183' },
   { file: 'client/views/yard.ts', key: 'yard', count: 1, issue: '#183' },

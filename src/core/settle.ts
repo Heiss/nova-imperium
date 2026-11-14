@@ -1,7 +1,12 @@
 // Moves a planet or the research of a player forward to a point in time:
 // production, the finished building, the finished units of the shipyard.
-import { isShip } from './catalog.ts';
-import { accrue } from './economy.ts';
+// Production runs in segments with constant rates; a segment ends at the
+// next generic event (okf/architecture/patterns.md, section 3; #115): the
+// building finishes, the shipyard finishes a unit with production
+// components, a research finishes that a rate reads, or a use empties a
+// stock (in accrue). No rule here names a key.
+import { isShip, PRODUCERS } from './catalog.ts';
+import { accrue, readsResearch } from './economy.ts';
 import type { Levels, Planet, ResearchState, Universe } from './types.ts';
 
 const clone = <T>(o: T): T => structuredClone(o);
@@ -13,12 +18,15 @@ function completeBuilding(p: Planet, t: number): void {
   }
 }
 
-/** When the shipyard finishes its next Solarsatellit, or Infinity. */
-function nextSatellite(p: Planet): number {
+/** The units with production components: when one is finished, production changes. */
+const PRODUCING: ReadonlySet<string> = new Set(PRODUCERS);
+
+/** When the shipyard finishes its next unit with production components (the Solarsatellit, #46), or Infinity. */
+function nextProducer(p: Planet): number {
   if (p.sqT === null) return Infinity;
   let st = p.sqT;
   for (const q of p.sq) {
-    if (q.key === 'sat') return st + q.unit;
+    if (PRODUCING.has(q.key)) return st + q.unit;
     st += q.n * q.unit;
   }
   return Infinity;
@@ -29,27 +37,49 @@ const levelsAt = (r: ResearchState | null | undefined, t: number): Levels =>
   r ? settleR(r, t).research : {};
 
 /**
- * When Energietechnik finishes after `t`, if `p` has a Fusionskraftwerk
- * whose energy it changes (#47); otherwise Infinity.
+ * When the running research finishes after `t`, if a rate of an entry on
+ * `p` reads it (Energietechnik for a Fusionskraftwerk, #47); otherwise
+ * Infinity.
  */
-function techChange(
+function researchEnd(
   p: Planet,
+  u: Universe,
   r: ResearchState | null | undefined,
   t: number,
 ): number {
-  const q = r?.rq;
-  const feels = q?.key === 'energy' && (p.b.fusion ?? 0) > 0;
-  return feels && q.end > t ? q.end : Infinity;
+  if (!r?.rq || !(r.rq.end > t)) return Infinity;
+  return readsResearch(p, u, r.research, r.rq.key) ? r.rq.end : Infinity;
 }
 
 /**
- * Production and shipyard up to `until`. Production is split where it
- * changes: at the end of the building, when a Solarsatellit is finished
- * (its energy counts from then on) and when Energietechnik finishes for a
- * Fusionskraftwerk; `accrue` splits where the deuterium stock runs empty.
- * Building and running shipyard first catch up to `from`, so every split
- * point is later than `t`. Without satellites in the queue and without a
- * Fusionskraftwerk the split is the one of version 1.
+ * Whether the end of the research `key` changes the production of `p`, now
+ * or once its building is finished: a rate of an entry on it reads the
+ * research (#115). The server settles these planets before the stored
+ * research forgets when it finished.
+ */
+export function feelsResearch(
+  p: Planet,
+  u: Universe,
+  research: Levels,
+  key: string,
+): boolean {
+  if (readsResearch(p, u, research, key)) return true;
+  const q = p.bq;
+  if (!q) return false;
+  const built = { ...p, b: { ...p.b, [q.key]: q.lvl } };
+  return readsResearch(built, u, research, key);
+}
+
+/**
+ * Production and shipyard up to `until`. Production is split at the
+ * generic events: at the end of the building, when the shipyard finishes a
+ * unit with production components (a Solarsatellit: its energy counts from
+ * then on) and when a research finishes that a rate on the planet reads
+ * (Energietechnik for a Fusionskraftwerk); `accrue` splits where a use
+ * empties a stock. Building and running shipyard first catch up to `from`,
+ * so every split point is later than `t`. Without a unit with production
+ * components in the queue, a stock that a use empties and a research that
+ * a rate reads, the split is the one of version 1.
  */
 function produce(
   p: Planet,
@@ -66,8 +96,8 @@ function produce(
     const e = Math.min(
       until,
       p.bq?.end ?? until,
-      nextSatellite(p),
-      techChange(p, r, t),
+      nextProducer(p),
+      researchEnd(p, u, r, t),
     );
     accrue(p, e - t, u, levelsAt(r, t));
     t = e;
