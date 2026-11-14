@@ -62,6 +62,7 @@ import { downloadErrors, mountAdminErrors } from './views/admin-errors.ts';
 import {
   ADMIN_TABS,
   auth,
+  deleteAccountDialog,
   diagnosticTab,
   roundDialog,
   endzeitDialog,
@@ -201,11 +202,16 @@ updateInstallButton();
 function gameView(view: string | null): string {
   if (!view || (!MOUNTED.has(view) && !Object.hasOwn(VIEWS, view)))
     return 'overview';
-  if (view === 'admin' && client.game && !client.game.me.admin)
-    return 'overview';
-  if (view === 'achievements' && !rewardsAvailable(client.game))
-    return 'overview';
-  return view;
+  return hiddenView(view, client.game) ? 'overview' : view;
+}
+
+/** A view the player cannot open now: admin, rewards or guilds that are off. */
+function hiddenView(view: string, state: GameState | null): boolean {
+  if (view === 'admin') return !!state && !state.me.admin;
+  if (view === 'achievements') return !rewardsAvailable(state);
+  // No guild view in a round with guilds off (#191).
+  if (view === 'guilds') return !!state && !state.round.guilds;
+  return false;
 }
 
 function rewardsAvailable(state: GameState | null): boolean {
@@ -1309,10 +1315,7 @@ const ACT: Record<string, (d: Data) => unknown> = {
       toast((error as Error).message, true);
     }
   },
-  deleteAccount: () =>
-    modal(
-      '<form id="deleteaccountform"><p>Dein Konto und deine Spielstände werden unwiderruflich gelöscht. Eine von dir geleitete Gilde wird aufgelöst.</p><p><label for="delete-account-password">Passwort zur Bestätigung</label> <input id="delete-account-password" type="password" autocomplete="current-password" required></p><button class="red" type="submit">Account endgültig löschen</button> <button type="button" data-act="closeModal">Abbrechen</button></form>',
-    ),
+  deleteAccount: () => modal(deleteAccountDialog(client.game!.round)),
   dismissInstall: () => {
     installDismissed = true;
     try {
@@ -1345,8 +1348,9 @@ const ACT: Record<string, (d: Data) => unknown> = {
       achievements: checked('#round-achievements'),
       daily: checked('#round-daily'),
     };
+    const guilds = checked('#round-guilds');
     modal('');
-    return act('reset', { rewards });
+    return act('reset', { rewards, guilds });
   },
   endzeit: () => modal(endzeitDialog(client.game!.admin!.endzeit.minutes)),
   doEndzeit: () => {

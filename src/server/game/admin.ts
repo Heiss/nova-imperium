@@ -1,4 +1,5 @@
 // Admin actions on the universe: change the settings live, start a new round.
+import type { RoundRules } from '../../core/achievements.ts';
 import { settle } from '../../core/settle.ts';
 import { validateUniverse } from '../../core/universe.ts';
 import type { Action } from './actions.ts';
@@ -30,8 +31,11 @@ export const saveSettings: Action = (ctx, u, d) => {
   return 'Einstellungen gespeichert.';
 };
 
-function newRound(ctx: Ctx): void {
+function newRound(ctx: Ctx, rules: RoundRules): void {
   ctx.planets.deleteAll();
+  // A round with guilds off starts without any guild (#191); with guilds on
+  // they stay, as before.
+  if (!rules.guilds) ctx.guilds.deleteAll();
   ctx.fleets.deleteAll();
   ctx.debris.deleteAll();
   ctx.db.exec(`
@@ -59,8 +63,8 @@ function newRound(ctx: Ctx): void {
 export const reset: Action = (ctx, u, data, event) => {
   requireAdmin(u);
   const before = roundRules(ctx);
-  const after = startRoundRules(ctx, data.rewards);
-  newRound(ctx);
+  const after = startRoundRules(ctx, data.rewards, data.guilds);
+  newRound(ctx, after);
   if (event) event.detail = { before, after };
   return 'Neue Runde gestartet – alle Spieler haben einen frischen Planeten.';
 };

@@ -256,6 +256,29 @@ test.describe('accessibility (axe)', () => {
     expect(found).toEqual([]);
   });
 
+  test('the dialog „Neue Runde“ with the box „Gilden (mit Chat)“ has no violations (#191)', async ({
+    page,
+  }) => {
+    const name = uniqueName('AxeRunde');
+    await register(page, name);
+    cli('admin', name);
+    await page.reload();
+    await nav(page, 'admin');
+    await page.getByRole('tab', { name: 'Universum' }).click();
+    await page.getByRole('button', { name: 'Neue Runde starten' }).click();
+    await expect(page.getByLabel('Gilden (mit Chat)')).toBeChecked();
+    await expect(
+      page.getByText(
+        'Ohne Gilden werden alle Gilden mit Mitgliedern, Bewerbungen und Rängen gelöscht.',
+      ),
+    ).toBeVisible();
+    const found = (await violations(page)).map((v) => `dialog: ${v}`);
+    // Only looked at: a new round would reset every planet of this server.
+    await page.getByRole('button', { name: 'Abbrechen' }).click();
+    cli('unadmin', name);
+    expect(found).toEqual([]);
+  });
+
   test('the options with the push kinds have no violations, on and off (#192)', async ({
     page,
   }) => {
