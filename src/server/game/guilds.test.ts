@@ -32,7 +32,7 @@ describe('guilds', () => {
         uid: applicant.id,
         accept: true,
       }),
-    ).toThrow('Gildenleitung');
+    ).toThrow('Du bist in keiner Gilde.');
     runAction(ctx, founder.id, {
       type: 'reviewGuildApplication',
       uid: applicant.id,
@@ -99,8 +99,13 @@ describe('guilds', () => {
     expect(guildState(ctx, a.id, {}).own).toBeNull();
     expect(guildState(ctx, b.id, {}).directory[0]).toMatchObject({
       tag: 'NEW',
-      founder: b.id,
     });
+    // The Leitung is a rank and shows only inside the guild (#163, D7).
+    expect(guildState(ctx, b.id, {}).ranks?.lead).toBe(b.id);
+    expect(ctx.guilds.get(id)?.founder).toBe(b.id);
+    expect(guildState(ctx, c.id, {}).directory[0]).not.toHaveProperty(
+      'founder',
+    );
     runAction(ctx, b.id, { type: 'leaveGuild' });
     expect(guildState(ctx, b.id, {}).directory).toEqual([]);
   });
@@ -221,7 +226,7 @@ describe('guild rules (#117: the logic left in guilds.ts)', () => {
       );
     expect(() =>
       runAction(ctx, b!.id, { type: 'manageGuildMember', uid: a!.id }),
-    ).toThrow('Gildenleitung');
+    ).toThrow('Dazu fehlt deinem Rang das Recht.');
     expect(manage(b!.id)).toBe('Mitglied entfernt.');
     runAction(ctx, b!.id, { type: 'applyToGuild', id });
     runAction(ctx, a!.id, {

@@ -13,6 +13,15 @@ import { tick } from './arrival.ts';
 import { type Ctx, fail } from './context.ts';
 import { recall, send } from './fleet-actions.ts';
 import {
+  assignGuildRank,
+  createGuildRank,
+  deleteGuildRank,
+  moveGuildRank,
+  renameGuildRank,
+  setGuildDefaultRank,
+  setGuildRankRights,
+} from './guild-ranks.ts';
+import {
   createGuild,
   updateGuild,
   applyToGuild,
@@ -43,6 +52,13 @@ export const ACTIONS: Record<string, A.Action> = {
   reviewGuildApplication,
   leaveGuild,
   manageGuildMember,
+  createGuildRank,
+  renameGuildRank,
+  setGuildRankRights,
+  moveGuildRank,
+  deleteGuildRank,
+  setGuildDefaultRank,
+  assignGuildRank,
   claimAchievement,
   claimDailyReward,
 };
