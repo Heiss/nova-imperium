@@ -94,7 +94,7 @@ describe('mobile: the rule', () => {
       drive: 'impulse',
       speed: 4000,
     });
-    const { drives: _, ...plain } = ship;
+    const plain: Mobile = { ...ship, drives: undefined };
     expect(activeDrive(plain, { hdrive: 30, x: 30 })).toEqual({
       drive: 'impulse',
       speed: 4000,
