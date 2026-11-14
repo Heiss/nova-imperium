@@ -40,7 +40,7 @@ export type ClientFleet = Pick<
   | 'arr'
   | 'ships'
 > &
-  Partial<Pick<Fleet, 'ret' | 'cargo' | 'dep'>>;
+  Partial<Pick<Fleet, 'ret' | 'cargo' | 'dep' | 'gift'>>;
 
 export interface Report {
   id: string;
@@ -65,6 +65,8 @@ export interface Players {
 
 export interface AdminState {
   specs: UniverseSpec[];
+  /** The „Endzeit“ (#161): the saved flight time and whether it is used up this round. */
+  endzeit: { minutes: number; done: boolean };
 }
 
 export interface GameState {

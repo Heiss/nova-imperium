@@ -148,7 +148,7 @@ describe('server', () => {
     ctx.db
       .prepare(
         `INSERT INTO fleets VALUES ('f1', 'u_Anna', 'p1', 1, 1, 1, 'p2', 1, 1, 2,
-          'transport', 0, 0, 0, 0, 1, 2, 'out', 0, 0)`,
+          'transport', 0, 0, 0, 0, 1, 2, 'out', 0, 0, 0)`,
       )
       .run();
     const broken = {
@@ -187,7 +187,7 @@ describe('background jobs', () => {
     ctx.db
       .prepare(
         `INSERT INTO fleets VALUES ('f1', 'u_Anna', 'p1', 1, 1, 1, 'p2', 1, 1, 2,
-          'transport', 0, 0, 0, 0, 1, 2, ?, 0, 0)`,
+          'transport', 0, 0, 0, 0, 1, 2, ?, 0, 0, 0)`,
       )
       .run(state);
 

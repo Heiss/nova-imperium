@@ -20,8 +20,10 @@ function fleetText(v: V, f: ClientFleet): string {
   const mission = MISSION[f.mission];
   if (f.owner !== v.s.me.id)
     return `Eine fremde Flotte von <b>${esc(nameOf(v.s.players, f.owner))}</b> ${coords(f.fromC)} erreicht deinen Planeten ${coords(f.toC)} · ${mission}${ships ? ` (${ships})` : ''}`;
+  // The gift of the „Endzeit“ comes from „Gottkaiser“ (#161).
+  const origin = f.gift ? 'Gottkaiser' : coords(f.fromC);
   if (f.state === 'out')
-    return `Deine Flotte (${ships}) von ${coords(f.fromC)} erreicht ${coords(f.toC)} · ${mission}`;
+    return `Deine Flotte (${ships}) von ${origin} erreicht ${coords(f.toC)} · ${mission}`;
   return `Deine Flotte (${ships}) kehrt von ${coords(f.toC)} nach ${coords(f.fromC)} zurück`;
 }
 
@@ -30,7 +32,7 @@ function fleetRow(v: V, f: ClientFleet): string {
   const out = f.state === 'out';
   const cls = out ? `fl-${f.mission}` : 'fl-back';
   const button =
-    mine && out
+    mine && out && !f.gift
       ? `<button class="small" data-act="recall" data-id="${esc(f.id)}">Rückruf</button>`
       : '';
   return `<tr><td class="n w110">${cd(fleetEnd(f), v.now)}</td><td class="${cls}">${fleetText(v, f)}</td><td class="w80">${button}</td></tr>`;

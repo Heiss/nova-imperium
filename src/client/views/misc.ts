@@ -1,4 +1,9 @@
 import type { RoundRules } from '../../core/achievements.ts';
+import {
+  GIFT_MINUTES,
+  GIFT_RESOURCES,
+  GIFT_SHIPS_EACH,
+} from '../../core/endzeit.ts';
 import type { Universe } from '../../core/types.ts';
 import { reportFormHTML } from '../logic/error-report.ts';
 import { explainOptionsHTML } from '../logic/explain.ts';
@@ -100,6 +105,22 @@ export function roundDialog(round: RoundRules): string {
   <p><button class="red" data-act="doReset">Ja, neue Runde</button> <button data-act="closeModal">Abbrechen</button></p>`;
 }
 
+/** The box „Endzeit“ of the tab „Universum“ (#161): once per round. */
+function endzeitBox(a: AdminState): string {
+  const body = a.endzeit.done
+    ? '<p>In dieser Runde wurde die Endzeit schon eingeläutet.</p>'
+    : '<p>Jeder Spieler mit Heimatplanet erhält einmal pro Runde die Gabe des Gottkaisers als Verlegung zu seinem Heimatplaneten.</p><button class="red" data-act="endzeit">Endzeit einläuten</button>';
+  return box('Endzeit', body);
+}
+
+/** The confirmation of the „Endzeit“ with its flight time (#161). */
+export function endzeitDialog(minutes: number): string {
+  return `<p><b>Endzeit einläuten – alle Spieler erhalten die Gabe des Gottkaisers.</b><br>
+  Jeder Spieler mit Heimatplanet bekommt eine Verlegung zu seinem Heimatplaneten: je ${fmt(GIFT_SHIPS_EACH)} Schiffe jedes flugfähigen Typs und je ${fmt(GIFT_RESOURCES)} Adamant, Psikristall und Promethium. Bei der Ankunft werden Forschung und Gebäude des Heimatplaneten so weit ausgebaut, dass alles freigeschaltet ist. Das geht nur einmal pro Runde.</p>
+  <p><label for="endzeit-minutes">Flugzeit der Gabe (Minuten)</label> <input type="number" id="endzeit-minutes" min="${GIFT_MINUTES.min}" max="${GIFT_MINUTES.max}" step="1" value="${minutes}" required> <span class="dim">${fmt(GIFT_MINUTES.min)} bis ${fmt(GIFT_MINUTES.max)} (72 h), in Echtzeit</span></p>
+  <p><button class="red" data-act="doEndzeit">Ja, Endzeit einläuten</button> <button data-act="closeModal">Abbrechen</button></p>`;
+}
+
 export const ADMIN_TABS = {
   events: 'Ereignisprotokoll',
   players: 'Spieler',
@@ -133,6 +154,7 @@ export function admin(v: V): string {
     <section id="admin-panel-invitations" role="tabpanel" aria-labelledby="admin-tab-invitations" hidden>${box('Einladungen', invitations(v.ui))}</section>
     <section id="admin-panel-universe" role="tabpanel" aria-labelledby="admin-tab-universe" hidden>
       ${box('Universum', settingsForm(v.s, a))}
+      ${endzeitBox(a)}
       ${box('Neue Runde', 'Alle Spieler behalten ihr Konto und bekommen einen frischen Planeten. <button class="red" data-act="reset">Neue Runde starten</button>')}
     </section>
     <section id="admin-panel-announce" role="tabpanel" aria-labelledby="admin-tab-announce" hidden>${box(

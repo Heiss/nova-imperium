@@ -217,6 +217,9 @@ export const recall: Action = (ctx, u, d, event) => {
   const t = ctx.now();
   if (!f || f.owner !== u.id || f.state !== 'out' || f.arr <= t)
     fail('Rückruf nicht mehr möglich.');
+  // The gift of the „Endzeit“ has no origin to return to (#161).
+  if (f!.gift)
+    fail('Die Gabe des Gottkaisers kann nicht zurückgerufen werden.');
   const fleet = f!;
   fleet.state = 'back';
   fleet.ret = t + (t - fleet.dep);
