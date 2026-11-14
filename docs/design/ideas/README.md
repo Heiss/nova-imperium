@@ -46,6 +46,10 @@ Guild research (#170):
 
 - `guild-research.html` / `.png` – the guild's research tree with four branches, contributions and the research panel
 
+Kinderleicht-Modus, joke theme (#200):
+
+- `easy-mode.html` / `.png` / `.gif` – full flow: pick one of 3 directions, huge arrows to the next click, build starts with confetti and praise, pop-up button, mini runner „Servitor-Sprint“; `?once=1` plays it once
+
 The HTML files reference `/style.css`, `/fonts/`, `/icons/` and `/planets/` absolutely:
 serve them from a root that holds `src/client/static/` with this folder beside
 it, or look at the PNGs.
