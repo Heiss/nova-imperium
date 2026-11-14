@@ -127,6 +127,12 @@ flowchart LR
   branch, else on `main`; unchanged code keeps its cached result. A release
   pull request runs every mutant (`--force`). The first run after a file
   moves to another shard tests it again there.
+- **Static mutants.** Before the incremental run,
+  `scripts/mutation-shards.ts drop-static` removes the cached results of
+  the static mutants (code run when its module loads, tested by every
+  test), so they always run again:
+  Stryker would keep their old result even when a new test kills them
+  (#201). Every other result stays cached.
 - **Merge and gate.** `scripts/mutation-shards.ts merge` fails unless every
   shard of the plan ran exactly once and reported only its own files, no
   mutant is in two reports and the ranges of a cut file cover it without
