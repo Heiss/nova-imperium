@@ -1,0 +1,310 @@
+// Overview renders the overview as it was before #118 („no visible change“
+// of the issue; each migration step changes no behaviour, owner,
+// 2026-11-13), and the fleet view keeps its list of fleets. The old view is
+// frozen here: overview() and fleetTable() of src/client/views/overview.ts.
+// On generated states (fixed fast-check seed 118) both render the same
+// markup, up to what a browser does not show (normalize() of markup.ts, the
+// same as for the lists).
+import fc from 'fast-check';
+import { render } from 'svelte/server';
+import { describe, expect, it } from 'vitest';
+import { BUILD, DEF, RES, SHIPS } from '../core/catalog.ts';
+import { fleetSlots } from '../core/flight.ts';
+import { MISSION } from '../core/missions.ts';
+import { placeName } from '../core/moon.ts';
+import { text } from '../core/text.ts';
+import type { Levels, Mission, Planet } from '../core/types.ts';
+import { diameterLine } from '../client/logic/fields.ts';
+import { coords, dt, esc, fmt } from '../client/logic/format.ts';
+import { fleetEnd, nameOf, ranks, sortFleets } from '../client/logic/game.ts';
+import { moonPicture } from '../client/logic/moon.ts';
+import { planetLook } from '../client/logic/planet.ts';
+import { client } from '../client/logic/state.svelte.ts';
+import type { ClientFleet, GameState } from '../client/logic/types.ts';
+import {
+  box,
+  cd,
+  planetHTML,
+  type Ui,
+  type V,
+} from '../client/views/common.ts';
+import { fleet } from '../client/views/fleet.ts';
+import Overview from '../client/views/Overview.svelte';
+import { planet, U } from './fixtures.ts';
+import { normalize } from './markup.ts';
+
+// ----- frozen: src/client/views/overview.ts before #118 -----
+
+const shipList = (f: ClientFleet): string =>
+  Object.entries(f.ships ?? {})
+    .filter(([, n]) => n > 0)
+    .map(([k, n]) => `${fmt(n)} ${text(k)?.n ?? k}`)
+    .join(', ');
+
+function fleetText(v: V, f: ClientFleet): string {
+  const ships = shipList(f);
+  const mission = MISSION[f.mission];
+  if (f.owner !== v.s.me.id)
+    return `Eine fremde Flotte von <b>${esc(nameOf(v.s.players, f.owner))}</b> ${coords(f.fromC)} erreicht deinen Planeten ${coords(f.toC)} · ${mission}${ships ? ` (${ships})` : ''}`;
+  // The gift of the „Endzeit“ comes from „Gottkaiser“ (#161).
+  const origin = f.gift ? 'Gottkaiser' : coords(f.fromC);
+  if (f.state === 'out')
+    return `Deine Flotte (${ships}) von ${origin} erreicht ${coords(f.toC)} · ${mission}`;
+  return `Deine Flotte (${ships}) kehrt von ${coords(f.toC)} nach ${coords(f.fromC)} zurück`;
+}
+
+function fleetRow(v: V, f: ClientFleet): string {
+  const mine = f.owner === v.s.me.id;
+  const out = f.state === 'out';
+  const cls = out ? `fl-${f.mission}` : 'fl-back';
+  const button =
+    mine && out && !f.gift
+      ? `<button class="small" data-act="recall" data-id="${esc(f.id)}">Rückruf</button>`
+      : '';
+  return `<tr><td class="n w110">${cd(fleetEnd(f), v.now)}</td><td class="${cls}">${fleetText(v, f)}</td><td class="w80">${button}</td></tr>`;
+}
+
+function fleetTable(v: V, includeIncoming: boolean): string {
+  const list = sortFleets(
+    v.s.fleets.filter((f) => f.owner === v.s.me.id || includeIncoming),
+  );
+  return list.length
+    ? `<table>${list.map((f) => fleetRow(v, f)).join('')}</table>`
+    : '<span class="dim">Keine Flottenbewegungen.</span>';
+}
+
+function activities(v: V): string {
+  const { P, R, now } = v;
+  const rows: string[] = [];
+  if (P.bq)
+    rows.push(
+      `<tr><td>Gebäude</td><td>${text(P.bq.key)?.n} (Stufe ${P.bq.lvl})</td><td class="n">${cd(P.bq.end, now)}</td></tr>`,
+    );
+  if (R.rq)
+    rows.push(
+      `<tr><td>Forschung</td><td>${text(R.rq.key)?.n} (Stufe ${R.rq.lvl})</td><td class="n">${cd(R.rq.end, now)}</td></tr>`,
+    );
+  if (P.sq.length) {
+    const list = P.sq.map((q) => `${fmt(q.n)}× ${text(q.key)?.n}`).join(', ');
+    rows.push(
+      `<tr><td>Schiffsschmiede</td><td>${list}</td><td class="n">${cd((P.sqT ?? now) + P.sq[0]!.unit, now)} (nächste)</td></tr>`,
+    );
+  }
+  return rows.length
+    ? `<table>${rows.join('')}</table>`
+    : '<span class="dim">Nichts in Arbeit – deine Minen langweilen sich.</span>';
+}
+
+/** The picture and the kind of the shown place: a planet or a moon (#53). */
+const look = (P: V['P']): { picture: string; label: string; type: string } =>
+  P.kind === 'moon'
+    ? {
+        picture: `<span class="moon-big">${moonPicture(placeName(P), 120)}</span>`,
+        label: 'Mond',
+        type: 'Mond',
+      }
+    : { picture: planetHTML(P), label: 'Planet', type: planetLook(P).name };
+
+function overview(v: V): string {
+  const { P, s } = v;
+  const me = s.me.id;
+  const rk = ranks(s.players);
+  const l = look(P);
+  return `<h2>Übersicht – ${esc(placeName(P))} ${coords(P)}</h2>
+ ${box('Flottenbewegungen', fleetTable(v, true))}
+ <div class="box"><div class="bd ov">${l.picture}
+ <table class="kv kv-grow">
+ <tr><td>${l.label}</td><td>${esc(placeName(P))} <span class="lnk" data-act="rename">(umbenennen)</span></td></tr>
+ <tr><td>Position</td><td>${coords(P)}</td></tr><tr><td>Planetentyp</td><td>${l.type}</td></tr><tr><td>Temperatur</td><td>ca. ${P.temp - 40}°C bis ${P.temp}°C</td></tr>
+ <tr><td>Durchmesser</td><td>${diameterLine(P, s.cfg)}</td></tr>
+ <tr><td>Punkte</td><td>${fmt(s.players[me]?.points)} (Platz ${rk[me] ?? '-'} von ${Object.keys(s.players).length})</td></tr>
+ <tr><td>Serverzeit</td><td>${dt(v.now)}</td></tr></table></div></div>
+ ${box('Aktivitäten', activities(v))}`;
+}
+
+// ----- the comparison -----
+
+function renderNew(v: V): string {
+  client.shown = v;
+  try {
+    return render(Overview).body;
+  } finally {
+    client.shown = null;
+  }
+}
+
+/** The head of the fleet view before #118, with the frozen list of fleets. */
+function fleetHead(v: V): string {
+  const slots = fleetSlots(v.R);
+  const used = v.s.fleets.filter(
+    (f) => f.owner === v.s.me.id && !f.gift,
+  ).length;
+  return `<h2>Flotte</h2>${box(`Flotten unterwegs (${used} / ${slots} Slots)`, fleetTable(v, false))}`;
+}
+
+const levels = (keys: string[], max: number): fc.Arbitrary<Levels> =>
+  fc.record(
+    Object.fromEntries(keys.map((k) => [k, fc.integer({ min: 0, max })])),
+    { requiredKeys: [] },
+  ) as fc.Arbitrary<Levels>;
+
+const NAMES = ['Heimat', 'Kolonie', 'Mond <b>&"\'</b>', 'Ödland'] as const;
+/** u1 is the player; u5 is unknown to the list of players. */
+const OWNERS = ['u1', 'u2', 'u3', 'u4', 'u5'] as const;
+
+const time = fc.integer({ min: 0, max: 2_000_000 });
+const coord = fc.record({
+  g: fc.integer({ min: 1, max: 9 }),
+  s: fc.integer({ min: 1, max: 499 }),
+  p: fc.integer({ min: 1, max: 15 }),
+});
+
+const buildOrder: fc.Arbitrary<Planet['bq']> = fc.option(
+  fc.record({
+    key: fc.constantFrom(...Object.keys(BUILD)),
+    lvl: fc.integer({ min: 1, max: 30 }),
+    start: time,
+    end: time,
+    cost: fc.constant([0, 0, 0] as [number, number, number]),
+  }),
+);
+
+const unitOrder: fc.Arbitrary<Planet['sq'][number]> = fc.record({
+  key: fc.constantFrom(...Object.keys(SHIPS), ...Object.keys(DEF)),
+  n: fc.integer({ min: 1, max: 5000 }),
+  unit: fc.integer({ min: 1, max: 600_000 }),
+});
+
+const place = fc
+  .record({
+    kind: fc.constantFrom('planet' as const, 'moon' as const),
+    name: fc.constantFrom(...NAMES),
+    at: coord,
+    temp: fc.integer({ min: -140, max: 160 }),
+    diameter: fc.integer({ min: 1000, max: 16000 }),
+    unlimited: fc.boolean(),
+    b: levels(Object.keys(BUILD), 14),
+    bq: buildOrder,
+    sq: fc.array(unitOrder, { maxLength: 3 }),
+    sqT: fc.option(time),
+  })
+  .map(({ at, ...p }) => planet({ ...p, ...at }));
+
+const flight = fc.record({
+  owner: fc.constantFrom(...OWNERS),
+  fromC: coord,
+  toC: coord,
+  mission: fc.constantFrom(...(Object.keys(MISSION) as Mission[])),
+  state: fc.constantFrom('out' as const, 'back' as const),
+  arr: time,
+  ret: fc.option(time, { nil: undefined }),
+  ships: fc.option(levels(Object.keys(SHIPS), 3000), { nil: undefined }),
+  gift: fc.option(fc.constant(true as const), { nil: undefined }),
+});
+
+const state = fc
+  .record({
+    P: place,
+    research: levels(Object.keys(RES), 13),
+    rq: fc.option(
+      fc.record({
+        key: fc.constantFrom(...Object.keys(RES)),
+        lvl: fc.integer({ min: 1, max: 14 }),
+        start: time,
+        end: time,
+        cost: fc.constant([0, 0, 0] as [number, number, number]),
+      }),
+    ),
+    fleets: fc.array(flight, { maxLength: 5 }),
+    players: fc.dictionary(
+      fc.constantFrom(...OWNERS.slice(0, 4)),
+      fc.record({
+        name: fc.constantFrom('Ich', 'Feind', 'Kain <i>&"\'</i>', 'Ödön'),
+        points: fc.integer({ min: 0, max: 9_000_000 }),
+      }),
+    ),
+    extraFields: fc.integer({ min: 0, max: 40 }),
+    now: time,
+  })
+  .map((x): V => {
+    const s = {
+      cfg: { ...U, extraFields: x.extraFields },
+      me: { id: 'u1' },
+      // Fleet ids are unique, as the server gives them.
+      fleets: x.fleets.map((f, i) => ({
+        ...f,
+        id: `f${i}`,
+        to: '',
+        ships: f.ships as Levels,
+      })),
+      players: x.players,
+      galaxy: [],
+    } as unknown as GameState;
+    return {
+      s,
+      P: x.P,
+      R: { research: x.research, rq: x.rq },
+      now: x.now,
+      ui: { fm: 'attack', ft: null } as unknown as Ui,
+    };
+  });
+
+/** Normalized markup of every branch of the overview, for the check that the cases reach them. */
+const MARKS = [
+  'data-act="recall"',
+  'Eine fremde Flotte von <b>',
+  '<b>Unbekannt</b>',
+  '<b>Kain &lt;i>&amp;"\'&lt;/i></b>',
+  'von Gottkaiser erreicht',
+  'kehrt von',
+  'Deine Flotte () von',
+  'class="cd"',
+  'gleich …',
+  'Keine Flottenbewegungen.',
+  'Nichts in Arbeit',
+  '<td>Gebäude</td>',
+  '<td>Forschung</td>',
+  ' (nächste)',
+  'class="moon-big"',
+  'class="pl pl-',
+  'Felder, unbegrenzt',
+  'Felder)',
+  '(Platz - von',
+  'Mond &lt;b>&amp;"\'&lt;/b> (Mond)',
+  'class="fl-back"',
+  ...Object.keys(MISSION).map((m) => `class="fl-${m}"`),
+];
+
+describe('Overview against the view before #118', () => {
+  it('renders the overview as before', () => {
+    fc.assert(
+      fc.property(state, (v) => {
+        expect(normalize(renderNew(v))).toBe(normalize(overview(v)));
+      }),
+      { seed: 118, numRuns: 300 },
+    );
+  });
+
+  it('keeps the list of fleets of the fleet view', () => {
+    fc.assert(
+      fc.property(state, (v) => {
+        expect(normalize(fleet(v)).startsWith(normalize(fleetHead(v)))).toBe(
+          true,
+        );
+      }),
+      { seed: 118, numRuns: 300 },
+    );
+  });
+
+  it('reaches every branch', () => {
+    const seen = new Set<string>();
+    fc.assert(
+      fc.property(state, (v) => {
+        const html = normalize(renderNew(v));
+        for (const mark of MARKS) if (html.includes(mark)) seen.add(mark);
+      }),
+      { seed: 118, numRuns: 300 },
+    );
+    expect([...seen].sort()).toEqual([...MARKS].sort());
+  });
+});

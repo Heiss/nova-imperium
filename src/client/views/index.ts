@@ -7,10 +7,8 @@ import { guilds } from './guilds.ts';
 import { newsHTML } from '../logic/news.ts';
 import { messages } from './messages.ts';
 import { admin, help, highscore } from './misc.ts';
-import { overview } from './overview.ts';
 
 export const VIEWS: Record<string, (v: V) => string> = {
-  overview,
   fleet,
   galaxy,
   guilds,

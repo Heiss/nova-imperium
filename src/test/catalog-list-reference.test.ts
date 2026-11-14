@@ -62,6 +62,7 @@ import {
 } from '../client/views/common.ts';
 import Buildings from './catalog-reference/Buildings.svelte';
 import { planet, U } from './fixtures.ts';
+import { normalize } from './markup.ts';
 
 // ----- frozen: itemHTML() of src/client/views/common.ts before #118 -----
 
@@ -278,51 +279,6 @@ function renderNew(v: V, kind: CatalogKind): string {
   } finally {
     client.shown = null;
   }
-}
-
-const ENTITY: Record<string, string> = {
-  '&gt;': '>',
-  '&quot;': '"',
-  '&#39;': "'",
-};
-
-/** The attributes of a tag in order, a boolean one without its empty value. */
-function attributes(raw: string): string {
-  const list = [...raw.matchAll(/([^\s=]+)(?:="([^"]*)")?/g)].map(
-    ([, name, value]) =>
-      value === undefined || (value === '' && /^(disabled|hidden)$/.test(name!))
-        ? name!
-        : `${name}="${value}"`,
-  );
-  return list.length ? ' ' + list.sort().join(' ') : '';
-}
-
-/** Removes comments until none is left, so no `<!--` can survive. */
-function stripComments(html: string): string {
-  let before: string;
-  let after = html;
-  do {
-    before = after;
-    after = before.replace(/<!--[\s\S]*?-->/g, '');
-  } while (after !== before);
-  return after;
-}
-
-/** The markup as a browser shows it. */
-function normalize(html: string): string {
-  return (
-    stripComments(html)
-      .replace(/<\/?tbody>/g, '')
-      .replace(
-        /<([a-z][a-z0-9]*)((?:\s+[^\s=>/]+(?:="[^"]*")?)*)\s*\/?>/g,
-        (_, tag: string, attrs: string) => `<${tag}${attributes(attrs)}>`,
-      )
-      .replace(/\s+/g, ' ')
-      .replace(/ ?(<\/?(?:div|p|ul|li|h2|table|tr|td|br)\b[^>]*>) ?/g, '$1')
-      // Only entities that cannot start a tag or another entity are decoded.
-      .replace(/&(?:gt|quot|#39);/g, (e) => ENTITY[e]!)
-      .trim()
-  );
 }
 
 const KINDS: readonly CatalogKind[] = [

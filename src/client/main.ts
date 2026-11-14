@@ -70,6 +70,7 @@ import {
 import { disablePush, enablePush } from './push.ts';
 import { mountCatalogList } from './views/catalog-list.ts';
 import { dissolveDialog, transferDialog } from './views/guilds.ts';
+import { mountOverview } from './views/overview.ts';
 import { mountProducerTable } from './views/producer-table.ts';
 
 import { addPasskey, signInWithPasskey } from './passkeys.ts';
@@ -95,8 +96,12 @@ const rankRights = (rank?: string): string[] =>
 let loginChallenge: string | null = null;
 let rememberLogin = false;
 let resetToken: string | null = null;
-/** The views that are Svelte components, mounted once and then updated. */
-const MOUNTED = new Set(['resources', ...Object.keys(CATALOG_VIEWS)]);
+/** The views that are Svelte components (#114, #118). */
+const MOUNTED = new Set([
+  'overview',
+  'resources',
+  ...Object.keys(CATALOG_VIEWS),
+]);
 /** The mounted Svelte view and its name. */
 let mounted: {
   view: string;
@@ -677,35 +682,41 @@ function unmountViews(): void {
 /** Whether a list is mounted: it shows the clock's view state (#118). */
 const listMounted = (): boolean => !!mounted && !!catalogKind(mounted.view);
 
+/** Mounts the Svelte component of the view; any other view gets the overview. */
+function mountView(target: HTMLElement, view: V): NonNullable<typeof mounted> {
+  const kind = catalogKind(ui.view);
+  if (kind) return { view: ui.view, ...mountCatalogList(target, kind) };
+  if (ui.view === 'resources')
+    return { view: ui.view, ...mountProducerTable(target, view) };
+  return { view: 'overview', ...mountOverview(target) };
+}
+
 /**
  * Mounts the view of a Svelte component, or updates the mounted one. A
  * fresh render mounts a list again, as the HTML views render anew: no
- * number typed into the shipyard stays on another planet.
+ * number typed into the shipyard stays on another planet. The overview is
+ * mounted anew on every render, as its HTML view was rendered (#118): the
+ * clock counts its countdowns down and marks the ones that fired.
  */
 function renderMounted(target: HTMLElement, view: V, fresh: boolean): void {
   const kind = catalogKind(ui.view);
   client.shown = view;
-  if (mounted?.view === ui.view && !(fresh && kind)) {
+  if (mounted?.view === ui.view && ui.view !== 'overview' && !(fresh && kind)) {
     mounted.update?.(view);
     return flushSync();
   }
   unmountViews();
   target.replaceChildren();
-  mounted = {
-    view: ui.view,
-    ...(kind
-      ? mountCatalogList(target, kind)
-      : mountProducerTable(target, view)),
-  };
+  mounted = mountView(target, view);
   flushSync();
 }
 
 function renderView(target: HTMLElement, view: V, fresh: boolean): void {
   if (ui.view !== 'admin' || !view.s.me.admin) adminPanel = null;
-  if (MOUNTED.has(ui.view)) return renderMounted(target, view, fresh);
-  unmountViews();
   const show = Object.entries(VIEWS).find(([name]) => name === ui.view)?.[1];
-  target.innerHTML = (show ?? VIEWS.overview!)(view);
+  if (MOUNTED.has(ui.view) || !show) return renderMounted(target, view, fresh);
+  unmountViews();
+  target.innerHTML = show(view);
   if (ui.view === 'admin' && view.s.me.admin) renderAdminPanel(target, view);
 }
 

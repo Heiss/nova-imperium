@@ -309,6 +309,21 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   and notice. Checked by breaking the component (an attribute, a space
   between two inline elements). jscpd leaves the frozen copy out
   (`.jscpd.json`), as it leaves out the test files.
+* **[E]** The Übersicht of #118 (second pull request): the property test
+  `src/test/overview-reference.test.ts` keeps `Overview` equal to the
+  view before (frozen there: `overview()` and `fleetTable()` of
+  `src/client/views/overview.ts`) on 300 generated states (fast-check seed
+  118: planets and moons, names with markup, foreign, own, returning and
+  gift fleets of every mission, unknown owners and ships, the three
+  queues, players missing from the highscore), with the same normalizer
+  as the lists, now shared in `src/test/markup.ts`; a second case keeps
+  the list „Flotten unterwegs“ of the fleet view equal to the frozen
+  `fleetTable()`, and a third checks that the cases reach every branch.
+  Checked by breaking the component (an attribute, the space before
+  „(nächste)“, a name as markup, the recall, a space before
+  „(umbenennen)“). The pure logic has its tests in
+  `src/client/logic/overview.test.ts`, the component in
+  `src/client/views/overview.test.ts`.
 * **[E]** No comparison with a catalog key outside `src/features/` (#114,
   owner, 2026-11-14): `src/test/catalog-keys.test.ts` reads `src` with the
   TypeScript and Svelte parsers, as `src/test/naming.test.ts` does, and
