@@ -1,10 +1,12 @@
 // Research on any own planet with a Forschungslabor (issue #49), used by the
 // server and the browser: the research network (IFN) that links further labs
-// for the research time, and the energy production Gravitonforschung needs.
-import { RES, type ResearchDef } from './catalog.ts';
-import { production } from './economy.ts';
+// for the research time, and the energy production Gravitonforschung needs,
+// whose rule is the component `energyThreshold` (#114).
+import { RES } from './catalog.ts';
 import { labUpgrading } from './lab.ts';
-import type { Levels, Planet, Universe } from './types.ts';
+import type { Planet } from './types.ts';
+
+export { energyNeed, energyShort } from './components/energy-threshold.ts';
 
 /** One own planet as the research network sees it. */
 export interface LabSite {
@@ -40,27 +42,3 @@ export function networkLab(
     .slice(0, ifn)
     .reduce((sum, lab) => sum + lab, here.lab);
 }
-
-/** The energy production level `level` of `d` needs; 0 for most research. */
-export const energyNeed = (
-  d: Pick<ResearchDef, 'energy'>,
-  level: number,
-): number => (d.energy ? d.energy.base * Math.pow(d.energy.f, level - 1) : 0);
-
-/**
- * How much energy production `p` lacks for level `level` of `d`, rounded
- * up; 0 when it is enough. The production counts, not the use (#49), with
- * the Fusionskraftwerk as it runs: `research` holds Energietechnik, and a
- * reactor throttled at an empty stock counts its throttled share (#47).
- */
-export const energyShort = (
-  d: Pick<ResearchDef, 'energy'>,
-  level: number,
-  p: Pick<Planet, 'b' | 'pct' | 'temp' | 'res'>,
-  u: Universe,
-  research: Levels = {},
-): number =>
-  Math.max(
-    0,
-    Math.ceil(energyNeed(d, level) - production(p, u, research).eProd),
-  );

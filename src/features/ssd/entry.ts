@@ -4,6 +4,7 @@
 
 import type { DefenseFields } from '../../core/catalog.ts';
 import type { Combat } from '../../core/components/combat.ts';
+import type { Limit } from '../../core/components/limit.ts';
 import type { Unit } from '../../core/components/unit.ts';
 
 export const kind = 'defense';
@@ -15,6 +16,9 @@ export const combat: Combat = {
   atk: 1,
   sh: 2000,
 };
+export const limit: Limit = {
+  perPlanet: 1,
+};
 export const def: DefenseFields = {
   req: {
     b: {
@@ -24,5 +28,4 @@ export const def: DefenseFields = {
       shield: 2,
     },
   },
-  once: true,
 };
