@@ -105,16 +105,26 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   Gate requires the code checks, the image and the website; the mutation
   jobs too, except in the release pull request of a hotfix branch, where
   they follow #146.
-* **[V]** „Release ready“ runs on `pull_request_target`: the workflow of
+* **[E]** „Release ready“ runs on `pull_request_target` (owner,
+  2026-11-14): the workflow of
   `main` runs with `GITHUB_REF` main, so the environment `release` hands out
   the App key; a `pull_request` run has `refs/pull/N/merge` and would not
   get it (GitHub changelog of 2025-11-07: environment branch rules are
   checked against the ref the run executes on). It checks out nothing and
   only labels the pull request. It creates the label `voller-lauf` when it
   is missing.
+* **[E]** „Ready for review“ is refused while a released hotfix is not
+  merged back into `main` (owner, 2026-11-14, #147): `scripts/release-pr.sh`
+  then writes the marker `<!-- release-pr: unmerged-hotfix -->` into the
+  body with its note. „Release ready“ reads the current body; with the
+  marker it sets the pull request back to draft (`gh pr ready --undo`, App
+  token; `converted_to_draft` starts no CI), posts one comment in English
+  that says why, touches no label and fails its run. A body it cannot read
+  starts no full run either.
 * **[U]** Checked only on the first release pull request after the merge:
-  that the App may create the label with „Pull requests: write“ (else create
-  it by hand), that the `labeled` and `unlabeled` runs carry
+  that the App may create the label and comment with „Pull requests:
+  write“ (GitHub's documentation names „Issues“ or „Pull requests“ write
+  for labels and issue comments; else create the label by hand), that the `labeled` and `unlabeled` runs carry
   `draft: false` and start in one concurrency group, that the CI Gate of
   the full run replaces the red one of the cheap run, and that
   `rc-image.yml` publishes the candidate of the full run (its actor is the
@@ -262,8 +272,8 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   owner merges `hotfix/sec-*` back into `main`; `tag.yml` opens that pull
   request. While a released hotfix is not merged back, the release pull
   request of `main` stays a draft (`scripts/release-pr.sh`; its body says
-  so, and the loop does not mark it ready): its release would drop the fix
-  from `stable`. After every hotfix release, `tag.yml`
+  so, and „Release ready“ refuses „Ready for review“, #147): its release
+  would drop the fix from `stable`. After every hotfix release, `tag.yml`
   rebuilds the release pull request of `main`, so its version is newer than
   the hotfix and its release becomes `stable` again.
 * **[E]** The id is a hash of the fixed packages and the base image holes, so

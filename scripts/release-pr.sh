@@ -93,6 +93,10 @@ if [ "$base" = main ]; then
   done
 fi
 
+# Written into the body while a released hotfix is not merged back; the
+# workflow „Release ready“ (.github/workflows/release-ready.yml) looks for it.
+unmerged_marker='<!-- release-pr: unmerged-hotfix -->'
+
 # Squash merges end their subject with the pull request number.
 pulls=$(git log --format='- %s' "$range" | grep -E '\(#[0-9]+\)$' || true)
 {
@@ -118,7 +122,9 @@ pulls=$(git log --format='- %s' "$range" | grep -E '\(#[0-9]+\)$' || true)
     printf '\n**Draft until the release is made ready.** After every rebuild this pull request is a draft: its CI runs only the cheap checks, and its CI Gate fails on purpose. „Ready for review“ starts the full run and, when it is green, the candidate image; the next rebuild sets it back to draft.\n'
   fi
   if [ -n "$unmerged" ]; then
-    printf '\n**Draft:** merge the released hotfix branch(es)%s back into `main` first; this release would drop their fixes from `stable`. Do not mark it ready until then.\n' "$unmerged"
+    # The marker makes release-ready.yml refuse „Ready for review“ (#147).
+    printf '\n%s\n' "$unmerged_marker"
+    printf '**Draft:** merge the released hotfix branch(es)%s back into `main` first; this release would drop their fixes from `stable`. „Ready for review“ is refused until then.\n' "$unmerged"
   fi
 } > release-body.md
 

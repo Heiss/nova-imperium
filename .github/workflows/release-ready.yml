@@ -10,6 +10,10 @@ name: Release ready
 # the first (same concurrency group). Events caused by GITHUB_TOKEN would
 # start no workflow; those of the App do. Every other pull request, the
 # release pull requests of hotfix branches included, is left alone.
+# While a released hotfix is not merged back into main, the body of the
+# release pull request carries a marker (scripts/release-pr.sh): then the job
+# refuses, sets the pull request back to draft (converted_to_draft starts no
+# CI), comments why, and touches no label (owner, 2026-11-14, #147).
 on:
   # pull_request_target: the workflow of the default branch runs, with
   # GITHUB_REF main, so the environment "release" (deployment branches main
@@ -40,14 +44,33 @@ jobs:
         with:
           app-id: ${{ vars.RELEASE_APP_ID }}
           private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
-          # Labels of a pull request and of the repository.
+          # Labels, the draft state and a comment of a pull request; the
+          # labels of the repository.
           permission-pull-requests: write
-      - name: Add and remove the label "voller-lauf"
+      - name: Start the full run, or refuse it
         env:
           GH_TOKEN: ${{ steps.app.outputs.token }}
           NUMBER: ${{ github.event.pull_request.number }}
           LABEL: voller-lauf
+          # Written by scripts/release-pr.sh while a released hotfix is not
+          # merged back into main.
+          MARKER: '<!-- release-pr: unmerged-hotfix -->'
+          REFUSAL: >-
+            „Ready for review“ refused: a released hotfix is not merged back
+            into `main` yet (see the note at the end of the description).
+            Releasing `main` now would drop its fix from `stable`. This pull
+            request is a draft again; merge the hotfix branch back into
+            `main` first, then mark it ready (release-ready.yml, #147).
         run: |
+          # The body as it is now; a rebuild may have changed it since the event.
+          body=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$NUMBER" --jq .body)
+          # A failing call stops the job before any label: no full run.
+          if printf '%s\n' "$body" | grep -qF -- "$MARKER"; then
+            gh pr ready --undo "$NUMBER" --repo "$GITHUB_REPOSITORY"
+            gh pr comment "$NUMBER" --repo "$GITHUB_REPOSITORY" --body "$REFUSAL"
+            echo "::error::A released hotfix is not merged back into main: the release pull request #$NUMBER is a draft again, no full run."
+            exit 1
+          fi
           # The label is created the first time it is needed.
           if ! gh api "repos/$GITHUB_REPOSITORY/labels/$LABEL" --silent 2> /dev/null; then
             gh api --method POST "repos/$GITHUB_REPOSITORY/labels" --silent \

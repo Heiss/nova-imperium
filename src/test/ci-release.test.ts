@@ -1,9 +1,17 @@
 // The cheap and the full run of the release pull request of main in
-// .github/workflows/ci.yml (owner, 2026-11-13 and 2026-11-14, #147): the
-// shell of "Detect changes" and of the CI Gate runs here with the inputs
-// GitHub would give it, as bash runs it in the workflow.
+// .github/workflows/ci.yml and release-ready.yml (owner, 2026-11-13 and
+// 2026-11-14, #147): the shell of "Detect changes", of the CI Gate and of
+// "Release ready" runs here with the inputs GitHub would give it, as bash
+// runs it in the workflow; gh is a stub that writes down its calls.
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import {
+  chmodSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
@@ -11,9 +19,12 @@ import { afterAll, describe, expect, it } from 'vitest';
 const CI = readFileSync('.github/workflows/ci.yml', 'utf8');
 const READY = readFileSync('.github/workflows/release-ready.yml', 'utf8');
 
-/** The `run: |` block of the step whose first line is <step>, unindented. */
-function script(step: string): string {
-  const lines = CI.split('\n');
+/**
+ * The `run: |` block of the step whose first line is <step> in the workflow
+ * <source>, unindented.
+ */
+function script(step: string, source = CI): string {
+  const lines = source.split('\n');
   const start = lines.findIndex((line) => line.trim() === step);
   const run = lines.findIndex(
     (line, i) => i > start && /^\s+run: \|$/.test(line),
@@ -296,5 +307,86 @@ describe('the start of the full run', () => {
     expect(READY).toContain('permissions: {}');
     expect(READY).toContain('LABEL: voller-lauf');
     expect(READY).not.toContain('actions/checkout');
+  });
+});
+
+describe('Release ready', () => {
+  const ready = script('- name: Start the full run, or refuse it', READY);
+  const marker = /^ {10}MARKER: '(.+)'$/m.exec(READY)?.[1];
+  const bin = join(dir, 'bin');
+  const calls = join(dir, 'gh-calls');
+  mkdirSync(bin, { recursive: true });
+  // Answers the body of the pull request; every other call succeeds.
+  writeFileSync(
+    join(bin, 'gh'),
+    [
+      '#!/bin/sh',
+      'printf \'%s\\n\' "$*" >> "$GH_CALLS"',
+      'case "$*" in',
+      '  "api repos/owner/game/pulls/7 --jq .body")',
+      '    [ -z "$FAIL" ] || exit 1',
+      '    printf \'%s\\n\' "$BODY" ;;',
+      'esac',
+      '',
+    ].join('\n'),
+  );
+  chmodSync(join(bin, 'gh'), 0o755);
+  const run = (body: string, fail = '') => {
+    rmSync(calls, { force: true });
+    const result = bash(ready, {
+      FAIL: fail,
+      PATH: `${bin}:${process.env.PATH}`,
+      GH_CALLS: calls,
+      BODY: body,
+      GITHUB_REPOSITORY: 'owner/game',
+      NUMBER: '7',
+      LABEL: 'voller-lauf',
+      MARKER: marker!,
+      REFUSAL: 'refused, because',
+    });
+    return { ...result, calls: readFileSync(calls, 'utf8').trim().split('\n') };
+  };
+
+  it('reads the marker that scripts/release-pr.sh writes', () => {
+    const script = readFileSync('scripts/release-pr.sh', 'utf8');
+    expect(marker).toBe('<!-- release-pr: unmerged-hotfix -->');
+    expect(script).toContain(`unmerged_marker='${marker}'`);
+  });
+
+  it('adds and removes the label when no released hotfix waits', () => {
+    const { code, calls } = run(
+      'Merging this pull request releases **26.11.23**',
+    );
+    expect(code).toBe(0);
+    expect(calls).toEqual([
+      'api repos/owner/game/pulls/7 --jq .body',
+      'api repos/owner/game/labels/voller-lauf --silent',
+      'api --method POST repos/owner/game/issues/7/labels --silent -f labels[]=voller-lauf',
+      'api --method DELETE repos/owner/game/issues/7/labels/voller-lauf --silent',
+    ]);
+  });
+
+  it('refuses while a released hotfix is not merged back', () => {
+    for (const body of [
+      `Text\n\n${marker}\n**Draft:** merge the released hotfix branch(es) hotfix/x back`,
+      `Text\r\n${marker}\r\n**Draft:** edited in the browser`,
+    ]) {
+      const { code, out, calls } = run(body);
+      expect(code).toBe(1);
+      expect(out).toContain(
+        '::error::A released hotfix is not merged back into main: the release pull request #7 is a draft again, no full run.',
+      );
+      expect(calls).toEqual([
+        'api repos/owner/game/pulls/7 --jq .body',
+        'pr ready --undo 7 --repo owner/game',
+        'pr comment 7 --repo owner/game --body refused, because',
+      ]);
+    }
+  });
+
+  it('touches no label when the body cannot be read', () => {
+    const { code, calls } = run('', 'yes');
+    expect(code).not.toBe(0);
+    expect(calls).toEqual(['api repos/owner/game/pulls/7 --jq .body']);
   });
 });

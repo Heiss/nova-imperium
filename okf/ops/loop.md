@@ -40,11 +40,14 @@ tasks).
   run and for the candidate image, then tells the owner. A rebuild during
   the wait (a push to `main`) sets it back to draft: the loop marks it
   ready again.
-* **[V]** The loop does not mark it ready while its body says that a
-  released hotfix is not merged back, or while the last run of „Release
+* **[E]** While a released hotfix is not merged back, „Ready for review“
+  is refused: „Release ready“ sets the pull request back to draft and
+  comments why (owner, 2026-11-14, #147); the loop does not mark it ready
+  then.
+* **[V]** The loop does not mark it ready while the last run of „Release
   pull request“ failed (a version held by another release branch): before
-  #147 the workflow kept it a draft in both cases, now only the draft
-  that every rebuild has shows it.
+  #147 the workflow kept it a draft, now only the draft that every rebuild
+  has shows it.
 * **[E]** The release pull request, `CHANGELOG.md` and `VERSION` come only
   from `scripts/release-pr.sh`: the changelog section from the fragments,
   the version from the tags, the list of pull requests from the Git

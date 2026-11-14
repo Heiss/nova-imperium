@@ -243,7 +243,13 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   would give: the cheap run of the draft release pull request of `main`,
   its gate failing on purpose, every check required in every other release
   pull request, and every other pull request unchanged; it also checks that
-  `ci.yml` keeps its event types and what `release-ready.yml` labels.
+  `ci.yml` keeps its event types and runs the step of `release-ready.yml`
+  with a stub `gh`: label without the hotfix marker, refusal (draft and
+  comment, no label) with it, nothing when the body cannot be read.
+  `src/test/release-pr.test.ts` runs `scripts/release-pr.sh` in a
+  throwaway repository with a stub `gh`: the release pull request of
+  `main` is never marked ready, and its body carries the marker exactly
+  while a released hotfix is not merged back.
 * **[E]** Code hygiene blocks in the job „Lint, types, unit tests …“
   (owner, 2026-11-11): knip (`knip.json`: no unused files, exports or
   dependencies), jscpd (`.jscpd.json`: no copied block of 50 tokens or more

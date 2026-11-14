@@ -109,8 +109,9 @@ a pull request opened with `GITHUB_TOKEN` would start no CI:
    lint, CodeQL, changelog fragments), and its CI Gate fails on purpose.
    A release pull request of a hotfix branch is marked ready at once.
 5. It stays a draft while a released hotfix is not merged back into `main`:
-   releasing `main` then would drop the fix from `stable`; nobody marks it
-   ready until then.
+   releasing `main` then would drop the fix from `stable`. Its body carries
+   a marker, and „Release ready“ refuses „Ready for review“: it sets the
+   pull request back to draft and comments why.
 
 Marking the release pull request of `main` „Ready for review“ starts its
 full run, with every check: the complete mutation run, the

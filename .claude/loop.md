@@ -49,8 +49,9 @@ interface is German.
    on purpose (#147). Check its texts (German, matching their pull
    requests, one entry per feature, nothing internal) and its cheap jobs;
    then mark it „Ready for review“, which starts the full run. Do not mark
-   it ready while its body says that a released hotfix is not merged back,
-   or while the last run of the workflow „Release pull request“ failed.
+   it ready while its body says that a released hotfix is not merged back
+   (the workflow „Release ready“ refuses it and sets it back to draft), or
+   while the last run of the workflow „Release pull request“ failed.
    Wait until the CI Gate of the full run is green (complete mutation run,
    image, Trivy, upgrade test) and the candidate image `<version>-rc.<N>`
    is published; a push to `main` meanwhile sets it back to draft, so mark
