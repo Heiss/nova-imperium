@@ -87,3 +87,35 @@ test('no view is wider than a 360 px phone (#189) @phone', async ({ page }) => {
   expect(await overflow(page, 'resources')).toEqual([]);
   expect(w.problems).toEqual([]);
 });
+
+test('a name of 20 wide letters stays left of the points on the highscore (#189) @phone', async ({
+  page,
+}) => {
+  const w = watch(page);
+  // The widest name a player may have: 20 characters, each a W.
+  const name = 'W'.repeat(20);
+  await register(page, name);
+  seed({ name, b: { metal: 30, crystal: 28, solar: 30 } });
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.goto('/?view=highscore');
+  const row = page.locator('.scores tr.me');
+  await expect(row.locator('td').nth(1)).toHaveText(name);
+  await expect(row.locator('td').nth(3)).not.toHaveText('0');
+  const box = await row.evaluate((tr) => {
+    const cells = tr.querySelectorAll('td');
+    // The name's text itself, not its cell: a name too long for its cell
+    // spills over the points.
+    const text = document.createRange();
+    text.selectNodeContents(cells[1]!);
+    return {
+      nameRight: text.getBoundingClientRect().right,
+      pointsLeft: cells[3]!.getBoundingClientRect().left,
+      rowScroll: tr.scrollWidth,
+      rowWidth: tr.clientWidth,
+    };
+  });
+  expect(box.nameRight).toBeLessThanOrEqual(box.pointsLeft);
+  expect(box.rowScroll).toBeLessThanOrEqual(box.rowWidth);
+  expect(await overflow(page, 'highscore')).toEqual([]);
+  expect(w.problems).toEqual([]);
+});

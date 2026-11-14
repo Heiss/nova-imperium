@@ -918,8 +918,9 @@ textarea:focus-visible {
     letter-spacing: 0;
   }
   /* Highscore (#189, D7, owner 2026-11-14): no column „Heimatplanet“; its
-     coordinates link moves small below the player name, so names stay
-     whole. Every row is a grid: place, name with the link below, points. */
+     coordinates link moves small below the player name. A name breaks only
+     when it does not fit (20 wide letters), so normal names stay on one
+     line. Every row is a grid: place, name with the link below, points. */
   .scores,
   .scores tbody {
     display: block;
@@ -938,6 +939,9 @@ textarea:focus-visible {
   .scores th,
   .scores td {
     border-bottom: 0;
+  }
+  .scores td:nth-child(2) {
+    overflow-wrap: anywhere;
   }
   .scores th:nth-child(3),
   .scores .home {

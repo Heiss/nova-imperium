@@ -31,7 +31,10 @@ generated: { by: claude-code/web, at: 2026-11-10T19:00:00Z }
   values in two columns, each with its column head, then the share).
 * **[E]** Highscore on a phone (owner, 2026-11-14, #189 D7): the column
   „Heimatplanet“ is hidden and its coordinates link [g:s:p] (to the system
-  on the Sternenkarte) stands small below the player name; names stay whole.
+  on the Sternenkarte) stands small below the player name. A long name
+  breaks only when it does not fit („Umbruch nur im Notfall“, owner,
+  2026-11-14, after CodeRabbit on #207: 20 × „W“ ran over the points at
+  360 px); normal names stay on one line.
   The desktop keeps the column. The link is rendered once and only moved by
   CSS, so neither layout has a duplicate for the keyboard or a screen reader.
 * **[E]** Planets are layered CSS pictures (D7): a tileable surface that
