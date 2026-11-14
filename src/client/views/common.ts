@@ -8,12 +8,7 @@ import type {
   ResearchState,
 } from '../../core/types.ts';
 import { dur, esc, fmt } from '../logic/format.ts';
-import {
-  explainButtonHTML,
-  explainPanelHTML,
-  explanation,
-} from '../logic/explain.ts';
-import { iconURL, type ResourceKey, resourceIconURL } from '../logic/icons.ts';
+import { type ResourceKey, resourceIconURL } from '../logic/icons.ts';
 import { planetLook } from '../logic/planet.ts';
 import {
   type Need,
@@ -23,7 +18,6 @@ import {
   unmetRequirements,
 } from '../../core/requirements.ts';
 import { production } from '../../core/economy.ts';
-import { text } from '../../core/text.ts';
 import type { PushChoice } from '../logic/push-options.ts';
 import type { GameState } from '../logic/types.ts';
 
@@ -74,10 +68,6 @@ const COST_NAMES = ['Adamant', 'Psikristall', 'Promethium'] as const;
 const COST_ICONS: ResourceKey[] = ['metal', 'crystal', 'deuterium'];
 const HAVE = ['m', 'c', 'd'] as const;
 
-/** The German name of a resource. */
-export const resourceName = (r: string): string =>
-  COST_NAMES[HAVE.indexOf(r as (typeof HAVE)[number])]!;
-
 /** A small resource icon whose alt text names the resource. */
 const resIcon = (key: ResourceKey, name: string): string =>
   `<img class="ri" src="${resourceIconURL(key)}" alt="${name}" width="20" height="20">`;
@@ -111,26 +101,6 @@ export function costHTML(
       ),
     );
   return `<div class="cost">${parts.join('')}</div>`;
-}
-
-/**
- * A row of research, shipyard or defense. The short `ds` is always shown
- * (issue #63, D5); the explanation follows the display mode of the player.
- */
-export function itemHTML(
-  v: V,
-  cls: string,
-  key: string,
-  level: string,
-  body: string,
-  action: string,
-): string {
-  const d = text(key)!;
-  const src = iconURL(key);
-  const icon = src ? `<img src="${src}" alt="${esc(d.n)}">` : d.ab;
-  const ds = d.ds ? `<div class="ds">${d.ds}</div>` : '';
-  const ex = explanation(key, d, v.s.me.explain, v.ui.openEx);
-  return `<div class="item"><div class="icon ${cls}">${icon}</div><div><div class="nm">${d.n} <span class="lv">${level}</span>${explainButtonHTML(ex)}</div>${ds}${body}${explainPanelHTML(ex)}</div><div class="act">${action}</div></div>`;
 }
 
 export const box = (title: string, body: string, cls = ''): string =>

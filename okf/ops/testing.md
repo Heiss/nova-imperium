@@ -283,6 +283,32 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   property test `src/core/producer-rows.test.ts` checks that the rows of
   `producerRows()` add up to `prod()` of the planet as it runs, bit for bit
   where `prod()` adds in the same order (owner, 2026-11-14).
+* **[E]** Svelte components and state modules in Vitest (#118): the
+  Vitest configuration loads the Svelte plugin of the build
+  (`@sveltejs/vite-plugin-svelte`), so tests import `.svelte` and
+  `.svelte.ts` files; a component test renders with `render()` of
+  `svelte/server` (no DOM, no new dependency) and reads the markup as text
+  (`src/client/views/catalog-list.test.ts`: every entry of a kind gets one
+  row). The state module `src/client/logic/state.svelte.ts` lies in the
+  measured `src/client/logic/` and is mutated like the other logic; Stryker
+  instruments it without breaking the runes (measured 2026-11-14).
+* **[E]** The four lists of #118: the property test
+  `src/test/catalog-list-reference.test.ts` keeps `CatalogList` equal to
+  the views before #118 (frozen there: `research()`, `shipyard()`,
+  `defense()` and `itemHTML()`; and the copy
+  `src/test/catalog-reference/Buildings.svelte`) on generated states (150
+  per list, fast-check seed 118), up to what a browser does not show:
+  Svelte's comments, the order of the attributes, the escaping of `>`,
+  `"` and `'`, the `<tbody>` a table gets anyway and white space next to a
+  block or a line break. An escaped `<` and `&` stay escaped, so a name
+  shown as text never equals the same name as markup (review of #209: a
+  list that shows the planet name unescaped fails the test; with the
+  earlier decoding of every entity it passed); the frozen
+  `Buildings.svelte` has one marked change, the energy of a level from
+  `production()` (review of #209); a third case checks that the generated states reach every action
+  and notice. Checked by breaking the component (an attribute, a space
+  between two inline elements). jscpd leaves the frozen copy out
+  (`.jscpd.json`), as it leaves out the test files.
 * **[E]** No comparison with a catalog key outside `src/features/` (#114,
   owner, 2026-11-14): `src/test/catalog-keys.test.ts` reads `src` with the
   TypeScript and Svelte parsers, as `src/test/naming.test.ts` does, and

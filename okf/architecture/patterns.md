@@ -153,7 +153,8 @@ choice of the patterns to the assistant's recommendation below
   `unitRoom` in `yard.ts` calls it. Only the core reads the components
   (`unitRoom`, the energy check through the rule module); the client
   shipyard („max. 1“), the resources page and `Buildings.svelte` keep
-  reading `DEF`, `BUILD` and `energyNeed` until #118. `DEF` keeps
+  reading `DEF`, `BUILD` and `energyNeed` until #118 (since #118 the list
+  of `src/client/logic/catalog-list.ts` reads them). `DEF` keeps
   `once: true` and the tables keep the field `energy` until #118; the
   exports stay deeply equal.
 * **[E]** Built with #114 (limits group): the two shield domes export
@@ -550,6 +551,72 @@ choice of the patterns to the assistant's recommendation below
   view `resources` as the second Svelte view and updates it on every
   render. The share selects keep `data-chg="pct"`, `data-k` and
   `data-nokeep`.
+* **[E]** Built with #118, first pull request (the four lists, owner D1 of
+  2026-11-13): the state module is `src/client/logic/state.svelte.ts`, one
+  object `client` with runes. `client.game` (the state of the server) and
+  `client.shown` (what the mounted views show) are `$state.raw`, replaced
+  as a whole; `client.view` (the view state of the last render, which the
+  completion notices compare with), `client.ui`, `client.offset` with
+  `client.now()`, `client.lastKey`, `client.completionNotices` and
+  `client.completedMenu` are plain fields; `client.forget()` clears what
+  belonged to another planet, player or round. `main.ts` keeps no copy of
+  them (`S`, `ctx`, `offset`, `lastKey`, `ui` and the two notice lists are
+  gone). Every game action goes through one `act()`, built by `createAct()`
+  of `src/client/logic/act.ts`, which applies the answer only while the
+  player looks at the same planet (`placeOf`, `samePlace`, also used by
+  `refresh()`). The views keep `data-act` and the one click handler of
+  `main.ts`.
+* **[E]** `CatalogList` (`src/client/views/CatalogList.svelte`, mounted by
+  `mountCatalogList()`) renders Gebäude, Forschung, Schiffsschmiede and
+  Verteidigung from `catalogPage(v, kind)` of
+  `src/client/logic/catalog-list.ts` (`CATALOG_VIEWS` maps the views to
+  the kinds `building`, `research`, `ship`, `defense`): the title, the line
+  below it, the orders of the shipyard and the lock notice, or the notice
+  why the planet has no list; then one row per entry of the catalog table
+  of the kind (the buildings filtered by `placement`, #53) with its texts,
+  icon, explanation, level, cost with the energy of `energyThreshold`, the
+  lines (energy and use of the next level, stats of `combat` and `mobile`,
+  time) and its action. It replaces `Buildings.svelte`, `buildings.ts`,
+  `views/economy.ts` (research), `views/yard.ts` and `itemHTML()` of
+  `views/common.ts`. A list is mounted once per view and updated on every
+  render (`flushSync`); a fresh render mounts it again, as the HTML views
+  render anew, so no number typed into the shipyard stays on another
+  planet. The clock moves `client.shown` to the planet of now every second
+  for a mounted list, which replaces `updateResearchButtons` and
+  `updateShipyardButtons`, and leaves the countdowns of the list to it.
+  `lockNotice()` with its comparison with `yard` moved from `yard.ts` to
+  `catalog-list.ts`; the allow-list entry of #183 moved with it.
+* **[E]** Review of #209 (2026-11-14), each with a test that failed
+  before: an action answers `done`, `stale` (it went through, but the
+  player left the planet meanwhile) or `failed`; `order` and `send` clear
+  their form only on `done` (`actHere` in `main.ts`), so the answer of an
+  order on one planet no longer clears the field of another (the base did,
+  through `stillOnPlanet` and a `true`). A refresh applies its state only
+  when it is the newest one and no action was on its way or started while
+  it ran (`sync.refresh()`), so it never brings back a state older than an
+  action's answer (the base had this race too); the next refresh follows
+  within 4 seconds. The energy a level of a building needs is compared
+  with `production()`, as `energyShort()` checks it, not with `prod()`:
+  with a throttled Fusionskraftwerk the row showed enough energy while the
+  button said „Zu wenig Energie“. The old `Buildings.svelte` had the same
+  mismatch, so this is a change of behaviour; its frozen copy for the
+  reference test has the same one change, marked.
+* **[E]** All four lists follow the clock (owner, 2026-11-14, #118,
+  option C „Alle live + Changelog“): in Forschung, Schiffsschmiede and
+  Verteidigung the costs and the lists „Benötigt“ now update every second
+  as in Gebäude (before, only the buttons and the maxima did), and a
+  clicked button keeps its focus, because the list is updated in place;
+  not chosen: copying the old split (costs from the last render, buttons
+  from the clock), or the same without a changelog entry. The pull request
+  brings the fragment `changes/listen-live.md` (`art: geändert`).
+* **[U]** Left in `main.ts` for the next pull requests of #118: the login
+  (`loginChallenge`, `rememberLogin`, `resetToken`), the admin panel
+  (`adminPanel`), the mounted Svelte view (`mounted`, a DOM handle),
+  `lastActivity`, the install offer (`installPrompt`, `installedHere`,
+  `installDismissed`), the news (`newsLoading`, `newsLoad`), the
+  maintenance banner (`maintenance`), `planetRequest`, `readPending` and
+  `announcementPending`; `client.ui` is not reactive yet, and the
+  resources page still gets its view state through a store.
 
 ## 10. Layout and registration
 
@@ -708,7 +775,8 @@ src/client/                state, components (generic), views
   comparison) and when it is lower (the count must be lowered), so the
   counts only fall and an entry goes when it reaches 0 (owner,
   2026-11-14). The entries: `core/lab.ts` `lab` 2 and
-  `client/views/yard.ts` `yard` 1, the lab and shipyard locks (#183, „Lab
+  `client/logic/catalog-list.ts` `yard` 1 (in `client/views/yard.ts`
+  until #118), the lab and shipyard locks (#183, „Lab
   lock and shipyard lock without catalog keys“). The generic events of
   #115 removed the comparisons in `core/settle.ts` (`sat` 1 and `energy` 1)
   and `server/game/actions.ts` (`energy` 1 and `fusion` 1). The mission registry of #116 removed the comparisons in
@@ -777,6 +845,8 @@ src/client/                state, components (generic), views
   5. Missions as strategies. Built with #116.
   6. Repositories per aggregate.
   7. Client state module and generic components; `main.ts` shrinks per view.
+     First pull request of #118 built: the state module and the four lists
+     through `CatalogList` (section 9); the other views follow.
   8. Places (O11), its own pull request before #45 and #53 (owner,
      2026-11-12). Built with #119.
 

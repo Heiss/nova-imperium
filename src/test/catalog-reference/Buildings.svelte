@@ -1,4 +1,11 @@
 <script lang="ts">
+  // A frozen copy of src/client/views/Buildings.svelte before #118, for
+  // src/test/catalog-list-reference.test.ts: CatalogList must render the
+  // buildings as it did. Only the import paths changed, and resourceName()
+  // of views/common.ts is copied below. One change on purpose (review of
+  // #209, 2026-11-14): the energy a level needs is compared with
+  // production(), as energyShort() does, not with prod(). Do not change it
+  // otherwise.
   import type { Readable } from 'svelte/store';
   import { BUILD, buildable } from '../../core/catalog.ts';
   import {
@@ -6,25 +13,27 @@
     buildTime,
     lvlCost,
     prod,
+    production,
     reqMissing,
     useAt,
   } from '../../core/economy.ts';
   import { fieldsFull } from '../../core/fields.ts';
   import { energyNeed, energyShort } from '../../core/research.ts';
   import { text } from '../../core/text.ts';
-  import { explanation, paragraphs } from '../logic/explain.ts';
-  import { fieldsLine } from '../logic/fields.ts';
-  import { iconURL } from '../logic/icons.ts';
-  import { dur, fmt } from '../logic/format.ts';
-  import { buildState } from '../logic/game.ts';
+  import { explanation, paragraphs } from '../../client/logic/explain.ts';
+  import { fieldsLine } from '../../client/logic/fields.ts';
+  import { iconURL } from '../../client/logic/icons.ts';
+  import { dur, fmt } from '../../client/logic/format.ts';
+  import { buildState } from '../../client/logic/game.ts';
   import {
     costHTML,
     requirementsHTML,
-    resourceName,
     type V,
-  } from './common.ts';
+  } from '../../client/views/common.ts';
 
   let { viewState }: { viewState: Readable<V> } = $props();
+  const resourceName = (r: string): string =>
+    ['Adamant', 'Psikristall', 'Promethium'][['m', 'c', 'd'].indexOf(r)]!;
   const energy = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 2 });
 
   function energyChange(v: V, key: string, level: number): number {
@@ -42,7 +51,7 @@
   function energyCost(v: V, key: string, level: number) {
     const need = energyNeed(BUILD[key]!, level);
     if (!need) return undefined;
-    return { need, production: prod(v.P, v.s.cfg, v.R.research).eProd };
+    return { need, production: production(v.P, v.s.cfg, v.R.research).eProd };
   }
 </script>
 

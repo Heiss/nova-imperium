@@ -43,7 +43,12 @@ interface Allowed {
 const ALLOWED: readonly Allowed[] = [
   // The lab lock and the shipyard lock without catalog keys.
   { file: 'core/lab.ts', key: 'lab', count: 2, issue: '#183' },
-  { file: 'client/views/yard.ts', key: 'yard', count: 1, issue: '#183' },
+  {
+    file: 'client/logic/catalog-list.ts',
+    key: 'yard',
+    count: 1,
+    issue: '#183',
+  },
   // Not a catalog key but an equal word: the report type „spy“.
   {
     file: 'client/views/messages.ts',

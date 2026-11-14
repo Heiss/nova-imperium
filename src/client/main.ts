@@ -1,14 +1,16 @@
-// The browser glue: state, server calls, rendering, events and the clock.
-// The views are pure functions (views/), the logic is tested (logic/); this
+// The browser glue: server calls, rendering, events and the clock. The state
+// lives in the state module (logic/state.svelte.ts, #118); the views are pure
+// functions (views/) or Svelte components; the logic is tested (logic/); this
 // file is run by the E2E suite.
-import { RES } from '../core/catalog.ts';
+import { flushSync } from 'svelte';
 import { missionRules } from '../core/missions.ts';
 import { placeId } from '../core/place.ts';
 import { settle, settleR } from '../core/settle.ts';
 import { text } from '../core/text.ts';
-import { orderMax, yardLockedBy } from '../core/yard.ts';
 import type { Levels, Planet, Queue } from '../core/types.ts';
 import { placeName } from '../core/moon.ts';
+import { createAct, placeOf, samePlace } from './logic/act.ts';
+import { CATALOG_VIEWS, catalogKind } from './logic/catalog-list.ts';
 import { debrisAt, debrisTip } from './logic/debris.ts';
 import { moonAt, moonTarget, ownPlaces } from './logic/moon.ts';
 import { clampInt, coords, dt, dur, esc, fmt } from './logic/format.ts';
@@ -41,8 +43,9 @@ import {
 } from './logic/news.ts';
 import { ANIMATION_KEY, animationsOn } from './logic/planet.ts';
 import { pushSaver } from './logic/push-options.ts';
+import { client } from './logic/state.svelte.ts';
 import type { GameState } from './logic/types.ts';
-import { afford, caps, lvlCost, production } from '../core/economy.ts';
+import { caps, production } from '../core/economy.ts';
 import type { Ui, V } from './views/common.ts';
 import {
   menu,
@@ -65,7 +68,7 @@ import {
   type AdminTab,
 } from './views/misc.ts';
 import { disablePush, enablePush } from './push.ts';
-import { mountBuildings } from './views/buildings.ts';
+import { mountCatalogList } from './views/catalog-list.ts';
 import { dissolveDialog, transferDialog } from './views/guilds.ts';
 import { mountProducerTable } from './views/producer-table.ts';
 
@@ -89,17 +92,17 @@ const rankRights = (rank?: string): string[] =>
     .filter((box) => box.dataset.rankRight === rank && box.checked)
     .map((box) => box.value);
 
-let S: GameState | null = null;
 let loginChallenge: string | null = null;
 let rememberLogin = false;
 let resetToken: string | null = null;
-let offset = 0;
-let lastKey = '';
-let ctx: V | null = null;
-let buildingView: ReturnType<typeof mountBuildings> | null = null;
-let producerView: ReturnType<typeof mountProducerTable> | null = null;
 /** The views that are Svelte components, mounted once and then updated. */
-const MOUNTED = new Set(['buildings', 'resources']);
+const MOUNTED = new Set(['resources', ...Object.keys(CATALOG_VIEWS)]);
+/** The mounted Svelte view and its name. */
+let mounted: {
+  view: string;
+  update?: (v: V) => void;
+  destroy: () => void;
+} | null = null;
 let adminPanel: {
   diagnostics: HTMLElement;
   invitations: HTMLElement;
@@ -110,8 +113,6 @@ let adminPanel: {
   errorPanel: ReturnType<typeof mountAdminErrors>;
 } | null = null;
 let lastActivity = -Infinity;
-const completionNotices = new Set<string>();
-const completedMenu = new Map<string, string>();
 
 interface InstallPrompt extends Event {
   prompt: () => Promise<unknown>;
@@ -152,7 +153,7 @@ async function loadNews(): Promise<void> {
     const news = (await api('/api/news')) as unknown as NewsData;
     if (load !== newsLoad) return;
     ui.news = news;
-    if (S) render();
+    if (client.game) render();
   } catch (e) {
     console.warn(e);
   } finally {
@@ -200,8 +201,10 @@ updateInstallButton();
 function gameView(view: string | null): string {
   if (!view || (!MOUNTED.has(view) && !Object.hasOwn(VIEWS, view)))
     return 'overview';
-  if (view === 'admin' && S && !S.me.admin) return 'overview';
-  if (view === 'achievements' && !rewardsAvailable(S)) return 'overview';
+  if (view === 'admin' && client.game && !client.game.me.admin)
+    return 'overview';
+  if (view === 'achievements' && !rewardsAvailable(client.game))
+    return 'overview';
   return view;
 }
 
@@ -221,23 +224,12 @@ function viewUrl(view: string, guild: string | null = null): string {
   return url.pathname + url.search;
 }
 
-const ui: Ui = {
+const ui: Ui = Object.assign(client.ui, {
   view: viewFromUrl(),
   guild: new URLSearchParams(location.search).get('guild'),
-  gal: 1,
-  sys: 1,
-  ft: null,
-  gmoon: null,
-  fm: 'attack',
-  openRep: {},
-  openEx: {},
-  auth: null,
-  invite: null,
-  lastLink: null,
   animations: animationsOn(() => localStorage.getItem(ANIMATION_KEY)),
-  news: null,
   newsSeen: readNewsSeen(),
-};
+});
 document.documentElement.classList.toggle('no-anim', !ui.animations);
 
 /** Planet animations on or off for this viewer (issue #61, D9). */
@@ -250,8 +242,6 @@ function setAnimations(on: boolean): void {
     // Without storage the choice lasts until the page is reloaded.
   }
 }
-
-const nowT = (): number => Date.now() + offset;
 
 // ----- messages -----
 
@@ -287,7 +277,7 @@ async function checkBack(): Promise<void> {
       newsLoading = false;
       newsLoad++;
       // Maintenance during the first load left no state: load from scratch.
-      void (S ? refresh() : boot());
+      void (client.game ? refresh() : boot());
       return;
     }
   } catch {
@@ -316,7 +306,7 @@ function toast(msg: string, err = false): void {
   t.setAttribute('role', err ? 'alert' : 'status');
   t.textContent = msg;
   // Signed-in players can report every error message (issue #126).
-  const offer = err && S !== null;
+  const offer = err && client.game !== null;
   if (offer) t.append(reportOffer(msg));
   document.body.appendChild(t);
   setTimeout(() => t.remove(), offer ? 8000 : 3500);
@@ -376,7 +366,7 @@ const reportError: (error: ClientError) => void = createReporter({
       credentials: 'same-origin',
     }),
   context: () => ({
-    signedIn: S !== null,
+    signedIn: client.game !== null,
     page: ui.view,
     version: ui.news?.version ?? '',
     browser: navigator.userAgent,
@@ -405,7 +395,7 @@ class AuthError extends Error {}
 
 /** The session is gone (401): back to the login, then stop the caller. */
 function signedOut(error: unknown): never {
-  S = null;
+  client.game = null;
   ui.auth ??= 'login';
   render(true);
   throw new AuthError(String(error ?? 'Bitte einloggen.'));
@@ -469,15 +459,16 @@ function apiError(response: Response, error: unknown): Error {
 function apply(st: GameState | undefined, fresh = false): void {
   if (!st || resetToken) return;
   const key = JSON.stringify({ ...st, now: 0 });
-  const same = key === lastKey;
-  lastKey = key;
-  if (S && (st.me.id !== S.me.id || st.round.number !== S.round.number)) {
-    completedMenu.clear();
-    completionNotices.clear();
-    ctx = null;
-  }
-  offset = st.now - Date.now();
-  S = st;
+  const same = key === client.lastKey;
+  client.lastKey = key;
+  if (
+    client.game &&
+    (st.me.id !== client.game.me.id ||
+      st.round.number !== client.game.round.number)
+  )
+    client.forget();
+  client.offset = st.now - Date.now();
+  client.game = st;
   void loadNews();
   const view = gameView(ui.view);
   if (view !== ui.view) {
@@ -498,53 +489,54 @@ let planetRequest = 0;
 
 async function selectPlanet(id: string): Promise<void> {
   const request = ++planetRequest;
-  const player = S?.me.id;
+  const player = client.game?.me.id;
   try {
     const state = (await api(stateUrl(id))) as unknown as GameState;
     if (
       request !== planetRequest ||
       !player ||
-      S?.me.id !== player ||
+      client.game?.me.id !== player ||
       state.planet?.id !== id
     )
       return;
-    completedMenu.clear();
-    completionNotices.clear();
-    ctx = null;
+    client.forget();
     apply(state, true);
   } catch (e) {
     toast((e as Error).message, true);
   }
 }
 
-function stillOnPlanet(player?: string, planet?: string): boolean {
-  return !!S && S.me.id === player && S.planet?.id === planet;
-}
+/** Every game action of the views goes through here (#118). */
+const sync = createAct({
+  api,
+  state: () => client.game,
+  apply: (state) => apply(state),
+  toast,
+});
+
+/** Whether the action went through, wherever the player is now. */
+const act = async (type: string, data?: object): Promise<boolean> =>
+  (await sync.send(type, data)) !== 'failed';
+
+/**
+ * Whether the action went through on the planet still shown, so its form
+ * may be cleared; not when the player switched planets meanwhile (#209).
+ */
+const actHere = async (type: string, data?: object): Promise<boolean> =>
+  (await sync.send(type, data)) === 'done';
 
 async function refresh(): Promise<void> {
-  const player = S?.me.id;
-  const planet = S?.planet?.id;
+  const before = placeOf(client.game);
+  const planet = before.planet;
+  // A refresh that overlaps an action never brings back an older state.
+  const fresh = sync.refresh();
   try {
     const state = (await api(
-      stateUrl(planet === S?.homePlanet ? undefined : planet),
+      stateUrl(planet === client.game?.homePlanet ? undefined : planet),
     )) as unknown as GameState;
-    if (stillOnPlanet(player, planet)) apply(state);
+    if (fresh() && samePlace(client.game, before)) apply(state);
   } catch (e) {
-    if (S) console.warn(e);
-  }
-}
-
-async function act(type: string, data: object = {}): Promise<boolean> {
-  try {
-    const planet = S?.planet?.id;
-    const player = S?.me.id;
-    const j = await api('/api/action', { type, planet, ...data });
-    if (stillOnPlanet(player, planet)) apply(j.state as GameState);
-    if (j.msg) toast(String(j.msg));
-    return true;
-  } catch (e) {
-    toast((e as Error).message, true);
-    return false;
+    if (client.game) console.warn(e);
   }
 }
 
@@ -595,10 +587,8 @@ function keepInputs(view: HTMLElement, fresh: boolean): () => void {
 }
 
 function renderLoggedOut(view: HTMLElement): void {
-  ctx = null;
+  client.forget();
   unmountViews();
-  completionNotices.clear();
-  completedMenu.clear();
   $('#menu')!.innerHTML = '';
   $('#tabbar')!.innerHTML = '';
   $('#more-list')!.innerHTML = '';
@@ -616,8 +606,8 @@ function rememberUpgrade(
 ): void {
   if (!order || order.end > now || (levels[order.key] ?? 0) < order.lvl) return;
   const name = text(order.key)?.n ?? order.key;
-  completedMenu.set(view, label);
-  completionNotices.add(`${label}: ${name} (Stufe ${order.lvl}).`);
+  client.completedMenu.set(view, label);
+  client.completionNotices.add(`${label}: ${name} (Stufe ${order.lvl}).`);
 }
 
 function rememberCompletions(previous: V, next: V): void {
@@ -637,8 +627,8 @@ function rememberCompletions(previous: V, next: V): void {
     next.now,
   );
   for (const view of finishedYardOrders(previous.P, next.now)) {
-    completedMenu.set(view, 'Auftrag der Schiffsschmiede fertig');
-    completionNotices.add('Auftrag der Schiffsschmiede fertig.');
+    client.completedMenu.set(view, 'Auftrag der Schiffsschmiede fertig');
+    client.completionNotices.add('Auftrag der Schiffsschmiede fertig.');
   }
   rememberFleetReturn(previous, next);
 }
@@ -655,17 +645,17 @@ function rememberFleetReturn(previous: V, next: V): void {
         !live.has(fleet.id),
     )
   )
-    completedMenu.set('fleet', 'Die Flotte kehrt heim');
+    client.completedMenu.set('fleet', 'Die Flotte kehrt heim');
 }
 
 function renderCompletions(view: HTMLElement): void {
   view.querySelector('#completion-notice')?.remove();
-  if (!completionNotices.size) return;
+  if (!client.completionNotices.size) return;
   const notice = document.createElement('div');
   notice.id = 'completion-notice';
   notice.className = 'notice';
   notice.setAttribute('role', 'status');
-  notice.textContent = [...completionNotices].join(' ');
+  notice.textContent = [...client.completionNotices].join(' ');
   view.prepend(notice);
 }
 
@@ -673,36 +663,46 @@ function renderCompletions(view: HTMLElement): void {
 function toggleExplanation(key: string): void {
   const open = !ui.openEx[key];
   ui.openEx[key] = open;
-  // Svelte keeps the focused button and only changes its attributes.
-  if (buildingView && ctx) return buildingView.update({ ...ctx });
-  document
-    .getElementById(`exq_${key}`)
-    ?.setAttribute('aria-expanded', String(open));
-  const panel = document.getElementById(`ex_${key}`);
-  if (panel) panel.hidden = !open;
+  // Only the lists have explanations; Svelte keeps the focused button and
+  // only changes its attributes.
+  if (client.shown) client.shown = { ...client.shown };
 }
 
-/** Unmounts the Svelte views (buildings, resources). */
+/** Unmounts the Svelte view (the lists, the resources). */
 function unmountViews(): void {
-  buildingView?.destroy();
-  buildingView = null;
-  producerView?.destroy();
-  producerView = null;
+  mounted?.destroy();
+  mounted = null;
 }
 
-/** Mounts the view of a Svelte component, or updates the mounted one. */
-function renderMounted(target: HTMLElement, view: V): void {
-  if (ui.view === 'buildings' && buildingView) return buildingView.update(view);
-  if (ui.view === 'resources' && producerView) return producerView.update(view);
+/** Whether a list is mounted: it shows the clock's view state (#118). */
+const listMounted = (): boolean => !!mounted && !!catalogKind(mounted.view);
+
+/**
+ * Mounts the view of a Svelte component, or updates the mounted one. A
+ * fresh render mounts a list again, as the HTML views render anew: no
+ * number typed into the shipyard stays on another planet.
+ */
+function renderMounted(target: HTMLElement, view: V, fresh: boolean): void {
+  const kind = catalogKind(ui.view);
+  client.shown = view;
+  if (mounted?.view === ui.view && !(fresh && kind)) {
+    mounted.update?.(view);
+    return flushSync();
+  }
   unmountViews();
   target.replaceChildren();
-  if (ui.view === 'buildings') buildingView = mountBuildings(target, view);
-  else producerView = mountProducerTable(target, view);
+  mounted = {
+    view: ui.view,
+    ...(kind
+      ? mountCatalogList(target, kind)
+      : mountProducerTable(target, view)),
+  };
+  flushSync();
 }
 
-function renderView(target: HTMLElement, view: V): void {
+function renderView(target: HTMLElement, view: V, fresh: boolean): void {
   if (ui.view !== 'admin' || !view.s.me.admin) adminPanel = null;
-  if (MOUNTED.has(ui.view)) return renderMounted(target, view);
+  if (MOUNTED.has(ui.view)) return renderMounted(target, view, fresh);
   unmountViews();
   const show = Object.entries(VIEWS).find(([name]) => name === ui.view)?.[1];
   target.innerHTML = (show ?? VIEWS.overview!)(view);
@@ -793,27 +793,27 @@ function viewAt(state: GameState, planet: Planet, now: number): V {
 
 function render(fresh = false): void {
   const view = $('#view')!;
-  if (!S) {
+  if (!client.game) {
     adminPanel = null;
     lastActivity = -Infinity;
     return renderLoggedOut(view);
   }
-  if (!S.planet) {
-    ctx = null;
+  if (!client.game.planet) {
+    client.view = null;
     unmountViews();
     view.innerHTML =
       '<div class="notice">Du hast keinen Planeten. Bitte den Admin, eine neue Runde zu starten.</div>';
     return;
   }
   const restore = keepInputs(view, fresh);
-  const now = nowT();
-  const previous = ctx;
-  ctx = viewAt(S, S.planet, now);
-  if (previous && !fresh) rememberCompletions(previous, ctx);
+  const now = client.now();
+  const previous = client.view;
+  client.view = viewAt(client.game, client.game.planet, now);
+  if (previous && !fresh) rememberCompletions(previous, client.view);
   renderMenu();
   updateBar();
-  renderPlanetHeader(ctx);
-  renderView(view, ctx);
+  renderPlanetHeader(client.view);
+  renderView(view, client.view, fresh);
   if (ui.view === 'help') updateInstallButton();
   renderCompletions(view);
   paintPlanets(view);
@@ -890,11 +890,11 @@ function renderPhoneMenu(
 }
 
 function renderMenu(): void {
-  const state = S!;
+  const state = client.game!;
   if (ui.view === 'news') seeNews();
   const hints = menuHints(
     state,
-    completedMenu,
+    client.completedMenu,
     unread(state.reports, state.me.readAt),
   );
   const news = newsHint(ui.news, ui.newsSeen);
@@ -911,11 +911,15 @@ function renderMenu(): void {
 }
 
 function updateBar(): Planet | undefined {
-  if (!S?.planet) return;
-  const now = nowT();
-  const p = settle(S.planet, now, S.cfg, S.me);
-  const pr = production(p, S.cfg, settleR(S.me, now).research);
-  const cp = caps(p, S.cfg);
+  if (!client.game?.planet) return;
+  const now = client.now();
+  const p = settle(client.game.planet, now, client.game.cfg, client.game.me);
+  const pr = production(
+    p,
+    client.game.cfg,
+    settleR(client.game.me, now).research,
+  );
+  const cp = caps(p, client.game.cfg);
   const icon = (key: ResourceKey): string =>
     `<img class="ri" src="${resourceIconURL(key)}" alt="" width="28" height="28">`;
   const r = (
@@ -934,40 +938,11 @@ function updateBar(): Planet | undefined {
   return p;
 }
 
-function updateResearchButtons(p: Planet, research: Levels): void {
-  document
-    // „Jetzt forschen“ (.go) carries its own state from the requirement list.
-    .querySelectorAll<HTMLButtonElement>(
-      '#view button[data-act="research"]:not(.go)',
-    )
-    .forEach((button) => {
-      const key = button.dataset.k!;
-      const level = research[key] ?? 0;
-      button.disabled = !afford(p, lvlCost(RES[key]!, level + 1));
-    });
-}
-
-function updateShipyardButtons(p: Planet): void {
-  document
-    .querySelectorAll<HTMLElement>('#view [data-act="maxq"]')
-    .forEach((max) => {
-      const count = orderMax(p, max.dataset.k!);
-      if (max.dataset.max !== String(count)) {
-        max.dataset.max = String(count);
-        max.textContent = `(max ${fmt(count)})`;
-      }
-      const button = max
-        .closest('.act')!
-        .querySelector<HTMLButtonElement>('button')!;
-      button.disabled = !!yardLockedBy(p) || count === 0;
-    });
-}
-
 let readPending = false;
 function markRead(): void {
-  const list = S!.reports;
+  const list = client.game!.reports;
   const newest = Math.max(0, ...list.map((r) => r.time));
-  if (newest > (S!.me.readAt || 0) && !readPending) {
+  if (newest > (client.game!.me.readAt || 0) && !readPending) {
     readPending = true;
     setTimeout(
       () => void act('read').finally(() => (readPending = false)),
@@ -980,8 +955,8 @@ function markRead(): void {
 
 function readFleetForm(): FleetForm {
   const ships: Record<string, number> = {};
-  const P = ctx!.P;
-  const u = S!.cfg;
+  const P = client.view!.P;
+  const u = client.game!.cfg;
   document.querySelectorAll<HTMLInputElement>('.fs').forEach((i) => {
     const k = i.dataset.k!;
     const n = clampInt(i.value, 0, P.ships[k] ?? 0);
@@ -1044,18 +1019,18 @@ function moonOption(s: GameState): void {
 }
 
 function fleetCalc(): void {
-  if (!$('#t_g') || !ctx || !S) return;
-  moonOption(S);
+  if (!$('#t_g') || !client.view || !client.game) return;
+  moonOption(client.game);
   const f = readFleetForm();
-  $('#t_info')!.innerHTML = targetInfo(S, f);
-  const pv = fleetPreview(ctx.P, ctx.R, f, S.cfg);
+  $('#t_info')!.innerHTML = targetInfo(client.game, f);
+  const pv = fleetPreview(client.view.P, client.view.R, f, client.game.cfg);
   const set = (id: string, html: string): void =>
     void ($(`#${id}`)!.innerHTML = html);
   if (!pv)
     return ['i_dist', 'i_dur', 'i_arr', 'i_fuel', 'i_cap'].forEach((id) =>
       set(id, '-'),
     );
-  const now = nowT();
+  const now = client.now();
   set('i_dist', fmt(pv.dist));
   set('i_dur', dur(pv.ms));
   set('i_arr', `${dt(now + pv.ms)} / ${returnAt(f.mission, now + 2 * pv.ms)}`);
@@ -1083,10 +1058,10 @@ const go = (
 ): void => {
   const view = gameView(requested);
   if (view !== ui.view || guild !== ui.guild) {
-    completionNotices.clear();
+    client.completionNotices.clear();
     if (push) history.pushState(null, '', viewUrl(view, guild));
   }
-  completedMenu.delete(view);
+  client.completedMenu.delete(view);
   closeMore();
   ui.view = view;
   ui.guild = view === 'guilds' ? guild : null;
@@ -1125,10 +1100,10 @@ const ACT: Record<string, (d: Data) => unknown> = {
   guildReview: (d) =>
     act('reviewGuildApplication', { uid: d.uid, accept: d.accept === '1' }),
   guildMember: (d) => {
-    const ranks = S?.guilds?.ranks;
+    const ranks = client.game?.guilds?.ranks;
     if (d.transfer === '1' && ranks) {
-      const name = S!
-        .guilds!.directory.flatMap((g) => g.members)
+      const name = client
+        .game!.guilds!.directory.flatMap((g) => g.members)
         .find((m) => m.id === d.uid)?.name;
       modal(transferDialog(ranks, d.uid ?? '', name ?? ''));
       return $('#transfer_rank')?.focus();
@@ -1137,7 +1112,7 @@ const ACT: Record<string, (d: Data) => unknown> = {
       return act('manageGuildMember', { uid: d.uid, transfer: false });
   },
   guildDissolve: (d) => {
-    const guild = S?.guilds?.directory.find((g) => g.id === d.id);
+    const guild = client.game?.guilds?.directory.find((g) => g.id === d.id);
     if (!guild) return;
     modal(dissolveDialog(guild));
     $('#dissolve_tag')?.focus();
@@ -1170,7 +1145,7 @@ const ACT: Record<string, (d: Data) => unknown> = {
   logout: async () => {
     await disablePush(api).catch(() => null);
     await api('/api/logout', {}).catch(() => null);
-    S = null;
+    client.game = null;
     ui.auth = 'login';
     render(true);
   },
@@ -1196,11 +1171,11 @@ const ACT: Record<string, (d: Data) => unknown> = {
   order: async (d) => {
     const n = clampInt(val(`#q_${d.k}`), 0, 1e9);
     if (!n) return toast('Bitte eine Anzahl eingeben.', true);
-    if (await act('order', { key: d.k, n })) setInput(`#q_${d.k}`, '');
+    if (await actHere('order', { key: d.k, n })) setInput(`#q_${d.k}`, '');
   },
   rename: () =>
     modal(
-      `<p><b>${ctx!.P.kind === 'moon' ? 'Mond' : 'Planet'} umbenennen</b></p><input id="rn" maxlength="20" value="${esc(ctx!.P.name)}" aria-label="Neuer Name"> <button data-act="doRename">OK</button> <button data-act="closeModal">Abbrechen</button>`,
+      `<p><b>${client.view!.P.kind === 'moon' ? 'Mond' : 'Planet'} umbenennen</b></p><input id="rn" maxlength="20" value="${esc(client.view!.P.name)}" aria-label="Neuer Name"> <button data-act="doRename">OK</button> <button data-act="closeModal">Abbrechen</button>`,
     ),
   doRename: () => {
     const n = val('#rn').trim();
@@ -1209,19 +1184,21 @@ const ACT: Record<string, (d: Data) => unknown> = {
   },
   closeModal: () => modal(''),
   gnav: (d) => {
-    Object.assign(ui, galaxyStep(ui.gal, ui.sys, d.d ?? '', S!.cfg));
+    Object.assign(ui, galaxyStep(ui.gal, ui.sys, d.d ?? '', client.game!.cfg));
     render(true);
   },
   ggo: () => {
-    ui.gal = clampInt(val('#g_g'), 1, S!.cfg.galaxies);
-    ui.sys = clampInt(val('#g_s'), 1, S!.cfg.systems);
+    ui.gal = clampInt(val('#g_g'), 1, client.game!.cfg.galaxies);
+    ui.sys = clampInt(val('#g_s'), 1, client.game!.cfg.systems);
     render(true);
   },
   selectPlanet: (d) => {
     if (d.id) return selectPlanet(d.id);
   },
   ghome: () => {
-    const home = S!.galaxy.find((p) => p.id === S!.homePlanet) ?? ctx!.P;
+    const home =
+      client.game!.galaxy.find((p) => p.id === client.game!.homePlanet) ??
+      client.view!.P;
     ui.gal = home.g;
     ui.sys = home.s;
     render(true);
@@ -1246,7 +1223,10 @@ const ACT: Record<string, (d: Data) => unknown> = {
     go('fleet');
   },
   gspy: (d) => {
-    const n = Math.min(ctx!.P.ships.probe ?? 0, S!.me.probes || 1);
+    const n = Math.min(
+      client.view!.P.ships.probe ?? 0,
+      client.game!.me.probes || 1,
+    );
     if (!n) return toast('Keine Spähschädel auf dem Planeten.', true);
     return act('send', {
       ships: { probe: n },
@@ -1262,13 +1242,15 @@ const ACT: Record<string, (d: Data) => unknown> = {
     });
   },
   fmax: (d) => {
-    setInput(`#f_${d.k}`, ctx!.P.ships[d.k!] ?? 0);
+    setInput(`#f_${d.k}`, client.view!.P.ships[d.k!] ?? 0);
     fleetCalc();
   },
   fall: () => {
     document
       .querySelectorAll<HTMLInputElement>('.fs')
-      .forEach((i) => (i.value = String(ctx!.P.ships[i.dataset.k!] ?? 0)));
+      .forEach(
+        (i) => (i.value = String(client.view!.P.ships[i.dataset.k!] ?? 0)),
+      );
     fleetCalc();
   },
   fnone: () => {
@@ -1279,7 +1261,12 @@ const ACT: Record<string, (d: Data) => unknown> = {
   },
   cmax: () => {
     const c = cargoMax(
-      settle(S!.planet!, nowT(), S!.cfg, S!.me),
+      settle(
+        client.game!.planet!,
+        client.now(),
+        client.game!.cfg,
+        client.game!.me,
+      ),
       readFleetForm(),
     );
     setInput('#c_m', c.m);
@@ -1288,7 +1275,7 @@ const ACT: Record<string, (d: Data) => unknown> = {
     fleetCalc();
   },
   send: async () => {
-    if (await act('send', readFleetForm())) {
+    if (await actHere('send', readFleetForm())) {
       ui.ft = null;
       render(true);
     }
@@ -1351,7 +1338,7 @@ const ACT: Record<string, (d: Data) => unknown> = {
       toast('Bitte installiere die App über das Browsermenü.', true);
     }
   },
-  reset: () => modal(roundDialog(S!.round)),
+  reset: () => modal(roundDialog(client.game!.round)),
   doReset: () => {
     const checked = (id: string) => $<HTMLInputElement>(id)!.checked;
     const rewards = {
@@ -1361,14 +1348,14 @@ const ACT: Record<string, (d: Data) => unknown> = {
     modal('');
     return act('reset', { rewards });
   },
-  endzeit: () => modal(endzeitDialog(S!.admin!.endzeit.minutes)),
+  endzeit: () => modal(endzeitDialog(client.game!.admin!.endzeit.minutes)),
   doEndzeit: () => {
     const minutes = val('#endzeit-minutes');
     modal('');
     return act('endzeit', { minutes });
   },
   saveSettings: () => {
-    const keys = S!.admin!.specs.map((x) => x.key);
+    const keys = client.game!.admin!.specs.map((x) => x.key);
     return act('settings', {
       settings: settingsFrom(keys, (k) => val(`#set_${k}`)),
     });
@@ -1438,9 +1425,9 @@ async function submitAuth(): Promise<void> {
     ui.invite = null;
     apply(j.state as GameState);
     homeSystem();
-    if (reg && S?.planet)
+    if (reg && client.game?.planet)
       toast(
-        `Willkommen, ${S.me.name}! Dein Planet liegt bei ${coords(S.planet)}.`,
+        `Willkommen, ${client.game.me.name}! Dein Planet liegt bei ${coords(client.game.planet)}.`,
       );
     render(true);
   } catch (e) {
@@ -1540,7 +1527,7 @@ async function submitPassword(reset: boolean): Promise<void> {
         ? { token: resetToken }
         : { current: val('#pw_current'), confirmation }),
     });
-    S = null;
+    client.game = null;
     resetToken = null;
     ui.auth = 'login';
     render(true);
@@ -1562,7 +1549,7 @@ async function submitAccountDeletion(): Promise<void> {
     });
     await disablePush(async () => ({})).catch(() => null);
     modal('');
-    S = null;
+    client.game = null;
     ui.auth = 'login';
     render(true);
     toast('Dein Account wurde gelöscht.');
@@ -1595,7 +1582,7 @@ async function submitGuild(): Promise<void> {
     name: val('#guild_name'),
     description: val('#guild_description'),
   });
-  if (ok && !edit) go('guilds', true, S?.guilds?.own?.id ?? null);
+  if (ok && !edit) go('guilds', true, client.game?.guilds?.own?.id ?? null);
 }
 
 async function submitInvite(): Promise<void> {
@@ -1631,16 +1618,21 @@ async function submitAnnouncement(): Promise<void> {
 }
 
 function homeSystem(): void {
-  if (S?.planet) {
-    ui.gal = S.planet.g;
-    ui.sys = S.planet.s;
+  if (client.game?.planet) {
+    ui.gal = client.game.planet.g;
+    ui.sys = client.game.planet.s;
   }
 }
 
 // ----- events -----
 
 function noteActivity(event: Event): void {
-  if (!S || !event.isTrusted || document.visibilityState !== 'visible') return;
+  if (
+    !client.game ||
+    !event.isTrusted ||
+    document.visibilityState !== 'visible'
+  )
+    return;
   const now = performance.now();
   if (now - lastActivity < 10000) return;
   lastActivity = now;
@@ -1672,9 +1664,9 @@ document.addEventListener('change', (e) => {
     setAnimations((el as unknown as HTMLInputElement).checked);
   if (el.dataset?.chg === 'pct')
     void act('pct', { key: el.dataset.k, v: el.value });
-  if (el.dataset?.chg === 'push' && S)
+  if (el.dataset?.chg === 'push' && client.game)
     void savePush(
-      S.me.pushOff,
+      client.game.me.pushOff,
       el.dataset.k,
       (el as unknown as HTMLInputElement).checked,
     ).then(() => render());
@@ -1761,16 +1753,18 @@ function queueDue(view: V, now: number): boolean {
 }
 
 setInterval(() => {
-  if (!ctx) return;
-  const now = nowT();
-  if (queueDue(ctx, now)) {
+  if (!client.view) return;
+  const now = client.now();
+  if (queueDue(client.view, now)) {
     render();
     void refresh();
     return;
   }
   let due = false;
+  // A list counts its own countdowns down (#118).
+  const list = listMounted();
   document
-    .querySelectorAll<HTMLElement>(buildingView ? '.cd:not(#view *)' : '.cd')
+    .querySelectorAll<HTMLElement>(list ? '.cd:not(#view *)' : '.cd')
     .forEach((el) => {
       const left = Number(el.dataset.end) - now;
       if (left > 0) return void (el.textContent = dur(left));
@@ -1781,22 +1775,15 @@ setInterval(() => {
       el.textContent = 'fertig';
     });
   const planet = updateBar();
-  if (planet) {
-    buildingView?.update({
-      ...ctx,
-      P: planet,
-      now,
-    });
-    updateResearchButtons(planet, ctx.R.research);
-    updateShipyardButtons(planet);
-  }
+  // The list shows the planet moved to now: costs, buttons, maxima, countdowns.
+  if (planet && list) client.shown = { ...client.view, P: planet, now };
   if (due) setTimeout(() => void refresh(), 1500);
 }, 1000);
 setInterval(() => {
-  if (S && !document.hidden) void refresh();
+  if (client.game && !document.hidden) void refresh();
 }, 4000);
 document.addEventListener('visibilitychange', () => {
-  if (!document.hidden && S) void refresh();
+  if (!document.hidden && client.game) void refresh();
 });
 
 // ----- start -----
@@ -1824,7 +1811,7 @@ function openReset(): boolean {
   history.replaceState(null, '', location.pathname + location.search);
   resetToken = token;
   loginChallenge = null;
-  S = null;
+  client.game = null;
   ui.auth = 'reset';
   render(true);
   return true;
@@ -1842,7 +1829,7 @@ window.addEventListener('popstate', () => {
 window.addEventListener('hashchange', () => {
   if (openReset()) return;
   const token = inviteToken();
-  if (!token || S) return;
+  if (!token || client.game) return;
   void openInvite(token).then(() => render(true));
 });
 

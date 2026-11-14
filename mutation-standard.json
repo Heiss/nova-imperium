@@ -22,6 +22,8 @@
     "src/server/passkeys.ts"
   ],
   "floors": {
+    "src/client/logic/act.ts": 100,
+    "src/client/logic/catalog-list.ts": 97.83,
     "src/client/logic/error-report.ts": 98.83,
     "src/client/logic/format.ts": 98.63,
     "src/client/logic/game.ts": 97.58,
@@ -30,6 +32,7 @@
     "src/client/logic/menu-hints.ts": 85.71,
     "src/client/logic/news.ts": 100,
     "src/client/logic/planet.ts": 100,
+    "src/client/logic/state.svelte.ts": 100,
     "src/core/achievements.ts": 35.18,
     "src/core/battle.ts": 96.26,
     "src/core/catalog.ts": 98.76,

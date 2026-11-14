@@ -48,7 +48,8 @@ characters (see [Grimdark naming](/features/naming.md)).
   get the (?) too; the entries of #50 and #60 got theirs with the rename
   ([E], owner 2026-11-12).
 * Interface: `src/client/logic/explain.ts` decides per entry and mode;
-  `itemHTML` (research, shipyard, defense) and `Buildings.svelte` render it.
+  `itemHTML` (research, shipyard, defense) and `Buildings.svelte` render it;
+  since #118 the generic `CatalogList.svelte` renders it in all four lists.
   The buildings view now shows the short `ds` too (D5). The (?) is a
   `<button>` with `aria-expanded`, `aria-controls` and the name „Erklärung zu
   ‹Name›“; Enter and Space work as on every button. Opened panels are kept
