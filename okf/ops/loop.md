@@ -51,8 +51,8 @@ tasks).
   review“, the green full run and the candidate image) and then tells the
   owner again. That message is the only notice besides the draft state:
   no comment on the release pull request and no issue.
-* **[V]** The milestone `next release` stays open until the release pull
-  request is merged, so the step „Make the release ready“ keeps applying
+* **[E]** The milestone `next release` stays open until the release pull
+  request is merged (owner, 2026-11-14, #149), so the step „Make the release ready“ keeps applying
   while the loop waits and „Plan the release“ does not start the next
   cycle before the release is out; a restarted `/loop` finds the same
   state on GitHub. The loop sees the merge as a pull request from
