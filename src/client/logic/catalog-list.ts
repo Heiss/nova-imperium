@@ -285,9 +285,10 @@ function buildingRow(v: V, key: string): CatalogRow {
     ...entry(v, key, 'ic-b', stage(level)),
     running: status === 'running',
     cost,
+    // As energyShort() counts it: a throttled reactor with its share (#47).
     energy: energyCost(
       energyNeed(def, level + 1),
-      () => prod(P, s.cfg, R.research).eProd,
+      () => production(P, s.cfg, R.research).eProd,
     ),
     lines: [
       ...useLines(v, key, level),

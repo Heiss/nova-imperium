@@ -586,6 +586,21 @@ choice of the patterns to the assistant's recommendation below
   `updateShipyardButtons`, and leaves the countdowns of the list to it.
   `lockNotice()` with its comparison with `yard` moved from `yard.ts` to
   `catalog-list.ts`; the allow-list entry of #183 moved with it.
+* **[E]** Review of #209 (2026-11-14), each with a test that failed
+  before: an action answers `done`, `stale` (it went through, but the
+  player left the planet meanwhile) or `failed`; `order` and `send` clear
+  their form only on `done` (`actHere` in `main.ts`), so the answer of an
+  order on one planet no longer clears the field of another (the base did,
+  through `stillOnPlanet` and a `true`). A refresh applies its state only
+  when it is the newest one and no action was on its way or started while
+  it ran (`sync.refresh()`), so it never brings back a state older than an
+  action's answer (the base had this race too); the next refresh follows
+  within 4 seconds. The energy a level of a building needs is compared
+  with `production()`, as `energyShort()` checks it, not with `prod()`:
+  with a throttled Fusionskraftwerk the row showed enough energy while the
+  button said „Zu wenig Energie“. The old `Buildings.svelte` had the same
+  mismatch, so this is a change of behaviour; its frozen copy for the
+  reference test has the same one change, marked.
 * **[E]** All four lists follow the clock (owner, 2026-11-14, #118,
   option C „Alle live + Changelog“): in Forschung, Schiffsschmiede and
   Verteidigung the costs and the lists „Benötigt“ now update every second

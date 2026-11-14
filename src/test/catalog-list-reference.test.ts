@@ -5,8 +5,9 @@
 // common.ts, and src/test/catalog-reference/Buildings.svelte. On generated
 // states (fixed fast-check seed 118) both render the same markup, up to what
 // a browser does not show: Svelte's comments, the order of the attributes,
-// the escaping, the <tbody> that a table gets anyway, and white space next
-// to a block or a line break.
+// the escaping of >, " and ' (an escaped < and & stay escaped, so a name
+// shown as text never equals markup), the <tbody> that a table gets anyway,
+// and white space next to a block or a line break.
 import fc from 'fast-check';
 import { render } from 'svelte/server';
 import { readable } from 'svelte/store';
@@ -280,8 +281,6 @@ function renderNew(v: V, kind: CatalogKind): string {
 }
 
 const ENTITY: Record<string, string> = {
-  '&amp;': '&',
-  '&lt;': '<',
   '&gt;': '>',
   '&quot;': '"',
   '&#39;': "'",
@@ -311,16 +310,19 @@ function stripComments(html: string): string {
 
 /** The markup as a browser shows it. */
 function normalize(html: string): string {
-  return stripComments(html)
-    .replace(/<\/?tbody>/g, '')
-    .replace(
-      /<([a-z][a-z0-9]*)((?:\s+[^\s=>/]+(?:="[^"]*")?)*)\s*\/?>/g,
-      (_, tag: string, attrs: string) => `<${tag}${attributes(attrs)}>`,
-    )
-    .replace(/\s+/g, ' ')
-    .replace(/ ?(<\/?(?:div|p|ul|li|h2|table|tr|td|br)\b[^>]*>) ?/g, '$1')
-    .replace(/&(?:amp|lt|gt|quot|#39);/g, (e) => ENTITY[e]!)
-    .trim();
+  return (
+    stripComments(html)
+      .replace(/<\/?tbody>/g, '')
+      .replace(
+        /<([a-z][a-z0-9]*)((?:\s+[^\s=>/]+(?:="[^"]*")?)*)\s*\/?>/g,
+        (_, tag: string, attrs: string) => `<${tag}${attributes(attrs)}>`,
+      )
+      .replace(/\s+/g, ' ')
+      .replace(/ ?(<\/?(?:div|p|ul|li|h2|table|tr|td|br)\b[^>]*>) ?/g, '$1')
+      // Only entities that cannot start a tag or another entity are decoded.
+      .replace(/&(?:gt|quot|#39);/g, (e) => ENTITY[e]!)
+      .trim()
+  );
 }
 
 const KINDS: readonly CatalogKind[] = [
@@ -468,11 +470,19 @@ describe('CatalogList against the views before #118', () => {
   it('normalizes only what a browser does not show', () => {
     expect(
       normalize(
-        '<div class="a"  id="x">\n <b>A &amp; B</b> <!--[--><input id="q" max="1" disabled=""/></div>',
+        '<div class="a"  id="x">\n <b>A &amp; B&gt;</b> <!--[--><input id="q" max="1" disabled=""/></div>',
       ),
     ).toBe(
-      '<div class="a" id="x"><b>A & B</b> <input disabled id="q" max="1"></div>',
+      '<div class="a" id="x"><b>A &amp; B></b> <input disabled id="q" max="1"></div>',
     );
+    // A name shown as text never equals the same name as markup (#209).
+    expect(normalize('<h2>Mond &lt;b&gt;&amp;&quot;&#39;&lt;/b&gt;</h2>')).toBe(
+      normalize('<h2>Mond &lt;b>&amp;"\'&lt;/b></h2>'),
+    );
+    expect(normalize('<h2>Mond &lt;b&gt;</h2>')).not.toBe(
+      normalize('<h2>Mond <b></h2>'),
+    );
+    expect(normalize('<h2>&amp;lt;</h2>')).not.toBe(normalize('<h2>&lt;</h2>'));
     expect(normalize('<span>a</span> <span>b</span>')).not.toBe(
       normalize('<span>a</span><span>b</span>'),
     );

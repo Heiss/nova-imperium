@@ -506,26 +506,39 @@ async function selectPlanet(id: string): Promise<void> {
   }
 }
 
-async function refresh(): Promise<void> {
-  const before = placeOf(client.game);
-  const planet = before.planet;
-  try {
-    const state = (await api(
-      stateUrl(planet === client.game?.homePlanet ? undefined : planet),
-    )) as unknown as GameState;
-    if (samePlace(client.game, before)) apply(state);
-  } catch (e) {
-    if (client.game) console.warn(e);
-  }
-}
-
 /** Every game action of the views goes through here (#118). */
-const act = createAct({
+const sync = createAct({
   api,
   state: () => client.game,
   apply: (state) => apply(state),
   toast,
 });
+
+/** Whether the action went through, wherever the player is now. */
+const act = async (type: string, data?: object): Promise<boolean> =>
+  (await sync.send(type, data)) !== 'failed';
+
+/**
+ * Whether the action went through on the planet still shown, so its form
+ * may be cleared; not when the player switched planets meanwhile (#209).
+ */
+const actHere = async (type: string, data?: object): Promise<boolean> =>
+  (await sync.send(type, data)) === 'done';
+
+async function refresh(): Promise<void> {
+  const before = placeOf(client.game);
+  const planet = before.planet;
+  // A refresh that overlaps an action never brings back an older state.
+  const fresh = sync.refresh();
+  try {
+    const state = (await api(
+      stateUrl(planet === client.game?.homePlanet ? undefined : planet),
+    )) as unknown as GameState;
+    if (fresh() && samePlace(client.game, before)) apply(state);
+  } catch (e) {
+    if (client.game) console.warn(e);
+  }
+}
 
 /** The push kinds (#192): one save at a time, the newest choice wins. */
 const savePush = pushSaver(ui, (off) => act('pushOptions', { off }));
@@ -1158,7 +1171,7 @@ const ACT: Record<string, (d: Data) => unknown> = {
   order: async (d) => {
     const n = clampInt(val(`#q_${d.k}`), 0, 1e9);
     if (!n) return toast('Bitte eine Anzahl eingeben.', true);
-    if (await act('order', { key: d.k, n })) setInput(`#q_${d.k}`, '');
+    if (await actHere('order', { key: d.k, n })) setInput(`#q_${d.k}`, '');
   },
   rename: () =>
     modal(
@@ -1262,7 +1275,7 @@ const ACT: Record<string, (d: Data) => unknown> = {
     fleetCalc();
   },
   send: async () => {
-    if (await act('send', readFleetForm())) {
+    if (await actHere('send', readFleetForm())) {
       ui.ft = null;
       render(true);
     }

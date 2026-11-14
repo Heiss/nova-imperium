@@ -285,6 +285,24 @@ describe('buildings', () => {
       text: `Zu wenig Energie: es fehlen ${fmt(short)}`,
     });
   });
+
+  it('counts a throttled Fusionskraftwerk as the check does (#47, review of #209)', () => {
+    // Without Promethium the reactor runs throttled: `prod()` would count
+    // its full 1,442 for the 1,000 the level needs, the check only 72.
+    const v = view({
+      P: { b: { nanite: 1, fusion: 10, deut: 1 }, res: { ...RICH, d: 0 } },
+      research: { energy: 12 },
+    });
+    const r = row(v, 'building', 'terraformer');
+    const made = production(v.P, U, v.R.research).eProd;
+    expect(made).toBeLessThan(r.energy!.need);
+    expect(r.energy).toEqual({ need: 1000, production: made });
+    expect(r.action).toEqual({
+      kind: 'note',
+      cls: 'req',
+      text: `Zu wenig Energie: es fehlen ${fmt(1000 - Math.floor(made))}`,
+    });
+  });
 });
 
 describe('research', () => {

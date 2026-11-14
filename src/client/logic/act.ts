@@ -26,13 +26,33 @@ export interface ActDeps {
 }
 
 /**
- * Sends an action for the shown planet; its answer is applied only while
- * the player still looks at that planet. Answers whether it succeeded.
+ * What an action came to: `done` on the planet still shown, `stale` when it
+ * went through but the player left that planet meanwhile (its form must
+ * stay, review of #209), `failed` when the server refused it.
  */
-export function createAct(
-  deps: ActDeps,
-): (type: string, data?: object) => Promise<boolean> {
-  return async (type, data = {}) => {
+type ActResult = 'done' | 'stale' | 'failed';
+
+export interface Sync {
+  /** Sends an action for the shown planet; its answer is applied only there. */
+  send: (type: string, data?: object) => Promise<ActResult>;
+  /**
+   * Starts a refresh and answers whether its state may still be applied:
+   * only for the newest refresh, and only when no action was on its way or
+   * started since it began, so a refresh never undoes the answer of an
+   * action with an older state (review of #209).
+   */
+  refresh: () => () => boolean;
+}
+
+export function createAct(deps: ActDeps): Sync {
+  // A new token per started action and per started refresh: only identity
+  // counts. `running` counts the actions on their way.
+  let lastAction: object = {};
+  let lastRefresh: object = {};
+  let running = 0;
+  const send: Sync['send'] = async (type, data = {}) => {
+    lastAction = {};
+    running++;
     try {
       const before = placeOf(deps.state());
       const j = await deps.api('/api/action', {
@@ -40,12 +60,23 @@ export function createAct(
         planet: before.planet,
         ...data,
       });
-      if (samePlace(deps.state(), before)) deps.apply(j.state as GameState);
+      const here = samePlace(deps.state(), before);
+      if (here) deps.apply(j.state as GameState);
       if (j.msg) deps.toast(String(j.msg));
-      return true;
+      return here ? 'done' : 'stale';
     } catch (e) {
       deps.toast((e as Error).message, true);
-      return false;
+      return 'failed';
+    } finally {
+      running--;
     }
   };
+  const refresh: Sync['refresh'] = () => {
+    const ticket = {};
+    lastRefresh = ticket;
+    const at = lastAction;
+    const idle = running === 0;
+    return () => idle && ticket === lastRefresh && at === lastAction;
+  };
+  return { send, refresh };
 }

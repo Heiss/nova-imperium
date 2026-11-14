@@ -298,9 +298,14 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   `defense()` and `itemHTML()`; and the copy
   `src/test/catalog-reference/Buildings.svelte`) on generated states (150
   per list, fast-check seed 118), up to what a browser does not show:
-  Svelte's comments, the order of the attributes, the escaping, the
-  `<tbody>` a table gets anyway and white space next to a block or a line
-  break; a third case checks that the generated states reach every action
+  Svelte's comments, the order of the attributes, the escaping of `>`,
+  `"` and `'`, the `<tbody>` a table gets anyway and white space next to a
+  block or a line break. An escaped `<` and `&` stay escaped, so a name
+  shown as text never equals the same name as markup (review of #209: a
+  list that shows the planet name unescaped fails the test; with the
+  earlier decoding of every entity it passed); the frozen
+  `Buildings.svelte` has one marked change, the energy of a level from
+  `production()` (review of #209); a third case checks that the generated states reach every action
   and notice. Checked by breaking the component (an attribute, a space
   between two inline elements). jscpd leaves the frozen copy out
   (`.jscpd.json`), as it leaves out the test files.
