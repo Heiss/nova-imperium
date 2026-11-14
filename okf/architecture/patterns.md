@@ -286,6 +286,36 @@ choice of the patterns to the assistant's recommendation below
   `production()` and the limits of `caps()`; the shipyard and the
   buildings read `pieceEnergy()` and `useAt()`. The browser repeats no
   production formula.
+* **[E]** Built with #115: no rule of `src/core/settle.ts` names a key. A
+  production segment ends at the end of the building, when the shipyard
+  finishes a unit with production components (a key of `PRODUCERS`, today
+  the Solarsatellit), when a research finishes that a rate of an entry on
+  the planet reads, and, in `accrue()`, when a use empties a stock. The
+  stocks that can run empty and their consumer come from the `consumes`
+  components (`STOCK_USERS` in `src/core/economy.ts`); `throttle()` gives
+  the consumer at an empty stock that would fall with its throttled share,
+  `balancedShare()` takes that consumer and resource (no `pct.fusion`), and
+  `production()` keeps that stock at 0. The server settles the planets
+  whose production a finished research changes, now or once their building
+  is finished (`feelsResearch()`, `settleResearchEnd()` in
+  `src/server/game/actions.ts`), before a new research replaces it. The
+  equivalence tests of version 1 are unchanged and green.
+* **[E]** Choices of #115 within the decisions above, confirmed by the
+  owner (2026-11-14): a research changes the production when a rate of an
+  entry with level or number above 0 reads its level, found automatically
+  (`readsResearch()`: the rates run once on research levels that note what
+  is read, a JavaScript `Proxy`; no new field in a component). A stock
+  that reaches its storage limit stops inside the segment (`addUp`,
+  `min(stock + change, max(stock, limit))`) and splits nothing, because no
+  rate depends on a full stock and a split would change the floating point
+  order of version 1. The contract test of `consumes` allows one entry
+  that uses a stock (m, c, d) until a second consumer comes; how several
+  consumers share an empty stock, or two stocks run empty, is then decided
+  with the owner. Settling in steps equals settling in one step within the
+  tolerance of #47 (1e-6 + 1e-9 relative) in every case, not only the
+  throttled one: version 1 already rounds the production of two segments
+  differently from one, so it is not bit-identical even without a
+  consumer. The comparison with the code before #115 stays bit for bit.
 
 ## 4. Missions: one strategy per mission
 
@@ -658,17 +688,33 @@ src/client/                state, components (generic), views
   file, and the test fails when the real number is higher (a new
   comparison) and when it is lower (the count must be lowered), so the
   counts only fall and an entry goes when it reaches 0 (owner,
-  2026-11-14). The entries: `core/settle.ts` `sat` 1 and `energy` 1,
-  `server/game/actions.ts` `energy` 1 and `fusion` 1 (#115);
-  `core/lab.ts` `lab` 2 and `client/views/yard.ts` `yard` 1, the lab and
-  shipyard locks (#183, „Lab lock and shipyard lock without catalog
-  keys“). The mission registry of #116 removed the comparisons in
+  2026-11-14). The entries: `core/lab.ts` `lab` 2 and
+  `client/views/yard.ts` `yard` 1, the lab and shipyard locks (#183, „Lab
+  lock and shipyard lock without catalog keys“). The generic events of
+  #115 removed the comparisons in `core/settle.ts` (`sat` 1 and `energy` 1)
+  and `server/game/actions.ts` (`energy` 1 and `fusion` 1). The mission registry of #116 removed the comparisons in
   `server/game/fleet-actions.ts` and `server/game/arrival.ts` (`probe` 1,
   `spy` 4). The report type `spy` in `client/views/messages.ts` (1) equals
   a catalog key without being one and stays allowed for good, as
   `permanent` instead of an issue (owner, 2026-11-14). The state
   of a building or research that lacks energy is `noEnergy` (not `energy`),
   so the scan does not hit it (owner, 2026-11-14).
+* **[E]** Built with #115 for the generic events:
+  `src/core/settle-reference.test.ts` compares `settle()` in one step and
+  in steps, `accrue()`, `production()`, the throttled share and the
+  planets the server settles with a frozen copy of `settle.ts`, of the
+  throttle and `accrue()` of `economy.ts` and of the predicate of
+  `settleReactors()` from before #115, on 300 generated planets, queues,
+  research levels and universe speeds (fast-check seed 115), bit for bit,
+  and checks that the cases meet every event. On the same cases settling
+  in steps equals one step within the tolerance of #47, and a stock never
+  goes below 0 nor grows above its storage limit.
+  `src/server/game/research-reference.test.ts` starts a research on two
+  equal databases, with today's action and with a frozen copy of the
+  action before #115, and compares the answer and every table (300 cases,
+  seed 115, every case closes its databases). `src/core/settle.test.ts`
+  tests each event; the contract test of `consumes` allows one entry that
+  uses a stock.
 * **[E]** Built with #116 for the missions: `src/core/missions.test.ts`
   checks the rules of every mission in the index (exactly the typed
   fields, a known target kind, the order in steps of 10 and once each,
@@ -708,7 +754,7 @@ src/client/                state, components (generic), views
      #114). All groups are built: production (#114, first pull request),
      combat (second), flight (third), limits (fourth) and `ProducerTable`
      (fifth).
-  4. Generic events in `settle` with the property tests.
+  4. Generic events in `settle` with the property tests. Built with #115.
   5. Missions as strategies. Built with #116.
   6. Repositories per aggregate.
   7. Client state module and generic components; `main.ts` shrinks per view.
