@@ -11,12 +11,12 @@ import { planet, U } from '../test/fixtures.ts';
 import { PRODUCERS } from './catalog.ts';
 import {
   fusionEnergy,
-  fusionThrottle,
   fusionUse,
   pieceEnergy,
   prod,
   producerRows,
   type ProducerRow,
+  throttle,
   useAt,
 } from './economy.ts';
 import type { Levels, Planet, Universe } from './types.ts';
@@ -25,8 +25,8 @@ const g = (l: number): number => l * Math.pow(1.1, l);
 
 /** The planet as production() runs it: the reactor at its throttled share. */
 function asRuns(p: Planet, u: Universe, r: Levels): Planet {
-  const share = fusionThrottle(p, u, r);
-  return share === null ? p : { ...p, pct: { ...p.pct, fusion: share } };
+  const share = throttle(p, u, r)?.share;
+  return share === undefined ? p : { ...p, pct: { ...p.pct, fusion: share } };
 }
 
 type Column = 'm' | 'c' | 'd' | 'e';
@@ -165,7 +165,7 @@ describe('producerRows() (#114)', () => {
       pct: {},
     });
     const r = { energy: 3 };
-    const share = fusionThrottle(p, U, r)!;
+    const share = throttle(p, U, r)!.share;
     expect(share).toBeGreaterThan(50);
     expect(share).toBeLessThan(100);
     const fusion = producerRows(p, U, r).rows.at(-1)!;

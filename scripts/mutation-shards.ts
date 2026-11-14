@@ -25,6 +25,10 @@
 //        which the gate checks on the merged report; the incremental file
 //        (reports/stryker-incremental.json) keeps only the shard's files
 //        and lines; a cut file whose source changed starts without it
+//   node scripts/mutation-shards.ts drop-static
+//        removes the results of the static mutants from the incremental
+//        file before an incremental run, so they always run again; without
+//        the file it does nothing (owner, 2026-11-14, #201)
 //   node scripts/mutation-shards.ts merge <out> <report>...
 //        merges the shard reports into one (union of the files, the mutants
 //        of a cut file joined) and fails unless each shard of the plan in
@@ -561,6 +565,30 @@ export function prune(
   return { ...report, files };
 }
 
+/**
+ * The incremental result without the results of static mutants (owner,
+ * 2026-11-14, #201). A static mutant changes code that runs when its module
+ * loads, so it has no coverage per test and every test runs against it.
+ * StrykerJS 10.1.1 takes over the old result of a mutant unless a test that
+ * covers it was added (or, for a killed one, its killing test is gone); a
+ * static mutant never gets one, so a test that kills it now would not
+ * count. A mutant missing from the incremental file is new to Stryker and
+ * runs. Every other result stays.
+ */
+export function withoutStatic(report: Report): {
+  report: Report;
+  dropped: number;
+} {
+  let dropped = 0;
+  const files: Report['files'] = {};
+  for (const [file, f] of Object.entries(report.files)) {
+    const mutants = f.mutants.filter((m) => m.static !== true);
+    dropped += f.mutants.length - mutants.length;
+    files[file] = { ...f, mutants };
+  }
+  return { report: { ...report, files }, dropped };
+}
+
 /** Lines of one cut file in no shard or in two. */
 function gaps(file: string, list: readonly Lines[], last?: number): string[] {
   const problems: string[] = [];
@@ -743,17 +771,9 @@ export interface State {
   weights: Report;
 }
 
-/** A state read from JSON, or undefined when it has not the expected form. */
-export function stateOf(value: unknown): State | undefined {
-  const s = value as Partial<State> | null;
-  const plan = s?.plan;
-  const files: unknown = s?.weights?.files;
-  // Every file record has its mutants, so weigh() never reads a broken one.
-  const valid =
-    Array.isArray(plan) &&
-    plan.every(
-      (e) => Array.isArray(e) && e.every((x) => typeof x === 'string'),
-    ) &&
+/** Whether every file record of a report has its list of mutants. */
+function hasMutants(files: unknown): boolean {
+  return (
     typeof files === 'object' &&
     files !== null &&
     Object.values(files).every(
@@ -761,8 +781,28 @@ export function stateOf(value: unknown): State | undefined {
         typeof f === 'object' &&
         f !== null &&
         Array.isArray((f as { mutants?: unknown }).mutants),
-    );
+    )
+  );
+}
+
+/** A state read from JSON, or undefined when it has not the expected form. */
+export function stateOf(value: unknown): State | undefined {
+  const s = value as Partial<State> | null;
+  const plan = s?.plan;
+  // Every file record has its mutants, so weigh() never reads a broken one.
+  const valid =
+    Array.isArray(plan) &&
+    plan.every(
+      (e) => Array.isArray(e) && e.every((x) => typeof x === 'string'),
+    ) &&
+    hasMutants(s?.weights?.files);
   return valid ? (s as State) : undefined;
+}
+
+/** A report read from JSON, or undefined when it has not the expected form. */
+export function reportOf(value: unknown): Report | undefined {
+  const files: unknown = (value as Partial<Report> | null)?.files;
+  return hasMutants(files) ? (value as Report) : undefined;
 }
 
 function lastState(): State | undefined {
@@ -847,6 +887,27 @@ function config(n: string | undefined): number {
   return 0;
 }
 
+/**
+ * Removes the results of the static mutants from an incremental file
+ * (#201) and says what it did. Without the file it does nothing: Stryker
+ * then runs every mutant anyway. A file that is no report fails, as the
+ * configuration of the shard does, so a broken cache is seen.
+ */
+export function dropStatic(file = INCREMENTAL): string {
+  if (!existsSync(file)) return `No ${file}: every mutant runs.`;
+  let value: unknown;
+  try {
+    value = readJson<unknown>(file);
+  } catch {
+    value = undefined;
+  }
+  const report = reportOf(value);
+  if (!report) throw new Error(`${file} is no Stryker report.`);
+  const result = withoutStatic(report);
+  writeJson(file, result.report);
+  return `${result.dropped} static mutants of ${file} run again.`;
+}
+
 function mergeReports(out: string | undefined, inputs: string[]): number {
   if (!out || inputs.length === 0) {
     console.error('Usage: mutation-shards.ts merge <out> <report>...');
@@ -868,8 +929,12 @@ function main(): number {
   if (command === 'config') return config(args[0]);
   if (command === 'merge') return mergeReports(args[0], args.slice(1));
   if (command === 'weights') return updateWeights(args[0], args[1]);
+  if (command === 'drop-static') {
+    console.log(dropStatic());
+    return 0;
+  }
   console.error(
-    'Usage: mutation-shards.ts plan | config <n> | merge <out> <report>... | weights <state> <report>',
+    'Usage: mutation-shards.ts plan | config <n> | merge <out> <report>... | weights <state> <report> | drop-static',
   );
   return 1;
 }

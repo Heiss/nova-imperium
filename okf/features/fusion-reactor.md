@@ -70,10 +70,12 @@ they are (2026-11-12).
   return home; the browser passes its own research. Callers that only read
   levels or queues (labs, points, achievements, push) do not.
 * **[V]** The stored research forgets when Energietechnik finished as soon as
-  the next research starts. Before that, `settleReactors()`
-  (`src/server/game/actions.ts`) settles and stores every own planet with a
-  reactor (or one being built), so a planet settled later still uses the old
-  level up to that end.
+  the next research starts. Before that, `settleResearchEnd()`
+  (`src/server/game/actions.ts`, named `settleReactors()` before #115)
+  settles and stores every own planet with a reactor (or one being built),
+  so a planet settled later still uses the old level up to that end. Since
+  #115 these are the planets whose production the finished research
+  changes (`feelsResearch()`), which are the same.
 
 ## Interface (German)
 

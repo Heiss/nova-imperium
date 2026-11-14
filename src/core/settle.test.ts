@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { planet, U } from '../test/fixtures.ts';
-import { accrue, satEnergy } from './economy.ts';
-import { settle, settleR } from './settle.ts';
+import { accrue, readsResearch, satEnergy, STOCK_USERS } from './economy.ts';
+import { feelsResearch, settle, settleR } from './settle.ts';
 
 const H = 3600000;
 
@@ -175,5 +175,72 @@ describe('settleR', () => {
     expect(settleR(src, 99)).toEqual(src);
     expect(settleR(src, 100)).toEqual({ research: { energy: 2 }, rq: null });
     expect(src.research.energy).toBe(1);
+  });
+});
+
+describe('the generic events of settle (#115)', () => {
+  const r = { energy: 3 };
+  const bq = (key: string, lvl: number) => ({
+    key,
+    lvl,
+    start: 0,
+    end: H,
+    cost: [1, 1, 1] as const,
+  });
+
+  it('finds the research a rate of an entry on the planet reads', () => {
+    const reactor = planet({ b: { fusion: 2, deut: 5 } });
+    expect(readsResearch(reactor, U, r, 'energy')).toBe(true);
+    expect(readsResearch(reactor, U, {}, 'energy')).toBe(true);
+    expect(readsResearch(reactor, U, r, 'laser')).toBe(false);
+    // At share 0 the reactor still reads Energietechnik, as before #115.
+    const idle = planet({ b: { fusion: 2 }, pct: { fusion: 0 } });
+    expect(readsResearch(idle, U, r, 'energy')).toBe(true);
+    expect(r).toEqual({ energy: 3 });
+  });
+
+  it('finds none for entries that read no research or are not on the planet', () => {
+    const plain = planet({
+      b: { fusion: 0, deut: 5, solar: 9, metal: 3 },
+      ships: { sat: 4 },
+    });
+    expect(readsResearch(plain, U, r, 'energy')).toBe(false);
+    expect(readsResearch(planet(), U, r, 'energy')).toBe(false);
+  });
+
+  it('feels a research now or once the running building is finished', () => {
+    const now = planet({ b: { fusion: 1 } });
+    expect(feelsResearch(now, U, r, 'energy')).toBe(true);
+    const soon = planet({ b: { deut: 5 }, bq: bq('fusion', 1) });
+    expect(feelsResearch(soon, U, r, 'energy')).toBe(true);
+    expect(soon.b).toEqual({ deut: 5 });
+    expect(feelsResearch(soon, U, r, 'laser')).toBe(false);
+    const other = planet({ b: { deut: 5 }, bq: bq('deut', 6) });
+    expect(feelsResearch(other, U, r, 'energy')).toBe(false);
+    expect(feelsResearch(planet({ b: { deut: 5 } }), U, r, 'energy')).toBe(
+      false,
+    );
+  });
+
+  it('throttles the one consumer of a stock: the Fusionskraftwerk and its deuterium', () => {
+    expect(STOCK_USERS).toEqual([{ key: 'fusion', res: 'd' }]);
+  });
+
+  it('splits at the next unit with production components behind the others', () => {
+    const src = planet({
+      temp: 8,
+      b: { metal: 5, crystal: 3, solar: 1 },
+      sq: [
+        { key: 'lf', n: 2, unit: H / 4 },
+        { key: 'rl', n: 1, unit: H / 4 },
+        { key: 'sat', n: 1, unit: H / 4 },
+      ],
+      sqT: 0,
+    });
+    const want = planet({ temp: 8, b: { metal: 5, crystal: 3, solar: 1 } });
+    accrue(want, H, U);
+    want.ships = { sat: 1 };
+    accrue(want, H, U);
+    expect(settle(src, 2 * H, U).res).toEqual(want.res);
   });
 });
