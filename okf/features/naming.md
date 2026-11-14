@@ -116,10 +116,12 @@ Interface texts: „Nicht genug Rohstoffe“ → „Der Zehnte reicht nicht aus.
 „Voraussetzungen fehlen“ → „Das Wissen ist noch verschlossen.“, „Bau
 abgeschlossen“ → „Das Werk ist vollbracht.“, „Flotte zurückgekehrt“ → „Die
 Flotte kehrt heim.“, „Spionagebericht“ → „Auspex-Bericht“, „Trümmerfeld“ →
-„Wrackfeld“, „Galaxie“ → „Sternenkarte“, „Allianz“ → „Gilde“, „Angriff“ →
+„Wrackfeld“ (replaced by „Trümmerfeld“, see below), „Galaxie“ →
+„Sternenkarte“, „Allianz“ → „Gilde“, „Angriff“ →
 „Feindkontakt! Zu den Waffen!“.
 
-Later issues (#45, #51–#55), [V]: Bergungsbarke, Bergung, Weltenformer,
+Later issues (#45, #51–#55), [V]: Bergungsbarke, Bergung (both [E] for
+#45, owner 2026-11-13, [Trümmerfelder](/features/debris.md)), Weltenformer,
 Gartenwelt, Ozeanwelt, Dschungelwelt, Ödwelt, Wüstenwelt, Eiswelt, Gasriese,
 Mondfeste, Auspex-Phalanx, Warp-Tor, Raketenkrypta, Abfangrakete,
 Orbitalrakete, Gildenarsenal, Wacht halten;
@@ -181,10 +183,13 @@ stored mission ids stay.
     before the rename still go with the account; a test with an old-title
     report proves it. This is the only classic word the naming test allows
     (`ALLOWED` in `src/test/naming.test.ts`).
-* „Trümmerfeld“ stays „Trümmerfeld“: the owner chose it for #45
-  (2026-11-13, [Trümmerfelder](/features/debris.md)) instead of
-  „Wrackfeld“ of the table above, so the naming test no longer forbids it;
-  the Recycler is the Bergungsbarke and „Abbauen“ the Bergung. `CHANGELOG.md` keeps its
+* **[E]** „Trümmerfeld“ replaces „Wrackfeld“ of the table above: the owner
+  chose it for #45 (2026-11-13, confirmed 2026-11-14,
+  [Trümmerfelder](/features/debris.md)), so the naming test no longer
+  forbids it. „Recycler“ and „Abbauen“ are forbidden classic words in
+  display texts (owner, 2026-11-14): the Recycler is the Bergungsbarke and
+  „Abbauen“ the Bergung; `CLASSIC` in `src/test/naming.ts` holds both.
+  `CHANGELOG.md` keeps its
   released sections and the design mockups in `docs/design/` keep the
   classic names.
 * Tests: `src/test/naming.ts` holds the tables; `src/test/naming.test.ts`

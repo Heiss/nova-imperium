@@ -46,6 +46,20 @@ a place of its own.
   * empty field: „An der Position war kein Trümmerfeld mehr.“
 * **[E]** Names in the grimdark style of #127: ship „Bergungsbarke“,
   mission „Bergung“, field „Trümmerfeld“ (owner, 2026-11-13).
+* **[E]** Decided while building (owner, 2026-11-14, issue #45, comment
+  „Geklärt, Nachtrag“):
+  * the Weltenbrecher has the classic rapid fire 250 against the
+    Bergungsbarke (#60 D4);
+  * a Bergung fleet takes no load at the start (`cargo: false`); its cargo
+    stays free for the debris;
+  * the sentence of the battle report names only the debris of this
+    battle, not the whole field;
+  * a new round deletes all Trümmerfelder;
+  * „Trümmerfeld“ replaces „Wrackfeld“ of the naming table of #94;
+    „Recycler“ and „Abbauen“ are forbidden in display texts (see
+    [Grimdark naming](/features/naming.md));
+  * the reference test of #116 gets the debris rule in its frozen
+    reference and compares everything bit for bit again, debris included.
 * **[V]** The abbreviation, the short and the long text of the Bergungsbarke
   and its art are proposed in the pull request and confirmed by the owner.
 * **[U]** Existing battles leave no debris afterwards (no retroactive
@@ -62,20 +76,24 @@ section 4) and the places (#119).
   fuel 300, `comb` without `drives`; `req` Orbitale Schiffsschmiede 4,
   Promethium-Brennkammer 6, Refraktionsfelder 2. No `rf`: 5 against the easy
   targets comes from `rapidFire`. The Weltenbrecher gets 250 against it
-  (classic; #60 D4: a rapid fire value is added when both units exist).
+  **[E]** (classic; owner, 2026-11-14, #60 D4: a rapid fire value is added
+  when both units exist).
 * Debris step: `src/core/debris.ts` (`DEBRIS_SHARE` 0.3, `debrisOf(sides)`
   over the losses of both sides, ships only, by `wreck()` of
   `src/core/components/unit.ts`; `isEmpty`). The attack adds it at the
   position after the battle (`ctx.debris.add`, the field adds up) and
-  writes it into both battle reports as `debris`; the client shows the
-  sentence only when the battle left debris.
+  writes it into both battle reports as `debris`, the debris of this
+  battle only **[E]** (owner, 2026-11-14); the client shows the sentence
+  only when the battle left debris.
 * Store: the repository `debris` (`src/server/db/repos/debris.ts`) on the
   table of migration 15: `get`, `all`, `add` (upsert that adds), `save`,
   `delete`, `deleteAll`. Migration 16 rebuilds `fleets` and `fleet_ships`
   for `harvest` in the CHECK of `fleets.mission` (see
-  [SQLite storage](/data/sqlite.md)). A new round clears the fields.
+  [SQLite storage](/data/sqlite.md)). A new round clears the fields **[E]**
+  (owner, 2026-11-14).
 * Mission `src/features/missions/harvest/`: `order` 60, the new target kind
-  `debris`, no cargo of its own, returns, not visible, not silent;
+  `debris`, no cargo of its own (`cargo: false`, **[E]** owner, 2026-11-14),
+  returns, not visible, not silent;
   `canSend` needs a `recycler` (`noRecycler`). The target kind `debris`
   (`src/core/missions.ts`) checks only that a field lies at the position
   (`noDebris`), whatever planet is there; the fleet flies to the place
@@ -107,17 +125,20 @@ section 4) and the places (#119).
     Kolonistenarche), the report title „Bergung erreicht [g:s:p]“ (like
     „Transport erreicht“), „kein Trümmerfeld“ beside the target of the
     fleet form;
-  * the key `recycler`, the place in the Schiffsschmiede after the
-    Kolonistenarche, and that the battle report names the debris of this
-    battle, not the whole field.
+  * the key `recycler` and the place in the Schiffsschmiede after the
+    Kolonistenarche (`order` 35; the Bergung `order` 60).
 * Tests: `src/core/debris.test.ts`, `src/core/battle.test.ts`,
   `catalog.test.ts`, `missions.test.ts`, the contract tests of the
   components and missions, `src/features/missions/harvest/harvest.test.ts`,
   `attack.test.ts`, `src/server/db/repos/debris.test.ts`,
   `upgrades/migration-16.test.ts`, `src/server/game/fleet.test.ts`,
   `admin.test.ts`, `src/client/logic/debris.test.ts`,
-  `src/client/views/galaxy.test.ts`; `missions-reference.test.ts` leaves
-  out what #45 adds to a battle and checks it on its own; E2E „a battle
+  `src/client/views/galaxy.test.ts`; `missions-reference.test.ts` has the
+  debris rule in its frozen reference (written there on its own, not taken
+  from `src/core/debris.ts`) and compares every table and report bit for
+  bit, debris rows and the field `debris` included (owner, 2026-11-14); it
+  fails when the share changes from 0.3 to 0.31; `src/test/naming.ts`
+  forbids „Recycler“ and „Abbauen“ in display texts; E2E „a battle
   leaves a Trümmerfeld that every player sees; a Bergung takes it home“,
   the phone test of the Sternenkarte and axe on the Sternenkarte and the
   fleet form.

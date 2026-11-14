@@ -268,10 +268,15 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   message, every table and the next random number; a third case checks
   that the generated cases reach every message and every arrival. Since
   #45 it generates the five missions and the ships it knew (the Bergung and
-  the Bergungsbarke have their own tests), and it leaves out what #45 adds
-  to a battle, the rows of `debris` and the field `debris` of the battle
-  reports; it checks them on their own instead: they hold exactly the
-  debris of the losses the report lists, and only a battle leaves a field.
+  the Bergungsbarke have their own tests), and its frozen reference has the
+  debris rule of #45, written there on its own: 30 % of the Adamant and
+  Psikristall of the ships both sides lost, Sonnenreliquiare included, no
+  defense, no Promethium, added to the field at the position, and the field
+  `debris` of both battle reports. So it compares every table and report
+  bit for bit again, debris rows included, and fails when the rule in the
+  code changes (owner, 2026-11-14, #45). It also checks the debris on its
+  own (exactly the debris of the losses the report lists, only a battle
+  leaves a field) and that the generated battles leave fields.
 * **[E]** Mutation standard per file (owner, 2026-11-11,
   `mutation-standard.json`, `scripts/mutation-gate.ts`): no file may fall
   below its recorded floor; a new file needs 80 %, a new security file 90 %.

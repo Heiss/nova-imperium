@@ -140,7 +140,9 @@ export const CLASSIC: Readonly<Record<string, string>> = {
   Schildkuppel: 'Schutzdom',
   Spionagebericht: 'Auspex-Bericht',
   // „Trümmerfeld“ is no classic word any more: the owner chose it for #45
-  // (2026-11-13) instead of „Wrackfeld“ of the table of #94.
+  // (2026-11-13) instead of „Wrackfeld“ of the table of #94. „Recycler“
+  // (from NAMES above) and „Abbauen“ may not show (owner, 2026-11-14).
+  Abbauen: 'Bergung',
   Allianz: 'Gilde',
   'Nicht genug Rohstoffe': 'Der Zehnte reicht nicht aus.',
   'Voraussetzungen fehlen': 'Das Wissen ist noch verschlossen.',
