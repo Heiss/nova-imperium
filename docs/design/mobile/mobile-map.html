@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Studie – Telefon Karte</title>
+    <link rel="stylesheet" href="/style.css" />
+    <link rel="stylesheet" href="mobile.css" />
+  </head>
+  <body>
+    <div class="phone">
+      <div class="top">
+        <div class="row">
+          <span class="chip"
+            ><span
+              class="pt"
+              style="
+                width: 22px;
+                height: 22px;
+                background-image: url(/planets/trocken-0-surface.svg);
+              "
+            ></span
+            >Heimatplanet ▾</span
+          ><span class="dim" style="font-size: 12px">[1:18:5]</span
+          ><span class="bell">🔔<b>2</b></span>
+        </div>
+        <div class="resline">
+          <span
+            ><img src="/icons/resources/metal.svg" alt="Adamant" />12.480</span
+          ><span
+            ><img
+              src="/icons/resources/crystal.svg"
+              alt="Psikristall"
+            />6.210</span
+          ><span
+            ><img
+              src="/icons/resources/deuterium.svg"
+              alt="Promethium"
+            />1.940</span
+          ><span class="low"
+            ><img src="/icons/resources/energy.svg" alt="Energie" />−12</span
+          >
+        </div>
+      </div>
+      <div
+        class="pad"
+        style="
+          display: flex;
+          gap: 6px;
+          align-items: center;
+          font: 600 13px var(--head);
+          color: var(--gold-hi);
+        "
+      >
+        <button class="up">◀</button
+        ><span style="flex: 1; text-align: center">Galaxie 1 · System 18</span
+        ><button class="up">▶</button>
+      </div>
+      <div
+        class="row-item"
+        style="grid-template-columns: 24px 1fr auto; padding: 4px 12px"
+      >
+        <span class="dim">1</span><span class="dim">–</span><span></span>
+      </div>
+      <div
+        class="row-item"
+        style="grid-template-columns: 24px 1fr auto; padding: 4px 12px"
+      >
+        <span class="dim">2</span><span class="dim">–</span><span></span>
+      </div>
+      <div class="row-item" style="grid-template-columns: 24px 34px 1fr auto">
+        <span class="dim">3</span
+        ><span
+          class="pt"
+          style="background-image: url(/planets/trocken-1-surface.svg)"
+        ></span>
+        <div>
+          <div class="n" style="font-size: 13px">Ödwelt</div>
+          <div class="c">Vex · Platz 1</div>
+        </div>
+        <button class="up" style="min-width: 0">⋯</button>
+      </div>
+      <div
+        class="row-item"
+        style="grid-template-columns: 24px 1fr auto; padding: 4px 12px"
+      >
+        <span class="dim">4</span><span class="dim">–</span><span></span>
+      </div>
+      <div class="row-item" style="grid-template-columns: 24px 34px 1fr auto">
+        <span class="dim">5</span
+        ><span
+          class="pt"
+          style="background-image: url(/planets/trocken-0-surface.svg)"
+        ></span>
+        <div>
+          <div class="n" style="font-size: 13px">Heimatplanet</div>
+          <div class="c">du</div>
+        </div>
+        <button class="up" style="min-width: 0">⋯</button>
+      </div>
+      <div
+        class="row-item"
+        style="grid-template-columns: 24px 1fr auto; padding: 4px 12px"
+      >
+        <span class="dim">6</span><span class="dim">–</span><span></span>
+      </div>
+      <div class="row-item" style="grid-template-columns: 24px 34px 1fr auto">
+        <span class="dim">7</span
+        ><span
+          class="pt"
+          style="background-image: url(/planets/dschungel-2-surface.svg)"
+        ></span>
+        <div>
+          <div class="n" style="font-size: 13px">Kolonie Varn</div>
+          <div class="c">Mira · Platz 4</div>
+        </div>
+        <button class="up" style="min-width: 0">⋯</button>
+      </div>
+      <div
+        class="row-item"
+        style="grid-template-columns: 24px 1fr auto; padding: 4px 12px"
+      >
+        <span class="dim">8</span><span class="dim">–</span><span></span>
+      </div>
+      <div
+        style="
+          position: absolute;
+          left: 0;
+          right: 0;
+          bottom: 62px;
+          background: var(--box);
+          border-top: 1px solid var(--gold);
+          border-radius: 14px 14px 0 0;
+          padding: 10px 14px 14px;
+          box-shadow: 0 -8px 24px #000;
+        "
+      >
+        <div
+          style="
+            width: 40px;
+            height: 4px;
+            background: var(--line);
+            border-radius: 2px;
+            margin: 0 auto 8px;
+          "
+        ></div>
+        <div
+          class="n"
+          style="font: 600 15px var(--head); color: var(--gold-hi)"
+        >
+          [1:18:7] Kolonie Varn
+        </div>
+        <div class="dim" style="font-size: 13px; margin-bottom: 8px">
+          Mira · Platz 4 · Flugzeit 0:42
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px">
+          <button>Auspex-Erkundung</button
+          ><button class="red">Sturmangriff</button
+          ><button>Versorgungsflug</button><button>Bericht ansehen</button>
+        </div>
+      </div>
+      <nav class="tabbar">
+        <span class=""><i>🪐</i>Übersicht</span
+        ><span class=""><i>🏗</i>Bauen</span><span class=""><i>➶</i>Flotte</span
+        ><span class="on"><i>✦</i>Karte</span
+        ><span class=""><i>⋯</i>Mehr<em></em></span>
+      </nav>
+    </div>
+  </body>
+</html>

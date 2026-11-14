@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Studie – Sternenkarte Galaxie</title>
+    <link rel="stylesheet" href="/style.css" />
+    <link rel="stylesheet" href="mock.css" />
+    <style>
+      .war {
+        display: grid;
+        grid-template-columns: 1fr 300px;
+        gap: 14px;
+      }
+      .map {
+        background: #07050a;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 0;
+        overflow: hidden;
+      }
+      .layers label {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        font-size: 15px;
+        padding: 2px 0;
+      }
+      .layers i {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        display: inline-block;
+      }
+      .fl {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        font-size: 15px;
+        padding: 4px 0;
+        border-bottom: 1px dashed var(--line);
+      }
+      .fl:last-child {
+        border-bottom: 0;
+      }
+      .tabs {
+        display: flex;
+        gap: 6px;
+        margin-bottom: 10px;
+      }
+      .tabs span {
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        padding: 2px 10px;
+        font: 600 13px var(--head);
+        color: var(--dim);
+      }
+      .tabs span.on {
+        border-color: var(--gold);
+        color: var(--gold-hi);
+      }
+    </style>
+  </head>
+  <body>
+    <main class="mock" style="max-width: 1240px">
+      <p class="cap">
+        Studie [V] · Sternenkarte · Ebene 1: die Galaxie · Systeme als Sterne
+        (Koordinaten bleiben g:s:p), Einflussgebiete, Flotten im Flug, Nebel ·
+        Beispieldaten
+      </p>
+      <div class="tabs">
+        <span class="on">Galaxie 1</span><span>Galaxie 2</span
+        ><span>Lagekarte</span>
+      </div>
+      <div class="war">
+        <div class="map">
+          <svg
+            id="m"
+            viewBox="0 0 860 560"
+            width="100%"
+            role="img"
+            aria-label="Spiralgalaxie mit 50 Systemen, farbigen Einflussgebieten, Flugbahnen und einem Bereich im Nebel"
+          ></svg>
+        </div>
+        <aside>
+          <div class="box">
+            <div class="hd">Ebenen</div>
+            <div class="bd layers">
+              <label
+                ><input type="checkbox" checked />
+                <i style="background: #f1d27a"></i> Eigene Systeme</label
+              >
+              <label
+                ><input type="checkbox" checked />
+                <i style="background: #9ccb76"></i> Gilde „Sternenwacht“</label
+              >
+              <label
+                ><input type="checkbox" checked />
+                <i style="background: #7fd3f5"></i> Andere Spieler</label
+              >
+              <label><input type="checkbox" checked /> Flotten im Flug</label>
+              <label
+                ><input type="checkbox" checked /> Trümmerfelder (#45)</label
+              >
+              <label><input type="checkbox" /> Ereignisse (#157)</label>
+              <label
+                ><input type="checkbox" checked /> Nebel: Alter der
+                Erkundung</label
+              >
+            </div>
+          </div>
+          <div class="box">
+            <div class="hd">Flotten im Flug</div>
+            <div class="bd">
+              <div class="fl">
+                <span>Sturmangriff → [1:38]</span><span>0:42</span>
+              </div>
+              <div class="fl">
+                <span>Versorgungsflug → [1:12]</span><span>1:15</span>
+              </div>
+              <div class="fl">
+                <span class="bad">Feindlich → [1:9] Heimat!</span
+                ><span class="bad">0:18</span>
+              </div>
+            </div>
+          </div>
+          <div class="box">
+            <div class="hd">System [1:27]</div>
+            <div class="bd" style="font-size: 15px">
+              4 Planeten · 1 Trümmerfeld · letzte Erkundung vor 3 Tagen ·
+              Flugzeit von Heimat 1:52
+              <div style="margin-top: 8px">
+                <button class="go">System öffnen</button>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </div>
+      <p class="note">
+        Heute ist die Sternenkarte eine Tabelle pro System. Die Karte zeigt
+        dieselben Daten räumlich; Abstände und Flugzeiten bleiben die klassische
+        Formel (<code>distance()</code>), die Lage der Sterne ist nur
+        Darstellung.
+      </p>
+    </main>
+    <script>
+      const svg = document.getElementById('m');
+      const cx = 430,
+        cy = 280;
+      const pos = [];
+      for (let s = 1; s <= 50; s++) {
+        const t = s - 1;
+        const a = t * 0.3 + 0.3,
+          r = 34 + t * 5.6;
+        pos.push([cx + Math.cos(a) * r * 1.35, cy + Math.sin(a) * r * 0.95]);
+      }
+      let out =
+        '<defs><radialGradient id="core"><stop offset="0" stop-color="#f1d27a" stop-opacity="0.5"/><stop offset="1" stop-color="#07050a" stop-opacity="0"/></radialGradient><filter id="b" x="-200%" y="-200%" width="500%" height="500%"><feGaussianBlur stdDeviation="18"/></filter></defs>';
+      out += `<circle cx="${cx}" cy="${cy}" r="120" fill="url(#core)"/>`;
+      for (let i = 0; i < 300; i++) {
+        const x = (i * 137.5) % 860,
+          y = (i * 59.3) % 560;
+        out += `<circle cx="${x}" cy="${y}" r="0.7" fill="#5a4a3a"/>`;
+      }
+      const own = [9, 12, 27],
+        guild = [10, 14, 25, 29],
+        others = [5, 18, 38, 44, 33];
+      const blob = (ids, col) =>
+        ids.forEach((s) => {
+          const [x, y] = pos[s - 1];
+          out += `<circle cx="${x}" cy="${y}" r="38" fill="${col}" opacity="0.22" filter="url(#b)"/>`;
+        });
+      blob(own, '#f1d27a');
+      blob(guild, '#9ccb76');
+      blob(others, '#7fd3f5');
+      // fog: outer systems beyond sensors
+      out += `<path d="M640 40 L860 40 L860 300 L700 260 Z" fill="#07050a" opacity="0.65"/>`;
+      out += `<text x="760" y="90" text-anchor="middle" font-family="Cinzel, serif" font-size="13" fill="#9a8c74">Nebel · erkundet vor 6 Tagen</text>`;
+      pos.forEach(([x, y], i) => {
+        const s = i + 1;
+        const col = own.includes(s)
+          ? '#f1d27a'
+          : guild.includes(s)
+            ? '#9ccb76'
+            : others.includes(s)
+              ? '#7fd3f5'
+              : '#c9c2b6';
+        out += `<circle cx="${x}" cy="${y}" r="${own.includes(s) ? 5 : 3}" fill="${col}"/>`;
+        if ([1, 9, 12, 27, 38, 50].includes(s))
+          out += `<text x="${x + 8}" y="${y - 6}" font-family="EB Garamond, serif" font-size="12" fill="#a8997f">${s}</text>`;
+      });
+      const arc = (a, b, col, dash, label) => {
+        const [x1, y1] = pos[a - 1],
+          [x2, y2] = pos[b - 1];
+        const mx = (x1 + x2) / 2,
+          my = (y1 + y2) / 2 - 40;
+        out += `<path d="M${x1} ${y1} Q ${mx} ${my} ${x2} ${y2}" fill="none" stroke="${col}" stroke-width="2.5" stroke-dasharray="${dash}"/>`;
+        out += `<circle cx="${(x1 + 2 * mx + x2) / 4}" cy="${(y1 + 2 * my + y2) / 4}" r="5" fill="${col}"/>`;
+        out += `<text x="${(x1 + 2 * mx + x2) / 4 + 8}" y="${(y1 + 2 * my + y2) / 4 - 6}" font-family="Cinzel, serif" font-size="12" fill="${col}">${label}</text>`;
+      };
+      arc(12, 38, '#f0a050', '6 4', '0:42');
+      arc(27, 12, '#9ccb76', '2 4', '1:15');
+      arc(44, 9, '#ee7660', '8 3', 'Angriff 0:18');
+      const [dx, dy] = pos[26];
+      out += `<text x="${dx - 14}" y="${dy + 20}" font-size="13" fill="#c9c2b6">⁘</text>`;
+      out += `<circle cx="${dx}" cy="${dy}" r="14" fill="none" stroke="#f1d27a" stroke-width="2"/>`;
+      svg.innerHTML = out;
+    </script>
+  </body>
+</html>

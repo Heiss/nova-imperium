@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Studie – Lagekarte</title>
+    <link rel="stylesheet" href="/style.css" />
+    <link rel="stylesheet" href="mock.css" />
+    <style>
+      .war {
+        display: grid;
+        grid-template-columns: 1fr 300px;
+        gap: 14px;
+      }
+      .map {
+        background: #07050a;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        overflow: hidden;
+      }
+      .slider {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        gap: 10px;
+        align-items: center;
+        margin-top: 10px;
+        font-size: 15px;
+      }
+      .track {
+        height: 8px;
+        background: var(--box-2);
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        position: relative;
+      }
+      .track b {
+        position: absolute;
+        left: 62%;
+        top: -6px;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: var(--gold);
+      }
+      .pin {
+        display: grid;
+        grid-template-columns: 22px 1fr;
+        gap: 6px;
+        font-size: 15px;
+        padding: 4px 0;
+        border-bottom: 1px dashed var(--line);
+      }
+      .pin:last-child {
+        border-bottom: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="mock" style="max-width: 1240px">
+      <p class="cap">
+        Studie [V] · Sternenkarte · Ebene 3: Lagekarte der Gilde · Kämpfe der
+        letzten 24 h als Glut, Marker der Gilde, Zeitleiste zum Zurückspulen ·
+        Beispieldaten
+      </p>
+      <h2>Lagekarte · Gilde „Sternenwacht“</h2>
+      <div class="war">
+        <div>
+          <div class="map">
+            <svg
+              id="i"
+              viewBox="0 0 860 500"
+              width="100%"
+              role="img"
+              aria-label="Galaxie mit rot glühenden Kampforten, Markern der Gilde und einer Handelsroute"
+            ></svg>
+          </div>
+          <div class="slider">
+            <span>vor 24 h</span>
+            <div class="track"><b></b></div>
+            <span>jetzt</span>
+          </div>
+        </div>
+        <aside>
+          <div class="box">
+            <div class="hd">Marker der Gilde</div>
+            <div class="bd">
+              <div class="pin">
+                <span>⚑</span
+                ><span
+                  ><b>Kaiser:</b> „Hier sammeln, Angriff 20 Uhr“ [1:22]</span
+                >
+              </div>
+              <div class="pin">
+                <span>⚠</span
+                ><span><b>Mira:</b> „Vex parkt Flotte nachts hier“ [1:38]</span>
+              </div>
+              <div class="pin">
+                <span>✧</span><span>Relikt gesichtet [1:44:16]</span>
+              </div>
+              <div class="pin">
+                <span>◎</span><span>Wurmloch offen bis 23:10</span>
+              </div>
+              <button class="small" style="margin-top: 6px">
+                Marker setzen
+              </button>
+            </div>
+          </div>
+          <div class="box">
+            <div class="hd">Letzte 24 h</div>
+            <div class="bd">
+              <div class="kv">
+                <span>Kämpfe</span><span>14</span> <span>davon mit Gilde</span
+                ><span>5</span> <span>Trümmer entstanden</span
+                ><span>2,1 Mio.</span> <span>Erkundungen gegen euch</span
+                ><span class="bad">9</span>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </main>
+    <script>
+      const svg = document.getElementById('i');
+      const cx = 430,
+        cy = 250;
+      const pos = [];
+      for (let s = 1; s <= 50; s++) {
+        const t = s - 1;
+        const a = t * 0.3 + 0.3,
+          r = 34 + t * 5.6;
+        pos.push([cx + Math.cos(a) * r * 1.35, cy + Math.sin(a) * r * 0.95]);
+      }
+      let out =
+        '<defs><filter id="g" x="-200%" y="-200%" width="500%" height="500%"><feGaussianBlur stdDeviation="12"/></filter></defs>';
+      const heat = [
+        [38, 1],
+        [22, 0.6],
+        [9, 0.8],
+        [44, 0.5],
+        [17, 0.4],
+      ];
+      for (const [s, w] of heat) {
+        const [x, y] = pos[s - 1];
+        out += `<circle cx="${x}" cy="${y}" r="${30 + 30 * w}" fill="#ee7660" opacity="${0.25 + 0.35 * w}" filter="url(#g)"/>`;
+      }
+      pos.forEach(
+        ([x, y]) =>
+          (out += `<circle cx="${x}" cy="${y}" r="3" fill="#c9c2b6"/>`),
+      );
+      const pin = (s, sym, col) => {
+        const [x, y] = pos[s - 1];
+        out += `<text x="${x + 6}" y="${y - 6}" font-size="20" fill="${col}">${sym}</text>`;
+      };
+      pin(22, '⚑', '#f1d27a');
+      pin(38, '⚠', '#f0a050');
+      pin(44, '✧', '#f1d27a');
+      pin(31, '◎', '#b08cf0');
+      const [ax, ay] = pos[11],
+        [bx, by] = pos[29];
+      out += `<path d="M${ax} ${ay} Q ${(ax + bx) / 2} ${(ay + by) / 2 - 60} ${bx} ${by}" stroke="#9ccb76" stroke-width="2" fill="none" stroke-dasharray="2 5"/><text x="${(ax + bx) / 2}" y="${(ay + by) / 2 - 62}" text-anchor="middle" font-family="Cinzel, serif" font-size="12" fill="#9ccb76">Versorgungsroute der Gilde</text>`;
+      svg.innerHTML = out;
+    </script>
+  </body>
+</html>

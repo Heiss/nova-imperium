@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Studie – Telefon Bauen</title>
+    <link rel="stylesheet" href="/style.css" />
+    <link rel="stylesheet" href="mobile.css" />
+  </head>
+  <body>
+    <div class="phone">
+      <div class="top">
+        <div class="row">
+          <span class="chip"
+            ><span
+              class="pt"
+              style="
+                width: 22px;
+                height: 22px;
+                background-image: url(/planets/trocken-0-surface.svg);
+              "
+            ></span
+            >Heimatplanet ▾</span
+          ><span class="dim" style="font-size: 12px">[1:18:5]</span
+          ><span class="bell">🔔<b>2</b></span>
+        </div>
+        <div class="resline">
+          <span
+            ><img src="/icons/resources/metal.svg" alt="Adamant" />12.480</span
+          ><span
+            ><img
+              src="/icons/resources/crystal.svg"
+              alt="Psikristall"
+            />6.210</span
+          ><span
+            ><img
+              src="/icons/resources/deuterium.svg"
+              alt="Promethium"
+            />1.940</span
+          ><span class="low"
+            ><img src="/icons/resources/energy.svg" alt="Energie" />−12</span
+          >
+        </div>
+      </div>
+      <div class="seg">
+        <span class="on">Gebäude</span><span>Forschung</span><span>Werft</span
+        ><span>Abwehr</span>
+      </div>
+      <div class="filter">
+        <span>Alle</span><span class="on">Baubar</span><span>Läuft</span>
+      </div>
+      <div class="row-item">
+        <img class="ic" src="/icons/buildings/metal_mine.svg" alt="" />
+        <div>
+          <div class="n">Adamant-Tiefbohrung <i>5</i></div>
+          <div class="c"><span class="">⏳ läuft · 12:40</span></div>
+        </div>
+        <button class="up" disabled>läuft</button>
+      </div>
+      <div class="row-item open">
+        <img class="ic" src="/icons/buildings/crystal_mine.svg" alt="" />
+        <div>
+          <div class="n">Psikristall-Steinbruch <i>4</i></div>
+          <div class="c">
+            <span class="">A 455</span> <span class="">P 227</span>
+            <span class="">⏱ 1:12</span>
+          </div>
+        </div>
+        <button class="up go">▲ 5</button>
+      </div>
+      <div class="detail">
+        <p class="ds">
+          Baut Psikristall ab – nötig für Elektronik und Forschung.
+        </p>
+        <div class="kv">
+          <span>Förderung</span><span>+182 / h</span><span>Energie</span
+          ><span>+21 Verbrauch</span><span>Felder</span><span>+1</span>
+        </div>
+        <div style="margin-top: 6px; display: flex; gap: 6px">
+          <button
+            class="exq"
+            style="
+              width: 22px;
+              height: 22px;
+              padding: 0;
+              border-radius: 50%;
+              font-size: 12px;
+            "
+          >
+            ?</button
+          ><button
+            style="
+              width: 22px;
+              height: 22px;
+              padding: 0;
+              border-radius: 4px;
+              font-size: 12px;
+              min-width: 0;
+            "
+          >
+            ▤
+          </button>
+        </div>
+      </div>
+      <div class="row-item">
+        <img class="ic" src="/icons/buildings/solar_plant.svg" alt="" />
+        <div>
+          <div class="n">Sonnenkathedrale <i>6</i></div>
+          <div class="c">
+            <span class="">A 911</span> <span class="">P 364</span>
+            <span class="">⏱ 2:40</span>
+          </div>
+        </div>
+        <button class="up go">▲ 7</button>
+      </div>
+      <div class="row-item">
+        <img
+          class="ic"
+          src="/icons/buildings/deuterium_synthesizer.svg"
+          alt=""
+        />
+        <div>
+          <div class="n">Promethium-Raffinerie <i>2</i></div>
+          <div class="c">
+            <span class="">A 506</span> <span class="">P 168</span>
+            <span class="">⏱ 0:44</span>
+          </div>
+        </div>
+        <button class="up go">▲ 3</button>
+      </div>
+      <div class="row-item">
+        <img class="ic" src="/icons/buildings/research_lab.svg" alt="" />
+        <div>
+          <div class="n">Scholarium <i>1</i></div>
+          <div class="c">
+            <span class="no">A 400 (fehlt 120)</span>
+            <span class="">P 800</span>
+          </div>
+        </div>
+        <button class="up" disabled>▲ 2</button>
+      </div>
+      <div class="row-item">
+        <img class="ic" src="/icons/buildings/shipyard.svg" alt="" />
+        <div>
+          <div class="n">Schiffsschmiede <i>2</i></div>
+          <div class="c">
+            <span class="">A 1.600</span> <span class="">P 800</span>
+            <span class="">⏱ 3:12</span>
+          </div>
+        </div>
+        <button class="up go">▲ 3</button>
+      </div>
+      <div class="row-item">
+        <img class="ic" src="/icons/buildings/robotics_factory.svg" alt="" />
+        <div>
+          <div class="n">Servitorenschmiede <i>2</i></div>
+          <div class="c">
+            <span class="">A 1.600</span> <span class="">P 480</span>
+            <span class="">⏱ 2:58</span>
+          </div>
+        </div>
+        <button class="up go">▲ 3</button>
+      </div>
+      <p class="cap" style="padding: 0 12px">
+        7 gesperrte Gebäude ausgeblendet · „Alle“ zeigt sie mit ihren
+        Voraussetzungen.
+      </p>
+      <nav class="tabbar">
+        <span class=""><i>🪐</i>Übersicht</span
+        ><span class="on"><i>🏗</i>Bauen</span
+        ><span class=""><i>➶</i>Flotte</span><span class=""><i>✦</i>Karte</span
+        ><span class=""><i>⋯</i>Mehr<em></em></span>
+      </nav>
+    </div>
+  </body>
+</html>

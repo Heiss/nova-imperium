@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Studie – Die KI der Runde</title>
+    <link rel="stylesheet" href="/style.css" />
+    <link rel="stylesheet" href="mock.css" />
+    <style>
+      .war {
+        display: grid;
+        grid-template-columns: 1fr 330px;
+        gap: 14px;
+      }
+      .phases {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 6px;
+        margin: 0 0 14px;
+      }
+      .phases div {
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        padding: 6px 8px;
+        font-size: 14px;
+        color: var(--dim);
+      }
+      .phases div b {
+        display: block;
+        font: 600 13px var(--head);
+        letter-spacing: 0.05em;
+        color: var(--dim);
+      }
+      .phases div.done b {
+        color: var(--green);
+      }
+      .phases div.now {
+        border-color: var(--red);
+        background: #2a1410;
+        color: var(--txt);
+      }
+      .phases div.now b {
+        color: var(--red);
+      }
+      .bn {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 4px 10px;
+        font-size: 15px;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="mock" style="max-width: 1240px">
+      <p class="cap">
+        Studie [V] · Die KI der Runde („Der Hüter“, Name [V]) · von Anfang an in
+        der Galaxie, wird spät aggressiv und läutet das Rundenende ein ·
+        Beispielwerte
+      </p>
+      <h2>Der Hüter · Phase 3 von 4</h2>
+      <div class="phases">
+        <div class="done">
+          <b>1 · Schlafend</b>Wandert, sammelt Trümmer, wehrt sich nur
+        </div>
+        <div class="done">
+          <b>2 · Wach</b>Beansprucht Systeme, testet Spieler
+        </div>
+        <div class="now">
+          <b>3 · Feindlich</b>Greift Spieler an · Rundenende eingeläutet
+        </div>
+        <div><b>4 · Letztes Gefecht</b>Kampf um den Kern · Runde endet</div>
+      </div>
+      <div class="war">
+        <div class="box">
+          <div class="bd">
+            <svg
+              id="g"
+              viewBox="0 0 860 420"
+              width="100%"
+              role="img"
+              aria-label="Galaxie mit dem wachsenden Gebiet des Hüters, seinem Kern, seinen Flotten und den Spielern"
+            ></svg>
+          </div>
+        </div>
+        <aside>
+          <div class="box">
+            <div class="hd">Dein Beitrag gegen den Hüter</div>
+            <div class="bd">
+              <div class="bn">
+                <span>Zerstörte Drohnen</span><span>1.240</span>
+                <span>Gehaltene Außenposten</span><span>2</span>
+                <span>Rang im Widerstand</span><span class="good">2 von 7</span>
+              </div>
+              <p style="margin-bottom: 4px"><b>Deine Boni dafür</b></p>
+              <div class="bn">
+                <span>Fragment „Kernlogik“</span
+                ><span class="good">+10 % Forschungstempo</span>
+                <span>Beutelager der Drohnen</span
+                ><span class="good">+85.000 Adamant</span>
+                <span>Widerstandspunkte</span
+                ><span class="good">+3.400 (eigene Wertung)</span>
+              </div>
+            </div>
+          </div>
+          <div class="box">
+            <div class="hd">Nächster Angriff</div>
+            <div class="bd" style="font-size: 15px">
+              Hüterflotte „Echo-7“ auf Kurs nach <b>[1:33:4]</b> (Spieler Vex) ·
+              Ankunft in 5 h 12 min · Stärke etwa 3× deine Heimatflotte.
+            </div>
+          </div>
+        </aside>
+      </div>
+      <p class="note">
+        Ausgleich: Wer sich früh mit dem Hüter anlegt, verliert Flotte, die
+        anderen bauen Wirtschaft. Die Boni (Fragmente, Beute, eigene Wertung)
+        müssen das aufwiegen.
+      </p>
+    </main>
+    <script>
+      const svg = document.getElementById('g');
+      let out = '',
+        seed = 11;
+      const rnd = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
+      const sys = [];
+      for (let s = 1; s <= 50; s++)
+        sys.push([
+          30 + ((s - 1) % 10) * 82 + rnd() * 30,
+          40 + Math.floor((s - 1) / 10) * 80 + rnd() * 30,
+        ]);
+      const core = sys[25];
+      out += `<circle cx="${core[0]}" cy="${core[1]}" r="170" fill="#ee7660" opacity="0.08"/><circle cx="${core[0]}" cy="${core[1]}" r="110" fill="#ee7660" opacity="0.1"/>`;
+      out += `<circle cx="${core[0]}" cy="${core[1]}" r="250" fill="none" stroke="#ee7660" stroke-width="1.5" stroke-dasharray="6 6" opacity="0.6"/>`;
+      sys.forEach(([x, y], i) => {
+        const d = Math.hypot(x - core[0], y - core[1]);
+        const own = [11, 32, 47].includes(i),
+          enemy = [4, 18, 39].includes(i);
+        const col =
+          d < 110 ? '#ee7660' : own ? '#f1d27a' : enemy ? '#7fd3f5' : '#9a8c74';
+        out += `<circle cx="${x}" cy="${y}" r="${own || enemy ? 6 : 3.5}" fill="${col}"/>`;
+      });
+      out += `<polygon points="${core[0]},${core[1] - 18} ${core[0] + 16},${core[1] + 10} ${core[0] - 16},${core[1] + 10}" fill="#0d0a08" stroke="#ee7660" stroke-width="3"/><circle cx="${core[0]}" cy="${core[1]}" r="5" fill="#ee7660"/>`;
+      out += `<text x="${core[0]}" y="${core[1] + 34}" text-anchor="middle" font-family="Cinzel, serif" font-size="14" fill="#ee7660">Kern des Hüters</text>`;
+      const tgt = sys[39];
+      out += `<path d="M${core[0]} ${core[1]} Q ${(core[0] + tgt[0]) / 2} ${core[1] - 80} ${tgt[0]} ${tgt[1]}" stroke="#ee7660" stroke-width="2.5" fill="none" stroke-dasharray="8 5"/>`;
+      out += `<text x="${(core[0] + tgt[0]) / 2}" y="${core[1] - 52}" text-anchor="middle" font-family="Cinzel, serif" font-size="13" fill="#ee7660">Echo-7</text>`;
+      out += `<text x="${core[0] + 236}" y="${core[1] - 110}" text-anchor="end" font-family="Cinzel, serif" font-size="12" fill="#ee7660" opacity="0.8">Grenze wächst täglich</text>`;
+      svg.innerHTML = out;
+    </script>
+  </body>
+</html>

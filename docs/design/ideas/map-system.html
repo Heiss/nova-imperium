@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Studie – Sternenkarte System</title>
+    <link rel="stylesheet" href="/style.css" />
+    <link rel="stylesheet" href="mock.css" />
+    <style>
+      .war {
+        display: grid;
+        grid-template-columns: 1fr 320px;
+        gap: 14px;
+      }
+      .map {
+        background: #07050a;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        overflow: hidden;
+      }
+      .act {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="mock" style="max-width: 1240px">
+      <p class="cap">
+        Studie [V] · Sternenkarte · Ebene 2: ein System · 15 Bahnen plus
+        Asteroidengürtel (Position 16, #93), Planeten im Bild ihres Typs (#52),
+        Mond (#53), Trümmerfeld (#45), anfliegende Flotten · Beispieldaten
+      </p>
+      <h2>System [1:27] · Galaxie 1</h2>
+      <div class="war">
+        <div class="map">
+          <svg
+            id="s"
+            viewBox="0 0 860 560"
+            width="100%"
+            role="img"
+            aria-label="Stern in der Mitte, Umlaufbahnen mit Planeten verschiedener Typen, ein Mond, ein Trümmerfeld, ein Asteroidengürtel und zwei anfliegende Flotten"
+          ></svg>
+        </div>
+        <aside>
+          <div class="box">
+            <div class="hd">[1:27:8] · Kolonie Varn</div>
+            <div class="bd" style="font-size: 15px">
+              <div class="kv">
+                <span>Besitzer</span><span>Vex (Platz 3)</span> <span>Typ</span
+                ><span>Dschungelplanet</span> <span>Mond</span
+                ><span>ja (Durchmesser 6.200 km)</span> <span>Trümmerfeld</span
+                ><span>41.000 Adamant · 18.000 Psikristall</span>
+                <span>Letzte Erkundung</span
+                ><span>vor 3 h · Flotte 12 Kreuzer</span>
+                <span>Flugzeit von [1:12:4]</span><span>1:52 (100 %)</span>
+              </div>
+              <div class="act">
+                <button class="small">Auspex-Erkundung</button>
+                <button class="small">Sturmangriff</button>
+                <button class="small">Versorgungsflug</button>
+                <button class="small">Abbauen</button>
+                <button class="small">Kopfgeld</button>
+              </div>
+            </div>
+          </div>
+          <div class="box">
+            <div class="hd">Im Anflug</div>
+            <div class="bd" style="font-size: 15px">
+              <div class="kv">
+                <span class="good">Deine Flotte → Pos. 8</span><span>0:42</span>
+                <span class="bad">Unbekannt → Pos. 3</span><span>2:05</span>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </main>
+    <script>
+      const svg = document.getElementById('s');
+      const cx = 430,
+        cy = 290;
+      let out =
+        '<defs><radialGradient id="sun"><stop offset="0" stop-color="#fff3c4"/><stop offset="0.5" stop-color="#f0a050"/><stop offset="1" stop-color="#07050a" stop-opacity="0"/></radialGradient></defs>';
+      out += `<circle cx="${cx}" cy="${cy}" r="48" fill="url(#sun)"/>`;
+      const types = [
+        '#e0a060',
+        '#e0a060',
+        '#c98a4a',
+        '#9ccb76',
+        '#9ccb76',
+        '#5a9a4a',
+        '#5a9a4a',
+        '#3a7ab0',
+        '#3a7ab0',
+        '#cfe8f5',
+        '#cfe8f5',
+        '#c9b07a',
+        '#c9b07a',
+        '#9ccb76',
+        '#c9b07a',
+      ];
+      const filled = {
+        2: 'Vex',
+        3: 'Kaiser',
+        5: 'Mira',
+        8: 'Vex',
+        11: 'du',
+        14: 'Orrin',
+      };
+      for (let p = 1; p <= 15; p++) {
+        const rx = 50 + p * 24,
+          ry = rx * 0.55;
+        out += `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="none" stroke="#2a2018" stroke-width="1"/>`;
+        if (!filled[p]) continue;
+        const a = p * 1.7;
+        const x = cx + Math.cos(a) * rx,
+          y = cy + Math.sin(a) * ry;
+        const me = filled[p] === 'du';
+        out += `<circle cx="${x}" cy="${y}" r="${p === 8 ? 12 : 9}" fill="${types[p - 1]}" stroke="${me ? '#f1d27a' : p === 8 ? '#ee7660' : '#0d0a08'}" stroke-width="${me || p === 8 ? 3 : 1}"/>`;
+        out += `<text x="${x}" y="${y - 16}" text-anchor="middle" font-family="EB Garamond, serif" font-size="13" fill="${me ? '#f1d27a' : '#a8997f'}">${p} · ${filled[p]}</text>`;
+        if (p === 8) {
+          out += `<circle cx="${x + 20}" cy="${y + 6}" r="4" fill="#c9c2b6"/>`;
+          out += `<text x="${x - 26}" y="${y + 24}" font-size="14" fill="#c9c2b6">⁘</text>`;
+          var tx = x,
+            ty = y;
+        }
+        if (p === 3)
+          var ex = x,
+            ey = y;
+      }
+      // asteroid belt (pos 16)
+      for (let i = 0; i < 160; i++) {
+        const a = i * 0.27,
+          rx = 50 + 16 * 24 + ((i * 7) % 9),
+          ry = rx * 0.55;
+        out += `<circle cx="${cx + Math.cos(a) * rx}" cy="${cy + Math.sin(a) * ry}" r="1.4" fill="#7a6a5a"/>`;
+      }
+      out += `<text x="${cx + 360}" y="${cy + 170}" font-family="Cinzel, serif" font-size="12" fill="#9a8c74">16 · Gürtel</text>`;
+      out += `<path d="M20 60 Q 180 120 ${tx} ${ty}" stroke="#9ccb76" stroke-width="2.5" fill="none" stroke-dasharray="6 4"/><text x="40" y="54" font-family="Cinzel, serif" font-size="12" fill="#9ccb76">deine Flotte 0:42</text>`;
+      out += `<path d="M840 520 Q 700 420 ${ex} ${ey}" stroke="#ee7660" stroke-width="2.5" fill="none" stroke-dasharray="8 3"/><text x="690" y="540" font-family="Cinzel, serif" font-size="12" fill="#ee7660">unbekannt 2:05</text>`;
+      svg.innerHTML = out;
+    </script>
+  </body>
+</html>

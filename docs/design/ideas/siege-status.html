@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Studie – Belagerung</title>
+    <link rel="stylesheet" href="/style.css" />
+    <link rel="stylesheet" href="mock.css" />
+    <style>
+      .phases {
+        display: flex;
+        gap: 6px;
+        margin: 0 0 14px;
+        flex-wrap: wrap;
+      }
+      .phases span {
+        flex: 1;
+        min-width: 150px;
+        text-align: center;
+        padding: 6px;
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        font: 600 13px var(--head);
+        letter-spacing: 0.05em;
+        color: var(--dim);
+      }
+      .phases span.done {
+        color: var(--green);
+        border-color: #3c5a2a;
+      }
+      .phases span.now {
+        color: var(--gold-hi);
+        border-color: var(--gold);
+        background: var(--box-2);
+      }
+      .strike {
+        text-decoration: line-through;
+        color: var(--dim);
+      }
+      .turn {
+        font: 800 20px var(--head);
+        color: var(--orange);
+      }
+    </style>
+  </head>
+  <body>
+    <main class="mock">
+      <p class="cap">
+        Studie [V] · Landetruppen &amp; Belagerung · Übersicht des belagerten
+        Planeten · Beispielzahlen, keine Spielwerte
+      </p>
+      <h2>Belagerung von Kolonie Varn [1:42:8]</h2>
+      <div class="phases" aria-label="Phasen">
+        <span class="done">1 · Orbit geräumt</span>
+        <span class="done">2 · Verteidigung gebrochen</span>
+        <span class="now">3 · Belagerung &amp; Bodenkampf</span>
+        <span>4 · Übernahme oder Abbruch</span>
+      </div>
+      <div class="grid2">
+        <section class="box">
+          <div class="hd">Sicht des Angreifers</div>
+          <div class="bd">
+            <div class="kv">
+              <span>Dauer</span><span>13 h von höchstens 48 h</span>
+              <span>Runde im Bodenkampf</span><span>14 von 48</span>
+            </div>
+            <p>Nachschub im Belagerungsring</p>
+            <div class="meter"><b style="width: 38%"></b></div>
+            <div class="kv">
+              <span>Vorrat</span><span>Metall 41.000 · Promethium 9.800</span>
+              <span>Verbrauch</span><span class="bad">−3.200 / h</span>
+              <span>reicht noch</span
+              ><span class="turn" style="font-size: 16px">≈ 12 h</span>
+              <span>Konvoi unterwegs</span><span>Ankunft 18:40 (+20.000)</span>
+            </div>
+            <p class="note">
+              Ist der Vorrat leer, bricht die Belagerung ab. Die Landetruppen
+              ziehen ab.
+            </p>
+            <button>Nachschub senden</button>
+            <button class="red">Belagerung abbrechen</button>
+          </div>
+        </section>
+        <section class="box">
+          <div class="hd">Sicht des Verteidigers</div>
+          <div class="bd">
+            <p>
+              <span class="turn">Du bist am Zug</span> · noch 37 min + 1 h 50
+              min Zeitguthaben
+            </p>
+            <button class="go">Zum Schlachtfeld</button>
+            <div class="kv" style="margin-top: 10px">
+              <span>Gebäude ausbauen</span><span class="strike">gesperrt</span>
+              <span>Förderung</span><span class="strike">gestoppt</span>
+              <span>Beute aus dem Bodenkampf</span
+              ><span class="good">+6.400 Metall</span>
+            </div>
+            <p>Schäden an der Infrastruktur</p>
+            <div class="meter red"><b style="width: 27%"></b></div>
+            <p class="dim" style="font-size: 15px">
+              Je länger die Belagerung dauert, desto mehr Gebäudestufen gehen
+              verloren.
+            </p>
+          </div>
+        </section>
+      </div>
+      <p class="note">
+        Offen: Darf der Heimatplanet belagert werden? Was passiert mit Flotten,
+        die während der Belagerung ankommen? Wer bekommt die Rohstoffe bei
+        Übernahme?
+      </p>
+    </main>
+  </body>
+</html>

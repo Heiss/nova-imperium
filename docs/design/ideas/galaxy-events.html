@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Studie – Ereignisse in der Galaxie</title>
+    <link rel="stylesheet" href="/style.css" />
+    <link rel="stylesheet" href="mock.css" />
+    <style>
+      .war {
+        display: grid;
+        grid-template-columns: 1fr 320px;
+        gap: 14px;
+      }
+      .vote {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 6px;
+        font-size: 15px;
+        align-items: center;
+      }
+      .ev {
+        display: grid;
+        grid-template-columns: 28px 1fr;
+        gap: 8px;
+        padding: 6px 0;
+        border-bottom: 1px solid var(--line);
+        font-size: 15px;
+      }
+      .ev:last-child {
+        border-bottom: 0;
+      }
+      .ev span:first-child {
+        font-size: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="mock" style="max-width: 1240px">
+      <p class="cap">
+        Studie [V] · Ereignisse in der Galaxie · Sternenkarte mit Ionensturm,
+        Wurmloch, Relikt, Kopfgeld und dem Galaktischen Rat · bewusst wild
+      </p>
+      <h2>Sternenkarte · Galaxie 1</h2>
+      <div class="war">
+        <div class="box">
+          <div class="bd">
+            <svg
+              id="gal"
+              viewBox="0 0 860 420"
+              width="100%"
+              role="img"
+              aria-label="Systeme der Galaxie als Punkte, ein wandernder Ionensturm, ein Wurmloch nach Galaxie 2, ein Relikt und eine Supernova-Warnung"
+            ></svg>
+          </div>
+        </div>
+        <aside>
+          <div class="box">
+            <div class="hd">Laufende Ereignisse</div>
+            <div class="bd">
+              <div class="ev">
+                <span>🌀</span
+                ><span
+                  ><b>Ionensturm</b> zieht nach Osten, 1 System je Stunde. Flüge
+                  hindurch: doppelte Dauer, 5 % Verlust.</span
+                >
+              </div>
+              <div class="ev">
+                <span>◎</span
+                ><span
+                  ><b>Wurmloch</b> [1:31] ↔ [2:08], offen noch 14 h. Flugzeit 10
+                  Minuten.</span
+                >
+              </div>
+              <div class="ev">
+                <span>✧</span
+                ><span
+                  ><b>Relikt „Sternenkompass“</b> auf [1:22:16]. Wer es
+                  heimbringt: +20 % Fluggeschwindigkeit, bis es gestohlen
+                  wird.</span
+                >
+              </div>
+              <div class="ev">
+                <span>☀</span
+                ><span
+                  ><b>Supernova</b> in System [1:44] in 3 Tagen. Alles dort wird
+                  vernichtet, danach ein riesiges Trümmerfeld.</span
+                >
+              </div>
+              <div class="ev">
+                <span>☠</span
+                ><span
+                  ><b>Kopfgeld</b>: 250.000 Adamant auf Spieler „Vex“ –
+                  ausgesetzt von 2 Spielern.</span
+                >
+              </div>
+            </div>
+          </div>
+          <div class="box">
+            <div class="hd">Galaktischer Rat · Abstimmung</div>
+            <div class="bd">
+              <p style="margin-top: 0">
+                Soll die Trümmerquote diese Woche 50 % statt 30 % sein?
+              </p>
+              <div class="vote">
+                <span>Dafür (Stimmgewicht nach Punkten)</span><span>62 %</span>
+              </div>
+              <div class="meter"><b style="width: 62%"></b></div>
+              <div class="vote" style="margin-top: 6px">
+                <span>Endet in</span><span>1 Tag 4 h</span>
+              </div>
+              <button style="margin-top: 8px">Stimme abgeben</button>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </main>
+    <script>
+      const svg = document.getElementById('gal');
+      let out = '';
+      let seed = 7;
+      const rnd = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
+      for (let s = 1; s <= 50; s++) {
+        const x = 30 + ((s - 1) % 10) * 82 + rnd() * 30,
+          y = 40 + Math.floor((s - 1) / 10) * 80 + rnd() * 30;
+        const own = [12, 27, 33].includes(s),
+          enemy = [5, 19, 38, 46].includes(s);
+        out += `<circle cx="${x}" cy="${y}" r="${own || enemy ? 6 : 3.5}" fill="${own ? '#f1d27a' : enemy ? '#ee7660' : '#9a8c74'}"/>`;
+        if (s === 22)
+          out += `<text x="${x + 10}" y="${y + 6}" font-size="20" fill="#f1d27a">✧</text>`;
+        if (s === 44)
+          out += `<circle cx="${x}" cy="${y}" r="26" fill="none" stroke="#f0a050" stroke-width="2" stroke-dasharray="5 4"/><text x="${x}" y="${y - 32}" text-anchor="middle" font-family="Cinzel, serif" font-size="13" fill="#f0a050">Supernova in 3 Tagen</text>`;
+        if (s === 31)
+          out += `<circle cx="${x}" cy="${y}" r="16" fill="none" stroke="#b08cf0" stroke-width="3"/><circle cx="${x}" cy="${y}" r="8" fill="none" stroke="#b08cf0" stroke-width="2"/><text x="${x}" y="${y + 34}" text-anchor="middle" font-family="Cinzel, serif" font-size="13" fill="#b08cf0">→ Galaxie 2</text>`;
+        if (s === 19)
+          out += `<text x="${x + 10}" y="${y - 6}" font-size="16" fill="#ee7660">☠</text>`;
+      }
+      out += `<ellipse cx="300" cy="150" rx="90" ry="55" fill="#7fd3f5" opacity="0.12"/><ellipse cx="300" cy="150" rx="60" ry="35" fill="#7fd3f5" opacity="0.15"/>`;
+      out += `<path d="M300 150 L 470 150" stroke="#7fd3f5" stroke-width="2" stroke-dasharray="6 6" marker-end="url(#a)"/>`;
+      out += `<defs><marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L10 5L0 10z" fill="#7fd3f5"/></marker></defs>`;
+      out += `<text x="300" y="95" text-anchor="middle" font-family="Cinzel, serif" font-size="14" fill="#7fd3f5">Ionensturm</text>`;
+      svg.innerHTML = out;
+    </script>
+  </body>
+</html>

@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Studie – Feldeigenschaften und Nachbarschaft</title>
+    <link rel="stylesheet" href="/style.css" />
+    <link rel="stylesheet" href="mock.css" />
+    <style>
+      .tiles {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+      }
+      .tile {
+        background: var(--box);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 10px;
+        font-size: 15px;
+      }
+      .tile h3 {
+        margin: 0 0 4px;
+        font: 600 15px var(--head);
+        color: var(--gold-hi);
+        letter-spacing: 0.04em;
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .tile h3 i {
+        width: 18px;
+        height: 18px;
+        border-radius: 3px;
+        display: inline-block;
+      }
+      .tile .who {
+        font-size: 13px;
+        color: var(--dim);
+        margin-top: 4px;
+      }
+      .up {
+        color: var(--green);
+      }
+      .down {
+        color: var(--red);
+      }
+      .grp {
+        font: 600 14px var(--head);
+        color: var(--gold);
+        letter-spacing: 0.08em;
+        margin: 16px 0 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="mock" style="max-width: 1240px">
+      <p class="cap">
+        Studie [V] · Bauen auf Feldern · Feldeigenschaften, Nachbarschaften und
+        Besonderheiten · Ideensammlung, Beispielwerte
+      </p>
+      <h2>Feldeigenschaften</h2>
+      <div id="t"></div>
+    </main>
+    <script>
+      const groups = [
+        [
+          'Rohstoffe im Boden',
+          [
+            [
+              '#3a2c22',
+              'Erzader',
+              '<span class="up">Metallmine +15 / +30 / +50 %</span> (arm/normal/reich)',
+              'erschöpft sich: −1 % je 10 Stufen',
+            ],
+            [
+              '#16303a',
+              'Kristallhöhle',
+              '<span class="up">Kristallmine +30 %</span> · <span class="down">Bauzeit +20 %</span>',
+              'häufiger innen (Pos. 1–5)',
+            ],
+            [
+              '#123028',
+              'Hydrothermalquelle',
+              '<span class="up">Deuterium +40 %</span>, Fusion −20 % Verbrauch',
+              'nur Wasser- und Eisplaneten',
+            ],
+            [
+              '#3a3214',
+              'Sonnenhang',
+              '<span class="up">Solarkraftwerk +30 %</span>, Satelliten-Start +10 %',
+              'häufiger innen',
+            ],
+          ],
+        ],
+        [
+          'Besondere Felder',
+          [
+            [
+              '#2a2036',
+              'Vorläuferruine',
+              '<span class="up">Forschungslabor +1 Stufe für die Forschungszeit</span>',
+              'selten, genau eines je 3 Planeten',
+            ],
+            [
+              '#3a1408',
+              'Vulkanschlot',
+              '<span class="up">Energie +20 % für jedes Kraftwerk</span> · <span class="down">Beben: 1 % je Tag ein Gebäude −1 Stufe</span>',
+              'Wüsten- und Trockenplaneten',
+            ],
+            [
+              '#1a2a36',
+              'Gletscher',
+              '<span class="up">Deuteriumspeicher ×1,5 Kapazität</span>',
+              'Eisplaneten',
+            ],
+            [
+              '#2b2219',
+              'Absturzstelle',
+              'einmalig: <span class="up">Bergung bringt Rohstoffe</span>, danach normales Feld',
+              'erscheint nach Kämpfen im Orbit (#45)',
+            ],
+          ],
+        ],
+        [
+          'Nicht bebaubar – bis …',
+          [
+            [
+              '#1a1411',
+              'Gebirge',
+              'unbebaubar · <span class="up">Terraformer</span> ebnet es (#51)',
+              'schützt Nachbarn: −10 % Infrastrukturschaden (#155)',
+            ],
+            [
+              '#0f2236',
+              'Ozean',
+              'unbebaubar · <span class="up">Ozeanplattform</span> als eigenes Gebäude',
+              'Wasserplaneten: viel Ozean, wenig Land',
+            ],
+            [
+              '#2a3010',
+              'Strahlungskrater',
+              'unbebaubar · nach Dekontamination: <span class="up">+Forschung</span>',
+              'nach Orbitalschlägen (#155)',
+            ],
+            [
+              '#231a14',
+              'Ödland',
+              'neutral: das klassische Feld',
+              'der Normalfall',
+            ],
+          ],
+        ],
+        [
+          'Nachbarschaft (Gebäude neben Gebäude)',
+          [
+            [
+              '#3b2f22',
+              'Roboterfabrik → alles',
+              '<span class="up">−5 % Bauzeit</span> für jeden Nachbarn',
+              'Verbund',
+            ],
+            [
+              '#3b2f22',
+              'Speicher → Mine',
+              '<span class="up">+5 %</span> Förderung der Mine gleicher Sorte',
+              'Verbund',
+            ],
+            [
+              '#3b2f22',
+              'Fusionskraftwerk → Mine',
+              '<span class="down">−10 %</span> (Hitze) · <span class="up">+10 % neben Ozean</span> (Kühlung)',
+              'Konflikt',
+            ],
+            [
+              '#3b2f22',
+              'Forschungslabor → Labor',
+              'Labore nebeneinander zählen als <span class="up">ein Verbund</span> (ähnlich IFN, #49)',
+              'Verbund',
+            ],
+          ],
+        ],
+      ];
+      let h = '';
+      for (const [g, list] of groups) {
+        h += `<div class="grp">${g}</div><div class="tiles">`;
+        for (const [col, n, fx, who] of list)
+          h += `<div class="tile"><h3><i style="background:${col};border:1px solid #9a8c74"></i>${n}</h3><div>${fx}</div><div class="who">${who}</div></div>`;
+        h += '</div>';
+      }
+      document.getElementById('t').innerHTML = h;
+    </script>
+  </body>
+</html>
