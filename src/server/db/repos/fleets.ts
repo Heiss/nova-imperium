@@ -7,7 +7,7 @@ export interface Fleets {
   get(id: string): Fleet | null;
   /** All fleets by departure. */
   all(): Fleet[];
-  /** How many fleets a player has in flight. */
+  /** How many fleet slots a player uses: the fleets in flight, no gift (#161). */
   count(owner: string): number;
   /** Fleets whose next event (arrival or return) is due, the earliest first. */
   due(now: number): Fleet[];
@@ -53,6 +53,7 @@ export class SqliteFleets implements Fleets {
       state: r.state as Fleet['state'],
       recalled: r.recalled === 1,
       fuel: r.fuel as number,
+      ...(r.gift === 1 && { gift: true as const }),
     };
   }
 
@@ -71,7 +72,7 @@ export class SqliteFleets implements Fleets {
 
   count(owner: string): number {
     const r = this.db
-      .prepare('SELECT COUNT(*) AS n FROM fleets WHERE owner = ?')
+      .prepare('SELECT COUNT(*) AS n FROM fleets WHERE owner = ? AND gift = 0')
       .get(owner) as Row;
     return r.n as number;
   }
@@ -87,12 +88,15 @@ export class SqliteFleets implements Fleets {
   }
 
   save(f: Fleet): void {
+    // Only a gift writes `gift` (#161): every other fleet keeps the default
+    // 0, and a fleet never changes whether it is a gift.
+    const gift = f.gift ? [', gift', ', 1'] : ['', ''];
     this.db
       .prepare(
         `INSERT INTO fleets (id, owner, from_planet, from_g, from_s, from_p, to_planet, to_g, to_s, to_p,
-           mission, cargo_m, cargo_c, cargo_d, dep, arr, ret, state, recalled, fuel)
+           mission, cargo_m, cargo_c, cargo_d, dep, arr, ret, state, recalled, fuel${gift[0]})
          VALUES (@id, @owner, @from, @from_g, @from_s, @from_p, @to, @to_g, @to_s, @to_p,
-           @mission, @cargo_m, @cargo_c, @cargo_d, @dep, @arr, @ret, @state, @recalled, @fuel)
+           @mission, @cargo_m, @cargo_c, @cargo_d, @dep, @arr, @ret, @state, @recalled, @fuel${gift[1]})
          ON CONFLICT(id) DO UPDATE SET cargo_m = excluded.cargo_m, cargo_c = excluded.cargo_c,
            cargo_d = excluded.cargo_d, ret = excluded.ret, state = excluded.state, recalled = excluded.recalled`,
       )

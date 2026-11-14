@@ -39,6 +39,8 @@ export interface Admin {
   saveUniverse(u: Universe): void;
   /** The stored settings of the round (`round`, `roundAchievements`, `roundDaily`). */
   roundSettings(): { key: string; value: number }[];
+  /** One stored setting, or undefined (the „Endzeit“ of #161). */
+  setting(key: string): number | undefined;
   /** Writes settings in the given order. */
   putSettings(entries: [key: string, value: number][]): void;
   addAuditEvent(e: AuditEvent): void;
@@ -97,6 +99,13 @@ export class SqliteAdmin implements Admin {
         "SELECT key, value FROM settings WHERE key IN ('round', 'roundAchievements', 'roundDaily')",
       )
       .all() as { key: string; value: number }[];
+  }
+
+  setting(key: string): number | undefined {
+    const row = this.db
+      .prepare('SELECT value FROM settings WHERE key = ?')
+      .get(key) as { value: number } | undefined;
+    return row?.value;
   }
 
   putSettings(entries: [key: string, value: number][]): void {

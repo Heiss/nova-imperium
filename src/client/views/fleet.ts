@@ -42,7 +42,10 @@ function targetForm(v: V, slotsFull: boolean): string {
 
 export function fleet(v: V): string {
   const slots = fleetSlots(v.R);
-  const used = v.s.fleets.filter((f) => f.owner === v.s.me.id).length;
+  // The gift of the „Endzeit“ takes no slot (#161).
+  const used = v.s.fleets.filter(
+    (f) => f.owner === v.s.me.id && !f.gift,
+  ).length;
   const rows = shipRows(v);
   const head = box(
     `Flotten unterwegs (${used} / ${slots} Slots)`,

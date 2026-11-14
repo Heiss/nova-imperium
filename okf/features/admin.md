@@ -50,6 +50,9 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   resets and moderation. Settings and operator role changes record before and
   after values. Moderation records the affected player, reason, previous and
   resulting suspension state and number of sessions revoked.
+* **[E]** The „Endzeit“ of #161 is an admin write too, once per round; its
+  entry holds the round, the flight time in minutes, the number of
+  recipients and the arrival (see [Endzeit](/features/endzeit.md)).
 * **[E]** An admin can end a player's sessions, suspend an account for 1 to 720
   hours or indefinitely, and lift a suspension. Session revocation also
   invalidates pending email login codes. Accounts with admin rights are managed

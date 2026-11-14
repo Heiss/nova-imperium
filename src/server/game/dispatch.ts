@@ -9,6 +9,7 @@ import {
 import type { User } from '../db/repos/players.ts';
 import * as A from './actions.ts';
 import { reset, saveSettings } from './admin.ts';
+import { endzeit } from './endzeit.ts';
 import { tick } from './arrival.ts';
 import { type Ctx, fail } from './context.ts';
 import { recall, send } from './fleet-actions.ts';
@@ -37,6 +38,7 @@ export const ACTIONS: Record<string, A.Action> = {
   recall,
   settings: saveSettings,
   reset,
+  endzeit,
   createGuild,
   updateGuild,
   applyToGuild,
@@ -46,6 +48,13 @@ export const ACTIONS: Record<string, A.Action> = {
   claimAchievement,
   claimDailyReward,
 };
+
+/** The actions of the admin: audited as `admin.write`, not as `game`. */
+export const ADMIN_ACTIONS: ReadonlySet<string> = new Set([
+  'settings',
+  'reset',
+  'endzeit',
+]);
 
 export function runAction(
   ctx: Ctx,

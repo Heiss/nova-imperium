@@ -96,6 +96,12 @@ export interface Fleet {
   recalled: boolean;
   /** Fuel burnt at the start; a deploy unloads half of it at the target (#129). */
   fuel: number;
+  /**
+   * The gift of the admin's „Endzeit“ (#161): a Verlegung from „Gottkaiser“
+   * that cannot be recalled, takes no fleet slot and raises the research
+   * and buildings on arrival. Only set on a gift.
+   */
+  gift?: true;
 }
 
 /** The settings of one universe. The admin changes them in the admin panel. */

@@ -816,6 +816,88 @@ test.describe('admin (#68)', () => {
     expect(w.problems).toEqual([]);
   });
 
+  // On the mail server after the new round: the gift goes to every player
+  // there, and no test of that server comes after this one.
+  test('the admin rings in the Endzeit: a gift from „Gottkaiser“ unlocks everything (#161)', async ({
+    page,
+  }) => {
+    const w = watch(page);
+    const name = uniqueName('Endzeit');
+    await registerByMail(page, name);
+    mailCli('admin', name);
+    mailSeed({ name, b: { robot: 25, metal: 3 } });
+    await loginByCode(page, name);
+    await nav(page, 'admin');
+    await page.getByRole('tab', { name: 'Universum' }).click();
+    await page.getByRole('button', { name: 'Endzeit einläuten' }).click();
+    await expect(
+      page.getByText(
+        'Endzeit einläuten – alle Spieler erhalten die Gabe des Gottkaisers.',
+      ),
+    ).toBeVisible();
+    const time = page.getByLabel('Flugzeit der Gabe (Minuten)');
+    await expect(time).toHaveValue('240');
+    await time.fill('30');
+    await page.getByRole('button', { name: 'Ja, Endzeit einläuten' }).click();
+    await expect(lastToast(page)).toContainText(
+      'Die Endzeit ist eingeläutet. Gaben unterwegs:',
+    );
+    await page.getByRole('tab', { name: 'Universum' }).click();
+    await expect(
+      page.getByText('In dieser Runde wurde die Endzeit schon eingeläutet.'),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: 'Endzeit einläuten' }),
+    ).toHaveCount(0);
+
+    // The gift flies from „Gottkaiser“ and cannot be recalled.
+    await nav(page, 'overview');
+    const gift = page.locator('tr', { hasText: 'von Gottkaiser erreicht' });
+    await expect(gift).toContainText('42 Weltenbrecher');
+    await expect(gift).toContainText('Verlegung');
+    await expect(gift.getByRole('button', { name: 'Rückruf' })).toHaveCount(0);
+    await nav(page, 'messages');
+    const start = report(page, 'Endzeit');
+    await start.locator('.t').click();
+    await expect(start).toContainText(
+      'Der allwissende Gottkaiser war gnädig und hat die Endzeit eingeläutet.',
+    );
+
+    // It arrives: the message, the ships, the buildings.
+    mailSeed({ name, landFleet: 'deploy' });
+    const arrived = report(page, 'Die Gabe des Gottkaisers ist eingetroffen.');
+    await expect(arrived).toBeVisible({ timeout: 15000 });
+    await expect(report(page, /^Verlegung erreicht/)).toHaveCount(0);
+    await expect(stock(page, 'Adamant')).toHaveText(/^1\.\d{3}\.\d{3}$/);
+    await nav(page, 'buildings');
+    const level = (building: string) =>
+      page
+        .locator('.item')
+        .filter({
+          has: page.locator('.nm', { hasText: new RegExp(`^\\s*${building}`) }),
+        })
+        .locator('.lv');
+    await expect(level('Orbitale Schiffsschmiede')).toHaveText('(Stufe 20)');
+    // Higher levels stay.
+    await expect(level('Servitorenschmiede')).toHaveText('(Stufe 25)');
+    await nav(page, 'fleet');
+    await expect(shipCount(page, 'Weltenbrecher')).toHaveText('42');
+
+    // The trigger is in the event log as an admin write.
+    await nav(page, 'admin');
+    await page.getByRole('tab', { name: 'Ereignisprotokoll' }).click();
+    const events = page.locator('[data-admin=events]');
+    await page
+      .getByLabel('Spieler', { exact: true })
+      .selectOption({ label: name });
+    await page.getByRole('button', { name: 'Anzeigen', exact: true }).click();
+    await expect(
+      events.getByRole('row', { name: /admin\.write \/ endzeit/ }),
+    ).toBeVisible();
+    mailCli('unadmin', name);
+    expect(w.problems).toEqual([]);
+  });
+
   test('the event log filters by a planet or fleet of an event (#151)', async ({
     page,
   }) => {

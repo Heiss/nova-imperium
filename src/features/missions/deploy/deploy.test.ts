@@ -67,4 +67,41 @@ describe('deploy', () => {
       },
     ]);
   });
+
+  it('hands the gift of the Endzeit to its own arrival (#161)', () => {
+    const ctx = testCtx();
+    addUser(ctx, 'Anna');
+    const t = addPlanet(ctx, 'u_Anna', { res: { m: 0, c: 0, d: 0 } });
+    const f: Fleet = {
+      id: 'f1',
+      owner: 'u_Anna',
+      from: t.id,
+      fromC: { g: 1, s: 1, p: 5 },
+      to: t.id,
+      toC: { g: 1, s: 1, p: 5 },
+      mission: 'deploy',
+      ships: { sc: 42 },
+      cargo: { m: 10, c: 20, d: 30 },
+      dep: ctx.now() - 10,
+      arr: ctx.now(),
+      ret: ctx.now() + 10,
+      state: 'out',
+      recalled: false,
+      fuel: 41,
+      gift: true,
+    };
+    ctx.fleets.save(f);
+    const anna = { name: 'Anna', research: {}, rq: null };
+    onArrive(ctx, f, { t, att: anna, def: anna });
+    // No half of the fuel: a gift burns none.
+    expect(ctx.planets.get(t.id)).toMatchObject({
+      ships: { sc: 42 },
+      res: { m: 10, c: 20, d: 30 },
+      b: { yard: 20 },
+    });
+    expect(ctx.fleets.get('f1')).toBeNull();
+    expect(ctx.reports.ofPlayer('u_Anna')).toMatchObject([
+      { title: 'Die Gabe des Gottkaisers ist eingetroffen.' },
+    ]);
+  });
 });

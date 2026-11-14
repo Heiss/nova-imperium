@@ -629,6 +629,41 @@ describe('game requests', () => {
         .get(),
     ).toEqual({ category: 'admin.write', outcome: 'rejected', detail: '{}' });
   });
+
+  it('audits the „Endzeit“ as an admin write; a second one is rejected (#161)', async () => {
+    const { ctx, call } = await asAdmin();
+    const reply = await call('POST', '/api/action', {
+      type: 'endzeit',
+      minutes: 30,
+    });
+    expect(reply.json).toMatchObject({
+      ok: true,
+      msg: 'Die Endzeit ist eingeläutet. Gaben unterwegs: 1.',
+      state: { admin: { endzeit: { minutes: 30, done: true } } },
+    });
+    const again = await call('POST', '/api/action', {
+      type: 'endzeit',
+      minutes: 30,
+    });
+    expect(again.json).toEqual({
+      error: 'Die Endzeit wurde in dieser Runde schon eingeläutet.',
+    });
+    const rows = ctx.db
+      .prepare(
+        "SELECT category, outcome, detail FROM audit_events WHERE action = 'endzeit' ORDER BY id",
+      )
+      .all() as { category: string; outcome: string; detail: string }[];
+    expect(rows.map(({ category, outcome }) => [category, outcome])).toEqual([
+      ['admin.write', 'ok'],
+      ['admin.write', 'rejected'],
+    ]);
+    expect(JSON.parse(rows[0]!.detail)).toEqual({
+      round: 1,
+      minutes: 30,
+      recipients: 1,
+      due: ctx.now() + 30 * 60000,
+    });
+  });
 });
 
 describe('rate limit window and sweep', () => {

@@ -53,6 +53,9 @@ the ships fly back.
   flight. `fits()`: when the target is gone or no longer the player's, the
   fleet turns back with its cargo and the report „Flotte kehrt um“, like a
   transport to a vanished planet.
+* The gift of the admin's „Endzeit“ (#161) is a Verlegung with
+  `fleets.gift`: from and to the home planet, no slot, no fuel, no recall,
+  and its own arrival (see [Endzeit](/features/endzeit.md)).
 * Recall: unchanged; ships and cargo come back to the start planet with the
   usual return report, the burnt fuel is not refunded (no recall refunds
   fuel).

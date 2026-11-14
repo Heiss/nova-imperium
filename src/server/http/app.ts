@@ -12,7 +12,7 @@ import { isDatabaseBusy } from '../db/database.ts';
 import type { User } from '../db/repos/players.ts';
 import { requireAdmin } from '../game/admin.ts';
 import { type Ctx, GameError, str } from '../game/context.ts';
-import { ACTIONS, runAction } from '../game/dispatch.ts';
+import { ACTIONS, ADMIN_ACTIONS, runAction } from '../game/dispatch.ts';
 import { stateFor } from '../game/state.ts';
 import { type Mailer, invitationMail } from '../mail.ts';
 import {
@@ -461,8 +461,7 @@ function gameRoutes(d: AppDeps): Record<string, Handler> {
 function playerAction(ctx: Ctx, u: User, call: Call): string | null {
   const name = String(call.body.type);
   const action = Object.hasOwn(ACTIONS, name) ? name : 'unknown';
-  const category =
-    action === 'settings' || action === 'reset' ? 'admin.write' : 'game';
+  const category = ADMIN_ACTIONS.has(action) ? 'admin.write' : 'game';
   const entry: AuditEntry = {
     category,
     action,
