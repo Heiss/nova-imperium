@@ -22,14 +22,15 @@ const KEYS: ReadonlySet<string> = new Set(
 );
 
 /**
- * Comparisons with a key that may stay for now: how many there are in the
- * file, and the issue that removes them.
+ * Comparisons with a key that may stay: how many there are in the file, and
+ * the issue that removes them, or `permanent` for a word that only equals a
+ * key (owner, 2026-11-14).
  */
 interface Allowed {
   file: string;
   key: string;
   count: number;
-  issue: string;
+  issue: `#${number}` | 'permanent';
 }
 
 /**
@@ -48,21 +49,16 @@ const ALLOWED: readonly Allowed[] = [
   // The reactors settle when Energietechnik finishes (settleReactors).
   { file: 'server/game/actions.ts', key: 'energy', count: 1, issue: '#115' },
   { file: 'server/game/actions.ts', key: 'fusion', count: 1, issue: '#115' },
-  // Auspex-Erkundung only with Spähschädeln: the missions as strategies.
-  {
-    file: 'server/game/fleet-actions.ts',
-    key: 'probe',
-    count: 1,
-    issue: '#116',
-  },
   // The lab lock and the shipyard lock without catalog keys.
   { file: 'core/lab.ts', key: 'lab', count: 2, issue: '#183' },
   { file: 'client/views/yard.ts', key: 'yard', count: 1, issue: '#183' },
-  // Not a catalog key but an equal word: the mission and report type „spy“,
-  // replaced by the mission registry.
-  { file: 'server/game/fleet-actions.ts', key: 'spy', count: 2, issue: '#116' },
-  { file: 'server/game/arrival.ts', key: 'spy', count: 2, issue: '#116' },
-  { file: 'client/views/messages.ts', key: 'spy', count: 1, issue: '#116' },
+  // Not a catalog key but an equal word: the report type „spy“.
+  {
+    file: 'client/views/messages.ts',
+    key: 'spy',
+    count: 1,
+    issue: 'permanent',
+  },
 ];
 
 /** The source files of the game, without the entries, tests and version 1. */
@@ -521,7 +517,7 @@ describe('no comparison with a catalog key outside src/features (#114)', () => {
     for (const a of ALLOWED) {
       expect(KEYS, a.key).toContain(a.key);
       expect(Number.isInteger(a.count) && a.count > 0, allowed(a)).toBe(true);
-      expect(a.issue, allowed(a)).toMatch(/^#\d+$/);
+      expect(a.issue, allowed(a)).toMatch(/^(#\d+|permanent)$/);
     }
   });
 

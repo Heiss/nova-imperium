@@ -1,5 +1,6 @@
-import { MISSION, SHIPS, canFly } from '../../core/catalog.ts';
+import { SHIPS, canFly } from '../../core/catalog.ts';
 import { fleetSlots, shipSpeed } from '../../core/flight.ts';
+import { MISSION } from '../../core/missions.ts';
 import { text } from '../../core/text.ts';
 import { fmt } from '../logic/format.ts';
 import { fleetTable } from './overview.ts';
