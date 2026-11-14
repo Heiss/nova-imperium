@@ -77,8 +77,7 @@ export function announce(ctx: Ctx, input: unknown): number {
       ctx,
       player.id,
       { time, type: 'info', title: 'Servernachricht', text: message },
-      'messages',
-      `Servernachricht: ${message}`,
+      { topic: 'announcement', body: `Servernachricht: ${message}` },
     );
   }
   return players.length;

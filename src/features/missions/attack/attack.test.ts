@@ -3,7 +3,13 @@
 import { describe, expect, it } from 'vitest';
 import type { Fleet, Levels } from '../../../core/types.ts';
 import { addMoon, moonAt } from '../../../server/game/moons.ts';
-import { addPlanet, addUser, testCtx } from '../../../server/test-helpers.ts';
+import {
+  addPlanet,
+  addUser,
+  queuedPushes,
+  subscribePush,
+  testCtx,
+} from '../../../server/test-helpers.ts';
 import { onArrive, plunder, rebuild } from './arrive.server.ts';
 import * as rules from './rules.ts';
 import { canSend } from './rules.ts';
@@ -186,6 +192,20 @@ describe('attack', () => {
     });
   });
 
+  it('pushes a battle report with a moon chance with the kinds of every battle report (#53, #192)', () => {
+    const { ctx, f, at } = setup({ lc: 1 }, { pt: 50 });
+    ctx.debris.add({ g: 1, s: 2, p: 6 }, { m: 1_998_000, c: 0 });
+    ctx.rng = () => 0;
+    subscribePush(ctx, 'u_Anna');
+    subscribePush(ctx, 'u_Bert');
+    onArrive(ctx, f, at);
+    expect(ctx.reports.ofPlayer('u_Bert')[0]).toMatchObject({ moon: true });
+    expect(queuedPushes(ctx)).toEqual([
+      { user: 'u_Anna', kind: 'messages', topic: 'fleet' },
+      { user: 'u_Bert', kind: 'messages', topic: 'attacked' },
+    ]);
+  });
+
   it('reports a missed moon chance without a moon (#53)', () => {
     const { ctx, f, at } = setup({ lc: 1 }, { pt: 50 });
     ctx.debris.add({ g: 1, s: 2, p: 6 }, { m: 100_000, c: 0 });
@@ -231,5 +251,16 @@ describe('attack', () => {
       c: 6000,
       d: 3000,
     });
+  });
+
+  it('pushes the battle report to the attacker and the attack to the defender (#192)', () => {
+    const { ctx, f, at } = setup({ bs: 20, lc: 50 }, { rl: 2 });
+    subscribePush(ctx, 'u_Anna');
+    subscribePush(ctx, 'u_Bert');
+    onArrive(ctx, f, at);
+    expect(queuedPushes(ctx)).toEqual([
+      { user: 'u_Anna', kind: 'messages', topic: 'fleet' },
+      { user: 'u_Bert', kind: 'messages', topic: 'attacked' },
+    ]);
   });
 });

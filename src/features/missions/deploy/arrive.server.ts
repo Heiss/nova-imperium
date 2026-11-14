@@ -17,11 +17,16 @@ export function onArrive(ctx: Ctx, f: Fleet, { t }: Arrival): void {
   const load = { ...f.cargo, d: f.cargo.d + rest };
   land(t, f.ships, load);
   ctx.planets.save(t);
-  addReport(ctx, f.owner, {
-    time: f.arr,
-    type: 'info',
-    title: `Verlegung erreicht ${coords(f.toC)}`,
-    text: `Deine Flotte bleibt auf ${placeName(t)} ${coords(f.toC)} und liefert ${resLine(load)}, davon ${fmt(rest)} übriger Treibstoff.`,
-  });
+  addReport(
+    ctx,
+    f.owner,
+    {
+      time: f.arr,
+      type: 'info',
+      title: `Verlegung erreicht ${coords(f.toC)}`,
+      text: `Deine Flotte bleibt auf ${placeName(t)} ${coords(f.toC)} und liefert ${resLine(load)}, davon ${fmt(rest)} übriger Treibstoff.`,
+    },
+    { topic: 'fleet' },
+  );
   ctx.fleets.delete(f.id);
 }

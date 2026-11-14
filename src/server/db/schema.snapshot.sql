@@ -233,7 +233,7 @@ CREATE TABLE push_jobs (
     event_key TEXT NOT NULL,
     due REAL NOT NULL,
     retry_at REAL NOT NULL,
-    attempts INTEGER NOT NULL DEFAULT 0, body TEXT,
+    attempts INTEGER NOT NULL DEFAULT 0, body TEXT, topic TEXT,
     PRIMARY KEY (endpoint, kind, event_key)
   ) STRICT;
 
@@ -241,6 +241,12 @@ CREATE TABLE push_keys (
     id INTEGER PRIMARY KEY CHECK (id = 1),
     public_key TEXT NOT NULL,
     private_key TEXT NOT NULL
+  ) STRICT;
+
+CREATE TABLE push_off (
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    topic TEXT NOT NULL,
+    PRIMARY KEY (user_id, topic)
   ) STRICT;
 
 CREATE TABLE push_subscriptions (

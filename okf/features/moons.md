@@ -116,7 +116,9 @@ places (#119) and the fields (#51).
   the debris step and before the rebuilt defense, at a planet without a
   moon, with the whole field at the position; a rolled chance goes into both
   battle reports as `moonChance` and `moon`. A battle at a moon rolls
-  nothing.
+  nothing. The moon lines are part of the battle reports, so they go with
+  their push kinds of #192 (`fleet` for the attacker, `attacked` for the
+  defender); „Mond anlegen“ sends no report and no push.
 * Fields: `maxFields` gives a moon 1 field plus the `fields` of its
   buildings, without the diameter and the „Zusatzfelder pro Planet“.
 * Production: `baseIncome(kind)` in `src/core/components/produces.ts`, none

@@ -8,7 +8,13 @@ import { sendError } from '../../../core/missions.ts';
 import type { Fleet, Levels } from '../../../core/types.ts';
 import { tick } from '../../../server/game/arrival.ts';
 import { send } from '../../../server/game/fleet-actions.ts';
-import { addPlanet, addUser, testCtx } from '../../../server/test-helpers.ts';
+import {
+  addPlanet,
+  addUser,
+  queuedPushes,
+  subscribePush,
+  testCtx,
+} from '../../../server/test-helpers.ts';
 import { harvest, onArrive } from './arrive.server.ts';
 import * as rules from './rules.ts';
 import { canSend } from './rules.ts';
@@ -291,5 +297,19 @@ describe('harvest: sending', () => {
     );
     expect(event).not.toHaveProperty('target');
     expect(event).toMatchObject({ detail: { planet: 'd1_2_6' } });
+  });
+});
+
+describe('harvest: the push (#192)', () => {
+  it('pushes the report as an own fleet', () => {
+    const { ctx } = setup();
+    subscribePush(ctx, 'u_Anna');
+    ctx.debris.add(FIELD, { m: 1800, c: 600 });
+    const f = fleet();
+    ctx.fleets.save(f);
+    onArrive(ctx, f);
+    expect(queuedPushes(ctx)).toEqual([
+      { user: 'u_Anna', kind: 'messages', topic: 'fleet' },
+    ]);
   });
 });
