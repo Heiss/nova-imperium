@@ -1,10 +1,19 @@
-import { readFileSync } from 'node:fs';
-import { describe, expect, it } from 'vitest';
+import {
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join as joinPath } from 'node:path';
+import { afterAll, describe, expect, it } from 'vitest';
 import ts from 'typescript';
 import {
   costs,
   coverage,
   cuts,
+  dropStatic,
   entryOf,
   join,
   merge,
@@ -13,11 +22,13 @@ import {
   pieces,
   prune,
   type Report,
+  reportOf,
   SHARDS,
   shardConfig,
   split,
   units,
   weigh,
+  withoutStatic,
 } from '../../scripts/mutation-shards.ts';
 
 const stryker = JSON.parse(readFileSync('stryker.config.json', 'utf8'));
@@ -547,5 +558,136 @@ describe('mutation shards: the merge', () => {
     expect(merged.testFiles).toBeUndefined();
     expect(merged.config).toBeUndefined();
     expect(() => merge([], stryker.thresholds)).toThrow('No report to merge.');
+  });
+});
+
+describe('mutation shards: static mutants run again (#201)', () => {
+  const dir = mkdtempSync(joinPath(tmpdir(), 'nova-static-'));
+  afterAll(() => rmSync(dir, { recursive: true, force: true }));
+  const killed = at(3, 3, { static: false, status: 'Killed', killedBy: ['1'] });
+  const survived = at(4, 4, { static: false, status: 'Survived' });
+  const fixed = (line: number, status: string): Mutant =>
+    at(line, line, { static: true, status, coveredBy: [] });
+  const cached = (): Report => ({
+    schemaVersion: '1.0',
+    testFiles: { 'src/a.test.ts': { tests: [{ id: '1', name: 't' }] } },
+    files: {
+      'src/a.ts': {
+        source: 'const a = 1;',
+        mutants: [fixed(1, 'Survived'), killed, fixed(2, 'Killed'), survived],
+      },
+      'src/b.ts': { source: 'b', mutants: [fixed(5, 'RuntimeError')] },
+      'src/c.ts': { source: 'c', mutants: [] },
+    },
+  });
+  const write = (name: string, content: string): string => {
+    const file = joinPath(dir, name);
+    writeFileSync(file, content);
+    return file;
+  };
+
+  it('removes every static result and keeps every other one', () => {
+    const last = cached();
+    const { report, dropped } = withoutStatic(last);
+    expect(dropped).toBe(3);
+    expect(report).toEqual({
+      ...cached(),
+      files: {
+        'src/a.ts': { source: 'const a = 1;', mutants: [killed, survived] },
+        'src/b.ts': { source: 'b', mutants: [] },
+        'src/c.ts': { source: 'c', mutants: [] },
+      },
+    });
+    expect(last).toEqual(cached());
+  });
+
+  it('keeps a result whose static flag is not true', () => {
+    const report: Report = {
+      files: { 'a.ts': { mutants: [at(1), at(2, 2, { static: false })] } },
+    };
+    expect(withoutStatic(report)).toEqual({ report, dropped: 0 });
+  });
+
+  it('rewrites the incremental file without the static results', () => {
+    const file = write('incremental.json', JSON.stringify(cached()));
+    expect(dropStatic(file)).toBe(`3 static mutants of ${file} run again.`);
+    const written = readFileSync(file, 'utf8');
+    expect(written.endsWith('}\n')).toBe(true);
+    expect(JSON.parse(written)).toEqual(withoutStatic(cached()).report);
+    expect(dropStatic(file)).toBe(`0 static mutants of ${file} run again.`);
+  });
+
+  it('does nothing without an incremental file', () => {
+    const file = joinPath(dir, 'missing.json');
+    expect(dropStatic(file)).toBe(`No ${file}: every mutant runs.`);
+    expect(existsSync(file)).toBe(false);
+  });
+
+  it('fails on a file that is no report and leaves it as it was', () => {
+    for (const [name, content] of [
+      ['broken.json', '{"files": '],
+      ['empty.json', ''],
+      ['null.json', 'null'],
+      ['nofiles.json', '{"testFiles": {}}'],
+      ['nomutants.json', '{"files": {"a.ts": {"source": "x"}}}'],
+      ['nullfile.json', '{"files": {"a.ts": null}}'],
+    ] as const) {
+      const file = write(name, content);
+      expect(() => dropStatic(file)).toThrow(`${file} is no Stryker report.`);
+      expect(readFileSync(file, 'utf8')).toBe(content);
+    }
+  });
+
+  it('reads a report only with a list of mutants in every file', () => {
+    const report = cached();
+    expect(reportOf(report)).toBe(report);
+    expect(reportOf({ files: {} })).toEqual({ files: {} });
+    for (const wrong of [
+      undefined,
+      null,
+      7,
+      {},
+      { files: null },
+      { files: 'a.ts' },
+      { files: { 'a.ts': {} } },
+      { files: { 'a.ts': { mutants: {} } } },
+      { files: { 'a.ts': 'x' } },
+    ])
+      expect(reportOf(wrong)).toBeUndefined();
+  });
+});
+
+describe('mutation shards: the incremental run in the workflows (#201)', () => {
+  const workflow = (name: string): string[] =>
+    readFileSync(`.github/workflows/${name}`, 'utf8').split('\n');
+  const incremental = "if: ${{ !startsWith(github.head_ref, 'release/') }}";
+
+  it('removes the static results right before the incremental run of a shard', () => {
+    const ci = workflow('ci.yml');
+    const drop = ci.indexOf('      - name: Static mutants run again');
+    const run = ci.indexOf('      - name: Incremental run');
+    expect(drop).toBeGreaterThan(
+      ci.indexOf('      - name: Configuration of this shard'),
+    );
+    expect(ci.slice(drop, run)).toEqual([
+      '      - name: Static mutants run again',
+      `        ${incremental}`,
+      '        run: node scripts/mutation-shards.ts drop-static',
+    ]);
+    expect(ci.slice(run + 1, run + 3)).toEqual([
+      `        ${incremental}`,
+      '        run: pnpm test:mutation reports/stryker-shard.config.json',
+    ]);
+    expect(ci.filter((l) => l.includes('drop-static'))).toHaveLength(1);
+  });
+
+  it('runs every other mutation run complete', () => {
+    const runs = [...workflow('ci.yml'), ...workflow('mutation.yml')].filter(
+      (l) => l.includes('pnpm test:mutation'),
+    );
+    expect(runs.filter((l) => !l.endsWith(' --force'))).toEqual([
+      '        run: pnpm test:mutation reports/stryker-shard.config.json',
+    ]);
+    expect(workflow('mutation.yml').join('\n')).not.toContain('drop-static');
   });
 });
