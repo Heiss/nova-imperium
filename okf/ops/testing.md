@@ -250,8 +250,11 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   TypeScript and Svelte parsers, as `src/test/naming.test.ts` does, and
   fails on a comparison (`===`, `!==`, `case`, `includes` on a fixed list)
   with a key from the folder names under `src/features/`. Its named
-  allow-list (file, key, issue) may only shrink: an entry that is no
-  longer hit fails the test. See
+  allow-list (file, key, count, issue) counts the hits per file and key;
+  the test fails when the real count is higher (a new comparison) and when
+  it is lower (the stale count must be lowered), so counts only fall
+  (owner, 2026-11-14). The lab and shipyard locks are allowed with #183,
+  the mission and report type `spy` (a word equal to a key) with #116. See
   [Design patterns](/architecture/patterns.md), section 12.
 * **[E]** Mutation standard per file (owner, 2026-11-11,
   `mutation-standard.json`, `scripts/mutation-gate.ts`): no file may fall

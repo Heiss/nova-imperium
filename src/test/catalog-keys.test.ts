@@ -21,39 +21,48 @@ const KEYS: ReadonlySet<string> = new Set(
     .map((d) => d.name),
 );
 
-/** A comparison with a key that may stay for now, and the issue that removes it. */
+/**
+ * Comparisons with a key that may stay for now: how many there are in the
+ * file, and the issue that removes them.
+ */
 interface Allowed {
   file: string;
   key: string;
+  count: number;
   issue: string;
 }
 
 /**
- * The comparisons with a key that are still allowed. The list may only
- * shrink: an entry that is no longer hit fails the test, so it goes once
- * its issue made the rule generic.
+ * The comparisons with a key that are still allowed, counted per file and
+ * key (owner, 2026-11-14). The counts may only fall: a file with more hits
+ * than its count fails the test (a new comparison), and so does one with
+ * fewer (lower the count, or remove the entry once its issue made the rule
+ * generic).
  */
 const ALLOWED: readonly Allowed[] = [
   // When the next Solarsatellit is finished (nextSatellite) and when
   // Energietechnik changes a Fusionskraftwerk (techChange): the generic
   // events of settle.
-  { file: 'core/settle.ts', key: 'sat', issue: '#115' },
-  { file: 'core/settle.ts', key: 'energy', issue: '#115' },
+  { file: 'core/settle.ts', key: 'sat', count: 1, issue: '#115' },
+  { file: 'core/settle.ts', key: 'energy', count: 1, issue: '#115' },
   // The reactors settle when Energietechnik finishes (settleReactors).
-  { file: 'server/game/actions.ts', key: 'energy', issue: '#115' },
-  { file: 'server/game/actions.ts', key: 'fusion', issue: '#115' },
+  { file: 'server/game/actions.ts', key: 'energy', count: 1, issue: '#115' },
+  { file: 'server/game/actions.ts', key: 'fusion', count: 1, issue: '#115' },
   // Auspex-Erkundung only with Spähschädeln: the missions as strategies.
-  { file: 'server/game/fleet-actions.ts', key: 'probe', issue: '#116' },
-  // The lab lock and the shipyard lock.
-  { file: 'core/lab.ts', key: 'lab', issue: 'TODO-issue' },
-  { file: 'client/views/yard.ts', key: 'yard', issue: 'TODO-issue' },
-  // Not a catalog key but an equal word: the mission and report type „spy“
-  // and the state „energy“ (not enough energy) of a building or research.
-  { file: 'server/game/fleet-actions.ts', key: 'spy', issue: 'TODO-owner' },
-  { file: 'server/game/arrival.ts', key: 'spy', issue: 'TODO-owner' },
-  { file: 'client/views/messages.ts', key: 'spy', issue: 'TODO-owner' },
-  { file: 'client/views/Buildings.svelte', key: 'energy', issue: 'TODO-owner' },
-  { file: 'client/views/economy.ts', key: 'energy', issue: 'TODO-owner' },
+  {
+    file: 'server/game/fleet-actions.ts',
+    key: 'probe',
+    count: 1,
+    issue: '#116',
+  },
+  // The lab lock and the shipyard lock without catalog keys.
+  { file: 'core/lab.ts', key: 'lab', count: 2, issue: '#183' },
+  { file: 'client/views/yard.ts', key: 'yard', count: 1, issue: '#183' },
+  // Not a catalog key but an equal word: the mission and report type „spy“,
+  // replaced by the mission registry.
+  { file: 'server/game/fleet-actions.ts', key: 'spy', count: 2, issue: '#116' },
+  { file: 'server/game/arrival.ts', key: 'spy', count: 2, issue: '#116' },
+  { file: 'client/views/messages.ts', key: 'spy', count: 1, issue: '#116' },
 ];
 
 /** The source files of the game, without the entries, tests and version 1. */
@@ -221,18 +230,24 @@ describe('no comparison with a catalog key outside src/features (#114)', () => {
     expect(files.length).toBeGreaterThan(50);
     expect(files.some((f) => f.endsWith('.svelte'))).toBe(true);
     expect(files.filter((f) => f.startsWith('features'))).toEqual([]);
+    const counts = new Map<string, number>();
+    for (const h of hits) counts.set(h, (counts.get(h) ?? 0) + 1);
     const names = ALLOWED.map(allowed);
-    expect(hits.filter((h) => !names.includes(h))).toEqual([]);
-    // Each allowed comparison is still there; remove it once it is not.
-    expect(names.filter((a) => !hits.includes(a))).toEqual([]);
+    expect([...counts.keys()].filter((h) => !names.includes(h))).toEqual([]);
+    // Each allowed comparison as often as its count: more is a new one,
+    // fewer means the count must be lowered.
+    expect(
+      ALLOWED.map((a) => `${allowed(a)} × ${counts.get(allowed(a)) ?? 0}`),
+    ).toEqual(ALLOWED.map((a) => `${allowed(a)} × ${a.count}`));
   });
 
-  it('names each allowed comparison once, with its issue', () => {
+  it('names each allowed comparison once, with its count and issue', () => {
     const names = ALLOWED.map(allowed);
     expect(new Set(names).size).toBe(names.length);
     for (const a of ALLOWED) {
       expect(KEYS, a.key).toContain(a.key);
-      expect(a.issue, allowed(a)).toMatch(/^(#\d+|TODO-issue|TODO-owner)$/);
+      expect(Number.isInteger(a.count) && a.count > 0, allowed(a)).toBe(true);
+      expect(a.issue, allowed(a)).toMatch(/^#\d+$/);
     }
   });
 

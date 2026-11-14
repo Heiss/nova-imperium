@@ -153,10 +153,11 @@ choice of the patterns to the assistant's recommendation below
   text: the shipyard shows the energy of one piece from `produces.e` with
   „je Reliquiar“ from the texts of the entry, the buildings the use per
   hour at the next level from `consumes`. The test that scans `src` for
-  comparisons with a key has a named allow-list (file, key, issue) that may
-  only shrink: `settle.ts` (`nextSatellite`, `techChange`),
+  comparisons with a key has a named allow-list (file, key, count, issue)
+  whose counts may only fall: `settle.ts` (`nextSatellite`, `techChange`),
   `server/game/actions.ts` and `balancedShare` with #115, the check of the
-  Spähschädel with #116, the lab and shipyard locks with a new issue.
+  Spähschädel with #116, the lab and shipyard locks with #183 („Lab lock
+  and shipyard lock without catalog keys“, owner, 2026-11-14).
 * **[E]** Built with #114 (ProducerTable): `producerRows(p, u, research)`
   in `src/core/economy.ts` returns `f`, the base income times the universe
   speed and one row per entry of `PRODUCTION` in the production order:
@@ -505,12 +506,21 @@ src/client/                state, components (generic), views
   tests and `src/test/legacy` with the TypeScript and Svelte parsers for
   comparisons with a key (the folder names under `src/features/`, without
   `missions/`): `===`, `!==`, `==`, `!=`, `case` and `includes` on an array
-  literal or a const bound to one. Its allow-list `ALLOWED` names file, key
-  and issue; an entry no longer hit fails, so the list only shrinks. The
-  placeholder `TODO-issue` marks the lab and shipyard locks until their
-  issue exists; `TODO-owner` marks words equal to a key that are no
-  catalog key (the mission and report type `spy`, the state `energy` of a
-  building or research), open for the owner.
+  literal or a const bound to one. Its allow-list `ALLOWED` names file,
+  key, count and issue; the count is the number of hits of that key in that
+  file, and the test fails when the real number is higher (a new
+  comparison) and when it is lower (the count must be lowered), so the
+  counts only fall and an entry goes when it reaches 0 (owner,
+  2026-11-14). The entries: `core/settle.ts` `sat` 1 and `energy` 1,
+  `server/game/actions.ts` `energy` 1 and `fusion` 1 (#115);
+  `server/game/fleet-actions.ts` `probe` 1 (#116); `core/lab.ts` `lab` 2
+  and `client/views/yard.ts` `yard` 1, the lab and shipyard locks (#183,
+  „Lab lock and shipyard lock without catalog keys“). The mission and report
+  type `spy` equals a catalog key without being one: `fleet-actions.ts` 2,
+  `server/game/arrival.ts` 2 and `client/views/messages.ts` 1 are allowed
+  with #116, whose mission registry replaces those comparisons. The state
+  of a building or research that lacks energy is `noEnergy` (not `energy`),
+  so the scan does not hit it (owner, 2026-11-14).
 
 # Migration
 

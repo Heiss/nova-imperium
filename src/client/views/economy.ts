@@ -41,7 +41,7 @@ function researchAction(
     return '<span class="dim">Es wird bereits geforscht</span>';
   if (state === 'labBusy')
     return '<span class="dim">Scholarium wird ausgebaut</span>';
-  if (state === 'energy')
+  if (state === 'noEnergy')
     return `<span class="req">Zu wenig Energie: es fehlen ${fmt(short)}</span>`;
   return `<button data-act="research" data-k="${k}" ${afford(P, c) ? '' : 'disabled'}>Forschen${level ? ` (Stufe ${level + 1})` : ''}</button>`;
 }

@@ -125,7 +125,7 @@
           <span class="dim">Scholarium forscht gerade</span>
         {:else if status === 'full'}
           <span class="req">Keine freien Felder.</span>
-        {:else if status === 'energy'}
+        {:else if status === 'noEnergy'}
           <span class="req">Zu wenig Energie: es fehlen {fmt(short)}</span>
         {:else}
           <button data-act="build" data-k={key} disabled={!afford(P, cost)}>
