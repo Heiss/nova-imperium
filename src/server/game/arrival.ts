@@ -8,7 +8,8 @@ import { queuePush } from '../push-store.ts';
 import { MISSION_SERVERS } from '../../features/index.server.gen.ts';
 import { type TargetKind, missionRules, suits } from '../../core/missions.ts';
 import { settle } from '../../core/settle.ts';
-import type { Fleet, Planet, Universe } from '../../core/types.ts';
+import { inUniverse } from '../../core/universe.ts';
+import type { Fleet, Planet } from '../../core/types.ts';
 import { type Ctx, addReport, coords, resLine, universe } from './context.ts';
 import { type MissionServer, type Player, land, turnBack } from './missions.ts';
 
@@ -43,12 +44,10 @@ function unsuitableTarget(ctx: Ctx, f: Fleet): void {
   turnBack(ctx, f);
 }
 
-const inside = ({ g, s, p }: Fleet['toC'], u: Universe): boolean =>
-  g <= u.galaxies && s <= u.systems && p <= u.positions;
-
 /** Whether the target still fits the kind; a free one must also still exist. */
 const fits = (ctx: Ctx, kind: TargetKind, f: Fleet, t: Planet | null) =>
-  suits(kind, f.owner, t) && (kind !== 'free' || inside(f.toC, universe(ctx)));
+  suits(kind, f.owner, t) &&
+  (kind !== 'free' || inUniverse(f.toC, universe(ctx)));
 
 export function arrive(ctx: Ctx, f: Fleet): void {
   const rules = missionRules(f.mission);
