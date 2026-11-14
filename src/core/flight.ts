@@ -1,5 +1,8 @@
-// Distance, speed, flight time, fuel and cargo of fleets.
-import { DRIVE_BONUS, type DriveKey, SHIPS, isShip } from './catalog.ts';
+// Distance, speed, flight time, fuel and cargo of fleets. The flight values
+// of a ship are its component `mobile`, read through the rule module
+// components/mobile.ts (#114).
+import { MOBILE, isShip } from './catalog.ts';
+import * as M from './components/mobile.ts';
 import type { Coords, Levels, ResearchState, Universe } from './types.ts';
 
 /** Fleets a player can have in flight at once: 1 + Computertechnik. */
@@ -13,36 +16,30 @@ export function distance(a: Coords, b: Coords): number {
   return 5;
 }
 
-export interface ActiveDrive {
-  drive: DriveKey;
-  speed: number;
-}
+/** The component `mobile` of a ship; undefined for anything that does not fly. */
+const mobileOf = (key: string): M.Mobile | undefined =>
+  Object.hasOwn(MOBILE, key) ? MOBILE[key] : undefined;
 
 /**
  * The drive a ship flies with and its base speed: the base drive, or the last
- * drive switch whose research the player has reached (the Bomber, #57). Null
- * for anything that is not a ship.
+ * drive switch whose research the player has reached (the Bomber, #57). A
+ * ship without `mobile` has the drive of `STATIONARY`; null for anything that
+ * is not a ship.
  */
 export function activeDrive(
   key: string,
   r: Pick<ResearchState, 'research'>,
-): ActiveDrive | null {
+): M.ActiveDrive | null {
   if (!isShip(key)) return null;
-  const ship = SHIPS[key]!;
-  let active: ActiveDrive = { drive: ship.drive, speed: ship.speed };
-  for (const d of ship.drives ?? [])
-    if ((r.research[d.from.research] ?? 0) >= d.from.level)
-      active = { drive: d.drive, speed: d.speed };
-  return active;
+  return M.activeDrive(mobileOf(key) ?? M.STATIONARY, r.research);
 }
 
 export function shipSpeed(
   key: string,
   r: Pick<ResearchState, 'research'>,
 ): number {
-  const a = activeDrive(key, r);
-  if (!a) return 0;
-  return a.speed * (1 + DRIVE_BONUS[a.drive] * (r.research[a.drive] ?? 0));
+  const m = mobileOf(key);
+  return m ? M.speed(m, r.research) : 0;
 }
 
 /** The slowest ship sets the speed. Infinity for an empty fleet. */
@@ -71,9 +68,9 @@ export const flightMs = (
 export function fuelFor(ships: Levels, dist: number, pct: number): number {
   let f = 0;
   for (const [k, n] of Object.entries(ships)) {
-    const ship = SHIPS[k];
-    if (ship && n > 0)
-      f += ((ship.fuel * n * dist) / 35000) * Math.pow(pct / 10 + 1, 2);
+    const m = mobileOf(k);
+    if (m && n > 0)
+      f += ((m.fuel * n * dist) / 35000) * Math.pow(pct / 10 + 1, 2);
   }
   return Math.round(f) + 1;
 }
@@ -82,10 +79,10 @@ export function fuelFor(ships: Levels, dist: number, pct: number): number {
 export const deployFuel = (fuel: number): number => Math.floor(fuel / 2);
 
 export const capacity = (ships: Levels): number =>
-  Object.entries(ships).reduce(
-    (a, [k, n]) => a + (SHIPS[k] ? SHIPS[k].cargo * n : 0),
-    0,
-  );
+  Object.entries(ships).reduce((a, [k, n]) => {
+    const m = mobileOf(k);
+    return a + (m ? m.cargo * n : 0);
+  }, 0);
 
 export const countUnits = (o: Levels | null | undefined): number =>
   Object.values(o ?? {}).reduce((a, b) => a + b, 0);

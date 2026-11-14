@@ -202,7 +202,10 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   no new test code. A property test (`src/core/production.test.ts`) keeps
   `prod()` bit-identical to its form before #114 (owner, 2026-11-13), and
   `src/core/battle-reference.test.ts` keeps `battle()` bit-identical to its
-  form before the combat components (#114, second pull request). See
+  form before the combat components (#114, second pull request), and
+  `src/core/flight-reference.test.ts` keeps speed, fuel and cargo of a
+  fleet bit-identical to their form before the flight component (#114,
+  third pull request). See
   [Design patterns](/architecture/patterns.md), section 12.
 * **[E]** Mutation standard per file (owner, 2026-11-11,
   `mutation-standard.json`, `scripts/mutation-gate.ts`): no file may fall
