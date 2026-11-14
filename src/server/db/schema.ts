@@ -582,7 +582,21 @@ export const MIGRATIONS: readonly string[] = [
   DROP TABLE old_fleet_ships;
   DROP TABLE old_fleets;
   `,
-  // 17: guild ranks with rights (issue #163). A rank has a place in the
+  // 17: the push kinds a player switched off (issue #192), and the kind of
+  // each queued push; a queued order or fleet push gets its kind, a queued
+  // report push keeps none and is delivered as before
+  `
+  CREATE TABLE push_off (
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    topic TEXT NOT NULL,
+    PRIMARY KEY (user_id, topic)
+  ) STRICT;
+  ALTER TABLE push_jobs ADD COLUMN topic TEXT;
+  UPDATE push_jobs SET topic = kind
+    WHERE kind IN ('buildings', 'research', 'shipyard', 'fleet');
+  `,
+  // 18: guild ranks with rights (issue #163); becomes 19 if the Endzeit
+  // migration of #205 is merged first. A rank has a place in the
   // order of its guild (0 is the Leitung, a larger number a lower rank) and
   // a set of rights; the Leitung holds all rights in code, not in rows.
   // Every guild gets the ranks Leitung (held by the founder) and Mitglied

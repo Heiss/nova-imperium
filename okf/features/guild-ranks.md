@@ -139,7 +139,8 @@ The owner answered the five open points of the first build (owner,
 
 # Data and code
 
-* Migration 17 (see [SQLite storage](/data/sqlite.md)): table `guild_ranks`
+* Migration 18 (19 if the Endzeit migration of #205 reaches `main` first;
+  see [SQLite storage](/data/sqlite.md)): table `guild_ranks`
   (id, guild, name, `position`, `UNIQUE (guild_id, position)`; 0 is the
   Leitung, a larger number a lower rank), table `guild_rank_rights` (rank,
   `right_key` with a CHECK of the five keys), `guilds.default_rank` and
@@ -173,8 +174,8 @@ The owner answered the five open points of the first build (owner,
   deleting a rank and the default rank, the limits, and what the guild view
   shows inside and outside.
 * `src/server/db/repos/guilds.test.ts`: the rank methods.
-* `src/server/db/upgrades/migration-17.test.ts`: hand-written data, the
-  constraints and cascades, and generated data of version 16.
+* `src/server/db/upgrades/migration-18.test.ts`: hand-written data, the
+  constraints and cascades, and generated data of version 17.
 * `e2e/guild-ranks.spec.ts`, desktop and phone: the Leitung creates a rank,
   gives it the right for applications and a member, that member accepts an
   application, a member without the right sees none and the server refuses

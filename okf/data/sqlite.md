@@ -179,7 +179,15 @@ column. Fleets in flight keep every column and their ships
 (`upgrades/migration-16.test.ts`). The table `debris` of migration 15 is
 used from #45 on: one row per position, added up by every battle there.
 
-Migration 17 (issue #163, see [Guild ranks](/features/guild-ranks.md))
+Migration 17 (issue #192, see [Push settings per kind](/features/push-settings.md))
+adds the table `push_off` (player with `ON DELETE CASCADE`, kind, primary
+key over both): one row per push kind a player switched off, so every kind
+is on by default. It adds `push_jobs.topic`, the kind of a queued push;
+queued pushes of the kinds `buildings`, `research`, `shipyard` and `fleet`
+get that kind, queued report pushes (`messages`) get none and are delivered
+as before (`upgrades/migration-17.test.ts`).
+
+Migration 18 (issue #163, see [Guild ranks](/features/guild-ranks.md))
 adds the guild ranks: table `guild_ranks` (id, `guild_id` with `ON DELETE
 CASCADE`, name, `position` with `UNIQUE (guild_id, position)`; 0 is the
 Leitung, a larger number a lower rank), table `guild_rank_rights`
@@ -190,11 +198,13 @@ is a default or held by a member cannot be deleted by mistake) and the
 index `guild_members_rank`. Every guild gets the ranks `r0_<id>` „Leitung“
 (position 0) and `r1_<id>` „Mitglied“ (position 1, its default rank); the
 founder gets the Leitung, every other member „Mitglied“, an applicant no
-rank. Other data stay as they were (`upgrades/migration-17.test.ts`:
+rank. Other data stay as they were (`upgrades/migration-18.test.ts`:
 hand-written data, the constraints and cascades, generated data of
-version 16). It was planned as 16 and follows migration 16 of #45, which
-reached `main` first; other branches (#161, #53) take the next free number
-at merge time.
+version 17). It was planned as 16 and follows migration 16 of #45 and
+migration 17 of #192, which reached `main` first. The Endzeit of #205 will
+take 18; if #205 is merged first, the guild ranks become migration 19
+(the number is the place in `MIGRATIONS`, without gaps), and their upgrade
+test moves to `migration-19.test.ts`.
 
 Account deletion runs in one transaction. Foreign-key cascades clear owned game,
 session, reward and push data. The deletion also removes led guilds and their
@@ -223,7 +233,7 @@ tests together with an own test for each changing migration).
   existing rows needs its own test `src/server/db/upgrades/migration-<n>.test.ts`
   that checks the data after the upgrade. The decision is made by the effect on
   generated data, not by the SQL text; `ALTER TABLE … ADD COLUMN` counts as a
-  change. Migrations 7, 9, 10, 11, 13, 14, 15 and 16 have such tests; pure `CREATE` migrations need
+  change. Migrations 7, 9, 10, 11, 13, 14, 15, 16, 17 and 18 have such tests; pure `CREATE` migrations need
   none (migration 12 has one anyway, for its CHECK and cascade).
 * **[E]** A self-test proves that the checks find a migration that fails on
   existing data and that the classification tells changes from new tables.

@@ -518,6 +518,16 @@ input[type='checkbox'] {
   gap: 8px;
   font-weight: 600;
 }
+.push-kinds {
+  display: grid;
+  gap: 10px;
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+.push-kinds legend {
+  padding: 0 0 8px;
+}
 label {
   cursor: default;
 }

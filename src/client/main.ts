@@ -38,6 +38,7 @@ import {
   newsHint,
 } from './logic/news.ts';
 import { ANIMATION_KEY, animationsOn } from './logic/planet.ts';
+import { pushSaver } from './logic/push-options.ts';
 import type { GameState } from './logic/types.ts';
 import { afford, caps, lvlCost, production } from '../core/economy.ts';
 import type { Ui, V } from './views/common.ts';
@@ -542,6 +543,9 @@ async function act(type: string, data: object = {}): Promise<boolean> {
     return false;
   }
 }
+
+/** The push kinds (#192): one save at a time, the newest choice wins. */
+const savePush = pushSaver(ui, (off) => act('pushOptions', { off }));
 
 // ----- rendering -----
 
@@ -1627,6 +1631,12 @@ document.addEventListener('change', (e) => {
     setAnimations((el as unknown as HTMLInputElement).checked);
   if (el.dataset?.chg === 'pct')
     void act('pct', { key: el.dataset.k, v: el.value });
+  if (el.dataset?.chg === 'push' && S)
+    void savePush(
+      S.me.pushOff,
+      el.dataset.k,
+      (el as unknown as HTMLInputElement).checked,
+    ).then(() => render());
   if (ui.view === 'fleet') fleetCalc();
   if (ui.view === 'achievements') filterAchievements();
 });
@@ -1797,6 +1807,7 @@ window.addEventListener('hashchange', () => {
 
 async function loadPasswordPolicy(): Promise<void> {
   const policy = await api('/api/account/policy').catch(() => null);
+  ui.webPush = policy?.webPush === true;
   const minimum = policy?.passwordMinLength;
   if (
     typeof minimum === 'number' &&

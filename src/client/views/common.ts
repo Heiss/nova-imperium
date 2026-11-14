@@ -24,10 +24,13 @@ import {
 } from '../../core/requirements.ts';
 import { production } from '../../core/economy.ts';
 import { text } from '../../core/text.ts';
+import type { PushChoice } from '../logic/push-options.ts';
 import type { GameState } from '../logic/types.ts';
 
-export interface Ui {
+export interface Ui extends PushChoice {
   passwordMinLength?: number;
+  /** Whether the server sends Web Push; else the options hide the push kinds (#192). */
+  webPush?: boolean;
   view: string;
   guild?: string | null;
   gal: number;

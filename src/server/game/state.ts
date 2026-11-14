@@ -5,6 +5,7 @@ import { missionRules } from '../../core/missions.ts';
 import { UNIVERSE_SPECS } from '../../core/universe.ts';
 import type { Fleet } from '../../core/types.ts';
 import type { User } from '../db/repos/players.ts';
+import { pushOff } from '../push-options.ts';
 import { ownLabs } from './actions.ts';
 import { type Ctx, universe } from './context.ts';
 import { guildState } from './guilds.ts';
@@ -49,6 +50,19 @@ function galaxyOf(ctx: Ctx) {
   }));
 }
 
+/** The player's own account: research, options and the push kinds that are off (#192). */
+const meOf = (ctx: Ctx, u: User) => ({
+  id: u.id,
+  name: u.name,
+  research: u.research,
+  rq: u.rq,
+  probes: u.probes,
+  explain: u.explain,
+  pushOff: pushOff(ctx, u.id),
+  readAt: u.readAt,
+  admin: u.admin,
+});
+
 export function stateFor(
   ctx: Ctx,
   u: User,
@@ -76,16 +90,7 @@ export function stateFor(
     round,
     now: ctx.now(),
     cfg: universe(ctx),
-    me: {
-      id: u.id,
-      name: u.name,
-      research: u.research,
-      rq: u.rq,
-      probes: u.probes,
-      explain: u.explain,
-      readAt: u.readAt,
-      admin: u.admin,
-    },
+    me: meOf(ctx, u),
     planet: p,
     homePlanet: home?.id ?? null,
     labs: ownLabs(ctx, u.id),

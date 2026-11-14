@@ -4,6 +4,7 @@ import type { DebrisField } from '../../core/debris.ts';
 import type { LabSite } from '../../core/research.ts';
 import type { ExplainMode } from '../../core/explain.ts';
 import type { GuildRight } from '../../core/guild-ranks.ts';
+import type { PushTopic } from '../../core/push.ts';
 import type { UniverseSpec } from '../../core/universe.ts';
 import type {
   Coords,
@@ -22,6 +23,8 @@ interface Me {
   probes: number;
   /** Display option of the explanation texts (issue #63). */
   explain: ExplainMode;
+  /** The push kinds the player switched off, for all devices (#192). */
+  pushOff: PushTopic[];
   readAt: number;
   admin: boolean;
 }
