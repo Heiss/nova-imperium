@@ -1,7 +1,7 @@
 # Phone study – less load on 390 px
 
-Study for the idea issue about the phone view (see the issue linked from the
-pull request). Everything is a proposal **[V]**; numbers are examples.
+Study for issue #189 (a lighter phone view). Everything is a proposal **[V]**;
+numbers are examples.
 
 - `mobile-before.png` – the game today on a 390 px phone (`main`, a fresh
   account): Übersicht, Gebäude, Rohstoffe, Sternenkarte
