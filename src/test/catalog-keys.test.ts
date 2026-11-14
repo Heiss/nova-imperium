@@ -439,7 +439,8 @@ function esBound(bind: (scope: EsScope) => void): EsScope {
  * Markup blocks whose names are visible in some of their parts only, as in
  * Svelte: the item and index of `{#each}` in its body and key, not in the
  * list nor in `{:else}`; the value of `{#await}` in `{:then}` only, its
- * error in `{:catch}` only. Each part with the scope it adds, if any.
+ * error in `{:catch}` only. The binding patterns are visited too, for the
+ * comparisons in their defaults. Each part with the scope it adds, if any.
  */
 const ES_PARTS = new Map<string, (n: Node) => [unknown, EsScope?][]>([
   [
@@ -449,17 +450,29 @@ const ES_PARTS = new Map<string, (n: Node) => [unknown, EsScope?][]>([
         esBind(n.context, scope);
         if (typeof n.index === 'string') scope.set(n.index, null);
       });
-      return [[n.expression], [n.fallback], [n.key, item], [n.body, item]];
+      return [
+        [n.expression],
+        [n.fallback],
+        [n.context, item],
+        [n.key, item],
+        [n.body, item],
+      ];
     },
   ],
   [
     'AwaitBlock',
-    (n) => [
-      [n.expression],
-      [n.pending],
-      [n.then, esBound((scope) => esBind(n.value, scope))],
-      [n.catch, esBound((scope) => esBind(n.error, scope))],
-    ],
+    (n) => {
+      const value = esBound((scope) => esBind(n.value, scope));
+      const error = esBound((scope) => esBind(n.error, scope));
+      return [
+        [n.expression],
+        [n.pending],
+        [n.value, value],
+        [n.then, value],
+        [n.error, error],
+        [n.catch, error],
+      ];
+    },
   ],
 ]);
 
@@ -667,6 +680,9 @@ describe('no comparison with a catalog key outside src/features (#114)', () => {
       '{:catch ERR}',
       '  <p>{LIST.includes(key)}{ERR.includes(key)}</p>',
       '{/await}',
+      // A default in a binding pattern is code too.
+      '{#each rows as { on = ERR.includes(key) }}<p>{on}</p>{/each}',
+      '{#await p then { v = ERR.includes(key) }}{v}{:catch { e = ERR.includes(key) }}{e}{/await}',
     ].join('\n');
     expect(found('X.svelte', component).sort()).toEqual(
       [
@@ -676,6 +692,9 @@ describe('no comparison with a catalog key outside src/features (#114)', () => {
         'X.svelte: metal', // pending
         'X.svelte: crystal', // {:then}
         'X.svelte: metal', // {:catch}
+        'X.svelte: crystal', // each default
+        'X.svelte: crystal', // then default
+        'X.svelte: crystal', // catch default
       ].sort(),
     );
   });
