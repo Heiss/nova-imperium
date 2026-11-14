@@ -79,6 +79,7 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 | Reports per player | 60 | 10 to 500 |
 | Start metal / crystal / deuterium | 500 / 500 / 0 | 0 to 10,000,000 |
 | Extra fields per planet („Zusatzfelder pro Planet“, #51) | 0 (not in version 1) | 0 to 100, [E] owner 2026-11-13 |
+| Flight time of the „Endzeit“ gift in minutes („Flugzeit der Endzeit-Gabe (Minuten)“, #161) | 240 (not in version 1) | 1 to 4,320 (72 h), [E] owner 2026-11-14 |
 
 * **[V]** The ranges above are proposals; the source is
   `src/core/universe.ts`.

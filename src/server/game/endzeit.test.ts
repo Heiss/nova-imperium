@@ -9,7 +9,6 @@ import { tick } from './arrival.ts';
 import { runAction } from './dispatch.ts';
 import {
   ARRIVAL_TEXT,
-  ENDZEIT_MINUTES,
   ENDZEIT_ROUND,
   START_TEXT,
   endzeit,
@@ -131,35 +130,54 @@ describe('ringing in the Endzeit', () => {
     }
   });
 
-  it('happens once per round and saves its flight time as the next default', () => {
+  it('happens once per round and keeps the default flight time', () => {
     const ctx = world();
     expect(endzeitState(ctx)).toEqual({ minutes: 240, done: false });
     ring(ctx, 30);
     expect(ctx.admin.setting(ENDZEIT_ROUND)).toBe(1);
-    expect(ctx.admin.setting(ENDZEIT_MINUTES)).toBe(30);
-    // The stored names of the two settings.
+    // Only the round is stored; the time of the dialog is for this trigger.
     expect(
       ctx.db
         .prepare(
           "SELECT key, value FROM settings WHERE key LIKE 'endzeit%' ORDER BY key",
         )
         .all(),
-    ).toEqual([
-      { key: 'endzeitMinutes', value: 30 },
-      { key: 'endzeitRound', value: 1 },
-    ]);
-    expect(endzeitState(ctx)).toEqual({ minutes: 30, done: true });
+    ).toEqual([{ key: 'endzeitRound', value: 1 }]);
+    expect(ctx.admin.universe().endzeitMinutes).toBe(240);
+    expect(endzeitState(ctx)).toEqual({ minutes: 240, done: true });
     expect(() => ring(ctx, 30)).toThrow(
       'Die Endzeit wurde in dieser Runde schon eingeläutet.',
     );
     expect(ctx.fleets.all()).toHaveLength(2);
     // A new round allows it again.
     runAction(ctx, 'u_Anna', { type: 'reset' });
-    expect(endzeitState(ctx)).toEqual({ minutes: 30, done: false });
+    expect(endzeitState(ctx)).toEqual({ minutes: 240, done: false });
     ring(ctx, 45);
     expect(ctx.fleets.all()).toHaveLength(2);
-    expect(endzeitState(ctx)).toEqual({ minutes: 45, done: true });
+    expect(endzeitState(ctx)).toEqual({ minutes: 240, done: true });
     expect(ctx.admin.setting(ENDZEIT_ROUND)).toBe(2);
+  });
+
+  it('offers the default of the universe settings first (owner, 2026-11-14)', () => {
+    const ctx = world();
+    runAction(ctx, 'u_Anna', {
+      type: 'settings',
+      settings: { ...DEFAULT_UNIVERSE, endzeitMinutes: 15 },
+    });
+    expect(endzeitState(ctx)).toEqual({ minutes: 15, done: false });
+    expect(() =>
+      runAction(ctx, 'u_Anna', {
+        type: 'settings',
+        settings: { ...DEFAULT_UNIVERSE, endzeitMinutes: 4321 },
+      }),
+    ).toThrow(
+      'Flugzeit der Endzeit-Gabe (Minuten): ganze Zahl von 1 bis 4320.',
+    );
+    expect(endzeitState(ctx).minutes).toBe(15);
+    // The dialog's time differs: it applies, the default stays.
+    ring(ctx, 600);
+    expect(giftOf(ctx, 'u_Anna').arr).toBe(ctx.now() + 600 * MINUTE);
+    expect(endzeitState(ctx)).toEqual({ minutes: 15, done: true });
   });
 
   it('records the round, the time and the recipients in the audit entry', () => {

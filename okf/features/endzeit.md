@@ -6,7 +6,7 @@ description: An admin button for the end of a round: every player gets a gift fl
 
 # Endzeit
 
-Issue #161, milestone `next release` (owner, 2026-11-13 and 2026-11-14). A
+Issue #161, in the next release (owner, 2026-11-13 and 2026-11-14). A
 gimmick for the end of a round: everyone gets the late game at once and the
 group fights one huge battle.
 
@@ -45,13 +45,21 @@ group fights one huge battle.
   than the start planet“ does not apply to the gift. The fleet list shows
   the origin „Gottkaiser“.
 * **[E]** Arrival: only the message „Die Gabe des Gottkaisers ist
-  eingetroffen.“ with push, instead of „Verlegung erreicht“.
-* **[E]** Flight time: an input in the confirmation dialog, prefilled from a
-  saved setting (default 4 h), 1 minute to 72 h; it applies only to this
-  trigger, fleets in flight keep their time; real time, not scaled by the
-  universe speed.
+  eingetroffen.“ with push, instead of „Verlegung erreicht“; the sentence is
+  title and text (2026-11-14). The start message has the title „Endzeit“.
+* **[E]** Flight time: an input in the confirmation dialog, 1 minute to
+  72 h; it applies only to this trigger, fleets in flight keep their time;
+  real time, not scaled by the universe speed.
+* **[E]** Default flight time (2026-11-14, „Geklärt, Nachtrag“): its own
+  field of the admin form „Universum“, in minutes from 1 to 4,320 (72 h),
+  default 240 (4 h), saved with the other universe settings. The dialog is
+  prefilled from it and may change the value for this trigger only; the
+  trigger does not save it, so the last used value is never the default.
 * **[E]** A running build or research of a key the gift raises, to a level
   not above the new level, is cancelled and refunded on arrival.
+  A cancelled research is refunded on the planet where it started; when
+  that planet is gone or no longer the player's, on the home planet
+  (2026-11-14).
 * **[E]** No fleet slot; fuel 0.
 * **[E]** Performance: one battle of two full gift fleets is measured and
   reported in the pull request; there is no limit.
@@ -69,9 +77,15 @@ group fights one huge battle.
 * `src/server/game/endzeit.ts`: the admin action `endzeit` (in `ACTIONS`,
   audited as `admin.write` through `ADMIN_ACTIONS` of `dispatch.ts`) and
   `giftArrive()`. Once per round: the setting `endzeitRound` holds the round
-  of the last trigger; `endzeitMinutes` holds the flight time of the last
-  trigger, the next default **[V]**. Settings are read with
-  `ctx.admin.setting(key)`.
+  of the last trigger (read with `ctx.admin.setting(key)`).
+* Default flight time: the universe setting `endzeitMinutes` (an entry of
+  `UNIVERSE_SPECS` in `src/core/universe.ts`, label „Flugzeit der
+  Endzeit-Gabe (Minuten)“, `GIFT_MINUTES` as range, `GIFT_DEFAULT_MINUTES`
+  as default). The form „Universum“, the check of the action `settings`
+  (all values at once) and the storage come from that list, as for
+  `extraFields` (#51). The admin state hands it to the dialog
+  (`endzeitState`); the action `endzeit` checks its own `minutes` and
+  stores only `endzeitRound`.
 * Arrival: `onArrive` of `src/features/missions/deploy/arrive.server.ts`
   hands a gift to `giftArrive()`: ships and cargo land, the buildings of the
   home planet and the research are raised, an overtaken build or research
@@ -91,15 +105,16 @@ group fights one huge battle.
 * Admin panel, tab „Universum“: a box „Endzeit“ with the button „Endzeit
   einläuten“; after the trigger it says „In dieser Runde wurde die Endzeit
   schon eingeläutet.“
+* Form „Universum“: the field „Flugzeit der Endzeit-Gabe (Minuten)“ (1 bis
+  4.320), saved with „Einstellungen speichern“; a wrong value: „Flugzeit der
+  Endzeit-Gabe (Minuten): ganze Zahl von 1 bis 4320.“
 * Confirmation dialog: „Endzeit einläuten – alle Spieler erhalten die Gabe
   des Gottkaisers.“ with what the gift holds, the input „Flugzeit der Gabe
-  (Minuten)“ (1 to 4.320, in real time), „Ja, Endzeit einläuten“ and
-  „Abbrechen“.
+  (Minuten)“ (prefilled from the form „Universum“, 1 to 4.320, in real
+  time, for this trigger only), „Ja, Endzeit einläuten“ and „Abbrechen“.
 * Answer: „Die Endzeit ist eingeläutet. Gaben unterwegs: N.“; a second
   trigger: „Die Endzeit wurde in dieser Runde schon eingeläutet.“; a wrong
   time: „Bitte eine Flugzeit von 1 bis 4.320 Minuten (72 h) eingeben.“
-* Messages: the start message has the title „Endzeit“; the arrival message
-  has the decided sentence as title and text.
 
 # Tests
 
@@ -111,7 +126,7 @@ group fights one huge battle.
   admin accounts, not a player without a planet); the fleet (from and to the
   home planet, cargo, fuel 0, flight time not scaled, no slot); the start
   message with push; the flight time range; once per round and again after
-  a new round; the audit detail; no recall; the points of the ships from
+  a new round, the default kept; the default from the universe settings; the audit detail; no recall; the points of the ships from
   the trigger and of the levels from the arrival; the arrival (ships, cargo
   above the storage, levels, home planet only, the message, no „Verlegung
   erreicht“); a cancelled and refunded build or research, a higher one
@@ -121,5 +136,8 @@ group fights one huge battle.
   machine, 6 rounds).
 * `src/features/missions/deploy/deploy.test.ts`, `upgrades/migration-17.test.ts`,
   `src/server/db/repos/admin.test.ts`, `src/server/http/app.routes.test.ts`
-  (audit as `admin.write`); E2E „the admin rings in the Endzeit …“ in
-  `e2e/flows.spec.ts`.
+  (audit as `admin.write`); `src/core/universe.test.ts` (the setting
+  `endzeitMinutes`); E2E „the admin rings in the Endzeit …“ (the dialog
+  prefilled with 240, the default kept after a trigger of 30) and, @phone,
+  „the fleet list shows a gift from „Gottkaiser“ without „Rückruf“ …“ in
+  `e2e/flows.spec.ts`, with the option `gift` of `e2e/seed.ts`.

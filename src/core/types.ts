@@ -117,4 +117,6 @@ export interface Universe {
   startDeuterium: number;
   /** Fields added to every planet (#51). */
   extraFields: number;
+  /** The default flight time of the „Endzeit“ gift, in minutes (#161). */
+  endzeitMinutes: number;
 }

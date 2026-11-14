@@ -639,7 +639,8 @@ describe('game requests', () => {
     expect(reply.json).toMatchObject({
       ok: true,
       msg: 'Die Endzeit ist eingeläutet. Gaben unterwegs: 1.',
-      state: { admin: { endzeit: { minutes: 30, done: true } } },
+      // The 30 minutes were for this trigger; the default stays 4 h.
+      state: { admin: { endzeit: { minutes: 240, done: true } } },
     });
     const again = await call('POST', '/api/action', {
       type: 'endzeit',

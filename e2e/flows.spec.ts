@@ -251,6 +251,27 @@ test.describe('fleet and battle (#68)', () => {
     expect(w.problems).toEqual([]);
   });
 
+  test('the fleet list shows a gift from „Gottkaiser“ without „Rückruf“ on a phone (#161) @phone', async ({
+    page,
+  }) => {
+    const w = watch(page);
+    const name = uniqueName('GabeH');
+    await register(page, name);
+    // One gift for this player only: the trigger would reach every player.
+    seed({ name, gift: 60 });
+    await page.reload();
+    const gift = page.locator('tr', { hasText: 'von Gottkaiser erreicht' });
+    await expect(gift).toContainText('42 Weltenbrecher');
+    await expect(gift).toContainText('Verlegung');
+    await expect(gift).toBeInViewport();
+    await expect(gift.getByRole('button', { name: 'Rückruf' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Rückruf' })).toHaveCount(0);
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth),
+    ).toBeLessThanOrEqual(page.viewportSize()!.width);
+    expect(w.problems).toEqual([]);
+  });
+
   test('a transport unloads on the colony and comes home; reports are deleted one by one and all at once', async ({
     page,
   }) => {
@@ -835,6 +856,7 @@ test.describe('admin (#68)', () => {
         'Endzeit einläuten – alle Spieler erhalten die Gabe des Gottkaisers.',
       ),
     ).toBeVisible();
+    // Prefilled from the setting of the form „Universum“ (owner, 2026-11-14).
     const time = page.getByLabel('Flugzeit der Gabe (Minuten)');
     await expect(time).toHaveValue('240');
     await time.fill('30');
@@ -849,6 +871,10 @@ test.describe('admin (#68)', () => {
     await expect(
       page.getByRole('button', { name: 'Endzeit einläuten' }),
     ).toHaveCount(0);
+    // The time of the dialog was for this trigger only: the default stays.
+    await expect(
+      page.getByLabel('Flugzeit der Endzeit-Gabe (Minuten)'),
+    ).toHaveValue('240');
 
     // The gift flies from „Gottkaiser“ and cannot be recalled.
     await nav(page, 'overview');

@@ -4,7 +4,6 @@
 // arrives, the ships and the cargo land, and the research and the buildings
 // of the home planet are raised (src/core/endzeit.ts).
 import {
-  GIFT_DEFAULT_MINUTES,
   GIFT_MINUTES,
   giftCargo,
   giftLevels,
@@ -23,9 +22,8 @@ import { type Ctx, addReport, fail, universe } from './context.ts';
 import { land } from './missions.ts';
 import { roundRules } from './round.ts';
 
-/** The settings: the round of the last „Endzeit“ and its flight time. */
+/** The setting with the round of the last „Endzeit“. */
 export const ENDZEIT_ROUND = 'endzeitRound';
-export const ENDZEIT_MINUTES = 'endzeitMinutes';
 
 const MINUTE = 60000;
 
@@ -35,10 +33,13 @@ export const START_TEXT =
 /** The message on arrival (owner, 2026-11-14), instead of „Verlegung erreicht“. */
 export const ARRIVAL_TEXT = 'Die Gabe des Gottkaisers ist eingetroffen.';
 
-/** What the admin dialog shows: the saved flight time and whether it is used up. */
+/**
+ * What the admin dialog shows: the default flight time of the universe
+ * settings (`endzeitMinutes`) and whether the „Endzeit“ is used up.
+ */
 export function endzeitState(ctx: Ctx): { minutes: number; done: boolean } {
   return {
-    minutes: ctx.admin.setting(ENDZEIT_MINUTES) ?? GIFT_DEFAULT_MINUTES,
+    minutes: universe(ctx).endzeitMinutes,
     done: ctx.admin.setting(ENDZEIT_ROUND) === roundRules(ctx).number,
   };
 }
@@ -55,8 +56,16 @@ function flightMinutes(input: unknown): number {
   return minutes;
 }
 
-/** The gift fleet of one player: from and to their home planet, no fuel. */
-function giftFleet(ctx: Ctx, home: Planet, dep: number, arr: number): Fleet {
+/**
+ * The gift fleet of one player: from and to their home planet, no fuel
+ * (also used by `e2e/seed.ts`).
+ */
+export function giftFleet(
+  ctx: Ctx,
+  home: Planet,
+  dep: number,
+  arr: number,
+): Fleet {
   const at = { g: home.g, s: home.s, p: home.p };
   return {
     id: ctx.id(),
@@ -82,7 +91,8 @@ function giftFleet(ctx: Ctx, home: Planet, dep: number, arr: number): Fleet {
  * Rings in the „Endzeit“: every player with a home planet at this moment
  * gets the start message and a gift fleet, suspended and admin accounts
  * included (D6/D7). The flight time runs in real time, not with the speed
- * of the universe, and is saved as the next default.
+ * of the universe, and applies to this trigger only: the default of the
+ * universe settings stays.
  */
 export const endzeit: Action = (ctx, u, d, event) => {
   requireAdmin(u);
@@ -105,10 +115,7 @@ export const endzeit: Action = (ctx, u, d, event) => {
     });
     recipients++;
   }
-  ctx.admin.putSettings([
-    [ENDZEIT_ROUND, round],
-    [ENDZEIT_MINUTES, minutes],
-  ]);
+  ctx.admin.putSettings([[ENDZEIT_ROUND, round]]);
   if (event) event.detail = { round, minutes, recipients, due: arr };
   return `Die Endzeit ist eingeläutet. Gaben unterwegs: ${recipients}.`;
 };

@@ -22,7 +22,10 @@ export const GIFT_MINIMUM: Readonly<Required<Requirements>> = {
   r: { ifn: 1 },
 };
 
-/** The flight time the admin dialog offers first (owner: about 4 h). */
+/**
+ * The default of the setting „Flugzeit der Endzeit-Gabe“ of the universe
+ * (owner, 2026-11-14): 4 h; the admin dialog offers it first.
+ */
 export const GIFT_DEFAULT_MINUTES = 240;
 /** The range of the flight time: 1 minute to 72 h (owner, 2026-11-14). */
 export const GIFT_MINUTES = { min: 1, max: 72 * 60 } as const;
