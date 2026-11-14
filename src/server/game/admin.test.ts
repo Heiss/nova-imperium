@@ -84,6 +84,14 @@ describe('admin', () => {
     expect(ctx.reports.ofPlayer(b.id)).toEqual([]);
   });
 
+  it('a new round clears the Trümmerfelder (#45)', () => {
+    const ctx = testCtx();
+    const a = addUser(ctx, 'Anna', { admin: true });
+    ctx.debris.add({ g: 1, s: 2, p: 3 }, { m: 1800, c: 600 });
+    reset(ctx, a, {});
+    expect(ctx.debris.all()).toEqual([]);
+  });
+
   it('a new round ends the planets without a field limit (#51)', () => {
     const ctx = testCtx();
     const a = addUser(ctx, 'Anna', { admin: true });

@@ -1,5 +1,6 @@
 import type { AchievementState, RoundRules } from '../../core/achievements.ts';
 // The state the server sends (GET /api/state).
+import type { DebrisField } from '../../core/debris.ts';
 import type { LabSite } from '../../core/research.ts';
 import type { ExplainMode } from '../../core/explain.ts';
 import type { UniverseSpec } from '../../core/universe.ts';
@@ -74,6 +75,8 @@ export interface GameState {
   reports: Report[];
   players: Players;
   galaxy: GalaxyPlanet[];
+  /** Every Trümmerfeld, for every player (#45). */
+  debris: DebrisField[];
   admin: AdminState | null;
   achievements?: AchievementState;
   guilds?: GuildState;

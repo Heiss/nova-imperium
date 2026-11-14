@@ -10,3 +10,12 @@ export interface Unit {
   /** Cost of one piece: Adamant, Psikristall, Promethium. */
   cost: Cost;
 }
+
+/**
+ * The Adamant and Psikristall of `n` pieces, what destroyed ships leave
+ * for a Trümmerfeld before its share (#45); Promethium leaves nothing.
+ */
+export const wreck = (u: Unit, n: number): { m: number; c: number } => ({
+  m: u.cost[0] * n,
+  c: u.cost[1] * n,
+});

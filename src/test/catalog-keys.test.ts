@@ -526,7 +526,8 @@ const allowed = (a: Allowed): string => `${a.file}: ${a.key}`;
 
 describe('no comparison with a catalog key outside src/features (#114)', () => {
   it('reads the keys from the feature folders', () => {
-    expect(KEYS.size).toBe(49);
+    expect(KEYS.size).toBe(50);
+    expect(KEYS).toContain('recycler');
     expect(KEYS).toContain('metal');
     expect(KEYS).toContain('sat');
     expect(KEYS).not.toContain('missions');

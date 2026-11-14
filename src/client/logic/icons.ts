@@ -32,6 +32,7 @@ const FILES: Record<string, string> = {
   sc: 'ships/small_cargo',
   lc: 'ships/large_cargo',
   colony: 'ships/colony_ship',
+  recycler: 'ships/recycler',
   lf: 'ships/light_fighter',
   hf: 'ships/heavy_fighter',
   cr: 'ships/cruiser',

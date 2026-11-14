@@ -426,3 +426,33 @@ describe('deploy (#129)', () => {
     });
   });
 });
+
+describe('Trümmerfelder in the state (#45)', () => {
+  it('shows every player every field, with its place and amounts', () => {
+    const { ctx, a, b } = setup();
+    ctx.debris.add({ g: 1, s: 2, p: 6 }, { m: 1800, c: 600.5 });
+    ctx.debris.add({ g: 2, s: 1, p: 1 }, { m: 0, c: 300 });
+    const fields = [
+      { id: 'd1_2_6', g: 1, s: 2, p: 6, m: 1800, c: 600.5 },
+      { id: 'd2_1_1', g: 2, s: 1, p: 1, m: 0, c: 300 },
+    ];
+    expect(stateFor(ctx, a).debris).toEqual(fields);
+    expect(stateFor(ctx, b).debris).toEqual(fields);
+  });
+
+  it('shows a Bergung to its owner only, not to the player at the position', () => {
+    const { ctx, a, b } = setup();
+    ctx.debris.add({ g: 1, s: 2, p: 6 }, { m: 1800, c: 600 });
+    const home = ctx.planets.home(a.id)!;
+    ctx.planets.save({ ...home, ships: { recycler: 1 } });
+    send(ctx, a, {
+      planet: home.id,
+      ships: { recycler: 1 },
+      to: { g: 1, s: 2, p: 6 },
+      mission: 'harvest',
+      pct: 10,
+    });
+    expect(stateFor(ctx, b).fleets).toEqual([]);
+    expect(stateFor(ctx, a).fleets).toMatchObject([{ to: 'd1_2_6' }]);
+  });
+});

@@ -11,10 +11,11 @@ import { missionText } from './text.ts';
 import type { Levels, Mission, Planet } from './types.ts';
 
 /**
- * What a mission flies to: an own planet, a foreign one, any planet, or a
- * free position without a planet.
+ * What a mission flies to: an own planet, a foreign one, any planet, a
+ * free position without a planet, or a Trümmerfeld (#45), which is a place
+ * of its own beside a planet at the same position (#119).
  */
-export type TargetKind = 'own' | 'foreign' | 'any' | 'free';
+export type TargetKind = 'own' | 'foreign' | 'any' | 'free' | 'debris';
 
 /**
  * Why a fleet cannot be sent, as a code; the server turns it into today's
@@ -28,7 +29,9 @@ export type SendError =
   | 'ownTarget'
   | 'protected'
   | 'noColonyShip'
-  | 'probesOnly';
+  | 'probesOnly'
+  | 'noDebris'
+  | 'noRecycler';
 
 /** The fleet a player wants to send: its owner, its origin and its ships. */
 export interface SendFleet {
@@ -42,6 +45,8 @@ export interface SendFleet {
 export interface SendTarget {
   /** The planet at the position, or null for a free position. */
   planet: Pick<Planet, 'id' | 'owner'> | null;
+  /** Whether a Trümmerfeld lies at the position (#45). */
+  debris: boolean;
   /**
    * Whether the noob protection keeps `owner` from this player. The server
    * determines it (it needs the points of every player), and only when it is
@@ -85,18 +90,25 @@ export const MISSION = Object.fromEntries(
 
 /**
  * Whether the planet at the target (or none) suits a target kind for the
- * owner of a fleet; the same rule for sending and for the arrival.
+ * owner of a fleet; the same rule for sending and for the arrival. A
+ * Trümmerfeld suits only whether it is there, whatever planet is there.
  */
 export function suits(
   kind: TargetKind,
   owner: string,
   planet: Pick<Planet, 'owner'> | null,
+  debris = false,
 ): boolean {
+  if (kind === 'debris') return debris;
   if (kind === 'free') return !planet;
   if (!planet) return false;
   if (kind === 'any') return true;
   return (planet.owner === owner) === (kind === 'own');
 }
+
+/** A Trümmerfeld must lie at the position, whatever planet is there (#45). */
+const debrisError = (target: SendTarget): SendError | undefined =>
+  target.debris ? undefined : 'noDebris';
 
 /** The generic check of the target kind, in today's order of the messages. */
 function targetError(
@@ -126,4 +138,6 @@ export const sendError = (
   fleet: SendFleet,
   target: SendTarget,
 ): SendError | undefined =>
-  targetError(rules.target, fleet, target) ?? rules.canSend(fleet, target);
+  (rules.target === 'debris'
+    ? debrisError(target)
+    : targetError(rules.target, fleet, target)) ?? rules.canSend(fleet, target);

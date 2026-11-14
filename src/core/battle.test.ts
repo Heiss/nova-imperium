@@ -223,6 +223,16 @@ describe('battle', () => {
       expect(rapid('dstar', t)).toBe(rf[t]);
     }
   });
+  it('fights with the Bergungsbarke as the classic Recycler (#45)', () => {
+    const [b] = buildSide({ units: { recycler: 1 }, tech: {} });
+    expect(b).toMatchObject({ hull: 1600, shield: 10, attack: 1 });
+    // The default 5 against the easy targets, nothing else.
+    expect(rapid('recycler', 'probe')).toBe(5);
+    expect(rapid('recycler', 'sat')).toBe(5);
+    for (const t of ['sc', 'lf', 'recycler', 'rl'])
+      expect(rapid('recycler', t)).toBe(1);
+    expect(rapid('dstar', 'recycler')).toBe(250);
+  });
   it('gives no unit rapid fire against the Todesstern (#60)', () => {
     for (const a of Object.keys(UNIT)) expect(rapid(a, 'dstar'), a).toBe(1);
   });
