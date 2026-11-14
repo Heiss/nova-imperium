@@ -45,7 +45,8 @@ all of it together with the Git workflow, the checks and the automation
   single-use and expire after 7 days.
 - Admins are made by the operator on the command line, never through the web.
 - The admin panel changes speed, size and start values of the universe live,
-  starts new rounds and manages invitations.
+  starts new rounds, rings in the „Endzeit“ once per round (a gift fleet for
+  every player for a final battle) and manages invitations.
 - All data lives in SQLite in a Docker volume and survives restarts and reboots.
 - Settings through `.env`; secrets (the SMTP password) through files.
 - Caddy in front with a strict Content-Security-Policy.

@@ -22,6 +22,8 @@ describe('universe settings', () => {
       startDeuterium: 0,
       // Added by #51, D4: no extra fields by default.
       extraFields: 0,
+      // Added by #161 (owner, 2026-11-14): the gift flies 4 h by default.
+      endzeitMinutes: 240,
     });
     for (const s of UNIVERSE_SPECS) {
       expect(s.def).toBeGreaterThanOrEqual(s.min);
@@ -80,6 +82,29 @@ describe('universe settings', () => {
     expect(
       validateUniverse({ ...DEFAULT_UNIVERSE, extraFields: -1 }, used).ok,
     ).toBe(false);
+  });
+  it('take 1 to 4,320 minutes as the Endzeit flight time (#161)', () => {
+    const spec = UNIVERSE_SPECS.find((s) => s.key === 'endzeitMinutes');
+    expect(spec).toEqual({
+      key: 'endzeitMinutes',
+      label: 'Flugzeit der Endzeit-Gabe (Minuten)',
+      min: 1,
+      max: 4320,
+      def: 240,
+    });
+    for (const endzeitMinutes of [1, 4320])
+      expect(
+        validateUniverse({ ...DEFAULT_UNIVERSE, endzeitMinutes }, used).ok,
+      ).toBe(true);
+    for (const endzeitMinutes of [0, 4321, 1.5])
+      expect(
+        validateUniverse({ ...DEFAULT_UNIVERSE, endzeitMinutes }, used),
+      ).toEqual({
+        ok: false,
+        errors: [
+          'Flugzeit der Endzeit-Gabe (Minuten): ganze Zahl von 1 bis 4320.',
+        ],
+      });
   });
   it('report all errors at once', () => {
     const r = validateUniverse({}, used);

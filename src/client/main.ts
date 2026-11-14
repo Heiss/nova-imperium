@@ -59,6 +59,7 @@ import {
   auth,
   diagnosticTab,
   roundDialog,
+  endzeitDialog,
   type AdminTab,
 } from './views/misc.ts';
 import { disablePush, enablePush } from './push.ts';
@@ -1326,6 +1327,12 @@ const ACT: Record<string, (d: Data) => unknown> = {
     };
     modal('');
     return act('reset', { rewards });
+  },
+  endzeit: () => modal(endzeitDialog(S!.admin!.endzeit.minutes)),
+  doEndzeit: () => {
+    const minutes = val('#endzeit-minutes');
+    modal('');
+    return act('endzeit', { minutes });
   },
   saveSettings: () => {
     const keys = S!.admin!.specs.map((x) => x.key);

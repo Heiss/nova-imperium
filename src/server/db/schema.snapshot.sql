@@ -130,7 +130,8 @@ CREATE TABLE fleets (
     state TEXT NOT NULL CHECK (state IN ('out', 'back')),
     recalled INTEGER NOT NULL DEFAULT 0,
     fuel INTEGER NOT NULL DEFAULT 0
-  ) STRICT;
+  , gift INTEGER NOT NULL DEFAULT 0
+    CHECK (gift IN (0, 1))) STRICT;
 
 CREATE TABLE guild_members (
     user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,

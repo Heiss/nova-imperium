@@ -162,8 +162,7 @@ may pass on a right its holder lacks.
 
 # Data and code
 
-* Migration 18 (19 if the Endzeit migration of #205 reaches `main` first;
-  see [SQLite storage](/data/sqlite.md)): table `guild_ranks`
+* Migration 19 (see [SQLite storage](/data/sqlite.md)): table `guild_ranks`
   (id, guild, name, `position`, `UNIQUE (guild_id, position)`; 0 is the
   Leitung, a larger number a lower rank), table `guild_rank_rights` (rank,
   `right_key` with a CHECK of the five keys), `guilds.default_rank` and
@@ -210,8 +209,8 @@ may pass on a right its holder lacks.
   such a right allowed, a rank without members and the Leitung always.
 * `src/core/guild-ranks.test.ts`: the pure rules.
 * `src/server/db/repos/guilds.test.ts`: the rank methods.
-* `src/server/db/upgrades/migration-18.test.ts`: hand-written data, the
-  constraints and cascades, and generated data of version 17.
+* `src/server/db/upgrades/migration-19.test.ts`: hand-written data, the
+  constraints and cascades, and generated data of version 18.
 * `e2e/guild-ranks.spec.ts`, desktop and phone: the Leitung creates a rank,
   gives it the right for applications and a member, that member accepts an
   application, a member without the right sees none and the server refuses

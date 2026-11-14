@@ -595,8 +595,14 @@ export const MIGRATIONS: readonly string[] = [
   UPDATE push_jobs SET topic = kind
     WHERE kind IN ('buildings', 'research', 'shipyard', 'fleet');
   `,
-  // 18: guild ranks with rights (issue #163); becomes 19 if the Endzeit
-  // migration of #205 is merged first. A rank has a place in the
+  // 18: the gift fleet of the admin's „Endzeit“ (issue #161). A gift is a
+  // Verlegung that cannot be recalled, takes no fleet slot and raises the
+  // research and buildings when it arrives; fleets in flight are no gift.
+  `
+  ALTER TABLE fleets ADD COLUMN gift INTEGER NOT NULL DEFAULT 0
+    CHECK (gift IN (0, 1));
+  `,
+  // 19: guild ranks with rights (issue #163). A rank has a place in the
   // order of its guild (0 is the Leitung, a larger number a lower rank) and
   // a set of rights; the Leitung holds all rights in code, not in rows.
   // Every guild gets the ranks Leitung (held by the founder) and Mitglied
