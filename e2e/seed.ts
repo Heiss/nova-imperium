@@ -9,11 +9,13 @@
 //   settledAgo? (ms: the home planet was last brought forward that long ago, so the
 //   server adds the production of that time), serverError? (a message: an unexpected
 //   server error of this player in the error log, issue #126), debris? ({ m, c }: a
-//   Trümmerfeld at the position of the home planet, issue #45) }
+//   Trümmerfeld at the position of the home planet, issue #45), gift? (minutes: a gift
+//   fleet of the „Endzeit“ to the home planet that arrives in that time, issue #161) }
 import { openDatabase } from '../src/server/db/database.ts';
 import { Store } from '../src/server/db/store.ts';
 import { recordServerError } from '../src/server/error-log.ts';
 import { createCtx } from '../src/server/game/context.ts';
+import { giftFleet } from '../src/server/game/endzeit.ts';
 import { databaseFile } from '../src/server/server.ts';
 import { loadConfig } from '../src/server/config.ts';
 import { readFileSync } from 'node:fs';
@@ -105,6 +107,13 @@ function addColony(p: Planet): void {
     .run(Date.now(), `p${c.g}_${c.s}_${c.p}`);
 }
 
+/** A gift fleet of the „Endzeit“ alone, without the trigger for every player. */
+function addGift(p: Planet, minutes: number): void {
+  const now = Date.now();
+  const ctx = createCtx(store);
+  ctx.fleets.save(giftFleet(ctx, p, now, now + minutes * 60000));
+}
+
 store.tx(() => {
   if (d.landColonyFleet) landFleet(u.id, 'colonize');
   if (d.landFleet) landFleet(u.id, d.landFleet);
@@ -114,6 +123,7 @@ store.tx(() => {
   updateHome(p);
   if (d.colony) addColony(p);
   if (d.debris) store.repos.debris.add(p, d.debris);
+  if (d.gift) addGift(p, d.gift);
   if (d.serverError)
     recordServerError(createCtx(store), {
       action: 'POST /api/action',
