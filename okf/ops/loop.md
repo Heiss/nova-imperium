@@ -33,9 +33,26 @@ tasks).
   request is open; „Plan the release“ when none has those labels and no
   release pull request is open. A merged release closes the release pull
   request, so the loop stops there and a restarted `/loop` plans next.
-* **[V]** The owner creates and arranges the GitHub Project and filters it
-  by the labels; the loop only sets labels (the session has no tools for
-  Projects).
+* **[E]** The owner's GitHub Project (`users/Heiss/projects/5`) shows the
+  status labels in its field „Status“ (owner, 2026-11-14; replaces „the
+  owner filters it by the labels“): the workflow „Project status“
+  (`.github/workflows/project-status.yml`, `scripts/project-status.ts`,
+  tests in `src/test/project-status.test.ts`) runs on every issue that is
+  opened, reopened, labelled or unlabelled. The labels lead, the board
+  follows; the loop still only sets labels.
+  * Only one status label holds: the one added last stays, the workflow
+    removes the others.
+  * No status label is „Backlog“; the options are `Backlog`,
+    `In discussion`, `Ready`, `In progress`, `In review`, `Done`.
+  * The project's own „Auto-add to project“ adds the issues; the workflow
+    waits up to a minute for the item and fails when it does not appear.
+  * Closed issues are left to the project's own workflow „Item closed“
+    („Done“); „Pull request linked to issue“ is switched off.
+  * Run by hand (`workflow_dispatch`), it syncs every open issue once and
+    lists the ones not in the project.
+  * Secret `PROJECT_TOKEN`: a classic personal access token with the scope
+    `project` [U: a fine-grained token not checked], because a GitHub App
+    cannot reach a project of a user; variable `PROJECT_NUMBER`.
 * **[V]** Questions to the owner are asked with the question tool inside the
   iteration; the iteration waits for the answer and continues with it. An
   issue counts as clarified when it has a comment that starts with
