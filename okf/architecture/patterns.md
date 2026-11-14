@@ -586,6 +586,14 @@ choice of the patterns to the assistant's recommendation below
   `updateShipyardButtons`, and leaves the countdowns of the list to it.
   `lockNotice()` with its comparison with `yard` moved from `yard.ts` to
   `catalog-list.ts`; the allow-list entry of #183 moved with it.
+* **[E]** All four lists follow the clock (owner, 2026-11-14, #118,
+  option C „Alle live + Changelog“): in Forschung, Schiffsschmiede and
+  Verteidigung the costs and the lists „Benötigt“ now update every second
+  as in Gebäude (before, only the buttons and the maxima did), and a
+  clicked button keeps its focus, because the list is updated in place;
+  not chosen: copying the old split (costs from the last render, buttons
+  from the clock), or the same without a changelog entry. The pull request
+  brings the fragment `changes/listen-live.md` (`art: geändert`).
 * **[U]** Left in `main.ts` for the next pull requests of #118: the login
   (`loginChallenge`, `rememberLogin`, `resetToken`), the admin panel
   (`adminPanel`), the mounted Svelte view (`mounted`, a DOM handle),
