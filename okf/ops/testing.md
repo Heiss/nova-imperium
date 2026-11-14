@@ -24,7 +24,8 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   `src/server/`) or `.github/workflows/ci.yml` – game code
   alone (for example `src/server/game/`) does not build the image – and
   always in a release pull request and in a pull request into `hotfix/**`
-  (job „Detect changes“ in `.github/workflows/ci.yml`). This replaces
+  (job „Detect changes“ in `.github/workflows/ci.yml`); the release pull
+  request of `main` only in its full run (#147). This replaces
   the earlier rule of round 1 that the whole suite runs on every pull
   request. The mutation tests run in a pull request only when it changes
   what they test (#146, below).
@@ -75,8 +76,8 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 * **[E]** Mutation tests with Stryker, a total score below 80 % blocks;
   incremental on pull requests (only those that change what they test,
   #146; a head that only merged `main` takes over the green result of the
-  head before, #167; the release pull request of `main` keeps its
-  complete run) and on
+  head before, #167; the release pull request of `main` runs it
+  completely in its full run, #147) and on
   pushes to `main` (unchanged code keeps its cached result),
   complete every night (owner, 2026-11-11). Tag workflows verify the
   earlier CI result.
@@ -153,7 +154,10 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   `Dockerfile` changes do not. When no release tag lies below the base
   of such a release pull request, „Detect changes“ fails, as the
   migration check does (owner, 2026-11-13). The release pull request of
-  `main` keeps its complete run; #147 decides about it. Risk: a change
+  `main` runs the complete mutation run in its full run only, after it is
+  marked „Ready for review“; its draft runs no mutation job (owner,
+  2026-11-13 and 2026-11-14, #147, see
+  [Branching and release](/ops/branching-release.md)). Risk: a change
   that alters the results without touching these files is found by the
   nightly complete run only, up to a day later. Stryker's incremental mode would not notice
   such a change either (checked in its documentation before the build,
@@ -279,7 +283,22 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   The `workflow_run` trigger of `tag.yml` is accepted on purpose: it runs
   only after a successful CI push run on `main` or `hotfix/**` of this
   repository and checks out the head branch of that run (`main` or
-  `hotfix/**`), never pull request code.
+  `hotfix/**`), never pull request code. So is the `pull_request_target`
+  trigger of `release-ready.yml` (#147): it runs the workflow of `main`,
+  checks out nothing, and only adds and removes a label on the release
+  pull request of `main`.
+* **[V]** `src/test/ci-release.test.ts` (#147) runs the shell of „Detect
+  changes“ and of the CI Gate from `ci.yml` with bash and the inputs GitHub
+  would give: the cheap run of the draft release pull request of `main`,
+  its gate failing on purpose, every check required in every other release
+  pull request, and every other pull request unchanged; it also checks that
+  `ci.yml` keeps its event types and runs the step of `release-ready.yml`
+  with a stub `gh`: label without the hotfix marker, refusal (draft and
+  comment, no label) with it, nothing when the body cannot be read.
+  `src/test/release-pr.test.ts` runs `scripts/release-pr.sh` in a
+  throwaway repository with a stub `gh`: the release pull request of
+  `main` is never marked ready, and its body carries the marker exactly
+  while a released hotfix is not merged back.
 * **[E]** Code hygiene blocks in the job „Lint, types, unit tests …“
   (owner, 2026-11-11): knip (`knip.json`: no unused files, exports or
   dependencies), jscpd (`.jscpd.json`: no copied block of 50 tokens or more
@@ -459,7 +478,8 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   names no version of one of the tools, so a changed lockfile format never
   skips the run unnoticed. „Detect changes“ sets up Node for it (no
   dependencies) and writes the output `mutation`: `true` on a push and in
-  the release pull request of `main`; in the release pull request of a
+  the full run of the release pull request of `main` (its draft writes
+  `false` for every output, #147); in the release pull request of a
   hotfix branch the script compares the release tag below the base
   (`git describe --tags --abbrev=0 --match '[0-9]*.[0-9]*.[0-9]*'`, as
   the migration check does) with the merge commit, and fails without
