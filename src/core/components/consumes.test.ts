@@ -45,6 +45,13 @@ describe('consumes: contract for every entry that has it', () => {
     },
   );
 
+  it('uses a stock in one entry at most: how several consumers share an empty stock is not decided (#115)', () => {
+    const stocks = CONSUMERS.flatMap(([key, consumes]) =>
+      (['m', 'c', 'd'] as const).filter((r) => consumes[r]).map((r) => key + r),
+    );
+    expect(stocks.length).toBeLessThanOrEqual(1);
+  });
+
   it.each(CONSUMERS)('%s: uses nothing at level 0', (_, consumes) => {
     fc.assert(
       fc.property(rateCtx(fc.constant(0)), (ctx) => {
