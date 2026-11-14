@@ -5,7 +5,7 @@ import { fail, str, type Ctx } from './context.ts';
 import {
   actor,
   below,
-  leadOnly,
+  handOverRank,
   memberOf,
   need,
   placeOf,
@@ -97,8 +97,8 @@ export const manageGuildMember: Action = (ctx, user, d) => {
   if (target.user_id === user.id)
     return fail('Dieses Gildenmitglied gibt es nicht.');
   if (d.transfer === true) {
-    leadOnly(a);
-    ctx.guilds.transfer(a.guild.id, target.user_id);
+    const own = handOverRank(a, d.rank);
+    ctx.guilds.transfer(a.guild.id, target.user_id, own.id);
     return 'Gildenleitung übergeben.';
   }
   need(a, 'remove');

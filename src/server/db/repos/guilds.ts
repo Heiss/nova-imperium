@@ -61,8 +61,8 @@ export interface Guilds {
   ): void;
   update(id: string, tag: string, name: string, description: string): void;
   delete(id: string): void;
-  /** Hands over the Leitung: its rank to `founder`, the default rank to the old one. */
-  transfer(id: string, founder: string): void;
+  /** Hands over the Leitung: its rank to `founder`, the rank `rank` to the old one. */
+  transfer(id: string, founder: string, rank: string): void;
   apply(uid: string, id: string): void;
   /** Makes the applicant a member with the default rank of the guild. */
   accept(uid: string): void;
@@ -170,13 +170,13 @@ export class SqliteGuilds implements Guilds {
     this.db.prepare('DELETE FROM guilds WHERE id = ?').run(id);
   }
 
-  transfer(id: string, founder: string): void {
+  transfer(id: string, founder: string, rank: string): void {
     this.db
       .prepare(
-        `UPDATE guild_members SET rank_id = (SELECT default_rank FROM guilds WHERE id = ?)
+        `UPDATE guild_members SET rank_id = ?
          WHERE user_id = (SELECT founder FROM guilds WHERE id = ?)`,
       )
-      .run(id, id);
+      .run(rank, id);
     this.db
       .prepare(
         `UPDATE guild_members SET rank_id =

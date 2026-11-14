@@ -89,6 +89,7 @@ describe('guilds', () => {
       type: 'manageGuildMember',
       uid: b.id,
       transfer: true,
+      rank: `r1_${id}`,
     });
     runAction(ctx, b.id, {
       type: 'updateGuild',
@@ -219,7 +220,12 @@ describe('guild rules (#117: the logic left in guilds.ts)', () => {
       accept: true,
     });
     const manage = (uid: string, transfer?: boolean) =>
-      runAction(ctx, a!.id, { type: 'manageGuildMember', uid, transfer });
+      runAction(ctx, a!.id, {
+        type: 'manageGuildMember',
+        uid,
+        transfer,
+        rank: `r1_${id}`,
+      });
     for (const uid of ['nobody', c!.id, d!.id, a!.id])
       expect(() => manage(uid, true)).toThrow(
         'Dieses Gildenmitglied gibt es nicht.',

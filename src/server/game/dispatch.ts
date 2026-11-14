@@ -16,6 +16,7 @@ import {
   assignGuildRank,
   createGuildRank,
   deleteGuildRank,
+  dissolveGuild,
   moveGuildRank,
   renameGuildRank,
   setGuildDefaultRank,
@@ -59,6 +60,7 @@ export const ACTIONS: Record<string, A.Action> = {
   deleteGuildRank,
   setGuildDefaultRank,
   assignGuildRank,
+  dissolveGuild,
   claimAchievement,
   claimDailyReward,
 };

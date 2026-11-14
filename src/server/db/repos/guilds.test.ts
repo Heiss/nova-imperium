@@ -40,7 +40,7 @@ describe('guilds repository', () => {
   it('updates the profile and hands over the lead', () => {
     const ctx = setup();
     ctx.guilds.update('g1', 'NEW', 'Beta', 'More');
-    ctx.guilds.transfer('g1', 'u_Bert');
+    ctx.guilds.transfer('g1', 'u_Bert', 'r1_g1');
     expect(ctx.guilds.get('g1')).toEqual({
       id: 'g1',
       tag: 'NEW',
@@ -220,16 +220,31 @@ describe('guild ranks repository (#163)', () => {
     ).toBe(0);
   });
 
-  it('hands over the Leitung with its rank; the old Leitung gets the default rank', () => {
+  it('hands over the Leitung with its rank; the old Leitung gets the rank it chose', () => {
     const ctx = setup();
     ctx.guilds.apply('u_Bert', 'g1');
     ctx.guilds.accept('u_Bert');
     ctx.guilds.addRank('ra', 'g1', 'Offizier');
-    ctx.guilds.setDefaultRank('g1', 'ra');
-    ctx.guilds.transfer('g1', 'u_Bert');
+    ctx.guilds.addRank('rb', 'g1', 'Rekrut');
+    ctx.guilds.transfer('g1', 'u_Bert', 'rb');
     expect(ctx.guilds.get('g1')?.founder).toBe('u_Bert');
     expect(ctx.guilds.membership('u_Bert')?.rank_id).toBe('r0_g1');
-    expect(ctx.guilds.membership('u_Anna')?.rank_id).toBe('ra');
+    expect(ctx.guilds.membership('u_Anna')?.rank_id).toBe('rb');
+  });
+
+  it('deletes a guild with its members, applications, ranks and rights', () => {
+    const ctx = setup();
+    ctx.guilds.create('g2', 'XYZ', 'Zeta', '', 'u_Bert');
+    ctx.guilds.addRank('ra', 'g1', 'Offizier');
+    ctx.guilds.setRights('ra', ['remove']);
+    ctx.guilds.apply('u_Cora', 'g1');
+    ctx.guilds.delete('g1');
+    expect(ctx.guilds.get('g1')).toBeUndefined();
+    expect(ctx.guilds.ranks('g1')).toEqual([]);
+    expect(ctx.guilds.membership('u_Anna')).toBeUndefined();
+    expect(ctx.guilds.membership('u_Cora')).toBeUndefined();
+    expect(ctx.guilds.membership('u_Bert')?.guild_id).toBe('g2');
+    expect(ctx.guilds.ranks('g2')).toHaveLength(2);
   });
 
   it('deletes the ranks and their rights with the guild', () => {

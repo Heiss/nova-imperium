@@ -67,8 +67,8 @@ export function below(a: Actor, position: number): void {
   if (position <= a.position) fail(LOWER_ONLY);
 }
 
-export function leadOnly(a: Actor): void {
-  if (!a.lead) fail(LEAD_ONLY);
+export function leadOnly(a: Actor, message = LEAD_ONLY): void {
+  if (!a.lead) fail(message);
 }
 
 /** The place of a member of the actor's guild in the order. */
@@ -77,7 +77,7 @@ export function placeOf(a: Actor, m: Membership): number {
   return a.ranks.find((r) => r.id === m.rank_id)?.position ?? Infinity;
 }
 
-function rankOf(a: Actor, id: unknown): Rank {
+export function rankOf(a: Actor, id: unknown): Rank {
   const rank = str(id, 40);
   return (
     a.ranks.find((r) => r.id === rank) ?? fail('Diesen Rang gibt es nicht.')
@@ -191,6 +191,30 @@ export const assignGuildRank: Action = (ctx, user, d) => {
   below(a, rank.position);
   ctx.guilds.setRank(target.user_id, rank.id);
   return 'Rang vergeben.';
+};
+
+/**
+ * The rank the Leitung takes for itself when it hands over the Leitung
+ * (owner, 2026-11-14): one of the guild, not the Leitung.
+ */
+export function handOverRank(a: Actor, id: unknown): Rank {
+  leadOnly(a);
+  const rank = rankOf(a, id);
+  if (rank.position === 0) fail('Wähle für dich einen Rang unter der Leitung.');
+  return rank;
+}
+
+/**
+ * Dissolves the guild with all its members (owner, 2026-11-14): only the
+ * Leitung, never a right, confirmed with the tag of the guild.
+ */
+export const dissolveGuild: Action = (ctx, user, d) => {
+  const a = actor(ctx, user.id);
+  leadOnly(a, 'Nur die Gildenleitung kann die Gilde auflösen.');
+  if (str(d.tag, 30).toUpperCase() !== a.guild.tag.toUpperCase())
+    fail('Das Kürzel stimmt nicht.');
+  ctx.guilds.delete(a.guild.id);
+  return 'Gilde aufgelöst.';
 };
 
 /** The ranks for the members of the guild; outsiders see none (owner, D7). */

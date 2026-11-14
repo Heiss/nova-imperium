@@ -177,15 +177,29 @@ describe('only the Leitung (#163)', () => {
     const s = setup();
     const r = s.officer(ALL);
     s.run('Lea', { type: 'assignGuildRank', uid: 'u_Ada', rank: r });
-    expect(() =>
-      s.run('Ada', { type: 'manageGuildMember', uid: 'u_Bo', transfer: true }),
-    ).toThrow(LEAD);
-    expect(
-      s.run('Lea', { type: 'manageGuildMember', uid: 'u_Bo', transfer: true }),
-    ).toBe('Gildenleitung übergeben.');
+    const handOver = (who: string, rank: unknown) =>
+      s.run(who, {
+        type: 'manageGuildMember',
+        uid: 'u_Bo',
+        transfer: true,
+        rank,
+      });
+    expect(() => handOver('Ada', s.rank('Mitglied'))).toThrow(LEAD);
+    // The Leitung chooses its own new rank (owner, 2026-11-14): one of the
+    // guild, never the Leitung.
+    s.run('Out', { type: 'createGuild', tag: 'XY', name: 'Xylon' });
+    const other = s.ctx.guilds.membership('u_Out')!.guild_id;
+    for (const rank of [undefined, 'none', s.ctx.guilds.ranks(other)[1]!.id])
+      expect(() => handOver('Lea', rank)).toThrow('Diesen Rang gibt es nicht.');
+    expect(() => handOver('Lea', s.rank('Leitung'))).toThrow(
+      'Wähle für dich einen Rang unter der Leitung.',
+    );
+    expect(s.ctx.guilds.get(s.id)!.founder).toBe('u_Lea');
+    expect(handOver('Lea', s.rank('Mitglied'))).toBe(
+      'Gildenleitung übergeben.',
+    );
     expect(s.ctx.guilds.get(s.id)!.founder).toBe('u_Bo');
     expect(s.rankOf('Bo')).toBe('Leitung');
-    // The old Leitung gets the default rank.
     expect(s.rankOf('Lea')).toBe('Mitglied');
     expect(() =>
       s.run('Lea', { type: 'createGuildRank', name: 'Kadett' }),
@@ -193,6 +207,31 @@ describe('only the Leitung (#163)', () => {
     expect(s.run('Bo', { type: 'createGuildRank', name: 'Kadett' })).toBe(
       'Rang angelegt.',
     );
+  });
+
+  it('keeps the rank the old Leitung chose, with its rights', () => {
+    const s = setup();
+    const r = s.officer(['ranks']);
+    expect(
+      s.run('Lea', {
+        type: 'manageGuildMember',
+        uid: 'u_Ada',
+        transfer: true,
+        rank: r,
+      }),
+    ).toBe('Gildenleitung übergeben.');
+    expect([s.rankOf('Ada'), s.rankOf('Lea')]).toEqual(['Leitung', 'Offizier']);
+    expect(s.run('Lea', { type: 'createGuildRank', name: 'Kadett' })).toBe(
+      'Rang angelegt.',
+    );
+    expect(() =>
+      s.run('Lea', {
+        type: 'manageGuildMember',
+        uid: 'u_Ada',
+        transfer: true,
+        rank: r,
+      }),
+    ).toThrow(LEAD);
   });
 
   it('chooses the default rank', () => {
@@ -246,6 +285,66 @@ describe('only the Leitung (#163)', () => {
         .pluck()
         .get(lead),
     ).toBe(1);
+  });
+});
+
+describe('dissolving the guild with members (#163, owner 2026-11-14)', () => {
+  const DISSOLVE = 'Nur die Gildenleitung kann die Gilde auflösen.';
+  const dissolve = (s: ReturnType<typeof setup>, who: string, tag: unknown) =>
+    s.run(who, { type: 'dissolveGuild', tag });
+
+  it('only the Leitung, never a rank with all rights', () => {
+    const s = setup();
+    const r = s.officer([
+      'applications',
+      'remove',
+      'assign',
+      'profile',
+      'ranks',
+    ]);
+    s.run('Lea', { type: 'assignGuildRank', uid: 'u_Ada', rank: r });
+    for (const who of ['Ada', 'Bo'])
+      expect(() => dissolve(s, who, 'OR')).toThrow(DISSOLVE);
+    for (const who of ['Pia', 'Out'])
+      expect(() => dissolve(s, who, 'OR')).toThrow('Du bist in keiner Gilde.');
+    expect(s.ctx.guilds.get(s.id)).toBeDefined();
+  });
+
+  it('asks for the tag of the guild', () => {
+    const s = setup();
+    for (const tag of ['', undefined, 'XY', 'ORX', 'Outer Rim'])
+      expect(() => dissolve(s, 'Lea', tag)).toThrow('Das Kürzel stimmt nicht.');
+    expect(s.ctx.guilds.get(s.id)).toBeDefined();
+    expect(dissolve(s, 'Lea', ' or ')).toBe('Gilde aufgelöst.');
+  });
+
+  it('removes every member, application, rank and right, and nothing else', () => {
+    const s = setup();
+    s.officer(['remove']);
+    s.run('Out', { type: 'createGuild', tag: 'XY', name: 'Xylon' });
+    const other = s.ctx.guilds.membership('u_Out')!.guild_id;
+    const count = (sql: string) =>
+      s.ctx.db.prepare(sql).pluck().get(s.id) as number;
+    expect(dissolve(s, 'Lea', 'OR')).toBe('Gilde aufgelöst.');
+    expect(s.ctx.guilds.get(s.id)).toBeUndefined();
+    for (const n of ['Lea', 'Ada', 'Bo', 'Cy', 'Pia'])
+      expect(s.ctx.guilds.membership(`u_${n}`), n).toBeUndefined();
+    expect(count('SELECT COUNT(*) FROM guild_ranks WHERE guild_id = ?')).toBe(
+      0,
+    );
+    expect(
+      s.ctx.db.prepare('SELECT COUNT(*) FROM guild_rank_rights').pluck().get(),
+    ).toBe(0);
+    expect(s.ctx.guilds.ranks(other)).toHaveLength(2);
+    expect(s.ctx.guilds.membership('u_Out')?.guild_id).toBe(other);
+    expect(s.ctx.players.get('u_Ada')).toMatchObject({ name: 'Ada' });
+    // The former members may found or join a guild again.
+    expect(s.run('Ada', { type: 'applyToGuild', id: other })).toBe(
+      'Bewerbung gesendet.',
+    );
+    expect(
+      s.run('Lea', { type: 'createGuild', tag: 'OR', name: 'Outer Rim' }),
+    ).toBe('Gilde gegründet.');
   });
 });
 
