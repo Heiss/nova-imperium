@@ -87,15 +87,49 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   because the largest piece of `catalog.ts` alone weighs 40): pull
   requests and pushes to `main` (incremental), the release pull request and
   the nightly run (complete). A script splits the mutated files by their
-  estimated run time, heaviest first onto the emptiest job: the test time
-  of their mutants in the last report, so static mutants weigh what they
-  cost; a file the report does not know weighs by its lines. A file heavier
+  estimated run time, heaviest first onto the emptiest job (since #141
+  every file stays on its job, below): the test time of their mutants in
+  the last report, so static mutants weigh what they cost; a file the report does not know weighs by its lines. A file heavier
   than half a job is cut into line ranges between its top-level statements
   (owner, 2026-11-13: the split by mutant count left one job at 44 minutes
   and the others at 7 to 14). Each job keeps its own incremental cache. A
   gate job merges the six reports and checks the total score (80 %) and
   every per-file floor exactly as before; no mutant and no check is dropped
   (owner, 2026-11-12, #131).
+* **[E]** Stable shards instead of feedback (owner, 2026-11-13, #141):
+  every file (or cut range) stays on the shard it had in the last plan, so
+  the shard keeps its cached results; the plan moves entries only when a
+  shard is above a tolerance of about 1.5 times the mean planned weight,
+  and new files go onto the lightest shard. The research (job logs and step
+  timings of eight complete and two incremental runs) found: totals stable
+  (−5 to +16 % between runs on the same code) but weights of the previous
+  complete run left the shards 1.8 to 6.7 times apart (max ÷ min); static
+  mutants cause the imbalance (static phase 15–99 % of the mutation phase,
+  correlation 0.84 with shard time), not the fixed cost of about 80 s per
+  shard; a factor per file improves the next spread by at most about 10 %,
+  a factor per shard number harms (up to 25×), EMA 0.3, EMA 0.5 and the
+  median of 3 differ by less than the noise; the bigger loss was a plan
+  that moved entries on every run: two pushes to `main` took over only
+  11 % (646 of 5866) and 14 % (845 of 5972) of the mutant results.
+* **[E]** Signal and weights (owner, 2026-11-13, #141): D1, the mutant
+  times of the report only (no wall-time factor, not Stryker's estimate);
+  D2, every run updates the weights of the mutants it really ran, the
+  others keep their old time (StrykerJS 10.1.1 copies only `status`,
+  `statusReason` and `testsCompleted` into a result it takes over, so
+  exactly the mutants that ran carry a `duration`); D3, no smoothing, the
+  latest time counts.
+* **[V]** Per-mutant noise (measured 2026-11-14 from the artifacts
+  `mutation-report` of the complete runs 43394493218 and 43422574873, whose
+  code differs by a few merges, so an upper bound): of 4622 mutants with a
+  time in both, the ratio of the later to the earlier time is 0.46 / 0.81 /
+  1.33 (10th / 50th / 90th percentile) for the 4149 others and 0.017 /
+  0.85 / 21 for the 473 static mutants; per file (40 files with the same
+  mutants) 0.22 / 0.84 / 1.34. Six shards planned with the weights of one
+  run and weighed with the other end at 1.14 and 1.18 times the mean
+  (both directions, current files and cuts). The other artifacts of those
+  runs and of the release pull request runs were on storage hosts the
+  session's proxy refused (`productionresultssa9`, `-sa15`, `-sa32`
+  `.blob.core.windows.net`; `-sa1` and `-sa16` were reachable).
 * **[E]** Before the merge of #131, one complete sharded run in its pull
   request is compared with the last nightly run: the total score and every
   file score must match (owner, 2026-11-12).
@@ -282,10 +316,11 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   `src/test/mutation-shards.test.ts`):
   * `plan` lists the files of the `mutate` globs of `stryker.config.json`
     (in order, `!` removes) and weighs each by the test time (`duration`) of
-    its mutants in `reports/mutation/mutation.json`, restored from the cache:
-    the merged report of the last **complete** run (`stryker-weights-…`,
-    saved by `mutation.yml` and by a release pull request), else the last
-    merged report. The first complete sharded run planned with an
+    its mutants in the weights of `reports/mutation-state.json` (#141,
+    below); without a state in `reports/mutation/mutation.json`, restored
+    from the cache: the merged report of the last **complete** run
+    (`stryker-weights-…`, saved by `mutation.yml` and by a release pull
+    request), else the last merged report. The first complete sharded run planned with an
     incremental report: its reused results put shard 4 at 56 instead of 101
     mutant-minutes, 36 instead of about 22 minutes (owner, 2026-11-13). In
     that run the reported times matched the wall time of every shard
@@ -299,11 +334,31 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
     weight joins its neighbour. Stryker mutates a node only when it lies
     wholly in one range, and no node spans two top-level statements, so no
     mutant is lost; one statement (for example `RES` in `catalog.ts`) stays
-    one piece. The pieces and files are split greedily, heaviest first
-    (equal weights by name) onto the lightest shard (the first of equal
-    ones); then neighbouring pieces of a shard become one range and a file
-    with all its pieces on one shard is whole again. It prints the plan as
-    JSON: 6 sorted lists of `mutate` entries, `file` or `file:from-to`.
+    one piece. Every piece and file stays on its shard of the plan in the
+    state (#141): the shard with the whole file, or with the range that
+    holds the piece's first line; a file that is cut now keeps its pieces on
+    the shard of the whole file, a cut file that is whole again goes to the
+    shard of its line 1. The others are new and go onto the lightest shard
+    (the first of equal ones), heaviest first (equal weights by name);
+    without a state of 6 shards every entry is new, which is the greedy
+    split of #131. Then each shard above 1.5 times the mean weight gives
+    entries to the lightest shard, as long as one fits there without
+    lifting it above that limit: the lightest entry that brings the shard
+    within the limit alone, else the heaviest that fits, and again; an entry
+    without weight never moves. Then neighbouring pieces of a shard become
+    one range and a file with all its pieces on one shard is whole again.
+    It prints the plan as JSON: 6 sorted lists of `mutate` entries, `file`
+    or `file:from-to`; the log names the new and the moved entries. It
+    writes the state again: the new plan and the weights it used, the
+    mutants with place, change, `static` and `duration` only.
+  * `weights <state> <report>` (#141) replaces the weights of the state by
+    the files of the merged report, each mutant with its `duration` in this
+    run; a mutant without one (a result Stryker took over, or one without
+    coverage) keeps the time of the same mutant in the old weights: the one
+    at the same place with the same mutator and replacement, else, when its
+    lines moved, the next old one of the same mutator, replacement and kind
+    (static or not) that no new mutant has at its place, in order. A file
+    that is gone drops out. No smoothing.
   * `config <n>` writes `reports/stryker-shard.config.json`: the
     configuration of `stryker.config.json` with only the files of shard n
     and `thresholds.break: null`, and prunes the shard's incremental file to
@@ -345,6 +400,37 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   job when the merge succeeded and restored by the plan job (the weights).
   The first run after the merge has no shard caches and tests every mutant
   once; a file that moves to another shard is tested again there.
+* **[E]** Tolerance 1.5 times the mean planned weight (#141, `TOLERANCE`
+  in `scripts/mutation-shards.ts`; owner, 2026-11-14): the owner's guide value, and just
+  above the drift measured between two complete runs (a plan weighed with
+  the other run's times ended at 1.14 and 1.18 times the mean, the earlier
+  research saw shard totals move by −5 to +16 %), so noise alone moves no
+  entry and keeps the shard caches; it still bounds the slowest shard at
+  1.5 times the ideal. With every mutant of the files of one shard made 3
+  times slower in the measured weights (1.75 times the mean), the next plan
+  moved 2 entries and ended at 1.49, and the plan after it moved none.
+* **[E]** Source of the previous plan (#141; owner, 2026-11-14): the state
+  `reports/mutation-state.json` in the cache `stryker-state-<ref>-<sha>-<run
+  id>-<attempt>`, next to the other mutation caches. The plan job restores
+  the newest of its own ref, else of `main` (the same order as the shard
+  caches, so the plan and the cached results of each shard belong
+  together), plans, and uploads the new state as the artifact
+  `mutation-state` (7 days). The gate job downloads it, runs `weights`
+  after the merge and saves it when that succeeded, also when the gate
+  fails, so every run updates the weights (D2). The merged report caches
+  (`stryker-weights-…`, `stryker-report-…`) stay and are restored only
+  without a state, for the first plan. Not chosen: a checked-in file
+  (collides between parallel pull requests), the job output of an earlier
+  run (not readable by a later one) and the artifacts (need the Actions
+  API and a token in the plan job). A pull request saves its state under
+  its own ref, which `main` never reads.
+* **[E]** Points the decisions of #141 left open, confirmed by the owner
+  (2026-11-14): a mutant whose lines moved takes the time of the next old
+  mutant of the same mutator, replacement and kind (static or not); a
+  failing `weights` step fails the gate job, so a bug is visible; the
+  tolerance is an upper bound only, because the slowest shard sets the
+  wall time; the merged report caches stay as the start while no state
+  exists.
 * **[V]** `scripts/mutation-changes.ts <from> <to>` (tests in
   `src/test/mutation-changes.test.ts`, #146) prints `true` or `false` and
   the reasons on stderr. It reads the changed files with
