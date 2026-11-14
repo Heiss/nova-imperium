@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { PUSH_TOPICS } from '../../core/push.ts';
-import { pushKindsHTML, pushOffOf } from './push-options.ts';
+import type { PushTopic } from '../../core/push.ts';
+import {
+  pushKindsHTML,
+  pushSaver,
+  shownPushOff,
+  type PushChoice,
+} from './push-options.ts';
 
 /** The box on a server with Web Push. */
 const pushOptionsHTML = (off: readonly string[] | undefined): string =>
@@ -16,7 +22,8 @@ describe('push options in „Hilfe & Optionen“ (#192)', () => {
     );
     expect(boxes(html)).toEqual(
       PUSH_TOPICS.map(
-        (t) => `<input type="checkbox" id="push_${t}" data-chg="push" checked>`,
+        (t) =>
+          `<input type="checkbox" id="push_${t}" data-chg="push" data-k="${t}" checked>`,
       ),
     );
     expect(html).toContain('> Gebäude fertig</label>');
@@ -62,18 +69,104 @@ describe('push options in „Hilfe & Optionen“ (#192)', () => {
   it('leaves the kinds that are off unchecked', () => {
     const html = pushOptionsHTML(['news', 'guild-chat']);
     expect(boxes(html).filter((b) => !b.includes('checked'))).toEqual([
-      '<input type="checkbox" id="push_news" data-chg="push">',
-      '<input type="checkbox" id="push_guild-chat" data-chg="push">',
+      '<input type="checkbox" id="push_news" data-chg="push" data-k="news">',
+      '<input type="checkbox" id="push_guild-chat" data-chg="push" data-k="guild-chat">',
     ]);
   });
+});
 
-  it('reads the kinds that are off from the checkboxes; a missing one is on', () => {
-    const state: Record<string, boolean> = {
-      push_fleet: false,
-      push_research: true,
-      push_announcement: false,
-    };
-    expect(pushOffOf((id) => state[id])).toEqual(['fleet', 'announcement']);
-    expect(pushOffOf(() => undefined)).toEqual([]);
+/** A save the test answers by hand, as a slow server would. */
+function slowServer() {
+  const calls: { off: PushTopic[]; answer: (ok: boolean) => void }[] = [];
+  const save = (off: PushTopic[]): Promise<boolean> =>
+    new Promise((resolve) => calls.push({ off, answer: resolve }));
+  /** Lets the saver go on after an answer. */
+  const settle = () => new Promise((r) => setTimeout(r, 0));
+  return { calls, save, settle };
+}
+
+describe('saving the push kinds one at a time (CodeRabbit on #204)', () => {
+  it('keeps both kinds off after two quick changes; the second waits for the first', async () => {
+    const { calls, save, settle } = slowServer();
+    const choice: PushChoice = {};
+    const change = pushSaver(choice, save);
+    const first = change([], 'news', false);
+    const second = change([], 'fleet', false);
+    expect(second).toBe(first);
+    expect(calls.map((c) => c.off)).toEqual([['news']]);
+    // Meanwhile the page shows both off, whatever the first answer says.
+    expect(shownPushOff(choice, ['news'])).toEqual(['fleet', 'news']);
+    calls[0]!.answer(true);
+    await settle();
+    expect(calls.map((c) => c.off)).toEqual([['news'], ['fleet', 'news']]);
+    expect(shownPushOff(choice, ['news'])).toEqual(['fleet', 'news']);
+    calls[1]!.answer(true);
+    await first;
+    expect(calls).toHaveLength(2);
+    expect(choice.pushChoice).toBeUndefined();
+    expect(shownPushOff(choice, ['fleet', 'news'])).toEqual(['fleet', 'news']);
+  });
+
+  it('sends only the newest choice after the running save', async () => {
+    const { calls, save, settle } = slowServer();
+    const choice: PushChoice = {};
+    const change = pushSaver(choice, save);
+    const done = change(['spied'], 'news', false);
+    void change(['spied'], 'fleet', false);
+    void change(['spied'], 'spied', true);
+    void change(['spied'], 'news', true);
+    calls[0]!.answer(true);
+    await settle();
+    expect(calls.map((c) => c.off)).toEqual([['spied', 'news'], ['fleet']]);
+    calls[1]!.answer(true);
+    await done;
+    expect(calls).toHaveLength(2);
+  });
+
+  it('starts a new save after the last one ended', async () => {
+    const { calls, save } = slowServer();
+    const choice: PushChoice = {};
+    const change = pushSaver(choice, save);
+    const one = change([], 'news', false);
+    calls[0]!.answer(true);
+    await one;
+    const two = change(['news'], 'research', false);
+    expect(two).not.toBe(one);
+    expect(calls.map((c) => c.off)).toEqual([['news'], ['research', 'news']]);
+    calls[1]!.answer(true);
+    await two;
+  });
+
+  it('shows the server kinds again after a failed save, unless a newer choice waits', async () => {
+    const { calls, save, settle } = slowServer();
+    const choice: PushChoice = {};
+    const change = pushSaver(choice, save);
+    const failed = change(['news'], 'fleet', false);
+    calls[0]!.answer(false);
+    await failed;
+    expect(calls).toHaveLength(1);
+    expect(choice.pushChoice).toBeUndefined();
+    expect(shownPushOff(choice, ['news'])).toEqual(['news']);
+
+    const retried = change(['news'], 'fleet', false);
+    void change(['news'], 'research', false);
+    calls[1]!.answer(false);
+    await settle();
+    expect(calls.map((c) => c.off)).toEqual([
+      ['fleet', 'news'],
+      ['fleet', 'news'],
+      ['research', 'fleet', 'news'],
+    ]);
+    calls[2]!.answer(true);
+    await retried;
+    expect(choice.pushChoice).toBeUndefined();
+  });
+
+  it('ignores a change of an unknown kind', async () => {
+    const { calls, save } = slowServer();
+    const choice: PushChoice = {};
+    await pushSaver(choice, save)([], 'messages', false);
+    expect(calls).toEqual([]);
+    expect(choice.pushChoice).toBeUndefined();
   });
 });

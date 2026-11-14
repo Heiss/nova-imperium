@@ -58,8 +58,12 @@ switches; both go into the next release.
 # Code, storage and tests
 
 * The kinds: `PUSH_TOPICS` in `src/core/push.ts`; the names in
-  `src/client/logic/push-options.ts`, which renders the checkboxes and
-  reads them back.
+  `src/client/logic/push-options.ts`, which renders the checkboxes.
+* Saving in the browser (`pushSaver`, CodeRabbit on #204): a click changes
+  the player's choice at once and the page shows it; one save runs at a
+  time, and when it returns the newest choice is sent, so an older answer
+  never undoes a newer click and two quick clicks both stay. A failed save
+  without a newer choice shows the server's kinds again.
 * Storage: table `push_off` (player, kind), one row per kind that is off,
   so a new kind is on for everyone; and `push_jobs.topic`, the kind of each
   queued push. Migration 17 adds both (see [SQLite storage](/data/sqlite.md)).
@@ -79,8 +83,8 @@ switches; both go into the next release.
   tests of the missions, `arrival.test.ts`, `web-push.test.ts` and
   `news.test.ts`, `src/server/db/upgrades/migration-17.test.ts`; E2E in
   `e2e/game.spec.ts` („push kinds (#192)“: hidden on the server without
-  Web Push; off and on by mouse and keyboard after a reload, and on a
-  phone) and `e2e/a11y.spec.ts` (the options with a kind on and off). The
+  Web Push; off and on by mouse and keyboard after a reload; two quick
+  changes with a slow first save; and on a phone) and `e2e/a11y.spec.ts` (the options with a kind on and off). The
   servers under test run without Web Push, which needs an HTTPS address, so
   the tests that show the box answer the policy as a server with Web Push
   would (`withWebPush` in `e2e/helpers.ts`: the real reply with `webPush:

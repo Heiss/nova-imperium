@@ -1,6 +1,6 @@
 // The push kinds in „Hilfe & Optionen“ (issue #192): one checkbox per kind,
 // for all devices of the account. A change saves at once.
-import { PUSH_TOPICS, type PushTopic } from '../../core/push.ts';
+import { isPushTopic, PUSH_TOPICS, type PushTopic } from '../../core/push.ts';
 
 /** The names of the kinds ([E], owner, 2026-11-14). */
 const LABELS: Record<PushTopic, string> = {
@@ -23,7 +23,7 @@ const inputId = (t: PushTopic): string => `push_${t}`;
 function pushOptionsHTML(off: readonly string[] | undefined): string {
   const boxes = PUSH_TOPICS.map(
     (t) =>
-      `<label class="switch"><input type="checkbox" id="${inputId(t)}" data-chg="push"${off?.includes(t) ? '' : ' checked'}> ${LABELS[t]}</label>`,
+      `<label class="switch"><input type="checkbox" id="${inputId(t)}" data-chg="push" data-k="${t}"${off?.includes(t) ? '' : ' checked'}> ${LABELS[t]}</label>`,
   );
   return `<fieldset class="push-kinds"><legend>Welche Meldungen per Push kommen</legend>${boxes.join('')}</fieldset>`;
 }
@@ -40,7 +40,50 @@ export const pushKindsHTML = (
     ? `<p>Gilt für alle deine Geräte mit aktivierten Browser-Benachrichtigungen. Eine Änderung wird sofort gespeichert.</p>${pushOptionsHTML(off)}`
     : '';
 
-/** The kinds that are off, read from the checkboxes (a missing one counts as on). */
-export const pushOffOf = (
-  checked: (id: string) => boolean | undefined,
-): PushTopic[] => PUSH_TOPICS.filter((t) => checked(inputId(t)) === false);
+/** Where the player's latest choice waits until the server has it. */
+export interface PushChoice {
+  /** The kinds the player wants off while a save runs; else none. */
+  pushChoice?: PushTopic[];
+}
+
+/** The kinds to show as off: the player's pending choice, else the server's. */
+export const shownPushOff = (
+  choice: PushChoice,
+  server: readonly string[] | undefined,
+): readonly string[] | undefined => choice.pushChoice ?? server;
+
+/**
+ * Saves the push kinds one request at a time (CodeRabbit on #204): a change
+ * updates the choice outside the page at once, and the newest choice is
+ * sent when the running save returns, so an older answer never undoes a
+ * newer click. A failed save drops its choice unless a newer one waits; the
+ * page then shows the server's kinds again. Returns the function for a change of one checkbox, which
+ * resolves when no save runs any more.
+ */
+export function pushSaver(
+  choice: PushChoice,
+  save: (off: PushTopic[]) => Promise<boolean>,
+): (server: readonly string[], topic: unknown, on: boolean) => Promise<void> {
+  let running: Promise<void> | null = null;
+  const run = async (): Promise<void> => {
+    let sent: PushTopic[] | undefined;
+    while (choice.pushChoice !== sent) {
+      sent = choice.pushChoice!;
+      const saved = await save(sent);
+      // A failed save without a newer choice: back to the server's kinds.
+      if (!saved && choice.pushChoice === sent)
+        choice.pushChoice = sent = undefined;
+    }
+    choice.pushChoice = undefined;
+    running = null;
+  };
+  return (server, topic, on) => {
+    if (!isPushTopic(topic)) return Promise.resolve();
+    const off = new Set(shownPushOff(choice, server));
+    if (on) off.delete(topic);
+    else off.add(topic);
+    choice.pushChoice = PUSH_TOPICS.filter((t) => off.has(t));
+    running ??= run();
+    return running;
+  };
+}

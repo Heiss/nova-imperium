@@ -143,8 +143,17 @@ describe('push kinds of the player (#192)', () => {
     return { sent, send };
   };
 
+  /** A push whose text is its key, so the test sees which one arrived. */
   const push = (ctx: TestCtx, uid: string, topic: PushTopic, key: string) =>
-    queuePush(ctx, uid, { kind: 'messages', topic, key, due: ctx.now() });
+    queuePush(ctx, uid, {
+      kind: 'messages',
+      topic,
+      key,
+      due: ctx.now(),
+      body: key,
+    });
+  const arrived = (sent: { endpoint: string; title: string }[]) =>
+    sent.map((x) => `${x.endpoint} ${x.title}`).sort();
 
   it.each(PUSH_TOPICS)(
     'drops „%s“ on every device of a player who switched it off; the others arrive',
@@ -162,17 +171,16 @@ describe('push kinds of the player (#192)', () => {
       push(ctx, ben.id, topic, 'b1');
       const off = recorder();
       await deliverPush(ctx, off.send);
-      expect(off.sent.map((x) => x.endpoint).sort()).toEqual(
-        [phone, laptop, bens].sort(),
+      // Only the other kind reaches Anna's devices; Ben gets his.
+      expect(arrived(off.sent)).toEqual(
+        [`${phone} a2`, `${laptop} a2`, `${bens} b1`].sort(),
       );
       expect(queuedPushes(ctx)).toEqual([]);
       pushOptions(ctx, anna, { off: [] });
       push(ctx, anna.id, topic, 'a3');
       const on = recorder();
       await deliverPush(ctx, on.send);
-      expect(on.sent.map((x) => x.endpoint).sort()).toEqual(
-        [phone, laptop].sort(),
-      );
+      expect(arrived(on.sent)).toEqual([`${phone} a3`, `${laptop} a3`].sort());
     },
   );
 

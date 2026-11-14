@@ -2,7 +2,7 @@ import type { RoundRules } from '../../core/achievements.ts';
 import type { Universe } from '../../core/types.ts';
 import { reportFormHTML } from '../logic/error-report.ts';
 import { explainOptionsHTML } from '../logic/explain.ts';
-import { pushKindsHTML } from '../logic/push-options.ts';
+import { pushKindsHTML, shownPushOff } from '../logic/push-options.ts';
 import { coords, esc, fmt } from '../logic/format.ts';
 import type { AdminState, GameState } from '../logic/types.ts';
 import { box, type Ui, type V } from './common.ts';
@@ -38,7 +38,7 @@ const passwordMinimum = (ui: Ui): string =>
 
 /** The push kinds (#192); only on a server that sends Web Push. */
 const pushKindsBox = (v: V): string => {
-  const kinds = pushKindsHTML(v.ui.webPush, v.s.me.pushOff);
+  const kinds = pushKindsHTML(v.ui.webPush, shownPushOff(v.ui, v.s.me.pushOff));
   return kinds ? box('Benachrichtigungen', kinds) : '';
 };
 

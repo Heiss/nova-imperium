@@ -2060,6 +2060,43 @@ test.describe('push kinds (#192)', () => {
     expect(w.problems).toEqual([]);
   });
 
+  test('two quick changes both stay, even when the first save is slow (CodeRabbit on #204)', async ({
+    page,
+  }) => {
+    const w = watch(page);
+    await withWebPush(page);
+    // The first save reaches the server late, as on a slow connection; a
+    // second save sent meanwhile would arrive first and be overwritten.
+    let saves = 0;
+    let answered = 0;
+    await page.route('**/api/action', async (route) => {
+      const body = route.request().postDataJSON() as { type?: string };
+      if (body.type === 'pushOptions' && ++saves === 1)
+        await new Promise((resolve) => setTimeout(resolve, 800));
+      await route.continue();
+    });
+    page.on('response', (r) => {
+      if (
+        r.url().endsWith('/api/action') &&
+        r.request().postDataJSON()?.type === 'pushOptions'
+      )
+        answered++;
+    });
+    await register(page, uniqueName('Eilig'));
+    await nav(page, 'help');
+    await kind(page, 'Neue Version').click();
+    await kind(page, 'Servernachrichten').click();
+    await expect(kind(page, 'Neue Version')).not.toBeChecked();
+    await expect(kind(page, 'Servernachrichten')).not.toBeChecked();
+    await expect.poll(() => answered).toBe(2);
+    await page.reload();
+    await nav(page, 'help');
+    expect(await states(page)).toEqual(
+      KINDS.map((n) => [n, n !== 'Neue Version' && n !== 'Servernachrichten']),
+    );
+    expect(w.problems).toEqual([]);
+  });
+
   test('a kind is switched off and on again on a phone @phone', async ({
     page,
   }) => {
