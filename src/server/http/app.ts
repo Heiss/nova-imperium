@@ -209,8 +209,9 @@ function accountRoutes(
     cookie: sessionCookie(cfg, auth.startSession(ctx, cfg, u.id), remember),
   });
   return {
+    // Whether Web Push is on decides if the options show the push kinds (#192).
     'GET /api/account/policy': () => ({
-      json: { passwordMinLength: cfg.passwordMinLength },
+      json: { passwordMinLength: cfg.passwordMinLength, webPush: cfg.webPush },
     }),
     'GET /healthz': () => {
       ctx.db.prepare('SELECT 1').get();

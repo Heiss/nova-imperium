@@ -10,6 +10,7 @@ import {
   stock,
   uniqueName,
   watch,
+  withWebPush,
 } from './helpers.ts';
 // The display texts of the catalog entries (#113); `text` is a local name below.
 import { text as entryText } from '../src/core/text.ts';
@@ -1960,6 +1961,119 @@ test.describe('explanation texts (#63)', () => {
     await expect(text.locator('p')).toHaveText(lines(entryText('solar')!.lt!));
     await question(page, 'Sonnenkathedrale').tap();
     await expect(text).toBeHidden();
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth - window.innerWidth,
+      ),
+    ).toBeLessThanOrEqual(0);
+    expect(w.problems).toEqual([]);
+  });
+});
+
+test.describe('push kinds (#192)', () => {
+  const KINDS = [
+    'Gebäude fertig',
+    'Forschung abgeschlossen',
+    'Auftrag der Schiffsschmiede abgeschlossen',
+    'Eigene Flotten: Ankunft, Bericht und Rückkehr',
+    'Sturmangriff auf deine Planeten',
+    'Auspex-Aktivität bei deinen Planeten',
+    'Lieferung eines anderen Spielers',
+    'Servernachrichten',
+    'Neue Version',
+    'Gildenereignisse',
+    'Nachrichten im Gilden-Chat',
+  ];
+  const kinds = (page: Page): Locator =>
+    page.getByRole('group', { name: 'Welche Meldungen per Push kommen' });
+  const kind = (page: Page, name: string): Locator =>
+    kinds(page).getByRole('checkbox', { name, exact: true });
+
+  /** Every kind with its checkbox state, in the order of the options. */
+  async function states(page: Page): Promise<[string, boolean][]> {
+    const out: [string, boolean][] = [];
+    for (const name of KINDS)
+      out.push([name, await kind(page, name).isChecked()]);
+    return out;
+  }
+
+  /** Switches one kind with `toggle`, waits for the save and reloads. */
+  async function switchKind(
+    page: Page,
+    name: string,
+    toggle: (box: Locator) => Promise<void>,
+  ): Promise<void> {
+    await toggle(kind(page, name));
+    await expect(page.locator('.toast').last()).toContainText('Gespeichert.');
+    await page.reload();
+    await nav(page, 'help');
+  }
+
+  test('the box is hidden on a server without Web Push (owner, 2026-11-14)', async ({
+    page,
+  }) => {
+    const w = watch(page);
+    await register(page, uniqueName('Stumm'));
+    await nav(page, 'help');
+    const titles = page.locator('.box .hd');
+    await expect(
+      titles.getByText('Browser-Benachrichtigungen', { exact: true }),
+    ).toBeVisible();
+    await expect(
+      titles.getByText('Benachrichtigungen', { exact: true }),
+    ).toHaveCount(0);
+    await expect(kinds(page)).toHaveCount(0);
+    await expect(page.locator('[data-chg=push]')).toHaveCount(0);
+    expect(w.problems).toEqual([]);
+  });
+
+  test('every kind is on; one is switched off and on again and survives a reload', async ({
+    page,
+  }) => {
+    const w = watch(page);
+    await withWebPush(page);
+    await register(page, uniqueName('Glocke'));
+    await nav(page, 'help');
+    await expect(
+      page.locator('.box .hd').getByText('Benachrichtigungen', { exact: true }),
+    ).toBeVisible();
+    await expect(kinds(page).getByRole('checkbox')).toHaveCount(KINDS.length);
+    expect(await states(page)).toEqual(KINDS.map((n) => [n, true]));
+
+    await switchKind(page, 'Sturmangriff auf deine Planeten', (box) =>
+      box.uncheck(),
+    );
+    expect(await states(page)).toEqual(
+      KINDS.map((n) => [n, n !== 'Sturmangriff auf deine Planeten']),
+    );
+
+    // By keyboard: Space switches it on again, the focus stays on it.
+    const attacked = kind(page, 'Sturmangriff auf deine Planeten');
+    await attacked.focus();
+    await page.keyboard.press('Space');
+    await expect(page.locator('.toast').last()).toContainText('Gespeichert.');
+    await expect(attacked).toBeChecked();
+    await expect(attacked).toBeFocused();
+    await page.reload();
+    await nav(page, 'help');
+    expect(await states(page)).toEqual(KINDS.map((n) => [n, true]));
+    expect(w.problems).toEqual([]);
+  });
+
+  test('a kind is switched off and on again on a phone @phone', async ({
+    page,
+  }) => {
+    const w = watch(page);
+    await withWebPush(page);
+    await register(page, uniqueName('Klingel'));
+    await nav(page, 'help');
+    expect(await states(page)).toEqual(KINDS.map((n) => [n, true]));
+    await switchKind(page, 'Nachrichten im Gilden-Chat', (box) => box.tap());
+    expect(await states(page)).toEqual(
+      KINDS.map((n) => [n, n !== 'Nachrichten im Gilden-Chat']),
+    );
+    await switchKind(page, 'Nachrichten im Gilden-Chat', (box) => box.tap());
+    expect(await states(page)).toEqual(KINDS.map((n) => [n, true]));
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth - window.innerWidth,

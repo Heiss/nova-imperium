@@ -2,6 +2,7 @@ import type { RoundRules } from '../../core/achievements.ts';
 import type { Universe } from '../../core/types.ts';
 import { reportFormHTML } from '../logic/error-report.ts';
 import { explainOptionsHTML } from '../logic/explain.ts';
+import { pushKindsHTML } from '../logic/push-options.ts';
 import { coords, esc, fmt } from '../logic/format.ts';
 import type { AdminState, GameState } from '../logic/types.ts';
 import { box, type Ui, type V } from './common.ts';
@@ -35,6 +36,12 @@ const passwordMinimum = (ui: Ui): string =>
     ? ''
     : `minlength="${ui.passwordMinLength}"`;
 
+/** The push kinds (#192); only on a server that sends Web Push. */
+const pushKindsBox = (v: V): string => {
+  const kinds = pushKindsHTML(v.ui.webPush, v.s.me.pushOff);
+  return kinds ? box('Benachrichtigungen', kinds) : '';
+};
+
 export const help = (v: V): string => `<h2>Hilfe &amp; Optionen</h2>
  ${box('Optionen', `<div class="flex">Spähschädel pro Auspex-Erkundung von der Sternenkarte: <input type="number" id="o_probes" min="1" value="${v.s.me.probes || 1}" aria-label="Spähschädel pro Auspex-Erkundung"></div><div class="flex mt"><label for="o_explain">Erklärungstexte:</label> <select id="o_explain">${explainOptionsHTML(v.s.me.explain)}</select></div><p><button data-act="saveopt">Speichern</button></p>`)}
  ${box('Darstellung', `<label class="switch"><input type="checkbox" id="o_anim" ${v.ui.animations ? 'checked' : ''}> Animationen</label><p class="dim">Planeten drehen sich, Wolken ziehen. Gilt für dieses Gerät; ist im System „Bewegung reduzieren“ eingestellt, bleibt alles ruhig.</p>`)}
@@ -48,6 +55,7 @@ export const help = (v: V): string => `<h2>Hilfe &amp; Optionen</h2>
  )}
  ${box('Passkeys', '<p>Auf unterstützten Geräten kannst du dich mit einem Passkey anmelden.</p><form id="passkeyform" class="flex"><label for="passkey-password">Passwort für neuen Passkey</label><input id="passkey-password" type="password" autocomplete="current-password" required><button type="submit">Passkey hinzufügen</button></form><p><button type="button" data-act="listPasskeys">Gespeicherte Passkeys anzeigen</button></p><div id="passkey-list"></div>')}
  ${box('App installieren', '<p>Öffne das Browsermenü und wähle „App installieren“ oder „Zum Startbildschirm hinzufügen“. Auf iPhone und iPad öffne Nova Imperium in Safari, tippe auf „Teilen“ und wähle „Zum Home-Bildschirm“ und „Als Web-App öffnen“. Zum Spielen brauchst du eine Internetverbindung.</p><button data-act="installApp" id="pwa-install" hidden>App installieren</button>')}
+ ${pushKindsBox(v)}
  ${box('Browser-Benachrichtigungen', '<p>Meldungen zu Aufträgen, Flotten und neuen Nachrichten auf diesem Gerät.</p><button data-act="pushEnable">Aktivieren</button> <button data-act="pushDisable">Deaktivieren</button>')}
  ${box(
    'Problem melden',

@@ -1,7 +1,13 @@
 // Verlegung (#116, #129): no check of its own; the fleet stays at the target.
 import { describe, expect, it } from 'vitest';
 import type { Fleet } from '../../../core/types.ts';
-import { addPlanet, addUser, testCtx } from '../../../server/test-helpers.ts';
+import {
+  addPlanet,
+  addUser,
+  queuedPushes,
+  subscribePush,
+  testCtx,
+} from '../../../server/test-helpers.ts';
 import { onArrive } from './arrive.server.ts';
 import * as rules from './rules.ts';
 import { canSend } from './rules.ts';
@@ -53,6 +59,7 @@ describe('deploy', () => {
     };
     ctx.fleets.save(f);
     const anna = { name: 'Anna', research: {}, rq: null };
+    subscribePush(ctx, 'u_Anna');
     onArrive(ctx, f, { t, att: anna, def: anna });
     expect(ctx.planets.get(t.id)).toMatchObject({
       ships: { sc: 3, lf: 3 },
@@ -65,6 +72,9 @@ describe('deploy', () => {
         title: 'Verlegung erreicht [1:1:7]',
         text: 'Deine Flotte bleibt auf Kolonie [1:1:7] und liefert Adamant 10 · Psikristall 20 · Promethium 50, davon 20 übriger Treibstoff.',
       },
+    ]);
+    expect(queuedPushes(ctx)).toEqual([
+      { user: 'u_Anna', kind: 'messages', topic: 'fleet' },
     ]);
   });
 });

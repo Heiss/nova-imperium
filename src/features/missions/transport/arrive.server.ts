@@ -13,20 +13,30 @@ export function onArrive(ctx: Ctx, f: Fleet, { t, att }: Arrival): void {
   land(t, {}, f.cargo);
   ctx.planets.save(t);
   const text = `Eine Flotte von ${att.name} erreicht ${t.name} ${coords(f.toC)} und liefert ${resLine(f.cargo)}.`;
-  addReport(ctx, f.owner, {
-    time: f.arr,
-    type: 'info',
-    title: `Transport erreicht ${coords(f.toC)}`,
-    participants: [f.owner, t.owner],
-    text,
-  });
-  if (t.owner !== f.owner)
-    addReport(ctx, t.owner, {
+  addReport(
+    ctx,
+    f.owner,
+    {
       time: f.arr,
       type: 'info',
-      title: `Lieferung von ${att.name}`,
+      title: `Transport erreicht ${coords(f.toC)}`,
       participants: [f.owner, t.owner],
       text,
-    });
+    },
+    { topic: 'fleet' },
+  );
+  if (t.owner !== f.owner)
+    addReport(
+      ctx,
+      t.owner,
+      {
+        time: f.arr,
+        type: 'info',
+        title: `Lieferung von ${att.name}`,
+        participants: [f.owner, t.owner],
+        text,
+      },
+      { topic: 'delivery' },
+    );
   turnBack(ctx, f, { cargo: { m: 0, c: 0, d: 0 } });
 }

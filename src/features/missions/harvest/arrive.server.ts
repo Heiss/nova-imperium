@@ -37,12 +37,17 @@ export function onArrive(ctx: Ctx, f: Fleet): void {
   const left = { ...field, m: field.m - take.m, c: field.c - take.c };
   if (isEmpty(left)) ctx.debris.delete(field.id);
   else ctx.debris.save(left);
-  addReport(ctx, f.owner, {
-    time: f.arr,
-    type: 'info',
-    title: `Bergung erreicht ${coords(f.toC)}`,
-    text: `Deine Bergungsbarken haben ${fmt(take.m)} Adamant und ${fmt(take.c)} Psikristall geborgen.`,
-  });
+  addReport(
+    ctx,
+    f.owner,
+    {
+      time: f.arr,
+      type: 'info',
+      title: `Bergung erreicht ${coords(f.toC)}`,
+      text: `Deine Bergungsbarken haben ${fmt(take.m)} Adamant und ${fmt(take.c)} Psikristall geborgen.`,
+    },
+    { topic: 'fleet' },
+  );
   turnBack(ctx, f, {
     cargo: { m: f.cargo.m + take.m, c: f.cargo.c + take.c, d: f.cargo.d },
   });

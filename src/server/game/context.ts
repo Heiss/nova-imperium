@@ -8,7 +8,7 @@ import type { Db } from '../db/database.ts';
 import type { Repositories } from '../db/repos/index.ts';
 import type { Report } from '../db/repos/reports.ts';
 import type { Store } from '../db/store.ts';
-import { queuePush, type PushKind } from '../push-store.ts';
+import { queuePush, type PushJob } from '../push-store.ts';
 
 export interface Ctx extends Repositories {
   /** The unit of work: one immediate SQLite transaction. Repositories never open one. */
@@ -66,15 +66,18 @@ export const resLine = (r: Resources): string =>
 export type ReportInput = Pick<Report, 'time' | 'type' | 'title'> &
   Record<string, unknown>;
 
+/** The push of a report: its kind (#192), the view („Nachrichten“ unless named) and its text. */
+export type ReportPush = Pick<PushJob, 'topic'> &
+  Partial<Pick<PushJob, 'kind' | 'body'>>;
+
 export function addReport(
   ctx: Ctx,
   uid: string,
   report: ReportInput,
-  kind: PushKind = 'messages',
-  pushBody: string | null = null,
+  push: ReportPush,
 ): void {
   if (!ctx.players.get(uid)) return;
   const id = ctx.id();
   ctx.reports.add(uid, { ...report, id } as Report, universe(ctx).maxReports);
-  queuePush(ctx, uid, kind, id, ctx.now(), pushBody);
+  queuePush(ctx, uid, { kind: 'messages', ...push, key: id, due: ctx.now() });
 }

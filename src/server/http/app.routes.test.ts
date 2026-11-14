@@ -370,6 +370,10 @@ describe('push routes', () => {
         'Browser-Benachrichtigungen sind auf diesem Server deaktiviert. Die Serverkonfiguration benötigt NOVA_WEB_PUSH=1 und eine HTTPS-Adresse.',
     };
     expect((await call('GET', '/api/push/key')).json).toEqual(off);
+    // The options hide the push kinds (#192).
+    expect((await call('GET', '/api/account/policy')).json).toMatchObject({
+      webPush: false,
+    });
     expect(
       (await call('POST', '/api/push/subscribe', subscription)).json,
     ).toEqual(off);
@@ -385,6 +389,10 @@ describe('push routes', () => {
   it('hands out the key and stores and removes a subscription', async () => {
     const { ctx, call } = await player({ cfg: { webPush: true } });
     expect((await call('GET', '/api/push/key')).status).toBe(401);
+    // The options show the push kinds (#192).
+    expect((await call('GET', '/api/account/policy')).json).toMatchObject({
+      webPush: true,
+    });
     await call('POST', '/api/login', { name: 'Anna', password: 'secret1' });
     expect((await call('GET', '/api/push/key')).json).toEqual({
       publicKey: expect.stringMatching(/^[\w-]{87}$/),
