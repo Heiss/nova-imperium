@@ -45,7 +45,7 @@ function stripComments(html: string): string {
  */
 const decodeText = (html: string): string =>
   html.replace(
-    /(<\/?[a-z][a-z0-9]*(?:\s+[^\s=>"]+(?:="[^"]*")?)*>)|&(?:gt|quot|#39);/g,
+    /(<\/?[a-z][a-z0-9]*(?:\s+[^\s=>"]+(?:="[^"]*")?)*\s*>)|&(?:gt|quot|#39);/gi,
     (match, tag?: string) => tag ?? ENTITY[match]!,
   );
 
