@@ -17,6 +17,7 @@ their result.
 | O1 | systemd unit | Version 1 had `nova-imperium.service`. It was removed because the start changed (build step, `.env`, secrets) and only Docker is tested. Options: leave it out; add an untested unit with `EnvironmentFile`; add a tested unit with a CI job. |
 | O2 | Minimum password length | Kept at 6 like version 1. Options: keep 6; 8; 12; a passphrase rule. |
 | O3 | Ranges of the universe settings | Proposals in [Admin](/features/admin.md) (speed 1 to 100, galaxies up to 9, …). Confirm or change. |
+| O14 | Guilds off per round (#191), details the issue leaves open | Built without them, nothing invented ([Guilds on or off per round](/features/guild-switch.md)). (a) A warning in the dialog „Neue Runde“ that guilds off deletes every guild: none (as built); a fixed sentence below the box; a sentence only while the box is unchecked; „Gilden“ added to the list of what is reset. (b) The push kinds „Gildenereignisse“ and „Nachrichten im Gilden-Chat“ in „Hilfe & Optionen“ while guilds are off: shown (as built, nothing sends them yet); hidden; shown disabled with a note; decided with #169. (c) The sentence about a led guild in „Account löschen“ while guilds are off: shown (as built); hidden; a general sentence. (d) Place of the box: own paragraph below „Belohnungen für die neue Runde“ (as built); inside that box with the legend „Einstellungen für die neue Runde“; an own box „Gilden“. |
 
 # B. Tasks of the owner
 

@@ -102,6 +102,7 @@ export function roundDialog(round: RoundRules): string {
     <label><input type="checkbox" id="round-achievements" ${round.achievements ? 'checked' : ''}> Achievements aktivieren</label><br>
     <label><input type="checkbox" id="round-daily" ${round.daily ? 'checked' : ''}> Tagesbelohnungen aktivieren</label>
   </fieldset>
+  <p><label><input type="checkbox" id="round-guilds" ${round.guilds ? 'checked' : ''}> Gilden (mit Chat)</label></p>
   <p><button class="red" data-act="doReset">Ja, neue Runde</button> <button data-act="closeModal">Abbrechen</button></p>`;
 }
 

@@ -1,0 +1,162 @@
+// Guilds (with chat) on or off per round (#191): the admin starts a round
+// with guilds off in the dialog „Neue Runde“; the guilds are gone, nobody
+// sees „Gilden“, and the server refuses every guild action. The next round
+// with guilds on brings them back without the old guild. Desktop and phone.
+// On the mail server (#68): its own universe, so the new rounds reset no
+// planet of the other tests; flows.spec.ts, the other user of new rounds
+// there, runs before this file.
+import AxeBuilder from '@axe-core/playwright';
+import {
+  expect,
+  test,
+  type Browser,
+  type Locator,
+  type Page,
+} from '@playwright/test';
+import {
+  loginByCode,
+  mailCli,
+  nav,
+  registerByMail,
+  uniqueName,
+  watch,
+} from './helpers.ts';
+import { E2E_MAIL_URL } from './env.ts';
+
+const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
+const OFF = 'Gilden sind in dieser Runde abgeschaltet.';
+const BOX = 'Gilden (mit Chat)';
+
+const lastToast = (page: Page): Locator => page.locator('.toast').last();
+/** The menu entry „Gilden“: the side menu on a desktop, „Mehr“ on a phone. */
+const guildEntry = (page: Page): Locator =>
+  page.locator('#menu [data-v=guilds], #more-list [data-v=guilds]');
+
+async function violations(page: Page, label: string): Promise<string[]> {
+  const results = await new AxeBuilder({ page }).withTags(TAGS).analyze();
+  return results.violations.map(
+    (v) => `${label}: ${v.id} (${v.impact}): ${v.help}`,
+  );
+}
+
+/** A guild action as from a device that still shows the guild view. */
+const refusal = (page: Page, data: object): Promise<string | undefined> =>
+  page.evaluate(async (body) => {
+    const r = await fetch('/api/action', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    return ((await r.json()) as { error?: string }).error;
+  }, data);
+
+/** What the server sends a player about guilds. */
+const guildData = (page: Page): Promise<unknown> =>
+  page.evaluate(async () => {
+    const r = await fetch('/api/state');
+    return ((await r.json()) as { guilds?: unknown }).guilds;
+  });
+
+async function openRoundDialog(page: Page): Promise<Locator> {
+  await nav(page, 'admin');
+  await page.getByRole('tab', { name: 'Universum' }).click();
+  await page.getByRole('button', { name: 'Neue Runde starten' }).click();
+  await expect(
+    page.getByText('Wirklich eine neue Runde starten?'),
+  ).toBeVisible();
+  return page.getByLabel(BOX);
+}
+
+async function startRound(page: Page): Promise<void> {
+  await page.getByRole('button', { name: 'Ja, neue Runde' }).click();
+  await expect(lastToast(page)).toContainText(
+    'Neue Runde gestartet – alle Spieler haben einen frischen Planeten.',
+  );
+}
+
+async function switchFlow(page: Page, browser: Browser): Promise<void> {
+  const admin = uniqueName('Schalter');
+  const member = uniqueName('Gildner');
+  const tag = `S${Date.now() % 1000000}`;
+  const title = `[${tag}] Schalter ${tag}`;
+  const problems = [watch(page)];
+  const found: string[] = [];
+  await registerByMail(page, admin);
+  mailCli('admin', admin);
+  await loginByCode(page, admin);
+
+  // A round with guilds on, as today: a guild with a member.
+  await nav(page, 'guilds');
+  await page.getByLabel('Kürzel').fill(tag);
+  await page.getByLabel('Name', { exact: true }).fill(`Schalter ${tag}`);
+  await page.getByRole('button', { name: 'Gilde gründen' }).click();
+  await expect(page.getByRole('heading', { name: title })).toBeVisible();
+  const pm = await browser.newPage();
+  problems.push(watch(pm));
+  await registerByMail(pm, member);
+  await loginByCode(pm, member);
+  await nav(pm, 'guilds');
+  await pm.getByRole('link', { name: title }).click();
+  await pm.getByRole('button', { name: 'Bewerben' }).click();
+  await expect(lastToast(pm)).toContainText('Bewerbung gesendet.');
+  await page.reload();
+  await page.getByRole('button', { name: 'Annehmen' }).click();
+  await expect(lastToast(page)).toContainText('Bewerbung angenommen.');
+
+  // The dialog „Neue Runde“ shows the current setting: on.
+  const box = await openRoundDialog(page);
+  await expect(box).toBeChecked();
+  found.push(...(await violations(page, 'dialog')));
+  await box.uncheck();
+  await startRound(page);
+
+  // The guilds are gone, nobody sees „Gilden“, the server refuses.
+  for (const p of [page, pm]) {
+    await p.goto(`${E2E_MAIL_URL}/?view=guilds`);
+    await expect(p.locator('h2')).toContainText('Übersicht');
+    await expect(guildEntry(p)).toHaveCount(0);
+    expect(await guildData(p)).toBeNull();
+    expect(
+      await refusal(p, { type: 'createGuild', name: 'Neu', tag: 'NEU' }),
+    ).toBe(OFF);
+    expect(await refusal(p, { type: 'leaveGuild' })).toBe(OFF);
+  }
+  expect(await refusal(page, { type: 'dissolveGuild', tag })).toBe(OFF);
+  found.push(...(await violations(page, 'overview without guilds')));
+
+  // The next dialog shows the current setting: off. On again brings guilds
+  // back, without the old guild.
+  const again = await openRoundDialog(page);
+  await expect(again).not.toBeChecked();
+  found.push(...(await violations(page, 'dialog without guilds')));
+  await again.check();
+  await startRound(page);
+  await expect(guildEntry(page).first()).toBeAttached();
+  await nav(page, 'guilds');
+  await expect(page.getByRole('link', { name: title })).toHaveCount(0);
+  await expect(
+    page.getByRole('button', { name: 'Gilde gründen' }),
+  ).toBeVisible();
+  await pm.reload();
+  await expect(guildEntry(pm).first()).toBeAttached();
+  await pm.close();
+  mailCli('unadmin', admin);
+  expect(found).toEqual([]);
+  expect(problems.flatMap((w) => w.problems)).toEqual([]);
+}
+
+test.describe('guilds on or off per round (#191)', () => {
+  test('the admin starts a round without guilds: gone, hidden and refused', async ({
+    page,
+    browser,
+  }) => {
+    await switchFlow(page, browser);
+  });
+
+  test('the admin starts a round without guilds: gone, hidden and refused, on a phone @phone', async ({
+    page,
+    browser,
+  }) => {
+    await switchFlow(page, browser);
+  });
+});

@@ -201,11 +201,16 @@ updateInstallButton();
 function gameView(view: string | null): string {
   if (!view || (!MOUNTED.has(view) && !Object.hasOwn(VIEWS, view)))
     return 'overview';
-  if (view === 'admin' && client.game && !client.game.me.admin)
-    return 'overview';
-  if (view === 'achievements' && !rewardsAvailable(client.game))
-    return 'overview';
-  return view;
+  return hiddenView(view, client.game) ? 'overview' : view;
+}
+
+/** A view the player cannot open now: admin, rewards or guilds that are off. */
+function hiddenView(view: string, state: GameState | null): boolean {
+  if (view === 'admin') return !!state && !state.me.admin;
+  if (view === 'achievements') return !rewardsAvailable(state);
+  // No guild view in a round with guilds off (#191).
+  if (view === 'guilds') return !!state && !state.round.guilds;
+  return false;
 }
 
 function rewardsAvailable(state: GameState | null): boolean {
@@ -1345,8 +1350,9 @@ const ACT: Record<string, (d: Data) => unknown> = {
       achievements: checked('#round-achievements'),
       daily: checked('#round-daily'),
     };
+    const guilds = checked('#round-guilds');
     modal('');
-    return act('reset', { rewards });
+    return act('reset', { rewards, guilds });
   },
   endzeit: () => modal(endzeitDialog(client.game!.admin!.endzeit.minutes)),
   doEndzeit: () => {

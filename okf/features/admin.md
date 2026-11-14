@@ -102,6 +102,14 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   and daily rewards. The dialog preselects the current round's settings.
   Existing universes start with both enabled. The selections apply to the
   new round and are included in the round-reset audit entry.
+* **[E]** The dialog „Neue Runde“ also has one checkbox „Gilden (mit
+  Chat)“ for guilds and the guild chat (#169), preselected with the current
+  round and changed only there. A round with guilds off deletes every guild
+  with its memberships, applications, ranks and chat; the menu shows no
+  guilds and the server refuses every guild action with „Gilden sind in
+  dieser Runde abgeschaltet.“. Existing universes start with guilds on; the
+  choice is part of the round-reset audit entry (owner, 2026-11-14, #191,
+  see [Guilds on or off per round](/features/guild-switch.md)).
 * **[E]** Starting a round clears achievement progress, claimed achievements
   and daily streaks. Disabled reward types neither collect progress nor accept
   claims. The player menu shows only the enabled reward types.

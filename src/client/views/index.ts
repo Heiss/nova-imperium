@@ -40,8 +40,9 @@ export function menu(admin: boolean, round: RoundRules): (MenuEntry | '-')[] {
     { view: 'galaxy', label: 'Sternenkarte' },
     { view: 'messages', label: 'Nachrichten' },
     { view: 'highscore', label: 'Highscore' },
-    { view: 'guilds', label: 'Gilden' },
   ];
+  // No „Gilden“ in a round with guilds off (#191).
+  if (round.guilds) items.push({ view: 'guilds', label: 'Gilden' });
   if (round.achievements || round.daily)
     items.push({
       view: 'achievements',

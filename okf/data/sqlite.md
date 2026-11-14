@@ -113,7 +113,9 @@ See [Admin](/features/admin.md) for the access rules and measurement method.
 
 Migration 7 adds an optional text body to queued push notifications, so server
 announcements keep their text until delivery. Round number and reward switches
-are stored as integer keys in the existing settings table.
+are stored as integer keys in the existing settings table. So is the guild
+switch of #191 (`roundGuilds`, a missing key means on), which needed no
+migration (see [Guilds on or off per round](/features/guild-switch.md)).
 
 Migration 8 stores passkey public keys and counters, and short-lived single-use
 WebAuthn challenges. Registration challenges are bound to the authenticated

@@ -54,3 +54,16 @@ it('combines independent live hints and clears claimed rewards', () => {
   state.planet = null;
   expect(menuHints(state, new Map(), 0).has('achievements')).toBe(false);
 });
+
+it('marks no guild applications in a round without guilds (#191)', () => {
+  // The server sends no guild data while guilds are off.
+  const state = {
+    me: { id: 'player' },
+    planet: {},
+    round: { achievements: false, daily: false, guilds: false },
+    achievements: { progress: {}, claimed: [], daily: null },
+    fleets: [],
+    guilds: null,
+  } as unknown as GameState;
+  expect(menuHints(state, new Map(), 0).has('guilds')).toBe(false);
+});
