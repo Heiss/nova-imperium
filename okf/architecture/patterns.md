@@ -140,6 +140,41 @@ choice of the patterns to the assistant's recommendation below
   `canFly` (an own key of `MOBILE`), and builds `SHIPS` from `mobile` or
   `STATIONARY`, deeply equal to before; `flight.ts` reads `MOBILE` through
   the rule module and keeps its exports.
+* **[E]** Decided for the fourth pull request of #114, the limits group
+  (owner, 2026-11-14): `limit` is `{ perPlanet: number }`, at most that many
+  per planet, the stock plus the shipyard queue; the rule is
+  `perPlanet − have − queued`, never below 0, and Infinity without a limit;
+  both shield domes carry `perPlanet: 1`. `energyThreshold` is
+  `{ base, f }` with today's data (Gravitonforschung, Weltenschmiede); the
+  formula `base × f^(level−1)` stays in the rule module, and the contract
+  test checks base > 0, f ≥ 1 and a need that is finite and never falls for
+  levels 1 to 60. `energyNeed` and `energyShort` move to
+  `src/core/components/energy-threshold.ts`, and `research.ts` exports them
+  unchanged; the limit rule lives in `src/core/components/limit.ts`, and
+  `unitRoom` in `yard.ts` calls it. Only the core reads the components
+  (`unitRoom`, the energy check through the rule module); the client
+  shipyard („max. 1“), the resources page and `Buildings.svelte` keep
+  reading `DEF`, `BUILD` and `energyNeed` until #118. `DEF` keeps
+  `once: true` and the tables keep the field `energy` until #118; the
+  exports stay deeply equal.
+* **[E]** Built with #114 (limits group): the two shield domes export
+  `limit`, the Gravitonforschung and the Weltenschmiede `energyThreshold`;
+  `def` no longer holds `once` and `energy` (`DefenseFields`,
+  `BuildingFields`, `ResearchFields`). `src/core/components/limit.ts` holds
+  `Limit` and `room`; `src/core/components/energy-threshold.ts` holds
+  `EnergyThreshold`, `energyNeed` and `energyShort`. `catalog.ts` derives
+  `LIMIT` (the defense with `limit`, by key) and builds `DEF` with
+  `once: true` for a `limit` of 1 and `BUILD` and `RES` with `energy` from
+  `energyThreshold`, deeply equal to before; `unitRoom` reads `LIMIT`
+  through the rule module (own keys only), `requirements.ts` imports the
+  energy check from the rule module, and `yard.ts` and `research.ts` keep
+  their exports.
+* **[E]** Choices of the limits group within the decisions above,
+  confirmed by the owner (2026-11-14): `limit` is only on defense, because `unitRoom` counts
+  the stock in the planet's defense, and the contract test checks this and
+  a whole `perPlanet` ≥ 1; `energyThreshold` is only on buildings and
+  research, the entries with levels; the table field `once: true` is
+  derived from `perPlanet === 1` instead of being kept twice in `def`.
 
 ## 2. Texts apart from rules
 
@@ -452,6 +487,17 @@ src/client/                state, components (generic), views
   bit for bit with their form before the flight component, for every key
   of the catalog and an unknown one, on generated fleets and research
   levels.
+* **[E]** Built with #114 for the limits group:
+  `src/core/components/limit.test.ts` (only on defense; `perPlanet` whole
+  and ≥ 1; the room whole, between 0 and the limit, all of it on an empty
+  planet) and `src/core/components/energy-threshold.test.ts` (only on
+  buildings and research; base > 0, f ≥ 1; the need finite and never
+  falling for levels 1 to 60). `src/core/limits-reference.test.ts` compares
+  `unitRoom()`, `orderMax()` (its value or its error), `energyNeed()` and
+  `energyShort()` bit for bit with their form before the limits group, for
+  every key of the catalog, an unknown one and inherited names
+  (`constructor`, `toString`, `__proto__`, `hasOwnProperty`), on generated
+  planets, queues and levels.
 
 # Migration
 
@@ -476,8 +522,8 @@ src/client/                state, components (generic), views
      `leveled`), combat (`combat`, `unit`), flight (`mobile`), limits
      (`limit`, `energyThreshold`), then `ProducerTable` (owner, 2026-11-13,
      #114). The production group is built (#114, first pull request), the
-     combat group (#114, second pull request) and the flight group (#114,
-     third pull request).
+     combat group (#114, second pull request), the flight group (#114,
+     third pull request) and the limits group (#114, fourth pull request).
   4. Generic events in `settle` with the property tests.
   5. Missions as strategies.
   6. Repositories per aggregate.
