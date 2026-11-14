@@ -1,9 +1,9 @@
 name: Mutation tests (nightly)
 
 # Complete Stryker run every night on main, in 6 shards like the CI (owner,
-# 2026-11-12, #131). It also refreshes the cached result of every shard and
-# the merged report that the incremental runs of the pull requests start
-# from. "Run workflow" on another branch runs the same complete sharded run
+# 2026-11-12, #131). It also refreshes the cached result of every shard, the
+# merged report and the weights of every mutant (#141) that the incremental
+# runs of the pull requests start from. "Run workflow" on another branch runs the same complete sharded run
 # there: the proof run of #131 (gh workflow run mutation.yml --ref <branch>).
 on:
   schedule:
@@ -30,9 +30,23 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      # The weights come from the last complete run: an incremental report
-      # reuses old results, whose times did not match the run (#131).
+      # The plan of the last run on this branch, else on main, and the
+      # weights of its mutants, updated by every run (#141): every file stays
+      # on its shard, so the shard keeps its cached results.
+      - name: Plan and weights of the last run
+        id: state
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: reports/mutation-state.json
+          key: stryker-state-${{ github.ref }}-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            stryker-state-${{ github.ref }}-
+            stryker-state-refs/heads/main-
+      # Without a state the weights come from the last complete run: an
+      # incremental report reuses old results, whose times did not match the
+      # run (#131).
       - name: Merged report of the last complete run (the weights)
+        if: steps.state.outputs.cache-matched-key == ''
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: reports/mutation/mutation.json
@@ -47,6 +61,14 @@ jobs:
         run: |
           plan=$(node scripts/mutation-shards.ts plan)
           echo "plan=$plan" >> "$GITHUB_OUTPUT"
+      # The new plan and the weights it used, for the gate job.
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: mutation-state
+          path: reports/mutation-state.json
+          if-no-files-found: error
+          overwrite: true
+          retention-days: 7
 
   mutation-shard:
     name: Mutation tests (complete, shard ${{ matrix.shard }} of 6)
@@ -104,11 +126,26 @@ jobs:
         with:
           pattern: mutation-shard-*
           path: reports/shards
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: mutation-state
+          path: reports
       - name: Merge the shard reports
         id: merge
         env:
           MUTATION_PLAN: ${{ needs.mutation-plan.outputs.plan }}
         run: node scripts/mutation-shards.ts merge reports/mutation/mutation.json reports/shards/*/mutation.json
+      # A complete run gives every mutant that ran its time (#141). Kept with
+      # the plan that ran for the next plan.
+      - name: Weights of this run
+        id: weights
+        run: node scripts/mutation-shards.ts weights reports/mutation-state.json reports/mutation/mutation.json
+      - name: Keep the plan and the weights for the next plan
+        if: always() && steps.weights.outcome == 'success'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: reports/mutation-state.json
+          key: stryker-state-${{ github.ref }}-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
       - name: Total score and no file below its floor (mutation-standard.json)
         run: node scripts/mutation-gate.ts --report reports/mutation/mutation.json
       - name: Keep the merged report as the weights of the next plans
