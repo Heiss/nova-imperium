@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import { cli, nav, register, seed, uniqueName } from './helpers.ts';
+import { cli, galaxyRow, nav, register, seed, uniqueName } from './helpers.ts';
 
 // Automated accessibility check (axe, WCAG 2.1 A and AA), as in muffelblog. It
 // finds a part of the problems only: it does not replace a look with a screen
@@ -78,12 +78,14 @@ test.describe('accessibility (axe)', () => {
     const found: string[] = [];
     await nav(page, 'galaxy');
     await page.getByText('zum Heimatsystem').click();
-    const mark = page.getByRole('img', {
+    // Only this player's row: another test may leave a field in the system.
+    const row = galaxyRow(page, name);
+    const mark = row.getByRole('img', {
       name: 'Trümmerfeld: 1.800 Adamant, 600 Psikristall',
     });
     await expect(mark).toBeVisible();
     found.push(...(await violations(page)).map((v) => `galaxy: ${v}`));
-    await page.getByRole('button', { name: 'Bergung' }).click();
+    await row.getByRole('button', { name: 'Bergung' }).click();
     await expect(page.getByLabel('Auftrag')).toHaveValue('harvest');
     found.push(...(await violations(page)).map((v) => `fleet: ${v}`));
     expect(found).toEqual([]);

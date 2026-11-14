@@ -7,6 +7,7 @@ import {
   choosePlanet,
   cli,
   emailOf,
+  galaxyRow,
   login,
   loginByCode,
   mail,
@@ -21,12 +22,6 @@ import {
   watch,
 } from './helpers.ts';
 import { E2E_MAIL_URL } from './env.ts';
-
-/** The row of a player's planet on the galaxy page. */
-const galaxyRow = (page: Page, player: string): Locator =>
-  page.locator('tr').filter({
-    has: page.locator('td', { hasText: new RegExp(`^${player} \\(Platz`) }),
-  });
 
 /** Opens the galaxy at the home system of another player, from the highscore. */
 async function openSystemOf(page: Page, player: string): Promise<void> {
