@@ -42,7 +42,8 @@ const ENTRIES: Record<CatalogKind, string[]> = {
 
 describe('CatalogList', () => {
   it('shows nothing before the first render', () => {
-    expect(html('building', null).replace(/<!--[^>]*-->/g, '')).toBe('');
+    // Svelte's hydration markers are comments; nothing else is rendered.
+    expect(html('building', null)).toMatch(/^(?:<!--[^>]*-->)*$/);
   });
 
   it.each(Object.entries(ENTRIES))(

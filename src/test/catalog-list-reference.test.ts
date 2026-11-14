@@ -298,10 +298,20 @@ function attributes(raw: string): string {
   return list.length ? ' ' + list.sort().join(' ') : '';
 }
 
+/** Removes comments until none is left, so no `<!--` can survive. */
+function stripComments(html: string): string {
+  let before: string;
+  let after = html;
+  do {
+    before = after;
+    after = before.replace(/<!--[\s\S]*?-->/g, '');
+  } while (after !== before);
+  return after;
+}
+
 /** The markup as a browser shows it. */
 function normalize(html: string): string {
-  return html
-    .replace(/<!--[\s\S]*?-->/g, '')
+  return stripComments(html)
     .replace(/<\/?tbody>/g, '')
     .replace(
       /<([a-z][a-z0-9]*)((?:\s+[^\s=>/]+(?:="[^"]*")?)*)\s*\/?>/g,
