@@ -8,6 +8,7 @@ import { settle, settleR } from '../core/settle.ts';
 import { text } from '../core/text.ts';
 import { orderMax, yardLockedBy } from '../core/yard.ts';
 import type { Levels, Planet, Queue } from '../core/types.ts';
+import { debrisAt, debrisTip } from './logic/debris.ts';
 import { clampInt, coords, dt, dur, esc, fmt } from './logic/format.ts';
 import {
   apiFailure,
@@ -960,8 +961,17 @@ function readFleetForm(): FleetForm {
   };
 }
 
-/** Beside the target: its planet and owner, a free position, or none. */
+/**
+ * Beside the target: its planet and owner, a free position, or none; for a
+ * Bergung the Trümmerfeld there, or none (#45).
+ */
 function targetInfo(s: GameState, f: FleetForm): string {
+  if (missionRules(f.mission)?.target === 'debris') {
+    const field = debrisAt(s.debris, f.to);
+    return field
+      ? debrisTip(field)
+      : '<span class="bad">kein Trümmerfeld</span>';
+  }
   const target = s.galaxy.find(
     (p) => p.id === placeId({ ...f.to, kind: 'planet' }),
   );

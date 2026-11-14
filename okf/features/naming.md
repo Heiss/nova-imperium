@@ -181,7 +181,10 @@ stored mission ids stay.
     before the rename still go with the account; a test with an old-title
     report proves it. This is the only classic word the naming test allows
     (`ALLOWED` in `src/test/naming.test.ts`).
-* „Trümmerfeld“ does not exist yet (#45). `CHANGELOG.md` keeps its
+* „Trümmerfeld“ stays „Trümmerfeld“: the owner chose it for #45
+  (2026-11-13, [Trümmerfelder](/features/debris.md)) instead of
+  „Wrackfeld“ of the table above, so the naming test no longer forbids it;
+  the Recycler is the Bergungsbarke and „Abbauen“ the Bergung. `CHANGELOG.md` keeps its
   released sections and the design mockups in `docs/design/` keep the
   classic names.
 * Tests: `src/test/naming.ts` holds the tables; `src/test/naming.test.ts`

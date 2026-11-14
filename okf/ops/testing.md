@@ -266,7 +266,12 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   generated worlds and fleets (fixed fast-check seed 116) it builds two
   equal databases in memory, runs both versions, and compares the answer or
   message, every table and the next random number; a third case checks
-  that the generated cases reach every message and every arrival.
+  that the generated cases reach every message and every arrival. Since
+  #45 it generates the five missions and the ships it knew (the Bergung and
+  the Bergungsbarke have their own tests), and it leaves out what #45 adds
+  to a battle, the rows of `debris` and the field `debris` of the battle
+  reports; it checks them on their own instead: they hold exactly the
+  debris of the losses the report lists, and only a battle leaves a field.
 * **[E]** Mutation standard per file (owner, 2026-11-11,
   `mutation-standard.json`, `scripts/mutation-gate.ts`): no file may fall
   below its recorded floor; a new file needs 80 %, a new security file 90 %.

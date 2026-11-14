@@ -11,6 +11,7 @@ import Database from 'better-sqlite3';
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import { battle } from '../../core/battle.ts';
+import { type Debris, debrisOf, isEmpty } from '../../core/debris.ts';
 import { DEF, MISSION, SHIPS, canFly, isShip } from '../../core/catalog.ts';
 import {
   capacity,
@@ -565,8 +566,23 @@ function logLaunch(
 
 const TEMPLATE = openDatabase(':memory:').serialize();
 const NOW = 1_000_000;
-const MISSIONS = Object.keys(MISSION) as Mission[];
-const FLYING = Object.keys(SHIPS).filter(canFly);
+/**
+ * The missions the reference knows: those before #45. The Bergung of #45
+ * has its own tests (src/features/missions/harvest/).
+ */
+const MISSIONS: Mission[] = [
+  'attack',
+  'transport',
+  'spy',
+  'colonize',
+  'deploy',
+];
+/**
+ * The ships before #45, so that the generated cases stay those of #116
+ * (the generators draw from these lists).
+ */
+const SHIP_KEYS = Object.keys(SHIPS).filter((k) => k !== 'recycler');
+const FLYING = SHIP_KEYS.filter(canFly);
 const TECH = ['spy', 'weapons', 'shield', 'armor', 'computer', 'comb'];
 
 /** Anna sends; Bert is as strong as she is, Cora has nothing (noob protection). */
@@ -645,8 +661,8 @@ const worlds: fc.Arbitrary<World> = fc.record({
   build: fc.constantFrom(0, 3, 12),
   annaTech: levels(TECH, 12),
   defTech: levels(TECH, 12),
-  home: levels(Object.keys(SHIPS), 40),
-  ships: levels(Object.keys(SHIPS), 30),
+  home: levels(SHIP_KEYS, 40),
+  ships: levels(SHIP_KEYS, 30),
   def: levels(Object.keys(DEF), 60),
   res: stock,
 });
@@ -753,7 +769,7 @@ const orders: fc.Arbitrary<Order> = fc
       { weight: 1, arbitrary: fc.constantFrom('nope', 'constructor', '') },
     ),
     target: targets,
-    ships: levels([...Object.keys(SHIPS), 'nope'], 25),
+    ships: levels([...SHIP_KEYS, 'nope'], 25),
     cargo: fc.record({ m: load, c: load, d: load }),
     pct: fc.integer({ min: 0, max: 11 }),
     busy: fc.constantFrom(0, 0, 1, 3),
@@ -805,6 +821,69 @@ function order(w: World, o: Order, act: Action) {
   return result;
 }
 
+// #45 adds the debris step to the battle: today's attack also adds to the
+// table `debris` and writes the field `debris` into both battle reports,
+// which the reference does not know. The comparison leaves both out, and
+// `checkDebris` checks them on their own: they hold exactly 30 % of the
+// ships the report lists as lost, and only a battle leaves a field.
+
+type Dump = Record<string, unknown[]>;
+type ReportRow = { type: string; body: string };
+
+/**
+ * A dump without what #45 adds: the rows of the debris table, which the
+ * reference leaves empty, and the report field.
+ */
+function beforeDebris(d: Dump): Dump {
+  const rest: Dump = { ...d, debris: [] };
+  const reports = (rest.reports as ReportRow[]).map((r) => {
+    const body = JSON.parse(r.body) as Record<string, unknown>;
+    delete body.debris;
+    return { ...r, body: JSON.stringify(body) };
+  });
+  return { ...rest, reports };
+}
+
+const isDump = (x: unknown): x is Dump =>
+  typeof x === 'object' && x !== null && 'debris' in x;
+
+/** The steps of a flight of today's code as the reference writes them. */
+const withoutDebris = (r: ReturnType<typeof fly>): ReturnType<typeof fly> => ({
+  ...r,
+  steps: r.steps.map((s) => (isDump(s) ? beforeDebris(s) : s)),
+});
+
+/** The Trümmerfeld after a flight: the losses of its battle report, or none. */
+function checkDebris(x: Flight, r: ReturnType<typeof fly>): void {
+  const last = r.steps.filter(isDump).at(-1)!;
+  const battles = (last.reports as ReportRow[])
+    .filter((row) => row.type === 'battle')
+    .map((row) => JSON.parse(row.body) as Record<string, Levels | Debris>);
+  if (!battles.length) return void expect(last.debris).toEqual([]);
+  expect(x.mission).toBe('attack');
+  const b = battles[0]!;
+  const debris = debrisOf([
+    { before: b.attBefore as Levels, after: b.attAfter as Levels },
+    { before: b.defBefore as Levels, after: b.defAfter as Levels },
+  ]);
+  for (const report of battles) expect(report.debris).toEqual(debris);
+  const { g, s, p } = TARGETS[x.target];
+  expect(last.debris).toEqual(
+    isEmpty(debris)
+      ? []
+      : [
+          {
+            id: placeId({ g, s, p, kind: 'debris' }),
+            g,
+            s,
+            p,
+            res_m: debris.m,
+            res_c: debris.c,
+          },
+        ],
+  );
+}
+
 // Every case closes its database: 1600 open in-memory databases filled the
 // memory of a mutation shard with four test runners. About 3 s per case on
 // a laptop, slower with coverage: the default limit of 5 s is too short.
@@ -815,9 +894,10 @@ describe(
     it('arrive and come home bit for bit, with the same random draws', () => {
       fc.assert(
         fc.property(worlds, flights, (w, x) => {
-          expect(fly(w, x, N.arrive, N.comeHome)).toEqual(
-            fly(w, x, arrive, comeHome),
-          );
+          // N is today's code; arrive and comeHome are the reference above.
+          const today = fly(w, x, N.arrive, N.comeHome);
+          checkDebris(x, today);
+          expect(fly(w, x, arrive, comeHome)).toEqual(withoutDebris(today));
         }),
         { seed: 116, numRuns: 400 },
       );

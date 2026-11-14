@@ -68,6 +68,27 @@ test.describe('accessibility (axe)', () => {
     expect(found).toEqual([]);
   });
 
+  test('a Trümmerfeld on the Sternenkarte and the fleet form of a Bergung have no violations (#45)', async ({
+    page,
+  }) => {
+    const name = uniqueName('AxeBerg');
+    await register(page, name);
+    seed({ name, ships: { recycler: 1 }, debris: { m: 1800, c: 600 } });
+    await page.reload();
+    const found: string[] = [];
+    await nav(page, 'galaxy');
+    await page.getByText('zum Heimatsystem').click();
+    const mark = page.getByRole('img', {
+      name: 'Trümmerfeld: 1.800 Adamant, 600 Psikristall',
+    });
+    await expect(mark).toBeVisible();
+    found.push(...(await violations(page)).map((v) => `galaxy: ${v}`));
+    await page.getByRole('button', { name: 'Bergung' }).click();
+    await expect(page.getByLabel('Auftrag')).toHaveValue('harvest');
+    found.push(...(await violations(page)).map((v) => `fleet: ${v}`));
+    expect(found).toEqual([]);
+  });
+
   test('the fields, a full planet and the Weltenschmiede have no violations (#51)', async ({
     page,
   }) => {

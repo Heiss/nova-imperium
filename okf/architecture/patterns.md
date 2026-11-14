@@ -311,6 +311,17 @@ choice of the patterns to the assistant's recommendation below
   attack folders. A fleet of an unknown mission throws and `tick` removes
   it; the database allows only the five missions. No `f.mission ===` is
   left outside the mission folders.
+* **[E]** Built with #45, within the decisions of #116: the sixth folder
+  `harvest` (Bergung, 60) with the target kind `debris` beside own,
+  foreign, any and free. `SendTarget` carries `debris` (a Trümmerfeld lies
+  at the position); `sendError` checks only that for the kind `debris`
+  (`noDebris`), whatever planet is there, then `canSend` (`noRecycler`).
+  `suits` takes the field as a fourth argument. A fleet of the kind
+  `debris` flies to the place `d<g>_<s>_<p>`; at the arrival the dispatcher
+  turns it back when the field is gone, with the text of #45, and else
+  hands it no arrival (`null`), like a free target, because a field is no
+  planet. Migration 16 allows `harvest` in the database
+  (see [Trümmerfelder](/features/debris.md)).
 
 ## 5. Battle: pure function, consequences as a fixed pipeline
 
