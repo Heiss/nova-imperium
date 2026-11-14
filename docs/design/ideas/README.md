@@ -48,7 +48,8 @@ Guild research (#170):
 
 Kinderleicht-Modus, joke theme (#200):
 
-- `easy-mode.html` / `.png` / `.gif` – full flow: pick one of 3 directions, huge arrows to the next click, build starts with confetti and praise, pop-up button, mini runner „Servitor-Sprint“; `?once=1` plays it once
+- `easy-mode.html` / `.png` / `.gif` – full flow: pick one of 3 directions, huge arrows to the next click, build starts with confetti and praise, pop-up button, mini runner „Servitor-Sprint“, ad with a 10 s wait and a playable slot machine that always just misses; `?once=1` plays it once
+- `easy-mode-ad.png` – the ad with the slot machine
 
 The HTML files reference `/style.css`, `/fonts/`, `/icons/` and `/planets/` absolutely:
 serve them from a root that holds `src/client/static/` with this folder beside

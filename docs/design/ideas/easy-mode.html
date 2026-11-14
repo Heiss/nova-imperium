@@ -125,7 +125,7 @@
       }
       .cursor {
         position: fixed;
-        z-index: 10;
+        z-index: 12;
         width: 30px;
         height: 30px;
         pointer-events: none;
@@ -257,6 +257,160 @@
         font-size: 22px;
         letter-spacing: 3px;
       }
+      .ad {
+        position: fixed;
+        inset: 0;
+        z-index: 11;
+        background: rgba(0, 0, 0, 0.78);
+        display: none;
+        align-items: center;
+        justify-content: center;
+      }
+      .ad.on {
+        display: flex;
+      }
+      .adcard {
+        width: 540px;
+        border-radius: 20px;
+        border: 4px solid #fff;
+        background: linear-gradient(160deg, #ff3ea5, #7a2cff 55%, #ffb321);
+        color: #fff;
+        padding: 12px 18px 14px;
+        text-align: center;
+        font-family: system-ui, sans-serif;
+        box-shadow: 0 0 60px #ff3ea5;
+        position: relative;
+      }
+      .adtop {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font:
+          700 12px system-ui,
+          sans-serif;
+        letter-spacing: 0.1em;
+        opacity: 0.9;
+      }
+      .adcount {
+        background: rgba(0, 0, 0, 0.45);
+        border-radius: 14px;
+        padding: 4px 10px;
+        font-size: 13px;
+        letter-spacing: 0;
+      }
+      .adcount.shake {
+        animation: shake 0.35s;
+      }
+      @keyframes shake {
+        25% {
+          transform: translateX(-6px);
+        }
+        75% {
+          transform: translateX(6px);
+        }
+      }
+      .adx {
+        display: none;
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        background: #fff;
+        color: #000;
+        font: 800 18px system-ui;
+        border: 0;
+        padding: 0;
+        min-height: 0;
+      }
+      .adtitle {
+        font:
+          900 34px system-ui,
+          sans-serif;
+        margin: 6px 0 0;
+        text-shadow: 0 3px 0 #3a0a50;
+        letter-spacing: 0.02em;
+      }
+      .adsub {
+        font:
+          900 18px system-ui,
+          sans-serif;
+        color: #fff36a;
+        animation: blink 0.5s steps(2) infinite;
+        margin: 2px 0 8px;
+      }
+      @keyframes blink {
+        to {
+          opacity: 0.25;
+        }
+      }
+      .jack {
+        font: 800 15px system-ui;
+        background: #000a;
+        border-radius: 10px;
+        display: inline-block;
+        padding: 3px 12px;
+        margin-bottom: 8px;
+      }
+      .slot {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        align-items: center;
+        background: #1a0630;
+        border: 4px solid #ffd23e;
+        border-radius: 14px;
+        padding: 12px;
+      }
+      .reel {
+        width: 90px;
+        height: 90px;
+        overflow: hidden;
+        background: #fff;
+        border-radius: 10px;
+        box-shadow:
+          inset 0 8px 14px #0006,
+          inset 0 -8px 14px #0006;
+      }
+      .strip div {
+        height: 90px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 56px;
+      }
+      .lever {
+        margin-left: 8px;
+        font: 900 15px system-ui;
+        padding: 12px 14px;
+        border-radius: 12px;
+        background: linear-gradient(#ff5a5a, #b00020);
+        color: #fff;
+        border: 3px solid #fff;
+        min-height: 0;
+      }
+      .adres {
+        font:
+          900 22px system-ui,
+          sans-serif;
+        min-height: 30px;
+        margin: 8px 0 4px;
+        color: #fff36a;
+        text-shadow: 0 2px 0 #000;
+      }
+      .install {
+        font: 900 17px system-ui;
+        padding: 10px 22px;
+        border-radius: 30px;
+        background: #22d36b;
+        color: #fff;
+        border: 3px solid #fff;
+        min-height: 0;
+        animation: wob 0.4s ease-in-out infinite alternate;
+      }
+      .adfine {
+        font-size: 10px;
+        opacity: 0.75;
+        margin: 8px 0 0;
+      }
     </style>
   </head>
   <body>
@@ -371,6 +525,36 @@
       />
     </svg>
     <button class="pop" id="pop">DRÜCK MICH!</button>
+    <div class="ad" id="ad">
+      <div class="adcard">
+        <div class="adtop">
+          <span>ANZEIGE</span
+          ><span class="adcount" id="adcount">Werbung schließen in 10</span
+          ><button class="adx" id="adx">✕</button>
+        </div>
+        <p class="adtitle">PROMETHIUM PANIK 🔥</p>
+        <p class="adsub">99 % SCHAFFEN DAS NICHT!</p>
+        <span class="jack">JACKPOT: 9.999.999 💎</span>
+        <div class="slot">
+          <div class="reel">
+            <div class="strip" id="r0"><div>💎</div></div>
+          </div>
+          <div class="reel">
+            <div class="strip" id="r1"><div>🚀</div></div>
+          </div>
+          <div class="reel">
+            <div class="strip" id="r2"><div>👑</div></div>
+          </div>
+          <button class="lever" id="lever">🎰<br />HEBEL<br />ZIEHEN</button>
+        </div>
+        <div class="adres" id="adres"></div>
+        <button class="install">JETZT GRATIS SPIELEN ▶</button>
+        <p class="adfine">
+          *Spielt sich nicht wie in der Werbung. Gewinne sind ausgeschlossen.
+          Parodie, keine echte Werbung.
+        </p>
+      </div>
+    </div>
     <div class="praise" id="praise"></div>
     <script>
       const $ = (id) => document.getElementById(id);
@@ -428,6 +612,73 @@
             { duration: 1800 + Math.random() * 1200, easing: 'ease-in' },
           ).onfinish = () => c.remove();
         }
+      }
+      const SYM = ['💀', '💎', '🚀', '⭐', '🔥', '👑'];
+      function spin(targets) {
+        targets.forEach((tg, i) => {
+          const n = 16 + i * 6;
+          const strip = $('r' + i);
+          let h = '';
+          for (let k = 0; k < n; k++)
+            h += `<div>${SYM[(k * 5 + i * 2) % SYM.length]}</div>`;
+          strip.innerHTML = h + `<div>${tg}</div>`;
+          strip.animate(
+            [
+              { transform: 'translateY(0)' },
+              { transform: `translateY(-${n * 90}px)` },
+            ],
+            {
+              duration: 1100 + i * 600,
+              easing: 'cubic-bezier(.15,.7,.3,1)',
+              fill: 'forwards',
+            },
+          );
+        });
+        return wait(1100 + 2 * 600 + 150);
+      }
+      async function ad() {
+        $('ad').classList.add('on');
+        $('adres').textContent = '';
+        $('adx').style.display = 'none';
+        $('adcount').style.display = '';
+        let left = 10;
+        $('adcount').textContent = 'Werbung schließen in ' + left;
+        const done = new Promise((res) => {
+          const iv = setInterval(() => {
+            left--;
+            $('adcount').textContent = 'Werbung schließen in ' + left;
+            if (left <= 0) {
+              clearInterval(iv);
+              $('adcount').style.display = 'none';
+              $('adx').style.display = 'block';
+              res();
+            }
+          }, 1000);
+        });
+        say('Werbung. Bitte kurz warten. 🙂', 'WERBUNG · NOCH KURZ WARTEN');
+        await wait(600);
+        await moveTo($('lever'));
+        await click();
+        await spin(['💎', '💎', '💀']);
+        $('adres').textContent = 'FAST GEWONNEN! 😱 NUR 1 DANEBEN!';
+        await wait(700);
+        await click();
+        $('adres').textContent = '';
+        await spin(['👑', '👑', '🚀']);
+        $('adres').textContent = 'SO KNAPP!! NOCH MAL? 🤑';
+        window.adShot = true;
+        await wait(400);
+        await moveTo($('adcount'));
+        await click();
+        const c = $('adcount');
+        c.classList.remove('shake');
+        void c.offsetWidth;
+        c.classList.add('shake');
+        await done;
+        await moveTo($('adx'));
+        await click();
+        $('ad').classList.remove('on');
+        await wait(300);
       }
       async function praise(text, ms = 1500) {
         const p = $('praise');
@@ -508,6 +759,8 @@
         pop.style.display = 'none';
         confetti();
         await praise('DU BIST SO SCHNELL! ⚡', 1200);
+        // the ad: appears at random in the game, here at a fixed point of the demo
+        await ad();
         say(
           'Fertig! Die Mine baut jetzt von allein. Spiel solange Servitor-Sprint →',
           'WARTEN IST AUCH EINE LEISTUNG 🏆',
