@@ -7,6 +7,7 @@ import { placeId } from '../../core/place.ts';
 import {
   formsMoon,
   MAX_MOON_CHANCE,
+  MIN_MOON_CHANCE,
   moonChance,
   moonDiameter,
 } from '../../core/moon.ts';
@@ -95,8 +96,14 @@ export function createMoon(
   entry.target = planet.owner;
   if (moonAt(ctx, planet)) return fail('Dieser Planet hat schon einen Mond.');
   const chance = Number(body.chance);
-  if (!Number.isInteger(chance) || chance < 1 || chance > MAX_MOON_CHANCE)
-    fail(`Die Mondchance muss zwischen 1 und ${MAX_MOON_CHANCE} % liegen.`);
+  if (
+    !Number.isInteger(chance) ||
+    chance < MIN_MOON_CHANCE ||
+    chance > MAX_MOON_CHANCE
+  )
+    fail(
+      `Die Mondchance muss zwischen ${MIN_MOON_CHANCE} und ${MAX_MOON_CHANCE} % liegen.`,
+    );
   const moon = addMoon(ctx, planet, chance, ctx.now());
   entry.detail = {
     planet: planet.id,

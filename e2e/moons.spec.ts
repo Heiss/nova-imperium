@@ -90,8 +90,11 @@ test.describe('moons (#53)', () => {
     const mark = row.getByRole('button', { name: 'Mond (Mond)' });
     await expect(mark).toHaveAttribute('aria-expanded', 'false');
     await expect(moonRow(page)).toHaveCount(0);
-    await mark.click();
+    // With the keyboard: Enter opens the row, the focus stays on the symbol.
+    await mark.focus();
+    await page.keyboard.press('Enter');
     await expect(mark).toHaveAttribute('aria-expanded', 'true');
+    await expect(mark).toBeFocused();
     const moon = moonRow(page);
     await expect(moon).toContainText('Mond (Mond)');
     await expect(moon).toContainText(pilot);

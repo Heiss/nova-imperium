@@ -13,6 +13,9 @@ const PER_PERCENT = 100000;
 /** The moon chance never exceeds 20 %. */
 export const MAX_MOON_CHANCE = 20;
 
+/** The least chance the admin can give a moon (owner, 2026-11-13: 1 to 20 %). */
+export const MIN_MOON_CHANCE = 1;
+
 /**
  * The moon chance in whole percent: ⌊debris / 100,000⌋, at most 20, counted
  * from the whole Trümmerfeld at the position after the battle.

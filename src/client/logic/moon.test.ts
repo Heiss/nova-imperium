@@ -6,6 +6,7 @@ import {
   moonAt,
   moonLines,
   moonMark,
+  moonMarkId,
   moonPicture,
   moonTarget,
   ownPlaces,
@@ -47,9 +48,14 @@ describe('moons in the interface (#53)', () => {
   it('makes the symbol a button that opens and closes the moon row', () => {
     const moon = place('moon', 5, 'u_Bert', { name: 'Luna' });
     expect(moonMark(moon, false)).toBe(
-      '<button type="button" class="moon-btn" data-act="gmoon" data-id="m1_2_5" aria-expanded="false" title="Luna (Mond)"><img class="moon" src="/icons/moon.svg" alt="Luna (Mond)" width="20" height="20"></button>',
+      '<button type="button" id="moon-m1_2_5" class="moon-btn" data-act="gmoon" data-id="m1_2_5" aria-expanded="false" title="Luna (Mond)"><img class="moon" src="/icons/moon.svg" alt="Luna (Mond)" width="20" height="20"></button>',
     );
     expect(moonMark(moon, true)).toContain('aria-expanded="true"');
+    // The same id after a new render keeps the focus on the symbol.
+    expect(moonMarkId('m1_2_5')).toBe('moon-m1_2_5');
+    expect(moonMark({ ...moon, id: 'm<1>' }, false)).toContain(
+      'id="moon-m&lt;1&gt;"',
+    );
   });
 
   it('lists the own planets and moons, each moon after its planet', () => {

@@ -20,9 +20,15 @@ export const moonAt = (
 export const moonPicture = (name: string, size: number): string =>
   `<img class="moon" src="/icons/moon.svg" alt="${esc(name)}" width="${size}" height="${size}">`;
 
+/**
+ * The id of the symbol of a moon: stable over a new render, so the focus
+ * stays on it after it opened or closed the moon's actions.
+ */
+export const moonMarkId = (id: string): string => `moon-${id}`;
+
 /** The symbol at the planet: a button that opens or closes the moon's actions. */
 export const moonMark = (moon: GalaxyPlanet, open: boolean): string =>
-  `<button type="button" class="moon-btn" data-act="gmoon" data-id="${esc(moon.id)}" aria-expanded="${open}" title="${esc(placeName(moon))}">${moonPicture(placeName(moon), 20)}</button>`;
+  `<button type="button" id="${esc(moonMarkId(moon.id))}" class="moon-btn" data-act="gmoon" data-id="${esc(moon.id)}" aria-expanded="${open}" title="${esc(placeName(moon))}">${moonPicture(placeName(moon), 20)}</button>`;
 
 /** The own planets and moons for the planet list: each moon after its planet. */
 export const ownPlaces = (

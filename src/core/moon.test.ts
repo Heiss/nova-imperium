@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import {
   formsMoon,
   MAX_MOON_CHANCE,
+  MIN_MOON_CHANCE,
   moonChance,
   moonDiameter,
   placeName,
@@ -26,8 +27,9 @@ describe('moon chance', () => {
     expect(moonChance({ m: 700000, c: 549999 })).toBe(12);
   });
 
-  it('is at most 20 %, from 2,000,000 on', () => {
+  it('is at most 20 %, from 2,000,000 on; the admin gives 1 to 20 %', () => {
     expect(MAX_MOON_CHANCE).toBe(20);
+    expect(MIN_MOON_CHANCE).toBe(1);
     expect(moonChance({ m: 1999999, c: 0 })).toBe(19);
     expect(moonChance({ m: 1000000, c: 1000000 })).toBe(20);
     expect(moonChance({ m: 9e9, c: 9e9 })).toBe(20);

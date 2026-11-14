@@ -1,3 +1,4 @@
+import { MAX_MOON_CHANCE, MIN_MOON_CHANCE } from '../../core/moon.ts';
 import { dt, esc, fmt } from '../logic/format.ts';
 import type { Players } from '../logic/types.ts';
 
@@ -450,7 +451,7 @@ function planetPanel(planets: PlayerPlanet[]): string {
         `[${x.g}:${x.s}:${x.p}]`,
         x.moon
           ? 'vorhanden'
-          : `<form class="moon-form flex" data-planet="${esc(x.id)}"><label>Mondchance in % <input name="chance" type="number" min="1" max="20" required></label><button type="submit">Mond anlegen</button></form>`,
+          : `<form class="moon-form flex" data-planet="${esc(x.id)}"><label>Mondchance in % <input name="chance" type="number" min="${MIN_MOON_CHANCE}" max="${MAX_MOON_CHANCE}" required></label><button type="submit">Mond anlegen</button></form>`,
       ]),
     )
   );
