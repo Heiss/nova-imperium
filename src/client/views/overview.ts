@@ -1,9 +1,11 @@
 import { MISSION } from '../../core/missions.ts';
+import { placeName } from '../../core/moon.ts';
 import { text } from '../../core/text.ts';
 import { diameterLine } from '../logic/fields.ts';
 import { coords, dt, esc, fmt } from '../logic/format.ts';
 import { fleetEnd, nameOf, ranks, sortFleets } from '../logic/game.ts';
 import type { ClientFleet } from '../logic/types.ts';
+import { moonPicture } from '../logic/moon.ts';
 import { planetLook } from '../logic/planet.ts';
 import { box, cd, planetHTML, type V } from './common.ts';
 
@@ -65,16 +67,27 @@ function activities(v: V): string {
     : '<span class="dim">Nichts in Arbeit – deine Minen langweilen sich.</span>';
 }
 
+/** The picture and the kind of the shown place: a planet or a moon (#53). */
+const look = (P: V['P']): { picture: string; label: string; type: string } =>
+  P.kind === 'moon'
+    ? {
+        picture: `<span class="moon-big">${moonPicture(placeName(P), 120)}</span>`,
+        label: 'Mond',
+        type: 'Mond',
+      }
+    : { picture: planetHTML(P), label: 'Planet', type: planetLook(P).name };
+
 export function overview(v: V): string {
   const { P, s } = v;
   const me = s.me.id;
   const rk = ranks(s.players);
-  return `<h2>Übersicht – ${esc(P.name)} ${coords(P)}</h2>
+  const l = look(P);
+  return `<h2>Übersicht – ${esc(placeName(P))} ${coords(P)}</h2>
  ${box('Flottenbewegungen', fleetTable(v, true))}
- <div class="box"><div class="bd ov">${planetHTML(P)}
+ <div class="box"><div class="bd ov">${l.picture}
  <table class="kv kv-grow">
- <tr><td>Planet</td><td>${esc(P.name)} <span class="lnk" data-act="rename">(umbenennen)</span></td></tr>
- <tr><td>Position</td><td>${coords(P)}</td></tr><tr><td>Planetentyp</td><td>${planetLook(P).name}</td></tr><tr><td>Temperatur</td><td>ca. ${P.temp - 40}°C bis ${P.temp}°C</td></tr>
+ <tr><td>${l.label}</td><td>${esc(placeName(P))} <span class="lnk" data-act="rename">(umbenennen)</span></td></tr>
+ <tr><td>Position</td><td>${coords(P)}</td></tr><tr><td>Planetentyp</td><td>${l.type}</td></tr><tr><td>Temperatur</td><td>ca. ${P.temp - 40}°C bis ${P.temp}°C</td></tr>
  <tr><td>Durchmesser</td><td>${diameterLine(P, s.cfg)}</td></tr>
  <tr><td>Punkte</td><td>${fmt(s.players[me]?.points)} (Platz ${rk[me] ?? '-'} von ${Object.keys(s.players).length})</td></tr>
  <tr><td>Serverzeit</td><td>${dt(v.now)}</td></tr></table></div></div>

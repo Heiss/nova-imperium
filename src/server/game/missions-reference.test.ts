@@ -9,7 +9,10 @@
 // before #116, copied unchanged but for the `export` keywords and the
 // debris rule of #45 (owner, 2026-11-14), which the reference writes on its
 // own (`refDebris`, `refLeaveDebris`) so that it compares the debris rows
-// and the report field `debris` bit for bit too.
+// and the report field `debris` bit for bit too, and the moon rule of #53
+// (owner, 2026-11-14), written here on its own as well (`refMoon`), so that
+// it compares the moon rows, the report fields `moonChance` and `moon` and
+// the random draws of the roll and the diameter.
 import Database from 'better-sqlite3';
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
@@ -250,6 +253,60 @@ function refLeaveDebris(
     .run(`d${g}_${s}_${p}`, g, s, p, d.m, d.c);
 }
 
+// The moon rule of #53, written here on its own and not taken from
+// src/core/moon.ts or src/server/game/moons.ts, so that the comparison fails
+// when the rule changes (owner, 2026-11-13 and 2026-11-14): after the debris,
+// at a planet without a moon, the chance is ⌊(Adamant + Psikristall of the
+// whole field) / 100,000⌋ %, at most 20; above 0 one draw decides, and a hit
+// puts a moon „Mond“ of the planet's owner at the position, with the
+// planet's temperature, no stock and the diameter ⌊√(x + 3 · chance) · 1000⌋
+// km with x = 10 + ⌊draw · 11⌋. A rolled chance goes into both reports.
+type RefMoon = { moonChance: number; moon: boolean } | null;
+
+function refMoonChance(ctx: Ctx, { g, s, p }: Coords): number {
+  const field = ctx.db
+    .prepare('SELECT res_m, res_c FROM debris WHERE id = ?')
+    .get(`d${g}_${s}_${p}`) as { res_m: number; res_c: number } | undefined;
+  return field
+    ? Math.min(Math.floor((field.res_m + field.res_c) / 1e5), 20)
+    : 0;
+}
+
+function refMoon(ctx: Ctx, t: Planet, time: number): RefMoon {
+  const { g, s, p } = t;
+  const id = `m${g}_${s}_${p}`;
+  if (t.kind !== 'planet' || ctx.planets.get(id)) return null;
+  const chance = refMoonChance(ctx, t);
+  if (chance <= 0) return null;
+  const moon = ctx.rng() < chance / 100;
+  if (moon) {
+    const x = 10 + Math.floor(ctx.rng() * 11);
+    ctx.planets.save({
+      id,
+      kind: 'moon',
+      owner: t.owner,
+      name: 'Mond',
+      g,
+      s,
+      p,
+      temp: t.temp,
+      diameter: Math.floor(Math.sqrt(x + 3 * chance) * 1000),
+      unlimited: false,
+      res: { m: 0, c: 0, d: 0 },
+      b: {},
+      ships: {},
+      def: {},
+      bq: null,
+      sq: [],
+      sqT: null,
+      pct: {},
+      t: time,
+      created: time,
+    });
+  }
+  return { moonChance: chance, moon };
+}
+
 const tech = (r: Levels): Levels => ({
   weapons: r.weapons ?? 0,
   shield: r.shield ?? 0,
@@ -274,6 +331,7 @@ interface Fight {
   rebuilt: Levels;
   loot: Resources;
   debris: { m: number; c: number };
+  moon: RefMoon;
 }
 
 function battleReports(ctx: Ctx, x: Fight): void {
@@ -295,6 +353,7 @@ function battleReports(ctx: Ctx, x: Fight): void {
     rebuilt: x.rebuilt,
     loot: x.loot,
     debris: x.debris,
+    ...x.moon,
     attTech: tech(x.attR),
     defTech: tech(x.defR),
   };
@@ -318,6 +377,7 @@ function attack(ctx: Ctx, f: Fleet, t: Planet, att: Player, def: Player): void {
     [defBefore, res.def],
   ]);
   refLeaveDebris(ctx, f.toC, debris);
+  const moon = refMoon(ctx, t, f.arr);
   const after = afterBattle(ctx, t, res.def);
   const free = capacity(res.att) - (f.cargo.m + f.cargo.c + f.cargo.d);
   const loot =
@@ -347,6 +407,7 @@ function attack(ctx: Ctx, f: Fleet, t: Planet, att: Player, def: Player): void {
     rebuilt: after.rebuilt,
     loot,
     debris,
+    moon,
   });
   if (!countUnits(res.att)) return ctx.fleets.delete(f.id);
   const cargo = {
@@ -921,6 +982,41 @@ function checkDebris(x: Flight, r: ReturnType<typeof fly>): boolean {
   return !isEmpty(debris);
 }
 
+/**
+ * The moon after a flight, checked once more on its own (#53): a rolled
+ * chance in both reports is the one of the whole field, at most 20, and a
+ * moon row stands exactly when the reports say it formed. Whether the flight
+ * rolled a chance, and whether a moon formed.
+ */
+function checkMoon(r: ReturnType<typeof fly>): {
+  rolled: boolean;
+  formed: boolean;
+} {
+  const last = r.steps.filter(isDump).at(-1)!;
+  const battles = (last.reports as ReportRow[])
+    .filter((row) => row.type === 'battle')
+    .map((row) => JSON.parse(row.body) as Record<string, unknown>);
+  const moons = (last.planets as { kind: string }[]).filter(
+    (row) => row.kind === 'moon',
+  );
+  const b = battles[0];
+  if (!b || b.moonChance === undefined) {
+    expect(moons).toEqual([]);
+    for (const report of battles) expect(report).not.toHaveProperty('moon');
+    return { rolled: false, formed: false };
+  }
+  const [field] = last.debris as { res_m: number; res_c: number }[];
+  expect(b.moonChance).toBe(
+    Math.min(Math.floor((field!.res_m + field!.res_c) / 100000), 20),
+  );
+  for (const report of battles) {
+    expect(report.moonChance).toBe(b.moonChance);
+    expect(report.moon).toBe(b.moon);
+  }
+  expect(moons).toHaveLength(b.moon ? 1 : 0);
+  return { rolled: true, formed: b.moon === true };
+}
+
 // Every case closes its database: 1600 open in-memory databases filled the
 // memory of a mutation shard with four test runners. About 3 s per case on
 // a laptop, slower with coverage: the default limit of 5 s is too short.
@@ -930,18 +1026,26 @@ describe(
   () => {
     it('arrive and come home bit for bit, with the same random draws', () => {
       let fields = 0;
+      let rolled = 0;
+      let formed = 0;
       fc.assert(
         fc.property(worlds, flights, (w, x) => {
           // N is today's code; arrive and comeHome are the reference above.
           const today = fly(w, x, N.arrive, N.comeHome);
           if (checkDebris(x, today)) fields++;
+          const moon = checkMoon(today);
+          if (moon.rolled) rolled++;
+          if (moon.formed) formed++;
           expect(today).toEqual(fly(w, x, arrive, comeHome));
         }),
         { seed: 116, numRuns: 400 },
       );
       // The generated battles leave Trümmerfelder, so the comparison
-      // covers the debris rows and the report field with values.
+      // covers the debris rows and the report field with values; they roll
+      // moon chances and form moons too (#53).
       expect(fields).toBeGreaterThan(0);
+      expect(rolled).toBeGreaterThan(formed);
+      expect(formed).toBeGreaterThan(0);
     });
 
     it('send with the same answers, messages and changes', () => {

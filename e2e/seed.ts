@@ -9,7 +9,8 @@
 //   settledAgo? (ms: the home planet was last brought forward that long ago, so the
 //   server adds the production of that time), serverError? (a message: an unexpected
 //   server error of this player in the error log, issue #126), debris? ({ m, c }: a
-//   Trümmerfeld at the position of the home planet, issue #45) }
+//   Trümmerfeld at the position of the home planet, issue #45), moon? ({ b?, res?, ships?,
+//   def?, name?, diameter? }: the moon of the home planet, made or changed, issue #53) }
 import { openDatabase } from '../src/server/db/database.ts';
 import { Store } from '../src/server/db/store.ts';
 import { recordServerError } from '../src/server/error-log.ts';
@@ -105,6 +106,34 @@ function addColony(p: Planet): void {
     .run(Date.now(), `p${c.g}_${c.s}_${c.p}`);
 }
 
+/** The moon of the home planet (#53): made when it is not there yet, then changed. */
+function moonOf(p: Planet): void {
+  const id = `m${p.g}_${p.s}_${p.p}`;
+  const old = store.planet(id);
+  const t = Date.now();
+  store.savePlanet({
+    ...(old ?? {
+      ...p,
+      id,
+      kind: 'moon',
+      name: 'Mond',
+      diameter: 5000,
+      unlimited: false,
+      res: { m: 0, c: 0, d: 0 },
+      b: {},
+      ships: {},
+      def: {},
+      bq: null,
+      sq: [],
+      sqT: null,
+      pct: {},
+      t,
+      created: t,
+    }),
+    ...d.moon,
+  });
+}
+
 store.tx(() => {
   if (d.landColonyFleet) landFleet(u.id, 'colonize');
   if (d.landFleet) landFleet(u.id, d.landFleet);
@@ -114,6 +143,7 @@ store.tx(() => {
   updateHome(p);
   if (d.colony) addColony(p);
   if (d.debris) store.repos.debris.add(p, d.debris);
+  if (d.moon) moonOf(p);
   if (d.serverError)
     recordServerError(createCtx(store), {
       action: 'POST /api/action',

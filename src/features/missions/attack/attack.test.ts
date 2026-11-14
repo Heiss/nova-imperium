@@ -2,6 +2,7 @@
 // loot, rebuilt defense, an audit entry and two reports (seeded random).
 import { describe, expect, it } from 'vitest';
 import type { Fleet, Levels } from '../../../core/types.ts';
+import { addMoon, moonAt } from '../../../server/game/moons.ts';
 import { addPlanet, addUser, testCtx } from '../../../server/test-helpers.ts';
 import { onArrive, plunder, rebuild } from './arrive.server.ts';
 import * as rules from './rules.ts';
@@ -164,6 +165,71 @@ describe('attack', () => {
     expect(ctx.debris.all()).toEqual([]);
     expect(ctx.reports.ofPlayer('u_Anna')[0]).toMatchObject({
       debris: { m: 0, c: 0 },
+    });
+  });
+  it('rolls the moon chance of the whole Trümmerfeld after the debris and reports it (#53)', () => {
+    // 1,998,000 before plus the 3,600 of the Lastbarke: 20 %.
+    const { ctx, f, at } = setup({ lc: 1 }, { pt: 50 });
+    ctx.debris.add({ g: 1, s: 2, p: 6 }, { m: 1_998_000, c: 0 });
+    ctx.rng = () => 0;
+    onArrive(ctx, f, at);
+    for (const uid of ['u_Anna', 'u_Bert'])
+      expect(ctx.reports.ofPlayer(uid)[0]).toMatchObject({
+        debris: { m: 1800, c: 1800 },
+        moonChance: 20,
+        moon: true,
+      });
+    expect(moonAt(ctx, { g: 1, s: 2, p: 6 })).toMatchObject({
+      owner: 'u_Bert',
+      name: 'Mond',
+      created: f.arr,
+    });
+  });
+
+  it('reports a missed moon chance without a moon (#53)', () => {
+    const { ctx, f, at } = setup({ lc: 1 }, { pt: 50 });
+    ctx.debris.add({ g: 1, s: 2, p: 6 }, { m: 100_000, c: 0 });
+    ctx.rng = () => 0.5;
+    onArrive(ctx, f, at);
+    expect(ctx.reports.ofPlayer('u_Anna')[0]).toMatchObject({
+      moonChance: 1,
+      moon: false,
+    });
+    expect(moonAt(ctx, { g: 1, s: 2, p: 6 })).toBeNull();
+  });
+
+  it('reports no moon chance below 1 % (#53)', () => {
+    const { ctx, f, at } = setup({ lc: 1 }, { pt: 50 });
+    onArrive(ctx, f, at);
+    const report = ctx.reports.ofPlayer('u_Anna')[0]!;
+    expect(report).not.toHaveProperty('moonChance');
+    expect(report).not.toHaveProperty('moon');
+  });
+
+  it('fights at a moon like at a planet, shown as „<Name> (Mond)“, and rolls no moon there (#53)', () => {
+    const { ctx, f, at } = setup({ bs: 20, lc: 50 }, {});
+    ctx.debris.add({ g: 1, s: 2, p: 6 }, { m: 5e9, c: 5e9 });
+    const moon = addMoon(ctx, at.t, 5, 0);
+    moon.def = { rl: 2 };
+    moon.res = { m: 900, c: 600, d: 300 };
+    ctx.planets.save(moon);
+    const fm = { ...f, to: moon.id };
+    ctx.fleets.save(fm);
+    onArrive(ctx, fm, { ...at, t: moon });
+    expect(ctx.reports.ofPlayer('u_Anna')[0]).toMatchObject({
+      name: 'Mond (Mond)',
+      winner: 'att',
+      loot: { m: 450, c: 300, d: 150 },
+    });
+    expect(ctx.reports.ofPlayer('u_Anna')[0]).not.toHaveProperty('moonChance');
+    expect(ctx.reports.ofPlayer('u_Bert')[0]!.title).toBe(
+      'Feindkontakt! Mond (Mond) [1:2:6] wird von Anna angegriffen',
+    );
+    expect(ctx.planets.get('m1_2_6')!.res).toEqual({ m: 450, c: 300, d: 150 });
+    expect(ctx.planets.get('p1_2_6')!.res).toEqual({
+      m: 9000,
+      c: 6000,
+      d: 3000,
     });
   });
 });

@@ -179,6 +179,11 @@ column. Fleets in flight keep every column and their ships
 (`upgrades/migration-16.test.ts`). The table `debris` of migration 15 is
 used from #45 on: one row per position, added up by every battle there.
 
+The moons of #53 need no migration: a moon is a row of `planets` with
+`kind = 'moon'` and the id `m<g>_<s>_<p>`, which migration 15 allows, with
+its buildings, units and queues in the child tables like a planet; a fleet
+to a moon names it in `to_planet` (see [Moons](/features/moons.md)).
+
 Account deletion runs in one transaction. Foreign-key cascades clear owned game,
 session, reward and push data. The deletion also removes led guilds and their
 memberships, linked audit and inbox records, invitations for the account address

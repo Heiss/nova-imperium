@@ -7,6 +7,7 @@ import { U } from '../../test/fixtures.ts';
 import { ENTRIES } from '../../features/index.gen.ts';
 import {
   BASE_INCOME,
+  baseIncome,
   energyMade,
   made,
   type MineCtx,
@@ -93,6 +94,16 @@ describe('produces: the rule', () => {
     expect(made(list, 'c', 0.5, u)).toBe((BASE_INCOME.c + 2) * 3);
     expect(made(list, 'd', 0.5, u)).toBe(0);
     expect(BASE_INCOME).toEqual({ m: 20, c: 10, d: 0 });
+  });
+
+  it('has no base income on a moon (#53), the classic one elsewhere', () => {
+    expect(baseIncome('moon')).toEqual({ m: 0, c: 0, d: 0 });
+    expect(baseIncome('planet')).toBe(BASE_INCOME);
+    expect(baseIncome()).toBe(BASE_INCOME);
+    const list = [at({ order: 1, m: (x) => x.level })];
+    expect(made(list, 'm', 1, U, baseIncome('moon'))).toBe(2 * U.speed);
+    expect(made(list, 'm', 1, U, baseIncome('planet'))).toBe(22 * U.speed);
+    expect(made([], 'c', 1, U, baseIncome('moon'))).toBe(0);
   });
 
   it('never goes below 0', () => {

@@ -302,6 +302,29 @@ describe('need state', () => {
     expect(needState(need('robot', 'b'), places(old, R())).ready).toBe(true);
   });
 
+  it('refuses a building that cannot stand on the shown place, before anything else (#53)', () => {
+    const rich = { m: 1e6, c: 1e6, d: 1e6 };
+    const moon = colony({ kind: 'moon', diameter: 5000, b: {}, res: rich });
+    expect(needState(need('lab', 'b'), places(moon, R()))).toEqual({
+      ready: false,
+      reason: 'auf einem Mond nicht baubar',
+      cost: [200, 400, 200],
+    });
+    expect(needState(need('robot', 'b'), places(moon, R())).ready).toBe(true);
+    const planet = colony({ b: {}, res: rich });
+    expect(needState(need('moonbase', 'b'), places(planet, R()))).toEqual({
+      ready: false,
+      reason: 'nur auf einem Mond baubar',
+      cost: [20000, 40000, 20000],
+    });
+    expect(needState(need('moonbase', 'b'), places(moon, R())).ready).toBe(
+      true,
+    );
+    // Research needs no place of its own here.
+    const lab = colony({ b: { lab: 1 }, res: rich });
+    expect(needState(need('energy', 'r'), places(lab, R())).ready).toBe(true);
+  });
+
   it('stays ready but busy while a queue is used', () => {
     const rich = { m: 1e6, c: 1e6, d: 1e6 };
     const q = {

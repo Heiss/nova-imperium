@@ -91,6 +91,58 @@ test.describe('accessibility (axe)', () => {
     expect(found).toEqual([]);
   });
 
+  test('a moon on the Sternenkarte, its overview, buildings and fleet form and „Mond anlegen“ have no violations (#53)', async ({
+    page,
+  }) => {
+    const name = uniqueName('AxeMond');
+    await register(page, name);
+    cli('admin', name);
+    seed({ name, moon: { name: 'Axe' }, ships: { sc: 1 }, colony: {} });
+    await page.reload();
+    const found: string[] = [];
+    const check = async (label: string): Promise<void> => {
+      found.push(...(await violations(page)).map((v) => `${label}: ${v}`));
+    };
+    await nav(page, 'galaxy');
+    await page.getByText('zum Heimatsystem').click();
+    await page.getByRole('button', { name: 'Axe (Mond)' }).click();
+    await expect(page.locator('tr.moon-row')).toBeVisible();
+    await check('galaxy');
+    await page
+      .locator('tr.moon-row')
+      .getByRole('button', { name: 'Verlegung' })
+      .click();
+    await expect(page.getByLabel('Zielart')).toHaveValue('moon');
+    await check('fleet');
+    const selector = page.getByLabel('Aktiver Planet');
+    await selector.selectOption(
+      (await selector
+        .locator('option', { hasText: 'Axe (Mond) [' })
+        .getAttribute('value'))!,
+    );
+    await expect(page.locator('#pinfo b').first()).toHaveText('Axe (Mond)');
+    for (const view of ['overview', 'buildings', 'resources'] as const) {
+      await nav(page, view);
+      await check(view);
+    }
+    await nav(page, 'admin');
+    await page.getByRole('tab', { name: 'Spieler', exact: true }).click();
+    await page
+      .locator('[data-admin=stats]')
+      .getByRole('button', { name, exact: true })
+      .click();
+    await expect(page.getByRole('row', { name: /Heimatplanet/ })).toContainText(
+      'vorhanden',
+    );
+    await expect(
+      page
+        .getByRole('row', { name: /Kolonie/ })
+        .getByRole('button', { name: 'Mond anlegen' }),
+    ).toBeVisible();
+    await check('admin');
+    expect(found).toEqual([]);
+  });
+
   test('the fields, a full planet and the Weltenschmiede have no violations (#51)', async ({
     page,
   }) => {

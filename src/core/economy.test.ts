@@ -262,6 +262,23 @@ describe('production', () => {
       f: 1,
     });
   });
+  it('has no base income on a moon; its Sonnenreliquiare give energy (#53)', () => {
+    const moon = planet({ kind: 'moon', temp: 40 });
+    expect(prod(moon, U)).toEqual({
+      m: 0,
+      c: 0,
+      d: 0,
+      eProd: 0,
+      eUse: 0,
+      f: 1,
+    });
+    const sats = prod({ ...moon, ships: { sat: 3 } }, U);
+    expect(sats.eProd).toBe(3 * satEnergy(40));
+    expect(sats.m).toBe(0);
+    const stocked = { ...moon, res: { m: 10, c: 20, d: 30 } };
+    accrue(stocked, 3600000, U);
+    expect(stocked.res).toEqual({ m: 10, c: 20, d: 30 });
+  });
   it('is limited by energy', () => {
     const p = planet({ b: { metal: 5, solar: 1 } });
     const pr = prod(p, U);

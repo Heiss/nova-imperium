@@ -6,6 +6,7 @@ import { announce, requireAdmin } from '../game/admin.ts';
 import { type Ctx, fail, str } from '../game/context.ts';
 import { orders, playerDetail, playerStats } from '../game/diagnostics.ts';
 import { moderate } from '../game/moderation.ts';
+import { createMoon } from '../game/moons.ts';
 import { stateFor } from '../game/state.ts';
 import type { AppDeps, Call, Handler } from './app.ts';
 
@@ -163,7 +164,22 @@ function moderationRoutes(
       audited(ctx, entry, () => moderate(ctx, u, call.body, entry));
       return { json: { ok: true } };
     }),
+    'POST /api/admin/moon': moonCreation(ctx, admin),
   };
+}
+
+/** „Mond anlegen“ in the player record (#53; owner, 2026-11-14), an admin write. */
+function moonCreation(ctx: Ctx, admin: Admin): Handler {
+  return admin((call, u) => {
+    const entry: AuditEntry = {
+      category: 'admin.write',
+      action: 'createMoon',
+      actor: u.id,
+      requestId: call.requestId,
+    };
+    audited(ctx, entry, () => createMoon(ctx, call.body, entry));
+    return { json: { ok: true, msg: 'Mond angelegt.' } };
+  });
 }
 
 function announcement(ctx: Ctx, admin: Admin): Handler {

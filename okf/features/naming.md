@@ -123,7 +123,8 @@ Flotte kehrt heim.“, „Spionagebericht“ → „Auspex-Bericht“, „Trümm
 Later issues (#45, #51–#55), [V]: Bergungsbarke, Bergung (both [E] for
 #45, owner 2026-11-13, [Trümmerfelder](/features/debris.md)), Weltenformer,
 Gartenwelt, Ozeanwelt, Dschungelwelt, Ödwelt, Wüstenwelt, Eiswelt, Gasriese,
-Mondfeste, Auspex-Phalanx, Warp-Tor, Raketenkrypta, Abfangrakete,
+Mondfeste (replaced by „Mondzitadelle“; Mondzitadelle, Auspex-Phalanx and
+Warp-Tor [E] for #53, owner 2026-11-13, [Moons](/features/moons.md)), Raketenkrypta, Abfangrakete,
 Orbitalrakete, Gildenarsenal, Wacht halten;
 Expeditionstechnik → Kreuzzugs-Kartografie (package order).
 

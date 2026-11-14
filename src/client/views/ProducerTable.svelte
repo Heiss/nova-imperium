@@ -9,6 +9,7 @@
     production,
     type ProducerRow,
   } from '../../core/economy.ts';
+  import { placeName } from '../../core/moon.ts';
   import { text } from '../../core/text.ts';
   import { fmt } from '../logic/format.ts';
   import type { V } from './common.ts';
@@ -72,7 +73,7 @@
   >
 {/snippet}
 
-<h2>Rohstoffe auf {P.name}</h2>
+<h2>Rohstoffe auf {placeName(P)}</h2>
 <div class="box">
   <div class="hd">
     Produktion pro Stunde (Produktionsfaktor {Math.round(pr.f * 100)} %)

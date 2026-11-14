@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Readable } from 'svelte/store';
-  import { BUILD } from '../../core/catalog.ts';
+  import { BUILD, buildable } from '../../core/catalog.ts';
   import {
     afford,
     buildTime,
@@ -51,7 +51,8 @@
   {fieldsLine($viewState.P, $viewState.s.cfg)}
 </div>
 <div class="box">
-  {#each Object.entries(BUILD) as [key, def] (key)}
+  <!-- Only what stands on this place: a planet or a moon (#53). -->
+  {#each Object.entries(BUILD).filter( ([k]) => buildable(k, $viewState.P.kind) ) as [key, def] (key)}
     {@const { P, R, now, s } = $viewState}
     {@const level = P.b[key] ?? 0}
     {@const cost = lvlCost(def, level + 1)}

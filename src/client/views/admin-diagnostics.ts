@@ -24,9 +24,19 @@ interface PlayerStats {
   failedLogins: number;
   recentActions: number;
 }
+interface PlayerPlanet {
+  id: string;
+  name: string;
+  g: number;
+  s: number;
+  p: number;
+  moon: boolean;
+}
 interface PlayerDetail {
   days: { day: number; activeMs: number; actions: number }[];
   suspension: { reason: string; until: number | null } | null;
+  /** The planets of the player, for „Mond anlegen“ (#53). */
+  planets: PlayerPlanet[];
 }
 interface Order {
   kind: string;
@@ -364,6 +374,22 @@ export function eventDetail(row: EventRow): string {
   return `<details><summary>${title} ${row.id}</summary>${request}<code>${esc(row.detail)}</code><div class="flex">${links}</div></details>`;
 }
 
+/** „Mond anlegen“ at a planet of the player record (#53), then the record again. */
+function moonSubmit(
+  event: SubmitEvent,
+  form: HTMLFormElement,
+  controls: ReturnType<typeof diagnosticsControls>,
+  run: (work: () => Promise<void>) => Promise<void>,
+  call: Call,
+): void {
+  event.preventDefault();
+  const chance = Number(new FormData(form).get('chance'));
+  void run(async () => {
+    await call('moon', { planet: form.dataset.planet, chance });
+    await controls.players();
+  });
+}
+
 function bindPanel(
   host: HTMLElement,
   filter: HTMLFormElement,
@@ -397,6 +423,8 @@ function bindPanel(
   });
   host.addEventListener('submit', (event) => {
     const form = event.target as HTMLFormElement;
+    if (form.classList.contains('moon-form'))
+      return moonSubmit(event, form, controls, run, call);
     if (form.id !== 'moderation-form') return;
     event.preventDefault();
     const values = Object.fromEntries(new FormData(form));
@@ -406,6 +434,26 @@ function bindPanel(
       await controls.players();
     });
   });
+}
+
+/**
+ * The planets of the player, each without a moon with „Mond anlegen“ and a
+ * chance of 1 to 20 % for the diameter (#53; owner, 2026-11-14).
+ */
+function planetPanel(planets: PlayerPlanet[]): string {
+  return (
+    '<h4>Planeten</h4>' +
+    table(
+      ['Planet', 'Position', 'Mond'],
+      planets.map((x) => [
+        esc(x.name),
+        `[${x.g}:${x.s}:${x.p}]`,
+        x.moon
+          ? 'vorhanden'
+          : `<form class="moon-form flex" data-planet="${esc(x.id)}"><label>Mondchance in % <input name="chance" type="number" min="1" max="20" required></label><button type="submit">Mond anlegen</button></form>`,
+      ]),
+    )
+  );
 }
 
 function playerPanel(person: PlayerStats, detail: PlayerDetail): string {
@@ -432,6 +480,7 @@ function playerPanel(person: PlayerStats, detail: PlayerDetail): string {
         fmt(d.actions),
       ]),
     ) +
+    planetPanel(detail.planets) +
     controls
   );
 }

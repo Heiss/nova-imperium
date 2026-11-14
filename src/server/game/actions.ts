@@ -1,6 +1,6 @@
 // The actions of a player on their planet. Each one runs inside a transaction
 // (see dispatch.ts) and saves what it changes.
-import { BUILD, PRODUCERS, RES, UNIT } from '../../core/catalog.ts';
+import { BUILD, buildable, PRODUCERS, RES, UNIT } from '../../core/catalog.ts';
 import {
   afford,
   buildTime,
@@ -104,7 +104,14 @@ function checkEnergy(
     );
 }
 
+/** The Mondzitadelle stands on moons only, the mines and others on planets only (#53). */
+const PLACE_ERROR = {
+  planet: 'Nur auf einem Mond baubar.',
+  moon: 'Auf einem Mond nicht baubar.',
+} as const;
+
 function checkBuild(ctx: Ctx, p: Planet, r: ResearchState, k: string): void {
+  if (!buildable(k, p.kind)) fail(PLACE_ERROR[p.kind]);
   if (p.bq) fail('Es wird bereits gebaut.');
   if (reqMissing(BUILD[k]!, p, r).length)
     fail('Das Wissen ist noch verschlossen.');

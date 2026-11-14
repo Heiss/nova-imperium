@@ -5,6 +5,7 @@ import { type TestCtx, addPlanet, addUser, testCtx } from '../test-helpers.ts';
 import { recall, send } from './fleet-actions.ts';
 import { tick } from './arrival.ts';
 import { runAction } from './dispatch.ts';
+import { addMoon } from './moons.ts';
 import { stateFor } from './state.ts';
 
 function setup() {
@@ -454,5 +455,173 @@ describe('Trümmerfelder in the state (#45)', () => {
     });
     expect(stateFor(ctx, b).fleets).toEqual([]);
     expect(stateFor(ctx, a).fleets).toMatchObject([{ to: 'd1_2_6' }]);
+  });
+});
+
+describe('moons as targets and starts (#53)', () => {
+  /** Bert's moon at his planet [1:2:6], with stock. */
+  function withMoon() {
+    const s = setup();
+    const moon = addMoon(s.ctx, s.ctx.planets.get('p1_2_6')!, 5, 0);
+    s.ctx.planets.save({ ...moon, res: { m: 900, c: 600, d: 300 } });
+    return { ...s, moon: s.ctx.planets.get(moon.id)! };
+  }
+  const toMoon = (over = {}) =>
+    go({ to: { g: 1, s: 2, p: 6, kind: 'moon' }, ...over });
+
+  it('flies to the moon of the position for attack, transport and espionage', () => {
+    for (const [mission, ships] of [
+      ['attack', { lf: 2 }],
+      ['transport', { sc: 1 }],
+      ['spy', { probe: 1 }],
+    ] as const) {
+      const { ctx, a } = withMoon();
+      expect(send(ctx, a, toMoon({ mission, ships }))).toBe(
+        'Flotte unterwegs nach [1:2:6].',
+      );
+      expect(ctx.fleets.all()[0]).toMatchObject({
+        to: 'm1_2_6',
+        toC: { g: 1, s: 2, p: 6 },
+        mission,
+      });
+    }
+  });
+
+  it('refuses a moon that is not there, and colonization and Bergung of a moon', () => {
+    const { ctx, a } = setup();
+    expect(() => send(ctx, a, toMoon())).toThrow(
+      'An dieser Position gibt es keinen Mond.',
+    );
+    const home = ctx.planets.home(a.id)!;
+    ctx.planets.save({
+      ...home,
+      ships: { ...home.ships, colony: 1, recycler: 1 },
+    });
+    ctx.debris.add({ g: 1, s: 2, p: 6 }, { m: 100, c: 0 });
+    for (const [mission, ships] of [
+      ['colonize', { colony: 1 }],
+      ['harvest', { recycler: 1 }],
+    ] as const)
+      expect(() => send(ctx, a, toMoon({ mission, ships }))).toThrow(
+        'Ein Mond kann nicht das Ziel dieses Auftrags sein.',
+      );
+    expect(ctx.fleets.all()).toEqual([]);
+  });
+
+  it('flies to the planet when the target names no moon, also beside a moon', () => {
+    const { ctx, a } = withMoon();
+    a.research = { computer: 1 };
+    send(ctx, a, go({ to: { g: 1, s: 2, p: 6, kind: 'planet' } }));
+    send(ctx, a, go({ to: { g: 1, s: 2, p: 6, kind: 'nope' } }));
+    expect(ctx.fleets.all().map((f) => f.to)).toEqual(['p1_2_6', 'p1_2_6']);
+  });
+
+  it('flies 5 from a planet to its own moon, with Verlegung, and back from it', () => {
+    const { ctx, b, moon } = withMoon();
+    const planet = ctx.planets.get('p1_2_6')!;
+    ctx.planets.save({
+      ...planet,
+      ships: { sc: 2 },
+      res: { m: 0, c: 0, d: 1000 },
+    });
+    expect(
+      send(ctx, b, {
+        planet: 'p1_2_6',
+        mission: 'deploy',
+        ships: { sc: 2 },
+        to: { g: 1, s: 2, p: 6, kind: 'moon' },
+        pct: 10,
+        cargo: {},
+      }),
+    ).toBe('Flotte unterwegs nach [1:2:6].');
+    const f = ctx.fleets.all()[0]!;
+    expect(f).toMatchObject({ from: 'p1_2_6', to: moon.id });
+    // The distance 5 of the same coordinates.
+    expect(f.arr - f.dep).toBe(
+      Math.round(((3500 * Math.sqrt(50 / 5000) + 10) / 5) * 1000),
+    );
+    ctx.clock.t = f.arr;
+    tick(ctx);
+    expect(ctx.planets.get(moon.id)!.ships).toEqual({ sc: 2 });
+    expect(ctx.reports.ofPlayer(b.id)[0]!.text).toContain(
+      'Deine Flotte bleibt auf Mond (Mond) [1:2:6]',
+    );
+    // From the moon back to the planet.
+    send(ctx, b, {
+      planet: moon.id,
+      mission: 'deploy',
+      ships: { sc: 2 },
+      to: { g: 1, s: 2, p: 6 },
+      pct: 10,
+      cargo: {},
+    });
+    expect(ctx.fleets.all()[0]).toMatchObject({ from: moon.id, to: 'p1_2_6' });
+  });
+
+  it('spies on and supplies a moon, which shows as „<Name> (Mond)“', () => {
+    const { ctx, a, b } = withMoon();
+    a.research = { computer: 1 };
+    send(ctx, a, toMoon({ mission: 'spy', ships: { probe: 1 } }));
+    send(
+      ctx,
+      a,
+      toMoon({ mission: 'transport', ships: { sc: 1 }, cargo: { m: 100 } }),
+    );
+    ctx.clock.t = Math.max(...ctx.fleets.all().map((f) => f.arr));
+    tick(ctx);
+    const titles = ctx.reports.ofPlayer(a.id).map((r) => r.title);
+    expect(titles).toContain('Auspex-Bericht von Mond (Mond) [1:2:6]');
+    const texts = ctx.reports.ofPlayer(b.id).map((r) => String(r.text));
+    expect(
+      texts.some((t) => t.includes('deines Planeten Mond (Mond) [1:2:6]')),
+    ).toBe(true);
+    expect(
+      texts.some((t) => t.includes('erreicht Mond (Mond) [1:2:6] und liefert')),
+    ).toBe(true);
+    expect(ctx.planets.get('m1_2_6')!.res.m).toBe(1000);
+  });
+
+  it('comes home to a moon with „Rückkehr zu <Name> (Mond)“', () => {
+    const { ctx, b, moon } = withMoon();
+    ctx.planets.save({
+      ...moon,
+      ships: { lf: 1 },
+      res: { m: 0, c: 0, d: 1000 },
+    });
+    send(ctx, b, {
+      planet: moon.id,
+      mission: 'transport',
+      ships: { lf: 1 },
+      to: { g: 1, s: 1, p: 5 },
+      pct: 10,
+      cargo: {},
+    });
+    const f = ctx.fleets.all()[0]!;
+    ctx.clock.t = f.ret;
+    tick(ctx);
+    tick(ctx);
+    expect(ctx.reports.ofPlayer(b.id).map((r) => r.title)).toContain(
+      'Rückkehr zu Mond (Mond) [1:2:6]',
+    );
+    expect(ctx.planets.get(moon.id)!.ships).toEqual({ lf: 1 });
+  });
+
+  it('lists every moon in the galaxy of every player, with its kind', () => {
+    const { ctx, a } = withMoon();
+    expect(stateFor(ctx, a).galaxy).toContainEqual({
+      id: 'm1_2_6',
+      kind: 'moon',
+      name: 'Mond',
+      g: 1,
+      s: 2,
+      p: 6,
+      temp: 50,
+      owner: 'u_Bert',
+    });
+    expect(
+      (stateFor(ctx, a).galaxy as { kind: string }[]).filter(
+        (x) => x.kind === 'planet',
+      ),
+    ).toHaveLength(2);
   });
 });

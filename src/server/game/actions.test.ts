@@ -5,6 +5,7 @@ import { settle } from '../../core/settle.ts';
 import { addPlanet, addUser, testCtx, type TestCtx } from '../test-helpers.ts';
 import type { AuditEntry } from '../audit.ts';
 import * as A from './actions.ts';
+import { addMoon } from './moons.ts';
 
 function setup(planet = {}, user = {}) {
   const ctx = testCtx();
@@ -822,5 +823,104 @@ describe('reports', () => {
     expect(ctx.reports.ofPlayer(u.id)).toEqual([]);
     A.read(ctx, me(), {});
     expect(me().readAt).toBe(0);
+  });
+});
+
+describe('moons and the Mondzitadelle (#53)', () => {
+  /** Anna's home planet and her moon at it, with stock. */
+  function withMoon(b = {}) {
+    const s = setup({ res: { m: 1e6, c: 1e6, d: 1e6 } });
+    const moon = addMoon(s.ctx, s.p(), 5, s.ctx.now());
+    s.ctx.planets.save({ ...moon, res: { m: 1e6, c: 1e6, d: 1e6 }, b });
+    const m = () => s.ctx.planets.get(moon.id)!;
+    return { ...s, m };
+  }
+
+  it('builds the Mondzitadelle on a moon only, for 20,000 / 40,000 / 20,000', () => {
+    const { ctx, u, m } = withMoon();
+    expect(() => A.build(ctx, u, { key: 'moonbase' })).toThrow(
+      'Nur auf einem Mond baubar.',
+    );
+    expect(A.build(ctx, u, { key: 'moonbase', planet: m().id })).toBeNull();
+    expect(m().bq).toMatchObject({
+      key: 'moonbase',
+      lvl: 1,
+      cost: [20000, 40000, 20000],
+    });
+    expect(m().res).toEqual({ m: 980000, c: 960000, d: 980000 });
+    ctx.clock.t = m().bq!.end;
+    expect(A.mine(ctx, u, m().id).b).toEqual({ moonbase: 1 });
+  });
+
+  it('builds on a moon only the Servitorenschmiede, the Schiffsschmiede and the stores besides it', () => {
+    for (const key of ['robot', 'smetal', 'scrystal', 'sdeut']) {
+      const { ctx, u, m } = withMoon({ moonbase: 2 });
+      expect(A.build(ctx, u, { key, planet: m().id }), key).toBeNull();
+    }
+    const { ctx, u, m } = withMoon({ moonbase: 2, robot: 2 });
+    expect(A.build(ctx, u, { key: 'yard', planet: m().id })).toBeNull();
+    for (const key of [
+      'metal',
+      'crystal',
+      'deut',
+      'solar',
+      'fusion',
+      'lab',
+      'nanite',
+      'terraformer',
+    ]) {
+      const s = withMoon({ moonbase: 9 });
+      expect(() => A.build(s.ctx, s.u, { key, planet: s.m().id }), key).toThrow(
+        'Auf einem Mond nicht baubar.',
+      );
+      expect(s.m().bq).toBeNull();
+    }
+  });
+
+  it('has 1 field plus 3 per Mondzitadelle level, without the extra fields', () => {
+    const { ctx, u, m } = withMoon();
+    ctx.admin.saveUniverse({ ...ctx.admin.universe(), extraFields: 50 });
+    // The one field takes the first Mondzitadelle level.
+    expect(A.build(ctx, u, { key: 'robot', planet: m().id })).toBeNull();
+    ctx.clock.t = m().bq!.end;
+    expect(() => A.build(ctx, u, { key: 'moonbase', planet: m().id })).toThrow(
+      'Keine freien Felder.',
+    );
+    // 1 + 3 fields, 1 + 2 taken: room for the second level.
+    const s = withMoon({ moonbase: 1, robot: 2 });
+    expect(
+      A.build(s.ctx, s.u, { key: 'moonbase', planet: s.m().id }),
+    ).toBeNull();
+    s.ctx.clock.t = s.m().bq!.end;
+    // 1 + 6 fields, 2 + 2 taken: room for more.
+    expect(A.build(s.ctx, s.u, { key: 'robot', planet: s.m().id })).toBeNull();
+  });
+
+  it('checks the place before the queue and the requirements', () => {
+    const { ctx, u, m } = withMoon();
+    ctx.planets.save({
+      ...m(),
+      bq: { key: 'robot', lvl: 1, start: 0, end: 9e15, cost: [0, 0, 0] },
+    });
+    expect(() => A.build(ctx, u, { key: 'lab', planet: m().id })).toThrow(
+      'Auf einem Mond nicht baubar.',
+    );
+    expect(() => A.build(ctx, u, { key: 'robot', planet: m().id })).toThrow(
+      'Es wird bereits gebaut.',
+    );
+  });
+
+  it('renames a moon like a planet', () => {
+    const { ctx, u, m } = withMoon();
+    expect(A.rename(ctx, u, { name: 'Luna', planet: m().id })).toBeNull();
+    expect(m().name).toBe('Luna');
+    expect(ctx.planets.get('p1_1_5')!.name).toBe('Planet u_Anna');
+  });
+
+  it('produces nothing on a moon: no base income', () => {
+    const { ctx, u, m } = withMoon();
+    const before = m().res;
+    ctx.clock.t += 3_600_000;
+    expect(A.mine(ctx, u, m().id).res).toEqual(before);
   });
 });

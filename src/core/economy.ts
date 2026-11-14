@@ -4,7 +4,7 @@
 import { PRODUCTION, STORAGE } from './catalog.ts';
 import { energyUsed, left } from './components/consumes.ts';
 import {
-  BASE_INCOME,
+  baseIncome,
   energyMade,
   made,
   type MineCtx,
@@ -102,7 +102,7 @@ export interface Production {
 }
 
 type ProdPlanet = Pick<Planet, 'b' | 'pct' | 'temp'> &
-  Partial<Pick<Planet, 'ships'>>;
+  Partial<Pick<Planet, 'ships' | 'kind'>>;
 
 /** Energy of all Solarsatelliten of a planet at their production share. */
 export const satPower = (p: ProdPlanet): number =>
@@ -149,8 +149,9 @@ export function prod(
 ): Production {
   const list = running(p, u, research);
   const { eProd, eUse, f } = factor(list);
+  const base = baseIncome(p.kind);
   const net = (res: 'm' | 'c' | 'd'): number =>
-    left(made(list, res, f, u), list, res);
+    left(made(list, res, f, u, base), list, res);
   return { m: net('m'), c: net('c'), d: net('d'), eProd, eUse, f };
 }
 
@@ -280,12 +281,14 @@ export function producerRows(
 ): { f: number; base: Resources; rows: ProducerRow[] } {
   const list = running(asRuns(p, u, research), u, research);
   const { f } = factor(list);
+  // A moon has no base income (#53).
+  const base = baseIncome(p.kind);
   return {
     f,
     base: {
-      m: BASE_INCOME.m * u.speed,
-      c: BASE_INCOME.c * u.speed,
-      d: BASE_INCOME.d * u.speed,
+      m: base.m * u.speed,
+      c: base.c * u.speed,
+      d: base.d * u.speed,
     },
     rows: list.map((x) => producerRow(x, f, p.pct[x.key] ?? 100)),
   };

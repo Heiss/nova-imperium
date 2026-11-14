@@ -27,9 +27,31 @@ export function playerStats(ctx: Ctx) {
     .all(since, now - 3600000, now - 60000, since);
 }
 
+/**
+ * The planets of a player for „Mond anlegen“ (#53): each with whether a
+ * moon is at its position already.
+ */
+function planetsOf(ctx: Ctx, uid: string) {
+  const own = ctx.planets.ofOwner(uid);
+  const moons = new Set(
+    own.filter((x) => x.kind === 'moon').map((x) => `${x.g}:${x.s}:${x.p}`),
+  );
+  return own
+    .filter((x) => x.kind === 'planet')
+    .map((x) => ({
+      id: x.id,
+      name: x.name,
+      g: x.g,
+      s: x.s,
+      p: x.p,
+      moon: moons.has(`${x.g}:${x.s}:${x.p}`),
+    }));
+}
+
 export function playerDetail(ctx: Ctx, uid: string) {
   return {
     suspension: suspension(ctx, uid) ?? null,
+    planets: planetsOf(ctx, uid),
     days: ctx.db
       .prepare(
         `

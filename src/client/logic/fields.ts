@@ -4,7 +4,9 @@ import { maxFields, usedFields } from '../../core/fields.ts';
 import type { Planet, Universe } from '../../core/types.ts';
 import { fmt } from './format.ts';
 
-type FieldPlanet = Pick<Planet, 'b' | 'diameter' | 'unlimited'>;
+/** A moon (#53) has fields of its own rule. */
+type FieldPlanet = Pick<Planet, 'b' | 'diameter' | 'unlimited'> &
+  Partial<Pick<Planet, 'kind'>>;
 type FieldUniverse = Pick<Universe, 'extraFields'>;
 
 /** „Felder: 54 / 163“; a planet from before the fields „Felder: 54 / unbegrenzt“. */

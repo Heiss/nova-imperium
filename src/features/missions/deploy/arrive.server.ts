@@ -1,6 +1,7 @@
 // A Verlegung stays at the target with its ships and cargo, plus half of the
 // fuel it burnt, rounded down; the fleet ends there (#129).
 import { deployFuel } from '../../../core/flight.ts';
+import { placeName } from '../../../core/moon.ts';
 import type { Fleet } from '../../../core/types.ts';
 import {
   type Ctx,
@@ -20,7 +21,7 @@ export function onArrive(ctx: Ctx, f: Fleet, { t }: Arrival): void {
     time: f.arr,
     type: 'info',
     title: `Verlegung erreicht ${coords(f.toC)}`,
-    text: `Deine Flotte bleibt auf ${t.name} ${coords(f.toC)} und liefert ${resLine(load)}, davon ${fmt(rest)} übriger Treibstoff.`,
+    text: `Deine Flotte bleibt auf ${placeName(t)} ${coords(f.toC)} und liefert ${resLine(load)}, davon ${fmt(rest)} übriger Treibstoff.`,
   });
   ctx.fleets.delete(f.id);
 }
