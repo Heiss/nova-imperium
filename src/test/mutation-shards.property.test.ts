@@ -485,6 +485,11 @@ describe('mutation shards: the state between runs', () => {
   it('accepts a plan with weights and refuses anything else', () => {
     const state = { plan: [['a.ts'], []], weights: { files: {} } };
     expect(stateOf(state)).toBe(state);
+    const kept = {
+      plan: [['a.ts']],
+      weights: { files: { 'a.ts': { mutants: [] } } },
+    };
+    expect(stateOf(kept)).toBe(kept);
     for (const wrong of [
       undefined,
       null,
@@ -496,6 +501,10 @@ describe('mutation shards: the state between runs', () => {
       { plan: [['a.ts'], 'b.ts'], weights: { files: {} } },
       { plan: [['a.ts']], weights: { files: null } },
       { plan: [['a.ts']], weights: {} },
+      { plan: [['a.ts']], weights: { files: { 'a.ts': null } } },
+      { plan: [['a.ts']], weights: { files: { 'a.ts': 3 } } },
+      { plan: [['a.ts']], weights: { files: { 'a.ts': {} } } },
+      { plan: [['a.ts']], weights: { files: { 'a.ts': { mutants: 'x' } } } },
     ])
       expect(stateOf(wrong)).toBeUndefined();
   });

@@ -747,13 +747,21 @@ export interface State {
 export function stateOf(value: unknown): State | undefined {
   const s = value as Partial<State> | null;
   const plan = s?.plan;
+  const files: unknown = s?.weights?.files;
+  // Every file record has its mutants, so weigh() never reads a broken one.
   const valid =
     Array.isArray(plan) &&
     plan.every(
       (e) => Array.isArray(e) && e.every((x) => typeof x === 'string'),
     ) &&
-    typeof s?.weights?.files === 'object' &&
-    s.weights.files !== null;
+    typeof files === 'object' &&
+    files !== null &&
+    Object.values(files).every(
+      (f: unknown) =>
+        typeof f === 'object' &&
+        f !== null &&
+        Array.isArray((f as { mutants?: unknown }).mutants),
+    );
   return valid ? (s as State) : undefined;
 }
 
