@@ -1,5 +1,18 @@
 # Neuigkeiten
 
+## Version 26.11.23 – 14.11.2026
+
+### Neu
+
+- Schiffsschmiede und Verteidigung: Auch die klassischen Schiffe und Verteidigungsanlagen, vom Frachtläufer bis zum Massebeschleuniger, zeigen jetzt eine kurze Beschreibung unter ihrem Namen.
+- Planeten haben einen Durchmesser und begrenzte Felder: Jede Gebäudestufe belegt ein Feld, der Heimatplanet hat 163. Die neue Weltenschmiede schafft fünf Felder pro Stufe. Bestehende Planeten bleiben bis zur nächsten Runde unbegrenzt.
+- Bergungsbarke und Trümmerfelder: Zerstörte Schiffe hinterlassen nach einer Schlacht ein Trümmerfeld aus Adamant und Psikristall. Die Sternenkarte zeigt es allen Spielern; mit dem neuen Auftrag „Bergung“ holt eine Flotte mit Bergungsbarke es heim.
+
+### Behoben
+
+- Korrektur zu 26.11.22: Die beiden Einträge zu den Erklärungstexten beschreiben eine Neuerung: Ein (?) neben Gebäuden, Forschungen, Schiffen und Verteidigungsanlagen klappt eine ausführliche Erklärung auf.
+- Korrektur zu 26.11.22: Der Weltenbrecher ist das stärkste Schiff der Schiffsschmiede, nicht das zweitstärkste nach dem Belagerungsbomber.
+
 ## Version 26.11.22 – 13.11.2026
 
 ### Neu
