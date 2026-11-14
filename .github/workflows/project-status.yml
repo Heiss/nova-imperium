@@ -1,0 +1,50 @@
+name: Project status
+
+# The status labels of an issue set the field „Status“ of the owner's
+# GitHub Project (owner, 2026-11-14): one status label holds, the one added
+# last; no status label is „Backlog“; closed issues are left to the
+# project's workflow „Item closed“. Run it by hand to sync every open issue.
+# Needs the secret PROJECT_TOKEN (classic token, scope `project`) and the
+# variable PROJECT_NUMBER. See scripts/project-status.ts, okf/ops/loop.md.
+on:
+  issues:
+    types: [opened, reopened, labeled, unlabeled]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One run per issue at a time; every run reads the issue anew, so a run
+# that is replaced by a newer one loses nothing.
+concurrency:
+  group: project-status-${{ github.event.issue.number || 'all' }}
+  cancel-in-progress: false
+
+jobs:
+  status:
+    name: Sync status
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write # remove the status labels that no longer hold
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version-file: .node-version
+          package-manager-cache: false
+      - name: Sync
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PROJECT_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+          PROJECT_NUMBER: ${{ vars.PROJECT_NUMBER }}
+          NUMBER: ${{ github.event.issue.number }}
+        run: |
+          if [ -n "$NUMBER" ]; then
+            node scripts/project-status.ts issue "$NUMBER"
+          else
+            node scripts/project-status.ts all
+          fi
