@@ -19,7 +19,7 @@ check of `main`. The rules behind it are in
 | Changelog fragments                          | Every fragment in `changes/` is well-formed; a pull request that changes `src/client`, `src/core`, `src/features` or `src/server/game` brings one, unless it has the label `kein-changelog` (`scripts/changelog.ts check`).                                                                                                       | Pull requests.                                                               |
 | Lint, types, unit tests with coverage, build | ESLint with `--max-warnings 0`, knip, jscpd, dependency-cruiser, Prettier, `svelte-check`, Vitest with coverage (blocks below 90 % lines and 85 % branches), `vite build`.                                                                                                                                                        | When the code changes.                                                       |
 | E2E tests (browser)                          | Playwright in Chromium against the real server: the game flows on desktop and phone size, accessibility with axe; the report is kept 7 days when it fails.                                                                                                                                                                        | When the code changes.                                                       |
-| Mutation plan                                | Splits the files Stryker mutates into 6 shards by their estimated run time (`scripts/mutation-shards.ts plan`); the plan is the job's output.                                                                                                                                                                                     | When the code changes.                                                       |
+| Mutation plan                                | Splits the files Stryker mutates into 6 shards by their estimated run time, every file on its shard of the last plan (`scripts/mutation-shards.ts plan`); the plan is the job's output.                                                                                                                                                                                     | When the code changes.                                                       |
 | Mutation tests (shard N of 6)                | Stryker on the files of one shard (matrix 1 to 6, `fail-fast: false`), incremental with the shard's own cache, complete (`--force`) in a release pull request; uploads the shard's report.                                                                                                                                        | When the code changes.                                                       |
 | Mutation tests                               | Merges the six reports and checks them as one run: every shard ran once with exactly its files, the total score is at least 80 % (`stryker.config.json`), no file is below its floor (`mutation-standard.json`, `scripts/mutation-gate.ts`).                                                                                      | When the code changes.                                                       |
 | Docker image and Compose stack               | `compose.yaml` is valid and requires `NOVA_PUBLIC_URL`; the last release writes data, the image built from the `Dockerfile` starts on the same volume and the data survive (`docker/upgrade.sh`); Trivy; no compiler, package manager or tests in the image; a wrong setting stops the start; the smoke test (`docker/smoke.sh`). | When **image** is true (see below).                                          |
@@ -82,17 +82,26 @@ run (complete). The decisions and the details of the code are in
 flowchart LR
   plan["Mutation plan: 6 shards by estimated run time"] --> s1["shard 1"] & s2["shard 2"] & s3["…"] & s6["shard 6"]
   s1 & s2 & s3 & s6 --> gate["Mutation tests: merge the reports, total score, file floors"]
-  weights[("weights: merged report of the last complete run")] -.-> plan
-  gate -.->|"merged report"| weights
+  state[("state: last plan and the weights of every mutant")] -.-> plan
+  gate -.->|"plan that ran, times of the mutants that ran"| state
 ```
 
 - **Plan.** `scripts/mutation-shards.ts plan` lists the files of the
   `mutate` globs of `stryker.config.json` and weighs each by the test time
-  of its mutants in the merged report of the last **complete** run (cache
-  `stryker-weights-…`, saved by the nightly run and by a release pull
-  request); without one, the last merged report (`stryker-report-…`). A
-  file the report does not know weighs by its lines. The heaviest files go
-  first onto the emptiest shard.
+  of its mutants in the weights of the last run (cache `stryker-state-…`,
+  with the plan that ran). Without one, in the merged report of the last
+  **complete** run (cache `stryker-weights-…`, saved by the nightly run and
+  by a release pull request), else in the last merged report
+  (`stryker-report-…`). A file the weights do not know weighs by its lines.
+- **Stable shards.** Every file stays on its shard of the last plan, so
+  the shard keeps its cached results; new files go onto the lightest
+  shard. Only a shard above 1.5 times the mean weight gives files to the
+  lightest one (#141). Without a last plan the heaviest files go first
+  onto the emptiest shard.
+- **Weights.** After the merge, `scripts/mutation-shards.ts weights` takes
+  the test time of every mutant this run ran; a mutant whose result
+  Stryker took over has no time and keeps its old one. The gate job keeps
+  the plan and the weights for the next plan.
 - **Cut files.** A TypeScript file heavier than half a shard is cut into
   line ranges between its top-level statements (`file:from-to`); Stryker
   mutates a node only when it lies wholly in one range, and no node spans
@@ -157,7 +166,7 @@ The published release is scanned again every hour by the workflow
 
 | Workflow                                                    | When                  | What                                                                                                                                                                                                                                                                                                   |
 | ----------------------------------------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Mutation tests (nightly), `mutation.yml`                    | 02:23 UTC, or by hand | The complete Stryker run on `main` in 6 shards with the same plan and gate as the CI; it saves the merged report as the weights of the next plans (`stryker-weights-…`) and keeps it as the artifact `mutation-report` for 30 days. „Run workflow“ on another branch runs the same complete run there. |
+| Mutation tests (nightly), `mutation.yml`                    | 02:23 UTC, or by hand | The complete Stryker run on `main` in 6 shards with the same plan and gate as the CI; it saves the merged report (`stryker-weights-…`) and the plan with the weights of every mutant (`stryker-state-…`) for the next plans and keeps it as the artifact `mutation-report` for 30 days. „Run workflow“ on another branch runs the same complete run there. |
 | Migration upgrade tests (nightly), `migrations-nightly.yml` | 03:41 UTC, or by hand | The property-based upgrade test of every migration with a random seed and 1000 generated databases each; pull requests run 100 with a fixed seed. A failure prints the seed: `MIGRATION_SEED=<seed> pnpm vitest run src/server/db/migrations.property.test.ts`.                                        |
 
 ## CodeRabbit
