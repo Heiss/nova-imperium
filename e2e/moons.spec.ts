@@ -3,6 +3,7 @@
 // an own place with its buildings and fields, flights to a moon and the moon
 // chance of a battle report. A moon from a battle forms by chance only, so
 // the tests make moons with the admin or with e2e/seed.ts.
+import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { cli, nav, register, seed, uniqueName, watch } from './helpers.ts';
 
@@ -24,6 +25,14 @@ async function openSystemOf(page: Page, player: string): Promise<void> {
     .locator('[data-act=gto]')
     .click();
   await expect(page.locator('h2')).toHaveText('Sternenkarte');
+}
+
+/** axe (WCAG 2.1 A and AA) as in e2e/a11y.spec.ts: the violations of the page. */
+async function violations(page: Page): Promise<string[]> {
+  const results = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+    .analyze();
+  return results.violations.map((v) => `${v.id}: ${v.help}`);
 }
 
 /** Switches to the own moon in the planet list. */
@@ -57,12 +66,15 @@ test.describe('moons (#53)', () => {
     await expect(
       home.getByRole('button', { name: 'Mond anlegen' }),
     ).toBeVisible();
+    // The player record with „Mond anlegen“ has no axe violations.
+    expect(await violations(page)).toEqual([]);
     await home.getByLabel('Mondchance in %').fill('20');
     await home.getByRole('button', { name: 'Mond anlegen' }).click();
     await expect(home).toContainText('vorhanden');
     await expect(
       home.getByRole('button', { name: 'Mond anlegen' }),
     ).toHaveCount(0);
+    expect(await violations(page)).toEqual([]);
     // The write is in the event log.
     await page.getByRole('tab', { name: 'Ereignisprotokoll' }).click();
     await page.getByLabel('Aktion', { exact: true }).fill('createMoon');

@@ -193,7 +193,9 @@ places (#119) and the fields (#51).
   own place with its buildings, fields and no base income, a Verlegung to
   the own moon, the moon chance in a battle report, the moon on a phone)
   and axe on the Sternenkarte with an open moon, the fleet form, the moon's
-  overview, buildings and resources and the player record.
+  overview, buildings and resources (`e2e/a11y.spec.ts`) and on the player
+  record with „Mond anlegen“ (in `e2e/moons.spec.ts`, which runs after the
+  admin test of `game.spec.ts` that counts the reads of a player record).
 * A moon from a battle forms by chance only; the E2E tests check the line
   „Mondchance“ of a real battle and make moons with the admin or
   `e2e/seed.ts` (option `moon`); the sentence about the Trabant is checked
