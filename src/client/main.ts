@@ -61,6 +61,7 @@ import {
 } from './views/misc.ts';
 import { disablePush, enablePush } from './push.ts';
 import { mountBuildings } from './views/buildings.ts';
+import { dissolveDialog, transferDialog } from './views/guilds.ts';
 import { mountProducerTable } from './views/producer-table.ts';
 
 import { addPasskey, signInWithPasskey } from './passkeys.ts';
@@ -1089,13 +1090,22 @@ const ACT: Record<string, (d: Data) => unknown> = {
   guildReview: (d) =>
     act('reviewGuildApplication', { uid: d.uid, accept: d.accept === '1' }),
   guildMember: (d) => {
-    const transfer = d.transfer === '1';
-    if (
-      window.confirm(
-        transfer ? 'Gildenleitung übergeben?' : 'Mitglied entfernen?',
-      )
-    )
-      return act('manageGuildMember', { uid: d.uid, transfer });
+    const ranks = S?.guilds?.ranks;
+    if (d.transfer === '1' && ranks) {
+      const name = S!
+        .guilds!.directory.flatMap((g) => g.members)
+        .find((m) => m.id === d.uid)?.name;
+      modal(transferDialog(ranks, d.uid ?? '', name ?? ''));
+      return $('#transfer_rank')?.focus();
+    }
+    if (window.confirm('Mitglied entfernen?'))
+      return act('manageGuildMember', { uid: d.uid, transfer: false });
+  },
+  guildDissolve: (d) => {
+    const guild = S?.guilds?.directory.find((g) => g.id === d.id);
+    if (!guild) return;
+    modal(dissolveDialog(guild));
+    $('#dissolve_tag')?.focus();
   },
   guildAssign: (d) =>
     act('assignGuildRank', { uid: d.uid, rank: byId(`rank_of_${d.uid}`) }),
@@ -1507,6 +1517,22 @@ async function submitAccountDeletion(): Promise<void> {
   }
 }
 
+async function submitTransfer(): Promise<void> {
+  const ok = await act('manageGuildMember', {
+    uid: $('#guildtransferform')?.dataset.uid,
+    transfer: true,
+    rank: val('#transfer_rank'),
+  });
+  if (ok) modal('');
+}
+
+async function submitDissolve(): Promise<void> {
+  if (await act('dissolveGuild', { tag: val('#dissolve_tag') })) {
+    modal('');
+    go('guilds');
+  }
+}
+
 async function submitGuild(): Promise<void> {
   const edit = $('#guildform')?.dataset.edit === '1';
   const ok = await act(edit ? 'updateGuild' : 'createGuild', {
@@ -1635,6 +1661,8 @@ document.addEventListener('submit', (e) => {
     ['inviteform', submitInvite],
     ['announceform', submitAnnouncement],
     ['guildform', submitGuild],
+    ['guildtransferform', submitTransfer],
+    ['guilddissolveform', submitDissolve],
     ['codeform', submitLoginCode],
     ['forgotform', submitForgot],
     ['resetform', () => submitPassword(true)],

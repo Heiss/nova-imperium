@@ -209,6 +209,17 @@ test.describe('accessibility (axe)', () => {
     await other.reload();
     await expect(other.locator('fieldset.rank')).toHaveCount(3);
     await check(other, 'member');
+    // The dialogs of the hand-over and of dissolving (owner, 2026-11-14).
+    await page
+      .getByRole('button', { name: 'Leitung übergeben' })
+      .first()
+      .click();
+    await expect(page.getByLabel('Dein neuer Rang')).toBeVisible();
+    await check(page, 'hand-over dialog');
+    await page.getByRole('button', { name: 'Abbrechen' }).click();
+    await page.getByRole('button', { name: 'Gilde auflösen' }).click();
+    await expect(page.locator('#dissolve_tag')).toBeVisible();
+    await check(page, 'dissolve dialog');
     await context.close();
     expect(found).toEqual([]);
   });

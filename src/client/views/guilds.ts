@@ -91,9 +91,35 @@ function guildMembership(
     return '<p>Deine Bewerbung ist offen.</p><button data-act="guildLeave">Bewerbung zurückziehen</button>';
   if (!me?.lead)
     return '<button data-act="guildLeave" data-confirm="Gilde wirklich verlassen?">Gilde verlassen</button>';
-  return g.members.length === 1
-    ? '<button class="red" data-act="guildLeave" data-confirm="Gilde wirklich auflösen?">Gilde auflösen</button>'
-    : '';
+  // Only the Leitung, also while members remain (owner, 2026-11-14).
+  return `<button class="red" data-act="guildDissolve" data-id="${esc(g.id)}">Gilde auflösen</button>`;
+}
+
+/**
+ * The hand-over: the Leitung chooses its own new rank, preselected the
+ * highest rank below the Leitung (owner, 2026-11-14).
+ */
+export function transferDialog(ranks: GuildRanks, uid: string, name: string) {
+  const options = ranks.list
+    .slice(1)
+    .map((r) => `<option value="${esc(r.id)}">${esc(r.name)}</option>`)
+    .join('');
+  return `<h3 id="dialog-title">Leitung übergeben</h3>
+  <form id="guildtransferform" data-uid="${esc(uid)}">
+    <p>Du übergibst die Gildenleitung an ${esc(name)}.</p>
+    <p><label for="transfer_rank">Dein neuer Rang</label> <select id="transfer_rank">${options}</select></p>
+    <p><button type="submit">Übergeben</button> <button type="button" data-act="closeModal">Abbrechen</button></p>
+  </form>`;
+}
+
+/** Dissolving the guild, confirmed with its tag (owner, 2026-11-14). */
+export function dissolveDialog(g: Guild): string {
+  return `<h3 id="dialog-title">Gilde auflösen</h3>
+  <form id="guilddissolveform">
+    <p>Alle Mitglieder verlassen die Gilde; ihre Ränge und offenen Bewerbungen werden gelöscht. Das kann nicht rückgängig gemacht werden.</p>
+    <p><label for="dissolve_tag">Gib zur Bestätigung das Kürzel ${esc(g.tag)} ein</label><br><input id="dissolve_tag" required autocomplete="off" data-nokeep></p>
+    <p><button type="submit" class="red">Gilde endgültig auflösen</button> <button type="button" data-act="closeModal">Abbrechen</button></p>
+  </form>`;
 }
 
 /** „Rang ändern“: the ranks below the own one, for a member below it. */
