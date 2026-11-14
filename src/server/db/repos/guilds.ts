@@ -82,6 +82,8 @@ export interface Guilds {
   deleteRank(id: string, fallback: string): void;
   setDefaultRank(id: string, rank: string): void;
   setRank(uid: string, rank: string): void;
+  /** Whether a member holds the rank. */
+  rankHasMembers(rank: string): boolean;
 }
 
 interface RankRow {
@@ -297,5 +299,13 @@ export class SqliteGuilds implements Guilds {
     this.db
       .prepare('UPDATE guild_members SET rank_id = ? WHERE user_id = ?')
       .run(rank, uid);
+  }
+
+  rankHasMembers(rank: string): boolean {
+    return (
+      this.db
+        .prepare('SELECT 1 FROM guild_members WHERE rank_id = ?')
+        .get(rank) !== undefined
+    );
   }
 }

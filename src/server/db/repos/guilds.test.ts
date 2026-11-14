@@ -204,8 +204,12 @@ describe('guild ranks repository (#163)', () => {
     expect(ctx.guilds.membership('u_Bert')?.rank_id).toBe('ra');
     ctx.guilds.apply('u_Cora', 'g1');
     ctx.guilds.accept('u_Cora');
+    expect(ctx.guilds.rankHasMembers('r1_g1')).toBe(false);
     ctx.guilds.setRank('u_Cora', 'r1_g1');
     expect(ctx.guilds.membership('u_Cora')?.rank_id).toBe('r1_g1');
+    expect(ctx.guilds.rankHasMembers('r1_g1')).toBe(true);
+    expect(ctx.guilds.rankHasMembers('ra')).toBe(true);
+    expect(ctx.guilds.rankHasMembers('none')).toBe(false);
     // The database refuses to delete the default rank.
     expect(() => ctx.guilds.deleteRank('ra', 'r1_g1')).toThrow(
       'FOREIGN KEY constraint failed',

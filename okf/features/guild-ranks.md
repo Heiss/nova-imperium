@@ -100,6 +100,26 @@ The owner answered the five open points of the first build (owner,
   kann die Gilde auflösen.“. Leaving as the last member still dissolves
   the guild, as before.
 
+From the review of the pull request (#197, owner, 2026-11-14): no rank
+may pass on a right its holder lacks.
+
+* **[E]** Giving a rank: refused when the rank holds a right the actor
+  lacks („Dazu fehlt deinem Rang das Recht.“), besides the order (the
+  member and the rank below the actor). The Leitung holds every right and
+  is not affected.
+* **[E]** Deleting a rank with members: its members move to the default
+  rank, so the deletion is allowed only when the default rank is strictly
+  below the actor and holds no right the actor lacks, the same rules as
+  giving it. A rank without members goes freely. The Leitung may always
+  delete.
+* **[E]** The pure rules of the ranks are plain functions in
+  `src/core/guild-ranks.ts`, used by the server and the guild view; the
+  server keeps finding the acting member, the order of the steps and the
+  storage.
+* **[E]** A box of a right that the own rank cannot change shows the
+  server's state after a refresh; only the boxes it can change keep an
+  unsaved tick or clear.
+
 # Proposals
 
 * **[V]** The tag typed to dissolve is compared trimmed and
@@ -113,7 +133,10 @@ The owner answered the five open points of the first build (owner,
   „Dazu fehlt deinem Rang das Recht.“, „Das geht nur bei Rängen unter
   deinem.“, „Das darf nur die Gildenleitung.“ (as before, for the hand-over
   and the default rank), „Wähle für dich einen Rang unter der Leitung.“,
-  „Das Kürzel stimmt nicht.“, „Diesen Rang gibt es nicht.“, „Der Rangname
+  „Das Kürzel stimmt nicht.“, „Der Rang hat Mitglieder, und der
+  Standardrang steht nicht unter deinem oder hat ein Recht, das dir
+  fehlt.“ (deleting a rank with members, review of #197), „Diesen Rang
+  gibt es nicht.“, „Der Rangname
   braucht 2 bis 67 Zeichen.“, „Diesen Rangnamen gibt es in der Gilde
   schon.“, „Eine Gilde hat höchstens 25 Ränge.“, „Der Standardrang kann
   nicht gelöscht werden.“, „Die Leitung kann nicht der Standardrang
@@ -147,8 +170,15 @@ The owner answered the five open points of the first build (owner,
   `guild_members.rank_id`. The Leitung's rights are not stored: it holds
   all in code. A new guild gets the ranks `r0_<id>` (Leitung) and `r1_<id>`
   (Mitglied), as the migration gives the existing ones.
-* `src/core/guild-ranks.ts`: the keys of the rights and the limits, for the
-  server and the client.
+* `src/core/guild-ranks.ts`: the keys of the rights, the limits and the
+  pure rules with plain values (a place is 0 for the Leitung, a larger
+  number for a lower rank, Infinity for no rank): `memberPlace`,
+  `isBelow`, `belowLeitung` (default rank and the old Leitung's rank),
+  `rankNameError`, `changedRights`, `missingRights`, `canChangeRights`,
+  `assignError` and `deleteError`; they return an error code, the server
+  turns it into the German message. Tests in `src/core/guild-ranks.test.ts`.
+  The guild view uses them to offer only the ranks the own rank may give
+  and „Löschen“ only where the deletion is allowed.
 * `src/server/db/repos/guilds.ts`: the ranks belong to the guild repository
   (#117).
 * `src/server/game/guild-ranks.ts` (a security file, mutation target 90 %):
@@ -173,6 +203,12 @@ The owner answered the five open points of the first build (owner,
   (members, ranks, rights, moves),
   deleting a rank and the default rank, the limits, and what the guild view
   shows inside and outside.
+* `src/server/game/guild-ranks.test.ts`, review of #197: giving a rank
+  with a right the actor lacks refused, with all its rights allowed, the
+  Leitung unaffected; deleting a rank with members into a default rank
+  with a right the actor lacks or not below it refused, below and without
+  such a right allowed, a rank without members and the Leitung always.
+* `src/core/guild-ranks.test.ts`: the pure rules.
 * `src/server/db/repos/guilds.test.ts`: the rank methods.
 * `src/server/db/upgrades/migration-18.test.ts`: hand-written data, the
   constraints and cascades, and generated data of version 17.
@@ -184,4 +220,6 @@ The owner answered the five open points of the first build (owner,
   and is refused by the server, a wrong tag is refused, the right one
   dissolves the guild. `e2e/a11y.spec.ts`: axe on the directory, the
   public page, the Leitung's view with ranks and an application, a
-  member's view and both dialogs.
+  member's view and both dialogs. A third rank test (desktop): after a
+  refresh, a disabled box shows the right the Leitung just gave, and the
+  own unsaved tick stays.

@@ -578,6 +578,118 @@ describe('deleting a rank and the default rank (#163)', () => {
   });
 });
 
+describe('no right through a rank (owner, 2026-11-14, review of #197)', () => {
+  const DELETE =
+    'Der Rang hat Mitglieder, und der Standardrang steht nicht unter deinem oder hat ein Recht, das dir fehlt.';
+
+  /** Offizier with `rights` right below the Leitung, held by Ada; Rekrut lowest. */
+  function officerAndRecruit(rights: GuildRight[]) {
+    const s = setup();
+    const officer = s.officer(rights);
+    s.run('Lea', { type: 'assignGuildRank', uid: 'u_Ada', rank: officer });
+    s.run('Lea', { type: 'createGuildRank', name: 'Rekrut' });
+    return { ...s, officer, recruit: s.rank('Rekrut') };
+  }
+  const give = (
+    s: Pick<ReturnType<typeof setup>, 'run'>,
+    who: string,
+    rank: string,
+  ) => s.run(who, { type: 'assignGuildRank', uid: 'u_Bo', rank });
+
+  it('gives a rank only when the actor holds all of its rights', () => {
+    const s = officerAndRecruit(['assign']);
+    expect(give(s, 'Ada', s.recruit)).toBe('Rang vergeben.');
+    s.run('Lea', {
+      type: 'setGuildRankRights',
+      rank: s.recruit,
+      rights: ['assign', 'remove'],
+    });
+    expect(() => give(s, 'Ada', s.recruit)).toThrow(NO_RIGHT);
+    s.run('Lea', {
+      type: 'assignGuildRank',
+      uid: 'u_Bo',
+      rank: s.rank('Mitglied'),
+    });
+    expect(() => give(s, 'Ada', s.recruit)).toThrow(NO_RIGHT);
+    expect(s.rankOf('Bo')).toBe('Mitglied');
+    s.run('Lea', {
+      type: 'setGuildRankRights',
+      rank: s.officer,
+      rights: ['assign', 'remove'],
+    });
+    expect(give(s, 'Ada', s.recruit)).toBe('Rang vergeben.');
+    expect(s.rankOf('Bo')).toBe('Rekrut');
+  });
+
+  it('the Leitung gives every rank below it, whatever its rights', () => {
+    const s = officerAndRecruit(['assign']);
+    s.run('Lea', {
+      type: 'setGuildRankRights',
+      rank: s.recruit,
+      rights: ['applications', 'remove', 'assign', 'profile', 'ranks'],
+    });
+    expect(give(s, 'Lea', s.recruit)).toBe('Rang vergeben.');
+  });
+
+  it('deletes a rank with members only into a default rank it could give', () => {
+    const s = officerAndRecruit(['ranks']);
+    for (const uid of ['u_Bo', 'u_Cy'])
+      s.run('Lea', { type: 'assignGuildRank', uid, rank: s.recruit });
+    // The default rank Mitglied holds a right Ada lacks.
+    s.run('Lea', {
+      type: 'setGuildRankRights',
+      rank: s.rank('Mitglied'),
+      rights: ['profile'],
+    });
+    expect(() =>
+      s.run('Ada', { type: 'deleteGuildRank', rank: s.recruit }),
+    ).toThrow(DELETE);
+    // The default rank is Ada's own: not below her.
+    s.run('Lea', {
+      type: 'setGuildRankRights',
+      rank: s.rank('Mitglied'),
+      rights: [],
+    });
+    s.run('Lea', { type: 'setGuildDefaultRank', rank: s.officer });
+    expect(() =>
+      s.run('Ada', { type: 'deleteGuildRank', rank: s.recruit }),
+    ).toThrow(DELETE);
+    expect([s.rankOf('Bo'), s.rankOf('Cy')]).toEqual(['Rekrut', 'Rekrut']);
+    // Below her and without a right she lacks: allowed.
+    s.run('Lea', { type: 'setGuildDefaultRank', rank: s.rank('Mitglied') });
+    expect(s.run('Ada', { type: 'deleteGuildRank', rank: s.recruit })).toBe(
+      'Rang gelöscht.',
+    );
+    expect([s.rankOf('Bo'), s.rankOf('Cy')]).toEqual(['Mitglied', 'Mitglied']);
+  });
+
+  it('deletes a rank without members whatever the default rank holds', () => {
+    const s = officerAndRecruit(['ranks']);
+    s.run('Lea', {
+      type: 'setGuildRankRights',
+      rank: s.rank('Mitglied'),
+      rights: ['profile', 'remove'],
+    });
+    expect(s.run('Ada', { type: 'deleteGuildRank', rank: s.recruit })).toBe(
+      'Rang gelöscht.',
+    );
+  });
+
+  it('the Leitung may always delete', () => {
+    const s = officerAndRecruit(['ranks']);
+    s.run('Lea', { type: 'assignGuildRank', uid: 'u_Bo', rank: s.recruit });
+    s.run('Lea', {
+      type: 'setGuildRankRights',
+      rank: s.rank('Mitglied'),
+      rights: ['applications', 'remove', 'assign', 'profile', 'ranks'],
+    });
+    expect(s.run('Lea', { type: 'deleteGuildRank', rank: s.recruit })).toBe(
+      'Rang gelöscht.',
+    );
+    expect(s.rankOf('Bo')).toBe('Mitglied');
+  });
+});
+
 describe('the limits of the ranks (#163)', () => {
   it('allows at most 25 ranks, the Leitung included', () => {
     const s = setup();

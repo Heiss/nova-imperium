@@ -283,4 +283,57 @@ test.describe('guild ranks (#163)', () => {
     await rankFlow(page, browser);
     expect(page.viewportSize()!.width).toBeLessThanOrEqual(760);
   });
+
+  test('a refresh keeps the own draft of the rights and shows the server state of the others (review of #197)', async ({
+    page,
+    browser,
+  }) => {
+    const lead = uniqueName('Leiterin');
+    const officer = uniqueName('Hauptmann');
+    const tag = `K${Date.now() % 1000000}`;
+    const problems: { problems: string[] }[] = [watch(page)];
+    const po = await guildWithMember(
+      page,
+      browser,
+      lead,
+      officer,
+      tag,
+      problems,
+    );
+    await page.getByLabel('Name des neuen Rangs').fill('Offizier');
+    await page.getByRole('button', { name: 'Rang anlegen' }).click();
+    const rank = page.getByRole('group', { name: 'Offizier', exact: true });
+    await rank.getByRole('button', { name: 'Nach oben' }).click();
+    await expect(lastToast(page)).toContainText('Rang verschoben.');
+    await rank.getByLabel('Ränge verwalten').check();
+    await rank.getByRole('button', { name: 'Rechte speichern' }).click();
+    await expect(lastToast(page)).toContainText('Rechte gespeichert.');
+    await member(page, officer)
+      .getByLabel(`Neuer Rang für ${officer}`)
+      .selectOption({ label: 'Offizier' });
+    await member(page, officer)
+      .getByRole('button', { name: 'Rang ändern' })
+      .click();
+    await expect(lastToast(page)).toContainText('Rang vergeben.');
+
+    // The officer edits Mitglied: „Ränge verwalten“ is hers, the profile
+    // right is not (disabled). She ticks her own right as a draft.
+    await po.reload();
+    const theirs = po.getByRole('group', { name: /^Mitglied/ });
+    const profile = theirs.getByLabel('Gildenname, Kürzel und Text ändern');
+    const draft = theirs.getByLabel('Ränge verwalten');
+    await expect(profile).toBeDisabled();
+    await expect(profile).not.toBeChecked();
+    await draft.check();
+    // Meanwhile the Leitung gives Mitglied the profile right.
+    const mine = page.getByRole('group', { name: /^Mitglied/ });
+    await mine.getByLabel('Gildenname, Kürzel und Text ändern').check();
+    await mine.getByRole('button', { name: 'Rechte speichern' }).click();
+    await expect(lastToast(page)).toContainText('Rechte gespeichert.');
+    // The officer's page refreshes on its own (every 4 s).
+    await expect(profile).toBeChecked({ timeout: 15000 });
+    await expect(draft).toBeChecked();
+    await po.close();
+    expect(problems.flatMap((w) => w.problems)).toEqual([]);
+  });
 });

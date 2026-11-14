@@ -4,12 +4,20 @@
 // exactly one Leitung, which holds every right; ranks are ordered, a member
 // acts only on lower ranks and gives only rights it holds; only the Leitung
 // hands over the Leitung, chooses the default rank and dissolves the guild.
+// The rules themselves are plain functions in src/core/guild-ranks.ts, which
+// the guild view uses too; this file finds the actor and applies them.
 import {
+  assignError,
+  belowLeitung,
+  canChangeRights,
+  deleteError,
   GUILD_RIGHTS,
+  isBelow,
   isGuildRight,
   MAX_GUILD_RANKS,
   MAX_RANK_NAME,
-  MIN_RANK_NAME,
+  memberPlace,
+  rankNameError,
   type GuildRight,
 } from '../../core/guild-ranks.ts';
 import type {
@@ -53,7 +61,7 @@ export function actor(ctx: Ctx, uid: string): Actor {
     ranks,
     lead,
     rank: member.rank_id,
-    position: lead ? 0 : (own?.position ?? Infinity),
+    position: memberPlace(lead, own?.position),
     rights: new Set(lead ? GUILD_RIGHTS : (own?.rights ?? [])),
   };
 }
@@ -64,7 +72,7 @@ export function need(a: Actor, right: GuildRight): void {
 
 /** Refuses a rank or member at `position` that is not below the actor. */
 export function below(a: Actor, position: number): void {
-  if (position <= a.position) fail(LOWER_ONLY);
+  if (!isBelow(a.position, position)) fail(LOWER_ONLY);
 }
 
 function leadOnly(a: Actor, message = LEAD_ONLY): void {
@@ -73,9 +81,14 @@ function leadOnly(a: Actor, message = LEAD_ONLY): void {
 
 /** The place of a member of the actor's guild in the order. */
 export function placeOf(a: Actor, m: Membership): number {
-  if (m.user_id === a.guild.founder) return 0;
-  return a.ranks.find((r) => r.id === m.rank_id)?.position ?? Infinity;
+  return memberPlace(
+    m.user_id === a.guild.founder,
+    a.ranks.find((r) => r.id === m.rank_id)?.position,
+  );
 }
+
+/** The actor as the core rules see it: its place and its rights. */
+const asRule = (a: Actor) => ({ position: a.position, rights: [...a.rights] });
 
 function rankOf(a: Actor, id: unknown): Rank {
   const rank = str(id, 40);
@@ -93,17 +106,15 @@ function managed(ctx: Ctx, uid: string, id: unknown) {
   return { a, rank };
 }
 
-function rankName(a: Actor, value: unknown, except = ''): string {
+const NAME_ERROR = {
+  length: 'Der Rangname braucht 2 bis 67 Zeichen.',
+  taken: 'Diesen Rangnamen gibt es in der Gilde schon.',
+};
+
+function rankName(a: Actor, value: unknown, except?: string): string {
   const name = str(value, MAX_RANK_NAME + 1);
-  if (name.length < MIN_RANK_NAME || name.length > MAX_RANK_NAME)
-    fail('Der Rangname braucht 2 bis 67 Zeichen.');
-  const key = name.toLocaleLowerCase('de');
-  if (
-    a.ranks.some(
-      (r) => r.id !== except && r.name.toLocaleLowerCase('de') === key,
-    )
-  )
-    fail('Diesen Rangnamen gibt es in der Gilde schon.');
+  const error = rankNameError(name, a.ranks, except);
+  if (error) fail(NAME_ERROR[error]);
   return name;
 }
 
@@ -131,10 +142,7 @@ export const renameGuildRank: Action = (ctx, user, d) => {
 export const setGuildRankRights: Action = (ctx, user, d) => {
   const { a, rank } = managed(ctx, user.id, d.rank);
   const next = rightsOf(d.rights);
-  const changed = GUILD_RIGHTS.filter(
-    (r) => next.has(r) !== rank.rights.includes(r),
-  );
-  if (changed.some((r) => !a.rights.has(r))) fail(NO_RIGHT);
+  if (!canChangeRights([...a.rights], rank.rights, [...next])) fail(NO_RIGHT);
   ctx.guilds.setRights(
     rank.id,
     GUILD_RIGHTS.filter((r) => next.has(r)),
@@ -160,6 +168,13 @@ export const deleteGuildRank: Action = (ctx, user, d) => {
   const fallback = a.guild.default_rank!;
   if (rank.id === fallback)
     fail('Der Standardrang kann nicht gelöscht werden.');
+  // Its members move to the default rank: only one the actor could give
+  // them (owner, 2026-11-14).
+  const moved = a.ranks.find((r) => r.id === fallback)!;
+  if (deleteError(asRule(a), ctx.guilds.rankHasMembers(rank.id), moved))
+    fail(
+      'Der Rang hat Mitglieder, und der Standardrang steht nicht unter deinem oder hat ein Recht, das dir fehlt.',
+    );
   ctx.guilds.deleteRank(rank.id, fallback);
   return 'Rang gelöscht.';
 };
@@ -168,7 +183,7 @@ export const setGuildDefaultRank: Action = (ctx, user, d) => {
   const a = actor(ctx, user.id);
   leadOnly(a);
   const rank = rankOf(a, d.rank);
-  if (rank.position === 0)
+  if (!belowLeitung(rank.position))
     fail('Die Leitung kann nicht der Standardrang sein.');
   ctx.guilds.setDefaultRank(a.guild.id, rank.id);
   return 'Standardrang gesetzt.';
@@ -186,9 +201,10 @@ export const assignGuildRank: Action = (ctx, user, d) => {
   const a = actor(ctx, user.id);
   need(a, 'assign');
   const target = memberOf(ctx, a, d.uid);
-  below(a, placeOf(a, target));
   const rank = rankOf(a, d.rank);
-  below(a, rank.position);
+  // Not below, or a right the actor lacks (owner, 2026-11-14).
+  const error = assignError(asRule(a), placeOf(a, target), rank);
+  if (error) fail(error === 'lower' ? LOWER_ONLY : NO_RIGHT);
   ctx.guilds.setRank(target.user_id, rank.id);
   return 'Rang vergeben.';
 };
@@ -200,7 +216,8 @@ export const assignGuildRank: Action = (ctx, user, d) => {
 export function handOverRank(a: Actor, id: unknown): Rank {
   leadOnly(a);
   const rank = rankOf(a, id);
-  if (rank.position === 0) fail('Wähle für dich einen Rang unter der Leitung.');
+  if (!belowLeitung(rank.position))
+    fail('Wähle für dich einen Rang unter der Leitung.');
   return rank;
 }
 

@@ -1,7 +1,11 @@
 import {
+  assignError,
+  deleteError,
   GUILD_RIGHTS,
+  isBelow,
   MAX_GUILD_RANKS,
   MAX_RANK_NAME,
+  memberPlace,
   MIN_RANK_NAME,
   type GuildRight,
 } from '../../core/guild-ranks.ts';
@@ -72,12 +76,25 @@ function inside(ranks: GuildRanks, uid: string): Inside {
   };
 }
 
-/** The place of a member; a member without a rank stands lowest. */
-function placeOf(me: Inside, id: string): number {
-  if (id === me.ranks.lead) return 0;
-  const at = me.ranks.list.findIndex((r) => r.id === me.ranks.members[id]);
-  return at < 0 ? Infinity : at;
+/** The place of a rank in the list; none for an unknown rank. */
+function indexOf(me: Inside, rank: string | null | undefined) {
+  const at = me.ranks.list.findIndex((r) => r.id === rank);
+  return at < 0 ? undefined : at;
 }
+
+/** The place of a member; a member without a rank stands lowest (core rule). */
+function placeOf(me: Inside, id: string): number {
+  return memberPlace(id === me.ranks.lead, indexOf(me, me.ranks.members[id]));
+}
+
+/** The own rank as the core rules see it. */
+const asRule = (me: Inside) => ({ position: me.at, rights: me.ranks.rights });
+
+/** A rank as the core rules see it. */
+const rankRule = (rank: GuildRank, at: number) => ({
+  position: at,
+  rights: rank.rights,
+});
 
 function guildMembership(
   state: GuildState,
@@ -124,8 +141,11 @@ export function dissolveDialog(g: Guild): string {
 
 /** „Rang ändern“: the ranks below the own one, for a member below it. */
 function rankChange(me: Inside, id: string, name: string): string {
+  // Only ranks the own rank may give (owner, 2026-11-14): below it and
+  // without a right it lacks.
+  const place = placeOf(me, id);
   const options = me.ranks.list
-    .filter((_, i) => i > me.at)
+    .filter((r, i) => assignError(asRule(me), place, rankRule(r, i)) === null)
     .map(
       (r) =>
         `<option value="${esc(r.id)}"${r.id === me.ranks.members[id] ? ' selected' : ''}>${esc(r.name)}</option>`,
@@ -137,7 +157,7 @@ function rankChange(me: Inside, id: string, name: string): string {
 
 function memberControls(me: Inside, m: Guild['members'][number]): string {
   if (m.id === me.uid) return '';
-  const lower = placeOf(me, m.id) > me.at;
+  const lower = isBelow(me.at, placeOf(me, m.id));
   const uid = esc(m.id);
   return [
     me.lead
@@ -186,19 +206,29 @@ function rankEditor(me: Inside, rank: GuildRank, at: number): string {
   ).join('');
   const isDefault = rank.id === me.ranks.default;
   const last = at === me.ranks.list.length - 1;
+  const fallback = indexOf(me, me.ranks.default);
+  const hasMembers = Object.values(me.ranks.members).includes(rank.id);
+  const deletable =
+    !isDefault &&
+    fallback !== undefined &&
+    deleteError(
+      asRule(me),
+      hasMembers,
+      rankRule(me.ranks.list[fallback]!, fallback),
+    ) === null;
   return `<div><label for="rank_name_${id}">Rangname</label> <input id="rank_name_${id}" required minlength="${MIN_RANK_NAME}" maxlength="${MAX_RANK_NAME}" value="${esc(rank.name)}">
       <button class="small" data-act="rankRename" data-rank="${id}">Umbenennen</button></div>
     <div class="rights">${boxes}</div>
     <p><button class="small" data-act="rankRights" data-rank="${id}">Rechte speichern</button>
-    ${at - 1 > me.at ? `<button class="small" data-act="rankMove" data-rank="${id}" data-up="1">Nach oben</button>` : ''}
+    ${isBelow(me.at, at - 1) ? `<button class="small" data-act="rankMove" data-rank="${id}" data-up="1">Nach oben</button>` : ''}
     ${last ? '' : `<button class="small" data-act="rankMove" data-rank="${id}">Nach unten</button>`}
-    ${isDefault ? '' : `<button class="small red" data-act="rankDelete" data-rank="${id}">Löschen</button>`}</p>`;
+    ${deletable ? `<button class="small red" data-act="rankDelete" data-rank="${id}">Löschen</button>` : ''}</p>`;
 }
 
 function rankEntry(me: Inside, rank: GuildRank, at: number): string {
   const isDefault = rank.id === me.ranks.default;
   const body =
-    me.can('ranks') && at > me.at
+    me.can('ranks') && isBelow(me.at, at)
       ? rankEditor(me, rank, at)
       : rightsList(rank, at);
   const choose =

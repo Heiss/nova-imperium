@@ -580,10 +580,11 @@ function keepInputs(view: HTMLElement, fresh: boolean): () => void {
       const el = document.getElementById(id) as HTMLInputElement | null;
       if (el && !el.hasAttribute('data-nokeep')) el.value = v;
     }
-    // A ticked or cleared box of a guild rank survives the refresh (#163).
+    // A ticked or cleared box of a guild rank survives the refresh (#163);
+    // a disabled one shows the server's state, it is no draft.
     for (const [id, on] of Object.entries(checked)) {
       const el = document.getElementById(id) as HTMLInputElement | null;
-      if (el) el.checked = on;
+      if (el && !el.disabled) el.checked = on;
     }
     if (focus) document.getElementById(focus)?.focus();
   };
