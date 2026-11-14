@@ -56,6 +56,10 @@ describe('debris of a battle', () => {
         { before: { nope: 5, constructor: 1, toString: 2 }, after: {} },
       ]),
     ).toEqual({ m: 0, c: 0 });
+    // More after than before (no battle gives that) never takes debris away.
+    expect(
+      debrisOf([{ before: { lf: 1, cr: 1 }, after: { lf: 3, cr: 0 } }]),
+    ).toEqual({ m: 0.3 * 20000, c: 0.3 * 7000 });
   });
 
   it('is the share of the cost of every lost ship on generated battles', () => {
