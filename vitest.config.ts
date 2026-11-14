@@ -1,3 +1,4 @@
+import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { defineConfig } from 'vitest/config';
 
 // The logic of the game is measured: the core rules, the server and the
@@ -5,6 +6,8 @@ import { defineConfig } from 'vitest/config';
 // muffelblog: the HTML templates of the client, the SVG art, the browser glue
 // and the thin process entry points. The E2E suite and the Compose job run them.
 export default defineConfig({
+  // Components and state modules (.svelte, .svelte.ts) in the tests (#118).
+  plugins: [svelte()],
   test: {
     include: ['src/**/*.test.ts'],
     coverage: {

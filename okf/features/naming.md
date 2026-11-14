@@ -264,7 +264,8 @@ the names:
   2026-11-13).
 
 * The shipyard and defense lists show them under the name, as for every
-  other entry (`itemHTML` in `src/client/views/common.ts`); the (?) panel
+  other entry (`itemHTML` in `src/client/views/common.ts`, since #118
+  `CatalogList.svelte`); the (?) panel
   still shows the long text.
 * `catalog.test.ts` compares them exactly (`NEW_DS`); `src/core/text.test.ts`
   requires a short text for every entry.

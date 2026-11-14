@@ -7,6 +7,7 @@
     "**/node_modules/**",
     "**/dist/**",
     "src/test/legacy/**",
+    "src/test/catalog-reference/**",
     "**/*.test.ts",
     "e2e/**",
     "src/test/fixtures.ts",
