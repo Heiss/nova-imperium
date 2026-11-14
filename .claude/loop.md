@@ -57,7 +57,17 @@ interface is German.
    is published; a push to `main` meanwhile sets it back to draft, so mark
    it ready again. Then tell the owner in
    German: version, what is in it, the staging image (`NOVA_VERSION=next`),
-   and that merging the release pull request releases it. Close the
+   and that merging the release pull request releases it.
+   **Keep the loop running** until the owner has merged the release pull
+   request (#149). There is no merge freeze: every merge into `main`
+   (Renovate's security pull requests too) rebuilds it and sets it back to
+   draft, and its last full run no longer counts. Then make it ready
+   again as above (texts, cheap jobs, „Ready for review“, full run,
+   candidate image) and tell the owner again, saying that `main` moved and
+   the release pull request was rebuilt. That message is the only notice:
+   no comment on the release pull request, no issue. While it stays ready
+   and green, only wait. Once a release pull request from `release/main`
+   is merged after the last issue of the milestone was closed, close the
    milestone and **stop the loop**.
 3. **Plan the release** when there is no open milestone `next release`. Ask
    the owner what the release should bring:

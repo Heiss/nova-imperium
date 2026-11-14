@@ -1,7 +1,7 @@
 ---
 type: process
 title: Release loop
-description: How Claude works through a release with /loop - plan with the owner, clarify, build, make the release pull request ready, stop.
+description: How Claude works through a release with /loop - plan with the owner, clarify, build, make the release pull request ready, keep it ready until the owner merges it, stop.
 ---
 
 # Release loop
@@ -28,9 +28,11 @@ tasks).
   it (owner, 2026-11-12). The chosen issues form the milestone
   `next release`.
 * **[E]** When every issue of the milestone is closed and the release pull
-  request is green with its candidate image, the loop tells the owner and
-  **stops**. The owner merges the release pull request; that is the release
-  (owner, 2026-11-12, [Branching and release](/ops/branching-release.md)).
+  request is green with its candidate image, the loop tells the owner. The
+  owner merges the release pull request; that is the release (owner,
+  2026-11-12, [Branching and release](/ops/branching-release.md)). The loop
+  **stops** once the owner has merged it, not when it has told the owner
+  (owner, 2026-11-13, #149; replaces „tells the owner and stops“).
 * **[E]** The release pull request of `main` is a draft with the cheap run
   after every rebuild; its CI Gate is red on purpose (owner, 2026-11-13 and
   2026-11-14, #147, [Branching and release](/ops/branching-release.md)).
@@ -40,6 +42,26 @@ tasks).
   run and for the candidate image, then tells the owner. A rebuild during
   the wait (a push to `main`) sets it back to draft: the loop marks it
   ready again.
+* **[E]** No merge freeze (owner, 2026-11-13, #149): every merge into
+  `main` while the release pull request is open, not only a security
+  merge, rebuilds it and sets it back to draft, and its last full run no
+  longer counts. The loop keeps running after „Make the release ready“
+  until the owner has merged the release pull request; after each rebuild
+  it makes the release ready again (texts and cheap jobs, „Ready for
+  review“, the green full run and the candidate image) and then tells the
+  owner again. That message is the only notice besides the draft state:
+  no comment on the release pull request and no issue.
+* **[V]** The milestone `next release` stays open until the release pull
+  request is merged, so the step „Make the release ready“ keeps applying
+  while the loop waits and „Plan the release“ does not start the next
+  cycle before the release is out; a restarted `/loop` finds the same
+  state on GitHub. The loop sees the merge as a pull request from
+  `release/main` merged after the last issue of the milestone was closed
+  (after that merge `release-pr.sh` opens no new one, `tag.yml` takes
+  over), then closes the milestone and stops. While the release pull
+  request stays ready and green, the loop only waits and does not repeat
+  its message (#149; before, the milestone was closed when the owner was
+  told).
 * **[E]** While a released hotfix is not merged back, „Ready for review“
   is refused: „Release ready“ sets the pull request back to draft and
   comments why (owner, 2026-11-14, #147); the loop does not mark it ready
@@ -83,7 +105,7 @@ tasks).
   is marked ready. Every push cancels the running CI and starts all jobs
   again (owner, 2026-11-12).
 * **[V]** Guards from loop engineering practice: a stop condition a machine
-  can check (milestone closed, release pull request green), the state read
+  can check (release pull request merged, milestone closed), the state read
   fresh in every iteration, small reviewable steps, tests never weakened,
   and a hand-back to the owner after two failed attempts at one problem.
 * **[V]** While the loop waits on CI or a review it wakes every 20 to 30

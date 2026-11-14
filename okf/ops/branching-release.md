@@ -121,6 +121,16 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   token; `converted_to_draft` starts no CI), posts one comment in English
   that says why, touches no label and fails its run. A body it cannot read
   starts no full run either.
+* **[E]** No merge freeze while a tested release pull request is open
+  (owner, 2026-11-13, #149: „yes, always“; a safe system matters more than
+  the release in progress). Every merge into `main`, a security update of
+  Renovate or any other, rebuilds the release pull request and sets it
+  back to draft (#147), so its last full run no longer counts and it
+  cannot be merged on an old result. The release loop keeps running until
+  the owner has merged it, marks it ready again after every rebuild,
+  waits for the full run and the candidate image and then tells the owner;
+  the draft state and that message are the only notice, no comment on the
+  pull request and no issue ([Release loop](/ops/loop.md)).
 * **[U]** Checked only on the first release pull request after the merge:
   that the App may create the label and comment with „Pull requests:
   write“ (GitHub's documentation names „Issues“ or „Pull requests“ write
