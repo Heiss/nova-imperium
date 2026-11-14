@@ -300,20 +300,22 @@ choice of the patterns to the assistant's recommendation below
   is finished (`feelsResearch()`, `settleResearchEnd()` in
   `src/server/game/actions.ts`), before a new research replaces it. The
   equivalence tests of version 1 are unchanged and green.
-* **[V]** Proposed with #115, within the decisions above: a research
-  changes the production when a rate of an entry with level or number
-  above 0 reads its level (`readsResearch()`: the rates run once on
-  research levels that note what is read, a JavaScript `Proxy`; no new
-  field in a component). A stock that reaches its storage limit stops
-  inside the segment (`addUp`, `min(stock + change, max(stock, limit))`)
-  and splits nothing, because no rate depends on a full stock and a split
-  would change the floating point order of version 1. The contract test of
-  `consumes` allows one entry that uses a stock (m, c, d); how several
-  consumers share an empty stock, or two stocks run empty, is not decided.
-  Settling in steps equals settling in one step within the tolerance of
-  #47 (1e-6 + 1e-9 relative) in every case, not only the throttled one:
-  version 1 already rounds the production of two segments differently
-  from one, so it is not bit-identical even without a consumer.
+* **[E]** Choices of #115 within the decisions above, confirmed by the
+  owner (2026-11-14): a research changes the production when a rate of an
+  entry with level or number above 0 reads its level, found automatically
+  (`readsResearch()`: the rates run once on research levels that note what
+  is read, a JavaScript `Proxy`; no new field in a component). A stock
+  that reaches its storage limit stops inside the segment (`addUp`,
+  `min(stock + change, max(stock, limit))`) and splits nothing, because no
+  rate depends on a full stock and a split would change the floating point
+  order of version 1. The contract test of `consumes` allows one entry
+  that uses a stock (m, c, d) until a second consumer comes; how several
+  consumers share an empty stock, or two stocks run empty, is then decided
+  with the owner. Settling in steps equals settling in one step within the
+  tolerance of #47 (1e-6 + 1e-9 relative) in every case, not only the
+  throttled one: version 1 already rounds the production of two segments
+  differently from one, so it is not bit-identical even without a
+  consumer. The comparison with the code before #115 stays bit for bit.
 
 ## 4. Missions: one strategy per mission
 
