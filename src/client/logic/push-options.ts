@@ -56,24 +56,23 @@ export const shownPushOff = (
  * Saves the push kinds one request at a time (CodeRabbit on #204): a change
  * updates the choice outside the page at once, and the newest choice is
  * sent when the running save returns, so an older answer never undoes a
- * newer click. A failed save drops its choice unless a newer one waits; the
- * page then shows the server's kinds again. Returns the function for a change of one checkbox, which
- * resolves when no save runs any more.
+ * newer click. When the last save returns, saved or failed, the page shows
+ * the server's kinds again. Returns the function for a change of one
+ * checkbox, which resolves when no save runs any more.
  */
 export function pushSaver(
   choice: PushChoice,
-  save: (off: PushTopic[]) => Promise<boolean>,
+  save: (off: PushTopic[]) => Promise<unknown>,
 ): (server: readonly string[], topic: unknown, on: boolean) => Promise<void> {
   let running: Promise<void> | null = null;
   const run = async (): Promise<void> => {
     let sent: PushTopic[] | undefined;
     while (choice.pushChoice !== sent) {
       sent = choice.pushChoice!;
-      const saved = await save(sent);
-      // A failed save without a newer choice: back to the server's kinds.
-      if (!saved && choice.pushChoice === sent)
-        choice.pushChoice = sent = undefined;
+      // A failed save shows its toast; a newer choice is still sent.
+      await save(sent);
     }
+    // Saved or failed: the page shows the server's kinds again.
     choice.pushChoice = undefined;
     running = null;
   };
