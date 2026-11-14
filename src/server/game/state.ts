@@ -40,9 +40,11 @@ export const foreignView = (f: Fleet): ForeignFleet => ({
   ships: missionRules(f.mission)?.visible ? f.ships : {},
 });
 
+/** Every planet and moon (#53) of the universe, for every player. */
 function galaxyOf(ctx: Ctx) {
   return ctx.planets.all().map((x) => ({
     id: x.id,
+    kind: x.kind,
     name: x.name,
     g: x.g,
     s: x.s,

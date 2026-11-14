@@ -36,6 +36,8 @@ export const NAMES: Readonly<
     ab: 'RQ',
   },
   sdeut: { classic: 'Deuteriumtank', name: 'Promethium-Zisterne', ab: 'PZ' },
+  // #53: the name decided by the owner (2026-11-13), the abbreviation [V].
+  moonbase: { classic: 'Mondbasis', name: 'Mondzitadelle', ab: 'MZ' },
   energy: { classic: 'Energietechnik', name: 'Machina-Energetik', ab: 'ME' },
   laser: { classic: 'Lasertechnik', name: 'Lichtlanzen-Lehre', ab: 'LZ' },
   comb: {

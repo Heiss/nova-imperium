@@ -3,7 +3,7 @@
 // brings one rate function per resource; the rule here adds them up in the
 // production order, so the floating point order of version 1 stays and
 // prod() is bit-identical (owner, 2026-11-13).
-import type { Levels, Resources, Universe } from '../types.ts';
+import type { Levels, Planet, Resources, Universe } from '../types.ts';
 
 /** What a rate function knows about its entry on a planet. */
 export interface RateCtx {
@@ -42,6 +42,16 @@ interface Producer {
 /** The base income per hour without any building, before the universe speed. */
 export const BASE_INCOME: Resources = { m: 20, c: 10, d: 0 };
 
+const NO_INCOME: Resources = { m: 0, c: 0, d: 0 };
+
+/**
+ * The base income of a place: a moon has none, nothing is produced on a
+ * moon (#53; owner, 2026-11-14, owiki.de); a place without a kind is a
+ * planet.
+ */
+export const baseIncome = (kind?: Planet['kind']): Resources =>
+  kind === 'moon' ? NO_INCOME : BASE_INCOME;
+
 /** The energy all producers make, added up in the production order. */
 export const energyMade = (list: readonly Producer[]): number =>
   list.reduce((sum, { produces, ctx }) => {
@@ -58,8 +68,9 @@ export function made(
   res: keyof Resources,
   f: number,
   u: Universe,
+  base: Resources = BASE_INCOME,
 ): number {
-  let sum = BASE_INCOME[res];
+  let sum = base[res];
   for (const { produces, ctx } of list) {
     const rate = produces[res];
     if (rate) sum += rate({ ...ctx, f });

@@ -35,7 +35,9 @@ export interface Ui extends PushChoice {
   guild?: string | null;
   gal: number;
   sys: number;
-  ft: { g: number; s: number; p: number } | null;
+  ft: { g: number; s: number; p: number; kind?: 'planet' | 'moon' } | null;
+  /** The moon whose actions the Sternenkarte shows (#53), by its id. */
+  gmoon?: string | null;
   fm: string;
   openRep: Record<string, boolean>;
   /** Entries whose explanation the player opened with the (?) (issue #63). */

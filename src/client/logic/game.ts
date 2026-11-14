@@ -108,7 +108,8 @@ export function researchState(
 
 export interface FleetForm {
   ships: Levels;
-  to: Coords;
+  /** The position, and whether the planet or its moon (#53). */
+  to: Coords & { kind?: 'planet' | 'moon' };
   mission: string;
   pct: number;
   cargo: Resources;

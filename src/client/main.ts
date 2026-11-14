@@ -8,7 +8,9 @@ import { settle, settleR } from '../core/settle.ts';
 import { text } from '../core/text.ts';
 import { orderMax, yardLockedBy } from '../core/yard.ts';
 import type { Levels, Planet, Queue } from '../core/types.ts';
+import { placeName } from '../core/moon.ts';
 import { debrisAt, debrisTip } from './logic/debris.ts';
+import { moonAt, moonTarget, ownPlaces } from './logic/moon.ts';
 import { clampInt, coords, dt, dur, esc, fmt } from './logic/format.ts';
 import {
   apiFailure,
@@ -225,6 +227,7 @@ const ui: Ui = {
   gal: 1,
   sys: 1,
   ft: null,
+  gmoon: null,
   fm: 'attack',
   openRep: {},
   openEx: {},
@@ -771,14 +774,15 @@ function refreshInvitations(): void {
 }
 
 function renderPlanetHeader({ s, P }: V): void {
-  const owned = s.galaxy.filter((p) => p.owner === s.me.id);
+  // Every own planet and moon, each moon after its planet (#53).
+  const owned = ownPlaces(s.galaxy, s.me.id);
   const activeId = P.id;
   const selector =
     owned.length > 1
-      ? ` · <select id="planet_select" aria-label="Aktiver Planet">${owned.map((p) => `<option value="${esc(p.id)}" ${p.id === activeId ? 'selected' : ''}>${esc(p.name)} ${coords(p)}</option>`).join('')}</select>`
+      ? ` · <select id="planet_select" aria-label="Aktiver Planet">${owned.map((p) => `<option value="${esc(p.id)}" ${p.id === activeId ? 'selected' : ''}>${esc(placeName(p))} ${coords(p)}</option>`).join('')}</select>`
       : '';
   $('#pinfo')!.innerHTML =
-    `<b>${esc(P.name)}</b> ${coords(P)} · Kommandant <b>${esc(s.me.name)}</b> · <span class="lnk" data-act="logout">Logout</span>${selector}`;
+    `<b>${esc(placeName(P))}</b> ${coords(P)} · Kommandant <b>${esc(s.me.name)}</b> · <span class="lnk" data-act="logout">Logout</span>${selector}`;
 }
 
 /** The view state moved to now. */
@@ -989,6 +993,8 @@ function readFleetForm(): FleetForm {
       g: clampInt(val('#t_g'), 1, u.galaxies),
       s: clampInt(val('#t_s'), 1, u.systems),
       p: clampInt(val('#t_p'), 1, u.positions),
+      // The planet or its moon (#53).
+      kind: val('#t_k') === 'moon' ? 'moon' : 'planet',
     },
     mission: val('#t_m'),
     pct: clampInt(val('#t_v'), 1, 10),
@@ -1011,6 +1017,8 @@ function targetInfo(s: GameState, f: FleetForm): string {
       ? debrisTip(field)
       : '<span class="bad">kein Trümmerfeld</span>';
   }
+  if (f.to.kind === 'moon')
+    return moonTarget(moonAt(s.galaxy, f.to), (id) => nameOf(s.players, id));
   const target = s.galaxy.find(
     (p) => p.id === placeId({ ...f.to, kind: 'planet' }),
   );
@@ -1025,8 +1033,19 @@ function targetInfo(s: GameState, f: FleetForm): string {
 const returnAt = (mission: string, t: number): string =>
   missionRules(mission)?.returns === false ? '–' : dt(t);
 
+/** „Mond“ in the select of the target only where a moon is (#53). */
+function moonOption(s: GameState): void {
+  const select = $('#t_k') as HTMLSelectElement | null;
+  if (!select) return;
+  const to = readFleetForm().to;
+  const option = select.querySelector<HTMLOptionElement>('option[value=moon]')!;
+  option.disabled = !moonAt(s.galaxy, to);
+  if (option.disabled && select.value === 'moon') select.value = 'planet';
+}
+
 function fleetCalc(): void {
   if (!$('#t_g') || !ctx || !S) return;
+  moonOption(S);
   const f = readFleetForm();
   $('#t_info')!.innerHTML = targetInfo(S, f);
   const pv = fleetPreview(ctx.P, ctx.R, f, S.cfg);
@@ -1181,7 +1200,7 @@ const ACT: Record<string, (d: Data) => unknown> = {
   },
   rename: () =>
     modal(
-      `<p><b>Planet umbenennen</b></p><input id="rn" maxlength="20" value="${esc(ctx!.P.name)}" aria-label="Neuer Name"> <button data-act="doRename">OK</button> <button data-act="closeModal">Abbrechen</button>`,
+      `<p><b>${ctx!.P.kind === 'moon' ? 'Mond' : 'Planet'} umbenennen</b></p><input id="rn" maxlength="20" value="${esc(ctx!.P.name)}" aria-label="Neuer Name"> <button data-act="doRename">OK</button> <button data-act="closeModal">Abbrechen</button>`,
     ),
   doRename: () => {
     const n = val('#rn').trim();
@@ -1212,8 +1231,17 @@ const ACT: Record<string, (d: Data) => unknown> = {
     ui.sys = Number(d.s);
     go('galaxy');
   },
+  gmoon: (d) => {
+    ui.gmoon = ui.gmoon === d.id ? null : (d.id ?? null);
+    render(true);
+  },
   gfleet: (d) => {
-    ui.ft = { g: Number(d.g), s: Number(d.s), p: Number(d.p) };
+    ui.ft = {
+      g: Number(d.g),
+      s: Number(d.s),
+      p: Number(d.p),
+      kind: d.k === 'moon' ? 'moon' : 'planet',
+    };
     ui.fm = d.m ?? 'attack';
     go('fleet');
   },
@@ -1222,7 +1250,12 @@ const ACT: Record<string, (d: Data) => unknown> = {
     if (!n) return toast('Keine Spähschädel auf dem Planeten.', true);
     return act('send', {
       ships: { probe: n },
-      to: { g: Number(d.g), s: Number(d.s), p: Number(d.p) },
+      to: {
+        g: Number(d.g),
+        s: Number(d.s),
+        p: Number(d.p),
+        kind: d.k === 'moon' ? 'moon' : 'planet',
+      },
       mission: 'spy',
       pct: 10,
       cargo: { m: 0, c: 0, d: 0 },

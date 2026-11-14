@@ -319,7 +319,13 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   bit for bit again, debris rows included, and fails when the rule in the
   code changes (owner, 2026-11-14, #45). It also checks the debris on its
   own (exactly the debris of the losses the report lists, only a battle
-  leaves a field) and that the generated battles leave fields.
+  leaves a field) and that the generated battles leave fields. Since #53 its
+  frozen reference has the moon rule too, written there on its own: at a
+  planet without a moon the chance ⌊(Adamant + Psikristall of the whole
+  field) / 100,000⌋ %, at most 20, one draw, on a hit a second draw for the
+  diameter and the moon row, and the report fields `moonChance` and `moon`;
+  it compares everything bit for bit and checks that the generated battles
+  roll chances and form moons (owner, 2026-11-14, #53).
 * **[E]** Mutation standard per file (owner, 2026-11-11,
   `mutation-standard.json`, `scripts/mutation-gate.ts`): no file may fall
   below its recorded floor; a new file needs 80 %, a new security file 90 %.

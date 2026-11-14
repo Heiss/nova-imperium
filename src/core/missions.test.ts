@@ -279,6 +279,64 @@ describe('the target kind (#116)', () => {
     );
   });
 
+  it('flies to a moon like to a planet; colonization and Bergung never target one (#53)', () => {
+    const moon = (planet: SendTarget['planet'], debris = false) => ({
+      ...at(planet, false, debris),
+      moon: true,
+    });
+    const errors = (planet: SendTarget['planet'], debris = false) =>
+      KINDS.map((k) => sendError(rules(k), fleet, moon(planet, debris)));
+    // The kinds: own, foreign, any, free, debris.
+    expect(errors(null)).toEqual([
+      'noMoon',
+      'noMoon',
+      'noMoon',
+      'moonTarget',
+      'moonTarget',
+    ]);
+    expect(errors(null, true)).toEqual([
+      'noMoon',
+      'noMoon',
+      'noMoon',
+      'moonTarget',
+      'moonTarget',
+    ]);
+    expect(errors(own)).toEqual([
+      undefined,
+      'ownTarget',
+      undefined,
+      'moonTarget',
+      'moonTarget',
+    ]);
+    expect(errors(foreign)).toEqual([
+      'notOwn',
+      undefined,
+      undefined,
+      'moonTarget',
+      'moonTarget',
+    ]);
+    // Not a moon: as before.
+    expect(sendError(rules('own'), fleet, { ...at(null), moon: false })).toBe(
+      'noPlanet',
+    );
+    expect(sendError(rules('free'), fleet, { ...at(null), moon: false })).toBe(
+      undefined,
+    );
+    // The mission's own check comes after.
+    const probes: MissionRules = {
+      ...rules('foreign'),
+      canSend: () => 'probesOnly',
+    };
+    expect(sendError(probes, fleet, moon(foreign))).toBe('probesOnly');
+    expect(
+      sendError(
+        { ...rules('free'), canSend: () => 'noColonyShip' },
+        fleet,
+        moon(null),
+      ),
+    ).toBe('moonTarget');
+  });
+
   it('asks for the noob protection only of a foreign target, for its owner', () => {
     for (const k of KINDS)
       for (const planet of [null, home, own, foreign]) {

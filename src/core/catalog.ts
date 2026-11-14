@@ -29,10 +29,11 @@ import {
   type Mobile,
   STATIONARY,
 } from './components/mobile.ts';
+import { type Placement, placeable } from './components/placement.ts';
 import type { Produces } from './components/produces.ts';
 import type { Storage } from './components/storage.ts';
 import type { Unit } from './components/unit.ts';
-import type { Cost, Requirements } from './types.ts';
+import type { Cost, Planet, Requirements } from './types.ts';
 
 export interface BuildingDef extends Leveled {
   f: number;
@@ -101,6 +102,8 @@ type Entry =
       leveled: Required<Leveled>;
       storage?: Storage;
       energyThreshold?: EnergyThreshold;
+      /** None for a building that stands on planets only (#53). */
+      placement?: Placement;
       def?: BuildingFields;
     })
   | (Idle & {
@@ -222,6 +225,14 @@ export const LIMIT: Readonly<Record<string, Limit>> = Object.fromEntries(
   ),
 );
 
+/** The buildings with a `placement` component, by key (#53). */
+export const PLACEMENT: Readonly<Record<string, Placement>> =
+  Object.fromEntries(
+    ofKind('building').flatMap(([key, e]) =>
+      e.placement ? [[key, e.placement] as const] : [],
+    ),
+  );
+
 /** The entries with a `storage` component. */
 export const STORAGE = ofKind('building').flatMap(([key, e]) =>
   e.storage ? [{ key, storage: e.storage }] : [],
@@ -232,6 +243,10 @@ export const PRODUCERS: readonly string[] = PRODUCTION.map((e) => e.key);
 
 export const isShip = (key: string): boolean => Object.hasOwn(SHIPS, key);
 export const isDefense = (key: string): boolean => Object.hasOwn(DEF, key);
+
+/** Whether a building can be built on a place of the kind: a planet or a moon (#53). */
+export const buildable = (key: string, kind: Planet['kind']): boolean =>
+  placeable(Object.hasOwn(PLACEMENT, key) ? PLACEMENT[key] : undefined, kind);
 
 /** Ships that can be sent: those with `mobile`; the Sonnenreliquiar stays at its planet. */
 export const canFly = (key: string): boolean => Object.hasOwn(MOBILE, key);

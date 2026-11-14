@@ -67,6 +67,12 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   30 days. Audit entries omit passwords, session and invitation tokens,
   email login codes and raw request bodies. See [SQLite storage](/data/sqlite.md).
 
+* **[E]** The player record lists the player's planets; at a planet without
+  a moon the admin can „Mond anlegen“ with a chance of 1 to 20 %, which only
+  decides the diameter. It is an admin write in the audit log (`createMoon`
+  with the planet, the moon, the chance and the diameter) (owner,
+  2026-11-14, #53, see [Moons](/features/moons.md)).
+
 # Settings and ranges (proposals)
 
 | Setting | Default (version 1) | Range |

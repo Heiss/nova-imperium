@@ -91,6 +91,27 @@ describe('planets repository', () => {
     ]);
   });
 
+  it('never takes a moon for the home planet, also an older one (#53)', () => {
+    const ctx = testCtx();
+    addUser(ctx, 'Anna');
+    addPlanet(ctx, 'u_Anna', {
+      id: 'm1_2_3',
+      kind: 'moon',
+      g: 1,
+      s: 2,
+      p: 3,
+      created: 1,
+    });
+    expect(ctx.planets.home('u_Anna')).toBeNull();
+    addPlanet(ctx, 'u_Anna', { g: 1, s: 2, p: 3, created: 5 });
+    expect(ctx.planets.home('u_Anna')?.id).toBe('p1_2_3');
+    expect(ctx.planets.get('m1_2_3')?.kind).toBe('moon');
+    expect(ctx.planets.ofOwner('u_Anna').map((p) => p.id)).toEqual([
+      'm1_2_3',
+      'p1_2_3',
+    ]);
+  });
+
   it('reports the used size and deletes all planets', () => {
     const ctx = testCtx();
     addUser(ctx, 'Anna');

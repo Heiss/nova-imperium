@@ -3,7 +3,7 @@
 // Everything belongs to the shown planet: research starts and is paid on any
 // own planet with a Forschungslabor, so the buildings it needs are built
 // there too (issue #49, replaces the home planet rule of #64 D4).
-import { BUILD, RES } from './catalog.ts';
+import { BUILD, buildable, RES } from './catalog.ts';
 import { energyNeed, energyShort } from './components/energy-threshold.ts';
 import { afford, lvlCost, reqMissing } from './economy.ts';
 import { fieldsFull } from './fields.ts';
@@ -117,6 +117,12 @@ export interface NeedState {
   energy?: number;
 }
 
+/** Why a building cannot stand on the shown place (#53). */
+const PLACE_REASON = {
+  planet: 'nur auf einem Mond baubar',
+  moon: 'auf einem Mond nicht baubar',
+} as const;
+
 const RES_NAMES = ['Adamant', 'Psikristall', 'Promethium'] as const;
 const HAVE = ['m', 'c', 'd'] as const;
 
@@ -145,6 +151,8 @@ export function needState(n: Need, pl: Places): NeedState {
   const base: NeedState = energy
     ? { ready: false, cost, energy }
     : { ready: false, cost };
+  if (n.kind === 'b' && !buildable(n.key, p.kind))
+    return { ...base, reason: PLACE_REASON[p.kind] };
   const missing = reqMissing(def, p, pl.research);
   if (missing.length)
     return { ...base, reason: `braucht ${missing.join(', ')}` };

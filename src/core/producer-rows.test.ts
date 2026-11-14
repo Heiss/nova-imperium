@@ -65,9 +65,12 @@ const planets = fc
     }),
     temp: fc.integer({ min: -60, max: 180 }),
     d: fc.oneof(fc.constant(0), fc.integer({ min: 0, max: 100000 })),
+    // A moon has no base income (#53).
+    kind: fc.constantFrom<Planet['kind']>('planet', 'moon'),
   })
-  .map(({ b, sat, pct, temp, d }) =>
+  .map(({ b, sat, pct, temp, d, kind }) =>
     planet({
+      kind,
       b: b as Levels,
       ships: { sat },
       pct: pct as Levels,
@@ -106,6 +109,16 @@ describe('producerRows() (#114)', () => {
       }),
       { numRuns: 1000 },
     );
+  });
+
+  it('gives a moon no base income (#53)', () => {
+    const u = { ...U, speed: 3 };
+    expect(producerRows(planet({ kind: 'moon' }), u).base).toEqual({
+      m: 0,
+      c: 0,
+      d: 0,
+    });
+    expect(producerRows(planet(), u).base).toEqual({ m: 60, c: 30, d: 0 });
   });
 
   it('has one row per producer with its level or number and share', () => {

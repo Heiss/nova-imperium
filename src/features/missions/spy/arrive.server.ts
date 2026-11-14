@@ -1,6 +1,7 @@
 // An Auspex-Erkundung reports the target to its owner, warns the defender,
 // and may be shot down; else it flies back.
 import { countUnits } from '../../../core/flight.ts';
+import { placeName } from '../../../core/moon.ts';
 import type { Fleet } from '../../../core/types.ts';
 import { type Ctx, addReport, coords } from '../../../server/game/context.ts';
 import {
@@ -44,9 +45,9 @@ export function onArrive(ctx: Ctx, f: Fleet, at: Arrival): void {
     {
       time: f.arr,
       type: 'spy',
-      title: `Auspex-Bericht von ${t.name} ${coords(f.toC)}`,
+      title: `Auspex-Bericht von ${placeName(t)} ${coords(f.toC)}`,
       participants: [f.owner, t.owner],
-      name: t.name,
+      name: placeName(t),
       defName: def.name,
       coords: f.toC,
       res: {
@@ -60,7 +61,7 @@ export function onArrive(ctx: Ctx, f: Fleet, at: Arrival): void {
     },
     { topic: 'fleet' },
   );
-  const text = `Eine fremde Flotte von ${att.name} ${coords(f.fromC)} wurde in der Nähe deines Planeten ${t.name} ${coords(f.toC)} gesichtet. Chance auf Auspex-Abwehr: ${chance} %.${lost ? ' Die Spähschädel wurden abgeschossen!' : ''}`;
+  const text = `Eine fremde Flotte von ${att.name} ${coords(f.fromC)} wurde in der Nähe deines Planeten ${placeName(t)} ${coords(f.toC)} gesichtet. Chance auf Auspex-Abwehr: ${chance} %.${lost ? ' Die Spähschädel wurden abgeschossen!' : ''}`;
   addReport(
     ctx,
     t.owner,

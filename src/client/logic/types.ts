@@ -51,8 +51,10 @@ export interface Report {
   [k: string]: unknown;
 }
 
-interface GalaxyPlanet extends Coords {
+export interface GalaxyPlanet extends Coords {
   id: string;
+  /** A moon is listed like a planet (#53). */
+  kind: Planet['kind'];
   name: string;
   temp: number;
   owner: string;

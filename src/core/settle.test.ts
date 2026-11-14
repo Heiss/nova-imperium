@@ -14,6 +14,18 @@ describe('settle', () => {
     expect(p.res).toEqual({ m: 600, c: 550, d: 0 });
     expect(p.t).toBe(1000 + H);
   });
+  it('gives a moon no base income, but finishes its building (#53)', () => {
+    const src = planet({
+      id: 'm1_1_5',
+      kind: 'moon',
+      t: 1000,
+      bq: { key: 'moonbase', lvl: 1, start: 0, end: 1000 + H, cost: [0, 0, 0] },
+    });
+    const p = settle(src, 1000 + 3 * H, U);
+    expect(p.res).toEqual({ m: 500, c: 500, d: 0 });
+    expect(p.b).toEqual({ moonbase: 1 });
+    expect(p.t).toBe(1000 + 3 * H);
+  });
   it('never goes back in time', () => {
     const p = settle(planet({ t: 5000 }), 1000, U);
     expect(p.t).toBe(5000);

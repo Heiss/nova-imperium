@@ -1,4 +1,5 @@
 import { isDatabaseBusy } from '../db/database.ts';
+import { placeName } from '../../core/moon.ts';
 import { queuePush } from '../push-store.ts';
 // What happens when a fleet arrives or comes home. Each mission is a strategy
 // in src/features/missions/<m>/ (owner, 2026-11-14, #116): the dispatcher
@@ -93,7 +94,7 @@ export function comeHome(ctx: Ctx, f: Fleet): void {
         {
           time: f.ret,
           type: 'info',
-          title: `Rückkehr zu ${o.name} ${coords(f.fromC)}`,
+          title: `Rückkehr zu ${placeName(o)} ${coords(f.fromC)}`,
           text: `Deine Flotte ist zurück${sum ? ' und bringt ' + resLine(f.cargo) + ' mit' : ''}.`,
         },
         { topic: 'fleet', kind: 'fleet' },

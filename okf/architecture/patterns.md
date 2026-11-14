@@ -208,6 +208,17 @@ choice of the patterns to the assistant's recommendation below
   share (`pct.fusion`), not in a comparison, so the scan has no entry for
   it; it stays for #115.
 
+* **[E]** Built with #53 (first pull request, owner's decisions of
+  2026-11-13 and 2026-11-14): the component `placement` is the list of the
+  kinds of place where a building can stand (`'planet'`, `'moon'`); a
+  building without it stands on planets only. `src/core/components/
+  placement.ts` holds `Placement`, `PLANET_ONLY` and `placeable`, its
+  contract test checks that only buildings carry it and that it names known
+  kinds once each. `catalog.ts` derives `PLACEMENT` and `buildable(key,
+  kind)`; the build action, the requirements list and the buildings page
+  ask `buildable`. The Mondzitadelle adds fields through the existing
+  `fields` of `BuildingFields`, like the Weltenschmiede.
+
 ## 2. Texts apart from rules
 
 * **[E]** Name, abbreviation, short and long description of an entry live in
@@ -397,6 +408,10 @@ choice of the patterns to the assistant's recommendation below
   moon chance, rebuilding defense, reports.
 * **[E]** No event bus: the order must stay deterministic with the seeded
   `rng`.
+* **[E]** Built with #53: the moon step follows the debris step and comes
+  before the rebuilt defense: at a planet without a moon the chance of the
+  whole field is rolled once when it is above 0, and a hit draws the
+  diameter (`src/core/moon.ts`, `rollMoon` in `src/server/game/moons.ts`).
 
 ## 6. Places
 
@@ -444,6 +459,10 @@ choice of the patterns to the assistant's recommendation below
   [SQLite storage](/data/sqlite.md)).
 * **[E]** Position 16 (expeditions, #93) is decided with #93 (owner,
   2026-11-12).
+* **[E]** Built with #53: a moon is a row of `planets` with the kind
+  `moon` and the id `m<g>_<s>_<p>`, without a new migration; the send
+  request names the kind of the target (`to.kind`), and the fleet keeps it in
+  the prefix of `to_planet`. `planets.home()` takes only a planet.
 * **[V]** `distance()` already returns 5 for the same coordinates, which is
   the distance planet ↔ moon (#53). A moon is removed with its planet by
   its coordinates; no parent column is needed. Missions check the kind of

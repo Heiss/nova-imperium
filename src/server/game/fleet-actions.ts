@@ -45,6 +45,10 @@ const pickShips = (p: Planet, wanted: unknown): Levels => {
   return ships;
 };
 
+/** Whether the player aims at the moon of the position (#53). */
+const toMoon = (d: Data): boolean =>
+  (d.to as { kind?: unknown } | null)?.kind === 'moon';
+
 const target = (ctx: Ctx, d: Data): Coords => {
   const u = universe(ctx);
   const to = (d.to as Partial<Coords> | null) ?? {};
@@ -67,6 +71,8 @@ const SEND_ERROR: Readonly<Record<SendError, string>> = {
   probesOnly: 'Auspex-Erkundung nur mit Spähschädeln.',
   noDebris: 'An dieser Position gibt es kein Trümmerfeld.',
   noRecycler: 'Du brauchst eine Bergungsbarke.',
+  noMoon: 'An dieser Position gibt es keinen Mond.',
+  moonTarget: 'Ein Mond kann nicht das Ziel dieses Auftrags sein.',
 };
 
 const loadCargo = (p: Planet, rules: MissionRules, raw: unknown): Resources => {
@@ -97,14 +103,15 @@ function checkDestination(
   rules: MissionRules,
   occupied: Planet | null,
   ships: Levels,
-  debris: boolean,
+  at: { debris: boolean; moon: boolean },
 ): void {
   const error = sendError(
     rules,
     { owner: u.id, from: p.id, ships },
     {
       planet: occupied,
-      debris,
+      debris: at.debris,
+      moon: at.moon,
       protects: (owner) => isProtected(u.id, owner, pointsMap(ctx)),
     },
   );
@@ -119,16 +126,22 @@ function plan(ctx: Ctx, u: User, p: Planet, d: Data): Plan {
   if (ctx.fleets.count(u.id) >= fleetSlots(researchOf(ctx, u)))
     fail('Alle Flottenslots belegt.');
   const dest = target(ctx, d);
-  const occupied = ctx.planets.get(placeId({ ...dest, kind: 'planet' }));
+  // The planet of the position, or its moon (#53).
+  const moon = toMoon(d);
+  const place = placeId({ ...dest, kind: moon ? 'moon' : 'planet' });
+  const occupied = ctx.planets.get(place);
   // A Bergung flies to the Trümmerfeld, a place of its own (#45, #119).
   const field = placeId({ ...dest, kind: 'debris' });
   const toField = rules.target === 'debris';
-  checkDestination(ctx, u, p, rules, occupied, ships, !!ctx.debris.get(field));
+  checkDestination(ctx, u, p, rules, occupied, ships, {
+    debris: !!ctx.debris.get(field),
+    moon,
+  });
   return {
     mission,
     ships,
     dest,
-    to: toField ? field : placeId({ ...dest, kind: 'planet' }),
+    to: toField ? field : place,
     targetOwner: toField ? null : (occupied?.owner ?? null),
     cargo: loadCargo(p, rules, d.cargo),
     pct: int(d.pct, 1, 10),

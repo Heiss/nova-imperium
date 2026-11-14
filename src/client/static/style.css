@@ -738,6 +738,23 @@ textarea:focus-visible {
 .gal .debris {
   vertical-align: middle;
 }
+/* Moons (#53): the symbol at the planet opens the moon's row. */
+.moon-btn {
+  padding: 2px;
+  min-height: 0;
+  line-height: 0;
+  vertical-align: middle;
+  background: transparent;
+  border-color: transparent;
+}
+.moon-btn[aria-expanded='true'] {
+  border-color: var(--gold);
+}
+.moon-big {
+  display: block;
+  flex: none;
+  line-height: 0;
+}
 
 /* ---------- Messages, toasts, modal ---------- */
 .toast {

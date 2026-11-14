@@ -99,6 +99,7 @@ describe('catalog', () => {
       nanite: values(C.BUILD).nanite,
       fusion: values(C.BUILD).fusion,
       terraformer: values(C.BUILD).terraformer,
+      moonbase: values(C.BUILD).moonbase,
     });
     expect(values(C.RES)).toEqual({
       ...values(O.RES),
@@ -225,9 +226,11 @@ describe('catalog', () => {
     // The buildings page lists it after the Machina-Schwarmhalle.
     const keys = Object.keys(C.BUILD);
     expect(keys.indexOf('terraformer')).toBe(keys.indexOf('nanite') + 1);
-    // Only the Weltenschmiede adds fields or needs energy among the buildings.
+    // Only the Weltenschmiede and the Mondzitadelle (#53) add fields, and
+    // only the Weltenschmiede needs energy among the buildings.
     expect(Object.keys(C.BUILD).filter((k) => C.BUILD[k]!.fields)).toEqual([
       'terraformer',
+      'moonbase',
     ]);
     expect(Object.keys(C.BUILD).filter((k) => C.BUILD[k]!.energy)).toEqual([
       'terraformer',
@@ -238,6 +241,46 @@ describe('catalog', () => {
     expect(all.filter(([, a]) => a === 'WE').map(([k]) => k)).toEqual([
       'terraformer',
     ]);
+  });
+  it('has the Mondbasis as Mondzitadelle with the decided values, on moons only (#53)', () => {
+    expect(C.BUILD.moonbase).toEqual({
+      n: 'Mondzitadelle',
+      ab: 'MZ',
+      cost: [20000, 40000, 20000],
+      f: 2,
+      ds: '+3 Felder pro Stufe. Steht nur auf einem Mond.',
+      lt: LT,
+      fields: 3,
+    });
+    // No requirement; the buildings page lists it after the stores.
+    expect(C.BUILD.moonbase!.req).toBeUndefined();
+    expect(Object.keys(C.BUILD).at(-1)).toBe('moonbase');
+    expect(C.PLACEMENT).toEqual({
+      robot: ['planet', 'moon'],
+      yard: ['planet', 'moon'],
+      smetal: ['planet', 'moon'],
+      scrystal: ['planet', 'moon'],
+      sdeut: ['planet', 'moon'],
+      moonbase: ['moon'],
+    });
+  });
+  it('builds on a moon only the Servitorenschmiede, the Schiffsschmiede, the stores and the Mondzitadelle (#53)', () => {
+    const on = (kind: 'planet' | 'moon') =>
+      Object.keys(C.BUILD).filter((k) => C.buildable(k, kind));
+    expect(on('moon')).toEqual([
+      'robot',
+      'yard',
+      'smetal',
+      'scrystal',
+      'sdeut',
+      'moonbase',
+    ]);
+    expect(on('planet')).toEqual(
+      Object.keys(C.BUILD).filter((k) => k !== 'moonbase'),
+    );
+    for (const k of ['nope', 'toString', '__proto__', 'constructor'])
+      for (const kind of ['planet', 'moon'] as const)
+        expect(C.buildable(k, kind), k).toBe(kind === 'planet');
   });
   it('has Ionen-, Plasmatechnik, Gravitonforschung and IFN with the classic values (#49)', () => {
     expect(C.RES.ion).toMatchObject({
@@ -571,6 +614,7 @@ describe('catalog from the entry folders', () => {
       'smetal',
       'scrystal',
       'sdeut',
+      'moonbase',
     ]);
     expect(Object.keys(C.RES)).toEqual([
       'energy',
@@ -618,7 +662,7 @@ describe('catalog from the entry folders', () => {
   });
 
   it('has one folder per entry, each with its kind and its own order', () => {
-    expect(ENTRIES).toHaveLength(50);
+    expect(ENTRIES).toHaveLength(51);
     const kinds = {
       building: C.BUILD,
       research: C.RES,

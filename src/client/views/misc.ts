@@ -17,7 +17,8 @@ export function highscore(v: V): string {
     (a, b) => b[1].points - a[1].points,
   );
   const rows = list.map(([id, x], i) => {
-    const pl = v.s.galaxy.find((p) => p.owner === id);
+    // A planet, never a moon (#53).
+    const pl = v.s.galaxy.find((p) => p.owner === id && p.kind === 'planet');
     const home = pl
       ? `${esc(pl.name)} <span class="lnk" data-act="gto" data-g="${pl.g}" data-s="${pl.s}">${coords(pl)}</span>`
       : '-';
