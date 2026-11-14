@@ -125,6 +125,14 @@ describe('guild rules (#117: the logic left in guilds.ts)', () => {
       ...d,
     });
 
+  it('leaves a bare address in the profile text as text, not a link', () => {
+    const ctx = testCtx();
+    const a = addUser(ctx, 'Anna');
+    found(ctx, a.id, { description: 'Treffpunkt https://example.org heute' });
+    const html = guildState(ctx, a.id, {}).directory[0]!.html;
+    expect(html).toBe('<p>Treffpunkt https://example.org heute</p>\n');
+  });
+
   it('checks the tag, the name and the text of a profile', () => {
     const ctx = testCtx();
     const a = addUser(ctx, 'Anna');
