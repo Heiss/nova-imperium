@@ -17,7 +17,6 @@ their result.
 | O1 | systemd unit | Version 1 had `nova-imperium.service`. It was removed because the start changed (build step, `.env`, secrets) and only Docker is tested. Options: leave it out; add an untested unit with `EnvironmentFile`; add a tested unit with a CI job. |
 | O2 | Minimum password length | Kept at 6 like version 1. Options: keep 6; 8; 12; a passphrase rule. |
 | O3 | Ranges of the universe settings | Proposals in [Admin](/features/admin.md) (speed 1 to 100, galaxies up to 9, …). Confirm or change. |
-| O13 | Guild ranks (#163) | Built with proposals: minimum name length 2, the old Leitung gets the default rank after a hand-over, rank names once per guild, a manager keeps a right it lacks unchanged, dissolving only as the last member. Options per question in [Guild ranks](/features/guild-ranks.md). |
 
 # B. Tasks of the owner
 
@@ -49,3 +48,4 @@ their result.
 | O4 Merging | The assistant merges its pull requests itself after a green CI Gate and with no open review findings (owner, 2026-11-10). |
 | O11 Model of places | Coordinates plus kind (`planet \| moon \| debris`), debris in its own table, position 16 with #93; built as migration step 8 (#119) before #45 and #53. How a moon is stored (a row of `planets`) is a proposal (owner, 2026-11-12). Table layout, `planets.kind`, `Planet.kind`, `parsePlaceId()` and the fleet kind from the id prefix decided (owner, 2026-11-13); built with #119 as migration 15 ([Design patterns](/architecture/patterns.md)). |
 | O12 Test files of the mutation skip | What Vitest runs (`src/**/*.test.ts`) and the test helpers (`src/test/**`, `src/server/test-helpers.ts`) start the mutation jobs of a pull request; `e2e/` does not (owner, 2026-11-13, #146, [Test strategy](/ops/testing.md)). |
+| O13 Guild ranks (#163) | The owner answered all five points (2026-11-14): the Leitung chooses its own new rank at the hand-over (preselected the highest below the Leitung); a manager neither gives nor takes a right it lacks; rank names once per guild, case-insensitive; at least 2 characters; a button „Gilde auflösen“ for the Leitung while members remain, confirmed with the tag ([Guild ranks](/features/guild-ranks.md)). |

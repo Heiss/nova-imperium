@@ -37,7 +37,8 @@ proposals of the issue.
   idea in discussion and not built (checked 2026-11-14), so this pull
   request leaves the right out.
 * **[E]** Only the Leitung, never a right: dissolving the guild and handing
-  over the Leitung (D3) (owner, 2026-11-13).
+  over the Leitung (D3) (owner, 2026-11-13); how, see the decisions of
+  2026-11-14 below.
 * **[E]** Order (D4): the ranks are ordered; a member acts only on members
   of a lower rank and gives only rights it holds itself (owner,
   2026-11-13).
@@ -75,36 +76,52 @@ These follow from D4 and the single Leitung; no further decision:
   without a check of its own.
 * Applicants have no rank; deciding on them needs only the right.
 
+# Decisions of 2026-11-14
+
+The owner answered the five open points of the first build (owner,
+2026-11-14):
+
+* **[E]** Hand-over: the Leitung chooses its own new rank in the hand-over
+  dialog; preselected is the highest rank below the Leitung. The server
+  refuses a rank that is not one of the guild („Diesen Rang gibt es
+  nicht.“) and the Leitung itself. This replaces the first build, which
+  gave the old Leitung the default rank.
+* **[E]** A member with „Ränge verwalten“ can neither give nor take away a
+  right it lacks on a lower rank; saving a rank leaves such a right as it
+  is, and a change of it is refused (as built).
+* **[E]** A rank name exists once per guild, case-insensitive (as built).
+* **[E]** A rank name has at least **2 characters** (as built). Names are
+  trimmed and control characters removed, as for the guild name.
+* **[E]** Dissolving: the Leitung has a button „Gilde auflösen“ that works
+  while members remain, confirmed by typing the tag (Kürzel) of the guild.
+  It removes every member and deletes the guild with its ranks, rights and
+  applications, as the deletion of the Leitung's account does. Only the
+  Leitung, never a right; every other member gets „Nur die Gildenleitung
+  kann die Gilde auflösen.“. Leaving as the last member still dissolves
+  the guild, as before.
+
 # Proposals
 
-* **[V]** Minimum length of a rank name: 2 characters (the issue proposed 2
-  to 24; the owner set only the maximum of 67). Names are trimmed and
-  control characters removed, as for the guild name.
-* **[V]** A rank name exists once per guild, case-insensitive (two ranks
-  „Offizier“ could not be told apart in the member list).
-* **[V]** After a hand-over the old Leitung gets the default rank (as
-  before, when the old leader became a member); the new Leitung can give
-  it another rank.
-* **[V]** A member with „Ränge verwalten“ changes only the rights it holds:
-  it can neither give nor take away a right it lacks; saving a rank leaves
-  such a right as it is, and a change of it is refused.
+* **[V]** The tag typed to dissolve is compared trimmed and
+  case-insensitively, as tags are stored in capitals and unique without
+  regard to case.
 * **[V]** A new rank has no rights and stands lowest; „Nach oben“ and
   „Nach unten“ swap it with its neighbour, but never to or above the own
   rank.
-* **[V]** Dissolving stays as before: the Leitung leaves as the last member
-  („Gilde auflösen“). The message „Nur die Gildenleitung kann die Gilde
-  auflösen.“ of the issue has no place yet: no other member can dissolve
-  the guild, because leaving as a member only leaves it.
-* **[V]** German texts (the first two from the issue):
+* **[V]** German texts (the first two from the issue, „Nur die
+  Gildenleitung kann die Gilde auflösen.“ from the issue too):
   „Dazu fehlt deinem Rang das Recht.“, „Das geht nur bei Rängen unter
   deinem.“, „Das darf nur die Gildenleitung.“ (as before, for the hand-over
-  and the default rank), „Diesen Rang gibt es nicht.“, „Der Rangname braucht
-  2 bis 67 Zeichen.“, „Diesen Rangnamen gibt es in der Gilde schon.“, „Eine
-  Gilde hat höchstens 25 Ränge.“, „Der Standardrang kann nicht gelöscht
-  werden.“, „Die Leitung kann nicht der Standardrang sein.“, „Dieses Recht
-  gibt es nicht.“, „Der Rang steht schon ganz unten.“; answers „Rang
-  angelegt.“, „Rang umbenannt.“, „Rechte gespeichert.“, „Rang verschoben.“,
-  „Rang gelöscht.“, „Standardrang gesetzt.“, „Rang vergeben.“.
+  and the default rank), „Wähle für dich einen Rang unter der Leitung.“,
+  „Das Kürzel stimmt nicht.“, „Diesen Rang gibt es nicht.“, „Der Rangname
+  braucht 2 bis 67 Zeichen.“, „Diesen Rangnamen gibt es in der Gilde
+  schon.“, „Eine Gilde hat höchstens 25 Ränge.“, „Der Standardrang kann
+  nicht gelöscht werden.“, „Die Leitung kann nicht der Standardrang
+  sein.“, „Dieses Recht gibt es nicht.“, „Der Rang steht schon ganz
+  unten.“; answers „Rang angelegt.“, „Rang umbenannt.“, „Rechte
+  gespeichert.“, „Rang verschoben.“, „Rang gelöscht.“, „Standardrang
+  gesetzt.“, „Rang vergeben.“, „Gildenleitung übergeben.“, „Gilde
+  aufgelöst.“.
 * **[V]** Interface (issue #163): the box „Ränge“ in the own guild lists the
   ranks in their order with their rights; a rank the member may manage has
   „Rangname“ with „Umbenennen“, the rights as checkboxes (those it lacks
@@ -112,26 +129,13 @@ These follow from D4 and the single Leitung; no further decision:
   „Löschen“; the Leitung has „Als Standardrang“; „Rang anlegen“ below.
   The member list shows the rank of each member and „Rang ändern“ for
   those who may. The default rank is marked „Standardrang“.
-
-# Open points for the owner
-
-The proposals above are built so the pull request is complete; each can
-change in a few lines. Questions, with the recommendation first:
-
-1. Minimum length of a rank name: 2 (built) / 1 / 3 like the guild name.
-2. Rank of the old Leitung after a hand-over: the default rank (built) /
-   the rank the new Leitung had (a swap) / the highest rank below the
-   Leitung / the Leitung chooses it at the hand-over.
-3. Same rank name twice in a guild: refused, case-insensitive (built) /
-   refused only when exactly equal / allowed.
-4. A manager and a right it lacks on a lower rank: unchanged and not
-   changeable (built) / it may take such a right away but not give it /
-   it may set every right of the rank.
-5. Dissolving a guild that still has members: only by leaving as the last
-   member, as before (built) / a button „Gilde auflösen“ for the Leitung
-   that removes every member, with the message „Nur die Gildenleitung kann
-   die Gilde auflösen.“ for the others / the same with typing the guild tag
-   to confirm.
+* **[V]** Dialogs: „Leitung übergeben“ with „Dein neuer Rang“ (the ranks
+  below the Leitung, highest first and preselected), „Übergeben“ and
+  „Abbrechen“; „Gilde auflösen“ with the warning „Alle Mitglieder
+  verlassen die Gilde; ihre Ränge und offenen Bewerbungen werden gelöscht.
+  Das kann nicht rückgängig gemacht werden.“, the field „Gib zur
+  Bestätigung das Kürzel <Kürzel> ein“, „Gilde endgültig auflösen“ and
+  „Abbrechen“.
 
 # Data and code
 
@@ -150,16 +154,22 @@ change in a few lines. Questions, with the recommendation first:
   the acting member (`actor`), the checks `need` (right), `below` (order)
   and `leadOnly`, the actions `createGuildRank`, `renameGuildRank`,
   `setGuildRankRights`, `moveGuildRank`, `deleteGuildRank`,
-  `setGuildDefaultRank`, `assignGuildRank`, and the state of the ranks for
-  the members. `src/server/game/guilds.ts` checks with them in
-  `updateGuild`, `reviewGuildApplication` and `manageGuildMember`.
-* Client: `src/client/views/guilds.ts`, handlers in `src/client/main.ts`.
+  `setGuildDefaultRank`, `assignGuildRank`, the state of the ranks for
+  the members, `handOverRank` (the Leitung's own new rank) and the action
+  `dissolveGuild`. `src/server/game/guilds.ts` checks with them in
+  `updateGuild`, `reviewGuildApplication` and `manageGuildMember` (the
+  hand-over takes `rank`, the Leitung's new rank).
+* Client: `src/client/views/guilds.ts` (with `transferDialog` and
+  `dissolveDialog` in the `#modal` dialog), handlers in
+  `src/client/main.ts`.
 
 # Tests
 
 * `src/server/game/guild-ranks.test.ts`: every right allowed and refused,
   the Leitung with every right, outsiders and applicants refused, unknown
-  rights, the Leitung-only steps, the order (members, ranks, rights, moves),
+  rights, the Leitung-only steps (the hand-over with the chosen rank,
+  dissolving: allowed, refused, wrong tag, data removed), the order
+  (members, ranks, rights, moves),
   deleting a rank and the default rank, the limits, and what the guild view
   shows inside and outside.
 * `src/server/db/repos/guilds.test.ts`: the rank methods.
@@ -168,5 +178,9 @@ change in a few lines. Questions, with the recommendation first:
 * `e2e/guild-ranks.spec.ts`, desktop and phone: the Leitung creates a rank,
   gives it the right for applications and a member, that member accepts an
   application, a member without the right sees none and the server refuses
-  it. `e2e/a11y.spec.ts`: axe on the directory, the public page, the
-  Leitung's view with ranks and an application, and a member's view.
+  it; the hand-over dialog (preselected rank, cancel, hand over as
+  „Offizier“), and dissolving with members: the old Leitung has no button
+  and is refused by the server, a wrong tag is refused, the right one
+  dissolves the guild. `e2e/a11y.spec.ts`: axe on the directory, the
+  public page, the Leitung's view with ranks and an application, a
+  member's view and both dialogs.
