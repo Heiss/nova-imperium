@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { planet, U } from '../test/fixtures.ts';
 import { RES } from './catalog.ts';
-import { fusionEnergy, fusionThrottle, prod, researchTime } from './economy.ts';
+import { fusionEnergy, prod, researchTime, throttle } from './economy.ts';
 import {
   energyNeed,
   energyShort,
@@ -139,7 +139,7 @@ describe('energy of Gravitonforschung', () => {
       res: { m: 0, c: 0, d: 0 },
     });
     const r = { energy: 10 };
-    const s = fusionThrottle(p, U, r)!;
+    const s = throttle(p, U, r)!.share;
     expect(s).toBeLessThan(100);
     expect(energyShort(graviton, 1, p, U, r)).toBe(
       Math.max(
