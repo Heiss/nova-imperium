@@ -116,7 +116,9 @@ describe('button states', () => {
     expect(buildState(busy, r, 'crystal', 0, true)).toBe('full');
     expect(buildState(planet(), r, 'crystal', 0, true, 5)).toBe('full');
     expect(buildState(planet(), r, 'crystal', 0, false)).toBe('ready');
-    expect(buildState(planet(), r, 'terraformer', 0, false, 1)).toBe('energy');
+    expect(buildState(planet(), r, 'terraformer', 0, false, 1)).toBe(
+      'noEnergy',
+    );
     expect(buildState(planet(), r, 'terraformer', 0, false, 0)).toBe('ready');
     expect(buildState(busy, r, 'terraformer', 0, false, 1)).toBe('queueBusy');
   });
@@ -154,7 +156,7 @@ describe('button states', () => {
       research: {},
       rq: { key: 'energy', lvl: 1, start: 0, end: 1, cost: [0, 0, 0] as const },
     };
-    expect(researchState(planet(), r, 'graviton', 0, 1)).toBe('energy');
+    expect(researchState(planet(), r, 'graviton', 0, 1)).toBe('noEnergy');
     expect(researchState(planet(), r, 'graviton', 0, 0)).toBe('ready');
     expect(researchState(planet(), r, 'graviton', 1, 1)).toBe('missing');
     expect(researchState(planet(), rq, 'graviton', 0, 1)).toBe('busy');

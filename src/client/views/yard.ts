@@ -1,5 +1,5 @@
 import { DEF, SHIPS, type UnitDef, canFly } from '../../core/catalog.ts';
-import { reqMissing, satEnergy, unitTime } from '../../core/economy.ts';
+import { pieceEnergy, reqMissing, unitTime } from '../../core/economy.ts';
 import { activeDrive, shipSpeed } from '../../core/flight.ts';
 import { text } from '../../core/text.ts';
 import type { Levels } from '../../core/types.ts';
@@ -35,9 +35,15 @@ function stats(v: V, k: string, d: UnitDef): string {
   const ship = canFly(k) ? SHIPS[k] : undefined;
   const cargo = ship ? ` · Ladung ${fmt(ship.cargo)}` : '';
   const speed = ship ? speedText(v, k) : '';
-  const energy =
-    k === 'sat' ? ` · Energie ${fmt(satEnergy(v.P.temp))} je Reliquiar` : '';
-  return `<div class="dim">Angriff ${fmt(d.atk * (1 + 0.1 * (tech.weapons ?? 0)))} · Schild ${fmt(d.sh * (1 + 0.1 * (tech.shield ?? 0)))} · Struktur ${fmt((c[0] + c[1]) * (1 + 0.1 * (tech.armor ?? 0)))}${cargo}${speed}${energy}</div>`;
+  return `<div class="dim">Angriff ${fmt(d.atk * (1 + 0.1 * (tech.weapons ?? 0)))} · Schild ${fmt(d.sh * (1 + 0.1 * (tech.shield ?? 0)))} · Struktur ${fmt((c[0] + c[1]) * (1 + 0.1 * (tech.armor ?? 0)))}${cargo}${speed}${energyText(v, k)}</div>`;
+}
+
+/** The energy of one piece of a ship that makes energy, „je …“ from its texts (#114). */
+function energyText(v: V, k: string): string {
+  const e = pieceEnergy(k, v.P, v.s.cfg, v.R.research);
+  if (e === undefined) return '';
+  const per = text(k)?.per;
+  return ` · Energie ${fmt(e)}${per ? ` ${per}` : ''}`;
 }
 
 function orderBox(k: string, maxN: number, upgrading: boolean): string {

@@ -61,6 +61,7 @@ import {
 } from './views/misc.ts';
 import { disablePush, enablePush } from './push.ts';
 import { mountBuildings } from './views/buildings.ts';
+import { mountProducerTable } from './views/producer-table.ts';
 
 import { addPasskey, signInWithPasskey } from './passkeys.ts';
 
@@ -78,6 +79,9 @@ let offset = 0;
 let lastKey = '';
 let ctx: V | null = null;
 let buildingView: ReturnType<typeof mountBuildings> | null = null;
+let producerView: ReturnType<typeof mountProducerTable> | null = null;
+/** The views that are Svelte components, mounted once and then updated. */
+const MOUNTED = new Set(['buildings', 'resources']);
 let adminPanel: {
   diagnostics: HTMLElement;
   invitations: HTMLElement;
@@ -176,7 +180,7 @@ standalone.addEventListener('change', updateInstallButton);
 updateInstallButton();
 
 function gameView(view: string | null): string {
-  if (!view || (view !== 'buildings' && !Object.hasOwn(VIEWS, view)))
+  if (!view || (!MOUNTED.has(view) && !Object.hasOwn(VIEWS, view)))
     return 'overview';
   if (view === 'admin' && S && !S.me.admin) return 'overview';
   if (view === 'achievements' && !rewardsAvailable(S)) return 'overview';
@@ -559,7 +563,7 @@ function keepInputs(view: HTMLElement, fresh: boolean): () => void {
 
 function renderLoggedOut(view: HTMLElement): void {
   ctx = null;
-  unmountBuildings();
+  unmountViews();
   completionNotices.clear();
   completedMenu.clear();
   $('#menu')!.innerHTML = '';
@@ -645,22 +649,28 @@ function toggleExplanation(key: string): void {
   if (panel) panel.hidden = !open;
 }
 
-function unmountBuildings(): void {
+/** Unmounts the Svelte views (buildings, resources). */
+function unmountViews(): void {
   buildingView?.destroy();
   buildingView = null;
+  producerView?.destroy();
+  producerView = null;
+}
+
+/** Mounts the view of a Svelte component, or updates the mounted one. */
+function renderMounted(target: HTMLElement, view: V): void {
+  if (ui.view === 'buildings' && buildingView) return buildingView.update(view);
+  if (ui.view === 'resources' && producerView) return producerView.update(view);
+  unmountViews();
+  target.replaceChildren();
+  if (ui.view === 'buildings') buildingView = mountBuildings(target, view);
+  else producerView = mountProducerTable(target, view);
 }
 
 function renderView(target: HTMLElement, view: V): void {
   if (ui.view !== 'admin' || !view.s.me.admin) adminPanel = null;
-  if (ui.view === 'buildings') {
-    if (buildingView) buildingView.update(view);
-    else {
-      target.replaceChildren();
-      buildingView = mountBuildings(target, view);
-    }
-    return;
-  }
-  unmountBuildings();
+  if (MOUNTED.has(ui.view)) return renderMounted(target, view);
+  unmountViews();
   const show = Object.entries(VIEWS).find(([name]) => name === ui.view)?.[1];
   target.innerHTML = (show ?? VIEWS.overview!)(view);
   if (ui.view === 'admin' && view.s.me.admin) renderAdminPanel(target, view);
@@ -756,7 +766,7 @@ function render(fresh = false): void {
   }
   if (!S.planet) {
     ctx = null;
-    unmountBuildings();
+    unmountViews();
     view.innerHTML =
       '<div class="notice">Du hast keinen Planeten. Bitte den Admin, eine neue Runde zu starten.</div>';
     return;

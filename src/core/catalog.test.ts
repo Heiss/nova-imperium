@@ -30,7 +30,7 @@ const require = createRequire(import.meta.url);
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const O: any = require('../test/legacy/game.cjs');
 
-const DISPLAY = ['n', 'ab', 'ds', 'lt'] as const;
+const DISPLAY = ['n', 'ab', 'ds', 'lt', 'plural', 'per'] as const;
 
 /** The game values of the entries: everything but the display texts. */
 const values = <T extends object>(
@@ -469,6 +469,8 @@ describe('catalog', () => {
     expect(C.SHIPS.sat).toEqual({
       n: 'Sonnenreliquiar',
       ab: 'SR',
+      plural: 'Sonnenreliquiare',
+      per: 'je Reliquiar',
       cost: [0, 2000, 500],
       atk: 1,
       sh: 1,

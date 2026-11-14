@@ -1,7 +1,7 @@
 import type { RoundRules } from '../../core/achievements.ts';
 import { achievements } from './achievements.ts';
 import type { V } from './common.ts';
-import { research, resources } from './economy.ts';
+import { research } from './economy.ts';
 import { fleet } from './fleet.ts';
 import { galaxy } from './galaxy.ts';
 import { guilds } from './guilds.ts';
@@ -13,7 +13,6 @@ import { defense, shipyard } from './yard.ts';
 
 export const VIEWS: Record<string, (v: V) => string> = {
   overview,
-  resources,
   research,
   shipyard,
   defense,
