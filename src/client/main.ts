@@ -1731,6 +1731,7 @@ window.addEventListener('hashchange', () => {
 
 async function loadPasswordPolicy(): Promise<void> {
   const policy = await api('/api/account/policy').catch(() => null);
+  ui.webPush = policy?.webPush === true;
   const minimum = policy?.passwordMinLength;
   if (
     typeof minimum === 'number' &&

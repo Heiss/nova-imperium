@@ -10,6 +10,7 @@ import {
   stock,
   uniqueName,
   watch,
+  withWebPush,
 } from './helpers.ts';
 // The display texts of the catalog entries (#113); `text` is a local name below.
 import { text as entryText } from '../src/core/text.ts';
@@ -2008,10 +2009,29 @@ test.describe('push kinds (#192)', () => {
     await nav(page, 'help');
   }
 
+  test('the box is hidden on a server without Web Push (owner, 2026-11-14)', async ({
+    page,
+  }) => {
+    const w = watch(page);
+    await register(page, uniqueName('Stumm'));
+    await nav(page, 'help');
+    const titles = page.locator('.box .hd');
+    await expect(
+      titles.getByText('Browser-Benachrichtigungen', { exact: true }),
+    ).toBeVisible();
+    await expect(
+      titles.getByText('Benachrichtigungen', { exact: true }),
+    ).toHaveCount(0);
+    await expect(kinds(page)).toHaveCount(0);
+    await expect(page.locator('[data-chg=push]')).toHaveCount(0);
+    expect(w.problems).toEqual([]);
+  });
+
   test('every kind is on; one is switched off and on again and survives a reload', async ({
     page,
   }) => {
     const w = watch(page);
+    await withWebPush(page);
     await register(page, uniqueName('Glocke'));
     await nav(page, 'help');
     await expect(
@@ -2044,6 +2064,7 @@ test.describe('push kinds (#192)', () => {
     page,
   }) => {
     const w = watch(page);
+    await withWebPush(page);
     await register(page, uniqueName('Klingel'));
     await nav(page, 'help');
     expect(await states(page)).toEqual(KINDS.map((n) => [n, true]));

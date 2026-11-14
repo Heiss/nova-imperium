@@ -2,7 +2,7 @@
 // for all devices of the account. A change saves at once.
 import { PUSH_TOPICS, type PushTopic } from '../../core/push.ts';
 
-/** The names of the kinds ([V], confirmed by the owner in the pull request). */
+/** The names of the kinds ([E], owner, 2026-11-14). */
 const LABELS: Record<PushTopic, string> = {
   buildings: 'Gebäude fertig',
   research: 'Forschung abgeschlossen',
@@ -20,13 +20,25 @@ const LABELS: Record<PushTopic, string> = {
 const inputId = (t: PushTopic): string => `push_${t}`;
 
 /** One checkbox per kind; a kind is on unless the player switched it off. */
-export function pushOptionsHTML(off: readonly string[] | undefined): string {
+function pushOptionsHTML(off: readonly string[] | undefined): string {
   const boxes = PUSH_TOPICS.map(
     (t) =>
       `<label class="switch"><input type="checkbox" id="${inputId(t)}" data-chg="push"${off?.includes(t) ? '' : ' checked'}> ${LABELS[t]}</label>`,
   );
   return `<fieldset class="push-kinds"><legend>Welche Meldungen per Push kommen</legend>${boxes.join('')}</fieldset>`;
 }
+
+/**
+ * The content of the box „Benachrichtigungen“, or nothing on a server
+ * without Web Push (owner, 2026-11-14).
+ */
+export const pushKindsHTML = (
+  webPush: boolean | undefined,
+  off: readonly string[] | undefined,
+): string =>
+  webPush === true
+    ? `<p>Gilt für alle deine Geräte mit aktivierten Browser-Benachrichtigungen. Eine Änderung wird sofort gespeichert.</p>${pushOptionsHTML(off)}`
+    : '';
 
 /** The kinds that are off, read from the checkboxes (a missing one counts as on). */
 export const pushOffOf = (

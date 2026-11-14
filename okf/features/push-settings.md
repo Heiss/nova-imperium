@@ -23,8 +23,9 @@ switches; both go into the next release.
 * **[E]** The pull request proposes the kinds, taken from the code, with
   their German names; the owner confirms the list before the merge (owner,
   2026-11-14).
-* **[V]** The list of kinds, from every place that sends a push today
-  (`queuePush` and `addReport` on `main` before #192):
+* **[E]** The list of kinds with these German names, from every place that
+  sends a push today (`queuePush` and `addReport` on `main` before #192;
+  proposed in the pull request, confirmed by the owner, 2026-11-14):
 
   | Kind (code) | Name in the options | Sent by |
   | --- | --- | --- |
@@ -44,11 +45,15 @@ switches; both go into the next release.
   follows the examples of the issue (an attack, news, a server
   announcement). The view a push opens stays as before (`fleet` for the
   return, „Nachrichten“ for every report).
-* **[V]** The options show a box „Benachrichtigungen“ in „Hilfe &
-  Optionen“, above the device box „Browser-Benachrichtigungen“, with one
-  checkbox per kind in a group „Welche Meldungen per Push kommen“; a change
-  saves at once („Gespeichert.“), like the production share. The box is
-  shown on a server without Web Push too, like the device box.
+* **[E]** A change saves at once on each click („Gespeichert.“), like the
+  production share; no button „Speichern“ (owner, 2026-11-14).
+* **[E]** The box is hidden on a server without Web Push (owner,
+  2026-11-14). The browser learns it from `GET /api/account/policy`
+  (`webPush`) when the page loads. The device box
+  „Browser-Benachrichtigungen“ stays as it is.
+* **[V]** The box „Benachrichtigungen“ sits in „Hilfe & Optionen“ above the
+  device box, with one checkbox per kind in a group „Welche Meldungen per
+  Push kommen“.
 
 # Code, storage and tests
 
@@ -73,6 +78,10 @@ switches; both go into the next release.
   in `src/server/web-push.test.ts`, the kind of every sending place in the
   tests of the missions, `arrival.test.ts`, `web-push.test.ts` and
   `news.test.ts`, `src/server/db/upgrades/migration-17.test.ts`; E2E in
-  `e2e/game.spec.ts` („push kinds (#192)“: off and on by mouse and
-  keyboard after a reload, and on a phone) and `e2e/a11y.spec.ts` (the
-  options with a kind on and off).
+  `e2e/game.spec.ts` („push kinds (#192)“: hidden on the server without
+  Web Push; off and on by mouse and keyboard after a reload, and on a
+  phone) and `e2e/a11y.spec.ts` (the options with a kind on and off). The
+  servers under test run without Web Push, which needs an HTTPS address, so
+  the tests that show the box answer the policy as a server with Web Push
+  would (`withWebPush` in `e2e/helpers.ts`: the real reply with `webPush:
+  true`); saving goes to the real server.

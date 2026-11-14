@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { PUSH_TOPICS } from '../../core/push.ts';
-import { pushOffOf, pushOptionsHTML } from './push-options.ts';
+import { pushKindsHTML, pushOffOf } from './push-options.ts';
+
+/** The box on a server with Web Push. */
+const pushOptionsHTML = (off: readonly string[] | undefined): string =>
+  pushKindsHTML(true, off);
 
 const boxes = (html: string): string[] => html.match(/<input [^>]*>/g) ?? [];
 
@@ -8,7 +12,7 @@ describe('push options in „Hilfe & Optionen“ (#192)', () => {
   it('shows one checkbox per kind with its German name, all on by default', () => {
     const html = pushOptionsHTML([]);
     expect(html).toMatch(
-      /^<fieldset class="push-kinds"><legend>Welche Meldungen per Push kommen<\/legend><label class="switch">/,
+      /^<p>Gilt für alle deine Geräte mit aktivierten Browser-Benachrichtigungen\. Eine Änderung wird sofort gespeichert\.<\/p><fieldset class="push-kinds"><legend>Welche Meldungen per Push kommen<\/legend><label class="switch">/,
     );
     expect(boxes(html)).toEqual(
       PUSH_TOPICS.map(
@@ -27,7 +31,16 @@ describe('push options in „Hilfe & Optionen“ (#192)', () => {
     expect(pushOptionsHTML(undefined)).toBe(html);
   });
 
-  it('names every kind ([V], #192)', () => {
+  it('is hidden on a server without Web Push (owner, 2026-11-14)', () => {
+    expect(pushKindsHTML(false, [])).toBe('');
+    expect(pushKindsHTML(undefined, ['news'])).toBe('');
+  });
+
+  it('shows on a server with Web Push', () => {
+    expect(pushKindsHTML(true, [])).toContain('<fieldset class="push-kinds">');
+  });
+
+  it('names every kind ([E], owner 2026-11-14)', () => {
     const names = [...pushOptionsHTML([]).matchAll(/> ([^<]+)<\/label>/g)].map(
       (m) => m[1],
     );
