@@ -1,7 +1,8 @@
 # Changelog fragments
 
-Every pull request that players can notice adds one file here (owner,
-2026-11-12). The release pull request bundles all files into a German
+Every pull request that players can notice adds one file here, or changes
+the fragment of its feature that is still here (owner, 2026-11-12,
+2026-11-13). The release pull request bundles all files into a German
 section of `CHANGELOG.md`, which the game shows under „Neuigkeiten“, and
 removes them. See `okf/ops/branching-release.md`.
 

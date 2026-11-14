@@ -1,8 +1,10 @@
 // A Sturmangriff fights the ships and the defense of the target: the winner
-// takes loot, 70 % of the destroyed defense is rebuilt, both sides get a
-// battle report; a fleet without survivors is gone.
+// takes loot, the destroyed ships leave a Trümmerfeld (#45), 70 % of the
+// destroyed defense is rebuilt, both sides get a battle report; a fleet
+// without survivors is gone.
 import { battle } from '../../../core/battle.ts';
 import { DEF, SHIPS } from '../../../core/catalog.ts';
+import { type Debris, debrisOf, isEmpty } from '../../../core/debris.ts';
 import { capacity, countUnits } from '../../../core/flight.ts';
 import type { Fleet, Levels, Planet, Resources } from '../../../core/types.ts';
 import { record } from '../../../server/audit.ts';
@@ -83,6 +85,7 @@ interface Fight {
   res: ReturnType<typeof battle>;
   rebuilt: Levels;
   loot: Resources;
+  debris: Debris;
 }
 
 function battleReports(ctx: Ctx, x: Fight): void {
@@ -103,6 +106,7 @@ function battleReports(ctx: Ctx, x: Fight): void {
     defAfter: x.res.def,
     rebuilt: x.rebuilt,
     loot: x.loot,
+    debris: x.debris,
     attTech: tech(x.attR),
     defTech: tech(x.defR),
   };
@@ -110,6 +114,21 @@ function battleReports(ctx: Ctx, x: Fight): void {
   addReport(ctx, f.owner, { ...report, title: won });
   const hit = `Feindkontakt! ${t.name} ${coords(f.toC)} wird von ${x.att.name} angegriffen`;
   addReport(ctx, t.owner, { ...report, title: hit });
+}
+
+/** The debris step: 30 % of the ships both sides lost lie at the position (#45). */
+function leaveDebris(
+  ctx: Ctx,
+  f: Fleet,
+  defBefore: Levels,
+  res: ReturnType<typeof battle>,
+): Debris {
+  const debris = debrisOf([
+    { before: f.ships, after: res.att },
+    { before: defBefore, after: res.def },
+  ]);
+  if (!isEmpty(debris)) ctx.debris.add(f.toC, debris);
+  return debris;
 }
 
 export function onArrive(ctx: Ctx, f: Fleet, at: Arrival): void {
@@ -121,6 +140,7 @@ export function onArrive(ctx: Ctx, f: Fleet, at: Arrival): void {
     { units: defBefore, tech: defR },
     ctx.rng,
   );
+  const debris = leaveDebris(ctx, f, defBefore, res);
   const after = afterBattle(ctx, t, res.def);
   const free = capacity(res.att) - (f.cargo.m + f.cargo.c + f.cargo.d);
   const loot =
@@ -149,6 +169,7 @@ export function onArrive(ctx: Ctx, f: Fleet, at: Arrival): void {
     res,
     rebuilt: after.rebuilt,
     loot,
+    debris,
   });
   if (!countUnits(res.att)) return ctx.fleets.delete(f.id);
   const cargo = {

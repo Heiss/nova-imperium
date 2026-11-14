@@ -110,6 +110,7 @@ describe('catalog', () => {
     const ships = values(C.SHIPS);
     const added = {
       colony: ships.colony,
+      recycler: ships.recycler,
       bc: ships.bc,
       dr: ships.dr,
       bb: ships.bb,
@@ -175,6 +176,7 @@ describe('catalog', () => {
       ...Object.keys(O.MISSION),
       'colonize',
       'deploy',
+      'harvest',
     ]);
     expect(C.MISSION).toEqual(
       Object.fromEntries(Object.entries(MISSIONS).map(([k, m]) => [k, m.name])),
@@ -363,6 +365,7 @@ describe('catalog', () => {
         probe: 1250,
         sat: 1250,
         colony: 250,
+        recycler: 250,
         sc: 250,
         lc: 250,
         lf: 200,
@@ -392,6 +395,31 @@ describe('catalog', () => {
     for (const t of Object.keys(C.SHIPS.dstar!.rf!))
       expect(C.UNIT).toHaveProperty(t);
   });
+  it('has the Bergungsbarke with the classic values of the Recycler (#45)', () => {
+    expect(C.SHIPS.recycler).toEqual({
+      n: 'Bergungsbarke',
+      ab: 'BG',
+      cost: [10000, 6000, 2000],
+      atk: 1,
+      sh: 10,
+      cargo: 20000,
+      speed: 2000,
+      fuel: 300,
+      drive: 'comb',
+      req: { b: { yard: 4 }, r: { comb: 6, shield: 2 } },
+      ds: 'Birgt Adamant und Psikristall aus Trümmerfeldern.',
+      lt: LT,
+    });
+    // Always the Promethium-Brennkammer: no drive switch (#45 D3).
+    expect(C.MOBILE.recycler!.drives).toBeUndefined();
+    // Hull 1,600, structure (10,000 + 6,000) / 10, from the cost.
+    expect(C.FIGHTERS.recycler!.unit.cost).toEqual([10000, 6000, 2000]);
+    // The Schiffsschmiede lists it after the Kolonistenarche.
+    const keys = Object.keys(C.SHIPS);
+    expect(keys.indexOf('recycler')).toBe(keys.indexOf('colony') + 1);
+    // No rapid fire of its own: 5 against the easy targets is the default.
+    expect(C.SHIPS.recycler!.rf).toBeUndefined();
+  });
   it('gives no unit rapid fire against the Todesstern (#60)', () => {
     const against = Object.keys(C.UNIT).filter(
       (k) => C.UNIT[k]!.rf?.dstar !== undefined,
@@ -402,7 +430,13 @@ describe('catalog', () => {
     const all = [C.BUILD, C.RES, C.SHIPS, C.DEF].flatMap((defs) =>
       Object.values(defs).map((d) => d.ab),
     );
-    const added = [C.SHIPS.bc!, C.SHIPS.dr!, C.SHIPS.bb!, C.SHIPS.dstar!];
+    const added = [
+      C.SHIPS.bc!,
+      C.SHIPS.dr!,
+      C.SHIPS.bb!,
+      C.SHIPS.dstar!,
+      C.SHIPS.recycler!,
+    ];
     for (const { ab } of added)
       expect(all.filter((x) => x === ab)).toEqual([ab]);
   });
@@ -559,6 +593,7 @@ describe('catalog from the entry folders', () => {
       'sc',
       'lc',
       'colony',
+      'recycler',
       'lf',
       'hf',
       'cr',
@@ -583,7 +618,7 @@ describe('catalog from the entry folders', () => {
   });
 
   it('has one folder per entry, each with its kind and its own order', () => {
-    expect(ENTRIES).toHaveLength(49);
+    expect(ENTRIES).toHaveLength(50);
     const kinds = {
       building: C.BUILD,
       research: C.RES,

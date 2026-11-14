@@ -21,8 +21,9 @@ export interface Arrival {
 export interface MissionServer {
   /**
    * What the fleet does at its target. A free target (`target: 'free'`) gets
-   * no arrival, because nothing is there; every other kind gets the settled
-   * planet and both players.
+   * no arrival, because nothing is there, and so does a Trümmerfeld
+   * (`target: 'debris'`, #45), which is no planet; every other kind gets the
+   * settled planet and both players.
    */
   onArrive(ctx: Ctx, f: Fleet, at: Arrival | null): void;
 }

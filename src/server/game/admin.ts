@@ -33,6 +33,7 @@ export const saveSettings: Action = (ctx, u, d) => {
 function newRound(ctx: Ctx): void {
   ctx.planets.deleteAll();
   ctx.fleets.deleteAll();
+  ctx.debris.deleteAll();
   ctx.db.exec(`
     DELETE FROM push_jobs;
     DELETE FROM achievement_progress;
