@@ -104,12 +104,23 @@ a pull request opened with `GITHUB_TOKEN` would start no CI:
    for the owner. The pull request is a draft from before the push until
    the version is confirmed free, so a failed run never leaves a duplicate
    version mergeable.
-4. It stays a draft while a released hotfix is not merged back into `main`:
-   releasing `main` then would drop the fix from `stable`.
+4. The release pull request of `main` stays a draft (#147): its CI runs
+   only the cheap checks (secrets and dependencies, migrations, workflow
+   lint, CodeQL, changelog fragments), and its CI Gate fails on purpose.
+   A release pull request of a hotfix branch is marked ready at once.
+5. It stays a draft while a released hotfix is not merged back into `main`:
+   releasing `main` then would drop the fix from `stable`. Its body carries
+   a marker, and „Release ready“ refuses „Ready for review“: it sets the
+   pull request back to draft and comments why.
 
-The release pull request runs every check: the complete mutation run, the
+Marking the release pull request of `main` „Ready for review“ starts its
+full run, with every check: the complete mutation run, the
 Docker image with Trivy blocking High and Critical, the Compose stack, the
-upgrade test and the smoke test ([CI and checks](ci.md)). The owner checks
+upgrade test and the smoke test ([CI and checks](ci.md)). The workflow
+„Release ready“ (`release-ready.yml`) does that: it adds and removes the
+label `voller-lauf` with the release App's token, and `ci.yml` runs on
+those label events. The next rebuild sets the pull request back to draft.
+The release loop marks it ready when the release is due; the owner checks
 the texts and merges it; that is the release.
 
 ```mermaid
@@ -124,8 +135,10 @@ sequenceDiagram
   participant R as release.yml
   M->>RP: push (a merged pull request)
   RP->>RB: rebuild: CHANGELOG.md, VERSION, fragments removed
-  RP->>RB: pull request „Release 26.11.23“ (draft, then ready)
-  RB->>CI: pull request run: every check
+  RP->>RB: pull request „Release 26.11.23“ (draft)
+  RB->>CI: pull request run: cheap checks, CI Gate red on purpose
+  O->>RB: „Ready for review“ (the release loop)
+  RB->>CI: label voller-lauf (release-ready.yml): every check
   CI->>RC: green
   RC-->>RC: image 26.11.23-rc.N, moves „next“
   O->>M: squash merge of the release pull request
@@ -159,7 +172,7 @@ next-version`).
 ## Release candidates
 
 Every green CI run of a release pull request publishes a candidate image
-for staging (`rc-image.yml`):
+for staging (`rc-image.yml`); for `main`, only its full run is green:
 
 - `ghcr.io/heiss/nova-imperium:<version>-rc.<N>`, where N counts the merges
   on the base branch since the last release, so `rc.3` holds three merged
