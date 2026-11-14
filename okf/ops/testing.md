@@ -400,8 +400,8 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   job when the merge succeeded and restored by the plan job (the weights).
   The first run after the merge has no shard caches and tests every mutant
   once; a file that moves to another shard is tested again there.
-* **[V]** Tolerance 1.5 times the mean planned weight (#141, `TOLERANCE`
-  in `scripts/mutation-shards.ts`): the owner's guide value, and just
+* **[E]** Tolerance 1.5 times the mean planned weight (#141, `TOLERANCE`
+  in `scripts/mutation-shards.ts`; owner, 2026-11-14): the owner's guide value, and just
   above the drift measured between two complete runs (a plan weighed with
   the other run's times ended at 1.14 and 1.18 times the mean, the earlier
   research saw shard totals move by −5 to +16 %), so noise alone moves no
@@ -409,7 +409,7 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   1.5 times the ideal. With every mutant of the files of one shard made 3
   times slower in the measured weights (1.75 times the mean), the next plan
   moved 2 entries and ended at 1.49, and the plan after it moved none.
-* **[V]** Source of the previous plan (#141): the state
+* **[E]** Source of the previous plan (#141; owner, 2026-11-14): the state
   `reports/mutation-state.json` in the cache `stryker-state-<ref>-<sha>-<run
   id>-<attempt>`, next to the other mutation caches. The plan job restores
   the newest of its own ref, else of `main` (the same order as the shard
@@ -424,6 +424,13 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   run (not readable by a later one) and the artifacts (need the Actions
   API and a token in the plan job). A pull request saves its state under
   its own ref, which `main` never reads.
+* **[E]** Points the decisions of #141 left open, confirmed by the owner
+  (2026-11-14): a mutant whose lines moved takes the time of the next old
+  mutant of the same mutator, replacement and kind (static or not); a
+  failing `weights` step fails the gate job, so a bug is visible; the
+  tolerance is an upper bound only, because the slowest shard sets the
+  wall time; the merged report caches stay as the start while no state
+  exists.
 * **[V]** `scripts/mutation-changes.ts <from> <to>` (tests in
   `src/test/mutation-changes.test.ts`, #146) prints `true` or `false` and
   the reasons on stderr. It reads the changed files with
