@@ -121,7 +121,12 @@ upgrade test and the smoke test ([CI and checks](ci.md)). The workflow
 label `voller-lauf` with the release App's token, and `ci.yml` runs on
 those label events. The next rebuild sets the pull request back to draft.
 The release loop marks it ready when the release is due; the owner checks
-the texts and merges it; that is the release.
+the texts and merges it; that is the release. There is no merge freeze
+(#149): every merge into `main` while it waits, a security update or any
+other, rebuilds it and sets it back to draft, so the owner never merges on
+an old full run. The release loop keeps running until the owner has merged
+it, marks it ready again after each rebuild and tells the owner once the
+new full run and candidate image are green.
 
 ```mermaid
 sequenceDiagram
