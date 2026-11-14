@@ -58,6 +58,18 @@ describe('admin repository: settings', () => {
     ]);
     expect(ctx.admin.universe()).toEqual(DEFAULT_UNIVERSE);
   });
+
+  it('reads one stored setting, undefined when it is missing (#161)', () => {
+    const ctx = testCtx();
+    expect(ctx.admin.setting('endzeitRound')).toBeUndefined();
+    ctx.admin.putSettings([
+      ['endzeitRound', 2],
+      ['endzeitMinutes', 90],
+    ]);
+    expect(ctx.admin.setting('endzeitRound')).toBe(2);
+    expect(ctx.admin.setting('endzeitMinutes')).toBe(90);
+    expect(ctx.admin.setting('round')).toBeUndefined();
+  });
 });
 
 describe('admin repository: audit log', () => {

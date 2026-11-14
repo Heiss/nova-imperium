@@ -1,6 +1,7 @@
 // What one player sees: their planet, their and incoming fleets, reports,
 // the players with points, the galaxy. Foreign fleets show only what an
-// observer can see. The admin also gets the settings specification.
+// observer can see. The admin also gets the settings specification and the
+// state of the „Endzeit“ (#161).
 import { missionRules } from '../../core/missions.ts';
 import { UNIVERSE_SPECS } from '../../core/universe.ts';
 import type { Fleet } from '../../core/types.ts';
@@ -8,6 +9,7 @@ import type { User } from '../db/repos/players.ts';
 import { pushOff } from '../push-options.ts';
 import { ownLabs } from './actions.ts';
 import { type Ctx, universe } from './context.ts';
+import { endzeitState } from './endzeit.ts';
 import { guildState } from './guilds.ts';
 import { achievementState } from './achievements.ts';
 import { roundRules } from './round.ts';
@@ -49,6 +51,10 @@ function galaxyOf(ctx: Ctx) {
     owner: x.owner,
   }));
 }
+
+/** What only the admin gets: the settings specification and the „Endzeit“. */
+const adminState = (ctx: Ctx, u: User) =>
+  u.admin ? { specs: UNIVERSE_SPECS, endzeit: endzeitState(ctx) } : null;
 
 /** The player's own account: research, options and the push kinds that are off (#192). */
 const meOf = (ctx: Ctx, u: User) => ({
@@ -102,6 +108,6 @@ export function stateFor(
     galaxy: galaxyOf(ctx),
     // Every player sees every Trümmerfeld (#45).
     debris: ctx.debris.all(),
-    admin: u.admin ? { specs: UNIVERSE_SPECS } : null,
+    admin: adminState(ctx, u),
   };
 }

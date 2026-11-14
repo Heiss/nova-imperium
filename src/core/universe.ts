@@ -1,6 +1,7 @@
 // The settings of a universe: defaults, ranges and the rule that the size of
 // the universe never shrinks below a planet that exists. The admin panel, the
 // server check and the documentation table read this list.
+import { GIFT_DEFAULT_MINUTES, GIFT_MINUTES } from './endzeit.ts';
 import type { Coords, Universe } from './types.ts';
 
 type UniverseKey = keyof Universe;
@@ -77,6 +78,15 @@ export const UNIVERSE_SPECS: readonly UniverseSpec[] = [
     min: 0,
     max: 100,
     def: 0,
+  },
+  // Issue #161 (owner, 2026-11-14): the flight time the „Endzeit“ dialog
+  // offers first; the dialog may change it for one trigger only.
+  {
+    key: 'endzeitMinutes',
+    label: 'Flugzeit der Endzeit-Gabe (Minuten)',
+    min: GIFT_MINUTES.min,
+    max: GIFT_MINUTES.max,
+    def: GIFT_DEFAULT_MINUTES,
   },
 ];
 

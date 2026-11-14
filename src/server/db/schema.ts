@@ -595,4 +595,11 @@ export const MIGRATIONS: readonly string[] = [
   UPDATE push_jobs SET topic = kind
     WHERE kind IN ('buildings', 'research', 'shipyard', 'fleet');
   `,
+  // 18: the gift fleet of the admin's „Endzeit“ (issue #161). A gift is a
+  // Verlegung that cannot be recalled, takes no fleet slot and raises the
+  // research and buildings when it arrives; fleets in flight are no gift.
+  `
+  ALTER TABLE fleets ADD COLUMN gift INTEGER NOT NULL DEFAULT 0
+    CHECK (gift IN (0, 1));
+  `,
 ];

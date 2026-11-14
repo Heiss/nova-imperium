@@ -73,8 +73,9 @@ docker compose exec app nova admin YourName
 ```
 
 Reload the page: the menu shows **Admin**. There you invite your friends by
-e-mail, revoke open invitations, change the speed and size of the universe and
-start a new round.
+e-mail, revoke open invitations, change the speed and size of the universe,
+ring in the „Endzeit“ once per round (a gift fleet for every player for a final
+battle) and start a new round.
 
 ## Try it locally (demo)
 

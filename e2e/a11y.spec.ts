@@ -188,6 +188,29 @@ test.describe('accessibility (axe)', () => {
     expect(found).toEqual([]);
   });
 
+  test('the tab „Universum“ and the dialog „Endzeit einläuten“ have no violations (#161)', async ({
+    page,
+  }) => {
+    const name = uniqueName('AxeEnd');
+    await register(page, name);
+    cli('admin', name);
+    await page.reload();
+    const found: string[] = [];
+    await nav(page, 'admin');
+    await page.getByRole('tab', { name: 'Universum' }).click();
+    await expect(
+      page.getByRole('button', { name: 'Endzeit einläuten' }),
+    ).toBeVisible();
+    found.push(...(await violations(page)).map((v) => `universe: ${v}`));
+    await page.getByRole('button', { name: 'Endzeit einläuten' }).click();
+    await expect(page.getByLabel('Flugzeit der Gabe (Minuten)')).toBeVisible();
+    found.push(...(await violations(page)).map((v) => `dialog: ${v}`));
+    // Only looked at: the gift would go to every player of this server.
+    await page.getByRole('button', { name: 'Abbrechen' }).click();
+    cli('unadmin', name);
+    expect(found).toEqual([]);
+  });
+
   test('the options with the push kinds have no violations, on and off (#192)', async ({
     page,
   }) => {
