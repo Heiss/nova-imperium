@@ -26,7 +26,7 @@ their result.
 | O6 | Renovate | Install the Renovate app for the repository. |
 | O7 | GHCR | After the first tag the package is private; set it public or log in on the server. |
 | O8 | First run on the server | Domain, reverse proxy, `.env`, SMTP password file, first invitation and `nova admin`. |
-| O10 | Release App and labels | The release App needs „Pull requests: Read and write“ for the release pull request (until then the workflow fails when it opens it). Create the label `kein-changelog`. Allow force pushes to `release/*` for the App; protect `hotfix/**` like `main` (decided 2026-11-12: only pull requests with a green CI Gate) ([Branching and release](/ops/branching-release.md)). |
+| O10 | Release App and labels | The release App needs „Pull requests: Read and write“ for the release pull request (until then the workflow fails when it opens it). Create the label `kein-changelog`; the label `voller-lauf` is created by `release-ready.yml` on first use (#147, by hand if the App may not). Allow force pushes to `release/*` for the App; protect `hotfix/**` like `main` (decided 2026-11-12: only pull requests with a green CI Gate) ([Branching and release](/ops/branching-release.md)). |
 | O9 | Up-to-date branches | Settled 2026-11-10: "Require branches to be up to date before merging" is enabled for `main` (owner), so the migration check and all other checks run against the current `main` ([SQLite storage](/data/sqlite.md)). |
 
 # C. Unverified
@@ -46,4 +46,5 @@ their result.
 | Interface never clicked through (hand-over note) | Covered by the E2E suite on every pull request. |
 | Old JSON state | Not imported (round 1). |
 | O4 Merging | The assistant merges its pull requests itself after a green CI Gate and with no open review findings (owner, 2026-11-10). |
-| O11 Model of places | Coordinates plus kind (`planet \| moon \| debris`), debris in its own table, position 16 with #93; built as migration step 8 (#119) before #45 and #53. How a moon is stored (a row of `planets`) is a proposal (owner, 2026-11-12, [Design patterns](/architecture/patterns.md)). |
+| O11 Model of places | Coordinates plus kind (`planet \| moon \| debris`), debris in its own table, position 16 with #93; built as migration step 8 (#119) before #45 and #53. How a moon is stored (a row of `planets`) is a proposal (owner, 2026-11-12). Table layout, `planets.kind`, `Planet.kind`, `parsePlaceId()` and the fleet kind from the id prefix decided (owner, 2026-11-13); built with #119 as migration 15 ([Design patterns](/architecture/patterns.md)). |
+| O12 Test files of the mutation skip | What Vitest runs (`src/**/*.test.ts`) and the test helpers (`src/test/**`, `src/server/test-helpers.ts`) start the mutation jobs of a pull request; `e2e/` does not (owner, 2026-11-13, #146, [Test strategy](/ops/testing.md)). |

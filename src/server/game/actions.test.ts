@@ -10,8 +10,8 @@ function setup(planet = {}, user = {}) {
   const ctx = testCtx();
   const u = addUser(ctx, 'Anna', user);
   addPlanet(ctx, u.id, planet);
-  const p = () => ctx.store.planetOfUser(u.id)!;
-  const me = () => ctx.store.user(u.id)!;
+  const p = () => ctx.planets.home(u.id)!;
+  const me = () => ctx.players.get(u.id)!;
   return { ctx, u, p, me };
 }
 
@@ -37,7 +37,7 @@ describe('buildings', () => {
       A.build(ctx, u, { key: 'metal', planet: colony.id, at: p().id }),
     ).toBeNull();
     expect(p().bq?.key).toBe('metal');
-    expect(ctx.store.planet(colony.id)!.bq).toBeNull();
+    expect(ctx.planets.get(colony.id)!.bq).toBeNull();
     const other = addUser(ctx, 'Bert');
     const foreign = addPlanet(ctx, other.id, { s: 3 });
     expect(() => A.build(ctx, u, { key: 'metal', at: foreign.id })).toThrow(
@@ -46,7 +46,7 @@ describe('buildings', () => {
   });
   it('persists a solar upgrade with a fractional calculated duration', () => {
     const { ctx, u, p } = setup({ b: { robot: 1, solar: 1 } });
-    ctx.store.saveUniverse({ ...ctx.store.universe(), speed: 7 });
+    ctx.admin.saveUniverse({ ...ctx.admin.universe(), speed: 7 });
     expect(A.build(ctx, u, { key: 'solar' })).toBeNull();
     const due = p().bq!.end;
     expect(Number.isInteger(due)).toBe(true);
@@ -132,7 +132,7 @@ describe('buildings', () => {
       planet: p().id,
       key: 'energy',
       level: 1,
-      due: ctx.store.user(u.id)!.rq!.end,
+      due: ctx.players.get(u.id)!.rq!.end,
     });
   });
   it('can be cancelled with a full refund', () => {
@@ -211,11 +211,11 @@ describe('research on any own planet with a lab (#49)', () => {
   function twoPlanets(home = {}, colony = {}, user = {}) {
     const s = setup({ res: rich, ...home }, user);
     const col = addPlanet(s.ctx, s.u.id, { s: 2, res: rich, ...colony });
-    const c = () => s.ctx.store.planet(col.id)!;
+    const c = () => s.ctx.planets.get(col.id)!;
     return { ...s, col, c };
   }
   const time = (ctx: TestCtx, key: string, lab: number) =>
-    researchTime(lvlCost(RES[key]!, 1), { b: { lab } }, ctx.store.universe());
+    researchTime(lvlCost(RES[key]!, 1), { b: { lab } }, ctx.admin.universe());
   const labUpgrade = (end: number) => ({
     key: 'lab',
     lvl: 7,
@@ -279,8 +279,8 @@ describe('research on any own planet with a lab (#49)', () => {
     A.research(ctx, u, { key: 'energy' });
     const { planet, ...old } = me().rq!;
     expect(planet).toBe(p().id);
-    ctx.store.saveUser({ ...me(), rq: old });
-    ctx.store.savePlanet({ ...p(), res: { m: 0, c: 0, d: 0 } });
+    ctx.players.save({ ...me(), rq: old });
+    ctx.planets.save({ ...p(), res: { m: 0, c: 0, d: 0 } });
     A.cancelResearch(ctx, me(), {});
     expect(p().res).toEqual({ m: 0, c: 800, d: 400 });
   });
@@ -294,7 +294,7 @@ describe('research on any own planet with a lab (#49)', () => {
       'Das Scholarium wird ausgebaut.',
     );
     A.research(ctx, u, { key: 'energy' });
-    ctx.store.savePlanet({ ...ctx.store.planet(col.id)!, bq: null });
+    ctx.planets.save({ ...ctx.planets.get(col.id)!, bq: null });
     expect(() => A.build(ctx, me(), { key: 'lab', planet: col.id })).toThrow(
       'Das Scholarium forscht gerade.',
     );
@@ -381,15 +381,15 @@ describe('Fusionskraftwerk and Energietechnik (#47)', () => {
     });
     const start = ctx.now();
     ctx.clock.t += 3 * H;
-    const want = settle(col, ctx.now(), ctx.store.universe(), u);
-    const wantBuilt = settle(built, ctx.now(), ctx.store.universe(), u);
+    const want = settle(col, ctx.now(), ctx.admin.universe(), u);
+    const wantBuilt = settle(built, ctx.now(), ctx.admin.universe(), u);
     expect(A.research(ctx, u, { key: 'laser' })).toBeNull();
-    expect(ctx.store.user(u.id)!.rq).toMatchObject({ key: 'laser' });
-    expect(ctx.store.planet(col.id)).toEqual(want);
-    expect(ctx.store.planet(built.id)).toEqual(wantBuilt);
-    expect(ctx.store.planet(quiet.id)!.t).toBe(start);
+    expect(ctx.players.get(u.id)!.rq).toMatchObject({ key: 'laser' });
+    expect(ctx.planets.get(col.id)).toEqual(want);
+    expect(ctx.planets.get(built.id)).toEqual(wantBuilt);
+    expect(ctx.planets.get(quiet.id)!.t).toBe(start);
     // Settled later without the end, the whole time would count level 4.
-    const late = settle(col, ctx.now(), ctx.store.universe(), {
+    const late = settle(col, ctx.now(), ctx.admin.universe(), {
       research: { energy: 4 },
       rq: null,
     });
@@ -404,7 +404,7 @@ describe('Fusionskraftwerk and Energietechnik (#47)', () => {
     const col = addPlanet(ctx, u.id, { s: 2, ...reactor });
     ctx.clock.t += H / 2;
     expect(A.cancelResearch(ctx, u, {})).toBeNull();
-    expect(ctx.store.planet(col.id)!.t).toBe(col.t);
+    expect(ctx.planets.get(col.id)!.t).toBe(col.t);
     const other = addUser(ctx, 'Bert', {
       research: { energy: 3 },
       rq: { ...running.rq, key: 'laser', lvl: 1 },
@@ -413,7 +413,7 @@ describe('Fusionskraftwerk and Energietechnik (#47)', () => {
     const col2 = addPlanet(ctx, other.id, { s: 6, ...reactor });
     ctx.clock.t += 3 * H;
     expect(A.research(ctx, other, { key: 'energy' })).toBeNull();
-    expect(ctx.store.planet(col2.id)!.t).toBe(col2.t);
+    expect(ctx.planets.get(col2.id)!.t).toBe(col2.t);
     expect(home.t).toBe(col.t);
   });
 
@@ -424,10 +424,10 @@ describe('Fusionskraftwerk and Energietechnik (#47)', () => {
     A.rename(ctx, u, { name: 'Reaktor' });
     const r = { research: { energy: 8 }, rq: null };
     expect(p().res).toEqual(
-      settle(src, ctx.now(), ctx.store.universe(), r).res,
+      settle(src, ctx.now(), ctx.admin.universe(), r).res,
     );
     expect(p().res.m).toBeGreaterThan(
-      settle(src, ctx.now(), ctx.store.universe()).res.m,
+      settle(src, ctx.now(), ctx.admin.universe()).res.m,
     );
   });
 });
@@ -435,19 +435,19 @@ describe('Fusionskraftwerk and Energietechnik (#47)', () => {
 describe('Gravitonforschung (#49)', () => {
   it('starts only with 300,000 energy production on the starting planet', () => {
     const { ctx, u, p, me } = setup({ b: { lab: 12, solar: 58 } });
-    const short = Math.ceil(300000 - prod(p(), ctx.store.universe()).eProd);
+    const short = Math.ceil(300000 - prod(p(), ctx.admin.universe()).eProd);
     expect(() => A.research(ctx, u, { key: 'graviton' })).toThrow(
       `Zu wenig Energie: Gravitonen-Mysterium braucht eine Energieproduktion von 300.000, es fehlen ${short.toLocaleString('de-DE')}.`,
     );
     expect(me().rq).toBeNull();
-    ctx.store.savePlanet({ ...p(), b: { lab: 12, solar: 59 } });
+    ctx.planets.save({ ...p(), b: { lab: 12, solar: 59 } });
     expect(A.research(ctx, me(), { key: 'graviton' })).toBeNull();
     const rq = me().rq!;
     expect(rq).toMatchObject({ key: 'graviton', lvl: 1, cost: [0, 0, 0] });
     // The minimum research time, and neither resources nor energy are used.
     expect(rq.end - rq.start).toBe(1000);
     expect(p().res).toEqual({ m: 100000, c: 100000, d: 100000 });
-    expect(prod(p(), ctx.store.universe()).eProd).toBeGreaterThan(300000);
+    expect(prod(p(), ctx.admin.universe()).eProd).toBeGreaterThan(300000);
   });
 
   it('needs three times the energy for the next level', () => {
@@ -477,7 +477,7 @@ describe('Gravitonforschung (#49)', () => {
     expect(() => A.research(ctx, u, { key: 'graviton' })).toThrow(
       'Zu wenig Energie',
     );
-    ctx.store.saveUser({ ...me(), research: { energy: 10 } });
+    ctx.players.save({ ...me(), research: { energy: 10 } });
     expect(A.research(ctx, me(), { key: 'graviton' })).toBeNull();
     expect(me().rq).toMatchObject({ key: 'graviton' });
   });
@@ -536,7 +536,7 @@ describe('planet fields and the Weltenschmiede (#51)', () => {
 
   it('get the extra fields of the universe at once', () => {
     const { ctx, u } = setup({ diameter: 10000, b: { metal: 100 } });
-    ctx.store.saveUniverse({ ...ctx.store.universe(), extraFields: 1 });
+    ctx.admin.saveUniverse({ ...ctx.admin.universe(), extraFields: 1 });
     expect(A.build(ctx, u, { key: 'crystal' })).toBeNull();
   });
 
@@ -554,13 +554,13 @@ describe('planet fields and the Weltenschmiede (#51)', () => {
       { ...FORGE, b: { nanite: 1, solar: 13 } },
       { research: { energy: 12 } },
     );
-    const short = Math.ceil(1000 - prod(p(), ctx.store.universe()).eProd);
+    const short = Math.ceil(1000 - prod(p(), ctx.admin.universe()).eProd);
     expect(() => A.build(ctx, u, { key: 'terraformer' })).toThrow(
       `Zu wenig Energie: Weltenschmiede braucht eine Energieproduktion von 1.000, es fehlen ${short.toLocaleString('de-DE')}.`,
     );
     expect(p().bq).toBeNull();
-    ctx.store.savePlanet({ ...p(), b: FORGE.b });
-    const before = prod(p(), ctx.store.universe());
+    ctx.planets.save({ ...p(), b: FORGE.b });
+    const before = prod(p(), ctx.admin.universe());
     expect(A.build(ctx, me(), { key: 'terraformer' })).toBeNull();
     expect(p().bq).toMatchObject({
       key: 'terraformer',
@@ -572,7 +572,7 @@ describe('planet fields and the Weltenschmiede (#51)', () => {
     ctx.clock.t = p().bq!.end;
     const after = A.mine(ctx, u);
     expect(after.b.terraformer).toBe(1);
-    expect(prod(after, ctx.store.universe())).toEqual(before);
+    expect(prod(after, ctx.admin.universe())).toEqual(before);
   });
 
   it('need twice the energy for the next level of the Weltenschmiede', () => {
@@ -614,12 +614,12 @@ describe('planet fields and the Weltenschmiede (#51)', () => {
     );
     expect(A.build(ctx, u, { key: 'terraformer' })).toBeNull();
     ctx.clock.t = p().bq!.end;
-    ctx.store.savePlanet(A.mine(ctx, u));
+    ctx.planets.save(A.mine(ctx, u));
     // 105 fields, 100 taken: five more levels fit, the sixth does not.
     for (let level = 1; level <= 5; level++) {
       expect(A.build(ctx, u, { key: 'sdeut' })).toBeNull();
       ctx.clock.t = p().bq!.end;
-      ctx.store.savePlanet(A.mine(ctx, u));
+      ctx.planets.save(A.mine(ctx, u));
       expect(p().b.sdeut).toBe(level);
     }
     expect(p().b).toEqual({
@@ -812,22 +812,14 @@ describe('planet settings', () => {
 describe('reports', () => {
   it('are marked read, deleted one by one or all', () => {
     const { ctx, u, me } = setup();
-    ctx.store.addReport(
-      u.id,
-      { id: 'r1', time: 50, type: 'info', title: 'a' },
-      60,
-    );
-    ctx.store.addReport(
-      u.id,
-      { id: 'r2', time: 70, type: 'info', title: 'b' },
-      60,
-    );
+    ctx.reports.add(u.id, { id: 'r1', time: 50, type: 'info', title: 'a' }, 60);
+    ctx.reports.add(u.id, { id: 'r2', time: 70, type: 'info', title: 'b' }, 60);
     A.read(ctx, u, {});
     expect(me().readAt).toBe(70);
     A.delrep(ctx, u, { id: 'r1' });
-    expect(ctx.store.reports(u.id).map((r) => r.id)).toEqual(['r2']);
+    expect(ctx.reports.ofPlayer(u.id).map((r) => r.id)).toEqual(['r2']);
     A.delall(ctx, u, {});
-    expect(ctx.store.reports(u.id)).toEqual([]);
+    expect(ctx.reports.ofPlayer(u.id)).toEqual([]);
     A.read(ctx, me(), {});
     expect(me().readAt).toBe(0);
   });

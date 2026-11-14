@@ -7,14 +7,15 @@ description: Database schema, migrations, transactions, and backups.
 # SQLite storage
 
 The server stores game state and accounts in `nova.sqlite` in the configured
-data directory. The schema covers accounts, sessions and invitations, planets,
-fleets, reports, universe settings, account security tokens, suspensions and
-audit data.
+data directory. The schema covers accounts, sessions and invitations, planets
+(and later moons), debris fields, fleets, reports, universe settings, account
+security tokens, suspensions and audit data.
 
 On startup, the database enables foreign keys and uses WAL mode for on-disk
 databases. Migrations are applied in order in a transaction, with the current
-schema version recorded in SQLite's `user_version`. Store operations can group
-related updates in a transaction. Write transactions acquire the writer lock
+schema version recorded in SQLite's `user_version`. The caller groups
+related updates in a transaction (`ctx.tx`); a repository never opens one
+(#117, see [Design patterns](/architecture/patterns.md)). Write transactions acquire the writer lock
 before reading, so competing writers use the configured busy timeout instead
 of invalidating a snapshot midway through an action. The client retries a
 game action once when the server explicitly reports that it rolled back due
@@ -154,6 +155,22 @@ its owner) gets 12,800 km, a colony a diameter drawn with `random()` from
 the field range of its position (16 and above like 15). Other data stay as
 they were (`upgrades/migration-14.test.ts`).
 
+Migration 15 (issue #119, O11, see [Design patterns](/architecture/patterns.md))
+stores places as coordinates plus a kind. It rebuilds `planets` with
+`kind` (`TEXT NOT NULL DEFAULT 'planet'`, CHECK `planet` or `moon`) and
+`UNIQUE (g, s, p, kind)` instead of `UNIQUE (g, s, p)`, so a moon can later
+share the coordinates of its planet. Migrations run with `foreign_keys = ON`:
+dropping the old `planets` would delete the rows of its children, so the
+migration renames and rebuilds `planet_buildings`, `planet_units`,
+`planet_production` and `shipyard_queue` with it (like `fleets` in
+migration 9) and recreates `planets_owner`. Every planet keeps its id and
+becomes kind `planet`; fleets, research and push jobs hold planet ids and
+stay as they were. It also adds the empty table `debris` (id `d<g>_<s>_<p>`,
+coordinates, `res_m` and `res_c` as REAL, `UNIQUE (g, s, p)`) for the
+debris fields of #45. `upgrades/migration-15.test.ts` checks hand-written
+data, the cascade and the new constraints, and on generated data of version
+14 that every table keeps its rows.
+
 Account deletion runs in one transaction. Foreign-key cascades clear owned game,
 session, reward and push data. The deletion also removes led guilds and their
 memberships, linked audit and inbox records, invitations for the account address
@@ -181,7 +198,7 @@ tests together with an own test for each changing migration).
   existing rows needs its own test `src/server/db/upgrades/migration-<n>.test.ts`
   that checks the data after the upgrade. The decision is made by the effect on
   generated data, not by the SQL text; `ALTER TABLE … ADD COLUMN` counts as a
-  change. Migrations 7, 9, 10, 11, 13 and 14 have such tests; pure `CREATE` migrations need
+  change. Migrations 7, 9, 10, 11, 13, 14 and 15 have such tests; pure `CREATE` migrations need
   none (migration 12 has one anyway, for its CHECK and cascade).
 * **[E]** A self-test proves that the checks find a migration that fails on
   existing data and that the classification tells changes from new tables.

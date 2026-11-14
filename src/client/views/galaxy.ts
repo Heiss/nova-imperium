@@ -1,5 +1,5 @@
-import { MISSION } from '../../core/catalog.ts';
-import { pid } from '../../core/flight.ts';
+import { MISSION } from '../../core/missions.ts';
+import { placeId } from '../../core/place.ts';
 import { esc, fmt } from '../logic/format.ts';
 import { isProtected, nameOf, ranks } from '../logic/game.ts';
 import { planetHTML, type V } from './common.ts';
@@ -7,7 +7,7 @@ import { planetHTML, type V } from './common.ts';
 function row(v: V, p: number, rk: Record<string, number>): string {
   const { s, ui } = v;
   const c = { g: ui.gal, s: ui.sys, p };
-  const pl = s.galaxy.find((x) => x.id === pid(c));
+  const pl = s.galaxy.find((x) => x.id === placeId({ ...c, kind: 'planet' }));
   const at = `data-g="${c.g}" data-s="${c.s}" data-p="${p}"`;
   if (!pl) {
     const action = v.P.ships.colony

@@ -41,12 +41,12 @@ describe('Web Push', () => {
     );
     deletePushSubscription(ctx, b.id, endpoint);
     expect(
-      ctx.store.db.prepare('SELECT * FROM push_subscriptions').all(),
+      ctx.db.prepare('SELECT * FROM push_subscriptions').all(),
     ).toHaveLength(1);
     deletePushSubscription(ctx, a.id, endpoint);
-    expect(
-      ctx.store.db.prepare('SELECT * FROM push_subscriptions').all(),
-    ).toEqual([]);
+    expect(ctx.db.prepare('SELECT * FROM push_subscriptions').all()).toEqual(
+      [],
+    );
   });
 
   it('sends due work only once and does not notify for cancelled work', async () => {
@@ -60,7 +60,7 @@ describe('Web Push', () => {
     expect(send).not.toHaveBeenCalled();
     cancelBuild(ctx, user, {});
     build(ctx, user, { key: 'solar' });
-    ctx.clock.t = ctx.store.planetOfUser(user.id)!.bq!.end + 1;
+    ctx.clock.t = ctx.planets.home(user.id)!.bq!.end + 1;
     await deliverPush(ctx, send);
     await deliverPush(ctx, send);
     expect(send).toHaveBeenCalledTimes(1);
@@ -77,7 +77,7 @@ describe('Web Push', () => {
     savePushSubscription(ctx, anna.id, { endpoint, keys });
     expect(announce(ctx, 'Wartung heute Abend')).toBe(2);
     for (const user of [anna, ben]) {
-      expect(ctx.store.reports(user.id)).toMatchObject([
+      expect(ctx.reports.ofPlayer(user.id)).toMatchObject([
         { title: 'Servernachricht', text: 'Wartung heute Abend' },
       ]);
     }
@@ -111,9 +111,9 @@ describe('Web Push', () => {
     ctx.clock.t += 30_000;
     await deliverPush(ctx, send);
     expect(send).toHaveBeenCalledTimes(2);
-    expect(
-      ctx.store.db.prepare('SELECT * FROM push_subscriptions').all(),
-    ).toEqual([]);
-    expect(ctx.store.db.prepare('SELECT * FROM push_jobs').all()).toEqual([]);
+    expect(ctx.db.prepare('SELECT * FROM push_subscriptions').all()).toEqual(
+      [],
+    );
+    expect(ctx.db.prepare('SELECT * FROM push_jobs').all()).toEqual([]);
   });
 });

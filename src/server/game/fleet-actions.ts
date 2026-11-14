@@ -1,5 +1,8 @@
-// Sending and recalling fleets.
-import { MISSION, canFly, isShip } from '../../core/catalog.ts';
+// Sending and recalling fleets. The checks of the target and of a mission
+// are the pure `sendError` of src/core/missions.ts (#116); the server
+// determines the noob protection, turns the codes into the messages, and
+// checks the slots, the cargo and the fuel for every mission alike.
+import { canFly, isShip } from '../../core/catalog.ts';
 import {
   capacity,
   countUnits,
@@ -8,8 +11,14 @@ import {
   fleetSpeed,
   flightMs,
   fuelFor,
-  pid,
 } from '../../core/flight.ts';
+import {
+  type MissionRules,
+  type SendError,
+  missionRules,
+  sendError,
+} from '../../core/missions.ts';
+import { placeId } from '../../core/place.ts';
 import type {
   Coords,
   Fleet,
@@ -19,7 +28,7 @@ import type {
   Resources,
 } from '../../core/types.ts';
 import type { AuditEntry } from '../audit.ts';
-import type { User } from '../db/store.ts';
+import type { User } from '../db/repos/players.ts';
 import { type Action, type Data, mine, researchOf } from './actions.ts';
 import { type Ctx, coords, fail, int, universe } from './context.ts';
 import { isProtected, pointsMap } from './points.ts';
@@ -46,26 +55,20 @@ const target = (ctx: Ctx, d: Data): Coords => {
   };
 };
 
-function checkTarget(
-  ctx: Ctx,
-  u: User,
-  p: Planet,
-  to: Planet,
-  mission: Mission,
-): void {
-  if (to.id === p.id) fail('Das ist dein eigener Planet.');
-  if (mission === 'transport') return;
-  if (mission === 'deploy') {
-    if (to.owner !== u.id) fail('Verlegung nur zu einem eigenen Planeten.');
-    return;
-  }
-  if (to.owner === u.id) fail('Eigene Planeten kann man nicht angreifen.');
-  if (isProtected(u.id, to.owner, pointsMap(ctx)))
-    fail('Dieser Spieler steht unter Noobschutz.');
-}
+/** The message of each code of `sendError`, in German like the interface. */
+const SEND_ERROR: Readonly<Record<SendError, string>> = {
+  occupied: 'Diese Position ist bereits besetzt.',
+  noColonyShip: 'Du brauchst eine Kolonistenarche.',
+  noPlanet: 'An dieser Position gibt es keinen Planeten.',
+  samePlanet: 'Das ist dein eigener Planet.',
+  notOwn: 'Verlegung nur zu einem eigenen Planeten.',
+  ownTarget: 'Eigene Planeten kann man nicht angreifen.',
+  protected: 'Dieser Spieler steht unter Noobschutz.',
+  probesOnly: 'Auspex-Erkundung nur mit Spähschädeln.',
+};
 
-const loadCargo = (p: Planet, mission: Mission, raw: unknown): Resources => {
-  if (mission === 'spy') return { m: 0, c: 0, d: 0 };
+const loadCargo = (p: Planet, rules: MissionRules, raw: unknown): Resources => {
+  if (!rules.cargo) return { m: 0, c: 0, d: 0 };
   const c = (raw as Partial<Resources> | null) ?? {};
   return {
     m: Math.min(int(c.m, 0, 1e15), Math.floor(p.res.m)),
@@ -87,42 +90,37 @@ function checkDestination(
   ctx: Ctx,
   u: User,
   p: Planet,
-  mission: Mission,
+  rules: MissionRules,
   occupied: Planet | null,
   ships: Levels,
 ): void {
-  if (mission === 'colonize') {
-    if (occupied) fail('Diese Position ist bereits besetzt.');
-    if (!ships.colony) fail('Du brauchst eine Kolonistenarche.');
-  } else {
-    checkTarget(
-      ctx,
-      u,
-      p,
-      occupied ?? fail('An dieser Position gibt es keinen Planeten.'),
-      mission,
-    );
-  }
+  const error = sendError(
+    rules,
+    { owner: u.id, from: p.id, ships },
+    {
+      planet: occupied,
+      protects: (owner) => isProtected(u.id, owner, pointsMap(ctx)),
+    },
+  );
+  if (error) fail(SEND_ERROR[error]);
 }
 
 function plan(ctx: Ctx, u: User, p: Planet, d: Data): Plan {
   const mission = String(d.mission) as Mission;
-  if (!Object.hasOwn(MISSION, mission)) fail('Unbekannter Auftrag.');
+  const rules = missionRules(mission) ?? fail('Unbekannter Auftrag.');
   const ships = pickShips(p, d.ships);
   if (!countUnits(ships)) fail('Keine Schiffe ausgewählt.');
-  if (ctx.store.fleetCount(u.id) >= fleetSlots(researchOf(ctx, u)))
+  if (ctx.fleets.count(u.id) >= fleetSlots(researchOf(ctx, u)))
     fail('Alle Flottenslots belegt.');
   const dest = target(ctx, d);
-  const occupied = ctx.store.planet(pid(dest));
-  checkDestination(ctx, u, p, mission, occupied, ships);
-  if (mission === 'spy' && Object.keys(ships).some((k) => k !== 'probe'))
-    fail('Auspex-Erkundung nur mit Spähschädeln.');
+  const occupied = ctx.planets.get(placeId({ ...dest, kind: 'planet' }));
+  checkDestination(ctx, u, p, rules, occupied, ships);
   return {
     mission,
     ships,
     dest,
     targetOwner: occupied?.owner ?? null,
-    cargo: loadCargo(p, mission, d.cargo),
+    cargo: loadCargo(p, rules, d.cargo),
     pct: int(d.pct, 1, 10),
   };
 }
@@ -148,13 +146,13 @@ export const send: Action = (ctx, u, d, event) => {
   p.res.m -= cargo.m;
   p.res.c -= cargo.c;
   p.res.d -= cargo.d + fuel;
-  ctx.store.savePlanet(p);
+  ctx.planets.save(p);
   const fleet: Fleet = {
     id: ctx.id(),
     owner: u.id,
     from: p.id,
     fromC: { g: p.g, s: p.s, p: p.p },
-    to: pid(dest),
+    to: placeId({ ...dest, kind: 'planet' }),
     toC: dest,
     mission,
     ships,
@@ -166,7 +164,7 @@ export const send: Action = (ctx, u, d, event) => {
     recalled: false,
     fuel,
   };
-  ctx.store.saveFleet(fleet);
+  ctx.fleets.save(fleet);
   if (event) logLaunch(event, fleet, targetOwner);
   return `Flotte unterwegs nach ${coords(fleet.toC)}.`;
 };
@@ -187,7 +185,7 @@ function logLaunch(
 }
 
 export const recall: Action = (ctx, u, d, event) => {
-  const f = ctx.store.fleet(String(d.id));
+  const f = ctx.fleets.get(String(d.id));
   const t = ctx.now();
   if (!f || f.owner !== u.id || f.state !== 'out' || f.arr <= t)
     fail('Rückruf nicht mehr möglich.');
@@ -195,7 +193,7 @@ export const recall: Action = (ctx, u, d, event) => {
   fleet.state = 'back';
   fleet.ret = t + (t - fleet.dep);
   fleet.recalled = true;
-  ctx.store.saveFleet(fleet);
+  ctx.fleets.save(fleet);
   if (event)
     event.detail = { fleet: fleet.id, planet: fleet.from, due: fleet.ret };
   return 'Flotte zurückgerufen.';

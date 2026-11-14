@@ -11,4 +11,13 @@ secrets/*
 !secrets/.gitkeep
 .DS_Store
 upgrade-from.txt
+# Documentation website: build output, Astro's types, and the copies of
+# okf/ and docs/ that website/scripts/sync-content.mjs writes before every
+# build (okf/ and docs/ stay the only source, okf/ops/website.md).
+website/.astro/
+website/src/content/docs/decisions/
+website/src/content/docs/getting-started/
+website/src/content/docs/contributing/
+website/src/content/docs/operations/
 /src/features/index.gen.ts
+/src/features/index.server.gen.ts

@@ -8,7 +8,8 @@ import {
 } from 'node:crypto';
 import { DEFAULT_EXPLAIN } from '../core/explain.ts';
 import { type Config, MAX_PASSWORD, NUMBERS } from './config.ts';
-import type { Invitation, User } from './db/store.ts';
+import type { Invitation } from './db/repos/invitations.ts';
+import type { User } from './db/repos/players.ts';
 import { type Ctx, fail, int, str } from './game/context.ts';
 import { ensureActive, suspension } from './game/moderation.ts';
 import { placePlanet } from './game/planets.ts';
@@ -63,10 +64,10 @@ export function createInvitation(
 ): NewInvitation {
   const email = str(raw, 254).toLowerCase();
   if (!EMAIL.test(email)) fail('Bitte eine gültige E-Mail-Adresse eingeben.');
-  if (ctx.store.userByEmail(email))
+  if (ctx.players.byEmail(email))
     fail('Mit dieser Adresse spielt schon jemand.');
   const t = ctx.now();
-  ctx.store.revokeInvitations({ email }, t);
+  ctx.invitations.revoke({ email }, t);
   const token = newToken();
   const invitation: Invitation = {
     id: ctx.id(),
@@ -78,13 +79,13 @@ export function createInvitation(
     usedAt: null,
     revokedAt: null,
   };
-  ctx.store.addInvitation(invitation);
+  ctx.invitations.add(invitation);
   return { invitation, link: inviteLink(cfg, token) };
 }
 
 /** The open invitation of a token, or a message for the player. */
 export function openInvitation(ctx: Ctx, token: unknown): Invitation {
-  const inv = ctx.store.invitationByToken(hashToken(String(token ?? '')));
+  const inv = ctx.invitations.byToken(hashToken(String(token ?? '')));
   const ok =
     inv &&
     inv.usedAt === null &&
@@ -112,7 +113,7 @@ function checkAccount(
 ): void {
   if (name.length < 2) fail('Der Name braucht mindestens 2 Zeichen.');
   validatePassword(pw, minimum);
-  if (ctx.store.userByName(name)) fail('Der Name ist schon vergeben.');
+  if (ctx.players.byName(name)) fail('Der Name ist schon vergeben.');
 }
 
 export function validatePassword(pw: string, minimum: number): void {
@@ -133,7 +134,7 @@ export function register(
   const name = str(d.name, 20);
   const pw = String(d.password ?? '');
   checkAccount(ctx, name, pw, minimum);
-  if (ctx.store.userByEmail(inv.email))
+  if (ctx.players.byEmail(inv.email))
     fail('Mit dieser Adresse spielt schon jemand.');
   const u: User = {
     id: 'u' + ctx.id(),
@@ -148,9 +149,9 @@ export function register(
     research: {},
     rq: null,
   };
-  ctx.store.saveUser(u);
-  ctx.store.useInvitation(inv.id, ctx.now());
-  const galaxies = ctx.store.universe().galaxies;
+  ctx.players.save(u);
+  ctx.invitations.use(inv.id, ctx.now());
+  const galaxies = ctx.admin.universe().galaxies;
   placePlanet(
     ctx,
     u.id,
@@ -161,7 +162,7 @@ export function register(
 }
 
 export function login(ctx: Ctx, name: unknown, password: unknown): User {
-  const u = ctx.store.userByName(str(name, 20));
+  const u = ctx.players.byName(str(name, 20));
   const pw = String(password ?? '');
   if (!u) {
     if (pw.length <= MAX_PASSWORD * 2) hashPassword(pw, 'unknown-account');
@@ -171,7 +172,7 @@ export function login(ctx: Ctx, name: unknown, password: unknown): User {
   ensureActive(ctx, u.id);
   if (!u.pw.startsWith(PROFILE)) {
     const upgraded = passwordFields(pw);
-    const update = ctx.store.db
+    const update = ctx.db
       .prepare(
         'UPDATE users SET pw_hash = ?, salt = ? WHERE id = ? AND pw_hash = ? AND salt = ?',
       )
@@ -187,7 +188,7 @@ export function login(ctx: Ctx, name: unknown, password: unknown): User {
 export function startSession(ctx: Ctx, cfg: Config, uid: string): string {
   ensureActive(ctx, uid);
   const token = newToken();
-  ctx.store.addSession(
+  ctx.players.addSession(
     hashToken(token),
     uid,
     ctx.now() + cfg.sessionDays * DAY,
@@ -197,10 +198,10 @@ export function startSession(ctx: Ctx, cfg: Config, uid: string): string {
 
 export function sessionUser(ctx: Ctx, token: string | undefined): User | null {
   if (!token) return null;
-  const uid = ctx.store.sessionUser(hashToken(token), ctx.now());
-  return uid && !suspension(ctx, uid) ? ctx.store.user(uid) : null;
+  const uid = ctx.players.sessionUser(hashToken(token), ctx.now());
+  return uid && !suspension(ctx, uid) ? ctx.players.get(uid) : null;
 }
 
 export function endSession(ctx: Ctx, token: string | undefined): void {
-  if (token) ctx.store.deleteSession(hashToken(token));
+  if (token) ctx.players.deleteSession(hashToken(token));
 }

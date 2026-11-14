@@ -1,9 +1,11 @@
 // The browser glue: state, server calls, rendering, events and the clock.
 // The views are pure functions (views/), the logic is tested (logic/); this
 // file is run by the E2E suite.
-import { BUILD, RES } from '../core/catalog.ts';
-import { pid } from '../core/flight.ts';
+import { RES } from '../core/catalog.ts';
+import { missionRules } from '../core/missions.ts';
+import { placeId } from '../core/place.ts';
 import { settle, settleR } from '../core/settle.ts';
+import { text } from '../core/text.ts';
 import { orderMax, yardLockedBy } from '../core/yard.ts';
 import type { Levels, Planet, Queue } from '../core/types.ts';
 import { clampInt, coords, dt, dur, esc, fmt } from './logic/format.ts';
@@ -571,13 +573,12 @@ function renderLoggedOut(view: HTMLElement): void {
 function rememberUpgrade(
   order: Queue | null,
   levels: Levels,
-  catalog: Record<string, { n: string }>,
   view: string,
   label: string,
   now: number,
 ): void {
   if (!order || order.end > now || (levels[order.key] ?? 0) < order.lvl) return;
-  const name = catalog[order.key]?.n ?? order.key;
+  const name = text(order.key)?.n ?? order.key;
   completedMenu.set(view, label);
   completionNotices.add(`${label}: ${name} (Stufe ${order.lvl}).`);
 }
@@ -587,7 +588,6 @@ function rememberCompletions(previous: V, next: V): void {
   rememberUpgrade(
     previous.P.bq,
     next.P.b,
-    BUILD,
     'buildings',
     'Ausbau fertig',
     next.now,
@@ -595,7 +595,6 @@ function rememberCompletions(previous: V, next: V): void {
   rememberUpgrade(
     previous.R.rq,
     next.R.research,
-    RES,
     'research',
     'Forschung fertig',
     next.now,
@@ -961,15 +960,26 @@ function readFleetForm(): FleetForm {
   };
 }
 
+/** Beside the target: its planet and owner, a free position, or none. */
+function targetInfo(s: GameState, f: FleetForm): string {
+  const target = s.galaxy.find(
+    (p) => p.id === placeId({ ...f.to, kind: 'planet' }),
+  );
+  if (target)
+    return `${esc(target.name)} (${esc(nameOf(s.players, target.owner))})`;
+  return missionRules(f.mission)?.target === 'free'
+    ? 'Freie Position'
+    : '<span class="bad">kein Planet</span>';
+}
+
+/** The return time, or none for a mission that stays at its target (deploy, #129). */
+const returnAt = (mission: string, t: number): string =>
+  missionRules(mission)?.returns === false ? '–' : dt(t);
+
 function fleetCalc(): void {
   if (!$('#t_g') || !ctx || !S) return;
   const f = readFleetForm();
-  const target = S.galaxy.find((p) => p.id === pid(f.to));
-  $('#t_info')!.innerHTML = target
-    ? `${esc(target.name)} (${esc(nameOf(S.players, target.owner))})`
-    : f.mission === 'colonize'
-      ? 'Freie Position'
-      : '<span class="bad">kein Planet</span>';
+  $('#t_info')!.innerHTML = targetInfo(S, f);
   const pv = fleetPreview(ctx.P, ctx.R, f, S.cfg);
   const set = (id: string, html: string): void =>
     void ($(`#${id}`)!.innerHTML = html);
@@ -980,9 +990,7 @@ function fleetCalc(): void {
   const now = nowT();
   set('i_dist', fmt(pv.dist));
   set('i_dur', dur(pv.ms));
-  // A deploy stays at its target and has no return (#129).
-  const back = f.mission === 'deploy' ? '–' : dt(now + 2 * pv.ms);
-  set('i_arr', `${dt(now + pv.ms)} / ${back}`);
+  set('i_arr', `${dt(now + pv.ms)} / ${returnAt(f.mission, now + 2 * pv.ms)}`);
   set(
     'i_fuel',
     `<span class="${pv.fuelShort ? 'bad' : ''}">${fmt(pv.fuel)}</span> Promethium`,

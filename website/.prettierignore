@@ -1,0 +1,8 @@
+dist
+.astro
+pnpm-lock.yaml
+# Copies of okf/ and docs/ (scripts/sync-content.mjs); formatted at the source.
+src/content/docs/decisions
+src/content/docs/getting-started
+src/content/docs/contributing
+src/content/docs/operations

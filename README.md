@@ -28,6 +28,10 @@ http://localhost:8025.
 
 ## Documentation
 
+The documentation website, <https://heiss.github.io/nova-imperium/>, brings
+all of it together with the Git workflow, the checks and the automation
+(built from `docs/` and `okf/` by `website/`).
+
 - [Getting started](docs/getting-started.md): installation, first admin, demo
 - [Configuration](docs/configuration.md): every setting in `.env` and the secret files
 - [Operations](docs/operations.md): reverse proxy, backup, updates, hardening
@@ -48,12 +52,20 @@ http://localhost:8025.
 
 ## Quality
 
-Every pull request runs lint with complexity limits, type check, unit tests
-with coverage (≥ 90 % lines, ≥ 85 % branches), mutation tests (score ≥ 80 %),
+The CI runs lint with complexity limits, type check, unit tests with
+coverage (≥ 90 % lines, ≥ 85 % branches), mutation tests (score ≥ 80 %),
 browser tests (desktop and phone, no CSP violations), the Docker image with a
 Compose smoke test, gitleaks, `pnpm audit`, CodeQL, Trivy and a check that
-released database migrations stay unchanged. One gate job
-collects them; only a green gate goes to review. The rules of the game are
+released database migrations stay unchanged. Every push to `main` runs all of
+them; a pull request skips the code checks when it changes documentation
+only, and builds the image only when a file of the image build, its start
+or the upgrade changes (`Dockerfile`, `docker/`, `compose*.yaml`,
+dependencies, `.node-version`, `src/server/db/`, the server start files,
+`ci.yml`; game code alone does not), and always in a release pull request
+and in a pull request into a hotfix branch. The mutation tests run in a pull
+request only when it changes a mutated file, a test, the mutation
+configuration or the versions of Stryker, Vitest or TypeScript. One gate job collects them; only a green gate goes to
+review. The rules of the game are
 checked against the original version 1 to the last digit.
 
 ## License

@@ -26,9 +26,9 @@ describe('admin', () => {
     expect(
       saveSettings(ctx, u, { settings: { ...DEFAULT_UNIVERSE, speed: 10 } }),
     ).toBe('Einstellungen gespeichert.');
-    expect(ctx.store.universe().speed).toBe(10);
-    expect(ctx.store.planetOfUser(u.id)!.res.m).toBe(100);
-    expect(ctx.store.planetOfUser(u.id)!.t).toBe(ctx.now());
+    expect(ctx.admin.universe().speed).toBe(10);
+    expect(ctx.planets.home(u.id)!.res.m).toBe(100);
+    expect(ctx.planets.home(u.id)!.t).toBe(ctx.now());
   });
 
   it('settles a Fusionskraftwerk with the Energietechnik of its owner (#47)', () => {
@@ -41,7 +41,7 @@ describe('admin', () => {
     ctx.clock.t += 3600000;
     saveSettings(ctx, u, { settings: { ...DEFAULT_UNIVERSE, speed: 10 } });
     const want = settle(src, ctx.now(), DEFAULT_UNIVERSE, u);
-    expect(ctx.store.planetOfUser(u.id)!.res).toEqual(want.res);
+    expect(ctx.planets.home(u.id)!.res).toEqual(want.res);
     expect(want.res.m).toBeGreaterThan(
       settle(src, ctx.now(), DEFAULT_UNIVERSE).res.m,
     );
@@ -59,7 +59,7 @@ describe('admin', () => {
       'Tempo (Faktor): ganze Zahl von 1 bis 100. Galaxien: mindestens 2, dort liegen schon Planeten.',
     );
     expect(() => saveSettings(ctx, u, {})).toThrow('Tempo');
-    expect(ctx.store.universe()).toEqual(DEFAULT_UNIVERSE);
+    expect(ctx.admin.universe()).toEqual(DEFAULT_UNIVERSE);
   });
 
   it('a new round gives everybody a fresh planet and clears research, fleets and reports', () => {
@@ -71,21 +71,17 @@ describe('admin', () => {
     });
     const b = addUser(ctx, 'Bert');
     addPlanet(ctx, a.id, { b: { metal: 9 } });
-    ctx.store.addReport(
-      b.id,
-      { id: 'r', time: 1, type: 'info', title: 't' },
-      60,
-    );
+    ctx.reports.add(b.id, { id: 'r', time: 1, type: 'info', title: 't' }, 60);
     expect(reset(ctx, a, {})).toContain('Neue Runde');
-    expect(ctx.store.user(a.id)).toMatchObject({
+    expect(ctx.players.get(a.id)).toMatchObject({
       research: {},
       rq: null,
       readAt: 0,
       admin: true,
     });
-    expect(ctx.store.planetOfUser(a.id)!.b).toEqual({});
-    expect(ctx.store.planetOfUser(b.id)).not.toBeNull();
-    expect(ctx.store.reports(b.id)).toEqual([]);
+    expect(ctx.planets.home(a.id)!.b).toEqual({});
+    expect(ctx.planets.home(b.id)).not.toBeNull();
+    expect(ctx.reports.ofPlayer(b.id)).toEqual([]);
   });
 
   it('a new round ends the planets without a field limit (#51)', () => {
@@ -93,7 +89,7 @@ describe('admin', () => {
     const a = addUser(ctx, 'Anna', { admin: true });
     addPlanet(ctx, a.id, { unlimited: true, diameter: 15000 });
     reset(ctx, a, {});
-    expect(ctx.store.planetOfUser(a.id)).toMatchObject({
+    expect(ctx.planets.home(a.id)).toMatchObject({
       diameter: 12800,
       unlimited: false,
     });
@@ -105,13 +101,13 @@ describe('admin', () => {
     saveSettings(ctx, u, {
       settings: { ...DEFAULT_UNIVERSE, extraFields: 30 },
     });
-    expect(ctx.store.universe().extraFields).toBe(30);
+    expect(ctx.admin.universe().extraFields).toBe(30);
     expect(() =>
       saveSettings(ctx, u, {
         settings: { ...DEFAULT_UNIVERSE, extraFields: 101 },
       }),
     ).toThrow('Zusatzfelder pro Planet: ganze Zahl von 0 bis 100.');
-    expect(ctx.store.universe().extraFields).toBe(30);
+    expect(ctx.admin.universe().extraFields).toBe(30);
   });
 });
 
@@ -119,7 +115,7 @@ describe('placing planets', () => {
   it('uses the start resources and a free position 4 to 12', () => {
     const ctx = testCtx();
     addUser(ctx, 'Anna');
-    ctx.store.saveUniverse({
+    ctx.admin.saveUniverse({
       ...DEFAULT_UNIVERSE,
       startMetal: 7,
       startCrystal: 8,
@@ -141,12 +137,12 @@ describe('placing planets', () => {
     expect(p.p).toBeLessThanOrEqual(12);
     expect(p.temp).toBeGreaterThanOrEqual(130 - (p.p - 1) * 10 - 10);
     expect(p.temp).toBeLessThanOrEqual(130 - (p.p - 1) * 10 + 10);
-    expect(ctx.store.planet(p.id)).toEqual(p);
+    expect(ctx.planets.get(p.id)).toEqual(p);
   });
   it('falls back to the first free spot and fails when the universe is full', () => {
     const ctx = { ...testCtx(), rng: () => 0 };
     addUser(ctx, 'Anna');
-    ctx.store.saveUniverse({
+    ctx.admin.saveUniverse({
       ...DEFAULT_UNIVERSE,
       galaxies: 1,
       systems: 1,
@@ -171,7 +167,7 @@ describe('points and state', () => {
       ships: { lf: 1 },
       def: { rl: 1 },
     });
-    ctx.store.saveFleet({
+    ctx.fleets.save({
       id: 'f',
       owner: 'u_Anna',
       from: 'a',
@@ -249,7 +245,7 @@ describe('points and state', () => {
       recalled: false,
       fuel: 0,
     };
-    ctx.store.saveFleet({
+    ctx.fleets.save({
       ...base,
       id: 'f1',
       owner: a.id,
@@ -257,7 +253,7 @@ describe('points and state', () => {
       ships: { sc: 1 },
       state: 'out',
     });
-    ctx.store.saveFleet({
+    ctx.fleets.save({
       ...base,
       id: 'f2',
       owner: a.id,
@@ -265,7 +261,7 @@ describe('points and state', () => {
       ships: { lf: 1 },
       state: 'out',
     });
-    ctx.store.saveFleet({
+    ctx.fleets.save({
       ...base,
       id: 'f3',
       owner: a.id,
@@ -289,7 +285,7 @@ describe('points and state', () => {
       me: unknown;
     };
     expect(sb.fleets.map((f) => f.id)).toEqual(['f1', 'f2']);
-    expect(sb.fleets[0]).toEqual(foreignView(ctx.store.fleet('f1')!));
+    expect(sb.fleets[0]).toEqual(foreignView(ctx.fleets.get('f1')!));
     expect(sb.fleets[0]!.ships).toEqual({});
     expect(sb.fleets[0]!.cargo).toBeUndefined();
     expect(sb.fleets[1]!.ships).toEqual({ lf: 1 });

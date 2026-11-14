@@ -1,4 +1,5 @@
-import { BUILD, MISSION, RES, SHIPS, UNIT } from '../../core/catalog.ts';
+import { MISSION } from '../../core/missions.ts';
+import { text } from '../../core/text.ts';
 import { diameterLine } from '../logic/fields.ts';
 import { coords, dt, esc, fmt } from '../logic/format.ts';
 import { fleetEnd, nameOf, ranks, sortFleets } from '../logic/game.ts';
@@ -9,7 +10,7 @@ import { box, cd, planetHTML, type V } from './common.ts';
 const shipList = (f: ClientFleet): string =>
   Object.entries(f.ships ?? {})
     .filter(([, n]) => n > 0)
-    .map(([k, n]) => `${fmt(n)} ${SHIPS[k]?.n ?? k}`)
+    .map(([k, n]) => `${fmt(n)} ${text(k)?.n ?? k}`)
     .join(', ');
 
 function fleetText(v: V, f: ClientFleet): string {
@@ -47,14 +48,14 @@ function activities(v: V): string {
   const rows: string[] = [];
   if (P.bq)
     rows.push(
-      `<tr><td>Gebäude</td><td>${BUILD[P.bq.key]?.n} (Stufe ${P.bq.lvl})</td><td class="n">${cd(P.bq.end, now)}</td></tr>`,
+      `<tr><td>Gebäude</td><td>${text(P.bq.key)?.n} (Stufe ${P.bq.lvl})</td><td class="n">${cd(P.bq.end, now)}</td></tr>`,
     );
   if (R.rq)
     rows.push(
-      `<tr><td>Forschung</td><td>${RES[R.rq.key]?.n} (Stufe ${R.rq.lvl})</td><td class="n">${cd(R.rq.end, now)}</td></tr>`,
+      `<tr><td>Forschung</td><td>${text(R.rq.key)?.n} (Stufe ${R.rq.lvl})</td><td class="n">${cd(R.rq.end, now)}</td></tr>`,
     );
   if (P.sq.length) {
-    const list = P.sq.map((q) => `${fmt(q.n)}× ${UNIT[q.key]?.n}`).join(', ');
+    const list = P.sq.map((q) => `${fmt(q.n)}× ${text(q.key)?.n}`).join(', ');
     rows.push(
       `<tr><td>Schiffsschmiede</td><td>${list}</td><td class="n">${cd((P.sqT ?? now) + P.sq[0]!.unit, now)} (nächste)</td></tr>`,
     );

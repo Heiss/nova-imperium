@@ -2,7 +2,7 @@
 // galaxy, otherwise the first free position of the universe. A home planet
 // has 163 fields, a colony a random number in the range of its position (#51).
 import { colonyDiameter, HOME_DIAMETER } from '../../core/fields.ts';
-import { pid } from '../../core/flight.ts';
+import { placeId } from '../../core/place.ts';
 import type { Coords, Planet, Resources } from '../../core/types.ts';
 import { type Ctx, fail, universe } from './context.ts';
 
@@ -40,8 +40,9 @@ export function placePlanet(
   name: string,
   gal: number,
 ): Planet {
-  const used = new Set(ctx.store.planets().map((p) => p.id));
-  const free = (c: Coords): boolean => !used.has(pid(c));
+  const used = new Set(ctx.planets.all().map((p) => p.id));
+  const free = (c: Coords): boolean =>
+    !used.has(placeId({ ...c, kind: 'planet' }));
   const c =
     randomSpot(ctx, gal, free) ??
     firstSpot(ctx, free) ??
@@ -69,10 +70,11 @@ export function createPlanet(
 ): Planet {
   const temp = Math.round(130 - (c.p - 1) * 10 + (ctx.rng() * 20 - 10));
   const planet: Planet = {
-    id: pid(c),
+    id: placeId({ ...c, kind: 'planet' }),
     owner,
     name,
     ...c,
+    kind: 'planet',
     temp,
     diameter: diameter ?? colonyDiameter(c.p, ctx.rng),
     unlimited: false,
@@ -87,6 +89,6 @@ export function createPlanet(
     t,
     created: t,
   };
-  ctx.store.savePlanet(planet);
+  ctx.planets.save(planet);
   return planet;
 }

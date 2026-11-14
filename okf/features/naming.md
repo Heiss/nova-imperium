@@ -222,6 +222,44 @@ the names:
   Raketenbatterien, Lichtlanzen und Ionenlanzen; fliegt ab Warp-Antrieb 8
   mit dem Warp-Antrieb.“
 
+### Short texts of #113 [E]
+
+* **[E]** The 12 classic ships and defenses never had a short text `ds`,
+  not even in version 1 (the Kolonistenarche came later, also without one).
+  The owner lifts „Out of scope: New texts“ of #113 for exactly these 12
+  short texts; after them every entry has a name, an abbreviation and a
+  short text, and a test fails on a missing one (owner, 2026-11-13).
+* **[E]** Taken only from the confirmed long texts and confirmed by the
+  owner exactly as listed (2026-11-13); #113 adds them unchanged in the
+  `texts.de.ts` of each entry:
+
+| Key | Name | `ds` |
+|---|---|---|
+| `sc` | Frachtläufer | Kleiner Frachter für Lieferungen und Beute. |
+| `lc` | Lastbarke | Großer, schnellerer Frachter; trägt ein Vielfaches eines Frachtläufers. |
+| `colony` | Kolonistenarche | Gründet eine Kolonie auf einer freien Position. |
+| `lf` | Abfangjäger | Billiger Jäger, der in großer Zahl feindliches Feuer bindet. |
+| `hf` | Sturmjäger | Gepanzerter Jäger mit Schnellfeuer gegen Frachtläufer. |
+| `cr` | Fregatte | Schnelles Kriegsschiff – stark gegen Abfangjäger und Raketenbatterien. |
+| `bs` | Kathedralschiff | Schweres Kriegsschiff, das hart zuschlägt und viel aushält. |
+| `probe` | Spähschädel | Schnellstes Schiff; erkundet fremde Welten per Auspex, trägt keine Fracht. |
+| `rl` | Raketenbatterie | Die billigste Verteidigung eines Planeten. |
+| `ll` | Lichtlanze | Leichtes Strahlgeschütz zur Verteidigung des Planeten. |
+| `hl` | Schwere Lichtlanze | Schweres Strahlgeschütz, das stärkere Schilde durchschlägt. |
+| `gauss` | Massebeschleuniger | Schweres Geschütz; nur der Weltenbrecher hat Schnellfeuer gegen ihn. |
+
+* **[E]** `hf`: „Gepanzerter Jäger mit Schnellfeuer gegen Frachtläufer.“
+  replaces the first confirmed wording „Schwerer Jäger mit Schnellfeuer
+  gegen Frachtläufer.“, because that held the classic name „Schwerer
+  Jäger“, which the naming test forbids; no test exception (owner,
+  2026-11-13).
+
+* The shipyard and defense lists show them under the name, as for every
+  other entry (`itemHTML` in `src/client/views/common.ts`); the (?) panel
+  still shows the long text.
+* `catalog.test.ts` compares them exactly (`NEW_DS`); `src/core/text.test.ts`
+  requires a short text for every entry.
+
 ## Long texts
 
 * **[E]** Content rule, replaces the one of #63 for all 48 entries (owner,
@@ -249,8 +287,9 @@ the names:
   Gravitonen-Mysterium); „Eine Flotte fliegt so schnell wie ihr langsamstes
   Schiff“ only in the drive texts.
 * **[E]** All 48 texts, the field `lt` of each entry in
-  `src/core/catalog.ts`, written again under these limits and confirmed
-  by the owner (2026-11-12).
+  `src/core/catalog.ts` (since #113 in `src/features/<key>/texts.de.ts`),
+  written again under these limits and confirmed by the owner
+  (2026-11-12).
 * Rapid fire is called „Schnellfeuer“ (explained once, in the Frachtläufer
   text); the rebuilt defense is „ein großer Teil“, for a dome „oft“.
 * `src/core/explain.test.ts` checks: every entry has a text (the list

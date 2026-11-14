@@ -3,7 +3,28 @@
 import { createRequire } from 'node:module';
 import { describe, expect, it } from 'vitest';
 import { MISSIONS, NAMES, RESOURCES, renamed } from '../test/naming.ts';
-import * as C from './catalog.ts';
+import { ENTRIES } from '../features/index.gen.ts';
+import * as Catalog from './catalog.ts';
+import { text } from './text.ts';
+
+/**
+ * The entries of a table with their display texts, which live apart from
+ * the rules since #113 and are read through `text(key)`.
+ */
+const withTexts = <T extends object>(defs: Record<string, T>) =>
+  Object.fromEntries(
+    Object.entries(defs).map(([k, def]) => [k, { ...text(k)!, ...def }]),
+  );
+
+/** The catalog as the tests below read it: every entry with its texts. */
+const C = {
+  ...Catalog,
+  BUILD: withTexts(Catalog.BUILD),
+  RES: withTexts(Catalog.RES),
+  SHIPS: withTexts(Catalog.SHIPS),
+  DEF: withTexts(Catalog.DEF),
+  UNIT: withTexts(Catalog.UNIT),
+};
 
 const require = createRequire(import.meta.url);
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -38,6 +59,26 @@ const CHANGED_DS: Readonly<Record<string, string>> = {
   hdrive:
     '+30 % pro Stufe (Kathedralschiffe, Jagdkreuzer, Vernichter, Weltenbrecher; Belagerungsbomber ab Stufe 8).',
   spy: 'Bessere Auspex-Berichte, bessere Abwehr.',
+};
+
+/**
+ * Short texts of the 12 classic ships and defenses, which never had one, not
+ * even in version 1 (owner, 2026-11-13, #113: confirmed exactly as listed).
+ */
+const NEW_DS: Readonly<Record<string, string>> = {
+  sc: 'Kleiner Frachter für Lieferungen und Beute.',
+  lc: 'Großer, schnellerer Frachter; trägt ein Vielfaches eines Frachtläufers.',
+  colony: 'Gründet eine Kolonie auf einer freien Position.',
+  lf: 'Billiger Jäger, der in großer Zahl feindliches Feuer bindet.',
+  hf: 'Gepanzerter Jäger mit Schnellfeuer gegen Frachtläufer.',
+  cr: 'Schnelles Kriegsschiff – stark gegen Abfangjäger und Raketenbatterien.',
+  bs: 'Schweres Kriegsschiff, das hart zuschlägt und viel aushält.',
+  probe:
+    'Schnellstes Schiff; erkundet fremde Welten per Auspex, trägt keine Fracht.',
+  rl: 'Die billigste Verteidigung eines Planeten.',
+  ll: 'Leichtes Strahlgeschütz zur Verteidigung des Planeten.',
+  hl: 'Schweres Strahlgeschütz, das stärkere Schilde durchschlägt.',
+  gauss: 'Schweres Geschütz; nur der Weltenbrecher hat Schnellfeuer gegen ihn.',
 };
 
 /** A short text of version 1 with the new names of entries and resources. */
@@ -114,9 +155,20 @@ describe('catalog', () => {
     for (const [k, def] of Object.entries(old) as [string, { ds?: string }][])
       expect(all[k]!.ds, k).toBe(
         def.ds === undefined
-          ? undefined
+          ? NEW_DS[k]
           : (CHANGED_DS[k] ?? withNewNames(def.ds)),
       );
+  });
+  it("gives the 12 entries without a short text in version 1 the owner's short texts (#113)", () => {
+    const old = { ...O.BUILD, ...O.RES, ...O.UNIT } as Record<
+      string,
+      { ds?: string }
+    >;
+    const without = Object.keys(old).filter((k) => old[k]!.ds === undefined);
+    // The Kolonistenarche came after version 1, without a short text too.
+    expect(old).not.toHaveProperty('colony');
+    expect([...without, 'colony'].sort()).toEqual(Object.keys(NEW_DS).sort());
+    for (const [k, ds] of Object.entries(NEW_DS)) expect(text(k)!.ds).toBe(ds);
   });
   it('shows the missions with their new names; the stored ids stay (#94)', () => {
     expect(Object.keys(C.MISSION)).toEqual([
@@ -399,7 +451,7 @@ describe('catalog', () => {
     });
     // Only the domes are limited; no new unit has rapid fire (#50, D2).
     expect(
-      Object.keys(C.UNIT).filter((k) => (C.UNIT[k] as C.DefenseDef).once),
+      Object.keys(C.UNIT).filter((k) => (C.UNIT[k] as Catalog.DefenseDef).once),
     ).toEqual(['ssd', 'lsd']);
     for (const k of ['ionc', 'pt', 'ssd', 'lsd'])
       expect(C.DEF[k]).not.toHaveProperty('rf');
@@ -460,6 +512,103 @@ describe('catalog', () => {
       'solar',
       'sat',
       'fusion',
+    ]);
+  });
+});
+
+// The entries live in src/features/<key>/entry.ts (#114): each has a kind and
+// an order, and the tables keep the order of the game from before (owner,
+// 2026-11-13). The lists below are that order, as players see it.
+describe('catalog from the entry folders', () => {
+  it('keeps the order of the game in every table', () => {
+    expect(Object.keys(C.BUILD)).toEqual([
+      'metal',
+      'crystal',
+      'deut',
+      'solar',
+      'fusion',
+      'robot',
+      'nanite',
+      'terraformer',
+      'yard',
+      'lab',
+      'smetal',
+      'scrystal',
+      'sdeut',
+    ]);
+    expect(Object.keys(C.RES)).toEqual([
+      'energy',
+      'laser',
+      'comb',
+      'impulse',
+      'hyper',
+      'hdrive',
+      'spy',
+      'computer',
+      'weapons',
+      'shield',
+      'armor',
+      'ion',
+      'plasma',
+      'graviton',
+      'ifn',
+    ]);
+    const ships = [
+      'sc',
+      'lc',
+      'colony',
+      'lf',
+      'hf',
+      'cr',
+      'bs',
+      'bc',
+      'dr',
+      'bb',
+      'dstar',
+      'probe',
+      'sat',
+    ];
+    const defense = ['rl', 'll', 'hl', 'gauss', 'ionc', 'pt', 'ssd', 'lsd'];
+    expect(Object.keys(C.SHIPS)).toEqual(ships);
+    expect(Object.keys(C.DEF)).toEqual(defense);
+    expect(Object.keys(C.UNIT)).toEqual([...ships, ...defense]);
+  });
+
+  it('lists every ship and defense with its kind as a fighter, and nothing else (#114)', () => {
+    expect(Object.keys(C.FIGHTERS).sort()).toEqual(Object.keys(C.UNIT).sort());
+    for (const [k, f] of Object.entries(C.FIGHTERS))
+      expect(f.kind, k).toBe(C.isShip(k) ? 'ship' : 'defense');
+  });
+
+  it('has one folder per entry, each with its kind and its own order', () => {
+    expect(ENTRIES).toHaveLength(49);
+    const kinds = {
+      building: C.BUILD,
+      research: C.RES,
+      ship: C.SHIPS,
+      defense: C.DEF,
+    };
+    for (const [kind, table] of Object.entries(kinds)) {
+      const own = ENTRIES.filter(([, e]) => e.kind === kind);
+      expect(own.map(([k]) => k).sort()).toEqual(Object.keys(table).sort());
+      const orders = own.map(([, e]) => e.order);
+      expect(new Set(orders).size, kind).toBe(orders.length);
+    }
+  });
+
+  it('lists the producers and the stores from their components', () => {
+    expect(C.PRODUCTION.map((e) => [e.key, e.kind])).toEqual([
+      ['metal', 'building'],
+      ['crystal', 'building'],
+      ['deut', 'building'],
+      ['solar', 'building'],
+      ['sat', 'ship'],
+      ['fusion', 'building'],
+    ]);
+    expect(C.STORAGE).toEqual([
+      { key: 'smetal', storage: { res: 'm' } },
+      { key: 'scrystal', storage: { res: 'c' } },
+      { key: 'sdeut', storage: { res: 'd' } },
     ]);
   });
 });

@@ -119,6 +119,31 @@ describe('the boundaries of the feature folders (#112)', () => {
     ]);
   });
 
+  it('keeps the index of the server parts on the server (#116)', async () => {
+    const SERVERS = 'src/features/index.server.gen.ts';
+    const part = 'src/features/missions/spy/arrive.server.ts';
+    expect(
+      await violations({
+        [SERVERS]: [part],
+        [part]: [],
+        'src/server/game/arrival.ts': [SERVERS],
+        'src/server/game/arrival.test.ts': [SERVERS],
+        'src/core/missions.ts': [SERVERS],
+        'src/client/main.ts': [SERVERS],
+        'src/features/missions/spy/spy.test.ts': [SERVERS],
+        'src/features/missions/spy/log.server.ts': [SERVERS],
+      }),
+    ).toEqual([
+      'core-sees-features-through-index: src/core/missions.ts -> src/features/index.server.gen.ts',
+      'feature-not-feature: src/features/missions/spy/log.server.ts -> src/features/index.server.gen.ts',
+      'feature-not-feature: src/features/missions/spy/spy.test.ts -> src/features/index.server.gen.ts',
+      'server-index-on-server: src/client/main.ts -> src/features/index.server.gen.ts',
+      'server-index-on-server: src/core/missions.ts -> src/features/index.server.gen.ts',
+      'server-index-on-server: src/features/missions/spy/log.server.ts -> src/features/index.server.gen.ts',
+      'server-index-on-server: src/features/missions/spy/spy.test.ts -> src/features/index.server.gen.ts',
+    ]);
+  });
+
   it('keeps the other files of a feature free of server and browser code', async () => {
     expect(
       await violations({

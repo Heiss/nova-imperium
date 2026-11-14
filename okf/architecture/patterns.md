@@ -46,14 +46,135 @@ choice of the patterns to the assistant's recommendation below
 * **[E]** Each component has exactly one rule module in `src/core`; only
   that module reads the component. No other code asks for a key.
 * **[E]** Behaviour that differs per entry is a typed function field of a
-  component, for example the rate formula of `produces` or
-  `drive: (research) => DriveKey` of `mobile`. There are no free hooks
-  (`onBuild`, `onSettle`): they bring the scattered special cases back.
+  component, for example the rate formula of `produces`, or data that the
+  rule module evaluates, for example the drive switches of `mobile` (owner,
+  2026-11-14, replaces the example `drive: (research) => DriveKey`). There
+  are no free hooks (`onBuild`, `onSettle`): they bring the scattered
+  special cases back.
 * **[E]** A component is created when at least two entries need it, or an
   issue requires the rule to be generic. Until then the special rule stays
   in the folder of its entry.
 * **[V]** No ECS framework and no runtime registry of systems: components
   are plain fields, the rule modules are plain functions.
+* **[E]** Decided for the first pull request of #114 (owner, 2026-11-13):
+  all 49 entries get `src/features/<key>/entry.ts`; only `produces`,
+  `consumes`, `storage` and `leveled` become components, every other field
+  moves unchanged and becomes a component in its group's pull request. Each
+  `entry.ts` exports its `kind` (building, research, ship, defense) and a
+  numeric `order`; `catalog.ts` builds `BUILD`, `RES`, `SHIPS`, `DEF` and
+  `UNIT` from the generated index by kind and order, today's order stays and
+  the core holds no key list. `produces` and `consumes` are one rate
+  function per resource plus a production order; the base income (20
+  Adamant, 10 Kristall) is a core constant; `prod()` stays bit-identical,
+  proven by a property test against the old `prod()`. `leveled` is
+  `{ cost, f? }` with the default 2 in `lvlCost`; `storage` is
+  `{ res: 'm' | 'c' | 'd' }` with the capacity formula in the core. One file
+  per component under `src/core/components/`, its contract test next to it.
+* **[E]** Built with #114 (production group): `entry.ts` exports `kind`,
+  `order`, its components (`leveled`, `produces`, `consumes`, `storage`)
+  and the remaining fields as `def`; `catalog.ts` added the texts of the key
+  from `src/core/texts.ts` until #113 moved them into the entry folders. `src/core/components/`
+  holds `leveled.ts` (`lvlCost`, `sumLevels`), `storage.ts` (`capOf`,
+  `capacities`), `produces.ts` (`BASE_INCOME`, `energyMade`, `made`: base
+  income plus the rates times the universe speed, never below 0) and
+  `consumes.ts` (`energyUsed`, `left`); `economy.ts` keeps its exports and
+  composes them in `prod()` and `caps()`. `PRODUCTION`, `STORAGE` and
+  `PRODUCERS` are derived from the components; `PRODUCERS` stays deeply
+  equal (it was [V] in #114). The level of a ship in a rate is its number on
+  the planet (Solarsatellit).
+* **[V]** Choices of #114 within the decisions above, for the owner to
+  confirm: the `order` values step by 10 (room for new entries without
+  renumbering); the production order is the field `order` of `produces`,
+  and an entry that consumes also produces (contract test); the formulas
+  the rates share (`growth`, `grows`, Solarsatellit and Fusionskraftwerk)
+  are in `src/core/rates.ts`, because the resources page and the shipyard
+  still show them until `ProducerTable`; the throttle of the
+  Fusionskraftwerk (`balancedShare`) still names its key and becomes
+  generic with the events of #115.
+* **[E]** Decided for the second pull request of #114, the combat group
+  (owner, 2026-11-13): `unit` is `{ cost }`, the cost of one piece, the
+  counterpart of `leveled`; `req` stays in `def`, „once per planet“ waits
+  for `limit` and the flight fields wait for `mobile`. `combat` is
+  `{ atk, sh, rf? }` with today's names; the hull is not stored but derived
+  from `unit.cost` ((Adamant + Psikristall) / 10) in the rule module
+  `src/core/components/combat.ts`, and the contract test checks that it is
+  above 0. The default rapid fire against easy targets is the flag
+  `easy: true` in `combat` of the Spähschädel and the Sonnenreliquiar plus a
+  core constant 5 instead of the key list in `battle.ts`: every ship that is
+  not easy itself and names no rapid fire against the target gets 5, defense
+  gets none (replaces the [V] „a field of `combat` instead of a key list“ of
+  #114). Only `battle.ts` reads the new components, through the rule
+  module; the shipyard, points, the server unit check and the battle
+  reports keep reading the `UNIT`, `SHIPS` and `DEF` tables until #118, as
+  the first pull request left the resources page. The test that scans `src`
+  for catalog keys comes with the last pull request of #114 (`ProducerTable`).
+  The exports stay deeply equal and battles bit-identical, proven by a
+  property test against the old `battle()`.
+* **[E]** Built with #114 (combat group): the ship and defense entries
+  export `unit` and `combat`, and `def` keeps their other fields
+  (`ShipFields`, `DefenseFields`). `src/core/components/unit.ts` holds the
+  type `Unit`; `src/core/components/combat.ts` holds `Combat`,
+  `EASY_RAPID_FIRE`, `strength` (hull, shield and attack of one piece before
+  the research bonus) and `rapidFire`. `catalog.ts` derives `FIGHTERS`
+  (every entry with `unit` and `combat`, by key, with its kind) and builds
+  `SHIPS`, `DEF` and `UNIT` from `unit`, `combat` without `easy` and `def`,
+  deeply equal to before; `battle.ts` reads `FIGHTERS` through `strength`
+  and `rapidFire` and keeps its exports.
+* **[E]** Decided for the third pull request of #114, the flight group
+  (owner, 2026-11-14): `mobile` is `{ cargo, speed, fuel, drive, drives? }`
+  with today's names as data, like `combat`; the drive switch stays a list
+  `[{ drive, speed, from: { research, level } }]` that the rule module
+  evaluates. The Sonnenreliquiar has no `mobile`: „can fly“ is „has
+  `mobile`“, and its flight values come from a core constant `STATIONARY`
+  instead of `def`; the contract test checks speed > 0 for every entry with
+  `mobile`. Only `flight.ts` reads `mobile`, through the rule module, and
+  `canFly` is derived from it; the shipyard, the fleet view and the server
+  keep reading `SHIPS` until #118. `DRIVE_BONUS` and `DriveKey` move to
+  `src/core/components/mobile.ts`; `catalog.ts` exports them unchanged.
+* **[E]** Built with #114 (flight group): every ship that flies exports
+  `mobile`, and `def` keeps `req` (`ShipFields`).
+  `src/core/components/mobile.ts` holds `Mobile`, `DriveSwitch`,
+  `DriveKey`, `DRIVE_BONUS`, `STATIONARY` (`{ cargo: 0, speed: 0, fuel: 0,
+  drive: 'comb' }`, the values of version 1), `activeDrive` and `speed`.
+  `catalog.ts` derives `MOBILE` (the ships with `mobile`, by key) and
+  `canFly` (an own key of `MOBILE`), and builds `SHIPS` from `mobile` or
+  `STATIONARY`, deeply equal to before; `flight.ts` reads `MOBILE` through
+  the rule module and keeps its exports.
+* **[E]** Decided for the fourth pull request of #114, the limits group
+  (owner, 2026-11-14): `limit` is `{ perPlanet: number }`, at most that many
+  per planet, the stock plus the shipyard queue; the rule is
+  `perPlanet − have − queued`, never below 0, and Infinity without a limit;
+  both shield domes carry `perPlanet: 1`. `energyThreshold` is
+  `{ base, f }` with today's data (Gravitonforschung, Weltenschmiede); the
+  formula `base × f^(level−1)` stays in the rule module, and the contract
+  test checks base > 0, f ≥ 1 and a need that is finite and never falls for
+  levels 1 to 60. `energyNeed` and `energyShort` move to
+  `src/core/components/energy-threshold.ts`, and `research.ts` exports them
+  unchanged; the limit rule lives in `src/core/components/limit.ts`, and
+  `unitRoom` in `yard.ts` calls it. Only the core reads the components
+  (`unitRoom`, the energy check through the rule module); the client
+  shipyard („max. 1“), the resources page and `Buildings.svelte` keep
+  reading `DEF`, `BUILD` and `energyNeed` until #118. `DEF` keeps
+  `once: true` and the tables keep the field `energy` until #118; the
+  exports stay deeply equal.
+* **[E]** Built with #114 (limits group): the two shield domes export
+  `limit`, the Gravitonforschung and the Weltenschmiede `energyThreshold`;
+  `def` no longer holds `once` and `energy` (`DefenseFields`,
+  `BuildingFields`, `ResearchFields`). `src/core/components/limit.ts` holds
+  `Limit` and `room`; `src/core/components/energy-threshold.ts` holds
+  `EnergyThreshold`, `energyNeed` and `energyShort`. `catalog.ts` derives
+  `LIMIT` (the defense with `limit`, by key) and builds `DEF` with
+  `once: true` for a `limit` of 1 and `BUILD` and `RES` with `energy` from
+  `energyThreshold`, deeply equal to before; `unitRoom` reads `LIMIT`
+  through the rule module (own keys only), `requirements.ts` imports the
+  energy check from the rule module, and `yard.ts` and `research.ts` keep
+  their exports.
+* **[E]** Choices of the limits group within the decisions above,
+  confirmed by the owner (2026-11-14): `limit` is only on defense, because `unitRoom` counts
+  the stock in the planet's defense, and the contract test checks this and
+  a whole `perPlanet` ≥ 1; `energyThreshold` is only on buildings and
+  research, the entries with levels; the table field `once: true` is
+  derived from `perPlanet === 1` instead of being kept twice in `def`.
 
 ## 2. Texts apart from rules
 
@@ -71,6 +192,43 @@ choice of the patterns to the assistant's recommendation below
   in one data file that Stryker leaves out): after #112 it splits that file
   into one `texts.de.ts` per entry and adds the accessor `text(key)`; the
   text files stay out of the mutation run (owner, 2026-11-13).
+* **[E]** Decided for #113 (owner, 2026-11-13): the mission names stay in
+  `src/core/texts.ts`, still left out by Stryker, until #116 moves them into
+  the mission folders; `text(key)` covers the catalog entries only (`spy` is
+  both a research and a mission). The 12 classic ships and defenses that
+  never had a short text get one in #113 (see
+  [Grimdark naming](/features/naming.md)); after that every entry needs a
+  name, an abbreviation and a short text.
+* **[E]** Built with #113: every entry folder holds `texts.de.ts` beside
+  `entry.ts`; `scripts/gen-features.ts` stops on an entry folder without
+  either, and lists the text files as `TEXTS` in the generated index beside
+  `ENTRIES`. `src/core/text.ts` holds the type `EntryText` (`n`, `ab`, `ds`,
+  optional `lt`) and `text(key)`, undefined for a key that is no entry;
+  server and browser read every name, abbreviation, short and long text
+  through it, and `BuildingDef`, `ResearchDef`, `ShipDef` and `DefenseDef`
+  hold no text. Stryker leaves `src/features/**/texts.de.ts` out like
+  `src/core/texts.ts`; `src/core/text.ts` is mutated.
+  `src/core/text.test.ts` fails on a missing name, abbreviation or short
+  text, an abbreviation used twice, a text file without an entry and a text
+  field in a rule.
+* **[E]** Choices of #113 within the decisions above, confirmed by the
+  owner (2026-11-13): each `texts.de.ts` exports one object `texts` typed with
+  `EntryText` (not single exports `n`, `ab`, …), so the compiler checks
+  every file on its own; the index has its own list `TEXTS` instead of a
+  third element in `ENTRIES`; the accessor is its own file `text.ts`,
+  because `texts.ts` is not mutated.
+* **[E]** Decided for #116 (owner, 2026-11-14): every mission folder holds a
+  `texts.de.ts` with its name; the generator lists them as `MISSION_TEXTS`;
+  the accessor `missionText(m)` stands next to `text(key)`, so that
+  `text('spy')` stays the research. `src/core/texts.ts` is removed, and
+  `MISSION` moves from `catalog.ts` to `src/core/missions.ts`.
+* **[E]** Built with #116: `src/features/missions/<m>/texts.de.ts` exports
+  `texts` typed with `MissionText` (`n`, the name), like the entry texts;
+  `missionText(m)` is in `src/core/text.ts`, undefined for a name that is no
+  mission. `MISSION` (`src/core/missions.ts`) builds the names in the order
+  of the rules; `catalog.ts` re-exports it for the existing imports of the
+  tests. Stryker leaves the mission texts out through the existing glob
+  `src/features/**/texts.de.ts`.
 
 ## 3. Economy: piecewise linear with generic events
 
@@ -98,6 +256,61 @@ choice of the patterns to the assistant's recommendation below
   `src/core`, used by server and browser) and `onArrive(ctx, fleet)`
   (server only). A registry replaces the `if` chain in
   `src/server/game/arrival.ts`.
+* **[E]** Decided for #116 (owner, 2026-11-14):
+  * Form: each `src/features/missions/<m>/rules.ts` exports `canSend` and
+    typed data: the order, the target kind (own, foreign, any, free), cargo
+    yes or no, return yes or no, ships visible to the defender yes or no,
+    silent return yes or no. Data, no free hooks.
+  * Send check: `canSend` returns an error code or nothing. The server
+    determines the noob protection and turns the codes into today's German
+    messages, in today's order. Slots, cargo and fuel stay generic. The
+    fleet form keeps offering every mission (replaces the [V] of #116 that
+    the fleet view offers only what `canSend` allows).
+  * Arrival: the dispatcher in the server's arrival code checks generically
+    through the target kind whether the target still fits, else „Flotte
+    kehrt um“. Colonize gets the raw target, the others the settled target,
+    in today's order and with the same random draws.
+  * Order: an `order` field in each `rules.ts`, in steps of 10; order and
+    preselection of the fleet form stay (attack, transport, spy, colonize,
+    deploy; the first preselected).
+  * Server registry: `gen-features` also writes
+    `src/features/index.server.gen.ts` (`MISSION_SERVERS`), not checked in;
+    every mission needs an `arrive.server.ts`; only `src/server` imports
+    that index (dependency-cruiser).
+  * Type `Mission`: a type-only derivation from the generated index, if the
+    rule `no-circular` allows it (else the question comes back).
+  * Texts: see section 2.
+* **[E]** Built with #116: five folders `attack`, `transport`, `spy`,
+  `colonize`, `deploy`, each with `rules.ts`, `texts.de.ts`,
+  `arrive.server.ts` and a test of its own `canSend` and `onArrive` (seeded
+  random, fixed clock). The data: attack 10, foreign, cargo, return,
+  visible; transport 20, any, cargo, return; spy 30, foreign, no cargo,
+  return, silent (it comes home without a report of its own unless
+  recalled); colonize 40, free, cargo, return; deploy 50, own, cargo, no
+  return. Only `canSend` of spy (only Spähschädel, `probesOnly`) and of
+  colonize (a Kolonistenarche, `noColonyShip`) check anything; the others
+  return nothing.
+  `src/core/missions.ts` holds the types (`TargetKind`, `SendError`,
+  `SendFleet`, `SendTarget`, `MissionRules`), `missionRules(m)` from the
+  index, `MISSION`, `suits(kind, owner, planet)` and `sendError(rules,
+  fleet, target)`: first the target kind (occupied; no planet, same planet,
+  not own, own target, noob protection), then the mission's `canSend`. The
+  server passes the noob protection as `protects(owner)`, asked only for a
+  foreign target after the other checks, so the points are computed as
+  rarely as before; `fleet-actions.ts` maps each code to its message.
+  `src/server/game/arrival.ts` reads `onArrive` from `MISSION_SERVERS`;
+  the target fits by `suits` and, for a free target, by a position inside
+  the universe (the check colonize had); a free target gets no arrival
+  (`null`, nothing is there), the others `{ t, att, def }` with the settled
+  planet. The coming home reads `silent`, the view of a foreign fleet
+  `visible`, the cargo of a send `cargo`, the fleet form `order`, `target`
+  („Freie Position“) and `returns` (no return time). `MissionServer`,
+  `Arrival`, `turnBack`, `land` and `researchAt` are in
+  `src/server/game/missions.ts`; `arrival.ts` still exports `spyScore`,
+  `counterChance`, `rebuild` and `plunder`, which moved to the spy and
+  attack folders. A fleet of an unknown mission throws and `tick` removes
+  it; the database allows only the five missions. No `f.mission ===` is
+  left outside the mission folders.
 
 ## 5. Battle: pure function, consequences as a fixed pipeline
 
@@ -121,6 +334,36 @@ choice of the patterns to the assistant's recommendation below
   a rebuild of the table (append-only migration with the upgrade tests).
 * **[E]** Debris fields get their own table: no owner, no buildings, no
   production (owner, 2026-11-12).
+* **[E]** Decisions after the first build attempt of #119 (owner,
+  2026-11-13):
+  * Debris table `debris (id TEXT PRIMARY KEY, g, s, p INTEGER NOT NULL,
+    res_m REAL NOT NULL, res_c REAL NOT NULL, UNIQUE (g, s, p)) STRICT`,
+    created empty. The id is `d<g>_<s>_<p>`, so a fleet can target it like
+    a planet; one row per position, because a field adds up (#45); only
+    Adamant and Psikristall (#45); REAL like the planet stocks, so the 30 %
+    share is not rounded.
+  * `planets.kind TEXT NOT NULL DEFAULT 'planet' CHECK (kind IN ('planet',
+    'moon'))`; debris has its own table. `UNIQUE (g, s, p)` becomes
+    `UNIQUE (g, s, p, kind)`.
+  * `Planet` gets `kind: 'planet' | 'moon'`. The planet repository reads it
+    and writes it on insert, never in the update part of the upsert. The
+    galaxy list and the client stay unchanged.
+  * `parsePlaceId(id): Place | null` is the inverse of `placeId()`: null for
+    anything that is not a canonical `[pmd]<g>_<s>_<p>` (positive integers,
+    no leading zeros), so that `placeId(parsePlaceId(x)) === x`; it never
+    throws on untrusted ids.
+  * The kind of a fleet's origin and target comes from the prefix of
+    `from_planet` and `to_planet`; the fleets tables do not change.
+* **[E]** Built with #119: `Place` in `src/core/types.ts`, `placeId()` and
+  `parsePlaceId()` in `src/core/place.ts` (`pid()` is gone from
+  `flight.ts`; its five uses build a place of kind `planet`). Migration 15
+  rebuilds `planets` with `kind` and its four child tables
+  (`planet_buildings`, `planet_units`, `planet_production`,
+  `shipyard_queue`) and `planets_owner`, because migrations run with
+  `foreign_keys = ON` and dropping the old `planets` would delete their
+  rows; every planet keeps its id and becomes kind `planet`. It adds the
+  empty table `debris`; no code reads or writes it before #45 (see
+  [SQLite storage](/data/sqlite.md)).
 * **[E]** Position 16 (expeditions, #93) is decided with #93 (owner,
   2026-11-12).
 * **[V]** `distance()` already returns 5 for the same coordinates, which is
@@ -145,6 +388,53 @@ choice of the patterns to the assistant's recommendation below
   fleets; reports; guilds; invitations and admin data. The exact cut follows
   the code in the pull request.
 * **[E]** Tests use SQLite in memory, no hand-written fakes.
+* **[E]** Decisions after the first build attempt (owner, 2026-11-13, #117):
+  * Scope: the methods of `Store` plus the aggregates of the cut that lived
+    outside it, guilds (`guilds.ts`) and admin data (audit, moderation,
+    settings). Achievements, push, passkeys, account security, error log,
+    news and diagnostics stay raw SQL through `ctx.db`; follow-up issues
+    move them.
+  * `Store` becomes a thin facade: it composes the repositories and keeps
+    every former method name, plus `db` and `tx`. It is used only by tests,
+    `e2e/seed.ts`, `cli.ts` and `server.ts`; the store, migration and
+    E2E-seed tests stay unchanged.
+  * `Ctx` has flat fields: `players`, `planets`, `fleets`, `reports`,
+    `guilds`, `invitations`, `admin`, plus `tx(fn)` and `db` for the SQL
+    not moved yet.
+  * Short method names per aggregate, for example `planets.get(id)`,
+    `planets.home(uid)`, `planets.ofOwner(uid)`, `planets.all()`,
+    `planets.save(p)`, `fleets.due(now)`.
+  * The cut: players and accounts take users, user research, sessions,
+    passkeys, passkey challenges and account tokens; admin data takes
+    settings (universe), audit events, suspensions, player activity and
+    error events; planets also take `usedSize`.
+  * Tests: `ctx.store.x` is rewritten mechanically to the repositories, no
+    assertion changed; the existing extra transactions stay, through
+    `ctx.tx`; SQL that moves into a repository loses its own transaction to
+    the caller; one test file per repository against SQLite in memory.
+  * Every statement moves verbatim: the same text and parameter order, no
+    rewrite, no optimisation, no new index. One exception, same text and
+    parameter: `DELETE FROM guild_members WHERE user_id = ?` stood three
+    times in `guilds.ts` and is now the one method `guilds.removeMember`.
+* **[E]** Built with #117: `src/server/db/repos/` holds one file per
+  aggregate, each a typed interface (`Players`, `Planets`, `Fleets`,
+  `Reports`, `Guilds`, `Invitations`, `Admin`) and its better-sqlite3 class;
+  `repositories(db)` in `index.ts` builds them on one connection, `rows.ts`
+  maps rows. `createCtx(store)` spreads `store.repos` into `Ctx` with
+  `db` and `tx`. No repository calls `transaction`: the `runAction`
+  transaction stays the unit of work, and the other existing transactions
+  (audit, activity, account security, news, push, achievements, account
+  deletion, arrivals, registration) stay where they were. The game logic of
+  guilds, round, audit and moderation stays in its file; only the SQL
+  moved. Players and admin data hold sessions, audit and moderation SQL, so
+  they are security files of the mutation standard (90 %); so are the
+  invitations, whose tokens decide who may register (owner, 2026-11-13).
+  Still raw
+  through `ctx.db`: `achievements.ts`, `push-store.ts`, `web-push.ts`,
+  `passkeys.ts`, `account-security.ts`, `error-log.ts`, `error-export.ts`,
+  `news.ts`, `diagnostics.ts`, `delete-account.ts`, `game/admin.ts` (new
+  round), the `UPDATE users` of `auth.ts` and the health check of
+  `http/app.ts`.
 
 ## 9. Client: generic Svelte components
 
@@ -164,8 +454,9 @@ choice of the patterns to the assistant's recommendation below
 ```
 src/core/                  economy, settle, battle, flight, components/
 src/features/<key>/        entry.ts, texts.de.ts, *.server.ts, *.test.ts
-src/features/missions/<m>/ rules.ts, arrive.server.ts, *.test.ts
+src/features/missions/<m>/ rules.ts, texts.de.ts, arrive.server.ts, *.test.ts
 src/features/index.gen.ts  generated index, not checked in
+src/features/index.server.gen.ts  generated server index (#116), not checked in
 src/server/                http, db/repos, game (commands)
 src/client/                state, components (generic), views
 ```
@@ -183,9 +474,12 @@ src/client/                state, components (generic), views
   requests.
 * **[E]** Built with #112: the folders `src/features/` and
   `src/features/missions/` exist (`.gitkeep`); no entry has moved yet.
+  Since #114 every catalog entry has its folder with `entry.ts`, since #113
+  also with `texts.de.ts`.
   `scripts/gen-features.ts` writes `src/features/index.gen.ts` with
-  `ENTRIES` (each `<key>/entry.ts`) and `MISSIONS` (each
-  `missions/<m>/rules.ts`) as lists of `[key, module]` pairs sorted by key.
+  `ENTRIES` (each `<key>/entry.ts`), since #113 `TEXTS` (each
+  `<key>/texts.de.ts`), and `MISSIONS` (each `missions/<m>/rules.ts`) as
+  lists of `[key, module]` pairs sorted by key.
   A list, not an object, because knip counts a module passed on as a whole
   as used. A folder without its file, or whose name is not a key, stops the
   script. The `*.server.ts` parts are not in this index, because the
@@ -205,6 +499,23 @@ src/client/                state, components (generic), views
   `src/features` as game code.
 * **[V]** If the generated index turns out to be a burden, the fallback is
   a hand-kept index, sorted, one line per entry.
+* **[E]** Decided for #116 (owner, 2026-11-14): `gen-features` also writes
+  `src/features/index.server.gen.ts` with `MISSION_SERVERS`, not checked in
+  (`.gitignore`) like `index.gen.ts`; each mission folder needs its
+  `arrive.server.ts`; only `src/server` imports the server index. The type
+  `Mission` is derived from the generated index as a type only, as long as
+  `no-circular` allows it.
+* **[E]** Built with #116: a mission folder needs `rules.ts`, `texts.de.ts`
+  and `arrive.server.ts`, else the script stops; `index.gen.ts` adds
+  `MISSION_TEXTS` beside `MISSIONS`; `generateServer` writes
+  `index.server.gen.ts` (`MISSION_SERVERS`, each `missions/<m>/
+  arrive.server.ts`), which the script writes with the other index; knip
+  takes it as an entry, Vitest coverage and Stryker leave it out, the
+  Dockerfile copies it with `src/features`. `Mission` in
+  `src/core/types.ts` is `(typeof MISSIONS)[number][0]` through
+  `import type`: the cycles it closes (`types.ts` → index →
+  `rules.ts` → `missions.ts`) all run through a type-only import, which
+  `no-circular` does not count, so the rule passes unchanged.
 
 ## 11. Boundaries
 
@@ -227,6 +538,11 @@ src/client/                state, components (generic), views
   through the index and the browser runs them); `server-not-client` and
   `server-runtime-deps` (no dev dependencies) cover the `*.server.ts` parts
   and `src/features` too; tests may import a `*.server.ts` part.
+* **[E]** Built with #116 (owner, 2026-11-14, only `src/server` imports the
+  server index): the rule `server-index-on-server` forbids
+  `src/features/index.server.gen.ts` to every file outside `src/server`,
+  tests included; `server-parts-on-server` lets that index import the
+  `*.server.ts` parts. `src/test/boundaries.test.ts` checks both.
 
 ## 12. Tests per component
 
@@ -234,6 +550,57 @@ src/client/                state, components (generic), views
   has it (for example: `produces` is finite and ≥ 0, `combat` has a hull
   > 0). A new entry is checked without new test code; its own tests cover
   only what is its own.
+* **[E]** Built with #114 for the production group: the contract tests are
+  `src/core/components/<component>.test.ts`; they read every entry with the
+  component from the generated index (rates finite and ≥ 0 for levels 0 to
+  60 on generated planets, nothing at level 0, one production order and one
+  store per resource each, costs whole and never falling for levels 1 to
+  60). `src/core/production.test.ts` compares `prod()` bit for bit with the
+  `prod()` from before #114 on generated planets, with Fusionskraftwerk and
+  Solarsatelliten.
+* **[E]** Built with #114 for the combat group:
+  `src/core/components/unit.test.ts` (on every ship and defense only, the
+  cost of a piece three whole numbers ≥ 0, not all 0) and
+  `src/core/components/combat.test.ts` (with every `unit`; hull, shield and
+  attack finite and above 0; rapid fire whole and above 1 against an entry
+  that fights; only ships are easy). `src/core/battle-reference.test.ts`
+  compares `buildSide()`, `rapid()` for every pair and `battle()` with the
+  same random stream, draw for draw, bit for bit with `battle.ts` from
+  before the combat components on generated sides.
+* **[E]** Built with #114 for the flight group:
+  `src/core/components/mobile.test.ts` (only on ships; speed above 0, cargo
+  whole and ≥ 0, fuel whole and above 0, a known drive; drive switches to a
+  known drive from a research level above 0; the speed finite and at least
+  the base speed of the active drive for research levels 0 to 30).
+  `src/core/flight-reference.test.ts` compares `activeDrive()`,
+  `shipSpeed()`, `fleetSpeed()`, `fuelFor()`, `capacity()` and `canFly()`
+  bit for bit with their form before the flight component, for every key
+  of the catalog and an unknown one, on generated fleets and research
+  levels.
+* **[E]** Built with #114 for the limits group:
+  `src/core/components/limit.test.ts` (only on defense; `perPlanet` whole
+  and ≥ 1; the room whole, between 0 and the limit, all of it on an empty
+  planet) and `src/core/components/energy-threshold.test.ts` (only on
+  buildings and research; base > 0, f ≥ 1; the need finite and never
+  falling for levels 1 to 60). `src/core/limits-reference.test.ts` compares
+  `unitRoom()`, `orderMax()` (its value or its error), `energyNeed()` and
+  `energyShort()` bit for bit with their form before the limits group, for
+  every key of the catalog, an unknown one and inherited names
+  (`constructor`, `toString`, `__proto__`, `hasOwnProperty`), on generated
+  planets, queues and levels.
+* **[E]** Built with #116 for the missions: `src/core/missions.test.ts`
+  checks the rules of every mission in the index (exactly the typed
+  fields, a known target kind, the order in steps of 10 and once each,
+  `canSend` gives a known code or nothing on generated fleets, one name
+  each) and the generic target check; `src/server/game/missions.test.ts`
+  checks for every mission that it has an arrival in `MISSION_SERVERS`,
+  turns back from a target that does not fit its kind, flies back only if
+  it returns, comes home silently only if silent, shows its ships only if
+  visible and takes cargo only if it carries cargo.
+  `src/server/game/missions-reference.test.ts` compares sending, the
+  arrival and the coming home with the code from before #116 on generated
+  worlds and fleets: the answer or message, every table and the next random
+  number.
 
 # Migration
 
@@ -245,21 +612,27 @@ src/client/                state, components (generic), views
   behaviour (equivalence and E2E tests green); the owner confirmed it on
   2026-11-13 (#111): #112 first; then #113, #114, #116, #117 in parallel;
   #68 before #116, #117 and #118; #114 before #115; #113 and #114 before
-  #118; #117 before #119 before #45 and #53 (and #95):
+  #118; #117 before #119 before #45 and #53 (and #95). #113 starts after
+  the first pull request of #114, because the index requires `entry.ts` in
+  every entry folder; the other #114 pull requests run in parallel with
+  #113 (owner, 2026-11-13, replaces „#113 and #114 in parallel“):
   1. Folder skeleton, generated index, boundary rules.
-  2. Texts apart from rules (after #94).
+  2. Texts apart from rules (after #94 and the first pull request of #114;
+     built with #113).
   3. Components of the catalog with contract tests; production from the
      components; the resources page from `ProducerTable`. One pull request
      per component group: production (`produces`, `consumes`, `storage`,
      `leveled`), combat (`combat`, `unit`), flight (`mobile`), limits
      (`limit`, `energyThreshold`), then `ProducerTable` (owner, 2026-11-13,
-     #114).
+     #114). The production group is built (#114, first pull request), the
+     combat group (#114, second pull request), the flight group (#114,
+     third pull request) and the limits group (#114, fourth pull request).
   4. Generic events in `settle` with the property tests.
-  5. Missions as strategies.
+  5. Missions as strategies. Built with #116.
   6. Repositories per aggregate.
   7. Client state module and generic components; `main.ts` shrinks per view.
   8. Places (O11), its own pull request before #45 and #53 (owner,
-     2026-11-12).
+     2026-11-12). Built with #119.
 
 * **[E]** The battle with several parties is no migration step; it is built
   with #55.

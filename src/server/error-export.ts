@@ -29,7 +29,7 @@ const jsonLines = (rows: Line[]): string =>
   rows.map((row) => JSON.stringify(row) + '\n').join('');
 
 function errorLines(ctx: Ctx, range: Range, reports: boolean): Line[] {
-  const rows = ctx.store.db
+  const rows = ctx.db
     .prepare(
       `
     SELECT e.id, e.kind, e.time, e.first, u.name AS player, e.player AS playerId,
@@ -56,7 +56,7 @@ function errorLines(ctx: Ctx, range: Range, reports: boolean): Line[] {
 }
 
 function auditLines(ctx: Ctx, range: Range): Line[] {
-  const rows = ctx.store.db
+  const rows = ctx.db
     .prepare(
       `
     SELECT e.id, e.time, a.name AS actor, e.actor AS actorId, e.category,

@@ -24,7 +24,7 @@ describe('operator commands', () => {
     const r = run(['admin', 'anna']);
     expect(await r.exec()).toBe(0);
     expect(r.out).toEqual(['Anna is now admin.']);
-    expect(r.ctx.store.userByName('Anna')!.admin).toBe(true);
+    expect(r.ctx.players.byName('Anna')!.admin).toBe(true);
     expect(await r.exec(['admins'])).toBe(0);
     expect(r.out[1]).toBe('Anna');
     expect(await r.exec(['unadmin', 'Anna'])).toBe(0);
@@ -64,7 +64,7 @@ describe('operator commands', () => {
     expect(r.err).toEqual([
       'The mail could not be sent (down); give the link yourself.',
     ]);
-    expect(r.ctx.store.openInvitations(r.ctx.now())).toHaveLength(1);
+    expect(r.ctx.invitations.open(r.ctx.now())).toHaveLength(1);
   });
 
   it('report errors and the usage', async () => {

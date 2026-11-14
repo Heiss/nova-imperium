@@ -8,7 +8,7 @@ import {
 } from '@simplewebauthn/server';
 import { hashToken, newToken, passwordMatches } from './auth.ts';
 import type { Config } from './config.ts';
-import type { User } from './db/store.ts';
+import type { User } from './db/repos/players.ts';
 import { type Ctx, fail } from './game/context.ts';
 
 const TTL = 5 * 60000;
@@ -24,7 +24,7 @@ function relyingParty(cfg: Config) {
 
 function issue(ctx: Ctx, challenge: string, token?: string): string {
   const id = newToken();
-  ctx.store.db
+  ctx.db
     .prepare('INSERT INTO passkey_challenges VALUES (?, ?, ?, ?)')
     .run(
       hashToken(id),
@@ -37,7 +37,7 @@ function issue(ctx: Ctx, challenge: string, token?: string): string {
 
 function consume(ctx: Ctx, id: unknown, token?: string): string {
   if (typeof id !== 'string' || id.length !== 43) return fail(INVALID);
-  const row = ctx.store.db
+  const row = ctx.db
     .prepare(
       `
     DELETE FROM passkey_challenges WHERE id = ? AND session_hash IS ?
@@ -50,13 +50,13 @@ function consume(ctx: Ctx, id: unknown, token?: string): string {
 }
 
 export function purgePasskeyChallenges(ctx: Ctx): void {
-  ctx.store.db
+  ctx.db
     .prepare('DELETE FROM passkey_challenges WHERE expires <= ?')
     .run(ctx.now());
 }
 
 export function passkeysOf(ctx: Ctx, user: User) {
-  return ctx.store.db
+  return ctx.db
     .prepare(
       'SELECT id, created FROM passkeys WHERE user_id = ? ORDER BY created',
     )
@@ -105,9 +105,9 @@ export async function registerPasskey(
   }).catch(() => fail(INVALID));
   const credential = result.registrationInfo?.credential;
   if (!result.verified || !credential) return fail(INVALID);
-  if (ctx.store.sessionUser(hashToken(token), ctx.now()) !== user.id)
+  if (ctx.players.sessionUser(hashToken(token), ctx.now()) !== user.id)
     return fail(INVALID);
-  const saved = ctx.store.db
+  const saved = ctx.db
     .prepare('INSERT OR IGNORE INTO passkeys VALUES (?, ?, ?, ?, ?)')
     .run(
       credential.id,
@@ -140,7 +140,7 @@ function credentialOf(
   response: AuthenticationResponseJSON | undefined,
 ): StoredKey {
   if (typeof response?.id !== 'string') return fail(INVALID);
-  const row = ctx.store.db
+  const row = ctx.db
     .prepare('SELECT * FROM passkeys WHERE id = ?')
     .get(response.id) as StoredKey | undefined;
   if (
@@ -174,17 +174,17 @@ export async function verifyPasskeyLogin(
     requireUserVerification: true,
   }).catch(() => fail(INVALID));
   if (!result.verified) return fail(INVALID);
-  const updated = ctx.store.db
+  const updated = ctx.db
     .prepare('UPDATE passkeys SET counter = ? WHERE id = ? AND counter = ?')
     .run(result.authenticationInfo.newCounter, key.id, key.counter);
   if (!updated.changes) return fail(INVALID);
-  return ctx.store.user(key.user_id) ?? fail(INVALID);
+  return ctx.players.get(key.user_id) ?? fail(INVALID);
 }
 
 export function removePasskey(ctx: Ctx, user: User, id: unknown): void {
   if (typeof id !== 'string') return fail('Passkey nicht gefunden.');
   if (
-    !ctx.store.db
+    !ctx.db
       .prepare('DELETE FROM passkeys WHERE id = ? AND user_id = ?')
       .run(id, user.id).changes
   )

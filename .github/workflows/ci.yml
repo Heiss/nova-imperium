@@ -3,11 +3,25 @@ name: CI
 # Every push to main or hotfix/* runs the full suite. Pull requests run what
 # their changes need: documentation only skips the code checks; the Docker
 # image, Trivy and the Compose stack with the upgrade test run when the image
-# can change, and always in a release pull request (owner, 2026-11-12).
+# can change, and always in a release pull request (owner, 2026-11-12). The
+# mutation tests run when a pull request changes what Stryker mutates, a test,
+# the mutation configuration or the test tool chain (#146), and take over the
+# green result of the previous head when the newest head only merged main
+# (#167).
+# The release pull request of main is a draft after every rebuild: its run
+# is the cheap one (the checks that run for every change and the changelog
+# check), and its CI Gate fails on purpose, so neither a merge nor a
+# candidate image (rc-image.yml) follows it. Marking it "Ready for review"
+# starts the full run: release-ready.yml adds and removes the label
+# "voller-lauf", and those events carry draft false (owner, 2026-11-13 and
+# 2026-11-14, #147). A release pull request of a hotfix branch runs fully.
+# The documentation website is built when its sources change (#144).
 # Only the gate job "CI Gate" is the required check of main.
 on:
   pull_request:
-    # labeled/unlabeled: the label "kein-changelog" changes the fragment check.
+    # labeled/unlabeled: the label "kein-changelog" changes the fragment
+    # check; the label "voller-lauf" starts the full run of the release pull
+    # request of main (release-ready.yml, #147).
     types: [opened, synchronize, reopened, labeled, unlabeled]
   push:
     branches: [main, 'hotfix/**']
@@ -24,38 +38,74 @@ jobs:
   changes:
     name: Detect changes
     runs-on: ubuntu-latest
+    # checks: read for the check runs of the previous head (#167).
+    permissions:
+      contents: read
+      checks: read
     outputs:
       code: ${{ steps.diff.outputs.code }}
       image: ${{ steps.diff.outputs.image }}
+      mutation: ${{ steps.diff.outputs.mutation }}
+      site: ${{ steps.diff.outputs.site }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         if: github.event_name == 'pull_request'
         with:
           fetch-depth: 0
           persist-credentials: false
+      # scripts/mutation-changes.ts needs Node only, no dependencies.
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        if: github.event_name == 'pull_request'
+        with:
+          node-version-file: .node-version
+          package-manager-cache: false
       - id: diff
         env:
           EVENT: ${{ github.event_name }}
           PR_BASE: ${{ github.event.pull_request.base.sha }}
           PR_HEAD_REF: ${{ github.head_ref }}
           PR_BASE_REF: ${{ github.base_ref }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          PR_DRAFT: ${{ github.event.pull_request.draft }}
           HEAD_SHA: ${{ github.sha }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           if [ "$EVENT" = "push" ] || [ -z "$PR_BASE" ]; then
-            echo "code=true" >> "$GITHUB_OUTPUT"
-            echo "image=true" >> "$GITHUB_OUTPUT"
+            {
+              echo "code=true"
+              echo "image=true"
+              echo "mutation=true"
+              echo "site=true"
+            } >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # The draft release pull request of main runs the cheap checks
+          # only; its CI Gate fails on purpose. The draft state comes from
+          # the event that started this run: a rebuild sets it to draft
+          # before its push (scripts/release-pr.sh), the labels of
+          # release-ready.yml come after "Ready for review" (#147).
+          if [ "$PR_HEAD_REF" = release/main ] && [ "$PR_BASE_REF" = main ] && [ "$PR_DRAFT" = true ]; then
+            echo "Draft release pull request of main: the cheap run. \"Ready for review\" starts the full run."
+            {
+              echo "code=false"
+              echo "image=false"
+              echo "mutation=false"
+              echo "site=false"
+            } >> "$GITHUB_OUTPUT"
             exit 0
           fi
           files=$(git diff --name-only "$PR_BASE" "$HEAD_SHA")
           code=false
           image=false
+          site=false
           # A release pull request and every pull request into a hotfix
           # branch run everything: they lead straight to a release.
-          case "$PR_HEAD_REF" in release/*) code=true; image=true ;; esac
-          case "$PR_BASE_REF" in hotfix/*) code=true; image=true ;; esac
+          case "$PR_HEAD_REF" in release/*) code=true; image=true; site=true ;; esac
+          case "$PR_BASE_REF" in hotfix/*) code=true; image=true; site=true ;; esac
           while IFS= read -r file; do
+            # The website (website/) is documentation: it has its own job.
             case "$file" in
-              okf/*|docs/*|changes/*) ;;
+              okf/*|docs/*|changes/*|website/*) ;;
               */*) code=true ;;
               *.md) ;;
               *) code=true ;;
@@ -66,9 +116,47 @@ jobs:
               src/server/db/*|src/server/main.ts|src/server/server.ts|src/server/config.ts|src/server/cli.ts|src/server/maintenance.ts) image=true ;;
               .github/workflows/ci.yml) image=true ;;
             esac
+            # What the documentation website is built from (okf/ops/website.md).
+            case "$file" in
+              okf/*|docs/*|website/*|.github/workflows/ci.yml|.github/workflows/pages.yml) site=true ;;
+            esac
           done <<< "$files"
-          echo "code=$code" >> "$GITHUB_OUTPUT"
-          echo "image=$image" >> "$GITHUB_OUTPUT"
+          # The mutation jobs run when the changes touch a file of the mutate
+          # globs of stryker.config.json, a test file, the mutation
+          # configuration or the versions of Stryker, Vitest or TypeScript in
+          # the lockfile (scripts/mutation-changes.ts, owner, 2026-11-13,
+          # #146). The release pull request of a hotfix branch changes only
+          # CHANGELOG.md, VERSION and changes/: it compares with the release
+          # tag the hotfix branch starts from. The release pull request of
+          # main runs them in its full run (#147).
+          case "$PR_HEAD_REF" in
+            release/hotfix/*)
+              # Without a release tag below it the check fails, as the
+              # migration check does (owner, 2026-11-13, #146).
+              from=$(git describe --tags --abbrev=0 --match '[0-9]*.[0-9]*.[0-9]*' "$PR_BASE") ||
+                { echo "::error::A hotfix branch starts at a release tag."; exit 1; }
+              mutation=$(node scripts/mutation-changes.ts "$from" "$HEAD_SHA")
+              ;;
+            release/*) mutation=true ;;
+            *) mutation=$(node scripts/mutation-changes.ts "$PR_BASE" "$HEAD_SHA") ;;
+          esac
+          # A pull request into main whose newest head only merged main takes
+          # over the green mutation result of the head before (output
+          # "reuse", scripts/mutation-reuse.ts, owner, 2026-11-13, #167).
+          # $HEAD_SHA is the merge commit the CI tests, $PR_HEAD the head
+          # commit of the branch, on which the check runs are.
+          if [ "$mutation" = true ] && [ "$PR_BASE_REF" = main ]; then
+            case "$PR_HEAD_REF" in
+              release/*) ;;
+              *) mutation=$(node scripts/mutation-reuse.ts decide "$PR_BASE" "$HEAD_SHA" "$PR_HEAD") ;;
+            esac
+          fi
+          {
+            echo "code=$code"
+            echo "image=$image"
+            echo "mutation=$mutation"
+            echo "site=$site"
+          } >> "$GITHUB_OUTPUT"
 
   # Every pull request that changes the game brings a German changelog
   # fragment in changes/, or carries the label "kein-changelog"; all
@@ -142,14 +230,19 @@ jobs:
           path: playwright-report
           retention-days: 7
 
-  # Mutation tests in 6 parallel shards (owner, 2026-11-12 and 2026-11-13, #131). The plan
-  # splits the files Stryker mutates once for all shards, by their mutant
-  # count in the last merged report, else by their lines
-  # (scripts/mutation-shards.ts).
+  # Mutation tests in 6 parallel shards (owner, 2026-11-12 and 2026-11-13,
+  # #131). The plan splits the files Stryker mutates once for all shards, by
+  # the test time of their mutants in the weights of the last run, else in
+  # the last complete run, else in the last merged report, else by their
+  # lines; every file stays on the shard of the last plan unless a shard is
+  # above 1.5 times the mean (#141, scripts/mutation-shards.ts). A pull
+  # request runs them only when it changes what they test (output mutation,
+  # #146), and skips them when it takes over the result of the head before
+  # (#167); a push to main or hotfix/** always runs them.
   mutation-plan:
     name: Mutation plan
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: needs.changes.outputs.mutation == 'true'
     runs-on: ubuntu-latest
     outputs:
       plan: ${{ steps.plan.outputs.plan }}
@@ -164,10 +257,24 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      # The weights come from the last complete run (nightly or release pull
-      # request): an incremental report reuses old results, whose times did
-      # not match the run (#131). Without one, the last merged report.
+      # The plan of the last run on this branch, else on main, and the
+      # weights of its mutants, updated by every run (#141): every file stays
+      # on its shard, so the shard keeps its cached results.
+      - name: Plan and weights of the last run
+        id: state
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: reports/mutation-state.json
+          key: stryker-state-${{ github.ref }}-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            stryker-state-${{ github.ref }}-
+            stryker-state-refs/heads/main-
+      # Without a state the weights come from the last complete run (nightly
+      # or release pull request): an incremental report reuses old results,
+      # whose times did not match the run (#131). Without one, the last
+      # merged report.
       - name: Merged report of the last complete run (the weights)
+        if: steps.state.outputs.cache-matched-key == ''
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: reports/mutation/mutation.json
@@ -182,6 +289,14 @@ jobs:
         run: |
           plan=$(node scripts/mutation-shards.ts plan)
           echo "plan=$plan" >> "$GITHUB_OUTPUT"
+      # The new plan and the weights it used, for the gate job.
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: mutation-state
+          path: reports/mutation-state.json
+          if-no-files-found: error
+          overwrite: true
+          retention-days: 7
 
   # Each shard keeps its own incremental result: unchanged code keeps its
   # cached result on pull requests and on main. A release pull request and
@@ -190,7 +305,7 @@ jobs:
   mutation-shard:
     name: Mutation tests (shard ${{ matrix.shard }} of 6)
     needs: [changes, mutation-plan]
-    if: needs.changes.outputs.code == 'true'
+    if: needs.changes.outputs.mutation == 'true'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -240,7 +355,7 @@ jobs:
   mutation:
     name: Mutation tests
     needs: [changes, mutation-plan, mutation-shard]
-    if: needs.changes.outputs.code == 'true'
+    if: needs.changes.outputs.mutation == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -253,11 +368,26 @@ jobs:
         with:
           pattern: mutation-shard-*
           path: reports/shards
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: mutation-state
+          path: reports
       - name: Merge the shard reports
         id: merge
         env:
           MUTATION_PLAN: ${{ needs.mutation-plan.outputs.plan }}
         run: node scripts/mutation-shards.ts merge reports/mutation/mutation.json reports/shards/*/mutation.json
+      # The times of the mutants this run ran; the others keep their old
+      # time (#141). Kept with the plan that ran for the next plan.
+      - name: Weights of this run
+        id: weights
+        run: node scripts/mutation-shards.ts weights reports/mutation-state.json reports/mutation/mutation.json
+      - name: Keep the plan and the weights for the next plan
+        if: always() && steps.weights.outcome == 'success'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: reports/mutation-state.json
+          key: stryker-state-${{ github.ref }}-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
       - name: Total score and no file below its floor (mutation-standard.json)
         run: node scripts/mutation-gate.ts --report reports/mutation/mutation.json
       - name: Keep the merged report for the next plan
@@ -488,6 +618,35 @@ jobs:
       - name: Findings of severity high or above block
         run: node .github/scripts/codeql-gate.mjs sarif
 
+  # The documentation website (okf/ops/website.md): website/ builds the
+  # pages of okf/ and docs/, and the build fails on every broken internal
+  # link (starlight-links-validator). pages.yml publishes it from main.
+  site:
+    name: Documentation website
+    needs: changes
+    if: needs.changes.outputs.site == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: website
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6
+        with:
+          package_json_file: website/package.json
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+          cache-dependency-path: website/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm format:check
+      - run: pnpm test
+      - name: Build, every internal link checked
+        run: pnpm build
+
   # The single required status check for main. Evaluate even when a job fails
   # or is skipped, and allow skips only when the workflow expects them.
   gate:
@@ -506,10 +665,26 @@ jobs:
         mutation-shard,
         mutation,
         compose,
+        site,
       ]
     if: always()
     runs-on: ubuntu-latest
+    # checks: read to verify a mutation result taken over (#167).
+    permissions:
+      contents: read
+      checks: read
     steps:
+      # Only to verify a mutation result taken over (#167).
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        if: needs.changes.outputs.mutation == 'reuse'
+        with:
+          persist-credentials: false
+          sparse-checkout: scripts
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        if: needs.changes.outputs.mutation == 'reuse'
+        with:
+          node-version-file: .node-version
+          package-manager-cache: false
       - name: Evaluate the result
         env:
           CHANGES: ${{ needs.changes.result }}
@@ -518,6 +693,7 @@ jobs:
           WORKFLOWS: ${{ needs.workflows.result }}
           CODE: ${{ needs.changes.outputs.code }}
           IMAGE: ${{ needs.changes.outputs.image }}
+          MUTATED: ${{ needs.changes.outputs.mutation }}
           FRAGMENTS: ${{ needs.fragments.result }}
           CODEQL: ${{ needs.codeql.result }}
           CHECK: ${{ needs.check.result }}
@@ -526,7 +702,14 @@ jobs:
           MUTATION_SHARDS: ${{ needs.mutation-shard.result }}
           MUTATION: ${{ needs.mutation.result }}
           COMPOSE: ${{ needs.compose.result }}
+          SITE_SOURCES: ${{ needs.changes.outputs.site }}
+          SITE: ${{ needs.site.result }}
           EVENT: ${{ github.event_name }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          HEAD_REF: ${{ github.head_ref }}
+          BASE_REF: ${{ github.base_ref }}
+          PR_DRAFT: ${{ github.event.pull_request.draft }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           require_success() {
             if [ "$2" != "success" ]; then
@@ -541,7 +724,7 @@ jobs:
           require_success "Workflow lint" "$WORKFLOWS"
           require_success "CodeQL" "$CODEQL"
 
-          if [ "$EVENT" = "push" ] && { [ "$CODE" != "true" ] || [ "$IMAGE" != "true" ]; }; then
+          if [ "$EVENT" = "push" ] && { [ "$CODE" != "true" ] || [ "$IMAGE" != "true" ] || [ "$MUTATED" != "true" ] || [ "$SITE_SOURCES" != "true" ]; }; then
             echo "::error::Pushes to main and hotfix/* must run the full suite."
             exit 1
           fi
@@ -549,20 +732,75 @@ jobs:
             require_success "Changelog fragments" "$FRAGMENTS"
           fi
 
+          # The draft release pull request of main: the cheap checks above
+          # passed, and the gate fails on purpose, so the draft is never
+          # green without the full run and rc-image.yml publishes no
+          # candidate from it (owner, 2026-11-14, #147).
+          if [ "$EVENT" = "pull_request" ] && [ "$HEAD_REF" = release/main ] && [ "$BASE_REF" = main ] && [ "$PR_DRAFT" = true ]; then
+            echo "::error::Draft release pull request of main: the cheap checks passed. The full run starts with \"Ready for review\"."
+            exit 1
+          fi
+          # Every other release pull request runs every check; the one of a
+          # hotfix branch runs the mutation jobs by its changes since the
+          # release tag (#146).
+          if [ "$EVENT" = "pull_request" ]; then
+            case "$HEAD_REF" in
+              release/*)
+                if [ "$CODE" != "true" ] || [ "$IMAGE" != "true" ] || [ "$SITE_SOURCES" != "true" ]; then
+                  echo "::error::A release pull request must run every check."
+                  exit 1
+                fi
+                case "$HEAD_REF:$MUTATED" in
+                  release/hotfix/*:false | *:true) ;;
+                  *)
+                    echo "::error::A release pull request must run the mutation jobs (result of the detection: $MUTATED)."
+                    exit 1
+                    ;;
+                esac
+                ;;
+            esac
+          fi
+
           case "$CODE" in
             true)
               require_success "Lint, types, unit tests and build" "$CHECK"
               require_success "E2E tests" "$E2E"
+              ;;
+            false) echo "Documentation-only change." ;;
+            *) echo "::error::Missing or invalid change detection output: $CODE"; exit 1 ;;
+          esac
+
+          # The mutation jobs may be skipped only when the change detection
+          # found nothing they test (#146), or when the pull request takes
+          # over the green result of the head before; the gate finds that
+          # green run again (#167).
+          case "$MUTATED" in
+            true)
               require_success "Mutation plan" "$MUTATION_PLAN"
               require_success "Mutation tests (shards)" "$MUTATION_SHARDS"
               require_success "Mutation tests" "$MUTATION"
               ;;
-            false) echo "Documentation-only change." ;;
-            *) echo "::error::Missing or invalid change detection output: $CODE"; exit 1 ;;
+            false) echo "No mutated file, test, mutation configuration or test tool chain changed: the mutation jobs run on every push to main and hotfix/** and every night." ;;
+            reuse)
+              if [ "$EVENT" != "pull_request" ] || [ "$MUTATION_PLAN" != "skipped" ] || [ "$MUTATION_SHARDS" != "skipped" ] || [ "$MUTATION" != "skipped" ]; then
+                echo "::error::A mutation result is taken over only in a pull request whose mutation jobs are skipped."
+                exit 1
+              fi
+              node scripts/mutation-reuse.ts verify "$PR_HEAD" ||
+                { echo "::error::The mutation result to take over was not found."; exit 1; }
+              echo "The head only merged main: the green mutation result of the head before is taken over."
+              ;;
+            *) echo "::error::Missing or invalid mutation detection output: $MUTATED"; exit 1 ;;
           esac
 
           case "$IMAGE" in
             true) require_success "Docker image and Compose stack" "$COMPOSE" ;;
             false) echo "No Docker, dependency or start-up file changed: the image is built on main and in the release pull request." ;;
             *) echo "::error::Missing or invalid image detection output: $IMAGE"; exit 1 ;;
+          esac
+
+          case "$SITE_SOURCES" in
+            true) require_success "Documentation website" "$SITE" ;;
+            false) echo "Nothing the documentation website is built from changed." ;;
+            *) echo "::error::Missing or invalid website detection output: $SITE_SOURCES"; exit 1 ;;
           esac

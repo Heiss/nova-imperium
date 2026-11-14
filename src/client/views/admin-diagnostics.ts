@@ -343,13 +343,18 @@ function playerButton(id: string, name: string): string {
   return `<button type="button" data-diagnostics="player" data-player="${esc(id)}">${esc(name)}</button>`;
 }
 
-function eventDetail(row: EventRow): string {
+/**
+ * The details of an event, with a button per planet and fleet reference that
+ * filters the event log by it (#151): unlike the open orders, the events of a
+ * reference stay after its order is gone.
+ */
+export function eventDetail(row: EventRow): string {
   const detail = JSON.parse(row.detail) as { fleet?: string; planet?: string };
   const refs = [detail.planet, detail.fleet].filter((id) => id !== undefined);
   const links = refs
     .map(
       (id) =>
-        `<button type="button" data-diagnostics="orders" data-reference="${esc(id)}">Aufträge zu ${esc(id)}</button>`,
+        `<button type="button" data-diagnostics="reference" data-reference="${esc(id)}">Ereignisse zu ${esc(id)}</button>`,
     )
     .join(' ');
   const request = row.requestId
@@ -377,7 +382,6 @@ function bindPanel(
   const actions: Record<string, (d: DOMStringMap) => void> = {
     page: (d) => void run(() => controls.events(Number(d.page))),
     player: (d) => navigate('players', d.player),
-    orders: (d) => navigate('orders', d.reference),
     playerEvents: (d) => navigate('events', d.player),
     reference: (d) => {
       (filter.elements.namedItem('reference') as HTMLInputElement).value =

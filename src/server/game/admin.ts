@@ -19,33 +19,33 @@ export const saveSettings: Action = (ctx, u, d) => {
   requireAdmin(u);
   const checked = validateUniverse(
     (d.settings as Record<string, unknown> | null) ?? {},
-    ctx.store.usedSize(),
+    ctx.planets.usedSize(),
   );
   if (!checked.ok) return fail(checked.errors.join(' '));
   const old = universe(ctx);
   const t = ctx.now();
-  for (const p of ctx.store.planets())
-    ctx.store.savePlanet(settle(p, t, old, ctx.store.user(p.owner)));
-  ctx.store.saveUniverse(checked.value);
+  for (const p of ctx.planets.all())
+    ctx.planets.save(settle(p, t, old, ctx.players.get(p.owner)));
+  ctx.admin.saveUniverse(checked.value);
   return 'Einstellungen gespeichert.';
 };
 
 function newRound(ctx: Ctx): void {
-  ctx.store.deleteAllPlanets();
-  ctx.store.deleteAllFleets();
-  ctx.store.db.exec(`
+  ctx.planets.deleteAll();
+  ctx.fleets.deleteAll();
+  ctx.db.exec(`
     DELETE FROM push_jobs;
     DELETE FROM achievement_progress;
     DELETE FROM achievement_claims;
     DELETE FROM daily_rewards;
   `);
   const u = universe(ctx);
-  for (const x of ctx.store.users()) {
+  for (const x of ctx.players.all()) {
     x.research = {};
     x.rq = null;
     x.readAt = 0;
-    ctx.store.saveUser(x);
-    ctx.store.deleteReports(x.id);
+    ctx.players.save(x);
+    ctx.reports.deleteAll(x.id);
     placePlanet(
       ctx,
       x.id,
@@ -69,7 +69,7 @@ export function announce(ctx: Ctx, input: unknown): number {
     return fail('Bitte eine Nachricht mit höchstens 500 Zeichen eingeben.');
   const message = str(input, 500);
   if (!message) return fail('Bitte eine Nachricht eingeben.');
-  const players = ctx.store.users();
+  const players = ctx.players.all();
   const time = ctx.now();
   for (const player of players) {
     addReport(

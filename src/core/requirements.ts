@@ -4,10 +4,11 @@
 // own planet with a Forschungslabor, so the buildings it needs are built
 // there too (issue #49, replaces the home planet rule of #64 D4).
 import { BUILD, RES } from './catalog.ts';
+import { energyNeed, energyShort } from './components/energy-threshold.ts';
 import { afford, lvlCost, reqMissing } from './economy.ts';
 import { fieldsFull } from './fields.ts';
 import { labUpgrading, waitsForLab } from './lab.ts';
-import { energyNeed, energyShort } from './research.ts';
+import { text } from './text.ts';
 import { waitsForYard } from './yard.ts';
 import type {
   Cost,
@@ -76,7 +77,7 @@ function needOf(s: Step, pl: Places): Need | null {
   const need: Need = {
     kind: s.kind,
     key: s.key,
-    name: defOf(s.kind, s.key)?.n ?? s.key,
+    name: text(s.key)?.n ?? s.key,
     level: s.level,
     have,
   };

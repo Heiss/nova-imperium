@@ -14,7 +14,9 @@
     "!src/server/db/migrate-worker.ts",
     "!src/server/test-helpers.ts",
     "!src/core/texts.ts",
+    "!src/features/**/texts.de.ts",
     "!src/features/index.gen.ts",
+    "!src/features/index.server.gen.ts",
     "!src/test/**"
   ],
   "coverageAnalysis": "perTest",

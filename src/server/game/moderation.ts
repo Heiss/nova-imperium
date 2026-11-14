@@ -1,14 +1,9 @@
 import { DAY, type AuditEntry } from '../audit.ts';
-import type { User } from '../db/store.ts';
+import type { User } from '../db/repos/players.ts';
 import { type Ctx, fail, str } from './context.ts';
 
 export function suspension(ctx: Ctx, uid: string) {
-  return ctx.store.db
-    .prepare(
-      'SELECT reason, until FROM suspensions WHERE player = ? AND (until IS NULL OR until > ?)',
-    )
-    .get(uid, ctx.now()) as
-    { reason: string; until: number | null } | undefined;
+  return ctx.admin.suspension(uid, ctx.now());
 }
 
 export function ensureActive(ctx: Ctx, uid: string): void {
@@ -22,7 +17,7 @@ export function moderate(
   entry: AuditEntry,
 ): void {
   const target =
-    ctx.store.user(str(body.player, 40)) ?? fail('Spieler nicht gefunden.');
+    ctx.players.get(str(body.player, 40)) ?? fail('Spieler nicht gefunden.');
   if (target.id === admin.id || target.admin)
     fail('Dieses Konto kann nur auf dem Server verwaltet werden.');
   const reason = str(body.reason, 200);
@@ -50,9 +45,8 @@ function updateAccess(
   reason: string,
   duration: unknown,
 ): number {
-  const db = ctx.store.db;
   if (action === 'unban') {
-    db.prepare('DELETE FROM suspensions WHERE player = ?').run(player);
+    ctx.admin.unsuspend(player);
     return 0;
   }
   if (action === 'ban') {
@@ -60,16 +54,8 @@ function updateAccess(
     if (!Number.isInteger(hours) || hours < 0 || hours > 720)
       fail('Sperrdauer: 0 bis 720 Stunden.');
     const until = hours ? ctx.now() + (hours * DAY) / 24 : null;
-    db.prepare(
-      `
-      INSERT INTO suspensions VALUES (?, ?, ?)
-      ON CONFLICT(player) DO UPDATE SET reason = excluded.reason, until = excluded.until
-    `,
-    ).run(player, reason, until);
+    ctx.admin.suspend(player, reason, until);
   }
-  db.prepare(
-    "DELETE FROM account_tokens WHERE user_id = ? AND purpose = 'login'",
-  ).run(player);
-  return db.prepare('DELETE FROM sessions WHERE user_id = ?').run(player)
-    .changes;
+  ctx.players.deleteLoginTokens(player);
+  return ctx.players.deleteSessions(player);
 }

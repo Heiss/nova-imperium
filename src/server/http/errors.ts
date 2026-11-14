@@ -6,7 +6,7 @@ import {
   REPORTS_PER_HOUR,
 } from '../../core/error-log.ts';
 import { DAY } from '../audit.ts';
-import type { User } from '../db/store.ts';
+import type { User } from '../db/repos/players.ts';
 import { readReport, recordClientError, recordReport } from '../error-log.ts';
 import { fail } from '../game/context.ts';
 import type { AppDeps, Call, Handler } from './app.ts';

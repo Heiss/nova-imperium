@@ -53,7 +53,7 @@ describe('invitations', () => {
     });
     expect(invitation.tokenHash).toBe(auth.hashToken(token));
     expect(
-      JSON.stringify(ctx.store.db.prepare('SELECT * FROM invitations').all()),
+      JSON.stringify(ctx.db.prepare('SELECT * FROM invitations').all()),
     ).not.toContain(token);
     expect(auth.openInvitation(ctx, token).id).toBe(invitation.id);
   });
@@ -100,7 +100,7 @@ describe('registration', () => {
       probes: 1,
     });
     expect(auth.passwordMatches(u, 'registration-passphrase')).toBe(true);
-    const p = ctx.store.planetOfUser(u.id)!;
+    const p = ctx.planets.home(u.id)!;
     expect(p).toMatchObject({ name: 'Welt', g: 2 });
     expect(() => auth.register(ctx, reg(token, { name: 'Zwei' }))).toThrow(
       'schon benutzt',
@@ -111,13 +111,13 @@ describe('registration', () => {
     const { ctx, token } = invited();
     const u = auth.register(ctx, reg(token));
     expect(u.explain).toBe('icon');
-    expect(ctx.store.user(u.id)!.explain).toBe('icon');
+    expect(ctx.players.get(u.id)!.explain).toBe('icon');
   });
 
   it('uses defaults for planet name and galaxy', () => {
     const { ctx, token } = invited();
     const u = auth.register(ctx, reg(token, { planet: '', gal: 99 }));
-    expect(ctx.store.planetOfUser(u.id)).toMatchObject({
+    expect(ctx.planets.home(u.id)).toMatchObject({
       name: 'Heimatplanet',
       g: 2,
     });
@@ -174,7 +174,7 @@ describe('login and sessions', () => {
     const old = scryptSync('secret1', 'old-salt', 64).toString('hex');
     const user = addUser(ctx, 'Anna', { salt: 'old-salt', pw: old });
     expect(auth.login(ctx, 'Anna', 'secret1').pw).toMatch(/^scrypt-v2:/);
-    expect(ctx.store.user(user.id)?.salt).not.toBe('old-salt');
+    expect(ctx.players.get(user.id)?.salt).not.toBe('old-salt');
     expect(auth.login(ctx, 'Anna', 'secret1').id).toBe(user.id);
   });
 

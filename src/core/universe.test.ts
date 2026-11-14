@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_UNIVERSE,
+  inUniverse,
   UNIVERSE_SPECS,
   validateUniverse,
 } from './universe.ts';
@@ -105,5 +106,20 @@ describe('universe settings', () => {
         'Positionen je System: mindestens 14, dort liegen schon Planeten.',
       ],
     });
+  });
+});
+
+describe('positions inside the universe', () => {
+  const u = { ...DEFAULT_UNIVERSE, galaxies: 2, systems: 3, positions: 4 };
+
+  it('take every position up to the configured counts', () => {
+    expect(inUniverse({ g: 1, s: 1, p: 1 }, u)).toBe(true);
+    expect(inUniverse({ g: 2, s: 3, p: 4 }, u)).toBe(true);
+  });
+
+  it('refuse a galaxy, system or position beyond them', () => {
+    expect(inUniverse({ g: 3, s: 3, p: 4 }, u)).toBe(false);
+    expect(inUniverse({ g: 2, s: 4, p: 4 }, u)).toBe(false);
+    expect(inUniverse({ g: 2, s: 3, p: 5 }, u)).toBe(false);
   });
 });
