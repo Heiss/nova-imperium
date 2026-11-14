@@ -320,9 +320,16 @@ describe('need state', () => {
     expect(needState(need('moonbase', 'b'), places(moon, R())).ready).toBe(
       true,
     );
-    // Research needs no place of its own here.
+    // Research is no building: on a moon its need names what is missing.
     const lab = colony({ b: { lab: 1 }, res: rich });
     expect(needState(need('energy', 'r'), places(lab, R())).ready).toBe(true);
+    const moonLab = { ...moon, b: { lab: 1 } };
+    expect(needState(need('energy', 'r'), places(moonLab, R())).ready).toBe(
+      true,
+    );
+    expect(needState(need('energy', 'r'), places(moon, R())).reason).toBe(
+      'braucht Scholarium (Stufe 1)',
+    );
   });
 
   it('stays ready but busy while a queue is used', () => {

@@ -71,6 +71,22 @@ describe('moons in the interface (#53)', () => {
       'm2_2_3',
     ]);
     expect(ownPlaces(galaxy, 'u_Bert').map((x) => x.id)).toEqual(['p1_2_5']);
+    // A planet before its moon, in either order of the list.
+    for (const list of [
+      [place('planet', 4), place('moon', 4)],
+      [place('moon', 4), place('planet', 4)],
+      [
+        place('moon', 4),
+        place('planet', 4),
+        place('moon', 3),
+        place('planet', 3),
+      ],
+    ])
+      expect(
+        ownPlaces(list, 'u_Anna')
+          .map((x) => x.id)
+          .slice(-2),
+      ).toEqual(['p1_2_4', 'm1_2_4']);
     // Planets in the same system by position.
     expect(
       ownPlaces([place('planet', 9), place('planet', 2)], 'u_Anna').map(
