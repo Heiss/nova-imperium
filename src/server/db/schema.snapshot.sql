@@ -18,6 +18,8 @@ CREATE INDEX fleets_owner ON fleets(owner);
 
 CREATE INDEX guild_members_guild ON guild_members(guild_id, status);
 
+CREATE INDEX guild_members_rank ON guild_members(rank_id);
+
 CREATE INDEX invitations_email ON invitations(email);
 
 CREATE INDEX passkey_challenges_expiry ON passkey_challenges(expires);
@@ -134,6 +136,21 @@ CREATE TABLE guild_members (
     user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
     guild_id TEXT NOT NULL REFERENCES guilds(id) ON DELETE CASCADE,
     status TEXT NOT NULL CHECK (status IN ('pending', 'member'))
+  , rank_id TEXT REFERENCES guild_ranks(id)) STRICT;
+
+CREATE TABLE guild_rank_rights (
+    rank_id TEXT NOT NULL REFERENCES guild_ranks(id) ON DELETE CASCADE,
+    right_key TEXT NOT NULL
+      CHECK (right_key IN ('applications', 'remove', 'assign', 'profile', 'ranks')),
+    PRIMARY KEY (rank_id, right_key)
+  ) STRICT;
+
+CREATE TABLE guild_ranks (
+    id TEXT PRIMARY KEY,
+    guild_id TEXT NOT NULL REFERENCES guilds(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    position INTEGER NOT NULL,
+    UNIQUE (guild_id, position)
   ) STRICT;
 
 CREATE TABLE guilds (
@@ -142,7 +159,7 @@ CREATE TABLE guilds (
     name TEXT NOT NULL COLLATE NOCASE UNIQUE,
     description TEXT NOT NULL,
     founder TEXT NOT NULL REFERENCES users(id)
-  ) STRICT;
+  , default_rank TEXT REFERENCES guild_ranks(id)) STRICT;
 
 CREATE TABLE invitations (
     id TEXT PRIMARY KEY,
