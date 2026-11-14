@@ -19,7 +19,7 @@ export function highscore(v: V): string {
   const rows = list.map(([id, x], i) => {
     const pl = v.s.galaxy.find((p) => p.owner === id);
     const home = pl
-      ? `${esc(pl.name)} <span class="lnk" data-act="gto" data-g="${pl.g}" data-s="${pl.s}">${coords(pl)}</span>`
+      ? `<span class="home">${esc(pl.name)}</span> <span class="lnk" data-act="gto" data-g="${pl.g}" data-s="${pl.s}">${coords(pl)}</span>`
       : '-';
     return `<tr class="${id === v.s.me.id ? 'me' : ''}"><td class="n">${i + 1}</td><td>${esc(x.name)}</td><td>${home}</td><td class="n">${fmt(x.points)}</td></tr>`;
   });

@@ -76,7 +76,7 @@ test.describe('accessibility (axe)', () => {
     expect(found).toEqual([]);
   });
 
-  test('the resources page has no violations on a phone (#189) @phone', async ({
+  test('the resources page and the highscore have no violations on a phone (#189) @phone', async ({
     page,
   }) => {
     const name = uniqueName('AxeRohH');
@@ -93,7 +93,14 @@ test.describe('accessibility (axe)', () => {
     await page.setViewportSize({ width: 360, height: 800 });
     await page.goto('/?view=resources');
     await expect(page.locator('#view')).toContainText('gedrosselt auf 58 %');
-    expect(await violations(page)).toEqual([]);
+    const found = (await violations(page)).map((v) => `resources: ${v}`);
+    // The coordinates below the name instead of the column „Heimatplanet“.
+    await page.goto('/?view=highscore');
+    await expect(
+      page.locator('tr.me [data-act=gto]').filter({ visible: true }),
+    ).toHaveCount(1);
+    found.push(...(await violations(page)).map((v) => `highscore: ${v}`));
+    expect(found).toEqual([]);
   });
 
   test('a Trümmerfeld on the Sternenkarte and the fleet form of a Bergung have no violations (#45)', async ({
