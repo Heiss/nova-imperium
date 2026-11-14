@@ -1,7 +1,8 @@
-// The formulas the rate functions of the producers share (#114). They read
-// no catalog, so the entries in src/features can use them; the resources
-// page and the shipyard still show some of them until ProducerTable (#114,
-// last pull request).
+// The formulas the rate functions of the producers share (#114): the shared
+// formula module of the entries. They read no catalog, so the entries in
+// src/features can use them. The browser no longer calls them: the
+// resources page shows producerRows(), the shipyard pieceEnergy() and the
+// buildings useAt() of economy.ts (#114, last pull request).
 import type { RateCtx } from './components/produces.ts';
 import type { Universe } from './types.ts';
 

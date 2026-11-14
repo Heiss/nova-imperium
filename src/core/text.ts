@@ -18,6 +18,10 @@ export interface EntryText {
   ds: string;
   /** Long explanation text (issue #63); without it the short `ds` stands in. */
   lt?: string;
+  /** The plural of the name, where the resources page counts pieces (#114). */
+  plural?: string;
+  /** What the energy of one piece is given per in the shipyard, „je …“ (#114). */
+  per?: string;
 }
 
 /** The generated index: every text file, sorted by key. */

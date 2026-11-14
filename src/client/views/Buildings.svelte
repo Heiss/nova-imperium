@@ -4,10 +4,10 @@
   import {
     afford,
     buildTime,
-    fusionUse,
     lvlCost,
     prod,
     reqMissing,
+    useAt,
   } from '../../core/economy.ts';
   import { fieldsFull } from '../../core/fields.ts';
   import { energyNeed, energyShort } from '../../core/research.ts';
@@ -17,7 +17,12 @@
   import { iconURL } from '../logic/icons.ts';
   import { dur, fmt } from '../logic/format.ts';
   import { buildState } from '../logic/game.ts';
-  import { costHTML, requirementsHTML, type V } from './common.ts';
+  import {
+    costHTML,
+    requirementsHTML,
+    resourceName,
+    type V,
+  } from './common.ts';
 
   let { viewState }: { viewState: Readable<V> } = $props();
   const energy = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 2 });
@@ -85,13 +90,13 @@
             {delta < 0 ? 'mehr Verbrauch' : 'mehr Produktion'}
           </div>
         {/if}
-        {#if key === 'fusion'}
+        {#each Object.entries(useAt(key, level + 1, P, s.cfg, R.research)) as [res, use] (res)}
           <div class="dim">
-            Promethiumverbrauch auf Stufe {level + 1}: {energy.format(
-              (fusionUse(level + 1, s.cfg) * (P.pct.fusion ?? 100)) / 100,
+            {resourceName(res)}verbrauch auf Stufe {level + 1}: {energy.format(
+              use,
             )} pro Stunde
           </div>
-        {/if}
+        {/each}
         <div class="dim">Bauzeit: {dur(buildTime(cost, P, s.cfg))}</div>
         {@html requirementsHTML($viewState, def.req)}
         {#if ex}

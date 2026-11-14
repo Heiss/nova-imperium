@@ -207,6 +207,18 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   fleet bit-identical to their form before the flight component (#114,
   third pull request). See
   [Design patterns](/architecture/patterns.md), section 12.
+* **[E]** The rows of the resources page (#114, `ProducerTable`): the
+  property test `src/core/producer-rows.test.ts` checks that the rows of
+  `producerRows()` add up to `prod()` of the planet as it runs, bit for bit
+  where `prod()` adds in the same order (owner, 2026-11-14).
+* **[E]** No comparison with a catalog key outside `src/features/` (#114,
+  owner, 2026-11-14): `src/test/catalog-keys.test.ts` reads `src` with the
+  TypeScript and Svelte parsers, as `src/test/naming.test.ts` does, and
+  fails on a comparison (`===`, `!==`, `case`, `includes` on a fixed list)
+  with a key from the folder names under `src/features/`. Its named
+  allow-list (file, key, issue) may only shrink: an entry that is no
+  longer hit fails the test. See
+  [Design patterns](/architecture/patterns.md), section 12.
 * **[E]** Mutation standard per file (owner, 2026-11-11,
   `mutation-standard.json`, `scripts/mutation-gate.ts`): no file may fall
   below its recorded floor; a new file needs 80 %, a new security file 90 %.

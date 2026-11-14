@@ -82,15 +82,14 @@ choice of the patterns to the assistant's recommendation below
   `PRODUCERS` are derived from the components; `PRODUCERS` stays deeply
   equal (it was [V] in #114). The level of a ship in a rate is its number on
   the planet (Solarsatellit).
-* **[V]** Choices of #114 within the decisions above, for the owner to
-  confirm: the `order` values step by 10 (room for new entries without
-  renumbering); the production order is the field `order` of `produces`,
-  and an entry that consumes also produces (contract test); the formulas
-  the rates share (`growth`, `grows`, Solarsatellit and Fusionskraftwerk)
-  are in `src/core/rates.ts`, because the resources page and the shipyard
-  still show them until `ProducerTable`; the throttle of the
-  Fusionskraftwerk (`balancedShare`) still names its key and becomes
-  generic with the events of #115.
+* **[E]** Choices of #114 within the decisions above, confirmed by the
+  owner (2026-11-14): the `order` values step by 10 (room for new entries
+  without renumbering); the production order is the field `order` of
+  `produces`, and an entry that consumes also produces (contract test); the
+  formulas the rates share (`growth`, `grows`, Solarsatellit and
+  Fusionskraftwerk) are in `src/core/rates.ts`, the shared formula module
+  of the entries; the throttle of the Fusionskraftwerk (`balancedShare`)
+  still names its key and becomes generic with the events of #115.
 * **[E]** Decided for the second pull request of #114, the combat group
   (owner, 2026-11-13): `unit` is `{ cost }`, the cost of one piece, the
   counterpart of `leveled`; `req` stays in `def`, „once per planet“ waits
@@ -140,6 +139,38 @@ choice of the patterns to the assistant's recommendation below
   `canFly` (an own key of `MOBILE`), and builds `SHIPS` from `mobile` or
   `STATIONARY`, deeply equal to before; `flight.ts` reads `MOBILE` through
   the rule module and keeps its exports.
+* **[E]** Decided for the last pull request of #114, `ProducerTable`
+  (owner, 2026-11-14): the rows of the resources page come from a core
+  function `producerRows()` in `economy.ts` with the same list, energy
+  factor `f` and throttled share as `prod()`: per entry its level or
+  number, share, production and use, plus the row of the base income from
+  `BASE_INCOME`; a property test checks that the rows add up to `prod()`.
+  Text and numbers stay, the E2E tests unchanged; the label is „(Stufe n)“
+  for a building and „(n)“ for a ship, and the plural „Sonnenreliquiare“ is
+  a text field of the entry. `ProducerTable.svelte` is mounted like
+  `Buildings.svelte`. `rates.ts` stays the shared formula module of the
+  entries. The displays with a fixed key become generic with the same
+  text: the shipyard shows the energy of one piece from `produces.e` with
+  „je Reliquiar“ from the texts of the entry, the buildings the use per
+  hour at the next level from `consumes`. The test that scans `src` for
+  comparisons with a key has a named allow-list (file, key, issue) that may
+  only shrink: `settle.ts` (`nextSatellite`, `techChange`),
+  `server/game/actions.ts` and `balancedShare` with #115, the check of the
+  Spähschädel with #116, the lab and shipyard locks with a new issue.
+* **[E]** Built with #114 (ProducerTable): `producerRows(p, u, research)`
+  in `src/core/economy.ts` returns `f`, the base income times the universe
+  speed and one row per entry of `PRODUCTION` in the production order:
+  key, kind, level (a ship's number), share as it runs, `throttled`, and
+  `made` and `used` with the rates the entry has (a resource made times the
+  universe speed, as `prod()` adds it). It runs on the planet as
+  `production()` runs it, with the throttled Fusionskraftwerk. `useAt()`
+  gives the resource use per hour of an entry at a level from `consumes`,
+  `pieceEnergy()` the energy of one piece of a ship with `produces.e`.
+  `EntryText` has the optional fields `plural` and `per`; the
+  Sonnenreliquiar has „Sonnenreliquiare“ and „je Reliquiar“. The browser
+  no longer calls `rates.ts`. `balancedShare` names the key only as a
+  share (`pct.fusion`), not in a comparison, so the scan has no entry for
+  it; it stays for #115.
 
 ## 2. Texts apart from rules
 
@@ -202,6 +233,11 @@ choice of the patterns to the assistant's recommendation below
   `src/client/views/economy.ts` repeats the production formulas instead of
   calling `prod()`; the resources page will build its rows from the
   components.
+* **[E]** Built with #114 (ProducerTable): the resources page shows the
+  rows of `producerRows()` (`src/core/economy.ts`), the sums of
+  `production()` and the limits of `caps()`; the shipyard and the
+  buildings read `pieceEnergy()` and `useAt()`. The browser repeats no
+  production formula.
 
 ## 4. Missions: one strategy per mission
 
@@ -344,6 +380,13 @@ choice of the patterns to the assistant's recommendation below
 * **[E]** The catalog views are converted first (buildings, research,
   shipyard, defense), where #45, #51 and #53 add the most; then the other
   views (owner, 2026-11-13, #118).
+* **[E]** Built with #114 (ProducerTable): `src/client/views/ProducerTable.svelte`
+  renders the resources page, one row per entry of `producerRows()`, and
+  `mountProducerTable()` (`src/client/views/producer-table.ts`) mounts it
+  like `mountBuildings()`; `renderView` in `src/client/main.ts` mounts the
+  view `resources` as the second Svelte view and updates it on every
+  render. The share selects keep `data-chg="pct"`, `data-k` and
+  `data-nokeep`.
 
 ## 10. Layout and registration
 
@@ -452,6 +495,22 @@ src/client/                state, components (generic), views
   bit for bit with their form before the flight component, for every key
   of the catalog and an unknown one, on generated fleets and research
   levels.
+* **[E]** Built with #114 (ProducerTable): `src/core/producer-rows.test.ts`
+  checks on generated planets, with the throttled Fusionskraftwerk, that
+  the rows of `producerRows()` add up to `prod()` of the planet as it runs:
+  `f`, the energy made and used bit for bit, Adamant, Psikristall and
+  Promethium bit for bit at universe speed 1 and to 6 decimals otherwise
+  (`prod()` multiplies the sum with the speed, a row each rate).
+  `src/test/catalog-keys.test.ts` scans `src` without `src/features/`, the
+  tests and `src/test/legacy` with the TypeScript and Svelte parsers for
+  comparisons with a key (the folder names under `src/features/`, without
+  `missions/`): `===`, `!==`, `==`, `!=`, `case` and `includes` on an array
+  literal or a const bound to one. Its allow-list `ALLOWED` names file, key
+  and issue; an entry no longer hit fails, so the list only shrinks. The
+  placeholder `TODO-issue` marks the lab and shipyard locks until their
+  issue exists; `TODO-owner` marks words equal to a key that are no
+  catalog key (the mission and report type `spy`, the state `energy` of a
+  building or research), open for the owner.
 
 # Migration
 
@@ -475,9 +534,9 @@ src/client/                state, components (generic), views
      per component group: production (`produces`, `consumes`, `storage`,
      `leveled`), combat (`combat`, `unit`), flight (`mobile`), limits
      (`limit`, `energyThreshold`), then `ProducerTable` (owner, 2026-11-13,
-     #114). The production group is built (#114, first pull request), the
-     combat group (#114, second pull request) and the flight group (#114,
-     third pull request).
+     #114). All groups are built: production (#114, first pull request),
+     combat (second), flight (third), limits (fourth) and `ProducerTable`
+     (fifth).
   4. Generic events in `settle` with the property tests.
   5. Missions as strategies.
   6. Repositories per aggregate.

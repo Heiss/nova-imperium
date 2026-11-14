@@ -1,15 +1,10 @@
 import { RES, type ResearchDef } from '../../core/catalog.ts';
 import {
   afford,
-  caps,
-  fusionEnergy,
-  fusionThrottle,
-  fusionUse,
   lvlCost,
   production,
   reqMissing,
   researchTime,
-  satPower,
 } from '../../core/economy.ts';
 import {
   energyNeed,
@@ -17,7 +12,6 @@ import {
   labSite,
   networkLab,
 } from '../../core/research.ts';
-import { text } from '../../core/text.ts';
 import { dur, esc, fmt } from '../logic/format.ts';
 import { researchState } from '../logic/game.ts';
 import { cd, costHTML, itemHTML, requirementsHTML, type V } from './common.ts';
@@ -108,77 +102,4 @@ export function research(v: V): string {
   if (!((v.P.b.lab ?? 0) > 0)) return noLab(v);
   const items = Object.entries(RES).map(([k, d]) => researchItem(v, k, d));
   return `<h2>Forschung auf ${esc(v.P.name)}</h2>${labLine(v)}<div class="box">${items.join('')}</div>`;
-}
-
-const SHARES = [100, 90, 80, 70, 60, 50, 40, 30, 20, 10, 0];
-const g = (l: number): number => l * Math.pow(1.1, l);
-
-function shareSelect(v: V, k: string): string {
-  const current = v.P.pct[k] ?? 100;
-  const options = SHARES.map(
-    (x) => `<option ${current === x ? 'selected' : ''}>${x}</option>`,
-  ).join('');
-  return `<select data-chg="pct" data-k="${k}" data-nokeep aria-label="Leistung ${text(k)?.n}">${options}</select> %`;
-}
-
-const cell = (x: string, cls = 'n'): string => `<td class="${cls}">${x}</td>`;
-
-/** The Fusionskraftwerk as it runs: its share, energy and deuterium use (#47). */
-function fusionNow(v: V): {
-  share: number;
-  throttled: boolean;
-  e: number;
-  d: number;
-} {
-  const { P, R, s } = v;
-  const level = P.b.fusion ?? 0;
-  const throttle = fusionThrottle(P, s.cfg, R.research);
-  const share = throttle ?? P.pct.fusion ?? 100;
-  return {
-    share,
-    throttled: throttle !== null,
-    e: (fusionEnergy(level, R.research.energy ?? 0) * share) / 100,
-    d: (fusionUse(level, s.cfg) * share) / 100,
-  };
-}
-
-function fusionRow(v: V, fu: ReturnType<typeof fusionNow>): string {
-  const note = fu.throttled
-    ? ` <span class="req">gedrosselt auf ${fmt(fu.share)} %</span>`
-    : '';
-  return `<tr><td>Fusionssanktum (Stufe ${v.P.b.fusion ?? 0})</td>${cell('0')}${cell('0')}${cell(`-${fmt(fu.d)}`, 'n bad')}${cell(fmt(fu.e), 'n good')}<td>${shareSelect(v, 'fusion')}${note}</td></tr>`;
-}
-
-function producerRows(v: V): string {
-  const { P, R, s } = v;
-  const pr = production(P, s.cfg, R.research);
-  const L = (k: string): number => P.b[k] ?? 0;
-  const pc = (k: string): number => (P.pct[k] ?? 100) / 100;
-  const sp = s.cfg.speed;
-  const eSat = satPower(P);
-  const fu = fusionNow(v);
-  const use = (k: string, f: number): string =>
-    cell(`-${fmt(f * g(L(k)) * pc(k))}`, 'n bad');
-  return [
-    `<tr><td>Grundeinkommen</td>${cell(fmt(20 * sp))}${cell(fmt(10 * sp))}${cell('0')}${cell('0')}<td></td></tr>`,
-    `<tr><td>Adamant-Tiefbohrung (Stufe ${L('metal')})</td>${cell(fmt(30 * g(L('metal')) * pc('metal') * pr.f * sp))}${cell('0')}${cell('0')}${use('metal', 10)}<td>${shareSelect(v, 'metal')}</td></tr>`,
-    `<tr><td>Psikristall-Steinbruch (Stufe ${L('crystal')})</td>${cell('0')}${cell(fmt(20 * g(L('crystal')) * pc('crystal') * pr.f * sp))}${cell('0')}${use('crystal', 10)}<td>${shareSelect(v, 'crystal')}</td></tr>`,
-    `<tr><td>Promethium-Raffinerie (Stufe ${L('deut')})</td>${cell('0')}${cell('0')}${cell(fmt(pr.d + fu.d))}${use('deut', 20)}<td>${shareSelect(v, 'deut')}</td></tr>`,
-    `<tr><td>Sonnenkathedrale (Stufe ${L('solar')})</td>${cell('0')}${cell('0')}${cell('0')}${cell(fmt(pr.eProd - eSat - fu.e), 'n good')}<td>${shareSelect(v, 'solar')}</td></tr>`,
-    `<tr><td>Sonnenreliquiare (${fmt(P.ships.sat ?? 0)})</td>${cell('0')}${cell('0')}${cell('0')}${cell(fmt(eSat), 'n good')}<td>${shareSelect(v, 'sat')}</td></tr>`,
-    fusionRow(v, fu),
-  ].join('');
-}
-
-export function resources(v: V): string {
-  const { P, R, s } = v;
-  const pr = production(P, s.cfg, R.research);
-  const cp = caps(P, s.cfg);
-  return `<h2>Rohstoffe auf ${esc(P.name)}</h2><div class="box"><div class="hd">Produktion pro Stunde (Produktionsfaktor ${Math.round(pr.f * 100)} %)</div><div class="bd"><table>
- <tr><th></th><th class="n">Adamant</th><th class="n">Psikristall</th><th class="n">Promethium</th><th class="n">Energie</th><th>Leistung</th></tr>
- ${producerRows(v)}
- <tr><th>Lagerkapazität</th><th class="n">${fmt(cp.m)}</th><th class="n">${fmt(cp.c)}</th><th class="n">${fmt(cp.d)}</th><th class="n">-</th><th></th></tr>
- <tr><th>Summe / Stunde</th><th class="n">${fmt(pr.m)}</th><th class="n">${fmt(pr.c)}</th><th class="n">${fmt(pr.d)}</th><th class="n">${fmt(pr.eProd - pr.eUse)}</th><th></th></tr>
- <tr><td>pro Tag</td><td class="n">${fmt(pr.m * 24)}</td><td class="n">${fmt(pr.c * 24)}</td><td class="n">${fmt(pr.d * 24)}</td><td></td><td></td></tr>
- </table></div></div>`;
 }

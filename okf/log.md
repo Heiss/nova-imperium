@@ -2,6 +2,7 @@
 
 ## 2026-11-14
 
+* **Code**: #114 (ProducerTable) built: the owner's decisions for the last pull request; the resources page is `ProducerTable.svelte`, mounted like the buildings, with its rows from the new core function `producerRows()` (same list, factor `f` and throttled share as `production()`), checked against `prod()` by a property test; the shipyard energy line and the buildings' use at the next level come from `pieceEnergy()` and `useAt()`, the plural „Sonnenreliquiare“ and „je Reliquiar“ are text fields of the entry; a scan test of `src` fails on comparisons with a catalog key, with a named allow-list that may only shrink (#115, #116, `TODO-issue` for the lab and shipyard locks, `TODO-owner` for words equal to a key); the open [V] of §1 confirmed; no visible change (see [Design patterns](/architecture/patterns.md), [Test strategy](/ops/testing.md)).
 * **Code**: #114 (flight) built: the owner's decisions for the flight group; every ship that flies exports the component `mobile` (`{ cargo, speed, fuel, drive, drives? }`, the drive switch as data) with a contract test; the Sonnenreliquiar has none, its flight values are the core constant `STATIONARY`, and `canFly` is „has `mobile`“; `flight.ts` reads it through `src/core/components/mobile.ts`, which now holds `DRIVE_BONUS` and `DriveKey`; `SHIPS` deeply equal, speed, fuel and cargo bit-identical by a property test against the old `flight.ts` (see [Design patterns](/architecture/patterns.md), [Test strategy](/ops/testing.md)).
 
 ## 2026-11-13
