@@ -2,7 +2,13 @@
 // loot, rebuilt defense, an audit entry and two reports (seeded random).
 import { describe, expect, it } from 'vitest';
 import type { Fleet, Levels } from '../../../core/types.ts';
-import { addPlanet, addUser, testCtx } from '../../../server/test-helpers.ts';
+import {
+  addPlanet,
+  addUser,
+  queuedPushes,
+  subscribePush,
+  testCtx,
+} from '../../../server/test-helpers.ts';
 import { onArrive, plunder, rebuild } from './arrive.server.ts';
 import * as rules from './rules.ts';
 import { canSend } from './rules.ts';
@@ -165,5 +171,16 @@ describe('attack', () => {
     expect(ctx.reports.ofPlayer('u_Anna')[0]).toMatchObject({
       debris: { m: 0, c: 0 },
     });
+  });
+
+  it('pushes the battle report to the attacker and the attack to the defender (#192)', () => {
+    const { ctx, f, at } = setup({ bs: 20, lc: 50 }, { rl: 2 });
+    subscribePush(ctx, 'u_Anna');
+    subscribePush(ctx, 'u_Bert');
+    onArrive(ctx, f, at);
+    expect(queuedPushes(ctx)).toEqual([
+      { user: 'u_Anna', kind: 'messages', topic: 'fleet' },
+      { user: 'u_Bert', kind: 'messages', topic: 'attacked' },
+    ]);
   });
 });

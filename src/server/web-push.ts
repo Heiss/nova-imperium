@@ -2,7 +2,12 @@ import { createHash } from 'node:crypto';
 import { generateVAPIDKeys, sendNotification } from 'web-push';
 import { settle } from '../core/settle.ts';
 import { fail, universe, type Ctx } from './game/context.ts';
-import { queuePush, scheduleShipyard, type PushKind } from './push-store.ts';
+import {
+  orderPush,
+  queuePush,
+  scheduleShipyard,
+  type PushKind,
+} from './push-store.ts';
 
 const TITLES: Record<PushKind, string> = {
   buildings: 'Das Werk ist vollbracht',
@@ -100,11 +105,19 @@ function scheduleCurrentOrders(ctx: Ctx, uid: string): void {
   const now = ctx.now();
   const research = ctx.players.get(uid)?.rq;
   if (research && research.end > now)
-    queuePush(ctx, uid, 'research', String(research.start), research.end);
+    queuePush(
+      ctx,
+      uid,
+      orderPush('research', String(research.start), research.end),
+    );
   for (const planet of ctx.planets.ofOwner(uid)) {
     const p = settle(planet, now, universe(ctx));
     if (p.bq)
-      queuePush(ctx, uid, 'buildings', `${p.id}:${p.bq.start}`, p.bq.end);
+      queuePush(
+        ctx,
+        uid,
+        orderPush('buildings', `${p.id}:${p.bq.start}`, p.bq.end),
+      );
     scheduleShipyard(ctx, p);
   }
 }
@@ -141,6 +154,17 @@ export function vapidKeys(ctx: Ctx): { publicKey: string; privateKey: string } {
 
 function pending(ctx: Ctx, now: number): Job[] {
   ctx.db.prepare('DELETE FROM push_jobs WHERE due <= ?').run(now - TTL * 1000);
+  // A due push of a kind its player switched off is dropped (#192).
+  ctx.db
+    .prepare(
+      `
+    DELETE FROM push_jobs WHERE retry_at <= ? AND topic IN (
+      SELECT o.topic FROM push_off o JOIN push_subscriptions s USING (user_id)
+      WHERE s.endpoint = push_jobs.endpoint
+    )
+  `,
+    )
+    .run(now);
   return ctx.db
     .prepare(
       `

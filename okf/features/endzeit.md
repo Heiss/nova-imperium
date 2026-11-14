@@ -39,7 +39,7 @@ group fights one huge battle.
 * **[E]** Nothing is taken away; the gift comes on top. The noob protection
   is unchanged.
 * **[E]** Storage (2026-11-14): the mission stays `deploy` („Verlegung“);
-  the new column `fleets.gift` (migration 17) blocks the recall in server
+  the new column `fleets.gift` (migration 18) blocks the recall in server
   and client, triggers the upgrades on arrival and selects the origin label.
 * **[E]** Origin: `from` is the home planet itself; the deploy rule „other
   than the start planet“ does not apply to the gift. The fleet list shows
@@ -47,6 +47,12 @@ group fights one huge battle.
 * **[E]** Arrival: only the message „Die Gabe des Gottkaisers ist
   eingetroffen.“ with push, instead of „Verlegung erreicht“; the sentence is
   title and text (2026-11-14). The start message has the title „Endzeit“.
+* **[V]** Push kinds of [Push settings per kind](/features/push-settings.md)
+  (#192): the arrival is the report of an own fleet at its target, like the
+  Verlegung's, so the kind `fleet` („Eigene Flotten: Ankunft, Bericht und
+  Rückkehr“); the start message is the owner's message to every player, so
+  the kind `announcement` („Servernachrichten“). The confirmed list of
+  #192 predates the Endzeit and does not name it.
 * **[E]** Flight time: an input in the confirmation dialog, 1 minute to
   72 h; it applies only to this trigger, fleets in flight keep their time;
   real time, not scaled by the universe speed.
@@ -125,16 +131,16 @@ group fights one huge battle.
 * `src/server/game/endzeit.test.ts`: admin only; who gets it (suspended and
   admin accounts, not a player without a planet); the fleet (from and to the
   home planet, cargo, fuel 0, flight time not scaled, no slot); the start
-  message with push; the flight time range; once per round and again after
+  message with push (kind `announcement`); the flight time range; once per round and again after
   a new round, the default kept; the default from the universe settings; the audit detail; no recall; the points of the ships from
   the trigger and of the levels from the arrival; the arrival (ships, cargo
-  above the storage, levels, home planet only, the message, no „Verlegung
-  erreicht“); a cancelled and refunded build or research, a higher one
+  above the storage, levels, home planet only, the message with push (kind `fleet`), no
+  „Verlegung erreicht“); a cancelled and refunded build or research, a higher one
   kept.
 * `src/server/game/endzeit-battle.test.ts`: one battle of two full gift
   fleets with the gift's research, measured (about 10 ms on the build
   machine, 6 rounds).
-* `src/features/missions/deploy/deploy.test.ts`, `upgrades/migration-17.test.ts`,
+* `src/features/missions/deploy/deploy.test.ts`, `upgrades/migration-18.test.ts`,
   `src/server/db/repos/admin.test.ts`, `src/server/http/app.routes.test.ts`
   (audit as `admin.write`); `src/core/universe.test.ts` (the setting
   `endzeitMinutes`); E2E „the admin rings in the Endzeit …“ (the dialog

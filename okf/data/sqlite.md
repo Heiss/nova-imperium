@@ -179,10 +179,18 @@ column. Fleets in flight keep every column and their ships
 (`upgrades/migration-16.test.ts`). The table `debris` of migration 15 is
 used from #45 on: one row per position, added up by every battle there.
 
-Migration 17 (issue #161, see [Endzeit](/features/endzeit.md)) adds
+Migration 17 (issue #192, see [Push settings per kind](/features/push-settings.md))
+adds the table `push_off` (player with `ON DELETE CASCADE`, kind, primary
+key over both): one row per push kind a player switched off, so every kind
+is on by default. It adds `push_jobs.topic`, the kind of a queued push;
+queued pushes of the kinds `buildings`, `research`, `shipyard` and `fleet`
+get that kind, queued report pushes (`messages`) get none and are delivered
+as before (`upgrades/migration-17.test.ts`).
+
+Migration 18 (issue #161, see [Endzeit](/features/endzeit.md)) adds
 `fleets.gift` (`INTEGER NOT NULL DEFAULT 0`, CHECK `0` or `1`): the gift
 fleet of the admin's „Endzeit“. Fleets in flight keep every column and get
-0 (`upgrades/migration-17.test.ts`). Only a gift writes the column, so a
+0 (`upgrades/migration-18.test.ts`). Only a gift writes the column, so a
 fleet never stops being a gift and the earlier upgrade tests still save
 fleets at their own version.
 
@@ -213,7 +221,7 @@ tests together with an own test for each changing migration).
   existing rows needs its own test `src/server/db/upgrades/migration-<n>.test.ts`
   that checks the data after the upgrade. The decision is made by the effect on
   generated data, not by the SQL text; `ALTER TABLE … ADD COLUMN` counts as a
-  change. Migrations 7, 9, 10, 11, 13, 14, 15, 16 and 17 have such tests; pure `CREATE` migrations need
+  change. Migrations 7, 9, 10, 11, 13, 14, 15, 16, 17 and 18 have such tests; pure `CREATE` migrations need
   none (migration 12 has one anyway, for its CHECK and cascade).
 * **[E]** A self-test proves that the checks find a migration that fails on
   existing data and that the classification tells changes from new tables.

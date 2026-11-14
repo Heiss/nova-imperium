@@ -2,7 +2,13 @@ import Database from 'better-sqlite3';
 import { describe, expect, it } from 'vitest';
 import { settle } from '../../core/settle.ts';
 import type { Fleet } from '../../core/types.ts';
-import { addPlanet, addUser, testCtx } from '../test-helpers.ts';
+import {
+  addPlanet,
+  addUser,
+  queuedPushes,
+  subscribePush,
+  testCtx,
+} from '../test-helpers.ts';
 import {
   arrive,
   comeHome,
@@ -120,6 +126,14 @@ describe('arrival', () => {
     expect(titles(ctx, 'u_Anna')).toEqual(['Flotte kehrt um']);
     arrive(ctx, fleet(ctx, { id: 'f2', to: 'p1_1_5' }));
     expect(ctx.fleets.get('f2')?.state).toBe('back');
+  });
+  it('pushes a turned back fleet as an own fleet (#192)', () => {
+    const { ctx } = setup();
+    subscribePush(ctx, 'u_Anna');
+    arrive(ctx, fleet(ctx, { to: 'p9_9_9' }));
+    expect(queuedPushes(ctx)).toEqual([
+      { user: 'u_Anna', kind: 'messages', topic: 'fleet' },
+    ]);
   });
   it('delivers a transport and empties the cargo', () => {
     const { ctx } = setup();
@@ -348,6 +362,25 @@ describe('coming home', () => {
       title: 'Rückkehr zu Alpha [1:1:5]',
       text: 'Deine Flotte ist zurück und bringt Adamant 1 · Psikristall 2 · Promethium 3 mit.',
     });
+  });
+  it('pushes the return as an own fleet that opens the fleet view, with or without a report (#192)', () => {
+    const { ctx } = setup();
+    subscribePush(ctx, 'u_Anna');
+    comeHome(ctx, fleet(ctx, { state: 'back' }));
+    comeHome(
+      ctx,
+      fleet(ctx, {
+        id: 'f2',
+        mission: 'spy',
+        state: 'back',
+        ships: { probe: 1 },
+      }),
+    );
+    expect(ctx.reports.ofPlayer('u_Anna')).toHaveLength(1);
+    expect(queuedPushes(ctx)).toEqual([
+      { user: 'u_Anna', kind: 'fleet', topic: 'fleet' },
+      { user: 'u_Anna', kind: 'fleet', topic: 'fleet' },
+    ]);
   });
   it('a spy fleet comes home quietly unless recalled; an empty fleet reports without cargo', () => {
     const { ctx } = setup();

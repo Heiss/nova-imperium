@@ -10,6 +10,7 @@ import type { User } from '../db/repos/players.ts';
 import * as A from './actions.ts';
 import { reset, saveSettings } from './admin.ts';
 import { endzeit } from './endzeit.ts';
+import { pushOptions } from '../push-options.ts';
 import { tick } from './arrival.ts';
 import { type Ctx, fail } from './context.ts';
 import { recall, send } from './fleet-actions.ts';
@@ -31,6 +32,7 @@ export const ACTIONS: Record<string, A.Action> = {
   pct: A.pct,
   rename: A.rename,
   options: A.options,
+  pushOptions,
   read: A.read,
   delrep: A.delrep,
   delall: A.delall,

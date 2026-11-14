@@ -107,12 +107,13 @@ export const endzeit: Action = (ctx, u, d, event) => {
     const home = ctx.planets.home(player.id);
     if (!home) continue;
     ctx.fleets.save(giftFleet(ctx, home, dep, arr));
-    addReport(ctx, player.id, {
-      time: dep,
-      type: 'info',
-      title: 'Endzeit',
-      text: START_TEXT,
-    });
+    // The owner's message to every player: a server announcement (#192).
+    addReport(
+      ctx,
+      player.id,
+      { time: dep, type: 'info', title: 'Endzeit', text: START_TEXT },
+      { topic: 'announcement' },
+    );
     recipients++;
   }
   ctx.admin.putSettings([[ENDZEIT_ROUND, round]]);
@@ -185,11 +186,12 @@ export function giftArrive(ctx: Ctx, f: Fleet, t: Planet): void {
   const owner = ctx.players.get(f.owner);
   if (owner) raiseResearch(ctx, owner, t, f.arr, need.r);
   ctx.planets.save(t);
-  addReport(ctx, f.owner, {
-    time: f.arr,
-    type: 'info',
-    title: ARRIVAL_TEXT,
-    text: ARRIVAL_TEXT,
-  });
+  // The report of an own fleet at its target, as the Verlegung's (#192).
+  addReport(
+    ctx,
+    f.owner,
+    { time: f.arr, type: 'info', title: ARRIVAL_TEXT, text: ARRIVAL_TEXT },
+    { topic: 'fleet' },
+  );
   ctx.fleets.delete(f.id);
 }

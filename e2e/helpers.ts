@@ -195,3 +195,17 @@ export const galaxyRow = (page: Page, player: string): Locator =>
   page.locator('tr').filter({
     has: page.locator('td', { hasText: new RegExp(`^${player} \\(Platz`) }),
   });
+
+/**
+ * The servers under test run without Web Push, which needs an HTTPS address.
+ * The options show the push kinds only with it (#192), so this page gets the
+ * answer a server with Web Push gives: the real policy with `webPush: true`.
+ * Everything else, saving the kinds included, goes to the real server.
+ */
+export async function withWebPush(page: Page): Promise<void> {
+  await page.route('**/api/account/policy', async (route) => {
+    const response = await route.fetch();
+    const policy = (await response.json()) as Record<string, unknown>;
+    await route.fulfill({ response, json: { ...policy, webPush: true } });
+  });
+}

@@ -750,6 +750,7 @@ describe('account security', () => {
     });
     expect((await call('GET', '/api/account/policy')).json).toEqual({
       passwordMinLength: 10,
+      webPush: false,
     });
     const invite = await call('POST', '/api/admin/invite', {
       email: 'policy@example.org',

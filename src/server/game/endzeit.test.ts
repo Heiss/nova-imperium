@@ -4,7 +4,13 @@ import { SHIPS } from '../../core/catalog.ts';
 import { giftCargo, giftLevels, giftShips } from '../../core/endzeit.ts';
 import { DEFAULT_UNIVERSE } from '../../core/universe.ts';
 import type { Fleet } from '../../core/types.ts';
-import { addPlanet, addUser, type TestCtx, testCtx } from '../test-helpers.ts';
+import {
+  addPlanet,
+  addUser,
+  queuedPushes,
+  type TestCtx,
+  testCtx,
+} from '../test-helpers.ts';
 import { tick } from './arrival.ts';
 import { runAction } from './dispatch.ts';
 import {
@@ -112,6 +118,10 @@ describe('ringing in the Endzeit', () => {
     );
     expect(ctx.reports.ofPlayer('u_Carl')).toEqual([]);
     expect(pushes(ctx, 'messages')).toHaveLength(1);
+    // A server announcement in the push options (#192).
+    expect(queuedPushes(ctx)).toEqual([
+      { user: 'u_Bert', kind: 'messages', topic: 'announcement' },
+    ]);
   });
 
   it('takes a flight time of 1 minute to 72 h, whole minutes', () => {
@@ -273,6 +283,11 @@ describe('the gift arrives', () => {
       reports.some((r) => String(r.title).startsWith('Verlegung erreicht')),
     ).toBe(false);
     expect(pushes(ctx, 'messages')).toHaveLength(2);
+    // The start is an announcement, the arrival an own fleet's report (#192).
+    expect(queuedPushes(ctx)).toEqual([
+      { user: 'u_Anna', kind: 'messages', topic: 'announcement' },
+      { user: 'u_Anna', kind: 'messages', topic: 'fleet' },
+    ]);
     // Bert's gift arrived at the same time.
     expect(ctx.planets.home('u_Bert')!.b).toMatchObject(need.b);
   });

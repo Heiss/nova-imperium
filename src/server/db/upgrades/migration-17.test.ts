@@ -2,48 +2,50 @@ import { describe, expect, it } from 'vitest';
 import { databaseAt } from '../../../test/migrations.ts';
 import { migrate } from '../database.ts';
 import { MIGRATIONS } from '../schema.ts';
-import { Store } from '../store.ts';
 
-// Migration 17 adds fleets.gift, the gift fleet of the „Endzeit“ (#161).
+// Migration 17 adds the push kinds a player switched off and the kind of
+// each queued push (issue #192).
 describe('upgrade to migration 17', () => {
-  it('keeps fleets in flight as they were; none of them is a gift', () => {
+  it('keeps queued pushes; orders and fleets get their kind, reports none', () => {
     const db = databaseAt(16);
     db.exec(`
-      INSERT INTO users (id, name, salt, pw_hash, created) VALUES ('u_Anna', 'Anna', 's', 'h', 1);
-      INSERT INTO fleets (id, owner, from_planet, from_g, from_s, from_p, to_planet, to_g, to_s, to_p,
-        mission, cargo_m, cargo_c, cargo_d, dep, arr, ret, state, recalled, fuel)
-      VALUES ('f1', 'u_Anna', 'p1_1_5', 1, 1, 5, 'p1_1_6', 1, 1, 6,
-          'deploy', 100.5, 20, 3, 1, 2, 3, 'out', 0, 41),
-        ('f2', 'u_Anna', 'p1_1_5', 1, 1, 5, 'd1_2_6', 1, 2, 6,
-          'harvest', 0, 0, 0, 4, 5, 6, 'back', 1, 7);
-      INSERT INTO fleet_ships VALUES ('f1', 'sc', 2), ('f2', 'recycler', 3);
+      INSERT INTO users (id, name, salt, pw_hash, created) VALUES ('u1', 'Anna', 's', 'h', 1);
+      INSERT INTO push_subscriptions VALUES ('https://push.example/1', 'u1', 'k', 'a');
+      INSERT INTO push_jobs (endpoint, kind, event_key, due, retry_at, attempts, body)
+        VALUES ('https://push.example/1', 'buildings', 'p1:1', 2.5, 3.5, 1, NULL),
+               ('https://push.example/1', 'research', '7', 4, 4, 0, NULL),
+               ('https://push.example/1', 'shipyard', 'p1:9', 5, 5, 0, NULL),
+               ('https://push.example/1', 'fleet', 'f1', 6, 6, 0, NULL),
+               ('https://push.example/1', 'messages', 'r1', 7, 7, 2, 'Servernachricht: Hallo');
     `);
     const before = db
-      .prepare('SELECT * FROM fleets ORDER BY id')
+      .prepare('SELECT * FROM push_jobs ORDER BY rowid')
       .all() as Record<string, unknown>[];
     expect(migrate(db, MIGRATIONS.slice(0, 17))).toBe(1);
-    expect(db.prepare('SELECT * FROM fleets ORDER BY id').all()).toEqual(
-      before.map((row) => ({ ...row, gift: 0 })),
+    expect(db.prepare('SELECT * FROM push_jobs ORDER BY rowid').all()).toEqual(
+      before.map((row) => ({
+        ...row,
+        topic: row.kind === 'messages' ? null : row.kind,
+      })),
     );
-    const store = new Store(db);
-    expect(store.fleet('f1')).not.toHaveProperty('gift');
-    expect(store.fleet('f2')).toMatchObject({
-      mission: 'harvest',
-      ships: { recycler: 3 },
-      recalled: true,
-    });
-    // Both count as fleet slots; a gift does not, and it reads back as one.
-    expect(store.fleetCount('u_Anna')).toBe(2);
-    store.saveFleet({ ...store.fleet('f1')!, id: 'f3', gift: true });
-    expect(store.fleet('f3')).toMatchObject({ id: 'f3', gift: true });
-    expect(store.fleetCount('u_Anna')).toBe(2);
-    // A later save of a gift keeps it a gift.
-    store.saveFleet({ ...store.fleet('f3')!, state: 'back' });
-    expect(store.fleet('f3')).toMatchObject({ state: 'back', gift: true });
-    expect(() => db.exec("UPDATE fleets SET gift = 2 WHERE id = 'f1'")).toThrow(
-      'CHECK',
+    expect(db.prepare('SELECT * FROM push_off').all()).toEqual([]);
+    db.close();
+  });
+
+  it('stores each kind once per player and forgets them with the account', () => {
+    const db = databaseAt(17);
+    db.exec(`
+      INSERT INTO users (id, name, salt, pw_hash, created) VALUES ('u1', 'Anna', 's', 'h', 1);
+      INSERT INTO push_off VALUES ('u1', 'news'), ('u1', 'fleet');
+    `);
+    expect(() => db.exec("INSERT INTO push_off VALUES ('u1', 'news')")).toThrow(
+      /UNIQUE constraint failed/,
     );
-    expect(db.pragma('foreign_key_check')).toEqual([]);
+    expect(() => db.exec("INSERT INTO push_off VALUES ('u2', 'news')")).toThrow(
+      /FOREIGN KEY constraint failed/,
+    );
+    db.exec("DELETE FROM users WHERE id = 'u1'");
+    expect(db.prepare('SELECT * FROM push_off').all()).toEqual([]);
     db.close();
   });
 });

@@ -1,6 +1,14 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import { cli, galaxyRow, nav, register, seed, uniqueName } from './helpers.ts';
+import {
+  cli,
+  galaxyRow,
+  nav,
+  register,
+  seed,
+  uniqueName,
+  withWebPush,
+} from './helpers.ts';
 
 // Automated accessibility check (axe, WCAG 2.1 A and AA), as in muffelblog. It
 // finds a part of the problems only: it does not replace a look with a screen
@@ -180,6 +188,24 @@ test.describe('accessibility (axe)', () => {
     // Only looked at: the gift would go to every player of this server.
     await page.getByRole('button', { name: 'Abbrechen' }).click();
     cli('unadmin', name);
+    expect(found).toEqual([]);
+  });
+
+  test('the options with the push kinds have no violations, on and off (#192)', async ({
+    page,
+  }) => {
+    // The push kinds show only on a server with Web Push (#192).
+    await withWebPush(page);
+    await register(page, uniqueName('AxePush'));
+    await nav(page, 'help');
+    const found: string[] = [];
+    const box = page.getByRole('checkbox', { name: 'Servernachrichten' });
+    await expect(box).toBeChecked();
+    found.push(...(await violations(page)).map((v) => `on: ${v}`));
+    await box.uncheck();
+    await expect(page.locator('.toast').last()).toContainText('Gespeichert.');
+    await expect(box).not.toBeChecked();
+    found.push(...(await violations(page)).map((v) => `off: ${v}`));
     expect(found).toEqual([]);
   });
 
