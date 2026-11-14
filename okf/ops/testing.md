@@ -316,7 +316,13 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   118: planets and moons, names with markup, foreign, own, returning and
   gift fleets of every mission, unknown owners and ships, the three
   queues, players missing from the highscore), with the same normalizer
-  as the lists, now shared in `src/test/markup.ts`; a second case keeps
+  as the lists, now shared in `src/test/markup.ts`; it decodes `&quot;`
+  only in the text between the tags and keeps it escaped in an attribute
+  value, so an escaped quote never equals the end of the value and the
+  start of another attribute (CodeRabbit on #210: before, `alt="x&quot;
+  title=&quot;y"` equalled `alt="x" title="y"`); the generated names
+  include one that turns into an attribute in `alt` without that escaping,
+  and the moon picture is frozen with the view; a second case keeps
   the list „Flotten unterwegs“ of the fleet view equal to the frozen
   `fleetTable()`, and a third checks that the cases reach every branch.
   Checked by breaking the component (an attribute, the space before

@@ -17,7 +17,6 @@ import type { Levels, Mission, Planet } from '../core/types.ts';
 import { diameterLine } from '../client/logic/fields.ts';
 import { coords, dt, esc, fmt } from '../client/logic/format.ts';
 import { fleetEnd, nameOf, ranks, sortFleets } from '../client/logic/game.ts';
-import { moonPicture } from '../client/logic/moon.ts';
 import { planetLook } from '../client/logic/planet.ts';
 import { client } from '../client/logic/state.svelte.ts';
 import type { ClientFleet, GameState } from '../client/logic/types.ts';
@@ -95,6 +94,10 @@ function activities(v: V): string {
     : '<span class="dim">Nichts in Arbeit – deine Minen langweilen sich.</span>';
 }
 
+/** frozen: moonPicture() of src/client/logic/moon.ts, the name in `alt`. */
+const moonPicture = (name: string, size: number): string =>
+  `<img class="moon" src="/icons/moon.svg" alt="${esc(name)}" width="${size}" height="${size}">`;
+
 /** The picture and the kind of the shown place: a planet or a moon (#53). */
 const look = (P: V['P']): { picture: string; label: string; type: string } =>
   P.kind === 'moon'
@@ -148,7 +151,17 @@ const levels = (keys: string[], max: number): fc.Arbitrary<Levels> =>
     { requiredKeys: [] },
   ) as fc.Arbitrary<Levels>;
 
-const NAMES = ['Heimat', 'Kolonie', 'Mond <b>&"\'</b>', 'Ödland'] as const;
+/**
+ * The last name becomes an attribute boundary in `alt` when its quotes are
+ * not escaped (CodeRabbit on #210).
+ */
+const NAMES = [
+  'Heimat',
+  'Kolonie',
+  'Mond <b>&"\'</b>',
+  'Ödland',
+  'Nord" b="Süd',
+] as const;
 /** u1 is the player; u5 is unknown to the list of players. */
 const OWNERS = ['u1', 'u2', 'u3', 'u4', 'u5'] as const;
 
@@ -271,6 +284,7 @@ const MARKS = [
   'Felder)',
   '(Platz - von',
   'Mond &lt;b>&amp;"\'&lt;/b> (Mond)',
+  'alt="Nord&quot; b=&quot;Süd (Mond)"',
   'class="fl-back"',
   ...Object.keys(MISSION).map((m) => `class="fl-${m}"`),
 ];

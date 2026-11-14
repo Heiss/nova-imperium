@@ -442,6 +442,24 @@ describe('CatalogList against the views before #118', () => {
     expect(normalize('<span>a</span> <span>b</span>')).not.toBe(
       normalize('<span>a</span><span>b</span>'),
     );
+    // An escaped quote in a value never equals the end of the value and the
+    // start of another attribute (CodeRabbit on #210).
+    expect(normalize('<img alt="x&quot; title=&quot;y">')).not.toBe(
+      normalize('<img alt="x" title="y">'),
+    );
+    expect(normalize('<img alt="x&quot; title=&quot;y">')).toBe(
+      '<img alt="x&quot; title=&quot;y">',
+    );
+    // In a value, > and ' are decoded as in the text; a > ends no tag.
+    expect(normalize('<img alt="a&gt;b&#39;c" src="s">')).toBe(
+      normalize('<img src="s" alt="a>b\'c">'),
+    );
+    expect(normalize('<div title="a>b"> x </div> y')).toBe(
+      '<div title="a>b">x</div>y',
+    );
+    expect(normalize('<b title="&quot;">&quot;</b>')).toBe(
+      '<b title="&quot;">"</b>',
+    );
   });
 
   it.each(KINDS)('renders the %s list as before', (kind) => {
