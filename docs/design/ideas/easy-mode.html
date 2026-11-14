@@ -411,6 +411,63 @@
         opacity: 0.75;
         margin: 8px 0 0;
       }
+      .sort {
+        position: fixed;
+        inset: 0;
+        z-index: 11;
+        background: rgba(0, 0, 0, 0.7);
+        display: none;
+        align-items: center;
+        justify-content: center;
+      }
+      .sort.on {
+        display: flex;
+      }
+      .sortcard {
+        background: #fff7e6;
+        border: 6px solid #f2b84b;
+        border-radius: 26px;
+        padding: 10px 16px 8px;
+        text-align: center;
+        color: #5a3a1a;
+        font-family: 'Comic Sans MS', 'Comic Neue', system-ui, sans-serif;
+        box-shadow: 0 0 50px #f2b84b88;
+      }
+      .sorth {
+        font:
+          900 28px 'Comic Sans MS',
+          'Comic Neue',
+          system-ui,
+          sans-serif;
+        margin: 0;
+        color: #e0453a;
+      }
+      .sorts {
+        margin: 2px 0 8px;
+        font-size: 16px;
+      }
+      #sortn {
+        background: #5a3a1a;
+        color: #fff;
+        border-radius: 10px;
+        padding: 1px 8px;
+        font-weight: 800;
+      }
+      #sortcv {
+        display: block;
+        border-radius: 14px;
+        width: 640px;
+        height: 360px;
+      }
+      .sortmsg {
+        font:
+          900 22px 'Comic Sans MS',
+          'Comic Neue',
+          system-ui,
+          sans-serif;
+        min-height: 30px;
+        margin: 6px 0 0;
+      }
     </style>
   </head>
   <body>
@@ -503,7 +560,7 @@
           <canvas id="run" width="300" height="430"></canvas>
         </div>
         <p class="dim" style="font-size: 12px">
-          Eigener Mini-Runner, läuft während des Wartens. Kein Einfluss aufs
+          Eigener 3D-Mini-Runner, läuft während des Wartens. Kein Einfluss aufs
           Spiel.
         </p>
       </aside>
@@ -557,6 +614,7 @@
     </div>
     <div class="praise" id="praise"></div>
     <script>
+      window.sortReady = new Promise((r) => (window.__sortResolve = r));
       const $ = (id) => document.getElementById(id);
       const wait = (ms) => new Promise((r) => setTimeout(r, ms));
       const center = (el) => {
@@ -737,9 +795,16 @@
         );
         arrowAt($('go'), 'HIER!!');
         await wait(700);
+        window.step3Shot = true;
         await moveTo($('go'));
         await click();
         hideArrow();
+        say(
+          'Moment! Erst aufräumen. 🧸 <span class="dim">(Psst: Der Bau läuft schon.)</span>',
+          'FAST FERTIG · ERST AUFRÄUMEN 🧸',
+        );
+        await window.sortReady;
+        await window.sortGame();
         $('go').style.display = 'none';
         $('run-state').innerHTML =
           '<div class="running">⏳ Wird gebaut … Stufe 4</div><div class="bar"><b id="pb"></b></div>';
@@ -777,88 +842,484 @@
           }
         }
       })();
-      // Servitor-Sprint: an original three-lane runner (own shapes, no art of other games).
-      const cv = $('run'),
-        g = cv.getContext('2d');
-      const W = 300,
-        H = 430;
-      let t = 0,
-        lane = 1,
-        score = 0;
-      const obs = [];
-      const laneX = (l) => 60 + l * 90;
-      function draw() {
-        t++;
-        g.fillStyle = '#07050a';
-        g.fillRect(0, 0, W, H);
-        for (let l = 0; l < 3; l++) {
-          g.strokeStyle = '#3b2f22';
-          g.lineWidth = 2;
+    </script>
+    <div class="sort" id="sort">
+      <div class="sortcard">
+        <p class="sorth">Erst aufräumen, dann bauen! 🧸</p>
+        <p class="sorts">
+          Steck jedes Klötzchen ins passende Loch. <span id="sortn">0 / 3</span>
+        </p>
+        <canvas id="sortcv" width="640" height="360"></canvas>
+        <p class="sortmsg" id="sortmsg"></p>
+      </div>
+    </div>
+    <script type="module">
+      // Both 3D scenes of the study: the shape sorter and the runner Servitor-Sprint.
+      import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+      const $ = (id) => document.getElementById(id);
+      const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+      const easeIO = (t) =>
+        t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+      const easeBounce = (t) => {
+        const n = 7.5625,
+          d = 2.75;
+        if (t < 1 / d) return n * t * t;
+        if (t < 2 / d) return n * (t -= 1.5 / d) * t + 0.75;
+        if (t < 2.5 / d) return n * (t -= 2.25 / d) * t + 0.9375;
+        return n * (t -= 2.625 / d) * t + 0.984375;
+      };
+      function tween(o, to, ms, ease = easeIO) {
+        const from = {};
+        for (const k in to)
+          from[k] =
+            k === 'ry'
+              ? o.rotation.y
+              : k === 'rz'
+                ? o.rotation.z
+                : o.position[k];
+        return new Promise((res) => {
+          const t0 = performance.now();
+          (function step(now) {
+            const t = Math.min(1, (now - t0) / ms),
+              e = ease(t);
+            for (const k in to) {
+              const v = from[k] + (to[k] - from[k]) * e;
+              if (k === 'ry') o.rotation.y = v;
+              else if (k === 'rz') o.rotation.z = v;
+              else o.position[k] = v;
+            }
+            t < 1 ? requestAnimationFrame(step) : res();
+          })(t0);
+        });
+      }
+      function woodTex(base, line, rep = 0.3) {
+        const c = document.createElement('canvas');
+        c.width = c.height = 256;
+        const g = c.getContext('2d');
+        g.fillStyle = base;
+        g.fillRect(0, 0, 256, 256);
+        g.strokeStyle = line;
+        for (let i = 0; i < 46; i++) {
+          g.globalAlpha = 0.12 + Math.random() * 0.25;
+          g.lineWidth = 1 + Math.random() * 2;
           g.beginPath();
-          g.moveTo(laneX(l) - 40, 0);
-          g.lineTo(laneX(l) - 40, H);
+          const y0 = Math.random() * 256;
+          for (let x = 0; x <= 256; x += 8) {
+            const y =
+              y0 + Math.sin(x / 30 + i) * 4 + Math.sin(x / 9 + i * 3) * 1.5;
+            x ? g.lineTo(x, y) : g.moveTo(x, y);
+          }
           g.stroke();
         }
-        for (let y = (t * 6) % 40; y < H; y += 40) {
-          g.fillStyle = '#231a14';
-          for (let l = 0; l < 3; l++) g.fillRect(laneX(l) - 30, y, 60, 4);
+        const t = new THREE.CanvasTexture(c);
+        t.wrapS = t.wrapT = THREE.RepeatWrapping;
+        t.repeat.set(rep, rep);
+        t.colorSpace = THREE.SRGBColorSpace;
+        return t;
+      }
+
+      // ---------- shape sorter ----------
+      const sr = new THREE.WebGLRenderer({
+        canvas: $('sortcv'),
+        antialias: true,
+      });
+      sr.setPixelRatio(1);
+      sr.setSize(640, 360, false);
+      sr.shadowMap.enabled = true;
+      const ss = new THREE.Scene();
+      ss.background = new THREE.Color('#3a2616');
+      const sc = new THREE.PerspectiveCamera(38, 640 / 360, 0.1, 100);
+      sc.position.set(0, 9.4, 10.8);
+      sc.lookAt(0, 1.1, 0.7);
+      ss.add(new THREE.HemisphereLight('#fff6e0', '#3a2410', 1.2));
+      const sun = new THREE.DirectionalLight('#fff0d0', 1.8);
+      sun.position.set(4, 10, 6);
+      sun.castShadow = true;
+      sun.shadow.mapSize.set(1024, 1024);
+      Object.assign(sun.shadow.camera, {
+        left: -8,
+        right: 8,
+        top: 8,
+        bottom: -8,
+      });
+      ss.add(sun);
+      const table = new THREE.Mesh(
+        new THREE.PlaneGeometry(40, 40),
+        new THREE.MeshStandardMaterial({
+          map: woodTex('#7a5232', '#3a2412', 2),
+          roughness: 0.9,
+        }),
+      );
+      table.rotation.x = -Math.PI / 2;
+      table.receiveShadow = true;
+      ss.add(table);
+      const inside = new THREE.Mesh(
+        new THREE.PlaneGeometry(5.9, 2.7),
+        new THREE.MeshBasicMaterial({ color: '#120a05' }),
+      );
+      inside.rotation.x = -Math.PI / 2;
+      inside.position.y = 0.01;
+      ss.add(inside);
+      const circle = (r, ox = 0, P = THREE.Shape) => {
+        const s = new P();
+        s.absarc(ox, 0, r, 0, Math.PI * 2, false);
+        return s;
+      };
+      const square = (a, ox = 0, P = THREE.Shape) => {
+        const s = new P();
+        s.moveTo(ox - a / 2, -a / 2);
+        s.lineTo(ox + a / 2, -a / 2);
+        s.lineTo(ox + a / 2, a / 2);
+        s.lineTo(ox - a / 2, a / 2);
+        s.closePath();
+        return s;
+      };
+      const tri = (a, ox = 0, P = THREE.Shape) => {
+        const r = a / Math.sqrt(3),
+          s = new P();
+        for (let k = 0; k < 3; k++) {
+          const an = Math.PI / 2 + (k * 2 * Math.PI) / 3;
+          const x = ox + r * Math.cos(an),
+            y = r * Math.sin(an) - r / 4;
+          k ? s.lineTo(x, y) : s.moveTo(x, y);
         }
-        if (t % 38 === 0)
-          obs.push({
-            l: Math.floor(Math.random() * 3),
-            y: -30,
-            k: Math.random() < 0.3 ? 'coin' : 'box',
-          });
-        for (const o of obs) {
-          o.y += 6;
-          if (o.k === 'box') {
-            g.fillStyle = '#7a2436';
-            g.fillRect(laneX(o.l) - 26, o.y, 52, 30);
-            g.fillStyle = '#ee7660';
-            g.fillRect(laneX(o.l) - 26, o.y, 52, 5);
-          } else {
-            g.fillStyle = '#f1d27a';
-            g.beginPath();
-            g.arc(laneX(o.l), o.y + 15, 10, 0, 7);
-            g.fill();
-          }
-        }
-        const near = obs.find(
-          (o) => o.k === 'box' && o.l === lane && o.y > 250 && o.y < 330,
+        s.closePath();
+        return s;
+      };
+      const HX = { circle: -2, square: 0, tri: 2 };
+      const outer = new THREE.Shape();
+      outer.moveTo(-3, -1.4);
+      outer.lineTo(3, -1.4);
+      outer.lineTo(3, 1.4);
+      outer.lineTo(-3, 1.4);
+      outer.closePath();
+      outer.holes.push(
+        circle(0.78, HX.circle, THREE.Path),
+        square(1.38, HX.square, THREE.Path),
+        tri(1.75, HX.tri, THREE.Path),
+      );
+      const boxGeo = new THREE.ExtrudeGeometry(outer, {
+        depth: 1.8,
+        bevelEnabled: true,
+        bevelThickness: 0.08,
+        bevelSize: 0.08,
+        bevelSegments: 2,
+        curveSegments: 40,
+      });
+      boxGeo.rotateX(-Math.PI / 2);
+      const box = new THREE.Mesh(
+        boxGeo,
+        new THREE.MeshStandardMaterial({
+          map: woodTex('#f2cf98', '#b07a40'),
+          roughness: 0.75,
+        }),
+      );
+      box.castShadow = box.receiveShadow = true;
+      ss.add(box);
+      function block(shape, color) {
+        const g = new THREE.ExtrudeGeometry(shape, {
+          depth: 1,
+          bevelEnabled: true,
+          bevelThickness: 0.06,
+          bevelSize: 0.06,
+          bevelSegments: 2,
+          curveSegments: 32,
+        });
+        g.rotateX(-Math.PI / 2);
+        const m = new THREE.Mesh(
+          g,
+          new THREE.MeshStandardMaterial({
+            color,
+            map: woodTex('#ffffff', '#b8b0a0'),
+            roughness: 0.6,
+          }),
         );
-        if (near)
-          lane =
-            [0, 1, 2].find(
-              (l) =>
-                !obs.some(
-                  (o) => o.k === 'box' && o.l === l && o.y > 230 && o.y < 350,
-                ),
-            ) ?? lane;
-        const px = laneX(lane),
-          py = 360 + Math.sin(t / 3) * 3;
-        g.fillStyle = '#d4a537';
-        g.fillRect(px - 14, py - 30, 28, 30);
-        g.fillStyle = '#f1d27a';
-        g.beginPath();
-        g.arc(px, py - 40, 12, 0, 7);
-        g.fill();
-        g.fillStyle = '#7fd3f5';
-        g.fillRect(px - 7, py - 44, 14, 5);
-        g.fillStyle = '#5a4a3a';
-        g.fillRect(px - 14, py, 10, 12 + Math.sin(t) * 4);
-        g.fillRect(px + 4, py, 10, 12 - Math.sin(t) * 4);
-        for (let i = obs.length - 1; i >= 0; i--) {
-          const o = obs[i];
-          if (o.k === 'coin' && o.l === lane && o.y > 320 && o.y < 380) {
+        m.castShadow = true;
+        ss.add(m);
+        return m;
+      }
+      const blocks = {
+        square: block(square(1.18), '#e0453a'),
+        circle: block(circle(0.66), '#3a7be0'),
+        tri: block(tri(1.48), '#f2c230'),
+      };
+      const START = {
+        square: [-2.7, 3.1, 0.45],
+        tri: [0, 3.3, 0.9],
+        circle: [2.7, 3.0, 0],
+      };
+      const cur = $('cur');
+      const toScreen = (v) => {
+        const p = v.clone().project(sc),
+          r = $('sortcv').getBoundingClientRect();
+        return [
+          r.left + ((p.x + 1) / 2) * r.width,
+          r.top + ((1 - p.y) / 2) * r.height,
+        ];
+      };
+      let held = null;
+      const topOf = (b) => b.position.clone().add(new THREE.Vector3(0, 1.1, 0));
+      function ring() {
+        cur.classList.remove('click');
+        void cur.offsetWidth;
+        cur.classList.add('click');
+      }
+      async function grab(b) {
+        const [x, y] = toScreen(topOf(b));
+        cur.style.left = x + 'px';
+        cur.style.top = y + 'px';
+        await wait(800);
+        ring();
+        held = b;
+        cur.style.transition = 'none';
+        await tween(b, { y: 2.7 }, 450);
+      }
+      async function over(b, hole) {
+        await tween(b, { x: HX[hole], z: 0, ry: 0 }, 850);
+      }
+      async function insert(b) {
+        await tween(b, { y: 1.97 }, 350);
+        await tween(b, { y: -1.3 }, 550, (t) => t * t);
+        b.visible = false;
+        held = null;
+        cur.style.transition = '';
+      }
+      let done = 0;
+      const msg = (t) => ($('sortmsg').textContent = t);
+      function count() {
+        done++;
+        $('sortn').textContent = done + ' / 3';
+        msg(['Richtig! ⭐', 'Super! ⭐⭐', ''][done - 1]);
+      }
+      window.sortGame = async () => {
+        done = 0;
+        $('sortn').textContent = '0 / 3';
+        msg('');
+        for (const k in blocks) {
+          const b = blocks[k];
+          b.visible = true;
+          b.position.set(START[k][0], 0.06, START[k][1]);
+          b.rotation.set(0, START[k][2], 0);
+        }
+        $('sort').classList.add('on');
+        await wait(600);
+        // the wrong try: the cube into the round hole
+        const q = blocks.square;
+        await grab(q);
+        await over(q, 'circle');
+        await tween(q, { y: 1.97 }, 320);
+        msg('Hm … passt nicht. Fast! 🙂');
+        await tween(q, { y: 2.55, rz: 0.25 }, 160);
+        await tween(q, { y: 1.97, rz: -0.2 }, 600, easeBounce);
+        await tween(q, { y: 2.7, rz: 0 }, 300);
+        await wait(300);
+        await over(q, 'square');
+        msg('Probier das eckige Loch!');
+        await insert(q);
+        count();
+        const c = blocks.circle;
+        await grab(c);
+        await over(c, 'circle');
+        await insert(c);
+        count();
+        const t = blocks.tri;
+        await grab(t);
+        await over(t, 'tri');
+        await insert(t);
+        count();
+        window.sortShot = true;
+        msg('ALLES AUFGERÄUMT! 🎉');
+        await wait(1100);
+        $('sort').classList.remove('on');
+      };
+      function sortLoop() {
+        if (held) {
+          const [x, y] = toScreen(topOf(held));
+          cur.style.left = x + 'px';
+          cur.style.top = y + 'px';
+        }
+        if ($('sort').classList.contains('on')) sr.render(ss, sc);
+        requestAnimationFrame(sortLoop);
+      }
+      sortLoop();
+
+      // ---------- Servitor-Sprint, an original three-lane runner in 3D ----------
+      const rr = new THREE.WebGLRenderer({ canvas: $('run'), antialias: true });
+      rr.setPixelRatio(1);
+      rr.setSize(300, 430, false);
+      const rs = new THREE.Scene();
+      rs.background = new THREE.Color('#07050a');
+      rs.fog = new THREE.Fog('#07050a', 14, 42);
+      const rc = new THREE.PerspectiveCamera(55, 300 / 430, 0.1, 80);
+      rc.position.set(0, 3.4, 5.2);
+      rc.lookAt(0, 0.6, -6);
+      rs.add(new THREE.HemisphereLight('#c8b8a0', '#120c08', 0.9));
+      const lamp = new THREE.DirectionalLight('#ffd9a0', 1.6);
+      lamp.position.set(2, 6, 4);
+      rs.add(lamp);
+      const fc = document.createElement('canvas');
+      fc.width = 96;
+      fc.height = 96;
+      const fg = fc.getContext('2d');
+      fg.fillStyle = '#231a14';
+      fg.fillRect(0, 0, 96, 96);
+      fg.fillStyle = '#2e231a';
+      fg.fillRect(4, 4, 88, 40);
+      fg.fillRect(4, 52, 88, 40);
+      fg.fillStyle = '#d4a53755';
+      fg.fillRect(0, 0, 3, 96);
+      fg.fillRect(93, 0, 3, 96);
+      const ft = new THREE.CanvasTexture(fc);
+      ft.wrapS = ft.wrapT = THREE.RepeatWrapping;
+      ft.repeat.set(3, 30);
+      ft.colorSpace = THREE.SRGBColorSpace;
+      const floor = new THREE.Mesh(
+        new THREE.PlaneGeometry(3.9, 60),
+        new THREE.MeshStandardMaterial({ map: ft, roughness: 0.9 }),
+      );
+      floor.rotation.x = -Math.PI / 2;
+      floor.position.z = -24;
+      rs.add(floor);
+      const pillars = [];
+      const pmat = new THREE.MeshStandardMaterial({
+          color: '#3b2f22',
+          roughness: 0.8,
+        }),
+        gmat = new THREE.MeshStandardMaterial({
+          color: '#d4a537',
+          emissive: '#6a4a10',
+          metalness: 0.6,
+          roughness: 0.4,
+        });
+      for (let i = 0; i < 12; i++)
+        for (const side of [-1, 1]) {
+          const p = new THREE.Group();
+          const col = new THREE.Mesh(
+            new THREE.BoxGeometry(0.5, 3.4, 0.5),
+            pmat,
+          );
+          col.position.y = 1.7;
+          p.add(col);
+          const cap = new THREE.Mesh(
+            new THREE.SphereGeometry(0.22, 12, 8),
+            gmat,
+          );
+          cap.position.y = 3.6;
+          p.add(cap);
+          p.position.set(side * 2.4, 0, -i * 4);
+          rs.add(p);
+          pillars.push(p);
+        }
+      const laneX = (l) => (l - 1) * 1.25;
+      const hero = new THREE.Group();
+      const body = new THREE.Mesh(
+        new THREE.BoxGeometry(0.6, 0.7, 0.4),
+        new THREE.MeshStandardMaterial({
+          color: '#d4a537',
+          metalness: 0.5,
+          roughness: 0.5,
+        }),
+      );
+      body.position.y = 0.95;
+      hero.add(body);
+      const head = new THREE.Mesh(
+        new THREE.SphereGeometry(0.26, 16, 12),
+        new THREE.MeshStandardMaterial({ color: '#f1d27a', roughness: 0.5 }),
+      );
+      head.position.y = 1.55;
+      hero.add(head);
+      const visor = new THREE.Mesh(
+        new THREE.BoxGeometry(0.34, 0.08, 0.1),
+        new THREE.MeshStandardMaterial({
+          color: '#7fd3f5',
+          emissive: '#3aa0d0',
+        }),
+      );
+      visor.position.set(0, 1.58, -0.24);
+      hero.add(visor);
+      const lmat = new THREE.MeshStandardMaterial({ color: '#5a4a3a' });
+      const legL = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.6, 0.18), lmat),
+        legR = legL.clone();
+      legL.geometry.translate(0, -0.3, 0);
+      legL.position.set(-0.16, 0.6, 0);
+      legR.position.set(0.16, 0.6, 0);
+      hero.add(legL, legR);
+      rs.add(hero);
+      const things = [];
+      const boxG = new THREE.BoxGeometry(1, 0.9, 0.7),
+        boxM = new THREE.MeshStandardMaterial({
+          color: '#7a2436',
+          emissive: '#300810',
+          roughness: 0.7,
+        });
+      const coinG = new THREE.CylinderGeometry(0.28, 0.28, 0.08, 24),
+        coinM = new THREE.MeshStandardMaterial({
+          color: '#f1d27a',
+          emissive: '#806010',
+          metalness: 0.8,
+          roughness: 0.3,
+        });
+      let lane = 1,
+        score = 0,
+        tick = 0;
+      function runLoop() {
+        tick++;
+        const sp = 0.32;
+        ft.offset.y += sp / 2;
+        for (const p of pillars) {
+          p.position.z += sp;
+          if (p.position.z > 6) p.position.z -= 48;
+        }
+        if (tick % 34 === 0) {
+          const coin = Math.random() < 0.35,
+            m = new THREE.Mesh(coin ? coinG : boxG, coin ? coinM : boxM);
+          m.userData = { l: Math.floor(Math.random() * 3), coin };
+          m.position.set(laneX(m.userData.l), coin ? 0.7 : 0.45, -40);
+          if (coin) m.rotation.x = Math.PI / 2;
+          rs.add(m);
+          things.push(m);
+        }
+        for (const m of things) {
+          m.position.z += sp;
+          if (m.userData.coin) m.rotation.z += 0.1;
+        }
+        const danger = (l) =>
+          things.some(
+            (m) =>
+              !m.userData.coin &&
+              m.userData.l === l &&
+              m.position.z > -7 &&
+              m.position.z < 1,
+          );
+        if (danger(lane)) lane = [1, 0, 2].find((l) => !danger(l)) ?? lane;
+        hero.position.x += (laneX(lane) - hero.position.x) * 0.2;
+        hero.rotation.z = (hero.position.x - laneX(lane)) * 0.3;
+        const s = Math.sin(tick / 3);
+        legL.rotation.x = s * 0.7;
+        legR.rotation.x = -s * 0.7;
+        body.position.y = 0.95 + Math.abs(s) * 0.05;
+        for (let i = things.length - 1; i >= 0; i--) {
+          const m = things[i];
+          if (
+            m.userData.coin &&
+            Math.abs(m.position.z) < 0.5 &&
+            Math.abs(m.position.x - hero.position.x) < 0.6
+          ) {
             score += 10;
-            obs.splice(i, 1);
-          } else if (o.y > H) obs.splice(i, 1);
+            rs.remove(m);
+            things.splice(i, 1);
+          } else if (m.position.z > 6) {
+            rs.remove(m);
+            things.splice(i, 1);
+          }
         }
         score++;
         $('score').textContent = score;
-        requestAnimationFrame(draw);
+        rr.render(rs, rc);
+        requestAnimationFrame(runLoop);
       }
-      draw();
+      runLoop();
+      window.__sortResolve();
     </script>
   </body>
 </html>
