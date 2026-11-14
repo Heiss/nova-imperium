@@ -109,7 +109,7 @@ export function deleteError(
 export function rankNameError(
   name: string,
   ranks: readonly { id: string; name: string }[],
-  except = '',
+  except?: string,
 ): 'length' | 'taken' | null {
   if (name.length < MIN_RANK_NAME || name.length > MAX_RANK_NAME)
     return 'length';
