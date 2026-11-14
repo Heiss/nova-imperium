@@ -1,6 +1,27 @@
+import {
+  GUILD_RIGHTS,
+  MAX_GUILD_RANKS,
+  MAX_RANK_NAME,
+  MIN_RANK_NAME,
+  type GuildRight,
+} from '../../core/guild-ranks.ts';
 import { esc, fmt } from '../logic/format.ts';
-import type { Guild, GuildState } from '../logic/types.ts';
+import type {
+  Guild,
+  GuildRank,
+  GuildRanks,
+  GuildState,
+} from '../logic/types.ts';
 import { box, type V } from './common.ts';
+
+/** The rights as the guild view names them (#163). */
+const RIGHT_TEXT: Record<GuildRight, string> = {
+  applications: 'Bewerbungen annehmen und ablehnen',
+  remove: 'Mitglieder entfernen',
+  assign: 'Ränge an Mitglieder vergeben',
+  profile: 'Gildenname, Kürzel und Text ändern',
+  ranks: 'Ränge verwalten',
+};
 
 const heading = (guild: Guild): string =>
   `[${esc(guild.tag)}] ${esc(guild.name)}`;
@@ -29,36 +50,178 @@ function directory(state: GuildState): string {
   return `<h2>Gilden</h2>${box('Gildenübersicht', list)}${state.own ? '' : box('Neue Gilde', profileForm())}`;
 }
 
-function guildMembership(state: GuildState, g: Guild, uid: string): string {
+/** What the own rank may do in the own guild: its rights and its place. */
+interface Inside {
+  ranks: GuildRanks;
+  uid: string;
+  lead: boolean;
+  /** Place of the own rank; 0 is the Leitung. */
+  at: number;
+  can: (right: GuildRight) => boolean;
+}
+
+function inside(ranks: GuildRanks, uid: string): Inside {
+  const at = ranks.list.findIndex((r) => r.id === ranks.rank);
+  return {
+    ranks,
+    uid,
+    lead: ranks.lead === uid,
+    // The Leitung holds the first rank; no rank stands lowest.
+    at: at < 0 ? Infinity : at,
+    can: (right) => ranks.rights.includes(right),
+  };
+}
+
+/** The place of a member; a member without a rank stands lowest. */
+function placeOf(me: Inside, id: string): number {
+  if (id === me.ranks.lead) return 0;
+  const at = me.ranks.list.findIndex((r) => r.id === me.ranks.members[id]);
+  return at < 0 ? Infinity : at;
+}
+
+function guildMembership(
+  state: GuildState,
+  g: Guild,
+  me: Inside | null,
+): string {
   if (!state.own)
     return `<button data-act="guildApply" data-id="${esc(g.id)}">Bewerben</button>`;
   if (state.own.id !== g.id) return '';
   if (state.own.status === 'pending')
     return '<p>Deine Bewerbung ist offen.</p><button data-act="guildLeave">Bewerbung zurückziehen</button>';
-  if (g.founder !== uid)
+  if (!me?.lead)
     return '<button data-act="guildLeave" data-confirm="Gilde wirklich verlassen?">Gilde verlassen</button>';
-  return g.members.length === 1
-    ? '<button class="red" data-act="guildLeave" data-confirm="Gilde wirklich auflösen?">Gilde auflösen</button>'
-    : '';
+  // Only the Leitung, also while members remain (owner, 2026-11-14).
+  return `<button class="red" data-act="guildDissolve" data-id="${esc(g.id)}">Gilde auflösen</button>`;
 }
 
-function roster(g: Guild, isLead: boolean): string {
+/**
+ * The hand-over: the Leitung chooses its own new rank, preselected the
+ * highest rank below the Leitung (owner, 2026-11-14).
+ */
+export function transferDialog(ranks: GuildRanks, uid: string, name: string) {
+  const options = ranks.list
+    .slice(1)
+    .map((r) => `<option value="${esc(r.id)}">${esc(r.name)}</option>`)
+    .join('');
+  return `<h3 id="dialog-title">Leitung übergeben</h3>
+  <form id="guildtransferform" data-uid="${esc(uid)}">
+    <p>Du übergibst die Gildenleitung an ${esc(name)}.</p>
+    <p><label for="transfer_rank">Dein neuer Rang</label> <select id="transfer_rank">${options}</select></p>
+    <p><button type="submit">Übergeben</button> <button type="button" data-act="closeModal">Abbrechen</button></p>
+  </form>`;
+}
+
+/** Dissolving the guild, confirmed with its tag (owner, 2026-11-14). */
+export function dissolveDialog(g: Guild): string {
+  return `<h3 id="dialog-title">Gilde auflösen</h3>
+  <form id="guilddissolveform">
+    <p>Alle Mitglieder verlassen die Gilde; ihre Ränge und offenen Bewerbungen werden gelöscht. Das kann nicht rückgängig gemacht werden.</p>
+    <p><label for="dissolve_tag">Gib zur Bestätigung das Kürzel ${esc(g.tag)} ein</label><br><input id="dissolve_tag" required autocomplete="off" data-nokeep></p>
+    <p><button type="submit" class="red">Gilde endgültig auflösen</button> <button type="button" data-act="closeModal">Abbrechen</button></p>
+  </form>`;
+}
+
+/** „Rang ändern“: the ranks below the own one, for a member below it. */
+function rankChange(me: Inside, id: string, name: string): string {
+  const options = me.ranks.list
+    .filter((_, i) => i > me.at)
+    .map(
+      (r) =>
+        `<option value="${esc(r.id)}"${r.id === me.ranks.members[id] ? ' selected' : ''}>${esc(r.name)}</option>`,
+    )
+    .join('');
+  return `<select id="rank_of_${esc(id)}" aria-label="Neuer Rang für ${esc(name)}">${options}</select>
+      <button class="small" data-act="guildAssign" data-uid="${esc(id)}">Rang ändern</button>`;
+}
+
+function memberControls(me: Inside, m: Guild['members'][number]): string {
+  if (m.id === me.uid) return '';
+  const lower = placeOf(me, m.id) > me.at;
+  const uid = esc(m.id);
+  return [
+    me.lead
+      ? `<button class="small" data-act="guildMember" data-uid="${uid}" data-transfer="1">Leitung übergeben</button>`
+      : '',
+    lower && me.can('assign') ? rankChange(me, m.id, m.name) : '',
+    lower && me.can('remove')
+      ? `<button class="small red" data-act="guildMember" data-uid="${uid}">Entfernen</button>`
+      : '',
+  ].join(' ');
+}
+
+/** The members; their ranks only for the own guild (owner, #163 D7). */
+function roster(g: Guild, me: Inside | null): string {
+  if (!me) {
+    const rows = g.members
+      .map(
+        (m) =>
+          `<tr><td>${esc(m.name)}</td><td class="n">${fmt(m.points)}</td></tr>`,
+      )
+      .join('');
+    return `<table><tr><th>Spieler</th><th class="n">Punkte</th></tr>${rows}</table>`;
+  }
+  const rankName = (id: string): string =>
+    esc(me.ranks.list.find((r) => r.id === me.ranks.members[id])?.name ?? '–');
   const rows = g.members
-    .map((m) => {
-      const controls =
-        isLead && m.id !== g.founder
-          ? `<button class="small" data-act="guildMember" data-uid="${esc(m.id)}" data-transfer="1">Leitung übergeben</button>
-      <button class="small red" data-act="guildMember" data-uid="${esc(m.id)}">Entfernen</button>`
-          : '';
-      return `<tr><td>${esc(m.name)}</td><td>${m.id === g.founder ? 'Leitung' : 'Mitglied'}</td><td class="n">${fmt(m.points)}</td><td>${controls}</td></tr>`;
-    })
+    .map(
+      (m) =>
+        `<tr><td>${esc(m.name)}</td><td class="rank">${m.id === me.ranks.lead ? esc(me.ranks.list[0]!.name) : rankName(m.id)}</td><td class="n">${fmt(m.points)}</td><td>${memberControls(me, m)}</td></tr>`,
+    )
     .join('');
   return `<table><tr><th>Spieler</th><th>Rang</th><th class="n">Punkte</th><th></th></tr>${rows}</table>`;
+}
+
+function rightsList(rank: GuildRank, at: number): string {
+  if (at === 0) return '<p>Alle Rechte.</p>';
+  if (!rank.rights.length) return '<p>Keine Rechte.</p>';
+  return `<ul>${rank.rights.map((r) => `<li>${RIGHT_TEXT[r]}</li>`).join('')}</ul>`;
+}
+
+function rankEditor(me: Inside, rank: GuildRank, at: number): string {
+  const id = esc(rank.id);
+  const boxes = GUILD_RIGHTS.map(
+    (r) =>
+      `<label class="switch"><input type="checkbox" id="rank_${id}_${r}" data-rank-right="${id}" value="${r}"${rank.rights.includes(r) ? ' checked' : ''}${me.can(r) ? '' : ' disabled'}> ${RIGHT_TEXT[r]}</label>`,
+  ).join('');
+  const isDefault = rank.id === me.ranks.default;
+  const last = at === me.ranks.list.length - 1;
+  return `<div><label for="rank_name_${id}">Rangname</label> <input id="rank_name_${id}" required minlength="${MIN_RANK_NAME}" maxlength="${MAX_RANK_NAME}" value="${esc(rank.name)}">
+      <button class="small" data-act="rankRename" data-rank="${id}">Umbenennen</button></div>
+    <div class="rights">${boxes}</div>
+    <p><button class="small" data-act="rankRights" data-rank="${id}">Rechte speichern</button>
+    ${at - 1 > me.at ? `<button class="small" data-act="rankMove" data-rank="${id}" data-up="1">Nach oben</button>` : ''}
+    ${last ? '' : `<button class="small" data-act="rankMove" data-rank="${id}">Nach unten</button>`}
+    ${isDefault ? '' : `<button class="small red" data-act="rankDelete" data-rank="${id}">Löschen</button>`}</p>`;
+}
+
+function rankEntry(me: Inside, rank: GuildRank, at: number): string {
+  const isDefault = rank.id === me.ranks.default;
+  const body =
+    me.can('ranks') && at > me.at
+      ? rankEditor(me, rank, at)
+      : rightsList(rank, at);
+  const choose =
+    me.lead && at > 0 && !isDefault
+      ? `<p><button class="small" data-act="rankDefault" data-rank="${esc(rank.id)}">Als Standardrang</button></p>`
+      : '';
+  return `<fieldset class="rank"><legend>${esc(rank.name)}${isDefault ? ' · Standardrang' : ''}</legend>${body}${choose}</fieldset>`;
+}
+
+function ranksBox(me: Inside): string {
+  const list = me.ranks.list.map((r, at) => rankEntry(me, r, at)).join('');
+  const create =
+    me.can('ranks') && me.ranks.list.length < MAX_GUILD_RANKS
+      ? `<div><label for="rank_new">Name des neuen Rangs</label> <input id="rank_new" minlength="${MIN_RANK_NAME}" maxlength="${MAX_RANK_NAME}">
+      <button data-act="rankCreate">Rang anlegen</button></div>`
+      : '';
+  return box('Ränge', list + create);
 }
 
 function management(
   g: Guild,
   own: NonNullable<GuildState['management']>,
+  me: Inside,
 ): string {
   const pending = own.pending
     .map(
@@ -68,8 +231,13 @@ function management(
     )
     .join('');
   return (
-    box('Bewerbungen', pending || '<p>Keine offenen Bewerbungen.</p>') +
-    box('Gildenprofil bearbeiten', profileForm(g, own.description))
+    (me.can('applications')
+      ? box('Bewerbungen', pending || '<p>Keine offenen Bewerbungen.</p>')
+      : '') +
+    ranksBox(me) +
+    (me.can('profile')
+      ? box('Gildenprofil bearbeiten', profileForm(g, own.description))
+      : '')
   );
 }
 
@@ -78,11 +246,12 @@ export function guilds(v: V): string {
   const g = state.directory.find((guild) => guild.id === v.ui.guild);
   if (!g) return directory(state);
   const own = state.management?.id === g.id ? state.management : null;
+  const me = own && state.ranks ? inside(state.ranks, v.s.me.id) : null;
   return `<h2>${heading(g)}</h2>
   <p><button class="small" data-act="nav" data-v="guilds">Zur Gildenübersicht</button></p>
   ${box('Gildenprofil', g.html || '<p>Diese Gilde hat noch keinen Profiltext.</p>')}
   ${box('Punkte', `<p>${fmt(g.score)} gesamt · ${fmt(g.average)} pro Mitglied</p>`)}
-  ${box('Mitglieder', roster(g, !!own))}
-  ${guildMembership(state, g, v.s.me.id)}
-  ${own ? management(g, own) : ''}`;
+  ${box('Mitglieder', roster(g, me))}
+  ${guildMembership(state, g, me)}
+  ${own && me ? management(g, own, me) : ''}`;
 }

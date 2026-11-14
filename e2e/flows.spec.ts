@@ -528,9 +528,13 @@ test.describe('guilds (#68)', () => {
     await expect(lastToast(page)).toContainText('Bewerbung angenommen.');
     await expect(page.getByText('Keine offenen Bewerbungen.')).toBeVisible();
     await expect(member(page, a)).toContainText('Mitglied');
-    confirm(page);
     await member(page, a)
       .getByRole('button', { name: 'Leitung übergeben' })
+      .click();
+    // The hand-over dialog of #163: the own new rank, here the only one.
+    await page
+      .locator('#modal')
+      .getByRole('button', { name: 'Übergeben' })
       .click();
     await expect(lastToast(page)).toContainText('Gildenleitung übergeben.');
     await expect(member(page, a)).toContainText('Leitung');

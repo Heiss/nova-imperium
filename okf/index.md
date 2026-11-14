@@ -32,6 +32,7 @@ okf_version: "0.2"
 * [Planet fields and the Weltenschmiede](/features/fields.md) - limited fields per planet and the building that adds them (#51)
 * [Error log and problem reports](/features/error-log.md) - server and browser errors, problem reports, admin tab „Fehler“ and download (#126)
 * [Changelog in the game](/features/changelog.md) - „Neuigkeiten“, update message and hint from CHANGELOG.md
+* [Guild ranks](/features/guild-ranks.md) - ranks with configurable rights, one Leitung, order, default rank, checked on the server (#163)
 
 * [Invitations](/features/invitations.md) - registration only by invitation, mail or copied link
 * [Admin](/features/admin.md) - operator roles, diagnostics, audit log, moderation and live universe settings

@@ -168,4 +168,59 @@ test.describe('accessibility (axe)', () => {
     found.push(...(await violations(page)).map((v) => `dialog: ${v}`));
     expect(found).toEqual([]);
   });
+
+  test('the guild view with its ranks has no violations (#163)', async ({
+    page,
+    browser,
+  }) => {
+    const lead = uniqueName('AxeGilde');
+    const tag = `A${Date.now() % 1000000}`;
+    const title = `[${tag}] Axe ${tag}`;
+    await register(page, lead);
+    const found: string[] = [];
+    const check = async (p: Page, label: string): Promise<void> => {
+      found.push(...(await violations(p)).map((v) => `${label}: ${v}`));
+    };
+    await nav(page, 'guilds');
+    await check(page, 'directory');
+    await page.getByLabel('Kürzel').fill(tag);
+    await page.getByLabel('Name', { exact: true }).fill(`Axe ${tag}`);
+    await page.getByRole('button', { name: 'Gilde gründen' }).click();
+    await expect(page.getByRole('heading', { name: title })).toBeVisible();
+    await page.getByLabel('Name des neuen Rangs').fill('Offizier');
+    await page.getByRole('button', { name: 'Rang anlegen' }).click();
+    await expect(page.locator('fieldset.rank')).toHaveCount(3);
+    // The public page, for an applicant.
+    // axe needs a page of its own context.
+    const context = await browser.newContext();
+    const other = await context.newPage();
+    await register(other, uniqueName('AxeGast'));
+    await nav(other, 'guilds');
+    await other.getByRole('link', { name: title }).click();
+    await check(other, 'public');
+    await other.getByRole('button', { name: 'Bewerben' }).click();
+    await expect(other.getByText('Deine Bewerbung ist offen.')).toBeVisible();
+    await page.reload();
+    await expect(page.getByRole('button', { name: 'Annehmen' })).toBeVisible();
+    await check(page, 'Leitung with ranks and an application');
+    await page.getByRole('button', { name: 'Annehmen' }).click();
+    await expect(page.locator('select[id^=rank_of_]')).toHaveCount(1);
+    await check(page, 'Leitung with a member');
+    await other.reload();
+    await expect(other.locator('fieldset.rank')).toHaveCount(3);
+    await check(other, 'member');
+    // The dialogs of the hand-over and of dissolving (owner, 2026-11-14).
+    await page
+      .getByRole('button', { name: 'Leitung übergeben' })
+      .first()
+      .click();
+    await expect(page.getByLabel('Dein neuer Rang')).toBeVisible();
+    await check(page, 'hand-over dialog');
+    await page.getByRole('button', { name: 'Abbrechen' }).click();
+    await page.getByRole('button', { name: 'Gilde auflösen' }).click();
+    await expect(page.locator('#dissolve_tag')).toBeVisible();
+    await check(page, 'dissolve dialog');
+    await context.close();
+    expect(found).toEqual([]);
+  });
 });

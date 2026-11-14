@@ -61,6 +61,7 @@ import {
 } from './views/misc.ts';
 import { disablePush, enablePush } from './push.ts';
 import { mountBuildings } from './views/buildings.ts';
+import { dissolveDialog, transferDialog } from './views/guilds.ts';
 import { mountProducerTable } from './views/producer-table.ts';
 
 import { addPasskey, signInWithPasskey } from './passkeys.ts';
@@ -70,6 +71,18 @@ type Data = Record<string, string | undefined>;
 const $ = <T extends HTMLElement = HTMLElement>(sel: string): T | null =>
   document.querySelector<T>(sel);
 const val = (sel: string): string => $<HTMLInputElement>(sel)?.value ?? '';
+/** The value of a field by its id (ids of guild ranks are not CSS-safe). */
+const byId = (id: string): string =>
+  (document.getElementById(id) as HTMLInputElement | null)?.value ?? '';
+const setById = (id: string, value: string): void => {
+  const field = document.getElementById(id) as HTMLInputElement | null;
+  if (field) field.value = value;
+};
+/** The checked rights of a guild rank (#163), the disabled ones included. */
+const rankRights = (rank?: string): string[] =>
+  [...document.querySelectorAll<HTMLInputElement>('input[data-rank-right]')]
+    .filter((box) => box.dataset.rankRight === rank && box.checked)
+    .map((box) => box.value);
 
 let S: GameState | null = null;
 let loginChallenge: string | null = null;
@@ -545,17 +558,27 @@ function paintPlanets(root: ParentNode): void {
 
 function keepInputs(view: HTMLElement, fresh: boolean): () => void {
   const saved: Record<string, string> = {};
+  const checked: Record<string, boolean> = {};
   const focus = document.activeElement?.id;
   if (!fresh)
     view
       .querySelectorAll<
         HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
       >('input[id],select[id],textarea[id]')
-      .forEach((i) => (saved[i.id] = i.value));
+      .forEach((i) => {
+        if (i.hasAttribute('data-rank-right'))
+          checked[i.id] = (i as HTMLInputElement).checked;
+        else saved[i.id] = i.value;
+      });
   return () => {
     for (const [id, v] of Object.entries(saved)) {
       const el = document.getElementById(id) as HTMLInputElement | null;
       if (el && !el.hasAttribute('data-nokeep')) el.value = v;
+    }
+    // A ticked or cleared box of a guild rank survives the refresh (#163).
+    for (const [id, on] of Object.entries(checked)) {
+      const el = document.getElementById(id) as HTMLInputElement | null;
+      if (el) el.checked = on;
     }
     if (focus) document.getElementById(focus)?.focus();
   };
@@ -1067,14 +1090,46 @@ const ACT: Record<string, (d: Data) => unknown> = {
   guildReview: (d) =>
     act('reviewGuildApplication', { uid: d.uid, accept: d.accept === '1' }),
   guildMember: (d) => {
-    const transfer = d.transfer === '1';
+    const ranks = S?.guilds?.ranks;
+    if (d.transfer === '1' && ranks) {
+      const name = S!
+        .guilds!.directory.flatMap((g) => g.members)
+        .find((m) => m.id === d.uid)?.name;
+      modal(transferDialog(ranks, d.uid ?? '', name ?? ''));
+      return $('#transfer_rank')?.focus();
+    }
+    if (window.confirm('Mitglied entfernen?'))
+      return act('manageGuildMember', { uid: d.uid, transfer: false });
+  },
+  guildDissolve: (d) => {
+    const guild = S?.guilds?.directory.find((g) => g.id === d.id);
+    if (!guild) return;
+    modal(dissolveDialog(guild));
+    $('#dissolve_tag')?.focus();
+  },
+  guildAssign: (d) =>
+    act('assignGuildRank', { uid: d.uid, rank: byId(`rank_of_${d.uid}`) }),
+  rankCreate: async () => {
+    if (await act('createGuildRank', { name: byId('rank_new') }))
+      setById('rank_new', '');
+  },
+  rankRename: (d) =>
+    act('renameGuildRank', {
+      rank: d.rank,
+      name: byId(`rank_name_${d.rank}`),
+    }),
+  rankRights: (d) =>
+    act('setGuildRankRights', { rank: d.rank, rights: rankRights(d.rank) }),
+  rankMove: (d) => act('moveGuildRank', { rank: d.rank, up: d.up === '1' }),
+  rankDelete: (d) => {
     if (
       window.confirm(
-        transfer ? 'Gildenleitung übergeben?' : 'Mitglied entfernen?',
+        'Rang löschen? Seine Mitglieder bekommen den Standardrang.',
       )
     )
-      return act('manageGuildMember', { uid: d.uid, transfer });
+      return act('deleteGuildRank', { rank: d.rank });
   },
+  rankDefault: (d) => act('setGuildDefaultRank', { rank: d.rank }),
   achievementClaim: (d) => act('claimAchievement', { id: d.id }),
   dailyClaim: () => act('claimDailyReward'),
   logout: async () => {
@@ -1462,6 +1517,22 @@ async function submitAccountDeletion(): Promise<void> {
   }
 }
 
+async function submitTransfer(): Promise<void> {
+  const ok = await act('manageGuildMember', {
+    uid: $('#guildtransferform')?.dataset.uid,
+    transfer: true,
+    rank: val('#transfer_rank'),
+  });
+  if (ok) modal('');
+}
+
+async function submitDissolve(): Promise<void> {
+  if (await act('dissolveGuild', { tag: val('#dissolve_tag') })) {
+    modal('');
+    go('guilds');
+  }
+}
+
 async function submitGuild(): Promise<void> {
   const edit = $('#guildform')?.dataset.edit === '1';
   const ok = await act(edit ? 'updateGuild' : 'createGuild', {
@@ -1590,6 +1661,8 @@ document.addEventListener('submit', (e) => {
     ['inviteform', submitInvite],
     ['announceform', submitAnnouncement],
     ['guildform', submitGuild],
+    ['guildtransferform', submitTransfer],
+    ['guilddissolveform', submitDissolve],
     ['codeform', submitLoginCode],
     ['forgotform', submitForgot],
     ['resetform', () => submitPassword(true)],

@@ -171,6 +171,22 @@ debris fields of #45. `upgrades/migration-15.test.ts` checks hand-written
 data, the cascade and the new constraints, and on generated data of version
 14 that every table keeps its rows.
 
+Migration 16 (issue #163, see [Guild ranks](/features/guild-ranks.md))
+adds the guild ranks: table `guild_ranks` (id, `guild_id` with `ON DELETE
+CASCADE`, name, `position` with `UNIQUE (guild_id, position)`; 0 is the
+Leitung, a larger number a lower rank), table `guild_rank_rights`
+(`rank_id` with `ON DELETE CASCADE`, `right_key` with a CHECK of the five
+rights, primary key of both), `guilds.default_rank` and
+`guild_members.rank_id` (both `REFERENCES guild_ranks(id)`, so a rank that
+is a default or held by a member cannot be deleted by mistake) and the
+index `guild_members_rank`. Every guild gets the ranks `r0_<id>` „Leitung“
+(position 0) and `r1_<id>` „Mitglied“ (position 1, its default rank); the
+founder gets the Leitung, every other member „Mitglied“, an applicant no
+rank. Other data stay as they were (`upgrades/migration-16.test.ts`:
+hand-written data, the constraints and cascades, generated data of
+version 15). The number is the next free one on `main`; other branches
+plan 16 and 17 (#45, #161, #53), so the order is settled at merge time.
+
 Account deletion runs in one transaction. Foreign-key cascades clear owned game,
 session, reward and push data. The deletion also removes led guilds and their
 memberships, linked audit and inbox records, invitations for the account address
@@ -198,7 +214,7 @@ tests together with an own test for each changing migration).
   existing rows needs its own test `src/server/db/upgrades/migration-<n>.test.ts`
   that checks the data after the upgrade. The decision is made by the effect on
   generated data, not by the SQL text; `ALTER TABLE … ADD COLUMN` counts as a
-  change. Migrations 7, 9, 10, 11, 13, 14 and 15 have such tests; pure `CREATE` migrations need
+  change. Migrations 7, 9, 10, 11, 13, 14, 15 and 16 have such tests; pure `CREATE` migrations need
   none (migration 12 has one anyway, for its CHECK and cascade).
 * **[E]** A self-test proves that the checks find a migration that fails on
   existing data and that the classification tells changes from new tables.

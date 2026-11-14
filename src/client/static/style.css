@@ -521,6 +521,23 @@ input[type='checkbox'] {
 label {
   cursor: default;
 }
+/* Guild ranks (#163) */
+fieldset.rank {
+  margin: 0 0 10px;
+  padding: 6px 10px 8px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+}
+fieldset.rank legend {
+  padding: 0 4px;
+  font-weight: 600;
+}
+fieldset.rank .rights {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin: 6px 0;
+}
 a:focus-visible,
 .lnk:focus-visible,
 button:focus-visible,
