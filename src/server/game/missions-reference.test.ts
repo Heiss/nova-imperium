@@ -725,7 +725,9 @@ function fly(w: World, x: Flight, arrive: Arrive, comeHome: Arrive) {
     ctx.clock.t = back.ret;
     step(() => comeHome(ctx, back));
   }
-  return { steps, next: ctx.rng() };
+  const next = ctx.rng();
+  ctx.db.close();
+  return { steps, next };
 }
 
 /** Mostly a load that fits, sometimes more than any hold or stock. */
@@ -798,11 +800,14 @@ function order(w: World, o: Order, act: Action) {
   } catch (e) {
     answer = `error: ${(e as Error).message}`;
   }
-  return { answer, event, db: dump(ctx), next: ctx.rng() };
+  const result = { answer, event, db: dump(ctx), next: ctx.rng() };
+  ctx.db.close();
+  return result;
 }
 
-// About 3 s per case on a laptop, slower with coverage: the default limit of
-// 5 s is too short.
+// Every case closes its database: 1600 open in-memory databases filled the
+// memory of a mutation shard with four test runners. About 3 s per case on
+// a laptop, slower with coverage: the default limit of 5 s is too short.
 describe(
   'missions as strategies (#116) against the code before',
   { timeout: 60_000 },
@@ -861,6 +866,7 @@ describe(
           N.arrive(ctx, f);
           for (const r of ctx.reports.ofPlayer('u_Anna'))
             titles.add(r.title.replace(/ .*/, ''));
+          ctx.db.close();
         }),
         { seed: 116, numRuns: 400 },
       );
