@@ -188,8 +188,14 @@ describe('update message', () => {
     const [report] = ctx.reports.ofPlayer(anna.id);
     expect(report!.text).toContain('• Ein Fehler ist weg.');
     expect(report!.text).not.toContain('Nanitenfabrik');
-    expect(ctx.db.prepare('SELECT kind, body FROM push_jobs').all()).toEqual([
-      { kind: 'messages', body: 'Nova Imperium 26.11.1 ist da.' },
+    expect(
+      ctx.db.prepare('SELECT kind, body, topic FROM push_jobs').all(),
+    ).toEqual([
+      {
+        kind: 'messages',
+        body: 'Nova Imperium 26.11.1 ist da.',
+        topic: 'news',
+      },
     ]);
     expect(report!.text).toContain(
       'Alle Versionen stehen unter „Neuigkeiten“.',

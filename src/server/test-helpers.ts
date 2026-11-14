@@ -113,3 +113,24 @@ export function addPlanet(
   ctx.planets.save(planet);
   return planet;
 }
+
+/** A push device of a player (#192), written without the browser's keys check. */
+export function subscribePush(ctx: Ctx, uid: string, device = 1): string {
+  const endpoint = `https://fcm.googleapis.com/fcm/send/${uid}-${device}`;
+  ctx.db
+    .prepare('INSERT INTO push_subscriptions VALUES (?, ?, ?, ?)')
+    .run(endpoint, uid, 'p256dh', 'auth');
+  return endpoint;
+}
+
+/** The queued pushes: player, view and kind, in the order they were queued. */
+export function queuedPushes(
+  ctx: Ctx,
+): { user: string; kind: string; topic: string | null }[] {
+  return ctx.db
+    .prepare(
+      `SELECT s.user_id AS user, j.kind, j.topic FROM push_jobs j
+       JOIN push_subscriptions s USING (endpoint) ORDER BY j.rowid`,
+    )
+    .all() as { user: string; kind: string; topic: string | null }[];
+}

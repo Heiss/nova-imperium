@@ -1,8 +1,18 @@
 import { describe, expect, it, vi } from 'vitest';
-import { build, cancelBuild } from './game/actions.ts';
+import { PUSH_TOPICS, type PushTopic } from '../core/push.ts';
+import { build, cancelBuild, order, research } from './game/actions.ts';
 import { announce } from './game/admin.ts';
 import { addReport } from './game/context.ts';
-import { addPlanet, addUser, testCtx } from './test-helpers.ts';
+import { pushOptions } from './push-options.ts';
+import { queuePush } from './push-store.ts';
+import {
+  addPlanet,
+  addUser,
+  queuedPushes,
+  subscribePush,
+  testCtx,
+  type TestCtx,
+} from './test-helpers.ts';
 import {
   deletePushSubscription,
   deliverPush,
@@ -94,11 +104,12 @@ describe('Web Push', () => {
     const ctx = testCtx();
     const user = addUser(ctx, 'Anna');
     savePushSubscription(ctx, user.id, { endpoint, keys });
-    addReport(ctx, user.id, {
-      time: ctx.now(),
-      type: 'battle',
-      title: 'Private coordinates',
-    });
+    addReport(
+      ctx,
+      user.id,
+      { time: ctx.now(), type: 'battle', title: 'Private coordinates' },
+      { topic: 'attacked' },
+    );
     const send = vi
       .fn()
       .mockRejectedValueOnce(new Error('temporary'))
@@ -115,5 +126,139 @@ describe('Web Push', () => {
       [],
     );
     expect(ctx.db.prepare('SELECT * FROM push_jobs').all()).toEqual([]);
+  });
+});
+
+describe('push kinds of the player (#192)', () => {
+  /** Sends nothing; returns the endpoint and the title of every push. */
+  const recorder = () => {
+    const sent: { endpoint: string; title: string; view: string }[] = [];
+    const send = vi.fn(async (job: { endpoint: string }, payload: string) => {
+      const { title, view } = JSON.parse(payload) as {
+        title: string;
+        view: string;
+      };
+      sent.push({ endpoint: job.endpoint, title, view });
+    });
+    return { sent, send };
+  };
+
+  const push = (ctx: TestCtx, uid: string, topic: PushTopic, key: string) =>
+    queuePush(ctx, uid, { kind: 'messages', topic, key, due: ctx.now() });
+
+  it.each(PUSH_TOPICS)(
+    'drops „%s“ on every device of a player who switched it off; the others arrive',
+    async (topic) => {
+      const ctx = testCtx();
+      const anna = addUser(ctx, 'Anna');
+      const ben = addUser(ctx, 'Ben');
+      const phone = subscribePush(ctx, anna.id, 1);
+      const laptop = subscribePush(ctx, anna.id, 2);
+      const bens = subscribePush(ctx, ben.id);
+      const other = PUSH_TOPICS.find((t) => t !== topic)!;
+      expect(pushOptions(ctx, anna, { off: [topic] })).toBe('Gespeichert.');
+      push(ctx, anna.id, topic, 'a1');
+      push(ctx, anna.id, other, 'a2');
+      push(ctx, ben.id, topic, 'b1');
+      const off = recorder();
+      await deliverPush(ctx, off.send);
+      expect(off.sent.map((x) => x.endpoint).sort()).toEqual(
+        [phone, laptop, bens].sort(),
+      );
+      expect(queuedPushes(ctx)).toEqual([]);
+      pushOptions(ctx, anna, { off: [] });
+      push(ctx, anna.id, topic, 'a3');
+      const on = recorder();
+      await deliverPush(ctx, on.send);
+      expect(on.sent.map((x) => x.endpoint).sort()).toEqual(
+        [phone, laptop].sort(),
+      );
+    },
+  );
+
+  it('checks the switch when the push is due, not when it is queued', async () => {
+    const ctx = testCtx();
+    const anna = addUser(ctx, 'Anna');
+    addPlanet(ctx, anna.id);
+    subscribePush(ctx, anna.id);
+    build(ctx, anna, { key: 'metal' });
+    pushOptions(ctx, anna, { off: ['buildings'] });
+    const end = ctx.planets.home(anna.id)!.bq!.end;
+    const early = recorder();
+    await deliverPush(ctx, early.send);
+    expect(queuedPushes(ctx)).toEqual([
+      { user: anna.id, kind: 'buildings', topic: 'buildings' },
+    ]);
+    pushOptions(ctx, anna, { off: [] });
+    ctx.clock.t = end;
+    const due = recorder();
+    await deliverPush(ctx, due.send);
+    expect(due.sent).toMatchObject([
+      { title: 'Das Werk ist vollbracht', view: 'buildings' },
+    ]);
+    build(ctx, anna, { key: 'metal' });
+    pushOptions(ctx, anna, { off: ['buildings'] });
+    ctx.clock.t = ctx.planets.home(anna.id)!.bq!.end;
+    const muted = recorder();
+    await deliverPush(ctx, muted.send);
+    expect(muted.sent).toEqual([]);
+    expect(queuedPushes(ctx)).toEqual([]);
+  });
+
+  it('keeps a push that is not due yet and a push without a kind', async () => {
+    const ctx = testCtx();
+    const anna = addUser(ctx, 'Anna');
+    const endpoint = subscribePush(ctx, anna.id);
+    pushOptions(ctx, anna, { off: [...PUSH_TOPICS] });
+    queuePush(ctx, anna.id, {
+      kind: 'research',
+      topic: 'research',
+      key: 'later',
+      due: ctx.now() + 1,
+    });
+    // A report push queued before the upgrade to migration 16 has no kind.
+    ctx.db
+      .prepare(
+        "INSERT INTO push_jobs (endpoint, kind, event_key, due, retry_at) VALUES (?, 'messages', 'old', ?, ?)",
+      )
+      .run(endpoint, ctx.now(), ctx.now());
+    const { sent, send } = recorder();
+    await deliverPush(ctx, send);
+    expect(sent).toMatchObject([{ title: 'Neue Nachricht' }]);
+    expect(queuedPushes(ctx)).toEqual([
+      { user: anna.id, kind: 'research', topic: 'research' },
+    ]);
+  });
+
+  it('gives the orders, the research and a server announcement their kinds', () => {
+    const ctx = testCtx();
+    const anna = addUser(ctx, 'Anna');
+    addPlanet(ctx, anna.id, { b: { lab: 1, yard: 1 } });
+    subscribePush(ctx, anna.id);
+    build(ctx, anna, { key: 'metal' });
+    research(ctx, anna, { key: 'energy' });
+    order(ctx, anna, { key: 'rl', n: 1 });
+    announce(ctx, 'Wartung');
+    expect(queuedPushes(ctx).map((x) => [x.kind, x.topic])).toEqual([
+      ['buildings', 'buildings'],
+      ['research', 'research'],
+      ['shipyard', 'shipyard'],
+      ['messages', 'announcement'],
+    ]);
+  });
+
+  it('gives the orders a new device schedules their kinds', () => {
+    const ctx = testCtx();
+    const anna = addUser(ctx, 'Anna');
+    addPlanet(ctx, anna.id, { b: { lab: 1, yard: 1 } });
+    build(ctx, anna, { key: 'metal' });
+    research(ctx, anna, { key: 'energy' });
+    order(ctx, anna, { key: 'rl', n: 1 });
+    savePushSubscription(ctx, anna.id, { endpoint, keys });
+    expect(queuedPushes(ctx).map((x) => [x.kind, x.topic])).toEqual([
+      ['research', 'research'],
+      ['buildings', 'buildings'],
+      ['shipyard', 'shipyard'],
+    ]);
   });
 });

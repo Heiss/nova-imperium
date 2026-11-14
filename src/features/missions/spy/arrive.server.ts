@@ -38,31 +38,41 @@ export function onArrive(ctx: Ctx, f: Fleet, at: Arrival): void {
   const shown = Object.fromEntries(
     SPY_LEVELS.filter(([min]) => score >= min).map(([, k]) => [k, details[k]]),
   );
-  addReport(ctx, f.owner, {
-    time: f.arr,
-    type: 'spy',
-    title: `Auspex-Bericht von ${t.name} ${coords(f.toC)}`,
-    participants: [f.owner, t.owner],
-    name: t.name,
-    defName: def.name,
-    coords: f.toC,
-    res: {
-      m: Math.floor(t.res.m),
-      c: Math.floor(t.res.c),
-      d: Math.floor(t.res.d),
+  addReport(
+    ctx,
+    f.owner,
+    {
+      time: f.arr,
+      type: 'spy',
+      title: `Auspex-Bericht von ${t.name} ${coords(f.toC)}`,
+      participants: [f.owner, t.owner],
+      name: t.name,
+      defName: def.name,
+      coords: f.toC,
+      res: {
+        m: Math.floor(t.res.m),
+        c: Math.floor(t.res.c),
+        d: Math.floor(t.res.d),
+      },
+      counter: chance,
+      lost,
+      ...shown,
     },
-    counter: chance,
-    lost,
-    ...shown,
-  });
+    { topic: 'fleet' },
+  );
   const text = `Eine fremde Flotte von ${att.name} ${coords(f.fromC)} wurde in der Nähe deines Planeten ${t.name} ${coords(f.toC)} gesichtet. Chance auf Auspex-Abwehr: ${chance} %.${lost ? ' Die Spähschädel wurden abgeschossen!' : ''}`;
-  addReport(ctx, t.owner, {
-    time: f.arr,
-    type: 'info',
-    title: 'Auspex-Aktivität',
-    participants: [f.owner, t.owner],
-    text,
-  });
+  addReport(
+    ctx,
+    t.owner,
+    {
+      time: f.arr,
+      type: 'info',
+      title: 'Auspex-Aktivität',
+      participants: [f.owner, t.owner],
+      text,
+    },
+    { topic: 'spied' },
+  );
   if (lost) ctx.fleets.delete(f.id);
   else turnBack(ctx, f);
 }

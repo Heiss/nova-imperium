@@ -169,8 +169,7 @@ export function announceUpdate(ctx: Ctx, news: News): number {
           // The browser shows the lines and a link to „Neuigkeiten“.
           news: version,
         },
-        'messages',
-        `Nova Imperium ${version} ist da.`,
+        { topic: 'news', body: `Nova Imperium ${version} ist da.` },
       );
     return players.length;
   });

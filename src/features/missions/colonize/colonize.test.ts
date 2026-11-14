@@ -1,7 +1,13 @@
 // Landnahme (#116): only with a Kolonistenarche; it founds a colony.
 import { describe, expect, it } from 'vitest';
 import type { Fleet, Levels } from '../../../core/types.ts';
-import { addPlanet, addUser, testCtx } from '../../../server/test-helpers.ts';
+import {
+  addPlanet,
+  addUser,
+  queuedPushes,
+  subscribePush,
+  testCtx,
+} from '../../../server/test-helpers.ts';
 import { onArrive } from './arrive.server.ts';
 import * as rules from './rules.ts';
 import { canSend } from './rules.ts';
@@ -86,5 +92,14 @@ describe('colonize', () => {
     const { ctx: c2, f: f2 } = setup({ colony: 1, lc: 4 });
     onArrive(c2, f2);
     expect(c2.fleets.get('f1')!.ships).toEqual({ lc: 4 });
+  });
+
+  it('pushes the founding as an own fleet (#192)', () => {
+    const { ctx, f } = setup({ colony: 1 });
+    subscribePush(ctx, 'u_Anna');
+    onArrive(ctx, f);
+    expect(queuedPushes(ctx)).toEqual([
+      { user: 'u_Anna', kind: 'messages', topic: 'fleet' },
+    ]);
   });
 });

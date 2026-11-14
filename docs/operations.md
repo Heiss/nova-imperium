@@ -210,8 +210,10 @@ check, and email access is also the recovery channel.
 ## Browser notifications
 
 With an HTTPS public URL, set `NOVA_WEB_PUSH=1` and restart the app. Each
-player opts in under **Hilfe & Optionen** on each device. On iOS, open the
-installed Home Screen app before enabling notifications. The server needs
+player opts in under **Hilfe & Optionen** on each device. Under
+**Benachrichtigungen** the player chooses which kinds of notification arrive;
+that choice belongs to the account and holds for all of its devices. On iOS,
+open the installed Home Screen app before enabling notifications. The server needs
 outbound HTTPS to the browser's push provider. Back up the SQLite volume
 to preserve the server's push identity and device subscriptions.
 

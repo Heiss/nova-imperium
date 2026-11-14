@@ -160,6 +160,22 @@ test.describe('accessibility (axe)', () => {
     expect(found).toEqual([]);
   });
 
+  test('the options with the push kinds have no violations, on and off (#192)', async ({
+    page,
+  }) => {
+    await register(page, uniqueName('AxePush'));
+    await nav(page, 'help');
+    const found: string[] = [];
+    const box = page.getByRole('checkbox', { name: 'Servernachrichten' });
+    await expect(box).toBeChecked();
+    found.push(...(await violations(page)).map((v) => `on: ${v}`));
+    await box.uncheck();
+    await expect(page.locator('.toast').last()).toContainText('Gespeichert.');
+    await expect(box).not.toBeChecked();
+    found.push(...(await violations(page)).map((v) => `off: ${v}`));
+    expect(found).toEqual([]);
+  });
+
   test('the tab „Fehler“ and the dialog „Problem melden“ have no violations (#126)', async ({
     page,
   }) => {

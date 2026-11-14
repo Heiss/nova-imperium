@@ -38,6 +38,7 @@ import {
   newsHint,
 } from './logic/news.ts';
 import { ANIMATION_KEY, animationsOn } from './logic/planet.ts';
+import { pushOffOf } from './logic/push-options.ts';
 import type { GameState } from './logic/types.ts';
 import { afford, caps, lvlCost, production } from '../core/economy.ts';
 import type { Ui, V } from './views/common.ts';
@@ -1556,6 +1557,12 @@ document.addEventListener('change', (e) => {
     setAnimations((el as unknown as HTMLInputElement).checked);
   if (el.dataset?.chg === 'pct')
     void act('pct', { key: el.dataset.k, v: el.value });
+  if (el.dataset?.chg === 'push')
+    void act('pushOptions', {
+      off: pushOffOf(
+        (id) => document.querySelector<HTMLInputElement>(`#${id}`)?.checked,
+      ),
+    });
   if (ui.view === 'fleet') fleetCalc();
   if (ui.view === 'achievements') filterAchievements();
 });
