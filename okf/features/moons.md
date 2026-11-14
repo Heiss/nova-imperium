@@ -120,8 +120,8 @@ places (#119) and the fields (#51).
 * Fields: `maxFields` gives a moon 1 field plus the `fields` of its
   buildings, without the diameter and the „Zusatzfelder pro Planet“.
 * Production: `baseIncome(kind)` in `src/core/components/produces.ts`, none
-  on a moon; `prod()` reads the kind, so the resources page shows 0 as
-  base income there. The Sonnenreliquiare give energy by the moon's
+  on a moon; `prod()` and `producerRows()` read the kind, so the resources
+  page (`ProducerTable`) shows 0 as base income there. The Sonnenreliquiare give energy by the moon's
   temperature.
 * Buildings: the component `placement` (`src/core/components/placement.ts`,
   the kinds of place; without it planets only) on the Servitorenschmiede,
