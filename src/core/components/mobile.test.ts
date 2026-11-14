@@ -15,7 +15,7 @@ import {
 const MOBILES = ENTRIES.flatMap(([key, e]) =>
   'mobile' in e ? [[key, e.mobile as Mobile] as const] : [],
 );
-const RESEARCH = new Set(
+const RESEARCH = new Set<string>(
   ENTRIES.filter(([, e]) => e.kind === 'research').map(([key]) => key),
 );
 const DRIVES = Object.keys(DRIVE_BONUS);
