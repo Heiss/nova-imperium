@@ -468,6 +468,69 @@
         min-height: 30px;
         margin: 6px 0 0;
       }
+      .ad,
+      .sort {
+        right: var(--free-right, 0px);
+      }
+      .runner {
+        position: relative;
+      }
+      .mom {
+        position: absolute;
+        left: 14px;
+        right: 14px;
+        top: 110px;
+        background: #ffe4ef;
+        color: #7a2a4a;
+        border: 3px solid #ff9cc4;
+        border-radius: 16px;
+        padding: 10px 12px;
+        font:
+          700 16px 'Comic Sans MS',
+          'Comic Neue',
+          system-ui,
+          sans-serif;
+        text-align: center;
+        opacity: 0;
+        transform: scale(0.8);
+        transition:
+          opacity 0.3s,
+          transform 0.3s;
+        pointer-events: none;
+      }
+      .mom.show {
+        opacity: 1;
+        transform: scale(1);
+      }
+      .keys {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px 10px;
+        font-size: 12px;
+        color: var(--dim);
+        margin-top: 6px;
+      }
+      .keys kbd {
+        display: inline-block;
+        font:
+          700 11px system-ui,
+          sans-serif;
+        padding: 2px 5px;
+        margin-right: 3px;
+        border: 1px solid var(--line);
+        border-bottom-width: 3px;
+        border-radius: 5px;
+        background: var(--box);
+        color: var(--text, #e9dfc8);
+        transition:
+          background 0.1s,
+          transform 0.1s;
+      }
+      .keys kbd.hit {
+        background: #9ccb76;
+        color: #10200a;
+        transform: translateY(2px);
+      }
     </style>
   </head>
   <body>
@@ -558,10 +621,19 @@
             <span>Servitor-Sprint</span><span id="score">0</span>
           </div>
           <canvas id="run" width="300" height="430"></canvas>
+          <div class="mom" id="mom"></div>
+        </div>
+        <div class="keys" id="keys">
+          <span
+            ><kbd data-k="left">← A</kbd
+            ><kbd data-k="right">→ D</kbd> Bahn</span
+          >
+          <span><kbd data-k="jump">↑ W ␣</kbd> Springen</span>
+          <span><kbd data-k="slide">↓ S</kbd> Rutschen</span>
         </div>
         <p class="dim" style="font-size: 12px">
-          Eigener 3D-Mini-Runner, läuft während des Wartens. Kein Einfluss aufs
-          Spiel.
+          Eigener 3D-Mini-Runner, läuft immer mit, auch während Werbung und
+          Sortierspiel. Kein Einfluss aufs Spiel.
         </p>
       </aside>
     </div>
@@ -615,6 +687,16 @@
     <div class="praise" id="praise"></div>
     <script>
       window.sortReady = new Promise((r) => (window.__sortResolve = r));
+      // overlays (ad, sorter) and confetti keep the runner on the right free
+      function fitOverlays() {
+        const a = document.querySelector('aside').getBoundingClientRect();
+        document.documentElement.style.setProperty(
+          '--free-right',
+          innerWidth - a.left + 6 + 'px',
+        );
+      }
+      fitOverlays();
+      addEventListener('resize', fitOverlays);
       const $ = (id) => document.getElementById(id);
       const wait = (ms) => new Promise((r) => setTimeout(r, ms));
       const center = (el) => {
@@ -651,7 +733,11 @@
         for (let i = 0; i < 40; i++) {
           const c = document.createElement('div');
           c.className = 'confetti';
-          c.style.left = Math.random() * 100 + '%';
+          c.style.left =
+            Math.random() *
+              (document.querySelector('aside').getBoundingClientRect().left -
+                12) +
+            'px';
           c.style.background = [
             '#9ccb76',
             '#f0a050',
@@ -1144,12 +1230,14 @@
       sortLoop();
 
       // ---------- Servitor-Sprint, an original three-lane runner in 3D ----------
+      // Keys: ←/→ or A/D change the lane, ↑/W/space jump, ↓/S slide.
+      // `?keys=demo` lets a small bot press the same keys (for the recording); otherwise only the player steers.
       const rr = new THREE.WebGLRenderer({ canvas: $('run'), antialias: true });
       rr.setPixelRatio(1);
       rr.setSize(300, 430, false);
       const rs = new THREE.Scene();
       rs.background = new THREE.Color('#07050a');
-      rs.fog = new THREE.Fog('#07050a', 14, 42);
+      rs.fog = new THREE.Fog('#07050a', 16, 46);
       const rc = new THREE.PerspectiveCamera(55, 300 / 430, 0.1, 80);
       rc.position.set(0, 3.4, 5.2);
       rc.lookAt(0, 0.6, -6);
@@ -1157,22 +1245,33 @@
       const lamp = new THREE.DirectionalLight('#ffd9a0', 1.6);
       lamp.position.set(2, 6, 4);
       rs.add(lamp);
-      const fc = document.createElement('canvas');
-      fc.width = 96;
-      fc.height = 96;
-      const fg = fc.getContext('2d');
-      fg.fillStyle = '#231a14';
-      fg.fillRect(0, 0, 96, 96);
-      fg.fillStyle = '#2e231a';
-      fg.fillRect(4, 4, 88, 40);
-      fg.fillRect(4, 52, 88, 40);
-      fg.fillStyle = '#d4a53755';
-      fg.fillRect(0, 0, 3, 96);
-      fg.fillRect(93, 0, 3, 96);
-      const ft = new THREE.CanvasTexture(fc);
-      ft.wrapS = ft.wrapT = THREE.RepeatWrapping;
-      ft.repeat.set(3, 30);
-      ft.colorSpace = THREE.SRGBColorSpace;
+      const canvasTex = (w, h, paint, rx = 1, ry = 1) => {
+        const c = document.createElement('canvas');
+        c.width = w;
+        c.height = h;
+        paint(c.getContext('2d'));
+        const t = new THREE.CanvasTexture(c);
+        t.wrapS = t.wrapT = THREE.RepeatWrapping;
+        t.repeat.set(rx, ry);
+        t.colorSpace = THREE.SRGBColorSpace;
+        return t;
+      };
+      const ft = canvasTex(
+        96,
+        96,
+        (g) => {
+          g.fillStyle = '#231a14';
+          g.fillRect(0, 0, 96, 96);
+          g.fillStyle = '#2e231a';
+          g.fillRect(4, 4, 88, 40);
+          g.fillRect(4, 52, 88, 40);
+          g.fillStyle = '#d4a53755';
+          g.fillRect(0, 0, 3, 96);
+          g.fillRect(93, 0, 3, 96);
+        },
+        3,
+        30,
+      );
       const floor = new THREE.Mesh(
         new THREE.PlaneGeometry(3.9, 60),
         new THREE.MeshStandardMaterial({ map: ft, roughness: 0.9 }),
@@ -1245,13 +1344,39 @@
       legR.position.set(0.16, 0.6, 0);
       hero.add(legL, legR);
       rs.add(hero);
-      const things = [];
-      const boxG = new THREE.BoxGeometry(1, 0.9, 0.7),
-        boxM = new THREE.MeshStandardMaterial({
+      // obstacles: crate (change lane), barrier over all lanes (jump), beam over all lanes at head height (slide); coins
+      const crateG = new THREE.BoxGeometry(1, 1.7, 0.7),
+        crateM = new THREE.MeshStandardMaterial({
           color: '#7a2436',
           emissive: '#300810',
           roughness: 0.7,
         });
+      const stripes = canvasTex(
+        64,
+        16,
+        (g) => {
+          g.fillStyle = '#f1c232';
+          g.fillRect(0, 0, 64, 16);
+          g.fillStyle = '#1a1411';
+          for (let x = -16; x < 64; x += 16) {
+            g.beginPath();
+            g.moveTo(x, 16);
+            g.lineTo(x + 8, 0);
+            g.lineTo(x + 16, 0);
+            g.lineTo(x + 8, 16);
+            g.fill();
+          }
+        },
+        6,
+        1,
+      );
+      const barG = new THREE.BoxGeometry(3.8, 0.42, 0.25),
+        barM = new THREE.MeshStandardMaterial({
+          map: stripes,
+          emissive: '#302000',
+          roughness: 0.6,
+        });
+      const postG = new THREE.CylinderGeometry(0.08, 0.08, 1.6, 8);
       const coinG = new THREE.CylinderGeometry(0.28, 0.28, 0.08, 24),
         coinM = new THREE.MeshStandardMaterial({
           color: '#f1d27a',
@@ -1259,66 +1384,249 @@
           metalness: 0.8,
           roughness: 0.3,
         });
+      const things = [];
+      function add(type, l, mesh, z = -46) {
+        mesh.position.z = z;
+        rs.add(mesh);
+        things.push({ type, l, mesh, done: false });
+      }
+      function spawnRow() {
+        const r = Math.random(),
+          l = Math.floor(Math.random() * 3);
+        if (r < 0.32) {
+          const c = new THREE.Mesh(crateG, crateM);
+          c.position.set(laneX(l), 0.85, 0);
+          add('crate', l, c);
+          if (Math.random() < 0.4) {
+            const l2 = (l + 1 + Math.floor(Math.random() * 2)) % 3,
+              c2 = new THREE.Mesh(crateG, crateM);
+            c2.position.set(laneX(l2), 0.85, 0);
+            add('crate', l2, c2);
+          }
+        } else if (r < 0.56) {
+          const b = new THREE.Mesh(barG, barM);
+          b.position.y = 0.21;
+          add('bar', -1, b);
+          for (let k = -1; k <= 1; k++) {
+            const c = new THREE.Mesh(coinG, coinM);
+            c.rotation.x = Math.PI / 2;
+            c.position.set(laneX(l), 1.0 + (1 - k * k) * 0.6, 0);
+            add('coin', l, c, -46 + k * 1.6);
+          }
+        } else if (r < 0.78) {
+          const g = new THREE.Group();
+          const beam = new THREE.Mesh(barG, barM);
+          beam.position.y = 1.4;
+          g.add(beam);
+          for (const s of [-1, 1]) {
+            const p = new THREE.Mesh(postG, pmat);
+            p.position.set(s * 1.95, 0.8, 0);
+            g.add(p);
+          }
+          add('beam', -1, g);
+        } else
+          for (let k = 0; k < 4; k++) {
+            const c = new THREE.Mesh(coinG, coinM);
+            c.rotation.x = Math.PI / 2;
+            c.position.set(laneX(l), 0.7, 0);
+            add('coin', l, c, -46 - k * 1.5);
+          }
+      }
+      // input
+      const KEYMAP = {
+        ArrowLeft: 'left',
+        a: 'left',
+        ArrowRight: 'right',
+        d: 'right',
+        ArrowUp: 'jump',
+        w: 'jump',
+        ' ': 'jump',
+        ArrowDown: 'slide',
+        s: 'slide',
+      };
       let lane = 1,
+        y = 0,
+        vy = 0,
+        slide = 0,
+        speed = 15,
+        target = 15,
+        blink = 0,
         score = 0,
-        tick = 0;
-      function runLoop() {
-        tick++;
-        const sp = 0.32;
-        ft.offset.y += sp / 2;
+        dist = 0,
+        nextSpawn = 14;
+      function act(k) {
+        const kb = document.querySelector(`#keys [data-k="${k}"]`);
+        if (kb) {
+          kb.classList.add('hit');
+          setTimeout(() => kb.classList.remove('hit'), 200);
+        }
+        if (k === 'left') lane = Math.max(0, lane - 1);
+        if (k === 'right') lane = Math.min(2, lane + 1);
+        if (k === 'jump' && y === 0) {
+          vy = 9;
+          slide = 0;
+        }
+        if (k === 'slide') {
+          if (y > 0) vy = -14;
+          slide = 0.7;
+        }
+      }
+      addEventListener('keydown', (e) => {
+        const k = KEYMAP[e.key.length === 1 ? e.key.toLowerCase() : e.key];
+        if (!k || e.target.closest?.('input, textarea, [contenteditable]'))
+          return;
+        e.preventDefault();
+        if (!e.repeat) act(k);
+      });
+      addEventListener('keyup', (e) => {
+        if (e.key === ' ') e.preventDefault();
+      });
+      const MOM = [
+        'Ach Schätzchen, nicht schlimm! 💛 Das nächste Mal schaffst du es ganz sicher.',
+        'Du hast dir so viel Mühe gegeben! 🥰 Beim nächsten Mal klappt es bestimmt.',
+        'Hoppla! Wir sind trotzdem stolz auf dich. 💕 Gleich noch mal?',
+      ];
+      let momT;
+      function hit() {
+        if (blink > 0) return;
+        score = 0;
+        speed = 4;
+        blink = 1.5;
+        const m = $('mom');
+        m.textContent = MOM[Math.floor(Math.random() * MOM.length)];
+        m.classList.add('show');
+        clearTimeout(momT);
+        momT = setTimeout(() => m.classList.remove('show'), 2600);
+      }
+      // the recording bot presses the same keys; it misses one barrier on purpose to show the message
+      const bot = location.search.includes('keys=demo');
+      const t0 = performance.now();
+      let botCd = 0,
+        missed = false;
+      function botStep(dt) {
+        botCd -= dt;
+        if (botCd > 0) return;
+        const ahead = things
+          .filter(
+            (o) => !o.done && o.type !== 'coin' && o.mesh.position.z < 0.3,
+          )
+          .sort((a, b) => b.mesh.position.z - a.mesh.position.z);
+        const crateIn = (l, z0) =>
+          things.some(
+            (o) =>
+              o.type === 'crate' &&
+              !o.done &&
+              o.l === l &&
+              o.mesh.position.z > z0 &&
+              o.mesh.position.z < 1,
+          );
+        if (crateIn(lane, -9)) {
+          const free = [lane - 1, lane + 1].filter(
+            (l) => l >= 0 && l <= 2 && !crateIn(l, -10),
+          );
+          if (free.length) {
+            act(free[0] < lane ? 'left' : 'right');
+            botCd = 0.18;
+            return;
+          }
+        }
+        const o = ahead[0];
+        if (!o) return;
+        const tt = -o.mesh.position.z / speed;
+        if (o.type === 'bar' && tt < 0.2 && y === 0) {
+          if (!missed && performance.now() - t0 > 27000) {
+            missed = true;
+            o.done = true;
+            o.botSkip = true;
+            hit();
+            return;
+          }
+          act('jump');
+          botCd = 0.3;
+        }
+        if (o.type === 'beam' && tt < 0.25 && slide <= 0) {
+          act('slide');
+          botCd = 0.3;
+        }
+      }
+      let last = performance.now();
+      function runLoop(now) {
+        const dt = Math.min(0.05, (now - last) / 1000 || 0);
+        last = now;
+        target = Math.min(26, target + 0.2 * dt);
+        speed = speed < target ? Math.min(target, speed + 3 * dt) : target;
+        const d = speed * dt;
+        dist += d;
+        ft.offset.y += d / 2;
         for (const p of pillars) {
-          p.position.z += sp;
+          p.position.z += d;
           if (p.position.z > 6) p.position.z -= 48;
         }
-        if (tick % 34 === 0) {
-          const coin = Math.random() < 0.35,
-            m = new THREE.Mesh(coin ? coinG : boxG, coin ? coinM : boxM);
-          m.userData = { l: Math.floor(Math.random() * 3), coin };
-          m.position.set(laneX(m.userData.l), coin ? 0.7 : 0.45, -40);
-          if (coin) m.rotation.x = Math.PI / 2;
-          rs.add(m);
-          things.push(m);
+        if (dist > nextSpawn) {
+          nextSpawn = dist + 8 + Math.random() * 5;
+          spawnRow();
         }
-        for (const m of things) {
-          m.position.z += sp;
-          if (m.userData.coin) m.rotation.z += 0.1;
+        if (bot) botStep(dt);
+        y += vy * dt;
+        vy -= 28 * dt;
+        if (y <= 0) {
+          y = 0;
+          vy = 0;
         }
-        const danger = (l) =>
-          things.some(
-            (m) =>
-              !m.userData.coin &&
-              m.userData.l === l &&
-              m.position.z > -7 &&
-              m.position.z < 1,
-          );
-        if (danger(lane)) lane = [1, 0, 2].find((l) => !danger(l)) ?? lane;
-        hero.position.x += (laneX(lane) - hero.position.x) * 0.2;
-        hero.rotation.z = (hero.position.x - laneX(lane)) * 0.3;
-        const s = Math.sin(tick / 3);
-        legL.rotation.x = s * 0.7;
-        legR.rotation.x = -s * 0.7;
-        body.position.y = 0.95 + Math.abs(s) * 0.05;
+        slide = Math.max(0, slide - dt);
+        blink = Math.max(0, blink - dt);
+        hero.position.x +=
+          (laneX(lane) - hero.position.x) * Math.min(1, 14 * dt);
+        hero.position.y = y;
+        hero.scale.y = slide > 0 ? 0.5 : 1;
+        hero.rotation.x = slide > 0 ? -0.5 : 0;
+        hero.visible = blink > 0 ? Math.floor(now / 90) % 2 === 0 : true;
+        const s = Math.sin(dist * 1.2);
+        legL.rotation.x = y > 0 ? -0.6 : s * 0.8;
+        legR.rotation.x = y > 0 ? 0.4 : -s * 0.8;
+        const hl = Math.round(hero.position.x / 1.25) + 1;
         for (let i = things.length - 1; i >= 0; i--) {
-          const m = things[i];
-          if (
-            m.userData.coin &&
-            Math.abs(m.position.z) < 0.5 &&
-            Math.abs(m.position.x - hero.position.x) < 0.6
-          ) {
-            score += 10;
-            rs.remove(m);
-            things.splice(i, 1);
-          } else if (m.position.z > 6) {
-            rs.remove(m);
+          const o = things[i],
+            z0 = o.mesh.position.z;
+          o.mesh.position.z += d;
+          const z1 = o.mesh.position.z;
+          if (o.type === 'coin') o.mesh.rotation.z += 6 * dt;
+          if (!o.done && z0 < 0.3 && z1 >= -0.3) {
+            if (
+              o.type === 'coin' &&
+              o.l === hl &&
+              Math.abs(o.mesh.position.y - (y + 0.9)) < 0.9
+            ) {
+              score += 50;
+              rs.remove(o.mesh);
+              things.splice(i, 1);
+              continue;
+            }
+            if (o.type === 'crate' && o.l === hl) {
+              o.done = true;
+              hit();
+            }
+            if (o.type === 'bar' && y < 0.45) {
+              o.done = true;
+              hit();
+            }
+            if (o.type === 'beam' && slide <= 0) {
+              o.done = true;
+              hit();
+            }
+          }
+          if (z1 > 0.3 && o.type !== 'coin') o.done = true;
+          if (z1 > 7) {
+            rs.remove(o.mesh);
             things.splice(i, 1);
           }
         }
-        score++;
-        $('score').textContent = score;
+        score += speed * dt;
+        $('score').textContent = Math.floor(score);
         rr.render(rs, rc);
         requestAnimationFrame(runLoop);
       }
-      runLoop();
+      requestAnimationFrame(runLoop);
       window.__sortResolve();
     </script>
   </body>

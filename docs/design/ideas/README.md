@@ -48,9 +48,10 @@ Guild research (#170):
 
 Kinderleicht-Modus, joke theme (#200):
 
-- `easy-mode.html` / `.png` / `.gif` – full flow: pick one of 3 directions, huge arrows to the next click, a 3D shape sorter (three.js) before the order starts, praise, pop-up button, ad with a 10 s wait and a playable slot machine that always just misses; the runner „Servitor-Sprint“ in 3D on the right; `?once=1` plays it once. three.js comes from jsDelivr, so the page needs the network
+- `easy-mode.html` / `.png` / `.gif` – full flow: pick one of 3 directions, huge arrows to the next click, a 3D shape sorter (three.js) before the order starts, praise, pop-up button, ad with a 10 s wait and a playable slot machine that always just misses; the runner „Servitor-Sprint“ in 3D on the right, steered with ←/→ or A/D, ↑/W/space (jump) and ↓/S (slide), never covered by the ad or the sorter; `?once=1` plays it once, `?keys=demo` lets a bot press the keys. three.js comes from jsDelivr, so the page needs the network
 - `easy-mode-sort.png` – the shape sorter
 - `easy-mode-ad.png` – the ad with the slot machine
+- `easy-mode-runner.png` – the runner after a hit, with the motherly message
 
 The HTML files reference `/style.css`, `/fonts/`, `/icons/` and `/planets/` absolutely:
 serve them from a root that holds `src/client/static/` with this folder beside
