@@ -17,8 +17,9 @@ RUN --mount=type=secret,id=ca,required=false \
     pnpm install --frozen-lockfile
 
 # The client bundle, then only the production dependencies stay. pnpm build
-# first writes the feature index src/features/index.gen.ts (not checked in,
-# scripts/gen-features.ts); the image copies it with src/features.
+# first writes the feature indexes src/features/index.gen.ts and
+# index.server.gen.ts (not checked in, scripts/gen-features.ts); the image
+# copies them with src/features.
 FROM deps AS build
 COPY . .
 # VERSION exists from the first release on; without it the server runs as

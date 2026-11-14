@@ -1,4 +1,4 @@
-import { MISSION } from '../../core/catalog.ts';
+import { MISSION } from '../../core/missions.ts';
 import { text } from '../../core/text.ts';
 import { diameterLine } from '../logic/fields.ts';
 import { coords, dt, esc, fmt } from '../logic/format.ts';

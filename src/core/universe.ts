@@ -1,7 +1,7 @@
 // The settings of a universe: defaults, ranges and the rule that the size of
 // the universe never shrinks below a planet that exists. The admin panel, the
 // server check and the documentation table read this list.
-import type { Universe } from './types.ts';
+import type { Coords, Universe } from './types.ts';
 
 type UniverseKey = keyof Universe;
 
@@ -83,6 +83,13 @@ export const UNIVERSE_SPECS: readonly UniverseSpec[] = [
 export const DEFAULT_UNIVERSE: Universe = Object.fromEntries(
   UNIVERSE_SPECS.map((s) => [s.key, s.def]),
 ) as unknown as Universe;
+
+/**
+ * Whether a position lies inside the universe: galaxy, system and position
+ * at most the configured counts (a free target must still exist on arrival).
+ */
+export const inUniverse = ({ g, s, p }: Coords, u: Universe): boolean =>
+  g <= u.galaxies && s <= u.systems && p <= u.positions;
 
 /** The largest coordinates that planets use today. */
 export interface UsedSize {
