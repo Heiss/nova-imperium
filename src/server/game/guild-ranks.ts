@@ -67,7 +67,7 @@ export function below(a: Actor, position: number): void {
   if (position <= a.position) fail(LOWER_ONLY);
 }
 
-export function leadOnly(a: Actor, message = LEAD_ONLY): void {
+function leadOnly(a: Actor, message = LEAD_ONLY): void {
   if (!a.lead) fail(message);
 }
 
@@ -77,7 +77,7 @@ export function placeOf(a: Actor, m: Membership): number {
   return a.ranks.find((r) => r.id === m.rank_id)?.position ?? Infinity;
 }
 
-export function rankOf(a: Actor, id: unknown): Rank {
+function rankOf(a: Actor, id: unknown): Rank {
   const rank = str(id, 40);
   return (
     a.ranks.find((r) => r.id === rank) ?? fail('Diesen Rang gibt es nicht.')
