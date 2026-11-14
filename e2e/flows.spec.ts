@@ -1,4 +1,5 @@
-// The game flows of #68 that had no browser test. Flights and the shipyard
+// The game flows of #68 that had no browser test, and the admin event log of
+// a battle (#151). Flights and the shipyard
 // are moved forward with e2e/seed.ts; the mails go through the mail sink of
 // the second server (e2e/env.ts, e2e/mail.ts).
 import { expect, test, type Locator, type Page } from '@playwright/test';
@@ -62,6 +63,36 @@ async function sendTransport(page: Page): Promise<void> {
   await expect(page.locator('.fl-transport')).toContainText('1 Frachtläufer');
 }
 
+/**
+ * Registers a defender and an attacker; the attacker (logged in afterwards)
+ * sends 5 Abfangjäger and 2 Frachtläufer against the defender's home planet,
+ * and the fleet arrives now.
+ */
+async function attack(page: Page, a: string, b: string): Promise<void> {
+  await register(page, b);
+  await page.click('[data-act=logout]');
+  await register(page, a);
+  seed({ name: a, ships: { lf: 5, sc: 2 }, res: { m: 0, c: 0, d: 10000 } });
+  // Mines and a probe give the defender a fifth of the attacker's points
+  // (no noob protection); the probe dies in the first round.
+  seed({
+    name: b,
+    b: { metal: 12, crystal: 10 },
+    ships: { probe: 1 },
+    res: { m: 50000, c: 50000, d: 50000 },
+  });
+  await openSystemOf(page, b);
+  await expect(galaxyRow(page, b)).not.toContainText('(n)');
+  await galaxyRow(page, b).getByText('Sturmangriff').click();
+  await expect(page.getByLabel('Auftrag')).toHaveValue('attack');
+  await page.getByLabel('Anzahl Abfangjäger').fill('5');
+  await page.getByLabel('Anzahl Frachtläufer').fill('2');
+  await page.getByRole('button', { name: 'Flotte losschicken' }).click();
+  await expect(lastToast(page)).toContainText('Flotte unterwegs nach');
+  await expect(page.locator('.fl-attack')).toContainText('Sturmangriff');
+  seed({ name: a, landFleet: 'attack' });
+}
+
 test.describe('fleet and battle (#68)', () => {
   test('an attack wins the battle, takes loot home and leaves reports for both sides', async ({
     page,
@@ -69,29 +100,7 @@ test.describe('fleet and battle (#68)', () => {
     const w = watch(page);
     const a = uniqueName('Sturm');
     const b = uniqueName('Beute');
-    await register(page, b);
-    await page.click('[data-act=logout]');
-    await register(page, a);
-    seed({ name: a, ships: { lf: 5, sc: 2 }, res: { m: 0, c: 0, d: 10000 } });
-    // Mines and a probe give the defender a fifth of the attacker's points
-    // (no noob protection); the probe dies in the first round.
-    seed({
-      name: b,
-      b: { metal: 12, crystal: 10 },
-      ships: { probe: 1 },
-      res: { m: 50000, c: 50000, d: 50000 },
-    });
-    await openSystemOf(page, b);
-    await expect(galaxyRow(page, b)).not.toContainText('(n)');
-    await galaxyRow(page, b).getByText('Sturmangriff').click();
-    await expect(page.getByLabel('Auftrag')).toHaveValue('attack');
-    await page.getByLabel('Anzahl Abfangjäger').fill('5');
-    await page.getByLabel('Anzahl Frachtläufer').fill('2');
-    await page.getByRole('button', { name: 'Flotte losschicken' }).click();
-    await expect(lastToast(page)).toContainText('Flotte unterwegs nach');
-    await expect(page.locator('.fl-attack')).toContainText('Sturmangriff');
-
-    seed({ name: a, landFleet: 'attack' });
+    await attack(page, a, b);
     const badge = page.locator('#menu [data-v=messages] .badge');
     await expect(badge).toBeVisible({ timeout: 15000 });
     await expect(page.locator('.fl-back')).toContainText('kehrt von');
@@ -693,6 +702,66 @@ test.describe('admin (#68)', () => {
     await expect(energy.locator('.lv')).toHaveText('');
     await expect(energy.locator('[data-act=research]')).toHaveText('Forschen');
     mailCli('unadmin', name);
+    expect(w.problems).toEqual([]);
+  });
+
+  test('the event log filters by a planet or fleet of an event (#151)', async ({
+    page,
+  }) => {
+    const w = watch(page);
+    const a = uniqueName('Feldherr');
+    const b = uniqueName('Ziel');
+    await attack(page, a, b);
+    await expect(page.locator('.fl-back')).toContainText('kehrt von', {
+      timeout: 15000,
+    });
+    cli('admin', a);
+    await page.reload();
+    await nav(page, 'admin');
+    const events = page.locator('[data-admin=events]');
+    const count = events.getByRole('status');
+    await page
+      .getByLabel('Spieler', { exact: true })
+      .selectOption({ label: a });
+    await page.getByRole('button', { name: 'Anzeigen', exact: true }).click();
+    // Registration, the attack order, the battle and the admin's reads.
+    await expect(count).toHaveText(/ · ([3-9]|\d{2,}) Ereignisse$/);
+    const row = (action: RegExp) => events.getByRole('row', { name: action });
+    const battle = row(/system \/ battle/);
+    await battle.getByText(/^Kampfdetails \d+$/).click();
+    const detail = JSON.parse(
+      await battle.locator('details > code').innerText(),
+    ) as { fleet: string; planet: string };
+    await expect(
+      events.getByRole('button', { name: /^Aufträge zu/ }),
+    ).toHaveCount(0);
+
+    // The fleet: its attack order and its battle, long after the order.
+    await battle
+      .getByRole('button', {
+        name: `Ereignisse zu ${detail.fleet}`,
+        exact: true,
+      })
+      .click();
+    await expect(page.getByLabel('Planet / Flotte')).toHaveValue(detail.fleet);
+    await expect(count).toHaveText('Seite 1 von 1 · 2 Ereignisse');
+    await expect(battle).toBeVisible();
+    await expect(row(/game \/ send/)).toBeVisible();
+    await expect(row(/account \/ register/)).toHaveCount(0);
+
+    // The attacked planet: the same two events of this attacker.
+    await battle.getByText(/^Kampfdetails \d+$/).click();
+    await battle
+      .getByRole('button', {
+        name: `Ereignisse zu ${detail.planet}`,
+        exact: true,
+      })
+      .click();
+    await expect(page.getByLabel('Planet / Flotte')).toHaveValue(detail.planet);
+    await expect(count).toHaveText('Seite 1 von 1 · 2 Ereignisse');
+    await expect(battle).toBeVisible();
+    await expect(row(/game \/ send/)).toBeVisible();
+    cli('unadmin', a);
     expect(w.problems).toEqual([]);
   });
 });
