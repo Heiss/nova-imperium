@@ -169,8 +169,8 @@ choice of the patterns to the assistant's recommendation below
   through the rule module (own keys only), `requirements.ts` imports the
   energy check from the rule module, and `yard.ts` and `research.ts` keep
   their exports.
-* **[V]** Choices of the limits group within the decisions above, for the
-  owner to confirm: `limit` is only on defense, because `unitRoom` counts
+* **[E]** Choices of the limits group within the decisions above,
+  confirmed by the owner (2026-11-14): `limit` is only on defense, because `unitRoom` counts
   the stock in the planet's defense, and the contract test checks this and
   a whole `perPlanet` ≥ 1; `energyThreshold` is only on buildings and
   research, the entries with levels; the table field `once: true` is
