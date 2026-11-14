@@ -46,9 +46,11 @@ choice of the patterns to the assistant's recommendation below
 * **[E]** Each component has exactly one rule module in `src/core`; only
   that module reads the component. No other code asks for a key.
 * **[E]** Behaviour that differs per entry is a typed function field of a
-  component, for example the rate formula of `produces` or
-  `drive: (research) => DriveKey` of `mobile`. There are no free hooks
-  (`onBuild`, `onSettle`): they bring the scattered special cases back.
+  component, for example the rate formula of `produces`, or data that the
+  rule module evaluates, for example the drive switches of `mobile` (owner,
+  2026-11-14, replaces the example `drive: (research) => DriveKey`). There
+  are no free hooks (`onBuild`, `onSettle`): they bring the scattered
+  special cases back.
 * **[E]** A component is created when at least two entries need it, or an
   issue requires the rule to be generic. Until then the special rule stays
   in the folder of its entry.
@@ -118,6 +120,26 @@ choice of the patterns to the assistant's recommendation below
   `SHIPS`, `DEF` and `UNIT` from `unit`, `combat` without `easy` and `def`,
   deeply equal to before; `battle.ts` reads `FIGHTERS` through `strength`
   and `rapidFire` and keeps its exports.
+* **[E]** Decided for the third pull request of #114, the flight group
+  (owner, 2026-11-14): `mobile` is `{ cargo, speed, fuel, drive, drives? }`
+  with today's names as data, like `combat`; the drive switch stays a list
+  `[{ drive, speed, from: { research, level } }]` that the rule module
+  evaluates. The Sonnenreliquiar has no `mobile`: „can fly“ is „has
+  `mobile`“, and its flight values come from a core constant `STATIONARY`
+  instead of `def`; the contract test checks speed > 0 for every entry with
+  `mobile`. Only `flight.ts` reads `mobile`, through the rule module, and
+  `canFly` is derived from it; the shipyard, the fleet view and the server
+  keep reading `SHIPS` until #118. `DRIVE_BONUS` and `DriveKey` move to
+  `src/core/components/mobile.ts`; `catalog.ts` exports them unchanged.
+* **[E]** Built with #114 (flight group): every ship that flies exports
+  `mobile`, and `def` keeps `req` (`ShipFields`).
+  `src/core/components/mobile.ts` holds `Mobile`, `DriveSwitch`,
+  `DriveKey`, `DRIVE_BONUS`, `STATIONARY` (`{ cargo: 0, speed: 0, fuel: 0,
+  drive: 'comb' }`, the values of version 1), `activeDrive` and `speed`.
+  `catalog.ts` derives `MOBILE` (the ships with `mobile`, by key) and
+  `canFly` (an own key of `MOBILE`), and builds `SHIPS` from `mobile` or
+  `STATIONARY`, deeply equal to before; `flight.ts` reads `MOBILE` through
+  the rule module and keeps its exports.
 
 ## 2. Texts apart from rules
 
@@ -420,6 +442,16 @@ src/client/                state, components (generic), views
   compares `buildSide()`, `rapid()` for every pair and `battle()` with the
   same random stream, draw for draw, bit for bit with `battle.ts` from
   before the combat components on generated sides.
+* **[E]** Built with #114 for the flight group:
+  `src/core/components/mobile.test.ts` (only on ships; speed above 0, cargo
+  whole and ≥ 0, fuel whole and above 0, a known drive; drive switches to a
+  known drive from a research level above 0; the speed finite and at least
+  the base speed of the active drive for research levels 0 to 30).
+  `src/core/flight-reference.test.ts` compares `activeDrive()`,
+  `shipSpeed()`, `fleetSpeed()`, `fuelFor()`, `capacity()` and `canFly()`
+  bit for bit with their form before the flight component, for every key
+  of the catalog and an unknown one, on generated fleets and research
+  levels.
 
 # Migration
 
@@ -443,8 +475,9 @@ src/client/                state, components (generic), views
      per component group: production (`produces`, `consumes`, `storage`,
      `leveled`), combat (`combat`, `unit`), flight (`mobile`), limits
      (`limit`, `energyThreshold`), then `ProducerTable` (owner, 2026-11-13,
-     #114). The production group is built (#114, first pull request), and
-     the combat group (#114, second pull request).
+     #114). The production group is built (#114, first pull request), the
+     combat group (#114, second pull request) and the flight group (#114,
+     third pull request).
   4. Generic events in `settle` with the property tests.
   5. Missions as strategies.
   6. Repositories per aggregate.

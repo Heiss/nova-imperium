@@ -6,9 +6,9 @@
 // patterns.md, sections 1 and 10; #114). An entry exports its `kind`, its
 // `order` within the kind, its components and, until their own pull request,
 // its other fields unchanged in `def`. Ships and defense have the components
-// `unit` and `combat` since the second pull request of #114. This file
-// builds the tables of the game from them, in the order of the game (owner,
-// 2026-11-13).
+// `unit` and `combat` since the second pull request of #114, and every ship
+// that flies `mobile` since the third. This file builds the tables of the
+// game from them, in the order of the game (owner, 2026-11-13).
 //
 // The display texts are not here: each entry has them in its own
 // src/features/<key>/texts.de.ts, read through `text(key)` of text.ts
@@ -17,6 +17,12 @@ import { ENTRIES } from '../features/index.gen.ts';
 import type { Combat, Fighter } from './components/combat.ts';
 import type { Consumes } from './components/consumes.ts';
 import type { Leveled } from './components/leveled.ts';
+import {
+  DRIVE_BONUS,
+  type DriveKey,
+  type Mobile,
+  STATIONARY,
+} from './components/mobile.ts';
 import type { Produces } from './components/produces.ts';
 import type { Storage } from './components/storage.ts';
 import type { Unit } from './components/unit.ts';
@@ -46,7 +52,7 @@ export interface ResearchDef extends Leveled {
   energy?: EnergyNeed;
 }
 
-export type DriveKey = 'comb' | 'impulse' | 'hdrive';
+export { DRIVE_BONUS, type DriveKey };
 
 interface UnitDefBase {
   cost: Cost;
@@ -56,25 +62,7 @@ interface UnitDefBase {
   rf?: Record<string, number>;
 }
 
-/**
- * A drive a ship switches to once the player has researched `from` (issue
- * #57): it replaces the base `drive` and `speed` of the ship.
- */
-interface DriveSwitch {
-  drive: DriveKey;
-  speed: number;
-  from: { research: string; level: number };
-}
-
-export interface ShipDef extends UnitDefBase {
-  cargo: number;
-  /** Base speed with the base `drive`. */
-  speed: number;
-  fuel: number;
-  drive: DriveKey;
-  /** Later drives; the last one whose research is reached flies the ship. */
-  drives?: DriveSwitch[];
-}
+export interface ShipDef extends UnitDefBase, Mobile {}
 
 export interface DefenseDef extends UnitDefBase {
   /** At most one per planet, the shield domes (#50, D3). */
@@ -86,8 +74,11 @@ export type UnitDef = ShipDef | DefenseDef;
 export type BuildingFields = Omit<BuildingDef, keyof Leveled>;
 /** The fields of a research besides its `leveled` component. */
 export type ResearchFields = Omit<ResearchDef, keyof Leveled>;
-/** The fields of a ship besides its `unit` and `combat` components. */
-export type ShipFields = Omit<ShipDef, keyof Unit | keyof Combat>;
+/** The fields of a ship besides its `unit`, `combat` and `mobile` components. */
+export type ShipFields = Omit<
+  ShipDef,
+  keyof Unit | keyof Combat | keyof Mobile
+>;
 /** The fields of a defense besides its `unit` and `combat` components. */
 export type DefenseFields = Omit<DefenseDef, keyof Unit | keyof Combat>;
 
@@ -119,6 +110,8 @@ type Entry =
       order: number;
       unit: Unit;
       combat: Combat;
+      /** None for a ship that stays at its planet. */
+      mobile?: Mobile;
       def: ShipFields;
     })
   | (Idle & {
@@ -167,18 +160,16 @@ const pieces = (e: { unit: Unit; combat: Combat; def: object }): object => {
   return { ...e.unit, atk, sh, ...(rf && { rf }), ...e.def };
 };
 
+/** A ship as the table had it: a ship without `mobile` has `STATIONARY`. */
+const ship = (e: Extract<Entry, { kind: 'ship' }>): object =>
+  pieces({ ...e, def: { ...(e.mobile ?? STATIONARY), ...e.def } });
+
 export const BUILD = table<BuildingDef, 'building'>('building', levels);
 export const RES = table<ResearchDef, 'research'>('research', levels);
-export const SHIPS = table<ShipDef, 'ship'>('ship', pieces);
+export const SHIPS = table<ShipDef, 'ship'>('ship', ship);
 export const DEF = table<DefenseDef, 'defense'>('defense', pieces);
 
 export const UNIT: Record<string, UnitDef> = { ...SHIPS, ...DEF };
-
-export const DRIVE_BONUS: Record<DriveKey, number> = {
-  comb: 0.1,
-  impulse: 0.2,
-  hdrive: 0.3,
-};
 
 export const MISSION = {
   attack: MISSION_TEXT.attack,
@@ -204,6 +195,13 @@ export const FIGHTERS: Readonly<Record<string, Fighter>> = Object.fromEntries(
   ),
 );
 
+/** The ships with a `mobile` component, by key: the ships that fly. */
+export const MOBILE: Readonly<Record<string, Mobile>> = Object.fromEntries(
+  ofKind('ship').flatMap(([key, e]) =>
+    e.mobile ? [[key, e.mobile] as const] : [],
+  ),
+);
+
 /** The entries with a `storage` component. */
 export const STORAGE = ofKind('building').flatMap(([key, e]) =>
   e.storage ? [{ key, storage: e.storage }] : [],
@@ -215,6 +213,5 @@ export const PRODUCERS: readonly string[] = PRODUCTION.map((e) => e.key);
 export const isShip = (key: string): boolean => Object.hasOwn(SHIPS, key);
 export const isDefense = (key: string): boolean => Object.hasOwn(DEF, key);
 
-/** Ships that can be sent; the Solarsatellit (speed 0) stays at its planet. */
-export const canFly = (key: string): boolean =>
-  isShip(key) && SHIPS[key]!.speed > 0;
+/** Ships that can be sent: those with `mobile`; the Sonnenreliquiar stays at its planet. */
+export const canFly = (key: string): boolean => Object.hasOwn(MOBILE, key);

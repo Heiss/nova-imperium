@@ -19,11 +19,8 @@ export const combat: Combat = {
   sh: 1,
   easy: true,
 };
+// No `mobile`: it stays at its planet (owner, 2026-11-14).
 export const def: ShipFields = {
-  cargo: 0,
-  speed: 0,
-  fuel: 0,
-  drive: 'comb',
   req: {
     b: {
       yard: 1,

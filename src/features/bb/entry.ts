@@ -3,6 +3,7 @@
 
 import type { ShipFields } from '../../core/catalog.ts';
 import type { Combat } from '../../core/components/combat.ts';
+import type { Mobile } from '../../core/components/mobile.ts';
 import type { Unit } from '../../core/components/unit.ts';
 
 export const kind = 'ship';
@@ -20,7 +21,7 @@ export const combat: Combat = {
     ionc: 10,
   },
 };
-export const def: ShipFields = {
+export const mobile: Mobile = {
   cargo: 500,
   speed: 4000,
   fuel: 1000,
@@ -35,6 +36,8 @@ export const def: ShipFields = {
       },
     },
   ],
+};
+export const def: ShipFields = {
   req: {
     b: {
       yard: 8,
