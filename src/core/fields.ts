@@ -2,6 +2,8 @@
 // ⌊(diameter / 1000)²⌋ fields, every building level takes one, the extra
 // fields of the universe and the levels of a building with `fields`
 // (Weltenschmiede) add to them. Planets from before the fields have no limit.
+// A moon (#53) has 1 field plus those of its buildings with `fields`
+// (Mondzitadelle), whatever its diameter, and no extra fields of the universe.
 import type { Rng } from './battle.ts';
 import { BUILD } from './catalog.ts';
 import type { Planet, Universe } from './types.ts';
@@ -61,9 +63,16 @@ export function colonyDiameter(position: number, rng: Rng): number {
 export const usedFields = (p: Pick<Planet, 'b'>): number =>
   Object.values(p.b).reduce((sum, level) => sum + level, 0);
 
+/** A moon starts with one field (owner, 2026-11-13). */
+export const MOON_FIELDS = 1;
+
+/** What the fields of a place depend on; a place without a kind is a planet. */
+type FieldPlace = Pick<Planet, 'b' | 'diameter' | 'unlimited'> &
+  Partial<Pick<Planet, 'kind'>>;
+
 /** The fields a planet has, or null for a planet without a limit. */
 export function maxFields(
-  p: Pick<Planet, 'b' | 'diameter' | 'unlimited'>,
+  p: FieldPlace,
   u: Pick<Universe, 'extraFields'>,
 ): number | null {
   if (p.unlimited) return null;
@@ -71,12 +80,14 @@ export function maxFields(
     (sum, [key, level]) => sum + (BUILD[key]?.fields ?? 0) * level,
     0,
   );
+  // „Zusatzfelder pro Planet“ does not apply to moons (owner, 2026-11-14).
+  if (p.kind === 'moon') return MOON_FIELDS + added;
   return fieldsOf(p.diameter) + u.extraFields + added;
 }
 
 /** Whether no field is free for another building level. */
 export function fieldsFull(
-  p: Pick<Planet, 'b' | 'diameter' | 'unlimited'>,
+  p: FieldPlace,
   u: Pick<Universe, 'extraFields'>,
 ): boolean {
   const max = maxFields(p, u);

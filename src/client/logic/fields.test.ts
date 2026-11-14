@@ -35,4 +35,9 @@ describe('fields in the interface (#51)', () => {
     expect(fieldsLine(big, U)).toBe('Felder: 1.200 / 1.600');
     expect(diameterLine(big, U)).toBe('40.000 km (1.200/1.600 Felder)');
   });
+  it('show the fields of a moon: 1 plus 3 per Mondzitadelle level (#53)', () => {
+    const moon = planet({ kind: 'moon', diameter: 5000, b: { moonbase: 1 } });
+    expect(fieldsLine(moon, { ...U, extraFields: 9 })).toBe('Felder: 1 / 4');
+    expect(diameterLine(moon, U)).toBe('5.000 km (1/4 Felder)');
+  });
 });

@@ -8,6 +8,7 @@ import {
   HOME_DIAMETER,
   maxFields,
   minDiameter,
+  MOON_FIELDS,
   usedFields,
 } from './fields.ts';
 
@@ -146,6 +147,28 @@ describe('used and maximal fields (#51)', () => {
     const p = planet({ unlimited: true, b: { metal: 400 } });
     expect(maxFields(p, U)).toBeNull();
     expect(fieldsFull(p, U)).toBe(false);
+  });
+
+  it('are 1 on a moon plus 3 per Mondzitadelle level, which takes a field itself (#53)', () => {
+    const moon = planet({ kind: 'moon', diameter: 8944 });
+    expect(MOON_FIELDS).toBe(1);
+    expect(maxFields(moon, U)).toBe(1);
+    // „Zusatzfelder pro Planet“ does not apply to moons (owner, 2026-11-14).
+    expect(maxFields(moon, { ...U, extraFields: 25 })).toBe(1);
+    const built = { ...moon, b: { moonbase: 2, robot: 1 } };
+    expect(maxFields(built, U)).toBe(1 + 6);
+    expect(usedFields(built)).toBe(3);
+    expect(fieldsFull(moon, U)).toBe(false);
+    expect(fieldsFull({ ...moon, b: { moonbase: 1 } }, U)).toBe(false);
+    expect(fieldsFull({ ...moon, b: { moonbase: 1, yard: 3 } }, U)).toBe(true);
+    expect(fieldsFull({ ...moon, b: { robot: 1 } }, U)).toBe(true);
+  });
+
+  it('count the Mondzitadelle on a planet like any building with fields (#53)', () => {
+    // The action refuses it on a planet; the rule only adds what is there.
+    const p = planet({ diameter: 10000, b: { moonbase: 1 } });
+    expect(maxFields(p, U)).toBe(103);
+    expect(maxFields({ ...p, kind: undefined } as never, U)).toBe(103);
   });
 
   it('are full when every field is taken', () => {

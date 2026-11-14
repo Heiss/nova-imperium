@@ -31,7 +31,9 @@ export type SendError =
   | 'noColonyShip'
   | 'probesOnly'
   | 'noDebris'
-  | 'noRecycler';
+  | 'noRecycler'
+  | 'noMoon'
+  | 'moonTarget';
 
 /** The fleet a player wants to send: its owner, its origin and its ships. */
 export interface SendFleet {
@@ -47,6 +49,11 @@ export interface SendTarget {
   planet: Pick<Planet, 'id' | 'owner'> | null;
   /** Whether a Trümmerfeld lies at the position (#45). */
   debris: boolean;
+  /**
+   * Whether the fleet flies to the moon of the position (#53); `planet` is
+   * then the moon, or null without one. Missing: the planet.
+   */
+  moon?: boolean;
   /**
    * Whether the noob protection keeps `owner` from this player. The server
    * determines it (it needs the points of every player), and only when it is
@@ -110,6 +117,16 @@ export function suits(
 const debrisError = (target: SendTarget): SendError | undefined =>
   target.debris ? undefined : 'noDebris';
 
+/**
+ * A free position and a Trümmerfeld are never a moon: colonization and
+ * Bergung never target one (#53; owner, 2026-11-13).
+ */
+const NEVER_MOON: readonly TargetKind[] = ['free', 'debris'];
+
+/** Nothing at the target: no planet, or no moon when the fleet flies to one. */
+const nothing = (target: SendTarget): SendError =>
+  target.moon ? 'noMoon' : 'noPlanet';
+
 /** The generic check of the target kind, in today's order of the messages. */
 function targetError(
   kind: TargetKind,
@@ -118,7 +135,7 @@ function targetError(
 ): SendError | undefined {
   const t = target.planet;
   if (kind === 'free') return t ? 'occupied' : undefined;
-  if (!t) return 'noPlanet';
+  if (!t) return nothing(target);
   if (t.id === fleet.from) return 'samePlanet';
   if (!suits(kind, fleet.owner, t))
     return kind === 'own' ? 'notOwn' : 'ownTarget';
@@ -133,11 +150,16 @@ function targetError(
  * kind, then the mission's own `canSend`; nothing when it may fly. Slots,
  * cargo and fuel are checked by the server for every mission alike.
  */
-export const sendError = (
+export function sendError(
   rules: MissionRules,
   fleet: SendFleet,
   target: SendTarget,
-): SendError | undefined =>
-  (rules.target === 'debris'
-    ? debrisError(target)
-    : targetError(rules.target, fleet, target)) ?? rules.canSend(fleet, target);
+): SendError | undefined {
+  if (target.moon && NEVER_MOON.includes(rules.target)) return 'moonTarget';
+  return (
+    (rules.target === 'debris'
+      ? debrisError(target)
+      : targetError(rules.target, fleet, target)) ??
+    rules.canSend(fleet, target)
+  );
+}

@@ -12,6 +12,7 @@ import {
   labSite,
   networkLab,
 } from '../../core/research.ts';
+import { placeName } from '../../core/moon.ts';
 import { dur, esc, fmt } from '../logic/format.ts';
 import { researchState } from '../logic/game.ts';
 import { cd, costHTML, itemHTML, requirementsHTML, type V } from './common.ts';
@@ -101,5 +102,5 @@ function researchItem(v: V, k: string, d: ResearchDef): string {
 export function research(v: V): string {
   if (!((v.P.b.lab ?? 0) > 0)) return noLab(v);
   const items = Object.entries(RES).map(([k, d]) => researchItem(v, k, d));
-  return `<h2>Forschung auf ${esc(v.P.name)}</h2>${labLine(v)}<div class="box">${items.join('')}</div>`;
+  return `<h2>Forschung auf ${esc(placeName(v.P))}</h2>${labLine(v)}<div class="box">${items.join('')}</div>`;
 }

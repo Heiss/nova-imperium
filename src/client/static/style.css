@@ -531,6 +531,23 @@ input[type='checkbox'] {
 label {
   cursor: default;
 }
+/* Guild ranks (#163) */
+fieldset.rank {
+  margin: 0 0 10px;
+  padding: 6px 10px 8px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+}
+fieldset.rank legend {
+  padding: 0 4px;
+  font-weight: 600;
+}
+fieldset.rank .rights {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin: 6px 0;
+}
 a:focus-visible,
 .lnk:focus-visible,
 button:focus-visible,
@@ -720,6 +737,23 @@ textarea:focus-visible {
 }
 .gal .debris {
   vertical-align: middle;
+}
+/* Moons (#53): the symbol at the planet opens the moon's row. */
+.moon-btn {
+  padding: 2px;
+  min-height: 0;
+  line-height: 0;
+  vertical-align: middle;
+  background: transparent;
+  border-color: transparent;
+}
+.moon-btn[aria-expanded='true'] {
+  border-color: var(--gold);
+}
+.moon-big {
+  display: block;
+  flex: none;
+  line-height: 0;
 }
 
 /* ---------- Messages, toasts, modal ---------- */

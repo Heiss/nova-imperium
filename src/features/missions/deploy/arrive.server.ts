@@ -2,6 +2,7 @@
 // fuel it burnt, rounded down; the fleet ends there (#129). The gift of the
 // admin's „Endzeit“ is a Verlegung too and has its own arrival (#161).
 import { deployFuel } from '../../../core/flight.ts';
+import { placeName } from '../../../core/moon.ts';
 import type { Fleet } from '../../../core/types.ts';
 import {
   type Ctx,
@@ -26,7 +27,7 @@ export function onArrive(ctx: Ctx, f: Fleet, { t }: Arrival): void {
       time: f.arr,
       type: 'info',
       title: `Verlegung erreicht ${coords(f.toC)}`,
-      text: `Deine Flotte bleibt auf ${t.name} ${coords(f.toC)} und liefert ${resLine(load)}, davon ${fmt(rest)} übriger Treibstoff.`,
+      text: `Deine Flotte bleibt auf ${placeName(t)} ${coords(f.toC)} und liefert ${resLine(load)}, davon ${fmt(rest)} übriger Treibstoff.`,
     },
     { topic: 'fleet' },
   );

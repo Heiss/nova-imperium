@@ -86,7 +86,8 @@ export class SqlitePlanets implements Planets {
     return this.planetOf(
       this.db
         .prepare(
-          'SELECT * FROM planets WHERE owner = ? ORDER BY created, id LIMIT 1',
+          // A moon is never the home planet (#53).
+          "SELECT * FROM planets WHERE owner = ? AND kind = 'planet' ORDER BY created, id LIMIT 1",
         )
         .get(uid) as Row,
     );

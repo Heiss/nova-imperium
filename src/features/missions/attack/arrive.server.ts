@@ -1,11 +1,13 @@
 // A Sturmangriff fights the ships and the defense of the target: the winner
-// takes loot, the destroyed ships leave a Trümmerfeld (#45), 70 % of the
-// destroyed defense is rebuilt, both sides get a battle report; a fleet
-// without survivors is gone.
+// takes loot, the destroyed ships leave a Trümmerfeld (#45), at a planet
+// without a moon the whole field may form one (#53), 70 % of the destroyed
+// defense is rebuilt, both sides get a battle report; a fleet without
+// survivors is gone.
 import { battle } from '../../../core/battle.ts';
 import { DEF, SHIPS } from '../../../core/catalog.ts';
 import { type Debris, debrisOf, isEmpty } from '../../../core/debris.ts';
 import { capacity, countUnits } from '../../../core/flight.ts';
+import { placeName } from '../../../core/moon.ts';
 import type { Fleet, Levels, Planet, Resources } from '../../../core/types.ts';
 import { record } from '../../../server/audit.ts';
 import { type Ctx, addReport, coords } from '../../../server/game/context.ts';
@@ -15,6 +17,7 @@ import {
   researchAt,
   turnBack,
 } from '../../../server/game/missions.ts';
+import { type MoonRoll, rollMoon } from '../../../server/game/moons.ts';
 
 /** 70 % of the destroyed defense is rebuilt: by chance below 50 units, else rounded. */
 export function rebuild(lost: number, rng: () => number): number {
@@ -86,6 +89,7 @@ interface Fight {
   rebuilt: Levels;
   loot: Resources;
   debris: Debris;
+  moon: MoonRoll;
 }
 
 function battleReports(ctx: Ctx, x: Fight): void {
@@ -94,7 +98,7 @@ function battleReports(ctx: Ctx, x: Fight): void {
     time: f.arr,
     type: 'battle' as const,
     participants: [f.owner, t.owner],
-    name: t.name,
+    name: placeName(t),
     coords: f.toC,
     attName: x.att.name,
     defName: x.def.name,
@@ -107,12 +111,14 @@ function battleReports(ctx: Ctx, x: Fight): void {
     rebuilt: x.rebuilt,
     loot: x.loot,
     debris: x.debris,
+    // Only a rolled moon chance is reported (owner, 2026-11-14).
+    ...x.moon,
     attTech: tech(x.attR),
     defTech: tech(x.defR),
   };
   const won = `Kampfbericht ${coords(f.toC)} – ${WON[x.res.winner]}`;
   addReport(ctx, f.owner, { ...report, title: won }, { topic: 'fleet' });
-  const hit = `Feindkontakt! ${t.name} ${coords(f.toC)} wird von ${x.att.name} angegriffen`;
+  const hit = `Feindkontakt! ${placeName(t)} ${coords(f.toC)} wird von ${x.att.name} angegriffen`;
   addReport(ctx, t.owner, { ...report, title: hit }, { topic: 'attacked' });
 }
 
@@ -141,6 +147,7 @@ export function onArrive(ctx: Ctx, f: Fleet, at: Arrival): void {
     ctx.rng,
   );
   const debris = leaveDebris(ctx, f, defBefore, res);
+  const moon = rollMoon(ctx, t, f.arr);
   const after = afterBattle(ctx, t, res.def);
   const free = capacity(res.att) - (f.cargo.m + f.cargo.c + f.cargo.d);
   const loot =
@@ -170,6 +177,7 @@ export function onArrive(ctx: Ctx, f: Fleet, at: Arrival): void {
     rebuilt: after.rebuilt,
     loot,
     debris,
+    moon,
   });
   if (!countUnits(res.att)) return ctx.fleets.delete(f.id);
   const cargo = {

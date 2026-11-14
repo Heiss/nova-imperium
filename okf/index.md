@@ -31,10 +31,12 @@ okf_version: "0.2"
 * [Deploy mission „Verlegung“](/features/deploy.md) - moving ships and cargo to another own planet for good (#129)
 * [Planet fields and the Weltenschmiede](/features/fields.md) - limited fields per planet and the building that adds them (#51)
 * [Bergungsbarke, Trümmerfelder and „Bergung“](/features/debris.md) - debris of destroyed ships and the harvest mission (#45)
+* [Moons](/features/moons.md) - moons from debris, Mondzitadelle, Auspex-Phalanx and Warp-Tor (#53)
 * [Endzeit](/features/endzeit.md) - the admin's gift fleet with everything unlocked for a mass battle at the end of a round (#161)
 * [Error log and problem reports](/features/error-log.md) - server and browser errors, problem reports, admin tab „Fehler“ and download (#126)
 * [Changelog in the game](/features/changelog.md) - „Neuigkeiten“, update message and hint from CHANGELOG.md
 * [Push settings per kind](/features/push-settings.md) - which kinds of Web Push a player gets, per account for all devices (#192)
+* [Guild ranks](/features/guild-ranks.md) - ranks with configurable rights, one Leitung, order, default rank, checked on the server (#163)
 
 * [Invitations](/features/invitations.md) - registration only by invitation, mail or copied link
 * [Admin](/features/admin.md) - operator roles, diagnostics, audit log, moderation and live universe settings

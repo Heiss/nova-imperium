@@ -126,6 +126,44 @@ test.describe('accessibility (axe)', () => {
     expect(found).toEqual([]);
   });
 
+  // „Mond anlegen“ in the player record is checked in e2e/moons.spec.ts,
+  // after the admin test of game.spec.ts counts the reads of a player record.
+  test('a moon on the Sternenkarte, its overview, buildings and fleet form have no violations (#53)', async ({
+    page,
+  }) => {
+    const name = uniqueName('AxeMond');
+    await register(page, name);
+    seed({ name, moon: { name: 'Axe' }, ships: { sc: 1 } });
+    await page.reload();
+    const found: string[] = [];
+    const check = async (label: string): Promise<void> => {
+      found.push(...(await violations(page)).map((v) => `${label}: ${v}`));
+    };
+    await nav(page, 'galaxy');
+    await page.getByText('zum Heimatsystem').click();
+    await page.getByRole('button', { name: 'Axe (Mond)' }).click();
+    await expect(page.locator('tr.moon-row')).toBeVisible();
+    await check('galaxy');
+    await page
+      .locator('tr.moon-row')
+      .getByRole('button', { name: 'Verlegung' })
+      .click();
+    await expect(page.getByLabel('Zielart')).toHaveValue('moon');
+    await check('fleet');
+    const selector = page.getByLabel('Aktiver Planet');
+    await selector.selectOption(
+      (await selector
+        .locator('option', { hasText: 'Axe (Mond) [' })
+        .getAttribute('value'))!,
+    );
+    await expect(page.locator('#pinfo b').first()).toHaveText('Axe (Mond)');
+    for (const view of ['overview', 'buildings', 'resources'] as const) {
+      await nav(page, view);
+      await check(view);
+    }
+    expect(found).toEqual([]);
+  });
+
   test('the fields, a full planet and the Weltenschmiede have no violations (#51)', async ({
     page,
   }) => {
@@ -265,6 +303,61 @@ test.describe('accessibility (axe)', () => {
     await offer.click();
     await expect(page.locator('#reportform-dialog')).toBeVisible();
     found.push(...(await violations(page)).map((v) => `dialog: ${v}`));
+    expect(found).toEqual([]);
+  });
+
+  test('the guild view with its ranks has no violations (#163)', async ({
+    page,
+    browser,
+  }) => {
+    const lead = uniqueName('AxeGilde');
+    const tag = `A${Date.now() % 1000000}`;
+    const title = `[${tag}] Axe ${tag}`;
+    await register(page, lead);
+    const found: string[] = [];
+    const check = async (p: Page, label: string): Promise<void> => {
+      found.push(...(await violations(p)).map((v) => `${label}: ${v}`));
+    };
+    await nav(page, 'guilds');
+    await check(page, 'directory');
+    await page.getByLabel('Kürzel').fill(tag);
+    await page.getByLabel('Name', { exact: true }).fill(`Axe ${tag}`);
+    await page.getByRole('button', { name: 'Gilde gründen' }).click();
+    await expect(page.getByRole('heading', { name: title })).toBeVisible();
+    await page.getByLabel('Name des neuen Rangs').fill('Offizier');
+    await page.getByRole('button', { name: 'Rang anlegen' }).click();
+    await expect(page.locator('fieldset.rank')).toHaveCount(3);
+    // The public page, for an applicant.
+    // axe needs a page of its own context.
+    const context = await browser.newContext();
+    const other = await context.newPage();
+    await register(other, uniqueName('AxeGast'));
+    await nav(other, 'guilds');
+    await other.getByRole('link', { name: title }).click();
+    await check(other, 'public');
+    await other.getByRole('button', { name: 'Bewerben' }).click();
+    await expect(other.getByText('Deine Bewerbung ist offen.')).toBeVisible();
+    await page.reload();
+    await expect(page.getByRole('button', { name: 'Annehmen' })).toBeVisible();
+    await check(page, 'Leitung with ranks and an application');
+    await page.getByRole('button', { name: 'Annehmen' }).click();
+    await expect(page.locator('select[id^=rank_of_]')).toHaveCount(1);
+    await check(page, 'Leitung with a member');
+    await other.reload();
+    await expect(other.locator('fieldset.rank')).toHaveCount(3);
+    await check(other, 'member');
+    // The dialogs of the hand-over and of dissolving (owner, 2026-11-14).
+    await page
+      .getByRole('button', { name: 'Leitung übergeben' })
+      .first()
+      .click();
+    await expect(page.getByLabel('Dein neuer Rang')).toBeVisible();
+    await check(page, 'hand-over dialog');
+    await page.getByRole('button', { name: 'Abbrechen' }).click();
+    await page.getByRole('button', { name: 'Gilde auflösen' }).click();
+    await expect(page.locator('#dissolve_tag')).toBeVisible();
+    await check(page, 'dissolve dialog');
+    await context.close();
     expect(found).toEqual([]);
   });
 });

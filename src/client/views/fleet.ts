@@ -1,6 +1,7 @@
 import { SHIPS, canFly } from '../../core/catalog.ts';
 import { fleetSlots, shipSpeed } from '../../core/flight.ts';
 import { MISSION } from '../../core/missions.ts';
+import { moonAt } from '../logic/moon.ts';
 import { text } from '../../core/text.ts';
 import { fmt } from '../logic/format.ts';
 import { fleetTable } from './overview.ts';
@@ -21,6 +22,10 @@ function targetForm(v: V, slotsFull: boolean): string {
   const { P, s, ui } = v;
   const t = ui.ft ?? { g: P.g, s: P.s, p: P.p };
   const u = s.cfg;
+  // „Mond“ only where one is (#53); main.ts updates it with the coordinates.
+  const moon = !!moonAt(s.galaxy, t);
+  const toMoon = moon && t.kind === 'moon';
+  const kinds = `<select id="t_k" aria-label="Zielart"><option value="planet">Planet</option><option value="moon"${moon ? '' : ' disabled'}${toMoon ? ' selected' : ''}>Mond</option></select>`;
   const missions = Object.entries(MISSION)
     .map(
       ([k, name]) =>
@@ -31,7 +36,7 @@ function targetForm(v: V, slotsFull: boolean): string {
     .map((x) => `<option value="${x}">${x * 10} %</option>`)
     .join('');
   return `<table class="kv">
-  <tr><td>Ziel</td><td><input class="c3" type="number" id="t_g" value="${t.g}" min="1" max="${u.galaxies}" aria-label="Galaxie">:<input class="c3" type="number" id="t_s" value="${t.s}" min="1" max="${u.systems}" aria-label="System">:<input class="c3" type="number" id="t_p" value="${t.p}" min="1" max="${u.positions}" aria-label="Position"> <span id="t_info" class="dim"></span></td></tr>
+  <tr><td>Ziel</td><td><input class="c3" type="number" id="t_g" value="${t.g}" min="1" max="${u.galaxies}" aria-label="Galaxie">:<input class="c3" type="number" id="t_s" value="${t.s}" min="1" max="${u.systems}" aria-label="System">:<input class="c3" type="number" id="t_p" value="${t.p}" min="1" max="${u.positions}" aria-label="Position"> ${kinds} <span id="t_info" class="dim"></span></td></tr>
   <tr><td>Auftrag</td><td><select id="t_m" aria-label="Auftrag">${missions}</select></td></tr>
   <tr><td>Geschwindigkeit</td><td><select id="t_v" aria-label="Geschwindigkeit">${speeds}</select></td></tr>
   <tr><td>Ladung (Adamant / Psikristall / Promethium)</td><td><input type="number" id="c_m" min="0" placeholder="0" aria-label="Adamant"> <input type="number" id="c_c" min="0" placeholder="0" aria-label="Psikristall"> <input type="number" id="c_d" min="0" placeholder="0" aria-label="Promethium"> <span class="lnk" data-act="cmax">alles</span></td></tr>

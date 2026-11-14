@@ -273,12 +273,15 @@ const cases: fc.Arbitrary<Case> = fc
     speed: fc.oneof(fc.constant(1), fc.integer({ min: 1, max: 10 })),
     until: fc.integer({ min: 0, max: 60 * H }),
     cuts: fc.array(fc.integer({ min: 0, max: 60 * H }), { maxLength: 3 }),
+    // A moon too (#53): both versions read prod(), which gives it no base
+    // income, so settling a moon stays bit for bit the same.
+    kind: fc.constantFrom<Planet['kind']>('planet', 'moon'),
   })
   .map((x) => {
     const b = { ...x.b[1], ...x.b[0] };
     const p: Planet = {
-      id: 'p1_1_5',
-      kind: 'planet',
+      id: x.kind === 'moon' ? 'm1_1_5' : 'p1_1_5',
+      kind: x.kind,
       owner: 'u1',
       name: 'Heimat',
       g: 1,

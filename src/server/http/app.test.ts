@@ -560,15 +560,10 @@ describe('account security', () => {
     const boss = ctx.players.byName('Boss')!;
     const member = addUser(ctx, 'Member');
     addPlanet(ctx, member.id, { p: 8 });
-    ctx.db
-      .prepare("INSERT INTO guilds VALUES ('g', 'TAG', 'Guild', '', ?)")
-      .run(boss.id);
-    ctx.db
-      .prepare("INSERT INTO guild_members VALUES (?, 'g', 'member')")
-      .run(boss.id);
-    ctx.db
-      .prepare("INSERT INTO guild_members VALUES (?, 'g', 'member')")
-      .run(member.id);
+    // With its ranks (#163): the guild, its ranks and memberships go together.
+    ctx.guilds.create('g', 'TAG', 'Guild', '', boss.id);
+    ctx.guilds.apply(member.id, 'g');
+    ctx.guilds.accept(member.id);
     ctx.reports.add(
       member.id,
       {
@@ -602,6 +597,7 @@ describe('account security', () => {
     ]);
     expect(ctx.db.prepare('SELECT * FROM guilds').all()).toEqual([]);
     expect(ctx.db.prepare('SELECT * FROM guild_members').all()).toEqual([]);
+    expect(ctx.db.prepare('SELECT * FROM guild_ranks').all()).toEqual([]);
     expect(
       ctx.db.prepare('SELECT * FROM audit_events WHERE actor = ?').all(boss.id),
     ).toEqual([]);
@@ -898,6 +894,75 @@ describe('admin routes', () => {
       limit: 25,
       player: '',
     });
+  });
+
+  it('„Mond anlegen“ puts a moon at a planet of the player record, audited, admin only (#53)', async () => {
+    const { ctx, call } = await asAdmin();
+    const u = addUser(ctx, 'Pilot');
+    addPlanet(ctx, u.id, { g: 1, s: 4, p: 6, name: 'Kern', created: 1 });
+    addPlanet(ctx, u.id, { g: 1, s: 4, p: 7, name: 'Rand', created: 2 });
+    expect(
+      (await call('POST', '/api/admin/player', { player: u.id })).json!.planets,
+    ).toEqual([
+      { id: 'p1_4_6', name: 'Kern', g: 1, s: 4, p: 6, moon: false },
+      { id: 'p1_4_7', name: 'Rand', g: 1, s: 4, p: 7, moon: false },
+    ]);
+    const made = await call('POST', '/api/admin/moon', {
+      planet: 'p1_4_6',
+      chance: 20,
+    });
+    expect(made.status).toBe(200);
+    expect(made.json).toEqual({ ok: true, msg: 'Mond angelegt.' });
+    const moon = ctx.planets.get('m1_4_6')!;
+    expect(moon).toMatchObject({ kind: 'moon', owner: u.id, name: 'Mond' });
+    expect(moon.diameter).toBeGreaterThanOrEqual(
+      Math.floor(Math.sqrt(70) * 1000),
+    );
+    expect(
+      (await call('POST', '/api/admin/player', { player: u.id })).json!.planets,
+    ).toMatchObject([
+      { id: 'p1_4_6', moon: true },
+      { id: 'p1_4_7', moon: false },
+    ]);
+    const again = await call('POST', '/api/admin/moon', {
+      planet: 'p1_4_6',
+      chance: 5,
+    });
+    expect(again.status).toBe(400);
+    expect(again.json).toEqual({
+      error: 'Dieser Planet hat schon einen Mond.',
+    });
+    const wrong = await call('POST', '/api/admin/moon', {
+      planet: 'p1_4_7',
+      chance: 21,
+    });
+    expect(wrong.json).toEqual({
+      error: 'Die Mondchance muss zwischen 1 und 20 % liegen.',
+    });
+    const rows = audit(ctx).filter((r) => r.action === 'createMoon');
+    expect(
+      rows.map(({ category, target, outcome }) => ({
+        category,
+        target,
+        outcome,
+      })),
+    ).toEqual([
+      { category: 'admin.write', target: u.id, outcome: 'ok' },
+      { category: 'admin.write', target: u.id, outcome: 'rejected' },
+      { category: 'admin.write', target: u.id, outcome: 'rejected' },
+    ]);
+    expect(JSON.parse(rows[0]!.detail)).toEqual({
+      planet: 'p1_4_6',
+      moon: 'm1_4_6',
+      chance: 20,
+      diameter: moon.diameter,
+    });
+    ctx.players.save({ ...ctx.players.byName('Boss')!, admin: false });
+    expect(
+      (await call('POST', '/api/admin/moon', { planet: 'p1_4_7', chance: 5 }))
+        .json,
+    ).toEqual({ error: 'Nur der Admin darf das.' });
+    expect(ctx.planets.get('m1_4_7')).toBeNull();
   });
 
   it('names the reason when a player, an action or an invitation is unknown', async () => {
