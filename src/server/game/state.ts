@@ -1,6 +1,7 @@
 // What one player sees: their planet, their and incoming fleets, reports,
 // the players with points, the galaxy. Foreign fleets show only what an
 // observer can see. The admin also gets the settings specification.
+import { missionRules } from '../../core/missions.ts';
 import { UNIVERSE_SPECS } from '../../core/universe.ts';
 import type { Fleet } from '../../core/types.ts';
 import type { User } from '../db/repos/players.ts';
@@ -23,7 +24,7 @@ export interface ForeignFleet {
   ships: Fleet['ships'];
 }
 
-/** An incoming fleet: the ships are visible only for an attack. */
+/** An incoming fleet: the ships are visible only for a mission that shows them (attack). */
 export const foreignView = (f: Fleet): ForeignFleet => ({
   id: f.id,
   owner: f.owner,
@@ -33,7 +34,7 @@ export const foreignView = (f: Fleet): ForeignFleet => ({
   mission: f.mission,
   state: f.state,
   arr: f.arr,
-  ships: f.mission === 'attack' ? f.ships : {},
+  ships: missionRules(f.mission)?.visible ? f.ships : {},
 });
 
 function galaxyOf(ctx: Ctx) {

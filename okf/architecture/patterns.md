@@ -217,6 +217,18 @@ choice of the patterns to the assistant's recommendation below
   every file on its own; the index has its own list `TEXTS` instead of a
   third element in `ENTRIES`; the accessor is its own file `text.ts`,
   because `texts.ts` is not mutated.
+* **[E]** Decided for #116 (owner, 2026-11-14): every mission folder holds a
+  `texts.de.ts` with its name; the generator lists them as `MISSION_TEXTS`;
+  the accessor `missionText(m)` stands next to `text(key)`, so that
+  `text('spy')` stays the research. `src/core/texts.ts` is removed, and
+  `MISSION` moves from `catalog.ts` to `src/core/missions.ts`.
+* **[E]** Built with #116: `src/features/missions/<m>/texts.de.ts` exports
+  `texts` typed with `MissionText` (`n`, the name), like the entry texts;
+  `missionText(m)` is in `src/core/text.ts`, undefined for a name that is no
+  mission. `MISSION` (`src/core/missions.ts`) builds the names in the order
+  of the rules; `catalog.ts` re-exports it for the existing imports of the
+  tests. Stryker leaves the mission texts out through the existing glob
+  `src/features/**/texts.de.ts`.
 
 ## 3. Economy: piecewise linear with generic events
 
@@ -244,6 +256,61 @@ choice of the patterns to the assistant's recommendation below
   `src/core`, used by server and browser) and `onArrive(ctx, fleet)`
   (server only). A registry replaces the `if` chain in
   `src/server/game/arrival.ts`.
+* **[E]** Decided for #116 (owner, 2026-11-14):
+  * Form: each `src/features/missions/<m>/rules.ts` exports `canSend` and
+    typed data: the order, the target kind (own, foreign, any, free), cargo
+    yes or no, return yes or no, ships visible to the defender yes or no,
+    silent return yes or no. Data, no free hooks.
+  * Send check: `canSend` returns an error code or nothing. The server
+    determines the noob protection and turns the codes into today's German
+    messages, in today's order. Slots, cargo and fuel stay generic. The
+    fleet form keeps offering every mission (replaces the [V] of #116 that
+    the fleet view offers only what `canSend` allows).
+  * Arrival: the dispatcher in the server's arrival code checks generically
+    through the target kind whether the target still fits, else „Flotte
+    kehrt um“. Colonize gets the raw target, the others the settled target,
+    in today's order and with the same random draws.
+  * Order: an `order` field in each `rules.ts`, in steps of 10; order and
+    preselection of the fleet form stay (attack, transport, spy, colonize,
+    deploy; the first preselected).
+  * Server registry: `gen-features` also writes
+    `src/features/index.server.gen.ts` (`MISSION_SERVERS`), not checked in;
+    every mission needs an `arrive.server.ts`; only `src/server` imports
+    that index (dependency-cruiser).
+  * Type `Mission`: a type-only derivation from the generated index, if the
+    rule `no-circular` allows it (else the question comes back).
+  * Texts: see section 2.
+* **[E]** Built with #116: five folders `attack`, `transport`, `spy`,
+  `colonize`, `deploy`, each with `rules.ts`, `texts.de.ts`,
+  `arrive.server.ts` and a test of its own `canSend` and `onArrive` (seeded
+  random, fixed clock). The data: attack 10, foreign, cargo, return,
+  visible; transport 20, any, cargo, return; spy 30, foreign, no cargo,
+  return, silent (it comes home without a report of its own unless
+  recalled); colonize 40, free, cargo, return; deploy 50, own, cargo, no
+  return. Only `canSend` of spy (only Spähschädel, `probesOnly`) and of
+  colonize (a Kolonistenarche, `noColonyShip`) check anything; the others
+  return nothing.
+  `src/core/missions.ts` holds the types (`TargetKind`, `SendError`,
+  `SendFleet`, `SendTarget`, `MissionRules`), `missionRules(m)` from the
+  index, `MISSION`, `suits(kind, owner, planet)` and `sendError(rules,
+  fleet, target)`: first the target kind (occupied; no planet, same planet,
+  not own, own target, noob protection), then the mission's `canSend`. The
+  server passes the noob protection as `protects(owner)`, asked only for a
+  foreign target after the other checks, so the points are computed as
+  rarely as before; `fleet-actions.ts` maps each code to its message.
+  `src/server/game/arrival.ts` reads `onArrive` from `MISSION_SERVERS`;
+  the target fits by `suits` and, for a free target, by a position inside
+  the universe (the check colonize had); a free target gets no arrival
+  (`null`, nothing is there), the others `{ t, att, def }` with the settled
+  planet. The coming home reads `silent`, the view of a foreign fleet
+  `visible`, the cargo of a send `cargo`, the fleet form `order`, `target`
+  („Freie Position“) and `returns` (no return time). `MissionServer`,
+  `Arrival`, `turnBack`, `land` and `researchAt` are in
+  `src/server/game/missions.ts`; `arrival.ts` still exports `spyScore`,
+  `counterChance`, `rebuild` and `plunder`, which moved to the spy and
+  attack folders. A fleet of an unknown mission throws and `tick` removes
+  it; the database allows only the five missions. No `f.mission ===` is
+  left outside the mission folders.
 
 ## 5. Battle: pure function, consequences as a fixed pipeline
 
@@ -387,8 +454,9 @@ choice of the patterns to the assistant's recommendation below
 ```
 src/core/                  economy, settle, battle, flight, components/
 src/features/<key>/        entry.ts, texts.de.ts, *.server.ts, *.test.ts
-src/features/missions/<m>/ rules.ts, arrive.server.ts, *.test.ts
+src/features/missions/<m>/ rules.ts, texts.de.ts, arrive.server.ts, *.test.ts
 src/features/index.gen.ts  generated index, not checked in
+src/features/index.server.gen.ts  generated server index (#116), not checked in
 src/server/                http, db/repos, game (commands)
 src/client/                state, components (generic), views
 ```
@@ -431,6 +499,23 @@ src/client/                state, components (generic), views
   `src/features` as game code.
 * **[V]** If the generated index turns out to be a burden, the fallback is
   a hand-kept index, sorted, one line per entry.
+* **[E]** Decided for #116 (owner, 2026-11-14): `gen-features` also writes
+  `src/features/index.server.gen.ts` with `MISSION_SERVERS`, not checked in
+  (`.gitignore`) like `index.gen.ts`; each mission folder needs its
+  `arrive.server.ts`; only `src/server` imports the server index. The type
+  `Mission` is derived from the generated index as a type only, as long as
+  `no-circular` allows it.
+* **[E]** Built with #116: a mission folder needs `rules.ts`, `texts.de.ts`
+  and `arrive.server.ts`, else the script stops; `index.gen.ts` adds
+  `MISSION_TEXTS` beside `MISSIONS`; `generateServer` writes
+  `index.server.gen.ts` (`MISSION_SERVERS`, each `missions/<m>/
+  arrive.server.ts`), which the script writes with the other index; knip
+  takes it as an entry, Vitest coverage and Stryker leave it out, the
+  Dockerfile copies it with `src/features`. `Mission` in
+  `src/core/types.ts` is `(typeof MISSIONS)[number][0]` through
+  `import type`: the cycles it closes (`types.ts` → index →
+  `rules.ts` → `missions.ts`) all run through a type-only import, which
+  `no-circular` does not count, so the rule passes unchanged.
 
 ## 11. Boundaries
 
@@ -453,6 +538,11 @@ src/client/                state, components (generic), views
   through the index and the browser runs them); `server-not-client` and
   `server-runtime-deps` (no dev dependencies) cover the `*.server.ts` parts
   and `src/features` too; tests may import a `*.server.ts` part.
+* **[E]** Built with #116 (owner, 2026-11-14, only `src/server` imports the
+  server index): the rule `server-index-on-server` forbids
+  `src/features/index.server.gen.ts` to every file outside `src/server`,
+  tests included; `server-parts-on-server` lets that index import the
+  `*.server.ts` parts. `src/test/boundaries.test.ts` checks both.
 
 ## 12. Tests per component
 
@@ -498,6 +588,19 @@ src/client/                state, components (generic), views
   every key of the catalog, an unknown one and inherited names
   (`constructor`, `toString`, `__proto__`, `hasOwnProperty`), on generated
   planets, queues and levels.
+* **[E]** Built with #116 for the missions: `src/core/missions.test.ts`
+  checks the rules of every mission in the index (exactly the typed
+  fields, a known target kind, the order in steps of 10 and once each,
+  `canSend` gives a known code or nothing on generated fleets, one name
+  each) and the generic target check; `src/server/game/missions.test.ts`
+  checks for every mission that it has an arrival in `MISSION_SERVERS`,
+  turns back from a target that does not fit its kind, flies back only if
+  it returns, comes home silently only if silent, shows its ships only if
+  visible and takes cargo only if it carries cargo.
+  `src/server/game/missions-reference.test.ts` compares sending, the
+  arrival and the coming home with the code from before #116 on generated
+  worlds and fleets: the answer or message, every table and the next random
+  number.
 
 # Migration
 
@@ -525,7 +628,7 @@ src/client/                state, components (generic), views
      combat group (#114, second pull request), the flight group (#114,
      third pull request) and the limits group (#114, fourth pull request).
   4. Generic events in `settle` with the property tests.
-  5. Missions as strategies.
+  5. Missions as strategies. Built with #116.
   6. Repositories per aggregate.
   7. Client state module and generic components; `main.ts` shrinks per view.
   8. Places (O11), its own pull request before #45 and #53 (owner,

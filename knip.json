@@ -4,6 +4,7 @@
     "src/client/static/push-worker.js",
     "e2e/seed.ts",
     "src/features/index.gen.ts",
+    "src/features/index.server.gen.ts",
     "scripts/*.ts",
     ".github/scripts/*.mjs"
   ],

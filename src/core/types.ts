@@ -1,4 +1,5 @@
 // Shared data shapes of the game. The server and the browser use the same rules.
+import type { MISSIONS } from '../features/index.gen.ts';
 
 export type Cost = readonly [number, number, number];
 export type Levels = Record<string, number>;
@@ -71,7 +72,11 @@ export interface ResearchState {
   rq: ResearchQueue | null;
 }
 
-export type Mission = 'attack' | 'transport' | 'spy' | 'colonize' | 'deploy';
+/**
+ * The stored name of a mission: one folder src/features/missions/<m>/, read
+ * from the generated index as a type only (owner, 2026-11-14, #116).
+ */
+export type Mission = (typeof MISSIONS)[number][0];
 type FleetState = 'out' | 'back';
 
 export interface Fleet {

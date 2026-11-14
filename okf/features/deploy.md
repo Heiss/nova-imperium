@@ -30,8 +30,13 @@ the ships fly back.
 
 * Mission `deploy` in `MISSION` (`src/core/catalog.ts`, „Verlegung“) and
   `Mission` (`src/core/types.ts`); the fleet form, the overview and the
-  fleet list take it from `MISSION`.
-* Send (`src/server/game/fleet-actions.ts`): `checkTarget()` lets a deploy
+  fleet list take it from `MISSION`. Since #116 the mission is the folder
+  `src/features/missions/deploy/` (`rules.ts`: target kind `own`, no
+  return; `texts.de.ts`; `arrive.server.ts`), and `MISSION` is in
+  `src/core/missions.ts` (see [Design patterns](/architecture/patterns.md),
+  section 4).
+* Send (`src/server/game/fleet-actions.ts`): `checkTarget()` (since #116 the
+  target kind `own` in `sendError()`) lets a deploy
   fly only to an own planet; the start planet, an empty position, cargo,
   fuel and fleet slots are checked like for every mission, noob protection
   does not apply. The flight takes a fleet slot until it arrives.
@@ -40,7 +45,8 @@ the ships fly back.
   13, which rebuilds `fleets` and `fleet_ships` for the new mission in the
   CHECK; fleets in flight keep everything and get 0, see
   [SQLite storage](/data/sqlite.md)).
-* Arrival (`src/server/game/arrival.ts`): `deploy()` puts the ships and the
+* Arrival (`src/server/game/arrival.ts`; since #116 `onArrive` in
+  `src/features/missions/deploy/arrive.server.ts`): `deploy()` puts the ships and the
   cargo plus `deployFuel()` (`src/core/flight.ts`, ⌊fuel / 2⌋) as
   Promethium on the target with `land()` (also above the
   storage limit, as a transport) and deletes the fleet; there is no return

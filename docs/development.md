@@ -14,10 +14,12 @@ The server runs TypeScript directly (Node type stripping); only the browser
 client is bundled with Vite. The building view is a Svelte component.
 
 Without a bundler there is no glob import, so `scripts/gen-features.ts`
-writes the index of the feature folders, `src/features/index.gen.ts`, which
-is not checked in. The scripts of `package.json` (`start`, `cli`, `build`,
+writes the index of the feature folders, `src/features/index.gen.ts`, and
+the index of the server parts of the missions,
+`src/features/index.server.gen.ts`, which only `src/server` imports; neither
+is checked in. The scripts of `package.json` (`start`, `cli`, `build`,
 `typecheck`, `test`, `test:coverage`, `test:mutation`, `lint:dead`,
-`lint:deps`, `check`), the E2E server start and the Docker build write it
+`lint:deps`, `check`), the E2E server start and the Docker build write them
 first. After a fresh clone or a new feature folder, run
 `node scripts/gen-features.ts` once to bring an editor up to date.
 
