@@ -36,7 +36,7 @@ recorded in the [OKF bundle](/okf/index.md) with their markers – **[E]**
 decision of the owner, **[V]** proposal, **[U]** unverified – and the issue
 gets one comment that starts with `Geklärt` and lists the decisions with a
 link to the OKF concept. An issue with that comment is ready to build. What
-goes into the next release is the milestone `next release`, chosen by the
+goes into the next release carries the label `ready`, chosen by the
 owner ([Release loop](/okf/ops/loop.md)).
 
 ## 3. Build it in a pull request

@@ -15,7 +15,10 @@ interface is German.
      the title) with their CI;
    - the open release pull request (`Release <version>`, branch
      `release/main`) with its CI and its release candidate image;
-   - the milestone `next release` with its open and closed issues.
+   - the open issues by their labels: `ready` (in the next release),
+     `in progress` (you started it), `in review` (its pull request is
+     ready and waits for CI or review), `in discussion` (planned for a
+     later release); `feature` and `idea` give the kind.
 2. Do the first step below that applies, and only that one.
 3. Ask the owner with the question tool inside the iteration: the
    iteration waits for the answer and goes on with it, so the loop never
@@ -42,8 +45,8 @@ interface is German.
    a review, go on with the next step; a subagent builds an issue that
    doesn't depend on the open ones in its own git worktree, and you review
    its diff before you open its pull request.
-2. **Make the release ready** when the milestone `next release` is open and
-   all its issues are closed. The release pull request is a draft after
+2. **Make the release ready** when no open issue has the label `ready`,
+   `in progress` or `in review` and the release pull request is open. The release pull request is a draft after
    every rebuild: its cheap run checks only secrets, dependencies,
    migrations, workflows, CodeQL and the changelog, and its CI Gate is red
    on purpose (#147). Check its texts (German, matching their pull
@@ -66,27 +69,31 @@ interface is German.
    candidate image) and tell the owner again, saying that `main` moved and
    the release pull request was rebuilt. That message is the only notice:
    no comment on the release pull request, no issue. While it stays ready
-   and green, only wait. Once a release pull request from `release/main`
-   is merged after the last issue of the milestone was closed, close the
-   milestone and **stop the loop**.
-3. **Plan the release** when there is no open milestone `next release`. Ask
+   and green, only wait. Once the release pull request from `release/main`
+   is merged, **stop the loop**.
+3. **Plan the release** when no open issue has the label `ready`,
+   `in progress` or `in review` and no release pull request is open. Ask
    the owner what the release should bring:
    - list the open issues, **infrastructure first** (CI, release, security,
      operation, for example SBOM), then features (for example late-game
      buildings, ships and research);
    - mention what the open release pull request already holds;
    - offer 3 to 5 bundles with a recommendation and the reason;
-   - create the milestone with the chosen issues. Wait for the answer;
-     never pick on your own.
-4. **Clarify the next open issue** of the milestone (infrastructure first,
+   - give the chosen issues the label `ready` (and remove
+     `in discussion`). Wait for the answer; never pick on your own.
+4. **Clarify the next open issue** with the label `ready` (infrastructure first,
    then the lowest number) while it has no comment that starts with
    `Geklärt`. Do not start while anything is unclear: ask the owner with 3
    to 5 options per decision, mark your recommendation, red-team it first.
    Record the decisions in the OKF bundle (E, V, U), then write one comment
    on the issue that starts with `Geklärt` and lists the decisions with a
    link to the OKF concept. That comment ends this step for the issue.
-5. **Build the next open issue** that has a `Geklärt` comment, in one pull
-   request from `main` (branch `claude/…`):
+5. **Build the next open issue** with the label `ready` that has a
+   `Geklärt` comment, in one pull request from `main` (branch `claude/…`).
+   When you start it (also in a subagent), replace `ready` by
+   `in progress`; when its pull request is marked ready and waits for CI
+   or review, replace `in progress` by `in review`. A red CI or a review
+   finding that needs a push sets it back to `in progress`. Build:
    code, tests (mutation floors, new files 80 %, security files 90 %), a
    German changelog fragment in `changes/` or the label `kein-changelog`,
    OKF and docs. Run `pnpm check` and the relevant E2E tests before every

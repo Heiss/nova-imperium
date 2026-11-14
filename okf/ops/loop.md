@@ -1,7 +1,7 @@
 ---
 type: process
 title: Release loop
-description: How Claude works through a release with /loop - plan with the owner, clarify, build, make the release pull request ready, keep it ready until the owner merges it, stop.
+description: How Claude works through a release with /loop - plan with the owner by labels, clarify, build, make the release pull request ready, keep it ready until the owner merges it, stop.
 ---
 
 # Release loop
@@ -15,19 +15,36 @@ ends after seven days at the latest (Claude Code documentation on scheduled
 tasks).
 
 * **[E]** One step per iteration, chosen from the state on GitHub in this
-  order: finish the own open pull request, make the release ready (all
-  issues of the milestone closed), plan the release (no open milestone),
-  clarify the next issue, build it (owner, 2026-11-12). Releasing needs an
-  open milestone, so a closed one never triggers it again.
+  order: finish the own open pull request, make the release ready, plan
+  the release, clarify the next issue, build it (owner, 2026-11-12).
+* **[E]** Labels instead of milestones (owner, 2026-11-14), so issues can
+  be filtered and a GitHub Project can group them; titles stay as they
+  are:
+  * status: `ready` (in the next release), `in progress` (Claude started
+    it), `in review` (its pull request is ready and waits for CI or
+    review), `in discussion` (planned for a later release); an open issue
+    without a status label is in the backlog;
+  * kind: `feature` and `idea` (instead of „Idea –“ in the title); issues
+    of the CI are `feature` too [V].
+  The milestones `next release` and `planned release` are no longer used
+  by the loop.
+* **[V]** Conditions on the labels: „Make the release ready“ when no open
+  issue has `ready`, `in progress` or `in review` and the release pull
+  request is open; „Plan the release“ when none has those labels and no
+  release pull request is open. A merged release closes the release pull
+  request, so the loop stops there and a restarted `/loop` plans next.
+* **[V]** The owner creates and arranges the GitHub Project and filters it
+  by the labels; the loop only sets labels (the session has no tools for
+  Projects).
 * **[V]** Questions to the owner are asked with the question tool inside the
   iteration; the iteration waits for the answer and continues with it. An
   issue counts as clarified when it has a comment that starts with
   `Geklärt` and lists the decisions with the OKF link.
 * **[E]** The loop asks the owner first what a release should bring, with
   proposals from the open issues; **infrastructure first**, features after
-  it (owner, 2026-11-12). The chosen issues form the milestone
-  `next release`.
-* **[E]** When every issue of the milestone is closed and the release pull
+  it (owner, 2026-11-12). The chosen issues get the label `ready`
+  (owner, 2026-11-14; before, they formed the milestone `next release`).
+* **[E]** When no issue of the release is open any more and the release pull
   request is green with its candidate image, the loop tells the owner. The
   owner merges the release pull request; that is the release (owner,
   2026-11-12, [Branching and release](/ops/branching-release.md)). The loop
@@ -51,17 +68,16 @@ tasks).
   review“, the green full run and the candidate image) and then tells the
   owner again. That message is the only notice besides the draft state:
   no comment on the release pull request and no issue.
-* **[E]** The milestone `next release` stays open until the release pull
-  request is merged (owner, 2026-11-14, #149), so the step „Make the release ready“ keeps applying
-  while the loop waits and „Plan the release“ does not start the next
-  cycle before the release is out; a restarted `/loop` finds the same
-  state on GitHub. The loop sees the merge as a pull request from
-  `release/main` merged after the last issue of the milestone was closed
-  (after that merge `release-pr.sh` opens no new one, `tag.yml` takes
-  over), then closes the milestone and stops. While the release pull
-  request stays ready and green, the loop only waits and does not repeat
-  its message (#149; before, the milestone was closed when the owner was
-  told).
+* **[E]** „Plan the release“ does not start the next cycle before the
+  release is out (owner, 2026-11-14, #149): it needs no open release pull
+  request, so a restarted `/loop` finds the same state on GitHub. The
+  loop sees the release as the merge of the release pull request from
+  `release/main` (after that merge `release-pr.sh` opens no new one,
+  `tag.yml` takes over) and stops. While the release pull request stays
+  ready and green, the loop only waits and does not repeat its message
+  (#149). The owner decided this first with the milestone („stays open
+  until the release is merged“); with labels the open release pull
+  request takes its place.
 * **[E]** While a released hotfix is not merged back, „Ready for review“
   is refused: „Release ready“ sets the pull request back to draft and
   comments why (owner, 2026-11-14, #147); the loop does not mark it ready
@@ -105,11 +121,11 @@ tasks).
   is marked ready. Every push cancels the running CI and starts all jobs
   again (owner, 2026-11-12).
 * **[V]** Guards from loop engineering practice: a stop condition a machine
-  can check (release pull request merged, milestone closed), the state read
+  can check (release pull request merged), the state read
   fresh in every iteration, small reviewable steps, tests never weakened,
   and a hand-back to the owner after two failed attempts at one problem.
 * **[V]** While the loop waits on CI or a review it wakes every 20 to 30
   minutes; GitHub events of subscribed pull requests wake it earlier.
-* **[U]** Milestones are managed through the GitHub tools of the session;
-  whether they can set a milestone on an issue is checked in the first
-  planning iteration.
+* **[E]** Labels are set with the GitHub tools of the session (issue
+  update with the full list of labels, so the other labels stay); a label
+  that does not exist yet is created by GitHub on first use.

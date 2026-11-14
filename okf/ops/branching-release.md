@@ -31,8 +31,8 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   request „Release <version>“. Before, every green push to `main` was tagged
   (17 releases in the first twelve days of November 2026).
 * **[E]** Short-lived branches stay. What goes into the next release is decided
-  at the start of a cycle by classifying the issues (milestone „next
-  release“); only their pull requests are merged, because a release is
+  at the start of a cycle by classifying the issues (label `ready`; owner,
+  2026-11-14, before the milestone „next release“); only their pull requests are merged, because a release is
   always a state of `main` and a merged pull request cannot be left out.
 * **[E]** Every pull request that players can notice brings a changelog
   fragment `changes/<name>.md` in German (front matter `art: neu | geändert |
