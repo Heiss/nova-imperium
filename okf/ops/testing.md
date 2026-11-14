@@ -252,7 +252,13 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   fleet bit-identical to their form before the flight component (#114,
   third pull request), and `src/core/limits-reference.test.ts` keeps the
   room for units and the energy need and shortage bit-identical to their
-  form before the limits group (#114, fourth pull request). See
+  form before the limits group (#114, fourth pull request). For the
+  generic events of #115, `src/core/settle-reference.test.ts` keeps
+  `settle()`, `accrue()` and `production()` bit-identical to their form
+  before (300 generated cases, fast-check seed 115) and checks settling in
+  steps within the tolerance of #47, stocks ≥ 0 and the storage limit;
+  `src/server/game/research-reference.test.ts` keeps the planets that a
+  new research settles, on two databases in memory. See
   [Design patterns](/architecture/patterns.md), section 12.
 * **[E]** The rows of the resources page (#114, `ProducerTable`): the
   property test `src/core/producer-rows.test.ts` checks that the rows of
@@ -266,7 +272,9 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   allow-list (file, key, count, issue) counts the hits per file and key;
   the test fails when the real count is higher (a new comparison) and when
   it is lower (the stale count must be lowered), so counts only fall
-  (owner, 2026-11-14). The lab and shipyard locks are allowed with #183;
+  (owner, 2026-11-14). The generic events of #115 removed the entries of
+  `settle.ts` and `server/game/actions.ts`; the lab and shipyard locks are
+  allowed with #183;
   the report type `spy` (a word equal to a key) is allowed for good, as
   `permanent` (owner, 2026-11-14). See
   [Design patterns](/architecture/patterns.md), section 12.

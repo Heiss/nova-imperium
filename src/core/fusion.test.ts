@@ -8,14 +8,14 @@ import {
   balancedShare,
   caps,
   fusionEnergy,
-  fusionThrottle,
   fusionUse,
   prod,
   production,
   satEnergy,
+  throttle,
 } from './economy.ts';
 import { settle } from './settle.ts';
-import type { Levels, Planet, ResearchState } from './types.ts';
+import type { Levels, Planet, ResearchState, Universe } from './types.ts';
 
 const H = 3600000;
 const g = (l: number): number => l * Math.pow(1.1, l);
@@ -23,6 +23,15 @@ const at = (p: Planet, share: number): Planet => ({
   ...p,
   pct: { ...p.pct, fusion: share },
 });
+/** The Fusionskraftwerk as the consumer of the deuterium stock (#115). */
+const REACTOR = { key: 'fusion', res: 'd' } as const;
+/** The share the reactor is throttled to, or null when it runs at its set share. */
+const fusionThrottle = (p: Planet, u: Universe, r: Levels): number | null => {
+  const t = throttle(p, u, r);
+  if (t === null) return null;
+  expect(t).toEqual({ ...REACTOR, share: t.share });
+  return t.share;
+};
 /** Net deuterium per hour with the reactor at `share` %. */
 const net = (p: Planet, share: number, r: Levels): number =>
   prod(at(p, share), U, r).d;
@@ -144,7 +153,7 @@ describe('throttling at an empty deuterium stock (#47 D1)', () => {
     expect(Math.abs(net(p, s, r))).toBeLessThan(1e-9);
   });
   it('has one crossing: above it the stock would fall, below it not', () => {
-    const s = balancedShare(dry, U, r);
+    const s = balancedShare(dry, U, r, REACTOR);
     for (let x = 0; x <= 100; x += 2.5)
       if (x <= s) expect(net(dry, x, r)).toBeGreaterThanOrEqual(0);
       else expect(net(dry, x, r)).toBeLessThan(0);
@@ -152,12 +161,12 @@ describe('throttling at an empty deuterium stock (#47 D1)', () => {
   it('grows with the deuterium production and shrinks with the reactor', () => {
     // Deuterium 8 would already feed the whole reactor.
     const shares = [5, 6, 7].map((deut) =>
-      balancedShare({ ...dry, b: { deut, fusion: 8 } }, U, r),
+      balancedShare({ ...dry, b: { deut, fusion: 8 } }, U, r, REACTOR),
     );
     for (let i = 1; i < shares.length; i++)
       expect(shares[i]!).toBeGreaterThan(shares[i - 1]!);
     const bigger = [8, 9, 10, 11].map((fusion) =>
-      balancedShare({ ...dry, b: { deut: 5, fusion } }, U, r),
+      balancedShare({ ...dry, b: { deut: 5, fusion } }, U, r, REACTOR),
     );
     for (let i = 1; i < bigger.length; i++)
       expect(bigger[i]!).toBeLessThan(bigger[i - 1]!);

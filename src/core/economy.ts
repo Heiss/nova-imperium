@@ -155,62 +155,90 @@ export function prod(
 }
 
 type StockPlanet = ProdPlanet & Pick<Planet, 'res'>;
+type Stock = keyof Resources;
 
-const atShare = <P extends ProdPlanet>(p: P, share: number): P => ({
+/**
+ * The entries that use a stock resource, each with that resource (#115):
+ * when the stock is empty and would fall, this consumer is throttled. The
+ * contract test of `consumes` allows one: how several consumers would share
+ * an empty stock is not decided.
+ */
+export const STOCK_USERS: readonly { key: string; res: Stock }[] =
+  PRODUCTION.flatMap(({ key, consumes }) =>
+    KEYS.filter((res) => consumes?.[res]).map((res) => ({ key, res })),
+  );
+
+/** A consumer at an empty stock: its key, the resource and the share in % it runs at. */
+export interface Throttle {
+  key: string;
+  res: Stock;
+  share: number;
+}
+
+const atShare = <P extends ProdPlanet>(
+  p: P,
+  key: string,
+  share: number,
+): P => ({
   ...p,
-  pct: { ...p.pct, fusion: share },
+  pct: { ...p.pct, [key]: share },
 });
 
 /**
- * The share in % at which the Fusionskraftwerk uses exactly the deuterium
- * the planet produces (#47 D1), between 0 and its set share. Its energy
- * raises the mine factor `f` and with it the deuterium production, so the
- * share is a fixed point. The net deuterium production N(s) = D(s) − U(s)
- * is concave in the share s: D grows with `f`, which is min(1, linear in
- * s), U is linear. With N(0) ≥ 0 > N(set share) there is exactly one
- * crossing; bisection finds it to the precision of the floating point
- * numbers and returns the side where N ≥ 0, so the stock never falls.
+ * The share in % at which the consumer `key` uses exactly the `res` the
+ * planet produces (#47 D1), between 0 and its set share. Its energy raises
+ * the mine factor `f` and with it the production of `res`, so the share is
+ * a fixed point. The net production N(s) = D(s) − U(s) is concave in the
+ * share s: D grows with `f`, which is min(1, linear in s), U is linear.
+ * With N(0) ≥ 0 > N(set share) there is exactly one crossing; bisection
+ * finds it to the precision of the floating point numbers and returns the
+ * side where N ≥ 0, so the stock never falls. The only own mathematics of
+ * the economy (okf/architecture/patterns.md, section 3).
  */
 export function balancedShare(
   p: ProdPlanet,
   u: Universe,
   research: Levels,
+  { key, res }: Omit<Throttle, 'share'>,
 ): number {
   let lo = 0;
-  let hi = p.pct.fusion ?? 100;
+  let hi = p.pct[key] ?? 100;
   for (;;) {
     const mid = (lo + hi) / 2;
     if (mid === lo || mid === hi) return lo;
-    if (prod(atShare(p, mid), u, research).d < 0) hi = mid;
+    if (prod(atShare(p, key, mid), u, research)[res] < 0) hi = mid;
     else lo = mid;
   }
 }
 
-/** The throttled share in % of the Fusionskraftwerk, or null when it runs at its set share: only an empty stock that would fall throttles it (#47 D1). */
-export function fusionThrottle(
+/** The consumer that runs throttled, or null when all run at their set share: only an empty stock that would fall throttles its consumer (#47 D1, #115). */
+export function throttle(
   p: StockPlanet,
   u: Universe,
   research: Levels = {},
-): number | null {
-  if (p.res.d > 0 || prod(p, u, research).d >= 0) return null;
-  return balancedShare(p, u, research);
+): Throttle | null {
+  for (const user of STOCK_USERS) {
+    if (p.res[user.res] > 0 || prod(p, u, research)[user.res] >= 0) continue;
+    return { ...user, share: balancedShare(p, u, research, user) };
+  }
+  return null;
 }
 
-/** The planet as it runs now: with the Fusionskraftwerk at its throttled share, if any. */
+/** The planet as it runs now: with a consumer at its throttled share, if any. */
 function asRuns<P extends StockPlanet>(p: P, u: Universe, research: Levels): P {
-  const share = fusionThrottle(p, u, research);
-  return share === null ? p : atShare(p, share);
+  const t = throttle(p, u, research);
+  return t === null ? p : atShare(p, t.key, t.share);
 }
 
-/** Production per hour as it runs now: with a throttled Fusionskraftwerk the deuterium stays at 0. */
+/** Production per hour as it runs now: with a throttled consumer its empty stock stays at 0. */
 export function production(
   p: StockPlanet,
   u: Universe,
   research: Levels = {},
 ): Production {
-  const runs = asRuns(p, u, research);
-  const pr = prod(runs, u, research);
-  return runs === p ? pr : { ...pr, d: 0 };
+  const t = throttle(p, u, research);
+  if (t === null) return prod(p, u, research);
+  return { ...prod(atShare(p, t.key, t.share), u, research), [t.res]: 0 };
 }
 
 /** Energy or a resource: what an entry makes or uses per hour. */
@@ -338,11 +366,27 @@ function addUp(
 const untilEmpty = (stock: number, rate: number): number =>
   rate < 0 ? (stock / -rate) * 3600000 : Infinity;
 
+/** The first stock of `STOCK_USERS` that a rate empties, with the milliseconds until then; null when none falls. */
+function firstEmpty(
+  p: Planet,
+  pr: Production,
+): { res: Stock; ms: number } | null {
+  let first: { res: Stock; ms: number } | null = null;
+  for (const { res } of STOCK_USERS) {
+    const ms = untilEmpty(p.res[res], pr[res]);
+    if (ms < (first?.ms ?? Infinity)) first = { res, ms };
+  }
+  return first;
+}
+
 /**
  * Adds the production of `ms` milliseconds, up to the storage limit. When a
- * Fusionskraftwerk empties the deuterium stock, the time is split there
- * and the rest runs with the throttled reactor (#47 D1), so the result
- * does not depend on how often the planet is settled.
+ * use empties a stock, the time is split there (a generic event of #115)
+ * and the rest runs with its consumer throttled (#47 D1), so the result
+ * does not depend on how often the planet is settled. A stock that reaches
+ * its storage limit stops there inside the segment (`addUp`): no rate
+ * depends on a full stock, so it splits nothing and the order of the
+ * floating point operations stays the one of version 1.
  */
 export function accrue(
   p: Planet,
@@ -353,9 +397,37 @@ export function accrue(
   if (ms <= 0) return;
   const pr = prod(p, u, research);
   const cp = caps(p, u);
-  const empty = untilEmpty(p.res.d, pr.d);
-  if (empty > ms) return addUp(p, pr, ms, cp);
-  addUp(p, pr, empty, cp);
-  p.res.d = 0;
-  addUp(p, production(p, u, research), ms - empty, cp);
+  const empty = firstEmpty(p, pr);
+  if (empty === null || empty.ms > ms) return addUp(p, pr, ms, cp);
+  addUp(p, pr, empty.ms, cp);
+  p.res[empty.res] = 0;
+  addUp(p, production(p, u, research), ms - empty.ms, cp);
+}
+
+/**
+ * Whether a rate of an entry on the planet (its level or number above 0)
+ * reads the research `key` (#115): then the end of that research changes
+ * the production, as Energietechnik changes a Fusionskraftwerk (#47). The
+ * rates run once on research levels that note every level read.
+ */
+export function readsResearch(
+  p: ProdPlanet,
+  u: Universe,
+  research: Levels,
+  key: string,
+): boolean {
+  const read = new Set<string | symbol>();
+  const noted = new Proxy(research, {
+    get(levels, k) {
+      read.add(k);
+      return Reflect.get(levels, k) as unknown;
+    },
+  });
+  for (const { produces, consumes, ctx } of running(p, u, noted)) {
+    if (ctx.level <= 0) continue;
+    const fns = [...Object.values(produces), ...Object.values(consumes ?? {})];
+    for (const rate of fns)
+      if (typeof rate === 'function') rate({ ...ctx, f: 1 });
+  }
+  return read.has(key);
 }
