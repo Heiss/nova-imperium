@@ -184,7 +184,10 @@ places (#119) and the fields (#51).
   `src/server/game/moons.test.ts`, `attack.test.ts`, `fleet.test.ts`,
   `actions.test.ts`, `planets.test.ts`, `app.test.ts` (the admin route),
   `src/client/logic/moon.test.ts`, `src/client/logic/fields.test.ts`,
-  `src/client/views/galaxy.test.ts`; `missions-reference.test.ts` has the
+  `src/client/views/galaxy.test.ts`, `settle.test.ts` (a moon settles
+  without base income); the settle reference of #115
+  (`settle-reference.test.ts`) also generates moons and compares them bit
+  for bit, because both versions read `prod()`; `missions-reference.test.ts` has the
   moon rule in its frozen reference, written there on its own (chance of
   the whole field, the draw, the diameter, the moon row and the report
   fields), compares everything bit for bit and checks that its generated
