@@ -45,11 +45,18 @@ compares its changes with its base:
   the server start (`main.ts`, `server.ts`, `config.ts`, `cli.ts`,
   `maintenance.ts` in `src/server/`) and `ci.yml` itself. Game code alone
   does not build the image in its pull request; every push to `main` and
-  the release pull request do.
+  the full run of the release pull request do.
 - **site** is true when `website/`, `okf/`, `docs/`, `ci.yml` or `pages.yml`
   change.
 - A **release pull request** (head `release/…`) and every pull request
   **into `hotfix/…`** set all three: they lead straight to a release.
+- The **release pull request of `main`** is a draft after every rebuild.
+  While the event that starts the run says `draft: true`, it sets every
+  output to false: the cheap run, with only the jobs that run for every
+  change and „Changelog fragments“. Marking it „Ready for review“ starts
+  the full run: the workflow „Release ready“ (`release-ready.yml`) adds
+  and removes the label `voller-lauf` with the release App's token, and
+  those two events carry `draft: false` (#147).
 
 ## How the CI Gate decides
 
@@ -65,7 +72,14 @@ The gate runs with `if: always()` and fails unless:
    tests“ succeeded; when it is false, they may be skipped
    („Documentation-only change“);
 5. when **image** is true: „Docker image and Compose stack“ succeeded;
-6. when **site** is true: „Documentation website“ succeeded.
+6. when **site** is true: „Documentation website“ succeeded;
+7. on the draft release pull request of `main`, never: after the checks
+   above it fails on purpose („the full run starts with Ready for review“),
+   so the draft is not green without the full run and no candidate image
+   follows it;
+8. on every other release pull request, **code**, **image** and **site**
+   are true, and the mutation jobs ran (in the release pull request of a
+   hotfix branch they follow its changes since the release tag).
 
 A missing or invalid output of „Detect changes“ fails the gate. A skipped job
 counts only where the gate expects the skip.
@@ -73,8 +87,8 @@ counts only where the gate expects the skip.
 ## Mutation tests
 
 Mutation runs are split into 6 parallel jobs everywhere: pull requests and
-pushes to `main` (incremental), the release pull request and the nightly
-run (complete). The decisions and the details of the code are in
+pushes to `main` (incremental), the full run of the release pull request
+and the nightly run (complete). The decisions and the details of the code are in
 [Test strategy](/okf/ops/testing.md); the script is
 `scripts/mutation-shards.ts`.
 
