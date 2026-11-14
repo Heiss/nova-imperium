@@ -50,8 +50,10 @@ tasks).
     („Done“); „Pull request linked to issue“ is switched off.
   * Run by hand (`workflow_dispatch`), it syncs every open issue once,
     reading each right before its sync, and lists the ones not in the
-    project. A run on an issue event at the same moment can still race it;
-    accepted, because the manual run is rare (CodeRabbit on #194).
+    project. A run on an issue event for the same issue at the same moment
+    can still race it and remove both status labels; the owner accepts
+    that risk, because the manual run is rare (owner, 2026-11-14,
+    CodeRabbit on #194).
   * Secret `PROJECT_TOKEN`: a classic personal access token with the scope
     `project` [U: a fine-grained token not checked], because a GitHub App
     cannot reach a project of a user; variable `PROJECT_NUMBER`.
