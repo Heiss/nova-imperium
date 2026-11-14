@@ -95,6 +95,8 @@ export function stateFor(
     achievements: achievementState(ctx, u, round),
     players,
     galaxy: galaxyOf(ctx),
+    // Every player sees every Trümmerfeld (#45).
+    debris: ctx.debris.all(),
     admin: u.admin ? { specs: UNIVERSE_SPECS } : null,
   };
 }

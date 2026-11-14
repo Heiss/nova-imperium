@@ -34,19 +34,26 @@ const SERVERS: ReadonlyMap<string, MissionServer> = new Map<
   MissionServer
 >(MISSION_SERVERS);
 
-function unsuitableTarget(ctx: Ctx, f: Fleet): void {
+/** A fleet whose target no longer fits flies back with what it carries. */
+function unsuitableTarget(ctx: Ctx, f: Fleet, kind: TargetKind): void {
   addReport(ctx, f.owner, {
     time: f.arr,
     type: 'info',
     title: 'Flotte kehrt um',
-    text: `An ${coords(f.toC)} wurde kein passendes Ziel gefunden. Deine Flotte kehrt zurück.`,
+    text:
+      kind === 'debris'
+        ? 'An der Position war kein Trümmerfeld mehr.'
+        : `An ${coords(f.toC)} wurde kein passendes Ziel gefunden. Deine Flotte kehrt zurück.`,
   });
   turnBack(ctx, f);
 }
 
-/** Whether the target still fits the kind; a free one must also still exist. */
+/**
+ * Whether the target still fits the kind; a free one must also still exist,
+ * a Trümmerfeld must still be there (#45).
+ */
 const fits = (ctx: Ctx, kind: TargetKind, f: Fleet, t: Planet | null) =>
-  suits(kind, f.owner, t) &&
+  suits(kind, f.owner, t, kind === 'debris' && !!ctx.debris.get(f.to)) &&
   (kind !== 'free' || inUniverse(f.toC, universe(ctx)));
 
 export function arrive(ctx: Ctx, f: Fleet): void {
@@ -55,9 +62,11 @@ export function arrive(ctx: Ctx, f: Fleet): void {
   // Both indexes list the same folders (gen-features).
   const server = SERVERS.get(f.mission)!;
   const t0 = ctx.planets.get(f.to);
-  if (!fits(ctx, rules.target, f, t0)) return unsuitableTarget(ctx, f);
-  // A free target gets the raw target, which is nothing; the others the
-  // target settled to the arrival, with both players.
+  if (!fits(ctx, rules.target, f, t0))
+    return unsuitableTarget(ctx, f, rules.target);
+  // A free target gets the raw target, which is nothing, and so does a
+  // Trümmerfeld, which is no planet; the others the target settled to the
+  // arrival, with both players.
   if (!t0) return server.onArrive(ctx, f, null);
   const att = player(ctx, f.owner);
   const def = player(ctx, t0.owner);

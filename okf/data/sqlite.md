@@ -171,7 +171,15 @@ debris fields of #45. `upgrades/migration-15.test.ts` checks hand-written
 data, the cascade and the new constraints, and on generated data of version
 14 that every table keeps its rows.
 
-Migration 16 (issue #163, see [Guild ranks](/features/guild-ranks.md))
+Migration 16 (issue #45, see [Trümmerfelder](/features/debris.md))
+rebuilds `fleets` and `fleet_ships` like migration 13 for the mission
+`harvest` (Bergung) in the CHECK of `fleets.mission`; a Bergung flies to
+the place of a Trümmerfeld (`to_planet` `d<g>_<s>_<p>`), which needs no
+column. Fleets in flight keep every column and their ships
+(`upgrades/migration-16.test.ts`). The table `debris` of migration 15 is
+used from #45 on: one row per position, added up by every battle there.
+
+Migration 17 (issue #163, see [Guild ranks](/features/guild-ranks.md))
 adds the guild ranks: table `guild_ranks` (id, `guild_id` with `ON DELETE
 CASCADE`, name, `position` with `UNIQUE (guild_id, position)`; 0 is the
 Leitung, a larger number a lower rank), table `guild_rank_rights`
@@ -182,10 +190,11 @@ is a default or held by a member cannot be deleted by mistake) and the
 index `guild_members_rank`. Every guild gets the ranks `r0_<id>` „Leitung“
 (position 0) and `r1_<id>` „Mitglied“ (position 1, its default rank); the
 founder gets the Leitung, every other member „Mitglied“, an applicant no
-rank. Other data stay as they were (`upgrades/migration-16.test.ts`:
+rank. Other data stay as they were (`upgrades/migration-17.test.ts`:
 hand-written data, the constraints and cascades, generated data of
-version 15). The number is the next free one on `main`; other branches
-plan 16 and 17 (#45, #161, #53), so the order is settled at merge time.
+version 16). It was planned as 16 and follows migration 16 of #45, which
+reached `main` first; other branches (#161, #53) take the next free number
+at merge time.
 
 Account deletion runs in one transaction. Foreign-key cascades clear owned game,
 session, reward and push data. The deletion also removes led guilds and their

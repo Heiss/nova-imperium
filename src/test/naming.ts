@@ -78,6 +78,8 @@ export const NAMES: Readonly<
   sc: { classic: 'Kleiner Transporter', name: 'Frachtläufer', ab: 'FL' },
   lc: { classic: 'Großer Transporter', name: 'Lastbarke', ab: 'LB' },
   colony: { classic: 'Kolonialschiff', name: 'Kolonistenarche', ab: 'KA' },
+  // #45: the name decided by the owner (2026-11-13), the abbreviation [V].
+  recycler: { classic: 'Recycler', name: 'Bergungsbarke', ab: 'BG' },
   lf: { classic: 'Leichter Jäger', name: 'Abfangjäger', ab: 'AJ' },
   hf: { classic: 'Schwerer Jäger', name: 'Sturmjäger', ab: 'SJ' },
   cr: { classic: 'Kreuzer', name: 'Fregatte', ab: 'FR' },
@@ -116,6 +118,7 @@ export const MISSIONS = {
   spy: { classic: 'Spionage', name: 'Auspex-Erkundung' },
   colonize: { classic: 'Kolonisieren', name: 'Landnahme' },
   deploy: { classic: 'Stationieren', name: 'Verlegung' },
+  harvest: { classic: 'Abbauen', name: 'Bergung' },
 } as const;
 
 /**
@@ -136,7 +139,10 @@ export const CLASSIC: Readonly<Record<string, string>> = {
   Lasergeschütz: 'Lichtlanze',
   Schildkuppel: 'Schutzdom',
   Spionagebericht: 'Auspex-Bericht',
-  Trümmerfeld: 'Wrackfeld',
+  // „Trümmerfeld“ is no classic word any more: the owner chose it for #45
+  // (2026-11-13) instead of „Wrackfeld“ of the table of #94. „Recycler“
+  // (from NAMES above) and „Abbauen“ may not show (owner, 2026-11-14).
+  Abbauen: 'Bergung',
   Allianz: 'Gilde',
   'Nicht genug Rohstoffe': 'Der Zehnte reicht nicht aus.',
   'Voraussetzungen fehlen': 'Das Wissen ist noch verschlossen.',

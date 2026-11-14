@@ -8,7 +8,8 @@
 //   finishUnits? (the shipyard has built the first n units of its stored queue now),
 //   settledAgo? (ms: the home planet was last brought forward that long ago, so the
 //   server adds the production of that time), serverError? (a message: an unexpected
-//   server error of this player in the error log, issue #126) }
+//   server error of this player in the error log, issue #126), debris? ({ m, c }: a
+//   Trümmerfeld at the position of the home planet, issue #45) }
 import { openDatabase } from '../src/server/db/database.ts';
 import { Store } from '../src/server/db/store.ts';
 import { recordServerError } from '../src/server/error-log.ts';
@@ -112,6 +113,7 @@ store.tx(() => {
   const p = store.planetOfUser(u.id)!;
   updateHome(p);
   if (d.colony) addColony(p);
+  if (d.debris) store.repos.debris.add(p, d.debris);
   if (d.serverError)
     recordServerError(createCtx(store), {
       action: 'POST /api/action',

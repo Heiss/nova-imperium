@@ -1,6 +1,6 @@
 import { execFileSync } from 'node:child_process';
 import { randomInt } from 'node:crypto';
-import { expect, type Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 import { E2E_ENV, E2E_MAILBOX, E2E_MAIL_ENV, E2E_MAIL_URL } from './env.ts';
 import { mailsTo } from './mail.ts';
 
@@ -189,3 +189,9 @@ export async function nav(page: Page, view: string): Promise<void> {
   await page.click(`#more-list [data-v=${view}]`);
   await expect(page.locator('#more')).not.toBeVisible();
 }
+
+/** The row of a player's planet on the galaxy page. */
+export const galaxyRow = (page: Page, player: string): Locator =>
+  page.locator('tr').filter({
+    has: page.locator('td', { hasText: new RegExp(`^${player} \\(Platz`) }),
+  });

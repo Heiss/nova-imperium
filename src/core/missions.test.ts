@@ -19,7 +19,7 @@ import {
 } from './missions.ts';
 import { missionText } from './text.ts';
 
-const KINDS: TargetKind[] = ['own', 'foreign', 'any', 'free'];
+const KINDS: TargetKind[] = ['own', 'foreign', 'any', 'free', 'debris'];
 const CODES: SendError[] = [
   'occupied',
   'noPlanet',
@@ -29,6 +29,8 @@ const CODES: SendError[] = [
   'protected',
   'noColonyShip',
   'probesOnly',
+  'noDebris',
+  'noRecycler',
 ];
 const FIELDS = [
   'canSend',
@@ -52,6 +54,7 @@ describe('mission names', () => {
       'spy',
       'colonize',
       'deploy',
+      'harvest',
     ]);
   });
 
@@ -96,6 +99,7 @@ describe('the rules of every mission (contract)', () => {
       'attack',
       'colonize',
       'deploy',
+      'harvest',
       'spy',
       'transport',
     ]);
@@ -123,8 +127,12 @@ describe('the rules of every mission (contract)', () => {
     '%s: canSend gives a known code or nothing on generated fleets',
     (m, rules) => {
       fc.assert(
-        fc.property(fleets, planets, (fleet, planet) => {
-          const target: SendTarget = { planet, protects: () => false };
+        fc.property(fleets, planets, fc.boolean(), (fleet, planet, debris) => {
+          const target: SendTarget = {
+            planet,
+            debris,
+            protects: () => false,
+          };
           const code = rules.canSend(fleet, target);
           if (code !== undefined) expect(CODES, m).toContain(code);
           const all = sendError(rules, fleet, target);
@@ -151,16 +159,35 @@ describe('the target kind (#116)', () => {
       false,
       true,
       false,
+      false,
     ]);
     expect(KINDS.map((k) => suits(k, 'a', foreign))).toEqual([
       false,
       true,
       true,
       false,
+      false,
     ]);
     expect(KINDS.map((k) => suits(k, 'a', null))).toEqual([
       false,
       false,
+      false,
+      true,
+      false,
+    ]);
+  });
+
+  it('suits a Trümmerfeld only while it is there, whatever planet is there (#45)', () => {
+    for (const planet of [null, own, foreign]) {
+      expect(suits('debris', 'a', planet, true)).toBe(true);
+      expect(suits('debris', 'a', planet, false)).toBe(false);
+      expect(suits('debris', 'a', planet)).toBe(false);
+    }
+    // The planet kinds do not ask for the field.
+    expect(KINDS.map((k) => suits(k, 'a', own, true))).toEqual([
+      true,
+      false,
+      true,
       false,
       true,
     ]);
@@ -180,10 +207,12 @@ describe('the target kind (#116)', () => {
   const at = (
     planet: SendTarget['planet'],
     shielded = false,
+    debris = false,
   ): SendTarget & { asked: string[] } => {
     const asked: string[] = [];
     return {
       planet,
+      debris,
       asked,
       protects: (owner) => {
         asked.push(owner);
@@ -201,31 +230,53 @@ describe('the target kind (#116)', () => {
       'noPlanet',
       'noPlanet',
       undefined,
+      'noDebris',
     ]);
     expect(errors(home, true)).toEqual([
       'samePlanet',
       'samePlanet',
       'samePlanet',
       'occupied',
+      'noDebris',
     ]);
     expect(errors(own, true)).toEqual([
       undefined,
       'ownTarget',
       undefined,
       'occupied',
+      'noDebris',
     ]);
     expect(errors(foreign)).toEqual([
       'notOwn',
       undefined,
       undefined,
       'occupied',
+      'noDebris',
     ]);
     expect(errors(foreign, true)).toEqual([
       'notOwn',
       'protected',
       undefined,
       'occupied',
+      'noDebris',
     ]);
+  });
+
+  it('flies to a Trümmerfeld wherever it lies, also at the own planet or a protected one (#45)', () => {
+    for (const planet of [null, home, own, foreign]) {
+      const target = at(planet, true, true);
+      expect(sendError(rules('debris'), fleet, target), planet?.id).toBe(
+        undefined,
+      );
+      expect(target.asked).toEqual([]);
+    }
+    // A planet target ignores the field.
+    expect(sendError(rules('own'), fleet, at(null, false, true))).toBe(
+      'noPlanet',
+    );
+    expect(sendError(rules('free'), fleet, at(null, false, true))).toBe(
+      undefined,
+    );
   });
 
   it('asks for the noob protection only of a foreign target, for its owner', () => {

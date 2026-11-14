@@ -147,7 +147,8 @@ All values are the classic ones on owiki.de, confirmed by the owner
   level (D6).
 * Rapid fire in `rf`: `probe` 1,250, `sat` 1,250, `colony` 250, `sc` 250,
   `lc` 250, `lf` 200, `hf` 100, `cr` 33, `bs` 30, `bb` 25, `bc` 15, `dr` 5,
-  `rl` 200, `ll` 200, `hl` 100, `gauss` 50, `ionc` 100 (#50); none against
+  `rl` 200, `ll` 200, `hl` 100, `gauss` 50, `ionc` 100 (#50), `recycler`
+  250 (#45, D4; owner, 2026-11-14, [Trümmerfelder](/features/debris.md)); none against
   `pt`, `ssd` and `lsd`. The catalog value wins in `rapid()`, so the 1,250
   against the probe and the Solarsatellit replaces the general 5. No unit
   has an entry against `dstar`.

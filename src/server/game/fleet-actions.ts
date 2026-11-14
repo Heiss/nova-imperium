@@ -65,6 +65,8 @@ const SEND_ERROR: Readonly<Record<SendError, string>> = {
   ownTarget: 'Eigene Planeten kann man nicht angreifen.',
   protected: 'Dieser Spieler steht unter Noobschutz.',
   probesOnly: 'Auspex-Erkundung nur mit Spähschädeln.',
+  noDebris: 'An dieser Position gibt es kein Trümmerfeld.',
+  noRecycler: 'Du brauchst eine Bergungsbarke.',
 };
 
 const loadCargo = (p: Planet, rules: MissionRules, raw: unknown): Resources => {
@@ -81,6 +83,8 @@ interface Plan {
   mission: Mission;
   ships: Levels;
   dest: Coords;
+  /** The id of the place the fleet flies to: a planet or a Trümmerfeld. */
+  to: string;
   targetOwner: string | null;
   cargo: Resources;
   pct: number;
@@ -93,12 +97,14 @@ function checkDestination(
   rules: MissionRules,
   occupied: Planet | null,
   ships: Levels,
+  debris: boolean,
 ): void {
   const error = sendError(
     rules,
     { owner: u.id, from: p.id, ships },
     {
       planet: occupied,
+      debris,
       protects: (owner) => isProtected(u.id, owner, pointsMap(ctx)),
     },
   );
@@ -114,12 +120,16 @@ function plan(ctx: Ctx, u: User, p: Planet, d: Data): Plan {
     fail('Alle Flottenslots belegt.');
   const dest = target(ctx, d);
   const occupied = ctx.planets.get(placeId({ ...dest, kind: 'planet' }));
-  checkDestination(ctx, u, p, rules, occupied, ships);
+  // A Bergung flies to the Trümmerfeld, a place of its own (#45, #119).
+  const field = placeId({ ...dest, kind: 'debris' });
+  const toField = rules.target === 'debris';
+  checkDestination(ctx, u, p, rules, occupied, ships, !!ctx.debris.get(field));
   return {
     mission,
     ships,
     dest,
-    targetOwner: occupied?.owner ?? null,
+    to: toField ? field : placeId({ ...dest, kind: 'planet' }),
+    targetOwner: toField ? null : (occupied?.owner ?? null),
     cargo: loadCargo(p, rules, d.cargo),
     pct: int(d.pct, 1, 10),
   };
@@ -128,7 +138,12 @@ function plan(ctx: Ctx, u: User, p: Planet, d: Data): Plan {
 export const send: Action = (ctx, u, d, event) => {
   const t = ctx.now();
   const p = mine(ctx, u, d.planet);
-  const { mission, ships, dest, targetOwner, cargo, pct } = plan(ctx, u, p, d);
+  const { mission, ships, dest, to, targetOwner, cargo, pct } = plan(
+    ctx,
+    u,
+    p,
+    d,
+  );
   const dist = distance(p, dest);
   const ms = flightMs(
     dist,
@@ -152,7 +167,7 @@ export const send: Action = (ctx, u, d, event) => {
     owner: u.id,
     from: p.id,
     fromC: { g: p.g, s: p.s, p: p.p },
-    to: placeId({ ...dest, kind: 'planet' }),
+    to,
     toC: dest,
     mission,
     ships,

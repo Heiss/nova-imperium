@@ -6,7 +6,12 @@
 import { describe, expect, it } from 'vitest';
 import { MISSION_SERVERS } from '../../features/index.server.gen.ts';
 import { MISSIONS } from '../../features/index.gen.ts';
-import type { MissionRules, TargetKind } from '../../core/missions.ts';
+import {
+  type MissionRules,
+  type TargetKind,
+  missionRules,
+} from '../../core/missions.ts';
+import { placeId } from '../../core/place.ts';
 import type { Coords, Fleet, Mission } from '../../core/types.ts';
 import { addPlanet, addUser, testCtx } from '../test-helpers.ts';
 import { arrive, comeHome } from './arrival.ts';
@@ -26,15 +31,25 @@ const FITS: Record<TargetKind, Coords> = {
   foreign: FOREIGN,
   any: FOREIGN,
   free: FREE,
+  // A Trümmerfeld lies at Bert's planet (#45).
+  debris: FOREIGN,
 };
 const MISFITS: Record<TargetKind, Coords[]> = {
   own: [FOREIGN, FREE],
   foreign: [COLONY, FREE],
   any: [FREE],
   free: [COLONY, FOREIGN],
+  debris: [COLONY, FREE],
 };
 
 const id = (c: Coords): string => `p${c.g}_${c.s}_${c.p}`;
+
+/** The place a mission flies to: a planet, or the Trümmerfeld (#45). */
+const placeOf = (m: Mission, c: Coords): string =>
+  placeId({
+    ...c,
+    kind: missionRules(m)!.target === 'debris' ? 'debris' : 'planet',
+  });
 
 function setup() {
   const ctx = testCtx();
@@ -43,10 +58,11 @@ function setup() {
   addUser(ctx, 'Bert', { research: { energy: 10 } });
   addPlanet(ctx, anna.id, {
     ...HOME,
-    ships: { sc: 5, colony: 5, probe: 5 },
+    ships: { sc: 5, colony: 5, probe: 5, recycler: 5 },
   });
   addPlanet(ctx, anna.id, { ...COLONY, name: 'Kolonie' });
   addPlanet(ctx, 'u_Bert', { ...FOREIGN, name: 'Beta' });
+  ctx.debris.add(FOREIGN, { m: 100, c: 50 });
   return { ctx, anna };
 }
 
@@ -60,7 +76,7 @@ function fleet(
     owner: 'u_Anna',
     from: id(HOME),
     fromC: HOME,
-    to: id(to),
+    to: placeOf(mission, to),
     toC: to,
     mission,
     ships: { sc: 2, colony: 1 },
@@ -131,7 +147,7 @@ describe('the server part of every mission (contract)', () => {
 
   it.each(RULES)('%s: takes the cargo only if it carries cargo', (m, r) => {
     const sent: Fleet[] = [];
-    for (const ships of [{ sc: 1, colony: 1 }, { probe: 1 }]) {
+    for (const ships of [{ sc: 1, colony: 1, recycler: 1 }, { probe: 1 }]) {
       const { ctx, anna } = setup();
       try {
         send(ctx, anna, {

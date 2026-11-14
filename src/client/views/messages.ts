@@ -2,6 +2,8 @@ import { BUILD, DEF, RES, SHIPS, UNIT } from '../../core/catalog.ts';
 import { countUnits } from '../../core/flight.ts';
 import { text } from '../../core/text.ts';
 import type { Coords, Levels, Resources } from '../../core/types.ts';
+import type { Debris } from '../../core/debris.ts';
+import { debrisLine } from '../logic/debris.ts';
 import { coords, dt, esc, fmt, resLine, techLine } from '../logic/format.ts';
 import { newestFirst } from '../logic/game.ts';
 import { updateMessageHTML } from '../logic/news.ts';
@@ -39,10 +41,12 @@ function battleBody(r: Report): string {
     : '';
   const lootLine =
     loot && loot.m + loot.c + loot.d ? `<br>Erbeutet: ${resLine(loot)}` : '';
+  const debris = debrisLine(r.debris as Debris | undefined);
+  const debrisHTML = debris ? `<br>${debris}` : '';
   return `<div>Schlacht bei ${esc(r.name)} ${coords(r.coords as Coords)} · ${esc(r.rounds)} Runde(n)</div>
   <div class="cols mt"><div><b class="fl-attack">Angreifer ${esc(r.attName)}</b><div class="dim">${techLine(lv(r.attTech))}</div>${unitTable(lv(r.attBefore), lv(r.attAfter), Object.keys(SHIPS))}</div>
   <div><b class="good">Verteidiger ${esc(r.defName)}</b><div class="dim">${techLine(lv(r.defTech))}</div>${unitTable(lv(r.defBefore), lv(r.defAfter), Object.keys(UNIT))}${rb}</div></div>
-  <p><b>${WINNER[String(r.winner)] ?? ''}</b>${lootLine}</p>`;
+  <p><b>${WINNER[String(r.winner)] ?? ''}</b>${lootLine}${debrisHTML}</p>`;
 }
 
 function section(title: string, o: unknown, keys: string[]): string {

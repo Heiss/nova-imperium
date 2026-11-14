@@ -1,7 +1,7 @@
 // Issue #60, classic values (owner, 2026-11-12). Its 1,250 against the probe
 // and the Solarsatellit replace the general 5 against an easy target
 // (components/combat.ts). None against the Plasmawerfer and the shield domes
-// (#50).
+// (#50). 250 against the Bergungsbarke, classic, added with it (#45, #60 D4).
 
 import type { ShipFields } from '../../core/catalog.ts';
 import type { Combat } from '../../core/components/combat.ts';
@@ -20,6 +20,7 @@ export const combat: Combat = {
     probe: 1250,
     sat: 1250,
     colony: 250,
+    recycler: 250,
     sc: 250,
     lc: 250,
     lf: 200,
