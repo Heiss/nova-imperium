@@ -883,6 +883,65 @@ textarea:focus-visible {
     padding: 3px 6px;
     letter-spacing: 0;
   }
+  /* Highscore (#189, D7): a long player name without spaces breaks
+     anywhere, as on the Sternenkarte, and the cells are tighter. */
+  .scores td:nth-child(2) {
+    overflow-wrap: anywhere;
+  }
+  .scores th,
+  .scores td {
+    padding: 6px 4px;
+  }
+  /* Resources (#189, D7): every row of the table is a block of its own
+     instead of widening the page: its name, the four values in two columns,
+     each with its column head, then the share. The row of heads is not
+     needed then. */
+  .producers,
+  .producers tbody {
+    display: block;
+  }
+  .producers tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 16px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .producers tr:first-child {
+    display: none;
+  }
+  .producers tr:last-child {
+    border-bottom: 0;
+  }
+  .producers th,
+  .producers td {
+    padding: 2px 0;
+    border-bottom: 0;
+  }
+  .producers tr > :first-child,
+  .producers tr > :last-child {
+    grid-column: 1 / -1;
+  }
+  .producers :is(th, td):empty {
+    display: none;
+  }
+  .producers .n {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0 8px;
+  }
+  .producers [data-label]::before {
+    content: attr(data-label);
+    margin-right: 8px;
+    color: var(--dim);
+    font: 600 12px var(--head);
+    letter-spacing: 0.06em;
+  }
+  /* The head on the left, the value on the right, also when it wraps. */
+  .producers .n::before {
+    margin-right: auto;
+  }
   #app {
     grid-template-columns: 1fr;
     grid-template-rows: auto 1fr;

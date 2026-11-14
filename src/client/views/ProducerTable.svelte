@@ -18,6 +18,14 @@
   const SHARES = [100, 90, 80, 70, 60, 50, 40, 30, 20, 10, 0];
   type Column = 'm' | 'c' | 'd' | 'e';
   const COLUMNS: readonly Column[] = ['m', 'c', 'd', 'e'];
+  /** The column heads; on a phone each value shows its own (#189). */
+  const HEADS: Record<Column, string> = {
+    m: 'Adamant',
+    c: 'Psikristall',
+    d: 'Promethium',
+    e: 'Energie',
+  };
+  const SHARE = 'Leistung';
   type Flow = Partial<Record<Column, number>>;
 
   /** A cell: a use with a minus, made energy as good, nothing as 0. */
@@ -50,12 +58,12 @@
 {#snippet cells(made: Flow, used: Flow)}
   {#each COLUMNS as column (column)}
     {@const c = cell(made, used, column)}
-    <td class={c.cls}>{c.value}</td>
+    <td class={c.cls} data-label={HEADS[column]}>{c.value}</td>
   {/each}
 {/snippet}
 
 {#snippet share(row: ProducerRow, set: number)}
-  <td
+  <td data-label={SHARE}
     ><select
       data-chg="pct"
       data-k={row.key}
@@ -78,15 +86,14 @@
     Produktion pro Stunde (Produktionsfaktor {Math.round(pr.f * 100)} %)
   </div>
   <div class="bd">
-    <table>
+    <table class="producers">
       <tbody>
         <tr>
           <th></th>
-          <th class="n">Adamant</th>
-          <th class="n">Psikristall</th>
-          <th class="n">Promethium</th>
-          <th class="n">Energie</th>
-          <th>Leistung</th>
+          {#each COLUMNS as column (column)}
+            <th class="n">{HEADS[column]}</th>
+          {/each}
+          <th>{SHARE}</th>
         </tr>
         <tr>
           <td>Grundeinkommen</td>
@@ -102,25 +109,25 @@
         {/each}
         <tr>
           <th>Lagerkapazität</th>
-          <th class="n">{fmt(cp.m)}</th>
-          <th class="n">{fmt(cp.c)}</th>
-          <th class="n">{fmt(cp.d)}</th>
-          <th class="n">-</th>
+          <th class="n" data-label={HEADS.m}>{fmt(cp.m)}</th>
+          <th class="n" data-label={HEADS.c}>{fmt(cp.c)}</th>
+          <th class="n" data-label={HEADS.d}>{fmt(cp.d)}</th>
+          <th class="n" data-label={HEADS.e}>-</th>
           <th></th>
         </tr>
         <tr>
           <th>Summe / Stunde</th>
-          <th class="n">{fmt(pr.m)}</th>
-          <th class="n">{fmt(pr.c)}</th>
-          <th class="n">{fmt(pr.d)}</th>
-          <th class="n">{fmt(pr.eProd - pr.eUse)}</th>
+          <th class="n" data-label={HEADS.m}>{fmt(pr.m)}</th>
+          <th class="n" data-label={HEADS.c}>{fmt(pr.c)}</th>
+          <th class="n" data-label={HEADS.d}>{fmt(pr.d)}</th>
+          <th class="n" data-label={HEADS.e}>{fmt(pr.eProd - pr.eUse)}</th>
           <th></th>
         </tr>
         <tr>
           <td>pro Tag</td>
-          <td class="n">{fmt(pr.m * 24)}</td>
-          <td class="n">{fmt(pr.c * 24)}</td>
-          <td class="n">{fmt(pr.d * 24)}</td>
+          <td class="n" data-label={HEADS.m}>{fmt(pr.m * 24)}</td>
+          <td class="n" data-label={HEADS.c}>{fmt(pr.c * 24)}</td>
+          <td class="n" data-label={HEADS.d}>{fmt(pr.d * 24)}</td>
           <td></td>
           <td></td>
         </tr>
