@@ -32,7 +32,7 @@ describe('guilds', () => {
         uid: applicant.id,
         accept: true,
       }),
-    ).toThrow('Gildenleitung');
+    ).toThrow('Du bist in keiner Gilde.');
     runAction(ctx, founder.id, {
       type: 'reviewGuildApplication',
       uid: applicant.id,
@@ -89,6 +89,7 @@ describe('guilds', () => {
       type: 'manageGuildMember',
       uid: b.id,
       transfer: true,
+      rank: `r1_${id}`,
     });
     runAction(ctx, b.id, {
       type: 'updateGuild',
@@ -99,8 +100,13 @@ describe('guilds', () => {
     expect(guildState(ctx, a.id, {}).own).toBeNull();
     expect(guildState(ctx, b.id, {}).directory[0]).toMatchObject({
       tag: 'NEW',
-      founder: b.id,
     });
+    // The Leitung is a rank and shows only inside the guild (#163, D7).
+    expect(guildState(ctx, b.id, {}).ranks?.lead).toBe(b.id);
+    expect(ctx.guilds.get(id)?.founder).toBe(b.id);
+    expect(guildState(ctx, c.id, {}).directory[0]).not.toHaveProperty(
+      'founder',
+    );
     runAction(ctx, b.id, { type: 'leaveGuild' });
     expect(guildState(ctx, b.id, {}).directory).toEqual([]);
   });
@@ -118,6 +124,14 @@ describe('guild rules (#117: the logic left in guilds.ts)', () => {
       name: 'Outer Rim',
       ...d,
     });
+
+  it('leaves a bare address in the profile text as text, not a link', () => {
+    const ctx = testCtx();
+    const a = addUser(ctx, 'Anna');
+    found(ctx, a.id, { description: 'Treffpunkt https://example.org heute' });
+    const html = guildState(ctx, a.id, {}).directory[0]!.html;
+    expect(html).toBe('<p>Treffpunkt https://example.org heute</p>\n');
+  });
 
   it('checks the tag, the name and the text of a profile', () => {
     const ctx = testCtx();
@@ -214,14 +228,19 @@ describe('guild rules (#117: the logic left in guilds.ts)', () => {
       accept: true,
     });
     const manage = (uid: string, transfer?: boolean) =>
-      runAction(ctx, a!.id, { type: 'manageGuildMember', uid, transfer });
+      runAction(ctx, a!.id, {
+        type: 'manageGuildMember',
+        uid,
+        transfer,
+        rank: `r1_${id}`,
+      });
     for (const uid of ['nobody', c!.id, d!.id, a!.id])
       expect(() => manage(uid, true)).toThrow(
         'Dieses Gildenmitglied gibt es nicht.',
       );
     expect(() =>
       runAction(ctx, b!.id, { type: 'manageGuildMember', uid: a!.id }),
-    ).toThrow('Gildenleitung');
+    ).toThrow('Dazu fehlt deinem Rang das Recht.');
     expect(manage(b!.id)).toBe('Mitglied entfernt.');
     runAction(ctx, b!.id, { type: 'applyToGuild', id });
     runAction(ctx, a!.id, {
