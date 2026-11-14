@@ -1,7 +1,7 @@
 ---
 type: feature
 title: Endzeit – the gift of the Gottkaiser
-description: An admin button for the end of a round: every player gets a gift fleet with every ship that flies, resources and, on arrival, everything unlocked (issue #161).
+description: An admin button for the end of a round that gives every player a gift fleet with every ship that flies, resources and, on arrival, everything unlocked (issue #161).
 ---
 
 # Endzeit
