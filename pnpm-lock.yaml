@@ -24,8 +24,8 @@ importers:
         specifier: 15.0.3
         version: 15.0.3
       nodemailer:
-        specifier: 10.4.1
-        version: 10.4.1
+        specifier: 10.5.0
+        version: 10.5.0
       web-push:
         specifier: 4.0.0
         version: 4.0.0
@@ -2160,10 +2160,6 @@ packages:
   node-releases@2.0.63:
     resolution: {integrity: sha512-6li2QanLsAXpIH2R6j77MzRyvOyrvdTqlKtO4CgBdHGNvN99ZZfyxszHc5o5+IZBWD5u6Hzwg83JoGXmqZNG9Q==}
     engines: {node: '>=18'}
-
-  nodemailer@10.4.1:
-    resolution: {integrity: sha512-CyGM/J+n6W72v2B44BOkIrrQ/cvhm2fOa7fkQDHYOqtjM8stumU5ey3uv9oJ2ryShNit79NaEW/vXznvt/35vA==}
-    engines: {node: '>=20.0.0'}
 
   nodemailer@10.5.0:
     resolution: {integrity: sha512-L/w/HH5MqpzMDuZD7fQdt/+KqymuvrpaApaIjAH2XA3ILePwlcvXCVVvP75xVrXCEt2ggK2marrrHHFB5Qu0kA==}
@@ -4650,8 +4646,6 @@ snapshots:
   node-addon-api@8.9.2: {}
 
   node-releases@2.0.63: {}
-
-  nodemailer@10.4.1: {}
 
   nodemailer@10.5.0: {}
 
