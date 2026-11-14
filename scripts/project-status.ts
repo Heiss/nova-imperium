@@ -36,8 +36,8 @@ export interface Issue {
   number: number;
   closed: boolean;
   labels: Label[];
-  /** Times the labels were added, oldest first. */
-  added: { name: string; at: string }[];
+  /** Names of the labels as they were added, oldest first (timeline). */
+  added: string[];
 }
 export interface Plan {
   /** Status labels to remove. */
@@ -46,16 +46,19 @@ export interface Plan {
   status: string | null;
 }
 
+/** Own keys only: a label named „constructor“ is no status. */
+const isStatus = (name: string): boolean => Object.hasOwn(STATUS, name);
+
 /**
  * The status label that holds: of the status labels the issue has, the one
- * added last. A label without a recorded time counts as the oldest; among
- * those, the later one in the order of the work wins.
+ * added last in the timeline (its order, not its times, which can tie). A
+ * label without a recorded event counts as the oldest; among those, the
+ * later one in the order of the work wins.
  */
 export function current(issue: Issue): Label | null {
   const order = Object.keys(STATUS);
-  const present = issue.labels.filter((l) => l.name in STATUS);
-  const last = (name: string): string =>
-    issue.added.filter((a) => a.name === name).at(-1)?.at ?? '';
+  const present = issue.labels.filter((l) => isStatus(l.name));
+  const last = (name: string): number => issue.added.lastIndexOf(name);
   let best: Label | null = null;
   for (const label of present) {
     if (!best) {
@@ -77,7 +80,7 @@ export function plan(issue: Issue): Plan {
   if (issue.closed) return { remove: [], status: null };
   const keep = current(issue);
   return {
-    remove: issue.labels.filter((l) => l.name in STATUS && l !== keep),
+    remove: issue.labels.filter((l) => isStatus(l.name) && l !== keep),
     status: keep ? STATUS[keep.name]! : BACKLOG,
   };
 }
@@ -108,7 +111,7 @@ export interface Project {
 const ISSUE_FIELDS = `id number closed
   labels(first: 100) { nodes { id name } }
   timelineItems(itemTypes: [LABELED_EVENT], last: 100) {
-    nodes { ... on LabeledEvent { createdAt label { name } } }
+    nodes { ... on LabeledEvent { label { name } } }
   }`;
 
 interface IssueNode {
@@ -116,9 +119,7 @@ interface IssueNode {
   number: number;
   closed: boolean;
   labels: { nodes: Label[] };
-  timelineItems: {
-    nodes: { createdAt: string; label: { name: string } }[];
-  };
+  timelineItems: { nodes: { label: { name: string } }[] };
 }
 
 function toIssue(node: IssueNode): Issue {
@@ -127,10 +128,7 @@ function toIssue(node: IssueNode): Issue {
     number: node.number,
     closed: node.closed,
     labels: node.labels.nodes,
-    added: node.timelineItems.nodes.map((e) => ({
-      name: e.label.name,
-      at: e.createdAt,
-    })),
+    added: node.timelineItems.nodes.map((e) => e.label.name),
   };
 }
 
@@ -153,17 +151,18 @@ export async function readIssue(
   return toIssue(issue);
 }
 
-export async function openIssues(gql: Graphql, env: Env): Promise<Issue[]> {
-  const issues: Issue[] = [];
+/** Numbers of every open issue; each is read again right before its sync. */
+export async function openIssues(gql: Graphql, env: Env): Promise<number[]> {
+  const numbers: number[] = [];
   let after: string | null = null;
   do {
     const data = await gql(
       env.githubToken,
       `query($owner: String!, $repo: String!, $after: String) {
         repository(owner: $owner, name: $repo) {
-          issues(states: OPEN, first: 50, after: $after) {
+          issues(states: OPEN, first: 100, after: $after) {
             pageInfo { hasNextPage endCursor }
-            nodes { ${ISSUE_FIELDS} }
+            nodes { number }
           }
         }
       }`,
@@ -173,14 +172,14 @@ export async function openIssues(gql: Graphql, env: Env): Promise<Issue[]> {
       data.repository as {
         issues: {
           pageInfo: { hasNextPage: boolean; endCursor: string };
-          nodes: IssueNode[];
+          nodes: { number: number }[];
         };
       }
     ).issues;
-    issues.push(...page.nodes.map(toIssue));
+    numbers.push(...page.nodes.map((n) => n.number));
     after = page.pageInfo.hasNextPage ? page.pageInfo.endCursor : null;
   } while (after);
-  return issues;
+  return numbers;
 }
 
 export async function readProject(gql: Graphql, env: Env): Promise<Project> {
@@ -324,20 +323,30 @@ export async function sync(
   issue: Issue,
   wait: boolean,
 ): Promise<boolean> {
-  const { remove, status } = plan(issue);
-  await removeLabels(deps, env, issue, remove);
+  const first = plan(issue);
+  let status = first.status;
+  await removeLabels(deps, env, issue, first.remove);
   if (status === null) {
     deps.log(`#${issue.number}: closed, left alone`);
     return true;
   }
   let item = await findItem(deps.gql, env, project, issue);
+  let waited = false;
   for (let i = 1; !item && wait && i < WAIT.tries; i++) {
     await deps.sleep(WAIT.ms);
+    waited = true;
     item = await findItem(deps.gql, env, project, issue);
   }
   if (!item) {
     deps.log(`#${issue.number}: not in the project`);
     return false;
+  }
+  // The issue may have changed while waiting: a closed one keeps „Done“.
+  if (waited)
+    status = plan(await readIssue(deps.gql, env, issue.number)).status;
+  if (status === null) {
+    deps.log(`#${issue.number}: closed while waiting, left alone`);
+    return true;
   }
   if (item.status === status) {
     deps.log(`#${issue.number}: already ${status}`);
@@ -378,8 +387,12 @@ export async function main(
   }
   if (mode === 'all') {
     let missing = 0;
-    for (const issue of await openIssues(deps.gql, env))
+    // Read each issue right before its sync, not from one early snapshot,
+    // so a run on an issue event in between is not undone.
+    for (const n of await openIssues(deps.gql, env)) {
+      const issue = await readIssue(deps.gql, env, n);
       if (!(await sync(deps, env, project, issue, false))) missing++;
+    }
     deps.log(`${missing} open issue(s) not in the project`);
     return 0;
   }

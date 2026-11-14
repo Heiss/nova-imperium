@@ -14,15 +14,9 @@ import {
 const label = (name: string) => ({ id: `L-${name}`, name });
 const issue = (
   labels: string[],
-  added: [string, string][] = [],
+  added: string[] = [],
   closed = false,
-): Issue => ({
-  id: 'I1',
-  number: 1,
-  closed,
-  labels: labels.map(label),
-  added: added.map(([name, at]) => ({ name, at })),
-});
+): Issue => ({ id: 'I1', number: 1, closed, labels: labels.map(label), added });
 
 describe('project status: plan', () => {
   it('maps every status label to its option', () => {
@@ -46,11 +40,7 @@ describe('project status: plan', () => {
   it('keeps the status label added last and removes the others', () => {
     const i = issue(
       ['in progress', 'feature', 'ready'],
-      [
-        ['ready', '2026-11-14T10:00:00Z'],
-        ['in progress', '2026-11-14T11:00:00Z'],
-        ['feature', '2026-11-14T12:00:00Z'],
-      ],
+      ['ready', 'in progress', 'feature'],
     );
     expect(current(i)?.name).toBe('in progress');
     expect(plan(i)).toEqual({
@@ -59,29 +49,36 @@ describe('project status: plan', () => {
     });
   });
 
-  it('takes the last time a label was added', () => {
+  it('takes the last time a label was added, by timeline order', () => {
     // ready, then in review, then ready again: ready holds.
-    const i = issue(
-      ['ready', 'in review'],
-      [
-        ['ready', '2026-11-14T10:00:00Z'],
-        ['in review', '2026-11-14T11:00:00Z'],
-        ['ready', '2026-11-14T12:00:00Z'],
-      ],
-    );
+    const i = issue(['ready', 'in review'], ['ready', 'in review', 'ready']);
     expect(plan(i)).toEqual({ remove: [label('in review')], status: 'Ready' });
+    // Same order of the labels on the issue, the other way in the timeline.
+    expect(
+      plan(issue(['ready', 'in review'], ['in review', 'ready'])).status,
+    ).toBe('Ready');
+    expect(
+      plan(issue(['in review', 'ready'], ['ready', 'in review'])).status,
+    ).toBe('In review');
   });
 
-  it('without times, the later status in the order of the work wins', () => {
+  it('counts only own keys as status labels', () => {
+    expect(
+      plan(issue(['constructor', 'ready'], ['ready', 'constructor'])),
+    ).toEqual({
+      remove: [],
+      status: 'Ready',
+    });
+    expect(plan(issue(['toString'])).status).toBe(BACKLOG);
+  });
+
+  it('without events, the later status in the order of the work wins', () => {
     expect(plan(issue(['in review', 'in discussion', 'ready']))).toEqual({
       remove: [label('in discussion'), label('ready')],
       status: 'In review',
     });
-    // A label with a time beats one without.
-    expect(
-      plan(issue(['in review', 'ready'], [['ready', '2026-11-14T10:00:00Z']]))
-        .status,
-    ).toBe('Ready');
+    // A label with an event beats one without.
+    expect(plan(issue(['in review', 'ready'], ['ready'])).status).toBe('Ready');
   });
 
   it('leaves closed issues alone', () => {
@@ -125,9 +122,7 @@ function github(opts: {
     number: i.number,
     closed: i.closed,
     labels: { nodes: i.labels },
-    timelineItems: {
-      nodes: i.added.map((a) => ({ createdAt: a.at, label: { name: a.name } })),
-    },
+    timelineItems: { nodes: i.added.map((name) => ({ label: { name } })) },
   });
   const project = () =>
     opts.project === false
@@ -149,11 +144,11 @@ function github(opts: {
     after
       ? {
           pageInfo: { hasNextPage: false, endCursor: 'c2' },
-          nodes: opts.issues.slice(1).map(node),
+          nodes: opts.issues.slice(1).map((i) => ({ number: i.number })),
         }
       : {
           pageInfo: { hasNextPage: true, endCursor: 'c1' },
-          nodes: opts.issues.slice(0, 1).map(node),
+          nodes: opts.issues.slice(0, 1).map((i) => ({ number: i.number })),
         };
   const repository = (vars: Record<string, unknown>) => {
     if (!('number' in vars)) return { issues: page(vars.after) };
@@ -196,13 +191,14 @@ const ENV = {
   PROJECT_NUMBER: '5',
 };
 
-function deps(gql: Graphql) {
+function deps(gql: Graphql, onSleep = () => {}) {
   const log: string[] = [];
   const slept: number[] = [];
   const d: Deps = {
     gql,
     sleep: (ms) => {
       slept.push(ms);
+      onSleep();
       return Promise.resolve();
     },
     log: (line) => log.push(line),
@@ -212,13 +208,7 @@ function deps(gql: Graphql) {
 
 describe('project status: main', () => {
   it('sets the status with the project token and removes labels with the GitHub token', async () => {
-    const i = issue(
-      ['ready', 'in progress'],
-      [
-        ['ready', '2026-11-14T10:00:00Z'],
-        ['in progress', '2026-11-14T11:00:00Z'],
-      ],
-    );
+    const i = issue(['ready', 'in progress'], ['ready', 'in progress']);
     const { gql, calls } = github({
       issues: [i],
       items: {
@@ -297,6 +287,16 @@ describe('project status: main', () => {
     const a = deps(added.gql);
     expect(await main(['issue', '1'], ENV, a.d)).toBe(0);
     expect(a.slept).toEqual([WAIT.ms, WAIT.ms]);
+    // The issue is read again after waiting.
+    expect(added.calls.map((c) => c.op)).toEqual([
+      'user',
+      'repository',
+      'node',
+      'node',
+      'node',
+      'repository',
+      'updateProjectV2ItemFieldValue',
+    ]);
     expect(a.log).toEqual(['#1: Backlog → Ready']);
 
     const never = github({ issues: [issue(['ready'])] });
@@ -304,6 +304,35 @@ describe('project status: main', () => {
     expect(await main(['issue', '1'], ENV, n.d)).toBe(1);
     expect(n.slept).toHaveLength(WAIT.tries - 1);
     expect(n.log).toEqual(['#1: not in the project']);
+  });
+
+  it('takes the state after waiting: a closed issue keeps Done', async () => {
+    const open = issue(['ready']);
+    const closing = github({
+      issues: [open],
+      items: { I1: [{ id: 'IT', project: 'P', status: 'Done' }] },
+      appearsAfter: 1,
+    });
+    const c = deps(closing.gql, () => (open.closed = true));
+    expect(await main(['issue', '1'], ENV, c.d)).toBe(0);
+    expect(closing.calls.map((x) => x.op)).not.toContain(
+      'updateProjectV2ItemFieldValue',
+    );
+    expect(c.log).toEqual(['#1: closed while waiting, left alone']);
+
+    // A status label set while waiting is taken.
+    const moving = issue(['ready'], ['ready']);
+    const moved = github({
+      issues: [moving],
+      items: { I1: [{ id: 'IT', project: 'P', status: 'Backlog' }] },
+      appearsAfter: 1,
+    });
+    const m = deps(moved.gql, () => {
+      moving.labels = [label('in progress')];
+      moving.added = ['ready', 'in progress'];
+    });
+    expect(await main(['issue', '1'], ENV, m.d)).toBe(0);
+    expect(m.log).toEqual(['#1: Backlog → In progress']);
   });
 
   it('syncs every open issue on all pages and does not wait', async () => {
@@ -315,9 +344,15 @@ describe('project status: main', () => {
     });
     const { d, log, slept } = deps(gql);
     expect(await main(['all'], ENV, d)).toBe(0);
+    // Two pages of numbers, then each issue read right before its sync.
     expect(
-      calls.filter((c) => c.op === 'repository').map((c) => c.vars.after),
-    ).toEqual([null, 'c1']);
+      calls.filter((c) => c.op === 'repository').map((c) => c.vars),
+    ).toEqual([
+      { owner: 'Heiss', repo: 'nova-imperium', after: null },
+      { owner: 'Heiss', repo: 'nova-imperium', after: 'c1' },
+      { owner: 'Heiss', repo: 'nova-imperium', number: 1 },
+      { owner: 'Heiss', repo: 'nova-imperium', number: 2 },
+    ]);
     expect(slept).toEqual([]);
     expect(log).toEqual([
       '#1: no status → In discussion',

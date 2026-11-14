@@ -40,16 +40,18 @@ tasks).
   tests in `src/test/project-status.test.ts`) runs on every issue that is
   opened, reopened, labelled or unlabelled. The labels lead, the board
   follows; the loop still only sets labels.
-  * Only one status label holds: the one added last stays, the workflow
-    removes the others.
+  * Only one status label holds: the one added last in the issue's
+    timeline stays, the workflow removes the others.
   * No status label is „Backlog“; the options are `Backlog`,
     `In discussion`, `Ready`, `In progress`, `In review`, `Done`.
   * The project's own „Auto-add to project“ adds the issues; the workflow
     waits up to a minute for the item and fails when it does not appear.
   * Closed issues are left to the project's own workflow „Item closed“
     („Done“); „Pull request linked to issue“ is switched off.
-  * Run by hand (`workflow_dispatch`), it syncs every open issue once and
-    lists the ones not in the project.
+  * Run by hand (`workflow_dispatch`), it syncs every open issue once,
+    reading each right before its sync, and lists the ones not in the
+    project. A run on an issue event at the same moment can still race it;
+    accepted, because the manual run is rare (CodeRabbit on #194).
   * Secret `PROJECT_TOKEN`: a classic personal access token with the scope
     `project` [U: a fine-grained token not checked], because a GitHub App
     cannot reach a project of a user; variable `PROJECT_NUMBER`.
