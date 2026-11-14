@@ -413,7 +413,7 @@ export function settle(
     settled.plan[shard]!.push(unit);
     settled.load[shard]! += weights[unit]!;
   };
-  for (const unit of Object.keys(weights).sort()) {
+  for (const unit of Object.keys(weights)) {
     const shard = shardOf(known, unit);
     if (shard === undefined) settled.added.push(unit);
     else put(unit, shard);

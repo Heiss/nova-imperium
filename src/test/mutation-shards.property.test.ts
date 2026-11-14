@@ -43,6 +43,8 @@ describe('mutation shards: the shard an entry had', () => {
     expect(shardOf(previous, 'cat.ts:40-55')).toBe(0);
     expect(shardOf(previous, 'cat.ts:41-41')).toBe(1);
     expect(shardOf(previous, 'cat.ts:90-99')).toBe(1);
+    // the first range that holds the line, wherever it is in the plan
+    expect(shardOf([['cat.ts:41-90'], ['cat.ts:1-40']], 'cat.ts:1-12')).toBe(1);
     // a cut file that is whole again: the shard of its first line
     expect(shardOf(previous, 'cat.ts')).toBe(0);
     // a whole file that is cut now: all its pieces on its shard
@@ -111,6 +113,30 @@ describe('mutation shards: the stable plan', () => {
     expect(settled.load).toEqual([15, 7, 8]);
   });
 
+  it('moves an entry that fills the lightest shard exactly to the limit', () => {
+    // mean 5, limit 5: a (5) brings the first shard within it and fits
+    expect(settle({ a: 5, b: 5 }, [['a', 'b'], []], 2, 1)).toEqual({
+      plan: [['b'], ['a']],
+      load: [5, 5],
+      moved: ['a'],
+      added: [],
+    });
+  });
+
+  it('chooses by weight, equal weights by name, not by the order of the shard', () => {
+    // mean 7, limit 7: 13 is 6 too much; of the entries that fit into the
+    // room of 3, none weighs 6, so the heaviest goes: b, after a by name;
+    // then 10 is 3 too much and a (3) brings it within, c (1) does not
+    const w = { a: 3, b: 3, c: 1, d: 6, e: 4, f: 4 };
+    const settled = settle(w, [['a', 'b', 'c', 'd'], ['e'], ['f']], 3, 1);
+    expect(settled.moved).toEqual(['b', 'a']);
+    expect(settled.plan).toEqual([
+      ['c', 'd'],
+      ['b', 'e'],
+      ['a', 'f'],
+    ]);
+  });
+
   it('leaves an entry that fits nowhere, and moves no entry without weight', () => {
     const w = { big: 50, z: 0, a: 1, b: 1 };
     const settled = settle(w, [['big', 'z'], ['a'], ['b']], 3);
@@ -130,6 +156,13 @@ describe('mutation shards: the stable plan', () => {
       'f',
       'g',
       'a',
+    ]);
+    // equal weights by name, whatever the order of the weights
+    expect(settle({ g: 2, f: 2, e: 3, d: 3 }, undefined, 2).added).toEqual([
+      'd',
+      'e',
+      'f',
+      'g',
     ]);
   });
 
@@ -298,7 +331,7 @@ describe('mutation shards: the weights after a run', () => {
         },
       },
     };
-    expect(slim(report)).toEqual({
+    expect(slim(report)).toStrictEqual({
       files: { 'a.ts': { mutants: [at(1, { duration: 12, static: true })] } },
     });
     expect(slim(undefined)).toEqual({ files: {} });
@@ -380,6 +413,40 @@ describe('mutation shards: the weights after a run', () => {
     ]);
   });
 
+  it('matches a moved mutant only with an old one of the same mutator and kind', () => {
+    const old: Report = {
+      files: {
+        'a.ts': {
+          mutants: [
+            at(1, { duration: 4 }, 'BooleanLiteral'),
+            at(2, { duration: 1 }),
+            at(3, { duration: 30, static: true }),
+            at(4, { duration: 2, static: false }),
+          ],
+        },
+      },
+    };
+    const run: Report = {
+      files: {
+        'a.ts': {
+          mutants: [
+            at(11),
+            at(12, {}, 'BooleanLiteral'),
+            at(13),
+            at(14, { static: true }),
+          ],
+        },
+      },
+    };
+    expect(reweigh(old, run).files['a.ts']!.mutants).toStrictEqual([
+      at(11, { duration: 1 }),
+      at(12, { duration: 4 }, 'BooleanLiteral'),
+      // static: false and no static are the same kind
+      at(13, { duration: 2 }),
+      at(14, { duration: 30, static: true }),
+    ]);
+  });
+
   it('keeps a time for each mutant the run took over (property)', () => {
     const mutant = fc.record({
       line: fc.integer({ min: 1, max: 30 }),
@@ -426,6 +493,7 @@ describe('mutation shards: the state between runs', () => {
       { plan: 'a.ts', weights: { files: {} } },
       { plan: [['a.ts', 3]], weights: { files: {} } },
       { plan: ['a.ts'], weights: { files: {} } },
+      { plan: [['a.ts'], 'b.ts'], weights: { files: {} } },
       { plan: [['a.ts']], weights: { files: null } },
       { plan: [['a.ts']], weights: {} },
     ])
