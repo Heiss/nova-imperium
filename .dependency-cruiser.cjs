@@ -3,7 +3,9 @@
 // both use them, never each other (okf/architecture/system.md). The entries
 // and missions live in src/features, one folder each; the core reaches them
 // only through the generated index src/features/index.gen.ts
-// (okf/architecture/patterns.md, sections 10 and 11; #112).
+// (okf/architecture/patterns.md, sections 10 and 11; #112). The arrivals of
+// the missions (*.server.ts) are listed in src/features/index.server.gen.ts,
+// which only the server imports (owner, 2026-11-14, #116).
 /** @type {import('dependency-cruiser').IConfiguration} */
 module.exports = {
   forbidden: [
@@ -59,9 +61,20 @@ module.exports = {
       name: 'server-parts-on-server',
       severity: 'error',
       comment:
-        'A *.server.ts part is imported only by the server, by other *.server.ts parts and by tests.',
-      from: { pathNot: '^src/server/|\\.server\\.ts$|\\.test\\.ts$' },
+        'A *.server.ts part is imported only by the server, by other *.server.ts parts, by the server index and by tests.',
+      from: {
+        pathNot:
+          '^src/server/|\\.server\\.ts$|\\.test\\.ts$|^src/features/index\\.server\\.gen\\.ts$',
+      },
       to: { path: '\\.server\\.ts$' },
+    },
+    {
+      name: 'server-index-on-server',
+      severity: 'error',
+      comment:
+        'The index of the server parts of the missions (MISSION_SERVERS) is imported only by src/server.',
+      from: { pathNot: '^src/server/' },
+      to: { path: '^src/features/index\\.server\\.gen\\.ts$' },
     },
     {
       name: 'client-not-server',

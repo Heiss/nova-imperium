@@ -12,7 +12,10 @@
 //
 // The display texts are not here: each entry has them in its own
 // src/features/<key>/texts.de.ts, read through `text(key)` of text.ts
-// (owner, 2026-11-13, #113). The mission names are in texts.ts (#131).
+// (owner, 2026-11-13, #113). The missions are not catalog entries: their
+// rules and names live in src/features/missions/<m>/ and `MISSION` in
+// missions.ts (owner, 2026-11-14, #116); it is re-exported here for the
+// existing imports of the tests.
 import { ENTRIES } from '../features/index.gen.ts';
 import type { Combat, Fighter } from './components/combat.ts';
 import type { Consumes } from './components/consumes.ts';
@@ -26,7 +29,6 @@ import {
 import type { Produces } from './components/produces.ts';
 import type { Storage } from './components/storage.ts';
 import type { Unit } from './components/unit.ts';
-import { MISSION_TEXT } from './texts.ts';
 import type { Cost, Requirements } from './types.ts';
 
 /**
@@ -171,13 +173,7 @@ export const DEF = table<DefenseDef, 'defense'>('defense', pieces);
 
 export const UNIT: Record<string, UnitDef> = { ...SHIPS, ...DEF };
 
-export const MISSION = {
-  attack: MISSION_TEXT.attack,
-  transport: MISSION_TEXT.transport,
-  spy: MISSION_TEXT.spy,
-  colonize: MISSION_TEXT.colonize,
-  deploy: MISSION_TEXT.deploy,
-} as const;
+export { MISSION } from './missions.ts';
 
 /** The entries with production components, in the production order (#114). */
 export const PRODUCTION = ALL.flatMap(([key, e]) =>

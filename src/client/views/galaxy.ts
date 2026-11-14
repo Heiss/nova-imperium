@@ -1,4 +1,4 @@
-import { MISSION } from '../../core/catalog.ts';
+import { MISSION } from '../../core/missions.ts';
 import { placeId } from '../../core/place.ts';
 import { esc, fmt } from '../logic/format.ts';
 import { isProtected, nameOf, ranks } from '../logic/game.ts';

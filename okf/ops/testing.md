@@ -195,6 +195,13 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   no text file is mutated. Game values stay mutated in
   `catalog.ts`, and since #114 in the `src/features/<key>/entry.ts` of
   each entry. See [Design patterns](/architecture/patterns.md).
+  Since #116 the mission names live in
+  `src/features/missions/<m>/texts.de.ts`, left out by the same glob, and
+  `src/core/texts.ts` is gone (owner, 2026-11-14); its line in
+  `stryker.config.json` stays, so the file stays out if it ever comes back.
+  `src/core/missions.test.ts` requires one name per mission and no text
+  file without a mission; the accessor `missionText(m)` in
+  `src/core/text.ts` is mutated.
 * **[E]** Contract tests per component (#114): each component under
   `src/core/components/` has its test next to it
   (`src/core/components/<component>.test.ts`), which runs for every entry
@@ -207,6 +214,19 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   fleet bit-identical to their form before the flight component (#114,
   third pull request). See
   [Design patterns](/architecture/patterns.md), section 12.
+* **[E]** Missions as strategies (#116, owner, 2026-11-14): contract tests
+  for the rules of every mission (`src/core/missions.test.ts`) and for its
+  server part (`src/server/game/missions.test.ts`) read the generated
+  indexes, so a new mission is checked without new test code; each mission
+  folder tests its own `canSend` and `onArrive` with a seeded random
+  generator and a fixed clock. The property test
+  `src/server/game/missions-reference.test.ts` keeps sending, the arrival
+  and the coming home bit-identical to the code before #116 (a frozen copy
+  of `arrival.ts` and of the sending part of `fleet-actions.ts`): on 400
+  generated worlds and fleets (fixed fast-check seed 116) it builds two
+  equal databases in memory, runs both versions, and compares the answer or
+  message, every table and the next random number; a third case checks
+  that the generated cases reach every message and every arrival.
 * **[E]** Mutation standard per file (owner, 2026-11-11,
   `mutation-standard.json`, `scripts/mutation-gate.ts`): no file may fall
   below its recorded floor; a new file needs 80 %, a new security file 90 %.
@@ -443,7 +463,10 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   (`src/client/main.ts`) and the process entry points (`main.ts`, `cli.ts`).
   The E2E suite and the Compose job run them.
 * **[E]** Not mutated: the display texts in `src/core/texts.ts` and
-  `src/features/<key>/texts.de.ts` (see the decision above); they count
+  `src/features/<key>/texts.de.ts`, since #116 also
+  `src/features/missions/<m>/texts.de.ts`, and the generated indexes
+  `src/features/index.gen.ts` and `src/features/index.server.gen.ts` (see
+  the decision above); the texts count
   for the coverage.
 
 # Level at the introduction (2026-11-06)
