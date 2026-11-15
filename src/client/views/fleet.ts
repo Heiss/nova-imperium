@@ -3,9 +3,27 @@ import { fleetSlots, shipSpeed } from '../../core/flight.ts';
 import { MISSION } from '../../core/missions.ts';
 import { moonAt } from '../logic/moon.ts';
 import { text } from '../../core/text.ts';
-import { fmt } from '../logic/format.ts';
-import { fleetTable } from './overview.ts';
-import { box, type V } from './common.ts';
+import { esc, fmt } from '../logic/format.ts';
+import { fleetRows, type FleetRow } from '../logic/overview.ts';
+import { box, cd, type V } from './common.ts';
+
+const fleetText = (row: FleetRow): string =>
+  row.parts.map((p) => (p.bold ? `<b>${esc(p.text)}</b>` : p.text)).join('');
+
+function fleetRow(v: V, row: FleetRow): string {
+  const button = row.recall
+    ? `<button class="small" data-act="recall" data-id="${esc(row.id)}">Rückruf</button>`
+    : '';
+  return `<tr><td class="n w110">${cd(row.due.end, v.now)}</td><td class="${row.cls}">${fleetText(row)}</td><td class="w80">${button}</td></tr>`;
+}
+
+/** The fleet movements of the player, as the overview shows them (#118). */
+function fleetTable(v: V): string {
+  const list = fleetRows(v, false);
+  return list.length
+    ? `<table>${list.map((row) => fleetRow(v, row)).join('')}</table>`
+    : '<span class="dim">Keine Flottenbewegungen.</span>';
+}
 
 function shipRows(v: V): string {
   const { P, R } = v;
@@ -54,7 +72,7 @@ export function fleet(v: V): string {
   const rows = shipRows(v);
   const head = box(
     `Flotten unterwegs (${used} / ${slots} Slots)`,
-    fleetTable(v, false),
+    fleetTable(v),
   );
   if (!rows)
     return `<h2>Flotte</h2>${head}<div class="notice">Auf diesem Planeten stehen keine Schiffe. Baue welche in der Schiffsschmiede.</div>`;
