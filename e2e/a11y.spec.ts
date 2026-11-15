@@ -269,7 +269,7 @@ test.describe('accessibility (axe)', () => {
     await expect(page.getByLabel('Gilden (mit Chat)')).toBeChecked();
     await expect(
       page.getByText(
-        'Ohne Gilden werden alle Gilden mit Mitgliedern, Bewerbungen, Rängen und Chat gelöscht.',
+        'Eine neue Runde leert alle Gilden-Chats. Ohne Gilden werden alle Gilden mit Mitgliedern, Bewerbungen, Rängen und Chat gelöscht.',
       ),
     ).toBeVisible();
     const found = (await violations(page)).map((v) => `dialog: ${v}`);
@@ -413,6 +413,17 @@ test.describe('accessibility (axe)', () => {
     await expect(other.getByText('Deine Bewerbung ist offen.')).toBeVisible();
     await page.reload();
     await page.getByRole('button', { name: 'Annehmen' }).click();
+    // An event of the server and the notice of the box (#169, 2026-11-15).
+    await expect(page.getByRole('log', { name: 'Chat' })).toContainText(
+      `${name} ist der Gilde beigetreten.`,
+    );
+    await expect(
+      page.getByText('Die Spielleitung kann diesen Chat lesen.'),
+    ).toBeVisible();
+    await check(page, 'an event');
+    // The red mark on „Gilden“ while the Leitung is elsewhere.
+    const guildPage = page.url();
+    await nav(page, 'overview');
     await other.reload();
     await other.getByLabel('Nachricht', { exact: true }).fill('<b>Hallo</b>');
     await other.getByRole('button', { name: 'Senden' }).click();
@@ -420,7 +431,13 @@ test.describe('accessibility (axe)', () => {
       '<b>Hallo</b>',
     );
     await check(other, 'member with a message');
-    await page.reload();
+    await expect(
+      page.locator(
+        '[data-v=guilds] .badge[aria-label="Neue Nachrichten im Gilden-Chat"]',
+      ),
+    ).not.toHaveCount(0, { timeout: 10000 });
+    await check(page, 'the red mark on „Gilden“');
+    await page.goto(guildPage);
     await expect(
       page.getByRole('log', { name: 'Chat' }).getByRole('button', {
         name: 'Löschen',

@@ -33,7 +33,11 @@ import {
   type FleetForm,
 } from './logic/game.ts';
 import { resourceIconURL, type ResourceKey } from './logic/icons.ts';
-import { finishedYardOrders, menuHints } from './logic/menu-hints.ts';
+import {
+  chatToSee,
+  finishedYardOrders,
+  menuHints,
+} from './logic/menu-hints.ts';
 import { gameIsBack, maintenanceNotice } from './logic/maintenance.ts';
 import {
   latestNews,
@@ -844,6 +848,7 @@ function render(fresh = false): void {
   if (ui.view === 'fleet') fleetCalc();
   if (ui.view === 'achievements') filterAchievements();
   if (ui.view === 'messages') markRead();
+  seeChat();
 }
 
 function filterAchievements(): void {
@@ -972,6 +977,18 @@ function markRead(): void {
       600,
     );
   }
+}
+
+let seePending = false;
+/** The member saw the chat of its guild: the mark on „Gilden“ goes (#169). */
+function seeChat(): void {
+  const id = chatToSee(client.game!, ui.view, ui.guild ?? null);
+  if (id === null || seePending) return;
+  seePending = true;
+  setTimeout(
+    () => void act('seeGuildChat', { id }).finally(() => (seePending = false)),
+    600,
+  );
 }
 
 // ----- fleet form -----

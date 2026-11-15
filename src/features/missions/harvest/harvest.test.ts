@@ -65,6 +65,7 @@ describe('harvest: the rules', () => {
       returns: true,
       visible: false,
       silent: false,
+      alertsGuild: false,
     });
   });
 

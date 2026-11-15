@@ -28,6 +28,7 @@ import type {
 } from '../db/repos/guilds.ts';
 import type { Action } from './actions.ts';
 import { fail, str, type Ctx } from './context.ts';
+import { rankEvent } from './guild-events.ts';
 
 const NO_RIGHT = 'Dazu fehlt deinem Rang das Recht.';
 const LOWER_ONLY = 'Das geht nur bei Rängen unter deinem.';
@@ -178,7 +179,13 @@ export const deleteGuildRank: Action = (ctx, user, d) => {
     fail(
       'Der Rang hat Mitglieder, und der Standardrang steht nicht unter deinem oder hat ein Recht, das dir fehlt.',
     );
+  const members = ctx.guilds
+    .players()
+    .filter((p) => p.guild_id === a.guild.id && p.rank_id === rank.id);
   ctx.guilds.deleteRank(rank.id, fallback);
+  // Each of its members has a new rank (#169 D4).
+  for (const p of members)
+    rankEvent(ctx, a.guild.id, p.id, moved.name, user.id);
   return 'Rang gelöscht.';
 };
 
@@ -209,6 +216,9 @@ export const assignGuildRank: Action = (ctx, user, d) => {
   const error = assignError(asRule(a), placeOf(a, target), rank);
   if (error) fail(error === 'lower' ? LOWER_ONLY : NO_RIGHT);
   ctx.guilds.setRank(target.user_id, rank.id);
+  // A new rank is an event of the chat (#169 D4); the same rank is none.
+  if (target.rank_id !== rank.id)
+    rankEvent(ctx, a.guild.id, target.user_id, rank.name, user.id);
   return 'Rang vergeben.';
 };
 

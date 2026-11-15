@@ -35,3 +35,63 @@ export function canDeleteChat(
     (own || isBelow(actor.position, author))
   );
 }
+
+/**
+ * The event messages, written by the server and never deleted (#169 D3,
+ * D4): a member joined, left or was removed, a member has a new rank, and
+ * the launch of an attack on a member (owner, 2026-11-14 and 2026-11-15).
+ */
+export const CHAT_EVENTS = [
+  'join',
+  'leave',
+  'remove',
+  'rank',
+  'attack',
+] as const;
+export type ChatEventKind = (typeof CHAT_EVENTS)[number];
+
+export const isChatEvent = (v: unknown): v is ChatEventKind =>
+  (CHAT_EVENTS as readonly unknown[]).includes(v);
+
+/** An event as the chat shows it. */
+export interface ChatEvent {
+  kind: ChatEventKind;
+  /** The member it is about; null once that account is deleted. */
+  name: string | null;
+  /** The new rank of „rank“, the target of „attack“; empty otherwise. */
+  text: string;
+  /** The attacker of „attack“; null or missing once that account is deleted. */
+  attacker?: string | null;
+}
+
+/** A deleted name in an event (owner, 2026-11-15), as in a message (D7). */
+const FORMER = 'ehemaliges Mitglied';
+/** A deleted attacker: not a member, so the name the fleet arrival uses. */
+const UNKNOWN = 'Unbekannt';
+
+/**
+ * The sentence of an event (owner, 2026-11-15): „Anna ist der Gilde
+ * beigetreten.“ and „⚔ Angriff auf [1:27:11] (Vex → Lea), Ankunft 20:15“;
+ * `arrival` is the time of the arrival as the browser shows it. Plain text:
+ * the view escapes it.
+ */
+export function chatEventText(e: ChatEvent, arrival = ''): string {
+  const name = e.name ?? FORMER;
+  if (e.kind === 'attack')
+    return `⚔ Angriff auf ${e.text} (${e.attacker ?? UNKNOWN} → ${name}), Ankunft ${arrival}`;
+  const who = name.charAt(0).toUpperCase() + name.slice(1);
+  if (e.kind === 'join') return `${who} ist der Gilde beigetreten.`;
+  if (e.kind === 'leave') return `${who} hat die Gilde verlassen.`;
+  if (e.kind === 'remove') return `${who} wurde aus der Gilde entfernt.`;
+  return `${who} ist jetzt ${e.text}.`;
+}
+
+/**
+ * Whether the chat has a message of another, or an event, newer than the
+ * member's last visit to the page of its guild (owner, 2026-11-15): the red
+ * mark on „Gilden“. `seen` is the id of the newest message of that visit.
+ */
+export const chatUnread = (
+  messages: readonly { id: number; own: boolean }[],
+  seen: number,
+): boolean => messages.some((m) => !m.own && m.id > seen);

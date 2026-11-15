@@ -2,10 +2,14 @@ import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import {
   canDeleteChat,
+  CHAT_EVENTS,
   CHAT_HISTORY,
   CHAT_INTERVAL,
+  chatEventText,
   chatLength,
   chatTextError,
+  chatUnread,
+  isChatEvent,
   MAX_CHAT_TEXT,
 } from './guild-chat.ts';
 import { GUILD_RIGHTS, type GuildRight } from './guild-ranks.ts';
@@ -94,6 +98,106 @@ describe('deleting a message (#169 D2, the order of #163)', () => {
         },
       ),
       { seed: 169, numRuns: 300 },
+    );
+  });
+});
+
+describe('event messages (#169 D3, D4; owner, 2026-11-15)', () => {
+  it('has the kinds of the owner: joining, leaving, removal, a rank, an attack', () => {
+    expect(CHAT_EVENTS).toEqual(['join', 'leave', 'remove', 'rank', 'attack']);
+    for (const kind of CHAT_EVENTS) expect(isChatEvent(kind)).toBe(true);
+    for (const kind of ['message', 'spy', '', null, undefined, 1])
+      expect(isChatEvent(kind)).toBe(false);
+  });
+
+  it('writes the short sentences of the owner', () => {
+    expect(chatEventText({ kind: 'join', name: 'Anna', text: '' })).toBe(
+      'Anna ist der Gilde beigetreten.',
+    );
+    expect(chatEventText({ kind: 'leave', name: 'Anna', text: '' })).toBe(
+      'Anna hat die Gilde verlassen.',
+    );
+    expect(chatEventText({ kind: 'remove', name: 'Anna', text: '' })).toBe(
+      'Anna wurde aus der Gilde entfernt.',
+    );
+    expect(
+      chatEventText({ kind: 'rank', name: 'Anna', text: 'Offizier' }),
+    ).toBe('Anna ist jetzt Offizier.');
+  });
+
+  it('writes the attack with the target, the attacker, the member and the arrival', () => {
+    expect(
+      chatEventText(
+        { kind: 'attack', name: 'Lea', text: '[1:27:11]', attacker: 'Vex' },
+        '20:15',
+      ),
+    ).toBe('⚔ Angriff auf [1:27:11] (Vex → Lea), Ankunft 20:15');
+  });
+
+  it('names a deleted account „ehemaliges Mitglied“, a deleted attacker „Unbekannt“', () => {
+    expect(chatEventText({ kind: 'join', name: null, text: '' })).toBe(
+      'Ehemaliges Mitglied ist der Gilde beigetreten.',
+    );
+    expect(chatEventText({ kind: 'leave', name: null, text: '' })).toBe(
+      'Ehemaliges Mitglied hat die Gilde verlassen.',
+    );
+    expect(chatEventText({ kind: 'rank', name: null, text: 'Rekrut' })).toBe(
+      'Ehemaliges Mitglied ist jetzt Rekrut.',
+    );
+    expect(
+      chatEventText(
+        { kind: 'attack', name: null, text: '[2:3:4]', attacker: null },
+        '16.11., 01:02',
+      ),
+    ).toBe(
+      '⚔ Angriff auf [2:3:4] (Unbekannt → ehemaliges Mitglied), Ankunft 16.11., 01:02',
+    );
+    expect(
+      chatEventText({ kind: 'attack', name: 'Lea', text: '[2:3:4]' }, '9:00'),
+    ).toBe('⚔ Angriff auf [2:3:4] (Unbekannt → Lea), Ankunft 9:00');
+  });
+});
+
+describe('the red mark on „Gilden“ (#169; owner, 2026-11-15)', () => {
+  it('shows messages of others newer than the last visit', () => {
+    expect(chatUnread([], 0)).toBe(false);
+    expect(chatUnread([{ id: 3, own: false }], 2)).toBe(true);
+    expect(chatUnread([{ id: 3, own: false }], 3)).toBe(false);
+    expect(chatUnread([{ id: 3, own: false }], 4)).toBe(false);
+    // The own messages are never new for the writer.
+    expect(chatUnread([{ id: 3, own: true }], 0)).toBe(false);
+    expect(
+      chatUnread(
+        [
+          { id: 1, own: false },
+          { id: 5, own: true },
+        ],
+        1,
+      ),
+    ).toBe(false);
+    expect(
+      chatUnread(
+        [
+          { id: 1, own: true },
+          { id: 5, own: false },
+        ],
+        4,
+      ),
+    ).toBe(true);
+  });
+
+  it('is the same as „some message of another is newer“ (property)', () => {
+    fc.assert(
+      fc.property(
+        fc.array(fc.record({ id: fc.nat(50), own: fc.boolean() })),
+        fc.nat(60),
+        (messages, seen) => {
+          expect(chatUnread(messages, seen)).toBe(
+            messages.filter((m) => !m.own).some((m) => m.id > seen),
+          );
+        },
+      ),
+      { seed: 169, numRuns: 200 },
     );
   });
 });

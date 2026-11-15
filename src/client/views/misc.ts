@@ -44,7 +44,11 @@ const passwordMinimum = (ui: Ui): string =>
 
 /** The push kinds (#192); only on a server that sends Web Push. */
 const pushKindsBox = (v: V): string => {
-  const kinds = pushKindsHTML(v.ui.webPush, shownPushOff(v.ui, v.s.me.pushOff));
+  const kinds = pushKindsHTML(
+    v.ui.webPush,
+    shownPushOff(v.ui, v.s.me.pushOff),
+    v.s.round.guilds,
+  );
   return kinds ? box('Benachrichtigungen', kinds) : '';
 };
 
@@ -118,7 +122,7 @@ export function roundDialog(round: RoundRules): string {
     <label><input type="checkbox" id="round-daily" ${round.daily ? 'checked' : ''}> Tagesbelohnungen aktivieren</label>
   </fieldset>
   <p><label><input type="checkbox" id="round-guilds" aria-describedby="round-guilds-note" ${round.guilds ? 'checked' : ''}> Gilden (mit Chat)</label><br>
-  <span id="round-guilds-note">Ohne Gilden werden alle Gilden mit Mitgliedern, Bewerbungen, Rängen und Chat gelöscht.</span></p>
+  <span id="round-guilds-note">Eine neue Runde leert alle Gilden-Chats. Ohne Gilden werden alle Gilden mit Mitgliedern, Bewerbungen, Rängen und Chat gelöscht.</span></p>
   <p><button class="red" data-act="doReset">Ja, neue Runde</button> <button data-act="closeModal">Abbrechen</button></p>`;
 }
 

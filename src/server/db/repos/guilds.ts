@@ -2,7 +2,7 @@
 // and chat (#169). The rules of the ranks are in
 // src/server/game/guild-ranks.ts, those of the chat in
 // src/server/game/guild-chat.ts.
-import { CHAT_HISTORY } from '../../../core/guild-chat.ts';
+import { CHAT_HISTORY, type ChatEventKind } from '../../../core/guild-chat.ts';
 import {
   GUILD_RIGHTS,
   MEMBER_RIGHTS,
@@ -26,6 +26,8 @@ export interface Membership {
   status: 'pending' | 'member';
   /** The rank of a member; an applicant has none. */
   rank_id: string | null;
+  /** The newest chat message of the last visit to the page of the guild (#169). */
+  chat_seen: number;
 }
 
 /** A player with their guild, for the directory. */
@@ -47,14 +49,35 @@ export interface Rank {
   rights: GuildRight[];
 }
 
-/** A message of the guild chat (#169). */
+/** A message or an event of the guild chat (#169). */
 export interface ChatMessage {
   id: number;
   guild_id: string;
-  /** The writer; null once its account is deleted (anonymous, owner D7). */
+  /** The writer of a message; null once its account is deleted (anonymous, owner D7), and for an event. */
   author: string | null;
   time: number;
+  /** A message, or the kind of an event (D3, D4). */
+  kind: 'message' | ChatEventKind;
+  /** The text of a message; the new rank of „rank“, the target of „attack“; empty otherwise. */
   text: string;
+  /** The member an event is about; null once its account is deleted. */
+  member: string | null;
+  /** The attacker of „attack“; null once its account is deleted. */
+  attacker: string | null;
+  /** The arrival of „attack“. */
+  arrival: number | null;
+  /** The current names of `member` and `attacker`, null without an account. */
+  member_name: string | null;
+  attacker_name: string | null;
+}
+
+/** An event to write into the chat of a guild (#169 D3, D4). */
+export interface ChatEventRow {
+  kind: ChatEventKind;
+  member: string;
+  text: string;
+  attacker?: string;
+  arrival?: number;
 }
 
 export interface Guilds {
@@ -109,12 +132,21 @@ export interface Guilds {
   chatMessage(id: number): ChatMessage | undefined;
   /** Adds a message and keeps only the newest CHAT_HISTORY of the guild. */
   addChat(id: string, author: string, time: number, text: string): number;
+  /** Adds an event, kept and counted like a message. */
+  addChatEvent(id: string, time: number, event: ChatEventRow): number;
+  /** Notes a visit of the member to the page of its guild: never back (#169). */
+  seeChat(uid: string, id: number): void;
   deleteChat(id: number): void;
   /** The time of the newest kept message of `uid`, in any guild. */
   lastChat(uid: string): number | undefined;
   /** Deletes the chats of every guild: each new round (owner, D6). */
   clearChats(): void;
 }
+
+/** The entries of the chat with the current names of the accounts they name. */
+const CHAT = `SELECT c.*, m.name AS member_name, a.name AS attacker_name
+  FROM guild_chat c LEFT JOIN users m ON m.id = c.member
+  LEFT JOIN users a ON a.id = c.attacker`;
 
 interface RankRow {
   id: string;
@@ -346,12 +378,12 @@ export class SqliteGuilds implements Guilds {
 
   chat(id: string): ChatMessage[] {
     return this.db
-      .prepare('SELECT * FROM guild_chat WHERE guild_id = ? ORDER BY id')
+      .prepare(`${CHAT} WHERE c.guild_id = ? ORDER BY c.id`)
       .all(id) as ChatMessage[];
   }
 
   chatMessage(id: number): ChatMessage | undefined {
-    return this.db.prepare('SELECT * FROM guild_chat WHERE id = ?').get(id) as
+    return this.db.prepare(`${CHAT} WHERE c.id = ?`).get(id) as
       ChatMessage | undefined;
   }
 
@@ -361,13 +393,44 @@ export class SqliteGuilds implements Guilds {
         'INSERT INTO guild_chat (guild_id, author, time, text) VALUES (?, ?, ?, ?)',
       )
       .run(id, author, time, text);
+    return this.keep(id, Number(added.lastInsertRowid));
+  }
+
+  addChatEvent(id: string, time: number, e: ChatEventRow): number {
+    const added = this.db
+      .prepare(
+        `INSERT INTO guild_chat (guild_id, time, kind, text, member, attacker, arrival)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      )
+      .run(
+        id,
+        time,
+        e.kind,
+        e.text,
+        e.member,
+        e.attacker ?? null,
+        e.arrival ?? null,
+      );
+    return this.keep(id, Number(added.lastInsertRowid));
+  }
+
+  /** Keeps the newest CHAT_HISTORY entries of the guild; returns `added`. */
+  private keep(id: string, added: number): number {
     this.db
       .prepare(
         `DELETE FROM guild_chat WHERE guild_id = ? AND id NOT IN (
            SELECT id FROM guild_chat WHERE guild_id = ? ORDER BY id DESC LIMIT ?)`,
       )
       .run(id, id, CHAT_HISTORY);
-    return Number(added.lastInsertRowid);
+    return added;
+  }
+
+  seeChat(uid: string, id: number): void {
+    this.db
+      .prepare(
+        'UPDATE guild_members SET chat_seen = max(chat_seen, ?) WHERE user_id = ?',
+      )
+      .run(id, uid);
   }
 
   deleteChat(id: number): void {

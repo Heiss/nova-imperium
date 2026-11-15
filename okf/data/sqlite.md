@@ -220,15 +220,24 @@ version 18). It was planned as 16 and follows migrations 16 (#45), 17
 Migration 20 (issue #169, see [Guild chat](/features/guild-chat.md))
 rebuilds `guild_rank_rights` for the three chat rights in the CHECK of
 `right_key` (`chat-read`, `chat-write`, `chat-delete`; nothing references
-the table, so the rebuild touches no other one), gives the default rank of
-every guild `chat-read` and `chat-write` (owner, D2; the other ranks keep
-their rights) and adds the table `guild_chat`: `id` (INTEGER PRIMARY KEY
-AUTOINCREMENT, so ids never come back), `guild_id` (`ON DELETE CASCADE`),
-`author` (`REFERENCES users(id) ON DELETE SET NULL`), `time` and `text`
-(CHECK 1 to 1,000 characters), with indexes on guild and author. Other
-data stay as they were (`upgrades/migration-20.test.ts`: hand-written
-data, the constraints, the cascade with the guild, anonymisation by
-account deletion, the new round, generated data of version 19).
+the table, so the rebuild touches no other one), gives every rank below
+the Leitung `chat-read` and `chat-write` (owner, 2026-11-15; no rank gets
+`chat-delete`, every other right stays) and adds the table `guild_chat`:
+`id` (INTEGER PRIMARY KEY AUTOINCREMENT, so ids never come back),
+`guild_id` (`ON DELETE CASCADE`), `author` (`REFERENCES users(id) ON
+DELETE SET NULL`), `time`, `kind` (`message` or one of the events `join`,
+`leave`, `remove`, `rank`, `attack`), `text` (CHECK 1 to 1,000
+characters; empty only for `join`, `leave` and `remove`), `member` and
+`attacker` (both `REFERENCES users(id) ON DELETE SET NULL`) and `arrival`
+(exactly for `attack`); an event has no author, a message no member or
+attacker; with indexes on guild, author, member and attacker. It adds
+`guild_members.chat_seen` (INTEGER, 0), the newest message of a member's
+last visit to the page of its guild (the red mark, owner, 2026-11-15).
+Migration 20 is not released yet (2026-11-15), so it was changed in place
+for these decisions. Other data stay as they were
+(`upgrades/migration-20.test.ts`: hand-written data, the constraints, the
+cascade with the guild, anonymisation by account deletion, the new round,
+the rules of #163 for existing ranks, generated data of version 19).
 
 Account deletion runs in one transaction. Foreign-key cascades clear owned game,
 session, reward and push data. The deletion also removes led guilds and their
@@ -239,8 +248,10 @@ turn back. Existing external backups are managed by the operator.
 **[E]** Guild chat messages are the exception (owner, 2026-11-14, #169 D7):
 deleting an account anonymises its messages instead of deleting them; the
 foreign key sets their author to null, and the chat shows them as
-„ehemaliges Mitglied“. The chat of a guild the account led goes with the
-guild. Every new round deletes all chats (D6).
+„ehemaliges Mitglied“. An event of the chat that names the account (as
+the member or the attacker) stays too; the foreign key sets that name to
+null. The chat of a guild the account led goes with the guild. Every new
+round deletes all chats (D6).
 
 ## Upgrade tests on generated data
 

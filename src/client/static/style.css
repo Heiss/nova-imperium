@@ -1241,3 +1241,7 @@ textarea:focus-visible {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+/* An event of the server (#169 D3, D4): set apart from the messages. */
+.chat-event {
+  font-style: italic;
+}

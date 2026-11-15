@@ -25,6 +25,8 @@ describe('guilds repository', () => {
       guild_id: 'g1',
       status: 'member',
       rank_id: 'r0_g1',
+      // Nothing of the chat seen yet (#169).
+      chat_seen: 0,
     });
     expect(ctx.guilds.membership('u_Bert')).toBeUndefined();
   });
@@ -323,7 +325,13 @@ describe('guild chat repository (#169)', () => {
       guild_id: 'g2',
       author: 'u_Bert',
       time: 11,
+      kind: 'message',
       text: 'Hi',
+      member: null,
+      attacker: null,
+      arrival: null,
+      member_name: null,
+      attacker_name: null,
     });
     expect(ctx.guilds.chatMessage(99)).toBeUndefined();
   });
@@ -376,5 +384,131 @@ describe('guild chat repository (#169)', () => {
       ['u_Bert', 2, 'Bert'],
       [null, 3, 'Cora'],
     ]);
+  });
+
+  it('adds events with the current names of the accounts they name (D3, D4)', () => {
+    const ctx = setup();
+    ctx.guilds.create('g2', 'XYZ', 'Zeta', '', 'u_Bert');
+    const join = ctx.guilds.addChatEvent('g1', 20, {
+      kind: 'join',
+      member: 'u_Cora',
+      text: '',
+    });
+    ctx.guilds.addChat('g1', 'u_Anna', 21, 'Hallo');
+    const attack = ctx.guilds.addChatEvent('g1', 22, {
+      kind: 'attack',
+      member: 'u_Anna',
+      text: '[1:2:3]',
+      attacker: 'u_Cora',
+      arrival: 99,
+    });
+    expect(ctx.guilds.chatMessage(join)).toEqual({
+      id: join,
+      guild_id: 'g1',
+      author: null,
+      time: 20,
+      kind: 'join',
+      text: '',
+      member: 'u_Cora',
+      attacker: null,
+      arrival: null,
+      member_name: 'Cora',
+      attacker_name: null,
+    });
+    expect(ctx.guilds.chatMessage(attack)).toMatchObject({
+      kind: 'attack',
+      text: '[1:2:3]',
+      member: 'u_Anna',
+      attacker: 'u_Cora',
+      arrival: 99,
+      member_name: 'Anna',
+      attacker_name: 'Cora',
+    });
+    expect(chat(ctx)).toEqual([
+      [null, 20, ''],
+      ['u_Anna', 21, 'Hallo'],
+      [null, 22, '[1:2:3]'],
+    ]);
+    // A renamed player shows the new name; a deleted one none.
+    ctx.db.prepare("UPDATE users SET name = 'Cori' WHERE id = 'u_Cora'").run();
+    expect(ctx.guilds.chatMessage(join)!.member_name).toBe('Cori');
+    expect(ctx.guilds.chatMessage(attack)!.attacker_name).toBe('Cori');
+    ctx.db.prepare("DELETE FROM users WHERE id = 'u_Cora'").run();
+    expect(ctx.guilds.chatMessage(join)).toMatchObject({
+      member: null,
+      member_name: null,
+    });
+    expect(ctx.guilds.chatMessage(attack)).toMatchObject({
+      member: 'u_Anna',
+      member_name: 'Anna',
+      attacker: null,
+      attacker_name: null,
+    });
+    // Events count toward the 500 of the guild and are not a writer's own.
+    expect(ctx.guilds.lastChat('u_Anna')).toBe(21);
+    for (let i = 0; i < 500; i++)
+      ctx.guilds.addChatEvent('g1', 30 + i, {
+        kind: 'rank',
+        member: 'u_Anna',
+        text: 'Offizier',
+      });
+    expect(ctx.guilds.chat('g1')).toHaveLength(500);
+    expect(ctx.guilds.chat('g1').every((m) => m.kind === 'rank')).toBe(true);
+  });
+
+  it('refuses entries the CHECKs of migration 20 do not allow', () => {
+    const ctx = setup();
+    const insert = (cols: string, values: unknown[]) =>
+      ctx.db
+        .prepare(
+          `INSERT INTO guild_chat (guild_id, time, ${cols}) VALUES ('g1', 1, ${values.map(() => '?').join(', ')})`,
+        )
+        .run(...values);
+    // A message needs 1 to 1,000 characters and names no member.
+    expect(() => insert('author, text', ['u_Anna', ''])).toThrow(/CHECK/);
+    expect(() => insert('author, text', ['u_Anna', 'x'.repeat(1001)])).toThrow(
+      /CHECK/,
+    );
+    expect(() =>
+      insert('author, text, member', ['u_Anna', 'Hi', 'u_Bert']),
+    ).toThrow(/CHECK/);
+    // An event has no author; a rank change and an attack have a text.
+    expect(() =>
+      insert('kind, author, member, text', ['join', 'u_Anna', 'u_Bert', '']),
+    ).toThrow(/CHECK/);
+    expect(() => insert('kind, member, text', ['rank', 'u_Bert', ''])).toThrow(
+      /CHECK/,
+    );
+    expect(() => insert('kind, member, text', ['spy', 'u_Bert', 'x'])).toThrow(
+      /CHECK/,
+    );
+    // Only an attack has an arrival, and an attack always has one.
+    expect(() =>
+      insert('kind, member, text', ['attack', 'u_Bert', '[1:2:3]']),
+    ).toThrow(/CHECK/);
+    expect(() =>
+      insert('kind, member, text, arrival', ['leave', 'u_Bert', '', 5]),
+    ).toThrow(/CHECK/);
+    insert('kind, member, text', ['leave', 'u_Bert', '']);
+    insert('kind, member, text, arrival', ['attack', 'u_Bert', '[1:2:3]', 5]);
+    expect(ctx.guilds.chat('g1')).toHaveLength(2);
+  });
+
+  it('notes the newest message a member saw, never going back (the red mark)', () => {
+    const ctx = setup();
+    ctx.guilds.apply('u_Bert', 'g1');
+    ctx.guilds.accept('u_Bert');
+    ctx.guilds.seeChat('u_Bert', 7);
+    expect(ctx.guilds.membership('u_Bert')!.chat_seen).toBe(7);
+    ctx.guilds.seeChat('u_Bert', 3);
+    expect(ctx.guilds.membership('u_Bert')!.chat_seen).toBe(7);
+    ctx.guilds.seeChat('u_Bert', 9);
+    expect(ctx.guilds.membership('u_Bert')!.chat_seen).toBe(9);
+    // Only the own row.
+    expect(ctx.guilds.membership('u_Anna')!.chat_seen).toBe(0);
+    // A new membership starts from nothing seen.
+    ctx.guilds.removeMember('u_Bert');
+    ctx.guilds.apply('u_Bert', 'g1');
+    expect(ctx.guilds.membership('u_Bert')!.chat_seen).toBe(0);
   });
 });

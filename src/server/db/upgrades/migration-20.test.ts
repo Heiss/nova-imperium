@@ -9,15 +9,18 @@ import {
 import { hashPassword } from '../../auth.ts';
 import { deleteAccount } from '../../delete-account.ts';
 import { runAction } from '../../game/dispatch.ts';
+import { GUILD_RIGHTS } from '../../../core/guild-ranks.ts';
 import { testCtx } from '../../test-helpers.ts';
 import { migrate } from '../database.ts';
 import { MIGRATIONS } from '../schema.ts';
 
 // Migration 20 (#169): the guild chat. The CHECK of guild_rank_rights
-// takes the three chat rights, the default rank of every guild gets „Chat
-// lesen“ and „Chat schreiben“ (owner, D2), and the table guild_chat holds
-// the messages: deleted with their guild, anonymous once the account of
-// their author is deleted (owner, D7), deleted at every new round (D6).
+// takes the three chat rights, every existing rank below the Leitung gets
+// „Chat lesen“ and „Chat schreiben“ and only the Leitung deletes (owner,
+// 2026-11-15), and the table guild_chat holds the messages and events:
+// deleted with their guild, anonymous once the account of their author is
+// deleted (owner, D7), deleted at every new round (D6). Every member gets
+// `chat_seen` 0, for the red mark on „Gilden“ (owner, 2026-11-15).
 type Rows = Record<string, unknown>[];
 
 const sorted = (rows: Rows): string[] =>
@@ -69,26 +72,43 @@ const rights = (db: ReturnType<typeof databaseAt>) =>
     )
     .all();
 
+/** The rows of guild_members without the new column, which must be 0. */
+const membersBefore = (rows: Rows): Rows =>
+  rows.map((r) => {
+    expect(r.chat_seen).toBe(0);
+    const rest = { ...r };
+    delete rest.chat_seen;
+    return rest;
+  });
+
 describe('upgrade to migration 20', () => {
-  it('gives the default rank of every guild the chat rights and keeps every other right and row', () => {
+  it('gives every rank below the Leitung reading and writing and keeps every other right and row', () => {
     const db = oldDatabase();
     const kept = Object.fromEntries(
-      ['users', 'guilds', 'guild_members', 'guild_ranks'].map((t) => [
-        t,
-        all(db, t),
-      ]),
+      ['users', 'guilds', 'guild_ranks'].map((t) => [t, all(db, t)]),
     );
+    const members = all(db, 'guild_members');
     const before = all(db, 'guild_rank_rights');
 
     expect(migrate(db, MIGRATIONS.slice(0, 20))).toBe(1);
 
     for (const [t, rows] of Object.entries(kept))
       expect(sorted(all(db, t)), t).toEqual(sorted(rows));
+    expect(sorted(membersBefore(all(db, 'guild_members')))).toEqual(
+      sorted(members),
+    );
+    // Every rank below the Leitung, the default rank or not; the Leitung
+    // rows stay empty, as it holds every right anyway; nobody gets
+    // „Chatnachrichten löschen“.
     expect(rights(db)).toEqual([
       { rank_id: 'r1_g1', right_key: 'chat-read' },
       { rank_id: 'r1_g1', right_key: 'chat-write' },
+      { rank_id: 'r1_g2', right_key: 'chat-read' },
+      { rank_id: 'r1_g2', right_key: 'chat-write' },
       { rank_id: 'r1_g2', right_key: 'profile' },
       { rank_id: 'ro', right_key: 'applications' },
+      { rank_id: 'ro', right_key: 'chat-read' },
+      { rank_id: 'ro', right_key: 'chat-write' },
       { rank_id: 'ro', right_key: 'remove' },
       { rank_id: 'rr', right_key: 'chat-read' },
       { rank_id: 'rr', right_key: 'chat-write' },
@@ -101,21 +121,30 @@ describe('upgrade to migration 20', () => {
     expect(db.pragma('foreign_key_check')).toEqual([]);
     expect(db.pragma('integrity_check', { simple: true })).toBe('ok');
 
-    // Read through the game as it runs: the default rank reads and writes,
-    // the Offizier keeps its rights and has no chat right, the Leitung all.
+    // Read through the game as it runs: every rank reads and writes, the
+    // Offizier keeps its rights, and only the Leitung deletes.
     const ctx = testCtx(1_000_000, 42, db);
     expect(
       runAction(ctx, 'u_Cora', { type: 'sendGuildChat', text: 'Hi' }),
     ).toBe(null);
-    expect(() =>
-      runAction(ctx, 'u_Bert', { type: 'sendGuildChat', text: 'Hi' }),
-    ).toThrow('Dazu fehlt deinem Rang das Recht.');
+    expect(
+      runAction(ctx, 'u_Bert', { type: 'sendGuildChat', text: 'Ho' }),
+    ).toBe(null);
     expect(
       runAction(ctx, 'u_Emil', { type: 'sendGuildChat', text: 'Yo' }),
     ).toBe(null);
     expect(ctx.guilds.chat('g1').map((m) => [m.author, m.text])).toEqual([
       ['u_Cora', 'Hi'],
+      ['u_Bert', 'Ho'],
     ]);
+    const [hi, ho] = ctx.guilds.chat('g1').map((m) => m.id);
+    for (const who of ['u_Bert', 'u_Cora'])
+      expect(() =>
+        runAction(ctx, who, { type: 'deleteGuildChat', id: hi }),
+      ).toThrow('Dazu fehlt deinem Rang das Recht.');
+    expect(runAction(ctx, 'u_Anna', { type: 'deleteGuildChat', id: ho })).toBe(
+      'Nachricht gelöscht.',
+    );
     expect(ctx.guilds.chat('g2').map((m) => [m.author, m.text])).toEqual([
       ['u_Emil', 'Yo'],
     ]);
@@ -125,9 +154,17 @@ describe('upgrade to migration 20', () => {
   it('allows the eight rights only and limits a message to 1 to 1,000 characters', () => {
     const db = oldDatabase();
     migrate(db, MIGRATIONS.slice(0, 20));
+    // „Chat lesen“ and „Chat schreiben“ came with the migration.
     db.exec(`INSERT INTO guild_rank_rights VALUES
-      ('ro', 'chat-read'), ('ro', 'chat-write'), ('ro', 'chat-delete'),
-      ('ro', 'assign'), ('ro', 'profile'), ('ro', 'ranks')`);
+      ('ro', 'chat-delete'), ('ro', 'assign'), ('ro', 'profile'),
+      ('ro', 'ranks')`);
+    expect(
+      db
+        .prepare("SELECT right_key FROM guild_rank_rights WHERE rank_id = 'ro'")
+        .pluck()
+        .all()
+        .sort(),
+    ).toEqual([...GUILD_RIGHTS].sort());
     for (const key of ['chat', 'dissolve', 'Chat-read', 'report'])
       expect(() =>
         db
@@ -155,6 +192,56 @@ describe('upgrade to migration 20', () => {
     );
     add.run('g1', null, 3, 'anonym');
     expect(all(db, 'guild_chat')).toHaveLength(3);
+    db.close();
+  });
+
+  it('keeps the rules of #163 for existing ranks: an Offizier with the right to assign still gives the default rank', () => {
+    const db = oldDatabase();
+    db.exec(
+      "INSERT INTO guild_rank_rights VALUES ('ro', 'assign'), ('ro', 'ranks')",
+    );
+    migrate(db, MIGRATIONS.slice(0, 20));
+    const ctx = testCtx(1_000_000, 42, db);
+    const run = (who: string, d: Record<string, unknown>) =>
+      runAction(ctx, who, d);
+    // Bert (Offizier) holds the chat rights of Mitglied now, so Mitglied is
+    // a rank he may give: back from a rank of his own to the default rank.
+    run('u_Anna', { type: 'createGuildRank', name: 'Gast' });
+    const guest = ctx.guilds.ranks('g1').find((r) => r.name === 'Gast')!.id;
+    expect(
+      run('u_Bert', { type: 'assignGuildRank', uid: 'u_Cora', rank: guest }),
+    ).toBe('Rang vergeben.');
+    expect(
+      run('u_Bert', { type: 'assignGuildRank', uid: 'u_Cora', rank: 'r1_g1' }),
+    ).toBe('Rang vergeben.');
+    // He deletes a rank with members: they move to the default rank.
+    run('u_Bert', { type: 'assignGuildRank', uid: 'u_Cora', rank: guest });
+    expect(run('u_Bert', { type: 'deleteGuildRank', rank: guest })).toBe(
+      'Rang gelöscht.',
+    );
+    expect(ctx.guilds.membership('u_Cora')!.rank_id).toBe('r1_g1');
+    // What is left: a rank made later starts without rights, so a holder
+    // with „Ränge an Mitglieder vergeben“ lacks the chat rights of Mitglied.
+    run('u_Anna', { type: 'createGuildRank', name: 'Neu' });
+    const fresh = ctx.guilds.ranks('g1').find((r) => r.name === 'Neu')!;
+    while (ctx.guilds.rank(fresh.id)!.position > 1)
+      run('u_Anna', { type: 'moveGuildRank', rank: fresh.id, up: true });
+    run('u_Anna', {
+      type: 'setGuildRankRights',
+      rank: fresh.id,
+      rights: ['assign'],
+    });
+    run('u_Anna', { type: 'assignGuildRank', uid: 'u_Bert', rank: fresh.id });
+    run('u_Anna', { type: 'assignGuildRank', uid: 'u_Cora', rank: 'ro' });
+    expect(ctx.guilds.ranks('g1').map((r) => r.name)).toEqual([
+      'Leitung',
+      'Neu',
+      'Offizier',
+      'Mitglied',
+    ]);
+    expect(() =>
+      run('u_Bert', { type: 'assignGuildRank', uid: 'u_Cora', rank: 'r1_g1' }),
+    ).toThrow('Dazu fehlt deinem Rang das Recht.');
     db.close();
   });
 
@@ -215,7 +302,7 @@ describe('upgrade to migration 20', () => {
     db.close();
   });
 
-  it('keeps all data of any valid database of version 19 and adds only the chat rights of the default ranks', () => {
+  it('keeps all data of any valid database of version 19 and adds only the chat rights of the ranks below the Leitung', () => {
     fc.assert(
       fc.property(plansBefore(20), (plan) => {
         const { before, after, foreignKeys, integrity } = upgrade(20, plan);
@@ -224,19 +311,23 @@ describe('upgrade to migration 20', () => {
         const rows = (s: ReturnType<typeof snapshot>, t: string): Rows =>
           JSON.parse(s.data.get(t)!) as Rows;
         for (const t of before.data.keys())
-          if (t !== 'guild_rank_rights')
+          if (t !== 'guild_rank_rights' && t !== 'guild_members')
             expect(sorted(rows(after, t)), t).toEqual(sorted(rows(before, t)));
-        const defaults = new Set(
-          rows(before, 'guilds')
-            .map((g) => g.default_rank)
-            .filter((r) => r !== null),
+        expect(sorted(membersBefore(rows(after, 'guild_members')))).toEqual(
+          sorted(rows(before, 'guild_members')),
         );
-        const added = [...defaults].flatMap((rank) =>
-          ['chat-read', 'chat-write'].map((key) => ({
-            rank_id: rank,
-            right_key: key,
-          })),
-        );
+        const below = rows(before, 'guild_ranks')
+          .filter((r) => (r.position as number) > 0)
+          .map((r) => r.id);
+        const had = new Set(sorted(rows(before, 'guild_rank_rights')));
+        const added = below
+          .flatMap((rank) =>
+            ['chat-read', 'chat-write'].map((key) => ({
+              rank_id: rank,
+              right_key: key,
+            })),
+          )
+          .filter((r) => !had.has(JSON.stringify(r)));
         expect(sorted(rows(after, 'guild_rank_rights'))).toEqual(
           sorted([...rows(before, 'guild_rank_rights'), ...added]),
         );

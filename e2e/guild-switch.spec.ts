@@ -1,7 +1,9 @@
 // Guilds (with chat) on or off per round (#191): the admin starts a round
 // with guilds off in the dialog „Neue Runde“; the guilds are gone, nobody
 // sees „Gilden“, and the server refuses every guild action. The next round
-// with guilds on brings them back without the old guild. Desktop and phone.
+// with guilds on brings them back without the old guild. The push kinds of
+// the guild chat are hidden in the options while guilds are off (#169,
+// owner, 2026-11-15). Desktop and phone.
 // On the mail server (#68): its own universe, so the new rounds reset no
 // planet of the other tests; flows.spec.ts, the other user of new rounds
 // there, runs before this file.
@@ -20,6 +22,7 @@ import {
   registerByMail,
   uniqueName,
   watch,
+  withWebPush,
 } from './helpers.ts';
 import { E2E_MAIL_URL } from './env.ts';
 
@@ -27,7 +30,9 @@ const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
 const OFF = 'Gilden sind in dieser Runde abgeschaltet.';
 const BOX = 'Gilden (mit Chat)';
 const WARNING =
-  'Ohne Gilden werden alle Gilden mit Mitgliedern, Bewerbungen, Rängen und Chat gelöscht.';
+  'Eine neue Runde leert alle Gilden-Chats. Ohne Gilden werden alle Gilden mit Mitgliedern, Bewerbungen, Rängen und Chat gelöscht.';
+/** The push kinds of the guild chat (#192, #169). */
+const GUILD_PUSH = ['Gildenereignisse', 'Nachrichten im Gilden-Chat'];
 
 const lastToast = (page: Page): Locator => page.locator('.toast').last();
 /** The menu entry „Gilden“: the side menu on a desktop, „Mehr“ on a phone. */
@@ -96,6 +101,11 @@ async function accountDeletion(
     ),
   ).toBeVisible();
   await expect(page.getByText(LED.box)).toHaveCount(count);
+  // The push kinds of the guild chat only in a round with guilds; the
+  // other kinds stay (owner, 2026-11-15).
+  await expect(page.getByLabel('Neue Version')).toBeVisible();
+  for (const kind of GUILD_PUSH)
+    await expect(page.getByLabel(kind, { exact: true })).toHaveCount(count);
   if (!guilds)
     found.push(...(await violations(page, 'options without guilds')));
   await page
@@ -139,6 +149,8 @@ async function switchFlow(page: Page, browser: Browser): Promise<void> {
   // A context of its own: axe runs only on a page of browser.newContext().
   const memberContext = await browser.newContext();
   const pm = await memberContext.newPage();
+  // The options show the push kinds only on a server with Web Push.
+  await withWebPush(pm);
   problems.push(watch(pm));
   await registerByMail(pm, member);
   await loginByCode(pm, member);

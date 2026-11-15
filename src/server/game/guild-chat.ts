@@ -6,18 +6,20 @@
 // by the view; the last 500 messages of a guild are kept and every new round
 // deletes them; a member who left and a deleted account show as „ehemaliges
 // Mitglied“; the chat follows the guild switch of #191 (dispatch.ts and
-// state.ts); admins read every chat, each read in the audit log.
+// state.ts); admins read every chat, each read in the audit log. The server
+// writes the event messages (guild-events.ts); nobody deletes them.
 import {
   canDeleteChat,
   CHAT_INTERVAL,
   chatTextError,
+  chatUnread,
   MAX_CHAT_TEXT,
 } from '../../core/guild-chat.ts';
-import { memberPlace, type GuildRight } from '../../core/guild-ranks.ts';
-import type { ChatMessage, Guild, GuildPlayer } from '../db/repos/guilds.ts';
-import { queuePush } from '../push-store.ts';
+import { memberPlace } from '../../core/guild-ranks.ts';
+import type { ChatMessage, GuildPlayer } from '../db/repos/guilds.ts';
 import type { Action } from './actions.ts';
 import { clean, fail, int, type Ctx } from './context.ts';
+import { membersOf, notify } from './guild-events.ts';
 import { actor, asRule, need, type Actor } from './guild-ranks.ts';
 import { requireGuilds } from './round.ts';
 
@@ -37,36 +39,6 @@ function chatText(value: unknown): string {
   return text;
 }
 
-/** The members of a guild, by id; an anonymous author (null) is none of them. */
-function membersOf(
-  guild: Guild,
-  players: GuildPlayer[],
-): Map<string | null, GuildPlayer> {
-  return new Map(
-    players
-      .filter((p) => p.guild_id === guild.id && p.status === 'member')
-      .map((p) => [p.id, p]),
-  );
-}
-
-/** Whether the member holds a right: the Leitung holds every one. */
-function holds(a: Actor, p: GuildPlayer, right: GuildRight): boolean {
-  if (p.id === a.guild.founder) return true;
-  return !!a.ranks.find((r) => r.id === p.rank_id)?.rights.includes(right);
-}
-
-/** Every member who reads the chat, but the writer, gets a push of the kind „guild-chat“ (#192, D5). */
-function notify(ctx: Ctx, a: Actor, id: number): void {
-  for (const p of membersOf(a.guild, ctx.guilds.players()).values())
-    if (p.id !== a.uid && holds(a, p, 'chat-read'))
-      queuePush(ctx, p.id, {
-        kind: 'guilds',
-        topic: 'guild-chat',
-        key: `chat${id}`,
-        due: ctx.now(),
-      });
-}
-
 export const sendGuildChat: Action = (ctx, user, d) => {
   const a = actor(ctx, user.id);
   need(a, 'chat-write');
@@ -75,11 +47,8 @@ export const sendGuildChat: Action = (ctx, user, d) => {
   const last = ctx.guilds.lastChat(user.id) ?? -Infinity;
   if (now - last < CHAT_INTERVAL)
     fail('Bitte warte kurz vor der nächsten Nachricht.');
-  notify(
-    ctx,
-    a,
-    ctx.guilds.addChat(a.guild.id, user.id, Math.floor(now), text),
-  );
+  const id = ctx.guilds.addChat(a.guild.id, user.id, Math.floor(now), text);
+  notify(ctx, a.guild, 'guild-chat', id, [user.id]);
   return null;
 };
 
@@ -102,6 +71,7 @@ const deletable = (
   members: Map<string | null, GuildPlayer>,
   m: ChatMessage,
 ): boolean =>
+  m.kind === 'message' &&
   canDeleteChat(
     asRule(a),
     m.author === a.uid,
@@ -114,6 +84,7 @@ export const deleteGuildChat: Action = (ctx, user, d) => {
   const message = ctx.guilds.chatMessage(int(d.id, 0, Number.MAX_SAFE_INTEGER));
   if (message?.guild_id !== a.guild.id)
     return fail('Diese Nachricht gibt es nicht.');
+  if (message.kind !== 'message') fail('Ereignisse lassen sich nicht löschen.');
   if (!deletable(a, membersOf(a.guild, ctx.guilds.players()), message))
     fail('Das geht nur bei Rängen unter deinem.');
   ctx.guilds.deleteChat(message.id);
@@ -127,28 +98,65 @@ const nameOf = (
 ) => members.get(author)?.name ?? null;
 
 /**
+ * An entry as the chat shows it: a message with the name of its author
+ * while a member; an event with the current names of the accounts it
+ * names, none once deleted (owner, 2026-11-15), and an attack with its
+ * arrival.
+ */
+function entry(members: Map<string | null, GuildPlayer>, m: ChatMessage) {
+  const shown = { id: m.id, time: m.time, kind: m.kind, text: m.text };
+  if (m.kind === 'message')
+    return { ...shown, name: nameOf(members, m.author) };
+  if (m.kind !== 'attack') return { ...shown, name: m.member_name };
+  return {
+    ...shown,
+    name: m.member_name,
+    attacker: m.attacker_name,
+    arrival: m.arrival,
+  };
+}
+
+/**
  * The chat for a member of the guild: the messages only with „Chat lesen“,
- * and with each whether the member may delete it. None without a chat right.
+ * with each whether the member may delete it, and whether any is new since
+ * its last visit (the red mark). None without a chat right.
  */
 export function chatState(ctx: Ctx, a: Actor, players: GuildPlayer[]) {
   const read = a.rights.has('chat-read');
   const write = a.rights.has('chat-write');
   if (!read && !write) return null;
   const members = membersOf(a.guild, players);
+  const chat = read ? ctx.guilds.chat(a.guild.id) : [];
+  const seen = ctx.guilds.membership(a.uid)!.chat_seen;
   return {
     read,
     write,
-    messages: read
-      ? ctx.guilds.chat(a.guild.id).map((m) => ({
-          id: m.id,
-          time: m.time,
-          name: nameOf(members, m.author),
-          text: m.text,
-          delete: deletable(a, members, m),
-        }))
-      : [],
+    messages: chat.map((m) => ({
+      ...entry(members, m),
+      delete: deletable(a, members, m),
+    })),
+    unread: chatUnread(
+      chat.map((m) => ({ id: m.id, own: m.author === a.uid })),
+      seen,
+    ),
   };
 }
+
+/**
+ * The member has the page of its guild open and saw the chat up to the
+ * message `id` (the red mark, owner, 2026-11-15); never past the newest
+ * message of its guild, never back.
+ */
+export const seeGuildChat: Action = (ctx, user, d) => {
+  const a = actor(ctx, user.id);
+  need(a, 'chat-read');
+  const newest = ctx.guilds.chat(a.guild.id).at(-1)?.id ?? 0;
+  ctx.guilds.seeChat(
+    user.id,
+    Math.min(int(d.id, 0, Number.MAX_SAFE_INTEGER), newest),
+  );
+  return null;
+};
 
 /**
  * The chat of any guild for the admin (owner, 2026-11-14, D8); the route
@@ -160,11 +168,6 @@ export function adminGuildChat(ctx: Ctx, id: string) {
   const members = membersOf(guild, ctx.guilds.players());
   return {
     guild: { id: guild.id, tag: guild.tag, name: guild.name },
-    messages: ctx.guilds.chat(guild.id).map((m) => ({
-      id: m.id,
-      time: m.time,
-      name: nameOf(members, m.author),
-      text: m.text,
-    })),
+    messages: ctx.guilds.chat(guild.id).map((m) => entry(members, m)),
   };
 }

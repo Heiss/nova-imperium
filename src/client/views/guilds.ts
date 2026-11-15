@@ -1,4 +1,4 @@
-import { MAX_CHAT_TEXT } from '../../core/guild-chat.ts';
+import { chatEventText, MAX_CHAT_TEXT } from '../../core/guild-chat.ts';
 import {
   assignError,
   deleteError,
@@ -10,7 +10,7 @@ import {
   MIN_RANK_NAME,
   type GuildRight,
 } from '../../core/guild-ranks.ts';
-import { dt, esc, fmt } from '../logic/format.ts';
+import { arrivalAt, dt, esc, fmt } from '../logic/format.ts';
 import type {
   Guild,
   GuildChat,
@@ -40,13 +40,24 @@ const RIGHT_TEXT: Record<GuildRight, string> = {
 /** The author of a message who left the guild or deleted the account (owner, D7). */
 const FORMER = 'ehemaliges Mitglied';
 
-/** A message: the author, the time and the text, all escaped (#169). */
-function chatLine(m: Pick<GuildChatMessage, 'name' | 'time' | 'text'>): string {
-  const who = m.name === null ? `<i>${FORMER}</i>` : `<b>${esc(m.name)}</b>`;
-  return `${who} <span class="dim">${dt(m.time)}</span><br><span class="chat-text">${esc(m.text)}</span>`;
-}
+type ChatLine = Pick<
+  GuildChatMessage,
+  'id' | 'kind' | 'name' | 'time' | 'text' | 'attacker' | 'arrival'
+>;
 
-type ChatLine = Pick<GuildChatMessage, 'id' | 'name' | 'time' | 'text'>;
+/**
+ * A message: the author, the time and the text; an event: the time and its
+ * sentence (D3, D4; owner, 2026-11-15). All escaped (#169).
+ */
+function chatLine(m: ChatLine): string {
+  const time = `<span class="dim">${dt(m.time)}</span>`;
+  if (m.kind !== 'message') {
+    const arrival = m.arrival === undefined ? '' : arrivalAt(m.arrival, m.time);
+    return `${time}<br><span class="chat-text chat-event">${esc(chatEventText({ ...m, kind: m.kind }, arrival))}</span>`;
+  }
+  const who = m.name === null ? `<i>${FORMER}</i>` : `<b>${esc(m.name)}</b>`;
+  return `${who} ${time}<br><span class="chat-text">${esc(m.text)}</span>`;
+}
 
 /** The messages, oldest first, in a log that keeps its place (#169). */
 function chatLog<M extends ChatLine>(
@@ -76,7 +87,9 @@ function chatBox(chat: GuildChat): string {
   const form = chat.write
     ? `<form id="guildchatform" class="flex"><label for="chat_text">Nachricht</label> <input id="chat_text" class="wide" maxlength="${MAX_CHAT_TEXT}" required autocomplete="off"> <button type="submit">Senden</button></form>`
     : '';
-  return box('Chat', log + form);
+  // The admin reads every chat (D8); the owner's notice (2026-11-15).
+  const notice = '<p class="dim">Die Spielleitung kann diesen Chat lesen.</p>';
+  return box('Chat', notice + log + form);
 }
 
 /** The chat of a guild as the admin reads it (#169, D8), in the dialog. */

@@ -59,6 +59,7 @@ describe('attack', () => {
       returns: true,
       visible: true,
       silent: false,
+      alertsGuild: true,
     });
   });
 

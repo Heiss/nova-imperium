@@ -31,6 +31,7 @@ import type { AuditEntry } from '../audit.ts';
 import type { User } from '../db/repos/players.ts';
 import { type Action, type Data, mine, researchOf } from './actions.ts';
 import { type Ctx, coords, fail, int, universe } from './context.ts';
+import { attackEvent } from './guild-events.ts';
 import { isProtected, pointsMap } from './points.ts';
 
 const pickShips = (p: Planet, wanted: unknown): Levels => {
@@ -193,6 +194,9 @@ export const send: Action = (ctx, u, d, event) => {
     fuel,
   };
   ctx.fleets.save(fleet);
+  // The guild of the defender learns of an attack at its launch (#169 D3).
+  if (targetOwner !== null && missionRules(mission)!.alertsGuild)
+    attackEvent(ctx, fleet, targetOwner);
   if (event) logLaunch(event, fleet, targetOwner);
   return `Flotte unterwegs nach ${coords(fleet.toC)}.`;
 };

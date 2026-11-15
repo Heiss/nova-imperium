@@ -636,10 +636,15 @@ export const MIGRATIONS: readonly string[] = [
     WHERE status = 'member';
   `,
   // 20: the guild chat (issue #169). Three new rights, so the CHECK of
-  // guild_rank_rights needs a rebuild; nothing references the table. The
-  // default rank of every guild gets „Chat lesen“ and „Chat schreiben“
-  // (owner, D2). A message keeps its author until the account is deleted,
-  // then it is anonymous (owner, D7); it goes with its guild.
+  // guild_rank_rights needs a rebuild; nothing references the table. Every
+  // existing rank below the Leitung gets „Chat lesen“ and „Chat schreiben“;
+  // only the Leitung deletes (owner, 2026-11-15). A message keeps its author
+  // until the account is deleted, then it is anonymous (owner, D7); it goes
+  // with its guild. An event (D3, D4) has no author: it names the member it
+  // is about, and an attack also the attacker and the arrival; a deleted
+  // account leaves its place empty. `chat_seen` of a member is the newest
+  // message of its last visit to the page of its guild (the red mark,
+  // owner, 2026-11-15).
   `
   CREATE TABLE guild_rank_rights_new (
     rank_id TEXT NOT NULL REFERENCES guild_ranks(id) ON DELETE CASCADE,
@@ -653,17 +658,29 @@ export const MIGRATIONS: readonly string[] = [
   DROP TABLE guild_rank_rights;
   ALTER TABLE guild_rank_rights_new RENAME TO guild_rank_rights;
   INSERT OR IGNORE INTO guild_rank_rights (rank_id, right_key)
-    SELECT g.default_rank, r.right_key FROM guilds g,
+    SELECT k.id, r.right_key FROM guild_ranks k,
       (SELECT 'chat-read' AS right_key UNION ALL SELECT 'chat-write') r
-    WHERE g.default_rank IS NOT NULL;
+    WHERE k.position > 0;
   CREATE TABLE guild_chat (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     guild_id TEXT NOT NULL REFERENCES guilds(id) ON DELETE CASCADE,
     author TEXT REFERENCES users(id) ON DELETE SET NULL,
     time INTEGER NOT NULL,
-    text TEXT NOT NULL CHECK (length(text) BETWEEN 1 AND 1000)
+    kind TEXT NOT NULL DEFAULT 'message'
+      CHECK (kind IN ('message', 'join', 'leave', 'remove', 'rank', 'attack')),
+    text TEXT NOT NULL CHECK (length(text) BETWEEN 1 AND 1000
+      OR (kind IN ('join', 'leave', 'remove') AND text = '')),
+    member TEXT REFERENCES users(id) ON DELETE SET NULL,
+    attacker TEXT REFERENCES users(id) ON DELETE SET NULL,
+    arrival INTEGER,
+    CHECK (kind = 'message' OR author IS NULL),
+    CHECK (kind != 'message' OR (member IS NULL AND attacker IS NULL)),
+    CHECK ((kind = 'attack') = (arrival IS NOT NULL))
   ) STRICT;
   CREATE INDEX guild_chat_guild ON guild_chat(guild_id, id);
   CREATE INDEX guild_chat_author ON guild_chat(author);
+  CREATE INDEX guild_chat_member ON guild_chat(member);
+  CREATE INDEX guild_chat_attacker ON guild_chat(attacker);
+  ALTER TABLE guild_members ADD COLUMN chat_seen INTEGER NOT NULL DEFAULT 0;
   `,
 ];

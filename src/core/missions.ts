@@ -75,6 +75,11 @@ export interface MissionRules {
   readonly visible: boolean;
   /** Whether the fleet comes home without a report of its own. */
   readonly silent: boolean;
+  /**
+   * Whether its launch at a member of a guild writes an event into the chat
+   * of that guild (#169 D3, „Nur beim Start“): the attack only.
+   */
+  readonly alertsGuild: boolean;
   /** The check of the mission itself, after the target kind; a code or nothing. */
   canSend(fleet: SendFleet, target: SendTarget): SendError | undefined;
 }

@@ -28,6 +28,8 @@ const ALL_GUILD_ACTIONS = [
   // The guild chat (#169).
   'sendGuildChat',
   'deleteGuildChat',
+  // The visit of the chat for the red mark (#169, owner, 2026-11-15).
+  'seeGuildChat',
 ];
 
 const GUILD_TABLES = [
@@ -72,7 +74,8 @@ function world() {
   });
   runAction(ctx, applicant.id, { type: 'applyToGuild', id });
   runAction(ctx, member.id, { type: 'sendGuildChat', text: 'Hallo' });
-  const message = ctx.guilds.chat(id)[0]!.id;
+  // The first entry is the event of Bert joining (#169 D4).
+  const message = ctx.guilds.chat(id).find((m) => m.kind === 'message')!.id;
   return { ctx, admin, lead, member, applicant, id, rank, message };
 }
 
@@ -97,6 +100,7 @@ function payload(
     dissolveGuild: { tag: 'OR' },
     sendGuildChat: { text: 'Noch da?' },
     deleteGuildChat: { id: w.message },
+    seeGuildChat: { id: w.message },
   };
   return { type, ...data[type] };
 }
@@ -167,7 +171,8 @@ describe('the guild switch (#191)', () => {
   it('a new round with guilds on keeps the guilds, as today, and deletes the chats (#169 D6)', () => {
     const w = world();
     const before = rows(w.ctx);
-    expect(before.guild_chat).toHaveLength(1);
+    // The event of Bert joining and his message (#169).
+    expect(before.guild_chat).toHaveLength(2);
     runAction(w.ctx, w.admin.id, { type: 'reset', guilds: true });
     expect(roundRules(w.ctx).guilds).toBe(true);
     expect(w.ctx.admin.setting('roundGuilds')).toBe(1);

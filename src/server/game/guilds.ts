@@ -3,6 +3,7 @@ import type { Action } from './actions.ts';
 import type { Guild, GuildPlayer } from '../db/repos/guilds.ts';
 import { fail, str, type Ctx } from './context.ts';
 import { chatState } from './guild-chat.ts';
+import { memberEvent, rankEvent } from './guild-events.ts';
 import {
   actor,
   below,
@@ -70,6 +71,7 @@ export const reviewGuildApplication: Action = (ctx, user, d) => {
     return fail('Diese Bewerbung gibt es nicht.');
   if (d.accept === true) {
     ctx.guilds.accept(applicant.user_id);
+    memberEvent(ctx, a.guild.id, 'join', applicant.user_id, user.id);
     return 'Bewerbung angenommen.';
   }
   ctx.guilds.removeMember(applicant.user_id);
@@ -87,9 +89,9 @@ export const leaveGuild: Action = (ctx, user) => {
     return 'Gilde aufgelöst.';
   }
   ctx.guilds.removeMember(user.id);
-  return member.status === 'pending'
-    ? 'Bewerbung zurückgezogen.'
-    : 'Gilde verlassen.';
+  if (member.status === 'pending') return 'Bewerbung zurückgezogen.';
+  memberEvent(ctx, own.id, 'leave', user.id);
+  return 'Gilde verlassen.';
 };
 
 export const manageGuildMember: Action = (ctx, user, d) => {
@@ -100,11 +102,15 @@ export const manageGuildMember: Action = (ctx, user, d) => {
   if (d.transfer === true) {
     const own = handOverRank(a, d.rank);
     ctx.guilds.transfer(a.guild.id, target.user_id, own.id);
+    // Two new ranks (owner, 2026-11-15): the new Leitung and the old one.
+    rankEvent(ctx, a.guild.id, target.user_id, a.ranks[0]!.name, user.id);
+    rankEvent(ctx, a.guild.id, user.id, own.name, user.id);
     return 'Gildenleitung übergeben.';
   }
   need(a, 'remove');
   below(a, placeOf(a, target));
   ctx.guilds.removeMember(target.user_id);
+  memberEvent(ctx, a.guild.id, 'remove', target.user_id, user.id);
   return 'Mitglied entfernt.';
 };
 

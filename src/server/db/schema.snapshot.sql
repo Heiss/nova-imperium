@@ -16,9 +16,13 @@ CREATE INDEX error_events_time ON error_events(time);
 
 CREATE INDEX fleets_owner ON fleets(owner);
 
+CREATE INDEX guild_chat_attacker ON guild_chat(attacker);
+
 CREATE INDEX guild_chat_author ON guild_chat(author);
 
 CREATE INDEX guild_chat_guild ON guild_chat(guild_id, id);
+
+CREATE INDEX guild_chat_member ON guild_chat(member);
 
 CREATE INDEX guild_members_guild ON guild_members(guild_id, status);
 
@@ -142,14 +146,23 @@ CREATE TABLE guild_chat (
     guild_id TEXT NOT NULL REFERENCES guilds(id) ON DELETE CASCADE,
     author TEXT REFERENCES users(id) ON DELETE SET NULL,
     time INTEGER NOT NULL,
-    text TEXT NOT NULL CHECK (length(text) BETWEEN 1 AND 1000)
+    kind TEXT NOT NULL DEFAULT 'message'
+      CHECK (kind IN ('message', 'join', 'leave', 'remove', 'rank', 'attack')),
+    text TEXT NOT NULL CHECK (length(text) BETWEEN 1 AND 1000
+      OR (kind IN ('join', 'leave', 'remove') AND text = '')),
+    member TEXT REFERENCES users(id) ON DELETE SET NULL,
+    attacker TEXT REFERENCES users(id) ON DELETE SET NULL,
+    arrival INTEGER,
+    CHECK (kind = 'message' OR author IS NULL),
+    CHECK (kind != 'message' OR (member IS NULL AND attacker IS NULL)),
+    CHECK ((kind = 'attack') = (arrival IS NOT NULL))
   ) STRICT;
 
 CREATE TABLE guild_members (
     user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
     guild_id TEXT NOT NULL REFERENCES guilds(id) ON DELETE CASCADE,
     status TEXT NOT NULL CHECK (status IN ('pending', 'member'))
-  , rank_id TEXT REFERENCES guild_ranks(id)) STRICT;
+  , rank_id TEXT REFERENCES guild_ranks(id), chat_seen INTEGER NOT NULL DEFAULT 0) STRICT;
 
 CREATE TABLE "guild_rank_rights" (
     rank_id TEXT NOT NULL REFERENCES guild_ranks(id) ON DELETE CASCADE,

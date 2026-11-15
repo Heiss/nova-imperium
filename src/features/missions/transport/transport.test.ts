@@ -55,6 +55,7 @@ describe('transport', () => {
       returns: true,
       visible: false,
       silent: false,
+      alertsGuild: false,
     });
   });
 

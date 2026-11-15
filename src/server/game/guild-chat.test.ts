@@ -27,6 +27,10 @@ const WAIT = 'Bitte warte kurz vor der nächsten Nachricht.';
 
 type Data = Record<string, unknown>;
 
+/** The messages of a list of the chat, without the events of the server. */
+const messagesOf = <M extends { kind: string }>(list: M[]): M[] =>
+  list.filter((m) => m.kind === 'message');
+
 /**
  * A guild of Lea (Leitung) with the members Ada, Bo and Cy (Mitglied), the
  * applicant Pia and Out, who leads another guild.
@@ -61,11 +65,18 @@ function setup() {
     ctx.clock.t += 3000;
     return run(who, { type: 'sendGuildChat', text });
   };
-  const chat = (who = 'Lea') =>
+  /** Every entry of the chat as `who` gets it, events included. */
+  const entries = (who = 'Lea') =>
     guildState(ctx, `u_${who}`, {}).chat?.messages ?? null;
+  /** The messages as `who` gets them, without the events. */
+  const chat = (who = 'Lea') => {
+    const list = entries(who);
+    return list && messagesOf(list);
+  };
   const texts = (who = 'Lea') => chat(who)?.map((m) => m.text);
-  const idOf = (text: string) =>
-    ctx.guilds.chat(id).find((m) => m.text === text)!.id;
+  /** The stored messages of a guild, without the events. */
+  const stored = (guild = id) => messagesOf(ctx.guilds.chat(guild));
+  const idOf = (text: string) => stored().find((m) => m.text === text)!.id;
   const remove = (who: string, text: string | number) =>
     run(who, {
       type: 'deleteGuildChat',
@@ -79,7 +90,9 @@ function setup() {
     rank,
     officer,
     say,
+    entries,
     chat,
+    stored,
     texts,
     idOf,
     remove,
@@ -111,6 +124,7 @@ describe('the rights of the chat (#169, D2)', () => {
       read: false,
       write: true,
       messages: [],
+      unread: false,
     });
     s.officer([], 'Bo', 'Stumm');
     expect(guildState(s.ctx, 'u_Bo', {}).chat).toBeNull();
@@ -195,7 +209,7 @@ describe('deleting messages: the order of the ranks (#163 D4)', () => {
     const s = setup();
     s.run('Out', { type: 'sendGuildChat', text: 'drüben' });
     const theirs = s.ctx.guilds.chat(s.other)[0]!.id;
-    for (const id of [theirs, 999, -1, 'x', null, undefined, 1.5])
+    for (const id of [theirs, 999, -1, 'x', null, undefined, theirs + 0.5])
       expect(
         () => s.run('Lea', { type: 'deleteGuildChat', id }),
         String(id),
@@ -374,7 +388,7 @@ describe('leaving and deleted accounts (#169, D7)', () => {
     s.say('Lea', 'von Lea');
     s.run('Out', { type: 'sendGuildChat', text: 'drüben' });
     deleteAccount(s.ctx, s.ctx.players.get('u_Ada')!, 'secret1');
-    expect(s.ctx.guilds.chat(s.id).map((m) => [m.author, m.text])).toEqual([
+    expect(s.stored().map((m) => [m.author, m.text])).toEqual([
       [null, 'von Ada'],
       ['u_Lea', 'von Lea'],
     ]);
@@ -422,7 +436,7 @@ describe('the round and the guild switch (#169 D6, #191)', () => {
     expect(() => s.remove('Lea', 'vorher')).toThrow(GUILDS_OFF);
     expect(stateFor(s.ctx, s.ctx.players.get('u_Ada')!).guilds).toBeNull();
     expect(() => adminGuildChat(s.ctx, s.id)).toThrow(GUILDS_OFF);
-    expect(s.ctx.guilds.chat(s.id)).toHaveLength(1);
+    expect(s.stored()).toHaveLength(1);
   });
 });
 
@@ -448,10 +462,10 @@ describe('push of a chat message (#169 D5, #192)', () => {
         .prepare('SELECT DISTINCT event_key FROM push_jobs ORDER BY 1')
         .pluck()
         .all(),
-    ).toEqual(s.ctx.guilds.chat(s.id).map((m) => `chat${m.id}`));
+    ).toEqual(s.stored().map((m) => `chat${m.id}`));
   });
 
-  it('is delivered with the name of the kind and opens the guilds; a player who switched it off gets none', async () => {
+  it('is delivered as „Neue Nachricht im Gilden-Chat“ and opens the guilds; a player who switched it off gets none', async () => {
     const s = setup();
     subscribePush(s.ctx, 'u_Lea');
     subscribePush(s.ctx, 'u_Bo');
@@ -466,7 +480,8 @@ describe('push of a chat message (#169 D5, #192)', () => {
       {
         endpoint: 'https://fcm.googleapis.com/fcm/send/u_Lea-1',
         payload: {
-          title: 'Nachrichten im Gilden-Chat',
+          // The text of the owner (2026-11-15).
+          title: 'Neue Nachricht im Gilden-Chat',
           view: 'guilds',
           tag: expect.any(String),
         },
@@ -485,13 +500,14 @@ describe('the admin reads every guild chat (#169, D8)', () => {
     s.run('Bo', { type: 'leaveGuild' });
     const read = adminGuildChat(s.ctx, s.id);
     expect(read.guild).toEqual({ id: s.id, tag: 'OR', name: 'Outer Rim' });
-    expect(read.messages.map((m) => [m.name, m.text])).toEqual([
+    expect(messagesOf(read.messages).map((m) => [m.name, m.text])).toEqual([
       ['Ada', 'eins'],
       [null, 'zwei'],
     ]);
-    expect(read.messages[0]).toEqual({
+    expect(messagesOf(read.messages)[0]).toEqual({
       id: s.idOf('eins'),
       time: expect.any(Number),
+      kind: 'message',
       name: 'Ada',
       text: 'eins',
     });

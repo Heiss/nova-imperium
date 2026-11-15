@@ -46,6 +46,7 @@ describe('POST /api/admin/guild-chat (#169)', () => {
         {
           id: 1,
           time: expect.any(Number),
+          kind: 'message',
           name: 'Lea',
           text: '<script>alert(1)</script>',
         },
