@@ -95,6 +95,49 @@ describe('the data of an answer (#53)', () => {
     expect(answer).not.toHaveBeenCalled();
   });
 
+  it('is dropped when a newer action of the same type overtook it (review of #217)', async () => {
+    const pending: Array<(j: Record<string, unknown>) => void> = [];
+    const answer = vi.fn();
+    const apply = vi.fn();
+    const sync = createAct({
+      api: () => new Promise((ok) => pending.push(ok)),
+      state: () => state('u1', 'p1'),
+      apply,
+      toast: vi.fn(),
+      answer,
+    });
+    const scan = (target: string) => ({ scan: { target } });
+    // The scan of A, then of B; B answers first, A late.
+    const a = sync.send('scan', { target: 'A' });
+    const b = sync.send('scan', { target: 'B' });
+    pending[1]!({ state: state('u1', 'p1'), data: scan('B') });
+    expect(await b).toBe('done');
+    pending[0]!({ state: state('u1', 'p1'), data: scan('A') });
+    // A went through, its state is applied, its data no longer shown.
+    expect(await a).toBe('done');
+    expect(apply).toHaveBeenCalledTimes(2);
+    expect(answer.mock.calls).toEqual([[scan('B')]]);
+    // Also while the newer scan is still on its way.
+    answer.mockClear();
+    const c = sync.send('scan', { target: 'C' });
+    const d = sync.send('scan', { target: 'D' });
+    pending[2]!({ state: state('u1', 'p1'), data: scan('C') });
+    expect(await c).toBe('done');
+    expect(answer).not.toHaveBeenCalled();
+    pending[3]!({ state: state('u1', 'p1'), data: scan('D') });
+    expect(await d).toBe('done');
+    expect(answer.mock.calls).toEqual([[scan('D')]]);
+    // An action of another type does not overtake a scan.
+    answer.mockClear();
+    const e = sync.send('scan', { target: 'E' });
+    const build = sync.send('build', { key: 'metal' });
+    pending[5]!({ state: state('u1', 'p1') });
+    expect(await build).toBe('done');
+    pending[4]!({ state: state('u1', 'p1'), data: scan('E') });
+    expect(await e).toBe('done');
+    expect(answer.mock.calls).toEqual([[scan('E')]]);
+  });
+
   it('is fine without an `answer`', async () => {
     const t = setup(async () => ({ state: state('u1', 'p1'), data: { x: 1 } }));
     expect(await t.act('scan')).toBe('done');

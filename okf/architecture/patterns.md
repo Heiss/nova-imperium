@@ -482,7 +482,9 @@ choice of the patterns to the assistant's recommendation below
   besides its message, `{ msg, data }` (`Answer`, `answerOf` in
   `src/server/game/actions.ts`); `POST /api/action` adds `data` to the
   reply only then, and the client's `act()` hands it to `answer` before it
-  applies the state. First user: the scan of the Auspex-Phalanx, whose
+  applies the state, only for the newest action of its type: the data of a
+  scan that a newer scan overtook is dropped, its state still applies
+  (CodeRabbit review of #217). First user: the scan of the Auspex-Phalanx, whose
   check `scanError` is a pure function of `src/core/phalanx.ts` and whose
   reach `scanReach` the Sternenkarte asks too.
 

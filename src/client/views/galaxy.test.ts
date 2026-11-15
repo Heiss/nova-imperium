@@ -227,16 +227,26 @@ describe('the Auspex-Phalanx on the Sternenkarte (#53)', () => {
     expect(html.match(/data-act="gscan"/g)).toHaveLength(1);
   });
 
-  it('offers no scan without a phalanx, from a planet or out of range', () => {
+  it('offers no scan without a phalanx or from a planet', () => {
     expect(galaxy(fromMoon(0))).not.toContain('gscan');
     expect(galaxy(view([]))).not.toContain('gscan');
-    const far = fromMoon(1);
-    far.ui.sys = 3;
-    far.s.galaxy = far.s.galaxy.map((x) => ({
-      ...x,
-      s: x.s + (x.owner === 'u_Bert' ? 1 : 0),
-    }));
-    expect(galaxy(far)).not.toContain('gscan');
+  });
+
+  it('offers no scan of a planet out of range, while it shows the planet', () => {
+    // The scanning moon in system `s` of galaxy 1 with a phalanx of level 2:
+    // a range of 2² − 1 = 3 systems; the Sternenkarte still shows [1:2:6].
+    const from = (s: number): string => {
+      const v = fromMoon(2);
+      v.P = { ...v.P, id: `m1_${s}_5`, s };
+      return row(galaxy(v), 6);
+    };
+    // Four systems away: the row of Beta is there, without the scan.
+    const far = from(6);
+    expect(far).toContain('Beta');
+    expect(far).toContain('data-m="attack"');
+    expect(far).not.toContain('gscan');
+    // Three systems away, at the edge of the range: the scan is offered.
+    expect(from(5)).toContain(SCAN_BUTTON);
   });
 
   it('shows no panel before a scan, or after it from another place', () => {

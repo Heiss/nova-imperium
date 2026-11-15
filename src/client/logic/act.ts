@@ -25,7 +25,9 @@ export interface ActDeps {
   toast: (msg: string, err?: boolean) => void;
   /**
    * The data an action answers besides its state (the scan of the
-   * Auspex-Phalanx, #53); given before the state, on the planet still shown.
+   * Auspex-Phalanx, #53); given before the state, on the planet still shown,
+   * and only for the newest action of its type: the answer of a scan that a
+   * newer scan overtook is dropped (review of #217).
    */
   answer?: (data: Record<string, unknown>) => void;
 }
@@ -49,14 +51,25 @@ export interface Sync {
   refresh: () => () => boolean;
 }
 
+/** The data of an answer besides its state, or null when it has none. */
+const dataOf = (j: Record<string, unknown>): Record<string, unknown> | null =>
+  // `typeof null` is 'object' too: then the data are null as well.
+  typeof j.data === 'object'
+    ? (j.data as Record<string, unknown> | null)
+    : null;
+
 export function createAct(deps: ActDeps): Sync {
   // A new token per started action and per started refresh: only identity
-  // counts. `running` counts the actions on their way.
+  // counts. `running` counts the actions on their way, `lastOfType` holds
+  // the token of the newest action of each type.
   let lastAction: object = {};
   let lastRefresh: object = {};
+  const lastOfType = new Map<string, object>();
   let running = 0;
   const send: Sync['send'] = async (type, data = {}) => {
-    lastAction = {};
+    const ticket = {};
+    lastAction = ticket;
+    lastOfType.set(type, ticket);
     running++;
     try {
       const before = placeOf(deps.state());
@@ -66,8 +79,9 @@ export function createAct(deps: ActDeps): Sync {
         ...data,
       });
       const here = samePlace(deps.state(), before);
-      if (here && typeof j.data === 'object' && j.data !== null)
-        deps.answer?.(j.data as Record<string, unknown>);
+      const extra = dataOf(j);
+      if (here && extra && lastOfType.get(type) === ticket)
+        deps.answer?.(extra);
       if (here) deps.apply(j.state as GameState);
       if (j.msg) deps.toast(String(j.msg));
       return here ? 'done' : 'stale';
