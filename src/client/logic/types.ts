@@ -87,7 +87,8 @@ export interface GameState {
   debris: DebrisField[];
   admin: AdminState | null;
   achievements?: AchievementState;
-  guilds?: GuildState;
+  /** None while guilds are off in the round (#191). */
+  guilds?: GuildState | null;
 }
 
 interface GuildMember {

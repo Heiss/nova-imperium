@@ -13,6 +13,7 @@ import { endzeit } from './endzeit.ts';
 import { pushOptions } from '../push-options.ts';
 import { tick } from './arrival.ts';
 import { type Ctx, fail } from './context.ts';
+import { requireGuilds } from './round.ts';
 import { recall, send } from './fleet-actions.ts';
 import {
   assignGuildRank,
@@ -33,6 +34,29 @@ import {
   manageGuildMember,
 } from './guilds.ts';
 
+/**
+ * The guild actions: refused while guilds are off in the round (#191). A
+ * new guild action, the chat of #169 included, belongs here.
+ */
+const GUILD: Record<string, A.Action> = {
+  createGuild,
+  updateGuild,
+  applyToGuild,
+  reviewGuildApplication,
+  leaveGuild,
+  manageGuildMember,
+  createGuildRank,
+  renameGuildRank,
+  setGuildRankRights,
+  moveGuildRank,
+  deleteGuildRank,
+  setGuildDefaultRank,
+  assignGuildRank,
+  dissolveGuild,
+};
+
+export const GUILD_ACTIONS: ReadonlySet<string> = new Set(Object.keys(GUILD));
+
 export const ACTIONS: Record<string, A.Action> = {
   build: A.build,
   cancelBuild: A.cancelBuild,
@@ -51,20 +75,7 @@ export const ACTIONS: Record<string, A.Action> = {
   settings: saveSettings,
   reset,
   endzeit,
-  createGuild,
-  updateGuild,
-  applyToGuild,
-  reviewGuildApplication,
-  leaveGuild,
-  manageGuildMember,
-  createGuildRank,
-  renameGuildRank,
-  setGuildRankRights,
-  moveGuildRank,
-  deleteGuildRank,
-  setGuildDefaultRank,
-  assignGuildRank,
-  dissolveGuild,
+  ...GUILD,
   claimAchievement,
   claimDailyReward,
 };
@@ -89,6 +100,7 @@ export function runAction(
   return ctx.tx(() => {
     tick(ctx);
     const u: User = ctx.players.get(uid) ?? fail('Bitte einloggen.');
+    if (GUILD_ACTIONS.has(type)) requireGuilds(ctx);
     const result = fn(ctx, u, d, event);
     recordAchievementAction(ctx, uid, type);
     return result;

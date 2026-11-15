@@ -61,6 +61,8 @@ export interface Guilds {
   ): void;
   update(id: string, tag: string, name: string, description: string): void;
   delete(id: string): void;
+  /** Deletes every guild with its members, applications, ranks and rights (#191). */
+  deleteAll(): void;
   /** Hands over the Leitung: its rank to `founder`, the rank `rank` to the old one. */
   transfer(id: string, founder: string, rank: string): void;
   apply(uid: string, id: string): void;
@@ -170,6 +172,10 @@ export class SqliteGuilds implements Guilds {
 
   delete(id: string): void {
     this.db.prepare('DELETE FROM guilds WHERE id = ?').run(id);
+  }
+
+  deleteAll(): void {
+    this.db.prepare('DELETE FROM guilds').run();
   }
 
   transfer(id: string, founder: string, rank: string): void {

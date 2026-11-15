@@ -96,7 +96,7 @@ export class SqliteAdmin implements Admin {
   roundSettings(): { key: string; value: number }[] {
     return this.db
       .prepare(
-        "SELECT key, value FROM settings WHERE key IN ('round', 'roundAchievements', 'roundDaily')",
+        "SELECT key, value FROM settings WHERE key IN ('round', 'roundAchievements', 'roundDaily', 'roundGuilds')",
       )
       .all() as { key: string; value: number }[];
   }

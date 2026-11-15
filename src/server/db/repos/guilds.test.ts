@@ -264,4 +264,33 @@ describe('guild ranks repository (#163)', () => {
         0,
       );
   });
+
+  it('deletes every guild with its members, applications, ranks and rights; the players stay (#191)', () => {
+    const ctx = setup();
+    ctx.guilds.create('g2', 'XYZ', 'Zeta', '', 'u_Bert');
+    ctx.guilds.addRank('ra', 'g1', 'Offizier');
+    ctx.guilds.setRights('ra', ['remove', 'profile']);
+    ctx.guilds.apply('u_Cora', 'g2');
+    ctx.guilds.deleteAll();
+    expect(ctx.guilds.all()).toEqual([]);
+    expect(ctx.guilds.players()).toEqual([]);
+    for (const t of [
+      'guilds',
+      'guild_members',
+      'guild_ranks',
+      'guild_rank_rights',
+    ])
+      expect(ctx.db.prepare(`SELECT COUNT(*) FROM ${t}`).pluck().get(), t).toBe(
+        0,
+      );
+    expect(
+      ctx.players
+        .all()
+        .map((p) => p.name)
+        .sort(),
+    ).toEqual(['Anna', 'Bert', 'Cora']);
+    // A new round can found guilds again.
+    ctx.guilds.create('g3', 'ABC', 'Alpha', '', 'u_Cora');
+    expect(ctx.guilds.membership('u_Cora')?.rank_id).toBe('r0_g3');
+  });
 });
