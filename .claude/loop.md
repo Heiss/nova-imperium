@@ -102,7 +102,10 @@ interface is German.
    finding that needs a push sets it back to `in progress`. Build:
    code, tests (mutation floors, new files 80 %, security files 90 %), a
    German changelog fragment in `changes/` or the label `kein-changelog`,
-   OKF and docs. Run `pnpm check` and the relevant E2E tests before every
+   OKF and docs, and the log entry as a new file
+   `okf/log/<date>-<short-name>.md` (never an edit of another entry; the
+   format is in `okf/ops/website.md`). Run `pnpm check` and the relevant
+   E2E tests before every
    push. Open it as a draft, mark it ready when CI is green, subscribe to
    it. Write `Closes #<issue>` in the description.
 

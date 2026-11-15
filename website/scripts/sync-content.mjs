@@ -8,23 +8,20 @@
 // which lib/markdown.mjs uses to resolve the links of the page.
 //
 //   node scripts/sync-content.mjs
-import {
-  copyFileSync,
-  mkdirSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from 'node:fs';
+import { copyFileSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { parse, stringify } from 'yaml';
 import { repoTarget } from '../lib/links.mjs';
+import { sourceText } from '../lib/log.mjs';
 import { imageUrls } from '../lib/raw.mjs';
 import {
   GENERATED_DIRS,
   GITHUB,
   HAND_WRITTEN,
+  LOG_DIR,
   REPO_ROOT,
   generatedPage,
+  isLogEntry,
   markdownFiles,
 } from '../lib/pages.mjs';
 
@@ -84,7 +81,7 @@ function copyImages(source, body, outFile) {
 
 function syncPage(source, outRoot) {
   const page = generatedPage(source);
-  const text = readFileSync(path.join(REPO_ROOT, source), 'utf8');
+  const text = sourceText(source);
   const { data, body: raw } = splitFrontMatter(text);
   const { title, body } = titleAndBody(source, data, raw, page.title);
   const description =
@@ -92,7 +89,11 @@ function syncPage(source, outRoot) {
   const front = {
     title,
     ...(description ? { description } : {}),
-    editUrl: `${GITHUB}/edit/main/${source}`,
+    // The log page has no single file: its edit link opens the folder.
+    editUrl:
+      source === LOG_DIR
+        ? `${GITHUB}/tree/main/${source}`
+        : `${GITHUB}/edit/main/${source}`,
     source,
   };
   const outFile = path.join(
@@ -108,7 +109,12 @@ function main() {
   const outRoot = path.join(REPO_ROOT, HAND_WRITTEN);
   for (const dir of GENERATED_DIRS)
     rmSync(path.join(outRoot, dir), { recursive: true, force: true });
-  const sources = [...markdownFiles('okf'), ...markdownFiles('docs')];
+  // The entries of okf/log/ become one page, the update log (#212).
+  const sources = [
+    ...markdownFiles('okf').filter((source) => !isLogEntry(source)),
+    LOG_DIR,
+    ...markdownFiles('docs'),
+  ];
   for (const source of sources) syncPage(source, outRoot);
   console.log(`Synced ${sources.length} pages from okf/ and docs/.`);
 }

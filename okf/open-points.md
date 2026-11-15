@@ -17,6 +17,7 @@ their result.
 | O1 | systemd unit | Version 1 had `nova-imperium.service`. It was removed because the start changed (build step, `.env`, secrets) and only Docker is tested. Options: leave it out; add an untested unit with `EnvironmentFile`; add a tested unit with a CI job. |
 | O2 | Minimum password length | Kept at 6 like version 1. Options: keep 6; 8; 12; a passphrase rule. |
 | O3 | Ranges of the universe settings | Proposals in [Admin](/features/admin.md) (speed 1 to 100, galaxies up to 9, …). Confirm or change. |
+| O15 | Update log, one file per entry (#212) | Built with D1 to D3; three details are proposals [V] ([Documentation website](/ops/website.md#update-log-one-file-per-entry-212)). (a) Order within a date: an entry holds no time, so the page lists the entries of a date by file name; before, the newest stood first (130 of 136 lines moved within their date). Options: keep the order by name [V]; an optional key `order` per date; a time in `date` (`2026-11-14T13:05`) for new entries; the order of the first commit of each file (needs the Git history in the website build). (b) Front matter: `type: log-entry`, `date`, `kind`, `issues` [V]; options: keep it; add `title` and `description` like a concept (texts to write); drop `issues`. (c) `issues` lists every `#N` the text names, pull requests too [V]; options: keep it; only the numbers before the first colon; only issues, checked against GitHub. |
 
 # B. Tasks of the owner
 

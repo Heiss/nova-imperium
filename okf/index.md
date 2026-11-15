@@ -59,4 +59,4 @@ okf_version: "0.2"
 
 # Log
 
-* [Update log](/log.md)
+* [Update log](/log/) - one file per entry in `log/`, newest first

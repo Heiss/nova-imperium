@@ -27,7 +27,7 @@ check of `main`. The rules behind it are in
 | Migrations append-only                       | No released migration was moved, removed or changed, compared with the base of the pull request, the previous tip of the branch, or for a new hotfix branch the release tag it starts from (`.github/scripts/migrations-gate.mjs`).                                                                                               | Always.                                                                      |
 | Workflow lint                                | actionlint (syntax, expressions, shell) and zizmor (security, for example unpinned actions or persisted credentials) over `.github/workflows`.                                                                                                                                                                                    | Always.                                                                      |
 | CodeQL                                       | `security-extended` queries over JavaScript and TypeScript; a finding of security severity 7.0 or more, or of level „error“, fails (`.github/scripts/codeql-gate.mjs`).                                                                                                                                                           | Always: the ruleset of `main` waits for a CodeQL result of the exact commit. |
-| Documentation website                        | Prettier over `website/`, its tests (`pnpm test`, `node:test`), then the build of this site from `website/`, `okf/` and `docs/`; every internal link and anchor must resolve.                                                                                                                                                     | When the website or its sources change.                                      |
+| Documentation website                        | Prettier over `website/`, the entries of the update log in `okf/log/` (`scripts/okf-log.ts check`), its tests (`pnpm test`, `node:test`), then the build of this site from `website/`, `okf/` and `docs/`; every internal link and anchor must resolve.                                                                           | When the website or its sources change.                                      |
 | CI Gate                                      | Evaluates every job above (next section).                                                                                                                                                                                                                                                                                         | Always, also when a job failed or was skipped.                               |
 
 ## How „Detect changes“ decides
@@ -46,8 +46,8 @@ compares its changes with its base:
   `maintenance.ts` in `src/server/`) and `ci.yml` itself. Game code alone
   does not build the image in its pull request; every push to `main` and
   the full run of the release pull request do.
-- **site** is true when `website/`, `okf/`, `docs/`, `ci.yml` or `pages.yml`
-  change.
+- **site** is true when `website/`, `okf/`, `docs/`, `scripts/okf-log.ts`,
+  `ci.yml` or `pages.yml` change.
 - A **release pull request** (head `release/…`) and every pull request
   **into `hotfix/…`** set all three: they lead straight to a release.
 - The **release pull request of `main`** is a draft after every rebuild.

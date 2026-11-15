@@ -147,6 +147,11 @@ tasks).
   `icons.ts` are left to the CI mutation job. A local run does not speed up
   the CI, which keeps its own incremental cache; it only saves a red run
   (owner, 2026-11-12).
+* **[E]** Every pull request records its work as a new file in the update
+  log, `okf/log/<date>-<short-name>.md`, and changes no other entry
+  (owner, 2026-11-15, #212, [Documentation website](/ops/website.md)): a
+  merge of `main` into an open branch no longer conflicts at the top of
+  one log file, which saves a push and a CI run per merge.
 * **[E]** Claude bundles pushes: while the CI of a pull request runs, no
   push of documentation or OKF alone (for example confirmed [V] → [E]); such
   changes go with the next code push, or are pushed before the pull request
