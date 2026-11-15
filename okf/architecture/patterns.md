@@ -475,6 +475,13 @@ choice of the patterns to the assistant's recommendation below
   Every check of an action is a pure function in `src/core` that returns an
   error code; server and browser turn it into the German message (as
   `yard.ts`, `lab.ts` already do).
+* **[V]** Built with #53 (second pull request): an action may answer data
+  besides its message, `{ msg, data }` (`Answer`, `answerOf` in
+  `src/server/game/actions.ts`); `POST /api/action` adds `data` to the
+  reply only then, and the client's `act()` hands it to `answer` before it
+  applies the state. First user: the scan of the Auspex-Phalanx, whose
+  check `scanError` is a pure function of `src/core/phalanx.ts` and whose
+  reach `scanReach` the Sternenkarte asks too.
 
 ## 8. Store: a repository per aggregate
 

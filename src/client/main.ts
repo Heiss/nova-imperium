@@ -13,6 +13,7 @@ import { createAct, placeOf, samePlace } from './logic/act.ts';
 import { CATALOG_VIEWS, catalogKind } from './logic/catalog-list.ts';
 import { debrisAt, debrisTip } from './logic/debris.ts';
 import { moonAt, moonTarget, ownPlaces } from './logic/moon.ts';
+import { scanOf } from './logic/phalanx.ts';
 import { clampInt, coords, dt, dur, esc, fmt } from './logic/format.ts';
 import {
   apiFailure,
@@ -523,6 +524,10 @@ const sync = createAct({
   state: () => client.game,
   apply: (state) => apply(state),
   toast,
+  answer: (data) => {
+    const scan = scanOf(data);
+    if (scan) ui.scan = scan;
+  },
 });
 
 /** Whether the action went through, wherever the player is now. */
@@ -1228,6 +1233,18 @@ const ACT: Record<string, (d: Data) => unknown> = {
   gmoon: (d) => {
     ui.gmoon = ui.gmoon === d.id ? null : (d.id ?? null);
     render(true);
+  },
+  gscan: async (d) => {
+    if (!(await actHere('scan', { target: d.id }))) return;
+    render(true);
+    $('#scan-h')?.focus();
+  },
+  gscanClose: () => {
+    const target = ui.scan?.target;
+    ui.scan = null;
+    render(true);
+    // The focus goes back to the scan of the planet, while it is shown.
+    if (target) $(`[data-act=gscan][data-id="${CSS.escape(target)}"]`)?.focus();
   },
   gfleet: (d) => {
     ui.ft = {

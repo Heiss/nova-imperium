@@ -52,6 +52,56 @@ describe('placeOf and samePlace', () => {
   });
 });
 
+describe('the data of an answer (#53)', () => {
+  it('goes to `answer` before the state, on the planet still shown', async () => {
+    let current: GameState | null = state('u1', 'p1');
+    const order: string[] = [];
+    const data = { scan: { flights: [] } };
+    const answer = vi.fn(() => order.push('answer'));
+    const sync = createAct({
+      api: async () => ({ state: state('u1', 'p1'), data }),
+      state: () => current,
+      apply: () => order.push('apply'),
+      toast: vi.fn(),
+      answer,
+    });
+    expect(await sync.send('scan')).toBe('done');
+    expect(answer).toHaveBeenCalledWith(data);
+    expect(order).toEqual(['answer', 'apply']);
+    // Not after the player switched planets, not without data.
+    answer.mockClear();
+    const late = createAct({
+      api: async () => {
+        current = state('u1', 'p2');
+        return { state: state('u1', 'p1'), data };
+      },
+      state: () => current,
+      apply: vi.fn(),
+      toast: vi.fn(),
+      answer,
+    });
+    expect(await late.send('scan')).toBe('stale');
+    current = state('u1', 'p1');
+    for (const nothing of [null, undefined, 'Text', 3]) {
+      const none = createAct({
+        api: async () => ({ state: state('u1', 'p1'), data: nothing }),
+        state: () => current,
+        apply: vi.fn(),
+        toast: vi.fn(),
+        answer,
+      });
+      expect(await none.send('scan')).toBe('done');
+    }
+    expect(answer).not.toHaveBeenCalled();
+  });
+
+  it('is fine without an `answer`', async () => {
+    const t = setup(async () => ({ state: state('u1', 'p1'), data: { x: 1 } }));
+    expect(await t.act('scan')).toBe('done');
+    expect(t.apply).toHaveBeenCalled();
+  });
+});
+
 describe('act', () => {
   it('posts the action with the planet and applies the answer', async () => {
     const next = state('u1', 'p1');

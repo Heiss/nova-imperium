@@ -5,11 +5,18 @@ import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import {
   SCAN_COST,
+  SCAN_PRICE,
+  inPhalanxRange,
+  phalanxLevel,
   phalanxRange,
+  type ScanTarget,
+  type Scanner,
+  scanError,
   scanFlights,
+  scanReach,
   scanRefusal,
 } from './phalanx.ts';
-import type { Fleet } from './types.ts';
+import type { Coords, Fleet, Resources } from './types.ts';
 
 const AT = 'p1_5_7';
 
@@ -56,6 +63,162 @@ describe('the range of the Auspex-Phalanx', () => {
 describe('the price of a scan', () => {
   it('is 5,000 Promethium and nothing else', () => {
     expect(SCAN_COST).toEqual({ m: 0, c: 0, d: 5000 });
+    expect(SCAN_PRICE).toEqual([0, 0, 5000]);
+  });
+});
+
+describe('the level of the phalanx on a place', () => {
+  it('is the building on a moon', () => {
+    expect(phalanxLevel({ kind: 'moon', b: { phalanx: 3 } })).toBe(3);
+    expect(phalanxLevel({ kind: 'moon', b: { moonbase: 2 } })).toBe(0);
+  });
+
+  it('is 0 on a planet, where it cannot stand', () => {
+    expect(phalanxLevel({ kind: 'planet', b: { phalanx: 3 } })).toBe(0);
+  });
+});
+
+const at = (g: number, s: number, p = 7): Coords => ({ g, s, p });
+
+describe('the range over galaxies and systems (owner, 2026-11-15)', () => {
+  it('counts |s − s₀| systems in the own galaxy', () => {
+    // Level 2: 3 systems.
+    expect(inPhalanxRange(at(1, 10), at(1, 13), 2)).toBe(true);
+    expect(inPhalanxRange(at(1, 10), at(1, 7), 2)).toBe(true);
+    expect(inPhalanxRange(at(1, 10), at(1, 14), 2)).toBe(false);
+    expect(inPhalanxRange(at(1, 10), at(1, 6), 2)).toBe(false);
+  });
+
+  it('reaches only the own system at level 1, any position there', () => {
+    expect(inPhalanxRange(at(1, 10, 1), at(1, 10, 15), 1)).toBe(true);
+    expect(inPhalanxRange(at(1, 10), at(1, 11), 1)).toBe(false);
+  });
+
+  it('never reaches another galaxy, also at the same system', () => {
+    expect(inPhalanxRange(at(1, 10), at(2, 10), 50)).toBe(false);
+  });
+
+  it('does not wrap around the end of the galaxy', () => {
+    // 499 systems: system 1 and 499 are 498 apart, not 2.
+    expect(inPhalanxRange(at(1, 1), at(1, 499), 2)).toBe(false);
+    expect(inPhalanxRange(at(1, 1), at(1, 499), 23)).toBe(true);
+  });
+
+  it('reaches nothing without a phalanx', () => {
+    expect(inPhalanxRange(at(1, 10), at(1, 10), 0)).toBe(false);
+  });
+
+  it('is symmetric and holds exactly within level² − 1 (property)', () => {
+    const c = fc.record({
+      g: fc.integer({ min: 1, max: 9 }),
+      s: fc.integer({ min: 1, max: 499 }),
+      p: fc.integer({ min: 1, max: 15 }),
+    });
+    fc.assert(
+      fc.property(c, c, fc.integer({ min: 0, max: 30 }), (a, b, level) => {
+        const inRange = inPhalanxRange(a, b, level);
+        expect(inPhalanxRange(b, a, level)).toBe(inRange);
+        expect(inRange).toBe(
+          a.g === b.g && Math.abs(a.s - b.s) <= level * level - 1,
+        );
+        // One level more never loses a target.
+        if (inRange) expect(inPhalanxRange(a, b, level + 1)).toBe(true);
+      }),
+    );
+  });
+});
+
+const MOON: Scanner & { res: Resources } = {
+  kind: 'moon',
+  owner: 'u_Anna',
+  b: { moonbase: 1, phalanx: 2 },
+  g: 1,
+  s: 5,
+  p: 4,
+  res: { m: 0, c: 0, d: 5000 },
+};
+
+const planetAt = (s: number, owner?: string, g = 1): ScanTarget => ({
+  place: { kind: 'planet', g, s, p: 7 },
+  ...(owner === undefined ? {} : { owner }),
+});
+
+describe('whether a scan can start', () => {
+  it('starts from a moon with a phalanx at a foreign planet in range', () => {
+    expect(scanReach(MOON, planetAt(8, 'u_Bert'))).toBeNull();
+    expect(scanError(MOON, planetAt(8, 'u_Bert'))).toBeNull();
+  });
+
+  it('starts only from a moon', () => {
+    const planet = { ...MOON, kind: 'planet' as const };
+    expect(scanReach(planet, planetAt(5, 'u_Bert'))).toBe('notMoon');
+  });
+
+  it('needs a phalanx on the moon', () => {
+    const bare = { ...MOON, b: { moonbase: 1 } };
+    expect(scanReach(bare, planetAt(5, 'u_Bert'))).toBe('noPhalanx');
+  });
+
+  it('refuses a moon and a Trümmerfeld, also in range', () => {
+    const moon = { place: { kind: 'moon' as const, g: 1, s: 5, p: 7 } };
+    const field = { place: { kind: 'debris' as const, g: 1, s: 5, p: 7 } };
+    expect(scanReach(MOON, { ...moon, owner: 'u_Bert' })).toBe('moon');
+    expect(scanReach(MOON, field)).toBe('notPlanet');
+  });
+
+  it('refuses a planet out of range or in another galaxy', () => {
+    expect(scanReach(MOON, planetAt(9, 'u_Bert'))).toBe('outOfRange');
+    expect(scanReach(MOON, planetAt(5, 'u_Bert', 2))).toBe('outOfRange');
+  });
+
+  it('refuses a free position in range', () => {
+    expect(scanReach(MOON, planetAt(6))).toBe('free');
+  });
+
+  it('refuses an own planet, the planet of the moon included', () => {
+    expect(scanReach(MOON, planetAt(5, 'u_Anna'))).toBe('own');
+  });
+
+  it('needs the 5,000 Promethium on the moon, but only for a scan that can start', () => {
+    const poor = { ...MOON, res: { m: 1e6, c: 1e6, d: 4999 } };
+    expect(scanError(poor, planetAt(8, 'u_Bert'))).toBe('cost');
+    expect(scanError(poor, planetAt(6))).toBe('free');
+    expect(scanError(poor, planetAt(9, 'u_Bert'))).toBe('outOfRange');
+  });
+
+  it('starts exactly when the moon has a phalanx, the target is a foreign planet in range and the price is there (property)', () => {
+    fc.assert(
+      fc.property(
+        fc.constantFrom('planet' as const, 'moon' as const),
+        fc.integer({ min: 0, max: 4 }),
+        fc.constantFrom('planet' as const, 'moon' as const, 'debris' as const),
+        fc.integer({ min: 1, max: 30 }),
+        fc.constantFrom(undefined, 'u_Anna', 'u_Bert'),
+        fc.integer({ min: 0, max: 10000 }),
+        (kind, level, targetKind, s, owner, d) => {
+          const scanner = {
+            ...MOON,
+            kind,
+            b: { moonbase: 1, phalanx: level },
+            res: { m: 0, c: 0, d },
+          };
+          const target = {
+            place: { kind: targetKind, g: 1, s, p: 7 },
+            ...(owner === undefined ? {} : { owner }),
+          };
+          const ok =
+            kind === 'moon' &&
+            level > 0 &&
+            targetKind === 'planet' &&
+            Math.abs(s - MOON.s) <= level * level - 1 &&
+            owner === 'u_Bert' &&
+            d >= 5000;
+          expect(scanError(scanner, target) === null).toBe(ok);
+          if (scanReach(scanner, target) !== null)
+            expect(scanError(scanner, target)).toBe(scanReach(scanner, target));
+        },
+      ),
+    );
   });
 });
 
@@ -98,6 +261,29 @@ describe('what a scan shows', () => {
     expect(scanFlights([home, away], AT)).toEqual([
       { ships: { lc: 10, sc: 2 }, from: 'p1_9_3', to: AT, arr: 9000 },
       { ships: { lc: 10, sc: 2 }, from: AT, to: 'p1_9_3', arr: 9000 },
+    ]);
+  });
+
+  it('shows a recalled fleet from where it turned back, its target, arriving home', () => {
+    // Sent from the planet to p1_9_3 and recalled on the way: a fleet has no
+    // position between two places, so its leg starts at the target it
+    // turned away from.
+    const recalled = fleet({
+      from: AT,
+      to: 'p1_9_3',
+      state: 'back',
+      recalled: true,
+      ret: 6000,
+    });
+    expect(scanFlights([recalled], AT)).toEqual([
+      { ships: { lc: 10, sc: 2 }, from: 'p1_9_3', to: AT, arr: 6000 },
+    ]);
+  });
+
+  it('shows the gift of the Endzeit like any fleet, from and to the home planet', () => {
+    const gift = fleet({ from: AT, to: AT, gift: true, mission: 'deploy' });
+    expect(scanFlights([gift], AT)).toEqual([
+      { ships: { lc: 10, sc: 2 }, from: AT, to: AT, arr: 5000 },
     ]);
   });
 

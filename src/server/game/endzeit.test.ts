@@ -1,7 +1,12 @@
 // „Endzeit“ (#161): the admin's gift fleet, its flight and its arrival.
 import { describe, expect, it } from 'vitest';
 import { SHIPS } from '../../core/catalog.ts';
-import { giftCargo, giftLevels, giftShips } from '../../core/endzeit.ts';
+import {
+  giftCargo,
+  giftLevels,
+  giftShips,
+  standing,
+} from '../../core/endzeit.ts';
 import { DEFAULT_UNIVERSE } from '../../core/universe.ts';
 import type { Fleet } from '../../core/types.ts';
 import {
@@ -262,7 +267,15 @@ describe('the gift arrives', () => {
     expect(after.res.m).toBeGreaterThanOrEqual(1_000_000);
     expect(after.res.c).toBeGreaterThanOrEqual(1_000_000);
     expect(after.res.d).toBe(1_000_000);
-    expect(after.b).toEqual({ ...need.b, robot: 25, metal: 10 });
+    // The moon-only buildings (the Mondzitadelle the Auspex-Phalanx needs)
+    // do not stand on the home planet (#53, „Geklärt, Nachtrag 2“).
+    expect(need.b.moonbase).toBe(1);
+    expect(after.b).toEqual({
+      ...standing(need.b, 'planet'),
+      robot: 25,
+      metal: 10,
+    });
+    expect(after.b.moonbase).toBeUndefined();
     expect(after.b).toMatchObject({ yard: 20, lab: 20, nanite: 5 });
     expect(ctx.players.get('u_Anna')!.research).toEqual({
       ...need.r,
@@ -289,7 +302,9 @@ describe('the gift arrives', () => {
       { user: 'u_Anna', kind: 'messages', topic: 'fleet' },
     ]);
     // Bert's gift arrived at the same time.
-    expect(ctx.planets.home('u_Bert')!.b).toMatchObject(need.b);
+    expect(ctx.planets.home('u_Bert')!.b).toMatchObject(
+      standing(need.b, 'planet'),
+    );
   });
 
   it('counts the raised buildings and research in the points from the arrival', () => {
@@ -505,7 +520,7 @@ describe('the gift arrives', () => {
     const gift = { ...giftOf(ctx, 'u_Anna'), owner: 'u_Ghost' };
     const t = ctx.planets.home('u_Anna')!;
     giftArrive(ctx, gift, t);
-    expect(t.b).toMatchObject(giftLevels().b);
+    expect(t.b).toMatchObject(standing(giftLevels().b, 'planet'));
     expect(ctx.players.get('u_Anna')!.research).toEqual({});
     expect(ctx.fleets.get(gift.id)).toBeNull();
   });

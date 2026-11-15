@@ -23,6 +23,11 @@ export interface ActDeps {
   state: () => GameState | null;
   apply: (state: GameState) => void;
   toast: (msg: string, err?: boolean) => void;
+  /**
+   * The data an action answers besides its state (the scan of the
+   * Auspex-Phalanx, #53); given before the state, on the planet still shown.
+   */
+  answer?: (data: Record<string, unknown>) => void;
 }
 
 /**
@@ -61,6 +66,8 @@ export function createAct(deps: ActDeps): Sync {
         ...data,
       });
       const here = samePlace(deps.state(), before);
+      if (here && typeof j.data === 'object' && j.data !== null)
+        deps.answer?.(j.data as Record<string, unknown>);
       if (here) deps.apply(j.state as GameState);
       if (j.msg) deps.toast(String(j.msg));
       return here ? 'done' : 'stale';

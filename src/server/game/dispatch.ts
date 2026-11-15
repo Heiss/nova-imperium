@@ -15,6 +15,7 @@ import { tick } from './arrival.ts';
 import { type Ctx, fail } from './context.ts';
 import { requireGuilds } from './round.ts';
 import { recall, send } from './fleet-actions.ts';
+import { scan } from './phalanx.ts';
 import {
   assignGuildRank,
   createGuildRank,
@@ -72,6 +73,7 @@ export const ACTIONS: Record<string, A.Action> = {
   delall: A.delall,
   send,
   recall,
+  scan,
   settings: saveSettings,
   reset,
   endzeit,
@@ -92,7 +94,7 @@ export function runAction(
   uid: string,
   d: A.Data,
   event?: AuditEntry,
-): string | null {
+): string | null | A.Answer {
   const type = String(d.type);
   const fn = Object.hasOwn(ACTIONS, type)
     ? ACTIONS[type]!

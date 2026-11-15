@@ -64,7 +64,8 @@ model of places (#119, O11) and fields (#51, [Planet fields](/features/fields.md
 * **[E]** Names in the grimdark style of #127: Mondzitadelle, Auspex-Phalanx,
   Warp-Tor (owner, 2026-11-13).
 * **[V]** Short and long texts, abbreviations and art of the three buildings
-  and of the moon are proposed in the pull requests.
+  and of the moon are proposed in the pull requests (the Mondzitadelle and
+  the moon in the first, the Auspex-Phalanx in the second, below).
 
 ## Decided for the first pull request (moons and Mondzitadelle)
 
@@ -215,54 +216,123 @@ places (#119) and the fields (#51).
   a building and is raised as before. Without it the gift would raise the
   Mondzitadelle on the home planet once the Auspex-Phalanx requires
   Mondzitadelle 1.
+* **[E]** Auspex-Phalanx (owner, 2026-11-15, „Geklärt, Nachtrag 3“):
+  * the key is `phalanx`, ordered after `moonbase`;
+  * the range is level² − 1 systems, counted only in the scanner's own
+    galaxy as |s − s₀|, without a wrap around the end of the galaxy,
+    measured the same way as `distance()`;
+  * a free position is refused without charge; a planet without flights
+    costs 5,000 Promethium and shows an empty result;
+  * the scan is an action at a foreign planet row on the Sternenkarte,
+    offered when the active place is a moon with a phalanx and the planet is
+    in range; the result shows in a panel there;
+  * a scan shows for each fleet only its ships, origin, target and arrival:
+    no owner, mission, cargo or fuel.
+* **[E]** Fleets on their way (owner, 2026-11-15, „Geklärt, Nachtrag 4“):
+  a scan shows only each fleet's current leg. A fleet flying back shows the
+  leg from its target to its start, arriving at its return; a recalled
+  fleet shows from where it turned back; an outbound fleet shows only its
+  arrival at its target. The Endzeit gift (#161) shows like any other
+  fleet.
+* **[V]** Flights are sorted by arrival, the first first: not asked, taken
+  as recommended (owner, 2026-11-15, the rule of [Release
+  loop](/ops/loop.md) for a recommendation consistent with earlier
+  decisions; „Geklärt, Nachtrag 4“).
 
-## Built (second pull request, first part)
-
-Only what the owner decided; the building itself waits for the open points
-below.
+## Built (second pull request: Auspex-Phalanx)
 
 * Endzeit gift: `standing(levels, kind)` in `src/core/endzeit.ts` keeps the
   levels that `buildable` allows on the kind of place; `giftArrive` raises
   `standing(need.b, t.kind)` on the home planet, the research unchanged.
-  Tests: `src/core/endzeit.test.ts` (moon-only skipped on a planet,
-  planet-only skipped on a moon, a key without `placement` as a planet
-  building, a property over the catalog) and
-  `src/server/game/endzeit-placement.test.ts` (the arrival with gift levels
-  that name the Mondzitadelle: it is skipped, the other buildings and the
-  research are raised; failed before the change).
-* The decided rules of the phalanx in `src/core/phalanx.ts`, not yet used by
-  a building or an action: `phalanxRange(level)` level² − 1 systems (below 0
-  at level 0); `SCAN_COST` 5,000 Promethium; `scanRefusal(kind, owner,
-  scanner)` refuses a moon (`moon`), a Trümmerfeld (`notPlanet`) and an own
-  planet (`own`, the decided „foreign planet“); `scanFlights(fleets, id)`
-  every fleet of every player whose start or target is the planet, as the
-  leg it flies now (ships, origin, target, arrival), without cargo, owner,
-  mission and fuel; flights of the planet's moon are not the planet's.
-  Tests: `src/core/phalanx.test.ts` (unit and property).
-* **[V]** Proposals of this part, for the owner to confirm:
-  * a fleet flying back shows the leg from its target to its start with the
-    return as arrival, also after a recall; an outbound fleet shows only its
-    arrival at the target, not its return;
-  * the flights are listed by arrival, the first first;
-  * the gift of the Endzeit shows like any fleet, from and to the home
-    planet.
-
-## Open for the second pull request (owner)
-
-Asked with options and a recommendation in the report of the build; the
-Auspex-Phalanx as a building, its scan action, its interface, the E2E and
-axe tests wait for them.
-
-* The key of the building (and its place in the order after the
+  Since the phalanx requires Mondzitadelle 1, `giftLevels()` names
+  `moonbase`, and the gift skips it on the home planet. Tests:
+  `src/core/endzeit.test.ts` (moon-only skipped on a planet, planet-only
+  skipped on a moon, a key without `placement` as a planet building, a
+  property over the catalog), `src/server/game/endzeit-placement.test.ts`
+  (failed before the change) and `src/server/game/endzeit.test.ts` (the
+  arrival raises `standing(giftLevels().b, 'planet')`, without the
   Mondzitadelle).
-* Which galaxy and which systems count for the range (the same galaxy, a
-  wrap around the end of the galaxy).
-* What a scan of an empty position and of a planet without flights shows,
-  and whether it is charged.
-* The interface: where the scan starts, how the result is shown, its texts.
-* Whether a scan shows the mission and the owner of a flight, the return of
-  an outbound fleet, and how a recalled fleet and the Endzeit gift appear
-  (the [V] above).
+* Building: `src/features/phalanx/` (key `phalanx`, `order` 150, after the
+  Mondzitadelle at 140), `leveled` 20,000 / 40,000 / 20,000, factor 2,
+  `req: { b: { moonbase: 1 } }`, `placement: ['moon']`, no `fields`. The
+  build action, the requirements list and the buildings page treat it like
+  the Mondzitadelle through `buildable`.
+* Rules in `src/core/phalanx.ts` (patterns, section 7):
+  `phalanxRange(level)` level² − 1 (below 0 at level 0); `phalanxLevel(p)`
+  the building on a moon, 0 on a planet, the one place that reads the key;
+  `inPhalanxRange(at, target, level)` the same galaxy and |s − s₀| ≤ the
+  range; `SCAN_COST` 5,000 Promethium and `SCAN_PRICE` as a cost;
+  `scanRefusal(kind, owner, scanner)`; `scanReach(scanner, target)` the
+  error code without the price, in this order: `notMoon`, `noPhalanx`, a
+  moon or a Trümmerfeld (`moon`, `notPlanet`), `outOfRange`, `free`, `own`;
+  `scanError(scanner, target)` adds `cost` when the moon holds less than
+  5,000 Promethium; `scanFlights(fleets, id)` every fleet of every player
+  whose start or target is the planet, as the leg it flies now (ships,
+  origin, target, arrival), by arrival. A fleet has no position between two
+  places, so a recalled fleet flies from the target it turned away from
+  back to its start, arriving at its return, like any fleet flying back;
+  the gift flies from and to the home planet. Flights of the planet's moon
+  are not the planet's.
+* Server: the action `scan` in `ACTIONS` (`src/server/game/phalanx.ts`)
+  with `planet` (the active place) and `target` (a place id such as
+  `p1_2_3`); an id that is no place says „Unbekanntes Ziel.“. It runs
+  inside the transaction of `runAction`, after the due fleets: it checks
+  `scanError`, charges 5,000 Promethium on the moon and answers the flights
+  as `data.scan` (`by`, `target`, `flights`). An action may now answer
+  `{ msg, data }` (`Answer` and `answerOf` in `actions.ts`); `POST
+  /api/action` puts `data` beside `msg` and `state`, only when there is
+  data. The scanned player gets no report and no push; the audit event
+  `game` / `scan` names the moon, the target and the number of flights.
+* Interface: the Sternenkarte stays HTML. At a foreign planet row the button
+  „Phalanx-Scan“ (`aria-label` „Phalanx-Scan von <Name>“) appears when
+  `canScan` (`src/client/logic/phalanx.ts`, `scanReach` of the core) allows
+  it, also without the Promethium (the server names the price). The client
+  sends every action through `act()`, which now hands the answer's data to
+  `answer` before the state; `scanOf` reads the scan, and the panel
+  `scanPanel` (`src/client/views/galaxy.ts`) shows it above the table while
+  the moon it came from is the active place: the heading „Phalanx-Scan:
+  <Name> [g:s:p]“ (focused after the scan), a table „Schiffe“, „Herkunft“,
+  „Ziel“, „Ankunft“ (a countdown, as in the fleet list), a moon as
+  „[g:s:p] (Mond)“, „Keine Flüge erfasst.“ for an empty scan, and
+  „Schließen“, which puts the focus back on the scan button.
+* **[V]** Proposals of this pull request, taken as recommended (owner's
+  rule of 2026-11-15 in [Release loop](/ops/loop.md)), for the owner to
+  confirm:
+  * abbreviation `PX`; short text „Erfasst die Flüge fremder Planeten in
+    Reichweite. Steht nur auf einem Mond.“; long text „Die Auspex-Phalanx
+    lauscht mit einem Wald aus Antennen in die Leere und hört jeden Antrieb
+    zwischen den Welten. / So funktioniert es: Ein Scan vom Mond zeigt die
+    Flüge zu und von einem fremden Planeten derselben Galaxie; die
+    Reichweite wächst mit jeder Stufe. Jeder Scan kostet Promethium, der
+    Erfasste merkt nichts. Monde sind nicht zu erfassen.“ (the long texts
+    say no numbers, #94); art: the sensor phalanx of the interface v2 icon
+    set (`docs/design/interface-v2/icons/moon/sensor_phalanx.svg`), renamed
+    in `<title>` and `aria-label`; the classic name „Sensorphalanx“ joins
+    the naming test data;
+  * the short name „Phalanx-Scan“ of the action and the panel;
+  * the messages „Ein Phalanx-Scan ist nur von einem Mond aus möglich.“,
+    „Auf diesem Mond steht keine Auspex-Phalanx.“, „Das Ziel liegt
+    außerhalb der Reichweite der Auspex-Phalanx.“, „An dieser Position gibt
+    es keinen Planeten.“, „Monde lassen sich nicht erfassen.“, „Nur Planeten
+    lassen sich erfassen.“, „Eigene Planeten lassen sich nicht erfassen.“,
+    „Nicht genug Promethium für den Phalanx-Scan.“, „Unbekanntes Ziel.“;
+    the panel texts „Keine Flüge erfasst.“ and „Schließen“;
+  * the panel above the table of the systems, kept until „Schließen“, the
+    next scan or a change of the active place; the arrival as a countdown.
+* Tests: `src/core/phalanx.test.ts` (range over galaxies and systems
+  without wrap, the reach and the price, the legs of a returning, recalled
+  and gift fleet, with properties), `src/server/game/phalanx.test.ts` (the
+  action: flights by arrival, the charge also for an empty scan, every
+  refusal free, due fleets first, a recall, no report and no push, the
+  audit detail, the range as a property), `src/server/http/app.test.ts`
+  (`data` beside the state), `src/client/logic/phalanx.test.ts`,
+  `src/client/logic/act.test.ts` (`answer`), `src/client/views/galaxy.test.ts`
+  (button and panel), the catalog, naming, text, icon and key tests; E2E
+  `e2e/phalanx.spec.ts` (the building on the moon after the Mondzitadelle,
+  the scan of an empty planet for 5,000 Promethium, a flight from the moon
+  in the panel, „Schließen“ with the focus, the refusal without
+  Promethium, the panel on a phone with axe and the width check) with axe
+  on the panel.
 
 # Mission „Mondbruch“ (#95)
 

@@ -42,12 +42,29 @@ import type { User } from '../db/repos/players.ts';
 import { type Ctx, fail, fmt, int, str, universe } from './context.ts';
 
 export type Data = Record<string, unknown>;
+
+/**
+ * What an action answers besides its message: data the view shows, such as
+ * the flights of a scan of the Auspex-Phalanx (#53). The reply of the
+ * action carries it beside the new state.
+ */
+export interface Answer {
+  msg: string | null;
+  data: Data;
+}
+
 export type Action = (
   ctx: Ctx,
   u: User,
   d: Data,
   event?: AuditEntry,
-) => string | null;
+) => string | null | Answer;
+
+/** The message and the data of what an action answered. */
+export const answerOf = (
+  result: string | null | Answer,
+): { msg: string | null; data?: Data } =>
+  result !== null && typeof result === 'object' ? result : { msg: result };
 
 const MAX_SHIPYARD_ORDERS = 20;
 

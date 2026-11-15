@@ -176,8 +176,12 @@ test.describe('moons (#53)', () => {
       /^Psikristall-Reliquiar/,
       /^Promethium-Zisterne/,
       /^Mondzitadelle/,
+      /^Auspex-Phalanx/,
     ]);
-    const citadel = page.locator('.item', { hasText: 'Mondzitadelle' });
+    // By its name: the Auspex-Phalanx names the Mondzitadelle as its requirement.
+    const citadel = page
+      .locator('.item')
+      .filter({ has: page.locator('.nm', { hasText: /^Mondzitadelle/ }) });
     await expect(citadel).toContainText('20.000');
     await expect(citadel).toContainText('40.000');
     await citadel.getByRole('button', { name: 'Bauen' }).click();
