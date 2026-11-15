@@ -126,6 +126,13 @@ tasks).
 * **[E]** The rules of the project stay as they are: ask instead of
   assuming, 3 to 5 options per decision, merges under O4, never a merge of a
   release pull request.
+* **[E]** Fewer questions (owner, 2026-11-15): where a recommendation is
+  consistent with the owner's earlier decisions, take it without asking,
+  record it as [V] with „taken as recommended“ and list it in the
+  `Geklärt` comment; the owner adjusts it while testing. Ask, with 3 to 5
+  options, only when unsure: no recommendation is clearly best, it is not
+  consistent with an earlier decision, it changes a rule of the project,
+  or it concerns security, data loss or game values that no source gives.
 * **[E]** Up to two own pull requests may be open at a time; subagents build
   issues that don't depend on each other in their own git worktrees, Claude
   reviews each diff and opens, finishes and merges the pull requests itself

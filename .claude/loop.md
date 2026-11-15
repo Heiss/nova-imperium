@@ -89,8 +89,10 @@ interface is German.
      `in discussion`). Wait for the answer; never pick on your own.
 4. **Clarify the next open issue** with the label `ready` (infrastructure first,
    then the lowest number) while it has no comment that starts with
-   `Geklärt`. Do not start while anything is unclear: ask the owner with 3
-   to 5 options per decision, mark your recommendation, red-team it first.
+   `Geklärt`. Do not start while anything is unclear. Red-team your
+   recommendation first; take it as [V] without asking where it is
+   consistent with earlier decisions, and ask the owner with 3 to 5 options
+   only when unsure (owner, 2026-11-15, `okf/ops/loop.md`).
    Record the decisions in the OKF bundle (E, V, U), then write one comment
    on the issue that starts with `Geklärt` and lists the decisions with a
    link to the OKF concept. That comment ends this step for the issue.
