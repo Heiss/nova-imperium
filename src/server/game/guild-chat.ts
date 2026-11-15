@@ -37,8 +37,11 @@ function chatText(value: unknown): string {
   return text;
 }
 
-/** The members of a guild, by id. */
-function membersOf(guild: Guild, players: GuildPlayer[]) {
+/** The members of a guild, by id; an anonymous author (null) is none of them. */
+function membersOf(
+  guild: Guild,
+  players: GuildPlayer[],
+): Map<string | null, GuildPlayer> {
   return new Map(
     players
       .filter((p) => p.guild_id === guild.id && p.status === 'member')
@@ -69,8 +72,8 @@ export const sendGuildChat: Action = (ctx, user, d) => {
   need(a, 'chat-write');
   const text = chatText(d.text);
   const now = ctx.now();
-  const last = ctx.guilds.lastChat(user.id);
-  if (last !== undefined && now - last < CHAT_INTERVAL)
+  const last = ctx.guilds.lastChat(user.id) ?? -Infinity;
+  if (now - last < CHAT_INTERVAL)
     fail('Bitte warte kurz vor der nächsten Nachricht.');
   notify(
     ctx,
@@ -80,23 +83,23 @@ export const sendGuildChat: Action = (ctx, user, d) => {
   return null;
 };
 
-/** The place of a message's author: a former member or a deleted account stands lowest. */
+/**
+ * The place of a message's author: the position of its rank (the Leitung
+ * holds the rank at 0); a former member, a deleted account and a member
+ * without a known rank stand lowest.
+ */
 function authorPlace(
   a: Actor,
-  members: Map<string, GuildPlayer>,
+  members: Map<string | null, GuildPlayer>,
   author: string | null,
 ): number {
-  const p = author === null ? undefined : members.get(author);
-  if (!p) return Infinity;
-  return memberPlace(
-    p.id === a.guild.founder,
-    a.ranks.find((r) => r.id === p.rank_id)?.position,
-  );
+  const rank = members.get(author)?.rank_id;
+  return memberPlace(false, a.ranks.find((r) => r.id === rank)?.position);
 }
 
 const deletable = (
   a: Actor,
-  members: Map<string, GuildPlayer>,
+  members: Map<string | null, GuildPlayer>,
   m: ChatMessage,
 ): boolean =>
   canDeleteChat(
@@ -118,8 +121,10 @@ export const deleteGuildChat: Action = (ctx, user, d) => {
 };
 
 /** The name of the author while a member of the guild, else none: „ehemaliges Mitglied“ (D7). */
-const nameOf = (members: Map<string, GuildPlayer>, author: string | null) =>
-  (author === null ? undefined : members.get(author)?.name) ?? null;
+const nameOf = (
+  members: Map<string | null, GuildPlayer>,
+  author: string | null,
+) => members.get(author)?.name ?? null;
 
 /**
  * The chat for a member of the guild: the messages only with „Chat lesen“,

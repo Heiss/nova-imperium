@@ -326,6 +326,42 @@ describe('leaving and deleted accounts (#169, D7)', () => {
     expect(guildState(s.ctx, 'u_Bo', {}).chat).toBeNull();
   });
 
+  it('names an author who joined another guild or applies again only once a member again', () => {
+    const s = setup();
+    s.say('Bo', 'von Bo');
+    s.say('Cy', 'von Cy');
+    s.run('Bo', { type: 'leaveGuild' });
+    s.run('Bo', { type: 'applyToGuild', id: s.id });
+    s.run('Cy', { type: 'leaveGuild' });
+    s.run('Cy', { type: 'applyToGuild', id: s.other });
+    s.run('Out', { type: 'reviewGuildApplication', uid: 'u_Cy', accept: true });
+    expect(s.chat()!.map((m) => m.name)).toEqual([null, null]);
+    // Neither the applicant nor the member of the other guild gets a push.
+    subscribePush(s.ctx, 'u_Bo');
+    subscribePush(s.ctx, 'u_Cy');
+    s.say('Lea', 'Hallo');
+    expect(queuedPushes(s.ctx)).toEqual([]);
+    s.run('Lea', { type: 'reviewGuildApplication', uid: 'u_Bo', accept: true });
+    expect(s.chat()!.map((m) => m.name)).toEqual(['Bo', null, 'Lea']);
+  });
+
+  it('treats a member whose rank is unknown as lowest, without rights', () => {
+    const s = setup();
+    s.officer(['chat-read', 'chat-delete'], 'Ada', 'Moderator');
+    s.say('Bo', 'von Bo');
+    s.ctx.db.exec(
+      "UPDATE guild_members SET rank_id = NULL WHERE user_id = 'u_Bo'",
+    );
+    subscribePush(s.ctx, 'u_Bo');
+    s.say('Lea', 'Hallo');
+    expect(queuedPushes(s.ctx)).toEqual([]);
+    expect(s.chat('Ada')!.map((m) => [m.name, m.delete])).toEqual([
+      ['Bo', true],
+      ['Lea', false],
+    ]);
+    expect(s.remove('Ada', 'von Bo')).toBe('Nachricht gelöscht.');
+  });
+
   it('shows the current name of a member', () => {
     const s = setup();
     s.say('Ada', 'Hallo');
@@ -404,6 +440,15 @@ describe('push of a chat message (#169 D5, #192)', () => {
     // A refused message pushes nothing.
     expect(() => s.say('Cy', 'Hallo')).toThrow(NO_RIGHT);
     expect(queuedPushes(s.ctx)).toHaveLength(2);
+    // Each message has a push of its own.
+    s.say('Ada', 'Noch etwas');
+    expect(queuedPushes(s.ctx)).toHaveLength(4);
+    expect(
+      s.ctx.db
+        .prepare('SELECT DISTINCT event_key FROM push_jobs ORDER BY 1')
+        .pluck()
+        .all(),
+    ).toEqual(s.ctx.guilds.chat(s.id).map((m) => `chat${m.id}`));
   });
 
   it('is delivered with the name of the kind and opens the guilds; a player who switched it off gets none', async () => {
