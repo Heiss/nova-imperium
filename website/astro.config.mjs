@@ -9,7 +9,7 @@ import { defineConfig } from 'astro/config';
 import mermaid from 'astro-mermaid';
 import starlightLinksValidator from 'starlight-links-validator';
 import { novaMarkdown } from './lib/markdown.mjs';
-import { BASE, GITHUB, REPO_ROOT, SITE } from './lib/pages.mjs';
+import { BASE, GITHUB, LOG_DIR, REPO_ROOT, SITE } from './lib/pages.mjs';
 
 /** Names of the folders of the OKF bundle in the sidebar. */
 const OKF_GROUPS = {
@@ -20,15 +20,19 @@ const OKF_GROUPS = {
   ops: 'Operations and process',
 };
 
-/** The Decisions section: the top-level concepts, then one group per folder. */
+/**
+ * The Decisions section: the top-level concepts, then one group per folder.
+ * The folder of the update log is one page among the concepts (#212).
+ */
 function decisionsSidebar() {
   const okf = path.join(REPO_ROOT, 'okf');
+  const log = path.basename(LOG_DIR);
   const entries = readdirSync(okf).sort();
   const pages = entries
-    .filter((f) => f.endsWith('.md') && f !== 'index.md')
-    .map((f) => `decisions/${f.slice(0, -3)}`);
+    .filter((f) => (f.endsWith('.md') && f !== 'index.md') || f === log)
+    .map((f) => `decisions/${f.replace(/\.md$/, '')}`);
   const groups = entries
-    .filter((f) => statSync(path.join(okf, f)).isDirectory())
+    .filter((f) => f !== log && statSync(path.join(okf, f)).isDirectory())
     .map((dir) => ({
       label: OKF_GROUPS[dir] ?? dir[0].toUpperCase() + dir.slice(1),
       collapsed: true,

@@ -12,7 +12,10 @@ needs.
 - Open points: `okf/open-points.md`
 - Rules of development (tests, gates, language): `okf/ops/`
 - Release loop for `/loop`: `.claude/loop.md` (`okf/ops/loop.md`)
+- Update log: one new file per entry, `okf/log/<date>-<short-name>.md`
+  (`okf/ops/website.md`)
 
-Rules: do not invent anything, ask the owner about open points and offer 3 to
-5 options per decision. Development is in English, the game interface is
+Rules: do not invent anything. Take a recommendation that is consistent with
+the owner's earlier decisions as [V]; ask with 3 to 5 options only when
+unsure (`okf/ops/loop.md`). Development is in English, the game interface is
 German. A pull request goes to review only with a green CI Gate.

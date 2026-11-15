@@ -80,3 +80,91 @@ automation fits together.
   after every push to `main` (environment `github-pages`, one deployment at
   a time).
 * Task of the owner: Settings → Pages → Source „GitHub Actions“.
+
+# Update log, one file per entry (#212)
+
+Almost every pull request conflicted at the top of the single file
+`okf/log.md`, and each resolution was a new push with a CI run of 30 to 40
+minutes (on 2026-11-14 in #197, #205, #206, #207 and #209).
+
+* **[E]** Every entry is its own file `okf/log/<date>-<short-name>.md`, for
+  example `okf/log/2026-11-14-guild-ranks.md` (owner, 2026-11-15, D1). A
+  pull request adds a new file and never changes another entry, so two pull
+  requests that each add an entry merge without a conflict. When two entries
+  of one day would get the same name, the short name is made more specific.
+* **[E]** The entries of `okf/log.md` were split into files once, in the
+  pull request of #212 (owner, 2026-11-15, D2): 136 entries before, 136
+  files after, every date, kind and text unchanged; the two entries #210
+  added to `okf/log.md` on `main` meanwhile became files too when `main`
+  was merged.
+* **[E]** The website builds the log page from the folder, and
+  `okf/log.md` is removed (owner, 2026-11-15, D3). The page keeps its URL
+  (`/decisions/log/`, raw `/decisions/log.md`) and its anchors (one heading
+  per date, `#2026-11-14`); links within the bundle point to the folder,
+  `/log/`.
+* **[E]** The front matter of an entry, one `key: value` per line, as
+  built: `type`, `date`, `kind` and `issues` (owner, 2026-11-15, O15):
+
+  ```markdown
+  ---
+  type: log-entry
+  date: 2026-11-15T00:30
+  kind: Code
+  issues: [163, 45]
+  ---
+
+  #163 built with the owner's decisions of 2026-11-13: …
+  ```
+
+  `type` is always `log-entry`; `date` is the date of the name, with a UTC
+  time `THH:MM` for new entries (below); `kind` is
+  one of the kinds the log used before the split: `Decision`,
+  `Decision and code`, `Code`, `Feature`, `Fix`, `Update`, `Docs`;
+  `issues` lists every `#N` the text names, issues and pull requests, in
+  the order of the text, and is left out when it names none (owner,
+  2026-11-15, O15; an HTML entity such as `&#39;` is no `#N`). The text is
+  one
+  paragraph and keeps the wording of the old line after „**Kind**: “; a
+  text that starts with a parenthesis follows the kind directly
+  (`* **Fix** (found while porting): …`).
+* **[E]** New entries carry a UTC time in `date`, for example
+  `date: 2026-11-15T00:30`, and the page lists a day's entries newest
+  first (owner, 2026-11-15, O15). The entries before keep the date only:
+  within a day the entries with a time come first, the newest first, then
+  those without a time by file name (so 130 of the 136 split entries stand
+  at another place within their day than in `okf/log.md`). The check takes
+  `YYYY-MM-DD` or `YYYY-MM-DDTHH:MM`, the date part equal to the date of
+  the name. **[V]** The time is required from 2026-11-15 on, the day of
+  the decision; the page shows the date headings, not the times.
+* **[E]** OKF conformance (`SPEC.md` §2 and §9 of the OKF specification,
+  read by the coordinator on 2026-11-15): `log.md` is an optional reserved
+  file, so a bundle without it conforms; every other `.md` file is a
+  concept document that needs a non-empty `type`, which every entry has
+  (`log-entry`).
+* **[E]** A check refuses an entry without a valid date or a known kind, a
+  name that is not `<date>-<short-name>.md`, and a front matter
+  `description` that contains „: “ (owner, 2026-11-15, #212), a `date`
+  other than the one of the name and, from 2026-11-15 on, a `date` without
+  a time (O15). **[V]** It also refuses a `type` other than `log-entry`, a
+  front matter line that is not `key: value` or a key given
+  twice, `issues` that are not a list of numbers, an empty text, any other
+  file in `okf/log/` and a file `okf/log.md` that comes back (D3).
+
+# Code (#212)
+
+* `scripts/okf-log.ts` reads, checks and renders the entries
+  (`parseEntry`, `checkLog`, `readLog`, `ordered`, `logMarkdown`); its
+  tests are `src/test/okf-log.test.ts`, one of them checks every entry of
+  `okf/log/`, so `pnpm check` and the CI job „Lint, types, unit tests with
+  coverage, build“ refuse a malformed entry. `node scripts/okf-log.ts
+  check` runs the same check as a step of the CI job „Documentation
+  website“, which runs for every change of `okf/` and of
+  `scripts/okf-log.ts`, so a pull request that changes only the OKF bundle
+  is checked too.
+* The website reads the folder through the same code (`website/lib/log.mjs`
+  imports `scripts/okf-log.ts`): `scripts/sync-content.mjs` writes the page
+  `decisions/log` with the source `okf/log`, the raw Markdown comes from
+  the same text, every entry file and the folder resolve to that page in
+  `website/lib/pages.mjs`, and the sidebar lists the page among the
+  top-level concepts. A malformed entry also stops the build. Tests in
+  `website/test/log.test.mjs`.

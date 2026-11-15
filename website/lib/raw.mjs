@@ -1,11 +1,9 @@
 // The raw Markdown of a page, as it is in the repository, with its links
 // pointing to the raw Markdown of the other pages (or to GitHub), so that an
 // agent can follow them. Only the URLs change; every other byte stays.
-import { readFileSync } from 'node:fs';
-import path from 'node:path';
 import { fromMarkdown } from 'mdast-util-from-markdown';
 import { imageDefinition, imageReferences, resolveLink } from './links.mjs';
-import { REPO_ROOT } from './pages.mjs';
+import { sourceText } from './log.mjs';
 
 const LINKS = new Set(['link', 'image', 'definition']);
 
@@ -77,7 +75,10 @@ export function rewriteRaw(text, source) {
   return out;
 }
 
-/** The Markdown of a repository file with its links rewritten for raw use. */
+/**
+ * The Markdown of a page with its links rewritten for raw use: a repository
+ * file, or the update log built from okf/log/ (lib/log.mjs).
+ */
 export function rawMarkdown(source) {
-  return rewriteRaw(readFileSync(path.join(REPO_ROOT, source), 'utf8'), source);
+  return rewriteRaw(sourceText(source), source);
 }
