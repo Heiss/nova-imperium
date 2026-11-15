@@ -750,6 +750,17 @@ textarea:focus-visible {
 .moon-btn[aria-expanded='true'] {
   border-color: var(--gold);
 }
+/* The panel of a scan of the Auspex-Phalanx (#53) on the Sternenkarte. */
+.scan-panel {
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.scan-panel h3 {
+  margin: 0 0 8px;
+}
+.scan td {
+  overflow-wrap: anywhere;
+}
 .moon-big {
   display: block;
   flex: none;

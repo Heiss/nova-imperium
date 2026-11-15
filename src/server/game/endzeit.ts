@@ -10,6 +10,7 @@ import {
   giftShips,
   overtaken,
   raise,
+  standing,
 } from '../../core/endzeit.ts';
 import { refund } from '../../core/economy.ts';
 import { settle, settleR } from '../../core/settle.ts';
@@ -165,9 +166,13 @@ function raiseResearch(
   ctx.players.save(owner);
 }
 
-/** Raises the buildings of the home planet; an overtaken build is refunded. */
+/**
+ * Raises the buildings of the home planet that may stand there (#53,
+ * „Geklärt, Nachtrag 2“): moon-only buildings are skipped. An overtaken
+ * build is refunded.
+ */
 function raiseBuildings(ctx: Ctx, t: Planet, need: Levels): void {
-  t.b = raise(t.b, need);
+  t.b = raise(t.b, standing(need, t.kind));
   if (!overtaken(t.bq, t.b)) return;
   refund(t, t.bq!.cost);
   cancelScheduledPush(ctx, t.owner, 'buildings', `${t.id}:${t.bq!.start}`);
