@@ -1,5 +1,5 @@
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import {
   cli,
   galaxyRow,
@@ -14,6 +14,8 @@ import {
 // finds a part of the problems only: it does not replace a look with a screen
 // reader and the keyboard.
 const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
+
+const lastToast = (page: Page): Locator => page.locator('.toast').last();
 
 async function violations(page: Page): Promise<string[]> {
   const results = await new AxeBuilder({ page }).withTags(TAGS).analyze();
@@ -223,7 +225,7 @@ test.describe('accessibility (axe)', () => {
       .getByLabel('Erklärungstexte')
       .selectOption({ label: 'Immer anzeigen' });
     await page.click('[data-act=saveopt]');
-    await expect(page.locator('.toast').last()).toContainText('Gespeichert.');
+    await expect(lastToast(page)).toContainText('Gespeichert.');
     await check('help');
     for (const view of ['buildings', 'research'] as const) {
       await nav(page, view);
@@ -291,7 +293,7 @@ test.describe('accessibility (axe)', () => {
     await expect(box).toBeChecked();
     found.push(...(await violations(page)).map((v) => `on: ${v}`));
     await box.uncheck();
-    await expect(page.locator('.toast').last()).toContainText('Gespeichert.');
+    await expect(lastToast(page)).toContainText('Gespeichert.');
     await expect(box).not.toBeChecked();
     found.push(...(await violations(page)).map((v) => `off: ${v}`));
     expect(found).toEqual([]);
@@ -446,6 +448,9 @@ test.describe('accessibility (axe)', () => {
     await check(page, 'Leitung with „Löschen“');
     other.once('dialog', (d) => void d.accept());
     await other.getByRole('button', { name: 'Gilde verlassen' }).click();
+    // The leave is in before the Leitung's page loads again (CodeRabbit on
+    // #216).
+    await expect(lastToast(other)).toContainText('Gilde verlassen.');
     await page.reload();
     await expect(page.getByRole('log', { name: 'Chat' })).toContainText(
       'ehemaliges Mitglied',

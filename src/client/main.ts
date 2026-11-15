@@ -11,6 +11,7 @@ import type { Levels, Planet, Queue } from '../core/types.ts';
 import { placeName } from '../core/moon.ts';
 import { createAct, placeOf, samePlace } from './logic/act.ts';
 import { CATALOG_VIEWS, catalogKind } from './logic/catalog-list.ts';
+import { clearsChat, sameSignIn } from './logic/guild-chat.ts';
 import { debrisAt, debrisTip } from './logic/debris.ts';
 import { moonAt, moonTarget, ownPlaces } from './logic/moon.ts';
 import { clampInt, coords, dt, dur, esc, fmt } from './logic/format.ts';
@@ -1618,18 +1619,31 @@ async function submitDissolve(): Promise<void> {
   }
 }
 
-/** The guild chat (#169): the text field empties once the message is in. */
+/**
+ * The guild chat (#169): the text field empties once the message is in,
+ * unless a new draft was typed meanwhile (CodeRabbit on #216).
+ */
 async function submitChat(): Promise<void> {
-  if (await act('sendGuildChat', { text: val('#chat_text') })) {
+  const text = val('#chat_text');
+  if (
+    (await act('sendGuildChat', { text })) &&
+    clearsChat(text, $<HTMLInputElement>('#chat_text')?.value)
+  ) {
     setInput('#chat_text', '');
     $<HTMLInputElement>('#chat_text')?.focus();
   }
 }
 
-/** The admin opens the chat of a guild; the server records it (#169, D8). */
+/**
+ * The admin opens the chat of a guild; the server records it (#169, D8). An
+ * answer that comes in after a logout, or with another account signed in,
+ * opens nothing (CodeRabbit on #216).
+ */
 async function openAdminChat(guild: string): Promise<void> {
+  const admin = client.game?.me.id;
   try {
     const read = await api('/api/admin/guild-chat', { guild });
+    if (!sameSignIn(client.game, admin)) return;
     modal(
       adminChatDialog(read as unknown as Parameters<typeof adminChatDialog>[0]),
     );

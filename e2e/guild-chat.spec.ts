@@ -5,7 +5,9 @@
 // admin reads the chat with an entry in the audit log. The server writes
 // events (joining, a new rank, an attack at its launch, removal), the box
 // says that the game master reads it, and „Gilden“ has a red mark for news
-// until the member opens its guild (owner, 2026-11-15). Desktop and phone.
+// until the member opens its guild (owner, 2026-11-15). An answer that comes
+// in late keeps a new draft and opens no chat after the admin's logout
+// (CodeRabbit on #216). Desktop and phone.
 import {
   expect,
   test,
@@ -49,6 +51,39 @@ async function action(page: Page, data: object): Promise<string | undefined> {
     });
     return ((await r.json()) as { error?: string }).error;
   }, data);
+}
+
+/**
+ * Holds the answer of a request: the server has answered once `answered`
+ * resolves, and the page gets the answer only after `release` (CodeRabbit on
+ * #216: what the page does with an answer that comes in late).
+ */
+async function hold(
+  page: Page,
+  url: string,
+  type?: string,
+): Promise<{ answered: Promise<void>; release: () => Promise<void> }> {
+  let open!: () => void;
+  const gate = new Promise<void>((resolve) => (open = resolve));
+  let answer!: () => void;
+  const answered = new Promise<void>((resolve) => (answer = resolve));
+  await page.route(url, async (route) => {
+    const body = route.request().postDataJSON() as { type?: string } | null;
+    if (type && body?.type !== type) return route.fallback();
+    const response = await route.fetch();
+    answer();
+    await gate;
+    await route.fulfill({ response });
+  });
+  return {
+    answered,
+    release: async () => {
+      const late = page.waitForResponse(url);
+      open();
+      await late;
+      await page.unroute(url);
+    },
+  };
 }
 
 async function send(page: Page, text: string): Promise<void> {
@@ -234,7 +269,15 @@ async function rightsFlow(page: Page, browser: Browser): Promise<void> {
 /** The admin reads the chat of a guild it is not in; the audit log records it. */
 async function adminFlow(page: Page, browser: Browser): Promise<void> {
   const g = await guild(page, browser);
+  // A draft typed while the message is on its way stays in the field.
+  const field = g.lead.getByLabel('Nachricht', { exact: true });
+  const sending = await hold(g.lead, '**/api/action', 'sendGuildChat');
   await send(g.lead, `Interna ${g.tag}`);
+  await sending.answered;
+  await field.fill('Noch ein Entwurf');
+  await sending.release();
+  await expect(log(g.lead)).toContainText(`Interna ${g.tag}`);
+  await expect(field).toHaveValue('Noch ein Entwurf');
   const admin = await browser.newPage();
   g.problems.push(watch(admin));
   const name = uniqueName('Aufsicht');
@@ -284,6 +327,16 @@ async function adminFlow(page: Page, browser: Browser): Promise<void> {
       }),
     ]),
   );
+  // An answer that comes in after the logout opens no chat on the login.
+  const reading = await hold(admin, '**/api/admin/guild-chat');
+  await admin.getByRole('button', { name: 'Chat lesen' }).click();
+  await reading.answered;
+  await admin.click('[data-act=logout]');
+  await expect(admin.locator('#a_name')).toBeVisible();
+  await reading.release();
+  await admin.waitForTimeout(300);
+  await expect(dialog).toBeHidden();
+  await expect(admin.getByText(`Interna ${g.tag}`)).toHaveCount(0);
   cli('unadmin', name);
   await admin.close();
   await g.member.close();

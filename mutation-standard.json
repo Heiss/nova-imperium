@@ -29,6 +29,7 @@
     "src/client/logic/error-report.ts": 98.83,
     "src/client/logic/format.ts": 98.63,
     "src/client/logic/game.ts": 97.58,
+    "src/client/logic/guild-chat.ts": 100,
     "src/client/logic/icons.ts": 100,
     "src/client/logic/maintenance.ts": 96.29,
     "src/client/logic/menu-hints.ts": 85.71,
