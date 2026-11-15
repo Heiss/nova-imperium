@@ -475,6 +475,14 @@ choice of the patterns to the assistant's recommendation below
   Every check of an action is a pure function in `src/core` that returns an
   error code; server and browser turn it into the German message (as
   `yard.ts`, `lab.ts` already do).
+* **[E]** Audited with #214 on 2026-11-15:
+  [Checks of the server actions](/architecture/action-checks.md) lists the
+  33 actions of `ACTIONS` with where their checks live, what the browser
+  repeats and whether the messages match. 7 follow this section, 13 are
+  split between `src/core` and the server, 13 check inline only; 17
+  findings where browser and server disagree. **[V]** The follow-up pull
+  requests, one per group (economy, fleet, rewards, admin, player, guild),
+  are planned there.
 
 ## 8. Store: a repository per aggregate
 
