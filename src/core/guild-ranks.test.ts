@@ -8,6 +8,7 @@ import {
   GUILD_RIGHTS,
   isBelow,
   isGuildRight,
+  MEMBER_RIGHTS,
   memberPlace,
   missingRights,
   rankNameError,
@@ -20,17 +21,35 @@ import {
 const ALL: GuildRight[] = [...GUILD_RIGHTS];
 
 describe('rights', () => {
-  it('knows the five rights and nothing else', () => {
+  it('knows the eight rights and nothing else', () => {
     expect(GUILD_RIGHTS).toEqual([
       'applications',
       'remove',
       'assign',
       'profile',
       'ranks',
+      // The guild chat (#169, D2).
+      'chat-read',
+      'chat-write',
+      'chat-delete',
     ]);
     for (const r of GUILD_RIGHTS) expect(isGuildRight(r)).toBe(true);
-    for (const v of ['dissolve', 'transfer', '', null, undefined, 1])
+    for (const v of [
+      'dissolve',
+      'transfer',
+      'chat',
+      'report',
+      '',
+      null,
+      undefined,
+      1,
+    ])
       expect(isGuildRight(v)).toBe(false);
+  });
+
+  it('gives the first default rank reading and writing in the chat (#169, D2)', () => {
+    expect(MEMBER_RIGHTS).toEqual(['chat-read', 'chat-write']);
+    expect(MEMBER_RIGHTS.every(isGuildRight)).toBe(true);
   });
 
   it('finds the rights a holder lacks', () => {

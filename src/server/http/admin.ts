@@ -5,6 +5,7 @@ import { errorPage } from '../error-log.ts';
 import { announce, requireAdmin } from '../game/admin.ts';
 import { type Ctx, fail, str } from '../game/context.ts';
 import { orders, playerDetail, playerStats } from '../game/diagnostics.ts';
+import { adminGuildChat } from '../game/guild-chat.ts';
 import { moderate } from '../game/moderation.ts';
 import { createMoon } from '../game/moons.ts';
 import { stateFor } from '../game/state.ts';
@@ -86,6 +87,12 @@ function diagnosticRoutes(ctx: Ctx, read: Read): Record<string, Handler> {
       entry.target = str(body.player, 40);
       if (!ctx.players.get(entry.target)) fail('Spieler nicht gefunden.');
       return playerDetail(ctx, entry.target);
+    }),
+    // Admins read every guild chat; each opening is an entry (#169, D8).
+    'POST /api/admin/guild-chat': read('guildChat', (entry, { body }) => {
+      const guild = str(body.guild, 32);
+      entry.detail = { guild };
+      return adminGuildChat(ctx, guild);
     }),
   };
 }

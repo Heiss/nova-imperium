@@ -1,6 +1,11 @@
 // The push kinds in „Hilfe & Optionen“ (issue #192): one checkbox per kind,
 // for all devices of the account. A change saves at once.
-import { isPushTopic, PUSH_TOPICS, type PushTopic } from '../../core/push.ts';
+import {
+  GUILD_PUSH_TOPICS,
+  isPushTopic,
+  PUSH_TOPICS,
+  type PushTopic,
+} from '../../core/push.ts';
 
 /** The names of the kinds ([E], owner, 2026-11-14). */
 const LABELS: Record<PushTopic, string> = {
@@ -19,9 +24,19 @@ const LABELS: Record<PushTopic, string> = {
 
 const inputId = (t: PushTopic): string => `push_${t}`;
 
-/** One checkbox per kind; a kind is on unless the player switched it off. */
-function pushOptionsHTML(off: readonly string[] | undefined): string {
-  const boxes = PUSH_TOPICS.map(
+/**
+ * One checkbox per kind; a kind is on unless the player switched it off.
+ * The kinds of the guild chat are hidden while guilds are off (owner,
+ * 2026-11-15); their stored choice stays.
+ */
+function pushOptionsHTML(
+  off: readonly string[] | undefined,
+  guilds: boolean,
+): string {
+  const shown = guilds
+    ? PUSH_TOPICS
+    : PUSH_TOPICS.filter((t) => !GUILD_PUSH_TOPICS.includes(t));
+  const boxes = shown.map(
     (t) =>
       `<label class="switch"><input type="checkbox" id="${inputId(t)}" data-chg="push" data-k="${t}"${off?.includes(t) ? '' : ' checked'}> ${LABELS[t]}</label>`,
   );
@@ -35,9 +50,10 @@ function pushOptionsHTML(off: readonly string[] | undefined): string {
 export const pushKindsHTML = (
   webPush: boolean | undefined,
   off: readonly string[] | undefined,
+  guilds: boolean,
 ): string =>
   webPush === true
-    ? `<p>Gilt für alle deine Geräte mit aktivierten Browser-Benachrichtigungen. Eine Änderung wird sofort gespeichert.</p>${pushOptionsHTML(off)}`
+    ? `<p>Gilt für alle deine Geräte mit aktivierten Browser-Benachrichtigungen. Eine Änderung wird sofort gespeichert.</p>${pushOptionsHTML(off, guilds)}`
     : '';
 
 /** Where the player's latest choice waits until the server has it. */

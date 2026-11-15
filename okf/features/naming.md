@@ -182,8 +182,11 @@ stored mission ids stay.
     player), „Spionageabwehr“ → „Auspex-Abwehr“ (report texts). Account
     deletion (`delete-account.ts`) matches both titles, so reports stored
     before the rename still go with the account; a test with an old-title
-    report proves it. This is the only classic word the naming test allows
-    (`ALLOWED` in `src/test/naming.test.ts`).
+    report proves it. Besides it, the naming test allows (`ALLOWED` in
+    `src/test/naming.test.ts`) only „Angriff auf“ in `core/guild-chat.ts`:
+    the owner's own text of the attack event of the guild chat, „⚔ Angriff
+    auf [1:27:11] (Vex → Lea), Ankunft 20:15“ (owner, 2026-11-15, #169;
+    open as [O16](/open-points.md), as it is a classic word of the table).
 * **[E]** „Trümmerfeld“ replaces „Wrackfeld“ of the table above: the owner
   chose it for #45 (2026-11-13, confirmed 2026-11-14,
   [Trümmerfelder](/features/debris.md)), so the naming test no longer

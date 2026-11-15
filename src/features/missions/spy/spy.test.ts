@@ -62,6 +62,7 @@ describe('spy', () => {
       returns: true,
       visible: false,
       silent: true,
+      alertsGuild: false,
     });
   });
 

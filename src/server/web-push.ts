@@ -15,6 +15,8 @@ const TITLES: Record<PushKind, string> = {
   shipyard: 'Auftrag der Schiffsschmiede abgeschlossen',
   fleet: 'Flottenereignis',
   messages: 'Neue Nachricht',
+  // The guild chat of #169 (owner, 2026-11-15); its pushes name their text.
+  guilds: 'Neue Nachricht im Gilden-Chat',
 };
 const TTL = 3600;
 const MAX_ATTEMPTS = 4;

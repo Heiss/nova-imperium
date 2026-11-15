@@ -6,7 +6,7 @@
 /**
  * The kinds, in the order of the options, taken from every place that sends
  * a push ([E], owner, 2026-11-14, #192). `guild-events` and `guild-chat` belong to
- * the guild chat (#169); nothing sends them yet.
+ * the guild chat (#169).
  */
 export const PUSH_TOPICS = [
   'buildings',
@@ -22,6 +22,15 @@ export const PUSH_TOPICS = [
   'guild-chat',
 ] as const;
 export type PushTopic = (typeof PUSH_TOPICS)[number];
+
+/**
+ * The kinds of the guild chat (#169): hidden in the options while guilds
+ * are off in the round (owner, 2026-11-15).
+ */
+export const GUILD_PUSH_TOPICS: readonly PushTopic[] = [
+  'guild-events',
+  'guild-chat',
+];
 
 export const isPushTopic = (x: unknown): x is PushTopic =>
   (PUSH_TOPICS as readonly unknown[]).includes(x);
