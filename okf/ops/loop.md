@@ -163,6 +163,24 @@ tasks).
   push to the Renovate branch; if it cannot, it asks the owner. That fix
   pull request does not count toward the limit of four open own pull
   requests (security first).
+* **[E]** Local checks (owner, 2026-11-15): `pnpm check` and the relevant
+  E2E tests run before the push after which a pull request is marked
+  ready, and after a merge of `main` with a conflict in code; other pushes
+  of a draft rely on its CI, which runs the same checks (lint, types, unit
+  tests, build, E2E) on every push of an ordinary pull request. Replaces
+  „before every push“. Expected [V]: less agent time and memory (the
+  out-of-memory stop of 2026-11-15 came from Stryker and E2E of two agents
+  at once), a few more red draft runs.
+* **[E]** Saving usage (owner, 2026-11-15; the weekly limit stood at 94 %
+  on 2026-11-15): an event that needs nothing (a bot edited a comment,
+  CodeRabbit skipped a review, an own reply) gets no tool call and at most
+  one line; large output (job logs, whole files, transcripts) is read by a
+  subagent or with `grep`, never in the loop's thread; while it waits on CI
+  or a review, the loop does not poll and keeps one fallback wakeup of
+  about 50 minutes (replaces „20 to 30 minutes“); once a day it adds the
+  weekly usage it can see, or „not visible“, to the log entry of its next
+  pull request, never in a pull request of its own [U: whether a session
+  can read its usage other than from a notice is not checked].
 * **[E]** Local Stryker runs before a push only for changed logic files whose
   score is less than about 2 points above their floor in
   `mutation-standard.json` (for example `economy.ts`, `settle.ts`,

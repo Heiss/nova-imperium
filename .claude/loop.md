@@ -25,8 +25,14 @@ interface is German.
    the loop never waits without a question on screen. A step that needs no
    decision, or only recommendations taken as [V] (step 4), asks nothing.
 4. End the iteration: when the next step can start at once, wake up again
-   in one to two minutes; while you wait on CI or a review, in 20 to 30
-   minutes (GitHub events wake you earlier).
+   in one to two minutes; while you wait on CI or a review, do not poll:
+   GitHub events wake you, and one fallback wakeup in about 50 minutes.
+5. Save usage: an event that needs nothing (a bot edited a comment,
+   CodeRabbit skipped, your own reply) gets no tool call and at most one
+   line. Large output (job logs, whole files, transcripts) is read by a
+   subagent or with `grep`, never in this thread. Once a day, add the weekly
+   usage you can see (a usage notice, or „not visible“) to the log entry
+   of your next pull request; never open a pull request only for it.
 
 ## Steps, in this order
 
@@ -117,8 +123,9 @@ interface is German.
    OKF and docs, and the log entry as a new file
    `okf/log/<date>-<short-name>.md` with the UTC time in `date` (never an
    edit of another entry; the format is in `okf/ops/website.md`). Run `pnpm check` and the relevant
-   E2E tests before every
-   push. Open it as a draft, mark it ready when CI is green, subscribe to
+   E2E tests before the push after which you mark it ready, and after a
+   merge of `main` with a conflict in code; other pushes of a draft rely
+   on its CI. Open it as a draft, mark it ready when CI is green, subscribe to
    it. Write `Closes #<issue>` in the description.
 
 ## Never
