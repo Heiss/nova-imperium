@@ -62,6 +62,7 @@ import {
 } from '../client/views/common.ts';
 import Buildings from './catalog-reference/Buildings.svelte';
 import { planet, U } from './fixtures.ts';
+import { normalize } from './markup.ts';
 
 // ----- frozen: itemHTML() of src/client/views/common.ts before #118 -----
 
@@ -280,51 +281,6 @@ function renderNew(v: V, kind: CatalogKind): string {
   }
 }
 
-const ENTITY: Record<string, string> = {
-  '&gt;': '>',
-  '&quot;': '"',
-  '&#39;': "'",
-};
-
-/** The attributes of a tag in order, a boolean one without its empty value. */
-function attributes(raw: string): string {
-  const list = [...raw.matchAll(/([^\s=]+)(?:="([^"]*)")?/g)].map(
-    ([, name, value]) =>
-      value === undefined || (value === '' && /^(disabled|hidden)$/.test(name!))
-        ? name!
-        : `${name}="${value}"`,
-  );
-  return list.length ? ' ' + list.sort().join(' ') : '';
-}
-
-/** Removes comments until none is left, so no `<!--` can survive. */
-function stripComments(html: string): string {
-  let before: string;
-  let after = html;
-  do {
-    before = after;
-    after = before.replace(/<!--[\s\S]*?-->/g, '');
-  } while (after !== before);
-  return after;
-}
-
-/** The markup as a browser shows it. */
-function normalize(html: string): string {
-  return (
-    stripComments(html)
-      .replace(/<\/?tbody>/g, '')
-      .replace(
-        /<([a-z][a-z0-9]*)((?:\s+[^\s=>/]+(?:="[^"]*")?)*)\s*\/?>/g,
-        (_, tag: string, attrs: string) => `<${tag}${attributes(attrs)}>`,
-      )
-      .replace(/\s+/g, ' ')
-      .replace(/ ?(<\/?(?:div|p|ul|li|h2|table|tr|td|br)\b[^>]*>) ?/g, '$1')
-      // Only entities that cannot start a tag or another entity are decoded.
-      .replace(/&(?:gt|quot|#39);/g, (e) => ENTITY[e]!)
-      .trim()
-  );
-}
-
 const KINDS: readonly CatalogKind[] = [
   'building',
   'research',
@@ -485,6 +441,24 @@ describe('CatalogList against the views before #118', () => {
     expect(normalize('<h2>&amp;lt;</h2>')).not.toBe(normalize('<h2>&lt;</h2>'));
     expect(normalize('<span>a</span> <span>b</span>')).not.toBe(
       normalize('<span>a</span><span>b</span>'),
+    );
+    // An escaped quote in a value never equals the end of the value and the
+    // start of another attribute (CodeRabbit on #210).
+    expect(normalize('<img alt="x&quot; title=&quot;y">')).not.toBe(
+      normalize('<img alt="x" title="y">'),
+    );
+    expect(normalize('<img alt="x&quot; title=&quot;y">')).toBe(
+      '<img alt="x&quot; title=&quot;y">',
+    );
+    // In a value, > and ' are decoded as in the text; a > ends no tag.
+    expect(normalize('<img alt="a&gt;b&#39;c" src="s">')).toBe(
+      normalize('<img src="s" alt="a>b\'c">'),
+    );
+    expect(normalize('<div title="a>b"> x </div> y')).toBe(
+      '<div title="a>b">x</div>y',
+    );
+    expect(normalize('<b title="&quot;">&quot;</b>')).toBe(
+      '<b title="&quot;">"</b>',
     );
   });
 

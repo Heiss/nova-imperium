@@ -1,97 +1,12 @@
-import { MISSION } from '../../core/missions.ts';
-import { placeName } from '../../core/moon.ts';
-import { text } from '../../core/text.ts';
-import { diameterLine } from '../logic/fields.ts';
-import { coords, dt, esc, fmt } from '../logic/format.ts';
-import { fleetEnd, nameOf, ranks, sortFleets } from '../logic/game.ts';
-import type { ClientFleet } from '../logic/types.ts';
-import { moonPicture } from '../logic/moon.ts';
-import { planetLook } from '../logic/planet.ts';
-import { box, cd, planetHTML, type V } from './common.ts';
+import { mount, unmount } from 'svelte';
+import Overview from './Overview.svelte';
 
-const shipList = (f: ClientFleet): string =>
-  Object.entries(f.ships ?? {})
-    .filter(([, n]) => n > 0)
-    .map(([k, n]) => `${fmt(n)} ${text(k)?.n ?? k}`)
-    .join(', ');
-
-function fleetText(v: V, f: ClientFleet): string {
-  const ships = shipList(f);
-  const mission = MISSION[f.mission];
-  if (f.owner !== v.s.me.id)
-    return `Eine fremde Flotte von <b>${esc(nameOf(v.s.players, f.owner))}</b> ${coords(f.fromC)} erreicht deinen Planeten ${coords(f.toC)} · ${mission}${ships ? ` (${ships})` : ''}`;
-  // The gift of the „Endzeit“ comes from „Gottkaiser“ (#161).
-  const origin = f.gift ? 'Gottkaiser' : coords(f.fromC);
-  if (f.state === 'out')
-    return `Deine Flotte (${ships}) von ${origin} erreicht ${coords(f.toC)} · ${mission}`;
-  return `Deine Flotte (${ships}) kehrt von ${coords(f.toC)} nach ${coords(f.fromC)} zurück`;
-}
-
-function fleetRow(v: V, f: ClientFleet): string {
-  const mine = f.owner === v.s.me.id;
-  const out = f.state === 'out';
-  const cls = out ? `fl-${f.mission}` : 'fl-back';
-  const button =
-    mine && out && !f.gift
-      ? `<button class="small" data-act="recall" data-id="${esc(f.id)}">Rückruf</button>`
-      : '';
-  return `<tr><td class="n w110">${cd(fleetEnd(f), v.now)}</td><td class="${cls}">${fleetText(v, f)}</td><td class="w80">${button}</td></tr>`;
-}
-
-export function fleetTable(v: V, includeIncoming: boolean): string {
-  const list = sortFleets(
-    v.s.fleets.filter((f) => f.owner === v.s.me.id || includeIncoming),
-  );
-  return list.length
-    ? `<table>${list.map((f) => fleetRow(v, f)).join('')}</table>`
-    : '<span class="dim">Keine Flottenbewegungen.</span>';
-}
-
-function activities(v: V): string {
-  const { P, R, now } = v;
-  const rows: string[] = [];
-  if (P.bq)
-    rows.push(
-      `<tr><td>Gebäude</td><td>${text(P.bq.key)?.n} (Stufe ${P.bq.lvl})</td><td class="n">${cd(P.bq.end, now)}</td></tr>`,
-    );
-  if (R.rq)
-    rows.push(
-      `<tr><td>Forschung</td><td>${text(R.rq.key)?.n} (Stufe ${R.rq.lvl})</td><td class="n">${cd(R.rq.end, now)}</td></tr>`,
-    );
-  if (P.sq.length) {
-    const list = P.sq.map((q) => `${fmt(q.n)}× ${text(q.key)?.n}`).join(', ');
-    rows.push(
-      `<tr><td>Schiffsschmiede</td><td>${list}</td><td class="n">${cd((P.sqT ?? now) + P.sq[0]!.unit, now)} (nächste)</td></tr>`,
-    );
-  }
-  return rows.length
-    ? `<table>${rows.join('')}</table>`
-    : '<span class="dim">Nichts in Arbeit – deine Minen langweilen sich.</span>';
-}
-
-/** The picture and the kind of the shown place: a planet or a moon (#53). */
-const look = (P: V['P']): { picture: string; label: string; type: string } =>
-  P.kind === 'moon'
-    ? {
-        picture: `<span class="moon-big">${moonPicture(placeName(P), 120)}</span>`,
-        label: 'Mond',
-        type: 'Mond',
-      }
-    : { picture: planetHTML(P), label: 'Planet', type: planetLook(P).name };
-
-export function overview(v: V): string {
-  const { P, s } = v;
-  const me = s.me.id;
-  const rk = ranks(s.players);
-  const l = look(P);
-  return `<h2>Übersicht – ${esc(placeName(P))} ${coords(P)}</h2>
- ${box('Flottenbewegungen', fleetTable(v, true))}
- <div class="box"><div class="bd ov">${l.picture}
- <table class="kv kv-grow">
- <tr><td>${l.label}</td><td>${esc(placeName(P))} <span class="lnk" data-act="rename">(umbenennen)</span></td></tr>
- <tr><td>Position</td><td>${coords(P)}</td></tr><tr><td>Planetentyp</td><td>${l.type}</td></tr><tr><td>Temperatur</td><td>ca. ${P.temp - 40}°C bis ${P.temp}°C</td></tr>
- <tr><td>Durchmesser</td><td>${diameterLine(P, s.cfg)}</td></tr>
- <tr><td>Punkte</td><td>${fmt(s.players[me]?.points)} (Platz ${rk[me] ?? '-'} von ${Object.keys(s.players).length})</td></tr>
- <tr><td>Serverzeit</td><td>${dt(v.now)}</td></tr></table></div></div>
- ${box('Aktivitäten', activities(v))}`;
+/**
+ * The overview (#118); it shows `client.shown` of the state module. It is
+ * mounted anew on every render, as the HTML view rendered anew, so the
+ * clock of main.ts counts its countdowns down as before.
+ */
+export function mountOverview(target: HTMLElement) {
+  const component = mount(Overview, { target });
+  return { destroy: () => void unmount(component) };
 }
