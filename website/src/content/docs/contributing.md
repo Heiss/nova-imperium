@@ -55,8 +55,8 @@ draft to the squash merge. The pull request brings:
 - **A changelog fragment or the label** – see below.
 - **OKF and docs**: decisions go into the OKF bundle and an entry into
   [the log](/okf/log/): one new file `okf/log/<date>-<short-name>.md` per
-  entry, with `type: log-entry`, the `date`, the `kind` and the `issues`
-  in its front matter ([Documentation website](/okf/ops/website.md));
+  entry, with `type: log-entry`, the `date` with a UTC time
+  (`2026-11-15T00:30`), the `kind` and the `issues` in its front matter ([Documentation website](/okf/ops/website.md));
   operator-facing changes into `docs/`.
 - **Database changes** only as a new migration at the end of
   `src/server/db/schema.ts`; a released migration is never moved, removed or

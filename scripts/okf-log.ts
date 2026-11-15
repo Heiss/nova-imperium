@@ -5,12 +5,16 @@
 //
 //   ---
 //   type: log-entry
-//   date: 2026-11-14
+//   date: 2026-11-15T00:30
 //   kind: Code
 //   issues: [163, 45]
 //   ---
 //
 //   #163 built: …
+//
+// The date holds a UTC time from 2026-11-15 on, so a day lists its entries
+// newest first; the entries before keep the date only (owner, 2026-11-15,
+// O15).
 //
 //   node scripts/okf-log.ts check   every entry of okf/log well-formed (CI)
 //
@@ -34,7 +38,10 @@ export type Kind = (typeof KINDS)[number];
 const TYPE = 'log-entry';
 /** D1: okf/log/<date>-<short-name>.md, the short name in kebab case. */
 const NAME = /^(\d{4}-\d{2}-\d{2})-[a-z\d]+(?:-[a-z\d]+)*\.md$/;
-const DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
+/** YYYY-MM-DD, or YYYY-MM-DDTHH:MM with a UTC time. */
+const DATE = /^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2}))?$/;
+/** The first day whose entries need a time [V]. */
+const TIME_FROM = '2026-11-15';
 const ISSUES = /^\[\s*[1-9]\d*(?:\s*,\s*[1-9]\d*)*\s*\]$/;
 
 export interface LogEntry {
@@ -42,6 +49,8 @@ export interface LogEntry {
   name: string;
   /** YYYY-MM-DD, the same as the start of the name. */
   date: string;
+  /** HH:MM in UTC; the entries before 2026-11-15 have none. */
+  time?: string;
   kind: Kind;
   /** The issues and pull requests the entry names, may be empty. */
   issues: number[];
@@ -54,7 +63,8 @@ function isDate(value: string): boolean {
   if (!m) return false;
   const [y, mo, d] = [Number(m[1]), Number(m[2]), Number(m[3])];
   const date = new Date(Date.UTC(y, mo - 1, d));
-  return date.getUTCMonth() === mo - 1 && date.getUTCDate() === d;
+  const day = date.getUTCMonth() === mo - 1 && date.getUTCDate() === d;
+  return day && Number(m[4] ?? 0) < 24 && Number(m[5] ?? 0) < 60;
 }
 
 /** The front matter as key → value; one "key: value" per line. */
@@ -72,15 +82,29 @@ function frontMatter(name: string, head: string): Map<string, string> {
   return fields;
 }
 
-/** The date of the front matter: valid and the same as in the name. */
-function entryDate(name: string, nameDate: string, date = ''): string {
-  if (!isDate(date))
-    throw new Error(`${name}: "date" must be a valid date YYYY-MM-DD`);
+/**
+ * The date and the time of the front matter: a valid date, the same day as
+ * in the name, and a time from 2026-11-15 on.
+ */
+function entryDate(
+  name: string,
+  nameDate: string,
+  value = '',
+): { date: string; time?: string } {
+  if (!isDate(value))
+    throw new Error(
+      `${name}: "date" must be a valid date YYYY-MM-DD or YYYY-MM-DDTHH:MM`,
+    );
+  const [date, time] = value.split('T') as [string, string?];
   if (date !== nameDate)
     throw new Error(
-      `${name}: "date" ${date} differs from the date of the name`,
+      `${name}: "date" ${value} differs from the date of the name`,
     );
-  return date;
+  if (time === undefined && date >= TIME_FROM)
+    throw new Error(
+      `${name}: "date" needs a UTC time from ${TIME_FROM} on, like ${date}T00:30`,
+    );
+  return time === undefined ? { date } : { date, time };
 }
 
 /** The issue numbers of "[191, 118]"; none when the key is left out. */
@@ -113,18 +137,24 @@ export function parseEntry(name: string, content: string): LogEntry {
   );
   if (!m?.groups) throw new Error(`${name}: front matter "---" is missing`);
   const fields = frontMatter(name, m.groups.head!);
-  const date = entryDate(name, nameDate, fields.get('date'));
+  const when = entryDate(name, nameDate, fields.get('date'));
   const kind = checkKeys(name, fields);
   const issues = issueList(name, fields.get('issues'));
   const text = m.groups.body!.trim().replace(/\s*\n\s*/g, ' ');
   if (!text) throw new Error(`${name}: the text is empty`);
-  return { name, date, kind, issues, text };
+  return { name, ...when, kind, issues, text };
 }
 
-/** Newest date first; within a date by name, so the order is stable. */
+/**
+ * Newest date first. Within a date the entries with a time come first, the
+ * newest first; those without a time, and those of the same time, by name.
+ */
 export function ordered(entries: readonly LogEntry[]): LogEntry[] {
   return [...entries].sort(
-    (a, b) => b.date.localeCompare(a.date) || a.name.localeCompare(b.name),
+    (a, b) =>
+      b.date.localeCompare(a.date) ||
+      (b.time ?? '').localeCompare(a.time ?? '') ||
+      a.name.localeCompare(b.name),
   );
 }
 

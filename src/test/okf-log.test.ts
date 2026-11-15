@@ -29,6 +29,13 @@ const entry = (
   text: string,
   issues: number[] = [],
 ): LogEntry => ({ name, date, kind, issues, text });
+/** An entry with a UTC time, as every entry from 2026-11-15 on has. */
+const timed = (name: string, time: string): LogEntry => ({
+  ...entry(name, name.slice(0, 10), 'Code', `${name}.`),
+  time,
+});
+const DATE_FORMAT =
+  '"date" must be a valid date YYYY-MM-DD or YYYY-MM-DDTHH:MM';
 
 describe('log entries', () => {
   it('read the date, the kind, the issues and the text', () => {
@@ -136,11 +143,74 @@ describe('log entries', () => {
       `${name}: "date" 2026-11-15 differs from the date of the name`,
     );
     expect(
-      parseEntry('2028-02-29-leap.md', withDate('\ndate: 2028-02-29')).date,
+      parseEntry('2028-02-29-leap.md', withDate('\ndate: 2028-02-29T12:00'))
+        .date,
     ).toBe('2028-02-29');
+    expect(
+      parseEntry('2024-02-29-leap.md', withDate('\ndate: 2024-02-29')).date,
+    ).toBe('2024-02-29');
+    for (const [day, date] of [
+      ['2027-02-29', '2027-02-29T12:00'],
+      ['2025-02-29', '2025-02-29'],
+    ])
+      expect(
+        () => parseEntry(`${day}-no-leap.md`, withDate(`\ndate: ${date}`)),
+        date,
+      ).toThrow(`"date" must be a valid date YYYY-MM-DD or YYYY-MM-DDTHH:MM`);
+  });
+
+  it('read a UTC time after the date (owner, 2026-11-15, O15)', () => {
+    const withDate = (name: string, date: string): LogEntry =>
+      parseEntry(name, file(`type: log-entry\ndate: ${date}\nkind: Code`));
+    expect(withDate('2026-11-15-log-entries.md', '2026-11-15T00:30')).toEqual({
+      ...entry('2026-11-15-log-entries.md', '2026-11-15', 'Code', 'Text.'),
+      time: '00:30',
+    });
+    expect(withDate('2026-11-14-x.md', '2026-11-14T23:59').time).toBe('23:59');
+    expect(withDate('2026-11-14-x.md', '2026-11-14').time).toBeUndefined();
+  });
+
+  it('refuse an invalid time', () => {
+    const name = '2026-11-15-x.md';
+    for (const date of [
+      '2026-11-15T24:00',
+      '2026-11-15T12:60',
+      '2026-11-15T1:30',
+      '2026-11-15T12:30Z',
+      '2026-11-15T12:30:00',
+      '2026-11-15 12:30',
+      '2026-11-15T',
+    ])
+      expect(
+        () =>
+          parseEntry(name, file(`type: log-entry\ndate: ${date}\nkind: Code`)),
+        date,
+      ).toThrow(`${name}: ${DATE_FORMAT}`);
     expect(() =>
-      parseEntry('2027-02-29-no-leap.md', withDate('\ndate: 2027-02-29')),
-    ).toThrow('"date" must be a valid date YYYY-MM-DD');
+      parseEntry(
+        '2026-11-14-x.md',
+        file('type: log-entry\ndate: 2026-11-15T00:30\nkind: Code'),
+      ),
+    ).toThrow('"date" 2026-11-15T00:30 differs from the date of the name');
+  });
+
+  it('need the time from 2026-11-15 on, the entries before have none', () => {
+    for (const day of ['2026-11-15', '2026-11-16', '2027-01-01']) {
+      const name = `${day}-x.md`;
+      expect(
+        () =>
+          parseEntry(name, file(`type: log-entry\ndate: ${day}\nkind: Code`)),
+        day,
+      ).toThrow(
+        `${name}: "date" needs a UTC time from 2026-11-15 on, like ${day}T00:30`,
+      );
+    }
+    expect(
+      parseEntry(
+        '2026-11-14-x.md',
+        file('type: log-entry\ndate: 2026-11-14\nkind: Code'),
+      ).date,
+    ).toBe('2026-11-14');
   });
 
   it('refuse a missing or unknown kind', () => {
@@ -201,6 +271,36 @@ describe('the log page', () => {
       '2026-11-06-a.md',
     ]);
     expect(ordered([c, b, a, d])).toEqual(ordered([d, a, b, c]));
+  });
+
+  it('lists the entries with a time first within a date, the newest first', () => {
+    const late = timed('2026-11-14-late.md', '23:05');
+    const early = timed('2026-11-14-early.md', '00:30');
+    const same = timed('2026-11-14-another.md', '23:05');
+    const next = timed('2026-11-15-next.md', '00:01');
+    expect(
+      ordered([c, early, a, b, late, next, same]).map((e) => e.name),
+    ).toEqual([
+      '2026-11-15-next.md',
+      '2026-11-14-another.md',
+      '2026-11-14-late.md',
+      '2026-11-14-early.md',
+      '2026-11-14-a.md',
+      '2026-11-14-z.md',
+      '2026-11-13-b.md',
+    ]);
+    expect(logMarkdown([b, early, late])).toBe(
+      [
+        '# Update log',
+        '',
+        '## 2026-11-14',
+        '',
+        '* **Code**: 2026-11-14-late.md.',
+        '* **Code**: 2026-11-14-early.md.',
+        '* **Fix**: Z.',
+        '',
+      ].join('\n'),
+    );
   });
 
   it('groups the entries under one heading per date, as okf/log.md did', () => {
