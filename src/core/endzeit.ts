@@ -3,9 +3,10 @@
 // every resource as cargo; on its arrival the research and the buildings of
 // the home planet are raised to the levels that every requirement needs,
 // plus the minimums of the acceleration buildings and the IFN. Higher levels
-// stay; nothing is taken away.
-import { BUILD, MOBILE, RES, UNIT } from './catalog.ts';
-import type { Levels, Requirements, Resources } from './types.ts';
+// stay; nothing is taken away. Only the buildings that may stand at the
+// target are raised (#53, „Geklärt, Nachtrag 2“, owner 2026-11-14).
+import { BUILD, MOBILE, RES, UNIT, buildable } from './catalog.ts';
+import type { Levels, Planet, Requirements, Resources } from './types.ts';
 
 /** Ships of every type that flies (D1); the Sonnenreliquiar cannot fly. */
 export const GIFT_SHIPS_EACH = 42;
@@ -58,6 +59,16 @@ export function giftLevels(
     r: highest([...entries.map((e) => e.req?.r), minimum.r]),
   };
 }
+
+/**
+ * The building levels that may stand on a place of the kind, by the
+ * component `placement` (#53, owner 2026-11-14): on the home planet the
+ * gift skips the Mondzitadelle and every other moon-only building.
+ */
+export const standing = (levels: Levels, kind: Planet['kind']): Levels =>
+  Object.fromEntries(
+    Object.entries(levels).filter(([key]) => buildable(key, kind)),
+  );
 
 /** The gift's levels on top of what a player has: higher levels stay. */
 export const raise = (have: Levels, need: Levels): Levels =>

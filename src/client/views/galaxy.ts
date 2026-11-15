@@ -5,8 +5,9 @@ import { debrisAt, debrisMark, harvestButton } from '../logic/debris.ts';
 import { esc, fmt } from '../logic/format.ts';
 import { isProtected, nameOf, ranks } from '../logic/game.ts';
 import { moonAt, moonMark, moonPicture } from '../logic/moon.ts';
+import { canScan, scanRows, scanTitle } from '../logic/phalanx.ts';
 import type { GalaxyPlanet } from '../logic/types.ts';
-import { planetHTML, type V } from './common.ts';
+import { cd, planetHTML, type V } from './common.ts';
 
 /** Actions joined like the others; empty ones are left out. */
 const join = (...actions: string[]): string =>
@@ -24,10 +25,41 @@ function planetActions(
 ): string {
   const id = pl.id;
   if (!mine)
-    return `<span class="lnk" data-act="gspy" ${at}>Auspex-Erkundung</span> · <span class="lnk" data-act="gfleet" data-m="attack" ${at}>Sturmangriff</span> · <span class="lnk" data-act="gfleet" data-m="transport" ${at}>Versorgungsflug</span>`;
+    return join(
+      `<span class="lnk" data-act="gspy" ${at}>Auspex-Erkundung</span> · <span class="lnk" data-act="gfleet" data-m="attack" ${at}>Sturmangriff</span> · <span class="lnk" data-act="gfleet" data-m="transport" ${at}>Versorgungsflug</span>`,
+      scanButton(v, pl),
+    );
   return id === v.P.id
     ? `<span class="dim">${pl.kind === 'moon' ? 'Aktiver Mond' : 'Aktiver Planet'}</span>`
     : `<button class="small" data-act="selectPlanet" data-id="${esc(id)}">Wechseln</button> · <button class="small" data-act="gfleet" data-m="transport" ${at}>Versorgungsflug</button> · <button class="small" data-act="gfleet" data-m="deploy" ${at}>${MISSION.deploy}</button>`;
+}
+
+/**
+ * The scan of the Auspex-Phalanx at a foreign planet (#53): only from a moon
+ * with a phalanx, at a planet in range.
+ */
+const scanButton = (v: V, pl: GalaxyPlanet): string =>
+  canScan(v.P, pl)
+    ? `<button class="small" data-act="gscan" data-id="${esc(pl.id)}" aria-label="Phalanx-Scan von ${esc(pl.name)}">Phalanx-Scan</button>`
+    : '';
+
+/**
+ * The answer of the last scan from the active moon (#53): per flight its
+ * ships, origin, target and arrival, by arrival; nothing else of a flight.
+ */
+function scanPanel(v: V): string {
+  const scan = v.ui.scan;
+  if (!scan || scan.by !== v.P.id) return '';
+  const rows = scanRows(scan)
+    .map(
+      (r) =>
+        `<tr><td>${esc(r.ships)}</td><td>${esc(r.from)}</td><td>${esc(r.to)}</td><td>${cd(r.arr, v.now)}</td></tr>`,
+    )
+    .join('');
+  const list = rows
+    ? `<table class="scan"><tr><th>Schiffe</th><th>Herkunft</th><th>Ziel</th><th>Ankunft</th></tr>${rows}</table>`
+    : '<p class="dim">Keine Flüge erfasst.</p>';
+  return `<section class="bd scan-panel" id="scan" aria-labelledby="scan-h"><h3 id="scan-h" tabindex="-1">${esc(scanTitle(scan, v.s.galaxy))}</h3>${list}<button class="small" data-act="gscanClose">Schließen</button></section>`;
 }
 
 /** The owner and the noob protection of a planet or moon. */
@@ -83,7 +115,7 @@ export function galaxy(v: V): string {
   return `<h2>Sternenkarte</h2><div class="box"><div class="bd flex">
   Galaxie <button class="small" data-act="gnav" data-d="g-" aria-label="vorige Galaxie">◀</button><input class="c3" type="number" id="g_g" data-nokeep value="${ui.gal}" min="1" max="${s.cfg.galaxies}" aria-label="Galaxie"><button class="small" data-act="gnav" data-d="g+" aria-label="nächste Galaxie">▶</button>
   System <button class="small" data-act="gnav" data-d="s-" aria-label="voriges System">◀</button><input class="c3" type="number" id="g_s" data-nokeep value="${ui.sys}" min="1" max="${s.cfg.systems}" aria-label="System"><button class="small" data-act="gnav" data-d="s+" aria-label="nächstes System">▶</button>
-  <button data-act="ggo">Anzeigen</button> <span class="lnk" data-act="ghome">zum Heimatsystem</span></div>
+  <button data-act="ggo">Anzeigen</button> <span class="lnk" data-act="ghome">zum Heimatsystem</span></div>${scanPanel(v)}
   <table class="gal"><tr><th class="n">Pos</th><th>Planet</th><th>Spieler</th><th>Aktionen</th></tr>${rows}</table>
   <div class="bd dim">Auspex-Erkundung schickt ${fmt(s.me.probes || 1)} Spähschädel – einstellbar unter „Hilfe &amp; Optionen“.</div></div>`;
 }

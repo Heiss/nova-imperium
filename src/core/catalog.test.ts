@@ -100,6 +100,7 @@ describe('catalog', () => {
       fusion: values(C.BUILD).fusion,
       terraformer: values(C.BUILD).terraformer,
       moonbase: values(C.BUILD).moonbase,
+      phalanx: values(C.BUILD).phalanx,
     });
     expect(values(C.RES)).toEqual({
       ...values(O.RES),
@@ -254,7 +255,8 @@ describe('catalog', () => {
     });
     // No requirement; the buildings page lists it after the stores.
     expect(C.BUILD.moonbase!.req).toBeUndefined();
-    expect(Object.keys(C.BUILD).at(-1)).toBe('moonbase');
+    const keys = Object.keys(C.BUILD);
+    expect(keys.indexOf('moonbase')).toBe(keys.indexOf('sdeut') + 1);
     expect(C.PLACEMENT).toEqual({
       robot: ['planet', 'moon'],
       yard: ['planet', 'moon'],
@@ -262,9 +264,27 @@ describe('catalog', () => {
       scrystal: ['planet', 'moon'],
       sdeut: ['planet', 'moon'],
       moonbase: ['moon'],
+      phalanx: ['moon'],
     });
   });
-  it('builds on a moon only the Servitorenschmiede, the Schiffsschmiede, the stores and the Mondzitadelle (#53)', () => {
+  it('has the Sensorphalanx as Auspex-Phalanx with the decided values, on moons only (#53)', () => {
+    expect(C.BUILD.phalanx).toEqual({
+      n: 'Auspex-Phalanx',
+      ab: 'PX',
+      cost: [20000, 40000, 20000],
+      f: 2,
+      ds: 'Erfasst die Flüge fremder Planeten in Reichweite. Steht nur auf einem Mond.',
+      lt: LT,
+      req: { b: { moonbase: 1 } },
+    });
+    // The key `phalanx`, after the Mondzitadelle (owner, 2026-11-15).
+    expect(Object.keys(C.BUILD).at(-1)).toBe('phalanx');
+    expect(Object.keys(C.BUILD).at(-2)).toBe('moonbase');
+    expect(C.BUILD.phalanx!.fields).toBeUndefined();
+    expect(C.buildable('phalanx', 'moon')).toBe(true);
+    expect(C.buildable('phalanx', 'planet')).toBe(false);
+  });
+  it('builds on a moon only the Servitorenschmiede, the Schiffsschmiede, the stores, the Mondzitadelle and the Auspex-Phalanx (#53)', () => {
     const on = (kind: 'planet' | 'moon') =>
       Object.keys(C.BUILD).filter((k) => C.buildable(k, kind));
     expect(on('moon')).toEqual([
@@ -274,9 +294,10 @@ describe('catalog', () => {
       'scrystal',
       'sdeut',
       'moonbase',
+      'phalanx',
     ]);
     expect(on('planet')).toEqual(
-      Object.keys(C.BUILD).filter((k) => k !== 'moonbase'),
+      Object.keys(C.BUILD).filter((k) => !['moonbase', 'phalanx'].includes(k)),
     );
     for (const k of ['nope', 'toString', '__proto__', 'constructor'])
       for (const kind of ['planet', 'moon'] as const)
@@ -615,6 +636,7 @@ describe('catalog from the entry folders', () => {
       'scrystal',
       'sdeut',
       'moonbase',
+      'phalanx',
     ]);
     expect(Object.keys(C.RES)).toEqual([
       'energy',
@@ -662,7 +684,7 @@ describe('catalog from the entry folders', () => {
   });
 
   it('has one folder per entry, each with its kind and its own order', () => {
-    expect(ENTRIES).toHaveLength(51);
+    expect(ENTRIES).toHaveLength(52);
     const kinds = {
       building: C.BUILD,
       research: C.RES,

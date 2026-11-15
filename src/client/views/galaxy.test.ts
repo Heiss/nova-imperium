@@ -186,3 +186,121 @@ describe('moons on the Sternenkarte (#53)', () => {
     );
   });
 });
+
+describe('the Auspex-Phalanx on the Sternenkarte (#53)', () => {
+  /** The Sternenkarte from Anna's moon at [1:2:5] with a phalanx of `level`. */
+  function fromMoon(level: number, scan: V['ui']['scan'] = null): V {
+    const v = view([]);
+    v.s.galaxy.push({
+      id: 'm1_2_6',
+      kind: 'moon',
+      name: 'Mond',
+      g: 1,
+      s: 2,
+      p: 6,
+      temp: 20,
+      owner: 'u_Bert',
+    });
+    v.P = {
+      ...v.P,
+      id: 'm1_2_5',
+      kind: 'moon',
+      owner: 'u_Anna',
+      b: { moonbase: 1, phalanx: level },
+    };
+    v.ui.gmoon = 'm1_2_6';
+    v.ui.scan = scan;
+    return v;
+  }
+
+  const SCAN_BUTTON =
+    '<button class="small" data-act="gscan" data-id="p1_2_6" aria-label="Phalanx-Scan von Beta">Phalanx-Scan</button>';
+
+  it('offers the scan at a foreign planet in range, from a moon with a phalanx', () => {
+    const html = galaxy(fromMoon(1));
+    expect(row(html, 6)).toContain(SCAN_BUTTON);
+    expect(row(html, 6)).toMatch(
+      /Versorgungsflug<\/span> · <button[^>]*>Phalanx-Scan/,
+    );
+    // Not at the own planet, not at a moon.
+    expect(row(html, 5)).not.toContain('gscan');
+    expect(html.match(/data-act="gscan"/g)).toHaveLength(1);
+  });
+
+  it('offers no scan without a phalanx or from a planet', () => {
+    expect(galaxy(fromMoon(0))).not.toContain('gscan');
+    expect(galaxy(view([]))).not.toContain('gscan');
+  });
+
+  it('offers no scan of a planet out of range, while it shows the planet', () => {
+    // The scanning moon in system `s` of galaxy 1 with a phalanx of level 2:
+    // a range of 2² − 1 = 3 systems; the Sternenkarte still shows [1:2:6].
+    const from = (s: number): string => {
+      const v = fromMoon(2);
+      v.P = { ...v.P, id: `m1_${s}_5`, s };
+      return row(galaxy(v), 6);
+    };
+    // Four systems away: the row of Beta is there, without the scan.
+    const far = from(6);
+    expect(far).toContain('Beta');
+    expect(far).toContain('data-m="attack"');
+    expect(far).not.toContain('gscan');
+    // Three systems away, at the edge of the range: the scan is offered.
+    expect(from(5)).toContain(SCAN_BUTTON);
+  });
+
+  it('shows no panel before a scan, or after it from another place', () => {
+    expect(galaxy(fromMoon(1))).not.toContain('scan-panel');
+    const other = fromMoon(1, { by: 'm9_9_9', target: 'p1_2_6', flights: [] });
+    expect(galaxy(other)).not.toContain('scan-panel');
+  });
+
+  it('shows the flights of the scan in a panel: ships, origin, target and arrival', () => {
+    const v = fromMoon(1, {
+      by: 'm1_2_5',
+      target: 'p1_2_6',
+      flights: [
+        { ships: { lc: 10 }, from: 'p1_2_9', to: 'p1_2_6', arr: 65_000 },
+        { ships: { probe: 2 }, from: 'p1_2_6', to: 'm1_2_9', arr: 90_000 },
+      ],
+    });
+    const html = galaxy(v);
+    const panel = html.slice(
+      html.indexOf('<section'),
+      html.indexOf('</section>'),
+    );
+    expect(panel).toContain('aria-labelledby="scan-h"');
+    expect(panel).toContain(
+      '<h3 id="scan-h" tabindex="-1">Phalanx-Scan: Beta [1:2:6]</h3>',
+    );
+    expect(panel).toContain(
+      '<tr><th>Schiffe</th><th>Herkunft</th><th>Ziel</th><th>Ankunft</th></tr>',
+    );
+    expect(panel).toContain(
+      `<tr><td>10 Lastbarke</td><td>[1:2:9]</td><td>[1:2:6]</td><td><span class="cd" data-end="65000">1m 05s</span></td></tr>`,
+    );
+    expect(panel).toContain('<td>[1:2:9] (Mond)</td>');
+    expect(panel).toContain('data-act="gscanClose">Schließen</button>');
+    // Before the table of the systems.
+    expect(html.indexOf('scan-panel')).toBeLessThan(
+      html.indexOf('class="gal"'),
+    );
+  });
+
+  it('shows an empty scan as such', () => {
+    const v = fromMoon(1, { by: 'm1_2_5', target: 'p1_2_6', flights: [] });
+    const html = galaxy(v);
+    expect(html).toContain('<p class="dim">Keine Flüge erfasst.</p>');
+    expect(html).not.toContain('class="scan"');
+  });
+
+  it('escapes the name of the planet', () => {
+    const v = fromMoon(1, { by: 'm1_2_5', target: 'p1_2_6', flights: [] });
+    v.s.galaxy[1] = { ...v.s.galaxy[1]!, name: '<b>"x"' };
+    const html = galaxy(v);
+    expect(html).toContain('Phalanx-Scan: &lt;b&gt;&quot;x&quot; [1:2:6]');
+    expect(html).toContain(
+      'aria-label="Phalanx-Scan von &lt;b&gt;&quot;x&quot;"',
+    );
+  });
+});
