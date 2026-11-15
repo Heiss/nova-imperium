@@ -123,9 +123,11 @@ tasks).
   the version from the tags, the list of pull requests from the Git
   history (squash commits ending in `(#N)`). The loop never writes them
   by hand; it refreshes them by running the workflow (owner, 2026-11-12).
-* **[E]** The rules of the project stay as they are: ask instead of
-  assuming, 3 to 5 options per decision, merges under O4, never a merge of a
-  release pull request.
+* **[E]** The rules of the project stay as they are: do not assume
+  anything that no decision or source gives, merges under O4, never a
+  merge of a release pull request. Questions to the owner follow the next
+  rule (owner, 2026-11-15; before, every decision was asked with 3 to 5
+  options).
 * **[E]** Fewer questions (owner, 2026-11-15): where a recommendation is
   consistent with the owner's earlier decisions, take it without asking,
   record it as [V] with „taken as recommended“ and list it in the

@@ -20,9 +20,10 @@ interface is German.
      ready and waits for CI or review), `in discussion` (planned for a
      later release); `feature` and `idea` give the kind.
 2. Do the first step below that applies, and only that one.
-3. Ask the owner with the question tool inside the iteration: the
-   iteration waits for the answer and goes on with it, so the loop never
-   waits without a question on screen.
+3. When a step needs the owner, ask with the question tool inside the
+   iteration: the iteration waits for the answer and goes on with it, so
+   the loop never waits without a question on screen. A step that needs no
+   decision, or only recommendations taken as [V] (step 4), asks nothing.
 4. End the iteration: when the next step can start at once, wake up again
    in one to two minutes; while you wait on CI or a review, in 20 to 30
    minutes (GitHub events wake you earlier).
@@ -91,11 +92,16 @@ interface is German.
    then the lowest number) while it has no comment that starts with
    `Geklärt`. Do not start while anything is unclear. Red-team your
    recommendation first; take it as [V] without asking where it is
-   consistent with earlier decisions, and ask the owner with 3 to 5 options
-   only when unsure (owner, 2026-11-15, `okf/ops/loop.md`).
+   consistent with earlier decisions. Ask the owner with 3 to 5 options when
+   unsure: no recommendation is clearly best, it conflicts with an earlier
+   decision, it changes a rule of the project, or it concerns security,
+   data loss or game values that no source gives (owner, 2026-11-15,
+   `okf/ops/loop.md`).
    Record the decisions in the OKF bundle (E, V, U), then write one comment
    on the issue that starts with `Geklärt` and lists the decisions with a
-   link to the OKF concept. That comment ends this step for the issue.
+   link to the OKF concept; list the recommendations taken as [V] apart,
+   marked „taken as recommended“. That comment ends this step for the
+   issue.
 5. **Build the next open issue** with the label `ready` that has a
    `Geklärt` comment, in one pull request from `main` (branch `claude/…`).
    When you start it (also in a subagent), replace `ready` by

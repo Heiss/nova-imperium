@@ -127,6 +127,17 @@ function checkKeys(name: string, fields: Map<string, string>): Kind {
   return kind;
 }
 
+/**
+ * Every issue or pull request the text names as #N, each once, in the order
+ * of the text; an HTML entity such as &#39; is no reference.
+ */
+export function textIssues(text: string): number[] {
+  const found = [...text.matchAll(/(?<![&\w])#(\d+)\b/g)].map((m) =>
+    Number(m[1]),
+  );
+  return [...new Set(found)];
+}
+
 /** Reads one entry; throws with the reason when it is malformed. */
 export function parseEntry(name: string, content: string): LogEntry {
   const nameDate = NAME.exec(name)?.[1];
@@ -142,6 +153,10 @@ export function parseEntry(name: string, content: string): LogEntry {
   const issues = issueList(name, fields.get('issues'));
   const text = m.groups.body!.trim().replace(/\s*\n\s*/g, ' ');
   if (!text) throw new Error(`${name}: the text is empty`);
+  if (issues.join() !== textIssues(text).join())
+    throw new Error(
+      `${name}: "issues" must list every #N of the text in its order`,
+    );
   return { name, ...when, kind, issues, text };
 }
 

@@ -44,7 +44,7 @@ describe('log entries', () => {
         '2026-11-14-guild-ranks.md',
         file(
           'type: log-entry\ndate: 2026-11-14\nkind: Decision and code\nissues: [163, 45]',
-          '#163 built: guild ranks\n  with rights.',
+          '#163 built: guild ranks\n  with rights, after #45.',
         ),
       ),
     ).toEqual(
@@ -52,7 +52,7 @@ describe('log entries', () => {
         '2026-11-14-guild-ranks.md',
         '2026-11-14',
         'Decision and code',
-        '#163 built: guild ranks with rights.',
+        '#163 built: guild ranks with rights, after #45.',
         [163, 45],
       ),
     );
@@ -230,9 +230,36 @@ describe('log entries', () => {
         () => parseEntry(name, valid(`\nissues: ${issues}`)),
         issues,
       ).toThrow(`${name}: "issues" must be a list like [191, 118]`);
-    expect(parseEntry(name, valid('\nissues: [191,118]')).issues).toEqual([
-      191, 118,
-    ]);
+    expect(
+      parseEntry(
+        name,
+        file(
+          'type: log-entry\ndate: 2026-11-14\nkind: Code\nissues: [191,118]',
+          '#191 and #118.',
+        ),
+      ).issues,
+    ).toEqual([191, 118]);
+  });
+
+  it('refuse issues that differ from the #N the text names, in its order', () => {
+    const head = 'type: log-entry\ndate: 2026-11-14\nkind: Code';
+    const named = (issues: string, text: string) => () =>
+      parseEntry('2026-11-14-x.md', file(`${head}${issues}`, text));
+    expect(
+      named('\nissues: [212, 118]', '#212 after #118; #212 again.')(),
+    ).toMatchObject({
+      issues: [212, 118],
+    });
+    expect(named('', 'Uses &#39;quotes&#39;, names no issue.')()).toMatchObject(
+      {
+        issues: [],
+      },
+    );
+    const wrong = '"issues" must list every #N of the text in its order';
+    expect(named('', 'Fix #212.')).toThrow(wrong);
+    expect(named('\nissues: [118, 212]', '#212 after #118.')).toThrow(wrong);
+    expect(named('\nissues: [212]', '#212 after #118.')).toThrow(wrong);
+    expect(named('\nissues: [212, 118, 7]', '#212 after #118.')).toThrow(wrong);
   });
 
   it('refuse a description that contains ": "', () => {
