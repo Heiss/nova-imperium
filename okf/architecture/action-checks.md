@@ -96,8 +96,10 @@ with no rule to move (`cancelBuild`, `cancelResearch`, `read`, `delrep`,
 # Findings: browser and server disagree
 
 **[E]** Found by the audit and not fixed here (#214: the follow-up pull
-requests change no behaviour either). The owner decides whether to unify
-them ([Open points](/open-points.md), O18). Server paths are below
+requests change no behaviour either). The owner decided on 2026-11-15
+(O18 (c), [Open points](/open-points.md)) to unify only the real
+contradictions F10, F12, F15 and the order of F8 and F9, after the economy
+pull request; the other findings stay as they are. Server paths are below
 `src/server/game/`, browser paths below `src/client/`; „message“ is a
 different text for the same check, „rule“ a different check.
 
@@ -242,6 +244,6 @@ only.
   table of the codes. Where their order differs (F8, F9), the function
   returns every code that applies, in the order of the server: the server
   takes the first, the browser the first in its own order. So the findings
-  stay as they are until the owner decides O18.
+  stay as they are, except the ones O18 (c) unifies (owner, 2026-11-15).
 * **[V]** The checks of „What counts“ stay on the server; the table above
   names why.
