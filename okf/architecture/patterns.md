@@ -609,6 +609,30 @@ choice of the patterns to the assistant's recommendation below
   not chosen: copying the old split (costs from the last render, buttons
   from the clock), or the same without a changelog entry. The pull request
   brings the fragment `changes/listen-live.md` (`art: geändert`).
+* **[E]** Order after the lists (owner, 2026-11-14, #118 „Geklärt,
+  Nachtrag 2“): next come the views that the phone view #189 builds on,
+  the Übersicht, the header, the Sternenkarte and the navigation (tab bar
+  and „Mehr“); **[V]** one view per pull request, and no two views of #118
+  are built in parallel.
+* **[E]** Built with #118, second pull request (the Übersicht):
+  `src/client/views/Overview.svelte`, mounted by `mountOverview()`
+  (`src/client/views/overview.ts`), renders the overview from
+  `overviewPage(v)` of `src/client/logic/overview.ts`: the title, the
+  fleet movements (`fleetRows()`, the owner of a foreign fleet as a bold
+  part, the recall of an own fleet but not of the gift of #161), the
+  planet or moon with its picture, kind, position, type, temperature,
+  diameter with the fields, points with the place, the server time of the
+  render, and the activities (`activityRows()`: building, research, the
+  next unit of the shipyard). It replaces `overview()` of
+  `views/overview.ts`; the fleet view builds its list „Flotten unterwegs“
+  from the same `fleetRows()` (only the player's own fleets) and stays
+  HTML. Unlike the lists, the overview is mounted anew on every render,
+  as its HTML view was rendered anew: the clock of `main.ts` keeps
+  counting its countdowns down and marking the ones that fired
+  (`data-fired`), and the focus behaves as before, so nothing visible
+  changes; `client.shown` is not moved by the clock for it, so
+  „Serverzeit“ stays the time of the render. A view that is neither a
+  Svelte view nor an HTML view gets the overview, as before.
 * **[U]** Left in `main.ts` for the next pull requests of #118: the login
   (`loginChallenge`, `rememberLogin`, `resetToken`), the admin panel
   (`adminPanel`), the mounted Svelte view (`mounted`, a DOM handle),
@@ -616,7 +640,14 @@ choice of the patterns to the assistant's recommendation below
   `installDismissed`), the news (`newsLoading`, `newsLoad`), the
   maintenance banner (`maintenance`), `planetRequest`, `readPending` and
   `announcementPending`; `client.ui` is not reactive yet, and the
-  resources page still gets its view state through a store.
+  resources page still gets its view state through a store. The second
+  pull request (the Übersicht) moved no variable of this list: the old
+  view kept no state in `main.ts`; `mounted` now also holds the overview.
+  Still rendered as HTML: the header (`renderPlanetHeader`), the menu, tab
+  bar and „Mehr“ (`renderMenu`, `renderPhoneMenu`), the resource bar
+  (`updateBar`), and the views Flotte, Sternenkarte, Nachrichten,
+  Highscore, Gilden, Achievements, Neuigkeiten, Hilfe & Optionen and
+  Admin.
 
 ## 10. Layout and registration
 
@@ -846,7 +877,8 @@ src/client/                state, components (generic), views
   6. Repositories per aggregate.
   7. Client state module and generic components; `main.ts` shrinks per view.
      First pull request of #118 built: the state module and the four lists
-     through `CatalogList` (section 9); the other views follow.
+     through `CatalogList` (section 9); the second the Übersicht through
+     `Overview` (section 9); the other views follow.
   8. Places (O11), its own pull request before #45 and #53 (owner,
      2026-11-12). Built with #119.
 

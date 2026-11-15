@@ -75,6 +75,8 @@ describe('achievements', () => {
       number: 2,
       achievements: false,
       daily: true,
+      // Without a guild choice the round keeps guilds on (#191).
+      guilds: true,
     });
     recordAchievementAction(ctx, u.id, 'send');
     const current = ctx.players.get(u.id)!;

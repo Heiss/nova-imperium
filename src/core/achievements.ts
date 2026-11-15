@@ -111,6 +111,11 @@ export interface RoundRules {
   number: number;
   achievements: boolean;
   daily: boolean;
+  /**
+   * Guilds with their chat (#169) in this round (#191): the one switch, set
+   * only when the admin starts a new round.
+   */
+  guilds: boolean;
 }
 
 export interface AchievementState {

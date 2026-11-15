@@ -7,10 +7,8 @@ import { guilds } from './guilds.ts';
 import { newsHTML } from '../logic/news.ts';
 import { messages } from './messages.ts';
 import { admin, help, highscore } from './misc.ts';
-import { overview } from './overview.ts';
 
 export const VIEWS: Record<string, (v: V) => string> = {
-  overview,
   fleet,
   galaxy,
   guilds,
@@ -40,8 +38,9 @@ export function menu(admin: boolean, round: RoundRules): (MenuEntry | '-')[] {
     { view: 'galaxy', label: 'Sternenkarte' },
     { view: 'messages', label: 'Nachrichten' },
     { view: 'highscore', label: 'Highscore' },
-    { view: 'guilds', label: 'Gilden' },
   ];
+  // No „Gilden“ in a round with guilds off (#191).
+  if (round.guilds) items.push({ view: 'guilds', label: 'Gilden' });
   if (round.achievements || round.daily)
     items.push({
       view: 'achievements',

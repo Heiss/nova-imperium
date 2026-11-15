@@ -309,6 +309,27 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   and notice. Checked by breaking the component (an attribute, a space
   between two inline elements). jscpd leaves the frozen copy out
   (`.jscpd.json`), as it leaves out the test files.
+* **[E]** The Übersicht of #118 (second pull request): the property test
+  `src/test/overview-reference.test.ts` keeps `Overview` equal to the
+  view before (frozen there: `overview()` and `fleetTable()` of
+  `src/client/views/overview.ts`) on 300 generated states (fast-check seed
+  118: planets and moons, names with markup, foreign, own, returning and
+  gift fleets of every mission, unknown owners and ships, the three
+  queues, players missing from the highscore), with the same normalizer
+  as the lists, now shared in `src/test/markup.ts`; it decodes `&quot;`
+  only in the text between the tags and keeps it escaped in an attribute
+  value, so an escaped quote never equals the end of the value and the
+  start of another attribute (CodeRabbit on #210: before, `alt="x&quot;
+  title=&quot;y"` equalled `alt="x" title="y"`); the generated names
+  include one that turns into an attribute in `alt` without that escaping,
+  and the moon picture is frozen with the view; a second case keeps
+  the list „Flotten unterwegs“ of the fleet view equal to the frozen
+  `fleetTable()`, and a third checks that the cases reach every branch.
+  Checked by breaking the component (an attribute, the space before
+  „(nächste)“, a name as markup, the recall, a space before
+  „(umbenennen)“). The pure logic has its tests in
+  `src/client/logic/overview.test.ts`, the component in
+  `src/client/views/overview.test.ts`.
 * **[E]** No comparison with a catalog key outside `src/features/` (#114,
   owner, 2026-11-14): `src/test/catalog-keys.test.ts` reads `src` with the
   TypeScript and Svelte parsers, as `src/test/naming.test.ts` does, and
@@ -431,7 +452,7 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 | Unit | `src/**/*.test.ts` | Rules, store and one test file per repository in `src/server/db/repos/` (real SQLite in memory, #117), actions, arrivals, admin, accounts, configuration, mail, operator commands, HTTP API (a real server on a free port), client logic. |
 | Upgrade | `src/server/db/migrations.property.test.ts`, `src/server/db/upgrades/` | Every migration runs on generated valid data of the version before (100 per pull request, 1000 nightly with a random seed); changing migrations have their own upgrade test. |
 | Sync | `src/server/docs.test.ts`, `src/server/http/security.test.ts` | Every setting is in the docs, `.env.example` and `compose.yaml`; links resolve; the Caddyfile sends the same security headers as the server. |
-| E2E | `e2e/game.spec.ts`, `e2e/flows.spec.ts`, `e2e/error-log.spec.ts`, `e2e/guild-ranks.spec.ts` | Invitation, single use, login, building, production share, renaming, shipyard, fleet form, espionage with report, admin panel (invite, copy link, revoke, live settings, grow-only), phone layout, the push kinds in the options (#192); the flows of #68 in `flows.spec.ts`: attack with battle report, loot and the defender's report, transport arriving, „Rückruf“, the max and „alles“ buttons, too little Promethium, all fleet slots used, noob protection, galaxy navigation and „Wechseln“, the shipyard max button and its queue, deleting reports, probes per spying, guild membership, login code and „Passwort vergessen“ by mail, copying an invitation link, a new round, push on a server without Web Push, full storage and energy shortage; the error log and problem reports in `error-log.spec.ts`; the guild ranks of #163 in `guild-ranks.spec.ts` (desktop and phone). |
+| E2E | `e2e/game.spec.ts`, `e2e/flows.spec.ts`, `e2e/error-log.spec.ts`, `e2e/guild-ranks.spec.ts`, `e2e/guild-switch.spec.ts` | Invitation, single use, login, building, production share, renaming, shipyard, fleet form, espionage with report, admin panel (invite, copy link, revoke, live settings, grow-only), phone layout, the push kinds in the options (#192); the flows of #68 in `flows.spec.ts`: attack with battle report, loot and the defender's report, transport arriving, „Rückruf“, the max and „alles“ buttons, too little Promethium, all fleet slots used, noob protection, galaxy navigation and „Wechseln“, the shipyard max button and its queue, deleting reports, probes per spying, guild membership, login code and „Passwort vergessen“ by mail, copying an invitation link, a new round, push on a server without Web Push, full storage and energy shortage; the error log and problem reports in `error-log.spec.ts`; the guild ranks of #163 in `guild-ranks.spec.ts` (desktop and phone); guilds off for a round (#191) in `guild-switch.spec.ts` (desktop and phone, on the mail server). |
 | Accessibility | `e2e/a11y.spec.ts` | axe on every view. |
 | Upgrade | `docker/upgrade.sh` in the same job | The last release writes data, the new image starts on the same volume: the data survive, a migration leaves a backup (fail closed, see [SQLite storage](/data/sqlite.md)). |
 | Stack | `docker/smoke.sh` in the CI job "Docker image and Compose stack" | Headers through Caddy, uid 1000, invitation mail in Mailpit, registration with its link, admin by command, data after a restart, maintenance by `nova maintenance on\|off` and the Caddy maintenance page with the game stopped; plus: image without compiler, package manager or tests; a wrong setting stops the start; Trivy. |

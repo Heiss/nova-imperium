@@ -13,6 +13,10 @@ decisions are those of the issue and of its comments „Geklärt“ and
 „Geklärt, Ergänzung“ (owner, 2026-11-13), which replace the earlier
 proposals of the issue.
 
+Guilds, ranks included, can be off for a whole round (#191, see
+[Guilds on or off per round](/features/guild-switch.md)); then every action
+of this page is refused before its own checks.
+
 # Decisions
 
 * **[E]** Ranks with different rights inside a guild; they are configurable

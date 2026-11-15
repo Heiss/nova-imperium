@@ -104,7 +104,8 @@ export function stateFor(
     labs: ownLabs(ctx, u.id),
     fleets,
     reports: ctx.reports.ofPlayer(u.id),
-    guilds: guildState(ctx, u.id, pts),
+    // No guild data while guilds are off in the round (#191).
+    guilds: round.guilds ? guildState(ctx, u.id, pts) : null,
     achievements: achievementState(ctx, u, round),
     players,
     galaxy: galaxyOf(ctx),
