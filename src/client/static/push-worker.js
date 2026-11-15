@@ -1,5 +1,12 @@
 /* global clients, self */
-const views = ['buildings', 'research', 'shipyard', 'fleet', 'messages'];
+const views = [
+  'buildings',
+  'research',
+  'shipyard',
+  'fleet',
+  'messages',
+  'guilds',
+];
 
 self.addEventListener('push', (event) => {
   const { title, view, tag } = event.data?.json() ?? {};

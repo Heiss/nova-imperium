@@ -47,6 +47,23 @@ export const dt = (t: number): string =>
     second: '2-digit',
   });
 
+/**
+ * The arrival of an attack in its event (#169, owner: „Ankunft 20:15“):
+ * the clock time, and the day before it when the arrival is on another day
+ * than the event.
+ */
+export function arrivalAt(arrival: number, event: number): string {
+  const at = new Date(arrival);
+  const clock = { hour: '2-digit', minute: '2-digit' } as const;
+  return at.toDateString() === new Date(event).toDateString()
+    ? at.toLocaleTimeString('de-DE', clock)
+    : at.toLocaleString('de-DE', {
+        day: '2-digit',
+        month: '2-digit',
+        ...clock,
+      });
+}
+
 export const resLine = (r: Resources): string =>
   `Adamant ${fmt(r.m)} · Psikristall ${fmt(r.c)} · Promethium ${fmt(r.d)}`;
 

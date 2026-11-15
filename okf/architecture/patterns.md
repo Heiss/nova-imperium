@@ -339,7 +339,10 @@ choice of the patterns to the assistant's recommendation below
   * Form: each `src/features/missions/<m>/rules.ts` exports `canSend` and
     typed data: the order, the target kind (own, foreign, any, free), cargo
     yes or no, return yes or no, ships visible to the defender yes or no,
-    silent return yes or no. Data, no free hooks.
+    silent return yes or no. Data, no free hooks. **[V]** #169 adds one
+    more typed field, `alertsGuild` (whether the launch writes an event
+    into the chat of the defender's guild; the attack only), so the server
+    asks the rules, not the mission's name.
   * Send check: `canSend` returns an error code or nothing. The server
     determines the noob protection and turns the codes into today's German
     messages, in today's order. Slots, cargo and fuel stay generic. The

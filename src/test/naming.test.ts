@@ -67,10 +67,13 @@ const SKIP = new Set(['parent', 'leadingComments', 'trailingComments', 'css']);
 
 /**
  * Classic words a file may still say, and why: account deletion also finds
- * spy reports stored before the rename under their classic title.
+ * spy reports stored before the rename under their classic title; the
+ * attack event of the guild chat is the owner's own text („⚔ Angriff auf
+ * [1:27:11] (Vex → Lea), Ankunft 20:15“, owner, 2026-11-15, #169).
  */
 const ALLOWED: readonly string[] = [
   'server/delete-account.ts: Spionageaktivität',
+  'core/guild-chat.ts: Angriff auf',
 ];
 
 /** Every classic word in `texts`, as „file: word“. */

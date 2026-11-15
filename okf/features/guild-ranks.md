@@ -36,6 +36,23 @@ of this page is refused before its own checks.
   | `assign` | Ränge an Mitglieder vergeben |
   | `profile` | Gildenname, Kürzel und Text ändern |
   | `ranks` | Ränge verwalten (anlegen, umbenennen, Rechte ändern, ordnen, löschen; D2) |
+  | `chat-read` | Chat lesen (#169) |
+  | `chat-write` | Chat schreiben (#169) |
+  | `chat-delete` | Chatnachrichten löschen (#169) |
+
+* **[E]** The guild chat adds three rights (owner, 2026-11-14, #169 D2):
+  „Chat lesen“, „Chat schreiben“ and „Chatnachrichten löschen“. The Leitung
+  holds them as every right; the default rank gets read and write, so a new
+  guild's „Mitglied“ starts with both (see [Guild chat](/features/guild-chat.md)).
+  In existing guilds every rank below the Leitung gets read and write, and
+  only the Leitung deletes (owner, 2026-11-15, migration 20). The rule that
+  a member gives only a rank whose rights it holds therefore still lets an
+  existing Offizier with „Ränge an Mitglieder vergeben“ give the default
+  rank; a rank made later starts without rights and cannot, until it gets
+  the chat rights (see [Guild chat](/features/guild-chat.md)).
+* **[V]** Every change of a member's rank writes an event into the guild
+  chat (#169 D4): „Rang ändern“, the hand-over of the Leitung (both
+  members) and a deleted rank (each member moved to the default rank).
 
 * **[E]** The right „Marker auf der Lagekarte“ comes with #160. #160 is an
   idea in discussion and not built (checked 2026-11-14), so this pull
@@ -172,7 +189,10 @@ may pass on a right its holder lacks.
   `right_key` with a CHECK of the five keys), `guilds.default_rank` and
   `guild_members.rank_id`. The Leitung's rights are not stored: it holds
   all in code. A new guild gets the ranks `r0_<id>` (Leitung) and `r1_<id>`
-  (Mitglied), as the migration gives the existing ones.
+  (Mitglied), as the migration gives the existing ones. Migration 20 (#169)
+  adds the three chat rights to the CHECK and gives every rank below the
+  Leitung `chat-read` and `chat-write` (owner, 2026-11-15); a new guild's
+  Mitglied gets them too (`MEMBER_RIGHTS`).
 * `src/core/guild-ranks.ts`: the keys of the rights, the limits and the
   pure rules with plain values (a place is 0 for the Leitung, a larger
   number for a lower rank, Infinity for no rank): `memberPlace`,

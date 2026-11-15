@@ -10,7 +10,7 @@ import {
 
 /** The box on a server with Web Push. */
 const pushOptionsHTML = (off: readonly string[] | undefined): string =>
-  pushKindsHTML(true, off);
+  pushKindsHTML(true, off, true);
 
 const boxes = (html: string): string[] => html.match(/<input [^>]*>/g) ?? [];
 
@@ -39,12 +39,33 @@ describe('push options in „Hilfe & Optionen“ (#192)', () => {
   });
 
   it('is hidden on a server without Web Push (owner, 2026-11-14)', () => {
-    expect(pushKindsHTML(false, [])).toBe('');
-    expect(pushKindsHTML(undefined, ['news'])).toBe('');
+    expect(pushKindsHTML(false, [], true)).toBe('');
+    expect(pushKindsHTML(undefined, ['news'], false)).toBe('');
   });
 
   it('shows on a server with Web Push', () => {
-    expect(pushKindsHTML(true, [])).toContain('<fieldset class="push-kinds">');
+    expect(pushKindsHTML(true, [], true)).toContain(
+      '<fieldset class="push-kinds">',
+    );
+  });
+
+  it('hides the two kinds of the guild chat while guilds are off (#169; owner, 2026-11-15)', () => {
+    const off = pushKindsHTML(true, ['news', 'guild-chat'], false);
+    expect(boxes(off)).toEqual(
+      PUSH_TOPICS.filter((t) => !t.startsWith('guild-')).map(
+        (t) =>
+          `<input type="checkbox" id="push_${t}" data-chg="push" data-k="${t}"${t === 'news' ? '' : ' checked'}>`,
+      ),
+    );
+    expect(off).not.toContain('Gildenereignisse');
+    expect(off).not.toContain('Nachrichten im Gilden-Chat');
+    const on = pushKindsHTML(true, ['guild-chat'], true);
+    expect(on).toContain(
+      '<input type="checkbox" id="push_guild-events" data-chg="push" data-k="guild-events" checked> Gildenereignisse</label>',
+    );
+    expect(on).toContain(
+      '<input type="checkbox" id="push_guild-chat" data-chg="push" data-k="guild-chat"> Nachrichten im Gilden-Chat</label>',
+    );
   });
 
   it('names every kind ([E], owner 2026-11-14)', () => {

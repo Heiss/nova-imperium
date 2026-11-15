@@ -11,6 +11,7 @@ import type { Levels, Planet, Queue } from '../core/types.ts';
 import { placeName } from '../core/moon.ts';
 import { createAct, placeOf, samePlace } from './logic/act.ts';
 import { CATALOG_VIEWS, catalogKind } from './logic/catalog-list.ts';
+import { clearsChat, sameSignIn } from './logic/guild-chat.ts';
 import { debrisAt, debrisTip } from './logic/debris.ts';
 import { moonAt, moonTarget, ownPlaces } from './logic/moon.ts';
 import { scanOf } from './logic/phalanx.ts';
@@ -34,7 +35,11 @@ import {
   type FleetForm,
 } from './logic/game.ts';
 import { resourceIconURL, type ResourceKey } from './logic/icons.ts';
-import { finishedYardOrders, menuHints } from './logic/menu-hints.ts';
+import {
+  chatToSee,
+  finishedYardOrders,
+  menuHints,
+} from './logic/menu-hints.ts';
 import { gameIsBack, maintenanceNotice } from './logic/maintenance.ts';
 import {
   latestNews,
@@ -71,7 +76,11 @@ import {
 } from './views/misc.ts';
 import { disablePush, enablePush } from './push.ts';
 import { mountCatalogList } from './views/catalog-list.ts';
-import { dissolveDialog, transferDialog } from './views/guilds.ts';
+import {
+  adminChatDialog,
+  dissolveDialog,
+  transferDialog,
+} from './views/guilds.ts';
 import { mountOverview } from './views/overview.ts';
 import { mountProducerTable } from './views/producer-table.ts';
 
@@ -828,6 +837,7 @@ function render(fresh = false): void {
     return;
   }
   const restore = keepInputs(view, fresh);
+  const chatScroll = keepChatScroll(view);
   const now = client.now();
   const previous = client.view;
   client.view = viewAt(client.game, client.game.planet, now);
@@ -840,9 +850,11 @@ function render(fresh = false): void {
   renderCompletions(view);
   paintPlanets(view);
   restore();
+  chatScroll();
   if (ui.view === 'fleet') fleetCalc();
   if (ui.view === 'achievements') filterAchievements();
   if (ui.view === 'messages') markRead();
+  seeChat();
 }
 
 function filterAchievements(): void {
@@ -971,6 +983,18 @@ function markRead(): void {
       600,
     );
   }
+}
+
+let seePending = false;
+/** The member saw the chat of its guild: the mark on „Gilden“ goes (#169). */
+function seeChat(): void {
+  const id = chatToSee(client.game!, ui.view, ui.guild ?? null);
+  if (id === null || seePending) return;
+  seePending = true;
+  setTimeout(
+    () => void act('seeGuildChat', { id }).finally(() => (seePending = false)),
+    600,
+  );
 }
 
 // ----- fleet form -----
@@ -1162,6 +1186,11 @@ const ACT: Record<string, (d: Data) => unknown> = {
       return act('deleteGuildRank', { rank: d.rank });
   },
   rankDefault: (d) => act('setGuildDefaultRank', { rank: d.rank }),
+  guildChatDelete: (d) => {
+    if (window.confirm('Nachricht löschen?'))
+      return act('deleteGuildChat', { id: Number(d.id) });
+  },
+  guildChatAdmin: (d) => openAdminChat(d.id ?? ''),
   achievementClaim: (d) => act('claimAchievement', { id: d.id }),
   dailyClaim: () => act('claimDailyReward'),
   logout: async () => {
@@ -1607,6 +1636,55 @@ async function submitDissolve(): Promise<void> {
   }
 }
 
+/**
+ * The guild chat (#169): the text field empties once the message is in,
+ * unless a new draft was typed meanwhile (CodeRabbit on #216).
+ */
+async function submitChat(): Promise<void> {
+  const text = val('#chat_text');
+  if (
+    (await act('sendGuildChat', { text })) &&
+    clearsChat(text, $<HTMLInputElement>('#chat_text')?.value)
+  ) {
+    setInput('#chat_text', '');
+    $<HTMLInputElement>('#chat_text')?.focus();
+  }
+}
+
+/**
+ * The admin opens the chat of a guild; the server records it (#169, D8). An
+ * answer that comes in after a logout, or with another account signed in,
+ * opens nothing (CodeRabbit on #216).
+ */
+async function openAdminChat(guild: string): Promise<void> {
+  const admin = client.game?.me.id;
+  try {
+    const read = await api('/api/admin/guild-chat', { guild });
+    if (!sameSignIn(client.game, admin)) return;
+    modal(
+      adminChatDialog(read as unknown as Parameters<typeof adminChatDialog>[0]),
+    );
+    keepChatScroll($('#modalIn')!, true)();
+  } catch (error) {
+    toast((error as Error).message, true);
+  }
+}
+
+/**
+ * The chat log keeps its place when the view renders again; at its end it
+ * follows the new messages (#169).
+ */
+function keepChatScroll(root: ParentNode, end = false): () => void {
+  const log = root.querySelector<HTMLElement>('.chat-log');
+  const atEnd =
+    end || !log || log.scrollTop + log.clientHeight >= log.scrollHeight - 4;
+  const top = log?.scrollTop ?? 0;
+  return () => {
+    const next = root.querySelector<HTMLElement>('.chat-log');
+    if (next) next.scrollTop = atEnd ? next.scrollHeight : top;
+  };
+}
+
 async function submitGuild(): Promise<void> {
   const edit = $('#guildform')?.dataset.edit === '1';
   const ok = await act(edit ? 'updateGuild' : 'createGuild', {
@@ -1748,6 +1826,7 @@ document.addEventListener('submit', (e) => {
     ['guildform', submitGuild],
     ['guildtransferform', submitTransfer],
     ['guilddissolveform', submitDissolve],
+    ['guildchatform', submitChat],
     ['codeform', submitLoginCode],
     ['forgotform', submitForgot],
     ['resetform', () => submitPassword(true)],
