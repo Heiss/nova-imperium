@@ -31,6 +31,7 @@
     "src/client/logic/maintenance.ts": 96.29,
     "src/client/logic/menu-hints.ts": 85.71,
     "src/client/logic/news.ts": 100,
+    "src/client/logic/overview.ts": 100,
     "src/client/logic/planet.ts": 100,
     "src/client/logic/state.svelte.ts": 100,
     "src/core/achievements.ts": 100,
