@@ -30,7 +30,10 @@ const log = (p: Page): Locator => p.getByRole('log', { name: 'Chat' });
 const XSS = '<img src=x onerror="window.chatXss=1">';
 const NOTICE = 'Die Spielleitung kann diesen Chat lesen.';
 const MARK = 'Neue Nachrichten im Gilden-Chat';
-/** The red mark on „Gilden“: the side menu, or the list under „Mehr“ on a phone. */
+/**
+ * The red mark on „Gilden“, in the side menu and in the list under „Mehr“
+ * (both are in the page; the phone shows the second).
+ */
 const mark = (p: Page): Locator =>
   p.locator(
     `#menu [data-v=guilds] .badge[aria-label="${MARK}"], #more-list [data-v=guilds] .badge[aria-label="${MARK}"]`,
@@ -307,9 +310,9 @@ async function eventsFlow(page: Page, browser: Browser): Promise<void> {
   await expect(mark(lead)).toHaveCount(0);
   await send(member, 'Neuigkeit');
   await expect(log(member)).toContainText('Neuigkeit');
-  await expect(mark(lead)).toHaveCount(1, { timeout: 10000 });
+  await expect(mark(lead).first()).toBeAttached({ timeout: 10000 });
   await nav(lead, 'guilds');
-  await expect(mark(lead)).toHaveCount(1);
+  await expect(mark(lead).first()).toBeAttached();
   await lead.getByRole('link', { name: g.title }).click();
   await expect(log(lead)).toContainText('Neuigkeit');
   await expect(mark(lead)).toHaveCount(0, { timeout: 10000 });
@@ -364,10 +367,12 @@ async function eventsFlow(page: Page, browser: Browser): Promise<void> {
   const attack = new RegExp(
     `⚔ Angriff auf ${where} \\(${vexName} → ${g.memberName}\\), Ankunft (\\d\\d\\.\\d\\d\\., )?\\d\\d:\\d\\d$`,
   );
-  for (const p of [lead, member])
-    await expect(log(p).locator('li').last()).toHaveText(attack, {
-      timeout: 10000,
-    });
+  await expect(log(lead).locator('li').last()).toHaveText(attack, {
+    timeout: 10000,
+  });
+  // The new rank „Offizier“ has no rights: the member reads no chat now.
+  await member.reload();
+  await expect(log(member)).toHaveCount(0);
   expect(
     await vex.evaluate(async () => (await fetch('/api/state')).text()),
   ).not.toContain('Angriff auf');

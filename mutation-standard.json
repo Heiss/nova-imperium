@@ -12,6 +12,7 @@
     "src/server/error-export.ts",
     "src/server/error-log.ts",
     "src/server/game/guild-chat.ts",
+    "src/server/game/guild-events.ts",
     "src/server/game/guild-ranks.ts",
     "src/server/game/moderation.ts",
     "src/server/http/admin.ts",
