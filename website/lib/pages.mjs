@@ -14,6 +14,13 @@ export const BASE = '/nova-imperium';
 export const SITE_URL = `${SITE}${BASE}/`;
 export const GITHUB = `https://github.com/${REPO}`;
 
+/** The update log: one file per entry in okf/log/, one page (#212). */
+export const LOG_DIR = 'okf/log';
+/** The URL okf/log.md had, so existing links keep working. */
+export const LOG_SLUG = 'decisions/log';
+/** Whether a repository path is an entry of the update log. */
+export const isLogEntry = (source) => source.startsWith(`${LOG_DIR}/`);
+
 /**
  * The root of the repository: the nearest folder above the working directory
  * that holds okf/index.md. Not taken from import.meta.url, because Astro
@@ -70,6 +77,8 @@ const DESIGN_DRAFT = /^docs\/design\/([^/]+)\/README\.md$/;
 
 /** Slug, title and description overrides of a file of okf/ or docs/. */
 export function generatedPage(source) {
+  // The entries are no pages of their own: a link to one goes to the log.
+  if (source === LOG_DIR || isLogEntry(source)) return { slug: LOG_SLUG };
   if (source === 'okf/index.md')
     return {
       slug: 'decisions',
@@ -116,6 +125,7 @@ export function pageRegistry() {
   registry = new Map();
   for (const source of [...markdownFiles('okf'), ...markdownFiles('docs')])
     registry.set(source, generatedPage(source).slug);
+  registry.set(LOG_DIR, LOG_SLUG);
   for (const name of readdirSync(path.join(REPO_ROOT, HAND_WRITTEN)).sort()) {
     if (GENERATED_DIRS.includes(name) || !/\.mdx?$/.test(name)) continue;
     const source = `${HAND_WRITTEN}/${name}`;

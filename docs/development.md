@@ -74,6 +74,7 @@ pnpm build && pnpm test:e2e   # Playwright, desktop and phone
 docker compose up -d --build && docker/smoke.sh   # the stack (after docker/init-env.sh --demo)
 node .github/scripts/migrations-gate.mjs origin/main   # released migrations unchanged
 node scripts/changelog.ts check origin/main             # a German changelog fragment for game changes
+node scripts/okf-log.ts check                           # every entry of the update log in okf/log/ well-formed
 ```
 
 A schema change is a new migration at the end of `src/server/db/schema.ts`;

@@ -116,9 +116,10 @@ jobs:
               src/server/db/*|src/server/main.ts|src/server/server.ts|src/server/config.ts|src/server/cli.ts|src/server/maintenance.ts) image=true ;;
               .github/workflows/ci.yml) image=true ;;
             esac
-            # What the documentation website is built from (okf/ops/website.md).
+            # What the documentation website is built from (okf/ops/website.md);
+            # scripts/okf-log.ts reads and checks the update log (#212).
             case "$file" in
-              okf/*|docs/*|website/*|.github/workflows/ci.yml|.github/workflows/pages.yml) site=true ;;
+              okf/*|docs/*|website/*|scripts/okf-log.ts|.github/workflows/ci.yml|.github/workflows/pages.yml) site=true ;;
             esac
           done <<< "$files"
           # The mutation jobs run when the changes touch a file of the mutate
@@ -630,6 +631,8 @@ jobs:
   # The documentation website (okf/ops/website.md): website/ builds the
   # pages of okf/ and docs/, and the build fails on every broken internal
   # link (starlight-links-validator). pages.yml publishes it from main.
+  # It also checks every entry of the update log in okf/log/ (#212), so a
+  # pull request that changes only the OKF bundle is checked too.
   site:
     name: Documentation website
     needs: changes
@@ -652,6 +655,8 @@ jobs:
           cache-dependency-path: website/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
       - run: pnpm format:check
+      - name: Update log entries well-formed
+        run: node ../scripts/okf-log.ts check
       - run: pnpm test
       - name: Build, every internal link checked
         run: pnpm build
