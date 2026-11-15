@@ -97,7 +97,7 @@ with no rule to move (`cancelBuild`, `cancelResearch`, `read`, `delrep`,
 
 **[E]** Found by the audit and not fixed here (#214: the follow-up pull
 requests change no behaviour either). The owner decides whether to unify
-them ([Open points](/open-points.md), O16). Server paths are below
+them ([Open points](/open-points.md), O18). Server paths are below
 `src/server/game/`, browser paths below `src/client/`; „message“ is a
 different text for the same check, „rule“ a different check.
 
@@ -242,6 +242,6 @@ only.
   table of the codes. Where their order differs (F8, F9), the function
   returns every code that applies, in the order of the server: the server
   takes the first, the browser the first in its own order. So the findings
-  stay as they are until the owner decides O16.
+  stay as they are until the owner decides O18.
 * **[V]** The checks of „What counts“ stay on the server; the table above
   names why.
