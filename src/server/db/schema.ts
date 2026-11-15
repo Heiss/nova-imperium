@@ -1,10 +1,25 @@
 // Versioned migrations of the SQLite database. A migration is never changed
 // after it was released; a change of the schema is a new entry at the end.
 // The CI job "Migrations append-only" enforces this (migration-history.ts).
+//
+// Every migration has a fixed ID, a UTC time stamp and a short name
+// (`YYYYMMDDTHHMM-name`, #213 D1); the migrations run in the order of their
+// IDs, and the table schema_migrations records the IDs a database has run
+// (D2). A new migration takes the UTC time it was written and goes at the
+// end: its ID must sort after every released one. The first 20 migrations
+// were numbered by their place; their time stamps are the UTC commit time
+// (minutes, seconds cut) of the commit on main that added them, and a
+// database at user_version N has run the first N of them. Migrations 7 and
+// 8 came in the same commit; their names keep them in their old order.
 
-export const MIGRATIONS: readonly string[] = [
+/** One migration: its fixed ID and its SQL, which never changes once released. */
+export type Migration = { readonly id: string; readonly sql: string };
+
+export const MIGRATIONS: readonly Migration[] = [
   // 1: the first schema
-  `
+  {
+    id: '20261106T2104-first-schema',
+    sql: `
   CREATE TABLE settings (
     key TEXT PRIMARY KEY,
     value INTEGER NOT NULL
@@ -151,7 +166,10 @@ export const MIGRATIONS: readonly string[] = [
   ) STRICT;
   CREATE INDEX invitations_email ON invitations(email);
   `,
-  `
+  },
+  {
+    id: '20261107T0911-account-tokens',
+    sql: `
   CREATE TABLE account_tokens (
     token_hash TEXT PRIMARY KEY,
     user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -164,7 +182,10 @@ export const MIGRATIONS: readonly string[] = [
   CREATE INDEX account_tokens_user ON account_tokens(user_id, purpose, expires);
   CREATE INDEX account_tokens_expiry ON account_tokens(expires);
   `,
-  `
+  },
+  {
+    id: '20261107T0924-guilds',
+    sql: `
   CREATE TABLE guilds (
     id TEXT PRIMARY KEY,
     tag TEXT NOT NULL COLLATE NOCASE UNIQUE,
@@ -179,7 +200,10 @@ export const MIGRATIONS: readonly string[] = [
   ) STRICT;
   CREATE INDEX guild_members_guild ON guild_members(guild_id, status);
   `,
-  `
+  },
+  {
+    id: '20261107T0945-push',
+    sql: `
   CREATE TABLE push_keys (
     id INTEGER PRIMARY KEY CHECK (id = 1),
     public_key TEXT NOT NULL,
@@ -203,7 +227,10 @@ export const MIGRATIONS: readonly string[] = [
   ) STRICT;
   CREATE INDEX push_due ON push_jobs(retry_at);
   `,
-  `
+  },
+  {
+    id: '20261107T1403-achievements',
+    sql: `
   CREATE TABLE achievement_progress (
     user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     metric TEXT NOT NULL,
@@ -222,8 +249,11 @@ export const MIGRATIONS: readonly string[] = [
     claimed_day INTEGER
   ) STRICT;
   `,
+  },
   // 6: admin audit, activity estimates and account suspensions
-  `
+  {
+    id: '20261107T1417-admin-audit',
+    sql: `
   CREATE TABLE audit_events (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     time INTEGER NOT NULL,
@@ -253,12 +283,18 @@ export const MIGRATIONS: readonly string[] = [
     until INTEGER
   ) STRICT;
   `,
+  },
   // 7: retain announcement text until push delivery
-  `
+  {
+    id: '20261107T1556-announcement-text',
+    sql: `
   ALTER TABLE push_jobs ADD COLUMN body TEXT;
   `,
+  },
   // 8: passkey credentials and short-lived WebAuthn challenges
-  `
+  {
+    id: '20261107T1556-passkeys',
+    sql: `
   CREATE TABLE passkeys (
     id TEXT PRIMARY KEY,
     user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -275,8 +311,11 @@ export const MIGRATIONS: readonly string[] = [
   ) STRICT;
   CREATE INDEX passkey_challenges_expiry ON passkey_challenges(expires);
   `,
+  },
   // 9: allow colonization and preserve existing fleets and ships
-  `
+  {
+    id: '20261108T1207-colonization',
+    sql: `
   ALTER TABLE fleet_ships RENAME TO old_fleet_ships;
   ALTER TABLE fleets RENAME TO old_fleets;
   DROP INDEX fleets_owner;
@@ -328,17 +367,26 @@ export const MIGRATIONS: readonly string[] = [
   WHERE push_jobs.endpoint = home.endpoint AND home.planet IS NOT NULL
     AND kind IN ('buildings', 'shipyard');
   `,
+  },
   // 10: display option of the explanation texts per player (issue #63)
-  `
+  {
+    id: '20261112T1613-explanation-texts',
+    sql: `
   ALTER TABLE users ADD COLUMN explain_mode TEXT NOT NULL DEFAULT 'icon'
     CHECK (explain_mode IN ('always', 'icon', 'hidden'));
   `,
+  },
   // 11: the planet where the running research started (issue #49)
-  `
+  {
+    id: '20261112T1652-research-planet',
+    sql: `
   ALTER TABLE users ADD COLUMN rq_planet TEXT;
   `,
+  },
   // 12: server errors, browser errors and problem reports (issue #126)
-  `
+  {
+    id: '20261112T2219-error-log',
+    sql: `
   CREATE TABLE error_events (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     kind TEXT NOT NULL CHECK (kind IN ('server', 'client', 'report')),
@@ -358,8 +406,11 @@ export const MIGRATIONS: readonly string[] = [
   CREATE INDEX error_events_time ON error_events(time);
   CREATE INDEX error_events_player ON error_events(player, kind, time);
   `,
+  },
   // 13: the deploy mission and the fuel a fleet burnt (issue #129)
-  `
+  {
+    id: '20261113T0006-deploy-mission',
+    sql: `
   ALTER TABLE fleet_ships RENAME TO old_fleet_ships;
   ALTER TABLE fleets RENAME TO old_fleets;
   DROP INDEX fleets_owner;
@@ -404,11 +455,14 @@ export const MIGRATIONS: readonly string[] = [
   DROP TABLE old_fleet_ships;
   DROP TABLE old_fleets;
   `,
+  },
   // 14: diameter and field limit of the planets (issue #51). Planets that
   // exist now have no field limit until the next round; the home planet (the
   // oldest of its owner) gets 12,800 km, a colony a diameter from the field
   // range of its position (16 and above like 15).
-  `
+  {
+    id: '20261113T1126-planet-fields',
+    sql: `
   ALTER TABLE planets ADD COLUMN diameter INTEGER NOT NULL DEFAULT 0;
   ALTER TABLE planets ADD COLUMN unlimited INTEGER NOT NULL DEFAULT 0
     CHECK (unlimited IN (0, 1));
@@ -426,6 +480,7 @@ export const MIGRATIONS: readonly string[] = [
       WHERE pos = min(max(planets.p, 1), 15))
   END;
   `,
+  },
   // 15: places (O11, issue #119). A place is coordinates plus a kind; a
   // moon will be a row of planets with kind 'moon', so UNIQUE (g, s, p)
   // becomes UNIQUE (g, s, p, kind). SQLite needs a rebuild for that. The
@@ -433,7 +488,9 @@ export const MIGRATIONS: readonly string[] = [
   // delete the rows of its children: they are rebuilt too (as fleets in 9).
   // Every planet keeps its id and becomes kind 'planet'. Debris fields get
   // their own table, empty until #45.
-  `
+  {
+    id: '20261113T2315-places',
+    sql: `
   ALTER TABLE planet_buildings RENAME TO old_planet_buildings;
   ALTER TABLE planet_units RENAME TO old_planet_units;
   ALTER TABLE planet_production RENAME TO old_planet_production;
@@ -531,10 +588,13 @@ export const MIGRATIONS: readonly string[] = [
     UNIQUE (g, s, p)
   ) STRICT;
   `,
+  },
   // 16: the mission Bergung (issue #45). The CHECK of fleets.mission needs a
   // rebuild of fleets and fleet_ships, as in 13; a Bergung flies to the place
   // of a Trümmerfeld (to_planet 'd<g>_<s>_<p>'), which needs no column.
-  `
+  {
+    id: '20261114T1315-harvest-mission',
+    sql: `
   ALTER TABLE fleet_ships RENAME TO old_fleet_ships;
   ALTER TABLE fleets RENAME TO old_fleets;
   DROP INDEX fleets_owner;
@@ -582,10 +642,13 @@ export const MIGRATIONS: readonly string[] = [
   DROP TABLE old_fleet_ships;
   DROP TABLE old_fleets;
   `,
+  },
   // 17: the push kinds a player switched off (issue #192), and the kind of
   // each queued push; a queued order or fleet push gets its kind, a queued
   // report push keeps none and is delivered as before
-  `
+  {
+    id: '20261114T1638-push-kinds',
+    sql: `
   CREATE TABLE push_off (
     user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     topic TEXT NOT NULL,
@@ -595,19 +658,25 @@ export const MIGRATIONS: readonly string[] = [
   UPDATE push_jobs SET topic = kind
     WHERE kind IN ('buildings', 'research', 'shipyard', 'fleet');
   `,
+  },
   // 18: the gift fleet of the admin's „Endzeit“ (issue #161). A gift is a
   // Verlegung that cannot be recalled, takes no fleet slot and raises the
   // research and buildings when it arrives; fleets in flight are no gift.
-  `
+  {
+    id: '20261114T1809-gift-fleet',
+    sql: `
   ALTER TABLE fleets ADD COLUMN gift INTEGER NOT NULL DEFAULT 0
     CHECK (gift IN (0, 1));
   `,
+  },
   // 19: guild ranks with rights (issue #163). A rank has a place in the
   // order of its guild (0 is the Leitung, a larger number a lower rank) and
   // a set of rights; the Leitung holds all rights in code, not in rows.
   // Every guild gets the ranks Leitung (held by the founder) and Mitglied
   // (its default rank); every other member gets Mitglied, an applicant none.
-  `
+  {
+    id: '20261114T1856-guild-ranks',
+    sql: `
   CREATE TABLE guild_ranks (
     id TEXT PRIMARY KEY,
     guild_id TEXT NOT NULL REFERENCES guilds(id) ON DELETE CASCADE,
@@ -635,6 +704,7 @@ export const MIGRATIONS: readonly string[] = [
       THEN 'r0_' ELSE 'r1_' END || guild_id
     WHERE status = 'member';
   `,
+  },
   // 20: the guild chat (issue #169). Three new rights, so the CHECK of
   // guild_rank_rights needs a rebuild; nothing references the table. Every
   // existing rank below the Leitung gets „Chat lesen“ and „Chat schreiben“;
@@ -645,7 +715,9 @@ export const MIGRATIONS: readonly string[] = [
   // account leaves its place empty. `chat_seen` of a member is the newest
   // message of its last visit to the page of its guild (the red mark,
   // owner, 2026-11-15).
-  `
+  {
+    id: '20261115T0952-guild-chat',
+    sql: `
   CREATE TABLE guild_rank_rights_new (
     rank_id TEXT NOT NULL REFERENCES guild_ranks(id) ON DELETE CASCADE,
     right_key TEXT NOT NULL
@@ -683,4 +755,5 @@ export const MIGRATIONS: readonly string[] = [
   CREATE INDEX guild_chat_attacker ON guild_chat(attacker);
   ALTER TABLE guild_members ADD COLUMN chat_seen INTEGER NOT NULL DEFAULT 0;
   `,
+  },
 ];

@@ -77,13 +77,20 @@ node scripts/changelog.ts check origin/main             # a German changelog fra
 node scripts/okf-log.ts check                           # every entry of the update log in okf/log/ well-formed
 ```
 
-A schema change is a new migration at the end of `src/server/db/schema.ts`;
-a released migration is never moved, removed or changed. Update the schema
+A schema change is a new migration at the end of `src/server/db/schema.ts`
+with a fixed ID: the UTC time you write it and a short name, for example
+`{ id: '20261114T1830-guild-ranks', sql: ... }`. The migrations run in the
+order of their IDs, so a new ID sorts after every released one; if another
+pull request merged a newer migration first, give yours a newer ID. A
+released migration is never moved, removed or changed, and keeps its ID.
+Update the schema
 snapshot with `pnpm test src/server/db/schema.test.ts -u` and review
 its diff.
 
 A migration that changes existing tables or data needs its own test
-`src/server/db/upgrades/migration-<n>.test.ts`; the property-based upgrade
+`src/server/db/upgrades/<id>.test.ts` (the migrations before the IDs have
+`migration-<n>.test.ts`); `migrationsThrough(id)` of `src/test/migrations.ts`
+gives the migrations up to it. The property-based upgrade
 test tells which ones. Reproduce a nightly failure with
 `MIGRATION_SEED=<seed> pnpm test src/server/db/migrations.property.test.ts`.
 

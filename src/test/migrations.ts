@@ -6,7 +6,7 @@
 import Database, { type Statement } from 'better-sqlite3';
 import fc from 'fast-check';
 import { migrate, type Db } from '../server/db/database.ts';
-import { MIGRATIONS } from '../server/db/schema.ts';
+import { MIGRATIONS, type Migration } from '../server/db/schema.ts';
 
 type Value = string | number | Uint8Array | null;
 type Ref = { table: string; column: string };
@@ -24,12 +24,25 @@ export type Plan = Record<string, Record<string, Value>[]>;
 /** An empty database with foreign keys on, at schema version `version`. */
 export function databaseAt(
   version: number,
-  migrations: readonly string[] = MIGRATIONS,
+  migrations: readonly Migration[] = MIGRATIONS,
 ): Db {
   const db = new Database(':memory:');
   db.pragma('foreign_keys = ON');
   migrate(db, migrations.slice(0, version));
   return db;
+}
+
+/**
+ * The migrations up to and including `id`, so an upgrade test names its
+ * migration by ID and not by its place in the list (#213).
+ */
+export function migrationsThrough(
+  id: string,
+  migrations: readonly Migration[] = MIGRATIONS,
+): Migration[] {
+  const end = migrations.findIndex((m) => m.id === id);
+  if (end === -1) throw new Error(`No migration ${id}.`);
+  return migrations.slice(0, end + 1);
 }
 
 const literal = (s: string): Value => {
@@ -84,11 +97,17 @@ function byDependencies(tables: Table[]): Table[] {
   return ordered;
 }
 
+/**
+ * The tables of the game. The record of run migrations (schema_migrations,
+ * #213) is left out: generated rows there would be migrations the database
+ * never ran, and every migration adds a row to it.
+ */
 export function describeSchema(db: Db): Table[] {
   const rows = db
     .prepare(
       `SELECT name, sql FROM sqlite_master
-       WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name`,
+       WHERE type = 'table' AND name NOT LIKE 'sqlite_%'
+         AND name <> 'schema_migrations' ORDER BY name`,
     )
     .all() as { name: string; sql: string }[];
   return byDependencies(rows.map((r) => describeTable(db, r.name, r.sql)));
@@ -218,7 +237,7 @@ export function changesExisting(
 export function upgrade(
   n: number,
   plan: Plan,
-  migrations: readonly string[] = MIGRATIONS,
+  migrations: readonly Migration[] = MIGRATIONS,
 ) {
   const db = databaseAt(n - 1, migrations);
   try {
@@ -239,7 +258,7 @@ export function upgrade(
 /** Generated data for the schema before migration n. */
 export function plansBefore(
   n: number,
-  migrations: readonly string[] = MIGRATIONS,
+  migrations: readonly Migration[] = MIGRATIONS,
 ): fc.Arbitrary<Plan> {
   const db = databaseAt(n - 1, migrations);
   const tables = describeSchema(db);

@@ -1,4 +1,5 @@
-// Opens the SQLite database, sets safe defaults and runs the migrations.
+// Opens the SQLite database, sets safe defaults and runs the migrations in
+// the order of their IDs, recorded in the table schema_migrations (#213).
 // Before a migration of an existing database file, a copy with the old schema
 // version is kept next to it (`nova.sqlite.v8.bak`), the newest three stay.
 // The copy is checked before the migration runs; without a good copy the
@@ -6,7 +7,8 @@
 import { readdirSync, rmSync } from 'node:fs';
 import path from 'node:path';
 import Database from 'better-sqlite3';
-import { MIGRATIONS } from './schema.ts';
+import { orderViolation } from './migration-history.ts';
+import { MIGRATIONS, type Migration } from './schema.ts';
 
 export type Db = Database.Database;
 
@@ -15,23 +17,95 @@ export function isDatabaseBusy(error: unknown): boolean {
   return error.code === 'SQLITE_BUSY' || error.code.startsWith('SQLITE_BUSY_');
 }
 
-export function migrate(
-  db: Db,
-  migrations: readonly string[] = MIGRATIONS,
-): number {
-  const current = db.pragma('user_version', { simple: true }) as number;
+const schemaVersion = (db: Db): number =>
+  db.pragma('user_version', { simple: true }) as number;
+
+/** Whether the database records the IDs of its migrations (#213). */
+const hasHistory = (db: Db): boolean =>
+  db
+    .prepare(
+      "SELECT count(*) FROM sqlite_master WHERE type = 'table' AND name = 'schema_migrations'",
+    )
+    .pluck()
+    .get() === 1;
+
+/**
+ * The IDs the database has run, in order. A database from before #213 has
+ * run the first user_version migrations (D2).
+ */
+function appliedIds(db: Db, migrations: readonly Migration[]): string[] {
+  if (hasHistory(db))
+    return db
+      .prepare('SELECT id FROM schema_migrations ORDER BY id')
+      .pluck()
+      .all() as string[];
+  const current = schemaVersion(db);
   if (current > migrations.length)
     throw new Error(
       `The database has schema version ${current}, this server knows ${migrations.length}. Use the newer image or restore a backup.`,
     );
+  return migrations.slice(0, current).map((m) => m.id);
+}
+
+/**
+ * The migrations the database has still to run, in the order of their IDs.
+ * The database must have run exactly the oldest of them: a migration it ran
+ * that this server does not know, or one older than a migration it ran, is
+ * refused, because it would run out of order (#213 D3).
+ */
+export function pendingMigrations(
+  db: Db,
+  migrations: readonly Migration[] = MIGRATIONS,
+): readonly Migration[] {
+  const order = orderViolation(migrations);
+  if (order) throw new Error(order);
+  const applied = appliedIds(db, migrations);
+  const gap = applied.findIndex((id, i) => id !== migrations[i]?.id);
+  if (gap === -1) return migrations.slice(applied.length);
+  const id = applied[gap]!;
+  if (!migrations.some((m) => m.id === id))
+    throw new Error(
+      `The database has run migration ${id}, which this server does not know. Use the newer image or restore a backup.`,
+    );
+  throw new Error(
+    `Migration ${migrations[gap]!.id} is older than migration ${id}, which the database has run already; it would run out of order. A new migration needs an ID after every released one.`,
+  );
+}
+
+/** Starts the table of run migrations with what user_version says (D2). */
+function startHistory(db: Db, migrations: readonly Migration[]): void {
+  const done = appliedIds(db, migrations);
+  db.exec(
+    'CREATE TABLE schema_migrations (id TEXT NOT NULL PRIMARY KEY) STRICT',
+  );
+  for (const id of done) recordMigration(db, id);
+}
+
+function recordMigration(db: Db, id: string): void {
+  db.prepare('INSERT INTO schema_migrations (id) VALUES (?)').run(id);
+}
+
+/**
+ * Runs the pending migrations in one transaction and records each ID;
+ * user_version keeps the number of migrations run, so an older server
+ * refuses the database. Returns how many ran.
+ */
+export function migrate(
+  db: Db,
+  migrations: readonly Migration[] = MIGRATIONS,
+): number {
   const run = db.transaction(() => {
-    for (let v = current; v < migrations.length; v++) {
-      db.exec(migrations[v]!);
-      db.pragma(`user_version = ${v + 1}`);
+    const pending = pendingMigrations(db, migrations);
+    if (!hasHistory(db)) startHistory(db, migrations);
+    let version = migrations.length - pending.length;
+    for (const m of pending) {
+      db.exec(m.sql);
+      recordMigration(db, m.id);
+      db.pragma(`user_version = ${++version}`);
     }
+    return pending.length;
   });
-  run();
-  return migrations.length - current;
+  return run();
 }
 
 export const BACKUPS_KEPT = 3;
@@ -112,12 +186,11 @@ export type VerifyBackup = typeof verifyBackup;
 function backup(
   db: Db,
   file: string,
-  migrations: readonly string[],
+  current: number,
   verify: VerifyBackup,
 ): string | null {
-  const current = db.pragma('user_version', { simple: true }) as number;
   // ':memory:' is always new (version 0), so it never gets a copy.
-  if (current === 0 || current >= migrations.length) return null;
+  if (current === 0) return null;
   const target = backupName(file, current);
   try {
     rmSync(target, { force: true });
@@ -137,11 +210,15 @@ function backup(
 function migrateWithBackup(
   db: Db,
   file: string,
-  migrations: readonly string[],
+  migrations: readonly Migration[],
   verify: VerifyBackup,
 ): void {
-  const from = db.pragma('user_version', { simple: true }) as number;
-  const saved = backup(db, file, migrations, verify);
+  const from = schemaVersion(db);
+  // Refuses a database this server cannot migrate before any copy. Starting
+  // the table of run migrations changes the schema too, so it gets a copy.
+  const changes =
+    pendingMigrations(db, migrations).length > 0 || !hasHistory(db);
+  const saved = changes ? backup(db, file, from, verify) : null;
   try {
     migrate(db, migrations);
   } catch (e) {
@@ -159,7 +236,7 @@ function migrateWithBackup(
 /** `file` is a path or ':memory:' (tests). */
 export function openDatabase(
   file: string,
-  migrations: readonly string[] = MIGRATIONS,
+  migrations: readonly Migration[] = MIGRATIONS,
   verify: VerifyBackup = verifyBackup,
 ): Db {
   const db = new Database(file);

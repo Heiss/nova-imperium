@@ -12,8 +12,10 @@ data directory. The schema covers accounts, sessions and invitations, planets
 security tokens, suspensions and audit data.
 
 On startup, the database enables foreign keys and uses WAL mode for on-disk
-databases. Migrations are applied in order in a transaction, with the current
-schema version recorded in SQLite's `user_version`. The caller groups
+databases. Migrations are applied in the order of their IDs in one
+transaction; the table `schema_migrations` records the ID of every migration
+that ran, and SQLite's `user_version` holds their number, the schema version
+(see [Migration IDs](#migration-ids-213)). The caller groups
 related updates in a transaction (`ctx.tx`); a repository never opens one
 (#117, see [Design patterns](/architecture/patterns.md)). Write transactions acquire the writer lock
 before reading, so competing writers use the configured busy timeout instead
@@ -69,9 +71,9 @@ before upgrades.
 
 ## Released migrations are append-only
 
-A database only runs the migrations above its `user_version`. A moved,
+A database only runs the migrations whose IDs it has not recorded. A moved,
 removed or changed migration is therefore skipped silently on existing
-databases. Released means merged to `main`, because every green push to
+databases, and a migration whose ID changed would run a second time. Released means merged to `main`, because every green push to
 `main` is tagged. Rules, after Flyway and sqlx (checksums of applied
 migrations), Atlas (`migrate lint` against the Git base) and GitLab
 (committed `structure.sql`):
@@ -80,7 +82,11 @@ migrations), Atlas (`migrate lint` against the Git base) and GitLab
   migration is corrected by a further migration, never by an edit.
 * **[E]** The CI job "Migrations append-only"
   (`.github/scripts/migrations-gate.mjs`) requires the migrations of the base
-  commit to be an unchanged prefix, byte for byte. It is part of the CI Gate
+  commit to be an unchanged prefix, byte for byte, now with their IDs (#213:
+  a released ID never changes or disappears; a base from before #213 has no
+  IDs and is compared by its SQL). **[V]** It also requires the list to be
+  in strict order of valid IDs, so a new migration needs an ID after every
+  released one (below). It is part of the CI Gate
   for every change, documentation included, and runs again on every push to
   `main`, so a failed run there also stops the automatic tag.
 * **[E]** `src/server/db/schema.snapshot.sql` holds the schema after all
@@ -92,6 +98,98 @@ migrations), Atlas (`migrate lint` against the Git base) and GitLab
   both pass against an older `main`.
 * **[E]** Upgrades on data are tested on generated databases; see
   [Upgrade tests on generated data](#upgrade-tests-on-generated-data).
+
+## Migration IDs (#213)
+
+Decided by the owner on 2026-11-15 (comment „Geklärt“ on #213), so that two
+pull requests that each add a migration no longer renumber one of them:
+
+* **[E]** D1: every migration has a fixed ID made of a UTC time stamp and a
+  short name, `YYYYMMDDTHHMM-short-name`, for example
+  `20261114T1830-guild-ranks`. The migrations run in the order of their IDs.
+* **[E]** D2: the existing migrations got fixed IDs. A database at
+  `user_version` N counts as having run the first N of them; from then on
+  the table `schema_migrations` records the IDs that have run.
+* **[E]** D3: when two migrations touch the same table, the order of their
+  IDs decides. CI runs the upgrade from the last release with all new
+  migrations (`docker/upgrade.sh`, which now also checks that the database
+  recorded every ID of the image).
+* **[E]** Unchanged: migrations are append-only, a released migration never
+  changes (its SQL stayed byte for byte, only the ID was attached; the CI job
+  „Migrations append-only“ compared it with `main`), and the upgrade tests
+  run on real data.
+
+The code (`src/server/db/database.ts`, `src/server/db/migration-history.ts`,
+tests `migration-ids.test.ts` and `migration-history.test.ts`):
+
+* `MIGRATIONS` in `src/server/db/schema.ts` is a list of `{ id, sql }` in
+  the order of the IDs. An ID is checked for its form and for a time that
+  exists (`idViolation`); the list must be in strict order, each ID once
+  (`orderViolation`, also a property test on random IDs).
+* A database without `schema_migrations` gets the table
+  (`id TEXT NOT NULL PRIMARY KEY`, `STRICT`) with the IDs of its first
+  `user_version` migrations, in the same transaction as the migrations that
+  follow; a failing migration leaves no table behind. A database newer than
+  the server is refused before anything changes, as before.
+* **[V]** The strict variant of D3: a database must have run exactly the
+  oldest migrations of the list. A migration it ran that the server does not
+  know is refused („Use the newer image“), and so is a migration with an ID
+  older than one the database ran already, because it would run out of
+  order there and in order on a new database. The CI job refuses such a
+  migration before it is merged: a new migration takes an ID after every
+  released one. Not decided by the owner: whether a new migration may take
+  an ID older than a released one (a lenient variant would run it out of
+  order on existing databases). With the strict variant, a pull request
+  whose migration has an older ID than one merged before it gives its
+  migration a newer ID (the ID only; its upgrade test is named by the ID).
+* **[V]** `user_version` keeps the number of migrations run, so the names
+  of the backups (`nova.sqlite.v20.bak`), their check and the refusal of a
+  newer database by an older image stay as they were.
+* **[V]** Starting the table on an existing database changes its schema,
+  so the server writes the checked backup first, as before a migration; a
+  database at version 20 from the last release gets `nova.sqlite.v20.bak`.
+* **[V]** `schema_migrations` holds the ID only; nothing asked for the time
+  a migration ran.
+* **[V]** The upgrade test of a new migration is
+  `src/server/db/upgrades/<id>.test.ts` and names its migration by ID
+  (`migrationsThrough(id)` in `src/test/migrations.ts`), so it keeps its
+  name and its data when another migration is merged first; the 20
+  migrations before the IDs keep `migration-<n>.test.ts`.
+
+The 20 IDs of D2. The time stamp is the UTC commit time of the commit on
+`main` that added the migration, cut to the minute: the first-parent history
+of `src/server/db/schema.ts` on `main` (`git log --first-parent --reverse
+--format='%H %ct' origin/main -- src/server/db/schema.ts`), with the length
+of `MIGRATIONS` at each commit; no commit changed a migration that was there
+before. The name comes from the comment of the migration or, for 2 to 5,
+from the tables it creates. Migrations 7 and 8 came in one commit; their
+names sort them in their old order.
+
+| N | ID | Commit |
+|---|---|---|
+| 1 | `20261106T2104-first-schema` | `e1d7dec` Store the game in SQLite and rebuild the server |
+| 2 | `20261107T0911-account-tokens` | `f8feaa6` (#20) |
+| 3 | `20261107T0924-guilds` | `3fde4c3` (#24) |
+| 4 | `20261107T0945-push` | `8711306` (#26) |
+| 5 | `20261107T1403-achievements` | `d2415e5` (#27) |
+| 6 | `20261107T1417-admin-audit` | `9d40e57` (#22) |
+| 7 | `20261107T1556-announcement-text` | `c5d6f39` (#31) |
+| 8 | `20261107T1556-passkeys` | `c5d6f39` (#31) |
+| 9 | `20261108T1207-colonization` | `ba04396` (#38) |
+| 10 | `20261112T1613-explanation-texts` | `96cb572` (#103) |
+| 11 | `20261112T1652-research-planet` | `3c5ea66` (#107) |
+| 12 | `20261112T2219-error-log` | `736ca3e` (#128) |
+| 13 | `20261113T0006-deploy-mission` | `166dc2c` (#130) |
+| 14 | `20261113T1126-planet-fields` | `b146cb5` (#143) |
+| 15 | `20261113T2315-places` | `9a85322` (#168) |
+| 16 | `20261114T1315-harvest-mission` | `2b9a6bb` (#186) |
+| 17 | `20261114T1638-push-kinds` | `d785d0b` (#204) |
+| 18 | `20261114T1809-gift-fleet` | `6cc0c4e` (#205) |
+| 19 | `20261114T1856-guild-ranks` | `af1f0ec` (#197) |
+| 20 | `20261115T0952-guild-chat` | `1f42f1d` (#216) |
+
+The issue counted 19 existing migrations; #216 added migration 20 to `main`
+before this was built, so all 20 got IDs.
 
 
 ## Admin data
@@ -272,6 +370,8 @@ tests together with an own test for each changing migration).
   Stryker uses 10 runs (`MIGRATION_RUNS`).
 * **[E]** A migration that changes or removes an existing schema entry or
   existing rows needs its own test `src/server/db/upgrades/migration-<n>.test.ts`
+  (**[V]** from #213 on `src/server/db/upgrades/<id>.test.ts`, see
+  [Migration IDs](#migration-ids-213))
   that checks the data after the upgrade. The decision is made by the effect on
   generated data, not by the SQL text; `ALTER TABLE … ADD COLUMN` counts as a
   change. Migrations 7, 9, 10, 11, 13, 14, 15, 16, 17, 18, 19 and 20 have such tests; pure `CREATE` migrations need
