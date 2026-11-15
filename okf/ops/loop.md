@@ -135,10 +135,24 @@ tasks).
   options, only when unsure: no recommendation is clearly best, it is not
   consistent with an earlier decision, it changes a rule of the project,
   or it concerns security, data loss or game values that no source gives.
-* **[E]** Up to two own pull requests may be open at a time; subagents build
+* **[E]** Up to four own pull requests may be open at a time; subagents build
   issues that don't depend on each other in their own git worktrees, Claude
   reviews each diff and opens, finishes and merges the pull requests itself
-  (owner, 2026-11-12; replaces „one own pull request at a time“).
+  (owner, 2026-11-12: two, replacing „one own pull request at a time“;
+  owner, 2026-11-15: four, confirmed after the loop already worked with
+  four while this bundle still said two).
+* **[E]** An open pull request takes `main` in only when it is the next one
+  to merge (CI green on its head, every finding answered), when GitHub
+  reports a conflict (then no CI starts, as seen on #194), or when it needs code
+  that just landed on `main` (owner, 2026-11-15). Reason: `main` requires
+  a branch to be up to date before the merge, so taking `main` in after
+  every merge reran CI on every open pull request; from 2026-11-12 to
+  2026-11-15, 89 of 182 CI runs of the loop's pull requests (1,383 of
+  2,425 CI minutes) ran on such merges, 112 merges in 42 of 49 merged pull
+  requests. Expected [V]: about a third fewer CI minutes and fewer loop
+  turns; the time to merge stays about the same, because each merge still
+  waits for one full run of the next pull request, and the median gap of
+  58 minutes between merges shows that merging is not the bottleneck.
 * **[E]** A red security pull request of Renovate (from GitHub's Dependabot
   alerts, `[SECURITY]` at the end of its title) is handled like an own pull
   request in the first step (owner, 2026-11-13, #148; patch, pin and
@@ -147,7 +161,7 @@ tasks).
   [Branching and release](/ops/branching-release.md)): the loop finds the
   root cause and fixes it in its own `claude/…` pull request, never by a
   push to the Renovate branch; if it cannot, it asks the owner. That fix
-  pull request does not count toward the limit of two open own pull
+  pull request does not count toward the limit of four open own pull
   requests (security first).
 * **[E]** Local Stryker runs before a push only for changed logic files whose
   score is less than about 2 points above their floor in

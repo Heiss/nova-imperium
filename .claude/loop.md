@@ -32,16 +32,20 @@ interface is German.
 
 1. **Finish your open pull requests.** Red CI: find the root cause and fix
    it. Review findings: fix what is real, answer every thread, resolve.
-   Conflict: merge `main` into the branch. A red security pull request of
+   Merge `main` into a branch only when (a) it is the next one to merge
+   (CI green on its head, every finding answered), (b) GitHub reports a
+   conflict (no CI starts then), or (c) it needs code that just landed on
+   `main`; otherwise leave it on its base, so a merge into `main` does not
+   rerun CI on every open pull request. A red security pull request of
    Renovate (`[SECURITY]` at the end of its title) is handled like an own
    pull request: the loop finds the root cause and fixes it in its own
    `claude/…` pull request, never by a push to the Renovate branch; if it
    cannot, it asks the owner. That fix pull request does not count toward
-   the limit of two open own pull requests (security first). Patch, pin
+   the limit of four open own pull requests (security first). Patch, pin
    and digest security updates merge themselves, minor ones from version
    1.0 on; a major one and a minor one below 1.0 wait for the owner.
    Merge under O4 (green CI Gate,
-   no open security or critical finding, every finding answered). Up to two
+   no open security or critical finding, every finding answered). Up to four
    own pull requests may be open at a time: while they only wait for CI or
    a review, go on with the next step; a subagent builds an issue that
    doesn't depend on the open ones in its own git worktree, and you review
