@@ -77,7 +77,7 @@ function chatEvent(
 ): void {
   const g = ctx.guilds.get(guild)!;
   const id = ctx.guilds.addChatEvent(guild, Math.floor(ctx.now()), event);
-  notify(ctx, g, 'guild-events', id, [event.member, ...(by ? [by] : [])]);
+  notify(ctx, g, 'guild-events', id, by ? [event.member, by] : [event.member]);
 }
 
 /**

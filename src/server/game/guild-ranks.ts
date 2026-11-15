@@ -179,9 +179,8 @@ export const deleteGuildRank: Action = (ctx, user, d) => {
     fail(
       'Der Rang hat Mitglieder, und der Standardrang steht nicht unter deinem oder hat ein Recht, das dir fehlt.',
     );
-  const members = ctx.guilds
-    .players()
-    .filter((p) => p.guild_id === a.guild.id && p.rank_id === rank.id);
+  // Rank ids are unique, so the rank's members are of the guild.
+  const members = ctx.guilds.players().filter((p) => p.rank_id === rank.id);
   ctx.guilds.deleteRank(rank.id, fallback);
   // Each of its members has a new rank (#169 D4).
   for (const p of members)

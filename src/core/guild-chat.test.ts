@@ -111,17 +111,17 @@ describe('event messages (#169 D3, D4; owner, 2026-11-15)', () => {
   });
 
   it('writes the short sentences of the owner', () => {
-    expect(chatEventText({ kind: 'join', name: 'Anna', text: '' })).toBe(
+    expect(chatEventText({ kind: 'join', name: 'Anna', text: '' }, '')).toBe(
       'Anna ist der Gilde beigetreten.',
     );
-    expect(chatEventText({ kind: 'leave', name: 'Anna', text: '' })).toBe(
+    expect(chatEventText({ kind: 'leave', name: 'Anna', text: '' }, '')).toBe(
       'Anna hat die Gilde verlassen.',
     );
-    expect(chatEventText({ kind: 'remove', name: 'Anna', text: '' })).toBe(
+    expect(chatEventText({ kind: 'remove', name: 'Anna', text: '' }, '')).toBe(
       'Anna wurde aus der Gilde entfernt.',
     );
     expect(
-      chatEventText({ kind: 'rank', name: 'Anna', text: 'Offizier' }),
+      chatEventText({ kind: 'rank', name: 'Anna', text: 'Offizier' }, ''),
     ).toBe('Anna ist jetzt Offizier.');
   });
 
@@ -135,15 +135,15 @@ describe('event messages (#169 D3, D4; owner, 2026-11-15)', () => {
   });
 
   it('names a deleted account „ehemaliges Mitglied“, a deleted attacker „Unbekannt“', () => {
-    expect(chatEventText({ kind: 'join', name: null, text: '' })).toBe(
+    expect(chatEventText({ kind: 'join', name: null, text: '' }, '')).toBe(
       'Ehemaliges Mitglied ist der Gilde beigetreten.',
     );
-    expect(chatEventText({ kind: 'leave', name: null, text: '' })).toBe(
+    expect(chatEventText({ kind: 'leave', name: null, text: '' }, '')).toBe(
       'Ehemaliges Mitglied hat die Gilde verlassen.',
     );
-    expect(chatEventText({ kind: 'rank', name: null, text: 'Rekrut' })).toBe(
-      'Ehemaliges Mitglied ist jetzt Rekrut.',
-    );
+    expect(
+      chatEventText({ kind: 'rank', name: null, text: 'Rekrut' }, ''),
+    ).toBe('Ehemaliges Mitglied ist jetzt Rekrut.');
     expect(
       chatEventText(
         { kind: 'attack', name: null, text: '[2:3:4]', attacker: null },

@@ -194,9 +194,9 @@ export const send: Action = (ctx, u, d, event) => {
     fuel,
   };
   ctx.fleets.save(fleet);
-  // The guild of the defender learns of an attack at its launch (#169 D3).
-  if (targetOwner !== null && missionRules(mission)!.alertsGuild)
-    attackEvent(ctx, fleet, targetOwner);
+  // The guild of the defender learns of an attack at its launch (#169 D3);
+  // an attack flies to a foreign planet only, so it has an owner.
+  if (missionRules(mission)!.alertsGuild) attackEvent(ctx, fleet, targetOwner!);
   if (event) logLaunch(event, fleet, targetOwner);
   return `Flotte unterwegs nach ${coords(fleet.toC)}.`;
 };

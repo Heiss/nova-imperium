@@ -73,6 +73,7 @@
     "src/server/game/dispatch.ts": 87.5,
     "src/server/game/fleet-actions.ts": 84.31,
     "src/server/game/guild-chat.ts": 100,
+    "src/server/game/guild-events.ts": 100,
     "src/server/game/guild-ranks.ts": 98.94,
     "src/server/game/guilds.ts": 98.82,
     "src/server/game/moderation.ts": 100,

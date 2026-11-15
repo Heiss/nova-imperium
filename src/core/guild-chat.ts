@@ -75,7 +75,7 @@ const UNKNOWN = 'Unbekannt';
  * `arrival` is the time of the arrival as the browser shows it. Plain text:
  * the view escapes it.
  */
-export function chatEventText(e: ChatEvent, arrival = ''): string {
+export function chatEventText(e: ChatEvent, arrival: string): string {
   const name = e.name ?? FORMER;
   if (e.kind === 'attack')
     return `⚔ Angriff auf ${e.text} (${e.attacker ?? UNKNOWN} → ${name}), Ankunft ${arrival}`;

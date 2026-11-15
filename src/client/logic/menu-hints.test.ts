@@ -93,6 +93,10 @@ it('marks „Gilden“ for new messages in the guild chat (#169; owner, 2026-11-
   );
   expect(hint(state(1, { unread: false }))).toBe('Offene Gildenbewerbungen');
   expect(hint(state(0, { unread: false }))).toBeUndefined();
+  // A member without a management box still gets the mark.
+  const plain = state(0, { unread: true });
+  plain.guilds!.management = null;
+  expect(hint(plain)).toBe('Neue Nachrichten im Gilden-Chat');
   // No chat right, or an older server without the chat.
   expect(hint(state(0, null))).toBeUndefined();
   expect(hint(state(0, undefined))).toBeUndefined();
@@ -106,7 +110,7 @@ it('sees the chat on the page of the own guild only (#169; owner, 2026-11-15)', 
         chat: {
           read: true,
           unread: true,
-          messages: [{ id: 4 }, { id: 9 }],
+          messages: [{ id: 4 }, { id: 6 }, { id: 9 }],
         },
         ...over,
       },
@@ -114,6 +118,7 @@ it('sees the chat on the page of the own guild only (#169; owner, 2026-11-15)', 
   expect(chatToSee(state(), 'guilds', 'g1')).toBe(9);
   // Another page, the list of guilds or another guild's page: not seen.
   expect(chatToSee(state(), 'overview', null)).toBeNull();
+  expect(chatToSee(state(), 'overview', 'g1')).toBeNull();
   expect(chatToSee(state(), 'guilds', null)).toBeNull();
   expect(chatToSee(state(), 'guilds', 'g2')).toBeNull();
   // Nothing new, nothing to read, or no membership.

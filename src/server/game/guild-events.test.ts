@@ -212,9 +212,15 @@ describe('events in the chat (#169)', () => {
     const s = setup();
     s.accept('Ada');
     const event = s.ctx.guilds.chat(s.id)[0]!;
-    expect(guildState(s.ctx, 'u_Lea', {}).chat!.messages[0]!.delete).toBe(
-      false,
-    );
+    // Only an attack carries an attacker and an arrival.
+    expect(guildState(s.ctx, 'u_Lea', {}).chat!.messages[0]).toEqual({
+      id: event.id,
+      time: s.ctx.now(),
+      kind: 'join',
+      name: 'Ada',
+      text: '',
+      delete: false,
+    });
     expect(() =>
       s.run('Lea', { type: 'deleteGuildChat', id: event.id }),
     ).toThrow(NO_EVENT_DELETE);
@@ -320,6 +326,9 @@ describe('the red mark on „Gilden“ (#169; owner, 2026-11-15)', () => {
 
   it('stores at most the newest message of the guild and never goes back', () => {
     const s = setup();
+    // An empty chat: nothing to see.
+    expect(s.run('Lea', { type: 'seeGuildChat', id: 5 })).toBeNull();
+    expect(s.ctx.guilds.membership('u_Lea')!.chat_seen).toBe(0);
     s.accept('Ada');
     const last = newest(s);
     expect(s.run('Ada', { type: 'seeGuildChat', id: 1e9 })).toBeNull();
