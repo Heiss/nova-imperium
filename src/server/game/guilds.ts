@@ -2,6 +2,7 @@ import MarkdownIt from 'markdown-it';
 import type { Action } from './actions.ts';
 import type { Guild, GuildPlayer } from '../db/repos/guilds.ts';
 import { fail, str, type Ctx } from './context.ts';
+import { chatState } from './guild-chat.ts';
 import {
   actor,
   below,
@@ -157,5 +158,7 @@ export function guildState(
     own: own ? { id: own.guild_id, status: own.status } : null,
     management: inside ? management(inside, players) : null,
     ranks: inside ? rankState(inside, players) : null,
+    // The chat of the own guild (#169); none without a chat right.
+    chat: inside ? chatState(ctx, inside, players) : null,
   };
 }

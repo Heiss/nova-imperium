@@ -48,7 +48,7 @@ describe('the dialog „Neue Runde“', () => {
 describe('the warning below the box „Gilden (mit Chat)“ (#191)', () => {
   const rules = { number: 1, achievements: true, daily: true };
   const WARNING =
-    'Ohne Gilden werden alle Gilden mit Mitgliedern, Bewerbungen und Rängen gelöscht.';
+    'Ohne Gilden werden alle Gilden mit Mitgliedern, Bewerbungen, Rängen und Chat gelöscht.';
 
   it('stands below the box, always, and the box names it as its description', () => {
     for (const guilds of [true, false]) {

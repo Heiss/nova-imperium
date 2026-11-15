@@ -70,7 +70,11 @@ import {
 } from './views/misc.ts';
 import { disablePush, enablePush } from './push.ts';
 import { mountCatalogList } from './views/catalog-list.ts';
-import { dissolveDialog, transferDialog } from './views/guilds.ts';
+import {
+  adminChatDialog,
+  dissolveDialog,
+  transferDialog,
+} from './views/guilds.ts';
 import { mountProducerTable } from './views/producer-table.ts';
 
 import { addPasskey, signInWithPasskey } from './passkeys.ts';
@@ -812,6 +816,7 @@ function render(fresh = false): void {
     return;
   }
   const restore = keepInputs(view, fresh);
+  const chatScroll = keepChatScroll(view);
   const now = client.now();
   const previous = client.view;
   client.view = viewAt(client.game, client.game.planet, now);
@@ -824,6 +829,7 @@ function render(fresh = false): void {
   renderCompletions(view);
   paintPlanets(view);
   restore();
+  chatScroll();
   if (ui.view === 'fleet') fleetCalc();
   if (ui.view === 'achievements') filterAchievements();
   if (ui.view === 'messages') markRead();
@@ -1146,6 +1152,11 @@ const ACT: Record<string, (d: Data) => unknown> = {
       return act('deleteGuildRank', { rank: d.rank });
   },
   rankDefault: (d) => act('setGuildDefaultRank', { rank: d.rank }),
+  guildChatDelete: (d) => {
+    if (window.confirm('Nachricht löschen?'))
+      return act('deleteGuildChat', { id: Number(d.id) });
+  },
+  guildChatAdmin: (d) => openAdminChat(d.id ?? ''),
   achievementClaim: (d) => act('claimAchievement', { id: d.id }),
   dailyClaim: () => act('claimDailyReward'),
   logout: async () => {
@@ -1579,6 +1590,42 @@ async function submitDissolve(): Promise<void> {
   }
 }
 
+/** The guild chat (#169): the text field empties once the message is in. */
+async function submitChat(): Promise<void> {
+  if (await act('sendGuildChat', { text: val('#chat_text') })) {
+    setInput('#chat_text', '');
+    $<HTMLInputElement>('#chat_text')?.focus();
+  }
+}
+
+/** The admin opens the chat of a guild; the server records it (#169, D8). */
+async function openAdminChat(guild: string): Promise<void> {
+  try {
+    const read = await api('/api/admin/guild-chat', { guild });
+    modal(
+      adminChatDialog(read as unknown as Parameters<typeof adminChatDialog>[0]),
+    );
+    keepChatScroll($('#modalIn')!, true)();
+  } catch (error) {
+    toast((error as Error).message, true);
+  }
+}
+
+/**
+ * The chat log keeps its place when the view renders again; at its end it
+ * follows the new messages (#169).
+ */
+function keepChatScroll(root: ParentNode, end = false): () => void {
+  const log = root.querySelector<HTMLElement>('.chat-log');
+  const atEnd =
+    end || !log || log.scrollTop + log.clientHeight >= log.scrollHeight - 4;
+  const top = log?.scrollTop ?? 0;
+  return () => {
+    const next = root.querySelector<HTMLElement>('.chat-log');
+    if (next) next.scrollTop = atEnd ? next.scrollHeight : top;
+  };
+}
+
 async function submitGuild(): Promise<void> {
   const edit = $('#guildform')?.dataset.edit === '1';
   const ok = await act(edit ? 'updateGuild' : 'createGuild', {
@@ -1720,6 +1767,7 @@ document.addEventListener('submit', (e) => {
     ['guildform', submitGuild],
     ['guildtransferform', submitTransfer],
     ['guilddissolveform', submitDissolve],
+    ['guildchatform', submitChat],
     ['codeform', submitLoginCode],
     ['forgotform', submitForgot],
     ['resetform', () => submitPassword(true)],

@@ -139,4 +139,24 @@ export interface GuildState {
     pending: Pick<GuildMember, 'id' | 'name'>[];
   } | null;
   ranks?: GuildRanks | null;
+  /** The chat of the own guild (#169); none without a chat right. */
+  chat?: GuildChat | null;
+}
+
+/** A message of the guild chat (#169). */
+export interface GuildChatMessage {
+  id: number;
+  time: number;
+  /** None for a former member or a deleted account: „ehemaliges Mitglied“. */
+  name: string | null;
+  text: string;
+  /** Whether the own rank may delete it. */
+  delete: boolean;
+}
+
+/** The chat as the own rank sees it: the messages only with „Chat lesen“. */
+export interface GuildChat {
+  read: boolean;
+  write: boolean;
+  messages: GuildChatMessage[];
 }

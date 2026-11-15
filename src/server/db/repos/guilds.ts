@@ -1,6 +1,13 @@
-// Guilds (#117): a guild with its members, open applications and ranks
-// (#163). The rules of the ranks are in src/server/game/guild-ranks.ts.
-import { GUILD_RIGHTS, type GuildRight } from '../../../core/guild-ranks.ts';
+// Guilds (#117): a guild with its members, open applications, ranks (#163)
+// and chat (#169). The rules of the ranks are in
+// src/server/game/guild-ranks.ts, those of the chat in
+// src/server/game/guild-chat.ts.
+import { CHAT_HISTORY } from '../../../core/guild-chat.ts';
+import {
+  GUILD_RIGHTS,
+  MEMBER_RIGHTS,
+  type GuildRight,
+} from '../../../core/guild-ranks.ts';
 import type { Db } from '../database.ts';
 
 export interface Guild {
@@ -40,6 +47,16 @@ export interface Rank {
   rights: GuildRight[];
 }
 
+/** A message of the guild chat (#169). */
+export interface ChatMessage {
+  id: number;
+  guild_id: string;
+  /** The writer; null once its account is deleted (anonymous, owner D7). */
+  author: string | null;
+  time: number;
+  text: string;
+}
+
 export interface Guilds {
   get(id: string): Guild | undefined;
   all(): Guild[];
@@ -50,7 +67,8 @@ export interface Guilds {
   taken(except: string, tag: string, name: string): boolean;
   /**
    * Founds a guild with the ranks Leitung (`r0_<id>`, held by the founder)
-   * and Mitglied (`r1_<id>`, the default rank).
+   * and Mitglied (`r1_<id>`, the default rank, with the rights of
+   * MEMBER_RIGHTS).
    */
   create(
     id: string,
@@ -86,6 +104,16 @@ export interface Guilds {
   setRank(uid: string, rank: string): void;
   /** Whether a member holds the rank. */
   rankHasMembers(rank: string): boolean;
+  /** The kept messages of a guild's chat, oldest first (#169). */
+  chat(id: string): ChatMessage[];
+  chatMessage(id: number): ChatMessage | undefined;
+  /** Adds a message and keeps only the newest CHAT_HISTORY of the guild. */
+  addChat(id: string, author: string, time: number, text: string): number;
+  deleteChat(id: number): void;
+  /** The time of the newest kept message of `uid`, in any guild. */
+  lastChat(uid: string): number | undefined;
+  /** Deletes the chats of every guild: each new round (owner, D6). */
+  clearChats(): void;
 }
 
 interface RankRow {
@@ -154,6 +182,7 @@ export class SqliteGuilds implements Guilds {
     );
     rank.run(lead, id, 'Leitung', 0);
     rank.run(member, id, 'Mitglied', 1);
+    this.setRights(member, MEMBER_RIGHTS);
     this.setDefaultRank(id, member);
     this.db
       .prepare(
@@ -313,5 +342,47 @@ export class SqliteGuilds implements Guilds {
         .prepare('SELECT 1 FROM guild_members WHERE rank_id = ?')
         .get(rank) !== undefined
     );
+  }
+
+  chat(id: string): ChatMessage[] {
+    return this.db
+      .prepare('SELECT * FROM guild_chat WHERE guild_id = ? ORDER BY id')
+      .all(id) as ChatMessage[];
+  }
+
+  chatMessage(id: number): ChatMessage | undefined {
+    return this.db.prepare('SELECT * FROM guild_chat WHERE id = ?').get(id) as
+      ChatMessage | undefined;
+  }
+
+  addChat(id: string, author: string, time: number, text: string): number {
+    const added = this.db
+      .prepare(
+        'INSERT INTO guild_chat (guild_id, author, time, text) VALUES (?, ?, ?, ?)',
+      )
+      .run(id, author, time, text);
+    this.db
+      .prepare(
+        `DELETE FROM guild_chat WHERE guild_id = ? AND id NOT IN (
+           SELECT id FROM guild_chat WHERE guild_id = ? ORDER BY id DESC LIMIT ?)`,
+      )
+      .run(id, id, CHAT_HISTORY);
+    return Number(added.lastInsertRowid);
+  }
+
+  deleteChat(id: number): void {
+    this.db.prepare('DELETE FROM guild_chat WHERE id = ?').run(id);
+  }
+
+  lastChat(uid: string): number | undefined {
+    const time = this.db
+      .prepare('SELECT MAX(time) FROM guild_chat WHERE author = ?')
+      .pluck()
+      .get(uid) as number | null;
+    return time ?? undefined;
+  }
+
+  clearChats(): void {
+    this.db.prepare('DELETE FROM guild_chat').run();
   }
 }

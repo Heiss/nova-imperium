@@ -38,8 +38,8 @@ switches; both go into the next release.
   | `delivery` | Lieferung eines anderen Spielers | „Lieferung von …“, a transport of another player |
   | `announcement` | Servernachrichten | a server announcement of the admin |
   | `news` | Neue Version | the update message of a new version |
-  | `guild-events` | Gildenereignisse | nothing yet; the guild chat (#169) |
-  | `guild-chat` | Nachrichten im Gilden-Chat | nothing yet; the guild chat (#169) |
+  | `guild-events` | Gildenereignisse | nothing yet; the event messages of the guild chat (#169, not built yet) |
+  | `guild-chat` | Nachrichten im Gilden-Chat | a message in the guild chat, to every other member with „Chat lesen“ (#169) |
 
   Before #192 the four report kinds were one kind „messages“; the split
   follows the examples of the issue (an attack, news, a server

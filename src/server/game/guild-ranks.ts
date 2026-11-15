@@ -88,7 +88,10 @@ export function placeOf(a: Actor, m: Membership): number {
 }
 
 /** The actor as the core rules see it: its place and its rights. */
-const asRule = (a: Actor) => ({ position: a.position, rights: [...a.rights] });
+export const asRule = (a: Actor) => ({
+  position: a.position,
+  rights: [...a.rights],
+});
 
 function rankOf(a: Actor, id: unknown): Rank {
   const rank = str(id, 40);

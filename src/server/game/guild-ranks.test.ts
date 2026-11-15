@@ -152,7 +152,8 @@ describe('every right, allowed and refused (#163)', () => {
     expect(() =>
       s.run('Lea', { type: 'setGuildRankRights', rank: r, rights: 'ranks' }),
     ).toThrow('Dieses Recht gibt es nicht.');
-    expect(s.ctx.guilds.rank(r)!.rights).toEqual([]);
+    // Unchanged: the chat rights of the first default rank (#169, D2).
+    expect(s.ctx.guilds.rank(r)!.rights).toEqual(['chat-read', 'chat-write']);
     expect(
       s.run('Lea', {
         type: 'setGuildRankRights',
@@ -332,9 +333,12 @@ describe('dissolving the guild with members (#163, owner 2026-11-14)', () => {
     expect(count('SELECT COUNT(*) FROM guild_ranks WHERE guild_id = ?')).toBe(
       0,
     );
-    expect(
-      s.ctx.db.prepare('SELECT COUNT(*) FROM guild_rank_rights').pluck().get(),
-    ).toBe(0);
+    // Only the rights of the other guild stay: its Mitglied reads and
+    // writes in the chat (#169, D2).
+    expect(s.ctx.db.prepare('SELECT * FROM guild_rank_rights').all()).toEqual([
+      { rank_id: `r1_${other}`, right_key: 'chat-read' },
+      { rank_id: `r1_${other}`, right_key: 'chat-write' },
+    ]);
     expect(s.ctx.guilds.ranks(other)).toHaveLength(2);
     expect(s.ctx.guilds.membership('u_Out')?.guild_id).toBe(other);
     expect(s.ctx.players.get('u_Ada')).toMatchObject({ name: 'Ada' });
@@ -442,6 +446,19 @@ describe('the order of the ranks (#163)', () => {
       rank: member,
       rights: r,
     });
+    // Mitglied starts with the chat rights (#169, D2), which Ada lacks: she
+    // cannot take them away.
+    expect(() =>
+      s.run('Ada', rights(['chat-read', 'chat-write', 'applications'])),
+    ).not.toThrow();
+    expect(() => s.run('Ada', rights(['applications']))).toThrow(NO_RIGHT);
+    expect(s.ctx.guilds.rank(member)!.rights).toEqual([
+      'applications',
+      'chat-read',
+      'chat-write',
+    ]);
+    // From here the case of #163: the Leitung clears them.
+    s.run('Lea', rights([]));
     expect(() => s.run('Ada', rights(['remove']))).toThrow(NO_RIGHT);
     expect(s.run('Ada', rights(['applications']))).toBe('Rechte gespeichert.');
     expect(s.ctx.guilds.rank(member)!.rights).toEqual(['applications']);
@@ -775,14 +792,27 @@ describe('what the guild view shows (#163)', () => {
         {
           id: lead!.id,
           name: 'Leitung',
-          rights: ['applications', 'remove', 'assign', 'profile', 'ranks'],
+          rights: [
+            'applications',
+            'remove',
+            'assign',
+            'profile',
+            'ranks',
+            'chat-read',
+            'chat-write',
+            'chat-delete',
+          ],
         },
         {
           id: officer!.id,
           name: 'Offizier',
           rights: ['applications', 'remove'],
         },
-        { id: member!.id, name: 'Mitglied', rights: [] },
+        {
+          id: member!.id,
+          name: 'Mitglied',
+          rights: ['chat-read', 'chat-write'],
+        },
       ],
       members: {
         u_Lea: lead!.id,
@@ -793,7 +823,16 @@ describe('what the guild view shows (#163)', () => {
     });
     expect(guildState(s.ctx, 'u_Lea', {}).ranks).toMatchObject({
       rank: lead!.id,
-      rights: ['applications', 'remove', 'assign', 'profile', 'ranks'],
+      rights: [
+        'applications',
+        'remove',
+        'assign',
+        'profile',
+        'ranks',
+        'chat-read',
+        'chat-write',
+        'chat-delete',
+      ],
     });
   });
 

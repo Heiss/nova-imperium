@@ -4,7 +4,7 @@ import type { Ctx } from './game/context.ts';
 
 /** The view a push opens in the game. */
 export type PushKind =
-  'buildings' | 'research' | 'shipyard' | 'fleet' | 'messages';
+  'buildings' | 'research' | 'shipyard' | 'fleet' | 'messages' | 'guilds';
 
 /** A push to queue for every device of a player. */
 export interface PushJob {

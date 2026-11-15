@@ -25,6 +25,9 @@ const ALL_GUILD_ACTIONS = [
   'setGuildDefaultRank',
   'assignGuildRank',
   'dissolveGuild',
+  // The guild chat (#169).
+  'sendGuildChat',
+  'deleteGuildChat',
 ];
 
 const GUILD_TABLES = [
@@ -32,6 +35,7 @@ const GUILD_TABLES = [
   'guild_members',
   'guild_ranks',
   'guild_rank_rights',
+  'guild_chat',
 ];
 
 const rows = (ctx: TestCtx) =>
@@ -67,7 +71,9 @@ function world() {
     rights: ['remove'],
   });
   runAction(ctx, applicant.id, { type: 'applyToGuild', id });
-  return { ctx, admin, lead, member, applicant, id, rank };
+  runAction(ctx, member.id, { type: 'sendGuildChat', text: 'Hallo' });
+  const message = ctx.guilds.chat(id)[0]!.id;
+  return { ctx, admin, lead, member, applicant, id, rank, message };
 }
 
 /** What a guild action would send, so only the switch can refuse it. */
@@ -89,6 +95,8 @@ function payload(
     setGuildDefaultRank: { rank: w.rank },
     assignGuildRank: { uid: w.member.id, rank: w.rank },
     dissolveGuild: { tag: 'OR' },
+    sendGuildChat: { text: 'Noch da?' },
+    deleteGuildChat: { id: w.message },
   };
   return { type, ...data[type] };
 }
@@ -156,13 +164,14 @@ describe('the guild switch (#191)', () => {
     });
   });
 
-  it('a new round with guilds on keeps the guilds, as today', () => {
+  it('a new round with guilds on keeps the guilds, as today, and deletes the chats (#169 D6)', () => {
     const w = world();
     const before = rows(w.ctx);
+    expect(before.guild_chat).toHaveLength(1);
     runAction(w.ctx, w.admin.id, { type: 'reset', guilds: true });
     expect(roundRules(w.ctx).guilds).toBe(true);
     expect(w.ctx.admin.setting('roundGuilds')).toBe(1);
-    expect(rows(w.ctx)).toEqual(before);
+    expect(rows(w.ctx)).toEqual({ ...before, guild_chat: [] });
     runAction(w.ctx, w.lead.id, payload('updateGuild', w));
     expect(w.ctx.guilds.get(w.id)?.description).toBe('neu');
   });

@@ -1,3 +1,4 @@
+import { MAX_CHAT_TEXT } from '../../core/guild-chat.ts';
 import {
   assignError,
   deleteError,
@@ -9,14 +10,19 @@ import {
   MIN_RANK_NAME,
   type GuildRight,
 } from '../../core/guild-ranks.ts';
-import { esc, fmt } from '../logic/format.ts';
+import { dt, esc, fmt } from '../logic/format.ts';
 import type {
   Guild,
+  GuildChat,
+  GuildChatMessage,
   GuildRank,
   GuildRanks,
   GuildState,
 } from '../logic/types.ts';
 import { box, type V } from './common.ts';
+
+const heading = (guild: Pick<Guild, 'tag' | 'name'>): string =>
+  `[${esc(guild.tag)}] ${esc(guild.name)}`;
 
 /** The rights as the guild view names them (#163). */
 const RIGHT_TEXT: Record<GuildRight, string> = {
@@ -25,10 +31,63 @@ const RIGHT_TEXT: Record<GuildRight, string> = {
   assign: 'Ränge an Mitglieder vergeben',
   profile: 'Gildenname, Kürzel und Text ändern',
   ranks: 'Ränge verwalten',
+  // The guild chat (#169, owner, 2026-11-14, D2).
+  'chat-read': 'Chat lesen',
+  'chat-write': 'Chat schreiben',
+  'chat-delete': 'Chatnachrichten löschen',
 };
 
-const heading = (guild: Guild): string =>
-  `[${esc(guild.tag)}] ${esc(guild.name)}`;
+/** The author of a message who left the guild or deleted the account (owner, D7). */
+const FORMER = 'ehemaliges Mitglied';
+
+/** A message: the author, the time and the text, all escaped (#169). */
+function chatLine(m: Pick<GuildChatMessage, 'name' | 'time' | 'text'>): string {
+  const who = m.name === null ? `<i>${FORMER}</i>` : `<b>${esc(m.name)}</b>`;
+  return `${who} <span class="dim">${dt(m.time)}</span><br><span class="chat-text">${esc(m.text)}</span>`;
+}
+
+type ChatLine = Pick<GuildChatMessage, 'id' | 'name' | 'time' | 'text'>;
+
+/** The messages, oldest first, in a log that keeps its place (#169). */
+function chatLog<M extends ChatLine>(
+  messages: M[],
+  controls: (m: M) => string = () => '',
+): string {
+  const items = messages
+    .map((m) => `<li>${chatLine(m)}${controls(m)}</li>`)
+    .join('');
+  return `<div class="chat-log" role="log" aria-label="Chat" tabindex="0">${
+    items ? `<ol>${items}</ol>` : '<p>Noch keine Nachrichten.</p>'
+  }</div>`;
+}
+
+/**
+ * The chat of the own guild (#169): the messages with „Chat lesen“, the
+ * text field with „Chat schreiben“, „Löschen“ where the own rank may.
+ */
+function chatBox(chat: GuildChat): string {
+  const log = chat.read
+    ? chatLog(chat.messages, (m) =>
+        m.delete
+          ? ` <button class="small red" data-act="guildChatDelete" data-id="${Number(m.id)}">Löschen</button>`
+          : '',
+      )
+    : '';
+  const form = chat.write
+    ? `<form id="guildchatform" class="flex"><label for="chat_text">Nachricht</label> <input id="chat_text" class="wide" maxlength="${MAX_CHAT_TEXT}" required autocomplete="off"> <button type="submit">Senden</button></form>`
+    : '';
+  return box('Chat', log + form);
+}
+
+/** The chat of a guild as the admin reads it (#169, D8), in the dialog. */
+export function adminChatDialog(read: {
+  guild: Pick<Guild, 'tag' | 'name'>;
+  messages: ChatLine[];
+}): string {
+  return `<h3 id="dialog-title">Chat ${heading(read.guild)}</h3>
+  ${chatLog(read.messages)}
+  <p><button type="button" data-act="closeModal">Schließen</button></p>`;
+}
 
 function profileForm(guild?: Guild, description = ''): string {
   return `<form id="guildform" data-edit="${guild ? '1' : '0'}">
@@ -282,6 +341,18 @@ export function guilds(v: V): string {
   ${box('Gildenprofil', g.html || '<p>Diese Gilde hat noch keinen Profiltext.</p>')}
   ${box('Punkte', `<p>${fmt(g.score)} gesamt · ${fmt(g.average)} pro Mitglied</p>`)}
   ${box('Mitglieder', roster(g, me))}
+  ${ownChat(state, g)}
   ${guildMembership(state, g, me)}
+  ${adminChatButton(v, g)}
   ${own && me ? management(g, own, me) : ''}`;
 }
+
+/** The chat box of the own guild, for a rank with a chat right (#169). */
+const ownChat = (state: GuildState, g: Guild): string =>
+  state.management?.id === g.id && state.chat ? chatBox(state.chat) : '';
+
+/** The admin reads the chat of every guild (#169, D8). */
+const adminChatButton = (v: V, g: Guild): string =>
+  !v.s.admin
+    ? ''
+    : `<p><button class="small" data-act="guildChatAdmin" data-id="${esc(g.id)}">Chat lesen</button></p>`;

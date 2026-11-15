@@ -217,11 +217,30 @@ hand-written data, the constraints and cascades, generated data of
 version 18). It was planned as 16 and follows migrations 16 (#45), 17
 (#192) and 18 (#161), which reached `main` first.
 
+Migration 20 (issue #169, see [Guild chat](/features/guild-chat.md))
+rebuilds `guild_rank_rights` for the three chat rights in the CHECK of
+`right_key` (`chat-read`, `chat-write`, `chat-delete`; nothing references
+the table, so the rebuild touches no other one), gives the default rank of
+every guild `chat-read` and `chat-write` (owner, D2; the other ranks keep
+their rights) and adds the table `guild_chat`: `id` (INTEGER PRIMARY KEY
+AUTOINCREMENT, so ids never come back), `guild_id` (`ON DELETE CASCADE`),
+`author` (`REFERENCES users(id) ON DELETE SET NULL`), `time` and `text`
+(CHECK 1 to 1,000 characters), with indexes on guild and author. Other
+data stay as they were (`upgrades/migration-20.test.ts`: hand-written
+data, the constraints, the cascade with the guild, anonymisation by
+account deletion, the new round, generated data of version 19).
+
 Account deletion runs in one transaction. Foreign-key cascades clear owned game,
 session, reward and push data. The deletion also removes led guilds and their
 memberships, linked audit and inbox records, invitations for the account address
 and active registration challenges. Incoming fleets belonging to other players
 turn back. Existing external backups are managed by the operator.
+
+**[E]** Guild chat messages are the exception (owner, 2026-11-14, #169 D7):
+deleting an account anonymises its messages instead of deleting them; the
+foreign key sets their author to null, and the chat shows them as
+„ehemaliges Mitglied“. The chat of a guild the account led goes with the
+guild. Every new round deletes all chats (D6).
 
 ## Upgrade tests on generated data
 
@@ -244,7 +263,7 @@ tests together with an own test for each changing migration).
   existing rows needs its own test `src/server/db/upgrades/migration-<n>.test.ts`
   that checks the data after the upgrade. The decision is made by the effect on
   generated data, not by the SQL text; `ALTER TABLE … ADD COLUMN` counts as a
-  change. Migrations 7, 9, 10, 11, 13, 14, 15, 16, 17, 18 and 19 have such tests; pure `CREATE` migrations need
+  change. Migrations 7, 9, 10, 11, 13, 14, 15, 16, 17, 18, 19 and 20 have such tests; pure `CREATE` migrations need
   none (migration 12 has one anyway, for its CHECK and cascade).
 * **[E]** A self-test proves that the checks find a migration that fails on
   existing data and that the classification tells changes from new tables.

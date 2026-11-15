@@ -635,4 +635,35 @@ export const MIGRATIONS: readonly string[] = [
       THEN 'r0_' ELSE 'r1_' END || guild_id
     WHERE status = 'member';
   `,
+  // 20: the guild chat (issue #169). Three new rights, so the CHECK of
+  // guild_rank_rights needs a rebuild; nothing references the table. The
+  // default rank of every guild gets „Chat lesen“ and „Chat schreiben“
+  // (owner, D2). A message keeps its author until the account is deleted,
+  // then it is anonymous (owner, D7); it goes with its guild.
+  `
+  CREATE TABLE guild_rank_rights_new (
+    rank_id TEXT NOT NULL REFERENCES guild_ranks(id) ON DELETE CASCADE,
+    right_key TEXT NOT NULL
+      CHECK (right_key IN ('applications', 'remove', 'assign', 'profile', 'ranks',
+        'chat-read', 'chat-write', 'chat-delete')),
+    PRIMARY KEY (rank_id, right_key)
+  ) STRICT;
+  INSERT INTO guild_rank_rights_new (rank_id, right_key)
+    SELECT rank_id, right_key FROM guild_rank_rights;
+  DROP TABLE guild_rank_rights;
+  ALTER TABLE guild_rank_rights_new RENAME TO guild_rank_rights;
+  INSERT OR IGNORE INTO guild_rank_rights (rank_id, right_key)
+    SELECT g.default_rank, r.right_key FROM guilds g,
+      (SELECT 'chat-read' AS right_key UNION ALL SELECT 'chat-write') r
+    WHERE g.default_rank IS NOT NULL;
+  CREATE TABLE guild_chat (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    guild_id TEXT NOT NULL REFERENCES guilds(id) ON DELETE CASCADE,
+    author TEXT REFERENCES users(id) ON DELETE SET NULL,
+    time INTEGER NOT NULL,
+    text TEXT NOT NULL CHECK (length(text) BETWEEN 1 AND 1000)
+  ) STRICT;
+  CREATE INDEX guild_chat_guild ON guild_chat(guild_id, id);
+  CREATE INDEX guild_chat_author ON guild_chat(author);
+  `,
 ];

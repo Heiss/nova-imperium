@@ -27,7 +27,7 @@ const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
 const OFF = 'Gilden sind in dieser Runde abgeschaltet.';
 const BOX = 'Gilden (mit Chat)';
 const WARNING =
-  'Ohne Gilden werden alle Gilden mit Mitgliedern, Bewerbungen und Rängen gelöscht.';
+  'Ohne Gilden werden alle Gilden mit Mitgliedern, Bewerbungen, Rängen und Chat gelöscht.';
 
 const lastToast = (page: Page): Locator => page.locator('.toast').last();
 /** The menu entry „Gilden“: the side menu on a desktop, „Mehr“ on a phone. */

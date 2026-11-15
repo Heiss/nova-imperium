@@ -36,6 +36,8 @@ function newRound(ctx: Ctx, rules: RoundRules): void {
   // A round with guilds off starts without any guild (#191); with guilds on
   // they stay, as before.
   if (!rules.guilds) ctx.guilds.deleteAll();
+  // Every new round deletes all guild chats, guilds on or off (#169, D6).
+  ctx.guilds.clearChats();
   ctx.fleets.deleteAll();
   ctx.debris.deleteAll();
   ctx.db.exec(`
