@@ -52,7 +52,36 @@ export function menuHints(
       done ? `${done} · Anfliegende Flotte` : 'Anfliegende Flotte',
     );
   }
-  if (state.guilds?.management?.pending.length)
-    hints.set('guilds', 'Offene Gildenbewerbungen');
+  const guilds = guildHint(state);
+  if (guilds) hints.set('guilds', guilds);
   return hints;
+}
+
+/**
+ * Open applications and, since the last visit to the own guild, news in its
+ * chat (#169; owner, 2026-11-15).
+ */
+function guildHint(state: GameState): string {
+  return [
+    state.guilds?.management?.pending.length && 'Offene Gildenbewerbungen',
+    state.guilds?.chat?.unread && 'Neue Nachrichten im Gilden-Chat',
+  ]
+    .filter(Boolean)
+    .join(' · ');
+}
+
+/**
+ * The newest message of the chat when the member has the page of its own
+ * guild open and something is new: the visit that clears the mark on
+ * „Gilden“ (#169; owner, 2026-11-15). Null otherwise.
+ */
+export function chatToSee(
+  state: GameState,
+  view: string,
+  guild: string | null,
+): number | null {
+  const g = state.guilds;
+  if (view !== 'guilds' || g?.own?.status !== 'member') return null;
+  if (g.own.id !== guild || !g.chat?.unread) return null;
+  return g.chat.messages.at(-1)?.id ?? null;
 }

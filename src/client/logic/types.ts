@@ -4,6 +4,7 @@ import type { DebrisField } from '../../core/debris.ts';
 import type { LabSite } from '../../core/research.ts';
 import type { ExplainMode } from '../../core/explain.ts';
 import type { GuildRight } from '../../core/guild-ranks.ts';
+import type { ChatEventKind } from '../../core/guild-chat.ts';
 import type { PushTopic } from '../../core/push.ts';
 import type { UniverseSpec } from '../../core/universe.ts';
 import type {
@@ -139,4 +140,36 @@ export interface GuildState {
     pending: Pick<GuildMember, 'id' | 'name'>[];
   } | null;
   ranks?: GuildRanks | null;
+  /** The chat of the own guild (#169); none without a chat right. */
+  chat?: GuildChat | null;
+}
+
+/** A message or an event of the guild chat (#169). */
+export interface GuildChatMessage {
+  id: number;
+  time: number;
+  /** A message of a member, or an event of the server (D3, D4). */
+  kind: 'message' | ChatEventKind;
+  /**
+   * The writer of a message, none for a former member or a deleted account
+   * („ehemaliges Mitglied“); the member of an event, none once deleted.
+   */
+  name: string | null;
+  /** The message; the new rank or the target of an event, else empty. */
+  text: string;
+  /** The attacker of an attack, none once deleted. */
+  attacker?: string | null;
+  /** The arrival of an attack. */
+  arrival?: number;
+  /** Whether the own rank may delete it; never an event. */
+  delete: boolean;
+}
+
+/** The chat as the own rank sees it: the messages only with „Chat lesen“. */
+export interface GuildChat {
+  read: boolean;
+  write: boolean;
+  messages: GuildChatMessage[];
+  /** Whether something is new since the last visit: the mark on „Gilden“. */
+  unread: boolean;
 }

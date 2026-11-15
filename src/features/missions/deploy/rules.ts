@@ -7,5 +7,6 @@ export const cargo = true;
 export const returns = false;
 export const visible = false;
 export const silent = false;
+export const alertsGuild = false;
 /** No check of its own beyond the target kind. */
 export const canSend = (): SendError | undefined => undefined;

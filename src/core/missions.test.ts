@@ -33,6 +33,7 @@ const CODES: SendError[] = [
   'noRecycler',
 ];
 const FIELDS = [
+  'alertsGuild',
   'canSend',
   'cargo',
   'order',
@@ -109,10 +110,22 @@ describe('the rules of every mission (contract)', () => {
   it.each(RULES)('%s: has exactly the typed fields', (m, rules) => {
     expect(Object.keys(rules).sort(), m).toEqual(FIELDS);
     expect(KINDS, m).toContain(rules.target);
-    for (const field of ['cargo', 'returns', 'visible', 'silent'] as const)
+    for (const field of [
+      'cargo',
+      'returns',
+      'visible',
+      'silent',
+      'alertsGuild',
+    ] as const)
       expect(typeof rules[field], `${m}.${field}`).toBe('boolean');
     expect(typeof rules.canSend, m).toBe('function');
     expect(missionRules(m), m).toBe(rules);
+  });
+
+  it('alerts a guild only for the attack (#169 D3)', () => {
+    expect(RULES.filter(([, r]) => r.alertsGuild).map(([m]) => m)).toEqual([
+      'attack',
+    ]);
   });
 
   it('orders the missions in steps of 10, each once', () => {
@@ -201,6 +214,7 @@ describe('the target kind (#116)', () => {
     returns: true,
     visible: false,
     silent: false,
+    alertsGuild: false,
     canSend: () => undefined,
   });
   const fleet: SendFleet = { owner: 'a', from: 'p1', ships: { lc: 1 } };

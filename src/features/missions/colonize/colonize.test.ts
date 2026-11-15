@@ -48,6 +48,7 @@ describe('colonize', () => {
       returns: true,
       visible: false,
       silent: false,
+      alertsGuild: false,
     });
   });
 

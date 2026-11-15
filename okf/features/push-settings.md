@@ -38,8 +38,8 @@ switches; both go into the next release.
   | `delivery` | Lieferung eines anderen Spielers | „Lieferung von …“, a transport of another player |
   | `announcement` | Servernachrichten | a server announcement of the admin |
   | `news` | Neue Version | the update message of a new version |
-  | `guild-events` | Gildenereignisse | nothing yet; the guild chat (#169) |
-  | `guild-chat` | Nachrichten im Gilden-Chat | nothing yet; the guild chat (#169) |
+  | `guild-events` | Gildenereignisse | an event of the guild chat (joining, leaving, removal, a new rank, an attack at its launch), to every member with „Chat lesen“ but the member it is about and the one who caused it; „Gildenereignis“ (#169) |
+  | `guild-chat` | Nachrichten im Gilden-Chat | a message in the guild chat, to every other member with „Chat lesen“; „Neue Nachricht im Gilden-Chat“ (#169) |
 
   Before #192 the four report kinds were one kind „messages“; the split
   follows the examples of the issue (an attack, news, a server
@@ -47,6 +47,9 @@ switches; both go into the next release.
   return, „Nachrichten“ for every report).
 * **[E]** A change saves at once on each click („Gespeichert.“), like the
   production share; no button „Speichern“ (owner, 2026-11-14).
+* **[E]** The kinds „Gildenereignisse“ and „Nachrichten im Gilden-Chat“
+  are hidden while guilds are off in the round (owner, 2026-11-15, #169
+  O15 b, settles O14 b of #191); the stored choice stays.
 * **[E]** The box is hidden on a server without Web Push (owner,
   2026-11-14). The browser learns it from `GET /api/account/policy`
   (`webPush`) when the page loads. The device box

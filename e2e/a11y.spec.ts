@@ -1,5 +1,5 @@
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import {
   cli,
   galaxyRow,
@@ -14,6 +14,8 @@ import {
 // finds a part of the problems only: it does not replace a look with a screen
 // reader and the keyboard.
 const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
+
+const lastToast = (page: Page): Locator => page.locator('.toast').last();
 
 async function violations(page: Page): Promise<string[]> {
   const results = await new AxeBuilder({ page }).withTags(TAGS).analyze();
@@ -223,7 +225,7 @@ test.describe('accessibility (axe)', () => {
       .getByLabel('Erklärungstexte')
       .selectOption({ label: 'Immer anzeigen' });
     await page.click('[data-act=saveopt]');
-    await expect(page.locator('.toast').last()).toContainText('Gespeichert.');
+    await expect(lastToast(page)).toContainText('Gespeichert.');
     await check('help');
     for (const view of ['buildings', 'research'] as const) {
       await nav(page, view);
@@ -269,7 +271,7 @@ test.describe('accessibility (axe)', () => {
     await expect(page.getByLabel('Gilden (mit Chat)')).toBeChecked();
     await expect(
       page.getByText(
-        'Ohne Gilden werden alle Gilden mit Mitgliedern, Bewerbungen und Rängen gelöscht.',
+        'Eine neue Runde leert alle Gilden-Chats. Ohne Gilden werden alle Gilden mit Mitgliedern, Bewerbungen, Rängen und Chat gelöscht.',
       ),
     ).toBeVisible();
     const found = (await violations(page)).map((v) => `dialog: ${v}`);
@@ -291,7 +293,7 @@ test.describe('accessibility (axe)', () => {
     await expect(box).toBeChecked();
     found.push(...(await violations(page)).map((v) => `on: ${v}`));
     await box.uncheck();
-    await expect(page.locator('.toast').last()).toContainText('Gespeichert.');
+    await expect(lastToast(page)).toContainText('Gespeichert.');
     await expect(box).not.toBeChecked();
     found.push(...(await violations(page)).map((v) => `off: ${v}`));
     expect(found).toEqual([]);
@@ -380,6 +382,86 @@ test.describe('accessibility (axe)', () => {
     await page.getByRole('button', { name: 'Gilde auflösen' }).click();
     await expect(page.locator('#dissolve_tag')).toBeVisible();
     await check(page, 'dissolve dialog');
+    await context.close();
+    expect(found).toEqual([]);
+  });
+
+  test('the guild chat and the chat dialog of the admin have no violations (#169)', async ({
+    page,
+    browser,
+  }) => {
+    const lead = uniqueName('AxeChat');
+    const tag = `K${Date.now() % 1000000}`;
+    const title = `[${tag}] Axe ${tag}`;
+    await register(page, lead);
+    cli('admin', lead);
+    const found: string[] = [];
+    const check = async (p: Page, label: string): Promise<void> => {
+      found.push(...(await violations(p)).map((v) => `${label}: ${v}`));
+    };
+    await nav(page, 'guilds');
+    await page.getByLabel('Kürzel').fill(tag);
+    await page.getByLabel('Name', { exact: true }).fill(`Axe ${tag}`);
+    await page.getByRole('button', { name: 'Gilde gründen' }).click();
+    await expect(page.getByRole('heading', { name: title })).toBeVisible();
+    await check(page, 'empty chat');
+    const context = await browser.newContext();
+    const other = await context.newPage();
+    const name = uniqueName('AxeBote');
+    await register(other, name);
+    await nav(other, 'guilds');
+    await other.getByRole('link', { name: title }).click();
+    await other.getByRole('button', { name: 'Bewerben' }).click();
+    await expect(other.getByText('Deine Bewerbung ist offen.')).toBeVisible();
+    await page.reload();
+    await page.getByRole('button', { name: 'Annehmen' }).click();
+    // An event of the server and the notice of the box (#169, 2026-11-15).
+    await expect(page.getByRole('log', { name: 'Chat' })).toContainText(
+      `${name} ist der Gilde beigetreten.`,
+    );
+    await expect(
+      page.getByText('Die Spielleitung kann diesen Chat lesen.'),
+    ).toBeVisible();
+    await check(page, 'an event');
+    // The red mark on „Gilden“ while the Leitung is elsewhere.
+    const guildPage = page.url();
+    await nav(page, 'overview');
+    await other.reload();
+    await other.getByLabel('Nachricht', { exact: true }).fill('<b>Hallo</b>');
+    await other.getByRole('button', { name: 'Senden' }).click();
+    await expect(other.getByRole('log', { name: 'Chat' })).toContainText(
+      '<b>Hallo</b>',
+    );
+    await check(other, 'member with a message');
+    await expect(
+      page.locator(
+        '[data-v=guilds] .badge[aria-label="Neue Nachrichten im Gilden-Chat"]',
+      ),
+    ).not.toHaveCount(0, { timeout: 10000 });
+    await check(page, 'the red mark on „Gilden“');
+    await page.goto(guildPage);
+    await expect(
+      page.getByRole('log', { name: 'Chat' }).getByRole('button', {
+        name: 'Löschen',
+      }),
+    ).toHaveCount(1);
+    await check(page, 'Leitung with „Löschen“');
+    other.once('dialog', (d) => void d.accept());
+    await other.getByRole('button', { name: 'Gilde verlassen' }).click();
+    // The leave is in before the Leitung's page loads again (CodeRabbit on
+    // #216).
+    await expect(lastToast(other)).toContainText('Gilde verlassen.');
+    await page.reload();
+    await expect(page.getByRole('log', { name: 'Chat' })).toContainText(
+      'ehemaliges Mitglied',
+    );
+    await check(page, 'a former member');
+    await page.getByRole('button', { name: 'Chat lesen' }).click();
+    await expect(
+      page.locator('#modal').getByRole('heading', { name: `Chat ${title}` }),
+    ).toBeVisible();
+    await check(page, 'admin chat dialog');
+    cli('unadmin', lead);
     await context.close();
     expect(found).toEqual([]);
   });

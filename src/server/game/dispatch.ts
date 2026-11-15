@@ -14,6 +14,7 @@ import { pushOptions } from '../push-options.ts';
 import { tick } from './arrival.ts';
 import { type Ctx, fail } from './context.ts';
 import { requireGuilds } from './round.ts';
+import { deleteGuildChat, seeGuildChat, sendGuildChat } from './guild-chat.ts';
 import { recall, send } from './fleet-actions.ts';
 import {
   assignGuildRank,
@@ -53,6 +54,9 @@ const GUILD: Record<string, A.Action> = {
   setGuildDefaultRank,
   assignGuildRank,
   dissolveGuild,
+  sendGuildChat,
+  deleteGuildChat,
+  seeGuildChat,
 };
 
 export const GUILD_ACTIONS: ReadonlySet<string> = new Set(Object.keys(GUILD));
