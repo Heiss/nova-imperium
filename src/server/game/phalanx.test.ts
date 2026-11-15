@@ -75,6 +75,19 @@ describe('the scan of the Auspex-Phalanx', () => {
     expect(Object.hasOwn(ACTIONS, 'scan')).toBe(true);
   });
 
+  it('names every refusal in German, each with its own message', () => {
+    expect(SCAN_ERROR).toEqual({
+      notMoon: 'Ein Phalanx-Scan ist nur von einem Mond aus möglich.',
+      noPhalanx: 'Auf diesem Mond steht keine Auspex-Phalanx.',
+      outOfRange: 'Das Ziel liegt außerhalb der Reichweite der Auspex-Phalanx.',
+      free: 'An dieser Position gibt es keinen Planeten.',
+      moon: 'Monde lassen sich nicht erfassen.',
+      notPlanet: 'Nur Planeten lassen sich erfassen.',
+      own: 'Eigene Planeten lassen sich nicht erfassen.',
+      cost: 'Nicht genug Promethium für den Phalanx-Scan.',
+    });
+  });
+
   it('shows the flights to and from a foreign planet in range, by arrival, and charges 5,000 Promethium', () => {
     const { ctx } = world();
     ctx.fleets.save(fleet({ arr: 2_500_000 }));
@@ -198,15 +211,28 @@ describe('the scan of the Auspex-Phalanx', () => {
   });
 
   it.each([
-    ['a free position in range', 'p1_6_1', SCAN_ERROR.free],
-    ['a moon', 'm1_5_4', SCAN_ERROR.moon],
-    ['a foreign moon in range', 'm1_7_7', SCAN_ERROR.moon],
-    ['a Trümmerfeld', 'd1_7_7', SCAN_ERROR.notPlanet],
-    ['an own planet', 'p1_5_4', SCAN_ERROR.own],
-    ['a planet out of range', 'p1_9_9', SCAN_ERROR.outOfRange],
-    ['a planet of another galaxy', 'p2_5_7', SCAN_ERROR.outOfRange],
+    [
+      'a free position in range',
+      'p1_6_1',
+      'An dieser Position gibt es keinen Planeten.',
+    ],
+    ['a moon', 'm1_5_4', 'Monde lassen sich nicht erfassen.'],
+    ['a foreign moon in range', 'm1_7_7', 'Monde lassen sich nicht erfassen.'],
+    ['a Trümmerfeld', 'd1_7_7', 'Nur Planeten lassen sich erfassen.'],
+    ['an own planet', 'p1_5_4', 'Eigene Planeten lassen sich nicht erfassen.'],
+    [
+      'a planet out of range',
+      'p1_9_9',
+      'Das Ziel liegt außerhalb der Reichweite der Auspex-Phalanx.',
+    ],
+    [
+      'a planet of another galaxy',
+      'p2_5_7',
+      'Das Ziel liegt außerhalb der Reichweite der Auspex-Phalanx.',
+    ],
     ['an id that is no place', 'p1_07_7', 'Unbekanntes Ziel.'],
     ['no id', undefined, 'Unbekanntes Ziel.'],
+    ['an id that is no string', ['p1_7_7', 'x'], 'Unbekanntes Ziel.'],
   ])('refuses %s without charge', (_, target, message) => {
     const { ctx } = world();
     expect(() => scan(ctx, target)).toThrow(message);
@@ -215,8 +241,12 @@ describe('the scan of the Auspex-Phalanx', () => {
 
   it('refuses a scan from a planet, from a moon without phalanx and from a foreign moon', () => {
     const { ctx } = world(0);
-    expect(() => scan(ctx, 'p1_7_7', 'p1_5_4')).toThrow(SCAN_ERROR.notMoon);
-    expect(() => scan(ctx, 'p1_7_7')).toThrow(SCAN_ERROR.noPhalanx);
+    expect(() => scan(ctx, 'p1_7_7', 'p1_5_4')).toThrow(
+      'Ein Phalanx-Scan ist nur von einem Mond aus möglich.',
+    );
+    expect(() => scan(ctx, 'p1_7_7')).toThrow(
+      'Auf diesem Mond steht keine Auspex-Phalanx.',
+    );
     expect(() => scan(ctx, 'p1_7_7', 'p1_7_7')).toThrow(
       'Du hast keinen Zugriff auf diesen Planeten.',
     );
@@ -225,7 +255,9 @@ describe('the scan of the Auspex-Phalanx', () => {
 
   it('refuses a scan without 5,000 Promethium on the moon, and charges nothing', () => {
     const { ctx } = world(2, 4999);
-    expect(() => scan(ctx, 'p1_7_7')).toThrow(SCAN_ERROR.cost);
+    expect(() => scan(ctx, 'p1_7_7')).toThrow(
+      'Nicht genug Promethium für den Phalanx-Scan.',
+    );
     expect(promethium(ctx)).toBe(4999);
   });
 
@@ -245,7 +277,9 @@ describe('the scan of the Auspex-Phalanx', () => {
             });
             expect(promethium(ctx)).toBe(7000);
           } else {
-            expect(() => scan(ctx, `p1_${s}_8`)).toThrow(SCAN_ERROR.outOfRange);
+            expect(() => scan(ctx, `p1_${s}_8`)).toThrow(
+              'Das Ziel liegt außerhalb der Reichweite der Auspex-Phalanx.',
+            );
             expect(promethium(ctx)).toBe(12000);
           }
         },

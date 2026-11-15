@@ -33,12 +33,12 @@ export const SCAN_ERROR: Readonly<Record<ScanError, string>> = {
  */
 export const scan: Action = (ctx, u, d, event) => {
   const moon = mine(ctx, u, d.planet);
-  const place =
-    (typeof d.target === 'string' ? parsePlaceId(d.target) : null) ??
-    fail('Unbekanntes Ziel.');
+  const place = parsePlaceId(String(d.target)) ?? fail('Unbekanntes Ziel.');
   const target = placeId(place);
-  const planet = place.kind === 'planet' ? ctx.planets.get(target) : null;
-  const error = scanError(moon, { place, owner: planet?.owner });
+  // The owner of the planet there; a moon or a Trümmerfeld is refused by
+  // its kind before the owner counts.
+  const owner = ctx.planets.get(target)?.owner;
+  const error = scanError(moon, { place, owner });
   if (error) fail(SCAN_ERROR[error]);
   pay(moon, SCAN_PRICE);
   ctx.planets.save(moon);
