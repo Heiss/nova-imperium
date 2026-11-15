@@ -239,6 +239,21 @@ describe('messages (#169)', () => {
     expect(s.texts()!.map((t) => [...t].length)).toEqual([1000, 1000, 1000]);
   });
 
+  it('refuses a body of more than 2,064 code units before cleaning it', () => {
+    const s = setup();
+    // 2,064 code units, of them 2 characters after cleaning: allowed.
+    expect(s.say('Ada', `${'\u0001'.repeat(2062)}ok`)).toBeNull();
+    expect(() => s.say('Ada', `${'\u0001'.repeat(2063)}ok`)).toThrow(LONG);
+    expect(s.texts()).toEqual(['ok']);
+  });
+
+  it('stores the time of a message in whole milliseconds', () => {
+    const s = setup();
+    s.ctx.clock.t = 10_000_000.75;
+    expect(s.run('Ada', { type: 'sendGuildChat', text: 'jetzt' })).toBeNull();
+    expect(s.chat()!.map((m) => m.time)).toEqual([10_000_000]);
+  });
+
   it('allows one message per member every 2 seconds', () => {
     const s = setup();
     const send = (who: string) =>
