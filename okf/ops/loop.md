@@ -156,6 +156,12 @@ tasks).
   issues become `ready`, and does whatever else keeps both agents building.
   Waiting with a free place wastes the time of the release; the limit of
   two stays for memory and usage.
+* **[E]** Small patches are slotted in between features (owner,
+  2026-11-16): the main agent merges Renovate's green patch and minor pull
+  requests while it waits and follows up Dependabot alerts without a
+  Renovate security pull request; a small bug or cleanup issue may be the
+  next issue of a free subagent. Reason: the owner wants them done before
+  the release, not piled up at its end.
 * **[E]** An open pull request takes `main` in only when it is the next one
   to merge (CI green on its head, every finding answered), when GitHub
   reports a conflict (then no CI starts, as seen on #194), or when it needs code
