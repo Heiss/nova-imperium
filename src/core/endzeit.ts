@@ -31,6 +31,33 @@ export const GIFT_DEFAULT_MINUTES = 240;
 /** The range of the flight time: 1 minute to 72 h (owner, 2026-11-14). */
 export const GIFT_MINUTES = { min: 1, max: 72 * 60 } as const;
 
+/** Why the „Endzeit“ cannot be rung in (#214, patterns, section 7). */
+export type EndzeitError = 'done' | 'minutes';
+
+/** Whether the flight time is whole minutes within GIFT_MINUTES. */
+function giftMinutesOk(input: unknown): boolean {
+  const minutes = Number(input);
+  return (
+    Number.isInteger(minutes) &&
+    minutes >= GIFT_MINUTES.min &&
+    minutes <= GIFT_MINUTES.max
+  );
+}
+
+/**
+ * Why the admin cannot ring in the „Endzeit“ now, or null when it goes:
+ * once per round (`done`: it was rung in this round), then the flight time
+ * of this trigger. The server asks it before it sends the gifts, the admin
+ * dialog before it sends the action (F15, O18 (c), owner 2026-11-15).
+ */
+export const endzeitError = (
+  done: boolean,
+  minutes: unknown,
+): EndzeitError | null => {
+  if (done) return 'done';
+  return giftMinutesOk(minutes) ? null : 'minutes';
+};
+
 /** The highest level of each key, over all the given level tables. */
 export function highest(tables: readonly (Levels | undefined)[]): Levels {
   const out: Levels = {};

@@ -655,7 +655,7 @@ describe('game requests', () => {
       minutes: 30,
     });
     expect(again.json).toEqual({
-      error: 'Die Endzeit wurde in dieser Runde schon eingeläutet.',
+      error: 'In dieser Runde wurde die Endzeit schon eingeläutet.',
     });
     const rows = ctx.db
       .prepare(
