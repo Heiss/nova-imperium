@@ -200,19 +200,30 @@ may pass on a right its holder lacks.
   `rankNameError`, `changedRights`, `missingRights`, `canChangeRights`,
   `assignError` and `deleteError`; they return an error code, the server
   turns it into the German message. Tests in `src/core/guild-ranks.test.ts`.
-  The guild view uses them to offer only the ranks the own rank may give
-  and „Löschen“ only where the deletion is allowed.
+  The guild view offers, through the checks of `src/core/guild-checks.ts`,
+  only the ranks the own rank may give and „Löschen“ only where the
+  deletion is allowed.
 * `src/server/db/repos/guilds.ts`: the ranks belong to the guild repository
   (#117).
+* `src/core/guild-checks.ts` (#214, a security file, mutation floor 100):
+  the check of each guild action as one pure function that returns the
+  code of its first refusal in the order of the server, or null, with the
+  rules above as its parts: `createGuildError`, `updateGuildError`
+  (`profileError` and the limits of the profile), `applyError`,
+  `reviewError`, `leaveError`, `manageMemberError`, `managedError` (a rank
+  the actor may change), `createRankError`, `renameRankError`,
+  `rightsError`, `moveRankError`, `deleteRankError`, `defaultRankError`
+  (also the Leitung's own new rank at the hand-over), `assignRankError` and
+  `dissolveError`. Tests in `src/core/guild-checks.test.ts`.
 * `src/server/game/guild-ranks.ts` (a security file, mutation target 90 %):
-  the acting member (`actor`), the checks `need` (right), `below` (order)
-  and `leadOnly`, the actions `createGuildRank`, `renameGuildRank`,
-  `setGuildRankRights`, `moveGuildRank`, `deleteGuildRank`,
-  `setGuildDefaultRank`, `assignGuildRank`, the state of the ranks for
-  the members, `handOverRank` (the Leitung's own new rank) and the action
-  `dissolveGuild`. `src/server/game/guilds.ts` checks with them in
-  `updateGuild`, `reviewGuildApplication` and `manageGuildMember` (the
-  hand-over takes `rank`, the Leitung's new rank).
+  the acting member (`actor`), `refuse` and the shared messages
+  `GUILD_ERROR` by the codes of the checks, the actions `createGuildRank`,
+  `renameGuildRank`, `setGuildRankRights`, `moveGuildRank`,
+  `deleteGuildRank`, `setGuildDefaultRank`, `assignGuildRank`, the state
+  of the ranks for the members and the action `dissolveGuild`.
+  `src/server/game/guilds.ts` words the codes of `updateGuild`,
+  `reviewGuildApplication` and `manageGuildMember` (the hand-over takes
+  `rank`, the Leitung's new rank) with them.
 * Client: `src/client/views/guilds.ts` (with `transferDialog` and
   `dissolveDialog` in the `#modal` dialog), handlers in
   `src/client/main.ts`.

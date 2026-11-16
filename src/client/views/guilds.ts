@@ -1,10 +1,23 @@
 import { chatEventText, MAX_CHAT_TEXT } from '../../core/guild-chat.ts';
 import {
-  assignError,
-  deleteError,
+  assignRankError,
+  createRankError,
+  defaultRankError,
+  deleteRankError,
+  managedError,
+  manageMemberError,
+  MAX_GUILD_NAME,
+  MAX_GUILD_TAG,
+  MAX_GUILD_TEXT,
+  MIN_GUILD_NAME,
+  MIN_GUILD_TAG,
+  moveRankError,
+  type ActorRule,
+  type RankEntry,
+} from '../../core/guild-checks.ts';
+import {
   GUILD_RIGHTS,
   isBelow,
-  MAX_GUILD_RANKS,
   MAX_RANK_NAME,
   memberPlace,
   MIN_RANK_NAME,
@@ -104,10 +117,10 @@ export function adminChatDialog(read: {
 
 function profileForm(guild?: Guild, description = ''): string {
   return `<form id="guildform" data-edit="${guild ? '1' : '0'}">
-    <div><label for="guild_tag">Kürzel</label> <input id="guild_tag" required minlength="2" maxlength="8" value="${esc(guild?.tag ?? '')}"></div>
-    <div><label for="guild_name">Name</label> <input id="guild_name" required minlength="3" maxlength="32" value="${esc(guild?.name ?? '')}"></div>
+    <div><label for="guild_tag">Kürzel</label> <input id="guild_tag" required minlength="${MIN_GUILD_TAG}" maxlength="${MAX_GUILD_TAG}" value="${esc(guild?.tag ?? '')}"></div>
+    <div><label for="guild_name">Name</label> <input id="guild_name" required minlength="${MIN_GUILD_NAME}" maxlength="${MAX_GUILD_NAME}" value="${esc(guild?.name ?? '')}"></div>
     <div><label for="guild_description">Gildentext (Markdown)</label><br>
-    <textarea id="guild_description" class="wide" rows="6" maxlength="6000">${esc(description)}</textarea></div>
+    <textarea id="guild_description" class="wide" rows="6" maxlength="${MAX_GUILD_TEXT}">${esc(description)}</textarea></div>
     <button type="submit">${guild ? 'Profil speichern' : 'Gilde gründen'}</button>
   </form>`;
 }
@@ -159,14 +172,16 @@ function placeOf(me: Inside, id: string): number {
   return memberPlace(id === me.ranks.lead, indexOf(me, me.ranks.members[id]));
 }
 
-/** The own rank as the core rules see it. */
-const asRule = (me: Inside) => ({ position: me.at, rights: me.ranks.rights });
-
-/** A rank as the core rules see it. */
-const rankRule = (rank: GuildRank, at: number) => ({
-  position: at,
-  rights: rank.rights,
+/** The own rank as the core checks see it. */
+const asRule = (me: Inside): ActorRule => ({
+  lead: me.lead,
+  position: me.at,
+  rights: me.ranks.rights,
 });
+
+/** The ranks as the core checks see them: their place is their index. */
+const entries = (me: Inside): RankEntry[] =>
+  me.ranks.list.map((r, at) => ({ ...r, position: at }));
 
 function guildMembership(
   state: GuildState,
@@ -216,8 +231,9 @@ function rankChange(me: Inside, id: string, name: string): string {
   // Only ranks the own rank may give (owner, 2026-11-14): below it and
   // without a right it lacks.
   const place = placeOf(me, id);
+  const ranks = entries(me);
   const options = me.ranks.list
-    .filter((r, i) => assignError(asRule(me), place, rankRule(r, i)) === null)
+    .filter((r) => assignRankError(asRule(me), place, ranks, r.id) === null)
     .map(
       (r) =>
         `<option value="${esc(r.id)}"${r.id === me.ranks.members[id] ? ' selected' : ''}>${esc(r.name)}</option>`,
@@ -229,14 +245,17 @@ function rankChange(me: Inside, id: string, name: string): string {
 
 function memberControls(me: Inside, m: Guild['members'][number]): string {
   if (m.id === me.uid) return '';
-  const lower = isBelow(me.at, placeOf(me, m.id));
+  const place = placeOf(me, m.id);
+  const lower = isBelow(me.at, place);
+  const removable =
+    manageMemberError(asRule(me), { place, self: false }, null) === null;
   const uid = esc(m.id);
   return [
     me.lead
       ? `<button class="small" data-act="guildMember" data-uid="${uid}" data-transfer="1">Leitung übergeben</button>`
       : '',
     lower && me.can('assign') ? rankChange(me, m.id, m.name) : '',
-    lower && me.can('remove')
+    removable
       ? `<button class="small red" data-act="guildMember" data-uid="${uid}">Entfernen</button>`
       : '',
   ].join(' ');
@@ -270,41 +289,44 @@ function rightsList(rank: GuildRank, at: number): string {
   return `<ul>${rank.rights.map((r) => `<li>${RIGHT_TEXT[r]}</li>`).join('')}</ul>`;
 }
 
-function rankEditor(me: Inside, rank: GuildRank, at: number): string {
+function rankEditor(me: Inside, rank: GuildRank): string {
   const id = esc(rank.id);
   const boxes = GUILD_RIGHTS.map(
     (r) =>
       `<label class="switch"><input type="checkbox" id="rank_${id}_${r}" data-rank-right="${id}" value="${r}"${rank.rights.includes(r) ? ' checked' : ''}${me.can(r) ? '' : ' disabled'}> ${RIGHT_TEXT[r]}</label>`,
   ).join('');
-  const isDefault = rank.id === me.ranks.default;
-  const last = at === me.ranks.list.length - 1;
-  const fallback = indexOf(me, me.ranks.default);
+  const ranks = entries(me);
+  const movable = (up: boolean) =>
+    moveRankError(asRule(me), ranks, rank.id, up) === null;
   const hasMembers = Object.values(me.ranks.members).includes(rank.id);
+  // A guild always has its default rank; the view offers no deleting without.
   const deletable =
-    !isDefault &&
-    fallback !== undefined &&
-    deleteError(
+    indexOf(me, me.ranks.default) !== undefined &&
+    deleteRankError(
       asRule(me),
+      ranks,
+      rank.id,
+      me.ranks.default,
       hasMembers,
-      rankRule(me.ranks.list[fallback]!, fallback),
     ) === null;
   return `<div><label for="rank_name_${id}">Rangname</label> <input id="rank_name_${id}" required minlength="${MIN_RANK_NAME}" maxlength="${MAX_RANK_NAME}" value="${esc(rank.name)}">
       <button class="small" data-act="rankRename" data-rank="${id}">Umbenennen</button></div>
     <div class="rights">${boxes}</div>
     <p><button class="small" data-act="rankRights" data-rank="${id}">Rechte speichern</button>
-    ${isBelow(me.at, at - 1) ? `<button class="small" data-act="rankMove" data-rank="${id}" data-up="1">Nach oben</button>` : ''}
-    ${last ? '' : `<button class="small" data-act="rankMove" data-rank="${id}">Nach unten</button>`}
+    ${movable(true) ? `<button class="small" data-act="rankMove" data-rank="${id}" data-up="1">Nach oben</button>` : ''}
+    ${movable(false) ? `<button class="small" data-act="rankMove" data-rank="${id}">Nach unten</button>` : ''}
     ${deletable ? `<button class="small red" data-act="rankDelete" data-rank="${id}">Löschen</button>` : ''}</p>`;
 }
 
 function rankEntry(me: Inside, rank: GuildRank, at: number): string {
   const isDefault = rank.id === me.ranks.default;
   const body =
-    me.can('ranks') && isBelow(me.at, at)
-      ? rankEditor(me, rank, at)
+    managedError(asRule(me), entries(me), rank.id) === null
+      ? rankEditor(me, rank)
       : rightsList(rank, at);
+  // The current default rank needs no button; the server takes it again.
   const choose =
-    me.lead && at > 0 && !isDefault
+    !isDefault && defaultRankError(asRule(me), entries(me), rank.id) === null
       ? `<p><button class="small" data-act="rankDefault" data-rank="${esc(rank.id)}">Als Standardrang</button></p>`
       : '';
   return `<fieldset class="rank"><legend>${esc(rank.name)}${isDefault ? ' · Standardrang' : ''}</legend>${body}${choose}</fieldset>`;
@@ -312,8 +334,10 @@ function rankEntry(me: Inside, rank: GuildRank, at: number): string {
 
 function ranksBox(me: Inside): string {
   const list = me.ranks.list.map((r, at) => rankEntry(me, r, at)).join('');
+  // The form while the own rank may add a rank; the name is checked on sending.
+  const blocked = createRankError(asRule(me), entries(me), '');
   const create =
-    me.can('ranks') && me.ranks.list.length < MAX_GUILD_RANKS
+    blocked !== 'right' && blocked !== 'full'
       ? `<div><label for="rank_new">Name des neuen Rangs</label> <input id="rank_new" minlength="${MIN_RANK_NAME}" maxlength="${MAX_RANK_NAME}">
       <button data-act="rankCreate">Rang anlegen</button></div>`
       : '';

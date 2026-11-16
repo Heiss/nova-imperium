@@ -4,20 +4,26 @@
 // exactly one Leitung, which holds every right; ranks are ordered, a member
 // acts only on lower ranks and gives only rights it holds; only the Leitung
 // hands over the Leitung, chooses the default rank and dissolves the guild.
-// The rules themselves are plain functions in src/core/guild-ranks.ts, which
-// the guild view uses too; this file finds the actor and applies them.
+// The rules are plain functions in src/core/guild-ranks.ts, and the check of
+// each action one function of src/core/guild-checks.ts (#214), which the
+// guild view uses too; this file finds the actor, gathers the values and
+// words the codes.
 import {
-  assignError,
-  belowLeitung,
-  canChangeRights,
-  deleteError,
+  assignRankError,
+  createRankError,
+  defaultRankError,
+  deleteRankError,
+  dissolveError,
+  findRank,
+  moveRankError,
+  renameRankError,
+  rightsError,
+  type ActorRule,
+} from '../../core/guild-checks.ts';
+import {
   GUILD_RIGHTS,
-  isBelow,
-  isGuildRight,
-  MAX_GUILD_RANKS,
   MAX_RANK_NAME,
   memberPlace,
-  rankNameError,
   type GuildRight,
 } from '../../core/guild-ranks.ts';
 import type {
@@ -30,9 +36,22 @@ import type { Action } from './actions.ts';
 import { fail, str, type Ctx } from './context.ts';
 import { rankEvent } from './guild-events.ts';
 
-const NO_RIGHT = 'Dazu fehlt deinem Rang das Recht.';
-const LOWER_ONLY = 'Das geht nur bei Rängen unter deinem.';
-const LEAD_ONLY = 'Das darf nur die Gildenleitung.';
+/** The refusals the guild actions share (#163), by the codes of core/guild-checks.ts. */
+export const GUILD_ERROR = {
+  right: 'Dazu fehlt deinem Rang das Recht.',
+  lower: 'Das geht nur bei Rängen unter deinem.',
+  lead: 'Das darf nur die Gildenleitung.',
+  rank: 'Diesen Rang gibt es nicht.',
+  member: 'Dieses Gildenmitglied gibt es nicht.',
+} as const;
+
+/** Refuses with the message of `code`, if there is one (#214). */
+export function refuse<C extends string>(
+  code: C | null,
+  messages: Readonly<Record<C, string>>,
+): void {
+  if (code) fail(messages[code]);
+}
 
 /** The acting member of a guild. */
 export interface Actor {
@@ -63,21 +82,9 @@ export function actor(ctx: Ctx, uid: string): Actor {
     lead,
     rank: member.rank_id,
     position: memberPlace(lead, own?.position),
-    rights: new Set(lead ? GUILD_RIGHTS : (own?.rights ?? [])),
+    // No rank, no right: a Set of nothing is empty.
+    rights: new Set(lead ? GUILD_RIGHTS : own?.rights),
   };
-}
-
-export function need(a: Actor, right: GuildRight): void {
-  if (!a.rights.has(right)) fail(NO_RIGHT);
-}
-
-/** Refuses a rank or member at `position` that is not below the actor. */
-export function below(a: Actor, position: number): void {
-  if (!isBelow(a.position, position)) fail(LOWER_ONLY);
-}
-
-function leadOnly(a: Actor, message = LEAD_ONLY): void {
-  if (!a.lead) fail(message);
 }
 
 /** The place of a member of the actor's guild in the order. */
@@ -88,100 +95,102 @@ export function placeOf(a: Actor, m: Membership): number {
   );
 }
 
-/** The actor as the core rules see it: its place and its rights. */
-export const asRule = (a: Actor) => ({
+/** The actor as the core checks see it: the Leitung or not, its place and its rights. */
+export const asRule = (a: Actor): ActorRule => ({
+  lead: a.lead,
   position: a.position,
   rights: [...a.rights],
 });
 
-function rankOf(a: Actor, id: unknown): Rank {
-  const rank = str(id, 40);
-  return (
-    a.ranks.find((r) => r.id === rank) ?? fail('Diesen Rang gibt es nicht.')
-  );
-}
+/** The id of a rank as sent. */
+export const rankId = (id: unknown): string => str(id, 40);
 
-/** A rank below the actor that it may change with the right „Ränge verwalten“. */
-function managed(ctx: Ctx, uid: string, id: unknown) {
-  const a = actor(ctx, uid);
-  need(a, 'ranks');
-  const rank = rankOf(a, id);
-  below(a, rank.position);
-  return { a, rank };
-}
+/** A rank name as sent; one character more than allowed is refused. */
+const rankName = (value: unknown): string => str(value, MAX_RANK_NAME + 1);
 
 const NAME_ERROR = {
   length: 'Der Rangname braucht 2 bis 67 Zeichen.',
   taken: 'Diesen Rangnamen gibt es in der Gilde schon.',
 };
 
-function rankName(a: Actor, value: unknown, except?: string): string {
-  const name = str(value, MAX_RANK_NAME + 1);
-  const error = rankNameError(name, a.ranks, except);
-  if (error) fail(NAME_ERROR[error]);
-  return name;
-}
-
-function rightsOf(value: unknown): Set<GuildRight> {
-  const list = Array.isArray(value) ? (value as unknown[]) : [null];
-  if (!list.every(isGuildRight)) fail('Dieses Recht gibt es nicht.');
-  return new Set(list as GuildRight[]);
-}
-
 export const createGuildRank: Action = (ctx, user, d) => {
   const a = actor(ctx, user.id);
-  need(a, 'ranks');
-  if (a.ranks.length >= MAX_GUILD_RANKS)
-    fail('Eine Gilde hat höchstens 25 Ränge.');
-  ctx.guilds.addRank(ctx.id(), a.guild.id, rankName(a, d.name));
+  const name = rankName(d.name);
+  refuse(createRankError(asRule(a), a.ranks, name), {
+    ...GUILD_ERROR,
+    full: 'Eine Gilde hat höchstens 25 Ränge.',
+    ...NAME_ERROR,
+  });
+  ctx.guilds.addRank(ctx.id(), a.guild.id, name);
   return 'Rang angelegt.';
 };
 
 export const renameGuildRank: Action = (ctx, user, d) => {
-  const { a, rank } = managed(ctx, user.id, d.rank);
-  ctx.guilds.renameRank(rank.id, rankName(a, d.name, rank.id));
+  const a = actor(ctx, user.id);
+  const id = rankId(d.rank);
+  const name = rankName(d.name);
+  refuse(renameRankError(asRule(a), a.ranks, id, name), {
+    ...GUILD_ERROR,
+    ...NAME_ERROR,
+  });
+  ctx.guilds.renameRank(id, name);
   return 'Rang umbenannt.';
 };
 
 export const setGuildRankRights: Action = (ctx, user, d) => {
-  const { a, rank } = managed(ctx, user.id, d.rank);
-  const next = rightsOf(d.rights);
-  if (!canChangeRights([...a.rights], rank.rights, [...next])) fail(NO_RIGHT);
+  const a = actor(ctx, user.id);
+  const id = rankId(d.rank);
+  refuse(rightsError(asRule(a), a.ranks, id, d.rights), {
+    ...GUILD_ERROR,
+    unknown: 'Dieses Recht gibt es nicht.',
+    change: GUILD_ERROR.right,
+  });
+  const next = d.rights as GuildRight[];
   ctx.guilds.setRights(
-    rank.id,
-    GUILD_RIGHTS.filter((r) => next.has(r)),
+    id,
+    GUILD_RIGHTS.filter((r) => next.includes(r)),
   );
   return 'Rechte gespeichert.';
 };
 
 export const moveGuildRank: Action = (ctx, user, d) => {
-  const { a, rank } = managed(ctx, user.id, d.rank);
-  const at = a.ranks.indexOf(rank);
-  const other =
-    a.ranks[d.up === true ? at - 1 : at + 1] ??
-    fail('Der Rang steht schon ganz unten.');
-  below(a, other.position);
-  ctx.guilds.swapRanks(rank, other);
+  const a = actor(ctx, user.id);
+  const id = rankId(d.rank);
+  const up = d.up === true;
+  refuse(moveRankError(asRule(a), a.ranks, id, up), {
+    ...GUILD_ERROR,
+    end: 'Der Rang steht schon ganz unten.',
+  });
+  const at = a.ranks.findIndex((r) => r.id === id);
+  ctx.guilds.swapRanks(a.ranks[at]!, a.ranks[up ? at - 1 : at + 1]!);
   return 'Rang verschoben.';
 };
 
 export const deleteGuildRank: Action = (ctx, user, d) => {
-  const { a, rank } = managed(ctx, user.id, d.rank);
+  const a = actor(ctx, user.id);
+  const id = rankId(d.rank);
   // The Leitung is never deletable (nobody is above it) and never the
-  // default, so a guild keeps both and with them at least two ranks.
+  // default, so a guild keeps both and with them at least two ranks. Its
+  // members move to the default rank: only one the actor could give them
+  // (owner, 2026-11-14).
   const fallback = a.guild.default_rank!;
-  if (rank.id === fallback)
-    fail('Der Standardrang kann nicht gelöscht werden.');
-  // Its members move to the default rank: only one the actor could give
-  // them (owner, 2026-11-14).
-  const moved = a.ranks.find((r) => r.id === fallback)!;
-  if (deleteError(asRule(a), ctx.guilds.rankHasMembers(rank.id), moved))
-    fail(
+  const error = deleteRankError(
+    asRule(a),
+    a.ranks,
+    id,
+    fallback,
+    ctx.guilds.rankHasMembers(id),
+  );
+  refuse(error, {
+    ...GUILD_ERROR,
+    default: 'Der Standardrang kann nicht gelöscht werden.',
+    members:
       'Der Rang hat Mitglieder, und der Standardrang steht nicht unter deinem oder hat ein Recht, das dir fehlt.',
-    );
+  });
+  const moved = findRank(a.ranks, fallback)!;
   // Rank ids are unique, so the rank's members are of the guild.
-  const members = ctx.guilds.players().filter((p) => p.rank_id === rank.id);
-  ctx.guilds.deleteRank(rank.id, fallback);
+  const members = ctx.guilds.players().filter((p) => p.rank_id === id);
+  ctx.guilds.deleteRank(id, fallback);
   // Each of its members has a new rank (#169 D4).
   for (const p of members)
     rankEvent(ctx, a.guild.id, p.id, moved.name, user.id);
@@ -190,48 +199,42 @@ export const deleteGuildRank: Action = (ctx, user, d) => {
 
 export const setGuildDefaultRank: Action = (ctx, user, d) => {
   const a = actor(ctx, user.id);
-  leadOnly(a);
-  const rank = rankOf(a, d.rank);
-  if (!belowLeitung(rank.position))
-    fail('Die Leitung kann nicht der Standardrang sein.');
-  ctx.guilds.setDefaultRank(a.guild.id, rank.id);
+  const id = rankId(d.rank);
+  refuse(defaultRankError(asRule(a), a.ranks, id), {
+    ...GUILD_ERROR,
+    leitung: 'Die Leitung kann nicht der Standardrang sein.',
+  });
+  ctx.guilds.setDefaultRank(a.guild.id, id);
   return 'Standardrang gesetzt.';
 };
 
-/** A member of the actor's guild other than an applicant. */
-export function memberOf(ctx: Ctx, a: Actor, uid: unknown): Membership {
+/** A member of the actor's guild other than an applicant, if `uid` is one. */
+export function memberOf(
+  ctx: Ctx,
+  a: Actor,
+  uid: unknown,
+): Membership | undefined {
   const m = ctx.guilds.membership(str(uid, 40));
-  if (m?.guild_id !== a.guild.id || m.status !== 'member')
-    return fail('Dieses Gildenmitglied gibt es nicht.');
-  return m;
+  return m?.guild_id === a.guild.id && m.status === 'member' ? m : undefined;
 }
 
 export const assignGuildRank: Action = (ctx, user, d) => {
   const a = actor(ctx, user.id);
-  need(a, 'assign');
   const target = memberOf(ctx, a, d.uid);
-  const rank = rankOf(a, d.rank);
+  const id = rankId(d.rank);
   // Not below, or a right the actor lacks (owner, 2026-11-14).
-  const error = assignError(asRule(a), placeOf(a, target), rank);
-  if (error) fail(error === 'lower' ? LOWER_ONLY : NO_RIGHT);
-  ctx.guilds.setRank(target.user_id, rank.id);
+  refuse(
+    assignRankError(asRule(a), target && placeOf(a, target), a.ranks, id),
+    { ...GUILD_ERROR, rights: GUILD_ERROR.right },
+  );
+  const member = target!;
+  const rank = findRank(a.ranks, id)!;
+  ctx.guilds.setRank(member.user_id, rank.id);
   // A new rank is an event of the chat (#169 D4); the same rank is none.
-  if (target.rank_id !== rank.id)
-    rankEvent(ctx, a.guild.id, target.user_id, rank.name, user.id);
+  if (member.rank_id !== rank.id)
+    rankEvent(ctx, a.guild.id, member.user_id, rank.name, user.id);
   return 'Rang vergeben.';
 };
-
-/**
- * The rank the Leitung takes for itself when it hands over the Leitung
- * (owner, 2026-11-14): one of the guild, not the Leitung.
- */
-export function handOverRank(a: Actor, id: unknown): Rank {
-  leadOnly(a);
-  const rank = rankOf(a, id);
-  if (!belowLeitung(rank.position))
-    fail('Wähle für dich einen Rang unter der Leitung.');
-  return rank;
-}
 
 /**
  * Dissolves the guild with all its members (owner, 2026-11-14): only the
@@ -239,9 +242,10 @@ export function handOverRank(a: Actor, id: unknown): Rank {
  */
 export const dissolveGuild: Action = (ctx, user, d) => {
   const a = actor(ctx, user.id);
-  leadOnly(a, 'Nur die Gildenleitung kann die Gilde auflösen.');
-  if (str(d.tag, 30).toUpperCase() !== a.guild.tag.toUpperCase())
-    fail('Das Kürzel stimmt nicht.');
+  refuse(dissolveError(asRule(a), str(d.tag, 30), a.guild.tag), {
+    lead: 'Nur die Gildenleitung kann die Gilde auflösen.',
+    tag: 'Das Kürzel stimmt nicht.',
+  });
   ctx.guilds.delete(a.guild.id);
   return 'Gilde aufgelöst.';
 };
