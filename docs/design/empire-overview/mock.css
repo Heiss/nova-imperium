@@ -1,0 +1,129 @@
+/* Shared CSS of the idea studies (races, siege). Proposal only, not used by
+   the game. Builds on /style.css of the game (Interface v2). */
+.mock {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 16px;
+}
+.cap {
+  color: var(--dim);
+  margin: 0 0 10px;
+  font-style: italic;
+}
+.grid3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+.grid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.race {
+  background: var(--box);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.race.sel {
+  outline: 2px solid var(--gold-hi);
+  outline-offset: 2px;
+}
+.race h3 {
+  margin: 0;
+  font: 800 19px var(--head);
+  letter-spacing: 0.06em;
+  color: var(--gold-hi);
+}
+.race .tag {
+  font: italic 15px var(--body);
+  color: var(--dim);
+}
+.sigil {
+  height: 120px;
+  border-radius: 4px;
+  border: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.stat {
+  display: grid;
+  grid-template-columns: 1fr 90px;
+  align-items: center;
+  font-size: 15px;
+}
+.dots {
+  display: flex;
+  gap: 4px;
+}
+.dots i {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1px solid var(--gold);
+}
+.dots i.on {
+  background: var(--gold);
+}
+.pro,
+.con {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 15px;
+}
+.pro li::marker {
+  content: '+ ';
+  color: var(--green);
+}
+.con li::marker {
+  content: '− ';
+  color: var(--red);
+}
+.note {
+  border-left: 2px solid var(--ember);
+  padding: 4px 0 4px 10px;
+  color: var(--dim);
+  font-size: 15px;
+}
+.meter {
+  height: 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--box-2);
+  overflow: hidden;
+}
+.meter > b {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--ember), var(--gold));
+}
+.meter.red > b {
+  background: linear-gradient(90deg, #8a2a1c, var(--red));
+}
+.kv {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 12px;
+  font-size: 15px;
+}
+.kv span:nth-child(2n) {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.pill {
+  display: inline-block;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0 8px;
+  font-size: 13px;
+  color: var(--dim);
+}
+.pill.hot {
+  border-color: var(--ember);
+  color: var(--orange);
+}

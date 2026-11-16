@@ -1,0 +1,463 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Studie – Imperiumsübersicht (voll)</title>
+    <link rel="stylesheet" href="/style.css" />
+    <link rel="stylesheet" href="mock.css" />
+    <style>
+      .capbar {
+        max-width: 1240px;
+        margin: 0 auto;
+        padding: 10px 16px 0;
+      }
+      .tools {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 14px;
+        align-items: center;
+        margin-bottom: 10px;
+        font-size: 15px;
+      }
+      .tools .sp {
+        margin-left: auto;
+      }
+      .emp th {
+        white-space: nowrap;
+      }
+      .emp td {
+        vertical-align: middle;
+        padding: 5px 7px;
+      }
+      .emp tr.home {
+        background: rgb(212 165 55 / 0.05);
+      }
+      .emp tr.idle td:first-child {
+        box-shadow: inset 3px 0 0 var(--orange);
+      }
+      .pp {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .dot {
+        flex: none;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background-size: auto 100%;
+        background-position: 30% 0;
+        box-shadow:
+          inset -7px -5px 12px rgb(0 0 0 / 0.75),
+          0 0 6px rgb(111 184 255 / 0.3);
+      }
+      .pn {
+        font: 600 13.5px var(--head);
+        letter-spacing: 0.03em;
+        color: var(--gold-hi);
+        white-space: nowrap;
+      }
+      .pc {
+        font-size: 13px;
+        color: var(--dim);
+        white-space: nowrap;
+      }
+      .jump {
+        display: flex;
+        gap: 3px;
+      }
+      .jump a {
+        display: inline-grid;
+        place-items: center;
+        width: 26px;
+        height: 24px;
+        border: 1px solid var(--line);
+        border-radius: 3px;
+        font: 600 11px var(--head);
+      }
+      .jump a.off {
+        color: var(--dim);
+        border-style: dashed;
+      }
+      .num {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+        font-size: 15px;
+        white-space: nowrap;
+      }
+      .num .ph {
+        display: block;
+        font-size: 12px;
+        color: var(--dim);
+      }
+      .num.full {
+        color: var(--red);
+      }
+      .q {
+        min-width: 150px;
+        font-size: 13.5px;
+        line-height: 1.2;
+      }
+      .q .w {
+        display: flex;
+        justify-content: space-between;
+        gap: 6px;
+      }
+      .q .w span:first-child {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 150px;
+      }
+      .q .idle {
+        color: var(--orange);
+        font-style: italic;
+      }
+      .meter.thin {
+        height: 5px;
+        margin-top: 3px;
+      }
+      .sum td {
+        border-top: 2px solid var(--line);
+        font-weight: 600;
+      }
+      .side {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+      }
+      .side .box {
+        margin-bottom: 0;
+      }
+      .link {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 3px 10px;
+        font-size: 15px;
+      }
+      .link span:nth-child(2n) {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+      }
+      .new-menu {
+        position: relative;
+      }
+      .new-menu::after {
+        content: 'neu';
+        position: absolute;
+        right: 8px;
+        top: 7px;
+        font: italic 12px var(--body);
+        color: var(--orange);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="capbar">
+      <p class="cap">
+        Studie [V] · Imperiumsübersicht auf der höchsten Stufe (Stufe 4, mit
+        Verbund als Beispiel) · ein Spieler mit 12 Welten, Desktop · Namen,
+        Werte und Zeiten sind Beispiele
+      </p>
+    </div>
+    <div id="app">
+      <header>
+        <div class="logo">NOVA IMPERIUM<small>Classic Universum</small></div>
+        <div class="pinfo">
+          <b>Kaltheim</b> [1:42:8] · Kommandant <b>Mira</b> ·
+          <span class="lnk">Logout</span> ·
+          <select aria-label="Aktiver Planet">
+            <option>Kaltheim [1:42:8]</option>
+          </select>
+        </div>
+        <div class="resbar">
+          <div class="res">
+            <img class="ri" src="/icons/resources/metal.svg" alt="" />
+            <div>
+              <div class="l">Adamant</div>
+              <div class="v">412.300</div>
+            </div>
+          </div>
+          <div class="res">
+            <img class="ri" src="/icons/resources/crystal.svg" alt="" />
+            <div>
+              <div class="l">Psikristall</div>
+              <div class="v">198.040</div>
+            </div>
+          </div>
+          <div class="res">
+            <img class="ri" src="/icons/resources/deuterium.svg" alt="" />
+            <div>
+              <div class="l">Promethium</div>
+              <div class="v">61.900</div>
+            </div>
+          </div>
+          <div class="res">
+            <img class="ri" src="/icons/resources/energy.svg" alt="" />
+            <div>
+              <div class="l">Energie</div>
+              <div class="v">412/3.260</div>
+            </div>
+          </div>
+        </div>
+      </header>
+      <nav id="menu" aria-label="Hauptmenü">
+        <a href="#">Übersicht</a>
+        <a href="#" class="on new-menu" aria-current="page">Imperium</a>
+        <a href="#">Gebäude</a>
+        <a href="#">Rohstoffe</a>
+        <a href="#">Forschung</a>
+        <a href="#">Schiffsschmiede</a>
+        <a href="#">Verteidigung</a>
+        <div class="sep"></div>
+        <a href="#">Flotte</a>
+        <a href="#">Sternenkarte</a>
+        <a href="#">Nachrichten</a>
+        <a href="#">Highscore</a>
+        <a href="#">Gilden</a>
+        <div class="sep"></div>
+        <a href="#">Neuigkeiten</a>
+        <a href="#">Hilfe &amp; Optionen</a>
+      </nav>
+      <main>
+        <h2>Imperium · 12 Welten</h2>
+        <div class="tools">
+          <span class="dim">Kogitator-Verbund Stufe 4</span>
+          <span class="pill hot">4 Bauschleifen frei</span>
+          <span class="pill">2 Lager voll</span>
+          <label class="sp"
+            >Sortieren
+            <select>
+              <option>Koordinaten</option>
+              <option>Name</option>
+              <option>Bau endet zuerst</option>
+            </select></label
+          >
+        </div>
+        <div class="box">
+          <table class="emp" id="emp"></table>
+        </div>
+        <div class="side">
+          <div class="box">
+            <div class="hd">Verbund der Servitorenschmieden · Beispiel</div>
+            <div class="bd">
+              <p style="margin-top: 0; font-size: 15px">
+                Jede Stufe ab 4 bindet die Servitorenschmiede einer weiteren
+                Welt in einen Bau ein – wie das Sternennetz die Scholarien (B3
+                Option 2, Regeln B5 offen).
+              </p>
+              <div class="link">
+                <span>Kaltheim · Machina-Schwarmhalle 3</span
+                ><span>SF 10 + Varn 9 = <b>19</b></span>
+                <span>Hesk · Promethium-Raffinerie 14</span
+                ><span>SF 4 + Ostra 8 = <b>12</b></span>
+                <span class="dim">Bauzeit Hesk ohne / mit Verbund (×5/13)</span
+                ><span class="dim">26:00:00 / 10:00:00</span>
+              </div>
+            </div>
+          </div>
+          <div class="box">
+            <div class="hd">Forschung · Sternennetz der Gelehrten</div>
+            <div class="bd">
+              <div class="link">
+                <span>Plasma-Lehre 7 auf Kaltheim</span
+                ><span class="cd">0:48:15</span>
+                <span>Verbundene Scholarien (Stufe 3)</span
+                ><span>Kaltheim 12 + Varn 10 · Askar 9 · Dornach 8</span>
+                <span>Wirkt wie Scholarium</span><span><b>39</b></span>
+              </div>
+              <p class="dim" style="font-size: 13px; margin-bottom: 0">
+                Bestehende Regel (<code>ifn</code>), hier nur angezeigt.
+              </p>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+    <script>
+      // [name, coords, texture, lab, fields, m, c, d, full(m,c,d), building, yard]
+      const P = [
+        [
+          'Kaltheim',
+          '1:42:8',
+          'normal-0',
+          1,
+          '188/203',
+          412300,
+          198040,
+          61900,
+          '',
+          ['Machina-Schwarmhalle 3', 62, '4:12:08'],
+          ['40× Frachtläufer', 35, '1:02:40'],
+          'home',
+        ],
+        [
+          'Varn',
+          '1:42:9',
+          'wasser-1',
+          1,
+          '141/163',
+          96410,
+          120000,
+          88750,
+          'c',
+          ['Psikristall-Reliquiar 6', 18, '2:41:30'],
+          null,
+        ],
+        [
+          'Ostra',
+          '1:43:4',
+          'wueste-0',
+          0,
+          '119/150',
+          201770,
+          54120,
+          9305,
+          '',
+          null,
+          ['6× Fregatte', 70, '0:21:12'],
+        ],
+        [
+          'Hesk',
+          '1:44:12',
+          'eis-1',
+          0,
+          '102/141',
+          33020,
+          41560,
+          102400,
+          '',
+          ['Promethium-Raffinerie 14', 44, '6:05:51'],
+          null,
+        ],
+        [
+          'Morrow',
+          '1:40:7',
+          'dschungel-0',
+          0,
+          '97/188',
+          74800,
+          66310,
+          21050,
+          '',
+          ['Adamant-Tiefbohrung 18', 9, '9:40:02'],
+          ['120× Raketenbatterie', 52, '0:03:10'],
+        ],
+        [
+          'Tybal',
+          '1:39:6',
+          'trocken-2',
+          0,
+          '88/172',
+          150000,
+          31900,
+          12880,
+          'm',
+          null,
+          null,
+        ],
+        [
+          'Caddor',
+          '2:12:5',
+          'wasser-0',
+          1,
+          '93/134',
+          58340,
+          47210,
+          33600,
+          '',
+          ['Scholarium 9', 77, '1:10:44'],
+          null,
+        ],
+        [
+          'Askar Sekundus',
+          '2:12:8',
+          'normal-2',
+          1,
+          '120/176',
+          39900,
+          21180,
+          14200,
+          '',
+          ['Sonnenkathedrale 20', 30, '3:58:19'],
+          ['2× Kolonistenarche', 88, '0:09:51'],
+        ],
+        [
+          'Dornach',
+          '2:13:3',
+          'wueste-2',
+          1,
+          '84/155',
+          12350,
+          9870,
+          5110,
+          '',
+          ['Servitorenschmiede 8', 51, '2:02:37'],
+          null,
+        ],
+        [
+          'Vorn',
+          '2:15:10',
+          'eis-0',
+          0,
+          '61/129',
+          8400,
+          5210,
+          19880,
+          '',
+          null,
+          ['15× Spähschädel', 20, '0:01:05'],
+        ],
+        [
+          'Pyra',
+          '2:15:11',
+          'trocken-0',
+          0,
+          '55/144',
+          21940,
+          7330,
+          2105,
+          '',
+          ['Fusionssanktum 5', 66, '1:31:09'],
+          null,
+        ],
+        [
+          'Neu-Kaltheim',
+          '2:20:6',
+          'dschungel-1',
+          0,
+          '22/167',
+          4100,
+          2950,
+          880,
+          '',
+          null,
+          null,
+        ],
+      ];
+      const f = (n) => n.toLocaleString('de-DE');
+      const q = (x, idle) =>
+        x
+          ? `<div class="q"><div class="w"><span>${x[0]}</span><span class="cd">${x[2]}</span></div><div class="meter thin"><b style="width:${x[1]}%"></b></div></div>`
+          : `<div class="q"><span class="${idle ? 'idle' : 'dim'}">${idle ? 'frei' : '–'}</span></div>`;
+      let h =
+        '<tr><th>Welt</th><th>Wege</th><th class="n">Felder</th><th class="n">Adamant</th><th class="n">Psikristall</th><th class="n">Promethium</th><th>Gebäude</th><th>Schiffsschmiede</th></tr>';
+      const sum = [0, 0, 0];
+      for (const p of P) {
+        sum[0] += p[5];
+        sum[1] += p[6];
+        sum[2] += p[7];
+        h += `<tr class="${p[11] || ''} ${p[9] ? '' : 'idle'}"><td><div class="pp"><div class="dot" style="background-image:url(/planets/${p[2]}-surface.svg)"></div><div><div class="pn">${p[0]}</div><div class="pc">[${p[1]}]${p[11] ? ' · Hauptwelt' : ''}</div></div></div></td>`;
+        h += `<td><div class="jump"><a href="#" title="Gebäude">G</a><a href="#" title="Schiffsschmiede">S</a><a href="#" class="${p[3] ? '' : 'off'}" title="Forschung">F</a></div></td>`;
+        h += `<td class="num">${p[4]}</td>`;
+        ['m', 'c', 'd'].forEach((k, i) => {
+          h += `<td class="num ${p[8] === k ? 'full' : ''}">${f(p[5 + i])}</td>`;
+        });
+        h += `<td>${q(p[9], true)}</td><td>${q(p[10], false)}</td></tr>`;
+      }
+      h += `<tr class="sum"><td colspan="3">Summe aller Welten</td><td class="num">${f(sum[0])}</td><td class="num">${f(sum[1])}</td><td class="num">${f(sum[2])}</td><td colspan="2" class="dim" style="font-weight:400">8 Bauten und 5 Aufträge der Schiffsschmiede laufen</td></tr>`;
+      document.getElementById('emp').innerHTML = h;
+    </script>
+  </body>
+</html>

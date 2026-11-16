@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Studie – Imperiumsübersicht (Telefon)</title>
+    <link rel="stylesheet" href="/style.css" />
+    <link rel="stylesheet" href="mock.css" />
+    <style>
+      .cap {
+        padding: 8px 12px 0;
+        margin: 0;
+        font-size: 14px;
+      }
+      h2 {
+        font-size: 17px;
+        margin-bottom: 8px;
+      }
+      .tools {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 10px;
+      }
+      .card {
+        background: var(--box);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 8px 10px;
+        margin-bottom: 8px;
+      }
+      .card.idle {
+        box-shadow: inset 3px 0 0 var(--orange);
+      }
+      .top {
+        display: grid;
+        grid-template-columns: 30px minmax(0, 1fr) auto;
+        gap: 8px;
+        align-items: center;
+      }
+      .dot {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background-size: auto 100%;
+        background-position: 30% 0;
+        box-shadow:
+          inset -7px -5px 12px rgb(0 0 0 / 0.75),
+          0 0 6px rgb(111 184 255 / 0.3);
+      }
+      .pn {
+        font: 600 14px var(--head);
+        color: var(--gold-hi);
+        overflow-wrap: anywhere;
+      }
+      .pc {
+        font-size: 13px;
+        color: var(--dim);
+      }
+      .jump {
+        display: flex;
+        gap: 4px;
+      }
+      .jump a {
+        display: inline-grid;
+        place-items: center;
+        width: 36px;
+        height: 36px;
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        font: 600 12px var(--head);
+      }
+      .jump a.off {
+        color: var(--dim);
+        border-style: dashed;
+      }
+      .rs {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 4px;
+        margin-top: 7px;
+        font-size: 14px;
+        font-variant-numeric: tabular-nums;
+      }
+      .rs span {
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        white-space: nowrap;
+      }
+      .rs img {
+        width: 16px;
+        height: 16px;
+      }
+      .rs .full {
+        color: var(--red);
+      }
+      .qr {
+        margin-top: 6px;
+        font-size: 13.5px;
+        line-height: 1.25;
+      }
+      .qr .w {
+        display: flex;
+        justify-content: space-between;
+        gap: 6px;
+      }
+      .qr .w span:first-child {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .qr .idle {
+        color: var(--orange);
+        font-style: italic;
+      }
+      .meter.thin {
+        height: 5px;
+        margin-top: 2px;
+      }
+      .more {
+        text-align: center;
+        color: var(--dim);
+        font-size: 14px;
+        margin: 4px 0 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <p class="cap">
+      Studie [V] · Imperium auf dem Telefon (390 px) · höchste Stufe, 12 Welten
+      · erreichbar unter „Mehr“ · Werte Beispiele
+    </p>
+    <div id="app">
+      <header>
+        <div class="logo">NOVA IMPERIUM</div>
+        <div class="resbar">
+          <div class="res">
+            <img class="ri" src="/icons/resources/metal.svg" alt="" />
+            <div>
+              <div class="l">Adamant</div>
+              <div class="v">412.300</div>
+            </div>
+          </div>
+          <div class="res">
+            <img class="ri" src="/icons/resources/crystal.svg" alt="" />
+            <div>
+              <div class="l">Psikristall</div>
+              <div class="v">198.040</div>
+            </div>
+          </div>
+          <div class="res">
+            <img class="ri" src="/icons/resources/deuterium.svg" alt="" />
+            <div>
+              <div class="l">Promethium</div>
+              <div class="v">61.900</div>
+            </div>
+          </div>
+          <div class="res">
+            <img class="ri" src="/icons/resources/energy.svg" alt="" />
+            <div>
+              <div class="l">Energie</div>
+              <div class="v">412</div>
+            </div>
+          </div>
+        </div>
+      </header>
+      <main>
+        <h2>Imperium · 12 Welten</h2>
+        <div class="tools">
+          <span class="pill hot">4 Bauschleifen frei</span>
+          <span class="pill">2 Lager voll</span>
+          <select aria-label="Sortieren">
+            <option>Koordinaten</option>
+          </select>
+        </div>
+        <div id="list"></div>
+        <p class="more">… 6 weitere Welten</p>
+        <div class="box">
+          <div class="hd">Verbund · Beispiel</div>
+          <div class="bd" style="font-size: 15px">
+            Hesk baut mit Servitorenschmiede 4 + Ostra 8 = <b>12</b> · Bauzeit
+            26:00:00 → 10:00:00
+          </div>
+        </div>
+      </main>
+    </div>
+    <script>
+      const P = [
+        [
+          'Kaltheim',
+          '1:42:8 · Hauptwelt',
+          'normal-0',
+          1,
+          ['412.300', '198.040', '61.900'],
+          -1,
+          ['Machina-Schwarmhalle 3', 62, '4:12:08'],
+          ['40× Frachtläufer', 35, '1:02:40'],
+          ['Plasma-Lehre 7', 81, '0:48:15'],
+        ],
+        [
+          'Varn',
+          '1:42:9',
+          'wasser-1',
+          1,
+          ['96.410', '120.000', '88.750'],
+          1,
+          ['Psikristall-Reliquiar 6', 18, '2:41:30'],
+          null,
+          null,
+        ],
+        [
+          'Ostra',
+          '1:43:4',
+          'wueste-0',
+          0,
+          ['201.770', '54.120', '9.305'],
+          -1,
+          null,
+          ['6× Fregatte', 70, '0:21:12'],
+          null,
+        ],
+        [
+          'Hesk',
+          '1:44:12',
+          'eis-1',
+          0,
+          ['33.020', '41.560', '102.400'],
+          -1,
+          ['Promethium-Raffinerie 14', 44, '6:05:51'],
+          null,
+          null,
+        ],
+        [
+          'Morrow',
+          '1:40:7',
+          'dschungel-0',
+          0,
+          ['74.800', '66.310', '21.050'],
+          -1,
+          ['Adamant-Tiefbohrung 18', 9, '9:40:02'],
+          ['120× Raketenbatterie', 52, '0:03:10'],
+          null,
+        ],
+        [
+          'Askar Sekundus',
+          '2:12:8',
+          'normal-2',
+          1,
+          ['39.900', '21.180', '14.200'],
+          -1,
+          ['Sonnenkathedrale 20', 30, '3:58:19'],
+          ['2× Kolonistenarche', 88, '0:09:51'],
+          null,
+        ],
+      ];
+      const icons = ['metal', 'crystal', 'deuterium'];
+      const names = ['Adamant', 'Psikristall', 'Promethium'];
+      const q = (label, x, idle) =>
+        x
+          ? `<div class="qr"><div class="w"><span><span class="dim">${label}:</span> ${x[0]}</span><span class="cd">${x[2]}</span></div><div class="meter thin"><b style="width:${x[1]}%"></b></div></div>`
+          : idle
+            ? `<div class="qr"><div class="w"><span class="dim">${label}:</span><span class="idle">frei</span></div></div>`
+            : '';
+      document.getElementById('list').innerHTML = P.map(
+        (p) =>
+          `<div class="card ${p[6] ? '' : 'idle'}"><div class="top"><div class="dot" style="background-image:url(/planets/${p[2]}-surface.svg)"></div><div><div class="pn">${p[0]}</div><div class="pc">[${p[1].replace(' · ', '] · ')}${p[1].includes('·') ? '' : ']'}</div></div><div class="jump"><a href="#" aria-label="Gebäude">G</a><a href="#" aria-label="Schiffsschmiede">S</a><a href="#" class="${p[3] ? '' : 'off'}" aria-label="Forschung">F</a></div></div><div class="rs">${p[4].map((v, i) => `<span class="${p[5] === i ? 'full' : ''}"><img src="/icons/resources/small/${icons[i]}.svg" alt="${names[i]}">${v}</span>`).join('')}</div>${q('Gebäude', p[6], true)}${q('Schiffsschmiede', p[7], false)}${q('Forschung', p[8], false)}</div>`,
+      ).join('');
+    </script>
+  </body>
+</html>
