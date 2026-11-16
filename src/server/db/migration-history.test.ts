@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   idViolation,
   migrationHistoryViolation,
+  newestReleasedId,
   orderViolation,
 } from './migration-history.ts';
 import { MIGRATIONS, type Migration } from './schema.ts';
@@ -136,12 +137,10 @@ describe('order of the migrations', () => {
 });
 
 describe('migration history', () => {
-  const KEEP =
-    'Migrations keep their ID and SQL byte for byte; correct one with a new migration.';
   const differs = (id: string, what = 'the base'): string =>
-    `Migration ${id} differs from ${what}. ${KEEP}`;
+    `Migration ${id} is on ${what} and must not change any more; change only your own new migration.`;
   const gone = (id: string, what = 'the base'): string =>
-    `Migration ${id} of ${what} was removed or got another ID. ${KEEP}`;
+    `Migration ${id} is on ${what} and must not be removed or get another ID; change only your own new migration.`;
   const early = (id: string, newest: string): string =>
     `Migration ${id} is older than ${newest}, the newest migration of the last release. A new migration needs an ID after the last release.`;
 
@@ -291,5 +290,28 @@ describe('migration history', () => {
     expect(migrationHistoryViolation([a], [first, a], old)).toBe(
       differs(first.id, 'the last release'),
     );
+  });
+
+  // pnpm check compares with the local origin/main and names it.
+  it('names the base as asked', () => {
+    expect(
+      migrationHistoryViolation(
+        base,
+        [a, { ...b, sql: 'SELECT 9;' }],
+        base,
+        false,
+        'main',
+      ),
+    ).toBe(differs(b.id, 'main'));
+    expect(migrationHistoryViolation(base, [a, c], base, false, 'main')).toBe(
+      gone(b.id, 'main'),
+    );
+  });
+
+  it('finds the newest migration of a release, with or without IDs', () => {
+    expect(newestReleasedId([a, b], [a, b, c])).toBe(b.id);
+    expect(newestReleasedId([a, b, c], [a, b, c])).toBe(c.id);
+    expect(newestReleasedId([a.sql, b.sql], [a, b, c])).toBe(b.id);
+    expect(newestReleasedId([], [a])).toBeUndefined();
   });
 });

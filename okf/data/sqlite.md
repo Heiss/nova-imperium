@@ -80,8 +80,9 @@ development) have run it. Rules, after Flyway and sqlx (checksums of applied
 migrations), Atlas (`migrate lint` against the Git base) and GitLab
 (committed `structure.sql`):
 
-* **[E]** A schema change is a new entry of `MIGRATIONS`, at its place in
-  the order of the IDs (see [Migration IDs](#migration-ids-213)). A wrong
+* **[E]** A schema change is a new migration in its own file (see
+  [Migration files](#migration-files-213)); it runs at its place in the
+  order of the IDs (see [Migration IDs](#migration-ids-213)). A wrong
   migration is corrected by a further migration, never by an edit.
 * **[E]** The CI job "Migrations append-only"
   (`.github/scripts/migrations-gate.mjs`) requires every migration of the
@@ -165,9 +166,12 @@ pull requests that each add a migration no longer renumber one of them:
 The code (`src/server/db/database.ts`, `src/server/db/migration-history.ts`,
 tests `migration-ids.test.ts` and `migration-history.test.ts`):
 
-* `MIGRATIONS` in `src/server/db/schema.ts` is a list of `{ id, sql }` in
-  the order of the IDs. An ID is checked for its form and for a time that
-  exists (`idViolation`); the list must be in strict order, each ID once
+* History: the first form of #213 kept `MIGRATIONS` in
+  `src/server/db/schema.ts` as a list of `{ id, sql }` in the order of the
+  IDs; the migration files below replaced it (owner, 2026-11-16).
+  `MIGRATIONS` is still exported from `schema.ts`, read from the folder.
+  An ID is checked for its form and for a time that exists
+  (`idViolation`); the list must be in strict order, each ID once
   (`orderViolation`, also a property test on random IDs).
 * A database without `schema_migrations` gets the table
   (`id TEXT NOT NULL PRIMARY KEY`, `STRICT`) with the IDs of the
@@ -236,6 +240,80 @@ names sort them in their old order.
 
 The issue counted 19 existing migrations; #216 added migration 20 to `main`
 before this was built, so all 20 got IDs.
+
+## Migration files (#213)
+
+Decided by the owner on 2026-11-16 (PR #238): an agent adds a migration
+without merge conflicts, the place in a list no longer matters, an ID on
+`main` never changes, and the developer or the language model learns it as
+early as `pnpm check`.
+
+* **[E]** One migration file per issue:
+  `src/server/db/migrations/<issue number>/migrations.ts` exports the ID
+  and the SQL of its migrations. The folder is the number of the issue the
+  migration is built for. **[V]** The file exports a list,
+  `export default [{ id, sql }]`, so an issue that needs two migrations
+  keeps one file (`Migration[]` from `migration-files.ts`, a type import
+  only).
+* **[E]** The 20 migrations from before the IDs are one file each in
+  `src/server/db/migrations/legacy/<id>.ts`, exporting `id`, `number` and
+  `sql`; their SQL is byte for byte the SQL of `main` (checked by script
+  against `origin/main` and against the records of the first form).
+* **[E]** The IDs stay those of D1; the migrations run in the order of
+  their IDs, whatever folder they are in.
+* **[E]** The server reads the folder when it starts, with no committed or
+  generated index (`src/server/db/migration-files.ts`, `loadMigrations`;
+  `schema.ts` exports `MIGRATIONS` with a top-level `await`, so
+  `openDatabase` stays synchronous). It imports every `migrations.ts` and
+  every legacy file, sorts by ID, and refuses a stray file or folder
+  (anything but `legacy/<id>.ts` and `<issue number>/migrations.ts`, a
+  number without a leading zero), a legacy file whose `id` is not its file
+  name or that lacks its number or SQL, a file of an issue that is no list
+  of `{ id, sql }` (only those two fields are taken, so a new migration has
+  no `number`), an ID used twice (naming both files) and an invalid ID. The
+  Docker image holds the folder: it copies `src/server` and removes only
+  test files.
+* **[E]** `node scripts/new-migration.ts <issue> <short-name>` (`pnpm
+  new-migration`) prints the ID for a new migration: the current UTC minute
+  and the short name, one minute later while that ID is taken. It refuses an
+  invalid name and an ID that is not newer than the newest migration of
+  the last release tag (the newest CalVer tag of all refs, as in
+  `ci.yml`). `--create` writes the skeleton of
+  `migrations/<issue>/migrations.ts` and never overwrites one; for a second
+  migration of the issue it says to add it to the list.
+* **[E]** `pnpm check` runs `pnpm check:migrations`
+  (`node .github/scripts/migrations-gate.mjs --local`): the gate of the CI
+  job offline against the local `origin/main`. A migration of `main` that
+  changed or is gone fails with „Migration <id> is on main and must not
+  change any more; change only your own new migration.“ (or „… must not be
+  removed or get another ID …“). Without a local `origin/main` it prints a
+  warning and passes; the CI job is binding. **[V]** It compares with the
+  merge base of `HEAD` and `origin/main` and the newest release tag merged
+  into `HEAD`, so a branch that has not taken in a newer `main` is not
+  blamed for the migrations it does not have yet. The hotfix rule (O19)
+  and the release rule stay as built; the local check runs neither as a
+  hotfix.
+* **[E]** The CI gate reads the migrations of a commit or tag from the
+  folder (`git ls-tree` and `git show` into a temporary copy, read with the
+  loader of the server, `scripts/migration-refs.ts`) and still takes the
+  older layouts as a base: `MIGRATIONS` as SQL strings in `schema.ts`
+  (26.11.22 and older) and as `{ id, sql }` records in `schema.ts` (the
+  first form of #213). The migrations of the change come from the working
+  tree, through the same loader.
+* **[V]** `legacy-migrations.test.ts` imports each of the 20 legacy files
+  and pins its ID, number and the SHA-256 of its SQL (taken after the SQL
+  was checked against `main`), like the checksums of Flyway. The static
+  imports also tie the files to a test for Stryker, which runs only the
+  tests related to a mutated file by their imports; the loader's dynamic
+  imports do not count. A new migration file has no such test unless its
+  upgrade test imports it, so its mutants would count as not covered (open
+  for the owner, see the pull request).
+* Tests: `migration-files.test.ts` (the loader on temporary folders:
+  order across folders, stray files and folders, an ID used twice, the
+  forms of a legacy file and of a file of an issue), `src/test/new-migration.test.ts`
+  (the next ID, a taken minute, the refusal before the release, the
+  skeleton the loader reads, a throwaway repository with the three layouts
+  and tags `26.9.1`, `26.10.30` and `26.11.2` for the version sort).
 
 
 ## Admin data
@@ -416,7 +494,8 @@ tests together with an own test for each changing migration).
   Stryker uses 10 runs (`MIGRATION_RUNS`).
 * **[E]** A migration that changes or removes an existing schema entry or
   existing rows needs its own test `src/server/db/upgrades/migration-<n>.test.ts`
-  (**[V]** from #213 on `src/server/db/upgrades/<id>.test.ts`, see
+  (**[V]** from #213 on `src/server/db/upgrades/<id>.test.ts`, next to
+  the migration file `migrations/<issue>/migrations.ts`, see
   [Migration IDs](#migration-ids-213))
   that checks the data after the upgrade. The decision is made by the effect on
   generated data, not by the SQL text; `ALTER TABLE … ADD COLUMN` counts as a

@@ -72,20 +72,30 @@ pnpm test:mutation   # Stryker; blocks below a mutation score of 80 %
 node scripts/mutation-gate.ts   # after Stryker: no file below its floor (--update raises the floors)
 pnpm build && pnpm test:e2e   # Playwright, desktop and phone
 docker compose up -d --build && docker/smoke.sh   # the stack (after docker/init-env.sh --demo)
-node .github/scripts/migrations-gate.mjs origin/main   # released migrations unchanged
+pnpm check:migrations   # no migration of origin/main changed (part of pnpm check)
 node scripts/changelog.ts check origin/main             # a German changelog fragment for game changes
 node scripts/okf-log.ts check                           # every entry of the update log in okf/log/ well-formed
 ```
 
-A schema change is a new migration in `src/server/db/schema.ts` with a
-fixed ID: the UTC time you write it and a short name, for example
-`{ id: '20261114T1830-guild-ranks', sql: ... }`. The list is sorted by ID
-and the migrations run in that order. A new ID must sort after the newest
-migration of the last release; if another pull request merged a newer
-migration first, keep your ID and put your migration before it. A
-migration on `main` is never removed or changed, and keeps its ID. A hotfix
-brings no migration; schema changes go through `main` and a normal
-release.
+How to add a migration:
+
+1. `pnpm new-migration <issue> <short-name> --create` prints the ID (the
+   current UTC minute and the name, for example
+   `20261116T1405-fleet-cargo`) and creates
+   `src/server/db/migrations/<issue>/migrations.ts`. Without `--create` it
+   only prints the ID; a second migration of the same issue goes into the
+   list of that file.
+2. Write the SQL into the file. The folder is read when the server starts;
+   the migrations run in the order of their IDs, whatever folder they are
+   in, so neither the place nor another pull request matters.
+3. Add `src/server/db/upgrades/<id>.test.ts` when the migration changes
+   existing tables or data (below).
+
+A migration on `main` is never removed or changed and keeps its ID;
+`pnpm check` compares with your local `origin/main` and fails on such a
+change. A new ID must sort after the newest migration of the last release;
+the script refuses it otherwise. A hotfix brings no migration; schema
+changes go through `main` and a normal release.
 Update the schema
 snapshot with `pnpm test src/server/db/schema.test.ts -u` and review
 its diff.

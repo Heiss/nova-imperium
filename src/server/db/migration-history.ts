@@ -6,7 +6,7 @@
 // sorted by ID, and a hotfix brings no migration (#213, owner, 2026-11-16).
 // The CI job "Migrations append-only" compares a change with its base and
 // with the last release.
-import type { Migration } from './schema.ts';
+import type { Migration } from './migration-files.ts';
 
 /** A migration of a base commit; one before #213 is its SQL without an ID. */
 export type ReleasedMigration = string | Migration;
@@ -38,11 +38,12 @@ export function orderViolation(
   return null;
 }
 
-const KEEP =
-  'Migrations keep their ID and SQL byte for byte; correct one with a new migration.';
+const OWN = 'change only your own new migration.';
 
 const changed = (now: Migration, sql: string, what: string): string | null =>
-  now.sql === sql ? null : `Migration ${now.id} differs from ${what}. ${KEEP}`;
+  now.sql === sql
+    ? null
+    : `Migration ${now.id} is on ${what} and must not change any more; ${OWN}`;
 
 function keptOne(
   m: Migration,
@@ -51,7 +52,7 @@ function keptOne(
 ): string | null {
   const now = head.find((h) => h.id === m.id);
   if (!now)
-    return `Migration ${m.id} of ${what} was removed or got another ID. ${KEEP}`;
+    return `Migration ${m.id} is on ${what} and must not be removed or get another ID; ${OWN}`;
   return changed(now, m.sql, what);
 }
 
@@ -127,20 +128,28 @@ function hotfixViolation(
  * release tag), or adds one older than the newest migration of the release
  * (on a hotfix branch: adds one at all); or null. Only the migrations new in
  * the change are held against the release; those of the base were checked
- * when they came.
+ * when they came. `baseName` names the base in the messages (`main` for
+ * `pnpm check`).
  */
 export function migrationHistoryViolation(
   base: readonly ReleasedMigration[],
   head: readonly Migration[],
   release: readonly ReleasedMigration[] = base,
   hotfix = false,
+  baseName = 'the base',
 ): string | null {
   return (
     orderViolation(head) ??
-    keptViolation(base, head, 'the base') ??
+    keptViolation(base, head, baseName) ??
     keptViolation(release, head, 'the last release') ??
     (hotfix
       ? hotfixViolation(release, head)
       : earlyViolation(base, release, head))
   );
 }
+
+/** The ID of the newest migration of `release` (its last), as `head` has it. */
+export const newestReleasedId = (
+  release: readonly ReleasedMigration[],
+  head: readonly Migration[],
+): string | undefined => idsIn(release, head).at(-1);
