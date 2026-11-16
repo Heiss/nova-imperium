@@ -330,6 +330,26 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   „(umbenennen)“). The pure logic has its tests in
   `src/client/logic/overview.test.ts`, the component in
   `src/client/views/overview.test.ts`.
+* **[V]** The frame of #118, bundle 1: the property test
+  `src/test/frame-reference.test.ts` keeps `Header`, `Menu`, `TabBar`,
+  `MoreList` and `ResourceBar` equal to the HTML before (frozen there:
+  `renderPlanetHeader()`, `menuBadge()`, `menuLink()`,
+  `renderPhoneMenu()`, `renderMenu()` and `updateBar()` of
+  `src/client/main.ts`) on 300 generated states (fast-check seed 118: up
+  to five own and foreign planets and moons with names that hold markup or
+  quotes, an admin or not, every round rule, unread reports, rewards,
+  incoming fleets, guild applications and chat, finished work with markup
+  in its mark, news seen or not, every view open, and planets with full
+  storage, too little energy and falling Promethium), with the shared
+  normalizer of `src/test/markup.ts`; a fourth case checks that the cases
+  reach every branch. The normalizer now also leaves out an empty `class`,
+  which Svelte does not write, and reads `selected=""` as `selected`;
+  its self-test in `catalog-list-reference.test.ts` has both, and that a
+  class of a space or an empty `data-class` still differs. Checked by
+  breaking the components (the space before „·“ of the list, the space in
+  `class="v "`, `aria-current`). The pure logic has its tests in
+  `src/client/logic/header.test.ts`, `navigation.test.ts` and
+  `resource-bar.test.ts`, the components in `src/client/views/frame.test.ts`.
 * **[E]** No comparison with a catalog key outside `src/features/` (#114,
   owner, 2026-11-14): `src/test/catalog-keys.test.ts` reads `src` with the
   TypeScript and Svelte parsers, as `src/test/naming.test.ts` does, and

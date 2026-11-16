@@ -101,6 +101,28 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   nothing is saved if one value is wrong.
 * **[V]** Operator commands besides `admin`: `unadmin`, `admins`, `invite`.
 
+# Settings per round from the Classic features (#222)
+
+The owner's answers of 2026-11-16 put these rules into the admin panel, one
+value per round. Where in the panel (the dialog „Neue Runde“ or the
+universe settings) and their ranges are not decided yet.
+
+| Setting | Issue | Default |
+|---|---|---|
+| Minimum duration of the [vacation mode](/features/vacation-mode.md) | #223 D1 | default 24 h (owner, 2026-11-16) |
+| Lock of a [given-up colony's](/features/abandon-colony.md) position | #224 D2 | default 24 h (owner, 2026-11-16) |
+| Who may hold, join an attack union and fight with friends: guild, friends or both ([Holding and ACS](/features/holding-acs.md), [Buddy list](/features/buddy-list.md)) | #55 Q2, #225 D2, #227 D3 | [V] guild and friends, the classic rule for holding |
+| Limits of an attack union ([Holding and ACS](/features/holding-acs.md)) | #225 D3 | classic value: 16 fleets of 5 players, a delay of at most 30 % of the remaining flight time; join window [U] |
+| Thresholds of the recognition of incoming fleets ([Espionage defense](/features/espionage-defense.md)) | #228 D1 | classic value: espionage technology 2 / 4 / 8 (source [U]) |
+| Thresholds of the [activity indicators](/features/activity-indicators.md) | #229 Q1 | classic value: star 15 min, „x min“ up to 59 min, „i“ after 7 days, „I“ after 28 days |
+| Slots and holding time of [expeditions](/features/expeditions.md) | #93 Q3 | classic value: ⌊√level⌋ slots, at most level hours |
+| Refund factor of a [demolition](/features/demolition.md), −100 % to +100 % | #202 D4, D7 | +50 % [E] |
+| Demolition time as a share of the build time ([Demolition](/features/demolition.md)) | #202 D3 | 50 % [E] |
+
+* **[E]** Each of these is set by the admin per round (owner, 2026-11-16).
+  The classic defaults are decided where the table says „classic value“,
+  with the sources in the linked files.
+
 # Round rewards and menu hints
 
 * **[E]** Starting a new round offers independent checkboxes for achievements
