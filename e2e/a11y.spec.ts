@@ -307,7 +307,9 @@ test.describe('accessibility (axe)', () => {
   }) => {
     const name = uniqueName('AxeErr');
     // A unique error text: a repeat run found two rows with a fixed one (#267).
-    const error = uniqueName('Axe-Testfehler');
+    // The colon keeps the log's scrubber from taking the text for a token
+    // (20 word characters with a digit) or the 6 characters for a login code.
+    const error = `Axe-Testfehler:${uniqueName('')}`;
     await register(page, name);
     cli('admin', name);
     seed({ name, serverError: error });
