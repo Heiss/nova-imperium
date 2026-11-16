@@ -55,7 +55,8 @@ interface is German.
    own pull requests may be open at a time: while they only wait for CI or
    a review, go on with the next step; a subagent builds an issue that
    doesn't depend on the open ones in its own git worktree, and you review
-   its diff before you open its pull request.
+   its diff before you open its pull request. At most two subagents build
+   at the same time.
 2. **Make the release ready** when no open issue has the label `ready`,
    `in progress` or `in review` and the release pull request is open. The release pull request is a draft after
    every rebuild: its cheap run checks only secrets, dependencies,

@@ -140,7 +140,12 @@ tasks).
   reviews each diff and opens, finishes and merges the pull requests itself
   (owner, 2026-11-12: two, replacing „one own pull request at a time“;
   owner, 2026-11-15: four, confirmed after the loop already worked with
-  four while this bundle still said two).
+  four while this bundle still said two). At most two subagents build at
+  the same time (owner, 2026-11-16): a pull request that only waits for CI
+  or a review costs little, but every building agent costs memory (the
+  out-of-memory stop of 2026-11-15 came from Stryker and E2E of two agents
+  at once) and usage; merge conflicts are no longer the reason, since
+  most of them were in `okf/log.md` before #212.
 * **[E]** An open pull request takes `main` in only when it is the next one
   to merge (CI green on its head, every finding answered), when GitHub
   reports a conflict (then no CI starts, as seen on #194), or when it needs code
