@@ -72,19 +72,44 @@ pnpm test:mutation   # Stryker; blocks below a mutation score of 80 %
 node scripts/mutation-gate.ts   # after Stryker: no file below its floor (--update raises the floors)
 pnpm build && pnpm test:e2e   # Playwright, desktop and phone
 docker compose up -d --build && docker/smoke.sh   # the stack (after docker/init-env.sh --demo)
-node .github/scripts/migrations-gate.mjs origin/main   # released migrations unchanged
+pnpm check:migrations   # no migration of origin/main changed (part of pnpm check)
 node scripts/changelog.ts check origin/main             # a German changelog fragment for game changes
 node scripts/okf-log.ts check                           # every entry of the update log in okf/log/ well-formed
 ```
 
-A schema change is a new migration at the end of `src/server/db/schema.ts`;
-a released migration is never moved, removed or changed. Update the schema
+How to add a migration:
+
+1. `pnpm new-migration <issue> <short-name> --create` prints the ID (the
+   current UTC minute and the name, for example
+   `20261116T1405-fleet-cargo`) and creates
+   `src/server/db/migrations/<issue>/migrations.ts`. Without `--create` it
+   only prints the ID; a second migration of the same issue goes into the
+   list of that file.
+2. Write the SQL into the file. The folder is read when the server starts;
+   the migrations run in the order of their IDs, whatever folder they are
+   in, so neither the place nor another pull request matters.
+3. Fill in its upgrade test `src/server/db/upgrades/<id>.test.ts`, which
+   `--create` writes too: it imports the migration file, runs the migration
+   on data of the version before and fails with a TODO until you write the
+   data and check what the migration does to it. Every migration of an
+   issue needs this test (owner, 2026-11-16); `pnpm check` fails without it
+   or when it does not import its migration file statically.
+
+A migration on `main` is never removed or changed and keeps its ID;
+`pnpm check` compares with your local `origin/main` and fails on such a
+change. A new ID must sort after the newest migration of the last release;
+the script refuses it otherwise. A hotfix brings no migration; schema
+changes go through `main` and a normal release.
+Update the schema
 snapshot with `pnpm test src/server/db/schema.test.ts -u` and review
 its diff.
 
-A migration that changes existing tables or data needs its own test
-`src/server/db/upgrades/migration-<n>.test.ts`; the property-based upgrade
-test tells which ones. Reproduce a nightly failure with
+Every new migration has its own test
+`src/server/db/upgrades/<id>.test.ts` (the migrations before the IDs have
+`migration-<n>.test.ts` where they change existing tables or data);
+`migrationsThrough(id)` of `src/test/migrations.ts` gives the migrations up
+to it. The property-based upgrade test runs every migration on generated
+data. Reproduce a nightly failure with
 `MIGRATION_SEED=<seed> pnpm test src/server/db/migrations.property.test.ts`.
 
 Write the test first. Tests check behavior, not markup; no test is skipped or

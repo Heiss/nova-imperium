@@ -7,7 +7,7 @@ description: The defense of issue #50, its values, the one-per-planet rule of th
 # Ionengeschütz, Plasmawerfer and shield domes
 
 Issue #50, milestone `next release` with #46, #47 and #49 (owner, 2026-11-12).
-Not in version 1. Missiles are #54.
+Not in version 1. Missiles are #54 ([Missiles](/features/missiles.md)).
 
 * **[E]** Ionengeschütz: structure 8,000 (hull 800), shield 500, attack 150.
   Requires Werft 4 and Ionentechnik 4 (#49) (owner, 2026-11-12).

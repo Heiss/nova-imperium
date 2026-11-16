@@ -2,12 +2,13 @@ import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import {
   databaseAt,
+  placeOf,
   plansBefore,
   snapshot,
+  throughNumber,
   upgrade,
 } from '../../../test/migrations.ts';
 import { migrate } from '../database.ts';
-import { MIGRATIONS } from '../schema.ts';
 import { Store } from '../store.ts';
 
 // Migration 15 (#119, O11): a place is coordinates plus a kind. It rebuilds
@@ -32,7 +33,7 @@ const withoutKind = (rows: Rows): Rows =>
   );
 
 function oldDatabase() {
-  const db = databaseAt(14);
+  const db = databaseAt(placeOf(15) - 1);
   db.exec(`
     INSERT INTO users (id, name, salt, pw_hash, created)
     VALUES ('u_Anna', 'Anna', 's', 'h', 1), ('u_Bert', 'Bert', 's', 'h', 1);
@@ -77,7 +78,7 @@ describe('upgrade to migration 15', () => {
     const children = CHILDREN.map((t) => sorted(all(db, t)));
     const fleets = store.fleets();
 
-    expect(migrate(db, MIGRATIONS.slice(0, 15))).toBe(1);
+    expect(migrate(db, throughNumber(15))).toBe(1);
 
     expect(read()).toEqual(before.map((p) => ({ ...p, kind: 'planet' })));
     expect(sorted(withoutKind(all(db, 'planets')))).toEqual(sorted(rows));
@@ -106,7 +107,7 @@ describe('upgrade to migration 15', () => {
 
   it('allows a moon at the coordinates of a planet, but no second planet', () => {
     const db = oldDatabase();
-    migrate(db, MIGRATIONS.slice(0, 15));
+    migrate(db, throughNumber(15));
     const store = new Store(db);
     store.savePlanet({
       ...store.planet('p1_1_5')!,
@@ -126,7 +127,7 @@ describe('upgrade to migration 15', () => {
 
   it('still deletes the children with their planet', () => {
     const db = oldDatabase();
-    migrate(db, MIGRATIONS.slice(0, 15));
+    migrate(db, throughNumber(15));
     db.exec(`DELETE FROM users WHERE id = 'u_Anna'`);
     expect(db.prepare('SELECT id FROM planets').pluck().all()).toEqual([
       'p2_499_15',
@@ -141,7 +142,7 @@ describe('upgrade to migration 15', () => {
 
   it('adds the debris fields empty, one per position', () => {
     const db = oldDatabase();
-    migrate(db, MIGRATIONS.slice(0, 15));
+    migrate(db, throughNumber(15));
     expect(all(db, 'debris')).toEqual([]);
     db.exec(`INSERT INTO debris VALUES ('d1_1_5', 1, 1, 5, 300.5, 0)`);
     expect(all(db, 'debris')).toEqual([
@@ -161,8 +162,8 @@ describe('upgrade to migration 15', () => {
 
   it('keeps all data of any valid database of version 14', () => {
     fc.assert(
-      fc.property(plansBefore(15), (plan) => {
-        const { before, after } = upgrade(15, plan);
+      fc.property(plansBefore(placeOf(15)), (plan) => {
+        const { before, after } = upgrade(placeOf(15), plan);
         const rows = (s: ReturnType<typeof snapshot>, t: string): Rows =>
           JSON.parse(s.data.get(t)!) as Rows;
         for (const t of before.data.keys()) {

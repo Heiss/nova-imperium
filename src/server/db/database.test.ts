@@ -19,7 +19,12 @@ import {
   snapshot,
 } from '../../test/migrations.ts';
 import { BACKUPS_KEPT, openDatabase, verifyBackup } from './database.ts';
-import { MIGRATIONS } from './schema.ts';
+import { MIGRATIONS, type Migration } from './schema.ts';
+
+const step = (n: number, sql: string): Migration => ({
+  id: `2026010${n}T0000-step-${n}`,
+  sql,
+});
 
 const STEPS = [
   'CREATE TABLE a (x INTEGER)',
@@ -28,7 +33,7 @@ const STEPS = [
   'INSERT INTO a VALUES (3)',
   'INSERT INTO a VALUES (4)',
   'INSERT INTO a VALUES (5)',
-];
+].map((sql, i) => step(i + 1, sql));
 
 let dir: string;
 let file: string;
@@ -95,6 +100,7 @@ describe('backup before migrations', () => {
     openDatabase(file, STEPS.slice(0, 3)).close();
     const db = new Database(file);
     db.pragma('user_version = 2');
+    db.prepare('DELETE FROM schema_migrations WHERE id = ?').run(STEPS[2]!.id);
     db.close();
     openDatabase(file, STEPS.slice(0, 3)).close();
     expect(backups()).toEqual(['nova.sqlite.v2.bak']);
@@ -141,7 +147,10 @@ describe('backup before migrations', () => {
     openDatabase(file, STEPS.slice(0, 2)).close();
     let error: Error | undefined;
     try {
-      openDatabase(file, [...STEPS.slice(0, 2), 'INSERT INTO nope VALUES (1)']);
+      openDatabase(file, [
+        ...STEPS.slice(0, 2),
+        step(9, 'INSERT INTO nope VALUES (1)'),
+      ]);
     } catch (e) {
       error = e as Error;
     }
@@ -160,7 +169,7 @@ describe('backup before migrations', () => {
 
   it('keeps the plain error for a database without backup', () => {
     expect(() =>
-      openDatabase(':memory:', ['INSERT INTO nope VALUES (1)']),
+      openDatabase(':memory:', [step(1, 'INSERT INTO nope VALUES (1)')]),
     ).toThrow(/^no such table: nope$/);
   });
 });

@@ -56,7 +56,14 @@ interface is German.
    a review, go on with the next step; a subagent builds an issue that
    doesn't depend on the open ones in its own git worktree, and you review
    its diff before you open its pull request. At most two subagents build
-   at the same time.
+   at the same time. Two subagents always build: when one finishes, start the
+   next issue with `ready` and a `Geklärt` comment that depends neither on
+   the open pull requests nor on an issue being built, at once, also while
+   you wait on CI or a review. Only you, the main agent, wait; you do not build yourself. Meanwhile you finish the open
+   pull requests, clean up (worktrees, labels), look for new issues and
+   pull requests, get the owner's decisions so that the next issues become
+   `ready`, and do whatever else keeps both agents building
+   (owner, 2026-11-16).
 2. **Make the release ready** when no open issue has the label `ready`,
    `in progress` or `in review` and the release pull request is open. The release pull request is a draft after
    every rebuild: its cheap run checks only secrets, dependencies,

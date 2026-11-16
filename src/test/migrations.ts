@@ -5,8 +5,9 @@
 // skipped, so every generated database is one the server could have written.
 import Database, { type Statement } from 'better-sqlite3';
 import fc from 'fast-check';
+import ts from 'typescript';
 import { migrate, type Db } from '../server/db/database.ts';
-import { MIGRATIONS } from '../server/db/schema.ts';
+import { MIGRATIONS, type Migration } from '../server/db/schema.ts';
 
 type Value = string | number | Uint8Array | null;
 type Ref = { table: string; column: string };
@@ -24,13 +25,46 @@ export type Plan = Record<string, Record<string, Value>[]>;
 /** An empty database with foreign keys on, at schema version `version`. */
 export function databaseAt(
   version: number,
-  migrations: readonly string[] = MIGRATIONS,
+  migrations: readonly Migration[] = MIGRATIONS,
 ): Db {
   const db = new Database(':memory:');
   db.pragma('foreign_keys = ON');
   migrate(db, migrations.slice(0, version));
   return db;
 }
+
+/**
+ * The migrations up to and including `id`, so an upgrade test names its
+ * migration by ID and not by its place in the list (#213).
+ */
+export function migrationsThrough(
+  id: string,
+  migrations: readonly Migration[] = MIGRATIONS,
+): Migration[] {
+  const end = migrations.findIndex((m) => m.id === id);
+  if (end === -1) throw new Error(`No migration ${id}.`);
+  return migrations.slice(0, end + 1);
+}
+
+/**
+ * The place (from 1) in the list of the migration numbered `n` before #213.
+ * A new migration may sort between the numbered ones while they are
+ * unreleased, so their upgrade tests use this and not `n` itself.
+ */
+export function placeOf(
+  n: number,
+  migrations: readonly Migration[] = MIGRATIONS,
+): number {
+  const i = migrations.findIndex((m) => m.number === n);
+  if (i === -1) throw new Error(`No migration number ${n}.`);
+  return i + 1;
+}
+
+/** The migrations up to and including the one numbered `n` before #213. */
+export const throughNumber = (
+  n: number,
+  migrations: readonly Migration[] = MIGRATIONS,
+): Migration[] => migrations.slice(0, placeOf(n, migrations));
 
 const literal = (s: string): Value => {
   const t = s.trim();
@@ -84,11 +118,17 @@ function byDependencies(tables: Table[]): Table[] {
   return ordered;
 }
 
+/**
+ * The tables of the game. The record of run migrations (schema_migrations,
+ * #213) is left out: generated rows there would be migrations the database
+ * never ran, and every migration adds a row to it.
+ */
 export function describeSchema(db: Db): Table[] {
   const rows = db
     .prepare(
       `SELECT name, sql FROM sqlite_master
-       WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name`,
+       WHERE type = 'table' AND name NOT LIKE 'sqlite_%'
+         AND name <> 'schema_migrations' ORDER BY name`,
     )
     .all() as { name: string; sql: string }[];
   return byDependencies(rows.map((r) => describeTable(db, r.name, r.sql)));
@@ -218,7 +258,7 @@ export function changesExisting(
 export function upgrade(
   n: number,
   plan: Plan,
-  migrations: readonly string[] = MIGRATIONS,
+  migrations: readonly Migration[] = MIGRATIONS,
 ) {
   const db = databaseAt(n - 1, migrations);
   try {
@@ -239,10 +279,74 @@ export function upgrade(
 /** Generated data for the schema before migration n. */
 export function plansBefore(
   n: number,
-  migrations: readonly string[] = MIGRATIONS,
+  migrations: readonly Migration[] = MIGRATIONS,
 ): fc.Arbitrary<Plan> {
   const db = databaseAt(n - 1, migrations);
   const tables = describeSchema(db);
   db.close();
   return planOf(tables);
+}
+
+/** A migration file of an issue and the IDs it defines. */
+export type MigrationFile = { issue: string; ids: readonly string[] };
+
+/** Whether an import clause brings a value, not types only. */
+function importsValue(clause: ts.ImportClause | undefined): boolean {
+  if (!clause) return true; // import '../x.ts': the module is loaded.
+  if (clause.phaseModifier === ts.SyntaxKind.TypeKeyword) return false;
+  const bindings = clause.namedBindings;
+  if (clause.name || (bindings && ts.isNamespaceImport(bindings))) return true;
+  return bindings !== undefined && bindings.elements.some((e) => !e.isTypeOnly);
+}
+
+/**
+ * Whether `source` imports `specifier` statically with a value: a real
+ * import declaration (parsed by TypeScript, so comments and strings do not
+ * count), not `import type` and not only `type` specifiers.
+ */
+function importsStatically(source: string, specifier: string): boolean {
+  const file = ts.createSourceFile(
+    'upgrade.test.ts',
+    source,
+    ts.ScriptTarget.Latest,
+  );
+  return file.statements.some(
+    (s) =>
+      ts.isImportDeclaration(s) &&
+      ts.isStringLiteral(s.moduleSpecifier) &&
+      s.moduleSpecifier.text === specifier &&
+      importsValue(s.importClause),
+  );
+}
+
+/**
+ * Why the migrations of the issue files lack their upgrade test (owner,
+ * 2026-11-16, „Upgrade-Test Pflicht“): every migration of
+ * `migrations/<issue>/migrations.ts` has `upgrades/<id>.test.ts`, which
+ * imports its migration file statically. `readTest` gives the source of an
+ * upgrade test, or undefined when it does not exist. The 20 legacy
+ * migrations keep their tests as they are.
+ */
+export function upgradeTestViolations(
+  files: readonly MigrationFile[],
+  readTest: (id: string) => string | undefined,
+): string[] {
+  const violations: string[] = [];
+  for (const { issue, ids } of files)
+    for (const id of ids) {
+      const test = `src/server/db/upgrades/${id}.test.ts`;
+      const file = `src/server/db/migrations/${issue}/migrations.ts`;
+      const source = readTest(id);
+      if (source === undefined)
+        violations.push(
+          `Migration ${id} of ${file} has no upgrade test: add ${test}, which imports ${file} statically and checks the migration on real data (pnpm new-migration <issue> <short-name> --create writes such a test with a new migration).`,
+        );
+      else if (
+        !importsStatically(source, `../migrations/${issue}/migrations.ts`)
+      )
+        violations.push(
+          `${test} does not import its migration file statically: add import migrations from '../migrations/${issue}/migrations.ts'; at its top.`,
+        );
+    }
+  return violations;
 }

@@ -1,7 +1,8 @@
 #!/bin/sh
 # Upgrade test as on the server: the last release writes data, then the image
 # under test starts on the same volume. The player and the admin right must
-# survive, and a migration must leave a backup of the old schema version.
+# survive, a migration must leave a backup of the old schema version, and the
+# database must record the ID of every migration of the image as run.
 #   docker/upgrade.sh before [game-url]   with the last release running
 #   docker/upgrade.sh after  [game-url]   with the new image running
 set -eu
@@ -22,6 +23,16 @@ schema() {
 expected() {
   docker compose exec -T app node -e \
     "import('/app/src/server/db/schema.ts').then((m) => console.log(m.MIGRATIONS.length))"
+}
+# The IDs of the migrations the database recorded as run (#213), and the IDs
+# of the image under test, in order.
+ran() {
+  docker compose exec -T app node -e \
+    "const D=require('better-sqlite3');const d=new D('/data/nova.sqlite',{readonly:true});console.log(d.prepare('SELECT id FROM schema_migrations ORDER BY id').pluck().all().join(' '))"
+}
+known() {
+  docker compose exec -T app node -e \
+    "import('/app/src/server/db/schema.ts').then((m) => console.log(m.MIGRATIONS.map((x) => x.id).join(' ')))"
 }
 
 i=0
@@ -53,6 +64,12 @@ else
       ok "backup of schema version $from kept" || bad "no backup of schema version $from"
   else
     ok "same schema version, nothing to migrate"
+  fi
+  ids="$(known || true)"
+  if [ -n "$ids" ] && [ "$(ran || true)" = "$ids" ]; then
+    ok "every migration of the image recorded as run"
+  else
+    bad "recorded migrations differ from the image: $(ran || true)"
   fi
 fi
 exit $fail

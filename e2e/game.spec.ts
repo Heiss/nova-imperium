@@ -1735,16 +1735,19 @@ test.describe('playing', () => {
   }) => {
     const w = watch(page);
     const name = uniqueName('VerlH');
+    // A unique name: the test above seeds its „Vorposten“ into a home system
+    // that can be this one, and the row would match both (#252).
+    const outpost = uniqueName('Vorposten');
     await register(page, name);
     seed({
       name,
       ships: { lf: 3 },
       res: { m: 100000, c: 100000, d: 100000 },
-      colony: { p: 13, name: 'Vorposten', res: { m: 0, c: 0, d: 0 } },
+      colony: { p: 13, name: outpost, res: { m: 0, c: 0, d: 0 } },
     });
     await page.goto('/?view=galaxy');
     await page.getByText('zum Heimatsystem').click();
-    const row = page.locator('tr', { hasText: 'Vorposten' });
+    const row = page.locator('tr', { hasText: outpost });
     await expect(row.getByRole('button', { name: 'Verlegung' })).toBeVisible();
     // Against the device width: a too wide table also widens innerWidth.
     expect(
@@ -1766,7 +1769,7 @@ test.describe('playing', () => {
       timeout: 30000,
     });
     await expect(shipCount(page, 'Abfangjäger')).toHaveText('1');
-    await choosePlanet(page, 'Vorposten');
+    await choosePlanet(page, outpost);
     await expect(shipCount(page, 'Abfangjäger')).toHaveText('2');
     expect(w.problems).toEqual([]);
   });
