@@ -134,8 +134,10 @@ test.describe('accessibility (axe)', () => {
     page,
   }) => {
     const name = uniqueName('AxeMond');
+    // A unique moon name: two runs of this test can share a home system (#252).
+    const moon = uniqueName('Axe');
     await register(page, name);
-    seed({ name, moon: { name: 'Axe' }, ships: { sc: 1 } });
+    seed({ name, moon: { name: moon }, ships: { sc: 1 } });
     await page.reload();
     const found: string[] = [];
     const check = async (label: string): Promise<void> => {
@@ -143,7 +145,7 @@ test.describe('accessibility (axe)', () => {
     };
     await nav(page, 'galaxy');
     await page.getByText('zum Heimatsystem').click();
-    await page.getByRole('button', { name: 'Axe (Mond)' }).click();
+    await page.getByRole('button', { name: `${moon} (Mond)` }).click();
     await expect(page.locator('tr.moon-row')).toBeVisible();
     await check('galaxy');
     await page
@@ -155,10 +157,10 @@ test.describe('accessibility (axe)', () => {
     const selector = page.getByLabel('Aktiver Planet');
     await selector.selectOption(
       (await selector
-        .locator('option', { hasText: 'Axe (Mond) [' })
+        .locator('option', { hasText: `${moon} (Mond) [` })
         .getAttribute('value'))!,
     );
-    await expect(page.locator('#pinfo b').first()).toHaveText('Axe (Mond)');
+    await expect(page.locator('#pinfo b').first()).toHaveText(`${moon} (Mond)`);
     for (const view of ['overview', 'buildings', 'resources'] as const) {
       await nav(page, view);
       await check(view);
