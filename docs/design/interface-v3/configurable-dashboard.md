@@ -8,11 +8,13 @@ The dashboard uses a grid. A component may occupy **one, two or three columns**,
 
 The global Modern/Classic switching requirement and the integration with galaxy map #160 and siege #155 remain unchanged.
 
+**[E] Asset direction:** reuse the existing icons under `src/client/static/icons/` and planet textures under `src/client/static/planets/`. Create a new icon only when an appropriate original asset does not exist, following the established framed bronze/gold illustration style. The owner explicitly likes the Sektor-Karte and editing mode of this study; retain those directions. Production UI must reference original source files directly, not extract icons from a generated mockup.
+
 ## Image
 
 ![Configurable grid dashboard](screenshots/configurable-dashboard-grid.webp)
 
-Illustrative AI-generated UI concept based on the earlier Nova study. Original generation followed by a grid-specific image edit. Example data and wording are not game rules or a pixel-perfect implementation specification; in particular reserve-style wording for energy is illustrative, not a change from Nova's production/consumption energy balance. The image shows editing mode, one-column colonies, two-column briefing/next steps/map, one-column queues, and a full-width three-column chronicle. There is a single visual grid, not four separate dashboards that must all ship.
+Illustrative AI-generated UI concept based on the earlier Nova study. Original generation followed by a grid-specific image edit and an asset-reference correction using the actual Nova icon/planet sheet. Example data and wording are not game rules or a pixel-perfect implementation specification; energy remains Nova's production/consumption balance rather than a stored reserve. The image shows editing mode, one-column colonies, two-column briefing/next steps/map, one-column queues, and a full-width three-column chronicle. There is a single visual grid, not four separate dashboards that must all ship.
 
 ## Suggested component catalog [V]
 
