@@ -7,7 +7,7 @@ import {
   upgrade,
   type Plan,
 } from '../../test/migrations.ts';
-import { MIGRATIONS } from './schema.ts';
+import { MIGRATIONS, type Migration } from './schema.ts';
 
 // Every migration runs on generated, valid data of the version before it.
 // Pull requests use a fixed seed; the nightly run sets MIGRATION_SEED=random
@@ -23,13 +23,23 @@ const TIMEOUT = Math.max(10_000, RUNS * 50);
 // The classification is always deterministic.
 const CLASSIFY = { numRuns: 25, seed: 1 };
 
-const upgradeTest = (n: number): string =>
-  `src/server/db/upgrades/migration-${n}.test.ts`;
+// The upgrade test of a migration is named after its ID (#213), so it keeps
+// its name when another migration sorts before it; the 20 migrations from
+// before the IDs keep the name with their number.
+const upgradeTests = (n: number): string[] => {
+  const { id, number } = MIGRATIONS[n - 1]!;
+  return [
+    `src/server/db/upgrades/${id}.test.ts`,
+    ...(number === undefined
+      ? []
+      : [`src/server/db/upgrades/migration-${number}.test.ts`]),
+  ];
+};
 
 /** The property: the upgrade succeeds and leaves a consistent database. */
 function consistentUpgrade(
   n: number,
-  migrations: readonly string[],
+  migrations: readonly Migration[],
   numRuns = RUNS,
   shrink = true,
 ): void {
@@ -45,7 +55,7 @@ function consistentUpgrade(
 }
 
 /** Whether migration n changes existing tables or data on generated data. */
-function isChanging(n: number, migrations: readonly string[]): boolean {
+function isChanging(n: number, migrations: readonly Migration[]): boolean {
   return fc.sample(plansBefore(n, migrations), CLASSIFY).some((plan: Plan) => {
     const { before, after } = upgrade(n, plan, migrations);
     return changesExisting(before, after);
@@ -62,8 +72,8 @@ describe.each(MIGRATIONS.map((_, i) => i + 1))('migration %i', (n) => {
   it('has its own upgrade test when it changes existing tables or data', () => {
     if (isChanging(n, MIGRATIONS))
       expect(
-        existsSync(upgradeTest(n)),
-        `Migration ${n} changes existing tables or data; add ${upgradeTest(n)}.`,
+        upgradeTests(n).some((f) => existsSync(f)),
+        `Migration ${n} changes existing tables or data; add ${upgradeTests(n)[0]}.`,
       ).toBe(true);
   });
 });
@@ -72,10 +82,13 @@ describe.each(MIGRATIONS.map((_, i) => i + 1))('migration %i', (n) => {
 // or harmless and run after the real ones.
 describe('self-test of the migration checks', { timeout: TIMEOUT }, () => {
   const next = MIGRATIONS.length + 1;
-  const withExtra = (sql: string): string[] => [...MIGRATIONS, sql];
+  const withExtra = (sql: string): Migration[] => [
+    ...MIGRATIONS,
+    { id: '99991231T2359-self-test', sql },
+  ];
 
   /** The error behind the property failure, or null when it held. */
-  const failure = (migrations: readonly string[]): string | null => {
+  const failure = (migrations: readonly Migration[]): string | null => {
     try {
       consistentUpgrade(next, migrations, 50, false);
       return null;
