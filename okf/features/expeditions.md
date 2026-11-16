@@ -29,7 +29,7 @@ Expeditions came with v0.78 on 20 November 2007.
   Verified: ⌊√level⌋ expeditions at the same time; at most as many hours at
   position 16 as the level of the technology (owiki „Expeditionstechnik“).
 * **[E]** Position 16 (owner, 2026-11-16, Q4): classic, one position 16 per
-  system that cannot be colonized, only the target of expeditions, visible
+  system that cannot be colonized, only the target of expeditions and of a Bergung of its Trümmerfeld, visible
   in the Sternenkarte.
 * **[E]** Outcomes (owner, 2026-11-16, Q2): the classic outcomes of v0.78
   by the source, without Dunkle Materie. The old article names, besides

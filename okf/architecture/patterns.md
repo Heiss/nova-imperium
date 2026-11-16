@@ -466,7 +466,7 @@ choice of the patterns to the assistant's recommendation below
   expedition position is the position right after the last planet position
   of the universe (16 with 15 planet positions, 21 with 20), one per system,
   never a planet position, so it takes no colonizable position away; it
-  cannot be colonized, is only the target of expeditions and is visible in
+  cannot be colonized, is only the target of expeditions and of a Bergung of its Trümmerfeld and is visible in
   the Sternenkarte; battles of an expedition leave a Trümmerfeld there
   ([Expeditions](/features/expeditions.md)).
 * **[E]** Built with #53: a moon is a row of `planets` with the kind
