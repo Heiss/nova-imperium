@@ -8,6 +8,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import {
+  expectShownPlace,
   galaxyRow,
   nav,
   register,
@@ -37,7 +38,7 @@ async function chooseMoon(page: Page): Promise<void> {
   const selector = page.getByLabel('Aktiver Planet');
   const option = selector.locator('option', { hasText: 'Mond (Mond) [' });
   await selector.selectOption((await option.getAttribute('value'))!);
-  await expect(page.locator('#pinfo b').first()).toHaveText('Mond (Mond)');
+  await expectShownPlace(page, 'Mond (Mond)');
 }
 
 /** Opens the Sternenkarte at the home system. */

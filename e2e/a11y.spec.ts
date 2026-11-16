@@ -2,6 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import {
   cli,
+  expectShownPlace,
   galaxyRow,
   nav,
   register,
@@ -158,7 +159,7 @@ test.describe('accessibility (axe)', () => {
         .locator('option', { hasText: 'Axe (Mond) [' })
         .getAttribute('value'))!,
     );
-    await expect(page.locator('#pinfo b').first()).toHaveText('Axe (Mond)');
+    await expectShownPlace(page, 'Axe (Mond)');
     for (const view of ['overview', 'buildings', 'resources'] as const) {
       await nav(page, view);
       await check(view);

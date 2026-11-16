@@ -158,6 +158,25 @@ export async function loginByCode(
   await expect(page.locator('h2')).toContainText('Übersicht');
 }
 
+/**
+ * The shown place in the header with more than one own place: the selected
+ * entry of the list „Aktiver Planet“, „name [g:s:p]“. The header names it
+ * only there, not again as text (#241).
+ */
+export const shownPlace = (page: Page): Locator =>
+  page.getByLabel('Aktiver Planet').locator('option:checked');
+
+/** Waits until the header shows the own place `name` (one of several) as the active one. */
+export async function expectShownPlace(
+  page: Page,
+  name: string,
+): Promise<void> {
+  const literal = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  await expect(shownPlace(page)).toHaveText(
+    new RegExp(`^${literal} \\[\\d+:\\d+:\\d+\\]$`),
+  );
+}
+
 /** Selects an own planet by its name in the header. */
 export async function choosePlanet(page: Page, name: string): Promise<void> {
   const selector = page.getByLabel('Aktiver Planet');
@@ -165,7 +184,7 @@ export async function choosePlanet(page: Page, name: string): Promise<void> {
     .locator('option')
     .filter({ hasText: new RegExp(`^${name} \\[`) });
   await selector.selectOption((await option.getAttribute('value'))!);
-  await expect(page.locator('#pinfo b').first()).toHaveText(name);
+  await expectShownPlace(page, name);
 }
 
 /** The amount of a resource in the bar, as shown. */

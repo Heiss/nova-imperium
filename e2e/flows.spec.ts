@@ -7,6 +7,7 @@ import {
   choosePlanet,
   cli,
   emailOf,
+  expectShownPlace,
   galaxyRow,
   login,
   loginByCode,
@@ -17,6 +18,7 @@ import {
   register,
   registerByMail,
   seed,
+  shownPlace,
   stock,
   uniqueName,
   watch,
@@ -491,9 +493,9 @@ test.describe('galaxy, shipyard and options (#68)', () => {
     seed({ name, colony: { g: 2, s: 7, p: 15, name: far } });
     const farRow = page.locator('table.gal tr', { hasText: far });
     await page.goto('/?view=galaxy');
-    await expect(page.locator('#pinfo')).toContainText(/\[\d+:\d+:\d+\]/);
+    await expect(shownPlace(page)).toHaveText(/\[\d+:\d+:\d+\]$/);
     const [, g, s] = /\[(\d+):(\d+):\d+\]/.exec(
-      (await page.locator('#pinfo').textContent())!,
+      (await shownPlace(page).textContent())!,
     )!;
     const gal = page.getByLabel('Galaxie', { exact: true });
     const sys = page.getByLabel('System', { exact: true });
@@ -524,7 +526,7 @@ test.describe('galaxy, shipyard and options (#68)', () => {
     await expect(sys).toHaveValue(s!);
     const colony = page.locator('tr.me', { hasText: 'Kolonie' });
     await colony.getByRole('button', { name: 'Wechseln' }).click();
-    await expect(page.locator('#pinfo b').first()).toHaveText('Kolonie');
+    await expectShownPlace(page, 'Kolonie');
     await expect(colony).toContainText('Aktiver Planet');
     await expect(
       page

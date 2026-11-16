@@ -72,6 +72,25 @@ generated: { by: claude-code/web, at: 2026-11-10T19:00:00Z }
   stored column and no migration are needed.
 * **[V]** Variant = (galaxy + system + slot) mod 3, so neighbours differ.
 
+# Header line (issue #241)
+
+* **[E]** The owner (2026-11-16): the header showed the active planet twice,
+  as text and right next to it in the list „Aktiver Planet“; once is
+  enough.
+* **[V]** With more than one own place, the header names the active planet
+  (name and position) only in the list „Aktiver Planet“; the text goes
+  away. With one planet there is no list, so its name and position stay as
+  text, else the header would not name it at all.
+* **[V]** Order (D1, taken as recommended): the list first, then
+  „Kommandant …“ and „Logout“.
+* **[V]** Phone (D2, taken as recommended): the same rule as on the desktop.
+* **[V]** The list keeps its label „Aktiver Planet“ (accessibility).
+* Built in `src/client/views/Header.svelte`; unit tests in
+  `src/client/views/frame.test.ts`, the E2E test with axe on the header in
+  `e2e/header.spec.ts` (desktop and phone). The E2E tests read the active
+  place of several from the selected entry of the list
+  (`expectShownPlace()`, `shownPlace()` of `e2e/helpers.ts`).
+
 # Design draft
 
 `docs/design/interface-v2/` holds the mockup, the full icon set and the

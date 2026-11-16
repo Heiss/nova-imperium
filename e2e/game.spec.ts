@@ -2,6 +2,7 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 import {
   choosePlanet,
   cli,
+  expectShownPlace,
   inviteLink,
   login,
   nav,
@@ -602,12 +603,12 @@ test.describe('playing', () => {
     await expect(lab).not.toContainText('Heimatplanet');
     await lab.getByRole('button', { name: 'Jetzt bauen' }).click();
     await expect(lab).toContainText('Bauschleife belegt');
-    await expect(page.locator('#pinfo b').first()).toHaveText('Kolonie');
+    await expectShownPlace(page, 'Kolonie');
     await expect(page).toHaveURL(/\?view=shipyard$/);
     await nav(page, 'buildings');
     await expect(page.locator('.item.running')).toContainText('Scholarium');
     await choosePlanet(page, 'Heimatplanet');
-    await expect(page.locator('#pinfo b').first()).toHaveText('Heimatplanet');
+    await expectShownPlace(page, 'Heimatplanet');
     await expect(page.locator('.item.running')).toHaveCount(0);
     expect(w.problems).toEqual([]);
   });
@@ -629,7 +630,7 @@ test.describe('playing', () => {
       'Auf diesem Planeten gibt es kein Scholarium.',
     );
     await page.getByRole('button', { name: 'Zu Kolonie' }).click();
-    await expect(page.locator('#pinfo b').first()).toHaveText('Kolonie');
+    await expectShownPlace(page, 'Kolonie');
     await expect(page.locator('h2')).toHaveText('Forschung auf Kolonie');
     const energy = page.locator('.item').filter({
       has: page.locator('.nm', { hasText: /^\s*Machina-Energetik/ }),
@@ -1197,7 +1198,7 @@ test.describe('playing', () => {
       .filter({ hasText: /^Kolonie \[/ });
     await expect(colony).toHaveCount(1);
     await selector.selectOption((await colony.getAttribute('value'))!);
-    await expect(page.locator('#pinfo b').first()).toHaveText('Kolonie');
+    await expectShownPlace(page, 'Kolonie');
     await nav(page, 'overview');
     await expect(page.locator('h2')).toContainText('Kolonie');
     // A colony has fields at random in the range of its position (#51).
