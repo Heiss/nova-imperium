@@ -9,7 +9,11 @@ describe('database', () => {
     const db = openDatabase(':memory:');
     expect(db.pragma('user_version', { simple: true })).toBe(MIGRATIONS.length);
     expect(migrate(db)).toBe(0);
-    expect(migrate(db, [...MIGRATIONS, 'CREATE TABLE x (a INTEGER)'])).toBe(1);
+    const extra = {
+      id: '99991231T2359-extra',
+      sql: 'CREATE TABLE x (a INTEGER)',
+    };
+    expect(migrate(db, [...MIGRATIONS, extra])).toBe(1);
     expect(() => migrate(db)).toThrow(/newer image/);
     expect(db.pragma('foreign_keys', { simple: true })).toBe(1);
   });

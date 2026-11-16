@@ -1,13 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import { databaseAt } from '../../../test/migrations.ts';
+import {
+  databaseAt,
+  placeOf,
+  throughNumber,
+} from '../../../test/migrations.ts';
 import { migrate } from '../database.ts';
-import { MIGRATIONS } from '../schema.ts';
 
 // Migration 17 adds the push kinds a player switched off and the kind of
 // each queued push (issue #192).
 describe('upgrade to migration 17', () => {
   it('keeps queued pushes; orders and fleets get their kind, reports none', () => {
-    const db = databaseAt(16);
+    const db = databaseAt(placeOf(17) - 1);
     db.exec(`
       INSERT INTO users (id, name, salt, pw_hash, created) VALUES ('u1', 'Anna', 's', 'h', 1);
       INSERT INTO push_subscriptions VALUES ('https://push.example/1', 'u1', 'k', 'a');
@@ -21,7 +24,7 @@ describe('upgrade to migration 17', () => {
     const before = db
       .prepare('SELECT * FROM push_jobs ORDER BY rowid')
       .all() as Record<string, unknown>[];
-    expect(migrate(db, MIGRATIONS.slice(0, 17))).toBe(1);
+    expect(migrate(db, throughNumber(17))).toBe(1);
     expect(db.prepare('SELECT * FROM push_jobs ORDER BY rowid').all()).toEqual(
       before.map((row) => ({
         ...row,
@@ -33,7 +36,7 @@ describe('upgrade to migration 17', () => {
   });
 
   it('stores each kind once per player and forgets them with the account', () => {
-    const db = databaseAt(17);
+    const db = databaseAt(placeOf(17));
     db.exec(`
       INSERT INTO users (id, name, salt, pw_hash, created) VALUES ('u1', 'Anna', 's', 'h', 1);
       INSERT INTO push_off VALUES ('u1', 'news'), ('u1', 'fleet');
