@@ -299,16 +299,21 @@ test('creates a guild and restores its profile after reload', async ({
 }) => {
   const w = watch(page);
   const name = uniqueName('Gruender');
+  // A unique tag and name: the server refuses a second guild with either, so
+  // a fixed „NOVA“ failed on a repeat run (#267). „N“ and 6 random
+  // characters, in capitals: the tag takes 2 to 8 letters or digits.
+  const tag = uniqueName('N').toUpperCase();
+  const guild = `Nova Allianz ${tag}`;
   await register(page, name);
   await nav(page, 'guilds');
-  await page.getByLabel('Kürzel').fill('NOVA');
-  await page.getByLabel('Name', { exact: true }).fill('Nova Allianz');
+  await page.getByLabel('Kürzel').fill(tag);
+  await page.getByLabel('Name', { exact: true }).fill(guild);
   await page.getByLabel('Gildentext (Markdown)').fill('**Gemeinsam ins All**');
   await page.getByRole('button', { name: 'Gilde gründen' }).click();
   await expect(page).toHaveURL(/view=guilds&guild=/);
   await page.reload();
   await expect(
-    page.getByRole('heading', { name: '[NOVA] Nova Allianz' }),
+    page.getByRole('heading', { name: `[${tag}] ${guild}` }),
   ).toBeVisible();
   await expect(
     page.locator('strong', { hasText: 'Gemeinsam ins All' }),

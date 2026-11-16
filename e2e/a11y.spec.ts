@@ -306,14 +306,16 @@ test.describe('accessibility (axe)', () => {
     page,
   }) => {
     const name = uniqueName('AxeErr');
+    // A unique error text: a repeat run found two rows with a fixed one (#267).
+    const error = uniqueName('Axe-Testfehler');
     await register(page, name);
     cli('admin', name);
-    seed({ name, serverError: 'Axe-Testfehler' });
+    seed({ name, serverError: error });
     await page.reload();
     const found: string[] = [];
     await nav(page, 'admin');
     await page.getByRole('tab', { name: 'Fehler' }).click();
-    const row = page.getByRole('row', { name: /Axe-Testfehler/ });
+    const row = page.getByRole('row', { name: error });
     await row.getByText(/^Eintrag \d+$/).click();
     await expect(row.locator('pre')).toBeVisible();
     found.push(...(await violations(page)).map((v) => `errors: ${v}`));
