@@ -145,7 +145,8 @@ section 4) and the places (#119).
 
 # Out of scope
 
-* Moons and the moon chance (#53), Pathfinder. Debris of expeditions is
+* Moons and the moon chance (#53), Pathfinder.
+* **[E]** Debris of expeditions is
   decided with #93: their battles leave a Trümmerfeld at the expedition
   position (after the last planet position), and the mission Bergung may
   harvest it like any field (owner, 2026-11-16,
