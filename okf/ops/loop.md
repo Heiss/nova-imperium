@@ -147,8 +147,9 @@ tasks).
   at once) and usage; merge conflicts are no longer the reason, since
   most of them were in `okf/log.md` before #212.
 * **[E]** Two subagents always build (owner, 2026-11-16): when one
-  finishes, the loop starts the next issue with `ready` that does not
-  depend on the open pull requests at once, also while it waits on CI or a
+  finishes, the loop starts the next issue with `ready` and a `Geklärt`
+  comment that depends neither on the open pull requests nor on an issue
+  being built at once, also while it waits on CI or a
   review. Only the main agent waits, and it does not build itself; it
   finishes the open pull requests, cleans up (worktrees, labels), looks for
   new issues and pull requests, gets the owner's decisions so that the next

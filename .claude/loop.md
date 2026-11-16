@@ -57,9 +57,9 @@ interface is German.
    doesn't depend on the open ones in its own git worktree, and you review
    its diff before you open its pull request. At most two subagents build
    at the same time. Two subagents always build: when one finishes, start the
-   next issue with `ready` that does not depend on the open pull requests
-   at once, also while you wait on CI or a review. Only you, the main
-   agent, wait; you do not build yourself. Meanwhile you finish the open
+   next issue with `ready` and a `Geklärt` comment that depends neither on
+   the open pull requests nor on an issue being built, at once, also while
+   you wait on CI or a review. Only you, the main agent, wait; you do not build yourself. Meanwhile you finish the open
    pull requests, clean up (worktrees, labels), look for new issues and
    pull requests, get the owner's decisions so that the next issues become
    `ready`, and do whatever else keeps both agents building
