@@ -42,7 +42,9 @@ Expeditions came with v0.78 on 20 November 2007.
   84 % of the expeditions bring an event, and the size of a find is
   normal 89 %, large 10 %, very large 1 % (owiki „Expedition“).
 * **[E]** Debris (owner, 2026-11-16, Q5): battles of an expedition leave a
-  Trümmerfeld at position 16 (see [Trümmerfelder](/features/debris.md)).
+  Trümmerfeld at the expedition position, and the Bergungsbarke can harvest
+  it with the mission Bergung like any other field (the owner's question
+  named it; see [Trümmerfelder](/features/debris.md)).
   A deliberate deviation from classic: there these battles never left
   debris („Diese Kämpfe hinterlassen aber nie ein Trümmerfeld.“, owiki
   „Expedition“); debris on expeditions came only with version 7.0.0 in

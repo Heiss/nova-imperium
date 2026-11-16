@@ -24,8 +24,9 @@ https://owiki.de/index.php?title=Stern&oldid=78225) and „Inaktivität“
 * **[E]** Thresholds (owner, 2026-11-16, Q1): the classic values are the
   default, and the admin can change them per round (see
   [Admin](/features/admin.md#settings-per-round-from-the-classic-features-222)).
-  Verified: a star for 15 minutes after an activity, then „x min“ counting
-  up to 59 minutes, nothing after an hour (owiki „Stern“); inactive „i“
+  Values: a star for 15 minutes after an activity, then „x min“ counting
+  up to 59 minutes, nothing after an hour (owiki „Stern“, current page;
+  [U] that these held before 1.0 is not confirmed by a dated source); inactive „i“
   after 7 days and „I“ after 28 days (owiki „Inaktivität“; classic showed
   „(iI)“, the Redesign „(I)“).
 

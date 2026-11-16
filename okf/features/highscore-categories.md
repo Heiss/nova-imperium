@@ -24,7 +24,7 @@ D4, D5 and Q1. Sources: owiki.de „Statistik“
   verified): 1 point per ship, whatever it cost, and 1 point per research
   level (owiki „Statistik“, „Punkte“).
 * **[E]** Demolishing a building level lowers the points by the cost of
-  that level (owner, 2026-11-16, #202 D6; see
+  that level, at 1 point per 1,000 resources (owner, 2026-11-16, #202 D6; see
   [Demolition](/features/demolition.md)).
 
 # Proposals

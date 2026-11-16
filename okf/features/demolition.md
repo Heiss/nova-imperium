@@ -28,8 +28,9 @@ Mondzitadelle cannot be torn down ([Moons](/features/moons.md)).
 * **[E]** Not while the building is in use: not while the shipyard builds,
   the lab researches, or the fields would overflow (the Weltenschmiede,
   see [Planet fields](/features/fields.md)) (owner, 2026-11-16, D5).
-* **[E]** The highscore points drop by the cost of the demolished level
-  (owner, 2026-11-16, D6; see
+* **[E]** The highscore points drop by the cost of the demolished level,
+  converted like every cost at 1 point per 1,000 resources (owner,
+  2026-11-16, D6; see
   [Highscore categories](/features/highscore-categories.md)).
 
 # Open for the build
