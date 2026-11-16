@@ -1,12 +1,20 @@
+import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_UNIVERSE,
   inUniverse,
   UNIVERSE_SPECS,
-  validateUniverse,
+  universeErrors,
+  universeOf,
 } from './universe.ts';
 
 const used = { g: 1, s: 10, p: 12 };
+
+const spec = (key: string) => UNIVERSE_SPECS.find((s) => s.key === key)!;
+
+/** The codes of the refused settings, by key (#214). */
+const codes = (input: Record<string, unknown>, at = used) =>
+  universeErrors(input, at).map((e) => [e.spec.key, e.code]);
 
 describe('universe settings', () => {
   it('have the defaults of version 1', () => {
@@ -30,39 +38,42 @@ describe('universe settings', () => {
       expect(s.def).toBeLessThanOrEqual(s.max);
     }
   });
+  it('name each setting as the form and the messages show it', () => {
+    expect(UNIVERSE_SPECS.map((s) => [s.key, s.label])).toEqual([
+      ['speed', 'Tempo (Faktor)'],
+      ['galaxies', 'Galaxien'],
+      ['systems', 'Systeme je Galaxie'],
+      ['positions', 'Positionen je System'],
+      ['baseStore', 'Grundlager je Rohstoff'],
+      ['maxReports', 'Berichte je Spieler'],
+      ['startMetal', 'Start-Adamant'],
+      ['startCrystal', 'Start-Psikristall'],
+      ['startDeuterium', 'Start-Promethium'],
+      ['extraFields', 'Zusatzfelder pro Planet'],
+      ['endzeitMinutes', 'Flugzeit der Endzeit-Gabe (Minuten)'],
+    ]);
+  });
   it('accept valid values given as strings', () => {
     const input = Object.fromEntries(
       Object.entries(DEFAULT_UNIVERSE).map(([k, v]) => [k, String(v)]),
     );
-    expect(validateUniverse(input, used)).toEqual({
-      ok: true,
-      value: DEFAULT_UNIVERSE,
-    });
+    expect(universeErrors(input, used)).toEqual([]);
+    expect(universeOf(input)).toEqual(DEFAULT_UNIVERSE);
   });
   it('accept the bounds and reject values outside', () => {
-    expect(validateUniverse({ ...DEFAULT_UNIVERSE, speed: 1 }, used).ok).toBe(
-      true,
-    );
-    expect(validateUniverse({ ...DEFAULT_UNIVERSE, speed: 100 }, used).ok).toBe(
-      true,
-    );
-    expect(validateUniverse({ ...DEFAULT_UNIVERSE, speed: 0 }, used)).toEqual({
-      ok: false,
-      errors: ['Tempo (Faktor): ganze Zahl von 1 bis 100.'],
-    });
-    expect(validateUniverse({ ...DEFAULT_UNIVERSE, speed: 101 }, used).ok).toBe(
-      false,
-    );
-    expect(validateUniverse({ ...DEFAULT_UNIVERSE, speed: 2.5 }, used).ok).toBe(
-      false,
-    );
-    expect(validateUniverse({ ...DEFAULT_UNIVERSE, speed: 'x' }, used).ok).toBe(
-      false,
-    );
+    expect(codes({ ...DEFAULT_UNIVERSE, speed: 1 })).toEqual([]);
+    expect(codes({ ...DEFAULT_UNIVERSE, speed: 100 })).toEqual([]);
+    // The spec itself, so the server can word it (#214).
+    expect(universeErrors({ ...DEFAULT_UNIVERSE, speed: 0 }, used)).toEqual([
+      { spec: spec('speed'), code: 'range' },
+    ]);
+    for (const speed of [101, 2.5, 'x'])
+      expect(codes({ ...DEFAULT_UNIVERSE, speed })).toEqual([
+        ['speed', 'range'],
+      ]);
   });
   it('take 0 to 100 extra fields per planet (#51, D4)', () => {
-    const spec = UNIVERSE_SPECS.find((s) => s.key === 'extraFields');
-    expect(spec).toEqual({
+    expect(spec('extraFields')).toEqual({
       key: 'extraFields',
       label: 'Zusatzfelder pro Planet',
       min: 0,
@@ -70,22 +81,14 @@ describe('universe settings', () => {
       def: 0,
     });
     for (const extraFields of [0, 100])
-      expect(
-        validateUniverse({ ...DEFAULT_UNIVERSE, extraFields }, used).ok,
-      ).toBe(true);
-    expect(
-      validateUniverse({ ...DEFAULT_UNIVERSE, extraFields: 101 }, used),
-    ).toEqual({
-      ok: false,
-      errors: ['Zusatzfelder pro Planet: ganze Zahl von 0 bis 100.'],
-    });
-    expect(
-      validateUniverse({ ...DEFAULT_UNIVERSE, extraFields: -1 }, used).ok,
-    ).toBe(false);
+      expect(codes({ ...DEFAULT_UNIVERSE, extraFields })).toEqual([]);
+    for (const extraFields of [101, -1])
+      expect(codes({ ...DEFAULT_UNIVERSE, extraFields })).toEqual([
+        ['extraFields', 'range'],
+      ]);
   });
   it('take 1 to 4,320 minutes as the Endzeit flight time (#161)', () => {
-    const spec = UNIVERSE_SPECS.find((s) => s.key === 'endzeitMinutes');
-    expect(spec).toEqual({
+    expect(spec('endzeitMinutes')).toEqual({
       key: 'endzeitMinutes',
       label: 'Flugzeit der Endzeit-Gabe (Minuten)',
       min: 1,
@@ -93,44 +96,53 @@ describe('universe settings', () => {
       def: 240,
     });
     for (const endzeitMinutes of [1, 4320])
-      expect(
-        validateUniverse({ ...DEFAULT_UNIVERSE, endzeitMinutes }, used).ok,
-      ).toBe(true);
+      expect(codes({ ...DEFAULT_UNIVERSE, endzeitMinutes })).toEqual([]);
     for (const endzeitMinutes of [0, 4321, 1.5])
-      expect(
-        validateUniverse({ ...DEFAULT_UNIVERSE, endzeitMinutes }, used),
-      ).toEqual({
-        ok: false,
-        errors: [
-          'Flugzeit der Endzeit-Gabe (Minuten): ganze Zahl von 1 bis 4320.',
-        ],
-      });
+      expect(codes({ ...DEFAULT_UNIVERSE, endzeitMinutes })).toEqual([
+        ['endzeitMinutes', 'range'],
+      ]);
   });
-  it('report all errors at once', () => {
-    const r = validateUniverse({}, used);
-    expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.errors).toHaveLength(UNIVERSE_SPECS.length);
+  it('report all errors at once, in the order of the specs', () => {
+    expect(codes({})).toEqual(UNIVERSE_SPECS.map((s) => [s.key, 'range']));
   });
   it('never shrink below a used coordinate', () => {
     const big = { g: 2, s: 40, p: 14 };
     expect(
-      validateUniverse(
+      codes(
         { ...DEFAULT_UNIVERSE, galaxies: 2, systems: 40, positions: 14 },
         big,
-      ).ok,
-    ).toBe(true);
-    const r = validateUniverse(
-      { ...DEFAULT_UNIVERSE, galaxies: 1, systems: 39, positions: 13 },
-      big,
+      ),
+    ).toEqual([]);
+    expect(
+      codes(
+        { ...DEFAULT_UNIVERSE, galaxies: 1, systems: 39, positions: 13 },
+        big,
+      ),
+    ).toEqual([
+      ['galaxies', 'used'],
+      ['systems', 'used'],
+      ['positions', 'used'],
+    ]);
+    // Out of range comes first: one code per setting.
+    expect(
+      codes({ ...DEFAULT_UNIVERSE, galaxies: 0 }, { g: 2, s: 1, p: 1 }),
+    ).toEqual([['galaxies', 'range']]);
+  });
+  it('refuse exactly the values outside the range (property)', () => {
+    fc.assert(
+      fc.property(
+        fc.constantFrom(...UNIVERSE_SPECS),
+        fc.oneof(fc.integer({ min: -20, max: 10_000_100 }), fc.double()),
+        (s, value) => {
+          const ok =
+            Number.isInteger(value) && value >= s.min && value <= s.max;
+          const none = { g: 0, s: 0, p: 0 };
+          expect(codes({ ...DEFAULT_UNIVERSE, [s.key]: value }, none)).toEqual(
+            ok ? [] : [[s.key, 'range']],
+          );
+        },
+      ),
     );
-    expect(r).toEqual({
-      ok: false,
-      errors: [
-        'Galaxien: mindestens 2, dort liegen schon Planeten.',
-        'Systeme je Galaxie: mindestens 40, dort liegen schon Planeten.',
-        'Positionen je System: mindestens 14, dort liegen schon Planeten.',
-      ],
-    });
   });
 });
 

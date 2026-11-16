@@ -865,6 +865,21 @@ test.describe('admin (#68)', () => {
     // Prefilled from the setting of the form „Universum“ (owner, 2026-11-14).
     const time = page.getByLabel('Flugzeit der Gabe (Minuten)');
     await expect(time).toHaveValue('240');
+    // The dialog checks the time as the server does and sends nothing
+    // (F15, O18 (c), #214).
+    const sent: unknown[] = [];
+    page.on('request', (r) => {
+      if (r.url().endsWith('/api/action'))
+        sent.push((r.postDataJSON() as { type?: string } | null)?.type);
+    });
+    await time.fill('0');
+    await page.getByRole('button', { name: 'Ja, Endzeit einläuten' }).click();
+    await expect(lastToast(page)).toContainText(
+      'Bitte eine Flugzeit von 1 bis 4.320 Minuten (72 h) eingeben.',
+    );
+    expect(sent).not.toContain('endzeit');
+    await page.getByRole('tab', { name: 'Universum' }).click();
+    await page.getByRole('button', { name: 'Endzeit einläuten' }).click();
     await time.fill('30');
     await page.getByRole('button', { name: 'Ja, Endzeit einläuten' }).click();
     await expect(lastToast(page)).toContainText(
