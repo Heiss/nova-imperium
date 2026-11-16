@@ -555,7 +555,8 @@ jobs:
   # the newest migration of the last release (#213, owner, 2026-11-16).
   # Compares the checked-out change (the merge result of a pull request)
   # with the base of the pull request, or a push to main with the previous
-  # tip of main, and with the last release tag. Runs for every change.
+  # tip of main, and with the last release tag (the newest of all refs; on a
+  # hotfix branch its own, and no new migration, O19). Runs for every change.
   migrations:
     name: Migrations append-only
     runs-on: ubuntu-latest
@@ -570,6 +571,7 @@ jobs:
       - name: Released migrations are unchanged
         env:
           BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          BASE_REF: ${{ github.base_ref }}
           CREATED: ${{ github.event.created }}
           REF: ${{ github.ref }}
         run: |
@@ -583,9 +585,22 @@ jobs:
             echo "::error::No base commit to compare the migrations with."
             exit 1
           fi
-          RELEASE=$(git describe --tags --abbrev=0 --match '[0-9]*.[0-9]*.[0-9]*' HEAD) ||
-            { echo "::error::No release tag to compare the migrations with."; exit 1; }
-          node .github/scripts/migrations-gate.mjs "$BASE" "$RELEASE"
+          if [ "${REF#refs/heads/hotfix/}" != "$REF" ] || [ "${BASE_REF#hotfix/}" != "$BASE_REF" ]; then
+            # A hotfix brings no migration (O19): nothing beyond the
+            # release tag the hotfix branch starts from.
+            RELEASE=$(git describe --tags --abbrev=0 --match '[0-9]*.[0-9]*.[0-9]*' HEAD) ||
+              { echo "::error::A hotfix branch starts at a release tag."; exit 1; }
+            node .github/scripts/migrations-gate.mjs "$BASE" "$RELEASE" --hotfix
+          else
+            # The last release: the newest CalVer tag of all refs, sorted
+            # as versions (26.9.3 before 26.11.22), not only tags below HEAD.
+            RELEASE=$(git tag --list '[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -n 1)
+            if [ -z "$RELEASE" ]; then
+              echo "::error::No release tag to compare the migrations with."
+              exit 1
+            fi
+            node .github/scripts/migrations-gate.mjs "$BASE" "$RELEASE"
+          fi
 
   # The workflows themselves: actionlint (syntax, expressions, shell) and
   # zizmor (security, e.g. unpinned actions, persisted credentials).

@@ -85,13 +85,18 @@ migrations), Atlas (`migrate lint` against the Git base) and GitLab
   migration is corrected by a further migration, never by an edit.
 * **[E]** The CI job "Migrations append-only"
   (`.github/scripts/migrations-gate.mjs`) requires every migration of the
-  base commit and of the last release tag (`git describe --tags --abbrev=0
-  --match '[0-9]*.[0-9]*.[0-9]*' HEAD`, as the hotfix path does) to be still
-  there, with the same ID and the same SQL byte for byte; a list from before
-  #213 has no IDs and is compared by its SQL, as the first migrations in
-  order. It requires the list to be in strict order of valid IDs, and a
-  migration that is new in the change to have an ID after the newest
-  migration of the last release (#213, owner, 2026-11-16). It is part of the CI Gate
+  base commit and of the last release tag to be still there, with the same
+  ID and the same SQL byte for byte; a list from before #213 has no IDs and
+  is compared by its SQL, as the first migrations in order. The last
+  release is the newest CalVer tag of all refs (`git tag --list
+  '[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname`, version-sorted, so `26.9.3`
+  comes before `26.11.22`), not only a tag below `HEAD` (owner,
+  2026-11-16); without one the job fails. It requires the list to be in
+  strict order of valid IDs, and a migration that is new in the change to
+  have an ID after the newest migration of the last release (#213, owner,
+  2026-11-16). On a hotfix branch (a push to `hotfix/**` or a pull request
+  into one) the release is the tag the branch starts from (`git describe`),
+  and every new migration is refused (O19, below). It is part of the CI Gate
   for every change, documentation included, and runs again on every push to
   `main`, so a failed run there also stops the automatic tag.
 * **[E]** `src/server/db/schema.snapshot.sql` holds the schema after all
@@ -131,17 +136,31 @@ pull requests that each add a migration no longer renumber one of them:
   sorted by ID, so a pull request merged later with an older (but
   post-release) ID goes between the unreleased ones, and neither pull
   request changes its ID. Production always upgrades from a release, so it
-  runs the migrations in the order of their IDs. Only a database that ran
+  runs the migrations in the order of their IDs: every release comes from
+  `main`, whose migrations newer than the last release sort after it, and
+  a hotfix brings no migration (O19, below), so no release holds a
+  migration that `main` sorts before an older unreleased one. Only a database that ran
   `main` in between (staging, development) can run an unreleased migration
   after a newer one; the server runs every migration it has not recorded,
   in the order of the IDs, even when it is older than one it ran. It still
   refuses a database that ran a migration it does not know (a newer
   database) and a list out of order.
-* **[E]** This also settles open point 2 of the first pull request: a
-  hotfix migration merged back into `main` passes. Its migration is in the
-  hotfix release, and the unreleased migrations of `main` were checked when
-  they came, so the check of the release applies to new migrations only
-  (neither in the base nor in the release).
+* **[E]** O19 „Hotfix ohne Migration“ (owner, 2026-11-16): a hotfix
+  brings no migration; schema changes go only through `main` and a normal
+  release. The CI job refuses any new migration on a hotfix branch („is new
+  on a hotfix branch“). This replaces open point 2 of the first pull
+  request (a hotfix migration merged back into `main`): there is none. The
+  check of the release applies to the migrations new in a change only
+  (neither in the base nor in the release); those of the base were checked
+  when they came.
+* **[V]** The server runs the migrations in one `BEGIN IMMEDIATE`
+  transaction (CodeRabbit on #238): the write lock comes before the record
+  is read, so a second process on the same file (a restart while the old
+  container still runs) waits for the busy timeout and then finds the
+  migrations run, instead of running them again from an old snapshot.
+  `migration-ids.test.ts` holds the lock in the middle of a migration while
+  a worker thread opens the same file; with a deferred transaction the
+  worker fails with „database is locked“.
 
 The code (`src/server/db/database.ts`, `src/server/db/migration-history.ts`,
 tests `migration-ids.test.ts` and `migration-history.test.ts`):

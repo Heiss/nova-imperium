@@ -83,7 +83,9 @@ fixed ID: the UTC time you write it and a short name, for example
 and the migrations run in that order. A new ID must sort after the newest
 migration of the last release; if another pull request merged a newer
 migration first, keep your ID and put your migration before it. A
-migration on `main` is never removed or changed, and keeps its ID.
+migration on `main` is never removed or changed, and keeps its ID. A hotfix
+brings no migration; schema changes go through `main` and a normal
+release.
 Update the schema
 snapshot with `pnpm test src/server/db/schema.test.ts -u` and review
 its diff.

@@ -106,7 +106,10 @@ export function migrate(
     }
     return pending.length;
   });
-  return run();
+  // BEGIN IMMEDIATE: the write lock comes before the record is read, so a
+  // second process waits and then finds the migrations run, instead of
+  // running them from an old snapshot.
+  return run.immediate();
 }
 
 export const BACKUPS_KEPT = 3;

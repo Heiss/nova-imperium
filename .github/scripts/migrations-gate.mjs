@@ -1,8 +1,9 @@
 // Fails when a change removes or edits a migration of its base commit or of
 // the last release, changes the ID of one, lists its migrations out of the
 // order of their IDs, or adds one with an ID older than the newest migration
-// of the last release (#213, owner, 2026-11-16).
-//   node .github/scripts/migrations-gate.mjs <base commit> [<release tag>]
+// of the last release (#213, owner, 2026-11-16). With --hotfix it fails on
+// any new migration: a hotfix brings no migration (O19).
+//   node .github/scripts/migrations-gate.mjs <base commit> [<release tag>] [--hotfix]
 // The release defaults to the base. The schema file of each commit is read
 // with git and imported from a temporary folder; the comparison is
 // migrationHistoryViolation. A schema from before #213 lists the SQL of its
@@ -41,13 +42,17 @@ async function loadBase(commit) {
   }
 }
 
-const [commit, tag = commit] = process.argv.slice(2);
+const args = process.argv.slice(2);
+const hotfix = args.includes('--hotfix');
+const [commit, tag = commit] = args.filter((a) => a !== '--hotfix');
 if (!commit)
-  throw new Error('Usage: migrations-gate.mjs <base commit> [<release tag>]');
+  throw new Error(
+    'Usage: migrations-gate.mjs <base commit> [<release tag>] [--hotfix]',
+  );
 const base = await loadBase(commit);
 const release = await loadBase(tag);
 const head = await load(path.resolve(SCHEMA), false);
-const violation = migrationHistoryViolation(base, head, release);
+const violation = migrationHistoryViolation(base, head, release, hotfix);
 if (violation) {
   console.log(`::error file=${SCHEMA}::${violation}`);
   process.exit(1);

@@ -3,8 +3,9 @@
 // migration is silently skipped on existing databases. A new schema change is
 // a new entry with an ID that sorts after the newest migration of the last
 // release; unreleased migrations may be merged in any order, the list stays
-// sorted by ID (#213, owner, 2026-11-16). The CI job "Migrations
-// append-only" compares a change with its base and with the last release.
+// sorted by ID, and a hotfix brings no migration (#213, owner, 2026-11-16).
+// The CI job "Migrations append-only" compares a change with its base and
+// with the last release.
 import type { Migration } from './schema.ts';
 
 /** A migration of a base commit; one before #213 is its SQL without an ID. */
@@ -106,21 +107,40 @@ function earlyViolation(
 }
 
 /**
+ * Why `head` brings a migration the release does not hold, or null: a hotfix
+ * brings no migration; schema changes go through main and a normal release
+ * (owner, 2026-11-16, O19).
+ */
+function hotfixViolation(
+  release: readonly ReleasedMigration[],
+  head: readonly Migration[],
+): string | null {
+  const released = new Set(idsIn(release, head));
+  const added = head.find((m) => !released.has(m.id));
+  if (!added) return null;
+  return `Migration ${added.id} is new on a hotfix branch. A hotfix brings no migration; schema changes go through main and a normal release.`;
+}
+
+/**
  * Returns why `head` is not sorted by valid IDs, lost or changed a migration
- * of `base` (the base of the pull request) or of `release` (the last release
- * tag), or adds one older than the newest migration of the release; or null.
- * A migration of the base older than the release passes: it was checked when
- * it came, and a hotfix merged back into main brings such a release.
+ * of `base` (the base of the pull request) or of `release` (the last
+ * release tag), or adds one older than the newest migration of the release
+ * (on a hotfix branch: adds one at all); or null. Only the migrations new in
+ * the change are held against the release; those of the base were checked
+ * when they came.
  */
 export function migrationHistoryViolation(
   base: readonly ReleasedMigration[],
   head: readonly Migration[],
   release: readonly ReleasedMigration[] = base,
+  hotfix = false,
 ): string | null {
   return (
     orderViolation(head) ??
     keptViolation(base, head, 'the base') ??
     keptViolation(release, head, 'the last release') ??
-    earlyViolation(base, release, head)
+    (hotfix
+      ? hotfixViolation(release, head)
+      : earlyViolation(base, release, head))
   );
 }

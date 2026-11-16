@@ -207,25 +207,45 @@ describe('migration history', () => {
     expect(migrationHistoryViolation([a], [a, older], [a])).toBeNull();
   });
 
-  // Open point 2 of #213: a hotfix migration merged back into main. The
-  // release is the hotfix tag; an unreleased migration of main that is
-  // older than the hotfix migration was checked when it came and passes.
-  it('accepts a hotfix migration merged back into main', () => {
-    const hotfix = { id: '20261102T1200-hotfix', sql: 'SELECT 2;' };
-    // main has b (older than the hotfix) and c (newer) after the release a.
+  // Migrations of the base were checked when they came; only those new in
+  // the change are held against the newest migration of the release.
+  it('holds only the migrations new in the change against the release', () => {
+    const later = { id: '20261102T1200-later', sql: 'SELECT 2;' };
     expect(
-      migrationHistoryViolation([a, b, c], [a, b, hotfix, c], [a, hotfix]),
-    ).toBeNull();
-    // The same compared with the release tag of main.
-    expect(
-      migrationHistoryViolation([a, b, c], [a, b, hotfix, c], [a]),
+      migrationHistoryViolation([a, b, c], [a, b, later, c], [a, later]),
     ).toBeNull();
   });
 
+  // O19 (owner, 2026-11-16): a hotfix brings no migration; schema changes
+  // go through main and a normal release. The release is the tag the
+  // hotfix branch starts from.
+  it('rejects every new migration on a hotfix branch', () => {
+    const fix = (id: string): string =>
+      `Migration ${id} is new on a hotfix branch. A hotfix brings no migration; schema changes go through main and a normal release.`;
+    expect(migrationHistoryViolation([a, b], [a, b], [a, b], true)).toBeNull();
+    expect(migrationHistoryViolation([a, b], [a, b, c], [a, b], true)).toBe(
+      fix(c.id),
+    );
+    // Newer than the release or not, it is refused all the same.
+    expect(migrationHistoryViolation([a, b], [a, b, c], [a, b])).toBeNull();
+    expect(migrationHistoryViolation([a], [a, b, c], [a], true)).toBe(
+      fix(b.id),
+    );
+    // A release tag from before #213 lists the SQL only.
+    expect(migrationHistoryViolation([a.sql], [a], [a.sql], true)).toBeNull();
+    expect(migrationHistoryViolation([a.sql], [a, b], [a.sql], true)).toBe(
+      fix(b.id),
+    );
+    // A lost or changed migration is reported as without --hotfix.
+    expect(migrationHistoryViolation([a, b], [a], [a, b], true)).toBe(
+      'Migrations were removed: the base has 2, this change has 1.',
+    );
+  });
+
   it('uses the IDs of a base with IDs, not their places', () => {
-    const hotfix = { id: '20261104T0000-hotfix', sql: 'SELECT 2;' };
+    const later = { id: '20261104T0000-later', sql: 'SELECT 2;' };
     expect(
-      migrationHistoryViolation([b, c], [a, b, c, hotfix], [a, hotfix]),
+      migrationHistoryViolation([b, c], [a, b, c, later], [a, later]),
     ).toBeNull();
     expect(migrationHistoryViolation([], [a, b], [a, b])).toBeNull();
   });

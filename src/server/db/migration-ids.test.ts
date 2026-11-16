@@ -9,6 +9,7 @@ import {
   rmSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
+import { Worker } from 'node:worker_threads';
 import path from 'node:path';
 import Database from 'better-sqlite3';
 import fc from 'fast-check';
@@ -40,8 +41,8 @@ beforeEach(() => {
 afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
 /**
- * A database as the server before #213 wrote it: the SQL of the first n
- * migrations, each followed by its user_version, and no record of IDs.
+ * A database as the server before #213 wrote it: the SQL of the migrations
+ * numbered 1 to n, each followed by its user_version, and no record of IDs.
  */
 function legacyDatabase(
   target: string,
@@ -50,10 +51,13 @@ function legacyDatabase(
 ): Db {
   const db = new Database(target);
   db.pragma('foreign_keys = ON');
+  const numbered = migrations
+    .filter((m) => m.number !== undefined && m.number <= n)
+    .toSorted((x, y) => x.number! - y.number!);
   db.transaction(() => {
-    for (let v = 0; v < n; v++) {
-      db.exec(migrations[v]!.sql);
-      db.pragma(`user_version = ${v + 1}`);
+    for (const m of numbered) {
+      db.exec(m.sql);
+      db.pragma(`user_version = ${m.number}`);
     }
   })();
   return db;
@@ -131,7 +135,7 @@ describe('the released migrations', () => {
 describe('upgrade tests', () => {
   it('name a migration by its ID, not by its place', () => {
     expect(migrationsThrough('20261107T1556-passkeys')).toEqual(
-      MIGRATIONS.slice(0, 8),
+      throughNumber(8),
     );
     expect(migrationsThrough(b.id, [a, b, c])).toEqual([a, b]);
     expect(migrationsThrough(a.id, [a, b, c])).toEqual([a]);
@@ -306,7 +310,12 @@ describe('a database from before #213', () => {
   // it, with generated data of every table: the new server only starts the
   // record, keeps every row and leaves a backup of version 20.
   it('of version 20 with data keeps everything and records the 20 IDs', () => {
-    for (const plan of fc.sample(plansBefore(21), { numRuns: 5, seed: 213 })) {
+    const through20 = throughNumber(20);
+    const after20 = placeOf(20) + 1;
+    for (const plan of fc.sample(plansBefore(after20), {
+      numRuns: 5,
+      seed: 213,
+    })) {
       rmSync(dir, { recursive: true, force: true });
       dir = mkdtempSync(path.join(tmpdir(), 'nova-ids-'));
       file = path.join(dir, 'nova.sqlite');
@@ -315,7 +324,7 @@ describe('a database from before #213', () => {
       const before = snapshot(old);
       old.close();
 
-      const db = openDatabase(file, MIGRATIONS.slice(0, 20));
+      const db = openDatabase(file, through20);
       const after = snapshot(db);
       expect(after.data).toEqual(before.data);
       for (const [name, sql] of before.schema)
@@ -323,7 +332,7 @@ describe('a database from before #213', () => {
       expect([...after.schema.keys()].toSorted()).toEqual(
         [...before.schema.keys(), 'schema_migrations'].toSorted(),
       );
-      expect(recorded(db)).toEqual(ids(MIGRATIONS.slice(0, 20)));
+      expect(recorded(db)).toEqual(ids(through20));
       expect(version(db)).toBe(20);
       expect(db.pragma('integrity_check', { simple: true })).toBe('ok');
       expect(db.pragma('foreign_key_check')).toEqual([]);
@@ -336,6 +345,69 @@ describe('a database from before #213', () => {
       expect(hasRecord(copy)).toBe(false);
       copy.close();
     }
+  });
+});
+
+// Two servers start on the same database at once (a restart while the old
+// container still runs): the second waits for the write lock of the first
+// and then finds the migrations run (BEGIN IMMEDIATE, CodeRabbit on #238).
+describe('two connections migrating at once', () => {
+  // A worker thread is the second connection: it opens the database while
+  // this thread holds the write lock in the middle of the same migration.
+  const WORKER = `
+    const { parentPort, workerData } = require('node:worker_threads');
+    import(workerData.module).then(({ openDatabase }) => {
+      parentPort.postMessage({ ready: true });
+      try {
+        const db = openDatabase(workerData.file, workerData.migrations);
+        const ids = db.prepare('SELECT id FROM schema_migrations ORDER BY id').pluck().all();
+        const rows = db.prepare('SELECT count(*) FROM t').pluck().get();
+        const version = db.pragma('user_version', { simple: true });
+        db.close();
+        parentPort.postMessage({ ids, rows, version });
+      } catch (e) {
+        parentPort.postMessage({ error: e.message });
+      }
+    });
+  `;
+
+  it('lets the second wait and run nothing a second time', async () => {
+    legacyDatabase(file, 1, [a1]).close();
+    const list = [a1, insert];
+    const first = new Database(file);
+    first.pragma('journal_mode = WAL');
+    first.pragma('foreign_keys = ON');
+    first.exec('BEGIN IMMEDIATE');
+    const worker = new Worker(WORKER, {
+      eval: true,
+      workerData: {
+        module: new URL('./database.ts', import.meta.url).href,
+        file,
+        migrations: list,
+      },
+    });
+    const messages: Record<string, unknown>[] = [];
+    const next = (): Promise<Record<string, unknown>> =>
+      new Promise((resolve, reject) => {
+        worker.once('message', resolve);
+        worker.once('error', reject);
+      });
+    try {
+      messages.push(await next());
+      const result = next();
+      // The second connection is now waiting for the lock.
+      await new Promise((r) => setTimeout(r, 300));
+      expect(migrate(first, list)).toBe(1);
+      first.exec('COMMIT');
+      messages.push(await result);
+    } finally {
+      first.close();
+      await worker.terminate();
+    }
+    expect(messages).toEqual([
+      { ready: true },
+      { ids: [a.id, insert.id], rows: 2, version: 2 },
+    ]);
   });
 });
 
