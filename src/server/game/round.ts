@@ -1,4 +1,5 @@
 import type { RoundRules } from '../../core/achievements.ts';
+import { type RoundError, roundChoice, roundError } from '../../core/round.ts';
 import { type Ctx, fail } from './context.ts';
 
 export function roundRules(ctx: Ctx): RoundRules {
@@ -37,29 +38,11 @@ export function requireGuilds(ctx: Ctx): void {
   if (!guildsOn(ctx)) fail(GUILDS_OFF);
 }
 
-function rewardRules(
-  current: RoundRules,
-  options: unknown,
-): Pick<RoundRules, 'achievements' | 'daily'> {
-  const selected =
-    options === undefined ? current : (options as Partial<RoundRules> | null);
-  if (
-    typeof selected?.achievements !== 'boolean' ||
-    typeof selected.daily !== 'boolean'
-  )
-    return fail(
-      'Bitte beide Belohnungseinstellungen für die neue Runde auswählen.',
-    );
-  return { achievements: selected.achievements, daily: selected.daily };
-}
-
-/** The guild switch of the new round (#191); without a choice the current one. */
-function guildRule(current: RoundRules, guilds: unknown): boolean {
-  const selected = guilds === undefined ? current.guilds : guilds;
-  if (typeof selected !== 'boolean')
-    return fail('Bitte auswählen, ob Gilden in der neuen Runde an sind.');
-  return selected;
-}
+/** The refusals of `roundError` (#214). */
+const ROUND_ERROR: Readonly<Record<RoundError, string>> = {
+  rewards: 'Bitte beide Belohnungseinstellungen für die neue Runde auswählen.',
+  guilds: 'Bitte auswählen, ob Gilden in der neuen Runde an sind.',
+};
 
 export function startRoundRules(
   ctx: Ctx,
@@ -67,10 +50,11 @@ export function startRoundRules(
   guilds?: unknown,
 ): RoundRules {
   const current = roundRules(ctx);
+  const error = roundError(current, options, guilds);
+  if (error) fail(ROUND_ERROR[error]);
   const next = {
     number: current.number + 1,
-    ...rewardRules(current, options),
-    guilds: guildRule(current, guilds),
+    ...roundChoice(current, options, guilds),
   };
   ctx.admin.putSettings([
     ['round', next.number],

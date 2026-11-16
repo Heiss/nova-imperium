@@ -73,9 +73,9 @@ with no rule to move (`cancelBuild`, `cancelResearch`, `read`, `delrep`,
 | `delall` | – | none | – | – | player |
 | `send` | core `missionRules`, `sendError` (codes, messages `SEND_ERROR` in `server/game/fleet-actions.ts`), `fleetSlots`, `capacity`, `fuelFor`, `canFly`; inline the unknown mission, a ship that cannot fly, no ships, the slot count (SQL `gift = 0`), cargo and fuel | partly | partly, not `sendError`: slots (`client/views/fleet.ts`), fuel and load marked red (`fleetPreview`, game.ts), hints at the target (`targetInfo`, main.ts), no probes (`gspy`, main.ts) | no (F11, F12, F13) | fleet |
 | `recall` | inline: own, on the way out, not yet arrived, no gift (`recall`) | no | partly: own, out, no gift (`fleetRow`, `client/logic/overview.ts`); not the arrival | – (F14) | fleet |
-| `settings` | core `validateUniverse` (`core/universe.ts`), which returns German messages, not codes | partly | no; the inputs show the range of each setting (`client/views/misc.ts`) | – | admin |
-| `reset` | inline: both reward choices and the guild switch are booleans (`rewardRules`, `guildRule`, `server/game/round.ts`) | no | – (checkboxes send booleans) | – | admin |
-| `endzeit` | inline: once per round, whole minutes within `GIFT_MINUTES` of `core/endzeit.ts` (`flightMinutes`, `server/game/endzeit.ts`) | no | partly: no button once done (`endzeitBox`, misc.ts); the minutes carry `min` and `max` in no form | no (F15) | admin |
+| `settings` | core `universeErrors` (codes `range` and `used` per setting, in the order of `UNIVERSE_SPECS`) and `universeOf` (`core/universe.ts`); the server words each code (`SETTINGS_ERROR`, `server/game/admin.ts`), every refused setting at once (admin pull request of #214) | yes | no; the inputs show the range of each setting (`client/views/misc.ts`) | – | admin |
+| `reset` | core `roundError` (codes `rewards`, then `guilds`) and `roundChoice` (`core/round.ts`); the server words them (`ROUND_ERROR`, `server/game/round.ts`) (admin pull request of #214) | yes | – (checkboxes send booleans) | – | admin |
+| `endzeit` | core `endzeitError` (codes `done`, then `minutes`: whole minutes within `GIFT_MINUTES`, `core/endzeit.ts`); the server words them (`ENDZEIT_ERROR`, `server/game/endzeit.ts`) (admin pull request of #214) | yes | yes, with core `endzeitError`: no button once done (`endzeitBox`, misc.ts), the dialog sends nothing with a wrong time (`endzeitNote`, `client/logic/endzeit.ts`) | yes (F15 unified) | admin |
 | `claimAchievement` | inline: achievements on, a known id, a home planet, progress at the target; once by SQL | no | yes, written again: `statusOf` (`client/views/achievements.ts`) | – | rewards |
 | `claimDailyReward` | inline: daily rewards on, a home planet; once a day by SQL | no | the flag `claimed` of the state | – | rewards |
 | `createGuild` | inline: no guild or application, `profile()` (tag `[A-Z0-9]{2,8}` after upper case, name 3 to 32, text at most 6,000, tag or name taken; `server/game/guilds.ts`) | no | partly: the form only without a guild, `minlength` and `maxlength` (`client/views/guilds.ts`); not the characters of the tag | no (F16) | guild |
@@ -166,6 +166,17 @@ different text for the same check, „rule“ a different check.
   `min` and `max` (`views/misc.ts:137`) in no form, so the browser does
   not check them, and the server refuses with „Bitte eine Flugzeit von 1
   bis 4.320 Minuten (72 h) eingeben.“ (`endzeit.ts:55`).
+  **[E]** Unified by the admin pull request of #214 (O18 (c), owner
+  2026-11-15): one check, `endzeitError` in `core/endzeit.ts`, for the
+  server and the dialog, which sends nothing with a wrong time and shows
+  the server's text; the server's `ENDZEIT_ERROR` and the browser's
+  `ENDZEIT_NOTE` (`client/logic/endzeit.ts`) hold the same texts, kept
+  equal by `src/test/endzeit-texts.test.ts`. **[V]** Taken as recommended:
+  „done“ is the text of the box, „In dieser Runde wurde die Endzeit schon
+  eingeläutet.“, the one the admin sees every time; the server's word
+  order came only with a second trigger from an old page or the API, and
+  the Endzeit is not yet released (`changes/endzeit.md`), so no player saw
+  either in a release.
 * **F16** (message and rule) Guild profile: `views/guilds.ts:35-38` checks
   the lengths before trimming with `minlength` and `maxlength`, so the
   browser shows its own message [U: in the language of the browser, not
@@ -192,8 +203,9 @@ Notes, no disagreement:
 * `actions.ts:253` „Diesen Schutzdom gibt es nur einmal pro Planet.“ is the
   message of every unit with the component `limit`; only the two shield
   domes have one (`src/features/ssd`, `src/features/lsd`).
-* `validateUniverse` returns German messages with the range of each
-  setting, not codes.
+* `validateUniverse` returned German messages with the range of each
+  setting, not codes; since the admin pull request of #214 the core check
+  `universeErrors` returns codes and the server words them, unchanged.
 
 # Open pull requests
 

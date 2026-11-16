@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { settle } from '../../core/settle.ts';
-import { DEFAULT_UNIVERSE } from '../../core/universe.ts';
+import { DEFAULT_UNIVERSE, UNIVERSE_SPECS } from '../../core/universe.ts';
 import { addPlanet, addUser, testCtx } from '../test-helpers.ts';
 import { reset, saveSettings } from './admin.ts';
 import { runAction } from './dispatch.ts';
@@ -116,6 +116,60 @@ describe('admin', () => {
       }),
     ).toThrow('Zusatzfelder pro Planet: ganze Zahl von 0 bis 100.');
     expect(ctx.admin.universe().extraFields).toBe(30);
+  });
+});
+
+// The messages of `universeErrors` (#214): the server words each code as the
+// check in src/core did before, every refused setting at once.
+describe('the messages of refused settings (#214)', () => {
+  /** The message of the settings, or null when they are saved. */
+  function refusal(
+    settings: Record<string, unknown>,
+    at: { g: number; s: number; p: number } = { g: 1, s: 10, p: 12 },
+  ): string | null {
+    const ctx = testCtx();
+    const u = addUser(ctx, 'Anna', { admin: true });
+    addPlanet(ctx, u.id, at);
+    try {
+      saveSettings(ctx, u, { settings });
+      return null;
+    } catch (e) {
+      expect(ctx.admin.universe()).toEqual(DEFAULT_UNIVERSE);
+      return (e as Error).message;
+    }
+  }
+
+  it('names the range of a value outside it', () => {
+    expect(refusal({ ...DEFAULT_UNIVERSE, speed: 0 })).toBe(
+      'Tempo (Faktor): ganze Zahl von 1 bis 100.',
+    );
+    expect(refusal({ ...DEFAULT_UNIVERSE, extraFields: 101 })).toBe(
+      'Zusatzfelder pro Planet: ganze Zahl von 0 bis 100.',
+    );
+    for (const endzeitMinutes of [0, 4321, 1.5])
+      expect(refusal({ ...DEFAULT_UNIVERSE, endzeitMinutes })).toBe(
+        'Flugzeit der Endzeit-Gabe (Minuten): ganze Zahl von 1 bis 4320.',
+      );
+  });
+
+  it('names the coordinate a size may not shrink below', () => {
+    expect(
+      refusal(
+        { ...DEFAULT_UNIVERSE, galaxies: 1, systems: 39, positions: 13 },
+        { g: 2, s: 40, p: 14 },
+      ),
+    ).toBe(
+      'Galaxien: mindestens 2, dort liegen schon Planeten. Systeme je Galaxie: mindestens 40, dort liegen schon Planeten. Positionen je System: mindestens 14, dort liegen schon Planeten.',
+    );
+  });
+
+  it('says every refused setting at once, in the order of the form', () => {
+    expect(refusal({})).toBe(
+      UNIVERSE_SPECS.map(
+        (s) => `${s.label}: ganze Zahl von ${s.min} bis ${s.max}.`,
+      ).join(' '),
+    );
+    expect(refusal({ ...DEFAULT_UNIVERSE })).toBeNull();
   });
 });
 
