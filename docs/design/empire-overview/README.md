@@ -1,10 +1,10 @@
-# Idea studies
+# Empire overview – design study
 
-Design studies for ideas of the owner, not decided. Everything is a proposal
+Design study for an idea of the owner (#243), not decided. Everything is a proposal
 **[V]**: names, texts, ratings and numbers are examples, not game values.
 Interface v2 (`src/client/static/style.css`) plus `mock.css`.
 
-The empire overview (#243):
+Files:
 
 - `empire-overview-levels.html` / `.png` – the view on each research level side by side: names and links, then resources, then build queues, then (proposal) combined build processes
 - `empire-overview-full.html` / `.png` – the full view on the highest level for a player with 12 worlds, desktop, with the new menu entry
