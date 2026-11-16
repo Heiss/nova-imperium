@@ -501,6 +501,13 @@ choice of the patterns to the assistant's recommendation below
   findings where browser and server disagree. **[V]** The follow-up pull
   requests, one per group (economy, fleet, rewards, admin, player, guild),
   are planned there.
+* **[E]** Economy group built (#214, 2026-11-16): `buildErrors`,
+  `researchErrors`, `orderErrors` and `isProducer` in
+  `src/core/economy-checks.ts` return every code that applies; the server
+  refuses with the message of the first, the lists of the browser show the
+  note of the first in their order. Build and research check in one order
+  on both sides, and an order of 0 gets the browser's text on the server
+  too (O18 (c): F8, F9, F10).
 
 ## 8. Store: a repository per aggregate
 

@@ -1,20 +1,25 @@
 // The actions of a player on their planet. Each one runs inside a transaction
 // (see dispatch.ts) and saves what it changes.
-import { BUILD, buildable, PRODUCERS, RES, UNIT } from '../../core/catalog.ts';
+import { BUILD, RES, UNIT } from '../../core/catalog.ts';
 import {
-  afford,
   buildTime,
   lvlCost,
   maxAfford,
   pay,
   refund,
-  reqMissing,
   researchTime,
   unitTime,
 } from '../../core/economy.ts';
+import {
+  type BuildError,
+  buildErrors,
+  isProducer,
+  type OrderError,
+  orderErrors,
+  type ResearchError,
+  researchErrors,
+} from '../../core/economy-checks.ts';
 import { type ExplainMode, isExplainMode } from '../../core/explain.ts';
-import { fieldsFull } from '../../core/fields.ts';
-import { labUpgrading, waitsForLab } from '../../core/lab.ts';
 import {
   energyNeed,
   energyShort,
@@ -24,12 +29,7 @@ import {
 } from '../../core/research.ts';
 import { feelsResearch, settle, settleR } from '../../core/settle.ts';
 import { text } from '../../core/text.ts';
-import {
-  unitRoom,
-  waitsForYard,
-  YARD_LOCK,
-  yardLockedBy,
-} from '../../core/yard.ts';
+import { YARD_LOCK, yardLockedBy } from '../../core/yard.ts';
 import type { Cost, Planet, Queue, ResearchState } from '../../core/types.ts';
 import type { AuditEntry } from '../audit.ts';
 import {
@@ -65,8 +65,6 @@ export const answerOf = (
   result: string | null | Answer,
 ): { msg: string | null; data?: Data } =>
   result !== null && typeof result === 'object' ? result : { msg: result };
-
-const MAX_SHIPYARD_ORDERS = 20;
 
 /** The selected planet, or the home planet for callers without a selection. */
 export function mine(ctx: Ctx, u: User, id?: unknown): Planet {
@@ -106,23 +104,25 @@ function setResearch(ctx: Ctx, u: User, r: ResearchState): void {
   ctx.players.save(u);
 }
 
+const LOCKED = 'Das Wissen ist noch verschlossen.';
+const POOR = 'Der Zehnte reicht nicht aus.';
+
 /**
  * The energy production a level needs on the planet where it starts: the
  * Gravitonforschung (#49) and the Weltenschmiede (#51). Checked, not used up.
  */
-function checkEnergy(
+function failEnergy(
   ctx: Ctx,
   p: Planet,
   r: ResearchState,
   k: string,
   def: { energy?: { base: number; f: number } },
   level: number,
-): void {
+): never {
   const short = energyShort(def, level, p, universe(ctx), r.research);
-  if (short > 0)
-    fail(
-      `Zu wenig Energie: ${text(k)!.n} braucht eine Energieproduktion von ${fmt(energyNeed(def, level))}, es fehlen ${fmt(short)}.`,
-    );
+  return fail(
+    `Zu wenig Energie: ${text(k)!.n} braucht eine Energieproduktion von ${fmt(energyNeed(def, level))}, es fehlen ${fmt(short)}.`,
+  );
 }
 
 /** The Mondzitadelle stands on moons only, the mines and others on planets only (#53). */
@@ -131,16 +131,25 @@ const PLACE_ERROR = {
   moon: 'Auf einem Mond nicht baubar.',
 } as const;
 
-function checkBuild(ctx: Ctx, p: Planet, r: ResearchState, k: string): void {
-  if (!buildable(k, p.kind)) fail(PLACE_ERROR[p.kind]);
-  if (p.bq) fail('Es wird bereits gebaut.');
-  if (reqMissing(BUILD[k]!, p, r).length)
-    fail('Das Wissen ist noch verschlossen.');
-  if (waitsForYard(p, k)) fail('Die Schiffsschmiede arbeitet gerade.');
-  if (waitsForLab(r, k)) fail('Das Scholarium forscht gerade.');
+/** The messages of the codes of `buildErrors` but the place and the energy. */
+const BUILD_ERROR: Readonly<
+  Record<Exclude<BuildError, 'place' | 'noEnergy'>, string>
+> = {
+  locked: LOCKED,
   // Every building level takes a field (#51).
-  if (fieldsFull(p, universe(ctx))) fail('Keine freien Felder.');
-  checkEnergy(ctx, p, r, k, BUILD[k]!, (p.b[k] ?? 0) + 1);
+  full: 'Keine freien Felder.',
+  busy: 'Es wird bereits gebaut.',
+  yardBusy: 'Die Schiffsschmiede arbeitet gerade.',
+  labBusy: 'Das Scholarium forscht gerade.',
+  cost: POOR,
+};
+
+function checkBuild(ctx: Ctx, p: Planet, r: ResearchState, k: string): void {
+  const error = buildErrors(p, r, k, universe(ctx))[0];
+  if (error === 'place') return fail(PLACE_ERROR[p.kind]);
+  if (error === 'noEnergy')
+    failEnergy(ctx, p, r, k, BUILD[k]!, (p.b[k] ?? 0) + 1);
+  if (error) fail(BUILD_ERROR[error]);
 }
 
 /**
@@ -156,7 +165,6 @@ function payNextLevel(
 ): Queue {
   const lvl = next.have + 1;
   const cost = lvlCost(next.def, lvl);
-  if (!afford(p, cost)) fail('Der Zehnte reicht nicht aus.');
   pay(p, cost);
   const start = ctx.now();
   const q = { key: next.key, lvl, start, end: start + time(cost), cost };
@@ -195,13 +203,23 @@ export const cancelBuild: Action = (ctx, u, d) => {
   return null;
 };
 
-const checkResearch = (p: Planet, r: ResearchState, k: string): void => {
-  if (!((p.b.lab ?? 0) > 0)) fail('Du brauchst ein Scholarium.');
-  if (r.rq) fail('Es wird bereits geforscht.');
-  if (labUpgrading(p)) fail('Das Scholarium wird ausgebaut.');
-  if (reqMissing(RES[k]!, p, r).length)
-    fail('Das Wissen ist noch verschlossen.');
+/** The messages of the codes of `researchErrors` but the energy. */
+const RESEARCH_ERROR: Readonly<
+  Record<Exclude<ResearchError, 'noEnergy'>, string>
+> = {
+  noLab: 'Du brauchst ein Scholarium.',
+  locked: LOCKED,
+  busy: 'Es wird bereits geforscht.',
+  labUpgrading: 'Das Scholarium wird ausgebaut.',
+  cost: POOR,
 };
+
+function checkResearch(ctx: Ctx, p: Planet, r: ResearchState, k: string): void {
+  const error = researchErrors(p, r, k, universe(ctx))[0];
+  if (error === 'noEnergy')
+    failEnergy(ctx, p, r, k, RES[k]!, (r.research[k] ?? 0) + 1);
+  if (error) fail(RESEARCH_ERROR[error]);
+}
 
 /** The labs of all own planets, moved to now, for the research network (#49). */
 export const ownLabs = (ctx: Ctx, uid: string): LabSite[] =>
@@ -216,8 +234,7 @@ export const research: Action = (ctx, u, d, event) => {
   const p = mine(ctx, u, d.planet);
   const r = researchOf(ctx, u);
   const have = r.research[k] ?? 0;
-  checkResearch(p, r, k);
-  checkEnergy(ctx, p, r, k, def, have + 1);
+  checkResearch(ctx, p, r, k);
   const lab = networkLab(
     k,
     labSite(p),
@@ -251,27 +268,33 @@ export const cancelResearch: Action = (ctx, u) => {
   return null;
 };
 
-function requireYard(p: Planet): void {
-  if (!((p.b.yard ?? 0) > 0))
-    fail('Du brauchst eine Orbitale Schiffsschmiede.');
-  const lock = yardLockedBy(p);
-  if (lock) fail(`Die ${YARD_LOCK[lock]} wird ausgebaut.`);
+/** The messages of the codes of `orderErrors` but the lock of the shipyard. */
+const ORDER_ERROR: Readonly<Record<Exclude<OrderError, 'yardLocked'>, string>> =
+  {
+    noYard: 'Du brauchst eine Orbitale Schiffsschmiede.',
+    locked: LOCKED,
+    // F10, as the browser says it (owner, 2026-11-15, O18 (c)).
+    count: 'Bitte eine Anzahl eingeben.',
+    // The component `limit`: only the two shield domes have one (#50).
+    limit: 'Diesen Schutzdom gibt es nur einmal pro Planet.',
+    cost: POOR,
+    queueFull: 'Die Bauliste der Schiffsschmiede ist voll.',
+  };
+
+function checkOrder(p: Planet, r: ResearchState, k: string, n: number): void {
+  const error = orderErrors(p, r, k, n)[0];
+  if (error === 'yardLocked')
+    return fail(`Die ${YARD_LOCK[yardLockedBy(p)!]} wird ausgebaut.`);
+  if (error) fail(ORDER_ERROR[error]);
 }
 
 export const order: Action = (ctx, u, d, event) => {
   const k = String(d.key);
   const def = UNIT[k] ?? fail('Unbekannte Einheit.');
   const p = mine(ctx, u, d.planet);
-  requireYard(p);
-  if (reqMissing(def, p, researchOf(ctx, u)).length)
-    fail('Das Wissen ist noch verschlossen.');
   const want = int(d.n, 0, 1e9);
-  if (want > unitRoom(p, k))
-    fail('Diesen Schutzdom gibt es nur einmal pro Planet.');
+  checkOrder(p, researchOf(ctx, u), k, want);
   const n = Math.min(want, maxAfford(p, def.cost));
-  if (n <= 0) fail('Der Zehnte reicht nicht aus.');
-  if (p.sq.length >= MAX_SHIPYARD_ORDERS)
-    fail('Die Bauliste der Schiffsschmiede ist voll.');
   pay(p, def.cost, n);
   if (!p.sq.length) p.sqT = ctx.now();
   p.sq.push({ key: k, n, unit: unitTime(def, p, universe(ctx)) });
@@ -283,7 +306,7 @@ export const order: Action = (ctx, u, d, event) => {
 
 export const pct: Action = (ctx, u, d) => {
   const k = String(d.key);
-  if (!(PRODUCERS as readonly string[]).includes(k)) fail('Ungültig.');
+  if (!isProducer(k)) fail('Ungültig.');
   const p = mine(ctx, u, d.planet);
   p.pct[k] = Math.round(int(d.v, 0, 100) / 10) * 10;
   ctx.planets.save(p);
