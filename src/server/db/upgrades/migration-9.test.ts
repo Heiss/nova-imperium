@@ -1,14 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import { databaseAt } from '../../../test/migrations.ts';
+import {
+  databaseAt,
+  placeOf,
+  throughNumber,
+} from '../../../test/migrations.ts';
 import { migrate } from '../database.ts';
-import { MIGRATIONS } from '../schema.ts';
 import { Store } from '../store.ts';
 
 // Migration 9 rebuilds fleets and fleet_ships for colonization and keys
 // queued building and shipyard pushes by the home planet.
 describe('upgrade to migration 9', () => {
   it('preserves ships of an in-flight fleet when adding colonization', () => {
-    const db = databaseAt(8);
+    const db = databaseAt(placeOf(9) - 1);
     const store = new Store(db);
     // Written with the columns of version 8; the store writes the newest
     // schema, which has more fleet columns since migration 13.
@@ -37,7 +40,7 @@ describe('upgrade to migration 9', () => {
       state: 'out' as const,
       recalled: false,
     };
-    expect(migrate(db, MIGRATIONS.slice(0, 9))).toBe(1);
+    expect(migrate(db, throughNumber(9))).toBe(1);
     expect(store.fleet(fleet.id)).toEqual(fleet);
     expect(db.pragma('foreign_key_check')).toEqual([]);
     store.deleteFleet(fleet.id);
@@ -46,7 +49,7 @@ describe('upgrade to migration 9', () => {
   });
 
   it('keys building and shipyard pushes by the oldest planet only', () => {
-    const db = databaseAt(8);
+    const db = databaseAt(placeOf(9) - 1);
     db.exec(`
       INSERT INTO users (id, name, salt, pw_hash, created) VALUES
         ('u1', 'Anna', 's', 'h', 1), ('u2', 'Bert', 's', 'h', 1);
@@ -61,7 +64,7 @@ describe('upgrade to migration 9', () => {
         ('e1', 'fleet', 'f1', 1, 1),
         ('e2', 'buildings', 'mine', 1, 1);
     `);
-    expect(migrate(db, MIGRATIONS.slice(0, 9))).toBe(1);
+    expect(migrate(db, throughNumber(9))).toBe(1);
     const keys = db
       .prepare(
         'SELECT endpoint, kind, event_key FROM push_jobs ORDER BY endpoint, kind',

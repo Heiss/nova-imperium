@@ -1,13 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import { databaseAt } from '../../../test/migrations.ts';
+import {
+  databaseAt,
+  placeOf,
+  throughNumber,
+} from '../../../test/migrations.ts';
 import { migrate } from '../database.ts';
-import { MIGRATIONS } from '../schema.ts';
 import { Store } from '../store.ts';
 
 // Migration 11 adds the planet where the running research started (#49).
 describe('upgrade to migration 11', () => {
   it('keeps running research; it has no planet and counts as the home planet', () => {
-    const db = databaseAt(10);
+    const db = databaseAt(placeOf(11) - 1);
     db.exec(`
       INSERT INTO users (id, name, salt, pw_hash, created,
         rq_key, rq_lvl, rq_start, rq_end, rq_cost_m, rq_cost_c, rq_cost_d)
@@ -15,7 +18,7 @@ describe('upgrade to migration 11', () => {
         ('u2', 'Bert', 's', 'h', 1, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
       INSERT INTO user_research VALUES ('u1', 'energy', 1);
     `);
-    expect(migrate(db, MIGRATIONS.slice(0, 11))).toBe(1);
+    expect(migrate(db, throughNumber(11))).toBe(1);
     const store = new Store(db);
     expect(store.user('u1')).toMatchObject({
       research: { energy: 1 },

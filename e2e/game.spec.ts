@@ -2,6 +2,7 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 import {
   choosePlanet,
   cli,
+  expectShownPlace,
   inviteLink,
   login,
   nav,
@@ -602,12 +603,12 @@ test.describe('playing', () => {
     await expect(lab).not.toContainText('Heimatplanet');
     await lab.getByRole('button', { name: 'Jetzt bauen' }).click();
     await expect(lab).toContainText('Bauschleife belegt');
-    await expect(page.locator('#pinfo b').first()).toHaveText('Kolonie');
+    await expectShownPlace(page, 'Kolonie');
     await expect(page).toHaveURL(/\?view=shipyard$/);
     await nav(page, 'buildings');
     await expect(page.locator('.item.running')).toContainText('Scholarium');
     await choosePlanet(page, 'Heimatplanet');
-    await expect(page.locator('#pinfo b').first()).toHaveText('Heimatplanet');
+    await expectShownPlace(page, 'Heimatplanet');
     await expect(page.locator('.item.running')).toHaveCount(0);
     expect(w.problems).toEqual([]);
   });
@@ -629,7 +630,7 @@ test.describe('playing', () => {
       'Auf diesem Planeten gibt es kein Scholarium.',
     );
     await page.getByRole('button', { name: 'Zu Kolonie' }).click();
-    await expect(page.locator('#pinfo b').first()).toHaveText('Kolonie');
+    await expectShownPlace(page, 'Kolonie');
     await expect(page.locator('h2')).toHaveText('Forschung auf Kolonie');
     const energy = page.locator('.item').filter({
       has: page.locator('.nm', { hasText: /^\s*Machina-Energetik/ }),
@@ -1197,7 +1198,7 @@ test.describe('playing', () => {
       .filter({ hasText: /^Kolonie \[/ });
     await expect(colony).toHaveCount(1);
     await selector.selectOption((await colony.getAttribute('value'))!);
-    await expect(page.locator('#pinfo b').first()).toHaveText('Kolonie');
+    await expectShownPlace(page, 'Kolonie');
     await nav(page, 'overview');
     await expect(page.locator('h2')).toContainText('Kolonie');
     // A colony has fields at random in the range of its position (#51).
@@ -1734,16 +1735,19 @@ test.describe('playing', () => {
   }) => {
     const w = watch(page);
     const name = uniqueName('VerlH');
+    // A unique name: the test above seeds its „Vorposten“ into a home system
+    // that can be this one, and the row would match both (#252).
+    const outpost = uniqueName('Vorposten');
     await register(page, name);
     seed({
       name,
       ships: { lf: 3 },
       res: { m: 100000, c: 100000, d: 100000 },
-      colony: { p: 13, name: 'Vorposten', res: { m: 0, c: 0, d: 0 } },
+      colony: { p: 13, name: outpost, res: { m: 0, c: 0, d: 0 } },
     });
     await page.goto('/?view=galaxy');
     await page.getByText('zum Heimatsystem').click();
-    const row = page.locator('tr', { hasText: 'Vorposten' });
+    const row = page.locator('tr', { hasText: outpost });
     await expect(row.getByRole('button', { name: 'Verlegung' })).toBeVisible();
     // Against the device width: a too wide table also widens innerWidth.
     expect(
@@ -1765,7 +1769,7 @@ test.describe('playing', () => {
       timeout: 30000,
     });
     await expect(shipCount(page, 'Abfangjäger')).toHaveText('1');
-    await choosePlanet(page, 'Vorposten');
+    await choosePlanet(page, outpost);
     await expect(shipCount(page, 'Abfangjäger')).toHaveText('2');
     expect(w.problems).toEqual([]);
   });

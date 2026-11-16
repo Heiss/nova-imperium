@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { fieldRange, fieldsOf } from '../../../core/fields.ts';
-import { databaseAt } from '../../../test/migrations.ts';
+import {
+  databaseAt,
+  placeOf,
+  throughNumber,
+} from '../../../test/migrations.ts';
 import { migrate } from '../database.ts';
-import { MIGRATIONS } from '../schema.ts';
 import { Store } from '../store.ts';
 
 // Migration 14 adds the diameter and the field limit of the planets (#51).
@@ -12,7 +15,7 @@ describe('upgrade to migration 14', () => {
     res_m, res_c, res_d, t, created) VALUES (?, ?, ?, 1, ?, ?, 20, 1, 2, 3, 5, ?)`;
 
   function oldDatabase() {
-    const db = databaseAt(13);
+    const db = databaseAt(placeOf(14) - 1);
     db.exec(`
       INSERT INTO users (id, name, salt, pw_hash, created)
       VALUES ('u_Anna', 'Anna', 's', 'h', 1), ('u_Bert', 'Bert', 's', 'h', 1);
@@ -38,7 +41,7 @@ describe('upgrade to migration 14', () => {
   it('gives every existing planet no field limit and keeps its data', () => {
     const db = oldDatabase();
     const before = db.prepare('SELECT * FROM planets ORDER BY id').all();
-    expect(migrate(db, MIGRATIONS.slice(0, 14))).toBe(1);
+    expect(migrate(db, throughNumber(14))).toBe(1);
     const after = db
       .prepare('SELECT * FROM planets ORDER BY id')
       .all() as Record<string, unknown>[];
@@ -63,7 +66,7 @@ describe('upgrade to migration 14', () => {
   it('gives a home planet 12,800 km and a colony a diameter from its position', () => {
     for (let run = 0; run < 20; run++) {
       const db = oldDatabase();
-      migrate(db, MIGRATIONS.slice(0, 14));
+      migrate(db, throughNumber(14));
       const store = new Store(db);
       expect(store.planet('p1_1_5')!.diameter).toBe(12800);
       expect(store.planet('p1_2_9')!.diameter).toBe(12800);
@@ -79,7 +82,7 @@ describe('upgrade to migration 14', () => {
   });
 
   it('writes new planets with a limit by default and allows only 0 and 1', () => {
-    const db = databaseAt(14);
+    const db = databaseAt(placeOf(14));
     db.exec(
       "INSERT INTO users (id, name, salt, pw_hash, created) VALUES ('u', 'U', 's', 'h', 1)",
     );

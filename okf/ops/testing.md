@@ -460,7 +460,18 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 * **[E]** Migrations are append-only: the job "Migrations append-only"
   compares `MIGRATIONS` with the base of the pull request (or the previous
   tip of `main` on a push) and blocks when a released migration was moved,
-  removed or changed, whitespace included. It runs for every change. A schema
+  removed or changed, whitespace included, or when its ID changed (#213),
+  and the same against the last release tag. It also blocks a list that is
+  not in strict order of valid IDs and a new migration with an ID older
+  than the newest migration of the last release, the newest CalVer tag of
+  all refs (owner, 2026-11-16); unreleased migrations may be merged in any
+  order. On a hotfix branch it blocks every new migration (O19). It reads
+  the migrations from their files (`src/server/db/migrations/`) and older
+  layouts of a base from `schema.ts`. `pnpm check` runs the same gate
+  offline against the local `origin/main` (`pnpm check:migrations`; a
+  warning without `origin/main`), so a changed migration of `main` fails
+  before the push (owner, 2026-11-16). It runs
+  for every change. A schema
   snapshot (`src/server/db/schema.snapshot.sql`) shows the resulting schema in
   the review. See [SQLite storage](/data/sqlite.md).
 
@@ -471,10 +482,12 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 | Equivalence | `src/core/equivalence.test.ts`, `catalog.test.ts` | The TypeScript rules compute exactly what version 1 computed: 400 random cases with a fixed seed for production, settling, costs, times, flights, and battles with the same random stream; the catalog is identical. Version 1 is frozen in `src/test/legacy/`. The pictures of version 1 were replaced by the icon set (issue #61, D5); `src/client/logic/icons.test.ts` checks that every catalog entry has an existing icon. |
 | Unit | `src/**/*.test.ts` | Rules, store and one test file per repository in `src/server/db/repos/` (real SQLite in memory, #117), actions, arrivals, admin, accounts, configuration, mail, operator commands, HTTP API (a real server on a free port), client logic. |
 | Upgrade | `src/server/db/migrations.property.test.ts`, `src/server/db/upgrades/` | Every migration runs on generated valid data of the version before (100 per pull request, 1000 nightly with a random seed); changing migrations have their own upgrade test. |
+| Migration files | `src/server/db/migration-files.test.ts`, `src/server/db/legacy-migrations.test.ts`, `src/server/db/upgrade-tests.test.ts`, `src/test/new-migration.test.ts` | The loader of the migration folder (order across folders, stray files, an ID used twice, the forms of the files), the ID, number and SHA-256 of the SQL of each legacy file, an upgrade test that imports its file statically for every migration of an issue (owner, 2026-11-16, „Upgrade-Test Pflicht“), the skeletons of the script, the next free ID and its refusal before the last release, and the migrations of a git ref in its three layouts (#213). |
+| Migration IDs | `src/server/db/migration-ids.test.ts`, `src/server/db/migration-history.test.ts` | The order of the IDs (also as a property on random IDs), the record in `schema_migrations` started from `user_version` (every version from before #213, a database of version 20 with generated data written as the released server wrote it), repeated runs, an unreleased migration older than one a database of `main` ran, two pull requests merged in either order, no new migration on a hotfix branch (O19), and two connections migrating the same file at once (#213). |
 | Sync | `src/server/docs.test.ts`, `src/server/http/security.test.ts`, `src/test/okf-log.test.ts` | Every setting is in the docs, `.env.example` and `compose.yaml`; links resolve; the Caddyfile sends the same security headers as the server; every entry of the update log in `okf/log/` is well-formed and `okf/log.md` is gone (#212, [Documentation website](/ops/website.md)). |
 | E2E | `e2e/game.spec.ts`, `e2e/flows.spec.ts`, `e2e/error-log.spec.ts`, `e2e/guild-ranks.spec.ts`, `e2e/guild-switch.spec.ts`, `e2e/guild-chat.spec.ts`, `e2e/phalanx.spec.ts` | Invitation, single use, login, building, production share, renaming, shipyard, fleet form, espionage with report, admin panel (invite, copy link, revoke, live settings, grow-only), phone layout, the push kinds in the options (#192); the flows of #68 in `flows.spec.ts`: attack with battle report, loot and the defender's report, transport arriving, „Rückruf“, the max and „alles“ buttons, too little Promethium, all fleet slots used, noob protection, galaxy navigation and „Wechseln“, the shipyard max button and its queue, deleting reports, probes per spying, guild membership, login code and „Passwort vergessen“ by mail, copying an invitation link, a new round, push on a server without Web Push, full storage and energy shortage; the error log and problem reports in `error-log.spec.ts`; the guild ranks of #163 in `guild-ranks.spec.ts` (desktop and phone); guilds off for a round (#191) in `guild-switch.spec.ts` (desktop and phone, on the mail server); the guild chat of #169 in `guild-chat.spec.ts` (desktop and phone: two members chat, plain text, the limits, deleting, leaving, outsiders, the rights of a rank, the admin's read in the audit log, the events of the server, the notice and the red mark on „Gilden“); the Auspex-Phalanx of #53 with its scan panel in `phalanx.spec.ts` (desktop and phone, axe on the panel). |
 | Accessibility | `e2e/a11y.spec.ts` | axe on every view. |
-| Upgrade | `docker/upgrade.sh` in the same job | The last release writes data, the new image starts on the same volume: the data survive, a migration leaves a backup (fail closed, see [SQLite storage](/data/sqlite.md)). |
+| Upgrade | `docker/upgrade.sh` in the same job | The last release writes data, the new image starts on the same volume: the data survive, a migration leaves a backup (fail closed, see [SQLite storage](/data/sqlite.md)), and the database records every migration ID of the image as run (#213). |
 | Stack | `docker/smoke.sh` in the CI job "Docker image and Compose stack" | Headers through Caddy, uid 1000, invitation mail in Mailpit, registration with its link, admin by command, data after a restart, maintenance by `nova maintenance on\|off` and the Caddy maintenance page with the game stopped; plus: image without compiler, package manager or tests; a wrong setting stops the start; Trivy. |
 
 # Code of the sharded mutation runs (#131)
