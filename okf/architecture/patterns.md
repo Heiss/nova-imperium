@@ -663,11 +663,49 @@ choice of the patterns to the assistant's recommendation below
   resources page still gets its view state through a store. The second
   pull request (the Übersicht) moved no variable of this list: the old
   view kept no state in `main.ts`; `mounted` now also holds the overview.
-  Still rendered as HTML: the header (`renderPlanetHeader`), the menu, tab
-  bar and „Mehr“ (`renderMenu`, `renderPhoneMenu`), the resource bar
-  (`updateBar`), and the views Flotte, Sternenkarte, Nachrichten,
-  Highscore, Gilden, Achievements, Neuigkeiten, Hilfe & Optionen and
-  Admin.
+  Bundle 1 (header line, navigation, resource bar) moved none either: the
+  old frame kept no state in `main.ts`; `renderMenu` still clears the dot
+  of the news (`seeNews`) before it shows the navigation, and `updateBar`
+  still returns the planet moved to now for the clock. Still rendered as
+  HTML: the views Flotte, Sternenkarte, Nachrichten, Highscore, Gilden,
+  Achievements, Neuigkeiten, Hilfe & Optionen and Admin.
+* **[E]** Bundle 1 next (owner, 2026-11-16; the bundles of #118 „Geklärt,
+  Nachtrag 3“): the header line, the navigation (menu, tab bar and „Mehr“)
+  and the resource bar, which the phone view #189 builds on.
+* **[V]** Built with #118, bundle 1: each part of the frame around the view
+  is a Svelte component in its old place of `index.html`, from a pure
+  module of `src/client/logic/`, mounted by `src/client/views/frame.ts`
+  (`showHeader`, `showNavigation`, `showResourceBar`, `clearFrame` when
+  signed out):
+  * `Header.svelte` (`#pinfo`) from `headerLine(s, P)` of `header.ts`: the
+    shown place with its position, the commander, „Logout“ and, with more
+    than one own place, the list „Aktiver Planet“ (`#planet_select`) of
+    `ownPlaces()`, the shown place selected;
+  * `Menu.svelte` (`#menu`), `TabBar.svelte` (`#tabbar`) and
+    `MoreList.svelte` (`#more-list`), each link a `NavLink.svelte`, from
+    `navigation()` of `navigation.ts`: the entries of `menu()` and
+    `phoneMenu()` (`views/index.ts`), each with its address, whether it is
+    open (`class="on"`, `aria-current="page"`) and the mark „!“ of
+    `menuHints()` and the news; „Mehr“ open and marked when one of its
+    views is;
+  * `ResourceBar.svelte` (`#resbar`) from `resourceBar(game, planet, now)`
+    of `resource-bar.ts`: Adamant, Psikristall and Promethium of the
+    planet moved to now, each with its production per hour, its storage
+    and the mark of a full one, and the energy left over and produced.
+
+  The components get their data as properties, not from the state module:
+  `client.ui` is not reactive yet, and `client.shown` follows only the
+  mounted views. Each part is mounted anew whenever `main.ts` showed it as
+  HTML before (the header line and the navigation on every render, the bar
+  on every render and every second of the clock), as its HTML was written
+  anew: a focused link or the list „Aktiver Planet“ loses its focus on a
+  render and the title of the bar is replaced every second, as before, so
+  nothing visible changes. `data-act` (`nav`, `moreOpen`, `logout`) and the
+  `change` of `#planet_select` stay with the handlers of `main.ts`.
+  Updating the frame in place instead is left to a later decision (for
+  example with #189). The double display of the active planet (#241) is
+  left as it is: the issue is separate, and this bundle changes nothing
+  visible.
 
 ## 10. Layout and registration
 
@@ -898,7 +936,8 @@ src/client/                state, components (generic), views
   7. Client state module and generic components; `main.ts` shrinks per view.
      First pull request of #118 built: the state module and the four lists
      through `CatalogList` (section 9); the second the Übersicht through
-     `Overview` (section 9); the other views follow.
+     `Overview` (section 9); bundle 1 the header line, the navigation and
+     the resource bar (section 9); the other views follow.
   8. Places (O11), its own pull request before #45 and #53 (owner,
      2026-11-12). Built with #119.
 
