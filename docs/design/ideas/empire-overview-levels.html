@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Studie – Imperiumsübersicht nach Stufen</title>
+    <link rel="stylesheet" href="/style.css" />
+    <link rel="stylesheet" href="mock.css" />
+    <style>
+      .lvls {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+        align-items: start;
+      }
+      .lvh {
+        margin: 0 0 8px;
+        font: 800 16px var(--head);
+        letter-spacing: 0.06em;
+        color: var(--gold-hi);
+      }
+      .lvh small {
+        display: block;
+        font: italic 14px var(--body);
+        letter-spacing: 0;
+        color: var(--dim);
+      }
+      .lvh .pill {
+        font-family: var(--body);
+        letter-spacing: 0;
+        vertical-align: 2px;
+      }
+      .card {
+        background: var(--box);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 8px 10px;
+        margin-bottom: 8px;
+      }
+      .card.new {
+        box-shadow: inset 3px 0 0 var(--ember);
+      }
+      .top {
+        display: flex;
+        gap: 9px;
+        align-items: center;
+      }
+      .dot {
+        flex: none;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background-size: auto 100%;
+        background-position: 30% 0;
+        box-shadow:
+          inset -7px -5px 12px rgb(0 0 0 / 0.75),
+          0 0 6px rgb(111 184 255 / 0.3);
+      }
+      .pn {
+        font: 600 14px var(--head);
+        letter-spacing: 0.04em;
+        color: var(--gold-hi);
+      }
+      .pc {
+        font-size: 13px;
+        color: var(--dim);
+      }
+      .jump {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        margin-top: 6px;
+      }
+      .jump a {
+        border: 1px solid var(--line);
+        border-radius: 3px;
+        padding: 0 6px;
+        font: 600 10.5px/20px var(--head);
+        letter-spacing: 0.04em;
+        white-space: nowrap;
+      }
+      .jump a.off {
+        color: var(--dim);
+        border-style: dashed;
+      }
+      .rs {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 2px 6px;
+        margin-top: 7px;
+        padding-top: 6px;
+        border-top: 1px dashed var(--line);
+        font-size: 14px;
+        font-variant-numeric: tabular-nums;
+      }
+      .rs span {
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        white-space: nowrap;
+      }
+      .rs img {
+        width: 16px;
+        height: 16px;
+      }
+      .rs .full {
+        color: var(--red);
+      }
+      .qs {
+        margin-top: 7px;
+        padding-top: 6px;
+        border-top: 1px dashed var(--line);
+        display: grid;
+        gap: 5px;
+      }
+      .qr {
+        font-size: 13.5px;
+        line-height: 1.25;
+      }
+      .qr .w {
+        display: flex;
+        justify-content: space-between;
+        gap: 6px;
+      }
+      .qr .w b {
+        font-weight: 400;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .qr .idle {
+        color: var(--orange);
+        font-style: italic;
+      }
+      .meter.thin {
+        height: 6px;
+        margin-top: 2px;
+      }
+      .pool {
+        margin-top: 7px;
+        padding: 5px 7px;
+        border: 1px solid #5a4a2a;
+        border-radius: 4px;
+        background: rgb(224 138 42 / 0.07);
+        font-size: 13.5px;
+        line-height: 1.3;
+      }
+      .pool .k {
+        font: 600 10.5px var(--head);
+        letter-spacing: 0.06em;
+        color: var(--orange);
+      }
+      .mark {
+        font: 600 11px var(--body);
+        color: var(--ember);
+      }
+    </style>
+  </head>
+  <body>
+    <main class="mock" style="max-width: 1360px">
+      <p class="cap">
+        Studie [V] · Imperiumsübersicht · dieselben vier Welten auf jeder
+        Forschungsstufe · Stufen 1–3 nach der Idee des Besitzers [E], Stufe 4
+        ist ein Vorschlag [V] · Namen, Werte und Zeiten sind Beispiele
+      </p>
+      <h2>Imperium · was jede Stufe zeigt</h2>
+      <div class="lvls" id="lvls"></div>
+      <p class="note">
+        Neu auf einer Stufe ist mit einem Strich links markiert. Stufe 4 zeigt
+        als Beispiel die Option „Baukraft bündeln“ (B3, Option 2): wie das
+        Sternennetz der Gelehrten (<code>ifn</code>) Scholarien für eine
+        Forschung zusammenlegt, legt der Verbund die Servitorenschmieden anderer
+        Welten für einen Bau zusammen. Die anderen Optionen stehen in
+        <code>empire-overview-research</code>.
+      </p>
+    </main>
+    <script>
+      const R = '/icons/resources/small/';
+      const P = [
+        {
+          n: 'Kaltheim',
+          c: '1:42:8',
+          t: 'normal-0',
+          lab: true,
+          r: ['412.300', '198.040', '61.900'],
+          full: [false, false, false],
+          b: ['Machina-Schwarmhalle 3', 62, '4:12:08'],
+          s: ['40× Frachtläufer', 35, '1:02:40'],
+          f: ['Plasma-Lehre 7', 81, '0:48:15'],
+          pool: ['Servitorenschmiede 10', '+ Varn 9', '19'],
+        },
+        {
+          n: 'Varn',
+          c: '1:42:9',
+          t: 'wasser-1',
+          lab: true,
+          r: ['96.410', '120.000', '88.750'],
+          full: [false, true, false],
+          b: ['Psikristall-Reliquiar 6', 18, '2:41:30'],
+          s: null,
+          f: null,
+          pool: null,
+        },
+        {
+          n: 'Ostra',
+          c: '1:43:4',
+          t: 'wueste-0',
+          lab: false,
+          r: ['201.770', '54.120', '9.305'],
+          full: [false, false, false],
+          b: null,
+          s: ['6× Fregatte', 70, '0:21:12'],
+          f: null,
+          pool: null,
+        },
+        {
+          n: 'Hesk',
+          c: '1:44:12',
+          t: 'eis-1',
+          lab: false,
+          r: ['33.020', '41.560', '102.400'],
+          full: [false, false, false],
+          b: ['Promethium-Raffinerie 14', 44, '6:05:51'],
+          s: null,
+          f: null,
+          pool: ['Servitorenschmiede 4', '+ Ostra 8', '12'],
+        },
+      ];
+      const L = [
+        [
+          'Stufe 1',
+          'E',
+          'Namen und direkte Wege in Gebäude, Schiffsschmiede, Forschung',
+        ],
+        ['Stufe 2', 'E', '+ Rohstoffe jeder Welt'],
+        ['Stufe 3', 'E', '+ Fortschritt der laufenden Bauschleifen'],
+        [
+          'Stufe 4',
+          'V',
+          '+ Bauprozesse verbinden (Beispiel: Baukraft bündeln)',
+        ],
+      ];
+      const queue = (label, q, idleText) =>
+        q
+          ? `<div class="qr"><div class="w"><span class="dim">${label}</span><span class="cd">${q[2]}</span></div><div class="w"><b>${q[0]}</b></div><div class="meter thin"><b style="width:${q[1]}%"></b></div></div>`
+          : idleText
+            ? `<div class="qr"><div class="w"><span class="dim">${label}</span><span class="idle">${idleText}</span></div></div>`
+            : '';
+      const card = (p, lv) => {
+        let h = `<div class="top"><div class="dot" style="background-image:url(/planets/${p.t}-surface.svg)"></div><div><div class="pn">${p.n}</div><div class="pc">[${p.c}]</div></div></div>`;
+        h += `<div class="jump"><a href="#">Gebäude</a><a href="#">Schiffsschmiede</a><a href="#" class="${p.lab ? '' : 'off'}" title="${p.lab ? '' : 'kein Scholarium auf dieser Welt'}">Forschung</a></div>`;
+        if (lv >= 2) {
+          const icons = ['metal', 'crystal', 'deuterium'];
+          const names = ['Adamant', 'Psikristall', 'Promethium'];
+          h += `<div class="rs ${lv === 2 ? 'nw' : ''}">${p.r
+            .map(
+              (v, i) =>
+                `<span class="${p.full[i] ? 'full' : ''}" title="${names[i]}${p.full[i] ? ' – Lager voll' : ''}"><img src="${R}${icons[i]}.svg" alt="${names[i]}">${v}</span>`,
+            )
+            .join('')}</div>`;
+        }
+        if (lv >= 3) {
+          h += `<div class="qs">${queue('Gebäude', p.b, 'frei')}${queue('Schiffsschmiede', p.s, '')}${queue('Forschung', p.f, '')}</div>`;
+        }
+        if (lv >= 4 && p.pool) {
+          h += `<div class="pool"><div class="k">VERBUND · BEISPIEL</div>${p.pool[0]} ${p.pool[1]}<br>wirkt für diesen Bau wie Stufe <b>${p.pool[2]}</b></div>`;
+        }
+        return h;
+      };
+      document.getElementById('lvls').innerHTML = L.map(
+        ([t, m, d], i) =>
+          `<section><h3 class="lvh">${t} <span class="pill ${m === 'V' ? 'hot' : ''}">[${m}]</span><small>${d}</small></h3>${P.map(
+            (p) =>
+              `<div class="card ${i > 0 && (i < 3 || p.pool) ? 'new' : ''}">${card(p, i + 1)}</div>`,
+          ).join(
+            '',
+          )}${i === 0 ? '<p class="dim" style="font-size:13px;margin:4px 2px">„Forschung“ gestrichelt: die Welt hat kein Scholarium (Forschung startet nur dort) [V].</p>' : ''}${i === 2 ? '<p class="dim" style="font-size:13px;margin:4px 2px">„frei“: die Bauschleife der Welt ist leer. Forschung läuft einmal je Spieler und steht bei der Welt, auf der sie läuft.</p>' : ''}${i === 3 ? '<p class="dim" style="font-size:13px;margin:4px 2px">Zahlen Beispiel. Formel wie beim Sternennetz: die Stufen der verbundenen Servitorenschmieden zählen zusammen (B3, B5).</p>' : ''}</section>`,
+      ).join('');
+    </script>
+  </body>
+</html>
