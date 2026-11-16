@@ -216,6 +216,15 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   2026-11-12: „so lassen, alle sofort“). Renovate has no matcher for the
   severity; Dependabot's own security updates are off, so no hole gets two
   pull requests.
+* **[E]** Renovate's ordinary minor updates do not merge themselves; the
+  release loop merges them before it makes the release pull request ready
+  (owner, 2026-11-16): patch and minor updates of a version from 1.0 on,
+  one at a time with a green CI Gate on a head up to date with `main`
+  (Renovate rebases the others itself). **[V]** A red one stays open and
+  is named to the owner with the release; major updates and minor updates
+  below 1.0 wait for the owner, each with its own issue. Renovate keeps
+  single pull requests at any time, without group or schedule (owner,
+  2026-11-16). See [Release loop](/ops/loop.md).
 * **[E]** Security pull requests merge themselves up to minor updates
   (owner, 2026-11-13, #148): `vulnerabilityAlerts.packageRules` in
   `renovate.json` sets `automerge` for patch updates, for minor updates

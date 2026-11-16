@@ -168,6 +168,16 @@ tasks).
   turns; the time to merge stays about the same, because each merge still
   waits for one full run of the next pull request, and the median gap of
   58 minutes between merges shows that merging is not the bottleneck.
+* **[E]** Before the loop makes the release pull request ready, it merges
+  Renovate's ordinary patch and minor pull requests of versions from 1.0
+  on (owner, 2026-11-16): one at a time, each with a green CI Gate on a
+  head up to date with `main`; Renovate rebases the others itself. Reason:
+  normal updates merge themselves only for patch (`renovate.json`), so
+  minor ones waited without an owner; on 2026-11-16 six of them were open,
+  the oldest since 2026-11-13. **[V]** A red one stays open and is named
+  to the owner with the release, it is not fixed like a security pull
+  request; major updates and minor updates below 1.0 wait for the owner
+  (see [Branching and release](/ops/branching-release.md)).
 * **[E]** A red security pull request of Renovate (from GitHub's Dependabot
   alerts, `[SECURITY]` at the end of its title) is handled like an own pull
   request in the first step (owner, 2026-11-13, #148; patch, pin and

@@ -13,6 +13,7 @@ interface is German.
      and merge conflicts;
    - Renovate's open security pull requests (`[SECURITY]` at the end of
      the title) with their CI;
+   - Renovate's other open pull requests with their update type and CI;
    - the open release pull request (`Release <version>`, branch
      `release/main`) with its CI and its release candidate image;
    - the open issues by their labels: `ready` (in the next release),
@@ -65,7 +66,14 @@ interface is German.
    `ready`, and do whatever else keeps both agents building
    (owner, 2026-11-16).
 2. **Make the release ready** when no open issue has the label `ready`,
-   `in progress` or `in review` and the release pull request is open. The release pull request is a draft after
+   `in progress` or `in review` and the release pull request is open.
+   First merge Renovate's ordinary pull requests with a patch or minor
+   update of a version from 1.0 on (owner, 2026-11-16): one at a time,
+   each once its CI Gate is green on a head that is up to date with
+   `main`; Renovate rebases the others itself, wait for their CI. A red
+   one stays open and you name it in the message to the owner below;
+   major updates and minor updates below 1.0 wait for the owner. Then
+   go on with the release pull request. The release pull request is a draft after
    every rebuild: its cheap run checks only secrets, dependencies,
    migrations, workflows, CodeQL and the changelog, and its CI Gate is red
    on purpose (#147). Check its texts (German, matching their pull
