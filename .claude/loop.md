@@ -69,11 +69,13 @@ interface is German.
    `in progress` or `in review` and the release pull request is open.
    First merge Renovate's ordinary pull requests with a patch or minor
    update of a version from 1.0 on (owner, 2026-11-16): one at a time,
-   each once its CI Gate is green on a head that is up to date with
-   `main`; Renovate rebases the others itself, wait for their CI. A red
-   one stays open and you name it in the message to the owner below;
-   major updates and minor updates below 1.0 wait for the owner. Then
-   go on with the release pull request. The release pull request is a draft after
+   each under O4 on a head that is up to date with `main`; Renovate
+   rebases the others itself, wait for their CI. A red one stays open and
+   you name it in the message to the owner below. Major updates and minor
+   updates below 1.0 wait for the owner: each gets one issue (find it, or
+   open it with the pull request's number, its breaking changes and its
+   CI, without a status label). Then go on with the release pull
+   request. The release pull request is a draft after
    every rebuild: its cheap run checks only secrets, dependencies,
    migrations, workflows, CodeQL and the changelog, and its CI Gate is red
    on purpose (#147). Check its texts (German, matching their pull

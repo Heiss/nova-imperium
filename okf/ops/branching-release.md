@@ -219,10 +219,11 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 * **[E]** Renovate's ordinary minor updates do not merge themselves; the
   release loop merges them before it makes the release pull request ready
   (owner, 2026-11-16): patch and minor updates of a version from 1.0 on,
-  one at a time with a green CI Gate on a head up to date with `main`
+  one at a time under O4 on a head up to date with `main`
   (Renovate rebases the others itself). **[V]** A red one stays open and
   is named to the owner with the release; major updates and minor updates
-  below 1.0 wait for the owner, each with its own issue. Renovate keeps
+  below 1.0 wait for the owner, each with its own issue that the loop
+  finds or opens without a status label. Renovate keeps
   single pull requests at any time, without group or schedule (owner,
   2026-11-16). See [Release loop](/ops/loop.md).
 * **[E]** Security pull requests merge themselves up to minor updates
