@@ -45,6 +45,26 @@ export function migrationsThrough(
   return migrations.slice(0, end + 1);
 }
 
+/**
+ * The place (from 1) in the list of the migration numbered `n` before #213.
+ * A new migration may sort between the numbered ones while they are
+ * unreleased, so their upgrade tests use this and not `n` itself.
+ */
+export function placeOf(
+  n: number,
+  migrations: readonly Migration[] = MIGRATIONS,
+): number {
+  const i = migrations.findIndex((m) => m.number === n);
+  if (i === -1) throw new Error(`No migration number ${n}.`);
+  return i + 1;
+}
+
+/** The migrations up to and including the one numbered `n` before #213. */
+export const throughNumber = (
+  n: number,
+  migrations: readonly Migration[] = MIGRATIONS,
+): Migration[] => migrations.slice(0, placeOf(n, migrations));
+
 const literal = (s: string): Value => {
   const t = s.trim();
   return t.startsWith("'") ? t.slice(1, -1).replaceAll("''", "'") : Number(t);

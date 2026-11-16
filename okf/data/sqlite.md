@@ -175,9 +175,13 @@ tests `migration-ids.test.ts` and `migration-history.test.ts`):
   `src/server/db/upgrades/<id>.test.ts` and names its migration by ID
   (`migrationsThrough(id)` in `src/test/migrations.ts`), so it keeps its
   name and its data when another migration sorts before it; the 20
-  migrations before the IDs keep `migration-<n>.test.ts`. Those use the
-  places in the list (`MIGRATIONS.slice(0, n)`) and would need
-  `migrationsThrough` if a new migration ever sorted between them.
+  migrations before the IDs keep `migration-<n>.test.ts`. **[V]** Those name
+  their migration by its number (`throughNumber(n)`, `placeOf(n)` in
+  `src/test/migrations.ts`) instead of its place in the list
+  (`MIGRATIONS.slice(0, n)`), so a new migration that sorts between 14 and
+  20 while they are unreleased cannot shift them; what they assert is
+  unchanged. `migration-ids.test.ts` proves it with a migration inserted
+  between 16 and 17 and checks that no upgrade test uses a place.
 
 The 20 IDs of D2. The time stamp is the UTC commit time of the commit on
 `main` that added the migration, cut to the minute: the first-parent history

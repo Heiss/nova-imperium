@@ -1,7 +1,13 @@
 // Migrations with fixed IDs (#213): the order of the IDs, the record of run
 // migrations in schema_migrations, the start of that record from the
 // user_version of a database written before #213, and repeated runs.
-import { existsSync, mkdtempSync, readdirSync, rmSync } from 'node:fs';
+import {
+  existsSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import Database from 'better-sqlite3';
@@ -10,9 +16,11 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   describeSchema,
   migrationsThrough,
+  placeOf,
   plansBefore,
   populate,
   snapshot,
+  throughNumber,
 } from '../../test/migrations.ts';
 import {
   migrate,
@@ -20,6 +28,7 @@ import {
   pendingMigrations,
   type Db,
 } from './database.ts';
+import { orderViolation } from './migration-history.ts';
 import { MIGRATIONS, type Migration } from './schema.ts';
 
 let dir: string;
@@ -129,6 +138,50 @@ describe('upgrade tests', () => {
     expect(() => migrationsThrough('20261107T1556-nope')).toThrow(
       'No migration 20261107T1556-nope.',
     );
+  });
+});
+
+// The upgrade tests of the 20 numbered migrations name their migration by
+// its number, so a new migration that sorts between 14 and 20 while they
+// are unreleased (the last release holds 13) cannot shift them.
+describe('upgrade tests of the numbered migrations', () => {
+  const fake = { id: '20261114T1400-fake', sql: 'SELECT 1;' };
+  const withFake = [...MIGRATIONS, fake].toSorted((x, y) =>
+    x.id < y.id ? -1 : 1,
+  );
+  const idOf = (n: number): string =>
+    MIGRATIONS.find((m) => m.number === n)!.id;
+
+  it('keep the migrations they end at when a new one sorts among them', () => {
+    expect(orderViolation(withFake)).toBeNull();
+    expect(withFake.indexOf(fake)).toBe(16);
+    for (let n = 1; n <= 20; n++) {
+      expect(throughNumber(n, withFake).at(-1)!.id, `through ${n}`).toBe(
+        idOf(n),
+      );
+      expect(throughNumber(n).at(-1)!.id).toBe(idOf(n));
+      expect(withFake[placeOf(n, withFake) - 1]!.id).toBe(idOf(n));
+    }
+    // The database before 17 holds the new migration, which sorts before.
+    expect(withFake.slice(0, placeOf(17, withFake) - 1).at(-1)).toBe(fake);
+    // By place, every prefix from 17 on would end one migration early.
+    expect(withFake.slice(0, 17).at(-1)).toBe(fake);
+    expect(withFake.slice(0, 20).at(-1)!.id).toBe(idOf(19));
+    expect(() => placeOf(21)).toThrow('No migration number 21.');
+  });
+
+  it('use numbers, not places', () => {
+    const dir = 'src/server/db/upgrades';
+    const files = readdirSync(dir).filter((f) =>
+      /^migration-\d+\.test\.ts$/.test(f),
+    );
+    expect(files).toHaveLength(13);
+    for (const f of files) {
+      const source = readFileSync(path.join(dir, f), 'utf8');
+      expect(source, f).not.toMatch(
+        /MIGRATIONS\.slice\(|databaseAt\(\d|plansBefore\(\d|upgrade\(\d/,
+      );
+    }
   });
 });
 

@@ -1,14 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import { databaseAt } from '../../../test/migrations.ts';
+import {
+  databaseAt,
+  placeOf,
+  throughNumber,
+} from '../../../test/migrations.ts';
 import { migrate } from '../database.ts';
-import { MIGRATIONS } from '../schema.ts';
 import { Store } from '../store.ts';
 
 // Migration 13 rebuilds fleets and fleet_ships for the deploy mission and
 // adds the fuel a fleet burnt (#129).
 describe('upgrade to migration 13', () => {
   it('keeps fleets in flight with their ships; they burnt no recorded fuel', () => {
-    const db = databaseAt(12);
+    const db = databaseAt(placeOf(13) - 1);
     db.exec(`
       INSERT INTO users (id, name, salt, pw_hash, created) VALUES ('u_Anna', 'Anna', 's', 'h', 1);
       INSERT INTO fleets (id, owner, from_planet, from_g, from_s, from_p, to_planet, to_g, to_s, to_p,
@@ -19,7 +22,7 @@ describe('upgrade to migration 13', () => {
           'colonize', 0, 0, 0, 4, 5, 6, 'back', 1);
       INSERT INTO fleet_ships VALUES ('f1', 'sc', 2), ('f1', 'lf', 1), ('f2', 'colony', 1);
     `);
-    expect(migrate(db, MIGRATIONS.slice(0, 13))).toBe(1);
+    expect(migrate(db, throughNumber(13))).toBe(1);
     const store = new Store(db);
     expect(store.fleets()).toEqual([
       {

@@ -2,13 +2,14 @@ import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import {
   databaseAt,
+  placeOf,
   plansBefore,
   snapshot,
+  throughNumber,
   upgrade,
 } from '../../../test/migrations.ts';
 import { testCtx } from '../../test-helpers.ts';
 import { migrate } from '../database.ts';
-import { MIGRATIONS } from '../schema.ts';
 
 // Migration 19 (#163): guild ranks with rights. Every guild gets the ranks
 // Leitung (held by the founder) and Mitglied (the default rank); every other
@@ -24,7 +25,7 @@ const without = (rows: Rows, column: string): Rows =>
   );
 
 function oldDatabase() {
-  const db = databaseAt(18);
+  const db = databaseAt(placeOf(19) - 1);
   db.exec(`
     INSERT INTO users (id, name, salt, pw_hash, created) VALUES
       ('u_Anna', 'Anna', 's', 'h', 1), ('u_Bert', 'Bert', 's', 'h', 1),
@@ -77,7 +78,7 @@ describe('upgrade to migration 19', () => {
     const members = all(db, 'guild_members');
     const users = all(db, 'users');
 
-    expect(migrate(db, MIGRATIONS.slice(0, 19))).toBe(1);
+    expect(migrate(db, throughNumber(19))).toBe(1);
 
     expect(sorted(without(all(db, 'guilds'), 'default_rank'))).toEqual(
       sorted(guilds),
@@ -123,7 +124,7 @@ describe('upgrade to migration 19', () => {
 
   it('lets the old applicant join with the default rank after the upgrade', () => {
     const db = oldDatabase();
-    migrate(db, MIGRATIONS.slice(0, 19));
+    migrate(db, throughNumber(19));
     const ctx = testCtx(1_000_000, 42, db);
     ctx.guilds.accept('u_Cora');
     expect(ctx.guilds.membership('u_Cora')).toEqual({
@@ -137,7 +138,7 @@ describe('upgrade to migration 19', () => {
 
   it('allows only the known rights, one place per rank, and cascades with the guild', () => {
     const db = oldDatabase();
-    migrate(db, MIGRATIONS.slice(0, 19));
+    migrate(db, throughNumber(19));
     const [lead, member] = db
       .prepare(
         "SELECT id FROM guild_ranks WHERE guild_id = 'g1' ORDER BY position",
@@ -175,8 +176,8 @@ describe('upgrade to migration 19', () => {
 
   it('keeps all data of any valid database of version 18', () => {
     fc.assert(
-      fc.property(plansBefore(19), (plan) => {
-        const { before, after, foreignKeys } = upgrade(19, plan);
+      fc.property(plansBefore(placeOf(19)), (plan) => {
+        const { before, after, foreignKeys } = upgrade(placeOf(19), plan);
         expect(foreignKeys).toEqual([]);
         const rows = (s: ReturnType<typeof snapshot>, t: string): Rows =>
           JSON.parse(s.data.get(t)!) as Rows;
