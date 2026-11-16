@@ -140,7 +140,7 @@ tasks).
   reviews each diff and opens, finishes and merges the pull requests itself
   (owner, 2026-11-12: two, replacing „one own pull request at a time“;
   owner, 2026-11-15: four, confirmed after the loop already worked with
-  four while this bundle still said two). At most two subagents build at
+  four while this bundle still said two). Open pull requests of design studies do not count (owner, 2026-11-16). At most two subagents build at
   the same time (owner, 2026-11-16): a pull request that only waits for CI
   or a review costs little, but every building agent costs memory (the
   out-of-memory stop of 2026-11-15 came from Stryker and E2E of two agents
