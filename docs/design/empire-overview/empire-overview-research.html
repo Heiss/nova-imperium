@@ -1,0 +1,417 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Studie – Forschung Kogitator-Verbund</title>
+    <link rel="stylesheet" href="/style.css" />
+    <link rel="stylesheet" href="mock.css" />
+    <style>
+      .top2 {
+        display: grid;
+        grid-template-columns: 1.25fr 1fr;
+        gap: 14px;
+        align-items: start;
+      }
+      .grid4 {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+      }
+      .item {
+        grid-template-columns: 112px 1fr;
+      }
+      .icon svg {
+        width: 100%;
+        height: 100%;
+      }
+      h3.sec {
+        margin: 18px 0 8px;
+        font: 800 17px var(--head);
+        letter-spacing: 0.06em;
+        color: var(--gold);
+      }
+      h3.sec .pill {
+        font-family: var(--body);
+        letter-spacing: 0;
+        vertical-align: 2px;
+      }
+      .race h3 {
+        font-size: 16px;
+      }
+      .race .tag {
+        font-size: 14px;
+      }
+      .ex-req {
+        padding: 6px 8px;
+        border: 1px dashed var(--line);
+        border-radius: 4px;
+        background: var(--box-2);
+        font-size: 14.5px;
+      }
+      .lv td {
+        font-size: 15px;
+      }
+      .lv td:first-child {
+        white-space: nowrap;
+        font: 600 13px var(--head);
+        color: var(--gold-hi);
+      }
+      .cmp th:first-child {
+        width: 22%;
+      }
+      .cmp td {
+        font-size: 15px;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="mock" style="max-width: 1240px">
+      <p class="cap">
+        Studie [V] · die Forschung, die die Imperiumsübersicht freischaltet ·
+        Name, Text, Kosten und alle Zahlen sind Vorschläge und Beispiele · die
+        Idee (Stufen, viele Kolonien, Bauprozesse verbinden) ist vom Besitzer
+        [E]
+      </p>
+      <h2>Forschung · Kogitator-Verbund</h2>
+      <div class="top2">
+        <div class="box">
+          <div class="item">
+            <div class="icon">
+              <svg
+                viewBox="0 0 112 112"
+                role="img"
+                aria-label="Symbol: verbundene Welten"
+              >
+                <rect
+                  width="112"
+                  height="112"
+                  rx="6"
+                  fill="#231a14"
+                  stroke="#3b2f22"
+                />
+                <g
+                  stroke="#d4a537"
+                  stroke-width="1.6"
+                  fill="none"
+                  opacity="0.8"
+                >
+                  <path
+                    d="M56 56 L24 28 M56 56 L88 26 M56 56 L92 74 M56 56 L58 94 M56 56 L20 78"
+                  />
+                  <circle
+                    cx="56"
+                    cy="56"
+                    r="30"
+                    stroke-dasharray="3 4"
+                    opacity="0.5"
+                  />
+                </g>
+                <circle
+                  cx="56"
+                  cy="56"
+                  r="13"
+                  fill="#3a2c18"
+                  stroke="#f1d27a"
+                  stroke-width="2"
+                />
+                <rect x="50" y="50" width="12" height="12" fill="#f0a050" />
+                <g fill="#1a1411" stroke="#f1d27a" stroke-width="1.5">
+                  <circle cx="24" cy="28" r="7" />
+                  <circle cx="88" cy="26" r="6" />
+                  <circle cx="92" cy="74" r="7" />
+                  <circle cx="58" cy="94" r="6" />
+                  <circle cx="20" cy="78" r="5" />
+                </g>
+              </svg>
+            </div>
+            <div>
+              <div class="nm">
+                Kogitator-Verbund <span class="lv">(Stufe 3)</span>
+              </div>
+              <p class="ds">
+                Bündelt die Berichte all deiner Welten in einer Ansicht – und
+                verbindet zuletzt ihre Bauprozesse.
+              </p>
+              <div class="cost">
+                <span
+                  ><img
+                    class="ri"
+                    src="/icons/resources/small/metal.svg"
+                    alt="Adamant"
+                  />480.000</span
+                >
+                <span
+                  ><img
+                    class="ri"
+                    src="/icons/resources/small/crystal.svg"
+                    alt="Psikristall"
+                  />800.000</span
+                >
+                <span
+                  ><img
+                    class="ri"
+                    src="/icons/resources/small/deuterium.svg"
+                    alt="Promethium"
+                  />320.000</span
+                >
+                <span class="dim">Stufe 4 · Beispielwerte</span>
+              </div>
+              <div class="needs">
+                <div class="needs-h">
+                  VORAUSSETZUNGEN FÜR STUFE 4 (BEISPIEL)
+                </div>
+                <ul>
+                  <li
+                    class="need ready"
+                    style="border-left-color: var(--green)"
+                  >
+                    <span class="need-nm" style="color: var(--green)"
+                      >Kogitator-Doktrin 10 ✓</span
+                    >
+                  </li>
+                  <li
+                    class="need ready"
+                    style="border-left-color: var(--green)"
+                  >
+                    <span class="need-nm" style="color: var(--green)"
+                      >Sternennetz der Gelehrten 1 ✓</span
+                    >
+                  </li>
+                  <li class="need missing">
+                    <span class="need-nm">10 eigene Welten</span
+                    ><span class="why">du hast 8 · Variante A</span>
+                  </li>
+                </ul>
+              </div>
+              <p class="dim" style="font-size: 14px; margin: 8px 0 0">
+                Kürzel <b>KV</b>, Schlüssel <code>empire</code> (Vorschläge).
+                Menüpunkt „Imperium“ erscheint ab Stufe 1.
+              </p>
+            </div>
+          </div>
+        </div>
+        <div class="box">
+          <div class="hd">Was jede Stufe freischaltet</div>
+          <div class="bd" style="padding-top: 4px">
+            <table class="lv">
+              <tr>
+                <td>Stufe 1</td>
+                <td>
+                  Alle Welten mit Namen und direkten Wegen zu Gebäuden,
+                  Schiffsschmiede, Forschung
+                </td>
+                <td><span class="pill">[E]</span></td>
+              </tr>
+              <tr>
+                <td>Stufe 2</td>
+                <td>
+                  + Rohstoffe jeder Welt (Adamant, Psikristall, Promethium)
+                </td>
+                <td><span class="pill">[E]</span></td>
+              </tr>
+              <tr>
+                <td>Stufe 3</td>
+                <td>
+                  + Fortschritt der Bauschleifen (Gebäude, Schiffsschmiede,
+                  Forschung)
+                </td>
+                <td><span class="pill">[E]</span></td>
+              </tr>
+              <tr>
+                <td>Stufe 4+</td>
+                <td>
+                  + Bauprozesse verbinden; als eigene Stufe ist das ein
+                  Vorschlag (B4)
+                </td>
+                <td><span class="pill hot">[V]</span></td>
+              </tr>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <h3 class="sec">
+        Nur mit vielen Kolonien erreichbar · vier Varianten
+        <span class="pill hot">B1 offen</span>
+      </h3>
+      <div class="grid4">
+        <div class="race">
+          <h3>A · Weltenzahl</h3>
+          <div class="tag">
+            Jede Stufe verlangt eine Mindestzahl eigener Planeten.
+          </div>
+          <div class="ex-req">
+            Stufe 1: 4 · Stufe 2: 6 · Stufe 3: 8 · Stufe 4: 10 Welten
+            <span class="dim">(Beispiel)</span>
+          </div>
+          <ul class="pro">
+            <li>einfach zu verstehen und zu testen</li>
+            <li>passt zur Idee „viele Kolonien“</li>
+          </ul>
+          <ul class="con">
+            <li>neue Art Voraussetzung im Katalog</li>
+            <li>Welt verloren → Stufe gesperrt?</li>
+          </ul>
+        </div>
+        <div class="race">
+          <h3>B · Ausbau auf vielen Welten</h3>
+          <div class="tag">Ein Gebäude muss auf N Welten eine Stufe haben.</div>
+          <div class="ex-req">
+            Stufe s: Servitorenschmiede ≥ 6 auf 2s + 2 Welten
+            <span class="dim">(Beispiel)</span>
+          </div>
+          <ul class="pro">
+            <li>leere Kolonien zählen nicht</li>
+            <li>passt zum Verbund der Servitorenschmieden</li>
+          </ul>
+          <ul class="con">
+            <li>schwerer zu lesen</li>
+            <li>neue Art Voraussetzung</li>
+          </ul>
+        </div>
+        <div class="race">
+          <h3>C · Kosten nach Weltenzahl</h3>
+          <div class="tag">Die Kosten sinken mit jeder eigenen Welt.</div>
+          <div class="ex-req">
+            Kosten × 12 / Welten, höchstens ×6
+            <span class="dim">(Beispiel)</span>
+          </div>
+          <ul class="pro">
+            <li>keine harte Sperre</li>
+            <li>klassische Voraussetzungen bleiben</li>
+          </ul>
+          <ul class="con">
+            <li>mit wenigen Welten nur teuer, nicht gesperrt</li>
+            <li>Preis ändert sich beim Kolonisieren</li>
+          </ul>
+        </div>
+        <div class="race">
+          <h3>D · Zehnt aller Welten</h3>
+          <div class="tag">
+            Jede Stufe wird zu gleichen Teilen auf N Welten bezahlt.
+          </div>
+          <div class="ex-req">
+            Stufe 4: je 1/10 der Kosten von 10 Welten zugleich
+            <span class="dim">(Beispiel)</span>
+          </div>
+          <ul class="pro">
+            <li>braucht wirklich viele tragende Welten</li>
+          </ul>
+          <ul class="con">
+            <li>neue Art zu bezahlen (heute zahlt eine Welt)</li>
+            <li>Lager kleiner Kolonien begrenzen</li>
+          </ul>
+        </div>
+      </div>
+      <p class="note">
+        Obergrenze der Kolonien (#237, offen): setzt der Admin für eine Runde
+        weniger Kolonien, als eine Stufe verlangt, ist die Stufe nie erreichbar.
+        Mögliche Regeln (B2): die Schwelle richtet sich nach der Obergrenze, die
+        Stufe wird ausgeblendet, oder der Admin stellt die Schwelle selbst ein.
+      </p>
+
+      <h3 class="sec">
+        Bauprozesse verbinden · drei Lesarten
+        <span class="pill hot">B3 offen</span>
+      </h3>
+      <div class="grid3">
+        <div class="race">
+          <h3>1 · Von hier steuern</h3>
+          <div class="tag">
+            Bauten jeder Welt aus der Übersicht starten, ohne die Welt zu
+            wechseln.
+          </div>
+          <ul class="pro">
+            <li>spart Klicks, keine neue Spielregel</li>
+          </ul>
+          <ul class="con">
+            <li>Stufe 1 bietet schon die Wege dorthin</li>
+            <li>verbindet nichts im Sinn des Sternennetzes</li>
+          </ul>
+        </div>
+        <div class="race sel">
+          <h3>2 · Baukraft bündeln</h3>
+          <div class="tag">
+            Wie das Sternennetz: je Stufe zählt die Servitorenschmiede einer
+            weiteren Welt zum Bau.
+          </div>
+          <div class="ex-req">
+            Servitorenschmiede 4 + Ostra 8 → wie Stufe 12, Bauzeit × 5/13
+            <span class="dim">(Beispiel)</span>
+          </div>
+          <ul class="pro">
+            <li>
+              gleiches Muster wie <code>ifn</code> (<code>networkLab</code>)
+            </li>
+            <li>klassische Formel bleibt</li>
+          </ul>
+          <ul class="con">
+            <li>schnellere Bauten für große Reiche</li>
+            <li>Regeln fürs Verleihen offen (B5)</li>
+          </ul>
+        </div>
+        <div class="race">
+          <h3>3 · Gemeinsame Bauschleife</h3>
+          <div class="tag">
+            Eine Liste für das ganze Reich; Aufträge laufen nacheinander auf
+            ihren Welten.
+          </div>
+          <ul class="pro">
+            <li>plant voraus, auch für kleine Kolonien</li>
+          </ul>
+          <ul class="con">
+            <li>heute eine Bauschleife je Welt, keine Warteliste</li>
+            <li>Rohstoffe werden reserviert oder später abgebucht?</li>
+          </ul>
+        </div>
+      </div>
+
+      <h3 class="sec">Verhältnis zum Sternennetz der Gelehrten</h3>
+      <div class="box">
+        <table class="cmp">
+          <tr>
+            <th></th>
+            <th>Sternennetz der Gelehrten (<code>ifn</code>, besteht)</th>
+            <th>Kogitator-Verbund (neu, Vorschlag)</th>
+          </tr>
+          <tr>
+            <td class="dim">verbindet</td>
+            <td>Scholarien anderer Welten für die Forschung</td>
+            <td>
+              Ansicht aller Welten; mit Option 2 die Servitorenschmieden für
+              Bauten
+            </td>
+          </tr>
+          <tr>
+            <td class="dim">je Stufe</td>
+            <td>ein weiteres Scholarium</td>
+            <td>
+              Stufen 1–3 mehr Information; ab Stufe 4 eine weitere
+              Servitorenschmiede (Beispiel)
+            </td>
+          </tr>
+          <tr>
+            <td class="dim">Sperre</td>
+            <td>
+              während einer Forschung wird kein Scholarium ausgebaut
+              (Laborsperre)
+            </td>
+            <td>
+              eine Servitorenschmiede im Ausbau macht nicht mit (Vorschlag, wie
+              <code>ifn</code>)
+            </td>
+          </tr>
+          <tr>
+            <td class="dim">Voraussetzung</td>
+            <td>Scholarium 10, Kogitator-Doktrin 8, Warp-Theorie 8</td>
+            <td>
+              Sternennetz der Gelehrten 1 als Voraussetzung (Vorschlag) + viele
+              Kolonien (B1)
+            </td>
+          </tr>
+        </table>
+      </div>
+    </main>
+  </body>
+</html>

@@ -25,27 +25,38 @@ interface is German.
    the loop never waits without a question on screen. A step that needs no
    decision, or only recommendations taken as [V] (step 4), asks nothing.
 4. End the iteration: when the next step can start at once, wake up again
-   in one to two minutes; while you wait on CI or a review, in 20 to 30
-   minutes (GitHub events wake you earlier).
+   in one to two minutes; while you wait on CI or a review, do not poll:
+   GitHub events wake you, and one fallback wakeup in about 50 minutes.
+5. Save usage: an event that needs nothing (a bot edited a comment,
+   CodeRabbit skipped, your own reply) gets no tool call and at most one
+   line. Large output (job logs, whole files, transcripts) is read by a
+   subagent or with `grep`, never in this thread. Once a day, add the weekly
+   usage you can see (a usage notice, or „not visible“) to the log entry
+   of your next pull request; never open a pull request only for it.
 
 ## Steps, in this order
 
 1. **Finish your open pull requests.** Red CI: find the root cause and fix
    it. Review findings: fix what is real, answer every thread, resolve.
-   Conflict: merge `main` into the branch. A red security pull request of
+   Merge `main` into a branch only when (a) it is the next one to merge
+   (CI green on its head, every finding answered), (b) GitHub reports a
+   conflict (no CI starts then), or (c) it needs code that just landed on
+   `main`; otherwise leave it on its base, so a merge into `main` does not
+   rerun CI on every open pull request. A red security pull request of
    Renovate (`[SECURITY]` at the end of its title) is handled like an own
    pull request: the loop finds the root cause and fixes it in its own
    `claude/…` pull request, never by a push to the Renovate branch; if it
    cannot, it asks the owner. That fix pull request does not count toward
-   the limit of two open own pull requests (security first). Patch, pin
+   the limit of four open own pull requests (security first). Patch, pin
    and digest security updates merge themselves, minor ones from version
    1.0 on; a major one and a minor one below 1.0 wait for the owner.
    Merge under O4 (green CI Gate,
-   no open security or critical finding, every finding answered). Up to two
+   no open security or critical finding, every finding answered). Up to four
    own pull requests may be open at a time: while they only wait for CI or
    a review, go on with the next step; a subagent builds an issue that
    doesn't depend on the open ones in its own git worktree, and you review
-   its diff before you open its pull request.
+   its diff before you open its pull request. At most two subagents build
+   at the same time.
 2. **Make the release ready** when no open issue has the label `ready`,
    `in progress` or `in review` and the release pull request is open. The release pull request is a draft after
    every rebuild: its cheap run checks only secrets, dependencies,
@@ -113,8 +124,9 @@ interface is German.
    OKF and docs, and the log entry as a new file
    `okf/log/<date>-<short-name>.md` with the UTC time in `date` (never an
    edit of another entry; the format is in `okf/ops/website.md`). Run `pnpm check` and the relevant
-   E2E tests before every
-   push. Open it as a draft, mark it ready when CI is green, subscribe to
+   E2E tests before the push after which you mark it ready, and after a
+   merge of `main` with a conflict in code; other pushes of a draft rely
+   on its CI. Open it as a draft, mark it ready when CI is green, subscribe to
    it. Write `Closes #<issue>` in the description.
 
 ## Never

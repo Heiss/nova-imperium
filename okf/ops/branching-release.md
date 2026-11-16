@@ -228,7 +228,7 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   its own (owner, 2026-11-13, #148): it finds the root cause and fixes it
   in its own `claude/…` pull request, never by a push to the Renovate
   branch; if it cannot, it asks the owner. That fix pull request does not
-  count toward the limit of two open own pull requests (security first;
+  count toward the limit of four open own pull requests (security first;
   [Release loop](/ops/loop.md)).
 * **[E]** Renovate applies the content of `vulnerabilityAlerts` as `force`
   on the package rule of every alert, over every other rule
@@ -381,7 +381,9 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 
 * **[E]** The assistant merges its own pull requests with a squash merge
   once the CI Gate is green and no review finding is open (owner decision O4,
-  2026-11-10).
+  2026-11-10). It takes `main` into a branch only when that pull request is
+  the next one to merge, has a conflict or needs code from `main` (owner,
+  2026-11-15, [Release loop](/ops/loop.md)).
 * **[E]** CodeRabbit reviews every pull request when it is opened or marked
   ready, not drafts and not later pushes (`.coderabbit.yaml`, owner
   2026-11-11). It comments and does not request changes. Under O4 a finding
