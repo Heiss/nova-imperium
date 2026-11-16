@@ -11,6 +11,7 @@ import { deliverPush } from '../web-push.ts';
 import { runAction } from './dispatch.ts';
 import { adminGuildChat } from './guild-chat.ts';
 import { guildState } from './guilds.ts';
+import { addMoon } from './moons.ts';
 import { GUILDS_OFF } from './round.ts';
 
 // The event messages of the guild chat (#169 D3, D4; owner, 2026-11-14 and
@@ -191,6 +192,40 @@ describe('the attack event (#169 D3; owner, 2026-11-15)', () => {
     s.attack({ s: 2, p: 2 });
     expect(s.ctx.fleets.all()).toHaveLength(4);
     expect(s.events().map((e) => e[0])).toEqual(['join']);
+    expect(s.ctx.guilds.chat(s.other)).toEqual([]);
+  });
+
+  it('writes the same event for a Mondbruch at the moon of a member (#95; owner, 2026-11-16)', () => {
+    const s = setup();
+    s.accept('Ada');
+    // Ada's moon; research keeps her out of the noob protection against the
+    // Weltenbrecher of Vex.
+    const ada = s.ctx.players.get('u_Ada')!;
+    s.ctx.players.save({ ...ada, research: { energy: 12 } });
+    addMoon(s.ctx, s.ctx.planets.get('p1_27_11')!, 1, s.ctx.now());
+    const vex = s.ctx.planets.get('p1_3_4')!;
+    s.ctx.planets.save({ ...vex, ships: { ...vex.ships, dstar: 1 } });
+    s.run('Vex', {
+      type: 'send',
+      mission: 'moonbreak',
+      ships: { dstar: 1 },
+      to: { g: 1, s: 27, p: 11, kind: 'moon' },
+      pct: 10,
+      cargo: {},
+    });
+    const fleet = s.ctx.fleets.all()[0]!;
+    expect(fleet).toMatchObject({ mission: 'moonbreak', to: 'm1_27_11' });
+    const shown = guildState(s.ctx, 'u_Lea', {}).chat!.messages.at(-1);
+    expect(shown).toEqual({
+      id: expect.any(Number),
+      time: s.ctx.now(),
+      kind: 'attack',
+      name: 'Ada',
+      text: '[1:27:11]',
+      attacker: 'Vex',
+      arrival: fleet.arr,
+      delete: false,
+    });
     expect(s.ctx.guilds.chat(s.other)).toEqual([]);
   });
 

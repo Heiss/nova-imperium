@@ -135,9 +135,10 @@ describe('the rules of every mission (contract)', () => {
     expect(missionRules(m), m).toBe(rules);
   });
 
-  it('alerts a guild only for the attack (#169 D3)', () => {
+  it('alerts a guild only for the attack and the Mondbruch (#169 D3; owner, 2026-11-16, #95)', () => {
     expect(RULES.filter(([, r]) => r.alertsGuild).map(([m]) => m)).toEqual([
       'attack',
+      'moonbreak',
     ]);
   });
 

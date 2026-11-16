@@ -9,6 +9,7 @@ import type { Fleet, Levels, Planet } from '../../../core/types.ts';
 import { queuePush } from '../../../server/push-store.ts';
 import { seeded } from '../../../test/fixtures.ts';
 import { arrive } from '../../../server/game/arrival.ts';
+import { cutLoot } from '../../../server/game/fight.ts';
 import { addMoon } from '../../../server/game/moons.ts';
 import {
   addPlanet,
@@ -105,7 +106,7 @@ describe('moonbreak: the rules', () => {
       returns: true,
       visible: true,
       silent: false,
-      alertsGuild: false,
+      alertsGuild: true,
     });
   });
 
@@ -233,6 +234,48 @@ describe('moonbreak: the arrival', () => {
     expect(ctx.debris.all()).toEqual([]);
     expect(bert(ctx)).not.toHaveProperty('moonLost');
     expect(bert(ctx)).not.toHaveProperty('moonbreak');
+  });
+
+  it('cuts the loot to the holds left when the Weltenbrecher are lost; the rest is lost', () => {
+    const rich = { res: { m: 100000, c: 100000, d: 100000 } };
+    const { ctx, f, at } = setup({ dstar: 1, sc: 1 }, rich);
+    f.cargo = { m: 200, c: 300, d: 100 };
+    // The moon holds (0.5), the Weltenbrecher are torn apart (0).
+    ctx.rng = draws(0.5, 0);
+    onArrive(ctx, f, at);
+    // The battle took half of everything ...
+    expect(anna(ctx).loot).toEqual({ m: 50000, c: 50000, d: 50000 });
+    expect(ctx.planets.get('m1_2_6')!.res).toEqual({
+      m: 50000,
+      c: 50000,
+      d: 50000,
+    });
+    // ... the Frachtläufer takes 5,000 home, 600 of it its own cargo; the
+    // 4,400 left are filled in the order of the loot.
+    const back = ctx.fleets.get('f1')!;
+    expect(back.ships).toEqual({ sc: 1 });
+    expect(back.cargo).toEqual({ m: 1666, c: 1767, d: 1567 });
+  });
+
+  it('cuts nothing while the Weltenbrecher fly home', () => {
+    const rich = { res: { m: 100000, c: 100000, d: 100000 } };
+    const { ctx, f, at } = setup({ dstar: 1, sc: 1 }, rich);
+    ctx.rng = draws(0.5, 0.5);
+    onArrive(ctx, f, at);
+    expect(ctx.fleets.get('f1')!.cargo).toEqual({
+      m: 50000,
+      c: 50000,
+      d: 50100,
+    });
+  });
+
+  it('cuts loot in the order of the classic loot, never below nothing', () => {
+    const loot = { m: 900, c: 600, d: 300 };
+    expect(cutLoot(loot, 1e9)).toEqual(loot);
+    expect(cutLoot(loot, 300)).toEqual({ m: 100, c: 100, d: 100 });
+    expect(cutLoot(loot, 0)).toEqual({ m: 0, c: 0, d: 0 });
+    expect(cutLoot(loot, -50)).toEqual({ m: 0, c: 0, d: 0 });
+    expect(cutLoot({ m: 0, c: 0, d: 30 }, 1000)).toEqual({ m: 0, c: 0, d: 30 });
   });
 
   it('a fleet of Weltenbrecher alone is gone with them, the moon broken too', () => {

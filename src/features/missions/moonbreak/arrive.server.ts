@@ -3,10 +3,12 @@
 // the battle, rebuilt defense, loot after a won battle, both battle reports.
 // Only after a won battle (an undefended moon is one) and with Weltenbrecher
 // left, two independent rolls follow: the moon breaks, and the Weltenbrecher
-// are torn apart by their own shot; the other ships stay. A broken moon and
-// lost Weltenbrecher leave no Trümmerfeld.
+// are torn apart by their own shot; the other ships stay and bring home
+// what of the loot their holds take. A broken moon and lost Weltenbrecher
+// leave no Trümmerfeld.
 import { type Moonbreak, moonbreak } from '../../../core/moonbreak.ts';
-import type { Fleet, Levels } from '../../../core/types.ts';
+import { capacity } from '../../../core/flight.ts';
+import type { Fleet, Levels, Resources } from '../../../core/types.ts';
 import { record } from '../../../server/audit.ts';
 import type { Ctx } from '../../../server/game/context.ts';
 import type { Arrival } from '../../../server/game/missions.ts';
@@ -15,6 +17,7 @@ import {
   type Fight,
   type ReportExtra,
   battleReports,
+  cutLoot,
   fight,
   flyHome,
 } from '../../../server/game/fight.ts';
@@ -30,19 +33,31 @@ function roll(ctx: Ctx, x: Fight): Moonbreak | null {
 const extra = (r: Moonbreak | null): ReportExtra =>
   r ? { att: { moonbreak: r }, def: r.broken ? { moonLost: true } : {} } : {};
 
-/** The ships that fly home: without the Weltenbrecher when they are lost. */
-function survivors(x: Fight, r: Moonbreak | null): Levels {
-  if (!r?.lost) return x.res.att;
-  const rest = { ...x.res.att };
-  delete rest.dstar;
-  return rest;
+/**
+ * The ships that fly home with their loot: without the Weltenbrecher when
+ * they are lost, and the loot cut to the holds of the ships left (owner,
+ * 2026-11-16); a fleet without ships carries nothing.
+ */
+function homeward(x: Fight, r: Moonbreak | null): Homeward {
+  if (!r?.lost) return {};
+  const ships = { ...x.res.att };
+  delete ships.dstar;
+  const { m, c, d } = x.f.cargo;
+  return { ships, loot: cutLoot(x.loot, capacity(ships) - (m + c + d)) };
+}
+
+/** What flies home; nothing named keeps the ships and loot of the battle. */
+interface Homeward {
+  ships?: Levels;
+  loot?: Resources;
 }
 
 export function onArrive(ctx: Ctx, f: Fleet, at: Arrival): void {
   const x = fight(ctx, f, at);
   const r = roll(ctx, x);
   battleReports(ctx, x, extra(r));
-  flyHome(ctx, x, survivors(x, r));
+  const home = homeward(x, r);
+  flyHome(ctx, x, home.ships, home.loot);
   if (!r) return;
   record(ctx, {
     category: 'system',

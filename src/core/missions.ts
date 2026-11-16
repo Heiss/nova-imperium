@@ -81,7 +81,8 @@ export interface MissionRules {
   readonly silent: boolean;
   /**
    * Whether its launch at a member of a guild writes an event into the chat
-   * of that guild (#169 D3, „Nur beim Start“): the attack only.
+   * of that guild (#169 D3, „Nur beim Start“): the attack and the
+   * Mondbruch (owner, 2026-11-16, #95).
    */
   readonly alertsGuild: boolean;
   /** The check of the mission itself, after the target kind; a code or nothing. */

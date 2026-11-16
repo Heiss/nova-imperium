@@ -14,7 +14,8 @@ export const cargo = true;
 export const returns = true;
 export const visible = true;
 export const silent = false;
-export const alertsGuild = false;
+/** A launch at a member alerts the guild like an attack (owner, 2026-11-16). */
+export const alertsGuild = true;
 /** A Mondbruch needs a Weltenbrecher in the fleet. */
 export const canSend = (fleet: SendFleet): SendError | undefined =>
   fleet.ships.dstar ? undefined : 'noWorldbreaker';

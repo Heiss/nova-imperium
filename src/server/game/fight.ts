@@ -24,13 +24,16 @@ export function rebuild(lost: number, rng: () => number): number {
   return n;
 }
 
-/** The winner takes up to half of each resource, as much as the holds carry. */
-export function plunder(stock: Resources, free: number): Resources {
+/**
+ * Fills `free` cargo space from `avail` in the order of the classic loot:
+ * a third Adamant, half of the rest Psikristall, the rest Promethium, then
+ * what is left over, Adamant first.
+ */
+function fill(avail: Resources, free: number): Resources {
   let cap = free;
   const loot = { m: 0, c: 0, d: 0 };
-  const half = { m: stock.m / 2, c: stock.c / 2, d: stock.d / 2 };
   const take = (k: keyof Resources, limit: number): void => {
-    const v = Math.max(0, Math.floor(Math.min(half[k] - loot[k], limit)));
+    const v = Math.max(0, Math.floor(Math.min(avail[k] - loot[k], limit)));
     loot[k] += v;
     cap -= v;
   };
@@ -42,6 +45,17 @@ export function plunder(stock: Resources, free: number): Resources {
   take('m', cap);
   return loot;
 }
+
+/** The winner takes up to half of each resource, as much as the holds carry. */
+export const plunder = (stock: Resources, free: number): Resources =>
+  fill({ m: stock.m / 2, c: stock.c / 2, d: stock.d / 2 }, free);
+
+/**
+ * Loot cut to the holds that are left (#95; owner, 2026-11-16): what no
+ * longer fits is lost, in the order of the loot.
+ */
+export const cutLoot = (loot: Resources, free: number): Resources =>
+  fill(loot, free);
 
 function afterBattle(
   ctx: Ctx,
@@ -208,8 +222,13 @@ export function fight(ctx: Ctx, f: Fleet, at: Arrival): Fight {
  * The ships left fly home with the loot; a fleet without survivors is
  * gone.
  */
-export function flyHome(ctx: Ctx, x: Fight, ships: Levels = x.res.att): void {
-  const { f, loot } = x;
+export function flyHome(
+  ctx: Ctx,
+  x: Fight,
+  ships: Levels = x.res.att,
+  loot: Resources = x.loot,
+): void {
+  const { f } = x;
   if (!countUnits(ships)) return ctx.fleets.delete(f.id);
   const cargo = {
     m: f.cargo.m + loot.m,

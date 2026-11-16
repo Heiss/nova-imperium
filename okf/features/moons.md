@@ -392,7 +392,11 @@ owiki.de „Mond“ (section Zerstörung, formula images). Built after the moons
   battle ends at once with the attacker as winner) with n surviving
   Weltenbrecher the two rolls follow with the moon's diameter. A lost
   Weltenbrecher roll removes only the Weltenbrecher from the fleet; the
-  loot stays with the fleet, and a fleet without other ships is gone. A
+  loot is cut to the holds of the ships left (`cutLoot` in
+  `src/server/game/fight.ts`, in the order of the loot, after the fleet's
+  own cargo), and a fleet without other ships is gone with it. The battle
+  reports keep the loot of the battle; the report of the return names what
+  came home. A
   broken moon is removed with its buildings, units, production and queues
   and the pushes of its queues (`destroyMoon` in
   `src/server/game/moons.ts`, `planets.delete`); the fleets flying to it
@@ -410,10 +414,20 @@ owiki.de „Mond“ (section Zerstörung, formula images). Built after the moons
   push kinds of every battle report (`fleet`, `attacked`).
 * Migration `20261116T2054-moonbreak` (`src/server/db/migrations/95/`, see
   [SQLite storage](/data/sqlite.md)).
-* **[V]** Proposals of this pull request, taken as consistent with the
-  decisions above, for the owner to confirm:
-  * the rolls need at least one Weltenbrecher that survived the battle, and
-    n counts the survivors: a fleet that won without one rolls nothing;
+* **[E]** The owner's answers to the proposals of the pull request (owner,
+  2026-11-16):
+  * guild alert like the attack: a Mondbruch launched at a member of a
+    guild writes the same event into the chat of that guild at its launch,
+    „⚔ Angriff auf [g:s:p] (Angreifer → Ziel), Ankunft hh:mm“ (#169), with
+    the coordinates of the moon; its rules have `alertsGuild`;
+  * loot when the Weltenbrecher are lost: cut to the cargo space of the
+    ships left, the rest is lost as with battle losses; a fleet of
+    Weltenbrecher alone that loses them carries nothing;
+  * the rolls count only the Weltenbrecher that survived the battle; none
+    left, no roll (as built);
+  * no action at the moon on the Sternenkarte for now; it comes with #253.
+* **[V]** Proposals of this pull request that stay as built (owner,
+  2026-11-16: unchanged unless they conflict with the answers above):
   * the three sentences of the rolls go into the attacker's battle report,
     the owner's sentence into the owner's battle report, as lines after the
     moon chance (as #53 put the moon into the battle report); the owner
@@ -424,23 +438,24 @@ owiki.de „Mond“ (section Zerstörung, formula images). Built after the moons
     einem eigenen Planeten.“) and „Du brauchst einen Weltenbrecher.“ (after
     „Du brauchst eine Kolonistenarche.“);
   * the rules data of the Sturmangriff: cargo, return, the ships visible to
-    the defender; not `alertsGuild`, which #169 D3 gives the attack only;
+    the defender;
   * fleets on their way home whose target was the moon keep it as their
     target (only their leg back is shown), only outbound fleets fly to the
     planet;
   * the audit entry `moonbreak`.
 * Not built: an action „Mondbruch“ at a foreign moon on the Sternenkarte
-  (no decision names one; the fleet form offers it through „Sturmangriff“
-  at the moon and the select „Auftrag“), and a guild event for it.
+  (with #253, above); the fleet form offers it through „Sturmangriff“ at
+  the moon and the select „Auftrag“.
 * Tests: `src/core/moonbreak.test.ts` (the example of the owner, the
   formulas, properties, the draws with a seeded generator),
   `src/core/missions.test.ts` (the kind `foreignMoon`),
   `src/features/missions/moonbreak/moonbreak.test.ts` (rules, refusals, the
   arrival with seeded draws: broken, held, lost Weltenbrecher, lost battle,
   no Weltenbrecher left, a defended moon, the Trümmerfeld of the battle
-  only, loot, audit, pushes, the rerouted fleets and the turned back
-  Mondbruch), `src/server/game/missions.test.ts` (the contract with a moon
-  target), `src/client/logic/moonbreak.test.ts`, the upgrade test, and E2E
+  only, loot and its cut to the holds left, audit, pushes, the rerouted
+  fleets and the turned back Mondbruch), `src/server/game/missions.test.ts`
+  (the contract with a moon target), `src/server/game/guild-events.test.ts`
+  (the event of a Mondbruch at a member's moon), `src/client/logic/moonbreak.test.ts`, the upgrade test, and E2E
   `e2e/moonbreak.spec.ts` (desktop and phone, axe on the reports).
 
 # Out of scope
