@@ -388,6 +388,9 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   `main`: it stays on its branch and in its open pull request, and its
   issue links the pictures by branch or commit (owner, 2026-11-16, after
   #244 merged the study of #243 by mistake; that one stays on `main`).
+  The issue of a study carries `idea` and no status label, so it never
+  blocks a release; a study pull request does not count toward the limit
+  of open own pull requests (owner, 2026-11-16, CodeRabbit on #245).
 * **[E]** CodeRabbit reviews every pull request when it is opened or marked
   ready, not drafts and not later pushes (`.coderabbit.yaml`, owner
   2026-11-11). It comments and does not request changes. Under O4 a finding
