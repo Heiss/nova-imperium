@@ -170,7 +170,11 @@ export const claimAchievement: Action = (ctx, u, data) => {
   return 'Achievement-Belohnung abgeholt.';
 };
 
-export const claimDailyReward: Action = (ctx, u) => {
+export const claimDailyReward: Action = (live, u) => {
+  // One timestamp for the claimed day and the reward, so a claim at UTC
+  // midnight does not record one day and credit the next one's reward.
+  const at = live.now();
+  const ctx: Ctx = { ...live, now: () => at };
   if (!roundRules(ctx).daily)
     fail('Tagesbelohnungen sind in dieser Runde deaktiviert.');
   const p = settledPlanet(ctx, u.id) ?? fail('Du brauchst einen Planeten.');

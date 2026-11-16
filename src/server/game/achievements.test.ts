@@ -5,7 +5,11 @@ import { production } from '../../core/economy.ts';
 import { settle } from '../../core/settle.ts';
 import type { Cost, Planet } from '../../core/types.ts';
 import { addPlanet, addUser, testCtx } from '../test-helpers.ts';
-import { achievementState, recordAchievementAction } from './achievements.ts';
+import {
+  achievementState,
+  claimDailyReward,
+  recordAchievementAction,
+} from './achievements.ts';
 import { universe, type Ctx } from './context.ts';
 import { roundRules, roundStart } from './round.ts';
 import { runAction } from './dispatch.ts';
@@ -173,6 +177,28 @@ describe('achievements', () => {
     const after = ctx.planets.get(p.id)!.res;
     expect(after.m - before.m).toBeCloseTo(reward[0], 6);
     expect(after.c - before.c).toBeCloseTo(reward[1], 6);
+  });
+  it('reads the clock once per daily claim, so day and reward stay one day', () => {
+    const ctx = testCtx(DAY - 1);
+    ctx.admin.putSettings([['roundStart', 0]]);
+    const u = addUser(ctx, 'Anna');
+    const p = addPlanet(ctx, u.id, { b: { metal: 5, crystal: 3, solar: 8 } });
+    const output = hourly(ctx, [p]);
+    // The first read is just before UTC midnight, every later one after it.
+    let reads = 0;
+    const late: Ctx = {
+      ...ctx,
+      now: () => (reads++ === 0 ? DAY - 1 : DAY),
+    };
+    const before = settled(ctx, ctx.planets.get(p.id)!).res;
+    ctx.tx(() => claimDailyReward(late, u, {}));
+    expect(reads).toBe(1);
+    const { claimed_day } = ctx.db
+      .prepare('SELECT claimed_day FROM daily_rewards WHERE user_id = ?')
+      .get(u.id) as { claimed_day: number };
+    expect(claimed_day).toBe(0);
+    const after = ctx.planets.get(p.id)!.res;
+    expect(after.m - before.m).toBeCloseTo(dailyReward(output, 1)[0], 6);
   });
 });
 
