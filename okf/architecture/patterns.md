@@ -462,7 +462,10 @@ choice of the patterns to the assistant's recommendation below
   empty table `debris`; no code reads or writes it before #45 (see
   [SQLite storage](/data/sqlite.md)).
 * **[E]** Position 16 (expeditions, #93) is decided with #93 (owner,
-  2026-11-12).
+  2026-11-12). Decided there (owner, 2026-11-16, #93 Q4, Q5): classic, one
+  position 16 per system that cannot be colonized, only the target of
+  expeditions, visible in the Sternenkarte; battles of an expedition leave
+  a Trümmerfeld there ([Expeditions](/features/expeditions.md)).
 * **[E]** Built with #53: a moon is a row of `planets` with the kind
   `moon` and the id `m<g>_<s>_<p>`, without a new migration; the send
   request names the kind of the target (`to.kind`), and the fleet keeps it in

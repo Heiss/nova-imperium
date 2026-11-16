@@ -361,4 +361,7 @@ owiki.de „Mond“ (section Zerstörung, formula images). Built after the moons
 
 # Out of scope
 
-* Abfangraketen (#54), giving up or tearing down a moon.
+* Giving up a moon on its own, tearing down a moon. Abfangraketen are
+  decided with #54 ([Missiles](/features/missiles.md)); a moon is lost
+  with its given-up colony (owner, 2026-11-16, #224 Q1,
+  [Abandon a colony](/features/abandon-colony.md)).
