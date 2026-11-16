@@ -58,6 +58,8 @@ describe('the check of the upgrade tests', () => {
       'import migrations from "../migrations/213/migrations.ts";',
       "import list, { type X } from '../migrations/213/migrations.ts';",
       "import {\n  default as m,\n} from '../migrations/213/migrations.ts';",
+      "import * as m from '../migrations/213/migrations.ts';",
+      "import '../migrations/213/migrations.ts';",
     ])
       expect(check(`import { it } from 'vitest';\n${line}\n`), line).toEqual(
         [],
@@ -74,6 +76,12 @@ describe('the check of the upgrade tests', () => {
       "import migrations from '../migrations/213/migrations.tsx';\n",
       "import migrations from '../migrations/213/migrationsXts';\n",
       "// import migrations from '../migrations/213/migrations.ts';\n",
+      // CodeRabbit on #238: two spaces before type, a block comment, only
+      // type specifiers, and an import inside a string.
+      "import  type { M } from '../migrations/213/migrations.ts';\n",
+      "/*\nimport migrations from '../migrations/213/migrations.ts';\n*/\n",
+      "import { type M, type N } from '../migrations/213/migrations.ts';\n",
+      'const s = "import m from \'../migrations/213/migrations.ts\';";\n',
     ])
       expect(check(source), source).toEqual([noImport]);
   });

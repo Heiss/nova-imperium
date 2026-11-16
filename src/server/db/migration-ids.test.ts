@@ -149,8 +149,11 @@ describe('upgrade tests', () => {
 // its number, so a new migration that sorts between 14 and 20 while they
 // are unreleased (the last release holds 13) cannot shift them.
 describe('upgrade tests of the numbered migrations', () => {
+  // Built from the 20 numbered migrations only, so a real new migration
+  // that sorts among them does not move the places this test expects.
+  const numbered = MIGRATIONS.filter((m) => m.number !== undefined);
   const fake = { id: '20261114T1400-fake', sql: 'SELECT 1;' };
-  const withFake = [...MIGRATIONS, fake].toSorted((x, y) =>
+  const withFake = [...numbered, fake].toSorted((x, y) =>
     x.id < y.id ? -1 : 1,
   );
   const idOf = (n: number): string =>
@@ -163,6 +166,7 @@ describe('upgrade tests of the numbered migrations', () => {
       expect(throughNumber(n, withFake).at(-1)!.id, `through ${n}`).toBe(
         idOf(n),
       );
+      expect(throughNumber(n, numbered).at(-1)!.id).toBe(idOf(n));
       expect(throughNumber(n).at(-1)!.id).toBe(idOf(n));
       expect(withFake[placeOf(n, withFake) - 1]!.id).toBe(idOf(n));
     }

@@ -517,8 +517,13 @@ tests together with an own test for each changing migration).
   [Migration IDs](#migration-ids-213))
   that checks the data after the upgrade. The decision is made by the effect on
   generated data, not by the SQL text; `ALTER TABLE … ADD COLUMN` counts as a
-  change. Migrations 7, 9, 10, 11, 13, 14, 15, 16, 17, 18, 19 and 20 have such tests; pure `CREATE` migrations need
-  none (migration 12 has one anyway, for its CHECK and cascade).
+  change. Of the 20 legacy migrations, 7, 9, 10, 11, 13, 14, 15, 16, 17,
+  18, 19 and 20 have such tests; the legacy migrations that only create
+  tables need none (migration 12 has one anyway, for its CHECK and
+  cascade). This exemption holds for the legacy migrations only: from
+  2026-11-16 on every new migration has its upgrade test
+  `upgrades/<id>.test.ts`, whatever it does („Upgrade-Test Pflicht“, see
+  [Migration files](#migration-files-213)).
 * **[E]** A self-test proves that the checks find a migration that fails on
   existing data and that the classification tells changes from new tables.
 * **[V]** Limits: generated data covers what the constraints allow, not what

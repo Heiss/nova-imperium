@@ -5,6 +5,7 @@
 // skipped, so every generated database is one the server could have written.
 import Database, { type Statement } from 'better-sqlite3';
 import fc from 'fast-check';
+import ts from 'typescript';
 import { migrate, type Db } from '../server/db/database.ts';
 import { MIGRATIONS, type Migration } from '../server/db/schema.ts';
 
@@ -289,8 +290,34 @@ export function plansBefore(
 /** A migration file of an issue and the IDs it defines. */
 export type MigrationFile = { issue: string; ids: readonly string[] };
 
-const escape = (text: string): string =>
-  text.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&');
+/** Whether an import clause brings a value, not types only. */
+function importsValue(clause: ts.ImportClause | undefined): boolean {
+  if (!clause) return true; // import '../x.ts': the module is loaded.
+  if (clause.phaseModifier === ts.SyntaxKind.TypeKeyword) return false;
+  const bindings = clause.namedBindings;
+  if (clause.name || (bindings && ts.isNamespaceImport(bindings))) return true;
+  return bindings !== undefined && bindings.elements.some((e) => !e.isTypeOnly);
+}
+
+/**
+ * Whether `source` imports `specifier` statically with a value: a real
+ * import declaration (parsed by TypeScript, so comments and strings do not
+ * count), not `import type` and not only `type` specifiers.
+ */
+function importsStatically(source: string, specifier: string): boolean {
+  const file = ts.createSourceFile(
+    'upgrade.test.ts',
+    source,
+    ts.ScriptTarget.Latest,
+  );
+  return file.statements.some(
+    (s) =>
+      ts.isImportDeclaration(s) &&
+      ts.isStringLiteral(s.moduleSpecifier) &&
+      s.moduleSpecifier.text === specifier &&
+      importsValue(s.importClause),
+  );
+}
 
 /**
  * Why the migrations of the issue files lack their upgrade test (owner,
@@ -310,15 +337,13 @@ export function upgradeTestViolations(
       const test = `src/server/db/upgrades/${id}.test.ts`;
       const file = `src/server/db/migrations/${issue}/migrations.ts`;
       const source = readTest(id);
-      const imports = new RegExp(
-        `^import\\s+(?!type\\s)[^;]*?\\sfrom\\s+['"]\\.\\./migrations/${escape(issue)}/migrations\\.ts['"]`,
-        'm',
-      );
       if (source === undefined)
         violations.push(
           `Migration ${id} of ${file} has no upgrade test: add ${test}, which imports ${file} statically and checks the migration on real data (pnpm new-migration <issue> <short-name> --create writes such a test with a new migration).`,
         );
-      else if (!imports.test(source))
+      else if (
+        !importsStatically(source, `../migrations/${issue}/migrations.ts`)
+      )
         violations.push(
           `${test} does not import its migration file statically: add import migrations from '../migrations/${issue}/migrations.ts'; at its top.`,
         );

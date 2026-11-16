@@ -140,6 +140,11 @@ describe('the legacy migration files', () => {
     expect(file.id).toBe(id);
     expect(file.number).toBe(number);
     expect(sha256(file.sql)).toBe(hash);
-    expect(MIGRATIONS[number - 1]).toEqual({ id, number, sql: file.sql });
+    // By number, not place: a new migration may sort between them.
+    expect(MIGRATIONS.find((m) => m.number === number)).toEqual({
+      id,
+      number,
+      sql: file.sql,
+    });
   });
 });
