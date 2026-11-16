@@ -13,6 +13,15 @@ export function roundRules(ctx: Ctx): RoundRules {
   };
 }
 
+/**
+ * When the current round started (#220): set by every new round; the
+ * migration of #220 gave a running round the creation time of its first
+ * planet, or the time of the migration without one. Without the setting
+ * the round starts now.
+ */
+export const roundStart = (ctx: Ctx): number =>
+  ctx.admin.setting('roundStart') ?? ctx.now();
+
 /** The refusal of every guild action while guilds are off (#191, owner). */
 export const GUILDS_OFF = 'Gilden sind in dieser Runde abgeschaltet.';
 
@@ -68,6 +77,7 @@ export function startRoundRules(
     ['roundAchievements', Number(next.achievements)],
     ['roundDaily', Number(next.daily)],
     ['roundGuilds', Number(next.guilds)],
+    ['roundStart', ctx.now()],
   ]);
   return next;
 }

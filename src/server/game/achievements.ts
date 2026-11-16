@@ -1,16 +1,22 @@
 import {
   ACHIEVEMENTS,
-  dailyReward,
   type AchievementState,
   type RoundRules,
 } from '../../core/achievements.ts';
+import {
+  dailyReward,
+  medianOutput,
+  playerOutputs,
+  roundDay,
+} from '../../core/daily-reward.ts';
+import { production } from '../../core/economy.ts';
 import { settle, settleR } from '../../core/settle.ts';
 import type { Cost, Levels, Planet } from '../../core/types.ts';
 import type { User } from '../db/repos/players.ts';
 import type { Action } from './actions.ts';
 import { fail, universe, type Ctx } from './context.ts';
 
-import { roundRules } from './round.ts';
+import { roundRules, roundStart } from './round.ts';
 
 const DAY = 86_400_000;
 const dayOf = (ctx: Ctx): number => Math.floor(ctx.now() / DAY);
@@ -75,14 +81,43 @@ function settledPlanet(ctx: Ctx, uid: string): Planet | null {
   return p && settle(p, ctx.now(), universe(ctx));
 }
 
+/**
+ * The median hourly production of all players (#220): per player the sum of
+ * all their planets and moons as they produce now, then the median of each
+ * resource over every account that owns a planet.
+ */
+function medianProduction(ctx: Ctx): Cost {
+  const now = ctx.now();
+  const u = universe(ctx);
+  const owners = new Map(ctx.players.all().map((x) => [x.id, x]));
+  const planets = ctx.planets.all().map((p) => {
+    // Every planet has an owner (foreign key of the database).
+    const owner = owners.get(p.owner)!;
+    const research = settleR(owner, now).research;
+    const { m, c, d } = production(settle(p, now, u, owner), u, research);
+    return { owner: p.owner, m, c, d };
+  });
+  return medianOutput(playerOutputs(planets));
+}
+
+/** The day of the round and its reward now, and tomorrow's at the same production. */
+function rewardNow(ctx: Ctx): { day: number; reward: Cost; next: Cost } {
+  const day = roundDay(roundStart(ctx), ctx.now());
+  const output = medianProduction(ctx);
+  return {
+    day,
+    reward: dailyReward(output, day),
+    next: dailyReward(output, day + 1),
+  };
+}
+
 function dailyState(ctx: Ctx, uid: string): AchievementState['daily'] {
   const day = dayOf(ctx);
   const daily = recordDay(ctx, uid, day);
   return {
     streak: daily.streak,
     claimed: daily.claimed_day === day,
-    reward: dailyReward(daily.streak),
-    next: dailyReward(daily.streak + 1),
+    ...rewardNow(ctx),
   };
 }
 
@@ -140,7 +175,7 @@ export const claimDailyReward: Action = (ctx, u) => {
     fail('Tagesbelohnungen sind in dieser Runde deaktiviert.');
   const p = settledPlanet(ctx, u.id) ?? fail('Du brauchst einen Planeten.');
   const day = dayOf(ctx);
-  const daily = recordDay(ctx, u.id, day);
+  recordDay(ctx, u.id, day);
   const update = ctx.db
     .prepare(
       `
@@ -150,7 +185,8 @@ export const claimDailyReward: Action = (ctx, u) => {
     )
     .run(day, u.id, day, day);
   if (!update.changes) fail('Die heutige Belohnung wurde schon abgeholt.');
-  credit(ctx, p, dailyReward(daily.streak));
+  // The streak no longer changes the reward (#220 D3).
+  credit(ctx, p, rewardNow(ctx).reward);
   return 'Tägliche Belohnung abgeholt.';
 };
 
