@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 850" role="img" aria-labelledby="title desc">
+  <title id="title">Galaktischer Konvent: vom Einberufen bis zur Zielwahl</title>
+  <desc id="desc">Animierte Designstudie. Zuerst stimmen sechs Spieler mit jeweils einer Stimme über die Einberufung ab. Danach zahlen A 300, B 200 und C 100 Wertpunkte ein. Ihre Anteile betragen 50, 33 und 17 Prozent. A und C stimmen mit zusammen 400 Punkten für Lea, B mit 200 für Max. Lea erhält ein zeitlich befristetes Förderdekret. Alle Werte sind Beispiele.</desc>
+  <defs>
+    <linearGradient id="bg" x2="1" y2="1"><stop stop-color="#09111e"/><stop offset="1" stop-color="#172335"/></linearGradient>
+    <linearGradient id="blue"><stop stop-color="#3288a7"/><stop offset="1" stop-color="#55d6d0"/></linearGradient>
+    <linearGradient id="gold"><stop stop-color="#a66924"/><stop offset="1" stop-color="#f2bd64"/></linearGradient>
+    <filter id="glow"><feGaussianBlur stdDeviation="9" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <style>
+      text{font-family:system-ui,-apple-system,Segoe UI,sans-serif;fill:#e8eee9}
+      .small{font-size:18px;fill:#aab9bc}.tiny{font-size:15px;fill:#aab9bc}.label{font-size:16px;letter-spacing:2px;fill:#82dad2;font-weight:700}
+      .head{font-size:28px;font-weight:720}.num{font-size:33px;font-weight:750}.sub{font-size:20px;fill:#c4d0cf}
+      .panel{fill:#101c2a;stroke:#3b5660;stroke-width:2}.track{fill:#253543}.cyan{fill:#69ddd4}.amber{fill:#f3be6a}
+      .step{opacity:1}.active1{animation:focus1 16s linear infinite}.active2{animation:focus2 16s linear infinite}.active3{animation:focus3 16s linear infinite}.active4{animation:focus4 16s linear infinite}
+      .voteFill{transform-box:fill-box;transform-origin:left center;animation:grow1 16s linear infinite}.fundFill{transform-box:fill-box;transform-origin:left center;animation:grow2 16s linear infinite}
+      .leaFill{transform-box:fill-box;transform-origin:left center;animation:grow3 16s linear infinite}.maxFill{transform-box:fill-box;transform-origin:left center;animation:grow3 16s linear infinite}
+      .result{animation:reveal 16s linear infinite}.pulse{animation:pulse 16s linear infinite}
+      @keyframes focus1{0%,24%{opacity:1}27%,100%{opacity:.46}}
+      @keyframes focus2{0%,24%{opacity:.46}27%,49%{opacity:1}52%,100%{opacity:.46}}
+      @keyframes focus3{0%,49%{opacity:.46}52%,74%{opacity:1}77%,100%{opacity:.46}}
+      @keyframes focus4{0%,74%{opacity:.46}77%,100%{opacity:1}}
+      @keyframes grow1{0%{transform:scaleX(0)}10%,100%{transform:scaleX(1)}}
+      @keyframes grow2{0%,27%{transform:scaleX(0)}43%,100%{transform:scaleX(1)}}
+      @keyframes grow3{0%,53%{transform:scaleX(0)}69%,100%{transform:scaleX(1)}}
+      @keyframes reveal{0%,75%{opacity:.16}80%,96%{opacity:1}100%{opacity:.16}}
+      @keyframes pulse{0%,76%{opacity:.15}81%,89%{opacity:1}94%,100%{opacity:.15}}
+      @media (prefers-reduced-motion:reduce){.step,.result,.pulse{animation:none;opacity:1}.voteFill,.fundFill,.leaFill,.maxFill{animation:none;transform:none}}
+    </style>
+  </defs>
+  <rect width="1200" height="850" fill="url(#bg)"/>
+  <path d="M0 130H1200 M0 787H1200" stroke="#3a535b" stroke-width="2"/>
+  <text x="58" y="57" class="label">NOVA IMPERIUM · DESIGNSTUDIE [V]</text>
+  <text x="58" y="105" font-size="39" font-weight="760">Galaktischer Konvent</text>
+  <text x="1143" y="91" text-anchor="end" class="small">Beispielwerte · 16 Sekunden · Endlosschleife</text>
+
+  <g class="step active1">
+    <rect class="panel" x="50" y="156" width="525" height="255" rx="14"/>
+    <circle cx="93" cy="197" r="22" fill="#214f5a" stroke="#66d7cd"/><text x="93" y="204" text-anchor="middle" font-size="19" font-weight="800">1</text>
+    <text x="130" y="205" class="head">Konferenz einberufen?</text>
+    <text x="79" y="246" class="sub">6 Berechtigte · jede Person hat 1 Stimme</text>
+    <rect x="79" y="267" width="300" height="22" rx="11" class="track"/>
+    <rect x="79" y="267" width="200" height="22" rx="11" fill="url(#blue)" class="voteFill"/>
+    <text x="393" y="287" class="small">Ja 4 · Nein 2</text>
+    <rect x="79" y="312" width="176" height="58" rx="8" fill="#276d6b" stroke="#79ded3"/>
+    <text x="167" y="349" text-anchor="middle" font-size="22" font-weight="700">Ja</text>
+    <rect x="270" y="312" width="176" height="58" rx="8" fill="#293846" stroke="#6d8087"/>
+    <text x="358" y="349" text-anchor="middle" font-size="22">Nein</text>
+    <text x="79" y="393" class="tiny">Entfällt bei festem Zeitplan des Admins.</text>
+  </g>
+
+  <g class="step active2">
+    <rect class="panel" x="625" y="156" width="525" height="255" rx="14"/>
+    <circle cx="668" cy="197" r="22" fill="#654724" stroke="#edbb6e"/><text x="668" y="204" text-anchor="middle" font-size="19" font-weight="800">2</text>
+    <text x="705" y="205" class="head">Ressourcen einzahlen</text>
+    <text x="654" y="246" class="sub">Förderdekret · Ziel später wählen · 12 h</text>
+    <rect x="654" y="270" width="454" height="22" rx="11" class="track"/>
+    <rect x="654" y="270" width="454" height="22" rx="11" fill="url(#gold)" class="fundFill"/>
+    <text x="654" y="327" font-size="22">A <tspan class="amber" font-weight="750">300</tspan></text>
+    <text x="807" y="327" font-size="22">B <tspan class="amber" font-weight="750">200</tspan></text>
+    <text x="960" y="327" font-size="22">C <tspan class="amber" font-weight="750">100</tspan></text>
+    <text x="654" y="363" font-size="24" font-weight="750">600 / 600 <tspan class="small">Wertpunkte · vollständig finanziert</tspan></text>
+    <text x="654" y="393" class="tiny">Echte Einzahlungen werden bis zum Ergebnis gebunden.</text>
+  </g>
+
+  <g class="step active3">
+    <rect class="panel" x="50" y="435" width="525" height="318" rx="14"/>
+    <circle cx="93" cy="476" r="22" fill="#214f5a" stroke="#66d7cd"/><text x="93" y="483" text-anchor="middle" font-size="19" font-weight="800">3</text>
+    <text x="130" y="484" class="head">Ziel bestimmen</text>
+    <text x="79" y="526" class="sub">Einzahlung = Anteil an der Zielwahl</text>
+    <rect x="79" y="544" width="454" height="1" fill="#42606a"/>
+    <text x="79" y="580" font-size="22" font-weight="680">Lea</text>
+    <text x="533" y="580" text-anchor="end" font-size="21" class="cyan">A 300 + C 100 = 400</text>
+    <rect x="79" y="597" width="454" height="22" rx="11" class="track"/>
+    <rect x="79" y="597" width="303" height="22" rx="11" fill="url(#blue)" class="leaFill"/>
+    <text x="79" y="656" font-size="22" font-weight="680">Max</text>
+    <text x="533" y="656" text-anchor="end" font-size="21" class="amber">B 200</text>
+    <rect x="79" y="673" width="454" height="22" rx="11" class="track"/>
+    <rect x="79" y="673" width="151" height="22" rx="11" fill="url(#gold)" class="maxFill"/>
+    <text x="79" y="733" class="tiny">Anteile: A 50 % · B 33⅓ % · C 16⅔ %</text>
+  </g>
+
+  <g class="step active4">
+    <rect class="panel" x="625" y="435" width="525" height="318" rx="14"/>
+    <circle cx="668" cy="476" r="22" fill="#654724" stroke="#edbb6e"/><text x="668" y="483" text-anchor="middle" font-size="19" font-weight="800">4</text>
+    <text x="705" y="484" class="head">Beschluss &amp; Wirkung</text>
+    <g class="pulse"><rect x="654" y="517" width="467" height="182" rx="12" fill="#1b584c" stroke="#82e9bc" stroke-width="3" filter="url(#glow)"/></g>
+    <g class="result">
+      <text x="685" y="563" class="label">BESCHLUSS ANGENOMMEN</text>
+      <text x="685" y="616" font-size="36" font-weight="780">Lea erhält das</text>
+      <text x="685" y="658" font-size="36" font-weight="780">Förderdekret</text>
+      <text x="685" y="687" class="small">+5 % Produktion · 12 h · 400 : 200 Stimmen</text>
+    </g>
+    <text x="654" y="735" class="tiny">Nach Ablauf erlischt der Effekt automatisch.</text>
+  </g>
+  <text x="58" y="820" class="small">Einberufung: 1 Person = 1 Stimme. Zielwahl: Stimmen nach Einzahlung.</text>
+  <text x="1140" y="820" text-anchor="end" class="tiny">Reduzierte Bewegung: Standbild.</text>
+</svg>
