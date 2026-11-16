@@ -46,6 +46,11 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   records, activity statistics, orders and the audit log itself. Entries
   identify the admin, the dataset, any target or filter scope, the time and
   the outcome. Operator commands are attributed to the server operator.
+* **[E]** Admins can read every guild chat; each time an admin opens one,
+  the audit log records it (owner, 2026-11-14, #169 D8). Built as the
+  admin read `guildChat` (`POST /api/admin/guild-chat`) with the guild in
+  its detail, from a button „Chat lesen“ on every guild page [V] (see
+  [Guild chat](/features/guild-chat.md)).
 * **[E]** Admin writes include invitation changes, universe settings, round
   resets and moderation. Settings and operator role changes record before and
   after values. Moderation records the affected player, reason, previous and

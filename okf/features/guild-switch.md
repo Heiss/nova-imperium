@@ -45,6 +45,13 @@ einer runde (de-)aktivieren“.
 * **[E]** The push kinds „Gildenereignisse“ and „Nachrichten im
   Gilden-Chat“ are decided with #169; until then they stay shown in „Hilfe
   & Optionen“ (owner, 2026-11-14, O14 b, as recommended).
+* **[E]** Decided with #169 (owner, 2026-11-15, O15 b): both kinds are
+  hidden in „Hilfe & Optionen“ while guilds are off; the stored choice of
+  a player stays and counts again in the next round with guilds.
+* **[E]** The guild chat of #169 follows the switch: its actions
+  `sendGuildChat`, `deleteGuildChat` and `seeGuildChat` are in `GUILD_ACTIONS`, the state
+  has no chat while guilds are off, and the admin reads no chat then
+  (owner, 2026-11-14; see [Guild chat](/features/guild-chat.md)).
 
 # Proposals
 
@@ -58,10 +65,12 @@ einer runde (de-)aktivieren“.
 * **[V]** The checkbox stands in its own paragraph below the box
   „Belohnungen für die neue Runde“, so the legend of the rewards stays
   true (O14 d: stays as built, as recommended, without an owner answer).
-* **[V]** The warning reads „Ohne Gilden werden alle Gilden mit
-  Mitgliedern, Bewerbungen und Rängen gelöscht.“, in the same paragraph
-  below the box; the box names it with `aria-describedby`, so a screen
-  reader reads it with the box. #169 adds the chat when it exists.
+* **[V]** The warning reads „Eine neue Runde leert alle Gilden-Chats. Ohne
+  Gilden werden alle Gilden mit Mitgliedern, Bewerbungen, Rängen und Chat
+  gelöscht.“, in the same paragraph below the box; the box names it with
+  `aria-describedby`, so a screen reader reads it with the box. #169 added
+  „und Chat“ and the first sentence: every new round deletes the chats
+  (#169 D6), with guilds on as well.
 * **[V]** A new round without a guild choice (an older client) keeps the
   current one, as a reset without reward choices does; a choice that is
   not yes or no is refused with „Bitte auswählen, ob Gilden in der neuen

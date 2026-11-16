@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  arrivalAt,
   clampInt,
   coords,
   dt,
@@ -56,6 +57,25 @@ describe('format', () => {
     );
     expect(techLine({ weapons: 2, armor: 1 })).toBe(
       'Waffen 20% · Schilde 0% · Panzerung 10%',
+    );
+  });
+  it('writes the arrival of an attack event as a clock time, with the day when it is another (#169)', () => {
+    const event = new Date(2026, 10, 15, 18, 2, 30).getTime();
+    expect(arrivalAt(new Date(2026, 10, 15, 20, 15, 59).getTime(), event)).toBe(
+      '20:15',
+    );
+    expect(arrivalAt(new Date(2026, 10, 15, 0, 5).getTime(), event)).toBe(
+      '00:05',
+    );
+    expect(arrivalAt(new Date(2026, 10, 16, 1, 2).getTime(), event)).toBe(
+      '16.11., 01:02',
+    );
+    // The same clock time a month or a year later is another day.
+    expect(arrivalAt(new Date(2026, 11, 15, 20, 15).getTime(), event)).toBe(
+      '15.12., 20:15',
+    );
+    expect(arrivalAt(new Date(2027, 10, 15, 20, 15).getTime(), event)).toBe(
+      '15.11., 20:15',
     );
   });
 });

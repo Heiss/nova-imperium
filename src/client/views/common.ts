@@ -18,6 +18,7 @@ import {
   unmetRequirements,
 } from '../../core/requirements.ts';
 import { production } from '../../core/economy.ts';
+import type { Scan } from '../logic/phalanx.ts';
 import type { PushChoice } from '../logic/push-options.ts';
 import type { GameState } from '../logic/types.ts';
 
@@ -32,6 +33,8 @@ export interface Ui extends PushChoice {
   ft: { g: number; s: number; p: number; kind?: 'planet' | 'moon' } | null;
   /** The moon whose actions the Sternenkarte shows (#53), by its id. */
   gmoon?: string | null;
+  /** The answer of the last scan of the Auspex-Phalanx (#53), shown from its moon. */
+  scan?: Scan | null;
   fm: string;
   openRep: Record<string, boolean>;
   /** Entries whose explanation the player opened with the (?) (issue #63). */

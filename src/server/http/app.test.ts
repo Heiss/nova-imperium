@@ -14,6 +14,7 @@ import {
 } from '../test-helpers.ts';
 import { COOKIE, crossSite, sessionCookie } from './app.ts';
 import { CSP } from './security.ts';
+import { addMoon } from '../game/moons.ts';
 
 import { asAdmin, close, start } from '../../test/http.ts';
 
@@ -178,6 +179,47 @@ describe('http', () => {
     const out = await call('POST', '/api/logout', {});
     expect(out.set).toContain('Max-Age=0');
     expect((await call('GET', '/api/state')).status).toBe(401);
+  });
+
+  it('answers a scan of the Auspex-Phalanx with its flights beside the state (#53)', async () => {
+    const { ctx, call } = await start();
+    addUser(ctx, 'Anna');
+    const home = addPlanet(ctx, 'u_Anna', { s: 5, p: 4 });
+    const moon = addMoon(ctx, home, 10, ctx.now());
+    ctx.planets.save({
+      ...moon,
+      b: { moonbase: 1, phalanx: 1 },
+      res: { m: 0, c: 0, d: 5000 },
+    });
+    addUser(ctx, 'Bert');
+    addPlanet(ctx, 'u_Bert', { s: 5, p: 9 });
+    await call('POST', '/api/login', { name: 'Anna', password: 'secret1' });
+    const scanned = await call('POST', '/api/action', {
+      type: 'scan',
+      planet: moon.id,
+      target: 'p1_5_9',
+    });
+    expect(scanned.status).toBe(200);
+    expect(scanned.json).toMatchObject({
+      ok: true,
+      msg: null,
+      data: { scan: { by: moon.id, target: 'p1_5_9', flights: [] } },
+      state: { planet: { id: moon.id, res: { d: 0 } } },
+    });
+    const refused = await call('POST', '/api/action', {
+      type: 'scan',
+      planet: moon.id,
+      target: 'p1_5_9',
+    });
+    expect(refused.json).toEqual({
+      error: 'Nicht genug Promethium für den Phalanx-Scan.',
+    });
+    // Other actions answer without data.
+    const other = await call('POST', '/api/action', {
+      type: 'options',
+      probes: 2,
+    });
+    expect(Object.keys(other.json!).sort()).toEqual(['msg', 'ok', 'state']);
   });
 
   it('marks cookies secure behind https', () => {

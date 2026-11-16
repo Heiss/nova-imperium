@@ -6,7 +6,9 @@
  * The rights a rank can be given (owner, 2026-11-13). The Leitung holds all
  * of them. Dissolving the guild, handing over the Leitung and choosing the
  * default rank are no rights: only the Leitung does them. The right for
- * markers on the situation map comes with #160.
+ * markers on the situation map comes with #160. The three rights of the
+ * guild chat come with #169 (owner, 2026-11-14, D2): „Chat lesen“, „Chat
+ * schreiben“ and „Chatnachrichten löschen“.
  */
 export const GUILD_RIGHTS = [
   'applications',
@@ -14,12 +16,21 @@ export const GUILD_RIGHTS = [
   'assign',
   'profile',
   'ranks',
+  'chat-read',
+  'chat-write',
+  'chat-delete',
 ] as const;
 
 export type GuildRight = (typeof GUILD_RIGHTS)[number];
 
 export const isGuildRight = (v: unknown): v is GuildRight =>
   (GUILD_RIGHTS as readonly unknown[]).includes(v);
+
+/**
+ * The rights of the first default rank „Mitglied“ of a new guild: reading
+ * and writing in the chat (owner, 2026-11-14, #169 D2).
+ */
+export const MEMBER_RIGHTS: readonly GuildRight[] = ['chat-read', 'chat-write'];
 
 /** At most this many ranks per guild, the Leitung included (owner, 2026-11-13). */
 export const MAX_GUILD_RANKS = 25;

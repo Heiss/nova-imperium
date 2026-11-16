@@ -339,7 +339,10 @@ choice of the patterns to the assistant's recommendation below
   * Form: each `src/features/missions/<m>/rules.ts` exports `canSend` and
     typed data: the order, the target kind (own, foreign, any, free), cargo
     yes or no, return yes or no, ships visible to the defender yes or no,
-    silent return yes or no. Data, no free hooks.
+    silent return yes or no. Data, no free hooks. **[V]** #169 adds one
+    more typed field, `alertsGuild` (whether the launch writes an event
+    into the chat of the defender's guild; the attack only), so the server
+    asks the rules, not the mission's name.
   * Send check: `canSend` returns an error code or nothing. The server
     determines the noob protection and turns the codes into today's German
     messages, in today's order. Slots, cargo and fuel stay generic. The
@@ -475,6 +478,23 @@ choice of the patterns to the assistant's recommendation below
   Every check of an action is a pure function in `src/core` that returns an
   error code; server and browser turn it into the German message (as
   `yard.ts`, `lab.ts` already do).
+* **[V]** Built with #53 (second pull request): an action may answer data
+  besides its message, `{ msg, data }` (`Answer`, `answerOf` in
+  `src/server/game/actions.ts`); `POST /api/action` adds `data` to the
+  reply only then, and the client's `act()` hands it to `answer` before it
+  applies the state, only for the newest action of its type: the data of a
+  scan that a newer scan overtook is dropped, its state still applies
+  (CodeRabbit review of #217). First user: the scan of the Auspex-Phalanx, whose
+  check `scanError` is a pure function of `src/core/phalanx.ts` and whose
+  reach `scanReach` the Sternenkarte asks too.
+* **[E]** Audited with #214 on 2026-11-15:
+  [Checks of the server actions](/architecture/action-checks.md) lists the
+  33 actions of `ACTIONS` with where their checks live, what the browser
+  repeats and whether the messages match. 7 follow this section, 13 are
+  split between `src/core` and the server, 13 check inline only; 17
+  findings where browser and server disagree. **[V]** The follow-up pull
+  requests, one per group (economy, fleet, rewards, admin, player, guild),
+  are planned there.
 
 ## 8. Store: a repository per aggregate
 

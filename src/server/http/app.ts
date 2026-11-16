@@ -12,6 +12,7 @@ import { isDatabaseBusy } from '../db/database.ts';
 import type { User } from '../db/repos/players.ts';
 import { requireAdmin } from '../game/admin.ts';
 import { type Ctx, GameError, str } from '../game/context.ts';
+import { answerOf } from '../game/actions.ts';
 import { ACTIONS, ADMIN_ACTIONS, runAction } from '../game/dispatch.ts';
 import { stateFor } from '../game/state.ts';
 import { type Mailer, invitationMail } from '../mail.ts';
@@ -408,9 +409,9 @@ const DATABASE_BUSY =
   'Die Datenbank ist gerade beschäftigt. Bitte versuche es gleich noch einmal.';
 
 function actionReply(ctx: Ctx, u: User, call: Call): Reply {
-  let msg: string | null;
+  let answer: ReturnType<typeof answerOf>;
   try {
-    msg = playerAction(ctx, u, call);
+    answer = answerOf(playerAction(ctx, u, call));
   } catch (error) {
     if (!isDatabaseBusy(error)) throw error;
     // The audited action did not commit. Only this response permits an automatic retry.
@@ -422,7 +423,8 @@ function actionReply(ctx: Ctx, u: User, call: Call): Reply {
   return {
     json: {
       ok: true,
-      msg,
+      msg: answer.msg,
+      ...(answer.data ? { data: answer.data } : {}),
       state: stateFor(ctx, ctx.players.get(u.id)!, call.body.planet),
     },
   };
@@ -459,7 +461,11 @@ function gameRoutes(d: AppDeps): Record<string, Handler> {
   };
 }
 
-function playerAction(ctx: Ctx, u: User, call: Call): string | null {
+function playerAction(
+  ctx: Ctx,
+  u: User,
+  call: Call,
+): ReturnType<typeof runAction> {
   const name = String(call.body.type);
   const action = Object.hasOwn(ACTIONS, name) ? name : 'unknown';
   const category = ADMIN_ACTIONS.has(action) ? 'admin.write' : 'game';

@@ -51,11 +51,12 @@ export const int = (v: unknown, lo: number, hi: number): number =>
 
 // eslint-disable-next-line no-control-regex
 const CONTROL = /[\u0000-\u001f\u007f]/g;
-export const str = (v: unknown, max: number): string =>
+/** A text without control characters, trimmed. */
+export const clean = (v: unknown): string =>
   String(v ?? '')
     .replace(CONTROL, '')
-    .trim()
-    .slice(0, max);
+    .trim();
+export const str = (v: unknown, max: number): string => clean(v).slice(0, max);
 
 export const coords = (c: Coords): string => `[${c.g}:${c.s}:${c.p}]`;
 export const fmt = (n: number): string =>

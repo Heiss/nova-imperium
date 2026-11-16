@@ -57,7 +57,10 @@ the muffelblog bundle whose rules this project follows:
 # Non-goals (for now)
 
 * Extensions of the classic game (alliances, messages between players,
-  missiles) are possible later steps, not decided. „More ships“ is no
+  missiles) are possible later steps, not decided. „Messages between
+  players“ is lifted for the guild chat only (owner, 2026-11-14, #169 D1,
+  [Guild chat](/features/guild-chat.md)); private messages and chats
+  between guilds stay non-goals. „More ships“ is no
   longer a non-goal (owner, 2026-11-12); recyclers and debris fields are
   planned in #45 (owner, 2026-11-13, [Trümmerfelder](/features/debris.md));
   moons are planned in #53 (owner, 2026-11-13, [Moons](/features/moons.md)).

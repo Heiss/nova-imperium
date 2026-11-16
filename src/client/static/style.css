@@ -750,6 +750,17 @@ textarea:focus-visible {
 .moon-btn[aria-expanded='true'] {
   border-color: var(--gold);
 }
+/* The panel of a scan of the Auspex-Phalanx (#53) on the Sternenkarte. */
+.scan-panel {
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.scan-panel h3 {
+  margin: 0 0 8px;
+}
+.scan td {
+  overflow-wrap: anywhere;
+}
 .moon-big {
   display: block;
   flex: none;
@@ -1220,4 +1231,28 @@ textarea:focus-visible {
   border-bottom: 1px solid var(--red);
   text-align: center;
   z-index: 60;
+}
+
+/* The guild chat (#169): a log that scrolls on its own, newest at the end. */
+.chat-log {
+  max-height: 24rem;
+  overflow-y: auto;
+  margin-bottom: 0.5rem;
+}
+.chat-log ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.chat-log li {
+  padding: 0.3rem 0;
+  border-bottom: 1px solid var(--line);
+}
+.chat-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+/* An event of the server (#169 D3, D4): set apart from the messages. */
+.chat-event {
+  font-style: italic;
 }

@@ -25,6 +25,8 @@ describe('guilds repository', () => {
       guild_id: 'g1',
       status: 'member',
       rank_id: 'r0_g1',
+      // Nothing of the chat seen yet (#169).
+      chat_seen: 0,
     });
     expect(ctx.guilds.membership('u_Bert')).toBeUndefined();
   });
@@ -123,7 +125,8 @@ describe('guild ranks repository (#163)', () => {
         guild_id: 'g1',
         name: 'Mitglied',
         position: 1,
-        rights: [],
+        // The first default rank reads and writes in the chat (#169, D2).
+        rights: ['chat-read', 'chat-write'],
       },
     ]);
     expect(ctx.guilds.ranks('none')).toEqual([]);
@@ -141,7 +144,7 @@ describe('guild ranks repository (#163)', () => {
     ctx.guilds.setRights('rb', ['remove']);
     expect(ranks(ctx)).toEqual([
       ['Leitung', 0, []],
-      ['Mitglied', 1, []],
+      ['Mitglied', 1, ['chat-read', 'chat-write']],
       ['Hauptmann', 2, ['applications', 'ranks']],
       ['Rekrut', 3, ['remove']],
     ]);
@@ -219,9 +222,11 @@ describe('guild ranks repository (#163)', () => {
     expect(ctx.guilds.membership('u_Bert')?.rank_id).toBe('r1_g1');
     expect(ctx.guilds.membership('u_Anna')?.rank_id).toBe('r0_g1');
     expect(ctx.guilds.rank('ra')).toBeUndefined();
-    expect(
-      ctx.db.prepare('SELECT COUNT(*) FROM guild_rank_rights').pluck().get(),
-    ).toBe(0);
+    // The rights of the deleted rank are gone; Mitglied keeps its own.
+    expect(ctx.db.prepare('SELECT * FROM guild_rank_rights').all()).toEqual([
+      { rank_id: 'r1_g1', right_key: 'chat-read' },
+      { rank_id: 'r1_g1', right_key: 'chat-write' },
+    ]);
   });
 
   it('hands over the Leitung with its rank; the old Leitung gets the rank it chose', () => {
@@ -271,6 +276,8 @@ describe('guild ranks repository (#163)', () => {
     ctx.guilds.addRank('ra', 'g1', 'Offizier');
     ctx.guilds.setRights('ra', ['remove', 'profile']);
     ctx.guilds.apply('u_Cora', 'g2');
+    ctx.guilds.addChat('g1', 'u_Anna', 1, 'Hallo');
+    ctx.guilds.addChat('g2', 'u_Bert', 2, 'Hi');
     ctx.guilds.deleteAll();
     expect(ctx.guilds.all()).toEqual([]);
     expect(ctx.guilds.players()).toEqual([]);
@@ -279,6 +286,7 @@ describe('guild ranks repository (#163)', () => {
       'guild_members',
       'guild_ranks',
       'guild_rank_rights',
+      'guild_chat',
     ])
       expect(ctx.db.prepare(`SELECT COUNT(*) FROM ${t}`).pluck().get(), t).toBe(
         0,
@@ -292,5 +300,215 @@ describe('guild ranks repository (#163)', () => {
     // A new round can found guilds again.
     ctx.guilds.create('g3', 'ABC', 'Alpha', '', 'u_Cora');
     expect(ctx.guilds.membership('u_Cora')?.rank_id).toBe('r0_g3');
+  });
+});
+
+describe('guild chat repository (#169)', () => {
+  const chat = (ctx: ReturnType<typeof setup>, id = 'g1') =>
+    ctx.guilds.chat(id).map((m) => [m.author, m.time, m.text]);
+
+  it('adds messages in their order, per guild, and finds one by its id', () => {
+    const ctx = setup();
+    ctx.guilds.create('g2', 'XYZ', 'Zeta', '', 'u_Bert');
+    const first = ctx.guilds.addChat('g1', 'u_Anna', 10, 'Hallo');
+    const other = ctx.guilds.addChat('g2', 'u_Bert', 11, 'Hi');
+    const second = ctx.guilds.addChat('g1', 'u_Anna', 12, '<b>fett</b>');
+    expect([first, other, second]).toEqual([1, 2, 3]);
+    expect(chat(ctx)).toEqual([
+      ['u_Anna', 10, 'Hallo'],
+      ['u_Anna', 12, '<b>fett</b>'],
+    ]);
+    expect(chat(ctx, 'g2')).toEqual([['u_Bert', 11, 'Hi']]);
+    expect(chat(ctx, 'none')).toEqual([]);
+    expect(ctx.guilds.chatMessage(other)).toEqual({
+      id: other,
+      guild_id: 'g2',
+      author: 'u_Bert',
+      time: 11,
+      kind: 'message',
+      text: 'Hi',
+      member: null,
+      attacker: null,
+      arrival: null,
+      member_name: null,
+      attacker_name: null,
+    });
+    expect(ctx.guilds.chatMessage(99)).toBeUndefined();
+  });
+
+  it('keeps the newest 500 messages of each guild', () => {
+    const ctx = setup();
+    ctx.guilds.create('g2', 'XYZ', 'Zeta', '', 'u_Bert');
+    ctx.guilds.addChat('g2', 'u_Bert', 0, 'bleibt');
+    for (let i = 1; i <= 501; i++)
+      ctx.guilds.addChat('g1', 'u_Anna', i, `Nr. ${i}`);
+    const kept = ctx.guilds.chat('g1');
+    expect(kept).toHaveLength(500);
+    expect(kept[0]!.text).toBe('Nr. 2');
+    expect(kept.at(-1)!.text).toBe('Nr. 501');
+    expect(chat(ctx, 'g2')).toEqual([['u_Bert', 0, 'bleibt']]);
+    ctx.guilds.addChat('g1', 'u_Anna', 502, 'Nr. 502');
+    expect(ctx.guilds.chat('g1')[0]!.text).toBe('Nr. 3');
+    expect(ctx.guilds.chat('g1')).toHaveLength(500);
+  });
+
+  it('deletes one message, finds the newest of a writer and clears every chat', () => {
+    const ctx = setup();
+    ctx.guilds.create('g2', 'XYZ', 'Zeta', '', 'u_Bert');
+    const a = ctx.guilds.addChat('g1', 'u_Anna', 5, 'eins');
+    ctx.guilds.addChat('g1', 'u_Anna', 7, 'zwei');
+    ctx.guilds.addChat('g2', 'u_Bert', 9, 'drei');
+    expect(ctx.guilds.lastChat('u_Anna')).toBe(7);
+    expect(ctx.guilds.lastChat('u_Bert')).toBe(9);
+    expect(ctx.guilds.lastChat('u_Cora')).toBeUndefined();
+    ctx.guilds.deleteChat(a);
+    expect(chat(ctx)).toEqual([['u_Anna', 7, 'zwei']]);
+    ctx.guilds.clearChats();
+    expect(
+      ctx.db.prepare('SELECT COUNT(*) FROM guild_chat').pluck().get(),
+    ).toBe(0);
+    // The guilds stay.
+    expect(ctx.guilds.all()).toHaveLength(2);
+  });
+
+  it("deletes the chat with its guild and keeps a deleted account's messages without a name", () => {
+    const ctx = setup();
+    ctx.guilds.create('g2', 'XYZ', 'Zeta', '', 'u_Bert');
+    ctx.guilds.addChat('g1', 'u_Anna', 1, 'weg');
+    ctx.guilds.addChat('g2', 'u_Bert', 2, 'Bert');
+    ctx.guilds.addChat('g2', 'u_Cora', 3, 'Cora');
+    ctx.guilds.delete('g1');
+    expect(chat(ctx, 'g1')).toEqual([]);
+    ctx.db.prepare("DELETE FROM users WHERE id = 'u_Cora'").run();
+    expect(chat(ctx, 'g2')).toEqual([
+      ['u_Bert', 2, 'Bert'],
+      [null, 3, 'Cora'],
+    ]);
+  });
+
+  it('adds events with the current names of the accounts they name (D3, D4)', () => {
+    const ctx = setup();
+    ctx.guilds.create('g2', 'XYZ', 'Zeta', '', 'u_Bert');
+    const join = ctx.guilds.addChatEvent('g1', 20, {
+      kind: 'join',
+      member: 'u_Cora',
+      text: '',
+    });
+    ctx.guilds.addChat('g1', 'u_Anna', 21, 'Hallo');
+    const attack = ctx.guilds.addChatEvent('g1', 22, {
+      kind: 'attack',
+      member: 'u_Anna',
+      text: '[1:2:3]',
+      attacker: 'u_Cora',
+      arrival: 99,
+    });
+    expect(ctx.guilds.chatMessage(join)).toEqual({
+      id: join,
+      guild_id: 'g1',
+      author: null,
+      time: 20,
+      kind: 'join',
+      text: '',
+      member: 'u_Cora',
+      attacker: null,
+      arrival: null,
+      member_name: 'Cora',
+      attacker_name: null,
+    });
+    expect(ctx.guilds.chatMessage(attack)).toMatchObject({
+      kind: 'attack',
+      text: '[1:2:3]',
+      member: 'u_Anna',
+      attacker: 'u_Cora',
+      arrival: 99,
+      member_name: 'Anna',
+      attacker_name: 'Cora',
+    });
+    expect(chat(ctx)).toEqual([
+      [null, 20, ''],
+      ['u_Anna', 21, 'Hallo'],
+      [null, 22, '[1:2:3]'],
+    ]);
+    // A renamed player shows the new name; a deleted one none.
+    ctx.db.prepare("UPDATE users SET name = 'Cori' WHERE id = 'u_Cora'").run();
+    expect(ctx.guilds.chatMessage(join)!.member_name).toBe('Cori');
+    expect(ctx.guilds.chatMessage(attack)!.attacker_name).toBe('Cori');
+    ctx.db.prepare("DELETE FROM users WHERE id = 'u_Cora'").run();
+    expect(ctx.guilds.chatMessage(join)).toMatchObject({
+      member: null,
+      member_name: null,
+    });
+    expect(ctx.guilds.chatMessage(attack)).toMatchObject({
+      member: 'u_Anna',
+      member_name: 'Anna',
+      attacker: null,
+      attacker_name: null,
+    });
+    // Events count toward the 500 of the guild and are not a writer's own.
+    expect(ctx.guilds.lastChat('u_Anna')).toBe(21);
+    for (let i = 0; i < 500; i++)
+      ctx.guilds.addChatEvent('g1', 30 + i, {
+        kind: 'rank',
+        member: 'u_Anna',
+        text: 'Offizier',
+      });
+    expect(ctx.guilds.chat('g1')).toHaveLength(500);
+    expect(ctx.guilds.chat('g1').every((m) => m.kind === 'rank')).toBe(true);
+  });
+
+  it('refuses entries the CHECKs of migration 20 do not allow', () => {
+    const ctx = setup();
+    const insert = (cols: string, values: unknown[]) =>
+      ctx.db
+        .prepare(
+          `INSERT INTO guild_chat (guild_id, time, ${cols}) VALUES ('g1', 1, ${values.map(() => '?').join(', ')})`,
+        )
+        .run(...values);
+    // A message needs 1 to 1,000 characters and names no member.
+    expect(() => insert('author, text', ['u_Anna', ''])).toThrow(/CHECK/);
+    expect(() => insert('author, text', ['u_Anna', 'x'.repeat(1001)])).toThrow(
+      /CHECK/,
+    );
+    expect(() =>
+      insert('author, text, member', ['u_Anna', 'Hi', 'u_Bert']),
+    ).toThrow(/CHECK/);
+    // An event has no author; a rank change and an attack have a text.
+    expect(() =>
+      insert('kind, author, member, text', ['join', 'u_Anna', 'u_Bert', '']),
+    ).toThrow(/CHECK/);
+    expect(() => insert('kind, member, text', ['rank', 'u_Bert', ''])).toThrow(
+      /CHECK/,
+    );
+    expect(() => insert('kind, member, text', ['spy', 'u_Bert', 'x'])).toThrow(
+      /CHECK/,
+    );
+    // Only an attack has an arrival, and an attack always has one.
+    expect(() =>
+      insert('kind, member, text', ['attack', 'u_Bert', '[1:2:3]']),
+    ).toThrow(/CHECK/);
+    expect(() =>
+      insert('kind, member, text, arrival', ['leave', 'u_Bert', '', 5]),
+    ).toThrow(/CHECK/);
+    insert('kind, member, text', ['leave', 'u_Bert', '']);
+    insert('kind, member, text, arrival', ['attack', 'u_Bert', '[1:2:3]', 5]);
+    expect(ctx.guilds.chat('g1')).toHaveLength(2);
+  });
+
+  it('notes the newest message a member saw, never going back (the red mark)', () => {
+    const ctx = setup();
+    ctx.guilds.apply('u_Bert', 'g1');
+    ctx.guilds.accept('u_Bert');
+    ctx.guilds.seeChat('u_Bert', 7);
+    expect(ctx.guilds.membership('u_Bert')!.chat_seen).toBe(7);
+    ctx.guilds.seeChat('u_Bert', 3);
+    expect(ctx.guilds.membership('u_Bert')!.chat_seen).toBe(7);
+    ctx.guilds.seeChat('u_Bert', 9);
+    expect(ctx.guilds.membership('u_Bert')!.chat_seen).toBe(9);
+    // Only the own row.
+    expect(ctx.guilds.membership('u_Anna')!.chat_seen).toBe(0);
+    // A new membership starts from nothing seen.
+    ctx.guilds.removeMember('u_Bert');
+    ctx.guilds.apply('u_Bert', 'g1');
+    expect(ctx.guilds.membership('u_Bert')!.chat_seen).toBe(0);
   });
 });

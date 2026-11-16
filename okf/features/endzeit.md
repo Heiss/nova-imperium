@@ -27,6 +27,11 @@ group fights one huge battle.
   IFN at least 1.
 * **[E]** D3: the buildings are raised on the home planet only. D4: they may
   exceed the field limit of #51.
+* **[E]** Only the buildings that may stand at the target are raised,
+  checked with the component `placement` of #53: the Mondzitadelle and
+  every other moon-only building are skipped on the home planet; research
+  is raised as before (owner, 2026-11-14, „Geklärt, Nachtrag 2“ on #53;
+  `standing()` in `src/core/endzeit.ts`, see [Moons](/features/moons.md)).
 * **[E]** D5: the start message is the owner's text with „Gottkaiser“:
   „Der allwissende Gottkaiser war gnädig und hat die Endzeit eingeläutet.
   Er möchte sehen, wie ihr ihn unterhaltet, wenn ihr seine Fähigkeiten

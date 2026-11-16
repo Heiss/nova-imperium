@@ -4,5 +4,5 @@ art: neu
 
 Monde: Nach einer Schlacht kann aus einem großen Trümmerfeld ein Mond
 entstehen. Er hat Rohstoffe, Flotten und Verteidigung, aber keine
-Produktion, und ist ein eigener Eintrag in der Planetenliste. Die neue
-Mondzitadelle schafft auf dem Mond drei Felder pro Stufe.
+Produktion. Die Mondzitadelle schafft dort Felder, die Auspex-Phalanx
+erfasst gegen Promethium die Flüge fremder Planeten in Reichweite.

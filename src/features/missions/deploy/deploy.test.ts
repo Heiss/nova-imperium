@@ -21,6 +21,7 @@ describe('deploy', () => {
       returns: false,
       visible: false,
       silent: false,
+      alertsGuild: false,
     });
   });
 
