@@ -82,12 +82,19 @@ const insert = {
   id: '20261101T0900-insert',
   sql: 'INSERT INTO t (x) VALUES (1), (2);',
 };
+// The same, numbered as the migrations from before #213 are (D2).
+const a1 = { ...a, number: 1 };
+const insert2 = { ...insert, number: 2 };
 
 describe('the released migrations', () => {
   // The IDs of the migrations released before #213, from the UTC commit
   // time of the commit on main that added each one. They never change.
   it('keep the IDs they got from the history of main', () => {
-    expect(ids(MIGRATIONS.slice(0, 20))).toEqual([
+    const numbered = MIGRATIONS.filter((m) => m.number !== undefined);
+    expect(numbered.map((m) => m.number)).toEqual(
+      Array.from({ length: 20 }, (_, i) => i + 1),
+    );
+    expect(ids(numbered)).toEqual([
       '20261106T2104-first-schema',
       '20261107T0911-account-tokens',
       '20261107T0924-guilds',
@@ -148,6 +155,9 @@ describe('a new database', () => {
     migrate(db, [a]);
     expect(pendingMigrations(db, [a, b, c])).toEqual([b, c]);
     expect(pendingMigrations(db, [a])).toEqual([]);
+    // A database that ran c without b (a database of main, see below).
+    migrate(db, [a, { ...c, sql: 'SELECT 1;' }]);
+    expect(pendingMigrations(db, [a, b, c])).toEqual([b]);
     db.close();
   });
 });
@@ -190,8 +200,8 @@ describe('a database from before #213', () => {
   );
 
   it('runs the migrations above its user_version only', () => {
-    legacyDatabase(file, 2, [a, insert]).close();
-    const db = openDatabase(file, [a, insert, b, c]);
+    legacyDatabase(file, 2, [a1, insert2]).close();
+    const db = openDatabase(file, [a1, insert2, b, c]);
     expect(db.prepare('SELECT x, y FROM t ORDER BY x').all()).toEqual([
       { x: 1, y: 2 },
       { x: 2, y: 4 },
@@ -200,11 +210,28 @@ describe('a database from before #213', () => {
     db.close();
   });
 
+  // D2 counts the numbered migrations, not the places in the list: a new
+  // migration may sort between them while they are unreleased.
+  it('has run the numbered migrations, wherever a new one sorts', () => {
+    legacyDatabase(file, 2, [a1, insert2]).close();
+    const mid = { id: '20261101T0830-mid', sql: 'CREATE TABLE m (z INTEGER);' };
+    const db = openDatabase(file, [a1, mid, insert2]);
+    expect(db.prepare('SELECT count(*) FROM t').pluck().get()).toBe(2);
+    expect(db.prepare('SELECT count(*) FROM m').pluck().get()).toBe(0);
+    expect(recorded(db)).toEqual([a.id, insert.id, mid.id]);
+    expect(version(db)).toBe(3);
+    db.close();
+  });
+
   it('is refused when it is newer than the server, and stays as it was', () => {
-    legacyDatabase(file, 2, [a, insert]).close();
-    expect(() => openDatabase(file, [a])).toThrow(
+    legacyDatabase(file, 2, [a1, insert2]).close();
+    expect(() => openDatabase(file, [a1])).toThrow(
       'The database has schema version 2, this server knows 1. Use the newer image or restore a backup.',
     );
+    // Only the numbered migrations count for a database from before #213.
+    expect(() =>
+      openDatabase(file, [a1, { ...insert, number: undefined }]),
+    ).toThrow('The database has schema version 2, this server knows 1.');
     const db = new Database(file);
     expect(hasRecord(db)).toBe(false);
     expect(version(db)).toBe(2);
@@ -213,9 +240,9 @@ describe('a database from before #213', () => {
   });
 
   it('keeps no record when a migration fails', () => {
-    legacyDatabase(file, 1, [a]).close();
+    legacyDatabase(file, 1, [a1]).close();
     const bad = { id: '20261102T0000-bad', sql: 'INSERT INTO nope VALUES (1)' };
-    expect(() => openDatabase(file, [a, bad])).toThrow(/no such table: nope/);
+    expect(() => openDatabase(file, [a1, bad])).toThrow(/no such table: nope/);
     const db = new Database(file);
     expect(hasRecord(db)).toBe(false);
     expect(version(db)).toBe(1);
@@ -273,8 +300,8 @@ describe('the order of the IDs', () => {
     db.close();
   });
 
-  // D3: two migrations on the same table run in the order of their IDs on
-  // every database, whichever of them a database had run already.
+  // D3: a release upgrades in the order of the IDs, so a new database and
+  // one upgraded from any release end the same.
   it('gives the same schema and data on a new and on an upgraded database', () => {
     const fresh = new Database(':memory:');
     migrate(fresh, [a, insert, b, c]);
@@ -289,18 +316,40 @@ describe('the order of the IDs', () => {
     fresh.close();
   });
 
-  // The strict variant of D3 [V]: a migration older than one the database
-  // has run would run out of order there, so the server refuses to start.
-  it('refuses a migration older than one the database has run', () => {
-    openDatabase(file, [a, b]).close();
-    expect(() => openDatabase(file, [a, insert, b])).toThrow(
-      `Migration ${insert.id} is older than migration ${b.id}, which the database has run already; it would run out of order. A new migration needs an ID after every released one.`,
-    );
-    const db = new Database(file);
-    expect(recorded(db)).toEqual([a.id, b.id]);
-    expect(version(db)).toBe(2);
-    db.close();
-    expect(backups()).toEqual([]);
+  // Acceptance criterion 1 of #213 under the rule of the owner
+  // (2026-11-16): after the release [a, insert], one pull request adds p and
+  // another the newer q; q is merged first. A database that ran main in
+  // between runs p after q; a new database and one upgraded from the
+  // release run p before q; all end with the same schema and data.
+  it('runs an unreleased migration older than one the database has run', () => {
+    const p = {
+      id: '20261102T0900-p',
+      sql: 'ALTER TABLE t ADD COLUMN y INTEGER;',
+    };
+    const q = {
+      id: '20261103T1000-q',
+      sql: 'CREATE TABLE u (z INTEGER) STRICT;',
+    };
+    const all = [a, insert, p, q];
+    const sorted = (db: Db): string[] => recorded(db).toSorted();
+
+    openDatabase(file, [a, insert, q]).close();
+    const dev = openDatabase(file, all);
+    expect(recorded(dev)).toEqual([a.id, insert.id, q.id, p.id]);
+    expect(version(dev)).toBe(4);
+    expect(backups()).toEqual(['nova.sqlite.v3.bak']);
+
+    const fresh = openDatabase(':memory:', all);
+    const upgraded = new Database(':memory:');
+    migrate(upgraded, [a, insert]);
+    expect(migrate(upgraded, all)).toBe(2);
+    expect(recorded(upgraded)).toEqual(ids(all));
+    for (const db of [dev, upgraded]) {
+      expect(snapshot(db)).toEqual(snapshot(fresh));
+      expect(sorted(db)).toEqual(sorted(fresh));
+      db.close();
+    }
+    fresh.close();
   });
 
   it('refuses a database that ran a migration this server does not know', () => {
@@ -310,11 +359,8 @@ describe('the order of the IDs', () => {
     migrate(db, [a, b, c]);
     expect(() => migrate(db, [a, b])).toThrow(unknown(c));
     expect(() => migrate(db, [a, c])).toThrow(unknown(b));
-    const other = { ...c, id: '20261102T0800-other' };
-    expect(() => migrate(db, [a, other, b, c])).toThrow(
-      `Migration ${other.id} is older than migration ${b.id}`,
-    );
     expect(recorded(db)).toEqual([a.id, b.id, c.id]);
+    expect(version(db)).toBe(3);
     db.close();
   });
 });

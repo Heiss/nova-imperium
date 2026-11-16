@@ -24,15 +24,17 @@ const TIMEOUT = Math.max(10_000, RUNS * 50);
 const CLASSIFY = { numRuns: 25, seed: 1 };
 
 // The upgrade test of a migration is named after its ID (#213), so it keeps
-// its name when another migration is merged first; the 20 migrations from
+// its name when another migration sorts before it; the 20 migrations from
 // before the IDs keep the name with their number.
-const RELEASED_BY_NUMBER = 20;
-const upgradeTests = (n: number): string[] => [
-  `src/server/db/upgrades/${MIGRATIONS[n - 1]!.id}.test.ts`,
-  ...(n <= RELEASED_BY_NUMBER
-    ? [`src/server/db/upgrades/migration-${n}.test.ts`]
-    : []),
-];
+const upgradeTests = (n: number): string[] => {
+  const { id, number } = MIGRATIONS[n - 1]!;
+  return [
+    `src/server/db/upgrades/${id}.test.ts`,
+    ...(number === undefined
+      ? []
+      : [`src/server/db/upgrades/migration-${number}.test.ts`]),
+  ];
+};
 
 /** The property: the upgrade succeeds and leaves a consistent database. */
 function consistentUpgrade(

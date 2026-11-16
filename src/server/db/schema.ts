@@ -1,24 +1,36 @@
 // Versioned migrations of the SQLite database. A migration is never changed
-// after it was released; a change of the schema is a new entry at the end.
-// The CI job "Migrations append-only" enforces this (migration-history.ts).
+// or removed once it is on main; a change of the schema is a new entry. The
+// CI job "Migrations append-only" enforces this (migration-history.ts).
 //
 // Every migration has a fixed ID, a UTC time stamp and a short name
-// (`YYYYMMDDTHHMM-name`, #213 D1); the migrations run in the order of their
-// IDs, and the table schema_migrations records the IDs a database has run
-// (D2). A new migration takes the UTC time it was written and goes at the
-// end: its ID must sort after every released one. The first 20 migrations
-// were numbered by their place; their time stamps are the UTC commit time
-// (minutes, seconds cut) of the commit on main that added them, and a
-// database at user_version N has run the first N of them. Migrations 7 and
-// 8 came in the same commit; their names keep them in their old order.
+// (`YYYYMMDDTHHMM-name`, #213 D1); the list is sorted by ID, the migrations
+// run in that order, and the table schema_migrations records the IDs a
+// database has run (D2). A new migration takes the UTC time it was written;
+// its ID must sort after the newest migration of the last release (owner,
+// 2026-11-16), so unreleased migrations may be merged in any order and one
+// with an older ID goes before a newer unreleased one. The first 20
+// migrations were numbered by their place (`number`); their time stamps are
+// the UTC commit time (minutes, seconds cut) of the commit on main that
+// added them. Migrations 7 and 8 came in the same commit; their names keep
+// them in their old order.
 
-/** One migration: its fixed ID and its SQL, which never changes once released. */
-export type Migration = { readonly id: string; readonly sql: string };
+/**
+ * One migration: its fixed ID and its SQL, which never change once on main.
+ * `number` is the place of the 20 migrations from before the IDs; a
+ * database at user_version N without schema_migrations has run numbers 1
+ * to N (D2). Later migrations have none.
+ */
+export type Migration = {
+  readonly id: string;
+  readonly sql: string;
+  readonly number?: number;
+};
 
 export const MIGRATIONS: readonly Migration[] = [
   // 1: the first schema
   {
     id: '20261106T2104-first-schema',
+    number: 1,
     sql: `
   CREATE TABLE settings (
     key TEXT PRIMARY KEY,
@@ -169,6 +181,7 @@ export const MIGRATIONS: readonly Migration[] = [
   },
   {
     id: '20261107T0911-account-tokens',
+    number: 2,
     sql: `
   CREATE TABLE account_tokens (
     token_hash TEXT PRIMARY KEY,
@@ -185,6 +198,7 @@ export const MIGRATIONS: readonly Migration[] = [
   },
   {
     id: '20261107T0924-guilds',
+    number: 3,
     sql: `
   CREATE TABLE guilds (
     id TEXT PRIMARY KEY,
@@ -203,6 +217,7 @@ export const MIGRATIONS: readonly Migration[] = [
   },
   {
     id: '20261107T0945-push',
+    number: 4,
     sql: `
   CREATE TABLE push_keys (
     id INTEGER PRIMARY KEY CHECK (id = 1),
@@ -230,6 +245,7 @@ export const MIGRATIONS: readonly Migration[] = [
   },
   {
     id: '20261107T1403-achievements',
+    number: 5,
     sql: `
   CREATE TABLE achievement_progress (
     user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -253,6 +269,7 @@ export const MIGRATIONS: readonly Migration[] = [
   // 6: admin audit, activity estimates and account suspensions
   {
     id: '20261107T1417-admin-audit',
+    number: 6,
     sql: `
   CREATE TABLE audit_events (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -287,6 +304,7 @@ export const MIGRATIONS: readonly Migration[] = [
   // 7: retain announcement text until push delivery
   {
     id: '20261107T1556-announcement-text',
+    number: 7,
     sql: `
   ALTER TABLE push_jobs ADD COLUMN body TEXT;
   `,
@@ -294,6 +312,7 @@ export const MIGRATIONS: readonly Migration[] = [
   // 8: passkey credentials and short-lived WebAuthn challenges
   {
     id: '20261107T1556-passkeys',
+    number: 8,
     sql: `
   CREATE TABLE passkeys (
     id TEXT PRIMARY KEY,
@@ -315,6 +334,7 @@ export const MIGRATIONS: readonly Migration[] = [
   // 9: allow colonization and preserve existing fleets and ships
   {
     id: '20261108T1207-colonization',
+    number: 9,
     sql: `
   ALTER TABLE fleet_ships RENAME TO old_fleet_ships;
   ALTER TABLE fleets RENAME TO old_fleets;
@@ -371,6 +391,7 @@ export const MIGRATIONS: readonly Migration[] = [
   // 10: display option of the explanation texts per player (issue #63)
   {
     id: '20261112T1613-explanation-texts',
+    number: 10,
     sql: `
   ALTER TABLE users ADD COLUMN explain_mode TEXT NOT NULL DEFAULT 'icon'
     CHECK (explain_mode IN ('always', 'icon', 'hidden'));
@@ -379,6 +400,7 @@ export const MIGRATIONS: readonly Migration[] = [
   // 11: the planet where the running research started (issue #49)
   {
     id: '20261112T1652-research-planet',
+    number: 11,
     sql: `
   ALTER TABLE users ADD COLUMN rq_planet TEXT;
   `,
@@ -386,6 +408,7 @@ export const MIGRATIONS: readonly Migration[] = [
   // 12: server errors, browser errors and problem reports (issue #126)
   {
     id: '20261112T2219-error-log',
+    number: 12,
     sql: `
   CREATE TABLE error_events (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -410,6 +433,7 @@ export const MIGRATIONS: readonly Migration[] = [
   // 13: the deploy mission and the fuel a fleet burnt (issue #129)
   {
     id: '20261113T0006-deploy-mission',
+    number: 13,
     sql: `
   ALTER TABLE fleet_ships RENAME TO old_fleet_ships;
   ALTER TABLE fleets RENAME TO old_fleets;
@@ -462,6 +486,7 @@ export const MIGRATIONS: readonly Migration[] = [
   // range of its position (16 and above like 15).
   {
     id: '20261113T1126-planet-fields',
+    number: 14,
     sql: `
   ALTER TABLE planets ADD COLUMN diameter INTEGER NOT NULL DEFAULT 0;
   ALTER TABLE planets ADD COLUMN unlimited INTEGER NOT NULL DEFAULT 0
@@ -490,6 +515,7 @@ export const MIGRATIONS: readonly Migration[] = [
   // their own table, empty until #45.
   {
     id: '20261113T2315-places',
+    number: 15,
     sql: `
   ALTER TABLE planet_buildings RENAME TO old_planet_buildings;
   ALTER TABLE planet_units RENAME TO old_planet_units;
@@ -594,6 +620,7 @@ export const MIGRATIONS: readonly Migration[] = [
   // of a Trümmerfeld (to_planet 'd<g>_<s>_<p>'), which needs no column.
   {
     id: '20261114T1315-harvest-mission',
+    number: 16,
     sql: `
   ALTER TABLE fleet_ships RENAME TO old_fleet_ships;
   ALTER TABLE fleets RENAME TO old_fleets;
@@ -648,6 +675,7 @@ export const MIGRATIONS: readonly Migration[] = [
   // report push keeps none and is delivered as before
   {
     id: '20261114T1638-push-kinds',
+    number: 17,
     sql: `
   CREATE TABLE push_off (
     user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -664,6 +692,7 @@ export const MIGRATIONS: readonly Migration[] = [
   // research and buildings when it arrives; fleets in flight are no gift.
   {
     id: '20261114T1809-gift-fleet',
+    number: 18,
     sql: `
   ALTER TABLE fleets ADD COLUMN gift INTEGER NOT NULL DEFAULT 0
     CHECK (gift IN (0, 1));
@@ -676,6 +705,7 @@ export const MIGRATIONS: readonly Migration[] = [
   // (its default rank); every other member gets Mitglied, an applicant none.
   {
     id: '20261114T1856-guild-ranks',
+    number: 19,
     sql: `
   CREATE TABLE guild_ranks (
     id TEXT PRIMARY KEY,
@@ -717,6 +747,7 @@ export const MIGRATIONS: readonly Migration[] = [
   // owner, 2026-11-15).
   {
     id: '20261115T0952-guild-chat',
+    number: 20,
     sql: `
   CREATE TABLE guild_rank_rights_new (
     rank_id TEXT NOT NULL REFERENCES guild_ranks(id) ON DELETE CASCADE,

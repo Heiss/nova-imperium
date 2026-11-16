@@ -30,8 +30,8 @@ const hasHistory = (db: Db): boolean =>
     .get() === 1;
 
 /**
- * The IDs the database has run, in order. A database from before #213 has
- * run the first user_version migrations (D2).
+ * The IDs the database has run. A database from before #213 has run the
+ * migrations numbered 1 to its user_version (D2).
  */
 function appliedIds(db: Db, migrations: readonly Migration[]): string[] {
   if (hasHistory(db))
@@ -40,18 +40,22 @@ function appliedIds(db: Db, migrations: readonly Migration[]): string[] {
       .pluck()
       .all() as string[];
   const current = schemaVersion(db);
-  if (current > migrations.length)
+  const numbered = migrations.filter((m) => m.number !== undefined).length;
+  if (current > numbered)
     throw new Error(
-      `The database has schema version ${current}, this server knows ${migrations.length}. Use the newer image or restore a backup.`,
+      `The database has schema version ${current}, this server knows ${numbered}. Use the newer image or restore a backup.`,
     );
-  return migrations.slice(0, current).map((m) => m.id);
+  return migrations
+    .filter((m) => (m.number ?? Infinity) <= current)
+    .map((m) => m.id);
 }
 
 /**
  * The migrations the database has still to run, in the order of their IDs.
- * The database must have run exactly the oldest of them: a migration it ran
- * that this server does not know, or one older than a migration it ran, is
- * refused, because it would run out of order (#213 D3).
+ * A database that ran a migration this server does not know is refused. An
+ * unreleased migration older than one the database ran already still runs:
+ * only a database that ran main in between sees that, a release upgrades in
+ * the order of the IDs (owner, 2026-11-16, #213).
  */
 export function pendingMigrations(
   db: Db,
@@ -59,17 +63,14 @@ export function pendingMigrations(
 ): readonly Migration[] {
   const order = orderViolation(migrations);
   if (order) throw new Error(order);
-  const applied = appliedIds(db, migrations);
-  const gap = applied.findIndex((id, i) => id !== migrations[i]?.id);
-  if (gap === -1) return migrations.slice(applied.length);
-  const id = applied[gap]!;
-  if (!migrations.some((m) => m.id === id))
+  const applied = new Set(appliedIds(db, migrations));
+  const known = new Set(migrations.map((m) => m.id));
+  const unknown = [...applied].find((id) => !known.has(id));
+  if (unknown !== undefined)
     throw new Error(
-      `The database has run migration ${id}, which this server does not know. Use the newer image or restore a backup.`,
+      `The database has run migration ${unknown}, which this server does not know. Use the newer image or restore a backup.`,
     );
-  throw new Error(
-    `Migration ${migrations[gap]!.id} is older than migration ${id}, which the database has run already; it would run out of order. A new migration needs an ID after every released one.`,
-  );
+  return migrations.filter((m) => !applied.has(m.id));
 }
 
 /** Starts the table of run migrations with what user_version says (D2). */

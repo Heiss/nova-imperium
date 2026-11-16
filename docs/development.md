@@ -77,12 +77,13 @@ node scripts/changelog.ts check origin/main             # a German changelog fra
 node scripts/okf-log.ts check                           # every entry of the update log in okf/log/ well-formed
 ```
 
-A schema change is a new migration at the end of `src/server/db/schema.ts`
-with a fixed ID: the UTC time you write it and a short name, for example
-`{ id: '20261114T1830-guild-ranks', sql: ... }`. The migrations run in the
-order of their IDs, so a new ID sorts after every released one; if another
-pull request merged a newer migration first, give yours a newer ID. A
-released migration is never moved, removed or changed, and keeps its ID.
+A schema change is a new migration in `src/server/db/schema.ts` with a
+fixed ID: the UTC time you write it and a short name, for example
+`{ id: '20261114T1830-guild-ranks', sql: ... }`. The list is sorted by ID
+and the migrations run in that order. A new ID must sort after the newest
+migration of the last release; if another pull request merged a newer
+migration first, keep your ID and put your migration before it. A
+migration on `main` is never removed or changed, and keeps its ID.
 Update the schema
 snapshot with `pnpm test src/server/db/schema.test.ts -u` and review
 its diff.

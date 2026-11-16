@@ -79,7 +79,7 @@ describe('order of the migrations', () => {
 
   it('refuses an ID out of order and the same ID twice', () => {
     const message = (id: string, before: string): string =>
-      `Migration ${id} does not sort after ${before}. Migrations run in the order of their IDs, each ID once; a new migration takes a newer ID and goes at the end.`;
+      `Migration ${id} does not sort after ${before}. Migrations are listed and run in the order of their IDs, each ID once.`;
     expect(orderViolation([b, a])).toBe(message(a.id, b.id));
     expect(orderViolation([a, c, b])).toBe(message(b.id, c.id));
     expect(orderViolation([a, { ...b, id: a.id }])).toBe(message(a.id, a.id));
@@ -136,19 +136,27 @@ describe('order of the migrations', () => {
 });
 
 describe('migration history', () => {
-  const differs = (n: number, id: string): string =>
-    `Migration ${n} (${id}) differs from the base. Released migrations keep their ID and SQL and are never moved; add a new migration with a newer ID at the end.`;
+  const KEEP =
+    'Migrations keep their ID and SQL byte for byte; correct one with a new migration.';
+  const differs = (id: string, what = 'the base'): string =>
+    `Migration ${id} differs from ${what}. ${KEEP}`;
+  const gone = (id: string, what = 'the base'): string =>
+    `Migration ${id} of ${what} was removed or got another ID. ${KEEP}`;
+  const early = (id: string, newest: string): string =>
+    `Migration ${id} is older than ${newest}, the newest migration of the last release. A new migration needs an ID after the last release.`;
 
   it('accepts an unchanged history and appended migrations', () => {
     expect(migrationHistoryViolation(base, base)).toBeNull();
     expect(migrationHistoryViolation(base, [...base, c])).toBeNull();
     expect(migrationHistoryViolation([], base)).toBeNull();
+    expect(migrationHistoryViolation(base, [...base, c], base)).toBeNull();
   });
 
   it('rejects a removed migration', () => {
     expect(migrationHistoryViolation(base, base.slice(0, 1))).toBe(
       'Migrations were removed: the base has 2, this change has 1.',
     );
+    expect(migrationHistoryViolation(base, [a, c])).toBe(gone(b.id));
   });
 
   it('rejects moved migrations and names the first one', () => {
@@ -156,58 +164,112 @@ describe('migration history', () => {
       { ...a, sql: b.sql },
       { ...b, sql: a.sql },
     ];
-    expect(migrationHistoryViolation(base, swapped)).toBe(differs(1, a.id));
+    expect(migrationHistoryViolation(base, swapped)).toBe(differs(a.id));
   });
 
-  it('rejects a migration inserted before a released one', () => {
-    const inserted = { id: '20261101T0900-inserted', sql: 'SELECT 1;' };
-    expect(migrationHistoryViolation(base, [a, inserted, b])).toBe(
-      differs(2, inserted.id),
-    );
-  });
-
-  it('rejects any change of a released migration, whitespace included', () => {
+  it('rejects any change of a migration of the base, whitespace included', () => {
     expect(
       migrationHistoryViolation(base, [a, { ...b, sql: `${b.sql} ` }]),
-    ).toBe(differs(2, b.id));
+    ).toBe(differs(b.id));
   });
 
-  it('rejects a changed ID of a released migration', () => {
+  it('rejects a changed ID of a migration of the base', () => {
     const renamed = { ...b, id: '20261102T0900-renamed' };
-    expect(migrationHistoryViolation(base, [a, renamed])).toBe(
-      differs(2, renamed.id),
-    );
+    expect(migrationHistoryViolation(base, [a, renamed])).toBe(gone(b.id));
   });
 
-  // The strict variant of D3: a new migration may not take an ID older than
-  // a released one, so every database runs the migrations in the same order.
-  it('rejects a new migration with an ID older than a released one', () => {
-    const older = { id: '20261101T2000-older', sql: 'SELECT 1;' };
-    expect(migrationHistoryViolation(base, [...base, older])).toBe(
-      `Migration ${older.id} does not sort after ${b.id}. Migrations run in the order of their IDs, each ID once; a new migration takes a newer ID and goes at the end.`,
-    );
-  });
-
-  it('rejects a change whose migrations are not in order, even when nothing was released', () => {
+  it('rejects a change whose migrations are not in order', () => {
     expect(migrationHistoryViolation([], [b, a])).toMatch(
       /^Migration 20261101T0800-a does not sort after 20261102T0900-b\./,
     );
   });
 
-  // A base from before #213 lists the SQL only: the first N migrations keep
-  // their SQL byte for byte and get their IDs (D2).
-  it('compares a base without IDs by its SQL', () => {
+  // Acceptance criterion 1 of #213 under the rule of the owner
+  // (2026-11-16): two pull requests that each add a migration after the
+  // last release merge in either order, without a new ID.
+  it('merges two unreleased migrations in either order', () => {
+    const release = [a];
+    // b first, then c (c is newer): c goes at the end.
+    expect(migrationHistoryViolation([a, b], [a, b, c], release)).toBeNull();
+    // c first, then b (b is older): b goes before c.
+    expect(migrationHistoryViolation([a, c], [a, b, c], release)).toBeNull();
+  });
+
+  it('rejects a new migration older than the newest of the last release', () => {
+    const older = { id: '20261101T2000-older', sql: 'SELECT 1;' };
+    expect(migrationHistoryViolation([a, b], [a, older, b, c], [a, b])).toBe(
+      early(older.id, b.id),
+    );
+    const oldest = { id: '20261101T0700-oldest', sql: 'SELECT 1;' };
+    expect(migrationHistoryViolation([a, b], [oldest, a, b], [a])).toBe(
+      early(oldest.id, a.id),
+    );
+    expect(migrationHistoryViolation([a], [a, older], [a])).toBeNull();
+  });
+
+  // Open point 2 of #213: a hotfix migration merged back into main. The
+  // release is the hotfix tag; an unreleased migration of main that is
+  // older than the hotfix migration was checked when it came and passes.
+  it('accepts a hotfix migration merged back into main', () => {
+    const hotfix = { id: '20261102T1200-hotfix', sql: 'SELECT 2;' };
+    // main has b (older than the hotfix) and c (newer) after the release a.
+    expect(
+      migrationHistoryViolation([a, b, c], [a, b, hotfix, c], [a, hotfix]),
+    ).toBeNull();
+    // The same compared with the release tag of main.
+    expect(
+      migrationHistoryViolation([a, b, c], [a, b, hotfix, c], [a]),
+    ).toBeNull();
+  });
+
+  it('uses the IDs of a base with IDs, not their places', () => {
+    const hotfix = { id: '20261104T0000-hotfix', sql: 'SELECT 2;' };
+    expect(
+      migrationHistoryViolation([b, c], [a, b, c, hotfix], [a, hotfix]),
+    ).toBeNull();
+    expect(migrationHistoryViolation([], [a, b], [a, b])).toBeNull();
+  });
+
+  it('rejects a lost or changed migration of the last release', () => {
+    const release = 'the last release';
+    expect(migrationHistoryViolation([], [b], [a, b])).toBe(
+      'Migrations were removed: the last release has 2, this change has 1.',
+    );
+    expect(migrationHistoryViolation([], [b, c], [a, b])).toBe(
+      gone(a.id, release),
+    );
+    expect(
+      migrationHistoryViolation([], [{ ...a, sql: 'SELECT 3;' }, b], [a, b]),
+    ).toBe(differs(a.id, release));
+  });
+
+  // A base or release from before #213 lists the SQL only: its migrations
+  // are the first of the change, in order, byte for byte (D2).
+  it('compares a base without IDs by its SQL, in order', () => {
     const old = [a.sql, b.sql];
     expect(migrationHistoryViolation(old, base)).toBeNull();
     expect(migrationHistoryViolation(old, [...base, c])).toBeNull();
+    // This pull request: base and release without IDs, the IDs attached.
+    expect(migrationHistoryViolation(old, [...base, c], [a.sql])).toBeNull();
     expect(migrationHistoryViolation(old, [a])).toBe(
       'Migrations were removed: the base has 2, this change has 1.',
     );
     expect(
       migrationHistoryViolation(old, [a, { ...b, sql: `${b.sql}\n` }]),
-    ).toBe(differs(2, b.id));
+    ).toBe(differs(b.id));
     expect(migrationHistoryViolation(old, [{ ...a, sql: b.sql }, c])).toBe(
-      differs(1, a.id),
+      differs(a.id),
+    );
+  });
+
+  it('compares a release without IDs by its SQL, in order', () => {
+    const old = [a.sql];
+    const between = { id: '20261102T1000-between', sql: 'SELECT 4;' };
+    expect(migrationHistoryViolation([a, c], [a, b, c], old)).toBeNull();
+    expect(migrationHistoryViolation([a, c], [a, between, c], old)).toBeNull();
+    const first = { id: '20261101T0000-first', sql: 'SELECT 5;' };
+    expect(migrationHistoryViolation([a], [first, a], old)).toBe(
+      differs(first.id, 'the last release'),
     );
   });
 });

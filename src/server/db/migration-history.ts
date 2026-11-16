@@ -1,8 +1,10 @@
-// A released migration is never moved, removed or changed, and its ID stays:
-// a database records the IDs it has run (schema_migrations), so a changed
+// A migration on main is never removed or changed, and its ID stays: a
+// database records the IDs it has run (schema_migrations), so a changed
 // migration is silently skipped on existing databases. A new schema change is
-// a new entry at the end with an ID that sorts after every released one
-// (#213). The CI job "Migrations append-only" compares a change with its base.
+// a new entry with an ID that sorts after the newest migration of the last
+// release; unreleased migrations may be merged in any order, the list stays
+// sorted by ID (#213, owner, 2026-11-16). The CI job "Migrations
+// append-only" compares a change with its base and with the last release.
 import type { Migration } from './schema.ts';
 
 /** A migration of a base commit; one before #213 is its SQL without an ID. */
@@ -30,26 +32,95 @@ export function orderViolation(
     const invalid = idViolation(id);
     if (invalid) return `Migration ${i + 1}: ${invalid}`;
     if (i > 0 && migrations[i - 1]!.id >= id)
-      return `Migration ${id} does not sort after ${migrations[i - 1]!.id}. Migrations run in the order of their IDs, each ID once; a new migration takes a newer ID and goes at the end.`;
+      return `Migration ${id} does not sort after ${migrations[i - 1]!.id}. Migrations are listed and run in the order of their IDs, each ID once.`;
   }
   return null;
 }
 
-const differs = (released: ReleasedMigration, now: Migration): boolean =>
-  typeof released === 'string'
-    ? released !== now.sql
-    : released.id !== now.id || released.sql !== now.sql;
+const KEEP =
+  'Migrations keep their ID and SQL byte for byte; correct one with a new migration.';
 
-/** Returns why `head` does not only append to `base`, or null. */
+const changed = (now: Migration, sql: string, what: string): string | null =>
+  now.sql === sql ? null : `Migration ${now.id} differs from ${what}. ${KEEP}`;
+
+function keptOne(
+  m: Migration,
+  head: readonly Migration[],
+  what: string,
+): string | null {
+  const now = head.find((h) => h.id === m.id);
+  if (!now)
+    return `Migration ${m.id} of ${what} was removed or got another ID. ${KEEP}`;
+  return changed(now, m.sql, what);
+}
+
+/**
+ * Why `head` lost or changed a migration of `list`, or null. A list from
+ * before #213 has no IDs: its migrations are the first of `head`, in order.
+ */
+function keptViolation(
+  list: readonly ReleasedMigration[],
+  head: readonly Migration[],
+  what: string,
+): string | null {
+  if (head.length < list.length)
+    return `Migrations were removed: ${what} has ${list.length}, this change has ${head.length}.`;
+  for (const [i, m] of list.entries()) {
+    const violation =
+      typeof m === 'string'
+        ? changed(head[i]!, m, what)
+        : keptOne(m, head, what);
+    if (violation) return violation;
+  }
+  return null;
+}
+
+/** The IDs of `list` in `head`; a list from before #213 is the first of `head`. */
+const idsIn = (
+  list: readonly ReleasedMigration[],
+  head: readonly Migration[],
+): string[] => list.map((m, i) => (typeof m === 'string' ? head[i]!.id : m.id));
+
+/**
+ * Why a migration that is new in `head` (neither in the base nor in the
+ * release) is older than the newest migration of the release, or null.
+ */
+function earlyViolation(
+  base: readonly ReleasedMigration[],
+  release: readonly ReleasedMigration[],
+  head: readonly Migration[],
+): string | null {
+  const released = idsIn(release, head);
+  if (released.length === 0) return null;
+  const known = new Set([...idsIn(base, head), ...released]);
+  const newest = released.at(-1)!;
+  // The list is sorted: what stands before the newest released one is older.
+  const early = head
+    .slice(
+      0,
+      head.findIndex((m) => m.id === newest),
+    )
+    .find((m) => !known.has(m.id));
+  if (!early) return null;
+  return `Migration ${early.id} is older than ${newest}, the newest migration of the last release. A new migration needs an ID after the last release.`;
+}
+
+/**
+ * Returns why `head` is not sorted by valid IDs, lost or changed a migration
+ * of `base` (the base of the pull request) or of `release` (the last release
+ * tag), or adds one older than the newest migration of the release; or null.
+ * A migration of the base older than the release passes: it was checked when
+ * it came, and a hotfix merged back into main brings such a release.
+ */
 export function migrationHistoryViolation(
   base: readonly ReleasedMigration[],
   head: readonly Migration[],
+  release: readonly ReleasedMigration[] = base,
 ): string | null {
-  const order = orderViolation(head);
-  if (order) return order;
-  if (head.length < base.length)
-    return `Migrations were removed: the base has ${base.length}, this change has ${head.length}.`;
-  const changed = base.findIndex((m, i) => differs(m, head[i]!));
-  if (changed === -1) return null;
-  return `Migration ${changed + 1} (${head[changed]!.id}) differs from the base. Released migrations keep their ID and SQL and are never moved; add a new migration with a newer ID at the end.`;
+  return (
+    orderViolation(head) ??
+    keptViolation(base, head, 'the base') ??
+    keptViolation(release, head, 'the last release') ??
+    earlyViolation(base, release, head)
+  );
 }

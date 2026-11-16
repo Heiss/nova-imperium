@@ -550,11 +550,12 @@ jobs:
       - name: No known high or critical holes in the production dependencies
         run: pnpm audit --prod --audit-level high
 
-  # A released migration is never moved, removed or changed and keeps its
-  # ID; existing databases would skip it silently. New migrations sort after
-  # every released ID (#213). Compares the checked-out change (the merge
-  # result of a pull request) with the base of the pull request, or a push
-  # to main with the previous tip of main. Runs for every change.
+  # A migration on main is never removed or changed and keeps its ID;
+  # existing databases would skip it silently. A new migration sorts after
+  # the newest migration of the last release (#213, owner, 2026-11-16).
+  # Compares the checked-out change (the merge result of a pull request)
+  # with the base of the pull request, or a push to main with the previous
+  # tip of main, and with the last release tag. Runs for every change.
   migrations:
     name: Migrations append-only
     runs-on: ubuntu-latest
@@ -582,7 +583,9 @@ jobs:
             echo "::error::No base commit to compare the migrations with."
             exit 1
           fi
-          node .github/scripts/migrations-gate.mjs "$BASE"
+          RELEASE=$(git describe --tags --abbrev=0 --match '[0-9]*.[0-9]*.[0-9]*' HEAD) ||
+            { echo "::error::No release tag to compare the migrations with."; exit 1; }
+          node .github/scripts/migrations-gate.mjs "$BASE" "$RELEASE"
 
   # The workflows themselves: actionlint (syntax, expressions, shell) and
   # zizmor (security, e.g. unpinned actions, persisted credentials).

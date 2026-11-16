@@ -60,7 +60,7 @@
     "src/server/auth.ts": 95,
     "src/server/commands.ts": 79.71,
     "src/server/config.ts": 93.9,
-    "src/server/db/database.ts": 93.44,
+    "src/server/db/database.ts": 93.51,
     "src/server/db/migration-history.ts": 100,
     "src/server/db/repos/admin.ts": 100,
     "src/server/db/repos/guilds.ts": 100,

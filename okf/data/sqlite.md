@@ -71,22 +71,27 @@ before upgrades.
 
 ## Released migrations are append-only
 
-A database only runs the migrations whose IDs it has not recorded. A moved,
+A database only runs the migrations whose IDs it has not recorded. A
 removed or changed migration is therefore skipped silently on existing
-databases, and a migration whose ID changed would run a second time. Released means merged to `main`, because every green push to
-`main` is tagged. Rules, after Flyway and sqlx (checksums of applied
+databases, and a migration whose ID changed would run a second time. A
+migration is released when a release tag holds it; once it is on `main` it
+does not change either, because databases of `main` (staging, candidates,
+development) have run it. Rules, after Flyway and sqlx (checksums of applied
 migrations), Atlas (`migrate lint` against the Git base) and GitLab
 (committed `structure.sql`):
 
-* **[E]** A schema change is a new entry at the end of `MIGRATIONS`. A wrong
+* **[E]** A schema change is a new entry of `MIGRATIONS`, at its place in
+  the order of the IDs (see [Migration IDs](#migration-ids-213)). A wrong
   migration is corrected by a further migration, never by an edit.
 * **[E]** The CI job "Migrations append-only"
-  (`.github/scripts/migrations-gate.mjs`) requires the migrations of the base
-  commit to be an unchanged prefix, byte for byte, now with their IDs (#213:
-  a released ID never changes or disappears; a base from before #213 has no
-  IDs and is compared by its SQL). **[V]** It also requires the list to be
-  in strict order of valid IDs, so a new migration needs an ID after every
-  released one (below). It is part of the CI Gate
+  (`.github/scripts/migrations-gate.mjs`) requires every migration of the
+  base commit and of the last release tag (`git describe --tags --abbrev=0
+  --match '[0-9]*.[0-9]*.[0-9]*' HEAD`, as the hotfix path does) to be still
+  there, with the same ID and the same SQL byte for byte; a list from before
+  #213 has no IDs and is compared by its SQL, as the first migrations in
+  order. It requires the list to be in strict order of valid IDs, and a
+  migration that is new in the change to have an ID after the newest
+  migration of the last release (#213, owner, 2026-11-16). It is part of the CI Gate
   for every change, documentation included, and runs again on every push to
   `main`, so a failed run there also stops the automatic tag.
 * **[E]** `src/server/db/schema.snapshot.sql` holds the schema after all
@@ -118,6 +123,25 @@ pull requests that each add a migration no longer renumber one of them:
   changes (its SQL stayed byte for byte, only the ID was attached; the CI job
   „Migrations append-only“ compared it with `main`), and the upgrade tests
   run on real data.
+* **[E]** Strict from the release (owner, 2026-11-16, „Streng ab Release“;
+  this replaces the strict variant against `main` that the first pull
+  request of #213 proposed as [V]): a new migration ID must sort after the
+  newest migration of the last release tag, not after everything on `main`.
+  Unreleased migrations may be merged in any order; `MIGRATIONS` stays
+  sorted by ID, so a pull request merged later with an older (but
+  post-release) ID goes between the unreleased ones, and neither pull
+  request changes its ID. Production always upgrades from a release, so it
+  runs the migrations in the order of their IDs. Only a database that ran
+  `main` in between (staging, development) can run an unreleased migration
+  after a newer one; the server runs every migration it has not recorded,
+  in the order of the IDs, even when it is older than one it ran. It still
+  refuses a database that ran a migration it does not know (a newer
+  database) and a list out of order.
+* **[E]** This also settles open point 2 of the first pull request: a
+  hotfix migration merged back into `main` passes. Its migration is in the
+  hotfix release, and the unreleased migrations of `main` were checked when
+  they came, so the check of the release applies to new migrations only
+  (neither in the base nor in the release).
 
 The code (`src/server/db/database.ts`, `src/server/db/migration-history.ts`,
 tests `migration-ids.test.ts` and `migration-history.test.ts`):
@@ -127,34 +151,33 @@ tests `migration-ids.test.ts` and `migration-history.test.ts`):
   exists (`idViolation`); the list must be in strict order, each ID once
   (`orderViolation`, also a property test on random IDs).
 * A database without `schema_migrations` gets the table
-  (`id TEXT NOT NULL PRIMARY KEY`, `STRICT`) with the IDs of its first
-  `user_version` migrations, in the same transaction as the migrations that
-  follow; a failing migration leaves no table behind. A database newer than
-  the server is refused before anything changes, as before.
-* **[V]** The strict variant of D3: a database must have run exactly the
-  oldest migrations of the list. A migration it ran that the server does not
-  know is refused („Use the newer image“), and so is a migration with an ID
-  older than one the database ran already, because it would run out of
-  order there and in order on a new database. The CI job refuses such a
-  migration before it is merged: a new migration takes an ID after every
-  released one. Not decided by the owner: whether a new migration may take
-  an ID older than a released one (a lenient variant would run it out of
-  order on existing databases). With the strict variant, a pull request
-  whose migration has an older ID than one merged before it gives its
-  migration a newer ID (the ID only; its upgrade test is named by the ID).
+  (`id TEXT NOT NULL PRIMARY KEY`, `STRICT`) with the IDs of the
+  migrations numbered 1 to its `user_version`, in the same transaction as
+  the migrations that follow; a failing migration leaves no table behind. A
+  database newer than the server is refused before anything changes, as
+  before. The 20 migrations from before the IDs carry their old place as
+  `number`, because a later migration may sort between them while they are
+  unreleased (the last release, 26.11.22, holds 13); D2 counts these
+  numbers, not the places in the list.
+* `pendingMigrations` returns every migration the database has not
+  recorded, in the order of the IDs; it refuses a recorded ID the server
+  does not know.
 * **[V]** `user_version` keeps the number of migrations run, so the names
   of the backups (`nova.sqlite.v20.bak`), their check and the refusal of a
   newer database by an older image stay as they were.
 * **[V]** Starting the table on an existing database changes its schema,
   so the server writes the checked backup first, as before a migration; a
-  database at version 20 from the last release gets `nova.sqlite.v20.bak`.
+  database of version 20 gets `nova.sqlite.v20.bak`, one of the last
+  release (13 migrations) `nova.sqlite.v13.bak` before 14 to 20 run.
 * **[V]** `schema_migrations` holds the ID only; nothing asked for the time
   a migration ran.
 * **[V]** The upgrade test of a new migration is
   `src/server/db/upgrades/<id>.test.ts` and names its migration by ID
   (`migrationsThrough(id)` in `src/test/migrations.ts`), so it keeps its
-  name and its data when another migration is merged first; the 20
-  migrations before the IDs keep `migration-<n>.test.ts`.
+  name and its data when another migration sorts before it; the 20
+  migrations before the IDs keep `migration-<n>.test.ts`. Those use the
+  places in the list (`MIGRATIONS.slice(0, n)`) and would need
+  `migrationsThrough` if a new migration ever sorted between them.
 
 The 20 IDs of D2. The time stamp is the UTC commit time of the commit on
 `main` that added the migration, cut to the minute: the first-parent history
