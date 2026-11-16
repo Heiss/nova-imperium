@@ -146,11 +146,15 @@ tasks).
   out-of-memory stop of 2026-11-15 came from Stryker and E2E of two agents
   at once) and usage; merge conflicts are no longer the reason, since
   most of them were in `okf/log.md` before #212.
-* **[E]** The loop never only waits: while fewer than two subagents build
-  and an issue with `ready` exists that does not depend on the open pull
-  requests, it starts the next one at once, also while it waits on CI or a
-  review (owner, 2026-11-16). Waiting with one free place wastes the time
-  of the release; the limit of two stays for memory and usage.
+* **[E]** Two subagents always build (owner, 2026-11-16): when one
+  finishes, the loop starts the next issue with `ready` that does not
+  depend on the open pull requests at once, also while it waits on CI or a
+  review. Only the main agent waits, and it does not build itself; it
+  finishes the open pull requests, cleans up (worktrees, labels), looks for
+  new issues and pull requests, gets the owner's decisions so that the next
+  issues become `ready`, and does whatever else keeps both agents building.
+  Waiting with a free place wastes the time of the release; the limit of
+  two stays for memory and usage.
 * **[E]** An open pull request takes `main` in only when it is the next one
   to merge (CI green on its head, every finding answered), when GitHub
   reports a conflict (then no CI starts, as seen on #194), or when it needs code
