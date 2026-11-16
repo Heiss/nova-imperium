@@ -155,4 +155,37 @@ describe('planets repository', () => {
       'UNIQUE constraint failed: planets.g, planets.s, planets.p, planets.kind',
     );
   });
+
+  it('deletes one place with its buildings, units, shares and queues (#95)', () => {
+    const ctx = testCtx();
+    addUser(ctx, 'Anna');
+    const p = addPlanet(ctx, 'u_Anna', { b: { metal: 1 }, ships: { lf: 1 } });
+    const moon = addPlanet(ctx, 'u_Anna', {
+      id: placeId({ ...p, kind: 'moon' }),
+      kind: 'moon',
+      b: { moonbase: 1 },
+      ships: { sc: 2 },
+      def: { rl: 3 },
+      pct: { sat: 50 },
+      sq: [{ key: 'rl', n: 1, unit: 10 }],
+      sqT: 5,
+    });
+    ctx.planets.delete(moon.id);
+    expect(ctx.planets.get(moon.id)).toBeNull();
+    expect(ctx.planets.get(p.id)).toEqual(p);
+    for (const table of [
+      'planet_buildings',
+      'planet_units',
+      'planet_production',
+      'shipyard_queue',
+    ])
+      expect(
+        ctx.db.prepare(`SELECT DISTINCT planet_id FROM ${table}`).pluck().all(),
+        table,
+      ).toEqual(
+        table === 'planet_buildings' || table === 'planet_units' ? [p.id] : [],
+      );
+    ctx.planets.delete('none');
+    expect(ctx.planets.all()).toEqual([p]);
+  });
 });

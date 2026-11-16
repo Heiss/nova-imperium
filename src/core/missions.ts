@@ -12,10 +12,12 @@ import type { Levels, Mission, Planet } from './types.ts';
 
 /**
  * What a mission flies to: an own planet, a foreign one, any planet, a
- * free position without a planet, or a Trümmerfeld (#45), which is a place
- * of its own beside a planet at the same position (#119).
+ * free position without a planet, a Trümmerfeld (#45), which is a place
+ * of its own beside a planet at the same position (#119), or a foreign moon
+ * and nothing else (the Mondbruch, #95).
  */
-export type TargetKind = 'own' | 'foreign' | 'any' | 'free' | 'debris';
+export type TargetKind =
+  'own' | 'foreign' | 'any' | 'free' | 'debris' | 'foreignMoon';
 
 /**
  * Why a fleet cannot be sent, as a code; the server turns it into today's
@@ -33,7 +35,9 @@ export type SendError =
   | 'noDebris'
   | 'noRecycler'
   | 'noMoon'
-  | 'moonTarget';
+  | 'moonTarget'
+  | 'notMoon'
+  | 'noWorldbreaker';
 
 /** The fleet a player wants to send: its owner, its origin and its ships. */
 export interface SendFleet {
@@ -108,13 +112,15 @@ export const MISSION = Object.fromEntries(
 export function suits(
   kind: TargetKind,
   owner: string,
-  planet: Pick<Planet, 'owner'> | null,
+  planet: (Pick<Planet, 'owner'> & Partial<Pick<Planet, 'kind'>>) | null,
   debris = false,
 ): boolean {
   if (kind === 'debris') return debris;
   if (kind === 'free') return !planet;
   if (!planet) return false;
   if (kind === 'any') return true;
+  if (kind === 'foreignMoon')
+    return planet.kind === 'moon' && planet.owner !== owner;
   return (planet.owner === owner) === (kind === 'own');
 }
 
@@ -151,6 +157,19 @@ function targetError(
 }
 
 /**
+ * A foreign moon is first a moon (`notMoon`), then a foreign target with
+ * its checks (#95); the other kinds as before.
+ */
+function placeError(
+  kind: TargetKind,
+  fleet: SendFleet,
+  target: SendTarget,
+): SendError | undefined {
+  if (kind !== 'foreignMoon') return targetError(kind, fleet, target);
+  return target.moon ? targetError('foreign', fleet, target) : 'notMoon';
+}
+
+/**
  * Why a fleet of this mission cannot fly to the target: first the target
  * kind, then the mission's own `canSend`; nothing when it may fly. Slots,
  * cargo and fuel are checked by the server for every mission alike.
@@ -164,7 +183,6 @@ export function sendError(
   return (
     (rules.target === 'debris'
       ? debrisError(target)
-      : targetError(rules.target, fleet, target)) ??
-    rules.canSend(fleet, target)
+      : placeError(rules.target, fleet, target)) ?? rules.canSend(fleet, target)
   );
 }

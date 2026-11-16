@@ -1,7 +1,7 @@
 ---
 type: feature
 title: Moons with Mondzitadelle, Auspex-Phalanx and Warp-Tor
-description: Moons from large debris fields after a battle, their own buildings Mondzitadelle (classic Mondbasis), Auspex-Phalanx (Sensorphalanx) and Warp-Tor (Sprungtor), built in three pull requests (issue #53).
+description: Moons from large debris fields after a battle, their own buildings Mondzitadelle (classic Mondbasis), Auspex-Phalanx (Sensorphalanx) and Warp-Tor (Sprungtor), built in three pull requests (issue #53), and the mission „Mondbruch“ that destroys a moon (issue #95).
 ---
 
 # Moons
@@ -358,6 +358,90 @@ owiki.de „Mond“ (section Zerstörung, formula images). Built after the moons
   (Chance x %).“, „Der Mond hält stand (Chance x %).“, „Die Weltenbrecher
   wurden vom eigenen Schuss zerrissen (Chance y %).“; for the owner „Dein
   Mond bei [g:s:p] wurde zerstört.“
+* **[E]** What is lost with a destroyed moon (owner, 2026-11-16, „Geklärt,
+  Nachtrag“): everything on it, its stock, buildings, defense and queues.
+  Fleets flying to it land at its planet.
+* **[E]** Loot (owner, 2026-11-16): after a won battle the fleet plunders as
+  in an attack.
+* **[E]** The mission needs a migration (owner, 2026-11-16): the CHECK of
+  `fleets.mission` must allow it, so `fleets` and `fleet_ships` are rebuilt
+  as in migration 16, in the folder layout of #213 (#238).
+* **[V]** Taken as recommended (owner, 2026-11-16, „Geklärt, Nachtrag“):
+  fleets whose home is the destroyed moon return to its planet; a Mondbruch
+  fleet whose target has become a planet turns back with the existing
+  report „Flotte kehrt um“; the mission key and the send checks are
+  code-only names.
+
+## Built (#95: Mondbruch)
+
+* Rules: `src/core/moonbreak.ts` (patterns, section 7): `breakChance(d, n)`
+  min(100, (100 − √d) · √n), `lossChance(d)` √d / 2 and `moonbreak(d, n,
+  rng)`, two independent draws, the moon first, a hit when the draw is below
+  chance / 100 (as `formsMoon`). The decided formulas only: no lower bound,
+  which no diameter of the formula of #53 reaches (at most 8,944 km).
+* Mission `src/features/missions/moonbreak/` (key `moonbreak`, „Mondbruch“,
+  `order` 70): the new target kind `foreignMoon` (a foreign moon only, see
+  [Design patterns](/architecture/patterns.md), section 4); `canSend`
+  refuses a fleet without a Weltenbrecher (`noWorldbreaker`), the target
+  kind a target that is no moon (`notMoon`); a foreign moon is then checked
+  like a foreign target (own moon, noob protection).
+* Arrival: the steps of the Sturmangriff (battle with the moon's fleet and
+  defense, the battle's Trümmerfeld, rebuilt defense, loot after a won
+  battle with the free holds of the survivors, the audit entry `battle`,
+  both battle reports). After a won battle (an undefended moon is one: the
+  battle ends at once with the attacker as winner) with n surviving
+  Weltenbrecher the two rolls follow with the moon's diameter. A lost
+  Weltenbrecher roll removes only the Weltenbrecher from the fleet; the
+  loot stays with the fleet, and a fleet without other ships is gone. A
+  broken moon is removed with its buildings, units, production and queues
+  and the pushes of its queues (`destroyMoon` in
+  `src/server/game/moons.ts`, `planets.delete`); the fleets flying to it
+  fly to its planet, the fleets whose home it is come home there
+  (`fleets.reroute`). Neither leaves a Trümmerfeld. The rolls go into the
+  audit log (`system` / `moonbreak`: fleet, moon, both chances and
+  outcomes).
+* Reports: the attacker's battle report keeps `moonbreak` (`chance`,
+  `broken`, `loss`, `lost`) and shows „Der Mond ist zerbrochen (Chance x
+  %).“ or „Der Mond hält stand (Chance x %).“ and, when they are lost, „Die
+  Weltenbrecher wurden vom eigenen Schuss zerrissen (Chance y %).“; the
+  owner's battle report of a broken moon keeps `moonLost` and shows „Dein
+  Mond bei [g:s:p] wurde zerstört.“ (`src/client/logic/moonbreak.ts`, in
+  the lines of the battle report after the moon chance). They go with the
+  push kinds of every battle report (`fleet`, `attacked`).
+* Migration `20261116T2054-moonbreak` (`src/server/db/migrations/95/`, see
+  [SQLite storage](/data/sqlite.md)).
+* **[V]** Proposals of this pull request, taken as consistent with the
+  decisions above, for the owner to confirm:
+  * the rolls need at least one Weltenbrecher that survived the battle, and
+    n counts the survivors: a fleet that won without one rolls nothing;
+  * the three sentences of the rolls go into the attacker's battle report,
+    the owner's sentence into the owner's battle report, as lines after the
+    moon chance (as #53 put the moon into the battle report); the owner
+    does not read the rolls themselves;
+  * a chance shows in German with at most two decimals („36,75 %“,
+    „31,62 %“, „100 %“);
+  * the messages „Mondbruch nur gegen einen Mond.“ (after „Verlegung nur zu
+    einem eigenen Planeten.“) and „Du brauchst einen Weltenbrecher.“ (after
+    „Du brauchst eine Kolonistenarche.“);
+  * the rules data of the Sturmangriff: cargo, return, the ships visible to
+    the defender; not `alertsGuild`, which #169 D3 gives the attack only;
+  * fleets on their way home whose target was the moon keep it as their
+    target (only their leg back is shown), only outbound fleets fly to the
+    planet;
+  * the audit entry `moonbreak`.
+* Not built: an action „Mondbruch“ at a foreign moon on the Sternenkarte
+  (no decision names one; the fleet form offers it through „Sturmangriff“
+  at the moon and the select „Auftrag“), and a guild event for it.
+* Tests: `src/core/moonbreak.test.ts` (the example of the owner, the
+  formulas, properties, the draws with a seeded generator),
+  `src/core/missions.test.ts` (the kind `foreignMoon`),
+  `src/features/missions/moonbreak/moonbreak.test.ts` (rules, refusals, the
+  arrival with seeded draws: broken, held, lost Weltenbrecher, lost battle,
+  no Weltenbrecher left, a defended moon, the Trümmerfeld of the battle
+  only, loot, audit, pushes, the rerouted fleets and the turned back
+  Mondbruch), `src/server/game/missions.test.ts` (the contract with a moon
+  target), `src/client/logic/moonbreak.test.ts`, the upgrade test, and E2E
+  `e2e/moonbreak.spec.ts` (desktop and phone, axe on the reports).
 
 # Out of scope
 

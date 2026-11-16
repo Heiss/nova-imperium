@@ -15,6 +15,8 @@ export interface Planets {
   /** All planets by their coordinates. */
   all(): Planet[];
   save(p: Planet): void;
+  /** Removes a place with its buildings, units, production and queues (#95). */
+  delete(id: string): void;
   deleteAll(): void;
   /** The largest galaxy, system and position in use. */
   usedSize(): UsedSize;
@@ -163,6 +165,10 @@ export class SqlitePlanets implements Planets {
       'INSERT INTO shipyard_queue VALUES (?, ?, ?, ?, ?)',
     );
     p.sq.forEach((q, i) => sq.run(p.id, i, q.key, q.n, q.unit));
+  }
+
+  delete(id: string): void {
+    this.db.prepare('DELETE FROM planets WHERE id = ?').run(id);
   }
 
   deleteAll(): void {

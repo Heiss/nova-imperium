@@ -74,6 +74,8 @@ const SEND_ERROR: Readonly<Record<SendError, string>> = {
   noRecycler: 'Du brauchst eine Bergungsbarke.',
   noMoon: 'An dieser Position gibt es keinen Mond.',
   moonTarget: 'Ein Mond kann nicht das Ziel dieses Auftrags sein.',
+  notMoon: 'Mondbruch nur gegen einen Mond.',
+  noWorldbreaker: 'Du brauchst einen Weltenbrecher.',
 };
 
 const loadCargo = (p: Planet, rules: MissionRules, raw: unknown): Resources => {

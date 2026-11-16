@@ -179,6 +179,7 @@ describe('catalog', () => {
       'colonize',
       'deploy',
       'harvest',
+      'moonbreak',
     ]);
     expect(C.MISSION).toEqual(
       Object.fromEntries(Object.entries(MISSIONS).map(([k, m]) => [k, m.name])),

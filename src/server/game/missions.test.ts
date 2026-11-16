@@ -16,6 +16,7 @@ import type { Coords, Fleet, Mission } from '../../core/types.ts';
 import { addPlanet, addUser, testCtx } from '../test-helpers.ts';
 import { arrive, comeHome } from './arrival.ts';
 import { send } from './fleet-actions.ts';
+import { addMoon } from './moons.ts';
 import { foreignView } from './state.ts';
 
 const RULES: [Mission, MissionRules][] = MISSIONS.map(([m, r]) => [m, r]);
@@ -33,6 +34,8 @@ const FITS: Record<TargetKind, Coords> = {
   free: FREE,
   // A Trümmerfeld lies at Bert's planet (#45).
   debris: FOREIGN,
+  // Bert's planet has a moon (#95).
+  foreignMoon: FOREIGN,
 };
 const MISFITS: Record<TargetKind, Coords[]> = {
   own: [FOREIGN, FREE],
@@ -40,29 +43,37 @@ const MISFITS: Record<TargetKind, Coords[]> = {
   any: [FREE],
   free: [COLONY, FOREIGN],
   debris: [COLONY, FREE],
+  // Anna's colony has her own moon; the free position none.
+  foreignMoon: [COLONY, FREE],
 };
 
 const id = (c: Coords): string => `p${c.g}_${c.s}_${c.p}`;
 
-/** The place a mission flies to: a planet, or the Trümmerfeld (#45). */
+/** The kind of place a target kind flies to: a Trümmerfeld (#45), a moon (#95) or a planet. */
+const KIND: Partial<Record<TargetKind, 'debris' | 'moon'>> = {
+  debris: 'debris',
+  foreignMoon: 'moon',
+};
+
+/** The place a mission flies to: a planet, the Trümmerfeld or the moon. */
 const placeOf = (m: Mission, c: Coords): string =>
-  placeId({
-    ...c,
-    kind: missionRules(m)!.target === 'debris' ? 'debris' : 'planet',
-  });
+  placeId({ ...c, kind: KIND[missionRules(m)!.target] ?? 'planet' });
 
 function setup() {
   const ctx = testCtx();
   const anna = addUser(ctx, 'Anna');
-  // Points from research, so the noob protection does not shield him.
-  addUser(ctx, 'Bert', { research: { energy: 10 } });
+  // Points from research, so the noob protection does not shield him, also
+  // from the Weltenbrecher of Anna (#95).
+  addUser(ctx, 'Bert', { research: { energy: 14 } });
   addPlanet(ctx, anna.id, {
     ...HOME,
-    ships: { sc: 5, colony: 5, probe: 5, recycler: 5 },
+    ships: { sc: 5, colony: 5, probe: 5, recycler: 5, dstar: 5 },
   });
-  addPlanet(ctx, anna.id, { ...COLONY, name: 'Kolonie' });
-  addPlanet(ctx, 'u_Bert', { ...FOREIGN, name: 'Beta' });
+  const colony = addPlanet(ctx, anna.id, { ...COLONY, name: 'Kolonie' });
+  const beta = addPlanet(ctx, 'u_Bert', { ...FOREIGN, name: 'Beta' });
   ctx.debris.add(FOREIGN, { m: 100, c: 50 });
+  addMoon(ctx, colony, 1, ctx.now());
+  addMoon(ctx, beta, 1, ctx.now());
   return { ctx, anna };
 }
 
@@ -147,13 +158,16 @@ describe('the server part of every mission (contract)', () => {
 
   it.each(RULES)('%s: takes the cargo only if it carries cargo', (m, r) => {
     const sent: Fleet[] = [];
-    for (const ships of [{ sc: 1, colony: 1, recycler: 1 }, { probe: 1 }]) {
+    for (const ships of [
+      { sc: 1, colony: 1, recycler: 1, dstar: 1 },
+      { probe: 1 },
+    ]) {
       const { ctx, anna } = setup();
       try {
         send(ctx, anna, {
           planet: id(HOME),
           ships,
-          to: FITS[r.target],
+          to: { ...FITS[r.target], kind: KIND[r.target] ?? 'planet' },
           mission: m,
           cargo: { m: 5, c: 0, d: 0 },
           pct: 10,

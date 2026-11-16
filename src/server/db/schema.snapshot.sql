@@ -128,7 +128,7 @@ CREATE TABLE fleets (
     to_g INTEGER NOT NULL,
     to_s INTEGER NOT NULL,
     to_p INTEGER NOT NULL,
-    mission TEXT NOT NULL CHECK (mission IN ('attack', 'transport', 'spy', 'colonize', 'deploy', 'harvest')),
+    mission TEXT NOT NULL CHECK (mission IN ('attack', 'transport', 'spy', 'colonize', 'deploy', 'harvest', 'moonbreak')),
     cargo_m REAL NOT NULL,
     cargo_c REAL NOT NULL,
     cargo_d REAL NOT NULL,
@@ -137,9 +137,9 @@ CREATE TABLE fleets (
     ret INTEGER NOT NULL,
     state TEXT NOT NULL CHECK (state IN ('out', 'back')),
     recalled INTEGER NOT NULL DEFAULT 0,
-    fuel INTEGER NOT NULL DEFAULT 0
-  , gift INTEGER NOT NULL DEFAULT 0
-    CHECK (gift IN (0, 1))) STRICT;
+    fuel INTEGER NOT NULL DEFAULT 0,
+    gift INTEGER NOT NULL DEFAULT 0 CHECK (gift IN (0, 1))
+  ) STRICT;
 
 CREATE TABLE guild_chat (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
