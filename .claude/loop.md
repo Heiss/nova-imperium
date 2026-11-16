@@ -132,6 +132,8 @@ interface is German.
 ## Never
 
 - Merge a release pull request: the owner decides every release.
+- Merge a design study (`docs/design/`): it stays on its branch and pull
+  request.
 - Write the release pull request, `CHANGELOG.md` or `VERSION` by hand: the
   workflow „Release pull request“ (`scripts/release-pr.sh`) builds them
   from the fragments and the Git history. To refresh it, run that

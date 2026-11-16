@@ -384,6 +384,10 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   2026-11-10). It takes `main` into a branch only when that pull request is
   the next one to merge, has a conflict or needs code from `main` (owner,
   2026-11-15, [Release loop](/ops/loop.md)).
+* **[E]** A design study (mockups under `docs/design/`) is never merged into
+  `main`: it stays on its branch and in its open pull request, and its
+  issue links the pictures by branch or commit (owner, 2026-11-16, after
+  #244 merged the study of #243 by mistake; that one stays on `main`).
 * **[E]** CodeRabbit reviews every pull request when it is opened or marked
   ready, not drafts and not later pushes (`.coderabbit.yaml`, owner
   2026-11-11). It comments and does not request changes. Under O4 a finding
