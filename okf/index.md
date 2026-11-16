@@ -41,6 +41,7 @@ okf_version: "0.2"
 * [Guilds on or off per round](/features/guild-switch.md) - one switch „Gilden (mit Chat)“ in the dialog „Neue Runde“, off deletes the guilds and the server refuses every guild action (#191)
 * [Guild chat](/features/guild-chat.md) - one chat per guild with three rights of the ranks, events of the server, a red mark on „Gilden“, 500 messages, deleted each round, read by the admin with an audit entry (#169)
 * [Vacation mode](/features/vacation-mode.md) - pause the account, production stops, everything protected, minimum duration per round (#223)
+* [Main planet](/features/main-planet.md) - the „Hauptplanet“ chosen in the options decides navigation and research, every switch locks it for a time set per round (#221)
 * [Abandon a colony](/features/abandon-colony.md) - give up a colony without running references, everything lost with its moon, position locked per round (#224)
 * [Own activity and play time](/features/own-activity.md) - private statistics per account and round in UTC days, sessions after 30 minutes (#231, #232)
 * [Holding, alliance depot and attack unions](/features/holding-acs.md) - holding at other players, the depot later, attack unions with classic limits, who may join per round (#55, #225, #227)

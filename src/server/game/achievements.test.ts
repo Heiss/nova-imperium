@@ -77,6 +77,8 @@ describe('achievements', () => {
       daily: true,
       // Without a guild choice the round keeps guilds on (#191).
       guilds: true,
+      // Without a choice the round keeps the lock of the main planet (#221).
+      mainLock: 7,
     });
     recordAchievementAction(ctx, u.id, 'send');
     const current = ctx.players.get(u.id)!;

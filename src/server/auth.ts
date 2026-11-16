@@ -148,6 +148,8 @@ export function register(
     created: ctx.now(),
     research: {},
     rq: null,
+    mainPlanet: null,
+    mainSwitched: null,
   };
   ctx.players.save(u);
   ctx.invitations.use(inv.id, ctx.now());

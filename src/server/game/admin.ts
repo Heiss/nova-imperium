@@ -51,6 +51,10 @@ function newRound(ctx: Ctx, rules: RoundRules): void {
     x.research = {};
     x.rq = null;
     x.readAt = 0;
+    // A new round starts with the first planet as the main planet, unlocked
+    // (#221): a planet id is its place, so an old choice must not come back.
+    x.mainPlanet = null;
+    x.mainSwitched = null;
     ctx.players.save(x);
     ctx.reports.deleteAll(x.id);
     placePlanet(
@@ -65,7 +69,7 @@ function newRound(ctx: Ctx, rules: RoundRules): void {
 export const reset: Action = (ctx, u, data, event) => {
   requireAdmin(u);
   const before = roundRules(ctx);
-  const after = startRoundRules(ctx, data.rewards, data.guilds);
+  const after = startRoundRules(ctx, data.rewards, data.guilds, data.mainLock);
   newRound(ctx, after);
   if (event) event.detail = { before, after };
   return 'Neue Runde gestartet – alle Spieler haben einen frischen Planeten.';

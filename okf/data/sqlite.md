@@ -479,6 +479,16 @@ for these decisions. Other data stay as they were
 cascade with the guild, anonymisation by account deletion, the new round,
 the rules of #163 for existing ranks, generated data of version 19).
 
+Migration `20261116T2211-main-planet` (issue #221, see
+[Main planet](/features/main-planet.md)) adds `users.main_planet` (TEXT,
+the planet a player chose as the main planet, null for the first planet)
+and `users.main_switched` (INTEGER, the time of the last switch, which
+starts the lock). Existing players get null in both: their main planet
+stays the first planet, unlocked; other data stay as they were
+(`upgrades/20261116T2211-main-planet.test.ts`). The upgrade tests of
+migrations 11 and 20 run the later migrations before today's code saves a
+player, since the player repository writes the new columns.
+
 Account deletion runs in one transaction. Foreign-key cascades clear owned game,
 session, reward and push data. The deletion also removes led guilds and their
 memberships, linked audit and inbox records, invitations for the account address

@@ -78,6 +78,10 @@ export interface GameState {
   me: Me;
   planet: Planet | null;
   homePlanet?: string | null;
+  /** The main planet (#221): the chosen one, else the first planet. */
+  mainPlanet?: string | null;
+  /** The end of the lock of the last switch while it holds (#221). */
+  mainLock?: number | null;
   /** The labs of all own planets, for the research network (issue #49). */
   labs: LabSite[];
   fleets: ClientFleet[];

@@ -5,6 +5,7 @@ import {
   throughNumber,
 } from '../../../test/migrations.ts';
 import { migrate } from '../database.ts';
+import { MIGRATIONS } from '../schema.ts';
 import { Store } from '../store.ts';
 
 // Migration 11 adds the planet where the running research started (#49).
@@ -26,6 +27,8 @@ describe('upgrade to migration 11', () => {
     });
     expect(store.user('u1')!.rq).not.toHaveProperty('planet');
     expect(store.user('u2')!.rq).toBeNull();
+    // Today's store saves the columns of later migrations too (#221).
+    migrate(db, MIGRATIONS);
     const u = store.user('u1')!;
     store.saveUser({ ...u, rq: { ...u.rq!, planet: 'p1' } });
     expect(store.user('u1')!.rq).toMatchObject({ key: 'energy', planet: 'p1' });

@@ -116,6 +116,11 @@ export interface RoundRules {
    * only when the admin starts a new round.
    */
   guilds: boolean;
+  /**
+   * The lock after a switch of the main planet in days (#221, D3): set
+   * only when the admin starts a new round, 7 by default.
+   */
+  mainLock: number;
 }
 
 export interface AchievementState {
