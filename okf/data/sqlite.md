@@ -305,9 +305,27 @@ early as `pnpm check`.
   was checked against `main`), like the checksums of Flyway. The static
   imports also tie the files to a test for Stryker, which runs only the
   tests related to a mutated file by their imports; the loader's dynamic
-  imports do not count. A new migration file has no such test unless its
-  upgrade test imports it, so its mutants would count as not covered (open
-  for the owner, see the pull request).
+  imports do not count.
+* **[E]** „Upgrade-Test Pflicht“ (owner, 2026-11-16): every migration of
+  `migrations/<issue>/migrations.ts` has its upgrade test
+  `src/server/db/upgrades/<id>.test.ts`, which imports its migration file
+  statically (so Stryker relates the file to it) and checks the migration
+  on real data, as the earlier upgrade tests do. `upgrade-tests.test.ts`
+  fails for a migration without it or with a test that does not import
+  its file statically (a type import or a dynamic `import()` does not
+  count), and says what to add (`upgradeTestViolations` in
+  `src/test/migrations.ts`). The 20 legacy migrations keep their tests as
+  they are. The migrations folder stays in the mutation tests.
+* **[V]** `pnpm new-migration <issue> <name> --create` also writes the
+  skeleton of the upgrade test. It imports the migration file, runs the
+  migration on a database of the version before and ends in
+  `expect.fail('TODO: …')`, so it fails until it is filled in: no test is
+  skipped or left empty to make the CI green ([Test strategy](/ops/testing.md)).
+  For a second migration of an issue it writes only the test and says to
+  add the migration to the list of the file. The script creates both files
+  with the flag `wx` (CodeQL on #238, owner, 2026-11-16: no check-then-write
+  race), so an existing file is refused in the same step and stays as it
+  was.
 * Tests: `migration-files.test.ts` (the loader on temporary folders:
   order across folders, stray files and folders, an ID used twice, the
   forms of a legacy file and of a file of an issue), `src/test/new-migration.test.ts`

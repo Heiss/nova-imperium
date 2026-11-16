@@ -1,12 +1,13 @@
 // Prints the ID for a new migration and, with --create, writes the file
-// skeleton src/server/db/migrations/<issue>/migrations.ts (owner,
-// 2026-11-16, #213):
+// skeleton src/server/db/migrations/<issue>/migrations.ts and the skeleton
+// of its upgrade test src/server/db/upgrades/<id>.test.ts (owner,
+// 2026-11-16, #213, „Upgrade-Test Pflicht“):
 //   node scripts/new-migration.ts <issue> <short-name> [--create]
 // The ID is the current UTC minute and the short name, one minute later
 // while it is taken. It must be valid and newer than the newest migration
 // of the last release tag (of all refs, as in ci.yml); the script refuses
 // otherwise.
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import {
   idViolation,
@@ -50,7 +51,8 @@ export function nextMigrationId(
 /** The file of a new issue with its first migration. */
 export const skeleton = (issue: string, id: string): string =>
   `// The migrations of #${issue}. The list may hold more than one; each
-// migration is never changed once it is on main.
+// migration is never changed once it is on main and has its upgrade test
+// src/server/db/upgrades/<id>.test.ts.
 import type { Migration } from '../../migration-files.ts';
 
 const migrations: Migration[] = [
@@ -64,16 +66,69 @@ const migrations: Migration[] = [
 export default migrations;
 `;
 
-/** Checks the issue number and writes the skeleton unless the file exists. */
-export function create(root: string, issue: string, id: string): string {
-  const file = path.join(root, FOLDER, issue, 'migrations.ts');
-  if (existsSync(file))
-    throw new Error(
-      `${file} exists: add { id: '${id}', sql: ... } to its list.`,
-    );
+/**
+ * The upgrade test of a new migration. It fails until it is filled in: an
+ * empty skeleton must not pass (no test is skipped or left empty to make the
+ * CI green).
+ */
+export const upgradeSkeleton = (issue: string, id: string): string =>
+  `// Upgrade test of migration ${id} (#${issue}): the migration runs on
+// data of the version before it and keeps or changes them as intended.
+import { describe, expect, it } from 'vitest';
+import { databaseAt, migrationsThrough } from '../../../test/migrations.ts';
+import { migrate } from '../database.ts';
+import migrations from '../migrations/${issue}/migrations.ts';
+
+const ID = '${id}';
+
+describe(\`upgrade to migration \${ID}\`, () => {
+  it('keeps the data of the version before', () => {
+    expect(migrations.map((m) => m.id)).toContain(ID);
+    const through = migrationsThrough(ID);
+    const db = databaseAt(through.length - 1);
+    // TODO: write data of the version before (db.exec(\`INSERT ...\`)).
+    expect(migrate(db, through)).toBe(1);
+    // TODO: check the data after the migration, then remove this line.
+    expect.fail(\`TODO: fill in the upgrade test of \${ID}\`);
+  });
+});
+`;
+
+const UPGRADES = 'src/server/db/upgrades';
+
+/**
+ * Writes `text` to a new file `file`; false when the file exists already.
+ * The flag `wx` checks and creates in one step, so nothing else can create
+ * the file in between (CodeQL: file system race condition).
+ */
+function writeNew(file: string, text: string): boolean {
   mkdirSync(path.dirname(file), { recursive: true });
-  writeFileSync(file, skeleton(issue, id));
-  return file;
+  try {
+    writeFileSync(file, text, { flag: 'wx' });
+    return true;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'EEXIST') return false;
+    throw error;
+  }
+}
+
+/**
+ * Writes the upgrade test of `id` and, for the first migration of the
+ * issue, its migration file; never overwrites a file. Returns the files it
+ * wrote; `added` tells whether the migration file is new (else the
+ * migration still has to go into its list).
+ */
+export function create(
+  root: string,
+  issue: string,
+  id: string,
+): { files: string[]; added: boolean } {
+  const file = path.join(root, FOLDER, issue, 'migrations.ts');
+  const test = path.join(root, UPGRADES, `${id}.test.ts`);
+  if (!writeNew(test, upgradeSkeleton(issue, id)))
+    throw new Error(`${test} exists already.`);
+  const added = writeNew(file, skeleton(issue, id));
+  return { files: added ? [file, test] : [test], added };
 }
 
 async function main(args: string[]): Promise<void> {
@@ -89,8 +144,13 @@ async function main(args: string[]): Promise<void> {
   const taken = MIGRATIONS.map((m) => m.id);
   const id = nextMigrationId(new Date(), name, taken, newest);
   console.log(id);
-  if (args.includes('--create'))
-    console.log(`created ${create(process.cwd(), issue, id)}`);
+  if (!args.includes('--create')) return;
+  const { files, added } = create(process.cwd(), issue, id);
+  for (const file of files) console.log(`created ${file}`);
+  if (!added)
+    console.log(
+      `add { id: '${id}', sql: ... } to the list of ${path.join(FOLDER, issue, 'migrations.ts')}`,
+    );
 }
 
 if (import.meta.main)

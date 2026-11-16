@@ -22,8 +22,10 @@ import {
   nextMigrationId,
   skeleton,
   stamp,
+  upgradeSkeleton,
 } from '../../scripts/new-migration.ts';
 import { loadMigrations } from '../server/db/migration-files.ts';
+import { upgradeTestViolations } from './migrations.ts';
 
 const now = new Date('2026-11-16T14:05:42Z');
 
@@ -80,22 +82,68 @@ describe('the file of a new issue', () => {
   });
   afterAll(() => rmSync(root, { recursive: true, force: true }));
 
-  it('is a list the loader reads', async () => {
-    const file = create(root, '213', '20261116T1405-cargo');
-    expect(file).toBe(path.join(root, FOLDER, '213', 'migrations.ts'));
-    expect(readFileSync(file, 'utf8')).toBe(
-      skeleton('213', '20261116T1405-cargo'),
-    );
+  const migrationFile = (): string =>
+    path.join(root, FOLDER, '213', 'migrations.ts');
+  const testFile = (id: string): string =>
+    path.join(root, 'src/server/db/upgrades', `${id}.test.ts`);
+
+  it('is a list the loader reads, with its upgrade test', async () => {
+    const id = '20261116T1405-cargo';
+    expect(create(root, '213', id)).toEqual({
+      files: [migrationFile(), testFile(id)],
+      added: true,
+    });
+    expect(readFileSync(migrationFile(), 'utf8')).toBe(skeleton('213', id));
+    expect(readFileSync(testFile(id), 'utf8')).toBe(upgradeSkeleton('213', id));
     expect(await loadMigrations(path.join(root, FOLDER))).toEqual([
-      { id: '20261116T1405-cargo', sql: '\n  ' },
+      { id, sql: '\n  ' },
     ]);
   });
 
-  it('is never overwritten', () => {
-    expect(() => create(root, '213', '20261116T1406-more')).toThrow(
-      `${path.join(root, FOLDER, '213', 'migrations.ts')} exists: add { id: '20261116T1406-more', sql: ... } to its list.`,
+  // „Upgrade-Test Pflicht“: the skeleton passes the check of the upgrade
+  // tests, and it fails until it is filled in.
+  it('writes an upgrade test that imports its file and fails until filled in', () => {
+    const id = '20261116T1405-cargo';
+    const source = upgradeSkeleton('213', id);
+    expect(
+      upgradeTestViolations([{ issue: '213', ids: [id] }], () => source),
+    ).toEqual([]);
+    expect(source).toContain(
+      'expect.fail(`TODO: fill in the upgrade test of ${ID}`);',
+    );
+    expect(source).toContain(`const ID = '${id}';`);
+  });
+
+  it('never overwrites a file; a second migration gets only its test', () => {
+    const before = readFileSync(migrationFile(), 'utf8');
+    const more = '20261116T1406-more';
+    expect(create(root, '213', more)).toEqual({
+      files: [testFile(more)],
+      added: false,
+    });
+    expect(readFileSync(migrationFile(), 'utf8')).toBe(before);
+    expect(() => create(root, '213', more)).toThrow(
+      `${testFile(more)} exists already.`,
     );
     expect(existsSync(path.join(root, FOLDER, '214'))).toBe(false);
+  });
+
+  // CodeQL on #238: the files are created with the flag wx, so an existing
+  // file is refused in the same step and stays as it was.
+  it('refuses an existing upgrade test and leaves it and the issue alone', () => {
+    const id = '20261116T1500-taken';
+    mkdirSync(path.dirname(testFile(id)), { recursive: true });
+    writeFileSync(testFile(id), 'my own test\n');
+    expect(() => create(root, '300', id)).toThrow(
+      `${testFile(id)} exists already.`,
+    );
+    expect(readFileSync(testFile(id), 'utf8')).toBe('my own test\n');
+    expect(existsSync(path.join(root, FOLDER, '300'))).toBe(false);
+  });
+
+  it('passes on other errors of the file system', () => {
+    const id = `20261116T1501-${'x'.repeat(300)}`;
+    expect(() => create(root, '301', id)).toThrow(/ENAMETOOLONG/);
   });
 });
 

@@ -285,3 +285,43 @@ export function plansBefore(
   db.close();
   return planOf(tables);
 }
+
+/** A migration file of an issue and the IDs it defines. */
+export type MigrationFile = { issue: string; ids: readonly string[] };
+
+const escape = (text: string): string =>
+  text.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/**
+ * Why the migrations of the issue files lack their upgrade test (owner,
+ * 2026-11-16, „Upgrade-Test Pflicht“): every migration of
+ * `migrations/<issue>/migrations.ts` has `upgrades/<id>.test.ts`, which
+ * imports its migration file statically. `readTest` gives the source of an
+ * upgrade test, or undefined when it does not exist. The 20 legacy
+ * migrations keep their tests as they are.
+ */
+export function upgradeTestViolations(
+  files: readonly MigrationFile[],
+  readTest: (id: string) => string | undefined,
+): string[] {
+  const violations: string[] = [];
+  for (const { issue, ids } of files)
+    for (const id of ids) {
+      const test = `src/server/db/upgrades/${id}.test.ts`;
+      const file = `src/server/db/migrations/${issue}/migrations.ts`;
+      const source = readTest(id);
+      const imports = new RegExp(
+        `^import\\s+(?!type\\s)[^;]*?\\sfrom\\s+['"]\\.\\./migrations/${escape(issue)}/migrations\\.ts['"]`,
+        'm',
+      );
+      if (source === undefined)
+        violations.push(
+          `Migration ${id} of ${file} has no upgrade test: add ${test}, which imports ${file} statically and checks the migration on real data (pnpm new-migration <issue> <short-name> --create writes such a test with a new migration).`,
+        );
+      else if (!imports.test(source))
+        violations.push(
+          `${test} does not import its migration file statically: add import migrations from '../migrations/${issue}/migrations.ts'; at its top.`,
+        );
+    }
+  return violations;
+}
