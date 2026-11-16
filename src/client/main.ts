@@ -5,6 +5,7 @@
 import { flushSync } from 'svelte';
 import { missionRules } from '../core/missions.ts';
 import { placeId } from '../core/place.ts';
+import { MAX_PLANET_NAME, planetNameError } from '../core/planet-name.ts';
 import { settle, settleR } from '../core/settle.ts';
 import { text } from '../core/text.ts';
 import type { Levels, Planet, Queue } from '../core/types.ts';
@@ -1122,12 +1123,13 @@ const ACT: Record<string, (d: Data) => unknown> = {
   },
   rename: () =>
     modal(
-      `<p><b>${client.view!.P.kind === 'moon' ? 'Mond' : 'Planet'} umbenennen</b></p><input id="rn" maxlength="20" value="${esc(client.view!.P.name)}" aria-label="Neuer Name"> <button data-act="doRename">OK</button> <button data-act="closeModal">Abbrechen</button>`,
+      `<p><b>${client.view!.P.kind === 'moon' ? 'Mond' : 'Planet'} umbenennen</b></p><input id="rn" maxlength="${MAX_PLANET_NAME}" value="${esc(client.view!.P.name)}" aria-label="Neuer Name"> <button data-act="doRename">OK</button> <button data-act="closeModal">Abbrechen</button>`,
     ),
   doRename: () => {
     const n = val('#rn').trim();
     modal('');
-    if (n) void act('rename', { name: n });
+    // The check of the server (#214); the browser refuses without a note.
+    if (!planetNameError(n)) void act('rename', { name: n });
   },
   closeModal: () => modal(''),
   gnav: (d) => {

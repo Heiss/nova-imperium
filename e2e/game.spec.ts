@@ -27,6 +27,36 @@ const seconds = (text: string): number =>
     0,
   );
 
+/**
+ * The dialog „umbenennen“ asks the server's check (#214): an empty name
+ * closes it without a request and without a note; a long name is cut at 20.
+ */
+async function renameChecks(page: Page): Promise<void> {
+  const w = watch(page);
+  await register(page, uniqueName('Name'));
+  const sent: unknown[] = [];
+  page.on('request', (r) => {
+    if (r.url().endsWith('/api/action'))
+      sent.push((r.postDataJSON() as { type?: string } | null)?.type);
+  });
+  const title = await page.locator('h2').textContent();
+  await page.click('[data-act=rename]');
+  await expect(page.locator('#rn')).toHaveAttribute('maxlength', '20');
+  await page.fill('#rn', '   ');
+  await page.click('[data-act=doRename]');
+  await expect(page.locator('#rn')).toHaveCount(0);
+  await page.click('[data-act=rename]');
+  await page.fill('#rn', 'x'.repeat(25));
+  await page.click('[data-act=doRename]');
+  await expect(page.locator('h2')).toContainText('x'.repeat(20));
+  await expect(page.locator('h2')).not.toContainText('x'.repeat(21));
+  expect(title).not.toContain('x'.repeat(20));
+  // Only the second name was sent, and nothing told the player off.
+  expect(sent).toEqual(['rename']);
+  await expect(page.locator('.toast.err')).toHaveCount(0);
+  expect(w.problems).toEqual([]);
+}
+
 test('login stays near the header @phone', async ({ page }) => {
   await page.goto('/');
   const login = page.locator('.auth');
@@ -1161,6 +1191,18 @@ test.describe('playing', () => {
     await page.click('[data-act=doRename]');
     await expect(page.locator('h2')).toContainText('Neu<b>Welt');
     expect(w.problems).toEqual([]);
+  });
+
+  test('rename sends no empty name and cuts a long one (#214)', async ({
+    page,
+  }) => {
+    await renameChecks(page);
+  });
+
+  test('rename sends no empty name on a phone (#214) @phone', async ({
+    page,
+  }) => {
+    await renameChecks(page);
   });
 
   test('builds solar and switches to a newly founded colony', async ({

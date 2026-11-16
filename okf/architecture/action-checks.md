@@ -65,7 +65,7 @@ with no rule to move (`cancelBuild`, `cancelResearch`, `read`, `delrep`,
 | `cancelResearch` | only the own planet | none | – | – | economy |
 | `order` | core `reqMissing`, `unitRoom`, `maxAfford`, `yardLockedBy`; inline the yard above 0 (`requireYard`), the room, the count and at most 20 orders (`MAX_SHIPYARD_ORDERS`) | partly | partly: yard, lock, requirements, `orderMax` (`yardPage`, `unitRow`, catalog-list.ts), a count of 0 (`order` in `client/main.ts`); not the 20 orders | no (F2, F6, F7, F10) | economy |
 | `pct` | inline: a producer of `PRODUCERS` only, the share rounded to tens | no | no; the select offers valid shares only (`views/ProducerTable.svelte`) | – | economy |
-| `rename` | inline: a name after `str(…, 20)` | no | yes, silently: trims, sends nothing when empty, `maxlength="20"` (`doRename`, main.ts) | – | player |
+| `rename` | core `planetNameError` (code `empty`) and `MAX_PLANET_NAME` (`core/planet-name.ts`); the server cleans and cuts the name with `str` and words the code (`RENAME_ERROR`, `server/game/actions.ts`) (player pull request of #214) | yes | yes, silently, with core `planetNameError`: trims, sends nothing when it refuses, `maxlength` from `MAX_PLANET_NAME` (`doRename`, main.ts) | – | player |
 | `options` | core `isExplainMode`; the probes clamped by `int` | yes | the same clamp, `clampInt` (`client/logic/format.ts`); the select offers the modes | – | player |
 | `pushOptions` | core `isPushTopic` (`server/push-options.ts`) | yes | the boxes offer `PUSH_TOPICS` only (`client/logic/push-options.ts`) | – | player |
 | `read` | – | none | – | – | player |

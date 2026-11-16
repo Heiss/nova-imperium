@@ -51,6 +51,7 @@
     "src/core/guild-ranks.ts": 100,
     "src/core/lab.ts": 100,
     "src/core/phalanx.ts": 100,
+    "src/core/planet-name.ts": 100,
     "src/core/planet-type.ts": 100,
     "src/core/protection.ts": 100,
     "src/core/requirements.ts": 89.38,
