@@ -88,8 +88,11 @@ generated: { by: claude-code/web, at: 2026-11-10T19:00:00Z }
 * Built in `src/client/views/Header.svelte`; unit tests in
   `src/client/views/frame.test.ts`, the E2E test with axe on the header in
   `e2e/header.spec.ts` (desktop and phone). The E2E tests read the active
-  place of several from the selected entry of the list
-  (`expectShownPlace()`, `shownPlace()` of `e2e/helpers.ts`).
+  place of several from the entry of the list that the rendered header
+  marks with the attribute `selected` (`expectShownPlace()`, `shownPlace()`
+  of `e2e/helpers.ts`): it comes from the applied state, while a choice in
+  the list changes only which entry is checked, before the state of the
+  new planet has arrived (CodeRabbit on #251).
 
 # Design draft
 
