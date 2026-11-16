@@ -381,13 +381,14 @@ test.describe('fleet and battle (#68)', () => {
     await page.getByText('alle Schiffe', { exact: true }).click();
     await page.getByLabel('Position', { exact: true }).fill('15');
     await page.getByLabel('Auftrag').selectOption('transport');
-    // Holds of 2 × 5,000 + 3 × 50: all the Adamant, Psikristall for the rest.
-    await page.getByText('alles', { exact: true }).click();
+    // Holds of 2 × 5,000 + 3 × 50, filled evenly (#240): no Promethium, so
+    // Adamant and Psikristall take half each.
+    await page.getByText('alles (gleichmäßig)', { exact: true }).click();
     await expect(page.getByLabel('Adamant', { exact: true })).toHaveValue(
-      '6000',
+      '5075',
     );
     await expect(page.getByLabel('Psikristall', { exact: true })).toHaveValue(
-      '4150',
+      '5075',
     );
     await expect(page.getByLabel('Promethium', { exact: true })).toHaveValue(
       '0',

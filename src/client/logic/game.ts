@@ -147,18 +147,49 @@ export function fleetPreview(
   };
 }
 
-/** Fills the holds: metal first, then crystal, then deuterium minus fuel. */
-export function cargoMax(p: Planet, f: FleetForm): Resources {
-  const fuel = countUnits(f.ships)
-    ? fuelFor(f.ships, distance(p, f.to), f.pct)
-    : 0;
-  let cap = capacity(f.ships);
-  const m = Math.min(Math.floor(p.res.m), cap);
-  cap -= m;
-  const c = Math.min(Math.floor(p.res.c), cap);
-  cap -= c;
-  const d = Math.max(0, Math.min(Math.floor(p.res.d - fuel), cap));
-  return { m, c, d };
+type CargoKey = keyof Resources;
+const CARGO: CargoKey[] = ['m', 'c', 'd'];
+
+/** What a flight can load: whole units, Promethium after the fuel. */
+function loadable(p: Planet, f: FleetForm): Resources {
+  // Without ships the holds are empty, whatever the fuel.
+  const fuel = fuelFor(f.ships, distance(p, f.to), f.pct);
+  return {
+    m: Math.floor(p.res.m),
+    c: Math.floor(p.res.c),
+    d: Math.max(0, Math.floor(p.res.d - fuel)),
+  };
+}
+
+/**
+ * Equal shares of the room (#240), the resource with the least stock first:
+ * what it cannot fill goes to the others. A share is rounded up, so the room
+ * is used fully when the stock allows.
+ */
+function fillEvenly(stock: Resources, room: number): Resources {
+  const out = {} as Resources;
+  const order = [...CARGO].sort((a, b) => stock[a] - stock[b]);
+  order.forEach((k, i) => {
+    out[k] = Math.min(stock[k], Math.ceil(room / (order.length - i)));
+    room -= out[k];
+  });
+  return out;
+}
+
+/** „alles“ (#240): fills the holds evenly with the three resources. */
+export const cargoMax = (p: Planet, f: FleetForm): Resources =>
+  fillEvenly(loadable(p, f), capacity(f.ships));
+
+/**
+ * „alles“ under a field (#240): only that resource, up to the room the other
+ * two fields leave; they stay as they are.
+ */
+export function cargoOne(p: Planet, f: FleetForm, key: CargoKey): number {
+  const others = CARGO.reduce(
+    (sum, k) => (k === key ? sum : sum + f.cargo[k]),
+    0,
+  );
+  return Math.max(0, Math.min(loadable(p, f)[key], capacity(f.ships) - others));
 }
 
 const STEPS: Record<string, [number, number]> = {

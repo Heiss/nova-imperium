@@ -569,6 +569,15 @@ textarea:focus-visible {
   color: var(--dim);
   width: 42%;
 }
+/* A cargo field of the fleet form with its own „alles“ below it (#240). */
+.cargo {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  margin-bottom: 4px;
+  vertical-align: top;
+}
 .fl-attack {
   color: var(--red);
 }
