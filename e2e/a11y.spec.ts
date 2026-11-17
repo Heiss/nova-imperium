@@ -2,6 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import {
   cli,
+  expectShownPlace,
   galaxyRow,
   nav,
   register,
@@ -160,7 +161,7 @@ test.describe('accessibility (axe)', () => {
         .locator('option', { hasText: `${moon} (Mond) [` })
         .getAttribute('value'))!,
     );
-    await expect(page.locator('#pinfo b').first()).toHaveText(`${moon} (Mond)`);
+    await expectShownPlace(page, `${moon} (Mond)`);
     for (const view of ['overview', 'buildings', 'resources'] as const) {
       await nav(page, view);
       await check(view);
@@ -305,14 +306,18 @@ test.describe('accessibility (axe)', () => {
     page,
   }) => {
     const name = uniqueName('AxeErr');
+    // A unique error text: a repeat run found two rows with a fixed one (#267).
+    // The colon keeps the log's scrubber from taking the text for a token
+    // (20 word characters with a digit) or the 6 characters for a login code.
+    const error = `Axe-Testfehler:${uniqueName('')}`;
     await register(page, name);
     cli('admin', name);
-    seed({ name, serverError: 'Axe-Testfehler' });
+    seed({ name, serverError: error });
     await page.reload();
     const found: string[] = [];
     await nav(page, 'admin');
     await page.getByRole('tab', { name: 'Fehler' }).click();
-    const row = page.getByRole('row', { name: /Axe-Testfehler/ });
+    const row = page.getByRole('row', { name: error });
     await row.getByText(/^Eintrag \d+$/).click();
     await expect(row.locator('pre')).toBeVisible();
     found.push(...(await violations(page)).map((v) => `errors: ${v}`));

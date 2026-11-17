@@ -39,7 +39,7 @@ interface Setup {
   openEx?: Record<string, boolean>;
   labs?: GameState['labs'];
   galaxy?: Partial<GameState['galaxy'][number]>[];
-  homePlanet?: string | null;
+  mainPlanet?: string | null;
   now?: number;
 }
 
@@ -53,7 +53,9 @@ function view(o: Setup = {}): V {
     me: { id: 'u1', explain: o.explain ?? 'icon' },
     labs: o.labs ?? [],
     galaxy: o.galaxy ?? [],
-    homePlanet: o.homePlanet ?? P.id,
+    // The first planet; research from before #49 counts as the main planet's (#221).
+    homePlanet: 'p1_9_9',
+    mainPlanet: o.mainPlanet ?? P.id,
   } as unknown as GameState;
   return {
     s,
@@ -435,8 +437,8 @@ describe('research', () => {
     expect(action(there, 'research', 'energy')).toMatchObject({
       place: 'Kolonie',
     });
-    const home = view({ ...lab, rq: rq(), galaxy, homePlanet: 'p1_2_3' });
-    expect(action(home, 'research', 'energy')).toMatchObject({
+    const main = view({ ...lab, rq: rq(), galaxy, mainPlanet: 'p1_2_3' });
+    expect(action(main, 'research', 'energy')).toMatchObject({
       place: 'Kolonie',
     });
     const gone = view({ ...lab, rq: rq('p9_9_9'), galaxy });

@@ -21,6 +21,10 @@ export interface User {
   created: number;
   research: Levels;
   rq: ResearchQueue | null;
+  /** The main planet chosen in the options (#221); null: the first planet. */
+  mainPlanet: string | null;
+  /** When the main planet was last switched, which starts the lock (#221). */
+  mainSwitched: number | null;
 }
 
 export interface Players {
@@ -64,6 +68,8 @@ export class SqlitePlayers implements Players {
       created: r.created as number,
       research: levels(research, 'key', 'level'),
       rq: researchQueueOf(r),
+      mainPlanet: r.main_planet as string | null,
+      mainSwitched: r.main_switched as number | null,
     };
   }
 
@@ -96,15 +102,16 @@ export class SqlitePlayers implements Players {
     this.db
       .prepare(
         `INSERT INTO users (id, name, email, salt, pw_hash, admin, probes, explain_mode, read_at, created,
-           rq_key, rq_lvl, rq_start, rq_end, rq_cost_m, rq_cost_c, rq_cost_d, rq_planet)
+           rq_key, rq_lvl, rq_start, rq_end, rq_cost_m, rq_cost_c, rq_cost_d, rq_planet, main_planet, main_switched)
          VALUES (@id, @name, @email, @salt, @pw, @admin, @probes, @explain, @readAt, @created,
-           @rq_key, @rq_lvl, @rq_start, @rq_end, @rq_cost_m, @rq_cost_c, @rq_cost_d, @rq_planet)
+           @rq_key, @rq_lvl, @rq_start, @rq_end, @rq_cost_m, @rq_cost_c, @rq_cost_d, @rq_planet, @mainPlanet, @mainSwitched)
          ON CONFLICT(id) DO UPDATE SET name = excluded.name, email = excluded.email,
            salt = excluded.salt, pw_hash = excluded.pw_hash, admin = excluded.admin,
            probes = excluded.probes, explain_mode = excluded.explain_mode, read_at = excluded.read_at, rq_key = excluded.rq_key,
            rq_lvl = excluded.rq_lvl, rq_start = excluded.rq_start, rq_end = excluded.rq_end,
            rq_cost_m = excluded.rq_cost_m, rq_cost_c = excluded.rq_cost_c, rq_cost_d = excluded.rq_cost_d,
-           rq_planet = excluded.rq_planet`,
+           rq_planet = excluded.rq_planet, main_planet = excluded.main_planet,
+           main_switched = excluded.main_switched`,
       )
       .run({
         ...u,

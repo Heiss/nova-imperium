@@ -65,6 +65,14 @@ interface is German.
    pull requests, get the owner's decisions so that the next issues become
    `ready`, and do whatever else keeps both agents building
    (owner, 2026-11-16).
+   Small patches are slotted in between, so that none is left for the
+   release (owner, 2026-11-16): while you wait, merge Renovate's green
+   patch and minor pull requests (one at a time, CI Gate green on a head
+   up to date with `main`; a major update and a minor one below 1.0 wait
+   for the owner) and follow up GitHub's
+   Dependabot alerts that have no Renovate security pull request; a small
+   bug or cleanup issue (`bug`, `ready`, `Geklärt`) may be the next issue
+   of a free subagent before the next feature.
 2. **Make the release ready** when no open issue has the label `ready`,
    `in progress` or `in review` and the release pull request is open.
    First merge Renovate's ordinary pull requests with a patch or minor

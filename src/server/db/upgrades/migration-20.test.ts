@@ -10,6 +10,7 @@ import {
 } from '../../../test/migrations.ts';
 import { hashPassword } from '../../auth.ts';
 import { deleteAccount } from '../../delete-account.ts';
+import { MIGRATIONS } from '../schema.ts';
 import { runAction } from '../../game/dispatch.ts';
 import { GUILD_RIGHTS } from '../../../core/guild-ranks.ts';
 import { testCtx } from '../../test-helpers.ts';
@@ -288,6 +289,9 @@ describe('upgrade to migration 20', () => {
   it('deletes every chat at a new round and keeps the guilds', () => {
     const db = oldDatabase();
     migrate(db, throughNumber(20));
+    // The new round of today's code saves the players with the columns of
+    // later migrations (the main planet of #221).
+    migrate(db, MIGRATIONS);
     db.exec("UPDATE users SET admin = 1 WHERE id = 'u_Finn'");
     const ctx = testCtx(1_000_000, 42, db);
     ctx.guilds.addChat('g1', 'u_Cora', 1, 'alte Runde');

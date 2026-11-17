@@ -4,7 +4,8 @@
 // arrives, the ships and the cargo land, and the research and the buildings
 // of the home planet are raised (src/core/endzeit.ts).
 import {
-  GIFT_MINUTES,
+  type EndzeitError,
+  endzeitError,
   giftCargo,
   giftLevels,
   giftShips,
@@ -45,17 +46,14 @@ export function endzeitState(ctx: Ctx): { minutes: number; done: boolean } {
   };
 }
 
-/** The flight time of this trigger: whole minutes, 1 minute to 72 h. */
-function flightMinutes(input: unknown): number {
-  const minutes = Number(input);
-  if (
-    !Number.isInteger(minutes) ||
-    minutes < GIFT_MINUTES.min ||
-    minutes > GIFT_MINUTES.max
-  )
-    fail('Bitte eine Flugzeit von 1 bis 4.320 Minuten (72 h) eingeben.');
-  return minutes;
-}
+/**
+ * The refusals of `endzeitError` (#214). Since O18 (c) (owner, 2026-11-15,
+ * F15) the admin dialog says the same: „done“ is the text of its box.
+ */
+export const ENDZEIT_ERROR: Readonly<Record<EndzeitError, string>> = {
+  done: 'In dieser Runde wurde die Endzeit schon eingeläutet.',
+  minutes: 'Bitte eine Flugzeit von 1 bis 4.320 Minuten (72 h) eingeben.',
+};
 
 /**
  * The gift fleet of one player: from and to their home planet, no fuel
@@ -98,9 +96,11 @@ export function giftFleet(
 export const endzeit: Action = (ctx, u, d, event) => {
   requireAdmin(u);
   const round = roundRules(ctx).number;
-  if (ctx.admin.setting(ENDZEIT_ROUND) === round)
-    fail('Die Endzeit wurde in dieser Runde schon eingeläutet.');
-  const minutes = flightMinutes(d.minutes);
+  const done = ctx.admin.setting(ENDZEIT_ROUND) === round;
+  const error = endzeitError(done, d.minutes);
+  if (error) fail(ENDZEIT_ERROR[error]);
+  // The flight time of this trigger, checked by endzeitError.
+  const minutes = Number(d.minutes);
   const dep = ctx.now();
   const arr = dep + minutes * MINUTE;
   let recipients = 0;

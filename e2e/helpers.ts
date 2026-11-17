@@ -158,6 +158,34 @@ export async function loginByCode(
   await expect(page.locator('h2')).toContainText('Übersicht');
 }
 
+/**
+ * The shown place in the header with more than one own place, „name
+ * [g:s:p]“: the entry of the list „Aktiver Planet“ that the rendered header
+ * marks with the attribute `selected`. Header.svelte sets it from the
+ * applied state (`headerLine()`), and a choice in the list does not (it only
+ * changes which entry is checked), so it shows the planet only once
+ * selectPlanet() of main.ts has fetched and applied its state. The header
+ * names it only there, not again as text (#241).
+ */
+export const shownPlace = (page: Page): Locator =>
+  page.getByLabel('Aktiver Planet').locator('option[selected]');
+
+/**
+ * Waits until the header shows the own place `name` (one of several) as the
+ * active one: rendered from the applied state, and checked in the list.
+ */
+export async function expectShownPlace(
+  page: Page,
+  name: string,
+): Promise<void> {
+  const literal = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const label = new RegExp(`^${literal} \\[\\d+:\\d+:\\d+\\]$`);
+  await expect(shownPlace(page)).toHaveText(label);
+  await expect(
+    page.getByLabel('Aktiver Planet').locator('option:checked'),
+  ).toHaveText(label);
+}
+
 /** Selects an own planet by its name in the header. */
 export async function choosePlanet(page: Page, name: string): Promise<void> {
   const selector = page.getByLabel('Aktiver Planet');
@@ -165,7 +193,7 @@ export async function choosePlanet(page: Page, name: string): Promise<void> {
     .locator('option')
     .filter({ hasText: new RegExp(`^${name} \\[`) });
   await selector.selectOption((await option.getAttribute('value'))!);
-  await expect(page.locator('#pinfo b').first()).toHaveText(name);
+  await expectShownPlace(page, name);
 }
 
 /** The amount of a resource in the bar, as shown. */
