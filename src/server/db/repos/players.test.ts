@@ -49,6 +49,29 @@ describe('players repository', () => {
     });
   });
 
+  it('saves, changes and clears the chosen main planet and its switch time (#221)', () => {
+    const ctx = testCtx();
+    const u = addUser(ctx, 'Anna', { mainPlanet: 'p2_3_7', mainSwitched: 42 });
+    expect(ctx.players.get(u.id)).toMatchObject({
+      mainPlanet: 'p2_3_7',
+      mainSwitched: 42,
+    });
+    ctx.players.save({ ...u, mainPlanet: 'p1_1_5', mainSwitched: 43 });
+    expect(ctx.players.get(u.id)).toMatchObject({
+      mainPlanet: 'p1_1_5',
+      mainSwitched: 43,
+    });
+    ctx.players.save({ ...u, mainPlanet: null, mainSwitched: null });
+    expect(
+      ctx.db.prepare('SELECT main_planet, main_switched FROM users').get(),
+    ).toEqual({ main_planet: null, main_switched: null });
+    expect(ctx.players.get(u.id)).toEqual({
+      ...u,
+      mainPlanet: null,
+      mainSwitched: null,
+    });
+  });
+
   it('keeps an empty address empty', () => {
     const ctx = testCtx();
     const u = addUser(ctx, 'Anna', { email: null });
