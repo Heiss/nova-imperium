@@ -1311,8 +1311,9 @@ const ACT: Record<string, (d: Data) => unknown> = {
       daily: checked('#round-daily'),
     };
     const guilds = checked('#round-guilds');
+    const locks = roundLocks(); // before the dialog closes with its fields
     modal('');
-    return act('reset', { rewards, guilds, ...roundLocks() });
+    return act('reset', { rewards, guilds, ...locks });
   },
   endzeit: () => modal(endzeitDialog(client.game!.admin!.endzeit.minutes)),
   doEndzeit: () => {
