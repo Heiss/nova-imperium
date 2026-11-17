@@ -5,10 +5,12 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
+  baseLimit,
   check,
   countLines,
   LIMIT_FILE,
   parseLimit,
+  raised,
   verdict,
 } from '../../scripts/size-ratchet.ts';
 
@@ -102,5 +104,27 @@ describe('size ratchet', () => {
     const result = check(root);
     expect(result.limit.file).toBe(MAIN);
     expect(result.error).toBeUndefined();
+  });
+
+  it('refuses a limit raised above the one on the base branch', () => {
+    const limit = { file: MAIN, lines: 1890 };
+    expect(raised(limit, 1889)).toBe(
+      `The limit in ${LIMIT_FILE} was raised from 1889 to 1890; it only goes down (#242).`,
+    );
+    expect(raised(limit, 1890)).toBeUndefined();
+    expect(raised({ file: MAIN, lines: 1880 }, 1889)).toBeUndefined();
+    expect(raised(limit, undefined)).toBeUndefined();
+    // main.ts and the limit raised together: refused before the equality.
+    expect(check(repo(4, 4), 3).error).toBe(
+      `The limit in ${LIMIT_FILE} was raised from 3 to 4; it only goes down (#242).`,
+    );
+    expect(check(repo(3, 3), 3).error).toBeUndefined();
+  });
+
+  it('reads the limit of the base branch, or none without it', () => {
+    const dir = repo(3, 3);
+    // Not a repository: no base branch; locally skipped, in the CI an error.
+    expect(baseLimit(dir, false)).toBeUndefined();
+    expect(() => baseLimit(dir, true)).toThrow('origin/main is missing');
   });
 });

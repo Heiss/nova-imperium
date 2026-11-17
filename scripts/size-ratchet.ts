@@ -6,6 +6,7 @@
 // keeps the file in Prettier's form.
 //
 //   node scripts/size-ratchet.ts   (pnpm lint:size, part of pnpm check)
+import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { runCli } from './cli.ts';
@@ -32,6 +33,18 @@ export function parseLimit(text: string): Limit {
   return { file: limit.file, lines: limit.lines! };
 }
 
+/** The base branch the stored limit is compared with (as the migrations gate). */
+export const BASE = 'origin/main';
+
+/** Undefined unless the stored limit is above the one on the base branch. */
+export function raised(
+  limit: Limit,
+  base: number | undefined,
+): string | undefined {
+  if (base === undefined || limit.lines <= base) return undefined;
+  return `The limit in ${LIMIT_FILE} was raised from ${base} to ${limit.lines}; it only goes down (#242).`;
+}
+
 /** Undefined when the file has exactly its limit; else what to do. */
 export function verdict(limit: Limit, lines: number): string | undefined {
   const status = `${limit.file} has ${lines} lines, the limit in ${LIMIT_FILE} is ${limit.lines}.`;
@@ -43,7 +56,10 @@ export function verdict(limit: Limit, lines: number): string | undefined {
 }
 
 /** Reads the limit and its file below root; the error, or undefined. */
-export function check(root: string): {
+export function check(
+  root: string,
+  base?: number,
+): {
   error?: string;
   limit: Limit;
   lines: number;
@@ -57,11 +73,36 @@ export function check(root: string): {
   };
   const limit = parseLimit(read(LIMIT_FILE));
   const lines = countLines(read(limit.file));
-  return { error: verdict(limit, lines), limit, lines };
+  return {
+    error: raised(limit, base) ?? verdict(limit, lines),
+    limit,
+    lines,
+  };
+}
+
+/**
+ * The limit stored on the base branch, or undefined while the file is not
+ * there yet. Without the base branch the check fails in the CI, where it
+ * must be fetched, and is skipped locally.
+ */
+export function baseLimit(root: string, ci: boolean): number | undefined {
+  const git = spawnSync('git', ['show', `${BASE}:${LIMIT_FILE}`], {
+    cwd: root,
+    encoding: 'utf8',
+  });
+  if (git.status === 0) return parseLimit(git.stdout).lines;
+  if (/does not exist|exists on disk, but not in/.test(git.stderr))
+    return undefined;
+  if (ci) throw new Error(`${BASE} is missing; fetch it before the check.`);
+  return undefined;
 }
 
 function main(): number {
-  const { error, limit, lines } = check(process.cwd());
+  const root = process.cwd();
+  const { error, limit, lines } = check(
+    root,
+    baseLimit(root, process.env.CI === 'true'),
+  );
   if (error) {
     console.error(error);
     return 1;
