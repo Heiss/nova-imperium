@@ -1,0 +1,8 @@
+---
+type: log-entry
+date: 2026-11-16T20:50
+kind: Code
+issues: [214, 218, 64]
+---
+
+#214, the economy pull request after the audit (#218): the checks of `build`, `research`, `order` and `pct` are pure functions of the new `src/core/economy-checks.ts`, `buildErrors`, `researchErrors` and `orderErrors`, which return every code that applies in the order of the server, and `isProducer`, with the predicates `hasLab` and `hasYard`; the server turns the first code into its message from a table, the lists of the browser take the note of the first code in their order from their tables; build and research now check in one order on both sides, the browser's (O18 (c), F8 and F9, taken as recommended [V]), and an order of 0 gets the browser's „Bitte eine Anzahl eingeben.“ on the server too (F10); no note of the browser changes, the server answers three refusals the interface never sends with another existing message; the frozen views of the list reference test keep the old `buildState` and `researchState`, and the research reference test takes the new order of F9; unit tests per code and order, property tests of the core and of the server answers (seed 214), and a break check (the old order of the server or no count makes the core, server, browser and reference tests fail); the new core file at a mutation score of 100, and three tests (the audit event of an order, `sortFleets`, `galaxyStep`) keep `actions.ts` and `game.ts` above their floors after the moved code took its mutants along; the list of requirements of #64 checks in its own order and is left as it is [U]; label `kein-changelog`, as no text of the interface changes (see [Checks of the server actions](/architecture/action-checks.md), [Design patterns](/architecture/patterns.md)).
