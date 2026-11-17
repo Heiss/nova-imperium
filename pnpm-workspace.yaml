@@ -1,0 +1,9 @@
+# Settings of pnpm (from pnpm 11 on they are read here, no longer from the
+# field "pnpm" of package.json or from .npmrc; #264).
+# better-sqlite3 brings its binaries in prebuilds/ and is not compiled (the
+# image has no compiler); without its line an existing node_modules of
+# pnpm 10 fails the install with ERR_PNPM_IGNORED_BUILDS.
+allowBuilds:
+  better-sqlite3: false
+  esbuild: true
+engineStrict: true
