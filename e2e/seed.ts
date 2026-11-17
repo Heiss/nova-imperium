@@ -144,6 +144,12 @@ function moonOf(p: Planet, over: Partial<Planet>): void {
   });
 }
 
+/** The colony, and its moon when asked (#230). */
+function addColonyAndMoon(p: Planet): void {
+  addColony(p);
+  if (d.colonyMoon) moonOf(colonyOf(p), d.colonyMoon);
+}
+
 /** A gift fleet of the „Endzeit“ alone, without the trigger for every player. */
 function addGift(p: Planet, minutes: number): void {
   const now = Date.now();
@@ -158,8 +164,7 @@ store.tx(() => {
   if (d.research) store.saveUser({ ...u, research: d.research });
   const p = store.planetOfUser(u.id)!;
   updateHome(p);
-  if (d.colony) addColony(p);
-  if (d.colonyMoon) moonOf(colonyOf(p), d.colonyMoon);
+  if (d.colony) addColonyAndMoon(p);
   if (d.debris) store.repos.debris.add(p, d.debris);
   if (d.moon) moonOf(p, d.moon);
   if (d.gift) addGift(p, d.gift);

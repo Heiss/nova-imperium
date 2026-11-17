@@ -17,7 +17,7 @@ import { coords, dur } from './format.ts';
 import type { GameState } from './types.ts';
 
 /** One option of „Zielmond“. */
-export interface JumpTarget {
+interface JumpTarget {
   id: string;
   label: string;
   /** Whether its gate cools down: the option is disabled. */

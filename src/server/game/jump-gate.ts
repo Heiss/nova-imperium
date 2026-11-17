@@ -6,7 +6,6 @@
 // starting gate; the times are stored with the moons, so they hold after a
 // restart. Checking, moving and storing run in the one transaction of
 // `runAction`, so two requests can never move the same ships twice.
-import { isShip } from '../../core/catalog.ts';
 import {
   type Gate,
   type GateView,
@@ -18,10 +17,11 @@ import {
 } from '../../core/jump-gate.ts';
 import { parsePlaceId, placeId } from '../../core/place.ts';
 import { settle } from '../../core/settle.ts';
-import type { Levels, Planet } from '../../core/types.ts';
+import type { Planet } from '../../core/types.ts';
 import type { User } from '../db/repos/players.ts';
 import { type Action, mine } from './actions.ts';
-import { type Ctx, fail, int, universe } from './context.ts';
+import { type Ctx, fail, universe } from './context.ts';
+import { pickedShips } from './fleet-actions.ts';
 
 /** The German message of each refusal [V]. */
 export const JUMP_ERROR: Readonly<Record<JumpError, string>> = {
@@ -34,17 +34,6 @@ export const JUMP_ERROR: Readonly<Record<JumpError, string>> = {
   targetCooling: 'Das Warp-Tor des Zielmonds kühlt noch ab.',
   noShips: 'Keine Schiffe ausgewählt.',
   stationary: 'Sonnenreliquiare können nicht springen.',
-};
-
-/** The picked ships, each at most as many as stand on the place. */
-const pickShips = (p: Planet, wanted: unknown): Levels => {
-  const ships: Levels = {};
-  for (const [k, n] of Object.entries((wanted as Levels | null) ?? {})) {
-    if (!isShip(k)) continue;
-    const m = Math.min(int(n, 0, 1e12), p.ships[k] ?? 0);
-    if (m > 0) ships[k] = m;
-  }
-  return ships;
 };
 
 const gateOf = (ctx: Ctx, p: Planet): Gate => ({
@@ -67,7 +56,7 @@ export const jump: Action = (ctx, u, d, event) => {
   const now = ctx.now();
   const from = mine(ctx, u, d.planet);
   const to = targetOf(ctx, u, d.to);
-  const ships = pickShips(from, d.ships);
+  const ships = pickedShips(from, d.ships);
   const error = jumpError(gateOf(ctx, from), to && gateOf(ctx, to), ships, now);
   if (error) fail(JUMP_ERROR[error]);
   moveShips(from, to!, ships);

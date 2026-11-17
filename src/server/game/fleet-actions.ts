@@ -34,15 +34,24 @@ import { type Ctx, coords, fail, int, universe } from './context.ts';
 import { attackEvent } from './guild-events.ts';
 import { isProtected, pointsMap } from './points.ts';
 
-const pickShips = (p: Planet, wanted: unknown): Levels => {
+/**
+ * The picked ships, each at most as many as stand on the place; what is no
+ * ship or not there is left out. The jump of the Warp-Tor picks so too (#230).
+ */
+export const pickedShips = (p: Planet, wanted: unknown): Levels => {
   const ships: Levels = {};
   for (const [k, n] of Object.entries((wanted as Levels | null) ?? {})) {
     if (!isShip(k)) continue;
     const m = Math.min(int(n, 0, 1e12), p.ships[k] ?? 0);
-    if (m <= 0) continue;
-    if (!canFly(k)) fail('Sonnenreliquiare können nicht fliegen.');
-    ships[k] = m;
+    if (m > 0) ships[k] = m;
   }
+  return ships;
+};
+
+const pickShips = (p: Planet, wanted: unknown): Levels => {
+  const ships = pickedShips(p, wanted);
+  if (!Object.keys(ships).every(canFly))
+    fail('Sonnenreliquiare können nicht fliegen.');
   return ships;
 };
 
