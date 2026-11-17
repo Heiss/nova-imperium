@@ -161,6 +161,20 @@ tasks).
   issues become `ready`, and does whatever else keeps both agents building.
   Waiting with a free place wastes the time of the release; the limit of
   two stays for memory and usage.
+* **[E]** Roles (owner, 2026-11-17): the subagents build; the main agent
+  merges, gets the owner's decisions so that issues become ready for
+  building, and structures the work. Because the design patterns already
+  cut most merge conflicts, it watches where the code still causes them or
+  is hard to maintain, gives the subagents tasks to improve that or files
+  issues for it, and orders the work so that subagents do not collide.
+* **[E]** Subagents run only the cheap local checks (owner, 2026-11-17):
+  typecheck, eslint and the unit tests of the changed files, prettier,
+  `checkLog` and `check:migrations`, plus a new E2E test once to show that
+  it fails without the change. The full E2E suite, Stryker and the mutation
+  gate run in the CI, so no agent waits for a free machine; a red CI goes
+  back to a subagent. Reason: two agents shared one machine and waited
+  hours for each other's Stryker runs, while the CI runs the same checks
+  anyway.
 * **[E]** Small patches are slotted in between features (owner,
   2026-11-16): the main agent merges Renovate's green patch and minor pull
   requests (one at a time, CI Gate green on a head up to date with `main`;

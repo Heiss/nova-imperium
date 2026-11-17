@@ -65,6 +65,20 @@ interface is German.
    pull requests, get the owner's decisions so that the next issues become
    `ready`, and do whatever else keeps both agents building
    (owner, 2026-11-16).
+   Roles (owner, 2026-11-17): the subagents build; you, the main agent,
+   merge, get the owner's decisions so that issues become ready for
+   building, and structure the work. You see best where the code still
+   causes merge conflicts or is hard to maintain (shared files that every
+   pull request touches, modules that keep growing, missing extension
+   points of the design patterns): give the subagents tasks to improve
+   that, or file issues for it, and order the work so that subagents do not
+   collide.
+   Subagents run only the cheap local checks (owner, 2026-11-17):
+   typecheck, eslint and the unit tests of the changed files, prettier,
+   `checkLog` and `check:migrations`, and a new E2E test once to show that
+   it fails without the change; the full E2E suite, Stryker and the
+   mutation gate run in the CI. They push and report at once instead of
+   waiting for a free machine; a red CI goes back to a subagent.
    Small patches are slotted in between, so that none is left for the
    release (owner, 2026-11-16): while you wait, merge Renovate's green
    patch and minor pull requests (one at a time, CI Gate green on a head
