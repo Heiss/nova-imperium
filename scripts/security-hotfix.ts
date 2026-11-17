@@ -267,10 +267,10 @@ export function pinPackages(
   if (fixes.length === 0) return next;
   next.pnpm ??= {};
   next.pnpm.overrides = Object.fromEntries([
+    ...fixes.map(override),
     ...Object.entries(next.pnpm.overrides ?? {}).filter(
       ([selector]) => !gone(selector, fixes),
     ),
-    ...fixes.map(override),
   ]);
   return next;
 }
@@ -283,31 +283,17 @@ const yamlKey = (line: string): string | undefined =>
     .find((key) => key !== undefined);
 
 /**
- * The lines of the map "overrides" that stay, and where the new overrides
- * go: after the last entry that stays, else where the first replaced one
- * was, else at the top.
- */
-function keep(
-  block: readonly string[],
-  fixes: readonly PackageFix[],
-): [kept: string[], at: number] {
-  const stays = (line: string): boolean => !gone(yamlKey(line) ?? '', fixes);
-  const kept = block.filter(stays);
-  const afterLast = kept.findLastIndex((line) => yamlKey(line) !== undefined);
-  // Every line before the first replaced one stays: its index counts them.
-  const firstGone = block.findIndex((line) => !stays(line));
-  return [kept, afterLast >= 0 ? afterLast + 1 : Math.max(firstGone, 0)];
-}
-
-/**
  * From pnpm 11 on: the overrides of the plan in the text of
  * pnpm-workspace.yaml (empty when the file is missing), in its top-level
- * map "overrides", which is added at the end when it is missing. An
+ * map "overrides", which is added at the end when it is missing. The new
+ * overrides are its first entries: among overrides that match the same
+ * dependency pnpm 12.21.0 applies the first one, so a fix listed first wins
+ * over an older caret or exact pin (CodeRabbit on #284; an override bound
+ * to a parent, "parent>name", still wins, and `verify` then names it). An
  * override of the same selector and an older pin of the same package are
- * replaced; the new ones follow the last entry that stays. Comments and
- * blank lines stay where they are; a comment in the first column does not
- * end the map. Only the block form is written by this project; any other
- * form of the key fails, so an override is never lost unnoticed.
+ * removed. Comments and blank lines stay; a comment in the first column
+ * does not end the map. Only the block form is written by this project;
+ * any other form of the key fails, so an override is never lost unnoticed.
  */
 export function pinWorkspace(
   workspace: string,
@@ -331,16 +317,17 @@ export function pinWorkspace(
   // The map ends before the next key of the first column.
   let end = start + 1;
   while (end < lines.length && !/^[^\s#]/.test(lines[end]!)) end += 1;
-  const [kept, at] = keep(lines.slice(start + 1, end), fixes);
+  const kept = lines
+    .slice(start + 1, end)
+    .filter((line) => !gone(yamlKey(line) ?? '', fixes));
   const added = fixes.map((fix) => {
     const [selector, version] = override(fix);
     return `  '${selector}': '${version}'`;
   });
   return [
     ...lines.slice(0, start + 1),
-    ...kept.slice(0, at),
     ...added,
-    ...kept.slice(at),
+    ...kept,
     ...lines.slice(end),
     '',
   ].join('\n');
@@ -348,7 +335,7 @@ export function pinWorkspace(
 
 /**
  * Packages of the plan that pnpm-lock.yaml still holds below their fixed
- * version, as "name@version".
+ * version in its sections "packages" and "snapshots", as "name@version".
  */
 export function stillVulnerable(
   lock: string,
@@ -357,8 +344,13 @@ export function stillVulnerable(
   const wanted = new Map(fixes.map((f) => [f.name, f.version]));
   const left = new Set<string>();
   const key = /^ {2}'?((?:@[^@/\s']+\/)?[^@\s'(]+)@(\d[^(':\s]*)/;
+  // Only what is installed: an override of an exact version in the map
+  // "overrides" looks like a package key too.
+  let installed = false;
   for (const line of lock.split('\n')) {
-    const m = key.exec(line);
+    if (/^\S/.test(line))
+      installed = line === 'packages:' || line === 'snapshots:';
+    const m = installed ? key.exec(line) : null;
     if (!m) continue;
     const [, name = '', version = ''] = m;
     const fixed = wanted.get(name);
@@ -367,6 +359,27 @@ export function stillVulnerable(
     }
   }
   return [...left].sort();
+}
+
+/**
+ * The overrides of pnpm-lock.yaml that name one of the packages, as
+ * "selector: version": when a package stays below its fix, one of them
+ * won over the override of the fix.
+ */
+export function overridesOf(lock: string, names: readonly string[]): string[] {
+  const found: string[] = [];
+  let inside = false;
+  for (const line of lock.split('\n')) {
+    if (/^\S/.test(line)) inside = line === 'overrides:';
+    const key = inside ? yamlKey(line) : undefined;
+    if (key === undefined) continue;
+    const name = /^(?:.*>)?((?:@[^@/\s]+\/)?[^@\s]+)/.exec(key)?.[1];
+    if (name !== undefined && names.includes(name))
+      found.push(
+        `${key}: ${line.slice(line.indexOf(':', line.indexOf(key) + key.length) + 1).trim()}`,
+      );
+  }
+  return found;
 }
 
 /** Pins every FROM of the base image to the digest. */
@@ -477,12 +490,14 @@ function main(): number {
   if (command === 'apply' && file) return apply(file, digest);
   if (command === 'verify' && file) {
     const p = JSON.parse(readFileSync(file, 'utf8')) as Plan;
-    const left = stillVulnerable(
-      readFileSync('pnpm-lock.yaml', 'utf8'),
-      p.packages,
-    );
+    const lock = readFileSync('pnpm-lock.yaml', 'utf8');
+    const left = stillVulnerable(lock, p.packages);
     if (left.length > 0) {
       console.error(`pnpm-lock.yaml still holds: ${left.join(', ')}`);
+      const names = left.map((l) => l.slice(0, l.lastIndexOf('@')));
+      console.error(
+        `Overrides of these packages, one of which may win over the fix: ${overridesOf(lock, names).join(', ')}`,
+      );
       return 1;
     }
     return 0;

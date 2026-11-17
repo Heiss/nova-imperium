@@ -6,6 +6,7 @@ import {
   fixedVersion,
   fragment,
   markOsUpdates,
+  overridesOf,
   pinBase,
   pinDependencies,
   pinPackages,
@@ -325,7 +326,7 @@ describe('security hotfix: apply', () => {
     expect(pinWorkspace('', [])).toBe('');
   });
 
-  it('extend the overrides of pnpm-workspace.yaml and replace the same selector', () => {
+  it('put the fixes first in the overrides of pnpm-workspace.yaml and replace the same selector', () => {
     const workspace = [
       'overrides:',
       "  'old@<1.0.0': '1.0.0'",
@@ -337,8 +338,8 @@ describe('security hotfix: apply', () => {
       '  foo@<1.2.5: true',
       'engineStrict: true',
     ].join('\n');
-    // The new ones follow the last entry that stays; blank lines and
-    // comments keep their place.
+    // pnpm applies the first override that matches: the fixes lead the map;
+    // blank lines and comments stay.
     expect(
       pinWorkspace(workspace, [
         { name: 'foo', version: '1.2.5' },
@@ -348,10 +349,10 @@ describe('security hotfix: apply', () => {
     ).toBe(
       [
         'overrides:',
-        "  'old@<1.0.0': '1.0.0'",
         "  'foo@<1.2.5': '1.2.5'",
         "  'bar@<2.0.0': '2.0.0'",
         "  'new@<3.0.0': '3.0.0'",
+        "  'old@<1.0.0': '1.0.0'",
         '',
         '  # kept',
         'allowBuilds:',
@@ -360,15 +361,15 @@ describe('security hotfix: apply', () => {
         '',
       ].join('\n'),
     );
-    // A map without an entry that stays: right below its key.
+    // The map in the middle of the file.
     expect(
-      pinWorkspace('overrides:\n  # none yet\nb: 2\n', [
+      pinWorkspace('a: 1\noverrides:\n  # none yet\nb: 2\n', [
         { name: 'foo', version: '1.2.5' },
       ]),
-    ).toBe("overrides:\n  'foo@<1.2.5': '1.2.5'\n  # none yet\nb: 2\n");
+    ).toBe("a: 1\noverrides:\n  'foo@<1.2.5': '1.2.5'\n  # none yet\nb: 2\n");
   });
 
-  it('replace an older pin of the same package, which pnpm would apply first (#284)', () => {
+  it('win over older pins of the same package (#284)', () => {
     const fixes = [
       { name: 'foo', version: '1.2.5' },
       { name: '@scope/bar', version: '2.0.0' },
@@ -394,48 +395,52 @@ describe('security hotfix: apply', () => {
       [
         'a: 1',
         'overrides:',
-        // A pin above the fix, another package and other selectors stay.
+        // First, so they win over the caret pin below, which matches the
+        // same dependency (seen with pnpm 12.21.0).
+        "  'foo@<1.2.5': '1.2.5'",
+        "  '@scope/bar@<2.0.0': '2.0.0'",
+        // Older „<“ pins of the package are gone; a pin above the fix,
+        // another package and other selectors stay.
         '  foo@<2.0.0: 2.0.0',
         '  foobar@<1.0.0: 1.0.0',
         '  foo@^1: 1.0.1',
         '  foo: 1.0.2',
         '  @scope/bar@<2.0.1: 2.0.1',
-        "  'foo@<1.2.5': '1.2.5'",
-        "  '@scope/bar@<2.0.0': '2.0.0'",
         'b: 2',
         '',
       ].join('\n'),
     );
-    expect(
-      pinPackages(
-        {
-          pnpm: {
-            overrides: {
-              'foo@<1.0.0': '1.0.0',
-              'foo@<1.2.5': '1.2.4',
-              'foo@<2.0.0': '2.0.0',
-              other: '1.0.0',
-            },
+    const pinned = pinPackages(
+      {
+        pnpm: {
+          overrides: {
+            'foo@<1.0.0': '1.0.0',
+            'foo@^1': '1.0.1',
+            'foo@<1.2.5': '1.2.4',
+            'foo@<2.0.0': '2.0.0',
+            other: '1.0.0',
           },
         },
-        [fixes[0]!],
-      ),
-    ).toEqual({
+      },
+      [fixes[0]!],
+    );
+    expect(pinned).toEqual({
       pnpm: {
         overrides: {
+          'foo@<1.2.5': '1.2.5',
+          'foo@^1': '1.0.1',
           'foo@<2.0.0': '2.0.0',
           other: '1.0.0',
-          'foo@<1.2.5': '1.2.5',
         },
       },
     });
-    // The order matters to pnpm: the fix comes after what stays.
-    expect(
-      Object.keys(
-        pinPackages({ pnpm: { overrides: { other: '1' } } }, [fixes[0]!]).pnpm!
-          .overrides!,
-      ),
-    ).toEqual(['other', 'foo@<1.2.5']);
+    // The order is what pnpm reads: the fix first.
+    expect(Object.keys(pinned.pnpm!.overrides!)).toEqual([
+      'foo@<1.2.5',
+      'foo@^1',
+      'foo@<2.0.0',
+      'other',
+    ]);
     expect(pinPackages({ name: 'x' }, [])).toEqual({ name: 'x' });
   });
 
@@ -447,7 +452,7 @@ describe('security hotfix: apply', () => {
         "overrides:\n# security pins\n  'foo@<1.2.5': '1.2.4'\nb: 2\n",
         fix,
       ),
-    ).toBe("overrides:\n# security pins\n  'foo@<1.2.5': '1.2.5'\nb: 2\n");
+    ).toBe("overrides:\n  'foo@<1.2.5': '1.2.5'\n# security pins\nb: 2\n");
     // YAML allows white space before the colon; the key is the same.
     expect(pinWorkspace('overrides:\n  foo@<1.2.5 : 1.2.4\n', fix)).toBe(
       "overrides:\n  'foo@<1.2.5': '1.2.5'\n",
@@ -459,6 +464,33 @@ describe('security hotfix: apply', () => {
     expect(
       pinWorkspace('overrides:\n  foo@<1.2.5-rc.1: 1.2.5-rc.1\n', fix),
     ).toBe("overrides:\n  'foo@<1.2.5': '1.2.5'\n");
+  });
+
+  it('name the overrides of the lockfile that may win over a fix', () => {
+    const lock = [
+      'lockfileVersion: 9.0',
+      'overrides:',
+      '  foo@<1.2.5: 1.2.5',
+      "  'parent>foo': 1.0.0",
+      "  '@scope/parent>@scope/bar@^1': 1.1.0",
+      '  other: 2.0.0',
+      '  foobar: 1.0.0',
+      'importers:',
+      '  .:',
+      '    foo: 9.9.9',
+      'packages:',
+      '  foo@1.0.0:',
+    ].join('\n');
+    expect(overridesOf(lock, ['foo'])).toEqual([
+      'foo@<1.2.5: 1.2.5',
+      'parent>foo: 1.0.0',
+    ]);
+    expect(overridesOf(lock, ['@scope/bar', 'other'])).toEqual([
+      '@scope/parent>@scope/bar@^1: 1.1.0',
+      'other: 2.0.0',
+    ]);
+    expect(overridesOf(lock, ['missing'])).toEqual([]);
+    expect(overridesOf('packages:\n  foo@1.0.0:\n', ['foo'])).toEqual([]);
   });
 
   it('refuse a form of the overrides it cannot extend', () => {
@@ -485,6 +517,9 @@ describe('security hotfix: apply', () => {
       'lockfileVersion: 9.0',
       'overrides:',
       '  foo@<1.2.5: 1.2.5',
+      // An override of an exact version is no installed package.
+      '  foo@1.0.0: 1.2.5',
+      "  '@scope/bar@1.0.0': 2.1.0",
       'importers:',
       '  .:',
       '    dependencies:',
@@ -512,6 +547,16 @@ describe('security hotfix: apply', () => {
       [],
     );
     expect(stillVulnerable('', fixes)).toEqual([]);
+    expect(
+      stillVulnerable('overrides:\n  foo@1.0.0: 1.2.5\npackages:\n', fixes),
+    ).toEqual([]);
+    // The second YAML document of pnpm 11 and later counts as well.
+    expect(
+      stillVulnerable(
+        'packages:\n  pnpm@12.0.0:\n---\npackages:\n  foo@1.2.4:\n',
+        fixes,
+      ),
+    ).toEqual(['foo@1.2.4']);
   });
 
   it('insert the same OS updates block as the Dockerfile has', () => {
