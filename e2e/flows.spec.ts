@@ -58,6 +58,10 @@ async function sendTransport(page: Page): Promise<void> {
   await page.getByRole('button', { name: 'Flotte losschicken' }).click();
   await expect(lastToast(page)).toContainText('Flotte unterwegs nach');
   await expect(page.locator('.fl-transport')).toContainText('1 Frachtläufer');
+  // The row shows what the fleet carries (#259).
+  await expect(page.locator('.fl-transport')).toContainText(
+    'Versorgungsflug · Ladung: Adamant 1.000 · Psikristall 0 · Promethium 0',
+  );
 }
 
 /**
@@ -274,6 +278,33 @@ test.describe('fleet and battle (#68)', () => {
     expect(w.problems).toEqual([]);
   });
 
+  test('the overview shows the cargo of a transport on a 390 px phone (#259) @phone', async ({
+    page,
+  }) => {
+    const w = watch(page);
+    const name = uniqueName('LadungH');
+    await register(page, name);
+    seed({
+      name,
+      ships: { sc: 1 },
+      res: { m: 5000, c: 0, d: 5000 },
+      colony: { res: { m: 0, c: 0, d: 0 } },
+    });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await sendTransport(page);
+    await nav(page, 'overview');
+    const row = page.locator('.fl-transport');
+    await expect(row).toContainText('Deine Flotte (1 Frachtläufer) von ');
+    await expect(row).toContainText(
+      'Versorgungsflug · Ladung: Adamant 1.000 · Psikristall 0 · Promethium 0',
+    );
+    await expect(row).toBeInViewport();
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth),
+    ).toBeLessThanOrEqual(page.viewportSize()!.width);
+    expect(w.problems).toEqual([]);
+  });
+
   test('a transport unloads on the colony and comes home; reports are deleted one by one and all at once', async ({
     page,
   }) => {
@@ -293,6 +324,8 @@ test.describe('fleet and battle (#68)', () => {
     await expect(page.locator('.fl-back')).toContainText('kehrt von', {
       timeout: 15000,
     });
+    // Unloaded, it carries nothing home and shows no cargo (#259).
+    await expect(page.locator('.fl-back')).not.toContainText('Ladung');
     await choosePlanet(page, 'Kolonie');
     await expect(stock(page, 'Adamant')).toHaveText('1.000');
     seed({ name, returnFleet: true });
@@ -337,6 +370,9 @@ test.describe('fleet and battle (#68)', () => {
     await page.getByRole('button', { name: 'Rückruf' }).click();
     await expect(lastToast(page)).toContainText('Flotte zurückgerufen.');
     await expect(page.locator('.fl-back')).toContainText('kehrt von');
+    await expect(page.locator('.fl-back')).toContainText(
+      'zurück · Ladung: Adamant 1.000 · Psikristall 0 · Promethium 0',
+    );
     await expect(page.locator('.fl-transport')).toHaveCount(0);
 
     seed({ name, returnFleet: true });
