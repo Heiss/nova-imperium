@@ -52,9 +52,7 @@ export function freePosition(
   c: Coords,
   now: number,
 ): { note: string; colonize: boolean } {
-  const lock = (locks ?? []).find(
-    (l) => l.g === c.g && l.s === c.s && l.p === c.p,
-  );
+  const lock = locks?.find((l) => l.g === c.g && l.s === c.s && l.p === c.p);
   return lock && positionLocked(lock.until, now)
     ? { note: `gesperrt bis ${lockEnd(lock.until)}`, colonize: false }
     : { note: '–', colonize: true };
