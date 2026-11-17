@@ -87,8 +87,9 @@ interface is German.
    every rebuild: its cheap run checks only secrets, dependencies,
    migrations, workflows, CodeQL and the changelog, and its CI Gate is red
    on purpose (#147). Check its texts (German, matching their pull
-   requests, one entry per feature, nothing internal, every new admin
-   setting or action named in the entry of its feature) and its cheap jobs;
+   requests, one entry per feature, nothing internal, every new or
+   changed admin setting or action named in the entry of its feature, with
+   what the admin can now do) and its cheap jobs;
    then mark it „Ready for review“, which starts the full run. Do not mark
    it ready while its body says that a released hotfix is not merged back
    (the workflow „Release ready“ refuses it and sets it back to draft), or
