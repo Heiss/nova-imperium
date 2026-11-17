@@ -14,16 +14,11 @@ import type { Fleet, Planet } from '../../core/types.ts';
 import { type Ctx, addReport, coords, resLine, universe } from './context.ts';
 import { type MissionServer, type Player, land, turnBack } from './missions.ts';
 
-// The formulas of the espionage and the battle live with their missions; they
-// are exported here as before.
-export {
-  counterChance,
-  spyScore,
-} from '../../features/missions/spy/arrive.server.ts';
-export {
-  plunder,
-  rebuild,
-} from '../../features/missions/attack/arrive.server.ts';
+// The formulas of the espionage and the battle live with their missions and
+// the shared battle (#175); they are exported here as before.
+export { spyScore } from '../../features/missions/spy/arrive.server.ts';
+export { plunder } from '../../features/missions/attack/arrive.server.ts';
+export { rebuild } from './fight.ts';
 
 const UNKNOWN = { name: 'Unbekannt', research: {}, rq: null };
 

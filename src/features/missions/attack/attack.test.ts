@@ -10,7 +10,8 @@ import {
   subscribePush,
   testCtx,
 } from '../../../server/test-helpers.ts';
-import { onArrive, plunder, rebuild } from './arrive.server.ts';
+import { rebuild } from '../../../server/game/fight.ts';
+import { onArrive, plunder } from './arrive.server.ts';
 import * as rules from './rules.ts';
 import { canSend } from './rules.ts';
 

@@ -70,6 +70,7 @@ const SEND_ERROR: Readonly<Record<SendError, string>> = {
   ownTarget: 'Eigene Planeten kann man nicht angreifen.',
   protected: 'Dieser Spieler steht unter Noobschutz.',
   probesOnly: 'Auspex-Erkundung nur mit Spähschädeln.',
+  noSpyTech: 'Auspex-Erkundung erst ab Auspex-Lehre 1.',
   noDebris: 'An dieser Position gibt es kein Trümmerfeld.',
   noRecycler: 'Du brauchst eine Bergungsbarke.',
   noMoon: 'An dieser Position gibt es keinen Mond.',
@@ -108,7 +109,12 @@ function checkDestination(
 ): void {
   const error = sendError(
     rules,
-    { owner: u.id, from: p.id, ships },
+    {
+      owner: u.id,
+      from: p.id,
+      ships,
+      research: researchOf(ctx, u).research,
+    },
     {
       planet: occupied,
       debris: at.debris,

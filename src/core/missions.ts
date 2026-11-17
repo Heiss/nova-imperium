@@ -30,6 +30,7 @@ export type SendError =
   | 'protected'
   | 'noColonyShip'
   | 'probesOnly'
+  | 'noSpyTech'
   | 'noDebris'
   | 'noRecycler'
   | 'noMoon'
@@ -41,6 +42,8 @@ export interface SendFleet {
   /** The id of the planet it starts from. */
   from: string;
   ships: Levels;
+  /** The research of the owner; missing: none (the espionage technology of #175, Q1). */
+  research?: Levels;
 }
 
 /** What is at the target position when the fleet is sent. */
