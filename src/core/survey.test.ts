@@ -1,0 +1,256 @@
+// Surveying a free position (#190): the score and its tiers, the loss, the
+// values of a new planet and what each tier of the report shows.
+import fc from 'fast-check';
+import { describe, expect, it } from 'vitest';
+import { seeded } from '../test/fixtures.ts';
+import { colonyDiameter, fieldRange, fieldsOf } from './fields.ts';
+import { distance } from './flight.ts';
+import { satEnergy, tempFactor } from './rates.ts';
+import {
+  MAX_LOSS,
+  SURVEY_DAYS,
+  maxLoss,
+  positionTemp,
+  rollTemp,
+  surveyFindings,
+  surveyLost,
+  surveyScore,
+  surveyTier,
+} from './survey.ts';
+
+describe('the score of a survey (D2)', () => {
+  it('is probes + 2 · level', () => {
+    expect(surveyScore(1, 0)).toBe(1);
+    expect(surveyScore(3, 2)).toBe(7);
+    expect(surveyScore(8, 1)).toBe(10);
+  });
+
+  it('shows rough below 4, near from 4, exact from 7, full from 10', () => {
+    expect([0, 3, 4, 6, 7, 9, 10, 40].map(surveyTier)).toEqual([
+      'rough',
+      'rough',
+      'near',
+      'near',
+      'exact',
+      'exact',
+      'full',
+      'full',
+    ]);
+  });
+
+  it('needs the probes of the owner table for a full report per level', () => {
+    // Level 1: 8, level 2: 6, level 3: 4, level 4: 2, level 5: 1 (owner, 2026-11-14).
+    for (const [level, probes] of [
+      [1, 8],
+      [2, 6],
+      [3, 4],
+      [4, 2],
+      [5, 1],
+    ] as const) {
+      expect(surveyTier(surveyScore(probes, level)), `${level}`).toBe('full');
+      if (probes > 1)
+        expect(surveyTier(surveyScore(probes - 1, level))).not.toBe('full');
+    }
+  });
+});
+
+describe('the loss of a survey (D2)', () => {
+  const same = distance({ g: 1, s: 1, p: 5 }, { g: 1, s: 1, p: 9 });
+  const tenSystems = distance({ g: 1, s: 1, p: 5 }, { g: 1, s: 11, p: 5 });
+  const galaxy = distance({ g: 1, s: 1, p: 5 }, { g: 2, s: 1, p: 5 });
+  const twoGalaxies = distance({ g: 1, s: 1, p: 5 }, { g: 3, s: 1, p: 5 });
+  const pct = (x: number): number => Math.round(x * 100);
+
+  it('matches the table of the owner (revision 2, in %)', () => {
+    const rows = [
+      [1, 8],
+      [2, 6],
+      [3, 4],
+      [4, 2],
+      [5, 1],
+    ] as const;
+    expect(
+      rows.map(([level, probes]) =>
+        [same, tenSystems, galaxy, twoGalaxies].map((d) =>
+          pct(maxLoss(probes, level, d)),
+        ),
+      ),
+    ).toEqual([
+      [44, 52, 60, 60],
+      [18, 24, 52, 60],
+      [9, 14, 37, 59],
+      [5, 9, 28, 47],
+      [3, 7, 23, 39],
+    ]);
+  });
+
+  it('computes the formula exactly and never above 60 %', () => {
+    expect(maxLoss(2, 1, 1000)).toBeCloseTo(0.1 + 0.06 / 1.4, 12);
+    expect(maxLoss(4, 2, 5)).toBeCloseTo(
+      0.1 + (0.06 * Math.pow(0.005, 0.8)) / 1.8,
+      12,
+    );
+    expect(maxLoss(100, 1, 0)).toBe(MAX_LOSS);
+    expect(maxLoss(1, 0, 5)).toBe(MAX_LOSS);
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 1, max: 1000 }),
+        fc.integer({ min: 1, max: 30 }),
+        fc.integer({ min: 5, max: 200000 }),
+        (probes, level, d) => {
+          const x = maxLoss(probes, level, d);
+          expect(x).toBeGreaterThan(0);
+          expect(x).toBeLessThanOrEqual(MAX_LOSS);
+          // More probes and more distance raise it, research lowers it.
+          expect(maxLoss(probes + 1, level, d)).toBeGreaterThanOrEqual(x);
+          expect(maxLoss(probes, level, d + 1000)).toBeGreaterThanOrEqual(x);
+          expect(maxLoss(probes, level + 1, d)).toBeLessThanOrEqual(x);
+        },
+      ),
+    );
+  });
+
+  it('draws the chance between 0 and the maximum, then rolls once', () => {
+    const draws = (...xs: number[]) => {
+      const queue = [...xs];
+      return () => queue.shift()!;
+    };
+    // The chance 0.5 · 0.4 = 0.2; a roll below it loses the probes.
+    expect(surveyLost(0.4, draws(0.5, 0.19))).toBe(true);
+    expect(surveyLost(0.4, draws(0.5, 0.2))).toBe(false);
+    expect(surveyLost(0, draws(0.99, 0))).toBe(false);
+    // On average half of the maximum is lost.
+    const rng = seeded(190);
+    let lost = 0;
+    for (let i = 0; i < 20000; i++) if (surveyLost(0.4, rng)) lost++;
+    expect(lost / 20000).toBeCloseTo(0.2, 1);
+  });
+});
+
+describe('the values of a free position (D1)', () => {
+  it('rolls the temperature as a colony did: 130 − (p − 1) · 10 ± 10', () => {
+    expect(positionTemp(1)).toBe(130);
+    expect(positionTemp(9)).toBe(50);
+    expect(positionTemp(15)).toBe(-10);
+    expect(rollTemp(9, () => 0)).toBe(40);
+    expect(rollTemp(9, () => 0.5)).toBe(50);
+    expect(rollTemp(9, () => 0.999)).toBe(60);
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 1, max: 20 }),
+        fc.double({ min: 0, max: 1, maxExcluded: true, noNaN: true }),
+        (p, r) => {
+          expect(rollTemp(p, () => r)).toBe(
+            Math.round(130 - (p - 1) * 10 + (r * 20 - 10)),
+          );
+        },
+      ),
+    );
+  });
+
+  it('keeps 30 days', () => {
+    expect(SURVEY_DAYS).toBe(30);
+  });
+});
+
+describe('what a survey report shows', () => {
+  // Position 9 of an odd system: a Dschungelplanet, 150–246 fields.
+  const c = { s: 42, p: 9 };
+  const values = { temp: 72, diameter: 14600 };
+
+  it('shows what the position lets one guess in the rough report (D5)', () => {
+    expect(surveyFindings(c, values, 'rough')).toEqual({
+      tier: 'rough',
+      planetType: 'dschungel',
+      range: { min: 150, max: 246 },
+      average: 198,
+      around: 50,
+    });
+  });
+
+  it('narrows the fields to ± 20 % and the temperature to ± 10 °C (score 4)', () => {
+    expect(fieldsOf(14600)).toBe(213);
+    expect(surveyFindings(c, values, 'near')).toMatchObject({
+      tier: 'near',
+      fields: { min: 170, max: 256 },
+      temp: { min: 62, max: 82 },
+    });
+    expect(surveyFindings(c, values, 'near')).not.toHaveProperty('full');
+  });
+
+  it('shows the exact fields and temperature (score 7)', () => {
+    const x = surveyFindings(c, values, 'exact');
+    expect(x).toMatchObject({
+      fields: { min: 213, max: 213 },
+      temp: { min: 72, max: 72 },
+    });
+    expect(x).not.toHaveProperty('full');
+  });
+
+  it('shows everything known in the full report (D6)', () => {
+    expect(surveyFindings(c, values, 'full').full).toEqual({
+      temp: 72,
+      diameter: 14600,
+      fields: 213,
+      compare: 'above',
+      factor: tempFactor(72),
+      energy: 38,
+      pros: ['manyFields', 'muchEnergy'],
+      cons: ['weakFactor'],
+    });
+    expect(tempFactor(72)).toBeCloseTo(1.136, 12);
+    expect(satEnergy(72)).toBe(38);
+  });
+
+  it('names the benefits and drawbacks against the position', () => {
+    const full = (temp: number, diameter: number) =>
+      surveyFindings(c, { temp, diameter }, 'full').full!;
+    // Fewer fields than the average 198 and cooler than 50 °C.
+    expect(full(40, 12000)).toMatchObject({
+      fields: 144,
+      compare: 'below',
+      pros: ['goodFactor'],
+      cons: ['fewFields', 'littleEnergy'],
+    });
+    // Exactly the average and the middle temperature: nothing to name.
+    expect(full(50, 14072)).toMatchObject({
+      fields: 198,
+      compare: 'average',
+      pros: [],
+      cons: [],
+    });
+  });
+
+  it('keeps the average of an odd range and uses the planet type of the coordinates', () => {
+    const x = surveyFindings({ s: 2, p: 5 }, values, 'rough');
+    expect(x.range).toEqual(fieldRange(5));
+    expect(x.average).toBe(182.5);
+    expect(x.planetType).toBe('trocken');
+  });
+
+  it('shows ranges that hold the values of every possible planet', () => {
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 1, max: 15 }),
+        fc.integer({ min: 1, max: 499 }),
+        fc.integer({ min: 0, max: 1000 }),
+        (p, s, seed) => {
+          const rng = seeded(seed);
+          const v = {
+            temp: rollTemp(p, rng),
+            diameter: colonyDiameter(p, rng),
+          };
+          const f = fieldsOf(v.diameter);
+          const near = surveyFindings({ s, p }, v, 'near');
+          expect(near.fields!.min).toBeLessThanOrEqual(f);
+          expect(near.fields!.max).toBeGreaterThanOrEqual(f);
+          expect(near.temp).toEqual({ min: v.temp - 10, max: v.temp + 10 });
+          const full = surveyFindings({ s, p }, v, 'full').full!;
+          expect(full.fields).toBe(f);
+          expect(f).toBeGreaterThanOrEqual(near.range.min);
+          expect(f).toBeLessThanOrEqual(near.range.max);
+        },
+      ),
+    );
+  });
+});

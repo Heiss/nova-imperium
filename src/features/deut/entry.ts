@@ -12,12 +12,7 @@ export const leveled: Required<Leveled> = {
 // The warmer the planet, the less it yields (tempFactor).
 export const produces: Produces = {
   order: 30,
-  d: (x) =>
-    10 *
-    growth(x.level) *
-    tempFactor(x.temp) *
-    (x.pct / 100) *
-    x.f,
+  d: (x) => 10 * growth(x.level) * tempFactor(x.temp) * (x.pct / 100) * x.f,
 };
 export const consumes: Consumes = {
   e: grows(20),

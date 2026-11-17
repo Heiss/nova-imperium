@@ -72,9 +72,7 @@ describe(`upgrade to migration ${ID}`, () => {
       gift: 0,
     });
     expect(() =>
-      db.exec(
-        "UPDATE fleets SET mission = 'expedition' WHERE id = 'f4'",
-      ),
+      db.exec("UPDATE fleets SET mission = 'expedition' WHERE id = 'f4'"),
     ).toThrow(/CHECK/);
     expect(() =>
       db.exec("UPDATE reports SET type = 'other' WHERE id = 'r4'"),

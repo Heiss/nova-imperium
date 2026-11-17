@@ -31,6 +31,8 @@ const CODES: SendError[] = [
   'probesOnly',
   'noDebris',
   'noRecycler',
+  'surveyLocked',
+  'surveyProbesOnly',
 ];
 const FIELDS = [
   'alertsGuild',
@@ -56,6 +58,7 @@ describe('mission names', () => {
       'colonize',
       'deploy',
       'harvest',
+      'survey',
     ]);
   });
 
@@ -85,6 +88,11 @@ const fleets: fc.Arbitrary<SendFleet> = fc.record({
     fc.constantFrom(...Object.keys(SHIPS), 'nope'),
     fc.integer({ min: 0, max: 50 }),
   ),
+  // The research of the owner: the Vermessung needs Auspex-Kartographie (#190).
+  research: fc.dictionary(
+    fc.constantFrom('carto', 'spy'),
+    fc.integer({ min: 0, max: 3 }),
+  ),
 });
 
 const planets = fc.option(
@@ -102,6 +110,7 @@ describe('the rules of every mission (contract)', () => {
       'deploy',
       'harvest',
       'spy',
+      'survey',
       'transport',
     ]);
     expect(Object.keys(MISSION)[0]).toBe('attack');

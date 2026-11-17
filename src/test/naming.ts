@@ -111,7 +111,7 @@ export const NAMES: Readonly<
   lsd: { classic: 'Große Schildkuppel', name: 'Großer Schutzdom', ab: 'GD' },
   // #190: the name decided by the owner (2026-11-14), the abbreviation [V];
   // an own extension without a classic name.
-  survey: { classic: null, name: 'Auspex-Kartographie', ab: 'AK' },
+  carto: { classic: null, name: 'Auspex-Kartographie', ab: 'AK' },
 };
 
 /** Resources: Energie stays. */
@@ -187,7 +187,9 @@ export const classicIn = (text: string): string[] =>
  */
 export function renamed(text: string): string {
   const pairs = Object.values(NAMES)
-    .flatMap(({ classic, name }) => (classic === null ? [] : [{ classic, name }]))
+    .flatMap(({ classic, name }) =>
+      classic === null ? [] : [{ classic, name }],
+    )
     .sort((a, b) => b.classic.length - a.classic.length);
   let out = text;
   for (const { classic, name } of pairs)

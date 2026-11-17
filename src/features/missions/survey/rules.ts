@@ -16,7 +16,7 @@ export const silent = true;
 export const alertsGuild = false;
 /** Without level 1 of the research the mission is not available (D2); then only Spähschädel fly. */
 export const canSend = (fleet: SendFleet): SendError | undefined => {
-  if (!fleet.research?.survey) return 'surveyLocked';
+  if (!fleet.research?.carto) return 'surveyLocked';
   return Object.keys(fleet.ships).some((k) => k !== 'probe')
     ? 'surveyProbesOnly'
     : undefined;

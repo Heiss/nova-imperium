@@ -56,8 +56,7 @@ function rough(f: SurveyFindings, c: Coords): string {
 /** The narrowed or exact fields and temperature (D2, from score 4 and 7). */
 function closer(f: SurveyFindings, c: Coords): string {
   const fields = fieldSpan(f.fields!);
-  const temp =
-    f.tier === 'near' ? `ca. ${temps(f.temp!)}` : temps(f.temp!);
+  const temp = f.tier === 'near' ? `ca. ${temps(f.temp!)}` : temps(f.temp!);
   return `<div>Vermessung ${coords(c)}. ${positionRange(f, c.p)}.</div>
    <table class="mini"><tr><td>Felder</td><td>${fields}</td></tr><tr><td>Temperatur</td><td>${temp}</td></tr><tr><td>Planetentyp</td><td>${PLANET_TYPE_NAMES[f.planetType]}</td></tr></table>`;
 }
@@ -92,4 +91,4 @@ export function surveyBody(r: Report): string {
 
 /** Whether the Sternenkarte offers „Vermessen“: level 1 of the research and Spähschädel on the planet. */
 export const canSurvey = (research: Levels, ships: Levels): boolean =>
-  (research.survey ?? 0) >= 1 && (ships.probe ?? 0) > 0;
+  (research.carto ?? 0) >= 1 && (ships.probe ?? 0) > 0;

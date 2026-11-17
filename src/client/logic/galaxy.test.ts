@@ -43,6 +43,7 @@ interface Setup {
   ui?: Partial<Ui>;
   probes?: number;
   now?: number;
+  research?: Record<string, number>;
 }
 
 /** Anna (u1) looks at system 1:2 from her planet at [1:2:5]. */
@@ -61,7 +62,7 @@ function view(o: Setup = {}): V {
   return {
     s,
     P: planet({ id: 'p1_2_5', g: 1, s: 2, p: 5, ...o.P }),
-    R: { research: {}, rq: null },
+    R: { research: o.research ?? {}, rq: null },
     now: o.now ?? 0,
     ui: { gal: 1, sys: 2, ...o.ui } as Ui,
   };
@@ -160,6 +161,43 @@ describe('a free position', () => {
         attrs: { 'data-act': 'gfleet', 'data-m': 'colonize', ...at(9) },
       },
     ]);
+  });
+
+  it('offers „Vermessen“ with Spähschädel and Auspex-Kartographie, after the Landnahme (#190)', () => {
+    const vermessen = {
+      kind: 'button',
+      label: 'Vermessen',
+      attrs: { 'data-act': 'gspy', 'data-m': 'survey', ...at(9) },
+    };
+    const both = view({
+      P: { ships: { colony: 1, probe: 3 } },
+      research: { carto: 1 },
+      debris: [field(9)],
+    });
+    expect(rowAt(both, 9).actions.map((a) => a.kind)).toEqual([
+      'button',
+      'button',
+      'html',
+    ]);
+    expect(rowAt(both, 9).actions[1]).toEqual(vermessen);
+    expect(
+      rowAt(view({ P: { ships: { probe: 1 } }, research: { carto: 3 } }), 9)
+        .actions,
+    ).toEqual([vermessen]);
+    // Not without the research or without Spähschädel, not at a planet.
+    expect(rowAt(view({ P: { ships: { probe: 1 } } }), 9).actions).toEqual([]);
+    expect(
+      rowAt(view({ P: { ships: {} }, research: { carto: 1 } }), 9).actions,
+    ).toEqual([]);
+    const own = view({
+      P: { ships: { probe: 1 } },
+      research: { carto: 1 },
+      galaxy: [place('planet', 6, 'u3')],
+    });
+    expect(rowAt(own, 6).actions).toEqual([]);
+    expect(
+      rowAt(own, 6).planet!.actions.map((a) => 'label' in a && a.label),
+    ).not.toContain('Vermessen');
   });
 
   it('shows a Trümmerfeld with its symbol and the Bergung after the Landnahme (#45)', () => {

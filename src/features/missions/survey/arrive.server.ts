@@ -22,7 +22,7 @@ import { turnBack } from '../../../server/game/missions.ts';
 /** The level of „Auspex-Kartographie“ of the owner at the arrival. */
 function levelAt(ctx: Ctx, f: Fleet): number {
   const u = ctx.players.get(f.owner);
-  return u ? (settleR(u, f.arr).research.survey ?? 0) : 0;
+  return u ? (settleR(u, f.arr).research.carto ?? 0) : 0;
 }
 
 /** The values of the position: stored at its first survey (D1). */
@@ -58,11 +58,7 @@ export function onArrive(ctx: Ctx, f: Fleet): void {
       title: `Vermessungsbericht ${coords(f.toC)}`,
       coords: f.toC,
       survey: values.id,
-      ...surveyFindings(
-        f.toC,
-        values,
-        surveyTier(surveyScore(probes, level)),
-      ),
+      ...surveyFindings(f.toC, values, surveyTier(surveyScore(probes, level))),
     },
     { topic: 'fleet' },
   );

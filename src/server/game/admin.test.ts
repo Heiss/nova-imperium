@@ -92,6 +92,15 @@ describe('admin', () => {
     expect(ctx.debris.all()).toEqual([]);
   });
 
+  it('a new round forgets the surveyed positions (#190)', () => {
+    const ctx = testCtx();
+    const a = addUser(ctx, 'Anna', { admin: true });
+    const c = { g: 1, s: 2, p: 3 };
+    ctx.surveys.add({ id: 'v1', ...c, temp: 50, diameter: 9000, created: 1 });
+    reset(ctx, a, {});
+    expect(ctx.surveys.get(c)).toBeNull();
+  });
+
   it('a new round ends the planets without a field limit (#51)', () => {
     const ctx = testCtx();
     const a = addUser(ctx, 'Anna', { admin: true });
