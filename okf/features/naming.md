@@ -107,10 +107,14 @@ New entries of this release **[E]**:
 | #57 | Bomber | Belagerungsbomber | BB |
 | #60 | Todesstern | Weltenbrecher | WB |
 | #51 | Terraformer | Weltenschmiede ([E], owner 2026-11-13) | WE ([E], owner 2026-11-13) |
+| #190 | – (own extension, no classic name) | Auspex-Kartographie ([E], owner 2026-11-14) | AK ([V]) |
 
 Missions (only if `MISSION` values are display texts, not stored ids):
 attack → Sturmangriff, transport → Versorgungsflug, spy → Auspex-Erkundung,
 colonize → Landnahme.
+#190: survey → Vermessung ([V], the name of the issue; no classic
+mission). In `src/test/naming.ts` an own extension has the classic name
+`null`, so it adds no classic word.
 
 Interface texts: „Nicht genug Rohstoffe“ → „Der Zehnte reicht nicht aus.“,
 „Voraussetzungen fehlen“ → „Das Wissen ist noch verschlossen.“, „Bau
