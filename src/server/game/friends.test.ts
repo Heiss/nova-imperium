@@ -33,6 +33,19 @@ const answer = (ctx: TestCtx, me: string, other: string, accept: unknown) =>
   run(ctx, me, 'answerFriend', { uid: `u_${other}`, accept });
 const view = (ctx: TestCtx, uid: string) => friendState(ctx, `u_${uid}`);
 
+describe('the messages', () => {
+  it('words every refusal in German', () => {
+    expect(FRIEND_ERROR).toEqual({
+      unknown: 'Spieler nicht gefunden.',
+      self: 'Das bist du selbst.',
+      friends: 'Ihr seid bereits Freunde.',
+      outgoing: 'Deine Anfrage ist bereits offen.',
+      noRequest: 'Diese Anfrage gibt es nicht.',
+      noFriend: 'Diese Freundschaft gibt es nicht.',
+    });
+  });
+});
+
 describe('requesting a friendship', () => {
   it('sends a request by name that both see, nobody else, and no friendship yet', () => {
     const ctx = world();
@@ -201,17 +214,16 @@ describe('what friends see of each other (D1)', () => {
 
   it('sorts friends and requests by name', () => {
     const ctx = world();
-    addUser(ctx, 'Abel');
+    // An id that sorts last, a name that sorts first.
+    addUser(ctx, 'Abel', { id: 'u_zz' });
     request(ctx, 'Cora', 'Bert');
-    request(ctx, 'Abel', 'Bert');
+    runAction(ctx, 'u_zz', { type: 'requestFriend', name: 'Bert' });
     request(ctx, 'Anna', 'Bert');
-    expect(view(ctx, 'Bert').incoming).toEqual(['u_Abel', 'u_Anna', 'u_Cora']);
+    expect(view(ctx, 'Bert').incoming).toEqual(['u_zz', 'u_Anna', 'u_Cora']);
     answer(ctx, 'Bert', 'Cora', true);
-    answer(ctx, 'Bert', 'Abel', true);
-    expect(view(ctx, 'Bert').list.map((f) => f.id)).toEqual([
-      'u_Abel',
-      'u_Cora',
-    ]);
+    run(ctx, 'Bert', 'answerFriend', { uid: 'u_zz', accept: true });
+    expect(view(ctx, 'Bert').list.map((f) => f.id)).toEqual(['u_zz', 'u_Cora']);
+    expect(view(ctx, 'Bert').incoming).toEqual(['u_Anna']);
   });
 });
 

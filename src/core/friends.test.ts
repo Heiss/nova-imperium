@@ -23,7 +23,9 @@ const link = (
 describe('the relation of two players', () => {
   it('is none without a link', () => {
     expect(relationOf([], 'a', 'b')).toBe('none');
-    expect(relationOf([link('a', 'c'), link('c', 'b')], 'a', 'b')).toBe('none');
+    expect(
+      relationOf([link('a', 'c'), link('c', 'b'), link('c', 'a')], 'a', 'b'),
+    ).toBe('none');
   });
 
   it('is outgoing for an own request and incoming for one to me', () => {

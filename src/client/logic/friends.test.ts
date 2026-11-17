@@ -37,7 +37,7 @@ function state(over: Partial<GameState> = {}): GameState {
     galaxy,
     guilds: {
       directory: [
-        { id: 'g1', tag: 'ABC', members: [{ id: 'u_Bert' }] },
+        { id: 'g1', tag: 'ABC', members: [{ id: 'u_Eva' }, { id: 'u_Bert' }] },
         { id: 'g2', tag: 'XYZ', members: [{ id: 'u_Anna' }] },
       ],
     },
