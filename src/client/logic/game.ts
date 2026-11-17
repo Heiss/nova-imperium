@@ -120,7 +120,8 @@ export function fleetPreview(
 }
 
 type CargoKey = keyof Resources;
-const CARGO: CargoKey[] = ['m', 'c', 'd'];
+/** The resources a fleet carries, in the order of the cargo fields. */
+export const CARGO: CargoKey[] = ['m', 'c', 'd'];
 
 /** What a flight can load: whole units, Promethium after the fuel. */
 function loadable(p: Planet, f: FleetForm): Resources {

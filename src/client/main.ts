@@ -27,6 +27,7 @@ import {
   reportFormHTML,
 } from './logic/error-report.ts';
 import {
+  CARGO,
   cargoMax,
   cargoOne,
   fleetPreview,
@@ -912,7 +913,6 @@ function seeChat(): void {
 }
 
 // ----- fleet form -----
-
 /** The shown planet with its stock of this moment, for the cargo buttons. */
 const settledPlanet = (): Planet =>
   settle(client.game!.planet!, client.now(), client.game!.cfg, client.game!.me);
@@ -1233,9 +1233,7 @@ const ACT: Record<string, (d: Data) => unknown> = {
   },
   cmax: () => {
     const c = cargoMax(settledPlanet(), readFleetForm());
-    setInput('#c_m', c.m);
-    setInput('#c_c', c.c);
-    setInput('#c_d', c.d);
+    for (const k of CARGO) setInput(`#c_${k}`, c[k]);
     fleetCalc();
   },
   cone: (d) => {
