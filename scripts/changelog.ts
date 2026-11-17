@@ -32,6 +32,8 @@ const PLAYER_PATHS = [
   'src/core/',
   'src/features/',
   'src/server/game/',
+  // Admin routes: what the admin can do anew is in the changelog (owner, 2026-11-17).
+  'src/server/http/',
 ];
 const TITLE = '# Neuigkeiten';
 
