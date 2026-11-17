@@ -7,7 +7,7 @@ import { placeName } from '../../core/moon.ts';
 import { text } from '../../core/text.ts';
 import type { V } from '../views/common.ts';
 import { diameterLine } from './fields.ts';
-import { coords, dt, dur, fmt } from './format.ts';
+import { coords, dt, dur, fmt, resLine } from './format.ts';
 import { fleetEnd, nameOf, ranks, sortFleets } from './game.ts';
 import { planetLook } from './planet.ts';
 import type { ClientFleet } from './types.ts';
@@ -78,6 +78,12 @@ const shipList = (f: ClientFleet): string =>
     .map(([k, n]) => `${fmt(n)} ${text(k)?.n ?? k}`)
     .join(', ');
 
+/** What an own fleet carries, „ · Ladung: …“; nothing when it carries nothing (#259). */
+const cargoPart = (f: ClientFleet): string =>
+  f.cargo && (f.cargo.m || f.cargo.c || f.cargo.d)
+    ? ` · Ladung: ${resLine(f.cargo)}`
+    : '';
+
 function fleetParts(v: V, f: ClientFleet): TextPart[] {
   const ships = shipList(f);
   const mission = MISSION[f.mission];
@@ -94,12 +100,12 @@ function fleetParts(v: V, f: ClientFleet): TextPart[] {
   if (f.state === 'out')
     return [
       part(
-        `Deine Flotte (${ships}) von ${origin} erreicht ${coords(f.toC)} · ${mission}`,
+        `Deine Flotte (${ships}) von ${origin} erreicht ${coords(f.toC)} · ${mission}${cargoPart(f)}`,
       ),
     ];
   return [
     part(
-      `Deine Flotte (${ships}) kehrt von ${coords(f.toC)} nach ${coords(f.fromC)} zurück`,
+      `Deine Flotte (${ships}) kehrt von ${coords(f.toC)} nach ${coords(f.fromC)} zurück${cargoPart(f)}`,
     ),
   ];
 }
