@@ -34,7 +34,6 @@ export interface Row {
 
 /** The blocks an article is made of. */
 export type Block =
-  | { t: 'heading'; id: string; text: string }
   | { t: 'text'; text: string }
   | { t: 'formula'; lines: string[] }
   | { t: 'chips'; items: { label: string; text: string }[] }

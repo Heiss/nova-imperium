@@ -113,17 +113,18 @@ describe('every row', () => {
     });
     expect(r.explanation).toMatchObject({
       key: 'metal',
-      toggle: true,
+      panel: 'lexicanum-panel',
       open: true,
     });
     expect(row(view(), 'building', 'metal').explanation?.open).toBe(false);
     expect(
       row(view({ explain: 'hidden' }), 'building', 'metal').explanation,
     ).toBeNull();
+    // A stored „Immer anzeigen“ of #63 shows the „?“ (#285 B2).
     expect(
       row(view({ ...lab, explain: 'always' }), 'research', 'energy').explanation
-        ?.toggle,
-    ).toBe(false);
+        ?.key,
+    ).toBe('energy');
   });
 
   it('gives each kind its icon class', () => {

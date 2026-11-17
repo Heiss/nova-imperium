@@ -857,21 +857,27 @@ describe('planet settings', () => {
   it('save the display option of the explanation texts (issue #63)', () => {
     const { ctx, u, me } = setup();
     expect(me().explain).toBe('icon');
-    for (const explain of ['always', 'hidden', 'icon']) {
+    for (const explain of ['hidden', 'icon']) {
       expect(A.options(ctx, u, { probes: 2, explain })).toBe('Gespeichert.');
       expect(me()).toMatchObject({ probes: 2, explain });
     }
+    // „Immer anzeigen“ of a client from before #285 becomes the „?“ (B2).
+    A.options(ctx, u, { probes: 2, explain: 'hidden' });
+    expect(A.options(ctx, u, { probes: 2, explain: 'always' })).toBe(
+      'Gespeichert.',
+    );
+    expect(me()).toMatchObject({ probes: 2, explain: 'icon' });
     A.options(ctx, u, { probes: 3, explain: 'hidden' });
     A.options(ctx, u, { probes: 4 });
     expect(me()).toMatchObject({ probes: 4, explain: 'hidden' });
   });
   it('refuse an unknown display option and change nothing', () => {
-    const { ctx, u, me } = setup({}, { probes: 3, explain: 'always' });
+    const { ctx, u, me } = setup({}, { probes: 3, explain: 'hidden' });
     for (const explain of ['', 'never', 'ICON', null, 1, ['icon']])
       expect(() => A.options(ctx, { ...u }, { probes: 9, explain })).toThrow(
         'Ungültig.',
       );
-    expect(me()).toMatchObject({ probes: 3, explain: 'always' });
+    expect(me()).toMatchObject({ probes: 3, explain: 'hidden' });
   });
 });
 

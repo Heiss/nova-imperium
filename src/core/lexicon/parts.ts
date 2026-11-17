@@ -4,8 +4,11 @@
 // so the core names no key; the formulas are checked against the rules (B8).
 import { buildSide, TECH_BONUS, techFactor } from '../battle.ts';
 import { FIGHTERS } from '../catalog.ts';
+import { lvlCost } from '../components/leveled.ts';
 import { DRIVE_BONUS, type DriveKey, speed } from '../components/mobile.ts';
-import type { EntryLexicon } from './types.ts';
+import { capOf } from '../components/storage.ts';
+import type { Universe } from '../types.ts';
+import type { EntryLexicon, Formula } from './types.ts';
 
 const NUMBER = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 2 });
 
@@ -74,5 +77,32 @@ export function drivePart(drive: DriveKey): EntryLexicon {
         ],
       },
     ],
+  };
+}
+
+/** The cost of a level, for every entry with levels („Stufen“). */
+export function costFormula(f: number): Formula {
+  return {
+    text: 'Kosten = Kosten der Stufe 1 · {f}^(Stufe − 1)',
+    values: { f: number(f) },
+    fn: (base, level) => Math.floor(base! * f ** (level! - 1)),
+    rule: (base, level) => lvlCost({ cost: [base!, 0, 0], f }, level!)[0],
+    samples: [
+      [60, 1],
+      [48, 7],
+      [200, 12],
+      [1000000, 3],
+    ],
+  };
+}
+
+/** The capacity of a store at a level, with the base store of the universe. */
+export function storageFormula(u: Universe): Formula {
+  return {
+    text: 'Lagerkapazität = {base} + 50.000 · (⌈1,6^Stufe⌉ − 1)',
+    values: { base: number(u.baseStore) },
+    fn: (level) => u.baseStore + 50000 * (Math.ceil(1.6 ** level!) - 1),
+    rule: (level) => capOf(level!, u),
+    samples: [[0], [1], [5], [12]],
   };
 }

@@ -56,7 +56,7 @@ const pushKindsBox = (v: V): string => {
 };
 
 export const help = (v: V): string => `<h2>Hilfe &amp; Optionen</h2>
- ${box('Optionen', `<div class="flex">Spähschädel pro Auspex-Erkundung von der Sternenkarte: <input type="number" id="o_probes" min="1" value="${v.s.me.probes || 1}" aria-label="Spähschädel pro Auspex-Erkundung"></div><div class="flex mt"><label for="o_explain">Erklärungstexte:</label> <select id="o_explain">${explainOptionsHTML(v.s.me.explain)}</select></div><p><button data-act="saveopt">Speichern</button></p>`)}
+ ${box('Optionen', `<div class="flex">Spähschädel pro Auspex-Erkundung von der Sternenkarte: <input type="number" id="o_probes" min="1" value="${v.s.me.probes || 1}" aria-label="Spähschädel pro Auspex-Erkundung"></div><div class="flex mt"><label for="o_explain">(?)-Symbol:</label> <select id="o_explain">${explainOptionsHTML(v.s.me.explain)}</select></div><p><button data-act="saveopt">Speichern</button></p>`)}
  ${box('Hauptplanet', mainPlanetHTML(v.s, v.now))}
  ${box('Darstellung', `<label class="switch"><input type="checkbox" id="o_anim" ${v.ui.animations ? 'checked' : ''}> Animationen</label><p class="dim">Planeten drehen sich, Wolken ziehen. Gilt für dieses Gerät; ist im System „Bewegung reduzieren“ eingestellt, bleibt alles ruhig.</p>`)}
  ${box(

@@ -423,6 +423,21 @@ function stats(v: V, key: string, d: UnitDef): string {
 }
 
 /**
+ * The values of a ship or defense as its row shows them, also in its
+ * article of the Lexicanum (#285): attack, shield, structure with the
+ * research, cargo, speed, energy, and the time of one unit; undefined for a
+ * key that is no unit.
+ */
+export function unitLines(v: V, key: string): string[] | undefined {
+  const d = SHIPS[key] ?? DEF[key];
+  if (!d) return undefined;
+  return [
+    stats(v, key, d),
+    `Bauzeit: ${dur(unitTime(d, v.P, v.s.cfg))} je Einheit`,
+  ];
+}
+
+/**
  * What disables „Bauen“ of an order (#214): the codes of `orderErrors` for
  * one unit, after the requirements, which show their note instead. The list
  * of the shipyard, full at 20 orders, is checked by the server only.
@@ -452,7 +467,6 @@ function unitRow(
   cls: string,
   have: Levels,
 ): CatalogRow {
-  const { P, s } = v;
   // The component `limit` of 1, the shield domes (#50).
   const once = (d as { once?: true }).once === true;
   return {
@@ -464,10 +478,7 @@ function unitRow(
     ),
     running: false,
     cost: d.cost,
-    lines: [
-      stats(v, key, d),
-      `Bauzeit: ${dur(unitTime(d, P, s.cfg))} je Einheit`,
-    ],
+    lines: unitLines(v, key)!,
     req: d.req,
     action: orderAction(v, key, once),
   };

@@ -36,7 +36,9 @@ const blocksOf = (id: string): Block[] =>
 const texts = ARTICLES.flatMap((a) => [
   ...(a.lexicon.texts ?? []).map((t) => ({ id: a.id, ...t })),
   ...blocksOf(a.id).flatMap((b) =>
-    b.t === 'text' ? [{ id: a.id, text: b.text, values: {} }] : [],
+    b.t === 'text'
+      ? [{ id: a.id, text: b.text, values: {} as Record<string, string> }]
+      : [],
   ),
 ]);
 

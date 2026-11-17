@@ -25,6 +25,7 @@ describe('phone menu', () => {
       'guilds',
       'achievements',
       'news',
+      'lexicanum',
       'help',
     ]);
   });
@@ -44,6 +45,7 @@ describe('phone menu', () => {
       'highscore',
       'achievements',
       'news',
+      'lexicanum',
       'help',
     ]);
   });

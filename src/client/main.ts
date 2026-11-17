@@ -9,6 +9,7 @@ import { settle, settleR } from '../core/settle.ts';
 import { text } from '../core/text.ts';
 import type { Levels, Planet, Queue } from '../core/types.ts';
 import { createAct, placeOf, samePlace } from './logic/act.ts';
+import { LEXICANUM_VIEW, viewUrl } from './logic/address.ts';
 import { CATALOG_VIEWS, catalogKind, orderNote } from './logic/catalog-list.ts';
 import { clearsChat, sameSignIn } from './logic/guild-chat.ts';
 import { debrisAt, debrisTip } from './logic/debris.ts';
@@ -74,6 +75,7 @@ import {
   transferDialog,
 } from './views/guilds.ts';
 import { mountGalaxy } from './views/galaxy.ts';
+import { lexicanumActions, mountLexicanum } from './views/lexicanum.ts';
 import { mountOverview } from './views/overview.ts';
 import { mountProducerTable } from './views/producer-table.ts';
 
@@ -105,6 +107,7 @@ const MOUNTED = new Set([
   'overview',
   'galaxy',
   'resources',
+  LEXICANUM_VIEW,
   ...Object.keys(CATALOG_VIEWS),
 ]);
 /** The Svelte views mounted anew on every render (#118). */
@@ -232,14 +235,8 @@ function rewardsAvailable(state: GameState | null): boolean {
 const viewFromUrl = (): string =>
   gameView(new URLSearchParams(location.search).get('view'));
 
-function viewUrl(view: string, guild: string | null = null): string {
-  const url = new URL(location.href);
-  url.searchParams.set('view', view);
-  if (view === 'guilds' && guild) url.searchParams.set('guild', guild);
-  else url.searchParams.delete('guild');
-  url.hash = '';
-  return url.pathname + url.search;
-}
+const urlOf = (view: string, guild: string | null = null): string =>
+  viewUrl(location.href, view, guild);
 
 const ui: Ui = Object.assign(client.ui, {
   view: viewFromUrl(),
@@ -498,7 +495,7 @@ function apply(st: GameState | undefined, fresh = false): void {
   const view = gameView(ui.view);
   if (view !== ui.view) {
     ui.view = view;
-    history.replaceState(null, '', viewUrl(view));
+    history.replaceState(null, '', urlOf(view));
   }
   $('#unisub')!.textContent = `Classic Universum · Speed x${st.cfg.speed}`;
   if (!same || fresh) render(fresh);
@@ -684,15 +681,6 @@ function renderCompletions(view: HTMLElement): void {
   view.prepend(notice);
 }
 
-/** Opens or closes the explanation below an entry (issue #63, D3). */
-function toggleExplanation(key: string): void {
-  const open = !ui.openEx[key];
-  ui.openEx[key] = open;
-  // Only the lists have explanations; Svelte keeps the focused button and
-  // only changes its attributes.
-  if (client.shown) client.shown = { ...client.shown };
-}
-
 /** Unmounts the Svelte view (the lists, the resources). */
 function unmountViews(): void {
   mounted?.destroy();
@@ -710,6 +698,8 @@ function mountView(target: HTMLElement, view: V): NonNullable<typeof mounted> {
     return { view: ui.view, ...mountProducerTable(target, view) };
   if (ui.view === 'galaxy')
     return { view: ui.view, ...mountGalaxy(target, view) };
+  if (ui.view === LEXICANUM_VIEW)
+    return { view: ui.view, ...mountLexicanum(target) };
   return { view: 'overview', ...mountOverview(target) };
 }
 
@@ -872,7 +862,7 @@ function filterAchievements(): void {
 function renderMenu(): void {
   if (ui.view === 'news') seeNews();
   showNavigation(
-    navigation(client.game!, ui, client.completedMenu, (view) => viewUrl(view)),
+    navigation(client.game!, ui, client.completedMenu, (view) => urlOf(view)),
   );
 }
 
@@ -1018,7 +1008,7 @@ const go = (
   const view = gameView(requested);
   if (view !== ui.view || guild !== ui.guild) {
     client.completionNotices.clear();
-    if (push) history.pushState(null, '', viewUrl(view, guild));
+    if (push) history.pushState(null, '', urlOf(view, guild));
   }
   client.completedMenu.delete(view);
   closeMore();
@@ -1254,7 +1244,7 @@ const ACT: Record<string, (d: Data) => unknown> = {
   },
   delrep: (d) => act('delrep', { id: d.id }),
   delall: () => act('delall'),
-  explain: (d) => toggleExplanation(d.k!),
+  ...lexicanumActions(go),
   saveopt: () =>
     act('options', {
       probes: clampInt(val('#o_probes'), 1, 1e6),

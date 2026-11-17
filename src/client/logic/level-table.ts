@@ -8,6 +8,7 @@ import { buildTime, lvlCost, researchTime } from '../../core/economy.ts';
 import { labSite, networkLab } from '../../core/research.ts';
 import type { Cost } from '../../core/types.ts';
 import type { V } from '../views/common.ts';
+import { fmt } from './format.ts';
 
 /** One level: its cost and its building or research time in ms. */
 export interface LevelRow {
@@ -104,8 +105,18 @@ export function levelTable(
     }),
   };
   if (effect) {
-    const { at: _, ...shown } = effect;
-    table.effect = shown;
+    table.effect = { label: effect.label };
+    if (effect.format) table.effect.format = effect.format;
+    if (effect.unit) table.effect.unit = effect.unit;
   }
   return table;
 }
+
+/** An effect as the table shows it: „+30 %“, „12 Systeme“ or „5“. */
+export const effectText = (
+  value: number,
+  e: Pick<LevelEffect, 'format' | 'unit'>,
+): string =>
+  e.format === 'percent'
+    ? `+${fmt(Math.round(value * 100))} %`
+    : `${fmt(value)}${e.unit ? ` ${e.unit}` : ''}`;
