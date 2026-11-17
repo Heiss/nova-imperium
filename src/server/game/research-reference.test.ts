@@ -5,8 +5,8 @@
 // every table. The reference below is the research action of
 // src/server/game/actions.ts as it was on main before #115, with
 // settleReactors() and the private helpers it calls, copied unchanged but
-// for the names of the copies and the push argument of #192 (`orderPush`,
-// the same kind as today's code).
+// for the names of the copies, the push argument of #192 (`orderPush`,
+// the same kind as today's code) and the order of the checks of #214.
 import Database from 'better-sqlite3';
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
@@ -92,12 +92,15 @@ function payNextLevel(
   return q;
 }
 
+// The requirements come before the running research and the lab upgrade
+// since #214: the server checks in the order of the browser (owner,
+// 2026-11-15, O18 (c), F9); the only change of the reference.
 const checkResearch = (p: Planet, r: ResearchState, k: string): void => {
   if (!((p.b.lab ?? 0) > 0)) fail('Du brauchst ein Scholarium.');
-  if (r.rq) fail('Es wird bereits geforscht.');
-  if (labUpgrading(p)) fail('Das Scholarium wird ausgebaut.');
   if (reqMissing(RES[k]!, p, r).length)
     fail('Das Wissen ist noch verschlossen.');
+  if (r.rq) fail('Es wird bereits geforscht.');
+  if (labUpgrading(p)) fail('Das Scholarium wird ausgebaut.');
 };
 
 const research: Action = (ctx, u, d, event) => {
