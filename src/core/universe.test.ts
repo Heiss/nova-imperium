@@ -32,6 +32,11 @@ describe('universe settings', () => {
       extraFields: 0,
       // Added by #161 (owner, 2026-11-14): the gift flies 4 h by default.
       endzeitMinutes: 240,
+      // Added by #229 (owner, 2026-11-16, Q1): the classic thresholds.
+      roundActivityRecent: 15,
+      roundActivityMinutes: 59,
+      roundInactiveDays: 7,
+      roundLongInactiveDays: 28,
     });
     for (const s of UNIVERSE_SPECS) {
       expect(s.def).toBeGreaterThanOrEqual(s.min);
@@ -51,6 +56,10 @@ describe('universe settings', () => {
       ['startDeuterium', 'Start-Promethium'],
       ['extraFields', 'Zusatzfelder pro Planet'],
       ['endzeitMinutes', 'Flugzeit der Endzeit-Gabe (Minuten)'],
+      ['roundActivityRecent', 'Aktivität ohne Minutenangabe (Minuten)'],
+      ['roundActivityMinutes', 'Aktivität mit Minutenangabe bis (Minuten)'],
+      ['roundInactiveDays', 'Inaktiv ab (Tage)'],
+      ['roundLongInactiveDays', 'Lange inaktiv ab (Tage)'],
     ]);
   });
   it('accept valid values given as strings', () => {
@@ -101,6 +110,22 @@ describe('universe settings', () => {
       expect(codes({ ...DEFAULT_UNIVERSE, endzeitMinutes })).toEqual([
         ['endzeitMinutes', 'range'],
       ]);
+  });
+  it('take the ranges of the activity thresholds (#229, X1)', () => {
+    for (const [key, min, max, def] of [
+      ['roundActivityRecent', 1, 60, 15],
+      ['roundActivityMinutes', 1, 1440, 59],
+      ['roundInactiveDays', 1, 365, 7],
+      ['roundLongInactiveDays', 1, 365, 28],
+    ] as const) {
+      expect(spec(key)).toMatchObject({ key, min, max, def });
+      for (const value of [min, max])
+        expect(codes({ ...DEFAULT_UNIVERSE, [key]: value })).toEqual([]);
+      for (const value of [min - 1, max + 1, 1.5])
+        expect(codes({ ...DEFAULT_UNIVERSE, [key]: value })).toEqual([
+          [key, 'range'],
+        ]);
+    }
   });
   it('report all errors at once, in the order of the specs', () => {
     expect(codes({})).toEqual(UNIVERSE_SPECS.map((s) => [s.key, 'range']));

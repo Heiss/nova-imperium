@@ -1,6 +1,7 @@
 // The Sternenkarte shows every player a Trümmerfeld with its symbol, the
 // tooltip and the button „Bergung“ (#45, owner, 2026-11-13).
 import { describe, expect, it } from 'vitest';
+import { ACTIVITY_DEFAULT } from '../../core/activity.ts';
 import type { DebrisField } from '../../core/debris.ts';
 import type { Planet } from '../../core/types.ts';
 import type { GameState } from '../logic/types.ts';
@@ -301,6 +302,52 @@ describe('the Auspex-Phalanx on the Sternenkarte (#53)', () => {
     expect(html).toContain('Phalanx-Scan: &lt;b&gt;&quot;x&quot; [1:2:6]');
     expect(html).toContain(
       'aria-label="Phalanx-Scan von &lt;b&gt;&quot;x&quot;"',
+    );
+  });
+});
+
+describe('activity and inactivity on the Sternenkarte (#229)', () => {
+  /** The Sternenkarte with Bert's planet and moon active and Bert's account in `inactive`. */
+  function marked(inactive?: 'inactive' | 'long'): V {
+    const v = view([]);
+    v.s.round = { activity: { ...ACTIVITY_DEFAULT, recent: 10 } } as never;
+    v.s.galaxy[1]!.activity = { minutes: 42 };
+    v.s.galaxy.push({
+      id: 'm1_2_6',
+      kind: 'moon',
+      name: 'Mond',
+      g: 1,
+      s: 2,
+      p: 6,
+      temp: 20,
+      owner: 'u_Bert',
+      activity: { recent: true },
+    });
+    v.s.players.u_Bert!.inactive = inactive;
+    return v;
+  }
+
+  it('shows the activity of a planet after its name, the moon’s in its row', () => {
+    const v = marked();
+    v.ui.gmoon = 'm1_2_6';
+    const html = galaxy(v);
+    expect(row(html, 6)).toContain(
+      'Beta <span class="dim">(Aktivität vor 42 Minuten)</span>',
+    );
+    expect(html).toContain(
+      'Mond (Mond) <span class="dim">(Aktivität vor weniger als 10 Minuten)</span>',
+    );
+    // Anna's planet shows no activity.
+    expect(row(html, 5)).not.toContain('Aktivität');
+  });
+
+  it('shows the inactivity of an account after the player, apart from the noob protection', () => {
+    expect(row(galaxy(marked()), 6)).not.toContain('inaktiv');
+    expect(row(galaxy(marked('inactive')), 6)).toContain(
+      'Bert <span class="dim">(Platz 2)</span> <span class="dim">(Inaktiv)</span>',
+    );
+    expect(row(galaxy(marked('long')), 6)).toContain(
+      '<span class="dim">(Lange inaktiv)</span>',
     );
   });
 });

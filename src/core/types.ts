@@ -119,4 +119,12 @@ export interface Universe {
   extraFields: number;
   /** The default flight time of the „Endzeit“ gift, in minutes (#161). */
   endzeitMinutes: number;
+  /** Minutes after an activity without the minutes shown (#229, X1). */
+  roundActivityRecent: number;
+  /** The last minute after an activity that is shown (#229, X1). */
+  roundActivityMinutes: number;
+  /** Days without activity until an account is inactive (#229, X1). */
+  roundInactiveDays: number;
+  /** Days without activity until an account is long inactive (#229, X1). */
+  roundLongInactiveDays: number;
 }

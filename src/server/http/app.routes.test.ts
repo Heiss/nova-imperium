@@ -357,6 +357,41 @@ describe('player actions', () => {
     expect(ctx.planets.get('p1_1_7')!.name).toBe('X');
   });
 
+  it('marks activity: a login the main planet, an action or an interaction every own planet (#229)', async () => {
+    const { ctx, call } = await player();
+    addPlanet(ctx, 'u_Anna', { p: 7 });
+    addPlanet(ctx, 'u_Anna', { p: 7, kind: 'moon', id: 'm1_1_7' });
+    const t0 = ctx.now();
+    await call('POST', '/api/login', { name: 'Anna', password: 'secret1' });
+    expect(ctx.planets.activeTimes()).toEqual({ p1_1_5: t0 });
+    expect(ctx.players.lastActive().u_Anna).toBe(t0);
+    ctx.clock.t += 1000;
+    // A refused action is a manual action too.
+    const refused = await call('POST', '/api/action', { type: 'unknown' });
+    expect(refused.json).toMatchObject({ error: expect.any(String) });
+    const t1 = ctx.now();
+    expect(ctx.planets.activeTimes()).toEqual({
+      p1_1_5: t1,
+      p1_1_7: t1,
+      m1_1_7: t1,
+    });
+    ctx.clock.t += 60_000;
+    expect((await call('POST', '/api/activity', {})).json).toEqual({
+      ok: true,
+    });
+    const t2 = ctx.now();
+    expect(ctx.planets.activeTimes()).toEqual({
+      p1_1_5: t2,
+      p1_1_7: t2,
+      m1_1_7: t2,
+    });
+    expect(ctx.players.lastActive().u_Anna).toBe(t2);
+    // Reading the state is no activity.
+    ctx.clock.t += 60_000;
+    await call('GET', '/api/state');
+    expect(ctx.players.lastActive().u_Anna).toBe(t2);
+  });
+
   it('audits universe settings as an admin write with before and after', async () => {
     const { ctx, call } = await asAdmin();
     const before = ctx.admin.universe();

@@ -9,6 +9,7 @@ import type { Universe } from '../../core/types.ts';
 import { ENDZEIT_NOTE } from '../logic/endzeit.ts';
 import { reportFormHTML } from '../logic/error-report.ts';
 import { explainOptionsHTML } from '../logic/explain.ts';
+import { ACTIVITY_INPUTS } from '../logic/activity.ts';
 import { mainPlanetHTML } from '../logic/main-planet.ts';
 import { pushKindsHTML, shownPushOff } from '../logic/push-options.ts';
 import { coords, esc, fmt } from '../logic/format.ts';
@@ -118,6 +119,13 @@ function invitations(ui: Ui): string {
   return `<form id="inviteform" class="flex"><label for="inv_email">E-Mail-Adresse</label> <input id="inv_email" type="email" required autocomplete="off" data-nokeep> <button type="submit">Einladen</button></form>${link}<div id="admin-invitations"></div>`;
 }
 
+/** The thresholds of the activity markers for the new round (#229, X1), named as in the universe settings. */
+const activityInputs = (round: RoundRules): string =>
+  ACTIVITY_INPUTS.map(
+    ({ part, id, spec }) =>
+      `<p><label for="${id}">${esc(spec.label)}</label> <input type="number" id="${id}" min="${spec.min}" max="${spec.max}" step="1" value="${round.activity[part]}" required> <span class="dim">${spec.min} bis ${spec.max}</span></p>`,
+  ).join('');
+
 export function roundDialog(round: RoundRules): string {
   return `<p><b>Wirklich eine neue Runde starten?</b><br>
   Planeten, Flotten, Forschung, Nachrichten und Belohnungsfortschritt werden zurückgesetzt. Das kann nicht rückgängig gemacht werden.</p>
@@ -128,6 +136,7 @@ export function roundDialog(round: RoundRules): string {
   <p><label><input type="checkbox" id="round-guilds" aria-describedby="round-guilds-note" ${round.guilds ? 'checked' : ''}> Gilden (mit Chat)</label><br>
   <span id="round-guilds-note">Eine neue Runde leert alle Gilden-Chats. Ohne Gilden werden alle Gilden mit Mitgliedern, Bewerbungen, Rängen und Chat gelöscht.</span></p>
   <p><label for="round-main-lock">Sperre nach einem Wechsel des Hauptplaneten (Tage)</label> <input type="number" id="round-main-lock" min="${MAIN_LOCK_DAYS.min}" max="${MAIN_LOCK_DAYS.max}" step="1" value="${round.mainLock}" required> <span class="dim">${MAIN_LOCK_DAYS.min} bis ${MAIN_LOCK_DAYS.max}</span></p>
+  ${activityInputs(round)}
   <p><button class="red" data-act="doReset">Ja, neue Runde</button> <button data-act="closeModal">Abbrechen</button></p>`;
 }
 

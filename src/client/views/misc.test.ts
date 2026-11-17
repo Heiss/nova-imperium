@@ -1,5 +1,6 @@
 // The highscore names a planet of each player, never a moon (#53).
 import { describe, expect, it } from 'vitest';
+import { ACTIVITY_DEFAULT } from '../../core/activity.ts';
 import type { GameState } from '../logic/types.ts';
 import type { V } from './common.ts';
 import {
@@ -34,7 +35,13 @@ describe('the dialog „Neue Runde“', () => {
     /<label><input type="checkbox" id="round-guilds"[^>]*>[^<]*<\/label>/.exec(
       html,
     )?.[0] ?? '';
-  const rules = { number: 1, achievements: true, daily: true, mainLock: 7 };
+  const rules = {
+    number: 1,
+    achievements: true,
+    daily: true,
+    mainLock: 7,
+    activity: ACTIVITY_DEFAULT,
+  };
 
   it('has one box „Gilden (mit Chat)“, preselected with the current round (#191)', () => {
     const on = box(roundDialog({ ...rules, guilds: true }));
@@ -47,7 +54,13 @@ describe('the dialog „Neue Runde“', () => {
 });
 
 describe('the lock of the main planet in the dialog „Neue Runde“ (#221)', () => {
-  const rules = { number: 1, achievements: true, daily: true, guilds: true };
+  const rules = {
+    number: 1,
+    achievements: true,
+    daily: true,
+    guilds: true,
+    activity: ACTIVITY_DEFAULT,
+  };
 
   it('is a number of days from 1 to 30, preselected with the current round', () => {
     for (const mainLock of [7, 12]) {
@@ -62,8 +75,45 @@ describe('the lock of the main planet in the dialog „Neue Runde“ (#221)', ()
   });
 });
 
+describe('the activity thresholds in the dialog „Neue Runde“ (#229, X1)', () => {
+  const rules = {
+    number: 1,
+    achievements: true,
+    daily: true,
+    guilds: true,
+    mainLock: 7,
+  };
+
+  it('are named and ranged as in the universe settings, preselected with the current round', () => {
+    const activity = { recent: 10, minutes: 45, inactive: 3, longInactive: 21 };
+    const html = roundDialog({ ...rules, activity });
+    for (const [id, label, min, max, value] of [
+      ['recent', 'Aktivität ohne Minutenangabe (Minuten)', 1, 60, 10],
+      ['minutes', 'Aktivität mit Minutenangabe bis (Minuten)', 1, 1440, 45],
+      ['inactive', 'Inaktiv ab (Tage)', 1, 365, 3],
+      ['longInactive', 'Lange inaktiv ab (Tage)', 1, 365, 21],
+    ] as const) {
+      expect(html).toContain(
+        `<p><label for="round-activity-${id}">${label}</label> <input type="number" id="round-activity-${id}" min="${min}" max="${max}" step="1" value="${value}" required> <span class="dim">${min} bis ${max}</span></p>`,
+      );
+      expect(html.indexOf(`id="round-activity-${id}"`)).toBeGreaterThan(
+        html.indexOf('id="round-main-lock"'),
+      );
+      expect(html.indexOf(`id="round-activity-${id}"`)).toBeLessThan(
+        html.indexOf('data-act="doReset"'),
+      );
+    }
+  });
+});
+
 describe('the warning below the box „Gilden (mit Chat)“ (#191)', () => {
-  const rules = { number: 1, achievements: true, daily: true, mainLock: 7 };
+  const rules = {
+    number: 1,
+    achievements: true,
+    daily: true,
+    mainLock: 7,
+    activity: ACTIVITY_DEFAULT,
+  };
   // Every new round clears the chats as well (#169 D6), guilds on or off.
   const WARNING =
     'Eine neue Runde leert alle Gilden-Chats. Ohne Gilden werden alle Gilden mit Mitgliedern, Bewerbungen, Rängen und Chat gelöscht.';
@@ -86,7 +136,13 @@ describe('the warning below the box „Gilden (mit Chat)“ (#191)', () => {
 });
 
 describe('„Account löschen“ in a round with or without guilds (#191)', () => {
-  const rules = { number: 1, achievements: true, daily: true, mainLock: 7 };
+  const rules = {
+    number: 1,
+    achievements: true,
+    daily: true,
+    mainLock: 7,
+    activity: ACTIVITY_DEFAULT,
+  };
   const on = { ...rules, guilds: true };
   const off = { ...rules, guilds: false };
 

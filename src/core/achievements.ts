@@ -1,3 +1,4 @@
+import type { ActivityLimits } from './activity.ts';
 import { BUILD, DEF, RES, SHIPS } from './catalog.ts';
 import { lvlCost } from './economy.ts';
 import { text } from './text.ts';
@@ -116,6 +117,12 @@ export interface RoundRules {
    * only when the admin starts a new round, 7 by default.
    */
   mainLock: number;
+  /**
+   * The thresholds of the activity markers (#229, Q1): set when the admin
+   * starts a new round and changed in the universe settings during the
+   * round (X1), classic 15 min / 59 min / 7 days / 28 days by default.
+   */
+  activity: ActivityLimits;
 }
 
 export interface AchievementState {

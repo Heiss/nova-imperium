@@ -1,6 +1,7 @@
 // The settings of a universe: defaults, ranges and the rule that the size of
 // the universe never shrinks below a planet that exists. The admin panel, the
 // server check and the documentation table read this list.
+import { ACTIVITY_DEFAULT, ACTIVITY_KEYS, ACTIVITY_RANGE } from './activity.ts';
 import { GIFT_DEFAULT_MINUTES, GIFT_MINUTES } from './endzeit.ts';
 import type { Coords, Universe } from './types.ts';
 
@@ -87,6 +88,33 @@ export const UNIVERSE_SPECS: readonly UniverseSpec[] = [
     min: GIFT_MINUTES.min,
     max: GIFT_MINUTES.max,
     def: GIFT_DEFAULT_MINUTES,
+  },
+  // Issue #229 (owner, 2026-11-16, Q1; 2026-11-17, X1): the thresholds of
+  // the activity markers, set in „Neue Runde“ and changed here during the
+  // round; the same stored settings the round reads.
+  {
+    key: ACTIVITY_KEYS.recent,
+    label: 'Aktivität ohne Minutenangabe (Minuten)',
+    ...ACTIVITY_RANGE.recent,
+    def: ACTIVITY_DEFAULT.recent,
+  },
+  {
+    key: ACTIVITY_KEYS.minutes,
+    label: 'Aktivität mit Minutenangabe bis (Minuten)',
+    ...ACTIVITY_RANGE.minutes,
+    def: ACTIVITY_DEFAULT.minutes,
+  },
+  {
+    key: ACTIVITY_KEYS.inactive,
+    label: 'Inaktiv ab (Tage)',
+    ...ACTIVITY_RANGE.inactive,
+    def: ACTIVITY_DEFAULT.inactive,
+  },
+  {
+    key: ACTIVITY_KEYS.longInactive,
+    label: 'Lange inaktiv ab (Tage)',
+    ...ACTIVITY_RANGE.longInactive,
+    def: ACTIVITY_DEFAULT.longInactive,
   },
 ];
 

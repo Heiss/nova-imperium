@@ -14,6 +14,7 @@ import { requireAdmin } from '../game/admin.ts';
 import { type Ctx, GameError, str } from '../game/context.ts';
 import { answerOf } from '../game/actions.ts';
 import { ACTIONS, ADMIN_ACTIONS, runAction } from '../game/dispatch.ts';
+import { recordActivity } from '../game/activity.ts';
 import { mainPlanet } from '../game/main-planet.ts';
 import { stateFor } from '../game/state.ts';
 import { type Mailer, invitationMail } from '../mail.ts';
@@ -412,6 +413,7 @@ const DATABASE_BUSY =
 function actionReply(ctx: Ctx, u: User, call: Call): Reply {
   let answer: ReturnType<typeof answerOf>;
   try {
+    recordActivity(ctx, u, 'action');
     answer = answerOf(playerAction(ctx, u, call));
   } catch (error) {
     if (!isDatabaseBusy(error)) throw error;
@@ -448,8 +450,11 @@ function gameRoutes(d: AppDeps): Record<string, Handler> {
       sessionUserOf(ctx, call);
       return { json: d.news ?? { version: null, versions: [] } };
     },
+    // An interaction and an action are manual actions in the account (#229).
     'POST /api/activity': (call) => {
-      activity(ctx, sessionUserOf(ctx, call));
+      const u = sessionUserOf(ctx, call);
+      activity(ctx, u);
+      recordActivity(ctx, u, 'action');
       return { json: { ok: true } };
     },
     'POST /api/action': (call) =>

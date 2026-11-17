@@ -13,6 +13,7 @@ import { CATALOG_VIEWS, catalogKind, orderNote } from './logic/catalog-list.ts';
 import { clearsChat, sameSignIn } from './logic/guild-chat.ts';
 import { debrisAt, debrisTip } from './logic/debris.ts';
 import { endzeitNote } from './logic/endzeit.ts';
+import { roundChoices } from './logic/new-round.ts';
 import { moonAt, moonTarget } from './logic/moon.ts';
 import { scanOf } from './logic/phalanx.ts';
 import { clampInt, coords, dt, dur, esc, fmt } from './logic/format.ts';
@@ -1308,14 +1309,9 @@ const ACT: Record<string, (d: Data) => unknown> = {
   reset: () => modal(roundDialog(client.game!.round)),
   doReset: () => {
     const checked = (id: string) => $<HTMLInputElement>(id)!.checked;
-    const rewards = {
-      achievements: checked('#round-achievements'),
-      daily: checked('#round-daily'),
-    };
-    const guilds = checked('#round-guilds');
-    const mainLock = Number(val('#round-main-lock'));
+    const choices = roundChoices(val, checked);
     modal('');
-    return act('reset', { rewards, guilds, mainLock });
+    return act('reset', choices);
   },
   endzeit: () => modal(endzeitDialog(client.game!.admin!.endzeit.minutes)),
   doEndzeit: () => {

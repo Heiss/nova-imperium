@@ -1,6 +1,7 @@
 import { MISSION } from '../../core/missions.ts';
 import { placeName } from '../../core/moon.ts';
 import { placeId } from '../../core/place.ts';
+import { activityMark, inactivityMark } from '../logic/activity.ts';
 import { debrisAt, debrisMark, harvestButton } from '../logic/debris.ts';
 import { esc, fmt } from '../logic/format.ts';
 import { isProtected, nameOf, ranks } from '../logic/game.ts';
@@ -67,7 +68,7 @@ function ownerCell(v: V, pl: GalaxyPlanet, rk: Record<string, number>): string {
   const { s } = v;
   const mine = pl.owner === s.me.id;
   const prot = !mine && isProtected(s.players, s.me.id, pl.owner);
-  return `<td>${esc(nameOf(s.players, pl.owner))} <span class="dim">(Platz ${rk[pl.owner] ?? '-'})</span>${prot ? ' <span class="good" title="Noobschutz">(n)</span>' : ''}</td>`;
+  return `<td>${esc(nameOf(s.players, pl.owner))} <span class="dim">(Platz ${rk[pl.owner] ?? '-'})</span>${inactivityMark(s.players[pl.owner]?.inactive)}${prot ? ' <span class="good" title="Noobschutz">(n)</span>' : ''}</td>`;
 }
 
 /** The row of the moon below its planet, once its symbol is opened (#53). */
@@ -75,7 +76,7 @@ function moonRow(v: V, moon: GalaxyPlanet, rk: Record<string, number>): string {
   const mine = moon.owner === v.s.me.id;
   const at = `data-g="${moon.g}" data-s="${moon.s}" data-p="${moon.p}" data-k="moon"`;
   const name = placeName(moon);
-  return `<tr class="moon-row ${mine ? 'me' : ''}"><td class="n"></td><td><span class="gal-pl">${moonPicture(name, 28)}${esc(name)}</span></td>
+  return `<tr class="moon-row ${mine ? 'me' : ''}"><td class="n"></td><td><span class="gal-pl">${moonPicture(name, 28)}${esc(name)}${activityMark(moon.activity, v.s.round)}</span></td>
    ${ownerCell(v, moon, rk)}<td>${planetActions(v, moon, mine, at)}</td></tr>`;
 }
 
@@ -101,7 +102,7 @@ function row(v: V, p: number, rk: Record<string, number>): string {
   }
   const mine = pl.owner === s.me.id;
   const moonLine = open ? moonRow(v, moon, rk) : '';
-  return `<tr class="${mine ? 'me' : ''}"><td class="n">${p}</td><td><span class="gal-pl">${planetHTML(pl, true)}${esc(pl.name)}${mark}</span></td>
+  return `<tr class="${mine ? 'me' : ''}"><td class="n">${p}</td><td><span class="gal-pl">${planetHTML(pl, true)}${esc(pl.name)}${activityMark(pl.activity, s.round)}${mark}</span></td>
    ${ownerCell(v, pl, rk)}
    <td>${join(planetActions(v, pl, mine, at), harvest)}</td></tr>${moonLine}`;
 }

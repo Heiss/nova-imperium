@@ -1,6 +1,15 @@
 import type { RoundRules } from '../../core/achievements.ts';
+import {
+  ACTIVITY_DEFAULT,
+  ACTIVITY_KEYS,
+  ACTIVITY_PARTS,
+  type ActivityLimits,
+  activityLimitErrors,
+  activityLimitsOf,
+} from '../../core/activity.ts';
 import { isLockDays, MAIN_LOCK_DAYS } from '../../core/main-planet.ts';
 import { type RoundError, roundChoice, roundError } from '../../core/round.ts';
+import { UNIVERSE_SPECS, type UniverseSpec } from '../../core/universe.ts';
 import { type Ctx, fail } from './context.ts';
 
 /** The setting of the lock of the main planet in days (#221, D3). */
@@ -17,8 +26,22 @@ export function roundRules(ctx: Ctx): RoundRules {
     guilds: settings.get('roundGuilds') !== 0,
     // Existing universes lock for the default 7 days (#221).
     mainLock: ctx.admin.setting(MAIN_LOCK) ?? MAIN_LOCK_DAYS.default,
+    activity: activityRules(ctx),
   };
 }
+
+/**
+ * The thresholds of the activity markers (#229): the stored settings, which
+ * the universe settings change too (X1); existing universes start with the
+ * classic values.
+ */
+const activityRules = (ctx: Ctx): ActivityLimits =>
+  Object.fromEntries(
+    ACTIVITY_PARTS.map((p) => [
+      p,
+      ctx.admin.setting(ACTIVITY_KEYS[p]) ?? ACTIVITY_DEFAULT[p],
+    ]),
+  ) as unknown as ActivityLimits;
 
 /**
  * When the current round started (#220): set by every new round; the
@@ -60,11 +83,31 @@ function mainLockRule(current: RoundRules, days: unknown): number {
   return selected;
 }
 
+/** The refusal of a value outside its range, as the universe settings word it (#214). */
+export const rangeError = (s: UniverseSpec): string =>
+  `${s.label}: ganze Zahl von ${s.min} bis ${s.max}.`;
+
+const specOf = (key: string): UniverseSpec =>
+  UNIVERSE_SPECS.find((s) => s.key === key)!;
+
+/**
+ * The thresholds of the activity markers in the new round (#229, X1);
+ * without a choice the current ones. Refused with the message of the
+ * universe settings, every wrong threshold at once.
+ */
+function activityRule(current: RoundRules, input: unknown): ActivityLimits {
+  const wrong = activityLimitErrors(current.activity, input);
+  if (wrong.length)
+    fail(wrong.map((p) => rangeError(specOf(ACTIVITY_KEYS[p]))).join(' '));
+  return activityLimitsOf(current.activity, input);
+}
+
 export function startRoundRules(
   ctx: Ctx,
   options: unknown,
   guilds?: unknown,
   mainLock?: unknown,
+  activity?: unknown,
 ): RoundRules {
   const current = roundRules(ctx);
   const error = roundError(current, options, guilds);
@@ -73,9 +116,13 @@ export function startRoundRules(
     number: current.number + 1,
     ...roundChoice(current, options, guilds),
     mainLock: mainLockRule(current, mainLock),
+    activity: activityRule(current, activity),
   };
   ctx.admin.putSettings([
     [MAIN_LOCK, next.mainLock],
+    ...ACTIVITY_PARTS.map(
+      (p) => [ACTIVITY_KEYS[p], next.activity[p]] as [string, number],
+    ),
     ['round', next.number],
     ['roundAchievements', Number(next.achievements)],
     ['roundDaily', Number(next.daily)],
