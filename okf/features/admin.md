@@ -109,7 +109,7 @@ universe settings) and their ranges are not decided yet.
 
 | Setting | Issue | Default |
 |---|---|---|
-| Minimum duration of the [vacation mode](/features/vacation-mode.md) | #223 D1 | default 24 h (owner, 2026-11-16) |
+| Minimum duration of the [vacation mode](/features/vacation-mode.md), in whole hours from 1 to 720 [V] | #223 D1 | default 24 h (owner, 2026-11-16); built in the dialog „Neue Runde“ and in the universe settings (X1, owner, 2026-11-17) |
 | Lock of a [given-up colony's](/features/abandon-colony.md) position | #224 D2 | default 24 h (owner, 2026-11-16) |
 | Lock after a switch of the [main planet](/features/main-planet.md), in whole days from 1 to 30 [V] | #221 D3 | default 7 days (owner, 2026-11-16); built in the dialog „Neue Runde“ |
 | Who may hold, join an attack union and fight with friends: guild, friends or both ([Holding and ACS](/features/holding-acs.md), [Buddy list](/features/buddy-list.md)) | #55 Q2, #225 D2, #227 D3 | [V] guild and friends, the classic rule for holding |

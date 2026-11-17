@@ -145,15 +145,20 @@ function addGift(p: Planet, minutes: number): void {
   ctx.fleets.save(giftFleet(ctx, p, now, now + minutes * 60000));
 }
 
+/** The vacation mode of the player started `vacationAgo` ms ago (#223), when asked. */
+function startVacation(id: string): void {
+  if (!d.vacationAgo) return;
+  store.db
+    .prepare('UPDATE users SET vacation = ? WHERE id = ?')
+    .run(Date.now() - d.vacationAgo, id);
+}
+
 store.tx(() => {
   if (d.landColonyFleet) landFleet(u.id, 'colonize');
   if (d.landFleet) landFleet(u.id, d.landFleet);
   if (d.returnFleet) returnFleet(u.id);
   if (d.research) store.saveUser({ ...u, research: d.research });
-  if (d.vacationAgo)
-    store.db
-      .prepare('UPDATE users SET vacation = ? WHERE id = ?')
-      .run(Date.now() - d.vacationAgo, u.id);
+  startVacation(u.id);
   const p = store.planetOfUser(u.id)!;
   updateHome(p);
   if (d.colony) addColony(p);

@@ -62,6 +62,14 @@ section 7, the four economy actions `build`, `research`, `order` and `pct`
 too; 10 are split and 12 check inline only. Their rows below are the state
 after it; the other rows are the audit of 2026-11-15.
 
+**[E]** The vacation mode (#223, 2026-11-17) adds `startVacation` and
+`endVacation`, both following section 7, and one gate before every
+action: `runAction` refuses an action with „Im Urlaubsmodus nicht
+möglich.“ when core `vacationRefuses` (`core/vacation.ts`) says so for a
+player in vacation mode; the browser offers the game actions as before and
+shows the server's refusal. `send` gets the code `vacation` of
+`sendError`.
+
 | Action | Where its checks live | Status | Browser repeats | Messages match | Group |
 |---|---|---|---|---|---|
 | `build` | core `buildErrors` (`core/economy-checks.ts`: codes `place`, `locked`, `full`, `busy`, `yardBusy`, `labBusy`, `noEnergy`, `cost` from `buildable`, `reqMissing`, `fieldsFull`, `waitsForYard`, `waitsForLab`, `energyShort`, `afford`); the server only the messages (`BUILD_ERROR`, `PLACE_ERROR`, `failEnergy`, `server/game/actions.ts`) | yes | yes, with core `buildErrors` in the same order (F8 fixed): `buildState` (`client/logic/game.ts`), the notes `BUILD_WAITS` of `buildingRow` (`client/logic/catalog-list.ts`) | no (F1, F2, F3) | economy |
@@ -73,10 +81,12 @@ after it; the other rows are the audit of 2026-11-15.
 | `rename` | inline: a name after `str(…, 20)` | no | yes, silently: trims, sends nothing when empty, `maxlength="20"` (`doRename`, main.ts) | – | player |
 | `options` | core `isExplainMode`; the probes clamped by `int` | yes | the same clamp, `clampInt` (`client/logic/format.ts`); the select offers the modes | – | player |
 | `pushOptions` | core `isPushTopic` (`server/push-options.ts`) | yes | the boxes offer `PUSH_TOPICS` only (`client/logic/push-options.ts`) | – | player |
+| `startVacation` | core `vacationEntryError` (codes `fleets`, `building`, `research`, `shipyard`, `core/vacation.ts`); the server gathers what runs and words the codes (`VACATION_ENTRY_ERROR`, `server/game/vacation.ts`) (#223) | yes | no; the box „Urlaubsmodus“ names what blocks the entry (`client/logic/vacation.ts`) | – | player |
+| `endVacation` | core `vacationExitError` (codes `inactive`, `early`); the server words them (`earlyText` with the earliest end) (#223) | yes | yes, with core `vacationExitError`: „Urlaubsmodus beenden“ disabled before the end (`vacationHTML`) | – | player |
 | `read` | – | none | – | – | player |
 | `delrep` | – (deletes only a report of the player) | none | – | – | player |
 | `delall` | – | none | – | – | player |
-| `send` | core `missionRules`, `sendError` (codes, messages `SEND_ERROR` in `server/game/fleet-actions.ts`), `fleetSlots`, `capacity`, `fuelFor`, `canFly`; inline the unknown mission, a ship that cannot fly, no ships, the slot count (SQL `gift = 0`), cargo and fuel | partly | partly, not `sendError`: slots (`client/views/fleet.ts`), fuel and load marked red (`fleetPreview`, game.ts), hints at the target (`targetInfo`, main.ts), no probes (`gspy`, main.ts) | no (F11, F12, F13) | fleet |
+| `send` | core `missionRules`, `sendError` (codes, messages `SEND_ERROR` in `server/game/fleet-actions.ts`; since #223 the code `vacation` from `vacationProtects`, `core/vacation.ts`), `fleetSlots`, `capacity`, `fuelFor`, `canFly`; inline the unknown mission, a ship that cannot fly, no ships, the slot count (SQL `gift = 0`), cargo and fuel | partly | partly, not `sendError`: slots (`client/views/fleet.ts`), fuel and load marked red (`fleetPreview`, game.ts), hints at the target (`targetInfo`, main.ts), no probes (`gspy`, main.ts) | no (F11, F12, F13) | fleet |
 | `recall` | inline: own, on the way out, not yet arrived, no gift (`recall`) | no | partly: own, out, no gift (`fleetRow`, `client/logic/overview.ts`); not the arrival | – (F14) | fleet |
 | `settings` | core `universeErrors` (codes `range` and `used` per setting, in the order of `UNIVERSE_SPECS`) and `universeOf` (`core/universe.ts`); the server words each code (`SETTINGS_ERROR`, `server/game/admin.ts`), every refused setting at once (admin pull request of #214) | yes | no; the inputs show the range of each setting (`client/views/misc.ts`) | – | admin |
 | `reset` | core `roundError` (codes `rewards`, then `guilds`) and `roundChoice` (`core/round.ts`); the server words them (`ROUND_ERROR`, `server/game/round.ts`) (admin pull request of #214) | yes | – (checkboxes send booleans) | – | admin |

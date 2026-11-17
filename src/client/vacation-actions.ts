@@ -17,7 +17,7 @@ const input = (sel: string): HTMLInputElement | null =>
   document.querySelector<HTMLInputElement>(sel);
 
 /** The choices of the dialog „Neue Runde“: rewards, guilds (#191), the lock of the main planet (#221) and the minimum duration of the vacation mode (#223). */
-export const roundChoices = () => ({
+const roundChoices = () => ({
   rewards: {
     achievements: !!input('#round-achievements')?.checked,
     daily: !!input('#round-daily')?.checked,
