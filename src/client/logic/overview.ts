@@ -6,6 +6,7 @@ import { MISSION } from '../../core/missions.ts';
 import { placeName } from '../../core/moon.ts';
 import { text } from '../../core/text.ts';
 import type { V } from '../views/common.ts';
+import { abandonOffered } from './abandon.ts';
 import { diameterLine } from './fields.ts';
 import { coords, dt, dur, fmt, resLine } from './format.ts';
 import { fleetEnd, nameOf, ranks, sortFleets } from './game.ts';
@@ -68,6 +69,8 @@ export interface OverviewPage {
   /** The time of the server at the render. */
   time: string;
   activities: ActivityRow[];
+  /** Whether „Kolonie aufgeben“ is offered (#224): not on a moon or the main planet. */
+  abandon: boolean;
 }
 
 const part = (text: string, bold = false): TextPart => ({ text, bold });
@@ -174,5 +177,6 @@ export function overviewPage(v: V): OverviewPage {
     points: `${fmt(s.players[me]?.points)} (Platz ${ranks(s.players)[me] ?? '-'} von ${Object.keys(s.players).length})`,
     time: dt(v.now),
     activities: activityRows(v),
+    abandon: abandonOffered(P, s),
   };
 }
