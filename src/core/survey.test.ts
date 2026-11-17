@@ -10,10 +10,13 @@ import {
   CENTRED,
   MAX_LOSS,
   SURVEY_DAYS,
+  SIZE_FIELDS,
   maxLoss,
   nearShift,
+  orbitOf,
   positionTemp,
   rollTemp,
+  sizeOf,
   surveyFindings,
   surveyLost,
   surveyScore,
@@ -155,9 +158,100 @@ describe('the values of a free position (D1)', () => {
   });
 });
 
+describe('the words of the rough report (D5, owner, 2026-11-17)', () => {
+  it('names the classic orbits: 1–3 inner, 4–12 middle, 13–15 outer', () => {
+    const bands = Array.from({ length: 15 }, (_, i) => orbitOf(i + 1, 15));
+    expect(bands).toEqual([
+      ...Array(3).fill('inner'),
+      ...Array(9).fill('middle'),
+      ...Array(3).fill('outer'),
+    ]);
+    // Fewer positions keep the classic bands.
+    expect([3, 4, 12].map((p) => orbitOf(p, 12))).toEqual([
+      'inner',
+      'middle',
+      'middle',
+    ]);
+  });
+
+  it('scales the bands with more than 15 positions [V]', () => {
+    const bands = (n: number) =>
+      Array.from({ length: n }, (_, i) => orbitOf(i + 1, n));
+    expect(bands(16)).toEqual([
+      ...Array(3).fill('inner'),
+      ...Array(9).fill('middle'),
+      ...Array(4).fill('outer'),
+    ]);
+    expect(bands(20)).toEqual([
+      ...Array(4).fill('inner'),
+      ...Array(12).fill('middle'),
+      ...Array(4).fill('outer'),
+    ]);
+  });
+
+  it('keeps the bands in order, a fifth inner and outer, for every size (property)', () => {
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 12, max: 20 }),
+        fc.integer({ min: 1, max: 19 }),
+        (n, p) => {
+          const rank = { inner: 0, middle: 1, outer: 2 } as const;
+          expect(rank[orbitOf(p, n)]).toBeLessThanOrEqual(
+            rank[orbitOf(p + 1, n)],
+          );
+          const m = Math.max(n, 15);
+          expect(orbitOf(p, n) === 'inner').toBe(p <= m / 5);
+          expect(orbitOf(p, n) === 'outer').toBe(p > (4 * m) / 5);
+        },
+      ),
+    );
+  });
+
+  it('divides the fields 96–252 into thirds, each with its lower end', () => {
+    expect(SIZE_FIELDS).toEqual({ min: 96, max: 252 });
+    expect([90, 147.9, 148, 199.9, 200, 252, 260].map(sizeOf)).toEqual([
+      'small',
+      'small',
+      'medium',
+      'medium',
+      'large',
+      'large',
+      'large',
+    ]);
+  });
+
+  it('guesses the size from the average fields of the position [V]', () => {
+    const size = (p: number) =>
+      surveyFindings(
+        { s: 1, p, positions: 20 },
+        { temp: 0, diameter: 1 },
+        'rough',
+        CENTRED,
+      ).size;
+    expect(Array.from({ length: 16 }, (_, i) => size(i + 1))).toEqual([
+      'small',
+      'small',
+      'small',
+      'medium',
+      'medium',
+      'medium',
+      'large',
+      'large',
+      'medium',
+      'medium',
+      'medium',
+      'medium',
+      'small',
+      'small',
+      'small',
+      'small',
+    ]);
+  });
+});
+
 describe('what a survey report shows', () => {
   // Position 9 of an odd system: a Dschungelplanet, 150–246 fields.
-  const c = { s: 42, p: 9 };
+  const c = { s: 42, p: 9, positions: 15 };
   const values = { temp: 72, diameter: 14600 };
 
   it('shows what the position lets one guess in the rough report (D5)', () => {
@@ -167,6 +261,8 @@ describe('what a survey report shows', () => {
       range: { min: 150, max: 246 },
       average: 198,
       around: 50,
+      orbit: 'middle',
+      size: 'medium',
     });
   });
 
@@ -217,7 +313,10 @@ describe('what a survey report shows', () => {
             diameter: colonyDiameter(p, rng),
           };
           const f = fieldsOf(v.diameter);
-          const x = surveyFindings({ s: 1, p }, v, 'near', { fields, temp });
+          const x = surveyFindings({ s: 1, p, positions: 15 }, v, 'near', {
+            fields,
+            temp,
+          });
           expect(x.fields!.min).toBeLessThanOrEqual(f);
           expect(x.fields!.max).toBeGreaterThanOrEqual(f);
           expect(x.temp!.min).toBeLessThanOrEqual(v.temp);
@@ -290,7 +389,12 @@ describe('what a survey report shows', () => {
   });
 
   it('keeps the average of an odd range and uses the planet type of the coordinates', () => {
-    const x = surveyFindings({ s: 2, p: 5 }, values, 'rough', CENTRED);
+    const x = surveyFindings(
+      { s: 2, p: 5, positions: 15 },
+      values,
+      'rough',
+      CENTRED,
+    );
     expect(x.range).toEqual(fieldRange(5));
     expect(x.average).toBe(182.5);
     expect(x.planetType).toBe('trocken');
@@ -309,11 +413,21 @@ describe('what a survey report shows', () => {
             diameter: colonyDiameter(p, rng),
           };
           const f = fieldsOf(v.diameter);
-          const near = surveyFindings({ s, p }, v, 'near', CENTRED);
+          const near = surveyFindings(
+            { s, p, positions: 15 },
+            v,
+            'near',
+            CENTRED,
+          );
           expect(near.fields!.min).toBeLessThanOrEqual(f);
           expect(near.fields!.max).toBeGreaterThanOrEqual(f);
           expect(near.temp).toEqual({ min: v.temp - 10, max: v.temp + 10 });
-          const full = surveyFindings({ s, p }, v, 'full', CENTRED).full!;
+          const full = surveyFindings(
+            { s, p, positions: 15 },
+            v,
+            'full',
+            CENTRED,
+          ).full!;
           expect(full.fields).toBe(f);
           expect(f).toBeGreaterThanOrEqual(near.range.min);
           expect(f).toBeLessThanOrEqual(near.range.max);

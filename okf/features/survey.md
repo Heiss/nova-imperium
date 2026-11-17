@@ -62,12 +62,18 @@ extension of this game.
     Sonnenreliquiar-Energie“, and the short and the long text of the
     research;
   * the rough report also gets the adjectives of D5 (temperature, orbit and
-    size, e.g. „gemäßigter Planet in der mittleren Bahn, vermutlich groß“);
-    not built yet, see „Open“;
+    size, e.g. „gemäßigter Planet in der mittleren Bahn, vermutlich groß“),
+    by the bands below;
   * the 30 days count from the first survey; a later survey does not
     restart them;
   * lost probes fix no values; only a survey that brings back a report
     fixes them.
+* **[E]** The adjectives of the rough report (owner, 2026-11-17, second
+  „Geklärt“ of the day, the classic position bands):
+  * positions 1–3: „innere Bahn“, „heiß“; 4–12: „mittlere Bahn“,
+    „gemäßigt“; 13–15: „äußere Bahn“, „kalt“;
+  * the size „klein“, „mittelgroß“ or „groß“ by thirds of the field range
+    96–252 (#51), marked „vermutlich“ as in the owner's example.
 
 ## Built
 
@@ -117,12 +123,28 @@ extension of this game.
   adds `surveys (id, g, s, p, temp, diameter, created, UNIQUE (g, s, p))`.
 * Report: the server stores the findings, the browser words them
   (`src/client/logic/survey.ts`), like the espionage report:
-  * rough: „Vermessung [1:42:9] – Messung ungenau. Position 9: 150–246
-    Felder, Temperatur um 50 °C. Planetentyp: Dschungelplanet.“ **[V]** The
-    wording follows the owner's example of D5 without the adjectives („ein
-    gemäßigter Planet in der mittleren Bahn, vermutlich groß“), which no
-    rule defines; the value of „Temperatur um“ is the middle of the maximum
-    temperature of the position, `130 − (p − 1) · 10`.
+  * rough: „Vermessung [1:42:9] – Messung ungenau. Gemäßigter Planet in
+    der mittleren Bahn, vermutlich mittelgroß. Position 9: 150–246 Felder,
+    Temperatur um 50 °C. Planetentyp: Dschungelplanet.“ **[V]** The value
+    of „Temperatur um“ is the middle of the maximum temperature of the
+    position, `130 − (p − 1) · 10`.
+  * The adjectives **[E]** by the owner's bands: `orbitOf` and `sizeOf` in
+    `src/core/survey.ts`, stored in the findings as `orbit` (`inner`,
+    `middle`, `outer`, which also names the temperature) and `size`
+    (`small`, `medium`, `large`); the browser words them (`ORBIT`, `SIZE`).
+    **[V]** Taken as recommended:
+    * the size is guessed from the average fields of the position (D5:
+      what the position lets one guess), not from the planet's own fields;
+    * each third holds its lower end: „klein“ below 148, „mittelgroß“ from
+      148 below 200, „groß“ from 200 (positions 1–3 and 13–15 klein, 4–6
+      and 9–12 mittelgroß, 7 and 8 groß);
+    * a universe with more than 15 positions (the setting allows 12 to 20)
+      scales the bands proportionally: a fifth of the positions inner,
+      three fifths middle, a fifth outer (20 positions: 1–4, 5–16, 17–20);
+      with 15 or fewer the classic bands hold. A position above 15 has the
+      field range of position 15 (#51), so it is „klein“;
+    * the sentence stands after „Messung ungenau.“, and only the rough
+      report has it.
   * from score 4 and 7 **[V]**: the rough line and a table „Felder“,
     „Temperatur“, „Planetentyp“; at 4 „ca. 170–256“ (a window of 40 % of
     the fields, rounded) and „ca. 22 °C bis 82 °C“ (a window of 20 °C of the
@@ -157,11 +179,13 @@ extension of this game.
   planet), like the link „Auspex-Erkundung“. The fleet form offers the
   mission as the last one.
 * Tests: `src/core/survey.test.ts` (score, tiers, the loss table, the
-  temperature rule, the findings, the shifted windows with fixed draws,
+  temperature rule, the findings, the orbits and their scaling with a
+  property test, the size thirds, the shifted windows with fixed draws,
   property test: the true value is inside a window of its width for every
   shift, ranges hold every possible planet),
   `src/features/missions/survey/survey.test.ts` (send checks and messages,
-  every tier, the windows drawn once at the arrival and stored, research
+  every tier, the orbit with the positions of the universe, the windows
+  drawn once at the arrival and stored, research
   finished at the arrival, loss without report, more
   loss farther away, values kept, property test: survey then colonize gives
   the same values, the 30-day cleanup), the repository, the upgrade test,
@@ -172,8 +196,3 @@ extension of this game.
 
 * The star map does not mark surveyed positions yet (#160), and the field
   properties come with #158.
-* The adjectives of the rough report (owner, 2026-11-17): no rule says
-  from which temperature a planet is „gemäßigt“, which positions are the
-  „mittlere Bahn“ or from how many fields it is „groß“, and the repository
-  has no such classification (the planet type of #52 is a look only). The
-  rough report stays as built until the owner gives the thresholds.

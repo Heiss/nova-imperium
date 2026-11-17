@@ -150,6 +150,8 @@ describe('survey', () => {
       range: { min: 150, max: 246 },
       average: 198,
       around: 50,
+      orbit: 'middle',
+      size: 'medium',
     });
     expect(stored).toMatchObject({ ...FREE, created: f.arr });
     expect(ctx.fleets.get('f1')?.state).toBe('back');
@@ -202,6 +204,20 @@ describe('survey', () => {
     const [again] = ctx.reports.ofPlayer('u_Anna');
     expect(again).toMatchObject(near);
     expect(JSON.stringify(again)).not.toMatch(/shift|0\.9999/);
+  });
+
+  it('names the orbit with the positions of the universe (D5, owner, 2026-11-17)', () => {
+    const orbit = (positions: number) => {
+      const to = { g: 1, s: 42, p: 16 };
+      const { ctx, f } = setup(1, 1, 7, to);
+      ctx.admin.saveUniverse({ ...ctx.admin.universe(), positions });
+      keep(ctx);
+      onArrive(ctx, f);
+      return ctx.reports.ofPlayer('u_Anna')[0];
+    };
+    // The bands of 20 positions are scaled: 16 is still the middle orbit [V].
+    expect(orbit(20)).toMatchObject({ orbit: 'middle', size: 'small' });
+    expect(orbit(16)).toMatchObject({ orbit: 'outer', size: 'small' });
   });
 
   it('takes the research finished at the arrival', () => {

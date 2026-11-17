@@ -7,6 +7,8 @@ import { PLANET_TYPE_NAMES } from '../../core/planet-type.ts';
 import type {
   Compare,
   Keyword,
+  Orbit,
+  Size,
   Span,
   SurveyFindings,
 } from '../../core/survey.ts';
@@ -31,6 +33,24 @@ export const COMPARE: Readonly<Record<Compare, string>> = {
   below: 'unterdurchschnittlich',
 };
 
+/** The temperature and the orbit of the position, as the rough report names them (D5). */
+export const ORBIT: Readonly<Record<Orbit, { temp: string; orbit: string }>> = {
+  inner: { temp: 'Heißer', orbit: 'inneren' },
+  middle: { temp: 'Gemäßigter', orbit: 'mittleren' },
+  outer: { temp: 'Kalter', orbit: 'äußeren' },
+};
+
+/** The size the position lets one guess (D5). */
+export const SIZE: Readonly<Record<Size, string>> = {
+  small: 'klein',
+  medium: 'mittelgroß',
+  large: 'groß',
+};
+
+/** The owner's sentence of D5: „Gemäßigter Planet in der mittleren Bahn, vermutlich groß.“ */
+const guess = (f: SurveyFindings): string =>
+  `${ORBIT[f.orbit].temp} Planet in der ${ORBIT[f.orbit].orbit} Bahn, vermutlich ${SIZE[f.size]}.`;
+
 /** A number with German decimals, at most two („182,5“, „1,14“). */
 const num = (n: number): string =>
   n.toLocaleString('de-DE', { maximumFractionDigits: 2 });
@@ -50,7 +70,7 @@ const list = (words: Keyword[]): string =>
 
 /** The rough report: what the position lets one guess (D5). */
 function rough(f: SurveyFindings, c: Coords): string {
-  return `<div>Vermessung ${coords(c)} – Messung ungenau. ${positionRange(f, c.p)}, Temperatur um ${f.around} °C. Planetentyp: ${PLANET_TYPE_NAMES[f.planetType]}.</div>`;
+  return `<div>Vermessung ${coords(c)} – Messung ungenau. ${guess(f)} ${positionRange(f, c.p)}, Temperatur um ${f.around} °C. Planetentyp: ${PLANET_TYPE_NAMES[f.planetType]}.</div>`;
 }
 
 /** The narrowed or exact fields and temperature (D2, from score 4 and 7). */

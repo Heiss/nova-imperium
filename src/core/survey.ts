@@ -10,6 +10,10 @@
 // * D2: the loss is drawn at random between 0 and
 //   min(60 %, probes · 5 % / L + 6 % · (distance / 1000)^0.8 / (1 + 0.4 · L)),
 //   rolled once for the fleet; lost probes give no report (D7).
+// * D5 (owner, 2026-11-17): the rough report names the orbit with its
+//   temperature by the classic position bands (1–3 innere Bahn, heiß;
+//   4–12 mittlere Bahn, gemäßigt; 13–15 äußere Bahn, kalt) and the size by
+//   thirds of the field range 96–252 (#51), „vermutlich“.
 // * D1: the values of a free position are rolled at its first survey with
 //   the rules of a new colony and kept for 30 days unless it is colonized.
 import type { Rng } from './battle.ts';
@@ -75,6 +79,36 @@ export const positionTemp = (p: number): number => 130 - (p - 1) * 10;
 export const rollTemp = (p: number, rng: Rng): number =>
   Math.round(positionTemp(p) + (rng() * 20 - 10));
 
+/** The orbit of a position, which also names its temperature (D5). */
+export type Orbit = 'inner' | 'middle' | 'outer';
+
+/** The size a position lets one guess (D5). */
+export type Size = 'small' | 'medium' | 'large';
+
+/** The positions of the classic bands: 1–3, 4–12 and 13–15 (D5). */
+export const CLASSIC_POSITIONS = 15;
+
+/**
+ * The orbit of position `p` in a system of `positions`: the classic bands
+ * of 15 positions (owner, 2026-11-17); with more positions they are scaled
+ * proportionally [V], a fifth inner, three fifths middle, a fifth outer.
+ */
+export function orbitOf(p: number, positions: number): Orbit {
+  const n = Math.max(positions, CLASSIC_POSITIONS);
+  if (p * 5 <= n) return 'inner';
+  return p * 5 <= 4 * n ? 'middle' : 'outer';
+}
+
+/** The field range of all positions that the sizes divide into thirds (#51). */
+export const SIZE_FIELDS: Span = { min: 96, max: 252 };
+
+/** The size of `fields` by thirds of `SIZE_FIELDS`, each third with its lower end. */
+export function sizeOf(fields: number): Size {
+  const third = (SIZE_FIELDS.max - SIZE_FIELDS.min) / 3;
+  if (fields < SIZE_FIELDS.min + third) return 'small';
+  return fields < SIZE_FIELDS.min + 2 * third ? 'medium' : 'large';
+}
+
 /** The stored values of a surveyed free position (D1). */
 export interface SurveyValues {
   temp: number;
@@ -124,6 +158,10 @@ export interface SurveyFindings {
   average: number;
   /** The middle of the maximum temperature at the position (D5). */
   around: number;
+  /** The orbit and with it the temperature word of the position (D5). */
+  orbit: Orbit;
+  /** The size the average fields of the position let one guess (D5) [V]. */
+  size: Size;
   /** The fields: a window of ± 20 % from tier `near`, exact from tier `exact`. */
   fields?: Span;
   /** The maximum temperature: a window of ± 10 °C from tier `near`, exact from `exact`. */
@@ -201,11 +239,12 @@ function span(
 }
 
 /**
- * What a survey of tier `tier` shows of the position `c` with its values;
- * `shift` places the windows of tier `near` (`nearShift`).
+ * What a survey of tier `tier` shows of the position `c` in a system of
+ * `positions` with its values; `shift` places the windows of tier `near`
+ * (`nearShift`).
  */
 export function surveyFindings(
-  c: Pick<Coords, 's' | 'p'>,
+  c: Pick<Coords, 's' | 'p'> & { positions: number },
   v: SurveyValues,
   tier: SurveyTier,
   shift: NearShift,
@@ -219,6 +258,8 @@ export function surveyFindings(
     range,
     average,
     around,
+    orbit: orbitOf(c.p, c.positions),
+    size: sizeOf(average),
   };
   if (tier === 'rough') return out;
   const fields = fieldsOf(v.diameter);

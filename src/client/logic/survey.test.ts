@@ -2,19 +2,37 @@
 // and when the Sternenkarte offers it.
 import { describe, expect, it } from 'vitest';
 import { CENTRED, type SurveyTier, surveyFindings } from '../../core/survey.ts';
-import { COMPARE, KEYWORDS, canSurvey, surveyBody } from './survey.ts';
+import type { Coords } from '../../core/types.ts';
+import {
+  COMPARE,
+  KEYWORDS,
+  ORBIT,
+  SIZE,
+  canSurvey,
+  surveyBody,
+} from './survey.ts';
 import type { Report } from './types.ts';
 
 const C = { g: 1, s: 42, p: 9 };
 
-const report = (tier: SurveyTier, temp = 72, diameter = 14600): Report => ({
+const report = (
+  tier: SurveyTier,
+  temp = 72,
+  diameter = 14600,
+  at: Coords = C,
+): Report => ({
   id: 'r1',
   time: 1,
   type: 'survey',
-  title: 'Vermessungsbericht [1:42:9]',
-  coords: C,
+  title: `Vermessungsbericht [${at.g}:${at.s}:${at.p}]`,
+  coords: at,
   survey: 'v1',
-  ...surveyFindings(C, { temp, diameter }, tier, CENTRED),
+  ...surveyFindings(
+    { ...at, positions: 15 },
+    { temp, diameter },
+    tier,
+    CENTRED,
+  ),
 });
 
 /** The text of the HTML, with its cells apart. */
@@ -29,8 +47,34 @@ const plain = (html: string): string =>
 describe('the survey report', () => {
   it('words the rough report like an espionage report with one probe (D5)', () => {
     expect(plain(surveyBody(report('rough')))).toBe(
-      'Vermessung [1:42:9] – Messung ungenau. Position 9: 150–246 Felder, Temperatur um 50 °C. Planetentyp: Dschungelplanet.',
+      'Vermessung [1:42:9] – Messung ungenau. Gemäßigter Planet in der mittleren Bahn, vermutlich mittelgroß. Position 9: 150–246 Felder, Temperatur um 50 °C. Planetentyp: Dschungelplanet.',
     );
+  });
+
+  it('names the orbit, its temperature and the size of every band (owner, 2026-11-17)', () => {
+    const at = (p: number) =>
+      plain(surveyBody(report('rough', 72, 14600, { g: 1, s: 42, p })));
+    expect(at(2)).toContain(
+      'Messung ungenau. Heißer Planet in der inneren Bahn, vermutlich klein. Position 2',
+    );
+    expect(at(8)).toContain(
+      'Messung ungenau. Gemäßigter Planet in der mittleren Bahn, vermutlich groß. Position 8',
+    );
+    expect(at(14)).toContain(
+      'Messung ungenau. Kalter Planet in der äußeren Bahn, vermutlich klein. Position 14',
+    );
+    expect(ORBIT).toEqual({
+      inner: { temp: 'Heißer', orbit: 'inneren' },
+      middle: { temp: 'Gemäßigter', orbit: 'mittleren' },
+      outer: { temp: 'Kalter', orbit: 'äußeren' },
+    });
+    expect(SIZE).toEqual({
+      small: 'klein',
+      medium: 'mittelgroß',
+      large: 'groß',
+    });
+    // Only the rough report names them.
+    expect(plain(surveyBody(report('near')))).not.toContain('Bahn');
   });
 
   it('narrows the fields and the temperature from score 4', () => {

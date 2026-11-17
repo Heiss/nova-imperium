@@ -18,7 +18,12 @@ import {
 } from '../../../core/survey.ts';
 import type { Fleet } from '../../../core/types.ts';
 import type { Survey } from '../../../server/db/repos/surveys.ts';
-import { type Ctx, addReport, coords } from '../../../server/game/context.ts';
+import {
+  type Ctx,
+  addReport,
+  coords,
+  universe,
+} from '../../../server/game/context.ts';
 import { turnBack } from '../../../server/game/missions.ts';
 
 /** The level of „Auspex-Kartographie“ of the owner at the arrival. */
@@ -56,7 +61,7 @@ export function onArrive(ctx: Ctx, f: Fleet): void {
   // report as their ends; the shift itself is not stored, it would tell
   // the true value.
   const findings = surveyFindings(
-    f.toC,
+    { ...f.toC, positions: universe(ctx).positions },
     values,
     tier,
     nearShift(tier, ctx.rng),
