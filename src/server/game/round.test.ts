@@ -91,6 +91,35 @@ describe('a new entry of the registry (#283)', () => {
     expect(roundRules(ctx).number).toBe(1);
   });
 
+  it('words every refused member of a group, each sentence once', () => {
+    const group = { name: 'testPair' };
+    const pair: readonly RoundSetting[] = [
+      { ...HOURS, group },
+      {
+        ...HOURS,
+        key: 'roundTestDays',
+        name: 'testDays',
+        label: 'Testtage',
+        max: 30,
+        group,
+      },
+      { ...CHOICE, group },
+      { ...CHOICE, key: 'roundTestOther', name: 'testOther', group },
+    ];
+    const ctx = testCtx();
+    const data = {
+      testPair: { testHours: 0, testDays: 31, testChoice: 4, testOther: 0 },
+    };
+    expect(() => startRoundRules(ctx, data, pair)).toThrow(
+      new Error(
+        'Testdauer (Stunden): ganze Zahl von 1 bis 720. ' +
+          'Testtage: ganze Zahl von 1 bis 30. ' +
+          'Bitte eine Testauswahl treffen.',
+      ),
+    );
+    expect(ctx.admin.setting('roundTestDays')).toBeUndefined();
+  });
+
   it('is a row of the universe settings when live, checked there with the same wording', () => {
     const specs = liveSpecs(settings);
     expect(specs).toEqual([

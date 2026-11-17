@@ -3,6 +3,7 @@
 // round checks and stores them. A feature adds its entry there, not here.
 import {
   ROUND_SETTINGS,
+  type RoundNumber,
   type RoundRules,
   type RoundSetting,
   roundRefused,
@@ -52,14 +53,13 @@ export const rangeError = (s: {
   max: number;
 }): string => `${s.label}: ganze Zahl von ${s.min} bis ${s.max}.`;
 
-/** The refusal of the refused entries: their own wording, each once, else the range. */
+/**
+ * The refusal of the refused entries: their own wording, each once, else the
+ * range. A switch always has its own wording, so only a number gets the range.
+ */
 const refusal = (wrong: readonly RoundSetting[]): string =>
   [
-    ...new Set(
-      wrong.map((s) =>
-        s.kind === 'switch' ? s.refusal : (s.refusal ?? rangeError(s)),
-      ),
-    ),
+    ...new Set(wrong.map((s) => s.refusal ?? rangeError(s as RoundNumber))),
   ].join(' ');
 
 /**

@@ -61,6 +61,13 @@ describe('the lock after a switch', () => {
     expect(mainLocked(null, NOW)).toBe(false);
   });
 
+  it('never holds without a switch, at any time', () => {
+    fc.assert(
+      fc.property(fc.integer(), (now) => mainLocked(null, now) === false),
+    );
+    expect(mainLocked(null, -1)).toBe(false);
+  });
+
   it('ends the set number of days after the switch', () => {
     expect(mainLockEnd(NOW, 7)).toBe(NOW + 7 * DAY_MS);
     expect(mainLockEnd(NOW, 1)).toBe(NOW + DAY_MS);
