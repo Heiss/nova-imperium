@@ -391,12 +391,12 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   that the cases reach every branch. Checked by breaking the component
   (`disabled` of „Flotte losschicken“ and of „Mond“, the `selected`
   mission, the space between the cargo fields, `placeholder`). The pure
-  logic has its tests in `src/client/logic/fleet.test.ts` (with
-  `targetInfo()` and `previewCells()`, which moved there from `main.ts`);
-  `overview-reference.test.ts` checks the list of fleets of the fleet view
-  on the component. The E2E specs of the fleet form (`fleet-cargo`,
-  `flows`, `moons`, `game`, `a11y`, `phone-overflow`) run unchanged on
-  desktop and phone.
+  logic has its tests in `src/client/logic/fleet.test.ts` (mutation
+  100 %, with `targetInfo()` and `previewCells()`, which moved there from
+  `main.ts`); `overview-reference.test.ts` checks the list of fleets of
+  the fleet view on the component. The E2E specs that open the fleet form
+  (`fleet-cargo`, `flows`, `moons`, `phalanx`, `game`, `a11y`,
+  `phone-overflow`, `guild-chat`) run unchanged on desktop and phone.
 * **[E]** No comparison with a catalog key outside `src/features/` (#114,
   owner, 2026-11-14): `src/test/catalog-keys.test.ts` reads `src` with the
   TypeScript and Svelte parsers, as `src/test/naming.test.ts` does, and
