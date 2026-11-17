@@ -719,10 +719,10 @@ function mountView(target: HTMLElement, view: V): NonNullable<typeof mounted> {
 /**
  * Mounts the view of a Svelte component, or updates the mounted one. A
  * fresh render mounts a list again, as the HTML views render anew: no
- * number typed into the shipyard stays on another planet. The overview and
- * the Sternenkarte are mounted anew on every render, as their HTML views
- * were rendered (#118): the clock counts their countdowns down and marks
- * the ones that fired.
+ * number typed into the shipyard stays on another planet. The overview, the
+ * Sternenkarte and the fleet view are mounted anew on every render, as their
+ * HTML views were rendered (#118): the clock counts their countdowns down
+ * and marks the ones that fired.
  */
 function renderMounted(target: HTMLElement, view: V, fresh: boolean): void {
   const kind = catalogKind(ui.view);
