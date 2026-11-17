@@ -1,6 +1,7 @@
 // The settings of a universe: defaults, ranges and the rule that the size of
 // the universe never shrinks below a planet that exists. The admin panel, the
 // server check and the documentation table read this list.
+import { ABANDON_LOCK_HOURS } from './abandon.ts';
 import { GIFT_DEFAULT_MINUTES, GIFT_MINUTES } from './endzeit.ts';
 import type { Coords, Universe } from './types.ts';
 
@@ -87,6 +88,16 @@ export const UNIVERSE_SPECS: readonly UniverseSpec[] = [
     min: GIFT_MINUTES.min,
     max: GIFT_MINUTES.max,
     def: GIFT_DEFAULT_MINUTES,
+  },
+  // Issue #224 (owner, 2026-11-16, D2; 2026-11-17, X1): the lock of a
+  // given-up colony's position, set in „Neue Runde“ and changed here during
+  // the round; the same stored setting the round reads.
+  {
+    key: 'roundAbandonLock',
+    label: 'Sperre einer aufgegebenen Position (Stunden)',
+    min: ABANDON_LOCK_HOURS.min,
+    max: ABANDON_LOCK_HOURS.max,
+    def: ABANDON_LOCK_HOURS.default,
   },
 ];
 

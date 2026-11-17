@@ -148,8 +148,19 @@ describe('a free position', () => {
       planet: null,
       marks: [],
       actions: [],
+      note: '–',
       moon: null,
     });
+  });
+
+  it('says until when a given-up position is locked and offers no Landnahme (#224)', () => {
+    const v = view({ P: { ships: { colony: 1 } } });
+    v.s.locks = [{ g: 1, s: 2, p: 9, until: v.now + 60_000 }];
+    const row = rowAt(v, 9);
+    expect(row.note).toMatch(/^gesperrt bis /);
+    expect(row.actions).toEqual([]);
+    v.s.locks = [{ g: 1, s: 2, p: 9, until: v.now }];
+    expect(rowAt(v, 9).note).toBe('–');
   });
 
   it('offers the Landnahme with a colony ship on the shown planet', () => {
@@ -204,6 +215,7 @@ describe('a foreign planet', () => {
       },
       marks: [],
       actions: [],
+      note: '',
       moon: null,
     });
   });

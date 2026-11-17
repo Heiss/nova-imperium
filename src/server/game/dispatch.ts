@@ -18,6 +18,7 @@ import { deleteGuildChat, seeGuildChat, sendGuildChat } from './guild-chat.ts';
 import { recall, send } from './fleet-actions.ts';
 import { scan } from './phalanx.ts';
 import { chooseMainPlanet } from './main-planet.ts';
+import { abandon } from './abandon.ts';
 import {
   assignGuildRank,
   createGuildRank,
@@ -73,6 +74,7 @@ export const ACTIONS: Record<string, A.Action> = {
   rename: A.rename,
   options: A.options,
   mainPlanet: chooseMainPlanet,
+  abandon,
   pushOptions,
   read: A.read,
   delrep: A.delrep,

@@ -90,6 +90,8 @@ export interface GameState {
   galaxy: GalaxyPlanet[];
   /** Every Trümmerfeld, for every player (#45). */
   debris: DebrisField[];
+  /** The positions locked after an abandonment, with the end of the lock (#224). */
+  locks?: (Coords & { until: number })[];
   admin: AdminState | null;
   achievements?: AchievementState;
   /** None while guilds are off in the round (#191). */
