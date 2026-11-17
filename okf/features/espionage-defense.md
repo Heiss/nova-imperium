@@ -29,6 +29,63 @@ points were answered on 2026-11-16.
   [Activity indicators](/features/activity-indicators.md#what-sets-activity):
   v0.76d with the change of v0.77b (owner, 2026-11-17), built by #229 in
   `src/core/activity.ts` (`activityPlaces`, `planetActivity`).
+* **[E]** Unit of the formula (owner, 2026-11-17): the result is a
+  percent. The maximum is (probes / 4) · (target's espionage technology /
+  spy's espionage technology) · (1 + ships / 100) %, capped at 100 %
+  (owiki „Spionagebericht“, section „Spionageabwehr“,
+  https://owiki.de/index.php?title=Spionagebericht&oldid=77679). The page
+  „Spionage“ (oldid=77813) has no formula; it says only that detected probes
+  usually die in the first round and the spy gets a combat report about the
+  lost contact.
+* **[E]** Detected spying (owner, 2026-11-17): probes that survive the
+  battle still deliver the Auspex-Bericht, and both sides get combat
+  reports. A target with no ships and no defense means no battle: the
+  probes survive and report.
+
+## Built (#175)
+
+* `src/core/espionage.ts`: `counterMax` (the maximum in percent),
+  `counterChance` (drawn from 0 up to it, D2), `detected` (one draw below
+  the chance), `shownChance` (whole percent, rounded: owiki says the report
+  rounds) and `spyTechError` (code `noSpyTech` below level 1, Q1).
+* **[V]** The ships of the formula are all ships stationed at the target
+  (owiki: satellites and probes too), not its defense; a spy below level 1,
+  which only a fleet sent before Q1 can be, gets the cap of 100 %.
+* The arrival (`src/features/missions/spy/arrive.server.ts`) draws the
+  chance, then the detection, both from the seeded `rng`, every spying.
+  Undetected, or detected at a target without ships and defense, the
+  probes report and fly back as before.
+* Detected at a target with ships or defense, the probes fight with the
+  battle of the Sturmangriff, shared in `src/server/game/fight.ts`
+  (`fight`, `battleReport`, `recordBattle`): debris of the destroyed probes
+  (#45), the moon roll (#53), the rebuilt defense, the audit entry; no loot.
+  Survivors deliver the report and fly back; without survivors the fleet is
+  gone and the spy gets no Auspex-Bericht (D3).
+* Combat report of the spy: „Kontakt abgebrochen – deine Spähschädel wurden
+  bei [g:s:p] entdeckt und zerstört.“ when no probe survives (the **[V]**
+  text of the issue); otherwise „Kampfbericht [g:s:p] – <result>“ as for an
+  attack.
+* **[V]** Combat report of the defender: „Kampfbericht <planet> [g:s:p] –
+  Spähschädel von <spy>“, pushed as „spied“ like the warning; the warning
+  „Auspex-Aktivität“ stays, with the shown chance and „Die Spähschädel
+  wurden abgeschossen!“ when no probe survived.
+* **[V]** What the report shows is scored with the probes sent and the
+  target as they found it on arrival, before the battle.
+* The report shows „Chance auf Auspex-Abwehr: x %“ (the drawn chance,
+  rounded) and the target's activity under „Aktivität“: the marker of
+  `planetActivity` with the round's thresholds at the arrival (one rule with
+  the Sternenkarte, `placeActivity` in `src/server/game/activity.ts`), worded
+  as there. **[V]** Without activity: „Keine Aktivität in der letzten
+  Stunde.“ (the text of the issue's proposal); a report from before #175
+  shows no activity. The new reports have no field `lost` any more.
+* Sending refuses below Auspex-Lehre 1 with „Auspex-Erkundung erst ab
+  Auspex-Lehre 1.“ **[V]** (row `send` of
+  [Checks of the server actions](/architecture/action-checks.md)); the
+  browser does not repeat it.
+* Not built: the expected chance before sending, next to
+  „Auspex-Erkundung“ (a **[V]** of the issue); an E2E of a detected spying,
+  which the random draws of the server do not allow without a test hook
+  (the unit tests pin it with given draws).
 
 # Recognition of incoming fleets (#228)
 
