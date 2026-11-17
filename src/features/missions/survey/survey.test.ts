@@ -16,7 +16,6 @@ import {
   subscribePush,
   testCtx,
 } from '../../../server/test-helpers.ts';
-import { onArrive as colonize } from '../colonize/arrive.server.ts';
 import { onArrive } from './arrive.server.ts';
 import * as rules from './rules.ts';
 import { canSend } from './rules.ts';
@@ -255,7 +254,7 @@ describe('survey', () => {
           const full = ctx.reports.ofPlayer('u_Anna')[0] as unknown as {
             full: { temp: number; diameter: number; fields: number };
           };
-          colonize(ctx, flight(ctx, 'f2', 'colonize', { colony: 1 }, to));
+          arrive(ctx, flight(ctx, 'f2', 'colonize', { colony: 1 }, to));
           const colony = ctx.planets.get(`p1_42_${p}`)!;
           expect(colony.temp).toBe(full.full.temp);
           expect(colony.diameter).toBe(full.full.diameter);
@@ -283,8 +282,8 @@ describe('survey', () => {
       diameter: 9000,
       created: 0,
     });
-    colonize(a, flight(a, 'f1', 'colonize', { colony: 1 }, FREE));
-    colonize(b, flight(b, 'f1', 'colonize', { colony: 1 }, FREE));
+    arrive(a, flight(a, 'f1', 'colonize', { colony: 1 }, FREE));
+    arrive(b, flight(b, 'f1', 'colonize', { colony: 1 }, FREE));
     expect(b.planets.get('p1_42_9')).toEqual(a.planets.get('p1_42_9'));
     expect(b.surveys.get({ g: 1, s: 7, p: 9 })).not.toBeNull();
   });
@@ -328,7 +327,7 @@ describe('the cleanup of surveys after 30 days (D1)', () => {
     const { ctx, f } = setup(1, 1, 1);
     keep(ctx);
     onArrive(ctx, f);
-    colonize(ctx, flight(ctx, 'f2', 'colonize', { colony: 1 }, FREE));
+    arrive(ctx, flight(ctx, 'f2', 'colonize', { colony: 1 }, FREE));
     ctx.clock.t = f.arr + 31 * DAY;
     purgeSurveys(ctx);
     expect(ctx.reports.ofPlayer('u_Anna').map((r) => r.type)).toEqual([

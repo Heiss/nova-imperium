@@ -99,7 +99,7 @@ export type Keyword =
   | 'littleEnergy';
 
 /** Everything known about the planet: the full report (D6). */
-export interface FullFindings {
+interface FullFindings {
   /** The maximum temperature; the planet spans 40 °C below it. */
   temp: number;
   diameter: number;
