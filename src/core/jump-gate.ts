@@ -1,13 +1,14 @@
 // The Warp-Tor (classic Sprungtor with modern levels, #53 and #230,
-// okf/features/moons.md): the rules the owner decided on 2026-11-13 and
-// 2026-11-16. A jump starts from the gate of the active moon and moves ships
-// only, at once and without fuel, to another own moon with a Warp-Tor; both
-// gates then cool down by the level of the starting gate. The server asks
+// okf/features/moons.md): the rules the owner decided on 2026-11-13,
+// 2026-11-16 and 2026-11-17. A jump starts from the gate of the active moon
+// and moves ships only, at once and without fuel, to another own moon with a
+// Warp-Tor; both gates then cool down by the level of the starting gate,
+// faster in a faster universe. The server asks
 // `jumpError` and the fleet view `gateReady` and `jumpTargets` (patterns,
 // section 7).
 import { canFly } from './catalog.ts';
 import { countUnits } from './flight.ts';
-import type { Levels, Planet } from './types.ts';
+import type { Levels, Planet, Universe } from './types.ts';
 
 /**
  * The cooldown in minutes by the level of the starting gate, levels 1 to 15
@@ -27,9 +28,15 @@ export const gateCooldown = (level: number): number =>
     ? 0
     : COOLDOWN_MINUTES[Math.min(level, COOLDOWN_MINUTES.length) - 1]!;
 
-/** The cooldown after a jump from a gate at `level`, in milliseconds. */
-export const gateCooldownMs = (level: number): number =>
-  gateCooldown(level) * 60_000;
+/**
+ * The cooldown after a jump from a gate at `level`, in milliseconds: the
+ * minutes of the table divided by the universe speed (owner, 2026-11-17),
+ * rounded up to a whole millisecond as the building and research times.
+ */
+export const gateCooldownMs = (
+  level: number,
+  u: Pick<Universe, 'speed'>,
+): number => Math.ceil((gateCooldown(level) * 60_000) / u.speed);
 
 /**
  * The level of the Warp-Tor on a place: its building on a moon, 0 on a

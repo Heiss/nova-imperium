@@ -1,9 +1,9 @@
 // The jump through the Warp-Tor (#53, #230, okf/features/moons.md; owner,
-// 2026-11-13 and 2026-11-16): from the gate of the active moon to another
+// 2026-11-13, 2026-11-16 and 2026-11-17): from the gate of the active moon to another
 // own moon with a ready Warp-Tor, the picked ships only, at once and without
 // fuel; the resources stay. The checks are `jumpError` of
 // src/core/jump-gate.ts. Both gates then cool down by the level of the
-// starting gate; the times are stored with the moons, so they hold after a
+// starting gate, divided by the universe speed; the times are stored with the moons, so they hold after a
 // restart. Checking, moving and storing run in the one transaction of
 // `runAction`, so two requests can never move the same ships twice.
 import {
@@ -62,8 +62,8 @@ export const jump: Action = (ctx, u, d, event) => {
   moveShips(from, to!, ships);
   ctx.planets.save(from);
   ctx.planets.save(to!);
-  // Both gates cool down by the level of the starting gate.
-  const ready = now + gateCooldownMs(gateLevel(from));
+  // Both gates cool down by the level of the starting gate and the speed.
+  const ready = now + gateCooldownMs(gateLevel(from), universe(ctx));
   ctx.planets.setGateReady(from.id, ready);
   ctx.planets.setGateReady(to!.id, ready);
   if (event) event.detail = { planet: from.id, target: to!.id, ships };

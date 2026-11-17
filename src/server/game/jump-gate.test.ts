@@ -54,6 +54,10 @@ const jump = (ctx: Ctx, data: Record<string, unknown>, event?: AuditEntry) =>
 
 const ships = (ctx: Ctx, id: string) => ctx.planets.get(id)!.ships;
 
+/** The cooldown of a gate at `level` in the universe of `ctx`. */
+const cooldown = (ctx: Ctx, level: number) =>
+  gateCooldownMs(level, ctx.admin.universe());
+
 describe('the jump through the Warp-Tor', () => {
   it('is an action', () => {
     expect(Object.keys(ACTIONS)).toContain('jump');
@@ -85,9 +89,22 @@ describe('the jump through the Warp-Tor', () => {
     ] as const) {
       const { ctx } = world(from, to);
       jump(ctx, {});
-      const ready = ctx.now() + gateCooldownMs(from);
+      const ready = ctx.now() + cooldown(ctx, from);
       expect(ctx.planets.gateReady(FROM), `${from}`).toBe(ready);
       expect(ctx.planets.gateReady(TO), `${from}`).toBe(ready);
+    }
+  });
+
+  it('divides the minutes by the universe speed (owner, 2026-11-17)', () => {
+    for (const [speed, ms] of [
+      [1, 3_600_000],
+      [7, 514_286],
+    ] as const) {
+      const { ctx } = world(1);
+      ctx.admin.saveUniverse({ ...ctx.admin.universe(), speed });
+      jump(ctx, {});
+      expect(ctx.planets.gateReady(FROM), `${speed}`).toBe(ctx.now() + ms);
+      expect(ctx.planets.gateReady(TO), `${speed}`).toBe(ctx.now() + ms);
     }
   });
 
@@ -98,8 +115,9 @@ describe('the jump through the Warp-Tor', () => {
     expect(() => jump(ctx, { planet: TO, to: FROM, ships: { lc: 1 } })).toThrow(
       JUMP_ERROR.cooling,
     );
-    // 53 minutes for level 2; one millisecond before, the gate still cools.
-    ctx.clock.t += gateCooldownMs(2) - 1;
+    // 53 minutes for level 2 over the speed; one millisecond before, the
+    // gate still cools.
+    ctx.clock.t += cooldown(ctx, 2) - 1;
     expect(() => jump(ctx, {})).toThrow(JUMP_ERROR.cooling);
     ctx.clock.t += 1;
     expect(jump(ctx, { ships: { lc: 1 } })).toBeNull();
@@ -169,8 +187,8 @@ describe('the jump through the Warp-Tor', () => {
       }),
     ).toThrow(JUMP_ERROR.cooling);
     expect(gateState(again, 'u_Anna')).toEqual([
-      { id: FROM, level: 3, ready: ctx.now() + gateCooldownMs(3) },
-      { id: TO, level: 1, ready: ctx.now() + gateCooldownMs(3) },
+      { id: FROM, level: 3, ready: ctx.now() + cooldown(ctx, 3) },
+      { id: TO, level: 1, ready: ctx.now() + cooldown(ctx, 3) },
     ]);
   });
 
@@ -210,8 +228,8 @@ describe('the jump through the Warp-Tor', () => {
     ]);
     jump(ctx, {});
     expect(stateFor(ctx, anna).gates).toEqual([
-      { id: FROM, level: 4, ready: ctx.now() + gateCooldownMs(4) },
-      { id: TO, level: 2, ready: ctx.now() + gateCooldownMs(4) },
+      { id: FROM, level: 4, ready: ctx.now() + cooldown(ctx, 4) },
+      { id: TO, level: 2, ready: ctx.now() + cooldown(ctx, 4) },
     ]);
     expect(stateFor(ctx, ctx.players.get('u_Bert')!).gates).toEqual([
       { id: 'm1_7_7', level: 1, ready: 0 },

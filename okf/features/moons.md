@@ -351,7 +351,9 @@ the [E] of the Warp-Tor above (owner, 2026-11-13, confirmed 2026-11-16 in
   home planet.
 * Rules in `src/core/jump-gate.ts` (patterns, section 7): `gateCooldown(level)`
   the decided table in minutes (10 from level 15 on, 0 without a gate),
-  `gateCooldownMs`; `gateLevel(p)` the building on a moon, 0 on a planet,
+  `gateCooldownMs(level, u)` the minutes divided by the universe speed in
+  milliseconds, rounded up to a whole millisecond as the building and
+  research times (`Math.ceil`); `gateLevel(p)` the building on a moon, 0 on a planet,
   the one place that reads the key; `gateReady(gate, now)`;
   `targetError(from, target, now)` and `jumpError(from, target, ships,
   now)`, the codes in this order: `notMoon`, `noGate`, `cooling` (the
@@ -397,6 +399,13 @@ the [E] of the Warp-Tor above (owner, 2026-11-13, confirmed 2026-11-16 in
     the protection of a target (`vacationProtects`) does not apply.
   * #202 demolition (`claude/demolition`): no demolition on a moon, so the
     Warp-Tor cannot be torn down.
+* **[E]** Cooldown (owner, 2026-11-17, #230): the minutes of the cooldown
+  table are divided by the universe speed, so a faster universe cools
+  faster. The server stores the ready time, and the countdown of the view
+  „Flotte“ counts down to it, so both agree.
+* **[E]** Texts (owner, 2026-11-17, #230): the short and long text, the
+  eight refusals and the abbreviation `WR` in the list below are confirmed
+  as written.
 * **[V]** Proposals of this pull request, taken as recommended (owner's
   rule of 2026-11-15 in [Release loop](/ops/loop.md)), for the owner to
   confirm:
@@ -407,10 +416,9 @@ the [E] of the Warp-Tor above (owner, 2026-11-13, confirmed 2026-11-16 in
     `mobile`“, #114; classic: no solar satellites through the Sprungtor);
   * a jump asks for more ships than stand on the moon moves those there, as
     `send` does;
-  * the cooldown is in real minutes, not scaled by the universe speed;
   * the jump answers no message: the moved ships and the countdowns show
     it;
-  * abbreviation `WR` (`WT` is taken); short text „Versetzt Schiffe sofort zu
+  * [E] since 2026-11-17: abbreviation `WR` (`WT` is taken); short text „Versetzt Schiffe sofort zu
     einem eigenen Mond mit Warp-Tor. Steht nur auf einem Mond.“; long text
     „Das Warp-Tor reißt einen Spalt in den Raum hinter dem Raum und stößt
     ganze Flotten hindurch. / So funktioniert es: Ausgewählte Schiffe
@@ -420,19 +428,21 @@ the [E] of the Warp-Tor above (owner, 2026-11-13, confirmed 2026-11-16 in
     interface v2 icon set (`docs/design/interface-v2/icons/moon/jump_gate.svg`),
     renamed in `<title>` and `aria-label`; the classic name „Sprungtor“
     joins the naming test data;
-  * the messages „Ein Sprung ist nur von einem Mond aus möglich.“, „Auf
+  * [E] since 2026-11-17: the messages „Ein Sprung ist nur von einem Mond aus möglich.“, „Auf
     diesem Mond steht kein Warp-Tor.“, „Das Warp-Tor kühlt noch ab.“, „Der
     Zielmond muss ein eigener Mond sein.“, „Start und Zielmond sind derselbe
     Mond.“, „Auf dem Zielmond steht kein Warp-Tor.“, „Das Warp-Tor des
     Zielmonds kühlt noch ab.“, „Sonnenreliquiare können nicht springen.“ and
     the existing „Keine Schiffe ausgewählt.“ of the fleet form.
 * Tests: `src/core/jump-gate.test.ts` (the table, level 15 and above, the
-  interpolation, the checks and their order, both cooldowns as a property,
+  interpolation, the cooldown at speed 1 and faster speeds with its rounding
+  as a property, the checks and their order, both cooldowns as a property,
   every ship of the catalog, moving keeps the number of ships as a
   property), `src/server/game/jump-gate.test.ts` (the action: ships moved
   and resources kept, at most the ships there, both gates by the starting
   level, a second jump refused until ready in both directions, every
-  refusal changes nothing, a moon that is gone, the cooldown after a
+  refusal changes nothing, a moon that is gone, the cooldown at speed 1
+  and 7, the cooldown after a
   restart, the target settled first, the audit detail, the state),
   `src/server/db/repos/planets.test.ts` (the gate time and its cascade),
   the upgrade test, `src/client/logic/jump-gate.test.ts` (the box, the

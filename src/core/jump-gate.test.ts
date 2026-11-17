@@ -46,12 +46,45 @@ describe('the cooldown of the Warp-Tor', () => {
   it('is 0 without a gate', () => {
     expect(gateCooldown(0)).toBe(0);
     expect(gateCooldown(-1)).toBe(0);
-    expect(gateCooldownMs(0)).toBe(0);
+    expect(gateCooldownMs(0, { speed: 1 })).toBe(0);
+    expect(gateCooldownMs(0, { speed: 5 })).toBe(0);
   });
 
-  it('is in milliseconds the minutes times 60,000', () => {
-    expect(gateCooldownMs(1)).toBe(3_600_000);
-    expect(gateCooldownMs(15)).toBe(600_000);
+  it('is in milliseconds the minutes times 60,000 at speed 1', () => {
+    expect(gateCooldownMs(1, { speed: 1 })).toBe(3_600_000);
+    expect(gateCooldownMs(15, { speed: 1 })).toBe(600_000);
+  });
+
+  it('divides the minutes by the universe speed (owner, 2026-11-17)', () => {
+    expect(gateCooldownMs(1, { speed: 5 })).toBe(720_000);
+    expect(gateCooldownMs(15, { speed: 5 })).toBe(120_000);
+    expect(gateCooldownMs(1, { speed: 100 })).toBe(36_000);
+  });
+
+  it('rounds up to a whole millisecond, as the building times', () => {
+    // 60 minutes / 7 = 514,285.71… ms; 53 minutes / 7 = 454,285.71… ms.
+    expect(gateCooldownMs(1, { speed: 7 })).toBe(514_286);
+    expect(gateCooldownMs(2, { speed: 7 })).toBe(454_286);
+  });
+
+  it('is shorter in a faster universe, never below the exact quotient (property)', () => {
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 1, max: 20 }),
+        fc.integer({ min: 1, max: 99 }),
+        (level, speed) => {
+          const ms = gateCooldownMs(level, { speed });
+          expect(Number.isInteger(ms)).toBe(true);
+          expect(ms).toBeGreaterThanOrEqual(
+            (gateCooldown(level) * 60_000) / speed,
+          );
+          expect(ms - (gateCooldown(level) * 60_000) / speed).toBeLessThan(1);
+          expect(
+            gateCooldownMs(level, { speed: speed + 1 }),
+          ).toBeLessThanOrEqual(ms);
+        },
+      ),
+    );
   });
 
   it('never grows with the level and is between 10 and 60 minutes (property)', () => {
