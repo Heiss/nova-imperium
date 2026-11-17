@@ -200,6 +200,9 @@ jobs:
       - run: pnpm lint:dead
       - run: pnpm lint:dupes
       - run: pnpm lint:deps
+      # src/client/main.ts must not grow; whoever shrinks it lowers the
+      # limit in size-ratchet.json (scripts/size-ratchet.ts, #242).
+      - run: pnpm lint:size
       - run: pnpm format:check
       - run: pnpm typecheck
       # Blocks below 90 % lines and 85 % branches (vitest.config.ts).

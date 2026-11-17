@@ -474,6 +474,21 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   for every change. A schema
   snapshot (`src/server/db/schema.snapshot.sql`) shows the resulting schema in
   the review. See [SQLite storage](/data/sqlite.md).
+* **[E]** Size ratchet of `src/client/main.ts` (#242, owner,
+  2026-11-16): `main.ts` must not grow while #118 takes it apart. Its
+  allowed line count is stored in `size-ratchet.json`, and only goes down.
+  `scripts/size-ratchet.ts` (`pnpm lint:size`, part of `pnpm check` and of
+  the CI job „Lint, types, unit tests with coverage, build“, so of the CI
+  Gate) fails when `main.ts` has more lines than the limit („move the code
+  into a module or component (#118)“), and also when it has fewer and the
+  limit was not lowered to the new count („Lower the limit in
+  size-ratchet.json to N“): whoever shrinks `main.ts`, every #118 pull
+  request included, lowers the limit in the same change, and the freed
+  lines never come back. A feature that needs client code puts it into its
+  own module, not into `main.ts`. Only `main.ts` has a limit. Lines are
+  counted as `wc -l` counts them, after Prettier, since `format:check` runs
+  anyway [V]; the starting limit is the count on `main` when the pull
+  request of #242 was created.
 
 # Kinds of tests in this project
 
