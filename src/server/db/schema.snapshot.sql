@@ -271,6 +271,14 @@ CREATE TABLE player_activity (
     PRIMARY KEY (player, day)
   ) STRICT;
 
+CREATE TABLE position_locks (
+      g INTEGER NOT NULL,
+      s INTEGER NOT NULL,
+      p INTEGER NOT NULL,
+      until INTEGER NOT NULL,
+      PRIMARY KEY (g, s, p)
+    ) STRICT;
+
 CREATE TABLE push_jobs (
     endpoint TEXT NOT NULL REFERENCES push_subscriptions(endpoint) ON DELETE CASCADE,
     kind TEXT NOT NULL,
