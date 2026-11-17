@@ -22,7 +22,7 @@ Planet“ (https://owiki.de/index.php?title=Zerst%C3%B6rter_Planet&oldid=76922).
   (owiki „Zerstörter Planet“) (owner, 2026-11-16).
 * **[E]** Main planet (owner, 2026-11-16, D3): the chosen main planet
   (#221) cannot be given up; the player changes the main planet first.
-  #221 itself still has open points.
+  #221 was clarified the same day (see [Main planet](/features/main-planet.md)).
 * **[E]** Moon and stock (owner, 2026-11-16, Q1): everything is lost, the
   buildings, units, resources, orders and the moon. Classic differs: the
   destroyed planet kept its buildings, fleet and resources until the

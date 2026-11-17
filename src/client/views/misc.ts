@@ -4,10 +4,12 @@ import {
   GIFT_RESOURCES,
   GIFT_SHIPS_EACH,
 } from '../../core/endzeit.ts';
+import { MAIN_LOCK_DAYS } from '../../core/main-planet.ts';
 import type { Universe } from '../../core/types.ts';
 import { ENDZEIT_NOTE } from '../logic/endzeit.ts';
 import { reportFormHTML } from '../logic/error-report.ts';
 import { explainOptionsHTML } from '../logic/explain.ts';
+import { mainPlanetHTML } from '../logic/main-planet.ts';
 import { pushKindsHTML, shownPushOff } from '../logic/push-options.ts';
 import { coords, esc, fmt } from '../logic/format.ts';
 import type { AdminState, GameState } from '../logic/types.ts';
@@ -55,6 +57,7 @@ const pushKindsBox = (v: V): string => {
 
 export const help = (v: V): string => `<h2>Hilfe &amp; Optionen</h2>
  ${box('Optionen', `<div class="flex">Spähschädel pro Auspex-Erkundung von der Sternenkarte: <input type="number" id="o_probes" min="1" value="${v.s.me.probes || 1}" aria-label="Spähschädel pro Auspex-Erkundung"></div><div class="flex mt"><label for="o_explain">Erklärungstexte:</label> <select id="o_explain">${explainOptionsHTML(v.s.me.explain)}</select></div><p><button data-act="saveopt">Speichern</button></p>`)}
+ ${box('Hauptplanet', mainPlanetHTML(v.s, v.now))}
  ${box('Darstellung', `<label class="switch"><input type="checkbox" id="o_anim" ${v.ui.animations ? 'checked' : ''}> Animationen</label><p class="dim">Planeten drehen sich, Wolken ziehen. Gilt für dieses Gerät; ist im System „Bewegung reduzieren“ eingestellt, bleibt alles ruhig.</p>`)}
  ${box(
    'Passwort ändern',
@@ -124,6 +127,7 @@ export function roundDialog(round: RoundRules): string {
   </fieldset>
   <p><label><input type="checkbox" id="round-guilds" aria-describedby="round-guilds-note" ${round.guilds ? 'checked' : ''}> Gilden (mit Chat)</label><br>
   <span id="round-guilds-note">Eine neue Runde leert alle Gilden-Chats. Ohne Gilden werden alle Gilden mit Mitgliedern, Bewerbungen, Rängen und Chat gelöscht.</span></p>
+  <p><label for="round-main-lock">Sperre nach einem Wechsel des Hauptplaneten (Tage)</label> <input type="number" id="round-main-lock" min="${MAIN_LOCK_DAYS.min}" max="${MAIN_LOCK_DAYS.max}" step="1" value="${round.mainLock}" required> <span class="dim">${MAIN_LOCK_DAYS.min} bis ${MAIN_LOCK_DAYS.max}</span></p>
   <p><button class="red" data-act="doReset">Ja, neue Runde</button> <button data-act="closeModal">Abbrechen</button></p>`;
 }
 

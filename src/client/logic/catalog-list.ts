@@ -301,9 +301,12 @@ function buildingRow(v: V, key: string): CatalogRow {
 
 // ----- research -----
 
-/** The name of the own planet where the running research started (#49). */
+/**
+ * The name of the own planet where the running research started (#49);
+ * research from before #49 has none and counts as the main planet's (#221).
+ */
 function researchPlace(v: V): string {
-  const id = v.R.rq?.planet ?? v.s.homePlanet;
+  const id = v.R.rq?.planet ?? v.s.mainPlanet;
   if (id === v.P.id) return v.P.name;
   return v.s.galaxy.find((p) => p.id === id)?.name ?? '';
 }

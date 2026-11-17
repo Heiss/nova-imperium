@@ -34,7 +34,7 @@ describe('the dialog „Neue Runde“', () => {
     /<label><input type="checkbox" id="round-guilds"[^>]*>[^<]*<\/label>/.exec(
       html,
     )?.[0] ?? '';
-  const rules = { number: 1, achievements: true, daily: true };
+  const rules = { number: 1, achievements: true, daily: true, mainLock: 7 };
 
   it('has one box „Gilden (mit Chat)“, preselected with the current round (#191)', () => {
     const on = box(roundDialog({ ...rules, guilds: true }));
@@ -46,8 +46,24 @@ describe('the dialog „Neue Runde“', () => {
   });
 });
 
+describe('the lock of the main planet in the dialog „Neue Runde“ (#221)', () => {
+  const rules = { number: 1, achievements: true, daily: true, guilds: true };
+
+  it('is a number of days from 1 to 30, preselected with the current round', () => {
+    for (const mainLock of [7, 12]) {
+      const html = roundDialog({ ...rules, mainLock });
+      expect(html).toContain(
+        `<label for="round-main-lock">Sperre nach einem Wechsel des Hauptplaneten (Tage)</label> <input type="number" id="round-main-lock" min="1" max="30" step="1" value="${mainLock}" required> <span class="dim">1 bis 30</span>`,
+      );
+      expect(html.indexOf('id="round-main-lock"')).toBeLessThan(
+        html.indexOf('data-act="doReset"'),
+      );
+    }
+  });
+});
+
 describe('the warning below the box „Gilden (mit Chat)“ (#191)', () => {
-  const rules = { number: 1, achievements: true, daily: true };
+  const rules = { number: 1, achievements: true, daily: true, mainLock: 7 };
   // Every new round clears the chats as well (#169 D6), guilds on or off.
   const WARNING =
     'Eine neue Runde leert alle Gilden-Chats. Ohne Gilden werden alle Gilden mit Mitgliedern, Bewerbungen, Rängen und Chat gelöscht.';
@@ -70,7 +86,7 @@ describe('the warning below the box „Gilden (mit Chat)“ (#191)', () => {
 });
 
 describe('„Account löschen“ in a round with or without guilds (#191)', () => {
-  const rules = { number: 1, achievements: true, daily: true };
+  const rules = { number: 1, achievements: true, daily: true, mainLock: 7 };
   const on = { ...rules, guilds: true };
   const off = { ...rules, guilds: false };
 
