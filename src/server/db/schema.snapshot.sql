@@ -42,6 +42,8 @@ CREATE INDEX push_subscription_user ON push_subscriptions(user_id);
 
 CREATE INDEX reports_user ON reports(user_id, seq);
 
+CREATE INDEX surveys_created ON surveys(created);
+
 CREATE TABLE account_tokens (
     token_hash TEXT PRIMARY KEY,
     user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -128,7 +130,7 @@ CREATE TABLE fleets (
     to_g INTEGER NOT NULL,
     to_s INTEGER NOT NULL,
     to_p INTEGER NOT NULL,
-    mission TEXT NOT NULL CHECK (mission IN ('attack', 'transport', 'spy', 'colonize', 'deploy', 'harvest')),
+    mission TEXT NOT NULL CHECK (mission IN ('attack', 'transport', 'spy', 'colonize', 'deploy', 'harvest', 'survey')),
     cargo_m REAL NOT NULL,
     cargo_c REAL NOT NULL,
     cargo_d REAL NOT NULL,
@@ -137,9 +139,9 @@ CREATE TABLE fleets (
     ret INTEGER NOT NULL,
     state TEXT NOT NULL CHECK (state IN ('out', 'back')),
     recalled INTEGER NOT NULL DEFAULT 0,
-    fuel INTEGER NOT NULL DEFAULT 0
-  , gift INTEGER NOT NULL DEFAULT 0
-    CHECK (gift IN (0, 1))) STRICT;
+    fuel INTEGER NOT NULL DEFAULT 0,
+    gift INTEGER NOT NULL DEFAULT 0 CHECK (gift IN (0, 1))
+  ) STRICT;
 
 CREATE TABLE guild_chat (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -305,7 +307,7 @@ CREATE TABLE reports (
     user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     time INTEGER NOT NULL,
     seq INTEGER NOT NULL,
-    type TEXT NOT NULL CHECK (type IN ('info', 'spy', 'battle')),
+    type TEXT NOT NULL CHECK (type IN ('info', 'spy', 'battle', 'survey')),
     title TEXT NOT NULL,
     body TEXT NOT NULL
   ) STRICT;
@@ -333,6 +335,17 @@ CREATE TABLE shipyard_queue (
   ) STRICT;
 
 CREATE TABLE sqlite_sequence(name,seq);
+
+CREATE TABLE surveys (
+    id TEXT PRIMARY KEY,
+    g INTEGER NOT NULL,
+    s INTEGER NOT NULL,
+    p INTEGER NOT NULL,
+    temp INTEGER NOT NULL,
+    diameter INTEGER NOT NULL,
+    created INTEGER NOT NULL,
+    UNIQUE (g, s, p)
+  ) STRICT;
 
 CREATE TABLE suspensions (
     player TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,

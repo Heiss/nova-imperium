@@ -1,8 +1,10 @@
 // Places a new home planet: a random free position 4 to 12 in the wished
 // galaxy, otherwise the first free position of the universe. A home planet
 // has 163 fields, a colony a random number in the range of its position (#51).
+// A surveyed position keeps the values of its survey (#190, D1).
 import { colonyDiameter, HOME_DIAMETER } from '../../core/fields.ts';
 import { placeId } from '../../core/place.ts';
+import { rollTemp } from '../../core/survey.ts';
 import type { Coords, Planet, Resources } from '../../core/types.ts';
 import { type Ctx, fail, universe } from './context.ts';
 
@@ -68,7 +70,10 @@ export function createPlanet(
   res: Resources,
   diameter?: number,
 ): Planet {
-  const temp = Math.round(130 - (c.p - 1) * 10 + (ctx.rng() * 20 - 10));
+  // The values of a survey, which the position no longer needs (D1).
+  const surveyed = ctx.surveys.get(c);
+  if (surveyed) ctx.surveys.delete(c);
+  const temp = surveyed?.temp ?? rollTemp(c.p, ctx.rng);
   const planet: Planet = {
     id: placeId({ ...c, kind: 'planet' }),
     owner,
@@ -76,7 +81,7 @@ export function createPlanet(
     ...c,
     kind: 'planet',
     temp,
-    diameter: diameter ?? colonyDiameter(c.p, ctx.rng),
+    diameter: diameter ?? surveyed?.diameter ?? colonyDiameter(c.p, ctx.rng),
     unlimited: false,
     res,
     b: {},

@@ -74,6 +74,8 @@ const SEND_ERROR: Readonly<Record<SendError, string>> = {
   noRecycler: 'Du brauchst eine Bergungsbarke.',
   noMoon: 'An dieser Position gibt es keinen Mond.',
   moonTarget: 'Ein Mond kann nicht das Ziel dieses Auftrags sein.',
+  surveyLocked: 'Vermessung erst mit Auspex-Kartographie.',
+  surveyProbesOnly: 'Vermessung nur mit Spähschädeln.',
 };
 
 const loadCargo = (p: Planet, rules: MissionRules, raw: unknown): Resources => {
@@ -108,7 +110,7 @@ function checkDestination(
 ): void {
   const error = sendError(
     rules,
-    { owner: u.id, from: p.id, ships },
+    { owner: u.id, from: p.id, ships, research: researchOf(ctx, u).research },
     {
       planet: occupied,
       debris: at.debris,

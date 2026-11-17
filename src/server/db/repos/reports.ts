@@ -5,7 +5,7 @@ import type { Row } from './rows.ts';
 export interface Report {
   id: string;
   time: number;
-  type: 'info' | 'spy' | 'battle';
+  type: 'info' | 'spy' | 'battle' | 'survey';
   title: string;
   [field: string]: unknown;
 }
@@ -17,6 +17,8 @@ export interface Reports {
   ofPlayer(uid: string): Report[];
   delete(uid: string, id: string): void;
   deleteAll(uid: string): void;
+  /** Deletes the survey reports (#190) of every player that name one of `surveys`. */
+  deleteSurveys(surveys: readonly string[]): void;
 }
 
 export class SqliteReports implements Reports {
@@ -66,5 +68,12 @@ export class SqliteReports implements Reports {
 
   deleteAll(uid: string): void {
     this.db.prepare('DELETE FROM reports WHERE user_id = ?').run(uid);
+  }
+
+  deleteSurveys(surveys: readonly string[]): void {
+    const del = this.db.prepare(
+      "DELETE FROM reports WHERE type = 'survey' AND json_extract(body, '$.survey') = ?",
+    );
+    for (const id of surveys) del.run(id);
   }
 }

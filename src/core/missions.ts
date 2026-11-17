@@ -33,7 +33,9 @@ export type SendError =
   | 'noDebris'
   | 'noRecycler'
   | 'noMoon'
-  | 'moonTarget';
+  | 'moonTarget'
+  | 'surveyLocked'
+  | 'surveyProbesOnly';
 
 /** The fleet a player wants to send: its owner, its origin and its ships. */
 export interface SendFleet {
@@ -41,6 +43,8 @@ export interface SendFleet {
   /** The id of the planet it starts from. */
   from: string;
   ships: Levels;
+  /** The research levels of the owner at the start (the Vermessung, #190). */
+  research?: Levels;
 }
 
 /** What is at the target position when the fleet is sent. */

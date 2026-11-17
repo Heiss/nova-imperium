@@ -108,6 +108,7 @@ describe('catalog', () => {
       plasma: values(C.RES).plasma,
       graviton: values(C.RES).graviton,
       ifn: values(C.RES).ifn,
+      survey: values(C.RES).survey,
     });
     const ships = values(C.SHIPS);
     const added = {
@@ -179,6 +180,7 @@ describe('catalog', () => {
       'colonize',
       'deploy',
       'harvest',
+      'survey',
     ]);
     expect(C.MISSION).toEqual(
       Object.fromEntries(Object.entries(MISSIONS).map(([k, m]) => [k, m.name])),
@@ -654,6 +656,7 @@ describe('catalog from the entry folders', () => {
       'plasma',
       'graviton',
       'ifn',
+      'survey',
     ]);
     const ships = [
       'sc',

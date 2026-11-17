@@ -1203,7 +1203,7 @@ const ACT: Record<string, (d: Data) => unknown> = {
     return act('send', {
       ships: { probe: n },
       to: targetOf(d),
-      mission: 'spy',
+      mission: d.m ?? 'spy',
       pct: 10,
       cargo: { m: 0, c: 0, d: 0 },
     });
