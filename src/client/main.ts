@@ -13,6 +13,7 @@ import { CATALOG_VIEWS, catalogKind } from './logic/catalog-list.ts';
 import { clearsChat, sameSignIn } from './logic/guild-chat.ts';
 import { debrisAt, debrisTip } from './logic/debris.ts';
 import { endzeitNote } from './logic/endzeit.ts';
+import { friendCall } from './logic/friends.ts';
 import { moonAt, moonTarget } from './logic/moon.ts';
 import { scanOf } from './logic/phalanx.ts';
 import { clampInt, coords, dt, dur, esc, fmt } from './logic/format.ts';
@@ -30,6 +31,7 @@ import {
   fleetPreview,
   galaxyStep,
   nameOf,
+  queueDue,
   settingsFrom,
   type FleetForm,
 } from './logic/game.ts';
@@ -1096,6 +1098,12 @@ const ACT: Record<string, (d: Data) => unknown> = {
       return act('deleteGuildChat', { id: Number(d.id) });
   },
   guildChatAdmin: (d) => openAdminChat(d.id ?? ''),
+  // The buddy list (#227); a request clears the name once it is sent.
+  friend: async (d) => {
+    const call = friendCall(d, val('#friend_name'), (q) => window.confirm(q));
+    if (call && (await act(...call)) && d.op === 'request')
+      setInput('#friend_name', '');
+  },
   achievementClaim: (d) => act('claimAchievement', { id: d.id }),
   dailyClaim: () => act('claimDailyReward'),
   logout: async () => {
@@ -1736,6 +1744,7 @@ document.addEventListener('submit', (e) => {
     ['guildtransferform', submitTransfer],
     ['guilddissolveform', submitDissolve],
     ['guildchatform', submitChat],
+    ['friendform', () => ACT.friend!({ op: 'request' })],
     ['codeform', submitLoginCode],
     ['forgotform', submitForgot],
     ['resetform', () => submitPassword(true)],
@@ -1759,18 +1768,6 @@ $('#modal')!.addEventListener('click', (e) => {
 });
 
 // ----- clock -----
-
-function queueDue(view: V, now: number): boolean {
-  const ship = view.P.sq[0];
-  const nextShip = ship ? (view.P.sqT ?? now) + ship.unit : Infinity;
-  return (
-    Math.min(
-      view.P.bq?.end ?? Infinity,
-      view.R.rq?.end ?? Infinity,
-      nextShip,
-    ) <= now
-  );
-}
 
 setInterval(() => {
   if (!client.view) return;

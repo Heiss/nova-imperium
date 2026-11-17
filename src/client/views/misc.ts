@@ -9,11 +9,12 @@ import type { Universe } from '../../core/types.ts';
 import { ENDZEIT_NOTE } from '../logic/endzeit.ts';
 import { reportFormHTML } from '../logic/error-report.ts';
 import { explainOptionsHTML } from '../logic/explain.ts';
+import { homePlanetOf } from '../logic/friends.ts';
 import { mainPlanetHTML } from '../logic/main-planet.ts';
 import { pushKindsHTML, shownPushOff } from '../logic/push-options.ts';
-import { coords, esc, fmt } from '../logic/format.ts';
+import { esc, fmt } from '../logic/format.ts';
 import type { AdminState, GameState } from '../logic/types.ts';
-import { box, type Ui, type V } from './common.ts';
+import { box, homeCell, type Ui, type V } from './common.ts';
 
 export function highscore(v: V): string {
   const list = Object.entries(v.s.players).sort(
@@ -21,10 +22,7 @@ export function highscore(v: V): string {
   );
   const rows = list.map(([id, x], i) => {
     // A planet, never a moon (#53).
-    const pl = v.s.galaxy.find((p) => p.owner === id && p.kind === 'planet');
-    const home = pl
-      ? `<span class="home">${esc(pl.name)}</span> <span class="lnk" data-act="gto" data-g="${pl.g}" data-s="${pl.s}">${coords(pl)}</span>`
-      : '-';
+    const home = homeCell(homePlanetOf(v.s.galaxy, id));
     return `<tr class="${id === v.s.me.id ? 'me' : ''}"><td class="n">${i + 1}</td><td>${esc(x.name)}</td><td>${home}</td><td class="n">${fmt(x.points)}</td></tr>`;
   });
   return `<h2>Highscore</h2><div class="box"><table class="scores"><tr><th class="n">Platz</th><th>Spieler</th><th>Heimatplanet</th><th class="n">Punkte</th></tr>${rows.join('')}</table></div><div class="dim">1 Punkt = 1.000 verbaute Rohstoffe (Gebäude, Forschung, Schiffe, Verteidigung).</div>`;

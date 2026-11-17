@@ -19,6 +19,7 @@ const VIEWS = [
   'messages',
   'highscore',
   'guilds',
+  'friends',
   'achievements',
   'news',
   'help',

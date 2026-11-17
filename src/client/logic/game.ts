@@ -193,3 +193,22 @@ export const settingsFrom = (
   keys: string[],
   read: (key: string) => string,
 ): Record<string, string> => Object.fromEntries(keys.map((k) => [k, read(k)]));
+
+/**
+ * Whether a building upgrade, the research or the next unit of the shipyard
+ * is due at `now`, so the clock refreshes the state.
+ */
+export function queueDue(
+  view: { P: Planet; R: Pick<ResearchState, 'rq'> },
+  now: number,
+): boolean {
+  const ship = view.P.sq[0];
+  const nextShip = ship ? (view.P.sqT ?? now) + ship.unit : Infinity;
+  return (
+    Math.min(
+      view.P.bq?.end ?? Infinity,
+      view.R.rq?.end ?? Infinity,
+      nextShip,
+    ) <= now
+  );
+}

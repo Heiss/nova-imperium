@@ -9,6 +9,7 @@ import {
   isProtected,
   nameOf,
   newestFirst,
+  queueDue,
   ranks,
   researchState,
   settingsFrom,
@@ -247,5 +248,41 @@ describe('reports and settings', () => {
     expect(
       settingsFrom(['speed', 'galaxies'], (k) => (k === 'speed' ? '7' : '2')),
     ).toEqual({ speed: '7', galaxies: '2' });
+  });
+});
+
+describe('the clock', () => {
+  const P = planet({ bq: null, sq: [], sqT: null });
+  const due = (over: object, rq: unknown, now: number) =>
+    queueDue({ P: { ...P, ...over }, R: { rq } } as never, now);
+
+  it('is due when a building upgrade ends, not before', () => {
+    expect(due({}, null, 5000)).toBe(false);
+    const bq = { key: 'metal', lvl: 1, start: 0, end: 100 };
+    expect(due({ bq }, null, 99)).toBe(false);
+    expect(due({ bq }, null, 100)).toBe(true);
+  });
+
+  it('is due when the research ends, not before', () => {
+    expect(due({}, { end: 200 }, 199)).toBe(false);
+    expect(due({}, { end: 200 }, 200)).toBe(true);
+  });
+
+  it('is due when the next unit of the shipyard is done', () => {
+    const sq = [{ key: 'lf', n: 3, unit: 50 }];
+    expect(due({ sq, sqT: 1000 }, null, 1049)).toBe(false);
+    expect(due({ sq, sqT: 1000 }, null, 1050)).toBe(true);
+    // Without a start time the unit starts now.
+    expect(due({ sq, sqT: null }, null, 1050)).toBe(false);
+  });
+
+  it('takes the earliest of the three', () => {
+    const bq = { key: 'metal', lvl: 1, start: 0, end: 900 };
+    const sq = [{ key: 'lf', n: 1, unit: 50 }];
+    expect(due({ bq, sq, sqT: 100 }, { end: 700 }, 150)).toBe(true);
+    expect(due({ bq, sq, sqT: 800 }, { end: 700 }, 700)).toBe(true);
+    expect(due({ bq, sq, sqT: 800 }, { end: 950 }, 849)).toBe(false);
+    expect(due({ bq, sq, sqT: 960 }, { end: 950 }, 899)).toBe(false);
+    expect(due({ bq, sq, sqT: 960 }, { end: 950 }, 900)).toBe(true);
   });
 });

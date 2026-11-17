@@ -52,6 +52,7 @@ describe('navigation', () => {
       'messages',
       'highscore',
       'guilds',
+      'friends',
       '-',
       'news',
       'help',
@@ -70,6 +71,7 @@ describe('navigation', () => {
       'galaxy',
       'highscore',
       'guilds',
+      'friends',
       'news',
       'help',
     ]);

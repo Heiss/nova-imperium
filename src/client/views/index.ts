@@ -2,6 +2,7 @@ import type { RoundRules } from '../../core/achievements.ts';
 import { achievements } from './achievements.ts';
 import type { V } from './common.ts';
 import { fleet } from './fleet.ts';
+import { friends } from './friends.ts';
 import { galaxy } from './galaxy.ts';
 import { guilds } from './guilds.ts';
 import { newsHTML } from '../logic/news.ts';
@@ -12,6 +13,7 @@ export const VIEWS: Record<string, (v: V) => string> = {
   fleet,
   galaxy,
   guilds,
+  friends,
   messages,
   highscore,
   achievements,
@@ -41,6 +43,8 @@ export function menu(admin: boolean, round: RoundRules): (MenuEntry | '-')[] {
   ];
   // No „Gilden“ in a round with guilds off (#191).
   if (round.guilds) items.push({ view: 'guilds', label: 'Gilden' });
+  // The buddy list (#227), with guilds on or off.
+  items.push({ view: 'friends', label: 'Freunde' });
   if (round.achievements || round.daily)
     items.push({
       view: 'achievements',

@@ -19,6 +19,12 @@ import { recall, send } from './fleet-actions.ts';
 import { scan } from './phalanx.ts';
 import { chooseMainPlanet } from './main-planet.ts';
 import {
+  answerFriend,
+  cancelFriend,
+  removeFriend,
+  requestFriend,
+} from './friends.ts';
+import {
   assignGuildRank,
   createGuildRank,
   deleteGuildRank,
@@ -84,6 +90,11 @@ export const ACTIONS: Record<string, A.Action> = {
   reset,
   endzeit,
   ...GUILD,
+  // The buddy list (#227); not a guild action, so it works with guilds off.
+  requestFriend,
+  answerFriend,
+  cancelFriend,
+  removeFriend,
   claimAchievement,
   claimDailyReward,
 };

@@ -10,6 +10,7 @@ import { pushOff } from '../push-options.ts';
 import { ownLabs } from './actions.ts';
 import { type Ctx, universe } from './context.ts';
 import { endzeitState } from './endzeit.ts';
+import { friendState } from './friends.ts';
 import { guildState } from './guilds.ts';
 import { mainPlanetOf, mainPlanetView } from './main-planet.ts';
 import { achievementState } from './achievements.ts';
@@ -110,6 +111,8 @@ export function stateFor(
     reports: ctx.reports.ofPlayer(u.id),
     // No guild data while guilds are off in the round (#191).
     guilds: round.guilds ? guildState(ctx, u.id, pts) : null,
+    // The buddy list (#227): only the player's own friends and requests.
+    friends: friendState(ctx, u.id),
     achievements: achievementState(ctx, u, round),
     players,
     galaxy: galaxyOf(ctx),
