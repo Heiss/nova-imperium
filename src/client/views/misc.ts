@@ -1,3 +1,4 @@
+import { ABANDON_LOCK_HOURS } from '../../core/abandon.ts';
 import type { RoundRules } from '../../core/achievements.ts';
 import {
   GIFT_MINUTES,
@@ -128,6 +129,7 @@ export function roundDialog(round: RoundRules): string {
   <p><label><input type="checkbox" id="round-guilds" aria-describedby="round-guilds-note" ${round.guilds ? 'checked' : ''}> Gilden (mit Chat)</label><br>
   <span id="round-guilds-note">Eine neue Runde leert alle Gilden-Chats. Ohne Gilden werden alle Gilden mit Mitgliedern, Bewerbungen, Rängen und Chat gelöscht.</span></p>
   <p><label for="round-main-lock">Sperre nach einem Wechsel des Hauptplaneten (Tage)</label> <input type="number" id="round-main-lock" min="${MAIN_LOCK_DAYS.min}" max="${MAIN_LOCK_DAYS.max}" step="1" value="${round.mainLock}" required> <span class="dim">${MAIN_LOCK_DAYS.min} bis ${MAIN_LOCK_DAYS.max}</span></p>
+  <p><label for="round-abandon-lock">Sperre einer aufgegebenen Position (Stunden)</label> <input type="number" id="round-abandon-lock" min="${ABANDON_LOCK_HOURS.min}" max="${ABANDON_LOCK_HOURS.max}" step="1" value="${round.abandonLock}" required> <span class="dim">${ABANDON_LOCK_HOURS.min} bis ${ABANDON_LOCK_HOURS.max}</span></p>
   <p><button class="red" data-act="doReset">Ja, neue Runde</button> <button data-act="closeModal">Abbrechen</button></p>`;
 }
 

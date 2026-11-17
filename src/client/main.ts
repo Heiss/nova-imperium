@@ -7,7 +7,8 @@ import { missionRules } from '../core/missions.ts';
 import { placeId } from '../core/place.ts';
 import { settle, settleR } from '../core/settle.ts';
 import { text } from '../core/text.ts';
-import type { Levels, Planet, Queue } from '../core/types.ts';
+import type { Levels, Planet, Queue, Resources } from '../core/types.ts';
+import { abandonActs, roundLocks } from './abandon-actions.ts';
 import { createAct, placeOf, samePlace } from './logic/act.ts';
 import { LEXICANUM_VIEW, viewUrl } from './logic/address.ts';
 import { CATALOG_VIEWS, catalogKind, orderNote } from './logic/catalog-list.ts';
@@ -28,7 +29,9 @@ import {
   reportFormHTML,
 } from './logic/error-report.ts';
 import {
+  CARGO,
   cargoMax,
+  cargoOne,
   fleetPreview,
   galaxyStep,
   nameOf,
@@ -63,7 +66,6 @@ import {
   auth,
   deleteAccountDialog,
   diagnosticTab,
-  roundDialog,
   endzeitDialog,
   type AdminTab,
 } from './views/misc.ts';
@@ -901,6 +903,9 @@ function seeChat(): void {
 }
 
 // ----- fleet form -----
+/** The shown planet with its stock of this moment, for the cargo buttons. */
+const settledPlanet = (): Planet =>
+  settle(client.game!.planet!, client.now(), client.game!.cfg, client.game!.me);
 
 function readFleetForm(): FleetForm {
   const ships: Record<string, number> = {};
@@ -1216,18 +1221,13 @@ const ACT: Record<string, (d: Data) => unknown> = {
     fleetCalc();
   },
   cmax: () => {
-    const c = cargoMax(
-      settle(
-        client.game!.planet!,
-        client.now(),
-        client.game!.cfg,
-        client.game!.me,
-      ),
-      readFleetForm(),
-    );
-    setInput('#c_m', c.m);
-    setInput('#c_c', c.c);
-    setInput('#c_d', c.d);
+    const c = cargoMax(settledPlanet(), readFleetForm());
+    for (const k of CARGO) setInput(`#c_${k}`, c[k]);
+    fleetCalc();
+  },
+  cone: (d) => {
+    const k = d.k as keyof Resources;
+    setInput(`#c_${k}`, cargoOne(settledPlanet(), readFleetForm(), k));
     fleetCalc();
   },
   send: async () => {
@@ -1268,6 +1268,7 @@ const ACT: Record<string, (d: Data) => unknown> = {
     }
   },
   deleteAccount: () => modal(deleteAccountDialog(client.game!.round)),
+  ...abandonActs({ act, modal }),
   dismissInstall: () => {
     installDismissed = true;
     try {
@@ -1293,7 +1294,6 @@ const ACT: Record<string, (d: Data) => unknown> = {
       toast('Bitte installiere die App über das Browsermenü.', true);
     }
   },
-  reset: () => modal(roundDialog(client.game!.round)),
   doReset: () => {
     const checked = (id: string) => $<HTMLInputElement>(id)!.checked;
     const rewards = {
@@ -1301,9 +1301,9 @@ const ACT: Record<string, (d: Data) => unknown> = {
       daily: checked('#round-daily'),
     };
     const guilds = checked('#round-guilds');
-    const mainLock = Number(val('#round-main-lock'));
+    const locks = roundLocks(); // before the dialog closes with its fields
     modal('');
-    return act('reset', { rewards, guilds, mainLock });
+    return act('reset', { rewards, guilds, ...locks });
   },
   endzeit: () => modal(endzeitDialog(client.game!.admin!.endzeit.minutes)),
   doEndzeit: () => {

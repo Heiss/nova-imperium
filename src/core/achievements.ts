@@ -116,6 +116,11 @@ export interface RoundRules {
    * only when the admin starts a new round, 7 by default.
    */
   mainLock: number;
+  /**
+   * The lock of a given-up colony's position in hours (#224, D2): set only
+   * when the admin starts a new round, 24 by default.
+   */
+  abandonLock: number;
 }
 
 export interface AchievementState {
