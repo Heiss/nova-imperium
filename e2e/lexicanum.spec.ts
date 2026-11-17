@@ -128,6 +128,9 @@ test.describe('Lexicanum (#285)', () => {
       ['KD', 'Kogitator-Doktrin'],
       ['Flottenslot', 'Kogitator-Doktrin'],
       ['ausspähen', 'Auspex-Lehre'],
+      // Everyday keywords of an entry and of a mission (owner, 2026-11-17).
+      ['Sprit', 'Promethium-Raffinerie'],
+      ['plündern', 'Sturmangriff'],
     ] as const) {
       await search(page).fill(query);
       await expect(first).toContainText(title);
@@ -151,6 +154,10 @@ test.describe('Lexicanum (#285)', () => {
     await expect(heading(page)).toContainText('Auspex-Erkundung');
     await expect(page.locator('#view .lx-facts')).toContainText(
       'nur Spähschädel',
+    );
+    // What happens on arrival, before the facts.
+    await expect(page.locator('#view')).toContainText(
+      'Am Ziel entsteht ein Auspex-Bericht',
     );
     await search(page).fill('Gegner');
     found.push(...(await axe(page, 'search')));
@@ -204,6 +211,10 @@ test.describe('Lexicanum (#285)', () => {
     await expect(page).toHaveURL(/[?&]view=lexicanum&a=solar$/);
     await expect(heading(page)).toContainText('Sonnenkathedrale');
     await expect(panel(page)).toHaveCount(0);
+    // The words before the level table, with numbers of the rules.
+    await expect(page.locator('#view')).toContainText(
+      'Die Energie wächst schneller als die Stufe',
+    );
     expect(await overflow(page)).toBeLessThanOrEqual(1);
     found.push(...(await axe(page, 'phone article')));
     await page.goBack();
@@ -213,8 +224,20 @@ test.describe('Lexicanum (#285)', () => {
     await page.goto('/?view=lexicanum&a=spy');
     await expect(heading(page)).toContainText('Auspex-Lehre');
     expect(await overflow(page)).toBeLessThanOrEqual(1);
+    // A mine: its rate assumes enough energy, and the heading says so.
+    await page.goto('/?view=lexicanum&a=metal');
+    await expect(page.locator('#view')).toContainText(
+      'Adamant/h bei voller Energie',
+    );
+    expect(await overflow(page)).toBeLessThanOrEqual(1);
     await nav(page, 'lexicanum');
     await expect(page.locator('.lx-cat').first()).toBeVisible();
+    expect(await overflow(page)).toBeLessThanOrEqual(1);
+    // The text of a mission below its hit fits the screen.
+    await search(page).fill('Sturmangriff');
+    await expect(page.getByRole('option').first()).toContainText(
+      'Am Ziel kämpft die Flotte',
+    );
     expect(await overflow(page)).toBeLessThanOrEqual(1);
     found.push(...(await axe(page, 'phone start')));
     expect(found).toEqual([]);
