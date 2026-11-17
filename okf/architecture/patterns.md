@@ -585,6 +585,10 @@ choice of the patterns to the assistant's recommendation below
 
 * **[E]** One state module with Svelte 5 runes (`.svelte.ts`) replaces the
   module variables of `src/client/main.ts`; one component per view.
+* **[E]** `main.ts` must not grow: a CI ratchet keeps its line count at or
+  below the limit in `size-ratchet.json`, and every #118 pull request
+  lowers the limit as it shrinks `main.ts` (#242, see
+  [Test strategy](/ops/testing.md)).
 * **[E]** Generic components render from the catalog: `CatalogList`
   (buildings, research, shipyard, defense) and `ProducerTable` (resources).
   A new entry needs no new HTML.
