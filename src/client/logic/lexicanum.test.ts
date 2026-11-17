@@ -380,10 +380,12 @@ describe('an article of a mission', () => {
     const text = of(blocks(art('mission-spy'), 'mission'), 'text')[0]!;
     expect(text.parts[0]!.text).toMatch(/^Am Ziel entsteht ein Auspex-Bericht/);
     expect(text.parts).toContainEqual({ text: 'Auspex-Lehre', link: 'spy' });
-    // The search shows the same text below the hit of the mission.
+    // The search shows its first sentence below the hit of the mission.
     const hit = flatHits(searchHits('Landnahme'))[0]!;
     expect(hit).toMatchObject({ id: 'mission-colonize' });
-    expect(hit.line).toMatch(/^Am Ziel gründet eine Kolonistenarche/);
+    expect(hit.line).toBe(
+      'Am Ziel gründet eine Kolonistenarche die neue Kolonie und bleibt dort; die Ladung der Flotte wird der erste Vorrat der Kolonie.',
+    );
     // A keyword finds the mission, and the entry with the same word first.
     expect(flatHits(searchHits('plündern')).map((h) => h.id)).toEqual([
       'mission-attack',

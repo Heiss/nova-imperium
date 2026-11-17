@@ -33,11 +33,16 @@ code and here in the same pull request.
   battle researches and the three stores share one text each, built in
   `src/core/lexicon/parts.ts` (`drivePart`, `techPart`, `storePart`), and
   the producers that grow like a mine share the values `growthValues`.
-* **[V]** The text of a mission is shown above its facts and is the line
-  below its hit in the search. Keywords are not shown; the search finds an
-  article by the start of a keyword. A keyword is one word, is not part of
-  the title of its article and is no classic name (a guard checks all
-  three).
+* **[E]** The drafts go into the game as [V]; the owner changes them later
+  in this file (owner, 2026-11-17, on pull request #291).
+* **[E]** The text of a mission is shown above its facts; only its first
+  sentence is the line below its hit in the search (owner, 2026-11-17).
+* **[E]** Keywords are not shown; the search finds an article by the start
+  of a keyword. A keyword is one word and no classic name (a guard checks
+  both). Everyday words that are stems of classic names stay („angreifen“,
+  „Speicher“, „Tank“, „Triebwerk“, „Laser“, „Kanone“), and a part of the
+  title is allowed („Mond“ at the Mondzitadelle, „Sonne“ at the
+  Sonnenkathedrale) (owner, 2026-11-17).
 * **[V]** The article of the Auspex-Lehre keeps the text of the design
   study (#287) and its two keywords, the examples of the issue.
 
@@ -82,7 +87,7 @@ code and here in the same pull request.
 ### Sonnenkathedrale (`solar`)
 
 * **[V]** Prose: „Die Energie wächst schneller als die Stufe: Jede Stufe zählt einmal und legt auf alles noch 10 % drauf. Die doppelte Stufe liefert deshalb mehr als das Doppelte – Stufe 10 rund 3,2-mal so viel wie Stufe 5. Der Energiebedarf der Minen wächst nach demselben Muster; die Sonnenkathedrale muss also mit ihnen Schritt halten.“
-* **[V]** Keywords: Strom, Licht, Energiemangel
+* **[V]** Keywords: Strom, Sonne, Licht, Energiemangel
 
 ### Fusionssanktum (`fusion`)
 
@@ -132,7 +137,7 @@ code and here in the same pull request.
 ### Mondzitadelle (`moonbase`)
 
 * **[V]** Prose: „Ein Mond beginnt mit 1 Feld. Jede Stufe der Mondzitadelle bringt 3 Felder und belegt selbst 1 davon – für andere Gebäude bleiben je Stufe 2. Der Gewinn ist auf jeder Stufe gleich, während die Kosten mit jeder Stufe steigen.“
-* **[V]** Keywords: Platz, Bauplatz, Basis
+* **[V]** Keywords: Mond, Platz, Bauplatz, Basis
 
 ### Auspex-Phalanx (`phalanx`)
 
@@ -241,12 +246,12 @@ code and here in the same pull request.
 ### Abfangjäger (`lf`)
 
 * Prose: none; the article has no effect of a level.
-* **[V]** Keywords: Kampfschiff, billig, Kanonenfutter
+* **[V]** Keywords: Kampfschiff, Jäger, billig, Kanonenfutter
 
 ### Sturmjäger (`hf`)
 
 * Prose: none; the article has no effect of a level.
-* **[V]** Keywords: Kampfschiff, gepanzert
+* **[V]** Keywords: Kampfschiff, Jäger, gepanzert
 
 ### Fregatte (`cr`)
 
@@ -286,14 +291,14 @@ code and here in the same pull request.
 ### Sonnenreliquiar (`sat`)
 
 * Prose: none; the article has no effect of a level.
-* **[V]** Keywords: Strom, Licht, Energiemangel
+* **[V]** Keywords: Strom, Sonne, Licht, Energiemangel
 
 ## Verteidigung
 
 ### Raketenbatterie (`rl`)
 
 * Prose: none; the article has no effect of a level.
-* **[V]** Keywords: Abwehr, Geschütz, billig
+* **[V]** Keywords: Abwehr, Geschütz, Raketen, billig
 
 ### Lichtlanze (`ll`)
 
@@ -313,12 +318,12 @@ code and here in the same pull request.
 ### Ionenlanze (`ionc`)
 
 * Prose: none; the article has no effect of a level.
-* **[V]** Keywords: Abwehr, Geschütz, Schild
+* **[V]** Keywords: Abwehr, Geschütz, Ionen, Schild
 
 ### Plasmabatterie (`pt`)
 
 * Prose: none; the article has no effect of a level.
-* **[V]** Keywords: Abwehr, Geschütz, Artillerie
+* **[V]** Keywords: Abwehr, Geschütz, Plasma, Artillerie
 
 ### Kleiner Schutzdom (`ssd`)
 

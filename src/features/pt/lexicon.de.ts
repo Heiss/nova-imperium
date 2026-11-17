@@ -3,5 +3,5 @@
 import type { EntryLexicon } from '../../core/lexicon/types.ts';
 
 export const lexicon: EntryLexicon = {
-  keywords: ['Abwehr', 'Geschütz', 'Artillerie'],
+  keywords: ['Abwehr', 'Geschütz', 'Plasma', 'Artillerie'],
 };

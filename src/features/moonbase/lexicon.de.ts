@@ -18,7 +18,7 @@ const fields = (level: number): number =>
   ) ?? 0;
 
 export const lexicon: EntryLexicon = {
-  keywords: ['Platz', 'Bauplatz', 'Basis'],
+  keywords: ['Mond', 'Platz', 'Bauplatz', 'Basis'],
   effect: { label: 'Felder des Mondes', at: fields },
   texts: [
     {

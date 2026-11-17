@@ -1,7 +1,8 @@
 // What the search of the Lexicanum reads of every article (#285, B6): the
 // title, the abbreviation, the keywords and the text as it reads: the short
 // and long texts of the catalog, the texts of its lexicon part and the
-// headings it shows. The text of a mission is also the line below its hit. It does not depend on the player's state.
+// headings it shows. The first sentence of the text of a mission is the line
+// below its hit (owner, 2026-11-17). It does not depend on the player's state.
 import { ARTICLES, type ArticleMeta, titleOf } from './articles.ts';
 import { fill, plain } from './links.ts';
 import type { SearchDoc } from './search.ts';
@@ -18,6 +19,10 @@ export const HEADINGS = {
 /** The texts of the lexicon part of an entry with their values, as they read. */
 export const partTexts = (a: ArticleMeta): string[] =>
   (a.lexicon.texts ?? []).map((t) => plain(fill(t.text, t.values), titleOf));
+
+/** The first sentence of a text as it reads; the whole text without one. */
+export const firstSentence = (text: string): string =>
+  /^.*?[.!?](?=\s|$)/s.exec(text)?.[0] ?? text;
 
 /** Whether an article has the section „Was die Stufen bringen“. */
 export const hasEffect = (a: ArticleMeta): boolean =>
@@ -41,7 +46,7 @@ function doc(a: ArticleMeta): SearchDoc {
       ...partTexts(a),
       ...(hasEffect(a) ? [HEADINGS.effect] : []),
     ].join(' '),
-    line: a.ds ?? partTexts(a).join(' '),
+    line: a.ds ?? firstSentence(partTexts(a)[0] ?? ''),
   };
   if (a.ab) d.ab = a.ab;
   return d;

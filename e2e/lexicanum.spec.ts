@@ -233,7 +233,7 @@ test.describe('Lexicanum (#285)', () => {
     await nav(page, 'lexicanum');
     await expect(page.locator('.lx-cat').first()).toBeVisible();
     expect(await overflow(page)).toBeLessThanOrEqual(1);
-    // The text of a mission below its hit fits the screen.
+    // The first sentence of a mission below its hit fits the screen.
     await search(page).fill('Sturmangriff');
     await expect(page.getByRole('option').first()).toContainText(
       'Am Ziel kämpft die Flotte',

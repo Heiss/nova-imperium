@@ -130,7 +130,10 @@ their own.
 * **[V]** Keywords: „ausspähen“ and „Gegner“ at the Auspex-Lehre (the
   examples of the issue), and since 2026-11-17 a few everyday words for
   each of the 52 entries and 6 missions, drafted by Claude: one word each,
-  not part of the title, no classic name.
+  no classic name. **[E]** Everyday words that are stems of classic names
+  stay („angreifen“, „Speicher“, „Tank“, „Triebwerk“, „Laser“, „Kanone“),
+  and parts of the title are allowed („Mond“ at the Mondzitadelle, „Sonne“
+  at the Sonnenkathedrale) (owner, 2026-11-17, on pull request #291).
 * **[V]** The words before the formulas, drafted by Claude (2026-11-17):
   Kogitator-Doktrin, the three drives, Waffensegnung, Refraktionsfelder
   and Adamant-Panzerung, Sternennetz der Gelehrten, Auspex-Phalanx,
@@ -140,8 +143,11 @@ their own.
   every number is a value from the rules.
 * **[V]** The text of each of the 6 missions, drafted by Claude
   (2026-11-17): what happens on arrival, from its rules and its
-  `arrive.server.ts`. It is shown above the facts and is the line below
-  the hit of the mission in the search.
+  `arrive.server.ts`. It is shown above the facts. **[E]** The line below
+  the hit of the mission in the search is only its first sentence
+  (`firstSentence` in `src/core/lexicon/docs.ts`; owner, 2026-11-17).
+* **[E]** The drafts go into the game as [V]; the owner changes them later
+  in the review list (owner, 2026-11-17).
 * **[V]** All these drafts are listed for the owner, per article, in
   [Lexicanum texts](/features/lexicanum-texts.md); a guard keeps the list
   equal to the texts in the code.
@@ -160,8 +166,8 @@ their own.
   mission has an article; every link has a target; no digit in a text of
   an article outside a formula; every value filled; every formula agrees
   with its rule; no classic name; every article has at least two
-  keywords, each one word, not in its title and no classic name; every
-  mission has one text, which is its search line; every article with an
+  keywords, each one word and no classic name; every mission has one
+  text, whose first sentence is its search line; every article with an
   effect, every store and every producing building has words before the
   formula; the review list holds every draft as the code has it.
   `parts.test.ts` checks the values of the shared texts and the formulas of

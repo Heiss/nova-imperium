@@ -22,9 +22,8 @@ import {
   titleOf,
   usedFor,
 } from './articles.ts';
-import { hasEffect, partTexts, searchDocs } from './docs.ts';
+import { firstSentence, hasEffect, partTexts, searchDocs } from './docs.ts';
 import { fill, linkTargets, plain, valueNames } from './links.ts';
-import { fold } from './search.ts';
 import type { Block, LexState } from './types.ts';
 
 /** States the computed blocks are checked on. */
@@ -151,19 +150,23 @@ describe('the articles of stage 1 (#285)', () => {
     for (const text of all) expect(classicIn(text), text).toEqual([]);
   });
 
-  it('has everyday keywords for every article, none a name it already has (B6)', () => {
+  it('has everyday keywords for every article, each one word (B6)', () => {
     for (const a of ARTICLES) {
       const keywords = a.lexicon.keywords ?? [];
       expect(keywords.length, a.id).toBeGreaterThanOrEqual(2);
       expect(new Set(keywords).size, a.id).toBe(keywords.length);
       for (const k of keywords) {
         // One word each, as a player types it; the search matches its start.
+        // A part of the title is allowed (owner, 2026-11-17).
         expect(k, a.id).toMatch(/^\p{L}+$/u);
-        expect(fold(a.title), `${a.id}: ${k}`).not.toContain(fold(k));
         expect(classicIn(k), `${a.id}: ${k}`).toEqual([]);
       }
     }
     expect(article('spy')!.lexicon.keywords).toEqual(['ausspähen', 'Gegner']);
+    expect(article('moonbase')!.lexicon.keywords).toContain('Mond');
+    expect(article('solar')!.lexicon.keywords).toContain('Sonne');
+    // Everyday stems of classic names stay (owner, 2026-11-17).
+    expect(article('mission-attack')!.lexicon.keywords).toContain('angreifen');
   });
 
   it('says in one text what happens when a mission arrives', () => {
@@ -174,9 +177,14 @@ describe('the articles of stage 1 (#285)', () => {
       const text = partTexts(a)[0]!;
       expect(text, m).toMatch(/^Am (Ziel|Trümmerfeld)[ ,]/);
       expect(text.length, m).toBeGreaterThan(80);
-      // The text is the line below the hit of the search, without link marks.
+      // Its first sentence is the line below the hit of the search, without
+      // link marks; the whole text stays in the article (owner, 2026-11-17).
       const doc = docs.find((d) => d.id === a.id)!;
-      expect(doc.line).toBe(text);
+      expect(doc.line).toBe(firstSentence(text));
+      expect(text.startsWith(doc.line)).toBe(true);
+      expect(doc.line.length).toBeLessThan(text.length);
+      expect(doc.line).toMatch(/\.$/);
+      expect(doc.line.slice(0, -1)).not.toMatch(/[.!?] /);
       expect(doc.line).not.toMatch(/\[\[|\{/);
       expect(doc.text).toContain(text);
       expect(hasEffect(a)).toBe(false);
@@ -268,7 +276,11 @@ describe('the articles of stage 1 (#285)', () => {
     );
     const mission = docs.find((d) => d.id === 'mission-spy')!;
     expect(mission.title).toBe('Auspex-Erkundung');
-    expect(mission.line).toMatch(/^Am Ziel entsteht ein Auspex-Bericht/);
+    expect(mission.line).toBe(
+      'Am Ziel entsteht ein Auspex-Bericht: die Rohstoffe immer, alles Weitere je nach Auspex-Wert (siehe Auspex-Lehre).',
+    );
+    expect(firstSentence('Ohne Punkt')).toBe('Ohne Punkt');
+    expect(firstSentence('Eins. Zwei.')).toBe('Eins.');
     // A mission has no „Was die Stufen bringen“.
     expect(mission.text).not.toContain('Was die Stufen bringen');
     expect(docs.find((d) => d.id === 'robot')!.text).not.toContain(
