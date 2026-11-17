@@ -27,7 +27,7 @@ export interface Formula {
 export type Cell = string | number;
 
 /** One row of a computed table; `mark` is the row that applies to the player (B5). */
-export interface Row {
+interface Row {
   cells: Cell[];
   mark?: boolean;
 }
@@ -53,7 +53,7 @@ export interface LexState {
 }
 
 /** The effect of one level of an entry, for its level table and „Dein Stand“. */
-export interface Effect {
+interface Effect {
   /** The heading of the column. */
   label: string;
   /** The value at a level. */

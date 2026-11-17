@@ -68,7 +68,7 @@ export interface LevelEffect {
 }
 
 /** A row of the table with its effect, and whether it is the own level. */
-export interface LevelTableRow extends LevelRow {
+interface LevelTableRow extends LevelRow {
   effect?: number;
   current: boolean;
 }

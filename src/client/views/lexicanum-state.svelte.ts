@@ -7,6 +7,8 @@ class LexicanumState {
   article = $state('');
   /** The entry the side panel shows; null while it is closed. */
   panel = $state<string | null>(null);
+  /** The entry whose „?“ opened the panel; its links may lead elsewhere. */
+  opener: string | null = null;
 }
 
 export const lex = new LexicanumState();

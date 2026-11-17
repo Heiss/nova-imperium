@@ -59,7 +59,7 @@ export const listId = (kind: ArticleKind): string => `list-${kind}`;
 export const AZ = 'a-z';
 
 /** A cell as shown: its text, a link, and whether it is a number. */
-export interface ViewCell {
+interface ViewCell {
   text: string;
   link?: string;
   num?: boolean;
@@ -68,8 +68,7 @@ export interface ViewCell {
 /** A block as the components draw it. */
 export type ViewBlock =
   | { t: 'text'; parts: Segment[] }
-  | { t: 'formula'; lines: string[] }
-  | { t: 'chips'; items: { label: string; text: string }[] }
+  | Extract<Block, { t: 'formula' | 'chips' | 'stand' }>
   | {
       t: 'table';
       caption?: string;
@@ -77,7 +76,6 @@ export type ViewBlock =
       rows: { cells: ViewCell[]; mark?: boolean }[];
     }
   | { t: 'facts'; items: { label: string; parts: Segment[] }[] }
-  | { t: 'stand'; text: string }
   | { t: 'links'; items: { id: string; text: string; note?: string }[] }
   | { t: 'levels'; table: LevelTable };
 

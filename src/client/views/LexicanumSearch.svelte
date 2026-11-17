@@ -9,7 +9,7 @@
     moveMark,
     searchHits,
   } from '../logic/lexicanum.ts';
-  import { openArticle } from './lexicanum.ts';
+  import { openArticle } from './lexicanum-nav.ts';
 
   let query = $state('');
   let open = $state(false);

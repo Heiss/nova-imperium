@@ -5,7 +5,7 @@
 
 /** The name of the view of the Lexicanum and of its article parameter. */
 export const LEXICANUM_VIEW = 'lexicanum';
-export const ARTICLE_PARAM = 'a';
+const ARTICLE_PARAM = 'a';
 
 /** The id of the article in an address; '' for the start page. */
 export const articleParam = (search: string): string =>

@@ -26,6 +26,7 @@ okf_version: "0.2"
 * [Ionengeschütz, Plasmawerfer and shield domes](/features/defense-ion-plasma-domes.md) - defense of #50, domes once per planet
 * [Ionentechnik, Plasmatechnik, Gravitonforschung and IFN](/features/research-ion-plasma-graviton.md) - new research of #49, energy check of Gravitonforschung, research on any planet with a lab, research network
 * [Explanation texts](/features/explanation-texts.md) - long texts with a display option per player (#63)
+* [Lexicanum](/features/lexicanum.md) - in-game lexicon of stage 1: an article per catalog entry and mission computed from the rules, side panel and page, search, shared level table (#285, #187)
 * [Late-game combat ships](/features/late-game-ships.md) - Schlachtkreuzer, Zerstörer, Bomber, Todesstern of #56, classic values, drive switch
 * [Solarsatellit](/features/solar-satellite.md) - energy satellite of #46, temperature formula, share, battle role
 * [Fusionskraftwerk](/features/fusion-reactor.md) - deuterium-burning power plant of #47, throttling at an empty stock

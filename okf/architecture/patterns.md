@@ -839,6 +839,15 @@ src/client/                state, components (generic), views
   `import type`: the cycles it closes (`types.ts` → index →
   `rules.ts` → `missions.ts`) all run through a type-only import, which
   `no-circular` does not count, so the rule passes unchanged.
+* **[V]** Built with #285 (Lexicanum): an entry folder may hold an
+  optional `lexicon.de.ts`, what the entry adds to its article.
+  `gen-features` lists these files in a third index,
+  `src/features/lexicon.gen.ts` (`LEXICON`, not checked in), which only
+  `src/core/lexicon/` imports (rule `lexicon-index-in-lexicon`), so the
+  parts load with the chunk of the Lexicanum and not with the start bundle
+  (#242). Knip takes it as an entry, Vitest coverage and Stryker leave it
+  out; Stryker leaves the `lexicon.de.ts` files out like the text files
+  (see [Lexicanum](/features/lexicanum.md)).
 
 ## 11. Boundaries
 

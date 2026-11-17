@@ -10,7 +10,7 @@
   import { articleView } from '../logic/lexicanum.ts';
   import { client } from '../logic/state.svelte.ts';
   import { lex } from './lexicanum-state.svelte.ts';
-  import { closePanel } from './lexicanum.ts';
+  import { closePanel } from './lexicanum-nav.ts';
   import LexicanumArticle from './LexicanumArticle.svelte';
 
   const v = $derived(client.shown);
