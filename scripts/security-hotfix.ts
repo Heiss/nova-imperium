@@ -13,7 +13,7 @@
 //   node scripts/security-hotfix.ts verify <plan.json>     fail when
 //        pnpm-lock.yaml still holds a version below a fix
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { runCli } from './cli.ts';
 
 /** Severities that start a hotfix (owner: High and above). */
@@ -394,6 +394,16 @@ export function fragment(): string {
   ].join('\n');
 }
 
+/** The text of a file, or the empty text when there is no such file. */
+function readOr(file: string): string {
+  try {
+    return readFileSync(file, 'utf8');
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return '';
+    throw error;
+  }
+}
+
 /**
  * Pins the fixed versions where the pnpm of this checkout reads them:
  * package.json, and from pnpm 11 on pnpm-workspace.yaml for the overrides.
@@ -405,9 +415,8 @@ function pinFiles(fixes: readonly PackageFix[]): void {
     ? pinDependencies(pkg, fixes)
     : pinPackages(pkg, fixes);
   writeFileSync('package.json', `${JSON.stringify(pinned, null, 2)}\n`);
-  if (!workspace) return;
-  const settings = existsSync(WORKSPACE) ? readFileSync(WORKSPACE, 'utf8') : '';
-  writeFileSync(WORKSPACE, pinWorkspace(settings, fixes));
+  if (workspace)
+    writeFileSync(WORKSPACE, pinWorkspace(readOr(WORKSPACE), fixes));
 }
 
 function apply(file: string, digest: string | undefined): number {
