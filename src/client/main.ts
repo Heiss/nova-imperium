@@ -9,7 +9,7 @@ import { settle, settleR } from '../core/settle.ts';
 import { text } from '../core/text.ts';
 import type { Levels, Planet, Queue, Resources } from '../core/types.ts';
 import { createAct, placeOf, samePlace } from './logic/act.ts';
-import { CATALOG_VIEWS, catalogKind } from './logic/catalog-list.ts';
+import { CATALOG_VIEWS, catalogKind, orderNote } from './logic/catalog-list.ts';
 import { clearsChat, sameSignIn } from './logic/guild-chat.ts';
 import { debrisAt, debrisTip } from './logic/debris.ts';
 import { endzeitNote } from './logic/endzeit.ts';
@@ -406,11 +406,19 @@ function modal(html: string): void {
 
 class AuthError extends Error {}
 
+/**
+ * True until boot() knows what to show. A 401 meanwhile renders nothing:
+ * boot() renders the login, or the registration of an invitation link once
+ * the server has checked it. The login rendered before would take the
+ * player's input, and the registration would replace it empty (#272).
+ */
+let booting = true;
+
 /** The session is gone (401): back to the login, then stop the caller. */
 function signedOut(error: unknown): never {
   client.game = null;
   ui.auth ??= 'login';
-  render(true);
+  if (!booting) render(true);
   throw new AuthError(String(error ?? 'Bitte einloggen.'));
 }
 
@@ -1123,7 +1131,8 @@ const ACT: Record<string, (d: Data) => unknown> = {
   maxq: (d) => setInput(`#q_${d.k}`, d.max ?? 0),
   order: async (d) => {
     const n = clampInt(val(`#q_${d.k}`), 0, 1e9);
-    if (!n) return toast('Bitte eine Anzahl eingeben.', true);
+    const note = orderNote(client.view!, d.k!, n);
+    if (note) return toast(note, true);
     if (await actHere('order', { key: d.k, n })) setInput(`#q_${d.k}`, '');
   },
   rename: () =>
@@ -1863,6 +1872,7 @@ async function boot(): Promise<void> {
   const policy = loadPasswordPolicy();
   if (openReset()) {
     await policy;
+    booting = false;
     render();
     return;
   }
@@ -1871,12 +1881,12 @@ async function boot(): Promise<void> {
   try {
     apply((await api('/api/state')) as unknown as GameState);
     homeSystem();
-    render(true);
   } catch {
     if (invite) await openInvite(invite);
     ui.auth ??= 'login';
-    render(true);
   }
+  booting = false;
+  render(true);
 }
 
 void boot();

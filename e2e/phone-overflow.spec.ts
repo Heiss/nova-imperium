@@ -119,3 +119,66 @@ test('a name of 20 wide letters stays left of the points on the highscore (#189)
   expect(await overflow(page, 'highscore')).toEqual([]);
   expect(w.problems).toEqual([]);
 });
+
+test('a guild with the longest tag and name stays within a 360 px phone (#274) @phone', async ({
+  page,
+  browser,
+}) => {
+  const w = watch(page);
+  // The longest tag (8) and name (32) a guild may have, without a space, of
+  // wide letters; unique, as the server refuses a second guild with either.
+  const tag = uniqueName('WW').toUpperCase();
+  const guild = `${'W'.repeat(26)}${tag.slice(2)}`;
+  const heading = `[${tag}] ${guild}`;
+  // The longest name a player may have (20 characters), of wide letters.
+  const lead = uniqueName('W'.repeat(14));
+  const member = uniqueName('M'.repeat(14));
+  await page.setViewportSize({ width: 360, height: 800 });
+  await register(page, lead);
+  await page.goto('/?view=guilds');
+  await page.getByLabel('Kürzel').fill(tag);
+  await page.getByLabel('Name', { exact: true }).fill(guild);
+  await page.getByRole('button', { name: 'Gilde gründen' }).click();
+  await expect(page).toHaveURL(/view=guilds&guild=/);
+  const url = page.url();
+  // The guild page and the list first: a too wide page also hides buttons
+  // behind its boxes on a phone.
+  await page.reload();
+  await expect(page.getByRole('heading', { name: heading })).toBeVisible();
+  await page.waitForLoadState('networkidle');
+  const alone = await overflow(page, 'guild of the Leitung alone');
+  await page.goto('/?view=guilds');
+  await expect(page.getByRole('link', { name: heading })).toBeVisible();
+  await page.waitForLoadState('networkidle');
+  alone.push(...(await overflow(page, 'guild list')));
+  expect(alone).toEqual([]);
+  // A member with a long name: the Leitung sees its rank and the controls.
+  const other = await browser.newPage({
+    viewport: { width: 360, height: 800 },
+  });
+  const wo = watch(other);
+  await register(other, member);
+  await other.goto(url);
+  await other.getByRole('button', { name: 'Bewerben' }).click();
+  await expect(other.getByText('Deine Bewerbung ist offen.')).toBeVisible();
+  await page.goto(url);
+  await page
+    .locator('p', { hasText: member })
+    .getByRole('button', { name: 'Annehmen' })
+    .click();
+  await expect(page.getByRole('cell', { name: member })).toBeVisible();
+
+  const found: string[] = [];
+  await page.reload();
+  await expect(page.getByRole('heading', { name: heading })).toBeVisible();
+  await page.waitForLoadState('networkidle');
+  found.push(...(await overflow(page, 'guild of the Leitung')));
+  await other.reload();
+  await expect(other.getByRole('heading', { name: heading })).toBeVisible();
+  await other.waitForLoadState('networkidle');
+  found.push(...(await overflow(other, 'guild of the member')));
+  expect(found).toEqual([]);
+  await other.close();
+  expect(w.problems).toEqual([]);
+  expect(wo.problems).toEqual([]);
+});

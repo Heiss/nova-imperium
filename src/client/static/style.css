@@ -542,6 +542,14 @@ fieldset.rank legend {
   padding: 0 4px;
   font-weight: 600;
 }
+/* A guild with the longest tag and name, a player with the longest name: a
+   word that does not fit breaks anywhere instead of widening the page on a
+   phone (#274, as #189 for the highscore). */
+.guild-title,
+.guild-list td:first-child,
+.guild-members td:first-child {
+  overflow-wrap: anywhere;
+}
 fieldset.rank .rights {
   display: flex;
   flex-wrap: wrap;
