@@ -441,7 +441,8 @@ the [E] of the Warp-Tor above (owner, 2026-11-13, confirmed 2026-11-16 in
   Auspex-Phalanx with its requirements, the jump with the refusal without
   ships, the cooldown on both moons, the resources kept, the jump on a
   phone with the width check) with axe on the box; `e2e/seed.ts` has the
-  option `colonyMoon`.
+  option `colonyMoon`; `e2e/moons.spec.ts` and `e2e/phalanx.spec.ts` list
+  the Warp-Tor as the last moon building.
 
 # Mission „Mondbruch“ (#95)
 
