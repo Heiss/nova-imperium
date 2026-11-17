@@ -15,6 +15,7 @@ import { debrisAt, debrisTip } from './logic/debris.ts';
 import { endzeitNote } from './logic/endzeit.ts';
 import { moonAt, moonTarget } from './logic/moon.ts';
 import { scanOf } from './logic/phalanx.ts';
+import { targetOf } from './logic/galaxy.ts';
 import { clampInt, coords, dt, dur, esc, fmt } from './logic/format.ts';
 import {
   apiFailure,
@@ -73,6 +74,7 @@ import {
   dissolveDialog,
   transferDialog,
 } from './views/guilds.ts';
+import { mountGalaxy } from './views/galaxy.ts';
 import { mountOverview } from './views/overview.ts';
 import { mountProducerTable } from './views/producer-table.ts';
 
@@ -102,9 +104,12 @@ let resetToken: string | null = null;
 /** The views that are Svelte components (#114, #118). */
 const MOUNTED = new Set([
   'overview',
+  'galaxy',
   'resources',
   ...Object.keys(CATALOG_VIEWS),
 ]);
+/** The Svelte views mounted anew on every render (#118). */
+const ANEW = new Set(['overview', 'galaxy']);
 /** The mounted Svelte view and its name. */
 let mounted: {
   view: string;
@@ -704,20 +709,23 @@ function mountView(target: HTMLElement, view: V): NonNullable<typeof mounted> {
   if (kind) return { view: ui.view, ...mountCatalogList(target, kind) };
   if (ui.view === 'resources')
     return { view: ui.view, ...mountProducerTable(target, view) };
+  if (ui.view === 'galaxy')
+    return { view: ui.view, ...mountGalaxy(target, view) };
   return { view: 'overview', ...mountOverview(target) };
 }
 
 /**
  * Mounts the view of a Svelte component, or updates the mounted one. A
  * fresh render mounts a list again, as the HTML views render anew: no
- * number typed into the shipyard stays on another planet. The overview is
- * mounted anew on every render, as its HTML view was rendered (#118): the
- * clock counts its countdowns down and marks the ones that fired.
+ * number typed into the shipyard stays on another planet. The overview and
+ * the Sternenkarte are mounted anew on every render, as their HTML views
+ * were rendered (#118): the clock counts their countdowns down and marks
+ * the ones that fired.
  */
 function renderMounted(target: HTMLElement, view: V, fresh: boolean): void {
   const kind = catalogKind(ui.view);
   client.shown = view;
-  if (mounted?.view === ui.view && ui.view !== 'overview' && !(fresh && kind)) {
+  if (mounted?.view === ui.view && !ANEW.has(ui.view) && !(fresh && kind)) {
     mounted.update?.(view);
     return flushSync();
   }
@@ -1187,12 +1195,7 @@ const ACT: Record<string, (d: Data) => unknown> = {
     if (target) $(`[data-act=gscan][data-id="${CSS.escape(target)}"]`)?.focus();
   },
   gfleet: (d) => {
-    ui.ft = {
-      g: Number(d.g),
-      s: Number(d.s),
-      p: Number(d.p),
-      kind: d.k === 'moon' ? 'moon' : 'planet',
-    };
+    ui.ft = targetOf(d);
     ui.fm = d.m ?? 'attack';
     go('fleet');
   },
@@ -1204,12 +1207,7 @@ const ACT: Record<string, (d: Data) => unknown> = {
     if (!n) return toast('Keine Spähschädel auf dem Planeten.', true);
     return act('send', {
       ships: { probe: n },
-      to: {
-        g: Number(d.g),
-        s: Number(d.s),
-        p: Number(d.p),
-        kind: d.k === 'moon' ? 'moon' : 'planet',
-      },
+      to: targetOf(d),
       mission: 'spy',
       pct: 10,
       cargo: { m: 0, c: 0, d: 0 },

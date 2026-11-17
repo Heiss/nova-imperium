@@ -1,0 +1,270 @@
+// The Sternenkarte (#118, bundle 2; okf/architecture/patterns.md, section 9):
+// what the component Galaxy shows, without the HTML of its rows: the
+// navigation of galaxy and system, the panel of the last scan of the
+// Auspex-Phalanx (#53), one row per position with its planet, owner, the
+// moon and the Trümmerfeld (#45, #53) and the actions, and the number of
+// Spähschädel of a spying. The symbols of a moon and a Trümmerfeld and the
+// button „Bergung“ keep their HTML of logic/moon.ts and logic/debris.ts.
+import { MISSION } from '../../core/missions.ts';
+import { placeName } from '../../core/moon.ts';
+import { placeId } from '../../core/place.ts';
+import type { Coords } from '../../core/types.ts';
+import type { V } from '../views/common.ts';
+import { debrisAt, debrisMark, harvestButton } from './debris.ts';
+import { fmt } from './format.ts';
+import { isProtected, nameOf, ranks } from './game.ts';
+import { moonAt, moonMark } from './moon.ts';
+import { type Countdown, countdown } from './overview.ts';
+import { canScan, scanRows, scanTitle } from './phalanx.ts';
+import type { GalaxyPlanet } from './types.ts';
+
+/**
+ * One action of a row: a link (`span.lnk`) or a small button with its
+ * attributes (`data-act` first), the dim name of the active place, or the
+ * HTML of the button „Bergung“.
+ */
+export type GalaxyAction =
+  | {
+      kind: 'link' | 'button';
+      label: string;
+      attrs: Record<string, string>;
+    }
+  | { kind: 'active'; label: string }
+  | { kind: 'html'; html: string };
+
+/** A planet or a moon of a row with its owner and its actions. */
+export interface GalaxyPlace extends Coords {
+  /** The planet by its name, a moon with „(Mond)“. */
+  name: string;
+  mine: boolean;
+  owner: string;
+  /** The place of the owner in the highscore, „-“ when unknown. */
+  rank: string;
+  /** The noob protection between the player and a foreign owner. */
+  protected: boolean;
+  actions: GalaxyAction[];
+}
+
+/** One position of the system. */
+export interface GalaxyRow {
+  position: number;
+  /** The planet there, or null for a free position. */
+  planet: GalaxyPlace | null;
+  /** The HTML of the symbols of the moon and the Trümmerfeld, in this order. */
+  marks: string[];
+  /** The actions at a free position: „Landnahme“ and „Bergung“. */
+  actions: GalaxyAction[];
+  /** The moon's row below the planet, once its symbol is opened (#53). */
+  moon: GalaxyPlace | null;
+}
+
+/** One flight of the scan. */
+interface ScanLine {
+  ships: string;
+  from: string;
+  to: string;
+  due: Countdown;
+}
+
+/** The panel of the last scan from the shown moon (#53). */
+interface ScanPanel {
+  title: string;
+  flights: ScanLine[];
+}
+
+export interface GalaxyPage {
+  gal: number;
+  sys: number;
+  galaxies: number;
+  systems: number;
+  scan: ScanPanel | null;
+  rows: GalaxyRow[];
+  /** The Spähschädel an Auspex-Erkundung sends. */
+  probes: string;
+}
+
+/** The attributes of the position of a place, a moon with data-k="moon". */
+function at(c: Coords, moon: boolean): Record<string, string> {
+  const out: Record<string, string> = {
+    'data-g': String(c.g),
+    'data-s': String(c.s),
+    'data-p': String(c.p),
+  };
+  if (moon) out['data-k'] = 'moon';
+  return out;
+}
+
+/** The fleet form with a mission at a place, as a link or a button. */
+const fleetTo = (
+  kind: 'link' | 'button',
+  mission: string,
+  label: string,
+  where: Record<string, string>,
+): GalaxyAction => ({
+  kind,
+  label,
+  attrs: { 'data-act': 'gfleet', 'data-m': mission, ...where },
+});
+
+/**
+ * The scan of the Auspex-Phalanx at a foreign planet (#53): only from a
+ * moon with a phalanx, at a planet in range.
+ */
+const scanButton = (v: V, pl: GalaxyPlanet): GalaxyAction[] =>
+  canScan(v.P, pl)
+    ? [
+        {
+          kind: 'button',
+          label: 'Phalanx-Scan',
+          attrs: {
+            'data-act': 'gscan',
+            'data-id': pl.id,
+            'aria-label': `Phalanx-Scan von ${pl.name}`,
+          },
+        },
+      ]
+    : [];
+
+/** The actions at a foreign planet or moon. */
+function foreignActions(v: V, pl: GalaxyPlanet): GalaxyAction[] {
+  const where = at(pl, pl.kind === 'moon');
+  return [
+    {
+      kind: 'link',
+      label: 'Auspex-Erkundung',
+      attrs: { 'data-act': 'gspy', ...where },
+    },
+    fleetTo('link', 'attack', 'Sturmangriff', where),
+    fleetTo('link', 'transport', 'Versorgungsflug', where),
+    ...scanButton(v, pl),
+  ];
+}
+
+/** The actions at an own planet or moon: none but its name while it is shown. */
+function ownActions(v: V, pl: GalaxyPlanet): GalaxyAction[] {
+  if (pl.id === v.P.id)
+    return [
+      {
+        kind: 'active',
+        label: pl.kind === 'moon' ? 'Aktiver Mond' : 'Aktiver Planet',
+      },
+    ];
+  const where = at(pl, pl.kind === 'moon');
+  return [
+    {
+      kind: 'button',
+      label: 'Wechseln',
+      attrs: { 'data-act': 'selectPlanet', 'data-id': pl.id },
+    },
+    fleetTo('button', 'transport', 'Versorgungsflug', where),
+    fleetTo('button', 'deploy', MISSION.deploy, where),
+  ];
+}
+
+/** A planet or a moon of a row, with its owner, rank and protection. */
+function place(
+  v: V,
+  pl: GalaxyPlanet,
+  name: string,
+  rk: Record<string, number>,
+): GalaxyPlace {
+  const { s } = v;
+  const mine = pl.owner === s.me.id;
+  return {
+    g: pl.g,
+    s: pl.s,
+    p: pl.p,
+    name,
+    mine,
+    owner: nameOf(s.players, pl.owner),
+    rank: String(rk[pl.owner] ?? '-'),
+    protected: !mine && isProtected(s.players, s.me.id, pl.owner),
+    actions: mine ? ownActions(v, pl) : foreignActions(v, pl),
+  };
+}
+
+/** „Landnahme“ at a free position, with a colony ship on the shown planet. */
+const colonize = (v: V, c: Coords): GalaxyAction[] =>
+  v.P.ships.colony
+    ? [fleetTo('button', 'colonize', 'Landnahme', at(c, false))]
+    : [];
+
+/** The row of position `p` of the shown system. */
+function galaxyRow(v: V, p: number, rk: Record<string, number>): GalaxyRow {
+  const { s, ui } = v;
+  const c = { g: ui.gal, s: ui.sys, p };
+  const pl = s.galaxy.find((x) => x.id === placeId({ ...c, kind: 'planet' }));
+  // A Trümmerfeld for every player, with its button (#45).
+  const field = debrisAt(s.debris, c);
+  // A moon for every player, its symbol opens its actions (#53).
+  const moon = moonAt(s.galaxy, c);
+  const open = !!moon && ui.gmoon === moon.id;
+  const marks: string[] = [];
+  if (moon) marks.push(moonMark(moon, open));
+  if (field) marks.push(debrisMark(field));
+  const harvest: GalaxyAction[] = field
+    ? [{ kind: 'html', html: harvestButton(c) }]
+    : [];
+  if (!pl)
+    return {
+      position: p,
+      planet: null,
+      marks,
+      actions: [...colonize(v, c), ...harvest],
+      moon: null,
+    };
+  const planet = place(v, pl, pl.name, rk);
+  planet.actions.push(...harvest);
+  return {
+    position: p,
+    planet,
+    marks,
+    actions: [],
+    moon: open ? place(v, moon, placeName(moon), rk) : null,
+  };
+}
+
+/** The answer of the last scan, while the moon it came from is shown (#53). */
+function scanPanel(v: V): ScanPanel | null {
+  const scan = v.ui.scan;
+  if (!scan || scan.by !== v.P.id) return null;
+  return {
+    title: scanTitle(scan, v.s.galaxy),
+    flights: scanRows(scan).map((r) => ({
+      ships: r.ships,
+      from: r.from,
+      to: r.to,
+      due: countdown(r.arr, v.now),
+    })),
+  };
+}
+
+/** The Sternenkarte of the system `ui.gal`:`ui.sys`. */
+export function galaxyPage(v: V): GalaxyPage {
+  const { s, ui } = v;
+  const rk = ranks(s.players);
+  return {
+    gal: ui.gal,
+    sys: ui.sys,
+    galaxies: s.cfg.galaxies,
+    systems: s.cfg.systems,
+    scan: scanPanel(v),
+    rows: Array.from({ length: s.cfg.positions }, (_, i) =>
+      galaxyRow(v, i + 1, rk),
+    ),
+    probes: fmt(s.me.probes || 1),
+  };
+}
+
+/**
+ * The place an action of the Sternenkarte names by its data-g, data-s,
+ * data-p and data-k (`at()`): the target of the fleet form and of a spying.
+ */
+export const targetOf = (
+  d: Readonly<Record<string, string | undefined>>,
+): Coords & { kind: 'planet' | 'moon' } => ({
+  g: Number(d.g),
+  s: Number(d.s),
+  p: Number(d.p),
+  kind: d.k === 'moon' ? 'moon' : 'planet',
+});

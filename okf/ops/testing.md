@@ -350,6 +350,34 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   `class="v "`, `aria-current`). The pure logic has its tests in
   `src/client/logic/header.test.ts`, `navigation.test.ts` and
   `resource-bar.test.ts`, the components in `src/client/views/frame.test.ts`.
+* **[V]** The Sternenkarte of #118, bundle 2: the property test
+  `src/test/galaxy-reference.test.ts` keeps `Galaxy` equal to the HTML
+  before (frozen there: `galaxy()` of `src/client/views/galaxy.ts` with
+  its helpers, and `cd()` of `views/common.ts`) on 300 generated states
+  (fast-check seed 118: planets, moons alone and planets with their moon
+  of up to five owners, one unknown, with names that hold markup or
+  quotes, Trümmerfelder, the shown planet or moon in the list or not,
+  with a phalanx of level 0 to 4 and colony ships, players around the
+  noob protection, the shown system or another, an open moon here or
+  elsewhere, a scan from here or from another place with up to three
+  flights, and 0 to 1,500 Spähschädel), with the shared normalizer of
+  `src/test/markup.ts`; a second case checks that the cases reach every
+  branch. The normalizer now also reads `data-nokeep=""` as
+  `data-nokeep`, which `main.ts` reads by its presence; its self-test in
+  `catalog-list-reference.test.ts` has that, and that a missing
+  `data-nokeep` or one with a value still differs. Checked by breaking
+  the component and its logic (the space before „·“, the space before a
+  symbol, the space in `class="moon-row "`, `data-nokeep`, `tabindex` of
+  the scan's heading, the „(n)“ of the noob protection, the rank „-“,
+  the `aria-label` of the scan, the open moon). The pure logic has its
+  tests in `src/client/logic/galaxy.test.ts`, the component in
+  `src/client/views/galaxy.test.ts` (the tests of the HTML view, now on
+  the component). `e2e/galaxy.spec.ts` (desktop and phone) checks what
+  `main.ts` does around the mounted view: the fields show the shown
+  system, the focus stays in „System“ after Enter, a step with ▶,
+  „zum Heimatsystem“, the textures of the planets, „Wechseln“ at a
+  colony and, on a phone, no scrolling to the side; it fails when the
+  view is not mounted anew.
 * **[E]** No comparison with a catalog key outside `src/features/` (#114,
   owner, 2026-11-14): `src/test/catalog-keys.test.ts` reads `src` with the
   TypeScript and Svelte parsers, as `src/test/naming.test.ts` does, and
@@ -474,6 +502,21 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   for every change. A schema
   snapshot (`src/server/db/schema.snapshot.sql`) shows the resulting schema in
   the review. See [SQLite storage](/data/sqlite.md).
+* **[E]** Size ratchet of `src/client/main.ts` (#242, owner,
+  2026-11-16): `main.ts` must not grow while #118 takes it apart. Its
+  allowed line count is stored in `size-ratchet.json`, and only goes down.
+  `scripts/size-ratchet.ts` (`pnpm lint:size`, part of `pnpm check` and of
+  the CI job „Lint, types, unit tests with coverage, build“, so of the CI
+  Gate) fails when `main.ts` has more lines than the limit („move the code
+  into a module or component (#118)“), and also when it has fewer and the
+  limit was not lowered to the new count („Lower the limit in
+  size-ratchet.json to N“): whoever shrinks `main.ts`, every #118 pull
+  request included, lowers the limit in the same change, and the freed
+  lines never come back. A feature that needs client code puts it into its
+  own module, not into `main.ts`. Only `main.ts` has a limit. Lines are
+  counted as `wc -l` counts them, after Prettier, since `format:check` runs
+  anyway [V]; the starting limit is the count on `main` when the pull
+  request of #242 was created.
 
 # Kinds of tests in this project
 
