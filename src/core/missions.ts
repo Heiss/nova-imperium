@@ -128,6 +128,10 @@ const debrisError = (target: SendTarget): SendError | undefined =>
  */
 const NEVER_MOON: readonly TargetKind[] = ['free', 'debris'];
 
+/** Whether a target kind refuses the moon a fleet flies to. */
+export const shunsMoon = (kind: TargetKind, moon = false): boolean =>
+  moon && NEVER_MOON.includes(kind);
+
 /** Nothing at the target: no planet, or no moon when the fleet flies to one. */
 const nothing = (target: SendTarget): SendError =>
   target.moon ? 'noMoon' : 'noPlanet';
@@ -160,7 +164,7 @@ export function sendError(
   fleet: SendFleet,
   target: SendTarget,
 ): SendError | undefined {
-  if (target.moon && NEVER_MOON.includes(rules.target)) return 'moonTarget';
+  if (shunsMoon(rules.target, target.moon)) return 'moonTarget';
   return (
     (rules.target === 'debris'
       ? debrisError(target)

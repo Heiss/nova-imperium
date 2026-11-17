@@ -11,9 +11,11 @@ import type { Ui, V } from '../views/common.ts';
 import {
   CARGO_FIELDS,
   fleetPage,
+  missionChoice,
   missionOptions,
   previewCells,
   targetInfo,
+  targetSite,
 } from './fleet.ts';
 import type { FleetForm, FleetPreview } from './game.ts';
 import type { ClientFleet, GalaxyPlanet, GameState } from './types.ts';
@@ -206,6 +208,111 @@ const form = (
   mission,
   pct: 10,
   cargo: { m: 0, c: 0, d: 0 },
+});
+
+describe('targetSite (#253)', () => {
+  const own = place('planet', 5, 'u1');
+  const foreign = place('planet', 6, 'u2');
+  const moon = place('moon', 6, 'u2', 'Luna');
+  const s = view({
+    galaxy: [own, foreign, moon, place('planet', 7, 'u2')],
+  }).s;
+  const to = (p: number, kind?: 'planet' | 'moon') =>
+    form('attack', p, kind).to;
+
+  it('finds the planet at the position, with or without the kind', () => {
+    expect(targetSite(s, to(6))).toEqual({
+      planet: foreign,
+      debris: false,
+      moon: false,
+    });
+    expect(targetSite(s, to(5, 'planet'))).toEqual({
+      planet: own,
+      debris: false,
+      moon: false,
+    });
+  });
+
+  it('finds the moon when the fleet flies to it, or none (#53)', () => {
+    expect(targetSite(s, to(6, 'moon'))).toEqual({
+      planet: moon,
+      debris: false,
+      moon: true,
+    });
+    expect(targetSite(s, to(5, 'moon'))).toEqual({
+      planet: null,
+      debris: false,
+      moon: true,
+    });
+  });
+
+  it('finds a free position and the Trümmerfeld (#45)', () => {
+    expect(targetSite(s, to(9))).toEqual({
+      planet: null,
+      debris: false,
+      moon: false,
+    });
+    expect(targetSite(s, to(7)).debris).toBe(true);
+    expect(targetSite(s, to(7)).planet?.owner).toBe('u2');
+    expect(targetSite({ ...s, galaxy: [] }, to(7))).toEqual({
+      planet: null,
+      debris: true,
+      moon: false,
+    });
+  });
+});
+
+describe('missionChoice (#253)', () => {
+  const foreign = { planet: { owner: 'u2' }, debris: false };
+  const free = { planet: null, debris: false };
+  const values = (site: typeof foreign | typeof free, chosen: string) =>
+    missionChoice('u1', site, chosen).options.map((o) => o.value);
+
+  it('offers only the missions that fit the target, in the order of the form', () => {
+    expect(values(foreign, 'attack')).toEqual(['attack', 'transport', 'spy']);
+    expect(values({ planet: { owner: 'u1' }, debris: false }, 'x')).toEqual([
+      'transport',
+      'deploy',
+    ]);
+    expect(values(free, 'colonize')).toEqual(['colonize']);
+    expect(values({ planet: null, debris: true }, 'x')).toEqual([
+      'colonize',
+      'harvest',
+    ]);
+  });
+
+  it('keeps the chosen mission while it fits', () => {
+    const choice = missionChoice('u1', foreign, 'spy');
+    expect(choice.mission).toBe('spy');
+    expect(choice.checking).toBe(false);
+    expect(choice.options).toEqual(
+      missionOptions('spy', (m) => ['attack', 'transport', 'spy'].includes(m)),
+    );
+  });
+
+  it('switches to the first mission that fits when the chosen one does not', () => {
+    const choice = missionChoice('u1', free, 'attack');
+    expect(choice.mission).toBe('colonize');
+    expect(choice.options).toEqual([
+      { value: 'colonize', label: MISSION.colonize, selected: true },
+    ]);
+    expect(missionChoice('u1', foreign, 'deploy').mission).toBe('attack');
+    expect(missionChoice('u1', foreign, '').mission).toBe('attack');
+  });
+
+  it('shows no mission where none fits', () => {
+    expect(
+      missionChoice('u1', { planet: null, debris: false, moon: true }, 'spy'),
+    ).toEqual({ checking: false, options: [], mission: '' });
+  });
+
+  it('is checking while the target is not known', () => {
+    expect(missionChoice('u1', undefined, 'attack')).toEqual({
+      checking: true,
+      options: [],
+      mission: '',
+    });
+  });
 });
 
 describe('targetInfo', () => {

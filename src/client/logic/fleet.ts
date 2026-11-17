@@ -2,9 +2,11 @@
 // what the component Fleet shows: the fleets on their way with the slots,
 // the ships to choose, and the form of target, mission, speed and cargo
 // (#240). Also what main.ts writes beside the form while the player types:
-// the target (#45, #53) and the preview of the flight.
+// the target (#45, #53) and the preview of the flight, and the missions
+// the list „Auftrag“ offers for the target (#253).
 import { canFly, SHIPS } from '../../core/catalog.ts';
 import { fleetSlots, shipSpeed } from '../../core/flight.ts';
+import { missionsFor, type TargetSite } from '../../core/mission-choice.ts';
 import { MISSION, missionRules } from '../../core/missions.ts';
 import { placeId } from '../../core/place.ts';
 import { text } from '../../core/text.ts';
@@ -15,7 +17,7 @@ import { dt, dur, esc, fmt } from './format.ts';
 import { type FleetForm, type FleetPreview, nameOf } from './game.ts';
 import { moonAt, moonTarget } from './moon.ts';
 import { type FleetRow, fleetRows } from './overview.ts';
-import type { GameState } from './types.ts';
+import type { GalaxyPlanet, GameState } from './types.ts';
 
 /** A ship on the shown planet that can fly. */
 interface FleetShip {
@@ -60,6 +62,10 @@ export interface FleetPage {
   /** Empty: the planet has no ship that flies, and there is no form. */
   ships: FleetShip[];
   target: FleetTarget;
+  /**
+   * Every mission, the chosen one selected: the list as it is mounted,
+   * before main.ts aims it at the target of the form (`missionChoice`).
+   */
   missions: FleetOption[];
   speeds: FleetOption[];
   cargo: readonly CargoField[];
@@ -91,6 +97,56 @@ export const missionOptions = (
   Object.entries(MISSION)
     .filter(([k]) => fits(k))
     .map(([k, name]) => ({ value: k, label: name, selected: chosen === k }));
+
+/** The planet at the target of the form, or its moon (#53), if one is there. */
+const placeAt = (
+  s: GameState,
+  to: FleetForm['to'],
+): GalaxyPlanet | undefined =>
+  to.kind === 'moon'
+    ? moonAt(s.galaxy, to)
+    : s.galaxy.find((p) => p.id === placeId({ ...to, kind: 'planet' }));
+
+/** What is at the target of the form, as the missions ask (#253). */
+export const targetSite = (s: GameState, to: FleetForm['to']): TargetSite => ({
+  planet: placeAt(s, to) ?? null,
+  debris: !!debrisAt(s.debris, to),
+  moon: to.kind === 'moon',
+});
+
+/** The list „Auftrag“ for the target of the form (#253). */
+export interface MissionChoice {
+  /**
+   * The target is not known yet: the list shows „Ziel wird geprüft …“
+   * and „Flotte losschicken“ is blocked.
+   */
+  checking: boolean;
+  /** The missions that fit the target, the shown one selected. */
+  options: FleetOption[];
+  /** The mission the list shows; empty without one. */
+  mission: string;
+}
+
+/**
+ * The missions that fit the target for a fleet of `owner`, by their rules
+ * (`missionsFor`). The chosen mission stays while it fits; else the list
+ * switches to the first that fits. Without a site the target is still
+ * being checked.
+ */
+export function missionChoice(
+  owner: string,
+  site: TargetSite | undefined,
+  chosen: string,
+): MissionChoice {
+  if (!site) return { checking: true, options: [], mission: '' };
+  const fitting: string[] = missionsFor(owner, site);
+  const mission = fitting.includes(chosen) ? chosen : (fitting[0] ?? '');
+  return {
+    checking: false,
+    options: missionOptions(mission, (m) => fitting.includes(m)),
+    mission,
+  };
+}
 
 /** The ships on the shown planet that can fly, in the order of the catalog. */
 const fleetShips = ({ P, R }: V): FleetShip[] =>
@@ -151,11 +207,9 @@ export function targetInfo(s: GameState, f: FleetForm): string {
       ? debrisTip(field)
       : '<span class="bad">kein Trümmerfeld</span>';
   }
+  const target = placeAt(s, f.to);
   if (f.to.kind === 'moon')
-    return moonTarget(moonAt(s.galaxy, f.to), (id) => nameOf(s.players, id));
-  const target = s.galaxy.find(
-    (p) => p.id === placeId({ ...f.to, kind: 'planet' }),
-  );
+    return moonTarget(target, (id) => nameOf(s.players, id));
   if (target)
     return `${esc(target.name)} (${esc(nameOf(s.players, target.owner))})`;
   return rules?.target === 'free'

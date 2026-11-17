@@ -3,11 +3,23 @@
   // section 9): from fleetPage() of logic/fleet.ts. Its buttons and links
   // carry data-act, which main.ts handles; main.ts also reads the form and
   // writes the target and the preview of the flight into its cells while
-  // the player types. The list „Auftrag“ shows `page.missions`.
-  import type { FleetPage } from '../logic/fleet.ts';
+  // the player types. The list „Auftrag“ shows `page.missions`, every
+  // mission, until main.ts aims the form at its target (aimFleet() of
+  // fleet.ts): then only the missions that fit it (#253), or „Ziel wird
+  // geprüft …“ and no sending while the target is not known.
+  import type { FleetPage, MissionChoice } from '../logic/fleet.ts';
   import FleetMoves from './FleetMoves.svelte';
 
-  let { page }: { page: FleetPage } = $props();
+  let { page, choice }: { page: FleetPage; choice?: MissionChoice } = $props();
+  /** The choice for the target the player typed. */
+  let aimed = $state<MissionChoice>();
+  const missions = $derived((aimed ?? choice)?.options ?? page.missions);
+  const checking = $derived(!!(aimed ?? choice)?.checking);
+
+  /** Shows the missions of this choice in the list „Auftrag“. */
+  export function aim(next: MissionChoice): void {
+    aimed = next;
+  }
 </script>
 
 <h2>Flotte</h2>
@@ -100,10 +112,11 @@
             <td>Auftrag</td>
             <td
               ><select id="t_m" aria-label="Auftrag"
-                >{#each page.missions as mission (mission.value)}<option
-                    value={mission.value}
-                    selected={mission.selected}>{mission.label}</option
-                  >{/each}</select
+                >{#if checking}<option value="">Ziel wird geprüft …</option
+                  >{:else}{#each missions as mission (mission.value)}<option
+                      value={mission.value}
+                      selected={mission.selected}>{mission.label}</option
+                    >{/each}{/if}</select
               ></td
             >
           </tr>
@@ -148,7 +161,9 @@
         </tbody>
       </table>
       <div class="mt10">
-        <button data-act="send" disabled={page.full}>Flotte losschicken</button>
+        <button data-act="send" disabled={page.full || checking}
+          >Flotte losschicken</button
+        >
         {#if page.full}<span class="bad"
             >Alle Flottenslots belegt (Kogitator-Doktrin erhöht die Anzahl).</span
           >{/if}

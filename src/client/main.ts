@@ -72,7 +72,7 @@ import {
   dissolveDialog,
   transferDialog,
 } from './views/guilds.ts';
-import { mountFleet } from './views/fleet.ts';
+import { aimFleet, mountFleet } from './views/fleet.ts';
 import { mountGalaxy } from './views/galaxy.ts';
 import { mountOverview } from './views/overview.ts';
 import { mountProducerTable } from './views/producer-table.ts';
@@ -959,7 +959,7 @@ function moonOption(s: GameState): void {
 function fleetCalc(): void {
   if (!$('#t_g') || !client.view || !client.game) return;
   moonOption(client.game);
-  const f = readFleetForm();
+  const f = aimFleet(client.game, readFleetForm());
   $('#t_info')!.innerHTML = targetInfo(client.game, f);
   const pv = fleetPreview(client.view.P, client.view.R, f, client.game.cfg);
   for (const [id, html] of Object.entries(
