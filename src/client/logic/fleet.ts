@@ -18,7 +18,7 @@ import { type FleetRow, fleetRows } from './overview.ts';
 import type { GameState } from './types.ts';
 
 /** A ship on the shown planet that can fly. */
-export interface FleetShip {
+interface FleetShip {
   key: string;
   name: string;
   /** How many stand there. */
@@ -40,7 +40,7 @@ export interface CargoField {
 }
 
 /** The target of the form: the place, and whether its moon can be chosen. */
-export interface FleetTarget {
+interface FleetTarget {
   g: number;
   s: number;
   p: number;
