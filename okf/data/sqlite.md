@@ -489,6 +489,16 @@ stays the first planet, unlocked; other data stay as they were
 migrations 11 and 20 run the later migrations before today's code saves a
 player, since the player repository writes the new columns.
 
+Migration `20261117T1158-jump-gate` (issue #230, see
+[Moons](/features/moons.md)) adds the empty table `jump_gates (moon_id TEXT
+PRIMARY KEY REFERENCES planets(id) ON DELETE CASCADE, ready INTEGER NOT
+NULL) STRICT`: when the Warp-Tor of a moon is ready again after a jump, so
+the cooldown holds after a restart. A moon without a row is ready; the row
+goes with its moon (a broken moon of #95, a new round). The planet
+repository reads and writes it (`gateReady`, `setGateReady`), never in
+`save`, so saving a moon keeps it. Every other table stays as it was
+(`upgrades/20261117T1158-jump-gate.test.ts`).
+
 Account deletion runs in one transaction. Foreign-key cascades clear owned game,
 session, reward and push data. The deletion also removes led guilds and their
 memberships, linked audit and inbox records, invitations for the account address

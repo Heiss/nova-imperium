@@ -65,7 +65,8 @@ model of places (#119, O11) and fields (#51, [Planet fields](/features/fields.md
   Warp-Tor (owner, 2026-11-13).
 * **[V]** Short and long texts, abbreviations and art of the three buildings
   and of the moon are proposed in the pull requests (the Mondzitadelle and
-  the moon in the first, the Auspex-Phalanx in the second, below).
+  the moon in the first, the Auspex-Phalanx in the second, the Warp-Tor in
+  the third, #230, below).
 
 ## Decided for the first pull request (moons and Mondzitadelle)
 
@@ -333,6 +334,114 @@ places (#119) and the fields (#51).
   in the panel, „Schließen“ with the focus, the refusal without
   Promethium, the panel on a phone with axe and the width check) with axe
   on the panel.
+
+## Built (third pull request: Warp-Tor, #230)
+
+Issue #230 is the rest of #53 (owner, 2026-11-15, epic #222); the rules are
+the [E] of the Warp-Tor above (owner, 2026-11-13, confirmed 2026-11-16 in
+#230). With it the three pull requests of #53 are built.
+
+* Building: `src/features/jumpgate/` (key `jumpgate`, `order` 160, after the
+  Auspex-Phalanx at 150), `leveled` 2,000,000 / 4,000,000 / 2,000,000,
+  factor 2, `req: { b: { moonbase: 1 }, r: { hyper: 7 } }`, `placement:
+  ['moon']`, no `fields`. The build action, the requirements list and the
+  buildings page treat it like the other moon buildings through
+  `buildable`. The Endzeit gift (#161) is unchanged: Warp-Theorie 7 is
+  below the 8 of the Sternennetz, and the gift skips moon buildings on the
+  home planet.
+* Rules in `src/core/jump-gate.ts` (patterns, section 7): `gateCooldown(level)`
+  the decided table in minutes (10 from level 15 on, 0 without a gate),
+  `gateCooldownMs`; `gateLevel(p)` the building on a moon, 0 on a planet,
+  the one place that reads the key; `gateReady(gate, now)`;
+  `targetError(from, target, now)` and `jumpError(from, target, ships,
+  now)`, the codes in this order: `notMoon`, `noGate`, `cooling` (the
+  starting gate), `noTarget` (no own moon there, also a moon that is gone,
+  #95), `sameMoon`, `targetNoGate`, `targetCooling`, `noShips`,
+  `stationary`; `moveShips`. A jump starts from the gate of the active moon,
+  and both gates then cool down by the level of that starting gate, whatever
+  the level of the target gate.
+* Storage: migration `20261117T1158-jump-gate` (`src/server/db/migrations/230/`,
+  see [SQLite storage](/data/sqlite.md)), the table `jump_gates` with the
+  time each gate is ready again; the planet repository reads and writes it
+  (`gateReady`, `setGateReady`). It goes with its moon by the foreign key:
+  a broken moon (#95, `planets.delete`) and a new round take it along.
+* Server: the action `jump` in `ACTIONS` (`src/server/game/jump-gate.ts`)
+  with `planet` (the active moon), `to` (the id of the target moon, such as
+  `m1_2_3`) and `ships`. It runs inside the transaction of `runAction`,
+  after the due fleets: it picks at most the ships on the moon
+  (`pickedShips`, shared with `send`), settles both moons to now, checks
+  `jumpError`, moves the ships, saves both moons and stores the same ready
+  time for both gates. The resources stay; no fleet, no fuel, no report, no
+  push. Two requests run one after the other in their transactions, so the
+  second finds the gate cooling and refuses. The answer has no message; the
+  audit event `game` / `jump` names the moon, the target and the ships. The
+  state lists the player's Warp-Tore as `gates` (`id`, `level`, `ready`).
+* Interface: in the view „Flotte“ of a moon with a Warp-Tor the box
+  „Warp-Tor“ below „2. Ziel und Auftrag“ (`jumpPanel` of
+  `src/client/logic/jump-gate.ts`, rendered in `src/client/views/fleet.ts`,
+  the handlers in `src/client/fleet-acts.ts`, out of `main.ts`): the select
+  „Zielmond“ with the player's other moons with a Warp-Tor as „<Name> (Mond)
+  [g:s:p]“, a cooling one disabled with „– Wieder bereit in …“; the button
+  „Springen“, disabled while the own gate cools down or no target is ready,
+  with „Wieder bereit in …“ (a countdown) beside it. The ships are the ones
+  picked in „1. Schiffe auswählen“; without ships the box still shows the
+  readiness. A long „Zielmond“ stays inside a phone (`.jump-to`).
+* Coordination with the branches not yet merged (read 2026-11-17):
+  * #95 Mondbruch (`claude/mission-mondbruch`): `destroyMoon` deletes the
+    moon row, and the gate time goes with it by the cascade; a moon that is
+    gone is no target (`noTarget`). No change on either side.
+  * #223 vacation mode (`claude/vacation-mode`): `runAction` refuses every
+    action not on its list with „Im Urlaubsmodus nicht möglich.“, „an
+    action added later is refused too“, so `jump` is refused in vacation
+    mode without a change here. The jump goes between own moons only, so
+    the protection of a target (`vacationProtects`) does not apply.
+  * #202 demolition (`claude/demolition`): no demolition on a moon, so the
+    Warp-Tor cannot be torn down.
+* **[V]** Proposals of this pull request, taken as recommended (owner's
+  rule of 2026-11-15 in [Release loop](/ops/loop.md)), for the owner to
+  confirm:
+  * the UI texts „Zielmond“, „Springen“ and „Wieder bereit in …“ of #230
+    and the place of the box in the view „Flotte“, which picks the ships
+    as the fleet form does;
+  * Sonnenreliquiare cannot jump (they cannot fly, „can fly“ is „has
+    `mobile`“, #114; classic: no solar satellites through the Sprungtor);
+  * a jump asks for more ships than stand on the moon moves those there, as
+    `send` does;
+  * the cooldown is in real minutes, not scaled by the universe speed;
+  * the jump answers no message: the moved ships and the countdowns show
+    it;
+  * abbreviation `WR` (`WT` is taken); short text „Versetzt Schiffe sofort zu
+    einem eigenen Mond mit Warp-Tor. Steht nur auf einem Mond.“; long text
+    „Das Warp-Tor reißt einen Spalt in den Raum hinter dem Raum und stößt
+    ganze Flotten hindurch. / So funktioniert es: Ausgewählte Schiffe
+    springen sofort und ohne Treibstoff zu einem anderen eigenen Mond mit
+    Warp-Tor, Rohstoffe bleiben zurück. Danach kühlen beide Tore ab; je
+    höher die Stufe des Starttors, desto kürzer.“; art: the jump gate of the
+    interface v2 icon set (`docs/design/interface-v2/icons/moon/jump_gate.svg`),
+    renamed in `<title>` and `aria-label`; the classic name „Sprungtor“
+    joins the naming test data;
+  * the messages „Ein Sprung ist nur von einem Mond aus möglich.“, „Auf
+    diesem Mond steht kein Warp-Tor.“, „Das Warp-Tor kühlt noch ab.“, „Der
+    Zielmond muss ein eigener Mond sein.“, „Start und Zielmond sind derselbe
+    Mond.“, „Auf dem Zielmond steht kein Warp-Tor.“, „Das Warp-Tor des
+    Zielmonds kühlt noch ab.“, „Sonnenreliquiare können nicht springen.“ and
+    the existing „Keine Schiffe ausgewählt.“ of the fleet form.
+* Tests: `src/core/jump-gate.test.ts` (the table, level 15 and above, the
+  interpolation, the checks and their order, both cooldowns as a property,
+  every ship of the catalog, moving keeps the number of ships as a
+  property), `src/server/game/jump-gate.test.ts` (the action: ships moved
+  and resources kept, at most the ships there, both gates by the starting
+  level, a second jump refused until ready in both directions, every
+  refusal changes nothing, a moon that is gone, the cooldown after a
+  restart, the target settled first, the audit detail, the state),
+  `src/server/db/repos/planets.test.ts` (the gate time and its cascade),
+  the upgrade test, `src/client/logic/jump-gate.test.ts` (the box, the
+  targets, the readiness, „Springen“ as a property), the catalog, naming,
+  text and key tests; E2E `e2e/jump-gate.spec.ts` (the building after the
+  Auspex-Phalanx with its requirements, the jump with the refusal without
+  ships, the cooldown on both moons, the resources kept, the jump on a
+  phone with the width check) with axe on the box; `e2e/seed.ts` has the
+  option `colonyMoon`.
 
 # Mission „Mondbruch“ (#95)
 
