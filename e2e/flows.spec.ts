@@ -723,6 +723,42 @@ test.describe('accounts by mail (#68)', () => {
     expect(w.problems).toEqual([]);
   });
 
+  test('an invitation link shows no login while the server checks it (#272)', async ({
+    page,
+  }) => {
+    const w = watch(page);
+    const name = uniqueName('Einladung');
+    mailCli('invite', emailOf(name));
+    const [link] = await mail(emailOf(name), /^http:\S+#invite=[\w-]+$/m);
+    // The check of the invitation waits until the test has looked: the
+    // login rendered after the 401 of /api/state took the name and the
+    // password, and the registration replaced it empty (#272).
+    let pending!: () => void;
+    const checking = new Promise<void>((resolve) => (pending = resolve));
+    let answer!: () => void;
+    const looked = new Promise<void>((resolve) => (answer = resolve));
+    await page.route('**/api/invite/check', async (route) => {
+      pending();
+      await looked;
+      await route.continue();
+    });
+    await page.goto(link);
+    await checking;
+    await expect(page.locator('#authform')).toHaveCount(0);
+    await expect(page.locator('#view')).toHaveText('Lade Universum …');
+    answer();
+    await expect(page.locator('.auth .hd')).toHaveText(
+      'Neues Imperium gründen',
+    );
+    await page.fill('#a_name', name);
+    await page.fill('#a_pw', 'ein-sicheres-testpasswort');
+    await page.click('button[type=submit]');
+    await expect(lastToast(page)).toContainText(
+      'Konto erstellt. Melde dich jetzt an.',
+    );
+    expect(w.problems).toEqual([]);
+  });
+
   test('„Passwort vergessen“ sends a link that sets a new password once', async ({
     page,
   }) => {

@@ -405,11 +405,19 @@ function modal(html: string): void {
 
 class AuthError extends Error {}
 
+/**
+ * True until boot() knows what to show. A 401 meanwhile renders nothing:
+ * boot() renders the login, or the registration of an invitation link once
+ * the server has checked it. The login rendered before would take the
+ * player's input, and the registration would replace it empty (#272).
+ */
+let booting = true;
+
 /** The session is gone (401): back to the login, then stop the caller. */
 function signedOut(error: unknown): never {
   client.game = null;
   ui.auth ??= 'login';
-  render(true);
+  if (!booting) render(true);
   throw new AuthError(String(error ?? 'Bitte einloggen.'));
 }
 
@@ -1859,6 +1867,7 @@ async function boot(): Promise<void> {
   const policy = loadPasswordPolicy();
   if (openReset()) {
     await policy;
+    booting = false;
     render();
     return;
   }
@@ -1867,12 +1876,12 @@ async function boot(): Promise<void> {
   try {
     apply((await api('/api/state')) as unknown as GameState);
     homeSystem();
-    render(true);
   } catch {
     if (invite) await openInvite(invite);
     ui.auth ??= 'login';
-    render(true);
   }
+  booting = false;
+  render(true);
 }
 
 void boot();
