@@ -394,23 +394,26 @@ export function fragment(): string {
   ].join('\n');
 }
 
+/**
+ * Pins the fixed versions where the pnpm of this checkout reads them:
+ * package.json, and from pnpm 11 on pnpm-workspace.yaml for the overrides.
+ */
+function pinFiles(fixes: readonly PackageFix[]): void {
+  const pkg = JSON.parse(readFileSync('package.json', 'utf8')) as PackageJson;
+  const workspace = readsWorkspace(pkg);
+  const pinned = workspace
+    ? pinDependencies(pkg, fixes)
+    : pinPackages(pkg, fixes);
+  writeFileSync('package.json', `${JSON.stringify(pinned, null, 2)}\n`);
+  if (!workspace) return;
+  const settings = existsSync(WORKSPACE) ? readFileSync(WORKSPACE, 'utf8') : '';
+  writeFileSync(WORKSPACE, pinWorkspace(settings, fixes));
+}
+
 function apply(file: string, digest: string | undefined): number {
   const p = JSON.parse(readFileSync(file, 'utf8')) as Plan;
   if (!p.id) throw new Error('The plan is empty: nothing to apply.');
-  if (p.packages.length > 0) {
-    const pkg = JSON.parse(readFileSync('package.json', 'utf8')) as PackageJson;
-    const workspace = readsWorkspace(pkg);
-    const pinned = workspace
-      ? pinDependencies(pkg, p.packages)
-      : pinPackages(pkg, p.packages);
-    writeFileSync('package.json', `${JSON.stringify(pinned, null, 2)}\n`);
-    if (workspace) {
-      const settings = existsSync(WORKSPACE)
-        ? readFileSync(WORKSPACE, 'utf8')
-        : '';
-      writeFileSync(WORKSPACE, pinWorkspace(settings, p.packages));
-    }
-  }
+  if (p.packages.length > 0) pinFiles(p.packages);
   if (p.base) {
     if (!digest)
       throw new Error('The plan needs the digest of the base image.');
