@@ -133,6 +133,11 @@ export interface StrikeTarget {
   def: Levels;
   /** The Abfangraketen that protect it: its own, or its planet's for a moon. */
   interceptors: Levels;
+  /**
+   * Whether the Abfangraketen stand in `def` itself (a planet): those used
+   * to intercept are then no longer there to be hit.
+   */
+  own?: boolean;
 }
 
 const bonus = (level: number): number => 1 + 0.1 * level;
@@ -148,7 +153,9 @@ const EPSILON = 1e-9;
  * one each, in catalog order; the damage of the rest goes to `aim` first,
  * then to the defense in catalog order, a piece destroyed when its whole
  * structure is covered. The rest of the damage that covers no further piece
- * of one kind goes on to the next kind.
+ * of one kind goes on to the next kind. Once no defense is left, the rest
+ * destroys the missiles stored in the target's silo, in catalog order
+ * (owner, 2026-11-17, classic).
  */
 export function strike(
   n: number,
@@ -158,16 +165,38 @@ export function strike(
 ): Strike {
   const { used, left } = intercept(n, target.interceptors);
   const damage = left * DEF[STRIKER]!.atk * bonus(research.weapons);
+  const armor = bonus(research.armor);
   const order =
     aim !== null && isTarget(aim)
       ? [aim, ...TARGETS.filter((k) => k !== aim)]
       : TARGETS;
+  const hit = destroy(target.def, order, damage, armor);
+  const standing = TARGETS.some(
+    (k) => (target.def[k] ?? 0) > (hit.destroyed[k] ?? 0),
+  );
+  if (standing || hit.rest <= 0)
+    return { intercepted: n - left, used, destroyed: hit.destroyed };
+  const stored: Levels = {};
+  for (const k of STORED)
+    stored[k] = (target.def[k] ?? 0) - (target.own ? (used[k] ?? 0) : 0);
+  const missiles = destroy(stored, STORED, hit.rest, armor).destroyed;
   return {
     intercepted: n - left,
     used,
-    destroyed: destroy(target.def, order, damage, bonus(research.armor)),
+    destroyed: { ...hit.destroyed, ...missiles },
   };
 }
+
+/** The missiles a silo stores, in catalog order: hit once no defense is left. */
+const STORED: readonly string[] = Object.keys(MISSILE);
+
+/** The structure of one piece: (Adamant + Psikristall) / 10, as in a battle. */
+const hullOf = (key: string): number =>
+  strength({
+    kind: 'defense',
+    unit: { cost: DEF[key]!.cost },
+    combat: { atk: 0, sh: 0 },
+  }).hull;
 
 /** The Abfangraketen stop one missile each, in catalog order. */
 function intercept(
@@ -184,21 +213,21 @@ function intercept(
   return { used, left };
 }
 
-/** The defense the damage destroys, kind by kind in `order`. */
+/** What the damage destroys, kind by kind in `order`, and the rest of it. */
 function destroy(
   def: Levels,
   order: readonly string[],
   damage: number,
   armor: number,
-): Levels {
+): { destroyed: Levels; rest: number } {
   const destroyed: Levels = {};
   let rest = damage;
   for (const k of order) {
-    const hull = strength(FIGHTERS[k]!).hull * armor;
+    const hull = hullOf(k) * armor;
     const gone = Math.min(def[k] ?? 0, Math.floor(rest / hull + EPSILON));
     if (gone <= 0) continue;
     destroyed[k] = gone;
     rest -= gone * hull;
   }
-  return destroyed;
+  return { destroyed, rest };
 }

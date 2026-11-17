@@ -1,14 +1,9 @@
-// The Raketenangriff on the Sternenkarte (#54): the button at a foreign
-// planet or moon row, the form in the dialog with the count and the main
+// The Raketenangriff on the Sternenkarte (#54): the button comes from
+// logic/galaxy.ts; here the form in the dialog with the count and the main
 // target, and the two actions of the click handler of main.ts, which
 // spreads them into its list (main.ts must not grow, #242).
 import { placeName } from '../../core/moon.ts';
-import {
-  aimChoices,
-  canLaunch,
-  launchOrder,
-  missilesHere,
-} from '../logic/missiles.ts';
+import { aimChoices, launchOrder, missilesHere } from '../logic/missiles.ts';
 import { coords, esc, fmt } from '../logic/format.ts';
 import { client } from '../logic/state.svelte.ts';
 import type { GalaxyPlanet } from '../logic/types.ts';
@@ -19,12 +14,6 @@ type Data = Record<string, string | undefined>;
 /** The data attributes of a target: its position, a moon with data-k="moon". */
 const where = (pl: GalaxyPlanet): string =>
   `data-g="${pl.g}" data-s="${pl.s}" data-p="${pl.p}"${pl.kind === 'moon' ? ' data-k="moon"' : ''}`;
-
-/** The button at a foreign planet or moon in range, from a planet with Orbitalraketen. */
-export const missileButton = (v: V, pl: GalaxyPlanet): string =>
-  canLaunch(v.P, v.R, pl)
-    ? `<button class="small" data-act="gmissile" data-id="${esc(pl.id)}" ${where(pl)} aria-label="Raketenangriff auf ${esc(placeName(pl))}">Raketenangriff</button>`
-    : '';
 
 /** The form of the dialog: how many Orbitalraketen, and the main target. */
 export function missileForm(v: V, pl: GalaxyPlanet): string {

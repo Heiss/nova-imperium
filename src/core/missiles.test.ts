@@ -4,8 +4,7 @@
 // Gaußkanonen at equal research).
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
-import { DEF, FIGHTERS } from './catalog.ts';
-import { strength } from './components/combat.ts';
+import { DEF } from './catalog.ts';
 import {
   INTERCEPTORS,
   inMissileRange,
@@ -222,17 +221,47 @@ describe('missiles: the impact', () => {
     expect(strike(1, t, 'nope', NONE).destroyed).toEqual({ rl: 60 });
   });
 
-  it('never hits missiles, ships or unknown entries', () => {
-    const t = {
-      def: { abm: 10, ipm: 10, lf: 10, nope: 10 },
+  it('never hits ships or unknown entries', () => {
+    const t = { def: { lf: 10, nope: 10 }, interceptors: {} };
+    expect(strike(5, t, null, NONE).destroyed).toEqual({});
+  });
+
+  it('hits the stored missiles once no defense is left (owner, 2026-11-17)', () => {
+    // 2 missiles: 24,000. 10 Raketenbatterien take 2,000; the rest of
+    // 22,000 takes 10 Abfangraketen (structure 800 each, 8,000) and then
+    // 9 Orbitalraketen (1,500 each, 13,500).
+    const t = { def: { rl: 10, abm: 10, ipm: 20 }, interceptors: {} };
+    expect(strike(2, t, null, NONE).destroyed).toEqual({
+      rl: 10,
+      abm: 10,
+      ipm: 9,
+    });
+    // While a defense stands, the missiles stay: 1 Massebeschleuniger is
+    // too much for the rest of 2,000 after 50 Raketenbatterien.
+    const standing = {
+      def: { rl: 50, gauss: 1, abm: 10 },
       interceptors: {},
     };
-    expect(strike(5, t, null, NONE).destroyed).toEqual({});
+    expect(strike(1, standing, 'rl', NONE).destroyed).toEqual({ rl: 50 });
+    // An own Abfangrakete that intercepted is no longer there to be hit.
+    const own = {
+      def: { abm: 3, ipm: 4 },
+      interceptors: { abm: 3 },
+      own: true,
+    };
+    expect(strike(4, own, null, NONE)).toEqual({
+      intercepted: 3,
+      used: { abm: 3 },
+      destroyed: { ipm: 4 },
+    });
+    // At a moon the Abfangraketen stand on the planet: the moon has none.
+    const moon = { def: { abm: 0 }, interceptors: { abm: 3 }, own: false };
+    expect(strike(4, moon, null, NONE).destroyed).toEqual({});
   });
 
   it('destroys no more than there is and no more than the damage covers, on generated cases', () => {
     const counts = fc.dictionary(
-      fc.constantFrom(...TARGETS, 'abm', 'nope'),
+      fc.constantFrom(...TARGETS, 'abm', 'ipm', 'nope'),
       fc.integer({ min: 0, max: 500 }),
     );
     fc.assert(
@@ -252,10 +281,11 @@ describe('missiles: the impact', () => {
           expect(s.used).toEqual(s.intercepted ? { abm: s.intercepted } : {});
           let used = 0;
           for (const [k, x] of Object.entries(s.destroyed)) {
-            expect(isTarget(k), k).toBe(true);
+            expect(isTarget(k) || k === 'abm' || k === 'ipm', k).toBe(true);
             expect(x).toBeGreaterThan(0);
             expect(x).toBeLessThanOrEqual(def[k] ?? 0);
-            used += x * strength(FIGHTERS[k]!).hull * (1 + 0.1 * armor);
+            const c = DEF[k]!.cost;
+            used += x * ((c[0] + c[1]) / 10) * (1 + 0.1 * armor);
           }
           const damage =
             (n - s.intercepted) * DEF[STRIKER]!.atk * (1 + 0.1 * weapons);

@@ -94,7 +94,10 @@ test.describe('missiles (#54)', () => {
     await expect(abm).toContainText('(vorhanden: 16)');
     await expect(abm.locator('[data-act=maxq]')).toHaveText('(max 4)');
     // An Orbitalrakete needs level 4 of the Raketenkrypta.
-    const ipm = page.locator('.item', { hasText: 'Orbitalrakete' }).first();
+    // By its name: the text of the Abfangrakete names the Orbitalrakete too.
+    const ipm = page
+      .locator('.item')
+      .filter({ has: page.locator('.nm', { hasText: /^Orbitalrakete/ }) });
     await expect(ipm).toContainText('Das Wissen ist noch verschlossen');
     await abm.getByLabel('Anzahl').fill('5');
     await abm.getByRole('button', { name: 'Bauen', exact: true }).click();

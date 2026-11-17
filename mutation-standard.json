@@ -29,6 +29,7 @@
     "src/client/logic/endzeit.ts": 100,
     "src/client/logic/error-report.ts": 98.83,
     "src/client/logic/format.ts": 98.63,
+    "src/client/logic/galaxy.ts": 100,
     "src/client/logic/game.ts": 99.04,
     "src/client/logic/guild-chat.ts": 100,
     "src/client/logic/header.ts": 100,

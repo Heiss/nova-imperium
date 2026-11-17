@@ -203,6 +203,19 @@ describe('missile: the impact', () => {
     expect(next.ctx.planets.get('p1_3_6')!.def).toEqual({ rl: 928 });
   });
 
+  it('destroys the stored missiles once no defense is left (owner, 2026-11-17)', () => {
+    const { ctx } = setup({ def: { rl: 10, abm: 1, ipm: 3 } });
+    launch(ctx, {});
+    ctx.clock.t = 1_030_000;
+    tick(ctx);
+    // One stopped by the only Abfangrakete; two hit: 10 Raketenbatterien,
+    // then the 3 Orbitalraketen in the silo.
+    expect(ctx.planets.get('p1_3_6')!.def).toEqual({});
+    expect(reports(ctx, 'u_Anna')[0]![1]).toBe(
+      '2 Orbitalraketen trafen [1:3:6]; 1 wurden abgefangen. Zerstört: 10 Raketenbatterie, 3 Orbitalrakete.',
+    );
+  });
+
   it('at a moon is stopped by the Abfangraketen of its planet', () => {
     const { ctx } = setup({ moon: true });
     launch(ctx, { to: { ...BETA, kind: 'moon' } });

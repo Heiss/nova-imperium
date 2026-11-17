@@ -4,7 +4,12 @@
 // target first, then the order of the catalog (D3). The destroyed defense
 // is not rebuilt and leaves no Trümmerfeld [V]; the missiles are gone. Both
 // players get a report [V].
-import { INTERCEPTORS, STRIKER, strike } from '../../../core/missiles.ts';
+import {
+  INTERCEPTORS,
+  STRIKER,
+  type Strike,
+  strike,
+} from '../../../core/missiles.ts';
 import { placeName } from '../../../core/moon.ts';
 import { placeId } from '../../../core/place.ts';
 import { settle } from '../../../core/settle.ts';
@@ -58,12 +63,13 @@ export function onArrive(ctx: Ctx, f: Fleet, at: Arrival): void {
   const interceptors: Levels = {};
   for (const k of INTERCEPTORS) interceptors[k] = guard?.def[k] ?? 0;
   const n = f.ships[STRIKER] ?? 0;
-  const s = strike(n, { def: t.def, interceptors }, f.aim ?? null, {
+  const own = guard === t;
+  const s = strike(n, { def: t.def, interceptors, own }, f.aim ?? null, {
     weapons: attR.weapons ?? 0,
     armor: defR.armor ?? 0,
   });
   remove(t.def, s.destroyed);
-  if (guard && guard !== t) {
+  if (guard && !own) {
     remove(guard.def, s.used);
     ctx.planets.save(guard);
   } else remove(t.def, s.used);
@@ -82,6 +88,17 @@ export function onArrive(ctx: Ctx, f: Fleet, at: Arrival): void {
       scheduled: f.arr,
     },
   });
+  reports(ctx, f, at, n, s);
+}
+
+/** The report for both sides: the attacker and the attacked. */
+function reports(
+  ctx: Ctx,
+  f: Fleet,
+  { t, att }: Arrival,
+  n: number,
+  s: Strike,
+): void {
   const where = coords(f.toC);
   const body = `${fmt(n - s.intercepted)} Orbitalraketen trafen ${where}; ${fmt(s.intercepted)} wurden abgefangen. ${destroyedLine(s.destroyed)}`;
   const report = { time: f.arr, type: 'info' as const, text: body };
@@ -96,7 +113,7 @@ export function onArrive(ctx: Ctx, f: Fleet, at: Arrival): void {
     t.owner,
     {
       ...report,
-      title: `Feindkontakt! ${placeName(t)} ${where} wird von ${at.att.name} angegriffen`,
+      title: `Feindkontakt! ${placeName(t)} ${where} wird von ${att.name} angegriffen`,
     },
     { topic: 'attacked' },
   );

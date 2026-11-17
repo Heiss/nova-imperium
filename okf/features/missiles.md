@@ -41,6 +41,16 @@ Issue #54, part of the Classic features (#222). The owner's answers of
   missiles since v0.78a).
 * **[E]** Damage of interplanetary missiles: the main target first, then
   the order of the catalog (owner, 2026-11-16, D3).
+* **[E]** Once no defense is left, the rest of the damage destroys the
+  missiles stored in the target's Raketenkrypta, Abfangraketen and
+  Orbitalraketen, in the order of the catalog (owner, 2026-11-17, classic;
+  owiki „Interplanetarrakete“).
+* **[E]** The defender sees incoming Orbitalraketen in the fleet movements
+  under the same thresholds of the Auspex-Lehre as a foreign fleet (owner,
+  2026-11-17, #228).
+* **[E]** The German texts of the first pull request (below) are confirmed
+  (owner, 2026-11-17). Tearing missiles down for free and the demolition of
+  the Raketenkrypta stay open, with #202.
 
 # Proposals
 
@@ -87,7 +97,9 @@ above.
   `inMissileRange` (the same galaxy, |s − s₀| systems, no wrap, as the
   Auspex-Phalanx), `missileFlightMs`, `launchError` (codes for the server
   and the Sternenkarte) and `strike` (intercept, then the damage from the
-  main target on through the catalog order).
+  main target on through the catalog order; once no defense is left, the
+  rest on through the stored missiles, without the Abfangraketen that
+  intercepted when they stand on the target itself).
 * **[E]** Flight as the mission `missile` (patterns, section 4): the
   folder `src/features/missions/missile/` with `rules.ts` (order 70, target
   `foreign`, no cargo, no return, visible to the defender, no guild alert),
@@ -113,7 +125,9 @@ above.
   target is in range; the dialog asks for „Anzahl“ and „Hauptziel“.
   `src/client/main.ts` spreads the two actions and did not grow.
 * **[V]** Taken as recommended (owner's rule of 2026-11-15 in
-  [Release loop](/ops/loop.md)), for the owner to confirm:
+  [Release loop](/ops/loop.md)); the German texts among them are confirmed
+  (owner, 2026-11-17, [E] above), the two points marked „now [E]“ were
+  decided by the owner:
   * abbreviations `RK`, `AR`, `OR`; the Abfangrakete keeps its classic
     name, so the naming test no longer counts a kept name as classic;
     short texts „Lagert Raketen: pro Stufe 10 Abfangraketen oder 5
@@ -144,15 +158,21 @@ above.
   * the damage: what is left after a kind goes on to the next kind of the
     order, also when the main target is not destroyed completely (the
     reading of D3); a piece falls only to its whole structure;
-  * the main target and the hit defense are the defense that fights: the
-    missiles themselves are never hit (owiki has them hit when no defense
-    is left; not decided);
+  * the main target is a defense that fights; the stored missiles are hit
+    only after the last defense (now [E], above);
   * the places of the silo count the missiles in the shipyard queue too;
-  * the defender sees the missiles coming in the overview.
+  * the defender sees the missiles coming in the overview (now [E],
+    above): built through `visible` of the mission and `foreignView` of
+    `src/server/game/state.ts`, the path of every foreign fleet. #228 is
+    not on `main` yet (2026-11-17); its thresholds of the Auspex-Lehre
+    (`src/core/fleet-recognition.ts` on `claude/incoming-fleets`) apply to
+    every foreign fleet, so they reach the missiles at that one place.
+    TODO for #228: check that `foreignView` applies them to the mission
+    `missile` too.
 * **[U]** Not built, open: tearing missiles down for free (issue, owiki
-  „Raketensilo“); the demolition of the Raketenkrypta below the places its
-  missiles take (#202 decides demolition); the check of the vacation mode
-  (#223, below).
+  „Raketensilo“) and the demolition of the Raketenkrypta below the places
+  its missiles take, both with #202 (owner, 2026-11-17); the check of the
+  vacation mode (#223, below).
 * **[V]** Vacation mode (#223, built in parallel): the target check takes
   the protection as one function, `protects(owner)` in `launchError`
   (`src/core/missiles.ts`), which the server passes from

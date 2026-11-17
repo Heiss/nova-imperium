@@ -693,9 +693,47 @@ choice of the patterns to the assistant's recommendation below
   Bundle 1 (header line, navigation, resource bar) moved none either: the
   old frame kept no state in `main.ts`; `renderMenu` still clears the dot
   of the news (`seeNews`) before it shows the navigation, and `updateBar`
-  still returns the planet moved to now for the clock. Still rendered as
-  HTML: the views Flotte, Sternenkarte, Nachrichten, Highscore, Gilden,
-  Achievements, Neuigkeiten, Hilfe & Optionen and Admin.
+  still returns the planet moved to now for the clock. Bundle 2 (the
+  Sternenkarte) moved none either: the old view kept its state in
+  `client.ui` (`gal`, `sys`, `gmoon`, `scan`), which stays there;
+  `mounted` now also holds the Sternenkarte. Still rendered as HTML: the
+  views Flotte, Nachrichten, Highscore, Gilden, Achievements, Neuigkeiten,
+  Hilfe & Optionen and Admin.
+* **[E]** Bundle 2 after bundle 1 (owner, 2026-11-15 and 2026-11-16: the
+  order of the bundles of #118 „Geklärt, Nachtrag 3“, unchanged by
+  „Nachtrag 4“): the Sternenkarte, which the phone view #189 builds on
+  too.
+* **[V]** Built with #118, bundle 2 (the Sternenkarte; bundle 1 is
+  described below): `src/client/views/Galaxy.svelte`, mounted by
+  `mountGalaxy(target, v)` of `src/client/views/galaxy.ts` (which renders
+  no HTML any more, and leaves `VIEWS` of `views/index.ts`), renders the
+  view from `galaxyPage(v)` of `src/client/logic/galaxy.ts`: the fields
+  „Galaxie“ and „System“ (`data-nokeep`) with their steps, „Anzeigen“ and
+  „zum Heimatsystem“; the panel of the last scan (#53) with its
+  countdowns (`countdown()` of `overview.ts`, rendered by the new
+  `Due.svelte`, which the overview now uses too instead of its own
+  snippet, so the copy check jscpd finds no clone); one `GalaxyRow` per
+  position: the planet (`GalaxyPlace`: name, owner, place in the
+  highscore, noob protection, actions), the symbols of the moon and the
+  Trümmerfeld (#45, #53), the actions of a free position and the row of
+  the open moon; and the Spähschädel of a spying. The actions are data
+  (`GalaxyAction`: a link or a button with its attributes, `data-act`
+  first, or the name of the shown place); the symbols of the moon and the
+  Trümmerfeld, the button „Bergung“ and the pictures keep their HTML of
+  `moonMark()`, `debrisMark()`, `harvestButton()`, `moonPicture()` and
+  `planetHTML()`, rendered with `{@html}` as the overview renders its
+  pictures, so `logic/moon.ts` and `logic/debris.ts` stay as they are.
+  The data come as a property (`page`), as for the frame. The view is
+  mounted anew on every render (`ANEW` in `main.ts`, with the overview),
+  as its HTML was rendered anew: `keepInputs` gives the focus back by id
+  (the field „System“ after Enter, the symbol of a moon), the typed system
+  does not come back, `paintPlanets` paints the textures and the clock
+  counts the countdowns of the scan down, as before. The click actions
+  (`gnav`, `ggo`, `ghome`, `gmoon`, `gscan`, `gscanClose`, `gfleet`,
+  `gspy`, `selectPlanet`) stay with `data-act` in `main.ts` until package
+  8; `gfleet` and `gspy` read their target with `targetOf()` of
+  `galaxy.ts`, so `main.ts` shrinks (1,875 to 1,873 lines). No visible
+  change.
 * **[E]** Bundle 1 next (owner, 2026-11-16; the bundles of #118 „Geklärt,
   Nachtrag 3“): the header line, the navigation (menu, tab bar and „Mehr“)
   and the resource bar, which the phone view #189 builds on.

@@ -18,15 +18,16 @@ const value = (raw: string): string =>
   raw.replace(/&(?:gt|#39);/g, (e) => ENTITY[e]!);
 
 /**
- * The attributes of a tag in order, a boolean one without its empty value,
- * and without an empty `class`, which Svelte leaves out (#118, bundle 1).
+ * The attributes of a tag in order, a boolean one and `data-nokeep` (which
+ * main.ts reads by its presence) without their empty value, and without an
+ * empty `class`, which Svelte leaves out (#118, bundles 1 and 2).
  */
 function attributes(raw: string): string {
   const list = [...raw.matchAll(/([^\s=]+)(?:="([^"]*)")?/g)]
     .filter(([, name, quoted]) => !(name === 'class' && quoted === ''))
     .map(([, name, quoted]) =>
       quoted === undefined ||
-      (quoted === '' && /^(disabled|hidden|selected)$/.test(name!))
+      (quoted === '' && /^(disabled|hidden|selected|data-nokeep)$/.test(name!))
         ? name!
         : `${name}="${value(quoted)}"`,
     );
@@ -34,7 +35,7 @@ function attributes(raw: string): string {
 }
 
 /** Removes comments until none is left, so no `<!--` can survive. */
-function stripComments(html: string): string {
+export function stripComments(html: string): string {
   let before: string;
   let after = html;
   do {
