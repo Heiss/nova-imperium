@@ -182,3 +182,40 @@ test('a guild with the longest tag and name stays within a 360 px phone (#274) @
   expect(w.problems).toEqual([]);
   expect(wo.problems).toEqual([]);
 });
+
+test('the admin reads the chat of a guild with the longest tag and name on a 360 px phone (#277) @phone', async ({
+  page,
+}) => {
+  const w = watch(page);
+  // The longest tag (8) and name (32), without a space, as in #274.
+  const tag = uniqueName('WW').toUpperCase();
+  const guild = `${'W'.repeat(26)}${tag.slice(2)}`;
+  const admin = uniqueName('Spielleitung');
+  await page.setViewportSize({ width: 360, height: 800 });
+  await register(page, admin);
+  cli('admin', admin);
+  await page.goto('/?view=guilds');
+  await page.getByLabel('Kürzel').fill(tag);
+  await page.getByLabel('Name', { exact: true }).fill(guild);
+  await page.getByRole('button', { name: 'Gilde gründen' }).click();
+  await expect(page).toHaveURL(/view=guilds&guild=/);
+  await page.reload();
+  await page.getByRole('button', { name: 'Chat lesen' }).click();
+  // The title „Chat [TAG] Name“ stays inside the dialog, the dialog on the
+  // screen.
+  const title = page.locator('#dialog-title');
+  await expect(title).toHaveText(`Chat [${tag}] ${guild}`);
+  const box = await title.evaluate((e) => ({
+    scroll: e.scrollWidth,
+    client: e.clientWidth,
+    right: e.parentElement!.getBoundingClientRect().right,
+    screen: document.documentElement.clientWidth,
+  }));
+  const found = await overflow(page, 'chat dialog');
+  if (box.scroll > box.client + 1)
+    found.push(`chat dialog title: ${box.scroll} px > ${box.client} px`);
+  if (box.right > box.screen + 1)
+    found.push(`chat dialog: right edge ${box.right} px > ${box.screen} px`);
+  expect(found).toEqual([]);
+  expect(w.problems).toEqual([]);
+});

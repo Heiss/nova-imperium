@@ -9,7 +9,7 @@ import {
   type Locator,
   type Page,
 } from '@playwright/test';
-import { nav, register, uniqueName, watch } from './helpers.ts';
+import { nav, register, seed, uniqueName, watch } from './helpers.ts';
 
 const lastToast = (page: Page): Locator => page.locator('.toast').last();
 const member = (p: Page, name: string): Locator =>
@@ -335,5 +335,52 @@ test.describe('guild ranks (#163)', () => {
     await expect(draft).toBeChecked();
     await po.close();
     expect(problems.flatMap((w) => w.problems)).toEqual([]);
+  });
+
+  test('a rank name longer than 24 from before stays and is renamed to at most 24 (#277)', async ({
+    page,
+  }) => {
+    const w = watch(page);
+    const lead = uniqueName('Altleitung');
+    const tag = `L${Date.now() % 1000000}`;
+    // A name of the old limit of 67, written before #277: no migration.
+    const old = `Altgedienter ${'Veteran'.repeat(6)} der Flotten`;
+    const short = 'Veteran der Flotte';
+    await register(page, lead);
+    await nav(page, 'guilds');
+    await page.getByLabel('Kürzel').fill(tag);
+    await page.getByLabel('Name', { exact: true }).fill(`Alt ${tag}`);
+    await page.getByRole('button', { name: 'Gilde gründen' }).click();
+    await expect(
+      page.getByRole('heading', { name: `[${tag}] Alt ${tag}` }),
+    ).toBeVisible();
+    await page.getByLabel('Name des neuen Rangs').fill('Alt');
+    await expect(page.getByLabel('Name des neuen Rangs')).toHaveAttribute(
+      'maxlength',
+      '24',
+    );
+    await page.getByRole('button', { name: 'Rang anlegen' }).click();
+    await expect(lastToast(page)).toContainText('Rang angelegt.');
+    seed({ name: lead, rankName: { from: 'Alt', to: old } });
+    await page.reload();
+    // It still shows, in the box „Ränge“ and in its field.
+    const rank = page.getByRole('group', { name: old, exact: true });
+    await expect(rank).toBeVisible();
+    const field = rank.getByLabel('Rangname');
+    await expect(field).toHaveValue(old);
+    await expect(field).toHaveAttribute('maxlength', '24');
+    // Kept as it is, the name is refused; at most 24 characters rename it.
+    await rank.getByRole('button', { name: 'Umbenennen' }).click();
+    await expect(lastToast(page)).toContainText(
+      'Der Rangname braucht 2 bis 24 Zeichen.',
+    );
+    await field.fill(short);
+    await rank.getByRole('button', { name: 'Umbenennen' }).click();
+    await expect(lastToast(page)).toContainText('Rang umbenannt.');
+    await expect(
+      page.getByRole('group', { name: short, exact: true }),
+    ).toBeVisible();
+    await expect(page.getByRole('group', { name: old })).toHaveCount(0);
+    expect(w.problems).toEqual([]);
   });
 });

@@ -72,7 +72,14 @@ of this page is refused before its own checks.
   default rank: it can be renamed, and deleted once another rank is the
   default (owner, 2026-11-13, „Geklärt, Ergänzung“).
 * **[E]** Limits (D6): at most **25 ranks** per guild, the Leitung included;
-  a rank name has at most **67 characters** (owner, 2026-11-13).
+  a rank name has at most **24 characters** (owner, 2026-11-17, #277: so
+  the guild page fits a phone; this replaces the 67 of 2026-11-13). Only
+  creating and renaming a rank check it (the core rule, the server and the
+  fields' `maxlength`); an existing longer name stays, shows and can be
+  renamed to at most 24, without a migration (owner, 2026-11-17).
+  Measured for #277: 24 wide letters still make the Leitung's member list
+  wider than a 360 px phone (the dropdown „Rang ändern“ and the cell
+  „Rang“); open point O20.
 * **[E]** Visibility (D7): ranks are shown only inside the guild; the public
   guild page shows none, also not who holds the Leitung (owner,
   2026-11-13). The directory sent to every player no longer has the field
@@ -158,7 +165,7 @@ may pass on a right its holder lacks.
   Standardrang steht nicht unter deinem oder hat ein Recht, das dir
   fehlt.“ (deleting a rank with members, review of #197), „Diesen Rang
   gibt es nicht.“, „Der Rangname
-  braucht 2 bis 67 Zeichen.“, „Diesen Rangnamen gibt es in der Gilde
+  braucht 2 bis 24 Zeichen.“ (#277), „Diesen Rangnamen gibt es in der Gilde
   schon.“, „Eine Gilde hat höchstens 25 Ränge.“, „Der Standardrang kann
   nicht gelöscht werden.“, „Die Leitung kann nicht der Standardrang
   sein.“, „Dieses Recht gibt es nicht.“, „Der Rang steht schon ganz

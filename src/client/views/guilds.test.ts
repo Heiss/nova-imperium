@@ -266,7 +266,9 @@ describe('the admin reads a guild chat (#169, D8)', () => {
         { id: 2, time: 0, kind: 'message', name: null, text: 'alt' },
       ],
     });
-    expect(html).toContain('<h3 id="dialog-title">Chat [OR] &lt;img');
+    expect(html).toContain(
+      '<h3 id="dialog-title" class="guild-title">Chat [OR] &lt;img',
+    );
     expect(html).not.toContain('<img');
     expect(html).toContain('<i>ehemaliges Mitglied</i>');
     expect(html).not.toContain('guildChatDelete');

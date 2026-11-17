@@ -724,16 +724,16 @@ describe('the limits of the ranks (#163)', () => {
     );
   });
 
-  it('takes a name of 2 to 67 characters, once per guild', () => {
+  it('takes a name of 2 to 24 characters, once per guild (#277)', () => {
     const s = setup();
     const create = (name: unknown) =>
       s.run('Lea', { type: 'createGuildRank', name });
-    const tooShortOrLong = 'Der Rangname braucht 2 bis 67 Zeichen.';
-    for (const name of ['', 'a', '   b   ', 'x'.repeat(68), undefined])
+    const tooShortOrLong = 'Der Rangname braucht 2 bis 24 Zeichen.';
+    for (const name of ['', 'a', '   b   ', 'x'.repeat(25), undefined])
       expect(() => create(name)).toThrow(tooShortOrLong);
     expect(create('ab')).toBe('Rang angelegt.');
-    expect(create(` ${'y'.repeat(67)} `)).toBe('Rang angelegt.');
-    expect(s.names()).toEqual(['Leitung', 'Mitglied', 'ab', 'y'.repeat(67)]);
+    expect(create(` ${'y'.repeat(24)} `)).toBe('Rang angelegt.');
+    expect(s.names()).toEqual(['Leitung', 'Mitglied', 'ab', 'y'.repeat(24)]);
     for (const name of ['AB', 'mitglied', 'LEITUNG'])
       expect(() => create(name)).toThrow(
         'Diesen Rangnamen gibt es in der Gilde schon.',
@@ -741,7 +741,7 @@ describe('the limits of the ranks (#163)', () => {
     const rename = (name: unknown) =>
       s.run('Lea', { type: 'renameGuildRank', rank: s.rank('ab'), name });
     expect(() => rename('x')).toThrow(tooShortOrLong);
-    expect(() => rename('x'.repeat(68))).toThrow(tooShortOrLong);
+    expect(() => rename('x'.repeat(25))).toThrow(tooShortOrLong);
     expect(() => rename('Mitglied')).toThrow(
       'Diesen Rangnamen gibt es in der Gilde schon.',
     );
@@ -752,6 +752,34 @@ describe('the limits of the ranks (#163)', () => {
     expect(s.run('Out', { type: 'createGuildRank', name: 'AB' })).toBe(
       'Rang angelegt.',
     );
+  });
+
+  it('keeps an existing longer name, renamable to at most 24 (#277)', () => {
+    const s = setup();
+    // A name of the old limit of 67, written before #277: no migration.
+    const long = 'z'.repeat(67);
+    const r = s.officer(['ranks']);
+    s.ctx.db
+      .prepare('UPDATE guild_ranks SET name = ? WHERE id = ?')
+      .run(long, r);
+    expect(s.names()).toContain(long);
+    const shown = guildState(s.ctx, 'u_Lea', {}).ranks!.list;
+    expect(shown.map((x) => x.name)).toContain(long);
+    // Setting its rights checks no name.
+    expect(
+      s.run('Lea', { type: 'setGuildRankRights', rank: r, rights: [] }),
+    ).toBe('Rechte gespeichert.');
+    const rename = (name: string) =>
+      s.run('Lea', { type: 'renameGuildRank', rank: r, name });
+    expect(() => rename(long)).toThrow(
+      'Der Rangname braucht 2 bis 24 Zeichen.',
+    );
+    expect(() => rename('z'.repeat(25))).toThrow(
+      'Der Rangname braucht 2 bis 24 Zeichen.',
+    );
+    expect(rename('z'.repeat(24))).toBe('Rang umbenannt.');
+    expect(s.names()).toContain('z'.repeat(24));
+    expect(s.names()).not.toContain(long);
   });
 });
 

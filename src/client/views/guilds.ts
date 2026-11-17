@@ -97,7 +97,7 @@ export function adminChatDialog(read: {
   guild: Pick<Guild, 'tag' | 'name'>;
   messages: ChatLine[];
 }): string {
-  return `<h3 id="dialog-title">Chat ${heading(read.guild)}</h3>
+  return `<h3 id="dialog-title" class="guild-title">Chat ${heading(read.guild)}</h3>
   ${chatLog(read.messages)}
   <p><button type="button" data-act="closeModal">Schließen</button></p>`;
 }

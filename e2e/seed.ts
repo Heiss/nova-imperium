@@ -12,7 +12,8 @@
 //   Trümmerfeld at the position of the home planet, issue #45), moon? ({ b?, res?, ships?,
 //   def?, name?, diameter? }: the moon of the home planet, made or changed, issue #53),
 //   gift? (minutes: a gift fleet of the „Endzeit“ to the home planet that arrives in that
-//   time, issue #161) }
+//   time, issue #161), rankName? ({ from, to }: the rank `from` of the player's guild
+//   renamed to `to` without the game's check, a name of before issue #277) }
 import { openDatabase } from '../src/server/db/database.ts';
 import { Store } from '../src/server/db/store.ts';
 import { recordServerError } from '../src/server/error-log.ts';
@@ -144,6 +145,16 @@ function addGift(p: Planet, minutes: number): void {
   ctx.fleets.save(giftFleet(ctx, p, now, now + minutes * 60000));
 }
 
+/** Renames a rank of the player's guild in the database, unchecked (#277). */
+function renameRank(id: string, r: { from: string; to: string }): void {
+  store.db
+    .prepare(
+      'UPDATE guild_ranks SET name = ? WHERE name = ? AND guild_id = (SELECT guild_id FROM guild_members WHERE user_id = ?)',
+    )
+    .run(r.to, r.from, id);
+}
+
+if (d.rankName) renameRank(u.id, d.rankName);
 store.tx(() => {
   if (d.landColonyFleet) landFleet(u.id, 'colonize');
   if (d.landFleet) landFleet(u.id, d.landFleet);

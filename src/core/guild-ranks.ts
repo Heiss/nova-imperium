@@ -34,8 +34,9 @@ export const MEMBER_RIGHTS: readonly GuildRight[] = ['chat-read', 'chat-write'];
 
 /** At most this many ranks per guild, the Leitung included (owner, 2026-11-13). */
 export const MAX_GUILD_RANKS = 25;
-/** Longest rank name (owner, 2026-11-13). */
-export const MAX_RANK_NAME = 67;
+/** Longest rank name (owner, 2026-11-17, #277; was 67). Only creating and
+ * renaming check it: an existing longer name stays. */
+export const MAX_RANK_NAME = 24;
 /** Shortest rank name (owner, 2026-11-14). */
 export const MIN_RANK_NAME = 2;
 

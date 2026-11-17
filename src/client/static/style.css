@@ -544,7 +544,8 @@ fieldset.rank legend {
 }
 /* A guild with the longest tag and name, a player with the longest name: a
    word that does not fit breaks anywhere instead of widening the page on a
-   phone (#274, as #189 for the highscore). */
+   phone (#274, as #189 for the highscore); so does the title of the admin's
+   guild chat dialog (#277). */
 .guild-title,
 .guild-list td:first-child,
 .guild-members td:first-child {

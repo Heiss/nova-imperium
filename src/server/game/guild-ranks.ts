@@ -111,7 +111,7 @@ function managed(ctx: Ctx, uid: string, id: unknown) {
 }
 
 const NAME_ERROR = {
-  length: 'Der Rangname braucht 2 bis 67 Zeichen.',
+  length: 'Der Rangname braucht 2 bis 24 Zeichen.',
   taken: 'Diesen Rangnamen gibt es in der Gilde schon.',
 };
 
