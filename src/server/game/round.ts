@@ -1,3 +1,4 @@
+import { ABANDON_LOCK_HOURS, isAbandonLockHours } from '../../core/abandon.ts';
 import type { RoundRules } from '../../core/achievements.ts';
 import { isLockDays, MAIN_LOCK_DAYS } from '../../core/main-planet.ts';
 import { type RoundError, roundChoice, roundError } from '../../core/round.ts';
@@ -5,6 +6,9 @@ import { type Ctx, fail } from './context.ts';
 
 /** The setting of the lock of the main planet in days (#221, D3). */
 const MAIN_LOCK = 'roundMainLock';
+
+/** The setting of the lock of a given-up colony's position in hours (#224, D2). */
+const ABANDON_LOCK = 'roundAbandonLock';
 
 export function roundRules(ctx: Ctx): RoundRules {
   const rows = ctx.admin.roundSettings();
@@ -17,6 +21,8 @@ export function roundRules(ctx: Ctx): RoundRules {
     guilds: settings.get('roundGuilds') !== 0,
     // Existing universes lock for the default 7 days (#221).
     mainLock: ctx.admin.setting(MAIN_LOCK) ?? MAIN_LOCK_DAYS.default,
+    // Existing universes lock a given-up position for the default 24 h (#224).
+    abandonLock: ctx.admin.setting(ABANDON_LOCK) ?? ABANDON_LOCK_HOURS.default,
   };
 }
 
@@ -60,11 +66,27 @@ function mainLockRule(current: RoundRules, days: unknown): number {
   return selected;
 }
 
+/** The lock of a given-up position in the new round (#224); without a choice the current one. */
+function abandonLockRule(current: RoundRules, hours: unknown): number {
+  const selected = hours === undefined ? current.abandonLock : hours;
+  if (!isAbandonLockHours(selected))
+    return fail(
+      `Bitte für die Sperre einer aufgegebenen Position ${ABANDON_LOCK_HOURS.min} bis ${ABANDON_LOCK_HOURS.max} ganze Stunden angeben.`,
+    );
+  return selected;
+}
+
+/** The choices of the dialog „Neue Runde“ beyond the rewards and the guild switch. */
+interface RoundLocks {
+  mainLock?: unknown;
+  abandonLock?: unknown;
+}
+
 export function startRoundRules(
   ctx: Ctx,
   options: unknown,
   guilds?: unknown,
-  mainLock?: unknown,
+  locks: RoundLocks = {},
 ): RoundRules {
   const current = roundRules(ctx);
   const error = roundError(current, options, guilds);
@@ -72,10 +94,12 @@ export function startRoundRules(
   const next = {
     number: current.number + 1,
     ...roundChoice(current, options, guilds),
-    mainLock: mainLockRule(current, mainLock),
+    mainLock: mainLockRule(current, locks.mainLock),
+    abandonLock: abandonLockRule(current, locks.abandonLock),
   };
   ctx.admin.putSettings([
     [MAIN_LOCK, next.mainLock],
+    [ABANDON_LOCK, next.abandonLock],
     ['round', next.number],
     ['roundAchievements', Number(next.achievements)],
     ['roundDaily', Number(next.daily)],

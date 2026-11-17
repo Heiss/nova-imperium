@@ -32,6 +32,8 @@ describe('universe settings', () => {
       extraFields: 0,
       // Added by #161 (owner, 2026-11-14): the gift flies 4 h by default.
       endzeitMinutes: 240,
+      // Added by #224 (owner, 2026-11-16, D2): a given-up position 24 h.
+      roundAbandonLock: 24,
     });
     for (const s of UNIVERSE_SPECS) {
       expect(s.def).toBeGreaterThanOrEqual(s.min);
@@ -51,6 +53,7 @@ describe('universe settings', () => {
       ['startDeuterium', 'Start-Promethium'],
       ['extraFields', 'Zusatzfelder pro Planet'],
       ['endzeitMinutes', 'Flugzeit der Endzeit-Gabe (Minuten)'],
+      ['roundAbandonLock', 'Sperre einer aufgegebenen Position (Stunden)'],
     ]);
   });
   it('accept valid values given as strings', () => {
@@ -100,6 +103,21 @@ describe('universe settings', () => {
     for (const endzeitMinutes of [0, 4321, 1.5])
       expect(codes({ ...DEFAULT_UNIVERSE, endzeitMinutes })).toEqual([
         ['endzeitMinutes', 'range'],
+      ]);
+  });
+  it('take 1 to 720 hours as the lock of a given-up position (#224, X1)', () => {
+    expect(spec('roundAbandonLock')).toEqual({
+      key: 'roundAbandonLock',
+      label: 'Sperre einer aufgegebenen Position (Stunden)',
+      min: 1,
+      max: 720,
+      def: 24,
+    });
+    for (const roundAbandonLock of [1, 720])
+      expect(codes({ ...DEFAULT_UNIVERSE, roundAbandonLock })).toEqual([]);
+    for (const roundAbandonLock of [0, 721, 1.5])
+      expect(codes({ ...DEFAULT_UNIVERSE, roundAbandonLock })).toEqual([
+        ['roundAbandonLock', 'range'],
       ]);
   });
   it('report all errors at once, in the order of the specs', () => {
