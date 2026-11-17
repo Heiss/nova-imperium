@@ -169,8 +169,9 @@ tasks).
   issues for it, and orders the work so that subagents do not collide.
 * **[E]** Subagents run only the cheap local checks (owner, 2026-11-17):
   typecheck, eslint and the unit tests of the changed files, prettier,
-  `checkLog` and `check:migrations`, plus a new E2E test once to show that
-  it fails without the change. The full E2E suite, Stryker and the mutation
+  `checkLog` and `check:migrations`, plus, for a change a player sees in
+  the browser, a new E2E test once to show that it fails without the
+  change. The full E2E suite, Stryker and the mutation
   gate run in the CI, so no agent waits for a free machine; a red CI goes
   back to a subagent. Reason: two agents shared one machine and waited
   hours for each other's Stryker runs, while the CI runs the same checks
@@ -224,7 +225,9 @@ tasks).
   tests, build, E2E) on every push of an ordinary pull request. Replaces
   „before every push“. Expected [V]: less agent time and memory (the
   out-of-memory stop of 2026-11-15 came from Stryker and E2E of two agents
-  at once), a few more red draft runs.
+  at once), a few more red draft runs. Since 2026-11-17 the cheap local
+  checks above replace `pnpm check` and the relevant E2E tests; the full
+  E2E suite runs in the CI.
 * **[E]** Saving usage (owner, 2026-11-15; the weekly limit stood at 94 %
   on 2026-11-15): an event that needs nothing (a bot edited a comment,
   CodeRabbit skipped a review, an own reply) gets no tool call and at most

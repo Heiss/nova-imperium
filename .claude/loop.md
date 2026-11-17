@@ -75,8 +75,9 @@ interface is German.
    collide.
    Subagents run only the cheap local checks (owner, 2026-11-17):
    typecheck, eslint and the unit tests of the changed files, prettier,
-   `checkLog` and `check:migrations`, and a new E2E test once to show that
-   it fails without the change; the full E2E suite, Stryker and the
+   `checkLog` and `check:migrations`, and, for a change a player sees in
+   the browser, a new E2E test once to show that it fails without the
+   change; the full E2E suite, Stryker and the
    mutation gate run in the CI. They push and report at once instead of
    waiting for a free machine; a red CI goes back to a subagent.
    Small patches are slotted in between, so that none is left for the
@@ -166,10 +167,10 @@ interface is German.
    its feature: what the admin can now do),
    OKF and docs, and the log entry as a new file
    `okf/log/<date>-<short-name>.md` with the UTC time in `date` (never an
-   edit of another entry; the format is in `okf/ops/website.md`). Run `pnpm check` and the relevant
-   E2E tests before the push after which you mark it ready, and after a
-   merge of `main` with a conflict in code; other pushes of a draft rely
-   on its CI. Open it as a draft, mark it ready when CI is green, subscribe to
+   edit of another entry; the format is in `okf/ops/website.md`). Run the cheap local checks above
+   before the push after which you mark it ready, and after a merge of
+   `main` with a conflict in code; the full E2E suite and every other push
+   of a draft rely on its CI. Open it as a draft, mark it ready when CI is green, subscribe to
    it. Write `Closes #<issue>` in the description.
 
 ## Never
