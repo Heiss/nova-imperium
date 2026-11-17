@@ -5,6 +5,8 @@
 // On generated states (fixed fast-check seed 118) both render the same
 // markup, up to what a browser does not show (normalize() of markup.ts, the
 // same as for the lists, the overview, the frame and the Sternenkarte).
+// One row is new since: the „Schnellwahl“ of #253 (owner, 2026-11-17),
+// quickRow() below, written here on its own; the rest stays frozen.
 import fc from 'fast-check';
 import { render } from 'svelte/server';
 import { describe, expect, it } from 'vitest';
@@ -65,6 +67,31 @@ const cargoFields = CARGO.map(
     `<span class="cargo"><input type="number" id="c_${k}" min="0" placeholder="0" aria-label="${name}"><button type="button" id="cone_${k}" class="small" data-act="cone" data-k="${k}" aria-label="Alles ${name}">alles</button></span>`,
 ).join(' ');
 
+// ----- new with #253 (owner, 2026-11-17): the row „Schnellwahl“ -----
+
+/** The other own planets and moons as targets; no row without one. */
+function quickRow(v: V): string {
+  const places = v.s.galaxy
+    .filter((x) => x.owner === v.s.me.id && x.id !== v.P.id)
+    .sort(
+      (a, b) =>
+        a.g - b.g ||
+        a.s - b.s ||
+        a.p - b.p ||
+        Number(a.kind === 'moon') - Number(b.kind === 'moon'),
+    );
+  if (!places.length) return '';
+  const options = places
+    .map(
+      (x) =>
+        `<option value="${x.id}">${esc(x.name)}${x.kind === 'moon' ? ' (Mond)' : ''} [${x.g}:${x.s}:${x.p}]</option>`,
+    )
+    .join('');
+  return `<tr><td>Schnellwahl</td><td><select id="t_q" aria-label="Schnellwahl"><option value="">– wählen –</option>${options}</select></td></tr>`;
+}
+
+// ----- frozen again -----
+
 function targetForm(v: V, slotsFull: boolean): string {
   const { P, s, ui } = v;
   const t = ui.ft ?? { g: P.g, s: P.s, p: P.p };
@@ -83,7 +110,7 @@ function targetForm(v: V, slotsFull: boolean): string {
     .join('');
   return `<table class="kv">
   <tr><td>Ziel</td><td><input class="c3" type="number" id="t_g" value="${t.g}" min="1" max="${u.galaxies}" aria-label="Galaxie">:<input class="c3" type="number" id="t_s" value="${t.s}" min="1" max="${u.systems}" aria-label="System">:<input class="c3" type="number" id="t_p" value="${t.p}" min="1" max="${u.positions}" aria-label="Position"> ${kinds} <span id="t_info" class="dim"></span></td></tr>
-  <tr><td>Auftrag</td><td><select id="t_m" aria-label="Auftrag">${missions}</select></td></tr>
+  ${quickRow(v)}<tr><td>Auftrag</td><td><select id="t_m" aria-label="Auftrag">${missions}</select></td></tr>
   <tr><td>Geschwindigkeit</td><td><select id="t_v" aria-label="Geschwindigkeit">${speeds}</select></td></tr>
   <tr><td>Ladung (Adamant / Psikristall / Promethium)</td><td>${cargoFields} <span class="lnk" data-act="cmax">alles (gleichmäßig)</span></td></tr>
   <tr><td>Entfernung</td><td id="i_dist">-</td></tr><tr><td>Flugdauer (eine Richtung)</td><td id="i_dur">-</td></tr>
@@ -225,6 +252,10 @@ const MARKS = [
   'Alle Flottenslots belegt',
   ' / 1 Slots)',
   ' / 13 Slots)',
+  // The „Schnellwahl“ (#253): with a planet and with a moon; and no row.
+  '– wählen –</option><option value="p',
+  'Ort (Mond) [',
+  '</span></td></tr><tr><td>Auftrag</td>',
 ];
 
 const SAMPLE = { seed: 118, numRuns: 300 };

@@ -6,7 +6,9 @@
   // the player types. The list „Auftrag“ shows `page.missions`, every
   // mission, until main.ts aims the form at its target (aimFleet() of
   // fleet.ts): then only the missions that fit it (#253), or „Ziel wird
-  // geprüft …“ and no sending while the target is not known.
+  // geprüft …“ and no sending while the target is not known. Without a
+  // mission that fits (the start planet as target) nothing is sent either.
+  // The „Schnellwahl“ enters an own planet or moon as the target.
   import type { FleetPage, MissionChoice } from '../logic/fleet.ts';
   import FleetMoves from './FleetMoves.svelte';
 
@@ -15,6 +17,26 @@
   let aimed = $state<MissionChoice>();
   const missions = $derived((aimed ?? choice)?.options ?? page.missions);
   const checking = $derived(!!(aimed ?? choice)?.checking);
+  /** No mission to send: the target is being checked, or none fits it. */
+  const blocked = $derived(checking || !missions.length);
+
+  /**
+   * The „Schnellwahl“: a chosen place is entered into the fields of the
+   * target, and the list goes back to „– wählen –“. The listener is on the
+   * list itself, so it runs before the one of main.ts on the document,
+   * which then updates the target, the missions and the preview.
+   */
+  function quick(select: HTMLSelectElement) {
+    const enter = (): void => {
+      const place = page.quick.find((q) => q.value === select.value);
+      if (!place) return;
+      for (const [id, value] of Object.entries(place.fields))
+        (document.getElementById(id) as HTMLInputElement).value = value;
+      select.value = '';
+    };
+    select.addEventListener('change', enter);
+    return { destroy: () => select.removeEventListener('change', enter) };
+  }
 
   /** Shows the missions of this choice in the list „Auftrag“. */
   export function aim(next: MissionChoice): void {
@@ -108,6 +130,19 @@
               <span id="t_info" class="dim"></span></td
             >
           </tr>
+          {#if page.quick.length}
+            <tr>
+              <td>Schnellwahl</td>
+              <td
+                ><select id="t_q" aria-label="Schnellwahl" use:quick
+                  ><option value="">– wählen –</option
+                  >{#each page.quick as place (place.value)}<option
+                      value={place.value}>{place.label}</option
+                    >{/each}</select
+                ></td
+              >
+            </tr>
+          {/if}
           <tr>
             <td>Auftrag</td>
             <td
@@ -161,7 +196,7 @@
         </tbody>
       </table>
       <div class="mt10">
-        <button data-act="send" disabled={page.full || checking}
+        <button data-act="send" disabled={page.full || blocked}
           >Flotte losschicken</button
         >
         {#if page.full}<span class="bad"

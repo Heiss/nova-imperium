@@ -14,6 +14,7 @@ import {
   missionChoice,
   missionOptions,
   previewCells,
+  quickTargets,
   targetInfo,
   targetSite,
 } from './fleet.ts';
@@ -225,11 +226,13 @@ describe('targetSite (#253)', () => {
       planet: foreign,
       debris: false,
       moon: false,
+      start: false,
     });
     expect(targetSite(s, to(5, 'planet'))).toEqual({
       planet: own,
       debris: false,
       moon: false,
+      start: false,
     });
   });
 
@@ -238,11 +241,13 @@ describe('targetSite (#253)', () => {
       planet: moon,
       debris: false,
       moon: true,
+      start: false,
     });
     expect(targetSite(s, to(5, 'moon'))).toEqual({
       planet: null,
       debris: false,
       moon: true,
+      start: false,
     });
   });
 
@@ -251,6 +256,7 @@ describe('targetSite (#253)', () => {
       planet: null,
       debris: false,
       moon: false,
+      start: false,
     });
     expect(targetSite(s, to(7)).debris).toBe(true);
     expect(targetSite(s, to(7)).planet?.owner).toBe('u2');
@@ -258,7 +264,87 @@ describe('targetSite (#253)', () => {
       planet: null,
       debris: true,
       moon: false,
+      start: false,
     });
+  });
+});
+
+describe('targetSite of the place the fleet starts from (owner, 2026-11-17)', () => {
+  const home = place('planet', 5, 'u1');
+  const luna = place('moon', 5, 'u1', 'Luna');
+  const base = view({ galaxy: [home, luna, place('planet', 6, 'u1')] }).s;
+  const from = (planet: GalaxyPlanet): GameState =>
+    ({ ...base, planet }) as unknown as GameState;
+  const to = (p: number, kind?: 'planet' | 'moon') =>
+    form('deploy', p, kind).to;
+
+  it('marks the shown planet as the start, no other place', () => {
+    expect(targetSite(from(home), to(5)).start).toBe(true);
+    expect(targetSite(from(home), to(5, 'moon')).start).toBe(false);
+    expect(targetSite(from(home), to(6)).start).toBe(false);
+    expect(targetSite(from(home), to(9)).start).toBe(false);
+  });
+
+  it('marks the shown moon as the start, not its planet', () => {
+    expect(targetSite(from(luna), to(5, 'moon')).start).toBe(true);
+    expect(targetSite(from(luna), to(5)).start).toBe(false);
+  });
+
+  it('offers no mission to the start, and the others elsewhere', () => {
+    const s = from(home);
+    expect(missionChoice('u1', targetSite(s, to(5)), 'deploy')).toEqual({
+      checking: false,
+      options: [],
+      mission: '',
+    });
+    expect(missionChoice('u1', targetSite(s, to(6)), 'deploy').mission).toBe(
+      'deploy',
+    );
+    expect(
+      missionChoice('u1', targetSite(s, to(5, 'moon')), 'deploy').mission,
+    ).toBe('deploy');
+  });
+});
+
+describe('quickTargets (#253, owner, 2026-11-17)', () => {
+  const galaxy = [
+    place('planet', 8, 'u1', 'Kolonie <8>'),
+    place('moon', 5, 'u1', 'Luna'),
+    place('planet', 5, 'u1', 'Heimat'),
+    place('planet', 6, 'u2', 'Fremd'),
+    place('moon', 6, 'u2', 'Fremdmond'),
+  ];
+
+  it('lists the other own planets and moons, each moon after its planet', () => {
+    expect(quickTargets(view({ galaxy }))).toEqual([
+      {
+        value: 'm1_2_5',
+        label: 'Luna (Mond) [1:2:5]',
+        fields: { t_g: '1', t_s: '2', t_p: '5', t_k: 'moon' },
+      },
+      {
+        value: 'p1_2_8',
+        label: 'Kolonie <8> [1:2:8]',
+        fields: { t_g: '1', t_s: '2', t_p: '8', t_k: 'planet' },
+      },
+    ]);
+  });
+
+  it('leaves out the moon the fleet starts from, not its planet', () => {
+    const v = view({ galaxy });
+    const moon = { ...v, P: { ...v.P, id: 'm1_2_5' } };
+    expect(quickTargets(moon).map((q) => q.value)).toEqual([
+      'p1_2_5',
+      'p1_2_8',
+    ]);
+  });
+
+  it('is empty without another own place, and part of the page', () => {
+    expect(quickTargets(view({ galaxy: [galaxy[2]!, galaxy[3]!] }))).toEqual(
+      [],
+    );
+    const v = view({ galaxy });
+    expect(fleetPage(v).quick).toEqual(quickTargets(v));
   });
 });
 

@@ -3,19 +3,21 @@
 // the ships to choose, and the form of target, mission, speed and cargo
 // (#240). Also what main.ts writes beside the form while the player types:
 // the target (#45, #53) and the preview of the flight, and the missions
-// the list „Auftrag“ offers for the target (#253).
+// the list „Auftrag“ offers for the target (#253), with the „Schnellwahl“
+// of the own planets and moons as targets.
 import { canFly, SHIPS } from '../../core/catalog.ts';
 import { fleetSlots, shipSpeed } from '../../core/flight.ts';
 import { missionsFor, type TargetSite } from '../../core/mission-choice.ts';
 import { MISSION, missionRules } from '../../core/missions.ts';
+import { placeName } from '../../core/moon.ts';
 import { placeId } from '../../core/place.ts';
 import { text } from '../../core/text.ts';
 import type { Resources } from '../../core/types.ts';
 import type { V } from '../views/common.ts';
 import { debrisAt, debrisTip } from './debris.ts';
-import { dt, dur, esc, fmt } from './format.ts';
+import { coords, dt, dur, esc, fmt } from './format.ts';
 import { type FleetForm, type FleetPreview, nameOf } from './game.ts';
-import { moonAt, moonTarget } from './moon.ts';
+import { moonAt, moonTarget, ownPlaces } from './moon.ts';
 import { type FleetRow, fleetRows } from './overview.ts';
 import type { GalaxyPlanet, GameState } from './types.ts';
 
@@ -55,6 +57,16 @@ interface FleetTarget {
   toMoon: boolean;
 }
 
+/** An own planet or moon of the „Schnellwahl“ (#253, owner, 2026-11-17). */
+export interface QuickTarget {
+  /** The id of the place. */
+  value: string;
+  /** „Name [g:s:p]“, a moon as „Name (Mond) [g:s:p]“. */
+  label: string;
+  /** What choosing it enters into the fields of the target, by their ids. */
+  fields: Record<'t_g' | 't_s' | 't_p' | 't_k', string>;
+}
+
 export interface FleetPage {
   /** „used / slots“ of the fleet slots. */
   slots: string;
@@ -62,6 +74,8 @@ export interface FleetPage {
   /** Empty: the planet has no ship that flies, and there is no form. */
   ships: FleetShip[];
   target: FleetTarget;
+  /** The other own planets and moons; without one there is no „Schnellwahl“. */
+  quick: QuickTarget[];
   /**
    * Every mission, the chosen one selected: the list as it is mounted,
    * before main.ts aims it at the target of the form (`missionChoice`).
@@ -107,12 +121,37 @@ const placeAt = (
     ? moonAt(s.galaxy, to)
     : s.galaxy.find((p) => p.id === placeId({ ...to, kind: 'planet' }));
 
-/** What is at the target of the form, as the missions ask (#253). */
-export const targetSite = (s: GameState, to: FleetForm['to']): TargetSite => ({
-  planet: placeAt(s, to) ?? null,
-  debris: !!debrisAt(s.debris, to),
-  moon: to.kind === 'moon',
-});
+/**
+ * What is at the target of the form, as the missions ask (#253); the
+ * shown planet is the place the fleet starts from.
+ */
+export function targetSite(s: GameState, to: FleetForm['to']): TargetSite {
+  const planet = placeAt(s, to);
+  return {
+    planet: planet ?? null,
+    debris: !!debrisAt(s.debris, to),
+    moon: to.kind === 'moon',
+    start: !!planet && planet.id === s.planet?.id,
+  };
+}
+
+/**
+ * The „Schnellwahl“: the player's planets and moons without the place the
+ * fleet starts from, each moon after its planet.
+ */
+export const quickTargets = ({ s, P }: V): QuickTarget[] =>
+  ownPlaces(s.galaxy, s.me.id)
+    .filter((x) => x.id !== P.id)
+    .map((x) => ({
+      value: x.id,
+      label: `${placeName(x)} ${coords(x)}`,
+      fields: {
+        t_g: String(x.g),
+        t_s: String(x.s),
+        t_p: String(x.p),
+        t_k: x.kind === 'moon' ? 'moon' : 'planet',
+      },
+    }));
 
 /** The list „Auftrag“ for the target of the form (#253). */
 export interface MissionChoice {
@@ -123,7 +162,7 @@ export interface MissionChoice {
   checking: boolean;
   /** The missions that fit the target, the shown one selected. */
   options: FleetOption[];
-  /** The mission the list shows; empty without one. */
+  /** The mission the list shows; empty without one, and nothing is sent. */
   mission: string;
 }
 
@@ -188,6 +227,7 @@ export function fleetPage(v: V): FleetPage {
     fleets: fleetRows(v, false),
     ships: fleetShips(v),
     target: fleetTarget(v),
+    quick: quickTargets(v),
     missions: missionOptions(v.ui.fm),
     speeds: SPEEDS,
     cargo: CARGO_FIELDS,

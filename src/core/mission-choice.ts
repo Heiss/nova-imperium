@@ -19,18 +19,26 @@ export interface TargetSite {
   debris: boolean;
   /** Whether the fleet flies to the moon of the position; missing: the planet. */
   moon?: boolean;
+  /**
+   * Whether `planet` is the place the fleet starts from: no mission flies
+   * to its own start (owner, 2026-11-17).
+   */
+  start?: boolean;
 }
 
 /**
  * The missions whose target kind fits the site for a fleet of `owner`, in
  * the order of the fleet form. A moon as target is decided by the moon's
- * own target kind: no free position and no Trümmerfeld is a moon.
+ * own target kind: no free position and no Trümmerfeld is a moon. The place
+ * the fleet starts from takes no mission; a Trümmerfeld beside it is a
+ * place of its own (#119) and keeps its Bergung.
  */
 export const missionsFor = (owner: string, site: TargetSite): Mission[] =>
   (Object.keys(MISSION) as Mission[]).filter((m) => {
     const kind = missionRules(m)!.target;
     return (
       !shunsMoon(kind, site.moon) &&
+      (kind === 'debris' || !site.start) &&
       suits(kind, owner, site.planet, site.debris)
     );
   });

@@ -58,6 +58,29 @@ describe('missionsFor', () => {
     );
   });
 
+  it('offers no mission to the place the fleet starts from (owner, 2026-11-17)', () => {
+    expect(missionsFor('a', site({ planet: own, start: true }))).toEqual([]);
+    expect(
+      missionsFor('a', site({ planet: own, start: true, moon: true })),
+    ).toEqual([]);
+    // Another own planet keeps its missions.
+    expect(missionsFor('a', site({ planet: own, start: false }))).toEqual(
+      ofKinds('own', 'any'),
+    );
+  });
+
+  it('keeps the Bergung of a Trümmerfeld beside the start planet (#119)', () => {
+    expect(
+      missionsFor('a', site({ planet: own, start: true, debris: true })),
+    ).toEqual(ofKinds('debris'));
+    expect(
+      missionsFor(
+        'a',
+        site({ planet: own, start: true, debris: true, moon: true }),
+      ),
+    ).toEqual([]);
+  });
+
   it('decides own and foreign by the owner of the fleet', () => {
     expect(missionsFor('b', site({ planet: foreign }))).toEqual(
       ofKinds('own', 'any'),
