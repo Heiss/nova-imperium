@@ -2,12 +2,14 @@
 // change“ of the issue; each migration step changes no behaviour, owner,
 // 2026-11-13). The old views are frozen here: research(), shipyard() and
 // defense() of src/client/views/economy.ts and yard.ts with itemHTML() of
-// common.ts, and src/test/catalog-reference/Buildings.svelte. On generated
-// states (fixed fast-check seed 118) both render the same markup, up to what
-// a browser does not show: Svelte's comments, the order of the attributes,
-// the escaping of >, " and ' (an escaped < and & stay escaped, so a name
-// shown as text never equals markup), the <tbody> that a table gets anyway,
-// and white space next to a block or a line break.
+// common.ts, and src/test/catalog-reference/Buildings.svelte, with
+// buildState() and researchState() of src/client/logic/game.ts before #214
+// in src/test/catalog-reference/states.ts (the checks of #214 change no note
+// of a list). On generated states (fixed fast-check seed 118) both render
+// the same markup, up to what a browser does not show: Svelte's comments,
+// the order of the attributes, the escaping of >, " and ' (an escaped < and
+// & stay escaped, so a name shown as text never equals markup), the <tbody>
+// that a table gets anyway, and white space next to a block or a line break.
 import fc from 'fast-check';
 import { render } from 'svelte/server';
 import { readable } from 'svelte/store';
@@ -48,7 +50,7 @@ import {
   explanation,
 } from '../client/logic/explain.ts';
 import { dur, esc, fmt } from '../client/logic/format.ts';
-import { researchState } from '../client/logic/game.ts';
+import { researchState } from './catalog-reference/states.ts';
 import { iconURL } from '../client/logic/icons.ts';
 import { client } from '../client/logic/state.svelte.ts';
 import type { GameState } from '../client/logic/types.ts';
