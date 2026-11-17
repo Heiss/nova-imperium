@@ -25,6 +25,7 @@ export const ABANDON_LOCK_SETTING = {
   key: 'roundAbandonLock',
   name: 'abandonLock',
   label: 'Sperre einer aufgegebenen Position (Stunden)',
+  order: 50,
   min: ABANDON_LOCK_HOURS.min,
   max: ABANDON_LOCK_HOURS.max,
   def: ABANDON_LOCK_HOURS.default,

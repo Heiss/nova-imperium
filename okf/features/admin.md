@@ -132,14 +132,19 @@ universe settings) and their ranges are not decided yet.
   `src/core/round.ts`. The dialog „Neue Runde“ (`roundDialog`), the
   universe settings (`UNIVERSE_SPECS`), the request „reset“
   (`src/client/round-actions.ts`), the reset action and `roundRules()`
-  (`src/server/game/round.ts`) all read it. On main it holds the lock of
-  a given-up position (#224, `ABANDON_LOCK_SETTING` in
-  `src/core/abandon.ts`), the reward options „Achievements aktivieren“ and
-  „Tagesbelohnungen aktivieren“ (one group `rewards`, one fieldset), the
-  switch „Gilden (mit Chat)“ and the lock of the main planet; their texts,
-  ranges, defaults and refusals are those of before. Sorted by key, the
-  lock of a given-up position is the first field of the dialog and the
-  first setting the server checks; before #283 it was the last.
+  (`src/server/game/round.ts`) all read it. On main it holds the reward
+  options „Achievements aktivieren“ and „Tagesbelohnungen aktivieren“ (one
+  group `rewards`, one fieldset), the switch „Gilden (mit Chat)“, the lock
+  of the main planet and the lock of a given-up position (#224,
+  `ABANDON_LOCK_SETTING` in `src/core/abandon.ts`); their texts, ranges,
+  defaults, refusals and order are those of before.
+* **[E]** The registry keeps a fixed order, so #283 changes nothing
+  visible (owner, 2026-11-17): every entry has an explicit number `order`,
+  like the catalog entries, and the dialog „Neue Runde“ and the order of
+  the refusals follow it. The order is that of main before #283: the
+  reward options (10, 20), the guild switch (30), the lock of the main
+  planet (40), the lock of a given-up position (50, last). A new feature
+  appends at the end with its own number.
 * **[V]** An entry has its stored `key` (`round…`), its `name` in
   `RoundRules` and in the request, its German `label`, and is either a
   switch (`kind: 'switch'`, default yes or no, a `refusal`, an optional
@@ -159,11 +164,15 @@ universe settings) and their ranges are not decided yet.
   universe settings as before; the other four are not live.
 * **[V]** A feature with a value per round adds one entry in its own file
   (`export const X_SETTING = { … } as const satisfies RoundSetting`) and
-  one line to `ROUND_SETTINGS`, sorted by key (a test checks the order, so
-  parallel branches insert at different places); `RoundRules` gets the
-  typed value from the entry by itself. The dialog shows the entries in
-  the order of the registry, the field id is `round-` and the name in
-  kebab case (`mainLock` is `round-main-lock`).
+  one line to the list `ENTRIES` in `src/core/round.ts`, where the place
+  of the line means nothing; `RoundRules` gets the typed value from the
+  entry by itself. The feature picks its `order` number as the next free
+  ten above the highest number of the registry (60 after the 50 of main),
+  so it stands last in the dialog and among the refusals; the members of
+  a group take neighbouring numbers. A test refuses a number used twice,
+  so two parallel features that picked the same one see it after the
+  merge, and the later one takes the next ten. The field id is `round-`
+  and the name in kebab case (`mainLock` is `round-main-lock`).
 
 # Round rewards and menu hints
 

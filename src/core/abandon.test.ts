@@ -63,6 +63,7 @@ describe('the lock length of a round', () => {
       key: 'roundAbandonLock',
       name: 'abandonLock',
       label: 'Sperre einer aufgegebenen Position (Stunden)',
+      order: 50,
       min: 1,
       max: 720,
       def: 24,

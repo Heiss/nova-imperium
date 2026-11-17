@@ -22,6 +22,7 @@ const HOURS: RoundNumber<'testHours'> = {
   key: 'roundTestHours',
   name: 'testHours',
   label: 'Testdauer (Stunden)',
+  order: 60,
   min: 1,
   max: 720,
   def: 24,
@@ -34,6 +35,7 @@ const CHOICE: RoundNumber<'testChoice'> = {
   key: 'roundTestChoice',
   name: 'testChoice',
   label: 'Testauswahl',
+  order: 70,
   min: 1,
   max: 3,
   def: 3,
@@ -163,5 +165,34 @@ describe('a new entry of the registry (#283)', () => {
       row,
     ]);
     expect(UNIVERSE_SPECS.at(-1)).toEqual(row);
+  });
+
+  it('a new round refuses in the fixed order of main (owner, 2026-11-17)', () => {
+    const ctx = testCtx();
+    const wrong: Record<string, unknown> = {
+      rewards: {},
+      guilds: 'no',
+      mainLock: 0,
+      abandonLock: 0,
+    };
+    for (const [name, text] of [
+      [
+        'rewards',
+        'Bitte beide Belohnungseinstellungen für die neue Runde auswählen.',
+      ],
+      ['guilds', 'Bitte auswählen, ob Gilden in der neuen Runde an sind.'],
+      [
+        'mainLock',
+        'Bitte für die Sperre des Hauptplaneten 1 bis 30 ganze Tage angeben.',
+      ],
+      [
+        'abandonLock',
+        'Bitte für die Sperre einer aufgegebenen Position 1 bis 720 ganze Stunden angeben.',
+      ],
+    ] as const) {
+      expect(() => startRoundRules(ctx, wrong)).toThrow(new Error(text));
+      delete wrong[name];
+    }
+    expect(roundRules(ctx).number).toBe(1);
   });
 });

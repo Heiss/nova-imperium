@@ -49,6 +49,20 @@ describe('the dialog „Neue Runde“', () => {
     abandonLock: 24,
   };
 
+  it('shows the fields in the fixed order of main (owner, 2026-11-17)', () => {
+    const html = roundDialog({ ...rules, guilds: true });
+    expect(
+      [...html.matchAll(/ id="(round-[a-z-]+)"/g)].map((m) => m[1]),
+    ).toEqual([
+      'round-achievements',
+      'round-daily',
+      'round-guilds',
+      'round-guilds-note',
+      'round-main-lock',
+      'round-abandon-lock',
+    ]);
+  });
+
   it('has one box „Gilden (mit Chat)“, preselected with the current round (#191)', () => {
     const on = box(roundDialog({ ...rules, guilds: true }));
     expect(on).toContain('Gilden (mit Chat)');
@@ -96,9 +110,8 @@ describe('the lock of a given-up position in the dialog „Neue Runde“ (#224)'
       expect(html).toContain(
         `<label for="round-abandon-lock">Sperre einer aufgegebenen Position (Stunden)</label> <input type="number" id="round-abandon-lock" min="1" max="720" step="1" value="${abandonLock}" required> <span class="dim">1 bis 720</span>`,
       );
-      // The registry is sorted by key (#283), so this lock stands first.
-      expect(html.indexOf('id="round-abandon-lock"')).toBeLessThan(
-        html.indexOf('id="round-achievements"'),
+      expect(html.indexOf('id="round-main-lock"')).toBeLessThan(
+        html.indexOf('id="round-abandon-lock"'),
       );
       expect(html.indexOf('id="round-abandon-lock"')).toBeLessThan(
         html.indexOf('data-act="doReset"'),
@@ -213,6 +226,7 @@ describe('a new setting of the round in both places (#283)', () => {
     key: 'roundTestHours',
     name: 'testHours',
     label: 'Testdauer (Stunden)',
+    order: 60,
     min: 1,
     max: 720,
     def: 24,
@@ -223,6 +237,7 @@ describe('a new setting of the round in both places (#283)', () => {
     key: 'roundTestAllies',
     name: 'testAllies',
     label: 'Halten erlaubt für',
+    order: 70,
     min: 1,
     max: 3,
     def: 3,

@@ -14,6 +14,7 @@ export const GUILDS_SETTING = {
   key: 'roundGuilds',
   name: 'guilds',
   label: 'Gilden (mit Chat)',
+  order: 30,
   def: true,
   refusal: 'Bitte auswählen, ob Gilden in der neuen Runde an sind.',
   note: 'Eine neue Runde leert alle Gilden-Chats. Ohne Gilden werden alle Gilden mit Mitgliedern, Bewerbungen, Rängen und Chat gelöscht.',

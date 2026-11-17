@@ -1,8 +1,9 @@
 // The settings of a round (#283, patterns, section 7): one registry that the
 // dialog „Neue Runde“, the universe settings, the reset action and
 // `roundRules()` all read. A feature with a value per round adds one entry
-// in its own file and one line to `ROUND_SETTINGS`; it edits none of the
-// shared places. An entry is a switch (yes or no) or a whole number in a
+// in its own file, with its own `order` number, and one line to the list
+// below; it edits none of the shared places. The order is fixed (owner,
+// 2026-11-17): the dialog and the refusals follow the `order` numbers. An entry is a switch (yes or no) or a whole number in a
 // range, shown as a number field or, with `choices`, as a selection. Every
 // value is stored under its `key` in the settings; a value the admin does
 // not send keeps the one of the current round. The server words a refusal
@@ -30,6 +31,12 @@ interface Common<N extends string> {
   name: N;
   /** The German label in the dialog „Neue Runde“ (and the universe settings). */
   label: string;
+  /**
+   * The place in the dialog „Neue Runde“ and among the refusals, ascending
+   * and unique (a test checks it), like the catalog entries. A new feature
+   * takes the next free ten above the highest number, so it stands last.
+   */
+  order: number;
   group?: RoundGroup;
 }
 
@@ -59,12 +66,8 @@ export interface RoundNumber<N extends string = string> extends Common<N> {
 
 export type RoundSetting = RoundSwitch | RoundNumber;
 
-/**
- * The registry, sorted by `key` (a test checks it), so that features
- * adding a line do not collide; the dialog shows the entries in this order.
- * The members of a group stand together.
- */
-export const ROUND_SETTINGS = [
+/** The entries as the features add them; their place here means nothing. */
+const ENTRIES = [
   ABANDON_LOCK_SETTING,
   ACHIEVEMENTS_SETTING,
   DAILY_SETTING,
@@ -72,11 +75,23 @@ export const ROUND_SETTINGS = [
   MAIN_LOCK_SETTING,
 ] as const satisfies readonly RoundSetting[];
 
+/** The settings by their `order` number, the fixed order (owner, 2026-11-17). */
+const byOrder = <S extends RoundSetting>(settings: readonly S[]): S[] =>
+  [...settings].sort((a, b) => a.order - b.order);
+
+/**
+ * The registry in the order of the `order` numbers: the dialog shows the
+ * entries in this order and the server checks them in it. The members of a
+ * group stand together.
+ */
+export const ROUND_SETTINGS: readonly (typeof ENTRIES)[number][] =
+  byOrder(ENTRIES);
+
 type ValueOf<S> = S extends { kind: 'switch' } ? boolean : number;
 
 /** The value of every entry by its `name`. */
 type RoundValues = {
-  -readonly [S in (typeof ROUND_SETTINGS)[number] as S['name']]: ValueOf<S>;
+  -readonly [S in (typeof ENTRIES)[number] as S['name']]: ValueOf<S>;
 };
 
 /** The rules of the current round: its number and the value of every entry. */

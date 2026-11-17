@@ -24,6 +24,7 @@ export const MAIN_LOCK_SETTING = {
   key: 'roundMainLock',
   name: 'mainLock',
   label: 'Sperre nach einem Wechsel des Hauptplaneten (Tage)',
+  order: 40,
   min: MAIN_LOCK_DAYS.min,
   max: MAIN_LOCK_DAYS.max,
   def: MAIN_LOCK_DAYS.default,

@@ -38,16 +38,19 @@ const code = (rewards: unknown, guilds: unknown): string | null =>
   refused(rewards, guilds)[0] ?? null;
 
 describe('the registry of the round settings', () => {
-  it('holds the settings of main, sorted by key, with unique keys and names', () => {
-    expect(ROUND_SETTINGS.map((s) => [s.key, s.name])).toEqual([
-      ['roundAbandonLock', 'abandonLock'],
-      ['roundAchievements', 'achievements'],
-      ['roundDaily', 'daily'],
-      ['roundGuilds', 'guilds'],
-      ['roundMainLock', 'mainLock'],
+  it('holds the settings of main in the fixed order of their numbers, with unique numbers, keys and names', () => {
+    // Owner, 2026-11-17: the order of main before #283; a new one is last.
+    expect(ROUND_SETTINGS.map((s) => [s.order, s.key, s.name])).toEqual([
+      [10, 'roundAchievements', 'achievements'],
+      [20, 'roundDaily', 'daily'],
+      [30, 'roundGuilds', 'guilds'],
+      [40, 'roundMainLock', 'mainLock'],
+      [50, 'roundAbandonLock', 'abandonLock'],
     ]);
+    const orders = ROUND_SETTINGS.map((s) => s.order);
+    expect(new Set(orders).size).toBe(orders.length);
+    expect(orders.every((o) => Number.isInteger(o) && o > 0)).toBe(true);
     const keys = ROUND_SETTINGS.map((s) => s.key);
-    expect([...keys].sort()).toEqual(keys);
     expect(new Set(keys).size).toBe(keys.length);
     expect(new Set(ROUND_SETTINGS.map((s) => s.name)).size).toBe(keys.length);
   });
@@ -72,11 +75,11 @@ describe('the registry of the round settings', () => {
 
   it('names the field of the dialog after the setting', () => {
     expect(ROUND_SETTINGS.map(roundFieldId)).toEqual([
-      'round-abandon-lock',
       'round-achievements',
       'round-daily',
       'round-guilds',
       'round-main-lock',
+      'round-abandon-lock',
     ]);
   });
 
@@ -178,11 +181,15 @@ describe('the check of a new round', () => {
       expect(refused(both, true, 7, abandonLock)).toEqual([]);
   });
 
-  it('names the first refused setting in the order of the registry', () => {
+  it('names the reward options first, then the guild switch, then the lock of the main planet, then the lock of a given-up position', () => {
     expect(code({ achievements: true }, 'no')).toBe('rewards');
+    expect(refused({}, 'no', 0, 0)).toEqual(['rewards', 'rewards']);
     expect(code(undefined, 'no')).toBe('guilds');
-    expect(refused(undefined, 'no', 0)).toEqual(['guilds']);
-    expect(refused({}, 'no', 0, 0)).toEqual(['abandonLock']);
+    expect(refused(undefined, 'no', 0, 0)).toEqual(['guilds']);
+    expect(refused(undefined, undefined, 0, 0)).toEqual(['mainLock']);
+    expect(refused(undefined, undefined, undefined, 0)).toEqual([
+      'abandonLock',
+    ]);
   });
 
   it('refuses the wrong members of a group together, once per group', () => {
