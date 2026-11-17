@@ -3,6 +3,9 @@ import { countUnits } from '../../core/flight.ts';
 import { text } from '../../core/text.ts';
 import type { Coords, Levels, Resources } from '../../core/types.ts';
 import type { Debris } from '../../core/debris.ts';
+import type { RoundRules } from '../../core/achievements.ts';
+import type { PlanetActivity } from '../../core/activity.ts';
+import { spyActivityText } from '../logic/activity.ts';
 import { debrisLine } from '../logic/debris.ts';
 import { moonLines } from '../logic/moon.ts';
 import { coords, dt, esc, fmt, resLine, techLine } from '../logic/format.ts';
@@ -62,7 +65,18 @@ function section(title: string, o: unknown, keys: string[]): string {
   return `<div class="mt"><b>${title}</b><br>${list || '<span class="dim">keine</span>'}</div>`;
 }
 
-function spyBody(r: Report): string {
+/** The activity of the target, in reports since #175. */
+function spyActivity(r: Report, round: Pick<RoundRules, 'activity'>): string {
+  const words = spyActivityText(
+    r.activity as PlanetActivity | null | undefined,
+    round,
+  );
+  return words === null
+    ? ''
+    : `<div class="mt"><b>Aktivität</b><br>${esc(words)}</div>`;
+}
+
+function spyBody(r: Report, round: Pick<RoundRules, 'activity'>): string {
   const lost = r.lost
     ? ' – <span class="bad">deine Spähschädel wurden zerstört!</span>'
     : '';
@@ -71,13 +85,13 @@ function spyBody(r: Report): string {
       ? ' · Mehr Spähschädel oder Auspex-Lehre zeigen mehr Details.'
       : '';
   return `<div>Rohstoffe auf ${esc(r.name)} ${coords(r.coords as Coords)} (Spieler ${esc(r.defName)}):<br><b>${resLine(r.res as Resources)}</b></div>
-   ${section('Flotte', r.ships, Object.keys(SHIPS))}${section('Verteidigung', r.def, Object.keys(DEF))}${section('Gebäude', r.b, Object.keys(BUILD))}${section('Forschung', r.r, Object.keys(RES))}
+   ${spyActivity(r, round)}${section('Flotte', r.ships, Object.keys(SHIPS))}${section('Verteidigung', r.def, Object.keys(DEF))}${section('Gebäude', r.b, Object.keys(BUILD))}${section('Forschung', r.r, Object.keys(RES))}
    <div class="dim mt">Chance auf Auspex-Abwehr: ${esc(r.counter)} %${lost}${hint}</div>`;
 }
 
-function reportBody(r: Report): string {
+function reportBody(r: Report, round: Pick<RoundRules, 'activity'>): string {
   if (r.type === 'battle') return battleBody(r);
-  if (r.type === 'spy') return spyBody(r);
+  if (r.type === 'spy') return spyBody(r, round);
   if (typeof r.news === 'string')
     return updateMessageHTML(String(r.text ?? ''), '?view=news');
   return `<div>${esc(r.text)}</div>`;
@@ -85,7 +99,7 @@ function reportBody(r: Report): string {
 
 function reportHTML(v: V, r: Report, readAt: number): string {
   const cls = `rep ${r.time > readAt ? 'new' : ''} ${v.ui.openRep[r.id] ? 'open' : ''}`;
-  return `<div class="${cls}" id="rep_${esc(r.id)}"><div class="t" data-act="toggleRep" data-id="${esc(r.id)}"><b>${esc(r.title)}</b><span class="dim">${dt(r.time)} <span class="lnk" data-act="delrep" data-id="${esc(r.id)}">löschen</span></span></div><div class="b">${reportBody(r)}</div></div>`;
+  return `<div class="${cls}" id="rep_${esc(r.id)}"><div class="t" data-act="toggleRep" data-id="${esc(r.id)}"><b>${esc(r.title)}</b><span class="dim">${dt(r.time)} <span class="lnk" data-act="delrep" data-id="${esc(r.id)}">löschen</span></span></div><div class="b">${reportBody(r, v.s.round)}</div></div>`;
 }
 
 export function messages(v: V): string {

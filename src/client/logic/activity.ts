@@ -75,3 +75,19 @@ export const activityMark = (
 /** The marker after a player's name on the Sternenkarte, or nothing. */
 export const inactivityMark = (i: Inactivity | undefined): string =>
   i ? ` <span class="dim">(${INACTIVITY_TEXT[i]})</span>` : '';
+
+/**
+ * The activity in the Auspex-Bericht (#175 D5, Q3): the words of the
+ * Sternenkarte, or „Keine Aktivität in der letzten Stunde.“ [V] without one;
+ * nothing for a report from before #175, which has no activity.
+ */
+export const spyActivityText = (
+  a: PlanetActivity | null | undefined,
+  round: Pick<RoundRules, 'activity'>,
+): string | null => {
+  if (a === undefined) return null;
+  return a ? activityText(a, round.activity) : NO_ACTIVITY;
+};
+
+/** The words of a report without activity in the last hour [V]. */
+export const NO_ACTIVITY = 'Keine Aktivität in der letzten Stunde.';

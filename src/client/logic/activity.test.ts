@@ -9,6 +9,8 @@ import {
   activityNumbers,
   activityText,
   inactivityMark,
+  NO_ACTIVITY,
+  spyActivityText,
 } from './activity.ts';
 
 const limits = { recent: 15 };
@@ -42,6 +44,23 @@ describe('the words of a planet’s activity', () => {
       ' <span class="dim">(Aktivität vor weniger als 10 Minuten)</span>',
     );
     expect(activityMark(undefined, round)).toBe('');
+  });
+});
+
+describe('the activity in the Auspex-Bericht (#175 D5, Q3)', () => {
+  const round = { activity: { ...ACTIVITY_DEFAULT } };
+  it('has the words of the Sternenkarte', () => {
+    expect(spyActivityText({ recent: true }, round)).toBe(
+      'Aktivität vor weniger als 15 Minuten',
+    );
+    expect(spyActivityText({ minutes: 42 }, round)).toBe(
+      'Aktivität vor 42 Minuten',
+    );
+  });
+  it('says so without activity, nothing in a report from before', () => {
+    expect(NO_ACTIVITY).toBe('Keine Aktivität in der letzten Stunde.');
+    expect(spyActivityText(null, round)).toBe(NO_ACTIVITY);
+    expect(spyActivityText(undefined, round)).toBeNull();
   });
 });
 

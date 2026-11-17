@@ -73,8 +73,31 @@ const SPY_LEVELS: [number, 'ships' | 'def' | 'b' | 'r'][] = [
   [7, 'r'],
 ];
 
+/** The defender always learns from where they were spied on, and the chance. */
+function warn(
+  ctx: Ctx,
+  f: Fleet,
+  { t, att }: Arrival,
+  counter: number,
+  lost: boolean,
+): void {
+  const text = `Eine fremde Flotte von ${att.name} ${coords(f.fromC)} wurde in der Nähe deines Planeten ${placeName(t)} ${coords(f.toC)} gesichtet. Chance auf Auspex-Abwehr: ${counter} %.${lost ? ' Die Spähschädel wurden abgeschossen!' : ''}`;
+  addReport(
+    ctx,
+    t.owner,
+    {
+      time: f.arr,
+      type: 'info',
+      title: 'Auspex-Aktivität',
+      participants: [f.owner, t.owner],
+      text,
+    },
+    { topic: 'spied' },
+  );
+}
+
 export function onArrive(ctx: Ctx, f: Fleet, at: Arrival): void {
-  const { t, att, def } = at;
+  const { t, def } = at;
   const { attR, defR } = researchAt(at, f.arr);
   const diff = (attR.spy ?? 0) - (defR.spy ?? 0);
   const score = spyScore(f.ships.probe ?? 0, diff);
@@ -112,19 +135,7 @@ export function onArrive(ctx: Ctx, f: Fleet, at: Arrival): void {
       },
       { topic: 'fleet' },
     );
-  const text = `Eine fremde Flotte von ${att.name} ${coords(f.fromC)} wurde in der Nähe deines Planeten ${placeName(t)} ${coords(f.toC)} gesichtet. Chance auf Auspex-Abwehr: ${counter} %.${lost ? ' Die Spähschädel wurden abgeschossen!' : ''}`;
-  addReport(
-    ctx,
-    t.owner,
-    {
-      time: f.arr,
-      type: 'info',
-      title: 'Auspex-Aktivität',
-      participants: [f.owner, t.owner],
-      text,
-    },
-    { topic: 'spied' },
-  );
+  warn(ctx, f, at, counter, lost);
   if (lost) ctx.fleets.delete(f.id);
   else turnBack(ctx, f, fought ? { ships: fought.res.att } : {});
 }

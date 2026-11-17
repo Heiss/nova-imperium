@@ -129,7 +129,7 @@ function spyScore(probes: number, diff: number): number {
 // src/core/espionage.ts: the maximum (probes / 4) · (target tech / spy tech)
 // · (1 + ships / 100) %, at most 100, 0 at a target of level 0, the cap for
 // a spy below level 1; the chance drawn from 0 up to it; detected below it.
-function refCounter(probes: number, ships: number, tgt: number, spy: number) {
+function refCounter(probes: number, ships: number, tgt = 0, spy = 0): number {
   if (tgt <= 0 || probes <= 0) return 0;
   if (spy <= 0) return 100;
   return Math.min(100, (probes / 4) * (tgt / spy) * (1 + ships / 100));
@@ -166,22 +166,14 @@ function spy(
   const diff = (attR.spy ?? 0) - (defR.spy ?? 0);
   const probes = f.ships.probe ?? 0;
   const score = spyScore(probes, diff);
-  const max = refCounter(
-    probes,
-    countUnits(t.ships),
-    defR.spy ?? 0,
-    attR.spy ?? 0,
-  );
+  const max = refCounter(probes, countUnits(t.ships), defR.spy, attR.spy);
   const chance = ctx.rng() * max;
   const seen = ctx.rng() * 100 < chance;
   const details = { ships: t.ships, def: t.def, b: t.b, r: defR };
   const shown = Object.fromEntries(
     SPY_LEVELS.filter(([min]) => score >= min).map(([, k]) => [k, details[k]]),
   );
-  const left =
-    seen && countUnits(t.ships) + countUnits(t.def) > 0
-      ? refSpyBattle(ctx, f, t, att, def)
-      : null;
+  const left = seen ? refSpyBattle(ctx, f, t, att, def) : null;
   const lost = left !== null && !countUnits(left);
   const counter = Math.round(chance);
   const activity = refActivity(ctx, t.id, f.arr);
@@ -422,7 +414,8 @@ function battleReports(ctx: Ctx, x: Fight): void {
 
 /**
  * Detected probes fight like an attack without loot (#175 D4): debris, moon,
- * rebuilt defense, a battle report for each side; the probes left.
+ * rebuilt defense, a battle report for each side; the probes left, or
+ * null without ships and defense, which gives no battle.
  */
 function refSpyBattle(
   ctx: Ctx,
@@ -430,7 +423,8 @@ function refSpyBattle(
   t: Planet,
   att: Player,
   def: Player,
-): Levels {
+): Levels | null {
+  if (!countUnits(t.ships) && !countUnits(t.def)) return null;
   const attR = techAt(att, f.arr);
   const defR = techAt(def, f.arr);
   const defBefore = { ...t.ships, ...t.def };
@@ -736,6 +730,14 @@ function checkDestination(
   }
 }
 
+/** Only Spähschädel, and from Auspex-Lehre 1 (#175, Q1). */
+function refSpyCheck(ctx: Ctx, u: User, ships: Levels): void {
+  if (Object.keys(ships).some((k) => k !== 'probe'))
+    fail('Auspex-Erkundung nur mit Spähschädeln.');
+  if ((researchOf(ctx, u).research.spy ?? 0) < 1)
+    fail('Auspex-Erkundung erst ab Auspex-Lehre 1.');
+}
+
 function plan(ctx: Ctx, u: User, p: Planet, d: Data): Plan {
   const mission = String(d.mission) as Mission;
   if (!Object.hasOwn(MISSION, mission)) fail('Unbekannter Auftrag.');
@@ -746,10 +748,7 @@ function plan(ctx: Ctx, u: User, p: Planet, d: Data): Plan {
   const dest = target(ctx, d);
   const occupied = ctx.planets.get(placeId({ ...dest, kind: 'planet' }));
   checkDestination(ctx, u, p, mission, occupied, ships);
-  if (mission === 'spy' && Object.keys(ships).some((k) => k !== 'probe'))
-    fail('Auspex-Erkundung nur mit Spähschädeln.');
-  if (mission === 'spy' && (researchOf(ctx, u).research.spy ?? 0) < 1)
-    fail('Auspex-Erkundung erst ab Auspex-Lehre 1.');
+  if (mission === 'spy') refSpyCheck(ctx, u, ships);
   return {
     mission,
     ships,
