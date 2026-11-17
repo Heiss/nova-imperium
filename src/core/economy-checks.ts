@@ -14,7 +14,13 @@ import { fieldsFull } from './fields.ts';
 import { hasLab, labUpgrading, waitsForLab } from './lab.ts';
 import { energyShort } from './research.ts';
 import type { Planet, ResearchState, Universe } from './types.ts';
-import { hasYard, unitRoom, waitsForYard, yardLockedBy } from './yard.ts';
+import {
+  hasYard,
+  limitRoom,
+  siloRoom,
+  waitsForYard,
+  yardLockedBy,
+} from './yard.ts';
 
 /** The codes whose check holds, in the order of the record. */
 const holding = <T extends string>(checks: Readonly<Record<T, boolean>>): T[] =>
@@ -91,11 +97,19 @@ const MAX_SHIPYARD_ORDERS = 20;
 /**
  * Why an order of `n` units cannot start: the place has no shipyard, an
  * upgrade locks it (#48), the requirements are missing, no count is given
- * (F10), more than the limit of the unit (#50), not even one unit can be
- * paid, or the list of the shipyard is full.
+ * (F10), more than the limit of the unit (#50), more missiles than the
+ * silos hold (#54), not even one unit can be paid, or the list of the
+ * shipyard is full.
  */
 export type OrderError =
-  'noYard' | 'yardLocked' | 'locked' | 'count' | 'limit' | 'cost' | 'queueFull';
+  | 'noYard'
+  | 'yardLocked'
+  | 'locked'
+  | 'count'
+  | 'limit'
+  | 'siloFull'
+  | 'cost'
+  | 'queueFull';
 
 /** Every reason why an order of `n` units of `key` cannot start on `p`. */
 export function orderErrors(
@@ -110,7 +124,8 @@ export function orderErrors(
     yardLocked: yardLockedBy(p) !== null,
     locked: reqMissing(def, p, r).length > 0,
     count: n < 1,
-    limit: n > unitRoom(p, key),
+    limit: n > limitRoom(p, key),
+    siloFull: n > siloRoom(p, key),
     cost: maxAfford(p, def.cost) < 1,
     queueFull: p.sq.length >= MAX_SHIPYARD_ORDERS,
   });

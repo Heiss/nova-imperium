@@ -16,6 +16,7 @@ const FILES: Record<string, string> = {
   sdeut: 'buildings/deuterium_tank',
   moonbase: 'buildings/lunar_base',
   phalanx: 'buildings/sensor_phalanx',
+  silo: 'buildings/missile_silo',
   energy: 'research/energy_technology',
   laser: 'research/laser_technology',
   comb: 'research/combustion_drive',
@@ -53,6 +54,8 @@ const FILES: Record<string, string> = {
   pt: 'defense/plasma_turret',
   ssd: 'defense/small_shield_dome',
   lsd: 'defense/large_shield_dome',
+  abm: 'defense/anti_ballistic_missile',
+  ipm: 'defense/interplanetary_missile',
 };
 
 export const ICON_KEYS = Object.keys(FILES);

@@ -74,7 +74,7 @@ import {
 } from './views/guilds.ts';
 import { mountOverview } from './views/overview.ts';
 import { mountProducerTable } from './views/producer-table.ts';
-
+import { missileActs } from './views/missiles.ts';
 import { addPasskey, signInWithPasskey } from './passkeys.ts';
 
 type Data = Record<string, string | undefined>;
@@ -254,8 +254,6 @@ function setAnimations(on: boolean): void {
     // Without storage the choice lasts until the page is reloaded.
   }
 }
-
-// ----- messages -----
 
 // ----- maintenance (issue #80) -----
 
@@ -1174,6 +1172,7 @@ const ACT: Record<string, (d: Data) => unknown> = {
     render(true);
     $('#scan-h')?.focus();
   },
+  ...missileActs(modal, actHere),
   gscanClose: () => {
     const target = ui.scan?.target;
     ui.scan = null;

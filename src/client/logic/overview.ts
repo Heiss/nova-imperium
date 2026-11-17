@@ -2,7 +2,7 @@
 // component Overview shows, without HTML: the fleet movements, the shown
 // place and what is being built, researched or ordered. The fleet movements
 // are also the list of the fleet view.
-import { MISSION } from '../../core/missions.ts';
+import { isFleet, MISSION } from '../../core/missions.ts';
 import { placeName } from '../../core/moon.ts';
 import { text } from '../../core/text.ts';
 import type { V } from '../views/common.ts';
@@ -37,7 +37,7 @@ export interface FleetRow {
   /** `fl-<mission>` on its way out, `fl-back` on its way home. */
   cls: string;
   parts: TextPart[];
-  /** An own fleet on its way out can be called back, the gift not (#161). */
+  /** An own fleet on its way out can be called back, the gift (#161) and missiles (#54) not. */
   recall: boolean;
 }
 
@@ -117,7 +117,7 @@ function fleetRow(v: V, f: ClientFleet): FleetRow {
     due: countdown(fleetEnd(f), v.now),
     cls: out ? `fl-${f.mission}` : 'fl-back',
     parts: fleetParts(v, f),
-    recall: f.owner === v.s.me.id && out && !f.gift,
+    recall: f.owner === v.s.me.id && out && isFleet(f),
   };
 }
 

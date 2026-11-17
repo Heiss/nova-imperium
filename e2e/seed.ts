@@ -2,7 +2,7 @@
 // UI would need hours to reach (ships in the hangar). Usage:
 //   node e2e/seed.ts '<json>'   with { name, res?, b?, ships?, def?, temp?, pct?, research?,
 //   diameter?, unlimited? (the fields of the home planet, #51),
-//   clearQueue? (a finished build), colony? ({ g?, s?, p?, name?, b?, res? }: an own planet,
+//   clearQueue? (a finished build), colony? ({ g?, s?, p?, name?, b?, res?, def? }: an own planet,
 //   by default on slot 15 of the home system), landColonyFleet?, landFleet? (a mission:
 //   its outbound fleets arrive now), returnFleet? (the returning fleets come home now),
 //   finishUnits? (the shipyard has built the first n units of its stored queue now),
@@ -94,7 +94,7 @@ function addColony(p: Planet): void {
     res: d.colony.res ?? p.res,
     b: d.colony.b ?? {},
     ships: {},
-    def: {},
+    def: d.colony.def ?? {},
     bq: null,
     sq: [],
     sqT: null,

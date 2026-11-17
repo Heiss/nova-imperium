@@ -489,6 +489,17 @@ stays the first planet, unlocked; other data stay as they were
 migrations 11 and 20 run the later migrations before today's code saves a
 player, since the player repository writes the new columns.
 
+Migration `20261117T1006-missiles` (issue #54, see
+[Missiles](/features/missiles.md)) rebuilds `fleets` and `fleet_ships`, as
+16 did, for the mission `missile` in the CHECK of `fleets.mission`, and
+adds `fleets.aim` (TEXT, the main target of a Raketenangriff, NULL
+without one). Every fleet in flight keeps its values, its gift and its
+ships; the Raketenkrypta and the missiles are rows of `planet_buildings`
+and `planet_units` and need no change
+(`upgrades/20261117T1006-missiles.test.ts`). The fleet repository writes
+`aim` only for missiles with a main target, so the upgrade tests of
+earlier migrations still save fleets.
+
 Account deletion runs in one transaction. Foreign-key cascades clear owned game,
 session, reward and push data. The deletion also removes led guilds and their
 memberships, linked audit and inbox records, invitations for the account address

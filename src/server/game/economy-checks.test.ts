@@ -65,6 +65,7 @@ const ORDER_MESSAGES: Record<Exclude<OrderError, 'yardLocked'>, string> = {
   locked: LOCKED,
   count: 'Bitte eine Anzahl eingeben.',
   limit: 'Diesen Schutzdom gibt es nur einmal pro Planet.',
+  siloFull: 'Nicht genug Platz in der Raketenkrypta.',
   cost: POOR,
   queueFull: 'Die Bauliste der Schiffsschmiede ist voll.',
 };

@@ -219,6 +219,12 @@ choice of the patterns to the assistant's recommendation below
   kind)`; the build action, the requirements list and the buildings page
   ask `buildable`. The Mondzitadelle adds fields through the existing
   `fields` of `BuildingFields`, like the Weltenschmiede.
+* **[V]** Built with #54 ([Missiles](/features/missiles.md)): the
+  components `silo` (`{ slots }`, places per level, buildings only) and
+  `missile` (`{ slots, intercepts? }`, defense only) with one rule module,
+  `src/core/components/silo.ts`, and its contract test; `catalog.ts`
+  derives `SILO` and `MISSILE`, and `FIGHTERS` leaves the missiles out
+  (`fights(key)`); `yard.ts` asks the module for the room of the silo.
 
 ## 2. Texts apart from rules
 
@@ -404,6 +410,14 @@ choice of the patterns to the assistant's recommendation below
   hands it no arrival (`null`), like a free target, because a field is no
   planet. Migration 16 allows `harvest` in the database
   (see [Trümmerfelder](/features/debris.md)).
+* **[V]** Built with #54, within the decisions of #116: the seventh folder
+  `missile` (Raketenangriff, 70) with the optional typed field `launch`
+  (`'fleet'` unless a mission says `'missiles'`, read through `launchOf`):
+  the fleet form lists `FLEET_MISSIONS`, `send` refuses the others, and
+  `isFleet` keeps them out of the fleet slots and the recall. Missiles
+  whose target is gone are lost instead of turning back. The launch is its
+  own action with its own pure check, `launchError` of
+  `src/core/missiles.ts` ([Missiles](/features/missiles.md)).
 
 ## 5. Battle: pure function, consequences as a fixed pipeline
 

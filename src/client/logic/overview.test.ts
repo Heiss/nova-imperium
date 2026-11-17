@@ -92,6 +92,18 @@ describe('fleet movements', () => {
     });
   });
 
+  it('shows own missiles on their way with their mission and offers no recall (#54)', () => {
+    const [row] = fleetRows(
+      view({ fleets: [fleet({ mission: 'missile', ships: { ipm: 4 } })] }),
+      true,
+    );
+    expect(plain(row!)).toBe(
+      `Deine Flotte (4 ${text('ipm')!.n}) von [1:1:5] erreicht [1:2:3] · ${MISSION.missile}`,
+    );
+    expect(row!.cls).toBe('fl-missile');
+    expect(row!.recall).toBe(false);
+  });
+
   it('names the „Gottkaiser“ as the origin of the gift and offers no recall', () => {
     const [row] = fleetRows(
       view({ fleets: [fleet({ gift: true, mission: 'deploy' })] }),

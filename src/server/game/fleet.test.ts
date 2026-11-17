@@ -157,6 +157,26 @@ describe('sending fleets', () => {
   });
   it('respects the fleet slots', () => {
     const { ctx, a } = setup();
+    // Missiles in flight take no slot (#54).
+    const t = ctx.now();
+    const home = ctx.planets.home(a.id)!;
+    ctx.fleets.save({
+      id: 'm1',
+      owner: a.id,
+      from: home.id,
+      fromC: { g: home.g, s: home.s, p: home.p },
+      to: home.id,
+      toC: { g: home.g, s: home.s, p: home.p },
+      mission: 'missile',
+      ships: { ipm: 1 },
+      cargo: { m: 0, c: 0, d: 0 },
+      dep: t,
+      arr: t + 1e9,
+      ret: t + 1e9,
+      state: 'out',
+      recalled: false,
+      fuel: 0,
+    });
     send(ctx, a, go());
     expect(() => send(ctx, a, go())).toThrow('Alle Flottenslots belegt.');
     a.research = { computer: 1 };

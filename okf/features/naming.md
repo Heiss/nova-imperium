@@ -128,6 +128,11 @@ Warp-Tor [E] for #53, owner 2026-11-13, [Moons](/features/moons.md)), Raketenkry
 Orbitalrakete, Gildenarsenal, Wacht halten;
 Expeditionstechnik → Kreuzzugs-Kartografie (package order).
 
+**[V]** Built with #54 ([Missiles](/features/missiles.md)): Raketenkrypta
+(`RK`, classic Raketensilo), Abfangrakete (`AR`, the classic name kept),
+Orbitalrakete (`OR`, classic Interplanetarrakete) and the mission
+„Raketenangriff“.
+
 ## Applied (#94)
 
 Done by hand on the branch `claude/grimdark-naming` (2026-11-12), with the

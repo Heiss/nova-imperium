@@ -8,6 +8,7 @@ import { moonAt, moonMark, moonPicture } from '../logic/moon.ts';
 import { canScan, scanRows, scanTitle } from '../logic/phalanx.ts';
 import type { GalaxyPlanet } from '../logic/types.ts';
 import { cd, planetHTML, type V } from './common.ts';
+import { missileButton } from './missiles.ts';
 
 /** Actions joined like the others; empty ones are left out. */
 const join = (...actions: string[]): string =>
@@ -28,6 +29,7 @@ function planetActions(
     return join(
       `<span class="lnk" data-act="gspy" ${at}>Auspex-Erkundung</span> · <span class="lnk" data-act="gfleet" data-m="attack" ${at}>Sturmangriff</span> · <span class="lnk" data-act="gfleet" data-m="transport" ${at}>Versorgungsflug</span>`,
       scanButton(v, pl),
+      missileButton(v, pl),
     );
   return id === v.P.id
     ? `<span class="dim">${pl.kind === 'moon' ? 'Aktiver Mond' : 'Aktiver Planet'}</span>`

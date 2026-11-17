@@ -102,6 +102,11 @@ export interface Fleet {
    * and buildings on arrival. Only set on a gift.
    */
   gift?: true;
+  /**
+   * The main target of a Raketenangriff (#54): a defense key, hit first.
+   * Only set on missiles with a main target.
+   */
+  aim?: string;
 }
 
 /** The settings of one universe. The admin changes them in the admin panel. */

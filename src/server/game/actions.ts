@@ -277,6 +277,8 @@ const ORDER_ERROR: Readonly<Record<Exclude<OrderError, 'yardLocked'>, string>> =
     count: 'Bitte eine Anzahl eingeben.',
     // The component `limit`: only the two shield domes have one (#50).
     limit: 'Diesen Schutzdom gibt es nur einmal pro Planet.',
+    // The components `silo` and `missile`: the missiles (#54) [V].
+    siloFull: 'Nicht genug Platz in der Raketenkrypta.',
     cost: POOR,
     queueFull: 'Die Bauliste der Schiffsschmiede ist voll.',
   };

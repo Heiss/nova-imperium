@@ -20,7 +20,14 @@ import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import { battle } from '../../core/battle.ts';
 import { type Debris, debrisOf, isEmpty } from '../../core/debris.ts';
-import { DEF, MISSION, SHIPS, canFly, isShip } from '../../core/catalog.ts';
+import {
+  DEF,
+  MISSILE,
+  MISSION,
+  SHIPS,
+  canFly,
+  isShip,
+} from '../../core/catalog.ts';
 import {
   capacity,
   countUnits,
@@ -736,6 +743,8 @@ const MISSIONS: Mission[] = [
  * (the generators draw from these lists).
  */
 const SHIP_KEYS = Object.keys(SHIPS).filter((k) => k !== 'recycler');
+/** The defense before #54: the missiles do not fight and came later. */
+const DEF_KEYS = Object.keys(DEF).filter((k) => !Object.hasOwn(MISSILE, k));
 const FLYING = SHIP_KEYS.filter(canFly);
 const TECH = ['spy', 'weapons', 'shield', 'armor', 'computer', 'comb'];
 
@@ -817,7 +826,7 @@ const worlds: fc.Arbitrary<World> = fc.record({
   defTech: levels(TECH, 12),
   home: levels(SHIP_KEYS, 40),
   ships: levels(SHIP_KEYS, 30),
-  def: levels(Object.keys(DEF), 60),
+  def: levels(DEF_KEYS, 60),
   res: stock,
 });
 

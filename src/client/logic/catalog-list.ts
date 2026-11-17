@@ -10,6 +10,7 @@ import {
   DEF,
   RES,
   SHIPS,
+  SILO,
   type UnitDef,
 } from '../../core/catalog.ts';
 import {
@@ -34,7 +35,13 @@ import {
 } from '../../core/research.ts';
 import { text } from '../../core/text.ts';
 import type { Cost, Levels, Requirements } from '../../core/types.ts';
-import { hasYard, orderMax, YARD_LOCK, yardLockedBy } from '../../core/yard.ts';
+import {
+  hasYard,
+  orderMax,
+  siloUse,
+  YARD_LOCK,
+  yardLockedBy,
+} from '../../core/yard.ts';
 import type { V } from '../views/common.ts';
 import { type Explanation, explanation } from './explain.ts';
 import { fieldsLine } from './fields.ts';
@@ -234,6 +241,13 @@ function useLines(v: V, key: string, level: number): string[] {
   return [...energy, ...uses];
 }
 
+/** The places of the silos the missiles take, at a building that stores them (#54). */
+function siloLines(v: V, key: string): string[] {
+  if (!Object.hasOwn(SILO, key)) return [];
+  const { used, places } = siloUse(v.P);
+  return [`Belegt: ${fmt(used)} / ${fmt(places)} Plätze`];
+}
+
 /**
  * The notes of the codes of `buildErrors` (#214); the place is never shown,
  * the list holds only what stands on it, and the energy shows the shortfall.
@@ -291,6 +305,7 @@ function buildingRow(v: V, key: string): CatalogRow {
       () => production(P, s.cfg, R.research).eProd,
     ),
     lines: [
+      ...siloLines(v, key),
       ...useLines(v, key, level),
       `Bauzeit: ${dur(buildTime(cost, P, s.cfg))}`,
     ],
@@ -432,7 +447,12 @@ function stats(v: V, key: string, d: UnitDef): string {
  * one unit, after the requirements, which show their note instead. The list
  * of the shipyard, full at 20 orders, is checked by the server only.
  */
-const DISABLES: readonly OrderError[] = ['yardLocked', 'limit', 'cost'];
+const DISABLES: readonly OrderError[] = [
+  'yardLocked',
+  'limit',
+  'siloFull',
+  'cost',
+];
 
 function orderAction(v: V, key: string, once: boolean): CatalogAction {
   const errors = orderErrors(v.P, v.R, key, 1);

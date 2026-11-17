@@ -40,6 +40,9 @@ export const NAMES: Readonly<
   moonbase: { classic: 'Mondbasis', name: 'Mondzitadelle', ab: 'MZ' },
   // #53: the name decided by the owner (2026-11-13), the abbreviation [V].
   phalanx: { classic: 'Sensorphalanx', name: 'Auspex-Phalanx', ab: 'PX' },
+  // #54: the names of the table above [V] (okf/features/missiles.md), the
+  // abbreviations [V].
+  silo: { classic: 'Raketensilo', name: 'Raketenkrypta', ab: 'RK' },
   energy: { classic: 'Energietechnik', name: 'Machina-Energetik', ab: 'ME' },
   laser: { classic: 'Lasertechnik', name: 'Lichtlanzen-Lehre', ab: 'LZ' },
   comb: {
@@ -106,6 +109,9 @@ export const NAMES: Readonly<
   pt: { classic: 'Plasmawerfer', name: 'Plasmabatterie', ab: 'PA' },
   ssd: { classic: 'Kleine Schildkuppel', name: 'Kleiner Schutzdom', ab: 'SD' },
   lsd: { classic: 'Große Schildkuppel', name: 'Großer Schutzdom', ab: 'GD' },
+  // #54: the Abfangrakete keeps its classic name (naming table, [V]).
+  abm: { classic: 'Abfangrakete', name: 'Abfangrakete', ab: 'AR' },
+  ipm: { classic: 'Interplanetarrakete', name: 'Orbitalrakete', ab: 'OR' },
 };
 
 /** Resources: Energie stays. */
@@ -123,6 +129,8 @@ export const MISSIONS = {
   colonize: { classic: 'Kolonisieren', name: 'Landnahme' },
   deploy: { classic: 'Stationieren', name: 'Verlegung' },
   harvest: { classic: 'Abbauen', name: 'Bergung' },
+  // #54: the name of the issue's interface, kept by the naming [V].
+  missile: { classic: 'Raketenangriff', name: 'Raketenangriff' },
 } as const;
 
 /**
@@ -132,7 +140,12 @@ export const MISSIONS = {
  */
 export const CLASSIC: Readonly<Record<string, string>> = {
   ...RESOURCES,
-  ...Object.fromEntries(Object.values(NAMES).map((x) => [x.classic, x.name])),
+  // A name the naming keeps (the Abfangrakete, #54) is no classic word.
+  ...Object.fromEntries(
+    Object.values(NAMES)
+      .filter((x) => x.classic !== x.name)
+      .map((x) => [x.classic, x.name]),
+  ),
   Werft: 'Schiffsschmiede',
   Labor: 'Scholarium',
   Hyperraum: 'Warp',

@@ -1,5 +1,5 @@
 // Points: 1 point per 1,000 resources in buildings, research, ships and defense.
-import { BUILD, RES, SHIPS, UNIT } from '../../core/catalog.ts';
+import { BUILD, RES, UNIT } from '../../core/catalog.ts';
 import { sumLevels } from '../../core/economy.ts';
 import { isProtected as protects } from '../../core/protection.ts';
 import { settle, settleR } from '../../core/settle.ts';
@@ -35,8 +35,9 @@ export function pointsMap(ctx: Ctx): Record<string, number> {
       levelValue(s.b, BUILD) +
       unitValue({ ...s.ships, ...s.def }, UNIT);
   }
+  // Missiles in flight count until their impact (#54, owiki).
   for (const f of ctx.fleets.all())
-    pts[f.owner] = (pts[f.owner] ?? 0) + unitValue(f.ships, SHIPS);
+    pts[f.owner] = (pts[f.owner] ?? 0) + unitValue(f.ships, UNIT);
   for (const k of Object.keys(pts)) pts[k] = Math.floor(pts[k]! / 1000);
   return pts;
 }

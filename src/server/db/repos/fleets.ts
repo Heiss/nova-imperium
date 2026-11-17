@@ -7,8 +7,11 @@ export interface Fleets {
   get(id: string): Fleet | null;
   /** All fleets by departure. */
   all(): Fleet[];
-  /** How many fleet slots a player uses: the fleets in flight, no gift (#161). */
-  count(owner: string): number;
+  /**
+   * How many fleet slots a player uses: the fleets in flight, no gift
+   * (#161) and none of the `missions` given, the missiles (#54).
+   */
+  count(owner: string, without?: readonly string[]): number;
   /** Fleets whose next event (arrival or return) is due, the earliest first. */
   due(now: number): Fleet[];
   save(f: Fleet): void;
@@ -54,6 +57,7 @@ export class SqliteFleets implements Fleets {
       recalled: r.recalled === 1,
       fuel: r.fuel as number,
       ...(r.gift === 1 && { gift: true as const }),
+      ...(typeof r.aim === 'string' && { aim: r.aim }),
     };
   }
 
@@ -70,10 +74,13 @@ export class SqliteFleets implements Fleets {
     return rows.map((r) => this.fleetOf(r)!);
   }
 
-  count(owner: string): number {
+  count(owner: string, without: readonly string[] = []): number {
     const r = this.db
-      .prepare('SELECT COUNT(*) AS n FROM fleets WHERE owner = ? AND gift = 0')
-      .get(owner) as Row;
+      .prepare(
+        `SELECT COUNT(*) AS n FROM fleets WHERE owner = ? AND gift = 0
+         AND mission NOT IN (SELECT value FROM json_each(?))`,
+      )
+      .get(owner, JSON.stringify(without)) as Row;
     return r.n as number;
   }
 
@@ -89,14 +96,17 @@ export class SqliteFleets implements Fleets {
 
   save(f: Fleet): void {
     // Only a gift writes `gift` (#161): every other fleet keeps the default
-    // 0, and a fleet never changes whether it is a gift.
+    // 0, and a fleet never changes whether it is a gift. Likewise only
+    // missiles with a main target write `aim` (#54), so the upgrade tests of
+    // the migrations before it still save fleets.
     const gift = f.gift ? [', gift', ', 1'] : ['', ''];
+    const aim = f.aim === undefined ? ['', ''] : [', aim', ', @aim'];
     this.db
       .prepare(
         `INSERT INTO fleets (id, owner, from_planet, from_g, from_s, from_p, to_planet, to_g, to_s, to_p,
-           mission, cargo_m, cargo_c, cargo_d, dep, arr, ret, state, recalled, fuel${gift[0]})
+           mission, cargo_m, cargo_c, cargo_d, dep, arr, ret, state, recalled, fuel${gift[0]}${aim[0]})
          VALUES (@id, @owner, @from, @from_g, @from_s, @from_p, @to, @to_g, @to_s, @to_p,
-           @mission, @cargo_m, @cargo_c, @cargo_d, @dep, @arr, @ret, @state, @recalled, @fuel${gift[1]})
+           @mission, @cargo_m, @cargo_c, @cargo_d, @dep, @arr, @ret, @state, @recalled, @fuel${gift[1]}${aim[1]})
          ON CONFLICT(id) DO UPDATE SET cargo_m = excluded.cargo_m, cargo_c = excluded.cargo_c,
            cargo_d = excluded.cargo_d, ret = excluded.ret, state = excluded.state, recalled = excluded.recalled`,
       )
@@ -121,6 +131,7 @@ export class SqliteFleets implements Fleets {
         state: f.state,
         recalled: f.recalled ? 1 : 0,
         fuel: f.fuel,
+        ...(f.aim !== undefined && { aim: f.aim }),
       });
     this.db.prepare('DELETE FROM fleet_ships WHERE fleet_id = ?').run(f.id);
     const put = this.db.prepare('INSERT INTO fleet_ships VALUES (?, ?, ?)');

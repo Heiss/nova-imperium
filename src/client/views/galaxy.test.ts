@@ -7,7 +7,15 @@ import type { GameState } from '../logic/types.ts';
 import type { V } from './common.ts';
 import { galaxy } from './galaxy.ts';
 
-const home = { id: 'p1_2_5', g: 1, s: 2, p: 5, ships: {} } as unknown as Planet;
+const home = {
+  id: 'p1_2_5',
+  owner: 'u_Anna',
+  g: 1,
+  s: 2,
+  p: 5,
+  ships: {},
+  def: {},
+} as unknown as Planet;
 
 function view(debris: DebrisField[], ships: Planet['ships'] = {}): V {
   const s = {
@@ -302,5 +310,51 @@ describe('the Auspex-Phalanx on the Sternenkarte (#53)', () => {
     expect(html).toContain(
       'aria-label="Phalanx-Scan von &lt;b&gt;&quot;x&quot;"',
     );
+  });
+});
+
+describe('the Raketenangriff on the Sternenkarte (#54)', () => {
+  /** Anna's planet with `ipm` Orbitalraketen and the impulse drive at `impulse`. */
+  function armed(ipm: number, impulse = 1, s = 2): V {
+    const v = view([]);
+    v.P = { ...v.P, s, def: { ipm, abm: 3 } };
+    v.R = { research: { impulse }, rq: null };
+    return v;
+  }
+
+  const BUTTON =
+    '<button class="small" data-act="gmissile" data-id="p1_2_6" data-g="1" data-s="2" data-p="6" aria-label="Raketenangriff auf Beta">Raketenangriff</button>';
+
+  it('offers it at a foreign planet in range, from a planet with Orbitalraketen', () => {
+    const html = galaxy(armed(3));
+    expect(row(html, 6)).toContain(BUTTON);
+    expect(row(html, 5)).not.toContain('gmissile');
+    expect(html.match(/data-act="gmissile"/g)).toHaveLength(1);
+  });
+
+  it('offers it at a foreign moon, with its kind', () => {
+    const v = armed(1);
+    v.s.galaxy.push({
+      id: 'm1_2_6',
+      kind: 'moon',
+      name: 'Mond',
+      g: 1,
+      s: 2,
+      p: 6,
+      temp: 20,
+      owner: 'u_Bert',
+    });
+    v.ui.gmoon = 'm1_2_6';
+    expect(galaxy(v)).toContain(
+      'data-act="gmissile" data-id="m1_2_6" data-g="1" data-s="2" data-p="6" data-k="moon" aria-label="Raketenangriff auf Mond (Mond)"',
+    );
+  });
+
+  it('offers it neither without Orbitalraketen nor out of range', () => {
+    expect(galaxy(armed(0))).not.toContain('gmissile');
+    expect(galaxy(armed(3, 0))).not.toContain('gmissile');
+    // Impulse 1 reaches 4 systems: from system 6 yes, from system 7 no.
+    expect(row(galaxy(armed(3, 1, 6)), 6)).toContain('gmissile');
+    expect(row(galaxy(armed(3, 1, 7)), 6)).not.toContain('gmissile');
   });
 });

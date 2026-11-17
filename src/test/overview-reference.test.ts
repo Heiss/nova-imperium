@@ -10,10 +10,10 @@ import { render } from 'svelte/server';
 import { describe, expect, it } from 'vitest';
 import { BUILD, DEF, RES, SHIPS } from '../core/catalog.ts';
 import { fleetSlots } from '../core/flight.ts';
-import { MISSION } from '../core/missions.ts';
+import { FLEET_MISSIONS, MISSION } from '../core/missions.ts';
 import { placeName } from '../core/moon.ts';
 import { text } from '../core/text.ts';
-import type { Levels, Mission, Planet } from '../core/types.ts';
+import type { Levels, Planet } from '../core/types.ts';
 import { diameterLine } from '../client/logic/fields.ts';
 import { coords, dt, esc, fmt } from '../client/logic/format.ts';
 import { fleetEnd, nameOf, ranks, sortFleets } from '../client/logic/game.ts';
@@ -207,7 +207,8 @@ const flight = fc.record({
   owner: fc.constantFrom(...OWNERS),
   fromC: coord,
   toC: coord,
-  mission: fc.constantFrom(...(Object.keys(MISSION) as Mission[])),
+  // The missions of the view before #54: missiles came later, without a recall.
+  mission: fc.constantFrom(...FLEET_MISSIONS),
   state: fc.constantFrom('out' as const, 'back' as const),
   arr: time,
   ret: fc.option(time, { nil: undefined }),
@@ -286,7 +287,7 @@ const MARKS = [
   'Mond &lt;b>&amp;"\'&lt;/b> (Mond)',
   'alt="Nord&quot; b=&quot;Süd (Mond)"',
   'class="fl-back"',
-  ...Object.keys(MISSION).map((m) => `class="fl-${m}"`),
+  ...FLEET_MISSIONS.map((m) => `class="fl-${m}"`),
 ];
 
 describe('Overview against the view before #118', () => {

@@ -1,6 +1,6 @@
 import { SHIPS, canFly } from '../../core/catalog.ts';
 import { fleetSlots, shipSpeed } from '../../core/flight.ts';
-import { MISSION } from '../../core/missions.ts';
+import { FLEET_MISSIONS, isFleet, MISSION } from '../../core/missions.ts';
 import { moonAt } from '../logic/moon.ts';
 import { text } from '../../core/text.ts';
 import { esc, fmt } from '../logic/format.ts';
@@ -44,12 +44,11 @@ function targetForm(v: V, slotsFull: boolean): string {
   const moon = !!moonAt(s.galaxy, t);
   const toMoon = moon && t.kind === 'moon';
   const kinds = `<select id="t_k" aria-label="Zielart"><option value="planet">Planet</option><option value="moon"${moon ? '' : ' disabled'}${toMoon ? ' selected' : ''}>Mond</option></select>`;
-  const missions = Object.entries(MISSION)
-    .map(
-      ([k, name]) =>
-        `<option value="${k}" ${ui.fm === k ? 'selected' : ''}>${name}</option>`,
-    )
-    .join('');
+  // Missiles start in the Sternenkarte, not here (#54).
+  const missions = FLEET_MISSIONS.map(
+    (k) =>
+      `<option value="${k}" ${ui.fm === k ? 'selected' : ''}>${MISSION[k]}</option>`,
+  ).join('');
   const speeds = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
     .map((x) => `<option value="${x}">${x * 10} %</option>`)
     .join('');
@@ -65,9 +64,9 @@ function targetForm(v: V, slotsFull: boolean): string {
 
 export function fleet(v: V): string {
   const slots = fleetSlots(v.R);
-  // The gift of the „Endzeit“ takes no slot (#161).
+  // The gift of the „Endzeit“ (#161) and missiles (#54) take no slot.
   const used = v.s.fleets.filter(
-    (f) => f.owner === v.s.me.id && !f.gift,
+    (f) => f.owner === v.s.me.id && isFleet(f),
   ).length;
   const rows = shipRows(v);
   const head = box(

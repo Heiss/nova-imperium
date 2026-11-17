@@ -2,9 +2,9 @@
 // takes loot, the destroyed ships leave a Trümmerfeld (#45), at a planet
 // without a moon the whole field may form one (#53), 70 % of the destroyed
 // defense is rebuilt, both sides get a battle report; a fleet without
-// survivors is gone.
+// survivors is gone. Missiles stay out of the battle (#54).
 import { battle } from '../../../core/battle.ts';
-import { DEF, SHIPS } from '../../../core/catalog.ts';
+import { DEF, fights, SHIPS } from '../../../core/catalog.ts';
 import { type Debris, debrisOf, isEmpty } from '../../../core/debris.ts';
 import { capacity, countUnits } from '../../../core/flight.ts';
 import { placeName } from '../../../core/moon.ts';
@@ -47,6 +47,18 @@ export function plunder(stock: Resources, free: number): Resources {
   return loot;
 }
 
+/** The defense that fights: every one but the missiles (#54). */
+const fighting = (def: Levels): Levels =>
+  Object.fromEntries(Object.entries(def).filter(([k]) => fights(k)));
+
+/** The defense that does not fight, the missiles, as far as there is any (#54). */
+const idle = (def: Levels): Levels =>
+  Object.fromEntries(
+    Object.keys(DEF)
+      .filter((k) => !fights(k) && def[k])
+      .map((k) => [k, def[k]!]),
+  );
+
 function afterBattle(
   ctx: Ctx,
   t: Planet,
@@ -55,12 +67,14 @@ function afterBattle(
   const rebuilt: Levels = {};
   const def: Levels = {};
   const ships: Levels = {};
-  for (const k of Object.keys(DEF)) {
+  for (const k of Object.keys(DEF).filter(fights)) {
     const left = after[k] ?? 0;
     const rb = rebuild((t.def[k] ?? 0) - left, ctx.rng);
     if (rb) rebuilt[k] = rb;
     if (left + rb) def[k] = left + rb;
   }
+  // Missiles do not fight and stay as they are (#54).
+  Object.assign(def, idle(t.def));
   for (const k of Object.keys(SHIPS)) if (after[k]) ships[k] = after[k];
   return { rebuilt, def, ships };
 }
@@ -140,7 +154,8 @@ function leaveDebris(
 export function onArrive(ctx: Ctx, f: Fleet, at: Arrival): void {
   const { t, att, def } = at;
   const { attR, defR } = researchAt(at, f.arr);
-  const defBefore = { ...t.ships, ...t.def };
+  // Missiles do not fight: they are neither in the battle nor in its report (#54).
+  const defBefore = { ...t.ships, ...fighting(t.def) };
   const res = battle(
     { units: f.ships, tech: attR },
     { units: defBefore, tech: defR },
