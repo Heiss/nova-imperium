@@ -6,12 +6,12 @@ import { flushSync } from 'svelte';
 import { missionRules } from '../core/missions.ts';
 import { placeId } from '../core/place.ts';
 import { settle, settleR } from '../core/settle.ts';
-import { text } from '../core/text.ts';
 import type { Levels, Planet, Queue } from '../core/types.ts';
 import { createAct, placeOf, samePlace } from './logic/act.ts';
 import { CATALOG_VIEWS, catalogKind, orderNote } from './logic/catalog-list.ts';
 import { clearsChat, sameSignIn } from './logic/guild-chat.ts';
 import { debrisAt, debrisTip } from './logic/debris.ts';
+import * as demolition from './logic/demolition.ts';
 import { endzeitNote } from './logic/endzeit.ts';
 import { moonAt, moonTarget } from './logic/moon.ts';
 import { scanOf } from './logic/phalanx.ts';
@@ -42,6 +42,7 @@ import { ANIMATION_KEY, animationsOn } from './logic/planet.ts';
 import { pushSaver } from './logic/push-options.ts';
 import { client } from './logic/state.svelte.ts';
 import { resourceBar } from './logic/resource-bar.ts';
+import { roundReset } from './logic/round-reset.ts';
 import type { GameState } from './logic/types.ts';
 import type { Ui, V } from './views/common.ts';
 import { VIEWS } from './views/index.ts';
@@ -624,10 +625,10 @@ function rememberUpgrade(
   label: string,
   now: number,
 ): void {
-  if (!order || order.end > now || (levels[order.key] ?? 0) < order.lvl) return;
-  const name = text(order.key)?.n ?? order.key;
-  client.completedMenu.set(view, label);
-  client.completionNotices.add(`${label}: ${name} (Stufe ${order.lvl}).`);
+  const done = demolition.completion(order, levels, now, label);
+  if (!done) return;
+  client.completedMenu.set(view, done.label);
+  client.completionNotices.add(done.notice);
 }
 
 function rememberCompletions(previous: V, next: V): void {
@@ -1121,6 +1122,7 @@ const ACT: Record<string, (d: Data) => unknown> = {
   },
   build: (d) => act('build', { key: d.k }),
   cancelBuild: () => act('cancelBuild'),
+  ...demolition.demolitionActs({ act, modal, view: () => client.view }),
   research: (d) => act('research', { key: d.k }),
   cancelResearch: () => act('cancelResearch'),
   maxq: (d) => setInput(`#q_${d.k}`, d.max ?? 0),
@@ -1307,15 +1309,9 @@ const ACT: Record<string, (d: Data) => unknown> = {
   },
   reset: () => modal(roundDialog(client.game!.round)),
   doReset: () => {
-    const checked = (id: string) => $<HTMLInputElement>(id)!.checked;
-    const rewards = {
-      achievements: checked('#round-achievements'),
-      daily: checked('#round-daily'),
-    };
-    const guilds = checked('#round-guilds');
-    const mainLock = Number(val('#round-main-lock'));
+    const data = roundReset(val, (id) => $<HTMLInputElement>(id)!.checked);
     modal('');
-    return act('reset', { rewards, guilds, mainLock });
+    return act('reset', data);
   },
   endzeit: () => modal(endzeitDialog(client.game!.admin!.endzeit.minutes)),
   doEndzeit: () => {

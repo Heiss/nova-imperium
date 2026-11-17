@@ -10,7 +10,7 @@ import {
 } from '../../core/universe.ts';
 import type { Action } from './actions.ts';
 import { addReport, type Ctx, fail, str, universe } from './context.ts';
-import { roundRules, startRoundRules } from './round.ts';
+import { rangeError, roundRules, startRoundRules } from './round.ts';
 import { placePlanet } from './planets.ts';
 
 export const requireAdmin = (u: { admin: boolean }): void => {
@@ -21,7 +21,7 @@ export const requireAdmin = (u: { admin: boolean }): void => {
 const SETTINGS_ERROR: Readonly<
   Record<UniverseCode, (spec: UniverseSpec, used: UsedSize) => string>
 > = {
-  range: (s) => `${s.label}: ganze Zahl von ${s.min} bis ${s.max}.`,
+  range: rangeError,
   used: (s, used) =>
     `${s.label}: mindestens ${used[s.size!]}, dort liegen schon Planeten.`,
 };
@@ -86,7 +86,13 @@ function newRound(ctx: Ctx, rules: RoundRules): void {
 export const reset: Action = (ctx, u, data, event) => {
   requireAdmin(u);
   const before = roundRules(ctx);
-  const after = startRoundRules(ctx, data.rewards, data.guilds, data.mainLock);
+  const after = startRoundRules(
+    ctx,
+    data.rewards,
+    data.guilds,
+    data.mainLock,
+    data.demolition,
+  );
   newRound(ctx, after);
   if (event) event.detail = { before, after };
   return 'Neue Runde gestartet – alle Spieler haben einen frischen Planeten.';

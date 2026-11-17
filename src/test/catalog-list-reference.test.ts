@@ -309,13 +309,19 @@ const buildOrder = (b: Levels): fc.Arbitrary<Planet['bq']> =>
         start: time,
         span: fc.integer({ min: 1, max: 900_000 }),
       })
-      .map(({ key, start, span }) => ({
-        key,
-        lvl: (b[key] ?? 0) + 1,
-        start,
-        end: start + span,
-        cost: [0, 0, 0] as [number, number, number],
-      })),
+      .map(({ key, start, span }) => {
+        // A demolition of a level that stands (#202) on an even span: no
+        // draw of its own, so the cases of the seed stay those before.
+        const down = span % 2 === 0 && (b[key] ?? 0) > 0;
+        return {
+          key,
+          lvl: (b[key] ?? 0) + (down ? -1 : 1),
+          start,
+          end: start + span,
+          cost: [0, 0, 0] as [number, number, number],
+          ...(down ? { back: [1, 2, 3] as const } : {}),
+        };
+      }),
   );
 
 const unitOrder: fc.Arbitrary<Planet['sq'][number]> = fc.record({
@@ -399,6 +405,8 @@ const state = fc
 /** Markup of every branch of the lists, for the check that the cases reach them. */
 const MARKS = [
   'data-act="cancelBuild"',
+  'data-act="demolish"',
+  'Rückbau auf Stufe',
   'data-act="cancelResearch"',
   'data-act="build"',
   'data-act="research"',

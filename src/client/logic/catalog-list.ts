@@ -22,6 +22,7 @@ import {
   unitTime,
   useAt,
 } from '../../core/economy.ts';
+import { isDemolition } from '../../core/demolition.ts';
 import { type OrderError, orderErrors } from '../../core/economy-checks.ts';
 import { activeDrive, shipSpeed } from '../../core/flight.ts';
 import { hasLab } from '../../core/lab.ts';
@@ -36,6 +37,7 @@ import { text } from '../../core/text.ts';
 import type { Cost, Levels, Requirements } from '../../core/types.ts';
 import { hasYard, orderMax, YARD_LOCK, yardLockedBy } from '../../core/yard.ts';
 import type { V } from '../views/common.ts';
+import { canOfferDemolition } from './demolition.ts';
 import { type Explanation, explanation } from './explain.ts';
 import { fieldsLine } from './fields.ts';
 import { dur, fmt } from './format.ts';
@@ -79,9 +81,10 @@ export type CatalogAction =
       label: string;
       disabled: boolean;
     }
-  /** The running upgrade of a building with its progress. */
+  /** The running upgrade of a building with its progress; `down` for a demolition (#202). */
   | {
       kind: 'upgrading';
+      down: boolean;
       level: number;
       end: number;
       left: string;
@@ -121,6 +124,8 @@ export interface CatalogRow {
   req: Requirements | undefined;
   explanation: Explanation | null;
   action: CatalogAction;
+  /** A building that can be torn down offers „Zurückbauen“ (#202). */
+  demolish?: boolean;
 }
 
 /** A row of the order queue of the shipyard. */
@@ -257,6 +262,7 @@ function buildAction(
   if (status === 'running' && bq)
     return {
       kind: 'upgrading',
+      down: isDemolition(bq),
       level: bq.lvl,
       end: bq.end,
       left: dur(bq.end - now),
@@ -296,6 +302,7 @@ function buildingRow(v: V, key: string): CatalogRow {
     ],
     req: def.req,
     action: buildAction(v, status, level, short),
+    demolish: canOfferDemolition(v, key),
   };
 }
 

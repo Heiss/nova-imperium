@@ -4,7 +4,7 @@ import type { Levels, Planet } from '../../../core/types.ts';
 import { isShip } from '../../../core/catalog.ts';
 import type { UsedSize } from '../../../core/universe.ts';
 import type { Db } from '../database.ts';
-import { levels, queueOf, queueParams, type Row } from './rows.ts';
+import { buildQueueOf, buildQueueParams, levels, type Row } from './rows.ts';
 
 export interface Planets {
   get(id: string): Planet | null;
@@ -57,7 +57,7 @@ export class SqlitePlanets implements Planets {
       ),
       ships: unitsOf('ship'),
       def: unitsOf('defense'),
-      bq: queueOf(r, 'bq'),
+      bq: buildQueueOf(r),
       sq: q(
         'SELECT key, n, unit_ms FROM shipyard_queue WHERE planet_id = ? ORDER BY pos',
       ).map((x) => ({
@@ -111,14 +111,17 @@ export class SqlitePlanets implements Planets {
     this.db
       .prepare(
         `INSERT INTO planets (id, kind, owner, name, g, s, p, temp, diameter, unlimited, res_m, res_c, res_d,
-           t, created, sq_t, bq_key, bq_lvl, bq_start, bq_end, bq_cost_m, bq_cost_c, bq_cost_d)
+           t, created, sq_t, bq_key, bq_lvl, bq_start, bq_end, bq_cost_m, bq_cost_c, bq_cost_d,
+           bq_back_m, bq_back_c, bq_back_d)
          VALUES (@id, @kind, @owner, @name, @g, @s, @p, @temp, @diameter, @unlimited, @res_m, @res_c, @res_d,
-           @t, @created, @sq_t, @bq_key, @bq_lvl, @bq_start, @bq_end, @bq_cost_m, @bq_cost_c, @bq_cost_d)
+           @t, @created, @sq_t, @bq_key, @bq_lvl, @bq_start, @bq_end, @bq_cost_m, @bq_cost_c, @bq_cost_d,
+           @bq_back_m, @bq_back_c, @bq_back_d)
          ON CONFLICT(id) DO UPDATE SET owner = excluded.owner, name = excluded.name,
            temp = excluded.temp, diameter = excluded.diameter, unlimited = excluded.unlimited, res_m = excluded.res_m, res_c = excluded.res_c, res_d = excluded.res_d,
            t = excluded.t, sq_t = excluded.sq_t, bq_key = excluded.bq_key, bq_lvl = excluded.bq_lvl,
            bq_start = excluded.bq_start, bq_end = excluded.bq_end, bq_cost_m = excluded.bq_cost_m,
-           bq_cost_c = excluded.bq_cost_c, bq_cost_d = excluded.bq_cost_d`,
+           bq_cost_c = excluded.bq_cost_c, bq_cost_d = excluded.bq_cost_d,
+           bq_back_m = excluded.bq_back_m, bq_back_c = excluded.bq_back_c, bq_back_d = excluded.bq_back_d`,
       )
       .run({
         id: p.id,
@@ -137,7 +140,7 @@ export class SqlitePlanets implements Planets {
         t: p.t,
         created: p.created,
         sq_t: p.sqT,
-        ...queueParams(p.bq, 'bq'),
+        ...buildQueueParams(p.bq),
       });
     this.replaceChildren(p);
   }

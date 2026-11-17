@@ -29,7 +29,13 @@ export interface Queue {
   lvl: number;
   start: number;
   end: number;
+  /** What the start paid; a cancel gives it back. */
   cost: Cost;
+  /**
+   * Only on a demolition of the build queue (#202): what its end gives back.
+   * The level `lvl` is then one below the level that stands.
+   */
+  back?: Cost;
 }
 
 interface ShipyardItem {
@@ -119,4 +125,12 @@ export interface Universe {
   extraFields: number;
   /** The default flight time of the „Endzeit“ gift, in minutes (#161). */
   endzeitMinutes: number;
+  /**
+   * The refund factor of a demolition in percent, −100 to +100 (#202, D4,
+   * D7): the stored setting of the round, also changed live by the admin
+   * (X1).
+   */
+  roundDemolitionRefund: number;
+  /** The duration of a demolition in percent of the build time, 1 to 200 (#202, D3, X1). */
+  roundDemolitionTime: number;
 }

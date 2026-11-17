@@ -1,6 +1,11 @@
 // The settings of a universe: defaults, ranges and the rule that the size of
 // the universe never shrinks below a planet that exists. The admin panel, the
 // server check and the documentation table read this list.
+import {
+  DEMOLITION_KEYS,
+  DEMOLITION_REFUND,
+  DEMOLITION_TIME,
+} from './demolition.ts';
 import { GIFT_DEFAULT_MINUTES, GIFT_MINUTES } from './endzeit.ts';
 import type { Coords, Universe } from './types.ts';
 
@@ -87,6 +92,23 @@ export const UNIVERSE_SPECS: readonly UniverseSpec[] = [
     min: GIFT_MINUTES.min,
     max: GIFT_MINUTES.max,
     def: GIFT_DEFAULT_MINUTES,
+  },
+  // Issue #202 (owner, 2026-11-16, D3, D4, D7; 2026-11-17, X1): the refund
+  // factor and the duration of a demolition, set in „Neue Runde“ and
+  // changed here during the round; the same stored settings the round reads.
+  {
+    key: DEMOLITION_KEYS.refund,
+    label: 'Rückbau-Erstattung (%)',
+    min: DEMOLITION_REFUND.min,
+    max: DEMOLITION_REFUND.max,
+    def: DEMOLITION_REFUND.default,
+  },
+  {
+    key: DEMOLITION_KEYS.time,
+    label: 'Rückbau-Dauer (% der Bauzeit)',
+    min: DEMOLITION_TIME.min,
+    max: DEMOLITION_TIME.max,
+    def: DEMOLITION_TIME.default,
   },
 ];
 

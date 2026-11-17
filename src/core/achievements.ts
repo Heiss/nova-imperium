@@ -1,4 +1,5 @@
 import { BUILD, DEF, RES, SHIPS } from './catalog.ts';
+import type { DemolitionRules } from './demolition.ts';
 import { lvlCost } from './economy.ts';
 import { text } from './text.ts';
 import type { Cost } from './types.ts';
@@ -116,6 +117,12 @@ export interface RoundRules {
    * only when the admin starts a new round, 7 by default.
    */
   mainLock: number;
+  /**
+   * The refund factor and the time of a demolition (#202, D3, D4, D7): set
+   * when the admin starts a new round and changed in the universe settings
+   * during the round (X1), +50 % and 50 % by default.
+   */
+  demolition: DemolitionRules;
 }
 
 export interface AchievementState {

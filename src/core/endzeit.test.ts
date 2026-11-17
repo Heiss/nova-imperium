@@ -139,6 +139,15 @@ describe('a running order the gift overtakes', () => {
     expect(overtaken(null, levels)).toBe(false);
     expect(overtaken(undefined, levels)).toBe(false);
   });
+  it('ends a demolition (#202) only when the gift raised its building [V]', () => {
+    const levels = { robot: 20 };
+    const back = [1, 2, 3] as const;
+    // robot stood at 20 and is torn down to 19: the gift gives 20, no raise.
+    expect(overtaken({ key: 'robot', lvl: 19, back }, levels)).toBe(false);
+    // robot stood at 19 and the gift raised it to 20.
+    expect(overtaken({ key: 'robot', lvl: 18, back }, levels)).toBe(true);
+    expect(overtaken({ key: 'metal', lvl: 0, back }, { metal: 1 })).toBe(false);
+  });
 });
 
 // „Geklärt, Nachtrag 2“ of #53 (owner, 2026-11-14): the gift raises only the

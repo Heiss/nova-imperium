@@ -32,6 +32,9 @@ describe('universe settings', () => {
       extraFields: 0,
       // Added by #161 (owner, 2026-11-14): the gift flies 4 h by default.
       endzeitMinutes: 240,
+      // Added by #202 (owner, 2026-11-16, D3, D7): +50 % back in 50 % of the build time.
+      roundDemolitionRefund: 50,
+      roundDemolitionTime: 50,
     });
     for (const s of UNIVERSE_SPECS) {
       expect(s.def).toBeGreaterThanOrEqual(s.min);
@@ -51,6 +54,8 @@ describe('universe settings', () => {
       ['startDeuterium', 'Start-Promethium'],
       ['extraFields', 'Zusatzfelder pro Planet'],
       ['endzeitMinutes', 'Flugzeit der Endzeit-Gabe (Minuten)'],
+      ['roundDemolitionRefund', 'Rückbau-Erstattung (%)'],
+      ['roundDemolitionTime', 'Rückbau-Dauer (% der Bauzeit)'],
     ]);
   });
   it('accept valid values given as strings', () => {
@@ -100,6 +105,34 @@ describe('universe settings', () => {
     for (const endzeitMinutes of [0, 4321, 1.5])
       expect(codes({ ...DEFAULT_UNIVERSE, endzeitMinutes })).toEqual([
         ['endzeitMinutes', 'range'],
+      ]);
+  });
+  it('take −100 to +100 % refund and 1 to 200 % time of a demolition (#202, X1)', () => {
+    expect(spec('roundDemolitionRefund')).toEqual({
+      key: 'roundDemolitionRefund',
+      label: 'Rückbau-Erstattung (%)',
+      min: -100,
+      max: 100,
+      def: 50,
+    });
+    expect(spec('roundDemolitionTime')).toEqual({
+      key: 'roundDemolitionTime',
+      label: 'Rückbau-Dauer (% der Bauzeit)',
+      min: 1,
+      max: 200,
+      def: 50,
+    });
+    for (const roundDemolitionRefund of [-100, 0, 100])
+      expect(codes({ ...DEFAULT_UNIVERSE, roundDemolitionRefund })).toEqual([]);
+    for (const roundDemolitionRefund of [-101, 101, 2.5])
+      expect(codes({ ...DEFAULT_UNIVERSE, roundDemolitionRefund })).toEqual([
+        ['roundDemolitionRefund', 'range'],
+      ]);
+    for (const roundDemolitionTime of [1, 200])
+      expect(codes({ ...DEFAULT_UNIVERSE, roundDemolitionTime })).toEqual([]);
+    for (const roundDemolitionTime of [0, 201, 1.5])
+      expect(codes({ ...DEFAULT_UNIVERSE, roundDemolitionTime })).toEqual([
+        ['roundDemolitionTime', 'range'],
       ]);
   });
   it('report all errors at once, in the order of the specs', () => {

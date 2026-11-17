@@ -96,12 +96,14 @@
           </div>
           <div class="act">
             {#if a.kind === 'upgrading'}
-              Ausbau auf Stufe {a.level}<br />
+              {a.down ? 'Rückbau' : 'Ausbau'} auf Stufe {a.level}<br />
               <span class="cd" data-end={a.end}>{a.left}</span>
               <progress
                 max={a.max}
                 value={a.value}
-                aria-label="Fortschritt Ausbau"
+                aria-label={a.down
+                  ? 'Fortschritt Rückbau'
+                  : 'Fortschritt Ausbau'}
               ></progress>
               <button class="small red" data-act="cancelBuild">Abbrechen</button
               >
@@ -140,6 +142,11 @@
                 data-act="order"
                 data-k={row.key}
                 disabled={a.disabled}>Bauen</button
+              >
+            {/if}
+            {#if row.demolish}
+              <br /><button class="small" data-act="demolish" data-k={row.key}
+                >Zurückbauen</button
               >
             {/if}
           </div>

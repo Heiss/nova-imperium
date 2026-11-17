@@ -259,7 +259,7 @@ CREATE TABLE planets (
     bq_cost_d INTEGER,
     diameter INTEGER NOT NULL DEFAULT 0,
     unlimited INTEGER NOT NULL DEFAULT 0 CHECK (unlimited IN (0, 1)),
-    kind TEXT NOT NULL DEFAULT 'planet' CHECK (kind IN ('planet', 'moon')),
+    kind TEXT NOT NULL DEFAULT 'planet' CHECK (kind IN ('planet', 'moon')), bq_back_m INTEGER, bq_back_c INTEGER, bq_back_d INTEGER,
     UNIQUE (g, s, p, kind)
   ) STRICT;
 

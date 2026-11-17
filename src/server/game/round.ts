@@ -1,7 +1,15 @@
 import type { RoundRules } from '../../core/achievements.ts';
+import {
+  DEMOLITION_KEYS,
+  type DemolitionRules,
+  demolitionRules,
+  demolitionSettingErrors,
+  demolitionSettingsOf,
+} from '../../core/demolition.ts';
 import { isLockDays, MAIN_LOCK_DAYS } from '../../core/main-planet.ts';
 import { type RoundError, roundChoice, roundError } from '../../core/round.ts';
-import { type Ctx, fail } from './context.ts';
+import { UNIVERSE_SPECS, type UniverseSpec } from '../../core/universe.ts';
+import { type Ctx, fail, universe } from './context.ts';
 
 /** The setting of the lock of the main planet in days (#221, D3). */
 const MAIN_LOCK = 'roundMainLock';
@@ -17,6 +25,9 @@ export function roundRules(ctx: Ctx): RoundRules {
     guilds: settings.get('roundGuilds') !== 0,
     // Existing universes lock for the default 7 days (#221).
     mainLock: ctx.admin.setting(MAIN_LOCK) ?? MAIN_LOCK_DAYS.default,
+    // The settings of the universe, changed there during the round too
+    // (#202, X1); existing universes start with the defaults +50 % and 50 %.
+    demolition: demolitionRules(universe(ctx)),
   };
 }
 
@@ -60,11 +71,33 @@ function mainLockRule(current: RoundRules, days: unknown): number {
   return selected;
 }
 
+/** The refusal of a value outside its range, as the universe settings word it (#214). */
+export const rangeError = (s: UniverseSpec): string =>
+  `${s.label}: ganze Zahl von ${s.min} bis ${s.max}.`;
+
+const specOf = (key: string): UniverseSpec =>
+  UNIVERSE_SPECS.find((s) => s.key === key)!;
+
+/**
+ * The refund factor and the time of a demolition in the new round (#202,
+ * X1); without a choice the current ones. Refused with the message of the
+ * universe settings, every wrong value at once.
+ */
+function demolitionRule(current: RoundRules, input: unknown): DemolitionRules {
+  const wrong = demolitionSettingErrors(current.demolition, input);
+  if (wrong.length)
+    fail(
+      wrong.map((part) => rangeError(specOf(DEMOLITION_KEYS[part]))).join(' '),
+    );
+  return demolitionSettingsOf(current.demolition, input);
+}
+
 export function startRoundRules(
   ctx: Ctx,
   options: unknown,
   guilds?: unknown,
   mainLock?: unknown,
+  demolition?: unknown,
 ): RoundRules {
   const current = roundRules(ctx);
   const error = roundError(current, options, guilds);
@@ -73,9 +106,12 @@ export function startRoundRules(
     number: current.number + 1,
     ...roundChoice(current, options, guilds),
     mainLock: mainLockRule(current, mainLock),
+    demolition: demolitionRule(current, demolition),
   };
   ctx.admin.putSettings([
     [MAIN_LOCK, next.mainLock],
+    [DEMOLITION_KEYS.refund, next.demolition.refund],
+    [DEMOLITION_KEYS.time, next.demolition.time],
     ['round', next.number],
     ['roundAchievements', Number(next.achievements)],
     ['roundDaily', Number(next.daily)],

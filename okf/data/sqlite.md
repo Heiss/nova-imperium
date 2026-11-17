@@ -489,6 +489,15 @@ stays the first planet, unlocked; other data stay as they were
 migrations 11 and 20 run the later migrations before today's code saves a
 player, since the player repository writes the new columns.
 
+Migration `20261117T0921-demolition` (issue #202, see
+[Demolition](/features/demolition.md)) adds `planets.bq_back_m`,
+`bq_back_c` and `bq_back_d` (INTEGER), what a demolition of the build
+queue gives back at its end; null on an upgrade. Every running order of an
+existing round stays an upgrade; other data stay as they were
+(`upgrades/20261117T0921-demolition.test.ts`). The upgrade test of
+migration 15 copies a planet as a moon in SQL instead of saving it with
+today's store, since the planet repository writes the new columns.
+
 Account deletion runs in one transaction. Foreign-key cascades clear owned game,
 session, reward and push data. The deletion also removes led guilds and their
 memberships, linked audit and inbox records, invitations for the account address
