@@ -4,6 +4,7 @@ import { placeId } from '../../core/place.ts';
 import { debrisAt, debrisMark, harvestButton } from '../logic/debris.ts';
 import { esc, fmt } from '../logic/format.ts';
 import { isProtected, nameOf, ranks } from '../logic/game.ts';
+import { vacationMark } from '../logic/vacation.ts';
 import { moonAt, moonMark, moonPicture } from '../logic/moon.ts';
 import { canScan, scanRows, scanTitle } from '../logic/phalanx.ts';
 import type { GalaxyPlanet } from '../logic/types.ts';
@@ -62,12 +63,12 @@ function scanPanel(v: V): string {
   return `<section class="bd scan-panel" id="scan" aria-labelledby="scan-h"><h3 id="scan-h" tabindex="-1">${esc(scanTitle(scan, v.s.galaxy))}</h3>${list}<button class="small" data-act="gscanClose">Schließen</button></section>`;
 }
 
-/** The owner and the noob protection of a planet or moon. */
+/** The owner, the noob protection and the vacation mode (#223) of a planet or moon. */
 function ownerCell(v: V, pl: GalaxyPlanet, rk: Record<string, number>): string {
   const { s } = v;
   const mine = pl.owner === s.me.id;
   const prot = !mine && isProtected(s.players, s.me.id, pl.owner);
-  return `<td>${esc(nameOf(s.players, pl.owner))} <span class="dim">(Platz ${rk[pl.owner] ?? '-'})</span>${prot ? ' <span class="good" title="Noobschutz">(n)</span>' : ''}</td>`;
+  return `<td>${esc(nameOf(s.players, pl.owner))} <span class="dim">(Platz ${rk[pl.owner] ?? '-'})</span>${prot ? ' <span class="good" title="Noobschutz">(n)</span>' : ''}${vacationMark(s.players, pl.owner)}</td>`;
 }
 
 /** The row of the moon below its planet, once its symbol is opened (#53). */

@@ -33,6 +33,7 @@ import { type Action, type Data, mine, researchOf } from './actions.ts';
 import { type Ctx, coords, fail, int, universe } from './context.ts';
 import { attackEvent } from './guild-events.ts';
 import { isProtected, pointsMap } from './points.ts';
+import { inVacation } from './vacation.ts';
 
 const pickShips = (p: Planet, wanted: unknown): Levels => {
   const ships: Levels = {};
@@ -69,6 +70,7 @@ const SEND_ERROR: Readonly<Record<SendError, string>> = {
   notOwn: 'Verlegung nur zu einem eigenen Planeten.',
   ownTarget: 'Eigene Planeten kann man nicht angreifen.',
   protected: 'Dieser Spieler steht unter Noobschutz.',
+  vacation: 'Dieser Spieler ist im Urlaubsmodus.',
   probesOnly: 'Auspex-Erkundung nur mit Spähschädeln.',
   noDebris: 'An dieser Position gibt es kein Trümmerfeld.',
   noRecycler: 'Du brauchst eine Bergungsbarke.',
@@ -114,6 +116,7 @@ function checkDestination(
       debris: at.debris,
       moon: at.moon,
       protects: (owner) => isProtected(u.id, owner, pointsMap(ctx)),
+      vacation: inVacation(ctx),
     },
   );
   if (error) fail(SEND_ERROR[error]);

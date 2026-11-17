@@ -18,6 +18,8 @@ import { deleteGuildChat, seeGuildChat, sendGuildChat } from './guild-chat.ts';
 import { recall, send } from './fleet-actions.ts';
 import { scan } from './phalanx.ts';
 import { chooseMainPlanet } from './main-planet.ts';
+import { vacationRefuses } from '../../core/vacation.ts';
+import { endVacation, startVacation, VACATION_REFUSED } from './vacation.ts';
 import {
   assignGuildRank,
   createGuildRank,
@@ -73,6 +75,8 @@ export const ACTIONS: Record<string, A.Action> = {
   rename: A.rename,
   options: A.options,
   mainPlanet: chooseMainPlanet,
+  startVacation,
+  endVacation,
   pushOptions,
   read: A.read,
   delrep: A.delrep,
@@ -108,6 +112,9 @@ export function runAction(
   return ctx.tx(() => {
     tick(ctx);
     const u: User = ctx.players.get(uid) ?? fail('Bitte einloggen.');
+    // No own game action during the vacation mode (#223, Q2).
+    if (vacationRefuses(type, GUILD_ACTIONS.has(type), u.vacation))
+      fail(VACATION_REFUSED);
     if (GUILD_ACTIONS.has(type)) requireGuilds(ctx);
     const result = fn(ctx, u, d, event);
     recordAchievementAction(ctx, uid, type);

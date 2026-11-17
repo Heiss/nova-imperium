@@ -9,6 +9,7 @@
 import { MISSIONS } from '../features/index.gen.ts';
 import { missionText } from './text.ts';
 import type { Levels, Mission, Planet } from './types.ts';
+import { vacationProtects } from './vacation.ts';
 
 /**
  * What a mission flies to: an own planet, a foreign one, any planet, a
@@ -28,6 +29,7 @@ export type SendError =
   | 'notOwn'
   | 'ownTarget'
   | 'protected'
+  | 'vacation'
   | 'noColonyShip'
   | 'probesOnly'
   | 'noDebris'
@@ -60,6 +62,11 @@ export interface SendTarget {
    * asked: after the other checks of a foreign target.
    */
   protects(owner: string): boolean;
+  /**
+   * Whether `owner` is in vacation mode (#223): every place of such a
+   * player is protected from a new mission of another player (D2, Q2).
+   */
+  vacation(owner: string): boolean;
 }
 
 /** The typed data and the send check of one mission (its rules.ts). */
@@ -132,6 +139,24 @@ const NEVER_MOON: readonly TargetKind[] = ['free', 'debris'];
 const nothing = (target: SendTarget): SendError =>
   target.moon ? 'noMoon' : 'noPlanet';
 
+/**
+ * The protection of a suitable planet: the vacation mode of its owner for
+ * every mission of another player (#223), then the noob protection for a
+ * foreign target.
+ */
+function shieldError(
+  kind: TargetKind,
+  fleet: SendFleet,
+  target: SendTarget,
+  t: Pick<Planet, 'owner'>,
+): SendError | undefined {
+  if (vacationProtects(t, fleet.owner, target.vacation)) return 'vacation';
+  // Asked last, and only here: the server needs every player's points.
+  return kind === 'foreign' && target.protects(t.owner)
+    ? 'protected'
+    : undefined;
+}
+
 /** The generic check of the target kind, in today's order of the messages. */
 function targetError(
   kind: TargetKind,
@@ -144,10 +169,7 @@ function targetError(
   if (t.id === fleet.from) return 'samePlanet';
   if (!suits(kind, fleet.owner, t))
     return kind === 'own' ? 'notOwn' : 'ownTarget';
-  // Asked last, and only here: the server needs every player's points.
-  return kind === 'foreign' && target.protects(t.owner)
-    ? 'protected'
-    : undefined;
+  return shieldError(kind, fleet, target, t);
 }
 
 /**

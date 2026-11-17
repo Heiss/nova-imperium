@@ -353,8 +353,8 @@ describe('points and state', () => {
     expect(sb.fleets[1]!.ships).toEqual({ lf: 1 });
     expect(sb.admin.specs.length).toBeGreaterThan(0);
     expect(sb.players).toEqual({
-      u_Anna: { name: 'Anna', points: 12 },
-      u_Bert: { name: 'Bert', points: 0 },
+      u_Anna: { name: 'Anna', points: 12, vacation: false },
+      u_Bert: { name: 'Bert', points: 0, vacation: false },
     });
     expect(sb.galaxy).toHaveLength(2);
     expect(sb.me).toEqual({
@@ -367,6 +367,7 @@ describe('points and state', () => {
       pushOff: [],
       readAt: 0,
       admin: true,
+      vacation: null,
     });
   });
 

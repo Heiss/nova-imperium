@@ -116,6 +116,12 @@ export interface RoundRules {
    * only when the admin starts a new round, 7 by default.
    */
   mainLock: number;
+  /**
+   * The minimum duration of the vacation mode in hours (#223, D1): set
+   * when the admin starts a new round and changed live in the universe
+   * settings (X1), 24 by default.
+   */
+  vacationHours: number;
 }
 
 export interface AchievementState {

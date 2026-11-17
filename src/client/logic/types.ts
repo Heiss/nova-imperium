@@ -28,6 +28,8 @@ interface Me {
   pushOff: PushTopic[];
   readAt: number;
   admin: boolean;
+  /** When the vacation mode started (#223); null outside of it. */
+  vacation: number | null;
 }
 
 export type ClientFleet = Pick<
@@ -62,7 +64,8 @@ export interface GalaxyPlanet extends Coords {
 }
 
 export interface Players {
-  [id: string]: { name: string; points: number };
+  /** `vacation`: whether the player is in vacation mode (#223). */
+  [id: string]: { name: string; points: number; vacation?: boolean };
 }
 
 export interface AdminState {

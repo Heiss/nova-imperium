@@ -12,7 +12,8 @@
 //   Trümmerfeld at the position of the home planet, issue #45), moon? ({ b?, res?, ships?,
 //   def?, name?, diameter? }: the moon of the home planet, made or changed, issue #53),
 //   gift? (minutes: a gift fleet of the „Endzeit“ to the home planet that arrives in that
-//   time, issue #161) }
+//   time, issue #161), vacationAgo? (ms: the vacation mode started that long ago, issue
+//   #223) }
 import { openDatabase } from '../src/server/db/database.ts';
 import { Store } from '../src/server/db/store.ts';
 import { recordServerError } from '../src/server/error-log.ts';
@@ -149,6 +150,10 @@ store.tx(() => {
   if (d.landFleet) landFleet(u.id, d.landFleet);
   if (d.returnFleet) returnFleet(u.id);
   if (d.research) store.saveUser({ ...u, research: d.research });
+  if (d.vacationAgo)
+    store.db
+      .prepare('UPDATE users SET vacation = ? WHERE id = ?')
+      .run(Date.now() - d.vacationAgo, u.id);
   const p = store.planetOfUser(u.id)!;
   updateHome(p);
   if (d.colony) addColony(p);

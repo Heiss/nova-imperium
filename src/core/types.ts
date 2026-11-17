@@ -119,4 +119,9 @@ export interface Universe {
   extraFields: number;
   /** The default flight time of the „Endzeit“ gift, in minutes (#161). */
   endzeitMinutes: number;
+  /**
+   * The minimum duration of the vacation mode in hours (#223, D1): the
+   * stored setting of the round, also changed live by the admin (X1).
+   */
+  roundVacationHours: number;
 }

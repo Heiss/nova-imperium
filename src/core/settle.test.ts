@@ -1,3 +1,4 @@
+import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import { planet, U } from '../test/fixtures.ts';
 import { accrue, readsResearch, satEnergy, STOCK_USERS } from './economy.ts';
@@ -169,6 +170,49 @@ describe('settle', () => {
     const p = settle(src, 100, U);
     expect(p.ships).toEqual({});
     expect(p.sqT).toBe(100);
+  });
+});
+
+describe('settle in the vacation mode (#223, Q2)', () => {
+  const away = (vacation: number | null) => ({
+    research: {},
+    rq: null,
+    vacation,
+  });
+
+  it('produces up to the start of the vacation and nothing after it', () => {
+    const p = settle(planet({ t: 1000 }), 1000 + 5 * H, U, away(1000 + H));
+    expect(p.res).toEqual({ m: 600, c: 550, d: 0 });
+    expect(p.t).toBe(1000 + 5 * H);
+  });
+
+  it('produces nothing for a planet settled during the vacation', () => {
+    const p = settle(planet({ t: 1000 + H }), 1000 + 9 * H, U, away(1000));
+    expect(p.res).toEqual({ m: 500, c: 500, d: 0 });
+    expect(p.t).toBe(1000 + 9 * H);
+  });
+
+  it('produces as usual without a vacation', () => {
+    const p = settle(planet({ t: 1000 }), 1000 + H, U, away(null));
+    expect(p.res).toEqual({ m: 600, c: 550, d: 0 });
+  });
+
+  it('keeps the stock of the start at any later time (property)', () => {
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 0, max: 100 * H }),
+        fc.integer({ min: 0, max: 1000 * H }),
+        (before, after) => {
+          const start = 1000 + before;
+          const at = settle(planet({ t: 1000 }), start, U);
+          const later = settle(planet({ t: 1000 }), start + after, U, {
+            ...away(start),
+          });
+          expect(later.res).toEqual(at.res);
+          expect(later.t).toBe(start + after);
+        },
+      ),
+    );
   });
 });
 

@@ -3,6 +3,7 @@
 // server check and the documentation table read this list.
 import { GIFT_DEFAULT_MINUTES, GIFT_MINUTES } from './endzeit.ts';
 import type { Coords, Universe } from './types.ts';
+import { VACATION_HOURS } from './vacation.ts';
 
 type UniverseKey = keyof Universe;
 
@@ -87,6 +88,16 @@ export const UNIVERSE_SPECS: readonly UniverseSpec[] = [
     min: GIFT_MINUTES.min,
     max: GIFT_MINUTES.max,
     def: GIFT_DEFAULT_MINUTES,
+  },
+  // Issue #223 (owner, 2026-11-16, D1; 2026-11-17, X1): the minimum
+  // duration of the vacation mode, set in „Neue Runde“ and changed here
+  // during the round; the same stored setting the round reads.
+  {
+    key: 'roundVacationHours',
+    label: 'Mindestdauer des Urlaubsmodus (Stunden)',
+    min: VACATION_HOURS.min,
+    max: VACATION_HOURS.max,
+    def: VACATION_HOURS.default,
   },
 ];
 

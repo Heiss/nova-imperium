@@ -61,11 +61,11 @@ import {
   auth,
   deleteAccountDialog,
   diagnosticTab,
-  roundDialog,
   endzeitDialog,
   type AdminTab,
 } from './views/misc.ts';
 import { disablePush, enablePush } from './push.ts';
+import { vacationActs } from './vacation-actions.ts';
 import { mountCatalogList } from './views/catalog-list.ts';
 import {
   adminChatDialog,
@@ -1280,6 +1280,7 @@ const ACT: Record<string, (d: Data) => unknown> = {
     }
   },
   deleteAccount: () => modal(deleteAccountDialog(client.game!.round)),
+  ...vacationActs({ act, modal }),
   dismissInstall: () => {
     installDismissed = true;
     try {
@@ -1304,18 +1305,6 @@ const ACT: Record<string, (d: Data) => unknown> = {
     } catch {
       toast('Bitte installiere die App über das Browsermenü.', true);
     }
-  },
-  reset: () => modal(roundDialog(client.game!.round)),
-  doReset: () => {
-    const checked = (id: string) => $<HTMLInputElement>(id)!.checked;
-    const rewards = {
-      achievements: checked('#round-achievements'),
-      daily: checked('#round-daily'),
-    };
-    const guilds = checked('#round-guilds');
-    const mainLock = Number(val('#round-main-lock'));
-    modal('');
-    return act('reset', { rewards, guilds, mainLock });
   },
   endzeit: () => modal(endzeitDialog(client.game!.admin!.endzeit.minutes)),
   doEndzeit: () => {

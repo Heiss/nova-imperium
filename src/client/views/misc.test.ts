@@ -34,7 +34,13 @@ describe('the dialog „Neue Runde“', () => {
     /<label><input type="checkbox" id="round-guilds"[^>]*>[^<]*<\/label>/.exec(
       html,
     )?.[0] ?? '';
-  const rules = { number: 1, achievements: true, daily: true, mainLock: 7 };
+  const rules = {
+    number: 1,
+    achievements: true,
+    daily: true,
+    mainLock: 7,
+    vacationHours: 24,
+  };
 
   it('has one box „Gilden (mit Chat)“, preselected with the current round (#191)', () => {
     const on = box(roundDialog({ ...rules, guilds: true }));
@@ -47,7 +53,13 @@ describe('the dialog „Neue Runde“', () => {
 });
 
 describe('the lock of the main planet in the dialog „Neue Runde“ (#221)', () => {
-  const rules = { number: 1, achievements: true, daily: true, guilds: true };
+  const rules = {
+    number: 1,
+    achievements: true,
+    daily: true,
+    guilds: true,
+    vacationHours: 24,
+  };
 
   it('is a number of days from 1 to 30, preselected with the current round', () => {
     for (const mainLock of [7, 12]) {
@@ -62,8 +74,36 @@ describe('the lock of the main planet in the dialog „Neue Runde“ (#221)', ()
   });
 });
 
+describe('the minimum duration of the vacation mode in the dialog „Neue Runde“ (#223)', () => {
+  const rules = {
+    number: 1,
+    achievements: true,
+    daily: true,
+    guilds: true,
+    mainLock: 7,
+  };
+
+  it('is a number of hours from 1 to 720, preselected with the current round', () => {
+    for (const vacationHours of [24, 48]) {
+      const html = roundDialog({ ...rules, vacationHours });
+      expect(html).toContain(
+        `<label for="round-vacation-hours">Mindestdauer des Urlaubsmodus (Stunden)</label> <input type="number" id="round-vacation-hours" min="1" max="720" step="1" value="${vacationHours}" required> <span class="dim">1 bis 720</span>`,
+      );
+      expect(html.indexOf('id="round-vacation-hours"')).toBeLessThan(
+        html.indexOf('data-act="doReset"'),
+      );
+    }
+  });
+});
+
 describe('the warning below the box „Gilden (mit Chat)“ (#191)', () => {
-  const rules = { number: 1, achievements: true, daily: true, mainLock: 7 };
+  const rules = {
+    number: 1,
+    achievements: true,
+    daily: true,
+    mainLock: 7,
+    vacationHours: 24,
+  };
   // Every new round clears the chats as well (#169 D6), guilds on or off.
   const WARNING =
     'Eine neue Runde leert alle Gilden-Chats. Ohne Gilden werden alle Gilden mit Mitgliedern, Bewerbungen, Rängen und Chat gelöscht.';
@@ -86,7 +126,13 @@ describe('the warning below the box „Gilden (mit Chat)“ (#191)', () => {
 });
 
 describe('„Account löschen“ in a round with or without guilds (#191)', () => {
-  const rules = { number: 1, achievements: true, daily: true, mainLock: 7 };
+  const rules = {
+    number: 1,
+    achievements: true,
+    daily: true,
+    mainLock: 7,
+    vacationHours: 24,
+  };
   const on = { ...rules, guilds: true };
   const off = { ...rules, guilds: false };
 

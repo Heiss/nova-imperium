@@ -70,6 +70,8 @@ const meOf = (ctx: Ctx, u: User) => ({
   pushOff: pushOff(ctx, u.id),
   readAt: u.readAt,
   admin: u.admin,
+  // When the vacation mode started (#223); null outside of it.
+  vacation: u.vacation,
 });
 
 export function stateFor(
@@ -93,9 +95,11 @@ export function stateFor(
     )
     .map((f) => (f.owner === u.id ? f : foreignView(f)));
   const players = Object.fromEntries(
-    ctx.players
-      .all()
-      .map((x) => [x.id, { name: x.name, points: pts[x.id] ?? 0 }]),
+    ctx.players.all().map((x) => [
+      x.id,
+      // Who is in vacation mode, for the Sternenkarte (#223).
+      { name: x.name, points: pts[x.id] ?? 0, vacation: x.vacation !== null },
+    ]),
   );
   return {
     round,

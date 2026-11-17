@@ -72,6 +72,19 @@ describe('players repository', () => {
     });
   });
 
+  it('saves and clears the start of the vacation mode (#223)', () => {
+    const ctx = testCtx();
+    const u = addUser(ctx, 'Anna');
+    expect(ctx.players.get(u.id)!.vacation).toBeNull();
+    ctx.players.save({ ...u, vacation: 42 });
+    expect(ctx.players.get(u.id)!.vacation).toBe(42);
+    expect(ctx.db.prepare('SELECT vacation FROM users').get()).toEqual({
+      vacation: 42,
+    });
+    ctx.players.save({ ...u, vacation: null });
+    expect(ctx.players.get(u.id)).toEqual({ ...u, vacation: null });
+  });
+
   it('keeps an empty address empty', () => {
     const ctx = testCtx();
     const u = addUser(ctx, 'Anna', { email: null });
