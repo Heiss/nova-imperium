@@ -123,6 +123,11 @@ tasks).
   the version from the tags, the list of pull requests from the Git
   history (squash commits ending in `(#N)`). The loop never writes them
   by hand; it refreshes them by running the workflow (owner, 2026-11-12).
+* **[E]** Every new or changed admin setting or admin action is named in
+  the changelog fragment of its feature, saying what the admin can now
+  do; the loop writes it so in every pull request and checks it again in
+  the texts of the release pull request (owner, 2026-11-17; see
+  [Branching and release](/ops/branching-release.md)).
 * **[E]** The rules of the project stay as they are: do not assume
   anything that no decision or source gives, merges under O4, never a
   merge of a release pull request. Questions to the owner follow the next
