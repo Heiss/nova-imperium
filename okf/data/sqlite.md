@@ -489,6 +489,18 @@ stays the first planet, unlocked; other data stay as they were
 migrations 11 and 20 run the later migrations before today's code saves a
 player, since the player repository writes the new columns.
 
+Migration `20261117T1029-holding` (issue #55, see
+[Holding and ACS](/features/holding-acs.md)) rebuilds `fleets` and
+`fleet_ships`, as migration 16 did, for the mission Wacht halten: `mission`
+allows `hold`, `state` allows `hold` (a fleet that holds at its target), and
+the new column `fleets.hold` (INTEGER, 0, at least 0) is the holding time of
+a Halten in milliseconds, written once at the launch, like `gift` only by
+the fleet that has it. Every fleet keeps its id, ships, cargo, times,
+recall, fuel and gift and holds for no time
+(`upgrades/20261117T1029-holding.test.ts`). The upgrade test of migration 20
+runs the later migrations before today's actions land due fleets, since
+`fleets.due` reads the new column.
+
 Account deletion runs in one transaction. Foreign-key cascades clear owned game,
 session, reward and push data. The deletion also removes led guilds and their
 memberships, linked audit and inbox records, invitations for the account address
