@@ -94,7 +94,8 @@ einer runde (de-)aktivieren“.
   sign-in check and before the action, inside its transaction. A new guild
   action, the chat's included, goes into that list; a test fails when an
   action with „guild“ in its name is missing from it.
-* `reset` takes `guilds` (`true` or `false`) besides `rewards`;
+* `reset` takes `guilds` (`true` or `false`) besides `rewards`; the check
+  is `roundError` of `src/core/round.ts` (#214), and
   `startRoundRules` stores it with the round, and `newRound` calls
   `guilds.deleteAll()` when it is off. The cascades of the schema delete
   the members, applications, ranks and rights with each guild.

@@ -141,6 +141,35 @@ universe settings) and their ranges are not decided yet.
 * **[E]** Starting a round clears achievement progress, claimed achievements
   and daily streaks. Disabled reward types neither collect progress nor accept
   claims. The player menu shows only the enabled reward types.
+* **[E]** The daily reward scales with the day of the round (owner,
+  2026-11-16, #220, „Geklärt“): the median hourly production of all players
+  times a number of minutes. Per player the hourly production of all their
+  planets is added up for each resource, as they produce now (the rate of the
+  resource bar); then the median of those sums over the players is taken, for
+  each resource. The minutes are round(30 + 60 · ln(d) / ln(30)) on day d = 1
+  to 30 of the round and 90 from then on: 30, 42, 49, 54, 58, 62, 64 … 89, 90.
+  It is computed at the time of the claim and credited on the home planet,
+  above the storage too (no cap, as before). Achievements keep their fixed
+  rewards.
+* **[E]** The streak stays, but only as a display: a missed UTC day starts
+  the shown „Anmeldeserie“ at 1 again and does not change the reward (#220
+  D3).
+* **[V]** Taken as recommended when building #220: rounding to the nearest
+  whole minute (the owner's list named 61 for day 6, which is the value cut
+  off, not rounded; 61.608 rounds to 62); the reward in whole resources
+  rounded down and never below 0 (a median Promethium production can be
+  negative); „all players“ are the accounts that own a planet or moon (an
+  account without one produces nothing in the round; there is no activity
+  rule yet, #229); the median of an
+  even count is the mean of the two middle values; the day of the round
+  changes at 00:00 UTC like the streak and the claim, and a time before the
+  start counts as day 1; the view shows the day of the round with its
+  minutes, today's reward and tomorrow's at the same production.
+* **[V]** The start of the round is the setting `roundStart` (#220): every
+  new round sets it to its start. The migration `20261116T2137-round-start`
+  gives a running round the creation time of its first planet (a new round
+  places every home planet at its start, so this is the start of the round),
+  and a universe without a planet the time of the migration.
 * **[E]** A red exclamation mark in the player menu identifies new messages,
   available rewards, incoming fleets or pending guild applications. In the
   current browser session it also marks detected building upgrades, research,

@@ -102,11 +102,6 @@ export const ACHIEVEMENTS: readonly Achievement[] = [
   ),
 ];
 
-export function dailyReward(streak: number): Cost {
-  const day = Math.min(7, Math.max(1, streak));
-  return [20 + 10 * day, 10 + 5 * day, 2 * day];
-}
-
 export interface RoundRules {
   number: number;
   achievements: boolean;
@@ -126,5 +121,16 @@ export interface RoundRules {
 export interface AchievementState {
   progress: Record<string, number>;
   claimed: string[];
-  daily: { streak: number; claimed: boolean; reward: Cost; next: Cost } | null;
+  /**
+   * The daily reward (#220): the shown streak, whether today's is claimed,
+   * the day of the round, today's reward and tomorrow's at today's median
+   * production.
+   */
+  daily: {
+    streak: number;
+    claimed: boolean;
+    day: number;
+    reward: Cost;
+    next: Cost;
+  } | null;
 }

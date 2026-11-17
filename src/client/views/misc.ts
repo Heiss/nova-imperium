@@ -6,6 +6,7 @@ import {
 } from '../../core/endzeit.ts';
 import { MAIN_LOCK_DAYS } from '../../core/main-planet.ts';
 import type { Universe } from '../../core/types.ts';
+import { ENDZEIT_NOTE } from '../logic/endzeit.ts';
 import { reportFormHTML } from '../logic/error-report.ts';
 import { explainOptionsHTML } from '../logic/explain.ts';
 import { mainPlanetHTML } from '../logic/main-planet.ts';
@@ -133,7 +134,7 @@ export function roundDialog(round: RoundRules): string {
 /** The box „Endzeit“ of the tab „Universum“ (#161): once per round. */
 function endzeitBox(a: AdminState): string {
   const body = a.endzeit.done
-    ? '<p>In dieser Runde wurde die Endzeit schon eingeläutet.</p>'
+    ? `<p>${ENDZEIT_NOTE.done}</p>`
     : '<p>Jeder Spieler mit Heimatplanet erhält einmal pro Runde die Gabe des Gottkaisers als Verlegung zu seinem Heimatplaneten.</p><button class="red" data-act="endzeit">Endzeit einläuten</button>';
   return box('Endzeit', body);
 }

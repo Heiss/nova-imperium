@@ -12,6 +12,7 @@ import { createAct, placeOf, samePlace } from './logic/act.ts';
 import { CATALOG_VIEWS, catalogKind } from './logic/catalog-list.ts';
 import { clearsChat, sameSignIn } from './logic/guild-chat.ts';
 import { debrisAt, debrisTip } from './logic/debris.ts';
+import { endzeitNote } from './logic/endzeit.ts';
 import { moonAt, moonTarget } from './logic/moon.ts';
 import { scanOf } from './logic/phalanx.ts';
 import { clampInt, coords, dt, dur, esc, fmt } from './logic/format.ts';
@@ -1310,8 +1311,10 @@ const ACT: Record<string, (d: Data) => unknown> = {
   endzeit: () => modal(endzeitDialog(client.game!.admin!.endzeit.minutes)),
   doEndzeit: () => {
     const minutes = val('#endzeit-minutes');
+    // The check of the server (F15, #214): a refusal without a request.
+    const note = endzeitNote(client.game!.admin!.endzeit.done, minutes);
     modal('');
-    return act('endzeit', { minutes });
+    return note ? toast(note, true) : act('endzeit', { minutes });
   },
   saveSettings: () => {
     const keys = client.game!.admin!.specs.map((x) => x.key);
