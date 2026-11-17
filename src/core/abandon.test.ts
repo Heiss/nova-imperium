@@ -20,6 +20,7 @@ const colony = {
   id: 'p2_5_9',
   owner: 'u_Anna',
   kind: 'planet' as const,
+  created: NOW - 1000,
   bq: null,
   sq: [],
 };
@@ -34,6 +35,7 @@ const queue: Queue = {
 
 const check = (over: Partial<AbandonCheck>): AbandonCheck => ({
   target: colony,
+  created: colony.created,
   moon: null,
   uid: 'u_Anna',
   main: 'p1_2_3',
@@ -121,6 +123,30 @@ describe('the target itself, as the overview asks it', () => {
   });
 });
 
+describe('the colony the confirmation was opened for (owner, 2026-11-17)', () => {
+  it('is refused once a colony was founded again at the same position', () => {
+    for (const created of [
+      colony.created + 1,
+      colony.created - 1,
+      undefined,
+      null,
+      String(colony.created),
+    ])
+      expect(abandonError(check({ created }))).toBe('stale');
+    expect(abandonError(check({ created: colony.created }))).toBeNull();
+  });
+
+  it('is asked after the target itself and before the references', () => {
+    const stale = check({
+      created: 0,
+      flights: [{ from: colony.id, to: 'p1_4_7' }],
+    });
+    expect(abandonError(stale)).toBe('stale');
+    expect(abandonError({ ...stale, main: colony.id })).toBe('main');
+    expect(abandonError({ ...stale, uid: 'u_Bert' })).toBe('unknown');
+  });
+});
+
 describe('the references that refuse it (D1)', () => {
   it('refuses a flight from or to the planet or its moon, of any player', () => {
     for (const flight of [
@@ -162,7 +188,7 @@ describe('the references that refuse it (D1)', () => {
     );
   });
 
-  it('names the first refusal: owner, moon, main, flights, research, orders', () => {
+  it('names the first refusal: owner, moon, main, stale, flights, research, orders', () => {
     const all = check({
       target: { ...colony, bq: queue },
       main: colony.id,
@@ -174,6 +200,7 @@ describe('the references that refuse it (D1)', () => {
       abandonError({ ...all, target: { ...all.target!, kind: 'moon' } }),
     ).toBe('moon');
     expect(abandonError(all)).toBe('main');
+    expect(abandonError({ ...all, main: null, created: 1 })).toBe('stale');
     expect(abandonError({ ...all, main: null })).toBe('flights');
     expect(abandonError({ ...all, main: null, flights: [] })).toBe('research');
     expect(

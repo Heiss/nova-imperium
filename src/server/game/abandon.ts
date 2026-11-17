@@ -24,6 +24,7 @@ export const ABANDON_ERROR: Readonly<Record<AbandonError, string>> = {
   unknown: 'Das ist keiner deiner Planeten.',
   moon: 'Ein Mond kann nicht allein aufgegeben werden.',
   main: 'Der Hauptplanet kann nicht aufgegeben werden. Wähle zuerst einen anderen Hauptplaneten.',
+  stale: 'Diese Kolonie gibt es so nicht mehr.',
   flights:
     'Die Kolonie kann nicht aufgegeben werden, solange Flotten zu ihr oder ihrem Mond unterwegs sind oder von dort kommen.',
   research:
@@ -48,17 +49,22 @@ function confirmPassword(u: User, password: unknown): void {
     fail('Das bisherige Passwort ist falsch.');
 }
 
-/** The planet `id` and its moon, or nulls; refused unless they can be given up now. */
+/**
+ * The planet `id` founded at `created` and its moon; refused unless they
+ * can be given up now, before anything is deleted.
+ */
 function giveUpTarget(
   ctx: Ctx,
   u: User,
   id: unknown,
+  created: unknown,
 ): { planet: Planet; moon: Planet | null } {
   const target = typeof id === 'string' ? ctx.planets.get(id) : null;
   const moon = target?.kind === 'planet' ? moonAt(ctx, target) : null;
   const places = [target, moon].flatMap((x) => (x ? [x.id] : []));
   const error = abandonError({
     target,
+    created,
     moon,
     uid: u.id,
     main: mainPlanet(ctx, u)?.id ?? null,
@@ -69,10 +75,10 @@ function giveUpTarget(
   return { planet: target!, moon };
 }
 
-/** Gives up the own planet `d.target` with its moon after the password `d.password`. */
+/** Gives up the own planet `d.target`, founded at `d.created`, with its moon after the password `d.password`. */
 export const abandon: Action = (ctx, u, d, event) => {
   confirmPassword(u, d.password);
-  const { planet, moon } = giveUpTarget(ctx, u, d.target);
+  const { planet, moon } = giveUpTarget(ctx, u, d.target, d.created);
   const until = positionLockEnd(ctx.now(), roundRules(ctx).abandonLock);
   if (moon) ctx.planets.delete(moon.id);
   ctx.planets.delete(planet.id);

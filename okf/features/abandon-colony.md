@@ -79,10 +79,10 @@ Planet“ (https://owiki.de/index.php?title=Zerst%C3%B6rter_Planet&oldid=76922).
   `positionLocked` through `freePosition` (`client/logic/abandon.ts`).
 * **[V]** The rules are pure functions in `src/core/abandon.ts` (patterns,
   section 7): `abandonTargetError` (codes `unknown`, `moon`, `main`),
-  `abandonError` (then `flights`, `research`, `orders`, in this order),
+  `abandonError` (then `stale`, `flights`, `research`, `orders`, in this order),
   `positionLockEnd`, `positionLocked` (the lock holds while now < end) and
   `isAbandonLockHours`. The server (`src/server/game/abandon.ts`, action
-  `abandon` with `target`, the planet id, and `password`) gathers the
+  `abandon` with `target`, the planet id, `created`, its founding time, and `password`) gathers the
   values and words the codes; `src/server/game/position-lock.ts` holds the
   lock for the colonization and the placement.
 * **[V]** The overview („Übersicht“) of an own planet that is not the main
@@ -93,6 +93,13 @@ Planet“ (https://owiki.de/index.php?title=Zerst%C3%B6rter_Planet&oldid=76922).
   that the position is locked for the hours of the round, „Diese Aktion
   kann nicht rückgängig gemacht werden.“ and the password. It sends the
   planet it was opened for, never one shown meanwhile.
+* **[E]** A stale confirmation (owner, 2026-11-17, on a CodeRabbit finding
+  in pull request #282): planet ids derive from the position, so a colony
+  founded again there has the same id. The dialog sends the colony's
+  founding time `created` with its id, and the server refuses before
+  deleting anything when the current planet's `created` differs (core
+  code `stale`, after the target itself and before the references), with
+  „Diese Kolonie gibt es so nicht mehr.“
 * **[E]** Messages (confirmed by the owner, 2026-11-17): „Die Kolonie <Name> [g:s:p] wurde aufgegeben.“;
   refusals „Das ist keiner deiner Planeten.“ (as for the main planet), „Ein
   Mond kann nicht allein aufgegeben werden.“, „Der Hauptplanet kann nicht

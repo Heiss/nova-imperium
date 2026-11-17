@@ -39,7 +39,7 @@ export function abandonDialog(P: Target, s: Shown): string {
   const losses = abandonLosses(P, s)
     .map((x) => `<li>${x}</li>`)
     .join('');
-  return `<form id="abandonform" data-target="${esc(P.id)}"><p><b>Kolonie aufgeben</b></p><p>${esc(P.name)} ${coords(P)} wird aufgegeben. Dabei geht verloren:</p><ul>${losses}</ul><p>Die Position ${coords(P)} ist danach ${plural(s.round.abandonLock, 'Stunde', 'Stunden')} lang gesperrt.</p><p><b>Diese Aktion kann nicht rückgängig gemacht werden.</b></p><p><label for="abandon-password">Passwort zur Bestätigung</label> <input id="abandon-password" type="password" autocomplete="current-password" required></p><button class="red" type="submit">Kolonie aufgeben</button> <button type="button" data-act="closeModal">Abbrechen</button></form>`;
+  return `<form id="abandonform" data-target="${esc(P.id)}" data-created="${P.created}"><p><b>Kolonie aufgeben</b></p><p>${esc(P.name)} ${coords(P)} wird aufgegeben. Dabei geht verloren:</p><ul>${losses}</ul><p>Die Position ${coords(P)} ist danach ${plural(s.round.abandonLock, 'Stunde', 'Stunden')} lang gesperrt.</p><p><b>Diese Aktion kann nicht rückgängig gemacht werden.</b></p><p><label for="abandon-password">Passwort zur Bestätigung</label> <input id="abandon-password" type="password" autocomplete="current-password" required></p><button class="red" type="submit">Kolonie aufgeben</button> <button type="button" data-act="closeModal">Abbrechen</button></form>`;
 }
 
 /**

@@ -1,7 +1,7 @@
 // The browser side of „Kolonie aufgeben“ (#224) and of the dialog „Neue
 // Runde“ with its locks, out of main.ts (ratchet #242): the button opens the
-// confirmation, its form sends the planet it was opened for with the
-// password and closes on success. The markup is in logic/abandon.ts and
+// confirmation, its form sends the planet it was opened for, with its
+// founding time, and the password and closes on success. The markup is in logic/abandon.ts and
 // views/misc.ts.
 import { abandonDialog } from './logic/abandon.ts';
 import { client } from './logic/state.svelte.ts';
@@ -30,6 +30,7 @@ export function abandonActs({ act, modal }: Deps): Record<string, () => void> {
     e.preventDefault();
     const data = {
       target: form.dataset.target,
+      created: Number(form.dataset.created),
       password: value('#abandon-password'),
     };
     void act('abandon', data).then((done) => done && modal(''));

@@ -407,6 +407,7 @@ describe('player actions', () => {
     const done = await call('POST', '/api/action', {
       type: 'abandon',
       target: 'p1_1_7',
+      created: ctx.planets.get('p1_1_7')!.created,
       password: 'secret1',
       planet: 'p1_1_7',
     });

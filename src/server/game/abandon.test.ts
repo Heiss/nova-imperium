@@ -52,6 +52,13 @@ function world(): TestCtx {
   return ctx;
 }
 
+/** The confirmation of the target as the dialog sends it: its id and founding time. */
+const confirmation = (ctx: TestCtx, target: unknown) => ({
+  target,
+  created:
+    typeof target === 'string' ? ctx.planets.get(target)?.created : undefined,
+});
+
 const giveUp = (
   ctx: TestCtx,
   over: Record<string, unknown> = {},
@@ -60,7 +67,12 @@ const giveUp = (
   runAction(
     ctx,
     'u_Anna',
-    { type: 'abandon', target: COLONY, password: PASSWORD, ...over },
+    {
+      type: 'abandon',
+      ...confirmation(ctx, over.target ?? COLONY),
+      password: PASSWORD,
+      ...over,
+    },
     event,
   );
 
@@ -188,6 +200,7 @@ describe('the refusals', () => {
       unknown: 'Das ist keiner deiner Planeten.',
       moon: 'Ein Mond kann nicht allein aufgegeben werden.',
       main: 'Der Hauptplanet kann nicht aufgegeben werden. Wähle zuerst einen anderen Hauptplaneten.',
+      stale: 'Diese Kolonie gibt es so nicht mehr.',
       flights:
         'Die Kolonie kann nicht aufgegeben werden, solange Flotten zu ihr oder ihrem Mond unterwegs sind oder von dort kommen.',
       research:
@@ -219,6 +232,25 @@ describe('the refusals', () => {
         password: PASSWORD,
       }),
     ).toThrow(ABANDON_ERROR.unknown);
+  });
+
+  it('refuses a confirmation opened for an earlier colony at the same position, before deleting anything (owner, 2026-11-17)', () => {
+    const ctx = world();
+    const old = ctx.planets.get(COLONY)!.created;
+    giveUp(ctx);
+    // The lock ends and Anna founds a colony again at the same position.
+    ctx.clock.t = ctx.planets.positionLock(AT)!;
+    addPlanet(ctx, 'u_Anna', { ...AT, name: 'Neu', created: ctx.now() });
+    addPlanet(ctx, 'u_Anna', { ...AT, id: MOON, kind: 'moon', name: 'Mond' });
+    expect(ctx.planets.get(COLONY)!.created).not.toBe(old);
+    for (const created of [old, undefined, String(old)])
+      refused(ctx, ABANDON_ERROR.stale, { created });
+    expect(ctx.planets.get(COLONY)?.name).toBe('Neu');
+    expect(ctx.planets.get(MOON)).not.toBeNull();
+    // The confirmation of the colony shown now still gives it up.
+    giveUp(ctx);
+    expect(ctx.planets.get(COLONY)).toBeNull();
+    expect(ctx.planets.get(MOON)).toBeNull();
   });
 
   it('never gives up a moon alone', () => {

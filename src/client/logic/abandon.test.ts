@@ -27,6 +27,7 @@ const colony = {
   res: { m: 1234.9, c: 500, d: 7 },
   bq: null,
   sq: [],
+  created: 1_763_300_000_123,
 } as unknown as Target;
 
 const moon = {
@@ -104,7 +105,7 @@ describe('the confirmation', () => {
   it('identifies the target, lists the losses, the lock and asks for the password', () => {
     const html = abandonDialog(colony, state({ galaxy: [moon] }));
     expect(html).toBe(
-      '<form id="abandonform" data-target="p2_5_9"><p><b>Kolonie aufgeben</b></p>' +
+      '<form id="abandonform" data-target="p2_5_9" data-created="1763300000123"><p><b>Kolonie aufgeben</b></p>' +
         '<p>Kolonie [2:5:9] wird aufgegeben. Dabei geht verloren:</p>' +
         '<ul><li>Gebäude: 7 Stufen</li><li>Schiffe: 4</li><li>Verteidigung: 4</li>' +
         '<li>Rohstoffe: Adamant 1.234 · Psikristall 500 · Promethium 7</li>' +

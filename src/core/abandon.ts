@@ -1,7 +1,8 @@
 // Giving up a colony („Kolonie aufgeben“, #224, okf/features/abandon-colony.md).
 // A player gives up an own planet that nothing refers to any more: not the
 // main planet (D3), no flight, research or order of the planet or its moon
-// (D1). Everything on it is lost with the moon (Q1), and the position stays
+// (D1), and still the colony the confirmation was opened for (owner,
+// 2026-11-17). Everything on it is lost with the moon (Q1), and the position stays
 // locked for colonization for the hours the admin sets per round (D2). The
 // server and the colonization ask these rules (patterns, section 7); the
 // password is the server's, like every check of the session.
@@ -39,7 +40,9 @@ export interface FlightRef {
 /** The planet a player wants to give up and what refers to it. */
 export interface AbandonCheck {
   /** The planet, or null when it does not exist. */
-  target: (Site & Pick<Planet, 'owner' | 'kind'>) | null;
+  target: (Site & Pick<Planet, 'owner' | 'kind' | 'created'>) | null;
+  /** The founding time the confirmation was opened for, as the browser sent it. */
+  created: unknown;
   /** The moon of the planet, or null without one. */
   moon: Site | null;
   uid: string;
@@ -53,7 +56,7 @@ export interface AbandonCheck {
 
 /** Why a planet cannot be given up. */
 export type AbandonError =
-  'unknown' | 'moon' | 'main' | 'flights' | 'research' | 'orders';
+  'unknown' | 'moon' | 'main' | 'stale' | 'flights' | 'research' | 'orders';
 
 /** Whether a building or shipyard order runs on the place. */
 const ordered = (s: Site): boolean => s.bq !== null || s.sq.length > 0;
@@ -75,13 +78,16 @@ export function abandonTargetError(
 
 /**
  * Why `target` cannot be given up now, or null when it can: the target
- * itself (`abandonTargetError`), then flights, research and orders of the
- * planet or its moon (D1).
+ * itself (`abandonTargetError`), then a confirmation opened for an earlier
+ * colony at the same position (owner, 2026-11-17: planet ids derive from
+ * the position, the founding time tells the colonies apart), then flights,
+ * research and orders of the planet or its moon (D1).
  */
 export function abandonError(c: AbandonCheck): AbandonError | null {
   const own = abandonTargetError(c.target, c.uid, c.main);
   if (own) return own;
   const target = c.target!;
+  if (target.created !== c.created) return 'stale';
   const sites = c.moon ? [target, c.moon] : [target];
   const ids = sites.map((s) => s.id);
   if (c.flights.some((f) => ids.includes(f.from) || ids.includes(f.to)))
