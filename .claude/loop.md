@@ -87,7 +87,8 @@ interface is German.
    every rebuild: its cheap run checks only secrets, dependencies,
    migrations, workflows, CodeQL and the changelog, and its CI Gate is red
    on purpose (#147). Check its texts (German, matching their pull
-   requests, one entry per feature, nothing internal) and its cheap jobs;
+   requests, one entry per feature, nothing internal, every new admin
+   setting or action named in the entry of its feature) and its cheap jobs;
    then mark it „Ready for review“, which starts the full run. Do not mark
    it ready while its body says that a released hotfix is not merged back
    (the workflow „Release ready“ refuses it and sets it back to draft), or
@@ -145,7 +146,9 @@ interface is German.
    or review, replace `in progress` by `in review`. A red CI or a review
    finding that needs a push sets it back to `in progress`. Build:
    code, tests (mutation floors, new files 80 %, security files 90 %), a
-   German changelog fragment in `changes/` or the label `kein-changelog`,
+   German changelog fragment in `changes/` or the label `kein-changelog`
+   (a new or changed admin setting or action is named in the fragment of
+   its feature: what the admin can now do),
    OKF and docs, and the log entry as a new file
    `okf/log/<date>-<short-name>.md` with the UTC time in `date` (never an
    edit of another entry; the format is in `okf/ops/website.md`). Run `pnpm check` and the relevant

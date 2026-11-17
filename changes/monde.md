@@ -2,7 +2,7 @@
 art: neu
 ---
 
-Monde: Nach einer Schlacht kann aus einem großen Trümmerfeld ein Mond
-entstehen. Er hat Rohstoffe, Flotten und Verteidigung, aber keine
-Produktion. Die Mondzitadelle schafft dort Felder, die Auspex-Phalanx
-erfasst gegen Promethium die Flüge fremder Planeten in Reichweite.
+Monde: Aus einem großen Trümmerfeld kann nach einer Schlacht ein Mond
+entstehen, ohne Produktion. Die Mondzitadelle schafft dort Felder, die
+Auspex-Phalanx erfasst gegen Promethium die Flüge fremder Planeten in
+Reichweite. Der Admin kann im Spielerdatensatz einen Mond anlegen.
