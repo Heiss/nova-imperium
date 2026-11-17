@@ -84,10 +84,24 @@ const cargoPart = (f: ClientFleet): string =>
     ? ` · Ladung: ${resLine(f.cargo)}`
     : '';
 
+/**
+ * What the Auspex-Lehre recognizes of a foreign fleet (#228): the exact
+ * ships, else the total and the types the server sent, else
+ * „Zusammensetzung unbekannt“.
+ */
+function foreignShips(f: ClientFleet): string {
+  if (f.ships) return shipList(f);
+  const seen = [
+    f.total === undefined ? '' : `Schiffe insgesamt: ${fmt(f.total)}`,
+    (f.types ?? []).map((k) => text(k)?.n ?? k).join(', '),
+  ].filter(Boolean);
+  return seen.length ? seen.join(' · ') : 'Zusammensetzung unbekannt';
+}
+
 function fleetParts(v: V, f: ClientFleet): TextPart[] {
-  const ships = shipList(f);
   const mission = MISSION[f.mission];
-  if (f.owner !== v.s.me.id)
+  if (f.owner !== v.s.me.id) {
+    const ships = foreignShips(f);
     return [
       part('Eine fremde Flotte von '),
       part(nameOf(v.s.players, f.owner), true),
@@ -95,6 +109,8 @@ function fleetParts(v: V, f: ClientFleet): TextPart[] {
         ` ${coords(f.fromC)} erreicht deinen Planeten ${coords(f.toC)} · ${mission}${ships ? ` (${ships})` : ''}`,
       ),
     ];
+  }
+  const ships = shipList(f);
   // The gift of the „Endzeit“ comes from „Gottkaiser“ (#161).
   const origin = f.gift ? 'Gottkaiser' : coords(f.fromC);
   if (f.state === 'out')

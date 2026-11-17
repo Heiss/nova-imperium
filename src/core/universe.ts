@@ -2,6 +2,11 @@
 // the universe never shrinks below a planet that exists. The admin panel, the
 // server check and the documentation table read this list.
 import { GIFT_DEFAULT_MINUTES, GIFT_MINUTES } from './endzeit.ts';
+import {
+  RECOGNITION_DEFAULT,
+  RECOGNITION_KEYS,
+  RECOGNITION_LEVELS,
+} from './fleet-recognition.ts';
 import type { Coords, Universe } from './types.ts';
 
 type UniverseKey = keyof Universe;
@@ -87,6 +92,27 @@ export const UNIVERSE_SPECS: readonly UniverseSpec[] = [
     min: GIFT_MINUTES.min,
     max: GIFT_MINUTES.max,
     def: GIFT_DEFAULT_MINUTES,
+  },
+  // Issue #228 (owner, 2026-11-16, D1; 2026-11-17, X1): the thresholds of
+  // the recognition of foreign fleets, set in „Neue Runde“ and changed here
+  // during the round; the same stored settings the round reads.
+  {
+    key: RECOGNITION_KEYS.total,
+    label: 'Fremde Flotten: Schiffe insgesamt ab Auspex-Lehre',
+    ...RECOGNITION_LEVELS,
+    def: RECOGNITION_DEFAULT.total,
+  },
+  {
+    key: RECOGNITION_KEYS.types,
+    label: 'Fremde Flotten: Schiffstypen ab Auspex-Lehre',
+    ...RECOGNITION_LEVELS,
+    def: RECOGNITION_DEFAULT.types,
+  },
+  {
+    key: RECOGNITION_KEYS.counts,
+    label: 'Fremde Flotten: Anzahl je Schiffstyp ab Auspex-Lehre',
+    ...RECOGNITION_LEVELS,
+    def: RECOGNITION_DEFAULT.counts,
   },
 ];
 

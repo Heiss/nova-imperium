@@ -40,7 +40,6 @@ const FIELDS = [
   'returns',
   'silent',
   'target',
-  'visible',
 ];
 const RULES: [string, MissionRules][] = MISSIONS.map(([m, r]) => [m, r]);
 
@@ -110,13 +109,7 @@ describe('the rules of every mission (contract)', () => {
   it.each(RULES)('%s: has exactly the typed fields', (m, rules) => {
     expect(Object.keys(rules).sort(), m).toEqual(FIELDS);
     expect(KINDS, m).toContain(rules.target);
-    for (const field of [
-      'cargo',
-      'returns',
-      'visible',
-      'silent',
-      'alertsGuild',
-    ] as const)
+    for (const field of ['cargo', 'returns', 'silent', 'alertsGuild'] as const)
       expect(typeof rules[field], `${m}.${field}`).toBe('boolean');
     expect(typeof rules.canSend, m).toBe('function');
     expect(missionRules(m), m).toBe(rules);
@@ -212,7 +205,6 @@ describe('the target kind (#116)', () => {
     target,
     cargo: true,
     returns: true,
-    visible: false,
     silent: false,
     alertsGuild: false,
     canSend: () => undefined,

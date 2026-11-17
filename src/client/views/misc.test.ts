@@ -34,7 +34,13 @@ describe('the dialog „Neue Runde“', () => {
     /<label><input type="checkbox" id="round-guilds"[^>]*>[^<]*<\/label>/.exec(
       html,
     )?.[0] ?? '';
-  const rules = { number: 1, achievements: true, daily: true, mainLock: 7 };
+  const rules = {
+    number: 1,
+    achievements: true,
+    daily: true,
+    mainLock: 7,
+    recognition: { total: 2, types: 4, counts: 8 },
+  };
 
   it('has one box „Gilden (mit Chat)“, preselected with the current round (#191)', () => {
     const on = box(roundDialog({ ...rules, guilds: true }));
@@ -47,7 +53,13 @@ describe('the dialog „Neue Runde“', () => {
 });
 
 describe('the lock of the main planet in the dialog „Neue Runde“ (#221)', () => {
-  const rules = { number: 1, achievements: true, daily: true, guilds: true };
+  const rules = {
+    number: 1,
+    achievements: true,
+    daily: true,
+    guilds: true,
+    recognition: { total: 2, types: 4, counts: 8 },
+  };
 
   it('is a number of days from 1 to 30, preselected with the current round', () => {
     for (const mainLock of [7, 12]) {
@@ -62,8 +74,46 @@ describe('the lock of the main planet in the dialog „Neue Runde“ (#221)', ()
   });
 });
 
+describe('the thresholds of foreign fleets in the dialog „Neue Runde“ (#228, X1)', () => {
+  const rules = {
+    number: 1,
+    achievements: true,
+    daily: true,
+    guilds: true,
+    mainLock: 7,
+  };
+
+  it('are levels from 0 to 100, named as in the universe settings, preselected with the current round', () => {
+    const html = roundDialog({
+      ...rules,
+      recognition: { total: 1, types: 5, counts: 9 },
+    });
+    for (const [part, label, value] of [
+      ['total', 'Fremde Flotten: Schiffe insgesamt ab Auspex-Lehre', 1],
+      ['types', 'Fremde Flotten: Schiffstypen ab Auspex-Lehre', 5],
+      ['counts', 'Fremde Flotten: Anzahl je Schiffstyp ab Auspex-Lehre', 9],
+    ] as const) {
+      expect(html).toContain(
+        `<p><label for="round-recognition-${part}">${label}</label> <input type="number" id="round-recognition-${part}" min="0" max="100" step="1" value="${value}" required> <span class="dim">0 bis 100</span></p>`,
+      );
+      expect(html.indexOf(`id="round-recognition-${part}"`)).toBeGreaterThan(
+        html.indexOf('id="round-main-lock"'),
+      );
+      expect(html.indexOf(`id="round-recognition-${part}"`)).toBeLessThan(
+        html.indexOf('data-act="doReset"'),
+      );
+    }
+  });
+});
+
 describe('the warning below the box „Gilden (mit Chat)“ (#191)', () => {
-  const rules = { number: 1, achievements: true, daily: true, mainLock: 7 };
+  const rules = {
+    number: 1,
+    achievements: true,
+    daily: true,
+    mainLock: 7,
+    recognition: { total: 2, types: 4, counts: 8 },
+  };
   // Every new round clears the chats as well (#169 D6), guilds on or off.
   const WARNING =
     'Eine neue Runde leert alle Gilden-Chats. Ohne Gilden werden alle Gilden mit Mitgliedern, Bewerbungen, Rängen und Chat gelöscht.';
@@ -86,7 +136,13 @@ describe('the warning below the box „Gilden (mit Chat)“ (#191)', () => {
 });
 
 describe('„Account löschen“ in a round with or without guilds (#191)', () => {
-  const rules = { number: 1, achievements: true, daily: true, mainLock: 7 };
+  const rules = {
+    number: 1,
+    achievements: true,
+    daily: true,
+    mainLock: 7,
+    recognition: { total: 2, types: 4, counts: 8 },
+  };
   const on = { ...rules, guilds: true };
   const off = { ...rules, guilds: false };
 

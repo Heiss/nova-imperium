@@ -60,7 +60,6 @@ describe('spy', () => {
       target: 'foreign',
       cargo: false,
       returns: true,
-      visible: false,
       silent: true,
       alertsGuild: false,
     });

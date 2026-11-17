@@ -46,7 +46,6 @@ describe('colonize', () => {
       target: 'free',
       cargo: true,
       returns: true,
-      visible: false,
       silent: false,
       alertsGuild: false,
     });

@@ -1,5 +1,6 @@
 import { BUILD, DEF, RES, SHIPS } from './catalog.ts';
 import { lvlCost } from './economy.ts';
+import type { Recognition } from './fleet-recognition.ts';
 import { text } from './text.ts';
 import type { Cost } from './types.ts';
 
@@ -116,6 +117,12 @@ export interface RoundRules {
    * only when the admin starts a new round, 7 by default.
    */
   mainLock: number;
+  /**
+   * The thresholds of the recognition of foreign fleets (#228, D1): set
+   * when the admin starts a new round and changed in the universe settings
+   * during the round (X1), classic 2 / 4 / 8 by default.
+   */
+  recognition: Recognition;
 }
 
 export interface AchievementState {

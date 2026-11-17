@@ -1,7 +1,8 @@
 // What stateFor() shows of fleets and the home planet: own fleets in
 // full, foreign fleets only on their way to the shown planet and only as
-// their mission lets the defender see them.
+// the observer's Auspex-Lehre recognizes them (#228).
 import { describe, expect, it } from 'vitest';
+import { RECOGNITION_DEFAULT } from '../../core/fleet-recognition.ts';
 import type { Fleet } from '../../core/types.ts';
 import { addPlanet, addUser, testCtx } from '../test-helpers.ts';
 import { foreignView, stateFor } from './state.ts';
@@ -37,7 +38,7 @@ describe('state: fleets and the home planet', () => {
     const s = stateFor(ctx, a) as Shown;
     expect(s.homePlanet).toBe(home.id);
     expect(s.fleets).toEqual([own]);
-    expect(s.fleets[0]).not.toEqual(foreignView(own));
+    expect(s.fleets[0]).not.toEqual(foreignView(own, 0, RECOGNITION_DEFAULT));
   });
 
   it('shows foreign fleets only on their way to the shown planet', () => {
@@ -54,7 +55,7 @@ describe('state: fleets and the home planet', () => {
     );
     ctx.fleets.save(fleet({ id: 'home', state: 'back' }));
     const s = stateFor(ctx, b, 'p1_2_5') as Shown;
-    expect(s.fleets).toEqual([foreignView(here)]);
+    expect(s.fleets).toEqual([foreignView(here, 0, RECOGNITION_DEFAULT)]);
   });
 
   it('shows a player without a planet only their own fleets', () => {

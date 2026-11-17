@@ -32,6 +32,10 @@ describe('universe settings', () => {
       extraFields: 0,
       // Added by #161 (owner, 2026-11-14): the gift flies 4 h by default.
       endzeitMinutes: 240,
+      // Added by #228 (owner, 2026-11-16, D1): classic 2 / 4 / 8.
+      roundRecognitionTotal: 2,
+      roundRecognitionTypes: 4,
+      roundRecognitionCounts: 8,
     });
     for (const s of UNIVERSE_SPECS) {
       expect(s.def).toBeGreaterThanOrEqual(s.min);
@@ -51,6 +55,15 @@ describe('universe settings', () => {
       ['startDeuterium', 'Start-Promethium'],
       ['extraFields', 'Zusatzfelder pro Planet'],
       ['endzeitMinutes', 'Flugzeit der Endzeit-Gabe (Minuten)'],
+      [
+        'roundRecognitionTotal',
+        'Fremde Flotten: Schiffe insgesamt ab Auspex-Lehre',
+      ],
+      ['roundRecognitionTypes', 'Fremde Flotten: Schiffstypen ab Auspex-Lehre'],
+      [
+        'roundRecognitionCounts',
+        'Fremde Flotten: Anzahl je Schiffstyp ab Auspex-Lehre',
+      ],
     ]);
   });
   it('accept valid values given as strings', () => {
@@ -101,6 +114,27 @@ describe('universe settings', () => {
       expect(codes({ ...DEFAULT_UNIVERSE, endzeitMinutes })).toEqual([
         ['endzeitMinutes', 'range'],
       ]);
+  });
+  it('take levels 0 to 100 as the thresholds of foreign fleets (#228, X1)', () => {
+    for (const [key, def] of [
+      ['roundRecognitionTotal', 2],
+      ['roundRecognitionTypes', 4],
+      ['roundRecognitionCounts', 8],
+    ] as const) {
+      expect(spec(key)).toEqual({
+        key,
+        label: spec(key).label,
+        min: 0,
+        max: 100,
+        def,
+      });
+      for (const value of [0, 100])
+        expect(codes({ ...DEFAULT_UNIVERSE, [key]: value })).toEqual([]);
+      for (const value of [-1, 101, 1.5])
+        expect(codes({ ...DEFAULT_UNIVERSE, [key]: value })).toEqual([
+          [key, 'range'],
+        ]);
+    }
   });
   it('report all errors at once, in the order of the specs', () => {
     expect(codes({})).toEqual(UNIVERSE_SPECS.map((s) => [s.key, 'range']));

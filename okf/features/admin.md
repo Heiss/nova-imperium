@@ -91,6 +91,7 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 | Start metal / crystal / deuterium | 500 / 500 / 0 | 0 to 10,000,000 |
 | Extra fields per planet („Zusatzfelder pro Planet“, #51) | 0 (not in version 1) | 0 to 100, [E] owner 2026-11-13 |
 | Flight time of the „Endzeit“ gift in minutes („Flugzeit der Endzeit-Gabe (Minuten)“, #161) | 240 (not in version 1) | 1 to 4,320 (72 h), [E] owner 2026-11-14 |
+| Thresholds of foreign fleets, levels of the Auspex-Lehre („Fremde Flotten: Schiffe insgesamt ab Auspex-Lehre“, „… Schiffstypen …“, „… Anzahl je Schiffstyp …“, #228) | 2 / 4 / 8 (not in version 1), [E] owner 2026-11-16 | 0 to 100 [V]; also in the dialog „Neue Runde“, [E] owner 2026-11-17 (X1) |
 
 * **[V]** The ranges above are proposals; the source is
   `src/core/universe.ts`.
@@ -114,7 +115,7 @@ universe settings) and their ranges are not decided yet.
 | Lock after a switch of the [main planet](/features/main-planet.md), in whole days from 1 to 30 [V] | #221 D3 | default 7 days (owner, 2026-11-16); built in the dialog „Neue Runde“ |
 | Who may hold, join an attack union and fight with friends: guild, friends or both ([Holding and ACS](/features/holding-acs.md), [Buddy list](/features/buddy-list.md)) | #55 Q2, #225 D2, #227 D3 | [V] guild and friends, the classic rule for holding |
 | Limits of an attack union ([Holding and ACS](/features/holding-acs.md)) | #225 D3 | classic value: 16 fleets of 5 players, a delay of at most 30 % of the remaining flight time; join window [U] |
-| Thresholds of the recognition of incoming fleets ([Espionage defense](/features/espionage-defense.md)) | #228 D1 | classic value: espionage technology 2 / 4 / 8 (source [U]) |
+| Thresholds of the recognition of incoming fleets ([Espionage defense](/features/espionage-defense.md)), in whole levels from 0 to 100 [V] | #228 D1, X1 | classic value: espionage technology 2 / 4 / 8 (source [U]); built in the dialog „Neue Runde“ and, changeable during the round, in the universe settings (owner, 2026-11-17, X1) |
 | Thresholds of the [activity indicators](/features/activity-indicators.md) | #229 Q1 | classic value: star 15 min, „x min“ up to 59 min, „i“ after 7 days, „I“ after 28 days |
 | Slots and holding time of [expeditions](/features/expeditions.md) | #93 Q3 | classic value: ⌊√level⌋ slots, at most level hours |
 | Refund factor of a [demolition](/features/demolition.md), −100 % to +100 % | #202 D4, D7 | +50 % [E] |

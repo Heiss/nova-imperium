@@ -40,6 +40,7 @@ import { latestNews, NEWS_SEEN_KEY, type NewsData } from './logic/news.ts';
 import { navigation } from './logic/navigation.ts';
 import { ANIMATION_KEY, animationsOn } from './logic/planet.ts';
 import { pushSaver } from './logic/push-options.ts';
+import { roundNumbers } from './logic/round.ts';
 import { client } from './logic/state.svelte.ts';
 import { resourceBar } from './logic/resource-bar.ts';
 import type { GameState } from './logic/types.ts';
@@ -1311,10 +1312,10 @@ const ACT: Record<string, (d: Data) => unknown> = {
       achievements: checked('#round-achievements'),
       daily: checked('#round-daily'),
     };
-    const guilds = checked('#round-guilds');
-    const mainLock = Number(val('#round-main-lock'));
+    const choice = { rewards, guilds: checked('#round-guilds') };
+    const numbers = roundNumbers(val);
     modal('');
-    return act('reset', { rewards, guilds, mainLock });
+    return act('reset', { ...choice, ...numbers });
   },
   endzeit: () => modal(endzeitDialog(client.game!.admin!.endzeit.minutes)),
   doEndzeit: () => {

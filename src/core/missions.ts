@@ -71,8 +71,6 @@ export interface MissionRules {
   readonly cargo: boolean;
   /** Whether the fleet flies back after the arrival. */
   readonly returns: boolean;
-  /** Whether the defender sees the ships of the incoming fleet. */
-  readonly visible: boolean;
   /** Whether the fleet comes home without a report of its own. */
   readonly silent: boolean;
   /**
