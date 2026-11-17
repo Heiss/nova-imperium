@@ -86,6 +86,8 @@ describe('the lock of a given-up position', () => {
     expect(positionLocked(end, end)).toBe(false);
     expect(positionLocked(end, end + 1)).toBe(false);
     expect(positionLocked(null, NOW)).toBe(false);
+    // No lock is no lock at any time, also before 1970 (null counts as 0).
+    expect(positionLocked(null, -1)).toBe(false);
   });
 
   it('holds exactly before its end, for every length (property)', () => {
