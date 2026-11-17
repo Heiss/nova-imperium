@@ -14,6 +14,7 @@ import { requireAdmin } from '../game/admin.ts';
 import { type Ctx, GameError, str } from '../game/context.ts';
 import { answerOf } from '../game/actions.ts';
 import { ACTIONS, ADMIN_ACTIONS, runAction } from '../game/dispatch.ts';
+import { mainPlanet } from '../game/main-planet.ts';
 import { stateFor } from '../game/state.ts';
 import { type Mailer, invitationMail } from '../mail.ts';
 import {
@@ -480,8 +481,7 @@ function playerAction(
       const id = call.body.planet;
       const selected = typeof id === 'string' ? ctx.planets.get(id) : null;
       entry.detail = {
-        planet:
-          selected?.owner === u.id ? selected.id : ctx.planets.home(u.id)?.id,
+        planet: selected?.owner === u.id ? selected.id : mainPlanet(ctx, u)?.id,
       };
     }
     const before =

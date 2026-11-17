@@ -73,6 +73,8 @@ export function addUser(
     created: ctx.now(),
     research: {},
     rq: null,
+    mainPlanet: null,
+    mainSwitched: null,
     ...over,
   };
   ctx.players.save(u);

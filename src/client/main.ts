@@ -556,7 +556,7 @@ async function refresh(): Promise<void> {
   const fresh = sync.refresh();
   try {
     const state = (await api(
-      stateUrl(planet === client.game?.homePlanet ? undefined : planet),
+      stateUrl(planet === client.game?.mainPlanet ? undefined : planet),
     )) as unknown as GameState;
     if (fresh() && samePlace(client.game, before)) apply(state);
   } catch (e) {
@@ -1153,7 +1153,7 @@ const ACT: Record<string, (d: Data) => unknown> = {
   },
   ghome: () => {
     const home =
-      client.game!.galaxy.find((p) => p.id === client.game!.homePlanet) ??
+      client.game!.galaxy.find((p) => p.id === client.game!.mainPlanet) ??
       client.view!.P;
     ui.gal = home.g;
     ui.sys = home.s;
@@ -1261,6 +1261,7 @@ const ACT: Record<string, (d: Data) => unknown> = {
       probes: clampInt(val('#o_probes'), 1, 1e6),
       explain: val('#o_explain'),
     }),
+  mainPlanet: () => act('mainPlanet', { main: val('#o_main') }),
   adminTab: (d) => {
     if (d.tab && Object.hasOwn(ADMIN_TABS, d.tab))
       openAdminTab(d.tab as AdminTab);
@@ -1311,8 +1312,9 @@ const ACT: Record<string, (d: Data) => unknown> = {
       daily: checked('#round-daily'),
     };
     const guilds = checked('#round-guilds');
+    const mainLock = Number(val('#round-main-lock'));
     modal('');
-    return act('reset', { rewards, guilds });
+    return act('reset', { rewards, guilds, mainLock });
   },
   endzeit: () => modal(endzeitDialog(client.game!.admin!.endzeit.minutes)),
   doEndzeit: () => {

@@ -94,6 +94,26 @@ generated: { by: claude-code/web, at: 2026-11-10T19:00:00Z }
   the list changes only which entry is checked, before the state of the
   new planet has arrived (CodeRabbit on #251).
 
+# Cargo in the fleet movements (issue #259)
+
+* **[E]** The owner (2026-11-16): the list of the fleet movements (the
+  Übersicht and „Flotten unterwegs“ of the fleet view) shows, for each own
+  fleet, its ships and the resources it carries.
+* **[V]** On its way out the row shows what the fleet carries, on its way
+  home what it brings back (loot, harvested debris, the rest of a
+  transport that was not unloaded): after the mission, or after „zurück“,
+  „ · Ladung: “ and the cargo as everywhere else („Adamant 10.000 ·
+  Psikristall 5.000 · Promethium 0“, `resLine` as it is, so a resource
+  with 0 stays in the line; Geklärt on #259).
+* **[V]** A fleet whose cargo is all 0 shows no cargo part. The gift of the
+  Endzeit (#161) shows its cargo the same way.
+* **[E]** Foreign fleets are unchanged: no cargo. No server change; the
+  server already sends the cargo of own fleets only.
+* Built in `fleetParts()` of `src/client/logic/overview.ts`; unit tests in
+  `src/client/logic/overview.test.ts`, E2E tests in `e2e/flows.spec.ts`
+  (the fleet view on the desktop, the Übersicht on a phone of 390 px
+  without sideways scrolling).
+
 # Design draft
 
 `docs/design/interface-v2/` holds the mockup, the full icon set and the

@@ -306,14 +306,18 @@ test.describe('accessibility (axe)', () => {
     page,
   }) => {
     const name = uniqueName('AxeErr');
+    // A unique error text: a repeat run found two rows with a fixed one (#267).
+    // The colon keeps the log's scrubber from taking the text for a token
+    // (20 word characters with a digit) or the 6 characters for a login code.
+    const error = `Axe-Testfehler:${uniqueName('')}`;
     await register(page, name);
     cli('admin', name);
-    seed({ name, serverError: 'Axe-Testfehler' });
+    seed({ name, serverError: error });
     await page.reload();
     const found: string[] = [];
     await nav(page, 'admin');
     await page.getByRole('tab', { name: 'Fehler' }).click();
-    const row = page.getByRole('row', { name: /Axe-Testfehler/ });
+    const row = page.getByRole('row', { name: error });
     await row.getByText(/^Eintrag \d+$/).click();
     await expect(row.locator('pre')).toBeVisible();
     found.push(...(await violations(page)).map((v) => `errors: ${v}`));
