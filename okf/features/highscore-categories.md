@@ -23,6 +23,13 @@ D4, D5 and Q1. Sources: owiki.de „Statistik“
 * **[E]** Fleet and research count as in classic (owner, 2026-11-16, Q1,
   verified): 1 point per ship, whatever it cost, and 1 point per research
   level (owiki „Statistik“, „Punkte“).
+* **[E]** One tab or selector per category (total, buildings, research,
+  fleet, defense), one ranking each, as in classic (owner, 2026-11-17, D3;
+  owiki „Statistik“).
+* **[E]** The categories do not add up to the total: the acceptance
+  criterion „all categories add up to the total“ is dropped (owner,
+  2026-11-17). The total stays resources / 1,000 (D5), fleet and research
+  rank by count (Q1).
 * **[E]** Demolishing a building level lowers the points by the cost of
   that level, at 1 point per 1,000 resources (owner, 2026-11-16, #202 D6; see
   [Demolition](/features/demolition.md)).
@@ -32,5 +39,25 @@ D4, D5 and Q1. Sources: owiki.de „Statistik“
 * **[V]** As in classic, Sonnenreliquiare (solar satellites) count as
   ships, and missiles ([Missiles](/features/missiles.md)) count only in the
   total (owiki „Statistik“, „Punkte“).
-* **[V]** Tabs or columns for the categories are a question of the
-  interface, decided when it is built.
+
+# Built (2026-11-17)
+
+* The server sends the categories with every player of the state
+  (`players[id].scores`, `categoryScores` in
+  `src/server/game/highscore.ts`); the total stays `pointsMap` of
+  `points.ts`, so the noob protection does not change. Buildings count
+  every planet and moon, rounded down per category; fleet counts the ships
+  on planets and moons and in flight, by the keys of the ships only;
+  defense counts the defense that fights (`FIGHTERS`), so a missile (#54)
+  stays out of it once it exists; research counts the finished levels.
+* **[V]** The selector is a row of five buttons above the table, „Gesamt“
+  first and pressed until another is chosen (`aria-pressed`, a group
+  labelled by the heading „Highscore“), not the arrow-key tabs of the admin
+  view; the choice lasts while the page is open (`src/client/logic/highscore.ts`,
+  the view stays thin for #118).
+* **[V]** The column „Punkte“ keeps its name in every category. The note
+  below the table keeps its sentence for the total and names the category
+  for buildings and defense: „1 Punkt = 1.000 verbaute Rohstoffe
+  (Gebäude).“ and „… (Verteidigung).“
+* **[U]** Fleet and research have no note yet: the wording of „1 point per
+  ship“ and „1 point per research level“ is open to the owner.

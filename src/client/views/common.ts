@@ -19,6 +19,7 @@ import {
 } from '../../core/requirements.ts';
 import { production } from '../../core/economy.ts';
 import type { Scan } from '../logic/phalanx.ts';
+import type { HighscoreCategory } from '../logic/highscore.ts';
 import type { PushChoice } from '../logic/push-options.ts';
 import type { GameState } from '../logic/types.ts';
 
@@ -50,6 +51,8 @@ export interface Ui extends PushChoice {
   newsSeen: string | null;
   /** Request ID of the last API answer, for „Problem melden“ (issue #126). */
   lastRequestId?: string | null;
+  /** The category the highscore shows (#78), „Gesamt“ until one is chosen. */
+  highscore?: HighscoreCategory;
 }
 
 /** What every view gets: the state, the planet and research moved to now. */

@@ -62,7 +62,18 @@ export interface GalaxyPlanet extends Coords {
 }
 
 export interface Players {
-  [id: string]: { name: string; points: number };
+  [id: string]: {
+    name: string;
+    /** The total, also for the noob protection. */
+    points: number;
+    /** The other categories of the highscore (#78); the server always sends them. */
+    scores?: {
+      buildings: number;
+      research: number;
+      fleet: number;
+      defense: number;
+    };
+  };
 }
 
 export interface AdminState {

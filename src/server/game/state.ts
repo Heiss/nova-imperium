@@ -14,6 +14,7 @@ import { guildState } from './guilds.ts';
 import { mainPlanetOf, mainPlanetView } from './main-planet.ts';
 import { achievementState } from './achievements.ts';
 import { roundRules } from './round.ts';
+import { categoryScores } from './highscore.ts';
 import { pointsMap } from './points.ts';
 
 export interface ForeignFleet {
@@ -85,6 +86,7 @@ export function stateFor(
     typeof selected === 'string' ? ctx.planets.get(selected) : null;
   const p = requested?.owner === u.id ? requested : main.planet;
   const pts = pointsMap(ctx);
+  const scores = categoryScores(ctx);
   const fleets = ctx.fleets
     .all()
     .filter(
@@ -92,10 +94,14 @@ export function stateFor(
         f.owner === u.id || (p !== null && f.state === 'out' && f.to === p.id),
     )
     .map((f) => (f.owner === u.id ? f : foreignView(f)));
+  // The categories of the highscore, for every player (#78 D4).
   const players = Object.fromEntries(
     ctx.players
       .all()
-      .map((x) => [x.id, { name: x.name, points: pts[x.id] ?? 0 }]),
+      .map((x) => [
+        x.id,
+        { name: x.name, points: pts[x.id] ?? 0, scores: scores[x.id] },
+      ]),
   );
   return {
     round,

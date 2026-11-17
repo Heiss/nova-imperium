@@ -35,10 +35,11 @@ import {
   type FleetForm,
 } from './logic/game.ts';
 import { headerLine } from './logic/header.ts';
+import { highscoreCategory } from './logic/highscore.ts';
 import { chatToSee, finishedYardOrders } from './logic/menu-hints.ts';
 import { gameIsBack, maintenanceNotice } from './logic/maintenance.ts';
 import { latestNews, NEWS_SEEN_KEY, type NewsData } from './logic/news.ts';
-import { navigation } from './logic/navigation.ts';
+import { hiddenView, navigation } from './logic/navigation.ts';
 import { ANIMATION_KEY, animationsOn } from './logic/planet.ts';
 import { pushSaver } from './logic/push-options.ts';
 import { client } from './logic/state.svelte.ts';
@@ -214,19 +215,6 @@ function gameView(view: string | null): string {
   if (!view || (!MOUNTED.has(view) && !Object.hasOwn(VIEWS, view)))
     return 'overview';
   return hiddenView(view, client.game) ? 'overview' : view;
-}
-
-/** A view the player cannot open now: admin, rewards or guilds that are off. */
-function hiddenView(view: string, state: GameState | null): boolean {
-  if (view === 'admin') return !!state && !state.me.admin;
-  if (view === 'achievements') return !rewardsAvailable(state);
-  // No guild view in a round with guilds off (#191).
-  if (view === 'guilds') return !!state && !state.round.guilds;
-  return false;
-}
-
-function rewardsAvailable(state: GameState | null): boolean {
-  return !state || state.round.achievements || state.round.daily;
 }
 
 const viewFromUrl = (): string =>
@@ -1261,6 +1249,10 @@ const ACT: Record<string, (d: Data) => unknown> = {
       explain: val('#o_explain'),
     }),
   mainPlanet: () => act('mainPlanet', { main: val('#o_main') }),
+  highscore: (d) => {
+    ui.highscore = highscoreCategory(d.cat);
+    render();
+  },
   adminTab: (d) => {
     if (d.tab && Object.hasOwn(ADMIN_TABS, d.tab))
       openAdminTab(d.tab as AdminTab);
