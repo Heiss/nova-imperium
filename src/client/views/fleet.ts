@@ -1,6 +1,7 @@
 import { SHIPS, canFly } from '../../core/catalog.ts';
 import { fleetSlots, shipSpeed } from '../../core/flight.ts';
 import { MISSION } from '../../core/missions.ts';
+import { jumpPanel } from '../logic/jump-gate.ts';
 import { moonAt } from '../logic/moon.ts';
 import { text } from '../../core/text.ts';
 import { esc, fmt } from '../logic/format.ts';
@@ -63,6 +64,30 @@ function targetForm(v: V, slotsFull: boolean): string {
  </table><div class="mt10"><button data-act="send" ${slotsFull ? 'disabled' : ''}>Flotte losschicken</button> ${slotsFull ? '<span class="bad">Alle Flottenslots belegt (Kogitator-Doktrin erhöht die Anzahl).</span>' : ''}</div>`;
 }
 
+/**
+ * The box „Warp-Tor“ on a moon with one (#230): the ships picked above jump
+ * to the „Zielmond“; a cooling gate says when it is ready again.
+ */
+function jumpBox(v: V): string {
+  const panel = jumpPanel(v.s, v.P, v.now);
+  if (!panel) return '';
+  const options = panel.targets
+    .map(
+      (t) =>
+        `<option value="${esc(t.id)}"${t.disabled ? ' disabled' : ''}>${esc(t.label)}</option>`,
+    )
+    .join('');
+  const select = `<select id="jg_to"${panel.targets.length ? '' : ' disabled'}>${options}</select>`;
+  const wait =
+    panel.cooling === null
+      ? ''
+      : ` <span class="dim">Wieder bereit in ${cd(panel.cooling, v.now)}</span>`;
+  return box(
+    'Warp-Tor',
+    `<table class="kv"><tr><td><label for="jg_to">Zielmond</label></td><td>${select}</td></tr></table><div class="mt10"><button data-act="jump"${panel.canJump ? '' : ' disabled'}>Springen</button>${wait}</div>`,
+  );
+}
+
 export function fleet(v: V): string {
   const slots = fleetSlots(v.R);
   // The gift of the „Endzeit“ takes no slot (#161).
@@ -78,5 +103,5 @@ export function fleet(v: V): string {
     return `<h2>Flotte</h2>${head}<div class="notice">Auf diesem Planeten stehen keine Schiffe. Baue welche in der Schiffsschmiede.</div>`;
   const pick = `<table><tr><th>Schiff</th><th class="n">vorhanden</th><th class="n">Tempo</th><th>Anzahl</th></tr>${rows}</table>
   <div class="mt"><span class="lnk" data-act="fall">alle Schiffe</span> · <span class="lnk" data-act="fnone">keine Schiffe</span></div>`;
-  return `<h2>Flotte</h2>${head}${box('1. Schiffe auswählen', pick)}${box('2. Ziel und Auftrag', targetForm(v, used >= slots))}`;
+  return `<h2>Flotte</h2>${head}${box('1. Schiffe auswählen', pick)}${box('2. Ziel und Auftrag', targetForm(v, used >= slots))}${jumpBox(v)}`;
 }

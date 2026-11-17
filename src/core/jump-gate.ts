@@ -48,6 +48,13 @@ export type Gate = Pick<Planet, 'id' | 'kind' | 'owner' | 'b'> & {
 export const gateReady = (gate: Gate, now: number): boolean =>
   gateLevel(gate) > 0 && gate.ready <= now;
 
+/** One own Warp-Tor as the state shows it: the moon, its level and when it is ready. */
+export interface GateView {
+  id: string;
+  level: number;
+  ready: number;
+}
+
 /** Why a jump cannot start. */
 export type JumpError =
   | 'notMoon'

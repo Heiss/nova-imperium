@@ -9,6 +9,7 @@
 import { isShip } from '../../core/catalog.ts';
 import {
   type Gate,
+  type GateView,
   type JumpError,
   gateCooldownMs,
   gateLevel,
@@ -79,13 +80,6 @@ export const jump: Action = (ctx, u, d, event) => {
   if (event) event.detail = { planet: from.id, target: to!.id, ships };
   return null;
 };
-
-/** One own Warp-Tor as the state shows it: the moon, its level and when it is ready. */
-export interface GateView {
-  id: string;
-  level: number;
-  ready: number;
-}
 
 /** Every Warp-Tor of the player, on the moons in their order. */
 export const gateState = (ctx: Ctx, uid: string): GateView[] =>

@@ -67,6 +67,7 @@ import {
   type AdminTab,
 } from './views/misc.ts';
 import { disablePush, enablePush } from './push.ts';
+import { fleetActs } from './fleet-acts.ts';
 import { mountCatalogList } from './views/catalog-list.ts';
 import {
   adminChatDialog,
@@ -912,6 +913,8 @@ function seeChat(): void {
 
 // ----- fleet form -----
 
+const ships = (): Levels => readFleetForm().ships;
+
 function readFleetForm(): FleetForm {
   const ships: Record<string, number> = {};
   const P = client.view!.P;
@@ -1212,20 +1215,7 @@ const ACT: Record<string, (d: Data) => unknown> = {
     setInput(`#f_${d.k}`, client.view!.P.ships[d.k!] ?? 0);
     fleetCalc();
   },
-  fall: () => {
-    document
-      .querySelectorAll<HTMLInputElement>('.fs')
-      .forEach(
-        (i) => (i.value = String(client.view!.P.ships[i.dataset.k!] ?? 0)),
-      );
-    fleetCalc();
-  },
-  fnone: () => {
-    document
-      .querySelectorAll<HTMLInputElement>('.fs')
-      .forEach((i) => (i.value = ''));
-    fleetCalc();
-  },
+  ...fleetActs({ actHere, calc: fleetCalc, ships, render }),
   cmax: () => {
     const c = cargoMax(
       settle(
