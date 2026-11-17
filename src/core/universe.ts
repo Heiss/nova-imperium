@@ -108,34 +108,45 @@ export interface UsedSize {
   p: number;
 }
 
+/**
+ * Why a setting is refused (#214, patterns, section 7): not a whole number
+ * within its range, or a size below a coordinate planets use.
+ */
+export type UniverseCode = 'range' | 'used';
+
+/** A refused setting: its spec and the code; the server words it. */
+interface UniverseError {
+  spec: UniverseSpec;
+  code: UniverseCode;
+}
+
 const checkOne = (
   spec: UniverseSpec,
   raw: unknown,
   used: UsedSize,
-): string | null => {
+): UniverseCode | null => {
   const value = Number(raw);
   if (!Number.isInteger(value) || value < spec.min || value > spec.max)
-    return `${spec.label}: ganze Zahl von ${spec.min} bis ${spec.max}.`;
-  if (spec.size && value < used[spec.size])
-    return `${spec.label}: mindestens ${used[spec.size]}, dort liegen schon Planeten.`;
-  return null;
+    return 'range';
+  return spec.size && value < used[spec.size] ? 'used' : null;
 };
 
 /**
- * Checks a complete set of settings. Returns the universe or all errors at
- * once (fail closed: nothing is saved if one value is wrong).
+ * Checks a complete set of settings: every refused setting, in the order of
+ * UNIVERSE_SPECS, or none (fail closed: nothing is saved if one value is
+ * wrong).
  */
-export function validateUniverse(
+export const universeErrors = (
   input: Record<string, unknown>,
   used: UsedSize,
-): { ok: true; value: Universe } | { ok: false; errors: string[] } {
-  const errors: string[] = [];
-  const value: Record<string, number> = {};
-  for (const spec of UNIVERSE_SPECS) {
-    const error = checkOne(spec, input[spec.key], used);
-    if (error) errors.push(error);
-    else value[spec.key] = Number(input[spec.key]);
-  }
-  if (errors.length) return { ok: false, errors };
-  return { ok: true, value: value as unknown as Universe };
-}
+): UniverseError[] =>
+  UNIVERSE_SPECS.flatMap((spec) => {
+    const code = checkOne(spec, input[spec.key], used);
+    return code ? [{ spec, code }] : [];
+  });
+
+/** The settings as numbers, once `universeErrors` refused none. */
+export const universeOf = (input: Record<string, unknown>): Universe =>
+  Object.fromEntries(
+    UNIVERSE_SPECS.map((spec) => [spec.key, Number(input[spec.key])]),
+  ) as unknown as Universe;

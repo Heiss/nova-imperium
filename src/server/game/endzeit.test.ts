@@ -1,5 +1,5 @@
 // „Endzeit“ (#161): the admin's gift fleet, its flight and its arrival.
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { SHIPS } from '../../core/catalog.ts';
 import {
   giftCargo,
@@ -161,9 +161,13 @@ describe('ringing in the Endzeit', () => {
     expect(ctx.admin.universe().endzeitMinutes).toBe(240);
     expect(endzeitState(ctx)).toEqual({ minutes: 240, done: true });
     expect(() => ring(ctx, 30)).toThrow(
-      'Die Endzeit wurde in dieser Runde schon eingeläutet.',
+      'In dieser Runde wurde die Endzeit schon eingeläutet.',
     );
     expect(ctx.fleets.all()).toHaveLength(2);
+    // Once per round comes before the flight time (#214).
+    expect(() => ring(ctx, 0)).toThrow(
+      'In dieser Runde wurde die Endzeit schon eingeläutet.',
+    );
     // A new round allows it again.
     runAction(ctx, 'u_Anna', { type: 'reset' });
     expect(endzeitState(ctx)).toEqual({ minutes: 240, done: false });
@@ -245,6 +249,23 @@ describe('ringing in the Endzeit', () => {
 });
 
 describe('the gift arrives', () => {
+  it('writes the home planet only with the gift, never a copy from before', () => {
+    const ctx = world();
+    ring(ctx, 60);
+    const gift = giftOf(ctx, 'u_Anna');
+    ctx.clock.t = gift.arr;
+    const home = ctx.planets.home('u_Anna')!;
+    const save = vi.spyOn(ctx.planets, 'save');
+    giftArrive(ctx, gift, home);
+    const writes = save.mock.calls
+      .map(([p]) => p)
+      .filter((p) => p.id === home.id);
+    expect(writes).not.toHaveLength(0);
+    for (const p of writes) expect(p.ships).toMatchObject(giftShips());
+    // The colony is settled to the arrival, without the gift.
+    expect(save.mock.calls.map(([p]) => p.id)).toContain('p1_1_7');
+  });
+
   it('lands ships and cargo above the storage and raises research and buildings', () => {
     const ctx = world();
     const home = ctx.planets.home('u_Anna')!;

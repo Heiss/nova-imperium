@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { GameState } from '../logic/types.ts';
 import type { V } from './common.ts';
 import {
+  admin,
   deleteAccountBox,
   deleteAccountDialog,
   highscore,
@@ -105,5 +106,30 @@ describe('„Account löschen“ in a round with or without guilds (#191)', () =
         '<button class="red" type="submit">Account endgültig löschen</button> <button type="button" data-act="closeModal">Abbrechen</button></form>',
       );
     }
+  });
+});
+
+describe('the box „Endzeit“ of the tab „Universum“ (#161, #214)', () => {
+  const view = (done: boolean): string =>
+    admin({
+      s: {
+        cfg: {},
+        admin: { specs: [], endzeit: { minutes: 240, done } },
+      },
+      ui: {},
+    } as unknown as V);
+
+  it('offers the button until the round had its „Endzeit“', () => {
+    expect(view(false)).toContain(
+      '<button class="red" data-act="endzeit">Endzeit einläuten</button>',
+    );
+    expect(view(false)).not.toContain('schon eingeläutet');
+  });
+
+  it('then says so, with the text of the server (F15)', () => {
+    expect(view(true)).toContain(
+      '<p>In dieser Runde wurde die Endzeit schon eingeläutet.</p>',
+    );
+    expect(view(true)).not.toContain('data-act="endzeit"');
   });
 });
