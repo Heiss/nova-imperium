@@ -40,6 +40,7 @@ import {
 } from '../push-store.ts';
 import type { User } from '../db/repos/players.ts';
 import { type Ctx, fail, fmt, int, str, universe } from './context.ts';
+import { mainPlanet } from './main-planet.ts';
 
 export type Data = Record<string, unknown>;
 
@@ -66,10 +67,9 @@ export const answerOf = (
 ): { msg: string | null; data?: Data } =>
   result !== null && typeof result === 'object' ? result : { msg: result };
 
-/** The selected planet, or the home planet for callers without a selection. */
+/** The selected planet, or the main planet (#221) for callers without a selection. */
 export function mine(ctx: Ctx, u: User, id?: unknown): Planet {
-  const p =
-    id === undefined ? ctx.planets.home(u.id) : ctx.planets.get(String(id));
+  const p = id === undefined ? mainPlanet(ctx, u) : ctx.planets.get(String(id));
   if (!p || p.owner !== u.id)
     return fail(
       id === undefined

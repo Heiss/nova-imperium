@@ -693,7 +693,8 @@ choice of the patterns to the assistant's recommendation below
   * `Header.svelte` (`#pinfo`) from `headerLine(s, P)` of `header.ts`: the
     shown place with its position, the commander, „Logout“ and, with more
     than one own place, the list „Aktiver Planet“ (`#planet_select`) of
-    `ownPlaces()`, the shown place selected;
+    `ownPlaces()`, the shown place selected; since #241 the list comes
+    first and replaces the name and position as text (below);
   * `Menu.svelte` (`#menu`), `TabBar.svelte` (`#tabbar`) and
     `MoreList.svelte` (`#more-list`), each link a `NavLink.svelte`, from
     `navigation()` of `navigation.ts`: the entries of `menu()` and
@@ -719,6 +720,13 @@ choice of the patterns to the assistant's recommendation below
   example with #189). The double display of the active planet (#241) is
   left as it is: the issue is separate, and this bundle changes nothing
   visible.
+* **[V]** Built with #241 (see [Interface](/features/interface.md)):
+  `Header.svelte` renders the list „Aktiver Planet“ first when
+  `headerLine()` gives places, else the name in bold and the position;
+  then „ · Kommandant … · Logout“ in both cases. `headerLine()` is
+  unchanged. The frozen header of `src/test/frame-reference.test.ts` has
+  this one change, marked, as the frozen `Buildings.svelte` has the one of
+  #209; the property test still compares every other state with it.
 
 ## 10. Layout and registration
 

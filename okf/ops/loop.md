@@ -146,6 +146,24 @@ tasks).
   out-of-memory stop of 2026-11-15 came from Stryker and E2E of two agents
   at once) and usage; merge conflicts are no longer the reason, since
   most of them were in `okf/log.md` before #212.
+* **[E]** Two subagents always build (owner, 2026-11-16): when one
+  finishes, the loop starts the next issue with `ready` and a `Geklärt`
+  comment that depends neither on the open pull requests nor on an issue
+  being built at once, also while it waits on CI or a
+  review. Only the main agent waits, and it does not build itself; it
+  finishes the open pull requests, cleans up (worktrees, labels), looks for
+  new issues and pull requests, gets the owner's decisions so that the next
+  issues become `ready`, and does whatever else keeps both agents building.
+  Waiting with a free place wastes the time of the release; the limit of
+  two stays for memory and usage.
+* **[E]** Small patches are slotted in between features (owner,
+  2026-11-16): the main agent merges Renovate's green patch and minor pull
+  requests (one at a time, CI Gate green on a head up to date with `main`;
+  a major update and a minor one below 1.0 wait for the owner) while it
+  waits and follows up Dependabot alerts without a
+  Renovate security pull request; a small bug or cleanup issue may be the
+  next issue of a free subagent. Reason: the owner wants them done before
+  the release, not piled up at its end.
 * **[E]** An open pull request takes `main` in only when it is the next one
   to merge (CI green on its head, every finding answered), when GitHub
   reports a conflict (then no CI starts, as seen on #194), or when it needs code

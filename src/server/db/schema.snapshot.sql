@@ -310,6 +310,8 @@ CREATE TABLE reports (
     body TEXT NOT NULL
   ) STRICT;
 
+CREATE TABLE schema_migrations (id TEXT NOT NULL PRIMARY KEY) STRICT;
+
 CREATE TABLE sessions (
     token_hash TEXT PRIMARY KEY,
     user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -363,4 +365,4 @@ CREATE TABLE users (
     rq_cost_c INTEGER,
     rq_cost_d INTEGER
   , explain_mode TEXT NOT NULL DEFAULT 'icon'
-    CHECK (explain_mode IN ('always', 'icon', 'hidden')), rq_planet TEXT) STRICT;
+    CHECK (explain_mode IN ('always', 'icon', 'hidden')), rq_planet TEXT, main_planet TEXT, main_switched INTEGER) STRICT;
