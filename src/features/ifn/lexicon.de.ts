@@ -3,15 +3,17 @@
 import type { EntryLexicon } from '../../core/lexicon/types.ts';
 import { networkLab } from '../../core/research.ts';
 
-/** Further Scholarien of level 1 each, so the sum counts them. */
+/** Other Scholarien, each above every requirement, so the sum counts them. */
+const LAB = 100;
 const LABS = Array.from({ length: 30 }, (_, i) => ({
   id: `p${i}`,
-  lab: 1,
+  lab: LAB,
   upgrading: false,
 }));
 
 const linked = (level: number): number =>
-  networkLab('ifn', { id: 'here', lab: 0, upgrading: false }, LABS, level);
+  networkLab('ifn', { id: 'here', lab: 0, upgrading: false }, LABS, level) /
+  LAB;
 
 export const lexicon: EntryLexicon = {
   effect: { label: 'Weitere Scholarien', at: linked },
