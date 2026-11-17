@@ -13,7 +13,7 @@ export const lexicon: EntryLexicon = {
   effect: { label: 'Reichweite', at: phalanxRange, unit: 'Systeme' },
   texts: [
     {
-      text: 'Die Reichweite wächst im Quadrat: Stufe {first} erfasst nur das eigene System, Stufe {middle} schon {atMiddle} Systeme in jede Richtung, Stufe {high} {atHigh}. Jede Stufe bringt also mehr dazu als die davor. Gezählt wird nur in der eigenen Galaxie und nicht über ihr Ende hinaus. Ein Scan kostet auf jeder Stufe gleich viel: {cost} Promethium.',
+      text: 'Die Reichweite wächst im Quadrat: Stufe {first} erfasst nur das eigene System, Stufe {middle} reicht {atMiddle} Systeme in jede Richtung, Stufe {high} schon {atHigh}. Jede Stufe bringt also mehr dazu als die davor. Gezählt wird nur in der eigenen Galaxie und nicht über ihr Ende hinaus. Ein Scan kostet auf jeder Stufe gleich viel: {cost} Promethium.',
       values: {
         first: number(FIRST),
         middle: number(MIDDLE),

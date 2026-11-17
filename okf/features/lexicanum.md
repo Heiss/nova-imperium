@@ -42,6 +42,15 @@ their own.
   phone under „Mehr“; „Hilfe & Optionen“ keeps its name in stage 1.
 * **[V]** The address is `?view=lexicanum&a=<article>`; the page and the
   panel load as their own chunk when first opened (#242).
+* **[E]** The gaps of the build (owner, 2026-11-17, „Geklärt“ on the build
+  on `claude/lexicanum`): Claude drafts the words before the formulas for
+  the articles without a source, a short text per mission (what happens on
+  arrival) and keywords in everyday words per article, all as [V] for the
+  owner to confirm or change, as with #94; the review list is
+  [Lexicanum texts](/features/lexicanum-texts.md). The labels the builder
+  chose are confirmed (see „Texts“). The level table of a producer keeps
+  the rate at full energy, and its column heading says „bei voller
+  Energie“.
 * **[E]** Kept up to date by Claude: a pull request that changes a rule or
   adds a catalog entry or a mission updates its article
   ([Release loop](/ops/loop.md)).
@@ -61,9 +70,12 @@ their own.
   capacity), `types.ts`. Nothing there names a catalog key.
 * **[V]** An entry adds to its article in its own folder,
   `src/features/<key>/lexicon.de.ts` (`lexicon`: keywords, „Siehe auch“,
-  the effect of a level, texts, formulas, computed blocks).
+  the effect of a level, texts, formulas, computed blocks), and a mission
+  in `src/features/missions/<m>/lexicon.de.ts` (keywords and its text).
+  Every entry and every mission has one since 2026-11-17.
   `scripts/gen-features.ts` lists these files in their own generated
-  index `src/features/lexicon.gen.ts` (`LEXICON`, not checked in), which
+  index `src/features/lexicon.gen.ts` (`LEXICON` and `MISSION_LEXICON`,
+  not checked in), which
   only `src/core/lexicon/` may import (`.dependency-cruiser.cjs`,
   `lexicon-index-in-lexicon`), so they stay out of the start bundle.
   Stryker leaves `lexicon.de.ts` out like the text files; their formulas
@@ -74,7 +86,15 @@ their own.
   Adamant-Panzerung (bonus in battle), Sternennetz der Gelehrten (linked
   Scholarien), Auspex-Phalanx (range), Mondzitadelle (fields). Stores get
   their capacity and producers their rate per level from their components
-  (`storage`, `produces`) without a file of their own.
+  (`storage`, `produces`); their files hold the words before it. The
+  shared texts are built in `src/core/lexicon/parts.ts`: `drivePart`,
+  `techPart`, `storePart`, and the values `growthValues` of the producers
+  that grow like a mine.
+* **[E]** The rate of a producer in the level table is the rate at full
+  share and with enough energy, and the heading says so: „Adamant/h bei
+  voller Energie“, „Psikristall/h bei voller Energie“, „Promethium/h bei
+  voller Energie“ (owner, 2026-11-17). Sonnenkathedrale and Fusionssanktum
+  keep „Energie“ [V].
 * **[V]** The level table of #187: `levelSteps`, `levelRow` and
   `levelTable` in `src/client/logic/level-table.ts`, drawn by
   `src/client/views/LevelTable.svelte`. The lists take the cost and time of
@@ -96,8 +116,9 @@ their own.
   `lexPanel`, `lexClose`, the lazy mount of page and panel. The panel
   closes with Esc, „Schließen“, the same „?“ or when its list is left; the
   focus goes back to the „?“. `main.ts` shrinks from 1888 to 1878 lines.
-* **[V]** Mission articles show the typed data of their rules (target,
-  cargo, return, visible, own report) and the ships the mission takes,
+* **[V]** Mission articles show their text (what happens on arrival), the
+  typed data of their rules (target, cargo, return, visible, own report)
+  and the ships the mission takes,
   found by its own `canSend` („nur Spähschädel“, „braucht
   Kolonistenarche“); a ship links the missions that need it.
 
@@ -106,23 +127,44 @@ their own.
 * **[V]** The texts of the article of the Auspex-Lehre are those of the
   design study (#287), with the numbers as values from `spyScore`. The
   headings and labels are the texts of the study listed in the issue.
-* **[V]** Keywords in stage 1: „ausspähen“ and „Gegner“ at the Auspex-Lehre
-  (the examples of the issue). Other keywords, and words before the
-  formulas of the other parts, wait for the owner (see the open points
-  of the pull request).
-* **[V]** Labels without a text in the study: the facts of a mission
+* **[V]** Keywords: „ausspähen“ and „Gegner“ at the Auspex-Lehre (the
+  examples of the issue), and since 2026-11-17 a few everyday words for
+  each of the 52 entries and 6 missions, drafted by Claude: one word each,
+  not part of the title, no classic name.
+* **[V]** The words before the formulas, drafted by Claude (2026-11-17):
+  Kogitator-Doktrin, the three drives, Waffensegnung, Refraktionsfelder
+  and Adamant-Panzerung, Sternennetz der Gelehrten, Auspex-Phalanx,
+  Mondzitadelle, the three stores, and the producers Adamant-Tiefbohrung,
+  Psikristall-Steinbruch, Promethium-Raffinerie, Sonnenkathedrale and
+  Fusionssanktum. First how it scales, in the style of the Auspex-Lehre;
+  every number is a value from the rules.
+* **[V]** The text of each of the 6 missions, drafted by Claude
+  (2026-11-17): what happens on arrival, from its rules and its
+  `arrive.server.ts`. It is shown above the facts and is the line below
+  the hit of the mission in the search.
+* **[V]** All these drafts are listed for the owner, per article, in
+  [Lexicanum texts](/features/lexicanum-texts.md); a guard keeps the list
+  equal to the texts in the code.
+* **[E]** The labels the builder chose are confirmed (owner, 2026-11-17):
+  the facts of a mission
   („Ziel“, „Ladung“, „Rückflug“, „Für den Verteidiger sichtbar“, „Eigener
   Bericht bei der Heimkehr“, „Schiffe“), the effect columns („Flottenslots“,
   „Tempo“, „Angriff“, „Schild“, „Struktur“, „Weitere Scholarien“,
   „Reichweite“, „Felder des Mondes“, „Lagerkapazität“, „Adamant/h“ …),
-  „Grundwert“ and „Grundtempo“ in the formulas.
+  „Grundwert“ and „Grundtempo“ in the formulas, and „· deine Stufe“ at
+  the own level.
 
 # Tests
 
 * Guards (`src/core/lexicon/articles.test.ts`): every catalog entry and
   mission has an article; every link has a target; no digit in a text of
   an article outside a formula; every value filled; every formula agrees
-  with its rule; no classic name. `parts.test.ts` checks the formulas of
+  with its rule; no classic name; every article has at least two
+  keywords, each one word, not in its title and no classic name; every
+  mission has one text, which is its search line; every article with an
+  effect, every store and every producing building has words before the
+  formula; the review list holds every draft as the code has it.
+  `parts.test.ts` checks the values of the shared texts and the formulas of
   cost and store for every entry; `search.test.ts`, `links.test.ts`,
   `src/core/spy.test.ts`.
 * `src/client/logic/level-table.test.ts` (the rows of #187 D1, the same

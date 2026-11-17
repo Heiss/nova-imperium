@@ -6,6 +6,7 @@
 // 2026-11-17: every article has keywords, every mission its text, and every
 // article with an effect, every store and every producing building its
 // words before the formula.
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { classicIn } from '../../test/naming.ts';
 import { BUILD, DEF, PRODUCTION, RES, SHIPS, STORAGE } from '../catalog.ts';
@@ -216,7 +217,7 @@ describe('the articles of stage 1 (#285)', () => {
       'Mit Stufe 5 sind es 6 Flotten',
     );
     expect(partTexts(article('phalanx')!)[0]).toContain(
-      'Stufe 3 schon 8 Systeme in jede Richtung, Stufe 5 24',
+      'Stufe 3 reicht 8 Systeme in jede Richtung, Stufe 5 schon 24.',
     );
     expect(partTexts(article('moonbase')!)[0]).toContain(
       'bringt 3 Felder und belegt selbst 1 davon – für andere Gebäude bleiben je Stufe 2',
@@ -230,6 +231,28 @@ describe('the articles of stage 1 (#285)', () => {
     expect(partTexts(article('metal')!)[0]).toContain(
       'Stufe 10 rund 3,2-mal so viel wie Stufe 5',
     );
+  });
+
+  it('lists every draft for the owner as the code has it (okf/features/lexicanum-texts.md)', () => {
+    const list = readFileSync('okf/features/lexicanum-texts.md', 'utf8');
+    const sections = new Map(
+      list
+        .split(/^### /m)
+        .slice(1)
+        .map((part) => [/\(`([\w-]+)`\)/.exec(part)![1]!, part] as const),
+    );
+    expect([...sections.keys()]).toEqual(ARTICLES.map((a) => a.id));
+    for (const a of ARTICLES) {
+      const part = sections.get(a.id)!;
+      expect(part.startsWith(`${a.title} (`), a.id).toBe(true);
+      expect(part, a.id).toContain(
+        `* **[V]** Keywords: ${a.lexicon.keywords!.join(', ')}\n`,
+      );
+      // The Auspex-Lehre keeps the text of the study, which is no draft.
+      const drafts = a.id === 'spy' ? [] : partTexts(a);
+      for (const text of drafts) expect(part, a.id).toContain(`„${text}“`);
+      expect(part.match(/„/g)?.length ?? 0, a.id).toBe(drafts.length);
+    }
   });
 
   it('gives the search one document per article', () => {
