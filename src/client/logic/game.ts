@@ -1,6 +1,12 @@
 // Logic of the interface that is not HTML: ranks, protection, what a button
 // shows, the preview of a flight, the cargo button, galaxy navigation.
 import {
+  type BuildError,
+  buildErrors,
+  type ResearchError,
+  researchErrors,
+} from '../../core/economy-checks.ts';
+import {
   capacity,
   countUnits,
   distance,
@@ -8,9 +14,7 @@ import {
   flightMs,
   fuelFor,
 } from '../../core/flight.ts';
-import { labUpgrading, waitsForLab } from '../../core/lab.ts';
 import { isProtected as protects } from '../../core/protection.ts';
-import { waitsForYard } from '../../core/yard.ts';
 import type {
   Coords,
   Levels,
@@ -44,66 +48,34 @@ export const fleetEnd = (f: ClientFleet): number =>
 export const sortFleets = (list: ClientFleet[]): ClientFleet[] =>
   list.slice().sort((a, b) => fleetEnd(a) - fleetEnd(b));
 
-export type BuildState =
-  | 'running'
-  | 'missing'
-  | 'full'
-  | 'queueBusy'
-  | 'yardBusy'
-  | 'labBusy'
-  | 'noEnergy'
-  | 'ready';
-
 /**
- * `full`: the planet has no free field (#51); `noEnergy`: the planet lacks
- * energy production; `short`: the energy production the planet lacks
- * (Weltenschmiede, #51).
+ * What the row of a building shows: its running upgrade, the first code of
+ * `buildErrors` (the browser and the server take the same order, O18 (c),
+ * F8), or that it can start.
  */
+export type BuildState = 'running' | BuildError | 'ready';
+
 export function buildState(
   p: Planet,
   r: ResearchState,
   key: string,
-  missing: number,
-  full = false,
-  short = 0,
+  u: Universe,
 ): BuildState {
   if (p.bq?.key === key) return 'running';
-  if (missing) return 'missing';
-  return buildWait(p, r, key, full, short);
+  return buildErrors(p, r, key, u)[0] ?? 'ready';
 }
 
-/** What a building whose requirements are met waits for, if anything. */
-function buildWait(
-  p: Planet,
-  r: ResearchState,
-  key: string,
-  full: boolean,
-  short: number,
-): BuildState {
-  if (full) return 'full';
-  if (p.bq) return 'queueBusy';
-  if (waitsForYard(p, key)) return 'yardBusy';
-  if (waitsForLab(r, key)) return 'labBusy';
-  return short > 0 ? 'noEnergy' : 'ready';
-}
+/** The same for research, from `researchErrors` (F9). */
+export type ResearchUiState = 'running' | ResearchError | 'ready';
 
-export type ResearchUiState =
-  'running' | 'missing' | 'busy' | 'labBusy' | 'noEnergy' | 'ready';
-
-/** `short`: the energy production the planet lacks (Gravitonforschung, #49). */
 export function researchState(
   p: Planet,
   r: ResearchState,
   key: string,
-  missing: number,
-  short = 0,
+  u: Universe,
 ): ResearchUiState {
   if (r.rq?.key === key) return 'running';
-  if (missing) return 'missing';
-  if (r.rq) return 'busy';
-  if (labUpgrading(p)) return 'labBusy';
-  if (short > 0) return 'noEnergy';
-  return 'ready';
+  return researchErrors(p, r, key, u)[0] ?? 'ready';
 }
 
 export interface FleetForm {

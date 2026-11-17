@@ -9,7 +9,7 @@ import { settle, settleR } from '../core/settle.ts';
 import { text } from '../core/text.ts';
 import type { Levels, Planet, Queue } from '../core/types.ts';
 import { createAct, placeOf, samePlace } from './logic/act.ts';
-import { CATALOG_VIEWS, catalogKind } from './logic/catalog-list.ts';
+import { CATALOG_VIEWS, catalogKind, orderNote } from './logic/catalog-list.ts';
 import { clearsChat, sameSignIn } from './logic/guild-chat.ts';
 import { debrisAt, debrisTip } from './logic/debris.ts';
 import { endzeitNote } from './logic/endzeit.ts';
@@ -1126,7 +1126,8 @@ const ACT: Record<string, (d: Data) => unknown> = {
   maxq: (d) => setInput(`#q_${d.k}`, d.max ?? 0),
   order: async (d) => {
     const n = clampInt(val(`#q_${d.k}`), 0, 1e9);
-    if (!n) return toast('Bitte eine Anzahl eingeben.', true);
+    const note = orderNote(client.view!, d.k!, n);
+    if (note) return toast(note, true);
     if (await actHere('order', { key: d.k, n })) setInput(`#q_${d.k}`, '');
   },
   rename: () =>
