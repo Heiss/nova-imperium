@@ -77,9 +77,12 @@ of this page is refused before its own checks.
   creating and renaming a rank check it (the core rule, the server and the
   fields' `maxlength`); an existing longer name stays, shows and can be
   renamed to at most 24, without a migration (owner, 2026-11-17).
-  Measured for #277: 24 wide letters still make the Leitung's member list
-  wider than a 360 px phone (the dropdown „Rang ändern“ and the cell
-  „Rang“); open point O20.
+* **[E]** A rank name of 24 wide letters fits a 360 px phone (owner,
+  2026-11-17, #277, O20): the limit alone did not (the Leitung's member list
+  912 px wide), so the dropdown „Rang ändern“ fits its cell (the closed
+  field may cut a long name off, the open list shows it in full) and the
+  cell „Rang“ and the legend of the box „Ränge“ wrap with
+  `overflow-wrap: anywhere`; no text changes, no other limit.
 * **[E]** Visibility (D7): ranks are shown only inside the guild; the public
   guild page shows none, also not who holds the Leitung (owner,
   2026-11-13). The directory sent to every player no longer has the field

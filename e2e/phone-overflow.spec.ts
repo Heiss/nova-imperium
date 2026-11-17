@@ -219,3 +219,57 @@ test('the admin reads the chat of a guild with the longest tag and name on a 360
   expect(found).toEqual([]);
   expect(w.problems).toEqual([]);
 });
+
+test('a rank name of 24 wide letters stays within a 360 px phone (#277) @phone', async ({
+  page,
+  browser,
+}) => {
+  const w = watch(page);
+  // The longest rank name (24 characters), of wide letters, without a space:
+  // 912 px wide before #277.
+  const rank = 'W'.repeat(24);
+  const tag = `R${Date.now() % 1000000}`;
+  const lead = uniqueName('Leitung');
+  const member = uniqueName('Mitglied');
+  await page.setViewportSize({ width: 360, height: 800 });
+  await register(page, lead);
+  await page.goto('/?view=guilds');
+  await page.getByLabel('Kürzel').fill(tag);
+  await page.getByLabel('Name', { exact: true }).fill(`Rang ${tag}`);
+  await page.getByRole('button', { name: 'Gilde gründen' }).click();
+  await expect(page).toHaveURL(/view=guilds&guild=/);
+  const url = page.url();
+  const other = await browser.newPage({
+    viewport: { width: 360, height: 800 },
+  });
+  const wo = watch(other);
+  await register(other, member);
+  await other.goto(url);
+  await other.getByRole('button', { name: 'Bewerben' }).click();
+  await expect(other.getByText('Deine Bewerbung ist offen.')).toBeVisible();
+  await other.close();
+  await page.goto(url);
+  await page
+    .locator('p', { hasText: member })
+    .getByRole('button', { name: 'Annehmen' })
+    .click();
+  await expect(page.getByRole('cell', { name: member })).toBeVisible();
+  // The rank shows in the column „Rang“, in „Rang ändern“ and in „Ränge“.
+  await page.getByLabel('Name des neuen Rangs').fill(rank);
+  await page.getByRole('button', { name: 'Rang anlegen' }).click();
+  await expect(page.getByRole('group', { name: rank })).toBeVisible();
+  const row = page.locator('tr', { hasText: member });
+  await row
+    .getByLabel(`Neuer Rang für ${member}`)
+    .selectOption({ label: rank });
+  await row.getByRole('button', { name: 'Rang ändern' }).click();
+  await expect(row.locator('td.rank')).toHaveText(rank);
+
+  await page.reload();
+  await expect(row.locator('td.rank')).toHaveText(rank);
+  await expect(page.getByRole('group', { name: rank })).toBeVisible();
+  await page.waitForLoadState('networkidle');
+  expect(await overflow(page, 'guild of the Leitung')).toEqual([]);
+  expect(w.problems).toEqual([]);
+  expect(wo.problems).toEqual([]);
+});

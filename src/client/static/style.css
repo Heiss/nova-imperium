@@ -551,6 +551,19 @@ fieldset.rank legend {
 .guild-members td:first-child {
   overflow-wrap: anywhere;
 }
+/* A rank name of 24 wide letters (#277, owner 2026-11-17): the cell „Rang“
+   and the legend of the box „Ränge“ wrap; „Rang ändern“ fits its cell, the
+   closed field may cut the name off, the open list shows it in full. */
+.guild-members td.rank,
+fieldset.rank legend {
+  overflow-wrap: anywhere;
+}
+/* A percentage max-width alone does not narrow a table cell: the field takes
+   the cell's width, but never more than its own. */
+.guild-members select {
+  width: 100%;
+  max-width: max-content;
+}
 fieldset.rank .rights {
   display: flex;
   flex-wrap: wrap;
