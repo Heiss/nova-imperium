@@ -1,0 +1,8 @@
+---
+type: log-entry
+date: 2026-11-17T17:45
+kind: Feature
+issues: [253, 118, 53, 45, 119, 242]
+---
+
+#253 built on the Svelte fleet view of #118, bundle 3: the list „Auftrag“ of the fleet form offers only the missions that fit the target at the entered coordinates [E], hidden, not disabled, and a chosen mission that no longer fits switches to the first that fits; the filter is the pure `missionsFor(owner, site)` of the new `src/core/mission-choice.ts`, which asks the `target` of each mission's rules with `suits` and the new `shunsMoon` of `src/core/missions.ts`, so a new mission plugs in through its rules and the send check shares the rule of the moon (#53) [V]; „Bergung“ is offered wherever a Trümmerfeld lies, beside the missions of the planet there (#45, #119) [V]; only the target kind is asked, the server keeps `canSend` and its messages [V]; `fleetCalc` of `main.ts` calls `aimFleet()` of `views/fleet.ts`, which hands `missionChoice()` of `logic/fleet.ts` to the component through its exported `aim()`, and `main.ts` keeps its 1,848 lines (#242); the view is mounted with every mission so the chosen one survives a new render, and is aimed in the same task [V]; „Ziel wird geprüft …“ with the blocked send is built and tested in the component, but the client knows every target at once, so it never shows: open point O20 [V]; unit tests, a component test, the E2E spec `fitting-missions` on desktop and phone with axe, the mutation floor 100 for the new core file, the fragment `changes/passende-auftraege.md` (see [Missions that fit the target](/features/fitting-missions.md), [Design patterns](/architecture/patterns.md), [Test strategy](/ops/testing.md), [Open points](/open-points.md)).

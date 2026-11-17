@@ -347,7 +347,12 @@ choice of the patterns to the assistant's recommendation below
     determines the noob protection and turns the codes into today's German
     messages, in today's order. Slots, cargo and fuel stay generic. The
     fleet form keeps offering every mission (replaces the [V] of #116 that
-    the fleet view offers only what `canSend` allows).
+    the fleet view offers only what `canSend` allows). **[E]** Since #253
+    (owner, 2026-11-16) the fleet form offers only the missions whose
+    target kind fits the target (`missionsFor` of
+    `src/core/mission-choice.ts`, with the same `suits`); `canSend` is
+    still asked by the server only
+    ([Missions that fit the target](/features/fitting-missions.md)).
   * Arrival: the dispatcher in the server's arrival code checks generically
     through the target kind whether the target still fits, else „Flotte
     kehrt um“. Colonize gets the raw target, the others the settled target,
@@ -724,6 +729,19 @@ choice of the patterns to the assistant's recommendation below
   the click actions (`fmax`, `fall`, `fnone`, `cmax`, `cone`, `send`,
   `recall`) stay with `data-act` in `main.ts` until package 8, so
   `main.ts` shrinks (1,888 to 1,848 lines). No visible change.
+* **[E]** #253 built straight into the component (owner, 2026-11-16;
+  [Missions that fit the target](/features/fitting-missions.md)): the
+  list „Auftrag“ offers only the missions that fit the target.
+  `fleetCalc` of `main.ts` calls `aimFleet(state, form)` of
+  `views/fleet.ts` whenever it runs (after every render and while the
+  player types): it asks `missionChoice()` of `logic/fleet.ts` (the site
+  of the target from `targetSite()`, the missions from `missionsFor()` of
+  `src/core/mission-choice.ts`), hands the choice to the component through
+  its exported `aim()`, and returns the form with the mission the list now
+  shows. **[V]** The view is still mounted with every mission
+  (`page.missions`), so `keepInputs` can put the chosen mission back
+  before the list is aimed in the same task; nothing of it is painted.
+  `main.ts` keeps its 1,848 lines.
 * **[E]** Bundle 2 after bundle 1 (owner, 2026-11-15 and 2026-11-16: the
   order of the bundles of #118 „Geklärt, Nachtrag 3“, unchanged by
   „Nachtrag 4“): the Sternenkarte, which the phone view #189 builds on

@@ -48,9 +48,13 @@ Psikristall, then Promethium without the fuel, up to the capacity
 * `src/client/logic/game.ts`: `cargoMax` (even, through `fillEvenly` and
   `loadable`) and `cargoOne`, pure functions with unit tests in
   `game.test.ts`.
-* `src/client/views/fleet.ts` renders the fields with their buttons
+* `src/client/views/Fleet.svelte` (since #118, bundle 3; before it
+  `src/client/views/fleet.ts`) renders the fields with their buttons
   (`data-act="cone"`, `data-k`), `src/client/main.ts` fills the field and
   updates the preview; the class `.cargo` in `style.css` puts each button
   under its field.
+* The list „Auftrag“ of the same form offers only the missions that fit
+  the target: [Missions that fit the target](/features/fitting-missions.md)
+  (#253).
 * E2E in `e2e/fleet-cargo.spec.ts` (desktop and phone, axe on the form);
   the fleet-form flow of `e2e/flows.spec.ts` uses the even fill.
