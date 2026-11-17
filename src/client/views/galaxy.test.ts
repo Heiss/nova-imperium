@@ -102,6 +102,27 @@ describe('Trümmerfelder on the Sternenkarte (#45)', () => {
     expect(row(html, 10)).not.toContain('Bergung');
   });
 
+  it('says until when a given-up position is locked and offers no Landnahme there (#224)', () => {
+    const v = view([field(9, 0, 300)], { colony: 1 });
+    const until = Date.UTC(2026, 10, 18, 12, 0);
+    v.s.locks = [
+      { g: 1, s: 2, p: 9, until },
+      { g: 1, s: 2, p: 11, until: 5 },
+    ];
+    v.now = 10;
+    const html = galaxy(v);
+    expect(row(html, 9)).toMatch(
+      /<span class="dim">gesperrt bis \d\d\.\d\d\.2026, \d\d:\d\d<\/span>/,
+    );
+    expect(row(html, 9)).not.toContain('Landnahme');
+    // The Bergung stays; an ended lock and other positions are free as before.
+    expect(row(html, 9)).toContain('Bergung');
+    for (const p of [10, 11]) {
+      expect(row(html, p)).toContain('<span class="dim">–</span>');
+      expect(row(html, p)).toContain('Landnahme');
+    }
+  });
+
   it('shows neither symbol nor button without a field', () => {
     const html = galaxy(view([]));
     expect(html).not.toContain('debris');

@@ -8,6 +8,7 @@
 // not send keeps the one of the current round. The server words a refusal
 // with the entry's `refusal`, else with the shared range wording of the
 // universe settings (`rangeError`).
+import { ABANDON_LOCK_SETTING } from './abandon.ts';
 import { ACHIEVEMENTS_SETTING, DAILY_SETTING } from './achievements.ts';
 import { GUILDS_SETTING } from './guild-chat.ts';
 import { MAIN_LOCK_SETTING } from './main-planet.ts';
@@ -64,6 +65,7 @@ export type RoundSetting = RoundSwitch | RoundNumber;
  * The members of a group stand together.
  */
 export const ROUND_SETTINGS = [
+  ABANDON_LOCK_SETTING,
   ACHIEVEMENTS_SETTING,
   DAILY_SETTING,
   GUILDS_SETTING,

@@ -11,7 +11,7 @@ RUN npm install --global "pnpm@$(node -p "require('./package.json').packageManag
 # and arm64); there is no compiler in the image, a missing binary fails the build.
 # Behind a TLS-inspecting proxy, pass its CA: --secret id=ca,src=/path/ca.crt
 FROM base AS deps
-COPY pnpm-lock.yaml .npmrc ./
+COPY pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN --mount=type=secret,id=ca,required=false \
     if [ -f /run/secrets/ca ]; then export NODE_EXTRA_CA_CERTS=/run/secrets/ca; fi; \
     pnpm install --frozen-lockfile

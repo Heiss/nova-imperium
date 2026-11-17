@@ -7,7 +7,8 @@ import { missionRules } from '../core/missions.ts';
 import { placeId } from '../core/place.ts';
 import { settle, settleR } from '../core/settle.ts';
 import { text } from '../core/text.ts';
-import type { Levels, Planet, Queue } from '../core/types.ts';
+import type { Levels, Planet, Queue, Resources } from '../core/types.ts';
+import { abandonActs } from './abandon-actions.ts';
 import { createAct, placeOf, samePlace } from './logic/act.ts';
 import { CATALOG_VIEWS, catalogKind, orderNote } from './logic/catalog-list.ts';
 import { clearsChat, sameSignIn } from './logic/guild-chat.ts';
@@ -27,7 +28,9 @@ import {
   reportFormHTML,
 } from './logic/error-report.ts';
 import {
+  CARGO,
   cargoMax,
+  cargoOne,
   fleetPreview,
   galaxyStep,
   nameOf,
@@ -911,6 +914,9 @@ function seeChat(): void {
 }
 
 // ----- fleet form -----
+/** The shown planet with its stock of this moment, for the cargo buttons. */
+const settledPlanet = (): Planet =>
+  settle(client.game!.planet!, client.now(), client.game!.cfg, client.game!.me);
 
 function readFleetForm(): FleetForm {
   const ships: Record<string, number> = {};
@@ -1227,18 +1233,13 @@ const ACT: Record<string, (d: Data) => unknown> = {
     fleetCalc();
   },
   cmax: () => {
-    const c = cargoMax(
-      settle(
-        client.game!.planet!,
-        client.now(),
-        client.game!.cfg,
-        client.game!.me,
-      ),
-      readFleetForm(),
-    );
-    setInput('#c_m', c.m);
-    setInput('#c_c', c.c);
-    setInput('#c_d', c.d);
+    const c = cargoMax(settledPlanet(), readFleetForm());
+    for (const k of CARGO) setInput(`#c_${k}`, c[k]);
+    fleetCalc();
+  },
+  cone: (d) => {
+    const k = d.k as keyof Resources;
+    setInput(`#c_${k}`, cargoOne(settledPlanet(), readFleetForm(), k));
     fleetCalc();
   },
   send: async () => {
@@ -1278,6 +1279,7 @@ const ACT: Record<string, (d: Data) => unknown> = {
     }
   },
   deleteAccount: () => modal(deleteAccountDialog(client.game!.round)),
+  ...abandonActs({ act, modal }),
   dismissInstall: () => {
     installDismissed = true;
     try {

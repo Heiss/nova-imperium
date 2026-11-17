@@ -68,6 +68,9 @@
           <tr><td>Serverzeit</td><td>{page.time}</td></tr>
         </tbody>
       </table>
+      {#if page.abandon}<p>
+          <button class="small red" data-act="abandon">Kolonie aufgeben</button>
+        </p>{/if}
     </div>
   </div>
   <div class="box">

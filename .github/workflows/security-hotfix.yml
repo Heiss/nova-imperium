@@ -241,7 +241,8 @@ jobs:
           # The lockfile only: no install, no package scripts.
           pnpm install --lockfile-only --ignore-scripts
           node ../tools/scripts/security-hotfix.ts verify ../plan.json
-          if git diff --quiet -- package.json pnpm-lock.yaml Dockerfile; then
+          # From pnpm 11 on the overrides are in pnpm-workspace.yaml (#264).
+          if git diff --quiet -- package.json pnpm-workspace.yaml pnpm-lock.yaml Dockerfile; then
             echo "::error::The fixed versions are already in release $TAG: the base image has no fix yet, or the scan and the fix disagree."
             exit 1
           fi
@@ -262,7 +263,10 @@ jobs:
             git push --quiet origin "$TAG^{commit}:refs/heads/$branch"
           fi
           git switch --quiet -c "$fix"
-          git add -A package.json pnpm-lock.yaml Dockerfile changes
+          files=(package.json pnpm-lock.yaml Dockerfile changes)
+          # A release up to pnpm 10 has no pnpm-workspace.yaml (#264).
+          if [ -f pnpm-workspace.yaml ]; then files+=(pnpm-workspace.yaml); fi
+          git add -A "${files[@]}"
           git -c user.name='Nova Imperium Release' \
             -c user.email='nova-imperium-release@users.noreply.github.com' \
             commit --quiet -m "Security update for release $TAG (sec-$ID)"

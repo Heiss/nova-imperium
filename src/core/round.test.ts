@@ -32,6 +32,7 @@ const code = (rewards: unknown, guilds: unknown): string | null =>
 describe('the registry of the round settings', () => {
   it('holds the settings of main, sorted by key, with unique keys and names', () => {
     expect(ROUND_SETTINGS.map((s) => [s.key, s.name])).toEqual([
+      ['roundAbandonLock', 'abandonLock'],
       ['roundAchievements', 'achievements'],
       ['roundDaily', 'daily'],
       ['roundGuilds', 'guilds'],
@@ -63,6 +64,7 @@ describe('the registry of the round settings', () => {
 
   it('names the field of the dialog after the setting', () => {
     expect(ROUND_SETTINGS.map(roundFieldId)).toEqual([
+      'round-abandon-lock',
       'round-achievements',
       'round-daily',
       'round-guilds',

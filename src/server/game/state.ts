@@ -115,6 +115,8 @@ export function stateFor(
     galaxy: galaxyOf(ctx),
     // Every player sees every Trümmerfeld (#45).
     debris: ctx.debris.all(),
+    // Every position locked after an abandonment, for the Sternenkarte (#224).
+    locks: ctx.planets.locks(ctx.now()),
     admin: adminState(ctx, u),
   };
 }

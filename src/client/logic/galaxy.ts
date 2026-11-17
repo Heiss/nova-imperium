@@ -10,6 +10,7 @@ import { placeName } from '../../core/moon.ts';
 import { placeId } from '../../core/place.ts';
 import type { Coords } from '../../core/types.ts';
 import type { V } from '../views/common.ts';
+import { freePosition } from './abandon.ts';
 import { debrisAt, debrisMark, harvestButton } from './debris.ts';
 import { fmt } from './format.ts';
 import { isProtected, nameOf, ranks } from './game.ts';
@@ -54,6 +55,8 @@ export interface GalaxyRow {
   marks: string[];
   /** The actions at a free position: „Landnahme“ and „Bergung“. */
   actions: GalaxyAction[];
+  /** The note of a free position: „–“, or until when it is locked (#224). */
+  note: string;
   /** The moon's row below the planet, once its symbol is opened (#53). */
   moon: GalaxyPlace | null;
 }
@@ -205,14 +208,18 @@ function galaxyRow(v: V, p: number, rk: Record<string, number>): GalaxyRow {
   const harvest: GalaxyAction[] = field
     ? [{ kind: 'html', html: harvestButton(c) }]
     : [];
-  if (!pl)
+  if (!pl) {
+    // A position locked after an abandonment says until when (#224).
+    const free = freePosition(s.locks, c, v.now);
     return {
       position: p,
       planet: null,
       marks,
-      actions: [...colonize(v, c), ...harvest],
+      actions: [...(free.colonize ? colonize(v, c) : []), ...harvest],
+      note: free.note,
       moon: null,
     };
+  }
   const planet = place(v, pl, pl.name, rk);
   planet.actions.push(...harvest);
   return {
@@ -220,6 +227,7 @@ function galaxyRow(v: V, p: number, rk: Record<string, number>): GalaxyRow {
     planet,
     marks,
     actions: [],
+    note: '',
     moon: open ? place(v, moon, placeName(moon), rk) : null,
   };
 }
