@@ -124,6 +124,42 @@ universe settings) and their ranges are not decided yet.
   The classic defaults are decided where the table says „classic value“,
   with the sources in the linked files.
 
+## The registry of the round settings (#283)
+
+* **[V]** Built with #283, a refactor without a visible change: every
+  setting of a round is one entry of the registry `ROUND_SETTINGS` in
+  `src/core/round.ts`. The dialog „Neue Runde“ (`roundDialog`), the
+  universe settings (`UNIVERSE_SPECS`), the request „reset“
+  (`src/client/round-actions.ts`), the reset action and `roundRules()`
+  (`src/server/game/round.ts`) all read it. On main it holds the reward
+  options „Achievements aktivieren“ and „Tagesbelohnungen aktivieren“ (one
+  group `rewards`, one fieldset), the switch „Gilden (mit Chat)“ and the
+  lock of the main planet; their texts, ranges, defaults and refusals are
+  those of before.
+* **[V]** An entry has its stored `key` (`round…`), its `name` in
+  `RoundRules` and in the request, its German `label`, and is either a
+  switch (`kind: 'switch'`, default yes or no, a `refusal`, an optional
+  `note` below the checkbox) or a whole number (`kind: 'number'`, `min`,
+  `max`, `def`, optional `choices` shown as a selection, optional
+  `refusal`; without one the server refuses with the wording of the
+  universe settings, `rangeError`: „<label>: ganze Zahl von <min> bis
+  <max>.“). Entries with one `group` are sent as one object and refused
+  together. A value the admin does not send keeps the current one; a
+  missing setting is the default; nothing is stored when one value is
+  refused, and the first refused entry (or group) in the order of the
+  registry is named.
+* **[V]** `live: true` makes a number entry also a row of the universe
+  settings under the same key, changed during the round and checked there
+  like the other settings (X1, owner, 2026-11-17). The four settings of
+  main are not live, so the universe settings stay as they were.
+* **[V]** A feature with a value per round adds one entry in its own file
+  (`export const X_SETTING = { … } as const satisfies RoundSetting`) and
+  one line to `ROUND_SETTINGS`, sorted by key (a test checks the order, so
+  parallel branches insert at different places); `RoundRules` gets the
+  typed value from the entry by itself. The dialog shows the entries in
+  the order of the registry, the field id is `round-` and the name in
+  kebab case (`mainLock` is `round-main-lock`).
+
 # Round rewards and menu hints
 
 * **[E]** Starting a new round offers independent checkboxes for achievements

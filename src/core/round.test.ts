@@ -1,37 +1,132 @@
-// The choices of a new round (#214): both reward options and the guild
-// switch are yes or no; an option not sent keeps the current one.
+// The settings of a round (#214, #283): the registry, both reward options
+// and the guild switch are yes or no, the lock of the main planet a whole
+// number; an option not sent keeps the current one.
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
-import { roundChoice, roundError } from './round.ts';
+import {
+  ROUND_SETTINGS,
+  type RoundSetting,
+  roundFieldId,
+  roundRefused,
+  roundRequest,
+  roundValues,
+  storedValues,
+} from './round.ts';
 
-const current = { achievements: true, daily: false, guilds: true };
+const current = { achievements: true, daily: false, guilds: true, mainLock: 7 };
 const both = { achievements: false, daily: true };
+
+/** The names of the refused settings, as the old codes: rewards, guilds. */
+const refused = (
+  rewards: unknown,
+  guilds: unknown,
+  mainLock?: unknown,
+): string[] =>
+  roundRefused(current, { rewards, guilds, mainLock }).map(
+    (s) => s.group?.name ?? s.name,
+  );
+
+const code = (rewards: unknown, guilds: unknown): string | null =>
+  refused(rewards, guilds)[0] ?? null;
+
+describe('the registry of the round settings', () => {
+  it('holds the settings of main, sorted by key, with unique keys and names', () => {
+    expect(ROUND_SETTINGS.map((s) => [s.key, s.name])).toEqual([
+      ['roundAchievements', 'achievements'],
+      ['roundDaily', 'daily'],
+      ['roundGuilds', 'guilds'],
+      ['roundMainLock', 'mainLock'],
+    ]);
+    const keys = ROUND_SETTINGS.map((s) => s.key);
+    expect([...keys].sort()).toEqual(keys);
+    expect(new Set(keys).size).toBe(keys.length);
+    expect(new Set(ROUND_SETTINGS.map((s) => s.name)).size).toBe(keys.length);
+  });
+
+  it('keeps the members of a group together, a default and choices in the range', () => {
+    const settings: readonly RoundSetting[] = ROUND_SETTINGS;
+    for (const [i, s] of settings.entries()) {
+      const before = settings.slice(0, i).map((x) => x.group);
+      if (s.group && before.includes(s.group))
+        expect(settings[i - 1]!.group).toBe(s.group);
+      if (s.kind === 'number') {
+        expect(Number.isInteger(s.def)).toBe(true);
+        expect(s.def).toBeGreaterThanOrEqual(s.min);
+        expect(s.def).toBeLessThanOrEqual(s.max);
+        for (const c of s.choices ?? []) {
+          expect(c.value).toBeGreaterThanOrEqual(s.min);
+          expect(c.value).toBeLessThanOrEqual(s.max);
+        }
+      }
+    }
+  });
+
+  it('names the field of the dialog after the setting', () => {
+    expect(ROUND_SETTINGS.map(roundFieldId)).toEqual([
+      'round-achievements',
+      'round-daily',
+      'round-guilds',
+      'round-main-lock',
+    ]);
+  });
+
+  it('reads the stored values: a missing one is the default, a switch 0 or 1', () => {
+    const none = storedValues(() => undefined);
+    expect(none).toEqual({
+      achievements: true,
+      daily: true,
+      guilds: true,
+      mainLock: 7,
+    });
+    const stored: Record<string, number> = {
+      roundAchievements: 0,
+      roundDaily: 2,
+      roundMainLock: 12,
+    };
+    expect(storedValues((k) => stored[k])).toEqual({
+      achievements: false,
+      daily: true,
+      guilds: true,
+      mainLock: 12,
+    });
+  });
+
+  it('builds the request with a group as one object', () => {
+    expect(roundRequest(current)).toEqual({
+      rewards: { achievements: true, daily: false },
+      guilds: true,
+      mainLock: 7,
+    });
+  });
+});
 
 describe('the check of a new round', () => {
   it('takes yes or no for every option', () => {
     for (const achievements of [true, false])
       for (const daily of [true, false])
         for (const guilds of [true, false]) {
-          expect(roundError(current, { achievements, daily }, guilds)).toBe(
-            null,
-          );
-          expect(roundChoice(current, { achievements, daily }, guilds)).toEqual(
-            { achievements, daily, guilds },
-          );
+          const data = { rewards: { achievements, daily }, guilds };
+          expect(roundRefused(current, data)).toEqual([]);
+          expect(roundValues(current, data)).toEqual({
+            achievements,
+            daily,
+            guilds,
+            mainLock: 7,
+          });
         }
   });
 
   it('keeps the current options that are not sent', () => {
-    expect(roundError(current, undefined, undefined)).toBeNull();
-    expect(roundChoice(current, undefined, undefined)).toEqual(current);
-    expect(roundChoice(current, both, undefined)).toEqual({
+    expect(roundRefused(current, {})).toEqual([]);
+    expect(roundValues(current, {})).toEqual(current);
+    expect(roundValues(current, { rewards: both })).toEqual({
+      ...current,
       ...both,
-      guilds: true,
     });
-    expect(roundChoice(current, undefined, false)).toEqual({
-      achievements: true,
-      daily: false,
+    expect(roundValues(current, { guilds: false, mainLock: 30 })).toEqual({
+      ...current,
       guilds: false,
+      mainLock: 30,
     });
   });
 
@@ -46,17 +141,30 @@ describe('the check of a new round', () => {
       5,
       'yes',
     ])
-      expect(roundError(current, rewards, true)).toBe('rewards');
+      expect(code(rewards, true)).toBe('rewards');
   });
 
   it('refuses a guild switch that is not yes or no', () => {
     for (const guilds of ['false', 0, null, {}])
-      expect(roundError(current, both, guilds)).toBe('guilds');
+      expect(code(both, guilds)).toBe('guilds');
   });
 
-  it('names the reward options first, then the guild switch', () => {
-    expect(roundError(current, { achievements: true }, 'no')).toBe('rewards');
-    expect(roundError(current, undefined, 'no')).toBe('guilds');
+  it('refuses a lock that is not a whole number of days from 1 to 30', () => {
+    for (const mainLock of [0, 31, 2.5, '7', null, true])
+      expect(refused(both, true, mainLock)).toEqual(['mainLock']);
+    for (const mainLock of [1, 30, undefined])
+      expect(refused(both, true, mainLock)).toEqual([]);
+  });
+
+  it('names the reward options first, then the guild switch, then the lock', () => {
+    expect(code({ achievements: true }, 'no')).toBe('rewards');
+    expect(code(undefined, 'no')).toBe('guilds');
+    expect(refused(undefined, 'no', 0)).toEqual(['guilds']);
+  });
+
+  it('refuses the wrong members of a group together, once per group', () => {
+    expect(refused({}, 'no')).toEqual(['rewards', 'rewards']);
+    expect(refused({ achievements: true }, true)).toEqual(['rewards']);
   });
 
   it('refuses exactly what is not yes or no (property)', () => {
@@ -70,7 +178,7 @@ describe('the check of a new round', () => {
             : guilds === undefined || typeof guilds === 'boolean'
               ? null
               : 'guilds';
-        expect(roundError(current, rewards, guilds)).toBe(error);
+        expect(code(rewards, guilds)).toBe(error);
       }),
     );
   });
