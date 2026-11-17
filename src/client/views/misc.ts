@@ -33,8 +33,7 @@ export function highscore(v: V): string {
       : '-';
     return `<tr class="${id === v.s.me.id ? 'me' : ''}"><td class="n">${i + 1}</td><td>${esc(x.name)}</td><td>${home}</td><td class="n">${fmt(x.points)}</td></tr>`;
   });
-  const note = highscoreNote(cat);
-  return `<h2 id="highscore-h">Highscore</h2>${highscoreButtonsHTML(cat)}<div class="box"><table class="scores"><tr><th class="n">Platz</th><th>Spieler</th><th>Heimatplanet</th><th class="n">Punkte</th></tr>${rows.join('')}</table></div>${note && `<div class="dim">${note}</div>`}`;
+  return `<h2 id="highscore-h">Highscore</h2>${highscoreButtonsHTML(cat)}<div class="box"><table class="scores"><tr><th class="n">Platz</th><th>Spieler</th><th>Heimatplanet</th><th class="n">Punkte</th></tr>${rows.join('')}</table></div><div class="dim">${highscoreNote(cat)}</div>`;
 }
 
 const rules = (u: Universe): string => `<ul class="rules">

@@ -150,8 +150,10 @@ describe('the note below the table', () => {
     );
   });
 
-  it('has none for fleet and research, which count pieces and levels (Q1)', () => {
-    expect(highscoreNote('fleet')).toBe('');
-    expect(highscoreNote('research')).toBe('');
+  it('counts ships and research levels for fleet and research (Q1, owner 2026-11-17)', () => {
+    expect(highscoreNote('fleet')).toBe(
+      '1 Punkt pro Schiff (auch Sonnenreliquiare).',
+    );
+    expect(highscoreNote('research')).toBe('1 Punkt pro Forschungsstufe.');
   });
 });

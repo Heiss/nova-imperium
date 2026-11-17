@@ -67,7 +67,9 @@ describe('the categories of the highscore (#78)', () => {
     expect(rows(html)).toEqual(['1 Bert 250 me', '2 Anna 1']);
     expect(html).toContain('data-cat="fleet" aria-pressed="true">Flotte<');
     expect(html).toContain('data-cat="total" aria-pressed="false">Gesamt<');
-    expect(html).not.toContain('class="dim"');
+    expect(html).toContain(
+      '<div class="dim">1 Punkt pro Schiff (auch Sonnenreliquiare).</div>',
+    );
   });
 
   it('shows the note of a category at 1 point per 1,000 resources', () => {

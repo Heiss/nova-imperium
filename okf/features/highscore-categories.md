@@ -59,5 +59,6 @@ D4, D5 and Q1. Sources: owiki.de „Statistik“
   below the table keeps its sentence for the total and names the category
   for buildings and defense: „1 Punkt = 1.000 verbaute Rohstoffe
   (Gebäude).“ and „… (Verteidigung).“
-* **[U]** Fleet and research have no note yet: the wording of „1 point per
-  ship“ and „1 point per research level“ is open to the owner.
+* **[E]** The note under Flotte reads „1 Punkt pro Schiff (auch
+  Sonnenreliquiare).“, under Forschung „1 Punkt pro Forschungsstufe.“
+  (owner, 2026-11-17).

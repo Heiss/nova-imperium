@@ -54,13 +54,13 @@ const PER_1000 = '1 Punkt = 1.000 verbaute Rohstoffe';
 
 /**
  * The note below the table: what a point is worth. Fleet and research count
- * pieces and levels (Q1); their note is an open question to the owner.
+ * pieces and levels (Q1); their notes are the owner's (2026-11-17).
  */
 const NOTES: Record<HighscoreCategory, string> = {
   total: `${PER_1000} (Gebäude, Forschung, Schiffe, Verteidigung).`,
   buildings: `${PER_1000} (Gebäude).`,
-  research: '',
-  fleet: '',
+  research: '1 Punkt pro Forschungsstufe.',
+  fleet: '1 Punkt pro Schiff (auch Sonnenreliquiare).',
   defense: `${PER_1000} (Verteidigung).`,
 };
 
