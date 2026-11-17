@@ -66,7 +66,8 @@ model of places (#119, O11) and fields (#51, [Planet fields](/features/fields.md
 * **[V]** Short and long texts, abbreviations and art of the three buildings
   and of the moon are proposed in the pull requests (the Mondzitadelle and
   the moon in the first, the Auspex-Phalanx in the second, the Warp-Tor in
-  the third, #230, below).
+  the third, #230, below). The texts and the abbreviation of the Warp-Tor
+  are [E] since 2026-11-17 (below).
 
 ## Decided for the first pull request (moons and Mondzitadelle)
 
@@ -403,9 +404,25 @@ the [E] of the Warp-Tor above (owner, 2026-11-13, confirmed 2026-11-16 in
   table are divided by the universe speed, so a faster universe cools
   faster. The server stores the ready time, and the countdown of the view
   „Flotte“ counts down to it, so both agree.
-* **[E]** Texts (owner, 2026-11-17, #230): the short and long text, the
-  eight refusals and the abbreviation `WR` in the list below are confirmed
-  as written.
+* **[E]** Texts (owner, 2026-11-17, #230), confirmed as written:
+  * the abbreviation `WR` (`WT` is taken);
+  * the short text „Versetzt Schiffe sofort zu einem eigenen Mond mit
+    Warp-Tor. Steht nur auf einem Mond.“;
+  * the long text „Das Warp-Tor reißt einen Spalt in den Raum hinter dem
+    Raum und stößt ganze Flotten hindurch. / So funktioniert es:
+    Ausgewählte Schiffe springen sofort und ohne Treibstoff zu einem
+    anderen eigenen Mond mit Warp-Tor, Rohstoffe bleiben zurück. Danach
+    kühlen beide Tore ab; je höher die Stufe des Starttors, desto kürzer.“;
+  * the eight refusals „Ein Sprung ist nur von einem Mond aus möglich.“,
+    „Auf diesem Mond steht kein Warp-Tor.“, „Das Warp-Tor kühlt noch ab.“,
+    „Der Zielmond muss ein eigener Mond sein.“, „Start und Zielmond sind
+    derselbe Mond.“, „Auf dem Zielmond steht kein Warp-Tor.“, „Das Warp-Tor
+    des Zielmonds kühlt noch ab.“ and „Sonnenreliquiare können nicht
+    springen.“; without ships the existing „Keine Schiffe ausgewählt.“ of
+    the fleet form.
+* **[E]** Changelog (owner, 2026-11-17, #230): the Warp-Tor has its own
+  fragment `changes/warp-tor.md`, not a line in the fragment of the moons.
+  It names no admin setting, since the Warp-Tor adds none (rule of #279).
 * **[V]** Proposals of this pull request, taken as recommended (owner's
   rule of 2026-11-15 in [Release loop](/ops/loop.md)), for the owner to
   confirm:
@@ -414,26 +431,14 @@ the [E] of the Warp-Tor above (owner, 2026-11-13, confirmed 2026-11-16 in
     as the fleet form does;
   * Sonnenreliquiare cannot jump (they cannot fly, „can fly“ is „has
     `mobile`“, #114; classic: no solar satellites through the Sprungtor);
-  * a jump asks for more ships than stand on the moon moves those there, as
-    `send` does;
+  * a jump that asks for more ships than stand on the moon moves those
+    there, as `send` does;
   * the jump answers no message: the moved ships and the countdowns show
     it;
-  * [E] since 2026-11-17: abbreviation `WR` (`WT` is taken); short text „Versetzt Schiffe sofort zu
-    einem eigenen Mond mit Warp-Tor. Steht nur auf einem Mond.“; long text
-    „Das Warp-Tor reißt einen Spalt in den Raum hinter dem Raum und stößt
-    ganze Flotten hindurch. / So funktioniert es: Ausgewählte Schiffe
-    springen sofort und ohne Treibstoff zu einem anderen eigenen Mond mit
-    Warp-Tor, Rohstoffe bleiben zurück. Danach kühlen beide Tore ab; je
-    höher die Stufe des Starttors, desto kürzer.“; art: the jump gate of the
-    interface v2 icon set (`docs/design/interface-v2/icons/moon/jump_gate.svg`),
-    renamed in `<title>` and `aria-label`; the classic name „Sprungtor“
-    joins the naming test data;
-  * [E] since 2026-11-17: the messages „Ein Sprung ist nur von einem Mond aus möglich.“, „Auf
-    diesem Mond steht kein Warp-Tor.“, „Das Warp-Tor kühlt noch ab.“, „Der
-    Zielmond muss ein eigener Mond sein.“, „Start und Zielmond sind derselbe
-    Mond.“, „Auf dem Zielmond steht kein Warp-Tor.“, „Das Warp-Tor des
-    Zielmonds kühlt noch ab.“, „Sonnenreliquiare können nicht springen.“ and
-    the existing „Keine Schiffe ausgewählt.“ of the fleet form.
+  * art: the jump gate of the interface v2 icon set
+    (`docs/design/interface-v2/icons/moon/jump_gate.svg`), renamed in
+    `<title>` and `aria-label`; the classic name „Sprungtor“ joins the
+    naming test data.
 * Tests: `src/core/jump-gate.test.ts` (the table, level 15 and above, the
   interpolation, the cooldown at speed 1 and faster speeds with its rounding
   as a property, the checks and their order, both cooldowns as a property,

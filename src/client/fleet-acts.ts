@@ -1,9 +1,10 @@
-// The data-act handlers of the ship selection of the fleet view and of the
-// Warp-Tor (#230), out of main.ts (ratchet #242): „alle Schiffe“ and „keine
-// Schiffe“ fill the selection, „Springen“ jumps the picked ships to the
-// „Zielmond“. The markup is in views/fleet.ts, the box of the Warp-Tor from
-// logic/jump-gate.ts.
-import type { Levels } from '../core/types.ts';
+// The data-act handlers of the ship selection and the cargo of the fleet
+// view and of the Warp-Tor (#230), out of main.ts (ratchet #242): „alle
+// Schiffe“ and „keine Schiffe“ fill the selection, „alles“ fills the cargo
+// (#240), „Springen“ jumps the picked ships to the „Zielmond“. The markup is
+// in views/fleet.ts, the box of the Warp-Tor from logic/jump-gate.ts.
+import type { Planet, Resources } from '../core/types.ts';
+import { CARGO, cargoMax, cargoOne, type FleetForm } from './logic/game.ts';
 import { client } from './logic/state.svelte.ts';
 
 /** What the handlers need from main.ts. */
@@ -12,20 +13,26 @@ interface Deps {
   actHere: (type: string, data?: object) => Promise<boolean>;
   /** Updates the preview of the fleet form. */
   calc: () => void;
-  /** The ships picked in the fleet form. */
-  ships: () => Levels;
+  /** The fleet form as it is filled in. */
+  form: () => FleetForm;
+  /** The shown planet with its stock of this moment. */
+  planet: () => Planet;
+  /** Sets the value of an input, when it is there. */
+  setInput: (sel: string, v: string | number) => void;
   render: (fresh?: boolean) => void;
 }
 
 const shipInputs = () => document.querySelectorAll<HTMLInputElement>('.fs');
 
-/** The data-act handlers of the ship selection and of „Springen“. */
+/** The data-act handlers of the ship selection, the cargo and „Springen“. */
 export function fleetActs({
   actHere,
   calc,
-  ships,
+  form,
+  planet,
+  setInput,
   render,
-}: Deps): Record<string, () => unknown> {
+}: Deps): Record<string, (d: Record<string, string | undefined>) => unknown> {
   return {
     fall: () => {
       shipInputs().forEach(
@@ -37,9 +44,19 @@ export function fleetActs({
       shipInputs().forEach((i) => (i.value = ''));
       calc();
     },
+    cmax: () => {
+      const c = cargoMax(planet(), form());
+      for (const k of CARGO) setInput(`#c_${k}`, c[k]);
+      calc();
+    },
+    cone: (d) => {
+      const k = d.k as keyof Resources;
+      setInput(`#c_${k}`, cargoOne(planet(), form(), k));
+      calc();
+    },
     jump: async () => {
       const to = document.querySelector<HTMLSelectElement>('#jg_to')?.value;
-      if (await actHere('jump', { to, ships: ships() })) render(true);
+      if (await actHere('jump', { to, ships: form().ships })) render(true);
     },
   };
 }

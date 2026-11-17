@@ -93,6 +93,8 @@ export interface GameState {
   debris: DebrisField[];
   /** The own Warp-Tore with their readiness (#230). */
   gates?: GateView[];
+  /** The positions locked after an abandonment, with the end of the lock (#224). */
+  locks?: (Coords & { until: number })[];
   admin: AdminState | null;
   achievements?: AchievementState;
   /** None while guilds are off in the round (#191). */
