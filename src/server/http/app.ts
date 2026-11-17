@@ -436,7 +436,7 @@ function actionReply(ctx: Ctx, u: User, call: Call): Reply {
  * The actions that ask for the password (#224): limited per address like
  * the deletion of the account.
  */
-const PASSWORD_ACTIONS: ReadonlySet<unknown> = new Set(['abandon']);
+const PASSWORD_ACTIONS: ReadonlySet<string> = new Set(['abandon']);
 
 /** The game and the admin functions; all need a session. */
 function gameRoutes(d: AppDeps, guard: Guard): Record<string, Handler> {
@@ -460,7 +460,8 @@ function gameRoutes(d: AppDeps, guard: Guard): Record<string, Handler> {
       return { json: { ok: true } };
     },
     'POST /api/action': (call) => {
-      if (PASSWORD_ACTIONS.has(call.body.type)) guard(call.req);
+      // String() like runAction, so `["abandon"]` is limited too.
+      if (PASSWORD_ACTIONS.has(String(call.body.type))) guard(call.req);
       return actionReply(ctx, sessionUserOf(ctx, call), call);
     },
     ...adminRoutes(

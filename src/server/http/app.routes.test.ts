@@ -111,6 +111,21 @@ describe('rate limit', () => {
     });
     expect(rename.json).toMatchObject({ ok: true });
   });
+
+  it('guards a password action whose type is not a string (#224)', async () => {
+    const { ctx, call } = await player({ cfg: { rateLimitAttempts: 1 } });
+    await call('POST', '/api/login', { name: 'Anna', password: 'secret1' });
+    addPlanet(ctx, 'u_Anna', { p: 7, created: 1 });
+    const out = await call('POST', '/api/action', {
+      type: ['abandon'],
+      target: 'p1_1_7',
+      password: 'secret1',
+    });
+    expect(out.json).toEqual({
+      error: 'Zu viele Versuche – bitte später nochmal.',
+    });
+    expect(ctx.planets.get('p1_1_7')).not.toBeNull();
+  });
 });
 
 describe('mails', () => {
