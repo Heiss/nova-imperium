@@ -32,7 +32,8 @@
 
 {#snippet owner(pl: GalaxyPlace)}<td
     >{pl.owner}
-    <span class="dim">(Platz {pl.rank})</span>{@html pl.inactivity}{#if pl.protected}{' '}<span
+    <span class="dim">(Platz {pl.rank})</span
+    >{@html pl.inactivity}{#if pl.protected}{' '}<span
         class="good"
         title="Noobschutz">(n)</span
       >{/if}</td
@@ -124,8 +125,8 @@
             <td class="n">{row.position}</td>
             <td
               ><span class="gal-pl"
-                >{@html planetHTML(row.planet, true)}{row.planet
-                  .name}{@html row.planet.activity}{@render marks(row.marks)}</span
+                >{@html planetHTML(row.planet, true)}{row.planet.name}{@html row
+                  .planet.activity}{@render marks(row.marks)}</span
               ></td
             >
             {@render owner(row.planet)}
@@ -136,8 +137,8 @@
               <td class="n"></td>
               <td
                 ><span class="gal-pl"
-                  >{@html moonPicture(row.moon.name, 28)}{row.moon.name}{@html row.moon
-                    .activity}</span
+                  >{@html moonPicture(row.moon.name, 28)}{row.moon
+                    .name}{@html row.moon.activity}</span
                 ></td
               >
               {@render owner(row.moon)}
