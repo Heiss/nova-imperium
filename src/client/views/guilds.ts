@@ -121,7 +121,7 @@ function directory(state: GuildState): string {
     )
     .join('');
   const list = rows
-    ? `<table><tr><th>Gilde</th><th class="n">Mitglieder</th><th class="n">Punkte</th><th class="n">Ø Punkte</th></tr>${rows}</table>`
+    ? `<table class="guild-list"><tr><th>Gilde</th><th class="n">Mitglieder</th><th class="n">Punkte</th><th class="n">Ø Punkte</th></tr>${rows}</table>`
     : '<p>Es gibt noch keine Gilden.</p>';
   return `<h2>Gilden</h2>${box('Gildenübersicht', list)}${state.own ? '' : box('Neue Gilde', profileForm())}`;
 }
@@ -251,7 +251,7 @@ function roster(g: Guild, me: Inside | null): string {
           `<tr><td>${esc(m.name)}</td><td class="n">${fmt(m.points)}</td></tr>`,
       )
       .join('');
-    return `<table><tr><th>Spieler</th><th class="n">Punkte</th></tr>${rows}</table>`;
+    return `<table class="guild-members"><tr><th>Spieler</th><th class="n">Punkte</th></tr>${rows}</table>`;
   }
   const rankName = (id: string): string =>
     esc(me.ranks.list.find((r) => r.id === me.ranks.members[id])?.name ?? '–');
@@ -261,7 +261,7 @@ function roster(g: Guild, me: Inside | null): string {
         `<tr><td>${esc(m.name)}</td><td class="rank">${m.id === me.ranks.lead ? esc(me.ranks.list[0]!.name) : rankName(m.id)}</td><td class="n">${fmt(m.points)}</td><td>${memberControls(me, m)}</td></tr>`,
     )
     .join('');
-  return `<table><tr><th>Spieler</th><th>Rang</th><th class="n">Punkte</th><th></th></tr>${rows}</table>`;
+  return `<table class="guild-members"><tr><th>Spieler</th><th>Rang</th><th class="n">Punkte</th><th></th></tr>${rows}</table>`;
 }
 
 function rightsList(rank: GuildRank, at: number): string {
@@ -349,7 +349,7 @@ export function guilds(v: V): string {
   if (!g) return directory(state);
   const own = state.management?.id === g.id ? state.management : null;
   const me = own && state.ranks ? inside(state.ranks, v.s.me.id) : null;
-  return `<h2>${heading(g)}</h2>
+  return `<h2 class="guild-title">${heading(g)}</h2>
   <p><button class="small" data-act="nav" data-v="guilds">Zur Gildenübersicht</button></p>
   ${box('Gildenprofil', g.html || '<p>Diese Gilde hat noch keinen Profiltext.</p>')}
   ${box('Punkte', `<p>${fmt(g.score)} gesamt · ${fmt(g.average)} pro Mitglied</p>`)}
