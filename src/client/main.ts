@@ -6,6 +6,7 @@ import { flushSync } from 'svelte';
 import { settle, settleR } from '../core/settle.ts';
 import { text } from '../core/text.ts';
 import type { Levels, Planet, Queue, Resources } from '../core/types.ts';
+import { abandonActs, roundLocks } from './abandon-actions.ts';
 import { createAct, placeOf, samePlace } from './logic/act.ts';
 import { CATALOG_VIEWS, catalogKind, orderNote } from './logic/catalog-list.ts';
 import { clearsChat, sameSignIn } from './logic/guild-chat.ts';
@@ -61,7 +62,6 @@ import {
   auth,
   deleteAccountDialog,
   diagnosticTab,
-  roundDialog,
   endzeitDialog,
   type AdminTab,
 } from './views/misc.ts';
@@ -1238,6 +1238,7 @@ const ACT: Record<string, (d: Data) => unknown> = {
     }
   },
   deleteAccount: () => modal(deleteAccountDialog(client.game!.round)),
+  ...abandonActs({ act, modal }),
   dismissInstall: () => {
     installDismissed = true;
     try {
@@ -1263,7 +1264,6 @@ const ACT: Record<string, (d: Data) => unknown> = {
       toast('Bitte installiere die App über das Browsermenü.', true);
     }
   },
-  reset: () => modal(roundDialog(client.game!.round)),
   doReset: () => {
     const checked = (id: string) => $<HTMLInputElement>(id)!.checked;
     const rewards = {
@@ -1271,9 +1271,9 @@ const ACT: Record<string, (d: Data) => unknown> = {
       daily: checked('#round-daily'),
     };
     const guilds = checked('#round-guilds');
-    const mainLock = Number(val('#round-main-lock'));
+    const locks = roundLocks(); // before the dialog closes with its fields
     modal('');
-    return act('reset', { rewards, guilds, mainLock });
+    return act('reset', { rewards, guilds, ...locks });
   },
   endzeit: () => modal(endzeitDialog(client.game!.admin!.endzeit.minutes)),
   doEndzeit: () => {

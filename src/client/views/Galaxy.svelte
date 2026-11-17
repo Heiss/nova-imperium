@@ -147,7 +147,7 @@
           <tr>
             <td class="n">{row.position}</td>
             <td colspan="2"
-              ><span class="dim">–</span>{@render marks(row.marks)}</td
+              ><span class="dim">{row.note}</span>{@render marks(row.marks)}</td
             >
             <td>{@render actions(row.actions)}</td>
           </tr>
