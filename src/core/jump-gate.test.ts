@@ -106,9 +106,9 @@ describe('a jump', () => {
     expect(
       jumpError(gate({ kind: 'planet', id: 'p1_2_3' }), target(), ships, NOW),
     ).toBe('notMoon');
-    expect(
-      jumpError(gate({ b: { moonbase: 1 } }), target(), ships, NOW),
-    ).toBe('noGate');
+    expect(jumpError(gate({ b: { moonbase: 1 } }), target(), ships, NOW)).toBe(
+      'noGate',
+    );
   });
 
   it('waits while the starting gate cools down', () => {
@@ -119,16 +119,16 @@ describe('a jump', () => {
 
   it('goes only to another own moon whose gate is ready', () => {
     expect(jumpError(gate(), null, ships, NOW)).toBe('noTarget');
-    expect(
-      jumpError(gate(), target({ owner: 'u_Bert' }), ships, NOW),
-    ).toBe('noTarget');
+    expect(jumpError(gate(), target({ owner: 'u_Bert' }), ships, NOW)).toBe(
+      'noTarget',
+    );
     expect(
       jumpError(gate(), target({ kind: 'planet', id: 'p2_5_9' }), ships, NOW),
     ).toBe('noTarget');
     expect(jumpError(gate(), gate(), ships, NOW)).toBe('sameMoon');
-    expect(
-      jumpError(gate(), target({ b: { moonbase: 2 } }), ships, NOW),
-    ).toBe('targetNoGate');
+    expect(jumpError(gate(), target({ b: { moonbase: 2 } }), ships, NOW)).toBe(
+      'targetNoGate',
+    );
     expect(jumpError(gate(), target({ ready: NOW + 1 }), ships, NOW)).toBe(
       'targetCooling',
     );
@@ -208,7 +208,10 @@ describe('moving the ships', () => {
             Object.entries(have).map(([k, n]) => [k, Math.floor(n / 2)]),
           );
           moveShips(from, to, ships);
-          for (const k of new Set([...Object.keys(have), ...Object.keys(there)]))
+          for (const k of new Set([
+            ...Object.keys(have),
+            ...Object.keys(there),
+          ]))
             expect((from.ships[k] ?? 0) + (to.ships[k] ?? 0)).toBe(
               (have[k] ?? 0) + (there[k] ?? 0),
             );
