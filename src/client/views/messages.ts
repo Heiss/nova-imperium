@@ -30,6 +30,23 @@ const WINNER: Record<string, string> = {
 
 const lv = (x: unknown): Levels => (x as Levels | undefined) ?? {};
 
+/** A fleet that held at the planet and defended it (#55). */
+interface HeldSide {
+  name: string;
+  before: Levels;
+  after: Levels;
+  tech: Levels;
+}
+
+/** Each fleet that held fights as a defender of its own (#55). */
+const heldSides = (r: Report): string =>
+  ((r.held as HeldSide[] | undefined) ?? [])
+    .map(
+      (h) =>
+        `<div><b class="good">Verteidiger ${esc(h.name)}</b><div class="dim">${techLine(lv(h.tech))}</div>${unitTable(lv(h.before), lv(h.after), Object.keys(SHIPS))}</div>`,
+    )
+    .join('');
+
 function battleBody(r: Report): string {
   const rebuilt = lv(r.rebuilt);
   const loot = r.loot as Resources | undefined;
@@ -49,7 +66,7 @@ function battleBody(r: Report): string {
     .join('');
   return `<div>Schlacht bei ${esc(r.name)} ${coords(r.coords as Coords)} · ${esc(r.rounds)} Runde(n)</div>
   <div class="cols mt"><div><b class="fl-attack">Angreifer ${esc(r.attName)}</b><div class="dim">${techLine(lv(r.attTech))}</div>${unitTable(lv(r.attBefore), lv(r.attAfter), Object.keys(SHIPS))}</div>
-  <div><b class="good">Verteidiger ${esc(r.defName)}</b><div class="dim">${techLine(lv(r.defTech))}</div>${unitTable(lv(r.defBefore), lv(r.defAfter), Object.keys(UNIT))}${rb}</div></div>
+  <div><b class="good">Verteidiger ${esc(r.defName)}</b><div class="dim">${techLine(lv(r.defTech))}</div>${unitTable(lv(r.defBefore), lv(r.defAfter), Object.keys(UNIT))}${rb}</div>${heldSides(r)}</div>
   <p><b>${WINNER[String(r.winner)] ?? ''}</b>${lootLine}${debrisHTML}</p>`;
 }
 

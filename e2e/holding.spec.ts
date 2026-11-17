@@ -1,0 +1,149 @@
+// Wacht halten (#55): a guild member sends a fleet with a holding time to
+// the planet of another member; a player outside the guild is refused. The
+// fleet holds there, the host sees it under „Gehaltene Flotten“, it defends
+// the planet in a battle and its owner gets the report of the defender with
+// the fleet as a defender of its own; after the holding time it flies home.
+// Flights and the end of holding are moved forward with e2e/seed.ts.
+// Desktop and phone.
+import { expect, test, type Locator, type Page } from '@playwright/test';
+import {
+  galaxyRow,
+  nav,
+  register,
+  seed,
+  uniqueName,
+  watch,
+} from './helpers.ts';
+
+const lastToast = (page: Page): Locator => page.locator('.toast').last();
+const report = (page: Page, title: string | RegExp): Locator =>
+  page.locator('.rep').filter({ has: page.locator('.t', { hasText: title }) });
+
+/** Opens the galaxy at the home system of another player, from the highscore. */
+async function openSystemOf(page: Page, player: string): Promise<void> {
+  await nav(page, 'highscore');
+  await page
+    .locator('tr')
+    .filter({ has: page.getByRole('cell', { name: player, exact: true }) })
+    .locator('[data-act=gto]')
+    .click();
+  await expect(page.locator('h2')).toHaveText('Sternenkarte');
+}
+
+/** Opens the fleet form towards the home planet of `host`, with `ships` chosen. */
+async function aimAt(
+  page: Page,
+  host: string,
+  ships: Record<string, string>,
+): Promise<void> {
+  await openSystemOf(page, host);
+  await galaxyRow(page, host).getByText('Versorgungsflug').click();
+  for (const [label, n] of Object.entries(ships))
+    await page.getByLabel(`Anzahl ${label}`).fill(n);
+}
+
+for (const phone of ['', ' @phone'])
+  test(`a guild member holds at an ally, defends it in a battle and flies home${phone}`, async ({
+    page,
+    browser,
+  }) => {
+    const host = uniqueName('Wirt');
+    const guard = uniqueName('Wache');
+    const raider = uniqueName('Raeuber');
+    const tag = `H${Date.now() % 1000000}`;
+    const title = `[${tag}] Gilde ${tag}`;
+    const w = watch(page);
+
+    // The host founds a guild; mines keep the noob protection away.
+    await register(page, host);
+    seed({ name: host, b: { metal: 12, crystal: 10 } });
+    await nav(page, 'guilds');
+    await page.getByLabel('Kürzel').fill(tag);
+    await page.getByLabel('Name', { exact: true }).fill(`Gilde ${tag}`);
+    await page.getByRole('button', { name: 'Gilde gründen' }).click();
+    await expect(page.getByRole('heading', { name: title })).toBeVisible();
+
+    // The guard joins the guild.
+    const pg = await browser.newPage({ viewport: page.viewportSize() });
+    const wg = watch(pg);
+    await register(pg, guard);
+    seed({ name: guard, ships: { bs: 2 }, res: { m: 0, c: 0, d: 50000 } });
+    await nav(pg, 'guilds');
+    await pg.getByRole('link', { name: title }).click();
+    await pg.getByRole('button', { name: 'Bewerben' }).click();
+    await expect(lastToast(pg)).toContainText('Bewerbung gesendet.');
+    await page.reload();
+    await page
+      .locator('p', { hasText: guard })
+      .getByRole('button', { name: 'Annehmen' })
+      .click();
+    await expect(lastToast(page)).toContainText('Bewerbung angenommen.');
+
+    // „Haltezeit“ shows only for Wacht halten.
+    await pg.reload();
+    await aimAt(pg, host, { Kathedralschiff: '2' });
+    const time = pg.getByLabel('Haltezeit');
+    await expect(time).toBeHidden();
+    await pg.getByLabel('Auftrag').selectOption('hold');
+    await expect(time).toBeVisible();
+    await expect(time).toHaveValue('1');
+    await time.selectOption('2');
+    await pg.getByRole('button', { name: 'Flotte losschicken' }).click();
+    await expect(lastToast(pg)).toContainText('Flotte unterwegs nach');
+    await expect(pg.locator('.fl-hold')).toContainText('Wacht halten');
+
+    // A player outside the guild may not hold there.
+    const pr = await browser.newPage({ viewport: page.viewportSize() });
+    const wr = watch(pr);
+    await register(pr, raider);
+    seed({ name: raider, ships: { lf: 3 }, res: { m: 0, c: 0, d: 50000 } });
+    await aimAt(pr, host, { Abfangjäger: '1' });
+    await pr.getByLabel('Auftrag').selectOption('hold');
+    await pr.getByRole('button', { name: 'Flotte losschicken' }).click();
+    await expect(lastToast(pr)).toContainText(
+      'Wacht halten nur bei Gildenmitgliedern und Freunden.',
+    );
+
+    // The fleet arrives and holds; the host sees it.
+    seed({ name: guard, landFleet: 'hold' });
+    await expect(pg.locator('.fl-hold')).toContainText('hält bei', {
+      timeout: 15000,
+    });
+    await page.reload();
+    await nav(page, 'overview');
+    const held = page.locator('.box', { hasText: 'Gehaltene Flotten' });
+    await expect(held).toContainText(`Flotte von ${guard}`, { timeout: 15000 });
+    await expect(held).toContainText('2 Kathedralschiff');
+
+    // The raider attacks with three Abfangjäger: the held fleet defends.
+    await pr.reload();
+    await aimAt(pr, host, { Abfangjäger: '3' });
+    await pr.getByLabel('Auftrag').selectOption('attack');
+    await pr.getByRole('button', { name: 'Flotte losschicken' }).click();
+    await expect(lastToast(pr)).toContainText('Flotte unterwegs nach');
+    seed({ name: raider, landFleet: 'attack' });
+    const hit = new RegExp(`^Feindkontakt! .* wird von ${raider} angegriffen`);
+    for (const p of [pg, page]) {
+      await nav(p, 'messages');
+      const battle = report(p, hit);
+      await expect(battle).toBeVisible({ timeout: 15000 });
+      await battle.locator('.t').click();
+      await expect(battle).toContainText(`Verteidiger ${host}`);
+      await expect(battle).toContainText(`Verteidiger ${guard}`);
+      await expect(battle).toContainText(
+        'Der Verteidiger hat die Schlacht gewonnen!',
+      );
+    }
+
+    // After the holding time the fleet flies home.
+    seed({ name: guard, endHold: true });
+    await nav(pg, 'fleet');
+    await expect(pg.locator('.fl-back')).toContainText('kehrt von', {
+      timeout: 15000,
+    });
+    await page.reload();
+    await nav(page, 'overview');
+    await expect(page.getByText('Gehaltene Flotten')).toHaveCount(0);
+
+    expect([...w.problems, ...wg.problems, ...wr.problems]).toEqual([]);
+  });

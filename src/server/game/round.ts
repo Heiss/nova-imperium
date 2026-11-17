@@ -1,10 +1,17 @@
 import type { RoundRules } from '../../core/achievements.ts';
+import { ALLIES_RANGE, isAllies } from '../../core/holding.ts';
 import { isLockDays, MAIN_LOCK_DAYS } from '../../core/main-planet.ts';
 import { type RoundError, roundChoice, roundError } from '../../core/round.ts';
 import { type Ctx, fail } from './context.ts';
 
 /** The setting of the lock of the main planet in days (#221, D3). */
 const MAIN_LOCK = 'roundMainLock';
+
+/**
+ * The setting of who may hold at a player (#55, Q2): a key of
+ * `UNIVERSE_SPECS` too, so the admin changes it live (X1).
+ */
+const ALLIES_KEY = 'roundAllies';
 
 export function roundRules(ctx: Ctx): RoundRules {
   const rows = ctx.admin.roundSettings();
@@ -17,6 +24,8 @@ export function roundRules(ctx: Ctx): RoundRules {
     guilds: settings.get('roundGuilds') !== 0,
     // Existing universes lock for the default 7 days (#221).
     mainLock: ctx.admin.setting(MAIN_LOCK) ?? MAIN_LOCK_DAYS.default,
+    // Existing universes let guild members and friends hold (#55, [V]).
+    allies: ctx.admin.setting(ALLIES_KEY) ?? ALLIES_RANGE.default,
   };
 }
 
@@ -60,11 +69,25 @@ function mainLockRule(current: RoundRules, days: unknown): number {
   return selected;
 }
 
+/** Who may hold in the new round (#55); without a choice the current setting. */
+function alliesRule(current: RoundRules, allies: unknown): number {
+  const selected = allies === undefined ? current.allies : allies;
+  if (!isAllies(selected))
+    return fail('Bitte auswählen, wer in der neuen Runde halten darf.');
+  return selected;
+}
+
+/** The values of the dialog „Neue Runde“ beyond the rewards and the guild switch. */
+interface RoundValues {
+  mainLock?: unknown;
+  allies?: unknown;
+}
+
 export function startRoundRules(
   ctx: Ctx,
   options: unknown,
   guilds?: unknown,
-  mainLock?: unknown,
+  values: RoundValues = {},
 ): RoundRules {
   const current = roundRules(ctx);
   const error = roundError(current, options, guilds);
@@ -72,10 +95,12 @@ export function startRoundRules(
   const next = {
     number: current.number + 1,
     ...roundChoice(current, options, guilds),
-    mainLock: mainLockRule(current, mainLock),
+    mainLock: mainLockRule(current, values.mainLock),
+    allies: alliesRule(current, values.allies),
   };
   ctx.admin.putSettings([
     [MAIN_LOCK, next.mainLock],
+    [ALLIES_KEY, next.allies],
     ['round', next.number],
     ['roundAchievements', Number(next.achievements)],
     ['roundDaily', Number(next.daily)],

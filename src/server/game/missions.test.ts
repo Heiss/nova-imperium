@@ -33,6 +33,8 @@ const FITS: Record<TargetKind, Coords> = {
   free: FREE,
   // A Trümmerfeld lies at Bert's planet (#45).
   debris: FOREIGN,
+  // Bert is in Anna's guild (#55).
+  ally: FOREIGN,
 };
 const MISFITS: Record<TargetKind, Coords[]> = {
   own: [FOREIGN, FREE],
@@ -40,6 +42,7 @@ const MISFITS: Record<TargetKind, Coords[]> = {
   any: [FREE],
   free: [COLONY, FOREIGN],
   debris: [COLONY, FREE],
+  ally: [COLONY, FREE],
 };
 
 const id = (c: Coords): string => `p${c.g}_${c.s}_${c.p}`;
@@ -63,6 +66,10 @@ function setup() {
   addPlanet(ctx, anna.id, { ...COLONY, name: 'Kolonie' });
   addPlanet(ctx, 'u_Bert', { ...FOREIGN, name: 'Beta' });
   ctx.debris.add(FOREIGN, { m: 100, c: 50 });
+  // Anna and Bert share a guild, so Anna may hold at Bert's planet (#55).
+  ctx.guilds.create('g1', 'GLD', 'Gilde', '', anna.id);
+  ctx.guilds.apply('u_Bert', 'g1');
+  ctx.guilds.accept('u_Bert');
   return { ctx, anna };
 }
 
@@ -117,8 +124,10 @@ describe('the server part of every mission (contract)', () => {
     (m, r) => {
       const { ctx } = setup();
       arrive(ctx, fleet(ctx, m, FITS[r.target]));
+      // A Halten holds first and flies back at the end of it (#55).
+      const after = r.returns ? 'back' : 'gone';
       expect(ctx.fleets.get('f1')?.state ?? 'gone', m).toBe(
-        r.returns ? 'back' : 'gone',
+        r.holds ? 'hold' : after,
       );
     },
   );
@@ -157,6 +166,7 @@ describe('the server part of every mission (contract)', () => {
           mission: m,
           cargo: { m: 5, c: 0, d: 0 },
           pct: 10,
+          hold: 1,
         });
       } catch {
         continue;

@@ -9,6 +9,7 @@
   import { client } from '../logic/state.svelte.ts';
   import { planetHTML } from './common.ts';
   import Due from './Due.svelte';
+  import FleetText from './FleetText.svelte';
 
   const v = $derived(client.shown);
   const page = $derived(v && overviewPage(v));
@@ -25,11 +26,7 @@
             {#each page.fleets as fleet (fleet.id)}
               <tr>
                 <td class="n w110"><Due due={fleet.due} /></td>
-                <td class={fleet.cls}
-                  >{#each fleet.parts as part, i (i)}{#if part.bold}<b
-                        >{part.text}</b
-                      >{:else}{part.text}{/if}{/each}</td
-                >
+                <td class={fleet.cls}><FleetText parts={fleet.parts} /></td>
                 <td class="w80"
                   >{#if fleet.recall}<button
                       class="small"
@@ -46,6 +43,23 @@
       {/if}
     </div>
   </div>
+  {#if page.held.length}
+    <div class="box">
+      <div class="hd">Gehaltene Flotten</div>
+      <div class="bd">
+        <table>
+          <tbody>
+            {#each page.held as fleet (fleet.id)}
+              <tr>
+                <td class="n w110"><Due due={fleet.due} /></td>
+                <td><FleetText parts={fleet.parts} /></td>
+              </tr>
+            {/each}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  {/if}
   <div class="box">
     <div class="bd ov">
       {#if page.moon}<span class="moon-big"

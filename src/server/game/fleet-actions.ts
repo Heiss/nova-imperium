@@ -11,7 +11,15 @@ import {
   fleetSpeed,
   flightMs,
   fuelFor,
+  holdFuel,
 } from '../../core/flight.ts';
+import {
+  ALLIES,
+  HOLD_LIMITS,
+  HOUR_MS,
+  dueAt,
+  isHoldHours,
+} from '../../core/holding.ts';
 import {
   type MissionRules,
   type SendError,
@@ -32,7 +40,9 @@ import type { User } from '../db/repos/players.ts';
 import { type Action, type Data, mine, researchOf } from './actions.ts';
 import { type Ctx, coords, fail, int, universe } from './context.ts';
 import { attackEvent } from './guild-events.ts';
+import { holdersAt, isAllyOf } from './holding.ts';
 import { isProtected, pointsMap } from './points.ts';
+import { roundRules } from './round.ts';
 
 const pickShips = (p: Planet, wanted: unknown): Levels => {
   const ships: Levels = {};
@@ -74,7 +84,22 @@ const SEND_ERROR: Readonly<Record<SendError, string>> = {
   noRecycler: 'Du brauchst eine Bergungsbarke.',
   noMoon: 'An dieser Position gibt es keinen Mond.',
   moonTarget: 'Ein Mond kann nicht das Ziel dieses Auftrags sein.',
+  // #55 [V]: worded like the other missions, by the setting of the round.
+  notAlly: 'Wacht halten nur bei Gildenmitgliedern und Freunden.',
+  holdFleets: `An diesem Planeten halten bereits ${HOLD_LIMITS.fleets} Flotten.`,
+  holdPlayers: `An diesem Planeten halten bereits Flotten von ${HOLD_LIMITS.players} Spielern.`,
 };
+
+/** Who may hold, as the refusal of a Halten names them (#55, Q2) [V]. */
+const NOT_ALLY: Readonly<Record<number, string>> = {
+  [ALLIES.guild]: 'Wacht halten nur bei Gildenmitgliedern.',
+  [ALLIES.friends]: 'Wacht halten nur bei Freunden.',
+};
+
+/** The message of a code; a Halten names who may hold in this round. */
+const sendMessage = (ctx: Ctx, error: SendError): string =>
+  (error === 'notAlly' && NOT_ALLY[roundRules(ctx).allies]) ||
+  SEND_ERROR[error];
 
 const loadCargo = (p: Planet, rules: MissionRules, raw: unknown): Resources => {
   if (!rules.cargo) return { m: 0, c: 0, d: 0 };
@@ -95,6 +120,8 @@ interface Plan {
   targetOwner: string | null;
   cargo: Resources;
   pct: number;
+  /** The holding time of a Halten in hours (#55); 0 for every other mission. */
+  hours: number;
 }
 
 function checkDestination(
@@ -114,9 +141,11 @@ function checkDestination(
       debris: at.debris,
       moon: at.moon,
       protects: (owner) => isProtected(u.id, owner, pointsMap(ctx)),
+      ally: (owner) => isAllyOf(ctx, u.id, owner),
+      holding: () => (occupied ? holdersAt(ctx, occupied.id) : []),
     },
   );
-  if (error) fail(SEND_ERROR[error]);
+  if (error) fail(sendMessage(ctx, error));
 }
 
 function plan(ctx: Ctx, u: User, p: Planet, d: Data): Plan {
@@ -146,18 +175,26 @@ function plan(ctx: Ctx, u: User, p: Planet, d: Data): Plan {
     targetOwner: toField ? null : (occupied?.owner ?? null),
     cargo: loadCargo(p, rules, d.cargo),
     pct: int(d.pct, 1, 10),
+    hours: holdHours(rules, d.hold),
   };
 }
+
+/** The holding time a Halten asks for, in hours (#55); none for the others. */
+function holdHours(rules: MissionRules, raw: unknown): number {
+  if (!rules.holds) return 0;
+  return isHoldHours(raw) ? raw : fail('Bitte eine Haltezeit auswählen.');
+}
+
+/** The fuel of the launch: the flight, and the holding time of a Halten (#55, D2). */
+const launchFuel = (x: Plan, holds: boolean, dist: number): number =>
+  fuelFor(x.ships, dist, x.pct) + (holds ? holdFuel(x.ships, x.hours) : 0);
 
 export const send: Action = (ctx, u, d, event) => {
   const t = ctx.now();
   const p = mine(ctx, u, d.planet);
-  const { mission, ships, dest, to, targetOwner, cargo, pct } = plan(
-    ctx,
-    u,
-    p,
-    d,
-  );
+  const x = plan(ctx, u, p, d);
+  const { mission, ships, dest, to, targetOwner, cargo, pct } = x;
+  const holds = missionRules(mission)!.holds;
   const dist = distance(p, dest);
   const ms = flightMs(
     dist,
@@ -165,7 +202,8 @@ export const send: Action = (ctx, u, d, event) => {
     pct,
     universe(ctx),
   );
-  const fuel = fuelFor(ships, dist, pct);
+  const fuel = launchFuel(x, holds, dist);
+  const hold = x.hours * HOUR_MS;
   if (cargo.m + cargo.c + cargo.d > capacity(ships))
     fail('Nicht genug Laderaum.');
   if (p.res.d < fuel + cargo.d)
@@ -188,10 +226,11 @@ export const send: Action = (ctx, u, d, event) => {
     cargo,
     dep: t,
     arr: t + ms,
-    ret: t + 2 * ms,
+    ret: t + 2 * ms + hold,
     state: 'out',
     recalled: false,
     fuel,
+    ...(holds && { hold }),
   };
   ctx.fleets.save(fleet);
   // The guild of the defender learns of an attack at its launch (#169 D3);
@@ -216,17 +255,31 @@ function logLaunch(
   };
 }
 
+/**
+ * Whether a fleet can still be called back at `t`: on its way out before its
+ * arrival, or while it holds before the end of its holding time (#55).
+ */
+const recallable = (f: Fleet, t: number): boolean =>
+  (f.state === 'out' || f.state === 'hold') && dueAt(f) > t;
+
+/**
+ * When a recalled fleet is home: it flies back as long as it flew out, and a
+ * fleet that holds as long as its flight to the target took (#55).
+ */
+const recalledAt = (f: Fleet, t: number): number =>
+  t + (f.state === 'hold' ? f.arr - f.dep : t - f.dep);
+
 export const recall: Action = (ctx, u, d, event) => {
   const f = ctx.fleets.get(String(d.id));
   const t = ctx.now();
-  if (!f || f.owner !== u.id || f.state !== 'out' || f.arr <= t)
+  if (!f || f.owner !== u.id || !recallable(f, t))
     fail('Rückruf nicht mehr möglich.');
   // The gift of the „Endzeit“ has no origin to return to (#161).
   if (f!.gift)
     fail('Die Gabe des Gottkaisers kann nicht zurückgerufen werden.');
   const fleet = f!;
+  fleet.ret = recalledAt(fleet, t);
   fleet.state = 'back';
-  fleet.ret = t + (t - fleet.dep);
   fleet.recalled = true;
   ctx.fleets.save(fleet);
   if (event)

@@ -123,6 +123,8 @@ export const MISSIONS = {
   colonize: { classic: 'Kolonisieren', name: 'Landnahme' },
   deploy: { classic: 'Stationieren', name: 'Verlegung' },
   harvest: { classic: 'Abbauen', name: 'Bergung' },
+  // #55: „Wacht halten“ of the table of #94 (okf/features/naming.md) [V].
+  hold: { classic: 'Halten', name: 'Wacht halten' },
 } as const;
 
 /**

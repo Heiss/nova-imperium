@@ -77,7 +77,8 @@ export interface ResearchState {
  * from the generated index as a type only (owner, 2026-11-14, #116).
  */
 export type Mission = (typeof MISSIONS)[number][0];
-type FleetState = 'out' | 'back';
+/** On its way out, holding at an ally's planet (#55), or on its way home. */
+type FleetState = 'out' | 'hold' | 'back';
 
 export interface Fleet {
   id: string;
@@ -102,6 +103,11 @@ export interface Fleet {
    * and buildings on arrival. Only set on a gift.
    */
   gift?: true;
+  /**
+   * The holding time of a Halten in milliseconds (#55): the fleet stays at
+   * the target from its arrival for that long. Only set on a Halten.
+   */
+  hold?: number;
 }
 
 /** The settings of one universe. The admin changes them in the admin panel. */
@@ -119,4 +125,10 @@ export interface Universe {
   extraFields: number;
   /** The default flight time of the „Endzeit“ gift, in minutes (#161). */
   endzeitMinutes: number;
+  /**
+   * Who may hold at a player (#55, Q2): guild members, friends or both
+   * (`ALLIES` of core/holding.ts). The stored setting of the round, set in
+   * „Neue Runde“ and changed live by the admin (X1).
+   */
+  roundAllies: number;
 }

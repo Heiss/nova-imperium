@@ -6,6 +6,7 @@ import {
 } from '../../core/endzeit.ts';
 import { MAIN_LOCK_DAYS } from '../../core/main-planet.ts';
 import type { Universe } from '../../core/types.ts';
+import { ALLY_CHOICES, UNIVERSE_SPECS } from '../../core/universe.ts';
 import { ENDZEIT_NOTE } from '../logic/endzeit.ts';
 import { reportFormHTML } from '../logic/error-report.ts';
 import { explainOptionsHTML } from '../logic/explain.ts';
@@ -98,6 +99,18 @@ export const deleteAccountBox = (round: RoundRules): string =>
 export const deleteAccountDialog = (round: RoundRules): string =>
   `<form id="deleteaccountform"><p>Dein Konto und deine Spielstände werden unwiderruflich gelöscht.${guildNote(round, 'Eine von dir geleitete Gilde wird aufgelöst.')}</p><p><label for="delete-account-password">Passwort zur Bestätigung</label> <input id="delete-account-password" type="password" autocomplete="current-password" required></p><button class="red" type="submit">Account endgültig löschen</button> <button type="button" data-act="closeModal">Abbrechen</button></form>`;
 
+/** The options of a setting with named choices, the current one selected (#55). */
+const choiceOptions = (
+  choices: readonly { value: number; label: string }[],
+  current: number,
+): string =>
+  choices
+    .map(
+      (c) =>
+        `<option value="${c.value}"${c.value === current ? ' selected' : ''}>${esc(c.label)}</option>`,
+    )
+    .join('');
+
 function settingsForm(s: GameState, a: AdminState): string {
   const rows = a.specs
     .map((x) => {
@@ -105,7 +118,11 @@ function settingsForm(s: GameState, a: AdminState): string {
       const hint = x.size
         ? ' – nur vergrößern, solange dort Planeten liegen'
         : '';
-      return `<tr><td><label for="set_${x.key}">${esc(x.label)}</label></td><td><input type="number" id="set_${x.key}" data-setting="${x.key}" min="${x.min}" max="${x.max}" value="${value}" data-nokeep> <span class="dim">${fmt(x.min)} bis ${fmt(x.max)}${hint}</span></td></tr>`;
+      // A setting with named choices is a selection (#55).
+      const field = x.choices
+        ? `<select id="set_${x.key}" data-setting="${x.key}" data-nokeep>${choiceOptions(x.choices, value)}</select>`
+        : `<input type="number" id="set_${x.key}" data-setting="${x.key}" min="${x.min}" max="${x.max}" value="${value}" data-nokeep> <span class="dim">${fmt(x.min)} bis ${fmt(x.max)}${hint}</span>`;
+      return `<tr><td><label for="set_${x.key}">${esc(x.label)}</label></td><td>${field}</td></tr>`;
     })
     .join('');
   return `<table class="kv">${rows}</table><p class="dim">Änderungen wirken sofort. Laufende Bauaufträge und Flüge behalten ihre Endzeit.</p><button data-act="saveSettings">Einstellungen speichern</button>`;
@@ -118,6 +135,17 @@ function invitations(ui: Ui): string {
   return `<form id="inviteform" class="flex"><label for="inv_email">E-Mail-Adresse</label> <input id="inv_email" type="email" required autocomplete="off" data-nokeep> <button type="submit">Einladen</button></form>${link}<div id="admin-invitations"></div>`;
 }
 
+/** Who may hold, named as in the universe settings (#55). */
+const ALLIES_LABEL = UNIVERSE_SPECS.find((x) => x.key === 'roundAllies')!.label;
+
+/** The values of the dialog „Neue Runde“ beyond the rewards and the guild switch. */
+export const roundValues = (
+  val: (sel: string) => string,
+): { mainLock: number; allies: number } => ({
+  mainLock: Number(val('#round-main-lock')),
+  allies: Number(val('#round-allies')),
+});
+
 export function roundDialog(round: RoundRules): string {
   return `<p><b>Wirklich eine neue Runde starten?</b><br>
   Planeten, Flotten, Forschung, Nachrichten und Belohnungsfortschritt werden zurückgesetzt. Das kann nicht rückgängig gemacht werden.</p>
@@ -128,6 +156,7 @@ export function roundDialog(round: RoundRules): string {
   <p><label><input type="checkbox" id="round-guilds" aria-describedby="round-guilds-note" ${round.guilds ? 'checked' : ''}> Gilden (mit Chat)</label><br>
   <span id="round-guilds-note">Eine neue Runde leert alle Gilden-Chats. Ohne Gilden werden alle Gilden mit Mitgliedern, Bewerbungen, Rängen und Chat gelöscht.</span></p>
   <p><label for="round-main-lock">Sperre nach einem Wechsel des Hauptplaneten (Tage)</label> <input type="number" id="round-main-lock" min="${MAIN_LOCK_DAYS.min}" max="${MAIN_LOCK_DAYS.max}" step="1" value="${round.mainLock}" required> <span class="dim">${MAIN_LOCK_DAYS.min} bis ${MAIN_LOCK_DAYS.max}</span></p>
+  <p><label for="round-allies">${ALLIES_LABEL}</label> <select id="round-allies">${choiceOptions(ALLY_CHOICES, round.allies)}</select></p>
   <p><button class="red" data-act="doReset">Ja, neue Runde</button> <button data-act="closeModal">Abbrechen</button></p>`;
 }
 

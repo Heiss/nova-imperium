@@ -26,9 +26,15 @@ export interface ForeignFleet {
   state: Fleet['state'];
   arr: number;
   ships: Fleet['ships'];
+  /** The holding time of a fleet that holds at the planet (#55). */
+  hold?: number;
 }
 
-/** An incoming fleet: the ships are visible only for a mission that shows them (attack). */
+/**
+ * An incoming fleet: the ships are visible only for a mission that shows
+ * them (attack). A fleet that holds at the planet shows its ships and its
+ * holding time to the host it defends (#55) [V].
+ */
 export const foreignView = (f: Fleet): ForeignFleet => ({
   id: f.id,
   owner: f.owner,
@@ -38,8 +44,13 @@ export const foreignView = (f: Fleet): ForeignFleet => ({
   mission: f.mission,
   state: f.state,
   arr: f.arr,
-  ships: missionRules(f.mission)?.visible ? f.ships : {},
+  ships: f.state === 'hold' || missionRules(f.mission)?.visible ? f.ships : {},
+  ...(f.state === 'hold' && { hold: f.hold ?? 0 }),
 });
+
+/** Whether a foreign fleet shows at the shown planet: on its way there, or holding there (#55). */
+const atPlanet = (f: Fleet, p: { id: string } | null): boolean =>
+  p !== null && f.to === p.id && f.state !== 'back';
 
 /** Every planet and moon (#53) of the universe, for every player. */
 function galaxyOf(ctx: Ctx) {
@@ -87,10 +98,7 @@ export function stateFor(
   const pts = pointsMap(ctx);
   const fleets = ctx.fleets
     .all()
-    .filter(
-      (f) =>
-        f.owner === u.id || (p !== null && f.state === 'out' && f.to === p.id),
-    )
+    .filter((f) => f.owner === u.id || atPlanet(f, p))
     .map((f) => (f.owner === u.id ? f : foreignView(f)));
   const players = Object.fromEntries(
     ctx.players

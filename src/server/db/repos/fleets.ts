@@ -1,4 +1,5 @@
 // Fleets (#117): a fleet in flight with its ships and cargo.
+import { missionRules } from '../../../core/missions.ts';
 import type { Coords, Fleet } from '../../../core/types.ts';
 import type { Db } from '../database.ts';
 import { levels, type Row } from './rows.ts';
@@ -9,8 +10,10 @@ export interface Fleets {
   all(): Fleet[];
   /** How many fleet slots a player uses: the fleets in flight, no gift (#161). */
   count(owner: string): number;
-  /** Fleets whose next event (arrival or return) is due, the earliest first. */
+  /** Fleets whose next event (arrival, end of holding or return) is due, the earliest first. */
   due(now: number): Fleet[];
+  /** The fleets flying to a place or holding there (#55), by departure. */
+  at(place: string): Fleet[];
   save(f: Fleet): void;
   delete(id: string): void;
   deleteAll(): void;
@@ -54,6 +57,10 @@ export class SqliteFleets implements Fleets {
       recalled: r.recalled === 1,
       fuel: r.fuel as number,
       ...(r.gift === 1 && { gift: true as const }),
+      // Only a fleet that holds has a holding time (#55).
+      ...(missionRules(r.mission as string)?.holds && {
+        hold: r.hold as number,
+      }),
     };
   }
 
@@ -80,10 +87,19 @@ export class SqliteFleets implements Fleets {
   due(now: number): Fleet[] {
     const rows = this.db
       .prepare(
-        `SELECT *, CASE state WHEN 'out' THEN arr ELSE ret END AS at FROM fleets
-         WHERE (state = 'out' AND arr <= ?) OR (state = 'back' AND ret <= ?) ORDER BY at, id`,
+        `SELECT *, CASE state WHEN 'out' THEN arr WHEN 'hold' THEN arr + hold ELSE ret END AS at
+         FROM fleets WHERE at <= ? ORDER BY at, id`,
       )
-      .all(now, now) as Row[];
+      .all(now) as Row[];
+    return rows.map((r) => this.fleetOf(r)!);
+  }
+
+  at(place: string): Fleet[] {
+    const rows = this.db
+      .prepare(
+        "SELECT * FROM fleets WHERE to_planet = ? AND state != 'back' ORDER BY dep, id",
+      )
+      .all(place) as Row[];
     return rows.map((r) => this.fleetOf(r)!);
   }
 
@@ -91,12 +107,14 @@ export class SqliteFleets implements Fleets {
     // Only a gift writes `gift` (#161): every other fleet keeps the default
     // 0, and a fleet never changes whether it is a gift.
     const gift = f.gift ? [', gift', ', 1'] : ['', ''];
+    // Only a Halten writes `hold` (#55), set once at the launch.
+    const hold = f.hold === undefined ? ['', ''] : [', hold', ', @hold'];
     this.db
       .prepare(
         `INSERT INTO fleets (id, owner, from_planet, from_g, from_s, from_p, to_planet, to_g, to_s, to_p,
-           mission, cargo_m, cargo_c, cargo_d, dep, arr, ret, state, recalled, fuel${gift[0]})
+           mission, cargo_m, cargo_c, cargo_d, dep, arr, ret, state, recalled, fuel${hold[0]}${gift[0]})
          VALUES (@id, @owner, @from, @from_g, @from_s, @from_p, @to, @to_g, @to_s, @to_p,
-           @mission, @cargo_m, @cargo_c, @cargo_d, @dep, @arr, @ret, @state, @recalled, @fuel${gift[1]})
+           @mission, @cargo_m, @cargo_c, @cargo_d, @dep, @arr, @ret, @state, @recalled, @fuel${hold[1]}${gift[1]})
          ON CONFLICT(id) DO UPDATE SET cargo_m = excluded.cargo_m, cargo_c = excluded.cargo_c,
            cargo_d = excluded.cargo_d, ret = excluded.ret, state = excluded.state, recalled = excluded.recalled`,
       )
@@ -121,6 +139,7 @@ export class SqliteFleets implements Fleets {
         state: f.state,
         recalled: f.recalled ? 1 : 0,
         fuel: f.fuel,
+        ...(f.hold !== undefined && { hold: f.hold }),
       });
     this.db.prepare('DELETE FROM fleet_ships WHERE fleet_id = ?').run(f.id);
     const put = this.db.prepare('INSERT INTO fleet_ships VALUES (?, ?, ?)');

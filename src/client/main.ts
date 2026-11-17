@@ -28,6 +28,7 @@ import {
 } from './logic/error-report.ts';
 import {
   cargoMax,
+  arrivalLine,
   fleetPreview,
   galaxyStep,
   nameOf,
@@ -63,6 +64,7 @@ import {
   deleteAccountDialog,
   diagnosticTab,
   roundDialog,
+  roundValues,
   endzeitDialog,
   type AdminTab,
 } from './views/misc.ts';
@@ -931,6 +933,7 @@ function readFleetForm(): FleetForm {
       kind: val('#t_k') === 'moon' ? 'moon' : 'planet',
     },
     mission: val('#t_m'),
+    hold: Number(val('#t_h')),
     pct: clampInt(val('#t_v'), 1, 10),
     cargo: {
       m: clampInt(val('#c_m'), 0, 1e15),
@@ -963,10 +966,6 @@ function targetInfo(s: GameState, f: FleetForm): string {
     : '<span class="bad">kein Planet</span>';
 }
 
-/** The return time, or none for a mission that stays at its target (deploy, #129). */
-const returnAt = (mission: string, t: number): string =>
-  missionRules(mission)?.returns === false ? '–' : dt(t);
-
 /** „Mond“ in the select of the target only where a moon is (#53). */
 function moonOption(s: GameState): void {
   const select = $('#t_k') as HTMLSelectElement | null;
@@ -982,6 +981,7 @@ function fleetCalc(): void {
   moonOption(client.game);
   const f = readFleetForm();
   $('#t_info')!.innerHTML = targetInfo(client.game, f);
+  $('#t_hold')!.hidden = !missionRules(f.mission)?.holds;
   const pv = fleetPreview(client.view.P, client.view.R, f, client.game.cfg);
   const set = (id: string, html: string): void =>
     void ($(`#${id}`)!.innerHTML = html);
@@ -992,7 +992,7 @@ function fleetCalc(): void {
   const now = client.now();
   set('i_dist', fmt(pv.dist));
   set('i_dur', dur(pv.ms));
-  set('i_arr', `${dt(now + pv.ms)} / ${returnAt(f.mission, now + 2 * pv.ms)}`);
+  set('i_arr', arrivalLine(f.mission, now, pv));
   set(
     'i_fuel',
     `<span class="${pv.fuelShort ? 'bad' : ''}">${fmt(pv.fuel)}</span> Promethium`,
@@ -1311,9 +1311,9 @@ const ACT: Record<string, (d: Data) => unknown> = {
       daily: checked('#round-daily'),
     };
     const guilds = checked('#round-guilds');
-    const mainLock = Number(val('#round-main-lock'));
+    const values = roundValues(val);
     modal('');
-    return act('reset', { rewards, guilds, mainLock });
+    return act('reset', { rewards, guilds, ...values });
   },
   endzeit: () => modal(endzeitDialog(client.game!.admin!.endzeit.minutes)),
   doEndzeit: () => {

@@ -42,7 +42,7 @@ export type ClientFleet = Pick<
   | 'arr'
   | 'ships'
 > &
-  Partial<Pick<Fleet, 'ret' | 'cargo' | 'dep' | 'gift'>>;
+  Partial<Pick<Fleet, 'ret' | 'cargo' | 'dep' | 'gift' | 'hold'>>;
 
 export interface Report {
   id: string;

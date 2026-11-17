@@ -116,6 +116,12 @@ export interface RoundRules {
    * only when the admin starts a new round, 7 by default.
    */
   mainLock: number;
+  /**
+   * Who may hold at a player (#55, Q2): `ALLIES` of core/holding.ts, guild
+   * and friends by default; set when the admin starts a new round and
+   * changed live in the universe settings (X1).
+   */
+  allies: number;
 }
 
 export interface AchievementState {

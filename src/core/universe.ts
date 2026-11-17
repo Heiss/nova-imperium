@@ -2,6 +2,7 @@
 // the universe never shrinks below a planet that exists. The admin panel, the
 // server check and the documentation table read this list.
 import { GIFT_DEFAULT_MINUTES, GIFT_MINUTES } from './endzeit.ts';
+import { ALLIES, ALLIES_RANGE } from './holding.ts';
 import type { Coords, Universe } from './types.ts';
 
 type UniverseKey = keyof Universe;
@@ -14,7 +15,16 @@ export interface UniverseSpec {
   def: number;
   /** Size of the universe: it may grow, never shrink below a used coordinate. */
   size?: 'g' | 's' | 'p';
+  /** A choice among named values instead of a number (#55); each lies in the range. */
+  choices?: readonly { value: number; label: string }[];
 }
+
+/** The choices of who may hold (#55, Q2), as the admin panel and „Neue Runde“ name them [V]. */
+export const ALLY_CHOICES: readonly { value: number; label: string }[] = [
+  { value: ALLIES.guild, label: 'Gilde' },
+  { value: ALLIES.friends, label: 'Freunde' },
+  { value: ALLIES.both, label: 'Gilde und Freunde' },
+];
 
 export const UNIVERSE_SPECS: readonly UniverseSpec[] = [
   { key: 'speed', label: 'Tempo (Faktor)', min: 1, max: 100, def: 5 },
@@ -87,6 +97,17 @@ export const UNIVERSE_SPECS: readonly UniverseSpec[] = [
     min: GIFT_MINUTES.min,
     max: GIFT_MINUTES.max,
     def: GIFT_DEFAULT_MINUTES,
+  },
+  // Issue #55 (owner, 2026-11-16, Q2; 2026-11-17, X1): who may hold at a
+  // player, set in „Neue Runde“ and changed here during the round; the same
+  // stored setting the round reads.
+  {
+    key: 'roundAllies',
+    label: 'Halten erlaubt für',
+    min: ALLIES_RANGE.min,
+    max: ALLIES_RANGE.max,
+    def: ALLIES_RANGE.default,
+    choices: ALLY_CHOICES,
   },
 ];
 

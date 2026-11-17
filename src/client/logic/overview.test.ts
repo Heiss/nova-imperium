@@ -13,6 +13,7 @@ import {
   activityRows,
   countdown,
   fleetRows,
+  heldRows,
   overviewPage,
   type FleetRow,
 } from './overview.ts';
@@ -267,6 +268,77 @@ describe('fleet movements', () => {
 
   it('is empty without fleets', () => {
     expect(fleetRows(view(), true)).toEqual([]);
+  });
+
+  it('shows an own fleet that holds until the end of its holding time, with a recall (#55)', () => {
+    const [row] = fleetRows(
+      view({
+        fleets: [
+          fleet({
+            mission: 'hold',
+            state: 'hold',
+            arr: 5000,
+            hold: 3000,
+            ret: 20_000,
+            cargo: { m: 10, c: 0, d: 0 },
+          }),
+        ],
+      }),
+      false,
+    );
+    expect(row).toEqual({
+      id: 'f1',
+      due: countdown(8000, 1000),
+      cls: 'fl-hold',
+      parts: [
+        {
+          text: `Deine Flotte (3 ${text('lf')!.n}) hält bei [1:2:3] · ${MISSION.hold} · Ladung: Adamant 10 · Psikristall 0 · Promethium 0`,
+          bold: false,
+        },
+      ],
+      recall: true,
+    });
+  });
+});
+
+describe('fleets that hold at the planet (#55)', () => {
+  const held = (o: Partial<ClientFleet> = {}) =>
+    fleet({
+      owner: 'u2',
+      mission: 'hold',
+      state: 'hold',
+      arr: 2000,
+      hold: 5000,
+      ships: { bs: 2 },
+      ...o,
+    });
+
+  it('are no movements, but „Gehaltene Flotten“ with owner, origin, ships and end', () => {
+    const v = view({
+      fleets: [
+        held({ id: 'h2', hold: 9000 }),
+        held({ id: 'h1' }),
+        held({ id: 'out', state: 'out' }),
+      ],
+    });
+    expect(fleetRows(v, true).map((r) => r.id)).toEqual(['out']);
+    expect(heldRows(v)).toEqual([
+      {
+        id: 'h1',
+        due: countdown(7000, 1000),
+        parts: [
+          { text: 'Flotte von ', bold: false },
+          { text: 'Feind', bold: true },
+          { text: ` [1:1:5] (2 ${text('bs')!.n})`, bold: false },
+        ],
+      },
+      expect.objectContaining({ id: 'h2', due: countdown(11_000, 1000) }),
+    ]);
+    expect(overviewPage(v).held).toEqual(heldRows(v));
+  });
+
+  it('leave out the own fleets that hold elsewhere', () => {
+    expect(heldRows(view({ fleets: [held({ owner: 'u1' })] }))).toEqual([]);
   });
 });
 

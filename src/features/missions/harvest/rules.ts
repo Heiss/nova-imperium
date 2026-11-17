@@ -13,6 +13,7 @@ export const returns = true;
 export const visible = false;
 export const silent = false;
 export const alertsGuild = false;
+export const holds = false;
 /** A Bergung needs a Bergungsbarke in the fleet. */
 export const canSend = (fleet: SendFleet): SendError | undefined =>
   fleet.ships.recycler ? undefined : 'noRecycler';

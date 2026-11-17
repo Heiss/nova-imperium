@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { seeded, sequence } from '../test/fixtures.ts';
-import { battle, buildSide, count, hit, rapid } from './battle.ts';
+import { battle, battleOf, buildSide, count, hit, rapid } from './battle.ts';
 import { UNIT } from './catalog.ts';
 
 const unit = (over = {}) => ({
@@ -355,5 +355,73 @@ describe('battle', () => {
     expect(
       battle({ units: { bs: 1 }, tech: {} }, { units: {}, tech: {} }).winner,
     ).toBe('att');
+  });
+});
+
+describe('battle of several parties (#55)', () => {
+  const side = (units: Record<string, number>, tech = {}) => ({ units, tech });
+  it('draws exactly as the battle of two when each side has one party', () => {
+    for (const seed of [1, 2, 3, 7, 42]) {
+      const a = side({ lf: 30, hf: 5, cr: 2 }, { weapons: 2 });
+      const d = side({ rl: 20, ll: 5, lf: 10 }, { shield: 1 });
+      const two = battle(a, d, seeded(seed));
+      const many = battleOf([a], [d], seeded(seed));
+      expect(many).toEqual({
+        winner: two.winner,
+        rounds: two.rounds,
+        att: [two.att],
+        def: [two.def],
+      });
+    }
+  });
+  it('returns the survivors per party, in the order given', () => {
+    const r = battleOf(
+      [side({ bs: 5 })],
+      [side({ rl: 2 }), side({}), side({ probe: 3 })],
+      () => 0.99,
+    );
+    expect(r.def).toHaveLength(3);
+    expect(r.att).toEqual([{ bs: 5 }]);
+    expect(r.def[1]).toEqual({});
+  });
+  it('lets every party of a side fight, each with its own technology', () => {
+    // The same Raketenwerfer on both defending parties; only the second has
+    // armor and shields, and keeps more of them in every seed.
+    const r = [1, 2, 3].map((seed) =>
+      battleOf(
+        [side({ lf: 40 })],
+        [side({ rl: 20 }), side({ rl: 20 }, { armor: 10, shield: 10 })],
+        seeded(seed),
+      ),
+    );
+    expect(r.map((x) => x.def)).toEqual([
+      [{ rl: 8 }, { rl: 17 }],
+      [{ rl: 13 }, { rl: 20 }],
+      [{ rl: 10 }, { rl: 18 }],
+    ]);
+    expect(r.map((x) => [x.winner, x.rounds, x.att])).toEqual([
+      ['def', 5, [{}]],
+      ['def', 5, [{}]],
+      ['def', 4, [{}]],
+    ]);
+  });
+  it('lets the defenders win together', () => {
+    const r = battleOf(
+      [side({ lf: 1 })],
+      [side({}), side({ bs: 2 })],
+      seeded(5),
+    );
+    expect(r.winner).toBe('def');
+    expect(r.att).toEqual([{}]);
+    expect(r.def).toEqual([{}, { bs: 2 }]);
+  });
+  it('ends at once without any unit on one side', () => {
+    expect(battleOf([side({ lf: 2 })], [side({}), side({})])).toEqual({
+      winner: 'att',
+      rounds: 0,
+      att: [{ lf: 2 }],
+      def: [{}, {}],
+    });
+    expect(battleOf([], [side({ rl: 1 })]).winner).toBe('def');
   });
 });

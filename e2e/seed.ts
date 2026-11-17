@@ -12,7 +12,8 @@
 //   Trümmerfeld at the position of the home planet, issue #45), moon? ({ b?, res?, ships?,
 //   def?, name?, diameter? }: the moon of the home planet, made or changed, issue #53),
 //   gift? (minutes: a gift fleet of the „Endzeit“ to the home planet that arrives in that
-//   time, issue #161) }
+//   time, issue #161), endHold? (the player's fleets that hold end their holding time
+//   now, issue #55) }
 import { openDatabase } from '../src/server/db/database.ts';
 import { Store } from '../src/server/db/store.ts';
 import { recordServerError } from '../src/server/error-log.ts';
@@ -37,6 +38,15 @@ function landFleet(id: string, mission: string): void {
       "UPDATE fleets SET arr = ? WHERE owner = ? AND mission = ? AND state = 'out'",
     )
     .run(Date.now(), id, mission);
+}
+
+/** Ends the holding time of the player's fleets that hold now (#55). */
+function endHold(id: string): void {
+  store.db
+    .prepare(
+      "UPDATE fleets SET hold = MAX(0, ? - arr) WHERE owner = ? AND state = 'hold'",
+    )
+    .run(Date.now(), id);
 }
 
 /** Lets the player's returning fleets come home now. */
@@ -144,10 +154,16 @@ function addGift(p: Planet, minutes: number): void {
   ctx.fleets.save(giftFleet(ctx, p, now, now + minutes * 60000));
 }
 
+/** The fleets of the player moved forward: arrived, holding ended, come home. */
+function moveFleets(id: string): void {
+  if (d.landColonyFleet) landFleet(id, 'colonize');
+  if (d.landFleet) landFleet(id, d.landFleet);
+  if (d.returnFleet) returnFleet(id);
+  if (d.endHold) endHold(id);
+}
+
 store.tx(() => {
-  if (d.landColonyFleet) landFleet(u.id, 'colonize');
-  if (d.landFleet) landFleet(u.id, d.landFleet);
-  if (d.returnFleet) returnFleet(u.id);
+  moveFleets(u.id);
   if (d.research) store.saveUser({ ...u, research: d.research });
   const p = store.planetOfUser(u.id)!;
   updateHome(p);

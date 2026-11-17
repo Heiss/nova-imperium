@@ -8,7 +8,9 @@ import {
   deleteAccountDialog,
   highscore,
   roundDialog,
+  roundValues,
 } from './misc.ts';
+import { DEFAULT_UNIVERSE, UNIVERSE_SPECS } from '../../core/universe.ts';
 
 describe('highscore', () => {
   it('shows the planet of a player, also when its moon comes first (#53)', () => {
@@ -34,7 +36,13 @@ describe('the dialog „Neue Runde“', () => {
     /<label><input type="checkbox" id="round-guilds"[^>]*>[^<]*<\/label>/.exec(
       html,
     )?.[0] ?? '';
-  const rules = { number: 1, achievements: true, daily: true, mainLock: 7 };
+  const rules = {
+    number: 1,
+    achievements: true,
+    daily: true,
+    mainLock: 7,
+    allies: 3,
+  };
 
   it('has one box „Gilden (mit Chat)“, preselected with the current round (#191)', () => {
     const on = box(roundDialog({ ...rules, guilds: true }));
@@ -47,7 +55,13 @@ describe('the dialog „Neue Runde“', () => {
 });
 
 describe('the lock of the main planet in the dialog „Neue Runde“ (#221)', () => {
-  const rules = { number: 1, achievements: true, daily: true, guilds: true };
+  const rules = {
+    number: 1,
+    achievements: true,
+    daily: true,
+    guilds: true,
+    allies: 3,
+  };
 
   it('is a number of days from 1 to 30, preselected with the current round', () => {
     for (const mainLock of [7, 12]) {
@@ -63,7 +77,13 @@ describe('the lock of the main planet in the dialog „Neue Runde“ (#221)', ()
 });
 
 describe('the warning below the box „Gilden (mit Chat)“ (#191)', () => {
-  const rules = { number: 1, achievements: true, daily: true, mainLock: 7 };
+  const rules = {
+    number: 1,
+    achievements: true,
+    daily: true,
+    mainLock: 7,
+    allies: 3,
+  };
   // Every new round clears the chats as well (#169 D6), guilds on or off.
   const WARNING =
     'Eine neue Runde leert alle Gilden-Chats. Ohne Gilden werden alle Gilden mit Mitgliedern, Bewerbungen, Rängen und Chat gelöscht.';
@@ -86,7 +106,13 @@ describe('the warning below the box „Gilden (mit Chat)“ (#191)', () => {
 });
 
 describe('„Account löschen“ in a round with or without guilds (#191)', () => {
-  const rules = { number: 1, achievements: true, daily: true, mainLock: 7 };
+  const rules = {
+    number: 1,
+    achievements: true,
+    daily: true,
+    mainLock: 7,
+    allies: 3,
+  };
   const on = { ...rules, guilds: true };
   const off = { ...rules, guilds: false };
 
@@ -147,5 +173,67 @@ describe('the box „Endzeit“ of the tab „Universum“ (#161, #214)', () => 
       '<p>In dieser Runde wurde die Endzeit schon eingeläutet.</p>',
     );
     expect(view(true)).not.toContain('data-act="endzeit"');
+  });
+});
+
+describe('who may hold (#55, Q2, X1)', () => {
+  const rules = {
+    number: 1,
+    achievements: true,
+    daily: true,
+    guilds: true,
+    mainLock: 7,
+  };
+  const OPTIONS = [
+    [1, 'Gilde'],
+    [2, 'Freunde'],
+    [3, 'Gilde und Freunde'],
+  ] as const;
+  const options = (selected: number) =>
+    OPTIONS.map(
+      ([v, label]) =>
+        `<option value="${v}"${v === selected ? ' selected' : ''}>${label}</option>`,
+    ).join('');
+
+  it('is chosen in „Neue Runde“, preselected with the current round', () => {
+    for (const allies of [1, 2, 3]) {
+      const html = roundDialog({ ...rules, allies });
+      expect(html).toContain(
+        `<p><label for="round-allies">Halten erlaubt für</label> <select id="round-allies">${options(allies)}</select></p>`,
+      );
+      expect(html.indexOf('id="round-allies"')).toBeLessThan(
+        html.indexOf('data-act="doReset"'),
+      );
+    }
+  });
+
+  it('is read from the dialog with the lock of the main planet', () => {
+    const values: Record<string, string> = {
+      '#round-main-lock': '12',
+      '#round-allies': '2',
+    };
+    expect(roundValues((sel) => values[sel]!)).toEqual({
+      mainLock: 12,
+      allies: 2,
+    });
+  });
+
+  it('is a selection in the universe settings, the others stay numbers', () => {
+    const html = admin({
+      s: {
+        cfg: { ...DEFAULT_UNIVERSE, roundAllies: 1 },
+        admin: {
+          specs: UNIVERSE_SPECS,
+          endzeit: { minutes: 240, done: false },
+        },
+      },
+      ui: {},
+    } as unknown as V);
+    expect(html).toContain(
+      `<tr><td><label for="set_roundAllies">Halten erlaubt für</label></td><td><select id="set_roundAllies" data-setting="roundAllies" data-nokeep>${options(1)}</select></td></tr>`,
+    );
+    expect(html).toContain(
+      '<input type="number" id="set_speed" data-setting="speed" min="1" max="100" value="5" data-nokeep>',
+    );
   });
 });

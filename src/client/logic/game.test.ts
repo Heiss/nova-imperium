@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { planet, U } from '../../test/fixtures.ts';
+import { dt } from './format.ts';
 import {
   buildState,
   cargoMax,
+  arrivalLine,
   fleetEnd,
   fleetPreview,
   galaxyStep,
@@ -63,6 +65,10 @@ describe('fleets', () => {
     expect(fleetEnd(f('1', 'out', 5, 9))).toBe(5);
     expect(fleetEnd(f('1', 'back', 5, 9))).toBe(9);
     expect(fleetEnd(f('1', 'back', 5))).toBe(5);
+    // A fleet that holds is due at the end of its holding time (#55).
+    expect(fleetEnd({ ...f('1', 'out', 5, 90), state: 'hold', hold: 7 })).toBe(
+      12,
+    );
     expect(
       sortFleets([
         f('1', 'out', 30),
@@ -166,6 +172,7 @@ describe('fleet form', () => {
     expect(fleetPreview(p, { research: {}, rq: null }, form, U)).toEqual({
       dist: 1020,
       ms: Math.round(((3500 * Math.sqrt(10200 / 5000) + 10) / 5) * 1000),
+      hold: 0,
       fuel: 3,
       cap: 10000,
       load: 1050,
@@ -188,6 +195,35 @@ describe('fleet form', () => {
     )!;
     expect(exact.fuelShort).toBe(false);
     expect(exact.overload).toBe(false);
+  });
+  it('adds the fuel and the time of holding to a Halten only (#55)', () => {
+    const r = { research: {}, rq: null };
+    const flight = fleetPreview(p, r, form, U)!;
+    const holding = { ...form, mission: 'hold', hold: 4 };
+    // Kleiner Transporter: 2 × 10 × 4 / 10 = 8 Promethium for 4 hours.
+    expect(fleetPreview(p, r, holding, U)).toEqual({
+      ...flight,
+      hold: 4 * 3_600_000,
+      fuel: flight.fuel + 8,
+    });
+    expect(fleetPreview(p, r, { ...form, hold: 4 }, U)).toEqual(flight);
+    // Without a choice it holds for no time and pays the least, 1.
+    expect(fleetPreview(p, r, { ...form, mission: 'hold' }, U)!.fuel).toBe(
+      flight.fuel + 1,
+    );
+    expect(cargoMax(planet({ res: { m: 0, c: 0, d: 1000 } }), holding)).toEqual(
+      { m: 0, c: 0, d: 1000 - flight.fuel - 8 },
+    );
+  });
+  it('shows the arrival and the return, after the holding time, or none for a Verlegung', () => {
+    const pv = { ms: 60_000, hold: 3_600_000 };
+    expect(arrivalLine('hold', 1000, pv)).toBe(
+      `${dt(61_000)} / ${dt(1000 + 120_000 + 3_600_000)}`,
+    );
+    expect(arrivalLine('transport', 1000, { ms: 60_000, hold: 0 })).toBe(
+      `${dt(61_000)} / ${dt(121_000)}`,
+    );
+    expect(arrivalLine('deploy', 1000, pv)).toBe(`${dt(61_000)} / –`);
   });
   it('fills the holds with metal, then crystal, then deuterium without the fuel', () => {
     expect(cargoMax(p, form)).toEqual({ m: 9000, c: 1000, d: 0 });

@@ -111,35 +111,36 @@ CREATE TABLE error_events (
   ) STRICT;
 
 CREATE TABLE fleet_ships (
-    fleet_id TEXT NOT NULL REFERENCES fleets(id) ON DELETE CASCADE,
-    key TEXT NOT NULL,
-    count INTEGER NOT NULL,
-    PRIMARY KEY (fleet_id, key)
-  ) STRICT;
+      fleet_id TEXT NOT NULL REFERENCES fleets(id) ON DELETE CASCADE,
+      key TEXT NOT NULL,
+      count INTEGER NOT NULL,
+      PRIMARY KEY (fleet_id, key)
+    ) STRICT;
 
 CREATE TABLE fleets (
-    id TEXT PRIMARY KEY,
-    owner TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    from_planet TEXT NOT NULL,
-    from_g INTEGER NOT NULL,
-    from_s INTEGER NOT NULL,
-    from_p INTEGER NOT NULL,
-    to_planet TEXT NOT NULL,
-    to_g INTEGER NOT NULL,
-    to_s INTEGER NOT NULL,
-    to_p INTEGER NOT NULL,
-    mission TEXT NOT NULL CHECK (mission IN ('attack', 'transport', 'spy', 'colonize', 'deploy', 'harvest')),
-    cargo_m REAL NOT NULL,
-    cargo_c REAL NOT NULL,
-    cargo_d REAL NOT NULL,
-    dep INTEGER NOT NULL,
-    arr INTEGER NOT NULL,
-    ret INTEGER NOT NULL,
-    state TEXT NOT NULL CHECK (state IN ('out', 'back')),
-    recalled INTEGER NOT NULL DEFAULT 0,
-    fuel INTEGER NOT NULL DEFAULT 0
-  , gift INTEGER NOT NULL DEFAULT 0
-    CHECK (gift IN (0, 1))) STRICT;
+      id TEXT PRIMARY KEY,
+      owner TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      from_planet TEXT NOT NULL,
+      from_g INTEGER NOT NULL,
+      from_s INTEGER NOT NULL,
+      from_p INTEGER NOT NULL,
+      to_planet TEXT NOT NULL,
+      to_g INTEGER NOT NULL,
+      to_s INTEGER NOT NULL,
+      to_p INTEGER NOT NULL,
+      mission TEXT NOT NULL CHECK (mission IN ('attack', 'transport', 'spy', 'colonize', 'deploy', 'harvest', 'hold')),
+      cargo_m REAL NOT NULL,
+      cargo_c REAL NOT NULL,
+      cargo_d REAL NOT NULL,
+      dep INTEGER NOT NULL,
+      arr INTEGER NOT NULL,
+      ret INTEGER NOT NULL,
+      state TEXT NOT NULL CHECK (state IN ('out', 'hold', 'back')),
+      recalled INTEGER NOT NULL DEFAULT 0,
+      fuel INTEGER NOT NULL DEFAULT 0,
+      gift INTEGER NOT NULL DEFAULT 0 CHECK (gift IN (0, 1)),
+      hold INTEGER NOT NULL DEFAULT 0 CHECK (hold >= 0)
+    ) STRICT;
 
 CREATE TABLE guild_chat (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

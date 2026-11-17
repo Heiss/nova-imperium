@@ -1,6 +1,7 @@
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import {
+  ALLY_CHOICES,
   DEFAULT_UNIVERSE,
   inUniverse,
   UNIVERSE_SPECS,
@@ -32,6 +33,8 @@ describe('universe settings', () => {
       extraFields: 0,
       // Added by #161 (owner, 2026-11-14): the gift flies 4 h by default.
       endzeitMinutes: 240,
+      // Added by #55 (Q2): guild and friends may hold, the classic rule [V].
+      roundAllies: 3,
     });
     for (const s of UNIVERSE_SPECS) {
       expect(s.def).toBeGreaterThanOrEqual(s.min);
@@ -51,6 +54,7 @@ describe('universe settings', () => {
       ['startDeuterium', 'Start-Promethium'],
       ['extraFields', 'Zusatzfelder pro Planet'],
       ['endzeitMinutes', 'Flugzeit der Endzeit-Gabe (Minuten)'],
+      ['roundAllies', 'Halten erlaubt für'],
     ]);
   });
   it('accept valid values given as strings', () => {
@@ -101,6 +105,34 @@ describe('universe settings', () => {
       expect(codes({ ...DEFAULT_UNIVERSE, endzeitMinutes })).toEqual([
         ['endzeitMinutes', 'range'],
       ]);
+  });
+  it('take guild, friends or both as who may hold (#55, Q2, X1)', () => {
+    expect(spec('roundAllies')).toEqual({
+      key: 'roundAllies',
+      label: 'Halten erlaubt für',
+      min: 1,
+      max: 3,
+      def: 3,
+      choices: [
+        { value: 1, label: 'Gilde' },
+        { value: 2, label: 'Freunde' },
+        { value: 3, label: 'Gilde und Freunde' },
+      ],
+    });
+    expect(ALLY_CHOICES).toBe(spec('roundAllies').choices);
+    for (const roundAllies of [1, 2, 3, '2'])
+      expect(codes({ ...DEFAULT_UNIVERSE, roundAllies })).toEqual([]);
+    for (const roundAllies of [0, 4, 1.5])
+      expect(codes({ ...DEFAULT_UNIVERSE, roundAllies })).toEqual([
+        ['roundAllies', 'range'],
+      ]);
+  });
+  it('offer only choices inside the range of their setting', () => {
+    for (const s of UNIVERSE_SPECS)
+      for (const c of s.choices ?? []) {
+        expect(c.value, s.key).toBeGreaterThanOrEqual(s.min);
+        expect(c.value, s.key).toBeLessThanOrEqual(s.max);
+      }
   });
   it('report all errors at once, in the order of the specs', () => {
     expect(codes({})).toEqual(UNIVERSE_SPECS.map((s) => [s.key, 'range']));

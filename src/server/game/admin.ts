@@ -86,7 +86,10 @@ function newRound(ctx: Ctx, rules: RoundRules): void {
 export const reset: Action = (ctx, u, data, event) => {
   requireAdmin(u);
   const before = roundRules(ctx);
-  const after = startRoundRules(ctx, data.rewards, data.guilds, data.mainLock);
+  const after = startRoundRules(ctx, data.rewards, data.guilds, {
+    mainLock: data.mainLock,
+    allies: data.allies,
+  });
   newRound(ctx, after);
   if (event) event.detail = { before, after };
   return 'Neue Runde gestartet – alle Spieler haben einen frischen Planeten.';

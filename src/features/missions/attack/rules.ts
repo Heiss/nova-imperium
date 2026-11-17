@@ -9,5 +9,6 @@ export const returns = true;
 export const visible = true;
 export const silent = false;
 export const alertsGuild = true;
+export const holds = false;
 /** No check of its own beyond the target kind. */
 export const canSend = (): SendError | undefined => undefined;
