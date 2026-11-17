@@ -45,7 +45,7 @@ const CARGO = [
 // Each cargo field with its own „alles“ below it (#240).
 const cargoFields = CARGO.map(
   ([k, name]) =>
-    `<span class="cargo"><input type="number" id="c_${k}" min="0" placeholder="0" aria-label="${name}"><button type="button" class="small" data-act="cone" data-k="${k}" aria-label="Alles ${name}">alles</button></span>`,
+    `<span class="cargo"><input type="number" id="c_${k}" min="0" placeholder="0" aria-label="${name}"><button type="button" id="cone_${k}" class="small" data-act="cone" data-k="${k}" aria-label="Alles ${name}">alles</button></span>`,
 ).join(' ');
 
 function targetForm(v: V, slotsFull: boolean): string {
