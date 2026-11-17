@@ -14,12 +14,9 @@ import {
 } from '../../core/catalog.ts';
 import { techFactor } from '../../core/battle.ts';
 import {
-  buildTime,
-  lvlCost,
   pieceEnergy,
   prod,
   production,
-  researchTime,
   unitTime,
   useAt,
 } from '../../core/economy.ts';
@@ -47,6 +44,7 @@ import {
   researchState,
 } from './game.ts';
 import { iconURL } from './icons.ts';
+import { levelRow } from './level-table.ts';
 
 /** The kinds of catalog entries that have a list. */
 export type CatalogKind = 'building' | 'research' | 'ship' | 'defense';
@@ -279,7 +277,8 @@ function buildingRow(v: V, key: string): CatalogRow {
   const { P, R, s } = v;
   const def = BUILD[key]!;
   const level = P.b[key] ?? 0;
-  const cost = lvlCost(def, level + 1);
+  // The same row as the level table of the Lexicanum (#187, #285).
+  const { cost, time } = levelRow(v, key, level + 1)!;
   const short = energyShort(def, level + 1, P, s.cfg, R.research);
   const status = buildState(P, R, key, s.cfg);
   return {
@@ -291,10 +290,7 @@ function buildingRow(v: V, key: string): CatalogRow {
       energyNeed(def, level + 1),
       () => production(P, s.cfg, R.research).eProd,
     ),
-    lines: [
-      ...useLines(v, key, level),
-      `Bauzeit: ${dur(buildTime(cost, P, s.cfg))}`,
-    ],
+    lines: [...useLines(v, key, level), `Bauzeit: ${dur(time)}`],
     req: def.req,
     action: buildAction(v, status, level, short),
   };
@@ -353,7 +349,7 @@ function researchRow(v: V, key: string): CatalogRow {
   const { P, R, s } = v;
   const def = RES[key]!;
   const level = R.research[key] ?? 0;
-  const cost = lvlCost(def, level + 1);
+  const { cost, time } = levelRow(v, key, level + 1)!;
   const lab = networkLab(key, labSite(P), s.labs, R.research.ifn ?? 0);
   const linked =
     lab === (P.b.lab ?? 0) ? '' : ` (Scholarien zusammen Stufe ${lab})`;
@@ -367,9 +363,7 @@ function researchRow(v: V, key: string): CatalogRow {
       energyNeed(def, level + 1),
       () => production(P, s.cfg, R.research).eProd,
     ),
-    lines: [
-      `Forschungszeit: ${dur(researchTime(cost, { b: { lab } }, s.cfg))}${linked}`,
-    ],
+    lines: [`Forschungszeit: ${dur(time)}${linked}`],
     req: def.req,
     action: researchAction(v, state, level, short),
   };
