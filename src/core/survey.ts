@@ -86,7 +86,7 @@ export type Orbit = 'inner' | 'middle' | 'outer';
 export type Size = 'small' | 'medium' | 'large';
 
 /** The positions of the classic bands: 1–3, 4–12 and 13–15 (D5). */
-export const CLASSIC_POSITIONS = 15;
+const CLASSIC_POSITIONS = 15;
 
 /**
  * The orbit of position `p` in a system of `positions`: the classic bands
