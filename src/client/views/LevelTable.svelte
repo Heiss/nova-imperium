@@ -10,8 +10,11 @@
   let { table, P }: { table: LevelTable; P: Planet } = $props();
 </script>
 
-<div class="lx-scroll">
-  <table class="lx-t">
+<!-- A table that scrolls sideways on a phone is reached by the keyboard
+     (axe: scrollable-region-focusable). -->
+<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+<div class="lx-scroll" role="region" aria-label="Stufen" tabindex="0">
+  <table class="lx-t lx-levels">
     <thead>
       <tr>
         <th scope="col">Stufe</th>

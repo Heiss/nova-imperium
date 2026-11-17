@@ -13,7 +13,6 @@ import {
   STORAGE,
 } from '../../core/catalog.ts';
 import { capOf } from '../../core/components/storage.ts';
-import { producerRows } from '../../core/economy.ts';
 import {
   ARTICLES,
   article,
@@ -211,18 +210,31 @@ const MADE: readonly [string, string][] = [
   ['e', 'Energie'],
 ];
 
-/** What a producer makes per hour at a level on the shown planet. */
+/**
+ * What a producer makes per hour at a level on the shown planet, at full
+ * share and with enough energy: its own rate function (`produces`), a
+ * resource times the universe speed as prod() adds it.
+ */
 function producerEffect(v: V, key: string): LevelEffect | undefined {
-  const made = (level: number) =>
-    producerRows(
-      { ...v.P, b: { ...v.P.b, [key]: level } },
-      v.s.cfg,
-      v.R.research,
-    ).rows.find((r) => r.key === key)?.made ?? {};
-  const first = MADE.find(([res]) => made(1)[res as 'm'] !== undefined);
+  const { produces } = PRODUCTION.find((p) => p.key === key)!;
+  const first = MADE.find(([res]) => produces[res as 'm']);
   if (!first) return undefined;
-  const [res, label] = first;
-  return { label, at: (level) => made(level)[res as 'm'] ?? 0 };
+  const [res, label] = first as ['m' | 'c' | 'd' | 'e', string];
+  const ctx = (level: number) => ({
+    level,
+    pct: 100,
+    temp: v.P.temp,
+    research: v.R.research,
+    u: v.s.cfg,
+    f: 1,
+  });
+  return {
+    label,
+    at: (level) =>
+      res === 'e'
+        ? produces.e!(ctx(level))
+        : produces[res]!(ctx(level)) * v.s.cfg.speed,
+  };
 }
 
 /** The effect of a level: the entry's own, a store's capacity, a producer's rate. */
@@ -408,18 +420,21 @@ function own(v: V, a: ArticleMeta): string | null {
 /** The article of an id with the player's state; null for an unknown id. */
 /** The sections of an article, the empty ones left out. */
 function sections(v: V, a: ArticleMeta): Section[] {
-  const e = effectOf(v, a);
-  const mission = a.kind === 'mission';
-  return [
-    mission
-      ? { id: 'mission', title: '', blocks: [missionFacts(a.key)] }
-      : null,
-    effectSection(v, a, e),
-    levelSection(v, a, e),
-    requirementSection(v, a),
-    mission ? null : usedSection(a),
-    seeSection(a),
-  ].filter((s): s is Section => !!s);
+  // A mission has the name of a research (`spy`): only its facts and links.
+  const all =
+    a.kind === 'mission'
+      ? [
+          { id: 'mission', title: '', blocks: [missionFacts(a.key)] },
+          seeSection(a),
+        ]
+      : [
+          effectSection(v, a, effectOf(v, a)),
+          levelSection(v, a, effectOf(v, a)),
+          requirementSection(v, a),
+          usedSection(a),
+          seeSection(a),
+        ];
+  return all.filter((s): s is Section => !!s);
 }
 
 /** The cost of a unit, shown as in the lists; undefined for anything else. */

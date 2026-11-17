@@ -78,6 +78,9 @@ export function lexicanumActions(
 ): Record<string, (d: Record<string, string | undefined>) => void> {
   go = navigate;
   return {
+    // The menu entry opens the start page, also from an article.
+    nav: (d) =>
+      d.v === LEXICANUM_VIEW ? openArticle('') : go(d.v ?? 'overview'),
     explain: (d) => openEntry(d.k ?? ''),
     lex: (d) => openArticle(d.a ?? ''),
     lexPanel: (d) => {

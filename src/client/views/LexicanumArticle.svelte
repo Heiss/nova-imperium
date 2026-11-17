@@ -38,8 +38,9 @@
         {#if article.ab}<span class="lx-ab">{article.ab}</span>{/if}
       </h3>
       <div class="dim">
-        {article.kindTitle}{#if article.own}
-          · <span class="lx-have">{article.own}</span>{/if}
+        {article.kindTitle}{#if article.own}{' · '}<span class="lx-have"
+            >{article.own}</span
+          >{/if}
       </div>
       {#if article.ds}<p class="lx-ds">{article.ds}</p>{/if}
     </div>
@@ -98,7 +99,13 @@
         {:else if block.t === 'levels'}
           <LevelTable table={block.table} {P} />
         {:else if block.t === 'table'}
-          <div class="lx-scroll">
+          <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+          <div
+            class="lx-scroll"
+            role="region"
+            aria-label={block.caption ?? block.head[0]}
+            tabindex="0"
+          >
             <table class="lx-t">
               {#if block.caption}<caption>{block.caption}</caption>{/if}
               <thead>

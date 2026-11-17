@@ -1040,7 +1040,6 @@ const ACT: Record<string, (d: Data) => unknown> = {
   moreOpen: () => $<HTMLDialogElement>('#more')!.showModal(),
   pushEnable: () => togglePush(true),
   pushDisable: () => togglePush(false),
-  nav: (d) => go(d.v ?? 'overview'),
   guildView: (d) => go('guilds', true, d.id ?? null),
   guildApply: (d) => act('applyToGuild', { id: d.id }),
   guildLeave: (d) => {
@@ -1244,6 +1243,7 @@ const ACT: Record<string, (d: Data) => unknown> = {
   },
   delrep: (d) => act('delrep', { id: d.id }),
   delall: () => act('delall'),
+  // nav, explain and the links of the Lexicanum (#285).
   ...lexicanumActions(go),
   saveopt: () =>
     act('options', {

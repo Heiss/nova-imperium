@@ -1623,6 +1623,11 @@ table.lx-t {
   color: var(--txt);
   font-weight: 600;
 }
+.lx-r .lx-ab,
+.lx-list .lx-ab,
+.lx-links .lx-ab {
+  margin-left: 6px;
+}
 .lx-r > span:last-child:not(.lx-ab) {
   display: block;
   color: var(--dim);
