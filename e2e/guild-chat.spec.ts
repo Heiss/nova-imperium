@@ -105,7 +105,10 @@ interface Guild {
 async function guild(page: Page, browser: Browser): Promise<Guild> {
   const leadName = uniqueName('Kanzler');
   const memberName = uniqueName('Bote');
-  const tag = `C${Date.now() % 1000000}`;
+  // A unique tag (#269): the clock repeated across workers (#68), and the
+  // server refuses a second guild with the same tag. „C“ and 6 random
+  // characters, in capitals: the tag takes 2 to 8 letters or digits.
+  const tag = uniqueName('C').toUpperCase();
   const title = `[${tag}] Chat ${tag}`;
   const problems = [watch(page)];
   await register(page, leadName);

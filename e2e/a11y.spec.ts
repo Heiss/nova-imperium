@@ -339,7 +339,10 @@ test.describe('accessibility (axe)', () => {
     browser,
   }) => {
     const lead = uniqueName('AxeGilde');
-    const tag = `A${Date.now() % 1000000}`;
+    // A unique tag (#269): the clock repeated across workers (#68), and the
+    // server refuses a second guild with the same tag. „A“ and 6 random
+    // characters, in capitals: the tag takes 2 to 8 letters or digits.
+    const tag = uniqueName('A').toUpperCase();
     const title = `[${tag}] Axe ${tag}`;
     await register(page, lead);
     const found: string[] = [];
@@ -394,7 +397,10 @@ test.describe('accessibility (axe)', () => {
     browser,
   }) => {
     const lead = uniqueName('AxeChat');
-    const tag = `K${Date.now() % 1000000}`;
+    // A unique tag (#269): the clock repeated across workers (#68), and the
+    // server refuses a second guild with the same tag. „K“ and 6 random
+    // characters, in capitals: the tag takes 2 to 8 letters or digits.
+    const tag = uniqueName('K').toUpperCase();
     const title = `[${tag}] Axe ${tag}`;
     await register(page, lead);
     cli('admin', lead);

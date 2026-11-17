@@ -621,7 +621,10 @@ test.describe('guilds (#68)', () => {
     const founder = uniqueName('Leiter');
     const a = uniqueName('Erbe');
     const b = uniqueName('Gast');
-    const tag = `G${Date.now() % 1000000}`;
+    // A unique tag (#269): the clock repeated across workers (#68), and the
+    // server refuses a second guild with the same tag. „G“ and 6 random
+    // characters, in capitals: the tag takes 2 to 8 letters or digits.
+    const tag = uniqueName('G').toUpperCase();
     const title = `[${tag}] Gilde ${tag}`;
     const w = watch(page);
     await register(page, founder);

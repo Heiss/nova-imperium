@@ -24,7 +24,10 @@ async function rankFlow(page: Page, browser: Browser): Promise<void> {
   const plain = uniqueName('Gefolge');
   const first = uniqueName('Anwaerter');
   const second = uniqueName('Zweiter');
-  const tag = `R${Date.now() % 1000000}`;
+  // A unique tag (#269): the clock repeated across workers (#68), and the
+  // server refuses a second guild with the same tag. „R“ and 6 random
+  // characters, in capitals: the tag takes 2 to 8 letters or digits.
+  const tag = uniqueName('R').toUpperCase();
   const title = `[${tag}] Ränge ${tag}`;
   const problems: { problems: string[] }[] = [watch(page)];
   await register(page, lead);
@@ -165,7 +168,10 @@ async function handOverAndDissolve(
 ): Promise<void> {
   const lead = uniqueName('Gruender');
   const heir = uniqueName('Erbin');
-  const tag = `D${Date.now() % 1000000}`;
+  // A unique tag (#269): the clock repeated across workers (#68), and the
+  // server refuses a second guild with the same tag. „D“ and 6 random
+  // characters, in capitals: the tag takes 2 to 8 letters or digits.
+  const tag = uniqueName('D').toUpperCase();
   const problems: { problems: string[] }[] = [watch(page)];
   const ph = await guildWithMember(page, browser, lead, heir, tag, problems);
   const modal = page.locator('#modal');
@@ -290,7 +296,10 @@ test.describe('guild ranks (#163)', () => {
   }) => {
     const lead = uniqueName('Leiterin');
     const officer = uniqueName('Hauptmann');
-    const tag = `K${Date.now() % 1000000}`;
+    // A unique tag (#269): the clock repeated across workers (#68), and the
+    // server refuses a second guild with the same tag. „K“ and 6 random
+    // characters, in capitals: the tag takes 2 to 8 letters or digits.
+    const tag = uniqueName('K').toUpperCase();
     const problems: { problems: string[] }[] = [watch(page)];
     const po = await guildWithMember(
       page,

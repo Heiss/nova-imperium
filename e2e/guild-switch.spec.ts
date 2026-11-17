@@ -132,7 +132,10 @@ async function startRound(page: Page): Promise<void> {
 async function switchFlow(page: Page, browser: Browser): Promise<void> {
   const admin = uniqueName('Schalter');
   const member = uniqueName('Gildner');
-  const tag = `S${Date.now() % 1000000}`;
+  // A unique tag (#269): the clock repeated across workers (#68), and the
+  // server refuses a second guild with the same tag. „S“ and 6 random
+  // characters, in capitals: the tag takes 2 to 8 letters or digits.
+  const tag = uniqueName('S').toUpperCase();
   const title = `[${tag}] Schalter ${tag}`;
   const problems = [watch(page)];
   const found: string[] = [];
