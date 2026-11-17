@@ -3,17 +3,13 @@
 // planet the ones for an own or any planet, on a free position the ones for
 // a free position, on a foreign planet the ones for a foreign or any planet,
 // and the Bergung where a Trümmerfeld lies. A chosen mission that no longer
-// fits switches to the first that fits. The own colony is on slot 15.
+// fits switches to the first that fits. The start planet itself takes no
+// mission (owner, 2026-11-17): the list is empty and nothing is sent. The
+// „Schnellwahl“ enters another own planet or moon as the target. The own
+// colony is on slot 15.
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import {
-  galaxyRow,
-  nav,
-  register,
-  seed,
-  uniqueName,
-  watch,
-} from './helpers.ts';
+import { galaxyRow, register, seed, uniqueName, watch } from './helpers.ts';
 
 /** axe (WCAG 2.1 A and AA) as in e2e/a11y.spec.ts: the violations of the page. */
 async function violations(page: Page): Promise<string[]> {
@@ -23,8 +19,9 @@ async function violations(page: Page): Promise<string[]> {
   return results.violations.map((v) => `${v.id}: ${v.help}`);
 }
 
+/** By the address: on a 360 px phone the table of the ships covers „Mehr“. */
 async function openSystemOf(page: Page, player: string): Promise<void> {
-  await nav(page, 'highscore');
+  await page.goto('/?view=highscore');
   await page
     .locator('tr')
     .filter({ has: page.getByRole('cell', { name: player, exact: true }) })
@@ -66,7 +63,22 @@ async function remount(page: Page, name: string, m: number): Promise<void> {
   await expect(page.locator('#t_m[data-old]')).toHaveCount(0);
 }
 
-async function fittingMissions(page: Page): Promise<void> {
+const send = (page: Page) =>
+  page.getByRole('button', { name: 'Flotte losschicken' });
+const quick = (page: Page) => page.getByLabel('Schnellwahl');
+const position = (page: Page) => page.getByLabel('Position', { exact: true });
+
+/** Chooses the entry of the „Schnellwahl“ whose text starts with `name`. */
+async function choose(page: Page, name: string): Promise<void> {
+  const option = quick(page).locator('option', {
+    hasText: new RegExp(`^${name} \\[\\d+:\\d+:\\d+\\]$`),
+  });
+  await quick(page).selectOption((await option.getAttribute('value'))!);
+  // The list goes back to its first entry.
+  await expect(quick(page)).toHaveValue('');
+}
+
+async function fittingMissions(page: Page, width?: number): Promise<void> {
   const w = watch(page);
   const a = uniqueName('Passend');
   const b = uniqueName('Fremd');
@@ -74,17 +86,54 @@ async function fittingMissions(page: Page): Promise<void> {
   await page.click('[data-act=logout]');
   await register(page, a);
   seed({ name: b, debris: { m: 1800, c: 600 } });
-  seed({ name: a, ships: { sc: 2 }, colony: {} });
+  // The longest name a planet may have, for the width of the „Schnellwahl“.
+  seed({
+    name: a,
+    ships: { sc: 2 },
+    colony: { name: 'Aussenposten Zwanzig' },
+    moon: { name: 'Luna' },
+  });
+  if (width) await page.setViewportSize({ width, height: 800 });
 
-  // The form opens with the shown planet as the target: an own planet.
+  // The form opens with the shown planet as the target, the place the
+  // fleet starts from: no mission, and nothing to send.
   await page.goto('/?view=fleet');
-  await expect.poll(() => offered(page)).toEqual(['transport', 'deploy']);
-  await expect(list(page)).toHaveValue('transport');
+  await expect(position(page)).toBeVisible();
+  const home = await position(page).inputValue();
+  expect(await offered(page)).toEqual([]);
+  await expect(send(page)).toBeDisabled();
   expect(await violations(page)).toEqual([]);
+  // The form with the „Schnellwahl“ and the longest name stays within the
+  // screen (the table of the ships above it is not part of #253).
+  for (const part of ['table.kv', '#t_q'])
+    expect(
+      await page
+        .locator(part)
+        .evaluate((e) => Math.floor(e.getBoundingClientRect().right)),
+    ).toBeLessThanOrEqual(page.viewportSize()!.width);
 
-  // The own colony: the same missions, and the chosen one stays.
-  await page.getByLabel('Position', { exact: true }).fill('15');
+  // The „Schnellwahl“ lists the other own places after „– wählen –“, the
+  // moon after its planet, without the start planet.
+  await expect(quick(page).locator('option')).toHaveText([
+    '– wählen –',
+    /^Luna \(Mond\) \[\d+:\d+:\d+\]$/,
+    /^Aussenposten Zwanzig \[\d+:\d+:15\]$/,
+  ]);
+  // The own moon: its coordinates and „Mond“ are entered, the missions
+  // for an own place follow.
+  await choose(page, 'Luna \\(Mond\\)');
+  await expect(position(page)).toHaveValue(home);
+  await expect(page.getByLabel('Zielart')).toHaveValue('moon');
+  await expect(page.locator('#t_info')).toContainText('Luna (Mond)');
+  await expect.poll(() => offered(page)).toEqual(['transport', 'deploy']);
+  await expect(send(page)).toBeEnabled();
+
+  // The own colony: the planet on slot 15, and the chosen mission stays.
   await list(page).selectOption('deploy');
+  await choose(page, 'Aussenposten Zwanzig');
+  await expect(position(page)).toHaveValue('15');
+  await expect(page.getByLabel('Zielart')).toHaveValue('planet');
+  await expect(page.locator('#t_info')).toContainText('Aussenposten Zwanzig');
   await expect.poll(() => offered(page)).toEqual(['transport', 'deploy']);
   await expect(list(page)).toHaveValue('deploy');
 
@@ -93,14 +142,17 @@ async function fittingMissions(page: Page): Promise<void> {
   await enterFreePosition(page);
   await expect.poll(() => offered(page)).toEqual(['colonize']);
   await expect(list(page)).toHaveValue('colonize');
-  await expect(
-    page.getByRole('button', { name: 'Flotte losschicken' }),
-  ).toBeEnabled();
+  await expect(send(page)).toBeEnabled();
   // A refresh of the state mounts the view anew: the typed target and its
   // missions stay.
   await remount(page, a, 5000);
   expect(await offered(page)).toEqual(['colonize']);
   await expect(list(page)).toHaveValue('colonize');
+
+  // Back on the start planet, typed: no mission again.
+  await position(page).fill(home);
+  await expect.poll(() => offered(page)).toEqual([]);
+  await expect(send(page)).toBeDisabled();
 
   // A foreign planet with a Trümmerfeld, from the Sternenkarte: neither
   // Landnahme nor Stationierung, and the Bergung beside the planet's own.
@@ -116,23 +168,19 @@ async function fittingMissions(page: Page): Promise<void> {
   await remount(page, a, 6000);
   await expect(list(page)).toHaveValue('spy');
   expect(await violations(page)).toEqual([]);
-  // Against the device width: a too wide form also widens innerWidth.
-  expect(
-    await page.evaluate(() => document.documentElement.scrollWidth),
-  ).toBeLessThanOrEqual(page.viewportSize()!.width);
   expect(w.problems).toEqual([]);
 }
 
 test.describe('the fleet form offers only the missions that fit the target (#253)', () => {
-  test('own planet, free position, foreign planet with a Trümmerfeld', async ({
+  test('start planet, Schnellwahl, free position, foreign planet with a Trümmerfeld', async ({
     page,
   }) => {
     await fittingMissions(page);
   });
 
-  test('own planet, free position, foreign planet with a Trümmerfeld, on a phone @phone', async ({
+  test('start planet, Schnellwahl, free position, foreign planet with a Trümmerfeld, on a 360 px phone @phone', async ({
     page,
   }) => {
-    await fittingMissions(page);
+    await fittingMissions(page, 360);
   });
 });

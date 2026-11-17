@@ -586,6 +586,12 @@ textarea:focus-visible {
   margin-bottom: 4px;
   vertical-align: top;
 }
+/* The „Schnellwahl“ of the fleet form (#253): a long name of a planet
+   stays within its cell on a 360 px phone. A share of the viewport,
+   because a share of the cell does not count for the width of the table. */
+#t_q {
+  max-width: 40vw;
+}
 .fl-attack {
   color: var(--red);
 }
