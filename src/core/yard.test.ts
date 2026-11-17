@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { planet } from '../test/fixtures.ts';
-import { orderMax, unitRoom, waitsForYard, yardLockedBy } from './yard.ts';
+import {
+  hasYard,
+  orderMax,
+  unitRoom,
+  waitsForYard,
+  yardLockedBy,
+} from './yard.ts';
 
 const upgrade = (key: string) =>
   planet({ bq: { key, lvl: 1, start: 0, end: 9, cost: [0, 0, 0] } });
@@ -52,5 +58,14 @@ describe('units once per planet (#50)', () => {
     expect(orderMax(planet({ res: rich, def: { ssd: 1 } }), 'ssd')).toBe(0);
     expect(orderMax(planet({ res: { m: 9999, c: 1e9, d: 0 } }), 'ssd')).toBe(0);
     expect(orderMax(planet({ res: { m: 6000, c: 0, d: 0 } }), 'rl')).toBe(3);
+  });
+});
+
+describe('a shipyard on the place', () => {
+  it('is there from level 1', () => {
+    expect(hasYard(planet())).toBe(false);
+    expect(hasYard(planet({ b: { yard: 0 } }))).toBe(false);
+    expect(hasYard(planet({ b: { yard: 1 } }))).toBe(true);
+    expect(hasYard(planet({ b: { lab: 3 } }))).toBe(false);
   });
 });
