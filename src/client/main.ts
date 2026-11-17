@@ -3,20 +3,18 @@
 // functions (views/) or Svelte components; the logic is tested (logic/); this
 // file is run by the E2E suite.
 import { flushSync } from 'svelte';
-import { missionRules } from '../core/missions.ts';
-import { placeId } from '../core/place.ts';
 import { settle, settleR } from '../core/settle.ts';
 import { text } from '../core/text.ts';
 import type { Levels, Planet, Queue, Resources } from '../core/types.ts';
 import { createAct, placeOf, samePlace } from './logic/act.ts';
 import { CATALOG_VIEWS, catalogKind, orderNote } from './logic/catalog-list.ts';
 import { clearsChat, sameSignIn } from './logic/guild-chat.ts';
-import { debrisAt, debrisTip } from './logic/debris.ts';
 import { endzeitNote } from './logic/endzeit.ts';
-import { moonAt, moonTarget } from './logic/moon.ts';
+import { moonAt } from './logic/moon.ts';
+import { previewCells, targetInfo } from './logic/fleet.ts';
 import { scanOf } from './logic/phalanx.ts';
 import { targetOf } from './logic/galaxy.ts';
-import { clampInt, coords, dt, dur, esc, fmt } from './logic/format.ts';
+import { clampInt, coords, dt, dur, esc } from './logic/format.ts';
 import {
   apiFailure,
   type ClientError,
@@ -32,7 +30,6 @@ import {
   cargoOne,
   fleetPreview,
   galaxyStep,
-  nameOf,
   settingsFrom,
   type FleetForm,
 } from './logic/game.ts';
@@ -75,6 +72,7 @@ import {
   dissolveDialog,
   transferDialog,
 } from './views/guilds.ts';
+import { mountFleet } from './views/fleet.ts';
 import { mountGalaxy } from './views/galaxy.ts';
 import { mountOverview } from './views/overview.ts';
 import { mountProducerTable } from './views/producer-table.ts';
@@ -106,11 +104,12 @@ let resetToken: string | null = null;
 const MOUNTED = new Set([
   'overview',
   'galaxy',
+  'fleet',
   'resources',
   ...Object.keys(CATALOG_VIEWS),
 ]);
 /** The Svelte views mounted anew on every render (#118). */
-const ANEW = new Set(['overview', 'galaxy']);
+const ANEW = new Set(['overview', 'galaxy', 'fleet']);
 /** The mounted Svelte view and its name. */
 let mounted: {
   view: string;
@@ -712,6 +711,8 @@ function mountView(target: HTMLElement, view: V): NonNullable<typeof mounted> {
     return { view: ui.view, ...mountProducerTable(target, view) };
   if (ui.view === 'galaxy')
     return { view: ui.view, ...mountGalaxy(target, view) };
+  if (ui.view === 'fleet')
+    return { view: ui.view, ...mountFleet(target, view) };
   return { view: 'overview', ...mountOverview(target) };
 }
 
@@ -945,33 +946,6 @@ function readFleetForm(): FleetForm {
   };
 }
 
-/**
- * Beside the target: its planet and owner, a free position, or none; for a
- * Bergung the Trümmerfeld there, or none (#45).
- */
-function targetInfo(s: GameState, f: FleetForm): string {
-  if (missionRules(f.mission)?.target === 'debris') {
-    const field = debrisAt(s.debris, f.to);
-    return field
-      ? debrisTip(field)
-      : '<span class="bad">kein Trümmerfeld</span>';
-  }
-  if (f.to.kind === 'moon')
-    return moonTarget(moonAt(s.galaxy, f.to), (id) => nameOf(s.players, id));
-  const target = s.galaxy.find(
-    (p) => p.id === placeId({ ...f.to, kind: 'planet' }),
-  );
-  if (target)
-    return `${esc(target.name)} (${esc(nameOf(s.players, target.owner))})`;
-  return missionRules(f.mission)?.target === 'free'
-    ? 'Freie Position'
-    : '<span class="bad">kein Planet</span>';
-}
-
-/** The return time, or none for a mission that stays at its target (deploy, #129). */
-const returnAt = (mission: string, t: number): string =>
-  missionRules(mission)?.returns === false ? '–' : dt(t);
-
 /** „Mond“ in the select of the target only where a moon is (#53). */
 function moonOption(s: GameState): void {
   const select = $('#t_k') as HTMLSelectElement | null;
@@ -988,24 +962,10 @@ function fleetCalc(): void {
   const f = readFleetForm();
   $('#t_info')!.innerHTML = targetInfo(client.game, f);
   const pv = fleetPreview(client.view.P, client.view.R, f, client.game.cfg);
-  const set = (id: string, html: string): void =>
-    void ($(`#${id}`)!.innerHTML = html);
-  if (!pv)
-    return ['i_dist', 'i_dur', 'i_arr', 'i_fuel', 'i_cap'].forEach((id) =>
-      set(id, '-'),
-    );
-  const now = client.now();
-  set('i_dist', fmt(pv.dist));
-  set('i_dur', dur(pv.ms));
-  set('i_arr', `${dt(now + pv.ms)} / ${returnAt(f.mission, now + 2 * pv.ms)}`);
-  set(
-    'i_fuel',
-    `<span class="${pv.fuelShort ? 'bad' : ''}">${fmt(pv.fuel)}</span> Promethium`,
-  );
-  set(
-    'i_cap',
-    `<span class="${pv.overload ? 'bad' : ''}">${fmt(pv.load)}</span> / ${fmt(pv.cap)}`,
-  );
+  for (const [id, html] of Object.entries(
+    previewCells(pv, f.mission, client.now()),
+  ))
+    $(`#${id}`)!.innerHTML = html;
 }
 
 const setInput = (sel: string, v: string | number): void => {

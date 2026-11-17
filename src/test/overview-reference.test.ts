@@ -1,6 +1,7 @@
 // Overview renders the overview as it was before #118 („no visible change“
 // of the issue; each migration step changes no behaviour, owner,
-// 2026-11-13), and the fleet view keeps its list of fleets. The old view is
+// 2026-11-13), and the fleet view (the component Fleet since #118, bundle 3)
+// keeps its list of fleets. The old view is
 // frozen here: overview() and fleetTable() of src/client/views/overview.ts.
 // On generated states (fixed fast-check seed 118) both render the same
 // markup, up to what a browser does not show (normalize() of markup.ts, the
@@ -15,6 +16,7 @@ import { placeName } from '../core/moon.ts';
 import { text } from '../core/text.ts';
 import type { Levels, Mission, Planet } from '../core/types.ts';
 import { diameterLine } from '../client/logic/fields.ts';
+import { fleetPage } from '../client/logic/fleet.ts';
 import { coords, dt, esc, fmt } from '../client/logic/format.ts';
 import { fleetEnd, nameOf, ranks, sortFleets } from '../client/logic/game.ts';
 import { planetLook } from '../client/logic/planet.ts';
@@ -27,7 +29,7 @@ import {
   type Ui,
   type V,
 } from '../client/views/common.ts';
-import { fleet } from '../client/views/fleet.ts';
+import Fleet from '../client/views/Fleet.svelte';
 import Overview from '../client/views/Overview.svelte';
 import { planet, U } from './fixtures.ts';
 import { normalize } from './markup.ts';
@@ -302,9 +304,8 @@ describe('Overview against the view before #118', () => {
   it('keeps the list of fleets of the fleet view', () => {
     fc.assert(
       fc.property(state, (v) => {
-        expect(normalize(fleet(v)).startsWith(normalize(fleetHead(v)))).toBe(
-          true,
-        );
+        const fleet = render(Fleet, { props: { page: fleetPage(v) } }).body;
+        expect(normalize(fleet).startsWith(normalize(fleetHead(v)))).toBe(true);
       }),
       { seed: 118, numRuns: 300 },
     );
