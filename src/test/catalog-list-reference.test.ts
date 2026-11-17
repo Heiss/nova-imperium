@@ -381,6 +381,9 @@ const state = fc
       labs: x.labs,
       galaxy: IDS.map((id, i) => ({ id, name: NAMES[i]!, kind: 'planet' })),
       homePlanet: x.home,
+      // Without a switch the main planet is the home planet (#221); the
+      // frozen views know only the home planet.
+      mainPlanet: x.home,
     } as unknown as GameState;
     return {
       s,
@@ -459,6 +462,22 @@ describe('CatalogList against the views before #118', () => {
     );
     expect(normalize('<b title="&quot;">&quot;</b>')).toBe(
       '<b title="&quot;">"</b>',
+    );
+    // An empty class shows nothing; Svelte leaves it out (#118, bundle 1).
+    expect(normalize('<a class="" href="x" >A</a>')).toBe(
+      normalize('<a href="x">A</a>'),
+    );
+    expect(normalize('<a class=" " href="x">A</a>')).not.toBe(
+      normalize('<a href="x">A</a>'),
+    );
+    expect(normalize('<a data-class="" href="x">A</a>')).not.toBe(
+      normalize('<a href="x">A</a>'),
+    );
+    expect(normalize('<option selected="" value="p">P</option>')).toBe(
+      normalize('<option value="p" selected>P</option>'),
+    );
+    expect(normalize('<option value="p">P</option>')).not.toBe(
+      normalize('<option value="p" selected>P</option>'),
     );
   });
 

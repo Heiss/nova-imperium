@@ -1,0 +1,68 @@
+// The navigation of the game (#118, bundle 1; okf/architecture/patterns.md,
+// section 9): the menu, and on a phone the tab bar and the sheet „Mehr“
+// (#61), each link with its address, whether it is the open view, and the
+// mark of what is new there. Pure, so the components Menu.svelte,
+// TabBar.svelte and MoreList.svelte only render what this module computes.
+import type { Ui } from '../views/common.ts';
+import { menu, type MenuEntry, phoneMenu } from '../views/index.ts';
+import { unread } from './game.ts';
+import { menuHints } from './menu-hints.ts';
+import { newsHint } from './news.ts';
+import type { GameState } from './types.ts';
+
+/** A link of the navigation. */
+export interface NavLink extends MenuEntry {
+  href: string;
+  /** Whether it is the open view. */
+  on: boolean;
+  /** What is new there, for the mark „!“; none when nothing is. */
+  hint: string | undefined;
+}
+
+export interface Navigation {
+  /** The menu; '-' is a separator. */
+  menu: (NavLink | '-')[];
+  /** Phone: the four destinations of the tab bar. */
+  tabs: NavLink[];
+  /** Phone: the rest, in the sheet „Mehr“. */
+  more: NavLink[];
+  /** Whether the open view is under „Mehr“. */
+  moreOn: boolean;
+  /** Whether something under „Mehr“ is new. */
+  moreHint: boolean;
+}
+
+/**
+ * The navigation for the state of the server and the open view. `completed`
+ * holds the views with a finished upgrade, order or flight; `href` gives the
+ * address of a view.
+ */
+export function navigation(
+  state: GameState,
+  ui: Pick<Ui, 'view' | 'news' | 'newsSeen'>,
+  completed: ReadonlyMap<string, string>,
+  href: (view: string) => string,
+): Navigation {
+  const hints = menuHints(
+    state,
+    completed,
+    unread(state.reports, state.me.readAt),
+  );
+  const news = newsHint(ui.news, ui.newsSeen);
+  if (news) hints.set('news', news);
+  const link = (entry: MenuEntry): NavLink => ({
+    ...entry,
+    href: href(entry.view),
+    on: entry.view === ui.view,
+    hint: hints.get(entry.view),
+  });
+  const items = menu(state.me.admin, state.round);
+  const { tabs, more } = phoneMenu(items);
+  return {
+    menu: items.map((i) => (i === '-' ? i : link(i))),
+    tabs: tabs.map(link),
+    more: more.map(link),
+    moreOn: more.some((i) => i.view === ui.view),
+    moreHint: more.some((i) => hints.has(i.view)),
+  };
+}

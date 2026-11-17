@@ -8,12 +8,12 @@ import { placeId } from '../core/place.ts';
 import { settle, settleR } from '../core/settle.ts';
 import { text } from '../core/text.ts';
 import type { Levels, Planet, Queue, Resources } from '../core/types.ts';
-import { placeName } from '../core/moon.ts';
 import { createAct, placeOf, samePlace } from './logic/act.ts';
 import { CATALOG_VIEWS, catalogKind } from './logic/catalog-list.ts';
 import { clearsChat, sameSignIn } from './logic/guild-chat.ts';
 import { debrisAt, debrisTip } from './logic/debris.ts';
-import { moonAt, moonTarget, ownPlaces } from './logic/moon.ts';
+import { endzeitNote } from './logic/endzeit.ts';
+import { moonAt, moonTarget } from './logic/moon.ts';
 import { scanOf } from './logic/phalanx.ts';
 import { clampInt, coords, dt, dur, esc, fmt } from './logic/format.ts';
 import {
@@ -32,35 +32,26 @@ import {
   galaxyStep,
   nameOf,
   settingsFrom,
-  unread,
   type FleetForm,
 } from './logic/game.ts';
-import { resourceIconURL, type ResourceKey } from './logic/icons.ts';
-import {
-  chatToSee,
-  finishedYardOrders,
-  menuHints,
-} from './logic/menu-hints.ts';
+import { headerLine } from './logic/header.ts';
+import { chatToSee, finishedYardOrders } from './logic/menu-hints.ts';
 import { gameIsBack, maintenanceNotice } from './logic/maintenance.ts';
-import {
-  latestNews,
-  NEWS_SEEN_KEY,
-  type NewsData,
-  newsHint,
-} from './logic/news.ts';
+import { latestNews, NEWS_SEEN_KEY, type NewsData } from './logic/news.ts';
+import { navigation } from './logic/navigation.ts';
 import { ANIMATION_KEY, animationsOn } from './logic/planet.ts';
 import { pushSaver } from './logic/push-options.ts';
 import { client } from './logic/state.svelte.ts';
+import { resourceBar } from './logic/resource-bar.ts';
 import type { GameState } from './logic/types.ts';
-import { caps, production } from '../core/economy.ts';
 import type { Ui, V } from './views/common.ts';
+import { VIEWS } from './views/index.ts';
 import {
-  menu,
-  phoneMenu,
-  TAB_GLYPHS,
-  VIEWS,
-  type MenuEntry,
-} from './views/index.ts';
+  clearFrame,
+  showHeader,
+  showNavigation,
+  showResourceBar,
+} from './views/frame.ts';
 import {
   loadInvitations,
   mountAdminDiagnostics,
@@ -558,7 +549,7 @@ async function refresh(): Promise<void> {
   const fresh = sync.refresh();
   try {
     const state = (await api(
-      stateUrl(planet === client.game?.homePlanet ? undefined : planet),
+      stateUrl(planet === client.game?.mainPlanet ? undefined : planet),
     )) as unknown as GameState;
     if (fresh() && samePlace(client.game, before)) apply(state);
   } catch (e) {
@@ -615,11 +606,7 @@ function keepInputs(view: HTMLElement, fresh: boolean): () => void {
 function renderLoggedOut(view: HTMLElement): void {
   client.forget();
   unmountViews();
-  $('#menu')!.innerHTML = '';
-  $('#tabbar')!.innerHTML = '';
-  $('#more-list')!.innerHTML = '';
-  $('#resbar')!.innerHTML = '';
-  $('#pinfo')!.innerHTML = '';
+  clearFrame();
   view.innerHTML = ui.auth ? auth(ui) : '<div class="notice">Lade …</div>';
 }
 
@@ -805,18 +792,6 @@ function refreshInvitations(): void {
   if (adminPanel) void loadInvitations(adminPanel.invitations, api);
 }
 
-function renderPlanetHeader({ s, P }: V): void {
-  // Every own planet and moon, each moon after its planet (#53).
-  const owned = ownPlaces(s.galaxy, s.me.id);
-  const activeId = P.id;
-  const selector =
-    owned.length > 1
-      ? ` · <select id="planet_select" aria-label="Aktiver Planet">${owned.map((p) => `<option value="${esc(p.id)}" ${p.id === activeId ? 'selected' : ''}>${esc(placeName(p))} ${coords(p)}</option>`).join('')}</select>`
-      : '';
-  $('#pinfo')!.innerHTML =
-    `<b>${esc(placeName(P))}</b> ${coords(P)} · Kommandant <b>${esc(s.me.name)}</b> · <span class="lnk" data-act="logout">Logout</span>${selector}`;
-}
-
 /** The view state moved to now. */
 function viewAt(state: GameState, planet: Planet, now: number): V {
   const here = settle(planet, now, state.cfg, state.me);
@@ -845,7 +820,7 @@ function render(fresh = false): void {
   if (previous && !fresh) rememberCompletions(previous, client.view);
   renderMenu();
   updateBar();
-  renderPlanetHeader(client.view);
+  showHeader(headerLine(client.game, client.view.P));
   renderView(view, client.view, fresh);
   if (ui.view === 'help') updateInstallButton();
   renderCompletions(view);
@@ -879,98 +854,20 @@ function filterAchievements(): void {
     });
 }
 
-function menuBadge(hint: string | undefined): string {
-  return hint
-    ? `<span class="badge" role="img" aria-label="${esc(hint)}" title="${esc(hint)}">!</span>`
-    : '';
-}
-
-function menuLink(
-  i: MenuEntry,
-  hint: string | undefined,
-  inner: string,
-): string {
-  const current = ui.view === i.view ? ' aria-current="page"' : '';
-  return `<a href="${esc(viewUrl(i.view))}" data-act="nav" data-v="${i.view}" class="${ui.view === i.view ? 'on' : ''}"${current}>${inner}${menuBadge(hint)}</a>`;
-}
-
-/** Phone: tab bar and the list of the „Mehr“ sheet. */
-function renderPhoneMenu(
-  items: (MenuEntry | '-')[],
-  hints: Map<string, string>,
-): void {
-  const { tabs, more } = phoneMenu(items);
-  const moreHint = more.some((i) => hints.has(i.view));
-  const moreOn = more.some((i) => i.view === ui.view);
-  $('#tabbar')!.innerHTML =
-    tabs
-      .map((i) =>
-        menuLink(
-          i,
-          hints.get(i.view),
-          `${TAB_GLYPHS[i.view]}<span>${esc(i.label)}</span>`,
-        ),
-      )
-      .join('') +
-    `<button type="button" class="${moreOn ? 'on' : ''}" data-act="moreOpen" aria-haspopup="dialog">${TAB_GLYPHS.more}<span>Mehr</span>${moreHint ? '<span class="dot" role="img" aria-label="Neues unter Mehr"></span>' : ''}</button>`;
-  $('#more-list')!.innerHTML = more
-    .map((i) =>
-      menuLink(
-        i,
-        hints.get(i.view),
-        `<span>${esc(i.label)}</span>${TAB_GLYPHS.chevron}`,
-      ),
-    )
-    .join('');
-}
-
 function renderMenu(): void {
-  const state = client.game!;
   if (ui.view === 'news') seeNews();
-  const hints = menuHints(
-    state,
-    client.completedMenu,
-    unread(state.reports, state.me.readAt),
+  showNavigation(
+    navigation(client.game!, ui, client.completedMenu, (view) => viewUrl(view)),
   );
-  const news = newsHint(ui.news, ui.newsSeen);
-  if (news) hints.set('news', news);
-  const items = menu(state.me.admin, state.round);
-  $('#menu')!.innerHTML = items
-    .map((i) =>
-      i === '-'
-        ? '<div class="sep"></div>'
-        : menuLink(i, hints.get(i.view), esc(i.label)),
-    )
-    .join('');
-  renderPhoneMenu(items, hints);
 }
 
+/** Shows the resource bar of the planet moved to now, and returns that planet. */
 function updateBar(): Planet | undefined {
-  if (!client.game?.planet) return;
-  const now = client.now();
-  const p = settle(client.game.planet, now, client.game.cfg, client.game.me);
-  const pr = production(
-    p,
-    client.game.cfg,
-    settleR(client.game.me, now).research,
-  );
-  const cp = caps(p, client.game.cfg);
-  const icon = (key: ResourceKey): string =>
-    `<img class="ri" src="${resourceIconURL(key)}" alt="" width="28" height="28">`;
-  const r = (
-    label: string,
-    key: ResourceKey,
-    v: number,
-    cap: number,
-    per: number,
-  ): string =>
-    `<div class="res" title="${per < 0 ? '' : '+'}${fmt(per)}/h · Lager ${fmt(cap)}">${icon(key)}<div><div class="l">${label}</div><div class="v ${v >= cap ? 'full' : ''}">${fmt(v)}</div></div></div>`;
-  $('#resbar')!.innerHTML =
-    r('Adamant', 'metal', p.res.m, cp.m, pr.m) +
-    r('Psikristall', 'crystal', p.res.c, cp.c, pr.c) +
-    r('Promethium', 'deuterium', p.res.d, cp.d, pr.d) +
-    `<div class="res">${icon('energy')}<div><div class="l">Energie</div><div class="v ${pr.eProd - pr.eUse < 0 ? 'bad' : ''}">${fmt(pr.eProd - pr.eUse)}/${fmt(pr.eProd)}</div></div></div>`;
-  return p;
+  const game = client.game;
+  if (!game?.planet) return;
+  const bar = resourceBar(game, game.planet, client.now());
+  showResourceBar(bar);
+  return bar.planet;
 }
 
 let readPending = false;
@@ -1253,7 +1150,7 @@ const ACT: Record<string, (d: Data) => unknown> = {
   },
   ghome: () => {
     const home =
-      client.game!.galaxy.find((p) => p.id === client.game!.homePlanet) ??
+      client.game!.galaxy.find((p) => p.id === client.game!.mainPlanet) ??
       client.view!.P;
     ui.gal = home.g;
     ui.sys = home.s;
@@ -1358,6 +1255,7 @@ const ACT: Record<string, (d: Data) => unknown> = {
       probes: clampInt(val('#o_probes'), 1, 1e6),
       explain: val('#o_explain'),
     }),
+  mainPlanet: () => act('mainPlanet', { main: val('#o_main') }),
   adminTab: (d) => {
     if (d.tab && Object.hasOwn(ADMIN_TABS, d.tab))
       openAdminTab(d.tab as AdminTab);
@@ -1408,14 +1306,17 @@ const ACT: Record<string, (d: Data) => unknown> = {
       daily: checked('#round-daily'),
     };
     const guilds = checked('#round-guilds');
+    const mainLock = Number(val('#round-main-lock'));
     modal('');
-    return act('reset', { rewards, guilds });
+    return act('reset', { rewards, guilds, mainLock });
   },
   endzeit: () => modal(endzeitDialog(client.game!.admin!.endzeit.minutes)),
   doEndzeit: () => {
     const minutes = val('#endzeit-minutes');
+    // The check of the server (F15, #214): a refusal without a request.
+    const note = endzeitNote(client.game!.admin!.endzeit.done, minutes);
     modal('');
-    return act('endzeit', { minutes });
+    return note ? toast(note, true) : act('endzeit', { minutes });
   },
   saveSettings: () => {
     const keys = client.game!.admin!.specs.map((x) => x.key);

@@ -97,6 +97,12 @@ group fights one huge battle.
   `extraFields` (#51). The admin state hands it to the dialog
   (`endzeitState`); the action `endzeit` checks its own `minutes` and
   stores only `endzeitRound`.
+* The check (#214, O18 (c), F15): `endzeitError(done, minutes)` of
+  `src/core/endzeit.ts` returns `done` (rung in this round), then `minutes`
+  (not whole minutes within `GIFT_MINUTES`), or null. The server words it
+  with `ENDZEIT_ERROR`, the dialog with `ENDZEIT_NOTE`
+  (`src/client/logic/endzeit.ts`, the same texts) and sends nothing on a
+  refusal: it closes and shows the note as the server's refusal did.
 * Arrival: `onArrive` of `src/features/missions/deploy/arrive.server.ts`
   hands a gift to `giftArrive()`: ships and cargo land, the buildings of the
   home planet and the research are raised, an overtaken build or research
@@ -124,8 +130,10 @@ group fights one huge battle.
   (Minuten)“ (prefilled from the form „Universum“, 1 to 4.320, in real
   time, for this trigger only), „Ja, Endzeit einläuten“ and „Abbrechen“.
 * Answer: „Die Endzeit ist eingeläutet. Gaben unterwegs: N.“; a second
-  trigger: „Die Endzeit wurde in dieser Runde schon eingeläutet.“; a wrong
-  time: „Bitte eine Flugzeit von 1 bis 4.320 Minuten (72 h) eingeben.“
+  trigger: „In dieser Runde wurde die Endzeit schon eingeläutet.“, the text
+  of the box (#214, F15; before „Die Endzeit wurde in dieser Runde schon
+  eingeläutet.“); a wrong time, from the dialog before it sends: „Bitte
+  eine Flugzeit von 1 bis 4.320 Minuten (72 h) eingeben.“
 
 # Tests
 
@@ -141,14 +149,18 @@ group fights one huge battle.
   the trigger and of the levels from the arrival; the arrival (ships, cargo
   above the storage, levels, home planet only, the message with push (kind `fleet`), no
   „Verlegung erreicht“); a cancelled and refunded build or research, a higher one
-  kept.
+  kept; the home planet written only with the gift (#214).
 * `src/server/game/endzeit-battle.test.ts`: one battle of two full gift
   fleets with the gift's research, measured (about 10 ms on the build
   machine, 6 rounds).
 * `src/features/missions/deploy/deploy.test.ts`, `upgrades/migration-18.test.ts`,
   `src/server/db/repos/admin.test.ts`, `src/server/http/app.routes.test.ts`
   (audit as `admin.write`); `src/core/universe.test.ts` (the setting
-  `endzeitMinutes`); E2E „the admin rings in the Endzeit …“ (the dialog
-  prefilled with 240, the default kept after a trigger of 30) and, @phone,
+  `endzeitMinutes`); `src/core/endzeit.test.ts` and
+  `src/client/logic/endzeit.test.ts` (`endzeitError` and its notes, #214),
+  `src/test/endzeit-texts.test.ts` (the texts of browser and server equal);
+  E2E „the admin rings in the Endzeit …“ (the dialog prefilled with 240, a
+  time of 0 refused by the dialog without a request, the default kept
+  after a trigger of 30) and, @phone,
   „the fleet list shows a gift from „Gottkaiser“ without „Rückruf“ …“ in
   `e2e/flows.spec.ts`, with the option `gift` of `e2e/seed.ts`.

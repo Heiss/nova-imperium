@@ -2,6 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import {
   cli,
+  expectShownPlace,
   galaxyRow,
   nav,
   register,
@@ -134,8 +135,10 @@ test.describe('accessibility (axe)', () => {
     page,
   }) => {
     const name = uniqueName('AxeMond');
+    // A unique moon name: two runs of this test can share a home system (#252).
+    const moon = uniqueName('Axe');
     await register(page, name);
-    seed({ name, moon: { name: 'Axe' }, ships: { sc: 1 } });
+    seed({ name, moon: { name: moon }, ships: { sc: 1 } });
     await page.reload();
     const found: string[] = [];
     const check = async (label: string): Promise<void> => {
@@ -143,7 +146,7 @@ test.describe('accessibility (axe)', () => {
     };
     await nav(page, 'galaxy');
     await page.getByText('zum Heimatsystem').click();
-    await page.getByRole('button', { name: 'Axe (Mond)' }).click();
+    await page.getByRole('button', { name: `${moon} (Mond)` }).click();
     await expect(page.locator('tr.moon-row')).toBeVisible();
     await check('galaxy');
     await page
@@ -155,10 +158,10 @@ test.describe('accessibility (axe)', () => {
     const selector = page.getByLabel('Aktiver Planet');
     await selector.selectOption(
       (await selector
-        .locator('option', { hasText: 'Axe (Mond) [' })
+        .locator('option', { hasText: `${moon} (Mond) [` })
         .getAttribute('value'))!,
     );
-    await expect(page.locator('#pinfo b').first()).toHaveText('Axe (Mond)');
+    await expectShownPlace(page, `${moon} (Mond)`);
     for (const view of ['overview', 'buildings', 'resources'] as const) {
       await nav(page, view);
       await check(view);
@@ -303,14 +306,18 @@ test.describe('accessibility (axe)', () => {
     page,
   }) => {
     const name = uniqueName('AxeErr');
+    // A unique error text: a repeat run found two rows with a fixed one (#267).
+    // The colon keeps the log's scrubber from taking the text for a token
+    // (20 word characters with a digit) or the 6 characters for a login code.
+    const error = `Axe-Testfehler:${uniqueName('')}`;
     await register(page, name);
     cli('admin', name);
-    seed({ name, serverError: 'Axe-Testfehler' });
+    seed({ name, serverError: error });
     await page.reload();
     const found: string[] = [];
     await nav(page, 'admin');
     await page.getByRole('tab', { name: 'Fehler' }).click();
-    const row = page.getByRole('row', { name: /Axe-Testfehler/ });
+    const row = page.getByRole('row', { name: error });
     await row.getByText(/^Eintrag \d+$/).click();
     await expect(row.locator('pre')).toBeVisible();
     found.push(...(await violations(page)).map((v) => `errors: ${v}`));
