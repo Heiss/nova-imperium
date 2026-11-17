@@ -97,18 +97,17 @@ export function baseLimit(root: string, ci: boolean): number | undefined {
   return undefined;
 }
 
+/** The check of the repository at root: its exit code and its message. */
+export function run(root: string, ci: boolean): { code: number; text: string } {
+  const { error, limit, lines } = check(root, baseLimit(root, ci));
+  if (error) return { code: 1, text: error };
+  return { code: 0, text: `${limit.file}: ${lines} lines, at its limit.` };
+}
+
 function main(): number {
-  const root = process.cwd();
-  const { error, limit, lines } = check(
-    root,
-    baseLimit(root, process.env.CI === 'true'),
-  );
-  if (error) {
-    console.error(error);
-    return 1;
-  }
-  console.log(`${limit.file}: ${lines} lines, at its limit.`);
-  return 0;
+  const { code, text } = run(process.cwd(), process.env.CI === 'true');
+  (code ? console.error : console.log)(text);
+  return code;
 }
 
 if (import.meta.main) runCli(main);
