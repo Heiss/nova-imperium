@@ -12,6 +12,7 @@ import {
   SHIPS,
   type UnitDef,
 } from '../../core/catalog.ts';
+import { techFactor } from '../../core/battle.ts';
 import {
   buildTime,
   lvlCost,
@@ -424,7 +425,7 @@ function stats(v: V, key: string, d: UnitDef): string {
   const ship = canFly(key) ? SHIPS[key] : undefined;
   const cargo = ship ? ` · Ladung ${fmt(ship.cargo)}` : '';
   const speed = ship ? speedText(v, key) : '';
-  return `Angriff ${fmt(d.atk * (1 + 0.1 * (tech.weapons ?? 0)))} · Schild ${fmt(d.sh * (1 + 0.1 * (tech.shield ?? 0)))} · Struktur ${fmt((c[0] + c[1]) * (1 + 0.1 * (tech.armor ?? 0)))}${cargo}${speed}${energyText(v, key)}`;
+  return `Angriff ${fmt(d.atk * techFactor(tech.weapons ?? 0))} · Schild ${fmt(d.sh * techFactor(tech.shield ?? 0))} · Struktur ${fmt((c[0] + c[1]) * techFactor(tech.armor ?? 0))}${cargo}${speed}${energyText(v, key)}`;
 }
 
 /**
