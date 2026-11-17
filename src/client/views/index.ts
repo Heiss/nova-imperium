@@ -2,7 +2,6 @@ import type { RoundRules } from '../../core/achievements.ts';
 import { achievements } from './achievements.ts';
 import type { V } from './common.ts';
 import { fleet } from './fleet.ts';
-import { galaxy } from './galaxy.ts';
 import { guilds } from './guilds.ts';
 import { newsHTML } from '../logic/news.ts';
 import { messages } from './messages.ts';
@@ -10,7 +9,6 @@ import { admin, help, highscore } from './misc.ts';
 
 export const VIEWS: Record<string, (v: V) => string> = {
   fleet,
-  galaxy,
   guilds,
   messages,
   highscore,
