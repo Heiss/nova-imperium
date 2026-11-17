@@ -8,15 +8,13 @@ import type { DebrisField } from '../../core/debris.ts';
 import type { Planet } from '../../core/types.ts';
 import { galaxyPage } from '../logic/galaxy.ts';
 import type { GameState } from '../logic/types.ts';
+import { stripComments } from '../../test/markup.ts';
 import type { V } from './common.ts';
 import Galaxy from './Galaxy.svelte';
 
 /** The Sternenkarte of the view state, without Svelte's comments. */
 const galaxy = (v: V): string =>
-  render(Galaxy, { props: { page: galaxyPage(v) } }).body.replace(
-    /<!--[\s\S]*?-->/g,
-    '',
-  );
+  stripComments(render(Galaxy, { props: { page: galaxyPage(v) } }).body);
 
 const home = { id: 'p1_2_5', g: 1, s: 2, p: 5, ships: {} } as unknown as Planet;
 

@@ -35,7 +35,7 @@ function attributes(raw: string): string {
 }
 
 /** Removes comments until none is left, so no `<!--` can survive. */
-function stripComments(html: string): string {
+export function stripComments(html: string): string {
   let before: string;
   let after = html;
   do {
