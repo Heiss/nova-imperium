@@ -1,11 +1,20 @@
 // The Sternenkarte shows every player a Trümmerfeld with its symbol, the
-// tooltip and the button „Bergung“ (#45, owner, 2026-11-13).
+// tooltip and the button „Bergung“ (#45, owner, 2026-11-13). The component
+// Galaxy (#118, bundle 2) renders it from galaxyPage(), on the server side
+// of Svelte, as text without Svelte's comments.
+import { render } from 'svelte/server';
 import { describe, expect, it } from 'vitest';
 import type { DebrisField } from '../../core/debris.ts';
 import type { Planet } from '../../core/types.ts';
+import { galaxyPage } from '../logic/galaxy.ts';
 import type { GameState } from '../logic/types.ts';
+import { stripComments } from '../../test/markup.ts';
 import type { V } from './common.ts';
-import { galaxy } from './galaxy.ts';
+import Galaxy from './Galaxy.svelte';
+
+/** The Sternenkarte of the view state, without Svelte's comments. */
+const galaxy = (v: V): string =>
+  stripComments(render(Galaxy, { props: { page: galaxyPage(v) } }).body);
 
 const home = { id: 'p1_2_5', g: 1, s: 2, p: 5, ships: {} } as unknown as Planet;
 
@@ -319,9 +328,9 @@ describe('the Auspex-Phalanx on the Sternenkarte (#53)', () => {
     const v = fromMoon(1, { by: 'm1_2_5', target: 'p1_2_6', flights: [] });
     v.s.galaxy[1] = { ...v.s.galaxy[1]!, name: '<b>"x"' };
     const html = galaxy(v);
-    expect(html).toContain('Phalanx-Scan: &lt;b&gt;&quot;x&quot; [1:2:6]');
-    expect(html).toContain(
-      'aria-label="Phalanx-Scan von &lt;b&gt;&quot;x&quot;"',
-    );
+    // Svelte escapes < and & in the text, and " too in an attribute.
+    expect(html).toContain('Phalanx-Scan: &lt;b>"x" [1:2:6]');
+    expect(html).toContain('aria-label="Phalanx-Scan von &lt;b>&quot;x&quot;"');
+    expect(html).not.toContain('<b>');
   });
 });

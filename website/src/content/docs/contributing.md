@@ -93,7 +93,7 @@ die Werft, solange sie ausgebaut wird.
 
 The CI job „Changelog fragments“ (`scripts/changelog.ts check`) requires a
 fragment when a pull request changes `src/client`, `src/core`,
-`src/features` or `src/server/game`, unless the pull request carries the label
+`src/features`, `src/server/game` or `src/server/http`, unless the pull request carries the label
 **`kein-changelog`** – for refactoring, tests, tooling, docs and everything
 else players cannot notice. It also checks the form of every fragment. The
 release pull request turns the fragments into a section of `CHANGELOG.md`
