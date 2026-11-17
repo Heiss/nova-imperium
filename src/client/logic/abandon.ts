@@ -3,9 +3,10 @@
 // lock of the position and the password, like „Account löschen“. The
 // browser asks only `abandonTargetError` (an own planet, not the main
 // planet, D3); the server checks everything and words every refusal.
-import { abandonTargetError } from '../../core/abandon.ts';
-import type { Levels } from '../../core/types.ts';
+import { abandonTargetError, positionLocked } from '../../core/abandon.ts';
+import type { Coords, Levels } from '../../core/types.ts';
 import { coords, esc, fmt, resLine } from './format.ts';
+import { lockEnd } from './main-planet.ts';
 import { moonAt } from './moon.ts';
 import type { GameState } from './types.ts';
 
@@ -39,4 +40,22 @@ export function abandonDialog(P: Target, s: Shown): string {
     .map((x) => `<li>${x}</li>`)
     .join('');
   return `<form id="abandonform" data-target="${esc(P.id)}"><p><b>Kolonie aufgeben</b></p><p>${esc(P.name)} ${coords(P)} wird aufgegeben. Dabei geht verloren:</p><ul>${losses}</ul><p>Die Position ${coords(P)} ist danach ${plural(s.round.abandonLock, 'Stunde', 'Stunden')} lang gesperrt.</p><p><b>Diese Aktion kann nicht rückgängig gemacht werden.</b></p><p><label for="abandon-password">Passwort zur Bestätigung</label> <input id="abandon-password" type="password" autocomplete="current-password" required></p><button class="red" type="submit">Kolonie aufgeben</button> <button type="button" data-act="closeModal">Abbrechen</button></form>`;
+}
+
+/**
+ * A free position of the Sternenkarte (#224, owner, 2026-11-17): while it
+ * is locked after an abandonment it says until when and offers no
+ * Landnahme; the server refuses one anyway.
+ */
+export function freePosition(
+  locks: GameState['locks'],
+  c: Coords,
+  now: number,
+): { note: string; colonize: boolean } {
+  const lock = (locks ?? []).find(
+    (l) => l.g === c.g && l.s === c.s && l.p === c.p,
+  );
+  return lock && positionLocked(lock.until, now)
+    ? { note: `gesperrt bis ${lockEnd(lock.until)}`, colonize: false }
+    : { note: '–', colonize: true };
 }

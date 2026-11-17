@@ -6,6 +6,11 @@ import type { UsedSize } from '../../../core/universe.ts';
 import type { Db } from '../database.ts';
 import { levels, queueOf, queueParams, type Row } from './rows.ts';
 
+/** A position locked after its colony was given up, until `until` (#224, D2). */
+export interface PositionLock extends Coords {
+  until: number;
+}
+
 export interface Planets {
   get(id: string): Planet | null;
   /** The home planet: the oldest planet of the player. */
@@ -23,6 +28,8 @@ export interface Planets {
   lockPosition(c: Coords, until: number): void;
   /** When the lock of a position ends, or null without one; an ended lock is not removed. */
   positionLock(c: Coords): number | null;
+  /** Every lock of a position that holds after `now`, by position (#224). */
+  locks(now: number): PositionLock[];
   /** The largest galaxy, system and position in use. */
   usedSize(): UsedSize;
 }
@@ -189,6 +196,14 @@ export class SqlitePlanets implements Planets {
          ON CONFLICT(g, s, p) DO UPDATE SET until = excluded.until`,
       )
       .run(c.g, c.s, c.p, until);
+  }
+
+  locks(now: number): PositionLock[] {
+    return this.db
+      .prepare(
+        'SELECT g, s, p, until FROM position_locks WHERE until > ? ORDER BY g, s, p',
+      )
+      .all(now) as PositionLock[];
   }
 
   positionLock(c: Coords): number | null {

@@ -2,7 +2,13 @@
 // is not the main planet (D3), the confirmation with the coordinates, the
 // losses with the moon (Q1), the lock of the round (D2) and the password.
 import { describe, expect, it } from 'vitest';
-import { abandonDialog, abandonLosses, abandonOffered } from './abandon.ts';
+import {
+  abandonDialog,
+  abandonLosses,
+  abandonOffered,
+  freePosition,
+} from './abandon.ts';
+import { lockEnd } from './main-planet.ts';
 import type { GameState } from './types.ts';
 
 type Target = NonNullable<GameState['planet']>;
@@ -117,5 +123,38 @@ describe('the confirmation', () => {
     );
     expect(html).toContain('<p>A&amp;B [2:5:9] wird aufgegeben.');
     expect(html).toContain('ist danach 1 Stunde lang gesperrt.');
+  });
+});
+
+describe('a free position of the Sternenkarte (#224)', () => {
+  const at = { g: 2, s: 5, p: 9 };
+  const until = Date.UTC(2026, 10, 18, 12, 0);
+
+  it('is locked until the end of its lock, without a Landnahme', () => {
+    const locked = { note: `gesperrt bis ${lockEnd(until)}`, colonize: false };
+    expect(freePosition([{ ...at, until }], at, until - 1)).toEqual(locked);
+    expect(
+      freePosition(
+        [
+          { g: 1, s: 1, p: 1, until },
+          { ...at, until },
+        ],
+        at,
+        0,
+      ),
+    ).toEqual(locked);
+  });
+
+  it('is free at the end of the lock, elsewhere and without locks', () => {
+    const free = { note: '–', colonize: true };
+    expect(freePosition([{ ...at, until }], at, until)).toEqual(free);
+    for (const other of [
+      { ...at, g: 3 },
+      { ...at, s: 6 },
+      { ...at, p: 10 },
+    ])
+      expect(freePosition([{ ...other, until }], at, 0)).toEqual(free);
+    expect(freePosition(undefined, at, 0)).toEqual(free);
+    expect(freePosition([], at, 0)).toEqual(free);
   });
 });

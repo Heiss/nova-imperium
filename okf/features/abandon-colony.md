@@ -22,6 +22,11 @@ Planet“ (https://owiki.de/index.php?title=Zerst%C3%B6rter_Planet&oldid=76922).
   (owiki „Zerstörter Planet“) (owner, 2026-11-16).
 * **[E]** X1 (owner, 2026-11-17): the lock is set in the dialog „Neue
   Runde“ and stays changeable by the admin during the round.
+* **[E]** Sternenkarte (owner, 2026-11-17): a locked position shows
+  „gesperrt bis <Datum>“ and offers no Landnahme; the server's refusal
+  stays as a guard.
+* **[E]** The German texts below were confirmed by the owner as built
+  (2026-11-17).
 * **[E]** Main planet (owner, 2026-11-16, D3): the chosen main planet
   (#221) cannot be given up; the player changes the main planet first.
   #221 was clarified the same day (see [Main planet](/features/main-planet.md)).
@@ -67,7 +72,11 @@ Planet“ (https://owiki.de/index.php?title=Zerst%C3%B6rter_Planet&oldid=76922).
   ab <Datum, Uhrzeit>.“ (in the time of Berlin, like the main-planet lock;
   code `locked` of `sendError`), a Landnahme that arrives during the lock
   turns back like one at an unsuitable target, and no new home planet is
-  placed there. The Sternenkarte shows the position as free.
+  placed there. The Sternenkarte shows „gesperrt bis <Datum, Uhrzeit>“ (in
+  the browser's time, like the main-planet box) instead of „–“ and no
+  „Landnahme“ there, a Bergung stays; the state carries `locks` (every
+  position whose lock still holds, `planets.locks()`), and the browser asks
+  `positionLocked` through `freePosition` (`client/logic/abandon.ts`).
 * **[V]** The rules are pure functions in `src/core/abandon.ts` (patterns,
   section 7): `abandonTargetError` (codes `unknown`, `moon`, `main`),
   `abandonError` (then `flights`, `research`, `orders`, in this order),
@@ -84,7 +93,7 @@ Planet“ (https://owiki.de/index.php?title=Zerst%C3%B6rter_Planet&oldid=76922).
   that the position is locked for the hours of the round, „Diese Aktion
   kann nicht rückgängig gemacht werden.“ and the password. It sends the
   planet it was opened for, never one shown meanwhile.
-* **[V]** Messages: „Die Kolonie <Name> [g:s:p] wurde aufgegeben.“;
+* **[E]** Messages (confirmed by the owner, 2026-11-17): „Die Kolonie <Name> [g:s:p] wurde aufgegeben.“;
   refusals „Das ist keiner deiner Planeten.“ (as for the main planet), „Ein
   Mond kann nicht allein aufgegeben werden.“, „Der Hauptplanet kann nicht
   aufgegeben werden. Wähle zuerst einen anderen Hauptplaneten.“, „Die
@@ -98,7 +107,8 @@ Planet“ (https://owiki.de/index.php?title=Zerst%C3%B6rter_Planet&oldid=76922).
 
 * Unit: `src/core/abandon.test.ts` (the lock boundaries as a property, the
   codes and their order), `src/core/missions.test.ts` (the code `locked`),
-  `src/client/logic/abandon.test.ts` (the button and the confirmation),
+  `src/client/logic/abandon.test.ts` (the button, the confirmation and a
+  locked position), `src/client/views/galaxy.test.ts` (the Sternenkarte),
   `src/client/logic/overview.test.ts`, `src/client/views/misc.test.ts` (the
   field of the dialog), `src/test/overview-reference.test.ts` (the frozen
   overview with the button).

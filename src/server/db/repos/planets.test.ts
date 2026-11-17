@@ -204,7 +204,17 @@ describe('planets repository', () => {
     ctx.planets.lockPosition(at, 900);
     expect(ctx.planets.positionLock(at)).toBe(900);
     ctx.planets.lockPosition({ g: 2, s: 2, p: 3 }, 100);
+    ctx.planets.lockPosition({ g: 1, s: 1, p: 9 }, 950);
+    // The locks that hold after a time, by position.
+    expect(ctx.planets.locks(99)).toEqual([
+      { g: 1, s: 1, p: 9, until: 950 },
+      { g: 1, s: 2, p: 3, until: 900 },
+      { g: 2, s: 2, p: 3, until: 100 },
+    ]);
+    expect(ctx.planets.locks(100)).toHaveLength(2);
+    expect(ctx.planets.locks(900)).toEqual([{ g: 1, s: 1, p: 9, until: 950 }]);
     ctx.planets.deleteAll();
+    expect(ctx.planets.locks(0)).toEqual([]);
     expect(ctx.planets.positionLock(at)).toBeNull();
     expect(
       ctx.db.prepare('SELECT COUNT(*) FROM position_locks').pluck().get(),

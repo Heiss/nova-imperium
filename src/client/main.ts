@@ -8,7 +8,7 @@ import { placeId } from '../core/place.ts';
 import { settle, settleR } from '../core/settle.ts';
 import { text } from '../core/text.ts';
 import type { Levels, Planet, Queue } from '../core/types.ts';
-import { abandonDialog } from './logic/abandon.ts';
+import { abandonActs, roundLocks } from './abandon-actions.ts';
 import { createAct, placeOf, samePlace } from './logic/act.ts';
 import { CATALOG_VIEWS, catalogKind, orderNote } from './logic/catalog-list.ts';
 import { clearsChat, sameSignIn } from './logic/guild-chat.ts';
@@ -62,7 +62,6 @@ import {
   auth,
   deleteAccountDialog,
   diagnosticTab,
-  roundDialog,
   endzeitDialog,
   type AdminTab,
 } from './views/misc.ts';
@@ -1281,7 +1280,7 @@ const ACT: Record<string, (d: Data) => unknown> = {
     }
   },
   deleteAccount: () => modal(deleteAccountDialog(client.game!.round)),
-  abandon: () => modal(abandonDialog(client.view!.P, client.game!)),
+  ...abandonActs({ act, modal }),
   dismissInstall: () => {
     installDismissed = true;
     try {
@@ -1307,7 +1306,6 @@ const ACT: Record<string, (d: Data) => unknown> = {
       toast('Bitte installiere die App über das Browsermenü.', true);
     }
   },
-  reset: () => modal(roundDialog(client.game!.round)),
   doReset: () => {
     const checked = (id: string) => $<HTMLInputElement>(id)!.checked;
     const rewards = {
@@ -1315,10 +1313,8 @@ const ACT: Record<string, (d: Data) => unknown> = {
       daily: checked('#round-daily'),
     };
     const guilds = checked('#round-guilds');
-    const mainLock = Number(val('#round-main-lock'));
-    const abandonLock = Number(val('#round-abandon-lock'));
     modal('');
-    return act('reset', { rewards, guilds, mainLock, abandonLock });
+    return act('reset', { rewards, guilds, ...roundLocks() });
   },
   endzeit: () => modal(endzeitDialog(client.game!.admin!.endzeit.minutes)),
   doEndzeit: () => {
@@ -1509,13 +1505,6 @@ async function submitPassword(reset: boolean): Promise<void> {
   } catch (e) {
     toast((e as Error).message, true);
   }
-}
-
-/** „Kolonie aufgeben“ (#224): the target of the dialog, never the planet shown meanwhile. */
-async function submitAbandon(): Promise<void> {
-  const target = $<HTMLFormElement>('#abandonform')!.dataset.target;
-  const password = val('#abandon-password');
-  if (await act('abandon', { target, password })) modal('');
 }
 
 async function submitAccountDeletion(): Promise<void> {
@@ -1753,7 +1742,6 @@ document.addEventListener('submit', (e) => {
     ['passwordform', () => submitPassword(false)],
     ['passkeyform', submitPasskey],
     ['deleteaccountform', submitAccountDeletion],
-    ['abandonform', submitAbandon],
     ['reportform', () => submitReport('reportform')],
     ['reportform-dialog', () => submitReport('reportform-dialog')],
   ] as const;

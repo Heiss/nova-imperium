@@ -122,6 +122,13 @@ describe('giving up a colony', () => {
     expect(ctx.planets.ofOwner('u_Anna').map((p) => p.id)).toEqual(['p1_1_5']);
     const until = ctx.now() + 24 * HOUR_MS;
     expect(ctx.planets.positionLock(AT)).toBe(until);
+    // Every player sees the lock on the Sternenkarte until it ends.
+    const locks = (uid: string) =>
+      (stateFor(ctx, ctx.players.get(uid)!) as { locks: unknown }).locks;
+    expect(locks('u_Bert')).toEqual([{ ...AT, until }]);
+    ctx.clock.t = until;
+    expect(locks('u_Anna')).toEqual([]);
+    ctx.clock.t = START + 1;
     expect(event.detail).toEqual({ planet: COLONY, moon: MOON, until });
     // Bert's planet is untouched.
     expect(ctx.planets.get('p1_2_5')).not.toBeNull();

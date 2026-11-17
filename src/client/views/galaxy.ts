@@ -1,6 +1,7 @@
 import { MISSION } from '../../core/missions.ts';
 import { placeName } from '../../core/moon.ts';
 import { placeId } from '../../core/place.ts';
+import { freePosition } from '../logic/abandon.ts';
 import { debrisAt, debrisMark, harvestButton } from '../logic/debris.ts';
 import { esc, fmt } from '../logic/format.ts';
 import { isProtected, nameOf, ranks } from '../logic/game.ts';
@@ -94,10 +95,13 @@ function row(v: V, p: number, rk: Record<string, number>): string {
     (field ? ` ${debrisMark(field)}` : '');
   const harvest = field ? harvestButton(c) : '';
   if (!pl) {
-    const colonize = v.P.ships.colony
-      ? `<button class="small" data-act="gfleet" data-m="colonize" ${at}>Landnahme</button>`
-      : '';
-    return `<tr><td class="n">${p}</td><td colspan="2"><span class="dim">–</span>${mark}</td><td>${join(colonize, harvest)}</td></tr>`;
+    // A position locked after an abandonment says until when (#224).
+    const free = freePosition(s.locks, c, v.now);
+    const colonize =
+      v.P.ships.colony && free.colonize
+        ? `<button class="small" data-act="gfleet" data-m="colonize" ${at}>Landnahme</button>`
+        : '';
+    return `<tr><td class="n">${p}</td><td colspan="2"><span class="dim">${free.note}</span>${mark}</td><td>${join(colonize, harvest)}</td></tr>`;
   }
   const mine = pl.owner === s.me.id;
   const moonLine = open ? moonRow(v, moon, rk) : '';
