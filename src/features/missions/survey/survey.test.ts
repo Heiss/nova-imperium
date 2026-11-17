@@ -177,6 +177,33 @@ describe('survey', () => {
     }
   });
 
+  it('shifts the windows of score 4 once, when the report is made, and stores them (owner, 2026-11-17)', () => {
+    const { ctx, f } = setup(2, 1);
+    ctx.surveys.add({
+      id: 'v1',
+      ...FREE,
+      temp: 72,
+      diameter: 14600,
+      created: f.arr,
+    });
+    // The loss chance 0, its roll, then the shift of the fields and of the temperature.
+    const draws = [0, 0.5, 0, 0.9999];
+    ctx.rng = () => draws.shift()!;
+    onArrive(ctx, f);
+    expect(draws).toEqual([]);
+    const near = {
+      tier: 'near',
+      fields: { min: 213, max: 298 },
+      temp: { min: 52, max: 72 },
+    };
+    expect(ctx.reports.ofPlayer('u_Anna')).toMatchObject([near]);
+    // The report keeps its windows, and the shift itself is not stored.
+    ctx.rng = () => 0.5;
+    const [again] = ctx.reports.ofPlayer('u_Anna');
+    expect(again).toMatchObject(near);
+    expect(JSON.stringify(again)).not.toMatch(/shift|0\.9999/);
+  });
+
   it('takes the research finished at the arrival', () => {
     const { ctx, f } = setup(4, 1);
     ctx.players.save({

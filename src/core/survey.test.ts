@@ -7,9 +7,11 @@ import { colonyDiameter, fieldRange, fieldsOf } from './fields.ts';
 import { distance } from './flight.ts';
 import { satEnergy, tempFactor } from './rates.ts';
 import {
+  CENTRED,
   MAX_LOSS,
   SURVEY_DAYS,
   maxLoss,
+  nearShift,
   positionTemp,
   rollTemp,
   surveyFindings,
@@ -159,7 +161,7 @@ describe('what a survey report shows', () => {
   const values = { temp: 72, diameter: 14600 };
 
   it('shows what the position lets one guess in the rough report (D5)', () => {
-    expect(surveyFindings(c, values, 'rough')).toEqual({
+    expect(surveyFindings(c, values, 'rough', CENTRED)).toEqual({
       tier: 'rough',
       planetType: 'dschungel',
       range: { min: 150, max: 246 },
@@ -168,18 +170,84 @@ describe('what a survey report shows', () => {
     });
   });
 
+  it('shifts each window at random, keeping its width, the true value inside (owner, 2026-11-17)', () => {
+    const near = (fields: number, temp: number) =>
+      surveyFindings(c, values, 'near', { fields, temp });
+    // 213 fields ± 20 % is a window of 85.2 fields, the temperature 20 °C.
+    expect(near(0, 0)).toMatchObject({
+      fields: { min: 213, max: 298 },
+      temp: { min: 72, max: 92 },
+    });
+    expect(near(0.25, 0.75)).toMatchObject({
+      fields: { min: 192, max: 277 },
+      temp: { min: 57, max: 77 },
+    });
+    expect(near(0.9999, 0.9999)).toMatchObject({
+      fields: { min: 128, max: 213 },
+      temp: { min: 52, max: 72 },
+    });
+    // Only the windows of score 4 move.
+    for (const tier of ['rough', 'exact', 'full'] as const)
+      expect(surveyFindings(c, values, tier, { fields: 0, temp: 1 })).toEqual(
+        surveyFindings(c, values, tier, CENTRED),
+      );
+  });
+
+  it('draws the shift once per window, only for score 4', () => {
+    const draws = [0.1, 0.8, 0.3];
+    const rng = () => draws.shift()!;
+    expect(nearShift('near', rng)).toEqual({ fields: 0.1, temp: 0.8 });
+    for (const tier of ['rough', 'exact', 'full'] as const)
+      expect(nearShift(tier, rng)).toEqual(CENTRED);
+    expect(draws).toEqual([0.3]);
+    expect(CENTRED).toEqual({ fields: 0.5, temp: 0.5 });
+  });
+
+  it('keeps the true value inside a window of its width for every shift (property)', () => {
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 1, max: 15 }),
+        fc.integer({ min: 0, max: 1000 }),
+        fc.double({ min: 0, max: 1, maxExcluded: true, noNaN: true }),
+        fc.double({ min: 0, max: 1, maxExcluded: true, noNaN: true }),
+        (p, seed, fields, temp) => {
+          const rng = seeded(seed);
+          const v = {
+            temp: rollTemp(p, rng),
+            diameter: colonyDiameter(p, rng),
+          };
+          const f = fieldsOf(v.diameter);
+          const x = surveyFindings({ s: 1, p }, v, 'near', { fields, temp });
+          expect(x.fields!.min).toBeLessThanOrEqual(f);
+          expect(x.fields!.max).toBeGreaterThanOrEqual(f);
+          expect(x.temp!.min).toBeLessThanOrEqual(v.temp);
+          expect(x.temp!.max).toBeGreaterThanOrEqual(v.temp);
+          // The width stays 40 % of the fields and 20 °C, up to rounding.
+          expect(
+            Math.abs(x.fields!.max - x.fields!.min - 0.4 * f),
+          ).toBeLessThanOrEqual(1);
+          expect(Math.abs(x.temp!.max - x.temp!.min - 20)).toBeLessThanOrEqual(
+            1,
+          );
+        },
+      ),
+    );
+  });
+
   it('narrows the fields to ± 20 % and the temperature to ± 10 °C (score 4)', () => {
     expect(fieldsOf(14600)).toBe(213);
-    expect(surveyFindings(c, values, 'near')).toMatchObject({
+    expect(surveyFindings(c, values, 'near', CENTRED)).toMatchObject({
       tier: 'near',
       fields: { min: 170, max: 256 },
       temp: { min: 62, max: 82 },
     });
-    expect(surveyFindings(c, values, 'near')).not.toHaveProperty('full');
+    expect(surveyFindings(c, values, 'near', CENTRED)).not.toHaveProperty(
+      'full',
+    );
   });
 
   it('shows the exact fields and temperature (score 7)', () => {
-    const x = surveyFindings(c, values, 'exact');
+    const x = surveyFindings(c, values, 'exact', CENTRED);
     expect(x).toMatchObject({
       fields: { min: 213, max: 213 },
       temp: { min: 72, max: 72 },
@@ -188,7 +256,7 @@ describe('what a survey report shows', () => {
   });
 
   it('shows everything known in the full report (D6)', () => {
-    expect(surveyFindings(c, values, 'full').full).toEqual({
+    expect(surveyFindings(c, values, 'full', CENTRED).full).toEqual({
       temp: 72,
       diameter: 14600,
       fields: 213,
@@ -204,7 +272,7 @@ describe('what a survey report shows', () => {
 
   it('names the benefits and drawbacks against the position', () => {
     const full = (temp: number, diameter: number) =>
-      surveyFindings(c, { temp, diameter }, 'full').full!;
+      surveyFindings(c, { temp, diameter }, 'full', CENTRED).full!;
     // Fewer fields than the average 198 and cooler than 50 °C.
     expect(full(40, 12000)).toMatchObject({
       fields: 144,
@@ -222,7 +290,7 @@ describe('what a survey report shows', () => {
   });
 
   it('keeps the average of an odd range and uses the planet type of the coordinates', () => {
-    const x = surveyFindings({ s: 2, p: 5 }, values, 'rough');
+    const x = surveyFindings({ s: 2, p: 5 }, values, 'rough', CENTRED);
     expect(x.range).toEqual(fieldRange(5));
     expect(x.average).toBe(182.5);
     expect(x.planetType).toBe('trocken');
@@ -241,11 +309,11 @@ describe('what a survey report shows', () => {
             diameter: colonyDiameter(p, rng),
           };
           const f = fieldsOf(v.diameter);
-          const near = surveyFindings({ s, p }, v, 'near');
+          const near = surveyFindings({ s, p }, v, 'near', CENTRED);
           expect(near.fields!.min).toBeLessThanOrEqual(f);
           expect(near.fields!.max).toBeGreaterThanOrEqual(f);
           expect(near.temp).toEqual({ min: v.temp - 10, max: v.temp + 10 });
-          const full = surveyFindings({ s, p }, v, 'full').full!;
+          const full = surveyFindings({ s, p }, v, 'full', CENTRED).full!;
           expect(full.fields).toBe(f);
           expect(f).toBeGreaterThanOrEqual(near.range.min);
           expect(f).toBeLessThanOrEqual(near.range.max);

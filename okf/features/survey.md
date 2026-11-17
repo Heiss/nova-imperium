@@ -50,38 +50,58 @@ extension of this game.
 * **[E]** D7 – Lost probes: no report.
 * **[E]** The position production bonuses of modern OGame are not rules of
   this game; the report shows the values this game has.
+* **[E]** Follow-up on the build (owner, 2026-11-17, „Geklärt“ on #190):
+  * the window at score 4 keeps its width (fields ± 20 %, temperature
+    ± 10 °C) but is shifted at random: the true value is always inside it,
+    not necessarily in its middle;
+  * the German texts are confirmed as built: the mission „Vermessung“, the
+    button „Vermessen“, the abbreviation „AK“, the report „Vermessungsbericht
+    [g:s:p]“, the refusals „Vermessung erst mit Auspex-Kartographie.“ and
+    „Vermessung nur mit Spähschädeln.“, the keywords „viele/wenige Felder“,
+    „guter/schwacher Promethium-Faktor“ and „viel/wenig
+    Sonnenreliquiar-Energie“, and the short and the long text of the
+    research;
+  * the rough report also gets the adjectives of D5 (temperature, orbit and
+    size, e.g. „gemäßigter Planet in der mittleren Bahn, vermutlich groß“);
+    not built yet, see „Open“;
+  * the 30 days count from the first survey; a later survey does not
+    restart them;
+  * lost probes fix no values; only a survey that brings back a report
+    fixes them.
 
 ## Built
 
-* **[V]** The mission „Vermessung“ (name of the issue body) is the folder
+* The mission „Vermessung“ (**[E]** the name, confirmed 2026-11-17) is the folder
   `src/features/missions/survey/` (order 70, target `free`, no cargo,
   returns, not visible, silent like the Auspex-Erkundung). `canSend`
   returns `surveyLocked` without level 1 of the research, then
   `surveyProbesOnly` for any ship other than a Spähschädel; `SendFleet`
   carries the research of the owner for it. The server words them
   „Vermessung erst mit Auspex-Kartographie.“ and „Vermessung nur mit
-  Spähschädeln.“ **[V]** (`SEND_ERROR`, see
+  Spähschädeln.“ **[E]** (confirmed 2026-11-17; `SEND_ERROR`, see
   [Checks of the server actions](/architecture/action-checks.md)).
 * The research is the entry `src/features/carto/` (key `carto`, order 160,
   after the IFN) with the values of D4. **[V]** The key `carto` instead of
   `survey`: a research named like the mission would make the report type
   „survey“ a comparison with a catalog key (`src/test/catalog-keys.test.ts`).
-  **[V]** Abbreviation „AK“, the short and the long text, and the picture
-  (the one of the Auspex-Lehre with its own name until one is drawn).
+  **[E]** Abbreviation „AK“ and the short and the long text (confirmed
+  2026-11-17); **[V]** the picture (the one of the Auspex-Lehre with its
+  own name until one is drawn).
 * `src/core/survey.ts` holds the rules: `surveyScore`, `surveyTier`
   (`rough`, `near`, `exact`, `full`), `maxLoss`, `surveyLost` (two draws:
   the chance, then the roll), `rollTemp` (the temperature rule of a new
-  colony, `130 − (p − 1) · 10 ± 10`, moved out of `createPlanet` unchanged)
-  and `surveyFindings`, what a report of a tier holds. The tests check the
+  colony, `130 − (p − 1) · 10 ± 10`, moved out of `createPlanet` unchanged),
+  `nearShift` (where the true value lies in each window of score 4) and
+  `surveyFindings`, what a report of a tier holds. The tests check the
   owner's table of revision 2 to the percent. `tempFactor` (the factor of
   the Promethium-Raffinerie) moved into `src/core/rates.ts` and the entry
   `deut` uses it, same arithmetic.
 * The arrival (`arrive.server.ts`): the loss is rolled first; lost probes
   are deleted without a report and without values (D7). Otherwise the
   position gets its values at the first survey (temperature and diameter
-  with the rules of a new colony, `created` = the arrival), the owner gets
-  the report „Vermessungsbericht [g:s:p]“ (push topic `fleet`) and the
-  probes fly back. The level is the one at the arrival (`settleR`).
+  with the rules of a new colony, `created` = the arrival, kept by a later
+  survey), the owner gets the report „Vermessungsbericht [g:s:p]“ **[E]**
+  (push topic `fleet`) and the probes fly back. The level is the one at the arrival (`settleR`).
 * `createPlanet` uses the stored values of the position and deletes them.
   **[V]** This also applies to a new home planet placed on a surveyed
   position: its temperature is the stored one, its diameter stays the one
@@ -104,10 +124,18 @@ extension of this game.
     rule defines; the value of „Temperatur um“ is the middle of the maximum
     temperature of the position, `130 − (p − 1) · 10`.
   * from score 4 and 7 **[V]**: the rough line and a table „Felder“,
-    „Temperatur“, „Planetentyp“; at 4 „ca. 170–256“ (fields ± 20 %,
-    rounded) and „ca. 22 °C bis 82 °C“ (the maximum temperature ± 10 °C,
-    the planet spans 40 °C below it as in the overview), at 7 the exact
-    values. The ranges are centred on the true value, as D2 says.
+    „Temperatur“, „Planetentyp“; at 4 „ca. 170–256“ (a window of 40 % of
+    the fields, rounded) and „ca. 22 °C bis 82 °C“ (a window of 20 °C of the
+    maximum temperature, the planet spans 40 °C below it as in the
+    overview), at 7 the exact values.
+  * **[E]** The windows of score 4 (owner, 2026-11-17) keep their width and
+    are shifted at random: the server draws, when it makes the report, the
+    share of each window below the true value between 0 and 1 and stores
+    the report with the ends of the windows, so a reload shows the same
+    window. Both ends are rounded; the values are whole numbers, so the
+    true value stays inside. **[V]** One draw per window (fields and
+    temperature apart); the shift itself is not stored, since with the
+    window it would tell the true value.
   * full: the table of the issue **[V]** „Temperatur“ („32 °C bis 72 °C“),
     „Durchmesser“, „Felder“ with the range and average of the position and
     „überdurchschnittlich“, **[V]** „durchschnittlich“ or
@@ -119,17 +147,22 @@ extension of this game.
     Sonnenreliquiar-Energie“, warmer „viel Sonnenreliquiar-Energie“ and
     „schwacher Promethium-Faktor“. The owner's example „wenig
     Solarsatelliten-Energie“ uses the classic name, which the naming test
-    refuses (#94).
-* **[V]** Sternenkarte: a button „Vermessen“ at a free position when the
+    refuses (#94). **[E]** The keywords themselves are confirmed
+    (2026-11-17).
+* **[V]** Sternenkarte: a button „Vermessen“ (**[E]** the text, confirmed
+  2026-11-17) at a free position when the
   shown planet has Spähschädel and the player has level 1 of the research,
   between „Landnahme“ and „Bergung“; it sends the number of Spähschädel of
   the option „Spähschädel pro Auspex-Erkundung“ (at most those on the
   planet), like the link „Auspex-Erkundung“. The fleet form offers the
   mission as the last one.
 * Tests: `src/core/survey.test.ts` (score, tiers, the loss table, the
-  temperature rule, the findings, ranges hold every possible planet),
+  temperature rule, the findings, the shifted windows with fixed draws,
+  property test: the true value is inside a window of its width for every
+  shift, ranges hold every possible planet),
   `src/features/missions/survey/survey.test.ts` (send checks and messages,
-  every tier, research finished at the arrival, loss without report, more
+  every tier, the windows drawn once at the arrival and stored, research
+  finished at the arrival, loss without report, more
   loss farther away, values kept, property test: survey then colonize gives
   the same values, the 30-day cleanup), the repository, the upgrade test,
   the Sternenkarte and the words of the report, and the E2E test
@@ -139,3 +172,8 @@ extension of this game.
 
 * The star map does not mark surveyed positions yet (#160), and the field
   properties come with #158.
+* The adjectives of the rough report (owner, 2026-11-17): no rule says
+  from which temperature a planet is „gemäßigt“, which positions are the
+  „mittlere Bahn“ or from how many fields it is „groß“, and the repository
+  has no such classification (the planet type of #52 is a look only). The
+  rough report stays as built until the owner gives the thresholds.

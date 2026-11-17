@@ -4,7 +4,8 @@
 //
 // * D2: score = probes + 2 · L, L the level of „Auspex-Kartographie“;
 //   below 4 a rough report, from 4 the fields ± 20 % and the temperature
-//   ± 10 °C, from 7 the exact fields and temperature, from 10 the full
+//   ± 10 °C (owner, 2026-11-17: each window keeps its width but is shifted
+//   at random, the true value always inside it), from 7 the exact fields and temperature, from 10 the full
 //   report.
 // * D2: the loss is drawn at random between 0 and
 //   min(60 %, probes · 5 % / L + 6 % · (distance / 1000)^0.8 / (1 + 0.4 · L)),
@@ -123,9 +124,9 @@ export interface SurveyFindings {
   average: number;
   /** The middle of the maximum temperature at the position (D5). */
   around: number;
-  /** The fields: ± 20 % from tier `near`, exact from tier `exact`. */
+  /** The fields: a window of ± 20 % from tier `near`, exact from tier `exact`. */
   fields?: Span;
-  /** The maximum temperature: ± 10 °C from tier `near`, exact from `exact`. */
+  /** The maximum temperature: a window of ± 10 °C from tier `near`, exact from `exact`. */
   temp?: Span;
   full?: FullFindings;
 }
@@ -160,17 +161,54 @@ function keywords(
   return { pros, cons };
 }
 
-/** The exact value, or ± `by` around it at tier `near`. */
-const span = (tier: SurveyTier, value: number, by: number): Span =>
-  tier === 'near'
-    ? { min: Math.round(value - by), max: Math.round(value + by) }
-    : { min: value, max: value };
+/**
+ * Where the true value lies in each window of tier `near`, as the share of
+ * the window below it, from 0 (at its lower end) to 1 (at its upper end).
+ */
+export interface NearShift {
+  fields: number;
+  temp: number;
+}
 
-/** What a survey of tier `tier` shows of the position `c` with its values. */
+/** Both windows centred on the true value. */
+export const CENTRED: NearShift = { fields: 0.5, temp: 0.5 };
+
+/**
+ * The shift of the windows of a report of tier `tier` (owner, 2026-11-17):
+ * drawn once when the report is made, one draw per window [V]; the other
+ * tiers have no window and draw nothing.
+ */
+export const nearShift = (tier: SurveyTier, rng: Rng): NearShift =>
+  tier === 'near' ? { fields: rng(), temp: rng() } : CENTRED;
+
+/**
+ * The exact value, or at tier `near` a window of the width 2 · `by` with
+ * the share `shift` of it below the value. The value is a whole number, so
+ * rounding both ends keeps it inside.
+ */
+function span(
+  tier: SurveyTier,
+  value: number,
+  by: number,
+  shift: number,
+): Span {
+  if (tier !== 'near') return { min: value, max: value };
+  const width = 2 * by;
+  return {
+    min: Math.round(value - width * shift),
+    max: Math.round(value + width * (1 - shift)),
+  };
+}
+
+/**
+ * What a survey of tier `tier` shows of the position `c` with its values;
+ * `shift` places the windows of tier `near` (`nearShift`).
+ */
 export function surveyFindings(
   c: Pick<Coords, 's' | 'p'>,
   v: SurveyValues,
   tier: SurveyTier,
+  shift: NearShift,
 ): SurveyFindings {
   const range = fieldRange(c.p);
   const average = (range.min + range.max) / 2;
@@ -184,8 +222,8 @@ export function surveyFindings(
   };
   if (tier === 'rough') return out;
   const fields = fieldsOf(v.diameter);
-  out.fields = span(tier, fields, fields * 0.2);
-  out.temp = span(tier, v.temp, 10);
+  out.fields = span(tier, fields, fields * 0.2, shift.fields);
+  out.temp = span(tier, v.temp, 10, shift.temp);
   if (tier !== 'full') return out;
   const cmp = compare(fields, average);
   out.full = {

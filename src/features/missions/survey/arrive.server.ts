@@ -1,13 +1,15 @@
 // A Vermessung surveys the free position (#190): the probes may be lost,
 // then there is no report (D7); else the position gets its values at its
 // first survey (D1), the owner a report of the tier the score reaches (D2),
-// and the probes fly back. The dispatcher has checked that the position is
+// with the windows of score 4 shifted at random (owner, 2026-11-17), and
+// the probes fly back. The dispatcher has checked that the position is
 // still free and inside the universe.
 import { colonyDiameter } from '../../../core/fields.ts';
 import { distance } from '../../../core/flight.ts';
 import { settleR } from '../../../core/settle.ts';
 import {
   maxLoss,
+  nearShift,
   rollTemp,
   surveyFindings,
   surveyLost,
@@ -49,6 +51,16 @@ export function onArrive(ctx: Ctx, f: Fleet): void {
   if (surveyLost(maxLoss(probes, level, distance(f.fromC, f.toC)), ctx.rng))
     return ctx.fleets.delete(f.id);
   const values = valuesOf(ctx, f);
+  const tier = surveyTier(surveyScore(probes, level));
+  // The windows of tier `near` are placed once, here, and stored with the
+  // report as their ends; the shift itself is not stored, it would tell
+  // the true value.
+  const findings = surveyFindings(
+    f.toC,
+    values,
+    tier,
+    nearShift(tier, ctx.rng),
+  );
   addReport(
     ctx,
     f.owner,
@@ -58,7 +70,7 @@ export function onArrive(ctx: Ctx, f: Fleet): void {
       title: `Vermessungsbericht ${coords(f.toC)}`,
       coords: f.toC,
       survey: values.id,
-      ...surveyFindings(f.toC, values, surveyTier(surveyScore(probes, level))),
+      ...findings,
     },
     { topic: 'fleet' },
   );

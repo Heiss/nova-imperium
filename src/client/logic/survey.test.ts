@@ -1,7 +1,7 @@
 // The Vermessung in the interface (#190): the words of the report per tier
 // and when the Sternenkarte offers it.
 import { describe, expect, it } from 'vitest';
-import { type SurveyTier, surveyFindings } from '../../core/survey.ts';
+import { CENTRED, type SurveyTier, surveyFindings } from '../../core/survey.ts';
 import { COMPARE, KEYWORDS, canSurvey, surveyBody } from './survey.ts';
 import type { Report } from './types.ts';
 
@@ -14,7 +14,7 @@ const report = (tier: SurveyTier, temp = 72, diameter = 14600): Report => ({
   title: 'Vermessungsbericht [1:42:9]',
   coords: C,
   survey: 'v1',
-  ...surveyFindings(C, { temp, diameter }, tier),
+  ...surveyFindings(C, { temp, diameter }, tier, CENTRED),
 });
 
 /** The text of the HTML, with its cells apart. */
