@@ -67,6 +67,26 @@ describe('the box „Warp-Tor“', () => {
     expect(jumpPanel(s, here(), NOW)).not.toBeNull();
   });
 
+  it('is shown from level 1 on', () => {
+    const panel = jumpPanel(
+      { gates: gates({ level: 1 }), galaxy },
+      here({ b: { moonbase: 1, jumpgate: 1 } }),
+      NOW,
+    );
+    expect(panel?.targets).toHaveLength(2);
+  });
+
+  it('reads the readiness of the gate of this moon, not of the first gate', () => {
+    const cooling = gates({}, { ready: NOW + 60_000 });
+    const panel = jumpPanel(
+      { gates: [cooling[1]!, cooling[0]!, cooling[2]!], galaxy },
+      here(),
+      NOW,
+    )!;
+    expect(panel.cooling).toBeNull();
+    expect(panel.canJump).toBe(true);
+  });
+
   it('offers the other own moons with a Warp-Tor as „Zielmond“', () => {
     expect(jumpPanel({ gates: gates(), galaxy }, here(), NOW)).toEqual({
       cooling: null,

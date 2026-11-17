@@ -23,7 +23,7 @@ import { type Action, mine } from './actions.ts';
 import { type Ctx, fail, universe } from './context.ts';
 import { pickedShips } from './fleet-actions.ts';
 
-/** The German message of each refusal [V]. */
+/** The German message of each refusal [E] (owner, 2026-11-17). */
 export const JUMP_ERROR: Readonly<Record<JumpError, string>> = {
   notMoon: 'Ein Sprung ist nur von einem Mond aus möglich.',
   noGate: 'Auf diesem Mond steht kein Warp-Tor.',

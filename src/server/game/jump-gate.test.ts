@@ -154,6 +154,20 @@ describe('the jump through the Warp-Tor', () => {
     }
   });
 
+  it('refuses with the confirmed texts (owner, 2026-11-17)', () => {
+    expect(JUMP_ERROR).toEqual({
+      notMoon: 'Ein Sprung ist nur von einem Mond aus möglich.',
+      noGate: 'Auf diesem Mond steht kein Warp-Tor.',
+      cooling: 'Das Warp-Tor kühlt noch ab.',
+      noTarget: 'Der Zielmond muss ein eigener Mond sein.',
+      sameMoon: 'Start und Zielmond sind derselbe Mond.',
+      targetNoGate: 'Auf dem Zielmond steht kein Warp-Tor.',
+      targetCooling: 'Das Warp-Tor des Zielmonds kühlt noch ab.',
+      noShips: 'Keine Schiffe ausgewählt.',
+      stationary: 'Sonnenreliquiare können nicht springen.',
+    });
+  });
+
   it('needs a Warp-Tor on both moons', () => {
     const { ctx } = world(1, 0);
     expect(() => jump(ctx, {})).toThrow(JUMP_ERROR.targetNoGate);
