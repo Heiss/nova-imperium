@@ -337,6 +337,8 @@ describe('security hotfix: apply', () => {
       '  foo@<1.2.5: true',
       'engineStrict: true',
     ].join('\n');
+    // The new ones follow the last entry that stays; blank lines and
+    // comments keep their place.
     expect(
       pinWorkspace(workspace, [
         { name: 'foo', version: '1.2.5' },
@@ -347,25 +349,116 @@ describe('security hotfix: apply', () => {
       [
         'overrides:',
         "  'old@<1.0.0': '1.0.0'",
-        '  # kept',
         "  'foo@<1.2.5': '1.2.5'",
         "  'bar@<2.0.0': '2.0.0'",
         "  'new@<3.0.0': '3.0.0'",
+        '',
+        '  # kept',
         'allowBuilds:',
         '  foo@<1.2.5: true',
         'engineStrict: true',
         '',
       ].join('\n'),
     );
-    // The map in the middle of the file, a later one of the same selector
-    // with another version stays.
+    // A map without an entry that stays: right below its key.
     expect(
-      pinWorkspace('a: 1\noverrides:\n  foo@<1.0.0: 1.0.0\nb: 2\n', [
+      pinWorkspace('overrides:\n  # none yet\nb: 2\n', [
         { name: 'foo', version: '1.2.5' },
       ]),
+    ).toBe("overrides:\n  'foo@<1.2.5': '1.2.5'\n  # none yet\nb: 2\n");
+  });
+
+  it('replace an older pin of the same package, which pnpm would apply first (#284)', () => {
+    const fixes = [
+      { name: 'foo', version: '1.2.5' },
+      { name: '@scope/bar', version: '2.0.0' },
+    ];
+    expect(
+      pinWorkspace(
+        [
+          'a: 1',
+          'overrides:',
+          '  foo@<1.0.0: 1.0.0',
+          "  '@scope/bar@<1.9.9': '1.9.9'",
+          '  foo@<2.0.0: 2.0.0',
+          '  foobar@<1.0.0: 1.0.0',
+          '  foo@^1: 1.0.1',
+          '  foo: 1.0.2',
+          '  @scope/bar@<2.0.1: 2.0.1',
+          'b: 2',
+          '',
+        ].join('\n'),
+        fixes,
+      ),
     ).toBe(
-      "a: 1\noverrides:\n  foo@<1.0.0: 1.0.0\n  'foo@<1.2.5': '1.2.5'\nb: 2\n",
+      [
+        'a: 1',
+        'overrides:',
+        // A pin above the fix, another package and other selectors stay.
+        '  foo@<2.0.0: 2.0.0',
+        '  foobar@<1.0.0: 1.0.0',
+        '  foo@^1: 1.0.1',
+        '  foo: 1.0.2',
+        '  @scope/bar@<2.0.1: 2.0.1',
+        "  'foo@<1.2.5': '1.2.5'",
+        "  '@scope/bar@<2.0.0': '2.0.0'",
+        'b: 2',
+        '',
+      ].join('\n'),
     );
+    expect(
+      pinPackages(
+        {
+          pnpm: {
+            overrides: {
+              'foo@<1.0.0': '1.0.0',
+              'foo@<1.2.5': '1.2.4',
+              'foo@<2.0.0': '2.0.0',
+              other: '1.0.0',
+            },
+          },
+        },
+        [fixes[0]!],
+      ),
+    ).toEqual({
+      pnpm: {
+        overrides: {
+          'foo@<2.0.0': '2.0.0',
+          other: '1.0.0',
+          'foo@<1.2.5': '1.2.5',
+        },
+      },
+    });
+    // The order matters to pnpm: the fix comes after what stays.
+    expect(
+      Object.keys(
+        pinPackages({ pnpm: { overrides: { other: '1' } } }, [fixes[0]!]).pnpm!
+          .overrides!,
+      ),
+    ).toEqual(['other', 'foo@<1.2.5']);
+    expect(pinPackages({ name: 'x' }, [])).toEqual({ name: 'x' });
+  });
+
+  it('read the map past a comment in the first column and a key with a space before its colon', () => {
+    const fix = [{ name: 'foo', version: '1.2.5' }];
+    // A comment in the first column does not end a YAML map.
+    expect(
+      pinWorkspace(
+        "overrides:\n# security pins\n  'foo@<1.2.5': '1.2.4'\nb: 2\n",
+        fix,
+      ),
+    ).toBe("overrides:\n# security pins\n  'foo@<1.2.5': '1.2.5'\nb: 2\n");
+    // YAML allows white space before the colon; the key is the same.
+    expect(pinWorkspace('overrides:\n  foo@<1.2.5 : 1.2.4\n', fix)).toBe(
+      "overrides:\n  'foo@<1.2.5': '1.2.5'\n",
+    );
+    expect(pinWorkspace("overrides:\n  'foo@<1.2.5'  : 1.2.4\n", fix)).toBe(
+      "overrides:\n  'foo@<1.2.5': '1.2.5'\n",
+    );
+    // A pin below a pre-release of the fixed version is an older pin.
+    expect(
+      pinWorkspace('overrides:\n  foo@<1.2.5-rc.1: 1.2.5-rc.1\n', fix),
+    ).toBe("overrides:\n  'foo@<1.2.5': '1.2.5'\n");
   });
 
   it('refuse a form of the overrides it cannot extend', () => {

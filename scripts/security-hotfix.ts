@@ -239,6 +239,22 @@ export function pinDependencies(
 }
 
 /**
+ * Whether an existing override gives way to the fixes: the same selector,
+ * or an older pin of the same package ("name@<w" with w at or below the
+ * fixed version). pnpm applies the first override that matches, so an older
+ * pin listed before the new one would keep the package below the fix
+ * (seen with pnpm 12.21.0, CodeRabbit on #284).
+ */
+function gone(selector: string, fixes: readonly PackageFix[]): boolean {
+  const m = /^((?:@[^@/\s]+\/)?[^@\s]+)@<(\d\S*)$/.exec(selector);
+  if (!m) return false;
+  const [, name = '', below = ''] = m;
+  return fixes.some(
+    (fix) => fix.name === name && compareVersions(below, fix.version) <= 0,
+  );
+}
+
+/**
  * Up to pnpm 10: every older copy of the package gets the fixed version
  * through an override in the field "pnpm" of package.json; a direct
  * dependency also gets it.
@@ -248,29 +264,50 @@ export function pinPackages(
   fixes: readonly PackageFix[],
 ): PackageJson {
   const next = pinDependencies(pkg, fixes);
-  for (const fix of fixes) {
-    const [selector, version] = override(fix);
-    next.pnpm ??= {};
-    next.pnpm.overrides ??= {};
-    next.pnpm.overrides[selector] = version;
-  }
+  if (fixes.length === 0) return next;
+  next.pnpm ??= {};
+  next.pnpm.overrides = Object.fromEntries([
+    ...Object.entries(next.pnpm.overrides ?? {}).filter(
+      ([selector]) => !gone(selector, fixes),
+    ),
+    ...fixes.map(override),
+  ]);
   return next;
 }
 
 /** The key of a line of a YAML map, without its quotes, or undefined. */
 const yamlKey = (line: string): string | undefined =>
-  /^\s+(?:'([^']+)'|"([^"]+)"|([^\s'"#][^:]*)):/
+  /^\s+(?:'([^']+)'|"([^"]+)"|([^\s'"#][^:]*?))\s*:/
     .exec(line)
     ?.slice(1)
     .find((key) => key !== undefined);
 
 /**
+ * The lines of the map "overrides" that stay, and where the new overrides
+ * go: after the last entry that stays, else where the first replaced one
+ * was, else at the top.
+ */
+function keep(
+  block: readonly string[],
+  fixes: readonly PackageFix[],
+): [kept: string[], at: number] {
+  const stays = (line: string): boolean => !gone(yamlKey(line) ?? '', fixes);
+  const kept = block.filter(stays);
+  const afterLast = kept.findLastIndex((line) => yamlKey(line) !== undefined);
+  // Every line before the first replaced one stays: its index counts them.
+  const firstGone = block.findIndex((line) => !stays(line));
+  return [kept, afterLast >= 0 ? afterLast + 1 : Math.max(firstGone, 0)];
+}
+
+/**
  * From pnpm 11 on: the overrides of the plan in the text of
  * pnpm-workspace.yaml (empty when the file is missing), in its top-level
  * map "overrides", which is added at the end when it is missing. An
- * override of the same selector is replaced. Only the block form is
- * written by this project; any other form of the key fails, so an
- * override is never lost unnoticed.
+ * override of the same selector and an older pin of the same package are
+ * replaced; the new ones follow the last entry that stays. Comments and
+ * blank lines stay where they are; a comment in the first column does not
+ * end the map. Only the block form is written by this project; any other
+ * form of the key fails, so an override is never lost unnoticed.
  */
 export function pinWorkspace(
   workspace: string,
@@ -291,23 +328,19 @@ export function pinWorkspace(
     lines.push('overrides:');
     start = lines.length - 1;
   }
-  // The block ends before the next line that starts in the first column.
+  // The map ends before the next key of the first column.
   let end = start + 1;
-  while (end < lines.length && !/^\S/.test(lines[end]!)) end += 1;
-  const selectors = new Set(fixes.map((fix) => override(fix)[0]));
-  const kept = lines
-    .slice(start + 1, end)
-    .filter(
-      (line) => line.trim() !== '' && !selectors.has(yamlKey(line) ?? ''),
-    );
+  while (end < lines.length && !/^[^\s#]/.test(lines[end]!)) end += 1;
+  const [kept, at] = keep(lines.slice(start + 1, end), fixes);
   const added = fixes.map((fix) => {
     const [selector, version] = override(fix);
     return `  '${selector}': '${version}'`;
   });
   return [
     ...lines.slice(0, start + 1),
-    ...kept,
+    ...kept.slice(0, at),
     ...added,
+    ...kept.slice(at),
     ...lines.slice(end),
     '',
   ].join('\n');

@@ -288,7 +288,9 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   (`scripts/security-hotfix.ts`): every older copy of a package gets a pnpm
   override `<name>@<<fixed>`, a dependency of `package.json` also gets the
   fixed version; the job then checks that `pnpm-lock.yaml` holds no version
-  below a fix. The override goes where the pnpm of the release tag reads
+  below a fix. An override of the same selector and an older pin of the same
+  package (`<name>@<<lower>`) are replaced, because pnpm applies the first
+  override that matches (#284). The override goes where the pnpm of the release tag reads
   it (`packageManager`): into `overrides` of `pnpm-workspace.yaml` from
   pnpm 11 on, into the field `pnpm` of `package.json` for an older release
   (#264). A hole in the base image pins the newest digest of
