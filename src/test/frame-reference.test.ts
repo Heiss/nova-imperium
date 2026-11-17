@@ -6,7 +6,10 @@
 // renderMenu() and updateBar() of src/client/main.ts. On generated states
 // (fixed fast-check seed 118) both render the same markup, up to what a
 // browser does not show (normalize() of markup.ts, the same as for the
-// lists and the overview).
+// lists and the overview). One change on purpose (#241, 2026-11-16): with
+// more than one own place, renderPlanetHeader() names the shown place only
+// in the list „Aktiver Planet“, which comes first; marked below. Do not
+// change the frozen HTML otherwise.
 import fc from 'fast-check';
 import { render } from 'svelte/server';
 import { describe, expect, it } from 'vitest';
@@ -59,11 +62,15 @@ function renderPlanetHeader({ s, P }: Frame): string {
   // Every own planet and moon, each moon after its planet (#53).
   const owned = ownPlaces(s.galaxy, s.me.id);
   const activeId = P.id;
-  const selector =
+  // Changed on purpose (#241): the list first and without „ · “ in front of
+  // it, and the name and position of the shown place only without a list.
+  // Before: `<b>name</b> coords · Kommandant … · Logout` and the list after
+  // „ · “ at the end.
+  const shown =
     owned.length > 1
-      ? ` · <select id="planet_select" aria-label="Aktiver Planet">${owned.map((p) => `<option value="${esc(p.id)}" ${p.id === activeId ? 'selected' : ''}>${esc(placeName(p))} ${coords(p)}</option>`).join('')}</select>`
-      : '';
-  return `<b>${esc(placeName(P))}</b> ${coords(P)} · Kommandant <b>${esc(s.me.name)}</b> · <span class="lnk" data-act="logout">Logout</span>${selector}`;
+      ? `<select id="planet_select" aria-label="Aktiver Planet">${owned.map((p) => `<option value="${esc(p.id)}" ${p.id === activeId ? 'selected' : ''}>${esc(placeName(p))} ${coords(p)}</option>`).join('')}</select>`
+      : `<b>${esc(placeName(P))}</b> ${coords(P)}`;
+  return `${shown} · Kommandant <b>${esc(s.me.name)}</b> · <span class="lnk" data-act="logout">Logout</span>`;
 }
 
 function menuBadge(hint: string | undefined): string {
@@ -338,6 +345,9 @@ const frame = fc
 /** Normalized markup of every branch of the frame, for the check that the cases reach them. */
 const MARKS = [
   'id="planet_select"',
+  // #241: the name as text with one own place, the list first with several.
+  '</b> [',
+  '</select> · Kommandant',
   'selected',
   '(Mond)',
   'Kommandant <b>Kain &lt;i>&amp;"\'&lt;/i></b>',

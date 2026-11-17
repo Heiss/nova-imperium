@@ -40,6 +40,18 @@ okf_version: "0.2"
 * [Guild ranks](/features/guild-ranks.md) - ranks with configurable rights, one Leitung, order, default rank, checked on the server (#163)
 * [Guilds on or off per round](/features/guild-switch.md) - one switch „Gilden (mit Chat)“ in the dialog „Neue Runde“, off deletes the guilds and the server refuses every guild action (#191)
 * [Guild chat](/features/guild-chat.md) - one chat per guild with three rights of the ranks, events of the server, a red mark on „Gilden“, 500 messages, deleted each round, read by the admin with an audit entry (#169)
+* [Vacation mode](/features/vacation-mode.md) - pause the account, production stops, everything protected, minimum duration per round (#223)
+* [Main planet](/features/main-planet.md) - the „Hauptplanet“ chosen in the options decides navigation and research, every switch locks it for a time set per round (#221)
+* [Abandon a colony](/features/abandon-colony.md) - give up a colony without running references, everything lost with its moon, position locked per round (#224)
+* [Own activity and play time](/features/own-activity.md) - private statistics per account and round in UTC days, sessions after 30 minutes (#231, #232)
+* [Holding, alliance depot and attack unions](/features/holding-acs.md) - holding at other players, the depot later, attack unions with classic limits, who may join per round (#55, #225, #227)
+* [Buddy list](/features/buddy-list.md) - mutual friendships, name and contact only, kept across rounds (#227)
+* [Espionage defense and fleet recognition](/features/espionage-defense.md) - detection chance of probes, activity in the Auspex-Bericht, thresholds 2/4/8 for incoming fleets (#175, #228)
+* [Activity indicators](/features/activity-indicators.md) - activity per planet and inactivity per account in the Sternenkarte, classic thresholds (#229)
+* [Missiles](/features/missiles.md) - silo, anti-ballistic and interplanetary missiles with classic values (#54)
+* [Expeditions and position 16](/features/expeditions.md) - Expeditionstechnik, outcomes, slots and holding time, debris at position 16 (#93)
+* [Highscore categories](/features/highscore-categories.md) - buildings, research, fleet, defense and total; fleet and research by count (#78)
+* [Demolition of buildings](/features/demolition.md) - one level per order, refund factor −100 % to +100 % and time share per round (#202)
 
 * [Invitations](/features/invitations.md) - registration only by invitation, mail or copied link
 * [Admin](/features/admin.md) - operator roles, diagnostics, audit log, moderation and live universe settings

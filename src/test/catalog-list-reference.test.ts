@@ -381,6 +381,9 @@ const state = fc
       labs: x.labs,
       galaxy: IDS.map((id, i) => ({ id, name: NAMES[i]!, kind: 'planet' })),
       homePlanet: x.home,
+      // Without a switch the main planet is the home planet (#221); the
+      // frozen views know only the home planet.
+      mainPlanet: x.home,
     } as unknown as GameState;
     return {
       s,

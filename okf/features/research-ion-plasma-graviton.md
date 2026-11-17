@@ -33,7 +33,7 @@ they are (2026-11-12).
   network is not on owiki.de. **[V]** It does not join.
 * **[E]** Expeditionstechnik stays out of this issue. It comes with a new
   issue for expeditions, together with the expeditions themselves (owner,
-  2026-11-12, #49 D3).
+  2026-11-12, #49 D3); that is #93 ([Expeditions](/features/expeditions.md)).
 * **[E]** Ionentechnik: 1,000 metal, 300 crystal, 100 deuterium at level 1,
   factor 2. Requires Forschungslabor 4, Lasertechnik 5, Energietechnik 4.
   Prerequisite of the Ionengeschütz (#50) and of Plasmatechnik (owner,

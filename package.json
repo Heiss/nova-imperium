@@ -12,6 +12,7 @@
   "scripts": {
     "start": "node scripts/gen-features.ts && node src/server/main.ts",
     "cli": "node scripts/gen-features.ts && node src/server/cli.ts",
+    "new-migration": "node scripts/new-migration.ts",
     "build": "node scripts/gen-features.ts && vite build",
     "lint": "eslint .",
     "lint:dead": "node scripts/gen-features.ts && knip --no-progress",
@@ -25,7 +26,8 @@
     "test:coverage": "node scripts/gen-features.ts && vitest run --coverage",
     "test:mutation": "node scripts/gen-features.ts && MIGRATION_RUNS=10 stryker run",
     "test:e2e": "playwright test",
-    "check": "node scripts/gen-features.ts && pnpm lint && pnpm lint:dead && pnpm lint:dupes && pnpm lint:deps && pnpm format:check && pnpm typecheck && pnpm test:coverage && pnpm build"
+    "check:migrations": "node .github/scripts/migrations-gate.mjs --local",
+    "check": "node scripts/gen-features.ts && pnpm check:migrations && pnpm lint && pnpm lint:dead && pnpm lint:dupes && pnpm lint:deps && pnpm format:check && pnpm typecheck && pnpm test:coverage && pnpm build"
   },
   "dependencies": {
     "@simplewebauthn/browser": "14.0.0",
@@ -39,7 +41,7 @@
   "devDependencies": {
     "@axe-core/playwright": "4.14.0",
     "@eslint/js": "^10.0.1",
-    "@playwright/test": "1.65.0",
+    "@playwright/test": "1.65.1",
     "@stryker-mutator/core": "10.1.1",
     "@stryker-mutator/vitest-runner": "10.1.1",
     "@sveltejs/vite-plugin-svelte": "7.3.1",

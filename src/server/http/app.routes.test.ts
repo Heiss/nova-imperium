@@ -331,6 +331,32 @@ describe('player actions', () => {
     ]);
   });
 
+  it('audits a game action without a selection on the chosen main planet (#221)', async () => {
+    const { ctx, call } = await player();
+    await call('POST', '/api/login', { name: 'Anna', password: 'secret1' });
+    addPlanet(ctx, 'u_Anna', { p: 7 });
+    const main = await call('POST', '/api/action', {
+      type: 'mainPlanet',
+      main: 'p1_1_7',
+    });
+    expect(main.json).toMatchObject({
+      msg: 'Planet u_Anna ist jetzt dein Hauptplanet.',
+      state: { homePlanet: 'p1_1_5', mainPlanet: 'p1_1_7' },
+    });
+    await call('POST', '/api/action', { type: 'rename', name: 'X' });
+    expect(
+      ctx.db
+        .prepare(
+          "SELECT action, detail FROM audit_events WHERE actor = 'u_Anna' AND category = 'game' ORDER BY id",
+        )
+        .all(),
+    ).toEqual([
+      { action: 'mainPlanet', detail: '{"planet":"p1_1_5"}' },
+      { action: 'rename', detail: '{"planet":"p1_1_7"}' },
+    ]);
+    expect(ctx.planets.get('p1_1_7')!.name).toBe('X');
+  });
+
   it('audits universe settings as an admin write with before and after', async () => {
     const { ctx, call } = await asAdmin();
     const before = ctx.admin.universe();
@@ -655,7 +681,7 @@ describe('game requests', () => {
       minutes: 30,
     });
     expect(again.json).toEqual({
-      error: 'Die Endzeit wurde in dieser Runde schon eingeläutet.',
+      error: 'In dieser Runde wurde die Endzeit schon eingeläutet.',
     });
     const rows = ctx.db
       .prepare(

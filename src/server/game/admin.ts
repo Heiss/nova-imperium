@@ -1,7 +1,13 @@
 // Admin actions on the universe: change the settings live, start a new round.
 import type { RoundRules } from '../../core/achievements.ts';
 import { settle } from '../../core/settle.ts';
-import { validateUniverse } from '../../core/universe.ts';
+import {
+  type UniverseCode,
+  type UniverseSpec,
+  type UsedSize,
+  universeErrors,
+  universeOf,
+} from '../../core/universe.ts';
 import type { Action } from './actions.ts';
 import { addReport, type Ctx, fail, str, universe } from './context.ts';
 import { roundRules, startRoundRules } from './round.ts';
@@ -11,6 +17,15 @@ export const requireAdmin = (u: { admin: boolean }): void => {
   if (!u.admin) fail('Nur der Admin darf das.');
 };
 
+/** The message of each refused setting of `universeErrors` (#214). */
+const SETTINGS_ERROR: Readonly<
+  Record<UniverseCode, (spec: UniverseSpec, used: UsedSize) => string>
+> = {
+  range: (s) => `${s.label}: ganze Zahl von ${s.min} bis ${s.max}.`,
+  used: (s, used) =>
+    `${s.label}: mindestens ${used[s.size!]}, dort liegen schon Planeten.`,
+};
+
 /**
  * Saves new settings. All planets are moved forward to now with the old
  * settings first, so the time before the change keeps the old speed. Running
@@ -18,16 +33,18 @@ export const requireAdmin = (u: { admin: boolean }): void => {
  */
 export const saveSettings: Action = (ctx, u, d) => {
   requireAdmin(u);
-  const checked = validateUniverse(
-    (d.settings as Record<string, unknown> | null) ?? {},
-    ctx.planets.usedSize(),
-  );
-  if (!checked.ok) return fail(checked.errors.join(' '));
+  const input = (d.settings as Record<string, unknown> | null) ?? {};
+  const used = ctx.planets.usedSize();
+  const errors = universeErrors(input, used);
+  if (errors.length)
+    return fail(
+      errors.map((e) => SETTINGS_ERROR[e.code](e.spec, used)).join(' '),
+    );
   const old = universe(ctx);
   const t = ctx.now();
   for (const p of ctx.planets.all())
     ctx.planets.save(settle(p, t, old, ctx.players.get(p.owner)));
-  ctx.admin.saveUniverse(checked.value);
+  ctx.admin.saveUniverse(universeOf(input));
   return 'Einstellungen gespeichert.';
 };
 
@@ -51,6 +68,10 @@ function newRound(ctx: Ctx, rules: RoundRules): void {
     x.research = {};
     x.rq = null;
     x.readAt = 0;
+    // A new round starts with the first planet as the main planet, unlocked
+    // (#221): a planet id is its place, so an old choice must not come back.
+    x.mainPlanet = null;
+    x.mainSwitched = null;
     ctx.players.save(x);
     ctx.reports.deleteAll(x.id);
     placePlanet(
@@ -65,7 +86,7 @@ function newRound(ctx: Ctx, rules: RoundRules): void {
 export const reset: Action = (ctx, u, data, event) => {
   requireAdmin(u);
   const before = roundRules(ctx);
-  const after = startRoundRules(ctx, data.rewards, data.guilds);
+  const after = startRoundRules(ctx, data.rewards, data.guilds, data.mainLock);
   newRound(ctx, after);
   if (event) event.detail = { before, after };
   return 'Neue Runde gestartet – alle Spieler haben einen frischen Planeten.';

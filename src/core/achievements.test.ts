@@ -1,12 +1,7 @@
 // The achievement list itself (names, targets, rewards): its texts and
 // numbers are game content, so they are checked exactly.
 import { describe, expect, it } from 'vitest';
-import {
-  ACHIEVEMENTS,
-  CATEGORIES,
-  dailyReward,
-  type Achievement,
-} from './achievements.ts';
+import { ACHIEVEMENTS, CATEGORIES, type Achievement } from './achievements.ts';
 import { BUILD, DEF, RES, SHIPS } from './catalog.ts';
 import { lvlCost } from './economy.ts';
 import { text } from './text.ts';
@@ -100,13 +95,5 @@ describe('achievements', () => {
       ACTIONS.map((n) => [n * 12, n * 6, n * 2]),
     );
     expect(order.every((a) => a.category === 'yard')).toBe(true);
-  });
-
-  it('grows the daily reward for seven days', () => {
-    expect(dailyReward(0)).toEqual([30, 15, 2]);
-    expect(dailyReward(1)).toEqual([30, 15, 2]);
-    expect(dailyReward(2)).toEqual([40, 20, 4]);
-    expect(dailyReward(7)).toEqual([90, 45, 14]);
-    expect(dailyReward(9)).toEqual([90, 45, 14]);
   });
 });

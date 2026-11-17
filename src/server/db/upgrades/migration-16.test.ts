@@ -1,13 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import { databaseAt } from '../../../test/migrations.ts';
+import {
+  databaseAt,
+  placeOf,
+  throughNumber,
+} from '../../../test/migrations.ts';
 import { migrate } from '../database.ts';
-import { MIGRATIONS } from '../schema.ts';
 import { Store } from '../store.ts';
 
 // Migration 16 rebuilds fleets and fleet_ships for the mission Bergung (#45).
 describe('upgrade to migration 16', () => {
   it('keeps fleets in flight with their ships, fuel and recall', () => {
-    const db = databaseAt(15);
+    const db = databaseAt(placeOf(16) - 1);
     db.exec(`
       INSERT INTO users (id, name, salt, pw_hash, created) VALUES ('u_Anna', 'Anna', 's', 'h', 1);
       INSERT INTO fleets (id, owner, from_planet, from_g, from_s, from_p, to_planet, to_g, to_s, to_p,
@@ -21,7 +24,7 @@ describe('upgrade to migration 16', () => {
     const before = db
       .prepare('SELECT * FROM fleets ORDER BY id')
       .all() as unknown[];
-    expect(migrate(db, MIGRATIONS.slice(0, 16))).toBe(1);
+    expect(migrate(db, throughNumber(16))).toBe(1);
     expect(db.prepare('SELECT * FROM fleets ORDER BY id').all()).toEqual(
       before,
     );

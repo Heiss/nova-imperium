@@ -1,13 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import { databaseAt } from '../../../test/migrations.ts';
+import {
+  databaseAt,
+  placeOf,
+  throughNumber,
+} from '../../../test/migrations.ts';
 import { migrate } from '../database.ts';
-import { MIGRATIONS } from '../schema.ts';
 import { Store } from '../store.ts';
 
 // Migration 18 adds fleets.gift, the gift fleet of the „Endzeit“ (#161).
 describe('upgrade to migration 18', () => {
   it('keeps fleets in flight as they were; none of them is a gift', () => {
-    const db = databaseAt(17);
+    const db = databaseAt(placeOf(18) - 1);
     db.exec(`
       INSERT INTO users (id, name, salt, pw_hash, created) VALUES ('u_Anna', 'Anna', 's', 'h', 1);
       INSERT INTO fleets (id, owner, from_planet, from_g, from_s, from_p, to_planet, to_g, to_s, to_p,
@@ -21,7 +24,7 @@ describe('upgrade to migration 18', () => {
     const before = db
       .prepare('SELECT * FROM fleets ORDER BY id')
       .all() as Record<string, unknown>[];
-    expect(migrate(db, MIGRATIONS.slice(0, 18))).toBe(1);
+    expect(migrate(db, throughNumber(18))).toBe(1);
     expect(db.prepare('SELECT * FROM fleets ORDER BY id').all()).toEqual(
       before.map((row) => ({ ...row, gift: 0 })),
     );

@@ -462,7 +462,13 @@ choice of the patterns to the assistant's recommendation below
   empty table `debris`; no code reads or writes it before #45 (see
   [SQLite storage](/data/sqlite.md)).
 * **[E]** Position 16 (expeditions, #93) is decided with #93 (owner,
-  2026-11-12).
+  2026-11-12). Decided there (owner, 2026-11-16, #93 Q4, Q5): the
+  expedition position is the position right after the last planet position
+  of the universe (16 with 15 planet positions, 21 with 20), one per system,
+  never a planet position, so it takes no colonizable position away; it
+  cannot be colonized, is only the target of expeditions and of a Bergung of its Trümmerfeld and is visible in
+  the Sternenkarte; battles of an expedition leave a Trümmerfeld there
+  ([Expeditions](/features/expeditions.md)).
 * **[E]** Built with #53: a moon is a row of `planets` with the kind
   `moon` and the id `m<g>_<s>_<p>`, without a new migration; the send
   request names the kind of the target (`to.kind`), and the fleet keeps it in
@@ -718,7 +724,8 @@ choice of the patterns to the assistant's recommendation below
   * `Header.svelte` (`#pinfo`) from `headerLine(s, P)` of `header.ts`: the
     shown place with its position, the commander, „Logout“ and, with more
     than one own place, the list „Aktiver Planet“ (`#planet_select`) of
-    `ownPlaces()`, the shown place selected;
+    `ownPlaces()`, the shown place selected; since #241 the list comes
+    first and replaces the name and position as text (below);
   * `Menu.svelte` (`#menu`), `TabBar.svelte` (`#tabbar`) and
     `MoreList.svelte` (`#more-list`), each link a `NavLink.svelte`, from
     `navigation()` of `navigation.ts`: the entries of `menu()` and
@@ -744,6 +751,13 @@ choice of the patterns to the assistant's recommendation below
   example with #189). The double display of the active planet (#241) is
   left as it is: the issue is separate, and this bundle changes nothing
   visible.
+* **[V]** Built with #241 (see [Interface](/features/interface.md)):
+  `Header.svelte` renders the list „Aktiver Planet“ first when
+  `headerLine()` gives places, else the name in bold and the position;
+  then „ · Kommandant … · Logout“ in both cases. `headerLine()` is
+  unchanged. The frozen header of `src/test/frame-reference.test.ts` has
+  this one change, marked, as the frozen `Buildings.svelte` has the one of
+  #209; the property test still compares every other state with it.
 
 ## 10. Layout and registration
 

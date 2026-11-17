@@ -2,17 +2,19 @@ import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import {
   databaseAt,
+  placeOf,
   plansBefore,
   snapshot,
+  throughNumber,
   upgrade,
 } from '../../../test/migrations.ts';
 import { hashPassword } from '../../auth.ts';
 import { deleteAccount } from '../../delete-account.ts';
+import { MIGRATIONS } from '../schema.ts';
 import { runAction } from '../../game/dispatch.ts';
 import { GUILD_RIGHTS } from '../../../core/guild-ranks.ts';
 import { testCtx } from '../../test-helpers.ts';
 import { migrate } from '../database.ts';
-import { MIGRATIONS } from '../schema.ts';
 
 // Migration 20 (#169): the guild chat. The CHECK of guild_rank_rights
 // takes the three chat rights, every existing rank below the Leitung gets
@@ -34,7 +36,7 @@ const PASSWORD = hashPassword('secret1', 'salt');
  * of its own („Rekrut“) as the default rank, and an applicant.
  */
 function oldDatabase() {
-  const db = databaseAt(19);
+  const db = databaseAt(placeOf(20) - 1);
   db.prepare(
     `INSERT INTO users (id, name, salt, pw_hash, created) VALUES
       ('u_Anna', 'Anna', 'salt', ?, 1), ('u_Bert', 'Bert', 'salt', ?, 1),
@@ -90,7 +92,7 @@ describe('upgrade to migration 20', () => {
     const members = all(db, 'guild_members');
     const before = all(db, 'guild_rank_rights');
 
-    expect(migrate(db, MIGRATIONS.slice(0, 20))).toBe(1);
+    expect(migrate(db, throughNumber(20))).toBe(1);
 
     for (const [t, rows] of Object.entries(kept))
       expect(sorted(all(db, t)), t).toEqual(sorted(rows));
@@ -153,7 +155,7 @@ describe('upgrade to migration 20', () => {
 
   it('allows the eight rights only and limits a message to 1 to 1,000 characters', () => {
     const db = oldDatabase();
-    migrate(db, MIGRATIONS.slice(0, 20));
+    migrate(db, throughNumber(20));
     // „Chat lesen“ and „Chat schreiben“ came with the migration.
     db.exec(`INSERT INTO guild_rank_rights VALUES
       ('ro', 'chat-delete'), ('ro', 'assign'), ('ro', 'profile'),
@@ -200,7 +202,7 @@ describe('upgrade to migration 20', () => {
     db.exec(
       "INSERT INTO guild_rank_rights VALUES ('ro', 'assign'), ('ro', 'ranks')",
     );
-    migrate(db, MIGRATIONS.slice(0, 20));
+    migrate(db, throughNumber(20));
     const ctx = testCtx(1_000_000, 42, db);
     const run = (who: string, d: Record<string, unknown>) =>
       runAction(ctx, who, d);
@@ -247,7 +249,7 @@ describe('upgrade to migration 20', () => {
 
   it('deletes the chat with its guild and anonymises the messages of a deleted account', () => {
     const db = oldDatabase();
-    migrate(db, MIGRATIONS.slice(0, 20));
+    migrate(db, throughNumber(20));
     const ctx = testCtx(1_000_000, 42, db);
     ctx.guilds.addChat('g1', 'u_Cora', 1, 'von Cora');
     ctx.guilds.addChat('g1', 'u_Anna', 2, 'von Anna');
@@ -286,7 +288,10 @@ describe('upgrade to migration 20', () => {
 
   it('deletes every chat at a new round and keeps the guilds', () => {
     const db = oldDatabase();
-    migrate(db, MIGRATIONS.slice(0, 20));
+    migrate(db, throughNumber(20));
+    // The new round of today's code saves the players with the columns of
+    // later migrations (the main planet of #221).
+    migrate(db, MIGRATIONS);
     db.exec("UPDATE users SET admin = 1 WHERE id = 'u_Finn'");
     const ctx = testCtx(1_000_000, 42, db);
     ctx.guilds.addChat('g1', 'u_Cora', 1, 'alte Runde');
@@ -304,8 +309,11 @@ describe('upgrade to migration 20', () => {
 
   it('keeps all data of any valid database of version 19 and adds only the chat rights of the ranks below the Leitung', () => {
     fc.assert(
-      fc.property(plansBefore(20), (plan) => {
-        const { before, after, foreignKeys, integrity } = upgrade(20, plan);
+      fc.property(plansBefore(placeOf(20)), (plan) => {
+        const { before, after, foreignKeys, integrity } = upgrade(
+          placeOf(20),
+          plan,
+        );
         expect(foreignKeys).toEqual([]);
         expect(integrity).toBe('ok');
         const rows = (s: ReturnType<typeof snapshot>, t: string): Rows =>
