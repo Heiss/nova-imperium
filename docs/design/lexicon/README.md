@@ -1,11 +1,9 @@
 # Lexicon – design study
 
-Design study for the in-game lexicon (#285).
-Not decided, apart from what is marked **[E]**: names, texts and the layout
-are proposals **[V]**. „Lexikon“ is a working title: the owner wants a
-name in the grimdark style (2026-11-17), which is an open decision of the
-issue. Interface v2 (`src/client/static/style.css`) plus
-`mock.css`.
+Design study for the in-game lexicon (#285). Not decided, apart from what
+is marked **[E]**: texts and the layout are proposals **[V]**. **[E]**
+(owner, 2026-11-17) It is called „Lexicanum“. Interface v2
+(`src/client/static/style.css`) plus `mock.css`.
 
 The pictures show the real game with a seeded player (Auspex-Lehre 4,
 Scholarium 6, 12 Spähschädel, speed ×5); only the lexicon itself is put
@@ -26,28 +24,29 @@ the formula (see the article of the Auspex-Lehre).
 
 Files:
 
-- `lexikon-seitenleiste.png` – **[E]** (owner, 2026-11-17) on a desktop the
+- `lexicanum-seitenleiste.png` – **[E]** (owner, 2026-11-17) on a desktop the
   „?“ of a list entry opens the lexicon as a side panel over the list, in
   place of the text that unfolds below the entry today; the panel has a
-  link that opens the same article on the lexicon page. **[E]** On a phone
-  the „?“ opens the lexicon page itself, without a side panel
-- `lexikon-ablauf.webp` – animation (27 s, desktop): the „?“ at the
+  link that opens the same article on the lexicon page. **[E]** The side
+  panel has no search; the search is on the page. **[E]** On a phone the
+  „?“ opens the lexicon page itself, without a side panel
+- `lexicanum-ablauf.webp` – animation (27 s, desktop): the „?“ at the
   Auspex-Lehre opens the side panel, its link opens the article on the
   page, and „Siehe auch“ leads to the matching question
-- `lexikon-start.html` / `.png` – the page „Lexikon“ with its own menu
+- `lexicanum-start.html` / `.png` – the page „Lexikon“ with its own menu
   entry: search, „Einstieg“, „Häufige Fragen“, „Nachschlagen“ (the catalog)
   and „Regeln“
-- `lexikon-suche.png` – the search, open, with results grouped by kind
-- `lexikon-forschung.html` / `.png` – the article of a catalog entry
+- `lexicanum-suche.png` – the search, open, with results grouped by kind
+- `lexicanum-forschung.html` / `.png` – the article of a catalog entry
   (Auspex-Lehre): the texts of the catalog as the introduction, what the
   levels bring, the level table of the level overview (#187), requirements
   in both directions, links to other articles, the player's own level
-- `lexikon-frage.html` / `.png` – a question („Wie bekomme ich mehr
+- `lexicanum-frage.html` / `.png` – a question („Wie bekomme ich mehr
   Informationen über den Gegner?“) answered in steps with links
-- `lexikon-regel.html` / `.png` – a rule page (Kampf) with computed values
+- `lexicanum-regel.html` / `.png` – a rule page (Kampf) with computed values
   and the rapid fire table
-- `lexikon-handy-start.png`, `lexikon-handy-forschung.png`,
-  `lexikon-handy-tabelle.png` – the page on a phone; a wide table scrolls
+- `lexicanum-handy-start.png`, `lexicanum-handy-forschung.png`,
+  `lexicanum-handy-tabelle.png` – the page on a phone; a wide table scrolls
   sideways inside its frame
 
 The HTML files reference `/style.css`, `/fonts/` and `/icons/` absolutely:

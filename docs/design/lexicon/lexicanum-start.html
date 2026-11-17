@@ -135,7 +135,7 @@
           data-v="lexikon"
           class="on"
           aria-current="page"
-          >Lexikon<!----><!----></a
+          >Lexicanum<!----><!----></a
         ><a
           data-act="nav"
           href="/?view=help"
@@ -146,209 +146,144 @@
         >
       </nav>
       <main id="view">
-        <h2>Lexikon</h2>
+        <h2>Lexicanum</h2>
         <div class="lx">
           <div class="lx-top">
             <nav class="lx-crumb" aria-label="Pfad">
-              <a class="lx-a">Lexikon</a> › <a class="lx-a">Regeln</a> ›
-              <b>Kampf</b>
+              <b>Lexicanum</b>
+              <span class="dim"
+                >· alle Regeln des Spiels, aus den Spielregeln selbst
+                berechnet</span
+              >
             </nav>
             <label class="lx-search"
               ><span class="lx-mag">⌕</span
               ><input
                 type="search"
-                placeholder="Suche im Lexikon …"
+                placeholder="Suche im Lexicanum …"
                 value=""
-                aria-label="Suche im Lexikon"
+                aria-label="Suche im Lexicanum"
                 style=""
               /><kbd>/</kbd></label
             >
           </div>
-          <div class="lx-cols">
-            <article class="lx-art">
-              <h3 class="lx-title">Kampf</h3>
-              <p class="lx-ds">
-                Trifft eine Flotte mit der Mission
-                <a class="lx-a" data-lx="m-attack">Angriff</a> auf Verteidiger,
-                wird in Runden gekämpft.
-              </p>
-              <table class="lx-t lx-facts">
-                <tbody>
-                  <tr>
-                    <th scope="row">Runden</th>
-                    <td>
-                      höchstens <b>6</b>, oder bis eine Seite vernichtet ist
-                    </td>
-                  </tr>
-                  <tr>
-                    <th scope="row">
-                      <a class="lx-a" data-lx="weapons">Waffensegnung</a>,
-                      <a class="lx-a" data-lx="shield">Refraktionsfelder</a>,
-                      <a class="lx-a" data-lx="armor">Adamant-Panzerung</a>
-                    </th>
-                    <td><b>+10 %</b> je Stufe auf Angriff, Schild und Hülle</td>
-                  </tr>
-                  <tr>
-                    <th scope="row">Schilde</th>
-                    <td>Ein Schuss unter <b>1 %</b> des Schilds prallt ab</td>
-                  </tr>
-                  <tr>
-                    <th scope="row">Explosion</th>
-                    <td>
-                      Unter <b>70 %</b> Hülle kann eine Einheit bei jedem
-                      Treffer explodieren
-                    </td>
-                  </tr>
-                  <tr>
-                    <th scope="row">Beute</th>
-                    <td>
-                      Der Sieger nimmt bis zu <b>50 %</b> der Rohstoffe, so viel
-                      die Laderäume fassen
-                    </td>
-                  </tr>
-                  <tr>
-                    <th scope="row">Verteidigung</th>
-                    <td>
-                      Rund <b>70 %</b> der zerstörten Anlagen werden wieder
-                      aufgebaut
-                    </td>
-                  </tr>
-                  <tr>
-                    <th scope="row">
-                      <a class="lx-a" data-lx="rule-debris">Trümmerfeld</a>
-                    </th>
-                    <td>
-                      <b>30 %</b> von Adamant und Psikristall der zerstörten
-                      Schiffe bleiben liegen
-                    </td>
-                  </tr>
-                  <tr>
-                    <th scope="row">
-                      <a class="lx-a" data-lx="rule-moon">Mond</a>
-                    </th>
-                    <td>
-                      1 % Chance je 100.000 im Trümmerfeld, höchstens
-                      <b>20 %</b>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-              <h4>Schnellfeuer</h4>
-              <p>
-                Manche Einheiten schießen in einer Runde mehrmals auf bestimmte
-                Ziele. „×5“ heißt: nach einem Treffer folgt mit 4 von 5 ein
-                weiterer Schuss.
-              </p>
-              <table class="lx-t">
-                <thead>
-                  <tr>
-                    <th>Einheit</th>
-                    <th>Schnellfeuer gegen</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <th scope="row">
-                      <a class="lx-a" data-lx="hf">Sturmjäger</a>
-                    </th>
-                    <td><a class="lx-a" data-lx="sc">Frachtläufer</a> ×3</td>
-                  </tr>
-                  <tr>
-                    <th scope="row">
-                      <a class="lx-a" data-lx="cr">Fregatte</a>
-                    </th>
-                    <td>
-                      <a class="lx-a" data-lx="lf">Abfangjäger</a> ×6 ·
-                      <a class="lx-a" data-lx="rl">Raketenbatterie</a> ×10
-                    </td>
-                  </tr>
-                  <tr>
-                    <th scope="row">
-                      <a class="lx-a" data-lx="bc">Jagdkreuzer</a>
-                    </th>
-                    <td>
-                      <a class="lx-a" data-lx="sc">Frachtläufer</a> ×3 ·
-                      <a class="lx-a" data-lx="lc">Lastbarke</a> ×3 ·
-                      <a class="lx-a" data-lx="hf">Sturmjäger</a> ×4 ·
-                      <a class="lx-a" data-lx="cr">Fregatte</a> ×4 ·
-                      <a class="lx-a" data-lx="bs">Kathedralschiff</a> ×7
-                    </td>
-                  </tr>
-                  <tr>
-                    <th scope="row">
-                      <a class="lx-a" data-lx="dr">Vernichter</a>
-                    </th>
-                    <td>
-                      <a class="lx-a" data-lx="ll">Lichtlanze</a> ×10 ·
-                      <a class="lx-a" data-lx="bc">Jagdkreuzer</a> ×2
-                    </td>
-                  </tr>
-                  <tr>
-                    <th scope="row">
-                      <a class="lx-a" data-lx="bb">Belagerungsbomber</a>
-                    </th>
-                    <td>
-                      <a class="lx-a" data-lx="rl">Raketenbatterie</a> ×20 ·
-                      <a class="lx-a" data-lx="ll">Lichtlanze</a> ×20 ·
-                      <a class="lx-a" data-lx="hl">Schwere Lichtlanze</a> ×10 ·
-                      <a class="lx-a" data-lx="ionc">Ionenlanze</a> ×10
-                    </td>
-                  </tr>
-                  <tr>
-                    <th scope="row">
-                      <a class="lx-a" data-lx="dstar">Weltenbrecher</a>
-                    </th>
-                    <td>
-                      <a class="lx-a" data-lx="probe">Spähschädel</a> ×1250 ·
-                      <a class="lx-a" data-lx="sat">Sonnenreliquiar</a> ×1250 ·
-                      <a class="lx-a" data-lx="colony">Kolonistenarche</a> ×250
-                      ·
-                      <a class="lx-a" data-lx="recycler">Bergungsbarke</a> ×250
-                      · <a class="lx-a" data-lx="sc">Frachtläufer</a> ×250 ·
-                      <a class="lx-a" data-lx="lc">Lastbarke</a> ×250 ·
-                      <a class="lx-a" data-lx="lf">Abfangjäger</a> ×200 ·
-                      <a class="lx-a" data-lx="hf">Sturmjäger</a> ×100 ·
-                      <a class="lx-a" data-lx="cr">Fregatte</a> ×33 ·
-                      <a class="lx-a" data-lx="bs">Kathedralschiff</a> ×30 ·
-                      <a class="lx-a" data-lx="bb">Belagerungsbomber</a> ×25 ·
-                      <a class="lx-a" data-lx="bc">Jagdkreuzer</a> ×15 ·
-                      <a class="lx-a" data-lx="dr">Vernichter</a> ×5 ·
-                      <a class="lx-a" data-lx="rl">Raketenbatterie</a> ×200 ·
-                      <a class="lx-a" data-lx="ll">Lichtlanze</a> ×200 ·
-                      <a class="lx-a" data-lx="hl">Schwere Lichtlanze</a> ×100 ·
-                      <a class="lx-a" data-lx="gauss">Massebeschleuniger</a> ×50
-                      · <a class="lx-a" data-lx="ionc">Ionenlanze</a> ×100
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-              <p class="dim">
-                Die Tabelle wird aus den Werten der Einheiten erzeugt; ein neues
-                Schiff steht hier, sobald es im Spiel ist.
-              </p>
-              <h4>Siehe auch</h4>
-              <p class="lx-see">
-                <a class="lx-a" data-lx="rule-debris"
-                  >Trümmerfelder und Bergung</a
+          <div class="lx-home">
+            <section class="box">
+              <div class="hd">Einstieg</div>
+              <div class="bd lx-cards">
+                <a class="lx-card" data-lx="start"
+                  ><b>Erste Schritte</b
+                  ><span
+                    >Die ersten Tage: Minen, Energie, Scholarium, erste
+                    Flotte.</span
+                  ></a
                 >
-                · <a class="lx-a" data-lx="rule-noob">Schutz der Schwachen</a> ·
-                <a class="lx-a" data-lx="faq-debris"
-                  >Was bleibt nach einer Schlacht übrig?</a
+                <a class="lx-card" data-lx="next"
+                  ><b>Deine nächsten Ziele</b
+                  ><span>Was sich mit deinem Stand als Nächstes lohnt.</span
+                  ><em>persönlich</em></a
                 >
-              </p>
-            </article>
-            <aside class="lx-side">
-              <div class="lx-toc">
-                <b>Regeln</b><a class="on">Kampf</a
-                ><a class="">Auspex-Erkundung</a
-                ><a class="">Flug und Treibstoff</a
-                ><a class="">Trümmerfelder und Bergung</a><a class="">Monde</a
-                ><a class="">Planeten und Felder</a
-                ><a class="">Schutz der Schwachen</a
-                ><a class="">Tagesbelohnung und Erfolge</a><a class="">Gilden</a
-                ><a class="">Dieses Universum</a>
+                <a class="lx-card" data-lx="universe"
+                  ><b>Dieses Universum</b
+                  ><span
+                    >Speed ×5, 2 Galaxien, 50 Systeme – und was der Admin für
+                    die Runde gewählt hat.</span
+                  ></a
+                >
               </div>
-            </aside>
+            </section>
+            <section class="box">
+              <div class="hd">Häufige Fragen</div>
+              <div class="bd">
+                <ul class="lx-q">
+                  <li>
+                    <a class="lx-a" data-lx="faq-info"
+                      >Wie bekomme ich mehr Informationen über den Gegner?</a
+                    >
+                  </li>
+                  <li>
+                    <a class="lx-a" data-lx="faq-noob"
+                      >Warum kann ich diesen Spieler nicht angreifen?</a
+                    >
+                  </li>
+                  <li>
+                    <a class="lx-a" data-lx="faq-slots"
+                      >Wie bekomme ich mehr Flottenslots?</a
+                    >
+                  </li>
+                  <li>
+                    <a class="lx-a" data-lx="faq-debris"
+                      >Was bleibt nach einer Schlacht übrig?</a
+                    >
+                  </li>
+                  <li>
+                    <a class="lx-a" data-lx="faq-colony"
+                      >Wie gründe ich eine Kolonie?</a
+                    >
+                  </li>
+                  <li>
+                    <a class="lx-a" data-lx="faq-energy"
+                      >Warum fördert meine Mine weniger als angegeben?</a
+                    >
+                  </li>
+                </ul>
+              </div>
+            </section>
+            <section class="box lx-wide">
+              <div class="hd">Nachschlagen</div>
+              <div class="bd lx-cats">
+                <a class="lx-cat" data-lx="kind"
+                  ><b>Gebäude</b><span>15 Einträge</span></a
+                ><a class="lx-cat" data-lx="kind"
+                  ><b>Forschung</b><span>15 Einträge</span></a
+                ><a class="lx-cat" data-lx="kind"
+                  ><b>Schiffe</b><span>14 Einträge</span></a
+                ><a class="lx-cat" data-lx="kind"
+                  ><b>Verteidigung</b><span>8 Einträge</span></a
+                >
+                <a class="lx-cat" data-lx="missions"
+                  ><b>Missionen</b><span>6 Einträge</span></a
+                >
+                <a class="lx-cat" data-lx="glossary"
+                  ><b>Begriffe A–Z</b><span>alle Namen und Kürzel</span></a
+                >
+              </div>
+            </section>
+            <section class="box lx-wide">
+              <div class="hd">Regeln</div>
+              <div class="bd lx-rules">
+                <a class="lx-rule" data-lx="rule"
+                  ><b>Kampf</b
+                  ><span>Runden, Schnellfeuer, Beute, Wiederaufbau</span></a
+                ><a class="lx-rule" data-lx="rule"
+                  ><b>Auspex-Erkundung</b
+                  ><span>Was ein Bericht zeigt und was er kostet</span></a
+                ><a class="lx-rule" data-lx="rule"
+                  ><b>Flug und Treibstoff</b
+                  ><span>Entfernung, Flugzeit, Antriebe</span></a
+                ><a class="lx-rule" data-lx="rule"
+                  ><b>Trümmerfelder und Bergung</b
+                  ><span>Was liegen bleibt, wer es holt</span></a
+                ><a class="lx-rule" data-lx="rule"
+                  ><b>Monde</b
+                  ><span>Entstehung, Mondzitadelle, Auspex-Phalanx</span></a
+                ><a class="lx-rule" data-lx="rule"
+                  ><b>Planeten und Felder</b
+                  ><span>Größe, Temperatur, Position</span></a
+                ><a class="lx-rule" data-lx="rule"
+                  ><b>Schutz der Schwachen</b
+                  ><span>Wen du angreifen darfst</span></a
+                ><a class="lx-rule" data-lx="rule"
+                  ><b>Tagesbelohnung und Erfolge</b
+                  ><span>Was es gibt und wann</span></a
+                ><a class="lx-rule" data-lx="rule"
+                  ><b>Gilden</b><span>Ränge, Rechte, Chat</span></a
+                ><a class="lx-rule" data-lx="rule"
+                  ><b>Dieses Universum</b
+                  ><span>Die Einstellungen dieser Runde</span></a
+                >
+              </div>
+            </section>
           </div>
         </div>
       </main>
@@ -588,7 +523,7 @@
           data-v="lexikon"
           class="on"
           aria-current="page"
-          ><span>Lexikon</span
+          ><span>Lexicanum</span
           ><svg
             viewBox="0 0 24 24"
             fill="none"

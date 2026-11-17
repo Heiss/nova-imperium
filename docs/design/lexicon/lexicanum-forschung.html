@@ -135,7 +135,7 @@
           data-v="lexikon"
           class="on"
           aria-current="page"
-          >Lexikon<!----><!----></a
+          >Lexicanum<!----><!----></a
         ><a
           data-act="nav"
           href="/?view=help"
@@ -146,60 +146,77 @@
         >
       </nav>
       <main id="view">
-        <h2>Lexikon</h2>
+        <h2>Lexicanum</h2>
         <div class="lx">
           <div class="lx-top">
             <nav class="lx-crumb" aria-label="Pfad">
-              <a class="lx-a">Lexikon</a> › <a class="lx-a">Häufige Fragen</a> ›
-              <b>Mehr Informationen über den Gegner</b>
+              <a class="lx-a">Lexicanum</a> › <a class="lx-a">Forschung</a> ›
+              <b>Auspex-Lehre</b>
             </nav>
             <label class="lx-search"
               ><span class="lx-mag">⌕</span
               ><input
                 type="search"
-                placeholder="Suche im Lexikon …"
+                placeholder="Suche im Lexicanum …"
                 value=""
-                aria-label="Suche im Lexikon"
+                aria-label="Suche im Lexicanum"
                 style=""
               /><kbd>/</kbd></label
             >
           </div>
           <div class="lx-cols">
             <article class="lx-art">
-              <h3 class="lx-title">
-                Wie bekomme ich mehr Informationen über den Gegner?
-              </h3>
-              <p class="lx-short">
-                <b>Kurz:</b> Schicke mehr
-                <a class="lx-a" data-lx="probe">Spähschädel</a> auf eine
-                <a class="lx-a" data-lx="m-spy">Auspex-Erkundung</a> und
-                erforsche die <a class="lx-a" data-lx="spy">Auspex-Lehre</a>.
+              <header class="lx-head">
+                <img
+                  class="lx-icon"
+                  src="/icons/research/espionage_technology.svg"
+                  alt=""
+                />
+                <div>
+                  <h3 class="lx-title">
+                    Auspex-Lehre <span class="lx-ab">AU</span>
+                  </h3>
+                  <div class="dim">
+                    Forschung · deine Stufe <b class="lx-have">4</b>
+                  </div>
+                  <p class="lx-ds">Bessere Auspex-Berichte, bessere Abwehr.</p>
+                </div>
+              </header>
+              <div class="lx-intro">
+                <p>
+                  Die Auspex-Lehre schärft die Sinne der Spähschädel und
+                  entlarvt fremde Augen am eigenen Himmel.
+                </p>
+                <p>
+                  So funktioniert es: Je mehr Spähschädel du schickst und je
+                  weiter du dem Ziel in dieser Lehre voraus bist, desto mehr
+                  verrät der Bericht. Ein Vorsprung senkt die Gefahr, dass sie
+                  abgeschossen werden, ein Rückstand erhöht sie.
+                </p>
+              </div>
+
+              <h4 id="wirkung">Was die Stufen bringen</h4>
+              <p>
+                Jede <a class="lx-a" data-lx="m-spy">Auspex-Erkundung</a> hat
+                einen <b>Auspex-Wert</b>. Jeder
+                <a class="lx-a" data-lx="probe">Spähschädel</a> zählt einen
+                Punkt. Dein Vorsprung in der Auspex-Lehre zählt im Quadrat –
+                eine Stufe voraus bringt 1 Punkt, zwei bringen 4, drei schon 9.
+                Liegst du zurück, kostet dich das genauso viel. Forschen lohnt
+                sich also schnell mehr als Nachbauen.
               </p>
-              <ol class="lx-steps">
-                <li>
-                  <b>Spähschädel bauen.</b> Sie brauchen
-                  <a class="lx-a" data-lx="yard">Orbitale Schiffsschmiede</a> 3,
-                  <a class="lx-a" data-lx="comb">Promethium-Brennkammer</a> 3,
-                  <a class="lx-a" data-lx="spy">Auspex-Lehre</a> 2.
-                </li>
-                <li>
-                  <b>Erkundung schicken.</b> Auf der Sternenkarte neben dem
-                  Planeten; wie viele Spähschädel ein Klick schickt, stellst du
-                  in „Hilfe &amp; Optionen“ ein.
-                </li>
-                <li>
-                  <b>Bericht lesen.</b> Rohstoffe siehst du immer. Für mehr
-                  zählt der Auspex-Wert: Flotte ab 2, Verteidigung ab 3, Gebäude
-                  ab 5, Forschung ab 7.
-                </li>
-                <li>
-                  <b>Zeigt der Bericht zu wenig?</b> Mehr Spähschädel schicken –
-                  oder die
-                  <a class="lx-a" data-lx="spy">Auspex-Lehre</a> erforschen: Ein
-                  Vorsprung zählt im Quadrat, eine Stufe mehr als das Ziel
-                  erspart dir also einen Spähschädel, zwei Stufen vier.
-                </li>
-              </ol>
+              <p class="lx-f">
+                <span>Formel</span>Auspex-Wert = Spähschädel + Vorsprung²
+                <i>(bei Rückstand: − Rückstand²)</i>
+              </p>
+              <p>Der Wert entscheidet, was der Bericht zeigt:</p>
+              <ul class="lx-tiers">
+                <li><b>immer</b> Rohstoffe</li>
+                <li><b>ab 2</b> Flotte</li>
+                <li><b>ab 3</b> Verteidigung</li>
+                <li><b>ab 5</b> Gebäude</li>
+                <li><b>ab 7</b> Forschung</li>
+              </ul>
               <table class="lx-t">
                 <caption>
                   Spähschädel, die du mindestens brauchst
@@ -273,54 +290,286 @@
                   </tr>
                 </tbody>
               </table>
-              <p class="lx-warn">
-                <b>Vorsicht:</b> Der Gegner erfährt von jeder Erkundung, und
-                eine große Flotte am Ziel schießt deine Spähschädel leichter ab.
-                Die Tabelle dazu steht bei der
-                <a class="lx-a" data-lx="spy">Auspex-Lehre</a>.
+              <p class="lx-me">
+                Dein Stand: Stufe 4 und 12 Spähschädel. Gegen ein Ziel mit Stufe
+                4 zeigt der Bericht alles; gegen Stufe 6 brauchst du 11 für die
+                Forschung.
               </p>
-              <h4>Später im Spiel</h4>
+              <table class="lx-t">
+                <caption>
+                  Gefahr, dass deine Spähschädel abgeschossen werden
+                </caption>
+                <thead>
+                  <tr>
+                    <th>Vorsprung in Auspex-Lehre</th>
+                    <th class="n">−2</th>
+                    <th class="n">−1</th>
+                    <th class="n">gleich</th>
+                    <th class="n">+1</th>
+                    <th class="n">+2</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <th scope="row">10 Schiffe am Ziel</th>
+                    <td class="n">25 %</td>
+                    <td class="n">13 %</td>
+                    <td class="n lx-curc">6 %</td>
+                    <td class="n">3 %</td>
+                    <td class="n">2 %</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">100 Schiffe am Ziel</th>
+                    <td class="n">80 %</td>
+                    <td class="n">40 %</td>
+                    <td class="n lx-curc">20 %</td>
+                    <td class="n">10 %</td>
+                    <td class="n">5 %</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">1.000 Schiffe am Ziel</th>
+                    <td class="n">100 %</td>
+                    <td class="n">100 %</td>
+                    <td class="n lx-curc">63 %</td>
+                    <td class="n">32 %</td>
+                    <td class="n">16 %</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">10.000 Schiffe am Ziel</th>
+                    <td class="n">100 %</td>
+                    <td class="n">100 %</td>
+                    <td class="n lx-curc">100 %</td>
+                    <td class="n">100 %</td>
+                    <td class="n">50 %</td>
+                  </tr>
+                </tbody>
+              </table>
               <p>
-                Auf einem <a class="lx-a" data-lx="rule-moon">Mond</a> zeigt die
-                <a class="lx-a" data-lx="phalanx">Auspex-Phalanx</a> die Flüge
-                fremder Planeten in Reichweite.
+                Je größer die Flotte am Ziel, desto eher werden die Spähschädel
+                abgeschossen – aber nur mit der Wurzel: Die hundertfache Flotte
+                ist zehnmal so gefährlich. Jede Stufe Vorsprung halbiert die
+                Gefahr, jede Stufe Rückstand verdoppelt sie.
               </p>
-              <h4>Verwandte Fragen</h4>
-              <ul class="lx-q">
-                <li>
-                  <a class="lx-a" data-lx="faq-noob"
-                    >Warum kann ich diesen Spieler nicht angreifen?</a
-                  >
-                </li>
-                <li>
-                  <a class="lx-a" data-lx="faq-debris"
-                    >Was bleibt nach einer Schlacht übrig?</a
-                  >
-                </li>
-              </ul>
+              <p class="lx-f">
+                <span>Formel</span>Gefahr = 2 % · √Schiffe am Ziel ÷ 2<sup
+                  >Vorsprung</sup
+                >
+                <i>(höchstens 100 %)</i>
+              </p>
+
+              <h4 id="stufen">Stufen</h4>
+              <p>
+                Jede Stufe kostet doppelt so viel wie die vorige und dauert
+                doppelt so lange; jede Stufe deines
+                <a class="lx-a" data-lx="lab">Scholarium</a> verkürzt die Zeit.
+              </p>
+              <p class="lx-f">
+                <span>Formel</span>Kosten = Kosten der Stufe 1 · 2<sup
+                  >Stufe − 1</sup
+                ><br />Zeit in Stunden = (Adamant + Psikristall) ÷ (1.000 · (1 +
+                Scholarium)) ÷ Speed
+              </p>
+              <table class="lx-t">
+                <thead>
+                  <tr>
+                    <th>Stufe</th>
+                    <th>Kosten</th>
+                    <th class="n">Forschungszeit</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <th scope="row">5</th>
+                    <td>
+                      <span class="lx-res"
+                        ><img
+                          src="/icons/resources/small/metal.svg"
+                          alt=""
+                        />3.200</span
+                      ><span class="lx-res"
+                        ><img
+                          src="/icons/resources/small/crystal.svg"
+                          alt=""
+                        />16.000</span
+                      ><span class="lx-res"
+                        ><img
+                          src="/icons/resources/small/deuterium.svg"
+                          alt=""
+                        />3.200</span
+                      >
+                    </td>
+                    <td class="n">32m 55s</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">6</th>
+                    <td>
+                      <span class="lx-res"
+                        ><img
+                          src="/icons/resources/small/metal.svg"
+                          alt=""
+                        />6.400</span
+                      ><span class="lx-res"
+                        ><img
+                          src="/icons/resources/small/crystal.svg"
+                          alt=""
+                        />32.000</span
+                      ><span class="lx-res"
+                        ><img
+                          src="/icons/resources/small/deuterium.svg"
+                          alt=""
+                        />6.400</span
+                      >
+                    </td>
+                    <td class="n">1h 05m 50s</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">7</th>
+                    <td>
+                      <span class="lx-res"
+                        ><img
+                          src="/icons/resources/small/metal.svg"
+                          alt=""
+                        />12.800</span
+                      ><span class="lx-res"
+                        ><img
+                          src="/icons/resources/small/crystal.svg"
+                          alt=""
+                        />64.000</span
+                      ><span class="lx-res"
+                        ><img
+                          src="/icons/resources/small/deuterium.svg"
+                          alt=""
+                        />12.800</span
+                      >
+                    </td>
+                    <td class="n">2h 11m 40s</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">10</th>
+                    <td>
+                      <span class="lx-res"
+                        ><img
+                          src="/icons/resources/small/metal.svg"
+                          alt=""
+                        />102.400</span
+                      ><span class="lx-res"
+                        ><img
+                          src="/icons/resources/small/crystal.svg"
+                          alt=""
+                        />512.000</span
+                      ><span class="lx-res"
+                        ><img
+                          src="/icons/resources/small/deuterium.svg"
+                          alt=""
+                        />102.400</span
+                      >
+                    </td>
+                    <td class="n">17h 33m 16s</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">15</th>
+                    <td>
+                      <span class="lx-res"
+                        ><img
+                          src="/icons/resources/small/metal.svg"
+                          alt=""
+                        />3.276.800</span
+                      ><span class="lx-res"
+                        ><img
+                          src="/icons/resources/small/crystal.svg"
+                          alt=""
+                        />16.384.000</span
+                      ><span class="lx-res"
+                        ><img
+                          src="/icons/resources/small/deuterium.svg"
+                          alt=""
+                        />3.276.800</span
+                      >
+                    </td>
+                    <td class="n">23T 9h 44m 14s</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">20</th>
+                    <td>
+                      <span class="lx-res"
+                        ><img
+                          src="/icons/resources/small/metal.svg"
+                          alt=""
+                        />104.857.600</span
+                      ><span class="lx-res"
+                        ><img
+                          src="/icons/resources/small/crystal.svg"
+                          alt=""
+                        />524.288.000</span
+                      ><span class="lx-res"
+                        ><img
+                          src="/icons/resources/small/deuterium.svg"
+                          alt=""
+                        />104.857.600</span
+                      >
+                    </td>
+                    <td class="n">748T 23h 35m 19s</td>
+                  </tr>
+                </tbody>
+              </table>
+              <p class="dim">
+                Zeiten für dein
+                <a class="lx-a" data-lx="lab">Scholarium</a> Stufe 6 bei Speed
+                ×5. Dieselbe Tabelle wie in der Forschungsliste (▤).
+              </p>
+              <h4 id="braucht">Voraussetzungen</h4>
+              <p>
+                <a class="lx-a" data-lx="lab">Scholarium</a> 3
+                <span class="lx-ok">erfüllt</span>
+              </p>
+              <h4 id="frei">Wird gebraucht für</h4>
+              <table class="lx-t">
+                <thead>
+                  <tr>
+                    <th>Schaltet frei</th>
+                    <th>Art</th>
+                    <th class="n">Auspex-Lehre</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><a class="lx-a" data-lx="probe">Spähschädel</a></td>
+                    <td class="dim">Schiffe</td>
+                    <td class="n">ab Stufe 2</td>
+                  </tr>
+                </tbody>
+              </table>
+              <h4 id="auch">Siehe auch</h4>
+              <p class="lx-see">
+                <a class="lx-a" data-lx="probe">Spähschädel</a> ·
+                <a class="lx-a" data-lx="m-spy">Auspex-Erkundung</a> ·
+                <a class="lx-a" data-lx="phalanx">Auspex-Phalanx</a> ·
+                <a class="lx-a" data-lx="faq-info"
+                  >Wie bekomme ich mehr Informationen über den Gegner?</a
+                >
+              </p>
             </article>
             <aside class="lx-side">
               <div class="lx-toc">
-                <b>In dieser Antwort</b><a data-lx="probe">Spähschädel</a
-                ><a data-lx="spy">Auspex-Lehre</a
-                ><a data-lx="m-spy">Auspex-Erkundung</a
-                ><a data-lx="phalanx">Auspex-Phalanx</a>
+                <b>Auf dieser Seite</b>
+                <a href="#wirkung">Was die Stufen bringen</a
+                ><a href="#stufen">Stufen</a
+                ><a href="#braucht">Voraussetzungen</a
+                ><a href="#frei">Wird gebraucht für</a
+                ><a href="#auch">Siehe auch</a>
               </div>
               <div class="lx-toc">
-                <b>Häufige Fragen</b
-                ><a class="on" data-lx="faq-info"
-                  >Wie bekomme ich mehr Informationen über den Gegner?</a
-                ><a class="" data-lx="faq-noob"
-                  >Warum kann ich diesen Spieler nicht angreifen?</a
-                ><a class="" data-lx="faq-slots"
-                  >Wie bekomme ich mehr Flottenslots?</a
-                ><a class="" data-lx="faq-debris"
-                  >Was bleibt nach einer Schlacht übrig?</a
-                ><a class="" data-lx="faq-colony"
-                  >Wie gründe ich eine Kolonie?</a
-                ><a class="" data-lx="faq-energy"
-                  >Warum fördert meine Mine weniger als angegeben?</a
-                >
+                <b>Forschung</b>
+                <a class="" data-lx="energy">Machina-Energetik</a
+                ><a class="" data-lx="laser">Lichtlanzen-Lehre</a
+                ><a class="" data-lx="comb">Promethium-Brennkammer</a
+                ><a class="" data-lx="impulse">Plasma-Impulsantrieb</a
+                ><a class="" data-lx="hyper">Warp-Theorie</a
+                ><a class="" data-lx="hdrive">Warp-Antrieb</a
+                ><a class="on" data-lx="spy">Auspex-Lehre</a
+                ><a class="" data-lx="computer">Kogitator-Doktrin</a
+                ><a class="" data-lx="weapons">Waffensegnung</a>
+                <a class="dim">alle 15 …</a>
               </div>
             </aside>
           </div>
@@ -562,7 +811,7 @@
           data-v="lexikon"
           class="on"
           aria-current="page"
-          ><span>Lexikon</span
+          ><span>Lexicanum</span
           ><svg
             viewBox="0 0 24 24"
             fill="none"
