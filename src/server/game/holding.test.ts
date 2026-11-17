@@ -525,7 +525,7 @@ describe('who may hold in the round (#55, X1)', () => {
     expect(roundRules(ctx).heldSpy).toBe(5);
     for (const bad of [-1, 31, 1.5, 'x'])
       expect(() => reset(bad)).toThrow(
-        'Bitte für „Gehaltene Flotten im Spionagebericht ab Auspex-Lehre“ eine ganze Zahl von 0 bis 30 angeben.',
+        'Bitte für „Gehaltene Flotten im Auspex-Bericht ab Auspex-Lehre“ eine ganze Zahl von 0 bis 30 angeben.',
       );
     runAction(ctx, 'u_Ada', {
       type: 'settings',

@@ -113,7 +113,7 @@ export const UNIVERSE_SPECS: readonly UniverseSpec[] = [
   // spy report shows the held fleets apart; the owner's label.
   {
     key: 'roundHeldSpy',
-    label: 'Gehaltene Flotten im Spionagebericht ab Auspex-Lehre',
+    label: 'Gehaltene Flotten im Auspex-Bericht ab Auspex-Lehre',
     min: HELD_SPY.min,
     max: HELD_SPY.max,
     def: HELD_SPY.default,

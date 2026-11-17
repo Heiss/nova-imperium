@@ -63,7 +63,7 @@ The battle with several parties is built with #55
 * **[E]** The mission is called „Wache stellen“ in the game (owner,
   2026-11-17, not „Halten“ or „Wacht halten“); the refusals follow it.
 * **[E]** Espionage report (owner, 2026-11-17): below a new value per round
-  „Gehaltene Flotten im Spionagebericht ab Auspex-Lehre“ (default 2; X1:
+  „Gehaltene Flotten im Auspex-Bericht ab Auspex-Lehre“ (default 2; X1:
   in „Neue Runde“ and editable live), the held fleets appear only as
   defenders, mixed into the planet's fleet; from that level of the spy's
   Auspex-Lehre on, they appear apart under „Gehaltene Flotten“.
@@ -119,9 +119,9 @@ The battle with several parties is built with #55
     range 0 to 30 [V]; the held fleets follow the section „Flotte“ and show
     only when it shows (score 2), apart as „Gehaltene Flotten“ with
     „<name>: <ships>“ per fleet; the chance of the Auspex-Abwehr still
-    counts the planet's own ships only. The owner's label says
-    „Spionagebericht“, a classic word of #94, so the naming test allows it
-    in `core/universe.ts`. A wrong value in „Neue Runde“ is refused with
+    counts the planet's own ships only. The label says „Auspex-Bericht“
+    (owner, 2026-11-17), the name of #94, so the naming test needs no
+    exception. A wrong value in „Neue Runde“ is refused with
     „Bitte für „<label>“ eine ganze Zahl von 0 bis 30 angeben.“ [V].
   * The phalanx shows a held fleet with its origin, „hält bei <target>“
     and the countdown to the end of its holding time (`holds` of

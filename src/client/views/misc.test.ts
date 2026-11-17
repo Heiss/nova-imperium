@@ -259,7 +259,7 @@ describe('held fleets in the spy report (#55, owner, 2026-11-17, X1)', () => {
     for (const heldSpy of [2, 5]) {
       const html = roundDialog({ ...rules, heldSpy });
       expect(html).toContain(
-        `<p><label for="round-held-spy">Gehaltene Flotten im Spionagebericht ab Auspex-Lehre</label> <input type="number" id="round-held-spy" min="0" max="30" step="1" value="${heldSpy}" required> <span class="dim">0 bis 30</span></p>`,
+        `<p><label for="round-held-spy">Gehaltene Flotten im Auspex-Bericht ab Auspex-Lehre</label> <input type="number" id="round-held-spy" min="0" max="30" step="1" value="${heldSpy}" required> <span class="dim">0 bis 30</span></p>`,
       );
       expect(html.indexOf('id="round-held-spy"')).toBeLessThan(
         html.indexOf('data-act="doReset"'),

@@ -57,7 +57,7 @@ describe('universe settings', () => {
       ['extraFields', 'Zusatzfelder pro Planet'],
       ['endzeitMinutes', 'Flugzeit der Endzeit-Gabe (Minuten)'],
       ['roundAllies', 'Halten erlaubt für'],
-      ['roundHeldSpy', 'Gehaltene Flotten im Spionagebericht ab Auspex-Lehre'],
+      ['roundHeldSpy', 'Gehaltene Flotten im Auspex-Bericht ab Auspex-Lehre'],
     ]);
   });
   it('accept valid values given as strings', () => {
@@ -133,7 +133,7 @@ describe('universe settings', () => {
   it('take the Auspex-Lehre 0 to 30 for held fleets in the spy report, 2 by default (#55)', () => {
     expect(spec('roundHeldSpy')).toEqual({
       key: 'roundHeldSpy',
-      label: 'Gehaltene Flotten im Spionagebericht ab Auspex-Lehre',
+      label: 'Gehaltene Flotten im Auspex-Bericht ab Auspex-Lehre',
       min: 0,
       max: 30,
       def: 2,
