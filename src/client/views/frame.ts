@@ -2,6 +2,7 @@ import { type Component, mount, unmount } from 'svelte';
 import type { HeaderLine } from '../logic/header.ts';
 import type { Navigation } from '../logic/navigation.ts';
 import type { ResourceBar as Bar } from '../logic/resource-bar.ts';
+import { keepHeaderInView } from '../logic/sticky-header.ts';
 import Header from './Header.svelte';
 import Menu from './Menu.svelte';
 import MoreList from './MoreList.svelte';
@@ -58,3 +59,16 @@ export const showResourceBar = (bar: Bar): void =>
 export function clearFrame(): void {
   for (const place of PLACES) empty(place);
 }
+
+// The header and the side menu stay in view while the page scrolls (#193):
+// the CSS gets the lengths of the header from keepHeaderInView() of
+// logic/sticky-header.ts, measured when the client starts and whenever the
+// header or the resource bar changes size.
+keepHeaderInView({
+  header: document.querySelector('header')!,
+  logo: document.querySelector<HTMLElement>('header .logo')!,
+  resources: document.getElementById('resbar')!,
+  setProperty: (name, value) =>
+    document.documentElement.style.setProperty(name, value),
+  observe: (target, measure) => new ResizeObserver(measure).observe(target),
+});

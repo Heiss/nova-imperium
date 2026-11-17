@@ -114,6 +114,45 @@ generated: { by: claude-code/web, at: 2026-11-10T19:00:00Z }
   (the fleet view on the desktop, the Übersicht on a phone of 390 px
   without sideways scrolling).
 
+# Header and menu while scrolling (issue #193)
+
+* **[E]** The owner (2026-11-14): on the desktop the header with the
+  resources and the side menu on the left stay visible while the page
+  scrolls.
+* **[E]** D2: while scrolled the header gets slimmer: the logo line hides,
+  the resources stay (owner, 2026-11-14).
+* **[E]** D1, changed (owner, 2026-11-14): the phone stays as it is (its
+  header is already sticky); the observation in Firefox on Android is taken
+  as a short glitch, with no reproduction and no Firefox test project.
+* **[E]** Keyboard focus is never hidden under the fixed parts (WCAG
+  2.4.11).
+* **[V]** How: the header is sticky with its logo line above the top of the
+  screen (a negative `top`), so it slims as the page scrolls, without a
+  jump, and is full again at the top. The side menu sticks right below the
+  rest of the header and scrolls on its own when it is taller than the
+  screen; since it no longer reaches down the page, `#app` paints its
+  column and line. The lengths depend on how the header wraps, so
+  `src/client/logic/sticky-header.ts` measures them (when the client
+  starts and whenever the header or the resource bar changes size) and
+  sets `--head-h` and `--head-hide`. When the logo has a line of its own
+  above the resources, everything down to the bottom of the logo goes
+  above the screen (measured at 1,100 px: 128 px full, 72 px scrolled).
+* **[V]** Where the logo stands beside the resources, the header is one line
+  and stays whole while scrolled (measured at 1,280 px with a short player
+  name: 72 px, as high as the scrolled header of two lines); hiding the
+  logo there would not make it slimmer. Whether the header wraps depends on
+  the width and the length of the header line (below about 1,210 px, or a
+  longer name at 1,280 px).
+* **[V]** `scroll-padding-top` keeps the focus below the header (on the
+  phone below the full header) and, on the phone, `scroll-padding-bottom`
+  above the fixed tab bar.
+* Built in `src/client/static/style.css` („Sticky header“), wired in
+  `src/client/views/frame.ts`; unit tests in
+  `src/client/logic/sticky-header.test.ts`, the E2E test with axe in
+  `e2e/sticky-header.spec.ts` (desktop and phone: the long view Gebäude
+  scrolled to its end and back, at 1,100 px, at 1,280 px and on the phone,
+  Tab down and Shift+Tab up to controls out of sight).
+
 # Design draft
 
 `docs/design/interface-v2/` holds the mockup, the full icon set and the
