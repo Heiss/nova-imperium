@@ -42,6 +42,7 @@ describe('the dialog „Neue Runde“', () => {
     daily: true,
     mainLock: 7,
     allies: 3,
+    heldSpy: 2,
   };
 
   it('has one box „Gilden (mit Chat)“, preselected with the current round (#191)', () => {
@@ -61,6 +62,7 @@ describe('the lock of the main planet in the dialog „Neue Runde“ (#221)', ()
     daily: true,
     guilds: true,
     allies: 3,
+    heldSpy: 2,
   };
 
   it('is a number of days from 1 to 30, preselected with the current round', () => {
@@ -83,6 +85,7 @@ describe('the warning below the box „Gilden (mit Chat)“ (#191)', () => {
     daily: true,
     mainLock: 7,
     allies: 3,
+    heldSpy: 2,
   };
   // Every new round clears the chats as well (#169 D6), guilds on or off.
   const WARNING =
@@ -112,6 +115,7 @@ describe('„Account löschen“ in a round with or without guilds (#191)', () =
     daily: true,
     mainLock: 7,
     allies: 3,
+    heldSpy: 2,
   };
   const on = { ...rules, guilds: true };
   const off = { ...rules, guilds: false };
@@ -183,6 +187,7 @@ describe('who may hold (#55, Q2, X1)', () => {
     daily: true,
     guilds: true,
     mainLock: 7,
+    heldSpy: 2,
   };
   const OPTIONS = [
     [1, 'Gilde'],
@@ -212,9 +217,11 @@ describe('who may hold (#55, Q2, X1)', () => {
       '#round-main-lock': '12',
       '#round-allies': '2',
     };
+    values['#round-held-spy'] = '4';
     expect(roundValues((sel) => values[sel]!)).toEqual({
       mainLock: 12,
       allies: 2,
+      heldSpy: 4,
     });
   });
 
@@ -235,5 +242,28 @@ describe('who may hold (#55, Q2, X1)', () => {
     expect(html).toContain(
       '<input type="number" id="set_speed" data-setting="speed" min="1" max="100" value="5" data-nokeep>',
     );
+  });
+});
+
+describe('held fleets in the spy report (#55, owner, 2026-11-17, X1)', () => {
+  const rules = {
+    number: 1,
+    achievements: true,
+    daily: true,
+    guilds: true,
+    mainLock: 7,
+    allies: 3,
+  };
+
+  it('is a level of the Auspex-Lehre in „Neue Runde“, preselected with the current round', () => {
+    for (const heldSpy of [2, 5]) {
+      const html = roundDialog({ ...rules, heldSpy });
+      expect(html).toContain(
+        `<p><label for="round-held-spy">Gehaltene Flotten im Spionagebericht ab Auspex-Lehre</label> <input type="number" id="round-held-spy" min="0" max="30" step="1" value="${heldSpy}" required> <span class="dim">0 bis 30</span></p>`,
+      );
+      expect(html.indexOf('id="round-held-spy"')).toBeLessThan(
+        html.indexOf('data-act="doReset"'),
+      );
+    }
   });
 });

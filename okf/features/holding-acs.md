@@ -60,10 +60,21 @@ The battle with several parties is built with #55
   Runde“ and editable in the admin panel during the round (owner,
   2026-11-17, X1).
 
+* **[E]** The mission is called „Wache stellen“ in the game (owner,
+  2026-11-17, not „Halten“ or „Wacht halten“); the refusals follow it.
+* **[E]** Espionage report (owner, 2026-11-17): below a new value per round
+  „Gehaltene Flotten im Spionagebericht ab Auspex-Lehre“ (default 2; X1:
+  in „Neue Runde“ and editable live), the held fleets appear only as
+  defenders, mixed into the planet's fleet; from that level of the spy's
+  Auspex-Lehre on, they appear apart under „Gehaltene Flotten“.
+* **[E]** Auspex-Phalanx (owner, 2026-11-17): a held fleet shows as holding
+  („hält bei [g:s:p]“ with the end of the holding time), not as its return
+  flight.
+
 ## Built with #55
 
-* The mission is `hold` (`src/features/missions/hold/`), named „Wacht
-  halten“ after the table of #94 ([Naming](/features/naming.md)) [V];
+* The mission is `hold` (`src/features/missions/hold/`), named „Wache
+  stellen“ (owner, 2026-11-17, [Naming](/features/naming.md));
   the issue's „Haltezeit“ and „Gehaltene Flotten“ stay. Order 70, the new
   target kind `ally` (a foreign planet whose owner is an ally, which the
   mission's `canSend` asks), cargo, return, ships not shown while it flies
@@ -104,7 +115,18 @@ The battle with several parties is built with #55
   * The cargo of the held fleets is taken whole (not half) with the room
     left; the rest is lost with the fleets, which are destroyed when the
     attacker wins. 1 hour is preselected in the form.
-  * The refusals: „Wacht halten nur bei Gildenmitgliedern und Freunden.“
+  * The spy report: the setting is `roundHeldSpy` in `UNIVERSE_SPECS`,
+    range 0 to 30 [V]; the held fleets follow the section „Flotte“ and show
+    only when it shows (score 2), apart as „Gehaltene Flotten“ with
+    „<name>: <ships>“ per fleet; the chance of the Auspex-Abwehr still
+    counts the planet's own ships only. The owner's label says
+    „Spionagebericht“, a classic word of #94, so the naming test allows it
+    in `core/universe.ts`. A wrong value in „Neue Runde“ is refused with
+    „Bitte für „<label>“ eine ganze Zahl von 0 bis 30 angeben.“ [V].
+  * The phalanx shows a held fleet with its origin, „hält bei <target>“
+    and the countdown to the end of its holding time (`holds` of
+    `ScannedFlight`).
+  * The refusals: „Wache stellen nur bei Gildenmitgliedern und Freunden.“
     (by the setting „… nur bei Gildenmitgliedern.“ or „… nur bei
     Freunden.“), „An diesem Planeten halten bereits 15 Flotten.“, „An
     diesem Planeten halten bereits Flotten von 4 Spielern.“, „Bitte eine

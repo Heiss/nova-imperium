@@ -135,15 +135,25 @@ function invitations(ui: Ui): string {
   return `<form id="inviteform" class="flex"><label for="inv_email">E-Mail-Adresse</label> <input id="inv_email" type="email" required autocomplete="off" data-nokeep> <button type="submit">Einladen</button></form>${link}<div id="admin-invitations"></div>`;
 }
 
+/** A setting of the round as the universe settings name it (#55). */
+const spec = (key: string) => UNIVERSE_SPECS.find((x) => x.key === key)!;
+
 /** Who may hold, named as in the universe settings (#55). */
-const ALLIES_LABEL = UNIVERSE_SPECS.find((x) => x.key === 'roundAllies')!.label;
+const ALLIES_LABEL = spec('roundAllies').label;
+
+/** The level of the spy report on held fleets in „Neue Runde“ (#55). */
+function heldSpyField(level: number): string {
+  const s = spec('roundHeldSpy');
+  return `<p><label for="round-held-spy">${esc(s.label)}</label> <input type="number" id="round-held-spy" min="${s.min}" max="${s.max}" step="1" value="${level}" required> <span class="dim">${s.min} bis ${s.max}</span></p>`;
+}
 
 /** The values of the dialog „Neue Runde“ beyond the rewards and the guild switch. */
 export const roundValues = (
   val: (sel: string) => string,
-): { mainLock: number; allies: number } => ({
+): { mainLock: number; allies: number; heldSpy: number } => ({
   mainLock: Number(val('#round-main-lock')),
   allies: Number(val('#round-allies')),
+  heldSpy: Number(val('#round-held-spy')),
 });
 
 export function roundDialog(round: RoundRules): string {
@@ -157,6 +167,7 @@ export function roundDialog(round: RoundRules): string {
   <span id="round-guilds-note">Eine neue Runde leert alle Gilden-Chats. Ohne Gilden werden alle Gilden mit Mitgliedern, Bewerbungen, Rängen und Chat gelöscht.</span></p>
   <p><label for="round-main-lock">Sperre nach einem Wechsel des Hauptplaneten (Tage)</label> <input type="number" id="round-main-lock" min="${MAIN_LOCK_DAYS.min}" max="${MAIN_LOCK_DAYS.max}" step="1" value="${round.mainLock}" required> <span class="dim">${MAIN_LOCK_DAYS.min} bis ${MAIN_LOCK_DAYS.max}</span></p>
   <p><label for="round-allies">${ALLIES_LABEL}</label> <select id="round-allies">${choiceOptions(ALLY_CHOICES, round.allies)}</select></p>
+  ${heldSpyField(round.heldSpy)}
   <p><button class="red" data-act="doReset">Ja, neue Runde</button> <button data-act="closeModal">Abbrechen</button></p>`;
 }
 

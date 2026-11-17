@@ -113,6 +113,7 @@ universe settings) and their ranges are not decided yet.
 | Lock of a [given-up colony's](/features/abandon-colony.md) position | #224 D2 | default 24 h (owner, 2026-11-16) |
 | Lock after a switch of the [main planet](/features/main-planet.md), in whole days from 1 to 30 [V] | #221 D3 | default 7 days (owner, 2026-11-16); built in the dialog „Neue Runde“ |
 | Who may hold, join an attack union and fight with friends: guild, friends or both ([Holding and ACS](/features/holding-acs.md), [Buddy list](/features/buddy-list.md)) | #55 Q2, #225 D2, #227 D3 | [V] guild and friends, the classic rule for holding; built with #55 as „Halten erlaubt für“ (`roundAllies`) in the dialog „Neue Runde“ and the universe settings (X1) |
+| Held fleets in the spy report from the spy's Auspex-Lehre („Gehaltene Flotten im Spionagebericht ab Auspex-Lehre“, [Holding and ACS](/features/holding-acs.md)) | #55 (owner, 2026-11-17) | 2; built as `roundHeldSpy` in „Neue Runde“ and the universe settings (X1), 0 to 30 [V] |
 | Limits of an attack union ([Holding and ACS](/features/holding-acs.md)) | #225 D3 | classic value: 16 fleets of 5 players, a delay of at most 30 % of the remaining flight time; join window [U] |
 | Thresholds of the recognition of incoming fleets ([Espionage defense](/features/espionage-defense.md)) | #228 D1 | classic value: espionage technology 2 / 4 / 8 (source [U]) |
 | Thresholds of the [activity indicators](/features/activity-indicators.md) | #229 Q1 | classic value: star 15 min, „x min“ up to 59 min, „i“ after 7 days, „I“ after 28 days |

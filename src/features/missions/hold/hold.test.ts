@@ -1,4 +1,4 @@
-// Wacht halten (#55): its typed data, its own check (an ally with room at
+// Wache stellen (#55): its typed data, its own check (an ally with room at
 // the planet) and its arrival, which starts the holding.
 import { describe, expect, it } from 'vitest';
 import type { SendTarget } from '../../../core/missions.ts';
@@ -41,7 +41,7 @@ describe('hold', () => {
       alertsGuild: false,
       holds: true,
     });
-    expect(texts).toEqual({ n: 'Wacht halten' });
+    expect(texts).toEqual({ n: 'Wache stellen' });
   });
 
   it('flies only to an ally, asked for the owner of the planet', () => {

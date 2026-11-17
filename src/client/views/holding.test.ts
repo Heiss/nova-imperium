@@ -78,3 +78,47 @@ describe('a battle report with fleets that held', () => {
     expect(view(report([]))).toBe(html);
   });
 });
+
+describe('a spy report of a planet where fleets hold (#55)', () => {
+  const view = (held?: unknown) =>
+    messages({
+      s: {
+        me: { readAt: 0 },
+        reports: [
+          {
+            id: 'r1',
+            time: 5,
+            type: 'spy',
+            title: 'Auspex-Bericht',
+            name: 'Beta',
+            coords: { g: 1, s: 2, p: 6 },
+            defName: 'Bert',
+            res: { m: 1, c: 2, d: 3 },
+            counter: 0,
+            lost: false,
+            ships: { lf: 2 },
+            ...(held === undefined ? {} : { held }),
+          },
+        ],
+      },
+      ui: { openRep: {} },
+    } as unknown as V);
+
+  it('lists each fleet that holds apart, after the fleet of the planet', () => {
+    const html = view([
+      { name: 'Anna', ships: { lf: 3, bs: 1 } },
+      { name: 'Emil', ships: {} },
+    ]);
+    expect(html).toContain(
+      `<div class="mt"><b>Gehaltene Flotten</b><br>Anna: ${text('lf')!.n}: 3 · ${text('bs')!.n}: 1<br>Emil: <span class="dim">keine</span></div>`,
+    );
+    expect(html.indexOf('<b>Flotte</b>')).toBeLessThan(
+      html.indexOf('Gehaltene Flotten'),
+    );
+  });
+
+  it('shows no such section without them', () => {
+    expect(view()).not.toContain('Gehaltene Flotten');
+    expect(view([])).toBe(view());
+  });
+});

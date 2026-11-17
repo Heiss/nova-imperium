@@ -122,6 +122,11 @@ export interface RoundRules {
    * changed live in the universe settings (X1).
    */
   allies: number;
+  /**
+   * From which Auspex-Lehre of the spy a spy report shows the held fleets
+   * apart (#55, owner, 2026-11-17), 2 by default; X1 as `allies`.
+   */
+  heldSpy: number;
 }
 
 export interface AchievementState {

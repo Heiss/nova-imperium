@@ -4,7 +4,7 @@
 // an ally is the admin's value per round: guild members, friends or both
 // (owner, 2026-11-16, Q2). The server, the fleet form and the overview ask
 // these rules (patterns, section 7). The alliance depot comes later (D1).
-import type { Fleet, Resources } from './types.ts';
+import type { Fleet, Levels, Resources } from './types.ts';
 
 /** One hour in milliseconds; the holding time runs in real time [V]. */
 export const HOUR_MS = 3_600_000;
@@ -49,6 +49,32 @@ export interface Bond {
   /** Both are friends (#227). */
   friends: boolean;
 }
+
+/**
+ * From which level of the spy's Auspex-Lehre a spy report shows the held
+ * fleets apart under „Gehaltene Flotten“ (owner, 2026-11-17): below it they
+ * count into the planet's fleet. A value per round, 2 by default; the range
+ * 0 to 30 is [V].
+ */
+export const HELD_SPY = { min: 0, max: 30, default: 2 } as const;
+
+/** Whether `level` is a value of the setting of the spy report. */
+export const isHeldSpy = (level: unknown): level is number =>
+  Number.isInteger(level) &&
+  (level as number) >= HELD_SPY.min &&
+  (level as number) <= HELD_SPY.max;
+
+/** Whether a spy with Auspex-Lehre `spy` sees the held fleets apart. */
+export const showsHeldApart = (spy: number, from: number): boolean =>
+  spy >= from;
+
+/** The ships of several fleets added up. */
+export const shipsOf = (fleets: readonly Pick<Fleet, 'ships'>[]): Levels => {
+  const out: Levels = {};
+  for (const f of fleets)
+    for (const [k, n] of Object.entries(f.ships)) out[k] = (out[k] ?? 0) + n;
+  return out;
+};
 
 /** Whether a bond makes two players allies under the setting `allies`. */
 export const isAlly = (allies: number, bond: Bond): boolean =>

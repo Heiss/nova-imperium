@@ -159,10 +159,10 @@ describe('sending a fleet to hold', () => {
       return () => send(ctx, anna, hold({ to: target }));
     };
     expect(to(3)).toThrow(
-      'Wacht halten nur bei Gildenmitgliedern und Freunden.',
+      'Wache stellen nur bei Gildenmitgliedern und Freunden.',
     );
-    expect(to(1)).toThrow('Wacht halten nur bei Gildenmitgliedern.');
-    expect(to(2, BERT)).toThrow('Wacht halten nur bei Freunden.');
+    expect(to(1)).toThrow('Wache stellen nur bei Gildenmitgliedern.');
+    expect(to(2, BERT)).toThrow('Wache stellen nur bei Freunden.');
     expect(ctx.fleets.all()).toEqual([]);
   });
   it('refuses the own planet and a free position', () => {
@@ -170,7 +170,7 @@ describe('sending a fleet to hold', () => {
     addPlanet(ctx, 'u_Anna', { g: 1, s: 1, p: 8, name: 'Kolonie' });
     expect(() =>
       send(ctx, user(ctx, 'Anna'), hold({ to: { g: 1, s: 1, p: 8 } })),
-    ).toThrow('Wacht halten nur bei Gildenmitgliedern und Freunden.');
+    ).toThrow('Wache stellen nur bei Gildenmitgliedern und Freunden.');
     expect(() =>
       send(ctx, user(ctx, 'Anna'), hold({ to: { g: 1, s: 4, p: 8 } })),
     ).toThrow('An dieser Position gibt es keinen Planeten.');
@@ -402,6 +402,67 @@ describe('a battle at a planet where fleets hold (#55)', () => {
   });
 });
 
+describe('a spy report of a planet where fleets hold (#55, owner, 2026-11-17)', () => {
+  /** Cora, with Auspex-Lehre `spy`, scouts Bert's planet with `probes`. */
+  function scout(ctx: TestCtx, spy: number, probes = 5) {
+    ctx.players.save({ ...user(ctx, 'Cora'), research: { energy: 10, spy } });
+    const f: Fleet = {
+      id: 'spy',
+      owner: 'u_Cora',
+      from: 'p1_3_7',
+      fromC: CORA,
+      to: 'p1_2_6',
+      toC: BERT,
+      mission: 'spy',
+      ships: { probe: probes },
+      cargo: { m: 0, c: 0, d: 0 },
+      dep: ctx.now() - 100,
+      arr: ctx.now(),
+      ret: ctx.now() + 100,
+      state: 'out',
+      recalled: false,
+      fuel: 1,
+    };
+    ctx.fleets.save(f);
+    arrive(ctx, f);
+    return ctx.reports.ofPlayer('u_Cora')[0]!;
+  }
+  const withHeld = () => {
+    const ctx = setup();
+    ctx.planets.save({ ...ctx.planets.get('p1_2_6')!, ships: { lf: 2 } });
+    holding(ctx, 'h1', 'u_Anna', { ships: { lf: 3, bs: 1 } });
+    return ctx;
+  };
+
+  it('counts them into the fleet of the planet below the level of the round', () => {
+    const r = scout(withHeld(), 1);
+    expect(r.ships).toEqual({ lf: 5, bs: 1 });
+    expect(r).not.toHaveProperty('held');
+  });
+  it('shows them apart from the level of the round on, 2 by default', () => {
+    const r = scout(withHeld(), 2);
+    expect(r.ships).toEqual({ lf: 2 });
+    expect(r.held).toEqual([{ name: 'Anna', ships: { lf: 3, bs: 1 } }]);
+  });
+  it('follows the setting of the round', () => {
+    const ctx = withHeld();
+    ctx.admin.putSettings([['roundHeldSpy', 4]]);
+    expect(scout(ctx, 3)).not.toHaveProperty('held');
+  });
+  it('shows nothing of them when the report shows no fleet', () => {
+    const r = scout(withHeld(), 0, 1);
+    expect(r).not.toHaveProperty('ships');
+    expect(r).not.toHaveProperty('held');
+  });
+  it('shows the fleet of the planet as before without fleets that hold', () => {
+    const ctx = setup();
+    ctx.planets.save({ ...ctx.planets.get('p1_2_6')!, ships: { lf: 2 } });
+    const r = scout(ctx, 5);
+    expect(r.ships).toEqual({ lf: 2 });
+    expect(r).not.toHaveProperty('held');
+  });
+});
+
 describe('what the host sees', () => {
   it('shows a fleet that holds with its ships and holding time; one on its way without ships', () => {
     const ctx = setup();
@@ -430,6 +491,7 @@ describe('who may hold in the round (#55, X1)', () => {
     });
     expect(roundRules(ctx).allies).toBe(1);
     expect(ctx.admin.universe().roundAllies).toBe(1);
+    expect(roundRules(ctx).heldSpy).toBe(2);
     runAction(ctx, 'u_Ada', {
       type: 'reset',
       rewards: { achievements: true, daily: true },
@@ -448,6 +510,28 @@ describe('who may hold in the round (#55, X1)', () => {
       ).toThrow('Bitte auswählen, wer in der neuen Runde halten darf.');
       expect(roundRules(ctx).allies).toBe(3);
     }
+  });
+  it('sets the level of the spy report in „Neue Runde“ and live (X1)', () => {
+    const ctx = setup();
+    const reset = (heldSpy: unknown) =>
+      runAction(ctx, 'u_Ada', {
+        type: 'reset',
+        rewards: { achievements: true, daily: true },
+        heldSpy,
+      });
+    reset(5);
+    expect(roundRules(ctx).heldSpy).toBe(5);
+    reset(undefined);
+    expect(roundRules(ctx).heldSpy).toBe(5);
+    for (const bad of [-1, 31, 1.5, 'x'])
+      expect(() => reset(bad)).toThrow(
+        'Bitte für „Gehaltene Flotten im Spionagebericht ab Auspex-Lehre“ eine ganze Zahl von 0 bis 30 angeben.',
+      );
+    runAction(ctx, 'u_Ada', {
+      type: 'settings',
+      settings: { ...ctx.admin.universe(), roundHeldSpy: 0 },
+    });
+    expect(roundRules(ctx).heldSpy).toBe(0);
   });
   it('is changed live in the universe settings', () => {
     const ctx = setup();

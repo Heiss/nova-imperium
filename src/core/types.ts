@@ -131,4 +131,10 @@ export interface Universe {
    * „Neue Runde“ and changed live by the admin (X1).
    */
   roundAllies: number;
+  /**
+   * From which Auspex-Lehre of the spy a spy report shows the held fleets
+   * apart (#55, owner, 2026-11-17); the stored setting of the round, set in
+   * „Neue Runde“ and changed live (X1).
+   */
+  roundHeldSpy: number;
 }

@@ -35,6 +35,8 @@ describe('universe settings', () => {
       endzeitMinutes: 240,
       // Added by #55 (Q2): guild and friends may hold, the classic rule [V].
       roundAllies: 3,
+      // Added by #55 (owner, 2026-11-17): held fleets apart from Auspex-Lehre 2.
+      roundHeldSpy: 2,
     });
     for (const s of UNIVERSE_SPECS) {
       expect(s.def).toBeGreaterThanOrEqual(s.min);
@@ -55,6 +57,7 @@ describe('universe settings', () => {
       ['extraFields', 'Zusatzfelder pro Planet'],
       ['endzeitMinutes', 'Flugzeit der Endzeit-Gabe (Minuten)'],
       ['roundAllies', 'Halten erlaubt für'],
+      ['roundHeldSpy', 'Gehaltene Flotten im Spionagebericht ab Auspex-Lehre'],
     ]);
   });
   it('accept valid values given as strings', () => {
@@ -125,6 +128,21 @@ describe('universe settings', () => {
     for (const roundAllies of [0, 4, 1.5])
       expect(codes({ ...DEFAULT_UNIVERSE, roundAllies })).toEqual([
         ['roundAllies', 'range'],
+      ]);
+  });
+  it('take the Auspex-Lehre 0 to 30 for held fleets in the spy report, 2 by default (#55)', () => {
+    expect(spec('roundHeldSpy')).toEqual({
+      key: 'roundHeldSpy',
+      label: 'Gehaltene Flotten im Spionagebericht ab Auspex-Lehre',
+      min: 0,
+      max: 30,
+      def: 2,
+    });
+    for (const roundHeldSpy of [0, 30])
+      expect(codes({ ...DEFAULT_UNIVERSE, roundHeldSpy })).toEqual([]);
+    for (const roundHeldSpy of [-1, 31, 2.5])
+      expect(codes({ ...DEFAULT_UNIVERSE, roundHeldSpy })).toEqual([
+        ['roundHeldSpy', 'range'],
       ]);
   });
   it('offer only choices inside the range of their setting', () => {

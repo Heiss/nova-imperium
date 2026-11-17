@@ -85,15 +85,15 @@ const SEND_ERROR: Readonly<Record<SendError, string>> = {
   noMoon: 'An dieser Position gibt es keinen Mond.',
   moonTarget: 'Ein Mond kann nicht das Ziel dieses Auftrags sein.',
   // #55 [V]: worded like the other missions, by the setting of the round.
-  notAlly: 'Wacht halten nur bei Gildenmitgliedern und Freunden.',
+  notAlly: 'Wache stellen nur bei Gildenmitgliedern und Freunden.',
   holdFleets: `An diesem Planeten halten bereits ${HOLD_LIMITS.fleets} Flotten.`,
   holdPlayers: `An diesem Planeten halten bereits Flotten von ${HOLD_LIMITS.players} Spielern.`,
 };
 
 /** Who may hold, as the refusal of a Halten names them (#55, Q2) [V]. */
 const NOT_ALLY: Readonly<Record<number, string>> = {
-  [ALLIES.guild]: 'Wacht halten nur bei Gildenmitgliedern.',
-  [ALLIES.friends]: 'Wacht halten nur bei Freunden.',
+  [ALLIES.guild]: 'Wache stellen nur bei Gildenmitgliedern.',
+  [ALLIES.friends]: 'Wache stellen nur bei Freunden.',
 };
 
 /** The message of a code; a Halten names who may hold in this round. */

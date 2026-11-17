@@ -74,6 +74,8 @@ const SKIP = new Set(['parent', 'leadingComments', 'trailingComments', 'css']);
 const ALLOWED: readonly string[] = [
   'server/delete-account.ts: Spionageaktivität',
   'core/guild-chat.ts: Angriff auf',
+  // The owner's label of the setting of #55 (2026-11-17).
+  'core/universe.ts: Spionagebericht',
 ];
 
 /** Every classic word in `texts`, as „file: word“. */

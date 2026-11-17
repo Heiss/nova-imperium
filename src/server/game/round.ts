@@ -1,5 +1,11 @@
 import type { RoundRules } from '../../core/achievements.ts';
-import { ALLIES_RANGE, isAllies } from '../../core/holding.ts';
+import {
+  ALLIES_RANGE,
+  HELD_SPY,
+  isAllies,
+  isHeldSpy,
+} from '../../core/holding.ts';
+import { UNIVERSE_SPECS } from '../../core/universe.ts';
 import { isLockDays, MAIN_LOCK_DAYS } from '../../core/main-planet.ts';
 import { type RoundError, roundChoice, roundError } from '../../core/round.ts';
 import { type Ctx, fail } from './context.ts';
@@ -12,6 +18,9 @@ const MAIN_LOCK = 'roundMainLock';
  * `UNIVERSE_SPECS` too, so the admin changes it live (X1).
  */
 const ALLIES_KEY = 'roundAllies';
+
+/** The setting of the spy report on held fleets (#55): a key of `UNIVERSE_SPECS` too (X1). */
+const HELD_SPY_KEY = 'roundHeldSpy';
 
 export function roundRules(ctx: Ctx): RoundRules {
   const rows = ctx.admin.roundSettings();
@@ -26,6 +35,8 @@ export function roundRules(ctx: Ctx): RoundRules {
     mainLock: ctx.admin.setting(MAIN_LOCK) ?? MAIN_LOCK_DAYS.default,
     // Existing universes let guild members and friends hold (#55, [V]).
     allies: ctx.admin.setting(ALLIES_KEY) ?? ALLIES_RANGE.default,
+    // Existing universes show held fleets apart from Auspex-Lehre 2 (#55).
+    heldSpy: ctx.admin.setting(HELD_SPY_KEY) ?? HELD_SPY.default,
   };
 }
 
@@ -77,10 +88,23 @@ function alliesRule(current: RoundRules, allies: unknown): number {
   return selected;
 }
 
+/** The setting of the spy report in the new round (#55); without a choice the current one. */
+function heldSpyRule(current: RoundRules, level: unknown): number {
+  const selected = level === undefined ? current.heldSpy : level;
+  if (!isHeldSpy(selected)) {
+    const label = UNIVERSE_SPECS.find((s) => s.key === HELD_SPY_KEY)!.label;
+    return fail(
+      `Bitte für „${label}“ eine ganze Zahl von ${HELD_SPY.min} bis ${HELD_SPY.max} angeben.`,
+    );
+  }
+  return selected;
+}
+
 /** The values of the dialog „Neue Runde“ beyond the rewards and the guild switch. */
 interface RoundValues {
   mainLock?: unknown;
   allies?: unknown;
+  heldSpy?: unknown;
 }
 
 export function startRoundRules(
@@ -97,10 +121,12 @@ export function startRoundRules(
     ...roundChoice(current, options, guilds),
     mainLock: mainLockRule(current, values.mainLock),
     allies: alliesRule(current, values.allies),
+    heldSpy: heldSpyRule(current, values.heldSpy),
   };
   ctx.admin.putSettings([
     [MAIN_LOCK, next.mainLock],
     [ALLIES_KEY, next.allies],
+    [HELD_SPY_KEY, next.heldSpy],
     ['round', next.number],
     ['roundAchievements', Number(next.achievements)],
     ['roundDaily', Number(next.daily)],

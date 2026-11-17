@@ -121,6 +121,7 @@ describe('the guild switch (#191)', () => {
       guilds: true,
       mainLock: 7,
       allies: 3,
+      heldSpy: 2,
     });
     expect(guildsOn(ctx)).toBe(true);
     expect(() => requireGuilds(ctx)).not.toThrow();
@@ -155,6 +156,7 @@ describe('the guild switch (#191)', () => {
       guilds: false,
       mainLock: 7,
       allies: 3,
+      heldSpy: 2,
     });
     for (const t of GUILD_TABLES)
       expect(ctx.db.prepare(`SELECT COUNT(*) FROM ${t}`).pluck().get(), t).toBe(
@@ -174,6 +176,7 @@ describe('the guild switch (#191)', () => {
         guilds: true,
         mainLock: 7,
         allies: 3,
+        heldSpy: 2,
       },
       after: {
         number: 2,
@@ -182,6 +185,7 @@ describe('the guild switch (#191)', () => {
         guilds: false,
         mainLock: 7,
         allies: 3,
+        heldSpy: 2,
       },
     });
   });

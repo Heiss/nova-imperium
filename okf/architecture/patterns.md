@@ -394,7 +394,7 @@ choice of the patterns to the assistant's recommendation below
   it; the database allows only the five missions. No `f.mission ===` is
   left outside the mission folders.
 * **[E]** Built with #55, within the decisions of #116: the seventh folder
-  `hold` (Wacht halten, 70) with the new target kind `ally`, a foreign
+  `hold` (Wache stellen, 70) with the new target kind `ally`, a foreign
   planet whose owner must be an ally: `suits` treats it as `foreign`, the
   noob protection keeps it as a foreign target, the own planet gets
   `notAlly`, and the mission's `canSend` asks the server's `ally` and

@@ -89,6 +89,7 @@ export const reset: Action = (ctx, u, data, event) => {
   const after = startRoundRules(ctx, data.rewards, data.guilds, {
     mainLock: data.mainLock,
     allies: data.allies,
+    heldSpy: data.heldSpy,
   });
   newRound(ctx, after);
   if (event) event.detail = { before, after };

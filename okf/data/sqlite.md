@@ -491,7 +491,7 @@ player, since the player repository writes the new columns.
 
 Migration `20261117T1029-holding` (issue #55, see
 [Holding and ACS](/features/holding-acs.md)) rebuilds `fleets` and
-`fleet_ships`, as migration 16 did, for the mission Wacht halten: `mission`
+`fleet_ships`, as migration 16 did, for the mission Wache stellen: `mission`
 allows `hold`, `state` allows `hold` (a fleet that holds at its target), and
 the new column `fleets.hold` (INTEGER, 0, at least 0) is the holding time of
 a Halten in milliseconds, written once at the launch, like `gift` only by

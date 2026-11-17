@@ -196,8 +196,9 @@ stored mission ids stay.
   `CHANGELOG.md` keeps its
   released sections and the design mockups in `docs/design/` keep the
   classic names.
-* **[V]** Built with #55: the mission `hold` shows „Wacht halten“ of the
-  table above (classic „Halten“, `MISSIONS` in `src/test/naming.ts`); the
+* **[E]** Built with #55: the mission `hold` shows „Wache stellen“ (owner,
+  2026-11-17, replacing „Wacht halten“ of the table above; classic
+  „Halten“, `MISSIONS` in `src/test/naming.ts`); the
   issue's „Haltezeit“ and „Gehaltene Flotten“ stay, and „Halten“ is no
   forbidden word ([Holding and ACS](/features/holding-acs.md)).
 * Tests: `src/test/naming.ts` holds the tables; `src/test/naming.test.ts`

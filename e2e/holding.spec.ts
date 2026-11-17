@@ -1,4 +1,4 @@
-// Wacht halten (#55): a guild member sends a fleet with a holding time to
+// Wache stellen (#55): a guild member sends a fleet with a holding time to
 // the planet of another member; a player outside the guild is refused. The
 // fleet holds there, the host sees it under „Gehaltene Flotten“, it defends
 // the planet in a battle and its owner gets the report of the defender with
@@ -79,7 +79,7 @@ for (const phone of ['', ' @phone'])
       .click();
     await expect(lastToast(page)).toContainText('Bewerbung angenommen.');
 
-    // „Haltezeit“ shows only for Wacht halten.
+    // „Haltezeit“ shows only for Wache stellen.
     await pg.reload();
     await aimAt(pg, host, { Kathedralschiff: '2' });
     const time = pg.getByLabel('Haltezeit');
@@ -90,18 +90,25 @@ for (const phone of ['', ' @phone'])
     await time.selectOption('2');
     await pg.getByRole('button', { name: 'Flotte losschicken' }).click();
     await expect(lastToast(pg)).toContainText('Flotte unterwegs nach');
-    await expect(pg.locator('.fl-hold')).toContainText('Wacht halten');
+    await expect(pg.locator('.fl-hold')).toContainText('Wache stellen');
 
     // A player outside the guild may not hold there.
     const pr = await browser.newPage({ viewport: page.viewportSize() });
     const wr = watch(pr);
     await register(pr, raider);
-    seed({ name: raider, ships: { lf: 3 }, res: { m: 0, c: 0, d: 50000 } });
+    seed({
+      name: raider,
+      ships: { lf: 3, probe: 5 },
+      res: { m: 0, c: 0, d: 50000 },
+      // Auspex-Lehre 2: the spy report shows the held fleet apart; three
+      // fleet slots for the refused Halten, the scouting and the attack.
+      research: { spy: 2, computer: 2 },
+    });
     await aimAt(pr, host, { Abfangjäger: '1' });
     await pr.getByLabel('Auftrag').selectOption('hold');
     await pr.getByRole('button', { name: 'Flotte losschicken' }).click();
     await expect(lastToast(pr)).toContainText(
-      'Wacht halten nur bei Gildenmitgliedern und Freunden.',
+      'Wache stellen nur bei Gildenmitgliedern und Freunden.',
     );
 
     // The fleet arrives and holds; the host sees it.
@@ -114,6 +121,21 @@ for (const phone of ['', ' @phone'])
     const held = page.locator('.box', { hasText: 'Gehaltene Flotten' });
     await expect(held).toContainText(`Flotte von ${guard}`, { timeout: 15000 });
     await expect(held).toContainText('2 Kathedralschiff');
+
+    // The raider's Auspex-Erkundung shows the held fleet apart (owner,
+    // 2026-11-17: from Auspex-Lehre 2 by default).
+    await pr.reload();
+    await aimAt(pr, host, { Spähschädel: '5' });
+    await pr.getByLabel('Auftrag').selectOption('spy');
+    await pr.getByRole('button', { name: 'Flotte losschicken' }).click();
+    await expect(lastToast(pr)).toContainText('Flotte unterwegs nach');
+    seed({ name: raider, landFleet: 'spy' });
+    await nav(pr, 'messages');
+    const spied = report(pr, /^Auspex-Bericht von /);
+    await expect(spied).toBeVisible({ timeout: 15000 });
+    await spied.locator('.t').click();
+    await expect(spied).toContainText('Gehaltene Flotten');
+    await expect(spied).toContainText(`${guard}: Kathedralschiff: 2`);
 
     // The raider attacks with three Abfangjäger: the held fleet defends.
     await pr.reload();

@@ -2,7 +2,7 @@
 // the universe never shrinks below a planet that exists. The admin panel, the
 // server check and the documentation table read this list.
 import { GIFT_DEFAULT_MINUTES, GIFT_MINUTES } from './endzeit.ts';
-import { ALLIES, ALLIES_RANGE } from './holding.ts';
+import { ALLIES, ALLIES_RANGE, HELD_SPY } from './holding.ts';
 import type { Coords, Universe } from './types.ts';
 
 type UniverseKey = keyof Universe;
@@ -108,6 +108,15 @@ export const UNIVERSE_SPECS: readonly UniverseSpec[] = [
     max: ALLIES_RANGE.max,
     def: ALLIES_RANGE.default,
     choices: ALLY_CHOICES,
+  },
+  // Issue #55 (owner, 2026-11-17, X1): from which Auspex-Lehre of the spy a
+  // spy report shows the held fleets apart; the owner's label.
+  {
+    key: 'roundHeldSpy',
+    label: 'Gehaltene Flotten im Spionagebericht ab Auspex-Lehre',
+    min: HELD_SPY.min,
+    max: HELD_SPY.max,
+    def: HELD_SPY.default,
   },
 ];
 
