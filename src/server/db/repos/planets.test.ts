@@ -155,4 +155,35 @@ describe('planets repository', () => {
       'UNIQUE constraint failed: planets.g, planets.s, planets.p, planets.kind',
     );
   });
+
+  it('keeps when the Warp-Tor of a moon is ready again, until the moon goes (#230)', () => {
+    const ctx = testCtx();
+    addUser(ctx, 'Anna');
+    const moon = addPlanet(ctx, 'u_Anna', { id: 'm1_1_5', kind: 'moon' });
+    const other = addPlanet(ctx, 'u_Anna', {
+      id: 'm1_1_6',
+      kind: 'moon',
+      p: 6,
+    });
+    expect(ctx.planets.gateReady(moon.id)).toBe(0);
+    ctx.planets.setGateReady(moon.id, 5000);
+    ctx.planets.setGateReady(other.id, 7000);
+    expect(ctx.planets.gateReady(moon.id)).toBe(5000);
+    ctx.planets.setGateReady(moon.id, 9000);
+    expect(ctx.planets.gateReady(moon.id)).toBe(9000);
+    expect(ctx.planets.gateReady(other.id)).toBe(7000);
+    // Saving the moon keeps its gate time.
+    ctx.planets.save({ ...moon, name: 'Neu' });
+    expect(ctx.planets.gateReady(moon.id)).toBe(9000);
+    // A removed moon (#95) takes it along; a new round all of them.
+    ctx.db.prepare('DELETE FROM planets WHERE id = ?').run(moon.id);
+    expect(ctx.planets.gateReady(moon.id)).toBe(0);
+    expect(
+      ctx.db.prepare('SELECT moon_id FROM jump_gates').pluck().all(),
+    ).toEqual([other.id]);
+    ctx.planets.deleteAll();
+    expect(
+      ctx.db.prepare('SELECT COUNT(*) FROM jump_gates').pluck().get(),
+    ).toBe(0);
+  });
 });

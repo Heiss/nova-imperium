@@ -15,6 +15,13 @@ export interface Planets {
   /** All planets by their coordinates. */
   all(): Planet[];
   save(p: Planet): void;
+  /**
+   * When the Warp-Tor of a moon is ready again (#230): 0 when it never
+   * cooled down. The time goes with the moon.
+   */
+  gateReady(id: string): number;
+  /** Stores when the Warp-Tor of a moon is ready again (#230). */
+  setGateReady(id: string, ready: number): void;
   deleteAll(): void;
   /** The largest galaxy, system and position in use. */
   usedSize(): UsedSize;
@@ -163,6 +170,22 @@ export class SqlitePlanets implements Planets {
       'INSERT INTO shipyard_queue VALUES (?, ?, ?, ?, ?)',
     );
     p.sq.forEach((q, i) => sq.run(p.id, i, q.key, q.n, q.unit));
+  }
+
+  gateReady(id: string): number {
+    const r = this.db
+      .prepare('SELECT ready FROM jump_gates WHERE moon_id = ?')
+      .get(id) as Row | undefined;
+    return (r?.ready as number | undefined) ?? 0;
+  }
+
+  setGateReady(id: string, ready: number): void {
+    this.db
+      .prepare(
+        `INSERT INTO jump_gates (moon_id, ready) VALUES (?, ?)
+         ON CONFLICT(moon_id) DO UPDATE SET ready = excluded.ready`,
+      )
+      .run(id, ready);
   }
 
   deleteAll(): void {
