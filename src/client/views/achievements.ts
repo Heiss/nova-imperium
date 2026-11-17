@@ -4,6 +4,7 @@ import {
   type Achievement,
   type AchievementState,
 } from '../../core/achievements.ts';
+import { rewardMinutes } from '../../core/daily-reward.ts';
 import type { Cost } from '../../core/types.ts';
 import { esc, fmt } from '../logic/format.ts';
 import { box, type V } from './common.ts';
@@ -46,12 +47,13 @@ function achievementRow(
 
 function daily(state: AchievementState['daily']): string {
   if (!state) return '';
-  const { streak, reward, next, claimed } = state;
+  const { streak, day, reward, next, claimed } = state;
   return box(
     'Tägliche Belohnung',
     `<p>Anmeldeserie: ${fmt(streak)} Tage (Tageswechsel um 00:00 UTC)</p>
-  <p>Heute: ${rewardText(reward)} ${claimed ? '<b>Abgeholt</b>' : '<button data-act="dailyClaim">Tagesbelohnung abholen</button>'}</p>
-  <p>Morgen bei fortgesetzter Serie: ${rewardText(next)}</p>`,
+  <p>Tag ${fmt(day)} der Runde: ${fmt(rewardMinutes(day))} Minuten der mittleren Stundenproduktion aller Spieler</p>
+  <p data-daily-reward>Heute: ${rewardText(reward)} ${claimed ? '<b>Abgeholt</b>' : '<button data-act="dailyClaim">Tagesbelohnung abholen</button>'}</p>
+  <p>Morgen (${fmt(rewardMinutes(day + 1))} Minuten, bei gleicher Produktion): ${rewardText(next)}</p>`,
   );
 }
 
