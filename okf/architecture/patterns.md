@@ -686,9 +686,44 @@ choice of the patterns to the assistant's recommendation below
   still returns the planet moved to now for the clock. Bundle 2 (the
   Sternenkarte) moved none either: the old view kept its state in
   `client.ui` (`gal`, `sys`, `gmoon`, `scan`), which stays there;
-  `mounted` now also holds the Sternenkarte. Still rendered as HTML: the
-  views Flotte, Nachrichten, Highscore, Gilden, Achievements, Neuigkeiten,
-  Hilfe & Optionen and Admin.
+  `mounted` now also holds the Sternenkarte. Bundle 3 (Flotte) moved none
+  either: the old view kept its state in `client.ui` (`ft`, `fm`), which
+  stays there; `mounted` now also holds the fleet view. Still rendered as
+  HTML: the views Nachrichten, Highscore, Gilden, Achievements,
+  Neuigkeiten, Hilfe & Optionen and Admin.
+* **[E]** Bundle 3 after bundle 2 (owner, 2026-11-15 and 2026-11-16: the
+  order of the bundles of #118 „Geklärt, Nachtrag 3“, unchanged by
+  „Nachtrag 4“): Flotte, after #250 (the buttons „alles“ of #240), so
+  their buttons are part of the converted view; #253 (only the missions
+  that fit the target) is built after it, straight into the component.
+* **[V]** Built with #118, bundle 3 (Flotte): `src/client/views/Fleet.svelte`,
+  mounted by `mountFleet(target, v)` of `src/client/views/fleet.ts`
+  (which renders no HTML any more, and leaves `VIEWS` of
+  `views/index.ts`), renders the view from `fleetPage(v)` of
+  `src/client/logic/fleet.ts`: the fleets on their way with the used and
+  free slots, without the gift of #161 in the count; the ships on the
+  shown planet that can fly, with „max“, „alle Schiffe“ and „keine
+  Schiffe“, or the notice without any; and the form: the target (the one
+  of the Sternenkarte, `ui.ft`, or the shown planet) with „Mond“ only
+  where one is (#53), the list „Auftrag“ (`missions`, from
+  `missionOptions(chosen, fits)`, whose `fits` keeps every mission for
+  now and is where #253 plugs in its filter), the speeds, the cargo
+  fields each with its „alles“ and „alles (gleichmäßig)“ (#240), the
+  empty cells of the preview, and „Flotte losschicken“, disabled when
+  every slot is taken. The list of fleets is the new `FleetMoves.svelte`,
+  which the overview now uses too instead of its own table, so the copy
+  check jscpd finds no clone. The data come as a property (`page`), as
+  for the Sternenkarte. The view is mounted anew on every render (`ANEW`
+  in `main.ts`), as its HTML was rendered anew: `keepInputs` keeps the
+  typed numbers, the chosen target, mission and speed and the focus by
+  id, and the clock counts the countdowns down, as before. What `main.ts`
+  writes beside the form while the player types, the target
+  (`targetInfo()`, #45, #53) and the cells of the preview
+  (`previewCells()`, #129), moved into `logic/fleet.ts`; reading the form
+  (`readFleetForm`), „Mond“ by the typed coordinates (`moonOption`) and
+  the click actions (`fmax`, `fall`, `fnone`, `cmax`, `cone`, `send`,
+  `recall`) stay with `data-act` in `main.ts` until package 8, so
+  `main.ts` shrinks (1,888 to 1,848 lines). No visible change.
 * **[E]** Bundle 2 after bundle 1 (owner, 2026-11-15 and 2026-11-16: the
   order of the bundles of #118 „Geklärt, Nachtrag 3“, unchanged by
   „Nachtrag 4“): the Sternenkarte, which the phone view #189 builds on
@@ -1000,7 +1035,8 @@ src/client/                state, components (generic), views
      First pull request of #118 built: the state module and the four lists
      through `CatalogList` (section 9); the second the Übersicht through
      `Overview` (section 9); bundle 1 the header line, the navigation and
-     the resource bar (section 9); the other views follow.
+     the resource bar (section 9); bundle 2 the Sternenkarte and bundle 3
+     the fleet view (section 9); the other views follow.
   8. Places (O11), its own pull request before #45 and #53 (owner,
      2026-11-12). Built with #119.
 
