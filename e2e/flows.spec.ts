@@ -58,6 +58,10 @@ async function sendTransport(page: Page): Promise<void> {
   await page.getByRole('button', { name: 'Flotte losschicken' }).click();
   await expect(lastToast(page)).toContainText('Flotte unterwegs nach');
   await expect(page.locator('.fl-transport')).toContainText('1 Frachtläufer');
+  // The row shows what the fleet carries (#259).
+  await expect(page.locator('.fl-transport')).toContainText(
+    'Versorgungsflug · Ladung: Adamant 1.000 · Psikristall 0 · Promethium 0',
+  );
 }
 
 /**
@@ -274,6 +278,33 @@ test.describe('fleet and battle (#68)', () => {
     expect(w.problems).toEqual([]);
   });
 
+  test('the overview shows the cargo of a transport on a 390 px phone (#259) @phone', async ({
+    page,
+  }) => {
+    const w = watch(page);
+    const name = uniqueName('LadungH');
+    await register(page, name);
+    seed({
+      name,
+      ships: { sc: 1 },
+      res: { m: 5000, c: 0, d: 5000 },
+      colony: { res: { m: 0, c: 0, d: 0 } },
+    });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await sendTransport(page);
+    await nav(page, 'overview');
+    const row = page.locator('.fl-transport');
+    await expect(row).toContainText('Deine Flotte (1 Frachtläufer) von ');
+    await expect(row).toContainText(
+      'Versorgungsflug · Ladung: Adamant 1.000 · Psikristall 0 · Promethium 0',
+    );
+    await expect(row).toBeInViewport();
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth),
+    ).toBeLessThanOrEqual(page.viewportSize()!.width);
+    expect(w.problems).toEqual([]);
+  });
+
   test('a transport unloads on the colony and comes home; reports are deleted one by one and all at once', async ({
     page,
   }) => {
@@ -293,6 +324,8 @@ test.describe('fleet and battle (#68)', () => {
     await expect(page.locator('.fl-back')).toContainText('kehrt von', {
       timeout: 15000,
     });
+    // Unloaded, it carries nothing home and shows no cargo (#259).
+    await expect(page.locator('.fl-back')).not.toContainText('Ladung');
     await choosePlanet(page, 'Kolonie');
     await expect(stock(page, 'Adamant')).toHaveText('1.000');
     seed({ name, returnFleet: true });
@@ -337,6 +370,9 @@ test.describe('fleet and battle (#68)', () => {
     await page.getByRole('button', { name: 'Rückruf' }).click();
     await expect(lastToast(page)).toContainText('Flotte zurückgerufen.');
     await expect(page.locator('.fl-back')).toContainText('kehrt von');
+    await expect(page.locator('.fl-back')).toContainText(
+      'zurück · Ladung: Adamant 1.000 · Psikristall 0 · Promethium 0',
+    );
     await expect(page.locator('.fl-transport')).toHaveCount(0);
 
     seed({ name, returnFleet: true });
@@ -720,6 +756,42 @@ test.describe('accounts by mail (#68)', () => {
     await page.getByRole('button', { name: 'Anmelden' }).click();
     await expect(page.locator('h2')).toContainText('Übersicht');
     await expect(page.locator('#pinfo')).toContainText(name);
+    expect(w.problems).toEqual([]);
+  });
+
+  test('an invitation link shows no login while the server checks it (#272)', async ({
+    page,
+  }) => {
+    const w = watch(page);
+    const name = uniqueName('Einladung');
+    mailCli('invite', emailOf(name));
+    const [link] = await mail(emailOf(name), /^http:\S+#invite=[\w-]+$/m);
+    // The check of the invitation waits until the test has looked: the
+    // login rendered after the 401 of /api/state took the name and the
+    // password, and the registration replaced it empty (#272).
+    let pending!: () => void;
+    const checking = new Promise<void>((resolve) => (pending = resolve));
+    let answer!: () => void;
+    const looked = new Promise<void>((resolve) => (answer = resolve));
+    await page.route('**/api/invite/check', async (route) => {
+      pending();
+      await looked;
+      await route.continue();
+    });
+    await page.goto(link);
+    await checking;
+    await expect(page.locator('#authform')).toHaveCount(0);
+    await expect(page.locator('#view')).toHaveText('Lade Universum …');
+    answer();
+    await expect(page.locator('.auth .hd')).toHaveText(
+      'Neues Imperium gründen',
+    );
+    await page.fill('#a_name', name);
+    await page.fill('#a_pw', 'ein-sicheres-testpasswort');
+    await page.click('button[type=submit]');
+    await expect(lastToast(page)).toContainText(
+      'Konto erstellt. Melde dich jetzt an.',
+    );
     expect(w.problems).toEqual([]);
   });
 

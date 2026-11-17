@@ -11,6 +11,7 @@ import { ownLabs } from './actions.ts';
 import { type Ctx, universe } from './context.ts';
 import { endzeitState } from './endzeit.ts';
 import { guildState } from './guilds.ts';
+import { mainPlanetOf, mainPlanetView } from './main-planet.ts';
 import { achievementState } from './achievements.ts';
 import { roundRules } from './round.ts';
 import { pointsMap } from './points.ts';
@@ -76,10 +77,13 @@ export function stateFor(
   u: User,
   selected?: unknown,
 ): Record<string, unknown> {
-  const home = ctx.planets.home(u.id);
+  const round = roundRules(ctx);
+  // Without a selection the main planet (#221); the first planet stays the
+  // home planet („Heimatplanet“).
+  const main = mainPlanetOf(ctx, u, round);
   const requested =
     typeof selected === 'string' ? ctx.planets.get(selected) : null;
-  const p = requested?.owner === u.id ? requested : home;
+  const p = requested?.owner === u.id ? requested : main.planet;
   const pts = pointsMap(ctx);
   const fleets = ctx.fleets
     .all()
@@ -93,14 +97,14 @@ export function stateFor(
       .all()
       .map((x) => [x.id, { name: x.name, points: pts[x.id] ?? 0 }]),
   );
-  const round = roundRules(ctx);
   return {
     round,
     now: ctx.now(),
     cfg: universe(ctx),
     me: meOf(ctx, u),
     planet: p,
-    homePlanet: home?.id ?? null,
+    homePlanet: ctx.planets.home(u.id)?.id ?? null,
+    ...mainPlanetView(main, ctx.now()),
     labs: ownLabs(ctx, u.id),
     fleets,
     reports: ctx.reports.ofPlayer(u.id),
