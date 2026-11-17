@@ -1,9 +1,9 @@
 // The articles of stage 1 of the Lexicanum (#285): one per catalog entry and
 // one per mission, generated from the catalog, its texts and the mission
-// rules, plus what an entry adds in its own folder (lexicon.de.ts, through
-// the generated lexicon index). Nothing here names a key: a new entry or
+// rules, plus what an entry or a mission adds in its own folder
+// (lexicon.de.ts, through the generated lexicon index). Nothing here names a key: a new entry or
 // mission gets its article without new code.
-import { LEXICON } from '../../features/lexicon.gen.ts';
+import { LEXICON, MISSION_LEXICON } from '../../features/lexicon.gen.ts';
 import { BUILD, DEF, RES, SHIPS } from '../catalog.ts';
 import { MISSION } from '../missions.ts';
 import { missionText, text } from '../text.ts';
@@ -37,12 +37,14 @@ export interface ArticleMeta {
   lexicon: EntryLexicon;
 }
 
-/** The generated index of the lexicon parts, by key. */
-const PARTS: ReadonlyMap<string, EntryLexicon> = new Map(
-  (LEXICON as readonly (readonly [string, { lexicon: EntryLexicon }])[]).map(
-    ([key, part]) => [key, part.lexicon],
-  ),
-);
+type Index = readonly (readonly [string, { lexicon: EntryLexicon }])[];
+
+const byKey = (index: Index): ReadonlyMap<string, EntryLexicon> =>
+  new Map(index.map(([key, part]) => [key, part.lexicon]));
+
+/** The generated indexes of the lexicon parts, by key and by mission. */
+const PARTS = byKey(LEXICON);
+const MISSION_PARTS = byKey(MISSION_LEXICON);
 
 /** The id of the article of a mission; `spy` is both a research and a mission. */
 export const missionArticle = (m: string): string => `mission-${m}`;
@@ -79,7 +81,7 @@ export const ARTICLES: readonly ArticleMeta[] = [
     kind: 'mission',
     title: missionText(m)!.n,
     key: m,
-    lexicon: {},
+    lexicon: MISSION_PARTS.get(m) ?? {},
   })),
 ];
 

@@ -1,4 +1,9 @@
-// What the article of the Plasma-Impulsantrieb adds in the Lexicanum (#285).
+// What the article „Plasma-Impulsantrieb“ adds in the Lexicanum (#285); the text and
+// the keywords are drafts ([V], okf/features/lexicanum-texts.md).
 import { drivePart } from '../../core/lexicon/parts.ts';
+import type { EntryLexicon } from '../../core/lexicon/types.ts';
 
-export const lexicon = drivePart('impulse');
+export const lexicon: EntryLexicon = {
+  ...drivePart('impulse'),
+  keywords: ['Triebwerk', 'schneller', 'Flugzeit'],
+};

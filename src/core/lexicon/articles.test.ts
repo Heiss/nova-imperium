@@ -2,10 +2,13 @@
 // new mission or a changed rule shows up in the Lexicanum or turns the CI
 // red. Every catalog entry and mission has an article; no link without a
 // target; no typed number in a text outside a formula; every value filled;
-// every formula agrees with its rule.
+// every formula agrees with its rule. Since the owner's „Geklärt“ of
+// 2026-11-17: every article has keywords, every mission its text, and every
+// article with an effect, every store and every producing building its
+// words before the formula.
 import { describe, expect, it } from 'vitest';
 import { classicIn } from '../../test/naming.ts';
-import { BUILD, DEF, RES, SHIPS } from '../catalog.ts';
+import { BUILD, DEF, PRODUCTION, RES, SHIPS, STORAGE } from '../catalog.ts';
 import { MISSION } from '../missions.ts';
 import { U } from '../../test/fixtures.ts';
 import {
@@ -19,7 +22,8 @@ import {
   usedFor,
 } from './articles.ts';
 import { hasEffect, partTexts, searchDocs } from './docs.ts';
-import { fill, linkTargets, valueNames } from './links.ts';
+import { fill, linkTargets, plain, valueNames } from './links.ts';
+import { fold } from './search.ts';
 import type { Block, LexState } from './types.ts';
 
 /** States the computed blocks are checked on. */
@@ -146,6 +150,88 @@ describe('the articles of stage 1 (#285)', () => {
     for (const text of all) expect(classicIn(text), text).toEqual([]);
   });
 
+  it('has everyday keywords for every article, none a name it already has (B6)', () => {
+    for (const a of ARTICLES) {
+      const keywords = a.lexicon.keywords ?? [];
+      expect(keywords.length, a.id).toBeGreaterThanOrEqual(2);
+      expect(new Set(keywords).size, a.id).toBe(keywords.length);
+      for (const k of keywords) {
+        // One word each, as a player types it; the search matches its start.
+        expect(k, a.id).toMatch(/^\p{L}+$/u);
+        expect(fold(a.title), `${a.id}: ${k}`).not.toContain(fold(k));
+        expect(classicIn(k), `${a.id}: ${k}`).toEqual([]);
+      }
+    }
+    expect(article('spy')!.lexicon.keywords).toEqual(['ausspähen', 'Gegner']);
+  });
+
+  it('says in one text what happens when a mission arrives', () => {
+    const docs = searchDocs();
+    for (const m of Object.keys(MISSION)) {
+      const a = article(missionArticle(m))!;
+      expect(a.lexicon.texts, m).toHaveLength(1);
+      const text = partTexts(a)[0]!;
+      expect(text, m).toMatch(/^Am (Ziel|Trümmerfeld)[ ,]/);
+      expect(text.length, m).toBeGreaterThan(80);
+      // The text is the line below the hit of the search, without link marks.
+      const doc = docs.find((d) => d.id === a.id)!;
+      expect(doc.line).toBe(text);
+      expect(doc.line).not.toMatch(/\[\[|\{/);
+      expect(doc.text).toContain(text);
+      expect(hasEffect(a)).toBe(false);
+      expect(a.lexicon.effect ?? a.lexicon.formulas).toBeUndefined();
+    }
+    expect(
+      plain(article('mission-harvest')!.lexicon.texts![0]!.text, titleOf),
+    ).toContain('nicht nur der Bergungsbarken');
+  });
+
+  it('has words before the formula wherever a level brings something', () => {
+    const stores = STORAGE.map((s) => s.key);
+    const producers = PRODUCTION.filter((p) => p.kind === 'building').map(
+      (p) => p.key,
+    );
+    expect(stores).toHaveLength(3);
+    expect(producers.length).toBeGreaterThanOrEqual(5);
+    const need = ARTICLES.filter(
+      (a) =>
+        a.lexicon.effect ||
+        a.lexicon.formulas ||
+        a.lexicon.blocks ||
+        stores.includes(a.key) ||
+        (producers.includes(a.key) && a.kind === 'building'),
+    );
+    // Auspex-Lehre, Kogitator-Doktrin, the drives, weapons, shields and
+    // armour, Sternennetz, Phalanx, Mondzitadelle, the stores, the producers.
+    expect(need.length).toBeGreaterThanOrEqual(19);
+    for (const a of need) {
+      expect(a.lexicon.texts?.length, a.id).toBeGreaterThanOrEqual(1);
+      for (const text of partTexts(a)) {
+        expect(text.length, a.id).toBeGreaterThan(120);
+        expect(text, a.id).not.toMatch(/\{\w+\}|\[\[/);
+      }
+    }
+    // The values of a text are numbers of the rules, not words.
+    expect(partTexts(article('computer')!)[0]).toContain(
+      'Mit Stufe 5 sind es 6 Flotten',
+    );
+    expect(partTexts(article('phalanx')!)[0]).toContain(
+      'Stufe 3 schon 8 Systeme in jede Richtung, Stufe 5 24',
+    );
+    expect(partTexts(article('moonbase')!)[0]).toContain(
+      'bringt 3 Felder und belegt selbst 1 davon – für andere Gebäude bleiben je Stufe 2',
+    );
+    expect(partTexts(article('ifn')!)[0]).toContain(
+      '3 Scholarien der Stufe 12 forschen mit Stufe 2 des Sternennetzes wie eines der Stufe 36',
+    );
+    expect(partTexts(article('fusion')!)[0]).toContain(
+      'ohne Machina-Energetik 489 Energie, mit Machina-Energetik 10 schon 1.214',
+    );
+    expect(partTexts(article('metal')!)[0]).toContain(
+      'Stufe 10 rund 3,2-mal so viel wie Stufe 5',
+    );
+  });
+
   it('gives the search one document per article', () => {
     const docs = searchDocs();
     expect(docs.map((d) => d.id)).toEqual(ARTICLES.map((a) => a.id));
@@ -153,12 +239,17 @@ describe('the articles of stage 1 (#285)', () => {
     expect(spy.keywords).toContain('ausspähen');
     expect(spy.text).toContain('Was die Stufen bringen');
     expect(spy.text).toContain('Auspex-Erkundung hat einen Auspex-Wert');
-    expect(docs.find((d) => d.id === 'metal')!.text).not.toContain(
+    // A producer has its words now, and so the heading (owner, 2026-11-17).
+    expect(docs.find((d) => d.id === 'metal')!.text).toContain(
+      'Die Förderung wächst schneller als die Stufe',
+    );
+    const mission = docs.find((d) => d.id === 'mission-spy')!;
+    expect(mission.title).toBe('Auspex-Erkundung');
+    expect(mission.line).toMatch(/^Am Ziel entsteht ein Auspex-Bericht/);
+    // A mission has no „Was die Stufen bringen“.
+    expect(mission.text).not.toContain('Was die Stufen bringen');
+    expect(docs.find((d) => d.id === 'robot')!.text).not.toContain(
       'Was die Stufen bringen',
     );
-    expect(docs.find((d) => d.id === 'mission-spy')).toMatchObject({
-      title: 'Auspex-Erkundung',
-      line: '',
-    });
   });
 });

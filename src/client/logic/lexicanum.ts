@@ -200,11 +200,15 @@ const lexState = (v: V): LexState => ({
   ships: v.P.ships,
 });
 
-/** The resource names of the effect of a producer. */
+/**
+ * The headings of the effect of a producer; a mine makes less without
+ * enough energy, so its heading says what the rate assumes (owner,
+ * 2026-11-17).
+ */
 const MADE: readonly [string, string][] = [
-  ['m', 'Adamant/h'],
-  ['c', 'Psikristall/h'],
-  ['d', 'Promethium/h'],
+  ['m', 'Adamant/h bei voller Energie'],
+  ['c', 'Psikristall/h bei voller Energie'],
+  ['d', 'Promethium/h bei voller Energie'],
   ['e', 'Energie'],
 ];
 
@@ -257,16 +261,20 @@ function stand(v: V, a: ArticleMeta, e: LevelEffect): ViewBlock[] {
   ];
 }
 
+/** The texts of the lexicon part of an article, with their values. */
+const partTexts = (a: ArticleMeta): ViewBlock[] =>
+  (a.lexicon.texts ?? []).map((t) => ({
+    t: 'text',
+    parts: textParts(fill(t.text, t.values)),
+  }));
+
 /** „Was die Stufen bringen“: texts, formulas, computed blocks, the own state. */
 function effectSection(v: V, a: ArticleMeta, e?: LevelEffect): Section | null {
   const store = STORAGE.some((s) => s.key === a.key);
   if (!hasEffect(a) && !e) return null;
   const custom = a.lexicon.blocks?.(lexState(v)) ?? [];
   const blocks: ViewBlock[] = [
-    ...(a.lexicon.texts ?? []).map((t): ViewBlock => ({
-      t: 'text',
-      parts: textParts(fill(t.text, t.values)),
-    })),
+    ...partTexts(a),
     ...(a.lexicon.formulas ?? []).map(formula),
     ...(store ? [formula(storageFormula(v.s.cfg))] : []),
     ...custom.map(viewBlock),
@@ -418,11 +426,15 @@ function own(v: V, a: ArticleMeta): string | null {
 /** The article of an id with the player's state; null for an unknown id. */
 /** The sections of an article, the empty ones left out. */
 function sections(v: V, a: ArticleMeta): Section[] {
-  // A mission has the name of a research (`spy`): only its facts and links.
+  // A mission has the name of a research (`spy`): its text, facts and links.
   const all =
     a.kind === 'mission'
       ? [
-          { id: 'mission', title: '', blocks: [missionFacts(a.key)] },
+          {
+            id: 'mission',
+            title: '',
+            blocks: [...partTexts(a), missionFacts(a.key)],
+          },
           seeSection(a),
         ]
       : [

@@ -5,6 +5,7 @@ import { RES, SHIPS } from '../../core/catalog.ts';
 import { capOf } from '../../core/components/storage.ts';
 import { lvlCost, prod } from '../../core/economy.ts';
 import { ARTICLES } from '../../core/lexicon/articles.ts';
+import { MISSION } from '../../core/missions.ts';
 import { text } from '../../core/text.ts';
 import type { Levels, Planet } from '../../core/types.ts';
 import { planet, U } from '../../test/fixtures.ts';
@@ -244,7 +245,16 @@ describe('an article of a catalog entry', () => {
     const P = { b: { metal: 7, solar: 30 }, pct: {} };
     const mine = art('metal', view(P));
     const rows = of(blocks(mine, 'levels'), 'levels')[0]!.table;
-    expect(rows.effect).toEqual({ label: 'Adamant/h' });
+    // The rate assumes enough energy; the heading says so (owner, 2026-11-17).
+    expect(rows.effect).toEqual({ label: 'Adamant/h bei voller Energie' });
+    for (const [key, label] of [
+      ['crystal', 'Psikristall/h bei voller Energie'],
+      ['deut', 'Promethium/h bei voller Energie'],
+    ] as const)
+      expect(
+        of(blocks(art(key, view({ b: { [key]: 1 } })), 'levels'), 'levels')[0]!
+          .table.effect,
+      ).toEqual({ label });
     const v = view(P);
     expect(rows.rows[0]!.effect).toBeCloseTo(
       prod(v.P, U).m - prod({ ...v.P, b: { solar: 30 } }, U).m,
@@ -360,6 +370,29 @@ describe('an article of a mission', () => {
       'nein',
     ]);
     expect(section(art('mission-attack'), 'see')).toBeUndefined();
+  });
+
+  it('says what happens on arrival before the facts, with its links', () => {
+    for (const m of Object.keys(MISSION)) {
+      const all = blocks(art(`mission-${m}`), 'mission');
+      expect(all.map((b) => b.t)).toEqual(['text', 'facts']);
+    }
+    const text = of(blocks(art('mission-spy'), 'mission'), 'text')[0]!;
+    expect(text.parts[0]!.text).toMatch(/^Am Ziel entsteht ein Auspex-Bericht/);
+    expect(text.parts).toContainEqual({ text: 'Auspex-Lehre', link: 'spy' });
+    // The search shows the same text below the hit of the mission.
+    const hit = flatHits(searchHits('Landnahme'))[0]!;
+    expect(hit).toMatchObject({ id: 'mission-colonize' });
+    expect(hit.line).toMatch(/^Am Ziel gründet eine Kolonistenarche/);
+    // A keyword finds the mission, and the entry with the same word first.
+    expect(flatHits(searchHits('plündern')).map((h) => h.id)).toEqual([
+      'mission-attack',
+    ]);
+    expect(flatHits(searchHits('ausspähen')).map((h) => h.id)).toEqual([
+      'spy',
+      'probe',
+      'mission-spy',
+    ]);
   });
 });
 

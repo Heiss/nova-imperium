@@ -9,15 +9,16 @@
 //   src/features/missions/<m>/rules.ts              a mission (#116)
 //   src/features/missions/<m>/texts.de.ts           its name
 //   src/features/missions/<m>/arrive.server.ts      its arrival, server only
-//   src/features/<key>/lexicon.de.ts                optional: what the article
-//                                                   of the entry adds in the
-//                                                   Lexicanum (#285)
+//   src/features/<key>/lexicon.de.ts                what the article of the
+//   src/features/missions/<m>/lexicon.de.ts         entry or mission adds in
+//                                                   the Lexicanum (#285)
 //
 // The core sees the features only through index.gen.ts
 // (.dependency-cruiser.cjs). The *.server.ts parts are not in it: the index
 // is used by the browser too. They are listed in index.server.gen.ts
 // (`MISSION_SERVERS`), which only src/server imports (owner, 2026-11-14).
-// The optional lexicon parts are listed in lexicon.gen.ts (`LEXICON`), which
+// The lexicon parts are listed in lexicon.gen.ts (`LEXICON`,
+// `MISSION_LEXICON`), which
 // only the Lexicanum imports, so they load with its own chunk (#285, #242).
 //
 //   node scripts/gen-features.ts
@@ -141,18 +142,31 @@ export function renderServer({ missions }: Features): string {
 }
 
 /**
- * The source of the lexicon index: per entry folder with a lexicon part an
- * import of it, listed by key (#285).
+ * The source of the lexicon index: per entry folder and per mission folder
+ * with a lexicon part an import of it, listed by key (#285).
  */
-export function renderLexicon(dir: string, { entries }: Features): string {
+export function renderLexicon(
+  dir: string,
+  { entries, missions }: Features,
+): string {
   const keys = entries.filter((k) => existsSync(join(dir, k, LEXICON_FILE)));
-  const imports = keys
-    .map((k) => `import * as lexicon_${k} from './${k}/${LEXICON_FILE}';\n`)
-    .join('');
+  const flights = missions.filter((m) =>
+    existsSync(join(dir, MISSIONS, m, LEXICON_FILE)),
+  );
+  const imports = [
+    ...keys.map(
+      (k) => `import * as lexicon_${k} from './${k}/${LEXICON_FILE}';\n`,
+    ),
+    ...flights.map(
+      (m) =>
+        `import * as mission_lexicon_${m} from './${MISSIONS}/${m}/${LEXICON_FILE}';\n`,
+    ),
+  ].join('');
   return [
     HEADER,
     ...(imports ? [imports] : []),
     list('LEXICON', keys, 'lexicon'),
+    list('MISSION_LEXICON', flights, 'mission_lexicon'),
   ].join('\n');
 }
 
