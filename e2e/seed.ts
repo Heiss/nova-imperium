@@ -12,7 +12,8 @@
 //   Trümmerfeld at the position of the home planet, issue #45), moon? ({ b?, res?, ships?,
 //   def?, name?, diameter? }: the moon of the home planet, made or changed, issue #53),
 //   gift? (minutes: a gift fleet of the „Endzeit“ to the home planet that arrives in that
-//   time, issue #161) }
+//   time, issue #161), colonyMoon? (the fields of `moon`: the moon of the colony, made or
+//   changed, with `colony`, issue #230) }
 import { openDatabase } from '../src/server/db/database.ts';
 import { Store } from '../src/server/db/store.ts';
 import { recordServerError } from '../src/server/error-log.ts';
@@ -109,8 +110,14 @@ function addColony(p: Planet): void {
     .run(Date.now(), `p${c.g}_${c.s}_${c.p}`);
 }
 
-/** The moon of the home planet (#53): made when it is not there yet, then changed. */
-function moonOf(p: Planet): void {
+/** The colony of `colony`, as addColony places it. */
+const colonyOf = (p: Planet): Planet =>
+  store.planet(
+    `p${d.colony.g ?? p.g}_${d.colony.s ?? p.s}_${d.colony.p ?? 15}`,
+  )!;
+
+/** The moon of a planet (#53): made when it is not there yet, then changed. */
+function moonOf(p: Planet, over: Partial<Planet>): void {
   const id = `m${p.g}_${p.s}_${p.p}`;
   const old = store.planet(id);
   const t = Date.now();
@@ -133,7 +140,7 @@ function moonOf(p: Planet): void {
       t,
       created: t,
     }),
-    ...d.moon,
+    ...over,
   });
 }
 
@@ -152,8 +159,9 @@ store.tx(() => {
   const p = store.planetOfUser(u.id)!;
   updateHome(p);
   if (d.colony) addColony(p);
+  if (d.colonyMoon) moonOf(colonyOf(p), d.colonyMoon);
   if (d.debris) store.repos.debris.add(p, d.debris);
-  if (d.moon) moonOf(p);
+  if (d.moon) moonOf(p, d.moon);
   if (d.gift) addGift(p, d.gift);
   if (d.serverError)
     recordServerError(createCtx(store), {
