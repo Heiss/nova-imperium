@@ -63,8 +63,11 @@ them, are in [Design patterns](/architecture/patterns.md) (owner,
   `package.json` and `website/package.json` (owner, 2026-11-17, #264,
   straight from 10 to 12). From pnpm 11 on its settings are read from
   `pnpm-workspace.yaml`, no longer from the field `pnpm` of `package.json`
-  or from `.npmrc`: `allowBuilds` (only `esbuild` runs its install script;
-  an install script that is not listed there fails the install),
+  or from `.npmrc`: `allowBuilds` (`esbuild` runs its install script,
+  `better-sqlite3` is listed as not built, since it brings its binaries;
+  an install script that is not listed there fails the install, and so
+  did an existing `node_modules` of pnpm 10 without the line of
+  `better-sqlite3`),
   `engineStrict`, and the overrides of a security hotfix
   ([Branching and release](/ops/branching-release.md)). The Dockerfile
   copies the file before it installs. `website/` has no settings.
