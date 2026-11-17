@@ -121,7 +121,7 @@ describe('a new entry of the registry (#283)', () => {
   });
 
   it('is a row of the universe settings when live, checked there with the same wording', () => {
-    const specs = liveSpecs(settings);
+    const specs = liveSpecs([HOURS, CHOICE]);
     expect(specs).toEqual([
       {
         key: 'roundTestHours',
@@ -150,8 +150,18 @@ describe('a new entry of the registry (#283)', () => {
     expect(valuesOf(ctx)).toMatchObject({ testHours: 72 });
   });
 
-  it('the settings of main are not live: the universe settings stay as they were', () => {
-    expect(liveSpecs()).toEqual([]);
-    expect(UNIVERSE_SPECS.some((s) => s.key.startsWith('round'))).toBe(false);
+  it('the lock of a given-up position (#224) is the one live setting of main, the last row of the universe settings', () => {
+    const row = {
+      key: 'roundAbandonLock',
+      label: 'Sperre einer aufgegebenen Position (Stunden)',
+      min: 1,
+      max: 720,
+      def: 24,
+    };
+    expect(liveSpecs()).toEqual([row]);
+    expect(UNIVERSE_SPECS.filter((s) => s.key.startsWith('round'))).toEqual([
+      row,
+    ]);
+    expect(UNIVERSE_SPECS.at(-1)).toEqual(row);
   });
 });

@@ -1,6 +1,7 @@
 // The settings of a round (#214, #283): the registry, both reward options
-// and the guild switch are yes or no, the lock of the main planet a whole
-// number; an option not sent keeps the current one.
+// and the guild switch are yes or no, the locks of the main planet and of
+// a given-up position (#224) whole numbers; an option not sent keeps the
+// current one.
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import {
@@ -13,7 +14,13 @@ import {
   storedValues,
 } from './round.ts';
 
-const current = { achievements: true, daily: false, guilds: true, mainLock: 7 };
+const current = {
+  abandonLock: 24,
+  achievements: true,
+  daily: false,
+  guilds: true,
+  mainLock: 7,
+};
 const both = { achievements: false, daily: true };
 
 /** The names of the refused settings, as the old codes: rewards, guilds. */
@@ -21,8 +28,9 @@ const refused = (
   rewards: unknown,
   guilds: unknown,
   mainLock?: unknown,
+  abandonLock?: unknown,
 ): string[] =>
-  roundRefused(current, { rewards, guilds, mainLock }).map(
+  roundRefused(current, { rewards, guilds, mainLock, abandonLock }).map(
     (s) => s.group?.name ?? s.name,
   );
 
@@ -75,17 +83,20 @@ describe('the registry of the round settings', () => {
   it('reads the stored values: a missing one is the default, a switch 0 or 1', () => {
     const none = storedValues(() => undefined);
     expect(none).toEqual({
+      abandonLock: 24,
       achievements: true,
       daily: true,
       guilds: true,
       mainLock: 7,
     });
     const stored: Record<string, number> = {
+      roundAbandonLock: 48,
       roundAchievements: 0,
       roundDaily: 2,
       roundMainLock: 12,
     };
     expect(storedValues((k) => stored[k])).toEqual({
+      abandonLock: 48,
       achievements: false,
       daily: true,
       guilds: true,
@@ -95,6 +106,7 @@ describe('the registry of the round settings', () => {
 
   it('builds the request with a group as one object', () => {
     expect(roundRequest(current)).toEqual({
+      abandonLock: 24,
       rewards: { achievements: true, daily: false },
       guilds: true,
       mainLock: 7,
@@ -110,6 +122,7 @@ describe('the check of a new round', () => {
           const data = { rewards: { achievements, daily }, guilds };
           expect(roundRefused(current, data)).toEqual([]);
           expect(roundValues(current, data)).toEqual({
+            abandonLock: 24,
             achievements,
             daily,
             guilds,
@@ -158,10 +171,18 @@ describe('the check of a new round', () => {
       expect(refused(both, true, mainLock)).toEqual([]);
   });
 
-  it('names the reward options first, then the guild switch, then the lock', () => {
+  it('refuses a lock of a given-up position that is not a whole number of hours from 1 to 720 (#224)', () => {
+    for (const abandonLock of [0, 721, 2.5, '24', null, true])
+      expect(refused(both, true, 7, abandonLock)).toEqual(['abandonLock']);
+    for (const abandonLock of [1, 720, undefined])
+      expect(refused(both, true, 7, abandonLock)).toEqual([]);
+  });
+
+  it('names the first refused setting in the order of the registry', () => {
     expect(code({ achievements: true }, 'no')).toBe('rewards');
     expect(code(undefined, 'no')).toBe('guilds');
     expect(refused(undefined, 'no', 0)).toEqual(['guilds']);
+    expect(refused({}, 'no', 0, 0)).toEqual(['abandonLock']);
   });
 
   it('refuses the wrong members of a group together, once per group', () => {
