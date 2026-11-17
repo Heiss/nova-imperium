@@ -7,12 +7,13 @@
 //   node scripts/security-hotfix.ts plan <trivy.json>      print the plan as
 //        JSON ({"id": "", ...} when nothing needs a hotfix)
 //   node scripts/security-hotfix.ts apply <plan.json> [base-digest]
-//        pin the fixed versions in package.json, pin the base image to
-//        base-digest when the plan needs it, write the changelog fragment
+//        pin the fixed versions in package.json and, from pnpm 11 on, in
+//        pnpm-workspace.yaml, pin the base image to base-digest when the
+//        plan needs it, write the changelog fragment
 //   node scripts/security-hotfix.ts verify <plan.json>     fail when
 //        pnpm-lock.yaml still holds a version below a fix
 import { createHash } from 'node:crypto';
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { runCli } from './cli.ts';
 
 /** Severities that start a hotfix (owner: High and above). */
@@ -27,6 +28,8 @@ const VENDOR: Record<number, string> = {
 /** Where the image keeps the dependencies of package.json (Dockerfile). */
 const APP_MODULES = /^\/?app\/node_modules\//;
 const BASE_IMAGE = 'node:26-slim';
+/** Where pnpm 11 and later read their settings, the overrides among them. */
+const WORKSPACE = 'pnpm-workspace.yaml';
 
 interface TrivyVulnerability {
   VulnerabilityID: string;
@@ -195,17 +198,34 @@ export function plan(report: TrivyReport): Plan {
 }
 
 interface PackageJson {
+  packageManager?: string;
   dependencies?: Record<string, string>;
   pnpm?: { overrides?: Record<string, string>; [key: string]: unknown };
   [key: string]: unknown;
 }
 
+/** The override that gives every older copy of the package the fixed version. */
+const override = (fix: PackageFix): [selector: string, version: string] => [
+  `${fix.name}@<${fix.version}`,
+  fix.version,
+];
+
 /**
- * Every older copy of the package gets the fixed version through a pnpm
- * override; a direct dependency also gets it in package.json, which pins
- * exact versions.
+ * Whether the pnpm of this package.json reads its overrides from
+ * pnpm-workspace.yaml: from pnpm 11 on the field "pnpm" of package.json is
+ * no longer read (#264). An older release, or one without "packageManager",
+ * keeps the field.
  */
-export function pinPackages(
+export function readsWorkspace(pkg: PackageJson): boolean {
+  const major = /^pnpm@(\d+)\./.exec(pkg.packageManager ?? '')?.[1];
+  return major !== undefined && Number(major) >= 11;
+}
+
+/**
+ * A direct dependency of the plan gets the fixed version in package.json,
+ * which pins exact versions.
+ */
+export function pinDependencies(
   pkg: PackageJson,
   fixes: readonly PackageFix[],
 ): PackageJson {
@@ -214,11 +234,83 @@ export function pinPackages(
     if (next.dependencies && fix.name in next.dependencies) {
       next.dependencies[fix.name] = fix.version;
     }
-    next.pnpm ??= {};
-    next.pnpm.overrides ??= {};
-    next.pnpm.overrides[`${fix.name}@<${fix.version}`] = fix.version;
   }
   return next;
+}
+
+/**
+ * Up to pnpm 10: every older copy of the package gets the fixed version
+ * through an override in the field "pnpm" of package.json; a direct
+ * dependency also gets it.
+ */
+export function pinPackages(
+  pkg: PackageJson,
+  fixes: readonly PackageFix[],
+): PackageJson {
+  const next = pinDependencies(pkg, fixes);
+  for (const fix of fixes) {
+    const [selector, version] = override(fix);
+    next.pnpm ??= {};
+    next.pnpm.overrides ??= {};
+    next.pnpm.overrides[selector] = version;
+  }
+  return next;
+}
+
+/** The key of a line of a YAML map, without its quotes, or undefined. */
+const yamlKey = (line: string): string | undefined =>
+  /^\s+(?:'([^']+)'|"([^"]+)"|([^\s'"#][^:]*)):/
+    .exec(line)
+    ?.slice(1)
+    .find((key) => key !== undefined);
+
+/**
+ * From pnpm 11 on: the overrides of the plan in the text of
+ * pnpm-workspace.yaml (empty when the file is missing), in its top-level
+ * map "overrides", which is added at the end when it is missing. An
+ * override of the same selector is replaced. Only the block form is
+ * written by this project; any other form of the key fails, so an
+ * override is never lost unnoticed.
+ */
+export function pinWorkspace(
+  workspace: string,
+  fixes: readonly PackageFix[],
+): string {
+  if (fixes.length === 0) return workspace;
+  const lines =
+    workspace === '' ? [] : workspace.replace(/\n$/, '').split('\n');
+  const other = lines.find(
+    (line) =>
+      /^(overrides|'overrides'|"overrides")\s*:/.test(line) &&
+      line !== 'overrides:',
+  );
+  if (other !== undefined)
+    throw new Error(`pnpm-workspace.yaml: cannot extend "${other}"`);
+  let start = lines.indexOf('overrides:');
+  if (start < 0) {
+    lines.push('overrides:');
+    start = lines.length - 1;
+  }
+  // The block ends before the next line that starts in the first column.
+  let end = start + 1;
+  while (end < lines.length && !/^\S/.test(lines[end]!)) end += 1;
+  const selectors = new Set(fixes.map((fix) => override(fix)[0]));
+  const kept = lines
+    .slice(start + 1, end)
+    .filter(
+      (line) => line.trim() !== '' && !selectors.has(yamlKey(line) ?? ''),
+    );
+  const added = fixes.map((fix) => {
+    const [selector, version] = override(fix);
+    return `  '${selector}': '${version}'`;
+  });
+  return [
+    ...lines.slice(0, start + 1),
+    ...kept,
+    ...added,
+    ...lines.slice(end),
+    '',
+  ].join('\n');
 }
 
 /**
@@ -307,8 +399,17 @@ function apply(file: string, digest: string | undefined): number {
   if (!p.id) throw new Error('The plan is empty: nothing to apply.');
   if (p.packages.length > 0) {
     const pkg = JSON.parse(readFileSync('package.json', 'utf8')) as PackageJson;
-    const pinned = pinPackages(pkg, p.packages);
+    const workspace = readsWorkspace(pkg);
+    const pinned = workspace
+      ? pinDependencies(pkg, p.packages)
+      : pinPackages(pkg, p.packages);
     writeFileSync('package.json', `${JSON.stringify(pinned, null, 2)}\n`);
+    if (workspace) {
+      const settings = existsSync(WORKSPACE)
+        ? readFileSync(WORKSPACE, 'utf8')
+        : '';
+      writeFileSync(WORKSPACE, pinWorkspace(settings, p.packages));
+    }
   }
   if (p.base) {
     if (!digest)

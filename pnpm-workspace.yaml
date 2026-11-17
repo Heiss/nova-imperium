@@ -1,0 +1,5 @@
+# Settings of pnpm (from pnpm 11 on they are read here, no longer from the
+# field "pnpm" of package.json or from .npmrc; #264).
+allowBuilds:
+  esbuild: true
+engineStrict: true

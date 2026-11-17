@@ -288,7 +288,10 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   (`scripts/security-hotfix.ts`): every older copy of a package gets a pnpm
   override `<name>@<<fixed>`, a dependency of `package.json` also gets the
   fixed version; the job then checks that `pnpm-lock.yaml` holds no version
-  below a fix. A hole in the base image pins the newest digest of
+  below a fix. The override goes where the pnpm of the release tag reads
+  it (`packageManager`): into `overrides` of `pnpm-workspace.yaml` from
+  pnpm 11 on, into the field `pnpm` of `package.json` for an older release
+  (#264). A hole in the base image pins the newest digest of
   `node:26-slim`. The fragment says „Sicherheitsupdate“ without package
   names.
 * **[E]** The release App creates `hotfix/sec-<id>` (bypass in the ruleset
