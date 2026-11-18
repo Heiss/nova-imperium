@@ -1,5 +1,5 @@
 // Admin actions on the universe: change the settings live, start a new round.
-import type { RoundRules } from '../../core/achievements.ts';
+import type { RoundRules } from '../../core/round.ts';
 import { settle } from '../../core/settle.ts';
 import {
   type UniverseCode,
@@ -86,13 +86,7 @@ function newRound(ctx: Ctx, rules: RoundRules): void {
 export const reset: Action = (ctx, u, data, event) => {
   requireAdmin(u);
   const before = roundRules(ctx);
-  const after = startRoundRules(
-    ctx,
-    data.rewards,
-    data.guilds,
-    data.mainLock,
-    data.demolition,
-  );
+  const after = startRoundRules(ctx, data);
   newRound(ctx, after);
   if (event) event.detail = { before, after };
   return 'Neue Runde gestartet – alle Spieler haben einen frischen Planeten.';

@@ -120,7 +120,9 @@ describe('the guild switch (#191)', () => {
       daily: true,
       guilds: true,
       mainLock: 7,
-      demolition: { refund: 50, time: 50 },
+      abandonLock: 24,
+      demolitionRefund: 50,
+      demolitionTime: 50,
     });
     expect(guildsOn(ctx)).toBe(true);
     expect(() => requireGuilds(ctx)).not.toThrow();
@@ -154,7 +156,9 @@ describe('the guild switch (#191)', () => {
       daily: true,
       guilds: false,
       mainLock: 7,
-      demolition: { refund: 50, time: 50 },
+      abandonLock: 24,
+      demolitionRefund: 50,
+      demolitionTime: 50,
     });
     for (const t of GUILD_TABLES)
       expect(ctx.db.prepare(`SELECT COUNT(*) FROM ${t}`).pluck().get(), t).toBe(
@@ -173,7 +177,9 @@ describe('the guild switch (#191)', () => {
         daily: true,
         guilds: true,
         mainLock: 7,
-        demolition: { refund: 50, time: 50 },
+        abandonLock: 24,
+        demolitionRefund: 50,
+        demolitionTime: 50,
       },
       after: {
         number: 2,
@@ -181,7 +187,9 @@ describe('the guild switch (#191)', () => {
         daily: true,
         guilds: false,
         mainLock: 7,
-        demolition: { refund: 50, time: 50 },
+        abandonLock: 24,
+        demolitionRefund: 50,
+        demolitionTime: 50,
       },
     });
   });

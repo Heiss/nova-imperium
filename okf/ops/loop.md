@@ -123,6 +123,11 @@ tasks).
   the version from the tags, the list of pull requests from the Git
   history (squash commits ending in `(#N)`). The loop never writes them
   by hand; it refreshes them by running the workflow (owner, 2026-11-12).
+* **[E]** Every new or changed admin setting or admin action is named in
+  the changelog fragment of its feature, saying what the admin can now
+  do; the loop writes it so in every pull request and checks it again in
+  the texts of the release pull request (owner, 2026-11-17; see
+  [Branching and release](/ops/branching-release.md)).
 * **[E]** The rules of the project stay as they are: do not assume
   anything that no decision or source gives, merges under O4, never a
   merge of a release pull request. Questions to the owner follow the next
@@ -156,14 +161,42 @@ tasks).
   issues become `ready`, and does whatever else keeps both agents building.
   Waiting with a free place wastes the time of the release; the limit of
   two stays for memory and usage.
+* **[E]** Roles (owner, 2026-11-17): the subagents build; the main agent
+  merges, gets the owner's decisions so that issues become ready for
+  building, and structures the work. Because the design patterns already
+  cut most merge conflicts, it watches where the code still causes them or
+  is hard to maintain, gives the subagents tasks to improve that or files
+  issues for it, and orders the work so that subagents do not collide.
+* **[E]** The main agent writes each task for a subagent as
+  [Briefs for subagents](/ops/subagent-briefs.md) says and records there
+  what a result teaches (owner, 2026-11-18).
+* **[E]** Subagents run only the cheap local checks (owner, 2026-11-17):
+  typecheck, eslint and the unit tests of the changed files, prettier,
+  `checkLog` and `check:migrations`, plus, for a change a player sees in
+  the browser, a new E2E test once to show that it fails without the
+  change. The full E2E suite, Stryker and the mutation
+  gate run in the CI, so no agent waits for a free machine; a red CI goes
+  back to a subagent. Reason: two agents shared one machine and waited
+  hours for each other's Stryker runs, while the CI runs the same checks
+  anyway.
 * **[E]** Small patches are slotted in between features (owner,
   2026-11-16): the main agent merges Renovate's green patch and minor pull
   requests (one at a time, CI Gate green on a head up to date with `main`;
-  a major update and a minor one below 1.0 wait for the owner) while it
-  waits and follows up Dependabot alerts without a
+  a major update and a minor one below 1.0 wait for the owner) and follows
+  up Dependabot alerts without a
   Renovate security pull request; a small bug or cleanup issue may be the
   next issue of a free subagent. Reason: the owner wants them done before
   the release, not piled up at its end.
+* **[E]** The loop does that in every iteration in which none of its own
+  pull requests is the next one to merge, not only „while it waits“
+  (owner, 2026-11-18: „sowieso sollte der loop schauen, ob er solche PRs
+  nicht selbst mal eben mit reinpackt“): it brings the oldest such
+  Renovate pull request that can go on one step further (ask for the
+  rebase, or merge it); one that is red on a head up to date with `main`
+  is skipped, so it does not hold the newer ones back (CodeRabbit on
+  #294). Reason: on 2026-11-18 five green minor updates were open, the
+  oldest since 2026-11-13, although the rule above stood since
+  2026-11-16; the session beside the loop merged them.
 * **[E]** An open pull request takes `main` in only when it is the next one
   to merge (CI green on its head, every finding answered), when GitHub
   reports a conflict (then no CI starts, as seen on #194), or when it needs code
@@ -180,12 +213,17 @@ tasks).
   Renovate's ordinary patch and minor pull requests of versions from 1.0
   on (owner, 2026-11-16): one at a time, each under O4 (green CI Gate, no
   blocking finding, every finding answered) on a head up to date with
-  `main`; Renovate rebases the others itself. Reason:
+  `main`; the loop asks Renovate for the rebase of the next one with the
+  box „rebase/retry“ in its description, because Renovate rebases only on
+  a conflict (owner, 2026-11-18,
+  [Branching and release](/ops/branching-release.md)). Reason:
   normal updates merge themselves only for patch (`renovate.json`), so
   minor ones waited without an owner; on 2026-11-16 six of them were open,
   the oldest since 2026-11-13. **[V]** A red one stays open and is named
   to the owner with the release, it is not fixed like a security pull
-  request; major updates and minor updates below 1.0 wait for the owner,
+  request; major updates and minor updates below 1.0 wait for the owner
+  (from 2026-11-18 without a pull request, listed in the Dependency
+  Dashboard until the owner approves),
   each with one issue that the loop finds or opens without a status label
   (CodeRabbit on #266; see [Branching and release](/ops/branching-release.md)).
 * **[E]** A red security pull request of Renovate (from GitHub's Dependabot
@@ -205,7 +243,9 @@ tasks).
   tests, build, E2E) on every push of an ordinary pull request. Replaces
   „before every push“. Expected [V]: less agent time and memory (the
   out-of-memory stop of 2026-11-15 came from Stryker and E2E of two agents
-  at once), a few more red draft runs.
+  at once), a few more red draft runs. Since 2026-11-17 the cheap local
+  checks above replace `pnpm check` and the relevant E2E tests; the full
+  E2E suite runs in the CI.
 * **[E]** Saving usage (owner, 2026-11-15; the weekly limit stood at 94 %
   on 2026-11-15): an event that needs nothing (a bot edited a comment,
   CodeRabbit skipped a review, an own reply) gets no tool call and at most

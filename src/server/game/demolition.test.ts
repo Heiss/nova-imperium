@@ -197,7 +197,10 @@ describe('the settings of a demolition per round (#202, D4, X1)', () => {
 
   it('start with +50 % and 50 % in an existing universe', () => {
     const { ctx } = world();
-    expect(roundRules(ctx).demolition).toEqual({ refund: 50, time: 50 });
+    expect(roundRules(ctx)).toMatchObject({
+      demolitionRefund: 50,
+      demolitionTime: 50,
+    });
   });
 
   it('are set in „Neue Runde“, the current ones without a choice', () => {
@@ -206,20 +209,29 @@ describe('the settings of a demolition per round (#202, D4, X1)', () => {
     runAction(
       ctx,
       admin.id,
-      { type: 'reset', demolition: { refund: -40, time: 120 } },
+      {
+        type: 'reset',
+        demolition: { demolitionRefund: -40, demolitionTime: 120 },
+      },
       event,
     );
-    expect(roundRules(ctx).demolition).toEqual({ refund: -40, time: 120 });
+    expect(roundRules(ctx)).toMatchObject({
+      demolitionRefund: -40,
+      demolitionTime: 120,
+    });
     expect(ctx.admin.universe()).toMatchObject({
       roundDemolitionRefund: -40,
       roundDemolitionTime: 120,
     });
     expect(event.detail).toMatchObject({
-      before: { demolition: { refund: 50, time: 50 } },
-      after: { demolition: { refund: -40, time: 120 } },
+      before: { demolitionRefund: 50, demolitionTime: 50 },
+      after: { demolitionRefund: -40, demolitionTime: 120 },
     });
     runAction(ctx, admin.id, { type: 'reset' });
-    expect(roundRules(ctx).demolition).toEqual({ refund: -40, time: 120 });
+    expect(roundRules(ctx)).toMatchObject({
+      demolitionRefund: -40,
+      demolitionTime: 120,
+    });
   });
 
   it('refuse values outside their range in „Neue Runde“, with the words of the universe settings', () => {
@@ -227,14 +239,15 @@ describe('the settings of a demolition per round (#202, D4, X1)', () => {
     expect(() =>
       runAction(ctx, admin.id, {
         type: 'reset',
-        demolition: { refund: 101, time: 0 },
+        demolition: { demolitionRefund: 101, demolitionTime: 0 },
       }),
     ).toThrow(
       'Rückbau-Erstattung (%): ganze Zahl von -100 bis 100. Rückbau-Dauer (% der Bauzeit): ganze Zahl von 1 bis 200.',
     );
     expect(roundRules(ctx)).toMatchObject({
       number: 1,
-      demolition: { refund: 50, time: 50 },
+      demolitionRefund: 50,
+      demolitionTime: 50,
     });
   });
 
@@ -248,7 +261,10 @@ describe('the settings of a demolition per round (#202, D4, X1)', () => {
     expect(runAction(ctx, admin.id, { type: 'settings', settings })).toBe(
       'Einstellungen gespeichert.',
     );
-    expect(roundRules(ctx).demolition).toEqual({ refund: 0, time: 200 });
+    expect(roundRules(ctx)).toMatchObject({
+      demolitionRefund: 0,
+      demolitionTime: 200,
+    });
     expect(() =>
       runAction(ctx, admin.id, {
         type: 'settings',

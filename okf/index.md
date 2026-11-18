@@ -29,6 +29,7 @@ okf_version: "0.2"
 * [Late-game combat ships](/features/late-game-ships.md) - Schlachtkreuzer, Zerstörer, Bomber, Todesstern of #56, classic values, drive switch
 * [Solarsatellit](/features/solar-satellite.md) - energy satellite of #46, temperature formula, share, battle role
 * [Fusionskraftwerk](/features/fusion-reactor.md) - deuterium-burning power plant of #47, throttling at an empty stock
+* [Cargo buttons of the fleet form](/features/fleet-cargo.md) - „alles (gleichmäßig)“ fills the holds evenly, an „alles“ under each cargo field loads only its resource (#240)
 * [Deploy mission „Verlegung“](/features/deploy.md) - moving ships and cargo to another own planet for good (#129)
 * [Planet fields and the Weltenschmiede](/features/fields.md) - limited fields per planet and the building that adds them (#51)
 * [Bergungsbarke, Trümmerfelder and „Bergung“](/features/debris.md) - debris of destroyed ships and the harvest mission (#45)
@@ -67,6 +68,7 @@ okf_version: "0.2"
 * [Configuration](/ops/config.md) - environment variables, secret files, fail closed
 * [Branching and release](/ops/branching-release.md) - pull requests with changelog fragments, CI Gate, release pull request, CalVer tags, hotfixes, Renovate
 * [Release loop](/ops/loop.md) - `/loop` with `.claude/loop.md`: plan with the owner, clarify, build, make the release ready, keep it ready until the owner merges it, stop
+* [Briefs for subagents](/ops/subagent-briefs.md) - what a task for a building subagent contains, the rules to state every time, and what went wrong before
 * [Languages](/ops/language.md) - development in English, game interface in German
 * [Defaults stay inside](/ops/defaults.md) - a fresh instance is closed and talks to nobody
 * [Documentation website](/ops/website.md) - Starlight site on GitHub Pages from okf/ and docs/, with agents.md

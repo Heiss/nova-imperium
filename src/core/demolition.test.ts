@@ -3,20 +3,21 @@ import { describe, expect, it } from 'vitest';
 import { planet, U } from '../test/fixtures.ts';
 import { BUILD } from './catalog.ts';
 import {
-  DEMOLITION_KEYS,
   DEMOLITION_REFUND,
+  DEMOLITION_REFUND_SETTING,
   DEMOLITION_TIME,
+  DEMOLITION_TIME_SETTING,
   demolishedCost,
   demolitionErrors,
   demolitionMoves,
   demolitionOrder,
-  demolitionRules,
-  demolitionSettingErrors,
-  demolitionSettingsOf,
   demolitionTime,
   isDemolition,
+  refundOf,
+  timeOf,
 } from './demolition.ts';
 import { buildTime, lvlCost } from './economy.ts';
+import { roundRefused, roundValues } from './round.ts';
 import { settle } from './settle.ts';
 import type { Cost, ResearchState, Universe } from './types.ts';
 
@@ -27,49 +28,90 @@ const at = (refund: number, time = 50): Universe => ({
   roundDemolitionTime: time,
 });
 
-describe('the settings of a demolition (#202)', () => {
+describe('the settings of a demolition (#202, #283)', () => {
+  const SETTINGS = [DEMOLITION_REFUND_SETTING, DEMOLITION_TIME_SETTING];
+  const current = { demolitionRefund: 50, demolitionTime: 50 };
+  const refused = (data: Record<string, unknown>): string[] =>
+    roundRefused(current, data, SETTINGS).map((s) => s.name);
+
   it('have the owner’s ranges and defaults (D3, D7)', () => {
     expect(DEMOLITION_REFUND).toEqual({ min: -100, max: 100, default: 50 });
     expect(DEMOLITION_TIME).toEqual({ min: 1, max: 200, default: 50 });
-    expect(DEMOLITION_KEYS).toEqual({
-      refund: 'roundDemolitionRefund',
-      time: 'roundDemolitionTime',
+  });
+
+  it('are two entries of the registry, set in „Neue Runde“ and live (X1)', () => {
+    expect(DEMOLITION_REFUND_SETTING).toEqual({
+      kind: 'number',
+      key: 'roundDemolitionRefund',
+      name: 'demolitionRefund',
+      label: 'Rückbau-Erstattung (%)',
+      order: 180,
+      group: { name: 'demolition' },
+      min: -100,
+      max: 100,
+      def: 50,
+      live: true,
     });
-    expect(demolitionRules(U)).toEqual({ refund: 50, time: 50 });
-    expect(demolitionRules(at(-30, 120))).toEqual({ refund: -30, time: 120 });
+    expect(DEMOLITION_TIME_SETTING).toEqual({
+      kind: 'number',
+      key: 'roundDemolitionTime',
+      name: 'demolitionTime',
+      label: 'Rückbau-Dauer (% der Bauzeit)',
+      order: 190,
+      group: { name: 'demolition' },
+      min: 1,
+      max: 200,
+      def: 50,
+      live: true,
+    });
+  });
+
+  it('are read from the settings of the universe', () => {
+    expect([refundOf(U), timeOf(U)]).toEqual([50, 50]);
+    expect([refundOf(at(-30, 120)), timeOf(at(-30, 120))]).toEqual([-30, 120]);
   });
 
   it('take whole percent within the ranges for a new round, the current ones when not sent (X1)', () => {
-    const current = { refund: 50, time: 50 };
-    expect(demolitionSettingErrors(current, undefined)).toEqual([]);
-    expect(demolitionSettingsOf(current, undefined)).toEqual(current);
-    expect(demolitionSettingsOf(current, { refund: -100 })).toEqual({
-      refund: -100,
-      time: 50,
-    });
+    expect(refused({})).toEqual([]);
     for (const ok of [
-      { refund: -100, time: 1 },
-      { refund: 100, time: 200 },
-      { refund: 0, time: 50 },
-    ]) {
-      expect(demolitionSettingErrors(current, ok)).toEqual([]);
-      expect(demolitionSettingsOf(current, ok)).toEqual(ok);
-    }
-    expect(demolitionSettingErrors(current, { refund: -101, time: 0 })).toEqual(
-      ['refund', 'time'],
-    );
-    expect(demolitionSettingErrors(current, { refund: 101 })).toEqual([
-      'refund',
+      { demolitionRefund: -100, demolitionTime: 1 },
+      { demolitionRefund: 100, demolitionTime: 200 },
+      { demolitionRefund: 0, demolitionTime: 50 },
+    ])
+      expect(refused({ demolition: ok })).toEqual([]);
+    expect(
+      roundValues(current, { demolition: { demolitionRefund: -100 } }, SETTINGS),
+    ).toEqual({ demolitionRefund: -100, demolitionTime: current.demolitionTime });
+  });
+
+  it('refuse a whole percent outside the ranges, both settings together', () => {
+    const wrong = (demolition: unknown) => refused({ demolition });
+    const both = ['demolitionRefund', 'demolitionTime'];
+    // A setting of the group that is not sent is refused too (as before #283).
+    expect(wrong({ demolitionRefund: -101, demolitionTime: 50 })).toEqual([
+      'demolitionRefund',
     ]);
-    expect(demolitionSettingErrors(current, { time: 201 })).toEqual(['time']);
-    expect(demolitionSettingErrors(current, { refund: 1.5 })).toEqual([
-      'refund',
+    expect(wrong({ demolitionRefund: 101, demolitionTime: 50 })).toEqual([
+      'demolitionRefund',
     ]);
-    expect(demolitionSettingErrors(current, { time: '50' })).toEqual(['time']);
-    expect(demolitionSettingErrors(current, { refund: null })).toEqual([
-      'refund',
+    expect(wrong({ demolitionRefund: 1.5, demolitionTime: 50 })).toEqual([
+      'demolitionRefund',
     ]);
-    expect(demolitionSettingErrors(current, 7)).toEqual([]);
+    expect(wrong({ demolitionRefund: null, demolitionTime: 50 })).toEqual([
+      'demolitionRefund',
+    ]);
+    expect(wrong({ demolitionRefund: 50, demolitionTime: 0 })).toEqual([
+      'demolitionTime',
+    ]);
+    expect(wrong({ demolitionRefund: 50, demolitionTime: 201 })).toEqual([
+      'demolitionTime',
+    ]);
+    expect(wrong({ demolitionRefund: 50, demolitionTime: '50' })).toEqual([
+      'demolitionTime',
+    ]);
+    expect(wrong({ demolitionRefund: -101, demolitionTime: 0 })).toEqual(both);
+    expect(wrong({ demolitionRefund: 50 })).toEqual(['demolitionTime']);
+    expect(wrong(null)).toEqual(both);
   });
 });
 

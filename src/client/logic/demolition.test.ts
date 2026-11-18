@@ -1,6 +1,5 @@
 // The browser side of „Zurückbauen“ (#202): which rows offer it, the
-// owner's sentences, the confirmation, the mark of a finished order and the
-// settings of „Neue Runde“.
+// owner's sentences, the confirmation and the mark of a finished order.
 import { describe, expect, it, vi } from 'vitest';
 import type {
   Cost,
@@ -16,12 +15,10 @@ import {
   DEMOLITION_NOTE,
   demolitionActs,
   demolitionDialog,
-  demolitionRoundChoice,
-  demolitionRoundInputs,
   finishedLabel,
   refundSentence,
+  rememberUpgrade,
 } from './demolition.ts';
-import { roundReset } from './round-reset.ts';
 import type { GameState } from './types.ts';
 
 const NONE: Cost = [0, 0, 0];
@@ -202,46 +199,47 @@ describe('the mark of a finished order', () => {
   });
 });
 
-describe('the settings of „Neue Runde“ (X1)', () => {
-  it('are two inputs named as in the universe settings, preselected with the round', () => {
-    expect(demolitionRoundInputs({ refund: -30, time: 120 })).toBe(
-      '<p><label for="round-demolition-refund">Rückbau-Erstattung (%)</label> <input type="number" id="round-demolition-refund" min="-100" max="100" step="1" value="-30" required> <span class="dim">-100 bis 100</span></p>' +
-        '<p><label for="round-demolition-time">Rückbau-Dauer (% der Bauzeit)</label> <input type="number" id="round-demolition-time" min="1" max="200" step="1" value="120" required> <span class="dim">1 bis 200</span></p>',
+describe('the remembered finished order', () => {
+  const sink = () => ({
+    completedMenu: new Map<string, string>(),
+    completionNotices: new Set<string>(),
+  });
+  const up = { key: 'metal', lvl: 3, start: 0, end: 10, cost: NONE };
+
+  it('marks the menu and adds the notice of a finished upgrade or demolition', () => {
+    const done = sink();
+    rememberUpgrade(done, up, { metal: 3 }, 'buildings', 'Ausbau fertig', 10);
+    expect(done.completedMenu).toEqual(
+      new Map([['buildings', 'Ausbau fertig']]),
     );
+    expect([...done.completionNotices]).toEqual([
+      'Ausbau fertig: Adamantmine (Stufe 3).',
+    ]);
+    const down = sink();
+    rememberUpgrade(
+      down,
+      { ...up, lvl: 2, back: NONE },
+      { metal: 2 },
+      'buildings',
+      'Ausbau fertig',
+      10,
+    );
+    expect(down.completedMenu.get('buildings')).toBe('Rückbau fertig');
+    expect([...down.completionNotices]).toEqual([
+      'Rückbau fertig: Adamantmine (Stufe 2).',
+    ]);
   });
 
-  it('are sent as numbers, an empty field as none', () => {
-    const fields: Record<string, string> = {
-      '#round-demolition-refund': '-20',
-      '#round-demolition-time': ' ',
-    };
-    expect(demolitionRoundChoice((sel) => fields[sel] ?? '')).toEqual({
-      refund: -20,
-      time: null,
-    });
-  });
-
-  it('go with every choice of the dialog', () => {
-    const fields: Record<string, string> = {
-      '#round-main-lock': '9',
-      '#round-demolition-refund': '0',
-      '#round-demolition-time': '75',
-    };
-    const boxes: Record<string, boolean> = {
-      '#round-achievements': true,
-      '#round-daily': false,
-      '#round-guilds': true,
-    };
-    expect(
-      roundReset(
-        (sel) => fields[sel] ?? '',
-        (sel) => boxes[sel] ?? false,
-      ),
-    ).toEqual({
-      rewards: { achievements: true, daily: false },
-      guilds: true,
-      mainLock: 9,
-      demolition: { refund: 0, time: 75 },
-    });
+  it('remembers nothing while the order runs or when there is none', () => {
+    for (const [order, levels, now] of [
+      [up, { metal: 3 }, 9],
+      [up, { metal: 2 }, 10],
+      [null, {}, 10],
+    ] as const) {
+      const none = sink();
+      rememberUpgrade(none, order, levels, 'buildings', 'Ausbau fertig', now);
+      expect(none.completedMenu.size).toBe(0);
+      expect(none.completionNotices.size).toBe(0);
+    }
   });
 });

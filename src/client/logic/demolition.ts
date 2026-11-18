@@ -3,18 +3,16 @@
 // and the note of a refusal, from `demolitionErrors` of
 // src/core/demolition.ts, the check of the server (patterns, section 7).
 import {
-  DEMOLITION_KEYS,
   type DemolitionError,
-  type DemolitionRules,
   demolishedCost,
   demolitionErrors,
   demolitionMoves,
   demolitionTime,
   isDemolition,
+  refundOf,
 } from '../../core/demolition.ts';
 import { text } from '../../core/text.ts';
 import type { Cost, Levels, Queue } from '../../core/types.ts';
-import { UNIVERSE_SPECS } from '../../core/universe.ts';
 import type { V } from '../views/common.ts';
 import { dur, esc, fmt } from './format.ts';
 
@@ -66,7 +64,7 @@ export function demolitionDialog(v: V, key: string): string {
     ? `<p class="req">${DEMOLITION_NOTE[error]}</p>`
     : `<button class="red" data-act="doDemolish" data-k="${esc(key)}">Zurückbauen</button> `;
   return `<p><b>${esc(text(key)!.n)}</b>: Rückbau auf Stufe ${level - 1}</p>
-  <p>${refundSentence(demolishedCost(P, key), s.cfg.roundDemolitionRefund)}</p>
+  <p>${refundSentence(demolishedCost(P, key), refundOf(s.cfg))}</p>
   <p class="dim">Rückbau-Dauer: ${dur(demolitionTime(P, key, s.cfg))}</p>
   <p>${confirm}<button data-act="closeModal">Abbrechen</button></p>`;
 }
@@ -102,6 +100,27 @@ export function completion(
   return { label: done, notice: `${done}: ${name} (Stufe ${order.lvl}).` };
 }
 
+/** Where a finished order is remembered: the menu mark and the notice. */
+interface Completions {
+  completedMenu: Map<string, string>;
+  completionNotices: Set<string>;
+}
+
+/** Remembers a finished order of the build queue or the research for `view` (`completion`). */
+export function rememberUpgrade(
+  sink: Completions,
+  order: Queue | null,
+  levels: Levels,
+  view: string,
+  label: string,
+  now: number,
+): void {
+  const done = completion(order, levels, now, label);
+  if (!done) return;
+  sink.completedMenu.set(view, done.label);
+  sink.completionNotices.add(done.notice);
+}
+
 /** What the actions of „Zurückbauen“ need from main.ts. */
 interface Deps {
   act: (type: string, data?: object) => Promise<boolean>;
@@ -127,29 +146,3 @@ export function demolitionActs({
     },
   };
 }
-
-/** The settings of a round in the dialog „Neue Runde“ (X1), named as in the universe settings. */
-const ROUND_INPUTS = (['refund', 'time'] as const).map((part) => ({
-  part,
-  id: `round-demolition-${part}`,
-  spec: UNIVERSE_SPECS.find((s) => s.key === DEMOLITION_KEYS[part])!,
-}));
-
-/** The inputs of the refund factor and the time in „Neue Runde“, preselected with the current round. */
-export const demolitionRoundInputs = (current: DemolitionRules): string =>
-  ROUND_INPUTS.map(
-    ({ part, id, spec }) =>
-      `<p><label for="${id}">${esc(spec.label)}</label> <input type="number" id="${id}" min="${spec.min}" max="${spec.max}" step="1" value="${current[part]}" required> <span class="dim">${spec.min} bis ${spec.max}</span></p>`,
-  ).join('');
-
-/** A field as a number; an empty one as none, so the server refuses it. */
-const num = (raw: string): number | null =>
-  raw.trim() === '' ? null : Number(raw);
-
-/** What „Ja, neue Runde“ sends of the demolition; `val` reads an input. */
-export const demolitionRoundChoice = (
-  val: (sel: string) => string,
-): Record<'refund' | 'time', number | null> => ({
-  refund: num(val('#round-demolition-refund')),
-  time: num(val('#round-demolition-time')),
-});

@@ -1,12 +1,10 @@
 // The settings of a universe: defaults, ranges and the rule that the size of
 // the universe never shrinks below a planet that exists. The admin panel, the
-// server check and the documentation table read this list.
-import {
-  DEMOLITION_KEYS,
-  DEMOLITION_REFUND,
-  DEMOLITION_TIME,
-} from './demolition.ts';
+// server check and the documentation table read this list. A `live` setting
+// of the round (#283, X1) is a row here too, read from the registry
+// `ROUND_SETTINGS`, under the key the round stores it.
 import { GIFT_DEFAULT_MINUTES, GIFT_MINUTES } from './endzeit.ts';
+import { ROUND_SETTINGS, type RoundSetting } from './round.ts';
 import type { Coords, Universe } from './types.ts';
 
 type UniverseKey = keyof Universe;
@@ -19,9 +17,30 @@ export interface UniverseSpec {
   def: number;
   /** Size of the universe: it may grow, never shrink below a used coordinate. */
   size?: 'g' | 's' | 'p';
+  /** Named values instead of a number field (a setting of the round, #283). */
+  choices?: readonly { value: number; label: string }[];
 }
 
-export const UNIVERSE_SPECS: readonly UniverseSpec[] = [
+/** The rows of the `live` settings of the round (#283, X1). */
+export const liveSpecs = (
+  settings: readonly RoundSetting[] = ROUND_SETTINGS,
+): UniverseSpec[] =>
+  settings.flatMap((s) =>
+    s.kind === 'number' && s.live
+      ? [
+          {
+            key: s.key,
+            label: s.label,
+            min: s.min,
+            max: s.max,
+            def: s.def,
+            ...(s.choices ? { choices: s.choices } : {}),
+          },
+        ]
+      : [],
+  );
+
+const SPECS: readonly UniverseSpec[] = [
   { key: 'speed', label: 'Tempo (Faktor)', min: 1, max: 100, def: 5 },
   { key: 'galaxies', label: 'Galaxien', min: 1, max: 9, def: 2, size: 'g' },
   {
@@ -93,23 +112,11 @@ export const UNIVERSE_SPECS: readonly UniverseSpec[] = [
     max: GIFT_MINUTES.max,
     def: GIFT_DEFAULT_MINUTES,
   },
-  // Issue #202 (owner, 2026-11-16, D3, D4, D7; 2026-11-17, X1): the refund
-  // factor and the duration of a demolition, set in „Neue Runde“ and
-  // changed here during the round; the same stored settings the round reads.
-  {
-    key: DEMOLITION_KEYS.refund,
-    label: 'Rückbau-Erstattung (%)',
-    min: DEMOLITION_REFUND.min,
-    max: DEMOLITION_REFUND.max,
-    def: DEMOLITION_REFUND.default,
-  },
-  {
-    key: DEMOLITION_KEYS.time,
-    label: 'Rückbau-Dauer (% der Bauzeit)',
-    min: DEMOLITION_TIME.min,
-    max: DEMOLITION_TIME.max,
-    def: DEMOLITION_TIME.default,
-  },
+];
+
+export const UNIVERSE_SPECS: readonly UniverseSpec[] = [
+  ...SPECS,
+  ...liveSpecs(),
 ];
 
 export const DEFAULT_UNIVERSE: Universe = Object.fromEntries(
@@ -161,8 +168,9 @@ const checkOne = (
 export const universeErrors = (
   input: Record<string, unknown>,
   used: UsedSize,
+  specs: readonly UniverseSpec[] = UNIVERSE_SPECS,
 ): UniverseError[] =>
-  UNIVERSE_SPECS.flatMap((spec) => {
+  specs.flatMap((spec) => {
     const code = checkOne(spec, input[spec.key], used);
     return code ? [{ spec, code }] : [];
   });

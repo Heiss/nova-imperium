@@ -489,6 +489,17 @@ describe('CatalogList against the views before #118', () => {
     expect(normalize('<option value="p">P</option>')).not.toBe(
       normalize('<option value="p" selected>P</option>'),
     );
+    // data-nokeep counts by its presence; Svelte writes it with an empty
+    // value (#118, bundle 2).
+    expect(normalize('<input data-nokeep="" id="g">')).toBe(
+      normalize('<input id="g" data-nokeep>'),
+    );
+    expect(normalize('<input id="g">')).not.toBe(
+      normalize('<input id="g" data-nokeep>'),
+    );
+    expect(normalize('<input data-nokeep="1" id="g">')).not.toBe(
+      normalize('<input id="g" data-nokeep>'),
+    );
   });
 
   it.each(KINDS)('renders the %s list as before', (kind) => {

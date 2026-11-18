@@ -155,4 +155,100 @@ describe('planets repository', () => {
       'UNIQUE constraint failed: planets.g, planets.s, planets.p, planets.kind',
     );
   });
+
+  it('keeps when the Warp-Tor of a moon is ready again, until the moon goes (#230)', () => {
+    const ctx = testCtx();
+    addUser(ctx, 'Anna');
+    const moon = addPlanet(ctx, 'u_Anna', { id: 'm1_1_5', kind: 'moon' });
+    const other = addPlanet(ctx, 'u_Anna', {
+      id: 'm1_1_6',
+      kind: 'moon',
+      p: 6,
+    });
+    expect(ctx.planets.gateReady(moon.id)).toBe(0);
+    ctx.planets.setGateReady(moon.id, 5000);
+    ctx.planets.setGateReady(other.id, 7000);
+    expect(ctx.planets.gateReady(moon.id)).toBe(5000);
+    ctx.planets.setGateReady(moon.id, 9000);
+    expect(ctx.planets.gateReady(moon.id)).toBe(9000);
+    expect(ctx.planets.gateReady(other.id)).toBe(7000);
+    // Saving the moon keeps its gate time.
+    ctx.planets.save({ ...moon, name: 'Neu' });
+    expect(ctx.planets.gateReady(moon.id)).toBe(9000);
+    // A removed moon (#95) takes it along; a new round all of them.
+    ctx.db.prepare('DELETE FROM planets WHERE id = ?').run(moon.id);
+    expect(ctx.planets.gateReady(moon.id)).toBe(0);
+    expect(
+      ctx.db.prepare('SELECT moon_id FROM jump_gates').pluck().all(),
+    ).toEqual([other.id]);
+    ctx.planets.deleteAll();
+    expect(
+      ctx.db.prepare('SELECT COUNT(*) FROM jump_gates').pluck().get(),
+    ).toBe(0);
+  });
+
+  it('deletes one place with its parts and keeps the others (#224)', () => {
+    const ctx = testCtx();
+    addUser(ctx, 'Anna');
+    const p = addPlanet(ctx, 'u_Anna', {
+      b: { metal: 3 },
+      ships: { lf: 2 },
+      pct: { metal: 50 },
+      sq: [{ key: 'lf', n: 2, unit: 10 }],
+    });
+    const other = addPlanet(ctx, 'u_Anna', { p: 6, b: { metal: 1 } });
+    const moon = addPlanet(ctx, 'u_Anna', {
+      id: placeId({ ...p, kind: 'moon' }),
+      kind: 'moon',
+    });
+    ctx.planets.delete(p.id);
+    expect(ctx.planets.get(p.id)).toBeNull();
+    expect(ctx.planets.all()).toEqual([moon, other]);
+    for (const table of [
+      'planet_buildings',
+      'planet_units',
+      'planet_production',
+      'shipyard_queue',
+    ])
+      expect(
+        ctx.db
+          .prepare(`SELECT COUNT(*) FROM ${table} WHERE planet_id = ?`)
+          .pluck()
+          .get(p.id),
+        table,
+      ).toBe(0);
+    expect(ctx.planets.get(other.id)).toEqual(other);
+  });
+
+  it('locks a position until a time, the newest lock wins, a new round forgets them (#224)', () => {
+    const ctx = testCtx();
+    const at = { g: 1, s: 2, p: 3 };
+    expect(ctx.planets.positionLock(at)).toBeNull();
+    ctx.planets.lockPosition(at, 500);
+    expect(ctx.planets.positionLock(at)).toBe(500);
+    for (const other of [
+      { g: 2, s: 2, p: 3 },
+      { g: 1, s: 3, p: 3 },
+      { g: 1, s: 2, p: 4 },
+    ])
+      expect(ctx.planets.positionLock(other)).toBeNull();
+    ctx.planets.lockPosition(at, 900);
+    expect(ctx.planets.positionLock(at)).toBe(900);
+    ctx.planets.lockPosition({ g: 2, s: 2, p: 3 }, 100);
+    ctx.planets.lockPosition({ g: 1, s: 1, p: 9 }, 950);
+    // The locks that hold after a time, by position.
+    expect(ctx.planets.locks(99)).toEqual([
+      { g: 1, s: 1, p: 9, until: 950 },
+      { g: 1, s: 2, p: 3, until: 900 },
+      { g: 2, s: 2, p: 3, until: 100 },
+    ]);
+    expect(ctx.planets.locks(100)).toHaveLength(2);
+    expect(ctx.planets.locks(900)).toEqual([{ g: 1, s: 1, p: 9, until: 950 }]);
+    ctx.planets.deleteAll();
+    expect(ctx.planets.locks(0)).toEqual([]);
+    expect(ctx.planets.positionLock(at)).toBeNull();
+    expect(
+      ctx.db.prepare('SELECT COUNT(*) FROM position_locks').pluck().get(),
+    ).toBe(0);
+  });
 });

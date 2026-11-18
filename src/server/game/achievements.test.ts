@@ -104,7 +104,9 @@ describe('achievements', () => {
       guilds: true,
       // Without a choice the round keeps the lock of the main planet (#221).
       mainLock: 7,
-      demolition: { refund: 50, time: 50 },
+      abandonLock: 24,
+      demolitionRefund: 50,
+      demolitionTime: 50,
     });
     recordAchievementAction(ctx, u.id, 'send');
     const current = ctx.players.get(u.id)!;

@@ -1,7 +1,7 @@
 import { BUILD, DEF, RES, SHIPS } from './catalog.ts';
-import type { DemolitionRules } from './demolition.ts';
 import { lvlCost } from './economy.ts';
 import { text } from './text.ts';
+import type { RoundGroup, RoundSetting } from './round.ts';
 import type { Cost } from './types.ts';
 
 export const CATEGORIES = {
@@ -103,27 +103,42 @@ export const ACHIEVEMENTS: readonly Achievement[] = [
   ),
 ];
 
-export interface RoundRules {
-  number: number;
-  achievements: boolean;
-  daily: boolean;
-  /**
-   * Guilds with their chat (#169) in this round (#191): the one switch, set
-   * only when the admin starts a new round.
-   */
-  guilds: boolean;
-  /**
-   * The lock after a switch of the main planet in days (#221, D3): set
-   * only when the admin starts a new round, 7 by default.
-   */
-  mainLock: number;
-  /**
-   * The refund factor and the time of a demolition (#202, D3, D4, D7): set
-   * when the admin starts a new round and changed in the universe settings
-   * during the round (X1), +50 % and 50 % by default.
-   */
-  demolition: DemolitionRules;
-}
+/**
+ * The reward options of a round (#214): two checkboxes in one fieldset of
+ * the dialog „Neue Runde“, sent and refused together; existing universes
+ * start with both on.
+ */
+const REWARDS: RoundGroup = {
+  name: 'rewards',
+  legend: 'Belohnungen für die neue Runde',
+};
+
+const REWARDS_REFUSAL =
+  'Bitte beide Belohnungseinstellungen für die neue Runde auswählen.';
+
+/** Achievements in this round, a setting of the round (#283). */
+export const ACHIEVEMENTS_SETTING = {
+  kind: 'switch',
+  key: 'roundAchievements',
+  name: 'achievements',
+  label: 'Achievements aktivieren',
+  order: 10,
+  group: REWARDS,
+  def: true,
+  refusal: REWARDS_REFUSAL,
+} as const satisfies RoundSetting;
+
+/** Daily rewards (#220) in this round, a setting of the round (#283). */
+export const DAILY_SETTING = {
+  kind: 'switch',
+  key: 'roundDaily',
+  name: 'daily',
+  label: 'Tagesbelohnungen aktivieren',
+  order: 20,
+  group: REWARDS,
+  def: true,
+  refusal: REWARDS_REFUSAL,
+} as const satisfies RoundSetting;
 
 export interface AchievementState {
   progress: Record<string, number>;

@@ -126,11 +126,8 @@ export interface Universe {
   /** The default flight time of the „Endzeit“ gift, in minutes (#161). */
   endzeitMinutes: number;
   /**
-   * The refund factor of a demolition in percent, −100 to +100 (#202, D4,
-   * D7): the stored setting of the round, also changed live by the admin
-   * (X1).
+   * A `live` setting of the round (#283, src/core/round.ts): the stored
+   * setting of the round, also a row of the universe settings (X1).
    */
-  roundDemolitionRefund: number;
-  /** The duration of a demolition in percent of the build time, 1 to 200 (#202, D3, X1). */
-  roundDemolitionTime: number;
+  [round: `round${string}`]: number;
 }
