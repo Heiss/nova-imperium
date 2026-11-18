@@ -1046,13 +1046,16 @@ test.describe('playing', () => {
     });
     await page.reload();
     await expect(page.locator('#fields')).toHaveText('Felder: 163 / 163');
-    for (const building of ['Adamant-Tiefbohrung', 'Servitorenschmiede'])
-      await expect(
-        page
-          .locator('.item')
-          .filter({ has: page.locator('.nm', { hasText: building }) })
-          .locator('.act'),
-      ).toHaveText('Keine freien Felder.');
+    // The refusal stays, and „Zurückbauen“ (#202) stands beside it: tearing
+    // a level down is how a full planet gets a field free again.
+    for (const building of ['Adamant-Tiefbohrung', 'Servitorenschmiede']) {
+      const act = page
+        .locator('.item')
+        .filter({ has: page.locator('.nm', { hasText: building }) })
+        .locator('.act');
+      await expect(act.locator('span')).toHaveText('Keine freien Felder.');
+      await expect(act.getByRole('button')).toHaveText('Zurückbauen');
+    }
     await expect(page.locator('[data-act=build]')).toHaveCount(0);
     const refused = await page.evaluate(async () => {
       const r = await fetch('/api/action', {
@@ -1143,8 +1146,12 @@ test.describe('playing', () => {
       '200.000',
       '2.000',
     ]);
-    await expect(forge.locator('.act')).toHaveText(
+    // With a level it can also be torn down again (#202).
+    await expect(forge.locator('.act span')).toHaveText(
       /^Zu wenig Energie: es fehlen [\d.]+$/,
+    );
+    await expect(forge.locator('.act').getByRole('button')).toHaveText(
+      'Zurückbauen',
     );
     await nav(page, 'overview');
     await expect(
@@ -1170,7 +1177,10 @@ test.describe('playing', () => {
     const metal = page.locator('.item').filter({
       has: page.locator('.nm', { hasText: /^\s*Adamant-Tiefbohrung/ }),
     });
-    await expect(metal.locator('.act')).toHaveText('Keine freien Felder.');
+    await expect(metal.locator('.act span')).toHaveText('Keine freien Felder.');
+    await expect(metal.locator('.act').getByRole('button')).toHaveText(
+      'Zurückbauen',
+    );
     await expect(metal.locator('.act')).toBeVisible();
     expect(
       await page.evaluate(
