@@ -169,7 +169,7 @@ describe('a new entry of the registry (#283)', () => {
     expect(valuesOf(ctx)).toMatchObject({ testHours: 72 });
   });
 
-  it('the locks of a given-up position (#224) and the minimum duration of the vacation mode (#223) are the live settings, the last rows of the universe settings', () => {
+  it('the locks of a given-up position (#224) and the minimum duration of the vacation mode (#223) are live settings, rows of the universe settings', () => {
     const rows = [
       {
         key: 'roundAbandonLock',
@@ -186,11 +186,11 @@ describe('a new entry of the registry (#283)', () => {
         def: 24,
       },
     ];
-    expect(liveSpecs()).toEqual(rows);
-    expect(UNIVERSE_SPECS.filter((s) => s.key.startsWith('round'))).toEqual(
-      rows,
-    );
-    expect(UNIVERSE_SPECS.slice(-2)).toEqual(rows);
+    // Selected by key, never by position: other features add live rows too.
+    const own = (list: readonly { key: string }[]) =>
+      list.filter((x) => rows.some((r) => r.key === x.key));
+    expect(own(liveSpecs())).toEqual(rows);
+    expect(own(UNIVERSE_SPECS)).toEqual(rows);
   });
 
   it('a new round refuses in the fixed order of main (owner, 2026-11-17)', () => {

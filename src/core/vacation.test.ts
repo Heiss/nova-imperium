@@ -35,7 +35,7 @@ describe('the minimum duration of a round', () => {
     expect(HOUR_MS).toBe(60 * 60 * 1000);
   });
 
-  it('is the setting „vacationHours“ of the registry, live, after the other settings (#283, X1)', () => {
+  it('is the setting „vacationHours“ of the registry, live (#283, X1)', () => {
     expect(VACATION_SETTING).toMatchObject({
       kind: 'number',
       key: 'roundVacationHours',
@@ -50,7 +50,6 @@ describe('the minimum duration of a round', () => {
         'Bitte für die Mindestdauer des Urlaubsmodus 1 bis 720 ganze Stunden angeben.',
     });
     expect(ROUND_SETTINGS).toContain(VACATION_SETTING);
-    expect(Math.max(...ROUND_SETTINGS.map((s) => s.order))).toBe(150);
   });
 
   it('refuses a value that is not a whole number of hours from 1 to 720', () => {
