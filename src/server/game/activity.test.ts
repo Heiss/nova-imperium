@@ -4,7 +4,12 @@
 // thresholds are round values, set in „Neue Runde“ and live in the
 // universe settings (X1).
 import { describe, expect, it } from 'vitest';
-import { ACTIVITY_DEFAULT, DAY_MS, MINUTE_MS } from '../../core/activity.ts';
+import {
+  ACTIVITY_DEFAULT,
+  DAY_MS,
+  MINUTE_MS,
+  activityLimits,
+} from '../../core/activity.ts';
 import { DEFAULT_UNIVERSE } from '../../core/universe.ts';
 import type { AuditEntry } from '../audit.ts';
 import { addPlanet, addUser, type TestCtx, testCtx } from '../test-helpers.ts';
@@ -143,25 +148,36 @@ describe('what the state shows', () => {
 });
 
 describe('the thresholds per round (Q1, X1)', () => {
-  const custom = { recent: 10, minutes: 30, inactive: 3, longInactive: 14 };
+  const CLASSIC = {
+    activityRecent: 15,
+    activityMinutes: 59,
+    inactiveDays: 7,
+    longInactiveDays: 28,
+  };
+  const custom = {
+    activityRecent: 10,
+    activityMinutes: 30,
+    inactiveDays: 3,
+    longInactiveDays: 14,
+  };
 
   it('are the classic values in an existing universe', () => {
-    expect(roundRules(world()).activity).toEqual(ACTIVITY_DEFAULT);
+    expect(roundRules(world())).toMatchObject(CLASSIC);
+    expect(activityLimits(roundRules(world()))).toEqual(ACTIVITY_DEFAULT);
   });
 
   it('are set in „Neue Runde“, kept without a choice and in the audit entry', () => {
     const ctx = world();
     const event = {} as AuditEntry;
     runAction(ctx, 'u_Anna', { type: 'reset', activity: custom }, event);
-    expect(roundRules(ctx).activity).toEqual(custom);
+    expect(roundRules(ctx)).toMatchObject(custom);
     expect(ctx.admin.setting('roundActivityRecent')).toBe(10);
+    expect(ctx.admin.setting('roundActivityMinutes')).toBe(30);
+    expect(ctx.admin.setting('roundInactiveDays')).toBe(3);
     expect(ctx.admin.setting('roundLongInactiveDays')).toBe(14);
-    expect(event.detail).toMatchObject({
-      before: { activity: ACTIVITY_DEFAULT },
-      after: { activity: custom },
-    });
-    runAction(ctx, 'u_Anna', { type: 'reset', activity: { minutes: 45 } });
-    expect(roundRules(ctx).activity).toEqual({ ...custom, minutes: 45 });
+    expect(event.detail).toMatchObject({ before: CLASSIC, after: custom });
+    runAction(ctx, 'u_Anna', { type: 'reset' });
+    expect(roundRules(ctx)).toMatchObject({ number: 3, ...custom });
   });
 
   it('refuse every wrong value at once, as the universe settings word it', () => {
@@ -169,15 +185,17 @@ describe('the thresholds per round (Q1, X1)', () => {
     expect(() =>
       runAction(ctx, 'u_Anna', {
         type: 'reset',
-        activity: { recent: 0, minutes: 30, inactive: null, longInactive: 1.5 },
+        activity: {
+          activityRecent: 0,
+          activityMinutes: 30,
+          inactiveDays: null,
+          longInactiveDays: 1.5,
+        },
       }),
     ).toThrow(
       'Aktivität ohne Minutenangabe (Minuten): ganze Zahl von 1 bis 60. Inaktiv ab (Tage): ganze Zahl von 1 bis 365. Lange inaktiv ab (Tage): ganze Zahl von 1 bis 365.',
     );
-    expect(roundRules(ctx)).toMatchObject({
-      number: 1,
-      activity: ACTIVITY_DEFAULT,
-    });
+    expect(roundRules(ctx)).toMatchObject({ number: 1, ...CLASSIC });
   });
 
   it('are changed live in the universe settings and shown at once', () => {
@@ -191,13 +209,10 @@ describe('the thresholds per round (Q1, X1)', () => {
         settings: { ...DEFAULT_UNIVERSE, roundActivityRecent: 30 },
       }),
     ).toBe('Einstellungen gespeichert.');
-    expect(roundRules(ctx).activity).toEqual({
-      ...ACTIVITY_DEFAULT,
-      recent: 30,
-    });
+    expect(roundRules(ctx)).toMatchObject({ ...CLASSIC, activityRecent: 30 });
     expect(galaxyOf(ctx, 'p1_1_5').activity).toEqual({ recent: true });
     // The new round offers the value of the settings.
     runAction(ctx, 'u_Anna', { type: 'reset' });
-    expect(roundRules(ctx).activity.recent).toBe(30);
+    expect(roundRules(ctx).activityRecent).toBe(30);
   });
 });

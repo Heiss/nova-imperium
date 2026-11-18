@@ -489,6 +489,16 @@ stays the first planet, unlocked; other data stay as they were
 migrations 11 and 20 run the later migrations before today's code saves a
 player, since the player repository writes the new columns.
 
+Migration `20261117T0540-position-locks` (issue #224, see
+[Abandon a colony](/features/abandon-colony.md)) adds the table
+`position_locks` (`g`, `s`, `p` as the primary key, `until` the end of the
+lock in milliseconds): a position of a given-up colony, locked for
+colonization and new home planets until `until`. A running round has given
+up nothing, so the table starts empty; other data stay as they were
+(`upgrades/20261117T0540-position-locks.test.ts`). A new round empties it
+with the planets (`planets.deleteAll()`); an ended lock stays until then
+and no longer counts.
+
 Migration `20261117T0923-activity-times` (issue #229, see
 [Activity indicators](/features/activity-indicators.md)) adds
 `planets.active_at` (INTEGER, the last activity of a planet or moon, null

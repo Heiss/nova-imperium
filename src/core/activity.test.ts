@@ -5,23 +5,32 @@ import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import {
   ACTIVITY_DEFAULT,
-  ACTIVITY_KEYS,
-  ACTIVITY_PARTS,
+  ACTIVITY_MINUTES_SETTING,
   ACTIVITY_RANGE,
+  ACTIVITY_RECENT_SETTING,
   type ActivityEvent,
   DAY_MS,
+  INACTIVE_DAYS_SETTING,
+  LONG_INACTIVE_DAYS_SETTING,
   MINUTE_MS,
-  activityLimitErrors,
-  activityLimitsOf,
+  activityLimits,
   activityPlaces,
   inactivity,
-  isActivityLimit,
   planetActivity,
 } from './activity.ts';
+import { ROUND_SETTINGS, roundRefused, roundValues } from './round.ts';
+import { liveSpecs } from './universe.ts';
 
 const NOW = 1_763_300_000_000;
 const C = ACTIVITY_DEFAULT;
 const own = ['p1_2_3', 'm1_2_3', 'p2_5_9'];
+
+const SETTINGS = [
+  ACTIVITY_RECENT_SETTING,
+  ACTIVITY_MINUTES_SETTING,
+  INACTIVE_DAYS_SETTING,
+  LONG_INACTIVE_DAYS_SETTING,
+];
 
 describe('the thresholds of a round', () => {
   it('are the classic values by default: 15 min, 59 min, 7 and 28 days', () => {
@@ -35,21 +44,6 @@ describe('the thresholds of a round', () => {
     expect(DAY_MS).toBe(24 * 60 * MINUTE_MS);
   });
 
-  it('are stored under their own settings, in a fixed order', () => {
-    expect(ACTIVITY_KEYS).toEqual({
-      recent: 'roundActivityRecent',
-      minutes: 'roundActivityMinutes',
-      inactive: 'roundInactiveDays',
-      longInactive: 'roundLongInactiveDays',
-    });
-    expect(ACTIVITY_PARTS).toEqual([
-      'recent',
-      'minutes',
-      'inactive',
-      'longInactive',
-    ]);
-  });
-
   it('take whole numbers of their range only', () => {
     expect(ACTIVITY_RANGE).toEqual({
       recent: { min: 1, max: 60 },
@@ -57,49 +51,117 @@ describe('the thresholds of a round', () => {
       inactive: { min: 1, max: 365 },
       longInactive: { min: 1, max: 365 },
     });
-    for (const part of ACTIVITY_PARTS) {
-      const { min, max } = ACTIVITY_RANGE[part];
-      expect(min).toBeLessThanOrEqual(ACTIVITY_DEFAULT[part]);
-      expect(max).toBeGreaterThanOrEqual(ACTIVITY_DEFAULT[part]);
-      for (const n of [min, max, ACTIVITY_DEFAULT[part]])
-        expect(isActivityLimit(part, n)).toBe(true);
-      for (const n of [min - 1, max + 1, 1.5, '7', null, undefined, NaN])
-        expect(isActivityLimit(part, n)).toBe(false);
-    }
+  });
+
+  it('are four settings of the round, live in the universe settings, last in the order (#283, X1)', () => {
+    const group = { name: 'activity' };
+    const common = { kind: 'number', group, live: true };
+    expect(SETTINGS).toEqual([
+      {
+        ...common,
+        key: 'roundActivityRecent',
+        name: 'activityRecent',
+        label: 'Aktivität ohne Minutenangabe (Minuten)',
+        order: 60,
+        min: 1,
+        max: 60,
+        def: 15,
+      },
+      {
+        ...common,
+        key: 'roundActivityMinutes',
+        name: 'activityMinutes',
+        label: 'Aktivität mit Minutenangabe bis (Minuten)',
+        order: 70,
+        min: 1,
+        max: 1440,
+        def: 59,
+      },
+      {
+        ...common,
+        key: 'roundInactiveDays',
+        name: 'inactiveDays',
+        label: 'Inaktiv ab (Tage)',
+        order: 80,
+        min: 1,
+        max: 365,
+        def: 7,
+      },
+      {
+        ...common,
+        key: 'roundLongInactiveDays',
+        name: 'longInactiveDays',
+        label: 'Lange inaktiv ab (Tage)',
+        order: 90,
+        min: 1,
+        max: 365,
+        def: 28,
+      },
+    ]);
+    // One group, so they are sent and refused together.
+    for (const s of SETTINGS) expect(s.group).toBe(SETTINGS[0]!.group);
+    // The registry holds them at its end, in this order.
+    expect(ROUND_SETTINGS.slice(-4)).toEqual(SETTINGS);
+    expect(
+      liveSpecs()
+        .slice(-4)
+        .map((s) => s.key),
+    ).toEqual(SETTINGS.map((s) => s.key));
+  });
+
+  it('are read from the rules of the round', () => {
+    expect(
+      activityLimits({
+        activityRecent: 10,
+        activityMinutes: 30,
+        inactiveDays: 5,
+        longInactiveDays: 20,
+      }),
+    ).toEqual({ recent: 10, minutes: 30, inactive: 5, longInactive: 20 });
   });
 });
 
 describe('the thresholds chosen for a new round', () => {
-  it('keep the current values for what is not sent', () => {
-    const current = { recent: 10, minutes: 30, inactive: 5, longInactive: 20 };
-    for (const input of [undefined, null, 'x', {}]) {
-      expect(activityLimitErrors(current, input)).toEqual([]);
-      expect(activityLimitsOf(current, input)).toEqual(current);
-    }
-    expect(activityLimitsOf(current, { minutes: 45 })).toEqual({
-      ...current,
-      minutes: 45,
-    });
+  const current = {
+    activityRecent: 10,
+    activityMinutes: 30,
+    inactiveDays: 5,
+    longInactiveDays: 20,
+  };
+
+  it('keep the current values when they are not sent', () => {
+    expect(roundRefused(current, {}, SETTINGS)).toEqual([]);
+    expect(roundValues(current, {}, SETTINGS)).toEqual(current);
   });
 
   it('report every wrong value at once, in their order', () => {
+    const wrong = (activity: unknown) =>
+      roundRefused(current, { activity }, SETTINGS).map((s) => s.name);
     expect(
-      activityLimitErrors(C, {
-        recent: 0,
-        minutes: 1441,
-        inactive: 2.5,
-        longInactive: '28',
+      wrong({
+        activityRecent: 0,
+        activityMinutes: 1441,
+        inactiveDays: 2.5,
+        longInactiveDays: '28',
       }),
-    ).toEqual(['recent', 'minutes', 'inactive', 'longInactive']);
-    expect(activityLimitErrors(C, { inactive: 366 })).toEqual(['inactive']);
-    expect(
-      activityLimitErrors(C, {
-        recent: 60,
-        minutes: 1440,
-        inactive: 365,
-        longInactive: 1,
-      }),
-    ).toEqual([]);
+    ).toEqual([
+      'activityRecent',
+      'activityMinutes',
+      'inactiveDays',
+      'longInactiveDays',
+    ]);
+    expect(wrong({ ...current, inactiveDays: 366 })).toEqual(['inactiveDays']);
+    expect(wrong({ ...current, activityRecent: 61 })).toEqual([
+      'activityRecent',
+    ]);
+    const edge = {
+      activityRecent: 60,
+      activityMinutes: 1440,
+      inactiveDays: 365,
+      longInactiveDays: 1,
+    };
+    expect(wrong(edge)).toEqual([]);
+    expect(roundValues(current, { activity: edge }, SETTINGS)).toEqual(edge);
   });
 });
 

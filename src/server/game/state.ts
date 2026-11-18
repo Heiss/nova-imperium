@@ -2,7 +2,7 @@
 // the players with points, the galaxy. Foreign fleets show only what an
 // observer can see. The admin also gets the settings specification and the
 // state of the „Endzeit“ (#161).
-import type { ActivityLimits } from '../../core/activity.ts';
+import { type ActivityLimits, activityLimits } from '../../core/activity.ts';
 import { missionRules } from '../../core/missions.ts';
 import { UNIVERSE_SPECS } from '../../core/universe.ts';
 import type { Fleet } from '../../core/types.ts';
@@ -100,7 +100,8 @@ export function stateFor(
     )
     .map((f) => (f.owner === u.id ? f : foreignView(f)));
   // The inactivity of an account (#229) while it shows one.
-  const idle = inactivities(ctx, round.activity);
+  const limits = activityLimits(round);
+  const idle = inactivities(ctx, limits);
   const players = Object.fromEntries(
     ctx.players.all().map((x) => [
       x.id,
@@ -126,9 +127,11 @@ export function stateFor(
     guilds: round.guilds ? guildState(ctx, u.id, pts) : null,
     achievements: achievementState(ctx, u, round),
     players,
-    galaxy: galaxyOf(ctx, round.activity),
+    galaxy: galaxyOf(ctx, limits),
     // Every player sees every Trümmerfeld (#45).
     debris: ctx.debris.all(),
+    // Every position locked after an abandonment, for the Sternenkarte (#224).
+    locks: ctx.planets.locks(ctx.now()),
     admin: adminState(ctx, u),
   };
 }

@@ -197,16 +197,17 @@ function passwordRoutes(d: AppDeps, guard: Guard): Record<string, Handler> {
   };
 }
 
-/** Health check, invitations, registration, login and logout. */
-function accountRoutes(
-  d: AppDeps,
-  limiter: RateLimiter,
-): Record<string, Handler> {
-  const { ctx, cfg } = d;
-  const guard = (req: IncomingMessage): void => {
+/** Refuses a client address over the limit of attempts. */
+const limitGuard =
+  (limiter: RateLimiter, cfg: Config): Guard =>
+  (req) => {
     if (limiter.limited(clientIp(req, cfg.trustProxy)))
       throw new GameError('Zu viele Versuche – bitte später nochmal.');
   };
+
+/** Health check, invitations, registration, login and logout. */
+function accountRoutes(d: AppDeps, guard: Guard): Record<string, Handler> {
+  const { ctx, cfg } = d;
   const enter = (u: User, remember = true): Reply => ({
     json: { ok: true, state: stateFor(ctx, u) },
     cookie: sessionCookie(cfg, auth.startSession(ctx, cfg, u.id), remember),
@@ -433,8 +434,14 @@ function actionReply(ctx: Ctx, u: User, call: Call): Reply {
   };
 }
 
+/**
+ * The actions that ask for the password (#224): limited per address like
+ * the deletion of the account.
+ */
+const PASSWORD_ACTIONS: ReadonlySet<string> = new Set(['abandon']);
+
 /** The game and the admin functions; all need a session. */
-function gameRoutes(d: AppDeps): Record<string, Handler> {
+function gameRoutes(d: AppDeps, guard: Guard): Record<string, Handler> {
   const { ctx } = d;
   return {
     'GET /api/state': (call) => ({
@@ -457,8 +464,11 @@ function gameRoutes(d: AppDeps): Record<string, Handler> {
       recordActivity(ctx, u, 'action');
       return { json: { ok: true } };
     },
-    'POST /api/action': (call) =>
-      actionReply(ctx, sessionUserOf(ctx, call), call),
+    'POST /api/action': (call) => {
+      // String() like runAction, so `["abandon"]` is limited too.
+      if (PASSWORD_ACTIONS.has(String(call.body.type))) guard(call.req);
+      return actionReply(ctx, sessionUserOf(ctx, call), call);
+    },
     ...adminRoutes(
       d,
       (call) => sessionUserOf(ctx, call),
@@ -617,10 +627,11 @@ export function createApp(d: AppDeps): {
     d.cfg.rateLimitMinutes * 60000,
     d.ctx.now,
   );
+  const guard = limitGuard(limiter, d.cfg);
   const errors = errorRoutes(d, (call) => sessionUserOf(d.ctx, call));
   const table = Object.entries({
-    ...accountRoutes(d, limiter),
-    ...gameRoutes(d),
+    ...accountRoutes(d, guard),
+    ...gameRoutes(d, guard),
     ...pushRoutes(d),
     ...errors.routes,
   });

@@ -142,9 +142,11 @@ describe('fragment check', () => {
         ['src/client/old.ts', 'changes/eco.md'],
       ),
     ).not.toBeNull();
+    expect(missingFragment(['scripts/x.ts', 'okf/x.md'], [])).toBeNull();
+    // The HTTP routes hold the admin panel (owner, 2026-11-17).
     expect(
-      missingFragment(['src/server/http/app.ts', 'okf/x.md'], []),
-    ).toBeNull();
+      missingFragment(['src/server/http/admin.ts', 'okf/x.md'], []),
+    ).not.toBeNull();
     // The entries and missions in their feature folders are game code (#112).
     expect(missingFragment(['src/features/sat/entry.ts'], [])).not.toBeNull();
     expect(

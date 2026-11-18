@@ -104,7 +104,11 @@ describe('achievements', () => {
       guilds: true,
       // Without a choice the round keeps the lock of the main planet (#221).
       mainLock: 7,
-      activity: { recent: 15, minutes: 59, inactive: 7, longInactive: 28 },
+      abandonLock: 24,
+      activityRecent: 15,
+      activityMinutes: 59,
+      inactiveDays: 7,
+      longInactiveDays: 28,
     });
     recordAchievementAction(ctx, u.id, 'send');
     const current = ctx.players.get(u.id)!;

@@ -123,6 +123,11 @@ tasks).
   the version from the tags, the list of pull requests from the Git
   history (squash commits ending in `(#N)`). The loop never writes them
   by hand; it refreshes them by running the workflow (owner, 2026-11-12).
+* **[E]** Every new or changed admin setting or admin action is named in
+  the changelog fragment of its feature, saying what the admin can now
+  do; the loop writes it so in every pull request and checks it again in
+  the texts of the release pull request (owner, 2026-11-17; see
+  [Branching and release](/ops/branching-release.md)).
 * **[E]** The rules of the project stay as they are: do not assume
   anything that no decision or source gives, merges under O4, never a
   merge of a release pull request. Questions to the owner follow the next
@@ -156,6 +161,21 @@ tasks).
   issues become `ready`, and does whatever else keeps both agents building.
   Waiting with a free place wastes the time of the release; the limit of
   two stays for memory and usage.
+* **[E]** Roles (owner, 2026-11-17): the subagents build; the main agent
+  merges, gets the owner's decisions so that issues become ready for
+  building, and structures the work. Because the design patterns already
+  cut most merge conflicts, it watches where the code still causes them or
+  is hard to maintain, gives the subagents tasks to improve that or files
+  issues for it, and orders the work so that subagents do not collide.
+* **[E]** Subagents run only the cheap local checks (owner, 2026-11-17):
+  typecheck, eslint and the unit tests of the changed files, prettier,
+  `checkLog` and `check:migrations`, plus, for a change a player sees in
+  the browser, a new E2E test once to show that it fails without the
+  change. The full E2E suite, Stryker and the mutation
+  gate run in the CI, so no agent waits for a free machine; a red CI goes
+  back to a subagent. Reason: two agents shared one machine and waited
+  hours for each other's Stryker runs, while the CI runs the same checks
+  anyway.
 * **[E]** Small patches are slotted in between features (owner,
   2026-11-16): the main agent merges Renovate's green patch and minor pull
   requests (one at a time, CI Gate green on a head up to date with `main`;
@@ -205,7 +225,9 @@ tasks).
   tests, build, E2E) on every push of an ordinary pull request. Replaces
   „before every push“. Expected [V]: less agent time and memory (the
   out-of-memory stop of 2026-11-15 came from Stryker and E2E of two agents
-  at once), a few more red draft runs.
+  at once), a few more red draft runs. Since 2026-11-17 the cheap local
+  checks above replace `pnpm check` and the relevant E2E tests; the full
+  E2E suite runs in the CI.
 * **[E]** Saving usage (owner, 2026-11-15; the weekly limit stood at 94 %
   on 2026-11-15): an event that needs nothing (a bot edited a comment,
   CodeRabbit skipped a review, an own reply) gets no tool call and at most

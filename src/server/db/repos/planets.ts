@@ -1,10 +1,15 @@
 // Planets (#117): a planet with its buildings, ships, defense, production
 // shares and queues. The children are written with their planet, always.
-import type { Levels, Planet } from '../../../core/types.ts';
+import type { Coords, Levels, Planet } from '../../../core/types.ts';
 import { isShip } from '../../../core/catalog.ts';
 import type { UsedSize } from '../../../core/universe.ts';
 import type { Db } from '../database.ts';
 import { levels, queueOf, queueParams, type Row } from './rows.ts';
+
+/** A position locked after its colony was given up, until `until` (#224, D2). */
+export interface PositionLock extends Coords {
+  until: number;
+}
 
 export interface Planets {
   get(id: string): Planet | null;
@@ -15,7 +20,16 @@ export interface Planets {
   /** All planets by their coordinates. */
   all(): Planet[];
   save(p: Planet): void;
+  /** Deletes a planet or moon with its buildings, units, shares and queues. */
+  delete(id: string): void;
+  /** Deletes every planet and every lock of a position (a new round). */
   deleteAll(): void;
+  /** Locks a position for colonization until `until` (#224, D2). */
+  lockPosition(c: Coords, until: number): void;
+  /** When the lock of a position ends, or null without one; an ended lock is not removed. */
+  positionLock(c: Coords): number | null;
+  /** Every lock of a position that holds after `now`, by position (#224). */
+  locks(now: number): PositionLock[];
   /** The largest galaxy, system and position in use. */
   usedSize(): UsedSize;
   /** Sets the time of the last activity (#229) of the places `ids`. */
@@ -169,8 +183,40 @@ export class SqlitePlanets implements Planets {
     p.sq.forEach((q, i) => sq.run(p.id, i, q.key, q.n, q.unit));
   }
 
+  delete(id: string): void {
+    // The children go with the planet (ON DELETE CASCADE).
+    this.db.prepare('DELETE FROM planets WHERE id = ?').run(id);
+  }
+
   deleteAll(): void {
     this.db.prepare('DELETE FROM planets').run();
+    this.db.prepare('DELETE FROM position_locks').run();
+  }
+
+  lockPosition(c: Coords, until: number): void {
+    this.db
+      .prepare(
+        `INSERT INTO position_locks (g, s, p, until) VALUES (?, ?, ?, ?)
+         ON CONFLICT(g, s, p) DO UPDATE SET until = excluded.until`,
+      )
+      .run(c.g, c.s, c.p, until);
+  }
+
+  locks(now: number): PositionLock[] {
+    return this.db
+      .prepare(
+        'SELECT g, s, p, until FROM position_locks WHERE until > ? ORDER BY g, s, p',
+      )
+      .all(now) as PositionLock[];
+  }
+
+  positionLock(c: Coords): number | null {
+    const r = this.db
+      .prepare(
+        'SELECT until FROM position_locks WHERE g = ? AND s = ? AND p = ?',
+      )
+      .get(c.g, c.s, c.p) as Row | undefined;
+    return r ? (r.until as number) : null;
   }
 
   markActive(ids: readonly string[], at: number): void {

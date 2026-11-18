@@ -78,6 +78,11 @@ and „Inaktivität“
 * **[V]** The server sends only the marker (`recent` or the whole minutes,
   `inactive` or `long`), never a time, and a planet or player without a
   marker gets none.
+* **[V]** The Sternenkarte is a Svelte component (#118): `galaxyPage()` in
+  `src/client/logic/galaxy.ts` gives each place the words of its activity
+  and of its owner's inactivity (`src/client/logic/activity.ts`), and
+  `Galaxy.svelte` shows them dim and in brackets. A free position keeps
+  its note, „–“ or the lock of a given-up colony (#224).
 * **[V]** A planet's activity goes with the planet: a new round, a
   destroyed or given-up place starts without one. The account's last
   activity stays across rounds.
@@ -86,12 +91,25 @@ and „Inaktivität“
 
 # Settings
 
-| Setting (label) | Default | Range [V] |
-|---|---|---|
-| „Aktivität ohne Minutenangabe (Minuten)“ | 15 | 1 to 60 |
-| „Aktivität mit Minutenangabe bis (Minuten)“ | 59 | 1 to 1,440 |
-| „Inaktiv ab (Tage)“ | 7 | 1 to 365 |
-| „Lange inaktiv ab (Tage)“ | 28 | 1 to 365 |
+| Setting (label) | Stored key | Default | Range [V] | Order |
+|---|---|---|---|---|
+| „Aktivität ohne Minutenangabe (Minuten)“ | `roundActivityRecent` | 15 | 1 to 60 | 60 |
+| „Aktivität mit Minutenangabe bis (Minuten)“ | `roundActivityMinutes` | 59 | 1 to 1,440 | 70 |
+| „Inaktiv ab (Tage)“ | `roundInactiveDays` | 7 | 1 to 365 | 80 |
+| „Lange inaktiv ab (Tage)“ | `roundLongInactiveDays` | 28 | 1 to 365 | 90 |
+
+* **[V]** Each threshold is one entry of the
+  [registry of the round settings](/features/admin.md#the-registry-of-the-round-settings-283)
+  (#283), defined in `src/core/activity.ts` and `live`: a number field of
+  the dialog „Neue Runde“ after the lock of a given-up position, and one
+  of the last rows of the universe settings, under the same stored key
+  (X1). `RoundRules` holds them as `activityRecent`, `activityMinutes`,
+  `inactiveDays` and `longInactiveDays`; `activityLimits()` reads the
+  thresholds of the rule from them.
+* **[V]** The four entries are one group `activity` without a legend: the
+  request „reset“ sends them as one object, without it the new round keeps
+  the current thresholds, and an object that leaves one out is refused for
+  it, as the reward options are.
 
 * **[V]** The values are checked one by one, not against each other: a
   minute limit below the first threshold shows no minutes, a long-inactive
