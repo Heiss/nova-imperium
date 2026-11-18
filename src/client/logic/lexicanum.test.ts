@@ -356,11 +356,10 @@ describe('an article of a mission', () => {
       ['Ziel', 'fremder Planet'],
       ['Ladung', 'nein'],
       ['Rückflug', 'ja'],
-      ['Für den Verteidiger sichtbar', 'nein'],
       ['Eigener Bericht bei der Heimkehr', 'nein'],
       ['Schiffe', 'nur Spähschädel'],
     ]);
-    expect(facts[5]!.parts[1]).toEqual({ text: 'Spähschädel', link: 'probe' });
+    expect(facts[4]!.parts[1]).toEqual({ text: 'Spähschädel', link: 'probe' });
     const attack = of(blocks(art('mission-attack'), 'mission'), 'facts')[0]!;
     expect(attack.items.map((f) => f.label)).not.toContain('Schiffe');
     const deploy = of(blocks(art('mission-deploy'), 'mission'), 'facts')[0]!;
