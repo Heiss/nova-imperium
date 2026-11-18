@@ -896,10 +896,10 @@ function seeChat(): void {
   const id = chatToSee(client.game!, ui.view, ui.guild ?? null);
   if (id === null || seePending) return;
   seePending = true;
-  setTimeout(
-    () => void act('seeGuildChat', { id }).finally(() => (seePending = false)),
-    600,
-  );
+  const done = (): void => void (seePending = false);
+  setTimeout(() => {
+    void sync.quiet('seeGuildChat', { id }).finally(done);
+  }, 600);
 }
 
 // ----- fleet form -----

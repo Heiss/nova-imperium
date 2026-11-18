@@ -20,6 +20,7 @@ function setup(answer: () => Promise<Record<string, unknown>>) {
   const sync = createAct({ api, state: () => current, apply, toast });
   return {
     act: sync.send,
+    quiet: sync.quiet,
     refresh: sync.refresh,
     api,
     apply,
@@ -201,6 +202,39 @@ describe('act', () => {
     expect(await t.act('build')).toBe('failed');
     expect(t.toast).toHaveBeenCalledWith('Zu wenig Rohstoffe.', true);
     expect(t.apply).not.toHaveBeenCalled();
+  });
+
+  it('keeps the refusal of a quiet action to itself and still answers failed (#301)', async () => {
+    const t = setup(async () => {
+      throw new Error('Dazu fehlt deinem Rang das Recht.');
+    });
+    expect(await t.quiet('seeGuildChat', { id: 1 })).toBe('failed');
+    expect(t.toast).not.toHaveBeenCalled();
+    expect(t.apply).not.toHaveBeenCalled();
+  });
+
+  it('shows the message of a quiet action that went through', async () => {
+    const t = setup(async () => ({
+      state: state('u1', 'p1'),
+      msg: 'Gesehen.',
+    }));
+    expect(await t.quiet('seeGuildChat', { id: 1 })).toBe('done');
+    expect(t.toast).toHaveBeenCalledWith('Gesehen.');
+  });
+
+  it('sends a quiet action like any other, with the planet and its data', async () => {
+    const t = setup(async () => ({ state: state('u1', 'p1') }));
+    await t.quiet('seeGuildChat', { id: 7 });
+    expect(t.api).toHaveBeenCalledWith('/api/action', {
+      type: 'seeGuildChat',
+      planet: 'p1',
+      id: 7,
+    });
+    await t.quiet('seeGuildChat');
+    expect(t.api).toHaveBeenLastCalledWith('/api/action', {
+      type: 'seeGuildChat',
+      planet: 'p1',
+    });
   });
 });
 
