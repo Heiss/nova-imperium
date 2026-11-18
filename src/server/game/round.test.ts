@@ -8,11 +8,8 @@ import {
   type RoundNumber,
   type RoundSetting,
 } from '../../core/round.ts';
-import {
-  liveSpecs,
-  UNIVERSE_SPECS,
-  universeErrors,
-} from '../../core/universe.ts';
+import { liveSpecs, universeErrors } from '../../core/universe.ts';
+import { roundDefaults } from '../../test/fixtures.ts';
 import { testCtx } from '../test-helpers.ts';
 import { rangeError, roundRules, startRoundRules } from './round.ts';
 
@@ -48,6 +45,18 @@ const CHOICE: RoundNumber<'testChoice'> = {
 };
 
 const settings: readonly RoundSetting[] = [...ROUND_SETTINGS, HOURS, CHOICE];
+
+/** Data in which every given setting is wrong: a group as an empty object, the rest null. */
+const wrongData = (list: readonly RoundSetting[]): Record<string, unknown> =>
+  Object.fromEntries(
+    list.map((s) => [s.group?.name ?? s.name, s.group ? {} : null]),
+  );
+
+/** The refusal of settings: their own wording, each once, else the range (#214). */
+const wording = (list: readonly RoundSetting[]): string =>
+  [...new Set(list.map((s) => s.refusal ?? rangeError(s as RoundNumber)))].join(
+    ' ',
+  );
 const valuesOf = (ctx: ReturnType<typeof testCtx>) =>
   roundRules(ctx, settings) as unknown as Record<string, unknown>;
 
@@ -67,11 +76,12 @@ describe('a new entry of the registry (#283)', () => {
     expect(ctx.admin.setting('roundTestHours')).toBe(48);
     expect(ctx.admin.setting('roundTestChoice')).toBe(1);
     startRoundRules(ctx, {}, settings);
+    // The settings of the registry that were not sent keep their values.
     expect(valuesOf(ctx)).toMatchObject({
+      ...roundDefaults(),
       number: 3,
       testHours: 48,
       testChoice: 1,
-      mainLock: 7,
     });
   });
 
@@ -84,11 +94,11 @@ describe('a new entry of the registry (#283)', () => {
     expect(() => startRoundRules(ctx, { testChoice: 4 }, settings)).toThrow(
       'Bitte eine Testauswahl treffen.',
     );
+    // A setting of the registry is checked before the new ones (they come last).
+    const first = ROUND_SETTINGS[0]!;
     expect(() =>
-      startRoundRules(ctx, { mainLock: 0, testHours: 0 }, settings),
-    ).toThrow(
-      'Bitte für die Sperre des Hauptplaneten 1 bis 30 ganze Tage angeben.',
-    );
+      startRoundRules(ctx, { ...wrongData([first]), testHours: 0 }, settings),
+    ).toThrow(new Error(wording([first])));
     expect(ctx.admin.setting('roundTestHours')).toBeUndefined();
     expect(roundRules(ctx).number).toBe(1);
   });
@@ -169,76 +179,19 @@ describe('a new entry of the registry (#283)', () => {
     expect(valuesOf(ctx)).toMatchObject({ testHours: 72 });
   });
 
-  it('the lock of a given-up position (#224) and the thresholds of the activity markers (#229) are the live settings of main, the last rows of the universe settings', () => {
-    const rows = [
-      {
-        key: 'roundAbandonLock',
-        label: 'Sperre einer aufgegebenen Position (Stunden)',
-        min: 1,
-        max: 720,
-        def: 24,
-      },
-      {
-        key: 'roundActivityRecent',
-        label: 'Aktivität ohne Minutenangabe (Minuten)',
-        min: 1,
-        max: 60,
-        def: 15,
-      },
-      {
-        key: 'roundActivityMinutes',
-        label: 'Aktivität mit Minutenangabe bis (Minuten)',
-        min: 1,
-        max: 1440,
-        def: 59,
-      },
-      {
-        key: 'roundInactiveDays',
-        label: 'Inaktiv ab (Tage)',
-        min: 1,
-        max: 365,
-        def: 7,
-      },
-      {
-        key: 'roundLongInactiveDays',
-        label: 'Lange inaktiv ab (Tage)',
-        min: 1,
-        max: 365,
-        def: 28,
-      },
-    ];
-    expect(liveSpecs()).toEqual(rows);
-    expect(UNIVERSE_SPECS.filter((s) => s.key.startsWith('round'))).toEqual(
-      rows,
-    );
-    expect(UNIVERSE_SPECS.slice(-rows.length)).toEqual(rows);
-  });
-
-  it('a new round refuses in the fixed order of main (owner, 2026-11-17)', () => {
+  it('a new round refuses the first wrong setting of the registry, in the order of its numbers (owner, 2026-11-17)', () => {
     const ctx = testCtx();
-    const wrong: Record<string, unknown> = {
-      rewards: {},
-      guilds: 'no',
-      mainLock: 0,
-      abandonLock: 0,
-    };
-    for (const [name, text] of [
-      [
-        'rewards',
-        'Bitte beide Belohnungseinstellungen für die neue Runde auswählen.',
-      ],
-      ['guilds', 'Bitte auswählen, ob Gilden in der neuen Runde an sind.'],
-      [
-        'mainLock',
-        'Bitte für die Sperre des Hauptplaneten 1 bis 30 ganze Tage angeben.',
-      ],
-      [
-        'abandonLock',
-        'Bitte für die Sperre einer aufgegebenen Position 1 bis 720 ganze Stunden angeben.',
-      ],
-    ] as const) {
-      expect(() => startRoundRules(ctx, wrong)).toThrow(new Error(text));
-      delete wrong[name];
+    const wrong = wrongData(ROUND_SETTINGS);
+    for (const s of ROUND_SETTINGS) {
+      const key = s.group?.name ?? s.name;
+      if (!(key in wrong)) continue;
+      const refused = ROUND_SETTINGS.filter(
+        (x) => (x.group?.name ?? x.name) === key,
+      );
+      expect(() => startRoundRules(ctx, wrong)).toThrow(
+        new Error(wording(refused)),
+      );
+      delete wrong[key];
     }
     expect(roundRules(ctx).number).toBe(1);
   });

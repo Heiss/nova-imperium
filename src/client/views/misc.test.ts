@@ -5,8 +5,10 @@ import {
   type RoundNumber,
   type RoundRules,
   type RoundSetting,
+  roundFieldId,
 } from '../../core/round.ts';
 import { liveSpecs } from '../../core/universe.ts';
+import { roundDefaults } from '../../test/fixtures.ts';
 import type { GameState } from '../logic/types.ts';
 import type { V } from './common.ts';
 import {
@@ -36,67 +38,56 @@ describe('highscore', () => {
   });
 });
 
+/** The values of a round at their defaults, a feature's test names its own on top. */
+const defaults = (): RoundRules =>
+  ({ number: 1, ...roundDefaults() }) as RoundRules;
+
 describe('the dialog „Neue Runde“', () => {
   const box = (html: string): string =>
     /<label><input type="checkbox" id="round-guilds"[^>]*>[^<]*<\/label>/.exec(
       html,
     )?.[0] ?? '';
-  const rules = {
-    number: 1,
-    achievements: true,
-    daily: true,
-    mainLock: 7,
-    abandonLock: 24,
-    activityRecent: 15,
-    activityMinutes: 59,
-    inactiveDays: 7,
-    longInactiveDays: 28,
-  };
 
-  it('shows the fields in the fixed order of main (owner, 2026-11-17)', () => {
-    const html = roundDialog({ ...rules, guilds: true });
-    expect(
-      [...html.matchAll(/ id="(round-[a-z-]+)"/g)].map((m) => m[1]),
-    ).toEqual([
-      'round-achievements',
-      'round-daily',
-      'round-guilds',
-      'round-guilds-note',
-      'round-main-lock',
-      'round-abandon-lock',
-      'round-activity-recent',
-      'round-activity-minutes',
-      'round-inactive-days',
-      'round-long-inactive-days',
-    ]);
+  it('shows one field for every setting of the registry, in the order of its numbers (owner, 2026-11-17)', () => {
+    const html = roundDialog(defaults());
+    // The notes below a field are named after it; they are no fields.
+    const ids = [...html.matchAll(/ id="(round-[a-z-]+)"/g)]
+      .map((m) => m[1])
+      .filter((id) => !id!.endsWith('-note'));
+    expect(ids).toEqual(ROUND_SETTINGS.map(roundFieldId));
+  });
+
+  it('puts the members of a group with a legend in one fieldset of that legend, and every other field outside any', () => {
+    const html = roundDialog(defaults());
+    const legends = ROUND_SETTINGS.flatMap((s) => s.group?.legend ?? []);
+    for (const legend of new Set(legends)) {
+      const open = `<fieldset><legend>${legend}</legend>`;
+      expect(html.split(open), legend).toHaveLength(2);
+      const fieldset = html.slice(html.indexOf(open)).split('</fieldset>')[0]!;
+      const members = ROUND_SETTINGS.filter((s) => s.group?.legend === legend);
+      expect(
+        [...fieldset.matchAll(/ id="(round-[a-z-]+)"/g)].map((m) => m[1]),
+      ).toEqual(members.map(roundFieldId));
+    }
+    const outside = html.replace(/<fieldset>[\s\S]*?<\/fieldset>/g, '');
+    for (const s of ROUND_SETTINGS.filter((x) => !x.group?.legend))
+      expect(outside, s.key).toContain(` id="${roundFieldId(s)}"`);
   });
 
   it('has one box „Gilden (mit Chat)“, preselected with the current round (#191)', () => {
-    const on = box(roundDialog({ ...rules, guilds: true }));
+    const on = box(roundDialog({ ...defaults(), guilds: true }));
     expect(on).toContain('Gilden (mit Chat)');
     expect(on).toMatch(/ checked>/);
-    const off = box(roundDialog({ ...rules, guilds: false }));
+    const off = box(roundDialog({ ...defaults(), guilds: false }));
     expect(off).toContain('Gilden (mit Chat)');
     expect(off).not.toMatch(/checked/);
   });
 });
 
 describe('the lock of the main planet in the dialog „Neue Runde“ (#221)', () => {
-  const rules = {
-    number: 1,
-    achievements: true,
-    daily: true,
-    guilds: true,
-    abandonLock: 24,
-    activityRecent: 15,
-    activityMinutes: 59,
-    inactiveDays: 7,
-    longInactiveDays: 28,
-  };
-
   it('is a number of days from 1 to 30, preselected with the current round', () => {
     for (const mainLock of [7, 12]) {
-      const html = roundDialog({ ...rules, mainLock });
+      const html = roundDialog({ ...defaults(), mainLock });
       expect(html).toContain(
         `<label for="round-main-lock">Sperre nach einem Wechsel des Hauptplaneten (Tage)</label> <input type="number" id="round-main-lock" min="1" max="30" step="1" value="${mainLock}" required> <span class="dim">1 bis 30</span>`,
       );
@@ -108,26 +99,11 @@ describe('the lock of the main planet in the dialog „Neue Runde“ (#221)', ()
 });
 
 describe('the lock of a given-up position in the dialog „Neue Runde“ (#224)', () => {
-  const rules = {
-    number: 1,
-    achievements: true,
-    daily: true,
-    guilds: true,
-    mainLock: 7,
-    activityRecent: 15,
-    activityMinutes: 59,
-    inactiveDays: 7,
-    longInactiveDays: 28,
-  };
-
   it('is a number of hours from 1 to 720, preselected with the current round', () => {
     for (const abandonLock of [24, 48]) {
-      const html = roundDialog({ ...rules, abandonLock });
+      const html = roundDialog({ ...defaults(), abandonLock });
       expect(html).toContain(
         `<label for="round-abandon-lock">Sperre einer aufgegebenen Position (Stunden)</label> <input type="number" id="round-abandon-lock" min="1" max="720" step="1" value="${abandonLock}" required> <span class="dim">1 bis 720</span>`,
-      );
-      expect(html.indexOf('id="round-main-lock"')).toBeLessThan(
-        html.indexOf('id="round-abandon-lock"'),
       );
       expect(html.indexOf('id="round-abandon-lock"')).toBeLessThan(
         html.indexOf('data-act="doReset"'),
@@ -137,18 +113,9 @@ describe('the lock of a given-up position in the dialog „Neue Runde“ (#224)'
 });
 
 describe('the activity thresholds in the dialog „Neue Runde“ (#229, X1)', () => {
-  const rules = {
-    number: 1,
-    achievements: true,
-    daily: true,
-    guilds: true,
-    mainLock: 7,
-    abandonLock: 24,
-  };
-
-  it('stand in one fieldset „Aktivität“, named and ranged as in the universe settings, preselected with the current round, last in the dialog', () => {
+  it('stand in one fieldset „Aktivität“, named and ranged as in the universe settings, preselected with the current round', () => {
     const html = roundDialog({
-      ...rules,
+      ...defaults(),
       activityRecent: 10,
       activityMinutes: 45,
       inactiveDays: 3,
@@ -174,31 +141,20 @@ describe('the activity thresholds in the dialog „Neue Runde“ (#229, X1)', ()
     const group = `<fieldset><legend>Aktivität</legend>\n    ${rows.join('<br>\n    ')}\n  </fieldset>`;
     expect(html).toContain(group);
     expect(html.split('<legend>Aktivität</legend>')).toHaveLength(2);
-    const at = html.indexOf(group);
-    expect(at).toBeGreaterThan(html.indexOf('id="round-abandon-lock"'));
-    expect(at).toBeLessThan(html.indexOf('data-act="doReset"'));
+    expect(html.indexOf(group)).toBeLessThan(
+      html.indexOf('data-act="doReset"'),
+    );
   });
 });
 
 describe('the warning below the box „Gilden (mit Chat)“ (#191)', () => {
-  const rules = {
-    number: 1,
-    achievements: true,
-    daily: true,
-    mainLock: 7,
-    abandonLock: 24,
-    activityRecent: 15,
-    activityMinutes: 59,
-    inactiveDays: 7,
-    longInactiveDays: 28,
-  };
   // Every new round clears the chats as well (#169 D6), guilds on or off.
   const WARNING =
     'Eine neue Runde leert alle Gilden-Chats. Ohne Gilden werden alle Gilden mit Mitgliedern, Bewerbungen, Rängen und Chat gelöscht.';
 
   it('stands below the box, always, and the box names it as its description', () => {
     for (const guilds of [true, false]) {
-      const html = roundDialog({ ...rules, guilds });
+      const html = roundDialog({ ...defaults(), guilds });
       const box = html.indexOf('id="round-guilds"');
       const note = html.indexOf(
         `<span id="round-guilds-note">${WARNING}</span>`,
@@ -214,19 +170,8 @@ describe('the warning below the box „Gilden (mit Chat)“ (#191)', () => {
 });
 
 describe('„Account löschen“ in a round with or without guilds (#191)', () => {
-  const rules = {
-    number: 1,
-    achievements: true,
-    daily: true,
-    mainLock: 7,
-    abandonLock: 24,
-    activityRecent: 15,
-    activityMinutes: 59,
-    inactiveDays: 7,
-    longInactiveDays: 28,
-  };
-  const on = { ...rules, guilds: true };
-  const off = { ...rules, guilds: false };
+  const on = { ...defaults(), guilds: true };
+  const off = { ...defaults(), guilds: false };
 
   it('the box names a led guild only while guilds are on', () => {
     expect(deleteAccountBox(on)).toContain(
@@ -317,16 +262,7 @@ describe('a new setting of the round in both places (#283)', () => {
   };
   const settings: readonly RoundSetting[] = [...ROUND_SETTINGS, hours, allies];
   const round = {
-    number: 1,
-    achievements: true,
-    daily: true,
-    guilds: true,
-    mainLock: 7,
-    abandonLock: 24,
-    activityRecent: 15,
-    activityMinutes: 59,
-    inactiveDays: 7,
-    longInactiveDays: 28,
+    ...defaults(),
     testHours: 48,
     testAllies: 1,
   } as RoundRules;
@@ -339,13 +275,14 @@ describe('a new setting of the round in both places (#283)', () => {
     expect(html).toContain(
       '<p><label for="round-test-allies">Halten erlaubt für</label> <select id="round-test-allies"><option value="1" selected>Gilde</option><option value="3">Gilde und Freunde</option></select></p>',
     );
-    expect(html.indexOf('id="round-main-lock"')).toBeLessThan(
-      html.indexOf('id="round-test-hours"'),
-    );
+    // The new ones have the highest numbers, so they stand after the registry.
+    expect(
+      html.indexOf(` id="${roundFieldId(ROUND_SETTINGS.at(-1)!)}"`),
+    ).toBeLessThan(html.indexOf('id="round-test-hours"'));
     expect(html.indexOf('id="round-test-allies"')).toBeLessThan(
       html.indexOf('data-act="doReset"'),
     );
-    // The settings of main stay as they were.
+    // The settings of the registry stay as they were.
     expect(roundDialog(round)).toBe(roundDialog(round, ROUND_SETTINGS));
     expect(roundDialog(round)).not.toContain('round-test');
   });

@@ -5,32 +5,34 @@ import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import {
   ACTIVITY_DEFAULT,
-  ACTIVITY_MINUTES_SETTING,
   ACTIVITY_RANGE,
-  ACTIVITY_RECENT_SETTING,
   type ActivityEvent,
   DAY_MS,
-  INACTIVE_DAYS_SETTING,
-  LONG_INACTIVE_DAYS_SETTING,
   MINUTE_MS,
   activityLimits,
   activityPlaces,
   inactivity,
   planetActivity,
 } from './activity.ts';
-import { ROUND_SETTINGS, roundRefused, roundValues } from './round.ts';
-import { liveSpecs } from './universe.ts';
+import {
+  ROUND_SETTINGS,
+  roundFieldId,
+  roundRefused,
+  roundValues,
+} from './round.ts';
+import {
+  DEFAULT_UNIVERSE,
+  liveSpecs,
+  UNIVERSE_SPECS,
+  universeErrors,
+} from './universe.ts';
 
 const NOW = 1_763_300_000_000;
 const C = ACTIVITY_DEFAULT;
 const own = ['p1_2_3', 'm1_2_3', 'p2_5_9'];
 
-const SETTINGS = [
-  ACTIVITY_RECENT_SETTING,
-  ACTIVITY_MINUTES_SETTING,
-  INACTIVE_DAYS_SETTING,
-  LONG_INACTIVE_DAYS_SETTING,
-];
+/** The four thresholds, as the registry holds them (the group `activity`). */
+const SETTINGS = ROUND_SETTINGS.filter((s) => s.group?.name === 'activity');
 
 describe('the thresholds of a round', () => {
   it('are the classic values by default: 15 min, 59 min, 7 and 28 days', () => {
@@ -53,7 +55,7 @@ describe('the thresholds of a round', () => {
     });
   });
 
-  it('are four settings of the round, live in the universe settings, last in the order (#283, X1)', () => {
+  it('are four settings of the round in one group, in the order of the thresholds (#283, X1)', () => {
     const group = { name: 'activity', legend: 'Aktivität' };
     const common = { kind: 'number', group, live: true };
     expect(SETTINGS).toEqual([
@@ -100,13 +102,58 @@ describe('the thresholds of a round', () => {
     ]);
     // One group, so they are sent and refused together.
     for (const s of SETTINGS) expect(s.group).toBe(SETTINGS[0]!.group);
-    // The registry holds them at its end, in this order.
-    expect(ROUND_SETTINGS.slice(-4)).toEqual(SETTINGS);
-    expect(
-      liveSpecs()
-        .slice(-4)
-        .map((s) => s.key),
-    ).toEqual(SETTINGS.map((s) => s.key));
+    expect(SETTINGS.map(roundFieldId)).toEqual([
+      'round-activity-recent',
+      'round-activity-minutes',
+      'round-inactive-days',
+      'round-long-inactive-days',
+    ]);
+  });
+
+  it('are rows of the universe settings, in this order, with their ranges, checked there (#229, X1)', () => {
+    const rows = [
+      [
+        'roundActivityRecent',
+        'Aktivität ohne Minutenangabe (Minuten)',
+        1,
+        60,
+        15,
+      ],
+      [
+        'roundActivityMinutes',
+        'Aktivität mit Minutenangabe bis (Minuten)',
+        1,
+        1440,
+        59,
+      ],
+      ['roundInactiveDays', 'Inaktiv ab (Tage)', 1, 365, 7],
+      ['roundLongInactiveDays', 'Lange inaktiv ab (Tage)', 1, 365, 28],
+    ] as const;
+    const keys: string[] = SETTINGS.map((s) => s.key);
+    expect(liveSpecs().filter((s) => keys.includes(s.key))).toEqual(
+      rows.map(([key, label, min, max, def]) => ({
+        key,
+        label,
+        min,
+        max,
+        def,
+      })),
+    );
+    expect(UNIVERSE_SPECS.map((s) => s.key)).toEqual(
+      expect.arrayContaining(keys),
+    );
+    const codes = (input: Record<string, unknown>) =>
+      universeErrors(
+        { ...DEFAULT_UNIVERSE, ...input },
+        { g: 1, s: 1, p: 1 },
+      ).map((e) => [e.spec.key, e.code]);
+    for (const [key, , min, max, def] of rows) {
+      expect(DEFAULT_UNIVERSE).toMatchObject({ [key]: def });
+      for (const value of [min, max])
+        expect(codes({ [key]: value })).toEqual([]);
+      for (const value of [min - 1, max + 1, 1.5])
+        expect(codes({ [key]: value })).toEqual([[key, 'range']]);
+    }
   });
 
   it('are read from the rules of the round', () => {
@@ -161,6 +208,14 @@ describe('the thresholds chosen for a new round', () => {
       longInactiveDays: 1,
     };
     expect(wrong(edge)).toEqual([]);
+    const least = {
+      activityRecent: 1,
+      activityMinutes: 1,
+      inactiveDays: 1,
+      longInactiveDays: 1,
+    };
+    expect(wrong(least)).toEqual([]);
+    expect(roundValues(current, { activity: least }, SETTINGS)).toEqual(least);
     expect(roundValues(current, { activity: edge }, SETTINGS)).toEqual(edge);
   });
 });

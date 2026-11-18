@@ -1,24 +1,17 @@
 // The settings of a round (#283, patterns, section 7): one registry that the
 // dialog „Neue Runde“, the universe settings, the reset action and
-// `roundRules()` all read. A feature with a value per round adds one entry
-// in its own file, with its own `order` number, and one line to the list
-// below; it edits none of the shared places. The order is fixed (owner,
-// 2026-11-17): the dialog and the refusals follow the `order` numbers. An entry is a switch (yes or no) or a whole number in a
+// `roundRules()` all read. A feature with a value per round defines its
+// entries in its own file and exports them as `roundSettings`; the list of
+// all of them is generated (`scripts/gen-features.ts`, #310), so this file
+// names no feature and a new feature edits none of the shared places. The
+// order is fixed (owner, 2026-11-17): the dialog and the refusals follow the
+// `order` numbers. An entry is a switch (yes or no) or a whole number in a
 // range, shown as a number field or, with `choices`, as a selection. Every
 // value is stored under its `key` in the settings; a value the admin does
 // not send keeps the one of the current round. The server words a refusal
 // with the entry's `refusal`, else with the shared range wording of the
 // universe settings (`rangeError`).
-import { ABANDON_LOCK_SETTING } from './abandon.ts';
-import { ACHIEVEMENTS_SETTING, DAILY_SETTING } from './achievements.ts';
-import {
-  ACTIVITY_MINUTES_SETTING,
-  ACTIVITY_RECENT_SETTING,
-  INACTIVE_DAYS_SETTING,
-  LONG_INACTIVE_DAYS_SETTING,
-} from './activity.ts';
-import { GUILDS_SETTING } from './guild-chat.ts';
-import { MAIN_LOCK_SETTING } from './main-planet.ts';
+import { ROUND_ENTRIES } from './round-settings.gen.ts';
 
 /**
  * Entries sent as one object and refused together (#214): the reward
@@ -72,19 +65,6 @@ export interface RoundNumber<N extends string = string> extends Common<N> {
 
 export type RoundSetting = RoundSwitch | RoundNumber;
 
-/** The entries as the features add them; their place here means nothing. */
-const ENTRIES = [
-  ABANDON_LOCK_SETTING,
-  ACHIEVEMENTS_SETTING,
-  DAILY_SETTING,
-  GUILDS_SETTING,
-  MAIN_LOCK_SETTING,
-  ACTIVITY_RECENT_SETTING,
-  ACTIVITY_MINUTES_SETTING,
-  INACTIVE_DAYS_SETTING,
-  LONG_INACTIVE_DAYS_SETTING,
-] as const satisfies readonly RoundSetting[];
-
 /** The settings by their `order` number, the fixed order (owner, 2026-11-17). */
 const byOrder = <S extends RoundSetting>(settings: readonly S[]): S[] =>
   [...settings].sort((a, b) => a.order - b.order);
@@ -94,14 +74,13 @@ const byOrder = <S extends RoundSetting>(settings: readonly S[]): S[] =>
  * entries in this order and the server checks them in it. The members of a
  * group stand together.
  */
-export const ROUND_SETTINGS: readonly (typeof ENTRIES)[number][] =
-  byOrder(ENTRIES);
+export const ROUND_SETTINGS: readonly RoundSetting[] = byOrder(ROUND_ENTRIES);
 
 type ValueOf<S> = S extends { kind: 'switch' } ? boolean : number;
 
 /** The value of every entry by its `name`. */
 type RoundValues = {
-  -readonly [S in (typeof ENTRIES)[number] as S['name']]: ValueOf<S>;
+  -readonly [S in (typeof ROUND_ENTRIES)[number] as S['name']]: ValueOf<S>;
 };
 
 /** The rules of the current round: its number and the value of every entry. */

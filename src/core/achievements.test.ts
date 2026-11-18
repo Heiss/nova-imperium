@@ -1,15 +1,17 @@
 // The achievement list itself (names, targets, rewards): its texts and
 // numbers are game content, so they are checked exactly.
+import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
-import {
-  ACHIEVEMENTS,
-  ACHIEVEMENTS_SETTING,
-  CATEGORIES,
-  DAILY_SETTING,
-  type Achievement,
-} from './achievements.ts';
+import { roundDefaults } from '../test/fixtures.ts';
+import { ACHIEVEMENTS, CATEGORIES, type Achievement } from './achievements.ts';
 import { BUILD, DEF, RES, SHIPS } from './catalog.ts';
 import { lvlCost } from './economy.ts';
+import {
+  ROUND_SETTINGS,
+  roundFieldId,
+  roundRefused,
+  roundValues,
+} from './round.ts';
 import { text } from './text.ts';
 
 const LEVELS = [1, 2, 3, 5, 8, 10, 12, 15, 20];
@@ -102,10 +104,91 @@ describe('achievements', () => {
     );
     expect(order.every((a) => a.category === 'yard')).toBe(true);
   });
+});
 
-  it('groups both reward settings of a round under one legend (#283)', () => {
-    const group = { name: 'rewards', legend: 'Belohnungen für die neue Runde' };
-    expect(ACHIEVEMENTS_SETTING.group).toEqual(group);
-    expect(DAILY_SETTING.group).toEqual(group);
+describe('the reward options of a round (#214, #283)', () => {
+  const rewards = ROUND_SETTINGS.filter((s) => s.group?.name === 'rewards');
+  const group = { name: 'rewards', legend: 'Belohnungen für die neue Runde' };
+  const refusal =
+    'Bitte beide Belohnungseinstellungen für die neue Runde auswählen.';
+  const defaults = roundDefaults();
+  const refused = (data: Record<string, unknown>) =>
+    roundRefused(defaults, data, rewards).map((s) => s.name);
+
+  it('are two switches, first in the dialog, in one fieldset with one legend', () => {
+    expect(rewards).toEqual([
+      {
+        kind: 'switch',
+        key: 'roundAchievements',
+        name: 'achievements',
+        label: 'Achievements aktivieren',
+        order: 10,
+        group,
+        def: true,
+        refusal,
+      },
+      {
+        kind: 'switch',
+        key: 'roundDaily',
+        name: 'daily',
+        label: 'Tagesbelohnungen aktivieren',
+        order: 20,
+        group,
+        def: true,
+        refusal,
+      },
+    ]);
+    expect(rewards.map(roundFieldId)).toEqual([
+      'round-achievements',
+      'round-daily',
+    ]);
+    expect(rewards[0]!.group).toBe(rewards[1]!.group);
+    // Existing universes start with both on.
+    expect(defaults).toMatchObject({ achievements: true, daily: true });
+  });
+
+  it('take yes or no for each of them', () => {
+    for (const achievements of [true, false])
+      for (const daily of [true, false]) {
+        const data = { rewards: { achievements, daily } };
+        expect(refused(data)).toEqual([]);
+        expect(roundValues(defaults, data, rewards)).toEqual({
+          achievements,
+          daily,
+        });
+      }
+  });
+
+  it('keep the current options when they are not sent', () => {
+    const current = { achievements: false, daily: true };
+    expect(roundValues(current, {}, rewards)).toEqual(current);
+  });
+
+  it('are refused together when they are not both yes or no, once per group', () => {
+    const both = ['achievements', 'daily'];
+    for (const [data, wrong] of [
+      [null, both],
+      [{}, both],
+      [5, both],
+      ['yes', both],
+      [{ achievements: true }, ['daily']],
+      [{ daily: true }, ['achievements']],
+      [{ achievements: 'true', daily: true }, ['achievements']],
+      [{ achievements: true, daily: 1 }, ['daily']],
+    ] as const)
+      expect(refused({ rewards: data }), JSON.stringify(data)).toEqual(wrong);
+  });
+
+  it('are refused exactly when one is not yes or no (property)', () => {
+    const value = fc.oneof(fc.boolean(), fc.constant(undefined), fc.anything());
+    fc.assert(
+      fc.property(value, value, (achievements, daily) => {
+        const wrong = refused({ rewards: { achievements, daily } });
+        expect(wrong.includes('achievements')).toBe(
+          typeof achievements !== 'boolean',
+        );
+        expect(wrong.includes('daily')).toBe(typeof daily !== 'boolean');
+      }),
+    );
   });
 });
