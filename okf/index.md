@@ -30,7 +30,7 @@ okf_version: "0.2"
 * [Solarsatellit](/features/solar-satellite.md) - energy satellite of #46, temperature formula, share, battle role
 * [Fusionskraftwerk](/features/fusion-reactor.md) - deuterium-burning power plant of #47, throttling at an empty stock
 * [Cargo buttons of the fleet form](/features/fleet-cargo.md) - „alles (gleichmäßig)“ fills the holds evenly, an „alles“ under each cargo field loads only its resource (#240)
-* [Missions that fit the target](/features/fitting-missions.md) - the list „Auftrag“ of the fleet form offers only the missions that fit the target (#253)
+* [Missions that fit the target](/features/fitting-missions.md) - the list „Auftrag“ of the fleet form offers only the missions that fit the target, the „Schnellwahl“ enters an own planet or moon (#253)
 * [Deploy mission „Verlegung“](/features/deploy.md) - moving ships and cargo to another own planet for good (#129)
 * [Planet fields and the Weltenschmiede](/features/fields.md) - limited fields per planet and the building that adds them (#51)
 * [Bergungsbarke, Trümmerfelder and „Bergung“](/features/debris.md) - debris of destroyed ships and the harvest mission (#45)
