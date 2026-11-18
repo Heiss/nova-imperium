@@ -5,7 +5,6 @@
   // state of the client state module; its buttons carry data-act, which
   // main.ts sends through act(). A new entry needs no new HTML.
   import { type CatalogKind, catalogPage } from '../logic/catalog-list.ts';
-  import { paragraphs } from '../logic/explain.ts';
   import { fmt } from '../logic/format.ts';
   import { client } from '../logic/state.svelte.ts';
   import { costHTML, requirementsHTML } from './common.ts';
@@ -69,14 +68,14 @@
           <div>
             <div class="nm">
               {row.name}
-              <span class="lv">{row.level}</span>{#if ex?.toggle}<button
+              <span class="lv">{row.level}</span>{#if ex}<button
                   type="button"
                   class="exq"
                   id={ex.button}
                   data-act="explain"
                   data-k={row.key}
                   aria-expanded={ex.open}
-                  aria-controls={ex.panel}
+                  aria-controls={ex.open ? ex.panel : undefined}
                   aria-label={`Erklärung zu ${row.name}`}>?</button
                 >{/if}
             </div>
@@ -88,11 +87,6 @@
               <div class="dim">{line}</div>
             {/each}
             {@html requirementsHTML(v, row.req)}
-            {#if ex}
-              <div class="ex" id={ex.panel} hidden={!ex.open}>
-                {#each paragraphs(ex.text) as text, i (i)}<p>{text}</p>{/each}
-              </div>
-            {/if}
           </div>
           <div class="act">
             {#if a.kind === 'upgrading'}

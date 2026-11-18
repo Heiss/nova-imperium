@@ -44,11 +44,7 @@ import { text } from '../core/text.ts';
 import type { Levels, Planet } from '../core/types.ts';
 import { orderMax, YARD_LOCK, yardLockedBy } from '../core/yard.ts';
 import type { CatalogKind } from '../client/logic/catalog-list.ts';
-import {
-  explainButtonHTML,
-  explainPanelHTML,
-  explanation,
-} from '../client/logic/explain.ts';
+import { type Explanation, explanation } from '../client/logic/explain.ts';
 import { dur, esc, fmt } from '../client/logic/format.ts';
 import { researchState } from './catalog-reference/states.ts';
 import { iconURL } from '../client/logic/icons.ts';
@@ -68,6 +64,15 @@ import { normalize } from './markup.ts';
 
 // ----- frozen: itemHTML() of src/client/views/common.ts before #118 -----
 
+// One change on purpose (#285, B2): the „?“ opens the article of the
+// Lexicanum in a side panel, so nothing unfolds below the entry, and it is
+// shown in every mode but „Ausblenden“ („Immer anzeigen“ went); it names
+// the panel it controls while the panel is open.
+const explainButtonHTML = (ex: Explanation | null): string =>
+  ex
+    ? `<button type="button" class="exq" id="${ex.button}" data-act="explain" data-k="${ex.key}" aria-expanded="${ex.open}"${ex.open ? ` aria-controls="${ex.panel}"` : ''} aria-label="Erklärung zu ${esc(ex.name)}">?</button>`
+    : '';
+
 function itemHTML(
   v: V,
   cls: string,
@@ -81,7 +86,7 @@ function itemHTML(
   const icon = src ? `<img src="${src}" alt="${esc(d.n)}">` : d.ab;
   const ds = d.ds ? `<div class="ds">${d.ds}</div>` : '';
   const ex = explanation(key, d, v.s.me.explain, v.ui.openEx);
-  return `<div class="item"><div class="icon ${cls}">${icon}</div><div><div class="nm">${d.n} <span class="lv">${level}</span>${explainButtonHTML(ex)}</div>${ds}${body}${explainPanelHTML(ex)}</div><div class="act">${action}</div></div>`;
+  return `<div class="item"><div class="icon ${cls}">${icon}</div><div><div class="nm">${d.n} <span class="lv">${level}</span>${explainButtonHTML(ex)}</div>${ds}${body}</div><div class="act">${action}</div></div>`;
 }
 
 // ----- frozen: src/client/views/economy.ts before #118 -----

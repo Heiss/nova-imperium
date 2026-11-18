@@ -7,7 +7,9 @@
   // production(), as energyShort() does, not with prod(). A second one
   // (#202, 2026-11-17): a running demolition reads „Rückbau“ instead of
   // „Ausbau“, and a building with a level on a planet with a free build
-  // queue offers „Zurückbauen“. Do not change it otherwise.
+  // queue offers „Zurückbauen“. And one of #285 (B2): the „?“ opens the
+  // Lexicanum, so no text unfolds below the entry and the „?“ shows in
+  // every mode but „Ausblenden“. Do not change it otherwise.
   import type { Readable } from 'svelte/store';
   import { BUILD, buildable } from '../../core/catalog.ts';
   import {
@@ -22,7 +24,7 @@
   import { fieldsFull } from '../../core/fields.ts';
   import { energyNeed, energyShort } from '../../core/research.ts';
   import { text } from '../../core/text.ts';
-  import { explanation, paragraphs } from '../../client/logic/explain.ts';
+  import { explanation } from '../../client/logic/explain.ts';
   import { fieldsLine } from '../../client/logic/fields.ts';
   import { iconURL } from '../../client/logic/icons.ts';
   import { dur, fmt } from '../../client/logic/format.ts';
@@ -83,14 +85,14 @@
         <div class="nm">
           {t.n}
           <span class="lv">{level ? `(Stufe ${level})` : ''}</span
-          >{#if ex?.toggle}<button
+          >{#if ex}<button
               type="button"
               class="exq"
               id={ex.button}
               data-act="explain"
               data-k={key}
               aria-expanded={ex.open}
-              aria-controls={ex.panel}
+              aria-controls={ex.open ? ex.panel : undefined}
               aria-label={`Erklärung zu ${t.n}`}>?</button
             >{/if}
         </div>
@@ -111,11 +113,6 @@
         {/each}
         <div class="dim">Bauzeit: {dur(buildTime(cost, P, s.cfg))}</div>
         {@html requirementsHTML($viewState, def.req)}
-        {#if ex}
-          <div class="ex" id={ex.panel} hidden={!ex.open}>
-            {#each paragraphs(ex.text) as text, i (i)}<p>{text}</p>{/each}
-          </div>
-        {/if}
       </div>
       <div class="act">
         {#if status === 'running' && P.bq}
