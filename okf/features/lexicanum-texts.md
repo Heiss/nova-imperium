@@ -19,7 +19,7 @@ code and here in the same pull request.
 * **[E]** What is drafted (owner, 2026-11-17): the words before the
   formulas for the articles without a source (Kogitator-Doktrin, the three
   drives, weapons, shields and armour, Sternennetz der Gelehrten,
-  Auspex-Phalanx, Mondzitadelle, the stores, the producers), a short text
+  Auspex-Phalanx, Mondzitadelle, Warp-Tor, the stores, the producers), a short text
   per mission (what happens on arrival), and keywords in everyday words for
   every article.
 * **[V]** The texts are shown as the player reads them. Every number in
@@ -57,7 +57,9 @@ code and here in the same pull request.
   of the speed, hence „etwa das vierfache Tempo“ for half the time), the
   battle researches `TECH_BONUS` and `techFactor`, `fleetSlots`,
   `networkLab`, `phalanxRange`, `inPhalanxRange` and `SCAN_COST`,
-  `MOON_FIELDS`, `maxFields` and `usedFields`.
+  `MOON_FIELDS`, `maxFields` and `usedFields`, the Warp-Tor `gateCooldown` and
+  `gateCooldownMs` (the minutes of the table divided by the universe speed,
+  [Moons](/features/moons.md)).
 * **[V]** The missions: the rules and `arrive.server.ts` of each mission
   folder, `arrive` in `src/server/game/arrival.ts` (a target that no longer
   fits turns the fleet back with what it carries), `plunder` (up to half of
@@ -143,6 +145,11 @@ code and here in the same pull request.
 
 * **[V]** Prose: „Die Reichweite wächst im Quadrat: Stufe 1 erfasst nur das eigene System, Stufe 3 reicht 8 Systeme in jede Richtung, Stufe 5 schon 24. Jede Stufe bringt also mehr dazu als die davor. Gezählt wird nur in der eigenen Galaxie und nicht über ihr Ende hinaus. Ein Scan kostet auf jeder Stufe gleich viel: 5.000 Promethium.“
 * **[V]** Keywords: Mond, scannen, Radar, beobachten
+
+### Warp-Tor (`jumpgate`)
+
+* **[V]** Prose: „Die Wartezeit nach einem Sprung hängt von der Stufe des Starttors ab und sinkt, aber nicht gleichmäßig: Stufe 1 wartet 60 Minuten, Stufe 5 36, Stufe 10 nur 17. Ab Stufe 15 wird sie nicht mehr kürzer. Diese Minuten teilt das Universum durch seine Geschwindigkeit, ein schnelleres kühlt die Tore also schneller ab; die Tabelle zeigt die Zeit in deinem Universum. Beide Tore warten gleich lang, und zwar nach dem Starttor – die Stufe des Zieltors ändert nichts daran. Der Sprung selbst geschieht sofort und kostet keinen Treibstoff; nur Schiffe springen, die Rohstoffe bleiben zurück.“
+* **[V]** Keywords: Tor, springen, Teleport, Flotte, Mond
 
 ## Forschung
 

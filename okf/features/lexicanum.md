@@ -84,7 +84,9 @@ their own.
   needed by lead, danger, „Dein Stand“), Kogitator-Doktrin (fleet slots),
   the three drives (speed bonus), Waffensegnung, Refraktionsfelder and
   Adamant-Panzerung (bonus in battle), Sternennetz der Gelehrten (linked
-  Scholarien), Auspex-Phalanx (range), Mondzitadelle (fields). Stores get
+  Scholarien), Auspex-Phalanx (range), Mondzitadelle (fields), Warp-Tor (cooldown by the
+  level of the starting gate, divided by the universe speed; its table is a
+  computed block, #230, #293). Stores get
   their capacity and producers their rate per level from their components
   (`storage`, `produces`); their files hold the words before it. The
   shared texts are built in `src/core/lexicon/parts.ts`: `drivePart`,
@@ -137,7 +139,7 @@ their own.
 * **[V]** The words before the formulas, drafted by Claude (2026-11-17):
   Kogitator-Doktrin, the three drives, Waffensegnung, Refraktionsfelder
   and Adamant-Panzerung, Sternennetz der Gelehrten, Auspex-Phalanx,
-  Mondzitadelle, the three stores, and the producers Adamant-Tiefbohrung,
+  Mondzitadelle, Warp-Tor, the three stores, and the producers Adamant-Tiefbohrung,
   Psikristall-Steinbruch, Promethium-Raffinerie, Sonnenkathedrale and
   Fusionssanktum. First how it scales, in the style of the Auspex-Lehre;
   every number is a value from the rules.
