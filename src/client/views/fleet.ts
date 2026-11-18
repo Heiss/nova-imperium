@@ -1,6 +1,9 @@
 import { SHIPS, canFly } from '../../core/catalog.ts';
+import { expeditionSlots } from '../../core/expedition.ts';
 import { fleetSlots, shipSpeed } from '../../core/flight.ts';
 import { FLEET_MISSIONS, isFleet, MISSION } from '../../core/missions.ts';
+import { maxPosition } from '../logic/fleet-target.ts';
+import { maxStay, staysAt } from '../logic/game.ts';
 import { jumpPanel } from '../logic/jump-gate.ts';
 import { moonAt } from '../logic/moon.ts';
 import { text } from '../../core/text.ts';
@@ -66,8 +69,9 @@ function targetForm(v: V, slotsFull: boolean): string {
     .map((x) => `<option value="${x}">${x * 10} %</option>`)
     .join('');
   return `<table class="kv">
-  <tr><td>Ziel</td><td><input class="c3" type="number" id="t_g" value="${t.g}" min="1" max="${u.galaxies}" aria-label="Galaxie">:<input class="c3" type="number" id="t_s" value="${t.s}" min="1" max="${u.systems}" aria-label="System">:<input class="c3" type="number" id="t_p" value="${t.p}" min="1" max="${u.positions}" aria-label="Position"> ${kinds} <span id="t_info" class="dim"></span></td></tr>
+  <tr><td>Ziel</td><td><input class="c3" type="number" id="t_g" value="${t.g}" min="1" max="${u.galaxies}" aria-label="Galaxie">:<input class="c3" type="number" id="t_s" value="${t.s}" min="1" max="${u.systems}" aria-label="System">:<input class="c3" type="number" id="t_p" value="${t.p}" min="1" max="${maxPosition(s)}" aria-label="Position"> ${kinds} <span id="t_info" class="dim"></span></td></tr>
   <tr><td>Auftrag</td><td><select id="t_m" aria-label="Auftrag">${missions}</select></td></tr>
+  <tr id="t_hold"${staysAt(ui.fm ?? FLEET_MISSIONS[0]!) ? '' : ' hidden'}><td>Haltezeit</td><td><input class="c3" type="number" id="t_h" min="1" max="${Math.max(1, maxStay(ui.fm ?? FLEET_MISSIONS[0]!, v.R.research))}" value="1" aria-label="Haltezeit in Stunden"> Stunden am Ziel</td></tr>
   <tr><td>Geschwindigkeit</td><td><select id="t_v" aria-label="Geschwindigkeit">${speeds}</select></td></tr>
   <tr><td>Ladung (Adamant / Psikristall / Promethium)</td><td>${cargoFields} <span class="lnk" data-act="cmax">alles (gleichmäßig)</span></td></tr>
   <tr><td>Entfernung</td><td id="i_dist">-</td></tr><tr><td>Flugdauer (eine Richtung)</td><td id="i_dur">-</td></tr>
@@ -99,6 +103,19 @@ function jumpBox(v: V): string {
   );
 }
 
+/**
+ * „ · Expeditionen (n / m)“ once the research is there (#93): the own fleets
+ * of a mission that stays against the slots the level allows.
+ */
+function expeditionTitle(v: V): string {
+  const level = maxStay(FLEET_MISSIONS.find(staysAt) ?? '', v.R.research);
+  if (level < 1) return '';
+  const used = v.s.fleets.filter(
+    (f) => f.owner === v.s.me.id && staysAt(f.mission),
+  ).length;
+  return ` · Expeditionen (${used} / ${expeditionSlots(level)})`;
+}
+
 export function fleet(v: V): string {
   const slots = fleetSlots(v.R);
   // The gift of the „Endzeit“ (#161) and missiles (#54) take no slot.
@@ -107,7 +124,7 @@ export function fleet(v: V): string {
   ).length;
   const rows = shipRows(v);
   const head = box(
-    `Flotten unterwegs (${used} / ${slots} Slots)`,
+    `Flotten unterwegs (${used} / ${slots} Slots)${expeditionTitle(v)}`,
     fleetTable(v),
   );
   if (!rows)

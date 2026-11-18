@@ -8,12 +8,15 @@ import {
   fleetPreview,
   galaxyStep,
   isProtected,
+  maxStay,
   nameOf,
   newestFirst,
   ranks,
   researchState,
   settingsFrom,
   sortFleets,
+  stayMs,
+  staysAt,
   unread,
 } from './game.ts';
 import type { ClientFleet, Report } from './types.ts';
@@ -160,6 +163,38 @@ describe('fleet form', () => {
     pct: 10,
     cargo: { m: 1000, c: 0, d: 50 },
   };
+  it('knows which mission stays at its target and for how long (#93)', () => {
+    expect(staysAt('expedition')).toBe(true);
+    for (const m of ['attack', 'transport', 'harvest', 'colonize', 'nope', ''])
+      expect(staysAt(m), m).toBe(false);
+    const hours = (mission: string, hold?: number) =>
+      stayMs({ mission, ...(hold === undefined ? {} : { hold }) });
+    expect(hours('expedition', 3)).toBe(3 * 3_600_000);
+    expect(hours('expedition', 1)).toBe(3_600_000);
+    // An hour when the form gives none, nothing for a mission that does not stay.
+    expect(hours('expedition')).toBe(3_600_000);
+    expect(hours('transport', 3)).toBe(0);
+    expect(maxStay('expedition', { expo: 5 })).toBe(5);
+    expect(maxStay('expedition', {})).toBe(0);
+    expect(maxStay('transport', { expo: 5 })).toBe(0);
+    expect(maxStay('nope', { expo: 5 })).toBe(0);
+  });
+  it('adds the stay of an expedition to the preview', () => {
+    const exp = { ...form, mission: 'expedition', hold: 3 };
+    const pv = fleetPreview(p, { research: {}, rq: null }, exp, U)!;
+    expect(pv.stay).toBe(3 * 3_600_000);
+    expect(pv.ms).toBe(
+      fleetPreview(p, { research: {}, rq: null }, form, U)!.ms,
+    );
+    expect(
+      fleetPreview(
+        p,
+        { research: {}, rq: null },
+        { ...exp, mission: 'transport' },
+        U,
+      )!.stay,
+    ).toBe(0);
+  });
   it('previews distance, time, fuel and cargo', () => {
     expect(
       fleetPreview(p, { research: {}, rq: null }, { ...form, ships: {} }, U),
@@ -167,6 +202,7 @@ describe('fleet form', () => {
     expect(fleetPreview(p, { research: {}, rq: null }, form, U)).toEqual({
       dist: 1020,
       ms: Math.round(((3500 * Math.sqrt(10200 / 5000) + 10) / 5) * 1000),
+      stay: 0,
       fuel: 3,
       cap: 10000,
       load: 1050,

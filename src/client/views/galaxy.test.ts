@@ -175,8 +175,8 @@ describe('moons on the Sternenkarte (#53)', () => {
     expect(row(html, 6)).toContain('data-id="m1_2_6" aria-expanded="false"');
     expect(row(html, 7)).not.toContain('gmoon');
     expect(html).not.toContain('moon-row');
-    // A row per position and the header.
-    expect(rows(html)).toHaveLength(16);
+    // A row per position, the row of the expedition position (#93) and the header.
+    expect(rows(html)).toHaveLength(17);
   });
 
   it('opens the actions of a foreign moon below its planet', () => {
@@ -196,7 +196,7 @@ describe('moons on the Sternenkarte (#53)', () => {
     );
     expect(moonRow).toContain('data-m="transport"');
     expect(moonRow).not.toContain('data-m="deploy"');
-    expect(rows(html)).toHaveLength(17);
+    expect(rows(html)).toHaveLength(18);
     // The planet keeps its own actions, without the moon.
     expect(row(html, 6)).not.toContain('data-k="moon"');
   });

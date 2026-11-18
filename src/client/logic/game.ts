@@ -14,6 +14,7 @@ import {
   flightMs,
   fuelFor,
 } from '../../core/flight.ts';
+import { missionRules } from '../../core/missions.ts';
 import { isProtected as protects } from '../../core/protection.ts';
 import type {
   Coords,
@@ -85,11 +86,28 @@ export interface FleetForm {
   mission: string;
   pct: number;
   cargo: Resources;
+  /** The hours an expedition stays at its position (#93); only read by a mission that stays, an hour when missing. */
+  hold?: number;
 }
+
+/** Whether the mission stays at its target for hours the player chooses (#93). */
+export const staysAt = (mission: string): boolean =>
+  missionRules(mission)?.maxHold !== undefined;
+
+/** The stay in milliseconds the form asks for: its hours for a mission that stays, else none. */
+export const stayMs = (f: Pick<FleetForm, 'mission' | 'hold'>): number =>
+  staysAt(f.mission) ? (f.hold ?? 1) * 3_600_000 : 0;
+
+/** The most hours of the stay, from the research; none for a mission that does not stay. */
+export const maxStay = (mission: string, research: Levels): number =>
+  missionRules(mission)?.maxHold?.(research) ?? 0;
 
 export interface FleetPreview {
   dist: number;
+  /** One way, in milliseconds. */
   ms: number;
+  /** The stay at the target in milliseconds, 0 for a mission that does not stay (#93). */
+  stay: number;
   fuel: number;
   cap: number;
   load: number;
@@ -111,6 +129,7 @@ export function fleetPreview(
   return {
     dist,
     ms: flightMs(dist, fleetSpeed(f.ships, r), f.pct, u),
+    stay: stayMs(f),
     fuel,
     cap,
     load,

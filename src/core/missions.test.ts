@@ -597,10 +597,10 @@ describe('the expedition position (#93)', () => {
   const there: SendTarget = { ...nothing, expedition: true };
 
   it('suits an empty place only, never a planet', () => {
-    const planet = { id: 'p2', owner: 'a' };
+    const planet = { owner: 'a' };
     expect(suits('expedition', 'a', null)).toBe(true);
     expect(suits('expedition', 'a', planet)).toBe(false);
-    expect(suits('expedition', 'a', { id: 'p3', owner: 'b' })).toBe(false);
+    expect(suits('expedition', 'a', { owner: 'b' })).toBe(false);
     // Whatever lies there, a Trümmerfeld does not make it a planet.
     expect(suits('expedition', 'a', null, true)).toBe(true);
   });

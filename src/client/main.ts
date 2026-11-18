@@ -4,7 +4,6 @@
 // file is run by the E2E suite.
 import { flushSync } from 'svelte';
 import { missionRules } from '../core/missions.ts';
-import { placeId } from '../core/place.ts';
 import { settle, settleR } from '../core/settle.ts';
 import { text } from '../core/text.ts';
 import type { Levels, Planet, Queue } from '../core/types.ts';
@@ -13,9 +12,9 @@ import { createAct, placeOf, samePlace } from './logic/act.ts';
 import { LEXICANUM_VIEW, viewUrl } from './logic/address.ts';
 import { CATALOG_VIEWS, catalogKind, orderNote } from './logic/catalog-list.ts';
 import { clearsChat, sameSignIn } from './logic/guild-chat.ts';
-import { debrisAt, debrisTip } from './logic/debris.ts';
 import { endzeitNote } from './logic/endzeit.ts';
-import { moonAt, moonTarget } from './logic/moon.ts';
+import { moonAt } from './logic/moon.ts';
+import { maxPosition, targetInfo } from './logic/fleet-target.ts';
 import { scanOf } from './logic/phalanx.ts';
 import { targetOf } from './logic/galaxy.ts';
 import { clampInt, coords, dt, dur, esc, fmt } from './logic/format.ts';
@@ -31,8 +30,8 @@ import {
 import {
   fleetPreview,
   galaxyStep,
-  nameOf,
   settingsFrom,
+  staysAt,
   type FleetForm,
 } from './logic/game.ts';
 import { headerLine } from './logic/header.ts';
@@ -903,11 +902,12 @@ function readFleetForm(): FleetForm {
     to: {
       g: clampInt(val('#t_g'), 1, u.galaxies),
       s: clampInt(val('#t_s'), 1, u.systems),
-      p: clampInt(val('#t_p'), 1, u.positions),
+      p: clampInt(val('#t_p'), 1, maxPosition(client.game!)),
       // The planet or its moon (#53).
       kind: val('#t_k') === 'moon' ? 'moon' : 'planet',
     },
     mission: val('#t_m'),
+    hold: clampInt(val('#t_h'), 1, 1e6),
     pct: clampInt(val('#t_v'), 1, 10),
     cargo: {
       m: clampInt(val('#c_m'), 0, 1e15),
@@ -915,29 +915,6 @@ function readFleetForm(): FleetForm {
       d: clampInt(val('#c_d'), 0, 1e15),
     },
   };
-}
-
-/**
- * Beside the target: its planet and owner, a free position, or none; for a
- * Bergung the Trümmerfeld there, or none (#45).
- */
-function targetInfo(s: GameState, f: FleetForm): string {
-  if (missionRules(f.mission)?.target === 'debris') {
-    const field = debrisAt(s.debris, f.to);
-    return field
-      ? debrisTip(field)
-      : '<span class="bad">kein Trümmerfeld</span>';
-  }
-  if (f.to.kind === 'moon')
-    return moonTarget(moonAt(s.galaxy, f.to), (id) => nameOf(s.players, id));
-  const target = s.galaxy.find(
-    (p) => p.id === placeId({ ...f.to, kind: 'planet' }),
-  );
-  if (target)
-    return `${esc(target.name)} (${esc(nameOf(s.players, target.owner))})`;
-  return missionRules(f.mission)?.target === 'free'
-    ? 'Freie Position'
-    : '<span class="bad">kein Planet</span>';
 }
 
 /** The return time, or none for a mission that stays at its target (deploy, #129). */
@@ -958,6 +935,7 @@ function fleetCalc(): void {
   if (!$('#t_g') || !client.view || !client.game) return;
   moonOption(client.game);
   const f = readFleetForm();
+  $('#t_hold')!.hidden = !staysAt(f.mission);
   $('#t_info')!.innerHTML = targetInfo(client.game, f);
   const pv = fleetPreview(client.view.P, client.view.R, f, client.game.cfg);
   const set = (id: string, html: string): void =>
@@ -969,7 +947,8 @@ function fleetCalc(): void {
   const now = client.now();
   set('i_dist', fmt(pv.dist));
   set('i_dur', dur(pv.ms));
-  set('i_arr', `${dt(now + pv.ms)} / ${returnAt(f.mission, now + 2 * pv.ms)}`);
+  const out = now + pv.ms + pv.stay;
+  set('i_arr', `${dt(out)} / ${returnAt(f.mission, out + pv.ms)}`);
   set(
     'i_fuel',
     `<span class="${pv.fuelShort ? 'bad' : ''}">${fmt(pv.fuel)}</span> Promethium`,

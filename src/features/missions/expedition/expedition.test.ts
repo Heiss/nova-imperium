@@ -12,12 +12,7 @@ import {
   flightMs,
   fuelFor,
 } from '../../../core/flight.ts';
-import {
-  type Event,
-  raidFleet,
-  raiderTech,
-  stayOf,
-} from '../../../core/expedition.ts';
+import { raidFleet, raiderTech, stayOf } from '../../../core/expedition.ts';
 import { MISSION, sendError } from '../../../core/missions.ts';
 import { seeded } from '../../../test/fixtures.ts';
 import type { Coords, Fleet, Levels } from '../../../core/types.ts';
@@ -260,7 +255,11 @@ describe('sending an expedition', () => {
   });
 
   it('needs the research', () => {
-    for (const research of [{}, { expo: 0 }, { spy: 4, impulse: 3 }]) {
+    for (const research of [
+      {},
+      { expo: 0 },
+      { spy: 4, impulse: 3 },
+    ] as Levels[]) {
       const { ctx, anna } = world();
       ctx.players.save({ ...anna, research });
       expect(() => go(ctx)).toThrow(
