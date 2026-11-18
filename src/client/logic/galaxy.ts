@@ -240,8 +240,9 @@ function galaxyRow(v: V, p: number, rk: Record<string, number>): GalaxyRow {
       planet: null,
       marks,
       actions: [
-        ...(free.colonize ? colonize(v, c) : []),
-        ...survey(v, c),
+        // A locked position offers neither the Landnahme nor the
+        // Vermessen (owner, 2026-11-18, #190); the Bergung stays.
+        ...(free.colonize ? [...colonize(v, c), ...survey(v, c)] : []),
         ...harvest,
       ],
       note: free.note,

@@ -165,6 +165,24 @@ describe('a free position', () => {
     expect(rowAt(v, 9).note).toBe('–');
   });
 
+  it('offers no „Vermessen“ at a locked position either, but still the Bergung (#190, #224; owner, 2026-11-18)', () => {
+    const v = view({
+      P: { ships: { colony: 1, probe: 3 } },
+      research: { carto: 1 },
+      debris: [field(9)],
+    });
+    const names = (p: number) =>
+      rowAt(v, p).actions.map((a) => ('label' in a ? a.label : a.kind));
+    v.s.locks = [{ g: 1, s: 2, p: 9, until: v.now + 60_000 }];
+    expect(names(9)).toEqual(['html']);
+    // The lock ended: both buttons are back, the Bergung after them.
+    v.s.locks = [{ g: 1, s: 2, p: 9, until: v.now }];
+    expect(names(9)).toEqual(['Landnahme', 'Vermessen', 'html']);
+    // Another position keeps its buttons while 9 is locked.
+    v.s.locks = [{ g: 1, s: 2, p: 9, until: v.now + 60_000 }];
+    expect(names(8)).toEqual(['Landnahme', 'Vermessen']);
+  });
+
   it('offers the Landnahme with a colony ship on the shown planet', () => {
     expect(rowAt(view({ P: { ships: { colony: 1 } } }), 9).actions).toEqual([
       {

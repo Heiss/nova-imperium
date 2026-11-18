@@ -109,9 +109,9 @@ extension of this game.
   survey), the owner gets the report „Vermessungsbericht [g:s:p]“ **[E]**
   (push topic `fleet`) and the probes fly back. The level is the one at the arrival (`settleR`).
 * `createPlanet` uses the stored values of the position and deletes them.
-  **[V]** This also applies to a new home planet placed on a surveyed
-  position: its temperature is the stored one, its diameter stays the one
-  of a home planet. A position without a survey draws as before.
+  **[E]** This also applies to a new home planet placed on a surveyed
+  position (owner, 2026-11-18): its temperature is the stored one, its
+  diameter stays the one of a home planet. A position without a survey draws as before.
 * D1 cleanup: `purgeSurveys` (`src/server/game/surveys.ts`) runs in the
   hourly sweep beside the audit retention and deletes the surveys older than
   30 days with every survey report that names them (`reports.deleteSurveys`).
@@ -133,8 +133,9 @@ extension of this game.
     `middle`, `outer`, which also names the temperature) and `size`
     (`small`, `medium`, `large`); the browser words them (`ORBIT`, `SIZE`).
     **[V]** Taken as recommended:
-    * the size is guessed from the average fields of the position (D5:
-      what the position lets one guess), not from the planet's own fields;
+    * **[E]** (owner, 2026-11-18) the size is guessed from the average
+      fields of the position (D5: what the position lets one guess), not
+      from the planet's own fields, so position 9 is „mittelgroß“;
     * each third holds its lower end: „klein“ below 148, „mittelgroß“ from
       148 below 200, „groß“ from 200 (positions 1–3 and 13–15 klein, 4–6
       and 9–12 mittelgroß, 7 and 8 groß);
@@ -201,11 +202,13 @@ extension of this game.
 
 * The star map does not mark surveyed positions yet (#160), and the field
   properties come with #158.
-* **[U]** A position locked after an abandonment (#224) is refused for the
-  Vermessung like for the Landnahme, because the mission's target kind is
-  `free`: at the send with „Diese Position ist gesperrt. Wieder besiedelbar
-  ab …“ (`positionLockedText`), at the arrival the fleet turns back with the
-  notice „Flotte kehrt um“, no values stored and no report. The Sternenkarte
-  still shows „Vermessen“ there. Whether a locked position may be surveyed
-  is not decided (a test pins today's behaviour in
-  `src/features/missions/survey/survey.test.ts`).
+* **[E]** A position locked after an abandonment (#224) cannot be
+  surveyed (owner, 2026-11-18, „Geklärt“ on #190): the Vermessung is refused
+  like the Landnahme, because the mission's target kind is `free`: at the
+  send with „Diese Position ist gesperrt. Wieder besiedelbar ab …“
+  (`positionLockedText`), at the arrival the fleet turns back with the
+  notice „Flotte kehrt um“, no values stored and no report (a test pins it
+  in `src/features/missions/survey/survey.test.ts`). The Sternenkarte hides
+  „Vermessen“ there under the same condition as „Landnahme“
+  (`galaxyRow` in `src/client/logic/galaxy.ts`); the Bergung button of a
+  Trümmerfeld at that position stays.
