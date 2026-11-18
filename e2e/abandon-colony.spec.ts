@@ -52,9 +52,12 @@ async function abandonFlow(page: Page): Promise<void> {
   const home = await here(page);
   const first = (await page.locator('#pinfo').innerText()).trim();
   const homeName = /^(.*?) \[/.exec(first)?.[1] ?? 'Heimatplanet';
-  // The colony lies in another system of the home galaxy, slot 15; the home
-  // planet gets a Kolonistenarche for the colonization at the end.
-  const at = { g: home.g, s: home.s === 1 ? 2 : home.s - 1, p: 15 };
+  // The colony lies in another system of the home galaxy, on slot 1, which
+  // no other test uses: homes lie on 4 to 12, and the colonies of the other
+  // tests on 15, 14, 13, 9 and 3 have flights of their players, which
+  // refuse the give-up for every player while they fly. The home planet gets
+  // a Kolonistenarche for the colonization at the end.
+  const at = { g: home.g, s: home.s === 1 ? 2 : home.s - 1, p: 1 };
   const position = `[${at.g}:${at.s}:${at.p}]`;
   seed({
     name: player,
