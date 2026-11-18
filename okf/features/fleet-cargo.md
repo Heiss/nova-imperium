@@ -49,8 +49,8 @@ Psikristall, then Promethium without the fuel, up to the capacity
   `loadable`) and `cargoOne`, pure functions with unit tests in
   `game.test.ts`.
 * `src/client/views/fleet.ts` renders the fields with their buttons
-  (`data-act="cone"`, `data-k`), `src/client/main.ts` fills the field and
-  updates the preview; the class `.cargo` in `style.css` puts each button
+  (`data-act="cone"`, `data-k`), `src/client/fleet-acts.ts` fills the field
+  and updates the preview (out of `main.ts`, ratchet #242); the class `.cargo` in `style.css` puts each button
   under its field.
 * E2E in `e2e/fleet-cargo.spec.ts` (desktop and phone, axe on the form);
   the fleet-form flow of `e2e/flows.spec.ts` uses the even fill.

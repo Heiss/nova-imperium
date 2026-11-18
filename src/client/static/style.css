@@ -768,6 +768,10 @@ textarea:focus-visible {
   border-color: var(--gold);
 }
 /* The panel of a scan of the Auspex-Phalanx (#53) on the Sternenkarte. */
+/* The Warp-Tor in the fleet view (#230): a long „Zielmond“ stays inside a phone. */
+.jump-to {
+  max-width: 100%;
+}
 .scan-panel {
   border-top: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
