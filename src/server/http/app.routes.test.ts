@@ -90,6 +90,42 @@ describe('rate limit', () => {
       });
     }
   });
+
+  it('guards the actions that take the password, not the others (#224)', async () => {
+    const { ctx, call } = await player({ cfg: { rateLimitAttempts: 1 } });
+    await call('POST', '/api/login', { name: 'Anna', password: 'secret1' });
+    addPlanet(ctx, 'u_Anna', { p: 7, created: 1 });
+    const abandon = () =>
+      call('POST', '/api/action', {
+        type: 'abandon',
+        target: 'p1_1_7',
+        password: 'secret1',
+      });
+    expect((await abandon()).json).toEqual({
+      error: 'Zu viele Versuche – bitte später nochmal.',
+    });
+    expect(ctx.planets.get('p1_1_7')).not.toBeNull();
+    const rename = await call('POST', '/api/action', {
+      type: 'rename',
+      name: 'X',
+    });
+    expect(rename.json).toMatchObject({ ok: true });
+  });
+
+  it('guards a password action whose type is not a string (#224)', async () => {
+    const { ctx, call } = await player({ cfg: { rateLimitAttempts: 1 } });
+    await call('POST', '/api/login', { name: 'Anna', password: 'secret1' });
+    addPlanet(ctx, 'u_Anna', { p: 7, created: 1 });
+    const out = await call('POST', '/api/action', {
+      type: ['abandon'],
+      target: 'p1_1_7',
+      password: 'secret1',
+    });
+    expect(out.json).toEqual({
+      error: 'Zu viele Versuche – bitte später nochmal.',
+    });
+    expect(ctx.planets.get('p1_1_7')).not.toBeNull();
+  });
 });
 
 describe('mails', () => {
@@ -355,6 +391,43 @@ describe('player actions', () => {
       { action: 'rename', detail: '{"planet":"p1_1_7"}' },
     ]);
     expect(ctx.planets.get('p1_1_7')!.name).toBe('X');
+  });
+
+  it('audits a given-up colony without the password (#224)', async () => {
+    const { ctx, call } = await player();
+    await call('POST', '/api/login', { name: 'Anna', password: 'secret1' });
+    addPlanet(ctx, 'u_Anna', { p: 7, created: ctx.now() + 1 });
+    const wrong = await call('POST', '/api/action', {
+      type: 'abandon',
+      target: 'p1_1_7',
+      password: 'falsch',
+      planet: 'p1_1_7',
+    });
+    expect(wrong.json).toEqual({ error: 'Das bisherige Passwort ist falsch.' });
+    const done = await call('POST', '/api/action', {
+      type: 'abandon',
+      target: 'p1_1_7',
+      created: ctx.planets.get('p1_1_7')!.created,
+      password: 'secret1',
+      planet: 'p1_1_7',
+    });
+    // The state falls back to the main planet once the shown one is gone.
+    expect(done.json).toMatchObject({
+      msg: 'Die Kolonie Planet u_Anna [1:1:7] wurde aufgegeben.',
+      state: { planet: { id: 'p1_1_5' }, mainPlanet: 'p1_1_5' },
+    });
+    const rows = ctx.db
+      .prepare(
+        "SELECT outcome, detail FROM audit_events WHERE actor = 'u_Anna' AND action = 'abandon' ORDER BY id",
+      )
+      .all() as { outcome: string; detail: string }[];
+    expect(rows.map((r) => r.outcome)).toEqual(['rejected', 'ok']);
+    expect(JSON.parse(rows[1]!.detail)).toEqual({
+      planet: 'p1_1_7',
+      moon: null,
+      until: ctx.now() + 24 * 3_600_000,
+    });
+    for (const row of rows) expect(row.detail).not.toMatch(/secret1|falsch/);
   });
 
   it('marks activity: a login the main planet, an action or an interaction every own planet (#229)', async () => {

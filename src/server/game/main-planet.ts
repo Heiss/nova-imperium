@@ -4,7 +4,7 @@
 // planet of the research view; rewards, the Endzeit gift and the fields
 // stay with the first planet (`planets.home()`, owner, 2026-11-16, D1).
 // The rules are those of src/core/main-planet.ts (patterns, section 7).
-import type { RoundRules } from '../../core/achievements.ts';
+import type { RoundRules } from '../../core/round.ts';
 import {
   type Main,
   type MainPlanetError,

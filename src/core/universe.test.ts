@@ -32,6 +32,8 @@ describe('universe settings', () => {
       extraFields: 0,
       // Added by #161 (owner, 2026-11-14): the gift flies 4 h by default.
       endzeitMinutes: 240,
+      // Added by #224 (owner, 2026-11-16, D2): a given-up position 24 h.
+      roundAbandonLock: 24,
       // Added by #229 (owner, 2026-11-16, Q1): the classic thresholds.
       roundActivityRecent: 15,
       roundActivityMinutes: 59,
@@ -56,6 +58,7 @@ describe('universe settings', () => {
       ['startDeuterium', 'Start-Promethium'],
       ['extraFields', 'Zusatzfelder pro Planet'],
       ['endzeitMinutes', 'Flugzeit der Endzeit-Gabe (Minuten)'],
+      ['roundAbandonLock', 'Sperre einer aufgegebenen Position (Stunden)'],
       ['roundActivityRecent', 'Aktivität ohne Minutenangabe (Minuten)'],
       ['roundActivityMinutes', 'Aktivität mit Minutenangabe bis (Minuten)'],
       ['roundInactiveDays', 'Inaktiv ab (Tage)'],
@@ -111,6 +114,22 @@ describe('universe settings', () => {
         ['endzeitMinutes', 'range'],
       ]);
   });
+  it('take 1 to 720 hours as the lock of a given-up position (#224, X1)', () => {
+    expect(spec('roundAbandonLock')).toEqual({
+      key: 'roundAbandonLock',
+      label: 'Sperre einer aufgegebenen Position (Stunden)',
+      min: 1,
+      max: 720,
+      def: 24,
+    });
+    for (const roundAbandonLock of [1, 720])
+      expect(codes({ ...DEFAULT_UNIVERSE, roundAbandonLock })).toEqual([]);
+    for (const roundAbandonLock of [0, 721, 1.5])
+      expect(codes({ ...DEFAULT_UNIVERSE, roundAbandonLock })).toEqual([
+        ['roundAbandonLock', 'range'],
+      ]);
+  });
+
   it('take the ranges of the activity thresholds (#229, X1)', () => {
     for (const [key, min, max, def] of [
       ['roundActivityRecent', 1, 60, 15],

@@ -1,15 +1,18 @@
-import type { RoundRules } from '../../core/achievements.ts';
+import {
+  ROUND_SETTINGS,
+  type RoundRules,
+  type RoundSetting,
+  roundFieldId,
+} from '../../core/round.ts';
 import {
   GIFT_MINUTES,
   GIFT_RESOURCES,
   GIFT_SHIPS_EACH,
 } from '../../core/endzeit.ts';
-import { MAIN_LOCK_DAYS } from '../../core/main-planet.ts';
 import type { Universe } from '../../core/types.ts';
 import { ENDZEIT_NOTE } from '../logic/endzeit.ts';
 import { reportFormHTML } from '../logic/error-report.ts';
 import { explainOptionsHTML } from '../logic/explain.ts';
-import { ACTIVITY_INPUTS } from '../logic/activity.ts';
 import { mainPlanetHTML } from '../logic/main-planet.ts';
 import { pushKindsHTML, shownPushOff } from '../logic/push-options.ts';
 import { coords, esc, fmt } from '../logic/format.ts';
@@ -99,6 +102,18 @@ export const deleteAccountBox = (round: RoundRules): string =>
 export const deleteAccountDialog = (round: RoundRules): string =>
   `<form id="deleteaccountform"><p>Dein Konto und deine Spielstände werden unwiderruflich gelöscht.${guildNote(round, 'Eine von dir geleitete Gilde wird aufgelöst.')}</p><p><label for="delete-account-password">Passwort zur Bestätigung</label> <input id="delete-account-password" type="password" autocomplete="current-password" required></p><button class="red" type="submit">Account endgültig löschen</button> <button type="button" data-act="closeModal">Abbrechen</button></form>`;
 
+/** The options of a setting with named choices, the current one selected (#283). */
+const choiceOptions = (
+  choices: readonly { value: number; label: string }[],
+  current: number,
+): string =>
+  choices
+    .map(
+      (c) =>
+        `<option value="${c.value}"${c.value === current ? ' selected' : ''}>${esc(c.label)}</option>`,
+    )
+    .join('');
+
 function settingsForm(s: GameState, a: AdminState): string {
   const rows = a.specs
     .map((x) => {
@@ -106,7 +121,11 @@ function settingsForm(s: GameState, a: AdminState): string {
       const hint = x.size
         ? ' – nur vergrößern, solange dort Planeten liegen'
         : '';
-      return `<tr><td><label for="set_${x.key}">${esc(x.label)}</label></td><td><input type="number" id="set_${x.key}" data-setting="${x.key}" min="${x.min}" max="${x.max}" value="${value}" data-nokeep> <span class="dim">${fmt(x.min)} bis ${fmt(x.max)}${hint}</span></td></tr>`;
+      // A setting of the round with named choices is a selection (#283).
+      const field = x.choices
+        ? `<select id="set_${x.key}" data-setting="${x.key}" data-nokeep>${choiceOptions(x.choices, Number(value))}</select>`
+        : `<input type="number" id="set_${x.key}" data-setting="${x.key}" min="${x.min}" max="${x.max}" value="${value}" data-nokeep> <span class="dim">${fmt(x.min)} bis ${fmt(x.max)}${hint}</span>`;
+      return `<tr><td><label for="set_${x.key}">${esc(x.label)}</label></td><td>${field}</td></tr>`;
     })
     .join('');
   return `<table class="kv">${rows}</table><p class="dim">Änderungen wirken sofort. Laufende Bauaufträge und Flüge behalten ihre Endzeit.</p><button data-act="saveSettings">Einstellungen speichern</button>`;
@@ -119,24 +138,61 @@ function invitations(ui: Ui): string {
   return `<form id="inviteform" class="flex"><label for="inv_email">E-Mail-Adresse</label> <input id="inv_email" type="email" required autocomplete="off" data-nokeep> <button type="submit">Einladen</button></form>${link}<div id="admin-invitations"></div>`;
 }
 
-/** The thresholds of the activity markers for the new round (#229, X1), named as in the universe settings. */
-const activityInputs = (round: RoundRules): string =>
-  ACTIVITY_INPUTS.map(
-    ({ part, id, spec }) =>
-      `<p><label for="${id}">${esc(spec.label)}</label> <input type="number" id="${id}" min="${spec.min}" max="${spec.max}" step="1" value="${round.activity[part]}" required> <span class="dim">${spec.min} bis ${spec.max}</span></p>`,
-  ).join('');
+/** The field of one setting of the round (#283), preselected with `value`. */
+function roundField(s: RoundSetting, value: number | boolean): string {
+  const id = roundFieldId(s);
+  const label = esc(s.label);
+  if (s.kind === 'switch') {
+    const note = s.note ? ` aria-describedby="${id}-note"` : '';
+    return `<label><input type="checkbox" id="${id}"${note} ${value ? 'checked' : ''}> ${label}</label>`;
+  }
+  const field = s.choices
+    ? `<select id="${id}">${choiceOptions(s.choices, Number(value))}</select>`
+    : `<input type="number" id="${id}" min="${s.min}" max="${s.max}" step="1" value="${Number(value)}" required> <span class="dim">${s.min} bis ${s.max}</span>`;
+  return `<label for="${id}">${label}</label> ${field}`;
+}
 
-export function roundDialog(round: RoundRules): string {
+/** One setting as its own paragraph, with the note below a checkbox. */
+function roundRow(s: RoundSetting, value: number | boolean): string {
+  const note =
+    s.kind === 'switch' && s.note
+      ? `<br>\n  <span id="${roundFieldId(s)}-note">${esc(s.note)}</span>`
+      : '';
+  return `<p>${roundField(s, value)}${note}</p>`;
+}
+
+/**
+ * The rows of the dialog „Neue Runde“, one per setting of the registry
+ * (#283); the members of a group with a legend in one fieldset.
+ */
+function roundRows(
+  round: RoundRules,
+  settings: readonly RoundSetting[],
+): string[] {
+  const values = round as unknown as Record<string, number | boolean>;
+  const rows: string[] = [];
+  for (const [i, s] of settings.entries()) {
+    const legend = s.group?.legend;
+    if (!legend) rows.push(roundRow(s, values[s.name]!));
+    else if (settings[i - 1]?.group !== s.group) {
+      const members = settings
+        .filter((x) => x.group === s.group)
+        .map((x) => roundField(x, values[x.name]!));
+      rows.push(
+        `<fieldset><legend>${esc(legend)}</legend>\n    ${members.join('<br>\n    ')}\n  </fieldset>`,
+      );
+    }
+  }
+  return rows;
+}
+
+export function roundDialog(
+  round: RoundRules,
+  settings: readonly RoundSetting[] = ROUND_SETTINGS,
+): string {
   return `<p><b>Wirklich eine neue Runde starten?</b><br>
   Planeten, Flotten, Forschung, Nachrichten und Belohnungsfortschritt werden zurückgesetzt. Das kann nicht rückgängig gemacht werden.</p>
-  <fieldset><legend>Belohnungen für die neue Runde</legend>
-    <label><input type="checkbox" id="round-achievements" ${round.achievements ? 'checked' : ''}> Achievements aktivieren</label><br>
-    <label><input type="checkbox" id="round-daily" ${round.daily ? 'checked' : ''}> Tagesbelohnungen aktivieren</label>
-  </fieldset>
-  <p><label><input type="checkbox" id="round-guilds" aria-describedby="round-guilds-note" ${round.guilds ? 'checked' : ''}> Gilden (mit Chat)</label><br>
-  <span id="round-guilds-note">Eine neue Runde leert alle Gilden-Chats. Ohne Gilden werden alle Gilden mit Mitgliedern, Bewerbungen, Rängen und Chat gelöscht.</span></p>
-  <p><label for="round-main-lock">Sperre nach einem Wechsel des Hauptplaneten (Tage)</label> <input type="number" id="round-main-lock" min="${MAIN_LOCK_DAYS.min}" max="${MAIN_LOCK_DAYS.max}" step="1" value="${round.mainLock}" required> <span class="dim">${MAIN_LOCK_DAYS.min} bis ${MAIN_LOCK_DAYS.max}</span></p>
-  ${activityInputs(round)}
+  ${roundRows(round, settings).join('\n  ')}
   <p><button class="red" data-act="doReset">Ja, neue Runde</button> <button data-act="closeModal">Abbrechen</button></p>`;
 }
 

@@ -12,6 +12,7 @@ import {
 import { countUnits } from '../../../core/flight.ts';
 import { placeName } from '../../../core/moon.ts';
 import type { Fleet, Levels, Planet } from '../../../core/types.ts';
+import { activityLimits } from '../../../core/activity.ts';
 import { placeActivity } from '../../../server/game/activity.ts';
 import { type Ctx, addReport, coords } from '../../../server/game/context.ts';
 import {
@@ -111,7 +112,7 @@ export function onArrive(ctx: Ctx, f: Fleet, at: Arrival): void {
   // Only probes that survive deliver the report (D3; owner, 2026-11-17).
   const lost = fought !== null && !countUnits(fought.res.att);
   const counter = shownChance(chance);
-  const activity = placeActivity(ctx, t.id, f.arr, roundRules(ctx).activity);
+  const activity = placeActivity(ctx, t.id, f.arr, activityLimits(roundRules(ctx)));
   if (!lost)
     addReport(
       ctx,

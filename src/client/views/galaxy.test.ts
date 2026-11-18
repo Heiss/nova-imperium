@@ -4,7 +4,6 @@
 // of Svelte, as text without Svelte's comments.
 import { render } from 'svelte/server';
 import { describe, expect, it } from 'vitest';
-import { ACTIVITY_DEFAULT } from '../../core/activity.ts';
 import type { DebrisField } from '../../core/debris.ts';
 import type { Planet } from '../../core/types.ts';
 import { galaxyPage } from '../logic/galaxy.ts';
@@ -101,6 +100,27 @@ describe('Trümmerfelder on the Sternenkarte (#45)', () => {
     expect(row(html, 9)).toMatch(/Landnahme<\/button> · <button[^>]*>Bergung/);
     expect(row(html, 10)).toContain('Landnahme');
     expect(row(html, 10)).not.toContain('Bergung');
+  });
+
+  it('says until when a given-up position is locked and offers no Landnahme there (#224)', () => {
+    const v = view([field(9, 0, 300)], { colony: 1 });
+    const until = Date.UTC(2026, 10, 18, 12, 0);
+    v.s.locks = [
+      { g: 1, s: 2, p: 9, until },
+      { g: 1, s: 2, p: 11, until: 5 },
+    ];
+    v.now = 10;
+    const html = galaxy(v);
+    expect(row(html, 9)).toMatch(
+      /<span class="dim">gesperrt bis \d\d\.\d\d\.2026, \d\d:\d\d<\/span>/,
+    );
+    expect(row(html, 9)).not.toContain('Landnahme');
+    // The Bergung stays; an ended lock and other positions are free as before.
+    expect(row(html, 9)).toContain('Bergung');
+    for (const p of [10, 11]) {
+      expect(row(html, p)).toContain('<span class="dim">–</span>');
+      expect(row(html, p)).toContain('Landnahme');
+    }
   });
 
   it('shows neither symbol nor button without a field', () => {
@@ -319,7 +339,6 @@ describe('activity and inactivity on the Sternenkarte (#229)', () => {
   /** The Sternenkarte with Bert's planet and moon active and Bert's account in `inactive`. */
   function marked(inactive?: 'inactive' | 'long'): V {
     const v = view([]);
-    v.s.round = { activity: { ...ACTIVITY_DEFAULT, recent: 10 } } as never;
     v.s.galaxy[1]!.activity = { minutes: 42 };
     v.s.galaxy.push({
       id: 'm1_2_6',
@@ -343,9 +362,7 @@ describe('activity and inactivity on the Sternenkarte (#229)', () => {
     expect(row(html, 6)).toContain(
       'Beta <span class="dim">(Aktivität vor 42 Minuten)</span>',
     );
-    expect(html).toContain(
-      'Mond (Mond) <span class="dim">(Aktivität vor weniger als 10 Minuten)</span>',
-    );
+    expect(html).toContain('Mond (Mond) <span class="dim">(Aktiv)</span>');
     // Anna's planet shows no activity.
     expect(row(html, 5)).not.toContain('Aktivität');
   });

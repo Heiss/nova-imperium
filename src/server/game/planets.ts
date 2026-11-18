@@ -4,6 +4,7 @@
 import { colonyDiameter, HOME_DIAMETER } from '../../core/fields.ts';
 import { placeId } from '../../core/place.ts';
 import type { Coords, Planet, Resources } from '../../core/types.ts';
+import { lockedUntil } from './position-lock.ts';
 import { type Ctx, fail, universe } from './context.ts';
 
 const TRIES = 300;
@@ -41,8 +42,10 @@ export function placePlanet(
   gal: number,
 ): Planet {
   const used = new Set(ctx.planets.all().map((p) => p.id));
+  // A given-up position stays locked for new home planets too (#224, D2).
   const free = (c: Coords): boolean =>
-    !used.has(placeId({ ...c, kind: 'planet' }));
+    !used.has(placeId({ ...c, kind: 'planet' })) &&
+    lockedUntil(ctx, c, ctx.now()) === null;
   const c =
     randomSpot(ctx, gal, free) ??
     firstSpot(ctx, free) ??

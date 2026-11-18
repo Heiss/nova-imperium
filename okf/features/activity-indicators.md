@@ -72,12 +72,18 @@ and „Inaktivität“
   the player shows „Inaktiv“ after 7 days and „Lange inaktiv“ after 28
   days after the name and the rank, in brackets like the noob protection
   „(n)“. A moon shows its own activity in its row.
-* **[V]** Within the first 15 minutes (the star of classic) the planet
-  shows „Aktivität vor weniger als 15 Minuten“ with the round's threshold,
-  without the exact minutes; one minute reads „1 Minute“.
+* **[E]** Within the first threshold (15 minutes by default, the star of
+  classic) the planet shows only „Aktiv“; after it „Aktivität vor x
+  Minuten“ (owner, 2026-11-18, on pull request #295). **[V]** One minute
+  reads „1 Minute“.
 * **[V]** The server sends only the marker (`recent` or the whole minutes,
   `inactive` or `long`), never a time, and a planet or player without a
   marker gets none.
+* **[V]** The Sternenkarte is a Svelte component (#118): `galaxyPage()` in
+  `src/client/logic/galaxy.ts` gives each place the words of its activity
+  and of its owner's inactivity (`src/client/logic/activity.ts`), and
+  `Galaxy.svelte` shows them dim and in brackets. A free position keeps
+  its note, „–“ or the lock of a given-up colony (#224).
 * **[V]** A planet's activity goes with the planet: a new round, a
   destroyed or given-up place starts without one. The account's last
   activity stays across rounds.
@@ -86,12 +92,28 @@ and „Inaktivität“
 
 # Settings
 
-| Setting (label) | Default | Range [V] |
-|---|---|---|
-| „Aktivität ohne Minutenangabe (Minuten)“ | 15 | 1 to 60 |
-| „Aktivität mit Minutenangabe bis (Minuten)“ | 59 | 1 to 1,440 |
-| „Inaktiv ab (Tage)“ | 7 | 1 to 365 |
-| „Lange inaktiv ab (Tage)“ | 28 | 1 to 365 |
+| Setting (label) | Stored key | Default | Range [V] | Order |
+|---|---|---|---|---|
+| „Aktivität ohne Minutenangabe (Minuten)“ | `roundActivityRecent` | 15 | 1 to 60 | 60 |
+| „Aktivität mit Minutenangabe bis (Minuten)“ | `roundActivityMinutes` | 59 | 1 to 1,440 | 70 |
+| „Inaktiv ab (Tage)“ | `roundInactiveDays` | 7 | 1 to 365 | 80 |
+| „Lange inaktiv ab (Tage)“ | `roundLongInactiveDays` | 28 | 1 to 365 | 90 |
+
+* **[V]** Each threshold is one entry of the
+  [registry of the round settings](/features/admin.md#the-registry-of-the-round-settings-283)
+  (#283), defined in `src/core/activity.ts` and `live`: a number field of
+  the dialog „Neue Runde“ after the lock of a given-up position, and one
+  of the last rows of the universe settings, under the same stored key
+  (X1). `RoundRules` holds them as `activityRecent`, `activityMinutes`,
+  `inactiveDays` and `longInactiveDays`; `activityLimits()` reads the
+  thresholds of the rule from them.
+* **[E]** In the dialog „Neue Runde“ the four thresholds stand in one
+  framed group with the heading „Aktivität“, like the rewards; the field
+  labels stay (owner, 2026-11-18, on pull request #295).
+* **[V]** That is the group `activity` of the registry with the legend
+  „Aktivität“: the request „reset“ sends the four as one object, without
+  it the new round keeps the current thresholds, and an object that leaves
+  one out is refused for it, as the reward options are.
 
 * **[V]** The values are checked one by one, not against each other: a
   minute limit below the first threshold shows no minutes, a long-inactive

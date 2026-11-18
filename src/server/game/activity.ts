@@ -25,7 +25,7 @@ export function recordActivity(
 ): void {
   const now = ctx.now();
   const own = ctx.planets.ofOwner(u.id).map((p) => p.id);
-  const main = event === 'login' ? (mainPlanet(ctx, u)?.id ?? null) : null;
+  const main = mainPlanet(ctx, u)?.id ?? null;
   ctx.tx(() => {
     ctx.planets.markActive(activityPlaces(event, own, main), now);
     ctx.players.markActive(u.id, now);
@@ -49,15 +49,17 @@ export function planetActivities(
 /**
  * The public activity of one place at a time with the round's thresholds:
  * the activity in the Auspex-Bericht (#175 D5, Q3), the same rule as on the
- * Sternenkarte.
+ * Sternenkarte. Null for a place without a recorded activity.
  */
 export const placeActivity = (
   ctx: Ctx,
   id: string,
   at: number,
   limits: Readonly<ActivityLimits>,
-): PlanetActivity | null =>
-  planetActivity(ctx.planets.activeAt(id), at, limits);
+): PlanetActivity | null => {
+  const last = ctx.planets.activeAt(id);
+  return last === null ? null : planetActivity(last, at, limits);
+};
 
 /** The inactivity of every account that is inactive now. */
 export function inactivities(

@@ -13,6 +13,7 @@
 // recent activity for 15 minutes, then the minutes up to 59, nothing after
 // an hour (owiki „Stern“ and „Galaxiemenü“, oldid=77826); inactive after 7
 // days, long inactive after 28 days (owiki „Inaktivität“, oldid=78925).
+import type { RoundGroup, RoundSetting } from './round.ts';
 
 /** One minute and one day in milliseconds; activity runs in real time. */
 export const MINUTE_MS = 60_000;
@@ -50,56 +51,78 @@ export const ACTIVITY_RANGE: Readonly<
   longInactive: { min: 1, max: 365 },
 };
 
-/** The stored setting of each threshold, shared by the round and the universe settings (X1). */
-export const ACTIVITY_KEYS = {
-  recent: 'roundActivityRecent',
-  minutes: 'roundActivityMinutes',
-  inactive: 'roundInactiveDays',
-  longInactive: 'roundLongInactiveDays',
-} as const satisfies Record<LimitPart, string>;
+/**
+ * The thresholds in the dialog „Neue Runde“ and its request „reset“ (#283;
+ * owner, 2026-11-18): one fieldset with the legend „Aktivität“, like the
+ * rewards; sent as one object `activity` and refused together, every wrong
+ * threshold at once.
+ */
+const ACTIVITY_GROUP: RoundGroup = { name: 'activity', legend: 'Aktivität' };
 
-export const ACTIVITY_PARTS = Object.keys(ACTIVITY_KEYS) as LimitPart[];
-
-/** Whether `n` is a value the admin may set for the threshold `part`. */
-export const isActivityLimit = (part: LimitPart, n: unknown): n is number =>
-  Number.isInteger(n) &&
-  (n as number) >= ACTIVITY_RANGE[part].min &&
-  (n as number) <= ACTIVITY_RANGE[part].max;
-
-/** The thresholds as sent, one not sent taken from the current round. */
-function chosen(
-  current: Readonly<ActivityLimits>,
-  input: unknown,
-): Record<LimitPart, unknown> {
-  const sent = (
-    typeof input === 'object' && input !== null ? input : {}
-  ) as Partial<Record<LimitPart, unknown>>;
-  return Object.fromEntries(
-    ACTIVITY_PARTS.map((p) => [
-      p,
-      sent[p] === undefined ? current[p] : sent[p],
-    ]),
-  ) as Record<LimitPart, unknown>;
-}
+/** What the four thresholds share as settings of the round. */
+const limit = <P extends LimitPart>(part: P) =>
+  ({
+    kind: 'number',
+    group: ACTIVITY_GROUP,
+    min: ACTIVITY_RANGE[part].min,
+    max: ACTIVITY_RANGE[part].max,
+    def: ACTIVITY_DEFAULT[part],
+    live: true,
+  }) as const;
 
 /**
- * The thresholds of a new round that are no whole number of their range,
- * in the order of ACTIVITY_PARTS (#214, patterns, section 7); the server
- * words them.
+ * The thresholds as settings of the round (#283): number fields of the
+ * dialog „Neue Runde“ and, `live`, rows of the universe settings, changed
+ * during the round (X1); existing universes start with the classic values.
+ * Refused with the range wording of the universe settings.
  */
-export const activityLimitErrors = (
-  current: Readonly<ActivityLimits>,
-  input: unknown,
-): LimitPart[] => {
-  const choice = chosen(current, input);
-  return ACTIVITY_PARTS.filter((p) => !isActivityLimit(p, choice[p]));
-};
+export const ACTIVITY_RECENT_SETTING = {
+  ...limit('recent'),
+  key: 'roundActivityRecent',
+  name: 'activityRecent',
+  label: 'Aktivität ohne Minutenangabe (Minuten)',
+  order: 60,
+} as const satisfies RoundSetting;
 
-/** The thresholds of the new round, once `activityLimitErrors` refused none. */
-export const activityLimitsOf = (
-  current: Readonly<ActivityLimits>,
-  input: unknown,
-): ActivityLimits => chosen(current, input) as ActivityLimits;
+export const ACTIVITY_MINUTES_SETTING = {
+  ...limit('minutes'),
+  key: 'roundActivityMinutes',
+  name: 'activityMinutes',
+  label: 'Aktivität mit Minutenangabe bis (Minuten)',
+  order: 70,
+} as const satisfies RoundSetting;
+
+export const INACTIVE_DAYS_SETTING = {
+  ...limit('inactive'),
+  key: 'roundInactiveDays',
+  name: 'inactiveDays',
+  label: 'Inaktiv ab (Tage)',
+  order: 80,
+} as const satisfies RoundSetting;
+
+export const LONG_INACTIVE_DAYS_SETTING = {
+  ...limit('longInactive'),
+  key: 'roundLongInactiveDays',
+  name: 'longInactiveDays',
+  label: 'Lange inaktiv ab (Tage)',
+  order: 90,
+} as const satisfies RoundSetting;
+
+/** The four values of the round the thresholds are read from. */
+export interface ActivityRound {
+  activityRecent: number;
+  activityMinutes: number;
+  inactiveDays: number;
+  longInactiveDays: number;
+}
+
+/** The thresholds of a round, from its rules. */
+export const activityLimits = (round: ActivityRound): ActivityLimits => ({
+  recent: round.activityRecent,
+  minutes: round.activityMinutes,
+  inactive: round.inactiveDays,
+  longInactive: round.longInactiveDays,
+});
 
 /** The events of the classic list; only `login` and `action` set activity. */
 export type ActivityEvent =
@@ -128,17 +151,16 @@ export function activityPlaces(
 
 /**
  * The public activity of a planet or moon: `recent` within the first
- * minutes, then the whole minutes since the activity up to the limit;
- * nothing later or without any activity.
+ * minutes, then the whole minutes since the activity `at` up to the limit;
+ * nothing later. A place without any activity has no time and is not asked.
  */
 export type PlanetActivity = { recent: true } | { minutes: number };
 
 export function planetActivity(
-  at: number | null | undefined,
+  at: number,
   now: number,
   limits: Readonly<ActivityLimits>,
 ): PlanetActivity | null {
-  if (at === null || at === undefined) return null;
   const minutes = Math.floor(Math.max(0, now - at) / MINUTE_MS);
   if (minutes < limits.recent) return { recent: true };
   return minutes <= limits.minutes ? { minutes } : null;

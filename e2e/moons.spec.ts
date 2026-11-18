@@ -185,6 +185,7 @@ test.describe('moons (#53)', () => {
       /^Promethium-Zisterne/,
       /^Mondzitadelle/,
       /^Auspex-Phalanx/,
+      /^Warp-Tor/,
     ]);
     // By its name: the Auspex-Phalanx names the Mondzitadelle as its requirement.
     const citadel = page

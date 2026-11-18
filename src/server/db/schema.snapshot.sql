@@ -199,6 +199,11 @@ CREATE TABLE invitations (
     revoked_at INTEGER
   ) STRICT;
 
+CREATE TABLE jump_gates (
+      moon_id TEXT PRIMARY KEY REFERENCES planets(id) ON DELETE CASCADE,
+      ready INTEGER NOT NULL
+    ) STRICT;
+
 CREATE TABLE passkey_challenges (
     id TEXT PRIMARY KEY,
     challenge TEXT NOT NULL,
@@ -270,6 +275,14 @@ CREATE TABLE player_activity (
     active_ms INTEGER NOT NULL,
     PRIMARY KEY (player, day)
   ) STRICT;
+
+CREATE TABLE position_locks (
+      g INTEGER NOT NULL,
+      s INTEGER NOT NULL,
+      p INTEGER NOT NULL,
+      until INTEGER NOT NULL,
+      PRIMARY KEY (g, s, p)
+    ) STRICT;
 
 CREATE TABLE push_jobs (
     endpoint TEXT NOT NULL REFERENCES push_subscriptions(endpoint) ON DELETE CASCADE,
