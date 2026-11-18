@@ -9,7 +9,8 @@ import {
   subscribePush,
   testCtx,
 } from '../../../server/test-helpers.ts';
-import { counterChance, onArrive, spyScore } from './arrive.server.ts';
+import { counterChance, spyScore } from '../../../core/spy.ts';
+import { onArrive } from './arrive.server.ts';
 import * as rules from './rules.ts';
 import { canSend } from './rules.ts';
 
