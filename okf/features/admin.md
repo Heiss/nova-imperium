@@ -96,6 +96,7 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 | Activity with the minutes up to („Aktivität mit Minutenangabe bis (Minuten)“, #229) | 59 (not in version 1), [E] owner 2026-11-16 | 1 to 1,440 [V]; also in „Neue Runde“ (X1) |
 | Inactive from („Inaktiv ab (Tage)“, #229) | 7 (not in version 1), [E] owner 2026-11-16 | 1 to 365 [V]; also in „Neue Runde“ (X1) |
 | Long inactive from („Lange inaktiv ab (Tage)“, #229) | 28 (not in version 1), [E] owner 2026-11-16 | 1 to 365 [V]; also in „Neue Runde“ (X1) |
+| Marketplace („Marktplatz“, #171): ten live settings in one fieldset „Marktplatz“, orders 320 to 410: on (1/0), six ratios per pair, price step, drift hours, limit per day | 1 / 500, 333, 2000, 666, 3000, 1500 / 5 / 24 / 100,000 [V] | 0 to 1, 1 to 100,000, 1 to 1,000, 1 to 720, 1 to 10,000,000 [V]; also in „Neue Runde“ (X1); see [Marketplace](/features/marketplace.md) |
 
 * **[V]** The ranges above are proposals; the source is
   `src/core/universe.ts`.
@@ -193,6 +194,12 @@ universe settings) and their ranges are not decided yet.
   in `src/core/guild-chat.ts`, the lock of the main planet in
   `src/core/main-planet.ts`, the lock of a given-up position in
   `src/core/abandon.ts`, the activity thresholds in `src/core/activity.ts`.
+* **[V]** The marketplace (#171) is the first group of live numbers with a
+  legend of its own „Marktplatz“: ten entries in `src/core/market.ts`, orders
+  320 to 410. Its switch is a number 1 or 0 with `choices` „Ja“ and „Nein“,
+  because a switch of the registry cannot be `live`. The universe settings
+  warn below the table when the six ratios allow a round trip that gains
+  (`gainWarning`, `client/logic/market.ts`).
 * **[V]** The tests follow the same split (#310). One test,
   `src/core/round-registry.test.ts`, checks the rules for all entries and
   names no feature and no count: unique keys, names and field ids, unique
