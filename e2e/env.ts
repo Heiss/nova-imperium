@@ -2,7 +2,12 @@
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-export const E2E_PORT = 8099;
+// Three ports next to each other. `E2E_PORT` moves them, so two runs on one
+// machine (builders working side by side) do not take each other's server
+// (#301): the game on it, the mail server one below, the mail sink two below.
+const OWN_PORT = Number(process.env.E2E_PORT);
+const MOVED = Number.isInteger(OWN_PORT) && OWN_PORT > 1024;
+export const E2E_PORT = MOVED ? OWN_PORT : 8099;
 export const E2E_DATA = path.join(
   tmpdir(),
   `nova-e2e-${process.env.E2E_RUN ?? 'run'}`,
@@ -22,8 +27,8 @@ export const E2E_ENV: Record<string, string> = {
 // the mail sink of e2e/mail.ts, which its start runs on 127.0.0.1, and a
 // login needs the code from the mail. It has its own universe, so a new
 // round started there resets no planet of the other tests.
-const E2E_MAIL_PORT = 8098;
-const E2E_SMTP_PORT = 8025;
+const E2E_MAIL_PORT = E2E_PORT - 1;
+const E2E_SMTP_PORT = MOVED ? E2E_PORT - 2 : 8025;
 export const E2E_MAIL_URL = `http://localhost:${E2E_MAIL_PORT}`;
 export const E2E_MAILBOX = `${E2E_DATA}-mailbox.jsonl`;
 

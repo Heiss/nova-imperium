@@ -49,8 +49,10 @@ when the second built on the first.
   never push to main, open no pull request.
 * Never lower a mutation floor, never weaken or skip a test.
 * `PW_CHROMIUM_PATH=/opt/pw-browsers/chromium-1243/chrome-linux64/chrome`
-  for Playwright, never `playwright install`, `--trace off`, and a unique
-  `E2E_RUN` value, because agents share the ports and the data folder.
+  for Playwright, never `playwright install`, `--trace off`, a unique
+  `E2E_RUN` value for the data folder and an own `E2E_PORT` above 1024
+  (three ports from it downwards), so runs of two agents do not wait for
+  each other.
 * `size-ratchet.json` equals the real line count of `src/client/main.ts`
   and is never above the limit on main.
 * A new per-round setting is one entry of the registry with its own order
@@ -71,8 +73,14 @@ when the second built on the first.
 | Every pull request failed the mutation gate at a file it did not touch. | A floor of 100 % was recorded from a partial run; a mutant survived on main. | A small patch to main first; the brief tells agents not to fix it on their branch. |
 | An E2E test failed only on the phone project. | A fleet of an earlier test still flew to the position the test used. | Test data take a position no other spec uses; the cause is searched before a job is run again. |
 | A merge of main lost no code but left a red guard test. | Main had gained a catalog entry that needed an article. | The brief lists what each merged pull request added and which guards react to it. |
+| An E2E test failed about once in 20 runs with an error toast nobody caused. | The client sent an action by itself, and the server refused it because the player had just lost the right. | Found by logging the requests of the page in the failing test; such actions are sent `quiet` (#301). |
+| Agents waited minutes for each other's E2E run. | All runs used the same three ports. | `E2E_PORT` moves them; every brief gives an own value. |
 
 ## Open
 
-* Whether the briefs are detailed enough for Sonnet is not measured yet;
-  the first results of 2026-11-18 are still outstanding. [U]
+* Whether the briefs are detailed enough for Sonnet is measured only by a
+  few tasks so far: on 2026-11-18 four tasks on Sonnet with high effort
+  (an article with a merge check, two old branches brought up to date, one
+  follow-up) came back complete, with pushed intermediate states and with
+  an untrustworthy mutation run recognised and repeated. New work from
+  scratch on Sonnet is not tried yet. [U]
