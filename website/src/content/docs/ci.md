@@ -72,7 +72,8 @@ The gate runs with `if: always()` and fails unless:
    when it is false, they may be skipped („Documentation-only change“);
    the mutation jobs follow the output **mutation**: `true` (a push, a
    release pull request, a pull request into a hotfix branch, or a change of
-   the mutation configuration or the test tool chain): „Mutation plan“, every
+   the mutation configuration, more than the floors of `mutation-standard.json`
+   or the test tool chain): „Mutation plan“, every
    shard of „Mutation tests (shard N of 6)“ and the gate „Mutation tests“
    succeeded; `partial` (every other pull request that changes a mutated file
    or the source of a test): „Mutation tests (changed files)“ succeeded and
@@ -153,7 +154,10 @@ flowchart LR
   lists the files of the `mutate` globs that the pull request changed and
   the source of each changed test file (the same name without `.test`, also
   without a dotted suffix such as `.property`, with the ending `.svelte.ts`,
-  and in `src/test/` the script of the same name). The job „Mutation tests
+  and in `src/test/` the script of the same name), and every file whose
+  floor in `mutation-standard.json` the pull request adds, changes or
+  removes (when only the floors of that file changed; any other change of
+  it runs everything). The job „Mutation tests
   (changed files)“ mutates every mutant of those files without the
   incremental file and without any cache, so a partial result never reaches
   the plans, the weights or the cached results of the shards, and
