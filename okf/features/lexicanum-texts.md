@@ -228,6 +228,11 @@ code and here in the same pull request.
 * **[V]** Prose: „Jede Stufe nimmt ein weiteres Scholarium deiner anderen Planeten ins Netz – die höchsten zuerst. Mitforschen darf ein Scholarium nur, wenn es selbst die Stufe hat, die die Forschung verlangt, und nicht gerade ausgebaut wird. Die Stufen der vernetzten Scholarien zählen zu der des Startplaneten dazu: 3 Scholarien der Stufe 12 forschen mit Stufe 2 des Sternennetzes wie eines der Stufe 36. Mehr Stufen, als du weitere Scholarien hast, bringen nichts.“
 * **[V]** Keywords: Netzwerk, vernetzen, forschen, Forschungszeit
 
+### Auspex-Kartographie (`carto`)
+
+* Prose: none; the article has no effect of a level. Its short and its long text are those of the entry (#190), not drafts of this list.
+* **[V]** Keywords: vermessen, Position, Planet, Kolonie
+
 ## Schiffe
 
 ### Frachtläufer (`sc`)
@@ -373,3 +378,8 @@ code and here in the same pull request.
 
 * **[V]** Mission text: „Am Trümmerfeld lädt die Flotte Adamant und Psikristall ein, bis das Feld leer oder der Laderaum voll ist. Dabei zählt der Laderaum aller Schiffe, nicht nur der Bergungsbarken. War eine andere Flotte schneller, bleibt nur der Rest; ist das Feld ganz fort, kehrt die Flotte um.“
 * **[V]** Keywords: Schrott, Wrack, einsammeln, aufräumen
+
+### Vermessung (`mission-survey`)
+
+* **[V]** Mission text: „Am Ziel vermessen die Spähschädel die freie Position und bringen einen Vermessungsbericht. Je mehr Spähschädel du schickst und je höher deine Auspex-Kartographie steht, desto mehr steht darin; reicht es nicht, bleibt es bei einem groben Text, der nur sagt, was sich von der Position erraten lässt. Die Spähschädel können dabei verloren gehen, und je weiter der Flug, desto eher: Dann gibt es keinen Bericht, und die Position bekommt keine Werte. Sonst fliegen sie heim. Die Position behält die gemessenen Werte 30 Tage ab der ersten Vermessung; wird sie in dieser Zeit besiedelt, bekommt die Kolonie genau diese Werte.“
+* **[V]** Keywords: vermessen, Position, Planet, Kolonie
