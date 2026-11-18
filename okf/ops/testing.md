@@ -437,6 +437,13 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   change (owner, 2026-11-11): actionlint (syntax, expressions, shell) and
   zizmor (security). Every action is pinned to a commit hash with the version
   as a comment; Renovate updates both (`helpers:pinGitHubActionDigests`).
+  zizmor compares the comment with the tag upstream: when a moving major tag
+  (`v3`) goes on to the next release, the pin no longer matches and the job
+  fails for every pull request, as on 2026-11-18 with
+  `actions/create-github-app-token` (`v3` moved from v3.3.0 to v3.4.0).
+  Its comment therefore names the exact version of the pinned commit
+  (`# v3.3.0`), which does not move; the code is the same. **[U]** The other
+  actions still carry their major tag.
   Checkouts keep no credentials, except where a job pushes with the release
   App's token: `tag.yml` (`scripts/release.sh` pushes the tag),
   `release-pr.yml` (`scripts/release-pr.sh` pushes `release/<branch>`) and
