@@ -247,7 +247,13 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   description starts no CI run; the label `rebase` works too, but starts
   one), then wait for the CI of the new head. Checked in the code of
   Renovate 44.251.0 (`workers/repository/update/branch/reuse.js`,
-  `check-existing.js`); **[U]** not yet seen on GitHub.
+  `check-existing.js`) and seen on GitHub on 2026-11-18: for four and a
+  half minutes after the merge of #294 Renovate left its three open
+  branches alone (before, it rebased all of them within two minutes); a
+  tick of the box of #142 at 09:10 UTC rebased it by 09:12, a tick of the
+  box of #153 at 09:30 rebased it by 09:32, and no other branch moved.
+  The description of a pull request now reads „Rebasing: Whenever PR
+  becomes conflicted, or you tick the rebase/retry checkbox“.
 * **[E]** A major update and a minor update below 1.0 get no pull request
   until the owner approves it (`dependencyDashboardApproval`; owner,
   2026-11-18): Renovate lists it under „Pending Approval“ in the issue
