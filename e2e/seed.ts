@@ -12,9 +12,10 @@
 //   Trümmerfeld at the position of the home planet, issue #45), moon? ({ b?, res?, ships?,
 //   def?, name?, diameter? }: the moon of the home planet, made or changed, issue #53),
 //   gift? (minutes: a gift fleet of the „Endzeit“ to the home planet that arrives in that
-//   time, issue #161), vacationAgo? (ms: the vacation mode started that long ago, issue
-//   #223), colonyMoon? (the fields of `moon`: the moon of the colony, made or changed, with
-//   `colony`, issue #230) }
+//   time, issue #161), colonyMoon? (the fields of `moon`: the moon of the colony, made or
+//   changed, with `colony`, issue #230), activeAgo? (ms: the account and every place of the
+//   player were last active that long ago, issue #229), vacationAgo? (ms: the vacation mode
+//   started that long ago, issue #223) }
 import { openDatabase } from '../src/server/db/database.ts';
 import { Store } from '../src/server/db/store.ts';
 import { recordServerError } from '../src/server/error-log.ts';
@@ -159,6 +160,15 @@ function addColonyAndMoon(p: Planet): void {
   if (d.colonyMoon) moonOf(colonyOf(p), d.colonyMoon);
 }
 
+/** The last activity of the account and of every place of the player, `ms` ago (#229). */
+function activeAgo(id: string, ms: number): void {
+  const at = Date.now() - ms;
+  store.db.prepare('UPDATE users SET active_at = ? WHERE id = ?').run(at, id);
+  store.db
+    .prepare('UPDATE planets SET active_at = ? WHERE owner = ?')
+    .run(at, id);
+}
+
 /** A gift fleet of the „Endzeit“ alone, without the trigger for every player. */
 function addGift(p: Planet, minutes: number): void {
   const now = Date.now();
@@ -174,6 +184,14 @@ function startVacation(id: string): void {
     .run(Date.now() - d.vacationAgo, id);
 }
 
+/** What lies at the home planet or goes with the player: a Trümmerfeld, the moon, a gift, the activity. */
+function addAround(p: Planet): void {
+  if (d.debris) store.repos.debris.add(p, d.debris);
+  if (d.moon) moonOf(p, d.moon);
+  if (d.gift) addGift(p, d.gift);
+  if (d.activeAgo !== undefined) activeAgo(u!.id, d.activeAgo);
+}
+
 store.tx(() => {
   if (d.landColonyFleet) landFleet(u.id, 'colonize');
   if (d.landFleet) landFleet(u.id, d.landFleet);
@@ -183,9 +201,7 @@ store.tx(() => {
   const p = store.planetOfUser(u.id)!;
   updateHome(p);
   if (d.colony) addColonyAndMoon(p);
-  if (d.debris) store.repos.debris.add(p, d.debris);
-  if (d.moon) moonOf(p, d.moon);
-  if (d.gift) addGift(p, d.gift);
+  addAround(p);
   if (d.serverError)
     recordServerError(createCtx(store), {
       action: 'POST /api/action',

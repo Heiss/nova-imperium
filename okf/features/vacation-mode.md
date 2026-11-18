@@ -65,8 +65,9 @@ owiki.de „Urlaubsmodus“
   (`src/core/round.ts`), stored under `roundVacationHours`, named
   `vacationHours` in `RoundRules` and in the request „reset“, in whole
   hours from 1 to 720 (30 days, the range of the abandon lock of #224),
-  default 24 (also without the setting), `order` 150 (the numbers 60 to 140
-  are taken by the open branches of #229, #55 and #228). The dialog „Neue
+  default 24 (also without the setting), `order` 150 (the numbers 60 to 90
+  are taken on main by #229, 100 to 140 by the open branches of #55 and
+  #228). The dialog „Neue
   Runde“ shows the number field „Mindestdauer des Urlaubsmodus (Stunden)“
   (`round-vacation-hours`), preselected with the current round, last after
   the lock of a given-up position; it is no group, so no fieldset. The

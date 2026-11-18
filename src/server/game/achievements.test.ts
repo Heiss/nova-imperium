@@ -106,6 +106,10 @@ describe('achievements', () => {
       mainLock: 7,
       vacationHours: 24,
       abandonLock: 24,
+      activityRecent: 15,
+      activityMinutes: 59,
+      inactiveDays: 7,
+      longInactiveDays: 28,
     });
     recordAchievementAction(ctx, u.id, 'send');
     const current = ctx.players.get(u.id)!;

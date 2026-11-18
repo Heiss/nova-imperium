@@ -44,6 +44,13 @@ export interface Players {
   deleteLoginTokens(uid: string): void;
   /** Ends every session of a player; returns how many there were. */
   deleteSessions(uid: string): number;
+  /** Sets the time of the last login or manual action of an account (#229). */
+  markActive(uid: string, at: number): void;
+  /**
+   * The last activity of every account (#229): its last login or manual
+   * action, or its creation without one.
+   */
+  lastActive(): Record<string, number>;
 }
 
 export class SqlitePlayers implements Players {
@@ -164,5 +171,16 @@ export class SqlitePlayers implements Players {
   deleteSessions(uid: string): number {
     return this.db.prepare('DELETE FROM sessions WHERE user_id = ?').run(uid)
       .changes;
+  }
+
+  markActive(uid: string, at: number): void {
+    this.db.prepare('UPDATE users SET active_at = ? WHERE id = ?').run(at, uid);
+  }
+
+  lastActive(): Record<string, number> {
+    const rows = this.db
+      .prepare('SELECT id, COALESCE(active_at, created) AS at FROM users')
+      .all() as Row[];
+    return levels(rows, 'id', 'at');
   }
 }

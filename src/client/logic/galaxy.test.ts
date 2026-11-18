@@ -1,7 +1,8 @@
 // What the Sternenkarte shows (#118, bundle 2): the navigation, the panel
 // of the last scan (#53), one row per position with its planet, owner,
 // rank, noob protection, the moon (#53), the Trümmerfeld (#45) and the
-// actions, and the Spähschädel of a spying.
+// actions, the words of activity and inactivity (#229), and the Spähschädel
+// of a spying.
 import { describe, expect, it } from 'vitest';
 import type { DebrisField } from '../../core/debris.ts';
 import { MISSION } from '../../core/missions.ts';
@@ -207,8 +208,10 @@ describe('a foreign planet', () => {
         s: 2,
         p: 6,
         name: 'Welt 6',
+        activity: '',
         mine: false,
         owner: 'Cleo',
+        inactivity: '',
         rank: '1',
         protected: false,
         vacation: false,
@@ -271,6 +274,44 @@ describe('a foreign planet', () => {
   });
 });
 
+describe('activity and inactivity (#229)', () => {
+  /** Cleo's planet and moon at 6 with their markers, Cleo's account in `inactive`. */
+  function marked(inactive?: 'inactive' | 'long'): V {
+    const v = view({
+      galaxy: [
+        { ...place('planet', 6, 'u3'), activity: { minutes: 42 } },
+        { ...place('moon', 6, 'u3'), activity: { recent: true } },
+        place('planet', 7, 'u2'),
+      ],
+      ui: { gmoon: 'm1_2_6' },
+    });
+    if (inactive) v.s.players.u3!.inactive = inactive;
+    return v;
+  }
+
+  it('words the activity of a planet and of its moon, each its own', () => {
+    const r = rowAt(marked(), 6);
+    expect(r.planet!.activity).toBe('Aktivität vor 42 Minuten');
+    expect(r.moon!.activity).toBe('Aktiv');
+    // A place without a marker shows none.
+    expect(rowAt(marked(), 7).planet!.activity).toBe('');
+  });
+
+  it('words the inactivity of the owner of a place, not of another player', () => {
+    expect(rowAt(marked(), 6).planet!.inactivity).toBe('');
+    const r = rowAt(marked('inactive'), 6);
+    expect(r.planet!.inactivity).toBe('Inaktiv');
+    expect(r.moon!.inactivity).toBe('Inaktiv');
+    expect(rowAt(marked('long'), 6).planet!.inactivity).toBe('Lange inaktiv');
+    expect(rowAt(marked('long'), 7).planet!.inactivity).toBe('');
+  });
+
+  it('shows none for an owner the state does not know', () => {
+    const v = view({ galaxy: [place('planet', 6, 'u9')] });
+    expect(rowAt(v, 6).planet).toMatchObject({ activity: '', inactivity: '' });
+  });
+});
+
 describe('an own planet', () => {
   it('names the shown planet only', () => {
     const r = rowAt(view({ galaxy: [place('planet', 5, 'u1')] }), 5);
@@ -319,8 +360,10 @@ describe('moons (#53)', () => {
       s: 2,
       p: 6,
       name: 'Mond (Mond)',
+      activity: '',
       mine: false,
       owner: 'Bert',
+      inactivity: '',
       rank: '3',
       protected: true,
       vacation: false,
