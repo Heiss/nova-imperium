@@ -1,86 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { text } from '../../core/text.ts';
 import {
-  explainButtonHTML,
   explainMode,
   explainOptionsHTML,
-  explainPanelHTML,
   explanation,
+  PANEL_ID,
   paragraphs,
-  type Explanation,
 } from './explain.ts';
 
 const metal = text('metal')!;
-const withText = { n: 'Erzmine <A&B>', ds: 'Kurz.', lt: 'Lang & "breit".' };
-
-describe('explanation of an entry per display mode (issue #63)', () => {
-  it('„Immer anzeigen“: the panel is open, there is no (?)', () => {
-    expect(explanation('metal', metal, 'always', {})).toEqual({
-      key: 'metal',
-      button: 'exq_metal',
-      panel: 'ex_metal',
-      name: 'Adamant-Tiefbohrung',
-      text: metal.lt,
-      toggle: false,
-      open: true,
-    });
-    expect(explanation('metal', metal, 'always', { metal: false })!.open).toBe(
-      true,
-    );
-  });
-
-  it('„(?)-Symbol“: a (?) toggles the panel, closed until opened', () => {
-    const closed = explanation('metal', metal, 'icon', {})!;
-    expect(closed).toMatchObject({ toggle: true, open: false });
-    expect(explanation('metal', metal, 'icon', { metal: true })).toEqual({
-      ...closed,
-      open: true,
-    });
-    expect(explanation('metal', metal, 'icon', { crystal: true })!.open).toBe(
-      false,
-    );
-  });
-
-  it('„Ausblenden“: neither the panel nor the (?)', () => {
-    expect(explanation('metal', metal, 'hidden', { metal: true })).toBeNull();
-  });
-
-  it('shows the long text instead of the short one when there is one', () => {
-    expect(explanation('x', withText, 'always', {})!.text).toBe(
-      'Lang & "breit".',
-    );
-  });
-
-  it('shows the short ds when an entry has no long text (D4)', () => {
-    const short = { n: 'Erzmine', ds: 'Kurz.' };
-    expect(explanation('x', short, 'always', {})!.text).toBe('Kurz.');
-  });
-
-  it('gives an entry without any text neither panel nor (?)', () => {
-    for (const mode of ['always', 'icon', 'hidden'] as const)
-      expect(explanation('x', { n: 'Sonde' }, mode, {})).toBeNull();
-  });
-
-  it('gives the ships and the defense the (?) with their long text (#94)', () => {
-    // Since #113 they have a short text too; the panel shows the long one.
-    expect(text('probe')!.lt).not.toBe(text('probe')!.ds);
-    expect(explanation('probe', text('probe')!, 'icon', {})).toMatchObject({
-      toggle: true,
-      text: text('probe')!.lt,
-    });
-    expect(explanation('rl', text('rl')!, 'always', {})!.text).toBe(
-      text('rl')!.lt,
-    );
-  });
-
-  it('uses the (?) for a missing or unknown mode (default D2)', () => {
-    expect(explainMode(undefined)).toBe('icon');
-    expect(explainMode('never')).toBe('icon');
-    expect(explainMode('always')).toBe('always');
-    expect(explainMode('hidden')).toBe('hidden');
-    expect(explanation('metal', metal, undefined, {})!.toggle).toBe(true);
-  });
-});
 
 /** The attributes of the first element with the given tag. */
 function attributes(html: string, tag: string): Record<string, string> {
@@ -90,49 +18,35 @@ function attributes(html: string, tag: string): Record<string, string> {
   return Object.fromEntries(pairs.map((m) => [m[1]!, m[2] ?? '']));
 }
 
-describe('the (?) button and the panel', () => {
-  const icon = (open: boolean): Explanation =>
-    explanation('x', withText, 'icon', { x: open })!;
-
-  it('is a real button that controls the panel and says whether it is open', () => {
-    for (const open of [false, true]) {
-      const button = attributes(explainButtonHTML(icon(open)), 'button');
-      const panel = attributes(explainPanelHTML(icon(open)), 'div');
-      expect(button).toMatchObject({
-        type: 'button',
-        id: 'exq_x',
-        'data-act': 'explain',
-        'data-k': 'x',
-        'aria-controls': panel.id,
-        'aria-expanded': String(open),
-        'aria-label': 'Erklärung zu Erzmine &lt;A&amp;B&gt;',
-      });
-      expect(panel).toEqual({
-        class: 'ex',
-        id: 'ex_x',
-        ...(open ? {} : { hidden: '' }),
-      });
-    }
-  });
-
-  it('shows the text escaped in the panel', () => {
-    expect(explainPanelHTML(icon(true))).toContain(
-      'Lang &amp; &quot;breit&quot;.',
+describe('the „?“ of an entry per display mode (#63, #285 B2)', () => {
+  it('„Anzeigen“: a „?“ that opens the article in the side panel', () => {
+    expect(explanation('metal', metal, 'icon', {})).toEqual({
+      key: 'metal',
+      button: 'exq_metal',
+      panel: PANEL_ID,
+      name: 'Adamant-Tiefbohrung',
+      open: false,
+    });
+    expect(PANEL_ID).toBe('lexicanum-panel');
+    expect(explanation('metal', metal, 'icon', { metal: true })!.open).toBe(
+      true,
+    );
+    expect(explanation('metal', metal, 'icon', { crystal: true })!.open).toBe(
+      false,
     );
   });
 
-  it('shows each paragraph of a long text as its own escaped paragraph (#94)', () => {
-    const two = {
-      n: 'X',
-      lt: 'Sage <alt>.\n\nSo funktioniert es: A & B.',
-    };
-    const html = explainPanelHTML(explanation('x', two, 'always', {}));
-    expect(html).toBe(
-      '<div class="ex" id="ex_x"><p>Sage &lt;alt&gt;.</p><p>So funktioniert es: A &amp; B.</p></div>',
-    );
-    expect(explainPanelHTML(icon(false))).toBe(
-      '<div class="ex" id="ex_x" hidden><p>Lang &amp; &quot;breit&quot;.</p></div>',
-    );
+  it('„Ausblenden“: no „?“', () => {
+    expect(explanation('metal', metal, 'hidden', { metal: true })).toBeNull();
+  });
+
+  it('turns a stored „Immer anzeigen“ and a missing or unknown mode into the „?“', () => {
+    expect(explainMode(undefined)).toBe('icon');
+    expect(explainMode('never')).toBe('icon');
+    expect(explainMode('always')).toBe('icon');
+    expect(explainMode('hidden')).toBe('hidden');
+    expect(explanation('metal', metal, 'always', {})).not.toBeNull();
+    expect(explanation('metal', metal, undefined, {})).not.toBeNull();
   });
 
   it('splits a text into its paragraphs at blank lines only', () => {
@@ -141,36 +55,24 @@ describe('the (?) button and the panel', () => {
     expect(paragraphs(' Eins. \n\n Zwei. ')).toEqual(['Eins.', 'Zwei.']);
     expect(paragraphs(text('lab')!.lt!)).toHaveLength(2);
   });
-
-  it('has no button when the panel is always open, and nothing when hidden', () => {
-    const always = explanation('x', withText, 'always', {});
-    expect(explainButtonHTML(always)).toBe('');
-    expect('hidden' in attributes(explainPanelHTML(always), 'div')).toBe(false);
-    expect(explainButtonHTML(null)).toBe('');
-    expect(explainPanelHTML(null)).toBe('');
-  });
 });
 
-describe('the option in „Hilfe & Optionen“', () => {
-  it('offers the three modes and selects the current one', () => {
+describe('the option in „Hilfe & Optionen“ (#285 B2)', () => {
+  it('offers the two values and selects the current one', () => {
     const html = explainOptionsHTML('hidden');
     const options = [...html.matchAll(/<option ([^>]*)>([^<]*)<\/option>/g)];
-    expect(options.map((m) => m[2])).toEqual([
-      'Immer anzeigen',
-      'Als (?)-Symbol',
-      'Ausblenden',
-    ]);
+    expect(options.map((m) => m[2])).toEqual(['Anzeigen', 'Ausblenden']);
     expect(html).toBe(options.map((m) => m[0]).join(''));
     expect(options.map((m) => attributes(m[0], 'option'))).toEqual([
-      { value: 'always' },
       { value: 'icon' },
       { value: 'hidden', selected: '' },
     ]);
   });
 
-  it('selects the (?) for a player without a stored mode', () => {
-    expect(explainOptionsHTML(undefined)).toContain(
-      '<option value="icon" selected>',
-    );
+  it('selects „Anzeigen“ for a player without a stored mode or with „Immer anzeigen“', () => {
+    for (const mode of [undefined, 'always'])
+      expect(explainOptionsHTML(mode)).toContain(
+        '<option value="icon" selected>',
+      );
   });
 });

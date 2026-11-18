@@ -15,9 +15,10 @@ import { type Ctx, addReport, coords, resLine, universe } from './context.ts';
 import { type MissionServer, type Player, land, turnBack } from './missions.ts';
 import { lockedUntil } from './position-lock.ts';
 
-// The formulas of the espionage and the battle live with their missions and
-// the shared battle (#175); they are exported here as before.
-export { spyScore } from '../../features/missions/spy/arrive.server.ts';
+// The formulas of the espionage (src/core/spy.ts, #285) and of the battle
+// (with its mission and the shared battle of #175) are exported here as
+// before.
+export { spyScore } from '../../core/spy.ts';
 export { plunder } from '../../features/missions/attack/arrive.server.ts';
 export { rebuild } from './fight.ts';
 
