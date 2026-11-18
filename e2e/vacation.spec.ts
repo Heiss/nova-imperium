@@ -1,10 +1,12 @@
 // The vacation mode (#223, okf/features/vacation-mode.md): a player starts
-// it in the options („Urlaubsmodus aktivieren“, after a question); the box
-// shows the earliest end and keeps „Urlaubsmodus beenden“ off before it, the
-// server refuses an own game action and an early end. Another player sees
-// „(u)“ on the Sternenkarte and the server refuses an attack. After the
-// minimum duration the button ends it. Desktop and phone, with axe on the
-// options.
+// it in the options („Urlaubsmodus aktivieren“, after a question) and sees
+// the lock screen instead of the game (owner, 2026-11-18): the notice, the
+// button „Urlaubsmodus beenden“ greyed out with the time left in text, the
+// sign-out and the account options. The server refuses every action but
+// the end and an early end. Another player sees „(u)“ on the Sternenkarte
+// and the server refuses an attack. After the minimum duration the button
+// turns on by itself and ends it. Desktop and phone, with axe on the
+// options and on the lock screen.
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import {
@@ -19,6 +21,7 @@ import {
 
 const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
 const DATE = String.raw`\d\d\.\d\d\.\d{4}, \d\d:\d\d`;
+const HOUR = 3_600_000;
 
 async function violations(page: Page): Promise<string[]> {
   const results = await new AxeBuilder({ page }).withTags(TAGS).analyze();
@@ -54,23 +57,46 @@ async function startVacation(page: Page): Promise<void> {
   expect(await violations(page)).toEqual([]);
   page.once('dialog', (d) => {
     expect(d.message()).toBe(
-      'Urlaubsmodus aktivieren? Beenden kannst du ihn frühestens nach 24 Stunden.',
+      'Urlaubsmodus aktivieren? Beenden kannst du ihn frühestens nach 48 Stunden.',
     );
     void d.accept();
   });
   await startButton(page).click();
   await expect(lastToast(page)).toContainText('Urlaubsmodus aktiviert.');
-  await expect(page.locator('#o_vacation_end')).toHaveText(
-    new RegExp(`^Frühestens beendbar am ${DATE}$`),
-  );
-  await expect(endButton(page)).toBeDisabled();
+  await expectLocked(page);
   expect(await violations(page)).toEqual([]);
-  expect(await refusal(page, { type: 'build', key: 'metal' })).toBe(
-    'Im Urlaubsmodus nicht möglich.',
-  );
+  // The server refuses everything but the end, and the end before its time.
+  for (const type of ['build', 'read', 'options', 'sendGuildChat'])
+    expect(await refusal(page, { type }), type).toBe(
+      'Im Urlaubsmodus nicht möglich.',
+    );
   expect(await refusal(page, { type: 'endVacation' })).toMatch(
     new RegExp(`^Der Urlaubsmodus ist frühestens beendbar am ${DATE}\\.$`),
   );
+  // The lock holds after a reload, and nothing of the game shows.
+  await page.reload();
+  await expectLocked(page);
+}
+
+/** The lock screen: the notice, the greyed-out button with its reason, the account, no game. */
+async function expectLocked(page: Page): Promise<void> {
+  await expect(page.locator('h2')).toHaveText('Urlaubsmodus');
+  await expect(page.getByText('Dein Konto ist im Urlaubsmodus.')).toBeVisible();
+  await expect(page.locator('#lock-note')).toHaveText(
+    /^Du kannst den Urlaubsmodus in .+ beenden\.$/,
+  );
+  await expect(endButton(page)).toBeDisabled();
+  await expect(endButton(page)).toHaveAccessibleDescription(
+    /^Du kannst den Urlaubsmodus in .+ beenden\.$/,
+  );
+  await expect(page.getByRole('button', { name: 'Logout' })).toBeVisible();
+  await expect(page.getByLabel('Bisheriges Passwort')).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: 'Account löschen' }),
+  ).toBeVisible();
+  await expect(page.locator('#menu')).toBeEmpty();
+  await expect(page.locator('#resbar')).toBeEmpty();
+  await expect(startButton(page)).toHaveCount(0);
 }
 
 /** Another player sees the mark and cannot attack. */
@@ -105,14 +131,27 @@ async function vacationFlow(page: Page): Promise<void> {
   await visit(page, away);
   await page.context().clearCookies();
 
-  // After the minimum duration the button ends the vacation.
-  await login(page, away);
-  seed({ name: away, vacationAgo: 25 * 3_600_000 });
+  // A login shows the lock screen; its button turns on by itself at the end.
+  await page.goto('/');
+  await page.fill('#a_name', away);
+  await page.fill('#a_pw', 'ein-sicheres-testpasswort');
+  await page.click('button[type=submit]');
+  await expectLocked(page);
+  seed({ name: away, vacationAgo: 48 * HOUR - 3000 });
   await page.reload();
-  await nav(page, 'help');
+  await expectLocked(page);
+  await expect(endButton(page)).toBeEnabled({ timeout: 15_000 });
+  await expect(page.locator('#lock-note')).toHaveCount(0);
+  expect(await violations(page)).toEqual([]);
+  // After a reload past the end the button is on from the start.
+  seed({ name: away, vacationAgo: 49 * HOUR });
+  await page.reload();
   await expect(endButton(page)).toBeEnabled();
+  await expect(page.locator('#lock-note')).toHaveCount(0);
   await endButton(page).click();
   await expect(lastToast(page)).toContainText('Urlaubsmodus beendet.');
+  await expect(page.locator('h2')).toContainText('Übersicht');
+  await nav(page, 'help');
   await expect(startButton(page)).toBeVisible();
   expect(problems).toEqual([]);
 }

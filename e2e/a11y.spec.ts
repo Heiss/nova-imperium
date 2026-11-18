@@ -289,6 +289,29 @@ test.describe('accessibility (axe)', () => {
     expect(found).toEqual([]);
   });
 
+  test('the lock screen of the vacation mode has no violations, with the button off and on (#223)', async ({
+    page,
+  }) => {
+    const name = uniqueName('AxeUrlaub');
+    await register(page, name);
+    // One hour into the minimum duration: the button is off, its reason is text.
+    seed({ name, vacationAgo: 3_600_000 });
+    await page.reload();
+    await expect(page.locator('h2')).toHaveText('Urlaubsmodus');
+    const endButton = page.getByRole('button', {
+      name: 'Urlaubsmodus beenden',
+    });
+    await expect(endButton).toBeDisabled();
+    await expect(page.locator('#lock-note')).toBeVisible();
+    const found = (await violations(page)).map((v) => `off: ${v}`);
+    // Past the minimum duration: the button is on and the note is gone.
+    seed({ name, vacationAgo: 49 * 3_600_000 });
+    await page.reload();
+    await expect(endButton).toBeEnabled();
+    found.push(...(await violations(page)).map((v) => `on: ${v}`));
+    expect(found).toEqual([]);
+  });
+
   test('the options with the push kinds have no violations, on and off (#192)', async ({
     page,
   }) => {
