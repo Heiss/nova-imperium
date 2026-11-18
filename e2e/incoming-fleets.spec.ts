@@ -177,6 +177,13 @@ async function adminFlow(page: Page): Promise<void> {
   await expect(lastToast(page)).toContainText(
     `${LABEL.counts}: ganze Zahl von 0 bis 100.`,
   );
+  // An emptied field is no level, not 0: refused as well.
+  await openRoundDialog(page);
+  await dialog(page).getByLabel(LABEL.total).fill('');
+  await page.getByRole('button', { name: 'Ja, neue Runde' }).click();
+  await expect(lastToast(page)).toContainText(
+    `${LABEL.total}: ganze Zahl von 0 bis 100.`,
+  );
   await openRoundDialog(page);
   await fillLevels(dialog(page), [0, 1, 5]);
   await page.getByRole('button', { name: 'Ja, neue Runde' }).click();
