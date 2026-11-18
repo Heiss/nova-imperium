@@ -43,6 +43,8 @@ export const NAMES: Readonly<
   moonbase: { classic: 'Mondbasis', name: 'Mondzitadelle', ab: 'MZ' },
   // #53: the name decided by the owner (2026-11-13), the abbreviation [V].
   phalanx: { classic: 'Sensorphalanx', name: 'Auspex-Phalanx', ab: 'PX' },
+  // #53, #230: the name decided by the owner (2026-11-13), the abbreviation [V].
+  jumpgate: { classic: 'Sprungtor', name: 'Warp-Tor', ab: 'WR' },
   energy: { classic: 'Energietechnik', name: 'Machina-Energetik', ab: 'ME' },
   laser: { classic: 'Lasertechnik', name: 'Lichtlanzen-Lehre', ab: 'LZ' },
   comb: {

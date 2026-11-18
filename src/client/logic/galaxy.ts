@@ -2,7 +2,8 @@
 // what the component Galaxy shows, without the HTML of its rows: the
 // navigation of galaxy and system, the panel of the last scan of the
 // Auspex-Phalanx (#53), one row per position with its planet, owner, the
-// moon and the Trümmerfeld (#45, #53) and the actions, and the number of
+// moon and the Trümmerfeld (#45, #53), the words of the activity of a place
+// and of the inactivity of its owner (#229) and the actions, and the number of
 // Spähschädel of a spying. The symbols of a moon and a Trümmerfeld and the
 // button „Bergung“ keep their HTML of logic/moon.ts and logic/debris.ts.
 import { MISSION } from '../../core/missions.ts';
@@ -10,6 +11,8 @@ import { placeName } from '../../core/moon.ts';
 import { placeId } from '../../core/place.ts';
 import type { Coords } from '../../core/types.ts';
 import type { V } from '../views/common.ts';
+import { freePosition } from './abandon.ts';
+import { activityNote, inactivityNote } from './activity.ts';
 import { debrisAt, debrisMark, harvestButton } from './debris.ts';
 import { fmt } from './format.ts';
 import { isProtected, nameOf, ranks } from './game.ts';
@@ -37,8 +40,12 @@ export type GalaxyAction =
 export interface GalaxyPlace extends Coords {
   /** The planet by its name, a moon with „(Mond)“. */
   name: string;
+  /** The words of its public activity (#229), empty without one. */
+  activity: string;
   mine: boolean;
   owner: string;
+  /** The words of the owner's inactivity (#229), empty without one. */
+  inactivity: string;
   /** The place of the owner in the highscore, „-“ when unknown. */
   rank: string;
   /** The noob protection between the player and a foreign owner. */
@@ -55,6 +62,8 @@ export interface GalaxyRow {
   marks: string[];
   /** The actions at a free position: „Landnahme“, „Vermessen“ (#190) and „Bergung“. */
   actions: GalaxyAction[];
+  /** The note of a free position: „–“, or until when it is locked (#224). */
+  note: string;
   /** The moon's row below the planet, once its symbol is opened (#53). */
   moon: GalaxyPlace | null;
 }
@@ -176,8 +185,10 @@ function place(
     s: pl.s,
     p: pl.p,
     name,
+    activity: activityNote(pl.activity),
     mine,
     owner: nameOf(s.players, pl.owner),
+    inactivity: inactivityNote(s.players[pl.owner]?.inactive),
     rank: String(rk[pl.owner] ?? '-'),
     protected: !mine && isProtected(s.players, s.me.id, pl.owner),
     actions: mine ? ownActions(v, pl) : foreignActions(v, pl),
@@ -218,14 +229,22 @@ function galaxyRow(v: V, p: number, rk: Record<string, number>): GalaxyRow {
   const harvest: GalaxyAction[] = field
     ? [{ kind: 'html', html: harvestButton(c) }]
     : [];
-  if (!pl)
+  if (!pl) {
+    // A position locked after an abandonment says until when (#224).
+    const free = freePosition(s.locks, c, v.now);
     return {
       position: p,
       planet: null,
       marks,
-      actions: [...colonize(v, c), ...survey(v, c), ...harvest],
+      actions: [
+        ...(free.colonize ? colonize(v, c) : []),
+        ...survey(v, c),
+        ...harvest,
+      ],
+      note: free.note,
       moon: null,
     };
+  }
   const planet = place(v, pl, pl.name, rk);
   planet.actions.push(...harvest);
   return {
@@ -233,6 +252,7 @@ function galaxyRow(v: V, p: number, rk: Record<string, number>): GalaxyRow {
     planet,
     marks,
     actions: [],
+    note: '',
     moon: open ? place(v, moon, placeName(moon), rk) : null,
   };
 }

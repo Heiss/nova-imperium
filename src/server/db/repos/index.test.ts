@@ -43,7 +43,7 @@ describe('repositories', () => {
     expect(ctx.players.all()).toEqual([]);
     expect(ctx.planets.all()).toEqual([]);
     expect(ctx.guilds.all()).toEqual([]);
-    expect(ctx.admin.roundSettings()).toEqual([]);
+    expect(ctx.admin.setting('round')).toBeUndefined();
     expect(ctx.tx(() => 5)).toBe(5);
   });
 });

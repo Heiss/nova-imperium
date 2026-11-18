@@ -1,4 +1,4 @@
-import type { RoundRules } from '../../core/achievements.ts';
+import type { RoundRules } from '../../core/round.ts';
 import { achievements } from './achievements.ts';
 import type { V } from './common.ts';
 import { fleet } from './fleet.ts';
@@ -47,6 +47,8 @@ export function menu(admin: boolean, round: RoundRules): (MenuEntry | '-')[] {
   items.push(
     '-',
     { view: 'news', label: 'Neuigkeiten' },
+    // The Lexicanum before „Hilfe & Optionen“; on a phone under „Mehr“ (#285 B9).
+    { view: 'lexicanum', label: 'Lexicanum' },
     { view: 'help', label: 'Hilfe & Optionen' },
   );
   if (admin) items.push({ view: 'admin', label: 'Admin' });

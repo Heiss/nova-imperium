@@ -30,6 +30,16 @@ characters (see [Grimdark naming](/features/naming.md)).
   2026-11-12).
 * **[V]** The option sits in „Hilfe & Optionen“ (`src/client/views/misc.ts`)
   next to „Sonden pro Spionage“.
+* **[E]** Changed by the Lexicanum (#285, owner, 2026-11-17): the (?)
+  opens the article of the entry, in a side panel over the list on a
+  desktop and as the page on a phone; nothing unfolds below the entry any
+  more. The option has two values, show the (?) or hide it; „Immer
+  anzeigen“ goes (B2). **[V]** Label „(?)-Symbol: Anzeigen / Ausblenden“;
+  a stored `always` reads as `icon` (`storedMode` in `src/core/explain.ts`,
+  for the stored value and for an older client that sends it), so no
+  migration changes the column. The long text `lt` is the introduction of
+  the article. See [Lexicanum](/features/lexicanum.md); the rest of this
+  page describes the state before #285 where it differs.
 
 # Code, interface and tests
 

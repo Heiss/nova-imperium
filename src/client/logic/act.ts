@@ -43,6 +43,12 @@ export interface Sync {
   /** Sends an action for the shown planet; its answer is applied only there. */
   send: (type: string, data?: object) => Promise<ActResult>;
   /**
+   * Sends an action the client starts by itself (the chat was seen, #169).
+   * The server may refuse it when the player lost a right meanwhile; that
+   * refusal is no message for the player (#301).
+   */
+  quiet: (type: string, data?: object) => Promise<ActResult>;
+  /**
    * Starts a refresh and answers whether its state may still be applied:
    * only for the newest refresh, and only when no action was on its way or
    * started since it began, so a refresh never undoes the answer of an
@@ -66,7 +72,11 @@ export function createAct(deps: ActDeps): Sync {
   let lastRefresh: object = {};
   const lastOfType = new Map<string, object>();
   let running = 0;
-  const send: Sync['send'] = async (type, data = {}) => {
+  const run = async (
+    type: string,
+    data: object,
+    refused: (message: string) => void,
+  ): Promise<ActResult> => {
     const ticket = {};
     lastAction = ticket;
     lastOfType.set(type, ticket);
@@ -86,7 +96,7 @@ export function createAct(deps: ActDeps): Sync {
       if (j.msg) deps.toast(String(j.msg));
       return here ? 'done' : 'stale';
     } catch (e) {
-      deps.toast((e as Error).message, true);
+      refused((e as Error).message);
       return 'failed';
     } finally {
       running--;
@@ -99,5 +109,8 @@ export function createAct(deps: ActDeps): Sync {
     const idle = running === 0;
     return () => idle && ticket === lastRefresh && at === lastAction;
   };
-  return { send, refresh };
+  const send: Sync['send'] = (type, data = {}) =>
+    run(type, data, (message) => deps.toast(message, true));
+  const quiet: Sync['quiet'] = (type, data = {}) => run(type, data, () => {});
+  return { send, quiet, refresh };
 }

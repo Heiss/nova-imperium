@@ -41,6 +41,7 @@ const VIEWS = [
   'messages',
   'highscore',
   'news',
+  'lexicanum',
   'help',
   'admin',
 ];
@@ -202,7 +203,7 @@ test.describe('accessibility (axe)', () => {
     expect(found).toEqual([]);
   });
 
-  test('the explanation texts have no violations, closed, opened and always shown (#63)', async ({
+  test('the „?“ and the side panel of the Lexicanum have no violations, closed and opened (#63, #285)', async ({
     page,
   }) => {
     const name = uniqueName('AxeEx');
@@ -216,25 +217,23 @@ test.describe('accessibility (axe)', () => {
     for (const [view, entry] of [
       ['buildings', 'Adamant-Tiefbohrung'],
       ['research', 'Machina-Energetik'],
+      ['shipyard', 'Spähschädel'],
     ] as const) {
       await nav(page, view);
       await check(`${view} closed`);
       await page.getByRole('button', { name: `Erklärung zu ${entry}` }).click();
-      await expect(page.locator('#view .ex').first()).toBeVisible();
+      await expect(page.locator('#lexicanum-panel')).toBeVisible();
       await check(`${view} opened`);
+      await page.keyboard.press('Escape');
     }
     await nav(page, 'help');
-    await page
-      .getByLabel('Erklärungstexte')
-      .selectOption({ label: 'Immer anzeigen' });
+    await page.getByLabel('(?)-Symbol').selectOption({ label: 'Ausblenden' });
     await page.click('[data-act=saveopt]');
     await expect(lastToast(page)).toContainText('Gespeichert.');
     await check('help');
-    for (const view of ['buildings', 'research'] as const) {
-      await nav(page, view);
-      await expect(page.locator('#view .ex').first()).toBeVisible();
-      await check(`${view} always`);
-    }
+    await nav(page, 'buildings');
+    await expect(page.locator('#view .exq')).toHaveCount(0);
+    await check('buildings hidden');
     expect(found).toEqual([]);
   });
 
@@ -277,6 +276,12 @@ test.describe('accessibility (axe)', () => {
         'Eine neue Runde leert alle Gilden-Chats. Ohne Gilden werden alle Gilden mit Mitgliedern, Bewerbungen, Rängen und Chat gelöscht.',
       ),
     ).toBeVisible();
+    // The thresholds of the activity markers in their group (#229).
+    const activity = page.getByRole('group', { name: 'Aktivität' });
+    await expect(activity.getByRole('spinbutton')).toHaveCount(4);
+    await expect(
+      activity.getByLabel('Inaktiv ab (Tage)', { exact: true }),
+    ).toHaveValue('7');
     const found = (await violations(page)).map((v) => `dialog: ${v}`);
     // Only looked at: a new round would reset every planet of this server.
     await page.getByRole('button', { name: 'Abbrechen' }).click();

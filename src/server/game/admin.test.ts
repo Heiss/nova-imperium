@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { settle } from '../../core/settle.ts';
 import { DEFAULT_UNIVERSE, UNIVERSE_SPECS } from '../../core/universe.ts';
 import { addPlanet, addUser, testCtx } from '../test-helpers.ts';
-import { reset, saveSettings } from './admin.ts';
+import { announce, reset, saveSettings } from './admin.ts';
 import { runAction } from './dispatch.ts';
 import { placePlanet } from './planets.ts';
 import { isProtected, pointsMap } from './points.ts';
@@ -82,6 +82,18 @@ describe('admin', () => {
     expect(ctx.planets.home(a.id)!.b).toEqual({});
     expect(ctx.planets.home(b.id)).not.toBeNull();
     expect(ctx.reports.ofPlayer(b.id)).toEqual([]);
+  });
+
+  it('a new round gives each player a Heimatplanet in a random galaxy', () => {
+    for (const [r, g] of [
+      [0, 1],
+      [0.999, 2],
+    ] as const) {
+      const ctx = { ...testCtx(), rng: () => r };
+      const a = addUser(ctx, 'Anna', { admin: true });
+      reset(ctx, a, {});
+      expect(ctx.planets.home(a.id)).toMatchObject({ name: 'Heimatplanet', g });
+    }
   });
 
   it('a new round clears the Trümmerfelder (#45)', () => {
@@ -383,6 +395,34 @@ describe('points and state', () => {
     const ctx = testCtx();
     const a = addUser(ctx, 'Anna');
     expect((stateFor(ctx, a) as { planet: unknown }).planet).toBeNull();
+  });
+});
+
+describe('a server message (announce)', () => {
+  const tooLong = new Error(
+    'Bitte eine Nachricht mit höchstens 500 Zeichen eingeben.',
+  );
+
+  it('takes a text of up to 500 characters, not counting the spaces around it', () => {
+    const ctx = testCtx();
+    const a = addUser(ctx, 'Anna');
+    expect(announce(ctx, 'x'.repeat(500))).toBe(1);
+    expect(announce(ctx, `  ${'y'.repeat(500)}  `)).toBe(1);
+    expect(ctx.reports.ofPlayer(a.id).map((r) => r.text)).toEqual(
+      expect.arrayContaining(['x'.repeat(500), 'y'.repeat(500)]),
+    );
+  });
+
+  it('refuses a longer text, no text and a blank one, and sends nothing', () => {
+    const ctx = testCtx();
+    const a = addUser(ctx, 'Anna');
+    expect(() => announce(ctx, 'z'.repeat(501))).toThrow(tooLong);
+    for (const input of [42, null, undefined, ['Hallo']])
+      expect(() => announce(ctx, input)).toThrow(tooLong);
+    expect(() => announce(ctx, ' \n ')).toThrow(
+      new Error('Bitte eine Nachricht eingeben.'),
+    );
+    expect(ctx.reports.ofPlayer(a.id)).toEqual([]);
   });
 });
 
