@@ -6,6 +6,7 @@
 // locked for colonization for the hours the admin sets per round (D2). The
 // server and the colonization ask these rules (patterns, section 7); the
 // password is the server's, like every check of the session.
+import type { RoundSetting } from './round.ts';
 import type { Planet } from './types.ts';
 
 /** One hour in milliseconds; the lock runs in real time. */
@@ -14,11 +15,23 @@ export const HOUR_MS = 3_600_000;
 /** The lock of a given-up position in whole hours: the admin's range per round [V] and the owner's default. */
 export const ABANDON_LOCK_HOURS = { min: 1, max: 720, default: 24 } as const;
 
-/** Whether `hours` is a lock the admin may set for a round. */
-export const isAbandonLockHours = (hours: unknown): hours is number =>
-  Number.isInteger(hours) &&
-  (hours as number) >= ABANDON_LOCK_HOURS.min &&
-  (hours as number) <= ABANDON_LOCK_HOURS.max;
+/**
+ * The lock as a setting of the round (#283): a number field of the dialog
+ * „Neue Runde“ and, `live`, a row of the universe settings, changed during
+ * the round (X1); existing universes lock for the default 24 hours.
+ */
+export const ABANDON_LOCK_SETTING = {
+  kind: 'number',
+  key: 'roundAbandonLock',
+  name: 'abandonLock',
+  label: 'Sperre einer aufgegebenen Position (Stunden)',
+  order: 50,
+  min: ABANDON_LOCK_HOURS.min,
+  max: ABANDON_LOCK_HOURS.max,
+  def: ABANDON_LOCK_HOURS.default,
+  refusal: `Bitte für die Sperre einer aufgegebenen Position ${ABANDON_LOCK_HOURS.min} bis ${ABANDON_LOCK_HOURS.max} ganze Stunden angeben.`,
+  live: true,
+} as const satisfies RoundSetting;
 
 /** When the lock of a position given up at `at` ends. */
 export const positionLockEnd = (at: number, hours: number): number =>

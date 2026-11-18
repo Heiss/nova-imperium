@@ -5,14 +5,15 @@ import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import {
   ABANDON_LOCK_HOURS,
+  ABANDON_LOCK_SETTING,
   type AbandonCheck,
   HOUR_MS,
   abandonError,
   abandonTargetError,
-  isAbandonLockHours,
   positionLockEnd,
   positionLocked,
 } from './abandon.ts';
+import { roundRefused } from './round.ts';
 import type { Queue } from './types.ts';
 
 const NOW = 1_763_300_000_000;
@@ -48,10 +49,28 @@ describe('the lock length of a round', () => {
   it('is 24 hours by default, whole hours from 1 to 720', () => {
     expect(ABANDON_LOCK_HOURS).toEqual({ min: 1, max: 720, default: 24 });
     expect(HOUR_MS).toBe(60 * 60 * 1000);
-    for (const hours of [1, 24, 720])
-      expect(isAbandonLockHours(hours)).toBe(true);
-    for (const hours of [0, 721, -1, 1.5, '24', null, undefined, Number.NaN])
-      expect(isAbandonLockHours(hours)).toBe(false);
+    const refused = (abandonLock: unknown) =>
+      roundRefused({ abandonLock: 24 }, { abandonLock }, [ABANDON_LOCK_SETTING])
+        .length;
+    for (const hours of [1, 24, 720]) expect(refused(hours)).toBe(0);
+    for (const hours of [0, 721, -1, 1.5, '24', null, Number.NaN])
+      expect(refused(hours)).toBe(1);
+  });
+
+  it('is one entry of the registry, set in „Neue Runde“ and live (#283, X1)', () => {
+    expect(ABANDON_LOCK_SETTING).toEqual({
+      kind: 'number',
+      key: 'roundAbandonLock',
+      name: 'abandonLock',
+      label: 'Sperre einer aufgegebenen Position (Stunden)',
+      order: 50,
+      min: 1,
+      max: 720,
+      def: 24,
+      refusal:
+        'Bitte für die Sperre einer aufgegebenen Position 1 bis 720 ganze Stunden angeben.',
+      live: true,
+    });
   });
 });
 
@@ -68,6 +87,8 @@ describe('the lock of a given-up position', () => {
     expect(positionLocked(end, end)).toBe(false);
     expect(positionLocked(end, end + 1)).toBe(false);
     expect(positionLocked(null, NOW)).toBe(false);
+    // No lock is no lock at any time, also before 1970 (null counts as 0).
+    expect(positionLocked(null, -1)).toBe(false);
   });
 
   it('holds exactly before its end, for every length (property)', () => {

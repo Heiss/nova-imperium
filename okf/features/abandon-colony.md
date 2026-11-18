@@ -56,13 +56,18 @@ Planet“ (https://owiki.de/index.php?title=Zerst%C3%B6rter_Planet&oldid=76922).
   same coordinates; the main-planet choice cannot point there either (D3).
 * **[V]** The lock is a setting of the round, `roundAbandonLock`, in whole
   hours from 1 to 720 (30 days, the upper bound of the main-planet lock),
-  read by `roundRules()` (24 without the setting). The dialog „Neue Runde“
+  read by `roundRules()` (24 without the setting). It is one entry of the
+  registry of the round settings (#283, `ABANDON_LOCK_SETTING` in
+  `src/core/abandon.ts`, `live`;
+  [Admin](/features/admin.md#the-registry-of-the-round-settings-283)),
+  which gives the field, the row, the check and the refusal below. The
+  dialog „Neue Runde“
   has a number field „Sperre einer aufgegebenen Position (Stunden)“,
   preselected with the current round, like the lock of the main planet; the
   admin's refusal is „Bitte für die Sperre einer aufgegebenen Position 1
   bis 720 ganze Stunden angeben.“ X1: the same stored setting is a row of
   the universe settings („Sperre einer aufgegebenen Position (Stunden)“,
-  `roundAbandonLock` in `UNIVERSE_SPECS`), changed live and audited like
+  `roundAbandonLock` in `UNIVERSE_SPECS`, from the `live` entry), changed live and audited like
   the other settings (`settings`, `admin.write` with before and after); a
   change counts for colonies given up afterwards, a running lock keeps its
   end. The lock runs in real time and starts when the colony is given up;
@@ -80,8 +85,9 @@ Planet“ (https://owiki.de/index.php?title=Zerst%C3%B6rter_Planet&oldid=76922).
 * **[V]** The rules are pure functions in `src/core/abandon.ts` (patterns,
   section 7): `abandonTargetError` (codes `unknown`, `moon`, `main`),
   `abandonError` (then `stale`, `flights`, `research`, `orders`, in this order),
-  `positionLockEnd`, `positionLocked` (the lock holds while now < end) and
-  `isAbandonLockHours`. The server (`src/server/game/abandon.ts`, action
+  `positionLockEnd` and `positionLocked` (the lock holds while now < end);
+  the range of the lock is the registry entry `ABANDON_LOCK_SETTING`. The
+  server (`src/server/game/abandon.ts`, action
   `abandon` with `target`, the planet id, `created`, its founding time, and `password`) gathers the
   values and words the codes; `src/server/game/position-lock.ts` holds the
   lock for the colonization and the placement.
