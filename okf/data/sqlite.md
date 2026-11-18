@@ -520,7 +520,7 @@ activity; an existing account starts with its newest `last_seen` of
 `users.created`; other data stay as they were
 (`upgrades/20261117T0923-activity-times.test.ts`).
 
-Migration `20261116T2054-moonbreak` (issue #95, the first of the folder
+Migration `20261116T2054-moonbreak` (issue #95, in the folder
 layout, `migrations/95/migrations.ts`, see [Moons](/features/moons.md))
 rebuilds `fleets` and `fleet_ships` like migration 16 for the mission
 `moonbreak` (Mondbruch) in the CHECK of `fleets.mission`. Every column

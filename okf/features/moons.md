@@ -586,7 +586,9 @@ owiki.de „Mond“ (section Zerstörung, formula images). Built after the moons
   arrival with seeded draws: broken, held, lost Weltenbrecher, lost battle,
   no Weltenbrecher left, a defended moon, the Trümmerfeld of the battle
   only, loot and its cut to the holds left, audit, pushes, the rerouted
-  fleets and the turned back Mondbruch), `src/server/game/missions.test.ts`
+  fleets and the turned back Mondbruch), `src/server/game/jump-gate.test.ts`
+  (no jump to or from a broken moon, its gate time gone with it, a new moon
+  at the position ready), `src/server/game/missions.test.ts`
   (the contract with a moon target), `src/server/game/guild-events.test.ts`
   (the event of a Mondbruch at a member's moon), `src/client/logic/moonbreak.test.ts`, the upgrade test, and E2E
   `e2e/moonbreak.spec.ts` (desktop and phone, axe on the reports).
