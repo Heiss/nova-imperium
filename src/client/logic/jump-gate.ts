@@ -67,10 +67,11 @@ export function jumpPanel(
   if (gateLevel(here) < 1) return null;
   const own = s.gates?.find((g) => g.id === here.id);
   const from: Gate = { ...here, ready: own?.ready ?? 0 };
-  const targets = (s.gates ?? []).flatMap((view) => {
-    const target = targetOf(s, from, view, now);
-    return target ? [target] : [];
-  });
+  const targets =
+    s.gates?.flatMap((view) => {
+      const target = targetOf(s, from, view, now);
+      return target ? [target] : [];
+    }) ?? [];
   const ready = gateReady(from, now);
   return {
     cooling: ready ? null : from.ready,
@@ -105,7 +106,7 @@ function queueDue({ P, R }: Shown, now: number): boolean {
  */
 const gateDue = (v: Shown, now: number): boolean =>
   gateLevel(v.P) > 0 &&
-  (v.s.gates ?? []).some((g) => g.ready > v.now && g.ready <= now);
+  !!v.s.gates?.some((g) => g.ready > v.now && g.ready <= now);
 
 /** Whether the clock draws the shown view again at `now`: a finished order or research, or a Warp-Tor that turned ready. */
 export const viewDue = (v: Shown, now: number): boolean =>
@@ -120,6 +121,7 @@ type Options = ArrayLike<{ value: string; disabled: boolean }>;
  * The select then keeps the option the redraw picked, the first enabled.
  */
 export function keeps(field: object, value: string): boolean {
-  const options = (field as { options?: Options | null }).options ?? [];
-  return !Array.from(options).find((o) => o.value === value)?.disabled;
+  const { options } = field as { options?: Options | null };
+  const saved = options && Array.from(options).find((o) => o.value === value);
+  return !saved?.disabled;
 }
