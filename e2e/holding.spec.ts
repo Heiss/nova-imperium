@@ -47,6 +47,9 @@ for (const phone of ['', ' @phone'])
     page,
     browser,
   }) => {
+    // Three players, a guild, a spy report, a battle and the flight home:
+    // about 26 s on an idle machine, too close to the default 30 s.
+    test.setTimeout(90_000);
     const host = uniqueName('Wirt');
     const guard = uniqueName('Wache');
     const raider = uniqueName('Raeuber');
