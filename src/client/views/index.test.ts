@@ -26,6 +26,7 @@ describe('phone menu', () => {
       'friends',
       'achievements',
       'news',
+      'lexicanum',
       'help',
     ]);
   });
@@ -48,6 +49,7 @@ describe('phone menu', () => {
       'friends',
       'achievements',
       'news',
+      'lexicanum',
       'help',
     ]);
   });

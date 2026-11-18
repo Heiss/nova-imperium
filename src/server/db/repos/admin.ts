@@ -1,7 +1,7 @@
 // Admin data (#117): the settings of the universe and the round, the audit
 // log, player activity, suspensions and the retention of the error log.
 // The error log itself is still raw SQL in error-log.ts until a follow-up.
-import { DEFAULT_UNIVERSE, UNIVERSE_SPECS } from '../../../core/universe.ts';
+import { UNIVERSE_SPECS } from '../../../core/universe.ts';
 import type { Universe } from '../../../core/types.ts';
 import type { Db } from '../database.ts';
 import { levels, type Row } from './rows.ts';
@@ -37,9 +37,7 @@ export interface Suspension {
 export interface Admin {
   universe(): Universe;
   saveUniverse(u: Universe): void;
-  /** The stored settings of the round (`round`, `roundAchievements`, `roundDaily`). */
-  roundSettings(): { key: string; value: number }[];
-  /** One stored setting, or undefined (the „Endzeit“ of #161). */
+  /** One stored setting, or undefined (the „Endzeit“ of #161, the round of #283). */
   setting(key: string): number | undefined;
   /** Writes settings in the given order. */
   putSettings(entries: [key: string, value: number][]): void;
@@ -81,8 +79,7 @@ export class SqliteAdmin implements Admin {
       .all() as Row[];
     const stored = levels(rows, 'key', 'value');
     const out: Record<string, number> = {};
-    for (const s of UNIVERSE_SPECS)
-      out[s.key] = stored[s.key] ?? DEFAULT_UNIVERSE[s.key];
+    for (const s of UNIVERSE_SPECS) out[s.key] = stored[s.key] ?? s.def;
     return out as unknown as Universe;
   }
 
@@ -91,14 +88,6 @@ export class SqliteAdmin implements Admin {
       'INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
     );
     for (const s of UNIVERSE_SPECS) put.run(s.key, u[s.key]);
-  }
-
-  roundSettings(): { key: string; value: number }[] {
-    return this.db
-      .prepare(
-        "SELECT key, value FROM settings WHERE key IN ('round', 'roundAchievements', 'roundDaily', 'roundGuilds')",
-      )
-      .all() as { key: string; value: number }[];
   }
 
   setting(key: string): number | undefined {

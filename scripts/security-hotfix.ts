@@ -7,8 +7,9 @@
 //   node scripts/security-hotfix.ts plan <trivy.json>      print the plan as
 //        JSON ({"id": "", ...} when nothing needs a hotfix)
 //   node scripts/security-hotfix.ts apply <plan.json> [base-digest]
-//        pin the fixed versions in package.json, pin the base image to
-//        base-digest when the plan needs it, write the changelog fragment
+//        pin the fixed versions in package.json and, from pnpm 11 on, in
+//        pnpm-workspace.yaml, pin the base image to base-digest when the
+//        plan needs it, write the changelog fragment
 //   node scripts/security-hotfix.ts verify <plan.json>     fail when
 //        pnpm-lock.yaml still holds a version below a fix
 import { createHash } from 'node:crypto';
@@ -27,6 +28,8 @@ const VENDOR: Record<number, string> = {
 /** Where the image keeps the dependencies of package.json (Dockerfile). */
 const APP_MODULES = /^\/?app\/node_modules\//;
 const BASE_IMAGE = 'node:26-slim';
+/** Where pnpm 11 and later read their settings, the overrides among them. */
+const WORKSPACE = 'pnpm-workspace.yaml';
 
 interface TrivyVulnerability {
   VulnerabilityID: string;
@@ -195,17 +198,34 @@ export function plan(report: TrivyReport): Plan {
 }
 
 interface PackageJson {
+  packageManager?: string;
   dependencies?: Record<string, string>;
   pnpm?: { overrides?: Record<string, string>; [key: string]: unknown };
   [key: string]: unknown;
 }
 
+/** The override that gives every older copy of the package the fixed version. */
+const override = (fix: PackageFix): [selector: string, version: string] => [
+  `${fix.name}@<${fix.version}`,
+  fix.version,
+];
+
 /**
- * Every older copy of the package gets the fixed version through a pnpm
- * override; a direct dependency also gets it in package.json, which pins
- * exact versions.
+ * Whether the pnpm of this package.json reads its overrides from
+ * pnpm-workspace.yaml: from pnpm 11 on the field "pnpm" of package.json is
+ * no longer read (#264). An older release, or one without "packageManager",
+ * keeps the field.
  */
-export function pinPackages(
+export function readsWorkspace(pkg: PackageJson): boolean {
+  const major = /^pnpm@(\d+)\./.exec(pkg.packageManager ?? '')?.[1];
+  return major !== undefined && Number(major) >= 11;
+}
+
+/**
+ * A direct dependency of the plan gets the fixed version in package.json,
+ * which pins exact versions.
+ */
+export function pinDependencies(
   pkg: PackageJson,
   fixes: readonly PackageFix[],
 ): PackageJson {
@@ -214,16 +234,108 @@ export function pinPackages(
     if (next.dependencies && fix.name in next.dependencies) {
       next.dependencies[fix.name] = fix.version;
     }
-    next.pnpm ??= {};
-    next.pnpm.overrides ??= {};
-    next.pnpm.overrides[`${fix.name}@<${fix.version}`] = fix.version;
   }
   return next;
 }
 
 /**
+ * Whether an existing override gives way to the fixes: the same selector,
+ * or an older pin of the same package ("name@<w" with w at or below the
+ * fixed version). pnpm applies the first override that matches, so an older
+ * pin listed before the new one would keep the package below the fix
+ * (seen with pnpm 12.21.0, CodeRabbit on #284).
+ */
+function gone(selector: string, fixes: readonly PackageFix[]): boolean {
+  const m = /^((?:@[^@/\s]+\/)?[^@\s]+)@<(\d\S*)$/.exec(selector);
+  if (!m) return false;
+  const [, name = '', below = ''] = m;
+  return fixes.some(
+    (fix) => fix.name === name && compareVersions(below, fix.version) <= 0,
+  );
+}
+
+/**
+ * Up to pnpm 10: every older copy of the package gets the fixed version
+ * through an override in the field "pnpm" of package.json; a direct
+ * dependency also gets it.
+ */
+export function pinPackages(
+  pkg: PackageJson,
+  fixes: readonly PackageFix[],
+): PackageJson {
+  const next = pinDependencies(pkg, fixes);
+  if (fixes.length === 0) return next;
+  next.pnpm ??= {};
+  next.pnpm.overrides = Object.fromEntries([
+    ...fixes.map(override),
+    ...Object.entries(next.pnpm.overrides ?? {}).filter(
+      ([selector]) => !gone(selector, fixes),
+    ),
+  ]);
+  return next;
+}
+
+/** The key of a line of a YAML map, without its quotes, or undefined. */
+const yamlKey = (line: string): string | undefined =>
+  /^\s+(?:'([^']+)'|"([^"]+)"|([^\s'"#][^:]*?))\s*:/
+    .exec(line)
+    ?.slice(1)
+    .find((key) => key !== undefined);
+
+/**
+ * From pnpm 11 on: the overrides of the plan in the text of
+ * pnpm-workspace.yaml (empty when the file is missing), in its top-level
+ * map "overrides", which is added at the end when it is missing. The new
+ * overrides are its first entries: among overrides that match the same
+ * dependency pnpm 12.21.0 applies the first one, so a fix listed first wins
+ * over an older caret or exact pin (CodeRabbit on #284; an override bound
+ * to a parent, "parent>name", still wins, and `verify` then names it). An
+ * override of the same selector and an older pin of the same package are
+ * removed. Comments and blank lines stay; a comment in the first column
+ * does not end the map. Only the block form is written by this project;
+ * any other form of the key fails, so an override is never lost unnoticed.
+ */
+export function pinWorkspace(
+  workspace: string,
+  fixes: readonly PackageFix[],
+): string {
+  if (fixes.length === 0) return workspace;
+  const lines =
+    workspace === '' ? [] : workspace.replace(/\n$/, '').split('\n');
+  const other = lines.find(
+    (line) =>
+      /^(overrides|'overrides'|"overrides")\s*:/.test(line) &&
+      line !== 'overrides:',
+  );
+  if (other !== undefined)
+    throw new Error(`pnpm-workspace.yaml: cannot extend "${other}"`);
+  let start = lines.indexOf('overrides:');
+  if (start < 0) {
+    lines.push('overrides:');
+    start = lines.length - 1;
+  }
+  // The map ends before the next key of the first column.
+  let end = start + 1;
+  while (end < lines.length && !/^[^\s#]/.test(lines[end]!)) end += 1;
+  const kept = lines
+    .slice(start + 1, end)
+    .filter((line) => !gone(yamlKey(line) ?? '', fixes));
+  const added = fixes.map((fix) => {
+    const [selector, version] = override(fix);
+    return `  '${selector}': '${version}'`;
+  });
+  return [
+    ...lines.slice(0, start + 1),
+    ...added,
+    ...kept,
+    ...lines.slice(end),
+    '',
+  ].join('\n');
+}
+
+/**
  * Packages of the plan that pnpm-lock.yaml still holds below their fixed
- * version, as "name@version".
+ * version in its sections "packages" and "snapshots", as "name@version".
  */
 export function stillVulnerable(
   lock: string,
@@ -232,8 +344,13 @@ export function stillVulnerable(
   const wanted = new Map(fixes.map((f) => [f.name, f.version]));
   const left = new Set<string>();
   const key = /^ {2}'?((?:@[^@/\s']+\/)?[^@\s'(]+)@(\d[^(':\s]*)/;
+  // Only what is installed: an override of an exact version in the map
+  // "overrides" looks like a package key too.
+  let installed = false;
   for (const line of lock.split('\n')) {
-    const m = key.exec(line);
+    if (/^\S/.test(line))
+      installed = line === 'packages:' || line === 'snapshots:';
+    const m = installed ? key.exec(line) : null;
     if (!m) continue;
     const [, name = '', version = ''] = m;
     const fixed = wanted.get(name);
@@ -242,6 +359,27 @@ export function stillVulnerable(
     }
   }
   return [...left].sort();
+}
+
+/**
+ * The overrides of pnpm-lock.yaml that name one of the packages, as
+ * "selector: version": when a package stays below its fix, one of them
+ * won over the override of the fix.
+ */
+export function overridesOf(lock: string, names: readonly string[]): string[] {
+  const found: string[] = [];
+  let inside = false;
+  for (const line of lock.split('\n')) {
+    if (/^\S/.test(line)) inside = line === 'overrides:';
+    const key = inside ? yamlKey(line) : undefined;
+    if (key === undefined) continue;
+    const name = /^(?:.*>)?((?:@[^@/\s]+\/)?[^@\s]+)/.exec(key)?.[1];
+    if (name !== undefined && names.includes(name))
+      found.push(
+        `${key}: ${line.slice(line.indexOf(':', line.indexOf(key) + key.length) + 1).trim()}`,
+      );
+  }
+  return found;
 }
 
 /** Pins every FROM of the base image to the digest. */
@@ -302,14 +440,35 @@ export function fragment(): string {
   ].join('\n');
 }
 
+/** The text of a file, or the empty text when there is no such file. */
+function readOr(file: string): string {
+  try {
+    return readFileSync(file, 'utf8');
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return '';
+    throw error;
+  }
+}
+
+/**
+ * Pins the fixed versions where the pnpm of this checkout reads them:
+ * package.json, and from pnpm 11 on pnpm-workspace.yaml for the overrides.
+ */
+function pinFiles(fixes: readonly PackageFix[]): void {
+  const pkg = JSON.parse(readFileSync('package.json', 'utf8')) as PackageJson;
+  const workspace = readsWorkspace(pkg);
+  const pinned = workspace
+    ? pinDependencies(pkg, fixes)
+    : pinPackages(pkg, fixes);
+  writeFileSync('package.json', `${JSON.stringify(pinned, null, 2)}\n`);
+  if (workspace)
+    writeFileSync(WORKSPACE, pinWorkspace(readOr(WORKSPACE), fixes));
+}
+
 function apply(file: string, digest: string | undefined): number {
   const p = JSON.parse(readFileSync(file, 'utf8')) as Plan;
   if (!p.id) throw new Error('The plan is empty: nothing to apply.');
-  if (p.packages.length > 0) {
-    const pkg = JSON.parse(readFileSync('package.json', 'utf8')) as PackageJson;
-    const pinned = pinPackages(pkg, p.packages);
-    writeFileSync('package.json', `${JSON.stringify(pinned, null, 2)}\n`);
-  }
+  if (p.packages.length > 0) pinFiles(p.packages);
   if (p.base) {
     if (!digest)
       throw new Error('The plan needs the digest of the base image.');
@@ -331,12 +490,14 @@ function main(): number {
   if (command === 'apply' && file) return apply(file, digest);
   if (command === 'verify' && file) {
     const p = JSON.parse(readFileSync(file, 'utf8')) as Plan;
-    const left = stillVulnerable(
-      readFileSync('pnpm-lock.yaml', 'utf8'),
-      p.packages,
-    );
+    const lock = readFileSync('pnpm-lock.yaml', 'utf8');
+    const left = stillVulnerable(lock, p.packages);
     if (left.length > 0) {
       console.error(`pnpm-lock.yaml still holds: ${left.join(', ')}`);
+      const names = left.map((l) => l.slice(0, l.lastIndexOf('@')));
+      console.error(
+        `Overrides of these packages, one of which may win over the fix: ${overridesOf(lock, names).join(', ')}`,
+      );
       return 1;
     }
     return 0;

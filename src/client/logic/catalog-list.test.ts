@@ -26,6 +26,8 @@ import {
   catalogPage,
   CATALOG_VIEWS,
   lockNotice,
+  orderNote,
+  unitLines,
 } from './catalog-list.ts';
 import { dur, fmt } from './format.ts';
 import { iconURL } from './icons.ts';
@@ -112,17 +114,18 @@ describe('every row', () => {
     });
     expect(r.explanation).toMatchObject({
       key: 'metal',
-      toggle: true,
+      panel: 'lexicanum-panel',
       open: true,
     });
     expect(row(view(), 'building', 'metal').explanation?.open).toBe(false);
     expect(
       row(view({ explain: 'hidden' }), 'building', 'metal').explanation,
     ).toBeNull();
+    // A stored „Immer anzeigen“ of #63 shows the „?“ (#285 B2).
     expect(
       row(view({ ...lab, explain: 'always' }), 'research', 'energy').explanation
-        ?.toggle,
-    ).toBe(false);
+        ?.key,
+    ).toBe('energy');
   });
 
   it('gives each kind its icon class', () => {
@@ -561,6 +564,15 @@ describe('shipyard and defense', () => {
     expect(slow).toMatch(new RegExp(` \\(${text('impulse')!.n}\\)$`));
   });
 
+  it('gives the lines of a unit, and none for a key that is no unit (#285)', () => {
+    const v = yard();
+    expect(unitLines(v, 'lf')).toEqual(row(v, 'ship', 'lf').lines);
+    expect(unitLines(v, 'rl')).toEqual(row(v, 'defense', 'rl').lines);
+    expect(unitLines(v, 'metal')).toBeUndefined();
+    expect(unitLines(v, 'spy')).toBeUndefined();
+    expect(unitLines(v, 'nope')).toBeUndefined();
+  });
+
   it('shows the energy of a Sonnenreliquiar per piece, and no cargo (#114)', () => {
     const sat = row(yard({ temp: 50 }), 'ship', 'sat').lines[0];
     expect(sat).toMatch(
@@ -623,6 +635,33 @@ describe('shipyard and defense', () => {
     );
   });
 
+  it('keeps its own order of the checks of an order (#214)', () => {
+    const bq = { key: 'yard', lvl: 2, start: 0, end: 1000, cost: NONE };
+    // The requirements before the lock, which the page names above the list.
+    expect(action(yard({ res: RICH, bq }), 'ship', 'lf')).toEqual({
+      kind: 'note',
+      cls: 'req',
+      text: 'Das Wissen ist noch verschlossen',
+    });
+    // 20 orders: only the server refuses them.
+    const sq = Array.from({ length: 20 }, () => ({
+      key: 'rl',
+      n: 1,
+      unit: 1,
+    }));
+    expect(action(yard({ res: RICH, sq }), 'defense', 'rl')).toMatchObject({
+      kind: 'order',
+      disabled: false,
+    });
+  });
+
+  it('asks for a count before an order is sent (F10)', () => {
+    const v = yard({ res: { m: 0, c: 0, d: 0 } });
+    expect(orderNote(v, 'rl', 0)).toBe('Bitte eine Anzahl eingeben.');
+    expect(orderNote(v, 'rl', 1)).toBeNull();
+    expect(orderNote(yard({ res: RICH }), 'rl', 5)).toBeNull();
+  });
+
   it('shows the orders of the shipyard', () => {
     const sq = [
       { key: 'lf', n: 2, unit: 5000 },
@@ -644,5 +683,65 @@ describe('shipyard and defense', () => {
     ]);
     expect(queue(6000)[0]!.next).toEqual({ end: 6000, left: null });
     expect(queue(2000, null)[0]!.next).toEqual({ end: 7000, left: dur(5000) });
+  });
+});
+
+describe('the notes of the checks of #214', () => {
+  const busy = { key: 'metal', lvl: 1, start: 0, end: 9, cost: NONE };
+  it('show the fields and the requirements before the build queue (F8)', () => {
+    // 10,000 km: 100 fields, all taken.
+    const full = view({
+      P: { res: RICH, diameter: 10000, b: { metal: 100 }, bq: busy },
+    });
+    expect(action(full, 'building', 'crystal')).toEqual({
+      kind: 'note',
+      cls: 'req',
+      text: 'Keine freien Felder.',
+    });
+    const building = view({ P: { res: RICH, bq: busy } });
+    expect(action(building, 'building', 'yard')).toEqual({
+      kind: 'note',
+      cls: 'req',
+      text: 'Das Wissen ist noch verschlossen',
+    });
+    expect(action(building, 'building', 'crystal')).toEqual({
+      kind: 'note',
+      cls: 'dim',
+      text: 'Bauschleife belegt',
+    });
+  });
+  it('show the requirements before the running research (F9)', () => {
+    const rq = { ...busy, key: 'spy', planet: 'p1_1_5' };
+    const v = view({ P: { res: RICH, b: { lab: 1 } }, rq });
+    expect(action(v, 'research', 'laser')).toEqual({
+      kind: 'note',
+      cls: 'req',
+      text: 'Das Wissen ist noch verschlossen',
+    });
+    expect(action(v, 'research', 'energy')).toEqual({
+      kind: 'note',
+      cls: 'dim',
+      text: 'Es wird bereits geforscht',
+    });
+  });
+  it('disable „Bauen“ and „Forschen“ for the price only', () => {
+    const poor = view({ P: { res: { m: 0, c: 0, d: 0 }, b: { lab: 1 } } });
+    expect(action(poor, 'building', 'metal')).toMatchObject({
+      kind: 'start',
+      disabled: true,
+    });
+    expect(action(poor, 'research', 'energy')).toMatchObject({
+      kind: 'start',
+      disabled: true,
+    });
+    const rich = view({ P: { res: RICH, b: { lab: 1 } } });
+    expect(action(rich, 'building', 'metal')).toMatchObject({
+      kind: 'start',
+      disabled: false,
+    });
+    expect(action(rich, 'research', 'energy')).toMatchObject({
+      kind: 'start',
+      disabled: false,
+    });
   });
 });

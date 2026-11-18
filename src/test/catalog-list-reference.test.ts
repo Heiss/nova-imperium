@@ -2,12 +2,14 @@
 // change“ of the issue; each migration step changes no behaviour, owner,
 // 2026-11-13). The old views are frozen here: research(), shipyard() and
 // defense() of src/client/views/economy.ts and yard.ts with itemHTML() of
-// common.ts, and src/test/catalog-reference/Buildings.svelte. On generated
-// states (fixed fast-check seed 118) both render the same markup, up to what
-// a browser does not show: Svelte's comments, the order of the attributes,
-// the escaping of >, " and ' (an escaped < and & stay escaped, so a name
-// shown as text never equals markup), the <tbody> that a table gets anyway,
-// and white space next to a block or a line break.
+// common.ts, and src/test/catalog-reference/Buildings.svelte, with
+// buildState() and researchState() of src/client/logic/game.ts before #214
+// in src/test/catalog-reference/states.ts (the checks of #214 change no note
+// of a list). On generated states (fixed fast-check seed 118) both render
+// the same markup, up to what a browser does not show: Svelte's comments,
+// the order of the attributes, the escaping of >, " and ' (an escaped < and
+// & stay escaped, so a name shown as text never equals markup), the <tbody>
+// that a table gets anyway, and white space next to a block or a line break.
 import fc from 'fast-check';
 import { render } from 'svelte/server';
 import { readable } from 'svelte/store';
@@ -42,13 +44,9 @@ import { text } from '../core/text.ts';
 import type { Levels, Planet } from '../core/types.ts';
 import { orderMax, YARD_LOCK, yardLockedBy } from '../core/yard.ts';
 import type { CatalogKind } from '../client/logic/catalog-list.ts';
-import {
-  explainButtonHTML,
-  explainPanelHTML,
-  explanation,
-} from '../client/logic/explain.ts';
+import { type Explanation, explanation } from '../client/logic/explain.ts';
 import { dur, esc, fmt } from '../client/logic/format.ts';
-import { researchState } from '../client/logic/game.ts';
+import { researchState } from './catalog-reference/states.ts';
 import { iconURL } from '../client/logic/icons.ts';
 import { client } from '../client/logic/state.svelte.ts';
 import type { GameState } from '../client/logic/types.ts';
@@ -66,6 +64,15 @@ import { normalize } from './markup.ts';
 
 // ----- frozen: itemHTML() of src/client/views/common.ts before #118 -----
 
+// One change on purpose (#285, B2): the „?“ opens the article of the
+// Lexicanum in a side panel, so nothing unfolds below the entry, and it is
+// shown in every mode but „Ausblenden“ („Immer anzeigen“ went); it names
+// the panel it controls while the panel is open.
+const explainButtonHTML = (ex: Explanation | null): string =>
+  ex
+    ? `<button type="button" class="exq" id="${ex.button}" data-act="explain" data-k="${ex.key}" aria-expanded="${ex.open}"${ex.open ? ` aria-controls="${ex.panel}"` : ''} aria-label="Erklärung zu ${esc(ex.name)}">?</button>`
+    : '';
+
 function itemHTML(
   v: V,
   cls: string,
@@ -79,7 +86,7 @@ function itemHTML(
   const icon = src ? `<img src="${src}" alt="${esc(d.n)}">` : d.ab;
   const ds = d.ds ? `<div class="ds">${d.ds}</div>` : '';
   const ex = explanation(key, d, v.s.me.explain, v.ui.openEx);
-  return `<div class="item"><div class="icon ${cls}">${icon}</div><div><div class="nm">${d.n} <span class="lv">${level}</span>${explainButtonHTML(ex)}</div>${ds}${body}${explainPanelHTML(ex)}</div><div class="act">${action}</div></div>`;
+  return `<div class="item"><div class="icon ${cls}">${icon}</div><div><div class="nm">${d.n} <span class="lv">${level}</span>${explainButtonHTML(ex)}</div>${ds}${body}</div><div class="act">${action}</div></div>`;
 }
 
 // ----- frozen: src/client/views/economy.ts before #118 -----
@@ -478,6 +485,17 @@ describe('CatalogList against the views before #118', () => {
     );
     expect(normalize('<option value="p">P</option>')).not.toBe(
       normalize('<option value="p" selected>P</option>'),
+    );
+    // data-nokeep counts by its presence; Svelte writes it with an empty
+    // value (#118, bundle 2).
+    expect(normalize('<input data-nokeep="" id="g">')).toBe(
+      normalize('<input id="g" data-nokeep>'),
+    );
+    expect(normalize('<input id="g">')).not.toBe(
+      normalize('<input id="g" data-nokeep>'),
+    );
+    expect(normalize('<input data-nokeep="1" id="g">')).not.toBe(
+      normalize('<input id="g" data-nokeep>'),
     );
   });
 

@@ -80,7 +80,7 @@ flowchart TD
 
 A pull request that players can notice adds a German fragment
 `changes/<name>.md`; a pull request that changes `src/client`, `src/core`,
-`src/features` or `src/server/game` without one fails the job „Changelog fragments“,
+`src/features`, `src/server/game` or `src/server/http` without one fails the job „Changelog fragments“,
 unless it carries the label `kein-changelog`. Adding or removing the label
 re-runs the CI (`ci.yml` listens to `labeled` and `unlabeled`). The
 fragments wait in `changes/` until the release pull request bundles them.
@@ -233,7 +233,17 @@ the GitHub Actions and the images the CI runs (`renovate.json`):
   release. Security pull requests from GitHub's Dependabot alerts wait for
   nothing; Dependabot's own security updates are off, so no hole gets two
   pull requests.
-- Patch updates merge themselves once the CI Gate is green.
+- Patch updates merge themselves once the CI Gate is green. Minor updates
+  of a version from 1.0 on are merged by the release loop, one at a time.
+- An ordinary major update and an ordinary minor update below 1.0 get no
+  pull request until the owner ticks its box under „Pending Approval“ in
+  the issue „Dependency Dashboard“. A security update needs no such
+  approval: its pull request is opened at once, and a major one waits for
+  the owner's merge.
+- Renovate rebases a pull request only when it conflicts with `main`;
+  only the updates that merge themselves follow `main`. To bring another
+  one up to date before its merge, tick the box „rebase/retry“ at the end
+  of its description.
 - Security pull requests merge themselves for patch, minor, pin and
   digest updates (`vulnerabilityAlerts` in `renovate.json`, also for
   development dependencies); below version 1.0 only a patch does. A major

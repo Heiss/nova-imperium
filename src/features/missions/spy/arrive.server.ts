@@ -1,7 +1,9 @@
 // An Auspex-Erkundung reports the target to its owner, warns the defender,
-// and may be shot down; else it flies back.
+// and may be shot down; else it flies back. Its formulas are in
+// src/core/spy.ts, which the Lexicanum reads too (#285).
 import { countUnits } from '../../../core/flight.ts';
 import { placeName } from '../../../core/moon.ts';
+import { counterChance, spyParts, spyScore } from '../../../core/spy.ts';
 import type { Fleet } from '../../../core/types.ts';
 import { type Ctx, addReport, coords } from '../../../server/game/context.ts';
 import {
@@ -9,24 +11,6 @@ import {
   researchAt,
   turnBack,
 } from '../../../server/game/missions.ts';
-
-/** How much a spy report shows: more probes and better technology show more. */
-export function spyScore(probes: number, diff: number): number {
-  return probes + Math.sign(diff) * diff * diff;
-}
-
-export function counterChance(defShips: number, diff: number): number {
-  return defShips
-    ? Math.min(100, Math.round(2 * Math.sqrt(defShips) * Math.pow(2, -diff)))
-    : 0;
-}
-
-const SPY_LEVELS: [number, 'ships' | 'def' | 'b' | 'r'][] = [
-  [2, 'ships'],
-  [3, 'def'],
-  [5, 'b'],
-  [7, 'r'],
-];
 
 export function onArrive(ctx: Ctx, f: Fleet, at: Arrival): void {
   const { t, att, def } = at;
@@ -36,9 +20,7 @@ export function onArrive(ctx: Ctx, f: Fleet, at: Arrival): void {
   const chance = counterChance(countUnits(t.ships), diff);
   const lost = ctx.rng() * 100 < chance;
   const details = { ships: t.ships, def: t.def, b: t.b, r: defR };
-  const shown = Object.fromEntries(
-    SPY_LEVELS.filter(([min]) => score >= min).map(([, k]) => [k, details[k]]),
-  );
+  const shown = Object.fromEntries(spyParts(score).map((k) => [k, details[k]]));
   addReport(
     ctx,
     f.owner,

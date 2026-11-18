@@ -676,8 +676,10 @@ describe('shipyard', () => {
     expect(() => A.order(t.ctx, t.u, { key: 'gauss', n: 1 })).toThrow(
       'Das Wissen ist noch verschlossen.',
     );
+    // F10, as the browser says it (#214, O18 (c)); before: „Der Zehnte
+    // reicht nicht aus.“
     expect(() => A.order(t.ctx, t.u, { key: 'rl', n: 0 })).toThrow(
-      'Der Zehnte reicht nicht aus.',
+      'Bitte eine Anzahl eingeben.',
     );
     const full = Array.from({ length: 20 }, () => ({
       key: 'rl',
@@ -688,6 +690,18 @@ describe('shipyard', () => {
     expect(() => A.order(v.ctx, v.u, { key: 'rl', n: 1 })).toThrow(
       'Die Bauliste der Schiffsschmiede ist voll.',
     );
+  });
+});
+
+describe('the audit event of an order', () => {
+  it('names the planet, the unit and the units ordered', () => {
+    const { ctx, u, p } = setup({
+      b: { yard: 1 },
+      res: { m: 5000, c: 0, d: 0 },
+    });
+    const ordered: AuditEntry = { category: 'game', action: 'order' };
+    A.order(ctx, u, { key: 'rl', n: 9 }, ordered);
+    expect(ordered.detail).toEqual({ planet: p().id, key: 'rl', units: 2 });
   });
 });
 
@@ -761,6 +775,57 @@ describe('shield domes (#50)', () => {
   });
 });
 
+describe('one answer with the browser (#214, O18 (c))', () => {
+  const busy = { key: 'metal', lvl: 1, start: 0, end: 9e15, cost: [0, 0, 0] };
+  const running = { key: 'spy', lvl: 1, start: 0, end: 9e15, cost: [0, 0, 0] };
+
+  it('checks the requirements and the fields before the build queue (F8)', () => {
+    // 10,000 km: 100 fields, all taken; before: „Es wird bereits gebaut.“
+    const full = setup({ diameter: 10000, b: { metal: 100 }, bq: busy });
+    expect(() => A.build(full.ctx, full.u, { key: 'crystal' })).toThrow(
+      'Keine freien Felder.',
+    );
+    const { ctx, u } = setup({ bq: busy });
+    expect(() => A.build(ctx, u, { key: 'yard' })).toThrow(
+      'Das Wissen ist noch verschlossen.',
+    );
+    expect(() => A.build(ctx, u, { key: 'crystal' })).toThrow(
+      'Es wird bereits gebaut.',
+    );
+  });
+
+  it('checks the requirements before the running research and the lab upgrade (F9)', () => {
+    // Before: „Es wird bereits geforscht.“ and „Das Scholarium wird ausgebaut.“
+    const { ctx, u } = setup({ b: { lab: 1 } }, { rq: running });
+    expect(() => A.research(ctx, u, { key: 'laser' })).toThrow(
+      'Das Wissen ist noch verschlossen.',
+    );
+    expect(() => A.research(ctx, u, { key: 'energy' })).toThrow(
+      'Es wird bereits geforscht.',
+    );
+    const lab = { ...busy, key: 'lab' };
+    const up = setup({ b: { lab: 1 }, bq: lab });
+    expect(() => A.research(up.ctx, up.u, { key: 'laser' })).toThrow(
+      'Das Wissen ist noch verschlossen.',
+    );
+    expect(() => A.research(up.ctx, up.u, { key: 'energy' })).toThrow(
+      'Das Scholarium wird ausgebaut.',
+    );
+  });
+
+  it('asks for a count before the price (F10)', () => {
+    const { ctx, u, p } = setup({ b: { yard: 1 }, res: { m: 0, c: 0, d: 0 } });
+    for (const n of [0, -3, undefined, 'x'])
+      expect(() => A.order(ctx, u, { key: 'rl', n }), String(n)).toThrow(
+        'Bitte eine Anzahl eingeben.',
+      );
+    expect(() => A.order(ctx, u, { key: 'rl', n: 1 })).toThrow(
+      'Der Zehnte reicht nicht aus.',
+    );
+    expect(p().sq).toEqual([]);
+  });
+});
+
 describe('planet settings', () => {
   it('set the production share in steps of 10', () => {
     const { ctx, u, p } = setup();
@@ -792,21 +857,27 @@ describe('planet settings', () => {
   it('save the display option of the explanation texts (issue #63)', () => {
     const { ctx, u, me } = setup();
     expect(me().explain).toBe('icon');
-    for (const explain of ['always', 'hidden', 'icon']) {
+    for (const explain of ['hidden', 'icon']) {
       expect(A.options(ctx, u, { probes: 2, explain })).toBe('Gespeichert.');
       expect(me()).toMatchObject({ probes: 2, explain });
     }
+    // „Immer anzeigen“ of a client from before #285 becomes the „?“ (B2).
+    A.options(ctx, u, { probes: 2, explain: 'hidden' });
+    expect(A.options(ctx, u, { probes: 2, explain: 'always' })).toBe(
+      'Gespeichert.',
+    );
+    expect(me()).toMatchObject({ probes: 2, explain: 'icon' });
     A.options(ctx, u, { probes: 3, explain: 'hidden' });
     A.options(ctx, u, { probes: 4 });
     expect(me()).toMatchObject({ probes: 4, explain: 'hidden' });
   });
   it('refuse an unknown display option and change nothing', () => {
-    const { ctx, u, me } = setup({}, { probes: 3, explain: 'always' });
+    const { ctx, u, me } = setup({}, { probes: 3, explain: 'hidden' });
     for (const explain of ['', 'never', 'ICON', null, 1, ['icon']])
       expect(() => A.options(ctx, { ...u }, { probes: 9, explain })).toThrow(
         'Ungültig.',
       );
-    expect(me()).toMatchObject({ probes: 3, explain: 'always' });
+    expect(me()).toMatchObject({ probes: 3, explain: 'hidden' });
   });
 });
 

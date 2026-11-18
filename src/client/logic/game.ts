@@ -1,6 +1,12 @@
 // Logic of the interface that is not HTML: ranks, protection, what a button
 // shows, the preview of a flight, the cargo button, galaxy navigation.
 import {
+  type BuildError,
+  buildErrors,
+  type ResearchError,
+  researchErrors,
+} from '../../core/economy-checks.ts';
+import {
   capacity,
   countUnits,
   distance,
@@ -8,9 +14,7 @@ import {
   flightMs,
   fuelFor,
 } from '../../core/flight.ts';
-import { labUpgrading, waitsForLab } from '../../core/lab.ts';
 import { isProtected as protects } from '../../core/protection.ts';
-import { waitsForYard } from '../../core/yard.ts';
 import type {
   Coords,
   Levels,
@@ -44,66 +48,34 @@ export const fleetEnd = (f: ClientFleet): number =>
 export const sortFleets = (list: ClientFleet[]): ClientFleet[] =>
   list.slice().sort((a, b) => fleetEnd(a) - fleetEnd(b));
 
-export type BuildState =
-  | 'running'
-  | 'missing'
-  | 'full'
-  | 'queueBusy'
-  | 'yardBusy'
-  | 'labBusy'
-  | 'noEnergy'
-  | 'ready';
-
 /**
- * `full`: the planet has no free field (#51); `noEnergy`: the planet lacks
- * energy production; `short`: the energy production the planet lacks
- * (Weltenschmiede, #51).
+ * What the row of a building shows: its running upgrade, the first code of
+ * `buildErrors` (the browser and the server take the same order, O18 (c),
+ * F8), or that it can start.
  */
+export type BuildState = 'running' | BuildError | 'ready';
+
 export function buildState(
   p: Planet,
   r: ResearchState,
   key: string,
-  missing: number,
-  full = false,
-  short = 0,
+  u: Universe,
 ): BuildState {
   if (p.bq?.key === key) return 'running';
-  if (missing) return 'missing';
-  return buildWait(p, r, key, full, short);
+  return buildErrors(p, r, key, u)[0] ?? 'ready';
 }
 
-/** What a building whose requirements are met waits for, if anything. */
-function buildWait(
-  p: Planet,
-  r: ResearchState,
-  key: string,
-  full: boolean,
-  short: number,
-): BuildState {
-  if (full) return 'full';
-  if (p.bq) return 'queueBusy';
-  if (waitsForYard(p, key)) return 'yardBusy';
-  if (waitsForLab(r, key)) return 'labBusy';
-  return short > 0 ? 'noEnergy' : 'ready';
-}
+/** The same for research, from `researchErrors` (F9). */
+export type ResearchUiState = 'running' | ResearchError | 'ready';
 
-export type ResearchUiState =
-  'running' | 'missing' | 'busy' | 'labBusy' | 'noEnergy' | 'ready';
-
-/** `short`: the energy production the planet lacks (Gravitonforschung, #49). */
 export function researchState(
   p: Planet,
   r: ResearchState,
   key: string,
-  missing: number,
-  short = 0,
+  u: Universe,
 ): ResearchUiState {
   if (r.rq?.key === key) return 'running';
-  if (missing) return 'missing';
-  if (r.rq) return 'busy';
-  if (labUpgrading(p)) return 'labBusy';
-  if (short > 0) return 'noEnergy';
-  return 'ready';
+  return researchErrors(p, r, key, u)[0] ?? 'ready';
 }
 
 export interface FleetForm {
@@ -147,18 +119,50 @@ export function fleetPreview(
   };
 }
 
-/** Fills the holds: metal first, then crystal, then deuterium minus fuel. */
-export function cargoMax(p: Planet, f: FleetForm): Resources {
-  const fuel = countUnits(f.ships)
-    ? fuelFor(f.ships, distance(p, f.to), f.pct)
-    : 0;
-  let cap = capacity(f.ships);
-  const m = Math.min(Math.floor(p.res.m), cap);
-  cap -= m;
-  const c = Math.min(Math.floor(p.res.c), cap);
-  cap -= c;
-  const d = Math.max(0, Math.min(Math.floor(p.res.d - fuel), cap));
-  return { m, c, d };
+type CargoKey = keyof Resources;
+/** The resources a fleet carries, in the order of the cargo fields. */
+export const CARGO: CargoKey[] = ['m', 'c', 'd'];
+
+/** What a flight can load: whole units, Promethium after the fuel. */
+function loadable(p: Planet, f: FleetForm): Resources {
+  // Without ships the holds are empty, whatever the fuel.
+  const fuel = fuelFor(f.ships, distance(p, f.to), f.pct);
+  return {
+    m: Math.floor(p.res.m),
+    c: Math.floor(p.res.c),
+    d: Math.max(0, Math.floor(p.res.d - fuel)),
+  };
+}
+
+/**
+ * Equal shares of the room (#240), the resource with the least stock first:
+ * what it cannot fill goes to the others. A share is rounded up, so the room
+ * is used fully when the stock allows.
+ */
+function fillEvenly(stock: Resources, room: number): Resources {
+  const out = {} as Resources;
+  const order = [...CARGO].sort((a, b) => stock[a] - stock[b]);
+  order.forEach((k, i) => {
+    out[k] = Math.min(stock[k], Math.ceil(room / (order.length - i)));
+    room -= out[k];
+  });
+  return out;
+}
+
+/** „alles“ (#240): fills the holds evenly with the three resources. */
+export const cargoMax = (p: Planet, f: FleetForm): Resources =>
+  fillEvenly(loadable(p, f), capacity(f.ships));
+
+/**
+ * „alles“ under a field (#240): only that resource, up to the room the other
+ * two fields leave; they stay as they are.
+ */
+export function cargoOne(p: Planet, f: FleetForm, key: CargoKey): number {
+  const others = CARGO.reduce(
+    (sum, k) => (k === key ? sum : sum + f.cargo[k]),
+    0,
+  );
+  return Math.max(0, Math.min(loadable(p, f)[key], capacity(f.ships) - others));
 }
 
 const STEPS: Record<string, [number, number]> = {
