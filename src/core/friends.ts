@@ -91,4 +91,4 @@ export const isOnline = (
   last: number | undefined,
   now: number,
   recentMinutes: number,
-): boolean => last !== undefined && now - last < recentMinutes * MINUTE_MS;
+): boolean => now - (last ?? -Infinity) < recentMinutes * MINUTE_MS;

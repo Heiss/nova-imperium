@@ -25,6 +25,9 @@ describe('the relation of two players', () => {
     expect(
       relationOf([link('a', 'c'), link('c', 'b'), link('c', 'a')], 'a', 'b'),
     ).toBe('none');
+    // A link of the other player with a third one is no link to me.
+    expect(relationOf([link('b', 'c')], 'a', 'b')).toBe('none');
+    expect(relationOf([link('b', 'c', 'friend')], 'a', 'b')).toBe('none');
   });
 
   it('is outgoing for an own request and incoming for one to me', () => {
@@ -130,7 +133,14 @@ describe('online or offline', () => {
     expect(isOnline(NOW - MINUTE + 1, NOW, 1)).toBe(true);
   });
 
-  it('is offline without any activity', () => {
+  it('is offline without any activity, however large the threshold', () => {
     expect(isOnline(undefined, NOW, 15)).toBe(false);
+    expect(isOnline(undefined, NOW, 60)).toBe(false);
+    expect(isOnline(undefined, 0, 1)).toBe(false);
+  });
+
+  it('is offline for an activity at the start of the clock', () => {
+    expect(isOnline(0, NOW, 60)).toBe(false);
+    expect(isOnline(0, 0, 15)).toBe(true);
   });
 });
