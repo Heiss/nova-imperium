@@ -18,6 +18,7 @@ import { type Action, type Data, mine, researchOf } from './actions.ts';
 import { type Ctx, coords, fail, fmt, int, universe } from './context.ts';
 import { route, target } from './fleet-actions.ts';
 import { isProtected, pointsMap } from './points.ts';
+import { inVacation } from './vacation.ts';
 
 /** The German message of each refusal: the fleet's where they say the same, else [V]. */
 const LAUNCH_ERROR: Readonly<Record<LaunchError, string>> = {
@@ -28,6 +29,7 @@ const LAUNCH_ERROR: Readonly<Record<LaunchError, string>> = {
   noMoon: 'An dieser Position gibt es keinen Mond.',
   ownTarget: 'Eigene Planeten kann man nicht angreifen.',
   outOfRange: 'Das Ziel liegt außerhalb der Reichweite der Orbitalraketen.',
+  vacation: 'Dieser Spieler ist im Urlaubsmodus.',
   protected: 'Dieser Spieler steht unter Noobschutz.',
 };
 
@@ -49,8 +51,8 @@ function checked(ctx: Ctx, u: User, p: Planet, d: Data) {
     {
       place: { ...dest, kind },
       owner,
-      // The vacation mode joins here with #223.
       protects: (o) => isProtected(u.id, o, pointsMap(ctx)),
+      vacation: inVacation(ctx),
     },
     n,
     aim,

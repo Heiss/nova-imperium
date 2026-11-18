@@ -13,6 +13,7 @@ import { DEF, FIGHTERS, MISSILE } from './catalog.ts';
 import { strength } from './components/combat.ts';
 import { strikes } from './components/silo.ts';
 import type { Coords, Levels, Place, Planet } from './types.ts';
+import { vacationProtects } from './vacation.ts';
 
 /**
  * The missile that is launched (the Orbitalrakete): the one missile that
@@ -64,6 +65,7 @@ export type LaunchError =
   | 'noMoon'
   | 'ownTarget'
   | 'outOfRange'
+  | 'vacation'
   | 'protected'
   | 'aim';
 
@@ -80,11 +82,16 @@ export interface LaunchTarget {
   /** The owner of the planet or moon there; undefined when there is none. */
   owner?: string;
   /**
-   * Whether the target's owner is protected from the launcher: the noob
-   * protection, and the vacation mode once #223 is built. The server
-   * determines it, and only after the other checks of the target.
+   * Whether the target's owner is protected from the launcher by the noob
+   * protection. The server determines it, and only after the other checks
+   * of the target.
    */
   protects(owner: string): boolean;
+  /**
+   * Whether `owner` is in vacation mode (#223): a place of such a player is
+   * protected from every new mission of another player, the missiles too.
+   */
+  vacation(owner: string): boolean;
 }
 
 /**
@@ -103,7 +110,7 @@ export function launchError(
   return targetError(launcher, target);
 }
 
-/** Why the target cannot be hit: nothing there, own, out of range, protected. */
+/** Why the target cannot be hit: nothing there, own, out of range, in vacation, protected. */
 function targetError(
   launcher: Launcher,
   target: LaunchTarget,
@@ -114,6 +121,9 @@ function targetError(
   if (owner === launcher.at.owner) return 'ownTarget';
   if (!inMissileRange(launcher.at, target.place, launcher.impulse))
     return 'outOfRange';
+  // The vacation mode first, then the noob protection, as for a fleet.
+  if (vacationProtects({ owner }, launcher.at.owner, target.vacation))
+    return 'vacation';
   return target.protects(owner) ? 'protected' : null;
 }
 

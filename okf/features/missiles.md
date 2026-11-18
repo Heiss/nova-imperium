@@ -101,7 +101,7 @@ above.
   rest on through the stored missiles, without the Abfangraketen that
   intercepted when they stand on the target itself).
 * **[E]** Flight as the mission `missile` (patterns, section 4): the
-  folder `src/features/missions/missile/` with `rules.ts` (order 70, target
+  folder `src/features/missions/missile/` with `rules.ts` (order 90: the Mondbruch has 70 and the Vermessung 80 in the bundle, each order once; target
   `foreign`, no cargo, no return, visible to the defender, no guild alert),
   `texts.de.ts` („Raketenangriff“) and `arrive.server.ts` (the impact).
   `MissionRules` has the optional field `launch` (`'fleet'` by default,
@@ -171,14 +171,25 @@ above.
     `missile` too.
 * **[U]** Not built, open: tearing missiles down for free (issue, owiki
   „Raketensilo“) and the demolition of the Raketenkrypta below the places
-  its missiles take, both with #202 (owner, 2026-11-17); the check of the
-  vacation mode (#223, below).
-* **[V]** Vacation mode (#223, built in parallel): the target check takes
-  the protection as one function, `protects(owner)` in `launchError`
-  (`src/core/missiles.ts`), which the server passes from
-  `src/server/game/missiles.ts` (today the noob protection; the comment
-  „The vacation mode joins here with #223“ marks the place). TODO for #223:
-  add the vacation mode to that one call, as for the fleets.
+  its missiles take, both with #202 (owner, 2026-11-17).
+* **[V]** Vacation mode (#223, built into the bundle with #54): the check of
+  the target asks it after the range and before the noob protection, as
+  for a fleet (`vacationProtects`, `src/core/vacation.ts`): a place of a
+  player in vacation mode is refused with the code `vacation` of
+  `launchError` and „Dieser Spieler ist im Urlaubsmodus.“, the text of the
+  fleets; nothing is spent. A player in vacation mode cannot launch: the
+  action `missile` is not on the list of the lock screen. The server passes
+  `vacation: inVacation(ctx)` beside `protects`.
+* **[V]** Highscore (#78): missiles are no defense that fights, so they stay
+  out of the category „Verteidigung“ and count in the total only (pinned in
+  `src/features/missions/missile/missile.test.ts`).
+* **[V]** Mondbruch (#95): missiles in flight to a moon that breaks are not
+  rerouted to its planet like the fleets (`fleets.reroute` keeps the
+  missions of `SILO_MISSIONS`); with their target gone they are lost at the
+  arrival, as above. A missile that hit another place than the one aimed at
+  would be a different attack.
+* **[V]** Abandon (#224): the refusal says „Flotten“ for a missile in flight
+  too (coordinator, 2026-11-18).
 * **[V]** Lexicanum (#285): the articles of the Raketenkrypta, the
   Abfangrakete and the Orbitalrakete have keywords only, the mission
   Raketenangriff has a text of what happens on arrival, all as drafts in

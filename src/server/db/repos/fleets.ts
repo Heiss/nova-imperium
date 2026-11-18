@@ -19,9 +19,12 @@ export interface Fleets {
   deleteAll(): void;
   /**
    * A place is gone (a destroyed moon, #95): the fleets flying to it fly to
-   * `to` instead, and the fleets whose home it is come home to `to`.
+   * `to` instead, and the fleets whose home it is come home to `to`. The
+   * flights of the missions in `keep` keep their target: missiles whose
+   * target is gone are lost at the arrival, they do not hit another place
+   * (#54).
    */
-  reroute(from: string, to: string): void;
+  reroute(from: string, to: string, keep?: readonly string[]): void;
 }
 
 const coordsOf = (r: Row, p: 'from' | 'to'): Coords => ({
@@ -152,12 +155,13 @@ export class SqliteFleets implements Fleets {
     this.db.prepare('DELETE FROM fleets').run();
   }
 
-  reroute(from: string, to: string): void {
+  reroute(from: string, to: string, keep: readonly string[] = []): void {
     this.db
       .prepare(
-        "UPDATE fleets SET to_planet = ? WHERE to_planet = ? AND state = 'out'",
+        `UPDATE fleets SET to_planet = ? WHERE to_planet = ? AND state = 'out'
+         AND mission NOT IN (SELECT value FROM json_each(?))`,
       )
-      .run(to, from);
+      .run(to, from, JSON.stringify(keep));
     this.db
       .prepare('UPDATE fleets SET from_planet = ? WHERE from_planet = ?')
       .run(to, from);

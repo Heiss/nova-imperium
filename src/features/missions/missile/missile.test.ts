@@ -6,7 +6,10 @@
 import { describe, expect, it } from 'vitest';
 import { runAction } from '../../../server/game/dispatch.ts';
 import { tick } from '../../../server/game/arrival.ts';
+import { destroyMoon } from '../../../server/game/moons.ts';
 import { pointsMap } from '../../../server/game/points.ts';
+import { VACATION_REFUSED } from '../../../server/game/vacation.ts';
+import { categoryScores } from '../../../server/game/highscore.ts';
 import { addPlanet, addUser, testCtx } from '../../../server/test-helpers.ts';
 import type { Data } from '../../../server/game/actions.ts';
 
@@ -148,6 +151,64 @@ describe('missile: the launch', () => {
         pct: 10,
       }),
     ).toThrow('Unbekannter Auftrag.');
+  });
+});
+
+describe('missile: vacation mode, highscore and a broken moon', () => {
+  const vacation = (ctx: ReturnType<typeof testCtx>, uid: string) =>
+    ctx.players.save({ ...ctx.players.get(uid)!, vacation: ctx.now() });
+
+  it('is refused at a player in vacation mode like every mission, before the noob protection, and costs nothing (#223)', () => {
+    const { ctx } = setup({ moon: true });
+    vacation(ctx, 'u_Bert');
+    for (const to of [
+      { ...BETA, kind: 'planet' },
+      { ...BETA, kind: 'moon' },
+    ])
+      expect(() => launch(ctx, { to })).toThrow(
+        'Dieser Spieler ist im Urlaubsmodus.',
+      );
+    expect(ctx.fleets.all()).toEqual([]);
+    expect(ctx.planets.get('p1_1_5')!.def).toEqual({ ipm: 10 });
+    // Without the vacation the same launch flies.
+    ctx.players.save({ ...ctx.players.get('u_Bert')!, vacation: null });
+    expect(launch(ctx, {})).toBe('3 Orbitalraketen unterwegs nach [1:3:6].');
+  });
+
+  it('is refused for a player in vacation mode himself: the action is not on the list of the lock screen (#223)', () => {
+    const { ctx } = setup();
+    vacation(ctx, 'u_Anna');
+    expect(() => launch(ctx, {})).toThrow(VACATION_REFUSED);
+    expect(ctx.fleets.all()).toEqual([]);
+    expect(ctx.planets.get('p1_1_5')!.def).toEqual({ ipm: 10 });
+  });
+
+  it('keeps the missiles out of the defense category and counts them in the total (#78, #54)', () => {
+    const { ctx } = setup();
+    const before = categoryScores(ctx);
+    const total = pointsMap(ctx);
+    const home = ctx.planets.get('p1_1_5')!;
+    ctx.planets.save({ ...home, def: { ...home.def, ipm: 410, abm: 200 } });
+    expect(categoryScores(ctx).u_Anna!.defense).toBe(before.u_Anna!.defense);
+    expect(pointsMap(ctx).u_Anna!).toBeGreaterThan(total.u_Anna!);
+  });
+
+  it('loses the missiles in flight to a moon that breaks: they are not rerouted to its planet (#95, #54) [V]', () => {
+    const { ctx } = setup({ moon: true });
+    launch(ctx, { to: { ...BETA, kind: 'moon' } });
+    const flight = ctx.fleets.all()[0]!;
+    destroyMoon(ctx, ctx.planets.get('m1_3_6')!);
+    // Still on its way to the moon that is gone, not to the planet.
+    expect(ctx.fleets.get(flight.id)!.to).toBe('m1_3_6');
+    const planet = ctx.planets.get('p1_3_6')!;
+    ctx.clock.t = flight.arr;
+    tick(ctx);
+    expect(ctx.fleets.all()).toEqual([]);
+    expect(ctx.planets.get('p1_3_6')).toEqual(planet);
+    expect(JSON.stringify(reports(ctx, 'u_Anna'))).toContain(
+      'Deine Orbitalraketen sind verloren.',
+    );
+    expect(reports(ctx, 'u_Bert')).toEqual([]);
   });
 });
 

@@ -3,6 +3,7 @@
 // `moon` (#119, O11) and belongs to the owner of its planet; at most one per
 // planet. It starts as „Mond“ with the temperature of its planet, without
 // stock and without buildings (owner, 2026-11-13 and 2026-11-14).
+import { SILO_MISSIONS } from '../../core/missions.ts';
 import { placeId } from '../../core/place.ts';
 import {
   formsMoon,
@@ -119,11 +120,13 @@ export function createMoon(
  * A broken moon (#95; owner, 2026-11-13 and 2026-11-16): everything on it
  * is lost, its stock, buildings, ships, defense and queues, with the pushes
  * of its queues; it leaves no Trümmerfeld. Fleets flying to it land at its
- * planet, and fleets whose home it is come home to its planet [V].
+ * planet, and fleets whose home it is come home to its planet [V]. Missiles
+ * flying to it are not rerouted: with their target gone they are lost at the
+ * arrival, as the missiles decide (#54) [V].
  */
 export function destroyMoon(ctx: Ctx, moon: Planet): void {
   const planet = placeId({ g: moon.g, s: moon.s, p: moon.p, kind: 'planet' });
-  ctx.fleets.reroute(moon.id, planet);
+  ctx.fleets.reroute(moon.id, planet, SILO_MISSIONS);
   ctx.planets.delete(moon.id);
   for (const kind of ['buildings', 'shipyard'] as const)
     cancelScheduledPush(ctx, moon.owner, kind, `${moon.id}:*`);

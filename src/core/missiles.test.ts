@@ -80,6 +80,7 @@ describe('missiles: the checks of a launch', () => {
     place: { kind: 'planet', g: 1, s: 3, p: 6 },
     owner: 'b',
     protects: () => protects,
+    vacation: () => false,
     ...over,
   });
 
@@ -125,6 +126,14 @@ describe('missiles: the checks of a launch', () => {
         1,
         null,
       ],
+      // The vacation mode of the owner comes before the noob protection (#223).
+      [
+        'vacation',
+        launcher(2),
+        target({ vacation: (o) => o === 'b' }, true),
+        1,
+        null,
+      ],
       ['protected', launcher(2), target({}, true), 1, null],
     ];
     for (const [code, l, t, n, aim] of cases)
@@ -146,6 +155,28 @@ describe('missiles: the checks of a launch', () => {
     expect(asked).toEqual([]);
     launchError(launcher(2), t({}), 1, null);
     expect(asked).toEqual(['b']);
+  });
+
+  it('asks the vacation of the owner of a foreign target in range only, and an own or a far one is no vacation case (#223)', () => {
+    const asked: string[] = [];
+    const t = (over: Partial<LaunchTarget>): LaunchTarget => ({
+      ...target(over),
+      vacation: (o) => {
+        asked.push(o);
+        return false;
+      },
+    });
+    launchError(launcher(2), t({ owner: 'a' }), 1, null);
+    launchError(launcher(2, 0), t({}), 1, null);
+    launchError(launcher(0), t({}), 1, null);
+    launchError(launcher(2), t({ owner: undefined }), 1, null);
+    expect(asked).toEqual([]);
+    launchError(launcher(2), t({}), 1, null);
+    expect(asked).toEqual(['b']);
+    // Only the owner of the target counts, not the launcher.
+    expect(
+      launchError(launcher(2), target({ vacation: (o) => o === 'a' }), 1, null),
+    ).toBeNull();
   });
 });
 

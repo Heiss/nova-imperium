@@ -535,7 +535,7 @@ owiki.de „Mond“ (section Zerstörung, formula images). Built after the moons
   and the pushes of its queues (`destroyMoon` in
   `src/server/game/moons.ts`, `planets.delete`); the fleets flying to it
   fly to its planet, the fleets whose home it is come home there
-  (`fleets.reroute`). Neither leaves a Trümmerfeld. The rolls go into the
+  (`fleets.reroute`), but not the missiles of #54: they keep the moon as their target and are lost at the arrival [V]. Neither leaves a Trümmerfeld. The rolls go into the
   audit log (`system` / `moonbreak`: fleet, moon, both chances and
   outcomes).
 * Reports: the attacker's battle report keeps `moonbreak` (`chance`,

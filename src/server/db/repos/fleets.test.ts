@@ -131,4 +131,20 @@ describe('fleets repository', () => {
     // Nothing else of a fleet changes.
     expect(ctx.fleets.get('to')).toEqual(fleet({ id: 'to', to: 'p1' }));
   });
+
+  it('keeps the target of the missions it is told to keep, the missiles of #54', () => {
+    const ctx = testCtx();
+    addUser(ctx, 'Anna');
+    ctx.fleets.save(fleet({ id: 'ships', to: 'm1', mission: 'attack' }));
+    ctx.fleets.save(fleet({ id: 'ipm', to: 'm1', mission: 'missile' }));
+    ctx.fleets.save(fleet({ id: 'other', to: 'x', mission: 'missile' }));
+    ctx.fleets.reroute('m1', 'p1', ['missile']);
+    const targets = Object.fromEntries(
+      ctx.fleets.all().map((f) => [f.id, f.to]),
+    );
+    expect(targets).toEqual({ ships: 'p1', ipm: 'm1', other: 'x' });
+    // Without a list every flight is rerouted, as before.
+    ctx.fleets.reroute('m1', 'p2');
+    expect(ctx.fleets.get('ipm')!.to).toBe('p2');
+  });
 });
