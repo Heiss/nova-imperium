@@ -179,11 +179,19 @@ tasks).
 * **[E]** Small patches are slotted in between features (owner,
   2026-11-16): the main agent merges Renovate's green patch and minor pull
   requests (one at a time, CI Gate green on a head up to date with `main`;
-  a major update and a minor one below 1.0 wait for the owner) while it
-  waits and follows up Dependabot alerts without a
+  a major update and a minor one below 1.0 wait for the owner) and follows
+  up Dependabot alerts without a
   Renovate security pull request; a small bug or cleanup issue may be the
   next issue of a free subagent. Reason: the owner wants them done before
   the release, not piled up at its end.
+* **[E]** The loop does that in every iteration in which none of its own
+  pull requests is the next one to merge, not only „while it waits“
+  (owner, 2026-11-18: „sowieso sollte der loop schauen, ob er solche PRs
+  nicht selbst mal eben mit reinpackt“): it brings the oldest such
+  Renovate pull request one step further (ask for the rebase, or merge
+  it). Reason: on 2026-11-18 five green minor updates were open, the
+  oldest since 2026-11-13, although the rule above stood since
+  2026-11-16; the session beside the loop merged them.
 * **[E]** An open pull request takes `main` in only when it is the next one
   to merge (CI green on its head, every finding answered), when GitHub
   reports a conflict (then no CI starts, as seen on #194), or when it needs code
@@ -200,12 +208,17 @@ tasks).
   Renovate's ordinary patch and minor pull requests of versions from 1.0
   on (owner, 2026-11-16): one at a time, each under O4 (green CI Gate, no
   blocking finding, every finding answered) on a head up to date with
-  `main`; Renovate rebases the others itself. Reason:
+  `main`; the loop asks Renovate for the rebase of the next one with the
+  box „rebase/retry“ in its description, because Renovate rebases only on
+  a conflict (owner, 2026-11-18,
+  [Branching and release](/ops/branching-release.md)). Reason:
   normal updates merge themselves only for patch (`renovate.json`), so
   minor ones waited without an owner; on 2026-11-16 six of them were open,
   the oldest since 2026-11-13. **[V]** A red one stays open and is named
   to the owner with the release, it is not fixed like a security pull
-  request; major updates and minor updates below 1.0 wait for the owner,
+  request; major updates and minor updates below 1.0 wait for the owner
+  (from 2026-11-18 without a pull request, listed in the Dependency
+  Dashboard until the owner approves),
   each with one issue that the loop finds or opens without a status label
   (CodeRabbit on #266; see [Branching and release](/ops/branching-release.md)).
 * **[E]** A red security pull request of Renovate (from GitHub's Dependabot

@@ -2,29 +2,48 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:recommended", "helpers:pinGitHubActionDigests"],
   "minimumReleaseAge": "3 days",
+  "rebaseWhen": "conflicted",
   "packageRules": [
     {
+      "description": "Patch updates merge themselves. Only updates that merge themselves follow main: its ruleset wants an up-to-date head, and every other pull request would run the CI again after every push to main (owner, 2026-11-18).",
       "matchUpdateTypes": ["patch"],
-      "automerge": true
+      "automerge": true,
+      "rebaseWhen": "behind-base-branch"
+    },
+    {
+      "description": "A major update waits for the owner: no pull request before its box in the Dependency Dashboard is ticked (owner, 2026-11-18).",
+      "matchUpdateTypes": ["major"],
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": "Below 1.0 a minor update counts like a major one (owner, 2026-11-18).",
+      "matchUpdateTypes": ["minor"],
+      "matchCurrentVersion": "<1.0.0",
+      "dependencyDashboardApproval": true
     }
   ],
   "vulnerabilityAlerts": {
+    "description": "A security pull request never waits for an approval in the Dependency Dashboard.",
+    "dependencyDashboardApproval": false,
     "packageRules": [
       {
         "description": "Security pull requests merge themselves for patch updates (owner, 2026-11-13, #148).",
         "matchUpdateTypes": ["patch"],
-        "automerge": true
+        "automerge": true,
+        "rebaseWhen": "behind-base-branch"
       },
       {
         "description": "Minor security updates merge themselves from version 1.0 on; below 1.0 a minor update counts like a major one and waits for the owner (#148).",
         "matchUpdateTypes": ["minor"],
         "matchCurrentVersion": ">=1.0.0",
-        "automerge": true
+        "automerge": true,
+        "rebaseWhen": "behind-base-branch"
       },
       {
         "description": "Pin and digest security updates merge themselves too (owner, 2026-11-13, #148).",
         "matchUpdateTypes": ["pin", "pinDigest", "digest"],
-        "automerge": true
+        "automerge": true,
+        "rebaseWhen": "behind-base-branch"
       }
     ]
   },
