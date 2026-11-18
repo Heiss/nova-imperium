@@ -9,7 +9,13 @@ import { settle } from '../../core/settle.ts';
 import { HOUR_MS } from '../../core/vacation.ts';
 import type { AuditEntry } from '../audit.ts';
 import { openDatabase } from '../db/database.ts';
-import { addPlanet, addUser, type TestCtx, testCtx } from '../test-helpers.ts';
+import {
+  addPlanet,
+  addUser,
+  queuedPushes,
+  type TestCtx,
+  testCtx,
+} from '../test-helpers.ts';
 import { answerOf } from './actions.ts';
 import { tick } from './arrival.ts';
 import { universe } from './context.ts';
@@ -22,6 +28,7 @@ import {
   VACATION_NOTICE,
   VACATION_REFUSED,
   earlyText,
+  inVacation,
 } from './vacation.ts';
 
 // 2026-11-17 12:00 UTC.
@@ -462,6 +469,32 @@ describe('the Warp-Tor, giving up a colony and the Auspex-Phalanx (#230, #224, #
     expect(() =>
       act(ctx, 'scan', { planet: HOME_MOON, target: 'p1_2_6' }),
     ).toThrow(VACATION_REFUSED);
+  });
+});
+
+describe('the words and the notice', () => {
+  it('says „Im Urlaubsmodus nicht möglich.“ to a refused action', () => {
+    expect(VACATION_REFUSED).toBe('Im Urlaubsmodus nicht möglich.');
+  });
+
+  it('asks the vacation of a known player only; an unknown one is not away', () => {
+    const ctx = world();
+    start(ctx);
+    expect(inVacation(ctx)('u_Anna')).toBe(true);
+    expect(inVacation(ctx)('u_Bert')).toBe(false);
+    expect(inVacation(ctx)('u_Gone')).toBe(false);
+  });
+
+  it('pushes the notice of a new round as a server announcement', () => {
+    const ctx = world();
+    ctx.db
+      .prepare(`INSERT INTO push_subscriptions VALUES (?, ?, 'k', 'a')`)
+      .run('e', 'u_Anna');
+    start(ctx);
+    act(ctx, 'reset');
+    expect(queuedPushes(ctx)).toEqual([
+      { user: 'u_Anna', kind: 'messages', topic: 'announcement' },
+    ]);
   });
 });
 
