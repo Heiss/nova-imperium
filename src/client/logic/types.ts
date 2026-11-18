@@ -1,4 +1,5 @@
-import type { AchievementState, RoundRules } from '../../core/achievements.ts';
+import type { AchievementState } from '../../core/achievements.ts';
+import type { RoundRules } from '../../core/round.ts';
 // The state the server sends (GET /api/state).
 import type { DebrisField } from '../../core/debris.ts';
 import type { GateView } from '../../core/jump-gate.ts';
