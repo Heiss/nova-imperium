@@ -264,7 +264,7 @@ CREATE TABLE planets (
     bq_cost_d INTEGER,
     diameter INTEGER NOT NULL DEFAULT 0,
     unlimited INTEGER NOT NULL DEFAULT 0 CHECK (unlimited IN (0, 1)),
-    kind TEXT NOT NULL DEFAULT 'planet' CHECK (kind IN ('planet', 'moon')), bq_back_m INTEGER, bq_back_c INTEGER, bq_back_d INTEGER,
+    kind TEXT NOT NULL DEFAULT 'planet' CHECK (kind IN ('planet', 'moon')), bq_back_m INTEGER, bq_back_c INTEGER, bq_back_d INTEGER, active_at INTEGER,
     UNIQUE (g, s, p, kind)
   ) STRICT;
 
@@ -378,4 +378,4 @@ CREATE TABLE users (
     rq_cost_c INTEGER,
     rq_cost_d INTEGER
   , explain_mode TEXT NOT NULL DEFAULT 'icon'
-    CHECK (explain_mode IN ('always', 'icon', 'hidden')), rq_planet TEXT, main_planet TEXT, main_switched INTEGER) STRICT;
+    CHECK (explain_mode IN ('always', 'icon', 'hidden')), rq_planet TEXT, main_planet TEXT, main_switched INTEGER, active_at INTEGER) STRICT;

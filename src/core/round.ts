@@ -12,6 +12,12 @@
 import { ABANDON_LOCK_SETTING } from './abandon.ts';
 import { ACHIEVEMENTS_SETTING, DAILY_SETTING } from './achievements.ts';
 import {
+  ACTIVITY_MINUTES_SETTING,
+  ACTIVITY_RECENT_SETTING,
+  INACTIVE_DAYS_SETTING,
+  LONG_INACTIVE_DAYS_SETTING,
+} from './activity.ts';
+import {
   DEMOLITION_REFUND_SETTING,
   DEMOLITION_TIME_SETTING,
 } from './demolition.ts';
@@ -79,6 +85,10 @@ const ENTRIES = [
   DEMOLITION_TIME_SETTING,
   GUILDS_SETTING,
   MAIN_LOCK_SETTING,
+  ACTIVITY_RECENT_SETTING,
+  ACTIVITY_MINUTES_SETTING,
+  INACTIVE_DAYS_SETTING,
+  LONG_INACTIVE_DAYS_SETTING,
 ] as const satisfies readonly RoundSetting[];
 
 /** The settings by their `order` number, the fixed order (owner, 2026-11-17). */

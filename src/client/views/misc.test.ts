@@ -47,6 +47,10 @@ describe('the dialog „Neue Runde“', () => {
     daily: true,
     mainLock: 7,
     abandonLock: 24,
+    activityRecent: 15,
+    activityMinutes: 59,
+    inactiveDays: 7,
+    longInactiveDays: 28,
     demolitionRefund: 50,
     demolitionTime: 50,
   };
@@ -62,6 +66,10 @@ describe('the dialog „Neue Runde“', () => {
       'round-guilds-note',
       'round-main-lock',
       'round-abandon-lock',
+      'round-activity-recent',
+      'round-activity-minutes',
+      'round-inactive-days',
+      'round-long-inactive-days',
       'round-demolition-refund',
       'round-demolition-time',
     ]);
@@ -84,6 +92,10 @@ describe('the lock of the main planet in the dialog „Neue Runde“ (#221)', ()
     daily: true,
     guilds: true,
     abandonLock: 24,
+    activityRecent: 15,
+    activityMinutes: 59,
+    inactiveDays: 7,
+    longInactiveDays: 28,
     demolitionRefund: 50,
     demolitionTime: 50,
   };
@@ -108,6 +120,10 @@ describe('the lock of a given-up position in the dialog „Neue Runde“ (#224)'
     daily: true,
     guilds: true,
     mainLock: 7,
+    activityRecent: 15,
+    activityMinutes: 59,
+    inactiveDays: 7,
+    longInactiveDays: 28,
     demolitionRefund: 50,
     demolitionTime: 50,
   };
@@ -128,6 +144,52 @@ describe('the lock of a given-up position in the dialog „Neue Runde“ (#224)'
   });
 });
 
+describe('the activity thresholds in the dialog „Neue Runde“ (#229, X1)', () => {
+  const rules = {
+    number: 1,
+    achievements: true,
+    daily: true,
+    guilds: true,
+    mainLock: 7,
+    abandonLock: 24,
+    demolitionRefund: 50,
+    demolitionTime: 50,
+  };
+
+  it('stand in one fieldset „Aktivität“, named and ranged as in the universe settings, preselected with the current round, after the locks', () => {
+    const html = roundDialog({
+      ...rules,
+      activityRecent: 10,
+      activityMinutes: 45,
+      inactiveDays: 3,
+      longInactiveDays: 21,
+    });
+    const fields = [
+      ['activity-recent', 'Aktivität ohne Minutenangabe (Minuten)', 1, 60, 10],
+      [
+        'activity-minutes',
+        'Aktivität mit Minutenangabe bis (Minuten)',
+        1,
+        1440,
+        45,
+      ],
+      ['inactive-days', 'Inaktiv ab (Tage)', 1, 365, 3],
+      ['long-inactive-days', 'Lange inaktiv ab (Tage)', 1, 365, 21],
+    ] as const;
+    // Owner, 2026-11-18: a framed group with the heading „Aktivität“.
+    const rows = fields.map(
+      ([id, label, min, max, value]) =>
+        `<label for="round-${id}">${label}</label> <input type="number" id="round-${id}" min="${min}" max="${max}" step="1" value="${value}" required> <span class="dim">${min} bis ${max}</span>`,
+    );
+    const group = `<fieldset><legend>Aktivität</legend>\n    ${rows.join('<br>\n    ')}\n  </fieldset>`;
+    expect(html).toContain(group);
+    expect(html.split('<legend>Aktivität</legend>')).toHaveLength(2);
+    const at = html.indexOf(group);
+    expect(at).toBeGreaterThan(html.indexOf('id="round-abandon-lock"'));
+    expect(at).toBeLessThan(html.indexOf('data-act="doReset"'));
+  });
+});
+
 describe('the demolition in the dialog „Neue Runde“ (#202, X1)', () => {
   it('has the refund factor and the time, preselected with the current round, before the button', () => {
     const html = roundDialog({
@@ -137,6 +199,10 @@ describe('the demolition in the dialog „Neue Runde“ (#202, X1)', () => {
       guilds: true,
       mainLock: 7,
       abandonLock: 24,
+      activityRecent: 15,
+      activityMinutes: 59,
+      inactiveDays: 7,
+      longInactiveDays: 28,
       demolitionRefund: -40,
       demolitionTime: 120,
     });
@@ -159,6 +225,10 @@ describe('the warning below the box „Gilden (mit Chat)“ (#191)', () => {
     daily: true,
     mainLock: 7,
     abandonLock: 24,
+    activityRecent: 15,
+    activityMinutes: 59,
+    inactiveDays: 7,
+    longInactiveDays: 28,
     demolitionRefund: 50,
     demolitionTime: 50,
   };
@@ -190,6 +260,10 @@ describe('„Account löschen“ in a round with or without guilds (#191)', () =
     daily: true,
     mainLock: 7,
     abandonLock: 24,
+    activityRecent: 15,
+    activityMinutes: 59,
+    inactiveDays: 7,
+    longInactiveDays: 28,
     demolitionRefund: 50,
     demolitionTime: 50,
   };
@@ -262,7 +336,7 @@ describe('a new setting of the round in both places (#283)', () => {
     key: 'roundTestHours',
     name: 'testHours',
     label: 'Testdauer (Stunden)',
-    order: 60,
+    order: 100,
     min: 1,
     max: 720,
     def: 24,
@@ -273,7 +347,7 @@ describe('a new setting of the round in both places (#283)', () => {
     key: 'roundTestAllies',
     name: 'testAllies',
     label: 'Halten erlaubt für',
-    order: 70,
+    order: 110,
     min: 1,
     max: 3,
     def: 3,
@@ -291,6 +365,10 @@ describe('a new setting of the round in both places (#283)', () => {
     guilds: true,
     mainLock: 7,
     abandonLock: 24,
+    activityRecent: 15,
+    activityMinutes: 59,
+    inactiveDays: 7,
+    longInactiveDays: 28,
     demolitionRefund: 50,
     demolitionTime: 50,
     testHours: 48,

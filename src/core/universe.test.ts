@@ -34,6 +34,11 @@ describe('universe settings', () => {
       endzeitMinutes: 240,
       // Added by #224 (owner, 2026-11-16, D2): a given-up position 24 h.
       roundAbandonLock: 24,
+      // Added by #229 (owner, 2026-11-16, Q1): the classic thresholds.
+      roundActivityRecent: 15,
+      roundActivityMinutes: 59,
+      roundInactiveDays: 7,
+      roundLongInactiveDays: 28,
       // Added by #202 (owner, 2026-11-16, D3, D7): +50 % back in 50 % of the build time.
       roundDemolitionRefund: 50,
       roundDemolitionTime: 50,
@@ -57,6 +62,10 @@ describe('universe settings', () => {
       ['extraFields', 'Zusatzfelder pro Planet'],
       ['endzeitMinutes', 'Flugzeit der Endzeit-Gabe (Minuten)'],
       ['roundAbandonLock', 'Sperre einer aufgegebenen Position (Stunden)'],
+      ['roundActivityRecent', 'Aktivität ohne Minutenangabe (Minuten)'],
+      ['roundActivityMinutes', 'Aktivität mit Minutenangabe bis (Minuten)'],
+      ['roundInactiveDays', 'Inaktiv ab (Tage)'],
+      ['roundLongInactiveDays', 'Lange inaktiv ab (Tage)'],
       ['roundDemolitionRefund', 'Rückbau-Erstattung (%)'],
       ['roundDemolitionTime', 'Rückbau-Dauer (% der Bauzeit)'],
     ]);
@@ -124,6 +133,23 @@ describe('universe settings', () => {
       expect(codes({ ...DEFAULT_UNIVERSE, roundAbandonLock })).toEqual([
         ['roundAbandonLock', 'range'],
       ]);
+  });
+
+  it('take the ranges of the activity thresholds (#229, X1)', () => {
+    for (const [key, min, max, def] of [
+      ['roundActivityRecent', 1, 60, 15],
+      ['roundActivityMinutes', 1, 1440, 59],
+      ['roundInactiveDays', 1, 365, 7],
+      ['roundLongInactiveDays', 1, 365, 28],
+    ] as const) {
+      expect(spec(key)).toMatchObject({ key, min, max, def });
+      for (const value of [min, max])
+        expect(codes({ ...DEFAULT_UNIVERSE, [key]: value })).toEqual([]);
+      for (const value of [min - 1, max + 1, 1.5])
+        expect(codes({ ...DEFAULT_UNIVERSE, [key]: value })).toEqual([
+          [key, 'range'],
+        ]);
+    }
   });
   it('take −100 to +100 % refund and 1 to 200 % time of a demolition (#202, X1)', () => {
     expect(spec('roundDemolitionRefund')).toEqual({

@@ -39,6 +39,10 @@ export interface Planets {
   locks(now: number): PositionLock[];
   /** The largest galaxy, system and position in use. */
   usedSize(): UsedSize;
+  /** Sets the time of the last activity (#229) of the places `ids`. */
+  markActive(ids: readonly string[], at: number): void;
+  /** The time of the last activity of every place that has one (#229). */
+  activeTimes(): Record<string, number>;
 }
 
 export class SqlitePlanets implements Planets {
@@ -239,6 +243,20 @@ export class SqlitePlanets implements Planets {
       )
       .get(c.g, c.s, c.p) as Row | undefined;
     return r ? (r.until as number) : null;
+  }
+
+  markActive(ids: readonly string[], at: number): void {
+    const put = this.db.prepare(
+      'UPDATE planets SET active_at = ? WHERE id = ?',
+    );
+    for (const id of ids) put.run(at, id);
+  }
+
+  activeTimes(): Record<string, number> {
+    const rows = this.db
+      .prepare('SELECT id, active_at FROM planets WHERE active_at IS NOT NULL')
+      .all() as Row[];
+    return levels(rows, 'id', 'active_at');
   }
 
   usedSize(): UsedSize {
