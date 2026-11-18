@@ -11,7 +11,6 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import {
   galaxyRow,
-  login,
   nav,
   register,
   seed,

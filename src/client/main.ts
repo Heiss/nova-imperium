@@ -72,7 +72,7 @@ import { optionActs } from './option-actions.ts';
 import { fleetActs } from './fleet-acts.ts';
 import { roundActs } from './round-actions.ts';
 import { mountCatalogList } from './views/catalog-list.ts';
-import { renderLock } from './views/vacation-lock.ts';
+import { renderGate } from './views/vacation-lock.ts';
 import {
   adminChatDialog,
   dissolveDialog,
@@ -814,19 +814,12 @@ function render(fresh = false): void {
     lastActivity = -Infinity;
     return renderLoggedOut(view);
   }
-  if (renderLock(view, client.game, ui, unmountViews)) return;
-  if (!client.game.planet) {
-    client.view = null;
-    unmountViews();
-    view.innerHTML =
-      '<div class="notice">Du hast keinen Planeten. Bitte den Admin, eine neue Runde zu starten.</div>';
-    return;
-  }
+  if (renderGate(view, client.game, ui, unmountViews)) return;
   const restore = keepInputs(view, fresh);
   const chatScroll = keepChatScroll(view);
   const now = client.now();
   const previous = client.view;
-  client.view = viewAt(client.game, client.game.planet, now);
+  client.view = viewAt(client.game, client.game.planet!, now);
   if (previous && !fresh) rememberCompletions(previous, client.view);
   renderMenu();
   updateBar();

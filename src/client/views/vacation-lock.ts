@@ -57,19 +57,30 @@ function tick(view: HTMLElement, s: GameState): void {
   button.removeAttribute('aria-describedby');
 }
 
+/** What a player without a planet sees. */
+const NO_PLANET =
+  '<div class="notice">Du hast keinen Planeten. Bitte den Admin, eine neue Runde zu starten.</div>';
+
 /**
- * Shows the lock screen in `view` when the state is that of a player in
- * vacation mode, after `before` (which lets go of the mounted views), and
- * answers whether it did. Otherwise it leaves the view alone.
+ * Shows what takes the place of the game in `view` and answers whether it
+ * did, after `before` (which lets go of the mounted views): the lock screen
+ * for the state of a player in vacation mode, the notice for a player
+ * without a planet. Otherwise it leaves the view alone.
  */
-export function renderLock(
+export function renderGate(
   view: HTMLElement,
   s: GameState,
   ui: Ui,
   before: () => void,
 ): boolean {
   clearInterval(timer);
-  if (!locked(s.me)) return false;
+  if (!locked(s.me)) {
+    if (s.planet) return false;
+    client.view = null;
+    before();
+    view.innerHTML = NO_PLANET;
+    return true;
+  }
   before();
   client.forget();
   clearFrame();

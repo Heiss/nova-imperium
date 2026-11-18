@@ -104,7 +104,7 @@ describe('achievements', () => {
       guilds: true,
       // Without a choice the round keeps the lock of the main planet (#221).
       mainLock: 7,
-      vacationHours: 24,
+      vacationHours: 48,
       abandonLock: 24,
       activityRecent: 15,
       activityMinutes: 59,

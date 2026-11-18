@@ -15,8 +15,9 @@ owiki.de „Urlaubsmodus“
 
 * **[E]** Minimum duration: the admin sets it per round (owner, 2026-11-16,
   D1; see [Admin](/features/admin.md#settings-per-round-from-the-classic-features-222)).
-* **[E]** Default 24 h, the classic value of speed universes; normal
-  universes had 48 h (owiki „Urlaubsmodus“) (owner, 2026-11-16).
+* **[E]** Default 48 h (owner, 2026-11-18), the classic value of normal
+  universes; speed universes had 24 h (owiki „Urlaubsmodus“). The owner
+  first chose 24 h (2026-11-16); the setting and its range stay.
 * **[E]** Entry (owner, 2026-11-16, Q1): nothing may run, so no own fleets
   in flight and no building, research or shipyard orders. This is the
   classic rule (owiki „Urlaubsmodus“: activation needs no own fleet
@@ -48,6 +49,26 @@ owiki.de „Urlaubsmodus“
 * **[E]** The Auspex-Phalanx may scan a planet whose owner is in vacation
   mode (owner, 2026-11-17).
 * **[E]** The German texts of the build are confirmed (owner, 2026-11-17).
+* **[E]** After the build (owner, 2026-11-18), replacing the allow list of
+  the build: nothing is allowed in vacation mode. The server refuses every
+  own action except ending the vacation mode and the push settings of the
+  account; guild actions, renaming a planet, choosing the main planet, the
+  game options and reading (reports, messages, guild chat) are refused too.
+  After the login the player sees a lock screen instead of the game: a
+  notice and the button „Urlaubsmodus beenden“, greyed out with a notice
+  while the minimum duration lasts. After the click the vacation ends and
+  the player sees the interface. On the lock screen the player can sign out
+  and reach the account options (password, passkeys, push settings, delete
+  account). Only the player's own actions are locked: others can still
+  write to the player and manage him in the guild and see it afterwards.
+* **[V]** The texts of the lock screen, to be checked by the owner (owner,
+  2026-11-18): title „Urlaubsmodus“, text „Dein Konto ist im
+  Urlaubsmodus.“, button „Urlaubsmodus beenden“, while locked „Du kannst
+  den Urlaubsmodus in <Restzeit> beenden.“ with the duration format of the
+  client (`dur`, e.g. „47h 59m 03s“). The lock screen otherwise uses the
+  existing texts: „Logout“ and the boxes of the options.
+* **[V]** The Lexicanum says nothing about the vacation mode (main agent,
+  2026-11-18).
 
 # Proposals
 
@@ -65,7 +86,7 @@ owiki.de „Urlaubsmodus“
   (`src/core/round.ts`), stored under `roundVacationHours`, named
   `vacationHours` in `RoundRules` and in the request „reset“, in whole
   hours from 1 to 720 (30 days, the range of the abandon lock of #224),
-  default 24 (also without the setting), `order` 150 (the numbers 60 to 90
+  default 48 (also without the setting), `order` 150 (the numbers 60 to 90
   are taken on main by #229, 100 to 140 by the open branches of #55 and
   #228). The dialog „Neue
   Runde“ shows the number field „Mindestdauer des Urlaubsmodus (Stunden)“
@@ -79,14 +100,15 @@ owiki.de „Urlaubsmodus“
   dialog, the reset action, `roundRules()` or `UNIVERSE_SPECS`.
 * **[V]** A change of the minimum duration counts for running vacations
   too: the earliest end is the start plus the current setting, like the
-  lock of the main planet (#221), so only the start is stored.
+  lock of the main planet (#221), so only the start is stored. The admin
+  changes it from another account; an admin in vacation mode cannot.
 * **[V]** Entry: the options („Hilfe & Optionen“) have a box
   „Urlaubsmodus“ that explains the mode, names what blocks the entry
   („Aktivieren kannst du ihn nur, wenn keine eigenen Flotten unterwegs
   sind und weder gebaut, geforscht noch in der Schiffsschmiede gearbeitet
   wird.“) and offers „Urlaubsmodus aktivieren“, which asks first
-  („Urlaubsmodus aktivieren? Beenden kannst du ihn frühestens nach 24
-  Stunden.“). The server answers „Urlaubsmodus aktiviert.“ or refuses with
+  („Urlaubsmodus aktivieren? Beenden kannst du ihn frühestens nach 48
+  Stunden.“ with the default). The server answers „Urlaubsmodus aktiviert.“ or refuses with
   „Der Urlaubsmodus kann nicht aktiviert werden, solange eigene Flotten
   unterwegs sind.“, „… solange gebaut wird.“, „… solange geforscht wird.“,
   „… solange die Schiffsschmiede arbeitet.“ (in this order; the wording of
@@ -102,23 +124,46 @@ owiki.de „Urlaubsmodus“
   for the server and the browser alike, so the pause holds after a
   restart. At the end every place is settled to the end the same way, so
   the production goes on from then on.
-* **[V]** During the vacation the box shows „Du bist im Urlaubsmodus.“,
-  „Frühestens beendbar am <Datum, Uhrzeit>“ (in the browser's time, like
-  the main-planet box) and „Urlaubsmodus beenden“, disabled before that
-  time. The server refuses an early end with „Der Urlaubsmodus ist
-  frühestens beendbar am <Datum, Uhrzeit>.“ (in the time of Berlin, like
-  the main-planet lock), the end without a vacation with „Du bist nicht im
-  Urlaubsmodus.“ and answers „Urlaubsmodus beendet.“
-* **[V]** No own actions (Q2): every action but the options, the push
-  kinds, the messages, renaming a planet, the main planet, the end of the
-  vacation, the guild actions and the admin's actions is refused with „Im
-  Urlaubsmodus nicht möglich.“ (`vacationRefuses`, asked by `runAction`
-  before the action). An action added later is refused too, so a new game
-  action needs no change here: the Warp-Tor jump `jump` (#230) and giving
-  up a colony `abandon` (#224) are refused, each with a test, and a test
-  runs every key of `ACTIONS` against the allow list. The guild actions
-  and renaming change nothing of the game; the admin's actions are not
-  those of a player.
+* **[V]** During the vacation the player sees the lock screen
+  (`src/client/views/vacation-lock.ts`, shown by `renderLock` from
+  `render()` in `main.ts`; the state is `me.vacation !== null`, see
+  below). It holds the title „Urlaubsmodus“, „Dein Konto ist im
+  Urlaubsmodus.“, the button „Urlaubsmodus beenden“, „Logout“ and the boxes
+  „Passwort ändern“, „Passkeys“, „Benachrichtigungen“,
+  „Browser-Benachrichtigungen“ and „Account löschen“ of the options (shared
+  with `help()` through `passwordBox`, `passkeysBox`, `notificationBoxes`).
+  The menu, the header and the resource bar are empty. Before the end of
+  the minimum duration the button is disabled and `aria-describedby` names
+  the notice „Du kannst den Urlaubsmodus in <Restzeit> beenden.“ next to
+  it, so the reason is text, not only grey; the clock of the lock screen
+  counts the notice down every second and turns the button on at the end
+  without a reload. The server refuses an early end with „Der Urlaubsmodus
+  ist frühestens beendbar am <Datum, Uhrzeit>.“ (in the time of Berlin,
+  like the main-planet lock), the end without a vacation with „Du bist
+  nicht im Urlaubsmodus.“ and answers „Urlaubsmodus beendet.“ The box
+  „Urlaubsmodus“ of „Hilfe & Optionen“ only offers the start now.
+* **[V]** The state for a player in vacation mode (`lockedState` in
+  `src/server/game/state.ts`) keeps the shape of the full state but holds
+  none of the game: no planet, fleet, report, guild, player, galaxy or
+  Trümmerfeld, no research and no admin data; only the rules of the round
+  and the universe, `me` with the id, the name, the push kinds that are off
+  and `vacation` (the start; from it and `round.vacationHours` the browser
+  knows the earliest end). The same state comes after „Urlaubsmodus
+  aktivieren“ and at every refresh, so a second device locks too.
+* **[V]** Nothing but the end and the push settings (Q2, owner,
+  2026-11-18): only `endVacation` and `pushOptions` are on the allow list
+  of `vacationRefuses` (`src/core/vacation.ts`), asked by `runAction` before
+  the action; every other action is refused with „Im Urlaubsmodus nicht
+  möglich.“, an action added later too, so a new action needs no change
+  here: the guild actions, `options`, `rename`, `mainPlanet`, `read`,
+  `delrep`, `delall`, the Warp-Tor jump `jump` (#230), giving up a colony
+  `abandon` (#224), the admin's actions `settings`, `reset` and `endzeit`
+  and `startVacation` itself. A test runs every key of `ACTIONS` against
+  the allow list. The routes outside `runAction` stay as they were: the
+  password change, the deletion of the account, the passkey routes, the
+  push routes, the sign-out, the news and `GET /api/state`, which answers
+  the lock state. The admin routes (`/api/admin/…`) are not actions of the
+  player and stay; the admin panel is not shown on the lock screen.
 * **[V]** Protection (D2, Q2): every new mission of another player to a
   planet or moon of a player in vacation mode is refused with „Dieser
   Spieler ist im Urlaubsmodus.“ (code `vacation` of `sendError`, before
@@ -152,8 +197,8 @@ owiki.de „Urlaubsmodus“
   the registry), `src/core/settle.test.ts` (the pause),
   `src/core/missions.test.ts` (the code `vacation`),
   `src/core/universe.test.ts`, `src/client/logic/vacation.test.ts` (the
-  box, the question), `src/client/logic/galaxy.test.ts` and
-  `src/client/views/galaxy.test.ts` (the mark „(u)“),
+  box, the question, the time left), `src/client/views/vacation-lock.test.ts` (the lock screen),
+  `src/client/logic/galaxy.test.ts` and `src/client/views/galaxy.test.ts` (the mark „(u)“),
   `src/client/views/misc.test.ts` (the field of the dialog).
 * Server: `src/server/game/vacation.test.ts` (the entry and each refusal,
   no production also after a restart, the refused actions, the refused
@@ -165,7 +210,10 @@ owiki.de „Urlaubsmodus“
   in vacation mode allowed), `src/server/game/round.test.ts` (the live
   rows and the order of the refusals), `src/server/db/repos/players.test.ts`.
 * Upgrade: `src/server/db/upgrades/20261117T1000-vacation-mode.test.ts`.
-* E2E: `e2e/vacation.spec.ts`, desktop and phone, with axe on the options
-  before and during the vacation, the refused build and early end, the
-  „(u)“ and the refused attack of another player, and the end after the
-  minimum duration.
+* E2E: `e2e/vacation.spec.ts`, desktop and phone: the start in the options,
+  the lock screen with axe, the refused actions and early end, the lock
+  after a reload, no menu, the „(u)“ and the refused attack of another
+  player, the login on the lock screen, the button that turns on by
+  itself and the end. `e2e/a11y.spec.ts`: the lock screen with the button
+  off and on. Routes: `src/server/http/app.routes.test.ts` („the vacation
+  mode“).

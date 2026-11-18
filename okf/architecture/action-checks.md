@@ -66,10 +66,16 @@ after it; the other rows are the audit of 2026-11-15.
 `endVacation`, both following section 7, and one gate before every
 action: `runAction` refuses an action with „Im Urlaubsmodus nicht
 möglich.“ when core `vacationRefuses` (`core/vacation.ts`) says so for a
-player in vacation mode; the browser offers the game actions as before and
-shows the server's refusal. `jump` (#230) and `abandon` (#224) are
-refused by it like every action off its allow list, tested for each.
-`send` gets the code `vacation` of `sendError`.
+player in vacation mode. Since 2026-11-18 only `endVacation` and
+`pushOptions` pass it; every other action is refused, the guild actions,
+`options`, `rename`, `mainPlanet`, `read`, `delrep`, `delall`, `jump`
+(#230), `abandon` (#224) and the admin's actions too, and one added later
+as well (a test runs every key of `ACTIONS`). The browser does not offer
+them: it shows the lock screen (`views/vacation-lock.ts`) for the state
+the server sends to such a player (`lockedState`, `server/game/state.ts`).
+The password change, the deletion of the account, the passkeys, the push
+routes and the sign-out are routes, not actions, and stay open. `send` gets
+the code `vacation` of `sendError`.
 
 Since the Warp-Tor (#230, 2026-11-17) `ACTIONS` also has `jump`, which
 follows section 7; its row is below `recall`. The counts above are those of
@@ -88,7 +94,7 @@ the audit and stay.
 | `pushOptions` | core `isPushTopic` (`server/push-options.ts`) | yes | the boxes offer `PUSH_TOPICS` only (`client/logic/push-options.ts`) | – | player |
 | `abandon` (#224, after the audit) | core `abandonTargetError` (codes `unknown`, `moon`, `main`) and `abandonError` (then `stale`, a confirmation opened for an earlier colony at the same position by its founding time `created` (owner, 2026-11-17), then `flights`, `research`, `orders`, `core/abandon.ts`); the server words them (`ABANDON_ERROR`, `server/game/abandon.ts`); the password before them, inline like the deletion of the account („What counts“: the session), and the address limited | yes | partly, with core `abandonTargetError`: the button „Kolonie aufgeben“ only on an own planet that is not the main planet (`abandonOffered`, `client/logic/abandon.ts`); the references only the server; the Sternenkarte offers no Landnahme at a locked position, with core `positionLocked` (`freePosition`) | – | player |
 | `startVacation` | core `vacationEntryError` (codes `fleets`, `building`, `research`, `shipyard`, `core/vacation.ts`); the server gathers what runs and words the codes (`VACATION_ENTRY_ERROR`, `server/game/vacation.ts`) (#223) | yes | no; the box „Urlaubsmodus“ names what blocks the entry (`client/logic/vacation.ts`) | – | player |
-| `endVacation` | core `vacationExitError` (codes `inactive`, `early`); the server words them (`earlyText` with the earliest end) (#223) | yes | yes, with core `vacationExitError`: „Urlaubsmodus beenden“ disabled before the end (`vacationHTML`) | – | player |
+| `endVacation` | core `vacationExitError` (codes `inactive`, `early`); the server words them (`earlyText` with the earliest end) (#223) | yes | yes, with core `vacationEnd`: on the lock screen „Urlaubsmodus beenden“ disabled before the end, with the time left in text (`lockLeft`, `client/logic/vacation.ts`) | – | player |
 | `read` | – | none | – | – | player |
 | `delrep` | – (deletes only a report of the player) | none | – | – | player |
 | `delall` | – | none | – | – | player |
