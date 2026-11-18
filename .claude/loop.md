@@ -76,6 +76,8 @@ interface is German.
    points of the design patterns): give the subagents tasks to improve
    that, or file issues for it, and order the work so that subagents do not
    collide.
+   Write each task for a subagent as `okf/ops/subagent-briefs.md` says
+   (owner, 2026-11-18), and add there what a result teaches.
    Subagents run only the cheap local checks (owner, 2026-11-17):
    typecheck, eslint and the unit tests of the changed files, prettier,
    `checkLog` and `check:migrations`, and, for a change a player sees in
