@@ -625,3 +625,107 @@ describe('moons as targets and starts (#53)', () => {
     ).toHaveLength(2);
   });
 });
+
+describe('sending a Mondbruch (#95)', () => {
+  /**
+   * Anna with Weltenbrecher and a moon of her own at her home; Bert with a
+   * moon, Cleo with a moon and no points (noob protection), Dora with a
+   * planet and no moon.
+   */
+  function world() {
+    const ctx = testCtx();
+    const a = addUser(ctx, 'Anna');
+    const home = addPlanet(ctx, a.id, {
+      g: 1,
+      s: 1,
+      p: 5,
+      ships: { dstar: 2, sc: 1, lf: 4 },
+      res: { m: 50000, c: 40000, d: 30000 },
+    });
+    addMoon(ctx, home, 5, 0);
+    for (const [name, s, p, metal] of [
+      ['Bert', 2, 6, 15],
+      ['Cleo', 3, 7, 0],
+      ['Dora', 4, 8, 15],
+    ] as const) {
+      // Research keeps all but Cleo out of the noob protection against the
+      // Weltenbrecher of Anna.
+      const u = addUser(
+        ctx,
+        name,
+        name === 'Cleo' ? {} : { research: { energy: 14 } },
+      );
+      const planet = addPlanet(ctx, u.id, { g: 1, s, p, b: { metal } });
+      if (name !== 'Dora') addMoon(ctx, planet, 5, 0);
+    }
+    return { ctx, a };
+  }
+  const order = (over = {}) =>
+    go({
+      mission: 'moonbreak',
+      ships: { dstar: 2, sc: 1 },
+      to: { g: 1, s: 2, p: 6, kind: 'moon' },
+      ...over,
+    });
+
+  it('flies with the Weltenbrecher and the others to a foreign moon, with cargo and a way back', () => {
+    const { ctx, a } = world();
+    expect(send(ctx, a, order({ cargo: { m: 1000, c: 0, d: 0 } }))).toBe(
+      'Flotte unterwegs nach [1:2:6].',
+    );
+    const f = ctx.fleets.all()[0]!;
+    expect(f).toMatchObject({
+      owner: a.id,
+      from: 'p1_1_5',
+      to: 'm1_2_6',
+      mission: 'moonbreak',
+      ships: { dstar: 2, sc: 1 },
+      cargo: { m: 1000, c: 0, d: 0 },
+      state: 'out',
+      recalled: false,
+    });
+    expect(f.ret - f.dep).toBe(2 * (f.arr - f.dep));
+    expect(ctx.planets.get('p1_1_5')!.ships).toMatchObject({ lf: 4 });
+    expect(ctx.planets.get('p1_1_5')!.ships.dstar ?? 0).toBe(0);
+  });
+
+  it('refuses a fleet without a Weltenbrecher', () => {
+    const { ctx, a } = world();
+    expect(() => send(ctx, a, order({ ships: { sc: 1, lf: 2 } }))).toThrow(
+      'Du brauchst einen Weltenbrecher.',
+    );
+    expect(ctx.fleets.all()).toEqual([]);
+  });
+
+  it('refuses a planet as the target, before it asks for the Weltenbrecher', () => {
+    const { ctx, a } = world();
+    const planet = { g: 1, s: 2, p: 6 };
+    expect(() => send(ctx, a, order({ to: planet }))).toThrow(
+      'Mondbruch nur gegen einen Mond.',
+    );
+    expect(() => send(ctx, a, order({ to: planet, ships: { sc: 1 } }))).toThrow(
+      'Mondbruch nur gegen einen Mond.',
+    );
+    expect(ctx.fleets.all()).toEqual([]);
+  });
+
+  it('refuses a position without a moon, an own moon and a moon under noob protection', () => {
+    const { ctx, a } = world();
+    const moon = (s: number, p: number) => ({ g: 1, s, p, kind: 'moon' });
+    expect(() => send(ctx, a, order({ to: moon(4, 8) }))).toThrow(
+      'An dieser Position gibt es keinen Mond.',
+    );
+    expect(() => send(ctx, a, order({ to: moon(1, 5) }))).toThrow(
+      'Eigene Planeten kann man nicht angreifen.',
+    );
+    expect(() => send(ctx, a, order({ to: moon(3, 7) }))).toThrow(
+      'Dieser Spieler steht unter Noobschutz.',
+    );
+    expect(ctx.fleets.all()).toEqual([]);
+    expect(ctx.planets.get('p1_1_5')!.ships).toEqual({
+      dstar: 2,
+      sc: 1,
+      lf: 4,
+    });
+  });
+});
