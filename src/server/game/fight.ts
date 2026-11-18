@@ -207,7 +207,7 @@ export interface Raid extends Fight {
 export function raid(ctx: Ctx, f: Fleet, at: Arrival): Raid {
   const { t } = at;
   const x = fight(ctx, f, at);
-  const free = capacity(x.res.att) - (f.cargo.m + f.cargo.c + f.cargo.d);
+  const free = capacity(x.res.att) - total(f.cargo);
   const loot =
     x.res.winner === 'att' ? plunder(t.res, free) : { m: 0, c: 0, d: 0 };
   t.res.m -= loot.m;
@@ -250,22 +250,27 @@ export function attackReports(
   );
 }
 
+/** The amount of a stock, all three resources. */
+export const total = (r: Resources): number => r.m + r.c + r.d;
+
+/** The sum of two stocks. */
+export const addResources = (a: Resources, b: Resources): Resources => ({
+  m: a.m + b.m,
+  c: a.c + b.c,
+  d: a.d + b.d,
+});
+
 /**
- * The ships left fly home with the loot; a fleet without survivors is
- * gone.
+ * The ships left fly home with `cargo`, by default what they carried plus
+ * the loot; a fleet without survivors is gone.
  */
 export function flyHome(
   ctx: Ctx,
   f: Fleet,
   x: Raid,
   ships: Levels = x.res.att,
-  loot: Resources = x.loot,
+  cargo: Resources = addResources(f.cargo, x.loot),
 ): void {
   if (!countUnits(ships)) return ctx.fleets.delete(f.id);
-  const cargo = {
-    m: f.cargo.m + loot.m,
-    c: f.cargo.c + loot.c,
-    d: f.cargo.d + loot.d,
-  };
   turnBack(ctx, f, { ships, cargo });
 }

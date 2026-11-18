@@ -525,9 +525,10 @@ owiki.de „Mond“ (section Zerstörung, formula images). Built after the moons
   battle ends at once with the attacker as winner) with n surviving
   Weltenbrecher the two rolls follow with the moon's diameter. A lost
   Weltenbrecher roll removes only the Weltenbrecher from the fleet; the
-  loot is cut to the holds of the ships left (`cutLoot` in
-  `src/server/game/fight.ts`, in the order of the loot, after the fleet's
-  own cargo), and a fleet without other ships is gone with it. The battle
+  cargo is cut to the holds of the ships left (`cutLoot` in
+  `src/server/game/fight.ts`, in the order of the loot): first what the
+  fleet carried, then the loot in the room that is free; what does not fit
+  is lost, and a fleet without other ships is gone with it. The battle
   reports keep the loot of the battle; the report of the return names what
   came home. A
   broken moon is removed with its buildings, units, production and queues
@@ -556,6 +557,11 @@ owiki.de „Mond“ (section Zerstörung, formula images). Built after the moons
   * loot when the Weltenbrecher are lost: cut to the cargo space of the
     ships left, the rest is lost as with battle losses; a fleet of
     Weltenbrecher alone that loses them carries nothing;
+  * **[E]** the cargo the fleet already carried is cut to the holds of the
+    ships left too, like the loot (owner, 2026-11-18, „Geklärt“ on #95): it
+    stays whole when it fits, else the excess is lost and the loot gets
+    nothing; the cut is the one of the loot (`cutLoot`, the order of the
+    classic loot, rounded down), carried cargo first, then the loot;
   * the rolls count only the Weltenbrecher that survived the battle; none
     left, no roll (as built);
   * no action at the moon on the Sternenkarte for now; it comes with #253.

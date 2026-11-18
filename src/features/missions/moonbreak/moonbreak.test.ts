@@ -301,6 +301,42 @@ describe('moonbreak: the arrival', () => {
     expect(back.cargo).toEqual({ m: 1666, c: 1767, d: 1567 });
   });
 
+  it('keeps the cargo the fleet carried when it still fits the holds left; the loot gets what is free (owner, 2026-11-18)', () => {
+    const { ctx, f, at } = setup(
+      { dstar: 1, sc: 1 },
+      { res: { m: 0, c: 0, d: 0 } },
+    );
+    f.cargo = { m: 1000, c: 2000, d: 1500 };
+    ctx.rng = draws(0.5, 0);
+    onArrive(ctx, f, at);
+    expect(ctx.fleets.get('f1')!.ships).toEqual({ sc: 1 });
+    expect(ctx.fleets.get('f1')!.cargo).toEqual({ m: 1000, c: 2000, d: 1500 });
+  });
+
+  it('cuts the cargo the fleet carried to the holds left, in the order of the loot; the excess is lost and the loot gets nothing (owner, 2026-11-18)', () => {
+    const rich = { res: { m: 100000, c: 100000, d: 100000 } };
+    const { ctx, f, at } = setup({ dstar: 1, sc: 1 }, rich);
+    // 9,000 carried, one Frachtläufer holds 5,000: a third Adamant, half of
+    // the rest Psikristall, the rest Promethium.
+    f.cargo = { m: 3000, c: 3000, d: 3000 };
+    ctx.rng = draws(0.5, 0);
+    onArrive(ctx, f, at);
+    expect(ctx.fleets.get('f1')!.cargo).toEqual({ m: 1666, c: 1667, d: 1667 });
+    expect(ctx.fleets.get('f1')!.ships).toEqual({ sc: 1 });
+    // The report of the battle still shows the loot the battle took.
+    expect(anna(ctx).loot).toEqual({ m: 50000, c: 50000, d: 50000 });
+  });
+
+  it('loses the carried cargo and the loot with the last ships: a fleet without ships carries nothing (owner, 2026-11-18)', () => {
+    const rich = { res: { m: 100000, c: 100000, d: 100000 } };
+    const { ctx, f, at } = setup({ dstar: 2 }, rich);
+    f.cargo = { m: 500, c: 500, d: 500 };
+    ctx.rng = draws(0, 0);
+    onArrive(ctx, f, at);
+    expect(ctx.fleets.get('f1')).toBeNull();
+    expect(ctx.fleets.all()).toEqual([]);
+  });
+
   it('cuts nothing while the Weltenbrecher fly home', () => {
     const rich = { res: { m: 100000, c: 100000, d: 100000 } };
     const { ctx, f, at } = setup({ dstar: 1, sc: 1 }, rich);

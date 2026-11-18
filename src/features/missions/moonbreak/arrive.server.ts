@@ -15,10 +15,12 @@ import type { Ctx } from '../../../server/game/context.ts';
 import {
   type Raid,
   type ReportExtra,
+  addResources,
   attackReports,
   cutLoot,
   flyHome,
   raid,
+  total,
 } from '../../../server/game/fight.ts';
 import type { Arrival } from '../../../server/game/missions.ts';
 import { destroyMoon } from '../../../server/game/moons.ts';
@@ -34,23 +36,27 @@ function roll(ctx: Ctx, at: Arrival, x: Raid): Moonbreak | null {
 const extra = (r: Moonbreak | null): ReportExtra =>
   r ? { att: { moonbreak: r }, def: r.broken ? { moonLost: true } : {} } : {};
 
-/** What flies home; nothing named keeps the ships and loot of the battle. */
+/** What flies home; nothing named keeps the ships and the cargo of the battle. */
 interface Homeward {
   ships?: Levels;
-  loot?: Resources;
+  cargo?: Resources;
 }
 
 /**
- * The ships that fly home with their loot: without the Weltenbrecher when
- * they are lost, and the loot cut to the holds of the ships left (owner,
- * 2026-11-16); a fleet without ships carries nothing.
+ * The ships that fly home with their cargo: without the Weltenbrecher when
+ * they are lost, and then the cargo cut to the holds of the ships left
+ * (owner, 2026-11-16 for the loot, 2026-11-18 for the cargo the fleet
+ * already carried): what the fleet carried first, then the loot in what is
+ * free; the rest is lost. A fleet without ships carries nothing.
  */
 function homeward(f: Fleet, x: Raid, r: Moonbreak | null): Homeward {
   if (!r?.lost) return {};
   const ships = { ...x.res.att };
   delete ships.dstar;
-  const { m, c, d } = f.cargo;
-  return { ships, loot: cutLoot(x.loot, capacity(ships) - (m + c + d)) };
+  const room = capacity(ships);
+  const carried = cutLoot(f.cargo, room);
+  const loot = cutLoot(x.loot, room - total(carried));
+  return { ships, cargo: addResources(carried, loot) };
 }
 
 export function onArrive(ctx: Ctx, f: Fleet, at: Arrival): void {
@@ -58,7 +64,7 @@ export function onArrive(ctx: Ctx, f: Fleet, at: Arrival): void {
   const r = roll(ctx, at, x);
   attackReports(ctx, f, at, x, extra(r));
   const home = homeward(f, x, r);
-  flyHome(ctx, f, x, home.ships, home.loot);
+  flyHome(ctx, f, x, home.ships, home.cargo);
   if (!r) return;
   record(ctx, {
     category: 'system',
