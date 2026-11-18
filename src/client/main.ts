@@ -67,7 +67,7 @@ import {
   type AdminTab,
 } from './views/misc.ts';
 import { disablePush, enablePush } from './push.ts';
-import { vacationActs } from './vacation-actions.ts';
+import { optionActs } from './option-actions.ts';
 import { fleetActs } from './fleet-acts.ts';
 import { roundActs } from './round-actions.ts';
 import { mountCatalogList } from './views/catalog-list.ts';
@@ -1240,12 +1240,6 @@ const ACT: Record<string, (d: Data) => unknown> = {
   delrep: (d) => act('delrep', { id: d.id }),
   delall: () => act('delall'),
   explain: (d) => toggleExplanation(d.k!),
-  saveopt: () =>
-    act('options', {
-      probes: clampInt(val('#o_probes'), 1, 1e6),
-      explain: val('#o_explain'),
-    }),
-  mainPlanet: () => act('mainPlanet', { main: val('#o_main') }),
   adminTab: (d) => {
     if (d.tab && Object.hasOwn(ADMIN_TABS, d.tab))
       openAdminTab(d.tab as AdminTab);
@@ -1263,7 +1257,7 @@ const ACT: Record<string, (d: Data) => unknown> = {
     }
   },
   deleteAccount: () => modal(deleteAccountDialog(client.game!.round)),
-  ...vacationActs({ act }),
+  ...optionActs({ act }),
   ...abandonActs({ act, modal }),
   dismissInstall: () => {
     installDismissed = true;

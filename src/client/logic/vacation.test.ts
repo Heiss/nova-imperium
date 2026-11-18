@@ -3,11 +3,7 @@
 // duration (owner, 2026-11-17).
 import { describe, expect, it } from 'vitest';
 import { HOUR_MS } from '../../core/vacation.ts';
-import {
-  confirmText,
-  vacationEndText,
-  vacationHTML,
-} from './vacation.ts';
+import { confirmText, vacationEndText, vacationHTML } from './vacation.ts';
 
 const START = new Date(2026, 10, 17, 12, 0).getTime();
 const state = (vacation: number | null, vacationHours = 24) => ({

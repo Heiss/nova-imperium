@@ -169,19 +169,28 @@ describe('a new entry of the registry (#283)', () => {
     expect(valuesOf(ctx)).toMatchObject({ testHours: 72 });
   });
 
-  it('the lock of a given-up position (#224) is the one live setting of main, the last row of the universe settings', () => {
-    const row = {
-      key: 'roundAbandonLock',
-      label: 'Sperre einer aufgegebenen Position (Stunden)',
-      min: 1,
-      max: 720,
-      def: 24,
-    };
-    expect(liveSpecs()).toEqual([row]);
-    expect(UNIVERSE_SPECS.filter((s) => s.key.startsWith('round'))).toEqual([
-      row,
-    ]);
-    expect(UNIVERSE_SPECS.at(-1)).toEqual(row);
+  it('the locks of a given-up position (#224) and the minimum duration of the vacation mode (#223) are the live settings, the last rows of the universe settings', () => {
+    const rows = [
+      {
+        key: 'roundAbandonLock',
+        label: 'Sperre einer aufgegebenen Position (Stunden)',
+        min: 1,
+        max: 720,
+        def: 24,
+      },
+      {
+        key: 'roundVacationHours',
+        label: 'Mindestdauer des Urlaubsmodus (Stunden)',
+        min: 1,
+        max: 720,
+        def: 24,
+      },
+    ];
+    expect(liveSpecs()).toEqual(rows);
+    expect(UNIVERSE_SPECS.filter((s) => s.key.startsWith('round'))).toEqual(
+      rows,
+    );
+    expect(UNIVERSE_SPECS.slice(-2)).toEqual(rows);
   });
 
   it('a new round refuses in the fixed order of main (owner, 2026-11-17)', () => {
@@ -191,6 +200,7 @@ describe('a new entry of the registry (#283)', () => {
       guilds: 'no',
       mainLock: 0,
       abandonLock: 0,
+      vacationHours: 0,
     };
     for (const [name, text] of [
       [
@@ -205,6 +215,10 @@ describe('a new entry of the registry (#283)', () => {
       [
         'abandonLock',
         'Bitte für die Sperre einer aufgegebenen Position 1 bis 720 ganze Stunden angeben.',
+      ],
+      [
+        'vacationHours',
+        'Bitte für die Mindestdauer des Urlaubsmodus 1 bis 720 ganze Stunden angeben.',
       ],
     ] as const) {
       expect(() => startRoundRules(ctx, wrong)).toThrow(new Error(text));
