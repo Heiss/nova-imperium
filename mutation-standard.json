@@ -36,7 +36,7 @@
     "src/client/logic/guild-chat.ts": 100,
     "src/client/logic/header.ts": 100,
     "src/client/logic/icons.ts": 100,
-    "src/client/logic/jump-gate.ts": 95.83,
+    "src/client/logic/jump-gate.ts": 98.95,
     "src/client/logic/main-planet.ts": 97.82,
     "src/client/logic/maintenance.ts": 96.29,
     "src/client/logic/menu-hints.ts": 85.71,
