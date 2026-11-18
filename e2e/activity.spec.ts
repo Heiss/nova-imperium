@@ -1,6 +1,6 @@
 // The activity markers on the Sternenkarte (#229,
 // okf/features/activity-indicators.md): another player's planet shows
-// „Aktivität vor weniger als 15 Minuten“ after a login, then „Aktivität vor
+// „Aktiv“ after a login, then „Aktivität vor
 // x Minuten“ up to 59 minutes and nothing after an hour; the player shows
 // „Inaktiv“ after 7 days and „Lange inaktiv“ after 28 days, apart from the
 // noob protection (n). The times are set with e2e/seed.ts. Desktop and
@@ -41,7 +41,7 @@ async function activityFlow(page: Page): Promise<void> {
   await register(page, me);
   await openSystemOf(page, other);
   const row = galaxyRow(page, other);
-  await expect(row).toContainText('(Aktivität vor weniger als 15 Minuten)');
+  await expect(row).toContainText('(Aktiv)');
   expect(
     (await new AxeBuilder({ page }).withTags(TAGS).analyze()).violations.map(
       (v) => `${v.id}: ${v.help}`,

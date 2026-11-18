@@ -146,7 +146,7 @@ describe('the activity thresholds in the dialog „Neue Runde“ (#229, X1)', ()
     abandonLock: 24,
   };
 
-  it('are named and ranged as in the universe settings, preselected with the current round, last in the dialog', () => {
+  it('stand in one fieldset „Aktivität“, named and ranged as in the universe settings, preselected with the current round, last in the dialog', () => {
     const html = roundDialog({
       ...rules,
       activityRecent: 10,
@@ -166,16 +166,17 @@ describe('the activity thresholds in the dialog „Neue Runde“ (#229, X1)', ()
       ['inactive-days', 'Inaktiv ab (Tage)', 1, 365, 3],
       ['long-inactive-days', 'Lange inaktiv ab (Tage)', 1, 365, 21],
     ] as const;
-    let before = html.indexOf('id="round-abandon-lock"');
-    for (const [id, label, min, max, value] of fields) {
-      expect(html).toContain(
-        `<p><label for="round-${id}">${label}</label> <input type="number" id="round-${id}" min="${min}" max="${max}" step="1" value="${value}" required> <span class="dim">${min} bis ${max}</span></p>`,
-      );
-      const at = html.indexOf(`id="round-${id}"`);
-      expect(at).toBeGreaterThan(before);
-      expect(at).toBeLessThan(html.indexOf('data-act="doReset"'));
-      before = at;
-    }
+    // Owner, 2026-11-18: a framed group with the heading „Aktivität“.
+    const rows = fields.map(
+      ([id, label, min, max, value]) =>
+        `<label for="round-${id}">${label}</label> <input type="number" id="round-${id}" min="${min}" max="${max}" step="1" value="${value}" required> <span class="dim">${min} bis ${max}</span>`,
+    );
+    const group = `<fieldset><legend>Aktivität</legend>\n    ${rows.join('<br>\n    ')}\n  </fieldset>`;
+    expect(html).toContain(group);
+    expect(html.split('<legend>Aktivität</legend>')).toHaveLength(2);
+    const at = html.indexOf(group);
+    expect(at).toBeGreaterThan(html.indexOf('id="round-abandon-lock"'));
+    expect(at).toBeLessThan(html.indexOf('data-act="doReset"'));
   });
 });
 

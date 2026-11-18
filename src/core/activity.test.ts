@@ -54,7 +54,7 @@ describe('the thresholds of a round', () => {
   });
 
   it('are four settings of the round, live in the universe settings, last in the order (#283, X1)', () => {
-    const group = { name: 'activity' };
+    const group = { name: 'activity', legend: 'Aktivität' };
     const common = { kind: 'number', group, live: true };
     expect(SETTINGS).toEqual([
       {
@@ -195,11 +195,6 @@ describe('what sets activity (v0.76d with v0.77b)', () => {
 
 describe('the activity of a planet', () => {
   const ago = (ms: number) => planetActivity(NOW - ms, NOW, C);
-
-  it('is nothing without any activity', () => {
-    expect(planetActivity(null, NOW, C)).toBeNull();
-    expect(planetActivity(undefined, NOW, C)).toBeNull();
-  });
 
   it('is recent within the first 15 minutes, without the minutes', () => {
     expect(ago(0)).toEqual({ recent: true });

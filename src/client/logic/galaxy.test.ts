@@ -270,7 +270,6 @@ describe('activity and inactivity (#229)', () => {
       ],
       ui: { gmoon: 'm1_2_6' },
     });
-    v.s.round = { activityRecent: 10 } as never;
     if (inactive) v.s.players.u3!.inactive = inactive;
     return v;
   }
@@ -278,7 +277,7 @@ describe('activity and inactivity (#229)', () => {
   it('words the activity of a planet and of its moon, each its own', () => {
     const r = rowAt(marked(), 6);
     expect(r.planet!.activity).toBe('Aktivität vor 42 Minuten');
-    expect(r.moon!.activity).toBe('Aktivität vor weniger als 10 Minuten');
+    expect(r.moon!.activity).toBe('Aktiv');
     // A place without a marker shows none.
     expect(rowAt(marked(), 7).planet!.activity).toBe('');
   });

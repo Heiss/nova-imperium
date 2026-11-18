@@ -1,30 +1,19 @@
 // The public activity markers in the browser (#229,
 // okf/features/activity-indicators.md): the words of the markers on the
-// Sternenkarte. The server sends only the markers; the round's threshold
-// words the first minutes.
-import type {
-  ActivityLimits,
-  ActivityRound,
-  Inactivity,
-  PlanetActivity,
-} from '../../core/activity.ts';
+// Sternenkarte. The server sends only the markers.
+import type { Inactivity, PlanetActivity } from '../../core/activity.ts';
 
 /** The number of minutes in German: one „Minute“, otherwise „Minuten“. */
 const minutesText = (n: number): string =>
   `${n} ${n === 1 ? 'Minute' : 'Minuten'}`;
 
 /**
- * The words of a planet's activity (owner, 2026-11-17): „Aktivität vor x
- * Minuten“; within the first minutes of the round's threshold without the
- * exact minutes [V].
+ * The words of a planet's activity (owner, 2026-11-17 and 2026-11-18):
+ * within the round's first threshold only „Aktiv“, after it „Aktivität vor
+ * x Minuten“.
  */
-export const activityText = (
-  a: PlanetActivity,
-  limits: Pick<ActivityLimits, 'recent'>,
-): string =>
-  'recent' in a
-    ? `Aktivität vor weniger als ${minutesText(limits.recent)}`
-    : `Aktivität vor ${minutesText(a.minutes)}`;
+export const activityText = (a: PlanetActivity): string =>
+  'recent' in a ? 'Aktiv' : `Aktivität vor ${minutesText(a.minutes)}`;
 
 /** The words of an account's inactivity (owner, 2026-11-17). */
 export const INACTIVITY_TEXT: Readonly<Record<Inactivity, string>> = {
@@ -32,11 +21,9 @@ export const INACTIVITY_TEXT: Readonly<Record<Inactivity, string>> = {
   long: 'Lange inaktiv',
 };
 
-/** The words after a planet's name on the Sternenkarte, or nothing; the round's threshold words them. */
-export const activityNote = (
-  a: PlanetActivity | undefined,
-  round: Pick<ActivityRound, 'activityRecent'>,
-): string => (a ? activityText(a, { recent: round.activityRecent }) : '');
+/** The words after a planet's name on the Sternenkarte, or nothing. */
+export const activityNote = (a: PlanetActivity | undefined): string =>
+  a ? activityText(a) : '';
 
 /** The words after a player's name on the Sternenkarte, or nothing. */
 export const inactivityNote = (i: Inactivity | undefined): string =>

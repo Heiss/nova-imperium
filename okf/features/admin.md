@@ -146,10 +146,10 @@ universe settings) and their ranges are not decided yet.
   [activity indicators](/features/activity-indicators.md#settings) as
   entries of `src/core/activity.ts` (`ACTIVITY_RECENT_SETTING`,
   `ACTIVITY_MINUTES_SETTING`, `INACTIVE_DAYS_SETTING`,
-  `LONG_INACTIVE_DAYS_SETTING`): one group `activity` without a legend, so
-  each is a row of its own in the dialog, they are sent as one object and
-  every wrong one is refused at once with the range wording; all four are
-  `live`.
+  `LONG_INACTIVE_DAYS_SETTING`): one group `activity` with the legend
+  „Aktivität“ (owner, 2026-11-18), so they stand in one fieldset of the
+  dialog, are sent as one object and every wrong one is refused at once
+  with the range wording; all four are `live`.
 * **[E]** The registry keeps a fixed order, so #283 changes nothing
   visible (owner, 2026-11-17): every entry has an explicit number `order`,
   like the catalog entries, and the dialog „Neue Runde“ and the order of

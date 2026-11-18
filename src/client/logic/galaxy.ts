@@ -184,7 +184,7 @@ function place(
     s: pl.s,
     p: pl.p,
     name,
-    activity: activityNote(pl.activity, s.round),
+    activity: activityNote(pl.activity),
     mine,
     owner: nameOf(s.players, pl.owner),
     inactivity: inactivityNote(s.players[pl.owner]?.inactive),

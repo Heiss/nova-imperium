@@ -339,7 +339,6 @@ describe('activity and inactivity on the Sternenkarte (#229)', () => {
   /** The Sternenkarte with Bert's planet and moon active and Bert's account in `inactive`. */
   function marked(inactive?: 'inactive' | 'long'): V {
     const v = view([]);
-    v.s.round = { activityRecent: 10 } as never;
     v.s.galaxy[1]!.activity = { minutes: 42 };
     v.s.galaxy.push({
       id: 'm1_2_6',
@@ -363,9 +362,7 @@ describe('activity and inactivity on the Sternenkarte (#229)', () => {
     expect(row(html, 6)).toContain(
       'Beta <span class="dim">(Aktivität vor 42 Minuten)</span>',
     );
-    expect(html).toContain(
-      'Mond (Mond) <span class="dim">(Aktivität vor weniger als 10 Minuten)</span>',
-    );
+    expect(html).toContain('Mond (Mond) <span class="dim">(Aktiv)</span>');
     // Anna's planet shows no activity.
     expect(row(html, 5)).not.toContain('Aktivität');
   });

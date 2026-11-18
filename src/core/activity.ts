@@ -52,11 +52,12 @@ export const ACTIVITY_RANGE: Readonly<
 };
 
 /**
- * The thresholds in the request „reset“ (#283): sent as one object
- * `activity` and refused together, every wrong threshold at once; without
- * a legend each is a row of its own in the dialog.
+ * The thresholds in the dialog „Neue Runde“ and its request „reset“ (#283;
+ * owner, 2026-11-18): one fieldset with the legend „Aktivität“, like the
+ * rewards; sent as one object `activity` and refused together, every wrong
+ * threshold at once.
  */
-const ACTIVITY_GROUP: RoundGroup = { name: 'activity' };
+const ACTIVITY_GROUP: RoundGroup = { name: 'activity', legend: 'Aktivität' };
 
 /** What the four thresholds share as settings of the round. */
 const limit = <P extends LimitPart>(part: P) =>
@@ -150,17 +151,16 @@ export function activityPlaces(
 
 /**
  * The public activity of a planet or moon: `recent` within the first
- * minutes, then the whole minutes since the activity up to the limit;
- * nothing later or without any activity.
+ * minutes, then the whole minutes since the activity `at` up to the limit;
+ * nothing later. A place without any activity has no time and is not asked.
  */
 export type PlanetActivity = { recent: true } | { minutes: number };
 
 export function planetActivity(
-  at: number | null | undefined,
+  at: number,
   now: number,
   limits: Readonly<ActivityLimits>,
 ): PlanetActivity | null {
-  if (at === null || at === undefined) return null;
   const minutes = Math.floor(Math.max(0, now - at) / MINUTE_MS);
   if (minutes < limits.recent) return { recent: true };
   return minutes <= limits.minutes ? { minutes } : null;
