@@ -92,6 +92,10 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 | Extra fields per planet („Zusatzfelder pro Planet“, #51) | 0 (not in version 1) | 0 to 100, [E] owner 2026-11-13 |
 | Flight time of the „Endzeit“ gift in minutes („Flugzeit der Endzeit-Gabe (Minuten)“, #161) | 240 (not in version 1) | 1 to 4,320 (72 h), [E] owner 2026-11-14 |
 | Lock of a given-up colony's position in hours („Sperre einer aufgegebenen Position (Stunden)“, #224) | 24 (not in version 1), [E] owner 2026-11-16 | 1 to 720 [V]; also in the dialog „Neue Runde“, [E] owner 2026-11-17 (X1) |
+| Activity without the minutes („Aktivität ohne Minutenangabe (Minuten)“, #229) | 15 (not in version 1), [E] owner 2026-11-16 | 1 to 60 [V]; also in the dialog „Neue Runde“, [E] owner 2026-11-17 (X1) |
+| Activity with the minutes up to („Aktivität mit Minutenangabe bis (Minuten)“, #229) | 59 (not in version 1), [E] owner 2026-11-16 | 1 to 1,440 [V]; also in „Neue Runde“ (X1) |
+| Inactive from („Inaktiv ab (Tage)“, #229) | 7 (not in version 1), [E] owner 2026-11-16 | 1 to 365 [V]; also in „Neue Runde“ (X1) |
+| Long inactive from („Lange inaktiv ab (Tage)“, #229) | 28 (not in version 1), [E] owner 2026-11-16 | 1 to 365 [V]; also in „Neue Runde“ (X1) |
 | Thresholds of foreign fleets, levels of the Auspex-Lehre („Fremde Flotten: Schiffe insgesamt ab Auspex-Lehre“, „… Schiffstypen …“, „… Anzahl je Schiffstyp …“, #228) | 2 / 4 / 8 (not in version 1), [E] owner 2026-11-16 | 0 to 100, [E] owner 2026-11-18; also in the dialog „Neue Runde“ in a framed group „Fremde Flotten erkennen“, [E] owner 2026-11-17 (X1) and 2026-11-18 |
 
 * **[V]** The ranges above are proposals; the source is
@@ -117,7 +121,7 @@ universe settings) and their ranges are not decided yet.
 | Who may hold, join an attack union and fight with friends: guild, friends or both ([Holding and ACS](/features/holding-acs.md), [Buddy list](/features/buddy-list.md)) | #55 Q2, #225 D2, #227 D3 | [V] guild and friends, the classic rule for holding |
 | Limits of an attack union ([Holding and ACS](/features/holding-acs.md)) | #225 D3 | classic value: 16 fleets of 5 players, a delay of at most 30 % of the remaining flight time; join window [U] |
 | Thresholds of the recognition of incoming fleets ([Espionage defense](/features/espionage-defense.md)), in whole levels from 0 to 100 [E] (owner, 2026-11-18) | #228 D1, X1 | classic value: espionage technology 2 / 4 / 8 (source [U]); built in the dialog „Neue Runde“ and, changeable during the round, in the universe settings (owner, 2026-11-17, X1) |
-| Thresholds of the [activity indicators](/features/activity-indicators.md) | #229 Q1 | classic value: star 15 min, „x min“ up to 59 min, „i“ after 7 days, „I“ after 28 days |
+| Thresholds of the [activity indicators](/features/activity-indicators.md) | #229 Q1, X1 | classic value: star 15 min, „x min“ up to 59 min, „i“ after 7 days, „I“ after 28 days; built in the dialog „Neue Runde“ and, changeable during the round, in the universe settings (owner, 2026-11-17, X1) |
 | Slots and holding time of [expeditions](/features/expeditions.md) | #93 Q3 | classic value: ⌊√level⌋ slots, at most level hours |
 | Refund factor of a [demolition](/features/demolition.md), −100 % to +100 % | #202 D4, D7 | +50 % [E] |
 | Demolition time as a share of the build time ([Demolition](/features/demolition.md)) | #202 D3 | 50 % [E] |
@@ -139,13 +143,22 @@ universe settings) and their ranges are not decided yet.
   of the main planet and the lock of a given-up position (#224,
   `ABANDON_LOCK_SETTING` in `src/core/abandon.ts`); their texts, ranges,
   defaults, refusals and order are those of before.
+* **[V]** #229 added the four thresholds of the
+  [activity indicators](/features/activity-indicators.md#settings) as
+  entries of `src/core/activity.ts` (`ACTIVITY_RECENT_SETTING`,
+  `ACTIVITY_MINUTES_SETTING`, `INACTIVE_DAYS_SETTING`,
+  `LONG_INACTIVE_DAYS_SETTING`): one group `activity` with the legend
+  „Aktivität“ (owner, 2026-11-18), so they stand in one fieldset of the
+  dialog, are sent as one object and every wrong one is refused at once
+  with the range wording; all four are `live`.
 * **[E]** The registry keeps a fixed order, so #283 changes nothing
   visible (owner, 2026-11-17): every entry has an explicit number `order`,
   like the catalog entries, and the dialog „Neue Runde“ and the order of
   the refusals follow it. The order is that of main before #283: the
   reward options (10, 20), the guild switch (30), the lock of the main
   planet (40), the lock of a given-up position (50, last). A new feature
-  appends at the end with its own number.
+  appends at the end with its own number: the thresholds of the activity
+  markers (#229) took 60, 70, 80 and 90.
 * **[V]** An entry has its stored `key` (`round…`), its `name` in
   `RoundRules` and in the request, its German `label`, and is either a
   switch (`kind: 'switch'`, default yes or no, a `refusal`, an optional
@@ -161,15 +174,16 @@ universe settings) and their ranges are not decided yet.
 * **[V]** `live: true` makes a number entry also a row of the universe
   settings under the same key, changed during the round and checked there
   like the other settings (X1, owner, 2026-11-17). The lock of a given-up
-  position (#224) is the one live setting of main, the last row of the
-  universe settings as before; the other four are not live.
+  position (#224) and, after it, the four thresholds of the activity
+  markers (#229) are the live settings of main, the last rows of the
+  universe settings; the other four entries are not live.
 * **[V]** Added with #228: the three thresholds of the recognition of
   foreign fleets ([Espionage defense](/features/espionage-defense.md)),
   `RECOGNITION_TOTAL_SETTING`, `RECOGNITION_TYPES_SETTING` and
   `RECOGNITION_COUNTS_SETTING` in `src/core/fleet-recognition.ts`, with the
-  orders 120, 130 and 140 (60 to 90 are left to #229, 100 and 110 to #55),
-  so they stand last in the dialog „Neue Runde“ and, being live, after the
-  lock of a given-up position in the universe settings. They are one group
+  orders 120, 130 and 140 (60 to 90 are the activity markers of #229, 100 and
+  110 are left to #55), so they stand after them in the dialog „Neue Runde“
+  and, being live, after the activity rows in the universe settings. They are one group
   `recognition` with the legend „Fremde Flotten erkennen“ ([E] owner,
   2026-11-18): three number fields from 0 to 100 ([E], 2026-11-18) in one
   fieldset with the defaults 2, 4 and 8, sent as one object and refused
@@ -179,7 +193,7 @@ universe settings) and their ranges are not decided yet.
   one line to the list `ENTRIES` in `src/core/round.ts`, where the place
   of the line means nothing; `RoundRules` gets the typed value from the
   entry by itself. The feature picks its `order` number as the next free
-  ten above the highest number of the registry (60 after the 50 of main),
+  ten above the highest number of the registry (100 after the 90 of main),
   so it stands last in the dialog and among the refusals; the members of
   a group take neighbouring numbers. A test refuses a number used twice,
   so two parallel features that picked the same one see it after the

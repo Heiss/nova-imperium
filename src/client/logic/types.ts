@@ -1,4 +1,5 @@
 import type { AchievementState } from '../../core/achievements.ts';
+import type { Inactivity, PlanetActivity } from '../../core/activity.ts';
 import type { RoundRules } from '../../core/round.ts';
 // The state the server sends (GET /api/state).
 import type { DebrisField } from '../../core/debris.ts';
@@ -56,10 +57,13 @@ export interface GalaxyPlanet extends Coords {
   name: string;
   temp: number;
   owner: string;
+  /** The public activity while it shows one (#229). */
+  activity?: PlanetActivity;
 }
 
 export interface Players {
-  [id: string]: { name: string; points: number };
+  /** `inactive` while the account shows its inactivity (#229). */
+  [id: string]: { name: string; points: number; inactive?: Inactivity };
 }
 
 export interface AdminState {

@@ -251,4 +251,21 @@ describe('planets repository', () => {
       ctx.db.prepare('SELECT COUNT(*) FROM position_locks').pluck().get(),
     ).toBe(0);
   });
+
+  it('keeps the last activity of a place apart from its save (#229)', () => {
+    const ctx = testCtx();
+    addUser(ctx, 'Anna');
+    addPlanet(ctx, 'u_Anna');
+    addPlanet(ctx, 'u_Anna', { kind: 'moon', id: 'm1_1_5' });
+    addPlanet(ctx, 'u_Anna', { p: 9 });
+    expect(ctx.planets.activeTimes()).toEqual({});
+    ctx.planets.markActive(['p1_1_5', 'm1_1_5'], 700);
+    ctx.planets.markActive([], 800);
+    expect(ctx.planets.activeTimes()).toEqual({ p1_1_5: 700, m1_1_5: 700 });
+    ctx.planets.save({ ...ctx.planets.get('p1_1_5')!, name: 'Neu' });
+    expect(ctx.planets.activeTimes()).toEqual({ p1_1_5: 700, m1_1_5: 700 });
+    // A deleted place takes its activity with it.
+    ctx.planets.deleteAll();
+    expect(ctx.planets.activeTimes()).toEqual({});
+  });
 });

@@ -105,6 +105,10 @@ describe('achievements', () => {
       // Without a choice the round keeps the lock of the main planet (#221).
       mainLock: 7,
       abandonLock: 24,
+      activityRecent: 15,
+      activityMinutes: 59,
+      inactiveDays: 7,
+      longInactiveDays: 28,
       recognitionTotal: 2,
       recognitionTypes: 4,
       recognitionCounts: 8,

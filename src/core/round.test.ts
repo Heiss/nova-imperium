@@ -1,7 +1,7 @@
 // The settings of a round (#214, #283): the registry, both reward options
 // and the guild switch are yes or no, the locks of the main planet and of
-// a given-up position (#224) whole numbers; an option not sent keeps the
-// current one.
+// a given-up position (#224) and the thresholds of the activity markers
+// (#229) whole numbers; an option not sent keeps the current one.
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import {
@@ -14,13 +14,20 @@ import {
   storedValues,
 } from './round.ts';
 
+/** The classic thresholds of the activity markers (#229). */
+const activity = {
+  activityRecent: 15,
+  activityMinutes: 59,
+  inactiveDays: 7,
+  longInactiveDays: 28,
+};
+
 /** The thresholds of foreign fleets (#228) at their defaults. */
 const RECOGNITION = {
   recognitionTotal: 2,
   recognitionTypes: 4,
   recognitionCounts: 8,
 };
-
 const current = {
   ...RECOGNITION,
   abandonLock: 24,
@@ -28,6 +35,7 @@ const current = {
   daily: false,
   guilds: true,
   mainLock: 7,
+  ...activity,
 };
 const both = { achievements: false, daily: true };
 
@@ -54,7 +62,12 @@ describe('the registry of the round settings', () => {
       [30, 'roundGuilds', 'guilds'],
       [40, 'roundMainLock', 'mainLock'],
       [50, 'roundAbandonLock', 'abandonLock'],
-      // #228: 60 to 110 are taken by #229 and #55.
+      [60, 'roundActivityRecent', 'activityRecent'],
+      [70, 'roundActivityMinutes', 'activityMinutes'],
+      [80, 'roundInactiveDays', 'inactiveDays'],
+      [90, 'roundLongInactiveDays', 'longInactiveDays'],
+
+      // #228: 100 and 110 are left to #55.
       [120, 'roundRecognitionTotal', 'recognitionTotal'],
       [130, 'roundRecognitionTypes', 'recognitionTypes'],
       [140, 'roundRecognitionCounts', 'recognitionCounts'],
@@ -92,6 +105,11 @@ describe('the registry of the round settings', () => {
       'round-guilds',
       'round-main-lock',
       'round-abandon-lock',
+      'round-activity-recent',
+      'round-activity-minutes',
+      'round-inactive-days',
+      'round-long-inactive-days',
+
       'round-recognition-total',
       'round-recognition-types',
       'round-recognition-counts',
@@ -107,12 +125,14 @@ describe('the registry of the round settings', () => {
       daily: true,
       guilds: true,
       mainLock: 7,
+      ...activity,
     });
     const stored: Record<string, number> = {
       roundAbandonLock: 48,
       roundAchievements: 0,
       roundDaily: 2,
       roundMainLock: 12,
+      roundInactiveDays: 3,
     };
     expect(storedValues((k) => stored[k])).toEqual({
       ...RECOGNITION,
@@ -121,6 +141,8 @@ describe('the registry of the round settings', () => {
       daily: true,
       guilds: true,
       mainLock: 12,
+      ...activity,
+      inactiveDays: 3,
     });
   });
 
@@ -131,6 +153,7 @@ describe('the registry of the round settings', () => {
       rewards: { achievements: true, daily: false },
       guilds: true,
       mainLock: 7,
+      activity,
     });
   });
 });
@@ -149,6 +172,7 @@ describe('the check of a new round', () => {
             daily,
             guilds,
             mainLock: 7,
+            ...activity,
           });
         }
   });
@@ -209,6 +233,32 @@ describe('the check of a new round', () => {
     expect(refused(undefined, undefined, undefined, 0)).toEqual([
       'abandonLock',
     ]);
+  });
+
+  it('refuses the thresholds of the activity markers last and together (#229)', () => {
+    const names = (data: Record<string, unknown>) =>
+      roundRefused(current, data).map((s) => s.name);
+    expect(names({ activity: { ...activity, activityMinutes: 0 } })).toEqual([
+      'activityMinutes',
+    ]);
+    expect(names({ activity: {} })).toEqual([
+      'activityRecent',
+      'activityMinutes',
+      'inactiveDays',
+      'longInactiveDays',
+    ]);
+    expect(names({ abandonLock: 0, activity: {} })).toEqual(['abandonLock']);
+    const custom = {
+      activityRecent: 1,
+      activityMinutes: 1440,
+      inactiveDays: 365,
+      longInactiveDays: 1,
+    };
+    expect(names({ activity: custom })).toEqual([]);
+    expect(roundValues(current, { activity: custom })).toEqual({
+      ...current,
+      ...custom,
+    });
   });
 
   it('refuses the wrong members of a group together, once per group', () => {

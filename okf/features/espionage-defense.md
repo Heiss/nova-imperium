@@ -26,7 +26,9 @@ points were answered on 2026-11-16.
   number for this.
 * **[E]** Activity in the report (owner, 2026-11-16, Q3): the classic event
   list of owiki „Aktivität“, one rule shared with
-  [Activity indicators](/features/activity-indicators.md#what-sets-activity).
+  [Activity indicators](/features/activity-indicators.md#what-sets-activity):
+  v0.76d with the change of v0.77b (owner, 2026-11-17), built by #229 in
+  `src/core/activity.ts` (`activityPlaces`, `planetActivity`).
 
 # Recognition of incoming fleets (#228)
 
@@ -64,8 +66,8 @@ points were answered on 2026-11-16.
   [Admin](/features/admin.md#the-registry-of-the-round-settings-283)),
   defined in `src/core/fleet-recognition.ts`: `RECOGNITION_TOTAL_SETTING`
   (order 120), `RECOGNITION_TYPES_SETTING` (130) and
-  `RECOGNITION_COUNTS_SETTING` (140); the orders 60 to 110 are left to
-  #229 and #55. They are stored as `roundRecognitionTotal`,
+  `RECOGNITION_COUNTS_SETTING` (140); the orders 60 to 90 are the
+  activity markers of #229 and 100 and 110 are left to #55. They are stored as `roundRecognitionTotal`,
   `roundRecognitionTypes` and `roundRecognitionCounts` (2, 4 and 8 without
   a setting, so existing universes need no migration) and are named
   `recognitionTotal`, `recognitionTypes` and `recognitionCounts` in

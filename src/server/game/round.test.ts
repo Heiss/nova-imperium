@@ -22,7 +22,7 @@ const HOURS: RoundNumber<'testHours'> = {
   key: 'roundTestHours',
   name: 'testHours',
   label: 'Testdauer (Stunden)',
-  order: 60,
+  order: 100,
   min: 1,
   max: 720,
   def: 24,
@@ -35,7 +35,7 @@ const CHOICE: RoundNumber<'testChoice'> = {
   key: 'roundTestChoice',
   name: 'testChoice',
   label: 'Testauswahl',
-  order: 70,
+  order: 110,
   min: 1,
   max: 3,
   def: 3,
@@ -169,17 +169,44 @@ describe('a new entry of the registry (#283)', () => {
     expect(valuesOf(ctx)).toMatchObject({ testHours: 72 });
   });
 
-  it('the live settings are the last rows of the universe settings, in the order of the registry: the lock of a given-up position (#224), then the thresholds of foreign fleets (#228)', () => {
-    const lock = {
-      key: 'roundAbandonLock',
-      label: 'Sperre einer aufgegebenen Position (Stunden)',
-      min: 1,
-      max: 720,
-      def: 24,
-    };
+  it('the live settings are the last rows of the universe settings, in the order of the registry: the lock of a given-up position (#224), the thresholds of the activity markers (#229), then the thresholds of foreign fleets (#228)', () => {
     const level = { min: 0, max: 100 };
     const rows = [
-      lock,
+      {
+        key: 'roundAbandonLock',
+        label: 'Sperre einer aufgegebenen Position (Stunden)',
+        min: 1,
+        max: 720,
+        def: 24,
+      },
+      {
+        key: 'roundActivityRecent',
+        label: 'Aktivität ohne Minutenangabe (Minuten)',
+        min: 1,
+        max: 60,
+        def: 15,
+      },
+      {
+        key: 'roundActivityMinutes',
+        label: 'Aktivität mit Minutenangabe bis (Minuten)',
+        min: 1,
+        max: 1440,
+        def: 59,
+      },
+      {
+        key: 'roundInactiveDays',
+        label: 'Inaktiv ab (Tage)',
+        min: 1,
+        max: 365,
+        def: 7,
+      },
+      {
+        key: 'roundLongInactiveDays',
+        label: 'Lange inaktiv ab (Tage)',
+        min: 1,
+        max: 365,
+        def: 28,
+      },
       {
         key: 'roundRecognitionTotal',
         label: 'Fremde Flotten: Schiffe insgesamt ab Auspex-Lehre',
