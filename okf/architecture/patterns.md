@@ -514,6 +514,22 @@ choice of the patterns to the assistant's recommendation below
   on both sides, and an order of 0 gets the browser's text on the server
   too (O18 (c): F8, F9, F10).
 
+* **[V]** Built with #283 (a refactor without a visible change, in the
+  style of #111): the settings of a round are a registry, `ROUND_SETTINGS`
+  in `src/core/round.ts`, instead of hand wiring in `RoundRules`,
+  `roundRules()`, `startRoundRules()`, `UNIVERSE_SPECS`, the dialog „Neue
+  Runde“, the client's `doReset` and the reset action. Each entry gives
+  its stored key, its name, its German label, its range or choices, its
+  default and its refusal (else the shared range wording `rangeError` of
+  the universe settings); the pure checks `roundRefused` and `roundValues`
+  are in the core, the server words the refusal. `RoundRules` is derived
+  from the entries' types. A feature adds one entry in its own file and
+  one line to the list; its `order` number, the next free ten above the
+  highest, puts it last in the fixed order of the dialog and the refusals
+  (owner, 2026-11-17; a test refuses a number used twice); `live: true`
+  also puts it into the universe settings (X1). The rules are in
+  [Admin](/features/admin.md#the-registry-of-the-round-settings-283).
+
 ## 8. Store: a repository per aggregate
 
 * **[E]** One repository per aggregate (planet, fleet, player, guild, …)
@@ -728,7 +744,8 @@ choice of the patterns to the assistant's recommendation below
   (`readFleetForm`), „Mond“ by the typed coordinates (`moonOption`) and
   the click actions (`fmax`, `fall`, `fnone`, `cmax`, `cone`, `send`,
   `recall`) stay with `data-act` in `main.ts` until package 8, so
-  `main.ts` shrinks (1,888 to 1,848 lines). No visible change.
+  `main.ts` shrinks (1,888 to 1,848 lines; 1,839 on top of #290, which
+  moved the round code out). No visible change.
 * **[E]** #253 built straight into the component (owner, 2026-11-16;
   [Missions that fit the target](/features/fitting-missions.md)): the
   list „Auftrag“ offers only the missions that fit the target.
@@ -741,7 +758,13 @@ choice of the patterns to the assistant's recommendation below
   shows. **[V]** The view is still mounted with every mission
   (`page.missions`), so `keepInputs` can put the chosen mission back
   before the list is aimed in the same task; nothing of it is painted.
-  `main.ts` keeps its 1,848 lines.
+  `main.ts` gets no line more. **[E]** The place the fleet starts from
+  takes no mission, and the „Schnellwahl“ lists the other own planets and
+  moons (owner, 2026-11-17): `quickTargets()` of `logic/fleet.ts` gives
+  the entries with the values of the fields of the target, and the
+  component enters them with a listener on the list itself, which runs
+  before the `change` listener of `main.ts` on the document; that one
+  calls `fleetCalc` as for every change of the form.
 * **[E]** Bundle 2 after bundle 1 (owner, 2026-11-15 and 2026-11-16: the
   order of the bundles of #118 „Geklärt, Nachtrag 3“, unchanged by
   „Nachtrag 4“): the Sternenkarte, which the phone view #189 builds on

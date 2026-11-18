@@ -1,29 +1,25 @@
-import { ABANDON_LOCK_HOURS, isAbandonLockHours } from '../../core/abandon.ts';
-import type { RoundRules } from '../../core/achievements.ts';
-import { isLockDays, MAIN_LOCK_DAYS } from '../../core/main-planet.ts';
-import { type RoundError, roundChoice, roundError } from '../../core/round.ts';
+// The rules of the round on the server (#283): `roundRules()` reads every
+// setting of the registry `ROUND_SETTINGS` (src/core/round.ts), and a new
+// round checks and stores them. A feature adds its entry there, not here.
+import {
+  ROUND_SETTINGS,
+  type RoundNumber,
+  type RoundRules,
+  type RoundSetting,
+  roundRefused,
+  roundValues,
+  storedValues,
+} from '../../core/round.ts';
 import { type Ctx, fail } from './context.ts';
 
-/** The setting of the lock of the main planet in days (#221, D3). */
-const MAIN_LOCK = 'roundMainLock';
-
-/** The setting of the lock of a given-up colony's position in hours (#224, D2). */
-const ABANDON_LOCK = 'roundAbandonLock';
-
-export function roundRules(ctx: Ctx): RoundRules {
-  const rows = ctx.admin.roundSettings();
-  const settings = new Map(rows.map(({ key, value }) => [key, value]));
+export function roundRules(
+  ctx: Ctx,
+  settings: readonly RoundSetting[] = ROUND_SETTINGS,
+): RoundRules {
   return {
-    number: settings.get('round') ?? 1,
-    achievements: settings.get('roundAchievements') !== 0,
-    daily: settings.get('roundDaily') !== 0,
-    // Existing universes start with guilds on, as before (#191).
-    guilds: settings.get('roundGuilds') !== 0,
-    // Existing universes lock for the default 7 days (#221).
-    mainLock: ctx.admin.setting(MAIN_LOCK) ?? MAIN_LOCK_DAYS.default,
-    // Existing universes lock a given-up position for the default 24 h (#224).
-    abandonLock: ctx.admin.setting(ABANDON_LOCK) ?? ABANDON_LOCK_HOURS.default,
-  };
+    number: ctx.admin.setting('round') ?? 1,
+    ...storedValues((key) => ctx.admin.setting(key), settings),
+  } as RoundRules;
 }
 
 /**
@@ -50,60 +46,43 @@ export function requireGuilds(ctx: Ctx): void {
   if (!guildsOn(ctx)) fail(GUILDS_OFF);
 }
 
-/** The refusals of `roundError` (#214). */
-const ROUND_ERROR: Readonly<Record<RoundError, string>> = {
-  rewards: 'Bitte beide Belohnungseinstellungen für die neue Runde auswählen.',
-  guilds: 'Bitte auswählen, ob Gilden in der neuen Runde an sind.',
-};
+/** The refusal of a value outside its range, as the universe settings word it (#214). */
+export const rangeError = (s: {
+  label: string;
+  min: number;
+  max: number;
+}): string => `${s.label}: ganze Zahl von ${s.min} bis ${s.max}.`;
 
-/** The lock of the main planet in the new round (#221); without a choice the current one. */
-function mainLockRule(current: RoundRules, days: unknown): number {
-  const selected = days === undefined ? current.mainLock : days;
-  if (!isLockDays(selected))
-    return fail(
-      `Bitte für die Sperre des Hauptplaneten ${MAIN_LOCK_DAYS.min} bis ${MAIN_LOCK_DAYS.max} ganze Tage angeben.`,
-    );
-  return selected;
-}
+/**
+ * The refusal of the refused entries: their own wording, each once, else the
+ * range. A switch always has its own wording, so only a number gets the range.
+ */
+const refusal = (wrong: readonly RoundSetting[]): string =>
+  [
+    ...new Set(wrong.map((s) => s.refusal ?? rangeError(s as RoundNumber))),
+  ].join(' ');
 
-/** The lock of a given-up position in the new round (#224); without a choice the current one. */
-function abandonLockRule(current: RoundRules, hours: unknown): number {
-  const selected = hours === undefined ? current.abandonLock : hours;
-  if (!isAbandonLockHours(selected))
-    return fail(
-      `Bitte für die Sperre einer aufgegebenen Position ${ABANDON_LOCK_HOURS.min} bis ${ABANDON_LOCK_HOURS.max} ganze Stunden angeben.`,
-    );
-  return selected;
-}
-
-/** The choices of the dialog „Neue Runde“ beyond the rewards and the guild switch. */
-interface RoundLocks {
-  mainLock?: unknown;
-  abandonLock?: unknown;
-}
-
+/**
+ * Starts the rules of a new round from the request „reset“ (#283): every
+ * setting of the registry as sent, else as in the current round. Nothing is
+ * stored when one is refused.
+ */
 export function startRoundRules(
   ctx: Ctx,
-  options: unknown,
-  guilds?: unknown,
-  locks: RoundLocks = {},
+  data: Record<string, unknown>,
+  settings: readonly RoundSetting[] = ROUND_SETTINGS,
 ): RoundRules {
-  const current = roundRules(ctx);
-  const error = roundError(current, options, guilds);
-  if (error) fail(ROUND_ERROR[error]);
+  const current = roundRules(ctx, settings);
+  const wrong = roundRefused(current, data, settings);
+  if (wrong.length) fail(refusal(wrong));
   const next = {
     number: current.number + 1,
-    ...roundChoice(current, options, guilds),
-    mainLock: mainLockRule(current, locks.mainLock),
-    abandonLock: abandonLockRule(current, locks.abandonLock),
-  };
+    ...roundValues(current, data, settings),
+  } as RoundRules;
+  const values = next as unknown as Record<string, number | boolean>;
   ctx.admin.putSettings([
-    [MAIN_LOCK, next.mainLock],
-    [ABANDON_LOCK, next.abandonLock],
+    ...settings.map((s): [string, number] => [s.key, Number(values[s.name])]),
     ['round', next.number],
-    ['roundAchievements', Number(next.achievements)],
-    ['roundDaily', Number(next.daily)],
-    ['roundGuilds', Number(next.guilds)],
     ['roundStart', ctx.now()],
   ]);
   return next;
