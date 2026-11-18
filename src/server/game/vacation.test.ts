@@ -505,11 +505,11 @@ describe('the state', () => {
     const shown = stateFor(ctx, ctx.players.get('u_Bert')!) as {
       me: { vacation: number | null };
       round: { vacationHours: number };
-      players: Record<string, { vacation: boolean }>;
+      players: Record<string, { vacation?: boolean }>;
     };
     expect(shown.me.vacation).toBeNull();
     expect(shown.round.vacationHours).toBe(24);
     expect(shown.players.u_Anna!.vacation).toBe(true);
-    expect(shown.players.u_Bert!.vacation).toBe(false);
+    expect(shown.players.u_Bert).not.toHaveProperty('vacation');
   });
 });

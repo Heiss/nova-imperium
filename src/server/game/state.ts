@@ -99,7 +99,7 @@ function playersOf(
         name: x.name,
         points: pts[x.id] ?? 0,
         // Who is in vacation mode, for the Sternenkarte (#223).
-        vacation: x.vacation !== null,
+        ...(x.vacation !== null ? { vacation: true } : {}),
         ...(idle[x.id] ? { inactive: idle[x.id] } : {}),
       },
     ]),
