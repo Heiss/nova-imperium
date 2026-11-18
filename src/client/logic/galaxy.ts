@@ -19,6 +19,7 @@ import { isProtected, nameOf, ranks } from './game.ts';
 import { moonAt, moonMark } from './moon.ts';
 import { type Countdown, countdown } from './overview.ts';
 import { canScan, scanRows, scanTitle } from './phalanx.ts';
+import { canSurvey } from './survey.ts';
 import type { GalaxyPlanet } from './types.ts';
 
 /**
@@ -61,7 +62,7 @@ export interface GalaxyRow {
   planet: GalaxyPlace | null;
   /** The HTML of the symbols of the moon and the Trümmerfeld, in this order. */
   marks: string[];
-  /** The actions at a free position: „Landnahme“ and „Bergung“. */
+  /** The actions at a free position: „Landnahme“, „Vermessen“ (#190) and „Bergung“. */
   actions: GalaxyAction[];
   /** The note of a free position: „–“, or until when it is locked (#224). */
   note: string;
@@ -203,6 +204,18 @@ const colonize = (v: V, c: Coords): GalaxyAction[] =>
     ? [fleetTo('button', 'colonize', 'Landnahme', at(c, false))]
     : [];
 
+/** „Vermessen“ at a free position, with Spähschädel and the research (#190). */
+const survey = (v: V, c: Coords): GalaxyAction[] =>
+  canSurvey(v.R.research, v.P.ships)
+    ? [
+        {
+          kind: 'button',
+          label: 'Vermessen',
+          attrs: { 'data-act': 'gspy', 'data-m': 'survey', ...at(c, false) },
+        },
+      ]
+    : [];
+
 /** The row of position `p` of the shown system. */
 function galaxyRow(v: V, p: number, rk: Record<string, number>): GalaxyRow {
   const { s, ui } = v;
@@ -226,7 +239,11 @@ function galaxyRow(v: V, p: number, rk: Record<string, number>): GalaxyRow {
       position: p,
       planet: null,
       marks,
-      actions: [...(free.colonize ? colonize(v, c) : []), ...harvest],
+      actions: [
+        ...(free.colonize ? colonize(v, c) : []),
+        ...survey(v, c),
+        ...harvest,
+      ],
       note: free.note,
       moon: null,
     };

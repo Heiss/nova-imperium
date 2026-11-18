@@ -318,6 +318,35 @@ describe('during the vacation mode', () => {
   });
 });
 
+describe('a Vermessung and the vacation mode (#190, #223)', () => {
+  it('is refused like every action while the sender is in vacation mode, and flies after the end', () => {
+    const ctx = world();
+    const a = anna(ctx);
+    ctx.players.save({ ...a, research: { ...a.research, carto: 1 } });
+    ctx.planets.save({
+      ...home(ctx),
+      ships: { probe: 2 },
+      res: { m: 0, c: 0, d: 1000 },
+    });
+    const survey = {
+      planet: 'p1_1_5',
+      mission: 'survey',
+      ships: { probe: 1 },
+      to: { g: 1, s: 1, p: 9 },
+      pct: 10,
+      cargo: {},
+    };
+    start(ctx);
+    expect(() => act(ctx, 'send', survey)).toThrow(VACATION_REFUSED);
+    expect(ctx.fleets.all()).toEqual([]);
+    expect(home(ctx).ships).toEqual({ probe: 2 });
+    ctx.clock.t = START + 50 * HOUR_MS;
+    stop(ctx);
+    expect(act(ctx, 'send', survey)).toBe('Flotte unterwegs nach [1:1:9].');
+    expect(ctx.fleets.all()[0]).toMatchObject({ mission: 'survey' });
+  });
+});
+
 describe('ending the vacation mode', () => {
   it('is refused before the minimum duration with the earliest end', () => {
     const ctx = world();

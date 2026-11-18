@@ -15,6 +15,7 @@ import { openDatabase } from './db/database.ts';
 import { noteServerError } from './error-log.ts';
 import { Store } from './db/store.ts';
 import { tick } from './game/arrival.ts';
+import { purgeSurveys } from './game/surveys.ts';
 import { type Ctx, createCtx } from './game/context.ts';
 import { createApp } from './http/app.ts';
 import { createMailer, type Mailer } from './mail.ts';
@@ -82,7 +83,7 @@ export function clockBeat(ctx: Ctx, log: Log, version: string | null): void {
   }
 }
 
-/** The hourly cleanup: sessions, audit and error log, the app's limits. */
+/** The hourly cleanup: sessions, audit and error log, surveys (#190), the app's limits. */
 export function hourlySweep(
   ctx: Ctx,
   sweepApp: () => void,
@@ -92,6 +93,7 @@ export function hourlySweep(
   try {
     ctx.players.purgeSessions(ctx.now());
     purgeAudit(ctx);
+    purgeSurveys(ctx);
     sweepApp();
   } catch (e) {
     jobFailure(ctx, log, 'sweep', version)('Sweep failed', e);

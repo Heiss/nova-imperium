@@ -10,6 +10,7 @@ import { SqliteInvitations, type Invitations } from './invitations.ts';
 import { SqlitePlanets, type Planets } from './planets.ts';
 import { SqlitePlayers, type Players } from './players.ts';
 import { SqliteReports, type Reports } from './reports.ts';
+import { SqliteSurveys, type Surveys } from './surveys.ts';
 
 export interface Repositories {
   players: Players;
@@ -21,6 +22,8 @@ export interface Repositories {
   admin: Admin;
   /** The Trümmerfelder (#45), places of their own (#119). */
   debris: DebrisFields;
+  /** The values of surveyed free positions (#190). */
+  surveys: Surveys;
 }
 
 export const repositories = (db: Db): Repositories => ({
@@ -32,4 +35,5 @@ export const repositories = (db: Db): Repositories => ({
   invitations: new SqliteInvitations(db),
   admin: new SqliteAdmin(db),
   debris: new SqliteDebris(db),
+  surveys: new SqliteSurveys(db),
 });

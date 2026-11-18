@@ -89,6 +89,8 @@ const SEND_ERROR: Readonly<Record<Exclude<SendError, 'locked'>, string>> = {
   moonTarget: 'Ein Mond kann nicht das Ziel dieses Auftrags sein.',
   notMoon: 'Mondbruch nur gegen einen Mond.',
   noWorldbreaker: 'Du brauchst einen Weltenbrecher.',
+  surveyLocked: 'Vermessung erst mit Auspex-Kartographie.',
+  surveyProbesOnly: 'Vermessung nur mit Spähschädeln.',
 };
 
 const loadCargo = (p: Planet, rules: MissionRules, raw: unknown): Resources => {

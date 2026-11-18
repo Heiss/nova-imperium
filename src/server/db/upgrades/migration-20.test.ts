@@ -124,7 +124,9 @@ describe('upgrade to migration 20', () => {
     expect(db.pragma('integrity_check', { simple: true })).toBe('ok');
 
     // Read through the game as it runs: every rank reads and writes, the
-    // Offizier keeps its rights, and only the Leitung deletes.
+    // Offizier keeps its rights, and only the Leitung deletes. The game
+    // reads the columns of later migrations (the vacation of #223).
+    migrate(db, MIGRATIONS);
     const ctx = testCtx(1_000_000, 42, db);
     expect(
       runAction(ctx, 'u_Cora', { type: 'sendGuildChat', text: 'Hi' }),
@@ -203,6 +205,8 @@ describe('upgrade to migration 20', () => {
       "INSERT INTO guild_rank_rights VALUES ('ro', 'assign'), ('ro', 'ranks')",
     );
     migrate(db, throughNumber(20));
+    // The game reads the columns of later migrations (the vacation of #223).
+    migrate(db, MIGRATIONS);
     const ctx = testCtx(1_000_000, 42, db);
     const run = (who: string, d: Record<string, unknown>) =>
       runAction(ctx, who, d);

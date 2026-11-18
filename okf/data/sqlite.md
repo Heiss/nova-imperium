@@ -540,6 +540,10 @@ before, a gift and fleets from and to a moon among them, checks that every
 row and ship stays, that a gift still takes no fleet slot, that a Mondbruch
 is saved with its ships, the CHECKs of `mission` and `gift`, the index and
 the cascades.
+The later migration `20261117T1211-planet-survey` (issue #190) rebuilds
+`fleets` again for the mission `survey` and lists `moonbreak` in its CHECK
+too, since it runs after this one (its upgrade test checks that both
+missions are allowed).
 
 Account deletion runs in one transaction. Foreign-key cascades clear owned game,
 session, reward and push data. The deletion also removes led guilds and their

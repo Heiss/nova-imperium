@@ -41,7 +41,9 @@ export type SendError =
   | 'noMoon'
   | 'moonTarget'
   | 'notMoon'
-  | 'noWorldbreaker';
+  | 'noWorldbreaker'
+  | 'surveyLocked'
+  | 'surveyProbesOnly';
 
 /** The fleet a player wants to send: its owner, its origin and its ships. */
 export interface SendFleet {
@@ -49,7 +51,7 @@ export interface SendFleet {
   /** The id of the planet it starts from. */
   from: string;
   ships: Levels;
-  /** The research of the owner; missing: none (the espionage technology of #175, Q1). */
+  /** The research of the owner at the start; missing: none (the espionage technology of #175, Q1, and the Vermessung of #190). */
   research?: Levels;
 }
 

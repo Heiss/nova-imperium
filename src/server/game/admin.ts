@@ -58,6 +58,8 @@ function newRound(ctx: Ctx, rules: RoundRules): void {
   ctx.guilds.clearChats();
   ctx.fleets.deleteAll();
   ctx.debris.deleteAll();
+  // The values of surveyed positions belong to the round (#190).
+  ctx.surveys.deleteAll();
   ctx.db.exec(`
     DELETE FROM push_jobs;
     DELETE FROM achievement_progress;

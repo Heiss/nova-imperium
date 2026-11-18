@@ -15,6 +15,12 @@ export const grows =
   (x: RateCtx): number =>
     k * growth(x.level) * (x.pct / 100);
 
+/**
+ * The yield factor of the Promethium-Raffinerie at a maximum temperature:
+ * the warmer, the less; a temperature of 0 counts as 20, as in version 1.
+ */
+export const tempFactor = (temp: number): number => 1.28 - 0.002 * (temp || 20);
+
 /** Energy of one Solarsatellit: ⌊maximum temperature / 4 + 20⌋, never below 0. */
 export const satEnergy = (temp: number): number =>
   Math.max(0, Math.floor(temp / 4 + 20));

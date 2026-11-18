@@ -61,8 +61,9 @@ const placeOf = (m: Mission, c: Coords): string =>
 
 function setup() {
   const ctx = testCtx();
-  // Auspex-Lehre 1 lets Anna spy (#175, Q1).
-  const anna = addUser(ctx, 'Anna', { research: { spy: 1 } });
+  // Auspex-Lehre 1 lets Anna spy (#175, Q1), Auspex-Kartographie 1 lets her
+  // survey (#190).
+  const anna = addUser(ctx, 'Anna', { research: { spy: 1, carto: 1 } });
   // Points from research, so the noob protection does not shield him, also
   // from the Weltenbrecher of Anna (#95).
   addUser(ctx, 'Bert', { research: { energy: 14 } });

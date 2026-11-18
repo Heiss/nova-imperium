@@ -3,9 +3,12 @@
 // compare the catalog of version 1 with this one through these tables, and
 // check that no display text shows a classic name any more.
 
-/** Catalog key → classic name, new name and new abbreviation. */
+/**
+ * Catalog key → classic name, new name and new abbreviation. An own
+ * extension of this game has no classic name (null).
+ */
 export const NAMES: Readonly<
-  Record<string, { classic: string; name: string; ab: string }>
+  Record<string, { classic: string | null; name: string; ab: string }>
 > = {
   metal: { classic: 'Metallmine', name: 'Adamant-Tiefbohrung', ab: 'AT' },
   crystal: {
@@ -108,6 +111,9 @@ export const NAMES: Readonly<
   pt: { classic: 'Plasmawerfer', name: 'Plasmabatterie', ab: 'PA' },
   ssd: { classic: 'Kleine Schildkuppel', name: 'Kleiner Schutzdom', ab: 'SD' },
   lsd: { classic: 'Große Schildkuppel', name: 'Großer Schutzdom', ab: 'GD' },
+  // #190: the name decided by the owner (2026-11-14), the abbreviation [V];
+  // an own extension without a classic name.
+  carto: { classic: null, name: 'Auspex-Kartographie', ab: 'AK' },
 };
 
 /** Resources: Energie stays. */
@@ -126,6 +132,8 @@ export const MISSIONS = {
   deploy: { classic: 'Stationieren', name: 'Verlegung' },
   harvest: { classic: 'Abbauen', name: 'Bergung' },
   moonbreak: { classic: 'Zerstören', name: 'Mondbruch' },
+  // #190: the name proposed in the issue [V]; no classic mission.
+  survey: { classic: null, name: 'Vermessung' },
 } as const;
 
 /**
@@ -135,7 +143,11 @@ export const MISSIONS = {
  */
 export const CLASSIC: Readonly<Record<string, string>> = {
   ...RESOURCES,
-  ...Object.fromEntries(Object.values(NAMES).map((x) => [x.classic, x.name])),
+  ...Object.fromEntries(
+    Object.values(NAMES).flatMap((x) =>
+      x.classic === null ? [] : [[x.classic, x.name]],
+    ),
+  ),
   Werft: 'Schiffsschmiede',
   Labor: 'Scholarium',
   Hyperraum: 'Warp',
@@ -177,9 +189,11 @@ export const classicIn = (text: string): string[] =>
  * name, the longest first („Schlachtkreuzer“ before „Kreuzer“).
  */
 export function renamed(text: string): string {
-  const pairs = Object.values(NAMES).sort(
-    (a, b) => b.classic.length - a.classic.length,
-  );
+  const pairs = Object.values(NAMES)
+    .flatMap(({ classic, name }) =>
+      classic === null ? [] : [{ classic, name }],
+    )
+    .sort((a, b) => b.classic.length - a.classic.length);
   let out = text;
   for (const { classic, name } of pairs)
     out = out.replace(

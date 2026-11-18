@@ -509,6 +509,8 @@ describe('CatalogList against the views before #118', () => {
   });
 
   it('reaches every action and notice', () => {
+    // 300 runs: a new catalog entry (#190) moved the seeded sample so that
+    // 150 runs no longer reached „Zu wenig Energie“.
     const seen = new Set<string>();
     fc.assert(
       fc.property(state, (v) => {
@@ -517,7 +519,7 @@ describe('CatalogList against the views before #118', () => {
           for (const mark of MARKS) if (html.includes(mark)) seen.add(mark);
         }
       }),
-      { seed: 118, numRuns: 150 },
+      { seed: 118, numRuns: 300 },
     );
     expect([...seen].sort()).toEqual([...MARKS].sort());
   });

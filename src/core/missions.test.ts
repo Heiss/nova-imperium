@@ -45,6 +45,8 @@ const CODES: SendError[] = [
   'moonTarget',
   'notMoon',
   'noWorldbreaker',
+  'surveyLocked',
+  'surveyProbesOnly',
 ];
 const FIELDS = [
   'alertsGuild',
@@ -71,6 +73,7 @@ describe('mission names', () => {
       'deploy',
       'harvest',
       'moonbreak',
+      'survey',
     ]);
   });
 
@@ -101,7 +104,11 @@ const fleets: fc.Arbitrary<SendFleet> = fc.record(
       fc.constantFrom(...Object.keys(SHIPS), 'nope'),
       fc.integer({ min: 0, max: 50 }),
     ),
-    research: fc.record({ spy: fc.integer({ min: 0, max: 3 }) }),
+    // The research of the owner: the Vermessung needs Auspex-Kartographie (#190).
+    research: fc.dictionary(
+      fc.constantFrom('carto', 'spy'),
+      fc.integer({ min: 0, max: 3 }),
+    ),
   },
   { requiredKeys: ['owner', 'from', 'ships'] },
 );
@@ -122,6 +129,7 @@ describe('the rules of every mission (contract)', () => {
       'harvest',
       'moonbreak',
       'spy',
+      'survey',
       'transport',
     ]);
     expect(Object.keys(MISSION)[0]).toBe('attack');

@@ -32,6 +32,8 @@ const FILES: Record<string, string> = {
   plasma: 'research/plasma_technology',
   graviton: 'research/graviton_technology',
   ifn: 'research/intergalactic_research_network',
+  // #190: the picture of the Auspex-Lehre with its own name until one is drawn [V].
+  carto: 'research/auspex_cartography',
   sc: 'ships/small_cargo',
   lc: 'ships/large_cargo',
   colony: 'ships/colony_ship',

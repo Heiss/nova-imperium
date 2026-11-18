@@ -109,6 +109,7 @@ describe('catalog', () => {
       plasma: values(C.RES).plasma,
       graviton: values(C.RES).graviton,
       ifn: values(C.RES).ifn,
+      carto: values(C.RES).carto,
     });
     const ships = values(C.SHIPS);
     const added = {
@@ -181,6 +182,7 @@ describe('catalog', () => {
       'deploy',
       'harvest',
       'moonbreak',
+      'survey',
     ]);
     expect(C.MISSION).toEqual(
       Object.fromEntries(Object.entries(MISSIONS).map(([k, m]) => [k, m.name])),
@@ -678,6 +680,7 @@ describe('catalog from the entry folders', () => {
       'plasma',
       'graviton',
       'ifn',
+      'carto',
     ]);
     const ships = [
       'sc',
@@ -708,7 +711,7 @@ describe('catalog from the entry folders', () => {
   });
 
   it('has one folder per entry, each with its kind and its own order', () => {
-    expect(ENTRIES).toHaveLength(53);
+    expect(ENTRIES).toHaveLength(54);
     const kinds = {
       building: C.BUILD,
       research: C.RES,

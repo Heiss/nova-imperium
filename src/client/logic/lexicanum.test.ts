@@ -294,9 +294,18 @@ describe('an article of a catalog entry', () => {
     expect(unmet[0]!.items[0]!.note).toBe('aktuell 1');
     const used = of(blocks(art('spy'), 'used'), 'table')[0]!;
     expect(used.head).toEqual(['Schaltet frei', 'Art', 'Auspex-Lehre']);
-    expect(used.rows[0]!.cells).toEqual([
+    // Selected by its link, not by position: a new entry that needs the
+    // Auspex-Lehre (#190, Auspex-Kartographie) joins the rows.
+    const rowOf = (id: string) =>
+      used.rows.find((r) => (r.cells[0] as { link: string }).link === id);
+    expect(rowOf('probe')!.cells).toEqual([
       { text: 'Spähschädel', link: 'probe' },
       { text: 'Schiffe' },
+      { text: 'ab Stufe 2', num: true },
+    ]);
+    expect(rowOf('carto')!.cells).toEqual([
+      { text: 'Auspex-Kartographie', link: 'carto' },
+      { text: 'Forschung' },
       { text: 'ab Stufe 2', num: true },
     ]);
     expect(section(art('metal'), 'req')).toBeUndefined();

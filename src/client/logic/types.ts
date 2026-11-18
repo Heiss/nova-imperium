@@ -52,7 +52,7 @@ export type ClientFleet = Pick<
 export interface Report {
   id: string;
   time: number;
-  type: 'info' | 'spy' | 'battle';
+  type: 'info' | 'spy' | 'battle' | 'survey';
   title: string;
   [k: string]: unknown;
 }
