@@ -164,9 +164,9 @@ universe settings) and their ranges are not decided yet.
   branches do not collide: 100 and 110 (#55), 120 to 140 (#228), 150 to 170
   (reserved for #223). The demolition of #202 takes 180 (refund factor,
   „Rückbau-Erstattung (%)“) and 190 (time, „Rückbau-Dauer (% der
-  Bauzeit)“), both `live`, in one group `demolition` without a legend: they
-  are sent as one object and refused together, and the dialog shows no
-  fieldset, because the owner decided no legend text for them
+  Bauzeit)“), both `live`, in one group `demolition` with the legend „Rückbau“
+  (owner, 2026-11-18): they are sent as one object and refused together,
+  and the dialog shows them in one fieldset
   ([Demolition](/features/demolition.md)).
 * **[V]** An entry has its stored `key` (`round…`), its `name` in
   `RoundRules` and in the request, its German `label`, and is either a

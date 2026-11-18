@@ -191,7 +191,7 @@ describe('the activity thresholds in the dialog „Neue Runde“ (#229, X1)', ()
 });
 
 describe('the demolition in the dialog „Neue Runde“ (#202, X1)', () => {
-  it('has the refund factor and the time, preselected with the current round, before the button', () => {
+  it('stand in one fieldset „Rückbau“, preselected with the current round, before the button (owner, 2026-11-18)', () => {
     const html = roundDialog({
       number: 1,
       achievements: true,
@@ -206,13 +206,16 @@ describe('the demolition in the dialog „Neue Runde“ (#202, X1)', () => {
       demolitionRefund: -40,
       demolitionTime: 120,
     });
-    expect(html).toContain(
-      '<label for="round-demolition-refund">Rückbau-Erstattung (%)</label> <input type="number" id="round-demolition-refund" min="-100" max="100" step="1" value="-40" required>',
-    );
-    expect(html).toContain(
-      '<label for="round-demolition-time">Rückbau-Dauer (% der Bauzeit)</label> <input type="number" id="round-demolition-time" min="1" max="200" step="1" value="120" required>',
-    );
-    expect(html.indexOf('id="round-demolition-time"')).toBeLessThan(
+    const rows = [
+      '<label for="round-demolition-refund">Rückbau-Erstattung (%)</label> <input type="number" id="round-demolition-refund" min="-100" max="100" step="1" value="-40" required> <span class="dim">-100 bis 100</span>',
+      '<label for="round-demolition-time">Rückbau-Dauer (% der Bauzeit)</label> <input type="number" id="round-demolition-time" min="1" max="200" step="1" value="120" required> <span class="dim">1 bis 200</span>',
+    ];
+    const group = `<fieldset><legend>Rückbau</legend>\n    ${rows.join('<br>\n    ')}\n  </fieldset>`;
+    expect(html).toContain(group);
+    expect(html.split('<legend>Rückbau</legend>')).toHaveLength(2);
+    // The activity group keeps its own fieldset.
+    expect(html.split('<fieldset>')).toHaveLength(4);
+    expect(html.indexOf(group)).toBeLessThan(
       html.indexOf('data-act="doReset"'),
     );
   });

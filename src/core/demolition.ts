@@ -25,9 +25,10 @@ export const DEMOLITION_TIME = { min: 1, max: 200, default: 50 } as const;
 
 /**
  * The two settings are sent as one object `demolition` and refused together
- * (as before #283, #214); no legend, so the dialog shows no fieldset.
+ * (as before #283, #214); the dialog shows them in one fieldset with the
+ * legend „Rückbau“ (owner, 2026-11-18).
  */
-const DEMOLITION: RoundGroup = { name: 'demolition' };
+const DEMOLITION: RoundGroup = { name: 'demolition', legend: 'Rückbau' };
 
 /**
  * The refund factor as a setting of the round (#283, D4, D7): a number field

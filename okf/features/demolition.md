@@ -72,11 +72,10 @@ Mondzitadelle cannot be torn down ([Moons](/features/moons.md)).
   a research runs. While the demolition of one of them runs, the shipyard
   and the research wait as for its upgrade (the research list says
   „Scholarium wird ausgebaut“ then).
-* **[V]** The fields would overflow when the planet without the level
+* **[E]** The fields would overflow when the planet without the level
   would hold more levels than fields; only a building with fields (the
   Weltenschmiede) can do that. Refused with the field message of building
-  „Keine freien Felder.“ [U: the owner has not chosen a text for this
-  case].
+  „Keine freien Felder.“ (owner, 2026-11-18).
 * **[V]** Not on a moon (out of scope of #202) and not without a level: the
   interface never offers it, and the server refuses such a request with
   „Ungültig.“, as every request the interface never sends. The rule is the
@@ -94,7 +93,7 @@ Mondzitadelle cannot be torn down ([Moons](/features/moons.md)).
   (`src/client/logic/demolition.ts`, kept equal by
   `src/test/demolition-texts.test.ts`). The audit entry is that of
   building (planet, key, the new level, the due time).
-* **[V]** The row of a building with a level on a planet shows a small
+* **[E]** (owner, 2026-11-18) The row of a building with a level on a planet shows a small
   button „Zurückbauen“ below its action while the build queue is free. It
   opens a confirmation: „<Name>: Rückbau auf Stufe N“, the owner's
   sentence, „Rückbau-Dauer: <Dauer>“ and the buttons „Zurückbauen“ and
@@ -102,7 +101,7 @@ Mondzitadelle cannot be torn down ([Moons](/features/moons.md)).
   there instead of the first button. <Ressourcen> lists all three as
   „X Adamant, Y Psikristall, Z Promethium“, as the issue's first text
   listed its three resources.
-* **[V]** A running demolition shows „Rückbau auf Stufe N“ with its
+* **[E]** (owner, 2026-11-18) A running demolition shows „Rückbau auf Stufe N“ with its
   countdown, the progress „Fortschritt Rückbau“ and „Abbrechen“, as an
   upgrade shows „Ausbau auf Stufe N“; once done, the menu mark and the
   notice say „Rückbau fertig: <Name> (Stufe N).“ like „Ausbau fertig“.
@@ -121,11 +120,12 @@ Mondzitadelle cannot be torn down ([Moons](/features/moons.md)).
   the universe settings (X1). The game reads them from the universe
   settings (`refundOf`, `timeOf`). A value outside its range is refused with
   the range wording of the universe settings („Rückbau-Erstattung (%):
-  ganze Zahl von -100 bis 100.“). The two entries are one group
-  `demolition` without a legend: the request „reset“ sends them as one
-  object, a wrong one refuses both together, and the dialog shows them as
-  two rows without a fieldset, because the owner decided no legend text.
-  The values are part of the audit entry of the round reset.
+  ganze Zahl von -100 bis 100.“). The values are part of the audit entry
+  of the round reset.
+* **[E]** The two entries are one group `demolition` with the legend
+  „Rückbau“ (owner, 2026-11-18): the dialog „Neue Runde“ shows them in one
+  fieldset, the request „reset“ sends them as one object and both values
+  are sent together; a wrong one refuses both together.
 * **[V]** The Endzeit gift (#161) ends a running demolition only when it
   raised that building, refunding what its start paid; otherwise the
   demolition goes on.
