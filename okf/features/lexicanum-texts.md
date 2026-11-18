@@ -45,6 +45,7 @@ code and here in the same pull request.
   Sonnenkathedrale) (owner, 2026-11-17).
 * **[V]** The article of the Auspex-Lehre keeps the text of the design
   study (#287) and its two keywords, the examples of the issue.
+* **[E]** The article of the Auspex-Lehre shows the rule of the game for the chance of the Auspex-Abwehr instead of the old danger formula (owner, 2026-11-18, #175); **[V]** its wording, drafted by Claude for the owner to check: formula „Höchste Chance auf Auspex-Abwehr in % = Spähschädel ÷ 4 · Auspex-Lehre des Ziels ÷ deine Auspex-Lehre · (1 + Schiffe am Ziel ÷ 100) (höchstens 100)“, table caption „Höchste Chance auf Auspex-Abwehr bei gleicher Auspex-Lehre“ (rows „Schiffe am Ziel“, columns „n Spähschädel“) and paragraph „Die Chance auf Auspex-Abwehr wird bei jeder Auspex-Erkundung neu zwischen null und dem Höchstwert ausgelost. Mehr Spähschädel und mehr Schiffe am Ziel erhöhen ihn, eine höhere Auspex-Lehre des Ziels auch; deine eigene senkt ihn.“ The numbers come from `src/core/espionage.ts`.
 
 # Sources
 
@@ -187,7 +188,6 @@ code and here in the same pull request.
 
 * Text: the text of the design study (#287), not a new draft; see [Lexicanum](/features/lexicanum.md).
 * **[V]** Keywords: ausspähen, Gegner
-* **[E]** The article shows the rule of the game for the chance of the Auspex-Abwehr instead of the old danger formula (owner, 2026-11-18, #175); **[V]** its wording, drafted by Claude for the owner to check: formula „Höchste Chance auf Auspex-Abwehr in % = Spähschädel ÷ 4 · Auspex-Lehre des Ziels ÷ deine Auspex-Lehre · (1 + Schiffe am Ziel ÷ 100) (höchstens 100)“, table caption „Höchste Chance auf Auspex-Abwehr bei gleicher Auspex-Lehre“ (rows „Schiffe am Ziel“, columns „n Spähschädel“) and paragraph „Die Chance auf Auspex-Abwehr wird bei jeder Auspex-Erkundung neu zwischen null und dem Höchstwert ausgelost. Mehr Spähschädel und mehr Schiffe am Ziel erhöhen ihn, eine höhere Auspex-Lehre des Ziels auch; deine eigene senkt ihn.“ The numbers come from `src/core/espionage.ts`.
 
 ### Kogitator-Doktrin (`computer`)
 
