@@ -9,6 +9,7 @@ import { adminGuildChat } from '../game/guild-chat.ts';
 import { moderate } from '../game/moderation.ts';
 import { createMoon } from '../game/moons.ts';
 import { stateFor } from '../game/state.ts';
+import { VACATION_REFUSED } from '../game/vacation.ts';
 import type { AppDeps, Call, Handler } from './app.ts';
 
 type AdminWork = (call: Call, user: User) => ReturnType<Handler>;
@@ -24,6 +25,9 @@ export function adminRoutes(
     (call) => {
       const u = sessionUser(call);
       requireAdmin(u);
+      // One guard for every admin route, the reading ones too (#223, owner,
+      // 2026-11-18): an admin in vacation mode has no admin function.
+      if (u.vacation !== null) fail(VACATION_REFUSED);
       return work(call, u);
     };
   const read = (

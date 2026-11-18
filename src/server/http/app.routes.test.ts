@@ -7,7 +7,8 @@ import { createInvitation } from '../auth.ts';
 import type { Mail } from '../mail.ts';
 import { addPlanet, addUser } from '../test-helpers.ts';
 import { asAdmin, start } from '../../test/http.ts';
-import { COOKIE } from './app.ts';
+import { adminRoutes } from './admin.ts';
+import { COOKIE, type AppDeps } from './app.ts';
 
 vi.mock('@simplewebauthn/server', async (original) => ({
   ...(await original<typeof import('@simplewebauthn/server')>()),
@@ -793,6 +794,37 @@ describe('the vacation mode (#223, owner, 2026-11-18)', () => {
       msg: 'Urlaubsmodus beendet.',
       state: { planet: { id: 'p1_1_5' }, me: { vacation: null } },
     });
+  });
+});
+
+describe('the admin routes of an admin in vacation mode (#223, owner, 2026-11-18)', () => {
+  // The routes the app builds, so a route added later is covered too.
+  const routes = (s: { ctx: AppDeps['ctx'] }) =>
+    Object.keys(
+      adminRoutes(
+        { ctx: s.ctx } as AppDeps,
+        () => s.ctx.players.get('u_Boss')!,
+        () => ({
+          json: {},
+        }),
+      ),
+    );
+
+  it('refuses every one, reading ones too, and works again after the end', async () => {
+    const s = await asAdmin();
+    const paths = routes(s).map((r) => r.replace('POST ', ''));
+    expect(paths).toContain('/api/admin/stats');
+    expect(paths.length).toBeGreaterThan(8);
+    const boss = s.ctx.players.get('u_Boss')!;
+    s.ctx.players.save({ ...boss, vacation: s.ctx.now() });
+    for (const path of paths) {
+      const r = await s.call('POST', path, {});
+      expect(r.status, path).toBe(400);
+      expect(r.json, path).toEqual({ error: 'Im Urlaubsmodus nicht möglich.' });
+    }
+    s.ctx.clock.t += 48 * 3_600_000;
+    await s.call('POST', '/api/action', { type: 'endVacation' });
+    expect((await s.call('POST', '/api/admin/stats', {})).status).toBe(200);
   });
 });
 
