@@ -43,19 +43,17 @@ describe('admin repository: settings', () => {
 
   it('reads and writes the round settings beside the universe', () => {
     const ctx = testCtx();
-    expect(ctx.admin.roundSettings()).toEqual([]);
+    expect(ctx.admin.setting('round')).toBeUndefined();
+    expect(ctx.admin.setting('roundDaily')).toBeUndefined();
     ctx.admin.putSettings([
       ['round', 2],
       ['roundDaily', 0],
       ['other', 5],
     ]);
     ctx.admin.putSettings([['round', 3]]);
-    expect(
-      ctx.admin.roundSettings().sort((a, b) => a.key.localeCompare(b.key)),
-    ).toEqual([
-      { key: 'round', value: 3 },
-      { key: 'roundDaily', value: 0 },
-    ]);
+    expect(ctx.admin.setting('round')).toBe(3);
+    expect(ctx.admin.setting('roundDaily')).toBe(0);
+    expect(ctx.admin.setting('other')).toBe(5);
     expect(ctx.admin.universe()).toEqual(DEFAULT_UNIVERSE);
   });
 
