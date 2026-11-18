@@ -334,3 +334,46 @@ describe('the Auspex-Phalanx on the Sternenkarte (#53)', () => {
     expect(html).not.toContain('<b>');
   });
 });
+
+describe('activity and inactivity on the Sternenkarte (#229)', () => {
+  /** The Sternenkarte with Bert's planet and moon active and Bert's account in `inactive`. */
+  function marked(inactive?: 'inactive' | 'long'): V {
+    const v = view([]);
+    v.s.galaxy[1]!.activity = { minutes: 42 };
+    v.s.galaxy.push({
+      id: 'm1_2_6',
+      kind: 'moon',
+      name: 'Mond',
+      g: 1,
+      s: 2,
+      p: 6,
+      temp: 20,
+      owner: 'u_Bert',
+      activity: { recent: true },
+    });
+    v.s.players.u_Bert!.inactive = inactive;
+    return v;
+  }
+
+  it('shows the activity of a planet after its name, the moon’s in its row', () => {
+    const v = marked();
+    v.ui.gmoon = 'm1_2_6';
+    const html = galaxy(v);
+    expect(row(html, 6)).toContain(
+      'Beta <span class="dim">(Aktivität vor 42 Minuten)</span>',
+    );
+    expect(html).toContain('Mond (Mond) <span class="dim">(Aktiv)</span>');
+    // Anna's planet shows no activity.
+    expect(row(html, 5)).not.toContain('Aktivität');
+  });
+
+  it('shows the inactivity of an account after the player, apart from the noob protection', () => {
+    expect(row(galaxy(marked()), 6)).not.toContain('inaktiv');
+    expect(row(galaxy(marked('inactive')), 6)).toContain(
+      'Bert <span class="dim">(Platz 2)</span> <span class="dim">(Inaktiv)</span>',
+    );
+    expect(row(galaxy(marked('long')), 6)).toContain(
+      '<span class="dim">(Lange inaktiv)</span>',
+    );
+  });
+});
