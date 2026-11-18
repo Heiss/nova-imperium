@@ -1885,23 +1885,24 @@ test.describe('playing', () => {
   });
 });
 
-test.describe('explanation texts (#63)', () => {
+test.describe('explanation texts (#63, the „?“ opens the Lexicanum since #285)', () => {
   const question = (page: Page, name: string): Locator =>
     page.getByRole('button', { name: `Erklärung zu ${name}` });
   const row = (page: Page, name: string): Locator =>
     page.locator('.item').filter({
       has: page.locator('.nm', { hasText: new RegExp(`^\\s*${name}\\b`) }),
     });
+  const panel = (page: Page): Locator => page.locator('#lexicanum-panel');
 
   /** Chooses the display option in „Hilfe & Optionen“ and saves it. */
   async function choose(page: Page, label: string): Promise<void> {
     await nav(page, 'help');
-    await page.getByLabel('Erklärungstexte').selectOption({ label });
+    await page.getByLabel('(?)-Symbol').selectOption({ label });
     await page.click('[data-act=saveopt]');
     await expect(page.locator('.toast').last()).toContainText('Gespeichert.');
   }
 
-  test('the (?) opens the text by click and keyboard; the option changes the lists and survives a reload', async ({
+  test('the (?) opens the article by click and keyboard; the option changes the lists and survives a reload', async ({
     page,
   }) => {
     const w = watch(page);
@@ -1910,101 +1911,89 @@ test.describe('explanation texts (#63)', () => {
     seed({ name, b: { lab: 1, robot: 2, yard: 2 } });
     await page.goto('/?view=buildings');
 
-    // Default „(?)-Symbol“ (D2): the short text is shown, the long one (#94) behind the (?).
+    // Default „Anzeigen“ (D2): the short text is shown, the long one (#94)
+    // is the introduction of the article in the side panel.
     const mine = row(page, 'Adamant-Tiefbohrung');
-    const mineText = mine.locator('.ex');
     const mineQ = question(page, 'Adamant-Tiefbohrung');
     await expect(mine.locator('.ds')).toHaveText(
       'Fördert Adamant, den wichtigsten Grundrohstoff.',
     );
     await expect(mineQ).toHaveAttribute('aria-expanded', 'false');
-    await expect(mineQ).toHaveAttribute('aria-controls', 'ex_metal');
-    await expect(mineText).toBeHidden();
     await mineQ.click();
-    await expect(mineText).toBeVisible();
-    // The long text in two paragraphs: the lore, then „So funktioniert es:“ (#94).
-    await expect(mineText.locator('p')).toHaveText(
+    await expect(panel(page)).toBeVisible();
+    await expect(panel(page).locator('.lx-intro p')).toHaveText(
       lines(entryText('metal')!.lt!),
     );
-    await expect(mineText).not.toHaveText(entryText('metal')!.ds);
     await expect(mineQ).toHaveAttribute('aria-expanded', 'true');
-    await expect(mineQ).toBeFocused();
-    await page.keyboard.press('Enter');
-    await expect(mineText).toBeHidden();
+    await expect(mineQ).toHaveAttribute('aria-controls', 'lexicanum-panel');
+    await expect(page.locator('#view .ex')).toHaveCount(0);
+    // The (?) of another entry shows its article instead.
+    await question(page, 'Psikristall-Steinbruch').click();
+    await expect(panel(page).locator('.lx-intro p')).toHaveText(
+      lines(entryText('crystal')!.lt!),
+    );
     await expect(mineQ).toHaveAttribute('aria-expanded', 'false');
-    await page.keyboard.press('Space');
-    await expect(mineText).toBeVisible();
-    await expect(
-      row(page, 'Psikristall-Steinbruch').locator('.ex'),
-    ).toBeHidden();
+    await page.keyboard.press('Escape');
+    await expect(panel(page)).toHaveCount(0);
 
     await nav(page, 'research');
-    const spy = row(page, 'Auspex-Lehre');
     const spyQ = question(page, 'Auspex-Lehre');
-    await expect(spy.locator('.ex')).toBeHidden();
     await spyQ.focus();
     await page.keyboard.press('Enter');
-    await expect(spy.locator('.ex p')).toHaveText(lines(entryText('spy')!.lt!));
+    await expect(panel(page).locator('.lx-intro p')).toHaveText(
+      lines(entryText('spy')!.lt!),
+    );
     await expect(spyQ).toHaveAttribute('aria-expanded', 'true');
+    await page.keyboard.press('Escape');
+    await expect(spyQ).toBeFocused();
     await page.keyboard.press('Space');
-    await expect(spy.locator('.ex')).toBeHidden();
+    await expect(panel(page)).toBeVisible();
     await spyQ.click();
-    await expect(spy.locator('.ex')).toBeVisible();
+    await expect(panel(page)).toHaveCount(0);
 
-    // Ships without a short description now have a long text (#94): the
-    // Spionagesonde gets the (?) and its panel. An entry without any text
-    // has neither (D4); no catalog entry on main is one, the unit tests of
-    // explain.ts cover it.
+    // Ships and defense have the (?) and their article as well (#94).
     await nav(page, 'shipyard');
-    const probe = row(page, 'Spähschädel');
-    await expect(probe).toBeVisible();
-    await expect(probe.locator('.ex')).toBeHidden();
     await question(page, 'Spähschädel').click();
-    await expect(probe.locator('.ex p')).toHaveText(
+    await expect(panel(page).locator('.lx-intro p')).toHaveText(
       lines(entryText('probe')!.lt!),
     );
-    // Ships with a description (Solarsatellit, #46) get the (?) too.
     await expect(question(page, 'Sonnenreliquiar')).toHaveCount(1);
-
-    await choose(page, 'Immer anzeigen');
-    await nav(page, 'buildings');
-    await expect(mineText).toBeVisible();
-    await expect(page.locator('#view .exq')).toHaveCount(0);
-    await page.reload();
-    await expect(mineText).toBeVisible();
-    await expect(page.locator('#view .exq')).toHaveCount(0);
-    await nav(page, 'research');
-    await expect(spy.locator('.ex')).toBeVisible();
-    await expect(page.locator('#view .exq')).toHaveCount(0);
+    // The panel closes when its list is left.
+    await nav(page, 'overview');
+    await expect(panel(page)).toHaveCount(0);
 
     await choose(page, 'Ausblenden');
     await nav(page, 'buildings');
-    await expect(page.locator('#view .ex')).toHaveCount(0);
     await expect(page.locator('#view .exq')).toHaveCount(0);
     await expect(mine.locator('.ds')).toBeVisible();
     await page.reload();
     await expect(mine.locator('.ds')).toBeVisible();
-    await expect(page.locator('#view .ex')).toHaveCount(0);
+    await expect(page.locator('#view .ex, #view .exq')).toHaveCount(0);
     await nav(page, 'research');
-    await expect(spy.locator('.ds')).toBeVisible();
+    await expect(row(page, 'Auspex-Lehre').locator('.ds')).toBeVisible();
     await expect(page.locator('#view .ex, #view .exq')).toHaveCount(0);
     await nav(page, 'help');
-    await expect(page.getByLabel('Erklärungstexte')).toHaveValue('hidden');
+    await expect(page.getByLabel('(?)-Symbol')).toHaveValue('hidden');
+    await choose(page, 'Anzeigen');
+    await nav(page, 'buildings');
+    await expect(mineQ).toBeVisible();
     expect(w.problems).toEqual([]);
   });
 
-  test('a tap on the (?) opens and closes the text on a phone @phone', async ({
+  test('a tap on the (?) opens the article as a page on a phone @phone', async ({
     page,
   }) => {
     const w = watch(page);
     await register(page, uniqueName('Tipp'));
     await page.click('#tabbar [data-v=buildings]');
-    const text = row(page, 'Sonnenkathedrale').locator('.ex');
-    await expect(text).toBeHidden();
     await question(page, 'Sonnenkathedrale').tap();
-    await expect(text.locator('p')).toHaveText(lines(entryText('solar')!.lt!));
-    await question(page, 'Sonnenkathedrale').tap();
-    await expect(text).toBeHidden();
+    await expect(page).toHaveURL(/[?&]view=lexicanum&a=solar$/);
+    await expect(page.locator('#view .lx-intro p')).toHaveText(
+      lines(entryText('solar')!.lt!),
+    );
+    await expect(panel(page)).toHaveCount(0);
+    await page.goBack();
+    await expect(question(page, 'Sonnenkathedrale')).toBeVisible();
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth - window.innerWidth,

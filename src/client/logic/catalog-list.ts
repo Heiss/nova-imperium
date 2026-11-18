@@ -12,13 +12,11 @@ import {
   SHIPS,
   type UnitDef,
 } from '../../core/catalog.ts';
+import { techFactor } from '../../core/battle.ts';
 import {
-  buildTime,
-  lvlCost,
   pieceEnergy,
   prod,
   production,
-  researchTime,
   unitTime,
   useAt,
 } from '../../core/economy.ts';
@@ -46,6 +44,7 @@ import {
   researchState,
 } from './game.ts';
 import { iconURL } from './icons.ts';
+import { levelRow } from './level-table.ts';
 
 /** The kinds of catalog entries that have a list. */
 export type CatalogKind = 'building' | 'research' | 'ship' | 'defense';
@@ -278,7 +277,8 @@ function buildingRow(v: V, key: string): CatalogRow {
   const { P, R, s } = v;
   const def = BUILD[key]!;
   const level = P.b[key] ?? 0;
-  const cost = lvlCost(def, level + 1);
+  // The same row as the level table of the Lexicanum (#187, #285).
+  const { cost, time } = levelRow(v, key, level + 1)!;
   const short = energyShort(def, level + 1, P, s.cfg, R.research);
   const status = buildState(P, R, key, s.cfg);
   return {
@@ -290,10 +290,7 @@ function buildingRow(v: V, key: string): CatalogRow {
       energyNeed(def, level + 1),
       () => production(P, s.cfg, R.research).eProd,
     ),
-    lines: [
-      ...useLines(v, key, level),
-      `Bauzeit: ${dur(buildTime(cost, P, s.cfg))}`,
-    ],
+    lines: [...useLines(v, key, level), `Bauzeit: ${dur(time)}`],
     req: def.req,
     action: buildAction(v, status, level, short),
   };
@@ -305,8 +302,8 @@ function buildingRow(v: V, key: string): CatalogRow {
  * The name of the own planet where the running research started (#49);
  * research from before #49 has none and counts as the main planet's (#221).
  */
-function researchPlace(v: V): string {
-  const id = v.R.rq?.planet ?? v.s.mainPlanet;
+function researchPlace(v: V, rq: { planet?: string }): string {
+  const id = rq.planet ?? v.s.mainPlanet;
   if (id === v.P.id) return v.P.name;
   return v.s.galaxy.find((p) => p.id === id)?.name ?? '';
 }
@@ -333,7 +330,7 @@ function researchAction(
     return {
       kind: 'researching',
       level: rq.lvl,
-      place: researchPlace(v),
+      place: researchPlace(v, rq),
       end: rq.end,
       left: rq.end > now ? dur(rq.end - now) : null,
     };
@@ -352,7 +349,7 @@ function researchRow(v: V, key: string): CatalogRow {
   const { P, R, s } = v;
   const def = RES[key]!;
   const level = R.research[key] ?? 0;
-  const cost = lvlCost(def, level + 1);
+  const { cost, time } = levelRow(v, key, level + 1)!;
   const lab = networkLab(key, labSite(P), s.labs, R.research.ifn ?? 0);
   const linked =
     lab === (P.b.lab ?? 0) ? '' : ` (Scholarien zusammen Stufe ${lab})`;
@@ -366,9 +363,7 @@ function researchRow(v: V, key: string): CatalogRow {
       energyNeed(def, level + 1),
       () => production(P, s.cfg, R.research).eProd,
     ),
-    lines: [
-      `Forschungszeit: ${dur(researchTime(cost, { b: { lab } }, s.cfg))}${linked}`,
-    ],
+    lines: [`Forschungszeit: ${dur(time)}${linked}`],
     req: def.req,
     action: researchAction(v, state, level, short),
   };
@@ -413,7 +408,7 @@ function speedText(v: V, key: string): string {
 function energyText(v: V, key: string): string {
   const e = pieceEnergy(key, v.P, v.s.cfg, v.R.research);
   if (e === undefined) return '';
-  const per = text(key)?.per;
+  const per = text(key)!.per;
   return ` · Energie ${fmt(e)}${per ? ` ${per}` : ''}`;
 }
 
@@ -424,7 +419,22 @@ function stats(v: V, key: string, d: UnitDef): string {
   const ship = canFly(key) ? SHIPS[key] : undefined;
   const cargo = ship ? ` · Ladung ${fmt(ship.cargo)}` : '';
   const speed = ship ? speedText(v, key) : '';
-  return `Angriff ${fmt(d.atk * (1 + 0.1 * (tech.weapons ?? 0)))} · Schild ${fmt(d.sh * (1 + 0.1 * (tech.shield ?? 0)))} · Struktur ${fmt((c[0] + c[1]) * (1 + 0.1 * (tech.armor ?? 0)))}${cargo}${speed}${energyText(v, key)}`;
+  return `Angriff ${fmt(d.atk * techFactor(tech.weapons ?? 0))} · Schild ${fmt(d.sh * techFactor(tech.shield ?? 0))} · Struktur ${fmt((c[0] + c[1]) * techFactor(tech.armor ?? 0))}${cargo}${speed}${energyText(v, key)}`;
+}
+
+/**
+ * The values of a ship or defense as its row shows them, also in its
+ * article of the Lexicanum (#285): attack, shield, structure with the
+ * research, cargo, speed, energy, and the time of one unit; undefined for a
+ * key that is no unit.
+ */
+export function unitLines(v: V, key: string): string[] | undefined {
+  const d = SHIPS[key] ?? DEF[key];
+  if (!d) return undefined;
+  return [
+    stats(v, key, d),
+    `Bauzeit: ${dur(unitTime(d, v.P, v.s.cfg))} je Einheit`,
+  ];
 }
 
 /**
@@ -457,7 +467,6 @@ function unitRow(
   cls: string,
   have: Levels,
 ): CatalogRow {
-  const { P, s } = v;
   // The component `limit` of 1, the shield domes (#50).
   const once = (d as { once?: true }).once === true;
   return {
@@ -469,10 +478,7 @@ function unitRow(
     ),
     running: false,
     cost: d.cost,
-    lines: [
-      stats(v, key, d),
-      `Bauzeit: ${dur(unitTime(d, P, s.cfg))} je Einheit`,
-    ],
+    lines: unitLines(v, key)!,
     req: d.req,
     action: orderAction(v, key, once),
   };
@@ -484,7 +490,7 @@ function queue(v: V): QueueRow[] {
   return P.sq.map((q, i) => {
     const end = (P.sqT ?? now) + q.unit;
     return {
-      label: `${fmt(q.n)}× ${text(q.key)?.n}`,
+      label: `${fmt(q.n)}× ${text(q.key)!.n}`,
       next: i === 0 ? { end, left: end > now ? dur(end - now) : null } : null,
       each: `je ${dur(q.unit)}`,
     };

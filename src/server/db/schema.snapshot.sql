@@ -199,6 +199,11 @@ CREATE TABLE invitations (
     revoked_at INTEGER
   ) STRICT;
 
+CREATE TABLE jump_gates (
+      moon_id TEXT PRIMARY KEY REFERENCES planets(id) ON DELETE CASCADE,
+      ready INTEGER NOT NULL
+    ) STRICT;
+
 CREATE TABLE passkey_challenges (
     id TEXT PRIMARY KEY,
     challenge TEXT NOT NULL,
@@ -259,7 +264,7 @@ CREATE TABLE planets (
     bq_cost_d INTEGER,
     diameter INTEGER NOT NULL DEFAULT 0,
     unlimited INTEGER NOT NULL DEFAULT 0 CHECK (unlimited IN (0, 1)),
-    kind TEXT NOT NULL DEFAULT 'planet' CHECK (kind IN ('planet', 'moon')),
+    kind TEXT NOT NULL DEFAULT 'planet' CHECK (kind IN ('planet', 'moon')), active_at INTEGER,
     UNIQUE (g, s, p, kind)
   ) STRICT;
 
@@ -270,6 +275,14 @@ CREATE TABLE player_activity (
     active_ms INTEGER NOT NULL,
     PRIMARY KEY (player, day)
   ) STRICT;
+
+CREATE TABLE position_locks (
+      g INTEGER NOT NULL,
+      s INTEGER NOT NULL,
+      p INTEGER NOT NULL,
+      until INTEGER NOT NULL,
+      PRIMARY KEY (g, s, p)
+    ) STRICT;
 
 CREATE TABLE push_jobs (
     endpoint TEXT NOT NULL REFERENCES push_subscriptions(endpoint) ON DELETE CASCADE,
@@ -365,4 +378,4 @@ CREATE TABLE users (
     rq_cost_c INTEGER,
     rq_cost_d INTEGER
   , explain_mode TEXT NOT NULL DEFAULT 'icon'
-    CHECK (explain_mode IN ('always', 'icon', 'hidden')), rq_planet TEXT, main_planet TEXT, main_switched INTEGER) STRICT;
+    CHECK (explain_mode IN ('always', 'icon', 'hidden')), rq_planet TEXT, main_planet TEXT, main_switched INTEGER, active_at INTEGER) STRICT;

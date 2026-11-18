@@ -6,19 +6,30 @@ import {
   EXPLAIN_MODES,
   isExplainMode,
   longText,
+  OLD_ALWAYS,
+  storedMode,
 } from './explain.ts';
 import { text } from './text.ts';
 
 describe('explanation display modes (issue #63)', () => {
-  it('are always, the (?) icon and hidden; the icon is the default (D2)', () => {
-    expect(EXPLAIN_MODES).toEqual(['always', 'icon', 'hidden']);
+  it('are the „?“ and hidden; the „?“ is the default (D2, #285 B2)', () => {
+    expect(EXPLAIN_MODES).toEqual(['icon', 'hidden']);
     expect(DEFAULT_EXPLAIN).toBe('icon');
   });
 
-  it('accept only the three modes', () => {
+  it('accept only the two modes', () => {
     for (const mode of EXPLAIN_MODES) expect(isExplainMode(mode)).toBe(true);
-    for (const bad of ['', 'ICON', 'never', 'toString', 1, null, undefined])
+    for (const bad of ['', 'ICON', 'never', 'always', 'toString', 1, null])
       expect(isExplainMode(bad)).toBe(false);
+  });
+
+  it('read a stored or sent „Immer anzeigen“ as the „?“ (#285 B2)', () => {
+    expect(OLD_ALWAYS).toBe('always');
+    expect(storedMode('always')).toBe('icon');
+    expect(storedMode('icon')).toBe('icon');
+    expect(storedMode('hidden')).toBe('hidden');
+    for (const bad of ['', 'ICON', 'never', 'toString', 1, null, undefined])
+      expect(storedMode(bad)).toBeUndefined();
   });
 });
 

@@ -6,6 +6,7 @@
 // longer the player's falls back to the oldest planet left, without a lock
 // (D6). The server and the options view both ask these rules (patterns,
 // section 7).
+import type { RoundSetting } from './round.ts';
 import type { Planet } from './types.ts';
 
 /** One day in milliseconds; the lock runs in real time. */
@@ -14,11 +15,21 @@ export const DAY_MS = 86_400_000;
 /** The lock after a switch, in whole days: the admin's range per round [V] and the owner's default. */
 export const MAIN_LOCK_DAYS = { min: 1, max: 30, default: 7 } as const;
 
-/** Whether `days` is a lock the admin may set for a round. */
-export const isLockDays = (days: unknown): days is number =>
-  Number.isInteger(days) &&
-  (days as number) >= MAIN_LOCK_DAYS.min &&
-  (days as number) <= MAIN_LOCK_DAYS.max;
+/**
+ * The lock as a setting of the round (#283): a number field of the dialog
+ * „Neue Runde“ only; existing universes lock for the default 7 days.
+ */
+export const MAIN_LOCK_SETTING = {
+  kind: 'number',
+  key: 'roundMainLock',
+  name: 'mainLock',
+  label: 'Sperre nach einem Wechsel des Hauptplaneten (Tage)',
+  order: 40,
+  min: MAIN_LOCK_DAYS.min,
+  max: MAIN_LOCK_DAYS.max,
+  def: MAIN_LOCK_DAYS.default,
+  refusal: `Bitte für die Sperre des Hauptplaneten ${MAIN_LOCK_DAYS.min} bis ${MAIN_LOCK_DAYS.max} ganze Tage angeben.`,
+} as const satisfies RoundSetting;
 
 /** Whether `p` can be the main planet of `uid`: an own planet, never a moon. */
 export const canBeMain = (

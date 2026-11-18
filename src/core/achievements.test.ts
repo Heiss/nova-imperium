@@ -1,7 +1,13 @@
 // The achievement list itself (names, targets, rewards): its texts and
 // numbers are game content, so they are checked exactly.
 import { describe, expect, it } from 'vitest';
-import { ACHIEVEMENTS, CATEGORIES, type Achievement } from './achievements.ts';
+import {
+  ACHIEVEMENTS,
+  ACHIEVEMENTS_SETTING,
+  CATEGORIES,
+  DAILY_SETTING,
+  type Achievement,
+} from './achievements.ts';
 import { BUILD, DEF, RES, SHIPS } from './catalog.ts';
 import { lvlCost } from './economy.ts';
 import { text } from './text.ts';
@@ -95,5 +101,11 @@ describe('achievements', () => {
       ACTIONS.map((n) => [n * 12, n * 6, n * 2]),
     );
     expect(order.every((a) => a.category === 'yard')).toBe(true);
+  });
+
+  it('groups both reward settings of a round under one legend (#283)', () => {
+    const group = { name: 'rewards', legend: 'Belohnungen für die neue Runde' };
+    expect(ACHIEVEMENTS_SETTING.group).toEqual(group);
+    expect(DAILY_SETTING.group).toEqual(group);
   });
 });
