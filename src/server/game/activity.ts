@@ -25,7 +25,7 @@ export function recordActivity(
 ): void {
   const now = ctx.now();
   const own = ctx.planets.ofOwner(u.id).map((p) => p.id);
-  const main = event === 'login' ? (mainPlanet(ctx, u)?.id ?? null) : null;
+  const main = mainPlanet(ctx, u)?.id ?? null;
   ctx.tx(() => {
     ctx.planets.markActive(activityPlaces(event, own, main), now);
     ctx.players.markActive(u.id, now);
