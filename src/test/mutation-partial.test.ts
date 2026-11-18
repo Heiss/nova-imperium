@@ -2,6 +2,7 @@ import { existsSync, globSync, readFileSync } from 'node:fs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   filesOf,
+  floorChanges,
   main,
   partialConfig,
   partialSet,
@@ -245,7 +246,6 @@ describe('partial mutation run: the plan', () => {
   it('runs everything when the mutation configuration changed', () => {
     for (const file of [
       'stryker.config.json',
-      'mutation-standard.json',
       'vitest.config.ts',
       'tsconfig.json',
       'scripts/mutation-gate.ts',
@@ -306,6 +306,336 @@ describe('partial mutation run: the plan', () => {
     expect(() => plan('base', 'head', mutate, fakeGit({}), has())).toThrow(
       'git diff --name-only -z --no-renames base head',
     );
+  });
+});
+
+/** The text of a mutation-standard.json with these floors. */
+const standardOf = (
+  floors: Record<string, unknown>,
+  rest: Record<string, unknown> = {},
+): string =>
+  JSON.stringify({
+    securityTarget: 90,
+    newFile: 80,
+    security: ['src/server/auth.ts'],
+    floors,
+    ...rest,
+  });
+
+describe('partial mutation run: the floors of mutation-standard.json', () => {
+  const before = standardOf({
+    'src/core/a.ts': 70,
+    'src/core/b.ts': 80,
+    'src/core/gone.ts': 90,
+  });
+
+  it('is every file whose floor was added, raised, lowered or removed', () => {
+    const after = standardOf({
+      'src/core/a.ts': 75.5,
+      'src/core/b.ts': 80,
+      'src/core/new.ts': 85,
+    });
+    expect(floorChanges(before, after)).toEqual({
+      files: ['src/core/a.ts', 'src/core/gone.ts', 'src/core/new.ts'],
+    });
+    const lowered = standardOf({
+      'src/core/a.ts': 60,
+      'src/core/b.ts': 80,
+      'src/core/gone.ts': 90,
+    });
+    expect(floorChanges(before, lowered)).toEqual({
+      files: ['src/core/a.ts'],
+    });
+  });
+
+  it('is no file when the floors are the same, however they are written', () => {
+    const spaced = JSON.stringify(JSON.parse(before), null, 4);
+    expect(floorChanges(before, spaced)).toEqual({ files: [] });
+    const reordered = standardOf({
+      'src/core/gone.ts': 90,
+      'src/core/b.ts': 80,
+      'src/core/a.ts': 70,
+    });
+    expect(floorChanges(before, reordered)).toEqual({ files: [] });
+  });
+
+  it('lists the files sorted', () => {
+    expect(
+      floorChanges(
+        standardOf({}),
+        standardOf({ 'z.ts': 1, 'a.ts': 1, 'm.ts': 1 }),
+      ),
+    ).toEqual({ files: ['a.ts', 'm.ts', 'z.ts'] });
+  });
+
+  it('runs everything when another key changed', () => {
+    const more = 'changes more than the floors';
+    for (const [rest, keys] of [
+      [{ newFile: 70 }, 'newFile'],
+      [{ securityTarget: 95 }, 'securityTarget'],
+      [{ security: ['src/server/auth.ts', 'src/server/audit.ts'] }, 'security'],
+      [{ security: [] }, 'security'],
+      [{ newFile: 70, securityTarget: 95 }, 'newFile, securityTarget'],
+    ] as const) {
+      const after = standardOf(JSON.parse(before).floors, rest);
+      expect(floorChanges(before, after)).toEqual({
+        reason: `mutation-standard.json ${more}: ${keys}`,
+      });
+    }
+    // The order of the security files counts as a change.
+    const swapped = (a: string[]) => standardOf({}, { security: a });
+    expect(floorChanges(swapped(['a', 'b']), swapped(['b', 'a']))).toEqual({
+      reason: `mutation-standard.json ${more}: security`,
+    });
+  });
+
+  it('runs everything when the file is of a form the script does not know', () => {
+    const unknown = {
+      reason: 'mutation-standard.json is not of the form this script knows',
+    };
+    const extra = standardOf({}, { total: 80 });
+    const missing = JSON.stringify({ securityTarget: 90, newFile: 80 });
+    const noFloors = JSON.stringify({
+      securityTarget: 90,
+      newFile: 80,
+      security: [],
+      floors: [],
+    });
+    const nullFloors = standardOf(null as never);
+    const text = standardOf({ 'src/core/a.ts': '70' });
+    for (const bad of [
+      extra,
+      missing,
+      noFloors,
+      nullFloors,
+      text,
+      '[]',
+      'null',
+      '7',
+      '{',
+      '',
+      undefined,
+    ]) {
+      expect(floorChanges(before, bad)).toEqual(unknown);
+      expect(floorChanges(bad, before)).toEqual(unknown);
+    }
+    expect(floorChanges(undefined, undefined)).toEqual(unknown);
+  });
+});
+
+describe('partial mutation run: the plan with a change of the floors', () => {
+  const standard = (floors: Record<string, unknown>, rest = {}): string =>
+    standardOf(floors, rest);
+  const old = standard({ 'src/core/economy.ts': 70, 'src/core/fleet.ts': 80 });
+  const git =
+    (files: string[], after: string, before: string | null = old) =>
+    (args: string[]): string => {
+      const call = args.join(' ');
+      if (call === diff) return `${files.join('\0')}\0`;
+      if (call === 'show base:mutation-standard.json') {
+        if (before === null) throw new Error(call);
+        return before;
+      }
+      if (call === 'show head:mutation-standard.json') return after;
+      throw new Error(`git ${call}`);
+    };
+  const tree = has(
+    'src/core/economy.ts',
+    'src/core/fleet.ts',
+    'src/core/moon.ts',
+    'src/server/main.ts',
+  );
+
+  it('proves a floor added for a changed source file in the run of that file', () => {
+    const after = standard({
+      'src/core/economy.ts': 70,
+      'src/core/fleet.ts': 80,
+      'src/core/moon.ts': 85,
+    });
+    expect(
+      plan(
+        'base',
+        'head',
+        mutate,
+        git(['mutation-standard.json', 'src/core/moon.ts'], after),
+        tree,
+      ),
+    ).toEqual({ reasons: [], files: ['src/core/moon.ts'] });
+  });
+
+  it('adds a file whose floor was raised, though the pull request does not touch it', () => {
+    const after = standard({
+      'src/core/economy.ts': 70,
+      'src/core/fleet.ts': 90,
+    });
+    expect(
+      plan(
+        'base',
+        'head',
+        mutate,
+        git(['mutation-standard.json', 'src/core/economy.ts'], after),
+        tree,
+      ),
+    ).toEqual({
+      reasons: [],
+      files: ['src/core/economy.ts', 'src/core/fleet.ts'],
+    });
+  });
+
+  it('adds a file whose floor was removed (checked against the new-file minimum)', () => {
+    const after = standard({ 'src/core/economy.ts': 70 });
+    expect(
+      plan(
+        'base',
+        'head',
+        mutate,
+        git(['mutation-standard.json'], after),
+        tree,
+      ),
+    ).toEqual({ reasons: [], files: ['src/core/fleet.ts'] });
+  });
+
+  it('adds a file whose floor was lowered; nothing refuses it here', () => {
+    const after = standard({
+      'src/core/economy.ts': 50,
+      'src/core/fleet.ts': 80,
+    });
+    expect(
+      plan(
+        'base',
+        'head',
+        mutate,
+        git(['mutation-standard.json'], after),
+        tree,
+      ),
+    ).toEqual({ reasons: [], files: ['src/core/economy.ts'] });
+  });
+
+  it('leaves out a file of the floors that is not mutated or not there any more', () => {
+    const after = standard({
+      'src/core/economy.ts': 70,
+      'src/core/fleet.ts': 80,
+      'src/core/deleted.ts': 90,
+      'src/server/main.ts': 90,
+      'src/client/views/galaxy.ts': 90,
+    });
+    expect(
+      plan(
+        'base',
+        'head',
+        mutate,
+        git(['mutation-standard.json'], after),
+        tree,
+      ),
+    ).toEqual({ reasons: [], files: [] });
+  });
+
+  it('is empty when only the formatting of the floors changed', () => {
+    const after = JSON.stringify(JSON.parse(old), null, 2);
+    expect(
+      plan(
+        'base',
+        'head',
+        mutate,
+        git(['mutation-standard.json'], after),
+        tree,
+      ),
+    ).toEqual({ reasons: [], files: [] });
+  });
+
+  it('runs everything when more than the floors changed', () => {
+    const after = standard(
+      { 'src/core/economy.ts': 70, 'src/core/fleet.ts': 80 },
+      { newFile: 70 },
+    );
+    expect(
+      plan(
+        'base',
+        'head',
+        mutate,
+        git(['mutation-standard.json', 'src/core/moon.ts'], after),
+        tree,
+      ),
+    ).toEqual({
+      reasons: ['mutation-standard.json changes more than the floors: newFile'],
+      files: [],
+    });
+  });
+
+  it('runs everything when the file cannot be read on either side', () => {
+    const unknown =
+      'mutation-standard.json is not of the form this script knows';
+    const files = ['mutation-standard.json', 'src/core/moon.ts'];
+    expect(plan('base', 'head', mutate, git(files, old, null), tree)).toEqual({
+      reasons: [unknown],
+      files: [],
+    });
+    expect(
+      plan('base', 'head', mutate, git(files, '{ not json'), tree),
+    ).toEqual({
+      reasons: [unknown],
+      files: [],
+    });
+    expect(
+      plan('base', 'head', mutate, git(files, old, '{ not json'), tree),
+    ).toEqual({
+      reasons: [unknown],
+      files: [],
+    });
+  });
+
+  it('runs everything when a floor and another configuration file changed', () => {
+    const after = standard({
+      'src/core/economy.ts': 75,
+      'src/core/fleet.ts': 80,
+    });
+    for (const other of [
+      'stryker.config.json',
+      'vitest.config.ts',
+      'tsconfig.json',
+      'scripts/mutation-gate.ts',
+    ])
+      expect(
+        plan(
+          'base',
+          'head',
+          mutate,
+          git(['mutation-standard.json', other], after),
+          tree,
+        ),
+      ).toEqual({
+        reasons: [`${other} configures the mutation run`],
+        files: [],
+      });
+  });
+
+  it('lists the reasons of the configuration and of the floors together', () => {
+    const after = standard({}, { newFile: 70 });
+    expect(
+      plan(
+        'base',
+        'head',
+        mutate,
+        git(['stryker.config.json', 'mutation-standard.json'], after),
+        tree,
+      ).reasons,
+    ).toEqual([
+      'stryker.config.json configures the mutation run',
+      'mutation-standard.json changes more than the floors: newFile',
+    ]);
+  });
+
+  it('runs everything when the lockfile changes the tool chain, whatever the floors', () => {
+    const lockGit = (args: string[]): string => {
+      const call = args.join(' ');
+      if (call === diff) return 'mutation-standard.json\0pnpm-lock.yaml\0';
+      if (call === 'show base:pnpm-lock.yaml') return lockfile('5.1.0');
+      if (call === 'show head:pnpm-lock.yaml') return lockfile('5.2.0');
+      return git([], old)(args);
+    };
+    expect(plan('base', 'head', mutate, lockGit, tree).reasons).toEqual([
+      'pnpm-lock.yaml changes the test tool chain: -vitest@5.1.0 +vitest@5.2.0',
+    ]);
   });
 });
 
