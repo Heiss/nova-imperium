@@ -204,6 +204,19 @@ CREATE TABLE jump_gates (
       ready INTEGER NOT NULL
     ) STRICT;
 
+CREATE TABLE market_prices (
+      pair TEXT PRIMARY KEY CHECK (pair IN ('mc', 'md', 'cm', 'cd', 'dm', 'dc')),
+      price INTEGER NOT NULL,
+      changed INTEGER NOT NULL
+    ) STRICT;
+
+CREATE TABLE market_usage (
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      day INTEGER NOT NULL,
+      amount INTEGER NOT NULL,
+      PRIMARY KEY (user_id, day)
+    ) STRICT;
+
 CREATE TABLE passkey_challenges (
     id TEXT PRIMARY KEY,
     challenge TEXT NOT NULL,
