@@ -80,6 +80,28 @@ const meOf = (ctx: Ctx, u: User) => ({
   admin: u.admin,
 });
 
+/**
+ * Every player with name and points, and the inactivity of the account
+ * (#229) while it shows one.
+ */
+function playersOf(
+  ctx: Ctx,
+  pts: Readonly<Record<string, number>>,
+  limits: ActivityLimits,
+) {
+  const idle = inactivities(ctx, limits);
+  return Object.fromEntries(
+    ctx.players.all().map((x) => [
+      x.id,
+      {
+        name: x.name,
+        points: pts[x.id] ?? 0,
+        ...(idle[x.id] ? { inactive: idle[x.id] } : {}),
+      },
+    ]),
+  );
+}
+
 export function stateFor(
   ctx: Ctx,
   u: User,
@@ -100,19 +122,7 @@ export function stateFor(
         f.owner === u.id || (p !== null && f.state === 'out' && f.to === p.id),
     )
     .map((f) => (f.owner === u.id ? f : foreignView(f)));
-  // The inactivity of an account (#229) while it shows one.
   const limits = activityLimits(round);
-  const idle = inactivities(ctx, limits);
-  const players = Object.fromEntries(
-    ctx.players.all().map((x) => [
-      x.id,
-      {
-        name: x.name,
-        points: pts[x.id] ?? 0,
-        ...(idle[x.id] ? { inactive: idle[x.id] } : {}),
-      },
-    ]),
-  );
   return {
     round,
     now: ctx.now(),
@@ -129,7 +139,7 @@ export function stateFor(
     // No guild data while guilds are off in the round (#191).
     guilds: round.guilds ? guildState(ctx, u.id, pts) : null,
     achievements: achievementState(ctx, u, round),
-    players,
+    players: playersOf(ctx, pts, limits),
     galaxy: galaxyOf(ctx, limits),
     // Every player sees every Trümmerfeld (#45).
     debris: ctx.debris.all(),
