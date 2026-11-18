@@ -31,6 +31,8 @@ interface Me {
   pushOff: PushTopic[];
   readAt: number;
   admin: boolean;
+  /** When the vacation mode started (#223); null outside of it. */
+  vacation: number | null;
 }
 
 export type ClientFleet = Pick<
@@ -80,6 +82,8 @@ export interface Players {
     };
     /** `inactive` while the account shows its inactivity (#229). */
     inactive?: Inactivity;
+    /** Whether the player is in vacation mode (#223). */
+    vacation?: boolean;
   };
 }
 

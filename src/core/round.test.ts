@@ -28,6 +28,7 @@ const current = {
   guilds: true,
   mainLock: 7,
   ...activity,
+  vacationHours: 24,
 };
 const both = { achievements: false, daily: true };
 
@@ -37,10 +38,15 @@ const refused = (
   guilds: unknown,
   mainLock?: unknown,
   abandonLock?: unknown,
+  vacationHours?: unknown,
 ): string[] =>
-  roundRefused(current, { rewards, guilds, mainLock, abandonLock }).map(
-    (s) => s.group?.name ?? s.name,
-  );
+  roundRefused(current, {
+    rewards,
+    guilds,
+    mainLock,
+    abandonLock,
+    vacationHours,
+  }).map((s) => s.group?.name ?? s.name);
 
 const code = (rewards: unknown, guilds: unknown): string | null =>
   refused(rewards, guilds)[0] ?? null;
@@ -58,6 +64,8 @@ describe('the registry of the round settings', () => {
       [70, 'roundActivityMinutes', 'activityMinutes'],
       [80, 'roundInactiveDays', 'inactiveDays'],
       [90, 'roundLongInactiveDays', 'longInactiveDays'],
+      // #223, after the numbers 60 to 140 of the open branches.
+      [150, 'roundVacationHours', 'vacationHours'],
     ]);
     const orders = ROUND_SETTINGS.map((s) => s.order);
     expect(new Set(orders).size).toBe(orders.length);
@@ -96,6 +104,7 @@ describe('the registry of the round settings', () => {
       'round-activity-minutes',
       'round-inactive-days',
       'round-long-inactive-days',
+      'round-vacation-hours',
     ]);
   });
 
@@ -108,6 +117,8 @@ describe('the registry of the round settings', () => {
       guilds: true,
       mainLock: 7,
       ...activity,
+      // 48 since 2026-11-18 (#223, D1).
+      vacationHours: 48,
     });
     const stored: Record<string, number> = {
       roundAbandonLock: 48,
@@ -115,6 +126,7 @@ describe('the registry of the round settings', () => {
       roundDaily: 2,
       roundMainLock: 12,
       roundInactiveDays: 3,
+      roundVacationHours: 72,
     };
     expect(storedValues((k) => stored[k])).toEqual({
       abandonLock: 48,
@@ -124,6 +136,7 @@ describe('the registry of the round settings', () => {
       mainLock: 12,
       ...activity,
       inactiveDays: 3,
+      vacationHours: 72,
     });
   });
 
@@ -134,6 +147,7 @@ describe('the registry of the round settings', () => {
       guilds: true,
       mainLock: 7,
       activity,
+      vacationHours: 24,
     });
   });
 });
@@ -152,6 +166,7 @@ describe('the check of a new round', () => {
             guilds,
             mainLock: 7,
             ...activity,
+            vacationHours: 24,
           });
         }
   });
@@ -203,14 +218,26 @@ describe('the check of a new round', () => {
       expect(refused(both, true, 7, abandonLock)).toEqual([]);
   });
 
-  it('names the reward options first, then the guild switch, then the lock of the main planet, then the lock of a given-up position', () => {
+  it('refuses a minimum duration of the vacation mode that is not a whole number of hours from 1 to 720 (#223)', () => {
+    for (const vacationHours of [0, 721, 2.5, '24', null, true])
+      expect(refused(both, true, 7, 24, vacationHours)).toEqual([
+        'vacationHours',
+      ]);
+    for (const vacationHours of [1, 720, undefined])
+      expect(refused(both, true, 7, 24, vacationHours)).toEqual([]);
+  });
+
+  it('names the reward options first, then the guild switch, then the lock of the main planet, then the lock of a given-up position, then the minimum duration of the vacation mode', () => {
     expect(code({ achievements: true }, 'no')).toBe('rewards');
     expect(refused({}, 'no', 0, 0)).toEqual(['rewards', 'rewards']);
     expect(code(undefined, 'no')).toBe('guilds');
     expect(refused(undefined, 'no', 0, 0)).toEqual(['guilds']);
     expect(refused(undefined, undefined, 0, 0)).toEqual(['mainLock']);
-    expect(refused(undefined, undefined, undefined, 0)).toEqual([
+    expect(refused(undefined, undefined, undefined, 0, 0)).toEqual([
       'abandonLock',
+    ]);
+    expect(refused(undefined, undefined, undefined, undefined, 0)).toEqual([
+      'vacationHours',
     ]);
   });
 

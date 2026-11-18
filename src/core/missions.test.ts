@@ -28,6 +28,7 @@ const CODES: SendError[] = [
   'notOwn',
   'ownTarget',
   'protected',
+  'vacation',
   'noColonyShip',
   'probesOnly',
   'noSpyTech',
@@ -151,6 +152,7 @@ describe('the rules of every mission (contract)', () => {
             planet,
             debris,
             protects: () => false,
+            vacation: () => false,
           };
           const code = rules.canSend(fleet, target);
           if (code !== undefined) expect(CODES, m).toContain(code);
@@ -238,6 +240,7 @@ describe('the target kind (#116)', () => {
         asked.push(owner);
         return shielded;
       },
+      vacation: () => false,
     };
   };
   const home = { id: 'p1', owner: 'a' };
@@ -280,6 +283,35 @@ describe('the target kind (#116)', () => {
       'occupied',
       'noDebris',
     ]);
+  });
+
+  it('refuses every mission to a place of another player in vacation mode, before the noob protection (#223)', () => {
+    const away = (planet: SendTarget['planet'], moon = false) => ({
+      ...at(planet, true),
+      moon,
+      vacation: (owner: string) => owner === 'b',
+    });
+    for (const moon of [false, true]) {
+      const errors = (planet: SendTarget['planet']) =>
+        KINDS.map((k) => sendError(rules(k), fleet, away(planet, moon)));
+      // The kinds: own, foreign, any, free, debris.
+      expect(errors(foreign).slice(0, 3)).toEqual([
+        'notOwn',
+        'vacation',
+        'vacation',
+      ]);
+      expect(errors(own).slice(0, 3)).toEqual([
+        undefined,
+        'ownTarget',
+        undefined,
+      ]);
+    }
+    const target = away(foreign);
+    sendError(rules('foreign'), fleet, target);
+    expect(target.asked).toEqual([]);
+    expect(
+      sendError(rules('debris'), fleet, { ...away(foreign), debris: true }),
+    ).toBeUndefined();
   });
 
   it('flies to a Trümmerfeld wherever it lies, also at the own planet or a protected one (#45)', () => {

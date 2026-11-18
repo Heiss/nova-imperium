@@ -49,6 +49,8 @@ export interface GalaxyPlace extends Coords {
   rank: string;
   /** The noob protection between the player and a foreign owner. */
   protected: boolean;
+  /** Whether the owner is in vacation mode (#223). */
+  vacation: boolean;
   actions: GalaxyAction[];
 }
 
@@ -190,6 +192,7 @@ function place(
     inactivity: inactivityNote(s.players[pl.owner]?.inactive),
     rank: String(rk[pl.owner] ?? '-'),
     protected: !mine && isProtected(s.players, s.me.id, pl.owner),
+    vacation: !!s.players[pl.owner]?.vacation,
     actions: mine ? ownActions(v, pl) : foreignActions(v, pl),
   };
 }

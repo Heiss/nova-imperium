@@ -19,6 +19,8 @@ import { recall, send } from './fleet-actions.ts';
 import { scan } from './phalanx.ts';
 import { jump } from './jump-gate.ts';
 import { chooseMainPlanet } from './main-planet.ts';
+import { vacationRefuses } from '../../core/vacation.ts';
+import { endVacation, startVacation, VACATION_REFUSED } from './vacation.ts';
 import { abandon } from './abandon.ts';
 import {
   assignGuildRank,
@@ -75,6 +77,8 @@ export const ACTIONS: Record<string, A.Action> = {
   rename: A.rename,
   options: A.options,
   mainPlanet: chooseMainPlanet,
+  startVacation,
+  endVacation,
   abandon,
   pushOptions,
   read: A.read,
@@ -112,6 +116,8 @@ export function runAction(
   return ctx.tx(() => {
     tick(ctx);
     const u: User = ctx.players.get(uid) ?? fail('Bitte einloggen.');
+    // Nothing but the end and the push settings during the vacation mode (#223).
+    if (vacationRefuses(type, u.vacation)) fail(VACATION_REFUSED);
     if (GUILD_ACTIONS.has(type)) requireGuilds(ctx);
     const result = fn(ctx, u, d, event);
     recordAchievementAction(ctx, uid, type);

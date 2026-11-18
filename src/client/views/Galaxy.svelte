@@ -42,6 +42,8 @@
         class="dim">({pl.inactivity})</span
       >{/if}{#if pl.protected}{' '}<span class="good" title="Noobschutz"
         >(n)</span
+      >{/if}{#if pl.vacation}{' '}<span class="dim" title="Urlaubsmodus"
+        >(u)</span
       >{/if}</td
   >{/snippet}
 

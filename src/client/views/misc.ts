@@ -20,6 +20,7 @@ import {
   highscoreNote,
   highscoreRanking,
 } from '../logic/highscore.ts';
+import { vacationHTML } from '../logic/vacation.ts';
 import { pushKindsHTML, shownPushOff } from '../logic/push-options.ts';
 import { coords, esc, fmt } from '../logic/format.ts';
 import type { AdminState, GameState } from '../logic/types.ts';
@@ -56,31 +57,50 @@ const passwordMinimum = (ui: Ui): string =>
     : `minlength="${ui.passwordMinLength}"`;
 
 /** The push kinds (#192); only on a server that sends Web Push. */
-const pushKindsBox = (v: V): string => {
+const pushKindsBox = (s: Pick<GameState, 'me' | 'round'>, ui: Ui): string => {
   const kinds = pushKindsHTML(
-    v.ui.webPush,
-    shownPushOff(v.ui, v.s.me.pushOff),
-    v.s.round.guilds,
+    ui.webPush,
+    shownPushOff(ui, s.me.pushOff),
+    s.round.guilds,
   );
   return kinds ? box('Benachrichtigungen', kinds) : '';
 };
 
+/** The box „Passwort ändern“ of the account options. */
+export const passwordBox = (ui: Ui): string =>
+  box(
+    'Passwort ändern',
+    `<form id="passwordform" class="flex">
+ <label for="pw_current">Bisheriges Passwort</label> <input id="pw_current" type="password" autocomplete="current-password" required>
+ <label for="pw_next">Neues Passwort</label> <input id="pw_next" type="password" autocomplete="new-password" ${passwordMinimum(ui)} required>
+ <label for="pw_confirm">Neues Passwort wiederholen</label> <input id="pw_confirm" type="password" autocomplete="new-password" ${passwordMinimum(ui)} required>
+ <button type="submit">Passwort ändern</button></form>`,
+  );
+
+/** The box „Passkeys“ of the account options. */
+export const passkeysBox = (): string =>
+  box(
+    'Passkeys',
+    '<p>Auf unterstützten Geräten kannst du dich mit einem Passkey anmelden.</p><form id="passkeyform" class="flex"><label for="passkey-password">Passwort für neuen Passkey</label><input id="passkey-password" type="password" autocomplete="current-password" required><button type="submit">Passkey hinzufügen</button></form><p><button type="button" data-act="listPasskeys">Gespeicherte Passkeys anzeigen</button></p><div id="passkey-list"></div>',
+  );
+
+/** The boxes of the push settings: the kinds and the browser notifications. */
+export const notificationBoxes = (
+  s: Pick<GameState, 'me' | 'round'>,
+  ui: Ui,
+): string =>
+  `${pushKindsBox(s, ui)}
+ ${box('Browser-Benachrichtigungen', '<p>Meldungen zu Aufträgen, Flotten und neuen Nachrichten auf diesem Gerät.</p><button data-act="pushEnable">Aktivieren</button> <button data-act="pushDisable">Deaktivieren</button>')}`;
+
 export const help = (v: V): string => `<h2>Hilfe &amp; Optionen</h2>
  ${box('Optionen', `<div class="flex">Spähschädel pro Auspex-Erkundung von der Sternenkarte: <input type="number" id="o_probes" min="1" value="${v.s.me.probes || 1}" aria-label="Spähschädel pro Auspex-Erkundung"></div><div class="flex mt"><label for="o_explain">(?)-Symbol:</label> <select id="o_explain">${explainOptionsHTML(v.s.me.explain)}</select></div><p><button data-act="saveopt">Speichern</button></p>`)}
  ${box('Hauptplanet', mainPlanetHTML(v.s, v.now))}
+ ${box('Urlaubsmodus', vacationHTML(v.s.round.vacationHours))}
  ${box('Darstellung', `<label class="switch"><input type="checkbox" id="o_anim" ${v.ui.animations ? 'checked' : ''}> Animationen</label><p class="dim">Planeten drehen sich, Wolken ziehen. Gilt für dieses Gerät; ist im System „Bewegung reduzieren“ eingestellt, bleibt alles ruhig.</p>`)}
- ${box(
-   'Passwort ändern',
-   `<form id="passwordform" class="flex">
- <label for="pw_current">Bisheriges Passwort</label> <input id="pw_current" type="password" autocomplete="current-password" required>
- <label for="pw_next">Neues Passwort</label> <input id="pw_next" type="password" autocomplete="new-password" ${passwordMinimum(v.ui)} required>
- <label for="pw_confirm">Neues Passwort wiederholen</label> <input id="pw_confirm" type="password" autocomplete="new-password" ${passwordMinimum(v.ui)} required>
- <button type="submit">Passwort ändern</button></form>`,
- )}
- ${box('Passkeys', '<p>Auf unterstützten Geräten kannst du dich mit einem Passkey anmelden.</p><form id="passkeyform" class="flex"><label for="passkey-password">Passwort für neuen Passkey</label><input id="passkey-password" type="password" autocomplete="current-password" required><button type="submit">Passkey hinzufügen</button></form><p><button type="button" data-act="listPasskeys">Gespeicherte Passkeys anzeigen</button></p><div id="passkey-list"></div>')}
+ ${passwordBox(v.ui)}
+ ${passkeysBox()}
  ${box('App installieren', '<p>Öffne das Browsermenü und wähle „App installieren“ oder „Zum Startbildschirm hinzufügen“. Auf iPhone und iPad öffne Nova Imperium in Safari, tippe auf „Teilen“ und wähle „Zum Home-Bildschirm“ und „Als Web-App öffnen“. Zum Spielen brauchst du eine Internetverbindung.</p><button data-act="installApp" id="pwa-install" hidden>App installieren</button>')}
- ${pushKindsBox(v)}
- ${box('Browser-Benachrichtigungen', '<p>Meldungen zu Aufträgen, Flotten und neuen Nachrichten auf diesem Gerät.</p><button data-act="pushEnable">Aktivieren</button> <button data-act="pushDisable">Deaktivieren</button>')}
+ ${notificationBoxes(v.s, v.ui)}
  ${box(
    'Problem melden',
    reportFormHTML('reportform', {

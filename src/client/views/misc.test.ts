@@ -110,6 +110,7 @@ describe('the dialog „Neue Runde“', () => {
     activityMinutes: 59,
     inactiveDays: 7,
     longInactiveDays: 28,
+    vacationHours: 24,
   };
 
   it('shows the fields in the fixed order of main (owner, 2026-11-17)', () => {
@@ -127,6 +128,7 @@ describe('the dialog „Neue Runde“', () => {
       'round-activity-minutes',
       'round-inactive-days',
       'round-long-inactive-days',
+      'round-vacation-hours',
     ]);
   });
 
@@ -151,6 +153,7 @@ describe('the lock of the main planet in the dialog „Neue Runde“ (#221)', ()
     activityMinutes: 59,
     inactiveDays: 7,
     longInactiveDays: 28,
+    vacationHours: 24,
   };
 
   it('is a number of days from 1 to 30, preselected with the current round', () => {
@@ -177,6 +180,7 @@ describe('the lock of a given-up position in the dialog „Neue Runde“ (#224)'
     activityMinutes: 59,
     inactiveDays: 7,
     longInactiveDays: 28,
+    vacationHours: 24,
   };
 
   it('is a number of hours from 1 to 720, preselected with the current round', () => {
@@ -203,6 +207,7 @@ describe('the activity thresholds in the dialog „Neue Runde“ (#229, X1)', ()
     guilds: true,
     mainLock: 7,
     abandonLock: 24,
+    vacationHours: 24,
   };
 
   it('stand in one fieldset „Aktivität“, named and ranged as in the universe settings, preselected with the current round, last in the dialog', () => {
@@ -239,6 +244,36 @@ describe('the activity thresholds in the dialog „Neue Runde“ (#229, X1)', ()
   });
 });
 
+describe('the minimum duration of the vacation mode in the dialog „Neue Runde“ (#223)', () => {
+  const rules = {
+    number: 1,
+    achievements: true,
+    daily: true,
+    guilds: true,
+    mainLock: 7,
+    abandonLock: 24,
+    activityRecent: 15,
+    activityMinutes: 59,
+    inactiveDays: 7,
+    longInactiveDays: 28,
+  };
+
+  it('is a number of hours from 1 to 720, preselected with the current round', () => {
+    for (const vacationHours of [24, 48]) {
+      const html = roundDialog({ ...rules, vacationHours });
+      expect(html).toContain(
+        `<label for="round-vacation-hours">Mindestdauer des Urlaubsmodus (Stunden)</label> <input type="number" id="round-vacation-hours" min="1" max="720" step="1" value="${vacationHours}" required> <span class="dim">1 bis 720</span>`,
+      );
+      expect(html.indexOf('id="round-abandon-lock"')).toBeLessThan(
+        html.indexOf('id="round-vacation-hours"'),
+      );
+      expect(html.indexOf('id="round-vacation-hours"')).toBeLessThan(
+        html.indexOf('data-act="doReset"'),
+      );
+    }
+  });
+});
+
 describe('the warning below the box „Gilden (mit Chat)“ (#191)', () => {
   const rules = {
     number: 1,
@@ -250,6 +285,7 @@ describe('the warning below the box „Gilden (mit Chat)“ (#191)', () => {
     activityMinutes: 59,
     inactiveDays: 7,
     longInactiveDays: 28,
+    vacationHours: 24,
   };
   // Every new round clears the chats as well (#169 D6), guilds on or off.
   const WARNING =
@@ -283,6 +319,7 @@ describe('„Account löschen“ in a round with or without guilds (#191)', () =
     activityMinutes: 59,
     inactiveDays: 7,
     longInactiveDays: 28,
+    vacationHours: 24,
   };
   const on = { ...rules, guilds: true };
   const off = { ...rules, guilds: false };
@@ -386,6 +423,7 @@ describe('a new setting of the round in both places (#283)', () => {
     activityMinutes: 59,
     inactiveDays: 7,
     longInactiveDays: 28,
+    vacationHours: 24,
     testHours: 48,
     testAllies: 1,
   } as RoundRules;

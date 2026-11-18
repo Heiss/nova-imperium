@@ -75,6 +75,7 @@ export function addUser(
     rq: null,
     mainPlanet: null,
     mainSwitched: null,
+    vacation: null,
     ...over,
   };
   ctx.players.save(u);

@@ -34,6 +34,7 @@ import { lockedUntil, positionLockedText } from './position-lock.ts';
 import { type Ctx, coords, fail, int, universe } from './context.ts';
 import { attackEvent } from './guild-events.ts';
 import { isProtected, pointsMap } from './points.ts';
+import { inVacation } from './vacation.ts';
 
 /**
  * The picked ships, each at most as many as stand on the place; what is no
@@ -79,6 +80,7 @@ const SEND_ERROR: Readonly<Record<Exclude<SendError, 'locked'>, string>> = {
   notOwn: 'Verlegung nur zu einem eigenen Planeten.',
   ownTarget: 'Eigene Planeten kann man nicht angreifen.',
   protected: 'Dieser Spieler steht unter Noobschutz.',
+  vacation: 'Dieser Spieler ist im Urlaubsmodus.',
   probesOnly: 'Auspex-Erkundung nur mit Spähschädeln.',
   noSpyTech: 'Auspex-Erkundung erst ab Auspex-Lehre 1.',
   noDebris: 'An dieser Position gibt es kein Trümmerfeld.',
@@ -131,6 +133,7 @@ function checkDestination(
       moon: at.moon,
       locked: at.lockEnd !== null,
       protects: (owner) => isProtected(u.id, owner, pointsMap(ctx)),
+      vacation: inVacation(ctx),
     },
   );
   // A given-up position names the end of its lock (#224, D2).

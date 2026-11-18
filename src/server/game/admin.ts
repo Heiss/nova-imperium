@@ -12,6 +12,7 @@ import type { Action } from './actions.ts';
 import { addReport, type Ctx, fail, str, universe } from './context.ts';
 import { rangeError, roundRules, startRoundRules } from './round.ts';
 import { placePlanet } from './planets.ts';
+import { vacationNotice } from './vacation.ts';
 
 export const requireAdmin = (u: { admin: boolean }): void => {
   if (!u.admin) fail('Nur der Admin darf das.');
@@ -72,6 +73,9 @@ function newRound(ctx: Ctx, rules: RoundRules): void {
     // (#221): a planet id is its place, so an old choice must not come back.
     x.mainPlanet = null;
     x.mainSwitched = null;
+    // A new round ends every vacation with a notice (#223, D3).
+    const away = x.vacation !== null;
+    x.vacation = null;
     ctx.players.save(x);
     ctx.reports.deleteAll(x.id);
     placePlanet(
@@ -80,6 +84,7 @@ function newRound(ctx: Ctx, rules: RoundRules): void {
       'Heimatplanet',
       1 + Math.floor(ctx.rng() * u.galaxies),
     );
+    if (away) vacationNotice(ctx, x.id);
   }
 }
 

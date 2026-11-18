@@ -520,6 +520,13 @@ activity; an existing account starts with its newest `last_seen` of
 `users.created`; other data stay as they were
 (`upgrades/20261117T0923-activity-times.test.ts`).
 
+Migration `20261117T1000-vacation-mode` (issue #223, see
+[Vacation mode](/features/vacation-mode.md)) adds `users.vacation`
+(INTEGER, when the player's vacation mode started, null outside of it).
+Existing players get null: nobody is in vacation mode, the production goes
+on and every target stays open; other data stay as they were
+(`upgrades/20261117T1000-vacation-mode.test.ts`).
+
 Account deletion runs in one transaction. Foreign-key cascades clear owned game,
 session, reward and push data. The deletion also removes led guilds and their
 memberships, linked audit and inbox records, invitations for the account address

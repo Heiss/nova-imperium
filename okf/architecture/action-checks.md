@@ -62,6 +62,21 @@ section 7, the four economy actions `build`, `research`, `order` and `pct`
 too; 10 are split and 12 check inline only. Their rows below are the state
 after it; the other rows are the audit of 2026-11-15.
 
+**[E]** The vacation mode (#223, 2026-11-17) adds `startVacation` and
+`endVacation`, both following section 7, and one gate before every
+action: `runAction` refuses an action with „Im Urlaubsmodus nicht
+möglich.“ when core `vacationRefuses` (`core/vacation.ts`) says so for a
+player in vacation mode. Since 2026-11-18 only `endVacation` and
+`pushOptions` pass it; every other action is refused, the guild actions,
+`options`, `rename`, `mainPlanet`, `read`, `delrep`, `delall`, `jump`
+(#230), `abandon` (#224) and the admin's actions too, and one added later
+as well (a test runs every key of `ACTIONS`). The browser does not offer
+them: it shows the lock screen (`views/vacation-lock.ts`) for the state
+the server sends to such a player (`lockedState`, `server/game/state.ts`).
+The password change, the deletion of the account, the passkeys, the push
+routes and the sign-out are routes, not actions, and stay open. `send` gets
+the code `vacation` of `sendError`.
+
 Since the Warp-Tor (#230, 2026-11-17) `ACTIONS` also has `jump`, which
 follows section 7; its row is below `recall`. The counts above are those of
 the audit and stay.
@@ -78,10 +93,12 @@ the audit and stay.
 | `options` | core `isExplainMode`; the probes clamped by `int` | yes | the same clamp, `clampInt` (`client/logic/format.ts`); the select offers the modes | – | player |
 | `pushOptions` | core `isPushTopic` (`server/push-options.ts`) | yes | the boxes offer `PUSH_TOPICS` only (`client/logic/push-options.ts`) | – | player |
 | `abandon` (#224, after the audit) | core `abandonTargetError` (codes `unknown`, `moon`, `main`) and `abandonError` (then `stale`, a confirmation opened for an earlier colony at the same position by its founding time `created` (owner, 2026-11-17), then `flights`, `research`, `orders`, `core/abandon.ts`); the server words them (`ABANDON_ERROR`, `server/game/abandon.ts`); the password before them, inline like the deletion of the account („What counts“: the session), and the address limited | yes | partly, with core `abandonTargetError`: the button „Kolonie aufgeben“ only on an own planet that is not the main planet (`abandonOffered`, `client/logic/abandon.ts`); the references only the server; the Sternenkarte offers no Landnahme at a locked position, with core `positionLocked` (`freePosition`) | – | player |
+| `startVacation` | core `vacationEntryError` (codes `fleets`, `building`, `research`, `shipyard`, `core/vacation.ts`); the server gathers what runs and words the codes (`VACATION_ENTRY_ERROR`, `server/game/vacation.ts`) (#223) | yes | no; the box „Urlaubsmodus“ names what blocks the entry (`client/logic/vacation.ts`) | – | player |
+| `endVacation` | core `vacationExitError` (codes `inactive`, `early`); the server words them (`earlyText` with the earliest end) (#223) | yes | yes, with core `vacationEnd`: on the lock screen „Urlaubsmodus beenden“ disabled before the end, with the time left in text (`lockLeft`, `client/logic/vacation.ts`) | – | player |
 | `read` | – | none | – | – | player |
 | `delrep` | – (deletes only a report of the player) | none | – | – | player |
 | `delall` | – | none | – | – | player |
-| `send` | core `missionRules`, `sendError` (codes, messages `SEND_ERROR` in `server/game/fleet-actions.ts`; after the audit the code `locked` of #224, worded with the end of the lock by `positionLockedText`, `server/game/position-lock.ts`; since #175 the Auspex-Erkundung refuses below Auspex-Lehre 1 with `noSpyTech` of `spyTechError`, `core/espionage.ts`, from the sender's research in `SendFleet`), `fleetSlots`, `capacity`, `fuelFor`, `canFly`; inline the unknown mission, a ship that cannot fly, no ships, the slot count (SQL `gift = 0`), cargo and fuel | partly | partly, not `sendError`: slots (`client/views/fleet.ts`), fuel and load marked red (`fleetPreview`, game.ts), hints at the target (`targetInfo`, main.ts), no probes (`gspy`, main.ts); not `noSpyTech` (#175) | no (F11, F12, F13) | fleet |
+| `send` | core `missionRules`, `sendError` (codes, messages `SEND_ERROR` in `server/game/fleet-actions.ts`; after the audit the code `locked` of #224, worded with the end of the lock by `positionLockedText`, `server/game/position-lock.ts`, and since #223 the code `vacation` from `vacationProtects`, `core/vacation.ts`; since #175 the Auspex-Erkundung refuses below Auspex-Lehre 1 with `noSpyTech` of `spyTechError`, `core/espionage.ts`, from the sender's research in `SendFleet`), `fleetSlots`, `capacity`, `fuelFor`, `canFly`; inline the unknown mission, a ship that cannot fly, no ships, the slot count (SQL `gift = 0`), cargo and fuel | partly | partly, not `sendError`: slots (`client/views/fleet.ts`), fuel and load marked red (`fleetPreview`, game.ts), hints at the target (`targetInfo`, main.ts), no probes (`gspy`, main.ts); not `noSpyTech` (#175) | no (F11, F12, F13) | fleet |
 | `recall` | inline: own, on the way out, not yet arrived, no gift (`recall`) | no | partly: own, out, no gift (`fleetRow`, `client/logic/overview.ts`); not the arrival | – (F14) | fleet |
 | `jump` | core `jumpError` (`core/jump-gate.ts`: codes `notMoon`, `noGate`, `cooling`, `noTarget`, `sameMoon`, `targetNoGate`, `targetCooling`, `noShips`, `stationary` from `gateLevel`, `gateReady`, `targetError` and `canFly`); the server only gathers the two moons, their gate times and the picked ships (`pickedShips` of `fleet-actions.ts`, at most the ships there) and words the codes (`JUMP_ERROR`, `server/game/jump-gate.ts`) | yes | yes, with core `gateReady` and `targetError`: „Springen“ disabled while the own gate cools down or no target is ready, a cooling target disabled in „Zielmond“, foreign and gateless moons not offered (`jumpPanel`, `client/logic/jump-gate.ts`); not the ships, which the server refuses („Keine Schiffe ausgewählt.“) | – | fleet |
 | `settings` | core `universeErrors` (codes `range` and `used` per setting, in the order of `UNIVERSE_SPECS`) and `universeOf` (`core/universe.ts`); the server words each code (`SETTINGS_ERROR`, `server/game/admin.ts`), every refused setting at once (admin pull request of #214) | yes | no; the inputs show the range of each setting (`client/views/misc.ts`) | – | admin |

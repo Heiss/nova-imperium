@@ -335,6 +335,18 @@ describe('the Auspex-Phalanx on the Sternenkarte (#53)', () => {
   });
 });
 
+describe('the vacation mode on the Sternenkarte (#223)', () => {
+  it('marks the owner of a planet in vacation mode with (u)', () => {
+    const v = view([]);
+    v.s.players.u_Bert = { name: 'Bert', points: 100, vacation: true };
+    const html = galaxy(v);
+    expect(row(html, 6)).toContain(
+      'Bert <span class="dim">(Platz 2)</span> <span class="dim" title="Urlaubsmodus">(u)</span></td>',
+    );
+    expect(row(html, 5)).not.toContain('(u)');
+  });
+});
+
 describe('activity and inactivity on the Sternenkarte (#229)', () => {
   /** The Sternenkarte with Bert's planet and moon active and Bert's account in `inactive`. */
   function marked(inactive?: 'inactive' | 'long'): V {

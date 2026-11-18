@@ -214,6 +214,7 @@ describe('a foreign planet', () => {
         inactivity: '',
         rank: '1',
         protected: false,
+        vacation: false,
         actions: foreign(6),
       },
       marks: [],
@@ -238,6 +239,20 @@ describe('a foreign planet', () => {
       // Without points, as before.
       protected: true,
     });
+  });
+
+  it('marks an owner in vacation mode (#223), the others not', () => {
+    const v = view({
+      galaxy: [place('planet', 6, 'u3'), place('planet', 7, 'u2')],
+    });
+    v.s.players.u3 = { name: 'Cleo', points: 5000, vacation: true };
+    v.s.players.u2 = { name: 'Bert', points: 100, vacation: false };
+    expect(rowAt(v, 6).planet).toMatchObject({ vacation: true });
+    expect(rowAt(v, 7).planet).toMatchObject({ vacation: false });
+    // An owner the state does not know is not in vacation mode.
+    expect(
+      rowAt(view({ galaxy: [place('planet', 6, 'u9')] }), 6).planet,
+    ).toMatchObject({ vacation: false });
   });
 
   it('ends its actions with the Bergung of a field there', () => {
@@ -351,6 +366,7 @@ describe('moons (#53)', () => {
       inactivity: '',
       rank: '3',
       protected: true,
+      vacation: false,
       actions: foreign(6, true),
     });
     // The planet keeps its own actions.

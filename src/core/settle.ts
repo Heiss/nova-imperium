@@ -8,6 +8,16 @@
 import { isShip, PRODUCERS } from './catalog.ts';
 import { accrue, readsResearch } from './economy.ts';
 import type { Levels, Planet, ResearchState, Universe } from './types.ts';
+import { producesUntil } from './vacation.ts';
+
+/**
+ * The owner of a planet as settle reads it: the research, and since #223
+ * when the vacation mode started (null or missing: none), which pauses the
+ * production.
+ */
+interface Owner extends ResearchState {
+  vacation?: number | null;
+}
 
 const clone = <T>(o: T): T => structuredClone(o);
 
@@ -132,21 +142,24 @@ function catchUp(p: Planet, t: number): void {
 
 /**
  * A copy of the planet as it is at `until` (never earlier than its last
- * state). `r` is the research of the owner as stored, its running research
- * included; only a Fusionskraftwerk reads it (#47).
+ * state). `r` is the owner as stored: the research, its running research
+ * included, which only a Fusionskraftwerk reads (#47), and the vacation
+ * mode, during which nothing is produced (#223, Q2); nothing runs then, so
+ * the planet only moves to `until`.
  */
 export function settle(
   src: Planet,
   until: number,
   u: Universe,
-  r?: ResearchState | null,
+  r?: Owner | null,
 ): Planet {
   const p = clone(src);
   const from = p.t;
   const end = Math.max(until, from);
-  produce(p, from, end, u, r);
+  const stop = producesUntil(from, end, r?.vacation);
+  produce(p, from, stop, u, r);
   // A shipyard without a start time starts now.
-  runShipyard(p, end);
+  runShipyard(p, stop);
   p.t = end;
   return p;
 }

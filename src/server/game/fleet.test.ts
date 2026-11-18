@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { fieldsOf } from '../../core/fields.ts';
 import { settle } from '../../core/settle.ts';
+import type { AuditEntry } from '../audit.ts';
 import { type TestCtx, addPlanet, addUser, testCtx } from '../test-helpers.ts';
 import { recall, send } from './fleet-actions.ts';
 import { tick } from './arrival.ts';
@@ -161,6 +162,20 @@ describe('sending fleets', () => {
     ctx.planets.save(p);
     expect(() => send(ctx, a, go())).toThrow('Nicht genug Promethium');
   });
+  it('flies with exactly the Promethium for fuel and cargo', () => {
+    const { ctx, a } = setup();
+    const p = ctx.planets.home(a.id)!;
+    p.res.d = 500 + 4;
+    ctx.planets.save(p);
+    const mission = { mission: 'transport', ships: { sc: 1 } };
+    expect(() => send(ctx, a, go({ ...mission, cargo: { d: 501 } }))).toThrow(
+      'Nicht genug Promethium',
+    );
+    expect(send(ctx, a, go({ ...mission, cargo: { d: 500 } }))).toContain(
+      'unterwegs',
+    );
+    expect(ctx.planets.home(a.id)!.res.d).toBe(0);
+  });
   it('respects the fleet slots', () => {
     const { ctx, a } = setup();
     send(ctx, a, go());
@@ -195,6 +210,19 @@ describe('recall', () => {
     expect(() => recall(ctx, a, { id: f.id })).toThrow(
       'Rückruf nicht mehr möglich.',
     );
+  });
+  it('tells the audit entry which fleet came back from where and when', () => {
+    const { ctx, a } = setup();
+    send(ctx, a, go());
+    const f = ctx.fleets.all()[0]!;
+    ctx.clock.t += 1000;
+    const event = {} as AuditEntry;
+    recall(ctx, a, { id: f.id }, event);
+    expect(event.detail).toEqual({
+      fleet: f.id,
+      planet: 'p1_1_5',
+      due: ctx.now() + 1000,
+    });
   });
   it('is refused for foreign, unknown or arrived fleets', () => {
     const { ctx, a, b } = setup();

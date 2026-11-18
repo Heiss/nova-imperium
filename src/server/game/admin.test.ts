@@ -381,6 +381,7 @@ describe('points and state', () => {
       pushOff: [],
       readAt: 0,
       admin: true,
+      vacation: null,
     });
   });
 

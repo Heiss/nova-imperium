@@ -1,0 +1,8 @@
+---
+type: log-entry
+date: 2026-11-17T10:17
+kind: Decision and code
+issues: [223, 222, 221, 224, 55, 225, 54, 95, 53]
+---
+
+#223 built (part of #222) with the owner's answers of 2026-11-16 and 2026-11-17: the player starts the vacation mode in the options („Urlaubsmodus aktivieren“, after a question) only when no own fleet flies and nothing is built, researched or produced (Q1); production pauses from the entry, also after a restart, every own game action is refused, and every planet and moon is protected from new missions of other players while launched ones land (D2, Q2); „Urlaubsmodus beenden“ becomes active after the minimum duration (owner, 2026-11-17), a round value of 24 h by default (D1), whole hours from 1 to 720 [V], set in „Neue Runde“ and live in the universe settings (X1); a new round ends every vacation with the report „Urlaubsmodus beendet“ (D3, wording [V]). [V] The earliest end follows a live change of the minimum duration, like the lock of #221; the refusals take the wording of #224; peaceful missions to a player in vacation mode are refused too, a Bergung at the position is not; the Sternenkarte marks the player with „(u)“; the guild actions, renaming, the main planet, the options, the messages and the admin's actions stay allowed, every other action is refused, a new one too. `vacationProtects` in `src/core/vacation.ts` is the one protection check for holding and ACS (#55, #225), missiles (#54) and the moon destruction (#95). [U] Whether the protection covers a scan of the Auspex-Phalanx (#53) is open. Migration `20261117T1000-vacation-mode` adds `users.vacation` (see [Vacation mode](/features/vacation-mode.md)).

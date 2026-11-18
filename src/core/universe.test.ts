@@ -39,6 +39,8 @@ describe('universe settings', () => {
       roundActivityMinutes: 59,
       roundInactiveDays: 7,
       roundLongInactiveDays: 28,
+      // Added by #223 (owner, 2026-11-16, D1; 48 h since 2026-11-18).
+      roundVacationHours: 48,
     });
     for (const s of UNIVERSE_SPECS) {
       expect(s.def).toBeGreaterThanOrEqual(s.min);
@@ -63,6 +65,7 @@ describe('universe settings', () => {
       ['roundActivityMinutes', 'Aktivität mit Minutenangabe bis (Minuten)'],
       ['roundInactiveDays', 'Inaktiv ab (Tage)'],
       ['roundLongInactiveDays', 'Lange inaktiv ab (Tage)'],
+      ['roundVacationHours', 'Mindestdauer des Urlaubsmodus (Stunden)'],
     ]);
   });
   it('accept valid values given as strings', () => {
@@ -82,6 +85,15 @@ describe('universe settings', () => {
     for (const speed of [101, 2.5, 'x'])
       expect(codes({ ...DEFAULT_UNIVERSE, speed })).toEqual([
         ['speed', 'range'],
+      ]);
+  });
+  it('take a minimum duration of the vacation mode of 1 to 720 hours (#223, X1)', () => {
+    expect(spec('roundVacationHours')).toMatchObject({ min: 1, max: 720 });
+    for (const roundVacationHours of [1, 720])
+      expect(codes({ ...DEFAULT_UNIVERSE, roundVacationHours })).toEqual([]);
+    for (const roundVacationHours of [0, 721, 1.5])
+      expect(codes({ ...DEFAULT_UNIVERSE, roundVacationHours })).toEqual([
+        ['roundVacationHours', 'range'],
       ]);
   });
   it('take 0 to 100 extra fields per planet (#51, D4)', () => {

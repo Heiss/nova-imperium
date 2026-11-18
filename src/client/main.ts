@@ -69,9 +69,11 @@ import {
   type AdminTab,
 } from './views/misc.ts';
 import { disablePush, enablePush } from './push.ts';
+import { optionActs } from './option-actions.ts';
 import { fleetActs } from './fleet-acts.ts';
 import { roundActs } from './round-actions.ts';
 import { mountCatalogList } from './views/catalog-list.ts';
+import { renderGate } from './views/vacation-lock.ts';
 import {
   adminChatDialog,
   dissolveDialog,
@@ -800,18 +802,12 @@ function render(fresh = false): void {
     lastActivity = -Infinity;
     return renderLoggedOut(view);
   }
-  if (!client.game.planet) {
-    client.view = null;
-    unmountViews();
-    view.innerHTML =
-      '<div class="notice">Du hast keinen Planeten. Bitte den Admin, eine neue Runde zu starten.</div>';
-    return;
-  }
+  if (renderGate(view, client.game, ui, unmountViews)) return;
   const restore = keepInputs(view, fresh);
   const chatScroll = keepChatScroll(view);
   const now = client.now();
   const previous = client.view;
-  client.view = viewAt(client.game, client.game.planet, now);
+  client.view = viewAt(client.game, client.game.planet!, now);
   if (previous && !fresh) rememberCompletions(previous, client.view);
   renderMenu();
   updateBar();
@@ -1217,12 +1213,6 @@ const ACT: Record<string, (d: Data) => unknown> = {
   delall: () => act('delall'),
   // nav, explain and the links of the Lexicanum (#285).
   ...lexicanumActions(go),
-  saveopt: () =>
-    act('options', {
-      probes: clampInt(val('#o_probes'), 1, 1e6),
-      explain: val('#o_explain'),
-    }),
-  mainPlanet: () => act('mainPlanet', { main: val('#o_main') }),
   highscore: (d) => {
     ui.highscore = highscoreCategory(d.cat);
     render();
@@ -1244,6 +1234,7 @@ const ACT: Record<string, (d: Data) => unknown> = {
     }
   },
   deleteAccount: () => modal(deleteAccountDialog(client.game!.round)),
+  ...optionActs({ act }),
   ...abandonActs({ act, modal }),
   dismissInstall: () => {
     installDismissed = true;

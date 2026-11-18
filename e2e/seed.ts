@@ -14,7 +14,8 @@
 //   gift? (minutes: a gift fleet of the „Endzeit“ to the home planet that arrives in that
 //   time, issue #161), colonyMoon? (the fields of `moon`: the moon of the colony, made or
 //   changed, with `colony`, issue #230), activeAgo? (ms: the account and every place of the
-//   player were last active that long ago, issue #229) }
+//   player were last active that long ago, issue #229), vacationAgo? (ms: the vacation mode
+//   started that long ago, issue #223) }
 import { openDatabase } from '../src/server/db/database.ts';
 import { Store } from '../src/server/db/store.ts';
 import { recordServerError } from '../src/server/error-log.ts';
@@ -175,6 +176,14 @@ function addGift(p: Planet, minutes: number): void {
   ctx.fleets.save(giftFleet(ctx, p, now, now + minutes * 60000));
 }
 
+/** The vacation mode of the player started `vacationAgo` ms ago (#223), when asked. */
+function startVacation(id: string): void {
+  if (!d.vacationAgo) return;
+  store.db
+    .prepare('UPDATE users SET vacation = ? WHERE id = ?')
+    .run(Date.now() - d.vacationAgo, id);
+}
+
 /** What lies at the home planet or goes with the player: a Trümmerfeld, the moon, a gift, the activity. */
 function addAround(p: Planet): void {
   if (d.debris) store.repos.debris.add(p, d.debris);
@@ -188,6 +197,7 @@ store.tx(() => {
   if (d.landFleet) landFleet(u.id, d.landFleet);
   if (d.returnFleet) returnFleet(u.id);
   if (d.research) store.saveUser({ ...u, research: d.research });
+  startVacation(u.id);
   const p = store.planetOfUser(u.id)!;
   updateHome(p);
   if (d.colony) addColonyAndMoon(p);

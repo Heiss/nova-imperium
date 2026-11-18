@@ -151,6 +151,7 @@ export function register(
     rq: null,
     mainPlanet: null,
     mainSwitched: null,
+    vacation: null,
   };
   ctx.players.save(u);
   ctx.invitations.use(inv.id, ctx.now());

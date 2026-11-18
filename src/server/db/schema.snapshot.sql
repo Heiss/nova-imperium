@@ -378,4 +378,4 @@ CREATE TABLE users (
     rq_cost_c INTEGER,
     rq_cost_d INTEGER
   , explain_mode TEXT NOT NULL DEFAULT 'icon'
-    CHECK (explain_mode IN ('always', 'icon', 'hidden')), rq_planet TEXT, main_planet TEXT, main_switched INTEGER, active_at INTEGER) STRICT;
+    CHECK (explain_mode IN ('always', 'icon', 'hidden')), rq_planet TEXT, main_planet TEXT, main_switched INTEGER, active_at INTEGER, vacation INTEGER) STRICT;

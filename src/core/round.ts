@@ -19,6 +19,7 @@ import {
 } from './activity.ts';
 import { GUILDS_SETTING } from './guild-chat.ts';
 import { MAIN_LOCK_SETTING } from './main-planet.ts';
+import { VACATION_SETTING } from './vacation.ts';
 
 /**
  * Entries sent as one object and refused together (#214): the reward
@@ -83,6 +84,7 @@ const ENTRIES = [
   ACTIVITY_MINUTES_SETTING,
   INACTIVE_DAYS_SETTING,
   LONG_INACTIVE_DAYS_SETTING,
+  VACATION_SETTING,
 ] as const satisfies readonly RoundSetting[];
 
 /** The settings by their `order` number, the fixed order (owner, 2026-11-17). */

@@ -364,7 +364,12 @@ export function missionShips(
   m: string,
 ): { only: boolean; ships: string[] } | null {
   const rules = missionRules(m)!;
-  const target = { planet: null, debris: true, protects: () => false };
+  const target = {
+    planet: null,
+    debris: true,
+    protects: () => false,
+    vacation: () => false,
+  };
   // The article names the ships, not the research a mission needs: the
   // sender has the espionage technology the Auspex-Erkundung asks for (#175).
   const research = { spy: SPY_MIN_TECH };
