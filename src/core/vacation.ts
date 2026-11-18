@@ -1,7 +1,8 @@
 // The vacation mode („Urlaubsmodus“, #223, okf/features/vacation-mode.md):
 // a player pauses the account in the options. Entry only when nothing runs
-// (owner, 2026-11-16, Q1); during it the production pauses, the player takes
-// no game action and every planet and moon is protected from new missions
+// (owner, 2026-11-16, Q1); during it the production pauses, the player can
+// do nothing but end it and change the account (owner, 2026-11-18: a lock
+// screen instead of the game) and every planet and moon is protected from new missions
 // of other players (Q2, D2); it ends with „Urlaubsmodus beenden“ once the
 // minimum duration of the round is over (D1; owner, 2026-11-17), or with a
 // new round (D3). The server, the settlement and the options view ask these
@@ -14,14 +15,14 @@ import type { Planet } from './types.ts';
 /** One hour in milliseconds; the minimum duration runs in real time. */
 export const HOUR_MS = 3_600_000;
 
-/** The minimum duration in whole hours: the admin's range per round [V] and the owner's default (D1). */
-export const VACATION_HOURS = { min: 1, max: 720, default: 24 } as const;
+/** The minimum duration in whole hours: the admin's range per round [V] and the owner's default, 48 since 2026-11-18 (D1). */
+export const VACATION_HOURS = { min: 1, max: 720, default: 48 } as const;
 
 /**
  * The minimum duration as a setting of the round (#283): a number field of
  * the dialog „Neue Runde“ and, `live`, a row of the universe settings,
  * changed during the round (X1, owner, 2026-11-17); existing universes keep
- * a vacation for the default 24 hours at least.
+ * a vacation for the default 48 hours at least.
  */
 export const VACATION_SETTING = {
   kind: 'number',
@@ -91,34 +92,24 @@ export const vacationProtects = (
 ): boolean => !!target && target.owner !== actor && inVacation(target.owner);
 
 /**
- * The actions a player in vacation mode may still take [V]: the options and
- * the messages, the end of the vacation and the admin's actions. Every
- * other action is refused, one added later too, so a new game action is
- * paused without a change here.
+ * The actions a player in vacation mode may still take (owner, 2026-11-18):
+ * the end of the vacation and the push settings of the account. Every
+ * other action is refused, the guild actions, renaming a planet, the main
+ * planet, the reading of messages and the admin's actions too, and one
+ * added later as well, so a new action is locked without a change here. The
+ * other account options (password, passkeys, deleting the account) and the
+ * sign-out are routes of their own, not actions.
  */
-const ALLOWED: ReadonlySet<string> = new Set([
-  'options',
-  'pushOptions',
-  'read',
-  'delrep',
-  'delall',
-  'rename',
-  'mainPlanet',
-  'endVacation',
-  'settings',
-  'reset',
-  'endzeit',
-]);
+const ALLOWED: ReadonlySet<string> = new Set(['endVacation', 'pushOptions']);
 
 /**
  * Whether `action` is refused for a player whose vacation started at
- * `vacation` (null: none). The guild actions (`social`) stay allowed [V].
+ * `vacation` (null: none).
  */
 export const vacationRefuses = (
   action: string,
-  social: boolean,
   vacation: number | null,
-): boolean => vacation !== null && !social && !ALLOWED.has(action);
+): boolean => vacation !== null && !ALLOWED.has(action);
 
 /**
  * Up to when a place last settled at `from` produces on its way to `until`

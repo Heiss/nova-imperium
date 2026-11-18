@@ -117,7 +117,8 @@ describe('the registry of the round settings', () => {
       guilds: true,
       mainLock: 7,
       ...activity,
-      vacationHours: 24,
+      // 48 since 2026-11-18 (#223, D1).
+      vacationHours: 48,
     });
     const stored: Record<string, number> = {
       roundAbandonLock: 48,
@@ -125,7 +126,7 @@ describe('the registry of the round settings', () => {
       roundDaily: 2,
       roundMainLock: 12,
       roundInactiveDays: 3,
-      roundVacationHours: 48,
+      roundVacationHours: 72,
     };
     expect(storedValues((k) => stored[k])).toEqual({
       abandonLock: 48,
@@ -135,7 +136,7 @@ describe('the registry of the round settings', () => {
       mainLock: 12,
       ...activity,
       inactiveDays: 3,
-      vacationHours: 48,
+      vacationHours: 72,
     });
   });
 

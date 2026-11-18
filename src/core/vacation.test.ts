@@ -30,8 +30,8 @@ const idle = (over: Partial<VacationEntry> = {}): VacationEntry => ({
 });
 
 describe('the minimum duration of a round', () => {
-  it('is 24 hours by default, whole hours from 1 to 720', () => {
-    expect(VACATION_HOURS).toEqual({ min: 1, max: 720, default: 24 });
+  it('is 48 hours by default (owner, 2026-11-18), whole hours from 1 to 720', () => {
+    expect(VACATION_HOURS).toEqual({ min: 1, max: 720, default: 48 });
     expect(HOUR_MS).toBe(60 * 60 * 1000);
   });
 
@@ -43,7 +43,7 @@ describe('the minimum duration of a round', () => {
       label: 'Mindestdauer des Urlaubsmodus (Stunden)',
       min: 1,
       max: 720,
-      def: 24,
+      def: 48,
       order: 150,
       live: true,
       refusal:
@@ -167,37 +167,42 @@ describe('the actions during the vacation mode', () => {
     'jump',
     'anyNewAction',
   ];
-  const FREE = [
+  // Owner, 2026-11-18: nothing but the end and the push settings.
+  const FREE = ['endVacation', 'pushOptions'];
+  const LOCKED = [
     'options',
-    'pushOptions',
     'read',
     'delrep',
     'delall',
     'rename',
     'mainPlanet',
-    'endVacation',
     'settings',
     'reset',
     'endzeit',
+    'createGuild',
+    'sendGuildChat',
+    'seeGuildChat',
+    'dissolveGuild',
   ];
 
   it('refuses every game action, a new one too', () => {
     for (const action of GAME)
-      expect(vacationRefuses(action, false, NOW)).toBe(true);
+      expect(vacationRefuses(action, NOW), action).toBe(true);
   });
 
-  it('allows the options, the messages, the end and the admin', () => {
+  it('allows the end and the push settings only', () => {
     for (const action of FREE)
-      expect(vacationRefuses(action, false, NOW)).toBe(false);
+      expect(vacationRefuses(action, NOW), action).toBe(false);
   });
 
-  it('allows the guild actions', () => {
-    expect(vacationRefuses('sendGuildChat', true, NOW)).toBe(false);
+  it('refuses the options, the messages, renaming, the main planet, the guilds and the admin', () => {
+    for (const action of LOCKED)
+      expect(vacationRefuses(action, NOW), action).toBe(true);
   });
 
   it('refuses nothing outside the vacation mode', () => {
-    for (const action of [...GAME, ...FREE])
-      expect(vacationRefuses(action, false, null)).toBe(false);
+    for (const action of [...GAME, ...LOCKED, ...FREE])
+      expect(vacationRefuses(action, null), action).toBe(false);
   });
 });
 

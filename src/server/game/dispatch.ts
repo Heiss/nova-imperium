@@ -116,9 +116,8 @@ export function runAction(
   return ctx.tx(() => {
     tick(ctx);
     const u: User = ctx.players.get(uid) ?? fail('Bitte einloggen.');
-    // No own game action during the vacation mode (#223, Q2).
-    if (vacationRefuses(type, GUILD_ACTIONS.has(type), u.vacation))
-      fail(VACATION_REFUSED);
+    // Nothing but the end and the push settings during the vacation mode (#223).
+    if (vacationRefuses(type, u.vacation)) fail(VACATION_REFUSED);
     if (GUILD_ACTIONS.has(type)) requireGuilds(ctx);
     const result = fn(ctx, u, d, event);
     recordAchievementAction(ctx, uid, type);

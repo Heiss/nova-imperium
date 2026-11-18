@@ -106,11 +106,37 @@ function playersOf(
   );
 }
 
+/**
+ * What a player in vacation mode sees (#223, owner, 2026-11-18): a lock
+ * screen instead of the game. The state keeps the shape of the full one but
+ * holds none of the game: no planet, fleet, report, guild, player or
+ * galaxy; only the rules of the round and the universe, the account with
+ * its vacation (`me.vacation`, from which and the minimum duration of the
+ * round the browser knows the earliest end) and its push settings.
+ */
+function lockedState(ctx: Ctx, u: User): Record<string, unknown> {
+  return {
+    round: roundRules(ctx),
+    now: ctx.now(),
+    cfg: universe(ctx),
+    me: { ...meOf(ctx, u), research: {}, rq: null, probes: 1, readAt: 0 },
+    planet: null,
+    labs: [],
+    fleets: [],
+    reports: [],
+    players: {},
+    galaxy: [],
+    debris: [],
+    admin: null,
+  };
+}
+
 export function stateFor(
   ctx: Ctx,
   u: User,
   selected?: unknown,
 ): Record<string, unknown> {
+  if (u.vacation !== null) return lockedState(ctx, u);
   const round = roundRules(ctx);
   // Without a selection the main planet (#221); the first planet stays the
   // home planet („Heimatplanet“).

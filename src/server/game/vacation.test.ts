@@ -19,7 +19,7 @@ import {
 import { answerOf } from './actions.ts';
 import { tick } from './arrival.ts';
 import { universe } from './context.ts';
-import { ACTIONS, GUILD_ACTIONS, runAction } from './dispatch.ts';
+import { ACTIONS, runAction } from './dispatch.ts';
 import { addMoon } from './moons.ts';
 import { roundRules } from './round.ts';
 import { stateFor } from './state.ts';
@@ -35,9 +35,10 @@ import {
 const START = Date.UTC(2026, 10, 17, 12, 0);
 const EMPTY = { m: 0, c: 0, d: 0 };
 
-/** Anna (admin) with her planet and a moon, Bert with his planet. */
+/** Anna with her planet and a moon, Bert with his planet, Carl the admin. */
 function world(ctx: TestCtx = testCtx(START)): TestCtx {
-  addUser(ctx, 'Anna', { admin: true });
+  addUser(ctx, 'Anna');
+  addUser(ctx, 'Carl', { admin: true });
   addUser(ctx, 'Bert');
   const home = addPlanet(ctx, 'u_Anna', {
     g: 1,
@@ -93,7 +94,7 @@ describe('starting the vacation mode', () => {
     expect(home(ctx).res.m).toBeGreaterThan(0);
     expect(event.detail).toEqual({
       since: START + HOUR_MS,
-      end: START + 25 * HOUR_MS,
+      end: START + 49 * HOUR_MS,
     });
   });
 
@@ -218,7 +219,7 @@ describe('during the vacation mode', () => {
     expect(shown.me.vacation).toBe(START);
   });
 
-  it('refuses every own game action and allows the options and messages', () => {
+  it('refuses everything but the end and the push settings (owner, 2026-11-18)', () => {
     const ctx = world();
     start(ctx);
     const refused: [string, object][] = [
@@ -229,12 +230,32 @@ describe('during the vacation mode', () => {
       ['send', attack({ g: 1, s: 2, p: 6 })],
       ['claimDailyReward', {}],
       ['startVacation', {}],
+      ['options', { probes: 2, explain: 'icon' }],
+      ['mainPlanet', { main: 'p1_1_5' }],
+      ['rename', { planet: 'p1_1_5', name: 'Neu' }],
+      ['read', {}],
+      ['delrep', { id: 'x' }],
+      ['delall', {}],
+      ['createGuild', { tag: 'AB', name: 'Abc' }],
+      ['sendGuildChat', { text: 'Hallo' }],
+      ['seeGuildChat', {}],
     ];
     for (const [type, data] of refused)
       expect(() => act(ctx, type, data), type).toThrow(VACATION_REFUSED);
-    expect(act(ctx, 'options', { probes: 2, explain: 'icon' })).not.toBeNull();
-    expect(anna(ctx).probes).toBe(2);
-    expect(() => act(ctx, 'delall')).not.toThrow();
+    expect(anna(ctx).probes).toBe(1);
+    expect(act(ctx, 'pushOptions', { off: ['fleet'] })).toBe('Gespeichert.');
+    expect(
+      (stateFor(ctx, anna(ctx)) as { me: { pushOff: string[] } }).me.pushOff,
+    ).toEqual(['fleet']);
+  });
+
+  it('refuses the actions of an admin in vacation mode', () => {
+    const ctx = world();
+    runAction(ctx, 'u_Carl', { type: 'startVacation' });
+    for (const type of ['settings', 'reset', 'endzeit'])
+      expect(() => act(ctx, type, {}, 'u_Carl'), type).toThrow(
+        VACATION_REFUSED,
+      );
   });
 
   it('refuses every new mission of another player to a planet or the moon (D2)', () => {
@@ -267,9 +288,9 @@ describe('ending the vacation mode', () => {
   it('is refused before the minimum duration with the earliest end', () => {
     const ctx = world();
     start(ctx);
-    ctx.clock.t = START + 24 * HOUR_MS - 1;
+    ctx.clock.t = START + 48 * HOUR_MS - 1;
     expect(() => stop(ctx)).toThrow(
-      'Der Urlaubsmodus ist frühestens beendbar am 18.11.2026, 13:00.',
+      'Der Urlaubsmodus ist frühestens beendbar am 19.11.2026, 13:00.',
     );
     expect(earlyText(START)).toBe(
       'Der Urlaubsmodus ist frühestens beendbar am 17.11.2026, 13:00.',
@@ -285,7 +306,7 @@ describe('ending the vacation mode', () => {
     const ctx = world();
     start(ctx);
     const stock = home(ctx).res;
-    ctx.clock.t = START + 30 * HOUR_MS;
+    ctx.clock.t = START + 50 * HOUR_MS;
     expect(stop(ctx)).toBe('Urlaubsmodus beendet.');
     expect(anna(ctx).vacation).toBeNull();
     expect(home(ctx)).toMatchObject({ res: stock, t: ctx.now() });
@@ -299,7 +320,9 @@ describe('ending the vacation mode', () => {
     const ctx = world();
     start(ctx);
     const settings = { ...universe(ctx), roundVacationHours: 2 };
-    act(ctx, 'settings', { settings });
+    // The admin changes it, the player in vacation cannot.
+    expect(() => act(ctx, 'settings', { settings })).toThrow(VACATION_REFUSED);
+    act(ctx, 'settings', { settings }, 'u_Carl');
     expect(roundRules(ctx).vacationHours).toBe(2);
     ctx.clock.t = START + 2 * HOUR_MS;
     expect(stop(ctx)).toBe('Urlaubsmodus beendet.');
@@ -307,35 +330,35 @@ describe('ending the vacation mode', () => {
 });
 
 describe('the minimum duration of a round (D1, X1)', () => {
-  it('is 24 hours in an existing universe', () => {
-    expect(roundRules(world()).vacationHours).toBe(24);
+  it('is 48 hours in an existing universe (owner, 2026-11-18)', () => {
+    expect(roundRules(world()).vacationHours).toBe(48);
   });
 
   it('is set by the admin for the new round and kept without a choice', () => {
     const ctx = world();
     const event = {} as AuditEntry;
-    runAction(ctx, 'u_Anna', { type: 'reset', vacationHours: 48 }, event);
+    runAction(ctx, 'u_Carl', { type: 'reset', vacationHours: 72 }, event);
     expect(event.detail).toMatchObject({
-      before: { vacationHours: 24 },
-      after: { vacationHours: 48 },
+      before: { vacationHours: 48 },
+      after: { vacationHours: 72 },
     });
-    expect(roundRules(ctx).vacationHours).toBe(48);
-    expect(ctx.admin.setting('roundVacationHours')).toBe(48);
-    expect(universe(ctx).roundVacationHours).toBe(48);
-    act(ctx, 'reset');
-    expect(roundRules(ctx).vacationHours).toBe(48);
+    expect(roundRules(ctx).vacationHours).toBe(72);
+    expect(ctx.admin.setting('roundVacationHours')).toBe(72);
+    expect(universe(ctx).roundVacationHours).toBe(72);
+    act(ctx, 'reset', {}, 'u_Carl');
+    expect(roundRules(ctx).vacationHours).toBe(72);
   });
 
   it('takes whole hours from 1 to 720 only', () => {
     const ctx = world();
     for (const vacationHours of [0, 721, 2.5, '24', null])
-      expect(() => act(ctx, 'reset', { vacationHours })).toThrow(
+      expect(() => act(ctx, 'reset', { vacationHours }, 'u_Carl')).toThrow(
         'Bitte für die Mindestdauer des Urlaubsmodus 1 bis 720 ganze Stunden angeben.',
       );
-    expect(roundRules(ctx)).toMatchObject({ number: 1, vacationHours: 24 });
-    act(ctx, 'reset', { vacationHours: 720 });
+    expect(roundRules(ctx)).toMatchObject({ number: 1, vacationHours: 48 });
+    act(ctx, 'reset', { vacationHours: 720 }, 'u_Carl');
     expect(roundRules(ctx).vacationHours).toBe(720);
-    act(ctx, 'reset', { vacationHours: 1 });
+    act(ctx, 'reset', { vacationHours: 1 }, 'u_Carl');
     expect(roundRules(ctx).vacationHours).toBe(1);
   });
 });
@@ -344,7 +367,7 @@ describe('a new round (D3)', () => {
   it('ends every vacation and tells the player', () => {
     const ctx = world();
     start(ctx);
-    act(ctx, 'reset');
+    act(ctx, 'reset', {}, 'u_Carl');
     expect(anna(ctx).vacation).toBeNull();
     const reports = ctx.reports.ofPlayer('u_Anna');
     expect(reports).toHaveLength(1);
@@ -393,7 +416,7 @@ describe('the Warp-Tor, giving up a colony and the Auspex-Phalanx (#230, #224, #
     expect(ctx.planets.get(HOME_MOON)!.ships).toEqual({ lc: 5 });
     expect(ctx.planets.get(FAR_MOON)!.ships).toEqual({ lc: 5 });
     expect(ctx.planets.gateReady(HOME_MOON)).toBe(0);
-    ctx.clock.t = START + 24 * HOUR_MS;
+    ctx.clock.t = START + 48 * HOUR_MS;
     stop(ctx);
     expect(jump(ctx)).toBeNull();
     expect(ctx.planets.get(FAR_MOON)!.ships).toEqual({ lc: 7 });
@@ -407,34 +430,22 @@ describe('the Warp-Tor, giving up a colony and the Auspex-Phalanx (#230, #224, #
     expect(() => giveUp(ctx), 'abandon').toThrow(VACATION_REFUSED);
     expect(ctx.planets.get(COLONY)).not.toBeNull();
     expect(ctx.planets.get('m2_3_7')).not.toBeNull();
-    ctx.clock.t = START + 24 * HOUR_MS;
+    ctx.clock.t = START + 48 * HOUR_MS;
     stop(ctx);
     expect(giveUp(ctx)).toBe('Die Kolonie Kol [2:3:7] wurde aufgegeben.');
     expect(ctx.planets.get(COLONY)).toBeNull();
   });
 
-  it('refuses every action that is not on the allow list, one added later too', () => {
+  it('refuses every action that is not on the allow list, the guild actions and one added later too', () => {
     const ctx = world();
     start(ctx);
-    // The allow list of the decision: the options and messages, the end,
-    // the admin and the guilds (owner, 2026-11-17 and the build of #223).
-    const allowed = new Set([
-      'options',
-      'pushOptions',
-      'read',
-      'delrep',
-      'delall',
-      'rename',
-      'mainPlanet',
-      'endVacation',
-      'settings',
-      'reset',
-      'endzeit',
-    ]);
-    const refused = Object.keys(ACTIONS).filter(
-      (type) => !allowed.has(type) && !GUILD_ACTIONS.has(type),
+    // The allow list of the decision (owner, 2026-11-18): the end of the
+    // vacation and the push settings. The guild actions are refused too.
+    const allowed = new Set(['endVacation', 'pushOptions']);
+    const refused = Object.keys(ACTIONS).filter((type) => !allowed.has(type));
+    expect(refused).toEqual(
+      expect.arrayContaining(['jump', 'abandon', 'sendGuildChat', 'options']),
     );
-    expect(refused).toEqual(expect.arrayContaining(['jump', 'abandon']));
     for (const type of refused)
       expect(() => act(ctx, type), type).toThrow(VACATION_REFUSED);
     ACTIONS.anyNewAction = () => null;
@@ -491,7 +502,7 @@ describe('the words and the notice', () => {
       .prepare(`INSERT INTO push_subscriptions VALUES (?, ?, 'k', 'a')`)
       .run('e', 'u_Anna');
     start(ctx);
-    act(ctx, 'reset');
+    act(ctx, 'reset', {}, 'u_Carl');
     expect(queuedPushes(ctx)).toEqual([
       { user: 'u_Anna', kind: 'messages', topic: 'announcement' },
     ]);
@@ -508,8 +519,60 @@ describe('the state', () => {
       players: Record<string, { vacation?: boolean }>;
     };
     expect(shown.me.vacation).toBeNull();
-    expect(shown.round.vacationHours).toBe(24);
+    expect(shown.round.vacationHours).toBe(48);
     expect(shown.players.u_Anna!.vacation).toBe(true);
     expect(shown.players.u_Bert).not.toHaveProperty('vacation');
+  });
+
+  it('is a lock screen without any game for a player in vacation mode (owner, 2026-11-18)', () => {
+    const ctx = world();
+    ctx.reports.add(
+      'u_Anna',
+      { id: 'r1', time: START, type: 'info', title: 'T', text: 'x' },
+      60,
+    );
+    start(ctx);
+    const shown = stateFor(ctx, anna(ctx)) as Record<string, unknown> & {
+      me: Record<string, unknown>;
+      round: { vacationHours: number };
+    };
+    expect(shown).toEqual({
+      round: roundRules(ctx),
+      now: ctx.now(),
+      cfg: universe(ctx),
+      me: {
+        id: 'u_Anna',
+        name: 'Anna',
+        research: {},
+        rq: null,
+        probes: 1,
+        explain: anna(ctx).explain,
+        pushOff: [],
+        readAt: 0,
+        admin: false,
+        vacation: START,
+      },
+      planet: null,
+      labs: [],
+      fleets: [],
+      reports: [],
+      players: {},
+      galaxy: [],
+      debris: [],
+      admin: null,
+    });
+    expect(shown.round.vacationHours).toBe(48);
+  });
+
+  it('is the full game again after the end, also for an admin', () => {
+    const ctx = world();
+    start(ctx);
+    ctx.clock.t = START + 48 * HOUR_MS;
+    stop(ctx);
+    const shown = stateFor(ctx, anna(ctx)) as { planet: { id: string } };
+    expect(shown.planet.id).toBe('p1_1_5');
+    expect(
+      (stateFor(ctx, ctx.players.get('u_Carl')!) as { admin: unknown }).admin,
+    ).not.toBeNull();
   });
 });

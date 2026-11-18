@@ -211,7 +211,7 @@ describe('a new entry of the registry (#283)', () => {
         label: 'Mindestdauer des Urlaubsmodus (Stunden)',
         min: 1,
         max: 720,
-        def: 24,
+        def: 48,
       },
     ];
     // Selected by key, never by position: other features add live rows too.

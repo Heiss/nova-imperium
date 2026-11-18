@@ -39,8 +39,8 @@ describe('universe settings', () => {
       roundActivityMinutes: 59,
       roundInactiveDays: 7,
       roundLongInactiveDays: 28,
-      // Added by #223 (owner, 2026-11-16, D1): 24 h of vacation at least.
-      roundVacationHours: 24,
+      // Added by #223 (owner, 2026-11-16, D1; 48 h since 2026-11-18).
+      roundVacationHours: 48,
     });
     for (const s of UNIVERSE_SPECS) {
       expect(s.def).toBeGreaterThanOrEqual(s.min);
