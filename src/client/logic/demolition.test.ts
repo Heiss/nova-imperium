@@ -204,6 +204,14 @@ describe('the mark of a finished order', () => {
     expect(completion(up, {}, 10, 'Ausbau fertig')).toBeNull();
     expect(completion(null, {}, 10, 'Ausbau fertig')).toBeNull();
   });
+
+  it('names a key without a text by the key', () => {
+    const order = { ...up, key: 'nope', lvl: 2 };
+    expect(completion(order, { nope: 2 }, 10, 'Ausbau fertig')).toEqual({
+      label: 'Ausbau fertig',
+      notice: 'Ausbau fertig: nope (Stufe 2).',
+    });
+  });
 });
 
 describe('the remembered finished order', () => {

@@ -309,6 +309,10 @@ describe('why a level cannot be torn down (D5)', () => {
     expect(
       codes({ ...small, b: { terraformer: 1, metal: 5 } }, 'metal'),
     ).toEqual([]);
+    // Without a level there is nothing to tear down, whatever the fields are.
+    expect(
+      codes({ ...small, b: { terraformer: 1, metal: 10 } }, 'crystal'),
+    ).toEqual(['none']);
   });
 
   it('with a negative factor not without the resources, as for building', () => {

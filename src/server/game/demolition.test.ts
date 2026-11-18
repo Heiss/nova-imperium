@@ -128,6 +128,20 @@ describe('a demolition (#202)', () => {
     expect(demolish(ctx, u, { key: 'metal' })).toBeNull();
   });
 
+  it('queues the push of its end like an upgrade, under the planet and its start', () => {
+    const { ctx, u, p } = setup({ b: { metal: 1 } });
+    ctx.db
+      .prepare(`INSERT INTO push_subscriptions VALUES (?, ?, 'k', 'a')`)
+      .run('e_anna', u.id);
+    const start = ctx.now();
+    demolish(ctx, u, { key: 'metal' });
+    expect(
+      ctx.db.prepare('SELECT kind, event_key, due FROM push_jobs').all(),
+    ).toEqual([
+      { kind: 'buildings', event_key: `${p().id}:${start}`, due: p().bq!.end },
+    ]);
+  });
+
   it('is refused for what the interface never offers', () => {
     const { ctx, u, p } = setup({ b: { metal: 1 } });
     expect(() => demolish(ctx, u, { key: 'nope' })).toThrow(
