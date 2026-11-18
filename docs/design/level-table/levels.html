@@ -1,0 +1,519 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Mockup – Stufenübersicht</title>
+    <link rel="stylesheet" href="/style.css" />
+    <style>
+      .mock {
+        max-width: 980px;
+        margin: 0 auto;
+        padding: 16px;
+      }
+      .mock .cap {
+        color: var(--dim);
+        margin: 0 0 8px;
+        font-style: italic;
+      }
+      .btns {
+        display: inline-flex;
+        gap: 6px;
+        margin-left: 6px;
+        vertical-align: 2px;
+      }
+      button.exq,
+      button.lvq {
+        min-width: 0;
+        width: 22px;
+        height: 22px;
+        padding: 0;
+        border-radius: 50%;
+        font-size: 12px;
+        line-height: 20px;
+      }
+      button.lvq {
+        border-radius: 4px;
+      }
+      button.lvq[aria-expanded='true'] {
+        outline: 2px solid var(--gold-hi);
+        outline-offset: 1px;
+      }
+      .item > div {
+        min-width: 0;
+      }
+      .lvt {
+        margin: 10px 0 4px;
+        border-left: 2px solid var(--line);
+        padding-left: 10px;
+        overflow-x: auto;
+      }
+      @media (max-width: 760px) {
+        .item {
+          align-items: start;
+        }
+        .lvt table {
+          min-width: 560px;
+        }
+        .lvt::after {
+          content: '← wischen für mehr Spalten →';
+          display: block;
+          font-size: 12px;
+          color: var(--dim);
+          margin-top: 4px;
+        }
+      }
+      .lvt table {
+        font-size: 14px;
+      }
+      .lvt th {
+        font-size: 11px;
+      }
+      .lvt td.n {
+        white-space: nowrap;
+      }
+      .lvt tr.big td {
+        color: var(--dim);
+      }
+      .lvt tr.sep td {
+        font: 600 11px var(--head);
+        letter-spacing: 0.08em;
+        color: var(--gold);
+        padding-top: 10px;
+        border-bottom: 1px dashed var(--line);
+      }
+      .lvt .r {
+        white-space: nowrap;
+        margin-right: 6px;
+      }
+      .lvt .r img {
+        width: 14px;
+        height: 14px;
+        vertical-align: -2px;
+        margin-right: 3px;
+      }
+      .lvt .r.m {
+        color: var(--m);
+      }
+      .lvt .r.c {
+        color: var(--c);
+      }
+      .lvt .r.d {
+        color: var(--d);
+      }
+      .lvt .note {
+        font-size: 13px;
+        color: var(--dim);
+        margin-top: 4px;
+      }
+      .opt {
+        display: flex;
+        gap: 14px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .opt label {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="mock">
+      <p class="cap">
+        Mockup (Beispielplanet: Sonnenkathedrale 16, Servitorenschmiede 2,
+        Scholarium 3, Tempo ×5) – Kosten, Zeiten, Förderung und Energie aus den
+        Formeln von <code>src/core/economy.ts</code>; Texte [V]
+      </p>
+      <h2>Gebäude (Auszug)</h2>
+      <div class="box">
+        <div class="item">
+          <div class="icon ic-b">
+            <img
+              src="/icons/buildings/metal_mine.svg"
+              alt="Adamant-Tiefbohrung"
+            />
+          </div>
+          <div>
+            <div class="nm">
+              Adamant-Tiefbohrung <span class="lv">(Stufe 3)</span>
+              <span class="btns"
+                ><button
+                  class="exq"
+                  aria-label="Erklärung zu Adamant-Tiefbohrung"
+                  aria-expanded="false"
+                >
+                  ?</button
+                ><button
+                  class="lvq"
+                  aria-label="Stufenübersicht zu Adamant-Tiefbohrung"
+                  aria-expanded="true"
+                  title="Stufenübersicht"
+                >
+                  ▤
+                </button></span
+              >
+            </div>
+            <div class="ds">
+              Fördert Adamant, den wichtigsten Grundrohstoff.
+            </div>
+            <div class="lvt" id="lvt_metal">
+              <table>
+                <tr>
+                  <th class="n">Stufe</th>
+                  <th>Kosten</th>
+                  <th class="n">Bauzeit</th>
+                  <th class="n">Förderung/h (Δ zu heute)</th>
+                  <th class="n">Energiebedarf (Δ)</th>
+                </tr>
+                <tr class="">
+                  <td class="n">4</td>
+                  <td>
+                    <span class="r m"
+                      ><img
+                        src="/icons/resources/metal.svg"
+                        alt=""
+                        onerror="this.remove()"
+                      />202</span
+                    >
+                    <span class="r c"
+                      ><img
+                        src="/icons/resources/small/crystal.svg"
+                        alt=""
+                        onerror="this.remove()"
+                      />50</span
+                    >
+                  </td>
+                  <td class="n">24 s</td>
+                  <td class="n">978 <span class="good">(+280)</span></td>
+                  <td class="n">105 <span class="bad">(+19)</span></td>
+                </tr>
+                <tr class="">
+                  <td class="n">5</td>
+                  <td>
+                    <span class="r m"
+                      ><img
+                        src="/icons/resources/small/metal.svg"
+                        alt=""
+                        onerror="this.remove()"
+                      />303</span
+                    >
+                    <span class="r c"
+                      ><img
+                        src="/icons/resources/small/crystal.svg"
+                        alt=""
+                        onerror="this.remove()"
+                      />75</span
+                    >
+                  </td>
+                  <td class="n">36 s</td>
+                  <td class="n">1.308 <span class="good">(+609)</span></td>
+                  <td class="n">127 <span class="bad">(+41)</span></td>
+                </tr>
+                <tr class="">
+                  <td class="n">6</td>
+                  <td>
+                    <span class="r m"
+                      ><img
+                        src="/icons/resources/small/metal.svg"
+                        alt=""
+                        onerror="this.remove()"
+                      />455</span
+                    >
+                    <span class="r c"
+                      ><img
+                        src="/icons/resources/small/crystal.svg"
+                        alt=""
+                        onerror="this.remove()"
+                      />113</span
+                    >
+                  </td>
+                  <td class="n">55 s</td>
+                  <td class="n">1.694 <span class="good">(+995)</span></td>
+                  <td class="n">152 <span class="bad">(+66)</span></td>
+                </tr>
+                <tr class="sep">
+                  <td colspan="5">große Schritte</td>
+                </tr>
+                <tr class="big">
+                  <td class="n">10</td>
+                  <td>
+                    <span class="r m"
+                      ><img
+                        src="/icons/resources/small/metal.svg"
+                        alt=""
+                        onerror="this.remove()"
+                      />2.306</span
+                    >
+                    <span class="r c"
+                      ><img
+                        src="/icons/resources/small/crystal.svg"
+                        alt=""
+                        onerror="this.remove()"
+                      />576</span
+                    >
+                  </td>
+                  <td class="n">4 min 37 s</td>
+                  <td class="n">3.991 <span class="good">(+3.292)</span></td>
+                  <td class="n">306 <span class="bad">(+219)</span></td>
+                </tr>
+                <tr class="big">
+                  <td class="n">15</td>
+                  <td>
+                    <span class="r m"
+                      ><img
+                        src="/icons/resources/small/metal.svg"
+                        alt=""
+                        onerror="this.remove()"
+                      />17.515</span
+                    >
+                    <span class="r c"
+                      ><img
+                        src="/icons/resources/small/crystal.svg"
+                        alt=""
+                        onerror="this.remove()"
+                      />4.378</span
+                    >
+                  </td>
+                  <td class="n">35 min 2 s</td>
+                  <td class="n">9.499 <span class="good">(+8.800)</span></td>
+                  <td class="n">673 <span class="bad">(+587)</span></td>
+                </tr>
+                <tr class="big">
+                  <td class="n">20</td>
+                  <td>
+                    <span class="r m"
+                      ><img
+                        src="/icons/resources/small/metal.svg"
+                        alt=""
+                        onerror="this.remove()"
+                      />133.010</span
+                    >
+                    <span class="r c"
+                      ><img
+                        src="/icons/resources/small/crystal.svg"
+                        alt=""
+                        onerror="this.remove()"
+                      />33.252</span
+                    >
+                  </td>
+                  <td class="n">4 h 26 min</td>
+                  <td class="n">20.282 <span class="good">(+19.584)</span></td>
+                  <td class="n">1.392 <span class="bad">(+1.306)</span></td>
+                </tr>
+              </table>
+              <div class="note">
+                Bauzeiten mit deiner heutigen Servitorenschmiede. Die Förderung
+                setzt genug Energie voraus; fehlt sie, sinkt sie mit dem Faktor
+                der Energie.
+              </div>
+            </div>
+          </div>
+          <div><button class="go">Ausbauen auf 4</button></div>
+        </div>
+      </div>
+      <h2>Forschung (Auszug)</h2>
+      <div class="box">
+        <div class="item">
+          <div class="icon">
+            <img
+              src="/icons/research/weapons_technology.svg"
+              alt="Waffensegnung"
+            />
+          </div>
+          <div>
+            <div class="nm">
+              Waffensegnung <span class="lv">(Stufe 3)</span>
+              <span class="btns"
+                ><button
+                  class="exq"
+                  aria-label="Erklärung zu Waffensegnung"
+                  aria-expanded="false"
+                >
+                  ?</button
+                ><button
+                  class="lvq"
+                  aria-label="Stufenübersicht zu Waffensegnung"
+                  aria-expanded="true"
+                >
+                  ▤
+                </button></span
+              >
+            </div>
+            <div class="ds">+10 % Angriff pro Stufe.</div>
+            <div class="lvt">
+              <table>
+                <tr>
+                  <th class="n">Stufe</th>
+                  <th>Kosten</th>
+                  <th class="n">Forschungszeit</th>
+                  <th class="n">Wirkung (Δ zu heute)</th>
+                </tr>
+                <tr class="">
+                  <td class="n">4</td>
+                  <td>
+                    <span class="r m"
+                      ><img
+                        src="/icons/resources/metal.svg"
+                        alt=""
+                        onerror="this.remove()"
+                      />6.400</span
+                    >
+                    <span class="r c"
+                      ><img
+                        src="/icons/resources/small/crystal.svg"
+                        alt=""
+                        onerror="this.remove()"
+                      />1.600</span
+                    >
+                  </td>
+                  <td class="n">24 min 0 s</td>
+                  <td class="n">
+                    Angriff +40 % <span class="good">(+10 %)</span>
+                  </td>
+                </tr>
+                <tr class="">
+                  <td class="n">5</td>
+                  <td>
+                    <span class="r m"
+                      ><img
+                        src="/icons/resources/small/metal.svg"
+                        alt=""
+                        onerror="this.remove()"
+                      />12.800</span
+                    >
+                    <span class="r c"
+                      ><img
+                        src="/icons/resources/small/crystal.svg"
+                        alt=""
+                        onerror="this.remove()"
+                      />3.200</span
+                    >
+                  </td>
+                  <td class="n">48 min 0 s</td>
+                  <td class="n">
+                    Angriff +50 % <span class="good">(+20 %)</span>
+                  </td>
+                </tr>
+                <tr class="">
+                  <td class="n">6</td>
+                  <td>
+                    <span class="r m"
+                      ><img
+                        src="/icons/resources/small/metal.svg"
+                        alt=""
+                        onerror="this.remove()"
+                      />25.600</span
+                    >
+                    <span class="r c"
+                      ><img
+                        src="/icons/resources/small/crystal.svg"
+                        alt=""
+                        onerror="this.remove()"
+                      />6.400</span
+                    >
+                  </td>
+                  <td class="n">1 h 36 min</td>
+                  <td class="n">
+                    Angriff +60 % <span class="good">(+30 %)</span>
+                  </td>
+                </tr>
+                <tr class="sep">
+                  <td colspan="4">große Schritte</td>
+                </tr>
+                <tr class="big">
+                  <td class="n">10</td>
+                  <td>
+                    <span class="r m"
+                      ><img
+                        src="/icons/resources/small/metal.svg"
+                        alt=""
+                        onerror="this.remove()"
+                      />409.600</span
+                    >
+                    <span class="r c"
+                      ><img
+                        src="/icons/resources/small/crystal.svg"
+                        alt=""
+                        onerror="this.remove()"
+                      />102.400</span
+                    >
+                  </td>
+                  <td class="n">1 T 1 h</td>
+                  <td class="n">
+                    Angriff +100 % <span class="good">(+70 %)</span>
+                  </td>
+                </tr>
+                <tr class="big">
+                  <td class="n">15</td>
+                  <td>
+                    <span class="r m"
+                      ><img
+                        src="/icons/resources/small/metal.svg"
+                        alt=""
+                        onerror="this.remove()"
+                      />13.107.200</span
+                    >
+                    <span class="r c"
+                      ><img
+                        src="/icons/resources/small/crystal.svg"
+                        alt=""
+                        onerror="this.remove()"
+                      />3.276.800</span
+                    >
+                  </td>
+                  <td class="n">34 T 3 h</td>
+                  <td class="n">
+                    Angriff +150 % <span class="good">(+120 %)</span>
+                  </td>
+                </tr>
+                <tr class="big">
+                  <td class="n">20</td>
+                  <td>
+                    <span class="r m"
+                      ><img
+                        src="/icons/resources/small/metal.svg"
+                        alt=""
+                        onerror="this.remove()"
+                      />419.430.400</span
+                    >
+                    <span class="r c"
+                      ><img
+                        src="/icons/resources/small/crystal.svg"
+                        alt=""
+                        onerror="this.remove()"
+                      />104.857.600</span
+                    >
+                  </td>
+                  <td class="n">2 J 362 T</td>
+                  <td class="n">
+                    Angriff +200 % <span class="good">(+170 %)</span>
+                  </td>
+                </tr>
+              </table>
+              <div class="note">
+                Forschungszeiten mit deinem heutigen Scholarium (ohne Netzwerk).
+              </div>
+            </div>
+          </div>
+          <div><button class="go">Forschen</button></div>
+        </div>
+      </div>
+      <h2>Hilfe &amp; Optionen (Auszug)</h2>
+      <div class="box">
+        <div class="bd opt">
+          <b>Stufenübersicht:</b>
+          <label><input type="radio" name="lv" /> Immer anzeigen</label>
+          <label><input type="radio" name="lv" checked /> Als ▤-Symbol</label>
+          <label><input type="radio" name="lv" /> Ausblenden</label>
+        </div>
+      </div>
+      <p class="cap">
+        Regel der Zeilen: die nächsten 3 Stufen, dann die vollen Fünfer bis 20
+        (Stufe 3 → 4, 5, 6 · 10, 15, 20). Über 20: die nächsten 3 Stufen und der
+        nächste Fünfer (Stufe 21 → 22, 23, 24 · 25; Stufe 22 → 23, 24, 25 · 30).
+      </p>
+    </main>
+  </body>
+</html>
