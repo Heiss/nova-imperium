@@ -13,7 +13,10 @@ interface is German.
      and merge conflicts;
    - Renovate's open security pull requests (`[SECURITY]` at the end of
      the title) with their CI;
-   - Renovate's other open pull requests with their update type and CI;
+   - Renovate's other open pull requests with their update type and CI,
+     and the updates under „Pending Approval“ in the issue „Dependency
+     Dashboard“ (major and 0.x minor updates get no pull request before
+     the owner's tick there);
    - the open release pull request (`Release <version>`, branch
      `release/main`) with its CI and its release candidate image;
    - the open issues by their labels: `ready` (in the next release),
@@ -81,10 +84,19 @@ interface is German.
    mutation gate run in the CI. They push and report at once instead of
    waiting for a free machine; a red CI goes back to a subagent.
    Small patches are slotted in between, so that none is left for the
-   release (owner, 2026-11-16): while you wait, merge Renovate's green
-   patch and minor pull requests (one at a time, CI Gate green on a head
-   up to date with `main`; a major update and a minor one below 1.0 wait
-   for the owner) and follow up GitHub's
+   release (owner, 2026-11-16 and 2026-11-18): in every iteration in
+   which no own pull request is the next one to merge, take the oldest
+   open Renovate pull request with a patch or minor update of a version
+   from 1.0 on that can go on, and bring it one step further; do not wait
+   for a pause. One whose CI Gate is red on a head up to date with `main`
+   cannot go on: skip it, it stays open and is named with the release.
+   Renovate rebases it only on a conflict, so ask for the rebase when its
+   head is behind `main`: tick the box „rebase/retry“ at the end of its
+   description (the label `rebase` also works, but starts a CI run of its
+   own), never „Update branch“ and never a push to its branch. Merge it
+   when its CI Gate is green on a head up to date with `main` (O4). One at
+   a time; a major update and a minor one below 1.0 wait for the owner.
+   Also follow up GitHub's
    Dependabot alerts that have no Renovate security pull request; a small
    bug or cleanup issue (`bug`, `ready`, `Geklärt`) may be the next issue
    of a free subagent before the next feature.
@@ -92,12 +104,14 @@ interface is German.
    `in progress` or `in review` and the release pull request is open.
    First merge Renovate's ordinary pull requests with a patch or minor
    update of a version from 1.0 on (owner, 2026-11-16): one at a time,
-   each under O4 on a head that is up to date with `main`; Renovate
-   rebases the others itself, wait for their CI. A red one stays open and
+   each under O4 on a head that is up to date with `main`; ask for the
+   rebase of the next one as in step 1 and wait for its CI. A red one
+   stays open and
    you name it in the message to the owner below. Major updates and minor
    updates below 1.0 wait for the owner: each gets one issue (find it, or
-   open it with the pull request's number, its breaking changes and its
-   CI, without a status label). Then go on with the release pull
+   open it with its entry in the Dependency Dashboard or its pull
+   request's number, its breaking changes and, if it has a pull request,
+   its CI, without a status label). Then go on with the release pull
    request. The release pull request is a draft after
    every rebuild: its cheap run checks only secrets, dependencies,
    migrations, workflows, CodeQL and the changelog, and its CI Gate is red
