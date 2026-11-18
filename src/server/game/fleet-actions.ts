@@ -156,7 +156,8 @@ function checkDestination(
       locked: at.lockEnd !== null,
       protects: (owner) => isProtected(u.id, owner, pointsMap(ctx)),
       ally: (owner) => isAllyOf(ctx, u.id, owner),
-      holding: () => (occupied ? holdersAt(ctx, occupied.id) : []),
+      // Asked only for a Halten, whose target kind has a planet (#55).
+      holding: () => holdersAt(ctx, occupied!.id),
     },
   );
   // A given-up position names the end of its lock (#224, D2).
