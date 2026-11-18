@@ -480,3 +480,64 @@ describe('partial mutation run: the command', () => {
     ]);
   });
 });
+
+describe('partial mutation run: the job in ci.yml', () => {
+  const ci = readFileSync('.github/workflows/ci.yml', 'utf8');
+  const job = (name: string): string => {
+    const start = ci.indexOf(`\n  ${name}:\n`);
+    expect(start).toBeGreaterThan(0);
+    const next = /\n {2}[a-z][a-z-]*:\n/.exec(ci.slice(start + 1));
+    return ci.slice(start, next ? start + 1 + next.index : undefined);
+  };
+  // The cache keys and artifacts of the complete runs and their plans.
+  const complete = [
+    'actions/cache',
+    'stryker-shard',
+    'stryker-state',
+    'stryker-report',
+    'stryker-weights',
+    'mutation-state',
+    'mutation-shard-',
+    'stryker-incremental',
+    'mutation-shards.ts',
+  ];
+
+  it('reads and writes no cache and no plan of the complete runs', () => {
+    const partial = job('mutation-partial');
+    expect(partial).toContain('Mutation tests (changed files)');
+    for (const word of complete) expect(partial).not.toContain(word);
+  });
+
+  it('runs only for the output "partial" and only after "Detect changes"', () => {
+    const partial = job('mutation-partial');
+    expect(partial).toContain('needs: changes\n');
+    expect(partial).toContain(
+      "if: needs.changes.outputs.mutation == 'partial'\n",
+    );
+    expect(partial).toContain(
+      'MUTATION_FILES: ${{ needs.changes.outputs.mutation-files }}',
+    );
+    for (const name of ['mutation-plan', 'mutation-shard', 'mutation'])
+      expect(job(name)).toContain(
+        "if: needs.changes.outputs.mutation == 'true'",
+      );
+  });
+
+  it('keeps the complete runs on their caches (the jobs of the shards and the nightly run)', () => {
+    const nightly = readFileSync('.github/workflows/mutation.yml', 'utf8');
+    for (const text of [
+      job('mutation-plan'),
+      job('mutation-shard'),
+      job('mutation'),
+    ])
+      expect(text).toContain('actions/cache');
+    expect(nightly).toContain('stryker-weights-');
+  });
+
+  it('is a step of the gate job as well', () => {
+    expect(job('gate')).toContain('        mutation-partial,\n');
+    expect(job('gate')).toContain(
+      'MUTATION_PARTIAL: ${{ needs.mutation-partial.result }}',
+    );
+  });
+});

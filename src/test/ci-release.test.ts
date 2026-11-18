@@ -20,6 +20,7 @@ import { afterAll, describe, expect, it } from 'vitest';
 
 const CI = readFileSync('.github/workflows/ci.yml', 'utf8');
 const READY = readFileSync('.github/workflows/release-ready.yml', 'utf8');
+const NIGHTLY = readFileSync('.github/workflows/mutation.yml', 'utf8');
 
 /**
  * The `run: |` block of the step whose first line is <step> in the workflow
@@ -466,12 +467,13 @@ describe('CI Gate', () => {
   });
 
   it('refuses the mutation of the changed files where the complete run is required (#309)', () => {
-    for (const env of [
+    const cases: Record<string, string>[] = [
       { HEAD_REF: 'release/main' },
       { HEAD_REF: 'release/hotfix/x', BASE_REF: 'hotfix/x' },
       { BASE_REF: 'hotfix/x' },
       { EVENT: 'push', HEAD_REF: '', BASE_REF: '', FRAGMENTS: 'skipped' },
-    ]) {
+    ];
+    for (const env of cases) {
       const { code, out } = evaluate({ ...partial, ...env });
       expect(code).toBe(1);
       expect(out).toMatch(
@@ -595,5 +597,118 @@ describe('Release ready', () => {
     const { code, calls } = run('', 'yes');
     expect(code).not.toBe(0);
     expect(calls).toEqual(['api repos/owner/game/pulls/7 --jq .body']);
+  });
+});
+
+describe('Nightly mutation run: the issue for a file below its floor (#309)', () => {
+  const step = script(
+    '- name: Open or update the issue for the files below their floor',
+    NIGHTLY,
+  );
+  const bin = join(dir, 'nightly-bin');
+  const work = join(dir, 'nightly');
+  const calls = join(dir, 'nightly-calls');
+  const body = join(dir, 'nightly-body');
+  mkdirSync(bin, { recursive: true });
+  // Answers the list of open issues; records every call and the body file.
+  writeFileSync(
+    join(bin, 'gh'),
+    [
+      '#!/bin/sh',
+      'printf \'%s\\n\' "$*" >> "$GH_CALLS"',
+      'prev=',
+      'for a in "$@"; do',
+      '  [ "$prev" != --body-file ] || cp "$a" "$GH_BODY"',
+      '  prev=$a',
+      'done',
+      'case "$1 $2" in',
+      '  "issue list") printf \'%s\\n\' "$OPEN" ;;',
+      'esac',
+      '',
+    ].join('\n'),
+  );
+  chmodSync(join(bin, 'gh'), 0o755);
+
+  const run = (report: unknown, open = '') => {
+    rmSync(work, { recursive: true, force: true });
+    mkdirSync(join(work, 'reports/mutation'), { recursive: true });
+    cpSync('scripts', join(work, 'scripts'), { recursive: true });
+    for (const file of ['stryker.config.json', 'mutation-standard.json'])
+      cpSync(file, join(work, file));
+    writeFileSync(
+      join(work, 'reports/mutation/mutation.json'),
+      JSON.stringify(report),
+    );
+    rmSync(calls, { force: true });
+    rmSync(body, { force: true });
+    const result = bash(
+      step,
+      {
+        PATH: `${bin}:${process.env.PATH}`,
+        GH_CALLS: calls,
+        GH_BODY: body,
+        OPEN: open,
+        RUN: 'https://example.org/run/1',
+        TITLE: 'Mutation floor missed on main',
+      },
+      work,
+    );
+    return {
+      ...result,
+      calls: readFileSync(calls, 'utf8').trim().split('\n'),
+      body: readFileSync(body, 'utf8'),
+    };
+  };
+  const mutants = (...statuses: string[]) => ({
+    mutants: statuses.map((status) => ({ status })),
+  });
+  const below = {
+    files: { 'src/core/new-file.ts': mutants('Killed', 'Survived') },
+  };
+  const search =
+    'issue list --state open --search "Mutation floor missed on main" in:title --json number,title --jq .[] | select(.title == "Mutation floor missed on main") | .number';
+
+  it('opens an issue with the files below their floor', () => {
+    const { code, calls, body } = run(below);
+    expect(code).toBe(0);
+    expect(calls).toEqual([
+      search,
+      'issue create --title Mutation floor missed on main --body-file body.md',
+    ]);
+    expect(body).toContain('(https://example.org/run/1)');
+    expect(body).toContain(
+      '- Mutation score below the floor: src/core/new-file.ts: 50 % < 80 % (new file)',
+    );
+    expect(body).toContain(
+      '- Total mutation score below the break threshold: 50 % < 80 %',
+    );
+  });
+
+  it('updates the open issue instead of opening another', () => {
+    const { code, calls, body } = run(below, '42\n43');
+    expect(code).toBe(0);
+    expect(calls).toEqual([search, 'issue edit 42 --body-file body.md']);
+    expect(body).toContain('src/core/new-file.ts: 50 %');
+  });
+
+  it('says so when the gate names nothing', () => {
+    const { code, body } = run({ files: 'broken' });
+    expect(code).toBe(0);
+    expect(body).toContain('- (none named: see the log of the run)');
+  });
+});
+
+describe('Nightly mutation run: the permission of the issue step (#309)', () => {
+  it('writes issues in the gate job only, on main only, after a failed gate', () => {
+    expect(NIGHTLY.match(/issues: write/g)).toHaveLength(1);
+    expect(NIGHTLY).toContain('\npermissions:\n  contents: read\n');
+    const job = NIGHTLY.slice(NIGHTLY.indexOf('\n  mutation:\n'));
+    expect(job).toContain(
+      '    permissions:\n      contents: read\n      issues: write',
+    );
+    expect(job).toContain(
+      "if: always() && steps.gate.outcome == 'failure' && github.ref == 'refs/heads/main'",
+    );
+    expect(job).toContain('        id: gate\n');
   });
 });

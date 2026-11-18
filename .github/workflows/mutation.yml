@@ -115,6 +115,9 @@ jobs:
     name: Mutation tests (complete)
     needs: [mutation-plan, mutation-shard]
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write # the issue for a file below its floor (last step)
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -147,6 +150,7 @@ jobs:
           path: reports/mutation-state.json
           key: stryker-state-${{ github.ref }}-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
       - name: Total score and no file below its floor (mutation-standard.json)
+        id: gate
         run: node scripts/mutation-gate.ts --report reports/mutation/mutation.json
       - name: Keep the merged report as the weights of the next plans
         if: always() && steps.merge.outcome == 'success'
@@ -161,3 +165,33 @@ jobs:
           path: reports/mutation/mutation.json
           overwrite: true
           retention-days: 30
+      # A pull request mutates only the files it changes (#309), so a file
+      # it lowers without touching it is found here. The first failure opens
+      # one issue and the next nights update it, so the owner sees the files
+      # below their floor the next morning (a failed run alone only sends a
+      # mail to whoever changed the schedule last). Only the schedule on
+      # main; the proof run on another branch opens none. The step runs when
+      # the gate failed, not when a shard did.
+      - name: Open or update the issue for the files below their floor
+        if: always() && steps.gate.outcome == 'failure' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          TITLE: Mutation floor missed on main
+        run: |
+          # The gate has failed already: its exit code does not count here.
+          node scripts/mutation-gate.ts --report reports/mutation/mutation.json |
+            sed -n 's/^::error:://p' | sed 's/^/- /' > failures.txt || true
+          [ -s failures.txt ] || echo "- (none named: see the log of the run)" > failures.txt
+          {
+            printf 'The complete mutation run of main (%s) found a file below its floor in mutation-standard.json, or a total below the break threshold:\n\n' "$RUN"
+            cat failures.txt
+            printf '\nA pull request mutates only the files it changes, so a drop in a file it did not change is found by this run. Raise the tests of the file, or revert the change that lowered it. Updated every night until the run is green; close this issue when it is.\n'
+          } > body.md
+          number=$(gh issue list --state open --search "\"$TITLE\" in:title" --json number,title --jq ".[] | select(.title == \"$TITLE\") | .number" | head -n 1)
+          if [ -z "$number" ]; then
+            gh issue create --title "$TITLE" --body-file body.md
+          else
+            gh issue edit "$number" --body-file body.md
+          fi
