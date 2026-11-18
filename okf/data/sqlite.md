@@ -527,6 +527,20 @@ Existing players get null: nobody is in vacation mode, the production goes
 on and every target stays open; other data stay as they were
 (`upgrades/20261117T1000-vacation-mode.test.ts`).
 
+Migration `20261116T2054-moonbreak` (issue #95, in the folder
+layout, `migrations/95/migrations.ts`, see [Moons](/features/moons.md))
+rebuilds `fleets` and `fleet_ships` like migration 16 for the mission
+`moonbreak` (Mondbruch) in the CHECK of `fleets.mission`. Every column
+stays, `gift` of migration 18 included (now in the column list with its
+CHECK instead of appended), with the index `fleets_owner`, the foreign key
+to `users` and both cascades; a Mondbruch flies to a moon (`to_planet`
+`m<g>_<s>_<p>`), which needs no column. Its upgrade test
+(`upgrades/20261116T2054-moonbreak.test.ts`) writes fleets of the version
+before, a gift and fleets from and to a moon among them, checks that every
+row and ship stays, that a gift still takes no fleet slot, that a Mondbruch
+is saved with its ships, the CHECKs of `mission` and `gift`, the index and
+the cascades.
+
 Account deletion runs in one transaction. Foreign-key cascades clear owned game,
 session, reward and push data. The deletion also removes led guilds and their
 memberships, linked audit and inbox records, invitations for the account address

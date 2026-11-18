@@ -160,7 +160,7 @@ All values are the classic ones on owiki.de, confirmed by the owner
   only the Schlachtschiff, Schlachtkreuzer, Zerstörer, Bomber, Gaußkanone,
   Plasmawerfer and Todesstern hurt it; the Ionengeschütz (150) does not. Points by cost, 10,000 per Todesstern
   (`src/server/game/points.ts`).
-* No mission „Zerstören“: it comes with the moons (#53, #95).
+* No mission „Zerstören“ in #60: it came with the moons as „Mondbruch“ (#53, #95, [Moons](/features/moons.md)).
 * **[V]** Description „Gewaltige Kampfstation; zerstört fast alles mit
   Schnellfeuer.“
 * Icon `deathstar.svg` from the interface v2 set in

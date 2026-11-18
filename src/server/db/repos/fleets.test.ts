@@ -85,4 +85,27 @@ describe('fleets repository', () => {
       ctx.db.prepare('SELECT COUNT(*) FROM fleet_ships').pluck().get(),
     ).toBe(0);
   });
+
+  it('reroutes the fleets of a place that is gone (#95)', () => {
+    const ctx = testCtx();
+    addUser(ctx, 'Anna');
+    ctx.fleets.save(fleet({ id: 'to', to: 'm1' }));
+    ctx.fleets.save(fleet({ id: 'back', to: 'm1', state: 'back' }));
+    ctx.fleets.save(fleet({ id: 'home', from: 'm1', to: 'x' }));
+    ctx.fleets.save(fleet({ id: 'homeBack', from: 'm1', state: 'back' }));
+    ctx.fleets.save(fleet({ id: 'other', from: 'q', to: 'r' }));
+    ctx.fleets.reroute('m1', 'p1');
+    const legs = Object.fromEntries(
+      ctx.fleets.all().map((f) => [f.id, [f.from, f.to]]),
+    );
+    expect(legs).toEqual({
+      to: ['a', 'p1'],
+      back: ['a', 'm1'],
+      home: ['p1', 'x'],
+      homeBack: ['p1', 'b'],
+      other: ['q', 'r'],
+    });
+    // Nothing else of a fleet changes.
+    expect(ctx.fleets.get('to')).toEqual(fleet({ id: 'to', to: 'p1' }));
+  });
 });

@@ -13,6 +13,7 @@ import {
 } from '../../core/moon.ts';
 import type { Coords, Planet } from '../../core/types.ts';
 import type { AuditEntry } from '../audit.ts';
+import { cancelScheduledPush } from '../push-store.ts';
 import { type Ctx, fail, str } from './context.ts';
 
 /** The name a new moon starts with; it is renamed like a planet. */
@@ -112,4 +113,18 @@ export function createMoon(
     diameter: moon.diameter,
   };
   return moon;
+}
+
+/**
+ * A broken moon (#95; owner, 2026-11-13 and 2026-11-16): everything on it
+ * is lost, its stock, buildings, ships, defense and queues, with the pushes
+ * of its queues; it leaves no Trümmerfeld. Fleets flying to it land at its
+ * planet, and fleets whose home it is come home to its planet [V].
+ */
+export function destroyMoon(ctx: Ctx, moon: Planet): void {
+  const planet = placeId({ g: moon.g, s: moon.s, p: moon.p, kind: 'planet' });
+  ctx.fleets.reroute(moon.id, planet);
+  ctx.planets.delete(moon.id);
+  for (const kind of ['buildings', 'shipyard'] as const)
+    cancelScheduledPush(ctx, moon.owner, kind, `${moon.id}:*`);
 }

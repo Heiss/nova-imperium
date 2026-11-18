@@ -14,6 +14,11 @@ export interface Fleets {
   save(f: Fleet): void;
   delete(id: string): void;
   deleteAll(): void;
+  /**
+   * A place is gone (a destroyed moon, #95): the fleets flying to it fly to
+   * `to` instead, and the fleets whose home it is come home to `to`.
+   */
+  reroute(from: string, to: string): void;
 }
 
 const coordsOf = (r: Row, p: 'from' | 'to'): Coords => ({
@@ -134,5 +139,16 @@ export class SqliteFleets implements Fleets {
 
   deleteAll(): void {
     this.db.prepare('DELETE FROM fleets').run();
+  }
+
+  reroute(from: string, to: string): void {
+    this.db
+      .prepare(
+        "UPDATE fleets SET to_planet = ? WHERE to_planet = ? AND state = 'out'",
+      )
+      .run(to, from);
+    this.db
+      .prepare('UPDATE fleets SET from_planet = ? WHERE from_planet = ?')
+      .run(to, from);
   }
 }

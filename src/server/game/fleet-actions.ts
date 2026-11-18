@@ -87,6 +87,8 @@ const SEND_ERROR: Readonly<Record<Exclude<SendError, 'locked'>, string>> = {
   noRecycler: 'Du brauchst eine Bergungsbarke.',
   noMoon: 'An dieser Position gibt es keinen Mond.',
   moonTarget: 'Ein Mond kann nicht das Ziel dieses Auftrags sein.',
+  notMoon: 'Mondbruch nur gegen einen Mond.',
+  noWorldbreaker: 'Du brauchst einen Weltenbrecher.',
 };
 
 const loadCargo = (p: Planet, rules: MissionRules, raw: unknown): Resources => {
@@ -217,8 +219,9 @@ export const send: Action = (ctx, u, d, event) => {
     fuel,
   };
   ctx.fleets.save(fleet);
-  // The guild of the defender learns of an attack at its launch (#169 D3);
-  // an attack flies to a foreign planet only, so it has an owner.
+  // The guild of the defender learns of an attack or a Mondbruch at its
+  // launch (#169 D3, #95); both fly to a foreign place only, so it has an
+  // owner.
   if (missionRules(mission)!.alertsGuild) attackEvent(ctx, fleet, targetOwner!);
   if (event) logLaunch(event, fleet, targetOwner);
   return `Flotte unterwegs nach ${coords(fleet.toC)}.`;

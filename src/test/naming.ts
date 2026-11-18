@@ -125,6 +125,7 @@ export const MISSIONS = {
   colonize: { classic: 'Kolonisieren', name: 'Landnahme' },
   deploy: { classic: 'Stationieren', name: 'Verlegung' },
   harvest: { classic: 'Abbauen', name: 'Bergung' },
+  moonbreak: { classic: 'Zerstören', name: 'Mondbruch' },
 } as const;
 
 /**

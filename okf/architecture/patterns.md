@@ -404,6 +404,22 @@ choice of the patterns to the assistant's recommendation below
   hands it no arrival (`null`), like a free target, because a field is no
   planet. Migration 16 allows `harvest` in the database
   (see [Trümmerfelder](/features/debris.md)).
+* **[E]** Built with #95, within the decisions of #116: the seventh folder
+  `moonbreak` (Mondbruch, 70) with the target kind `foreignMoon`, a foreign
+  moon and nothing else, so the kind alone says what the mission fits (as
+  #253 needs for its filter, „the moon's target kind decides“). `sendError`
+  answers `notMoon` when the fleet does not fly to a moon, then checks it as
+  a foreign target (no moon, same place, own target, noob protection), then
+  `canSend` (`noWorldbreaker`). `suits` reads the kind of the place, so at
+  the arrival a target that has become a planet does not fit and the fleet
+  turns back with „Flotte kehrt um“. Its arrival reuses the steps of the
+  attack, moved from `attack/arrive.server.ts` into
+  `src/server/game/fight.ts`, because a feature folder never imports
+  another (dependency-cruiser): `fight`, `battleReports` with what a
+  mission adds to each side's report, `flyHome`, and `rebuild` and
+  `plunder`, which the attack folder re-exports; the attack runs them in
+  the same order and with the same draws as before. Migration `20261116T2054-moonbreak` allows `moonbreak`
+  in the database (see [Moons](/features/moons.md)).
 
 ## 5. Battle: pure function, consequences as a fixed pipeline
 

@@ -1,16 +1,19 @@
 // The battle of a fleet at a planet and its consequences as a fixed pipeline
 // (okf/architecture/patterns.md, section 5): the battle, the debris step
 // (#45), the moon step (#53) and the rebuilt defense, then the audit entry.
-// The Sturmangriff and the detected Auspex-Erkundung (#175 D4) share it; each
-// mission words its own reports and moves its fleet.
+// The Sturmangriff, the detected Auspex-Erkundung (#175 D4) and the Mondbruch
+// (#95) share it; each mission words its own reports and moves its fleet. The
+// Sturmangriff and the Mondbruch also share the loot, the two battle reports
+// and the flight home (`raid`, `attackReports`, `flyHome`).
 import { battle } from '../../core/battle.ts';
 import { DEF, SHIPS } from '../../core/catalog.ts';
 import { type Debris, debrisOf, isEmpty } from '../../core/debris.ts';
+import { capacity, countUnits } from '../../core/flight.ts';
 import { placeName } from '../../core/moon.ts';
 import type { Fleet, Levels, Planet, Resources } from '../../core/types.ts';
 import { record } from '../audit.ts';
-import type { Ctx } from './context.ts';
-import { type Arrival, researchAt } from './missions.ts';
+import { type Ctx, addReport, coords } from './context.ts';
+import { type Arrival, researchAt, turnBack } from './missions.ts';
 import { type MoonRoll, rollMoon } from './moons.ts';
 
 /** 70 % of the destroyed defense is rebuilt: by chance below 50 units, else rounded. */
@@ -21,6 +24,39 @@ export function rebuild(lost: number, rng: () => number): number {
   for (let i = 0; i < lost; i++) if (rng() < 0.7) n++;
   return n;
 }
+
+/**
+ * Fills `free` cargo space from `avail` in the order of the classic loot:
+ * a third Adamant, half of the rest Psikristall, the rest Promethium, then
+ * what is left over, Adamant first.
+ */
+function fill(avail: Resources, free: number): Resources {
+  let cap = free;
+  const loot = { m: 0, c: 0, d: 0 };
+  const take = (k: keyof Resources, limit: number): void => {
+    const v = Math.max(0, Math.floor(Math.min(avail[k] - loot[k], limit)));
+    loot[k] += v;
+    cap -= v;
+  };
+  take('m', cap / 3);
+  take('c', cap / 2);
+  take('d', cap);
+  take('m', cap / 2);
+  take('c', cap);
+  take('m', cap);
+  return loot;
+}
+
+/** The winner takes up to half of each resource, as much as the holds carry. */
+export const plunder = (stock: Resources, free: number): Resources =>
+  fill({ m: stock.m / 2, c: stock.c / 2, d: stock.d / 2 }, free);
+
+/**
+ * Loot cut to the holds that are left (#95; owner, 2026-11-16): what no
+ * longer fits is lost, in the order of the loot.
+ */
+export const cutLoot = (loot: Resources, free: number): Resources =>
+  fill(loot, free);
 
 function afterBattle(
   ctx: Ctx,
@@ -157,3 +193,79 @@ export const WON = {
   def: 'verloren',
   draw: 'unentschieden',
 } as const;
+
+/** A battle with the loot of the winner, the target saved and the audit entry written. */
+export interface Raid extends Fight {
+  loot: Resources;
+}
+
+/**
+ * The battle of a Sturmangriff or a Mondbruch: the winner takes the loot
+ * as far as the holds of the ships left carry it, the target is saved, and
+ * the battle is recorded.
+ */
+export function raid(ctx: Ctx, f: Fleet, at: Arrival): Raid {
+  const { t } = at;
+  const x = fight(ctx, f, at);
+  const free = capacity(x.res.att) - (f.cargo.m + f.cargo.c + f.cargo.d);
+  const loot =
+    x.res.winner === 'att' ? plunder(t.res, free) : { m: 0, c: 0, d: 0 };
+  t.res.m -= loot.m;
+  t.res.c -= loot.c;
+  t.res.d -= loot.d;
+  ctx.planets.save(t);
+  recordBattle(ctx, f, t, x);
+  return { ...x, loot };
+}
+
+/** What a mission adds to the battle report of each side (#95). */
+export interface ReportExtra {
+  att?: Record<string, unknown>;
+  def?: Record<string, unknown>;
+}
+
+/** Both battle reports of a raid, with what the mission adds to each side. */
+export function attackReports(
+  ctx: Ctx,
+  f: Fleet,
+  at: Arrival,
+  x: Raid,
+  extra: ReportExtra = {},
+): void {
+  const { t, att } = at;
+  const report = battleReport(f, at, x, x.loot);
+  const won = `Kampfbericht ${coords(f.toC)} – ${WON[x.res.winner]}`;
+  addReport(
+    ctx,
+    f.owner,
+    { ...report, ...extra.att, title: won },
+    { topic: 'fleet' },
+  );
+  const hit = `Feindkontakt! ${placeName(t)} ${coords(f.toC)} wird von ${att.name} angegriffen`;
+  addReport(
+    ctx,
+    t.owner,
+    { ...report, ...extra.def, title: hit },
+    { topic: 'attacked' },
+  );
+}
+
+/**
+ * The ships left fly home with the loot; a fleet without survivors is
+ * gone.
+ */
+export function flyHome(
+  ctx: Ctx,
+  f: Fleet,
+  x: Raid,
+  ships: Levels = x.res.att,
+  loot: Resources = x.loot,
+): void {
+  if (!countUnits(ships)) return ctx.fleets.delete(f.id);
+  const cargo = {
+    m: f.cargo.m + loot.m,
+    c: f.cargo.c + loot.c,
+    d: f.cargo.d + loot.d,
+  };
+  turnBack(ctx, f, { ships, cargo });
+}

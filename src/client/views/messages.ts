@@ -7,6 +7,7 @@ import type { PlanetActivity } from '../../core/activity.ts';
 import { spyActivityText } from '../logic/activity.ts';
 import { debrisLine } from '../logic/debris.ts';
 import { moonLines } from '../logic/moon.ts';
+import { moonbreakLines } from '../logic/moonbreak.ts';
 import { coords, dt, esc, fmt, resLine, techLine } from '../logic/format.ts';
 import { newestFirst } from '../logic/game.ts';
 import { updateMessageHTML } from '../logic/news.ts';
@@ -45,7 +46,7 @@ function battleBody(r: Report): string {
   const lootLine =
     loot && loot.m + loot.c + loot.d ? `<br>Erbeutet: ${resLine(loot)}` : '';
   const debris = debrisLine(r.debris as Debris | undefined);
-  const debrisHTML = [debris, ...moonLines(r)]
+  const debrisHTML = [debris, ...moonLines(r), ...moonbreakLines(r)]
     .filter(Boolean)
     .map((line) => `<br>${line}`)
     .join('');
