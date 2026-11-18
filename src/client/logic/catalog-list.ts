@@ -302,8 +302,8 @@ function buildingRow(v: V, key: string): CatalogRow {
  * The name of the own planet where the running research started (#49);
  * research from before #49 has none and counts as the main planet's (#221).
  */
-function researchPlace(v: V): string {
-  const id = v.R.rq?.planet ?? v.s.mainPlanet;
+function researchPlace(v: V, rq: { planet?: string }): string {
+  const id = rq.planet ?? v.s.mainPlanet;
   if (id === v.P.id) return v.P.name;
   return v.s.galaxy.find((p) => p.id === id)?.name ?? '';
 }
@@ -330,7 +330,7 @@ function researchAction(
     return {
       kind: 'researching',
       level: rq.lvl,
-      place: researchPlace(v),
+      place: researchPlace(v, rq),
       end: rq.end,
       left: rq.end > now ? dur(rq.end - now) : null,
     };
@@ -408,7 +408,7 @@ function speedText(v: V, key: string): string {
 function energyText(v: V, key: string): string {
   const e = pieceEnergy(key, v.P, v.s.cfg, v.R.research);
   if (e === undefined) return '';
-  const per = text(key)?.per;
+  const per = text(key)!.per;
   return ` · Energie ${fmt(e)}${per ? ` ${per}` : ''}`;
 }
 
@@ -490,7 +490,7 @@ function queue(v: V): QueueRow[] {
   return P.sq.map((q, i) => {
     const end = (P.sqT ?? now) + q.unit;
     return {
-      label: `${fmt(q.n)}× ${text(q.key)?.n}`,
+      label: `${fmt(q.n)}× ${text(q.key)!.n}`,
       next: i === 0 ? { end, left: end > now ? dur(end - now) : null } : null,
       each: `je ${dur(q.unit)}`,
     };

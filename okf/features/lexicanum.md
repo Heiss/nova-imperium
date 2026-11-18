@@ -171,8 +171,10 @@ their own.
   effect, every store and every producing building has words before the
   formula; the review list holds every draft as the code has it.
   `parts.test.ts` checks the values of the shared texts and the formulas of
-  cost and store for every entry; `search.test.ts`, `links.test.ts`,
-  `src/core/spy.test.ts`.
+  cost and store for every entry; `docs.test.ts` checks the search
+  document (`searchDoc`), `hasEffect` and `firstSentence` on articles made
+  for the test, since every real entry has all its parts; `search.test.ts`,
+  `links.test.ts`, `src/core/spy.test.ts`.
 * `src/client/logic/level-table.test.ts` (the rows of #187 D1, the same
   cost and time as the next level of the list), `lexicanum.test.ts`,
   `address.test.ts`, `explain.test.ts`.

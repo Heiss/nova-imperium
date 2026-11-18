@@ -27,6 +27,7 @@ import {
   CATALOG_VIEWS,
   lockNotice,
   orderNote,
+  unitLines,
 } from './catalog-list.ts';
 import { dur, fmt } from './format.ts';
 import { iconURL } from './icons.ts';
@@ -561,6 +562,15 @@ describe('shipyard and defense', () => {
     );
     const slow = row(yard(), 'ship', 'bb').lines[0];
     expect(slow).toMatch(new RegExp(` \\(${text('impulse')!.n}\\)$`));
+  });
+
+  it('gives the lines of a unit, and none for a key that is no unit (#285)', () => {
+    const v = yard();
+    expect(unitLines(v, 'lf')).toEqual(row(v, 'ship', 'lf').lines);
+    expect(unitLines(v, 'rl')).toEqual(row(v, 'defense', 'rl').lines);
+    expect(unitLines(v, 'metal')).toBeUndefined();
+    expect(unitLines(v, 'spy')).toBeUndefined();
+    expect(unitLines(v, 'nope')).toBeUndefined();
   });
 
   it('shows the energy of a Sonnenreliquiar per piece, and no cargo (#114)', () => {

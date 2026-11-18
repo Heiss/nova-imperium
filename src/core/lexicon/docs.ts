@@ -20,9 +20,12 @@ export const HEADINGS = {
 export const partTexts = (a: ArticleMeta): string[] =>
   (a.lexicon.texts ?? []).map((t) => plain(fill(t.text, t.values), titleOf));
 
-/** The first sentence of a text as it reads; the whole text without one. */
+/**
+ * The first sentence of a text as it reads: up to the first full stop,
+ * „!“ or „?“ that a space follows; the whole text when there is none.
+ */
 export const firstSentence = (text: string): string =>
-  /^.*?[.!?](?=\s|$)/s.exec(text)?.[0] ?? text;
+  /.*?[.!?](?=\s)/s.exec(text)?.[0] ?? text;
 
 /** Whether an article has the section „Was die Stufen bringen“. */
 export const hasEffect = (a: ArticleMeta): boolean =>
@@ -34,23 +37,25 @@ export const hasEffect = (a: ArticleMeta): boolean =>
     a.lexicon.effect
   );
 
-function doc(a: ArticleMeta): SearchDoc {
+/**
+ * The document of one article: the texts it has, joined by a space, and
+ * the line below its hit, the short text of an entry or the first sentence
+ * of the text of a mission.
+ */
+export function searchDoc(a: ArticleMeta): SearchDoc {
+  const texts = partTexts(a);
+  const heading = hasEffect(a) ? HEADINGS.effect : undefined;
   const d: SearchDoc = {
     id: a.id,
     kind: a.kind,
     title: a.title,
     keywords: a.lexicon.keywords ?? [],
-    text: [
-      a.ds ?? '',
-      a.lt ?? '',
-      ...partTexts(a),
-      ...(hasEffect(a) ? [HEADINGS.effect] : []),
-    ].join(' '),
-    line: a.ds ?? firstSentence(partTexts(a)[0] ?? ''),
+    text: [a.ds, a.lt, ...texts, heading].filter((t) => t).join(' '),
+    line: a.ds ?? firstSentence(texts.join(' ')),
   };
   if (a.ab) d.ab = a.ab;
   return d;
 }
 
 /** The documents of all articles, in their order. */
-export const searchDocs = (): SearchDoc[] => ARTICLES.map(doc);
+export const searchDocs = (): SearchDoc[] => ARTICLES.map(searchDoc);
