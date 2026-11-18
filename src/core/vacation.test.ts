@@ -165,6 +165,7 @@ describe('the actions during the vacation mode', () => {
     'claimDailyReward',
     'startVacation',
     'abandon',
+    'jump',
     'anyNewAction',
   ];
   const FREE = [

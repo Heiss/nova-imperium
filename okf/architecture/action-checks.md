@@ -67,8 +67,9 @@ after it; the other rows are the audit of 2026-11-15.
 action: `runAction` refuses an action with „Im Urlaubsmodus nicht
 möglich.“ when core `vacationRefuses` (`core/vacation.ts`) says so for a
 player in vacation mode; the browser offers the game actions as before and
-shows the server's refusal. `send` gets the code `vacation` of
-`sendError`.
+shows the server's refusal. `jump` (#230) and `abandon` (#224) are
+refused by it like every action off its allow list, tested for each.
+`send` gets the code `vacation` of `sendError`.
 
 Since the Warp-Tor (#230, 2026-11-17) `ACTIONS` also has `jump`, which
 follows section 7; its row is below `recall`. The counts above are those of

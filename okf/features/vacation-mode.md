@@ -40,6 +40,14 @@ owiki.de „Urlaubsmodus“
   dialog „Neue Runde“ and stays changeable by the admin during the round.
 * **[E]** The wording of the notice at a new round is the builder's [V]
   (owner, 2026-11-17).
+* **[E]** After the build (owner, 2026-11-17): every new mission of
+  another player against someone in vacation mode is refused, peaceful
+  ones included (transport, espionage, holding, missiles). Fleets launched
+  before the vacation still arrive; the recovery of a Trümmerfeld at the
+  position stays allowed.
+* **[E]** The Auspex-Phalanx may scan a planet whose owner is in vacation
+  mode (owner, 2026-11-17).
+* **[E]** The German texts of the build are confirmed (owner, 2026-11-17).
 
 # Proposals
 
@@ -51,15 +59,23 @@ owiki.de „Urlaubsmodus“
 
 # Built
 
-* **[V]** The minimum duration is a setting of the round,
-  `roundVacationHours`, in whole hours from 1 to 720 (30 days, the range
-  of the abandon lock of #224), read by `roundRules()` (24 without the
-  setting). The dialog „Neue Runde“ has a number field „Mindestdauer des
-  Urlaubsmodus (Stunden)“, preselected with the current round; the
+* **[V]** The minimum duration is an entry of the registry of the round
+  settings (#283, [Admin](/features/admin.md#the-registry-of-the-round-settings-283)):
+  `VACATION_SETTING` in `src/core/vacation.ts`, listed in `ROUND_SETTINGS`
+  (`src/core/round.ts`), stored under `roundVacationHours`, named
+  `vacationHours` in `RoundRules` and in the request „reset“, in whole
+  hours from 1 to 720 (30 days, the range of the abandon lock of #224),
+  default 24 (also without the setting), `order` 150 (the numbers 60 to 140
+  are taken by the open branches of #229, #55 and #228). The dialog „Neue
+  Runde“ shows the number field „Mindestdauer des Urlaubsmodus (Stunden)“
+  (`round-vacation-hours`), preselected with the current round, last after
+  the lock of a given-up position; it is no group, so no fieldset. The
   admin's refusal is „Bitte für die Mindestdauer des Urlaubsmodus 1 bis
-  720 ganze Stunden angeben.“ X1: the same stored setting is a row of the
-  universe settings („Mindestdauer des Urlaubsmodus (Stunden)“ in
-  `UNIVERSE_SPECS`), changed live and audited like the other settings.
+  720 ganze Stunden angeben.“ X1: the entry is `live: true`, so the same
+  stored setting is a row of the universe settings („Mindestdauer des
+  Urlaubsmodus (Stunden)“, after the lock of a given-up position), changed
+  live and audited like the other settings. No hand wiring is left in the
+  dialog, the reset action, `roundRules()` or `UNIVERSE_SPECS`.
 * **[V]** A change of the minimum duration counts for running vacations
   too: the earliest end is the start plus the current setting, like the
   lock of the main planet (#221), so only the start is stored.
@@ -97,8 +113,11 @@ owiki.de „Urlaubsmodus“
   vacation, the guild actions and the admin's actions is refused with „Im
   Urlaubsmodus nicht möglich.“ (`vacationRefuses`, asked by `runAction`
   before the action). An action added later is refused too, so a new game
-  action needs no change here. The guild actions and renaming change
-  nothing of the game; the admin's actions are not those of a player.
+  action needs no change here: the Warp-Tor jump `jump` (#230) and giving
+  up a colony `abandon` (#224) are refused, each with a test, and a test
+  runs every key of `ACTIONS` against the allow list. The guild actions
+  and renaming change nothing of the game; the admin's actions are not
+  those of a player.
 * **[V]** Protection (D2, Q2): every new mission of another player to a
   planet or moon of a player in vacation mode is refused with „Dieser
   Spieler ist im Urlaubsmodus.“ (code `vacation` of `sendError`, before
@@ -111,7 +130,8 @@ owiki.de „Urlaubsmodus“
   destruction (#95) call it when they are built.
 * **[V]** The Sternenkarte marks the owner of a planet in vacation mode
   with „(u)“ (title „Urlaubsmodus“), beside the „(n)“ of the noob
-  protection; the state carries `vacation` per player and the own start
+  protection (`vacation` of a place in `galaxyPage`, `src/client/logic/galaxy.ts`,
+  shown by `Galaxy.svelte`); the state carries `vacation` per player and the own start
   in `me.vacation`.
 * **[V]** New round (D3): every vacation ends; a player whose vacation it
   ended finds the report „Urlaubsmodus beendet“ with „Die neue Runde hat
@@ -119,23 +139,30 @@ owiki.de „Urlaubsmodus“
   message).
 * **[V]** A suspension by the admin (moderation) and the vacation mode are
   independent: neither starts, ends or pauses the other.
-* **[U]** The Auspex-Phalanx (#53) still scans a planet of a player in
-  vacation mode; whether the protection covers the scan is not decided.
+* **[E]** The Auspex-Phalanx (#53) scans a planet of a player in vacation
+  mode (owner, 2026-11-17); `scan` checks no vacation of the target. A
+  player in vacation mode cannot scan himself: the scan is an own action.
 
 # Tests
 
 * Unit: `src/core/vacation.test.ts` (the codes and their order, the end as
-  a property, the protection, the refused actions, the pause as a
-  property), `src/core/settle.test.ts` (the pause), `src/core/missions.test.ts`
-  (the code `vacation`), `src/core/universe.test.ts`,
-  `src/client/logic/vacation.test.ts` (the box, the question, the mark),
-  `src/client/views/galaxy.test.ts`, `src/client/views/misc.test.ts` (the
-  field of the dialog).
+  a property, the protection, the refused actions, the registry entry, the
+  pause as a property), `src/core/round.test.ts` (the entry in the order of
+  the registry), `src/core/settle.test.ts` (the pause),
+  `src/core/missions.test.ts` (the code `vacation`),
+  `src/core/universe.test.ts`, `src/client/logic/vacation.test.ts` (the
+  box, the question), `src/client/logic/galaxy.test.ts` and
+  `src/client/views/galaxy.test.ts` (the mark „(u)“),
+  `src/client/views/misc.test.ts` (the field of the dialog).
 * Server: `src/server/game/vacation.test.ts` (the entry and each refusal,
   no production also after a restart, the refused actions, the refused
   missions and the landing of a launched attack, the end before and after
   the minimum duration, the live change, the round setting, the new round
-  with its notice, the state), `src/server/db/repos/players.test.ts`.
+  with its notice, the state; „the Warp-Tor, giving up a colony and the
+  Auspex-Phalanx“: `jump` and `abandon` refused and working again after
+  the end, every action off the allow list refused, the scan of a planet
+  in vacation mode allowed), `src/server/game/round.test.ts` (the live
+  rows and the order of the refusals), `src/server/db/repos/players.test.ts`.
 * Upgrade: `src/server/db/upgrades/20261117T1000-vacation-mode.test.ts`.
 * E2E: `e2e/vacation.spec.ts`, desktop and phone, with axe on the options
   before and during the vacation, the refused build and early end, the

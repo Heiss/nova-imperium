@@ -10,9 +10,10 @@ import { HOUR_MS } from '../../core/vacation.ts';
 import type { AuditEntry } from '../audit.ts';
 import { openDatabase } from '../db/database.ts';
 import { addPlanet, addUser, type TestCtx, testCtx } from '../test-helpers.ts';
+import { answerOf } from './actions.ts';
 import { tick } from './arrival.ts';
 import { universe } from './context.ts';
-import { runAction } from './dispatch.ts';
+import { ACTIONS, GUILD_ACTIONS, runAction } from './dispatch.ts';
 import { addMoon } from './moons.ts';
 import { roundRules } from './round.ts';
 import { stateFor } from './state.ts';
@@ -350,6 +351,117 @@ describe('a new round (D3)', () => {
       text: 'Die neue Runde hat deinen Urlaubsmodus beendet.',
     });
     expect(ctx.reports.ofPlayer('u_Bert')).toEqual([]);
+  });
+});
+
+describe('the Warp-Tor, giving up a colony and the Auspex-Phalanx (#230, #224, #53)', () => {
+  const HOME_MOON = 'm1_1_5';
+  const FAR_MOON = 'm2_5_9';
+  const COLONY = 'p2_3_7';
+  const gates = (ctx: TestCtx) => {
+    const far = addPlanet(ctx, 'u_Anna', { g: 2, s: 5, p: 9, name: 'Fern' });
+    addMoon(ctx, far, 100, START);
+    for (const id of [HOME_MOON, FAR_MOON])
+      ctx.planets.save({
+        ...ctx.planets.get(id)!,
+        b: { moonbase: 1, jumpgate: 1 },
+        ships: { lc: 5 },
+      });
+    ctx.admin.saveUniverse({ ...ctx.admin.universe(), speed: 1 });
+  };
+  const jump = (ctx: TestCtx) =>
+    act(ctx, 'jump', { planet: HOME_MOON, to: FAR_MOON, ships: { lc: 2 } });
+  const giveUp = (ctx: TestCtx) =>
+    act(ctx, 'abandon', {
+      target: COLONY,
+      created: ctx.planets.get(COLONY)!.created,
+      password: 'secret1',
+    });
+
+  it('refuses a jump during the vacation mode and changes nothing; it works again after the end', () => {
+    const ctx = world();
+    gates(ctx);
+    start(ctx);
+    expect(() => jump(ctx), 'jump').toThrow(VACATION_REFUSED);
+    expect(ctx.planets.get(HOME_MOON)!.ships).toEqual({ lc: 5 });
+    expect(ctx.planets.get(FAR_MOON)!.ships).toEqual({ lc: 5 });
+    expect(ctx.planets.gateReady(HOME_MOON)).toBe(0);
+    ctx.clock.t = START + 24 * HOUR_MS;
+    stop(ctx);
+    expect(jump(ctx)).toBeNull();
+    expect(ctx.planets.get(FAR_MOON)!.ships).toEqual({ lc: 7 });
+  });
+
+  it('refuses giving up a colony during the vacation mode and keeps planet and moon; it works again after the end', () => {
+    const ctx = world();
+    const colony = addPlanet(ctx, 'u_Anna', { g: 2, s: 3, p: 7, name: 'Kol' });
+    addMoon(ctx, colony, 100, START);
+    start(ctx);
+    expect(() => giveUp(ctx), 'abandon').toThrow(VACATION_REFUSED);
+    expect(ctx.planets.get(COLONY)).not.toBeNull();
+    expect(ctx.planets.get('m2_3_7')).not.toBeNull();
+    ctx.clock.t = START + 24 * HOUR_MS;
+    stop(ctx);
+    expect(giveUp(ctx)).toBe('Die Kolonie Kol [2:3:7] wurde aufgegeben.');
+    expect(ctx.planets.get(COLONY)).toBeNull();
+  });
+
+  it('refuses every action that is not on the allow list, one added later too', () => {
+    const ctx = world();
+    start(ctx);
+    // The allow list of the decision: the options and messages, the end,
+    // the admin and the guilds (owner, 2026-11-17 and the build of #223).
+    const allowed = new Set([
+      'options',
+      'pushOptions',
+      'read',
+      'delrep',
+      'delall',
+      'rename',
+      'mainPlanet',
+      'endVacation',
+      'settings',
+      'reset',
+      'endzeit',
+    ]);
+    const refused = Object.keys(ACTIONS).filter(
+      (type) => !allowed.has(type) && !GUILD_ACTIONS.has(type),
+    );
+    expect(refused).toEqual(expect.arrayContaining(['jump', 'abandon']));
+    for (const type of refused)
+      expect(() => act(ctx, type), type).toThrow(VACATION_REFUSED);
+    ACTIONS.anyNewAction = () => null;
+    try {
+      expect(() => act(ctx, 'anyNewAction')).toThrow(VACATION_REFUSED);
+    } finally {
+      delete ACTIONS.anyNewAction;
+    }
+  });
+
+  it('lets the Auspex-Phalanx scan a planet whose owner is in vacation mode (owner, 2026-11-17)', () => {
+    const ctx = world();
+    ctx.planets.save({
+      ...ctx.planets.get(HOME_MOON)!,
+      b: { moonbase: 1, phalanx: 2 },
+      res: { m: 0, c: 0, d: 12000 },
+    });
+    runAction(ctx, 'u_Bert', { type: 'startVacation' });
+    expect(ctx.players.get('u_Bert')!.vacation).toBe(START);
+    const answer = answerOf(
+      act(ctx, 'scan', { planet: HOME_MOON, target: 'p1_2_6' }),
+    );
+    expect(answer.data).toEqual({
+      scan: { by: HOME_MOON, target: 'p1_2_6', flights: [] },
+    });
+    expect(ctx.planets.get(HOME_MOON)!.res.d).toBe(7000);
+  });
+
+  it('refuses a scan of a player who is in vacation mode himself', () => {
+    const ctx = world();
+    start(ctx);
+    expect(() =>
+      act(ctx, 'scan', { planet: HOME_MOON, target: 'p1_2_6' }),
+    ).toThrow(VACATION_REFUSED);
   });
 });
 
