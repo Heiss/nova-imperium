@@ -3,6 +3,9 @@
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import {
+  MAX_CHANCE,
+  PROBE_DIVISOR,
+  SHIP_DIVISOR,
   SPY_MIN_TECH,
   counterChance,
   counterMax,
@@ -21,6 +24,10 @@ describe('counter-espionage (#175)', () => {
     expect(spyTechError(-1)).toBe('noSpyTech');
     expect(spyTechError(1)).toBeUndefined();
     expect(spyTechError(12)).toBeUndefined();
+  });
+
+  it('names the numbers of the formula for the Lexicanum', () => {
+    expect([PROBE_DIVISOR, SHIP_DIVISOR, MAX_CHANCE]).toEqual([4, 100, 100]);
   });
 
   it('is (probes / 4) · (target / spy) · (1 + ships / 100) percent', () => {

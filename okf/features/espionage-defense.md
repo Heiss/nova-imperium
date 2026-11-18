@@ -61,11 +61,17 @@ points were answered on 2026-11-16.
   (#45), the moon roll (#53), the rebuilt defense, the audit entry; no loot.
   Survivors deliver the report and fly back; without survivors the fleet is
   gone and the spy gets no Auspex-Bericht (D3).
+* **[E]** Texts confirmed (owner, 2026-11-18, #175): „Keine Aktivität in
+  der letzten Stunde.“, „Auspex-Erkundung erst ab Auspex-Lehre 1.“,
+  „Kontakt abgebrochen – deine Spähschädel wurden bei [g:s:p] entdeckt und
+  zerstört.“, the title „Kampfbericht <Planet> [g:s:p] – Spähschädel von
+  <Spion>“, „Chance auf Auspex-Abwehr: x %.“ and „Die Spähschädel wurden
+  abgeschossen!“.
 * Combat report of the spy: „Kontakt abgebrochen – deine Spähschädel wurden
-  bei [g:s:p] entdeckt und zerstört.“ when no probe survives (the **[V]**
-  text of the issue); otherwise „Kampfbericht [g:s:p] – <result>“ as for an
+  bei [g:s:p] entdeckt und zerstört.“ **[E]** when no probe survives;
+  otherwise „Kampfbericht [g:s:p] – <result>“ as for an
   attack.
-* **[V]** Combat report of the defender: „Kampfbericht <planet> [g:s:p] –
+* **[E]** Combat report of the defender: „Kampfbericht <planet> [g:s:p] –
   Spähschädel von <spy>“, pushed as „spied“ like the warning; the warning
   „Auspex-Aktivität“ stays, with the shown chance and „Die Spähschädel
   wurden abgeschossen!“ when no probe survived.
@@ -75,17 +81,21 @@ points were answered on 2026-11-16.
   rounded) and the target's activity under „Aktivität“: the marker of
   `planetActivity` with the round's thresholds at the arrival (one rule with
   the Sternenkarte, `placeActivity` in `src/server/game/activity.ts`), worded
-  as there. **[V]** Without activity: „Keine Aktivität in der letzten
+  as there. **[E]** Without activity: „Keine Aktivität in der letzten
   Stunde.“ (the text of the issue's proposal); a report from before #175
   shows no activity. The new reports have no field `lost` any more.
 * Sending refuses below Auspex-Lehre 1 with „Auspex-Erkundung erst ab
-  Auspex-Lehre 1.“ **[V]** (row `send` of
+  Auspex-Lehre 1.“ **[E]** (row `send` of
   [Checks of the server actions](/architecture/action-checks.md)); the
   browser does not repeat it.
-* **[V]** The Lexicanum article „Auspex-Lehre“ (#285) still shows the old
-  danger table and formula (`counterChance` of `src/core/spy.ts`); the game
-  uses `src/core/espionage.ts`. Its text is not changed here; options for
-  the owner are in the pull request report.
+* **[E]** The Lexicanum article „Auspex-Lehre“ (#285) shows this rule
+  instead of the old danger formula and table (owner, 2026-11-18):
+  formula, table and paragraph are computed from `counterMax`, `PROBE_DIVISOR`,
+  `SHIP_DIVISOR` and `MAX_CHANCE` of `src/core/espionage.ts`
+  (`src/features/spy/lexicon.de.ts`), so the article cannot drift from the
+  game; `counterChance` of `src/core/spy.ts` is gone. **[V]** Its wording is a
+  proposal for the owner to check (see
+  [Lexicanum texts](/features/lexicanum-texts.md)).
 * Not built: the expected chance before sending, next to
   „Auspex-Erkundung“ (a **[V]** of the issue); an E2E of a detected spying,
   which the random draws of the server do not allow without a test hook

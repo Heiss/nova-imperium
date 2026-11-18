@@ -166,7 +166,7 @@ describe('an article of a catalog entry', () => {
     );
     expect(of(bs, 'formula').map((f) => f.lines[0])).toEqual([
       'Auspex-Wert = Spähschädel + Vorsprung² (bei Rückstand: − Rückstand²)',
-      'Gefahr = 2 % · √Schiffe am Ziel ÷ 2^Vorsprung (höchstens 100 %)',
+      'Höchste Chance auf Auspex-Abwehr in % = Spähschädel ÷ 4 · Auspex-Lehre des Ziels ÷ deine Auspex-Lehre · (1 + Schiffe am Ziel ÷ 100) (höchstens 100)',
     ]);
     expect(of(bs, 'stand')).toEqual([
       {
@@ -194,13 +194,22 @@ describe('an article of a catalog entry', () => {
     expect(probes!.rows[0]!.cells[0]).toEqual({ text: '−3 (Ziel führt)' });
     expect(probes!.rows[6]!.cells[0]!.text).toBe('+3 (du führst)');
     expect(probes!.rows[0]!.cells[5]).toEqual({ text: '16', num: true });
-    expect(danger!.rows[1]!.cells.map((c) => c.text)).toEqual([
-      '100 Schiffe am Ziel',
-      '80 %',
-      '40 %',
+    expect(danger!.caption).toBe(
+      'Höchste Chance auf Auspex-Abwehr bei gleicher Auspex-Lehre',
+    );
+    expect(danger!.head).toEqual([
+      'Schiffe am Ziel',
+      '1 Spähschädel',
+      '4 Spähschädel',
+      '12 Spähschädel',
+      '40 Spähschädel',
+    ]);
+    expect(danger!.rows[2]!.cells.map((c) => c.text)).toEqual([
+      '100',
+      '0,5 %',
+      '2 %',
+      '6 %',
       '20 %',
-      '10 %',
-      '5 %',
     ]);
     const few = art('spy', view({ ships: { probe: 3 } }, { spy: 2 }));
     expect(of(blocks(few, 'effect'), 'stand')[0]!.text).toBe(

@@ -10,6 +10,15 @@
 /** The espionage technology a player needs to spy (owner, 2026-11-16, Q1). */
 export const SPY_MIN_TECH = 1;
 
+/** The probes that make one percent of the maximum (the „/ 4“ of the formula). */
+export const PROBE_DIVISOR = 4;
+
+/** The ships at the target that double the maximum (the „/ 100“ of the formula, Q2). */
+export const SHIP_DIVISOR = 100;
+
+/** The highest chance in percent, whatever the maximum comes to. */
+export const MAX_CHANCE = 100;
+
 /** Why a player may not spy, as a code; the server words it. */
 export type SpyTechError = 'noSpyTech';
 
@@ -41,8 +50,11 @@ export function counterMax({
   spy,
 }: CounterInput): number {
   if (target <= 0 || probes <= 0) return 0;
-  if (spy <= 0) return 100;
-  return Math.min(100, (probes / 4) * (target / spy) * (1 + ships / 100));
+  if (spy <= 0) return MAX_CHANCE;
+  return Math.min(
+    MAX_CHANCE,
+    (probes / PROBE_DIVISOR) * (target / spy) * (1 + ships / SHIP_DIVISOR),
+  );
 }
 
 /** The chance of one spying, drawn at random from 0 up to the maximum (D2). */

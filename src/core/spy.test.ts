@@ -1,11 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  counterChance,
-  probesFor,
-  SPY_LEVELS,
-  spyParts,
-  spyScore,
-} from './spy.ts';
+import { probesFor, SPY_LEVELS, spyParts, spyScore } from './spy.ts';
 
 describe('spy rules (#285)', () => {
   it('shows the parts in the order of the report from their Auspex-Wert', () => {
@@ -33,13 +27,5 @@ describe('spy rules (#285)', () => {
       }
     expect(probesFor(7, -3)).toBe(16);
     expect(probesFor(2, 3)).toBe(1);
-  });
-
-  it('shoots down with the root of the ships, halved per level of lead', () => {
-    expect(counterChance(0, -5)).toBe(0);
-    expect(counterChance(100, 0)).toBe(20);
-    expect(counterChance(100, 1)).toBe(10);
-    expect(counterChance(100, -1)).toBe(40);
-    expect(counterChance(10000, 0)).toBe(100);
   });
 });
