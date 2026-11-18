@@ -317,9 +317,14 @@ button.exq {
   line-height: 22px;
   vertical-align: 2px;
 }
-button.exq[aria-expanded='true'] {
+button.exq[aria-expanded='true'],
+button[aria-pressed='true'] {
   outline: 2px solid var(--gold-hi);
   outline-offset: 1px;
+}
+/* The buttons of the highscore categories (#78), above the table. */
+[aria-labelledby='highscore-h'] {
+  margin-bottom: 14px;
 }
 .ex {
   margin: 8px 0 2px;

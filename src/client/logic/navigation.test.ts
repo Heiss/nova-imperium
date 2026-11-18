@@ -2,7 +2,7 @@
 // phone, each link with its address, the open view and the mark of what is
 // new there.
 import { describe, expect, it } from 'vitest';
-import { navigation, type NavLink } from './navigation.ts';
+import { hiddenView, navigation, type NavLink } from './navigation.ts';
 import type { NewsData } from './news.ts';
 import type { GameState } from './types.ts';
 
@@ -126,5 +126,37 @@ describe('navigation', () => {
     const seen = nav(state(), 'overview', new Map(), NEWS, '1.2.0');
     expect(seen.more.find((l) => l.view === 'news')!.hint).toBe(undefined);
     expect(seen.moreHint).toBe(false);
+  });
+});
+
+describe('the views a player cannot open (moved from main.ts for #78)', () => {
+  const rules = (over: object): GameState =>
+    state({ round: { ...round, ...over } });
+
+  it('hides the admin view from a player but not from the admin', () => {
+    expect(hiddenView('admin', state())).toBe(true);
+    expect(hiddenView('admin', state({}, { admin: true }))).toBe(false);
+    expect(hiddenView('admin', null)).toBe(false);
+  });
+
+  it('hides the rewards only when achievements and daily rewards are off', () => {
+    expect(hiddenView('achievements', rules({}))).toBe(true);
+    expect(hiddenView('achievements', rules({ achievements: true }))).toBe(
+      false,
+    );
+    expect(hiddenView('achievements', rules({ daily: true }))).toBe(false);
+    expect(hiddenView('achievements', null)).toBe(false);
+  });
+
+  it('hides the guilds in a round without guilds (#191)', () => {
+    expect(hiddenView('guilds', rules({ guilds: false }))).toBe(true);
+    expect(hiddenView('guilds', rules({ guilds: true }))).toBe(false);
+    expect(hiddenView('guilds', null)).toBe(false);
+  });
+
+  it('hides no other view', () => {
+    const off = rules({ guilds: false });
+    for (const view of ['overview', 'highscore', 'unknown'])
+      expect(hiddenView(view, off)).toBe(false);
   });
 });

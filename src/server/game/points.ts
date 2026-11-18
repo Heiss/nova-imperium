@@ -6,7 +6,7 @@ import { settle, settleR } from '../../core/settle.ts';
 import type { Levels } from '../../core/types.ts';
 import { type Ctx, universe } from './context.ts';
 
-const unitValue = (units: Levels, defs: typeof UNIT): number => {
+export const unitValue = (units: Levels, defs: typeof UNIT): number => {
   let s = 0;
   for (const [k, n] of Object.entries(units)) {
     const d = defs[k];
@@ -15,7 +15,10 @@ const unitValue = (units: Levels, defs: typeof UNIT): number => {
   return s;
 };
 
-const levelValue = (have: Levels, defs: typeof BUILD | typeof RES): number => {
+export const levelValue = (
+  have: Levels,
+  defs: typeof BUILD | typeof RES,
+): number => {
   let s = 0;
   for (const k of Object.keys(defs)) s += sumLevels(defs[k]!, have[k] ?? 0);
   return s;

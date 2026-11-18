@@ -119,7 +119,11 @@ describe('what the state shows', () => {
     const ctx = world();
     recordActivity(ctx, user(ctx, 'u_Anna'), 'action');
     const players = () => shown(ctx).players;
-    expect(players().u_Bert).toEqual({ name: 'Bert', points: 0 });
+    expect(players().u_Bert).toEqual({
+      name: 'Bert',
+      points: 0,
+      scores: { buildings: 0, research: 0, fleet: 0, defense: 0 },
+    });
     // Bert was created at the start.
     ctx.clock.t = START + 7 * DAY_MS - 1;
     expect(players().u_Bert).not.toHaveProperty('inactive');

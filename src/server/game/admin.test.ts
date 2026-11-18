@@ -364,9 +364,11 @@ describe('points and state', () => {
     expect(sb.fleets[0]!.cargo).toBeUndefined();
     expect(sb.fleets[1]!.ships).toEqual({ lf: 1 });
     expect(sb.admin.specs.length).toBeGreaterThan(0);
+    // Every player sees every category of the highscore (#78 D4).
+    const none = { buildings: 0, research: 0, fleet: 0, defense: 0 };
     expect(sb.players).toEqual({
-      u_Anna: { name: 'Anna', points: 12 },
-      u_Bert: { name: 'Bert', points: 0 },
+      u_Anna: { name: 'Anna', points: 12, scores: { ...none, fleet: 3 } },
+      u_Bert: { name: 'Bert', points: 0, scores: none },
     });
     expect(sb.galaxy).toHaveLength(2);
     expect(sb.me).toEqual({

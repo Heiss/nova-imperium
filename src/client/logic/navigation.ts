@@ -66,3 +66,16 @@ export function navigation(
     moreHint: more.some((i) => hints.has(i.view)),
   };
 }
+
+/** A view the player cannot open now: admin, rewards or guilds that are off. */
+export function hiddenView(view: string, state: GameState | null): boolean {
+  if (view === 'admin') return !!state && !state.me.admin;
+  if (view === 'achievements') return !rewardsAvailable(state);
+  // No guild view in a round with guilds off (#191).
+  if (view === 'guilds') return !!state && !state.round.guilds;
+  return false;
+}
+
+function rewardsAvailable(state: GameState | null): boolean {
+  return !state || state.round.achievements || state.round.daily;
+}

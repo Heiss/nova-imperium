@@ -28,11 +28,70 @@ describe('highscore', () => {
         { ...at, id: 'p1_2_5', kind: 'planet', name: 'Heimat' },
       ],
     } as unknown as GameState;
-    const html = highscore({ s } as V);
+    const html = highscore({ s, ui: {} } as V);
     expect(html).toContain(
       '<td><span class="home">Heimat</span> <span class="lnk" data-act="gto"',
     );
     expect(html).not.toContain('Mond');
+  });
+});
+
+describe('the categories of the highscore (#78)', () => {
+  const s = {
+    me: { id: 'u_Bert' },
+    players: {
+      u_Anna: {
+        name: 'Anna',
+        points: 90,
+        scores: { buildings: 80, research: 3, fleet: 1, defense: 0 },
+      },
+      u_Bert: {
+        name: 'Bert',
+        points: 40,
+        scores: { buildings: 5, research: 7, fleet: 250, defense: 2 },
+      },
+    },
+    galaxy: [],
+  } as unknown as GameState;
+  const rows = (html: string): string[] =>
+    [
+      ...html.matchAll(
+        /<tr class="(me)?"><td class="n">(\d+)<\/td><td>(\w+)<\/td><td>-<\/td><td class="n">([\d.]+)<\/td>/g,
+      ),
+    ].map((m) => `${m[2]} ${m[3]} ${m[4]}${m[1] ? ' me' : ''}`);
+
+  it('shows the total until a category is chosen, with its old note', () => {
+    const html = highscore({ s, ui: {} } as V);
+    expect(rows(html)).toEqual(['1 Anna 90', '2 Bert 40 me']);
+    expect(html).toContain('data-cat="total" aria-pressed="true">Gesamt<');
+    expect(html).toContain(
+      '<div class="dim">1 Punkt = 1.000 verbaute Rohstoffe (Gebäude, Forschung, Schiffe, Verteidigung).</div>',
+    );
+  });
+
+  it('ranks by the chosen category and keeps the own row marked', () => {
+    const html = highscore({ s, ui: { highscore: 'fleet' } } as V);
+    expect(rows(html)).toEqual(['1 Bert 250 me', '2 Anna 1']);
+    expect(html).toContain('data-cat="fleet" aria-pressed="true">Flotte<');
+    expect(html).toContain('data-cat="total" aria-pressed="false">Gesamt<');
+    expect(html).toContain(
+      '<div class="dim">1 Punkt pro Schiff (auch Sonnenreliquiare).</div>',
+    );
+  });
+
+  it('shows the note of a category at 1 point per 1,000 resources', () => {
+    const html = highscore({ s, ui: { highscore: 'buildings' } } as V);
+    expect(rows(html)).toEqual(['1 Anna 80', '2 Bert 5 me']);
+    expect(html).toContain(
+      '<div class="dim">1 Punkt = 1.000 verbaute Rohstoffe (Gebäude).</div>',
+    );
+  });
+
+  it('labels the buttons by the heading', () => {
+    const html = highscore({ s, ui: {} } as V);
+    expect(html).toMatch(
+      /^<h2 id="highscore-h">Highscore<\/h2><div class="flex" role="group" aria-labelledby="highscore-h">/,
+    );
   });
 });
 

@@ -17,6 +17,7 @@ import { gateState } from './jump-gate.ts';
 import { mainPlanetOf, mainPlanetView } from './main-planet.ts';
 import { achievementState } from './achievements.ts';
 import { roundRules } from './round.ts';
+import { categoryScores } from './highscore.ts';
 import { pointsMap } from './points.ts';
 
 export interface ForeignFleet {
@@ -89,6 +90,8 @@ function playersOf(
   pts: Readonly<Record<string, number>>,
   limits: ActivityLimits,
 ) {
+  // The categories of the highscore, for every player (#78 D4).
+  const scores = categoryScores(ctx);
   const idle = inactivities(ctx, limits);
   return Object.fromEntries(
     ctx.players.all().map((x) => [
@@ -96,6 +99,7 @@ function playersOf(
       {
         name: x.name,
         points: pts[x.id] ?? 0,
+        scores: scores[x.id],
         ...(idle[x.id] ? { inactive: idle[x.id] } : {}),
       },
     ]),

@@ -67,8 +67,20 @@ export interface GalaxyPlanet extends Coords {
 }
 
 export interface Players {
-  /** `inactive` while the account shows its inactivity (#229). */
-  [id: string]: { name: string; points: number; inactive?: Inactivity };
+  [id: string]: {
+    name: string;
+    /** The total, also for the noob protection. */
+    points: number;
+    /** The other categories of the highscore (#78); the server always sends them. */
+    scores?: {
+      buildings: number;
+      research: number;
+      fleet: number;
+      defense: number;
+    };
+    /** `inactive` while the account shows its inactivity (#229). */
+    inactive?: Inactivity;
+  };
 }
 
 export interface AdminState {
