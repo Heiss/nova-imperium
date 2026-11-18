@@ -7,6 +7,7 @@ import { fieldsOf } from '../../../core/fields.ts';
 import type { Coords, Fleet, Levels } from '../../../core/types.ts';
 import { arrive } from '../../../server/game/arrival.ts';
 import { send } from '../../../server/game/fleet-actions.ts';
+import { positionLockedText } from '../../../server/game/position-lock.ts';
 import { purgeSurveys } from '../../../server/game/surveys.ts';
 import {
   type TestCtx,
@@ -128,6 +129,39 @@ describe('survey', () => {
     go({ probe: 2 });
     expect(ctx.fleets.all()).toMatchObject([
       { mission: 'survey', ships: { probe: 2 }, toC: FREE },
+    ]);
+  });
+
+  it('refuses a position locked after an abandonment, at the send and at the arrival (#224)', () => {
+    const ctx = testCtx(1_000_000, 7);
+    const anna = addUser(ctx, 'Anna', { research: { carto: 1 } });
+    addPlanet(ctx, anna.id, { ...HOME, ships: { probe: 5 } });
+    const end = ctx.now() + 3600000;
+    ctx.planets.lockPosition(FREE, end);
+    const go = () =>
+      send(ctx, ctx.players.get(anna.id)!, {
+        planet: 'p1_1_5',
+        ships: { probe: 2 },
+        to: FREE,
+        mission: 'survey',
+        pct: 10,
+      });
+    expect(go).toThrow(positionLockedText(end));
+    expect(ctx.fleets.all()).toEqual([]);
+    // The lock ends: the same send flies.
+    ctx.clock.t = end;
+    go();
+    expect(ctx.fleets.all()).toHaveLength(1);
+    // A fleet on its way when the position is locked turns back: no values,
+    // no survey report, only the notice of an unsuitable target.
+    ctx.fleets.delete(ctx.fleets.all()[0]!.id);
+    const f = flight(ctx, 'f1', 'survey', { probe: 2 }, FREE);
+    ctx.planets.lockPosition(FREE, f.arr + 1);
+    arrive(ctx, f);
+    expect(ctx.surveys.get(FREE)).toBeNull();
+    expect(ctx.fleets.get('f1')).toMatchObject({ state: 'back' });
+    expect(ctx.reports.ofPlayer('u_Anna')).toMatchObject([
+      { type: 'info', title: 'Flotte kehrt um' },
     ]);
   });
 

@@ -178,6 +178,11 @@ extension of this game.
   the option „Spähschädel pro Auspex-Erkundung“ (at most those on the
   planet), like the link „Auspex-Erkundung“. The fleet form offers the
   mission as the last one.
+* **[V]** Lexicanum (#291): the research and the mission have an article
+  each, `src/features/carto/lexicon.de.ts` (keywords, „Siehe auch“ the
+  mission) and `src/features/missions/survey/lexicon.de.ts` (the text of
+  the arrival with the 30 days from `SURVEY_DAYS`, keywords); the words are
+  drafts in [Lexicanum texts](/features/lexicanum-texts.md).
 * Tests: `src/core/survey.test.ts` (score, tiers, the loss table, the
   temperature rule, the findings, the orbits and their scaling with a
   property test, the size thirds, the shifted windows with fixed draws,
@@ -196,3 +201,11 @@ extension of this game.
 
 * The star map does not mark surveyed positions yet (#160), and the field
   properties come with #158.
+* **[U]** A position locked after an abandonment (#224) is refused for the
+  Vermessung like for the Landnahme, because the mission's target kind is
+  `free`: at the send with „Diese Position ist gesperrt. Wieder besiedelbar
+  ab …“ (`positionLockedText`), at the arrival the fleet turns back with the
+  notice „Flotte kehrt um“, no values stored and no report. The Sternenkarte
+  still shows „Vermessen“ there. Whether a locked position may be surveyed
+  is not decided (a test pins today's behaviour in
+  `src/features/missions/survey/survey.test.ts`).
