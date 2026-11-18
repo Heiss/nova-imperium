@@ -2,6 +2,23 @@
 // by the server, which checks every message, and the guild view, which
 // shows only what the own rank may do. See okf/features/guild-chat.md.
 import { isBelow, type RankRule } from './guild-ranks.ts';
+import type { RoundSetting } from './round.ts';
+
+/**
+ * Guilds with their chat in this round (#191), a setting of the round
+ * (#283): the one switch, set only when the admin starts a new round;
+ * existing universes start with guilds on.
+ */
+export const GUILDS_SETTING = {
+  kind: 'switch',
+  key: 'roundGuilds',
+  name: 'guilds',
+  label: 'Gilden (mit Chat)',
+  order: 30,
+  def: true,
+  refusal: 'Bitte auswählen, ob Gilden in der neuen Runde an sind.',
+  note: 'Eine neue Runde leert alle Gilden-Chats. Ohne Gilden werden alle Gilden mit Mitgliedern, Bewerbungen, Rängen und Chat gelöscht.',
+} as const satisfies RoundSetting;
 
 /** Longest message in characters, plain text (issue #169, kept by the owner). */
 export const MAX_CHAT_TEXT = 1000;

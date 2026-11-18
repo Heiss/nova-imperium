@@ -8,13 +8,15 @@ import { placeId } from '../core/place.ts';
 import { settle, settleR } from '../core/settle.ts';
 import { text } from '../core/text.ts';
 import type { Levels, Planet, Queue } from '../core/types.ts';
+import { abandonActs } from './abandon-actions.ts';
 import { createAct, placeOf, samePlace } from './logic/act.ts';
-import { CATALOG_VIEWS, catalogKind } from './logic/catalog-list.ts';
+import { CATALOG_VIEWS, catalogKind, orderNote } from './logic/catalog-list.ts';
 import { clearsChat, sameSignIn } from './logic/guild-chat.ts';
 import { debrisAt, debrisTip } from './logic/debris.ts';
 import { endzeitNote } from './logic/endzeit.ts';
 import { moonAt, moonTarget } from './logic/moon.ts';
 import { scanOf } from './logic/phalanx.ts';
+import { targetOf } from './logic/galaxy.ts';
 import { clampInt, coords, dt, dur, esc, fmt } from './logic/format.ts';
 import {
   apiFailure,
@@ -26,7 +28,6 @@ import {
   reportFormHTML,
 } from './logic/error-report.ts';
 import {
-  cargoMax,
   fleetPreview,
   galaxyStep,
   nameOf,
@@ -34,13 +35,13 @@ import {
   type FleetForm,
 } from './logic/game.ts';
 import { headerLine } from './logic/header.ts';
+import { keeps, viewDue } from './logic/jump-gate.ts';
 import { chatToSee, finishedYardOrders } from './logic/menu-hints.ts';
 import { gameIsBack, maintenanceNotice } from './logic/maintenance.ts';
 import { latestNews, NEWS_SEEN_KEY, type NewsData } from './logic/news.ts';
 import { navigation } from './logic/navigation.ts';
 import { ANIMATION_KEY, animationsOn } from './logic/planet.ts';
 import { pushSaver } from './logic/push-options.ts';
-import { roundNumbers } from './logic/round.ts';
 import { client } from './logic/state.svelte.ts';
 import { resourceBar } from './logic/resource-bar.ts';
 import type { GameState } from './logic/types.ts';
@@ -62,17 +63,19 @@ import {
   auth,
   deleteAccountDialog,
   diagnosticTab,
-  roundDialog,
   endzeitDialog,
   type AdminTab,
 } from './views/misc.ts';
 import { disablePush, enablePush } from './push.ts';
+import { fleetActs } from './fleet-acts.ts';
+import { roundActs } from './round-actions.ts';
 import { mountCatalogList } from './views/catalog-list.ts';
 import {
   adminChatDialog,
   dissolveDialog,
   transferDialog,
 } from './views/guilds.ts';
+import { mountGalaxy } from './views/galaxy.ts';
 import { mountOverview } from './views/overview.ts';
 import { mountProducerTable } from './views/producer-table.ts';
 
@@ -102,9 +105,12 @@ let resetToken: string | null = null;
 /** The views that are Svelte components (#114, #118). */
 const MOUNTED = new Set([
   'overview',
+  'galaxy',
   'resources',
   ...Object.keys(CATALOG_VIEWS),
 ]);
+/** The Svelte views mounted anew on every render (#118). */
+const ANEW = new Set(['overview', 'galaxy']);
 /** The mounted Svelte view and its name. */
 let mounted: {
   view: string;
@@ -599,7 +605,7 @@ function keepInputs(view: HTMLElement, fresh: boolean): () => void {
   return () => {
     for (const [id, v] of Object.entries(saved)) {
       const el = document.getElementById(id) as HTMLInputElement | null;
-      if (el && !el.hasAttribute('data-nokeep')) el.value = v;
+      if (el && !el.hasAttribute('data-nokeep') && keeps(el, v)) el.value = v;
     }
     // A ticked or cleared box of a guild rank survives the refresh (#163);
     // a disabled one shows the server's state, it is no draft.
@@ -704,20 +710,23 @@ function mountView(target: HTMLElement, view: V): NonNullable<typeof mounted> {
   if (kind) return { view: ui.view, ...mountCatalogList(target, kind) };
   if (ui.view === 'resources')
     return { view: ui.view, ...mountProducerTable(target, view) };
+  if (ui.view === 'galaxy')
+    return { view: ui.view, ...mountGalaxy(target, view) };
   return { view: 'overview', ...mountOverview(target) };
 }
 
 /**
  * Mounts the view of a Svelte component, or updates the mounted one. A
  * fresh render mounts a list again, as the HTML views render anew: no
- * number typed into the shipyard stays on another planet. The overview is
- * mounted anew on every render, as its HTML view was rendered (#118): the
- * clock counts its countdowns down and marks the ones that fired.
+ * number typed into the shipyard stays on another planet. The overview and
+ * the Sternenkarte are mounted anew on every render, as their HTML views
+ * were rendered (#118): the clock counts their countdowns down and marks
+ * the ones that fired.
  */
 function renderMounted(target: HTMLElement, view: V, fresh: boolean): void {
   const kind = catalogKind(ui.view);
   client.shown = view;
-  if (mounted?.view === ui.view && ui.view !== 'overview' && !(fresh && kind)) {
+  if (mounted?.view === ui.view && !ANEW.has(ui.view) && !(fresh && kind)) {
     mounted.update?.(view);
     return flushSync();
   }
@@ -904,6 +913,9 @@ function seeChat(): void {
 }
 
 // ----- fleet form -----
+/** The shown planet with its stock of this moment, for the cargo buttons. */
+const settledPlanet = (): Planet =>
+  settle(client.game!.planet!, client.now(), client.game!.cfg, client.game!.me);
 
 function readFleetForm(): FleetForm {
   const ships: Record<string, number> = {};
@@ -1127,7 +1139,8 @@ const ACT: Record<string, (d: Data) => unknown> = {
   maxq: (d) => setInput(`#q_${d.k}`, d.max ?? 0),
   order: async (d) => {
     const n = clampInt(val(`#q_${d.k}`), 0, 1e9);
-    if (!n) return toast('Bitte eine Anzahl eingeben.', true);
+    const note = orderNote(client.view!, d.k!, n);
+    if (note) return toast(note, true);
     if (await actHere('order', { key: d.k, n })) setInput(`#q_${d.k}`, '');
   },
   rename: () =>
@@ -1182,12 +1195,7 @@ const ACT: Record<string, (d: Data) => unknown> = {
     if (target) $(`[data-act=gscan][data-id="${CSS.escape(target)}"]`)?.focus();
   },
   gfleet: (d) => {
-    ui.ft = {
-      g: Number(d.g),
-      s: Number(d.s),
-      p: Number(d.p),
-      kind: d.k === 'moon' ? 'moon' : 'planet',
-    };
+    ui.ft = targetOf(d);
     ui.fm = d.m ?? 'attack';
     go('fleet');
   },
@@ -1199,12 +1207,7 @@ const ACT: Record<string, (d: Data) => unknown> = {
     if (!n) return toast('Keine Spähschädel auf dem Planeten.', true);
     return act('send', {
       ships: { probe: n },
-      to: {
-        g: Number(d.g),
-        s: Number(d.s),
-        p: Number(d.p),
-        kind: d.k === 'moon' ? 'moon' : 'planet',
-      },
+      to: targetOf(d),
       mission: 'spy',
       pct: 10,
       cargo: { m: 0, c: 0, d: 0 },
@@ -1214,35 +1217,14 @@ const ACT: Record<string, (d: Data) => unknown> = {
     setInput(`#f_${d.k}`, client.view!.P.ships[d.k!] ?? 0);
     fleetCalc();
   },
-  fall: () => {
-    document
-      .querySelectorAll<HTMLInputElement>('.fs')
-      .forEach(
-        (i) => (i.value = String(client.view!.P.ships[i.dataset.k!] ?? 0)),
-      );
-    fleetCalc();
-  },
-  fnone: () => {
-    document
-      .querySelectorAll<HTMLInputElement>('.fs')
-      .forEach((i) => (i.value = ''));
-    fleetCalc();
-  },
-  cmax: () => {
-    const c = cargoMax(
-      settle(
-        client.game!.planet!,
-        client.now(),
-        client.game!.cfg,
-        client.game!.me,
-      ),
-      readFleetForm(),
-    );
-    setInput('#c_m', c.m);
-    setInput('#c_c', c.c);
-    setInput('#c_d', c.d);
-    fleetCalc();
-  },
+  ...fleetActs({
+    actHere,
+    calc: fleetCalc,
+    form: readFleetForm,
+    planet: settledPlanet,
+    setInput,
+    render,
+  }),
   send: async () => {
     if (await actHere('send', readFleetForm())) {
       ui.ft = null;
@@ -1280,6 +1262,7 @@ const ACT: Record<string, (d: Data) => unknown> = {
     }
   },
   deleteAccount: () => modal(deleteAccountDialog(client.game!.round)),
+  ...abandonActs({ act, modal }),
   dismissInstall: () => {
     installDismissed = true;
     try {
@@ -1305,18 +1288,7 @@ const ACT: Record<string, (d: Data) => unknown> = {
       toast('Bitte installiere die App über das Browsermenü.', true);
     }
   },
-  reset: () => modal(roundDialog(client.game!.round)),
-  doReset: () => {
-    const checked = (id: string) => $<HTMLInputElement>(id)!.checked;
-    const rewards = {
-      achievements: checked('#round-achievements'),
-      daily: checked('#round-daily'),
-    };
-    const choice = { rewards, guilds: checked('#round-guilds') };
-    const numbers = roundNumbers(val);
-    modal('');
-    return act('reset', { ...choice, ...numbers });
-  },
+  ...roundActs({ act, modal }),
   endzeit: () => modal(endzeitDialog(client.game!.admin!.endzeit.minutes)),
   doEndzeit: () => {
     const minutes = val('#endzeit-minutes');
@@ -1761,22 +1733,10 @@ $('#modal')!.addEventListener('click', (e) => {
 
 // ----- clock -----
 
-function queueDue(view: V, now: number): boolean {
-  const ship = view.P.sq[0];
-  const nextShip = ship ? (view.P.sqT ?? now) + ship.unit : Infinity;
-  return (
-    Math.min(
-      view.P.bq?.end ?? Infinity,
-      view.R.rq?.end ?? Infinity,
-      nextShip,
-    ) <= now
-  );
-}
-
 setInterval(() => {
   if (!client.view) return;
   const now = client.now();
-  if (queueDue(client.view, now)) {
+  if (viewDue(client.view, now)) {
     render();
     void refresh();
     return;

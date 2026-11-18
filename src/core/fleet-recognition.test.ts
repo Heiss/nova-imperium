@@ -1,14 +1,15 @@
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import {
-  isRecognitionLevel,
+  RECOGNITION_COUNTS_SETTING,
   RECOGNITION_DEFAULT,
-  RECOGNITION_KEYS,
   RECOGNITION_LEVELS,
-  recognitionErrors,
+  RECOGNITION_TOTAL_SETTING,
+  RECOGNITION_TYPES_SETTING,
   recognitionOf,
   seenShips,
 } from './fleet-recognition.ts';
+import { roundRefused, roundRequest, roundValues } from './round.ts';
 
 const SHIPS = { lf: 5, sc: 2 };
 
@@ -16,11 +17,6 @@ describe('the recognition of a foreign fleet (#228)', () => {
   it('has the classic thresholds 2 / 4 / 8 by default (owner, D1)', () => {
     expect(RECOGNITION_DEFAULT).toEqual({ total: 2, types: 4, counts: 8 });
     expect(RECOGNITION_LEVELS).toEqual({ min: 0, max: 100 });
-    expect(RECOGNITION_KEYS).toEqual({
-      total: 'roundRecognitionTotal',
-      types: 'roundRecognitionTypes',
-      counts: 'roundRecognitionCounts',
-    });
   });
 
   it('shows below, at and above 2, 4 and 8 only what the level allows', () => {
@@ -90,38 +86,101 @@ describe('the recognition of a foreign fleet (#228)', () => {
       ),
     );
   });
-
-  it('takes whole levels from 0 to 100 as a threshold', () => {
-    for (const n of [0, 1, 8, 100]) expect(isRecognitionLevel(n)).toBe(true);
-    for (const n of [-1, 101, 2.5, '2', null, undefined, Number.NaN])
-      expect(isRecognitionLevel(n)).toBe(false);
-  });
 });
 
-describe('the thresholds chosen for a new round (#228, X1)', () => {
-  const current = { total: 3, types: 5, counts: 9 };
+describe('the thresholds as settings of the round (#228, D1, X1; #283)', () => {
+  const SETTINGS = [
+    RECOGNITION_TOTAL_SETTING,
+    RECOGNITION_TYPES_SETTING,
+    RECOGNITION_COUNTS_SETTING,
+  ];
+  const current = {
+    recognitionTotal: 3,
+    recognitionTypes: 5,
+    recognitionCounts: 9,
+  };
+  const refused = (recognition: unknown): string[] =>
+    roundRefused(current, { recognition }, SETTINGS).map((s) => s.name);
 
-  it('keeps the current thresholds for what the admin does not send', () => {
-    for (const input of [undefined, null, {}, 'x', 7]) {
-      expect(recognitionErrors(current, input)).toEqual([]);
-      expect(recognitionOf(current, input)).toEqual(current);
-    }
-    expect(recognitionOf(current, { types: 0 })).toEqual({
-      total: 3,
-      types: 0,
-      counts: 9,
-    });
-    expect(recognitionOf(current, { total: 2, types: 4, counts: 8 })).toEqual(
-      RECOGNITION_DEFAULT,
-    );
+  it('are three live number fields of one group without a legend, after the orders of #229 and #55', () => {
+    const group = { name: 'recognition' };
+    const common = { kind: 'number', min: 0, max: 100, live: true, group };
+    expect(SETTINGS).toEqual([
+      {
+        ...common,
+        key: 'roundRecognitionTotal',
+        name: 'recognitionTotal',
+        label: 'Fremde Flotten: Schiffe insgesamt ab Auspex-Lehre',
+        order: 120,
+        def: 2,
+      },
+      {
+        ...common,
+        key: 'roundRecognitionTypes',
+        name: 'recognitionTypes',
+        label: 'Fremde Flotten: Schiffstypen ab Auspex-Lehre',
+        order: 130,
+        def: 4,
+      },
+      {
+        ...common,
+        key: 'roundRecognitionCounts',
+        name: 'recognitionCounts',
+        label: 'Fremde Flotten: Anzahl je Schiffstyp ab Auspex-Lehre',
+        order: 140,
+        def: 8,
+      },
+    ]);
+    // One group object, so the three are sent and refused together.
+    for (const s of SETTINGS)
+      expect(s.group).toBe(RECOGNITION_TOTAL_SETTING.group);
   });
 
-  it('refuses every threshold that is no whole level from 0 to 100, in order', () => {
-    expect(recognitionErrors(current, { total: 0, counts: 100 })).toEqual([]);
+  it('are the thresholds of the round by part', () => {
+    expect(recognitionOf(current)).toEqual({ total: 3, types: 5, counts: 9 });
     expect(
-      recognitionErrors(current, { total: -1, types: 2.5, counts: 101 }),
-    ).toEqual(['total', 'types', 'counts']);
-    expect(recognitionErrors(current, { types: '4' })).toEqual(['types']);
-    expect(recognitionErrors(current, { counts: null })).toEqual(['counts']);
+      recognitionOf({
+        recognitionTotal: 2,
+        recognitionTypes: 4,
+        recognitionCounts: 8,
+      }),
+    ).toEqual(RECOGNITION_DEFAULT);
+  });
+
+  it('keep the current thresholds when the admin sends none', () => {
+    expect(refused(undefined)).toEqual([]);
+    expect(roundValues(current, {}, SETTINGS)).toEqual(current);
+    const sent = {
+      recognitionTotal: 0,
+      recognitionTypes: 100,
+      recognitionCounts: 8,
+    };
+    expect(refused(sent)).toEqual([]);
+    expect(roundValues(current, { recognition: sent }, SETTINGS)).toEqual(sent);
+    expect(roundRequest(sent, SETTINGS)).toEqual({ recognition: sent });
+  });
+
+  it('refuse every threshold that is no whole level from 0 to 100, in order', () => {
+    expect(
+      refused({
+        recognitionTotal: -1,
+        recognitionTypes: 2.5,
+        recognitionCounts: 101,
+      }),
+    ).toEqual(['recognitionTotal', 'recognitionTypes', 'recognitionCounts']);
+    expect(
+      refused({
+        recognitionTotal: 2,
+        recognitionTypes: '4',
+        recognitionCounts: 8,
+      }),
+    ).toEqual(['recognitionTypes']);
+    expect(
+      refused({
+        recognitionTotal: 2,
+        recognitionTypes: 4,
+        recognitionCounts: null,
+      }),
+    ).toEqual(['recognitionCounts']);
   });
 });

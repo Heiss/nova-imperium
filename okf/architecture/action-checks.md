@@ -57,24 +57,35 @@ section 7: 2 with their rules in `src/core` (`options`, `pushOptions`) and 5
 with no rule to move (`cancelBuild`, `cancelResearch`, `read`, `delrep`,
 `delall`); 13 are split and 13 check inline only.
 
+**[E]** Since the economy pull request of #214 (2026-11-16): 11 follow
+section 7, the four economy actions `build`, `research`, `order` and `pct`
+too; 10 are split and 12 check inline only. Their rows below are the state
+after it; the other rows are the audit of 2026-11-15.
+
+Since the Warp-Tor (#230, 2026-11-17) `ACTIONS` also has `jump`, which
+follows section 7; its row is below `recall`. The counts above are those of
+the audit and stay.
+
 | Action | Where its checks live | Status | Browser repeats | Messages match | Group |
 |---|---|---|---|---|---|
-| `build` | core `buildable`, `reqMissing`, `waitsForYard`, `waitsForLab`, `fieldsFull`, `energyShort`, `afford`; inline the running upgrade (`p.bq`), the order and the messages (`checkBuild`, `checkEnergy`, `payNextLevel`, `server/game/actions.ts`) | partly | yes, its own combination of the same predicates in another order: `buildState` (`client/logic/game.ts`), `buildingRow` (`client/logic/catalog-list.ts`) | no (F1, F2, F3, F8) | economy |
+| `build` | core `buildErrors` (`core/economy-checks.ts`: codes `place`, `locked`, `full`, `busy`, `yardBusy`, `labBusy`, `noEnergy`, `cost` from `buildable`, `reqMissing`, `fieldsFull`, `waitsForYard`, `waitsForLab`, `energyShort`, `afford`); the server only the messages (`BUILD_ERROR`, `PLACE_ERROR`, `failEnergy`, `server/game/actions.ts`) | yes | yes, with core `buildErrors` in the same order (F8 fixed): `buildState` (`client/logic/game.ts`), the notes `BUILD_WAITS` of `buildingRow` (`client/logic/catalog-list.ts`) | no (F1, F2, F3) | economy |
 | `cancelBuild` | only the own planet; nothing to cancel is no refusal | none | – (button only while upgrading) | – | economy |
-| `research` | core `reqMissing`, `labUpgrading`, `energyShort`, `afford`, `networkLab`; inline the lab above 0, the running research and the order (`checkResearch`, `checkEnergy`) | partly | yes, in another order: `researchState` (game.ts), `researchRow` and `noLab` (catalog-list.ts) | no (F2, F3, F4, F5, F9) | economy |
+| `research` | core `researchErrors` (codes `noLab`, `locked`, `busy`, `labUpgrading`, `noEnergy`, `cost` from `hasLab`, `reqMissing`, `labUpgrading`, `energyShort`, `afford`); `networkLab` only for the time; the server only the messages (`RESEARCH_ERROR`, `failEnergy`) | yes | yes, with core `researchErrors` in the same order (F9 fixed): `researchState` (game.ts), the notes `RESEARCH_WAITS` of `researchRow`; the page without a lab with core `hasLab` and `noLab` (catalog-list.ts) | no (F2, F3, F4, F5) | economy |
 | `cancelResearch` | only the own planet | none | – | – | economy |
-| `order` | core `reqMissing`, `unitRoom`, `maxAfford`, `yardLockedBy`; inline the yard above 0 (`requireYard`), the room, the count and at most 20 orders (`MAX_SHIPYARD_ORDERS`) | partly | partly: yard, lock, requirements, `orderMax` (`yardPage`, `unitRow`, catalog-list.ts), a count of 0 (`order` in `client/main.ts`); not the 20 orders | no (F2, F6, F7, F10) | economy |
-| `pct` | inline: a producer of `PRODUCERS` only, the share rounded to tens | no | no; the select offers valid shares only (`views/ProducerTable.svelte`) | – | economy |
+| `order` | core `orderErrors` (codes `noYard`, `yardLocked`, `locked`, `count`, `limit`, `cost`, `queueFull` from `hasYard`, `yardLockedBy`, `reqMissing`, `unitRoom`, `maxAfford` and at most 20 orders); the server only the messages (`ORDER_ERROR`, the lock with `YARD_LOCK`) | yes | partly, with core `orderErrors` in its own order: the requirements first, then the lock, the limit and the price disable „Bauen“ (`orderAction`, catalog-list.ts), the page with core `hasYard` (`yardPage`), a count of 0 by `orderNote` (`order` in `client/main.ts`); not the 20 orders | no (F2, F6, F7) | economy |
+| `pct` | core `isProducer` (a producer of `PRODUCERS` only); the share rounded to tens after `int()`, a clamp, not a refusal | yes | no; the select offers valid shares only (`views/ProducerTable.svelte`) | – | economy |
 | `rename` | inline: a name after `str(…, 20)` | no | yes, silently: trims, sends nothing when empty, `maxlength="20"` (`doRename`, main.ts) | – | player |
 | `options` | core `isExplainMode`; the probes clamped by `int` | yes | the same clamp, `clampInt` (`client/logic/format.ts`); the select offers the modes | – | player |
 | `pushOptions` | core `isPushTopic` (`server/push-options.ts`) | yes | the boxes offer `PUSH_TOPICS` only (`client/logic/push-options.ts`) | – | player |
+| `abandon` (#224, after the audit) | core `abandonTargetError` (codes `unknown`, `moon`, `main`) and `abandonError` (then `stale`, a confirmation opened for an earlier colony at the same position by its founding time `created` (owner, 2026-11-17), then `flights`, `research`, `orders`, `core/abandon.ts`); the server words them (`ABANDON_ERROR`, `server/game/abandon.ts`); the password before them, inline like the deletion of the account („What counts“: the session), and the address limited | yes | partly, with core `abandonTargetError`: the button „Kolonie aufgeben“ only on an own planet that is not the main planet (`abandonOffered`, `client/logic/abandon.ts`); the references only the server; the Sternenkarte offers no Landnahme at a locked position, with core `positionLocked` (`freePosition`) | – | player |
 | `read` | – | none | – | – | player |
 | `delrep` | – (deletes only a report of the player) | none | – | – | player |
 | `delall` | – | none | – | – | player |
-| `send` | core `missionRules`, `sendError` (codes, messages `SEND_ERROR` in `server/game/fleet-actions.ts`), `fleetSlots`, `capacity`, `fuelFor`, `canFly`; inline the unknown mission, a ship that cannot fly, no ships, the slot count (SQL `gift = 0`), cargo and fuel | partly | partly, not `sendError`: slots (`client/views/fleet.ts`), fuel and load marked red (`fleetPreview`, game.ts), hints at the target (`targetInfo`, main.ts), no probes (`gspy`, main.ts) | no (F11, F12, F13) | fleet |
+| `send` | core `missionRules`, `sendError` (codes, messages `SEND_ERROR` in `server/game/fleet-actions.ts`; after the audit the code `locked` of #224, worded with the end of the lock by `positionLockedText`, `server/game/position-lock.ts`), `fleetSlots`, `capacity`, `fuelFor`, `canFly`; inline the unknown mission, a ship that cannot fly, no ships, the slot count (SQL `gift = 0`), cargo and fuel | partly | partly, not `sendError`: slots (`client/views/fleet.ts`), fuel and load marked red (`fleetPreview`, game.ts), hints at the target (`targetInfo`, main.ts), no probes (`gspy`, main.ts) | no (F11, F12, F13) | fleet |
 | `recall` | inline: own, on the way out, not yet arrived, no gift (`recall`) | no | partly: own, out, no gift (`fleetRow`, `client/logic/overview.ts`); not the arrival | – (F14) | fleet |
+| `jump` | core `jumpError` (`core/jump-gate.ts`: codes `notMoon`, `noGate`, `cooling`, `noTarget`, `sameMoon`, `targetNoGate`, `targetCooling`, `noShips`, `stationary` from `gateLevel`, `gateReady`, `targetError` and `canFly`); the server only gathers the two moons, their gate times and the picked ships (`pickedShips` of `fleet-actions.ts`, at most the ships there) and words the codes (`JUMP_ERROR`, `server/game/jump-gate.ts`) | yes | yes, with core `gateReady` and `targetError`: „Springen“ disabled while the own gate cools down or no target is ready, a cooling target disabled in „Zielmond“, foreign and gateless moons not offered (`jumpPanel`, `client/logic/jump-gate.ts`); not the ships, which the server refuses („Keine Schiffe ausgewählt.“) | – | fleet |
 | `settings` | core `universeErrors` (codes `range` and `used` per setting, in the order of `UNIVERSE_SPECS`) and `universeOf` (`core/universe.ts`); the server words each code (`SETTINGS_ERROR`, `server/game/admin.ts`), every refused setting at once (admin pull request of #214) | yes | no; the inputs show the range of each setting (`client/views/misc.ts`) | – | admin |
-| `reset` | core `roundError` (codes `rewards`, then `guilds`) and `roundChoice` (`core/round.ts`); the server words them (`ROUND_ERROR`, `server/game/round.ts`) (admin pull request of #214) | yes | – (checkboxes send booleans) | – | admin |
+| `reset` | core `roundRefused` and `roundValues` over the registry `ROUND_SETTINGS` (`core/round.ts`, #283): the first refused setting in the fixed order of the registry (`order`, owner, 2026-11-17: rewards, guilds, main-planet lock, lock of a given-up position), a group (`rewards`) together; the server words it with the entry's `refusal`, else `rangeError` (`server/game/round.ts`) (admin pull request of #214); after the audit the locks of #221 (`MAIN_LOCK_SETTING`, `core/main-planet.ts`) and #224 (`ABANDON_LOCK_SETTING`, `core/abandon.ts`) are entries of it | yes | – (checkboxes send booleans) | – | admin |
 | `endzeit` | core `endzeitError` (codes `done`, then `minutes`: whole minutes within `GIFT_MINUTES`, `core/endzeit.ts`); the server words them (`ENDZEIT_ERROR`, `server/game/endzeit.ts`) (admin pull request of #214) | yes | yes, with core `endzeitError`: no button once done (`endzeitBox`, misc.ts), the dialog sends nothing with a wrong time (`endzeitNote`, `client/logic/endzeit.ts`) | yes (F15 unified) | admin |
 | `claimAchievement` | inline: achievements on, a known id, a home planet, progress at the target; once by SQL | no | yes, written again: `statusOf` (`client/views/achievements.ts`) | – | rewards |
 | `claimDailyReward` | inline: daily rewards on, a home planet; once a day by SQL | no | the flag `claimed` of the state | – | rewards |
@@ -101,7 +112,16 @@ requests change no behaviour either). The owner decided on 2026-11-15
 contradictions F10, F12, F15 and the order of F8 and F9, after the economy
 pull request; the other findings stay as they are. Server paths are below
 `src/server/game/`, browser paths below `src/client/`; „message“ is a
-different text for the same check, „rule“ a different check.
+different text for the same check, „rule“ a different check. The line
+numbers are those of the audit (`8a589eb`).
+
+**[E]** The economy pull request of #214 (2026-11-16) fixed F8, F9 and
+F10, the economy findings among those O18 (c) unifies (owner, 2026-11-15);
+F12 belongs to the fleet group and F15 to the admin group. F1 to F7 stay:
+the browser keeps its notes and the server its messages, each from a table
+of the codes. [U: O18 says „after the economy pull request“; the task of
+the loop read it as „with the economy checks in place“ and unified F8, F9
+and F10 in that pull request.]
 
 * **F1** (message) Build waits: `actions.ts:119` „Es wird bereits
   gebaut.“, `:122` „Die Schiffsschmiede arbeitet gerade.“, `:123` „Das
@@ -134,14 +154,29 @@ different text for the same check, „rule“ a different check.
   browser `logic/game.ts:62-88` requirements, fields, running upgrade,
   shipyard, lab, energy. For another building while an upgrade runs on a
   planet without a free field, the server says „Es wird bereits gebaut.“
-  and the browser shows „Keine freien Felder.“
+  and the browser shows „Keine freien Felder.“ **Fixed:** one order,
+  `buildErrors` in `src/core/economy-checks.ts`: place, requirements,
+  fields, running upgrade, shipyard, lab, energy, price. **[V]** Taken as
+  recommended: the order of the browser, the place first as on the server
+  (the list shows only what stands on the place). So no note of the browser
+  changes; the server answers a refusal the interface never sends with
+  another existing message (above: „Keine freien Felder.“).
 * **F9** (rule) Order of the research checks: the server
   `actions.ts:181-187` lab, running research, lab upgrade, requirements,
   then energy (`:203`); the browser `logic/game.ts:94-107` requirements
-  first, then running research, lab upgrade, energy.
+  first, then running research, lab upgrade, energy. **Fixed:** one order,
+  `researchErrors`: lab, requirements, running research, lab upgrade,
+  energy, price. **[V]** Taken as recommended, as F8: the order of the
+  browser, the lab first as on the server (without a lab the browser shows
+  no list). Changed on the server only: „Das Wissen ist noch
+  verschlossen.“ instead of „Es wird bereits geforscht.“ or „Das Scholarium
+  wird ausgebaut.“ for a research whose requirements are missing.
 * **F10** (message) An order of 0: the browser `main.ts:1190` „Bitte eine
   Anzahl eingeben.“; the server, for `n` 0, `actions.ts:251-255` „Der
-  Zehnte reicht nicht aus.“
+  Zehnte reicht nicht aus.“ **Fixed:** the code `count` of `orderErrors`
+  after the requirements; the server answers with the browser's text
+  „Bitte eine Anzahl eingeben.“, the browser asks the same code
+  (`orderNote`).
 * **F11** (rule) Cargo: the browser marks the load red from the numbers
   typed in (`main.ts:994-996`, `logic/game.ts:138` and `:146`); the server
   first cuts Adamant and Psikristall to the stock of the planet
@@ -259,3 +294,20 @@ only.
   stay as they are, except the ones O18 (c) unifies (owner, 2026-11-15).
 * **[V]** The checks of „What counts“ stay on the server; the table above
   names why.
+* **[E]** Economy built (2026-11-16): `src/core/economy-checks.ts` with
+  `buildErrors`, `researchErrors`, `orderErrors` and `isProducer`, and the
+  predicates `hasLab` (`core/lab.ts`) and `hasYard` (`core/yard.ts`). Each
+  of the three returns every code that applies, in the order of the
+  server; the server refuses with the message of the first. Build and
+  research have one order on both sides (F8, F9). The order of an `order`
+  still differs and stays (no finding of O18): the server answers the lock
+  of the shipyard before the requirements, the row of the browser shows
+  „Das Wissen ist noch verschlossen“ before it disables „Bauen“ for the
+  lock (the page names the lock above the list).
+* **[U]** Found while building the economy pull request, not in the audit:
+  the list of requirements (`needState` in `src/core/requirements.ts`,
+  #64) offers „Jetzt bauen“ and „Jetzt forschen“ and combines the same
+  predicates in a third order (place, requirements, fields, price and
+  energy, then the waits) with its own short reasons. It is already pure
+  in `src/core`, but does not call `buildErrors` or `researchErrors`; left
+  as it is, so its texts and order do not change.

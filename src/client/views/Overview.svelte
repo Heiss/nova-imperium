@@ -5,17 +5,14 @@
   // client state module; its buttons carry data-act, which main.ts sends
   // through act(). The clock of main.ts counts its countdowns down.
   import { moonPicture } from '../logic/moon.ts';
-  import { type Countdown, overviewPage } from '../logic/overview.ts';
+  import { overviewPage } from '../logic/overview.ts';
   import { client } from '../logic/state.svelte.ts';
   import { planetHTML } from './common.ts';
+  import Due from './Due.svelte';
 
   const v = $derived(client.shown);
   const page = $derived(v && overviewPage(v));
 </script>
-
-{#snippet due(c: Countdown)}{#if c.left}<span class="cd" data-end={c.end}
-      >{c.left}</span
-    >{:else}<span class="dim">gleich …</span>{/if}{/snippet}
 
 {#if v && page}
   <h2>{page.title}</h2>
@@ -27,7 +24,7 @@
           <tbody>
             {#each page.fleets as fleet (fleet.id)}
               <tr>
-                <td class="n w110">{@render due(fleet.due)}</td>
+                <td class="n w110"><Due due={fleet.due} /></td>
                 <td class={fleet.cls}
                   >{#each fleet.parts as part, i (i)}{#if part.bold}<b
                         >{part.text}</b
@@ -71,6 +68,9 @@
           <tr><td>Serverzeit</td><td>{page.time}</td></tr>
         </tbody>
       </table>
+      {#if page.abandon}<p>
+          <button class="small red" data-act="abandon">Kolonie aufgeben</button>
+        </p>{/if}
     </div>
   </div>
   <div class="box">
@@ -84,7 +84,7 @@
                 <td>{row.label}</td>
                 <td>{row.what}</td>
                 <td class="n"
-                  >{@render due(row.due)}{#if row.next}{' '}(nächste){/if}</td
+                  ><Due due={row.due} />{#if row.next}{' '}(nächste){/if}</td
                 >
               </tr>
             {/each}

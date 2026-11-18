@@ -59,20 +59,34 @@ points were answered on 2026-11-16.
 * **[V]** D2 replaces the rule of #116 that only the attack shows its
   ships: the field `visible` of the missions' `rules.ts` is gone, and every
   foreign fleet follows the thresholds.
-* **[V]** The thresholds are stored as `roundRecognitionTotal`,
+* **[V]** The thresholds are three entries of the registry of the round
+  settings (#283, see
+  [Admin](/features/admin.md#the-registry-of-the-round-settings-283)),
+  defined in `src/core/fleet-recognition.ts`: `RECOGNITION_TOTAL_SETTING`
+  (order 120), `RECOGNITION_TYPES_SETTING` (130) and
+  `RECOGNITION_COUNTS_SETTING` (140); the orders 60 to 110 are left to
+  #229 and #55. They are stored as `roundRecognitionTotal`,
   `roundRecognitionTypes` and `roundRecognitionCounts` (2, 4 and 8 without
-  a setting, so existing universes need no migration). `roundRules()` reads
-  them as `recognition`; the universe settings show them as „Fremde Flotten:
-  Schiffe insgesamt ab Auspex-Lehre“, „Fremde Flotten: Schiffstypen ab
-  Auspex-Lehre“ and „Fremde Flotten: Anzahl je Schiffstyp ab Auspex-Lehre“,
-  in whole levels from 0 to 100 (0: every player sees that part). The
-  dialog „Neue Runde“ has the same three fields, preselected with the
-  current values; a new round without them keeps the current values. Both
-  paths write the same settings, and the round reset's audit entry holds
-  them. The check is `recognitionErrors` and `recognitionOf` of
-  `src/core/fleet-recognition.ts` (#214); the server refuses with the
-  message of the universe settings, „<Name>: ganze Zahl von 0 bis 100.“,
-  every wrong value at once.
+  a setting, so existing universes need no migration) and are named
+  `recognitionTotal`, `recognitionTypes` and `recognitionCounts` in
+  `roundRules()`; `recognitionOf()` gives them to `seenShips()`. Their
+  labels are „Fremde Flotten: Schiffe insgesamt ab Auspex-Lehre“, „Fremde
+  Flotten: Schiffstypen ab Auspex-Lehre“ and „Fremde Flotten: Anzahl je
+  Schiffstyp ab Auspex-Lehre“, in whole levels from 0 to 100 (0: every
+  player sees that part). Each is `live` (X1): a number field of the dialog
+  „Neue Runde“, preselected with the current value, and a row of the
+  universe settings, changed during the round. Both paths write the same
+  settings, and the round reset's audit entry holds them.
+* **[V]** The three entries are one group `recognition` without a legend:
+  the dialog shows three single number fields, no fieldset (the branch had
+  no German legend text; a framed group is an open question), the request
+  „reset“ sends them as one object `recognition`, and the server refuses
+  every wrong threshold at once with the message of the universe settings,
+  „<Name>: ganze Zahl von 0 bis 100.“ A new round without the object keeps
+  the current values; an object that leaves a threshold out is refused,
+  the rule of every group (#214). The hand-wired check of the first build
+  (`recognitionErrors`, the three universe specs, the client's
+  `roundNumbers`) is gone.
 * **[V]** The overview and the fleet list show a foreign fleet as before,
   „Eine fremde Flotte von <Name> [g:s:p] erreicht deinen Planeten [g:s:p] ·
   <Auftrag>“, followed by what is seen in brackets: „(Zusammensetzung
@@ -88,11 +102,11 @@ points were answered on 2026-11-16.
 ## Tests (#228)
 
 * Unit: `src/core/fleet-recognition.test.ts` (below, at and above 2, 4 and
-  8, no zero counts, each threshold on its own, a property test, the round
-  choice), `src/core/universe.test.ts` (the three settings),
-  `src/client/logic/overview.test.ts` (the row),
-  `src/client/logic/round.test.ts` and `src/client/views/misc.test.ts` (the
-  dialog).
+  8, no zero counts, each threshold on its own, a property test, the three
+  entries of the registry and their check), `src/core/round.test.ts` (the
+  order), `src/core/universe.test.ts` (the three settings),
+  `src/client/logic/overview.test.ts` (the row) and
+  `src/client/views/misc.test.ts` (the dialog).
 * Server: `src/server/game/fleet-recognition.test.ts` (the levels, nothing
   hidden in the answer, the settled research, every mission, a group
   attack, own fleets, the guild event, the round, the refusal and the live

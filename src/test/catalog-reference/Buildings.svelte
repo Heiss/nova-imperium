@@ -24,7 +24,7 @@
   import { fieldsLine } from '../../client/logic/fields.ts';
   import { iconURL } from '../../client/logic/icons.ts';
   import { dur, fmt } from '../../client/logic/format.ts';
-  import { buildState } from '../../client/logic/game.ts';
+  import { buildState } from './states.ts';
   import {
     costHTML,
     requirementsHTML,

@@ -16,6 +16,9 @@ export const YARD_LOCK: Readonly<Record<string, string>> = {
 
 const locks = (key: string): boolean => Object.hasOwn(YARD_LOCK, key);
 
+/** Whether the place has a shipyard, which ships and defense need. */
+export const hasYard = (p: Pick<Planet, 'b'>): boolean => (p.b.yard ?? 0) > 0;
+
 /** The building whose upgrade stops the shipyard now, or null. */
 export const yardLockedBy = (p: Pick<Planet, 'bq'>): string | null =>
   p.bq && locks(p.bq.key) ? p.bq.key : null;

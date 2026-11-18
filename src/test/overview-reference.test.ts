@@ -108,6 +108,12 @@ const look = (P: V['P']): { picture: string; label: string; type: string } =>
       }
     : { picture: planetHTML(P), label: 'Planet', type: planetLook(P).name };
 
+/** „Kolonie aufgeben“ (#224): an own planet that is not the main planet. */
+const giveUp = ({ P, s }: V): string =>
+  P.kind === 'planet' && P.owner === s.me.id && P.id !== s.mainPlanet
+    ? '<p><button class="small red" data-act="abandon">Kolonie aufgeben</button></p>'
+    : '';
+
 function overview(v: V): string {
   const { P, s } = v;
   const me = s.me.id;
@@ -121,7 +127,7 @@ function overview(v: V): string {
  <tr><td>Position</td><td>${coords(P)}</td></tr><tr><td>Planetentyp</td><td>${l.type}</td></tr><tr><td>Temperatur</td><td>ca. ${P.temp - 40}°C bis ${P.temp}°C</td></tr>
  <tr><td>Durchmesser</td><td>${diameterLine(P, s.cfg)}</td></tr>
  <tr><td>Punkte</td><td>${fmt(s.players[me]?.points)} (Platz ${rk[me] ?? '-'} von ${Object.keys(s.players).length})</td></tr>
- <tr><td>Serverzeit</td><td>${dt(v.now)}</td></tr></table></div></div>
+ <tr><td>Serverzeit</td><td>${dt(v.now)}</td></tr></table>${giveUp(v)}</div></div>
  ${box('Aktivitäten', activities(v))}`;
 }
 
@@ -255,6 +261,8 @@ const state = fc
       })),
       players: x.players,
       galaxy: [],
+      // The shown planet is the main planet now and then (#224).
+      mainPlanet: x.now % 3 === 0 ? x.P.id : null,
     } as unknown as GameState;
     return {
       s,
@@ -289,6 +297,7 @@ const MARKS = [
   'Mond &lt;b>&amp;"\'&lt;/b> (Mond)',
   'alt="Nord&quot; b=&quot;Süd (Mond)"',
   'class="fl-back"',
+  'data-act="abandon"',
   ...Object.keys(MISSION).map((m) => `class="fl-${m}"`),
 ];
 

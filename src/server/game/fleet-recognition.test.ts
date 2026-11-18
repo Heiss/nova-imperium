@@ -5,8 +5,12 @@
 // them in the universe settings during the round (X1). Hidden parts never
 // leave the server.
 import { describe, expect, it } from 'vitest';
-import { RECOGNITION_DEFAULT } from '../../core/fleet-recognition.ts';
-import type { Fleet, Levels } from '../../core/types.ts';
+import {
+  RECOGNITION_DEFAULT,
+  type Recognition,
+  recognitionOf,
+} from '../../core/fleet-recognition.ts';
+import type { Fleet } from '../../core/types.ts';
 import { DEFAULT_UNIVERSE } from '../../core/universe.ts';
 import type { AuditEntry } from '../audit.ts';
 import { addPlanet, addUser, type TestCtx, testCtx } from '../test-helpers.ts';
@@ -159,31 +163,39 @@ describe('a foreign fleet seen by the defender (#228)', () => {
 });
 
 describe('the thresholds per round (#228, D1, X1)', () => {
-  const levels = (ctx: TestCtx): Levels => ({ ...roundRules(ctx).recognition });
+  const levels = (ctx: TestCtx): Recognition => recognitionOf(roundRules(ctx));
+  /** The thresholds as the dialog „Neue Runde“ sends them: one object. */
+  const sent = (total: unknown, types: unknown, counts: unknown) => ({
+    recognitionTotal: total,
+    recognitionTypes: types,
+    recognitionCounts: counts,
+  });
 
   it('are the classic 2 / 4 / 8 in an existing universe', () => {
-    expect(roundRules(world()).recognition).toEqual(RECOGNITION_DEFAULT);
+    expect(levels(world())).toEqual(RECOGNITION_DEFAULT);
+    expect(roundRules(world())).toMatchObject(sent(2, 4, 8));
   });
 
   it('are set in „Neue Runde“, kept without a choice and in the audit entry', () => {
     const ctx = world();
     const event = {} as AuditEntry;
-    const recognition = { total: 1, types: 3, counts: 5 };
+    const recognition = sent(1, 3, 5);
     runAction(ctx, 'u_Anna', { type: 'reset', recognition }, event);
-    expect(levels(ctx)).toEqual(recognition);
+    expect(levels(ctx)).toEqual({ total: 1, types: 3, counts: 5 });
     expect(event.detail).toMatchObject({
-      before: { recognition: RECOGNITION_DEFAULT },
-      after: { recognition },
+      before: sent(2, 4, 8),
+      after: recognition,
     });
     expect(ctx.admin.universe()).toMatchObject({
       roundRecognitionTotal: 1,
       roundRecognitionTypes: 3,
       roundRecognitionCounts: 5,
     });
-    runAction(ctx, 'u_Anna', { type: 'reset', recognition: { types: 6 } });
+    runAction(ctx, 'u_Anna', { type: 'reset', recognition: sent(1, 6, 5) });
     expect(levels(ctx)).toEqual({ total: 1, types: 6, counts: 5 });
     runAction(ctx, 'u_Anna', { type: 'reset' });
     expect(levels(ctx)).toEqual({ total: 1, types: 6, counts: 5 });
+    expect(roundRules(ctx).number).toBe(4);
   });
 
   it('refuse a new round with a threshold that is no level from 0 to 100', () => {
@@ -191,20 +203,26 @@ describe('the thresholds per round (#228, D1, X1)', () => {
     expect(() =>
       runAction(ctx, 'u_Anna', {
         type: 'reset',
-        recognition: { total: -1, types: 4, counts: 101 },
+        recognition: sent(-1, 4, 101),
       }),
     ).toThrow(
       'Fremde Flotten: Schiffe insgesamt ab Auspex-Lehre: ganze Zahl von 0 bis 100. Fremde Flotten: Anzahl je Schiffstyp ab Auspex-Lehre: ganze Zahl von 0 bis 100.',
     );
     expect(() =>
-      runAction(ctx, 'u_Anna', { type: 'reset', recognition: { types: 2.5 } }),
+      runAction(ctx, 'u_Anna', { type: 'reset', recognition: sent(2, 2.5, 8) }),
     ).toThrow(
       'Fremde Flotten: Schiffstypen ab Auspex-Lehre: ganze Zahl von 0 bis 100.',
     );
-    expect(roundRules(ctx)).toMatchObject({
-      number: 1,
-      recognition: RECOGNITION_DEFAULT,
-    });
+    // A group is sent whole (#214): a threshold left out is refused.
+    expect(() =>
+      runAction(ctx, 'u_Anna', {
+        type: 'reset',
+        recognition: { recognitionTypes: 6 },
+      }),
+    ).toThrow(
+      'Fremde Flotten: Schiffe insgesamt ab Auspex-Lehre: ganze Zahl von 0 bis 100. Fremde Flotten: Anzahl je Schiffstyp ab Auspex-Lehre: ganze Zahl von 0 bis 100.',
+    );
+    expect(roundRules(ctx)).toMatchObject({ number: 1, ...sent(2, 4, 8) });
   });
 
   it('change live in the universe settings during the round', () => {

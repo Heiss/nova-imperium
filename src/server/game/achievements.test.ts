@@ -104,7 +104,10 @@ describe('achievements', () => {
       guilds: true,
       // Without a choice the round keeps the lock of the main planet (#221).
       mainLock: 7,
-      recognition: { total: 2, types: 4, counts: 8 },
+      abandonLock: 24,
+      recognitionTotal: 2,
+      recognitionTypes: 4,
+      recognitionCounts: 8,
     });
     recordAchievementAction(ctx, u.id, 'send');
     const current = ctx.players.get(u.id)!;

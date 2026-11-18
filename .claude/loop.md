@@ -13,7 +13,10 @@ interface is German.
      and merge conflicts;
    - Renovate's open security pull requests (`[SECURITY]` at the end of
      the title) with their CI;
-   - Renovate's other open pull requests with their update type and CI;
+   - Renovate's other open pull requests with their update type and CI,
+     and the updates under „Pending Approval“ in the issue „Dependency
+     Dashboard“ (major and 0.x minor updates get no pull request before
+     the owner's tick there);
    - the open release pull request (`Release <version>`, branch
      `release/main`) with its CI and its release candidate image;
    - the open issues by their labels: `ready` (in the next release),
@@ -65,11 +68,35 @@ interface is German.
    pull requests, get the owner's decisions so that the next issues become
    `ready`, and do whatever else keeps both agents building
    (owner, 2026-11-16).
+   Roles (owner, 2026-11-17): the subagents build; you, the main agent,
+   merge, get the owner's decisions so that issues become ready for
+   building, and structure the work. You see best where the code still
+   causes merge conflicts or is hard to maintain (shared files that every
+   pull request touches, modules that keep growing, missing extension
+   points of the design patterns): give the subagents tasks to improve
+   that, or file issues for it, and order the work so that subagents do not
+   collide.
+   Subagents run only the cheap local checks (owner, 2026-11-17):
+   typecheck, eslint and the unit tests of the changed files, prettier,
+   `checkLog` and `check:migrations`, and, for a change a player sees in
+   the browser, a new E2E test once to show that it fails without the
+   change; the full E2E suite, Stryker and the
+   mutation gate run in the CI. They push and report at once instead of
+   waiting for a free machine; a red CI goes back to a subagent.
    Small patches are slotted in between, so that none is left for the
-   release (owner, 2026-11-16): while you wait, merge Renovate's green
-   patch and minor pull requests (one at a time, CI Gate green on a head
-   up to date with `main`; a major update and a minor one below 1.0 wait
-   for the owner) and follow up GitHub's
+   release (owner, 2026-11-16 and 2026-11-18): in every iteration in
+   which no own pull request is the next one to merge, take the oldest
+   open Renovate pull request with a patch or minor update of a version
+   from 1.0 on that can go on, and bring it one step further; do not wait
+   for a pause. One whose CI Gate is red on a head up to date with `main`
+   cannot go on: skip it, it stays open and is named with the release.
+   Renovate rebases it only on a conflict, so ask for the rebase when its
+   head is behind `main`: tick the box „rebase/retry“ at the end of its
+   description (the label `rebase` also works, but starts a CI run of its
+   own), never „Update branch“ and never a push to its branch. Merge it
+   when its CI Gate is green on a head up to date with `main` (O4). One at
+   a time; a major update and a minor one below 1.0 wait for the owner.
+   Also follow up GitHub's
    Dependabot alerts that have no Renovate security pull request; a small
    bug or cleanup issue (`bug`, `ready`, `Geklärt`) may be the next issue
    of a free subagent before the next feature.
@@ -77,17 +104,21 @@ interface is German.
    `in progress` or `in review` and the release pull request is open.
    First merge Renovate's ordinary pull requests with a patch or minor
    update of a version from 1.0 on (owner, 2026-11-16): one at a time,
-   each under O4 on a head that is up to date with `main`; Renovate
-   rebases the others itself, wait for their CI. A red one stays open and
+   each under O4 on a head that is up to date with `main`; ask for the
+   rebase of the next one as in step 1 and wait for its CI. A red one
+   stays open and
    you name it in the message to the owner below. Major updates and minor
    updates below 1.0 wait for the owner: each gets one issue (find it, or
-   open it with the pull request's number, its breaking changes and its
-   CI, without a status label). Then go on with the release pull
+   open it with its entry in the Dependency Dashboard or its pull
+   request's number, its breaking changes and, if it has a pull request,
+   its CI, without a status label). Then go on with the release pull
    request. The release pull request is a draft after
    every rebuild: its cheap run checks only secrets, dependencies,
    migrations, workflows, CodeQL and the changelog, and its CI Gate is red
    on purpose (#147). Check its texts (German, matching their pull
-   requests, one entry per feature, nothing internal) and its cheap jobs;
+   requests, one entry per feature, nothing internal, every new or
+   changed admin setting or action named in the entry of its feature, with
+   what the admin can now do) and its cheap jobs;
    then mark it „Ready for review“, which starts the full run. Do not mark
    it ready while its body says that a released hotfix is not merged back
    (the workflow „Release ready“ refuses it and sets it back to draft), or
@@ -145,13 +176,15 @@ interface is German.
    or review, replace `in progress` by `in review`. A red CI or a review
    finding that needs a push sets it back to `in progress`. Build:
    code, tests (mutation floors, new files 80 %, security files 90 %), a
-   German changelog fragment in `changes/` or the label `kein-changelog`,
+   German changelog fragment in `changes/` or the label `kein-changelog`
+   (a new or changed admin setting or action is named in the fragment of
+   its feature: what the admin can now do),
    OKF and docs, and the log entry as a new file
    `okf/log/<date>-<short-name>.md` with the UTC time in `date` (never an
-   edit of another entry; the format is in `okf/ops/website.md`). Run `pnpm check` and the relevant
-   E2E tests before the push after which you mark it ready, and after a
-   merge of `main` with a conflict in code; other pushes of a draft rely
-   on its CI. Open it as a draft, mark it ready when CI is green, subscribe to
+   edit of another entry; the format is in `okf/ops/website.md`). Run the cheap local checks above
+   before the push after which you mark it ready, and after a merge of
+   `main` with a conflict in code; the full E2E suite and every other push
+   of a draft rely on its CI. Open it as a draft, mark it ready when CI is green, subscribe to
    it. Write `Closes #<issue>` in the description.
 
 ## Never

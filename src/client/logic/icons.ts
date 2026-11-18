@@ -16,6 +16,7 @@ const FILES: Record<string, string> = {
   sdeut: 'buildings/deuterium_tank',
   moonbase: 'buildings/lunar_base',
   phalanx: 'buildings/sensor_phalanx',
+  jumpgate: 'buildings/jump_gate',
   energy: 'research/energy_technology',
   laser: 'research/laser_technology',
   comb: 'research/combustion_drive',

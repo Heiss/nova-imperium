@@ -120,12 +120,8 @@ export interface Universe {
   /** The default flight time of the „Endzeit“ gift, in minutes (#161). */
   endzeitMinutes: number;
   /**
-   * The thresholds of the recognition of foreign fleets (#228, D1): the
-   * level of the Auspex-Lehre for the total number of ships, the ship types
-   * and the number per type; the stored settings of the round, also changed
-   * live by the admin (X1).
+   * A `live` setting of the round (#283, src/core/round.ts): the stored
+   * setting of the round, also a row of the universe settings (X1).
    */
-  roundRecognitionTotal: number;
-  roundRecognitionTypes: number;
-  roundRecognitionCounts: number;
+  [round: `round${string}`]: number;
 }
