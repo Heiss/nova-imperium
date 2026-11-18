@@ -3,7 +3,11 @@
 // account tokens belong here too; they still run as raw SQL in passkeys.ts
 // and account-security.ts until a follow-up moves them.
 import type { Levels, ResearchQueue } from '../../../core/types.ts';
-import type { ExplainMode } from '../../../core/explain.ts';
+import {
+  DEFAULT_EXPLAIN,
+  type ExplainMode,
+  storedMode,
+} from '../../../core/explain.ts';
 import type { Db } from '../database.ts';
 import { levels, queueParams, researchQueueOf, type Row } from './rows.ts';
 
@@ -70,7 +74,8 @@ export class SqlitePlayers implements Players {
       pw: r.pw_hash as string,
       admin: r.admin === 1,
       probes: r.probes as number,
-      explain: r.explain_mode as ExplainMode,
+      // A stored „Immer anzeigen“ of #63 reads as the „?“ (#285 B2).
+      explain: storedMode(r.explain_mode) ?? DEFAULT_EXPLAIN,
       readAt: r.read_at as number,
       created: r.created as number,
       research: levels(research, 'key', 'level'),

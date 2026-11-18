@@ -7,7 +7,7 @@ describe('players repository', () => {
     const u = addUser(ctx, 'Anna', {
       admin: true,
       probes: 4,
-      explain: 'always',
+      explain: 'hidden',
       readAt: 7,
       research: { energy: 3, laser: 1 },
       rq: {
