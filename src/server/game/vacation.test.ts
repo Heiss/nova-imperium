@@ -270,6 +270,21 @@ describe('during the vacation mode', () => {
     expect(ctx.fleets.all()).toEqual([]);
   });
 
+  it('protects against a spy who may spy (Auspex-Lehre 1, #175) and lets him spy before', () => {
+    const ctx = world();
+    const bert = ctx.players.get('u_Bert')!;
+    ctx.players.save({ ...bert, research: { ...bert.research, spy: 1 } });
+    const spy = attack(undefined, 'spy');
+    expect(act(ctx, 'send', spy, 'u_Bert')).toBe(
+      'Flotte unterwegs nach [1:1:5].',
+    );
+    ctx.fleets.delete(ctx.fleets.all()[0]!.id);
+    start(ctx);
+    expect(() => act(ctx, 'send', spy, 'u_Bert')).toThrow(
+      'Dieser Spieler ist im Urlaubsmodus.',
+    );
+  });
+
   it('lets an attack launched before the entry land as usual (D2)', () => {
     const ctx = world();
     act(ctx, 'send', attack(), 'u_Bert');
@@ -562,6 +577,19 @@ describe('the state', () => {
       admin: null,
     });
     expect(shown.round.vacationHours).toBe(48);
+  });
+
+  it('keeps a player in vacation in the highscore of the others, with the categories (#78, #223)', () => {
+    const ctx = world();
+    start(ctx);
+    const players = (
+      stateFor(ctx, ctx.players.get('u_Bert')!) as {
+        players: Record<string, { vacation?: boolean; scores?: unknown }>;
+      }
+    ).players;
+    expect(players.u_Anna!.vacation).toBe(true);
+    expect(players.u_Anna!.scores).toBeDefined();
+    expect(players.u_Bert).not.toHaveProperty('vacation');
   });
 
   it('is the full game again after the end, also for an admin', () => {
