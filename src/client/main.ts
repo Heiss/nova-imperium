@@ -72,6 +72,7 @@ import { optionActs } from './option-actions.ts';
 import { fleetActs } from './fleet-acts.ts';
 import { roundActs } from './round-actions.ts';
 import { mountCatalogList } from './views/catalog-list.ts';
+import { renderLock } from './views/vacation-lock.ts';
 import {
   adminChatDialog,
   dissolveDialog,
@@ -813,6 +814,7 @@ function render(fresh = false): void {
     lastActivity = -Infinity;
     return renderLoggedOut(view);
   }
+  if (renderLock(view, client.game, ui, unmountViews)) return;
   if (!client.game.planet) {
     client.view = null;
     unmountViews();
