@@ -7,7 +7,7 @@ import { missionRules } from '../core/missions.ts';
 import { placeId } from '../core/place.ts';
 import { settle, settleR } from '../core/settle.ts';
 import { text } from '../core/text.ts';
-import type { Levels, Planet, Queue, Resources } from '../core/types.ts';
+import type { Levels, Planet, Queue } from '../core/types.ts';
 import { abandonActs } from './abandon-actions.ts';
 import { createAct, placeOf, samePlace } from './logic/act.ts';
 import { CATALOG_VIEWS, catalogKind, orderNote } from './logic/catalog-list.ts';
@@ -28,9 +28,6 @@ import {
   reportFormHTML,
 } from './logic/error-report.ts';
 import {
-  CARGO,
-  cargoMax,
-  cargoOne,
   fleetPreview,
   galaxyStep,
   nameOf,
@@ -38,6 +35,7 @@ import {
   type FleetForm,
 } from './logic/game.ts';
 import { headerLine } from './logic/header.ts';
+import { keeps, viewDue } from './logic/jump-gate.ts';
 import { chatToSee, finishedYardOrders } from './logic/menu-hints.ts';
 import { gameIsBack, maintenanceNotice } from './logic/maintenance.ts';
 import { latestNews, NEWS_SEEN_KEY, type NewsData } from './logic/news.ts';
@@ -69,6 +67,7 @@ import {
   type AdminTab,
 } from './views/misc.ts';
 import { disablePush, enablePush } from './push.ts';
+import { fleetActs } from './fleet-acts.ts';
 import { roundActs } from './round-actions.ts';
 import { mountCatalogList } from './views/catalog-list.ts';
 import {
@@ -606,7 +605,7 @@ function keepInputs(view: HTMLElement, fresh: boolean): () => void {
   return () => {
     for (const [id, v] of Object.entries(saved)) {
       const el = document.getElementById(id) as HTMLInputElement | null;
-      if (el && !el.hasAttribute('data-nokeep')) el.value = v;
+      if (el && !el.hasAttribute('data-nokeep') && keeps(el, v)) el.value = v;
     }
     // A ticked or cleared box of a guild rank survives the refresh (#163);
     // a disabled one shows the server's state, it is no draft.
@@ -1218,30 +1217,14 @@ const ACT: Record<string, (d: Data) => unknown> = {
     setInput(`#f_${d.k}`, client.view!.P.ships[d.k!] ?? 0);
     fleetCalc();
   },
-  fall: () => {
-    document
-      .querySelectorAll<HTMLInputElement>('.fs')
-      .forEach(
-        (i) => (i.value = String(client.view!.P.ships[i.dataset.k!] ?? 0)),
-      );
-    fleetCalc();
-  },
-  fnone: () => {
-    document
-      .querySelectorAll<HTMLInputElement>('.fs')
-      .forEach((i) => (i.value = ''));
-    fleetCalc();
-  },
-  cmax: () => {
-    const c = cargoMax(settledPlanet(), readFleetForm());
-    for (const k of CARGO) setInput(`#c_${k}`, c[k]);
-    fleetCalc();
-  },
-  cone: (d) => {
-    const k = d.k as keyof Resources;
-    setInput(`#c_${k}`, cargoOne(settledPlanet(), readFleetForm(), k));
-    fleetCalc();
-  },
+  ...fleetActs({
+    actHere,
+    calc: fleetCalc,
+    form: readFleetForm,
+    planet: settledPlanet,
+    setInput,
+    render,
+  }),
   send: async () => {
     if (await actHere('send', readFleetForm())) {
       ui.ft = null;
@@ -1750,22 +1733,10 @@ $('#modal')!.addEventListener('click', (e) => {
 
 // ----- clock -----
 
-function queueDue(view: V, now: number): boolean {
-  const ship = view.P.sq[0];
-  const nextShip = ship ? (view.P.sqT ?? now) + ship.unit : Infinity;
-  return (
-    Math.min(
-      view.P.bq?.end ?? Infinity,
-      view.R.rq?.end ?? Infinity,
-      nextShip,
-    ) <= now
-  );
-}
-
 setInterval(() => {
   if (!client.view) return;
   const now = client.now();
-  if (queueDue(client.view, now)) {
+  if (viewDue(client.view, now)) {
     render();
     void refresh();
     return;

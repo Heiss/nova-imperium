@@ -135,6 +135,9 @@ Planet“ (https://owiki.de/index.php?title=Zerst%C3%B6rter_Planet&oldid=76922).
 * E2E: `e2e/abandon-colony.spec.ts`, desktop and phone, with axe on the
   overview and the confirmation, the refusals of a wrong password and of
   the main planet, and the refused colonization of the locked position.
+  The colony lies on slot 1 of the neighbouring system, which no other test
+  uses: on slot 15 a transport of an earlier test to its own colony there,
+  still in flight, refused the give-up (#293).
 
 # Out of scope
 

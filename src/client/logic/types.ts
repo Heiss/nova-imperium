@@ -3,6 +3,7 @@ import type { Inactivity, PlanetActivity } from '../../core/activity.ts';
 import type { RoundRules } from '../../core/round.ts';
 // The state the server sends (GET /api/state).
 import type { DebrisField } from '../../core/debris.ts';
+import type { GateView } from '../../core/jump-gate.ts';
 import type { LabSite } from '../../core/research.ts';
 import type { ExplainMode } from '../../core/explain.ts';
 import type { GuildRight } from '../../core/guild-ranks.ts';
@@ -95,6 +96,8 @@ export interface GameState {
   galaxy: GalaxyPlanet[];
   /** Every Trümmerfeld, for every player (#45). */
   debris: DebrisField[];
+  /** The own Warp-Tore with their readiness (#230). */
+  gates?: GateView[];
   /** The positions locked after an abandonment, with the end of the lock (#224). */
   locks?: (Coords & { until: number })[];
   admin: AdminState | null;
