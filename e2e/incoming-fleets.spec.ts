@@ -280,12 +280,16 @@ test.describe('incoming fleets by the Auspex-Lehre (#228)', () => {
   test('the admin sets the thresholds in „Neue Runde“ and changes them during the round', async ({
     page,
   }) => {
+    // Two sessions, a round reset and four axe scans: longer than 30 s.
+    test.setTimeout(90000);
     await adminFlow(page);
   });
 
   test('the admin sets the thresholds in „Neue Runde“ and changes them during the round, on a phone @phone', async ({
     page,
   }) => {
+    // Two sessions, a round reset and four axe scans: longer than 30 s.
+    test.setTimeout(90000);
     await adminFlow(page);
   });
 });
