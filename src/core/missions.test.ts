@@ -355,13 +355,14 @@ describe('the target kind (#116)', () => {
       ...at(planet),
       locked: true,
     });
-    // The kinds: own, foreign, any, free, debris.
+    // The kinds: own, foreign, any, free, debris, foreignMoon (no moon there).
     expect(KINDS.map((k) => sendError(rules(k), fleet, locked(null)))).toEqual([
       'noPlanet',
       'noPlanet',
       'noPlanet',
       'locked',
       'noDebris',
+      'notMoon',
     ]);
     // A planet there is the first refusal; a lock at a free position only.
     expect(sendError(rules('free'), fleet, locked(own))).toBe('occupied');
