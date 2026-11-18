@@ -10,7 +10,8 @@ import { stateFor } from './state.ts';
 
 function setup() {
   const ctx = testCtx();
-  const a = addUser(ctx, 'Anna');
+  // Auspex-Lehre 1 lets Anna spy (#175, Q1).
+  const a = addUser(ctx, 'Anna', { research: { spy: 1 } });
   const b = addUser(ctx, 'Bert');
   addPlanet(ctx, a.id, {
     g: 1,
@@ -121,6 +122,11 @@ describe('sending fleets', () => {
     expect(() =>
       send(ctx, a, go({ mission: 'spy', ships: { lf: 1, probe: 1 } })),
     ).toThrow('nur mit Spähschädeln');
+    a.research = {};
+    expect(() =>
+      send(ctx, a, go({ mission: 'spy', ships: { probe: 1 } })),
+    ).toThrow('Auspex-Erkundung erst ab Auspex-Lehre 1.');
+    a.research = { spy: 1 };
     expect(() =>
       send(
         ctx,
@@ -560,7 +566,7 @@ describe('moons as targets and starts (#53)', () => {
 
   it('spies on and supplies a moon, which shows as „<Name> (Mond)“', () => {
     const { ctx, a, b } = withMoon();
-    a.research = { computer: 1 };
+    a.research = { computer: 1, spy: 1 };
     send(ctx, a, toMoon({ mission: 'spy', ships: { probe: 1 } }));
     send(
       ctx,

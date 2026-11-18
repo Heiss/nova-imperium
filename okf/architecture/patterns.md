@@ -389,7 +389,7 @@ choice of the patterns to the assistant's recommendation below
   („Freie Position“) and `returns` (no return time). `MissionServer`,
   `Arrival`, `turnBack`, `land` and `researchAt` are in
   `src/server/game/missions.ts`; `arrival.ts` still exports `spyScore`,
-  `counterChance`, `rebuild` and `plunder`, which moved to the spy and
+  `rebuild` and `plunder`, which moved to the spy and
   attack folders. A fleet of an unknown mission throws and `tick` removes
   it; the database allows only the five missions. No `f.mission ===` is
   left outside the mission folders.

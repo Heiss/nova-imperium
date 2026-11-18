@@ -3,6 +3,8 @@ import { countUnits } from '../../core/flight.ts';
 import { text } from '../../core/text.ts';
 import type { Coords, Levels, Resources } from '../../core/types.ts';
 import type { Debris } from '../../core/debris.ts';
+import type { PlanetActivity } from '../../core/activity.ts';
+import { spyActivityText } from '../logic/activity.ts';
 import { debrisLine } from '../logic/debris.ts';
 import { moonLines } from '../logic/moon.ts';
 import { coords, dt, esc, fmt, resLine, techLine } from '../logic/format.ts';
@@ -62,6 +64,16 @@ function section(title: string, o: unknown, keys: string[]): string {
   return `<div class="mt"><b>${title}</b><br>${list || '<span class="dim">keine</span>'}</div>`;
 }
 
+/** The activity of the target, in reports since #175. */
+function spyActivity(r: Report): string {
+  const words = spyActivityText(
+    r.activity as PlanetActivity | null | undefined,
+  );
+  return words === null
+    ? ''
+    : `<div class="mt"><b>Aktivität</b><br>${esc(words)}</div>`;
+}
+
 function spyBody(r: Report): string {
   const lost = r.lost
     ? ' – <span class="bad">deine Spähschädel wurden zerstört!</span>'
@@ -71,7 +83,7 @@ function spyBody(r: Report): string {
       ? ' · Mehr Spähschädel oder Auspex-Lehre zeigen mehr Details.'
       : '';
   return `<div>Rohstoffe auf ${esc(r.name)} ${coords(r.coords as Coords)} (Spieler ${esc(r.defName)}):<br><b>${resLine(r.res as Resources)}</b></div>
-   ${section('Flotte', r.ships, Object.keys(SHIPS))}${section('Verteidigung', r.def, Object.keys(DEF))}${section('Gebäude', r.b, Object.keys(BUILD))}${section('Forschung', r.r, Object.keys(RES))}
+   ${spyActivity(r)}${section('Flotte', r.ships, Object.keys(SHIPS))}${section('Verteidigung', r.def, Object.keys(DEF))}${section('Gebäude', r.b, Object.keys(BUILD))}${section('Forschung', r.r, Object.keys(RES))}
    <div class="dim mt">Chance auf Auspex-Abwehr: ${esc(r.counter)} %${lost}${hint}</div>`;
 }
 

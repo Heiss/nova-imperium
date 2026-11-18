@@ -1,16 +1,22 @@
 // What the article of the Auspex-Lehre adds in the Lexicanum (#285): the
 // Auspex-Wert of a report, what it shows, how many Spähschädel it takes and
-// the danger of losing them, computed from src/core/spy.ts. The texts are
-// those of the design study of #285 (#287, [V]); every number comes from
-// the rules.
-import { number, percent } from '../../core/lexicon/parts.ts';
+// the chance of the Auspex-Abwehr, computed from src/core/spy.ts and
+// src/core/espionage.ts. The texts are those of the design study of #285
+// (#287, [V]); the paragraph and the formula of the Auspex-Abwehr are a [V]
+// of Claude for the owner to check (#175); every number comes from the rules.
+import {
+  counterMax,
+  MAX_CHANCE,
+  PROBE_DIVISOR,
+  SHIP_DIVISOR,
+} from '../../core/espionage.ts';
+import { number } from '../../core/lexicon/parts.ts';
 import type {
   Block,
   EntryLexicon,
   LexState,
 } from '../../core/lexicon/types.ts';
 import {
-  counterChance,
   probesFor,
   SPY_LEVELS,
   type SpyPart,
@@ -29,8 +35,8 @@ const PARTS: Readonly<Record<SpyPart, string>> = {
 const ALL = SPY_LEVELS[SPY_LEVELS.length - 1]![0];
 
 const LEADS = [-3, -2, -1, 0, 1, 2, 3];
-const DANGER_LEADS = [-2, -1, 0, 1, 2];
-const FLEETS = [10, 100, 1000, 10000];
+const PROBES = [1, 4, 12, 40];
+const FLEETS = [0, 10, 100, 1000];
 
 const signed = (lead: number): string =>
   lead > 0 ? `+${lead}` : lead < 0 ? `−${-lead}` : 'gleich';
@@ -53,6 +59,22 @@ function stand(s: LexState): string {
   while (spyScore(probes, -lag) >= ALL) lag++;
   return `${head} Gegen ein Ziel mit Stufe ${level} zeigt der Bericht alles; gegen Stufe ${level + lag} brauchst du ${number(probesFor(ALL, -lag))} für die Forschung.`;
 }
+
+/** The highest chance of the Auspex-Abwehr by probes and ships, at equal Auspex-Lehre. */
+const chanceTable = (): Block => ({
+  t: 'table',
+  caption: 'Höchste Chance auf Auspex-Abwehr bei gleicher Auspex-Lehre',
+  head: ['Schiffe am Ziel', ...PROBES.map((n) => `${number(n)} Spähschädel`)],
+  rows: FLEETS.map((ships) => ({
+    cells: [
+      number(ships),
+      ...PROBES.map(
+        (probes) =>
+          `${number(counterMax({ probes, ships, target: 1, spy: 1 }))} %`,
+      ),
+    ],
+  })),
+});
 
 function blocks(s: LexState): Block[] {
   return [
@@ -84,20 +106,10 @@ function blocks(s: LexState): Block[] {
       })),
     },
     { t: 'stand', text: stand(s) },
-    {
-      t: 'table',
-      caption: 'Gefahr, dass deine Spähschädel abgeschossen werden',
-      head: ['Vorsprung in Auspex-Lehre', ...DANGER_LEADS.map(signed)],
-      rows: FLEETS.map((ships) => ({
-        cells: [
-          `${number(ships)} Schiffe am Ziel`,
-          ...DANGER_LEADS.map((lead) => `${counterChance(ships, lead)} %`),
-        ],
-      })),
-    },
+    chanceTable(),
     {
       t: 'text',
-      text: 'Je größer die Flotte am Ziel, desto eher werden die Spähschädel abgeschossen – aber nur mit der Wurzel: Die hundertfache Flotte ist zehnmal so gefährlich. Jede Stufe Vorsprung halbiert die Gefahr, jede Stufe Rückstand verdoppelt sie.',
+      text: 'Die Chance auf Auspex-Abwehr wird bei jeder [[mission-spy]] neu zwischen null und dem Höchstwert ausgelost. Mehr [[probe]] und mehr Schiffe am Ziel erhöhen ihn, eine höhere Auspex-Lehre des Ziels auch; deine eigene senkt ihn.',
     },
   ];
 }
@@ -128,19 +140,27 @@ export const lexicon: EntryLexicon = {
       ],
     },
     {
-      text: 'Gefahr = {base} · √Schiffe am Ziel ÷ 2^Vorsprung (höchstens {max})',
-      values: { base: percent(0.02), max: percent(1) },
-      fn: (ships, lead) =>
-        ships
-          ? Math.min(100, Math.round((2 * Math.sqrt(ships)) / 2 ** lead!))
-          : 0,
-      rule: counterChance,
+      text: 'Höchste Chance auf Auspex-Abwehr in % = Spähschädel ÷ {probes} · Auspex-Lehre des Ziels ÷ deine Auspex-Lehre · (1 + Schiffe am Ziel ÷ {ships}) (höchstens {max})',
+      values: {
+        probes: number(PROBE_DIVISOR),
+        ships: number(SHIP_DIVISOR),
+        max: number(MAX_CHANCE),
+      },
+      fn: (probes, ships, target, spy) =>
+        Math.min(100, (probes! / 4) * (target! / spy!) * (1 + ships! / 100)),
+      rule: (probes, ships, target, spy) =>
+        counterMax({
+          probes: probes!,
+          ships: ships!,
+          target: target!,
+          spy: spy!,
+        }),
       samples: [
-        [0, 0],
-        [10, -2],
-        [100, 0],
-        [1000, 1],
-        [10000, 3],
+        [4, 0, 1, 1],
+        [12, 100, 2, 3],
+        [10, 1000, 1, 1],
+        [40, 10, 5, 1],
+        [1, 10, 1, 4],
       ],
     },
   ],

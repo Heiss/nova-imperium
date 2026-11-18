@@ -58,9 +58,10 @@ their own.
 # Code
 
 * **[V]** Rules where the browser can read them (the direction of #214):
-  `src/core/spy.ts` holds `SPY_LEVELS`, `spyScore`, `counterChance` (moved
-  from the server part of the mission „Auspex-Erkundung“, which imports
-  them) and `spyParts`, `probesFor`; `src/core/battle.ts` exports
+  `src/core/spy.ts` holds `SPY_LEVELS`, `spyScore` (moved from the server
+  part of the mission „Auspex-Erkundung“, which imports them) and
+  `spyParts`, `probesFor`; the chance of the Auspex-Abwehr (`counterMax` and
+  its numbers) is in `src/core/espionage.ts` (#175), which the article reads; `src/core/battle.ts` exports
   `TECH_BONUS` and `techFactor`, which the lists use too.
 * **[V]** Articles as data in `src/core/lexicon/`: `articles.ts` (one
   article per entry of `BUILD`, `RES`, `SHIPS`, `DEF` and per mission of
@@ -81,7 +82,7 @@ their own.
   Stryker leaves `lexicon.de.ts` out like the text files; their formulas
   are checked by the guards.
 * **[V]** Parts of stage 1: Auspex-Lehre (report levels, Spähschädel
-  needed by lead, danger, „Dein Stand“), Kogitator-Doktrin (fleet slots),
+  needed by lead, chance of the Auspex-Abwehr, „Dein Stand“), Kogitator-Doktrin (fleet slots),
   the three drives (speed bonus), Waffensegnung, Refraktionsfelder and
   Adamant-Panzerung (bonus in battle), Sternennetz der Gelehrten (linked
   Scholarien), Auspex-Phalanx (range), Mondzitadelle (fields), Warp-Tor (cooldown by the

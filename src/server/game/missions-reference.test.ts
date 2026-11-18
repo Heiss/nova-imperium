@@ -14,7 +14,11 @@
 // code), and the moon rule of #53 (owner, 2026-11-14), written here on its
 // own as well (`refMoon`), so that it compares the moon rows, the report
 // fields `moonChance` and `moon` and the random draws of the roll and the
-// diameter.
+// diameter. The counter-espionage of #175 (owner, 2026-11-14 to
+// 2026-11-17) is written here on its own as well (`refCounter`,
+// `refActivity`, `refSpyBattle`, and the refusal below Auspex-Lehre 1), so
+// that it compares the new chance, the battle of detected probes and the
+// activity in the report too.
 import Database from 'better-sqlite3';
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
@@ -121,10 +125,26 @@ function spyScore(probes: number, diff: number): number {
   return probes + Math.sign(diff) * diff * diff;
 }
 
-function counterChance(defShips: number, diff: number): number {
-  return defShips
-    ? Math.min(100, Math.round(2 * Math.sqrt(defShips) * Math.pow(2, -diff)))
-    : 0;
+// The counter-espionage of #175, written here on its own and not taken from
+// src/core/espionage.ts: the maximum (probes / 4) · (target tech / spy tech)
+// · (1 + ships / 100) %, at most 100, 0 at a target of level 0, the cap for
+// a spy below level 1; the chance drawn from 0 up to it; detected below it.
+function refCounter(probes: number, ships: number, tgt = 0, spy = 0): number {
+  if (tgt <= 0 || probes <= 0) return 0;
+  if (spy <= 0) return 100;
+  return Math.min(100, (probes / 4) * (tgt / spy) * (1 + ships / 100));
+}
+
+// The activity of the place by the classic thresholds of #229: recent for
+// 15 minutes, then the minutes up to 59, nothing later.
+function refActivity(ctx: Ctx, id: string, at: number) {
+  const row = ctx.db
+    .prepare('SELECT active_at FROM planets WHERE id = ?')
+    .get(id) as { active_at: number | null } | undefined;
+  if (row?.active_at == null) return null;
+  const minutes = Math.floor(Math.max(0, at - row.active_at) / 60000);
+  if (minutes < 15) return { recent: true };
+  return minutes <= 59 ? { minutes } : null;
 }
 
 const SPY_LEVELS: [number, 'ships' | 'def' | 'b' | 'r'][] = [
@@ -144,36 +164,43 @@ function spy(
   const attR = techAt(att, f.arr);
   const defR = techAt(def, f.arr);
   const diff = (attR.spy ?? 0) - (defR.spy ?? 0);
-  const score = spyScore(f.ships.probe ?? 0, diff);
-  const chance = counterChance(countUnits(t.ships), diff);
-  const lost = ctx.rng() * 100 < chance;
+  const probes = f.ships.probe ?? 0;
+  const score = spyScore(probes, diff);
+  const max = refCounter(probes, countUnits(t.ships), defR.spy, attR.spy);
+  const chance = ctx.rng() * max;
+  const seen = ctx.rng() * 100 < chance;
   const details = { ships: t.ships, def: t.def, b: t.b, r: defR };
   const shown = Object.fromEntries(
     SPY_LEVELS.filter(([min]) => score >= min).map(([, k]) => [k, details[k]]),
   );
-  addReport(
-    ctx,
-    f.owner,
-    {
-      time: f.arr,
-      type: 'spy',
-      title: `Auspex-Bericht von ${t.name} ${coords(f.toC)}`,
-      participants: [f.owner, t.owner],
-      name: t.name,
-      defName: def.name,
-      coords: f.toC,
-      res: {
-        m: Math.floor(t.res.m),
-        c: Math.floor(t.res.c),
-        d: Math.floor(t.res.d),
+  const left = seen ? refSpyBattle(ctx, f, t, att, def) : null;
+  const lost = left !== null && !countUnits(left);
+  const counter = Math.round(chance);
+  const activity = refActivity(ctx, t.id, f.arr);
+  if (!lost)
+    addReport(
+      ctx,
+      f.owner,
+      {
+        time: f.arr,
+        type: 'spy',
+        title: `Auspex-Bericht von ${t.name} ${coords(f.toC)}`,
+        participants: [f.owner, t.owner],
+        name: t.name,
+        defName: def.name,
+        coords: f.toC,
+        res: {
+          m: Math.floor(t.res.m),
+          c: Math.floor(t.res.c),
+          d: Math.floor(t.res.d),
+        },
+        activity,
+        counter,
+        ...shown,
       },
-      counter: chance,
-      lost,
-      ...shown,
-    },
-    { topic: 'fleet' },
-  );
-  const text = `Eine fremde Flotte von ${att.name} ${coords(f.fromC)} wurde in der Nähe deines Planeten ${t.name} ${coords(f.toC)} gesichtet. Chance auf Auspex-Abwehr: ${chance} %.${lost ? ' Die Spähschädel wurden abgeschossen!' : ''}`;
+      { topic: 'fleet' },
+    );
+  const text = `Eine fremde Flotte von ${att.name} ${coords(f.fromC)} wurde in der Nähe deines Planeten ${t.name} ${coords(f.toC)} gesichtet. Chance auf Auspex-Abwehr: ${counter} %.${lost ? ' Die Spähschädel wurden abgeschossen!' : ''}`;
   addReport(
     ctx,
     t.owner,
@@ -187,7 +214,7 @@ function spy(
     { topic: 'spied' },
   );
   if (lost) ctx.fleets.delete(f.id);
-  else turnBack(ctx, f);
+  else turnBack(ctx, f, left ? { ships: left } : {});
 }
 
 /** 70 % of the destroyed defense is rebuilt: by chance below 50 units, else rounded. */
@@ -383,6 +410,74 @@ function battleReports(ctx: Ctx, x: Fight): void {
   addReport(ctx, f.owner, { ...report, title: won }, { topic: 'fleet' });
   const hit = `Feindkontakt! ${t.name} ${coords(f.toC)} wird von ${x.att.name} angegriffen`;
   addReport(ctx, t.owner, { ...report, title: hit }, { topic: 'attacked' });
+}
+
+/**
+ * Detected probes fight like an attack without loot (#175 D4): debris, moon,
+ * rebuilt defense, a battle report for each side; the probes left, or
+ * null without ships and defense, which gives no battle.
+ */
+function refSpyBattle(
+  ctx: Ctx,
+  f: Fleet,
+  t: Planet,
+  att: Player,
+  def: Player,
+): Levels | null {
+  if (!countUnits(t.ships) && !countUnits(t.def)) return null;
+  const attR = techAt(att, f.arr);
+  const defR = techAt(def, f.arr);
+  const defBefore = { ...t.ships, ...t.def };
+  const res = battle(
+    { units: f.ships, tech: attR },
+    { units: defBefore, tech: defR },
+    ctx.rng,
+  );
+  const debris = refDebris([
+    [f.ships, res.att],
+    [defBefore, res.def],
+  ]);
+  refLeaveDebris(ctx, f.toC, debris);
+  const moon = refMoon(ctx, t, f.arr);
+  const after = afterBattle(ctx, t, res.def);
+  t.ships = after.ships;
+  t.def = after.def;
+  ctx.planets.save(t);
+  record(ctx, {
+    category: 'system',
+    action: 'battle',
+    actor: f.owner,
+    target: t.owner,
+    detail: { fleet: f.id, planet: t.id, winner: res.winner, scheduled: f.arr },
+  });
+  const report = {
+    time: f.arr,
+    type: 'battle' as const,
+    participants: [f.owner, t.owner],
+    name: t.name,
+    coords: f.toC,
+    attName: att.name,
+    defName: def.name,
+    rounds: res.rounds,
+    winner: res.winner,
+    attBefore: f.ships,
+    attAfter: res.att,
+    defBefore,
+    defAfter: res.def,
+    rebuilt: after.rebuilt,
+    debris,
+    ...moon,
+    attTech: tech(attR),
+    defTech: tech(defR),
+  };
+  const where = coords(f.toC);
+  const title = countUnits(res.att)
+    ? `Kampfbericht ${where} – ${WON[res.winner]}`
+    : `Kontakt abgebrochen – deine Spähschädel wurden bei ${where} entdeckt und zerstört.`;
+  addReport(ctx, f.owner, { ...report, title }, { topic: 'fleet' });
+  const seen = `Kampfbericht ${t.name} ${where} – Spähschädel von ${att.name}`;
+  addReport(ctx, t.owner, { ...report, title: seen }, { topic: 'spied' });
+  return res.att;
 }
 
 function attack(ctx: Ctx, f: Fleet, t: Planet, att: Player, def: Player): void {
@@ -635,6 +730,14 @@ function checkDestination(
   }
 }
 
+/** Only Spähschädel, and from Auspex-Lehre 1 (#175, Q1). */
+function refSpyCheck(ctx: Ctx, u: User, ships: Levels): void {
+  if (Object.keys(ships).some((k) => k !== 'probe'))
+    fail('Auspex-Erkundung nur mit Spähschädeln.');
+  if ((researchOf(ctx, u).research.spy ?? 0) < 1)
+    fail('Auspex-Erkundung erst ab Auspex-Lehre 1.');
+}
+
 function plan(ctx: Ctx, u: User, p: Planet, d: Data): Plan {
   const mission = String(d.mission) as Mission;
   if (!Object.hasOwn(MISSION, mission)) fail('Unbekannter Auftrag.');
@@ -645,8 +748,7 @@ function plan(ctx: Ctx, u: User, p: Planet, d: Data): Plan {
   const dest = target(ctx, d);
   const occupied = ctx.planets.get(placeId({ ...dest, kind: 'planet' }));
   checkDestination(ctx, u, p, mission, occupied, ships);
-  if (mission === 'spy' && Object.keys(ships).some((k) => k !== 'probe'))
-    fail('Auspex-Erkundung nur mit Spähschädeln.');
+  if (mission === 'spy') refSpyCheck(ctx, u, ships);
   return {
     mission,
     ships,
@@ -1163,6 +1265,7 @@ describe(
         'Flotte',
         'Kampfbericht',
         'Kolonie',
+        'Kontakt',
         'Transport',
         'Verlegung',
       ]);

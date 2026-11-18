@@ -37,7 +37,7 @@ function setup() {
   };
   for (const [n, at] of Object.entries(home)) {
     // Vex has fleet slots for several fleets.
-    addUser(ctx, n, n === 'Vex' ? { research: { computer: 5 } } : {});
+    addUser(ctx, n, n === 'Vex' ? { research: { computer: 5, spy: 1 } } : {});
     // Enough points for every one not to be under noob protection.
     addPlanet(ctx, `u_${n}`, { g: 1, b: { metal: 15 }, ...at });
   }

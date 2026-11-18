@@ -53,7 +53,8 @@ const placeOf = (m: Mission, c: Coords): string =>
 
 function setup() {
   const ctx = testCtx();
-  const anna = addUser(ctx, 'Anna');
+  // Auspex-Lehre 1 lets Anna spy (#175, Q1).
+  const anna = addUser(ctx, 'Anna', { research: { spy: 1 } });
   // Points from research, so the noob protection does not shield him.
   addUser(ctx, 'Bert', { research: { energy: 10 } });
   addPlanet(ctx, anna.id, {

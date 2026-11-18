@@ -13,7 +13,12 @@ import {
 import { DEFAULT_UNIVERSE } from '../../core/universe.ts';
 import type { AuditEntry } from '../audit.ts';
 import { addPlanet, addUser, type TestCtx, testCtx } from '../test-helpers.ts';
-import { inactivities, planetActivities, recordActivity } from './activity.ts';
+import {
+  inactivities,
+  placeActivity,
+  planetActivities,
+  recordActivity,
+} from './activity.ts';
 import { runAction } from './dispatch.ts';
 import { roundRules } from './round.ts';
 import { stateFor } from './state.ts';
@@ -144,6 +149,28 @@ describe('what the state shows', () => {
     });
     expect(planetActivities(ctx, ACTIVITY_DEFAULT)).toEqual({});
     expect(inactivities(ctx, ACTIVITY_DEFAULT)).toEqual({});
+  });
+});
+
+describe('the activity of one place (#175, D5)', () => {
+  it('follows the rule and the thresholds of the Sternenkarte, with none without a time', () => {
+    const ctx = world();
+    const limits = activityLimits(roundRules(ctx));
+    expect(ctx.planets.activeAt('p1_1_5')).toBeNull();
+    expect(ctx.planets.activeAt('nowhere')).toBeNull();
+    expect(placeActivity(ctx, 'p1_1_5', START, limits)).toBeNull();
+    recordActivity(ctx, user(ctx, 'u_Anna'), 'action');
+    const t = ctx.now();
+    expect(ctx.planets.activeAt('p1_1_5')).toBe(t);
+    expect(ctx.planets.activeAt('p1_2_5')).toBeNull();
+    expect(placeActivity(ctx, 'p1_1_5', t + 14 * MINUTE_MS, limits)).toEqual({
+      recent: true,
+    });
+    expect(placeActivity(ctx, 'm1_1_5', t + 20 * MINUTE_MS, limits)).toEqual({
+      minutes: 20,
+    });
+    expect(placeActivity(ctx, 'p1_1_5', t + 60 * MINUTE_MS, limits)).toBeNull();
+    expect(placeActivity(ctx, 'p1_2_5', t, limits)).toBeNull();
   });
 });
 

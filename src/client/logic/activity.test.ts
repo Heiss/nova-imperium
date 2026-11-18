@@ -6,6 +6,8 @@ import {
   activityNote,
   activityText,
   inactivityNote,
+  NO_ACTIVITY,
+  spyActivityText,
 } from './activity.ts';
 
 describe('the words of a planet’s activity', () => {
@@ -23,6 +25,18 @@ describe('the words of a planet’s activity', () => {
     expect(activityNote({ minutes: 20 })).toBe('Aktivität vor 20 Minuten');
     expect(activityNote({ recent: true })).toBe('Aktiv');
     expect(activityNote(undefined)).toBe('');
+  });
+});
+
+describe('the activity in the Auspex-Bericht (#175 D5, Q3)', () => {
+  it('has the words of the Sternenkarte', () => {
+    expect(spyActivityText({ recent: true })).toBe('Aktiv');
+    expect(spyActivityText({ minutes: 42 })).toBe('Aktivität vor 42 Minuten');
+  });
+  it('says so without activity, nothing in a report from before', () => {
+    expect(NO_ACTIVITY).toBe('Keine Aktivität in der letzten Stunde.');
+    expect(spyActivityText(null)).toBe(NO_ACTIVITY);
+    expect(spyActivityText(undefined)).toBeNull();
   });
 });
 

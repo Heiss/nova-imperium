@@ -1,6 +1,6 @@
 // The rules of the Auspex-Erkundung that both the server and the browser
-// read (#285, the direction of #214): what a report shows and how likely the
-// Spähschädel are shot down. The arrival of the mission
+// read (#285, the direction of #214): what a report shows (the chance of the
+// Auspex-Abwehr is in src/core/espionage.ts, #175). The arrival of the mission
 // (src/features/missions/spy/arrive.server.ts) and the Lexicanum use them.
 
 /** What a part of a report holds: ships, defense, buildings, research. */
@@ -23,17 +23,6 @@ export const SPY_LEVELS: readonly (readonly [number, SpyPart])[] = [
  */
 export function spyScore(probes: number, diff: number): number {
   return probes + Math.sign(diff) * diff * diff;
-}
-
-/**
- * The chance in percent that the Spähschädel are shot down: twice the square
- * root of the ships at the target, halved by every level of lead, at most
- * 100; no ships, no chance.
- */
-export function counterChance(defShips: number, diff: number): number {
-  return defShips
-    ? Math.min(100, Math.round(2 * Math.sqrt(defShips) * Math.pow(2, -diff)))
-    : 0;
 }
 
 /** The parts a report with this Auspex-Wert shows. */

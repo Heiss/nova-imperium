@@ -30,6 +30,7 @@ const CODES: SendError[] = [
   'protected',
   'noColonyShip',
   'probesOnly',
+  'noSpyTech',
   'noDebris',
   'noRecycler',
 ];
@@ -78,15 +79,19 @@ describe('mission names', () => {
   });
 });
 
-/** Generated fleets: any ships, any counts. */
-const fleets: fc.Arbitrary<SendFleet> = fc.record({
-  owner: fc.constantFrom('a', 'b'),
-  from: fc.constantFrom('p1', 'p2'),
-  ships: fc.dictionary(
-    fc.constantFrom(...Object.keys(SHIPS), 'nope'),
-    fc.integer({ min: 0, max: 50 }),
-  ),
-});
+/** Generated fleets: any ships, any counts, with or without an espionage technology (#175). */
+const fleets: fc.Arbitrary<SendFleet> = fc.record(
+  {
+    owner: fc.constantFrom('a', 'b'),
+    from: fc.constantFrom('p1', 'p2'),
+    ships: fc.dictionary(
+      fc.constantFrom(...Object.keys(SHIPS), 'nope'),
+      fc.integer({ min: 0, max: 50 }),
+    ),
+    research: fc.record({ spy: fc.integer({ min: 0, max: 3 }) }),
+  },
+  { requiredKeys: ['owner', 'from', 'ships'] },
+);
 
 const planets = fc.option(
   fc.record({

@@ -12,7 +12,6 @@ import {
 import {
   arrive,
   comeHome,
-  counterChance,
   plunder,
   rebuild,
   spyScore,
@@ -65,14 +64,10 @@ const titles = (ctx: ReturnType<typeof testCtx>, uid: string) =>
   ctx.reports.ofPlayer(uid).map((r) => r.title);
 
 describe('helpers', () => {
-  it('compute the spy score and the counter chance', () => {
+  it('compute the spy score (the counter chance: src/core/espionage.test.ts)', () => {
     expect(spyScore(1, 0)).toBe(1);
     expect(spyScore(1, 2)).toBe(5);
     expect(spyScore(4, -1)).toBe(3);
-    expect(counterChance(0, 0)).toBe(0);
-    expect(counterChance(4, 0)).toBe(4);
-    expect(counterChance(4, 1)).toBe(2);
-    expect(counterChance(10000, -3)).toBe(100);
   });
   it('rebuild 70 % of the defense', () => {
     expect(rebuild(0, () => 0)).toBe(0);
@@ -263,6 +258,7 @@ describe('arrival', () => {
   });
   it('spies: more probes show more', () => {
     const { ctx } = setup({ ships: {}, def: { rl: 2 }, b: { metal: 3 } });
+    ctx.players.save({ ...ctx.players.get('u_Anna')!, research: { spy: 1 } });
     ctx.players.save({
       ...ctx.players.get('u_Bert')!,
       research: { spy: 1, energy: 2 },
@@ -275,7 +271,6 @@ describe('arrival', () => {
       defName: 'Bert',
       res: { m: 9000, c: 6000, d: 3000 },
       counter: 0,
-      lost: false,
     });
     expect(rep.ships).toBeUndefined();
     expect(titles(ctx, 'u_Bert')).toEqual(['Auspex-Aktivität']);
@@ -289,15 +284,20 @@ describe('arrival', () => {
       r: { spy: 1, energy: 2 },
     });
   });
-  it('spy probes can be shot down', () => {
+  it('spy probes can be shot down: then only the battle reports (#175)', () => {
     const { ctx } = setup({ ships: { lf: 10000 } });
+    ctx.players.save({ ...ctx.players.get('u_Anna')!, research: { spy: 1 } });
+    ctx.players.save({ ...ctx.players.get('u_Bert')!, research: { spy: 4 } });
+    // The chance drawn at its maximum of 100 %, then a sure detection.
+    const rest = ctx.rng;
+    const first = [0.999999, 0];
+    ctx.rng = () => first.shift() ?? rest();
     arrive(ctx, fleet(ctx, { mission: 'spy', ships: { probe: 1 } }));
-    expect(ctx.reports.ofPlayer('u_Anna')[0]).toMatchObject({
-      counter: 100,
-      lost: true,
-    });
+    expect(titles(ctx, 'u_Anna')).toEqual([
+      'Kontakt abgebrochen – deine Spähschädel wurden bei [1:2:6] entdeckt und zerstört.',
+    ]);
     expect(ctx.reports.ofPlayer('u_Bert')[0]!.text).toContain(
-      'Die Spähschädel wurden abgeschossen!',
+      'Chance auf Auspex-Abwehr: 100 %. Die Spähschädel wurden abgeschossen!',
     );
     expect(ctx.fleets.get('f1')).toBeNull();
   });

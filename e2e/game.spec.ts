@@ -1312,6 +1312,10 @@ test.describe('playing', () => {
       .first()
       .click();
     await expect(page.locator('.rep.open')).toContainText('Rohstoffe auf');
+    // The target registered just now: its activity, by the rule of #229 (#175 D5).
+    await expect(
+      page.locator('.rep.open .mt', { hasText: 'Aktivität' }),
+    ).toHaveText(/^Aktivität\s*Aktiv$/);
     expect(w.problems).toEqual([]);
   });
 

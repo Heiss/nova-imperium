@@ -46,6 +46,21 @@ export function planetActivities(
   return out;
 }
 
+/**
+ * The public activity of one place at a time with the round's thresholds:
+ * the activity in the Auspex-Bericht (#175 D5, Q3), the same rule as on the
+ * Sternenkarte. Null for a place without a recorded activity.
+ */
+export const placeActivity = (
+  ctx: Ctx,
+  id: string,
+  at: number,
+  limits: Readonly<ActivityLimits>,
+): PlanetActivity | null => {
+  const last = ctx.planets.activeAt(id);
+  return last === null ? null : planetActivity(last, at, limits);
+};
+
 /** The inactivity of every account that is inactive now. */
 export function inactivities(
   ctx: Ctx,

@@ -627,7 +627,13 @@ test.describe('galaxy, shipyard and options (#68)', () => {
     await register(page, b);
     await page.click('[data-act=logout]');
     await register(page, a);
-    seed({ name: a, ships: { probe: 5 }, res: { m: 0, c: 0, d: 10000 } });
+    // Auspex-Lehre 1 lets the player spy (#175, Q1).
+    seed({
+      name: a,
+      ships: { probe: 5 },
+      research: { spy: 1 },
+      res: { m: 0, c: 0, d: 10000 },
+    });
     seed({ name: b, b: { metal: 10 } });
     await nav(page, 'help');
     const probes = page.getByLabel('Spähschädel pro Auspex-Erkundung');

@@ -43,6 +43,8 @@ export interface Planets {
   markActive(ids: readonly string[], at: number): void;
   /** The time of the last activity of every place that has one (#229). */
   activeTimes(): Record<string, number>;
+  /** The time of the last activity of one place, or null without one (#175). */
+  activeAt(id: string): number | null;
 }
 
 export class SqlitePlanets implements Planets {
@@ -254,6 +256,13 @@ export class SqlitePlanets implements Planets {
       .prepare('SELECT id, active_at FROM planets WHERE active_at IS NOT NULL')
       .all() as Row[];
     return levels(rows, 'id', 'active_at');
+  }
+
+  activeAt(id: string): number | null {
+    const r = this.db
+      .prepare('SELECT active_at FROM planets WHERE id = ?')
+      .get(id) as Row | undefined;
+    return (r?.active_at as number | null | undefined) ?? null;
   }
 
   usedSize(): UsedSize {
