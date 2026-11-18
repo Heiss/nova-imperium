@@ -2,6 +2,7 @@ import { globSync, readFileSync } from 'node:fs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import vitestConfig from '../../vitest.config.ts';
 import {
+  changedFiles,
   isMutated,
   main,
   MUTATION_CONFIG,
@@ -144,7 +145,7 @@ describe('mutation changes: the files', () => {
 
   it('counts every mutation script as configuration', () => {
     const scripts = globSync('scripts/mutation-*.ts');
-    expect(scripts.length).toBe(4);
+    expect(scripts.length).toBe(5);
     for (const file of scripts.map((f) => f.split('\\').join('/')))
       expect(reason(file, mutate)).toBe(`${file} configures the mutation run`);
     expect(MUTATION_CONFIG).toContain('scripts/mutation-*.ts');
@@ -232,6 +233,18 @@ describe('mutation changes: the test tool chain', () => {
 });
 
 describe('mutation changes: the diff', () => {
+  it('lists the changed files: moved ones with both paths, no empty entry', () => {
+    const git = fakeGit({ [diff]: 'src/a.ts\0src/\u00e4 b.ts\0' });
+    expect(changedFiles('base', 'head', git)).toEqual([
+      'src/a.ts',
+      'src/\u00e4 b.ts',
+    ]);
+    expect(changedFiles('base', 'head', fakeGit({ [diff]: '' }))).toEqual([]);
+    expect(() => changedFiles('base', 'head', fakeGit({}))).toThrow(
+      'git diff --name-only -z --no-renames base head',
+    );
+  });
+
   it('skips a change of dependencies and the Dockerfile', () => {
     const git = fakeGit({
       [diff]: 'Dockerfile\0package.json\0pnpm-lock.yaml\0',
