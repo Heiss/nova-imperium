@@ -518,11 +518,15 @@ choice of the patterns to the assistant's recommendation below
   default and its refusal (else the shared range wording `rangeError` of
   the universe settings); the pure checks `roundRefused` and `roundValues`
   are in the core, the server words the refusal. `RoundRules` is derived
-  from the entries' types. A feature adds one entry in its own file and
-  one line to the list; its `order` number, the next free ten above the
-  highest, puts it last in the fixed order of the dialog and the refusals
-  (owner, 2026-11-17; a test refuses a number used twice); `live: true`
-  also puts it into the universe settings (X1). The rules are in
+  from the entries' types. A feature defines its entries in its own file
+  and exports them as `roundSettings`; the list of all of them is
+  generated like the feature index (`src/core/round-settings.gen.ts`,
+  `scripts/gen-features.ts`, #310), so `src/core/round.ts` names no feature
+  and a new feature edits no shared place and no test of another feature;
+  its `order` number, the next free ten above the highest, puts it last in
+  the fixed order of the dialog and the refusals (owner, 2026-11-17; a test
+  refuses a number used twice); `live: true` also puts it into the universe
+  settings (X1). The rules are in
   [Admin](/features/admin.md#the-registry-of-the-round-settings-283).
 
 ## 8. Store: a repository per aggregate
