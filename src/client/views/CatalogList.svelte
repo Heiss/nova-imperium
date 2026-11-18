@@ -143,8 +143,7 @@
                 data-k={row.key}
                 disabled={a.disabled}>Bauen</button
               >
-            {/if}
-            {#if row.demolish}
+            {/if}{#if row.demolish}
               <br /><button class="small" data-act="demolish" data-k={row.key}
                 >Zurückbauen</button
               >
