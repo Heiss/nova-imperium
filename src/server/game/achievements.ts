@@ -1,8 +1,8 @@
 import {
   ACHIEVEMENTS,
   type AchievementState,
-  type RoundRules,
 } from '../../core/achievements.ts';
+import type { RoundRules } from '../../core/round.ts';
 import {
   dailyReward,
   medianOutput,

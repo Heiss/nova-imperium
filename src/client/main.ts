@@ -6,7 +6,7 @@ import { flushSync } from 'svelte';
 import { settle, settleR } from '../core/settle.ts';
 import { text } from '../core/text.ts';
 import type { Levels, Planet, Queue, Resources } from '../core/types.ts';
-import { abandonActs, roundLocks } from './abandon-actions.ts';
+import { abandonActs } from './abandon-actions.ts';
 import { createAct, placeOf, samePlace } from './logic/act.ts';
 import { CATALOG_VIEWS, catalogKind, orderNote } from './logic/catalog-list.ts';
 import { clearsChat, sameSignIn } from './logic/guild-chat.ts';
@@ -66,6 +66,7 @@ import {
   type AdminTab,
 } from './views/misc.ts';
 import { disablePush, enablePush } from './push.ts';
+import { roundActs } from './round-actions.ts';
 import { mountCatalogList } from './views/catalog-list.ts';
 import {
   adminChatDialog,
@@ -1264,17 +1265,7 @@ const ACT: Record<string, (d: Data) => unknown> = {
       toast('Bitte installiere die App über das Browsermenü.', true);
     }
   },
-  doReset: () => {
-    const checked = (id: string) => $<HTMLInputElement>(id)!.checked;
-    const rewards = {
-      achievements: checked('#round-achievements'),
-      daily: checked('#round-daily'),
-    };
-    const guilds = checked('#round-guilds');
-    const locks = roundLocks(); // before the dialog closes with its fields
-    modal('');
-    return act('reset', { rewards, guilds, ...locks });
-  },
+  ...roundActs({ act, modal }),
   endzeit: () => modal(endzeitDialog(client.game!.admin!.endzeit.minutes)),
   doEndzeit: () => {
     const minutes = val('#endzeit-minutes');

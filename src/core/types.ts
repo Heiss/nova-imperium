@@ -120,8 +120,8 @@ export interface Universe {
   /** The default flight time of the „Endzeit“ gift, in minutes (#161). */
   endzeitMinutes: number;
   /**
-   * The lock of a given-up colony's position in hours (#224, D2): the
-   * stored setting of the round, also changed live by the admin (X1).
+   * A `live` setting of the round (#283, src/core/round.ts): the stored
+   * setting of the round, also a row of the universe settings (X1).
    */
-  roundAbandonLock: number;
+  [round: `round${string}`]: number;
 }

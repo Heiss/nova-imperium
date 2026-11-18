@@ -1,4 +1,4 @@
-import type { RoundRules } from '../../core/achievements.ts';
+import type { RoundRules } from '../../core/round.ts';
 import { achievements } from './achievements.ts';
 import type { V } from './common.ts';
 import { guilds } from './guilds.ts';
