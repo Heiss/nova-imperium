@@ -102,8 +102,8 @@ describe('the thresholds as settings of the round (#228, D1, X1; #283)', () => {
   const refused = (recognition: unknown): string[] =>
     roundRefused(current, { recognition }, SETTINGS).map((s) => s.name);
 
-  it('are three live number fields of one group without a legend, after the orders of #229 and #55', () => {
-    const group = { name: 'recognition' };
+  it('are three live number fields of one group with the legend „Fremde Flotten erkennen“, after the orders of #229 and #55', () => {
+    const group = { name: 'recognition', legend: 'Fremde Flotten erkennen' };
     const common = { kind: 'number', min: 0, max: 100, live: true, group };
     expect(SETTINGS).toEqual([
       {

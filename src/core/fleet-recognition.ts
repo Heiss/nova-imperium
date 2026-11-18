@@ -33,9 +33,13 @@ export const RECOGNITION_LEVELS = { min: 0, max: 100 } as const;
 
 /**
  * The three thresholds are sent and refused together in a new round; the
- * dialog shows each as its own number field.
+ * dialog shows them as number fields in one fieldset with the legend
+ * „Fremde Flotten erkennen“ (owner, 2026-11-18).
  */
-const RECOGNITION: RoundGroup = { name: 'recognition' };
+const RECOGNITION: RoundGroup = {
+  name: 'recognition',
+  legend: 'Fremde Flotten erkennen',
+};
 
 /** One threshold as a setting of the round (#283), `live` by X1. */
 const threshold = <N extends string, K extends `round${string}`>(

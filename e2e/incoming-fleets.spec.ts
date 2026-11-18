@@ -137,16 +137,16 @@ const settings = (page: Page): Locator =>
 /** The thresholds as the dialog or the universe settings show them. */
 async function shownLevels(scope: Locator): Promise<string[]> {
   return [
-    await scope.getByLabel(LABEL.total).inputValue(),
-    await scope.getByLabel(LABEL.types).inputValue(),
-    await scope.getByLabel(LABEL.counts).inputValue(),
+    await scope.getByLabel(LABEL.total, { exact: true }).inputValue(),
+    await scope.getByLabel(LABEL.types, { exact: true }).inputValue(),
+    await scope.getByLabel(LABEL.counts, { exact: true }).inputValue(),
   ];
 }
 
 async function fillLevels(scope: Locator, levels: number[]): Promise<void> {
   const labels = [LABEL.total, LABEL.types, LABEL.counts];
   for (const [i, label] of labels.entries())
-    await scope.getByLabel(label).fill(String(levels[i]));
+    await scope.getByLabel(label, { exact: true }).fill(String(levels[i]));
 }
 
 /** Saves the universe settings with the given thresholds. */
@@ -170,16 +170,26 @@ async function adminFlow(page: Page): Promise<void> {
   // The dialog offers the thresholds of the round: 2 / 4 / 8.
   await openRoundDialog(page);
   expect(await shownLevels(dialog(page))).toEqual(['2', '4', '8']);
+  // The three stand in one framed group with the legend of the owner
+  // (2026-11-18); the labels of the fields stay as they are.
+  const group = dialog(page).getByRole('group', {
+    name: 'Fremde Flotten erkennen',
+    exact: true,
+  });
+  await expect(group).toBeVisible();
+  for (const label of Object.values(LABEL))
+    await expect(group.getByLabel(label, { exact: true })).toHaveCount(1);
+  await expect(group.getByRole('spinbutton')).toHaveCount(3);
   found.push(...(await violations(page, 'dialog „Neue Runde“')));
   // A level outside 0 to 100 is refused by the server, the round stays.
-  await dialog(page).getByLabel(LABEL.counts).fill('101');
+  await dialog(page).getByLabel(LABEL.counts, { exact: true }).fill('101');
   await page.getByRole('button', { name: 'Ja, neue Runde' }).click();
   await expect(lastToast(page)).toContainText(
     `${LABEL.counts}: ganze Zahl von 0 bis 100.`,
   );
   // An emptied field is no level, not 0: refused as well.
   await openRoundDialog(page);
-  await dialog(page).getByLabel(LABEL.total).fill('');
+  await dialog(page).getByLabel(LABEL.total, { exact: true }).fill('');
   await page.getByRole('button', { name: 'Ja, neue Runde' }).click();
   await expect(lastToast(page)).toContainText(
     `${LABEL.total}: ganze Zahl von 0 bis 100.`,

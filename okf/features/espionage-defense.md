@@ -73,14 +73,17 @@ points were answered on 2026-11-16.
   labels are „Fremde Flotten: Schiffe insgesamt ab Auspex-Lehre“, „Fremde
   Flotten: Schiffstypen ab Auspex-Lehre“ and „Fremde Flotten: Anzahl je
   Schiffstyp ab Auspex-Lehre“, in whole levels from 0 to 100 (0: every
-  player sees that part). Each is `live` (X1): a number field of the dialog
+  player sees that part; the range is [E], owner, 2026-11-18, on PR #300). Each is `live` (X1): a number field of the dialog
   „Neue Runde“, preselected with the current value, and a row of the
   universe settings, changed during the round. Both paths write the same
   settings, and the round reset's audit entry holds them.
-* **[V]** The three entries are one group `recognition` without a legend:
-  the dialog shows three single number fields, no fieldset (the branch had
-  no German legend text; a framed group is an open question), the request
-  „reset“ sends them as one object `recognition`, and the server refuses
+* **[E]** The dialog „Neue Runde“ shows the three thresholds in one framed
+  group (a fieldset) with the legend „Fremde Flotten erkennen“, like
+  „Aktivität“ of #229; the field labels stay as they are (owner,
+  2026-11-18, on PR #300).
+* **[V]** The three entries are one group `recognition` with this legend
+  (`legend` of the group in `src/core/fleet-recognition.ts`, as the rewards
+  group has it): the request „reset“ sends them as one object `recognition`, and the server refuses
   every wrong threshold at once with the message of the universe settings,
   „<Name>: ganze Zahl von 0 bis 100.“ A new round without the object keeps
   the current values; an object that leaves a threshold out is refused,
@@ -106,7 +109,7 @@ points were answered on 2026-11-16.
   entries of the registry and their check), `src/core/round.test.ts` (the
   order), `src/core/universe.test.ts` (the three settings),
   `src/client/logic/overview.test.ts` (the row) and
-  `src/client/views/misc.test.ts` (the dialog).
+  `src/client/views/misc.test.ts` (the dialog with its fieldset and legend).
 * Server: `src/server/game/fleet-recognition.test.ts` (the levels, nothing
   hidden in the answer, the settled research, every mission, a group
   attack, own fleets, the guild event, the round, the refusal and the live
@@ -114,5 +117,5 @@ points were answered on 2026-11-16.
   mission).
 * E2E: `e2e/incoming-fleets.spec.ts`, desktop and phone: the defender at
   Auspex-Lehre 0 to 8 with the answer of `/api/state`, and the admin on the
-  mail server with the dialog and the universe settings; axe on the
-  overview, the dialog and the settings.
+  mail server with the dialog and the universe settings; the group „Fremde Flotten erkennen“ with its three fields in
+  the dialog; axe on the overview, the dialog and the settings.

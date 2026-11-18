@@ -155,7 +155,7 @@ describe('the thresholds of foreign fleets in the dialog „Neue Runde“ (#228,
       ['counts', 'Fremde Flotten: Anzahl je Schiffstyp ab Auspex-Lehre', 9],
     ] as const) {
       expect(html).toContain(
-        `<p><label for="round-recognition-${part}">${label}</label> <input type="number" id="round-recognition-${part}" min="0" max="100" step="1" value="${value}" required> <span class="dim">0 bis 100</span></p>`,
+        `<label for="round-recognition-${part}">${label}</label> <input type="number" id="round-recognition-${part}" min="0" max="100" step="1" value="${value}" required> <span class="dim">0 bis 100</span>`,
       );
       expect(html.indexOf(`id="round-recognition-${part}"`)).toBeGreaterThan(
         html.indexOf('id="round-abandon-lock"'),
@@ -164,8 +164,19 @@ describe('the thresholds of foreign fleets in the dialog „Neue Runde“ (#228,
         html.indexOf('data-act="doReset"'),
       );
     }
-    // A group without a legend: no fieldset of its own.
-    expect(html.match(/<fieldset>/g)).toHaveLength(1);
+    // The three stand in one fieldset with the legend of the owner (2026-11-18).
+    const fieldsets = [...html.matchAll(/<fieldset>[\s\S]*?<\/fieldset>/g)].map(
+      (m) => m[0],
+    );
+    expect(fieldsets).toHaveLength(2);
+    const group = fieldsets.find((f) => f.includes('round-recognition-total'))!;
+    expect(group).toMatch(
+      /^<fieldset><legend>Fremde Flotten erkennen<\/legend>/,
+    );
+    expect(group.match(/<input /g)).toHaveLength(3);
+    for (const part of ['total', 'types', 'counts'])
+      expect(group).toContain(`id="round-recognition-${part}"`);
+    expect(group).not.toContain('round-abandon-lock');
   });
 });
 
