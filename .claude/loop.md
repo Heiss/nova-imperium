@@ -87,7 +87,9 @@ interface is German.
    release (owner, 2026-11-16 and 2026-11-18): in every iteration in
    which no own pull request is the next one to merge, take the oldest
    open Renovate pull request with a patch or minor update of a version
-   from 1.0 on and bring it one step further; do not wait for a pause.
+   from 1.0 on that can go on, and bring it one step further; do not wait
+   for a pause. One whose CI Gate is red on a head up to date with `main`
+   cannot go on: skip it, it stays open and is named with the release.
    Renovate rebases it only on a conflict, so ask for the rebase when its
    head is behind `main`: tick the box „rebase/retry“ at the end of its
    description (the label `rebase` also works, but starts a CI run of its

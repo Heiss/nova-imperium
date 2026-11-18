@@ -188,8 +188,10 @@ tasks).
   pull requests is the next one to merge, not only „while it waits“
   (owner, 2026-11-18: „sowieso sollte der loop schauen, ob er solche PRs
   nicht selbst mal eben mit reinpackt“): it brings the oldest such
-  Renovate pull request one step further (ask for the rebase, or merge
-  it). Reason: on 2026-11-18 five green minor updates were open, the
+  Renovate pull request that can go on one step further (ask for the
+  rebase, or merge it); one that is red on a head up to date with `main`
+  is skipped, so it does not hold the newer ones back (CodeRabbit on
+  #294). Reason: on 2026-11-18 five green minor updates were open, the
   oldest since 2026-11-13, although the rule above stood since
   2026-11-16; the session beside the loop merged them.
 * **[E]** An open pull request takes `main` in only when it is the next one
