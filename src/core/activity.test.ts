@@ -18,7 +18,12 @@ import {
   inactivity,
   planetActivity,
 } from './activity.ts';
-import { ROUND_SETTINGS, roundRefused, roundValues } from './round.ts';
+import {
+  ROUND_SETTINGS,
+  type RoundSetting,
+  roundRefused,
+  roundValues,
+} from './round.ts';
 import { liveSpecs } from './universe.ts';
 
 const NOW = 1_763_300_000_000;
@@ -102,9 +107,9 @@ describe('the thresholds of a round', () => {
     for (const s of SETTINGS) expect(s.group).toBe(SETTINGS[0]!.group);
     // The registry holds them in this order, picked by their group, so a
     // later feature after them (#228: 120 to 140) does not matter.
-    const inGroup = (s: { group?: { name: string } }): boolean =>
-      s.group?.name === 'activity';
-    expect(ROUND_SETTINGS.filter(inGroup)).toEqual(SETTINGS);
+    expect(
+      ROUND_SETTINGS.filter((s: RoundSetting) => s.group?.name === 'activity'),
+    ).toEqual(SETTINGS);
     const keys = new Set<string>(SETTINGS.map((s) => s.key));
     expect(
       liveSpecs()
