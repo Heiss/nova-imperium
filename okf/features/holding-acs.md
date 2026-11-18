@@ -87,7 +87,7 @@ The battle with several parties is built with #55
   choices „Gilde“, „Freunde“ and „Gilde und Freunde“ [V] (1, 2, 3;
   default 3): the entry `ALLIES_SETTING` of the registry of the round
   settings (#283, [Admin](/features/admin.md#the-registry-of-the-round-settings-283)),
-  defined in `src/core/holding.ts` with the order number 60 and `live`
+  defined in `src/core/holding.ts` with the order number 100 and `live`
   (X1). So the dialog „Neue Runde“ offers the choice, kept without a
   choice like the lock of the main planet, and the universe settings
   show the same selection during the round.
@@ -123,7 +123,7 @@ The battle with several parties is built with #55
     on the planet too, as the flight fuel.
   * The spy report: the setting is `roundHeldSpy`, range 0 to 30 [V], the
     entry `HELD_SPY_SETTING` of the registry (#283) in
-    `src/core/holding.ts`, order number 70, the last, and `live` (X1): a
+    `src/core/holding.ts`, order number 110, the last, and `live` (X1): a
     number field in „Neue Runde“ and a row of the universe settings; the
     held fleets follow the section „Flotte“ and show
     only when it shows (score 2), apart as „Gehaltene Flotten“ with

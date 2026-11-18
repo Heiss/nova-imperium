@@ -41,7 +41,8 @@ export const ALLIES_RANGE = {
  * Who may hold as a setting of the round (#283): a selection of the dialog
  * „Neue Runde“ and, `live`, a row of the universe settings, changed during
  * the round (X1); existing universes let guild members and friends hold
- * [V]. The choices are named as the admin panel and „Neue Runde“ show them
+ * [V]. The order numbers 100 and 110 leave 60 to 90 to the activity
+ * indicators (#229), which merge first. The choices are named as the admin panel and „Neue Runde“ show them
  * [V].
  */
 export const ALLIES_SETTING = {
@@ -49,7 +50,7 @@ export const ALLIES_SETTING = {
   key: 'roundAllies',
   name: 'allies',
   label: 'Halten erlaubt für',
-  order: 60,
+  order: 100,
   min: ALLIES_RANGE.min,
   max: ALLIES_RANGE.max,
   def: ALLIES_RANGE.default,
@@ -92,7 +93,7 @@ export const HELD_SPY_SETTING = {
   key: 'roundHeldSpy',
   name: 'heldSpy',
   label: HELD_SPY_LABEL,
-  order: 70,
+  order: 110,
   min: HELD_SPY.min,
   max: HELD_SPY.max,
   def: HELD_SPY.default,

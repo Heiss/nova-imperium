@@ -225,6 +225,19 @@ describe('fleet form', () => {
       `${dt(61_000)} / ${dt(121_000)}`,
     );
     expect(arrivalLine('deploy', 1000, pv)).toBe(`${dt(61_000)} / –`);
+    // An unknown mission comes back like the others.
+    expect(arrivalLine('nope', 1000, { ms: 60_000, hold: 0 })).toBe(
+      `${dt(61_000)} / ${dt(121_000)}`,
+    );
+  });
+  it('previews an unknown mission as a flight without holding, and adds up the three loads', () => {
+    const r = { research: {}, rq: null };
+    const flight = fleetPreview(p, r, form, U)!;
+    expect(
+      fleetPreview(p, r, { ...form, mission: 'nope', hold: 4 }, U),
+    ).toEqual(flight);
+    const loaded = { ...form, cargo: { m: 1000, c: 200, d: 50 } };
+    expect(fleetPreview(p, r, loaded, U)!.load).toBe(1250);
   });
   // „alles“ fills the holds evenly (#240, owner 2026-11-16): equal shares
   // of the capacity; a resource with less stock than its share gives the

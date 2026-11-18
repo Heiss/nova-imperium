@@ -93,8 +93,23 @@ describe('who may hold (#55, Q2)', () => {
   });
   it('is no applicant of the guild', () => {
     const ctx = setup();
+    // Without a guild, from either side.
+    expect(isAllyOf(ctx, 'u_Cora', 'u_Anna')).toBe(false);
     ctx.guilds.apply('u_Cora', 'g1');
     expect(isAllyOf(ctx, 'u_Anna', 'u_Cora')).toBe(false);
+    expect(isAllyOf(ctx, 'u_Cora', 'u_Anna')).toBe(false);
+  });
+  it('is no member of another guild', () => {
+    const ctx = setup();
+    ctx.guilds.create('g2', 'OTH', 'Andere', '', 'u_Cora');
+    expect(isAllyOf(ctx, 'u_Anna', 'u_Cora')).toBe(false);
+    expect(isAllyOf(ctx, 'u_Cora', 'u_Bert')).toBe(false);
+  });
+  it('counts a fleet as holding only once it holds, on its way it defends nothing', () => {
+    const ctx = setup();
+    holding(ctx, 'f_out', 'u_Anna', { state: 'out' });
+    expect(heldAt(ctx, 'p1_2_6')).toEqual([]);
+    expect(holdersAt(ctx, 'p1_2_6')).toEqual(['u_Anna']);
   });
   it('follows the setting of the round: friends only leaves the guild out', () => {
     const ctx = setup();

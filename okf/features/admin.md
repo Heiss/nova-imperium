@@ -150,11 +150,11 @@ universe settings) and their ranges are not decided yet.
   defaults, refusals and order are those of before.
 * **[V]** Added with #55, in `src/core/holding.ts`, after the entries of
   main: `ALLIES_SETTING` (key `roundAllies`, name `allies`, „Halten
-  erlaubt für“, order 60, the choices „Gilde“ 1, „Freunde“ 2 and „Gilde
+  erlaubt für“, order 100, the choices „Gilde“ 1, „Freunde“ 2 and „Gilde
   und Freunde“ 3, default 3, refusal „Bitte auswählen, wer in der neuen
   Runde halten darf.“) and `HELD_SPY_SETTING` (key `roundHeldSpy`, name
   `heldSpy`, „Gehaltene Flotten im Auspex-Bericht ab Auspex-Lehre“, order
-  70, 0 to 30, default 2, refusal „Bitte für „Gehaltene Flotten im
+  110, 0 to 30, default 2, refusal „Bitte für „Gehaltene Flotten im
   Auspex-Bericht ab Auspex-Lehre“ eine ganze Zahl von 0 bis 30
   angeben.“). Both are `live` (X1): the admin sets them in „Neue Runde“
   and changes them during the round in the universe settings, where a
@@ -169,8 +169,9 @@ universe settings) and their ranges are not decided yet.
   the refusals follow it. The order is that of main before #283: the
   reward options (10, 20), the guild switch (30), the lock of the main
   planet (40), the lock of a given-up position (50, last). A new feature
-  appends at the end with its own number: #55 took 60 (who may hold) and
-  70 (the level of the spy report).
+  appends at the end with its own number: #55 took 100 (who may hold)
+  and 110 (the level of the spy report), above the 60 to 90 of the
+  activity indicators (#229), which merge first.
 * **[V]** An entry has its stored `key` (`round…`), its `name` in
   `RoundRules` and in the request, its German `label`, and is either a
   switch (`kind: 'switch'`, default yes or no, a `refusal`, an optional
@@ -194,7 +195,7 @@ universe settings) and their ranges are not decided yet.
   one line to the list `ENTRIES` in `src/core/round.ts`, where the place
   of the line means nothing; `RoundRules` gets the typed value from the
   entry by itself. The feature picks its `order` number as the next free
-  ten above the highest number of the registry (80 after the 70 of #55),
+  ten above the highest number of the registry (120 after the 110 of #55),
   so it stands last in the dialog and among the refusals; the members of
   a group take neighbouring numbers. A test refuses a number used twice,
   so two parallel features that picked the same one see it after the

@@ -167,5 +167,7 @@ describe('flights', () => {
     expect(holdFuel({ lf: 5 }, 0)).toBe(1);
     expect(holdFuel({ sc: 1 }, 0.5)).toBe(1);
     expect(holdFuel({ rl: 3, nope: 2 }, 8)).toBe(1);
+    // A number below 0 counts as no ship: 10 × 10 / 10 = 10.
+    expect(holdFuel({ lf: -3, sc: 1 }, 10)).toBe(10);
   });
 });

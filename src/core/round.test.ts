@@ -50,8 +50,8 @@ describe('the registry of the round settings', () => {
       [40, 'roundMainLock', 'mainLock'],
       [50, 'roundAbandonLock', 'abandonLock'],
       // Added by #55, appended: who may hold, the level of the spy report.
-      [60, 'roundAllies', 'allies'],
-      [70, 'roundHeldSpy', 'heldSpy'],
+      [100, 'roundAllies', 'allies'],
+      [110, 'roundHeldSpy', 'heldSpy'],
     ]);
     const orders = ROUND_SETTINGS.map((s) => s.order);
     expect(new Set(orders).size).toBe(orders.length);
