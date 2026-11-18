@@ -22,7 +22,7 @@ const HOURS: RoundNumber<'testHours'> = {
   key: 'roundTestHours',
   name: 'testHours',
   label: 'Testdauer (Stunden)',
-  order: 60,
+  order: 100,
   min: 1,
   max: 720,
   def: 24,
@@ -35,7 +35,7 @@ const CHOICE: RoundNumber<'testChoice'> = {
   key: 'roundTestChoice',
   name: 'testChoice',
   label: 'Testauswahl',
-  order: 70,
+  order: 110,
   min: 1,
   max: 3,
   def: 3,
@@ -169,19 +169,49 @@ describe('a new entry of the registry (#283)', () => {
     expect(valuesOf(ctx)).toMatchObject({ testHours: 72 });
   });
 
-  it('the lock of a given-up position (#224) is the one live setting of main, the last row of the universe settings', () => {
-    const row = {
-      key: 'roundAbandonLock',
-      label: 'Sperre einer aufgegebenen Position (Stunden)',
-      min: 1,
-      max: 720,
-      def: 24,
-    };
-    expect(liveSpecs()).toEqual([row]);
-    expect(UNIVERSE_SPECS.filter((s) => s.key.startsWith('round'))).toEqual([
-      row,
-    ]);
-    expect(UNIVERSE_SPECS.at(-1)).toEqual(row);
+  it('the lock of a given-up position (#224) and the thresholds of the activity markers (#229) are the live settings of main, the last rows of the universe settings', () => {
+    const rows = [
+      {
+        key: 'roundAbandonLock',
+        label: 'Sperre einer aufgegebenen Position (Stunden)',
+        min: 1,
+        max: 720,
+        def: 24,
+      },
+      {
+        key: 'roundActivityRecent',
+        label: 'Aktivität ohne Minutenangabe (Minuten)',
+        min: 1,
+        max: 60,
+        def: 15,
+      },
+      {
+        key: 'roundActivityMinutes',
+        label: 'Aktivität mit Minutenangabe bis (Minuten)',
+        min: 1,
+        max: 1440,
+        def: 59,
+      },
+      {
+        key: 'roundInactiveDays',
+        label: 'Inaktiv ab (Tage)',
+        min: 1,
+        max: 365,
+        def: 7,
+      },
+      {
+        key: 'roundLongInactiveDays',
+        label: 'Lange inaktiv ab (Tage)',
+        min: 1,
+        max: 365,
+        def: 28,
+      },
+    ];
+    expect(liveSpecs()).toEqual(rows);
+    expect(UNIVERSE_SPECS.filter((s) => s.key.startsWith('round'))).toEqual(
+      rows,
+    );
+    expect(UNIVERSE_SPECS.slice(-rows.length)).toEqual(rows);
   });
 
   it('a new round refuses in the fixed order of main (owner, 2026-11-17)', () => {
