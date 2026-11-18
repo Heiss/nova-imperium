@@ -146,6 +146,23 @@ describe('a new entry of the registry (#283)', () => {
     ).toEqual([]);
   });
 
+  it('only a number is a row of the universe settings, never a switch', () => {
+    // Stored data or a later entry may carry `live` on a switch by mistake.
+    const flagged = {
+      kind: 'switch',
+      key: 'roundTestSwitch',
+      name: 'testSwitch',
+      label: 'Testschalter',
+      order: 80,
+      def: true,
+      refusal: 'Bitte den Testschalter setzen.',
+      live: true,
+    } as unknown as RoundSetting;
+    expect(liveSpecs([flagged, HOURS])).toEqual([
+      expect.objectContaining({ key: 'roundTestHours' }),
+    ]);
+  });
+
   it('a value changed in the universe settings is the value of the round (X1)', () => {
     const ctx = testCtx();
     ctx.admin.putSettings([['roundTestHours', 72]]);
