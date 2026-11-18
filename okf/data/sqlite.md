@@ -520,7 +520,7 @@ activity; an existing account starts with its newest `last_seen` of
 `users.created`; other data stay as they were
 (`upgrades/20261117T0923-activity-times.test.ts`).
 
-Migration `20261117T0710-friendships` (issue #227, see
+Migration `20261118T2230-friendships` (issue #227, see
 [Buddy list](/features/buddy-list.md)) adds the table `friendships`:
 `requester` and `addressee` (both `REFERENCES users(id) ON DELETE
 CASCADE`, primary key together) and `status` (`pending` for an open
@@ -529,7 +529,7 @@ themselves, and a unique index on the pair in either order
 (`friendships_pair`, `min` and `max` of the two) refuses a second or a
 crossed row; an index on `addressee` serves the requests to a player. It
 stores no time. Existing players start without friends and requests;
-other data stay as they were (`upgrades/20261117T0710-friendships.test.ts`).
+other data stay as they were (`upgrades/20261118T2230-friendships.test.ts`).
 A new round keeps the table (owner, 2026-11-16, D2).
 
 Account deletion runs in one transaction. Foreign-key cascades clear owned game,

@@ -9,13 +9,13 @@ import { settle, settleR } from '../core/settle.ts';
 import { text } from '../core/text.ts';
 import type { Levels, Planet, Queue } from '../core/types.ts';
 import { abandonActs } from './abandon-actions.ts';
+import { socialActs } from './social-actions.ts';
 import { createAct, placeOf, samePlace } from './logic/act.ts';
 import { LEXICANUM_VIEW, viewUrl } from './logic/address.ts';
 import { CATALOG_VIEWS, catalogKind, orderNote } from './logic/catalog-list.ts';
-import { clearsChat, sameSignIn } from './logic/guild-chat.ts';
+import { sameSignIn } from './logic/guild-chat.ts';
 import { debrisAt, debrisTip } from './logic/debris.ts';
 import { endzeitNote } from './logic/endzeit.ts';
-import { friendCall } from './logic/friends.ts';
 import { moonAt, moonTarget } from './logic/moon.ts';
 import { scanOf } from './logic/phalanx.ts';
 import { targetOf } from './logic/galaxy.ts';
@@ -33,7 +33,6 @@ import {
   fleetPreview,
   galaxyStep,
   nameOf,
-  queueDue,
   settingsFrom,
   type FleetForm,
 } from './logic/game.ts';
@@ -1095,17 +1094,7 @@ const ACT: Record<string, (d: Data) => unknown> = {
       return act('deleteGuildRank', { rank: d.rank });
   },
   rankDefault: (d) => act('setGuildDefaultRank', { rank: d.rank }),
-  guildChatDelete: (d) => {
-    if (window.confirm('Nachricht löschen?'))
-      return act('deleteGuildChat', { id: Number(d.id) });
-  },
   guildChatAdmin: (d) => openAdminChat(d.id ?? ''),
-  // The buddy list (#227); a request clears the name once it is sent.
-  friend: async (d) => {
-    const call = friendCall(d, val('#friend_name'), (q) => window.confirm(q));
-    if (call && (await act(...call)) && d.op === 'request')
-      setInput('#friend_name', '');
-  },
   achievementClaim: (d) => act('claimAchievement', { id: d.id }),
   dailyClaim: () => act('claimDailyReward'),
   logout: async () => {
@@ -1261,6 +1250,7 @@ const ACT: Record<string, (d: Data) => unknown> = {
   },
   deleteAccount: () => modal(deleteAccountDialog(client.game!.round)),
   ...abandonActs({ act, modal }),
+  ...socialActs({ act }),
   dismissInstall: () => {
     installDismissed = true;
     try {
@@ -1517,21 +1507,6 @@ async function submitDissolve(): Promise<void> {
 }
 
 /**
- * The guild chat (#169): the text field empties once the message is in,
- * unless a new draft was typed meanwhile (CodeRabbit on #216).
- */
-async function submitChat(): Promise<void> {
-  const text = val('#chat_text');
-  if (
-    (await act('sendGuildChat', { text })) &&
-    clearsChat(text, $<HTMLInputElement>('#chat_text')?.value)
-  ) {
-    setInput('#chat_text', '');
-    $<HTMLInputElement>('#chat_text')?.focus();
-  }
-}
-
-/**
  * The admin opens the chat of a guild; the server records it (#169, D8). An
  * answer that comes in after a logout, or with another account signed in,
  * opens nothing (CodeRabbit on #216).
@@ -1706,8 +1681,6 @@ document.addEventListener('submit', (e) => {
     ['guildform', submitGuild],
     ['guildtransferform', submitTransfer],
     ['guilddissolveform', submitDissolve],
-    ['guildchatform', submitChat],
-    ['friendform', () => ACT.friend!({ op: 'request' })],
     ['codeform', submitLoginCode],
     ['forgotform', submitForgot],
     ['resetform', () => submitPassword(true)],

@@ -1,5 +1,5 @@
 // The buddy list (#227): the table `friendships` of migration
-// 20261117T0710-friendships, one row per pair, an open request or a
+// 20261118T2230-friendships, one row per pair, an open request or a
 // friendship. The rules are those of src/core/friends.ts; the table refuses
 // a second row for a pair in either direction.
 import type { FriendLink } from '../../../core/friends.ts';

@@ -1,4 +1,4 @@
-// Upgrade test of migration 20261117T0710-friendships (#227): the new,
+// Upgrade test of migration 20261118T2230-friendships (#227): the new,
 // empty table of the buddy list. Every existing player starts without
 // friends and requests; everything else stays. The table keeps one row per
 // pair, never a player with themselves, and forgets a deleted account.
@@ -9,7 +9,7 @@ import migrations from '../migrations/227/migrations.ts';
 import { Store } from '../store.ts';
 import { MIGRATIONS } from '../schema.ts';
 
-const ID = '20261117T0710-friendships';
+const ID = '20261118T2230-friendships';
 const through = migrationsThrough(ID);
 
 type Rows = Record<string, unknown>[];

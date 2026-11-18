@@ -2,7 +2,7 @@
 // migration is never changed once it is on main and has its upgrade test
 // src/server/db/upgrades/<id>.test.ts.
 //
-// 20261117T0710-friendships: the buddy list (#227). One row per pair of
+// 20261118T2230-friendships: the buddy list (#227). One row per pair of
 // players, an open request of `requester` to `addressee` or, once accepted,
 // a friendship. Never a player with themselves, and at most one row per
 // pair in either direction, so a crossed request cannot be stored. Deleting
@@ -12,7 +12,7 @@ import type { Migration } from '../../migration-files.ts';
 
 const migrations: Migration[] = [
   {
-    id: '20261117T0710-friendships',
+    id: '20261118T2230-friendships',
     sql: `
     CREATE TABLE friendships (
       requester TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,

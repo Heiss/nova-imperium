@@ -86,10 +86,15 @@ interface FriendView {
   online: boolean;
 }
 
-/** The buddy list of `uid`: friends, requests to them and their own requests, each by name. */
+/**
+ * The buddy list of `uid`: friends, requests to them and their own requests,
+ * each by name. A friend is online within `recentMinutes` of their last
+ * activity, the threshold of the activity marker of the round (#229).
+ */
 export function friendState(
   ctx: Ctx,
   uid: string,
+  recentMinutes: number,
 ): { list: FriendView[]; incoming: string[]; outgoing: string[] } {
   const names = new Map(ctx.players.all().map((p) => [p.id, p.name]));
   const byName = (a: string, b: string): number =>
@@ -103,6 +108,7 @@ export function friendState(
       .map((l) => other(l.from, l.to))
       .sort(byName);
   const now = ctx.now();
+  const active = ctx.players.lastActive();
   return {
     list: links
       .filter((l) => l.status === 'friend')
@@ -110,7 +116,7 @@ export function friendState(
       .sort(byName)
       .map((id) => ({
         id,
-        online: isOnline(ctx.admin.lastActivity(id)?.last, now),
+        online: isOnline(active[id], now, recentMinutes),
       })),
     incoming: ids((from) => from !== uid),
     outgoing: ids((from) => from === uid),

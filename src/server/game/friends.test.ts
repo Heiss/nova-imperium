@@ -3,10 +3,11 @@
 // requests refused deterministically; what each player sees (D1); a new
 // round keeps everything (D2); a deleted account leaves nothing behind.
 import { describe, expect, it } from 'vitest';
-import { ONLINE_MS } from '../../core/friends.ts';
-import { activity } from '../audit.ts';
+import { ACTIVITY_DEFAULT, MINUTE_MS } from '../../core/activity.ts';
+import { DEFAULT_UNIVERSE } from '../../core/universe.ts';
 import { deleteAccount } from '../delete-account.ts';
 import { addPlanet, addUser, type TestCtx, testCtx } from '../test-helpers.ts';
+import { recordActivity } from './activity.ts';
 import { runAction } from './dispatch.ts';
 import { FRIEND_ERROR, friendState } from './friends.ts';
 import { stateFor } from './state.ts';
@@ -31,7 +32,11 @@ const request = (ctx: TestCtx, from: string, name: unknown) =>
   run(ctx, from, 'requestFriend', { name });
 const answer = (ctx: TestCtx, me: string, other: string, accept: unknown) =>
   run(ctx, me, 'answerFriend', { uid: `u_${other}`, accept });
-const view = (ctx: TestCtx, uid: string) => friendState(ctx, `u_${uid}`);
+const RECENT = ACTIVITY_DEFAULT.recent;
+const view = (ctx: TestCtx, uid: string) =>
+  friendState(ctx, `u_${uid}`, RECENT);
+const active = (ctx: TestCtx, uid: string) =>
+  recordActivity(ctx, ctx.players.get(`u_${uid}`)!, 'action');
 
 describe('the messages', () => {
   it('words every refusal in German', () => {
@@ -179,22 +184,44 @@ describe('cancelling a request and ending a friendship', () => {
 });
 
 describe('what friends see of each other (D1)', () => {
-  it('shows only online or offline: 15 minutes after the last interaction', () => {
+  it('shows only online or offline: within the activity threshold after the last activity', () => {
     const ctx = world();
     request(ctx, 'Anna', 'Bert');
     answer(ctx, 'Bert', 'Anna', true);
+    // Bert counts from his creation until he acts.
+    ctx.clock.t += 20 * MINUTE_MS;
     expect(view(ctx, 'Anna').list).toEqual([{ id: 'u_Bert', online: false }]);
-    activity(ctx, ctx.players.get('u_Bert')!);
+    active(ctx, 'Bert');
     expect(view(ctx, 'Anna').list).toEqual([{ id: 'u_Bert', online: true }]);
-    ctx.clock.t += ONLINE_MS - 1;
+    ctx.clock.t += RECENT * MINUTE_MS - 1;
     expect(view(ctx, 'Anna').list[0]!.online).toBe(true);
     ctx.clock.t += 1;
     expect(view(ctx, 'Anna').list[0]!.online).toBe(false);
   });
 
+  it('follows the threshold of the round, live in the universe settings (#229)', () => {
+    const ctx = world();
+    request(ctx, 'Anna', 'Bert');
+    answer(ctx, 'Bert', 'Anna', true);
+    active(ctx, 'Bert');
+    ctx.clock.t += 20 * MINUTE_MS;
+    const online = () =>
+      (
+        stateFor(ctx, ctx.players.get('u_Anna')!).friends as ReturnType<
+          typeof view
+        >
+      ).list[0]!.online;
+    expect(online()).toBe(false);
+    runAction(ctx, 'u_Anna', {
+      type: 'settings',
+      settings: { ...DEFAULT_UNIVERSE, roundActivityRecent: 30 },
+    });
+    expect(online()).toBe(true);
+  });
+
   it('never shows whether a player with an open request is online', () => {
     const ctx = world();
-    activity(ctx, ctx.players.get('u_Bert')!);
+    active(ctx, 'Bert');
     request(ctx, 'Anna', 'Bert');
     expect(JSON.stringify(view(ctx, 'Anna'))).not.toContain('online');
     expect(JSON.stringify(view(ctx, 'Bert'))).not.toContain('online');
@@ -205,6 +232,7 @@ describe('what friends see of each other (D1)', () => {
     request(ctx, 'Cora', 'Anna');
     request(ctx, 'Bert', 'Anna');
     answer(ctx, 'Anna', 'Cora', true);
+    ctx.clock.t += 20 * MINUTE_MS;
     expect(stateFor(ctx, ctx.players.get('u_Anna')!).friends).toEqual({
       list: [{ id: 'u_Cora', online: false }],
       incoming: ['u_Bert'],

@@ -7,7 +7,6 @@ import {
   FRIEND_ACTIONS,
   type FriendAction,
   type FriendLink,
-  ONLINE_MS,
   type Relation,
   friendError,
   isOnline,
@@ -115,16 +114,23 @@ describe('the refusals of the friendship actions', () => {
 
 describe('online or offline', () => {
   const NOW = 1_763_300_000_000;
+  const MINUTE = 60_000;
 
-  it('is online for 15 minutes after the last interaction', () => {
-    expect(ONLINE_MS).toBe(15 * 60 * 1000);
-    expect(isOnline(NOW, NOW)).toBe(true);
-    expect(isOnline(NOW - ONLINE_MS + 1, NOW)).toBe(true);
-    expect(isOnline(NOW - ONLINE_MS, NOW)).toBe(false);
-    expect(isOnline(NOW - ONLINE_MS - 1, NOW)).toBe(false);
+  it('is online within the minutes of the activity marker after the last activity', () => {
+    expect(isOnline(NOW, NOW, 15)).toBe(true);
+    expect(isOnline(NOW - 15 * MINUTE + 1, NOW, 15)).toBe(true);
+    expect(isOnline(NOW - 15 * MINUTE, NOW, 15)).toBe(false);
+    expect(isOnline(NOW - 15 * MINUTE - 1, NOW, 15)).toBe(false);
   });
 
-  it('is offline without any interaction', () => {
-    expect(isOnline(undefined, NOW)).toBe(false);
+  it('follows the threshold of the round', () => {
+    expect(isOnline(NOW - 20 * MINUTE, NOW, 15)).toBe(false);
+    expect(isOnline(NOW - 20 * MINUTE, NOW, 30)).toBe(true);
+    expect(isOnline(NOW - 2 * MINUTE, NOW, 1)).toBe(false);
+    expect(isOnline(NOW - MINUTE + 1, NOW, 1)).toBe(true);
+  });
+
+  it('is offline without any activity', () => {
+    expect(isOnline(undefined, NOW, 15)).toBe(false);
   });
 });

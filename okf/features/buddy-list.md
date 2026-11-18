@@ -42,7 +42,7 @@ request and its acceptance. The owner's answers of 2026-11-16 to D1 to D3.
   (`uid`). They are no guild actions, so they work while guilds are off.
   No limit on requests beyond the request limit of every game action.
 * **[V]** Stored in the table `friendships` of migration
-  `20261117T0710-friendships`, one row per pair (see
+  `20261118T2230-friendships`, one row per pair (see
   [SQLite storage](/data/sqlite.md)); deleting an account deletes its rows
   by the foreign keys; a new round keeps them (D2).
 * **[V]** The state carries `friends` only for the player: the friends
@@ -50,11 +50,22 @@ request and its acceptance. The owner's answers of 2026-11-16 to D1 to D3.
   own ones, each sorted by name. Name, guild tag and planet come from the
   public state (`players`, `guilds`, `galaxy`), so nothing new is public.
   No time of the last interaction is sent, only online or offline.
-* **[V]** Online: an interaction within the last 15 minutes
-  (`ONLINE_MS`), the time of the star of the classic
-  [activity indicators](/features/activity-indicators.md), measured on the
-  same interactions as the admin's activity (`player_activity`, see
-  [Admin](/features/admin.md)). Open requests show no status.
+* **[E]** Online follows the threshold of the activity mark of #229
+  instead of a fixed 15 minutes (owner, 2026-11-17).
+* **[V]** Online: the account's last activity (a login or a manual action,
+  `users.active_at`, from its creation without one; see
+  [Activity indicators](/features/activity-indicators.md)) lies less than
+  `activityRecent` minutes back, the first threshold of that feature
+  („Aktivität ohne Minutenangabe (Minuten)“, in which a planet shows only
+  „Aktiv“): 15 by default, set by the admin in „Neue Runde“ and live in
+  the universe settings. `isOnline` in `src/core/friends.ts` takes the
+  minutes; `friendState` gets them from the thresholds of the round. Taken
+  as recommended: the owner named „the threshold of the activity mark
+  („Aktivität vor x Minuten“)“, and that mark has two thresholds; the
+  first one is the star of the classic game, which the build used before
+  with its fixed 15 minutes. The activity time of the admin's play time
+  estimate (`player_activity`) is no longer read, so friendship touches no
+  private play time. Open requests show no status.
 * **[V]** The contact's planet is the one the Highscore names (a planet of
   the player, never a moon); its coordinates open its system on the
   Sternenkarte, as on the Highscore.
@@ -78,21 +89,22 @@ request and its acceptance. The owner's answers of 2026-11-16 to D1 to D3.
 
 # Open
 
-* **[U]** D3 is not built: the round setting „guild, friends or both“ has
-  no effect before holding and the attack union (#55, #225) exist, and its
-  German label is not decided. They ask whether two players are friends
-  with `relationOf` (`friends`), so ending a friendship ends what it
-  allowed at once.
-* **[U]** Whether the online time follows the admin's star threshold of
-  #229 per round once that is built.
+* **[E]** D3 is built with #55 and #225, not with this issue; its default
+  is „Gilde und Freunde“, the classic rule (owner, 2026-11-17). Until then
+  the round setting has no effect and no label here. Holding and the
+  attack union ask whether two players are friends with `relationOf`
+  (`friends`), so ending a friendship ends what it allowed at once.
+* **[E]** The German texts of the build are confirmed as they are (owner,
+  2026-11-17): the view „Freunde“, its columns and boxes, the messages and
+  refusals, the menu mark and the changelog text.
 
 # Tests
 
 * Unit: `src/core/friends.test.ts`, `src/server/db/repos/friends.test.ts`,
-  `src/server/game/friends.test.ts` (the actions, D1, D2, account
-  deletion), `src/client/logic/friends.test.ts`,
+  `src/server/game/friends.test.ts` (the actions, D1 with the round's
+  threshold, D2, account deletion), `src/client/logic/friends.test.ts`,
   `src/client/views/friends.test.ts`, the mark in
   `src/client/logic/menu-hints.test.ts`.
-* Upgrade: `src/server/db/upgrades/20261117T0710-friendships.test.ts`.
+* Upgrade: `src/server/db/upgrades/20261118T2230-friendships.test.ts`.
 * E2E: `e2e/friends.spec.ts`, desktop and phone, with axe on „Freunde“;
   „Freunde“ in `e2e/a11y.spec.ts` and `e2e/phone-overflow.spec.ts`.

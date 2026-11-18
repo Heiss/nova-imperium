@@ -2,6 +2,7 @@
 // friendship exists only once its request is accepted. These rules are
 // pure (patterns, section 7): the server gathers the facts, asks
 // `friendError` and turns its code into the German message.
+import { MINUTE_MS } from './activity.ts';
 
 /** A stored link: an open request from `from` to `to`, or a friendship. */
 export interface FriendLink {
@@ -81,11 +82,13 @@ export function friendError(
 }
 
 /**
- * How long a player counts as online after the last interaction: 15
- * minutes, the star of the classic activity indicators (#229) [V].
+ * Whether a player whose last activity was at `last` is online at `now`:
+ * within the first threshold of the activity marker (#229), the minutes in
+ * which a planet shows only „Aktiv“, 15 by default and set by the admin per
+ * round (owner, 2026-11-17).
  */
-export const ONLINE_MS = 15 * 60 * 1000;
-
-/** Whether a player whose last interaction was at `last` is online at `now`. */
-export const isOnline = (last: number | undefined, now: number): boolean =>
-  last !== undefined && now - last < ONLINE_MS;
+export const isOnline = (
+  last: number | undefined,
+  now: number,
+  recentMinutes: number,
+): boolean => last !== undefined && now - last < recentMinutes * MINUTE_MS;
