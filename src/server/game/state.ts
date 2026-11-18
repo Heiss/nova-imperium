@@ -11,6 +11,7 @@ import { ownLabs } from './actions.ts';
 import { type Ctx, universe } from './context.ts';
 import { endzeitState } from './endzeit.ts';
 import { guildState } from './guilds.ts';
+import { gateState } from './jump-gate.ts';
 import { mainPlanetOf, mainPlanetView } from './main-planet.ts';
 import { achievementState } from './achievements.ts';
 import { roundRules } from './round.ts';
@@ -110,6 +111,8 @@ export function stateFor(
     homePlanet: ctx.planets.home(u.id)?.id ?? null,
     ...mainPlanetView(main, ctx.now()),
     labs: ownLabs(ctx, u.id),
+    // The own Warp-Tore with their readiness (#230).
+    gates: gateState(ctx, u.id),
     fleets,
     reports: ctx.reports.ofPlayer(u.id),
     // No guild data while guilds are off in the round (#191).
@@ -119,6 +122,8 @@ export function stateFor(
     galaxy: galaxyOf(ctx),
     // Every player sees every Trümmerfeld (#45).
     debris: ctx.debris.all(),
+    // Every position locked after an abandonment, for the Sternenkarte (#224).
+    locks: ctx.planets.locks(ctx.now()),
     admin: adminState(ctx, u),
   };
 }

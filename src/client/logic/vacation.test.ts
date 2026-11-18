@@ -1,5 +1,4 @@
-// The box „Urlaubsmodus“ in „Hilfe & Optionen“ and the mark on the
-// Sternenkarte (#223): what blocks the entry, the earliest end and the
+// The box „Urlaubsmodus“ in „Hilfe & Optionen“ (#223): what blocks the entry, the earliest end and the
 // button „Urlaubsmodus beenden“, which becomes active after the minimum
 // duration (owner, 2026-11-17).
 import { describe, expect, it } from 'vitest';
@@ -8,7 +7,6 @@ import {
   confirmText,
   vacationEndText,
   vacationHTML,
-  vacationMark,
 } from './vacation.ts';
 
 const START = new Date(2026, 10, 17, 12, 0).getTime();
@@ -63,24 +61,5 @@ describe('the question before the start', () => {
     expect(confirmText(1)).toBe(
       'Urlaubsmodus aktivieren? Beenden kannst du ihn frühestens nach 1 Stunde.',
     );
-  });
-});
-
-describe('the mark on the Sternenkarte', () => {
-  const players = {
-    u_Anna: { name: 'Anna', points: 1, vacation: true },
-    u_Bert: { name: 'Bert', points: 1, vacation: false },
-    u_Carl: { name: 'Carl', points: 1 },
-  };
-
-  it('marks a player in vacation mode with (u)', () => {
-    expect(vacationMark(players, 'u_Anna')).toBe(
-      ' <span class="dim" title="Urlaubsmodus">(u)</span>',
-    );
-  });
-
-  it('marks nobody else', () => {
-    for (const uid of ['u_Bert', 'u_Carl', 'u_Gone'])
-      expect(vacationMark(players, uid)).toBe('');
   });
 });

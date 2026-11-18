@@ -17,9 +17,11 @@ import { requireGuilds } from './round.ts';
 import { deleteGuildChat, seeGuildChat, sendGuildChat } from './guild-chat.ts';
 import { recall, send } from './fleet-actions.ts';
 import { scan } from './phalanx.ts';
+import { jump } from './jump-gate.ts';
 import { chooseMainPlanet } from './main-planet.ts';
 import { vacationRefuses } from '../../core/vacation.ts';
 import { endVacation, startVacation, VACATION_REFUSED } from './vacation.ts';
+import { abandon } from './abandon.ts';
 import {
   assignGuildRank,
   createGuildRank,
@@ -77,6 +79,7 @@ export const ACTIONS: Record<string, A.Action> = {
   mainPlanet: chooseMainPlanet,
   startVacation,
   endVacation,
+  abandon,
   pushOptions,
   read: A.read,
   delrep: A.delrep,
@@ -84,6 +87,7 @@ export const ACTIONS: Record<string, A.Action> = {
   send,
   recall,
   scan,
+  jump,
   settings: saveSettings,
   reset,
   endzeit,

@@ -105,6 +105,7 @@ describe('achievements', () => {
       // Without a choice the round keeps the lock of the main planet (#221).
       mainLock: 7,
       vacationHours: 24,
+      abandonLock: 24,
     });
     recordAchievementAction(ctx, u.id, 'send');
     const current = ctx.players.get(u.id)!;

@@ -8,6 +8,7 @@
 // rules (patterns, section 7). `vacationProtects` is the one protection
 // check of a target: holding, the attack union, missiles and the moon
 // destruction (#55, #225, #54, #95) ask it too once they are built.
+import type { RoundSetting } from './round.ts';
 import type { Planet } from './types.ts';
 
 /** One hour in milliseconds; the minimum duration runs in real time. */
@@ -16,11 +17,24 @@ export const HOUR_MS = 3_600_000;
 /** The minimum duration in whole hours: the admin's range per round [V] and the owner's default (D1). */
 export const VACATION_HOURS = { min: 1, max: 720, default: 24 } as const;
 
-/** Whether `hours` is a minimum duration the admin may set for a round. */
-export const isVacationHours = (hours: unknown): hours is number =>
-  Number.isInteger(hours) &&
-  (hours as number) >= VACATION_HOURS.min &&
-  (hours as number) <= VACATION_HOURS.max;
+/**
+ * The minimum duration as a setting of the round (#283): a number field of
+ * the dialog „Neue Runde“ and, `live`, a row of the universe settings,
+ * changed during the round (X1, owner, 2026-11-17); existing universes keep
+ * a vacation for the default 24 hours at least.
+ */
+export const VACATION_SETTING = {
+  kind: 'number',
+  key: 'roundVacationHours',
+  name: 'vacationHours',
+  label: 'Mindestdauer des Urlaubsmodus (Stunden)',
+  order: 150,
+  min: VACATION_HOURS.min,
+  max: VACATION_HOURS.max,
+  def: VACATION_HOURS.default,
+  refusal: `Bitte für die Mindestdauer des Urlaubsmodus ${VACATION_HOURS.min} bis ${VACATION_HOURS.max} ganze Stunden angeben.`,
+  live: true,
+} as const satisfies RoundSetting;
 
 /** When a vacation that started at `start` can end at the earliest. */
 export const vacationEnd = (start: number, hours: number): number =>

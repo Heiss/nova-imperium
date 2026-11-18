@@ -4,10 +4,10 @@
 // shows the earliest end, and „Urlaubsmodus beenden“ becomes active once
 // the minimum duration of the round is over (owner, 2026-11-17). The rule
 // of the end is the one of the server (src/core/vacation.ts). The
-// Sternenkarte marks a player in vacation mode with „(u)“.
+// Sternenkarte marks a player in vacation mode with „(u)“ (logic/galaxy.ts).
 import { vacationEnd, vacationExitError } from '../../core/vacation.ts';
 import { lockEnd } from './main-planet.ts';
-import type { GameState, Players } from './types.ts';
+import type { GameState } from './types.ts';
 
 type VacationState = {
   me: Pick<GameState['me'], 'vacation'>;
@@ -36,9 +36,3 @@ export function vacationHTML(s: VacationState, now: number): string {
   const off = vacationExitError(start, n, now) ? ' disabled' : '';
   return `<p>Du bist im Urlaubsmodus.</p><p id="o_vacation_end">Frühestens beendbar am ${vacationEndText(vacationEnd(start, n))}</p><button data-act="endVacation"${off}>Urlaubsmodus beenden</button>`;
 }
-
-/** The mark of a player in vacation mode on the Sternenkarte, or nothing. */
-export const vacationMark = (players: Players, uid: string): string =>
-  players[uid]?.vacation
-    ? ' <span class="dim" title="Urlaubsmodus">(u)</span>'
-    : '';

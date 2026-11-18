@@ -8,8 +8,8 @@ import { describe, expect, it } from 'vitest';
 import {
   HOUR_MS,
   VACATION_HOURS,
+  VACATION_SETTING,
   type VacationEntry,
-  isVacationHours,
   producesUntil,
   vacationEnd,
   vacationEntryError,
@@ -17,6 +17,7 @@ import {
   vacationProtects,
   vacationRefuses,
 } from './vacation.ts';
+import { ROUND_SETTINGS, roundRefused } from './round.ts';
 
 const NOW = 1_763_300_000_000;
 
@@ -32,10 +33,36 @@ describe('the minimum duration of a round', () => {
   it('is 24 hours by default, whole hours from 1 to 720', () => {
     expect(VACATION_HOURS).toEqual({ min: 1, max: 720, default: 24 });
     expect(HOUR_MS).toBe(60 * 60 * 1000);
-    for (const hours of [1, 24, 48, 720])
-      expect(isVacationHours(hours)).toBe(true);
-    for (const hours of [0, 721, -1, 1.5, '24', null, undefined, Number.NaN])
-      expect(isVacationHours(hours)).toBe(false);
+  });
+
+  it('is the setting „vacationHours“ of the registry, live, after the other settings (#283, X1)', () => {
+    expect(VACATION_SETTING).toMatchObject({
+      kind: 'number',
+      key: 'roundVacationHours',
+      name: 'vacationHours',
+      label: 'Mindestdauer des Urlaubsmodus (Stunden)',
+      min: 1,
+      max: 720,
+      def: 24,
+      order: 150,
+      live: true,
+      refusal:
+        'Bitte für die Mindestdauer des Urlaubsmodus 1 bis 720 ganze Stunden angeben.',
+    });
+    expect(ROUND_SETTINGS).toContain(VACATION_SETTING);
+    expect(Math.max(...ROUND_SETTINGS.map((s) => s.order))).toBe(150);
+  });
+
+  it('refuses a value that is not a whole number of hours from 1 to 720', () => {
+    const refused = (vacationHours: unknown) =>
+      roundRefused({ vacationHours: 24 }, { vacationHours }, [
+        VACATION_SETTING,
+      ]);
+    for (const hours of [1, 24, 48, 720]) expect(refused(hours)).toEqual([]);
+    for (const hours of [0, 721, -1, 1.5, '24', null, Number.NaN])
+      expect(refused(hours)).toEqual([VACATION_SETTING]);
+    // Without a value the round keeps the current one.
+    expect(refused(undefined)).toEqual([]);
   });
 });
 
