@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
   check,
   checkTotal,
+  failures,
   floorOf,
+  missing,
   reportPath,
   score,
   scoresOf,
@@ -162,5 +164,93 @@ describe('mutation gate', () => {
       'src/core/a.ts: - % (killed 0, timeout 0, survived 0, no coverage 0, errors 0)',
       'src/core/b.ts: 50 % (killed 1, timeout 1, survived 1, no coverage 1, errors 2)',
     ]);
+  });
+
+  it('names a file of a partial run that the report does not hold', () => {
+    const report = {
+      files: {
+        'src/core/a.ts': { mutants: m('Killed') },
+        'src/core/types.ts': { mutants: [] },
+      },
+    };
+    expect(missing(['src/core/a.ts', 'src/core/types.ts'], report)).toEqual([]);
+    expect(
+      missing(['src/core/a.ts', 'src/core/b.ts', 'toString'], report),
+    ).toEqual([
+      'src/core/b.ts: in the partial run, not in the report',
+      'toString: in the partial run, not in the report',
+    ]);
+    expect(missing([], report)).toEqual([]);
+  });
+
+  describe('failures', () => {
+    const report = {
+      files: {
+        'src/core/a.ts': { mutants: m('Killed', 'Survived') },
+        'src/core/b.ts': { mutants: m('Killed', 'Killed') },
+        'src/core/c.ts': { mutants: m('Killed', 'Survived', 'Survived') },
+      },
+    };
+
+    it('checks the total and every floor of a complete report', () => {
+      expect(failures(report, standard, 80)).toEqual([
+        '::error::Total mutation score below the break threshold: 57.14 % < 80 % (break threshold of stryker.config.json)',
+        '::error::Mutation score below the floor: src/core/a.ts: 50 % < 70 % (recorded floor)',
+        '::error::Mutation score below the floor: src/core/c.ts: 33.33 % < 80 % (new file)',
+      ]);
+      expect(failures(report, standard, null)).toHaveLength(2);
+      expect(failures({ files: {} }, standard, 80)).toEqual([]);
+    });
+
+    it('checks no total in a partial run, only the floors', () => {
+      const run = ['src/core/a.ts', 'src/core/b.ts', 'src/core/c.ts'];
+      expect(failures(report, standard, 80, run)).toEqual([
+        '::error::Mutation score below the floor: src/core/a.ts: 50 % < 70 % (recorded floor)',
+        '::error::Mutation score below the floor: src/core/c.ts: 33.33 % < 80 % (new file)',
+      ]);
+      const good = {
+        files: { 'src/core/b.ts': report.files['src/core/b.ts'] },
+      };
+      expect(failures(good, standard, 80, ['src/core/b.ts'])).toEqual([]);
+    });
+
+    it('fails a partial run when a file of the run is not in the report', () => {
+      const good = {
+        files: { 'src/core/b.ts': report.files['src/core/b.ts'] },
+      };
+      expect(
+        failures(good, standard, 80, ['src/core/b.ts', 'src/core/d.ts']),
+      ).toEqual([
+        '::error::File of the partial run missing: src/core/d.ts: in the partial run, not in the report',
+      ]);
+    });
+
+    it('checks a new file of a partial run against 80 % and a new security file against 90 %', () => {
+      const scored = {
+        files: {
+          'src/core/new.ts': {
+            mutants: m(
+              ...Array(79).fill('Killed'),
+              ...Array(21).fill('Survived'),
+            ),
+          },
+          'src/server/new-secret.ts': {
+            mutants: m(
+              ...Array(89).fill('Killed'),
+              ...Array(11).fill('Survived'),
+            ),
+          },
+        },
+      };
+      expect(
+        failures(scored, standard, 80, [
+          'src/core/new.ts',
+          'src/server/new-secret.ts',
+        ]),
+      ).toEqual([
+        '::error::Mutation score below the floor: src/core/new.ts: 79 % < 80 % (new file)',
+        '::error::Mutation score below the floor: src/server/new-secret.ts: 89 % < 90 % (new security file)',
+      ]);
+    });
   });
 });

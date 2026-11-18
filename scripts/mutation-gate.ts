@@ -15,7 +15,16 @@
 //   --report <path>                          another report than
 //                                            reports/mutation/mutation.json
 //                                            (the merged report of the shards)
+//   --partial                                the report of a partial run of
+//                                            the files in MUTATION_FILES (a
+//                                            JSON list, #309): every one
+//                                            must be in the report and at or
+//                                            above its floor (a file without
+//                                            one: "newFile"); no total score,
+//                                            which says nothing over a few
+//                                            files
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { filesOf } from './mutation-partial.ts';
 
 export interface Standard {
   securityTarget: number;
@@ -120,6 +129,43 @@ export function checkTotal(
   return [`${total} % < ${breakAt} % (break threshold of ${CONFIG})`];
 }
 
+/** One message per file of a partial run that the report does not hold. */
+export function missing(files: readonly string[], report: Report): string[] {
+  return files
+    .filter((file) => !Object.hasOwn(report.files, file))
+    .map((file) => `${file}: in the partial run, not in the report`);
+}
+
+/**
+ * Every failure of a report, as a workflow error line: a total below the
+ * break threshold, a file below its floor. The report of a partial run
+ * (#309, <partial> the files of the run) has no total score, which says
+ * nothing over a few files, and must hold every file of the run.
+ */
+export function failures(
+  report: Report,
+  standard: Standard,
+  breakAt: number | null,
+  partial?: readonly string[],
+): string[] {
+  const below = check(scoresOf(report), standard).map(
+    (f) => `::error::Mutation score below the floor: ${f}`,
+  );
+  if (partial)
+    return [
+      ...missing(partial, report).map(
+        (f) => `::error::File of the partial run missing: ${f}`,
+      ),
+      ...below,
+    ];
+  return [
+    ...checkTotal(totalOf(report), breakAt).map(
+      (f) => `::error::Total mutation score below the break threshold: ${f}`,
+    ),
+    ...below,
+  ];
+}
+
 /** The report to read: the path after --report, else Stryker's own. */
 export function reportPath(args: readonly string[]): string {
   const at = args.indexOf('--report');
@@ -165,22 +211,21 @@ function main(): void {
     return;
   }
   for (const line of table(report)) console.log(line);
-  const total = totalOf(report);
-  console.log(`Total mutation score: ${total ?? '-'} %`);
   notices(scores, standard);
+  const partial = args.includes('--partial')
+    ? filesOf(process.env.MUTATION_FILES)
+    : undefined;
+  console.log(
+    partial
+      ? `Partial run of ${partial.length} files: no total score, every file against its floor.`
+      : `Total mutation score: ${totalOf(report) ?? '-'} %`,
+  );
   const { thresholds } = JSON.parse(readFileSync(CONFIG, 'utf8')) as {
     thresholds: { break: number | null };
   };
-  const failures = [
-    ...checkTotal(total, thresholds.break).map(
-      (f) => `::error::Total mutation score below the break threshold: ${f}`,
-    ),
-    ...check(scores, standard).map(
-      (f) => `::error::Mutation score below the floor: ${f}`,
-    ),
-  ];
-  for (const f of failures) console.log(f);
-  if (failures.length) process.exit(1);
+  const found = failures(report, standard, thresholds.break, partial);
+  for (const f of found) console.log(f);
+  if (found.length) process.exit(1);
   console.log(
     `All ${Object.keys(scores).length} files at or above their floor.`,
   );
