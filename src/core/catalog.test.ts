@@ -301,9 +301,10 @@ describe('catalog', () => {
       lt: LT,
       req: { b: { moonbase: 1 }, r: { hyper: 7 } },
     });
-    // After the Auspex-Phalanx, the last building.
-    expect(Object.keys(C.BUILD).at(-1)).toBe('jumpgate');
-    expect(Object.keys(C.BUILD).at(-2)).toBe('phalanx');
+    // After the Auspex-Phalanx; the Raketenkrypta of #54 comes after it.
+    expect(Object.keys(C.BUILD).at(-2)).toBe('jumpgate');
+    expect(Object.keys(C.BUILD).at(-3)).toBe('phalanx');
+    expect(Object.keys(C.BUILD).at(-1)).toBe('silo');
     expect(C.BUILD.jumpgate!.fields).toBeUndefined();
     expect(C.buildable('jumpgate', 'moon')).toBe(true);
     expect(C.buildable('jumpgate', 'planet')).toBe(false);

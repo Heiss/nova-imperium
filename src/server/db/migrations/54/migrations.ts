@@ -2,7 +2,7 @@
 // migration is never changed once it is on main and has its upgrade test
 // src/server/db/upgrades/<id>.test.ts.
 //
-// 20261117T1006-missiles: the mission Raketenangriff (`missile`) and the
+// 20261118T2235-missiles: the mission Raketenangriff (`missile`) and the
 // main target of its missiles (`aim`, a defense key or NULL). The CHECK of
 // fleets.mission needs a rebuild of fleets and fleet_ships, as in 16; every
 // fleet in flight keeps its values, its gift and its ships, and has no main
@@ -12,7 +12,7 @@ import type { Migration } from '../../migration-files.ts';
 
 const migrations: Migration[] = [
   {
-    id: '20261117T1006-missiles',
+    id: '20261118T2235-missiles',
     sql: `
     ALTER TABLE fleet_ships RENAME TO old_fleet_ships;
     ALTER TABLE fleets RENAME TO old_fleets;

@@ -115,7 +115,7 @@ above.
   the missiles leave the planet's defense; the audit event `game` /
   `missile`, the impact `system` / `missile`. Missiles in flight count for
   the points until their impact (owiki).
-* **[E]** Migration `20261117T1006-missiles` rebuilds `fleets` and
+* **[E]** Migration `20261118T2235-missiles` rebuilds `fleets` and
   `fleet_ships` for the mission `missile` and adds `fleets.aim` (TEXT, the
   main target, NULL without one); the fleet repository writes `aim` only
   for missiles with a main target, as it writes `gift` only for a gift.
@@ -179,3 +179,8 @@ above.
   `src/server/game/missiles.ts` (today the noob protection; the comment
   „The vacation mode joins here with #223“ marks the place). TODO for #223:
   add the vacation mode to that one call, as for the fleets.
+* **[V]** Lexicanum (#285): the articles of the Raketenkrypta, the
+  Abfangrakete and the Orbitalrakete have keywords only, the mission
+  Raketenangriff has a text of what happens on arrival, all as drafts in
+  [Lexicanum texts](/features/lexicanum-texts.md); the Raketenkrypta has the
+  order 170 because the Warp-Tor (#230) has 160 (taken as recommended).

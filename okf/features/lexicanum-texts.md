@@ -151,6 +151,11 @@ code and here in the same pull request.
 * **[V]** Prose: „Die Wartezeit nach einem Sprung hängt von der Stufe des Starttors ab und sinkt, aber nicht gleichmäßig: Stufe 1 wartet 60 Minuten, Stufe 5 36, Stufe 10 nur 17. Ab Stufe 15 wird sie nicht mehr kürzer. Diese Minuten teilt das Universum durch seine Geschwindigkeit, ein schnelleres kühlt die Tore also schneller ab; die Tabelle zeigt die Zeit in deinem Universum. Beide Tore warten gleich lang, und zwar nach dem Starttor – die Stufe des Zieltors ändert nichts daran. Der Sprung selbst geschieht sofort und kostet keinen Treibstoff; nur Schiffe springen, die Rohstoffe bleiben zurück.“
 * **[V]** Keywords: Tor, springen, Teleport, Flotte, Mond
 
+### Raketenkrypta (`silo`)
+
+* Prose: none; the article has no effect of a level.
+* **[V]** Keywords: Raketen, lagern, Lager, Silo
+
 ## Forschung
 
 ### Machina-Energetik (`energy`)
@@ -342,6 +347,16 @@ code and here in the same pull request.
 * Prose: none; the article has no effect of a level.
 * **[V]** Keywords: Abwehr, Schutzschild, Schirm
 
+### Abfangrakete (`abm`)
+
+* Prose: none; the article has no effect of a level.
+* **[V]** Keywords: Abwehr, Raketen, abfangen, Schutz
+
+### Orbitalrakete (`ipm`)
+
+* Prose: none; the article has no effect of a level.
+* **[V]** Keywords: Raketen, Angriff, beschießen, Fernkampf
+
 ## Missionen
 
 ### Sturmangriff (`mission-attack`)
@@ -373,3 +388,8 @@ code and here in the same pull request.
 
 * **[V]** Mission text: „Am Trümmerfeld lädt die Flotte Adamant und Psikristall ein, bis das Feld leer oder der Laderaum voll ist. Dabei zählt der Laderaum aller Schiffe, nicht nur der Bergungsbarken. War eine andere Flotte schneller, bleibt nur der Rest; ist das Feld ganz fort, kehrt die Flotte um.“
 * **[V]** Keywords: Schrott, Wrack, einsammeln, aufräumen
+
+### Raketenangriff (`mission-missile`)
+
+* **[V]** Mission text: „Am Ziel hält jede Abfangrakete des Verteidigers eine anfliegende Orbitalrakete auf. Die übrigen treffen nur Verteidigung, die kämpft: zuerst das Hauptziel, dann alles andere der Reihe nach; Schilde zählen dabei nicht. Ist keine Verteidigung mehr übrig, zerstört der Rest der Wucht die gelagerten Raketen der Raketenkrypta. Zerstörte Verteidigung wird nicht wieder aufgebaut und hinterlässt kein Trümmerfeld. Ist das Ziel inzwischen verschwunden, sind die Raketen verloren; beide Seiten erhalten einen Bericht.“
+* **[V]** Keywords: Raketen, beschießen, Fernangriff, Verteidigung
