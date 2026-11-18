@@ -4,11 +4,13 @@ import type { V } from './common.ts';
 import { fleet } from './fleet.ts';
 import { guilds } from './guilds.ts';
 import { newsHTML } from '../logic/news.ts';
+import { market } from './market.ts';
 import { messages } from './messages.ts';
 import { admin, help, highscore } from './misc.ts';
 
 export const VIEWS: Record<string, (v: V) => string> = {
   fleet,
+  market,
   guilds,
   messages,
   highscore,
@@ -28,6 +30,7 @@ export function menu(admin: boolean, round: RoundRules): (MenuEntry | '-')[] {
     { view: 'overview', label: 'Übersicht' },
     { view: 'buildings', label: 'Gebäude' },
     { view: 'resources', label: 'Rohstoffe' },
+    { view: 'market', label: 'Marktplatz' },
     { view: 'research', label: 'Forschung' },
     { view: 'shipyard', label: 'Schiffsschmiede' },
     { view: 'defense', label: 'Verteidigung' },

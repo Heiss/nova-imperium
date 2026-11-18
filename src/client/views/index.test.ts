@@ -17,6 +17,7 @@ describe('phone menu', () => {
     ]);
     expect(more.map((t) => t.view)).toEqual([
       'resources',
+      'market',
       'research',
       'shipyard',
       'defense',
@@ -38,6 +39,7 @@ describe('phone menu', () => {
     expect(views(menu(true, off))).not.toContain('guilds');
     expect(phoneMenu(menu(false, off)).more.map((t) => t.view)).toEqual([
       'resources',
+      'market',
       'research',
       'shipyard',
       'defense',

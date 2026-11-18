@@ -8,6 +8,7 @@ import type { LabSite } from '../../core/research.ts';
 import type { ExplainMode } from '../../core/explain.ts';
 import type { GuildRight } from '../../core/guild-ranks.ts';
 import type { ChatEventKind } from '../../core/guild-chat.ts';
+import type { Pair } from '../../core/market.ts';
 import type { PushTopic } from '../../core/push.ts';
 import type { UniverseSpec } from '../../core/universe.ts';
 import type {
@@ -100,6 +101,8 @@ export interface GameState {
   gates?: GateView[];
   /** The positions locked after an abandonment, with the end of the lock (#224). */
   locks?: (Coords & { until: number })[];
+  /** The prices of the marketplace now and what the player gave today (#171). */
+  market?: { prices: Record<Pair, number>; used: number };
   admin: AdminState | null;
   achievements?: AchievementState;
   /** None while guilds are off in the round (#191). */
