@@ -116,10 +116,18 @@ const colonyOf = (p: Planet): Planet =>
     `p${d.colony.g ?? p.g}_${d.colony.s ?? p.s}_${d.colony.p ?? 15}`,
   )!;
 
-/** The moon of a planet (#53): made when it is not there yet, then changed. */
+/**
+ * The moon of a planet (#53): made when it is not there yet, then changed.
+ * Two test players can share a home system, so the slot may hold the moon
+ * of an earlier test: that one is made anew for the owner of the planet,
+ * without the cooldown of its Warp-Tor (#230, review of #293).
+ */
 function moonOf(p: Planet, over: Partial<Planet>): void {
   const id = `m${p.g}_${p.s}_${p.p}`;
-  const old = store.planet(id);
+  const found = store.planet(id);
+  const old = found?.owner === p.owner ? found : null;
+  if (found && !old)
+    store.db.prepare('DELETE FROM jump_gates WHERE moon_id = ?').run(id);
   const t = Date.now();
   store.savePlanet({
     ...(old ?? {

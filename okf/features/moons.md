@@ -378,7 +378,9 @@ the [E] of the Warp-Tor above (owner, 2026-11-13, confirmed 2026-11-16 in
   push. Two requests run one after the other in their transactions, so the
   second finds the gate cooling and refuses. The answer has no message; the
   audit event `game` / `jump` names the moon, the target and the ships. The
-  state lists the player's Warp-Tore as `gates` (`id`, `level`, `ready`).
+  state lists the player's Warp-Tore as `gates` (`id`, `level`, `ready`),
+  of the moons moved to now and not saved, as the labs: a Warp-Tor finished
+  since the last save is listed with its new level (review of #293).
 * Interface: in the view „Flotte“ of a moon with a Warp-Tor the box
   „Warp-Tor“ below „2. Ziel und Auftrag“ (`jumpPanel` of
   `src/client/logic/jump-gate.ts`, rendered in `src/client/views/fleet.ts`,
@@ -389,6 +391,11 @@ the [E] of the Warp-Tor above (owner, 2026-11-13, confirmed 2026-11-16 in
   with „Wieder bereit in …“ (a countdown) beside it. The ships are the ones
   picked in „1. Schiffe auswählen“; without ships the box still shows the
   readiness. A long „Zielmond“ stays inside a phone (`.jump-to`).
+  The clock of `main.ts` draws the view again once when an own Warp-Tor
+  turns ready (`viewDue`, with the finished orders it asked before), so
+  „Springen“ and the target are enabled without a click; a redraw keeps the
+  picked „Zielmond“ only while its option is enabled (`keeps`), else the
+  first ready one (review of #293).
 * Coordination with the branches not yet merged (read 2026-11-17):
   * #95 Mondbruch (`claude/mission-mondbruch`): `destroyMoon` deletes the
     moon row, and the gate time goes with it by the cascade; a moon that is
@@ -456,7 +463,8 @@ the [E] of the Warp-Tor above (owner, 2026-11-13, confirmed 2026-11-16 in
   Auspex-Phalanx with its requirements, the jump with the refusal without
   ships, the cooldown on both moons, the resources kept, the jump on a
   phone with the width check) with axe on the box; `e2e/seed.ts` has the
-  option `colonyMoon`; `e2e/moons.spec.ts` and `e2e/phalanx.spec.ts` list
+  option `colonyMoon`, and a moon left on the slot by an earlier test is made
+  anew for its new owner, without the old cooldown; `e2e/moons.spec.ts` and `e2e/phalanx.spec.ts` list
   the Warp-Tor as the last moon building.
 
 # Mission „Mondbruch“ (#95)

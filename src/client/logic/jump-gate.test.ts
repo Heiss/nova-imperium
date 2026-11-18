@@ -4,7 +4,7 @@
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import type { GateView } from '../../core/jump-gate.ts';
-import { jumpPanel } from './jump-gate.ts';
+import { jumpPanel, keeps, viewDue } from './jump-gate.ts';
 import type { Planet } from '../../core/types.ts';
 import type { GalaxyPlanet } from './types.ts';
 
@@ -21,6 +21,9 @@ const here = (over: Partial<Planet> = {}): Planet =>
     p: 3,
     b: { moonbase: 1, jumpgate: 2 },
     ships: { lc: 3 },
+    bq: null,
+    sq: [],
+    sqT: null,
     ...over,
   }) as Planet;
 
@@ -186,5 +189,82 @@ describe('the box „Warp-Tor“', () => {
         },
       ),
     );
+  });
+});
+
+describe('the clock draws the view again', () => {
+  const shown = (over: Partial<Planet> = {}, list = gates()) => ({
+    s: { gates: list },
+    P: here(over),
+    R: { rq: null },
+    now: NOW,
+  });
+
+  it('not while nothing ends', () => {
+    expect(viewDue(shown(), NOW + 1000)).toBe(false);
+    expect(viewDue({ ...shown(), s: {} }, NOW + 1000)).toBe(false);
+  });
+
+  it('when a building, the research or a ship of the place is done', () => {
+    const bq = {
+      key: 'jumpgate',
+      lvl: 3,
+      start: NOW,
+      end: NOW + 500,
+      cost: [0, 0, 0],
+    } as Planet['bq'];
+    expect(viewDue(shown({ bq }), NOW + 499)).toBe(false);
+    expect(viewDue(shown({ bq }), NOW + 500)).toBe(true);
+    const rq = { end: NOW + 500 } as NonNullable<Planet['bq']>;
+    expect(viewDue({ ...shown(), R: { rq } }, NOW + 499)).toBe(false);
+    expect(viewDue({ ...shown(), R: { rq } }, NOW + 500)).toBe(true);
+    const sq = [{ key: 'lf', n: 2, unit: 300 }];
+    expect(viewDue(shown({ sq, sqT: NOW }), NOW + 299)).toBe(false);
+    expect(viewDue(shown({ sq, sqT: NOW }), NOW + 300)).toBe(true);
+    // A queue that has not started yet starts now.
+    expect(viewDue(shown({ sq, sqT: null }), NOW + 299)).toBe(false);
+    expect(viewDue(shown({ sq: [{ ...sq[0]!, unit: 0 }] }), NOW)).toBe(true);
+  });
+
+  it('once when a Warp-Tor turns ready, the own one or a target', () => {
+    for (const cooling of [
+      gates({ ready: NOW + 2000 }),
+      gates({}, {}, { ready: NOW + 2000 }),
+    ]) {
+      const v = shown({}, cooling);
+      expect(viewDue(v, NOW + 1999)).toBe(false);
+      expect(viewDue(v, NOW + 2000)).toBe(true);
+      expect(viewDue(v, NOW + 9000)).toBe(true);
+      // The redraw moves the view to the readiness: not again after it.
+      expect(viewDue({ ...v, now: NOW + 2000 }, NOW + 3000)).toBe(false);
+      expect(viewDue({ ...v, now: NOW + 1999 }, NOW + 3000)).toBe(true);
+    }
+  });
+
+  it('not for a Warp-Tor on a place without one', () => {
+    const cooling = gates({}, { ready: NOW + 2000 });
+    const planet = shown({ b: { moonbase: 1 } }, cooling);
+    expect(viewDue(planet, NOW + 2000)).toBe(false);
+  });
+});
+
+describe('a redraw keeps the picked „Zielmond“', () => {
+  const options = [
+    { value: 'm2_5_9', disabled: true },
+    { value: 'm3_1_1', disabled: false },
+  ];
+
+  it('while its option is enabled, not on a cooling one', () => {
+    expect(keeps({ options }, 'm3_1_1')).toBe(true);
+    expect(keeps({ options }, 'm2_5_9')).toBe(false);
+  });
+
+  it('and every other field as before', () => {
+    // A value without an option changes nothing in a select.
+    expect(keeps({ options }, 'm9_9_9')).toBe(true);
+    expect(keeps({ options: [] }, 'x')).toBe(true);
+    // An input has no options, a datalist field has none set.
+    expect(keeps({}, '12')).toBe(true);
+    expect(keeps({ options: null }, '12')).toBe(true);
   });
 });

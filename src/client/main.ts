@@ -35,6 +35,7 @@ import {
   type FleetForm,
 } from './logic/game.ts';
 import { headerLine } from './logic/header.ts';
+import { keeps, viewDue } from './logic/jump-gate.ts';
 import { chatToSee, finishedYardOrders } from './logic/menu-hints.ts';
 import { gameIsBack, maintenanceNotice } from './logic/maintenance.ts';
 import { latestNews, NEWS_SEEN_KEY, type NewsData } from './logic/news.ts';
@@ -604,7 +605,7 @@ function keepInputs(view: HTMLElement, fresh: boolean): () => void {
   return () => {
     for (const [id, v] of Object.entries(saved)) {
       const el = document.getElementById(id) as HTMLInputElement | null;
-      if (el && !el.hasAttribute('data-nokeep')) el.value = v;
+      if (el && !el.hasAttribute('data-nokeep') && keeps(el, v)) el.value = v;
     }
     // A ticked or cleared box of a guild rank survives the refresh (#163);
     // a disabled one shows the server's state, it is no draft.
@@ -1732,22 +1733,10 @@ $('#modal')!.addEventListener('click', (e) => {
 
 // ----- clock -----
 
-function queueDue(view: V, now: number): boolean {
-  const ship = view.P.sq[0];
-  const nextShip = ship ? (view.P.sqT ?? now) + ship.unit : Infinity;
-  return (
-    Math.min(
-      view.P.bq?.end ?? Infinity,
-      view.R.rq?.end ?? Infinity,
-      nextShip,
-    ) <= now
-  );
-}
-
 setInterval(() => {
   if (!client.view) return;
   const now = client.now();
-  if (queueDue(client.view, now)) {
+  if (viewDue(client.view, now)) {
     render();
     void refresh();
     return;

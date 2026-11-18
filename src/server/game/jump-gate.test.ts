@@ -223,6 +223,29 @@ describe('the jump through the Warp-Tor', () => {
     });
   });
 
+  it('shows a Warp-Tor finished since the last save, without saving (review of #293)', () => {
+    const { ctx, anna } = world(1, 1);
+    const end = ctx.now() + 1000;
+    ctx.planets.save({
+      ...ctx.planets.get(TO)!,
+      bq: { key: 'jumpgate', lvl: 2, start: ctx.now(), end, cost: [0, 0, 0] },
+    });
+    expect(stateFor(ctx, anna).gates).toEqual([
+      { id: FROM, level: 1, ready: 0 },
+      { id: TO, level: 1, ready: 0 },
+    ]);
+    ctx.clock.t = end;
+    expect(stateFor(ctx, anna).gates).toEqual([
+      { id: FROM, level: 1, ready: 0 },
+      { id: TO, level: 2, ready: 0 },
+    ]);
+    // The state only reads: the stored moon still has its order.
+    expect(ctx.planets.get(TO)).toMatchObject({
+      b: { jumpgate: 1 },
+      bq: { key: 'jumpgate', lvl: 2, end },
+    });
+  });
+
   it('names the moons and the ships in the audit event', () => {
     const { ctx } = world();
     const event = { detail: {} } as AuditEntry;

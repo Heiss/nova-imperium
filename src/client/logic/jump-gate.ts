@@ -3,7 +3,9 @@
 // „Zielmond“ here, another own moon with a Warp-Tor, and jumps with
 // „Springen“. Both gates must be ready, as the server checks with
 // `jumpError`: a cooling gate shows „Wieder bereit in …“, the start below
-// the button, a target in its option, which is disabled until then.
+// the button, a target in its option, which is disabled until then. The
+// box is drawn again once when a gate turns ready (`viewDue`), and a redraw
+// keeps the picked „Zielmond“ only while its option is enabled (`keeps`).
 import {
   type Gate,
   type GateView,
@@ -12,7 +14,7 @@ import {
   targetError,
 } from '../../core/jump-gate.ts';
 import { placeName } from '../../core/moon.ts';
-import type { Planet } from '../../core/types.ts';
+import type { Planet, ResearchState } from '../../core/types.ts';
 import { coords, dur } from './format.ts';
 import type { GameState } from './types.ts';
 
@@ -75,4 +77,49 @@ export function jumpPanel(
     targets,
     canJump: ready && targets.some((t) => !t.disabled),
   };
+}
+
+/** What the clock needs of the shown view: the place, the research, the state and its time. */
+interface Shown {
+  s: Pick<GameState, 'gates'>;
+  P: Planet;
+  R: Pick<ResearchState, 'rq'>;
+  /** When the view was drawn. */
+  now: number;
+}
+
+/** Whether an order of the shown place or the research has ended at `now`. */
+function queueDue({ P, R }: Shown, now: number): boolean {
+  const ship = P.sq[0];
+  const nextShip = ship ? (P.sqT ?? now) + ship.unit : Infinity;
+  return (
+    Math.min(P.bq?.end ?? Infinity, R.rq?.end ?? Infinity, nextShip) <= now
+  );
+}
+
+/**
+ * Whether an own Warp-Tor turned ready between the drawing of the view and
+ * `now`, on a moon with a Warp-Tor: the box enables „Springen“ and the
+ * target then. True once per gate, since the redraw moves the time of the
+ * view past the readiness.
+ */
+const gateDue = (v: Shown, now: number): boolean =>
+  gateLevel(v.P) > 0 &&
+  (v.s.gates ?? []).some((g) => g.ready > v.now && g.ready <= now);
+
+/** Whether the clock draws the shown view again at `now`: a finished order or research, or a Warp-Tor that turned ready. */
+export const viewDue = (v: Shown, now: number): boolean =>
+  queueDue(v, now) || gateDue(v, now);
+
+/** The options of a select, as a redraw of the view finds them. */
+type Options = ArrayLike<{ value: string; disabled: boolean }>;
+
+/**
+ * Whether a redraw restores the saved `value` of a form field: not onto a
+ * disabled option of a select, such as a „Zielmond“ that cools down since.
+ * The select then keeps the option the redraw picked, the first enabled.
+ */
+export function keeps(field: object, value: string): boolean {
+  const options = (field as { options?: Options | null }).options ?? [];
+  return !Array.from(options).find((o) => o.value === value)?.disabled;
 }

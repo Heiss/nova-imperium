@@ -70,10 +70,15 @@ export const jump: Action = (ctx, u, d, event) => {
   return null;
 };
 
-/** Every Warp-Tor of the player, on the moons in their order. */
+/**
+ * Every Warp-Tor of the player, on the moons in their order. The places are
+ * moved to now and not saved, as the labs of `ownLabs`: a Warp-Tor finished
+ * since the last save is in the state with its new level.
+ */
 export const gateState = (ctx: Ctx, uid: string): GateView[] =>
   ctx.planets
     .ofOwner(uid)
+    .map((p) => settle(p, ctx.now(), universe(ctx)))
     .filter((p) => gateLevel(p) > 0)
     .map((p) => ({
       id: p.id,
