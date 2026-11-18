@@ -1,7 +1,7 @@
 // What stateFor() shows of fleets and the home planet: own fleets in
 // full, foreign fleets only on their way to the shown planet and only as
 // the observer's Auspex-Lehre recognizes them (#228).
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { RECOGNITION_DEFAULT } from '../../core/fleet-recognition.ts';
 import type { Fleet } from '../../core/types.ts';
 import { addPlanet, addUser, testCtx } from '../test-helpers.ts';
@@ -26,7 +26,11 @@ const fleet = (over: Partial<Fleet>): Fleet => ({
   ...over,
 });
 
-type Shown = { fleets: Fleet[]; homePlanet: string | null };
+type Shown = {
+  fleets: Fleet[];
+  homePlanet: string | null;
+  planet: { id: string } | null;
+};
 
 describe('state: fleets and the home planet', () => {
   it('shows own fleets in full and names the home planet', () => {
@@ -56,6 +60,37 @@ describe('state: fleets and the home planet', () => {
     ctx.fleets.save(fleet({ id: 'home', state: 'back' }));
     const s = stateFor(ctx, b, 'p1_2_5') as Shown;
     expect(s.fleets).toEqual([foreignView(here, 0, RECOGNITION_DEFAULT)]);
+  });
+
+  it('treats a selection that is not a string as no selection and never looks it up', () => {
+    const ctx = testCtx();
+    const a = addUser(ctx, 'Anna');
+    const home = addPlanet(ctx, a.id, { g: 1, s: 1, p: 5 });
+    addPlanet(ctx, a.id, { g: 1, s: 2, p: 5 });
+    // The body of an action can hold any JSON as `planet`.
+    const get = vi.spyOn(ctx.planets, 'get');
+    for (const selected of [
+      undefined,
+      null,
+      5,
+      true,
+      {},
+      { id: 'p1_2_5' },
+      ['p1_2_5'],
+    ]) {
+      get.mockClear();
+      const s = stateFor(ctx, a, selected) as Shown;
+      expect(s.planet?.id, JSON.stringify(selected)).toBe(home.id);
+      const looked = get.mock.calls.map(([id]) => id);
+      expect(
+        looked.filter((id) => typeof id !== 'string'),
+        JSON.stringify(selected),
+      ).toEqual([]);
+    }
+    // A string selection of the player's own planet is looked up and shown.
+    get.mockClear();
+    expect((stateFor(ctx, a, 'p1_2_5') as Shown).planet?.id).toBe('p1_2_5');
+    expect(get).toHaveBeenCalledWith('p1_2_5');
   });
 
   it('shows a player without a planet only their own fleets', () => {
