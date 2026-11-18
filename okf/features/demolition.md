@@ -79,7 +79,11 @@ Mondzitadelle cannot be torn down ([Moons](/features/moons.md)).
   case].
 * **[V]** Not on a moon (out of scope of #202) and not without a level: the
   interface never offers it, and the server refuses such a request with
-  „Ungültig.“, as every request the interface never sends.
+  „Ungültig.“, as every request the interface never sends. The rule is the
+  kind of the place, not a list of keys, so it holds for every building of a
+  moon: the Mondbasis, the Auspex-Phalanx and the Warp-Tor
+  ([Moons](/features/moons.md), #230) are refused alike, and the tests go
+  over every building that stands on a moon.
 * **[V]** The check is `demolitionErrors` in `src/core/demolition.ts`
   (codes `place`, `none`, `fields`, `busy`, `yardBusy`, `labBusy`, `cost`,
   in this order; patterns, section 7); the server
@@ -106,13 +110,22 @@ Mondzitadelle cannot be torn down ([Moons](/features/moons.md)).
   end gives back, null on an upgrade (migration
   `20261117T0921-demolition`, see [SQLite storage](/data/sqlite.md)); the
   level of the entry is one below the level that stands.
-* **[V]** The settings are the universe settings `roundDemolitionRefund`
-  and `roundDemolitionTime`, read by `roundRules()` and by the game; the
-  dialog „Neue Runde“ has two number fields with the labels of the
-  universe settings, preselected with the current round, and refuses a
-  value outside its range with the message of the universe settings
-  („Rückbau-Erstattung (%): ganze Zahl von -100 bis 100.“). The values are
-  part of the audit entry of the round reset.
+* **[V]** The settings are two entries of the registry of the round
+  settings ([Admin](/features/admin.md#the-registry-of-the-round-settings-283),
+  #283), in `src/core/demolition.ts`: `DEMOLITION_REFUND_SETTING` (key
+  `roundDemolitionRefund`, name `demolitionRefund`, „Rückbau-Erstattung
+  (%)“, −100 to +100, default 50, order 180) and `DEMOLITION_TIME_SETTING`
+  (key `roundDemolitionTime`, name `demolitionTime`, „Rückbau-Dauer (% der
+  Bauzeit)“, 1 to 200, default 50, order 190), both `live`: a number field
+  of the dialog „Neue Runde“ preselected with the current round and a row of
+  the universe settings (X1). The game reads them from the universe
+  settings (`refundOf`, `timeOf`). A value outside its range is refused with
+  the range wording of the universe settings („Rückbau-Erstattung (%):
+  ganze Zahl von -100 bis 100.“). The two entries are one group
+  `demolition` without a legend: the request „reset“ sends them as one
+  object, a wrong one refuses both together, and the dialog shows them as
+  two rows without a fieldset, because the owner decided no legend text.
+  The values are part of the audit entry of the round reset.
 * **[V]** The Endzeit gift (#161) ends a running demolition only when it
   raised that building, refunding what its start paid; otherwise the
   demolition goes on.
@@ -124,18 +137,22 @@ Mondzitadelle cannot be torn down ([Moons](/features/moons.md)).
 # Tests
 
 * Unit: `src/core/demolition.test.ts` (settings, moves, time, order,
-  every refusal, the end in `settle`), `src/core/universe.test.ts`,
+  every refusal, no demolition on any moon, the Warp-Tor included, the end
+  in `settle`), `src/core/round.test.ts` (the registry),
+  `src/core/universe.test.ts`,
   `src/core/endzeit.test.ts` (the gift and a demolition),
   `src/client/logic/demolition.test.ts` (the button, the sentences, the
-  confirmation, the mark, the dialog „Neue Runde“),
-  `src/client/logic/catalog-list.test.ts`, `src/client/views/misc.test.ts`,
+  confirmation, the mark), the dialog „Neue Runde“ in
+  `src/client/views/misc.test.ts`,
+  `src/client/logic/catalog-list.test.ts`,
   `src/test/demolition-texts.test.ts`; the frozen
   `src/test/catalog-reference/Buildings.svelte` has the button and the
   „Rückbau“ as its second marked change, and the generated states of
   `src/test/catalog-list-reference.test.ts` hold demolitions.
 * Server: `src/server/game/demolition.test.ts` (the action, D1 to D7, the
-  refusals, the cancel, the points, the settings in „Neue Runde“ and the
-  universe settings).
+  refusals, a building of a moon, the Warp-Tor too, the cancel, the points,
+  the settings in „Neue Runde“ and the universe settings),
+  `src/server/game/round.test.ts` (the live rows).
 * Upgrade: `src/server/db/upgrades/20261117T0921-demolition.test.ts`.
 * E2E: `e2e/demolition.spec.ts`, desktop and phone, with axe on the
   confirmation (`e2e/seed.ts` ends a running order with `finishBuild`).

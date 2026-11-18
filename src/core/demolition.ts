@@ -143,9 +143,7 @@ export const demolitionTime = (
   key: string,
   u: Universe,
 ): number =>
-  Math.ceil(
-    (buildTime(demolishedCost(p, key), p, u) * timeOf(u)) / 100,
-  );
+  Math.ceil((buildTime(demolishedCost(p, key), p, u) * timeOf(u)) / 100);
 
 /**
  * The entry of the build queue that tears down one level of `key` from
@@ -158,10 +156,7 @@ export function demolitionOrder(
   u: Universe,
   start: number,
 ): Queue & { back: Cost } {
-  const { pay, back } = demolitionMoves(
-    demolishedCost(p, key),
-    refundOf(u),
-  );
+  const { pay, back } = demolitionMoves(demolishedCost(p, key), refundOf(u));
   return {
     key,
     lvl: (p.b[key] ?? 0) - 1,
@@ -176,4 +171,3 @@ export function demolitionOrder(
 export const isDemolition = (
   q: Pick<Queue, 'back'> | null | undefined,
 ): boolean => !!q?.back;
-

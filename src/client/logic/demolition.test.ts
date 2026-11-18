@@ -47,6 +47,13 @@ describe('the button „Zurückbauen“ (#202)', () => {
         'moonbase',
       ),
     ).toBe(false);
+    // The Warp-Tor (#230) stands on a moon, so it is never offered either.
+    expect(
+      canOfferDemolition(
+        view({ kind: 'moon', b: { jumpgate: 1 } }),
+        'jumpgate',
+      ),
+    ).toBe(false);
     const bq = { key: 'crystal', lvl: 1, start: 0, end: 9, cost: NONE };
     expect(canOfferDemolition(view({ b: { metal: 1 }, bq }), 'metal')).toBe(
       false,
@@ -213,7 +220,7 @@ describe('the remembered finished order', () => {
       new Map([['buildings', 'Ausbau fertig']]),
     );
     expect([...done.completionNotices]).toEqual([
-      'Ausbau fertig: Adamantmine (Stufe 3).',
+      'Ausbau fertig: Adamant-Tiefbohrung (Stufe 3).',
     ]);
     const down = sink();
     rememberUpgrade(
@@ -226,7 +233,7 @@ describe('the remembered finished order', () => {
     );
     expect(down.completedMenu.get('buildings')).toBe('Rückbau fertig');
     expect([...down.completionNotices]).toEqual([
-      'Rückbau fertig: Adamantmine (Stufe 2).',
+      'Rückbau fertig: Adamant-Tiefbohrung (Stufe 2).',
     ]);
   });
 

@@ -169,19 +169,35 @@ describe('a new entry of the registry (#283)', () => {
     expect(valuesOf(ctx)).toMatchObject({ testHours: 72 });
   });
 
-  it('the lock of a given-up position (#224) is the one live setting of main, the last row of the universe settings', () => {
-    const row = {
-      key: 'roundAbandonLock',
-      label: 'Sperre einer aufgegebenen Position (Stunden)',
-      min: 1,
-      max: 720,
-      def: 24,
-    };
-    expect(liveSpecs()).toEqual([row]);
-    expect(UNIVERSE_SPECS.filter((s) => s.key.startsWith('round'))).toEqual([
-      row,
-    ]);
-    expect(UNIVERSE_SPECS.at(-1)).toEqual(row);
+  it('the lock of a given-up position (#224) and the demolition (#202) are the live settings of main, the last rows of the universe settings', () => {
+    const rows = [
+      {
+        key: 'roundAbandonLock',
+        label: 'Sperre einer aufgegebenen Position (Stunden)',
+        min: 1,
+        max: 720,
+        def: 24,
+      },
+      {
+        key: 'roundDemolitionRefund',
+        label: 'Rückbau-Erstattung (%)',
+        min: -100,
+        max: 100,
+        def: 50,
+      },
+      {
+        key: 'roundDemolitionTime',
+        label: 'Rückbau-Dauer (% der Bauzeit)',
+        min: 1,
+        max: 200,
+        def: 50,
+      },
+    ];
+    expect(liveSpecs()).toEqual(rows);
+    expect(UNIVERSE_SPECS.filter((s) => s.key.startsWith('round'))).toEqual(
+      rows,
+    );
+    expect(UNIVERSE_SPECS.slice(-3)).toEqual(rows);
   });
 
   it('a new round refuses in the fixed order of main (owner, 2026-11-17)', () => {

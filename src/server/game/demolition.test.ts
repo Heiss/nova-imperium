@@ -141,6 +141,22 @@ describe('a demolition (#202)', () => {
     ).toThrow('Ungültig.');
   });
 
+  it('never tears down a building of a moon, the Warp-Tor included (#53, #230)', () => {
+    const { ctx, u, p } = setup({ b: { metal: 1 } });
+    const moon = addMoon(ctx, p(), 1, ctx.now());
+    const b = { moonbase: 2, phalanx: 1, jumpgate: 3 };
+    ctx.planets.save({ ...moon, b, res: rich });
+    for (const key of Object.keys(b))
+      expect(() => demolish(ctx, u, { key, planet: moon.id }), key).toThrow(
+        'Ungültig.',
+      );
+    // Nothing changed: the levels stand, no order runs, nothing was paid.
+    const after = ctx.planets.get(moon.id)!;
+    expect(after.b).toEqual(b);
+    expect(after.bq).toBeNull();
+    expect(after.res).toEqual(rich);
+  });
+
   it('words every code', () => {
     expect(DEMOLITION_ERROR).toEqual({
       place: 'Ungültig.',

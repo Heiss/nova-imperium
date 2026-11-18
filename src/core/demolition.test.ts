@@ -1,7 +1,7 @@
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import { planet, U } from '../test/fixtures.ts';
-import { BUILD } from './catalog.ts';
+import { BUILD, buildable, PLACEMENT } from './catalog.ts';
 import {
   DEMOLITION_REFUND,
   DEMOLITION_REFUND_SETTING,
@@ -79,9 +79,9 @@ describe('the settings of a demolition (#202, #283)', () => {
       { demolitionRefund: 0, demolitionTime: 50 },
     ])
       expect(refused({ demolition: ok })).toEqual([]);
-    expect(
-      roundValues(current, { demolition: { demolitionRefund: -100 } }, SETTINGS),
-    ).toEqual({ demolitionRefund: -100, demolitionTime: current.demolitionTime });
+    const sent = { demolition: { demolitionRefund: -100, demolitionTime: 7 } };
+    expect(roundValues(current, sent, SETTINGS)).toEqual(sent.demolition);
+    expect(roundValues(current, {}, SETTINGS)).toEqual(current);
   });
 
   it('refuse a whole percent outside the ranges, both settings together', () => {
@@ -252,6 +252,19 @@ describe('why a level cannot be torn down (D5)', () => {
     ]);
     expect(codes({ b: {} }, 'metal')).toEqual(['none']);
     expect(codes({ b: { metal: 0 } }, 'metal')).toEqual(['none']);
+  });
+
+  it('not on any moon: every building that stands on a moon, the Warp-Tor too, is refused as „place“', () => {
+    const onMoon = Object.keys(PLACEMENT).filter((key) =>
+      buildable(key, 'moon'),
+    );
+    expect(onMoon).toEqual(
+      expect.arrayContaining(['moonbase', 'phalanx', 'jumpgate']),
+    );
+    for (const key of onMoon)
+      expect(codes({ kind: 'moon', b: { [key]: 2 } }, key), key).toEqual([
+        'place',
+      ]);
   });
 
   it('not while the build queue runs', () => {

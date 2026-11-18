@@ -122,8 +122,7 @@ describe('the registry of the round settings', () => {
   it('builds the request with a group as one object', () => {
     expect(roundRequest(current)).toEqual({
       abandonLock: 24,
-      demolitionRefund: 50,
-      demolitionTime: 50,
+      demolition: { demolitionRefund: 50, demolitionTime: 50 },
       rewards: { achievements: true, daily: false },
       guilds: true,
       mainLock: 7,

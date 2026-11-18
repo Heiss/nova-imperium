@@ -92,8 +92,8 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 | Extra fields per planet („Zusatzfelder pro Planet“, #51) | 0 (not in version 1) | 0 to 100, [E] owner 2026-11-13 |
 | Flight time of the „Endzeit“ gift in minutes („Flugzeit der Endzeit-Gabe (Minuten)“, #161) | 240 (not in version 1) | 1 to 4,320 (72 h), [E] owner 2026-11-14 |
 | Lock of a given-up colony's position in hours („Sperre einer aufgegebenen Position (Stunden)“, #224) | 24 (not in version 1), [E] owner 2026-11-16 | 1 to 720 [V]; also in the dialog „Neue Runde“, [E] owner 2026-11-17 (X1) |
-| Refund factor of a demolition („Rückbau-Erstattung (%)“, #202) | +50 (not in version 1) | −100 to +100, [E] owner 2026-11-16 |
-| Time of a demolition („Rückbau-Dauer (% der Bauzeit)“, #202) | 50 (not in version 1) | 1 to 200, [E] owner 2026-11-17 |
+| Refund factor of a demolition („Rückbau-Erstattung (%)“, #202) | +50 (not in version 1) | −100 to +100, [E] owner 2026-11-16; also in the dialog „Neue Runde“, [E] owner 2026-11-17 (X1) |
+| Time of a demolition („Rückbau-Dauer (% der Bauzeit)“, #202) | 50 (not in version 1) | 1 to 200, [E] owner 2026-11-17; also in the dialog „Neue Runde“, [E] owner 2026-11-17 (X1) |
 
 * **[V]** The ranges above are proposals; the source is
   `src/core/universe.ts`.
@@ -120,8 +120,8 @@ universe settings) and their ranges are not decided yet.
 | Thresholds of the recognition of incoming fleets ([Espionage defense](/features/espionage-defense.md)) | #228 D1 | classic value: espionage technology 2 / 4 / 8 (source [U]) |
 | Thresholds of the [activity indicators](/features/activity-indicators.md) | #229 Q1 | classic value: star 15 min, „x min“ up to 59 min, „i“ after 7 days, „I“ after 28 days |
 | Slots and holding time of [expeditions](/features/expeditions.md) | #93 Q3 | classic value: ⌊√level⌋ slots, at most level hours |
-| Refund factor of a [demolition](/features/demolition.md), −100 % to +100 % („Rückbau-Erstattung (%)“) | #202 D4, D7 | +50 % [E]; built in the dialog „Neue Runde“ and the universe settings (X1) |
-| Demolition time as a share of the build time, 1 to 200 % („Rückbau-Dauer (% der Bauzeit)“, [Demolition](/features/demolition.md)) | #202 D3 | 50 % [E]; built in the dialog „Neue Runde“ and the universe settings (X1) |
+| Refund factor of a [demolition](/features/demolition.md), −100 % to +100 % („Rückbau-Erstattung (%)“) | #202 D4, D7 | +50 % [E]; built as the registry entry `DEMOLITION_REFUND_SETTING` (order 180), in the dialog „Neue Runde“ and the universe settings (X1) |
+| Demolition time as a share of the build time, 1 to 200 % („Rückbau-Dauer (% der Bauzeit)“, [Demolition](/features/demolition.md)) | #202 D3 | 50 % [E]; built as the registry entry `DEMOLITION_TIME_SETTING` (order 190), in the dialog „Neue Runde“ and the universe settings (X1) |
 
 * **[E]** Each of these is set by the admin per round (owner, 2026-11-16).
   The classic defaults are decided where the table says „classic value“,
@@ -147,6 +147,14 @@ universe settings) and their ranges are not decided yet.
   reward options (10, 20), the guild switch (30), the lock of the main
   planet (40), the lock of a given-up position (50, last). A new feature
   appends at the end with its own number.
+* **[V]** Numbers of the entries of #222 not yet on main, so that parallel
+  branches do not collide: 60 to 90 (#229), 100 and 110 (#55), 120 to 140
+  (#228), 150 to 170 (reserved for #223); the demolition of #202 takes 180
+  (refund factor, „Rückbau-Erstattung (%)“) and 190 (time, „Rückbau-Dauer
+  (% der Bauzeit)“), both `live`, in one group `demolition` without a
+  legend: they are sent as one object and refused together, and the dialog
+  shows no fieldset, because no German legend text exists
+  ([Demolition](/features/demolition.md)).
 * **[V]** An entry has its stored `key` (`round…`), its `name` in
   `RoundRules` and in the request, its German `label`, and is either a
   switch (`kind: 'switch'`, default yes or no, a `refusal`, an optional
