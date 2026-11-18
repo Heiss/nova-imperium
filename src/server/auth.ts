@@ -11,6 +11,7 @@ import { type Config, MAX_PASSWORD, NUMBERS } from './config.ts';
 import type { Invitation } from './db/repos/invitations.ts';
 import type { User } from './db/repos/players.ts';
 import { type Ctx, fail, int, str } from './game/context.ts';
+import { recordActivity } from './game/activity.ts';
 import { ensureActive, suspension } from './game/moderation.ts';
 import { placePlanet } from './game/planets.ts';
 
@@ -148,6 +149,8 @@ export function register(
     created: ctx.now(),
     research: {},
     rq: null,
+    mainPlanet: null,
+    mainSwitched: null,
   };
   ctx.players.save(u);
   ctx.invitations.use(inv.id, ctx.now());
@@ -187,6 +190,8 @@ export function login(ctx: Ctx, name: unknown, password: unknown): User {
 
 export function startSession(ctx: Ctx, cfg: Config, uid: string): string {
   ensureActive(ctx, uid);
+  // A login sets activity on the main planet (#229).
+  recordActivity(ctx, ctx.players.get(uid)!, 'login');
   const token = newToken();
   ctx.players.addSession(
     hashToken(token),

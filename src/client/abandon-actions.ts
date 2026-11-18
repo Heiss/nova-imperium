@@ -1,0 +1,33 @@
+// The browser side of „Kolonie aufgeben“ (#224), out of main.ts (ratchet
+// #242): the button opens the confirmation, its form sends the planet it
+// was opened for, with its founding time, and the password and closes on
+// success. The markup is in logic/abandon.ts.
+import { abandonDialog } from './logic/abandon.ts';
+import { client } from './logic/state.svelte.ts';
+
+/** What the actions need from main.ts. */
+interface Deps {
+  act: (type: string, data?: object) => Promise<boolean>;
+  modal: (html: string) => void;
+}
+
+const value = (sel: string): string =>
+  document.querySelector<HTMLInputElement>(sel)?.value ?? '';
+
+/** The data-act handlers of „Kolonie aufgeben“; its form is handled here too. */
+export function abandonActs({ act, modal }: Deps): Record<string, () => void> {
+  document.addEventListener('submit', (e) => {
+    const form = e.target as HTMLFormElement;
+    if (form.id !== 'abandonform') return;
+    e.preventDefault();
+    const data = {
+      target: form.dataset.target,
+      created: Number(form.dataset.created),
+      password: value('#abandon-password'),
+    };
+    void act('abandon', data).then((done) => done && modal(''));
+  });
+  return {
+    abandon: () => modal(abandonDialog(client.view!.P, client.game!)),
+  };
+}

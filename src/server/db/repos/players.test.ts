@@ -7,7 +7,7 @@ describe('players repository', () => {
     const u = addUser(ctx, 'Anna', {
       admin: true,
       probes: 4,
-      explain: 'always',
+      explain: 'hidden',
       readAt: 7,
       research: { energy: 3, laser: 1 },
       rq: {
@@ -46,6 +46,29 @@ describe('players repository', () => {
     expect(ctx.db.prepare('SELECT admin, rq_key FROM users').get()).toEqual({
       admin: 0,
       rq_key: null,
+    });
+  });
+
+  it('saves, changes and clears the chosen main planet and its switch time (#221)', () => {
+    const ctx = testCtx();
+    const u = addUser(ctx, 'Anna', { mainPlanet: 'p2_3_7', mainSwitched: 42 });
+    expect(ctx.players.get(u.id)).toMatchObject({
+      mainPlanet: 'p2_3_7',
+      mainSwitched: 42,
+    });
+    ctx.players.save({ ...u, mainPlanet: 'p1_1_5', mainSwitched: 43 });
+    expect(ctx.players.get(u.id)).toMatchObject({
+      mainPlanet: 'p1_1_5',
+      mainSwitched: 43,
+    });
+    ctx.players.save({ ...u, mainPlanet: null, mainSwitched: null });
+    expect(
+      ctx.db.prepare('SELECT main_planet, main_switched FROM users').get(),
+    ).toEqual({ main_planet: null, main_switched: null });
+    expect(ctx.players.get(u.id)).toEqual({
+      ...u,
+      mainPlanet: null,
+      mainSwitched: null,
     });
   });
 
@@ -106,5 +129,19 @@ describe('players repository', () => {
     expect(ctx.players.deleteSessions('u_Anna')).toBe(2);
     expect(ctx.players.deleteSessions('u_Anna')).toBe(0);
     expect(ctx.players.sessionUser('b1', 0)).toBe('u_Bert');
+  });
+
+  it('keeps the last activity of an account apart from its save (#229)', () => {
+    const ctx = testCtx(1000);
+    addUser(ctx, 'Anna');
+    ctx.clock.t = 2000;
+    addUser(ctx, 'Bert');
+    // Without activity: the creation.
+    expect(ctx.players.lastActive()).toEqual({ u_Anna: 1000, u_Bert: 2000 });
+    ctx.players.markActive('u_Anna', 5000);
+    ctx.players.markActive('nobody', 6000);
+    expect(ctx.players.lastActive()).toEqual({ u_Anna: 5000, u_Bert: 2000 });
+    ctx.players.save({ ...ctx.players.get('u_Anna')!, probes: 9 });
+    expect(ctx.players.lastActive().u_Anna).toBe(5000);
   });
 });

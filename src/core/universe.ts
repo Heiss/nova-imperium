@@ -1,7 +1,10 @@
 // The settings of a universe: defaults, ranges and the rule that the size of
 // the universe never shrinks below a planet that exists. The admin panel, the
-// server check and the documentation table read this list.
+// server check and the documentation table read this list. A `live` setting
+// of the round (#283, X1) is a row here too, read from the registry
+// `ROUND_SETTINGS`, under the key the round stores it.
 import { GIFT_DEFAULT_MINUTES, GIFT_MINUTES } from './endzeit.ts';
+import { ROUND_SETTINGS, type RoundSetting } from './round.ts';
 import type { Coords, Universe } from './types.ts';
 
 type UniverseKey = keyof Universe;
@@ -14,9 +17,30 @@ export interface UniverseSpec {
   def: number;
   /** Size of the universe: it may grow, never shrink below a used coordinate. */
   size?: 'g' | 's' | 'p';
+  /** Named values instead of a number field (a setting of the round, #283). */
+  choices?: readonly { value: number; label: string }[];
 }
 
-export const UNIVERSE_SPECS: readonly UniverseSpec[] = [
+/** The rows of the `live` settings of the round (#283, X1). */
+export const liveSpecs = (
+  settings: readonly RoundSetting[] = ROUND_SETTINGS,
+): UniverseSpec[] =>
+  settings.flatMap((s) =>
+    s.kind === 'number' && s.live
+      ? [
+          {
+            key: s.key,
+            label: s.label,
+            min: s.min,
+            max: s.max,
+            def: s.def,
+            ...(s.choices ? { choices: s.choices } : {}),
+          },
+        ]
+      : [],
+  );
+
+const SPECS: readonly UniverseSpec[] = [
   { key: 'speed', label: 'Tempo (Faktor)', min: 1, max: 100, def: 5 },
   { key: 'galaxies', label: 'Galaxien', min: 1, max: 9, def: 2, size: 'g' },
   {
@@ -90,6 +114,11 @@ export const UNIVERSE_SPECS: readonly UniverseSpec[] = [
   },
 ];
 
+export const UNIVERSE_SPECS: readonly UniverseSpec[] = [
+  ...SPECS,
+  ...liveSpecs(),
+];
+
 export const DEFAULT_UNIVERSE: Universe = Object.fromEntries(
   UNIVERSE_SPECS.map((s) => [s.key, s.def]),
 ) as unknown as Universe;
@@ -108,34 +137,46 @@ export interface UsedSize {
   p: number;
 }
 
+/**
+ * Why a setting is refused (#214, patterns, section 7): not a whole number
+ * within its range, or a size below a coordinate planets use.
+ */
+export type UniverseCode = 'range' | 'used';
+
+/** A refused setting: its spec and the code; the server words it. */
+interface UniverseError {
+  spec: UniverseSpec;
+  code: UniverseCode;
+}
+
 const checkOne = (
   spec: UniverseSpec,
   raw: unknown,
   used: UsedSize,
-): string | null => {
+): UniverseCode | null => {
   const value = Number(raw);
   if (!Number.isInteger(value) || value < spec.min || value > spec.max)
-    return `${spec.label}: ganze Zahl von ${spec.min} bis ${spec.max}.`;
-  if (spec.size && value < used[spec.size])
-    return `${spec.label}: mindestens ${used[spec.size]}, dort liegen schon Planeten.`;
-  return null;
+    return 'range';
+  return spec.size && value < used[spec.size] ? 'used' : null;
 };
 
 /**
- * Checks a complete set of settings. Returns the universe or all errors at
- * once (fail closed: nothing is saved if one value is wrong).
+ * Checks a complete set of settings: every refused setting, in the order of
+ * UNIVERSE_SPECS, or none (fail closed: nothing is saved if one value is
+ * wrong).
  */
-export function validateUniverse(
+export const universeErrors = (
   input: Record<string, unknown>,
   used: UsedSize,
-): { ok: true; value: Universe } | { ok: false; errors: string[] } {
-  const errors: string[] = [];
-  const value: Record<string, number> = {};
-  for (const spec of UNIVERSE_SPECS) {
-    const error = checkOne(spec, input[spec.key], used);
-    if (error) errors.push(error);
-    else value[spec.key] = Number(input[spec.key]);
-  }
-  if (errors.length) return { ok: false, errors };
-  return { ok: true, value: value as unknown as Universe };
-}
+  specs: readonly UniverseSpec[] = UNIVERSE_SPECS,
+): UniverseError[] =>
+  specs.flatMap((spec) => {
+    const code = checkOne(spec, input[spec.key], used);
+    return code ? [{ spec, code }] : [];
+  });
+
+/** The settings as numbers, once `universeErrors` refused none. */
+export const universeOf = (input: Record<string, unknown>): Universe =>
+  Object.fromEntries(
+    UNIVERSE_SPECS.map((spec) => [spec.key, Number(input[spec.key])]),
+  ) as unknown as Universe;

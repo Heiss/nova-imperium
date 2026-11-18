@@ -4,7 +4,9 @@
   // buildings as it did. Only the import paths changed, and resourceName()
   // of views/common.ts is copied below. One change on purpose (review of
   // #209, 2026-11-14): the energy a level needs is compared with
-  // production(), as energyShort() does, not with prod(). Do not change it
+  // production(), as energyShort() does, not with prod(). And one of #285
+  // (B2): the „?“ opens the Lexicanum, so no text unfolds below the entry
+  // and the „?“ shows in every mode but „Ausblenden“. Do not change it
   // otherwise.
   import type { Readable } from 'svelte/store';
   import { BUILD, buildable } from '../../core/catalog.ts';
@@ -20,11 +22,11 @@
   import { fieldsFull } from '../../core/fields.ts';
   import { energyNeed, energyShort } from '../../core/research.ts';
   import { text } from '../../core/text.ts';
-  import { explanation, paragraphs } from '../../client/logic/explain.ts';
+  import { explanation } from '../../client/logic/explain.ts';
   import { fieldsLine } from '../../client/logic/fields.ts';
   import { iconURL } from '../../client/logic/icons.ts';
   import { dur, fmt } from '../../client/logic/format.ts';
-  import { buildState } from '../../client/logic/game.ts';
+  import { buildState } from './states.ts';
   import {
     costHTML,
     requirementsHTML,
@@ -81,14 +83,14 @@
         <div class="nm">
           {t.n}
           <span class="lv">{level ? `(Stufe ${level})` : ''}</span
-          >{#if ex?.toggle}<button
+          >{#if ex}<button
               type="button"
               class="exq"
               id={ex.button}
               data-act="explain"
               data-k={key}
               aria-expanded={ex.open}
-              aria-controls={ex.panel}
+              aria-controls={ex.open ? ex.panel : undefined}
               aria-label={`Erklärung zu ${t.n}`}>?</button
             >{/if}
         </div>
@@ -109,11 +111,6 @@
         {/each}
         <div class="dim">Bauzeit: {dur(buildTime(cost, P, s.cfg))}</div>
         {@html requirementsHTML($viewState, def.req)}
-        {#if ex}
-          <div class="ex" id={ex.panel} hidden={!ex.open}>
-            {#each paragraphs(ex.text) as text, i (i)}<p>{text}</p>{/each}
-          </div>
-        {/if}
       </div>
       <div class="act">
         {#if status === 'running' && P.bq}

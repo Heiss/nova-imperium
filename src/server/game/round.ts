@@ -1,17 +1,35 @@
-import type { RoundRules } from '../../core/achievements.ts';
+// The rules of the round on the server (#283): `roundRules()` reads every
+// setting of the registry `ROUND_SETTINGS` (src/core/round.ts), and a new
+// round checks and stores them. A feature adds its entry there, not here.
+import {
+  ROUND_SETTINGS,
+  type RoundNumber,
+  type RoundRules,
+  type RoundSetting,
+  roundRefused,
+  roundValues,
+  storedValues,
+} from '../../core/round.ts';
 import { type Ctx, fail } from './context.ts';
 
-export function roundRules(ctx: Ctx): RoundRules {
-  const rows = ctx.admin.roundSettings();
-  const settings = new Map(rows.map(({ key, value }) => [key, value]));
+export function roundRules(
+  ctx: Ctx,
+  settings: readonly RoundSetting[] = ROUND_SETTINGS,
+): RoundRules {
   return {
-    number: settings.get('round') ?? 1,
-    achievements: settings.get('roundAchievements') !== 0,
-    daily: settings.get('roundDaily') !== 0,
-    // Existing universes start with guilds on, as before (#191).
-    guilds: settings.get('roundGuilds') !== 0,
-  };
+    number: ctx.admin.setting('round') ?? 1,
+    ...storedValues((key) => ctx.admin.setting(key), settings),
+  } as RoundRules;
 }
+
+/**
+ * When the current round started (#220): set by every new round; the
+ * migration of #220 gave a running round the creation time of its first
+ * planet, or the time of the migration without one. Without the setting
+ * the round starts now.
+ */
+export const roundStart = (ctx: Ctx): number =>
+  ctx.admin.setting('roundStart') ?? ctx.now();
 
 /** The refusal of every guild action while guilds are off (#191, owner). */
 export const GUILDS_OFF = 'Gilden sind in dieser Runde abgeschaltet.';
@@ -28,46 +46,44 @@ export function requireGuilds(ctx: Ctx): void {
   if (!guildsOn(ctx)) fail(GUILDS_OFF);
 }
 
-function rewardRules(
-  current: RoundRules,
-  options: unknown,
-): Pick<RoundRules, 'achievements' | 'daily'> {
-  const selected =
-    options === undefined ? current : (options as Partial<RoundRules> | null);
-  if (
-    typeof selected?.achievements !== 'boolean' ||
-    typeof selected.daily !== 'boolean'
-  )
-    return fail(
-      'Bitte beide Belohnungseinstellungen für die neue Runde auswählen.',
-    );
-  return { achievements: selected.achievements, daily: selected.daily };
-}
+/** The refusal of a value outside its range, as the universe settings word it (#214). */
+export const rangeError = (s: {
+  label: string;
+  min: number;
+  max: number;
+}): string => `${s.label}: ganze Zahl von ${s.min} bis ${s.max}.`;
 
-/** The guild switch of the new round (#191); without a choice the current one. */
-function guildRule(current: RoundRules, guilds: unknown): boolean {
-  const selected = guilds === undefined ? current.guilds : guilds;
-  if (typeof selected !== 'boolean')
-    return fail('Bitte auswählen, ob Gilden in der neuen Runde an sind.');
-  return selected;
-}
+/**
+ * The refusal of the refused entries: their own wording, each once, else the
+ * range. A switch always has its own wording, so only a number gets the range.
+ */
+const refusal = (wrong: readonly RoundSetting[]): string =>
+  [
+    ...new Set(wrong.map((s) => s.refusal ?? rangeError(s as RoundNumber))),
+  ].join(' ');
 
+/**
+ * Starts the rules of a new round from the request „reset“ (#283): every
+ * setting of the registry as sent, else as in the current round. Nothing is
+ * stored when one is refused.
+ */
 export function startRoundRules(
   ctx: Ctx,
-  options: unknown,
-  guilds?: unknown,
+  data: Record<string, unknown>,
+  settings: readonly RoundSetting[] = ROUND_SETTINGS,
 ): RoundRules {
-  const current = roundRules(ctx);
+  const current = roundRules(ctx, settings);
+  const wrong = roundRefused(current, data, settings);
+  if (wrong.length) fail(refusal(wrong));
   const next = {
     number: current.number + 1,
-    ...rewardRules(current, options),
-    guilds: guildRule(current, guilds),
-  };
+    ...roundValues(current, data, settings),
+  } as RoundRules;
+  const values = next as unknown as Record<string, number | boolean>;
   ctx.admin.putSettings([
+    ...settings.map((s): [string, number] => [s.key, Number(values[s.name])]),
     ['round', next.number],
-    ['roundAchievements', Number(next.achievements)],
-    ['roundDaily', Number(next.daily)],
-    ['roundGuilds', Number(next.guilds)],
+    ['roundStart', ctx.now()],
   ]);
   return next;
 }

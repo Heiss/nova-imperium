@@ -6,7 +6,8 @@
 // owner, 2026-11-15). Desktop and phone.
 // On the mail server (#68): its own universe, so the new rounds reset no
 // planet of the other tests; flows.spec.ts, the other user of new rounds
-// there, runs before this file.
+// there, runs before this file. The dialog also shows the lock of the main
+// planet (#221).
 import AxeBuilder from '@axe-core/playwright';
 import {
   expect,
@@ -76,6 +77,10 @@ async function openRoundDialog(page: Page): Promise<Locator> {
   const box = page.getByLabel(BOX);
   await expect(page.getByText(WARNING)).toBeVisible();
   await expect(box).toHaveAccessibleDescription(WARNING);
+  // The lock of the main planet (#221): 7 days, as no round changed it.
+  await expect(
+    page.getByLabel('Sperre nach einem Wechsel des Hauptplaneten (Tage)'),
+  ).toHaveValue('7');
   return box;
 }
 

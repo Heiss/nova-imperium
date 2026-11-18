@@ -8,6 +8,7 @@ import {
   GIFT_MINUTES,
   GIFT_RESOURCES,
   GIFT_SHIPS_EACH,
+  endzeitError,
   giftCargo,
   giftLevels,
   giftShips,
@@ -178,6 +179,56 @@ describe('the buildings the gift raises at its target', () => {
           expect(Object.keys(out).every((k) => buildable(k, kind))).toBe(true);
         },
       ),
+    );
+  });
+});
+
+describe('the check of the „Endzeit“ (#214, F15)', () => {
+  it('refuses a second „Endzeit“ in the round first, whatever the time', () => {
+    for (const minutes of [30, 0, 'abc', undefined])
+      expect(endzeitError(true, minutes)).toBe('done');
+  });
+
+  it('takes whole minutes from 1 to 4,320, also typed as text', () => {
+    for (const minutes of [1, 2, 30, 4319, 4320, '15', ' 45 ', '1e2'])
+      expect(endzeitError(false, minutes)).toBeNull();
+  });
+
+  it('refuses another time', () => {
+    for (const minutes of [
+      0,
+      -5,
+      4321,
+      1.5,
+      '0.5',
+      'abc',
+      '',
+      undefined,
+      null,
+      Number.NaN,
+      Number.POSITIVE_INFINITY,
+    ])
+      expect(endzeitError(false, minutes)).toBe('minutes');
+  });
+
+  it('is GIFT_MINUTES exactly, for every number (property)', () => {
+    fc.assert(
+      fc.property(fc.double({ min: -10, max: 5000 }), (minutes) => {
+        const ok =
+          Number.isInteger(minutes) &&
+          minutes >= GIFT_MINUTES.min &&
+          minutes <= GIFT_MINUTES.max;
+        expect(endzeitError(false, minutes)).toBe(ok ? null : 'minutes');
+        expect(endzeitError(true, minutes)).toBe('done');
+      }),
+    );
+    fc.assert(
+      fc.property(fc.integer({ min: -10, max: 5000 }), (minutes) => {
+        const ok = minutes >= 1 && minutes <= 4320;
+        expect(endzeitError(false, String(minutes))).toBe(
+          ok ? null : 'minutes',
+        );
+      }),
     );
   });
 });

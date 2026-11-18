@@ -2,6 +2,7 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 import {
   choosePlanet,
   cli,
+  expectShownPlace,
   inviteLink,
   login,
   nav,
@@ -14,6 +15,7 @@ import {
 } from './helpers.ts';
 // The display texts of the catalog entries (#113); `text` is a local name below.
 import { text as entryText } from '../src/core/text.ts';
+import { rewardMinutes } from '../src/core/daily-reward.ts';
 import { fieldRange, fieldsOf } from '../src/core/fields.ts';
 
 /** The paragraphs of a long text (#94): the lore, then „So funktioniert es:“. */
@@ -298,16 +300,21 @@ test('creates a guild and restores its profile after reload', async ({
 }) => {
   const w = watch(page);
   const name = uniqueName('Gruender');
+  // A unique tag and name: the server refuses a second guild with either, so
+  // a fixed „NOVA“ failed on a repeat run (#267). „N“ and 6 random
+  // characters, in capitals: the tag takes 2 to 8 letters or digits.
+  const tag = uniqueName('N').toUpperCase();
+  const guild = `Nova Allianz ${tag}`;
   await register(page, name);
   await nav(page, 'guilds');
-  await page.getByLabel('Kürzel').fill('NOVA');
-  await page.getByLabel('Name', { exact: true }).fill('Nova Allianz');
+  await page.getByLabel('Kürzel').fill(tag);
+  await page.getByLabel('Name', { exact: true }).fill(guild);
   await page.getByLabel('Gildentext (Markdown)').fill('**Gemeinsam ins All**');
   await page.getByRole('button', { name: 'Gilde gründen' }).click();
   await expect(page).toHaveURL(/view=guilds&guild=/);
   await page.reload();
   await expect(
-    page.getByRole('heading', { name: '[NOVA] Nova Allianz' }),
+    page.getByRole('heading', { name: `[${tag}] ${guild}` }),
   ).toBeVisible();
   await expect(
     page.locator('strong', { hasText: 'Gemeinsam ins All' }),
@@ -316,38 +323,63 @@ test('creates a guild and restores its profile after reload', async ({
   expect(w.problems).toEqual([]);
 });
 
-test('filters achievements and keeps tomorrow’s reward after claiming', async ({
+/** The amount of a resource in the bar, as a number. */
+const amountOf = async (page: Page, label: string): Promise<number> =>
+  Number((await stock(page, label).textContent())!.replaceAll('.', ''));
+
+/**
+ * Opens the rewards, checks the day of the round with its minutes (#220),
+ * claims the daily reward and checks that the bar rises by the amount shown
+ * under „Heute“. The base income may add one more unit of Adamant and
+ * Psikristall between the two readings; Promethium has no income without a
+ * mine.
+ */
+async function claimsShownDailyReward(page: Page): Promise<void> {
+  await nav(page, 'achievements');
+  const round = page.getByText(/^Tag \d+ der Runde: \d+ Minuten/);
+  await expect(round).toBeVisible();
+  const [, day, minutes] = /Tag (\d+) der Runde: (\d+) Minuten/.exec(
+    (await round.textContent())!,
+  )!;
+  expect(Number(minutes)).toBe(rewardMinutes(Number(day)));
+  const today = page.locator('[data-daily-reward]');
+  const [, m, c, d] =
+    /Heute: Adamant ([\d.]+) · Psikristall ([\d.]+) · Promethium ([\d.]+)/.exec(
+      (await today.textContent())!,
+    )!;
+  const shown = [m, c, d].map((n) => Number(n!.replaceAll('.', '')));
+  // The median production of all players is at least the base income.
+  expect(shown[0]).toBeGreaterThan(0);
+  const before = [
+    await amountOf(page, 'Adamant'),
+    await amountOf(page, 'Psikristall'),
+    await amountOf(page, 'Promethium'),
+  ];
+  await page.getByRole('button', { name: 'Tagesbelohnung abholen' }).click();
+  await expect(today.getByText('Abgeholt', { exact: true })).toBeVisible();
+  await expect
+    .poll(async () => (await amountOf(page, 'Promethium')) - before[2]!)
+    .toBe(shown[2]);
+  for (const [i, label] of ['Adamant', 'Psikristall'].entries()) {
+    const gain = (await amountOf(page, label)) - before[i]!;
+    expect(gain).toBeGreaterThanOrEqual(shown[i]!);
+    expect(gain).toBeLessThanOrEqual(shown[i]! + 1);
+  }
+}
+
+test('claims the shown daily reward, filters achievements and keeps tomorrow’s reward', async ({
   page,
 }) => {
   await register(page, uniqueName('Erfolg'));
   const badge = page.locator('#menu [data-v=achievements] .badge');
   await expect(badge).toHaveAttribute('aria-label', 'Tagesbelohnung abholbar');
   await nav(page, 'achievements');
-  const next = page.getByText('Morgen bei fortgesetzter Serie:', {
-    exact: false,
-  });
+  const next = page.getByText(
+    /^Morgen \(\d+ Minuten, bei gleicher Produktion\):/,
+  );
   await expect(next).toBeVisible();
   const reward = await next.textContent();
-  const amount = async (label: string): Promise<number> =>
-    Number((await stock(page, label).textContent())!.replaceAll('.', ''));
-  const before = {
-    m: await amount('Adamant'),
-    c: await amount('Psikristall'),
-    d: await amount('Promethium'),
-  };
-  await page.getByRole('button', { name: 'Tagesbelohnung abholen' }).click();
-  await expect(page.getByText('Abgeholt', { exact: true })).toBeVisible();
-  // A new player claims on day 1 of the streak: dailyReward(1) is 30 Adamant,
-  // 15 Psikristall, 2 Promethium. The base income (100 Adamant and 50
-  // Psikristall an hour, no Promethium without a mine) may add one more unit
-  // to the bar between the two readings, so those two allow 1 more.
-  await expect
-    .poll(async () => (await amount('Promethium')) - before.d)
-    .toBe(2);
-  expect((await amount('Adamant')) - before.m).toBeGreaterThanOrEqual(30);
-  expect((await amount('Adamant')) - before.m).toBeLessThanOrEqual(31);
-  expect((await amount('Psikristall')) - before.c).toBeGreaterThanOrEqual(15);
-  expect((await amount('Psikristall')) - before.c).toBeLessThanOrEqual(16);
+  await claimsShownDailyReward(page);
   await expect(next).toHaveText(reward!);
   await expect(badge).toHaveCount(0);
   await page.getByLabel('Kategorie', { exact: true }).selectOption('buildings');
@@ -357,6 +389,15 @@ test('filters achievements and keeps tomorrow’s reward after claiming', async 
   await expect(
     page.locator('[data-achievement]:visible:not([data-category=buildings])'),
   ).toHaveCount(0);
+});
+
+test('claims the shown daily reward on a phone (#220) @phone', async ({
+  page,
+}) => {
+  const w = watch(page);
+  await register(page, uniqueName('Belohnt'));
+  await claimsShownDailyReward(page);
+  expect(w.problems).toEqual([]);
 });
 
 test.describe('playing', () => {
@@ -602,12 +643,12 @@ test.describe('playing', () => {
     await expect(lab).not.toContainText('Heimatplanet');
     await lab.getByRole('button', { name: 'Jetzt bauen' }).click();
     await expect(lab).toContainText('Bauschleife belegt');
-    await expect(page.locator('#pinfo b').first()).toHaveText('Kolonie');
+    await expectShownPlace(page, 'Kolonie');
     await expect(page).toHaveURL(/\?view=shipyard$/);
     await nav(page, 'buildings');
     await expect(page.locator('.item.running')).toContainText('Scholarium');
     await choosePlanet(page, 'Heimatplanet');
-    await expect(page.locator('#pinfo b').first()).toHaveText('Heimatplanet');
+    await expectShownPlace(page, 'Heimatplanet');
     await expect(page.locator('.item.running')).toHaveCount(0);
     expect(w.problems).toEqual([]);
   });
@@ -629,7 +670,7 @@ test.describe('playing', () => {
       'Auf diesem Planeten gibt es kein Scholarium.',
     );
     await page.getByRole('button', { name: 'Zu Kolonie' }).click();
-    await expect(page.locator('#pinfo b').first()).toHaveText('Kolonie');
+    await expectShownPlace(page, 'Kolonie');
     await expect(page.locator('h2')).toHaveText('Forschung auf Kolonie');
     const energy = page.locator('.item').filter({
       has: page.locator('.nm', { hasText: /^\s*Machina-Energetik/ }),
@@ -1197,7 +1238,7 @@ test.describe('playing', () => {
       .filter({ hasText: /^Kolonie \[/ });
     await expect(colony).toHaveCount(1);
     await selector.selectOption((await colony.getAttribute('value'))!);
-    await expect(page.locator('#pinfo b').first()).toHaveText('Kolonie');
+    await expectShownPlace(page, 'Kolonie');
     await nav(page, 'overview');
     await expect(page.locator('h2')).toContainText('Kolonie');
     // A colony has fields at random in the range of its position (#51).
@@ -1734,16 +1775,19 @@ test.describe('playing', () => {
   }) => {
     const w = watch(page);
     const name = uniqueName('VerlH');
+    // A unique name: the test above seeds its „Vorposten“ into a home system
+    // that can be this one, and the row would match both (#252).
+    const outpost = uniqueName('Vorposten');
     await register(page, name);
     seed({
       name,
       ships: { lf: 3 },
       res: { m: 100000, c: 100000, d: 100000 },
-      colony: { p: 13, name: 'Vorposten', res: { m: 0, c: 0, d: 0 } },
+      colony: { p: 13, name: outpost, res: { m: 0, c: 0, d: 0 } },
     });
     await page.goto('/?view=galaxy');
     await page.getByText('zum Heimatsystem').click();
-    const row = page.locator('tr', { hasText: 'Vorposten' });
+    const row = page.locator('tr', { hasText: outpost });
     await expect(row.getByRole('button', { name: 'Verlegung' })).toBeVisible();
     // Against the device width: a too wide table also widens innerWidth.
     expect(
@@ -1765,7 +1809,7 @@ test.describe('playing', () => {
       timeout: 30000,
     });
     await expect(shipCount(page, 'Abfangjäger')).toHaveText('1');
-    await choosePlanet(page, 'Vorposten');
+    await choosePlanet(page, outpost);
     await expect(shipCount(page, 'Abfangjäger')).toHaveText('2');
     expect(w.problems).toEqual([]);
   });
@@ -1841,23 +1885,24 @@ test.describe('playing', () => {
   });
 });
 
-test.describe('explanation texts (#63)', () => {
+test.describe('explanation texts (#63, the „?“ opens the Lexicanum since #285)', () => {
   const question = (page: Page, name: string): Locator =>
     page.getByRole('button', { name: `Erklärung zu ${name}` });
   const row = (page: Page, name: string): Locator =>
     page.locator('.item').filter({
       has: page.locator('.nm', { hasText: new RegExp(`^\\s*${name}\\b`) }),
     });
+  const panel = (page: Page): Locator => page.locator('#lexicanum-panel');
 
   /** Chooses the display option in „Hilfe & Optionen“ and saves it. */
   async function choose(page: Page, label: string): Promise<void> {
     await nav(page, 'help');
-    await page.getByLabel('Erklärungstexte').selectOption({ label });
+    await page.getByLabel('(?)-Symbol').selectOption({ label });
     await page.click('[data-act=saveopt]');
     await expect(page.locator('.toast').last()).toContainText('Gespeichert.');
   }
 
-  test('the (?) opens the text by click and keyboard; the option changes the lists and survives a reload', async ({
+  test('the (?) opens the article by click and keyboard; the option changes the lists and survives a reload', async ({
     page,
   }) => {
     const w = watch(page);
@@ -1866,101 +1911,89 @@ test.describe('explanation texts (#63)', () => {
     seed({ name, b: { lab: 1, robot: 2, yard: 2 } });
     await page.goto('/?view=buildings');
 
-    // Default „(?)-Symbol“ (D2): the short text is shown, the long one (#94) behind the (?).
+    // Default „Anzeigen“ (D2): the short text is shown, the long one (#94)
+    // is the introduction of the article in the side panel.
     const mine = row(page, 'Adamant-Tiefbohrung');
-    const mineText = mine.locator('.ex');
     const mineQ = question(page, 'Adamant-Tiefbohrung');
     await expect(mine.locator('.ds')).toHaveText(
       'Fördert Adamant, den wichtigsten Grundrohstoff.',
     );
     await expect(mineQ).toHaveAttribute('aria-expanded', 'false');
-    await expect(mineQ).toHaveAttribute('aria-controls', 'ex_metal');
-    await expect(mineText).toBeHidden();
     await mineQ.click();
-    await expect(mineText).toBeVisible();
-    // The long text in two paragraphs: the lore, then „So funktioniert es:“ (#94).
-    await expect(mineText.locator('p')).toHaveText(
+    await expect(panel(page)).toBeVisible();
+    await expect(panel(page).locator('.lx-intro p')).toHaveText(
       lines(entryText('metal')!.lt!),
     );
-    await expect(mineText).not.toHaveText(entryText('metal')!.ds);
     await expect(mineQ).toHaveAttribute('aria-expanded', 'true');
-    await expect(mineQ).toBeFocused();
-    await page.keyboard.press('Enter');
-    await expect(mineText).toBeHidden();
+    await expect(mineQ).toHaveAttribute('aria-controls', 'lexicanum-panel');
+    await expect(page.locator('#view .ex')).toHaveCount(0);
+    // The (?) of another entry shows its article instead.
+    await question(page, 'Psikristall-Steinbruch').click();
+    await expect(panel(page).locator('.lx-intro p')).toHaveText(
+      lines(entryText('crystal')!.lt!),
+    );
     await expect(mineQ).toHaveAttribute('aria-expanded', 'false');
-    await page.keyboard.press('Space');
-    await expect(mineText).toBeVisible();
-    await expect(
-      row(page, 'Psikristall-Steinbruch').locator('.ex'),
-    ).toBeHidden();
+    await page.keyboard.press('Escape');
+    await expect(panel(page)).toHaveCount(0);
 
     await nav(page, 'research');
-    const spy = row(page, 'Auspex-Lehre');
     const spyQ = question(page, 'Auspex-Lehre');
-    await expect(spy.locator('.ex')).toBeHidden();
     await spyQ.focus();
     await page.keyboard.press('Enter');
-    await expect(spy.locator('.ex p')).toHaveText(lines(entryText('spy')!.lt!));
+    await expect(panel(page).locator('.lx-intro p')).toHaveText(
+      lines(entryText('spy')!.lt!),
+    );
     await expect(spyQ).toHaveAttribute('aria-expanded', 'true');
+    await page.keyboard.press('Escape');
+    await expect(spyQ).toBeFocused();
     await page.keyboard.press('Space');
-    await expect(spy.locator('.ex')).toBeHidden();
+    await expect(panel(page)).toBeVisible();
     await spyQ.click();
-    await expect(spy.locator('.ex')).toBeVisible();
+    await expect(panel(page)).toHaveCount(0);
 
-    // Ships without a short description now have a long text (#94): the
-    // Spionagesonde gets the (?) and its panel. An entry without any text
-    // has neither (D4); no catalog entry on main is one, the unit tests of
-    // explain.ts cover it.
+    // Ships and defense have the (?) and their article as well (#94).
     await nav(page, 'shipyard');
-    const probe = row(page, 'Spähschädel');
-    await expect(probe).toBeVisible();
-    await expect(probe.locator('.ex')).toBeHidden();
     await question(page, 'Spähschädel').click();
-    await expect(probe.locator('.ex p')).toHaveText(
+    await expect(panel(page).locator('.lx-intro p')).toHaveText(
       lines(entryText('probe')!.lt!),
     );
-    // Ships with a description (Solarsatellit, #46) get the (?) too.
     await expect(question(page, 'Sonnenreliquiar')).toHaveCount(1);
-
-    await choose(page, 'Immer anzeigen');
-    await nav(page, 'buildings');
-    await expect(mineText).toBeVisible();
-    await expect(page.locator('#view .exq')).toHaveCount(0);
-    await page.reload();
-    await expect(mineText).toBeVisible();
-    await expect(page.locator('#view .exq')).toHaveCount(0);
-    await nav(page, 'research');
-    await expect(spy.locator('.ex')).toBeVisible();
-    await expect(page.locator('#view .exq')).toHaveCount(0);
+    // The panel closes when its list is left.
+    await nav(page, 'overview');
+    await expect(panel(page)).toHaveCount(0);
 
     await choose(page, 'Ausblenden');
     await nav(page, 'buildings');
-    await expect(page.locator('#view .ex')).toHaveCount(0);
     await expect(page.locator('#view .exq')).toHaveCount(0);
     await expect(mine.locator('.ds')).toBeVisible();
     await page.reload();
     await expect(mine.locator('.ds')).toBeVisible();
-    await expect(page.locator('#view .ex')).toHaveCount(0);
+    await expect(page.locator('#view .ex, #view .exq')).toHaveCount(0);
     await nav(page, 'research');
-    await expect(spy.locator('.ds')).toBeVisible();
+    await expect(row(page, 'Auspex-Lehre').locator('.ds')).toBeVisible();
     await expect(page.locator('#view .ex, #view .exq')).toHaveCount(0);
     await nav(page, 'help');
-    await expect(page.getByLabel('Erklärungstexte')).toHaveValue('hidden');
+    await expect(page.getByLabel('(?)-Symbol')).toHaveValue('hidden');
+    await choose(page, 'Anzeigen');
+    await nav(page, 'buildings');
+    await expect(mineQ).toBeVisible();
     expect(w.problems).toEqual([]);
   });
 
-  test('a tap on the (?) opens and closes the text on a phone @phone', async ({
+  test('a tap on the (?) opens the article as a page on a phone @phone', async ({
     page,
   }) => {
     const w = watch(page);
     await register(page, uniqueName('Tipp'));
     await page.click('#tabbar [data-v=buildings]');
-    const text = row(page, 'Sonnenkathedrale').locator('.ex');
-    await expect(text).toBeHidden();
     await question(page, 'Sonnenkathedrale').tap();
-    await expect(text.locator('p')).toHaveText(lines(entryText('solar')!.lt!));
-    await question(page, 'Sonnenkathedrale').tap();
-    await expect(text).toBeHidden();
+    await expect(page).toHaveURL(/[?&]view=lexicanum&a=solar$/);
+    await expect(page.locator('#view .lx-intro p')).toHaveText(
+      lines(entryText('solar')!.lt!),
+    );
+    await expect(panel(page)).toHaveCount(0);
+    await page.goBack();
+    await expect(question(page, 'Sonnenkathedrale')).toBeVisible();
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth - window.innerWidth,

@@ -26,9 +26,12 @@ okf_version: "0.2"
 * [Ionengeschütz, Plasmawerfer and shield domes](/features/defense-ion-plasma-domes.md) - defense of #50, domes once per planet
 * [Ionentechnik, Plasmatechnik, Gravitonforschung and IFN](/features/research-ion-plasma-graviton.md) - new research of #49, energy check of Gravitonforschung, research on any planet with a lab, research network
 * [Explanation texts](/features/explanation-texts.md) - long texts with a display option per player (#63)
+* [Lexicanum](/features/lexicanum.md) - in-game lexicon of stage 1: an article per catalog entry and mission computed from the rules, side panel and page, search, shared level table (#285, #187)
+* [Lexicanum texts](/features/lexicanum-texts.md) - review list of the texts Claude drafted for the Lexicanum: words before the formulas, mission texts, keywords, all [V] until the owner confirms them (#285)
 * [Late-game combat ships](/features/late-game-ships.md) - Schlachtkreuzer, Zerstörer, Bomber, Todesstern of #56, classic values, drive switch
 * [Solarsatellit](/features/solar-satellite.md) - energy satellite of #46, temperature formula, share, battle role
 * [Fusionskraftwerk](/features/fusion-reactor.md) - deuterium-burning power plant of #47, throttling at an empty stock
+* [Cargo buttons of the fleet form](/features/fleet-cargo.md) - „alles (gleichmäßig)“ fills the holds evenly, an „alles“ under each cargo field loads only its resource (#240)
 * [Deploy mission „Verlegung“](/features/deploy.md) - moving ships and cargo to another own planet for good (#129)
 * [Planet fields and the Weltenschmiede](/features/fields.md) - limited fields per planet and the building that adds them (#51)
 * [Bergungsbarke, Trümmerfelder and „Bergung“](/features/debris.md) - debris of destroyed ships and the harvest mission (#45)
@@ -41,12 +44,13 @@ okf_version: "0.2"
 * [Guilds on or off per round](/features/guild-switch.md) - one switch „Gilden (mit Chat)“ in the dialog „Neue Runde“, off deletes the guilds and the server refuses every guild action (#191)
 * [Guild chat](/features/guild-chat.md) - one chat per guild with three rights of the ranks, events of the server, a red mark on „Gilden“, 500 messages, deleted each round, read by the admin with an audit entry (#169)
 * [Vacation mode](/features/vacation-mode.md) - pause the account, production stops, everything protected, minimum duration per round (#223)
+* [Main planet](/features/main-planet.md) - the „Hauptplanet“ chosen in the options decides navigation and research, every switch locks it for a time set per round (#221)
 * [Abandon a colony](/features/abandon-colony.md) - give up a colony without running references, everything lost with its moon, position locked per round (#224)
 * [Own activity and play time](/features/own-activity.md) - private statistics per account and round in UTC days, sessions after 30 minutes (#231, #232)
 * [Holding, alliance depot and attack unions](/features/holding-acs.md) - holding at other players, the depot later, attack unions with classic limits, who may join per round (#55, #225, #227)
 * [Buddy list](/features/buddy-list.md) - mutual friendships, name and contact only, kept across rounds (#227)
 * [Espionage defense and fleet recognition](/features/espionage-defense.md) - detection chance of probes, activity in the Auspex-Bericht, thresholds 2/4/8 for incoming fleets (#175, #228)
-* [Activity indicators](/features/activity-indicators.md) - activity per planet and inactivity per account in the Sternenkarte, classic thresholds (#229)
+* [Activity indicators](/features/activity-indicators.md) - activity per planet and inactivity per account in the Sternenkarte, set by a login and manual actions (v0.77b), classic thresholds per round (#229)
 * [Missiles](/features/missiles.md) - silo, anti-ballistic and interplanetary missiles with classic values (#54)
 * [Expeditions and position 16](/features/expeditions.md) - Expeditionstechnik, outcomes, slots and holding time, debris at position 16 (#93)
 * [Highscore categories](/features/highscore-categories.md) - buildings, research, fleet, defense and total; fleet and research by count (#78)
@@ -66,6 +70,7 @@ okf_version: "0.2"
 * [Configuration](/ops/config.md) - environment variables, secret files, fail closed
 * [Branching and release](/ops/branching-release.md) - pull requests with changelog fragments, CI Gate, release pull request, CalVer tags, hotfixes, Renovate
 * [Release loop](/ops/loop.md) - `/loop` with `.claude/loop.md`: plan with the owner, clarify, build, make the release ready, keep it ready until the owner merges it, stop
+* [Briefs for subagents](/ops/subagent-briefs.md) - what a task for a building subagent contains, the rules to state every time, and what went wrong before
 * [Languages](/ops/language.md) - development in English, game interface in German
 * [Defaults stay inside](/ops/defaults.md) - a fresh instance is closed and talks to nobody
 * [Documentation website](/ops/website.md) - Starlight site on GitHub Pages from okf/ and docs/, with agents.md

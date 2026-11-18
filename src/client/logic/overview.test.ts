@@ -179,6 +179,81 @@ describe('fleet movements', () => {
     );
   });
 
+  // #259: an own fleet shows its cargo after its mission or its return.
+  it('shows what an own fleet carries on its way out', () => {
+    const [row] = fleetRows(
+      view({
+        fleets: [
+          fleet({ mission: 'transport', cargo: { m: 10_000, c: 5000, d: 0 } }),
+        ],
+      }),
+      true,
+    );
+    expect(plain(row!)).toBe(
+      `Deine Flotte (3 ${text('lf')!.n}) von [1:1:5] erreicht [1:2:3] · ${MISSION.transport} · Ladung: Adamant 10.000 · Psikristall 5.000 · Promethium 0`,
+    );
+  });
+
+  it('shows the loot a fleet brings home', () => {
+    const [row] = fleetRows(
+      view({
+        fleets: [
+          fleet({ state: 'back', ret: 9000, cargo: { m: 0, c: 0, d: 2000 } }),
+        ],
+      }),
+      true,
+    );
+    expect(plain(row!)).toBe(
+      `Deine Flotte (3 ${text('lf')!.n}) kehrt von [1:2:3] nach [1:1:5] zurück · Ladung: Adamant 0 · Psikristall 0 · Promethium 2.000`,
+    );
+  });
+
+  it('shows no cargo part for a fleet whose cargo is all 0', () => {
+    const rows = fleetRows(
+      view({
+        fleets: [
+          fleet({ id: 'a', cargo: { m: 0, c: 0, d: 0 } }),
+          fleet({ id: 'b', state: 'back', cargo: { m: 0, c: 0, d: 0 } }),
+        ],
+      }),
+      true,
+    );
+    expect(rows.map(plain)).toEqual([
+      `Deine Flotte (3 ${text('lf')!.n}) von [1:1:5] erreicht [1:2:3] · ${MISSION.attack}`,
+      `Deine Flotte (3 ${text('lf')!.n}) kehrt von [1:2:3] nach [1:1:5] zurück`,
+    ]);
+  });
+
+  it('shows the cargo of the gift of the „Endzeit“', () => {
+    const [row] = fleetRows(
+      view({
+        fleets: [
+          fleet({
+            gift: true,
+            mission: 'deploy',
+            cargo: { m: 0, c: 7, d: 0 },
+          }),
+        ],
+      }),
+      true,
+    );
+    expect(plain(row!)).toBe(
+      `Deine Flotte (3 ${text('lf')!.n}) von Gottkaiser erreicht [1:2:3] · ${MISSION.deploy} · Ladung: Adamant 0 · Psikristall 7 · Promethium 0`,
+    );
+  });
+
+  it('shows no cargo of a foreign fleet', () => {
+    const [row] = fleetRows(
+      view({
+        fleets: [fleet({ owner: 'u2', cargo: { m: 500, c: 500, d: 500 } })],
+      }),
+      true,
+    );
+    expect(plain(row!)).toBe(
+      `Eine fremde Flotte von Feind [1:1:5] erreicht deinen Planeten [1:2:3] · ${MISSION.attack} (3 ${text('lf')!.n})`,
+    );
+  });
+
   it('sorts by the time each fleet is due, and leaves out foreign ones on request', () => {
     const fleets = [
       fleet({ id: 'a', arr: 8000 }),
@@ -288,6 +363,15 @@ describe('overview page', () => {
       type: 'Mond',
       temperature: 'ca. -50°C bis -10°C',
     });
+  });
+
+  it('offers „Kolonie aufgeben“ on a planet that is not the main planet (#224)', () => {
+    const colony = view();
+    expect(overviewPage(colony).abandon).toBe(true);
+    const main = view();
+    main.s.mainPlanet = 'p1_1_5';
+    expect(overviewPage(main).abandon).toBe(false);
+    expect(overviewPage(view({ P: { kind: 'moon' } })).abandon).toBe(false);
   });
 
   it('shows the points and the place in the highscore', () => {

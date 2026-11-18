@@ -350,6 +350,34 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   `class="v "`, `aria-current`). The pure logic has its tests in
   `src/client/logic/header.test.ts`, `navigation.test.ts` and
   `resource-bar.test.ts`, the components in `src/client/views/frame.test.ts`.
+* **[V]** The Sternenkarte of #118, bundle 2: the property test
+  `src/test/galaxy-reference.test.ts` keeps `Galaxy` equal to the HTML
+  before (frozen there: `galaxy()` of `src/client/views/galaxy.ts` with
+  its helpers, and `cd()` of `views/common.ts`) on 300 generated states
+  (fast-check seed 118: planets, moons alone and planets with their moon
+  of up to five owners, one unknown, with names that hold markup or
+  quotes, Trümmerfelder, the shown planet or moon in the list or not,
+  with a phalanx of level 0 to 4 and colony ships, players around the
+  noob protection, the shown system or another, an open moon here or
+  elsewhere, a scan from here or from another place with up to three
+  flights, and 0 to 1,500 Spähschädel), with the shared normalizer of
+  `src/test/markup.ts`; a second case checks that the cases reach every
+  branch. The normalizer now also reads `data-nokeep=""` as
+  `data-nokeep`, which `main.ts` reads by its presence; its self-test in
+  `catalog-list-reference.test.ts` has that, and that a missing
+  `data-nokeep` or one with a value still differs. Checked by breaking
+  the component and its logic (the space before „·“, the space before a
+  symbol, the space in `class="moon-row "`, `data-nokeep`, `tabindex` of
+  the scan's heading, the „(n)“ of the noob protection, the rank „-“,
+  the `aria-label` of the scan, the open moon). The pure logic has its
+  tests in `src/client/logic/galaxy.test.ts`, the component in
+  `src/client/views/galaxy.test.ts` (the tests of the HTML view, now on
+  the component). `e2e/galaxy.spec.ts` (desktop and phone) checks what
+  `main.ts` does around the mounted view: the fields show the shown
+  system, the focus stays in „System“ after Enter, a step with ▶,
+  „zum Heimatsystem“, the textures of the planets, „Wechseln“ at a
+  colony and, on a phone, no scrolling to the side; it fails when the
+  view is not mounted anew.
 * **[E]** No comparison with a catalog key outside `src/features/` (#114,
   owner, 2026-11-14): `src/test/catalog-keys.test.ts` reads `src` with the
   TypeScript and Svelte parsers, as `src/test/naming.test.ts` does, and
@@ -474,6 +502,21 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   for every change. A schema
   snapshot (`src/server/db/schema.snapshot.sql`) shows the resulting schema in
   the review. See [SQLite storage](/data/sqlite.md).
+* **[E]** Size ratchet of `src/client/main.ts` (#242, owner,
+  2026-11-16): `main.ts` must not grow while #118 takes it apart. Its
+  allowed line count is stored in `size-ratchet.json`, and only goes down.
+  `scripts/size-ratchet.ts` (`pnpm lint:size`, part of `pnpm check` and of
+  the CI job „Lint, types, unit tests with coverage, build“, so of the CI
+  Gate) fails when `main.ts` has more lines than the limit („move the code
+  into a module or component (#118)“), and also when it has fewer and the
+  limit was not lowered to the new count („Lower the limit in
+  size-ratchet.json to N“): whoever shrinks `main.ts`, every #118 pull
+  request included, lowers the limit in the same change, and the freed
+  lines never come back. A feature that needs client code puts it into its
+  own module, not into `main.ts`. Only `main.ts` has a limit. Lines are
+  counted as `wc -l` counts them, after Prettier, since `format:check` runs
+  anyway [V]; the starting limit is the count on `main` when the pull
+  request of #242 was created.
 
 # Kinds of tests in this project
 
@@ -485,7 +528,7 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 | Migration files | `src/server/db/migration-files.test.ts`, `src/server/db/legacy-migrations.test.ts`, `src/server/db/upgrade-tests.test.ts`, `src/test/new-migration.test.ts` | The loader of the migration folder (order across folders, stray files, an ID used twice, the forms of the files), the ID, number and SHA-256 of the SQL of each legacy file, an upgrade test that imports its file statically for every migration of an issue (owner, 2026-11-16, „Upgrade-Test Pflicht“), the skeletons of the script, the next free ID and its refusal before the last release, and the migrations of a git ref in its three layouts (#213). |
 | Migration IDs | `src/server/db/migration-ids.test.ts`, `src/server/db/migration-history.test.ts` | The order of the IDs (also as a property on random IDs), the record in `schema_migrations` started from `user_version` (every version from before #213, a database of version 20 with generated data written as the released server wrote it), repeated runs, an unreleased migration older than one a database of `main` ran, two pull requests merged in either order, no new migration on a hotfix branch (O19), and two connections migrating the same file at once (#213). |
 | Sync | `src/server/docs.test.ts`, `src/server/http/security.test.ts`, `src/test/okf-log.test.ts` | Every setting is in the docs, `.env.example` and `compose.yaml`; links resolve; the Caddyfile sends the same security headers as the server; every entry of the update log in `okf/log/` is well-formed and `okf/log.md` is gone (#212, [Documentation website](/ops/website.md)). |
-| E2E | `e2e/game.spec.ts`, `e2e/flows.spec.ts`, `e2e/error-log.spec.ts`, `e2e/guild-ranks.spec.ts`, `e2e/guild-switch.spec.ts`, `e2e/guild-chat.spec.ts`, `e2e/phalanx.spec.ts`, `e2e/moonbreak.spec.ts` | Invitation, single use, login, building, production share, renaming, shipyard, fleet form, espionage with report, admin panel (invite, copy link, revoke, live settings, grow-only), phone layout, the push kinds in the options (#192); the flows of #68 in `flows.spec.ts`: attack with battle report, loot and the defender's report, transport arriving, „Rückruf“, the max and „alles“ buttons, too little Promethium, all fleet slots used, noob protection, galaxy navigation and „Wechseln“, the shipyard max button and its queue, deleting reports, probes per spying, guild membership, login code and „Passwort vergessen“ by mail, copying an invitation link, a new round, push on a server without Web Push, full storage and energy shortage; the error log and problem reports in `error-log.spec.ts`; the guild ranks of #163 in `guild-ranks.spec.ts` (desktop and phone); guilds off for a round (#191) in `guild-switch.spec.ts` (desktop and phone, on the mail server); the guild chat of #169 in `guild-chat.spec.ts` (desktop and phone: two members chat, plain text, the limits, deleting, leaving, outsiders, the rights of a rank, the admin's read in the audit log, the events of the server, the notice and the red mark on „Gilden“); the Auspex-Phalanx of #53 with its scan panel in `phalanx.spec.ts` (desktop and phone, axe on the panel); the Mondbruch of #95 in `moonbreak.spec.ts` (desktop and phone: the refusals without a Weltenbrecher and at a planet, a Mondbruch from the fleet form with the rolls and the loot in the battle report, the owner's line „Dein Mond bei … wurde zerstört.“ and the moon gone from his planet list, axe on the reports). |
+| E2E | `e2e/game.spec.ts`, `e2e/flows.spec.ts`, `e2e/error-log.spec.ts`, `e2e/guild-ranks.spec.ts`, `e2e/guild-switch.spec.ts`, `e2e/guild-chat.spec.ts`, `e2e/phalanx.spec.ts`, `e2e/fleet-cargo.spec.ts`, `e2e/moonbreak.spec.ts` | Invitation, single use, login, building, production share, renaming, shipyard, fleet form, espionage with report, admin panel (invite, copy link, revoke, live settings, grow-only), phone layout, the push kinds in the options (#192); the flows of #68 in `flows.spec.ts`: attack with battle report, loot and the defender's report, transport arriving, „Rückruf“, the max and „alles“ buttons, too little Promethium, all fleet slots used, noob protection, galaxy navigation and „Wechseln“, the shipyard max button and its queue, deleting reports, probes per spying, guild membership, login code and „Passwort vergessen“ by mail, copying an invitation link, a new round, push on a server without Web Push, full storage and energy shortage; the error log and problem reports in `error-log.spec.ts`; the guild ranks of #163 in `guild-ranks.spec.ts` (desktop and phone); guilds off for a round (#191) in `guild-switch.spec.ts` (desktop and phone, on the mail server); the guild chat of #169 in `guild-chat.spec.ts` (desktop and phone: two members chat, plain text, the limits, deleting, leaving, outsiders, the rights of a rank, the admin's read in the audit log, the events of the server, the notice and the red mark on „Gilden“); the Auspex-Phalanx of #53 with its scan panel in `phalanx.spec.ts` (desktop and phone, axe on the panel); the cargo buttons of #240 in `fleet-cargo.spec.ts` (desktop and phone: the even „alles (gleichmäßig)“, the „alles“ under each field, Promethium after the fuel, axe on the form); the Mondbruch of #95 in `moonbreak.spec.ts` (desktop and phone: the refusals without a Weltenbrecher and at a planet, a Mondbruch from the fleet form with the rolls and the loot in the battle report, the owner's line „Dein Mond bei … wurde zerstört.“ and the moon gone from his planet list, axe on the reports). |
 | Accessibility | `e2e/a11y.spec.ts` | axe on every view. |
 | Upgrade | `docker/upgrade.sh` in the same job | The last release writes data, the new image starts on the same volume: the data survive, a migration leaves a backup (fail closed, see [SQLite storage](/data/sqlite.md)), and the database records every migration ID of the image as run (#213). |
 | Stack | `docker/smoke.sh` in the CI job "Docker image and Compose stack" | Headers through Caddy, uid 1000, invitation mail in Mailpit, registration with its link, admin by command, data after a restart, maintenance by `nova maintenance on\|off` and the Caddy maintenance page with the game stopped; plus: image without compiler, package manager or tests; a wrong setting stops the start; Trivy. |

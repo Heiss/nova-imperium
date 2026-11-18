@@ -12,20 +12,17 @@ import {
   SHIPS,
   type UnitDef,
 } from '../../core/catalog.ts';
+import { techFactor } from '../../core/battle.ts';
 import {
-  afford,
-  buildTime,
-  lvlCost,
   pieceEnergy,
   prod,
   production,
-  reqMissing,
-  researchTime,
   unitTime,
   useAt,
 } from '../../core/economy.ts';
-import { fieldsFull } from '../../core/fields.ts';
+import { type OrderError, orderErrors } from '../../core/economy-checks.ts';
 import { activeDrive, shipSpeed } from '../../core/flight.ts';
+import { hasLab } from '../../core/lab.ts';
 import { placeName } from '../../core/moon.ts';
 import {
   energyNeed,
@@ -35,7 +32,7 @@ import {
 } from '../../core/research.ts';
 import { text } from '../../core/text.ts';
 import type { Cost, Levels, Requirements } from '../../core/types.ts';
-import { orderMax, YARD_LOCK, yardLockedBy } from '../../core/yard.ts';
+import { hasYard, orderMax, YARD_LOCK, yardLockedBy } from '../../core/yard.ts';
 import type { V } from '../views/common.ts';
 import { type Explanation, explanation } from './explain.ts';
 import { fieldsLine } from './fields.ts';
@@ -47,6 +44,7 @@ import {
   researchState,
 } from './game.ts';
 import { iconURL } from './icons.ts';
+import { levelRow } from './level-table.ts';
 
 /** The kinds of catalog entries that have a list. */
 export type CatalogKind = 'building' | 'research' | 'ship' | 'defense';
@@ -235,9 +233,13 @@ function useLines(v: V, key: string, level: number): string[] {
   return [...energy, ...uses];
 }
 
+/**
+ * The notes of the codes of `buildErrors` (#214); the place is never shown,
+ * the list holds only what stands on it, and the energy shows the shortfall.
+ */
 const BUILD_WAITS: Partial<Record<BuildState, Note>> = {
-  missing: LOCKED,
-  queueBusy: note('dim', 'Bauschleife belegt'),
+  locked: LOCKED,
+  busy: note('dim', 'Bauschleife belegt'),
   yardBusy: note('dim', 'Schiffsschmiede arbeitet gerade'),
   labBusy: note('dim', 'Scholarium forscht gerade'),
   full: note('req', 'Keine freien Felder.'),
@@ -247,7 +249,6 @@ function buildAction(
   v: V,
   status: BuildState,
   level: number,
-  cost: Cost,
   short: number,
 ): CatalogAction {
   const { P, now } = v;
@@ -267,7 +268,7 @@ function buildAction(
       kind: 'start',
       act: 'build',
       label: level ? `Ausbauen auf Stufe ${level + 1}` : 'Bauen',
-      disabled: !afford(P, cost),
+      disabled: status === 'cost',
     }
   );
 }
@@ -276,11 +277,10 @@ function buildingRow(v: V, key: string): CatalogRow {
   const { P, R, s } = v;
   const def = BUILD[key]!;
   const level = P.b[key] ?? 0;
-  const cost = lvlCost(def, level + 1);
+  // The same row as the level table of the Lexicanum (#187, #285).
+  const { cost, time } = levelRow(v, key, level + 1)!;
   const short = energyShort(def, level + 1, P, s.cfg, R.research);
-  const missing = reqMissing(def, P, R).length;
-  const full = fieldsFull(P, s.cfg);
-  const status = buildState(P, R, key, missing, full, short);
+  const status = buildState(P, R, key, s.cfg);
   return {
     ...entry(v, key, 'ic-b', stage(level)),
     running: status === 'running',
@@ -290,44 +290,47 @@ function buildingRow(v: V, key: string): CatalogRow {
       energyNeed(def, level + 1),
       () => production(P, s.cfg, R.research).eProd,
     ),
-    lines: [
-      ...useLines(v, key, level),
-      `Bauzeit: ${dur(buildTime(cost, P, s.cfg))}`,
-    ],
+    lines: [...useLines(v, key, level), `Bauzeit: ${dur(time)}`],
     req: def.req,
-    action: buildAction(v, status, level, cost, short),
+    action: buildAction(v, status, level, short),
   };
 }
 
 // ----- research -----
 
-/** The name of the own planet where the running research started (#49). */
-function researchPlace(v: V): string {
-  const id = v.R.rq?.planet ?? v.s.homePlanet;
+/**
+ * The name of the own planet where the running research started (#49);
+ * research from before #49 has none and counts as the main planet's (#221).
+ */
+function researchPlace(v: V, rq: { planet?: string }): string {
+  const id = rq.planet ?? v.s.mainPlanet;
   if (id === v.P.id) return v.P.name;
   return v.s.galaxy.find((p) => p.id === id)?.name ?? '';
 }
 
+/**
+ * The notes of the codes of `researchErrors` (#214); without a lab the page
+ * shows `noLab` instead of the list.
+ */
 const RESEARCH_WAITS: Partial<Record<ResearchUiState, Note>> = {
-  missing: LOCKED,
+  locked: LOCKED,
   busy: note('dim', 'Es wird bereits geforscht'),
-  labBusy: note('dim', 'Scholarium wird ausgebaut'),
+  labUpgrading: note('dim', 'Scholarium wird ausgebaut'),
 };
 
 function researchAction(
   v: V,
   state: ResearchUiState,
   level: number,
-  cost: Cost,
   short: number,
 ): CatalogAction {
-  const { P, R, now } = v;
+  const { R, now } = v;
   const rq = R.rq;
   if (state === 'running' && rq)
     return {
       kind: 'researching',
       level: rq.lvl,
-      place: researchPlace(v),
+      place: researchPlace(v, rq),
       end: rq.end,
       left: rq.end > now ? dur(rq.end - now) : null,
     };
@@ -337,7 +340,7 @@ function researchAction(
       kind: 'start',
       act: 'research',
       label: `Forschen${level ? ` (Stufe ${level + 1})` : ''}`,
-      disabled: !afford(P, cost),
+      disabled: state === 'cost',
     }
   );
 }
@@ -346,12 +349,12 @@ function researchRow(v: V, key: string): CatalogRow {
   const { P, R, s } = v;
   const def = RES[key]!;
   const level = R.research[key] ?? 0;
-  const cost = lvlCost(def, level + 1);
+  const { cost, time } = levelRow(v, key, level + 1)!;
   const lab = networkLab(key, labSite(P), s.labs, R.research.ifn ?? 0);
   const linked =
     lab === (P.b.lab ?? 0) ? '' : ` (Scholarien zusammen Stufe ${lab})`;
   const short = energyShort(def, level + 1, P, s.cfg, R.research);
-  const state = researchState(P, R, key, reqMissing(def, P, R).length, short);
+  const state = researchState(P, R, key, s.cfg);
   return {
     ...entry(v, key, 'ic-r', stage(level)),
     running: false,
@@ -360,11 +363,9 @@ function researchRow(v: V, key: string): CatalogRow {
       energyNeed(def, level + 1),
       () => production(P, s.cfg, R.research).eProd,
     ),
-    lines: [
-      `Forschungszeit: ${dur(researchTime(cost, { b: { lab } }, s.cfg))}${linked}`,
-    ],
+    lines: [`Forschungszeit: ${dur(time)}${linked}`],
     req: def.req,
-    action: researchAction(v, state, level, cost, short),
+    action: researchAction(v, state, level, short),
   };
 }
 
@@ -407,7 +408,7 @@ function speedText(v: V, key: string): string {
 function energyText(v: V, key: string): string {
   const e = pieceEnergy(key, v.P, v.s.cfg, v.R.research);
   if (e === undefined) return '';
-  const per = text(key)?.per;
+  const per = text(key)!.per;
   return ` · Energie ${fmt(e)}${per ? ` ${per}` : ''}`;
 }
 
@@ -418,8 +419,46 @@ function stats(v: V, key: string, d: UnitDef): string {
   const ship = canFly(key) ? SHIPS[key] : undefined;
   const cargo = ship ? ` · Ladung ${fmt(ship.cargo)}` : '';
   const speed = ship ? speedText(v, key) : '';
-  return `Angriff ${fmt(d.atk * (1 + 0.1 * (tech.weapons ?? 0)))} · Schild ${fmt(d.sh * (1 + 0.1 * (tech.shield ?? 0)))} · Struktur ${fmt((c[0] + c[1]) * (1 + 0.1 * (tech.armor ?? 0)))}${cargo}${speed}${energyText(v, key)}`;
+  return `Angriff ${fmt(d.atk * techFactor(tech.weapons ?? 0))} · Schild ${fmt(d.sh * techFactor(tech.shield ?? 0))} · Struktur ${fmt((c[0] + c[1]) * techFactor(tech.armor ?? 0))}${cargo}${speed}${energyText(v, key)}`;
 }
+
+/**
+ * The values of a ship or defense as its row shows them, also in its
+ * article of the Lexicanum (#285): attack, shield, structure with the
+ * research, cargo, speed, energy, and the time of one unit; undefined for a
+ * key that is no unit.
+ */
+export function unitLines(v: V, key: string): string[] | undefined {
+  const d = SHIPS[key] ?? DEF[key];
+  if (!d) return undefined;
+  return [
+    stats(v, key, d),
+    `Bauzeit: ${dur(unitTime(d, v.P, v.s.cfg))} je Einheit`,
+  ];
+}
+
+/**
+ * What disables „Bauen“ of an order (#214): the codes of `orderErrors` for
+ * one unit, after the requirements, which show their note instead. The list
+ * of the shipyard, full at 20 orders, is checked by the server only.
+ */
+const DISABLES: readonly OrderError[] = ['yardLocked', 'limit', 'cost'];
+
+function orderAction(v: V, key: string, once: boolean): CatalogAction {
+  const errors = orderErrors(v.P, v.R, key, 1);
+  if (errors.includes('locked')) return LOCKED;
+  const disabled = errors.some((e) => DISABLES.includes(e));
+  return { kind: 'order', max: orderMax(v.P, key), once, disabled };
+}
+
+/**
+ * The note before an order of `n` units of `key` is sent, or null: the
+ * count (F10; the server says the same, O18 (c)).
+ */
+export const orderNote = (v: V, key: string, n: number): string | null =>
+  orderErrors(v.P, v.R, key, n).includes('count')
+    ? 'Bitte eine Anzahl eingeben.'
+    : null;
 
 function unitRow(
   v: V,
@@ -428,10 +467,8 @@ function unitRow(
   cls: string,
   have: Levels,
 ): CatalogRow {
-  const { P, R, s } = v;
   // The component `limit` of 1, the shield domes (#50).
   const once = (d as { once?: true }).once === true;
-  const max = orderMax(P, key);
   return {
     ...entry(
       v,
@@ -441,14 +478,9 @@ function unitRow(
     ),
     running: false,
     cost: d.cost,
-    lines: [
-      stats(v, key, d),
-      `Bauzeit: ${dur(unitTime(d, P, s.cfg))} je Einheit`,
-    ],
+    lines: unitLines(v, key)!,
     req: d.req,
-    action: reqMissing(d, P, R).length
-      ? LOCKED
-      : { kind: 'order', max, once, disabled: !!yardLockedBy(P) || max === 0 },
+    action: orderAction(v, key, once),
   };
 }
 
@@ -458,7 +490,7 @@ function queue(v: V): QueueRow[] {
   return P.sq.map((q, i) => {
     const end = (P.sqT ?? now) + q.unit;
     return {
-      label: `${fmt(q.n)}× ${text(q.key)?.n}`,
+      label: `${fmt(q.n)}× ${text(q.key)!.n}`,
       next: i === 0 ? { end, left: end > now ? dur(end - now) : null } : null,
       each: `je ${dur(q.unit)}`,
     };
@@ -478,7 +510,7 @@ function yardPage(
   cls: string,
   have: Levels,
 ): CatalogPage {
-  if (!((v.P.b.yard ?? 0) > 0))
+  if (!hasYard(v.P))
     return {
       blocked: true,
       title,
@@ -512,7 +544,7 @@ const PAGES: Readonly<Record<CatalogKind, (v: V) => CatalogPage>> = {
   }),
   // Research starts on the shown planet when it has a lab (#49).
   research: (v) =>
-    (v.P.b.lab ?? 0) > 0
+    hasLab(v.P)
       ? {
           blocked: false,
           title: `Forschung auf ${placeName(v.P)}`,

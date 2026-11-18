@@ -517,6 +517,29 @@ choice of the patterns to the assistant's recommendation below
   findings where browser and server disagree. **[V]** The follow-up pull
   requests, one per group (economy, fleet, rewards, admin, player, guild),
   are planned there.
+* **[E]** Economy group built (#214, 2026-11-16): `buildErrors`,
+  `researchErrors`, `orderErrors` and `isProducer` in
+  `src/core/economy-checks.ts` return every code that applies; the server
+  refuses with the message of the first, the lists of the browser show the
+  note of the first in their order. Build and research check in one order
+  on both sides, and an order of 0 gets the browser's text on the server
+  too (O18 (c): F8, F9, F10).
+
+* **[V]** Built with #283 (a refactor without a visible change, in the
+  style of #111): the settings of a round are a registry, `ROUND_SETTINGS`
+  in `src/core/round.ts`, instead of hand wiring in `RoundRules`,
+  `roundRules()`, `startRoundRules()`, `UNIVERSE_SPECS`, the dialog „Neue
+  Runde“, the client's `doReset` and the reset action. Each entry gives
+  its stored key, its name, its German label, its range or choices, its
+  default and its refusal (else the shared range wording `rangeError` of
+  the universe settings); the pure checks `roundRefused` and `roundValues`
+  are in the core, the server words the refusal. `RoundRules` is derived
+  from the entries' types. A feature adds one entry in its own file and
+  one line to the list; its `order` number, the next free ten above the
+  highest, puts it last in the fixed order of the dialog and the refusals
+  (owner, 2026-11-17; a test refuses a number used twice); `live: true`
+  also puts it into the universe settings (X1). The rules are in
+  [Admin](/features/admin.md#the-registry-of-the-round-settings-283).
 
 ## 8. Store: a repository per aggregate
 
@@ -580,6 +603,10 @@ choice of the patterns to the assistant's recommendation below
 
 * **[E]** One state module with Svelte 5 runes (`.svelte.ts`) replaces the
   module variables of `src/client/main.ts`; one component per view.
+* **[E]** `main.ts` must not grow: a CI ratchet keeps its line count at or
+  below the limit in `size-ratchet.json`, and every #118 pull request
+  lowers the limit as it shrinks `main.ts` (#242, see
+  [Test strategy](/ops/testing.md)).
 * **[E]** Generic components render from the catalog: `CatalogList`
   (buildings, research, shipyard, defense) and `ProducerTable` (resources).
   A new entry needs no new HTML.
@@ -688,9 +715,47 @@ choice of the patterns to the assistant's recommendation below
   Bundle 1 (header line, navigation, resource bar) moved none either: the
   old frame kept no state in `main.ts`; `renderMenu` still clears the dot
   of the news (`seeNews`) before it shows the navigation, and `updateBar`
-  still returns the planet moved to now for the clock. Still rendered as
-  HTML: the views Flotte, Sternenkarte, Nachrichten, Highscore, Gilden,
-  Achievements, Neuigkeiten, Hilfe & Optionen and Admin.
+  still returns the planet moved to now for the clock. Bundle 2 (the
+  Sternenkarte) moved none either: the old view kept its state in
+  `client.ui` (`gal`, `sys`, `gmoon`, `scan`), which stays there;
+  `mounted` now also holds the Sternenkarte. Still rendered as HTML: the
+  views Flotte, Nachrichten, Highscore, Gilden, Achievements, Neuigkeiten,
+  Hilfe & Optionen and Admin.
+* **[E]** Bundle 2 after bundle 1 (owner, 2026-11-15 and 2026-11-16: the
+  order of the bundles of #118 „Geklärt, Nachtrag 3“, unchanged by
+  „Nachtrag 4“): the Sternenkarte, which the phone view #189 builds on
+  too.
+* **[V]** Built with #118, bundle 2 (the Sternenkarte; bundle 1 is
+  described below): `src/client/views/Galaxy.svelte`, mounted by
+  `mountGalaxy(target, v)` of `src/client/views/galaxy.ts` (which renders
+  no HTML any more, and leaves `VIEWS` of `views/index.ts`), renders the
+  view from `galaxyPage(v)` of `src/client/logic/galaxy.ts`: the fields
+  „Galaxie“ and „System“ (`data-nokeep`) with their steps, „Anzeigen“ and
+  „zum Heimatsystem“; the panel of the last scan (#53) with its
+  countdowns (`countdown()` of `overview.ts`, rendered by the new
+  `Due.svelte`, which the overview now uses too instead of its own
+  snippet, so the copy check jscpd finds no clone); one `GalaxyRow` per
+  position: the planet (`GalaxyPlace`: name, owner, place in the
+  highscore, noob protection, actions), the symbols of the moon and the
+  Trümmerfeld (#45, #53), the actions of a free position and the row of
+  the open moon; and the Spähschädel of a spying. The actions are data
+  (`GalaxyAction`: a link or a button with its attributes, `data-act`
+  first, or the name of the shown place); the symbols of the moon and the
+  Trümmerfeld, the button „Bergung“ and the pictures keep their HTML of
+  `moonMark()`, `debrisMark()`, `harvestButton()`, `moonPicture()` and
+  `planetHTML()`, rendered with `{@html}` as the overview renders its
+  pictures, so `logic/moon.ts` and `logic/debris.ts` stay as they are.
+  The data come as a property (`page`), as for the frame. The view is
+  mounted anew on every render (`ANEW` in `main.ts`, with the overview),
+  as its HTML was rendered anew: `keepInputs` gives the focus back by id
+  (the field „System“ after Enter, the symbol of a moon), the typed system
+  does not come back, `paintPlanets` paints the textures and the clock
+  counts the countdowns of the scan down, as before. The click actions
+  (`gnav`, `ggo`, `ghome`, `gmoon`, `gscan`, `gscanClose`, `gfleet`,
+  `gspy`, `selectPlanet`) stay with `data-act` in `main.ts` until package
+  8; `gfleet` and `gspy` read their target with `targetOf()` of
+  `galaxy.ts`, so `main.ts` shrinks (1,875 to 1,873 lines). No visible
+  change.
 * **[E]** Bundle 1 next (owner, 2026-11-16; the bundles of #118 „Geklärt,
   Nachtrag 3“): the header line, the navigation (menu, tab bar and „Mehr“)
   and the resource bar, which the phone view #189 builds on.
@@ -702,7 +767,8 @@ choice of the patterns to the assistant's recommendation below
   * `Header.svelte` (`#pinfo`) from `headerLine(s, P)` of `header.ts`: the
     shown place with its position, the commander, „Logout“ and, with more
     than one own place, the list „Aktiver Planet“ (`#planet_select`) of
-    `ownPlaces()`, the shown place selected;
+    `ownPlaces()`, the shown place selected; since #241 the list comes
+    first and replaces the name and position as text (below);
   * `Menu.svelte` (`#menu`), `TabBar.svelte` (`#tabbar`) and
     `MoreList.svelte` (`#more-list`), each link a `NavLink.svelte`, from
     `navigation()` of `navigation.ts`: the entries of `menu()` and
@@ -728,6 +794,13 @@ choice of the patterns to the assistant's recommendation below
   example with #189). The double display of the active planet (#241) is
   left as it is: the issue is separate, and this bundle changes nothing
   visible.
+* **[V]** Built with #241 (see [Interface](/features/interface.md)):
+  `Header.svelte` renders the list „Aktiver Planet“ first when
+  `headerLine()` gives places, else the name in bold and the position;
+  then „ · Kommandant … · Logout“ in both cases. `headerLine()` is
+  unchanged. The frozen header of `src/test/frame-reference.test.ts` has
+  this one change, marked, as the frozen `Buildings.svelte` has the one of
+  #209; the property test still compares every other state with it.
 
 ## 10. Layout and registration
 
@@ -798,6 +871,17 @@ src/client/                state, components (generic), views
   `import type`: the cycles it closes (`types.ts` → index →
   `rules.ts` → `missions.ts`) all run through a type-only import, which
   `no-circular` does not count, so the rule passes unchanged.
+* **[V]** Built with #285 (Lexicanum): an entry folder and a mission
+  folder hold a `lexicon.de.ts`, what the entry or mission adds to its
+  article (the guards ask for keywords in every one, owner, 2026-11-17).
+  `gen-features` lists these files in a third index,
+  `src/features/lexicon.gen.ts` (`LEXICON` and `MISSION_LEXICON`, not
+  checked in), which only
+  `src/core/lexicon/` imports (rule `lexicon-index-in-lexicon`), so the
+  parts load with the chunk of the Lexicanum and not with the start bundle
+  (#242). Knip takes it as an entry, Vitest coverage and Stryker leave it
+  out; Stryker leaves the `lexicon.de.ts` files out like the text files
+  (see [Lexicanum](/features/lexicanum.md)).
 
 ## 11. Boundaries
 

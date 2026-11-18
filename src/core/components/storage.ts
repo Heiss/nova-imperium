@@ -16,7 +16,7 @@ interface Store {
 }
 
 /** The storage limit of a resource whose store has level `level`. */
-export const capOf = (level: number, u: Universe): number =>
+export const capOf = (level: number, u: Pick<Universe, 'baseStore'>): number =>
   u.baseStore + 50000 * (Math.ceil(Math.pow(1.6, level)) - 1);
 
 /** The level of the store of `res` on a planet; 0 without a store. */

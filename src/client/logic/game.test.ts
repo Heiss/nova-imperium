@@ -3,6 +3,7 @@ import { planet, U } from '../../test/fixtures.ts';
 import {
   buildState,
   cargoMax,
+  cargoOne,
   fleetEnd,
   fleetPreview,
   galaxyStep,
@@ -70,100 +71,83 @@ describe('fleets', () => {
         f('3', 'out', 10),
       ]).map((x) => x.id),
     ).toEqual(['3', '2', '1']);
+    const list = [f('1', 'out', 30), f('2', 'out', 10)];
+    sortFleets(list);
+    expect(list.map((x) => x.id)).toEqual(['1', '2']);
   });
 });
 
 describe('button states', () => {
   const r = { research: {}, rq: null };
+  const rich = { m: 1e9, c: 1e9, d: 1e9 };
+  const poor = { m: 0, c: 0, d: 0 };
+  const upgrade = (key: string) =>
+    ({ key, lvl: 1, start: 0, end: 9, cost: [0, 0, 0] }) as const;
+  const researching = {
+    research: {},
+    rq: { key: 'energy', lvl: 1, start: 0, end: 1, cost: [0, 0, 0] as const },
+  };
   it('of buildings', () => {
-    const busy = planet({
-      bq: { key: 'metal', lvl: 1, start: 0, end: 9, cost: [0, 0, 0] },
-    });
-    expect(buildState(busy, r, 'metal', 0)).toBe('running');
-    expect(buildState(busy, r, 'crystal', 1)).toBe('missing');
-    expect(buildState(busy, r, 'crystal', 0)).toBe('queueBusy');
-    expect(
-      buildState(planet({ sq: [{ key: 'lf', n: 1, unit: 1 }] }), r, 'yard', 0),
-    ).toBe('yardBusy');
-    expect(
-      buildState(
-        planet({ sq: [{ key: 'lf', n: 1, unit: 1 }] }),
-        r,
-        'nanite',
-        0,
-      ),
-    ).toBe('yardBusy');
-    expect(
-      buildState(
-        planet(),
-        {
-          research: {},
-          rq: { key: 'energy', lvl: 1, start: 0, end: 1, cost: [0, 0, 0] },
-        },
-        'lab',
-        0,
-      ),
-    ).toBe('labBusy');
-    expect(buildState(planet(), r, 'lab', 0)).toBe('ready');
-    expect(buildState(planet(), r, 'yard', 0)).toBe('ready');
+    const busy = planet({ res: rich, bq: upgrade('metal') });
+    expect(buildState(busy, r, 'metal', U)).toBe('running');
+    expect(buildState(busy, r, 'yard', U)).toBe('locked');
+    expect(buildState(busy, r, 'crystal', U)).toBe('busy');
+    const orders = { res: rich, sq: [{ key: 'lf', n: 1, unit: 1 }] };
+    const robots = planet({ ...orders, b: { robot: 2 } });
+    expect(buildState(robots, r, 'yard', U)).toBe('yardBusy');
+    const computer = { research: { computer: 10 }, rq: null };
+    const factory = planet({ ...orders, b: { robot: 10 } });
+    expect(buildState(factory, computer, 'nanite', U)).toBe('yardBusy');
+    const home = planet({ res: rich });
+    expect(buildState(home, researching, 'lab', U)).toBe('labBusy');
+    expect(buildState(home, r, 'lab', U)).toBe('ready');
+    const yard = planet({ res: rich, b: { robot: 2 } });
+    expect(buildState(yard, r, 'yard', U)).toBe('ready');
+    expect(buildState(planet({ res: poor }), r, 'lab', U)).toBe('cost');
   });
   it('of buildings on a full planet or without energy (#51)', () => {
-    const busy = planet({
-      bq: { key: 'metal', lvl: 1, start: 0, end: 9, cost: [0, 0, 0] },
-    });
-    expect(buildState(busy, r, 'metal', 0, true)).toBe('running');
-    expect(buildState(busy, r, 'crystal', 1, true)).toBe('missing');
-    expect(buildState(busy, r, 'crystal', 0, true)).toBe('full');
-    expect(buildState(planet(), r, 'crystal', 0, true, 5)).toBe('full');
-    expect(buildState(planet(), r, 'crystal', 0, false)).toBe('ready');
-    expect(buildState(planet(), r, 'terraformer', 0, false, 1)).toBe(
-      'noEnergy',
-    );
-    expect(buildState(planet(), r, 'terraformer', 0, false, 0)).toBe('ready');
-    expect(buildState(busy, r, 'terraformer', 0, false, 1)).toBe('queueBusy');
+    // 10,000 km: 100 fields, all taken.
+    const full = { res: rich, diameter: 10000, b: { metal: 100 } };
+    const busy = planet({ ...full, bq: upgrade('metal') });
+    expect(buildState(busy, r, 'metal', U)).toBe('running');
+    expect(buildState(busy, r, 'yard', U)).toBe('locked');
+    expect(buildState(busy, r, 'crystal', U)).toBe('full');
+    expect(buildState(planet(full), r, 'crystal', U)).toBe('full');
+    expect(buildState(planet({ res: rich }), r, 'crystal', U)).toBe('ready');
+    const forge = { research: { energy: 12 }, rq: null };
+    const dark = { res: rich, b: { nanite: 1 } };
+    expect(buildState(planet(dark), forge, 'terraformer', U)).toBe('noEnergy');
+    const sunny = planet({ res: rich, b: { nanite: 1, solar: 14 } });
+    expect(buildState(sunny, forge, 'terraformer', U)).toBe('ready');
+    const building = planet({ ...dark, bq: upgrade('metal') });
+    expect(buildState(building, forge, 'terraformer', U)).toBe('busy');
   });
   it('of research', () => {
-    const rq = {
-      research: {},
-      rq: { key: 'energy', lvl: 1, start: 0, end: 1, cost: [0, 0, 0] as const },
-    };
-    expect(researchState(planet(), rq, 'energy', 0)).toBe('running');
-    expect(researchState(planet(), rq, 'laser', 1)).toBe('missing');
-    expect(researchState(planet(), rq, 'laser', 0)).toBe('busy');
-    expect(
-      researchState(
-        planet({
-          bq: { key: 'lab', lvl: 2, start: 0, end: 1, cost: [0, 0, 0] },
-        }),
-        r,
-        'laser',
-        0,
-      ),
-    ).toBe('labBusy');
-    expect(
-      researchState(
-        planet({
-          bq: { key: 'metal', lvl: 2, start: 0, end: 1, cost: [0, 0, 0] },
-        }),
-        r,
-        'laser',
-        0,
-      ),
-    ).toBe('ready');
+    const lab = { res: rich, b: { lab: 1 } };
+    const home = planet(lab);
+    expect(researchState(home, researching, 'energy', U)).toBe('running');
+    expect(researchState(home, researching, 'laser', U)).toBe('locked');
+    expect(researchState(home, researching, 'computer', U)).toBe('busy');
+    const upgrading = planet({ ...lab, bq: upgrade('lab') });
+    expect(researchState(upgrading, r, 'computer', U)).toBe('labUpgrading');
+    const building = planet({ ...lab, bq: upgrade('metal') });
+    expect(researchState(building, r, 'computer', U)).toBe('ready');
+    const none = planet({ res: rich });
+    expect(researchState(none, r, 'computer', U)).toBe('noLab');
+    const empty = planet({ b: { lab: 1 }, res: poor });
+    expect(researchState(empty, r, 'computer', U)).toBe('cost');
   });
   it('of research without enough energy production (#49)', () => {
-    const rq = {
-      research: {},
-      rq: { key: 'energy', lvl: 1, start: 0, end: 1, cost: [0, 0, 0] as const },
-    };
-    expect(researchState(planet(), r, 'graviton', 0, 1)).toBe('noEnergy');
-    expect(researchState(planet(), r, 'graviton', 0, 0)).toBe('ready');
-    expect(researchState(planet(), r, 'graviton', 1, 1)).toBe('missing');
-    expect(researchState(planet(), rq, 'graviton', 0, 1)).toBe('busy');
-    const upgrading = planet({
-      bq: { key: 'lab', lvl: 2, start: 0, end: 1, cost: [0, 0, 0] },
-    });
-    expect(researchState(upgrading, r, 'graviton', 0, 1)).toBe('labBusy');
+    const dark = { res: rich, b: { lab: 12 } };
+    expect(researchState(planet(dark), r, 'graviton', U)).toBe('noEnergy');
+    const sunny = planet({ res: rich, b: { lab: 12, solar: 59 } });
+    expect(researchState(sunny, r, 'graviton', U)).toBe('ready');
+    const small = planet({ res: rich, b: { lab: 11 } });
+    expect(researchState(small, r, 'graviton', U)).toBe('locked');
+    const busy = planet(dark);
+    expect(researchState(busy, researching, 'graviton', U)).toBe('busy');
+    const upgrading = planet({ ...dark, bq: upgrade('lab') });
+    expect(researchState(upgrading, r, 'graviton', U)).toBe('labUpgrading');
   });
 });
 
@@ -206,17 +190,85 @@ describe('fleet form', () => {
     expect(exact.fuelShort).toBe(false);
     expect(exact.overload).toBe(false);
   });
-  it('fills the holds with metal, then crystal, then deuterium without the fuel', () => {
-    expect(cargoMax(p, form)).toEqual({ m: 9000, c: 1000, d: 0 });
-    expect(
-      cargoMax(planet({ res: { m: 100, c: 200, d: 1000 } }), form),
-    ).toEqual({ m: 100, c: 200, d: 997 });
-    expect(cargoMax(planet({ res: { m: 1.9, c: 0, d: 1 } }), form)).toEqual({
-      m: 1,
-      c: 0,
-      d: 0,
+  // „alles“ fills the holds evenly (#240, owner 2026-11-16): equal shares
+  // of the capacity; a resource with less stock than its share gives the
+  // rest to the others. Rounding: the share is rounded up, starting with
+  // the resource of the least stock (Adamant, Psikristall, Promethium on a
+  // tie), so the holds are full when the stock allows.
+  const rich = (m: number, c: number, d: number) =>
+    planet({ res: { m, c, d } });
+  it('fills a third of the holds with each resource when there is more than fits', () => {
+    // Fuel 3: Promethium 1,000,003 leaves as much as the others.
+    expect(cargoMax(rich(1e6, 1e6, 1e6 + 3), form)).toEqual({
+      m: 3334,
+      c: 3333,
+      d: 3333,
     });
+    expect(cargoMax(rich(2e6, 1e6, 3e6), form)).toEqual({
+      m: 3333,
+      c: 3334,
+      d: 3333,
+    });
+    expect(cargoMax(rich(1e6, 1e6, 1e6), form)).toEqual({
+      m: 3333,
+      c: 3333,
+      d: 3334,
+    });
+  });
+  it('gives the share of a scarce resource to the others', () => {
+    expect(cargoMax(rich(1000, 1e6, 1e6), form)).toEqual({
+      m: 1000,
+      c: 4500,
+      d: 4500,
+    });
+    expect(cargoMax(rich(1e6, 1e6, 503), form)).toEqual({
+      m: 4750,
+      c: 4750,
+      d: 500,
+    });
+    expect(cargoMax(rich(1e6, 2000, 1003), form)).toEqual({
+      m: 7000,
+      c: 2000,
+      d: 1000,
+    });
+    expect(cargoMax(p, form)).toEqual({ m: 4951, c: 4952, d: 97 });
+  });
+  it('loads the whole stock when it fits, Promethium without the fuel', () => {
+    expect(cargoMax(rich(100, 200, 1000), form)).toEqual({
+      m: 100,
+      c: 200,
+      d: 997,
+    });
+    expect(cargoMax(rich(1.9, 0, 1), form)).toEqual({ m: 1, c: 0, d: 0 });
+    expect(cargoMax(rich(1.9, 2.5, 3.7), form)).toEqual({ m: 1, c: 2, d: 0 });
     expect(cargoMax(p, { ...form, ships: {} })).toEqual({ m: 0, c: 0, d: 0 });
+  });
+  // „alles“ under a field (#240): only that resource, up to the room the
+  // other two fields leave; they stay as they are.
+  it('fills one resource up to the room the other fields leave', () => {
+    expect(cargoOne(p, form, 'm')).toBe(9000);
+    expect(cargoOne(p, form, 'c')).toBe(8000);
+    expect(cargoOne(p, form, 'd')).toBe(97);
+    const full = { ...form, cargo: { m: 5000, c: 6000, d: 0 } };
+    expect(cargoOne(p, full, 'm')).toBe(4000);
+    expect(cargoOne(p, full, 'c')).toBe(5000);
+    expect(cargoOne(p, full, 'd')).toBe(0);
+    expect(cargoOne(rich(1e6, 1e6, 1e6), full, 'd')).toBe(0);
+    expect(
+      cargoOne(
+        rich(1e6, 1e6, 1e6),
+        { ...full, cargo: { m: 1, c: 2, d: 7 } },
+        'd',
+      ),
+    ).toBe(9997);
+  });
+  it('loads nothing when the other fields take the holds or no ship flies', () => {
+    const over = { ...form, cargo: { m: 0, c: 20000, d: 0 } };
+    expect(cargoOne(p, over, 'm')).toBe(0);
+    expect(cargoOne(p, over, 'd')).toBe(0);
+    expect(cargoOne(p, { ...form, ships: {} }, 'm')).toBe(0);
+    expect(cargoOne(rich(1.9, 0, 1), form, 'm')).toBe(1);
+    expect(cargoOne(rich(1.9, 0, 1), form, 'd')).toBe(0);
   });
 });
 
@@ -226,6 +278,7 @@ describe('galaxy navigation', () => {
     expect(galaxyStep(1, 5, 'g+', U)).toEqual({ gal: 2, sys: 5 });
     expect(galaxyStep(2, 5, 'g+', U)).toEqual({ gal: 2, sys: 5 });
     expect(galaxyStep(1, 1, 's-', U)).toEqual({ gal: 1, sys: 50 });
+    expect(galaxyStep(1, 2, 's-', U)).toEqual({ gal: 1, sys: 1 });
     expect(galaxyStep(1, 50, 's+', U)).toEqual({ gal: 1, sys: 1 });
     expect(galaxyStep(1, 7, 's+', U)).toEqual({ gal: 1, sys: 8 });
     expect(galaxyStep(1, 7, '??', U)).toEqual({ gal: 1, sys: 7 });

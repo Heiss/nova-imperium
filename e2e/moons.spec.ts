@@ -5,7 +5,15 @@
 // the tests make moons with the admin or with e2e/seed.ts.
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { cli, nav, register, seed, uniqueName, watch } from './helpers.ts';
+import {
+  cli,
+  expectShownPlace,
+  nav,
+  register,
+  seed,
+  uniqueName,
+  watch,
+} from './helpers.ts';
 
 /** The row of a player's planet on the Sternenkarte. */
 const galaxyRow = (page: Page, player: string): Locator =>
@@ -40,7 +48,7 @@ async function chooseMoon(page: Page, name: string): Promise<void> {
   const selector = page.getByLabel('Aktiver Planet');
   const option = selector.locator('option', { hasText: `${name} (Mond) [` });
   await selector.selectOption((await option.getAttribute('value'))!);
-  await expect(page.locator('#pinfo b').first()).toHaveText(`${name} (Mond)`);
+  await expectShownPlace(page, `${name} (Mond)`);
 }
 
 test.describe('moons (#53)', () => {
@@ -160,7 +168,7 @@ test.describe('moons (#53)', () => {
     await expect(page.getByText('Mond umbenennen')).toBeVisible();
     await page.getByLabel('Neuer Name').fill('Luna');
     await page.getByRole('button', { name: 'OK' }).click();
-    await expect(page.locator('#pinfo b').first()).toHaveText('Luna (Mond)');
+    await expectShownPlace(page, 'Luna (Mond)');
     await expect(
       page
         .getByLabel('Aktiver Planet')
@@ -177,6 +185,7 @@ test.describe('moons (#53)', () => {
       /^Promethium-Zisterne/,
       /^Mondzitadelle/,
       /^Auspex-Phalanx/,
+      /^Warp-Tor/,
     ]);
     // By its name: the Auspex-Phalanx names the Mondzitadelle as its requirement.
     const citadel = page

@@ -52,10 +52,19 @@ describe('store', () => {
     const ctx = testCtx();
     const u = addUser(ctx, 'Anna');
     expect(ctx.store.user(u.id)!.explain).toBe('icon');
-    for (const mode of ['always', 'hidden', 'icon'] as const) {
+    for (const mode of ['hidden', 'icon'] as const) {
       ctx.store.saveUser({ ...u, explain: mode });
       expect(ctx.store.user(u.id)!.explain).toBe(mode);
     }
+  });
+
+  it('reads a stored „Immer anzeigen“ of #63 as the „?“ (#285 B2)', () => {
+    const ctx = testCtx();
+    const u = addUser(ctx, 'Anna', { explain: 'hidden' });
+    ctx.store.db
+      .prepare(`UPDATE users SET explain_mode = 'always' WHERE id = ?`)
+      .run(u.id);
+    expect(ctx.store.user(u.id)!.explain).toBe('icon');
   });
 
   it('reads the default display option of a player stored without one', () => {

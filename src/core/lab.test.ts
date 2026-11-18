@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { planet } from '../test/fixtures.ts';
-import { labUpgrading, waitsForLab } from './lab.ts';
+import { hasLab, labUpgrading, waitsForLab } from './lab.ts';
 
 const upgrade = (key: string) =>
   planet({ bq: { key, lvl: 1, start: 0, end: 9, cost: [0, 0, 0] } });
@@ -18,5 +18,14 @@ describe('lab lock', () => {
     expect(waitsForLab(researching, 'lab')).toBe(true);
     expect(waitsForLab(researching, 'metal')).toBe(false);
     expect(waitsForLab({ rq: null }, 'lab')).toBe(false);
+  });
+});
+
+describe('a lab on the place (#49)', () => {
+  it('is there from level 1', () => {
+    expect(hasLab(planet())).toBe(false);
+    expect(hasLab(planet({ b: { lab: 0 } }))).toBe(false);
+    expect(hasLab(planet({ b: { lab: 1 } }))).toBe(true);
+    expect(hasLab(planet({ b: { yard: 3 } }))).toBe(false);
   });
 });

@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { settle } from '../../core/settle.ts';
-import { DEFAULT_UNIVERSE } from '../../core/universe.ts';
+import { DEFAULT_UNIVERSE, UNIVERSE_SPECS } from '../../core/universe.ts';
 import { addPlanet, addUser, testCtx } from '../test-helpers.ts';
-import { reset, saveSettings } from './admin.ts';
+import { announce, reset, saveSettings } from './admin.ts';
 import { runAction } from './dispatch.ts';
 import { placePlanet } from './planets.ts';
 import { isProtected, pointsMap } from './points.ts';
@@ -84,6 +84,18 @@ describe('admin', () => {
     expect(ctx.reports.ofPlayer(b.id)).toEqual([]);
   });
 
+  it('a new round gives each player a Heimatplanet in a random galaxy', () => {
+    for (const [r, g] of [
+      [0, 1],
+      [0.999, 2],
+    ] as const) {
+      const ctx = { ...testCtx(), rng: () => r };
+      const a = addUser(ctx, 'Anna', { admin: true });
+      reset(ctx, a, {});
+      expect(ctx.planets.home(a.id)).toMatchObject({ name: 'Heimatplanet', g });
+    }
+  });
+
   it('a new round clears the Trümmerfelder (#45)', () => {
     const ctx = testCtx();
     const a = addUser(ctx, 'Anna', { admin: true });
@@ -116,6 +128,60 @@ describe('admin', () => {
       }),
     ).toThrow('Zusatzfelder pro Planet: ganze Zahl von 0 bis 100.');
     expect(ctx.admin.universe().extraFields).toBe(30);
+  });
+});
+
+// The messages of `universeErrors` (#214): the server words each code as the
+// check in src/core did before, every refused setting at once.
+describe('the messages of refused settings (#214)', () => {
+  /** The message of the settings, or null when they are saved. */
+  function refusal(
+    settings: Record<string, unknown>,
+    at: { g: number; s: number; p: number } = { g: 1, s: 10, p: 12 },
+  ): string | null {
+    const ctx = testCtx();
+    const u = addUser(ctx, 'Anna', { admin: true });
+    addPlanet(ctx, u.id, at);
+    try {
+      saveSettings(ctx, u, { settings });
+      return null;
+    } catch (e) {
+      expect(ctx.admin.universe()).toEqual(DEFAULT_UNIVERSE);
+      return (e as Error).message;
+    }
+  }
+
+  it('names the range of a value outside it', () => {
+    expect(refusal({ ...DEFAULT_UNIVERSE, speed: 0 })).toBe(
+      'Tempo (Faktor): ganze Zahl von 1 bis 100.',
+    );
+    expect(refusal({ ...DEFAULT_UNIVERSE, extraFields: 101 })).toBe(
+      'Zusatzfelder pro Planet: ganze Zahl von 0 bis 100.',
+    );
+    for (const endzeitMinutes of [0, 4321, 1.5])
+      expect(refusal({ ...DEFAULT_UNIVERSE, endzeitMinutes })).toBe(
+        'Flugzeit der Endzeit-Gabe (Minuten): ganze Zahl von 1 bis 4320.',
+      );
+  });
+
+  it('names the coordinate a size may not shrink below', () => {
+    expect(
+      refusal(
+        { ...DEFAULT_UNIVERSE, galaxies: 1, systems: 39, positions: 13 },
+        { g: 2, s: 40, p: 14 },
+      ),
+    ).toBe(
+      'Galaxien: mindestens 2, dort liegen schon Planeten. Systeme je Galaxie: mindestens 40, dort liegen schon Planeten. Positionen je System: mindestens 14, dort liegen schon Planeten.',
+    );
+  });
+
+  it('says every refused setting at once, in the order of the form', () => {
+    expect(refusal({})).toBe(
+      UNIVERSE_SPECS.map(
+        (s) => `${s.label}: ganze Zahl von ${s.min} bis ${s.max}.`,
+      ).join(' '),
+    );
+    expect(refusal({ ...DEFAULT_UNIVERSE })).toBeNull();
   });
 });
 
@@ -320,6 +386,34 @@ describe('points and state', () => {
     const ctx = testCtx();
     const a = addUser(ctx, 'Anna');
     expect((stateFor(ctx, a) as { planet: unknown }).planet).toBeNull();
+  });
+});
+
+describe('a server message (announce)', () => {
+  const tooLong = new Error(
+    'Bitte eine Nachricht mit höchstens 500 Zeichen eingeben.',
+  );
+
+  it('takes a text of up to 500 characters, not counting the spaces around it', () => {
+    const ctx = testCtx();
+    const a = addUser(ctx, 'Anna');
+    expect(announce(ctx, 'x'.repeat(500))).toBe(1);
+    expect(announce(ctx, `  ${'y'.repeat(500)}  `)).toBe(1);
+    expect(ctx.reports.ofPlayer(a.id).map((r) => r.text)).toEqual(
+      expect.arrayContaining(['x'.repeat(500), 'y'.repeat(500)]),
+    );
+  });
+
+  it('refuses a longer text, no text and a blank one, and sends nothing', () => {
+    const ctx = testCtx();
+    const a = addUser(ctx, 'Anna');
+    expect(() => announce(ctx, 'z'.repeat(501))).toThrow(tooLong);
+    for (const input of [42, null, undefined, ['Hallo']])
+      expect(() => announce(ctx, input)).toThrow(tooLong);
+    expect(() => announce(ctx, ' \n ')).toThrow(
+      new Error('Bitte eine Nachricht eingeben.'),
+    );
+    expect(ctx.reports.ofPlayer(a.id)).toEqual([]);
   });
 });
 

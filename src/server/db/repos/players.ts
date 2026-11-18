@@ -3,7 +3,11 @@
 // account tokens belong here too; they still run as raw SQL in passkeys.ts
 // and account-security.ts until a follow-up moves them.
 import type { Levels, ResearchQueue } from '../../../core/types.ts';
-import type { ExplainMode } from '../../../core/explain.ts';
+import {
+  DEFAULT_EXPLAIN,
+  type ExplainMode,
+  storedMode,
+} from '../../../core/explain.ts';
 import type { Db } from '../database.ts';
 import { levels, queueParams, researchQueueOf, type Row } from './rows.ts';
 
@@ -21,6 +25,10 @@ export interface User {
   created: number;
   research: Levels;
   rq: ResearchQueue | null;
+  /** The main planet chosen in the options (#221); null: the first planet. */
+  mainPlanet: string | null;
+  /** When the main planet was last switched, which starts the lock (#221). */
+  mainSwitched: number | null;
 }
 
 export interface Players {
@@ -38,6 +46,13 @@ export interface Players {
   deleteLoginTokens(uid: string): void;
   /** Ends every session of a player; returns how many there were. */
   deleteSessions(uid: string): number;
+  /** Sets the time of the last login or manual action of an account (#229). */
+  markActive(uid: string, at: number): void;
+  /**
+   * The last activity of every account (#229): its last login or manual
+   * action, or its creation without one.
+   */
+  lastActive(): Record<string, number>;
 }
 
 export class SqlitePlayers implements Players {
@@ -59,11 +74,14 @@ export class SqlitePlayers implements Players {
       pw: r.pw_hash as string,
       admin: r.admin === 1,
       probes: r.probes as number,
-      explain: r.explain_mode as ExplainMode,
+      // A stored „Immer anzeigen“ of #63 reads as the „?“ (#285 B2).
+      explain: storedMode(r.explain_mode) ?? DEFAULT_EXPLAIN,
       readAt: r.read_at as number,
       created: r.created as number,
       research: levels(research, 'key', 'level'),
       rq: researchQueueOf(r),
+      mainPlanet: r.main_planet as string | null,
+      mainSwitched: r.main_switched as number | null,
     };
   }
 
@@ -96,15 +114,16 @@ export class SqlitePlayers implements Players {
     this.db
       .prepare(
         `INSERT INTO users (id, name, email, salt, pw_hash, admin, probes, explain_mode, read_at, created,
-           rq_key, rq_lvl, rq_start, rq_end, rq_cost_m, rq_cost_c, rq_cost_d, rq_planet)
+           rq_key, rq_lvl, rq_start, rq_end, rq_cost_m, rq_cost_c, rq_cost_d, rq_planet, main_planet, main_switched)
          VALUES (@id, @name, @email, @salt, @pw, @admin, @probes, @explain, @readAt, @created,
-           @rq_key, @rq_lvl, @rq_start, @rq_end, @rq_cost_m, @rq_cost_c, @rq_cost_d, @rq_planet)
+           @rq_key, @rq_lvl, @rq_start, @rq_end, @rq_cost_m, @rq_cost_c, @rq_cost_d, @rq_planet, @mainPlanet, @mainSwitched)
          ON CONFLICT(id) DO UPDATE SET name = excluded.name, email = excluded.email,
            salt = excluded.salt, pw_hash = excluded.pw_hash, admin = excluded.admin,
            probes = excluded.probes, explain_mode = excluded.explain_mode, read_at = excluded.read_at, rq_key = excluded.rq_key,
            rq_lvl = excluded.rq_lvl, rq_start = excluded.rq_start, rq_end = excluded.rq_end,
            rq_cost_m = excluded.rq_cost_m, rq_cost_c = excluded.rq_cost_c, rq_cost_d = excluded.rq_cost_d,
-           rq_planet = excluded.rq_planet`,
+           rq_planet = excluded.rq_planet, main_planet = excluded.main_planet,
+           main_switched = excluded.main_switched`,
       )
       .run({
         ...u,
@@ -154,5 +173,16 @@ export class SqlitePlayers implements Players {
   deleteSessions(uid: string): number {
     return this.db.prepare('DELETE FROM sessions WHERE user_id = ?').run(uid)
       .changes;
+  }
+
+  markActive(uid: string, at: number): void {
+    this.db.prepare('UPDATE users SET active_at = ? WHERE id = ?').run(at, uid);
+  }
+
+  lastActive(): Record<string, number> {
+    const rows = this.db
+      .prepare('SELECT id, COALESCE(active_at, created) AS at FROM users')
+      .all() as Row[];
+    return levels(rows, 'id', 'at');
   }
 }

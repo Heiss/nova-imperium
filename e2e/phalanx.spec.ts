@@ -8,6 +8,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import {
+  expectShownPlace,
   galaxyRow,
   nav,
   register,
@@ -37,7 +38,7 @@ async function chooseMoon(page: Page): Promise<void> {
   const selector = page.getByLabel('Aktiver Planet');
   const option = selector.locator('option', { hasText: 'Mond (Mond) [' });
   await selector.selectOption((await option.getAttribute('value'))!);
-  await expect(page.locator('#pinfo b').first()).toHaveText('Mond (Mond)');
+  await expectShownPlace(page, 'Mond (Mond)');
 }
 
 /** Opens the Sternenkarte at the home system. */
@@ -55,14 +56,17 @@ const panel = (page: Page): Locator => page.locator('#scan');
 
 /**
  * A scanner with a moon and a phalanx of level 1 and a target player with a
- * colony „Spähziel“ at position `at` of the scanner's home system.
+ * colony at position `at` of the scanner's home system. The colony's name
+ * („Spähziel“ and 6 random characters) is unique: two tests can share a home
+ * system, and a fixed name matched both rows (#252).
  */
 async function setup(
   page: Page,
   base: string,
   at: number,
-): Promise<{ scanner: string; target: string }> {
+): Promise<{ scanner: string; target: string; colony: string }> {
   const target = uniqueName(`${base}Ziel`);
+  const colony = uniqueName('Spähziel');
   const scanner = uniqueName(base);
   await register(page, target);
   await page.click('[data-act=logout]');
@@ -70,7 +74,7 @@ async function setup(
   const home = await here(page);
   seed({
     name: target,
-    colony: { g: home.g, s: home.s, p: at, name: 'Spähziel' },
+    colony: { g: home.g, s: home.s, p: at, name: colony },
   });
   seed({
     name: scanner,
@@ -81,7 +85,7 @@ async function setup(
     },
   });
   await page.reload();
-  return { scanner, target };
+  return { scanner, target, colony };
 }
 
 test.describe('the Auspex-Phalanx (#53)', () => {
@@ -100,7 +104,8 @@ test.describe('the Auspex-Phalanx (#53)', () => {
     ).toHaveCount(0);
     await chooseMoon(page);
     await nav(page, 'buildings');
-    await expect(page.locator('.item .nm').last()).toHaveText(
+    // After the Mondzitadelle; the Warp-Tor (#230) comes last.
+    await expect(page.locator('.item .nm').nth(-2)).toHaveText(
       /^Auspex-Phalanx/,
     );
     const phalanx = page.locator('.item', { hasText: 'Auspex-Phalanx' });
@@ -125,10 +130,10 @@ test.describe('the Auspex-Phalanx (#53)', () => {
     page,
   }) => {
     const w = watch(page);
-    const { scanner } = await setup(page, 'Phalanx', 3);
+    const { scanner, colony } = await setup(page, 'Phalanx', 3);
     // From the planet: no scan.
     await homeSystem(page);
-    const target = planetRow(page, 'Spähziel');
+    const target = planetRow(page, colony);
     await expect(target).toBeVisible();
     await expect(
       target.getByRole('button', { name: /Phalanx-Scan/ }),
@@ -137,7 +142,7 @@ test.describe('the Auspex-Phalanx (#53)', () => {
     await chooseMoon(page);
     await homeSystem(page);
     const scan = target.getByRole('button', {
-      name: 'Phalanx-Scan von Spähziel',
+      name: `Phalanx-Scan von ${colony}`,
     });
     await expect(scan).toBeVisible();
     // At foreign planets only, not at the own one.
@@ -149,7 +154,9 @@ test.describe('the Auspex-Phalanx (#53)', () => {
     // No flights: an empty result for 5,000 Promethium.
     await scan.click();
     const heading = panel(page).getByRole('heading', { level: 3 });
-    await expect(heading).toHaveText(/^Phalanx-Scan: Spähziel \[\d+:\d+:3\]$/);
+    await expect(heading).toHaveText(
+      new RegExp(`^Phalanx-Scan: ${colony} \\[\\d+:\\d+:3\\]$`),
+    );
     await expect(heading).toBeFocused();
     await expect(panel(page)).toContainText('Keine Flüge erfasst.');
     await expect(stock(page, 'Promethium')).toHaveText('15.000');
@@ -164,7 +171,7 @@ test.describe('the Auspex-Phalanx (#53)', () => {
     );
     await homeSystem(page);
     await target
-      .getByRole('button', { name: 'Phalanx-Scan von Spähziel' })
+      .getByRole('button', { name: `Phalanx-Scan von ${colony}` })
       .click();
     const rows = panel(page).locator('table.scan tr');
     await expect(rows).toHaveCount(2);
@@ -185,7 +192,7 @@ test.describe('the Auspex-Phalanx (#53)', () => {
     await panel(page).getByRole('button', { name: 'Schließen' }).click();
     await expect(panel(page)).toHaveCount(0);
     await expect(
-      target.getByRole('button', { name: 'Phalanx-Scan von Spähziel' }),
+      target.getByRole('button', { name: `Phalanx-Scan von ${colony}` }),
     ).toBeFocused();
     expect(w.problems).toEqual([]);
   });
@@ -194,13 +201,13 @@ test.describe('the Auspex-Phalanx (#53)', () => {
     page,
   }) => {
     const w = watch(page);
-    const { scanner } = await setup(page, 'PhalanxArm', 3);
+    const { scanner, colony } = await setup(page, 'PhalanxArm', 3);
     seed({ name: scanner, moon: { res: { m: 0, c: 0, d: 4000 } } });
     await page.reload();
     await chooseMoon(page);
     await homeSystem(page);
-    await planetRow(page, 'Spähziel')
-      .getByRole('button', { name: 'Phalanx-Scan von Spähziel' })
+    await planetRow(page, colony)
+      .getByRole('button', { name: `Phalanx-Scan von ${colony}` })
       .click();
     await expect(page.locator('.toast').last()).toContainText(
       'Nicht genug Promethium für den Phalanx-Scan.',
@@ -212,10 +219,10 @@ test.describe('the Auspex-Phalanx (#53)', () => {
 
   test('scans and shows the panel on a phone @phone', async ({ page }) => {
     const w = watch(page);
-    await setup(page, 'PhalanxHandy', 2);
+    const { colony } = await setup(page, 'PhalanxHandy', 2);
     await chooseMoon(page);
     await homeSystem(page);
-    const target = planetRow(page, 'Spähziel');
+    const target = planetRow(page, colony);
     await target.getByText('Versorgungsflug').tap();
     await page.getByLabel('Anzahl Frachtläufer').fill('1');
     await page.getByRole('button', { name: 'Flotte losschicken' }).tap();
@@ -224,7 +231,7 @@ test.describe('the Auspex-Phalanx (#53)', () => {
     );
     await homeSystem(page);
     await target
-      .getByRole('button', { name: 'Phalanx-Scan von Spähziel' })
+      .getByRole('button', { name: `Phalanx-Scan von ${colony}` })
       .tap();
     await expect(panel(page).locator('table.scan tr')).toHaveCount(2);
     await expect(panel(page)).toContainText('1 Frachtläufer');

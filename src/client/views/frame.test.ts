@@ -7,6 +7,7 @@ import type { HeaderLine } from '../logic/header.ts';
 import type { NavLink, Navigation } from '../logic/navigation.ts';
 import type { ResourceBar as Bar } from '../logic/resource-bar.ts';
 import { planet } from '../../test/fixtures.ts';
+import { normalize } from '../../test/markup.ts';
 import Header from './Header.svelte';
 import Menu from './Menu.svelte';
 import MoreList from './MoreList.svelte';
@@ -49,7 +50,14 @@ describe('Header', () => {
     expect(out).not.toContain('<select');
   });
 
-  it('lists the own places with the shown one selected', () => {
+  it('names the one place as text, then the commander and „Logout“ (#241)', () => {
+    const out = render(Header, { props: { line: line() } }).body;
+    expect(normalize(out)).toBe(
+      '<b>&lt;img src=x onerror=alert(1)></b> [1:2:3] · Kommandant <b>&lt;script>x&lt;/script></b> · <span class="lnk" data-act="logout">Logout</span>',
+    );
+  });
+
+  it('names the shown place only in the list, first, with several (#241)', () => {
     const out = render(Header, {
       props: {
         line: line([
@@ -64,6 +72,12 @@ describe('Header', () => {
     expect(out).toMatch(/<option value="p1">Heimat \[1:1:1\]<\/option>/);
     expect(out).toMatch(
       /<option value="p&quot;2" selected="">K &lt;i> \[1:1:2\]<\/option>/,
+    );
+    // The name and the position of the shown place are not written again.
+    expect(out).not.toContain('onerror');
+    expect(out).not.toContain('[1:2:3]');
+    expect(normalize(out)).toBe(
+      '<select aria-label="Aktiver Planet" id="planet_select"><option value="p1">Heimat [1:1:1]</option><option selected value="p&quot;2">K &lt;i> [1:1:2]</option></select> · Kommandant <b>&lt;script>x&lt;/script></b> · <span class="lnk" data-act="logout">Logout</span>',
     );
   });
 });
