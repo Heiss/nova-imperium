@@ -357,7 +357,7 @@ code and here in the same pull request.
 
 ### Auspex-Erkundung (`mission-spy`)
 
-* **[V]** Mission text: „Am Ziel entsteht ein Auspex-Bericht: die Rohstoffe immer, alles Weitere je nach Auspex-Wert (siehe Auspex-Lehre). Der Verteidiger erfährt, dass er erkundet wurde und von wo. Werden die Spähschädel abgeschossen, bekommst du den Bericht trotzdem; sonst fliegen sie heim.“
+* **[V]** Mission text: „Am Ziel entsteht ein Auspex-Bericht: die Rohstoffe immer, alles Weitere je nach Auspex-Wert (siehe Auspex-Lehre). Der Verteidiger erfährt, dass er erkundet wurde und von wo.“
 * **[V]** Keywords: ausspähen, auskundschaften, Gegner, Bericht
 
 ### Landnahme (`mission-colonize`)

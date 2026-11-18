@@ -96,6 +96,9 @@ points were answered on 2026-11-16.
   game; `counterChance` of `src/core/spy.ts` is gone. **[V]** Its wording is a
   proposal for the owner to check (see
   [Lexicanum texts](/features/lexicanum-texts.md)).
+* **[E]** The article of the mission „Auspex-Erkundung“ no longer says what
+  happens to shot-down probes (owner, 2026-11-18): that sentence is removed
+  and nothing replaces it.
 * Not built: the expected chance before sending, next to
   „Auspex-Erkundung“ (a **[V]** of the issue); an E2E of a detected spying,
   which the random draws of the server do not allow without a test hook
