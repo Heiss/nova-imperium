@@ -276,6 +276,12 @@ test.describe('accessibility (axe)', () => {
         'Eine neue Runde leert alle Gilden-Chats. Ohne Gilden werden alle Gilden mit Mitgliedern, Bewerbungen, Rängen und Chat gelöscht.',
       ),
     ).toBeVisible();
+    // The thresholds of the activity markers in their group (#229).
+    const activity = page.getByRole('group', { name: 'Aktivität' });
+    await expect(activity.getByRole('spinbutton')).toHaveCount(4);
+    await expect(
+      activity.getByLabel('Inaktiv ab (Tage)', { exact: true }),
+    ).toHaveValue('7');
     const found = (await violations(page)).map((v) => `dialog: ${v}`);
     // Only looked at: a new round would reset every planet of this server.
     await page.getByRole('button', { name: 'Abbrechen' }).click();

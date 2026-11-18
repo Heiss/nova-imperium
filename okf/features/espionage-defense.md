@@ -26,7 +26,9 @@ points were answered on 2026-11-16.
   number for this.
 * **[E]** Activity in the report (owner, 2026-11-16, Q3): the classic event
   list of owiki „Aktivität“, one rule shared with
-  [Activity indicators](/features/activity-indicators.md#what-sets-activity).
+  [Activity indicators](/features/activity-indicators.md#what-sets-activity):
+  v0.76d with the change of v0.77b (owner, 2026-11-17), built by #229 in
+  `src/core/activity.ts` (`activityPlaces`, `planetActivity`).
 
 # Recognition of incoming fleets (#228)
 
