@@ -313,6 +313,9 @@ describe('a database from before #213', () => {
   // A real database of version 20, written as the released server wrote
   // it, with generated data of every table: the new server only starts the
   // record, keeps every row and leaves a backup of version 20.
+  // It runs every migration up to 20 on generated data: seconds, and above
+  // the default limit of five under the coverage of a mutation run (CI of
+  // #306), so its own limit.
   it('of version 20 with data keeps everything and records the 20 IDs', () => {
     const through20 = throughNumber(20);
     const after20 = placeOf(20) + 1;
@@ -349,7 +352,7 @@ describe('a database from before #213', () => {
       expect(hasRecord(copy)).toBe(false);
       copy.close();
     }
-  });
+  }, 60_000);
 });
 
 // Two servers start on the same database at once (a restart while the old
