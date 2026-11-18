@@ -167,6 +167,9 @@ tasks).
   cut most merge conflicts, it watches where the code still causes them or
   is hard to maintain, gives the subagents tasks to improve that or files
   issues for it, and orders the work so that subagents do not collide.
+* **[E]** The main agent writes each task for a subagent as
+  [Briefs for subagents](/ops/subagent-briefs.md) says and records there
+  what a result teaches (owner, 2026-11-18).
 * **[E]** Subagents run only the cheap local checks (owner, 2026-11-17):
   typecheck, eslint and the unit tests of the changed files, prettier,
   `checkLog` and `check:migrations`, plus, for a change a player sees in
