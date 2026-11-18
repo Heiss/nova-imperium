@@ -19,9 +19,10 @@ check of `main`. The rules behind it are in
 | Changelog fragments                          | Every fragment in `changes/` is well-formed; a pull request that changes `src/client`, `src/core`, `src/features`, `src/server/game` or `src/server/http` brings one, unless it has the label `kein-changelog` (`scripts/changelog.ts check`).                                                                                    | Pull requests.                                                               |
 | Lint, types, unit tests with coverage, build | ESLint with `--max-warnings 0`, knip, jscpd, dependency-cruiser, Prettier, `svelte-check`, Vitest with coverage (blocks below 90 % lines and 85 % branches), `vite build`.                                                                                                                                                        | When the code changes.                                                       |
 | E2E tests (browser)                          | Playwright in Chromium against the real server: the game flows on desktop and phone size, accessibility with axe; the report is kept 7 days when it fails.                                                                                                                                                                        | When the code changes.                                                       |
-| Mutation plan                                | Splits the files Stryker mutates into 6 shards by their estimated run time, every file on its shard of the last plan (`scripts/mutation-shards.ts plan`); the plan is the job's output.                                                                                                                                           | When the code changes.                                                       |
-| Mutation tests (shard N of 6)                | Stryker on the files of one shard (matrix 1 to 6, `fail-fast: false`), incremental with the shard's own cache, complete (`--force`) in a release pull request; uploads the shard's report.                                                                                                                                        | When the code changes.                                                       |
-| Mutation tests                               | Merges the six reports and checks them as one run: every shard ran once with exactly its files, the total score is at least 80 % (`stryker.config.json`), no file is below its floor (`mutation-standard.json`, `scripts/mutation-gate.ts`).                                                                                      | When the code changes.                                                       |
+| Mutation plan                                | Splits the files Stryker mutates into 6 shards by their estimated run time, every file on its shard of the last plan (`scripts/mutation-shards.ts plan`); the plan is the job's output.                                                                                                                                           | Push, release or hotfix pull request, or a changed mutation configuration.                                                       |
+| Mutation tests (shard N of 6)                | Stryker on the files of one shard (matrix 1 to 6, `fail-fast: false`), incremental with the shard's own cache, complete (`--force`) in a release pull request; uploads the shard's report.                                                                                                                                        | Push, release or hotfix pull request, or a changed mutation configuration.                                                       |
+| Mutation tests                               | Merges the six reports and checks them as one run: every shard ran once with exactly its files, the total score is at least 80 % (`stryker.config.json`), no file is below its floor (`mutation-standard.json`, `scripts/mutation-gate.ts`).                                                                                      | Push, release or hotfix pull request, or a changed mutation configuration.                                                       |
+| Mutation tests (changed files)               | In a pull request that is no release pull request and goes into no hotfix branch: Stryker on the changed files of the `mutate` globs and the source of each changed test file (`scripts/mutation-partial.ts`), in one job, without any cache; every file at or above its floor, no total score (`scripts/mutation-gate.ts --partial`).| When the pull request changes such a file and not the mutation configuration.|
 | Docker image and Compose stack               | `compose.yaml` is valid and requires `NOVA_PUBLIC_URL`; the last release writes data, the image built from the `Dockerfile` starts on the same volume and the data survive (`docker/upgrade.sh`); Trivy; no compiler, package manager or tests in the image; a wrong setting stops the start; the smoke test (`docker/smoke.sh`). | When **image** is true (see below).                                          |
 | Secrets and dependencies                     | gitleaks over the whole history (exceptions in `.gitleaksignore`); `pnpm audit --prod --audit-level high`.                                                                                                                                                                                                                        | Always.                                                                      |
 | Migrations append-only                       | No released migration was moved, removed or changed, compared with the base of the pull request, the previous tip of the branch, or for a new hotfix branch the release tag it starts from (`.github/scripts/migrations-gate.mjs`).                                                                                               | Always.                                                                      |
@@ -67,10 +68,16 @@ The gate runs with `if: always()` and fails unless:
    documentation included;
 2. on a push, all three outputs are true – pushes always run the full suite;
 3. on a pull request, „Changelog fragments“ succeeded;
-4. when **code** is true: the lint/unit job, the E2E tests, „Mutation plan“,
-   every shard of „Mutation tests (shard N of 6)“ and the gate „Mutation
-   tests“ succeeded; when it is false, they may be skipped
-   („Documentation-only change“);
+4. when **code** is true: the lint/unit job and the E2E tests succeeded;
+   when it is false, they may be skipped („Documentation-only change“);
+   the mutation jobs follow the output **mutation**: `true` (a push, a
+   release pull request, a pull request into a hotfix branch, or a change of
+   the mutation configuration or the test tool chain): „Mutation plan“, every
+   shard of „Mutation tests (shard N of 6)“ and the gate „Mutation tests“
+   succeeded; `partial` (every other pull request that changes a mutated file
+   or the source of a test): „Mutation tests (changed files)“ succeeded and
+   the shards were skipped; `false` (nothing to mutate) and `reuse` (the head
+   only merged `main`) as before;
 5. when **image** is true: „Docker image and Compose stack“ succeeded;
 6. when **site** is true: „Documentation website“ succeeded;
 7. on the draft release pull request of `main`, never: after the checks
@@ -86,9 +93,12 @@ counts only where the gate expects the skip.
 
 ## Mutation tests
 
-Mutation runs are split into 6 parallel jobs everywhere: pull requests and
-pushes to `main` (incremental), the full run of the release pull request
-and the nightly run (complete). The decisions and the details of the code are in
+Mutation runs are split into 6 parallel jobs: pushes to `main` and
+`hotfix/**` (incremental), the full run of the release pull request, a pull
+request into a hotfix branch, a pull request that changes the mutation
+configuration or the test tool chain, and the nightly run (complete). Every
+other pull request mutates only the files it changes, in one job (see
+„Partial run of a pull request“ below). The decisions and the details of the code are in
 [Test strategy](/okf/ops/testing.md); the script is
 `scripts/mutation-shards.ts`.
 
@@ -139,8 +149,21 @@ flowchart LR
   gap or overlap. `scripts/mutation-gate.ts --report` then checks the
   merged report: a total below 80 % fails, and so does a file below its
   floor. The gate keeps the merged report for the next plan.
+- **Partial run of a pull request.** `scripts/mutation-partial.ts plan`
+  lists the files of the `mutate` globs that the pull request changed and
+  the source of each changed test file (the same name without `.test`, also
+  without a dotted suffix such as `.property`, with the ending `.svelte.ts`,
+  and in `src/test/` the script of the same name). The job „Mutation tests
+  (changed files)“ mutates every mutant of those files without the
+  incremental file and without any cache, so a partial result never reaches
+  the plans, the weights or the cached results of the shards, and
+  `scripts/mutation-gate.ts --partial` checks each file against its floor
+  (80 % without one), with no total score. A test without such a source and
+  a test helper add nothing; the nightly run tests them.
 - **Complete runs.** Every night (`mutation.yml`, 02:23 UTC, 6 shards
-  like the CI) and in a release pull request. Stryker's incremental mode
+  like the CI) and in a release pull request. When the nightly gate fails
+  on `main`, the run opens the issue „Mutation floor missed on main“ with the
+  files below their floor, or updates the open one. Stryker's incremental mode
   notices only changes in mutated files and tests, not in helpers or
   configuration; the complete run catches what it misses.
 - **Mutated**: `src/core`, `src/features`, `src/server` and
@@ -186,7 +209,7 @@ The published release is scanned again every hour by the workflow
 
 | Workflow                                                    | When                  | What                                                                                                                                                                                                                                                                                                                                                       |
 | ----------------------------------------------------------- | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Mutation tests (nightly), `mutation.yml`                    | 02:23 UTC, or by hand | The complete Stryker run on `main` in 6 shards with the same plan and gate as the CI; it saves the merged report (`stryker-weights-…`) and the plan with the weights of every mutant (`stryker-state-…`) for the next plans and keeps it as the artifact `mutation-report` for 30 days. „Run workflow“ on another branch runs the same complete run there. |
+| Mutation tests (nightly), `mutation.yml`                    | 02:23 UTC, or by hand | The complete Stryker run on `main` in 6 shards with the same plan and gate as the CI; it saves the merged report (`stryker-weights-…`) and the plan with the weights of every mutant (`stryker-state-…`) for the next plans and keeps it as the artifact `mutation-report` for 30 days. When the gate fails on `main`, it opens or updates the issue „Mutation floor missed on main“ with the files below their floor. „Run workflow“ on another branch runs the same complete run there. |
 | Migration upgrade tests (nightly), `migrations-nightly.yml` | 03:41 UTC, or by hand | The property-based upgrade test of every migration with a random seed and 1000 generated databases each; pull requests run 100 with a fixed seed. A failure prints the seed: `MIGRATION_SEED=<seed> pnpm vitest run src/server/db/migrations.property.test.ts`.                                                                                            |
 
 ## CodeRabbit
