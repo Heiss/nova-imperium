@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { MISSIONS, NAMES, RESOURCES, renamed } from '../test/naming.ts';
 import { ENTRIES } from '../features/index.gen.ts';
 import * as Catalog from './catalog.ts';
+import { lvlCost } from './components/leveled.ts';
 import { text } from './text.ts';
 
 /**
@@ -111,6 +112,7 @@ describe('catalog', () => {
       graviton: values(C.RES).graviton,
       ifn: values(C.RES).ifn,
       carto: values(C.RES).carto,
+      expo: values(C.RES).expo,
     });
     const ships = values(C.SHIPS);
     const added = {
@@ -187,12 +189,26 @@ describe('catalog', () => {
       'moonbreak',
       'survey',
       'missile',
+      'expedition',
     ]);
     expect(C.MISSION).toEqual(
       Object.fromEntries(Object.entries(MISSIONS).map(([k, m]) => [k, m.name])),
     );
     for (const [k, name] of Object.entries(O.MISSION))
       expect(name).toBe(MISSIONS[k as keyof typeof MISSIONS].classic);
+  });
+  it('has the Kreuzzugs-Kartografie with the classic values of the Expeditionstechnik (#93)', () => {
+    expect(C.RES.expo).toEqual({
+      n: 'Kreuzzugs-Kartografie',
+      ab: 'KK',
+      cost: [4000, 8000, 4000],
+      ds: 'Schaltet Expeditionen frei; jede Stufe erlaubt mehr davon und längere Haltezeiten.',
+      lt: LT,
+      req: { b: { lab: 3 }, r: { spy: 4, impulse: 3 } },
+    });
+    // The factor is 2 (owiki): level 2 costs twice level 1, level 4 eight times.
+    expect(lvlCost(C.RES.expo!, 2)).toEqual([8000, 16000, 8000]);
+    expect(lvlCost(C.RES.expo!, 4)).toEqual([32000, 64000, 32000]);
   });
   it('has the Nanitenfabrik with the classic values (#48)', () => {
     expect(C.BUILD.nanite).toEqual({
@@ -727,6 +743,7 @@ describe('catalog from the entry folders', () => {
       'graviton',
       'ifn',
       'carto',
+      'expo',
     ]);
     const ships = [
       'sc',
@@ -768,7 +785,7 @@ describe('catalog from the entry folders', () => {
   });
 
   it('has one folder per entry, each with its kind and its own order', () => {
-    expect(ENTRIES).toHaveLength(57);
+    expect(ENTRIES).toHaveLength(58);
     const kinds = {
       building: C.BUILD,
       research: C.RES,

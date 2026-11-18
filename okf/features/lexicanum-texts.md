@@ -239,6 +239,11 @@ code and here in the same pull request.
 * Prose: none; the article has no effect of a level. Its short and its long text are those of the entry (#190), not drafts of this list.
 * **[V]** Keywords: vermessen, Position, Planet, Kolonie
 
+### Kreuzzugs-Kartografie (`expo`)
+
+* **[V]** Prose (#93): „Die Stufe bestimmt, wie viele Expeditionen gleichzeitig unterwegs sein dürfen: die Wurzel der Stufe, abgerundet. Jede Expedition belegt dazu einen gewöhnlichen Flottenslot. Außerdem darf eine Expedition höchstens so viele Stunden an der Expeditionsposition bleiben, wie die Stufe hoch ist. Mit Stufe 9 sind es 3 Expeditionen und bis zu 9 Stunden.“ The formula (the root of the level, rounded down) and the table column of the expeditions at once come from `expeditionSlots`. Its short and its long text are [V] of the entry, not drafts of this list.
+* **[V]** Keywords: Expedition, erkunden, entdecken, Rand
+
 ## Schiffe
 
 ### Frachtläufer (`sc`)
@@ -409,3 +414,8 @@ code and here in the same pull request.
 
 * **[V]** Mission text: „Am Ziel hält jede Abfangrakete des Verteidigers eine anfliegende Orbitalrakete auf. Die übrigen treffen nur Verteidigung, die kämpft: zuerst das Hauptziel, dann alles andere der Reihe nach; Schilde zählen dabei nicht. Ist keine Verteidigung mehr übrig, zerstört der Rest der Wucht die gelagerten Raketen der Raketenkrypta. Zerstörte Verteidigung wird nicht wieder aufgebaut und hinterlässt kein Trümmerfeld. Ist das Ziel inzwischen verschwunden, sind die Raketen verloren; beide Seiten erhalten einen Bericht.“
 * **[V]** Keywords: Raketen, beschießen, Fernangriff, Verteidigung
+
+### Expedition (`mission-expedition`)
+
+* **[V]** Mission text (#93): „Am Ziel, der Expeditionsposition am Rand jedes Systems, bleibt die Flotte so viele Stunden, wie du beim Start wählst, höchstens so viele wie die Stufe deiner Kreuzzugs-Kartografie (mindestens 1). Dort lässt sich nichts besiedeln. Nach dem Aufenthalt entscheidet der Zufall, in etwa 84 % der Expeditionen bringen etwas: Rohstoffe oder Schiffe, die sich der Flotte anschließen, einen Kampf gegen Piraten oder Aliens, den Verlust der ganzen Flotte oder eine frühere oder spätere Heimkehr. Zerstörte Schiffe eines Kampfes hinterlassen ein Trümmerfeld an der Expeditionsposition, das eine Bergung einsammeln kann. Eine Expedition belegt einen Flottenslot und einen Expeditionsplatz.“ The 84 % is `EVENT_CHANCE`; the events are not switched on yet ([Expeditions](/features/expeditions.md), section Open).
+* **[V]** Keywords: Expedition, erkunden, entdecken, Abenteuer, Rand

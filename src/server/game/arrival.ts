@@ -14,6 +14,7 @@ import {
   missionRules,
   suits,
 } from '../../core/missions.ts';
+import { isExpeditionPlace } from '../../core/expedition.ts';
 import { settle } from '../../core/settle.ts';
 import { inUniverse } from '../../core/universe.ts';
 import type { Fleet, Planet } from '../../core/types.ts';
@@ -78,13 +79,18 @@ function unsuitableTarget(ctx: Ctx, f: Fleet, kind: TargetKind): void {
 /**
  * Whether the target still fits the kind; a free one must also still exist
  * and must not be locked after an abandonment (#224, D2), a Trümmerfeld
- * must still be there (#45).
+ * must still be there (#45), and the expedition position must still be the
+ * one after the last planet position (#93).
  */
-const fits = (ctx: Ctx, kind: TargetKind, f: Fleet, t: Planet | null) =>
-  suits(kind, f.owner, t, kind === 'debris' && !!ctx.debris.get(f.to)) &&
-  (kind !== 'free' ||
-    (inUniverse(f.toC, universe(ctx)) &&
-      lockedUntil(ctx, f.toC, f.arr) === null));
+function fits(ctx: Ctx, kind: TargetKind, f: Fleet, t: Planet | null): boolean {
+  if (!suits(kind, f.owner, t, kind === 'debris' && !!ctx.debris.get(f.to)))
+    return false;
+  if (kind === 'expedition') return isExpeditionPlace(f.toC, universe(ctx));
+  if (kind !== 'free') return true;
+  return (
+    inUniverse(f.toC, universe(ctx)) && lockedUntil(ctx, f.toC, f.arr) === null
+  );
+}
 
 export function arrive(ctx: Ctx, f: Fleet): void {
   const rules = missionRules(f.mission);

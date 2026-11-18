@@ -27,6 +27,8 @@ const HOME = { g: 1, s: 1, p: 5 };
 const COLONY = { g: 1, s: 1, p: 7 };
 const FOREIGN = { g: 1, s: 2, p: 6 };
 const FREE = { g: 1, s: 4, p: 8 };
+// The position after the last planet position of the universe, 15 by default (#93).
+const EXPEDITION = { g: 1, s: 4, p: 16 };
 
 /** A target that fits each kind, and one that does not. */
 const FITS: Record<TargetKind, Coords> = {
@@ -38,6 +40,7 @@ const FITS: Record<TargetKind, Coords> = {
   debris: FOREIGN,
   // Bert's planet has a moon (#95).
   foreignMoon: FOREIGN,
+  expedition: EXPEDITION,
 };
 const MISFITS: Record<TargetKind, Coords[]> = {
   own: [FOREIGN, FREE],
@@ -47,6 +50,8 @@ const MISFITS: Record<TargetKind, Coords[]> = {
   debris: [COLONY, FREE],
   // Anna's colony has her own moon; the free position none.
   foreignMoon: [COLONY, FREE],
+  // A planet position and a position beyond the expedition position (#93).
+  expedition: [COLONY, FREE, { ...EXPEDITION, p: 17 }],
 };
 
 const id = (c: Coords): string => `p${c.g}_${c.s}_${c.p}`;
@@ -64,8 +69,10 @@ const placeOf = (m: Mission, c: Coords): string =>
 function setup() {
   const ctx = testCtx();
   // Auspex-Lehre 1 lets Anna spy (#175, Q1), Auspex-Kartographie 1 lets her
-  // survey (#190).
-  const anna = addUser(ctx, 'Anna', { research: { spy: 1, carto: 1 } });
+  // survey (#190), Kreuzzugs-Kartografie 1 lets her fly an expedition (#93).
+  const anna = addUser(ctx, 'Anna', {
+    research: { spy: 1, carto: 1, expo: 1 },
+  });
   // Points from research, so the noob protection does not shield him, also
   // from the Weltenbrecher of Anna (#95).
   addUser(ctx, 'Bert', { research: { energy: 14 } });

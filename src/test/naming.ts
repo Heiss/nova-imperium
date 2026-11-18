@@ -117,6 +117,13 @@ export const NAMES: Readonly<
   // #190: the name decided by the owner (2026-11-14), the abbreviation [V];
   // an own extension without a classic name.
   carto: { classic: null, name: 'Auspex-Kartographie', ab: 'AK' },
+  // #93: the name of the package order (okf/features/naming.md), the
+  // abbreviation [V].
+  expo: {
+    classic: 'Expeditionstechnik',
+    name: 'Kreuzzugs-Kartografie',
+    ab: 'KK',
+  },
   // #54: the Abfangrakete keeps its classic name (naming table, [V]).
   abm: { classic: 'Abfangrakete', name: 'Abfangrakete', ab: 'AR' },
   ipm: { classic: 'Interplanetarrakete', name: 'Orbitalrakete', ab: 'OR' },
@@ -142,6 +149,8 @@ export const MISSIONS = {
   survey: { classic: null, name: 'Vermessung' },
   // #54: the name of the issue's interface, kept by the naming [V].
   missile: { classic: 'Raketenangriff', name: 'Raketenangriff' },
+  // #93: the name of the issue's interface, kept by the naming [V].
+  expedition: { classic: 'Expedition', name: 'Expedition' },
 } as const;
 
 /**
