@@ -104,7 +104,8 @@ test.describe('the Auspex-Phalanx (#53)', () => {
     ).toHaveCount(0);
     await chooseMoon(page);
     await nav(page, 'buildings');
-    await expect(page.locator('.item .nm').last()).toHaveText(
+    // After the Mondzitadelle; the Warp-Tor (#230) comes last.
+    await expect(page.locator('.item .nm').nth(-2)).toHaveText(
       /^Auspex-Phalanx/,
     );
     const phalanx = page.locator('.item', { hasText: 'Auspex-Phalanx' });

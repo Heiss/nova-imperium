@@ -200,6 +200,11 @@ CREATE TABLE invitations (
     revoked_at INTEGER
   ) STRICT;
 
+CREATE TABLE jump_gates (
+      moon_id TEXT PRIMARY KEY REFERENCES planets(id) ON DELETE CASCADE,
+      ready INTEGER NOT NULL
+    ) STRICT;
+
 CREATE TABLE passkey_challenges (
     id TEXT PRIMARY KEY,
     challenge TEXT NOT NULL,
