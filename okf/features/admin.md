@@ -188,6 +188,10 @@ universe settings) and their ranges are not decided yet.
   2026-11-18): three number fields from 0 to 100 ([E], 2026-11-18) in one
   fieldset with the defaults 2, 4 and 8, sent as one object and refused
   together with the range wording.
+* **[V]** With the groups of #229 and #228 the dialog „Neue Runde“ is
+  taller than a window of 720 px, so every dialog (`#modal .in` in
+  `src/client/static/style.css`) is at most as high as the window and
+  scrolls inside itself; before, its buttons lay outside the window.
 * **[V]** A feature with a value per round adds one entry in its own file
   (`export const X_SETTING = { … } as const satisfies RoundSetting`) and
   one line to the list `ENTRIES` in `src/core/round.ts`, where the place
