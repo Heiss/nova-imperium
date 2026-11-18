@@ -112,7 +112,12 @@ export function onArrive(ctx: Ctx, f: Fleet, at: Arrival): void {
   // Only probes that survive deliver the report (D3; owner, 2026-11-17).
   const lost = fought !== null && !countUnits(fought.res.att);
   const counter = shownChance(chance);
-  const activity = placeActivity(ctx, t.id, f.arr, activityLimits(roundRules(ctx)));
+  const activity = placeActivity(
+    ctx,
+    t.id,
+    f.arr,
+    activityLimits(roundRules(ctx)),
+  );
   if (!lost)
     addReport(
       ctx,

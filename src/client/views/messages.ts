@@ -66,7 +66,9 @@ function section(title: string, o: unknown, keys: string[]): string {
 
 /** The activity of the target, in reports since #175. */
 function spyActivity(r: Report): string {
-  const words = spyActivityText(r.activity as PlanetActivity | null | undefined);
+  const words = spyActivityText(
+    r.activity as PlanetActivity | null | undefined,
+  );
   return words === null
     ? ''
     : `<div class="mt"><b>Aktivität</b><br>${esc(words)}</div>`;
