@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { distance, fuelFor, holdFuel } from '../../core/flight.ts';
 import { HOUR_MS } from '../../core/holding.ts';
 import type { Fleet } from '../../core/types.ts';
+import type { AuditEntry } from '../audit.ts';
 import { type TestCtx, addPlanet, addUser, testCtx } from '../test-helpers.ts';
 import { arrive, tick } from './arrival.ts';
 import { runAction } from './dispatch.ts';
@@ -178,7 +179,26 @@ describe('sending a fleet to hold', () => {
     );
     expect(to(1)).toThrow('Wache stellen nur bei Gildenmitgliedern.');
     expect(to(2, BERT)).toThrow('Wache stellen nur bei Freunden.');
+    // Another refusal keeps its own words under every setting.
+    expect(to(1, { g: 1, s: 4, p: 8 })).toThrow(
+      'An dieser Position gibt es keinen Planeten.',
+    );
     expect(ctx.fleets.all()).toEqual([]);
+  });
+  it('launches with exactly the Promethium of the flight and the holding time', () => {
+    const ctx = setup();
+    const fuel =
+      fuelFor({ lf: 2 }, distance(ANNA, BERT), 10) + holdFuel({ lf: 2 }, 2);
+    const home = ctx.planets.home('u_Anna')!;
+    ctx.planets.save({ ...home, res: { ...home.res, d: fuel - 1 } });
+    expect(() => send(ctx, user(ctx, 'Anna'), hold())).toThrow(
+      'Nicht genug Promethium für Treibstoff und Ladung.',
+    );
+    ctx.planets.save({ ...home, res: { ...home.res, d: fuel } });
+    expect(send(ctx, user(ctx, 'Anna'), hold())).toBe(
+      'Flotte unterwegs nach [1:2:6].',
+    );
+    expect(ctx.planets.home('u_Anna')!.res.d).toBe(0);
   });
   it('refuses the own planet and a free position', () => {
     const ctx = setup();
@@ -265,13 +285,20 @@ describe('holding', () => {
   it('can be called back while it holds: home after the time of its flight there', () => {
     const ctx = setup();
     const f = holding(ctx, 'h1', 'u_Anna');
-    expect(recall(ctx, user(ctx, 'Anna'), { id: 'h1' })).toBe(
+    const event = {} as AuditEntry;
+    expect(recall(ctx, user(ctx, 'Anna'), { id: 'h1' }, event)).toBe(
       'Flotte zurückgerufen.',
     );
     expect(ctx.fleets.get('h1')).toMatchObject({
       state: 'back',
       recalled: true,
       ret: ctx.now() + (f.arr - f.dep),
+    });
+    // The audit names the fleet, its origin and when it is home.
+    expect(event.detail).toEqual({
+      fleet: 'h1',
+      planet: 'p1_1_5',
+      due: ctx.now() + (f.arr - f.dep),
     });
   });
   it('cannot be called back once its holding time is over, nor by another player', () => {
