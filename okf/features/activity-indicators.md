@@ -87,8 +87,12 @@ and „Inaktivität“
 * **[V]** A planet's activity goes with the planet: a new round, a
   destroyed or given-up place starts without one. The account's last
   activity stays across rounds.
-* **[V]** Vacation mode (#223) is not built yet; once it is, it needs its
-  own marker apart from these.
+* **[E]** An account in vacation mode records no activity (#223, owner,
+  2026-11-18): the login onto the lock screen and its clicks move neither
+  the time of the account nor of its planets (`recordActivity`,
+  `src/server/game/activity.ts`); ending the vacation counts as activity
+  again from that action on. Vacation mode keeps its own marker apart from
+  these.
 
 # Settings
 

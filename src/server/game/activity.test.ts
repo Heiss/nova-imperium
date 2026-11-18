@@ -88,6 +88,18 @@ describe('what sets activity', () => {
     expect(ctx.players.lastActive().u_Anna).toBe(t);
   });
 
+  it('an account in vacation mode records none, a login or an action (#223)', () => {
+    const ctx = world();
+    const anna = { ...user(ctx, 'u_Anna'), vacation: ctx.now() };
+    ctx.clock.t += 5 * MINUTE_MS;
+    recordActivity(ctx, anna, 'login');
+    recordActivity(ctx, anna, 'action');
+    expect(ctx.planets.activeTimes()).toEqual({});
+    expect(ctx.players.lastActive().u_Anna).toBe(START);
+    recordActivity(ctx, { ...anna, vacation: null }, 'action');
+    expect(ctx.players.lastActive().u_Anna).toBe(ctx.now());
+  });
+
   it('a game action itself sets nothing, so fleets and buildings set none', () => {
     const ctx = world();
     runAction(ctx, 'u_Anna', { type: 'mainPlanet', main: 'p2_3_7' });

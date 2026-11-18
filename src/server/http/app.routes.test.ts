@@ -750,6 +750,38 @@ describe('the vacation mode (#223, owner, 2026-11-18)', () => {
     expect(deleted.set).toBe(SIGNED_OUT);
   });
 
+  it('records no activity: login, state, a refused action, the push settings and the interaction leave the times as they were (#223, owner, 2026-11-18)', async () => {
+    const { ctx, call } = await away();
+    const before = {
+      planets: ctx.planets.activeTimes(),
+      players: ctx.players.lastActive(),
+    };
+    expect(Object.keys(before.planets)).not.toEqual([]);
+    ctx.clock.t += 3_600_000;
+    await call('POST', '/api/login', { name: 'Anna', password: 'secret1' });
+    await call('GET', '/api/state');
+    await call('POST', '/api/action', { type: 'build' });
+    await call('POST', '/api/action', { type: 'pushOptions', off: [] });
+    await call('POST', '/api/activity', {});
+    expect({
+      planets: ctx.planets.activeTimes(),
+      players: ctx.players.lastActive(),
+    }).toEqual(before);
+  });
+
+  it('records activity again from the action that ends the vacation (#223)', async () => {
+    const { ctx, call } = await away();
+    ctx.clock.t += 48 * 3_600_000;
+    const before = ctx.planets.activeTimes();
+    await call('POST', '/api/action', { type: 'endVacation' });
+    expect(ctx.planets.activeTimes()).not.toEqual(before);
+    expect(ctx.planets.activeTimes().p1_1_5).toBe(ctx.now());
+    expect(ctx.players.lastActive().u_Anna).toBe(ctx.now());
+    ctx.clock.t += 1000;
+    await call('POST', '/api/activity', {});
+    expect(ctx.players.lastActive().u_Anna).toBe(ctx.now());
+  });
+
   it('ends with „endVacation“ after the minimum duration and shows the game again', async () => {
     const { ctx, call } = await away();
     expect(

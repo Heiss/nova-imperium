@@ -416,6 +416,9 @@ function actionReply(ctx: Ctx, u: User, call: Call): Reply {
   try {
     recordActivity(ctx, u, 'action');
     answer = answerOf(playerAction(ctx, u, call));
+    // The end of a vacation records the activity from this action on (#223).
+    if (u.vacation !== null)
+      recordActivity(ctx, ctx.players.get(u.id)!, 'action');
   } catch (error) {
     if (!isDatabaseBusy(error)) throw error;
     // The audited action did not commit. Only this response permits an automatic retry.

@@ -75,7 +75,13 @@ them: it shows the lock screen (`views/vacation-lock.ts`) for the state
 the server sends to such a player (`lockedState`, `server/game/state.ts`).
 The password change, the deletion of the account, the passkeys, the push
 routes and the sign-out are routes, not actions, and stay open. `send` gets
-the code `vacation` of `sendError`.
+the code `vacation` of `sendError`. **[E]** Since 2026-11-18 (owner) an
+account in vacation mode records no activity (`recordActivity` returns at
+once; `endVacation` records again) and every admin route `/api/admin/…` is
+refused for an admin in vacation mode with „Im Urlaubsmodus nicht möglich.“,
+by the one guard `admin()` of `src/server/http/admin.ts`. **[V]** The game
+options action `options` is refused in vacation mode like every action off
+the allow list.
 
 Since the Warp-Tor (#230, 2026-11-17) `ACTIONS` also has `jump`, which
 follows section 7; its row is below `recall`. The counts above are those of

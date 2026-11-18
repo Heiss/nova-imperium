@@ -17,12 +17,17 @@ import type { User } from '../db/repos/players.ts';
 import type { Ctx } from './context.ts';
 import { mainPlanet } from './main-planet.ts';
 
-/** Records a login or a manual action of `u` now. */
+/**
+ * Records a login or a manual action of `u` now. An account in vacation mode
+ * records none, so the lock screen and its clicks move no time (#223, owner,
+ * 2026-11-18); the end of the vacation counts again from that action on.
+ */
 export function recordActivity(
   ctx: Ctx,
   u: User,
   event: Extract<ActivityEvent, 'login' | 'action'>,
 ): void {
+  if (u.vacation !== null) return;
   const now = ctx.now();
   const own = ctx.planets.ofOwner(u.id).map((p) => p.id);
   const main = mainPlanet(ctx, u)?.id ?? null;

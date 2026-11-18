@@ -162,8 +162,22 @@ owiki.de „Urlaubsmodus“
   the allow list. The routes outside `runAction` stay as they were: the
   password change, the deletion of the account, the passkey routes, the
   push routes, the sign-out, the news and `GET /api/state`, which answers
-  the lock state. The admin routes (`/api/admin/…`) are not actions of the
-  player and stay; the admin panel is not shown on the lock screen.
+  the lock state. The admin panel is not shown on the lock screen.
+* **[E]** No activity in vacation mode (owner, 2026-11-18): a login, the
+  state request, a refused action, `pushOptions` and `POST /api/activity`
+  record no activity time for the account or its planets
+  (`recordActivity` in `src/server/game/activity.ts` returns at once while
+  `vacation !== null`; see
+  [Activity indicators](/features/activity-indicators.md)); the action
+  `endVacation` records it again once it has ended the vacation
+  (`actionReply`, `src/server/http/app.ts`).
+* **[E]** The admin routes (`/api/admin/…`) are refused for an admin in
+  vacation mode, the reading ones too (owner, 2026-11-18): „Im Urlaubsmodus
+  nicht möglich.“ with the status 400 of the other refusals, by the one
+  guard of the admin routes (`admin()` in `src/server/http/admin.ts`). A
+  test runs every route `adminRoutes` builds.
+* **[V]** The game options action `options` is refused in vacation mode
+  like every action off the allow list (coordinator, 2026-11-18).
 * **[V]** Protection (D2, Q2): every new mission of another player to a
   planet or moon of a player in vacation mode is refused with „Dieser
   Spieler ist im Urlaubsmodus.“ (code `vacation` of `sendError`, before
