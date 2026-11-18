@@ -7,7 +7,6 @@ import { execFileSync } from 'node:child_process';
 import {
   chmodSync,
   cpSync,
-  existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -175,18 +174,25 @@ describe('Detect changes: the mutation jobs of a pull request (#309)', () => {
     vcs('commit', '-q', '-m', 'base');
     return vcs('rev-parse', 'HEAD');
   };
+  /** The text of a file, null when it is not there. */
+  const textOf = (path: string): string | null => {
+    try {
+      return readFileSync(path, 'utf8');
+    } catch {
+      return null;
+    }
+  };
   /** The commit that changes <files>; the head. */
   const head = (...files: string[]): string => {
     for (const file of files) {
       const path = join(repo, file);
       // Existing files stay what they are (the scripts run, the JSON parses).
-      if (!existsSync(path)) put(file, `${file} changed\n`);
+      // Read once instead of asking first whether the file is there.
+      const old = textOf(path);
+      if (old === null) put(file, `${file} changed\n`);
       else if (file.endsWith('.json'))
-        writeFileSync(
-          path,
-          JSON.stringify({ ...JSON.parse(readFileSync(path, 'utf8')), x: 1 }),
-        );
-      else writeFileSync(path, `${readFileSync(path, 'utf8')}\n// changed\n`);
+        writeFileSync(path, JSON.stringify({ ...JSON.parse(old), x: 1 }));
+      else writeFileSync(path, `${old}\n// changed\n`);
     }
     vcs('add', '-A');
     vcs('commit', '-q', '-m', 'head');
