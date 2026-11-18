@@ -83,10 +83,14 @@ The battle with several parties is built with #55
 * The rules live in `src/core/holding.ts` (holding times, limits, who is
   an ally, when a fleet is due); the fuel `holdFuel` in
   `src/core/flight.ts`; the server part in `src/server/game/holding.ts`.
-* The admin's setting is `roundAllies` in `UNIVERSE_SPECS`, „Halten
-  erlaubt für“ with the choices „Gilde“, „Freunde“ and „Gilde und
-  Freunde“ [V] (1, 2, 3; default 3); the dialog „Neue Runde“ offers the
-  same choice, kept without a choice like the lock of the main planet.
+* The admin's setting is `roundAllies`, „Halten erlaubt für“ with the
+  choices „Gilde“, „Freunde“ and „Gilde und Freunde“ [V] (1, 2, 3;
+  default 3): the entry `ALLIES_SETTING` of the registry of the round
+  settings (#283, [Admin](/features/admin.md#the-registry-of-the-round-settings-283)),
+  defined in `src/core/holding.ts` with the order number 60 and `live`
+  (X1). So the dialog „Neue Runde“ offers the choice, kept without a
+  choice like the lock of the main planet, and the universe settings
+  show the same selection during the round.
   A guild member counts only while guilds are on in the round
   ([Guilds on or off per round](/features/guild-switch.md)). Friends are
   nobody until the buddy list (#227) answers `areFriends` in
@@ -115,14 +119,21 @@ The battle with several parties is built with #55
   * The cargo of the held fleets is taken whole (not half) with the room
     left; the rest is lost with the fleets, which are destroyed when the
     attacker wins. 1 hour is preselected in the form.
-  * The spy report: the setting is `roundHeldSpy` in `UNIVERSE_SPECS`,
-    range 0 to 30 [V]; the held fleets follow the section „Flotte“ and show
+  * „alles“ of the fleet form (#240) leaves the fuel of the holding time
+    on the planet too, as the flight fuel.
+  * The spy report: the setting is `roundHeldSpy`, range 0 to 30 [V], the
+    entry `HELD_SPY_SETTING` of the registry (#283) in
+    `src/core/holding.ts`, order number 70, the last, and `live` (X1): a
+    number field in „Neue Runde“ and a row of the universe settings; the
+    held fleets follow the section „Flotte“ and show
     only when it shows (score 2), apart as „Gehaltene Flotten“ with
     „<name>: <ships>“ per fleet; the chance of the Auspex-Abwehr still
     counts the planet's own ships only. The label says „Auspex-Bericht“
     (owner, 2026-11-17), the name of #94, so the naming test needs no
     exception. A wrong value in „Neue Runde“ is refused with
-    „Bitte für „<label>“ eine ganze Zahl von 0 bis 30 angeben.“ [V].
+    „Bitte für „<label>“ eine ganze Zahl von 0 bis 30 angeben.“ [V]; in
+    the universe settings a wrong value of either setting gets the
+    wording of the other settings there.
   * The phalanx shows a held fleet with its origin, „hält bei <target>“
     and the countdown to the end of its holding time (`holds` of
     `ScannedFlight`).

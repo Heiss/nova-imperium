@@ -92,6 +92,8 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 | Extra fields per planet („Zusatzfelder pro Planet“, #51) | 0 (not in version 1) | 0 to 100, [E] owner 2026-11-13 |
 | Flight time of the „Endzeit“ gift in minutes („Flugzeit der Endzeit-Gabe (Minuten)“, #161) | 240 (not in version 1) | 1 to 4,320 (72 h), [E] owner 2026-11-14 |
 | Lock of a given-up colony's position in hours („Sperre einer aufgegebenen Position (Stunden)“, #224) | 24 (not in version 1), [E] owner 2026-11-16 | 1 to 720 [V]; also in the dialog „Neue Runde“, [E] owner 2026-11-17 (X1) |
+| Who may hold („Halten erlaubt für“, #55) | „Gilde und Freunde“ (3; not in version 1) [V] | a selection: „Gilde“ (1), „Freunde“ (2), „Gilde und Freunde“ (3) [V]; also in the dialog „Neue Runde“, [E] owner 2026-11-17 (X1) |
+| Held fleets apart in the spy report from the spy's Auspex-Lehre („Gehaltene Flotten im Auspex-Bericht ab Auspex-Lehre“, #55) | 2 (not in version 1), [E] owner 2026-11-17 | 0 to 30 [V]; also in the dialog „Neue Runde“, [E] owner 2026-11-17 (X1) |
 
 * **[V]** The ranges above are proposals; the source is
   `src/core/universe.ts`.
@@ -127,10 +129,11 @@ universe settings) and their ranges are not decided yet.
   with the sources in the linked files.
 * **[E]** The values per round are set in the dialog „Neue Runde“ and stay
   editable in the admin panel during the round (owner, 2026-11-17, X1).
-  **[V]** Built with #55 like the vacation mode of #223: the value is a key
-  of `UNIVERSE_SPECS` too, the one stored setting the round reads, so the
-  tab „Universum“ changes it live; a setting with named choices
-  (`choices`) shows a selection there instead of a number.
+  **[V]** Built with #55 on the registry of #283 (below): each of its two
+  values is an entry with `live: true`, so it is a row of `UNIVERSE_SPECS`
+  under the key the round stores it, and the tab „Universum“ changes it
+  live; a setting with named choices (`choices`) shows a selection there
+  instead of a number.
 
 ## The registry of the round settings (#283)
 
@@ -145,13 +148,29 @@ universe settings) and their ranges are not decided yet.
   of the main planet and the lock of a given-up position (#224,
   `ABANDON_LOCK_SETTING` in `src/core/abandon.ts`); their texts, ranges,
   defaults, refusals and order are those of before.
+* **[V]** Added with #55, in `src/core/holding.ts`, after the entries of
+  main: `ALLIES_SETTING` (key `roundAllies`, name `allies`, „Halten
+  erlaubt für“, order 60, the choices „Gilde“ 1, „Freunde“ 2 and „Gilde
+  und Freunde“ 3, default 3, refusal „Bitte auswählen, wer in der neuen
+  Runde halten darf.“) and `HELD_SPY_SETTING` (key `roundHeldSpy`, name
+  `heldSpy`, „Gehaltene Flotten im Auspex-Bericht ab Auspex-Lehre“, order
+  70, 0 to 30, default 2, refusal „Bitte für „Gehaltene Flotten im
+  Auspex-Bericht ab Auspex-Lehre“ eine ganze Zahl von 0 bis 30
+  angeben.“). Both are `live` (X1): the admin sets them in „Neue Runde“
+  and changes them during the round in the universe settings, where a
+  wrong value gets the wording of the universe settings. Their labels,
+  ranges, defaults and refusals are those #55 had before the registry;
+  the hand wiring of #55 (`RoundRules`, `roundRules()`,
+  `startRoundRules()`, `UNIVERSE_SPECS`, the dialog and `doReset`) is
+  gone.
 * **[E]** The registry keeps a fixed order, so #283 changes nothing
   visible (owner, 2026-11-17): every entry has an explicit number `order`,
   like the catalog entries, and the dialog „Neue Runde“ and the order of
   the refusals follow it. The order is that of main before #283: the
   reward options (10, 20), the guild switch (30), the lock of the main
   planet (40), the lock of a given-up position (50, last). A new feature
-  appends at the end with its own number.
+  appends at the end with its own number: #55 took 60 (who may hold) and
+  70 (the level of the spy report).
 * **[V]** An entry has its stored `key` (`round…`), its `name` in
   `RoundRules` and in the request, its German `label`, and is either a
   switch (`kind: 'switch'`, default yes or no, a `refusal`, an optional
@@ -167,14 +186,15 @@ universe settings) and their ranges are not decided yet.
 * **[V]** `live: true` makes a number entry also a row of the universe
   settings under the same key, changed during the round and checked there
   like the other settings (X1, owner, 2026-11-17). The lock of a given-up
-  position (#224) is the one live setting of main, the last row of the
-  universe settings as before; the other four are not live.
+  position (#224) was the one live setting of main, the last row of the
+  universe settings as before; the two settings of #55 follow it there,
+  in the order of their numbers. The other four are not live.
 * **[V]** A feature with a value per round adds one entry in its own file
   (`export const X_SETTING = { … } as const satisfies RoundSetting`) and
   one line to the list `ENTRIES` in `src/core/round.ts`, where the place
   of the line means nothing; `RoundRules` gets the typed value from the
   entry by itself. The feature picks its `order` number as the next free
-  ten above the highest number of the registry (60 after the 50 of main),
+  ten above the highest number of the registry (80 after the 70 of #55),
   so it stands last in the dialog and among the refusals; the members of
   a group take neighbouring numbers. A test refuses a number used twice,
   so two parallel features that picked the same one see it after the
