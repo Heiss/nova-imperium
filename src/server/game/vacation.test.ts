@@ -270,6 +270,25 @@ describe('during the vacation mode', () => {
     expect(ctx.fleets.all()).toEqual([]);
   });
 
+  it('refuses a Mondbruch at the moon of a player in vacation mode like every mission, before its own checks (#95, #223)', () => {
+    const ctx = world();
+    const bert = ctx.planets.get('p1_2_6')!;
+    ctx.planets.save({ ...bert, ships: { ...bert.ships, dstar: 2 } });
+    start(ctx);
+    for (const ships of [{ dstar: 1 }, { lf: 1 }])
+      expect(() =>
+        act(
+          ctx,
+          'send',
+          { ...attack(undefined, 'moonbreak', 'moon'), ships },
+          'u_Bert',
+        ),
+      ).toThrow('Dieser Spieler ist im Urlaubsmodus.');
+    expect(ctx.fleets.all()).toEqual([]);
+    expect(ctx.planets.get('m1_1_5')).not.toBeNull();
+    expect(ctx.planets.get('p1_2_6')!.ships.dstar).toBe(2);
+  });
+
   it('protects against a spy who may spy (Auspex-Lehre 1, #175) and lets him spy before', () => {
     const ctx = world();
     const bert = ctx.players.get('u_Bert')!;

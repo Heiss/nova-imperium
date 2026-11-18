@@ -10,7 +10,9 @@ import { queuePush } from '../../../server/push-store.ts';
 import { seeded } from '../../../test/fixtures.ts';
 import { arrive } from '../../../server/game/arrival.ts';
 import { cutLoot } from '../../../server/game/fight.ts';
+import { categoryScores } from '../../../server/game/highscore.ts';
 import { addMoon } from '../../../server/game/moons.ts';
+import { pointsMap } from '../../../server/game/points.ts';
 import {
   addPlanet,
   addUser,
@@ -209,6 +211,27 @@ describe('moonbreak: the arrival', () => {
       moonLost: true,
     });
     expect(bert(ctx)).not.toHaveProperty('moonbreak');
+  });
+
+  it('changes the highscore like an attack: the moon leaves the buildings of its owner, the lost Weltenbrecher the fleet of the attacker (#78, #95)', () => {
+    const { ctx, f, at } = setup(
+      { dstar: 1, lc: 2 },
+      { b: { moonbase: 8, phalanx: 3 } },
+    );
+    const before = categoryScores(ctx);
+    const total = pointsMap(ctx);
+    expect(before.u_Bert!.buildings).toBeGreaterThan(0);
+    expect(before.u_Anna!.fleet).toBe(3);
+    // The moon breaks (0.39 < 40 %) and the Weltenbrecher are torn apart (0.2 < 30 %).
+    ctx.rng = draws(0.39, 0.2);
+    onArrive(ctx, f, at);
+    const after = categoryScores(ctx);
+    expect(ctx.planets.get('m1_2_6')).toBeNull();
+    expect(after.u_Bert!.buildings).toBe(0);
+    expect(after.u_Anna!.fleet).toBe(2);
+    expect(after.u_Anna!.buildings).toBe(before.u_Anna!.buildings);
+    expect(pointsMap(ctx).u_Bert!).toBeLessThan(total.u_Bert!);
+    expect(pointsMap(ctx).u_Anna!).toBeLessThan(total.u_Anna!);
   });
 
   it('breaks a defended moon after a won battle: its ships and rebuilt defense are lost with it', () => {
