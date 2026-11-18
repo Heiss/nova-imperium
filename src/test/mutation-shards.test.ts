@@ -685,8 +685,12 @@ describe('mutation shards: the incremental run in the workflows (#201)', () => {
     const runs = [...workflow('ci.yml'), ...workflow('mutation.yml')].filter(
       (l) => l.includes('pnpm test:mutation'),
     );
+    // The partial run of a pull request (#309) has no cache and its
+    // configuration switches the incremental file off (the tests of
+    // scripts/mutation-partial.ts), so it tests every mutant of its files.
     expect(runs.filter((l) => !l.endsWith(' --force'))).toEqual([
       '        run: pnpm test:mutation reports/stryker-shard.config.json',
+      '      - run: pnpm test:mutation reports/stryker-partial.config.json',
     ]);
     expect(workflow('mutation.yml').join('\n')).not.toContain('drop-static');
   });

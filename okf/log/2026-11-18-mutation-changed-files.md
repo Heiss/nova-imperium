@@ -1,0 +1,8 @@
+---
+type: log-entry
+date: 2026-11-18T22:00
+kind: Decision and code
+issues: [309, 146, 167]
+---
+
+#309: a pull request mutates only what it changes (owner, 2026-11-18). The slowest of the 6 mutation shards took 54 to 70 minutes on every pull request, almost the whole CI time, and every merge of `main` made the other pull requests run again. A pull request that is no release pull request and goes into no hotfix branch now runs „Mutation tests (changed files)“: one job for the files of the `mutate` globs it changes and the source of each test file it changes (the same name without `.test`, also without a dotted suffix such as `.property`, with the ending `.svelte.ts`, and in `src/test/` the script of the same name), listed by `scripts/mutation-partial.ts`, without the incremental file and without any cache, so a partial result never reaches the shard caches, the plan state or the weights. `scripts/mutation-gate.ts --partial` checks that Stryker ran exactly these files and each one against its floor (80 % without one), with no total score; Stryker leaves a file without mutants out of its report, which is a notice. A change of the mutation configuration or of the test tool chain (#146), a release pull request, a pull request into a hotfix branch, a push and the nightly run keep the complete run in 6 shards; no file in the set means no mutation job; the takeover of #167 stays for the complete run. The nightly run opens or updates the issue „Mutation floor missed on main“ when its gate fails (`issues: write` on that job only). A test file without a source of that name, and a test helper, add nothing to the set until the owner decides a rule (see [Test strategy](/ops/testing.md)).
