@@ -530,6 +530,17 @@ and `planet_units` and need no change
 `aim` only for missiles with a main target, so the upgrade tests of
 earlier migrations still save fleets.
 
+Migration `20261118T2319-expeditions` (issue #93, see
+[Expeditions](/features/expeditions.md)) rebuilds `fleets` and
+`fleet_ships`, as 54 did, for the mission `expedition` in the CHECK of
+`fleets.mission`. The latest rebuild lists every mission of the game and
+keeps every column (`fuel`, `gift`, `aim`); every fleet in flight keeps its
+values, its gift, its main target and its ships. The stay of an expedition
+needs no column: it is what lies between `dep`, `arr` and `ret`. The upgrade
+test checks that the CHECK lists exactly the keys of `MISSION`
+(`upgrades/20261118T2319-expeditions.test.ts`); the test of 54 now names its
+nine missions.
+
 Migration `20261117T1000-vacation-mode` (issue #223, see
 [Vacation mode](/features/vacation-mode.md)) adds `users.vacation`
 (INTEGER, when the player's vacation mode started, null outside of it).
