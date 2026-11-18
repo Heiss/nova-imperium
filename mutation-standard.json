@@ -150,7 +150,7 @@
     "src/server/game/points.ts": 91.3,
     "src/server/game/position-lock.ts": 100,
     "src/server/game/round.ts": 100,
-    "src/server/game/state.ts": 98.03,
+    "src/server/game/state.ts": 98.21,
     "src/server/game/vacation.ts": 100,
     "src/server/http/admin.ts": 97.89,
     "src/server/http/app.ts": 95.53,
