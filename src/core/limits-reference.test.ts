@@ -43,11 +43,14 @@ const energyShort = (
 
 // ---- the property test ----
 
-/** Every entry of the catalog and a key that is none. */
+/**
+ * Every entry of the catalog and a key that is none; not the missiles,
+ * which came after the limits group with the room of their silo (#54).
+ */
 const KEYS = [
   ...Object.keys(C.BUILD),
   ...Object.keys(C.RES),
-  ...Object.keys(C.UNIT),
+  ...Object.keys(C.UNIT).filter((k) => !Object.hasOwn(C.MISSILE, k)),
   'nope',
 ];
 /** Names every object inherits; they are no entries. */
@@ -85,7 +88,7 @@ const res = fc.record({
   c: fc.double({ min: 0, max: 1e7, noNaN: true }),
   d: fc.double({ min: 0, max: 1e7, noNaN: true }),
 });
-const yardPlanet = fc.record({ def: stock, sq: queue, res });
+const yardPlanet = fc.record({ b: stock, def: stock, sq: queue, res });
 
 const level = fc.integer({ min: 0, max: 45 });
 const levels = (keys: string[]): fc.Arbitrary<Levels> =>
@@ -130,7 +133,7 @@ describe('limits from the components equal limits before (#114)', () => {
   });
 
   it('leaves the domes room for one and every other key unbounded', () => {
-    const empty = { def: {}, sq: [] };
+    const empty = { b: {}, def: {}, sq: [] };
     for (const k of KEYS)
       expect(Y.unitRoom(empty, k), k).toBe(
         k === 'ssd' || k === 'lsd' ? 1 : Infinity,

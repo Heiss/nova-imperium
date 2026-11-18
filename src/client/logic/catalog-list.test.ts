@@ -189,6 +189,21 @@ describe('buildings', () => {
     expect(row(view(), 'building', 'robot').lines).toHaveLength(1);
   });
 
+  it('shows the places of the Raketenkrypta the missiles take, stock and queue (#54)', () => {
+    const v = view({
+      P: {
+        b: { silo: 2 },
+        def: { abm: 3, ipm: 4 },
+        sq: [{ key: 'ipm', n: 1, unit: 1 }],
+      },
+    });
+    expect(row(v, 'building', 'silo').lines[0]).toBe('Belegt: 13 / 20 Plätze');
+    expect(row(view(), 'building', 'silo').lines[0]).toBe(
+      'Belegt: 0 / 0 Plätze',
+    );
+    expect(row(v, 'building', 'yard').lines[0]).not.toMatch(/Belegt/);
+  });
+
   it('starts a building, or upgrades it, when the planet can pay', () => {
     expect(action(view(), 'building', 'metal')).toEqual({
       kind: 'start',
@@ -580,6 +595,26 @@ describe('shipyard and defense', () => {
         `^Angriff 1 · Schild 1 · Struktur 2.000 · Energie \\d+ ${text('sat')!.per}$`,
       ),
     );
+  });
+
+  it('orders no more missiles than the Raketenkrypta holds (#54)', () => {
+    const r = { research: { impulse: 1 } };
+    const full = yard(
+      { res: RICH, b: { yard: 1, silo: 2 }, def: { abm: 20 } },
+      r,
+    );
+    expect(action(full, 'defense', 'abm')).toMatchObject({
+      max: 0,
+      disabled: true,
+    });
+    const room = yard(
+      { res: RICH, b: { yard: 1, silo: 4 }, def: { abm: 10 } },
+      r,
+    );
+    expect(action(room, 'defense', 'ipm')).toMatchObject({
+      max: 15,
+      disabled: false,
+    });
   });
 
   it('orders as many units as the planet can pay and may have', () => {

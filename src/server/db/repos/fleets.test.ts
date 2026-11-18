@@ -72,6 +72,29 @@ describe('fleets repository', () => {
     expect(ctx.fleets.all().map((f) => f.id)).toEqual(['f0', 'f2', 'f3', 'f1']);
   });
 
+  it('keeps the main target of missiles and leaves them out of the slots asked (#54)', () => {
+    const ctx = testCtx();
+    addUser(ctx, 'Anna');
+    const missiles = fleet({
+      id: 'f1',
+      mission: 'missile',
+      ships: { ipm: 4 },
+      aim: 'gauss',
+    });
+    ctx.fleets.save(missiles);
+    ctx.fleets.save(fleet({ id: 'f2', mission: 'missile', ships: { ipm: 1 } }));
+    ctx.fleets.save(fleet({ id: 'f3' }));
+    expect(ctx.fleets.get('f1')).toEqual(missiles);
+    expect(ctx.fleets.get('f2')).not.toHaveProperty('aim');
+    // The main target is written once, like the gift.
+    ctx.fleets.save({ ...missiles, aim: 'rl', state: 'back' });
+    expect(ctx.fleets.get('f1')).toMatchObject({ aim: 'gauss', state: 'back' });
+    expect(ctx.fleets.count('u_Anna')).toBe(3);
+    expect(ctx.fleets.count('u_Anna', [])).toBe(3);
+    expect(ctx.fleets.count('u_Anna', ['missile'])).toBe(1);
+    expect(ctx.fleets.count('u_Anna', ['missile', 'attack'])).toBe(0);
+  });
+
   it('deletes one fleet or all', () => {
     const ctx = testCtx();
     addUser(ctx, 'Anna');

@@ -149,6 +149,11 @@ their own.
   `arrive.server.ts`. It is shown above the facts. **[E]** The line below
   the hit of the mission in the search is only its first sentence
   (`firstSentence` in `src/core/lexicon/docs.ts`; owner, 2026-11-17).
+* **[V]** The missiles of #54 (Raketenkrypta, Abfangrakete, Orbitalrakete)
+  have keywords only, and the mission Raketenangriff has its text, drafted
+  by Claude (2026-11-18) from `src/core/missiles.ts` and its
+  `arrive.server.ts`; all in the review list
+  ([Lexicanum texts](/features/lexicanum-texts.md)).
 * **[E]** The drafts go into the game as [V]; the owner changes them later
   in the review list (owner, 2026-11-17).
 * **[V]** All these drafts are listed for the owner, per article, in

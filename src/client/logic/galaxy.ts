@@ -16,6 +16,7 @@ import { activityNote, inactivityNote } from './activity.ts';
 import { debrisAt, debrisMark, harvestButton } from './debris.ts';
 import { fmt } from './format.ts';
 import { isProtected, nameOf, ranks } from './game.ts';
+import { canLaunch } from './missiles.ts';
 import { moonAt, moonMark } from './moon.ts';
 import { type Countdown, countdown } from './overview.ts';
 import { canScan, scanRows, scanTitle } from './phalanx.ts';
@@ -149,8 +150,29 @@ function foreignActions(v: V, pl: GalaxyPlanet): GalaxyAction[] {
     fleetTo('link', 'attack', 'Sturmangriff', where),
     fleetTo('link', 'transport', 'Versorgungsflug', where),
     ...scanButton(v, pl),
+    ...missileButton(v, pl),
   ];
 }
+
+/**
+ * The Raketenangriff at a foreign planet or moon (#54): from a planet with
+ * Orbitalraketen, at a target in their range; it opens the dialog.
+ */
+const missileButton = (v: V, pl: GalaxyPlanet): GalaxyAction[] =>
+  canLaunch(v.P, v.R, pl)
+    ? [
+        {
+          kind: 'button',
+          label: 'Raketenangriff',
+          attrs: {
+            'data-act': 'gmissile',
+            'data-id': pl.id,
+            ...at(pl, pl.kind === 'moon'),
+            'aria-label': `Raketenangriff auf ${placeName(pl)}`,
+          },
+        },
+      ]
+    : [];
 
 /** The actions at an own planet or moon: none but its name while it is shown. */
 function ownActions(v: V, pl: GalaxyPlanet): GalaxyAction[] {

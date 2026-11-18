@@ -4,12 +4,14 @@
   // buildings as it did. Only the import paths changed, and resourceName()
   // of views/common.ts is copied below. One change on purpose (review of
   // #209, 2026-11-14): the energy a level needs is compared with
-  // production(), as energyShort() does, not with prod(). And one of #285
+  // production(), as energyShort() does, not with prod(). One of #285
   // (B2): the „?“ opens the Lexicanum, so no text unfolds below the entry
-  // and the „?“ shows in every mode but „Ausblenden“. Do not change it
-  // otherwise.
+  // and the „?“ shows in every mode but „Ausblenden“. And one with the
+  // Raketenkrypta (#54): a building that stores missiles shows the places
+  // they take, marked below. Do not change it otherwise.
   import type { Readable } from 'svelte/store';
-  import { BUILD, buildable } from '../../core/catalog.ts';
+  import { BUILD, buildable, SILO } from '../../core/catalog.ts';
+  import { siloUse } from '../../core/yard.ts';
   import {
     afford,
     buildTime,
@@ -96,6 +98,12 @@
         </div>
         <div class="ds">{t.ds}</div>
         {@html costHTML(cost, P, 1, energyCost($viewState, key, level + 1))}
+        <!-- Changed on purpose (#54): the places of the missiles. -->
+        {#if Object.hasOwn(SILO, key)}
+          <div class="dim">
+            Belegt: {fmt(siloUse(P).used)} / {fmt(siloUse(P).places)} Plätze
+          </div>
+        {/if}
         {#if delta !== 0}
           <div class="dim">
             Energie auf Stufe {level + 1}: {energy.format(Math.abs(delta))}

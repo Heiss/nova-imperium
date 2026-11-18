@@ -7,7 +7,13 @@ import { queuePush } from '../push-store.ts';
 // else the fleet turns back, and hands the arrival to the mission's
 // `onArrive` from the generated server index.
 import { MISSION_SERVERS } from '../../features/index.server.gen.ts';
-import { type TargetKind, missionRules, suits } from '../../core/missions.ts';
+import {
+  launchOf,
+  MISSION,
+  type TargetKind,
+  missionRules,
+  suits,
+} from '../../core/missions.ts';
 import { settle } from '../../core/settle.ts';
 import { inUniverse } from '../../core/universe.ts';
 import type { Fleet, Planet } from '../../core/types.ts';
@@ -31,6 +37,24 @@ const SERVERS: ReadonlyMap<string, MissionServer> = new Map<
   string,
   MissionServer
 >(MISSION_SERVERS);
+
+/**
+ * Missiles whose target is gone are lost: they cannot come back (#54) [V].
+ */
+function lostMissiles(ctx: Ctx, f: Fleet): void {
+  addReport(
+    ctx,
+    f.owner,
+    {
+      time: f.arr,
+      type: 'info',
+      title: `${MISSION[f.mission]} ${coords(f.toC)}`,
+      text: `An ${coords(f.toC)} wurde kein passendes Ziel gefunden. Deine Orbitalraketen sind verloren.`,
+    },
+    { topic: 'fleet' },
+  );
+  ctx.fleets.delete(f.id);
+}
 
 /** A fleet whose target no longer fits flies back with what it carries. */
 function unsuitableTarget(ctx: Ctx, f: Fleet, kind: TargetKind): void {
@@ -69,7 +93,9 @@ export function arrive(ctx: Ctx, f: Fleet): void {
   const server = SERVERS.get(f.mission)!;
   const t0 = ctx.planets.get(f.to);
   if (!fits(ctx, rules.target, f, t0))
-    return unsuitableTarget(ctx, f, rules.target);
+    return launchOf(rules) === 'missiles'
+      ? lostMissiles(ctx, f)
+      : unsuitableTarget(ctx, f, rules.target);
   // A free target gets the raw target, which is nothing, and so does a
   // Trümmerfeld, which is no planet; the others the target settled to the
   // arrival, with both players.

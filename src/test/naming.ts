@@ -43,6 +43,9 @@ export const NAMES: Readonly<
   moonbase: { classic: 'Mondbasis', name: 'Mondzitadelle', ab: 'MZ' },
   // #53: the name decided by the owner (2026-11-13), the abbreviation [V].
   phalanx: { classic: 'Sensorphalanx', name: 'Auspex-Phalanx', ab: 'PX' },
+  // #54: the names of the table above [V] (okf/features/missiles.md), the
+  // abbreviations [V].
+  silo: { classic: 'Raketensilo', name: 'Raketenkrypta', ab: 'RK' },
   // #53, #230: the name decided by the owner (2026-11-13), the abbreviation [V].
   jumpgate: { classic: 'Sprungtor', name: 'Warp-Tor', ab: 'WR' },
   energy: { classic: 'Energietechnik', name: 'Machina-Energetik', ab: 'ME' },
@@ -114,6 +117,9 @@ export const NAMES: Readonly<
   // #190: the name decided by the owner (2026-11-14), the abbreviation [V];
   // an own extension without a classic name.
   carto: { classic: null, name: 'Auspex-Kartographie', ab: 'AK' },
+  // #54: the Abfangrakete keeps its classic name (naming table, [V]).
+  abm: { classic: 'Abfangrakete', name: 'Abfangrakete', ab: 'AR' },
+  ipm: { classic: 'Interplanetarrakete', name: 'Orbitalrakete', ab: 'OR' },
 };
 
 /** Resources: Energie stays. */
@@ -134,6 +140,8 @@ export const MISSIONS = {
   moonbreak: { classic: 'Zerstören', name: 'Mondbruch' },
   // #190: the name proposed in the issue [V]; no classic mission.
   survey: { classic: null, name: 'Vermessung' },
+  // #54: the name of the issue's interface, kept by the naming [V].
+  missile: { classic: 'Raketenangriff', name: 'Raketenangriff' },
 } as const;
 
 /**
@@ -145,7 +153,9 @@ export const CLASSIC: Readonly<Record<string, string>> = {
   ...RESOURCES,
   ...Object.fromEntries(
     Object.values(NAMES).flatMap((x) =>
-      x.classic === null ? [] : [[x.classic, x.name]],
+      // No classic name (#190), or a name the naming keeps (the Abfangrakete,
+      // #54), is no classic word.
+      x.classic === null || x.classic === x.name ? [] : [[x.classic, x.name]],
     ),
   ),
   Werft: 'Schiffsschmiede',

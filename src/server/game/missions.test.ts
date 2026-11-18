@@ -7,6 +7,8 @@ import { describe, expect, it } from 'vitest';
 import { MISSION_SERVERS } from '../../features/index.server.gen.ts';
 import { MISSIONS } from '../../features/index.gen.ts';
 import {
+  launchOf,
+  MISSION,
   type MissionRules,
   type TargetKind,
   missionRules,
@@ -79,7 +81,7 @@ function setup() {
   return { ctx, anna };
 }
 
-function fleet(
+function fleetTo(
   ctx: ReturnType<typeof testCtx>,
   mission: Mission,
   to: Coords,
@@ -112,24 +114,30 @@ describe('the server part of every mission (contract)', () => {
       expect(typeof server.onArrive, m).toBe('function');
   });
 
-  it.each(RULES)('%s: turns back from a target that no longer fits', (m, r) => {
-    for (const to of MISFITS[r.target]) {
-      const { ctx } = setup();
-      const before = ctx.planets.all();
-      arrive(ctx, fleet(ctx, m, to));
-      expect(ctx.fleets.get('f1')?.state, `${m} ${id(to)}`).toBe('back');
-      expect(ctx.planets.all()).toEqual(before);
-      expect(ctx.reports.ofPlayer('u_Anna').map((x) => x.title)).toEqual([
-        'Flotte kehrt um',
-      ]);
-    }
-  });
+  it.each(RULES)(
+    '%s: turns back from a target that no longer fits, missiles are lost',
+    (m, r) => {
+      const fleet = launchOf(r) === 'fleet';
+      for (const to of MISFITS[r.target]) {
+        const { ctx } = setup();
+        const before = ctx.planets.all();
+        arrive(ctx, fleetTo(ctx, m, to));
+        expect(ctx.fleets.get('f1')?.state, `${m} ${id(to)}`).toBe(
+          fleet ? 'back' : undefined,
+        );
+        expect(ctx.planets.all()).toEqual(before);
+        expect(ctx.reports.ofPlayer('u_Anna').map((x) => x.title)).toEqual([
+          fleet ? 'Flotte kehrt um' : `${MISSION[m]} [${to.g}:${to.s}:${to.p}]`,
+        ]);
+      }
+    },
+  );
 
   it.each(RULES)(
     '%s: flies back after the arrival only if it returns',
     (m, r) => {
       const { ctx } = setup();
-      arrive(ctx, fleet(ctx, m, FITS[r.target]));
+      arrive(ctx, fleetTo(ctx, m, FITS[r.target]));
       expect(ctx.fleets.get('f1')?.state ?? 'gone', m).toBe(
         r.returns ? 'back' : 'gone',
       );
@@ -139,7 +147,7 @@ describe('the server part of every mission (contract)', () => {
   it.each(RULES)('%s: comes home with a report unless silent', (m, r) => {
     for (const recalled of [false, true]) {
       const { ctx } = setup();
-      const f = fleet(ctx, m, FITS[r.target]);
+      const f = fleetTo(ctx, m, FITS[r.target]);
       comeHome(ctx, { ...f, state: 'back', recalled });
       const reports = ctx.reports.ofPlayer('u_Anna').map((x) => x.title);
       expect(reports.length, `${m} recalled ${recalled}`).toBe(
@@ -153,12 +161,27 @@ describe('the server part of every mission (contract)', () => {
     '%s: shows the ships to the defender only if visible',
     (m, r) => {
       const { ctx } = setup();
-      const f = fleet(ctx, m, FOREIGN);
+      const f = fleetTo(ctx, m, FOREIGN);
       expect(foreignView(f).ships).toEqual(r.visible ? f.ships : {});
     },
   );
 
   it.each(RULES)('%s: takes the cargo only if it carries cargo', (m, r) => {
+    // Missiles are never sent as a fleet (#54).
+    if (r.launch === 'missiles') {
+      const { ctx, anna } = setup();
+      expect(() =>
+        send(ctx, anna, {
+          planet: id(HOME),
+          ships: { sc: 1 },
+          to: FITS[r.target],
+          mission: m,
+          pct: 10,
+        }),
+      ).toThrow('Unbekannter Auftrag.');
+      expect(ctx.fleets.all()).toEqual([]);
+      return;
+    }
     const sent: Fleet[] = [];
     for (const ships of [
       { sc: 1, colony: 1, recycler: 1, dstar: 1 },
@@ -187,7 +210,7 @@ describe('the server part of every mission (contract)', () => {
   it('treats a fleet of an unknown mission like before: no ships shown, a report at home', () => {
     const { ctx } = setup();
     const f = {
-      ...fleet(ctx, 'transport', FOREIGN),
+      ...fleetTo(ctx, 'transport', FOREIGN),
       mission: 'nope',
     } as unknown as Fleet;
     expect(foreignView(f).ships).toEqual({});
@@ -206,13 +229,13 @@ describe('the server part of every mission (contract)', () => {
       [{ ...edge, p: 16 }, false],
     ] as const) {
       const { ctx } = setup();
-      arrive(ctx, fleet(ctx, 'colonize', to));
+      arrive(ctx, fleetTo(ctx, 'colonize', to));
       expect(ctx.planets.get(id(to)) !== null, id(to)).toBe(fits);
     }
     const { ctx } = setup();
     const far = { g: 3, s: 1, p: 1 };
     addPlanet(ctx, 'u_Bert', { ...far, name: 'Fern' });
-    arrive(ctx, fleet(ctx, 'transport', far));
+    arrive(ctx, fleetTo(ctx, 'transport', far));
     expect(ctx.reports.ofPlayer('u_Anna')[0]!.title).toBe(
       'Transport erreicht [3:1:1]',
     );
@@ -220,7 +243,7 @@ describe('the server part of every mission (contract)', () => {
 
   it('refuses to land a fleet of an unknown mission', () => {
     const { ctx } = setup();
-    const f = { ...fleet(ctx, 'transport', FOREIGN), mission: 'nope' };
+    const f = { ...fleetTo(ctx, 'transport', FOREIGN), mission: 'nope' };
     expect(() => arrive(ctx, f as unknown as Fleet)).toThrow(
       'Unknown mission nope',
     );

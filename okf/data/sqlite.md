@@ -519,6 +519,16 @@ activity; an existing account starts with its newest `last_seen` of
 `player_activity`, null without one, and the server then counts from
 `users.created`; other data stay as they were
 (`upgrades/20261117T0923-activity-times.test.ts`).
+Migration `20261118T2235-missiles` (issue #54, see
+[Missiles](/features/missiles.md)) rebuilds `fleets` and `fleet_ships`, as
+16 did, for the mission `missile` in the CHECK of `fleets.mission`, and
+adds `fleets.aim` (TEXT, the main target of a Raketenangriff, NULL
+without one). Every fleet in flight keeps its values, its gift and its
+ships; the Raketenkrypta and the missiles are rows of `planet_buildings`
+and `planet_units` and need no change
+(`upgrades/20261118T2235-missiles.test.ts`). The fleet repository writes
+`aim` only for missiles with a main target, so the upgrade tests of
+earlier migrations still save fleets.
 
 Migration `20261117T1000-vacation-mode` (issue #223, see
 [Vacation mode](/features/vacation-mode.md)) adds `users.vacation`

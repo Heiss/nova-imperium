@@ -68,6 +68,23 @@ describe('attack', () => {
     expect(canSend()).toBeUndefined();
   });
 
+  it('leaves the missiles out of the battle and its report; they stay (#54)', () => {
+    const withMissiles = setup({ bs: 50 }, { rl: 3, abm: 4, ipm: 2 });
+    const without = setup({ bs: 50 }, { rl: 3 });
+    onArrive(withMissiles.ctx, withMissiles.f, withMissiles.at);
+    onArrive(without.ctx, without.f, without.at);
+    const t = withMissiles.ctx.planets.get('p1_2_6')!;
+    const u = without.ctx.planets.get('p1_2_6')!;
+    // The same battle, draw for draw; the missiles are still there.
+    expect(t.def).toEqual({ ...u.def, abm: 4, ipm: 2 });
+    const report = (ctx: ReturnType<typeof testCtx>) =>
+      ctx.reports.ofPlayer('u_Anna')[0] as unknown as Record<string, unknown>;
+    expect(report(withMissiles.ctx).defBefore).toEqual({ rl: 3 });
+    expect(report(withMissiles.ctx).rebuilt).toEqual(
+      report(without.ctx).rebuilt,
+    );
+  });
+
   it('rebuilds 70 % of the defense and plunders up to half', () => {
     expect(rebuild(0, () => 0)).toBe(0);
     expect(rebuild(100, () => 1)).toBe(70);

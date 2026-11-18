@@ -102,6 +102,7 @@ describe('catalog', () => {
       moonbase: values(C.BUILD).moonbase,
       phalanx: values(C.BUILD).phalanx,
       jumpgate: values(C.BUILD).jumpgate,
+      silo: values(C.BUILD).silo,
     });
     expect(values(C.RES)).toEqual({
       ...values(O.RES),
@@ -127,6 +128,8 @@ describe('catalog', () => {
       pt: defs.pt,
       ssd: defs.ssd,
       lsd: defs.lsd,
+      abm: defs.abm,
+      ipm: defs.ipm,
     };
     expect(ships).toEqual({ ...values(O.SHIPS), ...added });
     expect(defs).toEqual({ ...values(O.DEF), ...addedDef });
@@ -183,6 +186,7 @@ describe('catalog', () => {
       'harvest',
       'moonbreak',
       'survey',
+      'missile',
     ]);
     expect(C.MISSION).toEqual(
       Object.fromEntries(Object.entries(MISSIONS).map(([k, m]) => [k, m.name])),
@@ -282,7 +286,8 @@ describe('catalog', () => {
       lt: LT,
       req: { b: { moonbase: 1 } },
     });
-    // The key `phalanx`, after the Mondzitadelle (owner, 2026-11-15).
+    // The key `phalanx`, after the Mondzitadelle (owner, 2026-11-15); the
+    // Warp-Tor of #230 and the Raketenkrypta of #54 come after it.
     const keys = Object.keys(C.BUILD);
     expect(keys.indexOf('phalanx')).toBe(keys.indexOf('moonbase') + 1);
     expect(C.BUILD.phalanx!.fields).toBeUndefined();
@@ -299,9 +304,10 @@ describe('catalog', () => {
       lt: LT,
       req: { b: { moonbase: 1 }, r: { hyper: 7 } },
     });
-    // After the Auspex-Phalanx, the last building.
-    expect(Object.keys(C.BUILD).at(-1)).toBe('jumpgate');
-    expect(Object.keys(C.BUILD).at(-2)).toBe('phalanx');
+    // After the Auspex-Phalanx; the Raketenkrypta of #54 comes after it.
+    expect(Object.keys(C.BUILD).at(-2)).toBe('jumpgate');
+    expect(Object.keys(C.BUILD).at(-3)).toBe('phalanx');
+    expect(Object.keys(C.BUILD).at(-1)).toBe('silo');
     expect(C.BUILD.jumpgate!.fields).toBeUndefined();
     expect(C.buildable('jumpgate', 'moon')).toBe(true);
     expect(C.buildable('jumpgate', 'planet')).toBe(false);
@@ -327,6 +333,45 @@ describe('catalog', () => {
     for (const k of ['nope', 'toString', '__proto__', 'constructor'])
       for (const kind of ['planet', 'moon'] as const)
         expect(C.buildable(k, kind), k).toBe(kind === 'planet');
+  });
+  it('has the missile silo and both missiles with the decided values (#54)', () => {
+    expect(C.BUILD.silo).toEqual({
+      n: 'Raketenkrypta',
+      ab: 'RK',
+      cost: [20000, 20000, 1000],
+      f: 2,
+      ds: 'Lagert Raketen: pro Stufe 10 Abfangraketen oder 5 Orbitalraketen.',
+      lt: LT,
+      req: { b: { yard: 1 } },
+    });
+    expect(C.buildable('silo', 'planet')).toBe(true);
+    expect(C.buildable('silo', 'moon')).toBe(false);
+    expect(C.DEF.abm).toEqual({
+      n: 'Abfangrakete',
+      ab: 'AR',
+      cost: [8000, 0, 2000],
+      atk: 1,
+      sh: 1,
+      ds: 'Zerstört eine anfliegende Orbitalrakete.',
+      lt: LT,
+      req: { b: { silo: 2, yard: 1 } },
+    });
+    expect(C.DEF.ipm).toEqual({
+      n: 'Orbitalrakete',
+      ab: 'OR',
+      cost: [12500, 2500, 10000],
+      atk: 12000,
+      sh: 1,
+      ds: 'Zerstört fremde Verteidigung aus der Ferne; Abfangraketen wehren sie ab.',
+      lt: LT,
+      req: { b: { silo: 4, yard: 1 }, r: { impulse: 1 } },
+    });
+    // Structure 8,000 and 15,000: the cost of Adamant and Psikristall.
+    expect(C.SILO).toEqual({ silo: { slots: 10 } });
+    expect(C.MISSILE).toEqual({
+      abm: { slots: 1, intercepts: true },
+      ipm: { slots: 2 },
+    });
   });
   it('has Ionen-, Plasmatechnik, Gravitonforschung and IFN with the classic values (#49)', () => {
     expect(C.RES.ion).toMatchObject({
@@ -663,6 +708,7 @@ describe('catalog from the entry folders', () => {
       'moonbase',
       'phalanx',
       'jumpgate',
+      'silo',
     ]);
     expect(Object.keys(C.RES)).toEqual([
       'energy',
@@ -698,20 +744,31 @@ describe('catalog from the entry folders', () => {
       'probe',
       'sat',
     ];
-    const defense = ['rl', 'll', 'hl', 'gauss', 'ionc', 'pt', 'ssd', 'lsd'];
+    const defense = [
+      ...['rl', 'll', 'hl', 'gauss', 'ionc', 'pt', 'ssd', 'lsd'],
+      ...['abm', 'ipm'],
+    ];
     expect(Object.keys(C.SHIPS)).toEqual(ships);
     expect(Object.keys(C.DEF)).toEqual(defense);
     expect(Object.keys(C.UNIT)).toEqual([...ships, ...defense]);
   });
 
   it('lists every ship and defense with its kind as a fighter, and nothing else (#114)', () => {
-    expect(Object.keys(C.FIGHTERS).sort()).toEqual(Object.keys(C.UNIT).sort());
+    // Missiles do not fight (#54).
+    expect(Object.keys(C.FIGHTERS).sort()).toEqual(
+      Object.keys(C.UNIT)
+        .filter((k) => !Object.hasOwn(C.MISSILE, k))
+        .sort(),
+    );
+    expect(Object.keys(C.FIGHTERS).filter((k) => !C.fights(k))).toEqual([]);
+    for (const k of ['abm', 'ipm', 'nope', 'constructor', 'metal'])
+      expect(C.fights(k), k).toBe(false);
     for (const [k, f] of Object.entries(C.FIGHTERS))
       expect(f.kind, k).toBe(C.isShip(k) ? 'ship' : 'defense');
   });
 
   it('has one folder per entry, each with its kind and its own order', () => {
-    expect(ENTRIES).toHaveLength(54);
+    expect(ENTRIES).toHaveLength(57);
     const kinds = {
       building: C.BUILD,
       research: C.RES,

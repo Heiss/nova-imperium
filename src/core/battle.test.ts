@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { seeded, sequence } from '../test/fixtures.ts';
 import { battle, buildSide, count, hit, rapid } from './battle.ts';
-import { UNIT } from './catalog.ts';
+import { fights, UNIT } from './catalog.ts';
 
 const unit = (over = {}) => ({
   key: 'lf',
@@ -216,9 +216,11 @@ describe('battle', () => {
     const noTarget = ['dstar', 'pt', 'ssd', 'lsd'];
     for (const t of noTarget) expect(rapid('dstar', t), t).toBe(1);
     // Every other unit is a target with its own value (#60 D4): a unit added
-    // later fails here until it has one or joins `noTarget`.
+    // later fails here until it has one or joins `noTarget`. Missiles do not
+    // fight, so they are no target (#54).
     const rf = UNIT.dstar!.rf!;
-    for (const t of Object.keys(UNIT).filter((k) => !noTarget.includes(k))) {
+    const fighters = Object.keys(UNIT).filter((k) => fights(k));
+    for (const t of fighters.filter((k) => !noTarget.includes(k))) {
       expect(rf[t], t).toBeGreaterThan(1);
       expect(rapid('dstar', t)).toBe(rf[t]);
     }

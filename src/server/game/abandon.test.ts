@@ -286,6 +286,46 @@ describe('the refusals', () => {
     expect(ctx.fleets.all()).toHaveLength(1);
   });
 
+  it('counts a Raketenangriff in flight like a fleet, from or to the planet or its moon (#54)', () => {
+    const missile = (over: Partial<Fleet>) =>
+      fleet({
+        mission: 'missile',
+        ships: { ipm: 2 },
+        ret: START + 1000,
+        fuel: 0,
+        ...over,
+      });
+    for (const f of [
+      missile({ owner: 'u_Anna', from: COLONY, fromC: AT, to: 'p1_2_5' }),
+      missile({ owner: 'u_Anna', from: MOON, fromC: AT, to: 'p1_2_5' }),
+      missile({ owner: 'u_Bert', to: COLONY }),
+      missile({ owner: 'u_Bert', to: MOON }),
+    ]) {
+      const ctx = world();
+      ctx.fleets.save(f);
+      refused(ctx, ABANDON_ERROR.flights);
+    }
+  });
+
+  it('loses the missiles stored in the Raketenkrypta with the planet (#54, Q1)', () => {
+    const ctx = world();
+    ctx.planets.save({
+      ...ctx.planets.get(COLONY)!,
+      b: { metal: 5, yard: 2, silo: 2 },
+      def: { rl: 4, abm: 6, ipm: 2 },
+    });
+    giveUp(ctx);
+    expect(ctx.planets.get(COLONY)).toBeNull();
+    expect(
+      ctx.db
+        .prepare(
+          "SELECT COUNT(*) FROM planet_units WHERE planet_id = ? AND key IN ('abm', 'ipm')",
+        )
+        .pluck()
+        .get(COLONY),
+    ).toBe(0);
+  });
+
   it('refuses while research runs on the planet or its moon (D1)', () => {
     const queue = { key: 'energy', lvl: 1, start: START, end: START + 1e6 };
     for (const planet of [COLONY, MOON]) {

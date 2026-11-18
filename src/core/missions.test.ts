@@ -7,6 +7,9 @@ import { describe, expect, it } from 'vitest';
 import { MISSION_TEXTS, MISSIONS } from '../features/index.gen.ts';
 import { SHIPS } from './catalog.ts';
 import {
+  FLEET_MISSIONS,
+  isFleet,
+  launchOf,
   MISSION,
   type MissionRules,
   type SendError,
@@ -14,10 +17,21 @@ import {
   type SendTarget,
   type TargetKind,
   missionRules,
+  SILO_MISSIONS,
   sendError,
   suits,
 } from './missions.ts';
 import { missionText } from './text.ts';
+import type { Mission } from './types.ts';
+
+/** A fleet and a target for the checks that look at neither. */
+const fleet0: SendFleet = { owner: 'a', from: 'p1', ships: {} };
+const target0: SendTarget = {
+  planet: null,
+  debris: false,
+  protects: () => false,
+  vacation: () => false,
+};
 
 const KINDS: TargetKind[] = [
   'own',
@@ -74,6 +88,7 @@ describe('mission names', () => {
       'harvest',
       'moonbreak',
       'survey',
+      'missile',
     ]);
   });
 
@@ -127,6 +142,7 @@ describe('the rules of every mission (contract)', () => {
       'colonize',
       'deploy',
       'harvest',
+      'missile',
       'moonbreak',
       'spy',
       'survey',
@@ -135,8 +151,37 @@ describe('the rules of every mission (contract)', () => {
     expect(Object.keys(MISSION)[0]).toBe('attack');
   });
 
+  it('starts every mission from the fleet form, the missiles from the silo (#54)', () => {
+    for (const [m, r] of RULES) {
+      expect(launchOf(r), m).toBe(m === 'missile' ? 'missiles' : 'fleet');
+      expect(r.launch, m).toBe(m === 'missile' ? 'missiles' : undefined);
+    }
+    expect(FLEET_MISSIONS).toEqual(
+      Object.keys(MISSION).filter((m) => m !== 'missile'),
+    );
+    expect(SILO_MISSIONS).toEqual(['missile']);
+    const missile = missionRules('missile')!;
+    expect(missile).toMatchObject({
+      target: 'foreign',
+      cargo: false,
+      returns: false,
+      visible: true,
+      alertsGuild: false,
+    });
+    expect(missile.canSend(fleet0, target0)).toBeUndefined();
+  });
+
+  it('gives a fleet slot and a recall to a fleet only: no gift, no missiles (#54, #161)', () => {
+    expect(isFleet({ mission: 'attack' })).toBe(true);
+    expect(isFleet({ mission: 'deploy', gift: true })).toBe(false);
+    expect(isFleet({ mission: 'missile' })).toBe(false);
+    expect(isFleet({ mission: 'nope' as Mission })).toBe(false);
+  });
+
   it.each(RULES)('%s: has exactly the typed fields', (m, rules) => {
-    expect(Object.keys(rules).sort(), m).toEqual(FIELDS);
+    // `launch` is only set where a mission does not start as a fleet (#54).
+    const fields = rules.launch === undefined ? FIELDS : [...FIELDS, 'launch'];
+    expect(Object.keys(rules).sort(), m).toEqual(fields.sort());
     expect(KINDS, m).toContain(rules.target);
     for (const field of [
       'cargo',

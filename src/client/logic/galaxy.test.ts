@@ -543,3 +543,35 @@ describe('targetOf', () => {
     );
   });
 });
+
+describe('the Raketenangriff (#54)', () => {
+  const armed = (ipm: number, impulse = 1, s = 2): V => {
+    const v = view({
+      galaxy: [place('planet', 6, 'u2'), place('planet', 7, 'u1')],
+      P: { owner: 'u1', s, def: { ipm } },
+    });
+    v.R = { research: { impulse }, rq: null };
+    return v;
+  };
+
+  it('is offered at a foreign planet in range from a planet with Orbitalraketen', () => {
+    expect(rowAt(armed(2), 6).planet!.actions.at(-1)).toEqual({
+      kind: 'button',
+      label: 'Raketenangriff',
+      attrs: {
+        'data-act': 'gmissile',
+        'data-id': 'p1_2_6',
+        ...at(6),
+        'aria-label': 'Raketenangriff auf Welt 6',
+      },
+    });
+    const own = rowAt(armed(2), 7).planet!.actions;
+    expect(JSON.stringify(own)).not.toContain('gmissile');
+  });
+
+  it('is not offered without Orbitalraketen or out of range', () => {
+    expect(rowAt(armed(0), 6).planet!.actions).toEqual(foreign(6));
+    expect(rowAt(armed(2, 0), 6).planet!.actions).toEqual(foreign(6));
+    expect(rowAt(armed(2, 1, 7), 6).planet!.actions).toEqual(foreign(6));
+  });
+});

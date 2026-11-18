@@ -2,7 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { planet } from '../test/fixtures.ts';
 import {
   hasYard,
+  limitRoom,
   orderMax,
+  siloRoom,
+  siloUse,
   unitRoom,
   waitsForYard,
   yardLockedBy,
@@ -58,6 +61,57 @@ describe('units once per planet (#50)', () => {
     expect(orderMax(planet({ res: rich, def: { ssd: 1 } }), 'ssd')).toBe(0);
     expect(orderMax(planet({ res: { m: 9999, c: 1e9, d: 0 } }), 'ssd')).toBe(0);
     expect(orderMax(planet({ res: { m: 6000, c: 0, d: 0 } }), 'rl')).toBe(3);
+  });
+});
+
+describe('missiles in the silo (#54)', () => {
+  const rich = { m: 1e9, c: 1e9, d: 1e9 };
+
+  it('counts the places of the silo and those the missiles take, stock and queue', () => {
+    expect(siloUse(planet())).toEqual({ used: 0, places: 0 });
+    expect(
+      siloUse(
+        planet({
+          b: { silo: 3 },
+          def: { abm: 4, ipm: 2, rl: 50 },
+          sq: [
+            { key: 'ipm', n: 3, unit: 1 },
+            { key: 'abm', n: 1, unit: 1 },
+            { key: 'rl', n: 9, unit: 1 },
+          ],
+        }),
+      ),
+    ).toEqual({ used: 4 + 4 + 6 + 1, places: 30 });
+  });
+
+  it('leaves a missile the room of its free places, any other unit without bound', () => {
+    const p = planet({ b: { silo: 2 }, def: { abm: 5, ipm: 3 } });
+    // 20 places, 11 taken: 9 Abfangraketen or 4 Orbitalraketen.
+    expect(siloRoom(p, 'abm')).toBe(9);
+    expect(siloRoom(p, 'ipm')).toBe(4);
+    expect(siloRoom(planet(), 'abm')).toBe(0);
+    for (const k of ['rl', 'ssd', 'lf', 'nope', 'constructor'])
+      expect(siloRoom(p, k), k).toBe(Infinity);
+    // Over-full (a silo torn down later): no room, never below 0.
+    expect(siloRoom(planet({ b: { silo: 1 }, def: { ipm: 9 } }), 'abm')).toBe(
+      0,
+    );
+  });
+
+  it('takes the smaller of the limit and the silo room, also for the largest order', () => {
+    const p = planet({ res: rich, b: { silo: 1 }, def: { abm: 2 } });
+    expect(limitRoom(p, 'abm')).toBe(Infinity);
+    expect(unitRoom(p, 'abm')).toBe(8);
+    expect(unitRoom(p, 'ipm')).toBe(4);
+    expect(orderMax(p, 'abm')).toBe(8);
+    expect(
+      orderMax(
+        planet({ res: { m: 16000, c: 0, d: 1e9 }, b: { silo: 1 } }),
+        'abm',
+      ),
+    ).toBe(2);
+    expect(unitRoom(planet({ def: { ssd: 1 } }), 'ssd')).toBe(0);
+    expect(limitRoom(planet(), 'lsd')).toBe(1);
   });
 });
 

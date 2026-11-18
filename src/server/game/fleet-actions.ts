@@ -13,9 +13,12 @@ import {
   fuelFor,
 } from '../../core/flight.ts';
 import {
+  isFleet,
+  launchOf,
   type MissionRules,
   type SendError,
   missionRules,
+  SILO_MISSIONS,
   sendError,
 } from '../../core/missions.ts';
 import { placeId } from '../../core/place.ts';
@@ -61,7 +64,8 @@ const pickShips = (p: Planet, wanted: unknown): Levels => {
 const toMoon = (d: Data): boolean =>
   (d.to as { kind?: unknown } | null)?.kind === 'moon';
 
-const target = (ctx: Ctx, d: Data): Coords => {
+/** The coordinates `d.to` asks for, inside the universe; also of missiles (#54). */
+export const target = (ctx: Ctx, d: Data): Coords => {
   const u = universe(ctx);
   const to = (d.to as Partial<Coords> | null) ?? {};
   return {
@@ -102,6 +106,10 @@ const loadCargo = (p: Planet, rules: MissionRules, raw: unknown): Resources => {
     d: int(c.d, 0, 1e15),
   };
 };
+
+/** The fleet slots a player uses: no gift (#161) and no missiles (#54). */
+const usedSlots = (ctx: Ctx, owner: string): number =>
+  ctx.fleets.count(owner, SILO_MISSIONS);
 
 interface Plan {
   mission: Mission;
@@ -147,10 +155,13 @@ function checkDestination(
 
 function plan(ctx: Ctx, u: User, p: Planet, d: Data): Plan {
   const mission = String(d.mission) as Mission;
-  const rules = missionRules(mission) ?? fail('Unbekannter Auftrag.');
+  const known = missionRules(mission);
+  // Missiles start from the silo in the Sternenkarte, never as a fleet (#54).
+  const rules =
+    known && launchOf(known) === 'fleet' ? known : fail('Unbekannter Auftrag.');
   const ships = pickShips(p, d.ships);
   if (!countUnits(ships)) fail('Keine Schiffe ausgewählt.');
-  if (ctx.fleets.count(u.id) >= fleetSlots(researchOf(ctx, u)))
+  if (usedSlots(ctx, u.id) >= fleetSlots(researchOf(ctx, u)))
     fail('Alle Flottenslots belegt.');
   const dest = target(ctx, d);
   // The planet of the position, or its moon (#53).
@@ -204,12 +215,7 @@ export const send: Action = (ctx, u, d, event) => {
   p.res.d -= cargo.d + fuel;
   ctx.planets.save(p);
   const fleet: Fleet = {
-    id: ctx.id(),
-    owner: u.id,
-    from: p.id,
-    fromC: { g: p.g, s: p.s, p: p.p },
-    to,
-    toC: dest,
+    ...route(ctx, u, p, to, dest),
     mission,
     ships,
     cargo,
@@ -228,6 +234,22 @@ export const send: Action = (ctx, u, d, event) => {
   if (event) logLaunch(event, fleet, targetOwner);
   return `Flotte unterwegs nach ${coords(fleet.toC)}.`;
 };
+
+/** A new flight of `u` from `p` to the place `to` at `toC`: id, owner, origin and target. */
+export const route = (
+  ctx: Ctx,
+  u: User,
+  p: Planet,
+  to: string,
+  toC: Coords,
+): Pick<Fleet, 'id' | 'owner' | 'from' | 'fromC' | 'to' | 'toC'> => ({
+  id: ctx.id(),
+  owner: u.id,
+  from: p.id,
+  fromC: { g: p.g, s: p.s, p: p.p },
+  to,
+  toC,
+});
 
 function logLaunch(
   event: AuditEntry,
@@ -252,6 +274,8 @@ export const recall: Action = (ctx, u, d, event) => {
   // The gift of the „Endzeit“ has no origin to return to (#161).
   if (f!.gift)
     fail('Die Gabe des Gottkaisers kann nicht zurückgerufen werden.');
+  // Missiles do not come back (#54).
+  if (!isFleet(f!)) fail('Rückruf nicht mehr möglich.');
   const fleet = f!;
   fleet.state = 'back';
   fleet.ret = t + (t - fleet.dep);
