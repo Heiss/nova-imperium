@@ -104,8 +104,9 @@ export interface Fleet {
    */
   gift?: true;
   /**
-   * The holding time of a Halten in milliseconds (#55): the fleet stays at
-   * the target from its arrival for that long. Only set on a Halten.
+   * The holding time of a Wache stellen in milliseconds (#55): the fleet
+   * stays at the target from its arrival for that long. Only set on a Wache
+   * stellen.
    */
   hold?: number;
 }
@@ -126,15 +127,8 @@ export interface Universe {
   /** The default flight time of the „Endzeit“ gift, in minutes (#161). */
   endzeitMinutes: number;
   /**
-   * Who may hold at a player (#55, Q2): guild members, friends or both
-   * (`ALLIES` of core/holding.ts). The stored setting of the round, set in
-   * „Neue Runde“ and changed live by the admin (X1).
+   * A `live` setting of the round (#283, src/core/round.ts): the stored
+   * setting of the round, also a row of the universe settings (X1).
    */
-  roundAllies: number;
-  /**
-   * From which Auspex-Lehre of the spy a spy report shows the held fleets
-   * apart (#55, owner, 2026-11-17); the stored setting of the round, set in
-   * „Neue Runde“ and changed live (X1).
-   */
-  roundHeldSpy: number;
+  [round: `round${string}`]: number;
 }

@@ -437,6 +437,15 @@ describe('overview page', () => {
     });
   });
 
+  it('offers „Kolonie aufgeben“ on a planet that is not the main planet (#224)', () => {
+    const colony = view();
+    expect(overviewPage(colony).abandon).toBe(true);
+    const main = view();
+    main.s.mainPlanet = 'p1_1_5';
+    expect(overviewPage(main).abandon).toBe(false);
+    expect(overviewPage(view({ P: { kind: 'moon' } })).abandon).toBe(false);
+  });
+
   it('shows the points and the place in the highscore', () => {
     expect(overviewPage(view()).points).toBe('1.500 (Platz 2 von 2)');
     const alone = view({

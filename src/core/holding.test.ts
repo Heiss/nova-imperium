@@ -6,6 +6,9 @@ import { describe, expect, it } from 'vitest';
 import {
   ALLIES,
   ALLIES_RANGE,
+  ALLIES_SETTING,
+  HELD_SPY,
+  HELD_SPY_SETTING,
   HOLD_HOURS,
   HOLD_LIMITS,
   HOUR_MS,
@@ -13,7 +16,6 @@ import {
   dueAt,
   holdEnd,
   holdLimitError,
-  isAllies,
   isAlly,
   isHoldHours,
 } from './holding.ts';
@@ -34,16 +36,25 @@ describe('who may hold', () => {
   it('is guild, friends or both, both by default (Q2)', () => {
     expect(ALLIES).toEqual({ guild: 1, friends: 2, both: 3 });
     expect(ALLIES_RANGE).toEqual({ min: 1, max: 3, default: 3 });
-    expect([0, 1, 2, 3, 4, 1.5, '2', null].map(isAllies)).toEqual([
-      false,
-      true,
-      true,
-      true,
-      false,
-      false,
-      false,
-      false,
-    ]);
+  });
+  it('is a live setting of the round, a selection, after the settings of main (#283, X1)', () => {
+    expect(ALLIES_SETTING).toEqual({
+      kind: 'number',
+      key: 'roundAllies',
+      name: 'allies',
+      label: 'Halten erlaubt für',
+      order: 60,
+      min: 1,
+      max: 3,
+      def: 3,
+      refusal: 'Bitte auswählen, wer in der neuen Runde halten darf.',
+      choices: [
+        { value: 1, label: 'Gilde' },
+        { value: 2, label: 'Freunde' },
+        { value: 3, label: 'Gilde und Freunde' },
+      ],
+      live: true,
+    });
   });
   it('counts a bond only when the setting names it', () => {
     const none = { guild: false, friends: false };
@@ -111,5 +122,26 @@ describe('the cargo of several fleets', () => {
         { cargo: { m: 10, c: 20, d: 30 } },
       ]),
     ).toEqual({ m: 11, c: 22, d: 33 });
+  });
+});
+
+describe('held fleets in the spy report (#55, owner, 2026-11-17)', () => {
+  it('are apart from Auspex-Lehre 2 by default, the admin sets 0 to 30', () => {
+    expect(HELD_SPY).toEqual({ min: 0, max: 30, default: 2 });
+  });
+  it('is a live setting of the round, a number, last (#283, X1)', () => {
+    expect(HELD_SPY_SETTING).toEqual({
+      kind: 'number',
+      key: 'roundHeldSpy',
+      name: 'heldSpy',
+      label: 'Gehaltene Flotten im Auspex-Bericht ab Auspex-Lehre',
+      order: 70,
+      min: 0,
+      max: 30,
+      def: 2,
+      refusal:
+        'Bitte für „Gehaltene Flotten im Auspex-Bericht ab Auspex-Lehre“ eine ganze Zahl von 0 bis 30 angeben.',
+      live: true,
+    });
   });
 });

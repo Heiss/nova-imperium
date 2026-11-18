@@ -5,7 +5,7 @@
   "description": "Classic space strategy browser game for a small group of friends, self-hosted with Docker",
   "license": "MIT",
   "type": "module",
-  "packageManager": "pnpm@10.34.9",
+  "packageManager": "pnpm@12.21.0",
   "engines": {
     "node": ">=22.18"
   },
@@ -18,6 +18,7 @@
     "lint:dead": "node scripts/gen-features.ts && knip --no-progress",
     "lint:dupes": "jscpd src scripts .github/scripts",
     "lint:deps": "node scripts/gen-features.ts && depcruise src e2e scripts --config .dependency-cruiser.cjs --output-type err",
+    "lint:size": "node scripts/size-ratchet.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "node scripts/gen-features.ts && svelte-check --tsconfig ./tsconfig.json",
@@ -27,7 +28,7 @@
     "test:mutation": "node scripts/gen-features.ts && MIGRATION_RUNS=10 stryker run",
     "test:e2e": "playwright test",
     "check:migrations": "node .github/scripts/migrations-gate.mjs --local",
-    "check": "node scripts/gen-features.ts && pnpm check:migrations && pnpm lint && pnpm lint:dead && pnpm lint:dupes && pnpm lint:deps && pnpm format:check && pnpm typecheck && pnpm test:coverage && pnpm build"
+    "check": "node scripts/gen-features.ts && pnpm check:migrations && pnpm lint:size && pnpm lint && pnpm lint:dead && pnpm lint:dupes && pnpm lint:deps && pnpm format:check && pnpm typecheck && pnpm test:coverage && pnpm build"
   },
   "dependencies": {
     "@simplewebauthn/browser": "14.0.0",
@@ -67,10 +68,5 @@
     "typescript-eslint": "^8.72.1",
     "vite": "8.3.8",
     "vitest": "^5.1.0"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "esbuild"
-    ]
   }
 }

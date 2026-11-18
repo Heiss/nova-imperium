@@ -22,6 +22,7 @@ import { missionText } from './text.ts';
 const KINDS: TargetKind[] = ['own', 'foreign', 'any', 'free', 'debris', 'ally'];
 const CODES: SendError[] = [
   'occupied',
+  'locked',
   'noPlanet',
   'samePlanet',
   'notOwn',
@@ -308,6 +309,30 @@ describe('the target kind (#116)', () => {
     expect(sendError(rules('free'), fleet, at(null, false, true))).toBe(
       undefined,
     );
+  });
+
+  it('colonizes no position while it is locked after an abandonment (#224, D2)', () => {
+    const locked = (planet: SendTarget['planet']) => ({
+      ...at(planet),
+      locked: true,
+    });
+    // The kinds: own, foreign, any, free, debris, ally.
+    expect(KINDS.map((k) => sendError(rules(k), fleet, locked(null)))).toEqual([
+      'noPlanet',
+      'noPlanet',
+      'noPlanet',
+      'locked',
+      'noDebris',
+      'noPlanet',
+    ]);
+    // A planet there is the first refusal; a lock at a free position only.
+    expect(sendError(rules('free'), fleet, locked(own))).toBe('occupied');
+    expect(
+      sendError(rules('free'), fleet, { ...at(null), locked: false }),
+    ).toBe(undefined);
+    expect(
+      sendError(rules('free'), fleet, { ...locked(null), moon: true }),
+    ).toBe('moonTarget');
   });
 
   it('flies to a moon like to a planet; colonization and Bergung never target one (#53)', () => {

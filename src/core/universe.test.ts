@@ -1,7 +1,7 @@
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
+import { ALLIES_SETTING } from './holding.ts';
 import {
-  ALLY_CHOICES,
   DEFAULT_UNIVERSE,
   inUniverse,
   UNIVERSE_SPECS,
@@ -33,6 +33,8 @@ describe('universe settings', () => {
       extraFields: 0,
       // Added by #161 (owner, 2026-11-14): the gift flies 4 h by default.
       endzeitMinutes: 240,
+      // Added by #224 (owner, 2026-11-16, D2): a given-up position 24 h.
+      roundAbandonLock: 24,
       // Added by #55 (Q2): guild and friends may hold, the classic rule [V].
       roundAllies: 3,
       // Added by #55 (owner, 2026-11-17): held fleets apart from Auspex-Lehre 2.
@@ -56,6 +58,7 @@ describe('universe settings', () => {
       ['startDeuterium', 'Start-Promethium'],
       ['extraFields', 'Zusatzfelder pro Planet'],
       ['endzeitMinutes', 'Flugzeit der Endzeit-Gabe (Minuten)'],
+      ['roundAbandonLock', 'Sperre einer aufgegebenen Position (Stunden)'],
       ['roundAllies', 'Halten erlaubt für'],
       ['roundHeldSpy', 'Gehaltene Flotten im Auspex-Bericht ab Auspex-Lehre'],
     ]);
@@ -109,6 +112,21 @@ describe('universe settings', () => {
         ['endzeitMinutes', 'range'],
       ]);
   });
+  it('take 1 to 720 hours as the lock of a given-up position (#224, X1)', () => {
+    expect(spec('roundAbandonLock')).toEqual({
+      key: 'roundAbandonLock',
+      label: 'Sperre einer aufgegebenen Position (Stunden)',
+      min: 1,
+      max: 720,
+      def: 24,
+    });
+    for (const roundAbandonLock of [1, 720])
+      expect(codes({ ...DEFAULT_UNIVERSE, roundAbandonLock })).toEqual([]);
+    for (const roundAbandonLock of [0, 721, 1.5])
+      expect(codes({ ...DEFAULT_UNIVERSE, roundAbandonLock })).toEqual([
+        ['roundAbandonLock', 'range'],
+      ]);
+  });
   it('take guild, friends or both as who may hold (#55, Q2, X1)', () => {
     expect(spec('roundAllies')).toEqual({
       key: 'roundAllies',
@@ -122,7 +140,7 @@ describe('universe settings', () => {
         { value: 3, label: 'Gilde und Freunde' },
       ],
     });
-    expect(ALLY_CHOICES).toBe(spec('roundAllies').choices);
+    expect(spec('roundAllies').choices).toBe(ALLIES_SETTING.choices);
     for (const roundAllies of [1, 2, 3, '2'])
       expect(codes({ ...DEFAULT_UNIVERSE, roundAllies })).toEqual([]);
     for (const roundAllies of [0, 4, 1.5])

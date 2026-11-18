@@ -1,43 +1,25 @@
-import type { RoundRules } from '../../core/achievements.ts';
+// The rules of the round on the server (#283): `roundRules()` reads every
+// setting of the registry `ROUND_SETTINGS` (src/core/round.ts), and a new
+// round checks and stores them. A feature adds its entry there, not here.
 import {
-  ALLIES_RANGE,
-  HELD_SPY,
-  isAllies,
-  isHeldSpy,
-} from '../../core/holding.ts';
-import { UNIVERSE_SPECS } from '../../core/universe.ts';
-import { isLockDays, MAIN_LOCK_DAYS } from '../../core/main-planet.ts';
-import { type RoundError, roundChoice, roundError } from '../../core/round.ts';
+  ROUND_SETTINGS,
+  type RoundNumber,
+  type RoundRules,
+  type RoundSetting,
+  roundRefused,
+  roundValues,
+  storedValues,
+} from '../../core/round.ts';
 import { type Ctx, fail } from './context.ts';
 
-/** The setting of the lock of the main planet in days (#221, D3). */
-const MAIN_LOCK = 'roundMainLock';
-
-/**
- * The setting of who may hold at a player (#55, Q2): a key of
- * `UNIVERSE_SPECS` too, so the admin changes it live (X1).
- */
-const ALLIES_KEY = 'roundAllies';
-
-/** The setting of the spy report on held fleets (#55): a key of `UNIVERSE_SPECS` too (X1). */
-const HELD_SPY_KEY = 'roundHeldSpy';
-
-export function roundRules(ctx: Ctx): RoundRules {
-  const rows = ctx.admin.roundSettings();
-  const settings = new Map(rows.map(({ key, value }) => [key, value]));
+export function roundRules(
+  ctx: Ctx,
+  settings: readonly RoundSetting[] = ROUND_SETTINGS,
+): RoundRules {
   return {
-    number: settings.get('round') ?? 1,
-    achievements: settings.get('roundAchievements') !== 0,
-    daily: settings.get('roundDaily') !== 0,
-    // Existing universes start with guilds on, as before (#191).
-    guilds: settings.get('roundGuilds') !== 0,
-    // Existing universes lock for the default 7 days (#221).
-    mainLock: ctx.admin.setting(MAIN_LOCK) ?? MAIN_LOCK_DAYS.default,
-    // Existing universes let guild members and friends hold (#55, [V]).
-    allies: ctx.admin.setting(ALLIES_KEY) ?? ALLIES_RANGE.default,
-    // Existing universes show held fleets apart from Auspex-Lehre 2 (#55).
-    heldSpy: ctx.admin.setting(HELD_SPY_KEY) ?? HELD_SPY.default,
-  };
+    number: ctx.admin.setting('round') ?? 1,
+    ...storedValues((key) => ctx.admin.setting(key), settings),
+  } as RoundRules;
 }
 
 /**
@@ -64,73 +46,43 @@ export function requireGuilds(ctx: Ctx): void {
   if (!guildsOn(ctx)) fail(GUILDS_OFF);
 }
 
-/** The refusals of `roundError` (#214). */
-const ROUND_ERROR: Readonly<Record<RoundError, string>> = {
-  rewards: 'Bitte beide Belohnungseinstellungen für die neue Runde auswählen.',
-  guilds: 'Bitte auswählen, ob Gilden in der neuen Runde an sind.',
-};
+/** The refusal of a value outside its range, as the universe settings word it (#214). */
+export const rangeError = (s: {
+  label: string;
+  min: number;
+  max: number;
+}): string => `${s.label}: ganze Zahl von ${s.min} bis ${s.max}.`;
 
-/** The lock of the main planet in the new round (#221); without a choice the current one. */
-function mainLockRule(current: RoundRules, days: unknown): number {
-  const selected = days === undefined ? current.mainLock : days;
-  if (!isLockDays(selected))
-    return fail(
-      `Bitte für die Sperre des Hauptplaneten ${MAIN_LOCK_DAYS.min} bis ${MAIN_LOCK_DAYS.max} ganze Tage angeben.`,
-    );
-  return selected;
-}
+/**
+ * The refusal of the refused entries: their own wording, each once, else the
+ * range. A switch always has its own wording, so only a number gets the range.
+ */
+const refusal = (wrong: readonly RoundSetting[]): string =>
+  [
+    ...new Set(wrong.map((s) => s.refusal ?? rangeError(s as RoundNumber))),
+  ].join(' ');
 
-/** Who may hold in the new round (#55); without a choice the current setting. */
-function alliesRule(current: RoundRules, allies: unknown): number {
-  const selected = allies === undefined ? current.allies : allies;
-  if (!isAllies(selected))
-    return fail('Bitte auswählen, wer in der neuen Runde halten darf.');
-  return selected;
-}
-
-/** The setting of the spy report in the new round (#55); without a choice the current one. */
-function heldSpyRule(current: RoundRules, level: unknown): number {
-  const selected = level === undefined ? current.heldSpy : level;
-  if (!isHeldSpy(selected)) {
-    const label = UNIVERSE_SPECS.find((s) => s.key === HELD_SPY_KEY)!.label;
-    return fail(
-      `Bitte für „${label}“ eine ganze Zahl von ${HELD_SPY.min} bis ${HELD_SPY.max} angeben.`,
-    );
-  }
-  return selected;
-}
-
-/** The values of the dialog „Neue Runde“ beyond the rewards and the guild switch. */
-interface RoundValues {
-  mainLock?: unknown;
-  allies?: unknown;
-  heldSpy?: unknown;
-}
-
+/**
+ * Starts the rules of a new round from the request „reset“ (#283): every
+ * setting of the registry as sent, else as in the current round. Nothing is
+ * stored when one is refused.
+ */
 export function startRoundRules(
   ctx: Ctx,
-  options: unknown,
-  guilds?: unknown,
-  values: RoundValues = {},
+  data: Record<string, unknown>,
+  settings: readonly RoundSetting[] = ROUND_SETTINGS,
 ): RoundRules {
-  const current = roundRules(ctx);
-  const error = roundError(current, options, guilds);
-  if (error) fail(ROUND_ERROR[error]);
+  const current = roundRules(ctx, settings);
+  const wrong = roundRefused(current, data, settings);
+  if (wrong.length) fail(refusal(wrong));
   const next = {
     number: current.number + 1,
-    ...roundChoice(current, options, guilds),
-    mainLock: mainLockRule(current, values.mainLock),
-    allies: alliesRule(current, values.allies),
-    heldSpy: heldSpyRule(current, values.heldSpy),
-  };
+    ...roundValues(current, data, settings),
+  } as RoundRules;
+  const values = next as unknown as Record<string, number | boolean>;
   ctx.admin.putSettings([
-    [MAIN_LOCK, next.mainLock],
-    [ALLIES_KEY, next.allies],
-    [HELD_SPY_KEY, next.heldSpy],
+    ...settings.map((s): [string, number] => [s.key, Number(values[s.name])]),
     ['round', next.number],
-    ['roundAchievements', Number(next.achievements)],
-    ['roundDaily', Number(next.daily)],
-    ['roundGuilds', Number(next.guilds)],
     ['roundStart', ctx.now()],
   ]);
   return next;

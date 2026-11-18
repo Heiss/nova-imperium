@@ -1,5 +1,16 @@
 // The highscore names a planet of each player, never a moon (#53).
 import { describe, expect, it } from 'vitest';
+import {
+  ROUND_SETTINGS,
+  type RoundNumber,
+  type RoundRules,
+  type RoundSetting,
+} from '../../core/round.ts';
+import {
+  DEFAULT_UNIVERSE,
+  UNIVERSE_SPECS,
+  liveSpecs,
+} from '../../core/universe.ts';
 import type { GameState } from '../logic/types.ts';
 import type { V } from './common.ts';
 import {
@@ -8,9 +19,7 @@ import {
   deleteAccountDialog,
   highscore,
   roundDialog,
-  roundValues,
 } from './misc.ts';
-import { DEFAULT_UNIVERSE, UNIVERSE_SPECS } from '../../core/universe.ts';
 
 describe('highscore', () => {
   it('shows the planet of a player, also when its moon comes first (#53)', () => {
@@ -41,9 +50,27 @@ describe('the dialog „Neue Runde“', () => {
     achievements: true,
     daily: true,
     mainLock: 7,
+    abandonLock: 24,
     allies: 3,
     heldSpy: 2,
   };
+
+  it('shows the fields in the fixed order of main (owner, 2026-11-17)', () => {
+    const html = roundDialog({ ...rules, guilds: true });
+    expect(
+      [...html.matchAll(/ id="(round-[a-z-]+)"/g)].map((m) => m[1]),
+    ).toEqual([
+      'round-achievements',
+      'round-daily',
+      'round-guilds',
+      'round-guilds-note',
+      'round-main-lock',
+      'round-abandon-lock',
+      // Added by #55, last: who may hold and the level of the spy report.
+      'round-allies',
+      'round-held-spy',
+    ]);
+  });
 
   it('has one box „Gilden (mit Chat)“, preselected with the current round (#191)', () => {
     const on = box(roundDialog({ ...rules, guilds: true }));
@@ -61,6 +88,7 @@ describe('the lock of the main planet in the dialog „Neue Runde“ (#221)', ()
     achievements: true,
     daily: true,
     guilds: true,
+    abandonLock: 24,
     allies: 3,
     heldSpy: 2,
   };
@@ -78,12 +106,40 @@ describe('the lock of the main planet in the dialog „Neue Runde“ (#221)', ()
   });
 });
 
+describe('the lock of a given-up position in the dialog „Neue Runde“ (#224)', () => {
+  const rules = {
+    number: 1,
+    achievements: true,
+    daily: true,
+    guilds: true,
+    mainLock: 7,
+    allies: 3,
+    heldSpy: 2,
+  };
+
+  it('is a number of hours from 1 to 720, preselected with the current round', () => {
+    for (const abandonLock of [24, 48]) {
+      const html = roundDialog({ ...rules, abandonLock });
+      expect(html).toContain(
+        `<label for="round-abandon-lock">Sperre einer aufgegebenen Position (Stunden)</label> <input type="number" id="round-abandon-lock" min="1" max="720" step="1" value="${abandonLock}" required> <span class="dim">1 bis 720</span>`,
+      );
+      expect(html.indexOf('id="round-main-lock"')).toBeLessThan(
+        html.indexOf('id="round-abandon-lock"'),
+      );
+      expect(html.indexOf('id="round-abandon-lock"')).toBeLessThan(
+        html.indexOf('data-act="doReset"'),
+      );
+    }
+  });
+});
+
 describe('the warning below the box „Gilden (mit Chat)“ (#191)', () => {
   const rules = {
     number: 1,
     achievements: true,
     daily: true,
     mainLock: 7,
+    abandonLock: 24,
     allies: 3,
     heldSpy: 2,
   };
@@ -114,6 +170,7 @@ describe('„Account löschen“ in a round with or without guilds (#191)', () =
     achievements: true,
     daily: true,
     mainLock: 7,
+    abandonLock: 24,
     allies: 3,
     heldSpy: 2,
   };
@@ -180,6 +237,86 @@ describe('the box „Endzeit“ of the tab „Universum“ (#161, #214)', () => 
   });
 });
 
+describe('a new setting of the round in both places (#283)', () => {
+  const hours: RoundNumber<'testHours'> = {
+    kind: 'number',
+    key: 'roundTestHours',
+    name: 'testHours',
+    label: 'Testdauer (Stunden)',
+    order: 80,
+    min: 1,
+    max: 720,
+    def: 24,
+    live: true,
+  };
+  const allies: RoundNumber<'testAllies'> = {
+    kind: 'number',
+    key: 'roundTestAllies',
+    name: 'testAllies',
+    label: 'Halten erlaubt für',
+    order: 90,
+    min: 1,
+    max: 3,
+    def: 3,
+    live: true,
+    choices: [
+      { value: 1, label: 'Gilde' },
+      { value: 3, label: 'Gilde und Freunde' },
+    ],
+  };
+  const settings: readonly RoundSetting[] = [...ROUND_SETTINGS, hours, allies];
+  const round = {
+    number: 1,
+    achievements: true,
+    daily: true,
+    guilds: true,
+    mainLock: 7,
+    abandonLock: 24,
+    allies: 3,
+    heldSpy: 2,
+    testHours: 48,
+    testAllies: 1,
+  } as RoundRules;
+
+  it('is a field of the dialog „Neue Runde“, preselected with the current round', () => {
+    const html = roundDialog(round, settings);
+    expect(html).toContain(
+      '<p><label for="round-test-hours">Testdauer (Stunden)</label> <input type="number" id="round-test-hours" min="1" max="720" step="1" value="48" required> <span class="dim">1 bis 720</span></p>',
+    );
+    expect(html).toContain(
+      '<p><label for="round-test-allies">Halten erlaubt für</label> <select id="round-test-allies"><option value="1" selected>Gilde</option><option value="3">Gilde und Freunde</option></select></p>',
+    );
+    expect(html.indexOf('id="round-main-lock"')).toBeLessThan(
+      html.indexOf('id="round-test-hours"'),
+    );
+    expect(html.indexOf('id="round-test-allies"')).toBeLessThan(
+      html.indexOf('data-act="doReset"'),
+    );
+    // The settings of main stay as they were.
+    expect(roundDialog(round)).toBe(roundDialog(round, ROUND_SETTINGS));
+    expect(roundDialog(round)).not.toContain('round-test');
+  });
+
+  it('is a row of the universe settings under its key', () => {
+    const html = admin({
+      s: {
+        cfg: { roundTestHours: 36, roundTestAllies: 3 },
+        admin: {
+          specs: liveSpecs(settings),
+          endzeit: { minutes: 1, done: false },
+        },
+      },
+      ui: {},
+    } as unknown as V);
+    expect(html).toContain(
+      '<tr><td><label for="set_roundTestHours">Testdauer (Stunden)</label></td><td><input type="number" id="set_roundTestHours" data-setting="roundTestHours" min="1" max="720" value="36" data-nokeep> <span class="dim">1 bis 720</span></td></tr>',
+    );
+    expect(html).toContain(
+      '<select id="set_roundTestAllies" data-setting="roundTestAllies" data-nokeep><option value="1">Gilde</option><option value="3" selected>Gilde und Freunde</option></select>',
+    );
+  });
+});
+
 describe('who may hold (#55, Q2, X1)', () => {
   const rules = {
     number: 1,
@@ -187,6 +324,7 @@ describe('who may hold (#55, Q2, X1)', () => {
     daily: true,
     guilds: true,
     mainLock: 7,
+    abandonLock: 24,
     heldSpy: 2,
   };
   const OPTIONS = [
@@ -210,19 +348,6 @@ describe('who may hold (#55, Q2, X1)', () => {
         html.indexOf('data-act="doReset"'),
       );
     }
-  });
-
-  it('is read from the dialog with the lock of the main planet', () => {
-    const values: Record<string, string> = {
-      '#round-main-lock': '12',
-      '#round-allies': '2',
-    };
-    values['#round-held-spy'] = '4';
-    expect(roundValues((sel) => values[sel]!)).toEqual({
-      mainLock: 12,
-      allies: 2,
-      heldSpy: 4,
-    });
   });
 
   it('is a selection in the universe settings, the others stay numbers', () => {
@@ -252,6 +377,7 @@ describe('held fleets in the spy report (#55, owner, 2026-11-17, X1)', () => {
     daily: true,
     guilds: true,
     mainLock: 7,
+    abandonLock: 24,
     allies: 3,
   };
 
@@ -265,5 +391,21 @@ describe('held fleets in the spy report (#55, owner, 2026-11-17, X1)', () => {
         html.indexOf('data-act="doReset"'),
       );
     }
+  });
+
+  it('is a number field of the universe settings', () => {
+    const html = admin({
+      s: {
+        cfg: { ...DEFAULT_UNIVERSE, roundHeldSpy: 4 },
+        admin: {
+          specs: UNIVERSE_SPECS,
+          endzeit: { minutes: 240, done: false },
+        },
+      },
+      ui: {},
+    } as unknown as V);
+    expect(html).toContain(
+      '<tr><td><label for="set_roundHeldSpy">Gehaltene Flotten im Auspex-Bericht ab Auspex-Lehre</label></td><td><input type="number" id="set_roundHeldSpy" data-setting="roundHeldSpy" min="0" max="30" value="4" data-nokeep> <span class="dim">0 bis 30</span></td></tr>',
+    );
   });
 });

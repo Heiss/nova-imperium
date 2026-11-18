@@ -5,6 +5,7 @@ import {
   buildState,
   cargoMax,
   arrivalLine,
+  cargoOne,
   fleetEnd,
   fleetPreview,
   galaxyStep,
@@ -225,17 +226,85 @@ describe('fleet form', () => {
     );
     expect(arrivalLine('deploy', 1000, pv)).toBe(`${dt(61_000)} / –`);
   });
-  it('fills the holds with metal, then crystal, then deuterium without the fuel', () => {
-    expect(cargoMax(p, form)).toEqual({ m: 9000, c: 1000, d: 0 });
-    expect(
-      cargoMax(planet({ res: { m: 100, c: 200, d: 1000 } }), form),
-    ).toEqual({ m: 100, c: 200, d: 997 });
-    expect(cargoMax(planet({ res: { m: 1.9, c: 0, d: 1 } }), form)).toEqual({
-      m: 1,
-      c: 0,
-      d: 0,
+  // „alles“ fills the holds evenly (#240, owner 2026-11-16): equal shares
+  // of the capacity; a resource with less stock than its share gives the
+  // rest to the others. Rounding: the share is rounded up, starting with
+  // the resource of the least stock (Adamant, Psikristall, Promethium on a
+  // tie), so the holds are full when the stock allows.
+  const rich = (m: number, c: number, d: number) =>
+    planet({ res: { m, c, d } });
+  it('fills a third of the holds with each resource when there is more than fits', () => {
+    // Fuel 3: Promethium 1,000,003 leaves as much as the others.
+    expect(cargoMax(rich(1e6, 1e6, 1e6 + 3), form)).toEqual({
+      m: 3334,
+      c: 3333,
+      d: 3333,
     });
+    expect(cargoMax(rich(2e6, 1e6, 3e6), form)).toEqual({
+      m: 3333,
+      c: 3334,
+      d: 3333,
+    });
+    expect(cargoMax(rich(1e6, 1e6, 1e6), form)).toEqual({
+      m: 3333,
+      c: 3333,
+      d: 3334,
+    });
+  });
+  it('gives the share of a scarce resource to the others', () => {
+    expect(cargoMax(rich(1000, 1e6, 1e6), form)).toEqual({
+      m: 1000,
+      c: 4500,
+      d: 4500,
+    });
+    expect(cargoMax(rich(1e6, 1e6, 503), form)).toEqual({
+      m: 4750,
+      c: 4750,
+      d: 500,
+    });
+    expect(cargoMax(rich(1e6, 2000, 1003), form)).toEqual({
+      m: 7000,
+      c: 2000,
+      d: 1000,
+    });
+    expect(cargoMax(p, form)).toEqual({ m: 4951, c: 4952, d: 97 });
+  });
+  it('loads the whole stock when it fits, Promethium without the fuel', () => {
+    expect(cargoMax(rich(100, 200, 1000), form)).toEqual({
+      m: 100,
+      c: 200,
+      d: 997,
+    });
+    expect(cargoMax(rich(1.9, 0, 1), form)).toEqual({ m: 1, c: 0, d: 0 });
+    expect(cargoMax(rich(1.9, 2.5, 3.7), form)).toEqual({ m: 1, c: 2, d: 0 });
     expect(cargoMax(p, { ...form, ships: {} })).toEqual({ m: 0, c: 0, d: 0 });
+  });
+  // „alles“ under a field (#240): only that resource, up to the room the
+  // other two fields leave; they stay as they are.
+  it('fills one resource up to the room the other fields leave', () => {
+    expect(cargoOne(p, form, 'm')).toBe(9000);
+    expect(cargoOne(p, form, 'c')).toBe(8000);
+    expect(cargoOne(p, form, 'd')).toBe(97);
+    const full = { ...form, cargo: { m: 5000, c: 6000, d: 0 } };
+    expect(cargoOne(p, full, 'm')).toBe(4000);
+    expect(cargoOne(p, full, 'c')).toBe(5000);
+    expect(cargoOne(p, full, 'd')).toBe(0);
+    expect(cargoOne(rich(1e6, 1e6, 1e6), full, 'd')).toBe(0);
+    expect(
+      cargoOne(
+        rich(1e6, 1e6, 1e6),
+        { ...full, cargo: { m: 1, c: 2, d: 7 } },
+        'd',
+      ),
+    ).toBe(9997);
+  });
+  it('loads nothing when the other fields take the holds or no ship flies', () => {
+    const over = { ...form, cargo: { m: 0, c: 20000, d: 0 } };
+    expect(cargoOne(p, over, 'm')).toBe(0);
+    expect(cargoOne(p, over, 'd')).toBe(0);
+    expect(cargoOne(p, { ...form, ships: {} }, 'm')).toBe(0);
+    expect(cargoOne(rich(1.9, 0, 1), form, 'm')).toBe(1);
+    expect(cargoOne(rich(1.9, 0, 1), form, 'd')).toBe(0);
   });
 });
 

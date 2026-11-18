@@ -38,6 +38,7 @@ import type {
 import type { AuditEntry } from '../audit.ts';
 import type { User } from '../db/repos/players.ts';
 import { type Action, type Data, mine, researchOf } from './actions.ts';
+import { lockedUntil, positionLockedText } from './position-lock.ts';
 import { type Ctx, coords, fail, int, universe } from './context.ts';
 import { attackEvent } from './guild-events.ts';
 import { holdersAt, isAllyOf } from './holding.ts';
@@ -70,8 +71,11 @@ const target = (ctx: Ctx, d: Data): Coords => {
   };
 };
 
+/** A code with a fixed message; a locked position names the end of its lock. */
+type WordedError = Exclude<SendError, 'locked'>;
+
 /** The message of each code of `sendError`, in German like the interface. */
-const SEND_ERROR: Readonly<Record<SendError, string>> = {
+const SEND_ERROR: Readonly<Record<WordedError, string>> = {
   occupied: 'Diese Position ist bereits besetzt.',
   noColonyShip: 'Du brauchst eine Kolonistenarche.',
   noPlanet: 'An dieser Position gibt es keinen Planeten.',
@@ -97,7 +101,7 @@ const NOT_ALLY: Readonly<Record<number, string>> = {
 };
 
 /** The message of a code; a Halten names who may hold in this round. */
-const sendMessage = (ctx: Ctx, error: SendError): string =>
+const sendMessage = (ctx: Ctx, error: WordedError): string =>
   (error === 'notAlly' && NOT_ALLY[roundRules(ctx).allies]) ||
   SEND_ERROR[error];
 
@@ -131,7 +135,7 @@ function checkDestination(
   rules: MissionRules,
   occupied: Planet | null,
   ships: Levels,
-  at: { debris: boolean; moon: boolean },
+  at: { debris: boolean; moon: boolean; lockEnd: number | null },
 ): void {
   const error = sendError(
     rules,
@@ -140,11 +144,14 @@ function checkDestination(
       planet: occupied,
       debris: at.debris,
       moon: at.moon,
+      locked: at.lockEnd !== null,
       protects: (owner) => isProtected(u.id, owner, pointsMap(ctx)),
       ally: (owner) => isAllyOf(ctx, u.id, owner),
       holding: () => (occupied ? holdersAt(ctx, occupied.id) : []),
     },
   );
+  // A given-up position names the end of its lock (#224, D2).
+  if (error === 'locked') return fail(positionLockedText(at.lockEnd!));
   if (error) fail(sendMessage(ctx, error));
 }
 
@@ -166,6 +173,7 @@ function plan(ctx: Ctx, u: User, p: Planet, d: Data): Plan {
   checkDestination(ctx, u, p, rules, occupied, ships, {
     debris: !!ctx.debris.get(field),
     moon,
+    lockEnd: lockedUntil(ctx, dest, ctx.now()),
   });
   return {
     mission,

@@ -91,6 +91,7 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 | Start metal / crystal / deuterium | 500 / 500 / 0 | 0 to 10,000,000 |
 | Extra fields per planet („Zusatzfelder pro Planet“, #51) | 0 (not in version 1) | 0 to 100, [E] owner 2026-11-13 |
 | Flight time of the „Endzeit“ gift in minutes („Flugzeit der Endzeit-Gabe (Minuten)“, #161) | 240 (not in version 1) | 1 to 4,320 (72 h), [E] owner 2026-11-14 |
+| Lock of a given-up colony's position in hours („Sperre einer aufgegebenen Position (Stunden)“, #224) | 24 (not in version 1), [E] owner 2026-11-16 | 1 to 720 [V]; also in the dialog „Neue Runde“, [E] owner 2026-11-17 (X1) |
 
 * **[V]** The ranges above are proposals; the source is
   `src/core/universe.ts`.
@@ -110,7 +111,7 @@ universe settings) and their ranges are not decided yet.
 | Setting | Issue | Default |
 |---|---|---|
 | Minimum duration of the [vacation mode](/features/vacation-mode.md) | #223 D1 | default 24 h (owner, 2026-11-16) |
-| Lock of a [given-up colony's](/features/abandon-colony.md) position | #224 D2 | default 24 h (owner, 2026-11-16) |
+| Lock of a [given-up colony's](/features/abandon-colony.md) position, in whole hours from 1 to 720 [V] | #224 D2, X1 | default 24 h (owner, 2026-11-16); built in the dialog „Neue Runde“ and, changeable during the round, in the universe settings (owner, 2026-11-17, X1) |
 | Lock after a switch of the [main planet](/features/main-planet.md), in whole days from 1 to 30 [V] | #221 D3 | default 7 days (owner, 2026-11-16); built in the dialog „Neue Runde“ |
 | Who may hold, join an attack union and fight with friends: guild, friends or both ([Holding and ACS](/features/holding-acs.md), [Buddy list](/features/buddy-list.md)) | #55 Q2, #225 D2, #227 D3 | [V] guild and friends, the classic rule for holding; built with #55 as „Halten erlaubt für“ (`roundAllies`) in the dialog „Neue Runde“ and the universe settings (X1) |
 | Held fleets in the spy report from the spy's Auspex-Lehre („Gehaltene Flotten im Auspex-Bericht ab Auspex-Lehre“, [Holding and ACS](/features/holding-acs.md)) | #55 (owner, 2026-11-17) | 2; built as `roundHeldSpy` in „Neue Runde“ and the universe settings (X1), 0 to 30 [V] |
@@ -130,6 +131,55 @@ universe settings) and their ranges are not decided yet.
   of `UNIVERSE_SPECS` too, the one stored setting the round reads, so the
   tab „Universum“ changes it live; a setting with named choices
   (`choices`) shows a selection there instead of a number.
+
+## The registry of the round settings (#283)
+
+* **[V]** Built with #283, a refactor without a visible change: every
+  setting of a round is one entry of the registry `ROUND_SETTINGS` in
+  `src/core/round.ts`. The dialog „Neue Runde“ (`roundDialog`), the
+  universe settings (`UNIVERSE_SPECS`), the request „reset“
+  (`src/client/round-actions.ts`), the reset action and `roundRules()`
+  (`src/server/game/round.ts`) all read it. On main it holds the reward
+  options „Achievements aktivieren“ and „Tagesbelohnungen aktivieren“ (one
+  group `rewards`, one fieldset), the switch „Gilden (mit Chat)“, the lock
+  of the main planet and the lock of a given-up position (#224,
+  `ABANDON_LOCK_SETTING` in `src/core/abandon.ts`); their texts, ranges,
+  defaults, refusals and order are those of before.
+* **[E]** The registry keeps a fixed order, so #283 changes nothing
+  visible (owner, 2026-11-17): every entry has an explicit number `order`,
+  like the catalog entries, and the dialog „Neue Runde“ and the order of
+  the refusals follow it. The order is that of main before #283: the
+  reward options (10, 20), the guild switch (30), the lock of the main
+  planet (40), the lock of a given-up position (50, last). A new feature
+  appends at the end with its own number.
+* **[V]** An entry has its stored `key` (`round…`), its `name` in
+  `RoundRules` and in the request, its German `label`, and is either a
+  switch (`kind: 'switch'`, default yes or no, a `refusal`, an optional
+  `note` below the checkbox) or a whole number (`kind: 'number'`, `min`,
+  `max`, `def`, optional `choices` shown as a selection, optional
+  `refusal`; without one the server refuses with the wording of the
+  universe settings, `rangeError`: „<label>: ganze Zahl von <min> bis
+  <max>.“). Entries with one `group` are sent as one object and refused
+  together. A value the admin does not send keeps the current one; a
+  missing setting is the default; nothing is stored when one value is
+  refused, and the first refused entry (or group) in the order of the
+  registry is named.
+* **[V]** `live: true` makes a number entry also a row of the universe
+  settings under the same key, changed during the round and checked there
+  like the other settings (X1, owner, 2026-11-17). The lock of a given-up
+  position (#224) is the one live setting of main, the last row of the
+  universe settings as before; the other four are not live.
+* **[V]** A feature with a value per round adds one entry in its own file
+  (`export const X_SETTING = { … } as const satisfies RoundSetting`) and
+  one line to the list `ENTRIES` in `src/core/round.ts`, where the place
+  of the line means nothing; `RoundRules` gets the typed value from the
+  entry by itself. The feature picks its `order` number as the next free
+  ten above the highest number of the registry (60 after the 50 of main),
+  so it stands last in the dialog and among the refusals; the members of
+  a group take neighbouring numbers. A test refuses a number used twice,
+  so two parallel features that picked the same one see it after the
+  merge, and the later one takes the next ten. The field id is `round-`
+  and the name in kebab case (`mainLock` is `round-main-lock`).
 
 # Round rewards and menu hints
 

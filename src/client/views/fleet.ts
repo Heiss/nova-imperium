@@ -53,6 +53,18 @@ export function holdRow(mission: string): string {
   return `<tr id="t_hold"${hidden}><td><label for="t_h">Haltezeit</label></td><td><select id="t_h">${options}</select></td></tr>`;
 }
 
+const CARGO = [
+  ['m', 'Adamant'],
+  ['c', 'Psikristall'],
+  ['d', 'Promethium'],
+] as const;
+
+// Each cargo field with its own „alles“ below it (#240).
+const cargoFields = CARGO.map(
+  ([k, name]) =>
+    `<span class="cargo"><input type="number" id="c_${k}" min="0" placeholder="0" aria-label="${name}"><button type="button" id="cone_${k}" class="small" data-act="cone" data-k="${k}" aria-label="Alles ${name}">alles</button></span>`,
+).join(' ');
+
 function targetForm(v: V, slotsFull: boolean): string {
   const { P, s, ui } = v;
   const t = ui.ft ?? { g: P.g, s: P.s, p: P.p };
@@ -75,7 +87,7 @@ function targetForm(v: V, slotsFull: boolean): string {
   <tr><td>Auftrag</td><td><select id="t_m" aria-label="Auftrag">${missions}</select></td></tr>
   ${holdRow(ui.fm ?? Object.keys(MISSION)[0]!)}
   <tr><td>Geschwindigkeit</td><td><select id="t_v" aria-label="Geschwindigkeit">${speeds}</select></td></tr>
-  <tr><td>Ladung (Adamant / Psikristall / Promethium)</td><td><input type="number" id="c_m" min="0" placeholder="0" aria-label="Adamant"> <input type="number" id="c_c" min="0" placeholder="0" aria-label="Psikristall"> <input type="number" id="c_d" min="0" placeholder="0" aria-label="Promethium"> <span class="lnk" data-act="cmax">alles</span></td></tr>
+  <tr><td>Ladung (Adamant / Psikristall / Promethium)</td><td>${cargoFields} <span class="lnk" data-act="cmax">alles (gleichmäßig)</span></td></tr>
   <tr><td>Entfernung</td><td id="i_dist">-</td></tr><tr><td>Flugdauer (eine Richtung)</td><td id="i_dur">-</td></tr>
   <tr><td>Ankunft / Rückkehr</td><td id="i_arr">-</td></tr><tr><td>Treibstoff</td><td id="i_fuel">-</td></tr><tr><td>Laderaum</td><td id="i_cap">-</td></tr>
  </table><div class="mt10"><button data-act="send" ${slotsFull ? 'disabled' : ''}>Flotte losschicken</button> ${slotsFull ? '<span class="bad">Alle Flottenslots belegt (Kogitator-Doktrin erhöht die Anzahl).</span>' : ''}</div>`;

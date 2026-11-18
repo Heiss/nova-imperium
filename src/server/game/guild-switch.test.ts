@@ -120,6 +120,7 @@ describe('the guild switch (#191)', () => {
       daily: true,
       guilds: true,
       mainLock: 7,
+      abandonLock: 24,
       allies: 3,
       heldSpy: 2,
     });
@@ -155,6 +156,7 @@ describe('the guild switch (#191)', () => {
       daily: true,
       guilds: false,
       mainLock: 7,
+      abandonLock: 24,
       allies: 3,
       heldSpy: 2,
     });
@@ -175,6 +177,7 @@ describe('the guild switch (#191)', () => {
         daily: true,
         guilds: true,
         mainLock: 7,
+        abandonLock: 24,
         allies: 3,
         heldSpy: 2,
       },
@@ -184,6 +187,7 @@ describe('the guild switch (#191)', () => {
         daily: true,
         guilds: false,
         mainLock: 7,
+        abandonLock: 24,
         allies: 3,
         heldSpy: 2,
       },

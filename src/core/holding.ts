@@ -4,6 +4,7 @@
 // an ally is the admin's value per round: guild members, friends or both
 // (owner, 2026-11-16, Q2). The server, the fleet form and the overview ask
 // these rules (patterns, section 7). The alliance depot comes later (D1).
+import type { RoundSetting } from './round.ts';
 import type { Fleet, Levels, Resources } from './types.ts';
 
 /** One hour in milliseconds; the holding time runs in real time [V]. */
@@ -36,11 +37,30 @@ export const ALLIES_RANGE = {
   default: ALLIES.both,
 } as const;
 
-/** Whether `allies` is a value of the setting „who may hold“. */
-export const isAllies = (allies: unknown): allies is number =>
-  Number.isInteger(allies) &&
-  (allies as number) >= ALLIES_RANGE.min &&
-  (allies as number) <= ALLIES_RANGE.max;
+/**
+ * Who may hold as a setting of the round (#283): a selection of the dialog
+ * „Neue Runde“ and, `live`, a row of the universe settings, changed during
+ * the round (X1); existing universes let guild members and friends hold
+ * [V]. The choices are named as the admin panel and „Neue Runde“ show them
+ * [V].
+ */
+export const ALLIES_SETTING = {
+  kind: 'number',
+  key: 'roundAllies',
+  name: 'allies',
+  label: 'Halten erlaubt für',
+  order: 60,
+  min: ALLIES_RANGE.min,
+  max: ALLIES_RANGE.max,
+  def: ALLIES_RANGE.default,
+  refusal: 'Bitte auswählen, wer in der neuen Runde halten darf.',
+  choices: [
+    { value: ALLIES.guild, label: 'Gilde' },
+    { value: ALLIES.friends, label: 'Freunde' },
+    { value: ALLIES.both, label: 'Gilde und Freunde' },
+  ],
+  live: true,
+} as const satisfies RoundSetting;
 
 /** What makes two players allies, whatever the admin chose. */
 export interface Bond {
@@ -58,11 +78,27 @@ export interface Bond {
  */
 export const HELD_SPY = { min: 0, max: 30, default: 2 } as const;
 
-/** Whether `level` is a value of the setting of the spy report. */
-export const isHeldSpy = (level: unknown): level is number =>
-  Number.isInteger(level) &&
-  (level as number) >= HELD_SPY.min &&
-  (level as number) <= HELD_SPY.max;
+/** The owner's label of the setting of the spy report (2026-11-17). */
+const HELD_SPY_LABEL = 'Gehaltene Flotten im Auspex-Bericht ab Auspex-Lehre';
+
+/**
+ * The level of the spy report as a setting of the round (#283): a number
+ * field of the dialog „Neue Runde“ and, `live`, a row of the universe
+ * settings (X1); existing universes show held fleets apart from
+ * Auspex-Lehre 2.
+ */
+export const HELD_SPY_SETTING = {
+  kind: 'number',
+  key: 'roundHeldSpy',
+  name: 'heldSpy',
+  label: HELD_SPY_LABEL,
+  order: 70,
+  min: HELD_SPY.min,
+  max: HELD_SPY.max,
+  def: HELD_SPY.default,
+  refusal: `Bitte für „${HELD_SPY_LABEL}“ eine ganze Zahl von ${HELD_SPY.min} bis ${HELD_SPY.max} angeben.`,
+  live: true,
+} as const satisfies RoundSetting;
 
 /** Whether a spy with Auspex-Lehre `spy` sees the held fleets apart. */
 export const showsHeldApart = (spy: number, from: number): boolean =>

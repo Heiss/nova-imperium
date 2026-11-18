@@ -1,8 +1,10 @@
 // The settings of a universe: defaults, ranges and the rule that the size of
 // the universe never shrinks below a planet that exists. The admin panel, the
-// server check and the documentation table read this list.
+// server check and the documentation table read this list. A `live` setting
+// of the round (#283, X1) is a row here too, read from the registry
+// `ROUND_SETTINGS`, under the key the round stores it.
 import { GIFT_DEFAULT_MINUTES, GIFT_MINUTES } from './endzeit.ts';
-import { ALLIES, ALLIES_RANGE, HELD_SPY } from './holding.ts';
+import { ROUND_SETTINGS, type RoundSetting } from './round.ts';
 import type { Coords, Universe } from './types.ts';
 
 type UniverseKey = keyof Universe;
@@ -15,18 +17,30 @@ export interface UniverseSpec {
   def: number;
   /** Size of the universe: it may grow, never shrink below a used coordinate. */
   size?: 'g' | 's' | 'p';
-  /** A choice among named values instead of a number (#55); each lies in the range. */
+  /** Named values instead of a number field (a setting of the round, #283). */
   choices?: readonly { value: number; label: string }[];
 }
 
-/** The choices of who may hold (#55, Q2), as the admin panel and „Neue Runde“ name them [V]. */
-export const ALLY_CHOICES: readonly { value: number; label: string }[] = [
-  { value: ALLIES.guild, label: 'Gilde' },
-  { value: ALLIES.friends, label: 'Freunde' },
-  { value: ALLIES.both, label: 'Gilde und Freunde' },
-];
+/** The rows of the `live` settings of the round (#283, X1). */
+export const liveSpecs = (
+  settings: readonly RoundSetting[] = ROUND_SETTINGS,
+): UniverseSpec[] =>
+  settings.flatMap((s) =>
+    s.kind === 'number' && s.live
+      ? [
+          {
+            key: s.key,
+            label: s.label,
+            min: s.min,
+            max: s.max,
+            def: s.def,
+            ...(s.choices ? { choices: s.choices } : {}),
+          },
+        ]
+      : [],
+  );
 
-export const UNIVERSE_SPECS: readonly UniverseSpec[] = [
+const SPECS: readonly UniverseSpec[] = [
   { key: 'speed', label: 'Tempo (Faktor)', min: 1, max: 100, def: 5 },
   { key: 'galaxies', label: 'Galaxien', min: 1, max: 9, def: 2, size: 'g' },
   {
@@ -98,26 +112,11 @@ export const UNIVERSE_SPECS: readonly UniverseSpec[] = [
     max: GIFT_MINUTES.max,
     def: GIFT_DEFAULT_MINUTES,
   },
-  // Issue #55 (owner, 2026-11-16, Q2; 2026-11-17, X1): who may hold at a
-  // player, set in „Neue Runde“ and changed here during the round; the same
-  // stored setting the round reads.
-  {
-    key: 'roundAllies',
-    label: 'Halten erlaubt für',
-    min: ALLIES_RANGE.min,
-    max: ALLIES_RANGE.max,
-    def: ALLIES_RANGE.default,
-    choices: ALLY_CHOICES,
-  },
-  // Issue #55 (owner, 2026-11-17, X1): from which Auspex-Lehre of the spy a
-  // spy report shows the held fleets apart; the owner's label.
-  {
-    key: 'roundHeldSpy',
-    label: 'Gehaltene Flotten im Auspex-Bericht ab Auspex-Lehre',
-    min: HELD_SPY.min,
-    max: HELD_SPY.max,
-    def: HELD_SPY.default,
-  },
+];
+
+export const UNIVERSE_SPECS: readonly UniverseSpec[] = [
+  ...SPECS,
+  ...liveSpecs(),
 ];
 
 export const DEFAULT_UNIVERSE: Universe = Object.fromEntries(
@@ -169,8 +168,9 @@ const checkOne = (
 export const universeErrors = (
   input: Record<string, unknown>,
   used: UsedSize,
+  specs: readonly UniverseSpec[] = UNIVERSE_SPECS,
 ): UniverseError[] =>
-  UNIVERSE_SPECS.flatMap((spec) => {
+  specs.flatMap((spec) => {
     const code = checkOne(spec, input[spec.key], used);
     return code ? [{ spec, code }] : [];
   });
