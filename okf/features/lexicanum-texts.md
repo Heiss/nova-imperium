@@ -151,6 +151,11 @@ code and here in the same pull request.
 * **[V]** Prose: „Die Wartezeit nach einem Sprung hängt von der Stufe des Starttors ab und sinkt, aber nicht gleichmäßig: Stufe 1 wartet 60 Minuten, Stufe 5 36, Stufe 10 nur 17. Ab Stufe 15 wird sie nicht mehr kürzer. Diese Minuten teilt das Universum durch seine Geschwindigkeit, ein schnelleres kühlt die Tore also schneller ab; die Tabelle zeigt die Zeit in deinem Universum. Beide Tore warten gleich lang, und zwar nach dem Starttor – die Stufe des Zieltors ändert nichts daran. Der Sprung selbst geschieht sofort und kostet keinen Treibstoff; nur Schiffe springen, die Rohstoffe bleiben zurück.“
 * **[V]** Keywords: Tor, springen, Teleport, Flotte, Mond
 
+### Handelsposten (`market`)
+
+* **[V]** Prose (#171): „Der Handelsposten bringt auf keiner Stufe mehr Rohstoffe: Er öffnet den Marktplatz und senkt die Gebühr. Auf Stufe 1 beträgt sie 10 Prozent des Ergebnisses, jede weitere Stufe nimmt 1 Prozentpunkt davon ab, und ab Stufe 11 entfällt sie ganz. Wie viel du für einen Rohstoff bekommst, bestimmen die Kurse des Admins, die sich mit jedem Tausch verschieben.“
+* **[V]** Keywords: tauschen, Handel, Markt
+
 ## Forschung
 
 ### Machina-Energetik (`energy`)

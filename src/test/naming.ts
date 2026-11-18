@@ -3,9 +3,13 @@
 // compare the catalog of version 1 with this one through these tables, and
 // check that no display text shows a classic name any more.
 
-/** Catalog key → classic name, new name and new abbreviation. */
+/**
+ * Catalog key → classic name, new name and new abbreviation. An entry that
+ * the original game did not have (the Handelsposten, #171) has no classic
+ * name.
+ */
 export const NAMES: Readonly<
-  Record<string, { classic: string; name: string; ab: string }>
+  Record<string, { classic?: string; name: string; ab: string }>
 > = {
   metal: { classic: 'Metallmine', name: 'Adamant-Tiefbohrung', ab: 'AT' },
   crystal: {
@@ -42,6 +46,8 @@ export const NAMES: Readonly<
   phalanx: { classic: 'Sensorphalanx', name: 'Auspex-Phalanx', ab: 'PX' },
   // #53, #230: the name decided by the owner (2026-11-13), the abbreviation [V].
   jumpgate: { classic: 'Sprungtor', name: 'Warp-Tor', ab: 'WR' },
+  // #171: a new building, named by the owner (2026-11-17); the abbreviation [V].
+  market: { name: 'Handelsposten', ab: 'HP' },
   energy: { classic: 'Energietechnik', name: 'Machina-Energetik', ab: 'ME' },
   laser: { classic: 'Lasertechnik', name: 'Lichtlanzen-Lehre', ab: 'LZ' },
   comb: {
@@ -134,7 +140,11 @@ export const MISSIONS = {
  */
 export const CLASSIC: Readonly<Record<string, string>> = {
   ...RESOURCES,
-  ...Object.fromEntries(Object.values(NAMES).map((x) => [x.classic, x.name])),
+  ...Object.fromEntries(
+    Object.values(NAMES).flatMap((x) =>
+      x.classic ? [[x.classic, x.name]] : [],
+    ),
+  ),
   Werft: 'Schiffsschmiede',
   Labor: 'Scholarium',
   Hyperraum: 'Warp',
@@ -176,9 +186,10 @@ export const classicIn = (text: string): string[] =>
  * name, the longest first („Schlachtkreuzer“ before „Kreuzer“).
  */
 export function renamed(text: string): string {
-  const pairs = Object.values(NAMES).sort(
-    (a, b) => b.classic.length - a.classic.length,
+  const pairs = Object.values(NAMES).flatMap((x) =>
+    x.classic ? [{ classic: x.classic, name: x.name }] : [],
   );
+  pairs.sort((a, b) => b.classic.length - a.classic.length);
   let out = text;
   for (const { classic, name } of pairs)
     out = out.replace(
