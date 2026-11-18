@@ -13,6 +13,7 @@ import {
   STORAGE,
 } from '../../core/catalog.ts';
 import { capOf } from '../../core/components/storage.ts';
+import { SPY_MIN_TECH } from '../../core/espionage.ts';
 import {
   ARTICLES,
   article,
@@ -364,8 +365,11 @@ export function missionShips(
 ): { only: boolean; ships: string[] } | null {
   const rules = missionRules(m)!;
   const target = { planet: null, debris: true, protects: () => false };
+  // The article names the ships, not the research a mission needs: the
+  // sender has the espionage technology the Auspex-Erkundung asks for (#175).
+  const research = { spy: SPY_MIN_TECH };
   const check = (ships: Record<string, number>) =>
-    rules.canSend({ owner: '', from: '', ships }, target);
+    rules.canSend({ owner: '', from: '', ships, research }, target);
   const ships = Object.keys(SHIPS).filter((k) => !check({ [k]: 1 }));
   if (ships.length === Object.keys(SHIPS).length) return null;
   return { only: !check({}), ships };

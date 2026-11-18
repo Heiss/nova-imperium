@@ -82,6 +82,10 @@ points were answered on 2026-11-16.
   Auspex-Lehre 1.“ **[V]** (row `send` of
   [Checks of the server actions](/architecture/action-checks.md)); the
   browser does not repeat it.
+* **[V]** The Lexicanum article „Auspex-Lehre“ (#285) still shows the old
+  danger table and formula (`counterChance` of `src/core/spy.ts`); the game
+  uses `src/core/espionage.ts`. Its text is not changed here; options for
+  the owner are in the pull request report.
 * Not built: the expected chance before sending, next to
   „Auspex-Erkundung“ (a **[V]** of the issue); an E2E of a detected spying,
   which the random draws of the server do not allow without a test hook
