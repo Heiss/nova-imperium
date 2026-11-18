@@ -23,6 +23,7 @@ export type TargetKind = 'own' | 'foreign' | 'any' | 'free' | 'debris';
  */
 export type SendError =
   | 'occupied'
+  | 'locked'
   | 'noPlanet'
   | 'samePlanet'
   | 'notOwn'
@@ -61,6 +62,11 @@ export interface SendTarget {
    * then the moon, or null without one. Missing: the planet.
    */
   moon?: boolean;
+  /**
+   * Whether the position is locked after a colony there was given up
+   * (#224, D2): no colonization until the lock ends. Missing: not locked.
+   */
+  locked?: boolean;
   /**
    * Whether the noob protection keeps `owner` from this player. The server
    * determines it (it needs the points of every player), and only when it is
@@ -167,6 +173,12 @@ const NEVER_MOON: readonly TargetKind[] = ['free', 'debris'];
 const nothing = (target: SendTarget): SendError =>
   target.moon ? 'noMoon' : 'noPlanet';
 
+/** A free position: no planet there, and no lock after an abandonment (#224, D2). */
+function freeError(target: SendTarget): SendError | undefined {
+  if (target.planet) return 'occupied';
+  return target.locked ? 'locked' : undefined;
+}
+
 /** The generic check of the target kind, in today's order of the messages. */
 function targetError(
   kind: TargetKind,
@@ -174,7 +186,7 @@ function targetError(
   target: SendTarget,
 ): SendError | undefined {
   const t = target.planet;
-  if (kind === 'free') return t ? 'occupied' : undefined;
+  if (kind === 'free') return freeError(target);
   if (!t) return nothing(target);
   if (t.id === fleet.from) return 'samePlanet';
   if (!suits(kind, fleet.owner, t))

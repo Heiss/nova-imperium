@@ -17,6 +17,7 @@ const FILES: Record<string, string> = {
   moonbase: 'buildings/lunar_base',
   phalanx: 'buildings/sensor_phalanx',
   silo: 'buildings/missile_silo',
+  jumpgate: 'buildings/jump_gate',
   energy: 'research/energy_technology',
   laser: 'research/laser_technology',
   comb: 'research/combustion_drive',

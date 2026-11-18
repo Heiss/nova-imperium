@@ -21,6 +21,7 @@ const VIEWS = [
   'guilds',
   'achievements',
   'news',
+  'lexicanum',
   'help',
   'admin',
 ];

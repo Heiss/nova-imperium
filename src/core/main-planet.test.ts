@@ -6,13 +6,14 @@ import {
   DAY_MS,
   MAIN_LOCK_DAYS,
   type MainSwitch,
+  MAIN_LOCK_SETTING,
   canBeMain,
-  isLockDays,
   mainLockEnd,
   mainLocked,
   mainOf,
   mainSwitchError,
 } from './main-planet.ts';
+import { roundRefused } from './round.ts';
 import type { Planet } from './types.ts';
 
 const NOW = 1_763_300_000_000;
@@ -35,9 +36,11 @@ describe('the lock length of a round', () => {
   it('is 7 days by default, whole days from 1 to 30', () => {
     expect(MAIN_LOCK_DAYS).toEqual({ min: 1, max: 30, default: 7 });
     expect(DAY_MS).toBe(24 * 60 * 60 * 1000);
-    for (const days of [1, 7, 30]) expect(isLockDays(days)).toBe(true);
-    for (const days of [0, 31, -1, 1.5, '7', null, undefined, Number.NaN])
-      expect(isLockDays(days)).toBe(false);
+    const refused = (mainLock: unknown) =>
+      roundRefused({ mainLock: 7 }, { mainLock }, [MAIN_LOCK_SETTING]).length;
+    for (const days of [1, 7, 30]) expect(refused(days)).toBe(0);
+    for (const days of [0, 31, -1, 1.5, '7', null, Number.NaN])
+      expect(refused(days)).toBe(1);
   });
 });
 
@@ -56,6 +59,13 @@ describe('the lock after a switch', () => {
   it('has no end without a switch', () => {
     expect(mainLockEnd(null, 7)).toBeNull();
     expect(mainLocked(null, NOW)).toBe(false);
+  });
+
+  it('never holds without a switch, at any time', () => {
+    fc.assert(
+      fc.property(fc.integer(), (now) => mainLocked(null, now) === false),
+    );
+    expect(mainLocked(null, -1)).toBe(false);
   });
 
   it('ends the set number of days after the switch', () => {

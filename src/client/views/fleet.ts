@@ -1,6 +1,7 @@
 import { SHIPS, canFly } from '../../core/catalog.ts';
 import { fleetSlots, shipSpeed } from '../../core/flight.ts';
 import { FLEET_MISSIONS, isFleet, MISSION } from '../../core/missions.ts';
+import { jumpPanel } from '../logic/jump-gate.ts';
 import { moonAt } from '../logic/moon.ts';
 import { text } from '../../core/text.ts';
 import { esc, fmt } from '../logic/format.ts';
@@ -36,6 +37,18 @@ function shipRows(v: V): string {
     .join('');
 }
 
+const CARGO = [
+  ['m', 'Adamant'],
+  ['c', 'Psikristall'],
+  ['d', 'Promethium'],
+] as const;
+
+// Each cargo field with its own „alles“ below it (#240).
+const cargoFields = CARGO.map(
+  ([k, name]) =>
+    `<span class="cargo"><input type="number" id="c_${k}" min="0" placeholder="0" aria-label="${name}"><button type="button" id="cone_${k}" class="small" data-act="cone" data-k="${k}" aria-label="Alles ${name}">alles</button></span>`,
+).join(' ');
+
 function targetForm(v: V, slotsFull: boolean): string {
   const { P, s, ui } = v;
   const t = ui.ft ?? { g: P.g, s: P.s, p: P.p };
@@ -56,10 +69,34 @@ function targetForm(v: V, slotsFull: boolean): string {
   <tr><td>Ziel</td><td><input class="c3" type="number" id="t_g" value="${t.g}" min="1" max="${u.galaxies}" aria-label="Galaxie">:<input class="c3" type="number" id="t_s" value="${t.s}" min="1" max="${u.systems}" aria-label="System">:<input class="c3" type="number" id="t_p" value="${t.p}" min="1" max="${u.positions}" aria-label="Position"> ${kinds} <span id="t_info" class="dim"></span></td></tr>
   <tr><td>Auftrag</td><td><select id="t_m" aria-label="Auftrag">${missions}</select></td></tr>
   <tr><td>Geschwindigkeit</td><td><select id="t_v" aria-label="Geschwindigkeit">${speeds}</select></td></tr>
-  <tr><td>Ladung (Adamant / Psikristall / Promethium)</td><td><input type="number" id="c_m" min="0" placeholder="0" aria-label="Adamant"> <input type="number" id="c_c" min="0" placeholder="0" aria-label="Psikristall"> <input type="number" id="c_d" min="0" placeholder="0" aria-label="Promethium"> <span class="lnk" data-act="cmax">alles</span></td></tr>
+  <tr><td>Ladung (Adamant / Psikristall / Promethium)</td><td>${cargoFields} <span class="lnk" data-act="cmax">alles (gleichmäßig)</span></td></tr>
   <tr><td>Entfernung</td><td id="i_dist">-</td></tr><tr><td>Flugdauer (eine Richtung)</td><td id="i_dur">-</td></tr>
   <tr><td>Ankunft / Rückkehr</td><td id="i_arr">-</td></tr><tr><td>Treibstoff</td><td id="i_fuel">-</td></tr><tr><td>Laderaum</td><td id="i_cap">-</td></tr>
  </table><div class="mt10"><button data-act="send" ${slotsFull ? 'disabled' : ''}>Flotte losschicken</button> ${slotsFull ? '<span class="bad">Alle Flottenslots belegt (Kogitator-Doktrin erhöht die Anzahl).</span>' : ''}</div>`;
+}
+
+/**
+ * The box „Warp-Tor“ on a moon with one (#230): the ships picked above jump
+ * to the „Zielmond“; a cooling gate says when it is ready again.
+ */
+function jumpBox(v: V): string {
+  const panel = jumpPanel(v.s, v.P, v.now);
+  if (!panel) return '';
+  const options = panel.targets
+    .map(
+      (t) =>
+        `<option value="${esc(t.id)}"${t.disabled ? ' disabled' : ''}>${esc(t.label)}</option>`,
+    )
+    .join('');
+  const select = `<select id="jg_to" class="jump-to"${panel.targets.length ? '' : ' disabled'}>${options}</select>`;
+  const wait =
+    panel.cooling === null
+      ? ''
+      : ` <span class="dim">Wieder bereit in ${cd(panel.cooling, v.now)}</span>`;
+  return box(
+    'Warp-Tor',
+    `<div><label for="jg_to">Zielmond</label> ${select}</div><div class="mt10"><button data-act="jump"${panel.canJump ? '' : ' disabled'}>Springen</button>${wait}</div>`,
+  );
 }
 
 export function fleet(v: V): string {
@@ -74,8 +111,8 @@ export function fleet(v: V): string {
     fleetTable(v),
   );
   if (!rows)
-    return `<h2>Flotte</h2>${head}<div class="notice">Auf diesem Planeten stehen keine Schiffe. Baue welche in der Schiffsschmiede.</div>`;
+    return `<h2>Flotte</h2>${head}<div class="notice">Auf diesem Planeten stehen keine Schiffe. Baue welche in der Schiffsschmiede.</div>${jumpBox(v)}`;
   const pick = `<table><tr><th>Schiff</th><th class="n">vorhanden</th><th class="n">Tempo</th><th>Anzahl</th></tr>${rows}</table>
   <div class="mt"><span class="lnk" data-act="fall">alle Schiffe</span> · <span class="lnk" data-act="fnone">keine Schiffe</span></div>`;
-  return `<h2>Flotte</h2>${head}${box('1. Schiffe auswählen', pick)}${box('2. Ziel und Auftrag', targetForm(v, used >= slots))}`;
+  return `<h2>Flotte</h2>${head}${box('1. Schiffe auswählen', pick)}${box('2. Ziel und Auftrag', targetForm(v, used >= slots))}${jumpBox(v)}`;
 }

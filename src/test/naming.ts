@@ -43,6 +43,8 @@ export const NAMES: Readonly<
   // #54: the names of the table above [V] (okf/features/missiles.md), the
   // abbreviations [V].
   silo: { classic: 'Raketensilo', name: 'Raketenkrypta', ab: 'RK' },
+  // #53, #230: the name decided by the owner (2026-11-13), the abbreviation [V].
+  jumpgate: { classic: 'Sprungtor', name: 'Warp-Tor', ab: 'WR' },
   energy: { classic: 'Energietechnik', name: 'Machina-Energetik', ab: 'ME' },
   laser: { classic: 'Lasertechnik', name: 'Lichtlanzen-Lehre', ab: 'LZ' },
   comb: {

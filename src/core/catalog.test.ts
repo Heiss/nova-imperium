@@ -101,6 +101,7 @@ describe('catalog', () => {
       terraformer: values(C.BUILD).terraformer,
       moonbase: values(C.BUILD).moonbase,
       phalanx: values(C.BUILD).phalanx,
+      jumpgate: values(C.BUILD).jumpgate,
       silo: values(C.BUILD).silo,
     });
     expect(values(C.RES)).toEqual({
@@ -269,6 +270,7 @@ describe('catalog', () => {
       sdeut: ['planet', 'moon'],
       moonbase: ['moon'],
       phalanx: ['moon'],
+      jumpgate: ['moon'],
     });
   });
   it('has the Sensorphalanx as Auspex-Phalanx with the decided values, on moons only (#53)', () => {
@@ -282,14 +284,31 @@ describe('catalog', () => {
       req: { b: { moonbase: 1 } },
     });
     // The key `phalanx`, after the Mondzitadelle (owner, 2026-11-15); the
-    // Raketenkrypta of #54 comes after both.
-    expect(Object.keys(C.BUILD).at(-2)).toBe('phalanx');
-    expect(Object.keys(C.BUILD).at(-3)).toBe('moonbase');
+    // Warp-Tor of #230 and the Raketenkrypta of #54 come after it.
+    const keys = Object.keys(C.BUILD);
+    expect(keys.indexOf('phalanx')).toBe(keys.indexOf('moonbase') + 1);
     expect(C.BUILD.phalanx!.fields).toBeUndefined();
     expect(C.buildable('phalanx', 'moon')).toBe(true);
     expect(C.buildable('phalanx', 'planet')).toBe(false);
   });
-  it('builds on a moon only the Servitorenschmiede, the Schiffsschmiede, the stores, the Mondzitadelle and the Auspex-Phalanx (#53)', () => {
+  it('has the Sprungtor as Warp-Tor with the decided values, on moons only (#53, #230)', () => {
+    expect(C.BUILD.jumpgate).toEqual({
+      n: 'Warp-Tor',
+      ab: 'WR',
+      cost: [2000000, 4000000, 2000000],
+      f: 2,
+      ds: 'Versetzt Schiffe sofort zu einem eigenen Mond mit Warp-Tor. Steht nur auf einem Mond.',
+      lt: LT,
+      req: { b: { moonbase: 1 }, r: { hyper: 7 } },
+    });
+    // After the Auspex-Phalanx, the last building.
+    expect(Object.keys(C.BUILD).at(-1)).toBe('jumpgate');
+    expect(Object.keys(C.BUILD).at(-2)).toBe('phalanx');
+    expect(C.BUILD.jumpgate!.fields).toBeUndefined();
+    expect(C.buildable('jumpgate', 'moon')).toBe(true);
+    expect(C.buildable('jumpgate', 'planet')).toBe(false);
+  });
+  it('builds on a moon only the Servitorenschmiede, the Schiffsschmiede, the stores, the Mondzitadelle, the Auspex-Phalanx and the Warp-Tor (#53)', () => {
     const on = (kind: 'planet' | 'moon') =>
       Object.keys(C.BUILD).filter((k) => C.buildable(k, kind));
     expect(on('moon')).toEqual([
@@ -300,9 +319,12 @@ describe('catalog', () => {
       'sdeut',
       'moonbase',
       'phalanx',
+      'jumpgate',
     ]);
     expect(on('planet')).toEqual(
-      Object.keys(C.BUILD).filter((k) => !['moonbase', 'phalanx'].includes(k)),
+      Object.keys(C.BUILD).filter(
+        (k) => !['moonbase', 'phalanx', 'jumpgate'].includes(k),
+      ),
     );
     for (const k of ['nope', 'toString', '__proto__', 'constructor'])
       for (const kind of ['planet', 'moon'] as const)
@@ -681,6 +703,7 @@ describe('catalog from the entry folders', () => {
       'sdeut',
       'moonbase',
       'phalanx',
+      'jumpgate',
       'silo',
     ]);
     expect(Object.keys(C.RES)).toEqual([
@@ -740,7 +763,7 @@ describe('catalog from the entry folders', () => {
   });
 
   it('has one folder per entry, each with its kind and its own order', () => {
-    expect(ENTRIES).toHaveLength(55);
+    expect(ENTRIES).toHaveLength(56);
     const kinds = {
       building: C.BUILD,
       research: C.RES,

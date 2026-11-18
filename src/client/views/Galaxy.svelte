@@ -2,7 +2,9 @@
   // The Sternenkarte (#118, bundle 2; okf/architecture/patterns.md,
   // section 9): from galaxyPage() of logic/galaxy.ts. Its buttons and links
   // carry data-act, which main.ts handles; the clock of main.ts counts the
-  // countdowns of the scan down. The symbols of a moon and a Trümmerfeld,
+  // countdowns of the scan down. A place shows the words of its activity
+  // after its name, its owner those of the inactivity (#229), before the
+  // noob protection. The symbols of a moon and a Trümmerfeld,
   // the button „Bergung“ and the pictures keep their HTML.
   import type {
     GalaxyAction,
@@ -30,11 +32,16 @@
   list: string[],
 )}{#each list as mark, i (i)}{' '}{@html mark}{/each}{/snippet}
 
+{#snippet activity(pl: GalaxyPlace)}{#if pl.activity}{' '}<span class="dim"
+      >({pl.activity})</span
+    >{/if}{/snippet}
+
 {#snippet owner(pl: GalaxyPlace)}<td
     >{pl.owner}
-    <span class="dim">(Platz {pl.rank})</span>{#if pl.protected}{' '}<span
-        class="good"
-        title="Noobschutz">(n)</span
+    <span class="dim">(Platz {pl.rank})</span>{#if pl.inactivity}{' '}<span
+        class="dim">({pl.inactivity})</span
+      >{/if}{#if pl.protected}{' '}<span class="good" title="Noobschutz"
+        >(n)</span
       >{/if}</td
   >{/snippet}
 
@@ -125,7 +132,9 @@
             <td
               ><span class="gal-pl"
                 >{@html planetHTML(row.planet, true)}{row.planet
-                  .name}{@render marks(row.marks)}</span
+                  .name}{@render activity(row.planet)}{@render marks(
+                  row.marks,
+                )}</span
               ></td
             >
             {@render owner(row.planet)}
@@ -136,7 +145,8 @@
               <td class="n"></td>
               <td
                 ><span class="gal-pl"
-                  >{@html moonPicture(row.moon.name, 28)}{row.moon.name}</span
+                  >{@html moonPicture(row.moon.name, 28)}{row.moon
+                    .name}{@render activity(row.moon)}</span
                 ></td
               >
               {@render owner(row.moon)}
@@ -147,7 +157,7 @@
           <tr>
             <td class="n">{row.position}</td>
             <td colspan="2"
-              ><span class="dim">–</span>{@render marks(row.marks)}</td
+              ><span class="dim">{row.note}</span>{@render marks(row.marks)}</td
             >
             <td>{@render actions(row.actions)}</td>
           </tr>

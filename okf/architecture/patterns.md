@@ -523,6 +523,22 @@ choice of the patterns to the assistant's recommendation below
   on both sides, and an order of 0 gets the browser's text on the server
   too (O18 (c): F8, F9, F10).
 
+* **[V]** Built with #283 (a refactor without a visible change, in the
+  style of #111): the settings of a round are a registry, `ROUND_SETTINGS`
+  in `src/core/round.ts`, instead of hand wiring in `RoundRules`,
+  `roundRules()`, `startRoundRules()`, `UNIVERSE_SPECS`, the dialog „Neue
+  Runde“, the client's `doReset` and the reset action. Each entry gives
+  its stored key, its name, its German label, its range or choices, its
+  default and its refusal (else the shared range wording `rangeError` of
+  the universe settings); the pure checks `roundRefused` and `roundValues`
+  are in the core, the server words the refusal. `RoundRules` is derived
+  from the entries' types. A feature adds one entry in its own file and
+  one line to the list; its `order` number, the next free ten above the
+  highest, puts it last in the fixed order of the dialog and the refusals
+  (owner, 2026-11-17; a test refuses a number used twice); `live: true`
+  also puts it into the universe settings (X1). The rules are in
+  [Admin](/features/admin.md#the-registry-of-the-round-settings-283).
+
 ## 8. Store: a repository per aggregate
 
 * **[E]** One repository per aggregate (planet, fleet, player, guild, …)
@@ -585,6 +601,10 @@ choice of the patterns to the assistant's recommendation below
 
 * **[E]** One state module with Svelte 5 runes (`.svelte.ts`) replaces the
   module variables of `src/client/main.ts`; one component per view.
+* **[E]** `main.ts` must not grow: a CI ratchet keeps its line count at or
+  below the limit in `size-ratchet.json`, and every #118 pull request
+  lowers the limit as it shrinks `main.ts` (#242, see
+  [Test strategy](/ops/testing.md)).
 * **[E]** Generic components render from the catalog: `CatalogList`
   (buildings, research, shipyard, defense) and `ProducerTable` (resources).
   A new entry needs no new HTML.
@@ -849,6 +869,17 @@ src/client/                state, components (generic), views
   `import type`: the cycles it closes (`types.ts` → index →
   `rules.ts` → `missions.ts`) all run through a type-only import, which
   `no-circular` does not count, so the rule passes unchanged.
+* **[V]** Built with #285 (Lexicanum): an entry folder and a mission
+  folder hold a `lexicon.de.ts`, what the entry or mission adds to its
+  article (the guards ask for keywords in every one, owner, 2026-11-17).
+  `gen-features` lists these files in a third index,
+  `src/features/lexicon.gen.ts` (`LEXICON` and `MISSION_LEXICON`, not
+  checked in), which only
+  `src/core/lexicon/` imports (rule `lexicon-index-in-lexicon`), so the
+  parts load with the chunk of the Lexicanum and not with the start bundle
+  (#242). Knip takes it as an entry, Vitest coverage and Stryker leave it
+  out; Stryker leaves the `lexicon.de.ts` files out like the text files
+  (see [Lexicanum](/features/lexicanum.md)).
 
 ## 11. Boundaries
 

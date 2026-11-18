@@ -19,7 +19,7 @@ import {
   type ResearchError,
   researchErrors,
 } from '../../core/economy-checks.ts';
-import { type ExplainMode, isExplainMode } from '../../core/explain.ts';
+import { type ExplainMode, storedMode } from '../../core/explain.ts';
 import {
   energyNeed,
   energyShort,
@@ -324,9 +324,12 @@ export const rename: Action = (ctx, u, d) => {
   return null;
 };
 
-/** A display option of the explanation texts (issue #63), or a refusal. */
+/**
+ * A display option of the „?“ (issue #63, #285 B2), or a refusal; „Immer
+ * anzeigen“ of an older client becomes the „?“.
+ */
 const explainMode = (x: unknown): ExplainMode =>
-  isExplainMode(x) ? x : fail('Ungültig.');
+  storedMode(x) ?? fail('Ungültig.');
 
 export const options: Action = (ctx, u, d) => {
   // An older client sends no display option; the stored one stays.

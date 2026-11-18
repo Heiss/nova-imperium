@@ -76,7 +76,7 @@ Built on the branch `claude/missiles` (2026-11-17), within the decisions
 above.
 
 * **[E]** Catalog (patterns, sections 1 and 10): three feature folders,
-  `silo` (Raketenkrypta, building, order 160, after the buildings of the
+  `silo` (Raketenkrypta, building, order 170, after the buildings of the
   moon; planets only, as every building without `placement`), `abm`
   (Abfangrakete, defense, order 90) and `ipm` (Orbitalrakete, defense,
   order 100), with the values above. Two new components with one rule

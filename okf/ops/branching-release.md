@@ -223,15 +223,58 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   severity; Dependabot's own security updates are off, so no hole gets two
   pull requests.
 * **[E]** Renovate's ordinary minor updates do not merge themselves; the
-  release loop merges them before it makes the release pull request ready
-  (owner, 2026-11-16): patch and minor updates of a version from 1.0 on,
-  one at a time under O4 on a head up to date with `main`
-  (Renovate rebases the others itself). **[V]** A red one stays open and
+  release loop merges them between features and before it makes the
+  release pull request ready (owner, 2026-11-16 and 2026-11-18): patch and
+  minor updates of a version from 1.0 on, one at a time under O4 on a head
+  up to date with `main`. **[V]** A red one stays open and
   is named to the owner with the release; major updates and minor updates
   below 1.0 wait for the owner, each with its own issue that the loop
   finds or opens without a status label. Renovate keeps
   single pull requests at any time, without group or schedule (owner,
   2026-11-16). See [Release loop](/ops/loop.md).
+* **[E]** Renovate rebases a pull request only when it conflicts with
+  `main` (`rebaseWhen: conflicted`); only the updates that merge
+  themselves follow `main` (`behind-base-branch`: ordinary patch updates
+  and the security updates above) (owner, 2026-11-18). Reason: with the
+  default `auto` and a ruleset that wants an up-to-date head, Renovate
+  rebased every open pull request after every push to `main`: 50 of the
+  100 CI runs from 2026-11-17 10:15 to 2026-11-18 03:45 UTC ran on
+  `renovate/…` branches (about 770 of 2,035 minutes of run time), 6 to 7
+  of them within two minutes after each of the 7 pushes to `main`, and
+  they kept the runners from the pull requests being built. Who merges a
+  Renovate pull request asks for its rebase first: tick the box
+  „rebase/retry“ at the end of its description (an edit of the
+  description starts no CI run; the label `rebase` works too, but starts
+  one), then wait for the CI of the new head. Checked in the code of
+  Renovate 44.251.0 (`workers/repository/update/branch/reuse.js`,
+  `check-existing.js`) and seen on GitHub on 2026-11-18: for four and a
+  half minutes after the merge of #294 Renovate left its three open
+  branches alone (before, it rebased all of them within two minutes); a
+  tick of the box of #142 at 09:10 UTC rebased it by 09:12, a tick of the
+  box of #153 at 09:30 rebased it by 09:32, and no other branch moved.
+  The description of a pull request now reads „Rebasing: Whenever PR
+  becomes conflicted, or you tick the rebase/retry checkbox“.
+* **[E]** A major update and a minor update below 1.0 get no pull request
+  until the owner approves it (`dependencyDashboardApproval`; owner,
+  2026-11-18): Renovate lists it under „Pending Approval“ in the issue
+  „Dependency Dashboard“ (#5), and a tick there opens the pull request.
+  Reason: such a pull request waits for the owner anyway, and a blocked
+  one (TypeScript 7, #15: 6 of 7 runs red) ran the CI for nothing. The
+  approval gates only the creation of a branch
+  (`workers/repository/update/branch/index.js`), so a pull request that is
+  open already stays. Security pull requests need no approval
+  (`vulnerabilityAlerts` sets it to false, by default and in
+  `renovate.json`). **[V]** The loop reads the list in #5 where it read
+  the open pull requests before, and the issue of such an update names
+  the entry of #5; the box is ticked when the issue is built.
+* **[E]** Both rules were tried before the merge with Renovate 44.251.0
+  on the local platform (`--platform=local --dry-run=lookup`,
+  `LOG_LEVEL=trace`, the branch configurations of the log): the major
+  update TypeScript 6 to 7 got `dependencyDashboardApproval: true`; the
+  nine minor updates got `rebaseWhen: conflicted`, no approval and no
+  automerge; the patch update got `rebaseWhen: behind-base-branch` and
+  `automerge: true`. Not seen: a minor update below 1.0 (none was due)
+  and a security pull request (the run has no alerts).
 * **[E]** Security pull requests merge themselves up to minor updates
   (owner, 2026-11-13, #148): `vulnerabilityAlerts.packageRules` in
   `renovate.json` sets `automerge` for patch updates, for minor updates
@@ -288,7 +331,16 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   (`scripts/security-hotfix.ts`): every older copy of a package gets a pnpm
   override `<name>@<<fixed>`, a dependency of `package.json` also gets the
   fixed version; the job then checks that `pnpm-lock.yaml` holds no version
-  below a fix. A hole in the base image pins the newest digest of
+  below a fix. The overrides of the fix are the first of the map, because
+  among overrides that match the same dependency pnpm applies the first
+  one; an override of the same selector and an older pin of the same
+  package (`<name>@<<lower>`) are removed (#284, tested with pnpm
+  12.21.0). An override bound to a parent (`parent>name`) still wins: the
+  check then fails and names the overrides of the package. The check
+  reads only the installed packages of the lockfile. The override goes where the pnpm of the release tag reads
+  it (`packageManager`): into `overrides` of `pnpm-workspace.yaml` from
+  pnpm 11 on, into the field `pnpm` of `package.json` for an older release
+  (#264). A hole in the base image pins the newest digest of
   `node:26-slim`. The fragment says „Sicherheitsupdate“ without package
   names.
 * **[E]** The release App creates `hotfix/sec-<id>` (bypass in the ruleset

@@ -14,6 +14,7 @@ import { requireAdmin } from '../game/admin.ts';
 import { type Ctx, GameError, str } from '../game/context.ts';
 import { answerOf } from '../game/actions.ts';
 import { ACTIONS, ADMIN_ACTIONS, runAction } from '../game/dispatch.ts';
+import { recordActivity } from '../game/activity.ts';
 import { mainPlanet } from '../game/main-planet.ts';
 import { stateFor } from '../game/state.ts';
 import { type Mailer, invitationMail } from '../mail.ts';
@@ -196,16 +197,17 @@ function passwordRoutes(d: AppDeps, guard: Guard): Record<string, Handler> {
   };
 }
 
-/** Health check, invitations, registration, login and logout. */
-function accountRoutes(
-  d: AppDeps,
-  limiter: RateLimiter,
-): Record<string, Handler> {
-  const { ctx, cfg } = d;
-  const guard = (req: IncomingMessage): void => {
+/** Refuses a client address over the limit of attempts. */
+const limitGuard =
+  (limiter: RateLimiter, cfg: Config): Guard =>
+  (req) => {
     if (limiter.limited(clientIp(req, cfg.trustProxy)))
       throw new GameError('Zu viele Versuche – bitte später nochmal.');
   };
+
+/** Health check, invitations, registration, login and logout. */
+function accountRoutes(d: AppDeps, guard: Guard): Record<string, Handler> {
+  const { ctx, cfg } = d;
   const enter = (u: User, remember = true): Reply => ({
     json: { ok: true, state: stateFor(ctx, u) },
     cookie: sessionCookie(cfg, auth.startSession(ctx, cfg, u.id), remember),
@@ -412,6 +414,7 @@ const DATABASE_BUSY =
 function actionReply(ctx: Ctx, u: User, call: Call): Reply {
   let answer: ReturnType<typeof answerOf>;
   try {
+    recordActivity(ctx, u, 'action');
     answer = answerOf(playerAction(ctx, u, call));
   } catch (error) {
     if (!isDatabaseBusy(error)) throw error;
@@ -431,8 +434,14 @@ function actionReply(ctx: Ctx, u: User, call: Call): Reply {
   };
 }
 
+/**
+ * The actions that ask for the password (#224): limited per address like
+ * the deletion of the account.
+ */
+const PASSWORD_ACTIONS: ReadonlySet<string> = new Set(['abandon']);
+
 /** The game and the admin functions; all need a session. */
-function gameRoutes(d: AppDeps): Record<string, Handler> {
+function gameRoutes(d: AppDeps, guard: Guard): Record<string, Handler> {
   const { ctx } = d;
   return {
     'GET /api/state': (call) => ({
@@ -448,12 +457,18 @@ function gameRoutes(d: AppDeps): Record<string, Handler> {
       sessionUserOf(ctx, call);
       return { json: d.news ?? { version: null, versions: [] } };
     },
+    // An interaction and an action are manual actions in the account (#229).
     'POST /api/activity': (call) => {
-      activity(ctx, sessionUserOf(ctx, call));
+      const u = sessionUserOf(ctx, call);
+      activity(ctx, u);
+      recordActivity(ctx, u, 'action');
       return { json: { ok: true } };
     },
-    'POST /api/action': (call) =>
-      actionReply(ctx, sessionUserOf(ctx, call), call),
+    'POST /api/action': (call) => {
+      // String() like runAction, so `["abandon"]` is limited too.
+      if (PASSWORD_ACTIONS.has(String(call.body.type))) guard(call.req);
+      return actionReply(ctx, sessionUserOf(ctx, call), call);
+    },
     ...adminRoutes(
       d,
       (call) => sessionUserOf(ctx, call),
@@ -612,10 +627,11 @@ export function createApp(d: AppDeps): {
     d.cfg.rateLimitMinutes * 60000,
     d.ctx.now,
   );
+  const guard = limitGuard(limiter, d.cfg);
   const errors = errorRoutes(d, (call) => sessionUserOf(d.ctx, call));
   const table = Object.entries({
-    ...accountRoutes(d, limiter),
-    ...gameRoutes(d),
+    ...accountRoutes(d, guard),
+    ...gameRoutes(d, guard),
     ...pushRoutes(d),
     ...errors.routes,
   });

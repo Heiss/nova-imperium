@@ -110,6 +110,27 @@ describe('Trümmerfelder on the Sternenkarte (#45)', () => {
     expect(row(html, 10)).not.toContain('Bergung');
   });
 
+  it('says until when a given-up position is locked and offers no Landnahme there (#224)', () => {
+    const v = view([field(9, 0, 300)], { colony: 1 });
+    const until = Date.UTC(2026, 10, 18, 12, 0);
+    v.s.locks = [
+      { g: 1, s: 2, p: 9, until },
+      { g: 1, s: 2, p: 11, until: 5 },
+    ];
+    v.now = 10;
+    const html = galaxy(v);
+    expect(row(html, 9)).toMatch(
+      /<span class="dim">gesperrt bis \d\d\.\d\d\.2026, \d\d:\d\d<\/span>/,
+    );
+    expect(row(html, 9)).not.toContain('Landnahme');
+    // The Bergung stays; an ended lock and other positions are free as before.
+    expect(row(html, 9)).toContain('Bergung');
+    for (const p of [10, 11]) {
+      expect(row(html, p)).toContain('<span class="dim">–</span>');
+      expect(row(html, p)).toContain('Landnahme');
+    }
+  });
+
   it('shows neither symbol nor button without a field', () => {
     const html = galaxy(view([]));
     expect(html).not.toContain('debris');
@@ -365,5 +386,48 @@ describe('the Raketenangriff on the Sternenkarte (#54)', () => {
     // Impulse 1 reaches 4 systems: from system 6 yes, from system 7 no.
     expect(row(galaxy(armed(3, 1, 6)), 6)).toContain('gmissile');
     expect(row(galaxy(armed(3, 1, 7)), 6)).not.toContain('gmissile');
+  });
+});
+
+describe('activity and inactivity on the Sternenkarte (#229)', () => {
+  /** The Sternenkarte with Bert's planet and moon active and Bert's account in `inactive`. */
+  function marked(inactive?: 'inactive' | 'long'): V {
+    const v = view([]);
+    v.s.galaxy[1]!.activity = { minutes: 42 };
+    v.s.galaxy.push({
+      id: 'm1_2_6',
+      kind: 'moon',
+      name: 'Mond',
+      g: 1,
+      s: 2,
+      p: 6,
+      temp: 20,
+      owner: 'u_Bert',
+      activity: { recent: true },
+    });
+    v.s.players.u_Bert!.inactive = inactive;
+    return v;
+  }
+
+  it('shows the activity of a planet after its name, the moon’s in its row', () => {
+    const v = marked();
+    v.ui.gmoon = 'm1_2_6';
+    const html = galaxy(v);
+    expect(row(html, 6)).toContain(
+      'Beta <span class="dim">(Aktivität vor 42 Minuten)</span>',
+    );
+    expect(html).toContain('Mond (Mond) <span class="dim">(Aktiv)</span>');
+    // Anna's planet shows no activity.
+    expect(row(html, 5)).not.toContain('Aktivität');
+  });
+
+  it('shows the inactivity of an account after the player, apart from the noob protection', () => {
+    expect(row(galaxy(marked()), 6)).not.toContain('inaktiv');
+    expect(row(galaxy(marked('inactive')), 6)).toContain(
+      'Bert <span class="dim">(Platz 2)</span> <span class="dim">(Inaktiv)</span>',
+    );
+    expect(row(galaxy(marked('long')), 6)).toContain(
+      '<span class="dim">(Lange inaktiv)</span>',
+    );
   });
 });

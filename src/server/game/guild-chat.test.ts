@@ -295,6 +295,8 @@ describe('messages (#169)', () => {
     expect(s.texts('Out')).toEqual(['drüben']);
   });
 
+  // Up to 12 runs of 560 real actions: seconds on a loaded machine, so its own
+  // limit instead of the default of five seconds (timed out in the CI of #300).
   it('never keeps more than 500 messages and always the newest (property)', () => {
     fc.assert(
       fc.property(fc.integer({ min: 0, max: 560 }), (n) => {
@@ -320,7 +322,7 @@ describe('messages (#169)', () => {
       }),
       { seed: 169, numRuns: 12 },
     );
-  });
+  }, 60_000);
 });
 
 describe('leaving and deleted accounts (#169, D7)', () => {

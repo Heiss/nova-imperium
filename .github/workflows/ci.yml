@@ -112,7 +112,7 @@ jobs:
             esac
             # What can change the image, its start, the stack or the upgrade.
             case "$file" in
-              Dockerfile|.dockerignore|compose*.yaml|docker/*|package.json|pnpm-lock.yaml|.node-version|scripts/gen-features.ts) image=true ;;
+              Dockerfile|.dockerignore|compose*.yaml|docker/*|package.json|pnpm-lock.yaml|pnpm-workspace.yaml|.node-version|scripts/gen-features.ts) image=true ;;
               src/server/db/*|src/server/main.ts|src/server/server.ts|src/server/config.ts|src/server/cli.ts|src/server/maintenance.ts) image=true ;;
               .github/workflows/ci.yml) image=true ;;
             esac
@@ -200,6 +200,11 @@ jobs:
       - run: pnpm lint:dead
       - run: pnpm lint:dupes
       - run: pnpm lint:deps
+      # src/client/main.ts must not grow; whoever shrinks it lowers the
+      # limit in size-ratchet.json (scripts/size-ratchet.ts, #242). The
+      # limit is compared with the one on main, so it cannot be raised.
+      - run: git fetch --no-tags --depth=1 origin main:refs/remotes/origin/main
+      - run: pnpm lint:size
       - run: pnpm format:check
       - run: pnpm typecheck
       # Blocks below 90 % lines and 85 % branches (vitest.config.ts).
