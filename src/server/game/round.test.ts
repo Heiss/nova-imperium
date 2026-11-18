@@ -169,7 +169,7 @@ describe('a new entry of the registry (#283)', () => {
     expect(valuesOf(ctx)).toMatchObject({ testHours: 72 });
   });
 
-  it('the lock of a given-up position (#224) and the demolition (#202) are the live settings of main, the last rows of the universe settings', () => {
+  it('the lock of a given-up position (#224) and the demolition (#202) are live settings of main, rows of the universe settings', () => {
     const rows = [
       {
         key: 'roundAbandonLock',
@@ -193,11 +193,11 @@ describe('a new entry of the registry (#283)', () => {
         def: 50,
       },
     ];
-    expect(liveSpecs()).toEqual(rows);
-    expect(UNIVERSE_SPECS.filter((s) => s.key.startsWith('round'))).toEqual(
-      rows,
-    );
-    expect(UNIVERSE_SPECS.slice(-3)).toEqual(rows);
+    // Selected by key, never by position: other features add live rows too.
+    const mine = (specs: readonly { key: string }[]) =>
+      specs.filter((s) => rows.some((r) => r.key === s.key));
+    expect(mine(liveSpecs())).toEqual(rows);
+    expect(mine(UNIVERSE_SPECS)).toEqual(rows);
   });
 
   it('a new round refuses in the fixed order of main (owner, 2026-11-17)', () => {
