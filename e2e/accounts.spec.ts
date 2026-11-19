@@ -4,6 +4,7 @@ import { expect, test } from '@playwright/test';
 import {
   inviteLink,
   login,
+  logout,
   nav,
   register,
   uniqueName,
@@ -82,7 +83,7 @@ test.describe('accounts', () => {
     await expect(
       page.getByText('Passkey gespeichert.', { exact: true }),
     ).toBeVisible();
-    await page.click('[data-act=logout]');
+    await logout(page);
     await page
       .getByRole('checkbox', { name: 'Login auf diesem Gerät speichern' })
       .check();
@@ -156,7 +157,7 @@ test.describe('accounts', () => {
     const w = watch(page);
     const name = uniqueName('Login');
     await register(page, name);
-    await page.click('[data-act=logout]');
+    await logout(page);
     await expect(page.locator('.auth .hd')).toHaveText('Login');
     await page.fill('#a_name', name);
     await page.fill('#a_pw', 'falsch!!');

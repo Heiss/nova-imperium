@@ -21,9 +21,10 @@ test.describe('playing', () => {
     expect(await overflow()).toBeLessThanOrEqual(0);
     await page.click('#tabbar [data-act=moreOpen]');
     await expect(page.locator('#more')).toBeVisible();
-    await page.click('#more-list [data-v=galaxy]');
+    // The Sternenkarte is a tab since #189; a view of the sheet is the highscore.
+    await page.click('#more-list [data-v=highscore]');
     await expect(page.locator('#more')).toBeHidden();
-    await expect(page.locator('h2')).toContainText('Sternenkarte');
+    await expect(page.locator('h2')).toContainText('Highscore');
     await expect(page.locator('#tabbar [data-act=moreOpen]')).toHaveClass(/on/);
     expect(await overflow()).toBeLessThanOrEqual(0);
     expect(w.problems).toEqual([]);

@@ -1,7 +1,7 @@
 // Defense (#50, #64): Ionengeschütz, Plasmawerfer and the shield domes, with
 // icons and requirements on a phone.
 import { expect, test } from '@playwright/test';
-import { register, seed, uniqueName, watch } from './helpers.ts';
+import { openAllRows, register, seed, uniqueName, watch } from './helpers.ts';
 
 test.describe('playing', () => {
   test('Ionengeschütz, Plasmawerfer and the shield domes; a dome only once (#50)', async ({
@@ -18,6 +18,7 @@ test.describe('playing', () => {
       res: { m: 500000, c: 500000, d: 100000 },
     });
     await page.goto('/?view=defense');
+    await openAllRows(page);
     const item = (nm: string) =>
       page.locator('.item').filter({
         has: page.locator('.nm', { hasText: new RegExp(`^\\s*${nm}`) }),
@@ -106,6 +107,7 @@ test.describe('playing', () => {
       res: { m: 20000, c: 20000, d: 0 },
     });
     await page.goto('/?view=defense');
+    await openAllRows(page);
     const item = (nm: string) =>
       page.locator('.item').filter({
         has: page.locator('.nm', { hasText: new RegExp(`^\\s*${nm}`) }),
@@ -145,6 +147,7 @@ test.describe('playing', () => {
     await register(page, name);
     seed({ name, b: { robot: 2, yard: 2, lab: 1 } });
     await page.goto('/?view=defense');
+    await openAllRows(page);
     const light = page.locator('.item').filter({
       has: page.locator('.nm', { hasText: /^\s*Lichtlanze/ }),
     });

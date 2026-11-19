@@ -19,6 +19,7 @@ import {
   cli,
   galaxyRow,
   guildTag,
+  logout,
   nav,
   register,
   seed,
@@ -341,7 +342,7 @@ async function adminFlow(page: Page, browser: Browser): Promise<void> {
   const reading = await hold(admin, '**/api/admin/guild-chat');
   await admin.getByRole('button', { name: 'Chat lesen' }).click();
   await reading.answered;
-  await admin.click('[data-act=logout]');
+  await logout(admin);
   await expect(admin.locator('#a_name')).toBeVisible();
   await reading.release();
   await admin.waitForTimeout(300);

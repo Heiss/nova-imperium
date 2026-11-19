@@ -1,7 +1,15 @@
 // The Todesstern (#60): built after the Bomber, faster with the
 // Nanitenfabrik, flies; the shipyard on a phone.
 import { expect, test } from '@playwright/test';
-import { nav, register, seconds, seed, uniqueName, watch } from './helpers.ts';
+import {
+  nav,
+  openAllRows,
+  register,
+  seconds,
+  seed,
+  uniqueName,
+  watch,
+} from './helpers.ts';
 
 test.describe('playing', () => {
   test('the Todesstern is built after the Bomber, faster with the Nanitenfabrik, and flies (#60)', async ({
@@ -85,6 +93,7 @@ test.describe('playing', () => {
       research: { hyper: 6, hdrive: 7 },
     });
     await page.goto('/?view=shipyard');
+    await openAllRows(page);
     const ts = page.locator('.item').filter({
       has: page.locator('.nm', { hasText: /^\s*Weltenbrecher/ }),
     });

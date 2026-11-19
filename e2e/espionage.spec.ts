@@ -3,6 +3,7 @@ import { expect, test } from '@playwright/test';
 import {
   galaxyRow,
   lastToast,
+  logout,
   nav,
   register,
   seed,
@@ -19,7 +20,7 @@ test.describe('galaxy, shipyard and options (#68)', () => {
     const a = uniqueName('Spaeher');
     const b = uniqueName('Nachbar');
     await register(page, b);
-    await page.click('[data-act=logout]');
+    await logout(page);
     await register(page, a);
     // Auspex-Lehre 1 lets the player spy (#175, Q1).
     seed({
@@ -58,7 +59,7 @@ test.describe('fleet and battle (#68)', () => {
     const a = uniqueName('Riese');
     const b = uniqueName('Zwerg');
     await register(page, b);
-    await page.click('[data-act=logout]');
+    await logout(page);
     await register(page, a);
     // 22 points against the 0 of a new player: less than a fifth.
     seed({

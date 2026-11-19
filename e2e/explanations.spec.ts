@@ -1,6 +1,13 @@
 // Explanation texts (#63): the „?“ opens the Lexicanum (#285).
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { nav, register, seed, uniqueName, watch } from './helpers.ts';
+import {
+  nav,
+  openAllRows,
+  register,
+  seed,
+  uniqueName,
+  watch,
+} from './helpers.ts';
 // The display texts of the catalog entries (#113); `text` is a local name below.
 import { text as entryText } from '../src/core/text.ts';
 
@@ -108,6 +115,7 @@ test.describe('explanation texts (#63, the „?“ opens the Lexicanum since #28
     const w = watch(page);
     await register(page, uniqueName('Tipp'));
     await page.click('#tabbar [data-v=buildings]');
+    await openAllRows(page);
     await question(page, 'Sonnenkathedrale').tap();
     await expect(page).toHaveURL(/[?&]view=lexicanum&a=solar$/);
     await expect(page.locator('#view .lx-intro p')).toHaveText(

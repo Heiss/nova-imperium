@@ -29,7 +29,7 @@ async function stepAndType(page: Page): Promise<void> {
     /url\(/,
   );
   await expect(page.locator('.box .bd.dim').last()).toHaveText(
-    /^Auspex-Erkundung schickt \d+ Spähschädel – einstellbar unter „Hilfe & Optionen“\.$/,
+    /^Auspex-Erkundung schickt \d+ Spähschädel – einstellbar unter „Optionen“\.$/,
   );
   // Enter shows the typed system, and the focus stays in the field.
   const other = s === '1' ? '2' : '1';

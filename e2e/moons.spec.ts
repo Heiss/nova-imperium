@@ -8,6 +8,7 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 import {
   cli,
   expectShownPlace,
+  logout,
   nav,
   register,
   seed,
@@ -59,7 +60,7 @@ test.describe('moons (#53)', () => {
     const pilot = uniqueName('MondPilot');
     const boss = uniqueName('MondAdmin');
     await register(page, pilot);
-    await page.click('[data-act=logout]');
+    await logout(page);
     await register(page, boss);
     cli('admin', boss);
     seed({ name: boss, ships: { lf: 3 }, res: { m: 0, c: 0, d: 10000 } });
@@ -254,7 +255,7 @@ test.describe('moons (#53)', () => {
     const a = uniqueName('MondSturm');
     const b = uniqueName('MondZiel');
     await register(page, b);
-    await page.click('[data-act=logout]');
+    await logout(page);
     await register(page, a);
     seed({ name: a, ships: { lf: 5, sc: 2 }, res: { m: 0, c: 0, d: 10000 } });
     // Points against the noob protection; 100,000 Adamant in the field: 1 %.
@@ -293,7 +294,7 @@ test.describe('moons (#53)', () => {
     const b = uniqueName('MondNachbar');
     await register(page, b);
     seed({ name: b, moon: { name: 'Selene' } });
-    await page.click('[data-act=logout]');
+    await logout(page);
     await register(page, a);
     await openSystemOf(page, b);
     const mark = galaxyRow(page, b).getByRole('button', {

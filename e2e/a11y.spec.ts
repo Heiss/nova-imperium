@@ -5,6 +5,7 @@ import {
   expectShownPlace,
   galaxyRow,
   guildTag,
+  logout,
   nav,
   register,
   seed,
@@ -118,7 +119,7 @@ test.describe('accessibility (axe)', () => {
     // no mission with the own planet as its target (#253).
     const other = uniqueName('AxeWrack');
     await register(page, other);
-    await page.click('[data-act=logout]');
+    await logout(page);
     await register(page, name);
     seed({ name: other, debris: { m: 1800, c: 600 } });
     seed({ name, ships: { recycler: 1 } });

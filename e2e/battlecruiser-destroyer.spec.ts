@@ -1,7 +1,14 @@
 // Schlachtkreuzer and Zerstörer (#58, #59): built, flying, and the shipyard
 // on a phone.
 import { expect, test } from '@playwright/test';
-import { nav, register, seed, uniqueName, watch } from './helpers.ts';
+import {
+  nav,
+  openAllRows,
+  register,
+  seed,
+  uniqueName,
+  watch,
+} from './helpers.ts';
 
 test.describe('playing', () => {
   test('Schlachtkreuzer and Zerstörer are built and fly (#58, #59)', async ({
@@ -76,6 +83,7 @@ test.describe('playing', () => {
     await register(page, name);
     seed({ name, b: { robot: 2, yard: 8, lab: 7 }, research: { hdrive: 5 } });
     await page.goto('/?view=shipyard');
+    await openAllRows(page);
     await expect(page.getByRole('img', { name: 'Jagdkreuzer' })).toBeVisible();
     const dr = page.locator('.item').filter({
       has: page.locator('.nm', { hasText: /^\s*Vernichter/ }),

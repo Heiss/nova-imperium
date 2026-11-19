@@ -12,6 +12,7 @@ import {
   galaxyRow,
   login,
   loginByCode,
+  logout,
   mailCli,
   mailSeed,
   nav,
@@ -79,14 +80,14 @@ async function defenderFlow(page: Page): Promise<void> {
   const a = uniqueName('Kundschaft');
   const b = uniqueName('Wache');
   await register(page, b);
-  await page.click('[data-act=logout]');
+  await logout(page);
   await register(page, a);
   await sendAttack(page, a, b);
   // The attacker sees the own fleet in full.
   await expect(page.locator('.fl-attack')).toContainText(
     'Deine Flotte (5 Abfangjäger, 2 Frachtläufer)',
   );
-  await page.click('[data-act=logout]');
+  await logout(page);
   await login(page, b);
   const row = incoming(page);
   await expect(row).toContainText(`Eine fremde Flotte von ${a}`);

@@ -1,7 +1,14 @@
 // Helpers of the fleet and battle specs: sending, spying, attacking and
 // reading the reports of both sides.
 import { expect, type Locator, type Page } from '@playwright/test';
-import { galaxyRow, lastToast, nav, register, seed } from './helpers.ts';
+import {
+  galaxyRow,
+  lastToast,
+  logout,
+  nav,
+  register,
+  seed,
+} from './helpers.ts';
 
 /** Opens the galaxy at the home system of another player, from the highscore. */
 export async function openSystemOf(page: Page, player: string): Promise<void> {
@@ -48,7 +55,7 @@ export async function sendTransport(page: Page): Promise<void> {
  */
 export async function attack(page: Page, a: string, b: string): Promise<void> {
   await register(page, b);
-  await page.click('[data-act=logout]');
+  await logout(page);
   await register(page, a);
   seed({ name: a, ships: { lf: 5, sc: 2 }, res: { m: 0, c: 0, d: 10000 } });
   // Mines and a probe give the defender a fifth of the attacker's points

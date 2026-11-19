@@ -1,7 +1,14 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { text as entryText } from '../src/core/text.ts';
-import { nav, register, seed, uniqueName, watch } from './helpers.ts';
+import {
+  nav,
+  openAllRows,
+  register,
+  seed,
+  uniqueName,
+  watch,
+} from './helpers.ts';
 
 // The Lexicanum, stage 1 (#285): the „?“ of a list entry opens the article
 // in a side panel on a desktop and the page on a phone; „Im Lexicanum
@@ -126,7 +133,7 @@ test.describe('Lexicanum (#285)', () => {
     for (const [query, title] of [
       ['Kogitator', 'Kogitator-Doktrin'],
       ['KD', 'Kogitator-Doktrin'],
-      ['Flottenslot', 'Kogitator-Doktrin'],
+      ['Flottenslot', 'Wie bekomme ich mehr Flottenslots?'],
       ['ausspähen', 'Auspex-Lehre'],
       // Everyday keywords of an entry and of a mission (owner, 2026-11-17).
       ['Sprit', 'Promethium-Raffinerie'],
@@ -207,6 +214,7 @@ test.describe('Lexicanum (#285)', () => {
     await register(page, name);
     seed({ name, b: { lab: 3 }, research: { spy: 2 } });
     await page.click('#tabbar [data-v=buildings]');
+    await openAllRows(page);
     await question(page, 'Sonnenkathedrale').tap();
     await expect(page).toHaveURL(/[?&]view=lexicanum&a=solar$/);
     await expect(heading(page)).toContainText('Sonnenkathedrale');

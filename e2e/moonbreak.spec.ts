@@ -10,6 +10,7 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 import {
   galaxyRow,
   login,
+  logout,
   nav,
   register,
   seed,
@@ -58,7 +59,7 @@ async function openSystemOf(page: Page, player: string): Promise<void> {
  */
 async function toTheMoon(page: Page, a: string, b: string): Promise<void> {
   await register(page, b);
-  await page.click('[data-act=logout]');
+  await logout(page);
   await register(page, a);
   seed({
     name: b,
@@ -147,7 +148,7 @@ async function mondbruch(page: Page, base: string): Promise<void> {
   expect(await violations(page)).toEqual([]);
 
   // The owner reads that his moon is gone; it leaves his planet list.
-  await page.click('[data-act=logout]');
+  await logout(page);
   await login(page, b);
   await nav(page, 'messages');
   const hit = report(page, /^Feindkontakt! Mond \(Mond\)/);

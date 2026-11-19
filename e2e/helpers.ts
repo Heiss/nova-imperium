@@ -220,7 +220,7 @@ export const stock = (page: Page, label: string) =>
   page.locator('#resbar .res').filter({ hasText: label }).locator('.v');
 
 /** Views in the phone tab bar; the others are under „Mehr“ (issue #61). */
-const TABS = ['overview', 'buildings', 'fleet', 'messages'];
+const TABS = ['overview', 'buildings', 'fleet', 'galaxy'];
 
 /**
  * Opens a view: the side menu on a desktop, tab bar or „Mehr“ on a phone.
@@ -235,6 +235,38 @@ export async function nav(page: Page, view: string): Promise<void> {
   await page.click('#tabbar [data-act=moreOpen]');
   await page.click(`#more-list [data-v=${view}]`);
   await expect(page.locator('#more')).not.toBeVisible();
+}
+
+/**
+ * Logs out: on a phone „Logout“ is at the top of the sheet „Mehr“ (#189), on
+ * a desktop in the header.
+ */
+export async function logout(page: Page): Promise<void> {
+  const phone = (page.viewportSize()?.width ?? 1280) <= 760;
+  if (phone && (await page.locator('#tabbar').isVisible())) {
+    await page.click('#tabbar [data-act=moreOpen]');
+    return page.click('#more [data-act=logout]');
+  }
+  return page.click('[data-act=logout]');
+}
+
+/**
+ * On a phone the lists of buildings, research, shipyard and defense show the
+ * filter „Baubar“ and compact rows (#189): this chooses „Alle“ and unfolds
+ * every row, so a test sees the locked entries and their details as on a
+ * desktop. It does nothing on a desktop.
+ */
+export async function openAllRows(page: Page): Promise<void> {
+  if ((page.viewportSize()?.width ?? 1280) > 760) return;
+  await page
+    .getByRole('group', { name: 'Filter' })
+    .getByRole('button', { name: 'Alle', exact: true })
+    .click();
+  for (const fold of await page
+    .getByRole('button', { name: /^Details zu / })
+    .all())
+    if ((await fold.getAttribute('aria-expanded')) === 'false')
+      await fold.click();
 }
 
 /** The row of a player's planet on the galaxy page. */

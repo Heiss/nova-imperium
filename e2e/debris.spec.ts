@@ -5,6 +5,7 @@ import {
   galaxyRow,
   lastToast,
   login,
+  logout,
   nav,
   register,
   seed,
@@ -38,7 +39,7 @@ test.describe('fleet and battle (#68)', () => {
     await expect(returns).toHaveCount(1, { timeout: 15000 });
 
     // The defender sees the field at his own planet too.
-    await page.click('[data-act=logout]');
+    await logout(page);
     await login(page, b);
     await page.goto('/?view=galaxy');
     await page.getByText('zum Heimatsystem').click();
@@ -49,7 +50,7 @@ test.describe('fleet and battle (#68)', () => {
       galaxyRow(page, b).getByRole('button', { name: 'Bergung' }),
     ).toBeVisible();
 
-    await page.click('[data-act=logout]');
+    await logout(page);
     seed({
       name: a,
       ships: { recycler: 1, lc: 1 },
@@ -110,7 +111,7 @@ test.describe('fleet and battle (#68)', () => {
     const a = uniqueName('BergH');
     const b = uniqueName('WrackH');
     await register(page, b);
-    await page.click('[data-act=logout]');
+    await logout(page);
     await register(page, a);
     seed({ name: b, debris: { m: 1800, c: 600 } });
     seed({ name: a, ships: { recycler: 1 } });

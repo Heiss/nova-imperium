@@ -2,6 +2,7 @@
 import { expect, test } from '@playwright/test';
 import {
   lastToast,
+  logout,
   nav,
   register,
   seed,
@@ -17,7 +18,7 @@ test.describe('playing', () => {
     const a = uniqueName('Flotte');
     const b = uniqueName('Ziel');
     await register(page, b);
-    await page.click('[data-act=logout]');
+    await logout(page);
     await register(page, a);
     seed({
       name: a,

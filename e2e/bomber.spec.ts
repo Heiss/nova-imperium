@@ -1,6 +1,13 @@
 // The Bomber (#57): built, its drive switches at Hyperraumantrieb 8, flies.
 import { expect, test } from '@playwright/test';
-import { nav, register, seed, uniqueName, watch } from './helpers.ts';
+import {
+  nav,
+  openAllRows,
+  register,
+  seed,
+  uniqueName,
+  watch,
+} from './helpers.ts';
 
 test.describe('playing', () => {
   test('the Bomber is built, switches its drive at Hyperraumantrieb 8 and flies (#57)', async ({
@@ -17,6 +24,7 @@ test.describe('playing', () => {
     };
     seed({ ...base, research: { impulse: 6, plasma: 5 }, colony: {} });
     await page.goto('/?view=shipyard');
+    await openAllRows(page);
     const bb = page.locator('.item').filter({
       has: page.locator('.nm', { hasText: /^\s*Belagerungsbomber/ }),
     });
@@ -66,6 +74,7 @@ test.describe('playing', () => {
     await register(page, name);
     seed({ name, b: { robot: 2, yard: 8, lab: 7 }, research: { impulse: 6 } });
     await page.goto('/?view=shipyard');
+    await openAllRows(page);
     const bb = page.locator('.item').filter({
       has: page.locator('.nm', { hasText: /^\s*Belagerungsbomber/ }),
     });

@@ -10,6 +10,7 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 import {
   expectShownPlace,
   galaxyRow,
+  logout,
   nav,
   register,
   seed,
@@ -68,7 +69,7 @@ async function setup(
   const colony = uniqueName('Spähziel');
   const scanner = uniqueName(base);
   await register(page, target);
-  await page.click('[data-act=logout]');
+  await logout(page);
   await register(page, scanner);
   const home = await here(page);
   seed({

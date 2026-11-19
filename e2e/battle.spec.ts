@@ -1,7 +1,15 @@
 // A battle (#68): the attacker wins, takes loot home, and both sides get a
 // report.
 import { expect, test } from '@playwright/test';
-import { login, nav, seed, stock, uniqueName, watch } from './helpers.ts';
+import {
+  login,
+  logout,
+  nav,
+  seed,
+  stock,
+  uniqueName,
+  watch,
+} from './helpers.ts';
 import { attack, report } from './fleet-helpers.ts';
 
 test.describe('fleet and battle (#68)', () => {
@@ -40,7 +48,7 @@ test.describe('fleet and battle (#68)', () => {
     );
     await expect(stock(page, 'Adamant')).toHaveText(/^3\.41\d$/);
 
-    await page.click('[data-act=logout]');
+    await logout(page);
     await login(page, b);
     await expect(badge).toBeVisible();
     await nav(page, 'messages');

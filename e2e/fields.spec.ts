@@ -1,7 +1,15 @@
 // The fields of a planet (#51): the home planet, a full planet, the
 // Weltenschmiede and the extra fields the admin sets.
 import { expect, test } from '@playwright/test';
-import { cli, nav, register, seed, uniqueName, watch } from './helpers.ts';
+import {
+  cli,
+  nav,
+  openAllRows,
+  register,
+  seed,
+  uniqueName,
+  watch,
+} from './helpers.ts';
 // The display texts of the catalog entries (#113); `text` is a local name below.
 import { text as entryText } from '../src/core/text.ts';
 
@@ -164,6 +172,7 @@ test.describe('playing', () => {
     await nav(page, 'buildings');
     await expect(page.locator('#fields')).toHaveText('Felder: 163 / 163');
     await expect(page.locator('#fields')).toBeInViewport();
+    await openAllRows(page);
     const metal = page.locator('.item').filter({
       has: page.locator('.nm', { hasText: /^\s*Adamant-Tiefbohrung/ }),
     });

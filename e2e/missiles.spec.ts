@@ -6,7 +6,7 @@
 // to arrive now with e2e/seed.ts. The target is a colony of another player
 // in the attacker's home system, so the impulse drive 1 (4 systems) reaches it.
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { nav, register, seed, uniqueName, watch } from './helpers.ts';
+import { logout, nav, register, seed, uniqueName, watch } from './helpers.ts';
 
 const RICH = { m: 1e7, c: 1e7, d: 1e7 };
 
@@ -39,7 +39,7 @@ async function setup(
   const colony = uniqueName('Rakziel');
   const attacker = uniqueName('Rakete');
   await register(page, target);
-  await page.click('[data-act=logout]');
+  await logout(page);
   await register(page, attacker);
   const home = await here(page);
   seed({
