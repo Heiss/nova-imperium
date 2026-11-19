@@ -153,7 +153,7 @@ code and here in the same pull request.
 
 ### Handelsposten (`market`)
 
-* **[V]** Prose (#171): „Der Handelsposten bringt auf keiner Stufe mehr Rohstoffe: Er öffnet den Marktplatz und senkt die Gebühr. Auf Stufe 1 beträgt sie 10 Prozent des Ergebnisses, jede weitere Stufe nimmt 1 Prozentpunkt davon ab, und ab Stufe 11 entfällt sie ganz. Wie viel du für einen Rohstoff bekommst, bestimmen die Kurse des Admins, die sich mit jedem Tausch verschieben.“
+* **[V]** Prose (#171, 2026-11-19): „Der Handelsposten bringt auf keiner Stufe mehr Rohstoffe: Er öffnet den Marktplatz und senkt die Gebühr, die bei jedem Tausch vom Ergebnis abgezogen wird. Wie hoch sie auf der ersten Stufe ist und um wie viele Prozentpunkte jede weitere Stufe sie senkt, legt der Admin für die Runde fest; unter null fällt sie nie. Die Tabelle zeigt die Werte dieser Runde. Wie viel du für einen Rohstoff bekommst, bestimmen ebenfalls die Kurse des Admins, die sich mit jedem Tausch verschieben. Dazu kommt ein Tageslimit: Der Admin legt fest, wie viel jeder Spieler an einem Tag tauschen darf, bei null gibt es kein Limit. Wer mehr tauschen will, als vom Tag übrig ist, tauscht nur den Rest; ist nichts mehr übrig, wird der Tausch abgelehnt.“
 * **[V]** Keywords: tauschen, Handel, Markt
 
 ## Forschung

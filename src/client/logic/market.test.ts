@@ -57,6 +57,8 @@ describe('the market of the shown planet', () => {
       prices: { ...PRICES, mc: 909090 },
       used: 250,
       limit: 100000,
+      feeBase: 10,
+      feeStep: 1,
     });
   });
 
@@ -157,8 +159,8 @@ describe('the preview', () => {
     expect(preview(lower, draftOf('1000', 'd', 'm'))).toEqual({
       lines: [
         { label: 'Du gibst', value: '1.000 Promethium' },
-        { label: 'Du erhältst', value: '1.500 Adamant' },
-        { label: 'Kurs', value: '1.500 Adamant je 1.000 Promethium' },
+        { label: 'Du erhältst', value: '2.000 Adamant' },
+        { label: 'Kurs', value: '2.000 Adamant je 1.000 Promethium' },
         { label: 'Gebühr', value: '0 Adamant (0 %)' },
         { label: 'Heute noch', value: '70.000 von 100.000' },
       ],
@@ -185,8 +187,8 @@ describe('the preview', () => {
     expect(preview(market(), draftOf('0')).note).toBe(
       'Bitte eine ganze Menge von mindestens 1 angeben.',
     );
-    expect(preview(market({ used: 99_500 }), draftOf('1000')).note).toBe(
-      'Tageslimit erreicht: Heute kannst du noch 500 tauschen.',
+    expect(preview(market({ used: 100_000 }), draftOf('1000')).note).toBe(
+      'Tageslimit erreicht: Heute kannst du noch 0 tauschen.',
     );
     expect(
       preview(market({ stock: { m: 5000, c: 100000, d: 0 } }), draftOf('1000'))
@@ -207,6 +209,52 @@ describe('the preview', () => {
       note: 'Begrenzt durch das freie Lager: Du gibst nur 665 Adamant ab.',
       ok: true,
     });
+  });
+});
+
+describe('the cut by the limit of the day (owner, 2026-11-19)', () => {
+  it('shows the cut before the exchange: what is given, what is got, and the note', () => {
+    expect(preview(market({ used: 99_500 }), draftOf('1000'))).toEqual({
+      lines: [
+        { label: 'Du gibst', value: '500 Adamant' },
+        { label: 'Du erhältst', value: '225 Psikristall' },
+        { label: 'Kurs', value: '450 Psikristall je 1.000 Adamant' },
+        { label: 'Gebühr', value: '25 Psikristall (10 %)' },
+        { label: 'Heute noch', value: '500 von 100.000' },
+      ],
+      note: 'Begrenzt durch das Tageslimit: Du gibst nur 500 Adamant ab.',
+      ok: true,
+    });
+  });
+
+  it('names the storage when it is the smaller, the limit when that is', () => {
+    const full = { stock: { m: 5000, c: 99_700.5, d: 0 } };
+    expect(
+      preview(market({ ...full, used: 99_300 }), draftOf('1000')).note,
+    ).toBe('Begrenzt durch das freie Lager: Du gibst nur 665 Adamant ab.');
+    expect(
+      preview(market({ ...full, used: 99_500 }), draftOf('1000')).note,
+    ).toBe('Begrenzt durch das Tageslimit: Du gibst nur 500 Adamant ab.');
+  });
+
+  it('says „kein Limit“ with a limit of 0 and never cuts', () => {
+    const open = market({ limit: 0, used: 7_000_000 });
+    const p = preview(open, draftOf('1000'));
+    expect(p.lines[4]).toEqual({ label: 'Heute noch', value: 'kein Limit' });
+    expect(p.note).toBeNull();
+    expect(p.lines[0]).toEqual({ label: 'Du gibst', value: '1.000 Adamant' });
+    expect(maxAmount(open, draftOf(''))).toBe('5000');
+  });
+
+  it('takes the fee of the round: its level 1 value and its step', () => {
+    const m = market({ level: 3, feeBase: 30, feeStep: 10 });
+    expect(preview(m, draftOf('')).lines[1]).toEqual({
+      label: 'Gebühr',
+      value: '10 %',
+    });
+    expect(preview(market({ feeBase: 0 }), draftOf('')).lines[1]!.value).toBe(
+      '0 %',
+    );
   });
 });
 
@@ -239,7 +287,7 @@ describe('the warning of the admin panel (D2)', () => {
     expect(gainWarning({ ...DEFAULT_UNIVERSE, roundMarketMc: 501 })).toBe(
       'Achtung: Ein Tausch im Kreis bringt selbst ohne Gebühr Gewinn: Adamant → Psikristall → Adamant; Adamant → Psikristall → Promethium → Adamant. Bitte die Kurse anpassen.',
     );
-    expect(gainWarning({ ...DEFAULT_UNIVERSE, roundMarketDc: 1502 })).toBe(
+    expect(gainWarning({ ...DEFAULT_UNIVERSE, roundMarketDc: 2001 })).toBe(
       'Achtung: Ein Tausch im Kreis bringt selbst ohne Gebühr Gewinn: Psikristall → Promethium → Psikristall; Adamant → Promethium → Psikristall → Adamant. Bitte die Kurse anpassen.',
     );
   });

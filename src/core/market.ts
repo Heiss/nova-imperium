@@ -61,17 +61,18 @@ export const FEE_UNIT = 1000;
 export const RATIO_RANGE = { min: 1, max: 100_000 } as const;
 
 /**
- * The ratios of a new round [V]: Adamant 1, Psikristall 2, Promethium 3 (the
- * example of the issue), each ratio rounded down to a whole number, so no
- * round trip gains and the panel shows no warning.
+ * The ratios of a new round (owner, 2026-11-19): the values 1 : 2 : 4 for
+ * Adamant, Psikristall and Promethium, each pair the quotient of its values
+ * per 1,000. Every round trip returns exactly what it started with, so none
+ * gains and the panel shows no warning.
  */
 export const DEFAULT_RATIOS: Readonly<Record<Pair, number>> = {
   mc: 500,
-  md: 333,
+  md: 250,
   cm: 2000,
-  cd: 666,
-  dm: 3000,
-  dc: 1500,
+  cd: 500,
+  dm: 4000,
+  dc: 2000,
 };
 
 /**
@@ -82,13 +83,23 @@ export const DEFAULT_RATIOS: Readonly<Record<Pair, number>> = {
 export const STEP = { min: 1, max: 1000, def: 5 } as const;
 /** The time a price needs to drift back to the base, in whole hours [V]. */
 export const DRIFT_HOURS = { min: 1, max: 720, def: 24 } as const;
-/** The amount a player may give per UTC day, summed over all resources [V]. */
-export const DAILY_LIMIT = { min: 1, max: 10_000_000, def: 100_000 } as const;
+/**
+ * The amount a player may give per UTC day, summed over all resources; 0
+ * means no limit (owner, 2026-11-19). The range and the default 100,000 are
+ * [V].
+ */
+export const DAILY_LIMIT = { min: 0, max: 10_000_000, def: 100_000 } as const;
 
-/** The fee at level 1 of the Handelsposten, in thousandths: 10 % [V]. */
-export const FEE_BASE = 100;
-/** What every further level takes off the fee, in thousandths: 1 percentage point [V]. */
-export const FEE_STEP = 10;
+/**
+ * The fee at level 1 of the Handelsposten in whole percent: set by the admin
+ * per round, default 10 % (owner, 2026-11-19); the range is [V].
+ */
+export const FEE = { min: 0, max: 100, def: 10 } as const;
+/**
+ * What every further level takes off the fee in whole percentage points:
+ * set by the admin per round, default 1 (owner, 2026-11-19); the range is [V].
+ */
+export const FEE_STEP = { min: 0, max: 100, def: 1 } as const;
 
 /** One hour in milliseconds; the drift runs in real time. */
 export const HOUR_MS = 3_600_000;
@@ -98,9 +109,13 @@ export const DAY_MS = 86_400_000;
 /** The number of the UTC day of a time; the limit counts the amounts of one day. */
 export const dayOf = (time: number): number => Math.floor(time / DAY_MS);
 
-/** The fee in thousandths at a level of the Handelsposten (1 or more): never below 0. */
-export const feeAt = (level: number): number =>
-  Math.max(0, FEE_BASE - FEE_STEP * (level - 1));
+/**
+ * The fee in whole percent at a level of the Handelsposten (1 or more) with
+ * the fee at level 1 and the points every further level takes off: never
+ * below 0.
+ */
+export const feePercent = (level: number, base: number, step: number): number =>
+  Math.max(0, base - step * (level - 1));
 
 /** The level of the Handelsposten on a planet; 0 without one. */
 export const postLevel = (p: Pick<Planet, 'b'>): number => p.b.market ?? 0;
@@ -216,15 +231,35 @@ export const roundSettings = [
     ...number,
     key: 'roundMarketLimit',
     name: 'marketLimit',
-    label: 'Marktplatz Tageslimit je Spieler (Einheiten)',
+    label: 'Marktplatz Tageslimit je Spieler (Einheiten, 0 = unbegrenzt)',
     order: 410,
     min: DAILY_LIMIT.min,
     max: DAILY_LIMIT.max,
     def: DAILY_LIMIT.def,
   },
+  {
+    ...number,
+    key: 'roundMarketFee',
+    name: 'marketFee',
+    label: 'Marktplatz Gebühr auf Stufe 1 des Handelspostens (Prozent)',
+    order: 420,
+    min: FEE.min,
+    max: FEE.max,
+    def: FEE.def,
+  },
+  {
+    ...number,
+    key: 'roundMarketFeeStep',
+    name: 'marketFeeStep',
+    label: 'Marktplatz Gebühr sinkt je weitere Stufe um (Prozentpunkte)',
+    order: 430,
+    min: FEE_STEP.min,
+    max: FEE_STEP.max,
+    def: FEE_STEP.def,
+  },
 ] as const satisfies readonly RoundSetting[];
 
-/** The nine values of the round the market is read from (the round rules carry them). */
+/** The twelve values of the round the market is read from (the round rules carry them). */
 export interface MarketRound {
   marketOn: number;
   marketMc: number;
@@ -236,6 +271,8 @@ export interface MarketRound {
   marketStep: number;
   marketDrift: number;
   marketLimit: number;
+  marketFee: number;
+  marketFeeStep: number;
 }
 
 /** Whether the marketplace is on in the round. */
@@ -383,15 +420,18 @@ export interface Market {
   ratios: Readonly<Record<Pair, number>>;
   /** The price of every pair now. */
   prices: Readonly<Record<Pair, number>>;
-  /** The amount the player gave today, and the limit per day. */
+  /** The amount the player gave today, and the limit per day; 0 is no limit. */
   used: number;
   limit: number;
+  /** The fee at level 1 in percent and what each further level takes off. */
+  feeBase: number;
+  feeStep: number;
 }
 
 /** What an exchange does. */
 export interface Quote {
   pair: Pair;
-  /** The amount given; below the amount asked when the free storage caps the result. */
+  /** The amount given; below the amount asked when the storage or the limit of the day cuts it. */
   given: number;
   /** The amount got, after the fee. */
   got: number;
@@ -399,18 +439,25 @@ export interface Quote {
   fee: number;
   /** Whether the free storage of the target capped the result. */
   capped: boolean;
+  /** Whether the rest of the limit of the day cut the amount; never together with `capped`. */
+  cut: boolean;
 }
 
 /** The terms of a pair on the market. */
 export const termsOf = (m: Market, pair: Pair): Terms => ({
   ratio: m.ratios[pair],
   price: m.prices[pair],
-  fee: feeAt(m.level),
+  fee: feeOf(m) * (FEE_UNIT / 100),
 });
 
-/** The amount the player may still give today. */
+/** The fee of the market now in whole percent, at the level of the Handelsposten. */
+export const feeOf = (
+  m: Pick<Market, 'level' | 'feeBase' | 'feeStep'>,
+): number => feePercent(m.level, m.feeBase, m.feeStep);
+
+/** The amount the player may still give today; unlimited when the limit is 0. */
 export const remaining = (m: Pick<Market, 'used' | 'limit'>): number =>
-  Math.max(0, m.limit - m.used);
+  m.limit === 0 ? Infinity : Math.max(0, m.limit - m.used);
 
 /** The checks of an exchange that need no price: the round, the post, the resources, the amount, the stock. */
 function asked(
@@ -434,8 +481,12 @@ function asked(
  * The exchange of `amount` of `give` for `get`: the refusal, or what it does
  * (owner, 2026-11-17, D4). When the result would exceed the free storage
  * of `get`, it is capped to it and only the amount that gives it is taken.
- * The checks are in the order of `TradeError`; the server refuses with the
- * first and the browser shows the same.
+ * An amount above what is left of the day is cut to it, not refused (owner,
+ * 2026-11-19); only when nothing is left it is refused. When both would
+ * cut, the smaller amount wins: `cut` names the limit when it is the
+ * smaller, else `capped` names the storage. The checks are in the order of
+ * `TradeError`; the server refuses with the first and the browser shows
+ * the same.
  */
 export function trade(
   m: Market,
@@ -449,11 +500,15 @@ export function trade(
   const room = roomFor(m.stock[pair[1] as Res], m.caps[pair[1] as Res]);
   if (room < 1) return { error: 'full' };
   const terms = termsOf(m, pair);
+  const left = remaining(m);
+  if (left < 1) return { error: 'limit' };
   const all = got(first.amount, terms);
-  const capped = all > room;
-  const given = capped ? givingFor(room, terms) : first.amount;
-  if (given > remaining(m)) return { error: 'limit' };
-  const result = capped ? room : all;
+  const over = all > room;
+  const fill = over ? givingFor(room, terms) : first.amount;
+  const cut = left < fill;
+  const capped = over && !cut;
+  const given = cut ? left : fill;
+  const result = capped ? room : got(given, terms);
   if (result < 1) return { error: 'tiny' };
   return {
     quote: {
@@ -462,6 +517,7 @@ export function trade(
       got: result,
       fee: gotWithoutFee(given, terms) - got(given, terms),
       capped,
+      cut,
     },
   };
 }

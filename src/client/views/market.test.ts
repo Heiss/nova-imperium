@@ -84,7 +84,7 @@ describe('the view „Marktplatz“', () => {
     const html = market(view());
     expect(html).toContain('<option value="d" selected>Promethium</option>');
     expect(html).toContain('value="1000"');
-    expect(html).toContain('<td>Du erhältst</td><td>299 Promethium</td>');
+    expect(html).toContain('<td>Du erhältst</td><td>225 Promethium</td>');
     expect(html).toContain(
       '<button type="submit" id="market-trade">Tauschen</button>',
     );
@@ -121,6 +121,8 @@ describe('the preview of the view', () => {
     prices: PRICES,
     used: 0,
     limit: 100000,
+    feeBase: 10,
+    feeStep: 1,
   };
 
   it('is a table of its lines', () => {
@@ -166,10 +168,16 @@ describe('the settings of the marketplace in the dialog and the admin panel', ()
       '<label for="round-market-on">Marktplatz aktiv</label> <select id="round-market-on"><option value="1">Ja</option><option value="0" selected>Nein</option></select>',
     );
     expect(html).toContain(
+      '<label for="round-market-fee">Marktplatz Gebühr auf Stufe 1 des Handelspostens (Prozent)</label> <input type="number" id="round-market-fee" min="0" max="100" step="1" value="10" required> <span class="dim">0 bis 100</span>',
+    );
+    expect(html).toContain(
+      'id="round-market-fee-step" min="0" max="100" step="1" value="1"',
+    );
+    expect(html).toContain(
       '<label for="round-market-mc">Marktplatz Adamant → Psikristall (Psikristall je 1.000 Adamant)</label> <input type="number" id="round-market-mc" min="1" max="100000" step="1" value="700" required> <span class="dim">1 bis 100000</span>',
     );
     expect(html).toContain(
-      'id="round-market-limit" min="1" max="10000000" step="1" value="100000"',
+      'id="round-market-limit" min="0" max="10000000" step="1" value="100000"',
     );
   });
 

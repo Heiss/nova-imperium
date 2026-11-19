@@ -134,6 +134,23 @@ test('the admin switches the market off for the round and sees the warning', asy
   const settings = async (on: string, ratio: string): Promise<void> => {
     await nav(page, 'admin');
     await page.getByRole('tab', { name: 'Universum' }).click();
+    // The limit of the day (0 = unlimited) and the two values of the fee are
+    // settings of the round too (owner, 2026-11-19).
+    await expect(
+      page.getByLabel(
+        'Marktplatz Tageslimit je Spieler (Einheiten, 0 = unbegrenzt)',
+      ),
+    ).toHaveValue('100000');
+    await expect(
+      page.getByLabel(
+        'Marktplatz Gebühr auf Stufe 1 des Handelspostens (Prozent)',
+      ),
+    ).toHaveValue('10');
+    await expect(
+      page.getByLabel(
+        'Marktplatz Gebühr sinkt je weitere Stufe um (Prozentpunkte)',
+      ),
+    ).toHaveValue('1');
     await page.getByLabel('Marktplatz aktiv', { exact: true }).selectOption(on);
     await page.getByLabel(RATIO, { exact: true }).fill(ratio);
     await page.getByRole('button', { name: 'Einstellungen speichern' }).click();

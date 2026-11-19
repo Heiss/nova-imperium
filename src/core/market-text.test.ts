@@ -57,7 +57,14 @@ describe('the refusals of an exchange (#171)', () => {
 describe('what a finished exchange says (#171)', () => {
   it('names both amounts and both resources with German thousands', () => {
     expect(
-      tradeDone({ pair: 'mc', given: 1000, got: 450, fee: 50, capped: false }),
+      tradeDone({
+        pair: 'mc',
+        given: 1000,
+        got: 450,
+        fee: 50,
+        capped: false,
+        cut: false,
+      }),
     ).toBe('1.000 Adamant gegen 450 Psikristall getauscht.');
     expect(
       tradeDone({
@@ -66,13 +73,48 @@ describe('what a finished exchange says (#171)', () => {
         got: 3_000_000,
         fee: 0,
         capped: false,
+        cut: false,
       }),
     ).toBe('1.234.567 Promethium gegen 3.000.000 Adamant getauscht.');
   });
 
+  it('says that the limit of the day cut it, with the amount that was exchanged (owner, 2026-11-19)', () => {
+    expect(
+      tradeDone({
+        pair: 'mc',
+        given: 500,
+        got: 225,
+        fee: 25,
+        capped: false,
+        cut: true,
+      }),
+    ).toBe(
+      '500 Adamant gegen 225 Psikristall getauscht. Tageslimit erreicht: Es wurden nur 500 Adamant getauscht.',
+    );
+    expect(
+      tradeDone({
+        pair: 'dc',
+        given: 1234,
+        got: 99,
+        fee: 1,
+        capped: false,
+        cut: true,
+      }),
+    ).toBe(
+      '1.234 Promethium gegen 99 Psikristall getauscht. Tageslimit erreicht: Es wurden nur 1.234 Promethium getauscht.',
+    );
+  });
+
   it('says that the storage is full now when the result was capped', () => {
     expect(
-      tradeDone({ pair: 'cd', given: 665, got: 299, fee: 33, capped: true }),
+      tradeDone({
+        pair: 'cd',
+        given: 665,
+        got: 299,
+        fee: 33,
+        capped: true,
+        cut: false,
+      }),
     ).toBe(
       '665 Psikristall gegen 299 Promethium getauscht. Das Lager für Promethium ist jetzt voll.',
     );

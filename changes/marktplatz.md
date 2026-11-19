@@ -2,4 +2,4 @@
 art: neu
 ---
 
-Marktplatz: Mit dem neuen Handelsposten tauschst du Adamant, Psikristall und Promethium gegeneinander. Die Kurse und das Tageslimit legt der Admin pro Runde fest, Preise verschieben sich mit jedem Tausch, höhere Stufen senken die Gebühr.
+Marktplatz: Mit dem neuen Handelsposten tauschst du Adamant, Psikristall und Promethium. Kurse, Gebühr und Tageslimit legt der Admin pro Runde fest, höhere Stufen senken die Gebühr, Preise verschieben sich mit jedem Tausch. Über dem Tageslimit wird nur der Rest getauscht.

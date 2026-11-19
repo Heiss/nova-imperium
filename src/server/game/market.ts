@@ -56,6 +56,8 @@ export function marketOf(
     prices: currentPrices(ctx, round),
     used: ctx.market.used(u.id, dayOf(ctx.now())),
     limit: round.marketLimit,
+    feeBase: round.marketFee,
+    feeStep: round.marketFeeStep,
   };
 }
 
@@ -74,7 +76,7 @@ export const marketState = (ctx: Ctx, u: User) => ({
  * `d.planet`. Everything runs in the transaction of the action: the stock,
  * the price of the pair and the amount of the day change together or not at
  * all. The audit entry records the planet, the pair, both amounts, the fee,
- * whether the storage capped it, and the price it was made at.
+ * whether the storage capped it or the limit of the day cut it, and the price it was made at.
  */
 export const exchange: Action = (ctx, u, d, event) => {
   const p = mine(ctx, u, d.planet);
@@ -102,6 +104,7 @@ export const exchange: Action = (ctx, u, d, event) => {
       got: q.got,
       fee: q.fee,
       capped: q.capped,
+      cut: q.cut,
       price: market.prices[q.pair],
     };
   return tradeDone(q);

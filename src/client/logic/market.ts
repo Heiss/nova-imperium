@@ -7,15 +7,15 @@
 import { caps } from '../../core/economy.ts';
 import {
   DEFAULT_RATIOS,
-  FEE_UNIT,
   type Market,
   type Pair,
+  type Quote,
   PAIRS,
   RATIO_UNIT,
   RES_NAME,
   type Res,
   TRADED,
-  feeAt,
+  feeOf,
   gainingTrips,
   got,
   marketOpen,
@@ -57,6 +57,8 @@ export function marketOf(s: GameState, p: Planet): Market | null {
     prices: s.market.prices,
     used: s.market.used,
     limit: s.round.marketLimit,
+    feeBase: s.round.marketFee,
+    feeStep: s.round.marketFeeStep,
   };
 }
 
@@ -87,7 +89,16 @@ export interface Preview {
   ok: boolean;
 }
 
-const percent = (fee: number): string => `${(fee * 100) / FEE_UNIT} %`;
+/** The note under the preview when the storage or the limit of the day cuts the amount (D4, owner 2026-11-19). */
+const cutNote = (q: Quote, given: string, give: string): string | null => {
+  if (q.capped)
+    return `Begrenzt durch das freie Lager: Du gibst nur ${given} ${give} ab.`;
+  return q.cut
+    ? `Begrenzt durch das Tageslimit: Du gibst nur ${given} ${give} ab.`
+    : null;
+};
+
+const percent = (fee: number): string => `${fee} %`;
 
 /**
  * The preview of the draft on the market: the rate of the pair now, the
@@ -104,9 +115,10 @@ export function preview(m: Market, d: Draft): Preview {
   };
   const today: PreviewLine = {
     label: 'Heute noch',
-    value: `${fmt(remaining(m))} von ${fmt(m.limit)}`,
+    value:
+      m.limit === 0 ? 'kein Limit' : `${fmt(remaining(m))} von ${fmt(m.limit)}`,
   };
-  const fee = percent(feeAt(m.level));
+  const fee = percent(feeOf(m));
   const amount = amountOf(d.amount);
   const result = amount === null ? null : trade(m, d.give, d.get, amount);
   if (!result || 'error' in result)
@@ -124,9 +136,7 @@ export function preview(m: Market, d: Draft): Preview {
       { label: 'Gebühr', value: `${fmt(q.fee)} ${get} (${fee})` },
       today,
     ],
-    note: q.capped
-      ? `Begrenzt durch das freie Lager: Du gibst nur ${fmt(q.given)} ${give} ab.`
-      : null,
+    note: cutNote(q, fmt(q.given), give),
     ok: true,
   };
 }

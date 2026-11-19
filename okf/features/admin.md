@@ -97,7 +97,7 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 | Inactive from („Inaktiv ab (Tage)“, #229) | 7 (not in version 1), [E] owner 2026-11-16 | 1 to 365 [V]; also in „Neue Runde“ (X1) |
 | Long inactive from („Lange inaktiv ab (Tage)“, #229) | 28 (not in version 1), [E] owner 2026-11-16 | 1 to 365 [V]; also in „Neue Runde“ (X1) |
 | Thresholds of foreign fleets, levels of the Auspex-Lehre („Fremde Flotten: Schiffe insgesamt ab Auspex-Lehre“, „… Schiffstypen …“, „… Anzahl je Schiffstyp …“, #228) | 2 / 4 / 8 (not in version 1), [E] owner 2026-11-16 | 0 to 100, [E] owner 2026-11-18; also in the dialog „Neue Runde“ in a framed group „Fremde Flotten erkennen“, [E] owner 2026-11-17 (X1) and 2026-11-18 |
-| Marketplace („Marktplatz“, #171): ten live settings in one fieldset „Marktplatz“, orders 320 to 410: on (1/0), six ratios per pair, price step, drift hours, limit per day | 1 / 500, 333, 2000, 666, 3000, 1500 / 5 / 24 / 100,000 [V] | 0 to 1, 1 to 100,000, 1 to 1,000, 1 to 720, 1 to 10,000,000 [V]; also in „Neue Runde“ (X1); see [Marketplace](/features/marketplace.md) |
+| Marketplace („Marktplatz“, #171): twelve live settings in one fieldset „Marktplatz“, orders 320 to 430: on (1/0), six ratios per pair, price step, drift hours, limit per day (0 = none), fee at level 1 in percent, points the fee falls per level | 1 / 500, 250, 2000, 500, 4000, 2000 [E] owner 2026-11-19 / 5 / 24 / 100,000 [V] / 10 / 1 [E] | 0 to 1, 1 to 100,000, 1 to 1,000, 1 to 720, 0 to 10,000,000, 0 to 100, 0 to 100 [V]; also in „Neue Runde“ (X1); see [Marketplace](/features/marketplace.md) |
 
 * **[V]** The ranges above are proposals; the source is
   `src/core/universe.ts`.
@@ -213,8 +213,8 @@ universe settings) and their ranges are not decided yet.
   the thresholds of the recognition of foreign fleets in
   `src/core/fleet-recognition.ts`.
 * **[V]** The marketplace (#171) is the first group of live numbers with a
-  legend of its own „Marktplatz“: ten entries in `src/core/market.ts`, orders
-  320 to 410. Its switch is a number 1 or 0 with `choices` „Ja“ and „Nein“,
+  legend of its own „Marktplatz“: twelve entries in `src/core/market.ts`, orders
+  320 to 430. Its switch is a number 1 or 0 with `choices` „Ja“ and „Nein“,
   because a switch of the registry cannot be `live`. The universe settings
   warn below the table when the six ratios allow a round trip that gains
   (`gainWarning`, `client/logic/market.ts`).

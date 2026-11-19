@@ -46,9 +46,15 @@ export const tradeNote = (
   get: unknown,
 ): string => NOTES[error](m, get);
 
-/** What a finished exchange says; a capped one also says that the storage is full now. */
+/**
+ * What a finished exchange says; a capped one also says that the storage is
+ * full now, one that the limit of the day cut says so (owner, 2026-11-19,
+ * wording [V]).
+ */
 export function tradeDone(q: Quote): string {
   const [give, get] = [nameOf(q.pair[0]), nameOf(q.pair[1])];
   const done = `${de(q.given)} ${give} gegen ${de(q.got)} ${get} getauscht.`;
+  if (q.cut)
+    return `${done} Tageslimit erreicht: Es wurden nur ${de(q.given)} ${give} getauscht.`;
   return q.capped ? `${done} Das Lager für ${get} ist jetzt voll.` : done;
 }

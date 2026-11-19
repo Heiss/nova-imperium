@@ -48,6 +48,7 @@ describe('the marketplace in the audit log', () => {
           got: 450,
           fee: 50,
           capped: false,
+          cut: false,
           price: 1_000_000,
         },
       },
@@ -80,6 +81,8 @@ describe('the marketplace in the audit log', () => {
       roundMarketStep: 20,
       roundMarketDrift: 12,
       roundMarketLimit: 5000,
+      roundMarketFee: 15,
+      roundMarketFeeStep: 3,
     };
     const reply = await call('POST', '/api/action', {
       type: 'settings',
@@ -109,7 +112,7 @@ describe('the marketplace in the audit log', () => {
     });
     expect(reply.json).toEqual({
       error:
-        'Marktplatz Adamant → Psikristall (Psikristall je 1.000 Adamant): ganze Zahl von 1 bis 100000. Marktplatz Tageslimit je Spieler (Einheiten): ganze Zahl von 1 bis 10000000.',
+        'Marktplatz Adamant → Psikristall (Psikristall je 1.000 Adamant): ganze Zahl von 1 bis 100000. Marktplatz Tageslimit je Spieler (Einheiten, 0 = unbegrenzt): ganze Zahl von 0 bis 10000000.',
     });
     expect(ctx.admin.universe()).toEqual(before);
     expect(audit(ctx, 'settings')[0]!.outcome).toBe('rejected');
@@ -122,14 +125,16 @@ describe('the marketplace in the audit log', () => {
       market: {
         marketOn: 0,
         marketMc: 700,
-        marketMd: 333,
+        marketMd: 250,
         marketCm: 2000,
-        marketCd: 666,
-        marketDm: 3000,
-        marketDc: 1500,
+        marketCd: 500,
+        marketDm: 4000,
+        marketDc: 2000,
         marketStep: 5,
         marketDrift: 24,
         marketLimit: 100000,
+        marketFee: 10,
+        marketFeeStep: 1,
       },
     });
     const [row] = audit(ctx, 'reset');

@@ -9,7 +9,7 @@ import {
   DAY_MS,
   DEFAULT_RATIOS,
   DRIFT_HOURS,
-  FEE_BASE,
+  FEE,
   FEE_STEP,
   FEE_UNIT,
   HOUR_MS,
@@ -26,7 +26,8 @@ import {
   type Res,
   type Terms,
   dayOf,
-  feeAt,
+  feeOf,
+  feePercent,
   gainingTrips,
   got,
   givingFor,
@@ -66,6 +67,8 @@ function market(over: Partial<Market> = {}): Market {
     prices: { mc: 1e6, md: 1e6, cm: 1e6, cd: 1e6, dm: 1e6, dc: 1e6 },
     used: 0,
     limit: 100000,
+    feeBase: 10,
+    feeStep: 1,
     ...over,
   };
 }
@@ -76,17 +79,18 @@ describe('the numbers of the marketplace [V]', () => {
     expect(RATIO_RANGE).toEqual({ min: 1, max: 100_000 });
     expect(STEP).toEqual({ min: 1, max: 1000, def: 5 });
     expect(DRIFT_HOURS).toEqual({ min: 1, max: 720, def: 24 });
-    expect(DAILY_LIMIT).toEqual({ min: 1, max: 10_000_000, def: 100_000 });
-    expect([FEE_BASE, FEE_STEP]).toEqual([100, 10]);
+    expect(DAILY_LIMIT).toEqual({ min: 0, max: 10_000_000, def: 100_000 });
+    expect(FEE).toEqual({ min: 0, max: 100, def: 10 });
+    expect(FEE_STEP).toEqual({ min: 0, max: 100, def: 1 });
     expect(HOUR_MS).toBe(3_600_000);
     expect(DAY_MS).toBe(86_400_000);
     expect(DEFAULT_RATIOS).toEqual({
       mc: 500,
-      md: 333,
+      md: 250,
       cm: 2000,
-      cd: 666,
-      dm: 3000,
-      dc: 1500,
+      cd: 500,
+      dm: 4000,
+      dc: 2000,
     });
   });
 
@@ -125,13 +129,37 @@ describe('the numbers of the marketplace [V]', () => {
   });
 });
 
-describe('the fee of the Handelsposten', () => {
-  it('is 10 % at level 1 and falls by one percentage point per level to 0 at level 11', () => {
-    expect([1, 2, 3, 6, 10, 11].map(feeAt)).toEqual([100, 90, 80, 50, 10, 0]);
+describe('the fee of the Handelsposten (owner, 2026-11-19)', () => {
+  it('is the fee of level 1 and falls by the step per level, 10 % and 1 point by default', () => {
+    expect(
+      [1, 2, 3, 6, 10, 11].map((level) => feePercent(level, 10, 1)),
+    ).toEqual([10, 9, 8, 5, 1, 0]);
+    expect([1, 2, 3, 4, 5].map((level) => feePercent(level, 20, 5))).toEqual([
+      20, 15, 10, 5, 0,
+    ]);
   });
 
   it('never falls below 0', () => {
-    expect([12, 50, 1000].map(feeAt)).toEqual([0, 0, 0]);
+    expect([12, 50, 1000].map((level) => feePercent(level, 10, 1))).toEqual([
+      0, 0, 0,
+    ]);
+    expect(feePercent(2, 10, 100)).toBe(0);
+    expect(feePercent(3, 0, 5)).toBe(0);
+  });
+
+  it('stays the same on every level with a step of 0, and is 0 with a fee of 0', () => {
+    expect([1, 7, 100].map((level) => feePercent(level, 12, 0))).toEqual([
+      12, 12, 12,
+    ]);
+    expect(feePercent(1, 0, 0)).toBe(0);
+    expect(feePercent(1, 100, 1)).toBe(100);
+  });
+
+  it('is read from the market: its level and the two values of the round', () => {
+    expect(feeOf(market({ level: 1 }))).toBe(10);
+    expect(feeOf(market({ level: 4 }))).toBe(7);
+    expect(feeOf(market({ level: 4, feeBase: 30, feeStep: 10 }))).toBe(0);
+    expect(feeOf(market({ level: 3, feeBase: 30, feeStep: 10 }))).toBe(10);
   });
 
   it('reads the level of the building on a planet, 0 without one', () => {
@@ -148,7 +176,7 @@ describe('the settings of the round (#283, #310, X1)', () => {
   const common = { kind: 'number', group, live: true };
   const ratio = { ...common, min: 1, max: 100000 };
 
-  it('are ten settings in one fieldset „Marktplatz“, in the order 320 to 410, all live', () => {
+  it('are twelve settings in one fieldset „Marktplatz“, in the order 320 to 430, all live', () => {
     expect(SETTINGS).toEqual([
       {
         ...common,
@@ -179,7 +207,7 @@ describe('the settings of the round (#283, #310, X1)', () => {
         name: 'marketMd',
         label: 'Marktplatz Adamant → Promethium (Promethium je 1.000 Adamant)',
         order: 340,
-        def: 333,
+        def: 250,
       },
       {
         ...ratio,
@@ -197,7 +225,7 @@ describe('the settings of the round (#283, #310, X1)', () => {
         label:
           'Marktplatz Psikristall → Promethium (Promethium je 1.000 Psikristall)',
         order: 360,
-        def: 666,
+        def: 500,
       },
       {
         ...ratio,
@@ -205,7 +233,7 @@ describe('the settings of the round (#283, #310, X1)', () => {
         name: 'marketDm',
         label: 'Marktplatz Promethium → Adamant (Adamant je 1.000 Promethium)',
         order: 370,
-        def: 3000,
+        def: 4000,
       },
       {
         ...ratio,
@@ -214,7 +242,7 @@ describe('the settings of the round (#283, #310, X1)', () => {
         label:
           'Marktplatz Promethium → Psikristall (Psikristall je 1.000 Promethium)',
         order: 380,
-        def: 1500,
+        def: 2000,
       },
       {
         ...common,
@@ -241,11 +269,31 @@ describe('the settings of the round (#283, #310, X1)', () => {
         ...common,
         key: 'roundMarketLimit',
         name: 'marketLimit',
-        label: 'Marktplatz Tageslimit je Spieler (Einheiten)',
+        label: 'Marktplatz Tageslimit je Spieler (Einheiten, 0 = unbegrenzt)',
         order: 410,
-        min: 1,
+        min: 0,
         max: 10000000,
         def: 100000,
+      },
+      {
+        ...common,
+        key: 'roundMarketFee',
+        name: 'marketFee',
+        label: 'Marktplatz Gebühr auf Stufe 1 des Handelspostens (Prozent)',
+        order: 420,
+        min: 0,
+        max: 100,
+        def: 10,
+      },
+      {
+        ...common,
+        key: 'roundMarketFeeStep',
+        name: 'marketFeeStep',
+        label: 'Marktplatz Gebühr sinkt je weitere Stufe um (Prozentpunkte)',
+        order: 430,
+        min: 0,
+        max: 100,
+        def: 1,
       },
     ]);
   });
@@ -256,14 +304,16 @@ describe('the settings of the round (#283, #310, X1)', () => {
     expect(request.market).toEqual({
       marketOn: 1,
       marketMc: 500,
-      marketMd: 333,
+      marketMd: 250,
       marketCm: 2000,
-      marketCd: 666,
-      marketDm: 3000,
-      marketDc: 1500,
+      marketCd: 500,
+      marketDm: 4000,
+      marketDc: 2000,
       marketStep: 5,
       marketDrift: 24,
       marketLimit: 100000,
+      marketFee: 10,
+      marketFeeStep: 1,
     });
     expect(request).not.toHaveProperty('marketOn');
   });
@@ -280,6 +330,8 @@ describe('the settings of the round (#283, #310, X1)', () => {
       'round-market-step',
       'round-market-drift',
       'round-market-limit',
+      'round-market-fee',
+      'round-market-fee-step',
     ]);
   });
 
@@ -287,6 +339,8 @@ describe('the settings of the round (#283, #310, X1)', () => {
     expect(roundDefaults().marketOn).toBe(1);
     expect(DEFAULT_UNIVERSE.roundMarketOn).toBe(1);
     expect(DEFAULT_UNIVERSE.roundMarketLimit).toBe(100000);
+    expect(DEFAULT_UNIVERSE.roundMarketFee).toBe(10);
+    expect(DEFAULT_UNIVERSE.roundMarketFeeStep).toBe(1);
   });
 
   it('are rows of the universe settings, changed during the round (X1)', () => {
@@ -318,7 +372,7 @@ describe('the settings of the round (#283, #310, X1)', () => {
       'marketLimit',
     ]);
     // A member that is not sent in a sent group is wrong: it must be sent.
-    expect(roundRefused(current, { market: {} })).toHaveLength(10);
+    expect(roundRefused(current, { market: {} })).toHaveLength(12);
     // Nothing sent keeps the current values.
     expect(roundRefused(current, {})).toEqual([]);
     const ok = roundValues(current, {
@@ -348,7 +402,9 @@ describe('the settings of the round (#283, #310, X1)', () => {
       ['roundMarketDc', 1, 100000],
       ['roundMarketStep', 1, 1000],
       ['roundMarketDrift', 1, 720],
-      ['roundMarketLimit', 1, 10000000],
+      ['roundMarketLimit', 0, 10000000],
+      ['roundMarketFee', 0, 100],
+      ['roundMarketFeeStep', 0, 100],
     ] as const) {
       expect(check(key, min), key).toEqual([]);
       expect(check(key, max), key).toEqual([]);
@@ -372,13 +428,15 @@ describe('the settings of the round (#283, #310, X1)', () => {
         marketStep: 5,
         marketDrift: 24,
         marketLimit: 1,
+        marketFee: 7,
+        marketFeeStep: 2,
       }),
     ).toEqual({ mc: 1, md: 2, cm: 3, cd: 4, dm: 5, dc: 6 });
   });
 });
 
 describe('the warning about a round trip that gains (D2)', () => {
-  it('finds no trip in the default ratios, which follow the values 1, 2 and 3', () => {
+  it('finds no trip in the default ratios, which follow the values 1, 2 and 4 and return every round trip exactly', () => {
     expect(gainingTrips(DEFAULT_RATIOS)).toEqual([]);
   });
 
@@ -534,13 +592,21 @@ describe('the free storage and the limit of the day', () => {
     expect(remaining({ used: 30, limit: 100 })).toBe(70);
     expect(remaining({ used: 100, limit: 100 })).toBe(0);
     expect(remaining({ used: 150, limit: 100 })).toBe(0);
+    expect(remaining({ used: 150, limit: 0 })).toBe(Infinity);
   });
 });
 
 describe('an exchange', () => {
   it('gives the result of the example: 1,000 Adamant for 450 Psikristall, 50 of them the fee', () => {
     expect(trade(market(), 'm', 'c', 1000)).toEqual({
-      quote: { pair: 'mc', given: 1000, got: 450, fee: 50, capped: false },
+      quote: {
+        pair: 'mc',
+        given: 1000,
+        got: 450,
+        fee: 50,
+        capped: false,
+        cut: false,
+      },
     });
   });
 
@@ -571,7 +637,7 @@ describe('an exchange', () => {
     expect(
       error(market({ stock: { m: 5000, c: 100000, d: 0 } }), 'm', 'c', 100),
     ).toBe('full');
-    expect(error(market({ limit: 100 }), 'm', 'c', 101)).toBe('limit');
+    expect(error(market({ limit: 100, used: 100 }), 'm', 'c', 5)).toBe('limit');
     expect(error(market(), 'm', 'c', 1)).toBe('tiny');
   });
 
@@ -612,7 +678,7 @@ describe('an exchange', () => {
     expect(
       trade(market({ stock: { m: 5000, c: 99999, d: 0 } }), 'm', 'c', 1000),
     ).toEqual({
-      quote: { pair: 'mc', given: 3, got: 1, fee: 0, capped: true },
+      quote: { pair: 'mc', given: 3, got: 1, fee: 0, capped: true, cut: false },
     });
   });
 
@@ -620,7 +686,14 @@ describe('an exchange', () => {
     const m = market({ stock: { m: 5000, c: 99_700.5, d: 0 } });
     // The room is 299; 1,000 Adamant would give 450.
     expect(trade(m, 'm', 'c', 1000)).toEqual({
-      quote: { pair: 'mc', given: 665, got: 299, fee: 33, capped: true },
+      quote: {
+        pair: 'mc',
+        given: 665,
+        got: 299,
+        fee: 33,
+        capped: true,
+        cut: false,
+      },
     });
     // 665 is the least amount that gives 299.
     const t = termsOf(m, 'mc');
@@ -628,7 +701,14 @@ describe('an exchange', () => {
     expect(got(664, t)).toBe(298);
     // Not capped when the result fits exactly.
     expect(trade(m, 'm', 'c', 664)).toEqual({
-      quote: { pair: 'mc', given: 664, got: 298, fee: 34, capped: false },
+      quote: {
+        pair: 'mc',
+        given: 664,
+        got: 298,
+        fee: 34,
+        capped: false,
+        cut: false,
+      },
     });
   });
 
@@ -640,27 +720,116 @@ describe('an exchange', () => {
       stock: { m: 10, c: 99_998, d: 0 },
     });
     expect(trade(m, 'm', 'c', 10)).toEqual({
-      quote: { pair: 'mc', given: 1, got: 2, fee: 0, capped: true },
+      quote: { pair: 'mc', given: 1, got: 2, fee: 0, capped: true, cut: false },
     });
   });
 
-  it('counts the amount given, not the amount asked, against the limit of the day', () => {
-    const m = market({
-      stock: { m: 5000, c: 99_700.5, d: 0 },
-      used: 99_300,
-      limit: 100_000,
+  it('cuts an amount above what is left of the day to it, not refused (owner, 2026-11-19)', () => {
+    expect(trade(market({ used: 99_001 }), 'm', 'c', 1000)).toEqual({
+      quote: {
+        pair: 'mc',
+        given: 999,
+        got: 449,
+        fee: 50,
+        capped: false,
+        cut: true,
+      },
     });
-    expect(trade(m, 'm', 'c', 1000)).toEqual({
-      quote: { pair: 'mc', given: 665, got: 299, fee: 33, capped: true },
+    // What is left is just enough: nothing is cut.
+    expect(trade(market({ used: 99_000 }), 'm', 'c', 1000)).toEqual({
+      quote: {
+        pair: 'mc',
+        given: 1000,
+        got: 450,
+        fee: 50,
+        capped: false,
+        cut: false,
+      },
     });
-    expect(
-      trade(market({ used: 99_001, limit: 100_000 }), 'm', 'c', 1000),
-    ).toEqual({
+  });
+
+  it('refuses only when nothing is left of the day', () => {
+    expect(trade(market({ used: 100_000 }), 'm', 'c', 1000)).toEqual({
       error: 'limit',
     });
+    expect(trade(market({ used: 120_000 }), 'm', 'c', 1000)).toEqual({
+      error: 'limit',
+    });
+    expect(trade(market({ used: 99_999 }), 'm', 'c', 1000)).toEqual({
+      error: 'tiny',
+    });
+  });
+
+  it('has no limit at all with a limit of 0', () => {
+    const m = market({ limit: 0, used: 5_000_000_000 });
+    expect(remaining(m)).toBe(Infinity);
+    expect(trade(m, 'm', 'c', 1000)).toEqual({
+      quote: {
+        pair: 'mc',
+        given: 1000,
+        got: 450,
+        fee: 50,
+        capped: false,
+        cut: false,
+      },
+    });
+    expect(maxGive(m, 'm', 'c')).toBe(5000);
+  });
+
+  it('lets the smaller of the storage and the limit win, and names only that one', () => {
+    // The room is 299: 665 Adamant fill it, 1,000 would give 450.
+    const full = { stock: { m: 5000, c: 99_700.5, d: 0 } };
+    // 500 are left: the limit is smaller than the 665 the storage allows.
+    expect(trade(market({ ...full, used: 99_500 }), 'm', 'c', 1000)).toEqual({
+      quote: {
+        pair: 'mc',
+        given: 500,
+        got: 225,
+        fee: 25,
+        capped: false,
+        cut: true,
+      },
+    });
+    // 700 are left: the storage is smaller.
+    expect(trade(market({ ...full, used: 99_300 }), 'm', 'c', 1000)).toEqual({
+      quote: {
+        pair: 'mc',
+        given: 665,
+        got: 299,
+        fee: 33,
+        capped: true,
+        cut: false,
+      },
+    });
+    // Exactly the 665 are left: the storage is what limits, the limit is just met.
+    expect(trade(market({ ...full, used: 99_335 }), 'm', 'c', 1000)).toEqual({
+      quote: {
+        pair: 'mc',
+        given: 665,
+        got: 299,
+        fee: 33,
+        capped: true,
+        cut: false,
+      },
+    });
+    // Nothing of the day left and a full storage: the storage is named first.
     expect(
-      trade(market({ used: 99_000, limit: 100_000 }), 'm', 'c', 1000),
-    ).toHaveProperty('quote');
+      trade(
+        market({ stock: { m: 5000, c: 100000, d: 0 }, used: 100_000 }),
+        'm',
+        'c',
+        1000,
+      ),
+    ).toEqual({ error: 'full' });
+  });
+
+  it('counts the amount cut, not the amount asked, as given', () => {
+    const m = market({ used: 99_500 });
+    const result = trade(m, 'm', 'c', 1000) as {
+      quote: { given: number };
+    };
+    expect(result.quote.given).toBe(500);
+    expect(remaining({ ...m, used: m.used + result.quote.given })).toBe(0);
   });
 
   it('is refused when it gives nothing, after the cap', () => {
@@ -673,20 +842,48 @@ describe('an exchange', () => {
   it('pays the lower price after an earlier exchange', () => {
     const lower = market({ prices: { ...market().prices, mc: 909090 } });
     expect(trade(lower, 'm', 'c', 1000)).toEqual({
-      quote: { pair: 'mc', given: 1000, got: 409, fee: 45, capped: false },
+      quote: {
+        pair: 'mc',
+        given: 1000,
+        got: 409,
+        fee: 45,
+        capped: false,
+        cut: false,
+      },
     });
     // The other direction keeps its price.
     expect(trade(lower, 'c', 'm', 100)).toEqual({
-      quote: { pair: 'cm', given: 100, got: 180, fee: 20, capped: false },
+      quote: {
+        pair: 'cm',
+        given: 100,
+        got: 180,
+        fee: 20,
+        capped: false,
+        cut: false,
+      },
     });
   });
 
   it('takes the fee of the level of the Handelsposten', () => {
     expect(trade(market({ level: 6 }), 'm', 'c', 1000)).toEqual({
-      quote: { pair: 'mc', given: 1000, got: 475, fee: 25, capped: false },
+      quote: {
+        pair: 'mc',
+        given: 1000,
+        got: 475,
+        fee: 25,
+        capped: false,
+        cut: false,
+      },
     });
     expect(trade(market({ level: 11 }), 'm', 'c', 1000)).toEqual({
-      quote: { pair: 'mc', given: 1000, got: 500, fee: 0, capped: false },
+      quote: {
+        pair: 'mc',
+        given: 1000,
+        got: 500,
+        fee: 0,
+        capped: false,
+        cut: false,
+      },
     });
   });
 
@@ -766,6 +963,8 @@ const step = fc.record({
 
 const setup = fc.record({
   level: fc.integer({ min: 1, max: 15 }),
+  feeBase: fc.integer({ min: FEE.min, max: FEE.max }),
+  feeStep: fc.integer({ min: FEE_STEP.min, max: FEE_STEP.max }),
   step: fc.integer({ min: STEP.min, max: STEP.max }),
   drift: fc.integer({ min: DRIFT_HOURS.min, max: DRIFT_HOURS.max }),
   start: fc.constantFrom<Res>(...TRADED),
@@ -776,6 +975,8 @@ const setup = fc.record({
 
 type Setup = {
   level: number;
+  feeBase: number;
+  feeStep: number;
   step: number;
   drift: number;
   start: Res;
@@ -809,7 +1010,9 @@ function play(ratios: Record<Pair, number>, s: Setup) {
       ratios,
       prices,
       used: 0,
-      limit: Number.MAX_SAFE_INTEGER,
+      limit: 0,
+      feeBase: s.feeBase,
+      feeStep: s.feeStep,
     };
     const result = trade(m, pair[0], pair[1], asked);
     if (!('quote' in result)) return;
@@ -889,7 +1092,7 @@ describe('no sequence of exchanges yields more than it started with (#171, accep
         fc.integer({ min: 0, max: 1_000_000_000 }),
         fc.integer({ min: 1, max: 100_000 }),
         fc.integer({ min: 0, max: PRICE_UNIT }),
-        fc.integer({ min: 0, max: FEE_BASE }),
+        fc.integer({ min: 0, max: FEE.max * 10 }),
         (amount, ratio, price, fee) => {
           const result = BigInt(got(amount, { ratio, price, fee }));
           const exact =

@@ -81,6 +81,7 @@ describe('the action trade', () => {
       got: 450,
       fee: 50,
       capped: false,
+      cut: false,
       price: BASE,
     });
   });
@@ -161,6 +162,44 @@ describe('the action trade', () => {
     expect(trade(ctx)).toBe('1.000 Adamant gegen 500 Psikristall getauscht.');
   });
 
+  it('takes the fee from the two settings of the round, never below 0 (owner, 2026-11-19)', () => {
+    const ctx = world();
+    const level = (n: number) =>
+      ctx.planets.save({
+        ...ctx.planets.get('p1_1_5')!,
+        b: { market: n },
+        res: { m: 5000, c: 100, d: 0 },
+      });
+    ctx.admin.putSettings([
+      ['roundMarketFee', 20],
+      ['roundMarketFeeStep', 5],
+    ]);
+    level(1);
+    expect(trade(ctx)).toBe('1.000 Adamant gegen 400 Psikristall getauscht.');
+    ctx.market.clear();
+    level(3);
+    expect(trade(ctx)).toBe('1.000 Adamant gegen 450 Psikristall getauscht.');
+    ctx.market.clear();
+    level(5);
+    expect(trade(ctx)).toBe('1.000 Adamant gegen 500 Psikristall getauscht.');
+    ctx.market.clear();
+    level(9);
+    expect(trade(ctx)).toBe('1.000 Adamant gegen 500 Psikristall getauscht.');
+    ctx.admin.putSettings([
+      ['roundMarketFee', 0],
+      ['roundMarketFeeStep', 0],
+    ]);
+    ctx.market.clear();
+    level(1);
+    expect(trade(ctx)).toBe('1.000 Adamant gegen 500 Psikristall getauscht.');
+    ctx.admin.putSettings([['roundMarketFee', 100]]);
+    ctx.market.clear();
+    level(1);
+    expect(refusal(() => trade(ctx))).toBe(
+      'Für diese Menge bekommst du nichts.',
+    );
+  });
+
   it('exchanges all six pairs', () => {
     const ctx = world();
     ctx.planets.save({
@@ -169,18 +208,18 @@ describe('the action trade', () => {
     });
     const say = (give: string, get: string) =>
       trade(ctx, { give, get, amount: 1000 });
-    expect(say('m', 'd')).toBe('1.000 Adamant gegen 299 Promethium getauscht.');
+    expect(say('m', 'd')).toBe('1.000 Adamant gegen 225 Promethium getauscht.');
     expect(say('c', 'm')).toBe(
       '1.000 Psikristall gegen 1.800 Adamant getauscht.',
     );
     expect(say('c', 'd')).toBe(
-      '1.000 Psikristall gegen 599 Promethium getauscht.',
+      '1.000 Psikristall gegen 450 Promethium getauscht.',
     );
     expect(say('d', 'm')).toBe(
-      '1.000 Promethium gegen 2.700 Adamant getauscht.',
+      '1.000 Promethium gegen 3.600 Adamant getauscht.',
     );
     expect(say('d', 'c')).toBe(
-      '1.000 Promethium gegen 1.350 Psikristall getauscht.',
+      '1.000 Promethium gegen 1.800 Psikristall getauscht.',
     );
   });
 });
@@ -264,19 +303,37 @@ describe('the refusals of trade', () => {
 });
 
 describe('the limit per player per day (D5)', () => {
-  it('refuses what is over the limit of the round and says what is left', () => {
+  it('cuts what is over the limit of the round to what is left and says so (owner, 2026-11-19)', () => {
     const ctx = world();
     ctx.admin.putSettings([['roundMarketLimit', 1500]]);
     expect(trade(ctx)).toBe('1.000 Adamant gegen 450 Psikristall getauscht.');
-    expect(refusal(() => trade(ctx, { amount: 600 }))).toBe(
-      'Tageslimit erreicht: Heute kannst du noch 500 tauschen.',
+    const event: AuditEntry = { category: 'game', action: 'trade' };
+    expect(trade(ctx, { amount: 600 }, event)).toBe(
+      '500 Adamant gegen 223 Psikristall getauscht. Tageslimit erreicht: Es wurden nur 500 Adamant getauscht.',
     );
-    expect(trade(ctx, { amount: 500 })).toBe(
-      '500 Adamant gegen 223 Psikristall getauscht.',
-    );
+    expect(event.detail).toMatchObject({
+      given: 500,
+      got: 223,
+      capped: false,
+      cut: true,
+    });
+    expect(stock(ctx).m).toBe(3500);
+    expect(ctx.market.used('u_Anna', dayOf(START))).toBe(1500);
     expect(refusal(() => trade(ctx, { amount: 1 }))).toBe(
       'Tageslimit erreicht: Heute kannst du noch 0 tauschen.',
     );
+  });
+
+  it('has no limit with a limit of 0', () => {
+    const ctx = world();
+    ctx.admin.putSettings([['roundMarketLimit', 0]]);
+    ctx.planets.save({
+      ...ctx.planets.get('p1_1_5')!,
+      res: { m: 50_000, c: 0, d: 0 },
+    });
+    expect(trade(ctx, { amount: 20_000 })).toMatch(/^20\.000 Adamant gegen/);
+    expect(trade(ctx, { amount: 20_000 })).not.toContain('Tageslimit');
+    expect(ctx.market.used('u_Anna', dayOf(START))).toBe(40_000);
   });
 
   it('counts all resources together and each player apart', () => {
@@ -287,15 +344,28 @@ describe('the limit per player per day (D5)', () => {
       res: { m: 5000, c: 1000, d: 0 },
     });
     trade(ctx);
-    expect(
-      refusal(() => trade(ctx, { give: 'c', get: 'm', amount: 600 })),
-    ).toBe('Tageslimit erreicht: Heute kannst du noch 500 tauschen.');
-    expect(trade(ctx, { give: 'c', get: 'm', amount: 500 })).toMatch(
-      /^500 Psikristall gegen/,
+    expect(trade(ctx, { give: 'c', get: 'm', amount: 600 })).toBe(
+      '500 Psikristall gegen 900 Adamant getauscht. Tageslimit erreicht: Es wurden nur 500 Psikristall getauscht.',
     );
     // Bert pays the price Anna's exchange of the same pair left.
     expect(trade(ctx, {}, undefined, 'u_Bert')).toBe(
       '1.000 Adamant gegen 447 Psikristall getauscht.',
+    );
+  });
+
+  it('names the limit when it is smaller than the storage, the storage when that is', () => {
+    const ctx = world();
+    ctx.planets.save({
+      ...ctx.planets.get('p1_1_5')!,
+      res: { m: 5000, c: 99_700.5, d: 0 },
+    });
+    ctx.admin.putSettings([['roundMarketLimit', 500]]);
+    expect(trade(ctx)).toBe(
+      '500 Adamant gegen 225 Psikristall getauscht. Tageslimit erreicht: Es wurden nur 500 Adamant getauscht.',
+    );
+    ctx.admin.putSettings([['roundMarketLimit', 100_000]]);
+    expect(trade(ctx, { amount: 1000 })).toMatch(
+      /Das Lager für Psikristall ist jetzt voll\.$/,
     );
   });
 
@@ -370,19 +440,23 @@ describe('a new round and the state', () => {
       market: {
         marketOn: 1,
         marketMc: 700,
-        marketMd: 333,
+        marketMd: 250,
         marketCm: 2000,
-        marketCd: 666,
-        marketDm: 3000,
-        marketDc: 1500,
+        marketCd: 500,
+        marketDm: 4000,
+        marketDc: 2000,
         marketStep: 5,
         marketDrift: 24,
         marketLimit: 100000,
+        marketFee: 5,
+        marketFeeStep: 2,
       },
     });
     expect(ctx.market.prices()).toEqual({});
     expect(ctx.market.used('u_Anna', dayOf(START))).toBe(0);
     expect(ctx.admin.setting('roundMarketMc')).toBe(700);
+    expect(ctx.admin.setting('roundMarketFee')).toBe(5);
+    expect(ctx.admin.setting('roundMarketFeeStep')).toBe(2);
   });
 
   it('sends the prices now and what the player gave today', () => {
@@ -424,7 +498,9 @@ describe('a new round and the state', () => {
       caps: { m: 100000, c: 100000, d: 100000 },
       used: 0,
       limit: 100000,
-      ratios: { mc: 500, md: 333, cm: 2000, cd: 666, dm: 3000, dc: 1500 },
+      ratios: { mc: 500, md: 250, cm: 2000, cd: 500, dm: 4000, dc: 2000 },
+      feeBase: 10,
+      feeStep: 1,
     });
   });
 });
