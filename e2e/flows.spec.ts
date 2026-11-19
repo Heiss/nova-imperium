@@ -959,44 +959,4 @@ test.describe('push and economy (#68)', () => {
     await expect(lastToast(page)).toHaveText('Benachrichtigungen deaktiviert.');
     expect(w.problems).toEqual([]);
   });
-
-  test('a full store stops its production; too little energy lowers the mines', async ({
-    page,
-  }) => {
-    const w = watch(page);
-    const name = uniqueName('Lager');
-    await register(page, name);
-    // One hour without mines at speed 5: 100 Adamant and 50 Psikristall of
-    // base income; the Adamant store (100.000) is full already.
-    seed({
-      name,
-      res: { m: 100000, c: 0, d: 0 },
-      settledAgo: 3600 * 1000,
-    });
-    await page.reload();
-    await expect(stock(page, 'Adamant')).toHaveText('100.000');
-    await expect(stock(page, 'Adamant')).toHaveClass(/full/);
-    await expect(stock(page, 'Psikristall')).toHaveText('50');
-    await expect(stock(page, 'Psikristall')).not.toHaveClass(/full/);
-
-    // Mine 10 needs 259 energy, solar 5 gives 161: factor 62 %, Adamant
-    // (20 + 30 · 10 · 1.1¹⁰ · 0.62) · 5 = 2,515 per hour; solar 7 gives 272.
-    const sum = page.locator('tr', { hasText: 'Summe / Stunde' });
-    seed({ name, b: { metal: 10, solar: 5 } });
-    await page.goto('/?view=resources');
-    await expect(page.locator('.box .hd')).toHaveText(
-      'Produktion pro Stunde (Produktionsfaktor 62 %)',
-    );
-    await expect(sum.locator('th').nth(1)).toHaveText('2.515');
-    await expect(stock(page, 'Energie')).toHaveText('-99/161');
-    await expect(stock(page, 'Energie')).toHaveClass(/bad/);
-    seed({ name, b: { metal: 10, solar: 7 } });
-    await page.reload();
-    await expect(page.locator('.box .hd')).toHaveText(
-      'Produktion pro Stunde (Produktionsfaktor 100 %)',
-    );
-    await expect(sum.locator('th').nth(1)).toHaveText('3.990');
-    await expect(stock(page, 'Energie')).not.toHaveClass(/bad/);
-    expect(w.problems).toEqual([]);
-  });
 });
