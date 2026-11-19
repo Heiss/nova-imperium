@@ -114,14 +114,20 @@ test.describe('accessibility (axe)', () => {
     page,
   }) => {
     const name = uniqueName('AxeBerg');
+    // The field lies at the planet of another player: the fleet form offers
+    // no mission with the own planet as its target (#253).
+    const other = uniqueName('AxeWrack');
+    await register(page, other);
+    await page.click('[data-act=logout]');
     await register(page, name);
-    seed({ name, ships: { recycler: 1 }, debris: { m: 1800, c: 600 } });
+    seed({ name: other, debris: { m: 1800, c: 600 } });
+    seed({ name, ships: { recycler: 1 } });
     await page.reload();
     const found: string[] = [];
     await nav(page, 'galaxy');
     await page.getByText('zum Heimatsystem').click();
-    // This player's row: the Trümmerfeld lies at the home planet.
-    const row = galaxyRow(page, name);
+    // The row of the other player: the Trümmerfeld lies at his home planet.
+    const row = galaxyRow(page, other);
     const mark = row.getByRole('img', {
       name: 'Trümmerfeld: 1.800 Adamant, 600 Psikristall',
     });
