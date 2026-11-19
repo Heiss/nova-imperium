@@ -9,10 +9,11 @@ import {
 import type { User } from '../db/repos/players.ts';
 import * as A from './actions.ts';
 import { reset, saveSettings } from './admin.ts';
-import { demolish } from './demolition.ts';
 import { endzeit } from './endzeit.ts';
 import { pushOptions } from '../push-options.ts';
 import { tick } from './arrival.ts';
+import { assembleActions } from './assemble.ts';
+import { SERVER_FEATURES } from '../features.gen.ts';
 import { type Ctx, fail } from './context.ts';
 import { requireGuilds } from './round.ts';
 import { deleteGuildChat, seeGuildChat, sendGuildChat } from './guild-chat.ts';
@@ -74,12 +75,13 @@ const GUILD: Record<string, A.Action> = {
   seeGuildChat,
 };
 
-export const GUILD_ACTIONS: ReadonlySet<string> = new Set(Object.keys(GUILD));
-
-export const ACTIONS: Record<string, A.Action> = {
+/**
+ * The actions of the core game; a feature adds its own as `serverFeature`
+ * in its module (#326, okf/architecture/patterns.md, section 14).
+ */
+const FRAME: Record<string, A.Action> = {
   build: A.build,
   cancelBuild: A.cancelBuild,
-  demolish,
   research: A.research,
   cancelResearch: A.cancelResearch,
   order: A.order,
@@ -113,11 +115,21 @@ export const ACTIONS: Record<string, A.Action> = {
   claimDailyReward,
 };
 
+const tables = assembleActions(FRAME, SERVER_FEATURES);
+
+export const ACTIONS: Record<string, A.Action> = tables.actions;
+
+export const GUILD_ACTIONS: ReadonlySet<string> = new Set([
+  ...Object.keys(GUILD),
+  ...tables.guild,
+]);
+
 /** The actions of the admin: audited as `admin.write`, not as `game`. */
 export const ADMIN_ACTIONS: ReadonlySet<string> = new Set([
   'settings',
   'reset',
   'endzeit',
+  ...tables.admin,
 ]);
 
 export function runAction(
