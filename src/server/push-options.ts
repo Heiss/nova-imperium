@@ -4,6 +4,7 @@
 import { isPushTopic, PUSH_TOPICS, type PushTopic } from '../core/push.ts';
 import type { Action } from './game/actions.ts';
 import { type Ctx, fail } from './game/context.ts';
+import type { ServerFeature } from './game/feature.ts';
 
 /** The kinds the player switched off, in the order of the options. */
 export function pushOff(ctx: Ctx, uid: string): PushTopic[] {
@@ -28,3 +29,7 @@ export const pushOptions: Action = (ctx, u, d) => {
   for (const topic of off) add.run(u.id, topic);
   return 'Gespeichert.';
 };
+
+export const serverFeature = {
+  actions: { pushOptions },
+} satisfies ServerFeature;

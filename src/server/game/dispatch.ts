@@ -8,7 +8,6 @@ import {
 } from './achievements.ts';
 import type { User } from '../db/repos/players.ts';
 import * as A from './actions.ts';
-import { pushOptions } from '../push-options.ts';
 import { tick } from './arrival.ts';
 import { assembleActions } from './assemble.ts';
 import { SERVER_FEATURES } from '../features.gen.ts';
@@ -79,7 +78,6 @@ const FRAME: Record<string, A.Action> = {
   pct: A.pct,
   rename: A.rename,
   options: A.options,
-  pushOptions,
   read: A.read,
   delrep: A.delrep,
   delall: A.delall,
