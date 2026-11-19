@@ -20,7 +20,6 @@ import { inactivities, planetActivities } from './activity.ts';
 import { type Ctx, universe } from './context.ts';
 import { endzeitState } from './endzeit.ts';
 import { mainPlanetOf } from './main-planet.ts';
-import { marketState } from './market.ts';
 import { roundRules } from './round.ts';
 import { categoryScores } from './highscore.ts';
 import { pointsMap } from './points.ts';
@@ -200,8 +199,6 @@ const FRAME: readonly StatePart[] = [
   keyed(150, 'galaxy', (ctx, _u, view) => galaxyOf(ctx, view.limits)),
   // Every player sees every Trümmerfeld (#45).
   keyed(160, 'debris', (ctx) => ctx.debris.all()),
-  // The prices of the marketplace and what the player gave today (#171).
-  keyed(180, 'market', (ctx, u) => marketState(ctx, u)),
   keyed(190, 'admin', (ctx, u) => adminState(ctx, u)),
 ];
 

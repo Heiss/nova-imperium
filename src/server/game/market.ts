@@ -113,4 +113,10 @@ export const exchange: Action = (ctx, u, d, event) => {
 
 export const serverFeature = {
   actions: { trade: exchange },
+  state: {
+    order: 180,
+    keys: ['market'],
+    // The prices of the marketplace and what the player gave today (#171).
+    build: (ctx, u) => ({ market: marketState(ctx, u) }),
+  },
 } satisfies ServerFeature;
