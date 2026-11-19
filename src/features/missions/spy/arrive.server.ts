@@ -23,9 +23,12 @@ import { withHeldFleets } from '../../../server/game/holding.ts';
 import {
   type Fight,
   WON,
+  afterHeld,
   battleReport,
+  defenders,
   fight,
   recordBattle,
+  reportHeldOwners,
 } from '../../../server/game/fight.ts';
 import {
   type Arrival,
@@ -46,15 +49,19 @@ function chanceAt(ctx: Ctx, f: Fleet, t: Planet, attR: Levels, defR: Levels) {
 }
 
 /**
- * Detected probes fight the target's ships and defense with the battle of
- * an attack (D4); both sides get a battle report. A target with neither
- * gives no battle (owner, 2026-11-17).
+ * Detected probes fight the target's ships and defense, and the fleets that
+ * hold there (owner, 2026-11-19), with the battle of an attack (D4); both
+ * sides get a battle report, and so does the owner of every fleet that held.
+ * A target with neither ships, defense nor a fleet that holds gives no
+ * battle (owner, 2026-11-17).
  */
 function spyBattle(ctx: Ctx, f: Fleet, at: Arrival): Fight | null {
   const { t, att } = at;
-  if (!countUnits(t.ships) && !countUnits(t.def)) return null;
-  const x = fight(ctx, f, at);
+  const held = defenders(ctx, f, t);
+  if (!countUnits(t.ships) && !countUnits(t.def) && !held.length) return null;
+  const x = fight(ctx, f, at, held);
   ctx.planets.save(t);
+  afterHeld(ctx, x.held);
   recordBattle(ctx, f, t, x);
   const report = battleReport(f, at, x);
   const where = coords(f.toC);
@@ -63,7 +70,9 @@ function spyBattle(ctx: Ctx, f: Fleet, at: Arrival): Fight | null {
     : `Kontakt abgebrochen – deine Spähschädel wurden bei ${where} entdeckt und zerstört.`;
   addReport(ctx, f.owner, { ...report, title }, { topic: 'fleet' });
   const seen = `Kampfbericht ${placeName(t)} ${where} – Spähschädel von ${att.name}`;
-  addReport(ctx, t.owner, { ...report, title: seen }, { topic: 'spied' });
+  const defender = { ...report, title: seen };
+  addReport(ctx, t.owner, defender, { topic: 'spied' });
+  reportHeldOwners(ctx, x, defender, 'spied');
   return x;
 }
 

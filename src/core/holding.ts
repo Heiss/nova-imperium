@@ -136,6 +136,16 @@ export function holdLimitError(
 export const holdEnd = (f: Pick<Fleet, 'arr' | 'hold'>): number =>
   f.arr + (f.hold ?? 0);
 
+/**
+ * When a fleet that holds, or arrives to hold, is home if it turns back at
+ * `t`: its flight back takes as long as its flight there. A fleet whose
+ * holding time is over already left at its end.
+ */
+export const homeAt = (
+  f: Pick<Fleet, 'dep' | 'arr' | 'hold'>,
+  t: number,
+): number => Math.min(t, holdEnd(f)) + (f.arr - f.dep);
+
 /** When the next event of a fleet is due: its arrival, the end of holding or its return. */
 export function dueAt(
   f: Pick<Fleet, 'state' | 'arr' | 'ret' | 'hold'>,

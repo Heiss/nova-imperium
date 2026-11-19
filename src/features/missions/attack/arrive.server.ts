@@ -5,8 +5,8 @@
 // every party gets a battle report; a fleet without survivors is gone. The
 // battle, the loot, the reports and the flight home are shared with the
 // Mondbruch (#95) and the battle with the detected Auspex-Erkundung (#175) in
-// src/server/game/fight.ts; only the Sturmangriff asks for the fleets that
-// hold.
+// src/server/game/fight.ts; each of the three asks for the fleets that hold
+// (owner, 2026-11-19).
 import type { Fleet } from '../../../core/types.ts';
 import type { Ctx } from '../../../server/game/context.ts';
 import {

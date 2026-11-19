@@ -8,10 +8,12 @@ import { sendError } from '../../../core/missions.ts';
 import type { Fleet, Levels, Planet } from '../../../core/types.ts';
 import { queuePush } from '../../../server/push-store.ts';
 import { seeded } from '../../../test/fixtures.ts';
-import { arrive } from '../../../server/game/arrival.ts';
+import { arrive, tick } from '../../../server/game/arrival.ts';
+import { dueAt } from '../../../core/holding.ts';
+import { heldAt, holdersAt } from '../../../server/game/holding.ts';
 import { cutLoot } from '../../../server/game/fight.ts';
 import { categoryScores } from '../../../server/game/highscore.ts';
-import { addMoon } from '../../../server/game/moons.ts';
+import { addMoon, destroyMoon } from '../../../server/game/moons.ts';
 import { pointsMap } from '../../../server/game/points.ts';
 import {
   addPlanet,
@@ -570,5 +572,222 @@ describe('moonbreak: the fleets of a broken moon', () => {
     arrive(ctx, ctx.fleets.get('t1')!);
     expect(ctx.planets.get('p1_2_6')!.res.m).toBeGreaterThanOrEqual(9010);
     expect(ctx.fleets.get('t1')!.state).toBe('back');
+  });
+});
+
+describe('moonbreak: the fleets that hold at the moon (#55, owner, 2026-11-19)', () => {
+  /** Carl, an ally of Bert, has a fleet that holds at Bert's moon; it ends in an hour. */
+  function guard(
+    ctx: ReturnType<typeof testCtx>,
+    ships: Levels,
+    over: Partial<Fleet> = {},
+  ): Fleet {
+    if (!ctx.players.get('u_Carl')) {
+      addUser(ctx, 'Carl');
+      addPlanet(ctx, 'u_Carl', { g: 1, s: 3, p: 4 });
+    }
+    return fleetTo(ctx, {
+      id: 'h1',
+      owner: 'u_Carl',
+      from: 'p1_3_4',
+      fromC: { g: 1, s: 3, p: 4 },
+      mission: 'hold',
+      ships,
+      cargo: { m: 0, c: 0, d: 0 },
+      dep: ctx.now() - 1000,
+      arr: ctx.now() - 500,
+      ret: ctx.now() + 3_600_000,
+      state: 'hold',
+      fuel: 1,
+      hold: 3_600_000,
+      ...over,
+    });
+  }
+
+  it('lets the fleet that holds defend the moon with its owner: it is a party of its own, its losses and its debris count, both owners get the report', () => {
+    // Seven Weltenbrecher break a moon of 3,600 km for certain.
+    const { ctx, f, at } = setup({ dstar: 7 });
+    guard(ctx, { lf: 2 });
+    ctx.rng = seeded(95);
+    onArrive(ctx, f, at);
+    expect(anna(ctx)).toMatchObject({
+      winner: 'att',
+      participants: ['u_Anna', 'u_Bert', 'u_Carl'],
+      held: [{ name: 'Carl', before: { lf: 2 }, after: {} }],
+      // 30 % of the two Lichte Jäger (2 × 3,000 / 1,000).
+      debris: { m: 1800, c: 600 },
+      moonbreak: { chance: 100, broken: true },
+    });
+    expect(ctx.reports.ofPlayer('u_Carl')).toMatchObject([
+      {
+        type: 'battle',
+        title: 'Feindkontakt! Mond (Mond) [1:2:6] wird von Anna angegriffen',
+        held: [{ name: 'Carl', before: { lf: 2 }, after: {} }],
+        moonLost: true,
+      },
+    ]);
+    expect(bert(ctx)).toMatchObject({
+      title: 'Feindkontakt! Mond (Mond) [1:2:6] wird von Anna angegriffen',
+    });
+    expect(ctx.debris.all()).toEqual([
+      { id: 'd1_2_6', g: 1, s: 2, p: 6, m: 1800, c: 600 },
+    ]);
+    // The attacker won: the fleet that held is destroyed with the moon.
+    expect(ctx.fleets.get('h1')).toBeNull();
+  });
+
+  it('plunders the cargo of the fleet that holds after the stock of the moon, as in a Sturmangriff', () => {
+    const { ctx, f, at } = setup({ dstar: 7, lc: 20 });
+    guard(ctx, { lf: 2 }, { cargo: { m: 1000, c: 0, d: 0 } });
+    ctx.rng = seeded(95);
+    onArrive(ctx, f, at);
+    // Half of the moon's 900 / 600 / 300, then the held Adamant.
+    expect(anna(ctx)).toMatchObject({ loot: { m: 450 + 1000, c: 300, d: 150 } });
+  });
+
+  it('keeps a moon whose fleet that holds wins: nothing rolls, the fleet holds on with its survivors', () => {
+    const { ctx, f, at } = setup({ lf: 1 });
+    const h = guard(ctx, { bs: 5 });
+    onArrive(ctx, f, at);
+    expect(anna(ctx)).toMatchObject({
+      winner: 'def',
+      held: [{ name: 'Carl', before: { bs: 5 }, after: { bs: 5 } }],
+    });
+    expect(anna(ctx)).not.toHaveProperty('moonbreak');
+    expect(ctx.planets.get('m1_2_6')).not.toBeNull();
+    expect(ctx.fleets.get('h1')).toEqual(h);
+    expect(ctx.fleets.get('f1')).toBeNull();
+  });
+
+  it('fights as before without a fleet that holds, and leaves a fleet of the attacker himself out', () => {
+    const { ctx, f, at } = setup({ dstar: 7 });
+    guard(ctx, { bs: 1 }, { id: 'mine', owner: 'u_Anna', from: 'p1_1_5' });
+    ctx.rng = seeded(95);
+    onArrive(ctx, f, at);
+    expect(anna(ctx)).toMatchObject({ winner: 'att', defBefore: {} });
+    expect(anna(ctx)).not.toHaveProperty('held');
+    expect(anna(ctx).participants).toEqual(['u_Anna', 'u_Bert']);
+    expect(ctx.debris.all()).toEqual([]);
+  });
+
+  it('moves the fleet that holds at the moon to its planet when the moon breaks, with the same end time, and it holds on there', () => {
+    // The fleet of the attacker himself stays out of the battle and survives.
+    const { ctx, f, at } = setup({ dstar: 7 });
+    const h = guard(ctx, { bs: 1 }, { id: 'mine', owner: 'u_Anna', from: 'p1_1_5' });
+    ctx.rng = seeded(95);
+    onArrive(ctx, f, at);
+    expect(ctx.planets.get('m1_2_6')).toBeNull();
+    expect(ctx.fleets.get('mine')).toEqual({ ...h, to: 'p1_2_6' });
+    expect(heldAt(ctx, 'p1_2_6').map((x) => x.id)).toEqual(['mine']);
+    expect(heldAt(ctx, 'm1_2_6')).toEqual([]);
+  });
+});
+
+describe('moonbreak: a fleet that holds at a moon that breaks (#55, owner, 2026-11-19)', () => {
+  /** A moon with a fleet of Carl that holds there, and one that holds at the planet. */
+  function world() {
+    const { ctx, at } = setup();
+    // No Mondbruch is on its way: the moon is broken by hand.
+    ctx.fleets.delete('f1');
+    addUser(ctx, 'Carl');
+    addUser(ctx, 'Dora');
+    addPlanet(ctx, 'u_Carl', { g: 1, s: 3, p: 4 });
+    const holds = (id: string, owner: string, to: string): Fleet => {
+      const x: Fleet = {
+        id,
+        owner,
+        from: 'p1_3_4',
+        fromC: { g: 1, s: 3, p: 4 },
+        to,
+        toC: AT,
+        mission: 'hold',
+        ships: { bs: 2 },
+        cargo: { m: 5, c: 0, d: 0 },
+        dep: ctx.now() - 1000,
+        arr: ctx.now() - 500,
+        ret: ctx.now() + 3_600_000 + 500,
+        state: 'hold',
+        recalled: false,
+        fuel: 1,
+        hold: 3_600_000,
+      };
+      ctx.fleets.save(x);
+      return x;
+    };
+    return { ctx, at, holds };
+  }
+
+  it('moves it to the planet, keeps its end time and ships, and leaves a fleet that holds at the planet as it is', () => {
+    const { ctx, at, holds } = world();
+    const atMoon = holds('h1', 'u_Carl', 'm1_2_6');
+    const atPlanet = holds('h2', 'u_Carl', 'p1_2_6');
+    destroyMoon(ctx, at.t);
+    expect(ctx.fleets.get('h1')).toEqual({ ...atMoon, to: 'p1_2_6' });
+    expect(ctx.fleets.get('h2')).toEqual(atPlanet);
+    expect(dueAt(ctx.fleets.get('h1')!)).toBe(dueAt(atMoon));
+    expect(
+      heldAt(ctx, 'p1_2_6')
+        .map((x) => x.id)
+        .sort(),
+    ).toEqual(['h1', 'h2']);
+    expect(heldAt(ctx, 'm1_2_6')).toEqual([]);
+  });
+
+  it('lets it hold on until its time ends, then it flies home as planned', () => {
+    const { ctx, at, holds } = world();
+    const h = holds('h1', 'u_Carl', 'm1_2_6');
+    destroyMoon(ctx, at.t);
+    ctx.clock.t = h.arr + 3_600_000 - 1;
+    expect(tick(ctx)).toBe(0);
+    expect(ctx.fleets.get('h1')).toMatchObject({ state: 'hold' });
+    ctx.clock.t = h.arr + 3_600_000;
+    tick(ctx);
+    expect(ctx.fleets.get('h1')).toMatchObject({ state: 'back', ret: h.ret });
+    ctx.clock.t = h.ret;
+    tick(ctx);
+    expect(ctx.fleets.get('h1')).toBeNull();
+    expect(ctx.planets.get('p1_3_4')!.ships.bs).toBe(2);
+  });
+
+  it('defends the planet afterwards, in the next Sturmangriff', () => {
+    const { ctx, at, holds } = world();
+    holds('h1', 'u_Carl', 'm1_2_6');
+    destroyMoon(ctx, at.t);
+    const raider: Fleet = {
+      ...fleetTo(ctx, { id: 'att', mission: 'attack', ships: { lf: 1 } }),
+      to: 'p1_2_6',
+      state: 'out',
+    };
+    ctx.fleets.save(raider);
+    arrive(ctx, raider);
+    expect(ctx.reports.ofPlayer('u_Carl')).toMatchObject([
+      {
+        type: 'battle',
+        held: [{ name: 'Carl', before: { bs: 2 } }],
+      },
+    ]);
+    expect(ctx.fleets.get('att')).toBeNull();
+  });
+
+  it('moves it even where the planet is full: 15 fleets already hold there (open point)', () => {
+    const { ctx, at, holds } = world();
+    for (let i = 0; i < 15; i++) holds(`p${i}`, 'u_Carl', 'p1_2_6');
+    holds('h1', 'u_Dora', 'm1_2_6');
+    destroyMoon(ctx, at.t);
+    expect(ctx.fleets.get('h1')).toMatchObject({
+      to: 'p1_2_6',
+      state: 'hold',
+    });
+    expect(holdersAt(ctx, 'p1_2_6')).toHaveLength(16);
+  });
+
+  it('still reroutes the fleets flying to the moon as before and does not touch a fleet that is on its way home from it', () => {
+    const { ctx, at, holds } = world();
+    holds('h1', 'u_Carl', 'm1_2_6');
+    holds('back', 'u_Carl', 'm1_2_6');
+    ctx.fleets.save({ ...ctx.fleets.get('back')!, state: 'back' });
+    destroyMoon(ctx, at.t);
+    expect(ctx.fleets.get('h1')!.to).toBe('p1_2_6');
+    expect(ctx.fleets.get('back')!.to).toBe('m1_2_6');
   });
 });
