@@ -29,6 +29,7 @@ import type {
 import type { Action } from './actions.ts';
 import { fail, str, type Ctx } from './context.ts';
 import { rankEvent } from './guild-events.ts';
+import type { ServerFeature } from './feature.ts';
 
 const NO_RIGHT = 'Dazu fehlt deinem Rang das Recht.';
 const LOWER_ONLY = 'Das geht nur bei Rängen unter deinem.';
@@ -264,3 +265,16 @@ export function rankState(a: Actor, players: GuildPlayer[]) {
     members: Object.fromEntries(members.map((p) => [p.id, p.rank_id])),
   };
 }
+
+export const serverFeature = {
+  guildActions: {
+    createGuildRank,
+    renameGuildRank,
+    setGuildRankRights,
+    moveGuildRank,
+    deleteGuildRank,
+    setGuildDefaultRank,
+    assignGuildRank,
+    dissolveGuild,
+  },
+} satisfies ServerFeature;

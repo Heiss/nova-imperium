@@ -12,30 +12,12 @@ import { requireGuilds } from './round.ts';
 import { deleteGuildChat, seeGuildChat, sendGuildChat } from './guild-chat.ts';
 import { vacationRefuses } from '../../core/vacation.ts';
 import { VACATION_REFUSED } from './vacation.ts';
-import {
-  assignGuildRank,
-  createGuildRank,
-  deleteGuildRank,
-  dissolveGuild,
-  moveGuildRank,
-  renameGuildRank,
-  setGuildDefaultRank,
-  setGuildRankRights,
-} from './guild-ranks.ts';
 
 /**
  * The guild actions: refused while guilds are off in the round (#191). A
  * new guild action, the chat of #169 included, belongs here.
  */
 const GUILD: Record<string, A.Action> = {
-  createGuildRank,
-  renameGuildRank,
-  setGuildRankRights,
-  moveGuildRank,
-  deleteGuildRank,
-  setGuildDefaultRank,
-  assignGuildRank,
-  dissolveGuild,
   sendGuildChat,
   deleteGuildChat,
   seeGuildChat,
