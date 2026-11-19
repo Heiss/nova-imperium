@@ -23,6 +23,11 @@ import {
   highscoreRanking,
 } from '../logic/highscore.ts';
 import { OWN_ACTIVITY_PLACEHOLDER } from '../logic/own-activity.ts';
+import {
+  adminArchiveHTML,
+  archiveHTML,
+  shownArchive,
+} from '../logic/round-archive.ts';
 import { vacationHTML } from '../logic/vacation.ts';
 import { gainWarning } from '../logic/market.ts';
 import { pushKindsHTML, shownPushOff } from '../logic/push-options.ts';
@@ -98,6 +103,7 @@ export const help = (v: V): string => `<h2>Hilfe &amp; Optionen</h2>
  ${box('Hauptplanet', mainPlanetHTML(v.s, v.now))}
  ${box('Urlaubsmodus', vacationHTML(v.s.round.vacationHours))}
  ${box('Meine Aktivität &amp; Spielzeit', OWN_ACTIVITY_PLACEHOLDER)}
+ ${box('Rundenarchiv', archiveHTML(shownArchive(v.s)))}
  ${box('Darstellung', `<label class="switch"><input type="checkbox" id="o_anim" ${v.ui.animations ? 'checked' : ''}> Animationen</label><p class="dim">Planeten drehen sich, Wolken ziehen. Gilt für dieses Gerät; ist im System „Bewegung reduzieren“ eingestellt, bleibt alles ruhig.</p>`)}
  ${passwordBox(v.ui)}
  ${passkeysBox()}
@@ -228,7 +234,7 @@ export function roundDialog(
   settings: readonly RoundSetting[] = ROUND_SETTINGS,
 ): string {
   return `<p><b>Wirklich eine neue Runde starten?</b><br>
-  Planeten, Flotten, Forschung, Nachrichten und Belohnungsfortschritt werden zurückgesetzt. Das kann nicht rückgängig gemacht werden.</p>
+  Die laufende Runde wird vorher im Rundenarchiv gespeichert. Planeten, Flotten, Forschung, Nachrichten und Belohnungsfortschritt werden zurückgesetzt. Das kann nicht rückgängig gemacht werden.</p>
   ${roundRows(round, settings).join('\n  ')}
   <p><button class="red" data-act="doReset">Ja, neue Runde</button> <button data-act="closeModal">Abbrechen</button></p>`;
 }
@@ -283,6 +289,7 @@ export function admin(v: V): string {
     <section id="admin-panel-universe" role="tabpanel" aria-labelledby="admin-tab-universe" hidden>
       ${box('Universum', settingsForm(v.s, a))}
       ${endzeitBox(a)}
+      ${box('Rundenberichte', adminArchiveHTML(shownArchive(v.s)))}
       ${box('Neue Runde', 'Alle Spieler behalten ihr Konto und bekommen einen frischen Planeten. <button class="red" data-act="reset">Neue Runde starten</button>')}
     </section>
     <section id="admin-panel-announce" role="tabpanel" aria-labelledby="admin-tab-announce" hidden>${box(

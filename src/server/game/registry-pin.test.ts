@@ -37,6 +37,9 @@ const PLAIN = [
   'rename',
   'requestFriend',
   'research',
+  'roundArchive',
+  'roundHistory',
+  'roundReport',
   'scan',
   'send',
   'startVacation',
@@ -61,7 +64,7 @@ const GUILD = [
   'setGuildRankRights',
   'updateGuild',
 ];
-const ADMIN = ['endzeit', 'reset', 'settings'];
+const ADMIN = ['closeRound', 'deleteRound', 'endzeit', 'reset', 'settings'];
 
 const FULL_KEYS = [
   'round',

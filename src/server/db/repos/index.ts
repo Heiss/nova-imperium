@@ -14,6 +14,7 @@ import { SqlitePlanets, type Planets } from './planets.ts';
 import { SqlitePlayers, type Players } from './players.ts';
 import { SqlitePlaytime, type Playtime } from './playtime.ts';
 import { SqliteReports, type Reports } from './reports.ts';
+import { SqliteRounds, type RoundArchive } from './rounds.ts';
 import { SqliteSurveys, type Surveys } from './surveys.ts';
 
 export interface Repositories {
@@ -36,6 +37,8 @@ export interface Repositories {
   targets: LastTargets;
   /** The accepted intervals of the estimated play time (#232). */
   playtime: Playtime;
+  /** The archive of the rounds and their event history (#235). */
+  rounds: RoundArchive;
 }
 
 export const repositories = (db: Db): Repositories => ({
@@ -52,4 +55,5 @@ export const repositories = (db: Db): Repositories => ({
   market: new SqliteMarket(db),
   targets: new SqliteLastTargets(db),
   playtime: new SqlitePlaytime(db),
+  rounds: new SqliteRounds(db),
 });

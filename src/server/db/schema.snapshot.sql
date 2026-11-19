@@ -55,6 +55,11 @@ CREATE INDEX push_subscription_user ON push_subscriptions(user_id);
 
 CREATE INDEX reports_user ON reports(user_id, seq);
 
+CREATE INDEX round_events_kind ON round_events(round, kind, at);
+
+CREATE INDEX round_participants_player ON round_participants(player)
+      WHERE player IS NOT NULL;
+
 CREATE INDEX surveys_created ON surveys(created);
 
 CREATE TABLE account_tokens (
@@ -390,6 +395,35 @@ CREATE TABLE reports (
     body TEXT NOT NULL
   ) STRICT;
 
+CREATE TABLE round_events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      round INTEGER NOT NULL REFERENCES rounds(number) ON DELETE CASCADE,
+      at INTEGER NOT NULL,
+      recorded INTEGER NOT NULL,
+      kind TEXT NOT NULL,
+      seat INTEGER,
+      version INTEGER NOT NULL,
+      payload TEXT NOT NULL
+    ) STRICT;
+
+CREATE TABLE round_participants (
+      round INTEGER NOT NULL REFERENCES rounds(number) ON DELETE CASCADE,
+      seat INTEGER NOT NULL,
+      player TEXT,
+      name TEXT NOT NULL,
+      PRIMARY KEY (round, seat)
+    ) STRICT;
+
+CREATE TABLE rounds (
+      number INTEGER PRIMARY KEY,
+      status TEXT NOT NULL CHECK (status IN ('active', 'closed')),
+      started INTEGER NOT NULL,
+      closed INTEGER,
+      coverage TEXT NOT NULL CHECK (coverage IN ('complete', 'partial')),
+      rules TEXT NOT NULL,
+      events INTEGER
+    ) STRICT;
+
 CREATE TABLE schema_migrations (id TEXT NOT NULL PRIMARY KEY) STRICT;
 
 CREATE TABLE sessions (
@@ -458,3 +492,9 @@ CREATE TABLE users (
   , explain_mode TEXT NOT NULL DEFAULT 'icon'
     CHECK (explain_mode IN ('always', 'icon', 'hidden')), rq_planet TEXT, main_planet TEXT, main_switched INTEGER, active_at INTEGER, vacation INTEGER, level_table TEXT NOT NULL DEFAULT 'icon'
       CHECK (level_table IN ('always', 'icon', 'hidden'))) STRICT;
+
+CREATE TRIGGER round_participants_deleted_account BEFORE DELETE ON users
+    BEGIN
+      UPDATE round_participants SET player = NULL, name = 'Gelöschter Spieler'
+      WHERE player = OLD.id;
+    END;
