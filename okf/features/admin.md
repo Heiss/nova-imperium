@@ -140,14 +140,11 @@ universe settings) and their ranges are not decided yet.
   (`src/server/game/round.ts`) all read it. On main it holds the reward
   options „Achievements aktivieren“ and „Tagesbelohnungen aktivieren“ (one
   group `rewards`, one fieldset), the switch „Gilden (mit Chat)“, the lock
-  of the main planet and the lock of a given-up position (#224,
-  `ABANDON_LOCK_SETTING` in `src/core/abandon.ts`); their texts, ranges,
-  defaults, refusals and order are those of before.
+  of the main planet and the lock of a given-up position (#224); their
+  texts, ranges, defaults, refusals and order are those of before.
 * **[V]** #229 added the four thresholds of the
   [activity indicators](/features/activity-indicators.md#settings) as
-  entries of `src/core/activity.ts` (`ACTIVITY_RECENT_SETTING`,
-  `ACTIVITY_MINUTES_SETTING`, `INACTIVE_DAYS_SETTING`,
-  `LONG_INACTIVE_DAYS_SETTING`): one group `activity` with the legend
+  entries of `src/core/activity.ts`: one group `activity` with the legend
   „Aktivität“ (owner, 2026-11-18), so they stand in one fieldset of the
   dialog, are sent as one object and every wrong one is refused at once
   with the range wording; all four are `live`.
@@ -177,32 +174,56 @@ universe settings) and their ranges are not decided yet.
   position (#224) and, after it, the four thresholds of the activity
   markers (#229) are the live settings of main, the last rows of the
   universe settings; the other four entries are not live.
-* **[V]** Added with #228: the three thresholds of the recognition of
-  foreign fleets ([Espionage defense](/features/espionage-defense.md)),
-  `RECOGNITION_TOTAL_SETTING`, `RECOGNITION_TYPES_SETTING` and
-  `RECOGNITION_COUNTS_SETTING` in `src/core/fleet-recognition.ts`, with the
-  orders 120, 130 and 140 (60 to 90 are the activity markers of #229, 100 and
-  110 are left to #55), so they stand after them in the dialog „Neue Runde“
-  and, being live, after the activity rows in the universe settings. They are one group
-  `recognition` with the legend „Fremde Flotten erkennen“ ([E] owner,
-  2026-11-18): three number fields from 0 to 100 ([E], 2026-11-18) in one
-  fieldset with the defaults 2, 4 and 8, sent as one object and refused
-  together with the range wording.
+* **[V]** Added with #228 in the pattern of #310: the three thresholds of
+  the recognition of foreign fleets
+  ([Espionage defense](/features/espionage-defense.md)) are the entries of
+  `src/core/fleet-recognition.ts`, with the orders 120, 130 and 140 (60 to
+  90 are the activity markers of #229, 100 and 110 are left to #55), so they
+  stand after them in the dialog „Neue Runde“ and, being live, after the
+  activity rows in the universe settings. They are one group `recognition`
+  with the legend „Fremde Flotten erkennen“ ([E] owner, 2026-11-18): three
+  number fields from 0 to 100 ([E], 2026-11-18) in one fieldset with the
+  defaults 2, 4 and 8, sent as one object and refused together with the
+  range wording.
 * **[V]** With the groups of #229 and #228 the dialog „Neue Runde“ is
   taller than a window of 720 px, so every dialog (`#modal .in` in
   `src/client/static/style.css`) is at most as high as the window and
   scrolls inside itself; before, its buttons lay outside the window.
-* **[V]** A feature with a value per round adds one entry in its own file
-  (`export const X_SETTING = { … } as const satisfies RoundSetting`) and
-  one line to the list `ENTRIES` in `src/core/round.ts`, where the place
-  of the line means nothing; `RoundRules` gets the typed value from the
-  entry by itself. The feature picks its `order` number as the next free
-  ten above the highest number of the registry (100 after the 90 of main),
-  so it stands last in the dialog and among the refusals; the members of
-  a group take neighbouring numbers. A test refuses a number used twice,
-  so two parallel features that picked the same one see it after the
-  merge, and the later one takes the next ten. The field id is `round-`
-  and the name in kebab case (`mainLock` is `round-main-lock`).
+* **[V]** A feature registers its settings itself (#310; the owner asked
+  for a design pattern against the conflicts of parallel feature branches,
+  2026-11-18). It defines its entries in its own file of `src/core` and
+  exports them under one fixed name:
+  `export const roundSettings = [ { … } ] as const satisfies readonly RoundSetting[];`.
+  Nothing else is edited: `scripts/gen-features.ts` lists every file of
+  `src/core` with this export in `src/core/round-settings.gen.ts`
+  (`ROUND_ENTRIES`, not checked in, like the feature index; every `pnpm`
+  script that builds, checks or tests runs the generator first), and
+  `src/core/round.ts` builds `ROUND_SETTINGS` from that list and names no
+  feature. `RoundRules` gets the typed value from the entry by itself. The
+  feature picks its `order` number as the next free ten above the highest
+  number of the registry, so it stands last in the dialog and among the
+  refusals; the members of a group take neighbouring numbers and share one
+  group object. The field id is `round-` and the name in kebab case
+  (`mainLock` is `round-main-lock`). Where an entry lives is the feature's
+  choice: the reward options in `src/core/achievements.ts`, the guild switch
+  in `src/core/guild-chat.ts`, the lock of the main planet in
+  `src/core/main-planet.ts`, the lock of a given-up position in
+  `src/core/abandon.ts`, the activity thresholds in `src/core/activity.ts`,
+  the thresholds of the recognition of foreign fleets in
+  `src/core/fleet-recognition.ts`.
+* **[V]** The tests follow the same split (#310). One test,
+  `src/core/round-registry.test.ts`, checks the rules for all entries and
+  names no feature and no count: unique keys, names and field ids, unique
+  `order` numbers in ascending order (a number used twice by two parallel
+  features is seen after the merge, and the later one takes the next ten),
+  the members of a group together with one legend or none, a default and
+  every choice in the range, and every `live` entry a row of the universe
+  settings. Every feature tests its own entries in its own test, selected
+  from `ROUND_SETTINGS` by key or group (label, range, default, order,
+  legend, refusal, `live`, field id), and no test lists another feature's
+  settings, counts all fieldsets or rows, or picks one by position. A test
+  that needs a full set of round values takes it from `roundDefaults()`
+  (`src/test/fixtures.ts`) and names the values of its own feature on top.
 
 # Round rewards and menu hints
 

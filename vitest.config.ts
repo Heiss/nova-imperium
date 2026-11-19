@@ -24,6 +24,7 @@ export default defineConfig({
         'src/features/index.gen.ts',
         'src/features/index.server.gen.ts',
         'src/features/lexicon.gen.ts',
+        'src/core/round-settings.gen.ts',
         'src/server/main.ts',
         'src/server/cli.ts',
         // Runs in a worker thread; tested through maintenance.test.ts.

@@ -57,7 +57,7 @@ Planet“ (https://owiki.de/index.php?title=Zerst%C3%B6rter_Planet&oldid=76922).
 * **[V]** The lock is a setting of the round, `roundAbandonLock`, in whole
   hours from 1 to 720 (30 days, the upper bound of the main-planet lock),
   read by `roundRules()` (24 without the setting). It is one entry of the
-  registry of the round settings (#283, `ABANDON_LOCK_SETTING` in
+  registry of the round settings (#283, `roundSettings` in
   `src/core/abandon.ts`, `live`;
   [Admin](/features/admin.md#the-registry-of-the-round-settings-283)),
   which gives the field, the row, the check and the refusal below. The
@@ -86,7 +86,7 @@ Planet“ (https://owiki.de/index.php?title=Zerst%C3%B6rter_Planet&oldid=76922).
   section 7): `abandonTargetError` (codes `unknown`, `moon`, `main`),
   `abandonError` (then `stale`, `flights`, `research`, `orders`, in this order),
   `positionLockEnd` and `positionLocked` (the lock holds while now < end);
-  the range of the lock is the registry entry `ABANDON_LOCK_SETTING`. The
+  the range of the lock is its entry of the registry (`roundSettings`). The
   server (`src/server/game/abandon.ts`, action
   `abandon` with `target`, the planet id, `created`, its founding time, and `password`) gathers the
   values and words the codes; `src/server/game/position-lock.ts` holds the

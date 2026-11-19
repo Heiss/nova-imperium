@@ -13,6 +13,8 @@ import {
   MAX_CHAT_TEXT,
 } from './guild-chat.ts';
 import { GUILD_RIGHTS, type GuildRight } from './guild-ranks.ts';
+import { ROUND_SETTINGS, roundFieldId, roundRefused } from './round.ts';
+import { liveSpecs } from './universe.ts';
 
 // The pure rules of the guild chat (#169).
 
@@ -198,6 +200,47 @@ describe('the red mark on „Gilden“ (#169; owner, 2026-11-15)', () => {
         },
       ),
       { seed: 169, numRuns: 200 },
+    );
+  });
+});
+
+describe('the guild switch of a round (#191, #283)', () => {
+  const guilds = ROUND_SETTINGS.filter((s) => s.key === 'roundGuilds');
+  const refused = (value: unknown) =>
+    roundRefused({ guilds: true }, { guilds: value }, guilds).length;
+
+  it('is one entry of the registry: a switch, on by default, with its warning, not live', () => {
+    expect(guilds).toEqual([
+      {
+        kind: 'switch',
+        key: 'roundGuilds',
+        name: 'guilds',
+        label: 'Gilden (mit Chat)',
+        order: 30,
+        def: true,
+        refusal: 'Bitte auswählen, ob Gilden in der neuen Runde an sind.',
+        note: 'Eine neue Runde leert alle Gilden-Chats. Ohne Gilden werden alle Gilden mit Mitgliedern, Bewerbungen, Rängen und Chat gelöscht.',
+      },
+    ]);
+    expect(guilds.map(roundFieldId)).toEqual(['round-guilds']);
+    expect(liveSpecs().map((s) => s.key)).not.toContain('roundGuilds');
+  });
+
+  it('takes yes or no and refuses anything else', () => {
+    for (const value of [true, false, undefined])
+      expect(refused(value)).toBe(0);
+    for (const value of ['false', 'true', 0, 1, null, {}, []])
+      expect(refused(value)).toBe(1);
+  });
+
+  it('is refused exactly when it is not yes or no (property)', () => {
+    const value = fc.oneof(fc.boolean(), fc.constant(undefined), fc.anything());
+    fc.assert(
+      fc.property(value, (v) => {
+        expect(refused(v)).toBe(
+          v === undefined || typeof v === 'boolean' ? 0 : 1,
+        );
+      }),
     );
   });
 });
