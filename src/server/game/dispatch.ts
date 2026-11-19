@@ -15,7 +15,6 @@ import { SERVER_FEATURES } from '../features.gen.ts';
 import { type Ctx, fail } from './context.ts';
 import { requireGuilds } from './round.ts';
 import { deleteGuildChat, seeGuildChat, sendGuildChat } from './guild-chat.ts';
-import { recall, send } from './fleet-actions.ts';
 import { vacationRefuses } from '../../core/vacation.ts';
 import { VACATION_REFUSED } from './vacation.ts';
 import {
@@ -84,8 +83,6 @@ const FRAME: Record<string, A.Action> = {
   read: A.read,
   delrep: A.delrep,
   delall: A.delall,
-  send,
-  recall,
   ...GUILD,
   // The buddy list (#227); not a guild action, so it works with guilds off.
   requestFriend,

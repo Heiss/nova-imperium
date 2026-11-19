@@ -48,6 +48,7 @@ import { holdersAt, isAllyOf } from './holding.ts';
 import { isProtected, pointsMap } from './points.ts';
 import { roundRules } from './round.ts';
 import { inVacation } from './vacation.ts';
+import type { ServerFeature } from './feature.ts';
 
 /**
  * The picked ships, each at most as many as stand on the place; what is no
@@ -342,3 +343,7 @@ export const recall: Action = (ctx, u, d, event) => {
     event.detail = { fleet: fleet.id, planet: fleet.from, due: fleet.ret };
   return 'Flotte zurückgerufen.';
 };
+
+export const serverFeature = {
+  actions: { send, recall },
+} satisfies ServerFeature;
