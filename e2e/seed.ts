@@ -2,7 +2,8 @@
 // UI would need hours to reach (ships in the hangar). Usage:
 //   node e2e/seed.ts '<json>'   with { name, res?, b?, ships?, def?, temp?, pct?, research?,
 //   diameter?, unlimited? (the fields of the home planet, #51),
-//   clearQueue? (a finished build), colony? ({ g?, s?, p?, name?, b?, res? }: an own planet,
+//   clearQueue? (a finished build), finishBuild? (the running order of the build queue,
+//   an upgrade or a demolition of #202, ends now), colony? ({ g?, s?, p?, name?, b?, res? }: an own planet,
 //   by default on slot 15 of the home system), landColonyFleet?, landFleet? (a mission:
 //   its outbound fleets arrive now), returnFleet? (the returning fleets come home now),
 //   finishUnits? (the shipyard has built the first n units of its stored queue now),
@@ -62,10 +63,14 @@ function yardStart(p: Planet, n: number): number | null {
   return Date.now() - ms;
 }
 
+/** The order of the build queue, ending now when asked (#202). */
+const finished = (q: Planet['bq']): Planet['bq'] =>
+  q && d.finishBuild ? { ...q, end: Math.min(q.end, Date.now()) } : q;
+
 /** The queues and the last update of the home planet, moved as asked. */
 function timers(p: Planet): Pick<Planet, 'bq' | 'sqT' | 't'> {
   return {
-    bq: d.clearQueue ? null : p.bq,
+    bq: d.clearQueue ? null : finished(p.bq),
     sqT: d.finishUnits ? yardStart(p, d.finishUnits) : p.sqT,
     t: d.settledAgo ? Date.now() - d.settledAgo : p.t,
   };

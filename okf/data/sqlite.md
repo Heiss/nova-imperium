@@ -531,6 +531,15 @@ activity; an existing account starts with its newest `last_seen` of
 `users.created`; other data stay as they were
 (`upgrades/20261117T0923-activity-times.test.ts`).
 
+Migration `20261117T0921-demolition` (issue #202, see
+[Demolition](/features/demolition.md)) adds `planets.bq_back_m`,
+`bq_back_c` and `bq_back_d` (INTEGER), what a demolition of the build
+queue gives back at its end; null on an upgrade. Every running order of an
+existing round stays an upgrade; other data stay as they were
+(`upgrades/20261117T0921-demolition.test.ts`). The upgrade test of
+migration 15 copies a planet as a moon in SQL instead of saving it with
+today's store, since the planet repository writes the new columns.
+
 Migration `20261118T2230-friendships` (issue #227, see
 [Buddy list](/features/buddy-list.md)) adds the table `friendships`:
 `requester` and `addressee` (both `REFERENCES users(id) ON DELETE

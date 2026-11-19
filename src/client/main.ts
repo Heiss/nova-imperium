@@ -6,13 +6,13 @@ import { flushSync } from 'svelte';
 import { missionRules } from '../core/missions.ts';
 import { placeId } from '../core/place.ts';
 import { settle, settleR } from '../core/settle.ts';
-import { text } from '../core/text.ts';
-import type { Levels, Planet, Queue } from '../core/types.ts';
+import type { Planet } from '../core/types.ts';
 import { createAct, placeOf, samePlace } from './logic/act.ts';
 import { LEXICANUM_VIEW, viewUrl } from './logic/address.ts';
 import { CATALOG_VIEWS, catalogKind, orderNote } from './logic/catalog-list.ts';
 import { sameSignIn } from './logic/guild-chat.ts';
 import { debrisAt, debrisTip } from './logic/debris.ts';
+import * as demolition from './logic/demolition.ts';
 import { endzeitNote } from './logic/endzeit.ts';
 import { moonAt, moonTarget } from './logic/moon.ts';
 import { scanOf } from './logic/phalanx.ts';
@@ -620,29 +620,18 @@ function renderLoggedOut(view: HTMLElement): void {
   view.innerHTML = ui.auth ? auth(ui) : '<div class="notice">Lade …</div>';
 }
 
-function rememberUpgrade(
-  order: Queue | null,
-  levels: Levels,
-  view: string,
-  label: string,
-  now: number,
-): void {
-  if (!order || order.end > now || (levels[order.key] ?? 0) < order.lvl) return;
-  const name = text(order.key)?.n ?? order.key;
-  client.completedMenu.set(view, label);
-  client.completionNotices.add(`${label}: ${name} (Stufe ${order.lvl}).`);
-}
-
 function rememberCompletions(previous: V, next: V): void {
   if (previous.P.id !== next.P.id) return;
-  rememberUpgrade(
+  demolition.rememberUpgrade(
+    client,
     previous.P.bq,
     next.P.b,
     'buildings',
     'Ausbau fertig',
     next.now,
   );
-  rememberUpgrade(
+  demolition.rememberUpgrade(
+    client,
     previous.R.rq,
     next.R.research,
     'research',
@@ -1118,6 +1107,7 @@ const ACT: Record<string, (d: Data) => unknown> = {
   },
   build: (d) => act('build', { key: d.k }),
   cancelBuild: () => act('cancelBuild'),
+  ...demolition.demolitionActs({ act, modal, view: () => client.view }),
   research: (d) => act('research', { key: d.k }),
   cancelResearch: () => act('cancelResearch'),
   maxq: (d) => setInput(`#q_${d.k}`, d.max ?? 0),
