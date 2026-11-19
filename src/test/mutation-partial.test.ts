@@ -5,6 +5,7 @@ import {
   floorChanges,
   main,
   partialConfig,
+  PARTIAL_LIMIT,
   partialSet,
   plan,
   sources,
@@ -636,6 +637,102 @@ describe('partial mutation run: the plan with a change of the floors', () => {
     expect(plan('base', 'head', mutate, lockGit, tree).reasons).toEqual([
       'pnpm-lock.yaml changes the test tool chain: -vitest@5.1.0 +vitest@5.2.0',
     ]);
+  });
+});
+
+describe('partial mutation run: the limit of one job', () => {
+  /** n mutated files a0.ts, a1.ts ... of src/core. */
+  const names = (n: number): string[] =>
+    Array.from({ length: n }, (_, i) => `src/core/a${i}.ts`);
+  const every = has(...names(PARTIAL_LIMIT + 1));
+  const diffOf = (files: string[]) =>
+    fakeGit({ [diff]: `${files.join('\0')}\0` });
+
+  it('is 12 files', () => {
+    expect(PARTIAL_LIMIT).toBe(12);
+  });
+
+  it('runs a set at the limit as a partial run', () => {
+    const files = names(PARTIAL_LIMIT);
+    expect(plan('base', 'head', mutate, diffOf(files), every)).toEqual({
+      reasons: [],
+      files: [...files].sort(),
+    });
+  });
+
+  it('runs everything for a set one above the limit, and says why', () => {
+    expect(
+      plan('base', 'head', mutate, diffOf(names(PARTIAL_LIMIT + 1)), every),
+    ).toEqual({
+      reasons: ['13 changed files are more than the limit of 12 for one job'],
+      files: [],
+    });
+  });
+
+  it('counts the set, not the changed files: tests, documentation and deleted files do not count', () => {
+    const changed = [
+      ...names(PARTIAL_LIMIT),
+      ...names(PARTIAL_LIMIT).map((f) => f.replace('.ts', '.test.ts')),
+      ...Array.from({ length: 20 }, (_, i) => `okf/log/x${i}.md`),
+      'src/core/deleted.ts',
+    ];
+    expect(plan('base', 'head', mutate, diffOf(changed), every).files).toEqual(
+      names(PARTIAL_LIMIT).sort(),
+    );
+  });
+
+  it('counts the files of a change of the floors too', () => {
+    const floors = (n: number): string =>
+      standardOf(Object.fromEntries(names(n).map((f) => [f, 70])));
+    const git =
+      (n: number) =>
+      (args: string[]): string => {
+        const call = args.join(' ');
+        if (call === diff) return 'mutation-standard.json\0';
+        if (call === 'show base:mutation-standard.json') return standardOf({});
+        if (call === 'show head:mutation-standard.json') return floors(n);
+        throw new Error(`git ${call}`);
+      };
+    expect(
+      plan('base', 'head', mutate, git(PARTIAL_LIMIT), every).files,
+    ).toEqual(names(PARTIAL_LIMIT).sort());
+    expect(plan('base', 'head', mutate, git(PARTIAL_LIMIT + 1), every)).toEqual(
+      {
+        reasons: ['13 changed files are more than the limit of 12 for one job'],
+        files: [],
+      },
+    );
+    // Files from the changes and from the floors are one set.
+    const both = (args: string[]): string =>
+      args.join(' ') === diff
+        ? `mutation-standard.json\0${names(PARTIAL_LIMIT).join('\0')}\0`
+        : git(PARTIAL_LIMIT)(args);
+    expect(plan('base', 'head', mutate, both, every).files).toHaveLength(12);
+  });
+
+  it('adds its reason to the others without hiding them', () => {
+    const git = diffOf([...names(PARTIAL_LIMIT + 1), 'stryker.config.json']);
+    expect(plan('base', 'head', mutate, git, every)).toEqual({
+      reasons: ['stryker.config.json configures the mutation run'],
+      files: [],
+    });
+  });
+
+  it('prints true and the reason on stderr', () => {
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const git = diffOf(names(PARTIAL_LIMIT + 1));
+    const read = () => JSON.stringify(stryker);
+    expect(main(['plan', 'base', 'head'], { git, read, exists: every })).toBe(
+      0,
+    );
+    expect(log.mock.calls).toEqual([['true']]);
+    expect(error.mock.calls).toEqual([
+      [
+        'Complete mutation run: 13 changed files are more than the limit of 12 for one job',
+      ],
+    ]);
+    vi.restoreAllMocks();
   });
 });
 

@@ -361,6 +361,18 @@ describe('Detect changes: the mutation jobs of a pull request (#309)', () => {
     expect(field(main.written, 'mutation')).toBe('true');
   });
 
+  it('mutates a set at the limit of one job and runs everything above it', () => {
+    const many = (n: number): string[] =>
+      Array.from({ length: n }, (_, i) => `src/core/new${i}.ts`);
+    const at = detectIn(many(12));
+    expect(field(at.written, 'mutation')).toBe('partial');
+    expect(JSON.parse(field(at.written, 'mutation-files')!)).toHaveLength(12);
+    const above = detectIn(many(13));
+    expect(above.code).toBe(0);
+    expect(field(above.written, 'mutation')).toBe('true');
+    expect(field(above.written, 'mutation-files')).toBe('');
+  });
+
   it('keeps the complete run in a release pull request', () => {
     for (const changed of [['okf/ops/x.md'], ['src/core/economy.ts']]) {
       const { written } = detectIn(changed, {
