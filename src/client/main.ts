@@ -15,7 +15,6 @@ import * as demolition from './logic/demolition.ts';
 import { endzeitNote } from './logic/endzeit.ts';
 import { moonAt, moonTarget } from './logic/moon.ts';
 import { scanOf } from './logic/phalanx.ts';
-import { targetOf } from './logic/galaxy.ts';
 import { clampInt, coords, dt, dur, esc, fmt } from './logic/format.ts';
 import {
   apiFailure,
@@ -29,7 +28,6 @@ import {
 import {
   arrivalLine,
   fleetPreview,
-  galaxyStep,
   nameOf,
   settingsFrom,
   type FleetForm,
@@ -1037,65 +1035,8 @@ const FRAME: Record<string, (d: Data) => unknown> = {
     if (n) void act('rename', { name: n });
   },
   closeModal: () => modal(''),
-  gnav: (d) => {
-    Object.assign(ui, galaxyStep(ui.gal, ui.sys, d.d ?? '', client.game!.cfg));
-    render(true);
-  },
-  ggo: () => {
-    ui.gal = clampInt(val('#g_g'), 1, client.game!.cfg.galaxies);
-    ui.sys = clampInt(val('#g_s'), 1, client.game!.cfg.systems);
-    render(true);
-  },
   selectPlanet: (d) => {
     if (d.id) return selectPlanet(d.id);
-  },
-  ghome: () => {
-    const home =
-      client.game!.galaxy.find((p) => p.id === client.game!.mainPlanet) ??
-      client.view!.P;
-    ui.gal = home.g;
-    ui.sys = home.s;
-    render(true);
-  },
-  gto: (d) => {
-    ui.gal = Number(d.g);
-    ui.sys = Number(d.s);
-    go('galaxy');
-  },
-  gmoon: (d) => {
-    ui.gmoon = ui.gmoon === d.id ? null : (d.id ?? null);
-    render(true);
-  },
-  gscan: async (d) => {
-    if (!(await actHere('scan', { target: d.id }))) return;
-    render(true);
-    $('#scan-h')?.focus();
-  },
-  gscanClose: () => {
-    const target = ui.scan?.target;
-    ui.scan = null;
-    render(true);
-    // The focus goes back to the scan of the planet, while it is shown.
-    if (target) $(`[data-act=gscan][data-id="${CSS.escape(target)}"]`)?.focus();
-  },
-  gfleet: (d) => {
-    ui.ft = targetOf(d);
-    ui.fm = d.m ?? 'attack';
-    go('fleet');
-  },
-  gspy: (d) => {
-    const n = Math.min(
-      client.view!.P.ships.probe ?? 0,
-      client.game!.me.probes || 1,
-    );
-    if (!n) return toast('Keine Spähschädel auf dem Planeten.', true);
-    return act('send', {
-      ships: { probe: n },
-      to: targetOf(d),
-      mission: d.m ?? 'spy',
-      pct: 10,
-      cargo: { m: 0, c: 0, d: 0 },
-    });
   },
   fmax: (d) => {
     setInput(`#f_${d.k}`, client.view!.P.ships[d.k!] ?? 0);
@@ -1505,8 +1446,6 @@ function adminTabKey(event: KeyboardEvent): void {
 }
 document.addEventListener('keydown', adminTabKey);
 document.addEventListener('keydown', (e) => {
-  const id = (e.target as HTMLElement).id;
-  if (e.key === 'Enter' && id?.startsWith('g_')) ACT.ggo!({});
   if (e.key === 'Escape') modal('');
 });
 const FORMS = assembleForms(
