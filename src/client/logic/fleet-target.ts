@@ -14,7 +14,7 @@ import { debrisAt, debrisTip } from './debris.ts';
 import { coords, esc } from './format.ts';
 import { nameOf, type FleetForm } from './game.ts';
 import { moonAt, moonTarget, ownPlaces } from './moon.ts';
-import type { GameState } from './types.ts';
+import type { GalaxyPlanet, GameState } from './types.ts';
 
 /**
  * Beside the target: its planet and owner, a free position, the expedition
@@ -149,6 +149,42 @@ export const ownQuickTargets = (s: GameState, from: string): QuickTarget[] =>
   ownPlaces(s.galaxy, s.me.id)
     .filter((p) => p.id !== from)
     .map((p) => ({ id: p.id, label: quickLabel(p) }));
+
+/**
+ * The entries of friends, guild members and last targets (#292), each from
+ * the id of a place the server names: „Freund: Spieler [g:s:p]“, „Gilde:
+ * Spieler [g:s:p]“ (the main planet of the player) and „Ziel: Spieler –
+ * Planet [g:s:p]“. A place the galaxy does not list is left out.
+ */
+function placesOf(
+  s: GameState,
+  ids: readonly string[] | undefined,
+  label: (player: string, p: GalaxyPlanet) => string,
+): QuickTarget[] {
+  return (ids ?? []).flatMap((id) => {
+    const p = s.galaxy.find((x) => x.id === id);
+    return p ? [{ id, label: label(nameOf(s.players, p.owner), p) }] : [];
+  });
+}
+
+/**
+ * The whole list „Schnellwahl“ in one flat list without groups (owner,
+ * 2026-11-17, #292): the own places, the friends, the guild members, the
+ * last targets; the own ones without a prefix, as in #253.
+ */
+export function quickTargets(s: GameState, from: string): QuickTarget[] {
+  const { friends, guild, last } = s.quick ?? {};
+  return [
+    ...ownQuickTargets(s, from),
+    ...placesOf(s, friends, (name, p) => `Freund: ${name} ${coords(p)}`),
+    ...placesOf(s, guild, (name, p) => `Gilde: ${name} ${coords(p)}`),
+    ...placesOf(
+      s,
+      last,
+      (name, p) => `Ziel: ${name} – ${placeName(p)} ${coords(p)}`,
+    ),
+  ];
+}
 
 /** The options of the list „Schnellwahl“: „– wählen –“ and the entries, escaped. */
 export const quickOptions = (list: readonly QuickTarget[]): string =>

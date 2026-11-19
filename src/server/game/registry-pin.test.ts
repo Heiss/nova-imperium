@@ -83,6 +83,7 @@ const FULL_KEYS = [
   'locks',
   'market',
   'admin',
+  'quick',
 ];
 // The lock screen of the vacation mode (#223) has its own, shorter shape.
 const LOCKED_KEYS = [

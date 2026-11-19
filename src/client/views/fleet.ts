@@ -14,7 +14,7 @@ import {
   maxPosition,
   missionOptions,
   offeredMissions,
-  ownQuickTargets,
+  quickTargets,
   quickOptions,
 } from '../logic/fleet-target.ts';
 import { maxStay, staysAt } from '../logic/game.ts';
@@ -137,7 +137,7 @@ function targetForm(v: V, slotsFull: boolean): string {
     offeredMissions(s, P.id, t, v.now),
     ui.fm,
   );
-  const quick = ownQuickTargets(s, P.id);
+  const quick = quickTargets(s, P.id);
   const speeds = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
     .map((x) => `<option value="${x}">${x * 10} %</option>`)
     .join('');

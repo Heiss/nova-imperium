@@ -100,3 +100,40 @@ branch, so it is built there, not in a Svelte component.
   `src/client/logic/fleet-target.ts`; the lists and their update in
   `src/client/views/fleet.ts` and `src/client/features/fleet.ts`
   (`missionList`, `quickChoice`).
+
+# The Schnellwahl with friends, guild members and last targets (#292)
+
+Issue #292, built after #253 with the owner's „Geklärt“ comments of
+2026-11-17.
+
+* **[E]** The list is one flat list without groups, in this order: the own
+  places, the friends, the guild members, the last targets. The own places
+  have no prefix (#253); a foreign entry gets a word: „Freund: Spieler
+  [g:s:p]“, „Gilde: Spieler [g:s:p]“, „Ziel: Spieler – Planet [g:s:p]“
+  (a moon as „Planet (Mond)“). Choosing an entry enters its coordinates as
+  the target, and the mission list follows (#253).
+* **[E]** Friends and guild members: only the main planet (#221) of each
+  player, one entry per player; a player who is both is listed once, as
+  „Freund:“. With guilds off in the round there are no guild entries (#191).
+  A player in vacation mode (#223) stays listed as a friend or a guild
+  member.
+* **[E]** Last targets: the last 5 different foreign targets of the
+  „Sturmangriff“ and the „Auspex-Erkundung“, newest first, per player across
+  all their planets. A target that no longer exists or has a new owner drops
+  out, and the list fills up with the next older targets until there are 5
+  again; a player in vacation mode is left out of the last targets.
+* **[E]** The server stores them per player in its own table when a fleet is
+  sent (migration `20261119T1830-last-targets`, `src/server/db/repos/
+  last-targets.ts`; the table also keeps the owner of the place at that time,
+  to see a change of owner). The launch asks the typed field `remembered` of
+  the mission's rules (the attack and the spy), so no code names a mission.
+* **[V]** The state gets one part `quick` (`src/server/game/quick-targets.ts`,
+  `serverFeature.state`, order 200) with three lists of place ids: the main
+  planets of the friends and of the guild members, by name, and the last
+  targets; the browser words the entries from the galaxy and the players.
+  An own planet (a former target that changed to the player) is never a last
+  target. The table keeps the newest 20 targets per player so that dropped
+  targets can be replaced; a new round deletes it. The words „Freund:“,
+  „Gilde:“ and „Ziel:“ are the owner's (above).
+* Code: `quickTargets`, `ownQuickTargets` in
+  `src/client/logic/fleet-target.ts`.

@@ -173,6 +173,12 @@ export interface MissionRules {
    */
   readonly colonizes?: true;
   /**
+   * Whether the launch is remembered as one of the player's last hostile
+   * targets for the Schnellwahl of the fleet form (#292): the Sturmangriff
+   * and the Auspex-Erkundung. Missing: no.
+   */
+  readonly remembered?: true;
+  /**
    * The most hours the fleet stays at the target before it flies home, from
    * the research of its owner and the hours per level of the round, which the
    * player chooses at the send (the expeditions, #93). Without it the fleet

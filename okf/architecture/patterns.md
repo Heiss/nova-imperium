@@ -462,6 +462,14 @@ choice of the patterns to the assistant's recommendation below
   the same order and with the same draws as before. Migration `20261119T0810-moonbreak` allows `moonbreak`
   in the database (see [Moons](/features/moons.md)).
 
+* **[V]** Built with #237, #253 and #292, within the decisions of #116:
+  `sendError` is `fitError` (the target kind, which asks nothing of the
+  ships; the fleet form lists only the missions for which it finds nothing,
+  `missionsFor` of `src/core/mission-fit.ts`) and then the mission's
+  `canSend`. Two optional typed fields of `MissionRules` mark missions without
+  naming them: `colonizes` (the Landnahme, counted against the planet limit)
+  and `remembered` (the attack and the spy, kept as last targets). The send
+  check of the Landnahme gets the planet limit through `SendFleet.colonies()`.
 * **[V]** Built with #54, within the decisions of #116: the folder
   `missile` (Raketenangriff, 90) with the optional typed field `launch`
   (`'fleet'` unless a mission says `'missiles'`, read through `launchOf`):
@@ -1189,7 +1197,8 @@ src/client/                state, components (generic), views
   `guild-ranks`, `guild-chat`) and these a part of the state (`main-planet`
   60, `jump-gate` 80, `guilds` 110, `friends` 120, `achievements` 130,
   `abandon` 170 for the locks, `market` 180, and `admin-state` 190, a module
-  of its own because the Endzeit imports `admin.ts`). The frame keys of
+  of its own because the Endzeit imports `admin.ts`, then `quick-targets` 200
+  for the Schnellwahl of the fleet form, #292). The frame keys of
   `state.ts` have numbers too (10 to 160, ten apart, with the gaps the
   features use), so the JSON keys stay in their old order; a new part takes
   the next free ten above the highest. Left in the frame on purpose: the

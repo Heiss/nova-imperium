@@ -35,6 +35,8 @@ CREATE INDEX guild_members_rank ON guild_members(rank_id);
 
 CREATE INDEX invitations_email ON invitations(email);
 
+CREATE INDEX last_targets_user ON last_targets (user_id, at DESC);
+
 CREATE INDEX passkey_challenges_expiry ON passkey_challenges(expires);
 
 CREATE INDEX passkeys_owner ON passkeys(user_id);
@@ -219,6 +221,14 @@ CREATE TABLE invitations (
 CREATE TABLE jump_gates (
       moon_id TEXT PRIMARY KEY REFERENCES planets(id) ON DELETE CASCADE,
       ready INTEGER NOT NULL
+    ) STRICT;
+
+CREATE TABLE last_targets (
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      place TEXT NOT NULL,
+      owner TEXT NOT NULL,
+      at INTEGER NOT NULL,
+      PRIMARY KEY (user_id, place)
     ) STRICT;
 
 CREATE TABLE market_prices (

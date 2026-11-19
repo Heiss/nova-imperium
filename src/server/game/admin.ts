@@ -61,6 +61,8 @@ function newRound(ctx: Ctx, rules: RoundRules): void {
   ctx.guilds.clearChats();
   ctx.fleets.deleteAll();
   ctx.debris.deleteAll();
+  // The last targets name places of the old round (#292).
+  ctx.targets.deleteAll();
   // The values of surveyed positions belong to the round (#190).
   ctx.surveys.deleteAll();
   // The prices and the amounts of the day start over (#171).

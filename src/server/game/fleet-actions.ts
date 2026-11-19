@@ -339,6 +339,9 @@ export const send: Action = (ctx, u, d, event) => {
     ...(holds && { hold }),
   };
   ctx.fleets.save(fleet);
+  // A hostile launch is one of the last targets for the Schnellwahl (#292).
+  if (missionRules(mission)!.remembered && targetOwner !== null)
+    ctx.targets.record(u.id, { place: to, owner: targetOwner, at: t });
   // The guild of the defender learns of an attack or a Mondbruch at its
   // launch (#169 D3, #95); both fly to a foreign place only, so it has an
   // owner.
