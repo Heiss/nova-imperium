@@ -237,3 +237,13 @@ export async function withWebPush(page: Page): Promise<void> {
     await route.fulfill({ response, json: { ...policy, webPush: true } });
   });
 }
+
+/** Seconds of a duration like "1h 02m 03s". */
+export const seconds = (text: string): number =>
+  [...text.matchAll(/(\d+)([Thms])/g)].reduce(
+    (sum, [, n, unit]) =>
+      sum + Number(n) * { T: 86400, h: 3600, m: 60, s: 1 }[unit!]!,
+    0,
+  );
+
+export const lastToast = (page: Page): Locator => page.locator('.toast').last();

@@ -7,27 +7,21 @@ import {
   login,
   nav,
   register,
+  seconds,
   seed,
   stock,
   uniqueName,
   watch,
   withWebPush,
 } from './helpers.ts';
-// The display texts of the catalog entries (#113); `text` is a local name below.
-import { text as entryText } from '../src/core/text.ts';
+import { shipCount } from './fleet-helpers.ts';
 import { rewardMinutes } from '../src/core/daily-reward.ts';
 import { fieldRange, fieldsOf } from '../src/core/fields.ts';
+// The display texts of the catalog entries (#113); `text` is a local name below.
+import { text as entryText } from '../src/core/text.ts';
 
 /** The paragraphs of a long text (#94): the lore, then „So funktioniert es:“. */
 const lines = (text: string): string[] => text.split('\n\n');
-
-/** Seconds of a duration like "1h 02m 03s". */
-const seconds = (text: string): number =>
-  [...text.matchAll(/(\d+)([Thms])/g)].reduce(
-    (sum, [, n, unit]) =>
-      sum + Number(n) * { T: 86400, h: 3600, m: 60, s: 1 }[unit!]!,
-    0,
-  );
 
 test('login stays near the header @phone', async ({ page }) => {
   await page.goto('/');
@@ -1730,14 +1724,6 @@ test.describe('playing', () => {
     ).toBeLessThanOrEqual(0);
     expect(w.problems).toEqual([]);
   });
-
-  /** The count of a ship in the fleet view of the active planet. */
-  const shipCount = (page: Page, ship: string): Locator =>
-    page
-      .locator('tr')
-      .filter({ has: page.locator('input.fs'), hasText: ship })
-      .locator('td.n')
-      .first();
 
   test('a Verlegung moves part of a fleet with its cargo to an own colony for good (#129)', async ({
     page,
