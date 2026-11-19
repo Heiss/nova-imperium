@@ -1,7 +1,6 @@
 import type { RoundRules } from '../../core/round.ts';
 import { achievements } from './achievements.ts';
 import type { V } from './common.ts';
-import { fleet } from './fleet.ts';
 import { friends } from './friends.ts';
 import { guilds } from './guilds.ts';
 import { newsHTML } from '../logic/news.ts';
@@ -10,7 +9,6 @@ import { messages } from './messages.ts';
 import { admin, help, highscore } from './misc.ts';
 
 export const VIEWS: Record<string, (v: V) => string> = {
-  fleet,
   market,
   guilds,
   friends,

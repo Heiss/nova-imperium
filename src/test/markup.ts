@@ -1,6 +1,7 @@
 // The markup as a browser shows it, for the reference tests of #118
 // (src/test/catalog-list-reference.test.ts, overview-reference.test.ts,
-// frame-reference.test.ts): without Svelte's comments and an empty class,
+// frame-reference.test.ts): without Svelte's comments (and the empty marker
+// `<!>` it writes for `{@html}` in a select) and an empty class,
 // with the attributes of a tag in order, without
 // the <tbody> a table gets anyway and the white space next to a block or a
 // line break, and with >, " and ' decoded. An escaped < and & stay escaped,
@@ -59,6 +60,7 @@ const decodeText = (html: string): string =>
 export function normalize(html: string): string {
   const tags = stripComments(html)
     .replace(/<\/?tbody>/g, '')
+    .replaceAll('<!>', '')
     .replace(
       /<([a-z][a-z0-9]*)((?:\s+[^\s=>/]+(?:="[^"]*")?)*)\s*\/?>/g,
       (_, tag: string, attrs: string) => `<${tag}${attributes(attrs)}>`,

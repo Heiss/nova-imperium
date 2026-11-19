@@ -788,9 +788,53 @@ choice of the patterns to the assistant's recommendation below
   still returns the planet moved to now for the clock. Bundle 2 (the
   Sternenkarte) moved none either: the old view kept its state in
   `client.ui` (`gal`, `sys`, `gmoon`, `scan`), which stays there;
-  `mounted` now also holds the Sternenkarte. Still rendered as HTML: the
-  views Flotte, Nachrichten, Highscore, Gilden, Achievements, Neuigkeiten,
-  Hilfe & Optionen and Admin.
+  `mounted` now also holds the Sternenkarte. Bundle 3 (Flotte) moved none
+  either: the old view kept its state in `client.ui` (`ft`, `fm`,
+  `union`), which stays there; `mounted` now also holds the fleet view.
+  Still rendered as HTML: the views Nachrichten, Highscore, Gilden,
+  Achievements, Neuigkeiten, Hilfe & Optionen and Admin (and Marktplatz and
+  Freunde, which came after the bundles were proposed).
+* **[E]** Bundle 3 after bundle 2 (owner, 2026-11-15 and 2026-11-16: the
+  order of the bundles of #118 „Geklärt, Nachtrag 3“, unchanged by
+  „Nachtrag 4“): Flotte, which the earlier work paused (the branch
+  `claude/fleet-svelte`, built on #250) while #253, #292, #225, #93, #230
+  and #55 changed the view; it is converted on their state, not merged.
+* **[V]** Built with #118, bundle 3 (Flotte): `src/client/views/Fleet.svelte`,
+  mounted by `mountFleet(target, v)` of `src/client/views/fleet.ts`
+  (which renders no HTML any more, and leaves `VIEWS` of
+  `views/index.ts`), renders the view from `fleetPage(v)` of
+  `src/client/logic/fleet.ts`, without HTML: the title with the used and
+  free slots (the gift of #161 and missiles take none) and the expeditions
+  of #93; the fleets on their way (`FleetMoves.svelte`, which the overview
+  uses too instead of its own table); the box „Verbandsangriff“ of #225
+  (the rows of `logic/union.ts` with their countdowns); the ships that can
+  fly with „max“, „alle Schiffe“ and „keine Schiffe“, or the notice
+  without any; the form „2. Ziel und Auftrag“ with the list „Schnellwahl“
+  (#253, #292), the target (the one of the Sternenkarte, `ui.ft`, or the
+  shown planet; „Mond“ only where one is, #53; the field „Position“ up to
+  the expedition position of #93), the list „Auftrag“, the note on the
+  limit of planets (#237), the row „Verband“, the row of the time at the
+  target, the speeds, the cargo fields each with its „alles“ and „alles
+  (gleichmäßig)“ (#240), the empty cells of the preview and „Flotte
+  losschicken“; and the box „Warp-Tor“ of #230 (`jumpPanel()`). The data
+  come as a property (`page`), as for the Sternenkarte. Two parts are HTML
+  in the component (`{@html}`) because `features/fleet.ts` writes them again
+  while the player types, and both must come from the same function: the
+  options of the list „Auftrag“ (`missionOptions()` of `fleet-target.ts`)
+  and the row of the time at the target (`timeRowHtml()`, which with
+  `holdRow()`, `timeRow()` and `realStay()` moved from `views/fleet.ts` to
+  the new `logic/fleet-time.ts`). `quickOptions()` is gone: the component
+  renders the options of „Schnellwahl“ itself. The view is mounted anew on
+  every render (`ANEW`), as its HTML was rendered anew: `keepInputs` keeps
+  the typed numbers, the chosen target, mission and speed and the focus by
+  id, and the clock counts the countdowns down, as before. Reading the
+  form, the preview and the click actions stay in `features/fleet.ts`; the
+  box and the row of the unions lost their HTML (`views/union.ts` is gone).
+  `main.ts` no longer names a view that is a component: the table of which
+  views are components and how each is mounted (`MOUNTED`, `ANEW`,
+  `mountView()`) is `src/client/views/mount.ts`, so a view that moves to a
+  component is added there, not in `main.ts` (1,222 to 1,191 lines). No
+  visible change.
 * **[E]** Bundle 2 after bundle 1 (owner, 2026-11-15 and 2026-11-16: the
   order of the bundles of #118 „Geklärt, Nachtrag 3“, unchanged by
   „Nachtrag 4“): the Sternenkarte, which the phone view #189 builds on
@@ -1250,7 +1294,8 @@ src/client/                state, components (generic), views
      First pull request of #118 built: the state module and the four lists
      through `CatalogList` (section 9); the second the Übersicht through
      `Overview` (section 9); bundle 1 the header line, the navigation and
-     the resource bar (section 9); the other views follow.
+     the resource bar (section 9); bundle 2 the Sternenkarte and bundle 3
+     the fleet view (section 9); the other views follow.
   8. Places (O11), its own pull request before #45 and #53 (owner,
      2026-11-12). Built with #119.
 

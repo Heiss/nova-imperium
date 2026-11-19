@@ -28,9 +28,9 @@ import {
   type Ui,
   type V,
 } from '../client/views/common.ts';
-import { fleet } from '../client/views/fleet.ts';
 import Overview from '../client/views/Overview.svelte';
 import { planet, U } from './fixtures.ts';
+import { fleetView } from './fleet-view.ts';
 import { normalize } from './markup.ts';
 
 // ----- frozen: src/client/views/overview.ts before #118 -----
@@ -393,9 +393,9 @@ describe('Overview against the view before #118', () => {
           ...v,
           R: { ...v.R, research: { ...v.R.research, expo: 0 } },
         };
-        expect(normalize(fleet(old)).startsWith(normalize(fleetHead(v)))).toBe(
-          true,
-        );
+        expect(
+          normalize(fleetView(old)).startsWith(normalize(fleetHead(v))),
+        ).toBe(true);
       }),
       { seed: 118, numRuns: 300 },
     );

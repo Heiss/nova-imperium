@@ -8,7 +8,7 @@ import { DEFAULT_UNIVERSE, UNIVERSE_SPECS } from '../../core/universe.ts';
 import { roundDefaults } from '../../test/fixtures.ts';
 import type { Report } from '../logic/types.ts';
 import type { V } from './common.ts';
-import { holdRow } from './fleet.ts';
+import { holdRow } from '../logic/fleet-time.ts';
 import { messages } from './messages.ts';
 import { admin, roundDialog } from './misc.ts';
 

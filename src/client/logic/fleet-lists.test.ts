@@ -10,7 +10,6 @@ import {
   offeredMissions,
   ownQuickTargets,
   QUICK_FIRST,
-  quickOptions,
 } from './fleet-target.ts';
 import type { GameState } from './types.ts';
 
@@ -156,11 +155,7 @@ describe('the list „Schnellwahl“', () => {
     expect(ownQuickTargets(state(), 'p1_1_5')).toEqual([]);
   });
 
-  it('starts with „– wählen –“ and escapes what a player named', () => {
-    expect(quickOptions([])).toBe('<option value="">– wählen –</option>');
+  it('starts with „– wählen –“', () => {
     expect(QUICK_FIRST).toBe('– wählen –');
-    expect(quickOptions([{ id: 'p1_1_5', label: 'A <b> [1:1:5]' }])).toBe(
-      '<option value="">– wählen –</option><option value="p1_1_5">A &lt;b&gt; [1:1:5]</option>',
-    );
   });
 });
