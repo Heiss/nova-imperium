@@ -22,6 +22,7 @@ import { clean, fail, int, type Ctx } from './context.ts';
 import { membersOf, notify } from './guild-events.ts';
 import { actor, asRule, need, type Actor } from './guild-ranks.ts';
 import { requireGuilds } from './round.ts';
+import type { ServerFeature } from './feature.ts';
 
 const TEXT_ERROR = {
   empty: 'Die Nachricht ist leer.',
@@ -171,3 +172,7 @@ export function adminGuildChat(ctx: Ctx, id: string) {
     messages: ctx.guilds.chat(guild.id).map((m) => entry(members, m)),
   };
 }
+
+export const serverFeature = {
+  guildActions: { sendGuildChat, deleteGuildChat, seeGuildChat },
+} satisfies ServerFeature;

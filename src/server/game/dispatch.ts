@@ -9,23 +9,14 @@ import { assembleActions } from './assemble.ts';
 import { SERVER_FEATURES } from '../features.gen.ts';
 import { type Ctx, fail } from './context.ts';
 import { requireGuilds } from './round.ts';
-import { deleteGuildChat, seeGuildChat, sendGuildChat } from './guild-chat.ts';
 import { vacationRefuses } from '../../core/vacation.ts';
 import { VACATION_REFUSED } from './vacation.ts';
 
 /**
- * The guild actions: refused while guilds are off in the round (#191). A
- * new guild action, the chat of #169 included, belongs here.
- */
-const GUILD: Record<string, A.Action> = {
-  sendGuildChat,
-  deleteGuildChat,
-  seeGuildChat,
-};
-
-/**
- * The actions of the core game; a feature adds its own as `serverFeature`
- * in its module (#326, okf/architecture/patterns.md, section 14).
+ * The actions of the core game: the queues of a planet, its name and shares,
+ * the display options and the reports. Every other action is registered by
+ * its module as `serverFeature`, with its group (guild, admin), and added
+ * here by `assembleActions` (#326, okf/architecture/patterns.md, section 14).
  */
 const FRAME: Record<string, A.Action> = {
   build: A.build,
@@ -39,17 +30,14 @@ const FRAME: Record<string, A.Action> = {
   read: A.read,
   delrep: A.delrep,
   delall: A.delall,
-  ...GUILD,
 };
 
 const tables = assembleActions(FRAME, SERVER_FEATURES);
 
 export const ACTIONS: Record<string, A.Action> = tables.actions;
 
-export const GUILD_ACTIONS: ReadonlySet<string> = new Set([
-  ...Object.keys(GUILD),
-  ...tables.guild,
-]);
+/** The guild actions: refused while guilds are off in the round (#191). */
+export const GUILD_ACTIONS: ReadonlySet<string> = tables.guild;
 
 /** The actions of the admin: audited as `admin.write`, not as `game`. */
 export const ADMIN_ACTIONS: ReadonlySet<string> = tables.admin;
