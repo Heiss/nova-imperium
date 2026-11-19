@@ -14,47 +14,48 @@ const lastToast = (page: Page): Locator => page.locator('.toast').last();
 
 /**
  * Every outcome of the draw (src/features/missions/expedition/arrive.server.ts):
- * the subject in the title of the report, the words of its body, and whether
- * the fleet is home again afterwards (null: the battle ends in a draw, and the
- * fleet is gone only if it lost every ship).
+ * the subject in the title of the report, the words of its body, and what is
+ * left of the fleet: lost, all ships home again (safe), a battle won (some
+ * ships home), or null when a battle ends in a draw (the fleet is gone only if
+ * it lost every ship).
  */
 const OUTCOMES: {
   title: RegExp;
   body: string | RegExp;
-  home: boolean | null;
+  home: 'lost' | 'safe' | 'won' | null;
 }[] = [
   {
     title: / – nichts entdeckt/,
     body: 'Die Expedition hat nichts Besonderes gefunden und kehrt heim.',
-    home: true,
+    home: 'safe',
   },
   {
     title: / – Rohstofffund/,
     body: /Rohstofffund gemacht: [\d.]+ (Adamant|Psikristall|Promethium) kommen mit der Flotte heim\.|Laderäume sind zu klein/,
-    home: true,
+    home: 'safe',
   },
   {
     title: / – Schiffsfund/,
     body: /Schiffsfund gemacht, die Schiffe schließen sich der Flotte an: |keine gefunden, die sich der Flotte anschließen/,
-    home: true,
+    home: 'safe',
   },
   {
     title: / – Flotte verloren/,
     body: 'Von der Expedition kam nur noch ein abgerissener Funkspruch. Die Flotte ist verloren.',
-    home: false,
+    home: 'lost',
   },
   {
     title: / – Rückkehr früher/,
     body: 'Die Expedition hat einen kürzeren Weg gefunden und kehrt früher als geplant zurück.',
-    home: true,
+    home: 'safe',
   },
   {
     title: / – Rückkehr später/,
     body: 'Die Expedition hat sich verirrt und kehrt später als geplant zurück.',
-    home: true,
+    home: 'safe',
   },
-  { title: /^Kampfbericht .* – gewonnen/, body: 'Runde(n)', home: true },
-  { title: /^Kampfbericht .* – verloren/, body: 'Runde(n)', home: false },
+  { title: /^Kampfbericht .* – gewonnen/, body: 'Runde(n)', home: 'won' },
+  { title: /^Kampfbericht .* – verloren/, body: 'Runde(n)', home: 'lost' },
   { title: /^Kampfbericht .* – unentschieden/, body: 'Runde(n)', home: null },
 ];
 
@@ -144,16 +145,17 @@ test.describe('the expedition (#93)', () => {
     expect(outcome, `the title of the report: ${title}`).toBeDefined();
     await expect(report).toContainText(outcome!.body);
     // The fleet: lost for good, or home again (the flight home is short, so
-    // it is brought home now and its Lastbarken counted: 3 stayed, 2 flew).
+    // it is brought home now and its Lastbarken counted: 3 stayed, 2 flew; a
+    // battle won leaves at least one of the two).
     if (outcome!.home !== null) {
       seed({ name, returnFleet: true });
       await nav(page, 'fleet');
       const barks = shipCount(page, 'Lastbarke');
-      if (outcome!.home) {
+      if (outcome!.home === 'lost') await expect(barks).toHaveText('3');
+      else
         await expect
           .poll(async () => Number((await barks.innerText()).replace('.', '')))
-          .toBeGreaterThanOrEqual(5);
-      } else await expect(barks).toHaveText('3');
+          .toBeGreaterThanOrEqual(outcome!.home === 'won' ? 4 : 5);
     }
     expect(w.problems).toEqual([]);
   });
