@@ -4,15 +4,7 @@
 // side panel draw the same article (views/LexicanumArticle.svelte). Its
 // tables are computed from the rules: the level table of #187, the values
 // of a unit as in the lists, the requirements in both directions.
-import {
-  BUILD,
-  DEF,
-  PRODUCTION,
-  RES,
-  SHIPS,
-  STORAGE,
-} from '../../core/catalog.ts';
-import { capOf } from '../../core/components/storage.ts';
+import { BUILD, DEF, RES, SHIPS, STORAGE } from '../../core/catalog.ts';
 import { SPY_MIN_TECH } from '../../core/espionage.ts';
 import {
   ARTICLES,
@@ -47,6 +39,7 @@ import type { V } from '../views/common.ts';
 import { unitLines } from './catalog-list.ts';
 import { fmt } from './format.ts';
 import { iconURL } from './icons.ts';
+import { producerEffect, storageEffect } from './level-effects.ts';
 import {
   effectText,
   type LevelEffect,
@@ -201,53 +194,20 @@ const lexState = (v: V): LexState => ({
   ships: v.P.ships,
 });
 
-/**
- * The headings of the effect of a producer; a mine makes less without
- * enough energy, so its heading says what the rate assumes (owner,
- * 2026-11-17).
- */
-const MADE: readonly [string, string][] = [
-  ['m', 'Adamant/h bei voller Energie'],
-  ['c', 'Psikristall/h bei voller Energie'],
-  ['d', 'Promethium/h bei voller Energie'],
-  ['e', 'Energie'],
-];
-
-/**
- * What a producer makes per hour at a level on the shown planet, at full
- * share and with enough energy: its own rate function (`produces`), a
- * resource times the universe speed as prod() adds it.
- */
-function producerEffect(v: V, key: string): LevelEffect | undefined {
-  const { produces } = PRODUCTION.find((p) => p.key === key)!;
-  const first = MADE.find(([res]) => produces[res as 'm']);
-  if (!first) return undefined;
-  const [res, label] = first as ['m' | 'c' | 'd' | 'e', string];
-  const ctx = (level: number) => ({
-    level,
-    pct: 100,
-    temp: v.P.temp,
-    research: v.R.research,
-    u: v.s.cfg,
-    f: 1,
-  });
-  return {
-    label,
-    at: (level) =>
-      res === 'e'
-        ? produces.e!(ctx(level))
-        : produces[res]!(ctx(level)) * v.s.cfg.speed,
-  };
-}
-
 /** The effect of a level: the entry's own, a store's capacity, a producer's rate. */
 function effectOf(v: V, a: ArticleMeta): LevelEffect | undefined {
-  if (a.lexicon.effect) return a.lexicon.effect;
-  if (STORAGE.some((s) => s.key === a.key))
-    return { label: 'Lagerkapazität', at: (level) => capOf(level, v.s.cfg) };
-  if (PRODUCTION.some((p) => p.key === a.key && p.kind === 'building'))
-    return producerEffect(v, a.key);
-  return undefined;
+  return (
+    a.lexicon.effect ?? storageEffect(v, a.key) ?? producerEffect(v, a.key)
+  );
+}
+
+/**
+ * The first effect column of an entry's level table, or undefined for an
+ * entry without a numeric effect (the level overview of #187 reads it).
+ */
+export function entryEffect(v: V, key: string): LevelEffect | undefined {
+  const a = article(key);
+  return a && effectOf(v, a);
 }
 
 /** „Dein Stand: Stufe 4 · Flottenslots 5“, for an entry with an effect (B5). */
@@ -287,7 +247,7 @@ function effectSection(v: V, a: ArticleMeta, e?: LevelEffect): Section | null {
 /** „Stufen“: the cost formula and the level table of #187. */
 function levelSection(v: V, a: ArticleMeta, e?: LevelEffect): Section | null {
   const def = BUILD[a.key] ?? RES[a.key];
-  const table = def && levelTable(v, a.key, e);
+  const table = def && levelTable(v, a.key, e ? [e] : []);
   if (!def || !table) return null;
   return {
     id: 'levels',

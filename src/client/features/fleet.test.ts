@@ -44,7 +44,8 @@ beforeEach(() => {
         { innerHTML: '' },
       ]),
     ),
-    '#t_m': { value: 'attack' },
+    // No mission fits a moon that is not there: the list stays empty, as the stub holds it.
+    '#t_m': { value: 'attack', options: [] },
     '#t_h': { value: '' },
     '#t_v': { value: '5' },
     '#c_m': { value: '10' },
@@ -68,7 +69,7 @@ beforeEach(() => {
     players: [],
   } as unknown as GameState;
   client.view = {
-    P: { ships: { fighter: 6, probe: 2 } },
+    P: { id: 'p', ships: { fighter: 6, probe: 2 } },
   } as unknown as V;
 });
 afterEach(() => {

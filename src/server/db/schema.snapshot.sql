@@ -35,11 +35,17 @@ CREATE INDEX guild_members_rank ON guild_members(rank_id);
 
 CREATE INDEX invitations_email ON invitations(email);
 
+CREATE INDEX last_targets_user ON last_targets (user_id, at DESC);
+
 CREATE INDEX passkey_challenges_expiry ON passkey_challenges(expires);
 
 CREATE INDEX passkeys_owner ON passkeys(user_id);
 
 CREATE INDEX planets_owner ON planets(owner, created);
+
+CREATE INDEX playtime_events_round ON playtime_events (round, user_id);
+
+CREATE INDEX playtime_events_user_start ON playtime_events (user_id, start_ms);
 
 CREATE INDEX push_due ON push_jobs(retry_at);
 
@@ -221,6 +227,14 @@ CREATE TABLE jump_gates (
       ready INTEGER NOT NULL
     ) STRICT;
 
+CREATE TABLE last_targets (
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      place TEXT NOT NULL,
+      owner TEXT NOT NULL,
+      at INTEGER NOT NULL,
+      PRIMARY KEY (user_id, place)
+    ) STRICT;
+
 CREATE TABLE market_prices (
       pair TEXT PRIMARY KEY CHECK (pair IN ('mc', 'md', 'cm', 'cd', 'dm', 'dc')),
       price INTEGER NOT NULL,
@@ -305,6 +319,21 @@ CREATE TABLE player_activity (
     active_ms INTEGER NOT NULL,
     PRIMARY KEY (player, day)
   ) STRICT;
+
+CREATE TABLE playtime_events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      round INTEGER NOT NULL,
+      play_session INTEGER NOT NULL,
+      instance TEXT NOT NULL,
+      seq INTEGER NOT NULL,
+      state TEXT NOT NULL CHECK (state IN ('active', 'inactive', 'background')),
+      reason TEXT NOT NULL CHECK (reason IN ('start', 'heartbeat', 'idle', 'background')),
+      start_ms INTEGER NOT NULL,
+      end_ms INTEGER NOT NULL,
+      method INTEGER NOT NULL,
+      UNIQUE (user_id, instance, seq)
+    ) STRICT;
 
 CREATE TABLE position_locks (
       g INTEGER NOT NULL,
@@ -419,4 +448,5 @@ CREATE TABLE users (
     rq_cost_c INTEGER,
     rq_cost_d INTEGER
   , explain_mode TEXT NOT NULL DEFAULT 'icon'
-    CHECK (explain_mode IN ('always', 'icon', 'hidden')), rq_planet TEXT, main_planet TEXT, main_switched INTEGER, active_at INTEGER, vacation INTEGER) STRICT;
+    CHECK (explain_mode IN ('always', 'icon', 'hidden')), rq_planet TEXT, main_planet TEXT, main_switched INTEGER, active_at INTEGER, vacation INTEGER, level_table TEXT NOT NULL DEFAULT 'icon'
+      CHECK (level_table IN ('always', 'icon', 'hidden'))) STRICT;

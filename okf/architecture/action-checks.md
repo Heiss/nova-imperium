@@ -86,7 +86,9 @@ the allow list.
 Since the Warp-Tor (#230, 2026-11-17) `ACTIONS` also has `jump`, which
 follows section 7; its row is below `recall`. Since #202 (2026-11-17) it
 also has `demolish`, which follows section 7 from its start; its row is
-below `cancelBuild`. The counts above are those of the audit and stay.
+below `cancelBuild`. Since #258 (2026-11-19) it also has `cancelOrder`, which takes
+an order of the shipyard back; its row is below `order`. The counts above are those
+of the audit and stay.
 
 | Action | Where its checks live | Status | Browser repeats | Messages match | Group |
 |---|---|---|---|---|---|
@@ -96,6 +98,7 @@ below `cancelBuild`. The counts above are those of the audit and stay.
 | `research` | core `researchErrors` (codes `noLab`, `locked`, `busy`, `labUpgrading`, `noEnergy`, `cost` from `hasLab`, `reqMissing`, `labUpgrading`, `energyShort`, `afford`); `networkLab` only for the time; the server only the messages (`RESEARCH_ERROR`, `failEnergy`) | yes | yes, with core `researchErrors` in the same order (F9 fixed): `researchState` (game.ts), the notes `RESEARCH_WAITS` of `researchRow`; the page without a lab with core `hasLab` and `noLab` (catalog-list.ts) | no (F2, F3, F4, F5) | economy |
 | `cancelResearch` | only the own planet | none | – | – | economy |
 | `order` | core `orderErrors` (codes `noYard`, `yardLocked`, `locked`, `count`, `limit`, `cost`, `queueFull` from `hasYard`, `yardLockedBy`, `reqMissing`, `unitRoom`, `maxAfford` and at most 20 orders); the server only the messages (`ORDER_ERROR`, the lock with `YARD_LOCK`) | yes | partly, with core `orderErrors` in its own order: the requirements first, then the lock, the limit and the price disable „Bauen“ (`orderAction`, catalog-list.ts), the page with core `hasYard` (`yardPage`), a count of 0 by `orderNote` (`order` in `client/main.ts`); not the 20 orders | no (F2, F6, F7) | economy |
+| `cancelOrder` (#258) | inline: the position must be a whole number from 0 (else „Ungültig.“); only the own planet; the rule is core `cancelOrder` (`core/cancel-order.ts`); a position that holds no order or another unit changes nothing and is no refusal, as `cancelBuild` without an upgrade | none | – (a button per order of the list, `cancelOrder` of `client/features/queue.ts`) | – | economy |
 | `pct` | core `isProducer` (a producer of `PRODUCERS` only); the share rounded to tens after `int()`, a clamp, not a refusal | yes | no; the select offers valid shares only (`views/ProducerTable.svelte`) | – | economy |
 | `rename` | inline: a name after `str(…, 20)` | no | yes, silently: trims, sends nothing when empty, `maxlength="20"` (`doRename`, main.ts) | – | player |
 | `options` | core `isExplainMode`; the probes clamped by `int` | yes | the same clamp, `clampInt` (`client/logic/format.ts`); the select offers the modes | – | player |
@@ -256,7 +259,7 @@ and F10 in that pull request.]
 * **F17** (rule) Rank names: `views/guilds.ts:219` and `:245` carry
   `minlength`, but the inputs sit in no form and `main.ts` calls no
   `checkValidity`, so only `maxlength` holds; the server refuses with „Der
-  Rangname braucht 2 bis 67 Zeichen.“ (`guild-ranks.ts:110`).
+  Rangname braucht 2 bis 24 Zeichen.“ (`guild-ranks.ts:110`; 67 until #277).
 
 Checks only the server makes, besides those of „What counts“: the 20 orders
 of the shipyard (`actions.ts:52` and `:256-257`; the browser leaves „Bauen“
@@ -267,7 +270,7 @@ taken, and every rule of `claimDailyReward` beyond the state.
 Notes, no disagreement:
 
 * Numbers written into messages beside their constant in `src/core`:
-  „2 bis 67“ (`guild-ranks.ts:110`, `MIN_RANK_NAME`, `MAX_RANK_NAME`),
+  „2 bis 24“ (`guild-ranks.ts:110`, `MIN_RANK_NAME`, `MAX_RANK_NAME`),
   „25“ (`guild-ranks.ts:131`, `MAX_GUILD_RANKS`), „1 bis 4.320“
   (`endzeit.ts:55`, `GIFT_MINUTES`).
 * `actions.ts:253` „Diesen Schutzdom gibt es nur einmal pro Planet.“ is the

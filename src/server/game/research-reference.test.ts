@@ -136,7 +136,8 @@ const research: Action = (ctx, u, d, event) => {
 const TEMPLATE = openDatabase(':memory:').serialize();
 const H = 3600000;
 const NOW = 100 * H;
-const RESEARCH = Object.keys(RES);
+// Without the Kolonialverwaltung (#237), which the code before did not know.
+const RESEARCH = Object.keys(RES).filter((k) => k !== 'colonial');
 const BUILDINGS = Object.keys(BUILD);
 
 const oneOf = <T>(often: readonly T[], all: readonly T[]): fc.Arbitrary<T> =>

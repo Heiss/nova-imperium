@@ -391,6 +391,7 @@ describe('points and state', () => {
       rq: null,
       probes: 1,
       explain: 'icon',
+      levelTable: 'icon',
       pushOff: [],
       readAt: 0,
       admin: true,

@@ -17,6 +17,7 @@ import type { Action } from './actions.ts';
 import { fail, universe, type Ctx } from './context.ts';
 
 import { roundRules, roundStart } from './round.ts';
+import type { ServerFeature } from './feature.ts';
 
 const DAY = 86_400_000;
 const dayOf = (ctx: Ctx): number => Math.floor(ctx.now() / DAY);
@@ -152,7 +153,7 @@ function credit(ctx: Ctx, p: Planet, reward: Cost): void {
   ctx.planets.save(p);
 }
 
-export const claimAchievement: Action = (ctx, u, data) => {
+const claimAchievement: Action = (ctx, u, data) => {
   if (!roundRules(ctx).achievements)
     fail('Achievements sind in dieser Runde deaktiviert.');
   const achievement =
@@ -211,3 +212,14 @@ export function recordAchievementAction(
     )
     .run(uid, metric);
 }
+
+export const serverFeature = {
+  actions: { claimAchievement, claimDailyReward },
+  state: {
+    order: 130,
+    keys: ['achievements'],
+    build: (ctx, u, view) => ({
+      achievements: achievementState(ctx, u, view.round),
+    }),
+  },
+} satisfies ServerFeature;

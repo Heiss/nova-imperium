@@ -50,11 +50,13 @@ import type { User } from '../db/repos/players.ts';
 import { type Action, type Data, mine, researchOf } from './actions.ts';
 import { lockedUntil, positionLockedText } from './position-lock.ts';
 import { type Ctx, coords, fail, int, universe } from './context.ts';
+import { colonyRoom, limitRefusal } from './colony-limit.ts';
 import { attackEvent } from './guild-events.ts';
 import { holdersAt, isAllyOf } from './holding.ts';
 import { isProtected, pointsMap } from './points.ts';
 import { roundRules } from './round.ts';
 import { inVacation } from './vacation.ts';
+import type { ServerFeature } from './feature.ts';
 
 /**
  * The picked ships, each at most as many as stand on the place; what is no
@@ -93,8 +95,11 @@ export const target = (ctx: Ctx, d: Data): Coords => {
   };
 };
 
-/** A code with a fixed message; a locked position names the end of its lock. */
-type WordedError = Exclude<SendError, 'locked'>;
+/**
+ * A code with a fixed message; a locked position names the end of its lock,
+ * and the limit of planets names the count (#237).
+ */
+type WordedError = Exclude<SendError, 'locked' | 'colonyLimit'>;
 
 /** The message of each code of `sendError`, in German like the interface. */
 const SEND_ERROR: Readonly<Record<WordedError, string>> = {
@@ -182,15 +187,18 @@ function checkDestination(
   },
   mission: Mission,
 ): void {
+  const research = researchOf(ctx, u).research;
   const error = sendError(
     rules,
     {
       owner: u.id,
       from: p.id,
       ships,
-      research: researchOf(ctx, u).research,
+      research,
       running: ctx.fleets.countMission(u.id, mission),
       extraSlots: extraSlots(universe(ctx)),
+      // Asked only by a Landnahme (#237).
+      colonies: () => colonyRoom(ctx, u.id, research),
     },
     {
       planet: occupied,
@@ -207,6 +215,8 @@ function checkDestination(
   );
   // A given-up position names the end of its lock (#224, D2).
   if (error === 'locked') return fail(positionLockedText(at.lockEnd!));
+  // The planets against the limit, as the player sees them (#237).
+  if (error === 'colonyLimit') return fail(limitRefusal(ctx, u.id, research));
   if (error) fail(sendMessage(ctx, error));
 }
 
@@ -329,6 +339,9 @@ export const send: Action = (ctx, u, d, event) => {
     ...(holds && { hold }),
   };
   ctx.fleets.save(fleet);
+  // A hostile launch is one of the last targets for the Schnellwahl (#292).
+  if (missionRules(mission)!.remembered && targetOwner !== null)
+    ctx.targets.record(u.id, { place: to, owner: targetOwner, at: t });
   // The guild of the defender learns of an attack or a Mondbruch at its
   // launch (#169 D3, #95); both fly to a foreign place only, so it has an
   // owner.
@@ -405,3 +418,7 @@ export const recall: Action = (ctx, u, d, event) => {
     event.detail = { fleet: fleet.id, planet: fleet.from, due: fleet.ret };
   return 'Flotte zurückgerufen.';
 };
+
+export const serverFeature = {
+  actions: { send, recall },
+} satisfies ServerFeature;

@@ -17,6 +17,7 @@ import type { User } from '../db/repos/players.ts';
 import type { Action } from './actions.ts';
 import { type Ctx, fail } from './context.ts';
 import { roundRules } from './round.ts';
+import type { ServerFeature } from './feature.ts';
 
 /** The main planet of `u` and the end of the lock of the last switch. */
 export const mainPlanetOf = (
@@ -69,7 +70,7 @@ export const lockedText = (end: number): string =>
   `Der Hauptplanet ist gesperrt. Wieder änderbar ab ${lockEndText(end)}.`;
 
 /** Makes the own planet `d.main` the main planet; every switch starts the lock (D4, D5). */
-export const chooseMainPlanet: Action = (ctx, u, d) => {
+const chooseMainPlanet: Action = (ctx, u, d) => {
   const main = mainPlanetOf(ctx, u);
   const target = typeof d.main === 'string' ? ctx.planets.get(d.main) : null;
   const error = mainSwitchError({
@@ -86,3 +87,16 @@ export const chooseMainPlanet: Action = (ctx, u, d) => {
   ctx.players.save(u);
   return `${target!.name} ist jetzt dein Hauptplanet.`;
 };
+
+export const serverFeature = {
+  actions: { mainPlanet: chooseMainPlanet },
+  // The id of the main planet and the end of its lock beside the home planet (#221).
+  state: {
+    order: 60,
+    keys: ['homePlanet', 'mainPlanet', 'mainLock'],
+    build: (ctx, u, view) => ({
+      homePlanet: ctx.planets.home(u.id)?.id ?? null,
+      ...mainPlanetView(view.main, ctx.now()),
+    }),
+  },
+} satisfies ServerFeature;

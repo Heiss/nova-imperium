@@ -14,6 +14,7 @@ import { FLEET_MISSIONS, MISSION } from '../core/missions.ts';
 import { placeName } from '../core/moon.ts';
 import { text } from '../core/text.ts';
 import type { Levels, Planet, ResearchState } from '../core/types.ts';
+import { planetsLine } from '../client/logic/colony-limit.ts';
 import { diameterLine } from '../client/logic/fields.ts';
 import { coords, dt, esc, fmt } from '../client/logic/format.ts';
 import { fleetEnd, nameOf, ranks, sortFleets } from '../client/logic/game.ts';
@@ -127,6 +128,7 @@ function overview(v: V): string {
  <tr><td>Position</td><td>${coords(P)}</td></tr><tr><td>Planetentyp</td><td>${l.type}</td></tr><tr><td>Temperatur</td><td>ca. ${P.temp - 40}°C bis ${P.temp}°C</td></tr>
  <tr><td>Durchmesser</td><td>${diameterLine(P, s.cfg)}</td></tr>
  <tr><td>Punkte</td><td>${fmt(s.players[me]?.points)} (Platz ${rk[me] ?? '-'} von ${Object.keys(s.players).length})</td></tr>
+ <tr><td>Planetengrenze</td><td>${planetsLine(s)}</td></tr>
  <tr><td>Serverzeit</td><td>${dt(v.now)}</td></tr></table>${giveUp(v)}</div></div>
  ${box('Aktivitäten', activities(v))}`;
 }

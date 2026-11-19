@@ -48,6 +48,7 @@ import { type Explanation, explanation } from '../client/logic/explain.ts';
 import { dur, esc, fmt } from '../client/logic/format.ts';
 import { researchState } from './catalog-reference/states.ts';
 import { iconURL } from '../client/logic/icons.ts';
+import { levelsRow } from '../client/logic/level-mode.ts';
 import { client } from '../client/logic/state.svelte.ts';
 import type { GameState } from '../client/logic/types.ts';
 import CatalogList from '../client/views/CatalogList.svelte';
@@ -73,6 +74,26 @@ const explainButtonHTML = (ex: Explanation | null): string =>
     ? `<button type="button" class="exq" id="${ex.button}" data-act="explain" data-k="${ex.key}" aria-expanded="${ex.open}"${ex.open ? ` aria-controls="${ex.panel}"` : ''} aria-label="Erklärung zu ${esc(ex.name)}">?</button>`
     : '';
 
+// One more change on purpose (#187): buildings and research have the ▤ of
+// the level overview next to the „?“ and a box for its table below the
+// entry; ships and defense have neither.
+const levelsButtonHTML = (v: V, key: string, name: string): string => {
+  const lv = levelsOf(v, key, name);
+  return lv?.button
+    ? `<button type="button" class="lvq" id="${lv.button}" data-act="levels" data-k="${key}" aria-expanded="${lv.open}"${lv.open ? ` aria-controls="${lv.panel}"` : ''} aria-label="Stufenübersicht zu ${esc(name)}">▤</button>`
+    : '';
+};
+
+const levelsBoxHTML = (v: V, key: string, name: string): string => {
+  const lv = levelsOf(v, key, name);
+  return lv?.show ? `<div class="lvt" id="${lv.panel}"></div>` : '';
+};
+
+const levelsOf = (v: V, key: string, name: string) =>
+  Object.hasOwn(BUILD, key) || Object.hasOwn(RES, key)
+    ? levelsRow(key, name, v.s.me.levelTable, v.ui.openLv)
+    : null;
+
 function itemHTML(
   v: V,
   cls: string,
@@ -86,7 +107,7 @@ function itemHTML(
   const icon = src ? `<img src="${src}" alt="${esc(d.n)}">` : d.ab;
   const ds = d.ds ? `<div class="ds">${d.ds}</div>` : '';
   const ex = explanation(key, d, v.s.me.explain, v.ui.openEx);
-  return `<div class="item"><div class="icon ${cls}">${icon}</div><div><div class="nm">${d.n} <span class="lv">${level}</span>${explainButtonHTML(ex)}</div>${ds}${body}</div><div class="act">${action}</div></div>`;
+  return `<div class="item"><div class="icon ${cls}">${icon}</div><div><div class="nm">${d.n} <span class="lv">${level}</span>${explainButtonHTML(ex)}${levelsButtonHTML(v, key, d.n)}</div>${ds}${body}${levelsBoxHTML(v, key, d.n)}</div><div class="act">${action}</div></div>`;
 }
 
 // ----- frozen: src/client/views/economy.ts before #118 -----
@@ -175,12 +196,18 @@ function researchItem(v: V, k: string, d: ResearchDef): string {
 /** Research starts on the shown planet when it has a lab (#49). */
 function research(v: V): string {
   if (!((v.P.b.lab ?? 0) > 0)) return noLab(v);
-  const items = Object.entries(RES).map(([k, d]) => researchItem(v, k, d));
+  // The Kolonialverwaltung (#237) is listed only in a round with it, and the
+  // states here have none.
+  const items = Object.entries(RES)
+    .filter(([k]) => k !== 'colonial')
+    .map(([k, d]) => researchItem(v, k, d));
   return `<h2>Forschung auf ${esc(placeName(v.P))}</h2>${labLine(v)}<div class="box">${items.join('')}</div>`;
 }
 
 // ----- frozen: src/client/views/yard.ts before #118 -----
 
+// One change on purpose (#258): every order of the list has a button
+// „Abbrechen“ in a cell of its own, named by position and unit.
 function queue(v: V): string {
   const { P, now } = v;
   if (!P.sq.length) return '';
@@ -190,7 +217,8 @@ function queue(v: V): string {
         i === 0
           ? 'nächste fertig in ' + cd((P.sqT ?? now) + q.unit, now)
           : 'je ' + dur(q.unit);
-      return `<tr><td>${fmt(q.n)}× ${text(q.key)?.n}</td><td class="n">${when}</td></tr>`;
+      const label = `${fmt(q.n)}× ${text(q.key)?.n}`;
+      return `<tr><td>${label}</td><td class="n">${when}</td><td class="n"><button class="small red" data-act="cancelOrder" data-pos="${i}" data-k="${q.key}" aria-label="Abbrechen: ${esc(label)}">Abbrechen</button></td></tr>`;
     })
     .join('');
   return `<div class="box"><div class="hd">Bauauftrag der Schiffsschmiede</div><div class="bd"><table>${rows}</table></div></div>`;
@@ -362,7 +390,11 @@ interface Parts {
   rq: ResearchState['rq'];
   now: number;
   explain: string;
+  /** The option „Stufenübersicht“ (#187); the ▤ without it. Not drawn by the generator, so its sample stays. */
+  levelTable?: string;
   openEx: Record<string, boolean>;
+  /** The entries whose ▤ was pressed (#187). */
+  openLv?: Record<string, boolean>;
   labs: { id: string; lab: number; upgrading: boolean }[];
   home: string;
 }
@@ -370,7 +402,7 @@ interface Parts {
 function view(x: Parts): V {
   const s = {
     cfg: U,
-    me: { id: 'u1', explain: x.explain },
+    me: { id: 'u1', explain: x.explain, levelTable: x.levelTable },
     labs: x.labs,
     galaxy: IDS.map((id, i) => ({ id, name: NAMES[i]!, kind: 'planet' })),
     homePlanet: x.home,
@@ -383,7 +415,7 @@ function view(x: Parts): V {
     P: x.P,
     R: { research: x.research, rq: x.rq },
     now: x.now,
-    ui: { openEx: x.openEx } as unknown as Ui,
+    ui: { openEx: x.openEx, openLv: x.openLv } as unknown as Ui,
   };
 }
 
@@ -432,6 +464,8 @@ const MARKS = [
   'data-act="order"',
   'data-act="selectPlanet"',
   'data-act="explain"',
+  'data-act="levels"',
+  'class="lvt"',
   'Bauschleife belegt',
   'Schiffsschmiede arbeitet gerade',
   'Scholarium forscht gerade',
@@ -465,6 +499,7 @@ function collect(html: string, seen: Set<string>): void {
  * each has a hand-built case below, so no new catalog entry can lose it.
  */
 const RARE = [
+  'class="lvt"',
   'data-act="demolish"',
   'data-act="selectPlanet"',
   'Rückbau auf Stufe',
@@ -525,6 +560,17 @@ const HAND_BUILT: readonly (readonly [string, V])[] = [
         ],
       },
     ),
+  ],
+  // The level overview of #187: the ▤ pressed on a building and a research,
+  // the table always shown, and the option „Ausblenden“.
+  [
+    'the ▤ pressed',
+    handBuilt({}, { levelTable: 'icon', openLv: { metal: true, spy: true } }),
+  ],
+  ['the level overview always shown', handBuilt({}, { levelTable: 'always' })],
+  [
+    'the level overview hidden',
+    handBuilt({}, { levelTable: 'hidden', openLv: { metal: true } }),
   ],
   ['a demolition running', handBuilt({ bq: order('metal', true) })],
   ['the lab being upgraded', handBuilt({ bq: order('lab') })],

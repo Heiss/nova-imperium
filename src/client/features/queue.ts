@@ -13,6 +13,8 @@ export const clientFeature = {
     cancelBuild: () => act('cancelBuild'),
     research: (d) => act('research', { key: d.k }),
     cancelResearch: () => act('cancelResearch'),
+    // An order of the shipyard, by its position and unit (#258).
+    cancelOrder: (d) => act('cancelOrder', { pos: Number(d.pos), key: d.k }),
     maxq: (d) => setInput(`#q_${d.k}`, d.max ?? 0),
     order: async (d) => {
       const n = clampInt(val(`#q_${d.k}`), 0, 1e9);

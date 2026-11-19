@@ -53,6 +53,8 @@ const BUILD_MESSAGES: Record<
 };
 
 const RESEARCH_MESSAGES: Record<Exclude<ResearchError, 'noEnergy'>, string> = {
+  off: 'Diese Forschung gibt es in dieser Runde nicht.',
+  maxLevel: 'Die höchste Stufe dieser Forschung ist erreicht.',
   noLab: 'Du brauchst ein Scholarium.',
   locked: LOCKED,
   busy: 'Es wird bereits geforscht.',

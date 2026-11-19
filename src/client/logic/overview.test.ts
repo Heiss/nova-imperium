@@ -34,6 +34,7 @@ function view(o: Setup = {}): V {
   const s = {
     cfg: { ...U, ...o.cfg },
     me: { id: 'u1' },
+    galaxy: [],
     fleets: o.fleets ?? [],
     players: o.players ?? {
       u1: { name: 'Ich', points: 1500 },
@@ -536,6 +537,36 @@ describe('overview page', () => {
     main.s.mainPlanet = 'p1_1_5';
     expect(overviewPage(main).abandon).toBe(false);
     expect(overviewPage(view({ P: { kind: 'moon' } })).abandon).toBe(false);
+  });
+
+  it('shows the planets against the limit of the round (#237)', () => {
+    const v = view({ P: { name: 'Heimat' } });
+    v.s.cfg = {
+      ...v.s.cfg,
+      roundColonyBase: 6,
+      roundColonyResearch: 1,
+      roundColonyPerLevel: 2,
+      roundColonyMaxLevel: 4,
+    };
+    v.s.galaxy = [
+      {
+        id: 'p1_1_5',
+        kind: 'planet',
+        name: 'Heimat',
+        g: 1,
+        s: 1,
+        p: 5,
+        temp: 1,
+        owner: v.s.me.id,
+      },
+    ];
+    expect(overviewPage(v).planets).toBe(
+      'Planeten: 1 / 6 · Kolonialverwaltung Stufe 0',
+    );
+    // Without a limit in the round.
+    expect(overviewPage(view()).planets).toMatch(
+      /^Planeten: \d+ · unbegrenzt$/,
+    );
   });
 
   it('shows the points and the place in the highscore', () => {

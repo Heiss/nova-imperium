@@ -31,6 +31,12 @@
 // (`CLIENT_FEATURES`), which only src/client/main.ts imports, so a feature
 // adds its handlers in its own file and main.ts names none.
 //
+// The server features (#326): every file of src/server that exports
+// `serverFeature` is listed in src/server/features.gen.ts (`SERVER_FEATURES`),
+// which only src/server/game/dispatch.ts and state.ts import, so a feature
+// adds its actions and its part of the state in its own file and neither
+// names it.
+//
 //   node scripts/gen-features.ts
 //        writes the indexes when they changed; package.json chains it
 //        before start, test, typecheck, build and check (D2): no pre*
@@ -60,6 +66,11 @@ export const CLIENT_DIR = 'src/client/features';
 export const CLIENT_FEATURES_FILE = 'index.gen.ts';
 /** The fixed name under which a file exports a client feature. */
 const CLIENT_EXPORT = /^export const clientFeature\b/m;
+/** Where the server features are (#326), and the list of them. */
+export const SERVER_DIR = 'src/server';
+export const SERVER_FEATURES_FILE = 'features.gen.ts';
+/** The fixed name under which a file exports a server feature. */
+const SERVER_EXPORT = /^export const serverFeature\b/m;
 /** The optional part of an entry folder for the Lexicanum (#285). */
 const LEXICON_FILE = 'lexicon.de.ts';
 const MISSIONS = 'missions';
@@ -213,6 +224,10 @@ export const scanRoundSettings = (dir: string): string[] =>
 export const scanClientFeatures = (dir: string): string[] =>
   scanExporting(dir, CLIENT_EXPORT);
 
+/** The files of the server folder that export `serverFeature` (#326). */
+export const scanServerFeatures = (dir: string): string[] =>
+  scanExporting(dir, SERVER_EXPORT);
+
 /**
  * The files of a folder that export a fixed name (`pattern`), sorted, with
  * `/` in the path: not a test, not a generated file.
@@ -258,32 +273,52 @@ export function generateRoundSettings(dir: string): boolean {
 }
 
 /**
- * The source of the list of the client features: one import per file and one
- * `[name, feature]` pair, sorted by file name; the name is the path without
- * `.ts`.
+ * The source of a list of features: one import of `exported` per file and
+ * one `[name, feature]` pair in `list`, sorted by file name; the name is the
+ * path without `.ts`.
  */
-export function renderClientFeatures(files: string[]): string {
+function renderFeatureList(
+  files: string[],
+  exported: string,
+  list: string,
+): string {
   const bare = (file: string) => file.replace(/\.ts$/, '');
   const name = (file: string) =>
     `feature_${bare(file).replace(/[^a-zA-Z0-9]/g, '_')}`;
   const imports = files
-    .map((f) => `import { clientFeature as ${name(f)} } from './${f}';\n`)
+    .map((f) => `import { ${exported} as ${name(f)} } from './${f}';\n`)
     .join('');
   const rows = files.map((f) => `  ['${bare(f)}', ${name(f)}],\n`).join('');
   return [
     HEADER,
     ...(imports ? [imports] : []),
     files.length === 0
-      ? 'export const CLIENT_FEATURES = [] as const;\n'
-      : `export const CLIENT_FEATURES = [\n${rows}] as const;\n`,
+      ? `export const ${list} = [] as const;\n`
+      : `export const ${list} = [\n${rows}] as const;\n`,
   ].join('\n');
 }
+
+/** The source of the list of the client features (#322). */
+export const renderClientFeatures = (files: string[]): string =>
+  renderFeatureList(files, 'clientFeature', 'CLIENT_FEATURES');
 
 /** Writes the list of the client features when it changed; true if it did. */
 export function generateClientFeatures(dir: string): boolean {
   return write(
     join(dir, CLIENT_FEATURES_FILE),
     renderClientFeatures(scanClientFeatures(dir)),
+  );
+}
+
+/** The source of the list of the server features (#326). */
+export const renderServerFeatures = (files: string[]): string =>
+  renderFeatureList(files, 'serverFeature', 'SERVER_FEATURES');
+
+/** Writes the list of the server features when it changed; true if it did. */
+export function generateServerFeatures(dir: string): boolean {
+  return write(
+    join(dir, SERVER_FEATURES_FILE),
+    renderServerFeatures(scanServerFeatures(dir)),
   );
 }
 
@@ -305,5 +340,6 @@ if (import.meta.main)
     generateLexicon(FEATURES_DIR);
     generateRoundSettings(CORE_DIR);
     generateClientFeatures(CLIENT_DIR);
+    generateServerFeatures(SERVER_DIR);
     return 0;
   });

@@ -201,6 +201,57 @@ main {
   padding: 16px 20px 40px;
   min-width: 0;
 }
+/* Sticky header (#193): on the desktop the header with the resources and
+   the side menu stay in view while the page scrolls. The header sticks with
+   its logo line above the screen, so it is slimmer while scrolled and full
+   at the top; the menu sticks below the rest of it and scrolls on its own
+   when it is taller than the screen. --head-h (the full height) and
+   --head-hide (the logo line) come from logic/sticky-header.ts. The menu no
+   longer reaches down the page, so #app paints its column. The phone keeps
+   its header (sticky, full height) and the fixed tab bar. The keyboard
+   focus keeps clear of both through scroll-padding (WCAG 2.4.11). */
+html {
+  scroll-padding-top: calc(var(--head-h, 0px) - var(--head-hide, 0px) + 8px);
+}
+@media (min-width: 761px) {
+  #app {
+    background: linear-gradient(
+      to right,
+      rgb(13 10 8 / 0.6) 199px,
+      var(--line) 199px 200px,
+      transparent 200px
+    );
+  }
+  header {
+    position: sticky;
+    top: calc(-1 * var(--head-hide, 0px));
+    z-index: 10;
+  }
+  /* A one-line header has no logo line to hide: its logo becomes smaller
+     while scrolled (owner, 2026-11-17; the sizes are a proposal). The classes
+     come from logic/sticky-header.ts. */
+  html.head-line.scrolled .logo {
+    font-size: 16px;
+  }
+  html.head-line.scrolled .logo small {
+    font-size: 11px;
+  }
+  nav#menu {
+    position: sticky;
+    top: calc(var(--head-h, 0px) - var(--head-hide, 0px));
+    align-self: start;
+    max-height: calc(100vh - var(--head-h, 0px) + var(--head-hide, 0px));
+    overflow-y: auto;
+    border-right: 0;
+    background: none;
+  }
+}
+@media (max-width: 760px) {
+  html {
+    scroll-padding: calc(var(--head-h, 0px) + 8px) 0
+      calc(72px + env(safe-area-inset-bottom));
+  }
+}
 h2 {
   margin: 0 0 14px;
   padding-bottom: 6px;
@@ -316,6 +367,47 @@ button.exq {
   font-size: 13px;
   line-height: 22px;
   vertical-align: 2px;
+}
+/* The level overview (#187): the ▤ next to the (?), the table below the entry. */
+button.lvq {
+  width: 24px;
+  height: 24px;
+  margin-left: 6px;
+  padding: 0;
+  border-radius: 4px;
+  font-size: 13px;
+  line-height: 22px;
+  vertical-align: 2px;
+}
+button.lvq[aria-expanded='true'] {
+  outline: 2px solid var(--gold-hi);
+  outline-offset: 1px;
+}
+.item > div {
+  min-width: 0;
+}
+.lvt {
+  margin: 8px 0 2px;
+  padding-left: 10px;
+  border-left: 2px solid var(--line);
+}
+.lvt .lx-scroll {
+  margin: 0 0 4px;
+}
+.lvt .lx-note {
+  font-size: 13px;
+  margin-top: 2px;
+}
+.lx-t tr.lx-sep td {
+  padding: 4px 10px;
+  font: 600 11px var(--head);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dim);
+  background: var(--th);
+}
+.lx-t tr.lx-big td {
+  color: var(--dim);
 }
 button.exq[aria-expanded='true'],
 button[aria-pressed='true'] {
@@ -552,7 +644,19 @@ fieldset.rank legend {
    phone (#274, as #189 for the highscore). */
 .guild-title,
 .guild-list td:first-child,
-.guild-members td:first-child {
+.guild-members td:first-child,
+.guild-members td.rank,
+fieldset.rank legend {
+  overflow-wrap: anywhere;
+}
+/* Rank names are at most 24 characters when they are made (#277), but an
+   older name may be up to 67: the closed „Rang ändern“ list may cut a long
+   name off, the open list shows it in full. */
+select.rank-select {
+  max-width: 7rem;
+}
+/* The title of the admin's guild chat dialog holds the guild's tag and name. */
+#dialog-title {
   overflow-wrap: anywhere;
 }
 fieldset.rank .rights {

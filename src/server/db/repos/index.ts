@@ -8,9 +8,11 @@ import { SqliteFleets, type Fleets } from './fleets.ts';
 import { SqliteFriends, type Friends } from './friends.ts';
 import { SqliteGuilds, type Guilds } from './guilds.ts';
 import { SqliteInvitations, type Invitations } from './invitations.ts';
+import { SqliteLastTargets, type LastTargets } from './last-targets.ts';
 import { SqliteMarket, type MarketStore } from './market.ts';
 import { SqlitePlanets, type Planets } from './planets.ts';
 import { SqlitePlayers, type Players } from './players.ts';
+import { SqlitePlaytime, type Playtime } from './playtime.ts';
 import { SqliteReports, type Reports } from './reports.ts';
 import { SqliteSurveys, type Surveys } from './surveys.ts';
 
@@ -30,6 +32,10 @@ export interface Repositories {
   friends: Friends;
   /** The prices and the daily amounts of the marketplace (#171). */
   market: MarketStore;
+  /** The last hostile targets of a player (#292). */
+  targets: LastTargets;
+  /** The accepted intervals of the estimated play time (#232). */
+  playtime: Playtime;
 }
 
 export const repositories = (db: Db): Repositories => ({
@@ -44,4 +50,6 @@ export const repositories = (db: Db): Repositories => ({
   surveys: new SqliteSurveys(db),
   friends: new SqliteFriends(db),
   market: new SqliteMarket(db),
+  targets: new SqliteLastTargets(db),
+  playtime: new SqlitePlaytime(db),
 });

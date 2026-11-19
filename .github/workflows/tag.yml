@@ -37,7 +37,7 @@ jobs:
     outputs:
       release: ${{ steps.version.outputs.release }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
           fetch-depth: 2
@@ -74,7 +74,7 @@ jobs:
           permission-contents: write
           permission-pull-requests: write
       # Keeps the credentials: scripts/release.sh pushes the tag.
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.workflow_run.head_branch }}
           fetch-depth: 0

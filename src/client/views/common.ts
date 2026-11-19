@@ -40,6 +40,8 @@ export interface Ui extends PushChoice {
   openRep: Record<string, boolean>;
   /** Entries whose explanation the player opened with the (?) (issue #63). */
   openEx: Record<string, boolean>;
+  /** Entries whose level overview the player unfolded with the ▤ (#187). */
+  openLv?: Record<string, boolean>;
   auth: 'login' | 'register' | 'forgot' | 'reset' | 'code' | null;
   invite: { token: string; email: string; galaxies: number } | null;
   lastLink: string | null;

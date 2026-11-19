@@ -9,6 +9,7 @@
 // O18 (c): F8, F9): the place, the requirements and the fields first, then
 // the waits of the queues, the energy and the cost.
 import { BUILD, buildable, PRODUCERS, RES, UNIT } from './catalog.ts';
+import { colonyRules, researchRefused } from './colony-limit.ts';
 import { afford, lvlCost, maxAfford, reqMissing } from './economy.ts';
 import { fieldsFull } from './fields.ts';
 import { hasLab, labUpgrading, waitsForLab } from './lab.ts';
@@ -66,12 +67,21 @@ export function buildErrors(
 }
 
 /**
- * Why the next level of a research cannot start on a place (#49): the place
- * has no lab, its requirements are missing, a research runs, the lab is
- * upgraded, the energy production is short, or the place cannot pay it.
+ * Why the next level of a research cannot start on a place (#49): the round
+ * does not have it or its highest level is reached (the Kolonialverwaltung,
+ * #237), the place has no lab, its requirements are missing, a research
+ * runs, the lab is upgraded, the energy production is short, or the place
+ * cannot pay it.
  */
 export type ResearchError =
-  'noLab' | 'locked' | 'busy' | 'labUpgrading' | 'noEnergy' | 'cost';
+  | 'off'
+  | 'maxLevel'
+  | 'noLab'
+  | 'locked'
+  | 'busy'
+  | 'labUpgrading'
+  | 'noEnergy'
+  | 'cost';
 
 /** Every reason why the next level of research `key` cannot start on `p`. */
 export function researchErrors(
@@ -81,8 +91,12 @@ export function researchErrors(
   u: Universe,
 ): ResearchError[] {
   const def = RES[key]!;
-  const level = (r.research[key] ?? 0) + 1;
+  const have = r.research[key] ?? 0;
+  const level = have + 1;
+  const refused = researchRefused(key, colonyRules(u), have);
   return holding<ResearchError>({
+    off: refused === 'off',
+    maxLevel: refused === 'maxLevel',
     noLab: !hasLab(p),
     locked: reqMissing(def, p, r).length > 0,
     busy: !!r.rq,

@@ -13,6 +13,7 @@ import type { Universe } from '../../core/types.ts';
 import { ENDZEIT_NOTE } from '../logic/endzeit.ts';
 import { reportFormHTML } from '../logic/error-report.ts';
 import { explainOptionsHTML } from '../logic/explain.ts';
+import { levelOptionsHTML } from '../logic/level-mode.ts';
 import { homePlanetOf } from '../logic/friends.ts';
 import { mainPlanetHTML } from '../logic/main-planet.ts';
 import {
@@ -21,6 +22,7 @@ import {
   highscoreNote,
   highscoreRanking,
 } from '../logic/highscore.ts';
+import { OWN_ACTIVITY_PLACEHOLDER } from '../logic/own-activity.ts';
 import { vacationHTML } from '../logic/vacation.ts';
 import { gainWarning } from '../logic/market.ts';
 import { pushKindsHTML, shownPushOff } from '../logic/push-options.ts';
@@ -92,9 +94,10 @@ export const notificationBoxes = (
  ${box('Browser-Benachrichtigungen', '<p>Meldungen zu Aufträgen, Flotten und neuen Nachrichten auf diesem Gerät.</p><button data-act="pushEnable">Aktivieren</button> <button data-act="pushDisable">Deaktivieren</button>')}`;
 
 export const help = (v: V): string => `<h2>Hilfe &amp; Optionen</h2>
- ${box('Optionen', `<div class="flex">Spähschädel pro Auspex-Erkundung von der Sternenkarte: <input type="number" id="o_probes" min="1" value="${v.s.me.probes || 1}" aria-label="Spähschädel pro Auspex-Erkundung"></div><div class="flex mt"><label for="o_explain">(?)-Symbol:</label> <select id="o_explain">${explainOptionsHTML(v.s.me.explain)}</select></div><p><button data-act="saveopt">Speichern</button></p>`)}
+ ${box('Optionen', `<div class="flex">Spähschädel pro Auspex-Erkundung von der Sternenkarte: <input type="number" id="o_probes" min="1" value="${v.s.me.probes || 1}" aria-label="Spähschädel pro Auspex-Erkundung"></div><div class="flex mt"><label for="o_explain">(?)-Symbol:</label> <select id="o_explain">${explainOptionsHTML(v.s.me.explain)}</select></div><div class="flex mt"><label for="o_levels">Stufenübersicht:</label> <select id="o_levels">${levelOptionsHTML(v.s.me.levelTable)}</select></div><p><button data-act="saveopt">Speichern</button></p>`)}
  ${box('Hauptplanet', mainPlanetHTML(v.s, v.now))}
  ${box('Urlaubsmodus', vacationHTML(v.s.round.vacationHours))}
+ ${box('Meine Aktivität &amp; Spielzeit', OWN_ACTIVITY_PLACEHOLDER)}
  ${box('Darstellung', `<label class="switch"><input type="checkbox" id="o_anim" ${v.ui.animations ? 'checked' : ''}> Animationen</label><p class="dim">Planeten drehen sich, Wolken ziehen. Gilt für dieses Gerät; ist im System „Bewegung reduzieren“ eingestellt, bleibt alles ruhig.</p>`)}
  ${passwordBox(v.ui)}
  ${passkeysBox()}
@@ -160,9 +163,14 @@ function settingsForm(s: GameState, a: AdminState): string {
   return `<table class="kv">${rows}</table>${gain}<p class="dim">Änderungen wirken sofort. Laufende Bauaufträge und Flüge behalten ihre Endzeit.</p><button data-act="saveSettings">Einstellungen speichern</button>`;
 }
 
+/**
+ * The link of the last invitation is no draft: a refresh that keeps the
+ * inputs would put the link of the invitation before back into the field
+ * (#239), so it is not kept.
+ */
 function invitations(ui: Ui): string {
   const link = ui.lastLink
-    ? `<div class="notice mt">Einladungslink (gilt einmal, nur jetzt sichtbar):<br><input id="inv_link" class="wide" readonly value="${esc(ui.lastLink)}" aria-label="Einladungslink"> <button class="small" data-act="copyLink">Kopieren</button></div>`
+    ? `<div class="notice mt">Einladungslink (gilt einmal, nur jetzt sichtbar):<br><input id="inv_link" class="wide" readonly value="${esc(ui.lastLink)}" aria-label="Einladungslink" data-nokeep> <button class="small" data-act="copyLink">Kopieren</button></div>`
     : '';
   return `<form id="inviteform" class="flex"><label for="inv_email">E-Mail-Adresse</label> <input id="inv_email" type="email" required autocomplete="off" data-nokeep> <button type="submit">Einladen</button></form>${link}<div id="admin-invitations"></div>`;
 }

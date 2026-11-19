@@ -23,16 +23,33 @@ const out = (
   ships: { lc: 1 },
 });
 
+/** The start planet of the view is at 1:1:5; the fleet form starts from there. */
+const EXPEDITION_AT = { g: 1, s: 2, p: 16 };
+/** Bert's planet, a foreign target. */
+const FOREIGN_AT = { g: 1, s: 2, p: 6 };
+
 function view(
   research: Record<string, number>,
   fleets: ClientFleet[] = [],
   fm?: string,
+  to: { g: number; s: number; p: number } = fm === 'expedition'
+    ? EXPEDITION_AT
+    : FOREIGN_AT,
 ): V {
   const s = {
     cfg: U,
-    me: { id: 'u1', probes: 1 },
+    me: { id: 'u1', probes: 1, research },
     players: { u1: { name: 'Anna', points: 1 } },
-    galaxy: [],
+    galaxy: [
+      {
+        id: 'p1_2_6',
+        kind: 'planet',
+        name: 'Beta',
+        ...FOREIGN_AT,
+        temp: 1,
+        owner: 'u2',
+      },
+    ],
     debris: [],
     fleets,
   } as unknown as GameState;
@@ -41,7 +58,7 @@ function view(
     P: planet({ ships: { lc: 5 } }),
     R: { research, rq: null },
     now: 0,
-    ui: { gal: 1, sys: 1, ...(fm ? { fm } : {}) } as Ui,
+    ui: { gal: 1, sys: 1, ft: to, ...(fm ? { fm } : {}) } as Ui,
   };
 }
 
@@ -54,8 +71,8 @@ describe('the fleet form', () => {
   });
 
   it('offers the mission Expedition', () => {
-    expect(fleet(view({ expo: 1 }))).toContain(
-      '<option value="expedition" >Expedition</option>',
+    expect(fleet(view({ expo: 1 }, [], undefined, EXPEDITION_AT))).toContain(
+      '<option value="expedition" selected>Expedition</option>',
     );
   });
 

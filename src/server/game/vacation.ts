@@ -18,6 +18,7 @@ import { addReport, type Ctx, fail, universe } from './context.ts';
 import { heldAt, sendHome } from './holding.ts';
 import { lockEndText } from './main-planet.ts';
 import { roundRules } from './round.ts';
+import type { ServerFeature } from './feature.ts';
 
 /** The refusal of an own game action during the vacation mode (Q2) [V]. */
 export const VACATION_REFUSED = 'Im Urlaubsmodus nicht möglich.';
@@ -67,7 +68,7 @@ const sendGuardsHome = (ctx: Ctx, places: readonly { id: string }[]): void => {
 };
 
 /** Starts the vacation now, once nothing runs (Q1); the production up to now is kept. */
-export const startVacation: Action = (ctx, u, _d, event) => {
+const startVacation: Action = (ctx, u, _d, event) => {
   const now = ctx.now();
   const places = settledPlaces(ctx, u);
   const research = settleR(u, now);
@@ -93,7 +94,7 @@ export const startVacation: Action = (ctx, u, _d, event) => {
 };
 
 /** Ends the vacation once the minimum duration of the round is over; the production goes on from now. */
-export const endVacation: Action = (ctx, u) => {
+const endVacation: Action = (ctx, u) => {
   const hours = roundRules(ctx).vacationHours;
   const error = vacationExitError(u.vacation, hours, ctx.now());
   if (error === 'early')
@@ -115,3 +116,7 @@ export function vacationNotice(ctx: Ctx, uid: string): void {
     { topic: 'announcement' },
   );
 }
+
+export const serverFeature = {
+  actions: { startVacation, endVacation },
+} satisfies ServerFeature;

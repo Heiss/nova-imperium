@@ -127,6 +127,9 @@ export const NAMES: Readonly<
     name: 'Kreuzzugs-Kartografie',
     ab: 'KK',
   },
+  // #237: the name of the issue (owner, 2026-11-17, D2); the abbreviation [V];
+  // an own extension without a classic name.
+  colonial: { classic: null, name: 'Kolonialverwaltung', ab: 'KV' },
   // #54: the Abfangrakete keeps its classic name (naming table, [V]).
   abm: { classic: 'Abfangrakete', name: 'Abfangrakete', ab: 'AR' },
   ipm: { classic: 'Interplanetarrakete', name: 'Orbitalrakete', ab: 'OR' },

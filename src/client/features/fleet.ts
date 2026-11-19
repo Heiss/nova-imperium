@@ -15,7 +15,13 @@ import {
   type FleetForm,
   fleetPreview,
 } from '../logic/game.ts';
-import { maxPosition, targetInfo } from '../logic/fleet-target.ts';
+import { colonyNote } from '../logic/colony-limit.ts';
+import {
+  maxPosition,
+  missionOptions,
+  offeredMissions,
+  targetInfo,
+} from '../logic/fleet-target.ts';
 import { moonAt } from '../logic/moon.ts';
 import { client } from '../logic/state.svelte.ts';
 import { timeRow } from '../views/fleet.ts';
@@ -66,9 +72,31 @@ function moonOption(s: GameState): void {
   if (option.disabled && select.value === 'moon') select.value = 'planet';
 }
 
+/**
+ * The list „Auftrag“ follows the target (#253): only the missions that fit
+ * it, the chosen one kept while it fits, else the first; when none fits the
+ * list says so and „Flotte losschicken“ is blocked. The line beside it names
+ * the planets against the limit for a Landnahme (#237).
+ */
+function missionList(s: GameState, from: string): void {
+  const list = $<HTMLSelectElement>('#t_m')!;
+  const offered = offeredMissions(s, from, readFleetForm().to, client.now());
+  const shown = Array.from(list.options, (o) => o.value).join();
+  if (shown !== offered.join()) {
+    const { html, selected } = missionOptions(offered, list.value);
+    list.innerHTML = html;
+    list.value = selected;
+  }
+  const send = $<HTMLButtonElement>('#t_send');
+  if (send) send.disabled = send.dataset.full === '1' || !list.value;
+  const limit = $('#t_limit');
+  if (limit) limit.textContent = colonyNote(s, list.value);
+}
+
 function fleetCalc(): void {
   if (!$('#t_g') || !client.view || !client.game) return;
   moonOption(client.game);
+  missionList(client.game, client.view.P.id);
   timeRow(val('#t_m'), client.view);
   const f = readFleetForm();
   $('#t_info')!.innerHTML = targetInfo(client.game, f);
@@ -134,7 +162,10 @@ const flightActs = ({
   render,
 }: ClientCtx): Record<string, Handler> => ({
   send: async () => {
-    if (await actHere('send', readFleetForm())) {
+    const form = readFleetForm();
+    // No mission fits the target: the list is empty and sending is blocked (#253).
+    if (!form.mission) return;
+    if (await actHere('send', form)) {
       client.ui.ft = null;
       render(true);
     }
@@ -147,11 +178,29 @@ const flightActs = ({
   },
 });
 
+/**
+ * The list „Schnellwahl“ (#253): the place chosen is entered as the target,
+ * planet or moon, and the list goes back to „– wählen –“. The mission list
+ * follows in `fleetCalc`.
+ */
+function quickChoice(ctx: ClientCtx, field: HTMLSelectElement): void {
+  const place = client.game?.galaxy.find((p) => p.id === field.value);
+  field.value = '';
+  if (!place) return;
+  ctx.setInput('#t_g', place.g);
+  ctx.setInput('#t_s', place.s);
+  ctx.setInput('#t_p', place.p);
+  ctx.setInput('#t_k', place.kind);
+}
+
 /** The data-act handlers of the fleet; the form is calculated again on every input. */
 export const clientFeature = {
   acts: (ctx) => {
-    document.addEventListener('change', () => {
-      if (client.ui.view === 'fleet') fleetCalc();
+    document.addEventListener('change', (e) => {
+      if (client.ui.view !== 'fleet') return;
+      const field = (e?.target ?? null) as HTMLSelectElement | null;
+      if (field?.id === 't_q') quickChoice(ctx, field);
+      fleetCalc();
     });
     document.addEventListener('input', (e) => {
       if (

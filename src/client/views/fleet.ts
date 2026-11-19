@@ -8,13 +8,15 @@ import {
 } from '../../core/expedition.ts';
 import { fleetSlots, shipSpeed } from '../../core/flight.ts';
 import { HOLD_HOURS } from '../../core/holding.ts';
+import { isFleet, missionRules } from '../../core/missions.ts';
+import { colonyNote } from '../logic/colony-limit.ts';
 import {
-  FLEET_MISSIONS,
-  isFleet,
-  MISSION,
-  missionRules,
-} from '../../core/missions.ts';
-import { maxPosition } from '../logic/fleet-target.ts';
+  maxPosition,
+  missionOptions,
+  offeredMissions,
+  quickTargets,
+  quickOptions,
+} from '../logic/fleet-target.ts';
 import { maxStay, staysAt } from '../logic/game.ts';
 import { jumpPanel } from '../logic/jump-gate.ts';
 import { moonAt } from '../logic/moon.ts';
@@ -129,23 +131,26 @@ function targetForm(v: V, slotsFull: boolean): string {
   const moon = !!moonAt(s.galaxy, t);
   const toMoon = moon && t.kind === 'moon';
   const kinds = `<select id="t_k" aria-label="Zielart"><option value="planet">Planet</option><option value="moon"${moon ? '' : ' disabled'}${toMoon ? ' selected' : ''}>Mond</option></select>`;
-  // Missiles start in the Sternenkarte, not here (#54).
-  const missions = FLEET_MISSIONS.map(
-    (k) =>
-      `<option value="${k}" ${ui.fm === k ? 'selected' : ''}>${MISSION[k]}</option>`,
-  ).join('');
+  // Only the missions that fit the target (#253); missiles start in the
+  // Sternenkarte, not here (#54).
+  const { html: missions, selected } = missionOptions(
+    offeredMissions(s, P.id, t, v.now),
+    ui.fm,
+  );
+  const quick = quickTargets(s, P.id);
   const speeds = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
     .map((x) => `<option value="${x}">${x * 10} %</option>`)
     .join('');
   return `<table class="kv">
+  <tr><td><label for="t_q">Schnellwahl</label></td><td><select id="t_q"${quick.length ? '' : ' disabled'}>${quickOptions(quick)}</select></td></tr>
   <tr><td>Ziel</td><td><input class="c3" type="number" id="t_g" value="${t.g}" min="1" max="${u.galaxies}" aria-label="Galaxie">:<input class="c3" type="number" id="t_s" value="${t.s}" min="1" max="${u.systems}" aria-label="System">:<input class="c3" type="number" id="t_p" value="${t.p}" min="1" max="${maxPosition(s)}" aria-label="Position"> ${kinds} <span id="t_info" class="dim"></span></td></tr>
-  <tr><td>Auftrag</td><td><select id="t_m" aria-label="Auftrag">${missions}</select></td></tr>
-  ${timeRowHtml(ui.fm ?? Object.keys(MISSION)[0]!, v)}
+  <tr><td>Auftrag</td><td><select id="t_m" aria-label="Auftrag">${missions}</select> <span id="t_limit" class="dim">${esc(colonyNote(s, selected))}</span></td></tr>
+  ${timeRowHtml(selected, v)}
   <tr><td>Geschwindigkeit</td><td><select id="t_v" aria-label="Geschwindigkeit">${speeds}</select></td></tr>
   <tr><td>Ladung (Adamant / Psikristall / Promethium)</td><td>${cargoFields} <span class="lnk" data-act="cmax">alles (gleichmäßig)</span></td></tr>
   <tr><td>Entfernung</td><td id="i_dist">-</td></tr><tr><td>Flugdauer (eine Richtung)</td><td id="i_dur">-</td></tr>
   <tr><td>Ankunft / Rückkehr</td><td id="i_arr">-</td></tr><tr><td>Treibstoff</td><td id="i_fuel">-</td></tr><tr><td>Laderaum</td><td id="i_cap">-</td></tr>
- </table><div class="mt10"><button data-act="send" ${slotsFull ? 'disabled' : ''}>Flotte losschicken</button> ${slotsFull ? '<span class="bad">Alle Flottenslots belegt (Kogitator-Doktrin erhöht die Anzahl).</span>' : ''}</div>`;
+ </table><div class="mt10"><button id="t_send" data-act="send" data-full="${slotsFull ? '1' : ''}" ${slotsFull || !selected ? 'disabled' : ''}>Flotte losschicken</button> ${slotsFull ? '<span class="bad">Alle Flottenslots belegt (Kogitator-Doktrin erhöht die Anzahl).</span>' : ''}</div>`;
 }
 
 /**

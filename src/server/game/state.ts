@@ -1,8 +1,8 @@
 // What one player sees: their planet, their and incoming fleets, reports,
 // the players with points, the galaxy. Foreign fleets show only what an
 // observer can see: of the ships what the observer's Auspex-Lehre
-// recognizes (#228). The admin also gets the settings specification and the
-// state of the „Endzeit“ (#161).
+// recognizes (#228). The keys of a feature are a part of its own module
+// (`serverFeature`, feature.ts), put in order by their numbers.
 import { type ActivityLimits, activityLimits } from '../../core/activity.ts';
 import {
   type Recognition,
@@ -10,23 +10,19 @@ import {
   type SeenShips,
   seenShips,
 } from '../../core/fleet-recognition.ts';
-import { UNIVERSE_SPECS } from '../../core/universe.ts';
 import type { Fleet } from '../../core/types.ts';
+import { SERVER_FEATURES } from '../features.gen.ts';
 import type { User } from '../db/repos/players.ts';
 import { pushOff } from '../push-options.ts';
 import { ownLabs, researchOf } from './actions.ts';
 import { inactivities, planetActivities } from './activity.ts';
 import { type Ctx, universe } from './context.ts';
-import { endzeitState } from './endzeit.ts';
-import { friendState } from './friends.ts';
-import { guildState } from './guilds.ts';
-import { gateState } from './jump-gate.ts';
-import { mainPlanetOf, mainPlanetView } from './main-planet.ts';
-import { achievementState } from './achievements.ts';
-import { marketState } from './market.ts';
+import { mainPlanetOf } from './main-planet.ts';
 import { roundRules } from './round.ts';
 import { categoryScores } from './highscore.ts';
 import { pointsMap } from './points.ts';
+import { assembleState } from './assemble.ts';
+import type { StatePart, StateView } from './feature.ts';
 
 export interface ForeignFleet extends SeenShips {
   id: string;
@@ -89,10 +85,6 @@ function galaxyOf(ctx: Ctx, limits: ActivityLimits) {
   }));
 }
 
-/** What only the admin gets: the settings specification and the „Endzeit“. */
-const adminState = (ctx: Ctx, u: User) =>
-  u.admin ? { specs: UNIVERSE_SPECS, endzeit: endzeitState(ctx) } : null;
-
 /** The player's own account: research, options and the push kinds that are off (#192). */
 const meOf = (ctx: Ctx, u: User) => ({
   id: u.id,
@@ -101,6 +93,7 @@ const meOf = (ctx: Ctx, u: User) => ({
   rq: u.rq,
   probes: u.probes,
   explain: u.explain,
+  levelTable: u.levelTable,
   pushOff: pushOff(ctx, u.id),
   readAt: u.readAt,
   admin: u.admin,
@@ -160,6 +153,52 @@ function lockedState(ctx: Ctx, u: User): Record<string, unknown> {
   };
 }
 
+/** The value of one key of the frame; `view` is what `stateFor` works out once. */
+type Build = (ctx: Ctx, u: User, view: StateView) => unknown;
+
+/** A part of the frame with one key; its number fixes the place in the JSON object. */
+const keyed = (order: number, key: string, build: Build): StatePart => ({
+  order,
+  keys: [key],
+  build: (ctx, u, view) => ({ [key]: build(ctx, u, view) }),
+});
+
+/** The own fleets in full, the foreign ones that come to the shown planet as the Auspex-Lehre sees them. */
+const fleetsOf: Build = (ctx, u, view) => {
+  // The settled Auspex-Lehre: a level finished by now counts (#228).
+  const spy = researchOf(ctx, u).research.spy ?? 0;
+  const recognition = recognitionOf(view.round);
+  return ctx.fleets
+    .all()
+    .filter((f) => f.owner === u.id || atPlanet(f, view.planet))
+    .map((f) => (f.owner === u.id ? f : foreignView(f, spy, recognition)));
+};
+
+/**
+ * The keys of the state that belong to no feature, with the numbers that fix
+ * their place (a feature part takes a number in between, or the next free ten
+ * above the highest, and sets its keys where the number puts them).
+ */
+const FRAME: readonly StatePart[] = [
+  keyed(10, 'round', (_ctx, _u, view) => view.round),
+  keyed(20, 'now', (ctx) => ctx.now()),
+  keyed(30, 'cfg', (ctx) => universe(ctx)),
+  keyed(40, 'me', (ctx, u) => meOf(ctx, u)),
+  keyed(50, 'planet', (_ctx, _u, view) => view.planet),
+  keyed(70, 'labs', (ctx, u) => ownLabs(ctx, u.id)),
+  keyed(90, 'fleets', fleetsOf),
+  keyed(100, 'reports', (ctx, u) => ctx.reports.ofPlayer(u.id)),
+  keyed(140, 'players', (ctx, _u, view) =>
+    playersOf(ctx, view.pts, view.limits),
+  ),
+  keyed(150, 'galaxy', (ctx, _u, view) => galaxyOf(ctx, view.limits)),
+  // Every player sees every Trümmerfeld (#45).
+  keyed(160, 'debris', (ctx) => ctx.debris.all()),
+];
+
+/** The parts of the state in the order of their numbers: the frame and every server feature. */
+export const STATE_PARTS = assembleState(FRAME, SERVER_FEATURES);
+
 export function stateFor(
   ctx: Ctx,
   u: User,
@@ -172,42 +211,15 @@ export function stateFor(
   const main = mainPlanetOf(ctx, u, round);
   const requested =
     typeof selected === 'string' ? ctx.planets.get(selected) : null;
-  const p = requested?.owner === u.id ? requested : main.planet;
-  const pts = pointsMap(ctx);
-  // The settled Auspex-Lehre: a level finished by now counts (#228).
-  const spy = researchOf(ctx, u).research.spy ?? 0;
-  const recognition = recognitionOf(round);
-  const fleets = ctx.fleets
-    .all()
-    .filter((f) => f.owner === u.id || atPlanet(f, p))
-    .map((f) => (f.owner === u.id ? f : foreignView(f, spy, recognition)));
-  const limits = activityLimits(round);
-  return {
+  const view: StateView = {
     round,
-    now: ctx.now(),
-    cfg: universe(ctx),
-    me: meOf(ctx, u),
-    planet: p,
-    homePlanet: ctx.planets.home(u.id)?.id ?? null,
-    ...mainPlanetView(main, ctx.now()),
-    labs: ownLabs(ctx, u.id),
-    // The own Warp-Tore with their readiness (#230).
-    gates: gateState(ctx, u.id),
-    fleets,
-    reports: ctx.reports.ofPlayer(u.id),
-    // No guild data while guilds are off in the round (#191).
-    guilds: round.guilds ? guildState(ctx, u.id, pts) : null,
-    // The buddy list (#227): only the player's own friends and requests.
-    friends: friendState(ctx, u.id, limits.recent),
-    achievements: achievementState(ctx, u, round),
-    players: playersOf(ctx, pts, limits),
-    galaxy: galaxyOf(ctx, limits),
-    // Every player sees every Trümmerfeld (#45).
-    debris: ctx.debris.all(),
-    // Every position locked after an abandonment, for the Sternenkarte (#224).
-    locks: ctx.planets.locks(ctx.now()),
-    // The prices of the marketplace and what the player gave today (#171).
-    market: marketState(ctx, u),
-    admin: adminState(ctx, u),
+    main,
+    planet: requested?.owner === u.id ? requested : main.planet,
+    pts: pointsMap(ctx),
+    limits: activityLimits(round),
   };
+  const state: Record<string, unknown> = {};
+  for (const part of STATE_PARTS)
+    Object.assign(state, part.build(ctx, u, view));
+  return state;
 }

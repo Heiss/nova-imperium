@@ -23,7 +23,9 @@ owner as they are (2026-11-11, item 2 = a).
   „as for the Werft“; the issue names only the first.
 * **[E]** The lock rules live in one place, `src/core/yard.ts`
   (`YARD_LOCK`, `yardLockedBy`, `waitsForYard`), used by the server, the
-  requirements list and the client (owner, 2026-11-11).
+  requirements list and the client (owner, 2026-11-11). **[V]** Since #183
+  they read the component `locks` of the entries instead of the keys `yard`
+  and `nanite` (see [Design patterns](/architecture/patterns.md)).
 * **[E]** Icon `nanite_factory.svg` from the interface v2 set
   (`docs/design/interface-v2/icons/`).
 * Like every building, it gets the level achievements automatically.

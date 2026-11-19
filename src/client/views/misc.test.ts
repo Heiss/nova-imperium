@@ -9,12 +9,14 @@ import {
 } from '../../core/round.ts';
 import { liveSpecs } from '../../core/universe.ts';
 import { roundDefaults } from '../../test/fixtures.ts';
+import { levelView } from '../../test/level-view.ts';
 import type { GameState } from '../logic/types.ts';
 import type { V } from './common.ts';
 import {
   admin,
   deleteAccountBox,
   deleteAccountDialog,
+  help,
   highscore,
   roundDialog,
 } from './misc.ts';
@@ -356,6 +358,27 @@ describe('„Account löschen“ in a round with or without guilds (#191)', () =
   });
 });
 
+describe('the link of the last invitation (#239)', () => {
+  const view = (lastLink?: string): string =>
+    admin({
+      s: {
+        cfg: {},
+        admin: { specs: [], endzeit: { minutes: 240, done: false } },
+      },
+      ui: { lastLink },
+    } as unknown as V);
+
+  it('shows the link of the server and is not kept over a refresh', () => {
+    expect(view('https://x/#invite=new')).toContain(
+      '<input id="inv_link" class="wide" readonly value="https://x/#invite=new" aria-label="Einladungslink" data-nokeep>',
+    );
+  });
+
+  it('shows no field before the first invitation', () => {
+    expect(view()).not.toContain('inv_link');
+  });
+});
+
 describe('the box „Endzeit“ of the tab „Universum“ (#161, #214)', () => {
   const view = (done: boolean): string =>
     admin({
@@ -451,6 +474,45 @@ describe('a new setting of the round in both places (#283)', () => {
     );
     expect(html).toContain(
       '<select id="set_roundTestAllies" data-setting="roundTestAllies" data-nokeep><option value="1">Gilde</option><option value="3" selected>Gilde und Freunde</option></select>',
+    );
+  });
+});
+
+describe('the option „Stufenübersicht“ in „Hilfe & Optionen“ (#187)', () => {
+  const page = (levelTable?: string): string => {
+    const v = levelView({}, {}, [], { levelTable, probes: 1, pushOff: [] });
+    v.s.round = roundDefaults() as unknown as GameState['round'];
+    v.s.homePlanet = 'p';
+    v.ui = { animations: true, view: 'help' } as unknown as V['ui'];
+    return help(v);
+  };
+
+  it('is a choice of the three modes beside the one of the „?“', () => {
+    const html = page('always');
+    expect(html).toContain(
+      '<label for="o_levels">Stufenübersicht:</label> <select id="o_levels">' +
+        '<option value="always" selected>Immer anzeigen</option>' +
+        '<option value="icon">Als ▤-Symbol</option>' +
+        '<option value="hidden">Ausblenden</option></select>',
+    );
+    expect(html.indexOf('id="o_explain"')).toBeLessThan(
+      html.indexOf('id="o_levels"'),
+    );
+    expect(html.indexOf('id="o_levels"')).toBeLessThan(
+      html.indexOf('data-act="saveopt"'),
+    );
+  });
+
+  it('shows the ▤ for a player without a stored mode (D5)', () => {
+    expect(page()).toContain('<option value="icon" selected>Als ▤-Symbol');
+  });
+
+  it('has the box „Meine Aktivität & Spielzeit“ after the vacation mode (#231)', () => {
+    const html = page();
+    expect(html).toContain('Meine Aktivität &amp; Spielzeit');
+    expect(html).toContain('id="own-activity"');
+    expect(html.indexOf('Urlaubsmodus')).toBeLessThan(
+      html.indexOf('id="own-activity"'),
     );
   });
 });

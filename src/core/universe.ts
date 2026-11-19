@@ -4,7 +4,11 @@
 // of the round (#283, X1) is a row here too, read from the registry
 // `ROUND_SETTINGS`, under the key the round stores it.
 import { GIFT_DEFAULT_MINUTES, GIFT_MINUTES } from './endzeit.ts';
-import { ROUND_SETTINGS, type RoundSetting } from './round.ts';
+import {
+  ROUND_SETTINGS,
+  type RoundNumber,
+  type RoundSetting,
+} from './round.ts';
 import type { Coords, Universe } from './types.ts';
 
 type UniverseKey = keyof Universe;
@@ -19,6 +23,9 @@ export interface UniverseSpec {
   size?: 'g' | 's' | 'p';
   /** Named values instead of a number field (a setting of the round, #283). */
   choices?: readonly { value: number; label: string }[];
+  /** A rule between settings of the round (#237), with its wording. */
+  agrees?: RoundNumber['agrees'];
+  refusal?: string;
 }
 
 /** The rows of the `live` settings of the round (#283, X1). */
@@ -35,6 +42,7 @@ export const liveSpecs = (
             max: s.max,
             def: s.def,
             ...(s.choices ? { choices: s.choices } : {}),
+            ...(s.agrees ? { agrees: s.agrees, refusal: s.refusal } : {}),
           },
         ]
       : [],
@@ -139,9 +147,10 @@ export interface UsedSize {
 
 /**
  * Why a setting is refused (#214, patterns, section 7): not a whole number
- * within its range, or a size below a coordinate planets use.
+ * within its range, a size below a coordinate planets use, or a value that
+ * disagrees with the other settings of the round (#237).
  */
-export type UniverseCode = 'range' | 'used';
+export type UniverseCode = 'range' | 'used' | 'conflict';
 
 /** A refused setting: its spec and the code; the server words it. */
 interface UniverseError {
@@ -169,11 +178,22 @@ export const universeErrors = (
   input: Record<string, unknown>,
   used: UsedSize,
   specs: readonly UniverseSpec[] = UNIVERSE_SPECS,
-): UniverseError[] =>
-  specs.flatMap((spec) => {
+): UniverseError[] => {
+  const errors = specs.flatMap((spec) => {
     const code = checkOne(spec, input[spec.key], used);
     return code ? [{ spec, code }] : [];
   });
+  if (errors.length) return errors;
+  // A rule between settings is asked once every value is in its range (#237).
+  const round = Object.fromEntries(
+    specs.map((spec) => [spec.key, Number(input[spec.key])]),
+  );
+  return specs.flatMap((spec) =>
+    spec.agrees && !spec.agrees(round[spec.key]!, round)
+      ? [{ spec, code: 'conflict' as const }]
+      : [],
+  );
+};
 
 /** The settings as numbers, once `universeErrors` refused none. */
 export const universeOf = (input: Record<string, unknown>): Universe =>

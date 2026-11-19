@@ -22,6 +22,7 @@ import { clean, fail, int, type Ctx } from './context.ts';
 import { membersOf, notify } from './guild-events.ts';
 import { actor, asRule, need, type Actor } from './guild-ranks.ts';
 import { requireGuilds } from './round.ts';
+import type { ServerFeature } from './feature.ts';
 
 const TEXT_ERROR = {
   empty: 'Die Nachricht ist leer.',
@@ -39,7 +40,7 @@ function chatText(value: unknown): string {
   return text;
 }
 
-export const sendGuildChat: Action = (ctx, user, d) => {
+const sendGuildChat: Action = (ctx, user, d) => {
   const a = actor(ctx, user.id);
   need(a, 'chat-write');
   const text = chatText(d.text);
@@ -78,7 +79,7 @@ const deletable = (
     authorPlace(a, members, m.author),
   );
 
-export const deleteGuildChat: Action = (ctx, user, d) => {
+const deleteGuildChat: Action = (ctx, user, d) => {
   const a = actor(ctx, user.id);
   need(a, 'chat-delete');
   const message = ctx.guilds.chatMessage(int(d.id, 0, Number.MAX_SAFE_INTEGER));
@@ -147,7 +148,7 @@ export function chatState(ctx: Ctx, a: Actor, players: GuildPlayer[]) {
  * message `id` (the red mark, owner, 2026-11-15); never past the newest
  * message of its guild, never back.
  */
-export const seeGuildChat: Action = (ctx, user, d) => {
+const seeGuildChat: Action = (ctx, user, d) => {
   const a = actor(ctx, user.id);
   need(a, 'chat-read');
   const newest = ctx.guilds.chat(a.guild.id).at(-1)?.id ?? 0;
@@ -171,3 +172,7 @@ export function adminGuildChat(ctx: Ctx, id: string) {
     messages: ctx.guilds.chat(guild.id).map((m) => entry(members, m)),
   };
 }
+
+export const serverFeature = {
+  guildActions: { sendGuildChat, deleteGuildChat, seeGuildChat },
+} satisfies ServerFeature;

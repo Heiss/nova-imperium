@@ -12,10 +12,10 @@ import type { GameState } from '../logic/types.ts';
 import CatalogList from './CatalogList.svelte';
 import type { Ui, V } from './common.ts';
 
-const view = (name = 'Heimat'): V => ({
+const view = (name = 'Heimat', me: object = {}, openLv?: object): V => ({
   s: {
     cfg: U,
-    me: { id: 'u1', explain: 'icon' },
+    me: { id: 'u1', explain: 'icon', ...me },
     labs: [],
     galaxy: [],
     homePlanet: 'p1_1_5',
@@ -23,7 +23,7 @@ const view = (name = 'Heimat'): V => ({
   P: planet({ name, b: { lab: 1, yard: 1 } }),
   R: { research: {}, rq: null },
   now: 0,
-  ui: { openEx: {} } as unknown as Ui,
+  ui: { openEx: {}, openLv } as unknown as Ui,
 });
 
 function html(kind: CatalogKind, v: V | null = view()): string {
@@ -35,7 +35,8 @@ afterEach(() => (client.shown = null));
 
 const ENTRIES: Record<CatalogKind, string[]> = {
   building: Object.keys(BUILD).filter((k) => buildable(k, 'planet')),
-  research: Object.keys(RES),
+  // The Kolonialverwaltung only in a round that has it (#237, below).
+  research: Object.keys(RES).filter((k) => k !== 'colonial'),
   ship: Object.keys(SHIPS),
   defense: Object.keys(DEF),
 };
@@ -56,6 +57,22 @@ describe('CatalogList', () => {
     },
   );
 
+  it('lists the Kolonialverwaltung in a round that has it (#237)', () => {
+    const v = view();
+    v.s.cfg = {
+      ...U,
+      roundColonyBase: 6,
+      roundColonyResearch: 1,
+      roundColonyPerLevel: 2,
+      roundColonyMaxLevel: 4,
+    };
+    const out = html('research', v);
+    expect(out.match(/<div class="item[ "]/g)).toHaveLength(
+      ENTRIES.research.length + 1,
+    );
+    expect(out).toContain(`<div class="nm">${text('colonial')!.n} `);
+  });
+
   it('follows the view state of the client', () => {
     expect(html('research', view('Kolonie'))).toContain(
       '<h2>Forschung auf Kolonie</h2>',
@@ -63,6 +80,76 @@ describe('CatalogList', () => {
     expect(html('research', view('Heimat'))).toContain(
       '<h2>Forschung auf Heimat</h2>',
     );
+  });
+
+  it('puts the ▤ of the level overview beside the „?“ of buildings and research (#187)', () => {
+    const out = html('building');
+    expect(out).toContain(
+      '<button type="button" class="lvq" id="lvq_metal" data-act="levels" data-k="metal" aria-expanded="false" aria-label="Stufenübersicht zu Adamant-Tiefbohrung">▤</button>',
+    );
+    expect(out.match(/class="lvq"/g)).toHaveLength(ENTRIES.building.length);
+    expect(out).not.toContain('class="lvt"');
+    expect(html('research')).toContain('id="lvq_energy"');
+    // The ▤ comes right after the „?“ of the same entry.
+    expect(out.indexOf('id="lvq_metal"')).toBeGreaterThan(
+      out.indexOf('id="exq_metal"'),
+    );
+    // Ships and defense have no levels.
+    expect(html('ship')).not.toContain('lvq');
+    expect(html('defense')).not.toContain('lvq');
+  });
+
+  it('opens the box of an unfolded table and names it by the button (#187)', () => {
+    const out = html('building', view('Heimat', {}, { metal: true }));
+    expect(out).toContain('aria-expanded="true" aria-controls="lv_metal"');
+    expect(out.match(/<div class="lvt" id="lv_metal">/g)).toHaveLength(1);
+    expect(out.match(/class="lvt"/g)).toHaveLength(1);
+    // The other entries stay folded and control nothing.
+    expect(out).toContain(
+      'id="lvq_crystal" data-act="levels" data-k="crystal" aria-expanded="false" aria',
+    );
+    expect(out).not.toContain('aria-controls="lv_crystal"');
+  });
+
+  it('shows every table without a button in „Immer anzeigen“ and nothing in „Ausblenden“ (#187)', () => {
+    const always = html('research', view('Heimat', { levelTable: 'always' }));
+    expect(always).not.toContain('lvq');
+    expect(always.match(/class="lvt"/g)).toHaveLength(ENTRIES.research.length);
+    const hidden = html(
+      'research',
+      view('Heimat', { levelTable: 'hidden' }, { energy: true }),
+    );
+    expect(hidden).not.toContain('lvq');
+    expect(hidden).not.toContain('lvt');
+  });
+
+  it('gives every order of the shipyard a button „Abbrechen“ with its position and unit (#258)', () => {
+    const v = view();
+    v.P = planet({
+      b: { yard: 1 },
+      sq: [
+        { key: 'rl', n: 2, unit: 5000 },
+        { key: 'rl', n: 1, unit: 5000 },
+        { key: 'll', n: 7, unit: 9000 },
+      ],
+      sqT: 0,
+    });
+    for (const kind of ['ship', 'defense'] as const) {
+      const out = html(kind, v);
+      const buttons = [
+        ...out.matchAll(
+          /<button class="small red" data-act="cancelOrder"[^>]*>/g,
+        ),
+      ].map((m) => m[0]);
+      expect(buttons).toEqual([
+        '<button class="small red" data-act="cancelOrder" data-pos="0" data-k="rl" aria-label="Abbrechen: 2× Raketenbatterie">',
+        '<button class="small red" data-act="cancelOrder" data-pos="1" data-k="rl" aria-label="Abbrechen: 1× Raketenbatterie">',
+        '<button class="small red" data-act="cancelOrder" data-pos="2" data-k="ll" aria-label="Abbrechen: 7× Lichtlanze">',
+      ]);
+      expect(out.match(/>Abbrechen<\/button>/g)).toHaveLength(3);
+    }
+    // Without orders there is no list and no button.
+    expect(html('defense')).not.toContain('cancelOrder');
   });
 
   it('escapes what players write', () => {

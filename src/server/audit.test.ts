@@ -1,7 +1,6 @@
 import Database from 'better-sqlite3';
 import { expect, it, vi } from 'vitest';
 import {
-  activity,
   auditPage,
   audited,
   auditFilter,
@@ -12,26 +11,6 @@ import {
 } from './audit.ts';
 import { addUser, testCtx } from './test-helpers.ts';
 import { GameError } from './game/context.ts';
-import { playerDetail, playerStats } from './game/diagnostics.ts';
-
-it('splits active time at UTC midnight and drops idle intervals and duplicate samples', () => {
-  const ctx = testCtx(10 * DAY - 15000);
-  const u = addUser(ctx, 'Pilot');
-  activity(ctx, u);
-  ctx.clock.t += 2000;
-  activity(ctx, u);
-  ctx.clock.t += 28000;
-  activity(ctx, u);
-  ctx.clock.t += 300001;
-  activity(ctx, u);
-  expect(playerDetail(ctx, u.id).days).toMatchObject([
-    { day: 10 * DAY, activeMs: 15000 },
-    { day: 9 * DAY, activeMs: 15000 },
-  ]);
-  expect(playerStats(ctx)).toMatchObject([
-    { activeMs: 30000, lastSeen: ctx.now() },
-  ]);
-});
 
 it('rolls back a failing action and keeps the correlated audit entry', () => {
   const ctx = testCtx();
@@ -62,10 +41,11 @@ it('rolls back a failing action and keeps the correlated audit entry', () => {
 it('keeps recent records, paginates without overlaps and removes expired data', () => {
   const ctx = testCtx(DAY);
   const u = addUser(ctx, 'Pilot');
-  activity(ctx, u);
+  const sum = ctx.db.prepare('INSERT INTO player_activity VALUES (?, ?, ?, 0)');
+  sum.run(u.id, DAY, DAY);
   record(ctx, { category: 'game', action: 'build', actor: u.id });
   ctx.clock.t += 31 * DAY;
-  activity(ctx, u);
+  sum.run(u.id, 32 * DAY, 32 * DAY);
   record(ctx, {
     category: 'game',
     action: 'build',
@@ -162,40 +142,6 @@ it('keeps the original error when the audit write is busy, not when it fails oth
   expect(() => audited(ctx, entry, reject)).toThrow('disk full');
 });
 
-it('counts activity at the exact limits: 10 s between samples, 5 min idle, midnight', () => {
-  const ctx = testCtx(10 * DAY);
-  const u = addUser(ctx, 'Pilot');
-  const active = () =>
-    (
-      ctx.db
-        .prepare('SELECT SUM(active_ms) AS ms FROM player_activity')
-        .get() as { ms: number }
-    ).ms;
-  activity(ctx, u);
-  ctx.clock.t += 9999;
-  activity(ctx, u);
-  expect(active()).toBe(0);
-  ctx.clock.t += 1;
-  activity(ctx, u);
-  expect(active()).toBe(10000);
-  ctx.clock.t += 300000;
-  activity(ctx, u);
-  expect(active()).toBe(310000);
-  ctx.clock.t += 300001;
-  activity(ctx, u);
-  expect(active()).toBe(310000);
-
-  const v = addUser(ctx, 'Night');
-  ctx.clock.t = 11 * DAY - 20000;
-  activity(ctx, v);
-  ctx.clock.t = 11 * DAY;
-  activity(ctx, v);
-  expect(playerDetail(ctx, v.id).days).toMatchObject([
-    { day: 11 * DAY, activeMs: 0 },
-    { day: 10 * DAY, activeMs: 20000 },
-  ]);
-});
-
 it('keeps audit entries for 30 days', () => {
   const ctx = testCtx(40 * DAY);
   record(ctx, { category: 'game', action: 'old' });
@@ -217,17 +163,4 @@ it('keeps audit entries for 30 days', () => {
       (e) => (e as { action: string }).action,
     ),
   ).toEqual(['recent']);
-});
-
-it('leaves the previous day alone when the last sample is exactly midnight (#117)', () => {
-  const ctx = testCtx(10 * DAY);
-  const u = addUser(ctx, 'Pilot');
-  activity(ctx, u);
-  ctx.clock.t += 20000;
-  const previousDay = vi.spyOn(ctx.admin, 'addActiveTime');
-  activity(ctx, u);
-  expect(previousDay).not.toHaveBeenCalled();
-  expect(playerDetail(ctx, u.id).days).toMatchObject([
-    { day: 10 * DAY, activeMs: 20000 },
-  ]);
 });

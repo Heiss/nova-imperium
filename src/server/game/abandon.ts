@@ -18,6 +18,7 @@ import { type Ctx, coords, fail } from './context.ts';
 import { mainPlanet } from './main-planet.ts';
 import { moonAt } from './moons.ts';
 import { roundRules } from './round.ts';
+import type { ServerFeature } from './feature.ts';
 
 /** The German message of each refusal [V]. */
 export const ABANDON_ERROR: Readonly<Record<AbandonError, string>> = {
@@ -76,7 +77,7 @@ function giveUpTarget(
 }
 
 /** Gives up the own planet `d.target`, founded at `d.created`, with its moon after the password `d.password`. */
-export const abandon: Action = (ctx, u, d, event) => {
+const abandon: Action = (ctx, u, d, event) => {
   confirmPassword(u, d.password);
   const { planet, moon } = giveUpTarget(ctx, u, d.target, d.created);
   const until = positionLockEnd(ctx.now(), roundRules(ctx).abandonLock);
@@ -87,3 +88,13 @@ export const abandon: Action = (ctx, u, d, event) => {
     event.detail = { planet: planet.id, moon: moon?.id ?? null, until };
   return `Die Kolonie ${planet.name} ${coords(planet)} wurde aufgegeben.`;
 };
+
+export const serverFeature = {
+  actions: { abandon },
+  state: {
+    order: 170,
+    keys: ['locks'],
+    // Every position locked after an abandonment, for the Sternenkarte (#224).
+    build: (ctx) => ({ locks: ctx.planets.locks(ctx.now()) }),
+  },
+} satisfies ServerFeature;

@@ -434,9 +434,20 @@ describe('http', () => {
     const session = (await call('POST', '/api/login', login)).set!.split(
       ';',
     )[0]!;
-    await call('POST', '/api/activity', {});
+    const page = 'page-0001';
+    await call('POST', '/api/playtime', {
+      instance: page,
+      seq: 0,
+      state: 'active',
+      since: null,
+    });
     ctx.clock.t += 20000;
-    await call('POST', '/api/activity', {});
+    await call('POST', '/api/playtime', {
+      instance: page,
+      seq: 1,
+      state: 'active',
+      since: 20000,
+    });
     ctx.clock.t += 360000;
     await call('GET', '/api/state');
     const build = await call('POST', '/api/action', {

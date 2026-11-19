@@ -13,6 +13,7 @@ import { addReport, type Ctx, fail, str, universe } from './context.ts';
 import { rangeError, roundRules, startRoundRules } from './round.ts';
 import { placePlanet } from './planets.ts';
 import { vacationNotice } from './vacation.ts';
+import type { ServerFeature } from './feature.ts';
 
 export const requireAdmin = (u: { admin: boolean }): void => {
   if (!u.admin) fail('Nur der Admin darf das.');
@@ -25,6 +26,8 @@ const SETTINGS_ERROR: Readonly<
   range: rangeError,
   used: (s, used) =>
     `${s.label}: mindestens ${used[s.size!]}, dort liegen schon Planeten.`,
+  // A rule between settings has its own wording (#237).
+  conflict: (s) => s.refusal!,
 };
 
 /**
@@ -58,6 +61,8 @@ function newRound(ctx: Ctx, rules: RoundRules): void {
   ctx.guilds.clearChats();
   ctx.fleets.deleteAll();
   ctx.debris.deleteAll();
+  // The last targets name places of the old round (#292).
+  ctx.targets.deleteAll();
   // The values of surveyed positions belong to the round (#190).
   ctx.surveys.deleteAll();
   // The prices and the amounts of the day start over (#171).
@@ -118,3 +123,7 @@ export function announce(ctx: Ctx, input: unknown): number {
   }
   return players.length;
 }
+
+export const serverFeature = {
+  adminActions: { settings: saveSettings, reset },
+} satisfies ServerFeature;

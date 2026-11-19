@@ -14,6 +14,7 @@ import {
 import type { User } from '../db/repos/players.ts';
 import type { Action } from './actions.ts';
 import { type Ctx, fail, str } from './context.ts';
+import type { ServerFeature } from './feature.ts';
 
 /** The German message of each refusal [V]; a crossed request names who asked first. */
 export const FRIEND_ERROR: Readonly<
@@ -48,14 +49,14 @@ const byId = (ctx: Ctx, uid: unknown): User | null =>
   ctx.players.get(str(uid, 40)) ?? null;
 
 /** Asks the player named `d.name` for a friendship. */
-export const requestFriend: Action = (ctx, u, d) => {
+const requestFriend: Action = (ctx, u, d) => {
   const other = check(ctx, u, 'request', ctx.players.byName(str(d.name, 20)));
   ctx.friends.request(u.id, other.id);
   return 'Anfrage gesendet.';
 };
 
 /** Accepts (`d.accept` true) or refuses the open request of `d.uid`. */
-export const answerFriend: Action = (ctx, u, d) => {
+const answerFriend: Action = (ctx, u, d) => {
   const accept = d.accept === true;
   const other = check(ctx, u, accept ? 'accept' : 'refuse', byId(ctx, d.uid));
   if (!accept) {
@@ -67,14 +68,14 @@ export const answerFriend: Action = (ctx, u, d) => {
 };
 
 /** Takes back the own open request to `d.uid`. */
-export const cancelFriend: Action = (ctx, u, d) => {
+const cancelFriend: Action = (ctx, u, d) => {
   const other = check(ctx, u, 'cancel', byId(ctx, d.uid));
   ctx.friends.remove(u.id, other.id);
   return 'Anfrage zurückgezogen.';
 };
 
 /** Ends the friendship with `d.uid`; either friend may. */
-export const removeFriend: Action = (ctx, u, d) => {
+const removeFriend: Action = (ctx, u, d) => {
   const other = check(ctx, u, 'remove', byId(ctx, d.uid));
   ctx.friends.remove(u.id, other.id);
   return 'Freundschaft beendet.';
@@ -122,3 +123,16 @@ export function friendState(
     outgoing: ids((from) => from === uid),
   };
 }
+
+export const serverFeature = {
+  // Not guild actions: the buddy list (#227) works with guilds off.
+  actions: { requestFriend, answerFriend, cancelFriend, removeFriend },
+  state: {
+    order: 120,
+    keys: ['friends'],
+    // The buddy list (#227): only the player's own friends and requests.
+    build: (ctx, u, view) => ({
+      friends: friendState(ctx, u.id, view.limits.recent),
+    }),
+  },
+} satisfies ServerFeature;

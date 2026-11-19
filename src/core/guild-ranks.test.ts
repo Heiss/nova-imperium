@@ -117,10 +117,10 @@ describe('rank names', () => {
     { id: 'r2', name: 'Älteste' },
   ];
 
-  it('takes 2 to 67 characters', () => {
-    for (const name of ['', 'a', 'x'.repeat(68)])
+  it('takes 2 to 24 characters (#277)', () => {
+    for (const name of ['', 'a', 'x'.repeat(25), 'x'.repeat(67)])
       expect(rankNameError(name, others)).toBe('length');
-    for (const name of ['ab', 'x'.repeat(67)])
+    for (const name of ['ab', 'x'.repeat(24)])
       expect(rankNameError(name, others)).toBeNull();
   });
 

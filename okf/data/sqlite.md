@@ -367,6 +367,13 @@ Migration 10 adds the display option of the explanation texts per player,
 Existing players get „(?)-Symbol“; their other data stay as they were
 (`upgrades/migration-10.test.ts`).
 
+Migration `20261119T1733-level-table` (issue #187, in the folder layout,
+`migrations/187/migrations.ts`, see [Level overview](/features/level-overview.md))
+adds the display option of the level overview per player, `users.level_table`
+(`always`, `icon` or `hidden`, CHECK, `NOT NULL DEFAULT 'icon'`). Existing
+players get the icon; their other data stay as they were
+(`upgrades/20261119T1733-level-table.test.ts`).
+
 Migration 11 stores the planet where the running research started
 (`users.rq_planet`, issue #49), so a cancel refunds that planet. Research
 started before has no planet and is refunded to the home planet
@@ -620,6 +627,16 @@ crossed row; an index on `addressee` serves the requests to a player. It
 stores no time. Existing players start without friends and requests;
 other data stay as they were (`upgrades/20261118T2230-friendships.test.ts`).
 A new round keeps the table (owner, 2026-11-16, D2).
+
+Migration `20261119T1830-last-targets` (issue #292, see
+[Cargo buttons of the fleet form](/features/fleet-cargo.md#the-schnellwahl-with-friends-guild-members-and-last-targets-292))
+adds the table `last_targets`: `user_id` (`REFERENCES users(id) ON DELETE
+CASCADE`), `place` (the id of the target planet or moon), `owner` (who owned
+it when it was aimed at) and `at`, primary key `(user_id, place)`, an index
+on `(user_id, at DESC)`. A Sturmangriff or an Auspex-Erkundung writes or
+renews the row of its target; the repository keeps the newest 20 rows per
+player [V]. A new round deletes the table's rows. Other data stay as they
+were (`upgrades/20261119T1830-last-targets.test.ts`).
 
 Account deletion runs in one transaction. Foreign-key cascades clear owned game,
 session, reward and push data, and the friendships and requests of the

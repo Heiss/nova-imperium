@@ -225,6 +225,27 @@ choice of the patterns to the assistant's recommendation below
   `src/core/components/silo.ts`, and its contract test; `catalog.ts`
   derives `SILO` and `MISSILE`, and `FIGHTERS` leaves the missiles out
   (`fights(key)`); `yard.ts` asks the module for the room of the silo.
+* **[V]** Built with #183 (lab lock and shipyard lock without catalog
+  keys; the owner left open whether they become a component, how the lab
+  lock fits the rule of two entries and the release, 2026-11-14; the
+  recommendation was taken, no behaviour changes): the component `locks`,
+  `{ stops: 'shipyard' | 'research', home?: true }`, on buildings only. An
+  upgrade of such a building stops what it names while it runs, and waits
+  until that is idle; `home` marks the building that is the place of it (the
+  Schiffsschmiede for the shipyard, the Scholarium for the research), exactly
+  one per kind. Three entries share it (Schiffsschmiede, Machina-Schwarmhalle,
+  Scholarium), so the rule of two entries holds, with two kinds of lock. The
+  rule module is `src/core/components/locks.ts` (`stops`, `stoppers`,
+  `homeOf`) with its contract test; `catalog.ts` derives `LOCKS`; `lab.ts`
+  and `yard.ts` keep their exports (`hasLab`, `labUpgrading`, `waitsForLab`,
+  `hasYard`, `yardLockedBy`, `waitsForYard`, `YARD_LOCK`) and read the
+  component, `hasLab` and `hasYard` the level of the `home` building
+  (`YARD_HOME`). The name of a lock in a message is the short text `short`
+  of the entry (the Schiffsschmiede, whose name is „Orbitale Schiffsschmiede“),
+  else its name; `YARD_LOCK` is derived from them with today's values, and
+  `lockNotice()` compares with `YARD_HOME`. `src/core/locks-reference.test.ts`
+  compares every rule with its form before, for every key of the catalog and
+  inherited names.
 
 ## 2. Texts apart from rules
 
@@ -441,6 +462,14 @@ choice of the patterns to the assistant's recommendation below
   the same order and with the same draws as before. Migration `20261119T0810-moonbreak` allows `moonbreak`
   in the database (see [Moons](/features/moons.md)).
 
+* **[V]** Built with #237, #253 and #292, within the decisions of #116:
+  `sendError` is `fitError` (the target kind, which asks nothing of the
+  ships; the fleet form lists only the missions for which it finds nothing,
+  `missionsFor` of `src/core/mission-fit.ts`) and then the mission's
+  `canSend`. Two optional typed fields of `MissionRules` mark missions without
+  naming them: `colonizes` (the Landnahme, counted against the planet limit)
+  and `remembered` (the attack and the spy, kept as last targets). The send
+  check of the Landnahme gets the planet limit through `SendFleet.colonies()`.
 * **[V]** Built with #54, within the decisions of #116: the folder
   `missile` (Raketenangriff, 90) with the optional typed field `launch`
   (`'fleet'` unless a mission says `'missiles'`, read through `launchOf`):
@@ -1010,10 +1039,10 @@ src/client/                state, components (generic), views
   file, and the test fails when the real number is higher (a new
   comparison) and when it is lower (the count must be lowered), so the
   counts only fall and an entry goes when it reaches 0 (owner,
-  2026-11-14). The entries: `core/lab.ts` `lab` 2 and
-  `client/logic/catalog-list.ts` `yard` 1 (in `client/views/yard.ts`
-  until #118), the lab and shipyard locks (#183, „Lab
-  lock and shipyard lock without catalog keys“). The generic events of
+  2026-11-14). The entries `core/lab.ts` `lab` 2 and
+  `client/logic/catalog-list.ts` `yard` 1, the lab and shipyard locks
+  (#183, „Lab lock and shipyard lock without catalog keys“), went with the
+  component `locks`. The generic events of
   #115 removed the comparisons in `core/settle.ts` (`sat` 1 and `energy` 1)
   and `server/game/actions.ts` (`energy` 1 and `fusion` 1). The mission registry of #116 removed the comparisons in
   `server/game/fleet-actions.ts` and `server/game/arrival.ts` (`probe` 1,
@@ -1116,6 +1145,78 @@ src/client/                state, components (generic), views
   start, the API call, the state, the rendering, the login and its forms, the
   news and the maintenance banner, the admin panel and the click and key
   dispatch. Each move lowers `size-ratchet.json`.
+
+## 14. Server features register themselves (#326, part 2 of #317)
+
+* **[E]** Decided by the owner (2026-11-19, #317): the action table of
+  `src/server/game/dispatch.ts` and the state of `src/server/game/state.ts`
+  stop being edited by every feature; a feature registers itself like a round
+  setting (#310) and a client feature (#322). No change of the game, of a
+  text, of an action name or of the JSON the client receives.
+* **[V]** Contract (main agent's proposal, the owner decided only that the
+  pattern comes): a server module that adds actions or a part of the state
+  exports under the fixed name `serverFeature`, `export const serverFeature =
+  { actions, guildActions, adminActions, state } satisfies ServerFeature;`,
+  all four members optional. `ServerFeature` and `StatePart` are in
+  `src/server/game/feature.ts`. The module lives next to the server code of
+  the feature (`src/server/game/<feature>.ts`, as the round settings live in
+  `src/core`), not in a new folder.
+  * `actions` maps an action name to its `Action`; `guildActions` the same for
+    the actions that are refused while guilds are off in the round (#191);
+    `adminActions` the same for the actions of the admin, which are audited as
+    `admin.write` and not as `game`. A name is in exactly one of the three.
+  * `state` is one `StatePart`: `order` (a number, the next free ten above the
+    highest; it fixes the place of the keys in the JSON object, so every
+    snapshot stays), `keys` (the keys it adds, so a key defined twice is
+    found at the start) and `build(ctx, user, view)`, which returns an object
+    with exactly these keys. `view` holds what `stateFor` computes once for
+    all parts (the round rules, the main planet, the shown planet, the
+    points, the activity limits).
+* **[V]** The list is generated: `scripts/gen-features.ts` writes
+  `src/server/features.gen.ts` (`SERVER_FEATURES`, `[name, serverFeature]`
+  pairs sorted by path), not checked in (`.gitignore`), from every file of
+  `src/server` that exports `serverFeature` (same detection as for
+  `roundSettings`). It is not in `src/server/game/` because
+  `src/server/push-options.ts` registers too. Only `src/server` imports it:
+  `client-not-server`, `core-stays-pure` and `feature-stays-pure` forbid every
+  other part of the code to reach `src/server`, so the browser bundle cannot
+  contain it. Knip takes it as an entry; Vitest coverage and Stryker leave it
+  out.
+* **[V]** `dispatch.ts` and `state.ts` keep their frame: the general gates of
+  `runAction` (vacation, guilds, admin audit category, achievements) and the
+  actions and state keys of the core game. The functions of
+  `src/server/game/assemble.ts` build `ACTIONS`, `GUILD_ACTIONS` and
+  `ADMIN_ACTIONS` from the frame and the list and the ordered parts of the
+  state; a name, a key or an order number that exists twice stops the start
+  with both files named. The guard test `src/server/game/registry.test.ts`
+  checks the rules for every listed module.
+* **[V]** Built: these modules register `actions`, `guildActions` or
+  `adminActions` (`demolition`, `endzeit`, `admin`, `phalanx`, `missiles`,
+  `jump-gate`, `main-planet`, `vacation`, `abandon`, `market`,
+  `fleet-actions`, `push-options`, `friends`, `achievements`, `guilds`,
+  `guild-ranks`, `guild-chat`) and these a part of the state (`main-planet`
+  60, `jump-gate` 80, `guilds` 110, `friends` 120, `achievements` 130,
+  `abandon` 170 for the locks, `market` 180, and `admin-state` 190, a module
+  of its own because the Endzeit imports `admin.ts`, then `quick-targets` 200
+  for the Schnellwahl of the fleet form, #292). The frame keys of
+  `state.ts` have numbers too (10 to 160, ten apart, with the gaps the
+  features use), so the JSON keys stay in their old order; a new part takes
+  the next free ten above the highest. Left in the frame on purpose: the
+  actions `build`, `cancelBuild`, `research`, `cancelResearch`, `order`,
+  `pct`, `rename`, `options`, `read`, `delrep` and `delall` of
+  `actions.ts` (the core game and the account; `actions.test.ts` calls them
+  directly), the general gates of `runAction`, `lockedState` (the lock screen
+  of the vacation mode has its own, shorter shape), `meOf` (the account, with
+  its push kinds and its vacation) and the keys `round`, `now`, `cfg`, `me`,
+  `planet`, `labs`, `fleets`, `reports`, `players`, `galaxy` and `debris`.
+  `src/server/game/registry-pin.test.ts` writes out every action with its
+  group and the key order of the state for the refactoring; it is edited on
+  purpose when an action or a key is added.
+* **[V]** The state type of the browser (`GameState` in
+  `src/client/logic/types.ts`) is not composed from per-feature types: the
+  types of the parts live in the client, `client-not-server` forbids a type
+  import from the server too, so it would mean moving them into `src/core`,
+  which is not mechanical. It stays one hand-written interface.
 
 # Migration
 

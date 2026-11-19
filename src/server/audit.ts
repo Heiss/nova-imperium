@@ -1,11 +1,9 @@
 import { isDatabaseBusy } from './db/database.ts';
 import type { AuditFilter } from './db/repos/admin.ts';
-import type { User } from './db/repos/players.ts';
 import { type Ctx, GameError, int, str } from './game/context.ts';
 
 export const DAY = 86400000;
 const RETENTION = 30 * DAY;
-const IDLE = 5 * 60000;
 
 export interface AuditEntry {
   category: 'account' | 'game' | 'system' | 'admin.read' | 'admin.write';
@@ -99,22 +97,6 @@ export function pageWindow(body: Record<string, unknown>, count: number) {
   const pages = Math.max(1, Math.ceil(count / limit));
   const page = int(body.page, 1, pages);
   return { page, pages, limit, offset: (page - 1) * limit };
-}
-
-/** Count gaps between real interactions, excluding gaps above the idle limit. */
-export function activity(ctx: Ctx, user: User): void {
-  const now = ctx.now();
-  const day = Math.floor(now / DAY) * DAY;
-  ctx.tx(() => {
-    const previous = ctx.admin.lastActivity(user.id);
-    const last = previous?.last ?? now;
-    if (previous && now - last < 10000) return;
-    const start = now - last <= IDLE ? last : now;
-    if (start < day) {
-      ctx.admin.addActiveTime(day - start, user.id, day - DAY);
-    }
-    ctx.admin.touchActivity(user.id, day, now, now - Math.max(start, day));
-  });
 }
 
 export function purgeAudit(ctx: Ctx): void {
