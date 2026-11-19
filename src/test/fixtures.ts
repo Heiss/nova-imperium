@@ -1,8 +1,18 @@
 // Builders for test data. Not part of the measured code.
+import { storedValues } from '../core/round.ts';
 import { DEFAULT_UNIVERSE } from '../core/universe.ts';
 import type { Planet, Universe } from '../core/types.ts';
 
 export const U: Universe = { ...DEFAULT_UNIVERSE };
+
+/**
+ * The value of every setting of a round at its default, by name (#310): the
+ * fixture of a test that needs a full set of values, so a new setting needs
+ * no edit in the tests of other features. A test names the values of its own
+ * feature on top of it: `{ ...roundDefaults(), guilds: false }`.
+ */
+export const roundDefaults = (): Record<string, number | boolean> =>
+  storedValues(() => undefined);
 
 export function planet(over: Partial<Planet> = {}): Planet {
   return {

@@ -2,7 +2,11 @@
 // refusals, the refund factor and time of the round, the cancel, the points
 // and the settings of the round in „Neue Runde“ and the universe settings.
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_UNIVERSE } from '../../core/universe.ts';
+import {
+  DEFAULT_UNIVERSE,
+  liveSpecs,
+  UNIVERSE_SPECS,
+} from '../../core/universe.ts';
 import { addPlanet, addUser, testCtx } from '../test-helpers.ts';
 import type { AuditEntry } from '../audit.ts';
 import * as A from './actions.ts';
@@ -279,6 +283,59 @@ describe('the settings of a demolition per round (#202, D4, X1)', () => {
       demolitionRefund: 50,
       demolitionTime: 50,
     });
+  });
+
+  it('refuse each value on its own, and a group sent incomplete, with the range wording', () => {
+    const { ctx, admin } = world();
+    const refusedWith = (demolition: unknown): string => {
+      try {
+        runAction(ctx, admin.id, { type: 'reset', demolition });
+      } catch (e) {
+        return (e as Error).message;
+      }
+      return '';
+    };
+    expect(refusedWith({ demolitionRefund: -101, demolitionTime: 50 })).toBe(
+      'Rückbau-Erstattung (%): ganze Zahl von -100 bis 100.',
+    );
+    expect(refusedWith({ demolitionRefund: 50, demolitionTime: 201 })).toBe(
+      'Rückbau-Dauer (% der Bauzeit): ganze Zahl von 1 bis 200.',
+    );
+    expect(refusedWith({ demolitionRefund: 50 })).toBe(
+      'Rückbau-Dauer (% der Bauzeit): ganze Zahl von 1 bis 200.',
+    );
+    expect(refusedWith({ demolitionTime: 50 })).toBe(
+      'Rückbau-Erstattung (%): ganze Zahl von -100 bis 100.',
+    );
+    expect(roundRules(ctx)).toMatchObject({
+      number: 1,
+      demolitionRefund: 50,
+      demolitionTime: 50,
+    });
+  });
+
+  it('are rows of the universe settings, selected by key, in the order of the registry (X1)', () => {
+    const rows = [
+      {
+        key: 'roundDemolitionRefund',
+        label: 'Rückbau-Erstattung (%)',
+        min: -100,
+        max: 100,
+        def: 50,
+      },
+      {
+        key: 'roundDemolitionTime',
+        label: 'Rückbau-Dauer (% der Bauzeit)',
+        min: 1,
+        max: 200,
+        def: 50,
+      },
+    ];
+    // Selected by key, never by position: other features add live rows too.
+    const mine = (specs: readonly { key: string }[]) =>
+      specs.filter((s) => rows.some((r) => r.key === s.key));
+    expect(mine(liveSpecs())).toEqual(rows);
+    expect(mine(UNIVERSE_SPECS)).toEqual(rows);
   });
 
   it('stay editable in the universe settings during the round', () => {

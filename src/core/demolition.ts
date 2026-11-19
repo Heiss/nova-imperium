@@ -3,7 +3,7 @@
 // per order (D1), based on the cost of the demolished level (D2), for a share
 // of its build time (D3) and a refund factor from −100 % to +100 % (D7),
 // both set by the admin per round (D4) as two entries of the registry
-// `ROUND_SETTINGS` (#283): in the dialog „Neue Runde“ and, `live`, in the
+// `ROUND_SETTINGS` (#283, #310): in the dialog „Neue Runde“ and, `live`, in the
 // universe settings (X1). A positive factor gives that share of the cost
 // back when the demolition is done; a negative one costs that share when it
 // starts (owner, 2026-11-16). The check returns codes (patterns, section 7;
@@ -30,49 +30,54 @@ export const DEMOLITION_TIME = { min: 1, max: 200, default: 50 } as const;
  */
 const DEMOLITION: RoundGroup = { name: 'demolition', legend: 'Rückbau' };
 
-/**
- * The refund factor as a setting of the round (#283, D4, D7): a number field
- * of the dialog „Neue Runde“ and, `live`, a row of the universe settings,
- * changed during the round (X1). Refused with the range wording of the
- * universe settings.
- */
-export const DEMOLITION_REFUND_SETTING = {
+/** What the two settings share as settings of the round. */
+const percent = {
   kind: 'number',
-  key: 'roundDemolitionRefund',
-  name: 'demolitionRefund',
-  label: 'Rückbau-Erstattung (%)',
-  order: 180,
   group: DEMOLITION,
-  min: DEMOLITION_REFUND.min,
-  max: DEMOLITION_REFUND.max,
-  def: DEMOLITION_REFUND.default,
   live: true,
-} as const satisfies RoundSetting;
+} as const;
 
-/** The duration of a demolition as a setting of the round (#283, D3), like the refund factor. */
-export const DEMOLITION_TIME_SETTING = {
-  kind: 'number',
-  key: 'roundDemolitionTime',
-  name: 'demolitionTime',
-  label: 'Rückbau-Dauer (% der Bauzeit)',
-  order: 190,
-  group: DEMOLITION,
-  min: DEMOLITION_TIME.min,
-  max: DEMOLITION_TIME.max,
-  def: DEMOLITION_TIME.default,
-  live: true,
-} as const satisfies RoundSetting;
+/**
+ * The two settings as entries of the registry (#283, #310): the refund
+ * factor (D4, D7) and the duration of a demolition (D3) are number fields of
+ * the dialog „Neue Runde“ and, `live`, rows of the universe settings,
+ * changed during the round (X1). Refused with the range wording of the
+ * universe settings. The export under this name registers them
+ * (src/core/round.ts).
+ */
+export const roundSettings = [
+  {
+    ...percent,
+    key: 'roundDemolitionRefund',
+    name: 'demolitionRefund',
+    label: 'Rückbau-Erstattung (%)',
+    order: 180,
+    min: DEMOLITION_REFUND.min,
+    max: DEMOLITION_REFUND.max,
+    def: DEMOLITION_REFUND.default,
+  },
+  {
+    ...percent,
+    key: 'roundDemolitionTime',
+    name: 'demolitionTime',
+    label: 'Rückbau-Dauer (% der Bauzeit)',
+    order: 190,
+    min: DEMOLITION_TIME.min,
+    max: DEMOLITION_TIME.max,
+    def: DEMOLITION_TIME.default,
+  },
+] as const satisfies readonly RoundSetting[];
 
 /**
  * The refund factor of the universe in percent. A `live` setting is always
  * a row of the universe settings (`universeOf` reads every row).
  */
 export const refundOf = (u: Universe): number =>
-  u[DEMOLITION_REFUND_SETTING.key] as number;
+  u[roundSettings[0].key] as number;
 
 /** The duration of a demolition of the universe in percent of the build time. */
 export const timeOf = (u: Universe): number =>
-  u[DEMOLITION_TIME_SETTING.key] as number;
+  u[roundSettings[1].key] as number;
 
 /**
  * Why a level cannot be torn down: on a moon (out of scope of #202, the

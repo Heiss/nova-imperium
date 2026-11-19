@@ -4,9 +4,7 @@ import { planet, U } from '../test/fixtures.ts';
 import { BUILD, buildable, PLACEMENT } from './catalog.ts';
 import {
   DEMOLITION_REFUND,
-  DEMOLITION_REFUND_SETTING,
   DEMOLITION_TIME,
-  DEMOLITION_TIME_SETTING,
   demolishedCost,
   demolitionErrors,
   demolitionMoves,
@@ -17,9 +15,17 @@ import {
   timeOf,
 } from './demolition.ts';
 import { buildTime, lvlCost } from './economy.ts';
-import { roundRefused, roundValues } from './round.ts';
+import {
+  ROUND_SETTINGS,
+  roundFieldId,
+  roundRefused,
+  roundRequest,
+  roundValues,
+  storedValues,
+} from './round.ts';
 import { settle } from './settle.ts';
 import type { Cost, ResearchState, Universe } from './types.ts';
+import { DEFAULT_UNIVERSE, liveSpecs, universeErrors } from './universe.ts';
 
 const R: Pick<ResearchState, 'rq'> = { rq: null };
 const at = (refund: number, time = 50): Universe => ({
@@ -28,8 +34,9 @@ const at = (refund: number, time = 50): Universe => ({
   roundDemolitionTime: time,
 });
 
-describe('the settings of a demolition (#202, #283)', () => {
-  const SETTINGS = [DEMOLITION_REFUND_SETTING, DEMOLITION_TIME_SETTING];
+describe('the settings of a demolition (#202, #283, #310)', () => {
+  /** The two settings, as the registry holds them (the group `demolition`). */
+  const SETTINGS = ROUND_SETTINGS.filter((s) => s.group?.name === 'demolition');
   const current = { demolitionRefund: 50, demolitionTime: 50 };
   const refused = (data: Record<string, unknown>): string[] =>
     roundRefused(current, data, SETTINGS).map((s) => s.name);
@@ -39,36 +46,90 @@ describe('the settings of a demolition (#202, #283)', () => {
     expect(DEMOLITION_TIME).toEqual({ min: 1, max: 200, default: 50 });
   });
 
-  it('are two entries of the registry, set in „Neue Runde“ and live (X1)', () => {
-    expect(DEMOLITION_REFUND_SETTING).toEqual({
-      kind: 'number',
-      key: 'roundDemolitionRefund',
-      name: 'demolitionRefund',
-      label: 'Rückbau-Erstattung (%)',
-      order: 180,
-      group: { name: 'demolition', legend: 'Rückbau' },
-      min: -100,
-      max: 100,
-      def: 50,
-      live: true,
+  it('are two live number fields of one group with the legend „Rückbau“, in the order 180, 190 (D4, X1)', () => {
+    const group = { name: 'demolition', legend: 'Rückbau' };
+    const common = { kind: 'number', live: true, group };
+    expect(SETTINGS).toEqual([
+      {
+        ...common,
+        key: 'roundDemolitionRefund',
+        name: 'demolitionRefund',
+        label: 'Rückbau-Erstattung (%)',
+        order: 180,
+        min: -100,
+        max: 100,
+        def: 50,
+      },
+      {
+        ...common,
+        key: 'roundDemolitionTime',
+        name: 'demolitionTime',
+        label: 'Rückbau-Dauer (% der Bauzeit)',
+        order: 190,
+        min: 1,
+        max: 200,
+        def: 50,
+      },
+    ]);
+    // One group object, so the two are sent and refused together.
+    for (const s of SETTINGS) expect(s.group).toBe(SETTINGS[0]!.group);
+    expect(SETTINGS.map(roundFieldId)).toEqual([
+      'round-demolition-refund',
+      'round-demolition-time',
+    ]);
+    // Neighbours in the registry: the dialog shows them in one fieldset.
+    const first = ROUND_SETTINGS.indexOf(SETTINGS[0]!);
+    expect(ROUND_SETTINGS.slice(first, first + 2)).toEqual(SETTINGS);
+  });
+
+  it('are rows of the universe settings, in this order, with their ranges and the defaults +50 % and 50 %, checked there (X1)', () => {
+    const rows = [
+      ['roundDemolitionRefund', 'Rückbau-Erstattung (%)', -100, 100],
+      ['roundDemolitionTime', 'Rückbau-Dauer (% der Bauzeit)', 1, 200],
+    ] as const;
+    const keys: string[] = SETTINGS.map((s) => s.key);
+    expect(liveSpecs().filter((s) => keys.includes(s.key))).toEqual(
+      rows.map(([key, label, min, max]) => ({ key, label, min, max, def: 50 })),
+    );
+    expect(DEFAULT_UNIVERSE).toMatchObject({
+      roundDemolitionRefund: 50,
+      roundDemolitionTime: 50,
     });
-    expect(DEMOLITION_TIME_SETTING).toEqual({
-      kind: 'number',
-      key: 'roundDemolitionTime',
-      name: 'demolitionTime',
-      label: 'Rückbau-Dauer (% der Bauzeit)',
-      order: 190,
-      group: { name: 'demolition', legend: 'Rückbau' },
-      min: 1,
-      max: 200,
-      def: 50,
-      live: true,
-    });
+    const codes = (input: Record<string, unknown>) =>
+      universeErrors(
+        { ...DEFAULT_UNIVERSE, ...input },
+        { g: 1, s: 1, p: 1 },
+      ).map((e) => [e.spec.key, e.code]);
+    for (const roundDemolitionRefund of [-100, 0, 100])
+      expect(codes({ roundDemolitionRefund })).toEqual([]);
+    for (const roundDemolitionRefund of [-101, 101, 2.5])
+      expect(codes({ roundDemolitionRefund })).toEqual([
+        ['roundDemolitionRefund', 'range'],
+      ]);
+    for (const roundDemolitionTime of [1, 200])
+      expect(codes({ roundDemolitionTime })).toEqual([]);
+    for (const roundDemolitionTime of [0, 201, 1.5])
+      expect(codes({ roundDemolitionTime })).toEqual([
+        ['roundDemolitionTime', 'range'],
+      ]);
   });
 
   it('are read from the settings of the universe', () => {
     expect([refundOf(U), timeOf(U)]).toEqual([50, 50]);
     expect([refundOf(at(-30, 120)), timeOf(at(-30, 120))]).toEqual([-30, 120]);
+  });
+
+  it('are read from the stored settings, a missing one is the default, and sent as one object', () => {
+    const stored: Record<string, number> = { roundDemolitionRefund: -40 };
+    expect(storedValues((k) => stored[k])).toMatchObject({
+      demolitionRefund: -40,
+      demolitionTime: 50,
+    });
+    expect(roundRequest(storedValues(() => undefined))).toMatchObject({
+      demolition: { demolitionRefund: 50, demolitionTime: 50 },
+    });
+    const sent = { demolitionRefund: -100, demolitionTime: 1 };
+    expect(roundRequest(sent, SETTINGS)).toEqual({ demolition: sent });
   });
 
   it('take whole percent within the ranges for a new round, the current ones when not sent (X1)', () => {

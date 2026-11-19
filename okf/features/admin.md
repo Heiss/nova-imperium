@@ -125,8 +125,8 @@ universe settings) and their ranges are not decided yet.
 | Thresholds of the recognition of incoming fleets ([Espionage defense](/features/espionage-defense.md)), in whole levels from 0 to 100 [E] (owner, 2026-11-18) | #228 D1, X1 | classic value: espionage technology 2 / 4 / 8 (source [U]); built in the dialog „Neue Runde“ and, changeable during the round, in the universe settings (owner, 2026-11-17, X1) |
 | Thresholds of the [activity indicators](/features/activity-indicators.md) | #229 Q1, X1 | classic value: star 15 min, „x min“ up to 59 min, „i“ after 7 days, „I“ after 28 days; built in the dialog „Neue Runde“ and, changeable during the round, in the universe settings (owner, 2026-11-17, X1) |
 | Slots and holding time of [expeditions](/features/expeditions.md) | #93 Q3 | classic value: ⌊√level⌋ slots, at most level hours |
-| Refund factor of a [demolition](/features/demolition.md), −100 % to +100 % („Rückbau-Erstattung (%)“) | #202 D4, D7 | +50 % [E]; built as the registry entry `DEMOLITION_REFUND_SETTING` (order 180), in the dialog „Neue Runde“ and the universe settings (X1) |
-| Demolition time as a share of the build time, 1 to 200 % („Rückbau-Dauer (% der Bauzeit)“, [Demolition](/features/demolition.md)) | #202 D3 | 50 % [E]; built as the registry entry `DEMOLITION_TIME_SETTING` (order 190), in the dialog „Neue Runde“ and the universe settings (X1) |
+| Refund factor of a [demolition](/features/demolition.md), −100 % to +100 % („Rückbau-Erstattung (%)“) | #202 D4, D7 | +50 % [E]; built as the first entry of `roundSettings` in `src/core/demolition.ts` (order 180), in the dialog „Neue Runde“ and the universe settings (X1) |
+| Demolition time as a share of the build time, 1 to 200 % („Rückbau-Dauer (% der Bauzeit)“, [Demolition](/features/demolition.md)) | #202 D3 | 50 % [E]; built as the second entry of `roundSettings` in `src/core/demolition.ts` (order 190), in the dialog „Neue Runde“ and the universe settings (X1) |
 
 * **[E]** Each of these is set by the admin per round (owner, 2026-11-16).
   The classic defaults are decided where the table says „classic value“,
@@ -142,14 +142,11 @@ universe settings) and their ranges are not decided yet.
   (`src/server/game/round.ts`) all read it. On main it holds the reward
   options „Achievements aktivieren“ and „Tagesbelohnungen aktivieren“ (one
   group `rewards`, one fieldset), the switch „Gilden (mit Chat)“, the lock
-  of the main planet and the lock of a given-up position (#224,
-  `ABANDON_LOCK_SETTING` in `src/core/abandon.ts`); their texts, ranges,
-  defaults, refusals and order are those of before.
+  of the main planet and the lock of a given-up position (#224); their
+  texts, ranges, defaults, refusals and order are those of before.
 * **[V]** #229 added the four thresholds of the
   [activity indicators](/features/activity-indicators.md#settings) as
-  entries of `src/core/activity.ts` (`ACTIVITY_RECENT_SETTING`,
-  `ACTIVITY_MINUTES_SETTING`, `INACTIVE_DAYS_SETTING`,
-  `LONG_INACTIVE_DAYS_SETTING`): one group `activity` with the legend
+  entries of `src/core/activity.ts`: one group `activity` with the legend
   „Aktivität“ (owner, 2026-11-18), so they stand in one fieldset of the
   dialog, are sent as one object and every wrong one is refused at once
   with the range wording; all four are `live`.
@@ -160,15 +157,7 @@ universe settings) and their ranges are not decided yet.
   reward options (10, 20), the guild switch (30), the lock of the main
   planet (40), the lock of a given-up position (50, last). A new feature
   appends at the end with its own number: the thresholds of the activity
-  markers (#229) took 60, 70, 80 and 90, the demolition (#202) 180 and 190.
-* **[V]** Numbers of the entries of #222 not yet on main, so that parallel
-  branches do not collide: 100 and 110 (#55), 120 to 140 (#228), 150 to 170
-  (reserved for #223). The demolition of #202 takes 180 (refund factor,
-  „Rückbau-Erstattung (%)“) and 190 (time, „Rückbau-Dauer (% der
-  Bauzeit)“), both `live`, in one group `demolition` with the legend „Rückbau“
-  (owner, 2026-11-18): they are sent as one object and refused together,
-  and the dialog shows them in one fieldset
-  ([Demolition](/features/demolition.md)).
+  markers (#229) took 60, 70, 80 and 90.
 * **[V]** An entry has its stored `key` (`round…`), its `name` in
   `RoundRules` and in the request, its German `label`, and is either a
   switch (`kind: 'switch'`, default yes or no, a `refusal`, an optional
@@ -184,37 +173,68 @@ universe settings) and their ranges are not decided yet.
 * **[V]** `live: true` makes a number entry also a row of the universe
   settings under the same key, changed during the round and checked there
   like the other settings (X1, owner, 2026-11-17). The lock of a given-up
-  position (#224), the four thresholds of the activity markers (#229),
-  the three thresholds of foreign fleets (#228) and the refund factor and
-  time of a demolition (#202) are live, the last rows of the universe
-  settings in the order of their numbers; the other four entries are not
-  live.
-* **[V]** Added with #228: the three thresholds of the recognition of
-  foreign fleets ([Espionage defense](/features/espionage-defense.md)),
-  `RECOGNITION_TOTAL_SETTING`, `RECOGNITION_TYPES_SETTING` and
-  `RECOGNITION_COUNTS_SETTING` in `src/core/fleet-recognition.ts`, with the
-  orders 120, 130 and 140 (60 to 90 are the activity markers of #229, 100 and
-  110 are left to #55), so they stand after them in the dialog „Neue Runde“
-  and, being live, after the activity rows in the universe settings. They are one group
-  `recognition` with the legend „Fremde Flotten erkennen“ ([E] owner,
-  2026-11-18): three number fields from 0 to 100 ([E], 2026-11-18) in one
-  fieldset with the defaults 2, 4 and 8, sent as one object and refused
-  together with the range wording.
+  position (#224) and, after it, the four thresholds of the activity
+  markers (#229) are the live settings of main, the last rows of the
+  universe settings; the other four entries are not live.
+* **[V]** Added with #228 in the pattern of #310: the three thresholds of
+  the recognition of foreign fleets
+  ([Espionage defense](/features/espionage-defense.md)) are the entries of
+  `src/core/fleet-recognition.ts`, with the orders 120, 130 and 140 (60 to
+  90 are the activity markers of #229, 100 and 110 are left to #55), so they
+  stand after them in the dialog „Neue Runde“ and, being live, after the
+  activity rows in the universe settings. They are one group `recognition`
+  with the legend „Fremde Flotten erkennen“ ([E] owner, 2026-11-18): three
+  number fields from 0 to 100 ([E], 2026-11-18) in one fieldset with the
+  defaults 2, 4 and 8, sent as one object and refused together with the
+  range wording.
+* **[V]** Added with #202 in the pattern of #310: the refund factor and the
+  time of a [demolition](/features/demolition.md) are the two entries of
+  `src/core/demolition.ts` (`roundSettings`), with the orders 180
+  („Rückbau-Erstattung (%)“, −100 to 100, default 50) and 190
+  („Rückbau-Dauer (% der Bauzeit)“, 1 to 200, default 50), both `live`. They are one group `demolition` with the
+  legend „Rückbau“ (owner, 2026-11-18): one fieldset in the dialog „Neue
+  Runde“, sent as one object and refused together with the range wording;
+  as `live` entries they are also rows of the universe settings, after the
+  rows of the recognition.
 * **[V]** With the groups of #229 and #228 the dialog „Neue Runde“ is
   taller than a window of 720 px, so every dialog (`#modal .in` in
   `src/client/static/style.css`) is at most as high as the window and
   scrolls inside itself; before, its buttons lay outside the window.
-* **[V]** A feature with a value per round adds one entry in its own file
-  (`export const X_SETTING = { … } as const satisfies RoundSetting`) and
-  one line to the list `ENTRIES` in `src/core/round.ts`, where the place
-  of the line means nothing; `RoundRules` gets the typed value from the
-  entry by itself. The feature picks its `order` number as the next free
-  ten above the highest number of the registry (100 after the 90 of main),
-  so it stands last in the dialog and among the refusals; the members of
-  a group take neighbouring numbers. A test refuses a number used twice,
-  so two parallel features that picked the same one see it after the
-  merge, and the later one takes the next ten. The field id is `round-`
-  and the name in kebab case (`mainLock` is `round-main-lock`).
+* **[V]** A feature registers its settings itself (#310; the owner asked
+  for a design pattern against the conflicts of parallel feature branches,
+  2026-11-18). It defines its entries in its own file of `src/core` and
+  exports them under one fixed name:
+  `export const roundSettings = [ { … } ] as const satisfies readonly RoundSetting[];`.
+  Nothing else is edited: `scripts/gen-features.ts` lists every file of
+  `src/core` with this export in `src/core/round-settings.gen.ts`
+  (`ROUND_ENTRIES`, not checked in, like the feature index; every `pnpm`
+  script that builds, checks or tests runs the generator first), and
+  `src/core/round.ts` builds `ROUND_SETTINGS` from that list and names no
+  feature. `RoundRules` gets the typed value from the entry by itself. The
+  feature picks its `order` number as the next free ten above the highest
+  number of the registry, so it stands last in the dialog and among the
+  refusals; the members of a group take neighbouring numbers and share one
+  group object. The field id is `round-` and the name in kebab case
+  (`mainLock` is `round-main-lock`). Where an entry lives is the feature's
+  choice: the reward options in `src/core/achievements.ts`, the guild switch
+  in `src/core/guild-chat.ts`, the lock of the main planet in
+  `src/core/main-planet.ts`, the lock of a given-up position in
+  `src/core/abandon.ts`, the activity thresholds in `src/core/activity.ts`,
+  the thresholds of the recognition of foreign fleets in
+  `src/core/fleet-recognition.ts`.
+* **[V]** The tests follow the same split (#310). One test,
+  `src/core/round-registry.test.ts`, checks the rules for all entries and
+  names no feature and no count: unique keys, names and field ids, unique
+  `order` numbers in ascending order (a number used twice by two parallel
+  features is seen after the merge, and the later one takes the next ten),
+  the members of a group together with one legend or none, a default and
+  every choice in the range, and every `live` entry a row of the universe
+  settings. Every feature tests its own entries in its own test, selected
+  from `ROUND_SETTINGS` by key or group (label, range, default, order,
+  legend, refusal, `live`, field id), and no test lists another feature's
+  settings, counts all fieldsets or rows, or picks one by position. A test
+  that needs a full set of round values takes it from `roundDefaults()`
+  (`src/test/fixtures.ts`) and names the values of its own feature on top.
 
 # Round rewards and menu hints
 

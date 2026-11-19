@@ -19,6 +19,7 @@
     "!src/features/index.gen.ts",
     "!src/features/index.server.gen.ts",
     "!src/features/lexicon.gen.ts",
+    "!src/core/round-settings.gen.ts",
     "!src/features/**/lexicon.de.ts",
     "!src/test/**"
   ],

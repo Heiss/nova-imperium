@@ -111,9 +111,10 @@ Mondzitadelle cannot be torn down ([Moons](/features/moons.md)).
   level of the entry is one below the level that stands.
 * **[V]** The settings are two entries of the registry of the round
   settings ([Admin](/features/admin.md#the-registry-of-the-round-settings-283),
-  #283), in `src/core/demolition.ts`: `DEMOLITION_REFUND_SETTING` (key
+  #283), the `roundSettings` of `src/core/demolition.ts` (#310): the
+  refund factor (key
   `roundDemolitionRefund`, name `demolitionRefund`, „Rückbau-Erstattung
-  (%)“, −100 to +100, default 50, order 180) and `DEMOLITION_TIME_SETTING`
+  (%)“, −100 to +100, default 50, order 180) and the time
   (key `roundDemolitionTime`, name `demolitionTime`, „Rückbau-Dauer (% der
   Bauzeit)“, 1 to 200, default 50, order 190), both `live`: a number field
   of the dialog „Neue Runde“ preselected with the current round and a row of

@@ -18,20 +18,23 @@ export const ABANDON_LOCK_HOURS = { min: 1, max: 720, default: 24 } as const;
 /**
  * The lock as a setting of the round (#283): a number field of the dialog
  * „Neue Runde“ and, `live`, a row of the universe settings, changed during
- * the round (X1); existing universes lock for the default 24 hours.
+ * the round (X1); existing universes lock for the default 24 hours. The
+ * export under this name registers it (#310, src/core/round.ts).
  */
-export const ABANDON_LOCK_SETTING = {
-  kind: 'number',
-  key: 'roundAbandonLock',
-  name: 'abandonLock',
-  label: 'Sperre einer aufgegebenen Position (Stunden)',
-  order: 50,
-  min: ABANDON_LOCK_HOURS.min,
-  max: ABANDON_LOCK_HOURS.max,
-  def: ABANDON_LOCK_HOURS.default,
-  refusal: `Bitte für die Sperre einer aufgegebenen Position ${ABANDON_LOCK_HOURS.min} bis ${ABANDON_LOCK_HOURS.max} ganze Stunden angeben.`,
-  live: true,
-} as const satisfies RoundSetting;
+export const roundSettings = [
+  {
+    kind: 'number',
+    key: 'roundAbandonLock',
+    name: 'abandonLock',
+    label: 'Sperre einer aufgegebenen Position (Stunden)',
+    order: 50,
+    min: ABANDON_LOCK_HOURS.min,
+    max: ABANDON_LOCK_HOURS.max,
+    def: ABANDON_LOCK_HOURS.default,
+    refusal: `Bitte für die Sperre einer aufgegebenen Position ${ABANDON_LOCK_HOURS.min} bis ${ABANDON_LOCK_HOURS.max} ganze Stunden angeben.`,
+    live: true,
+  },
+] as const satisfies readonly RoundSetting[];
 
 /** When the lock of a position given up at `at` ends. */
 export const positionLockEnd = (at: number, hours: number): number =>
