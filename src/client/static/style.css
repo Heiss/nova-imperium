@@ -998,6 +998,31 @@ textarea:focus-visible {
     grid-column: 3;
     grid-row: 1;
   }
+  /* Friends (#227): every friend a grid of its own, name and guild tag,
+     planet and status, then „Freundschaft beenden“; no row of heads. */
+  .friends,
+  .friends tbody {
+    display: block;
+  }
+  .friends tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    border-bottom: 1px solid var(--line);
+  }
+  .friends tr:first-child {
+    display: none;
+  }
+  .friends tr:last-child {
+    border-bottom: 0;
+  }
+  .friends td {
+    border-bottom: 0;
+    overflow-wrap: anywhere;
+  }
+  .friends td:nth-child(5) {
+    grid-column: 1 / -1;
+    padding-top: 0;
+  }
   /* Resources (#189, D7): every row of the table is a block of its own
      instead of widening the page: its name, the four values in two columns,
      each with its column head, then the share. The row of heads is not

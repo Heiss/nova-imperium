@@ -11,7 +11,8 @@ name: CI
 # hotfix branch mutates only the files it changes and the sources of the
 # tests it changes, in one job (#309); the complete run in 6 shards stays for
 # the release pull requests, the pushes, the nightly run and a change of the
-# mutation configuration or the test tool chain.
+# mutation configuration or the test tool chain; a change of the floors alone
+# in mutation-standard.json adds those files to the partial run.
 # The release pull request of main is a draft after every rebuild: its run
 # is the cheap one (the checks that run for every change and the changelog
 # check), and its CI Gate fails on purpose, so neither a merge nor a
@@ -139,9 +140,13 @@ jobs:
           # them for the changed files only (output "partial", scripts/
           # mutation-partial.ts, owner, 2026-11-18, #309): the files of the
           # mutate globs it changes and the source of each test file it
-          # changes, in one job. A change of the mutation configuration or of
-          # the test tool chain still runs everything ("true"); no such file
-          # means no mutation job ("false").
+          # changes, plus every file whose floor in mutation-standard.json it
+          # adds, changes or removes, in one job. A change of the mutation
+          # configuration (stryker.config.json, vitest.config.ts,
+          # tsconfig.json, scripts/mutation-*.ts), of anything in
+          # mutation-standard.json but the floors, or of the test tool chain
+          # still runs everything ("true"); no such file means no mutation
+          # job ("false").
           mutation_files=
           case "$PR_HEAD_REF" in
             release/hotfix/*)

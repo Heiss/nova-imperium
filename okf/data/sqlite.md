@@ -555,8 +555,21 @@ The later migration `20261117T1211-planet-survey` (issue #190) rebuilds
 too, since it runs after this one (its upgrade test checks that both
 missions are allowed).
 
+Migration `20261118T2230-friendships` (issue #227, see
+[Buddy list](/features/buddy-list.md)) adds the table `friendships`:
+`requester` and `addressee` (both `REFERENCES users(id) ON DELETE
+CASCADE`, primary key together) and `status` (`pending` for an open
+request, `friend` once accepted). A check refuses a row of a player with
+themselves, and a unique index on the pair in either order
+(`friendships_pair`, `min` and `max` of the two) refuses a second or a
+crossed row; an index on `addressee` serves the requests to a player. It
+stores no time. Existing players start without friends and requests;
+other data stay as they were (`upgrades/20261118T2230-friendships.test.ts`).
+A new round keeps the table (owner, 2026-11-16, D2).
+
 Account deletion runs in one transaction. Foreign-key cascades clear owned game,
-session, reward and push data. The deletion also removes led guilds and their
+session, reward and push data, and the friendships and requests of the
+account in both directions (#227). The deletion also removes led guilds and their
 memberships, linked audit and inbox records, invitations for the account address
 and active registration challenges. Incoming fleets belonging to other players
 turn back. Existing external backups are managed by the operator.

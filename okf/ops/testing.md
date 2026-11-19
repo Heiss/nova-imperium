@@ -216,15 +216,43 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   no such source adds nothing; neither does a test helper (`src/test/**`
   that is no `*.test.ts`, `src/server/test-helpers.ts`): the nightly run
   tests them. A change of the mutation configuration (`stryker.config.json`,
-  `mutation-standard.json`, `vitest.config.ts`, `scripts/mutation-*.ts`,
-  `tsconfig.json`) or of the versions of Stryker, Vitest or TypeScript in
-  the lockfile (the rule of #146) still runs everything in 6 shards; no
-  file in the set means no mutation job. Test files whose source the name
+  `vitest.config.ts`, `scripts/mutation-*.ts`, `tsconfig.json`) or of the
+  versions of Stryker, Vitest or TypeScript in the lockfile (the rule of
+  #146) still runs everything in 6 shards; no file in the set means no
+  mutation job. A change of `mutation-standard.json` is no reason to run
+  everything while only its floors changed (see the next paragraph). Test files whose source the name
   does not find (78 of 212 on 2026-11-18: 8 tests of views whose component
   is not mutated, 23 in `src/test/`, 6 `*-reference` tests, 18 upgrade
   tests and 23 others such as `fleet.test.ts` or the mission tests) are
   still open (#309): until the owner decides a rule, their changes are
   tested by the nightly run.
+* **[V]** Floors in the partial run (the coordinator, 2026-11-18, #309):
+  almost every feature pull request adds or raises a floor in
+  `mutation-standard.json`, and the first three pull requests after #312
+  (#300, #306, #281) all ran the complete 6 shards because that file counts
+  as mutation configuration in #146, which defeated the partial run. Now,
+  when `mutation-standard.json` changes, `scripts/mutation-partial.ts`
+  reads it at the base and at the head (`git show <sha>:mutation-standard.json`)
+  and adds every file whose floor was added, changed (raised or lowered) or
+  removed to the set, when the file is in the `mutate` globs and exists at
+  the head: a pull request proves a new or raised floor in its own run, and a
+  file whose floor entry was removed is checked against the new-file minimum.
+  „Only the floors changed“ means exactly: both texts are JSON objects with
+  exactly the keys `floors`, `newFile`, `security` and `securityTarget`
+  (`Standard` of `scripts/mutation-gate.ts`), every floor is a number, and
+  `newFile`, `security` (compared as JSON, so a changed order counts) and
+  `securityTarget` are equal on both sides. Anything else in the file (another
+  value of those keys, another key, a missing key, a floor that is no
+  number), a file that is missing or not parsable at either side, or another
+  file of the mutation configuration changed at the same time runs
+  everything in 6 shards. `mutation-standard.json` stays a mutation
+  configuration for the complete runs: the pull request into a hotfix
+  branch, the release pull request of a hotfix branch and the takeover of
+  #167 (`reason` of `scripts/mutation-changes.ts`) run as before. A lowered
+  floor is not refused by anything today (the gate and `--update` only
+  never lower one when they write; the file itself is checked by no test):
+  it joins the partial set and is checked against its new, lower value.
+  Nothing was built against it.
 * **[V]** The job „Mutation tests (changed files)“ (`mutation-partial` in
   `ci.yml`, #309): `needs: changes`, runs when the output `mutation` is
   `partial` and reads the list from the output `mutation-files`. It mutates

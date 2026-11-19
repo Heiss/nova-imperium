@@ -17,6 +17,7 @@ describe('repositories', () => {
       'admin',
       'debris',
       'surveys',
+      'friends',
     ]);
     db.exec(
       "INSERT INTO users (id, name, salt, pw_hash, created) VALUES ('u1', 'Alt', 's', 'h', 1)",
