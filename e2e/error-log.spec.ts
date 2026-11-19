@@ -194,9 +194,12 @@ test.describe('error log and problem reports (#126)', () => {
     await page.getByRole('tab', { name: 'Ereignisprotokoll' }).click();
     await page.getByLabel('Aktion', { exact: true }).fill('errorDownload');
     await page.getByRole('button', { name: 'Anzeigen', exact: true }).click();
+    // The event log is shared: other downloads of other tests are in it too.
     await expect(
-      page.getByRole('row', { name: /admin.read \/ errorDownload/ }),
-    ).toContainText(name);
+      page
+        .getByRole('row', { name: /admin.read \/ errorDownload/ })
+        .filter({ hasText: name }),
+    ).toHaveCount(1);
     expect(w.problems).toEqual([]);
   });
 

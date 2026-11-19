@@ -28,6 +28,12 @@ export interface SeedPart {
   /** The fields of the JSON this part handles. */
   fields: readonly string[];
   apply: (s: Seed) => void;
+  /**
+   * Loads what only this part needs, before the transaction, when the call
+   * uses one of its fields: the seed command runs once for almost every
+   * `register`, and the game server's modules cost a second to load.
+   */
+  prepare?: (d: SeedData) => Promise<void>;
 }
 
 /** The frame saves the home planet before the parts from this order on. */

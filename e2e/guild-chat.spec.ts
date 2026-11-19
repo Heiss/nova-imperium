@@ -134,6 +134,9 @@ async function guild(page: Page, browser: Browser): Promise<Guild> {
 }
 
 async function chatFlow(page: Page, browser: Browser): Promise<void> {
+  // Every register() moves the home planet into the area of the test (#302),
+  // a second or so each: three times the time of a test, as in holding.spec.ts.
+  test.slow();
   const g = await guild(page, browser);
   const { lead, member } = g;
   // The first entry is the event of the server (#169 D4).
@@ -239,6 +242,9 @@ async function chatFlow(page: Page, browser: Browser): Promise<void> {
 
 /** The Leitung takes „Chat lesen“ and then „Chat schreiben“ from Mitglied. */
 async function rightsFlow(page: Page, browser: Browser): Promise<void> {
+  // Every register() moves the home planet into the area of the test (#302),
+  // a second or so each: three times the time of a test, as in holding.spec.ts.
+  test.slow();
   const g = await guild(page, browser);
   const { lead, member } = g;
   await send(lead, 'Nur für Leser');
@@ -269,6 +275,9 @@ async function rightsFlow(page: Page, browser: Browser): Promise<void> {
 
 /** The admin reads the chat of a guild it is not in; the audit log records it. */
 async function adminFlow(page: Page, browser: Browser): Promise<void> {
+  // Every register() moves the home planet into the area of the test (#302),
+  // a second or so each: three times the time of a test, as in holding.spec.ts.
+  test.slow();
   const g = await guild(page, browser);
   // A draft typed while the message is on its way stays in the field.
   const field = g.lead.getByLabel('Nachricht', { exact: true });
@@ -349,6 +358,9 @@ async function adminFlow(page: Page, browser: Browser): Promise<void> {
  * 2026-11-15): joining, a new rank, an attack at its launch and removal.
  */
 async function eventsFlow(page: Page, browser: Browser): Promise<void> {
+  // Every register() moves the home planet into the area of the test (#302),
+  // a second or so each: three times the time of a test, as in holding.spec.ts.
+  test.slow();
   const g = await guild(page, browser);
   const { lead, member } = g;
   for (const p of [lead, member]) {

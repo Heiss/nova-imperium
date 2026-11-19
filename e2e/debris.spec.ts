@@ -17,6 +17,8 @@ test.describe('fleet and battle (#68)', () => {
   test('a battle leaves a Trümmerfeld that every player sees; a Bergung takes it home (#45)', async ({
     page,
   }) => {
+    // Registering moves the home planet into the area of the test (#302).
+    test.slow();
     const w = watch(page);
     const a = uniqueName('Berger');
     const b = uniqueName('Wrack');

@@ -84,6 +84,8 @@ test.describe('the Vermessung (#190)', () => {
   test('surveys a free position with one and with five probes, then colonizes it with the surveyed values', async ({
     page,
   }) => {
+    // Registering moves the home planet into the area of the test (#302).
+    test.slow();
     const w = watch(page);
     const name = uniqueName('Vermesser');
     await register(page, name);

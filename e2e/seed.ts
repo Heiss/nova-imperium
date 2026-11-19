@@ -10,7 +10,6 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { openDatabase } from '../src/server/db/database.ts';
 import { Store } from '../src/server/db/store.ts';
-import { databaseFile } from '../src/server/server.ts';
 import { loadConfig } from '../src/server/config.ts';
 import { AREA_SYSTEMS, inArea, readLedger } from './ledger.ts';
 import {
@@ -34,7 +33,12 @@ parts.sort((a, b) => a.order - b.order);
 
 const config = loadConfig(process.env, (f) => readFileSync(f, 'utf8'));
 if ('errors' in config) throw new Error(config.errors.join('\n'));
-const store = new Store(openDatabase(databaseFile(config.config)));
+// The file of `databaseFile()` in src/server/server.ts, which this command
+// does not import: the whole game server loads with it.
+const DB_FILE = 'nova.sqlite';
+const store = new Store(
+  openDatabase(path.join(config.config.dataDir, DB_FILE)),
+);
 const d: SeedData = JSON.parse(process.argv[2] ?? '{}');
 
 const known = new Set(['name', 'area', ...parts.flatMap((p) => p.fields)]);
@@ -65,6 +69,9 @@ if (d.area && !area)
   throw new Error(
     `The area ${JSON.stringify(d.area)} was not handed out by ownArea() (e2e/own-data.ts).`,
   );
+
+for (const part of parts)
+  if (part.fields.some((f) => f in d)) await part.prepare?.(d);
 
 const user = store.userByName(d.name);
 if (!user) throw new Error(`no player ${d.name}`);

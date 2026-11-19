@@ -19,6 +19,9 @@ const applicant = (p: Page, name: string): Locator =>
 const RIGHT = 'Bewerbungen annehmen und ablehnen';
 
 async function rankFlow(page: Page, browser: Browser): Promise<void> {
+  // Every register() moves the home planet into the area of the test (#302),
+  // a second or so each: three times the time of a test, as in holding.spec.ts.
+  test.slow();
   const lead = uniqueName('Leitung');
   const officer = uniqueName('Offizier');
   const plain = uniqueName('Gefolge');
@@ -163,6 +166,9 @@ async function handOverAndDissolve(
   page: Page,
   browser: Browser,
 ): Promise<void> {
+  // Every register() moves the home planet into the area of the test (#302),
+  // a second or so each: three times the time of a test, as in holding.spec.ts.
+  test.slow();
   const lead = uniqueName('Gruender');
   const heir = uniqueName('Erbin');
   const tag = guildTag('D');
