@@ -1,4 +1,5 @@
-// The highscore names a planet of each player, never a moon (#53).
+// The highscore, as the component Highscore renders it (#118, bundle 5), names a
+// planet of each player, never a moon (#53).
 import { describe, expect, it } from 'vitest';
 import { article } from '../../core/lexicon/articles.ts';
 import {
@@ -10,7 +11,9 @@ import {
 } from '../../core/round.ts';
 import { liveSpecs } from '../../core/universe.ts';
 import { roundDefaults } from '../../test/fixtures.ts';
+import { highscoreView } from '../../test/highscore-view.ts';
 import { levelView } from '../../test/level-view.ts';
+import { normalize } from '../../test/markup.ts';
 import type { GameState } from '../logic/types.ts';
 import type { V } from './common.ts';
 import {
@@ -18,9 +21,10 @@ import {
   deleteAccountBox,
   deleteAccountDialog,
   help,
-  highscore,
   roundDialog,
 } from './misc.ts';
+
+const highscore = (v: V): string => normalize(highscoreView(v));
 
 describe('highscore', () => {
   it('shows the planet of a player, also when its moon comes first (#53)', () => {
@@ -61,14 +65,16 @@ describe('the categories of the highscore (#78)', () => {
   const rows = (html: string): string[] =>
     [
       ...html.matchAll(
-        /<tr class="(me)?"><td class="n">(\d+)<\/td><td>(\w+)<\/td><td>-<\/td><td class="n">([\d.]+)<\/td>/g,
+        /<tr(?: class="(me)")?><td class="n">(\d+)<\/td><td>(\w+)<\/td><td>-<\/td><td class="n">([\d.]+)<\/td>/g,
       ),
     ].map((m) => `${m[2]} ${m[3]} ${m[4]}${m[1] ? ' me' : ''}`);
 
   it('shows the total until a category is chosen, with its old note', () => {
     const html = highscore({ s, ui: {} } as V);
     expect(rows(html)).toEqual(['1 Anna 90', '2 Bert 40 me']);
-    expect(html).toContain('data-cat="total" aria-pressed="true">Gesamt<');
+    expect(html).toContain(
+      'aria-pressed="true" data-act="highscore" data-cat="total" type="button">Gesamt<',
+    );
     expect(html).toContain(
       '<div class="dim">1 Punkt = 1.000 verbaute Rohstoffe (Gebäude, Forschung, Schiffe, Verteidigung).</div>',
     );
@@ -77,8 +83,12 @@ describe('the categories of the highscore (#78)', () => {
   it('ranks by the chosen category and keeps the own row marked', () => {
     const html = highscore({ s, ui: { highscore: 'fleet' } } as V);
     expect(rows(html)).toEqual(['1 Bert 250 me', '2 Anna 1']);
-    expect(html).toContain('data-cat="fleet" aria-pressed="true">Flotte<');
-    expect(html).toContain('data-cat="total" aria-pressed="false">Gesamt<');
+    expect(html).toContain(
+      'aria-pressed="true" data-act="highscore" data-cat="fleet" type="button">Flotte<',
+    );
+    expect(html).toContain(
+      'aria-pressed="false" data-act="highscore" data-cat="total" type="button">Gesamt<',
+    );
     expect(html).toContain(
       '<div class="dim">1 Punkt pro Schiff (auch Sonnenreliquiare).</div>',
     );
@@ -95,7 +105,7 @@ describe('the categories of the highscore (#78)', () => {
   it('labels the buttons by the heading', () => {
     const html = highscore({ s, ui: {} } as V);
     expect(html).toMatch(
-      /^<h2 id="highscore-h">Highscore<\/h2><div class="flex" role="group" aria-labelledby="highscore-h">/,
+      /^<h2 id="highscore-h">Highscore<\/h2><div aria-labelledby="highscore-h" class="flex" role="group">/,
     );
   });
 });

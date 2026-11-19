@@ -138,6 +138,24 @@ describe('admin repository: audit log', () => {
   });
 });
 
+describe('admin repository: last audit time', () => {
+  it('is the newest time of one actor and action, undefined without one (#328)', () => {
+    const ctx = testCtx();
+    addUser(ctx, 'Anna');
+    addUser(ctx, 'Bert');
+    expect(ctx.admin.lastAuditTime('u_Anna', 'rateLimit')).toBeUndefined();
+    ctx.admin.addAuditEvent(event({ action: 'rateLimit', time: 30 }));
+    ctx.admin.addAuditEvent(event({ action: 'rateLimit', time: 50 }));
+    ctx.admin.addAuditEvent(event({ action: 'build', time: 90 }));
+    ctx.admin.addAuditEvent(
+      event({ action: 'rateLimit', actor: 'u_Bert', time: 70 }),
+    );
+    expect(ctx.admin.lastAuditTime('u_Anna', 'rateLimit')).toBe(50);
+    expect(ctx.admin.lastAuditTime('u_Bert', 'rateLimit')).toBe(70);
+    expect(ctx.admin.lastAuditTime('u_Bert', 'build')).toBeUndefined();
+  });
+});
+
 describe('admin repository: retention', () => {
   it('purges audit, error and activity rows before the cutoff', () => {
     const ctx = testCtx();

@@ -1,0 +1,8 @@
+---
+type: log-entry
+date: 2026-11-19T20:30
+kind: Code
+issues: [328, 232]
+---
+
+#328 built with the owner's decisions of 2026-11-19: a POST without `Origin` is refused like one from a foreign origin (`crossSite` in `src/server/http/app.ts`; every POST of the app's own client is a `fetch` from the page, which a browser always sends with `Origin`, the `keepalive` play time reports of #232 included; the service worker `push-worker.js` posts nothing; the only callers without a browser were `docker/smoke.sh` and `docker/upgrade.sh`, which now send `Origin: $GAME`, so the server has no exception); and `POST /api/action` and, by the owner's decision of 2026-11-19 on #232, `POST /api/playtime` share one limit of 120 per account and minute (`src/server/http/action-limit.ts`, the `RateLimiter` of the sign-in limits keyed by account id: a fixed window, admins included, every call counts, refused ones too, the activity ping and GETs do not; the play time code and its limit per page are unchanged, the tracker of the page drops a refused report without a retry), above it the call is refused with HTTP 400 like the other limits and the audit log gets one entry per account and hour (`game` / `rateLimit`, outcome „Abgelehnt“; the hour is looked up in the audit log by the new `lastAuditTime` of the admin repository, so it holds across a restart). [V] Refusal text „Zu viele Aktionen in kurzer Zeit. Bitte warte einen Moment.“; the changelog line. No CSRF token (decided). Tests that posted without `Origin` now send it through the helper `src/test/http.ts`, a header given as `null` leaves it out. See [Security measures](/security/review.md).
