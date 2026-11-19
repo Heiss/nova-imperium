@@ -92,9 +92,11 @@ The battle with several parties is built with #55
   choice like the lock of the main planet, and the universe settings
   show the same selection during the round.
   A guild member counts only while guilds are on in the round
-  ([Guilds on or off per round](/features/guild-switch.md)). Friends are
-  nobody until the buddy list (#227) answers `areFriends` in
-  `src/server/game/holding.ts`.
+  ([Guilds on or off per round](/features/guild-switch.md)). Friends
+  count from an accepted friendship of the buddy list (#227, merged
+  2026-11-19): `areFriends` in `src/server/game/holding.ts` asks
+  `relationOf` of `src/core/friends.ts` for „friends“; an open request in
+  either direction and an ended friendship are none.
 * The vacation mode (#223) protects a target of every mission in its own
   check of the target kind, so it covers holding once it is merged.
 * **[V]** Taken as recommended when building #55:
@@ -208,8 +210,12 @@ The battle with several parties is built with #55
   ([Lexicanum texts](/features/lexicanum-texts.md), „Wache stellen“): its
   text and keywords are a draft for the owner; the target of the mission
   reads „Planet eines Gildenmitglieds oder Freundes“ there.
-* **[U]** Friends are nobody until #227: `areFriends` in
-  `src/server/game/holding.ts` answers false, so under the setting
-  „Freunde“ nobody can hold, and with guilds off the default „Gilde und
-  Freunde“ lets nobody hold either. #227 supplies the answer; #225 (attack
-  union) reads the same value `allies`.
+* **[V]** Friends and the setting (#227 merged 2026-11-19): under „Freunde“
+  and „Gilde und Freunde“ a friend can hold, also when he is no guild
+  member; under „Gilde“ only a guild member can, and with guilds off only a
+  friend. The client does not decide per planet whether „Wache stellen“ is
+  offered: the fleet form offers the mission for every target and the state
+  tells the client nothing about who is an ally, so the refusal of the
+  server is the answer („Wache stellen nur bei Gildenmitgliedern und
+  Freunden.“, or the words of the setting). #225 (attack union) reads the
+  same value `allies`.

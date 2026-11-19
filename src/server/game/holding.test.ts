@@ -119,9 +119,112 @@ describe('who may hold (#55, Q2)', () => {
     ctx.admin.putSettings([['roundAllies', 2]]);
     expect(isAllyOf(ctx, 'u_Anna', 'u_Bert')).toBe(false);
   });
-  it('knows no friends before the buddy list (#227)', () => {
+  /** The relations of Anna to Cora (no guild) that the buddy list can hold. */
+  const RELATIONS: Record<string, (ctx: TestCtx) => void> = {
+    friend: (ctx) => {
+      ctx.friends.request('u_Anna', 'u_Cora');
+      ctx.friends.accept('u_Anna', 'u_Cora');
+    },
+    'friend, the other one asked': (ctx) => {
+      ctx.friends.request('u_Cora', 'u_Anna');
+      ctx.friends.accept('u_Cora', 'u_Anna');
+    },
+    'open request': (ctx) => ctx.friends.request('u_Anna', 'u_Cora'),
+    'open request the other way': (ctx) =>
+      ctx.friends.request('u_Cora', 'u_Anna'),
+    'ended friendship': (ctx) => {
+      ctx.friends.request('u_Anna', 'u_Cora');
+      ctx.friends.accept('u_Anna', 'u_Cora');
+      ctx.friends.remove('u_Cora', 'u_Anna');
+    },
+    'no relation': () => undefined,
+  };
+  it('knows a friend only from an accepted friendship, never from an open request or an ended one (#227)', () => {
+    for (const [name, make] of Object.entries(RELATIONS)) {
+      const ctx = setup();
+      make(ctx);
+      const friends = name.startsWith('friend');
+      expect(areFriends(ctx, 'u_Anna', 'u_Cora'), name).toBe(friends);
+      expect(areFriends(ctx, 'u_Cora', 'u_Anna'), name).toBe(friends);
+    }
+    expect(areFriends(setup(), 'u_Anna', 'u_Anna')).toBe(false);
+  });
+  it('lets a friend who is no guild member hold under „Freunde“ and „Gilde und Freunde“, not under „Gilde“, with guilds on or off', () => {
+    // [setting 1, 2, 3] by the relation of Anna to Cora.
+    const WANTED: Record<string, boolean[]> = {
+      friend: [false, true, true],
+      'friend, the other one asked': [false, true, true],
+      'open request': [false, false, false],
+      'open request the other way': [false, false, false],
+      'ended friendship': [false, false, false],
+      'no relation': [false, false, false],
+    };
+    for (const guilds of [1, 0])
+      for (const [name, make] of Object.entries(RELATIONS)) {
+        const ctx = setup();
+        make(ctx);
+        ctx.admin.putSettings([['roundGuilds', guilds]]);
+        const got = [1, 2, 3].map((allies) => {
+          ctx.admin.putSettings([['roundAllies', allies]]);
+          const both = isAllyOf(ctx, 'u_Anna', 'u_Cora');
+          expect(isAllyOf(ctx, 'u_Cora', 'u_Anna'), name).toBe(both);
+          return both;
+        });
+        expect(got, `${name}, guilds ${guilds}`).toEqual(WANTED[name]);
+      }
+  });
+  it('lets a guild member who is a friend as well hold under every setting; guilds off leaves only the friendship', () => {
+    for (const [guilds, wanted] of [
+      [1, [true, true, true]],
+      [0, [false, true, true]],
+    ] as const) {
+      const ctx = setup();
+      ctx.friends.request('u_Anna', 'u_Bert');
+      ctx.friends.accept('u_Anna', 'u_Bert');
+      ctx.admin.putSettings([['roundGuilds', guilds]]);
+      const got = [1, 2, 3].map((allies) => {
+        ctx.admin.putSettings([['roundAllies', allies]]);
+        return isAllyOf(ctx, 'u_Anna', 'u_Bert');
+      });
+      expect(got, `guilds ${guilds}`).toEqual(wanted);
+    }
+  });
+  it('lets the guild member without a friendship hold under „Gilde“ and „Gilde und Freunde“ only, and nobody with guilds off', () => {
+    for (const [guilds, wanted] of [
+      [1, [true, false, true]],
+      [0, [false, false, false]],
+    ] as const) {
+      const ctx = setup();
+      ctx.admin.putSettings([['roundGuilds', guilds]]);
+      const got = [1, 2, 3].map((allies) => {
+        ctx.admin.putSettings([['roundAllies', allies]]);
+        return isAllyOf(ctx, 'u_Anna', 'u_Bert');
+      });
+      expect(got, `guilds ${guilds}`).toEqual(wanted);
+    }
+  });
+  it('sends a fleet to a friend who is no guild member, refused by the words of the setting without an accepted friendship', () => {
     const ctx = setup();
-    expect(areFriends(ctx, 'u_Anna', 'u_Bert')).toBe(false);
+    ctx.admin.putSettings([['roundAllies', 2]]);
+    RELATIONS['open request']!(ctx);
+    expect(() => send(ctx, user(ctx, 'Anna'), hold({ to: CORA }))).toThrow(
+      'Wache stellen nur bei Freunden.',
+    );
+    ctx.friends.accept('u_Anna', 'u_Cora');
+    expect(send(ctx, user(ctx, 'Anna'), hold({ to: CORA }))).toBe(
+      'Flotte unterwegs nach [1:3:7].',
+    );
+    // The only fleet slot is free again.
+    ctx.fleets.delete(ctx.fleets.all()[0]!.id);
+    ctx.admin.putSettings([['roundAllies', 1]]);
+    expect(() => send(ctx, user(ctx, 'Anna'), hold({ to: CORA }))).toThrow(
+      'Wache stellen nur bei Gildenmitgliedern.',
+    );
+    ctx.admin.putSettings([['roundAllies', 3]]);
+    ctx.friends.remove('u_Anna', 'u_Cora');
+    expect(() => send(ctx, user(ctx, 'Anna'), hold({ to: CORA }))).toThrow(
+      'Wache stellen nur bei Gildenmitgliedern und Freunden.',
+    );
   });
 });
 

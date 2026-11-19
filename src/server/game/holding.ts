@@ -2,6 +2,7 @@
 // a player under the admin's setting of the round (Q2), the fleets that hold
 // at a place, and the end of holding. The rules are in src/core/holding.ts;
 // the mission is src/features/missions/hold/.
+import { relationOf } from '../../core/friends.ts';
 import {
   type Bond,
   isAlly,
@@ -27,12 +28,11 @@ function sameGuild(ctx: Ctx, a: string, b: string): boolean {
 }
 
 /**
- * Whether `a` and `b` are friends. The buddy list (#227) is not built yet,
- * so nobody is: its pull request answers this from its friendships, and the
- * setting „Freunde“ then lets them hold.
+ * Whether `a` and `b` are friends (#227): the friendship of the buddy list
+ * is accepted; an open request, either way, is none.
  */
-export const areFriends: (ctx: Ctx, a: string, b: string) => boolean = () =>
-  false;
+export const areFriends = (ctx: Ctx, a: string, b: string): boolean =>
+  relationOf(ctx.friends.links(a), a, b) === 'friends';
 
 /** What binds `a` and `b`, whatever the admin chose. */
 const bondOf = (ctx: Ctx, a: string, b: string): Bond => ({
