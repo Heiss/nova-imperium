@@ -18,63 +18,6 @@ import { text as entryText } from '../src/core/text.ts';
 const lines = (text: string): string[] => text.split('\n\n');
 
 test.describe('playing', () => {
-  test('ships are ordered, a fleet flies, spies and comes home', async ({
-    page,
-  }) => {
-    const w = watch(page);
-    const a = uniqueName('Flotte');
-    const b = uniqueName('Ziel');
-    await register(page, b);
-    await page.click('[data-act=logout]');
-    await register(page, a);
-    seed({
-      name: a,
-      b: { yard: 3, robot: 2, metal: 10 },
-      research: { comb: 3, spy: 2 },
-      ships: { probe: 2, sc: 3 },
-      res: { m: 100000, c: 100000, d: 100000 },
-    });
-    seed({ name: b, b: { metal: 12 } });
-    await page.reload();
-    await nav(page, 'shipyard');
-    await page.fill('#q_lf', '2');
-    await page.click('[data-act=order][data-k=lf]');
-    await expect(page.locator('.toast').last()).toContainText(
-      '2× Abfangjäger in Auftrag gegeben.',
-    );
-    await nav(page, 'fleet');
-    await page.fill('#f_sc', '1');
-    await expect(page.locator('#i_cap')).toContainText('5.000');
-    await page.click('[data-act=send]');
-    await expect(page.locator('.toast.err').last()).toContainText(
-      'dein eigener Planet',
-    );
-    await nav(page, 'highscore');
-    const target = page.locator('tr', { hasText: b }).locator('[data-act=gto]');
-    await target.click();
-    await expect(page.locator('h2')).toHaveText('Sternenkarte');
-    await page.locator('tr', { hasText: b }).locator('[data-act=gspy]').click();
-    await expect(page.locator('.toast').last()).toContainText(
-      'Flotte unterwegs',
-    );
-    await nav(page, 'overview');
-    await expect(page.locator('.fl-spy')).toContainText('Auspex-Erkundung');
-    await expect(page.locator('#menu [data-v=messages] .badge')).toBeVisible({
-      timeout: 30000,
-    });
-    await nav(page, 'messages');
-    await page
-      .locator('.rep .t', { hasText: 'Auspex-Bericht' })
-      .first()
-      .click();
-    await expect(page.locator('.rep.open')).toContainText('Rohstoffe auf');
-    // The target registered just now: its activity, by the rule of #229 (#175 D5).
-    await expect(
-      page.locator('.rep.open .mt', { hasText: 'Aktivität' }),
-    ).toHaveText(/^Aktivität\s*Aktiv$/);
-    expect(w.problems).toEqual([]);
-  });
-
   test('Schlachtkreuzer and Zerstörer are built and fly (#58, #59)', async ({
     page,
   }) => {

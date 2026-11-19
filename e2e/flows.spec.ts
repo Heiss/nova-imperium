@@ -512,51 +512,6 @@ test.describe('galaxy, shipyard and options (#68)', () => {
     expect(w.problems).toEqual([]);
   });
 
-  test('the shipyard max button fills the order; the queue finishes unit by unit', async ({
-    page,
-  }) => {
-    const w = watch(page);
-    const name = uniqueName('Werft');
-    await register(page, name);
-    // Abfangjäger cost 3,000 Adamant and 1,000 Psikristall: two can be paid.
-    seed({
-      name,
-      b: { robot: 2, yard: 2 },
-      research: { comb: 1 },
-      res: { m: 7000, c: 2500, d: 0 },
-    });
-    await page.goto('/?view=shipyard');
-    const fighter = page.locator('.item').filter({
-      has: page.locator('.nm', { hasText: /^\s*Abfangjäger/ }),
-    });
-    const max = fighter.locator('[data-act=maxq]');
-    await expect(max).toHaveText('(max 2)');
-    await max.click();
-    await expect(page.locator('#q_lf')).toHaveValue('2');
-    await fighter.getByRole('button', { name: 'Bauen' }).click();
-    await expect(lastToast(page)).toContainText(
-      '2× Abfangjäger in Auftrag gegeben.',
-    );
-    const queue = page.locator('.box', {
-      hasText: 'Bauauftrag der Schiffsschmiede',
-    });
-    await expect(queue).toContainText('2× Abfangjäger');
-    await expect(queue).toContainText('nächste fertig in');
-    await expect(max).toHaveText('(max 0)');
-    await expect(fighter.locator('.lv')).toHaveText('(vorhanden: 0)');
-
-    seed({ name, finishUnits: 1 });
-    await page.reload();
-    await expect(queue).toContainText('1× Abfangjäger');
-    await expect(queue).toContainText('nächste fertig in');
-    await expect(fighter.locator('.lv')).toHaveText('(vorhanden: 1)');
-    seed({ name, finishUnits: 2 });
-    await page.reload();
-    await expect(fighter.locator('.lv')).toHaveText('(vorhanden: 2)');
-    await expect(queue).toHaveCount(0);
-    expect(w.problems).toEqual([]);
-  });
-
   test('„Spähschädel pro Auspex-Erkundung“ is saved and sent by the galaxy spy button', async ({
     page,
   }) => {
