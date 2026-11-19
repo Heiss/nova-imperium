@@ -51,6 +51,10 @@ export interface Last {
   state: PlaytimeState;
   /** The end of its interval, on the server's clock. */
   end: number;
+  /** The time the interval it belongs to started: the end of its start row. */
+  opened: number;
+  /** The rows the interval holds after its start row: its heartbeats and, once it ended, its stop. */
+  beats: number;
 }
 
 /** An interval of time on the server's clock, in milliseconds. */
@@ -97,6 +101,17 @@ const reasonOf = (state: PlaytimeState, started: boolean): Reason =>
       ? 'idle'
       : 'background';
 
+/** Whether the page's last report is an active one younger than a heartbeat: a start now repeats it. */
+const startsTooSoon = (last: Last | null, now: number): boolean =>
+  last !== null &&
+  last.state === 'active' &&
+  now >= last.end &&
+  now - last.end < HEARTBEAT_MS;
+
+/** Whether the open interval holds as many heartbeats as the time since its start allows. */
+const beatsTooSoon = (last: Last, now: number): boolean =>
+  last.beats > Math.floor((now - last.opened) / HEARTBEAT_MS);
+
 /**
  * What an arriving report is worth (#232, counting contract). The interval
  * it confirms ends now and is as long as the page claims, at most one
@@ -110,18 +125,23 @@ const reasonOf = (state: PlaytimeState, started: boolean): Reason =>
  *   at most one inactivity timeout ago [V]: the page would have reported
  *   twice by then, so a longer gap is a lost connection, not activity.
  * - A report that ends an interval without one to end is ignored.
+ * - A page stores at most one row per heartbeat interval where it only
+ *   repeats itself (owner, 2026-11-19, #232), so a script cannot fill the
+ *   table: a heartbeat is accepted while the interval holds no more
+ *   heartbeats than whole heartbeat intervals have passed since it started
+ *   (a late or early arrival never loses one, the count is of the interval,
+ *   not of the gap), and a start is ignored while the page's last report is
+ *   an active one that is younger than a heartbeat. The report that ends an
+ *   interval is never limited: it carries real credit and an interval has
+ *   one. A dropped report credits nothing and changes nothing, so the next
+ *   one is judged against the same last report.
  */
 export function judge(report: Report, last: Last | null, now: number): Verdict {
   if (last && report.seq <= last.seq) return { accept: false };
-  const open =
-    last !== null &&
-    last.state === 'active' &&
-    now >= last.end &&
-    now - last.end <= IDLE_MS;
-  if (report.since === null || !open) {
-    if (report.state !== 'active') return { accept: false };
-    return { accept: true, reason: 'start', start: now, end: now };
-  }
+  if (report.since === null || !continues(last, now))
+    return starting(report, last, now);
+  if (report.state === 'active' && beatsTooSoon(last, now))
+    return { accept: false };
   const credit = Math.min(report.since, HEARTBEAT_MS, now - last.end);
   return {
     accept: true,
@@ -129,6 +149,20 @@ export function judge(report: Report, last: Last | null, now: number): Verdict {
     start: now - credit,
     end: now,
   };
+}
+
+/** Whether the page's last report leaves an interval open that a report now continues. */
+const continues = (last: Last | null, now: number): last is Last =>
+  last !== null &&
+  last.state === 'active' &&
+  now >= last.end &&
+  now - last.end <= IDLE_MS;
+
+/** A report that opens an interval: an active one, not too soon after the last; it earns no time. */
+function starting(report: Report, last: Last | null, now: number): Verdict {
+  if (report.state !== 'active' || startsTooSoon(last, now))
+    return { accept: false };
+  return { accept: true, reason: 'start', start: now, end: now };
 }
 
 /** The intervals merged where they touch or overlap; the input need not be sorted. */

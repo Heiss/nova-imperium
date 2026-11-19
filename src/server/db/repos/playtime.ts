@@ -75,12 +75,25 @@ export class SqlitePlaytime implements Playtime {
   }
 
   lastOfInstance(user: string, instance: string): Last | null {
+    // The interval of the last row: its start row is the page's latest one of
+    // the reason `start`; the rows after it are the heartbeats and the stop.
     const row = this.db
       .prepare(
-        `SELECT seq, state, end_ms AS end FROM playtime_events
-         WHERE user_id = ? AND instance = ? ORDER BY seq DESC LIMIT 1`,
+        `WITH opened AS (
+           SELECT seq, end_ms FROM playtime_events
+           WHERE user_id = @user AND instance = @instance AND reason = 'start'
+           ORDER BY seq DESC LIMIT 1
+         )
+         SELECT e.seq, e.state, e.end_ms AS end,
+                COALESCE((SELECT end_ms FROM opened), e.end_ms) AS opened,
+                (SELECT COUNT(*) FROM playtime_events b
+                 WHERE b.user_id = @user AND b.instance = @instance
+                   AND b.seq > COALESCE((SELECT seq FROM opened), e.seq)) AS beats
+         FROM playtime_events e
+         WHERE e.user_id = @user AND e.instance = @instance
+         ORDER BY e.seq DESC LIMIT 1`,
       )
-      .get(user, instance) as Last | undefined;
+      .get({ user, instance }) as Last | undefined;
     return row ?? null;
   }
 
