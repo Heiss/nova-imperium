@@ -6,6 +6,7 @@ import {
   describeError,
   failedCall,
   reportContextLine,
+  reportContextText,
   reportFormHTML,
   type ReporterOptions,
 } from './error-report.ts';
@@ -217,6 +218,12 @@ describe('the form „Problem melden“', () => {
         requestId: null,
       }),
     ).toBe('Seite: help · Version: unbekannt · Letzter Vorgang: –');
+  });
+
+  it('is the same line as text, which the form of „Optionen“ shows as it is', () => {
+    expect(reportContextText(context)).toBe(
+      'Seite: fleet · Version: 26.11.21 · Letzter Vorgang: 0f8e2b7a-1c3d-4e5f-8a9b-0c1d2e3f4a5b · Meldung: Serverfehler. <b>',
+    );
   });
 
   it('sends the context in hidden fields with a text of up to 1,000 characters', () => {

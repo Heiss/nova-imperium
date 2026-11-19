@@ -12,20 +12,10 @@ import {
   GIFT_RESOURCES,
   GIFT_SHIPS_EACH,
 } from '../../core/endzeit.ts';
-import { articleHref } from '../logic/address.ts';
 import { ENDZEIT_NOTE } from '../logic/endzeit.ts';
-import { reportFormHTML } from '../logic/error-report.ts';
-import { explainOptionsHTML } from '../logic/explain.ts';
-import { levelOptionsHTML } from '../logic/level-mode.ts';
-import { mainPlanetHTML } from '../logic/main-planet.ts';
-import { OWN_ACTIVITY_PLACEHOLDER } from '../logic/own-activity.ts';
-import {
-  adminArchiveHTML,
-  archiveHTML,
-  shownArchive,
-} from '../logic/round-archive.ts';
-import { vacationHTML } from '../logic/vacation.ts';
+import { adminArchiveHTML, shownArchive } from '../logic/round-archive.ts';
 import { gainWarning } from '../logic/market.ts';
+import { deleteAccountText } from '../logic/options.ts';
 import { pushKindsHTML, shownPushOff } from '../logic/push-options.ts';
 import { esc, fmt } from '../logic/format.ts';
 import type { AdminState, GameState } from '../logic/types.ts';
@@ -72,32 +62,6 @@ export const notificationBoxes = (
   `${pushKindsBox(s, ui)}
  ${box('Browser-Benachrichtigungen', '<p>Meldungen zu Aufträgen, Flotten und neuen Nachrichten auf diesem Gerät.</p><button data-act="pushEnable">Aktivieren</button> <button data-act="pushDisable">Deaktivieren</button>')}`;
 
-/** The article of the Lexicanum that replaced the box „Regeln dieses Universums“ (#288, B4). */
-const UNIVERSE_ARTICLE = 'rule-universe';
-
-export const help = (v: V): string => `<h2>Optionen</h2>
- ${box('Optionen', `<div class="flex">Spähschädel pro Auspex-Erkundung von der Sternenkarte: <input type="number" id="o_probes" min="1" value="${v.s.me.probes || 1}" aria-label="Spähschädel pro Auspex-Erkundung"></div><div class="flex mt"><label for="o_explain">(?)-Symbol:</label> <select id="o_explain">${explainOptionsHTML(v.s.me.explain)}</select></div><div class="flex mt"><label for="o_levels">Stufenübersicht:</label> <select id="o_levels">${levelOptionsHTML(v.s.me.levelTable)}</select></div><p><button data-act="saveopt">Speichern</button></p>`)}
- ${box('Hauptplanet', mainPlanetHTML(v.s, v.now))}
- ${box('Urlaubsmodus', vacationHTML(v.s.round.vacationHours))}
- ${box('Meine Aktivität &amp; Spielzeit', OWN_ACTIVITY_PLACEHOLDER)}
- ${box('Rundenarchiv', archiveHTML(shownArchive(v.s)))}
- ${box('Darstellung', `<label class="switch"><input type="checkbox" id="o_anim" ${v.ui.animations ? 'checked' : ''}> Animationen</label><p class="dim">Planeten drehen sich, Wolken ziehen. Gilt für dieses Gerät; ist im System „Bewegung reduzieren“ eingestellt, bleibt alles ruhig.</p>`)}
- ${passwordBox(v.ui)}
- ${passkeysBox()}
- ${box('App installieren', '<p>Öffne das Browsermenü und wähle „App installieren“ oder „Zum Startbildschirm hinzufügen“. Auf iPhone und iPad öffne Nova Imperium in Safari, tippe auf „Teilen“ und wähle „Zum Home-Bildschirm“ und „Als Web-App öffnen“. Zum Spielen brauchst du eine Internetverbindung.</p><button data-act="installApp" id="pwa-install" hidden>App installieren</button>')}
- ${notificationBoxes(v.s, v.ui)}
- ${box(
-   'Problem melden',
-   reportFormHTML('reportform', {
-     source: 'form',
-     page: v.ui.view,
-     version: v.ui.news?.version ?? '',
-     requestId: v.ui.lastRequestId ?? null,
-   }),
- )}
- ${deleteAccountBox(v.s.round)}
- <p>Tempo, Größe und alle Einstellungen dieser Runde stehen im Lexicanum: <a class="lx-a" href="${articleHref(UNIVERSE_ARTICLE)}" data-act="lex" data-a="${UNIVERSE_ARTICLE}">Dieses Universum</a>.</p>`;
-
 /** A sentence about guilds, only in a round with guilds (#191). */
 const guildNote = (round: RoundRules, sentence: string): string =>
   round.guilds ? ` ${sentence}` : '';
@@ -106,7 +70,7 @@ const guildNote = (round: RoundRules, sentence: string): string =>
 export const deleteAccountBox = (round: RoundRules): string =>
   box(
     'Account löschen',
-    `<p>Dein Konto und deine Spielstände werden dauerhaft gelöscht.${guildNote(round, 'Leitest du eine Gilde, wird sie aufgelöst.')}</p><button type="button" class="red" data-act="deleteAccount">Account löschen</button>`,
+    `<p>${deleteAccountText(round)}</p><button type="button" class="red" data-act="deleteAccount">Account löschen</button>`,
   );
 
 /** The confirmation of „Account löschen“ with the password. */

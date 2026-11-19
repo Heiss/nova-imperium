@@ -8,10 +8,12 @@ import type { V } from './common.ts';
 import { mountCatalogList } from './catalog-list.ts';
 import { mountFleet } from './fleet.ts';
 import { mountGalaxy } from './galaxy.ts';
+import { mountGuilds } from './guilds.ts';
 import { mountHighscore } from './highscore.ts';
 import { mountLexicanum } from './lexicanum.ts';
 import { mountMessages } from './messages.ts';
 import { mountNews } from './news.ts';
+import { mountOptions } from './options.ts';
 import { mountOverview } from './overview.ts';
 import { mountProducerTable } from './producer-table.ts';
 
@@ -35,6 +37,8 @@ const MOUNT: Record<
   messages: mountMessages,
   highscore: mountHighscore,
   achievements: mountAchievements,
+  help: mountOptions,
+  guilds: mountGuilds,
   [LEXICANUM_VIEW]: mountLexicanum,
 };
 
@@ -53,6 +57,8 @@ export const ANEW: ReadonlySet<string> = new Set([
   'messages',
   'highscore',
   'achievements',
+  'help',
+  'guilds',
 ]);
 
 /** Mounts the component of the view; any other view gets the overview. */

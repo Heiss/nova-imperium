@@ -54,6 +54,7 @@ import { renderGate } from './views/vacation-lock.ts';
 import { ANEW, type Mounted, MOUNTED, mountView } from './views/mount.ts';
 import { signInWithPasskey } from './passkeys.ts';
 import { $, keepChatScroll, val } from './dom.ts';
+import { modal } from './modal.ts';
 import {
   assembleActs,
   assembleForms,
@@ -259,12 +260,6 @@ window.addEventListener('error', (event) =>
 window.addEventListener('unhandledrejection', (event) =>
   reportError({ kind: 'rejection', ...describeError(event.reason) }),
 );
-
-function modal(html: string): void {
-  const m = $('#modal')!;
-  $('#modalIn')!.innerHTML = html;
-  m.classList.toggle('show', html !== '');
-}
 
 // ----- server -----
 

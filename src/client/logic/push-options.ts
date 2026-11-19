@@ -1,4 +1,4 @@
-// The push kinds in „Hilfe & Optionen“ (issue #192): one checkbox per kind,
+// The push kinds in „Optionen“ (issue #192): one checkbox per kind,
 // for all devices of the account. A change saves at once.
 import {
   GUILD_PUSH_TOPICS,
@@ -22,39 +22,61 @@ const LABELS: Record<PushTopic, string> = {
   'guild-chat': 'Nachrichten im Gilden-Chat',
 };
 
-const inputId = (t: PushTopic): string => `push_${t}`;
-
-/**
- * One checkbox per kind; a kind is on unless the player switched it off.
- * The kinds of the guild chat are hidden while guilds are off (owner,
- * 2026-11-15); their stored choice stays.
- */
-function pushOptionsHTML(
-  off: readonly string[] | undefined,
-  guilds: boolean,
-): string {
-  const shown = guilds
-    ? PUSH_TOPICS
-    : PUSH_TOPICS.filter((t) => !GUILD_PUSH_TOPICS.includes(t));
-  const boxes = shown.map(
-    (t) =>
-      `<label class="switch"><input type="checkbox" id="${inputId(t)}" data-chg="push" data-k="${t}"${off?.includes(t) ? '' : ' checked'}> ${LABELS[t]}</label>`,
-  );
-  return `<fieldset class="push-kinds"><legend>Welche Meldungen per Push kommen</legend>${boxes.join('')}</fieldset>`;
+/** One checkbox of the box: a kind, with the id of its input. */
+export interface PushKind {
+  topic: PushTopic;
+  id: string;
+  label: string;
+  /** A kind is on unless the player switched it off. */
+  checked: boolean;
 }
 
+/** The text above the checkboxes and the legend of their fieldset. */
+export const PUSH_KINDS_NOTE =
+  'Gilt für alle deine Geräte mit aktivierten Browser-Benachrichtigungen. Eine Änderung wird sofort gespeichert.';
+export const PUSH_KINDS_LEGEND = 'Welche Meldungen per Push kommen';
+
 /**
- * The content of the box „Benachrichtigungen“, or nothing on a server
- * without Web Push (owner, 2026-11-14).
+ * The checkboxes of the box „Benachrichtigungen“, or none on a server
+ * without Web Push (owner, 2026-11-14). A kind is on unless the player
+ * switched it off. The kinds of the guild chat are hidden while guilds are
+ * off (owner, 2026-11-15); their stored choice stays.
  */
-export const pushKindsHTML = (
+export function pushKinds(
   webPush: boolean | undefined,
   off: readonly string[] | undefined,
   guilds: boolean,
-): string =>
-  webPush === true
-    ? `<p>Gilt für alle deine Geräte mit aktivierten Browser-Benachrichtigungen. Eine Änderung wird sofort gespeichert.</p>${pushOptionsHTML(off, guilds)}`
-    : '';
+): PushKind[] | null {
+  if (webPush !== true) return null;
+  const shown = guilds
+    ? PUSH_TOPICS
+    : PUSH_TOPICS.filter((t) => !GUILD_PUSH_TOPICS.includes(t));
+  return shown.map((t) => ({
+    topic: t,
+    id: `push_${t}`,
+    label: LABELS[t],
+    checked: !off?.includes(t),
+  }));
+}
+
+/**
+ * The content of the box „Benachrichtigungen“ as markup, or nothing on a
+ * server without Web Push: for the lock screen of the vacation mode, which is
+ * still HTML. The page „Optionen“ renders `pushKinds()` as a component.
+ */
+export function pushKindsHTML(
+  webPush: boolean | undefined,
+  off: readonly string[] | undefined,
+  guilds: boolean,
+): string {
+  const kinds = pushKinds(webPush, off, guilds);
+  if (!kinds) return '';
+  const boxes = kinds.map(
+    (k) =>
+      `<label class="switch"><input type="checkbox" id="${k.id}" data-chg="push" data-k="${k.topic}"${k.checked ? ' checked' : ''}> ${k.label}</label>`,
+  );
+  return `<p>${PUSH_KINDS_NOTE}</p><fieldset class="push-kinds"><legend>${PUSH_KINDS_LEGEND}</legend>${boxes.join('')}</fieldset>`;
+}
 
 /** Where the player's latest choice waits until the server has it. */
 export interface PushChoice {

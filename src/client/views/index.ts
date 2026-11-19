@@ -1,15 +1,12 @@
 import type { RoundRules } from '../../core/round.ts';
 import type { V } from './common.ts';
 import { friends } from './friends.ts';
-import { guilds } from './guilds.ts';
 import { market } from './market.ts';
-import { admin, help } from './misc.ts';
+import { admin } from './misc.ts';
 
 export const VIEWS: Record<string, (v: V) => string> = {
   market,
-  guilds,
   friends,
-  help,
   admin,
 };
 

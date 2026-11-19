@@ -606,6 +606,48 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   through `src/test/highscore-view.ts` and `src/test/achievements-view.ts`;
   the pure pages have their tests in `logic/highscore.test.ts` and
   `logic/achievements.test.ts`.
+* **[V]** „Optionen“ of #118, bundle 5, second part: the property test
+  `src/test/options-reference.test.ts` keeps `Options` equal to the HTML
+  before (frozen there: `help()` of `views/misc.ts` with the HTML of the
+  choices, the main planet, the vacation mode, the place of the play time,
+  the push kinds and the account boxes; the box „Rundenarchiv“ and the form
+  „Problem melden“ still call `archiveHTML()` and `reportFormHTML()`, which
+  the admin and the dialog behind an error message use too) on 300
+  generated states (fast-check seed 118: planets and moons of the player and
+  of others with markup in their names, the main planet, a lock that is
+  over, now or running, the choices with unknown values, rounds with and
+  without guilds, push on or off with a pending choice, the minimum length
+  of a password, page, version and request of the form), with hand-built
+  cases for the rare marks (no planet, a lock, no push, no guilds, a pending
+  push choice, an archive after an error and with rounds); one test pins
+  the ids, `data-act`s and classes that the features, `main.ts` and
+  `style.css` read. `normalize()` of `src/test/markup.ts` now also reads
+  `checked` and `required` without their empty value and puts no white
+  space next to `form`, `fieldset` and `legend`, which Svelte trims. The
+  frozen link to the Lexicanum writes its `&` as `&amp;`, as Svelte does.
+  The tests of the
+  view (`misc.test.ts`) run on the component through
+  `src/test/options-view.ts`; the pure page has its tests in
+  `logic/options.test.ts`.
+* **[V]** „Gilden“ of #118, bundle 6: the property test
+  `src/test/guilds-reference.test.ts` keeps the components equal to the HTML
+  before (frozen there: `guilds()` with its helpers, `transferDialog()`,
+  `dissolveDialog()`, `adminChatDialog()` and `box()`) on 300 generated
+  states (fast-check seed 118: up to three guilds with tags, names and
+  profiles that hold markup, own guild or none or an applicant, a Leitung or
+  any rank with any rights, ranks of 24 characters and older longer ones,
+  members with or without a rank, a chat of messages and every kind of
+  event, the admin or not) and 300 each for the three dialogs, with
+  hand-built cases for the rare marks (the longest tag and name of #274, the
+  Leitung against an officer against a rank without rights, no guild, guilds
+  switched off for the round, a member in vacation, no open applications, a
+  guild without a profile, a chat that only reads or only writes); one test
+  checks that the cases reach every button of the page, one pins the ids and
+  hooks the handlers read. `normalize()` of `src/test/markup.ts` reads
+  `required` and `checked` as it does `hidden`, and ignores white space next
+  to `form` and `h3`. The tests of the chat box (`views/guilds.test.ts`) run
+  on the components through `src/test/guilds-view.ts`; the pages have their
+  tests in `logic/guilds.test.ts`, the dialog in `src/client/modal.test.ts`.
 * **[E]** No comparison with a catalog key outside `src/features/` (#114,
   owner, 2026-11-14): `src/test/catalog-keys.test.ts` reads `src` with the
   TypeScript and Svelte parsers, as `src/test/naming.test.ts` does, and

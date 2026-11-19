@@ -22,9 +22,9 @@ const hours = (n: number): string => `${n} ${n === 1 ? 'Stunde' : 'Stunden'}`;
 export const confirmText = (n: number): string =>
   `Urlaubsmodus aktivieren? Beenden kannst du ihn frühestens nach ${hours(n)}.`;
 
-/** The content of the box outside of the vacation mode, for the minimum duration `n` in hours. */
-export const vacationHTML = (n: number): string =>
-  `<p>Im Urlaubsmodus ruht die Produktion deiner Planeten und Monde, und du kannst nichts bauen, forschen oder Flotten senden. Andere Spieler können keine neuen Flotten zu dir schicken; bereits gestartete kommen noch an. Beenden kannst du ihn frühestens nach ${hours(n)}.</p><p>Aktivieren kannst du ihn nur, wenn keine eigenen Flotten unterwegs sind und weder gebaut, geforscht noch in der Schiffsschmiede gearbeitet wird.</p><button data-act="startVacation">Urlaubsmodus aktivieren</button>`;
+/** The first paragraph of the box outside of the vacation mode, for the minimum duration `n` in hours. */
+export const vacationIntro = (n: number): string =>
+  `Im Urlaubsmodus ruht die Produktion deiner Planeten und Monde, und du kannst nichts bauen, forschen oder Flotten senden. Andere Spieler können keine neuen Flotten zu dir schicken; bereits gestartete kommen noch an. Beenden kannst du ihn frühestens nach ${hours(n)}.`;
 
 /** Whether the state shows the lock screen: the player is in vacation mode. */
 export const locked = (me: Pick<GameState['me'], 'vacation'>): boolean =>
