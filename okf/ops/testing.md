@@ -532,6 +532,27 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   compared. The tests of the reports of holding (`holding.test.ts`) run on
   the component through `src/test/messages-view.ts`; the allow list of
   `catalog-keys.test.ts` names the new file of the report type „spy“.
+* **[V]** „Highscore“ and „Achievements“ of #118, bundle 5: the property
+  tests `src/test/highscore-reference.test.ts` and
+  `src/test/achievements-reference.test.ts` keep the components equal to the
+  HTML before (frozen there: `highscore()` with `highscoreButtonsHTML()` and
+  `homeCell()`, and `achievements()` with its helpers, `box()` and the fold
+  of #189) on 300 generated states each (fast-check seed 118: players with
+  markup in their names, scores or none, planets and moons of the players,
+  every category and an unknown one; progress and claimed goals per series,
+  the daily reward or none, a round with or without achievements, either
+  group unfolded), with hand-built cases for the rare marks (a player with a
+  moon only, equal points, no state of the page, the daily reward alone,
+  every goal claimed with both groups unfolded); one test each pins the
+  classes and marks that `style.css` and `features/achievements.ts` select.
+  `normalize()` of `src/test/markup.ts` reads the marks of the achievements
+  (`data-achievement`, `data-achievement-group`, `data-later`, `data-all`,
+  `data-daily-reward`) without their empty value, as it does `hidden`: Svelte
+  writes `data-all=""` where the HTML view wrote `data-all`. The tests of the
+  views (`misc.test.ts`, `achievements.test.ts`) run on the components
+  through `src/test/highscore-view.ts` and `src/test/achievements-view.ts`;
+  the pure pages have their tests in `logic/highscore.test.ts` and
+  `logic/achievements.test.ts`.
 * **[E]** No comparison with a catalog key outside `src/features/` (#114,
   owner, 2026-11-14): `src/test/catalog-keys.test.ts` reads `src` with the
   TypeScript and Svelte parsers, as `src/test/naming.test.ts` does, and

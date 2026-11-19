@@ -792,10 +792,12 @@ choice of the patterns to the assistant's recommendation below
   either: the old view kept its state in `client.ui` (`ft`, `fm`,
   `union`), which stays there; `mounted` now also holds the fleet view.
   Bundle 4 (Nachrichten, Neuigkeiten) moved none either: the old views kept
-  `client.ui.openRep` and `client.ui.news`, which stay there. Still
-  rendered as HTML: the views Highscore, Gilden, Achievements, Hilfe &
-  Optionen and Admin (and Marktplatz and Freunde, which came after the
-  bundles were proposed).
+  `client.ui.openRep` and `client.ui.news`, which stay there. Bundle 5
+  (Highscore, Achievements) moved none either: the old views kept
+  `client.ui.highscore` and the folds of #189 (`unfolded` of
+  `logic/achievement-fold.ts`), which stay there. Still rendered as HTML:
+  the views Gilden, Hilfe & Optionen and Admin (and Marktplatz and Freunde,
+  which came after the bundles were proposed).
 * **[E]** Bundle 3 after bundle 2 (owner, 2026-11-15 and 2026-11-16: the
   order of the bundles of #118 „Geklärt, Nachtrag 3“, unchanged by
   „Nachtrag 4“): Flotte, which the earlier work paused (the branch
@@ -857,6 +859,33 @@ choice of the patterns to the assistant's recommendation below
   every render (`ANEW`), as their HTML was rendered anew: an opened report
   stays open (`client.ui.openRep`, toggled by `features/reports.ts`) and
   the news render again once they have loaded. No visible change.
+* **[E]** Bundle 5 after bundle 4 (owner, 2026-11-15 and 2026-11-16: the
+  order of the bundles of #118 „Geklärt, Nachtrag 3“, unchanged by
+  „Nachtrag 4“): Highscore, Achievements, and Hilfe & Optionen.
+* **[V]** Built with #118, bundle 5, first part (Highscore, Achievements;
+  „Hilfe & Optionen“, now „Optionen“, follows in its own part):
+  `Highscore.svelte`, mounted by `mountHighscore()` of `views/highscore.ts`,
+  renders `highscorePage(v)` of `logic/highscore.ts`: the buttons of the
+  categories (#78), the table `.scores` with each player's place, name, home
+  planet (a planet, never a moon, #53, with its link to the system) and
+  points, and the note below. `Achievements.svelte`, mounted by
+  `mountAchievements()` of `views/achievements.ts`, renders
+  `achievementsPage(v)` of the new `logic/achievements.ts`: the title
+  („Achievements“, or „Belohnungen“ in a round with the daily reward only),
+  the box of the daily reward (#220), the filter (search, category, status)
+  and the groups „Einlösbar“, „Offen“ and „Erledigt“ with the fold of the
+  phone (#189: `data-later` on the entries after the next goal of a series,
+  `data-fold` and `data-all` on the group, the button `achFold`). The markup
+  is that of the HTML views, so the rules of `style.css` for `.scores` and
+  the fold keep working, and `features/achievements.ts` still reads the
+  filter by ids and the marks `data-achievement`, `data-category`,
+  `data-status` and `data-search`. Both views leave `VIEWS` of
+  `views/index.ts`, are added to `views/mount.ts` and are mounted anew on
+  every render (`ANEW`), as their HTML was rendered anew: the filter is
+  applied again after each render (`afterRender`), and the folds stay in
+  `unfolded`. `highscoreButtonsHTML()` and the two HTML functions are gone;
+  `homeCell()` of `views/common.ts` stays for the buddy list. `main.ts`
+  stays at 1,191 lines: neither view had code in it. No visible change.
 * **[E]** Bundle 2 after bundle 1 (owner, 2026-11-15 and 2026-11-16: the
   order of the bundles of #118 „Geklärt, Nachtrag 3“, unchanged by
   „Nachtrag 4“): the Sternenkarte, which the phone view #189 builds on
@@ -1318,6 +1347,7 @@ src/client/                state, components (generic), views
      `Overview` (section 9); bundle 1 the header line, the navigation and
      the resource bar (section 9); bundle 2 the Sternenkarte and bundle 3
      the fleet view (section 9); bundle 4 Nachrichten and Neuigkeiten
+     (section 9); bundle 5, first part, Highscore and Achievements
      (section 9); the other views follow.
   8. Places (O11), its own pull request before #45 and #53 (owner,
      2026-11-12). Built with #119.

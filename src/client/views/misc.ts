@@ -17,14 +17,7 @@ import { ENDZEIT_NOTE } from '../logic/endzeit.ts';
 import { reportFormHTML } from '../logic/error-report.ts';
 import { explainOptionsHTML } from '../logic/explain.ts';
 import { levelOptionsHTML } from '../logic/level-mode.ts';
-import { homePlanetOf } from '../logic/friends.ts';
 import { mainPlanetHTML } from '../logic/main-planet.ts';
-import {
-  highscoreButtonsHTML,
-  highscoreCategory,
-  highscoreNote,
-  highscoreRanking,
-} from '../logic/highscore.ts';
 import { OWN_ACTIVITY_PLACEHOLDER } from '../logic/own-activity.ts';
 import {
   adminArchiveHTML,
@@ -36,19 +29,7 @@ import { gainWarning } from '../logic/market.ts';
 import { pushKindsHTML, shownPushOff } from '../logic/push-options.ts';
 import { esc, fmt } from '../logic/format.ts';
 import type { AdminState, GameState } from '../logic/types.ts';
-import { box, homeCell, type Ui, type V } from './common.ts';
-
-export function highscore(v: V): string {
-  // One ranking per category (#78 D3); `points` is that of the category.
-  const cat = highscoreCategory(v.ui.highscore);
-  const list = highscoreRanking(v.s.players, cat);
-  const rows = list.map(([id, x], i) => {
-    // A planet, never a moon (#53).
-    const home = homeCell(homePlanetOf(v.s.galaxy, id));
-    return `<tr class="${id === v.s.me.id ? 'me' : ''}"><td class="n">${i + 1}</td><td>${esc(x.name)}</td><td>${home}</td><td class="n">${fmt(x.points)}</td></tr>`;
-  });
-  return `<h2 id="highscore-h">Highscore</h2>${highscoreButtonsHTML(cat)}<div class="box"><table class="scores"><tr><th class="n">Platz</th><th>Spieler</th><th>Heimatplanet</th><th class="n">Punkte</th></tr>${rows.join('')}</table></div><div class="dim">${highscoreNote(cat)}</div>`;
-}
+import { box, type Ui, type V } from './common.ts';
 
 const passwordMinimum = (ui: Ui): string =>
   ui.passwordMinLength === undefined

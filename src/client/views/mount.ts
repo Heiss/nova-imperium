@@ -3,10 +3,12 @@
 // by name. A view that moves from HTML to a component is added here.
 import { CATALOG_VIEWS, catalogKind } from '../logic/catalog-list.ts';
 import { LEXICANUM_VIEW } from '../logic/address.ts';
+import { mountAchievements } from './achievements.ts';
 import type { V } from './common.ts';
 import { mountCatalogList } from './catalog-list.ts';
 import { mountFleet } from './fleet.ts';
 import { mountGalaxy } from './galaxy.ts';
+import { mountHighscore } from './highscore.ts';
 import { mountLexicanum } from './lexicanum.ts';
 import { mountMessages } from './messages.ts';
 import { mountNews } from './news.ts';
@@ -31,6 +33,8 @@ const MOUNT: Record<
   fleet: mountFleet,
   news: mountNews,
   messages: mountMessages,
+  highscore: mountHighscore,
+  achievements: mountAchievements,
   [LEXICANUM_VIEW]: mountLexicanum,
 };
 
@@ -47,6 +51,8 @@ export const ANEW: ReadonlySet<string> = new Set([
   'fleet',
   'news',
   'messages',
+  'highscore',
+  'achievements',
 ]);
 
 /** Mounts the component of the view; any other view gets the overview. */

@@ -4,12 +4,13 @@ import { describe, expect, it } from 'vitest';
 import {
   HIGHSCORE_CATEGORIES,
   type HighscoreCategory,
-  highscoreButtonsHTML,
   highscoreCategory,
   highscoreNote,
+  highscorePage,
   highscoreRanking,
 } from './highscore.ts';
-import type { Players } from './types.ts';
+import type { GameState, Players } from './types.ts';
+import type { Ui, V } from '../views/common.ts';
 
 const players: Players = {
   u_Anna: {
@@ -122,18 +123,86 @@ describe('the ranking of a category', () => {
   });
 });
 
-describe('the buttons of the categories', () => {
+/** A view state of the players with the places of the galaxy and the chosen category. */
+const view = (
+  galaxy: unknown[],
+  highscore?: HighscoreCategory,
+  me = 'u_Bert',
+): V =>
+  ({
+    s: { me: { id: me }, players, galaxy } as unknown as GameState,
+    ui: { highscore } as Ui,
+  }) as V;
+
+describe('the page of the highscore', () => {
   it('has one button per category, only the shown one pressed', () => {
-    const html = highscoreButtonsHTML('fleet');
-    expect(html).toBe(
-      '<div class="flex" role="group" aria-labelledby="highscore-h">' +
-        '<button type="button" data-act="highscore" data-cat="total" aria-pressed="false">Gesamt</button>' +
-        '<button type="button" data-act="highscore" data-cat="buildings" aria-pressed="false">Gebäude</button>' +
-        '<button type="button" data-act="highscore" data-cat="research" aria-pressed="false">Forschung</button>' +
-        '<button type="button" data-act="highscore" data-cat="fleet" aria-pressed="true">Flotte</button>' +
-        '<button type="button" data-act="highscore" data-cat="defense" aria-pressed="false">Verteidigung</button>' +
-        '</div>',
+    expect(highscorePage(view([], 'fleet')).buttons).toEqual([
+      { key: 'total', label: 'Gesamt', pressed: false },
+      { key: 'buildings', label: 'Gebäude', pressed: false },
+      { key: 'research', label: 'Forschung', pressed: false },
+      { key: 'fleet', label: 'Flotte', pressed: true },
+      { key: 'defense', label: 'Verteidigung', pressed: false },
+    ]);
+  });
+
+  it('shows the total until a category is chosen, or one that does not exist', () => {
+    for (const chosen of [undefined, 'resources' as HighscoreCategory]) {
+      const page = highscorePage(view([], chosen));
+      expect(page.buttons.find((b) => b.pressed)?.key).toBe('total');
+      expect(page.note).toBe(highscoreNote('total'));
+    }
+  });
+
+  it('numbers the rows by the points of the category and marks the own one', () => {
+    const page = highscorePage(view([], 'fleet'));
+    expect(
+      page.rows.map((r) => [r.rank, r.name, r.points, r.me, r.home]),
+    ).toEqual([
+      [1, 'Anna', '40', false, null],
+      [2, 'Bert', '5', true, null],
+      [3, 'Cleo', '0', false, null],
+    ]);
+    expect(page.note).toBe(highscoreNote('fleet'));
+  });
+
+  it('formats the points like the rest of the interface', () => {
+    const rich: Players = { u_Anna: { name: 'Anna', points: 1234567 } };
+    const page = highscorePage({
+      s: { me: { id: 'u_x' }, players: rich, galaxy: [] },
+      ui: {},
+    } as unknown as V);
+    expect(page.rows[0]!.points).toBe('1.234.567');
+  });
+
+  it('names a planet of the player, never a moon, even when the moon is listed first (#53)', () => {
+    const at = { g: 1, s: 2, p: 5, temp: 20, owner: 'u_Anna' };
+    const page = highscorePage(
+      view([
+        { ...at, id: 'm1_2_5', kind: 'moon', name: 'Mond' },
+        { ...at, id: 'p1_2_5', kind: 'planet', name: 'Heimat' },
+      ]),
     );
+    const anna = page.rows.find((r) => r.id === 'u_Anna')!;
+    expect(anna.home).toEqual({ name: 'Heimat', g: 1, s: 2, at: '[1:2:5]' });
+    expect(JSON.stringify(page)).not.toContain('Mond');
+  });
+
+  it('has no home for a player with a moon only', () => {
+    const page = highscorePage(
+      view([
+        {
+          g: 1,
+          s: 2,
+          p: 5,
+          temp: 20,
+          owner: 'u_Anna',
+          id: 'm1_2_5',
+          kind: 'moon',
+          name: 'Mond',
+        },
+      ]),
+    );
+    expect(page.rows.find((r) => r.id === 'u_Anna')!.home).toBeNull();
   });
 });
 
