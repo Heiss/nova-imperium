@@ -7,6 +7,7 @@
 // Spähschädel of a spying. The symbols of a moon and a Trümmerfeld and the
 // button „Bergung“ keep their HTML of logic/moon.ts and logic/debris.ts.
 import { canFly } from '../../core/catalog.ts';
+import { expeditionLevel } from '../../core/expedition.ts';
 import { MISSION } from '../../core/missions.ts';
 import { placeName } from '../../core/moon.ts';
 import { placeId } from '../../core/place.ts';
@@ -16,7 +17,7 @@ import { freePosition } from './abandon.ts';
 import { activityNote, inactivityNote } from './activity.ts';
 import { debrisAt, debrisMark, harvestButton } from './debris.ts';
 import { fmt } from './format.ts';
-import { isProtected, maxStay, nameOf, ranks } from './game.ts';
+import { isProtected, nameOf, ranks } from './game.ts';
 import { canLaunch } from './missiles.ts';
 import { moonAt, moonMark } from './moon.ts';
 import { type Countdown, countdown } from './overview.ts';
@@ -244,7 +245,7 @@ const survey = (v: V, c: Coords): GalaxyAction[] =>
  * research and a ship on the shown planet that flies.
  */
 const expedition = (v: V, c: Coords): GalaxyAction[] =>
-  maxStay('expedition', v.R.research) >= 1 &&
+  expeditionLevel(v.R.research) >= 1 &&
   Object.entries(v.P.ships).some(([k, n]) => n > 0 && canFly(k))
     ? [fleetTo('button', 'expedition', MISSION.expedition, at(c, false))]
     : [];

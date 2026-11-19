@@ -5,8 +5,8 @@ export const order = 50;
 export const target: TargetKind = 'own';
 export const cargo = true;
 export const returns = false;
-export const visible = false;
 export const silent = false;
 export const alertsGuild = false;
+export const holds = false;
 /** No check of its own beyond the target kind. */
 export const canSend = (): SendError | undefined => undefined;

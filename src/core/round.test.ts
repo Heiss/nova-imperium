@@ -1,289 +1,190 @@
-// The settings of a round (#214, #283): the registry, both reward options
-// and the guild switch are yes or no, the locks of the main planet and of
-// a given-up position (#224) and the thresholds of the activity markers
-// (#229) whole numbers; an option not sent keeps the current one.
+// The functions of the registry of the round settings (#214, #283): reading
+// the stored values, the request, the check and the values of a new round. They
+// run over the settings of the registry, whatever they are (#310): a feature
+// pins its own entries in its own test, and the rules for all entries are in
+// `round-registry.test.ts`.
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
+import { roundDefaults } from '../test/fixtures.ts';
 import {
   ROUND_SETTINGS,
   type RoundSetting,
-  roundFieldId,
   roundRefused,
   roundRequest,
   roundValues,
   storedValues,
 } from './round.ts';
 
-/** The classic thresholds of the activity markers (#229). */
-const activity = {
-  activityRecent: 15,
-  activityMinutes: 59,
-  inactiveDays: 7,
-  longInactiveDays: 28,
+type Values = Record<string, number | boolean>;
+const settings: readonly RoundSetting[] = ROUND_SETTINGS;
+const defaults = roundDefaults();
+
+/** A valid value other than the default: a switch flips, a number moves to the other end. */
+const other = (s: RoundSetting): number | boolean =>
+  s.kind === 'switch' ? !s.def : s.def === s.max ? s.min : s.max;
+/** Every setting at a value other than its default. */
+const changed: Values = Object.fromEntries(
+  settings.map((s) => [s.name, other(s)]),
+);
+/** The name under which a setting is sent: its group, else its own. */
+const sentAs = (s: RoundSetting): string => s.group?.name ?? s.name;
+/** What the admin sends to set one setting, the rest of a group as `current`. */
+const send = (
+  s: RoundSetting,
+  value: unknown,
+  current: Values = defaults,
+): Record<string, unknown> => {
+  if (!s.group) return { [s.name]: value };
+  const members = settings.filter((x) => x.group === s.group);
+  const group = Object.fromEntries(
+    members.map((x) => [x.name, current[x.name]]),
+  );
+  return { [s.group.name]: { ...group, [s.name]: value } };
 };
-const current = {
-  abandonLock: 24,
-  achievements: true,
-  daily: false,
-  guilds: true,
-  mainLock: 7,
-  ...activity,
-  vacationHours: 24,
-};
-const both = { achievements: false, daily: true };
+/** The name of every refused setting. */
+const names = (list: readonly RoundSetting[]): string[] =>
+  list.map((s) => s.name);
+/** What the oracle says about a value: a switch is a boolean, a number a whole number of its range. */
+const isValid = (s: RoundSetting, value: unknown): boolean =>
+  s.kind === 'switch'
+    ? typeof value === 'boolean'
+    : Number.isInteger(value) &&
+      (value as number) >= s.min &&
+      (value as number) <= s.max;
 
-/** The names of the refused settings, as the old codes: rewards, guilds. */
-const refused = (
-  rewards: unknown,
-  guilds: unknown,
-  mainLock?: unknown,
-  abandonLock?: unknown,
-  vacationHours?: unknown,
-): string[] =>
-  roundRefused(current, {
-    rewards,
-    guilds,
-    mainLock,
-    abandonLock,
-    vacationHours,
-  }).map((s) => s.group?.name ?? s.name);
-
-const code = (rewards: unknown, guilds: unknown): string | null =>
-  refused(rewards, guilds)[0] ?? null;
-
-describe('the registry of the round settings', () => {
-  it('holds the settings of main in the fixed order of their numbers, with unique numbers, keys and names', () => {
-    // Owner, 2026-11-17: the order of main before #283; a new one is last.
-    expect(ROUND_SETTINGS.map((s) => [s.order, s.key, s.name])).toEqual([
-      [10, 'roundAchievements', 'achievements'],
-      [20, 'roundDaily', 'daily'],
-      [30, 'roundGuilds', 'guilds'],
-      [40, 'roundMainLock', 'mainLock'],
-      [50, 'roundAbandonLock', 'abandonLock'],
-      [60, 'roundActivityRecent', 'activityRecent'],
-      [70, 'roundActivityMinutes', 'activityMinutes'],
-      [80, 'roundInactiveDays', 'inactiveDays'],
-      [90, 'roundLongInactiveDays', 'longInactiveDays'],
-      // #223, after the numbers 60 to 140 of the open branches.
-      [150, 'roundVacationHours', 'vacationHours'],
-    ]);
-    const orders = ROUND_SETTINGS.map((s) => s.order);
-    expect(new Set(orders).size).toBe(orders.length);
-    expect(orders.every((o) => Number.isInteger(o) && o > 0)).toBe(true);
-    const keys = ROUND_SETTINGS.map((s) => s.key);
-    expect(new Set(keys).size).toBe(keys.length);
-    expect(new Set(ROUND_SETTINGS.map((s) => s.name)).size).toBe(keys.length);
-  });
-
-  it('keeps the members of a group together, a default and choices in the range', () => {
-    const settings: readonly RoundSetting[] = ROUND_SETTINGS;
-    for (const [i, s] of settings.entries()) {
-      const before = settings.slice(0, i).map((x) => x.group);
-      if (s.group && before.includes(s.group))
-        expect(settings[i - 1]!.group).toBe(s.group);
-      if (s.kind === 'number') {
-        expect(Number.isInteger(s.def)).toBe(true);
-        expect(s.def).toBeGreaterThanOrEqual(s.min);
-        expect(s.def).toBeLessThanOrEqual(s.max);
-        for (const c of s.choices ?? []) {
-          expect(c.value).toBeGreaterThanOrEqual(s.min);
-          expect(c.value).toBeLessThanOrEqual(s.max);
-        }
-      }
+describe('the values stored by a round', () => {
+  it('are the default when missing, yes or no for a switch (0 is no, any other number yes), the number as stored', () => {
+    expect(storedValues(() => undefined)).toEqual(
+      Object.fromEntries(settings.map((s) => [s.name, s.def])),
+    );
+    const stored = Object.fromEntries(
+      settings.map((s) => [
+        s.key,
+        s.kind === 'switch' ? Number(other(s)) : (other(s) as number),
+      ]),
+    );
+    expect(storedValues((k) => stored[k])).toEqual(changed);
+    for (const s of settings.filter((x) => x.kind === 'switch')) {
+      const read = (value: number) =>
+        storedValues((k) => (k === s.key ? value : undefined))[s.name];
+      expect([read(0), read(1), read(2), read(-1)]).toEqual([
+        false,
+        true,
+        true,
+        true,
+      ]);
     }
   });
+});
 
-  it('names the field of the dialog after the setting', () => {
-    expect(ROUND_SETTINGS.map(roundFieldId)).toEqual([
-      'round-achievements',
-      'round-daily',
-      'round-guilds',
-      'round-main-lock',
-      'round-abandon-lock',
-      'round-activity-recent',
-      'round-activity-minutes',
-      'round-inactive-days',
-      'round-long-inactive-days',
-      'round-vacation-hours',
-    ]);
-  });
-
-  it('reads the stored values: a missing one is the default, a switch 0 or 1', () => {
-    const none = storedValues(() => undefined);
-    expect(none).toEqual({
-      abandonLock: 24,
-      achievements: true,
-      daily: true,
-      guilds: true,
-      mainLock: 7,
-      ...activity,
-      // 48 since 2026-11-18 (#223, D1).
-      vacationHours: 48,
-    });
-    const stored: Record<string, number> = {
-      roundAbandonLock: 48,
-      roundAchievements: 0,
-      roundDaily: 2,
-      roundMainLock: 12,
-      roundInactiveDays: 3,
-      roundVacationHours: 72,
-    };
-    expect(storedValues((k) => stored[k])).toEqual({
-      abandonLock: 48,
-      achievements: false,
-      daily: true,
-      guilds: true,
-      mainLock: 12,
-      ...activity,
-      inactiveDays: 3,
-      vacationHours: 72,
-    });
-  });
-
-  it('builds the request with a group as one object', () => {
-    expect(roundRequest(current)).toEqual({
-      abandonLock: 24,
-      rewards: { achievements: true, daily: false },
-      guilds: true,
-      mainLock: 7,
-      activity,
-      vacationHours: 24,
-    });
+describe('the request „reset“ of a dialog', () => {
+  it('holds every setting under its name and a group as one object of its members', () => {
+    const request = roundRequest(changed);
+    const groups = new Set(settings.flatMap((s) => s.group?.name ?? []));
+    expect(Object.keys(request).sort()).toEqual(
+      [
+        ...settings.filter((s) => !s.group).map((s) => s.name),
+        ...groups,
+      ].sort(),
+    );
+    for (const s of settings)
+      expect(
+        s.group ? (request[s.group.name] as Values)[s.name] : request[s.name],
+        s.key,
+      ).toBe(changed[s.name]);
+    for (const group of groups)
+      expect(Object.keys(request[group] as Values).sort()).toEqual(
+        names(settings.filter((s) => s.group?.name === group)).sort(),
+      );
   });
 });
 
 describe('the check of a new round', () => {
-  it('takes yes or no for every option', () => {
-    for (const achievements of [true, false])
-      for (const daily of [true, false])
-        for (const guilds of [true, false]) {
-          const data = { rewards: { achievements, daily }, guilds };
-          expect(roundRefused(current, data)).toEqual([]);
-          expect(roundValues(current, data)).toEqual({
-            abandonLock: 24,
-            achievements,
-            daily,
-            guilds,
-            mainLock: 7,
-            ...activity,
-            vacationHours: 24,
-          });
-        }
+  it('takes every setting at its bounds, its default and both switch values', () => {
+    for (const s of settings) {
+      const values =
+        s.kind === 'switch' ? [true, false] : [s.min, s.max, s.def];
+      for (const value of values) {
+        const data = send(s, value);
+        expect(roundRefused(defaults, data), s.key).toEqual([]);
+        expect(roundValues(defaults, data)[s.name], s.key).toBe(value);
+      }
+    }
   });
 
-  it('keeps the current options that are not sent', () => {
-    expect(roundRefused(current, {})).toEqual([]);
-    expect(roundValues(current, {})).toEqual(current);
-    expect(roundValues(current, { rewards: both })).toEqual({
-      ...current,
-      ...both,
-    });
-    expect(roundValues(current, { guilds: false, mainLock: 30 })).toEqual({
-      ...current,
-      guilds: false,
-      mainLock: 30,
-    });
+  it('keeps the current values that are not sent and changes only the one sent', () => {
+    expect(roundRefused(changed, {})).toEqual([]);
+    expect(roundValues(changed, {})).toEqual(changed);
+    expect(roundValues(defaults, {})).toEqual(defaults);
+    for (const s of settings)
+      expect(
+        roundValues(changed, send(s, defaults[s.name], changed)),
+        s.key,
+      ).toEqual({
+        ...changed,
+        [s.name]: defaults[s.name],
+      });
   });
 
-  it('refuses reward options that are not both yes or no', () => {
-    for (const rewards of [
-      null,
-      {},
-      { achievements: true },
-      { daily: true },
-      { achievements: 'true', daily: true },
-      { achievements: true, daily: 1 },
-      5,
-      'yes',
-    ])
-      expect(code(rewards, true)).toBe('rewards');
+  it('refuses a value that is not yes or no, or not a whole number of the range', () => {
+    for (const s of settings) {
+      const wrong =
+        s.kind === 'switch'
+          ? ['true', 0, 1, null, {}]
+          : [s.min - 1, s.max + 1, s.min + 0.5, String(s.min), null, true, NaN];
+      for (const value of wrong)
+        expect(
+          names(roundRefused(defaults, send(s, value))),
+          `${s.key} ${String(value)}`,
+        ).toEqual([s.name]);
+    }
   });
 
-  it('refuses a guild switch that is not yes or no', () => {
-    for (const guilds of ['false', 0, null, {}])
-      expect(code(both, guilds)).toBe('guilds');
-  });
-
-  it('refuses a lock that is not a whole number of days from 1 to 30', () => {
-    for (const mainLock of [0, 31, 2.5, '7', null, true])
-      expect(refused(both, true, mainLock)).toEqual(['mainLock']);
-    for (const mainLock of [1, 30, undefined])
-      expect(refused(both, true, mainLock)).toEqual([]);
-  });
-
-  it('refuses a lock of a given-up position that is not a whole number of hours from 1 to 720 (#224)', () => {
-    for (const abandonLock of [0, 721, 2.5, '24', null, true])
-      expect(refused(both, true, 7, abandonLock)).toEqual(['abandonLock']);
-    for (const abandonLock of [1, 720, undefined])
-      expect(refused(both, true, 7, abandonLock)).toEqual([]);
-  });
-
-  it('refuses a minimum duration of the vacation mode that is not a whole number of hours from 1 to 720 (#223)', () => {
-    for (const vacationHours of [0, 721, 2.5, '24', null, true])
-      expect(refused(both, true, 7, 24, vacationHours)).toEqual([
-        'vacationHours',
-      ]);
-    for (const vacationHours of [1, 720, undefined])
-      expect(refused(both, true, 7, 24, vacationHours)).toEqual([]);
-  });
-
-  it('names the reward options first, then the guild switch, then the lock of the main planet, then the lock of a given-up position, then the minimum duration of the vacation mode', () => {
-    expect(code({ achievements: true }, 'no')).toBe('rewards');
-    expect(refused({}, 'no', 0, 0)).toEqual(['rewards', 'rewards']);
-    expect(code(undefined, 'no')).toBe('guilds');
-    expect(refused(undefined, 'no', 0, 0)).toEqual(['guilds']);
-    expect(refused(undefined, undefined, 0, 0)).toEqual(['mainLock']);
-    expect(refused(undefined, undefined, undefined, 0, 0)).toEqual([
-      'abandonLock',
-    ]);
-    expect(refused(undefined, undefined, undefined, undefined, 0)).toEqual([
-      'vacationHours',
-    ]);
-  });
-
-  it('refuses the thresholds of the activity markers last and together (#229)', () => {
-    const names = (data: Record<string, unknown>) =>
-      roundRefused(current, data).map((s) => s.name);
-    expect(names({ activity: { ...activity, activityMinutes: 0 } })).toEqual([
-      'activityMinutes',
-    ]);
-    expect(names({ activity: {} })).toEqual([
-      'activityRecent',
-      'activityMinutes',
-      'inactiveDays',
-      'longInactiveDays',
-    ]);
-    expect(names({ abandonLock: 0, activity: {} })).toEqual(['abandonLock']);
-    const custom = {
-      activityRecent: 1,
-      activityMinutes: 1440,
-      inactiveDays: 365,
-      longInactiveDays: 1,
-    };
-    expect(names({ activity: custom })).toEqual([]);
-    expect(roundValues(current, { activity: custom })).toEqual({
-      ...current,
-      ...custom,
-    });
+  it('names the first refused setting in the order of the registry, with the members of its group', () => {
+    const data: Record<string, unknown> = {};
+    for (const s of settings) data[sentAs(s)] = s.group ? {} : null;
+    for (const s of settings) {
+      if (data[sentAs(s)] === undefined) continue;
+      const first = settings.filter((x) => sentAs(x) === sentAs(s));
+      expect(names(roundRefused(defaults, data)), s.key).toEqual(names(first));
+      delete data[sentAs(s)];
+    }
+    expect(roundRefused(defaults, data)).toEqual([]);
   });
 
   it('refuses the wrong members of a group together, once per group', () => {
-    expect(refused({}, 'no')).toEqual(['rewards', 'rewards']);
-    expect(refused({ achievements: true }, true)).toEqual(['rewards']);
+    const groups = new Set(settings.flatMap((s) => s.group?.name ?? []));
+    for (const group of groups) {
+      const members = settings.filter((s) => s.group?.name === group);
+      expect(names(roundRefused(defaults, { [group]: {} })), group).toEqual(
+        names(members),
+      );
+      expect(names(roundRefused(defaults, { [group]: null })), group).toEqual(
+        names(members),
+      );
+      // One member sent, the others missing: only the others are refused.
+      const first = members[0]!;
+      expect(
+        names(roundRefused(defaults, { [group]: { [first.name]: first.def } })),
+        group,
+      ).toEqual(names(members.slice(1)));
+    }
   });
 
-  it('refuses exactly what is not yes or no (property)', () => {
-    const value = fc.oneof(fc.boolean(), fc.constant(undefined), fc.anything());
+  it('refuses exactly what is not valid for the setting (property)', () => {
+    const value = fc.oneof(
+      fc.boolean(),
+      fc.integer(),
+      fc.constant(undefined),
+      fc.anything(),
+    );
     fc.assert(
-      fc.property(value, value, value, (achievements, daily, guilds) => {
-        const rewards = { achievements, daily };
-        const error =
-          typeof achievements !== 'boolean' || typeof daily !== 'boolean'
-            ? 'rewards'
-            : guilds === undefined || typeof guilds === 'boolean'
-              ? null
-              : 'guilds';
-        expect(code(rewards, guilds)).toBe(error);
+      fc.property(fc.constantFrom(...settings), value, (s, v) => {
+        // A value not sent keeps the current one; a member of a group is read as null.
+        const kept = v === undefined && !s.group;
+        expect(names(roundRefused(defaults, send(s, v)))).toEqual(
+          kept || isValid(s, v) ? [] : [s.name],
+        );
       }),
     );
   });

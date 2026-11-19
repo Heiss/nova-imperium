@@ -4,7 +4,11 @@
 // „Kreuzzugs-Kartografie“, stay there for hours of their own choice, and
 // fly home with what the expedition brought. It takes a fleet slot and an
 // expedition slot. No cargo [V]: finds fill the holds.
-import { expeditionSlots, maxHoldHours } from '../../../core/expedition.ts';
+import {
+  expeditionLevel,
+  expeditionSlots,
+  maxStayHours,
+} from '../../../core/expedition.ts';
 import type {
   SendError,
   SendFleet,
@@ -12,30 +16,31 @@ import type {
 } from '../../../core/missions.ts';
 import type { Levels } from '../../../core/types.ts';
 
-export const order = 100;
+export const order = 110;
 export const target: TargetKind = 'expedition';
 export const cargo = false;
 export const returns = true;
-export const visible = false;
 export const silent = false;
 export const alertsGuild = false;
+/** It stays at its position, but it is no Halten: it defends nothing and burns no fuel for the stay (`maxStay`). */
+export const holds = false;
 
-/** The level of the research, the one that unlocks the mission. */
-const levelOf = (research: Levels | undefined): number => research?.expo ?? 0;
-
-/** The most hours the fleet stays: the level of „Kreuzzugs-Kartografie“ (Q3). */
-export const maxHold = (research: Levels): number =>
-  maxHoldHours(levelOf(research));
+/**
+ * The most hours the fleet stays: the level of „Kreuzzugs-Kartografie“ times
+ * the hours per level of the round (Q3; owner, 2026-11-19), 1 by default.
+ */
+export const maxStay = (research: Levels, hoursPerLevel = 1): number =>
+  maxStayHours(expeditionLevel(research), hoursPerLevel);
 
 /**
  * Without level 1 of the research the mission is not available; then as many
- * expeditions may fly at once as ⌊√level⌋ allows (Q3), counting the ones on
- * their way home.
+ * expeditions may fly at once as ⌊√level⌋ and the extra places of the round
+ * allow (Q3), counting the ones on their way home.
  */
 export const canSend = (fleet: SendFleet): SendError | undefined => {
-  const level = levelOf(fleet.research);
+  const level = expeditionLevel(fleet.research);
   if (level < 1) return 'expeditionLocked';
-  return (fleet.running ?? 0) >= expeditionSlots(level)
+  return (fleet.running ?? 0) >= expeditionSlots(level, fleet.extraSlots)
     ? 'expeditionSlots'
     : undefined;
 };

@@ -513,7 +513,7 @@ owiki.de „Mond“ (section Zerstörung, formula images). Built after the moons
   chance / 100 (as `formsMoon`). The decided formulas only: no lower bound,
   which no diameter of the formula of #53 reaches (at most 8,944 km).
 * Mission `src/features/missions/moonbreak/` (key `moonbreak`, „Mondbruch“,
-  `order` 70): the new target kind `foreignMoon` (a foreign moon only, see
+  `order` 80, after the Wache stellen with 70): the new target kind `foreignMoon` (a foreign moon only, see
   [Design patterns](/architecture/patterns.md), section 4); `canSend`
   refuses a fleet without a Weltenbrecher (`noWorldbreaker`), the target
   kind a target that is no moon (`notMoon`); a foreign moon is then checked
@@ -546,7 +546,7 @@ owiki.de „Mond“ (section Zerstörung, formula images). Built after the moons
   Mond bei [g:s:p] wurde zerstört.“ (`src/client/logic/moonbreak.ts`, in
   the lines of the battle report after the moon chance). They go with the
   push kinds of every battle report (`fleet`, `attacked`).
-* Migration `20261116T2054-moonbreak` (`src/server/db/migrations/95/`, see
+* Migration `20261119T0810-moonbreak` (`src/server/db/migrations/95/`, see
   [SQLite storage](/data/sqlite.md)).
 * **[E]** The owner's answers to the proposals of the pull request (owner,
   2026-11-16):
@@ -577,7 +577,8 @@ owiki.de „Mond“ (section Zerstörung, formula images). Built after the moons
     einem eigenen Planeten.“) and „Du brauchst einen Weltenbrecher.“ (after
     „Du brauchst eine Kolonistenarche.“);
   * the rules data of the Sturmangriff: cargo, return, the ships visible to
-    the defender;
+    the defender (the field `visible` is gone since #228: the Mondbruch
+    follows the thresholds like the attack);
   * fleets on their way home whose target was the moon keep it as their
     target (only their leg back is shown), only outbound fleets fly to the
     planet;

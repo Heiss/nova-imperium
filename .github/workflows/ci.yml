@@ -7,7 +7,13 @@ name: CI
 # mutation tests run when a pull request changes what Stryker mutates, a test,
 # the mutation configuration or the test tool chain (#146), and take over the
 # green result of the previous head when the newest head only merged main
-# (#167).
+# (#167). A pull request that is no release pull request and goes into no
+# hotfix branch mutates only the files it changes and the sources of the
+# tests it changes, in one job (#309); the complete run in 6 shards stays for
+# the release pull requests, the pushes, the nightly run and a change of the
+# mutation configuration or the test tool chain; a change of the floors alone
+# in mutation-standard.json adds those files to the partial run, and a set of
+# more than 12 files (PARTIAL_LIMIT) runs the complete run too.
 # The release pull request of main is a draft after every rebuild: its run
 # is the cheap one (the checks that run for every change and the changelog
 # check), and its CI Gate fails on purpose, so neither a merge nor a
@@ -46,6 +52,7 @@ jobs:
       code: ${{ steps.diff.outputs.code }}
       image: ${{ steps.diff.outputs.image }}
       mutation: ${{ steps.diff.outputs.mutation }}
+      mutation-files: ${{ steps.diff.outputs.mutation-files }}
       site: ${{ steps.diff.outputs.site }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -130,6 +137,19 @@ jobs:
           # CHANGELOG.md, VERSION and changes/: it compares with the release
           # tag the hotfix branch starts from. The release pull request of
           # main runs them in its full run (#147).
+          # Every other pull request, one into a hotfix branch excepted, runs
+          # them for the changed files only (output "partial", scripts/
+          # mutation-partial.ts, owner, 2026-11-18, #309): the files of the
+          # mutate globs it changes and the source of each test file it
+          # changes, plus every file whose floor in mutation-standard.json it
+          # adds, changes or removes, in one job. A change of the mutation
+          # configuration (stryker.config.json, vitest.config.ts,
+          # tsconfig.json, scripts/mutation-*.ts), of anything in
+          # mutation-standard.json but the floors, or of the test tool chain
+          # still runs everything ("true"), and so does a set of more than
+          # PARTIAL_LIMIT (12) files; no such file means no mutation job
+          # ("false").
+          mutation_files=
           case "$PR_HEAD_REF" in
             release/hotfix/*)
               # Without a release tag below it the check fails, as the
@@ -139,7 +159,19 @@ jobs:
               mutation=$(node scripts/mutation-changes.ts "$from" "$HEAD_SHA")
               ;;
             release/*) mutation=true ;;
-            *) mutation=$(node scripts/mutation-changes.ts "$PR_BASE" "$HEAD_SHA") ;;
+            *)
+              case "$PR_BASE_REF" in
+                hotfix/*) mutation=$(node scripts/mutation-changes.ts "$PR_BASE" "$HEAD_SHA") ;;
+                *)
+                  partial=$(node scripts/mutation-partial.ts plan "$PR_BASE" "$HEAD_SHA")
+                  case "$partial" in
+                    true) mutation=true ;;
+                    '[]') mutation=false ;;
+                    *) mutation=partial; mutation_files=$partial ;;
+                  esac
+                  ;;
+              esac
+              ;;
           esac
           # A pull request into main whose newest head only merged main takes
           # over the green mutation result of the head before (output
@@ -156,6 +188,7 @@ jobs:
             echo "code=$code"
             echo "image=$image"
             echo "mutation=$mutation"
+            echo "mutation-files=$mutation_files"
             echo "site=$site"
           } >> "$GITHUB_OUTPUT"
 
@@ -244,7 +277,11 @@ jobs:
   # above 1.5 times the mean (#141, scripts/mutation-shards.ts). A pull
   # request runs them only when it changes what they test (output mutation,
   # #146), and skips them when it takes over the result of the head before
-  # (#167); a push to main or hotfix/** always runs them.
+  # (#167); a push to main or hotfix/** always runs them. They run in a pull
+  # request only when the output is "true": a change of the mutation
+  # configuration or the test tool chain, a release pull request, a pull
+  # request into a hotfix branch; every other pull request that changes
+  # something they test runs "Mutation tests (changed files)" below (#309).
   mutation-plan:
     name: Mutation plan
     needs: changes
@@ -419,6 +456,50 @@ jobs:
         with:
           path: reports/mutation/mutation.json
           key: stryker-weights-${{ github.ref }}-${{ github.sha }}
+
+  # The mutation tests of a pull request for the files it changes (owner,
+  # 2026-11-18, #309; output mutation "partial"): the changed files of the
+  # mutate globs and the source of each changed test file, listed by
+  # scripts/mutation-partial.ts, in one job, because a handful of files
+  # needs no plan, no shards and no merge. Every mutant of those files runs:
+  # the job reads and writes none of the caches of the complete runs
+  # (stryker-shard*, stryker-state-*, stryker-report-*, stryker-weights-*),
+  # so a partial result never reaches the plans, the weights or the cached
+  # results of the shards. The gate step checks every file of the run
+  # against its floor and no total score (scripts/mutation-gate.ts
+  # --partial). What the pull request does not change is tested by the
+  # complete runs: the push to main, the nightly run, the release pull
+  # request.
+  mutation-partial:
+    name: Mutation tests (changed files)
+    needs: changes
+    if: needs.changes.outputs.mutation == 'partial'
+    runs-on: ubuntu-latest
+    env:
+      MUTATION_FILES: ${{ needs.changes.outputs.mutation-files }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Configuration of the changed files
+        run: node scripts/mutation-partial.ts config
+      - run: pnpm test:mutation reports/stryker-partial.config.json
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        if: always()
+        with:
+          name: mutation-partial-report
+          path: reports/mutation/mutation.json
+          if-no-files-found: ignore
+          overwrite: true
+          retention-days: 7
+      - name: Every changed file at or above its floor (mutation-standard.json)
+        run: node scripts/mutation-gate.ts --partial
 
   compose:
     name: Docker image and Compose stack
@@ -702,6 +783,7 @@ jobs:
         mutation-plan,
         mutation-shard,
         mutation,
+        mutation-partial,
         compose,
         site,
       ]
@@ -739,6 +821,7 @@ jobs:
           MUTATION_PLAN: ${{ needs.mutation-plan.result }}
           MUTATION_SHARDS: ${{ needs.mutation-shard.result }}
           MUTATION: ${{ needs.mutation.result }}
+          MUTATION_PARTIAL: ${{ needs.mutation-partial.result }}
           COMPOSE: ${{ needs.compose.result }}
           SITE_SOURCES: ${{ needs.changes.outputs.site }}
           SITE: ${{ needs.site.result }}
@@ -811,12 +894,27 @@ jobs:
           # The mutation jobs may be skipped only when the change detection
           # found nothing they test (#146), or when the pull request takes
           # over the green result of the head before; the gate finds that
-          # green run again (#167).
+          # green run again (#167). A pull request that is no release pull
+          # request and goes into no hotfix branch runs the one job for its
+          # changed files instead of the shards (#309).
           case "$MUTATED" in
             true)
               require_success "Mutation plan" "$MUTATION_PLAN"
               require_success "Mutation tests (shards)" "$MUTATION_SHARDS"
               require_success "Mutation tests" "$MUTATION"
+              ;;
+            partial)
+              case "$EVENT:$HEAD_REF:$BASE_REF" in
+                pull_request:release/*:* | *:*:hotfix/* | push:*)
+                  echo "::error::The complete mutation run is required here, not the one for the changed files."
+                  exit 1
+                  ;;
+              esac
+              require_success "Mutation tests (changed files)" "$MUTATION_PARTIAL"
+              if [ "$MUTATION_PLAN" != "skipped" ] || [ "$MUTATION_SHARDS" != "skipped" ] || [ "$MUTATION" != "skipped" ]; then
+                echo "::error::The mutation shards must not run next to the job for the changed files."
+                exit 1
+              fi
               ;;
             false) echo "No mutated file, test, mutation configuration or test tool chain changed: the mutation jobs run on every push to main and hotfix/** and every night." ;;
             reuse)

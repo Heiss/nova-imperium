@@ -4,11 +4,14 @@
   // buildings as it did. Only the import paths changed, and resourceName()
   // of views/common.ts is copied below. One change on purpose (review of
   // #209, 2026-11-14): the energy a level needs is compared with
-  // production(), as energyShort() does, not with prod(). One of #285
-  // (B2): the „?“ opens the Lexicanum, so no text unfolds below the entry
-  // and the „?“ shows in every mode but „Ausblenden“. And one with the
-  // Raketenkrypta (#54): a building that stores missiles shows the places
-  // they take, marked below. Do not change it otherwise.
+  // production(), as energyShort() does, not with prod(). A second one
+  // (#202, 2026-11-17): a running demolition reads „Rückbau“ instead of
+  // „Ausbau“, and a building with a level on a planet with a free build
+  // queue offers „Zurückbauen“. One of #285 (B2): the „?“ opens the
+  // Lexicanum, so no text unfolds below the entry and the „?“ shows in
+  // every mode but „Ausblenden“. And one with the Raketenkrypta (#54): a
+  // building that stores missiles shows the places they take, marked
+  // below. Do not change it otherwise.
   import type { Readable } from 'svelte/store';
   import { BUILD, buildable, SILO } from '../../core/catalog.ts';
   import { siloUse } from '../../core/yard.ts';
@@ -122,12 +125,15 @@
       </div>
       <div class="act">
         {#if status === 'running' && P.bq}
-          Ausbau auf Stufe {P.bq.lvl}<br />
+          <!-- #202: „Rückbau“ for a demolition. -->
+          {P.bq.back ? 'Rückbau' : 'Ausbau'} auf Stufe {P.bq.lvl}<br />
           <span class="cd" data-end={P.bq.end}>{dur(P.bq.end - now)}</span>
           <progress
             max={P.bq.end - P.bq.start}
             value={Math.min(now - P.bq.start, P.bq.end - P.bq.start)}
-            aria-label="Fortschritt Ausbau"
+            aria-label={P.bq.back
+              ? 'Fortschritt Rückbau'
+              : 'Fortschritt Ausbau'}
           ></progress>
           <button class="small red" data-act="cancelBuild">Abbrechen</button>
         {:else if status === 'missing'}
@@ -146,6 +152,12 @@
           <button data-act="build" data-k={key} disabled={!afford(P, cost)}>
             {level ? `Ausbauen auf Stufe ${level + 1}` : 'Bauen'}
           </button>
+        {/if}
+        <!-- #202: „Zurückbauen“ on a planet, with a level and a free queue. -->
+        {#if P.kind === 'planet' && level > 0 && !P.bq}
+          <br /><button class="small" data-act="demolish" data-k={key}
+            >Zurückbauen</button
+          >
         {/if}
       </div>
     </div>

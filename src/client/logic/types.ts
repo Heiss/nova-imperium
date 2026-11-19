@@ -6,8 +6,10 @@ import type { DebrisField } from '../../core/debris.ts';
 import type { GateView } from '../../core/jump-gate.ts';
 import type { LabSite } from '../../core/research.ts';
 import type { ExplainMode } from '../../core/explain.ts';
+import type { SeenShips } from '../../core/fleet-recognition.ts';
 import type { GuildRight } from '../../core/guild-ranks.ts';
 import type { ChatEventKind } from '../../core/guild-chat.ts';
+import type { Pair } from '../../core/market.ts';
 import type { PushTopic } from '../../core/push.ts';
 import type { UniverseSpec } from '../../core/universe.ts';
 import type {
@@ -37,17 +39,11 @@ interface Me {
 
 export type ClientFleet = Pick<
   Fleet,
-  | 'id'
-  | 'owner'
-  | 'fromC'
-  | 'toC'
-  | 'to'
-  | 'mission'
-  | 'state'
-  | 'arr'
-  | 'ships'
+  'id' | 'owner' | 'fromC' | 'toC' | 'to' | 'mission' | 'state' | 'arr'
 > &
-  Partial<Pick<Fleet, 'ret' | 'cargo' | 'dep' | 'gift'>>;
+  Partial<Pick<Fleet, 'ships' | 'ret' | 'cargo' | 'dep' | 'gift' | 'hold'>> &
+  /** Of a foreign fleet the server sends only what the Auspex-Lehre recognizes (#228). */
+  Omit<SeenShips, 'ships'>;
 
 export interface Report {
   id: string;
@@ -116,10 +112,24 @@ export interface GameState {
   gates?: GateView[];
   /** The positions locked after an abandonment, with the end of the lock (#224). */
   locks?: (Coords & { until: number })[];
+  /** The prices of the marketplace now and what the player gave today (#171). */
+  market?: { prices: Record<Pair, number>; used: number };
   admin: AdminState | null;
   achievements?: AchievementState;
   /** None while guilds are off in the round (#191). */
   guilds?: GuildState | null;
+  /** The buddy list (#227): the own friends and requests only. */
+  friends?: FriendState;
+}
+
+/** The buddy list (#227), every player by id; name and contact come from `players`, `galaxy` and `guilds`. */
+interface FriendState {
+  /** The friends, by name, each online or offline (owner, 2026-11-16, D1). */
+  list: { id: string; online: boolean }[];
+  /** Open requests to the player, by name. */
+  incoming: string[];
+  /** The player's own open requests, by name. */
+  outgoing: string[];
 }
 
 interface GuildMember {

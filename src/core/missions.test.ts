@@ -40,6 +40,7 @@ const KINDS: TargetKind[] = [
   'free',
   'debris',
   'foreignMoon',
+  'ally',
 ];
 /** Every target kind: the six above and the expedition position (#93). */
 const TARGETS: TargetKind[] = [...KINDS, 'expedition'];
@@ -63,6 +64,9 @@ const CODES: SendError[] = [
   'noWorldbreaker',
   'surveyLocked',
   'surveyProbesOnly',
+  'notAlly',
+  'holdFleets',
+  'holdPlayers',
   'expeditionLocked',
   'expeditionSlots',
   'notExpedition',
@@ -72,11 +76,11 @@ const FIELDS = [
   'alertsGuild',
   'canSend',
   'cargo',
+  'holds',
   'order',
   'returns',
   'silent',
   'target',
-  'visible',
 ];
 const RULES: [string, MissionRules][] = MISSIONS.map(([m, r]) => [m, r]);
 
@@ -92,6 +96,7 @@ describe('mission names', () => {
       'colonize',
       'deploy',
       'harvest',
+      'hold',
       'moonbreak',
       'survey',
       'missile',
@@ -150,6 +155,7 @@ describe('the rules of every mission (contract)', () => {
       'deploy',
       'expedition',
       'harvest',
+      'hold',
       'missile',
       'moonbreak',
       'spy',
@@ -173,7 +179,6 @@ describe('the rules of every mission (contract)', () => {
       target: 'foreign',
       cargo: false,
       returns: false,
-      visible: true,
       alertsGuild: false,
     });
     expect(missile.canSend(fleet0, target0)).toBeUndefined();
@@ -188,20 +193,20 @@ describe('the rules of every mission (contract)', () => {
 
   it.each(RULES)('%s: has exactly the typed fields', (m, rules) => {
     // `launch` is only set where a mission does not start as a fleet (#54),
-    // `maxHold` where it stays at its target (#93).
+    // `maxStay` where it stays at its target (#93).
     const fields = [
       ...FIELDS,
       ...(rules.launch === undefined ? [] : ['launch']),
-      ...(rules.maxHold === undefined ? [] : ['maxHold']),
+      ...(rules.maxStay === undefined ? [] : ['maxStay']),
     ];
     expect(Object.keys(rules).sort(), m).toEqual(fields.sort());
     expect(TARGETS, m).toContain(rules.target);
     for (const field of [
       'cargo',
       'returns',
-      'visible',
       'silent',
       'alertsGuild',
+      'holds',
     ] as const)
       expect(typeof rules[field], `${m}.${field}`).toBe('boolean');
     expect(typeof rules.canSend, m).toBe('function');
@@ -262,10 +267,12 @@ describe('the target kind (#116)', () => {
   const foreign = { id: 'p3', owner: 'b' };
 
   it('suits a planet of the right owner, or a free position', () => {
+    // The kinds: own, foreign, any, free, debris, foreignMoon, ally.
     expect(KINDS.map((k) => suits(k, 'a', own))).toEqual([
       true,
       false,
       true,
+      false,
       false,
       false,
       false,
@@ -277,12 +284,14 @@ describe('the target kind (#116)', () => {
       false,
       false,
       false,
+      true,
     ]);
     expect(KINDS.map((k) => suits(k, 'a', null))).toEqual([
       false,
       false,
       false,
       true,
+      false,
       false,
       false,
     ]);
@@ -298,11 +307,13 @@ describe('the target kind (#116)', () => {
       false,
       false,
       true,
+      true,
     ]);
     expect(KINDS.map((k) => suits(k, 'a', moon('a')))).toEqual([
       true,
       false,
       true,
+      false,
       false,
       false,
       false,
@@ -327,6 +338,7 @@ describe('the target kind (#116)', () => {
       false,
       true,
       false,
+      false,
     ]);
   });
 
@@ -336,9 +348,9 @@ describe('the target kind (#116)', () => {
     target,
     cargo: true,
     returns: true,
-    visible: false,
     silent: false,
     alertsGuild: false,
+    holds: false,
     canSend: () => undefined,
   });
   const fleet: SendFleet = { owner: 'a', from: 'p1', ships: { lc: 1 } };
@@ -364,7 +376,8 @@ describe('the target kind (#116)', () => {
   it('gives the messages of each kind in the order of before', () => {
     const errors = (planet: SendTarget['planet'], shielded = false) =>
       KINDS.map((k) => sendError(rules(k), fleet, at(planet, shielded)));
-    // A Mondbruch flies only to a moon (#95).
+    // A Mondbruch flies only to a moon (#95); the planet of an ally is a
+    // foreign planet that must be an ally's, which the mission asks (#55).
     expect(errors(null)).toEqual([
       'noPlanet',
       'noPlanet',
@@ -372,6 +385,7 @@ describe('the target kind (#116)', () => {
       undefined,
       'noDebris',
       'notMoon',
+      'noPlanet',
     ]);
     expect(errors(home, true)).toEqual([
       'samePlanet',
@@ -380,6 +394,7 @@ describe('the target kind (#116)', () => {
       'occupied',
       'noDebris',
       'notMoon',
+      'samePlanet',
     ]);
     expect(errors(own, true)).toEqual([
       undefined,
@@ -388,6 +403,7 @@ describe('the target kind (#116)', () => {
       'occupied',
       'noDebris',
       'notMoon',
+      'notAlly',
     ]);
     expect(errors(foreign)).toEqual([
       'notOwn',
@@ -396,6 +412,7 @@ describe('the target kind (#116)', () => {
       'occupied',
       'noDebris',
       'notMoon',
+      undefined,
     ]);
     expect(errors(foreign, true)).toEqual([
       'notOwn',
@@ -404,6 +421,7 @@ describe('the target kind (#116)', () => {
       'occupied',
       'noDebris',
       'notMoon',
+      'protected',
     ]);
   });
 
@@ -416,7 +434,7 @@ describe('the target kind (#116)', () => {
     for (const moon of [false, true]) {
       const errors = (planet: SendTarget['planet']) =>
         KINDS.map((k) => sendError(rules(k), fleet, away(planet, moon)));
-      // The kinds: own, foreign, any, free, debris.
+      // The kinds: own, foreign, any, free, debris, foreignMoon, ally.
       expect(errors(foreign).slice(0, 3)).toEqual([
         'notOwn',
         'vacation',
@@ -427,10 +445,16 @@ describe('the target kind (#116)', () => {
         'ownTarget',
         undefined,
       ]);
+      // The planet of an ally is protected like any foreign one: a Halten
+      // at a player in vacation mode is refused (#55, #223).
+      expect(errors(foreign)[6]).toBe('vacation');
+      expect(errors(own)[6]).toBe('notAlly');
     }
-    const target = away(foreign);
-    sendError(rules('foreign'), fleet, target);
-    expect(target.asked).toEqual([]);
+    for (const kind of ['foreign', 'ally'] as const) {
+      const target = away(foreign);
+      sendError(rules(kind), fleet, target);
+      expect(target.asked, kind).toEqual([]);
+    }
     expect(
       sendError(rules('debris'), fleet, { ...away(foreign), debris: true }),
     ).toBeUndefined();
@@ -458,7 +482,7 @@ describe('the target kind (#116)', () => {
       ...at(planet),
       locked: true,
     });
-    // The kinds: own, foreign, any, free, debris, foreignMoon (no moon there).
+    // The kinds: own, foreign, any, free, debris, foreignMoon (no moon there), ally.
     expect(KINDS.map((k) => sendError(rules(k), fleet, locked(null)))).toEqual([
       'noPlanet',
       'noPlanet',
@@ -466,6 +490,7 @@ describe('the target kind (#116)', () => {
       'locked',
       'noDebris',
       'notMoon',
+      'noPlanet',
     ]);
     // A planet there is the first refusal; a lock at a free position only.
     expect(sendError(rules('free'), fleet, locked(own))).toBe('occupied');
@@ -484,13 +509,14 @@ describe('the target kind (#116)', () => {
     });
     const errors = (planet: SendTarget['planet'], debris = false) =>
       KINDS.map((k) => sendError(rules(k), fleet, moon(planet, debris)));
-    // The kinds: own, foreign, any, free, debris, foreignMoon.
+    // The kinds: own, foreign, any, free, debris, foreignMoon, ally.
     expect(errors(null)).toEqual([
       'noMoon',
       'noMoon',
       'noMoon',
       'moonTarget',
       'moonTarget',
+      'noMoon',
       'noMoon',
     ]);
     expect(errors(null, true)).toEqual([
@@ -500,6 +526,7 @@ describe('the target kind (#116)', () => {
       'moonTarget',
       'moonTarget',
       'noMoon',
+      'noMoon',
     ]);
     expect(errors(home)).toEqual([
       'samePlanet',
@@ -507,6 +534,7 @@ describe('the target kind (#116)', () => {
       'samePlanet',
       'moonTarget',
       'moonTarget',
+      'samePlanet',
       'samePlanet',
     ]);
     expect(errors(own)).toEqual([
@@ -516,6 +544,7 @@ describe('the target kind (#116)', () => {
       'moonTarget',
       'moonTarget',
       'ownTarget',
+      'notAlly',
     ]);
     expect(errors(foreign)).toEqual([
       'notOwn',
@@ -523,6 +552,7 @@ describe('the target kind (#116)', () => {
       undefined,
       'moonTarget',
       'moonTarget',
+      undefined,
       undefined,
     ]);
     // A foreign moon is a foreign target: the noob protection holds (#95).
@@ -557,7 +587,7 @@ describe('the target kind (#116)', () => {
         const target = at(planet, true);
         sendError(rules(k), fleet, target);
         expect(target.asked, `${k} ${planet?.id}`).toEqual(
-          k === 'foreign' && planet === foreign ? ['b'] : [],
+          (k === 'foreign' || k === 'ally') && planet === foreign ? ['b'] : [],
         );
       }
   });
@@ -583,9 +613,9 @@ describe('the expedition position (#93)', () => {
     target,
     cargo: false,
     returns: true,
-    visible: false,
     silent: false,
     alertsGuild: false,
+    holds: false,
     canSend,
   });
   const nothing: SendTarget = {
@@ -664,18 +694,24 @@ describe('the expedition position (#93)', () => {
     expect(sendError(rules('debris'), fleet, there)).toBe('noDebris');
   });
 
-  it('is the expedition rule of the folder: only it stays at its target', () => {
+  it('is the expedition rule of the folder: only it stays at its target, and it is no Halten', () => {
     expect(missionRules('expedition')).toMatchObject({
-      order: 100,
+      order: 110,
       target: 'expedition',
       cargo: false,
       returns: true,
-      visible: false,
       silent: false,
       alertsGuild: false,
+      holds: false,
     });
-    expect(missionRules('expedition')!.maxHold!({ expo: 4 })).toBe(4);
-    for (const [m, r] of RULES)
-      expect(r.maxHold !== undefined, m).toBe(m === 'expedition');
+    const rule = missionRules('expedition')!;
+    expect(rule.maxStay!({ expo: 4 }, 1)).toBe(4);
+    // The hours per level of the round scale it (owner, 2026-11-19).
+    expect(rule.maxStay!({ expo: 4 }, 6)).toBe(24);
+    for (const [m, r] of RULES) {
+      expect(r.maxStay !== undefined, m).toBe(m === 'expedition');
+      // `holds` is the Halten only, a stay is not one.
+      expect(r.holds, m).toBe(m === 'hold');
+    }
   });
 });

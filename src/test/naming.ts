@@ -4,11 +4,12 @@
 // check that no display text shows a classic name any more.
 
 /**
- * Catalog key → classic name, new name and new abbreviation. An own
- * extension of this game has no classic name (null).
+ * Catalog key → classic name, new name and new abbreviation. An entry that
+ * the original game did not have (the Handelsposten, #171; the Auspex-
+ * Kartographie, #190) has no classic name (missing or null).
  */
 export const NAMES: Readonly<
-  Record<string, { classic: string | null; name: string; ab: string }>
+  Record<string, { classic?: string | null; name: string; ab: string }>
 > = {
   metal: { classic: 'Metallmine', name: 'Adamant-Tiefbohrung', ab: 'AT' },
   crystal: {
@@ -48,6 +49,8 @@ export const NAMES: Readonly<
   silo: { classic: 'Raketensilo', name: 'Raketenkrypta', ab: 'RK' },
   // #53, #230: the name decided by the owner (2026-11-13), the abbreviation [V].
   jumpgate: { classic: 'Sprungtor', name: 'Warp-Tor', ab: 'WR' },
+  // #171: a new building, named by the owner (2026-11-17); the abbreviation [V].
+  market: { name: 'Handelsposten', ab: 'HP' },
   energy: { classic: 'Energietechnik', name: 'Machina-Energetik', ab: 'ME' },
   laser: { classic: 'Lasertechnik', name: 'Lichtlanzen-Lehre', ab: 'LZ' },
   comb: {
@@ -144,6 +147,8 @@ export const MISSIONS = {
   colonize: { classic: 'Kolonisieren', name: 'Landnahme' },
   deploy: { classic: 'Stationieren', name: 'Verlegung' },
   harvest: { classic: 'Abbauen', name: 'Bergung' },
+  // #55: „Wache stellen“ (owner, 2026-11-17), not „Wacht halten“ of #94.
+  hold: { classic: 'Halten', name: 'Wache stellen' },
   moonbreak: { classic: 'Zerstören', name: 'Mondbruch' },
   // #190: the name proposed in the issue [V]; no classic mission.
   survey: { classic: null, name: 'Vermessung' },
@@ -154,6 +159,19 @@ export const MISSIONS = {
 } as const;
 
 /**
+ * The classic word of an entry with the name that replaces it. An entry
+ * without a classic name (missing or null: #171, #190) or one whose name the
+ * naming keeps (the Abfangrakete, #54) has no classic word to look for.
+ */
+const classicPairs = (x: {
+  classic?: string | null;
+  name: string;
+}): { classic: string; name: string }[] =>
+  x.classic && x.classic !== x.name
+    ? [{ classic: x.classic, name: x.name }]
+    : [];
+
+/**
  * Classic words no display text may show any more: the names and
  * resources above, plus the short forms the interface used for them
  * („Werft“, „Labor“, „Sonde“ …). Each maps to what replaces it.
@@ -162,9 +180,7 @@ export const CLASSIC: Readonly<Record<string, string>> = {
   ...RESOURCES,
   ...Object.fromEntries(
     Object.values(NAMES).flatMap((x) =>
-      // No classic name (#190), or a name the naming keeps (the Abfangrakete,
-      // #54), is no classic word.
-      x.classic === null || x.classic === x.name ? [] : [[x.classic, x.name]],
+      classicPairs(x).map(({ classic, name }) => [classic, name]),
     ),
   ),
   Werft: 'Schiffsschmiede',
@@ -208,11 +224,8 @@ export const classicIn = (text: string): string[] =>
  * name, the longest first („Schlachtkreuzer“ before „Kreuzer“).
  */
 export function renamed(text: string): string {
-  const pairs = Object.values(NAMES)
-    .flatMap(({ classic, name }) =>
-      classic === null ? [] : [{ classic, name }],
-    )
-    .sort((a, b) => b.classic.length - a.classic.length);
+  const pairs = Object.values(NAMES).flatMap(classicPairs);
+  pairs.sort((a, b) => b.classic.length - a.classic.length);
   let out = text;
   for (const { classic, name } of pairs)
     out = out.replace(

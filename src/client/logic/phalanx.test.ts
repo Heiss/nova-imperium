@@ -141,6 +141,21 @@ describe('the rows of the panel', () => {
     ]);
   });
 
+  it('name a fleet that holds as holding at its target (#55)', () => {
+    const [row] = scanRows({
+      ...SCAN,
+      flights: [
+        { ships: { lc: 1 }, from: 'p1_9_9', to: 'p1_7_7', arr: 5, holds: true },
+      ],
+    });
+    expect(row).toEqual({
+      ships: `1 ${text('lc')!.n}`,
+      from: '[1:9:9]',
+      to: 'hält bei [1:7:7]',
+      arr: 5,
+    });
+  });
+
   it('name an unknown ship by its key and an unknown place as „[?]“', () => {
     expect(shipsText({ zz: 1000 })).toBe('1.000 zz');
     expect(shipsText({})).toBe('');

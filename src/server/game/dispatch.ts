@@ -9,6 +9,7 @@ import {
 import type { User } from '../db/repos/players.ts';
 import * as A from './actions.ts';
 import { reset, saveSettings } from './admin.ts';
+import { demolish } from './demolition.ts';
 import { endzeit } from './endzeit.ts';
 import { pushOptions } from '../push-options.ts';
 import { tick } from './arrival.ts';
@@ -23,6 +24,13 @@ import { chooseMainPlanet } from './main-planet.ts';
 import { vacationRefuses } from '../../core/vacation.ts';
 import { endVacation, startVacation, VACATION_REFUSED } from './vacation.ts';
 import { abandon } from './abandon.ts';
+import { exchange } from './market.ts';
+import {
+  answerFriend,
+  cancelFriend,
+  removeFriend,
+  requestFriend,
+} from './friends.ts';
 import {
   assignGuildRank,
   createGuildRank,
@@ -71,6 +79,7 @@ export const GUILD_ACTIONS: ReadonlySet<string> = new Set(Object.keys(GUILD));
 export const ACTIONS: Record<string, A.Action> = {
   build: A.build,
   cancelBuild: A.cancelBuild,
+  demolish,
   research: A.research,
   cancelResearch: A.cancelResearch,
   order: A.order,
@@ -81,6 +90,7 @@ export const ACTIONS: Record<string, A.Action> = {
   startVacation,
   endVacation,
   abandon,
+  trade: exchange,
   pushOptions,
   read: A.read,
   delrep: A.delrep,
@@ -94,6 +104,11 @@ export const ACTIONS: Record<string, A.Action> = {
   reset,
   endzeit,
   ...GUILD,
+  // The buddy list (#227); not a guild action, so it works with guilds off.
+  requestFriend,
+  answerFriend,
+  cancelFriend,
+  removeFriend,
   claimAchievement,
   claimDailyReward,
 };

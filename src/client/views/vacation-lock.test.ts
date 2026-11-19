@@ -67,7 +67,14 @@ describe('the lock screen', () => {
       'Spähschädel',
       'Problem melden',
       'Regeln dieses Universums',
+      'Freunde',
+      'data-act="friend"',
+      'requestFriend',
       'data-act="nav"',
+      // The marketplace (#171) is part of the game.
+      'Marktplatz',
+      'Handelsposten',
+      'data-act="trade"',
     ])
       expect(html, part).not.toContain(part);
   });

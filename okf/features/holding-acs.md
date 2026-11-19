@@ -52,6 +52,113 @@ The battle with several parties is built with #55
 * **[V]** No holding at a player in vacation mode or in noob protection,
   as in classic (owiki „Allianzkampfsystem“; see
   [Vacation mode](/features/vacation-mode.md)).
+* **[E]** Loot (owner, 2026-11-17, completing the [U] above): when a
+  planet with held fleets is raided, the loot takes the classic 50 % of
+  the planet's stock first, then the cargo of the held fleets with the
+  capacity that is left.
+* **[E]** Who may hold is a value per round, set in the dialog „Neue
+  Runde“ and editable in the admin panel during the round (owner,
+  2026-11-17, X1).
+
+* **[E]** The mission is called „Wache stellen“ in the game (owner,
+  2026-11-17, not „Halten“ or „Wacht halten“); the refusals follow it.
+* **[E]** Espionage report (owner, 2026-11-17): below a new value per round
+  „Gehaltene Flotten im Auspex-Bericht ab Auspex-Lehre“ (default 2; X1:
+  in „Neue Runde“ and editable live), the held fleets appear only as
+  defenders, mixed into the planet's fleet; from that level of the spy's
+  Auspex-Lehre on, they appear apart under „Gehaltene Flotten“.
+* **[E]** Auspex-Phalanx (owner, 2026-11-17): a held fleet shows as holding
+  („hält bei [g:s:p]“ with the end of the holding time), not as its return
+  flight.
+
+## Built with #55
+
+* The mission is `hold` (`src/features/missions/hold/`), named „Wache
+  stellen“ (owner, 2026-11-17, [Naming](/features/naming.md));
+  the issue's „Haltezeit“ and „Gehaltene Flotten“ stay. Order 70, the new
+  target kind `ally` (a foreign planet whose owner is an ally, which the
+  mission's `canSend` asks), cargo, return, ships not shown while it flies
+  there (as a transport), no guild alert, and the new typed field `holds`
+  of every mission's rules (patterns, section 4).
+* The rules live in `src/core/holding.ts` (holding times, limits, who is
+  an ally, when a fleet is due); the fuel `holdFuel` in
+  `src/core/flight.ts`; the server part in `src/server/game/holding.ts`.
+* The admin's setting is `roundAllies`, „Halten erlaubt für“ with the
+  choices „Gilde“, „Freunde“ and „Gilde und Freunde“ [V] (1, 2, 3;
+  default 3): the first entry of `roundSettings` in `src/core/holding.ts`,
+  the registry of the round settings (#283, #310: the feature registers its
+  settings itself, [Admin](/features/admin.md#the-registry-of-the-round-settings-283)),
+  with the order number 100 and `live` (X1). So the dialog „Neue Runde“ offers the choice, kept without a
+  choice like the lock of the main planet, and the universe settings
+  show the same selection during the round.
+  A guild member counts only while guilds are on in the round
+  ([Guilds on or off per round](/features/guild-switch.md)). Friends
+  count from an accepted friendship of the buddy list (#227, merged
+  2026-11-19): `areFriends` in `src/server/game/holding.ts` asks
+  `relationOf` of `src/core/friends.ts` for „friends“; an open request in
+  either direction and an ended friendship are none.
+* The vacation mode (#223) protects a target of every mission in its own
+  check of the target kind, so it covers holding once it is merged.
+* **[V]** Taken as recommended when building #55:
+  * The holding time runs in real time, not divided by the speed of the
+    universe, like the vacation and the main planet lock.
+  * A fleet holds from its arrival for the chosen time and then flies
+    home; its return time is set at the launch (flight, holding, flight).
+    At 0 hours it turns home at the next beat of the clock.
+  * The limits count the fleets that hold and those on their way to hold.
+  * A fleet can be called back while it holds; it is home after the time
+    of its flight there. The fuel of the unused hours is not refunded (no
+    source names a refund).
+  * The arrival writes no report; the owner sees the fleet in the fleet
+    movements („hält bei“), the host under „Gehaltene Flotten“ in the
+    overview with the owner, the origin, the ships and the time left.
+  * **[E]** Seen by the host (owner, 2026-11-19, #55; the ships of #228):
+    a fleet that **is holding** at the host's planet (state `hold`) shows to
+    the host in full: every ship with its exact number and the holding time,
+    whatever his Auspex-Lehre and whatever the thresholds of the round are.
+    The Auspex-Lehre and the thresholds of #228 count only while the fleet is
+    still **on its way** to hold (state `out`): then it goes through
+    `foreignView` like any foreign fleet flying to the planet, and the host
+    sees of its ships only what his level recognizes (below the first
+    threshold „Zusammensetzung unbekannt“). The condition sits in
+    `foreignView` of `src/server/game/state.ts`. A third player sees no
+    fleet of the planet in his state; he sees a held fleet only in the
+    Auspex-Phalanx (owner, 2026-11-17) and, as a defender, in a spy report
+    (below).
+  * Every fleet that holds is a party of its own in the battle
+    (`battleOf` of `src/core/battle.ts`); each of its owners gets the
+    report of the defender once, with each fleet as „Verteidiger <name>“
+    and its losses; a fleet without survivors is gone. A fleet of the
+    attacker himself that holds there stays out of the battle.
+  * The cargo of the held fleets is taken whole (not half) with the room
+    left; the rest is lost with the fleets, which are destroyed when the
+    attacker wins. 1 hour is preselected in the form.
+  * „alles“ of the fleet form (#240) leaves the fuel of the holding time
+    on the planet too, as the flight fuel.
+  * The spy report (`withHeldFleets` in `src/server/game/holding.ts`, one
+    call of the arrival of the Auspex-Erkundung): the setting is
+    `roundHeldSpy`, range 0 to 30 [V], the second entry of `roundSettings`
+    in `src/core/holding.ts` (#283, #310), order number 110, and `live` (X1): a
+    number field in „Neue Runde“ and a row of the universe settings; the
+    held fleets follow the section „Flotte“ and show
+    only when it shows (score 2), apart as „Gehaltene Flotten“ with
+    „<name>: <ships>“ per fleet; the chance of the Auspex-Abwehr still
+    counts the planet's own ships only. The label says „Auspex-Bericht“
+    (owner, 2026-11-18, recorded on #55 on 2026-11-19), the name of #94, so the naming test needs no
+    exception. A wrong value in „Neue Runde“ is refused with
+    „Bitte für „<label>“ eine ganze Zahl von 0 bis 30 angeben.“ [V]; in
+    the universe settings a wrong value of either setting gets the
+    wording of the other settings there.
+  * The phalanx shows a held fleet with its origin, „hält bei <target>“
+    and the countdown to the end of its holding time (`holds` of
+    `ScannedFlight`).
+  * The refusals: „Wache stellen nur bei Gildenmitgliedern und Freunden.“
+    (by the setting „… nur bei Gildenmitgliedern.“ or „… nur bei
+    Freunden.“), „An diesem Planeten halten bereits 15 Flotten.“, „An
+    diesem Planeten halten bereits Flotten von 4 Spielern.“, „Bitte eine
+    Haltezeit auswählen.“ and „Bitte auswählen, wer in der neuen Runde
+    halten darf.“; a holding planet of a player in noob protection keeps
+    „Dieser Spieler steht unter Noobschutz.“.
 
 # Alliance depot (#55, later)
 
@@ -87,3 +194,28 @@ The battle with several parties is built with #55
   Flottenverband.“, owiki „Rückruf“).
 * **[V]** A participant's recall turns back only that participant's
   fleet (issue #225).
+
+# Merged with the registry of round settings and #228 (2026-11-19)
+
+* **[V]** Interactions checked after the merge, each with a test: a planet
+  with a fleet that holds there, or from which a fleet holds elsewhere,
+  cannot be given up ([Abandon colony](/features/abandon-colony.md); the
+  flight check of `abandonError` counts every row of `fleets`, whatever its
+  state); a jump through the Warp-Tor moves only the ships standing on the
+  moon, and a fleet of another player that holds there stays and keeps
+  defending ([Moons](/features/moons.md)); arrival and end of holding set
+  no activity ([Activity indicators](/features/activity-indicators.md),
+  „Fleets … set none“).
+* **[V]** The article of the mission in the Lexicanum
+  ([Lexicanum texts](/features/lexicanum-texts.md), „Wache stellen“): its
+  text and keywords are a draft for the owner; the target of the mission
+  reads „Planet eines Gildenmitglieds oder Freundes“ there.
+* **[V]** Friends and the setting (#227 merged 2026-11-19): under „Freunde“
+  and „Gilde und Freunde“ a friend can hold, also when he is no guild
+  member; under „Gilde“ only a guild member can, and with guilds off only a
+  friend. The client does not decide per planet whether „Wache stellen“ is
+  offered: the fleet form offers the mission for every target and the state
+  tells the client nothing about who is an ally, so the refusal of the
+  server is the answer („Wache stellen nur bei Gildenmitgliedern und
+  Freunden.“, or the words of the setting). #225 (attack union) reads the
+  same value `allies`.

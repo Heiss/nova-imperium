@@ -33,7 +33,7 @@ import {
 } from '../../../server/test-helpers.ts';
 import { expedition, onArrive, WORDS } from './arrive.server.ts';
 import * as rules from './rules.ts';
-import { canSend, maxHold } from './rules.ts';
+import { canSend, maxStay } from './rules.ts';
 
 const HOME = { g: 1, s: 1, p: 5 };
 const SPOT: Coords = { g: 1, s: 2, p: 16 };
@@ -152,11 +152,14 @@ describe('the rules of the mission', () => {
     expect(canSend(fleet(9, 7))).toBe('expeditionSlots');
   });
 
-  it('stays at most as many hours as the level', () => {
-    expect(maxHold({ expo: 4 })).toBe(4);
-    expect(maxHold({ expo: 1 })).toBe(1);
-    expect(maxHold({})).toBe(0);
-    expect(maxHold({ spy: 5 })).toBe(0);
+  it('stays at most as many hours as the level times the hours per level of the round', () => {
+    expect(maxStay({ expo: 4 })).toBe(4);
+    expect(maxStay({ expo: 1 })).toBe(1);
+    expect(maxStay({})).toBe(0);
+    expect(maxStay({ spy: 5 })).toBe(0);
+    expect(maxStay({ expo: 4 }, 3)).toBe(12);
+    expect(maxStay({ expo: 1 }, 24)).toBe(24);
+    expect(maxStay({}, 24)).toBe(0);
   });
 
   it('is checked after the position: a planet position is no target, the expedition position is', () => {
@@ -172,9 +175,9 @@ describe('the rules of the mission', () => {
       target: rules.target,
       cargo: rules.cargo,
       returns: rules.returns,
-      visible: rules.visible,
       silent: rules.silent,
       alertsGuild: rules.alertsGuild,
+      holds: rules.holds,
       canSend,
     };
     expect(

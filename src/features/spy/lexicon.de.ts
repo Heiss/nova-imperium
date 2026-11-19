@@ -109,7 +109,7 @@ function blocks(s: LexState): Block[] {
     chanceTable(),
     {
       t: 'text',
-      text: 'Die Chance auf Auspex-Abwehr wird bei jeder [[mission-spy]] neu zwischen null und dem Höchstwert ausgelost. Mehr [[probe]] und mehr Schiffe am Ziel erhöhen ihn, eine höhere Auspex-Lehre des Ziels auch; deine eigene senkt ihn.',
+      text: 'Die Chance auf Auspex-Abwehr wird bei jeder Auspex-Erkundung neu zwischen null und dem Höchstwert ausgelost. Mehr Spähschädel und mehr Schiffe am Ziel erhöhen ihn, eine höhere Auspex-Lehre des Ziels auch; deine eigene senkt ihn.',
     },
   ];
 }

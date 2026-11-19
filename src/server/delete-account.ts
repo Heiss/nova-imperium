@@ -42,19 +42,24 @@ function removeLinkedReports(ctx: Ctx, user: User): void {
   for (const report of reports) removePush.run(report.id);
 }
 
+/**
+ * Fleets of other players on their way to the account's planets turn back;
+ * one that holds there (#55) flies home as if called back now.
+ */
 function detachIncomingFleets(ctx: Ctx, user: User): void {
   const now = ctx.now();
   ctx.db
     .prepare(
       `
     UPDATE fleets SET state = 'back',
-      ret = CASE WHEN state = 'out' THEN ? + max(0, min(?, arr) - dep) ELSE ret END,
-      recalled = CASE WHEN state = 'out' THEN 1 ELSE recalled END,
+      ret = CASE state WHEN 'out' THEN ? + max(0, min(?, arr) - dep)
+        WHEN 'hold' THEN ? + arr - dep ELSE ret END,
+      recalled = CASE WHEN state = 'back' THEN recalled ELSE 1 END,
       to_planet = from_planet, to_g = from_g, to_s = from_s, to_p = from_p
     WHERE owner != ? AND to_planet IN (SELECT id FROM planets WHERE owner = ?)
   `,
     )
-    .run(now, now, user.id, user.id);
+    .run(now, now, now, user.id, user.id);
 }
 
 export function deleteAccount(ctx: Ctx, user: User, password: unknown): void {

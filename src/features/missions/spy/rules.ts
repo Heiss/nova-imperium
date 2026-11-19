@@ -11,9 +11,9 @@ export const order = 30;
 export const target: TargetKind = 'foreign';
 export const cargo = false;
 export const returns = true;
-export const visible = false;
 export const silent = true;
 export const alertsGuild = false;
+export const holds = false;
 /**
  * Only Spähschädel fly to an Auspex-Erkundung, and only from espionage
  * technology 1 (#175, Q1).

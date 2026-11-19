@@ -4,7 +4,7 @@
 // the event, with exact values and the edges of every threshold.
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
-import { seeded, U } from '../test/fixtures.ts';
+import { roundDefaults, seeded, U } from '../test/fixtures.ts';
 import {
   EVENT_CHANCE,
   EVENT_KINDS,
@@ -16,6 +16,8 @@ import {
   type EventShares,
   type Raider,
   type Size,
+  EXTRA_SLOTS,
+  HOURS_PER_LEVEL,
   between,
   capsOf,
   drawEvent,
@@ -23,17 +25,31 @@ import {
   drawSize,
   earlyReturn,
   evenBetween,
+  expeditionLevel,
   expeditionPosition,
   expeditionSlots,
-  holdMs,
+  extraSlots,
+  hoursPerLevel,
   isExpeditionPlace,
   lateReturn,
-  maxHoldHours,
+  maxStayHours,
   raidFleet,
   raiderTech,
   resourceFind,
+  roundSettings,
+  stayDuration,
   stayOf,
+  staysByUniverseSpeed,
 } from './expedition.ts';
+import {
+  ROUND_SETTINGS,
+  roundFieldId,
+  roundRefused,
+  roundRequest,
+  roundValues,
+  storedValues,
+} from './round.ts';
+import { DEFAULT_UNIVERSE, liveSpecs } from './universe.ts';
 
 /** A generator that gives the numbers in turn and then fails: every draw is accounted for. */
 function queue(...values: number[]): () => number {
@@ -52,8 +68,8 @@ const near = (share: number, expected: number): void =>
 
 describe('slots and holding time (#93, Q3)', () => {
   it('allows as many expeditions at once as the floor of the square root of the level', () => {
-    const slots = [0, 1, 2, 3, 4, 5, 8, 9, 15, 16, 24, 25, 99, 100].map(
-      expeditionSlots,
+    const slots = [0, 1, 2, 3, 4, 5, 8, 9, 15, 16, 24, 25, 99, 100].map((l) =>
+      expeditionSlots(l),
     );
     expect(slots).toEqual([0, 1, 1, 1, 2, 2, 2, 3, 3, 4, 4, 5, 9, 10]);
   });
@@ -70,17 +86,30 @@ describe('slots and holding time (#93, Q3)', () => {
       expect(expeditionSlots(level), `level ${level}`).toBe(slots);
   });
 
-  it('holds as many hours as the level', () => {
-    expect([0, 1, 2, 9].map(maxHoldHours)).toEqual([0, 1, 2, 9]);
-    expect(holdMs(1)).toBe(3_600_000);
-    expect(holdMs(3)).toBe(10_800_000);
-    expect(holdMs(0)).toBe(0);
+  it('stays as many hours as the level by default', () => {
+    expect([0, 1, 2, 9].map((l) => maxStayHours(l))).toEqual([0, 1, 2, 9]);
   });
 
-  it('holds the same number of hours as the overview of the owiki for levels 1 to 9', () => {
-    expect([1, 2, 3, 4, 5, 6, 7, 8, 9].map(maxHoldHours)).toEqual([
+  it('stays the same number of hours as the overview of the owiki for levels 1 to 9', () => {
+    expect([1, 2, 3, 4, 5, 6, 7, 8, 9].map((l) => maxStayHours(l))).toEqual([
       1, 2, 3, 4, 5, 6, 7, 8, 9,
     ]);
+  });
+
+  it('scales the stay by the hours per level of the round (owner, 2026-11-19)', () => {
+    expect(maxStayHours(4, 1)).toBe(4);
+    expect(maxStayHours(4, 6)).toBe(24);
+    expect(maxStayHours(9, 24)).toBe(216);
+    expect(maxStayHours(0, 24)).toBe(0);
+  });
+
+  it('adds the extra places of the round to the root of the level, from level 1 on', () => {
+    expect(expeditionSlots(1, 0)).toBe(1);
+    expect(expeditionSlots(1, 2)).toBe(3);
+    expect(expeditionSlots(9, 10)).toBe(13);
+    expect(expeditionSlots(4, 1)).toBe(3);
+    // Without the research nothing is added.
+    expect(expeditionSlots(0, 10)).toBe(0);
   });
 });
 
@@ -486,10 +515,80 @@ describe('the event of an expedition (owner, 2026-11-16 and 2026-11-17)', () => 
     ]);
   });
 
-  it('is not decided yet: without shares nothing happens and nothing is drawn', () => {
-    expect(EVENT_SHARES).toBeNull();
-    expect(drawEvent(queue())).toEqual({ kind: 'nothing' });
+  it('draws nothing and no event without shares: nothing happens and nothing is drawn', () => {
     expect(drawEvent(queue(), null)).toEqual({ kind: 'nothing' });
+  });
+
+  it('has shares that sum to 1, from the owner\'s numbers divided by the 84 % (owner, 2026-11-19)', () => {
+    const sum = EVENT_KINDS.reduce((total, k) => total + EVENT_SHARES[k], 0);
+    expect(sum).toBeCloseTo(1, 12);
+    // Stated for all expeditions, pirates 6 % and aliens 2.7 % (French statistic).
+    expect(EVENT_SHARES.pirates).toBeCloseTo(0.06 / 0.84, 12);
+    expect(EVENT_SHARES.aliens).toBeCloseTo(0.027 / 0.84, 12);
+    expect(EVENT_SHARES.pirates * EVENT_CHANCE).toBeCloseTo(0.06, 12);
+    expect(EVENT_SHARES.aliens * EVENT_CHANCE).toBeCloseTo(0.027, 12);
+    // Stated for the events: total loss 0.33 %, resources 37.5 %.
+    expect(EVENT_SHARES.lost).toBe(0.0033);
+    expect(EVENT_SHARES.resources).toBe(0.375);
+    // [V] The rest is shared half to ships and half to the return time, three quarters of the changes later.
+    const rest = 1 - (0.375 + 0.0033 + 0.06 / 0.84 + 0.027 / 0.84);
+    expect(EVENT_SHARES.ships).toBeCloseTo(rest / 2, 12);
+    expect(EVENT_SHARES.early + EVENT_SHARES.late).toBeCloseTo(rest / 2, 12);
+    expect(EVENT_SHARES.late).toBeCloseTo(3 * EVENT_SHARES.early, 12);
+    // About: ships 0.2591, early 0.0648, late 0.1943.
+    expect(EVENT_SHARES.ships).toBeCloseTo(0.2591, 4);
+    expect(EVENT_SHARES.early).toBeCloseTo(0.0648, 4);
+    expect(EVENT_SHARES.late).toBeCloseTo(0.1943, 4);
+    for (const k of EVENT_KINDS) expect(EVENT_SHARES[k], k).toBeGreaterThan(0);
+  });
+
+  it('reaches every outcome with the shares of the game, and each boundary of the draw falls to the next kind', () => {
+    const total = EVENT_KINDS.reduce((sum, k) => sum + EVENT_SHARES[k], 0);
+    let upTo = 0;
+    EVENT_KINDS.forEach((kind, i) => {
+      const from = upTo;
+      upTo += EVENT_SHARES[kind];
+      const sized = kind === 'lost' ? {} : { size: 'normal' };
+      // The middle of its range, with the event chance passed and the size draw after it.
+      const middle = (from + upTo) / 2 / total;
+      expect(drawEvent(queue(0.5, middle, 0.5)), `${kind} middle`).toEqual({
+        kind,
+        ...sized,
+      });
+      // Just below its upper edge it is still this kind, just above it is the next one.
+      const edge = upTo / total;
+      if (i < EVENT_KINDS.length - 1) {
+        expect(
+          drawEvent(queue(0.5, edge - 1e-9, 0.5)).kind,
+          `${kind} below its edge`,
+        ).toBe(kind);
+        expect(
+          drawEvent(queue(0.5, edge + 1e-9, 0.5)).kind,
+          `${kind} above its edge`,
+        ).toBe(EVENT_KINDS[i + 1]);
+      } else {
+        expect(drawEvent(queue(0.5, 1 - 1e-9, 0.5)).kind).toBe(kind);
+      }
+      // Just above its lower edge, the first kind from 0.
+      if (i === 0)
+        expect(drawEvent(queue(0.5, 0, 0.5)).kind, 'first kind at 0').toBe(kind);
+    });
+  });
+
+  it('uses the shares of the game when none are handed in, with 16 % nothing', () => {
+    expect(drawEvent(queue(0.84))).toEqual({ kind: 'nothing' });
+    expect(drawEvent(queue(0.8399999, 0, 0))).toEqual({
+      kind: 'resources',
+      size: 'normal',
+    });
+    // The loss of the fleet is the fifth kind: it needs no size draw.
+    const edge = EVENT_KINDS.slice(0, 4).reduce(
+      (sum, k) => sum + EVENT_SHARES[k],
+      0,
+    );
+    expect(
+      drawEvent(queue(0, edge + EVENT_SHARES.lost / 2 - 1e-12)),
+    ).toEqual({ kind: 'lost' });
   });
 
   it('brings an event below 0.84 and none from 0.84 on', () => {
@@ -578,5 +677,172 @@ describe('the event of an expedition (owner, 2026-11-16 and 2026-11-17)', () => 
     near(seen.resources! / n, (0.84 * 4) / total);
     near(seen.lost! / n, (0.84 * 0.5) / total);
     near(seen.pirates! / n, (0.84 * 1) / total);
+  });
+});
+
+/** The entries of the three settings, as the registry holds them (selected by group). */
+const SETTINGS = ROUND_SETTINGS.filter((s) => s.group?.name === 'expedition');
+
+/** The universe of a round with the three values set. */
+const world = (extra: number, hours: number, speed: 0 | 1, tempo = 5) => ({
+  ...U,
+  speed: tempo,
+  roundExpeditionExtraSlots: extra,
+  roundExpeditionHours: hours,
+  roundExpeditionSpeed: speed,
+});
+
+describe('the settings of the round (owner, 2026-11-19)', () => {
+  it("are three live entries of one fieldset „Expeditionen“, in this order, with the owner's labels", () => {
+    expect(roundSettings).toEqual([
+      expect.objectContaining({
+        kind: 'number',
+        key: 'roundExpeditionExtraSlots',
+        name: 'expeditionExtraSlots',
+        label: 'Zusätzliche Expeditionsplätze',
+        order: 300,
+        min: 0,
+        max: 10,
+        def: 0,
+        live: true,
+      }),
+      expect.objectContaining({
+        kind: 'number',
+        key: 'roundExpeditionHours',
+        name: 'expeditionHours',
+        label: 'Haltezeit in Stunden je Stufe',
+        order: 310,
+        min: 1,
+        max: 24,
+        def: 1,
+        live: true,
+      }),
+      expect.objectContaining({
+        kind: 'number',
+        key: 'roundExpeditionSpeed',
+        name: 'expeditionSpeed',
+        label: 'Haltezeit durch das Universums-Tempo teilen',
+        order: 315,
+        min: 0,
+        max: 1,
+        def: 0,
+        live: true,
+        choices: [
+          { value: 0, label: 'Nein' },
+          { value: 1, label: 'Ja' },
+        ],
+      }),
+    ]);
+    expect(SETTINGS).toEqual(roundSettings);
+    expect(new Set(SETTINGS.map((s) => s.group)).size).toBe(1);
+    expect(SETTINGS[0]!.group).toEqual({
+      name: 'expedition',
+      legend: 'Expeditionen',
+    });
+    expect(EXTRA_SLOTS).toEqual({ min: 0, max: 10, def: 0 });
+    expect(HOURS_PER_LEVEL).toEqual({ min: 1, max: 24, def: 1 });
+  });
+
+  it('stand together in the registry and are rows of the universe settings with their defaults', () => {
+    const first = ROUND_SETTINGS.indexOf(SETTINGS[0]!);
+    expect(ROUND_SETTINGS.slice(first, first + 3)).toEqual(SETTINGS);
+    const rows = liveSpecs().filter((s) => s.key.startsWith('roundExpedition'));
+    expect(rows.map((s) => [s.key, s.min, s.max, s.def])).toEqual([
+      ['roundExpeditionExtraSlots', 0, 10, 0],
+      ['roundExpeditionHours', 1, 24, 1],
+      ['roundExpeditionSpeed', 0, 1, 0],
+    ]);
+    for (const row of rows)
+      expect(DEFAULT_UNIVERSE[row.key], row.key).toBe(row.def);
+    expect(roundFieldId(SETTINGS[1]!)).toBe('round-expedition-hours');
+  });
+
+  it('default to the classic rules: no extra place, an hour per level, real time', () => {
+    const rules = storedValues(() => undefined, SETTINGS);
+    expect(rules).toEqual({
+      expeditionExtraSlots: 0,
+      expeditionHours: 1,
+      expeditionSpeed: 0,
+    });
+    expect(roundDefaults()).toMatchObject(rules);
+    expect(extraSlots(U)).toBe(0);
+    expect(hoursPerLevel(U)).toBe(1);
+    expect(staysByUniverseSpeed(U)).toBe(false);
+  });
+
+  it('refuse a value outside the range or no whole number, each with the range wording, and keep a group that is not sent', () => {
+    const ok = {
+      expeditionExtraSlots: 10,
+      expeditionHours: 24,
+      expeditionSpeed: 1,
+    };
+    const refused = (data: Record<string, unknown>) =>
+      roundRefused(roundDefaults(), { expedition: data }, SETTINGS).map(
+        (s) => s.name,
+      );
+    expect(refused(ok)).toEqual([]);
+    expect(
+      refused({ ...ok, expeditionExtraSlots: 0, expeditionHours: 1 }),
+    ).toEqual([]);
+    for (const [field, bad] of [
+      ['expeditionExtraSlots', -1],
+      ['expeditionExtraSlots', 11],
+      ['expeditionExtraSlots', 1.5],
+      ['expeditionHours', 0],
+      ['expeditionHours', 25],
+      ['expeditionHours', '3'],
+      ['expeditionSpeed', 2],
+      ['expeditionSpeed', true],
+      ['expeditionSpeed', null],
+    ] as const)
+      expect(refused({ ...ok, [field]: bad }), `${field} ${bad}`).toEqual([
+        field,
+      ]);
+    // A group that is sent without a value of a member refuses that member.
+    expect(refused({})).toEqual(SETTINGS.map((s) => s.name));
+    // A group that is not sent keeps the current values of the round.
+    expect(roundRefused(roundDefaults(), {}, SETTINGS)).toEqual([]);
+  });
+
+  it('are sent as one object „expedition“ in the request of a new round', () => {
+    const values = {
+      expeditionExtraSlots: 2,
+      expeditionHours: 3,
+      expeditionSpeed: 1,
+    };
+    expect(roundRequest(values, SETTINGS)).toEqual({ expedition: values });
+    expect(
+      roundValues(roundDefaults(), { expedition: values }, SETTINGS),
+    ).toEqual(values);
+  });
+
+  it('are read from the universe of the round', () => {
+    const u = world(4, 6, 1);
+    expect(extraSlots(u)).toBe(4);
+    expect(hoursPerLevel(u)).toBe(6);
+    expect(staysByUniverseSpeed(u)).toBe(true);
+    expect(staysByUniverseSpeed(world(4, 6, 0))).toBe(false);
+  });
+
+  it('divide the stay by the universe speed only with the switch on, rounded to a millisecond', () => {
+    // Off: real hours, whatever the speed.
+    expect(stayDuration(1, world(0, 1, 0, 5))).toBe(HOUR);
+    expect(stayDuration(4, world(0, 1, 0, 50))).toBe(4 * HOUR);
+    // On: hours divided by the speed like a flight.
+    expect(stayDuration(1, world(0, 1, 1, 1))).toBe(HOUR);
+    expect(stayDuration(5, world(0, 1, 1, 5))).toBe(HOUR);
+    expect(stayDuration(1, world(0, 1, 1, 5))).toBe(HOUR / 5);
+    expect(stayDuration(2, world(0, 1, 1, 100))).toBe(72_000);
+    expect(stayDuration(1, world(0, 1, 1, 7))).toBe(Math.round(HOUR / 7));
+    expect(Number.isInteger(stayDuration(1, world(0, 1, 1, 7)))).toBe(true);
+    // The longest stay of the round at the highest values still takes time.
+    expect(stayDuration(24 * 9, world(0, 24, 1, 100))).toBeGreaterThan(0);
+  });
+
+  it('know the level of the research, 0 without it', () => {
+    expect(expeditionLevel({ expo: 5 })).toBe(5);
+    expect(expeditionLevel({})).toBe(0);
+    expect(expeditionLevel(undefined)).toBe(0);
+    expect(expeditionLevel({ spy: 9 })).toBe(0);
   });
 });

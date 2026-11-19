@@ -4,7 +4,7 @@ import type { Levels, Queue, ResearchQueue } from '../../../core/types.ts';
 
 export type Row = Record<string, unknown>;
 
-export const queueOf = (r: Row, p: 'bq' | 'rq'): Queue | null =>
+const queueOf = (r: Row, p: 'bq' | 'rq'): Queue | null =>
   r[`${p}_key`] == null
     ? null
     : {
@@ -44,3 +44,26 @@ export const queueParams = (q: Queue | null, p: 'bq' | 'rq'): Row => {
 
 export const levels = (rows: Row[], key: string, value: string): Levels =>
   Object.fromEntries(rows.map((r) => [r[key] as string, r[value] as number]));
+
+/** What a demolition of the build queue gives back (#202); none on an upgrade. */
+export const buildQueueOf = (r: Row): Queue | null => {
+  const q = queueOf(r, 'bq');
+  return q && r.bq_back_m != null
+    ? {
+        ...q,
+        back: [
+          r.bq_back_m as number,
+          r.bq_back_c as number,
+          r.bq_back_d as number,
+        ],
+      }
+    : q;
+};
+
+/** The columns of the build queue, with what a demolition gives back (#202). */
+export const buildQueueParams = (q: Queue | null): Row => ({
+  ...queueParams(q, 'bq'),
+  bq_back_m: q?.back?.[0] ?? null,
+  bq_back_c: q?.back?.[1] ?? null,
+  bq_back_d: q?.back?.[2] ?? null,
+});

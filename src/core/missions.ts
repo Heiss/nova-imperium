@@ -12,14 +12,23 @@ import type { Fleet, Levels, Mission, Planet } from './types.ts';
 import { vacationProtects } from './vacation.ts';
 
 /**
- * What a mission flies to: an own planet, a foreign one, any planet, a
- * free position without a planet, a Trümmerfeld (#45), which is a place
- * of its own beside a planet at the same position (#119), a foreign moon
- * and nothing else (the Mondbruch, #95), or the expedition position of a
- * system, which is never a planet position (#93).
+ * What a mission flies to: an own planet, a foreign one, the planet of an
+ * ally (#55), any planet, a free position without a planet, a Trümmerfeld
+ * (#45), which is a place of its own beside a planet at the same position
+ * (#119), a foreign moon and nothing else (the Mondbruch, #95), or the
+ * expedition position of a system, which is never a planet position (#93).
+ * The planet of an ally is a foreign planet; whether its owner is an ally is
+ * the mission's own check.
  */
 export type TargetKind =
-  'own' | 'foreign' | 'any' | 'free' | 'debris' | 'foreignMoon' | 'expedition';
+  | 'own'
+  | 'foreign'
+  | 'ally'
+  | 'any'
+  | 'free'
+  | 'debris'
+  | 'foreignMoon'
+  | 'expedition';
 
 /**
  * Why a fleet cannot be sent, as a code; the server turns it into today's
@@ -45,6 +54,9 @@ export type SendError =
   | 'noWorldbreaker'
   | 'surveyLocked'
   | 'surveyProbesOnly'
+  | 'notAlly'
+  | 'holdFleets'
+  | 'holdPlayers'
   | 'expeditionLocked'
   | 'expeditionSlots'
   | 'notExpedition'
@@ -70,6 +82,8 @@ export interface SendFleet {
    * mission with a limit (the expeditions, #93) reads it. Missing: none.
    */
   running?: number;
+  /** The expedition slots the round adds to ⌊√level⌋ (#93); missing: none. */
+  extraSlots?: number;
 }
 
 /** What is at the target position when the fleet is sent. */
@@ -105,6 +119,16 @@ export interface SendTarget {
    * player is protected from a new mission of another player (D2, Q2).
    */
   vacation(owner: string): boolean;
+  /**
+   * Whether `owner` is an ally of the sender under the admin's setting of
+   * the round (#55, Q2). The server determines it; only a Halten asks.
+   */
+  ally?(owner: string): boolean;
+  /**
+   * The owners of the fleets that hold at the planet or fly there to hold,
+   * one per fleet (#55); only a Halten asks.
+   */
+  holding?(): readonly string[];
 }
 
 /** The typed data and the send check of one mission (its rules.ts). */
@@ -116,8 +140,6 @@ export interface MissionRules {
   readonly cargo: boolean;
   /** Whether the fleet flies back after the arrival. */
   readonly returns: boolean;
-  /** Whether the defender sees the ships of the incoming fleet. */
-  readonly visible: boolean;
   /** Whether the fleet comes home without a report of its own. */
   readonly silent: boolean;
   /**
@@ -132,11 +154,19 @@ export interface MissionRules {
    */
   readonly launch?: Launch;
   /**
-   * The most hours the fleet stays at the target before it flies home, from
-   * the research of its owner, which the player chooses at the send (the
-   * expeditions, #93). Without it the fleet does not stay.
+   * Whether the fleet stays at the target for a holding time the player
+   * chooses, burning fuel for it, and defends it (#55): the Halten only.
+   * An expedition stays too (`maxHold`), but it does not defend and burns no
+   * fuel for it, so it is not a holding fleet.
    */
-  readonly maxHold?: (research: Levels) => number;
+  readonly holds: boolean;
+  /**
+   * The most hours the fleet stays at the target before it flies home, from
+   * the research of its owner and the hours per level of the round, which the
+   * player chooses at the send (the expeditions, #93). Without it the fleet
+   * does not stay this way.
+   */
+  readonly maxStay?: (research: Levels, hoursPerLevel: number) => number;
   /** The check of the mission itself, after the target kind; a code or nothing. */
   canSend(fleet: SendFleet, target: SendTarget): SendError | undefined;
 }
@@ -197,6 +227,7 @@ export function suits(
   if (kind === 'any') return true;
   if (kind === 'foreignMoon')
     return planet.kind === 'moon' && planet.owner !== owner;
+  // The planet of an ally is a foreign planet (#55).
   return (planet.owner === owner) === (kind === 'own');
 }
 
@@ -214,10 +245,20 @@ const NEVER_MOON: readonly TargetKind[] = ['free', 'debris', 'expedition'];
 const nothing = (target: SendTarget): SendError =>
   target.moon ? 'noMoon' : 'noPlanet';
 
+/** The code of a planet that does not suit the kind; a foreign kind gets `ownTarget`. */
+const OTHER: Partial<Record<TargetKind, SendError>> = {
+  own: 'notOwn',
+  ally: 'notAlly',
+};
+
+/** The kinds that fly to a foreign planet, which the noob protection keeps. */
+const FOREIGN: readonly TargetKind[] = ['foreign', 'ally'];
+
 /**
  * The protection of a suitable planet: the vacation mode of its owner for
  * every mission of another player (#223), then the noob protection for a
- * foreign target.
+ * foreign target. No fleet holds at a player in the noob protection either
+ * (#55 [V]).
  */
 function shieldError(
   kind: TargetKind,
@@ -227,7 +268,7 @@ function shieldError(
 ): SendError | undefined {
   if (vacationProtects(t, fleet.owner, target.vacation)) return 'vacation';
   // Asked last, and only here: the server needs every player's points.
-  return kind === 'foreign' && target.protects(t.owner)
+  return FOREIGN.includes(kind) && target.protects(t.owner)
     ? 'protected'
     : undefined;
 }
@@ -254,8 +295,7 @@ function targetError(
   if (kind === 'free') return freeError(target);
   if (!t) return nothing(target);
   if (t.id === fleet.from) return 'samePlanet';
-  if (!suits(kind, fleet.owner, t))
-    return kind === 'own' ? 'notOwn' : 'ownTarget';
+  if (!suits(kind, fleet.owner, t)) return OTHER[kind] ?? 'ownTarget';
   return shieldError(kind, fleet, target, t);
 }
 

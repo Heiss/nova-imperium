@@ -1,4 +1,4 @@
-// Upgrade test of migration 20261116T2054-moonbreak (#95): the migration runs on
+// Upgrade test of migration 20261119T0810-moonbreak (#95): the migration runs on
 // data of the version before it and keeps or changes them as intended.
 // It rebuilds fleets and fleet_ships so that the CHECK of fleets.mission
 // allows the mission Mondbruch; every fleet keeps every column, the gift of
@@ -9,7 +9,7 @@ import { migrate } from '../database.ts';
 import migrations from '../migrations/95/migrations.ts';
 import { Store } from '../store.ts';
 
-const ID = '20261116T2054-moonbreak';
+const ID = '20261119T0810-moonbreak';
 
 const rows = (db: ReturnType<typeof databaseAt>, sql: string): unknown[] =>
   db.prepare(sql).all();

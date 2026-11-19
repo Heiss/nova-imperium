@@ -2,7 +2,8 @@
 // UI would need hours to reach (ships in the hangar). Usage:
 //   node e2e/seed.ts '<json>'   with { name, res?, b?, ships?, def?, temp?, pct?, research?,
 //   diameter?, unlimited? (the fields of the home planet, #51),
-//   clearQueue? (a finished build), colony? ({ g?, s?, p?, name?, b?, res?, def? }: an own planet,
+//   clearQueue? (a finished build), finishBuild? (the running order of the build queue,
+//   an upgrade or a demolition of #202, ends now), colony? ({ g?, s?, p?, name?, b?, res?, def? }: an own planet,
 //   by default on slot 15 of the home system), landColonyFleet?, landFleet? (a mission:
 //   its outbound fleets arrive now), returnFleet? (the returning fleets come home now),
 //   finishUnits? (the shipyard has built the first n units of its stored queue now),
@@ -14,8 +15,10 @@
 //   gift? (minutes: a gift fleet of the „Endzeit“ to the home planet that arrives in that
 //   time, issue #161), colonyMoon? (the fields of `moon`: the moon of the colony, made or
 //   changed, with `colony`, issue #230), activeAgo? (ms: the account and every place of the
-//   player were last active that long ago, issue #229), vacationAgo? (ms: the vacation mode
-//   started that long ago, issue #223) }
+//   player were last active that long ago, issue #229), endHold? (the player's fleets that hold
+//   end their holding time now, issue #55), vacationAgo? (ms: the vacation mode started that
+//   long ago, issue #223), marketReset? (true: every price of the marketplace is back at the
+//   base and nobody has given anything today, issue #171) }
 import { openDatabase } from '../src/server/db/database.ts';
 import { Store } from '../src/server/db/store.ts';
 import { recordServerError } from '../src/server/error-log.ts';
@@ -42,6 +45,15 @@ function landFleet(id: string, mission: string): void {
     .run(Date.now(), id, mission);
 }
 
+/** Ends the holding time of the player's fleets that hold now (#55). */
+function endHold(id: string): void {
+  store.db
+    .prepare(
+      "UPDATE fleets SET hold = MAX(0, ? - arr) WHERE owner = ? AND state = 'hold'",
+    )
+    .run(Date.now(), id);
+}
+
 /** Lets the player's returning fleets come home now. */
 function returnFleet(id: string): void {
   store.db
@@ -62,10 +74,14 @@ function yardStart(p: Planet, n: number): number | null {
   return Date.now() - ms;
 }
 
+/** The order of the build queue, ending now when asked (#202). */
+const finished = (q: Planet['bq']): Planet['bq'] =>
+  q && d.finishBuild ? { ...q, end: Math.min(q.end, Date.now()) } : q;
+
 /** The queues and the last update of the home planet, moved as asked. */
 function timers(p: Planet): Pick<Planet, 'bq' | 'sqT' | 't'> {
   return {
-    bq: d.clearQueue ? null : p.bq,
+    bq: d.clearQueue ? null : finished(p.bq),
     sqT: d.finishUnits ? yardStart(p, d.finishUnits) : p.sqT,
     t: d.settledAgo ? Date.now() - d.settledAgo : p.t,
   };
@@ -184,18 +200,25 @@ function startVacation(id: string): void {
     .run(Date.now() - d.vacationAgo, id);
 }
 
+/** The fleets of the player moved forward: arrived, holding ended, come home. */
+function moveFleets(id: string): void {
+  if (d.landColonyFleet) landFleet(id, 'colonize');
+  if (d.landFleet) landFleet(id, d.landFleet);
+  if (d.returnFleet) returnFleet(id);
+  if (d.endHold) endHold(id);
+}
+
 /** What lies at the home planet or goes with the player: a Trümmerfeld, the moon, a gift, the activity. */
 function addAround(p: Planet): void {
   if (d.debris) store.repos.debris.add(p, d.debris);
   if (d.moon) moonOf(p, d.moon);
   if (d.gift) addGift(p, d.gift);
   if (d.activeAgo !== undefined) activeAgo(u!.id, d.activeAgo);
+  if (d.marketReset) store.repos.market.clear();
 }
 
 store.tx(() => {
-  if (d.landColonyFleet) landFleet(u.id, 'colonize');
-  if (d.landFleet) landFleet(u.id, d.landFleet);
-  if (d.returnFleet) returnFleet(u.id);
+  moveFleets(u.id);
   if (d.research) store.saveUser({ ...u, research: d.research });
   startVacation(u.id);
   const p = store.planetOfUser(u.id)!;

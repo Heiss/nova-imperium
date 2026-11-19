@@ -1,26 +1,34 @@
 // What one player sees: their planet, their and incoming fleets, reports,
 // the players with points, the galaxy. Foreign fleets show only what an
-// observer can see. The admin also gets the settings specification and the
+// observer can see: of the ships what the observer's Auspex-Lehre
+// recognizes (#228). The admin also gets the settings specification and the
 // state of the „Endzeit“ (#161).
 import { type ActivityLimits, activityLimits } from '../../core/activity.ts';
-import { missionRules } from '../../core/missions.ts';
+import {
+  type Recognition,
+  recognitionOf,
+  type SeenShips,
+  seenShips,
+} from '../../core/fleet-recognition.ts';
 import { UNIVERSE_SPECS } from '../../core/universe.ts';
 import type { Fleet } from '../../core/types.ts';
 import type { User } from '../db/repos/players.ts';
 import { pushOff } from '../push-options.ts';
-import { ownLabs } from './actions.ts';
+import { ownLabs, researchOf } from './actions.ts';
 import { inactivities, planetActivities } from './activity.ts';
 import { type Ctx, universe } from './context.ts';
 import { endzeitState } from './endzeit.ts';
+import { friendState } from './friends.ts';
 import { guildState } from './guilds.ts';
 import { gateState } from './jump-gate.ts';
 import { mainPlanetOf, mainPlanetView } from './main-planet.ts';
 import { achievementState } from './achievements.ts';
+import { marketState } from './market.ts';
 import { roundRules } from './round.ts';
 import { categoryScores } from './highscore.ts';
 import { pointsMap } from './points.ts';
 
-export interface ForeignFleet {
+export interface ForeignFleet extends SeenShips {
   id: string;
   owner: string;
   fromC: Fleet['fromC'];
@@ -29,11 +37,22 @@ export interface ForeignFleet {
   mission: Fleet['mission'];
   state: Fleet['state'];
   arr: number;
-  ships: Fleet['ships'];
+  /** The holding time of a fleet that holds at the planet (#55). */
+  hold?: number;
 }
 
-/** An incoming fleet: the ships are visible only for a mission that shows them (attack). */
-export const foreignView = (f: Fleet): ForeignFleet => ({
+/**
+ * An incoming fleet as an observer with the Auspex-Lehre `level` sees it:
+ * of its ships only what the thresholds of the round allow, for every
+ * mission (#228, D1, D2). A fleet that is holding at the planet shows all its
+ * ships and its holding time to the host, whatever the level and the
+ * thresholds (owner, 2026-11-19, #55); on its way there it follows them.
+ */
+export const foreignView = (
+  f: Fleet,
+  level: number,
+  recognition: Recognition,
+): ForeignFleet => ({
   id: f.id,
   owner: f.owner,
   fromC: f.fromC,
@@ -42,8 +61,14 @@ export const foreignView = (f: Fleet): ForeignFleet => ({
   mission: f.mission,
   state: f.state,
   arr: f.arr,
-  ships: missionRules(f.mission)?.visible ? f.ships : {},
+  ...(f.state === 'hold'
+    ? { hold: f.hold ?? 0, ships: f.ships }
+    : seenShips(f.ships, level, recognition)),
 });
+
+/** Whether a foreign fleet shows at the shown planet: on its way there, or holding there (#55). */
+const atPlanet = (f: Fleet, p: { id: string } | null): boolean =>
+  p !== null && f.to === p.id && f.state !== 'back';
 
 /**
  * Every planet and moon (#53) of the universe, for every player, with its
@@ -149,13 +174,13 @@ export function stateFor(
     typeof selected === 'string' ? ctx.planets.get(selected) : null;
   const p = requested?.owner === u.id ? requested : main.planet;
   const pts = pointsMap(ctx);
+  // The settled Auspex-Lehre: a level finished by now counts (#228).
+  const spy = researchOf(ctx, u).research.spy ?? 0;
+  const recognition = recognitionOf(round);
   const fleets = ctx.fleets
     .all()
-    .filter(
-      (f) =>
-        f.owner === u.id || (p !== null && f.state === 'out' && f.to === p.id),
-    )
-    .map((f) => (f.owner === u.id ? f : foreignView(f)));
+    .filter((f) => f.owner === u.id || atPlanet(f, p))
+    .map((f) => (f.owner === u.id ? f : foreignView(f, spy, recognition)));
   const limits = activityLimits(round);
   return {
     round,
@@ -172,6 +197,8 @@ export function stateFor(
     reports: ctx.reports.ofPlayer(u.id),
     // No guild data while guilds are off in the round (#191).
     guilds: round.guilds ? guildState(ctx, u.id, pts) : null,
+    // The buddy list (#227): only the player's own friends and requests.
+    friends: friendState(ctx, u.id, limits.recent),
     achievements: achievementState(ctx, u, round),
     players: playersOf(ctx, pts, limits),
     galaxy: galaxyOf(ctx, limits),
@@ -179,6 +206,8 @@ export function stateFor(
     debris: ctx.debris.all(),
     // Every position locked after an abandonment, for the Sternenkarte (#224).
     locks: ctx.planets.locks(ctx.now()),
+    // The prices of the marketplace and what the player gave today (#171).
+    market: marketState(ctx, u),
     admin: adminState(ctx, u),
   };
 }

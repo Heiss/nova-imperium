@@ -78,8 +78,9 @@ extension of this game.
 ## Built
 
 * The mission „Vermessung“ (**[E]** the name, confirmed 2026-11-17) is the folder
-  `src/features/missions/survey/` (order 70, target `free`, no cargo,
-  returns, not visible, silent like the Auspex-Erkundung). `canSend`
+  `src/features/missions/survey/` (order 90: the Wache stellen has 70, the Mondbruch 80 and the Raketenangriff 100, each order once; target `free`, no cargo,
+  returns, silent like the Auspex-Erkundung; it has no field `visible` since
+  #228). `canSend`
   returns `surveyLocked` without level 1 of the research, then
   `surveyProbesOnly` for any ship other than a Spähschädel; `SendFleet`
   carries the research of the owner for it. The server words them
@@ -117,7 +118,7 @@ extension of this game.
   30 days with every survey report that names them (`reports.deleteSurveys`).
   Reports of a position that was colonized stay. **[V]** A new round deletes
   the surveys too.
-* Database: migration `20261117T1211-planet-survey`
+* Database: migration `20261119T0811-planet-survey`
   (`src/server/db/migrations/190/`) rebuilds `fleets` and `fleet_ships` for
   the mission and `reports` for the type `survey`, every row unchanged, and
   adds `surveys (id, g, s, p, temp, diameter, created, UNIQUE (g, s, p))`.

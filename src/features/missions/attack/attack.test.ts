@@ -58,7 +58,6 @@ describe('attack', () => {
       target: 'foreign',
       cargo: true,
       returns: true,
-      visible: true,
       silent: false,
       alertsGuild: true,
     });

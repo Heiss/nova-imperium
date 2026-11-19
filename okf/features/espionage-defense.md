@@ -115,3 +115,100 @@ points were answered on 2026-11-16.
   is not verified; owiki was not checked for it.
 * **[E]** The thresholds apply to every foreign fleet, not only to attacks
   (owner, 2026-11-16, D2).
+* **[E]** Per-round values (owner, 2026-11-17, X1): the thresholds are set
+  in the dialog „Neue Runde“ and stay editable in the admin panel during
+  the round.
+
+## Built (#228)
+
+* **[V]** The server redacts: `foreignView()` of
+  `src/server/game/state.ts` sends of a foreign fleet only what
+  `seenShips()` of `src/core/fleet-recognition.ts` gives for the
+  observer's settled Auspex-Lehre (`settleR`, so a level finished by now
+  counts): `total` (the number of ships) from the first threshold, `types`
+  (the keys of the ship types with at least one ship, without numbers) from
+  the second, `ships` (the exact number per type) from the third. A part
+  below its threshold is absent from the answer, never 0 or an empty list;
+  cargo, start planet and return stay out as before. Each threshold counts
+  on its own, so an unusual order of the admin's values (types before the
+  total) still works.
+* **[V]** D2 replaces the rule of #116 that only the attack shows its
+  ships: the field `visible` of the missions' `rules.ts` is gone, and every
+  foreign fleet follows the thresholds.
+* **[V]** The missions that came after #228 (bundle 2 of the Classic
+  features, merged 2026-11-19) follow the same model, taken as recommended
+  from D2 and the notes of the features, none needs a rule of its own: the
+  Mondbruch (#95) flies at a foreign moon and is shown to its owner like
+  an attack (the old `visible: true`); a Raketenangriff (#54) is shown like
+  a foreign fleet, its missiles counting as its ships ([Missiles](/features/missiles.md));
+  a Vermessung (#190) flies to a free position, where no defender
+  exists, so nobody sees it (the old `visible: false`; the filter of
+  `stateFor()` lists only flights to the shown planet of the observer).
+  The fields `visible` of the three rules are gone.
+* **[V]** The thresholds are three entries of the registry of the round
+  settings (#283, see
+  [Admin](/features/admin.md#the-registry-of-the-round-settings-283)),
+  defined in `src/core/fleet-recognition.ts` as its `roundSettings` (#310):
+  `roundRecognitionTotal` (order 120), `roundRecognitionTypes` (130) and
+  `roundRecognitionCounts` (140); the orders 60 to 90 are the
+  activity markers of #229 and 100 and 110 are left to #55. They are stored as `roundRecognitionTotal`,
+  `roundRecognitionTypes` and `roundRecognitionCounts` (2, 4 and 8 without
+  a setting, so existing universes need no migration) and are named
+  `recognitionTotal`, `recognitionTypes` and `recognitionCounts` in
+  `roundRules()`; `recognitionOf()` gives them to `seenShips()`. Their
+  labels are „Fremde Flotten: Schiffe insgesamt ab Auspex-Lehre“, „Fremde
+  Flotten: Schiffstypen ab Auspex-Lehre“ and „Fremde Flotten: Anzahl je
+  Schiffstyp ab Auspex-Lehre“, in whole levels from 0 to 100 (0: every
+  player sees that part; the range is [E], owner, 2026-11-18, on PR #300). Each is `live` (X1): a number field of the dialog
+  „Neue Runde“, preselected with the current value, and a row of the
+  universe settings, changed during the round. Both paths write the same
+  settings, and the round reset's audit entry holds them.
+* **[E]** The dialog „Neue Runde“ shows the three thresholds in one framed
+  group (a fieldset) with the legend „Fremde Flotten erkennen“, like
+  „Aktivität“ of #229; the field labels stay as they are (owner,
+  2026-11-18, on PR #300).
+* **[V]** The three entries are one group `recognition` with this legend
+  (`legend` of the group in `src/core/fleet-recognition.ts`, as the rewards
+  group has it): the request „reset“ sends them as one object `recognition`, and the server refuses
+  every wrong threshold at once with the message of the universe settings,
+  „<Name>: ganze Zahl von 0 bis 100.“ A new round without the object keeps
+  the current values; an object that leaves a threshold out is refused,
+  the rule of every group (#214). The hand-wired check of the first build
+  (`recognitionErrors`, the three universe specs, the client's
+  `roundNumbers`) is gone.
+* **[V]** The overview and the fleet list show a foreign fleet as before,
+  „Eine fremde Flotte von <Name> [g:s:p] erreicht deinen Planeten [g:s:p] ·
+  <Auftrag>“, followed by what is seen in brackets: „(Zusammensetzung
+  unbekannt)“, „(Schiffe insgesamt: 7)“, „(Schiffe insgesamt: 7 ·
+  Abfangjäger, Frachtläufer)“ or the exact „(5 Abfangjäger, 2
+  Frachtläufer)“; never a cargo (#259). Built in `foreignShips()` of
+  `src/client/logic/overview.ts`.
+* **[V]** Own fleets stay fully visible; the scan of the Auspex-Phalanx
+  keeps its own rules (#53); the attack event in the guild chat (#169)
+  holds no ships, so it discloses nothing. Each fleet of a group attack is
+  a foreign fleet of its own and follows the same rule.
+
+## Tests (#228)
+
+* Unit: `src/core/fleet-recognition.test.ts` (below, at and above 2, 4 and
+  8, no zero counts, each threshold on its own, a property test, the three
+  entries of the registry and their check), `src/core/round.test.ts` (the
+  order), `src/core/universe.test.ts` (the three settings),
+  `src/client/logic/overview.test.ts` (the row) and
+  `src/client/views/misc.test.ts` (the dialog with its fieldset and legend).
+* Server: `src/server/game/fleet-recognition.test.ts` (the levels, nothing
+  hidden in the answer, the settled research, every mission, a group
+  attack, own fleets, the guild event, the round, the refusal and the live
+  change in the settings); `src/server/game/missions.test.ts` (every
+  mission).
+* E2E: `e2e/incoming-fleets.spec.ts`, desktop and phone: the defender at
+  Auspex-Lehre 0 to 8 with the answer of `/api/state`, and the admin on the
+  mail server with the dialog and the universe settings; the group „Fremde Flotten erkennen“ with its three fields in
+  the dialog; axe on the overview, the dialog and the settings.
+
+* **[E]** Held fleets (#55, owner, 2026-11-19): a fleet that is holding at
+  the planet of the observer (state `hold`) shows to him in full, with its
+  holding time, whatever his Auspex-Lehre and the thresholds. The thresholds
+  count only for a fleet still on its way to hold (state `out`), which goes
+  through `foreignView` like every other foreign fleet
+  ([Holding and ACS](/features/holding-acs.md)).

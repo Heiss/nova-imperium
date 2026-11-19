@@ -45,7 +45,7 @@ code and here in the same pull request.
   Sonnenkathedrale) (owner, 2026-11-17).
 * **[V]** The article of the Auspex-Lehre keeps the text of the design
   study (#287) and its two keywords, the examples of the issue.
-* **[E]** The article of the Auspex-Lehre shows the rule of the game for the chance of the Auspex-Abwehr instead of the old danger formula (owner, 2026-11-18, #175); **[V]** its wording, drafted by Claude for the owner to check: formula „Höchste Chance auf Auspex-Abwehr in % = Spähschädel ÷ 4 · Auspex-Lehre des Ziels ÷ deine Auspex-Lehre · (1 + Schiffe am Ziel ÷ 100) (höchstens 100)“, table caption „Höchste Chance auf Auspex-Abwehr bei gleicher Auspex-Lehre“ (rows „Schiffe am Ziel“, columns „n Spähschädel“) and paragraph „Die Chance auf Auspex-Abwehr wird bei jeder Auspex-Erkundung neu zwischen null und dem Höchstwert ausgelost. Mehr Spähschädel und mehr Schiffe am Ziel erhöhen ihn, eine höhere Auspex-Lehre des Ziels auch; deine eigene senkt ihn.“ The numbers come from `src/core/espionage.ts`.
+* **[E]** The article of the Auspex-Lehre shows the rule of the game for the chance of the Auspex-Abwehr instead of the old danger formula (owner, 2026-11-18, #175); **[V]** its wording, drafted by Claude for the owner to check: formula „Höchste Chance auf Auspex-Abwehr in % = Spähschädel ÷ 4 · Auspex-Lehre des Ziels ÷ deine Auspex-Lehre · (1 + Schiffe am Ziel ÷ 100) (höchstens 100)“, table caption „Höchste Chance auf Auspex-Abwehr bei gleicher Auspex-Lehre“ (rows „Schiffe am Ziel“, columns „n Spähschädel“) and paragraph „Die Chance auf Auspex-Abwehr wird bei jeder Auspex-Erkundung neu zwischen null und dem Höchstwert ausgelost. Mehr Spähschädel und mehr Schiffe am Ziel erhöhen ihn, eine höhere Auspex-Lehre des Ziels auch; deine eigene senkt ihn.“ The numbers come from `src/core/espionage.ts`. **[V]** The paragraph names the Auspex-Erkundung and the Spähschädel as plain words, not as links: the introduction of the article already links both, and no other article links an entry twice (CI of #316: the E2E test of the Lexicanum found two links to the Spähschädel).
 
 # Sources
 
@@ -66,7 +66,9 @@ code and here in the same pull request.
   fits turns the fleet back with what it carries), `plunder` (up to half of
   each resource), `rebuild` and `debrisOf` (told without their shares, which
   belong to the rule page of the battle in stage 2), `deployFuel` (half of
-  the fuel burnt), `harvest` (the cargo of every ship counts).
+  the fuel burnt), `harvest` (the cargo of every ship counts), `hold`
+  (`HOLD_HOURS` and `HOLD_LIMITS` of `src/core/holding.ts`: the values of
+  the text are filled from them; the decisions of #55 for the rest).
 
 # The texts
 
@@ -151,6 +153,11 @@ code and here in the same pull request.
 
 * **[V]** Prose: „Die Wartezeit nach einem Sprung hängt von der Stufe des Starttors ab und sinkt, aber nicht gleichmäßig: Stufe 1 wartet 60 Minuten, Stufe 5 36, Stufe 10 nur 17. Ab Stufe 15 wird sie nicht mehr kürzer. Diese Minuten teilt das Universum durch seine Geschwindigkeit, ein schnelleres kühlt die Tore also schneller ab; die Tabelle zeigt die Zeit in deinem Universum. Beide Tore warten gleich lang, und zwar nach dem Starttor – die Stufe des Zieltors ändert nichts daran. Der Sprung selbst geschieht sofort und kostet keinen Treibstoff; nur Schiffe springen, die Rohstoffe bleiben zurück.“
 * **[V]** Keywords: Tor, springen, Teleport, Flotte, Mond
+
+### Handelsposten (`market`)
+
+* **[V]** Prose (#171, 2026-11-19): „Der Handelsposten bringt auf keiner Stufe mehr Rohstoffe: Er öffnet den Marktplatz und senkt die Gebühr, die bei jedem Tausch vom Ergebnis abgezogen wird. Wie hoch sie auf der ersten Stufe ist und um wie viele Prozentpunkte jede weitere Stufe sie senkt, legt der Admin für die Runde fest; unter null fällt sie nie. Die Tabelle zeigt die Werte dieser Runde. Wie viel du für einen Rohstoff bekommst, bestimmen ebenfalls die Kurse des Admins, die sich mit jedem Tausch verschieben. Dazu kommt ein Tageslimit: Der Admin legt fest, wie viel jeder Spieler an einem Tag tauschen darf, bei null gibt es kein Limit. Wer mehr tauschen will, als vom Tag übrig ist, tauscht nur den Rest; ist nichts mehr übrig, wird der Tausch abgelehnt.“
+* **[V]** Keywords: tauschen, Handel, Markt
 
 ### Raketenkrypta (`silo`)
 
@@ -399,6 +406,11 @@ code and here in the same pull request.
 
 * **[V]** Mission text: „Am Trümmerfeld lädt die Flotte Adamant und Psikristall ein, bis das Feld leer oder der Laderaum voll ist. Dabei zählt der Laderaum aller Schiffe, nicht nur der Bergungsbarken. War eine andere Flotte schneller, bleibt nur der Rest; ist das Feld ganz fort, kehrt die Flotte um.“
 * **[V]** Keywords: Schrott, Wrack, einsammeln, aufräumen
+
+### Wache stellen (`mission-hold`)
+
+* **[V]** Mission text: „Am Ziel, dem Planeten eines Gildenmitglieds oder Freundes, bleibt die Flotte für die Haltezeit, die du beim Start wählst (von 0 bis 32 Stunden), und verteidigt den Planeten in jedem Kampf zusammen mit seinem Besitzer. Danach fliegt sie heim. Wer halten darf, legt der Admin je Runde fest; den Treibstoff für die Haltezeit zahlst du beim Start. An einem Planeten halten höchstens 4 Spieler mit zusammen höchstens 15 Flotten.“
+* **[V]** Keywords: verteidigen, stationieren, beistehen, Gilde
 
 ### Mondbruch (`mission-moonbreak`)
 

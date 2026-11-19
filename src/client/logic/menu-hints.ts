@@ -1,6 +1,7 @@
 import { ACHIEVEMENTS } from '../../core/achievements.ts';
 import { isShip } from '../../core/catalog.ts';
 import type { Planet } from '../../core/types.ts';
+import { friendsHint } from './friends.ts';
 import type { GameState } from './types.ts';
 
 export function finishedYardOrders(planet: Planet, now: number): Set<string> {
@@ -54,6 +55,8 @@ export function menuHints(
   }
   const guilds = guildHint(state);
   if (guilds) hints.set('guilds', guilds);
+  const friends = friendsHint(state);
+  if (friends) hints.set('friends', friends);
   return hints;
 }
 

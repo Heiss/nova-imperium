@@ -147,4 +147,49 @@ describe('fleets repository', () => {
     ctx.fleets.reroute('m1', 'p2');
     expect(ctx.fleets.get('ipm')!.to).toBe('p2');
   });
+
+  it('keeps the holding time of a Halten and finds it due at the end of holding (#55)', () => {
+    const ctx = testCtx();
+    addUser(ctx, 'Anna');
+    const h = fleet({
+      id: 'h1',
+      mission: 'hold',
+      arr: 50,
+      ret: 500,
+      hold: 300,
+      state: 'hold',
+    });
+    ctx.fleets.save(h);
+    expect(ctx.fleets.get('h1')).toEqual(h);
+    // A Halten of 0 hours keeps its holding time; no other fleet has one.
+    ctx.fleets.save({ ...h, id: 'h0', hold: 0, state: 'out' });
+    expect(ctx.fleets.get('h0')).toMatchObject({ hold: 0 });
+    ctx.fleets.save(fleet({ id: 'f1', arr: 60, ret: 900 }));
+    expect(ctx.fleets.get('f1')).not.toHaveProperty('hold');
+    expect(ctx.fleets.due(349).map((f) => f.id)).toEqual(['h0', 'f1']);
+    expect(ctx.fleets.due(350).map((f) => f.id)).toEqual(['h0', 'f1', 'h1']);
+    // The holding time is set at the launch and never changes.
+    ctx.fleets.save({ ...h, hold: 1, state: 'back' });
+    expect(ctx.fleets.get('h1')).toMatchObject({ hold: 300, state: 'back' });
+  });
+
+  it('lists the fleets flying to a place or holding there, not those on their way home (#55)', () => {
+    const ctx = testCtx();
+    addUser(ctx, 'Anna');
+    ctx.fleets.save(fleet({ id: 'f2', to: 'p1', dep: 2 }));
+    ctx.fleets.save(fleet({ id: 'f1', to: 'p1', dep: 1, state: 'back' }));
+    ctx.fleets.save(
+      fleet({
+        id: 'f3',
+        to: 'p1',
+        dep: 1,
+        mission: 'hold',
+        state: 'hold',
+        hold: 5,
+      }),
+    );
+    ctx.fleets.save(fleet({ id: 'f4', to: 'p2', dep: 0 }));
+    expect(ctx.fleets.at('p1').map((f) => f.id)).toEqual(['f3', 'f2']);
+    expect(ctx.fleets.at('none')).toEqual([]);
+  });
 });

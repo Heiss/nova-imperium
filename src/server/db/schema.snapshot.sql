@@ -16,6 +16,11 @@ CREATE INDEX error_events_time ON error_events(time);
 
 CREATE INDEX fleets_owner ON fleets(owner);
 
+CREATE INDEX friendships_addressee ON friendships (addressee);
+
+CREATE UNIQUE INDEX friendships_pair
+      ON friendships (min(requester, addressee), max(requester, addressee));
+
 CREATE INDEX guild_chat_attacker ON guild_chat(attacker);
 
 CREATE INDEX guild_chat_author ON guild_chat(author);
@@ -130,18 +135,27 @@ CREATE TABLE fleets (
       to_g INTEGER NOT NULL,
       to_s INTEGER NOT NULL,
       to_p INTEGER NOT NULL,
-      mission TEXT NOT NULL CHECK (mission IN ('attack', 'transport', 'spy', 'colonize', 'deploy', 'harvest', 'moonbreak', 'survey', 'missile', 'expedition')),
+      mission TEXT NOT NULL CHECK (mission IN ('attack', 'transport', 'spy', 'colonize', 'deploy', 'harvest', 'hold', 'moonbreak', 'survey', 'missile', 'expedition')),
       cargo_m REAL NOT NULL,
       cargo_c REAL NOT NULL,
       cargo_d REAL NOT NULL,
       dep INTEGER NOT NULL,
       arr INTEGER NOT NULL,
       ret INTEGER NOT NULL,
-      state TEXT NOT NULL CHECK (state IN ('out', 'back')),
+      state TEXT NOT NULL CHECK (state IN ('out', 'hold', 'back')),
       recalled INTEGER NOT NULL DEFAULT 0,
       fuel INTEGER NOT NULL DEFAULT 0,
       gift INTEGER NOT NULL DEFAULT 0 CHECK (gift IN (0, 1)),
+      hold INTEGER NOT NULL DEFAULT 0 CHECK (hold >= 0),
       aim TEXT
+    ) STRICT;
+
+CREATE TABLE friendships (
+      requester TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      addressee TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      status TEXT NOT NULL CHECK (status IN ('pending', 'friend')),
+      PRIMARY KEY (requester, addressee),
+      CHECK (requester != addressee)
     ) STRICT;
 
 CREATE TABLE guild_chat (
@@ -207,6 +221,19 @@ CREATE TABLE jump_gates (
       ready INTEGER NOT NULL
     ) STRICT;
 
+CREATE TABLE market_prices (
+      pair TEXT PRIMARY KEY CHECK (pair IN ('mc', 'md', 'cm', 'cd', 'dm', 'dc')),
+      price INTEGER NOT NULL,
+      changed INTEGER NOT NULL
+    ) STRICT;
+
+CREATE TABLE market_usage (
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      day INTEGER NOT NULL,
+      amount INTEGER NOT NULL,
+      PRIMARY KEY (user_id, day)
+    ) STRICT;
+
 CREATE TABLE passkey_challenges (
     id TEXT PRIMARY KEY,
     challenge TEXT NOT NULL,
@@ -267,7 +294,7 @@ CREATE TABLE planets (
     bq_cost_d INTEGER,
     diameter INTEGER NOT NULL DEFAULT 0,
     unlimited INTEGER NOT NULL DEFAULT 0 CHECK (unlimited IN (0, 1)),
-    kind TEXT NOT NULL DEFAULT 'planet' CHECK (kind IN ('planet', 'moon')), active_at INTEGER,
+    kind TEXT NOT NULL DEFAULT 'planet' CHECK (kind IN ('planet', 'moon')), bq_back_m INTEGER, bq_back_c INTEGER, bq_back_d INTEGER, active_at INTEGER,
     UNIQUE (g, s, p, kind)
   ) STRICT;
 

@@ -41,7 +41,7 @@ import {
   networkLab,
 } from '../core/research.ts';
 import { text } from '../core/text.ts';
-import type { Levels, Planet } from '../core/types.ts';
+import type { Levels, Planet, ResearchState } from '../core/types.ts';
 import { orderMax, YARD_LOCK, yardLockedBy } from '../core/yard.ts';
 import type { CatalogKind } from '../client/logic/catalog-list.ts';
 import { type Explanation, explanation } from '../client/logic/explain.ts';
@@ -314,13 +314,19 @@ const buildOrder = (b: Levels): fc.Arbitrary<Planet['bq']> =>
         start: time,
         span: fc.integer({ min: 1, max: 900_000 }),
       })
-      .map(({ key, start, span }) => ({
-        key,
-        lvl: (b[key] ?? 0) + 1,
-        start,
-        end: start + span,
-        cost: [0, 0, 0] as [number, number, number],
-      })),
+      .map(({ key, start, span }) => {
+        // A demolition of a level that stands (#202) on an even span: no
+        // draw of its own, so the cases of the seed stay those before.
+        const down = span % 2 === 0 && (b[key] ?? 0) > 0;
+        return {
+          key,
+          lvl: (b[key] ?? 0) + (down ? -1 : 1),
+          start,
+          end: start + span,
+          cost: [0, 0, 0] as [number, number, number],
+          ...(down ? { back: [1, 2, 3] as const } : {}),
+        };
+      }),
   );
 
 const unitOrder: fc.Arbitrary<Planet['sq'][number]> = fc.record({
@@ -348,6 +354,38 @@ const place = fc
     sqT: fc.option(time),
   })
   .chain((p) => buildOrder(p.b).map((bq) => planet({ ...p, bq })));
+
+/** What a state of the lists is made of, by the generator and by hand. */
+interface Parts {
+  P: Planet;
+  research: Levels;
+  rq: ResearchState['rq'];
+  now: number;
+  explain: string;
+  openEx: Record<string, boolean>;
+  labs: { id: string; lab: number; upgrading: boolean }[];
+  home: string;
+}
+
+function view(x: Parts): V {
+  const s = {
+    cfg: U,
+    me: { id: 'u1', explain: x.explain },
+    labs: x.labs,
+    galaxy: IDS.map((id, i) => ({ id, name: NAMES[i]!, kind: 'planet' })),
+    homePlanet: x.home,
+    // Without a switch the main planet is the home planet (#221); the
+    // frozen views know only the home planet.
+    mainPlanet: x.home,
+  } as unknown as GameState;
+  return {
+    s,
+    P: x.P,
+    R: { research: x.research, rq: x.rq },
+    now: x.now,
+    ui: { openEx: x.openEx } as unknown as Ui,
+  };
+}
 
 const state = fc
   .record({
@@ -381,29 +419,13 @@ const state = fc
     ),
     home: fc.constantFrom(...IDS),
   })
-  .map((x): V => {
-    const s = {
-      cfg: U,
-      me: { id: 'u1', explain: x.explain },
-      labs: x.labs,
-      galaxy: IDS.map((id, i) => ({ id, name: NAMES[i]!, kind: 'planet' })),
-      homePlanet: x.home,
-      // Without a switch the main planet is the home planet (#221); the
-      // frozen views know only the home planet.
-      mainPlanet: x.home,
-    } as unknown as GameState;
-    return {
-      s,
-      P: x.P,
-      R: { research: x.research, rq: x.rq },
-      now: x.now,
-      ui: { openEx: x.openEx } as unknown as Ui,
-    };
-  });
+  .map((x): V => view(x));
 
 /** Markup of every branch of the lists, for the check that the cases reach them. */
 const MARKS = [
   'data-act="cancelBuild"',
+  'data-act="demolish"',
+  'Rückbau auf Stufe',
   'data-act="cancelResearch"',
   'data-act="build"',
   'data-act="research"',
@@ -430,6 +452,130 @@ const MARKS = [
   'mehr Produktion',
   'verbrauch auf Stufe',
   ' · max. 1',
+];
+
+/** Adds the marks that `html` shows to `seen`. */
+function collect(html: string, seen: Set<string>): void {
+  for (const mark of MARKS) if (html.includes(mark)) seen.add(mark);
+}
+
+/**
+ * The marks the sample (seed 118, 300 runs) reached at most 70 times, one of
+ * them (a running lab upgrade) not at all once the catalog had 58 entries:
+ * each has a hand-built case below, so no new catalog entry can lose it.
+ */
+const RARE = [
+  'data-act="demolish"',
+  'data-act="selectPlanet"',
+  'Rückbau auf Stufe',
+  'Schiffsschmiede arbeitet gerade',
+  'Scholarium forscht gerade',
+  'Scholarium wird ausgebaut',
+  'Zu wenig Energie',
+  'kann nicht produzieren',
+  'Auf diesem Planeten gibt es kein Scholarium.',
+  'Für Forschung brauchst du ein Scholarium.',
+  'Keine freien Felder.',
+  'Scholarien zusammen',
+];
+
+const RICH = { m: 5_000_000, c: 5_000_000, d: 2_000_000 };
+
+/** A state by hand: a planet with a lab and a shipyard, rich, and nothing running. */
+function handBuilt(over: Partial<Planet>, more: Partial<Parts> = {}): V {
+  return view({
+    P: planet({
+      unlimited: true,
+      res: RICH,
+      b: { lab: 3, yard: 2, robot: 10, metal: 2 },
+      ...over,
+    }),
+    research: { computer: 10 },
+    rq: null,
+    now: 1000,
+    explain: 'always',
+    openEx: {},
+    labs: [{ id: 'p1_1_5', lab: 3, upgrading: false }],
+    home: 'p1_1_5',
+    ...more,
+  });
+}
+
+const order = (key: string, back = false): NonNullable<Planet['bq']> => ({
+  key,
+  lvl: 1,
+  start: 0,
+  end: 5000,
+  cost: [0, 0, 0],
+  ...(back ? { back: [1, 2, 3] as const } : {}),
+});
+
+/** Cases that make the rare branches certain, each named by what it shows. */
+const HAND_BUILT: readonly (readonly [string, V])[] = [
+  // A level to demolish with a free queue; the lab linked to a better one.
+  [
+    'idle with a linked lab',
+    handBuilt(
+      {},
+      {
+        research: { ifn: 2, computer: 10 },
+        labs: [
+          { id: 'p1_1_5', lab: 3, upgrading: false },
+          { id: 'p1_2_3', lab: 8, upgrading: false },
+        ],
+      },
+    ),
+  ],
+  ['a demolition running', handBuilt({ bq: order('metal', true) })],
+  ['the lab being upgraded', handBuilt({ bq: order('lab') })],
+  [
+    'a research running',
+    handBuilt(
+      {},
+      {
+        rq: {
+          key: 'energy',
+          lvl: 1,
+          start: 0,
+          end: 5000,
+          cost: [0, 0, 0],
+        },
+      },
+    ),
+  ],
+  [
+    'orders in the shipyard',
+    handBuilt({ sq: [{ key: 'sc', n: 3, unit: 100 }], sqT: 0 }),
+  ],
+  ['the shipyard being upgraded', handBuilt({ bq: order('yard') })],
+  [
+    'no shipyard, no lab, another lab',
+    handBuilt(
+      { b: {} },
+      {
+        labs: [
+          { id: 'p1_1_5', lab: 0, upgrading: false },
+          { id: 'p1_2_3', lab: 8, upgrading: false },
+        ],
+      },
+    ),
+  ],
+  ['no shipyard, no lab at all', handBuilt({ b: {} }, { labs: [] })],
+  [
+    'too little energy',
+    handBuilt(
+      { b: { lab: 12, yard: 2, robot: 10, nanite: 1 } },
+      { research: { energy: 12, computer: 10 } },
+    ),
+  ],
+  [
+    'no free field',
+    handBuilt({
+      unlimited: false,
+      diameter: 3000,
+      b: { lab: 3, yard: 2, robot: 10 },
+    }),
+  ],
 ];
 
 describe('CatalogList against the views before #118', () => {
@@ -508,16 +654,54 @@ describe('CatalogList against the views before #118', () => {
     );
   });
 
-  it('reaches every action and notice', () => {
-    // 300 runs: a new catalog entry (#190) moved the seeded sample so that
-    // 150 runs no longer reached „Zu wenig Energie“.
+  it('lists the Handelsposten and the Raketenkrypta, each with its own marks, as before (#171, #54)', () => {
+    const v = handBuilt({
+      b: { lab: 3, yard: 2, robot: 4, market: 1, silo: 2 },
+    });
+    const html = normalize(renderNew(v, 'building'));
+    expect(html).toBe(normalize(OLD.building(v)));
+    const at = (name: string): number => html.indexOf(`${name} <span`);
+    // In the order of the catalog: the Handelsposten (170), then the Raketenkrypta (180).
+    expect(at('Handelsposten')).toBeGreaterThan(-1);
+    expect(at('Raketenkrypta')).toBeGreaterThan(at('Handelsposten'));
+    expect(html).toContain('Handelsposten <span class="lv">(Stufe 1)</span>');
+    expect(html).toContain('Raketenkrypta <span class="lv">(Stufe 2)</span>');
+    // The places of the missiles show at the Raketenkrypta only.
+    expect(html.match(/Belegt: /g)).toHaveLength(1);
+    expect(html.indexOf('Belegt: 0 / 20 Plätze')).toBeGreaterThan(
+      at('Raketenkrypta'),
+    );
+  });
+
+  it('renders the hand-built cases as before', () => {
+    for (const [name, v] of HAND_BUILT)
+      for (const kind of KINDS)
+        expect(normalize(renderNew(v, kind)), `${name}, ${kind}`).toBe(
+          normalize(OLD[kind](v)),
+        );
+  });
+
+  // The generated states reach the rare branches by chance only: each new
+  // catalog entry (#171, #190) moved the sample, and raising the number of
+  // runs twice did not stop that. So the branches below are also reached by
+  // the hand-built cases, on purpose and always.
+  it('reaches the rare actions and notices by the hand-built cases alone', () => {
     const seen = new Set<string>();
+    for (const [, v] of HAND_BUILT)
+      for (const kind of KINDS) collect(renderNew(v, kind), seen);
+    expect([...seen].filter((m) => RARE.includes(m)).sort()).toEqual(
+      [...RARE].sort(),
+    );
+  });
+
+  it('reaches every action and notice', () => {
+    // The sample (seed 118) and the hand-built cases together.
+    const seen = new Set<string>();
+    for (const [, v] of HAND_BUILT)
+      for (const kind of KINDS) collect(renderNew(v, kind), seen);
     fc.assert(
       fc.property(state, (v) => {
-        for (const kind of KINDS) {
-          const html = renderNew(v, kind);
-          for (const mark of MARKS) if (html.includes(mark)) seen.add(mark);
-        }
+        for (const kind of KINDS) collect(renderNew(v, kind), seen);
       }),
       { seed: 118, numRuns: 300 },
     );

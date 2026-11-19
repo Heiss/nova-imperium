@@ -8,18 +8,29 @@ import { describe, expect, it } from 'vitest';
 import {
   HOUR_MS,
   VACATION_HOURS,
-  VACATION_SETTING,
   type VacationEntry,
   producesUntil,
+  roundSettings,
   vacationEnd,
   vacationEntryError,
   vacationExitError,
   vacationProtects,
   vacationRefuses,
 } from './vacation.ts';
-import { ROUND_SETTINGS, roundRefused } from './round.ts';
+import {
+  ROUND_SETTINGS,
+  roundFieldId,
+  roundRefused,
+  roundRequest,
+  roundValues,
+  storedValues,
+} from './round.ts';
+import { DEFAULT_UNIVERSE, liveSpecs, universeErrors } from './universe.ts';
 
 const NOW = 1_763_300_000_000;
+
+/** The entry of the minimum duration, as the registry holds it (selected by key). */
+const SETTINGS = ROUND_SETTINGS.filter((s) => s.key === 'roundVacationHours');
 
 const idle = (over: Partial<VacationEntry> = {}): VacationEntry => ({
   fleets: 0,
@@ -35,33 +46,91 @@ describe('the minimum duration of a round', () => {
     expect(HOUR_MS).toBe(60 * 60 * 1000);
   });
 
-  it('is the setting „vacationHours“ of the registry, live (#283, X1)', () => {
-    expect(VACATION_SETTING).toMatchObject({
-      kind: 'number',
-      key: 'roundVacationHours',
-      name: 'vacationHours',
-      label: 'Mindestdauer des Urlaubsmodus (Stunden)',
-      min: 1,
-      max: 720,
-      def: 48,
-      order: 150,
-      live: true,
-      refusal:
-        'Bitte für die Mindestdauer des Urlaubsmodus 1 bis 720 ganze Stunden angeben.',
-    });
-    expect(ROUND_SETTINGS).toContain(VACATION_SETTING);
+  it('is the one entry of the file, as the registry holds it: live, no group, order 150 (#283, #310, X1)', () => {
+    expect(roundSettings).toEqual([
+      {
+        kind: 'number',
+        key: 'roundVacationHours',
+        name: 'vacationHours',
+        label: 'Mindestdauer des Urlaubsmodus (Stunden)',
+        order: 150,
+        min: 1,
+        max: 720,
+        def: 48,
+        live: true,
+        refusal:
+          'Bitte für die Mindestdauer des Urlaubsmodus 1 bis 720 ganze Stunden angeben.',
+      },
+    ]);
+    expect(SETTINGS).toEqual(roundSettings);
+    expect(SETTINGS[0]).not.toHaveProperty('group');
+    expect(SETTINGS.map(roundFieldId)).toEqual(['round-vacation-hours']);
   });
 
-  it('refuses a value that is not a whole number of hours from 1 to 720', () => {
+  it('refuses a value that is not a whole number of hours from 1 to 720, with its own text', () => {
     const refused = (vacationHours: unknown) =>
-      roundRefused({ vacationHours: 24 }, { vacationHours }, [
-        VACATION_SETTING,
-      ]);
+      roundRefused({ vacationHours: 24 }, { vacationHours }, SETTINGS);
     for (const hours of [1, 24, 48, 720]) expect(refused(hours)).toEqual([]);
-    for (const hours of [0, 721, -1, 1.5, '24', null, Number.NaN])
-      expect(refused(hours)).toEqual([VACATION_SETTING]);
+    for (const hours of [0, 721, -1, 1.5, 2.5, '24', null, true, Number.NaN])
+      expect(refused(hours), String(hours)).toEqual(SETTINGS);
     // Without a value the round keeps the current one.
     expect(refused(undefined)).toEqual([]);
+    expect(SETTINGS[0]!.refusal).toBe(
+      'Bitte für die Mindestdauer des Urlaubsmodus 1 bis 720 ganze Stunden angeben.',
+    );
+  });
+
+  it('is a row of the universe settings with the same label, range and default, checked there (X1)', () => {
+    expect(liveSpecs().filter((s) => s.key === 'roundVacationHours')).toEqual([
+      {
+        key: 'roundVacationHours',
+        label: 'Mindestdauer des Urlaubsmodus (Stunden)',
+        min: 1,
+        max: 720,
+        def: 48,
+      },
+    ]);
+    expect(DEFAULT_UNIVERSE).toMatchObject({ roundVacationHours: 48 });
+    const codes = (roundVacationHours: unknown) =>
+      universeErrors(
+        { ...DEFAULT_UNIVERSE, roundVacationHours },
+        { g: 1, s: 1, p: 1 },
+      ).map((e) => [e.spec.key, e.code]);
+    for (const hours of [1, 720]) expect(codes(hours)).toEqual([]);
+    for (const hours of [0, 721, 1.5])
+      expect(codes(hours)).toEqual([['roundVacationHours', 'range']]);
+  });
+
+  it('is stored under its key, 48 without a stored value, and sent as a plain number, not in a group', () => {
+    expect(storedValues(() => undefined, SETTINGS)).toEqual({
+      vacationHours: 48,
+    });
+    expect(
+      storedValues(
+        (k) => (k === 'roundVacationHours' ? 72 : undefined),
+        SETTINGS,
+      ),
+    ).toEqual({ vacationHours: 72 });
+    expect(roundRequest({ vacationHours: 24 }, SETTINGS)).toEqual({
+      vacationHours: 24,
+    });
+    expect(
+      roundRequest(
+        storedValues(() => undefined, SETTINGS),
+        SETTINGS,
+      ),
+    ).toEqual({ vacationHours: 48 });
+  });
+
+  it('keeps the current value when the admin sends none and takes the sent one otherwise', () => {
+    const current = { vacationHours: 24 };
+    expect(roundValues(current, {}, SETTINGS)).toEqual({ vacationHours: 24 });
+    expect(roundValues(current, { vacationHours: 1 }, SETTINGS)).toEqual({
+      vacationHours: 1,
+    });
+    expect(roundValues(current, { vacationHours: 720 }, SETTINGS)).toEqual({
+      vacationHours: 720,
+    });
   });
 });
 
@@ -165,6 +234,8 @@ describe('the actions during the vacation mode', () => {
     'startVacation',
     'abandon',
     'jump',
+    // The marketplace (#171) is no part of the allow list.
+    'trade',
     'anyNewAction',
   ];
   // Owner, 2026-11-18: nothing but the end and the push settings.
@@ -183,6 +254,10 @@ describe('the actions during the vacation mode', () => {
     'sendGuildChat',
     'seeGuildChat',
     'dissolveGuild',
+    'requestFriend',
+    'answerFriend',
+    'cancelFriend',
+    'removeFriend',
   ];
 
   it('refuses every game action, a new one too', () => {
@@ -195,7 +270,7 @@ describe('the actions during the vacation mode', () => {
       expect(vacationRefuses(action, NOW), action).toBe(false);
   });
 
-  it('refuses the options, the messages, renaming, the main planet, the guilds and the admin', () => {
+  it('refuses the options, the messages, renaming, the main planet, the guilds, the friend requests and the admin', () => {
     for (const action of LOCKED)
       expect(vacationRefuses(action, NOW), action).toBe(true);
   });

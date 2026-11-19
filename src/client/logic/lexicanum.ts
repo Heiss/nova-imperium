@@ -349,6 +349,7 @@ function usedSection(a: ArticleMeta): Section | null {
 const TARGETS: Readonly<Record<TargetKind, string>> = {
   own: 'eigener Planet',
   foreign: 'fremder Planet',
+  ally: 'Planet eines Gildenmitglieds oder Freundes',
   any: 'jeder Planet',
   free: 'Freie Position',
   debris: 'Trümmerfeld',
@@ -366,11 +367,13 @@ export function missionShips(
   m: string,
 ): { only: boolean; ships: string[] } | null {
   const rules = missionRules(m)!;
+  // The planet of an ally: a Wache stellen asks for its owner (#55).
   const target = {
-    planet: null,
+    planet: { id: m, owner: m },
     debris: true,
     protects: () => false,
     vacation: () => false,
+    ally: () => true,
   };
   // The article names the ships, not the research a mission needs: the
   // sender has the espionage technology the Auspex-Erkundung asks for (#175).
@@ -395,7 +398,6 @@ function missionFacts(m: string): ViewBlock {
     { label: 'Ziel', text: TARGETS[r.target] },
     { label: 'Ladung', text: yes(r.cargo) },
     { label: 'Rückflug', text: yes(r.returns) },
-    { label: 'Für den Verteidiger sichtbar', text: yes(r.visible) },
     { label: 'Eigener Bericht bei der Heimkehr', text: yes(!r.silent) },
   ];
   if (ships)

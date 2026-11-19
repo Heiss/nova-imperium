@@ -11,7 +11,15 @@ import {
   fleetSpeed,
   flightMs,
   fuelFor,
+  holdFuel,
 } from '../../core/flight.ts';
+import {
+  ALLIES,
+  HOLD_LIMITS,
+  HOUR_MS,
+  dueAt,
+  isHoldHours,
+} from '../../core/holding.ts';
 import {
   isFleet,
   launchOf,
@@ -23,8 +31,10 @@ import {
 } from '../../core/missions.ts';
 import {
   expeditionPosition,
-  holdMs,
+  extraSlots,
+  hoursPerLevel,
   isExpeditionPlace,
+  stayDuration,
 } from '../../core/expedition.ts';
 import { placeId } from '../../core/place.ts';
 import type {
@@ -41,7 +51,9 @@ import { type Action, type Data, mine, researchOf } from './actions.ts';
 import { lockedUntil, positionLockedText } from './position-lock.ts';
 import { type Ctx, coords, fail, int, universe } from './context.ts';
 import { attackEvent } from './guild-events.ts';
+import { holdersAt, isAllyOf } from './holding.ts';
 import { isProtected, pointsMap } from './points.ts';
+import { roundRules } from './round.ts';
 import { inVacation } from './vacation.ts';
 
 /**
@@ -81,8 +93,11 @@ export const target = (ctx: Ctx, d: Data): Coords => {
   };
 };
 
+/** A code with a fixed message; a locked position names the end of its lock. */
+type WordedError = Exclude<SendError, 'locked'>;
+
 /** The message of each code of `sendError`, in German like the interface. */
-const SEND_ERROR: Readonly<Record<Exclude<SendError, 'locked'>, string>> = {
+const SEND_ERROR: Readonly<Record<WordedError, string>> = {
   occupied: 'Diese Position ist bereits besetzt.',
   noColonyShip: 'Du brauchst eine Kolonistenarche.',
   noPlanet: 'An dieser Position gibt es keinen Planeten.',
@@ -106,7 +121,22 @@ const SEND_ERROR: Readonly<Record<Exclude<SendError, 'locked'>, string>> = {
   expeditionSlots: 'Alle Expeditionsplätze belegt.',
   notExpedition: 'Expeditionen fliegen nur zur Expeditionsposition.',
   expeditionSpace: 'Die Expeditionsposition kann nicht besiedelt werden.',
+  // #55 [V]: worded like the other missions, by the setting of the round.
+  notAlly: 'Wache stellen nur bei Gildenmitgliedern und Freunden.',
+  holdFleets: `An diesem Planeten halten bereits ${HOLD_LIMITS.fleets} Flotten.`,
+  holdPlayers: `An diesem Planeten halten bereits Flotten von ${HOLD_LIMITS.players} Spielern.`,
 };
+
+/** Who may hold, as the refusal of a Halten names them (#55, Q2) [V]. */
+const NOT_ALLY: Readonly<Record<number, string>> = {
+  [ALLIES.guild]: 'Wache stellen nur bei Gildenmitgliedern.',
+  [ALLIES.friends]: 'Wache stellen nur bei Freunden.',
+};
+
+/** The message of a code; a Halten names who may hold in this round. */
+const sendMessage = (ctx: Ctx, error: WordedError): string =>
+  (error === 'notAlly' && NOT_ALLY[roundRules(ctx).allies]) ||
+  SEND_ERROR[error];
 
 const loadCargo = (p: Planet, rules: MissionRules, raw: unknown): Resources => {
   if (!rules.cargo) return { m: 0, c: 0, d: 0 };
@@ -131,7 +161,9 @@ interface Plan {
   targetOwner: string | null;
   cargo: Resources;
   pct: number;
-  /** How long the fleet stays at the target in milliseconds; 0 for a mission that does not stay (#93). */
+  /** The holding time of a Halten in hours (#55); 0 for every other mission. */
+  hours: number;
+  /** How long an expedition stays at the target in milliseconds (#93); 0 for a mission that does not stay. */
   stay: number;
 }
 
@@ -158,6 +190,7 @@ function checkDestination(
       ships,
       research: researchOf(ctx, u).research,
       running: ctx.fleets.countMission(u.id, mission),
+      extraSlots: extraSlots(universe(ctx)),
     },
     {
       planet: occupied,
@@ -167,11 +200,14 @@ function checkDestination(
       expedition: at.expedition,
       protects: (owner) => isProtected(u.id, owner, pointsMap(ctx)),
       vacation: inVacation(ctx),
+      ally: (owner) => isAllyOf(ctx, u.id, owner),
+      // Asked only for a Halten, whose target kind has a planet (#55).
+      holding: () => holdersAt(ctx, occupied!.id),
     },
   );
   // A given-up position names the end of its lock (#224, D2).
   if (error === 'locked') return fail(positionLockedText(at.lockEnd!));
-  if (error) fail(SEND_ERROR[error]);
+  if (error) fail(sendMessage(ctx, error));
 }
 
 function plan(ctx: Ctx, u: User, p: Planet, d: Data): Plan {
@@ -215,14 +251,23 @@ function plan(ctx: Ctx, u: User, p: Planet, d: Data): Plan {
     targetOwner: toField ? null : (occupied?.owner ?? null),
     cargo: loadCargo(p, rules, d.cargo),
     pct: int(d.pct, 1, 10),
-    stay: chosenStay(ctx, u, rules, d.hold),
+    hours: holdHours(rules, d.hold),
+    stay: chosenStay(ctx, u, rules, d.stay),
   };
 }
 
+/** The holding time a Halten asks for, in hours (#55); none for the others. */
+function holdHours(rules: MissionRules, raw: unknown): number {
+  if (!rules.holds) return 0;
+  return isHoldHours(raw) ? raw : fail('Bitte eine Haltezeit auswählen.');
+}
+
 /**
- * How long the fleet stays at the target, from the hours the player chose
- * (at least 1) up to what the research allows (#93, Q3); 0 for a mission
- * that does not stay.
+ * How long an expedition stays at the target, from the hours the player
+ * chose (at least 1) up to what the research and the hours per level of the
+ * round allow (#93, Q3), divided by the universe speed when the round says
+ * so; 0 for a mission that does not stay. The message names the hours the
+ * player enters, whatever the speed does to them.
  */
 function chosenStay(
   ctx: Ctx,
@@ -230,25 +275,27 @@ function chosenStay(
   rules: MissionRules,
   hours: unknown,
 ): number {
-  if (!rules.maxHold) return 0;
-  const most = rules.maxHold(researchOf(ctx, u).research);
+  if (!rules.maxStay) return 0;
+  const world = universe(ctx);
+  const most = rules.maxStay(researchOf(ctx, u).research, hoursPerLevel(world));
   const chosen = int(hours, 1, Number.MAX_SAFE_INTEGER);
   if (chosen > most)
     fail(
       `Die Haltezeit beträgt höchstens ${most} ${most === 1 ? 'Stunde' : 'Stunden'}.`,
     );
-  return holdMs(chosen);
+  return stayDuration(chosen, world);
 }
+
+/** The fuel of the launch: the flight, and the holding time of a Halten (#55, D2). */
+const launchFuel = (x: Plan, holds: boolean, dist: number): number =>
+  fuelFor(x.ships, dist, x.pct) + (holds ? holdFuel(x.ships, x.hours) : 0);
 
 export const send: Action = (ctx, u, d, event) => {
   const t = ctx.now();
   const p = mine(ctx, u, d.planet);
-  const { mission, ships, dest, to, targetOwner, cargo, pct, stay } = plan(
-    ctx,
-    u,
-    p,
-    d,
-  );
+  const x = plan(ctx, u, p, d);
+  const { mission, ships, dest, to, targetOwner, cargo, pct, stay } = x;
+  const holds = missionRules(mission)!.holds;
   const dist = distance(p, dest);
   const ms = flightMs(
     dist,
@@ -256,7 +303,8 @@ export const send: Action = (ctx, u, d, event) => {
     pct,
     universe(ctx),
   );
-  const fuel = fuelFor(ships, dist, pct);
+  const fuel = launchFuel(x, holds, dist);
+  const hold = x.hours * HOUR_MS;
   if (cargo.m + cargo.c + cargo.d > capacity(ships))
     fail('Nicht genug Laderaum.');
   if (p.res.d < fuel + cargo.d)
@@ -274,10 +322,11 @@ export const send: Action = (ctx, u, d, event) => {
     cargo,
     dep: t,
     arr: t + ms + stay,
-    ret: t + 2 * ms + stay,
+    ret: t + 2 * ms + hold + stay,
     state: 'out',
     recalled: false,
     fuel,
+    ...(holds && { hold }),
   };
   ctx.fleets.save(fleet);
   // The guild of the defender learns of an attack or a Mondbruch at its
@@ -319,10 +368,28 @@ function logLaunch(
   };
 }
 
+/**
+ * Whether a fleet can still be called back at `t`: on its way out before its
+ * arrival, or while it holds before the end of its holding time (#55).
+ */
+const recallable = (f: Fleet, t: number): boolean =>
+  (f.state === 'out' || f.state === 'hold') && dueAt(f) > t;
+
+/**
+ * When a recalled fleet is home: it flies back as long as it flew out, and a
+ * fleet that holds as long as its flight to the target took (#55). An
+ * expedition that already stays at its position (#93) is there, so it flies
+ * back as long as its flight out, not as long as its flight and stay so far:
+ * `ret - arr` is that flight (for every other mission it is at least the
+ * time flown so far, so the old rule stays).
+ */
+const recalledAt = (f: Fleet, t: number): number =>
+  t + (f.state === 'hold' ? f.arr - f.dep : Math.min(t - f.dep, f.ret - f.arr));
+
 export const recall: Action = (ctx, u, d, event) => {
   const f = ctx.fleets.get(String(d.id));
   const t = ctx.now();
-  if (!f || f.owner !== u.id || f.state !== 'out' || f.arr <= t)
+  if (!f || f.owner !== u.id || !recallable(f, t))
     fail('Rückruf nicht mehr möglich.');
   // The gift of the „Endzeit“ has no origin to return to (#161).
   if (f!.gift)
@@ -330,10 +397,8 @@ export const recall: Action = (ctx, u, d, event) => {
   // Missiles do not come back (#54).
   if (!isFleet(f!)) fail('Rückruf nicht mehr möglich.');
   const fleet = f!;
+  fleet.ret = recalledAt(fleet, t);
   fleet.state = 'back';
-  // The flight home takes as long as the flight so far, but not longer than
-  // the flight out: a fleet that already stays at its target (#93) is there.
-  fleet.ret = t + Math.min(t - fleet.dep, fleet.ret - fleet.arr);
   fleet.recalled = true;
   ctx.fleets.save(fleet);
   if (event)

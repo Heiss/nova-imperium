@@ -17,19 +17,22 @@ export const MAIN_LOCK_DAYS = { min: 1, max: 30, default: 7 } as const;
 
 /**
  * The lock as a setting of the round (#283): a number field of the dialog
- * „Neue Runde“ only; existing universes lock for the default 7 days.
+ * „Neue Runde“ only; existing universes lock for the default 7 days. The
+ * export under this name registers it (#310, src/core/round.ts).
  */
-export const MAIN_LOCK_SETTING = {
-  kind: 'number',
-  key: 'roundMainLock',
-  name: 'mainLock',
-  label: 'Sperre nach einem Wechsel des Hauptplaneten (Tage)',
-  order: 40,
-  min: MAIN_LOCK_DAYS.min,
-  max: MAIN_LOCK_DAYS.max,
-  def: MAIN_LOCK_DAYS.default,
-  refusal: `Bitte für die Sperre des Hauptplaneten ${MAIN_LOCK_DAYS.min} bis ${MAIN_LOCK_DAYS.max} ganze Tage angeben.`,
-} as const satisfies RoundSetting;
+export const roundSettings = [
+  {
+    kind: 'number',
+    key: 'roundMainLock',
+    name: 'mainLock',
+    label: 'Sperre nach einem Wechsel des Hauptplaneten (Tage)',
+    order: 40,
+    min: MAIN_LOCK_DAYS.min,
+    max: MAIN_LOCK_DAYS.max,
+    def: MAIN_LOCK_DAYS.default,
+    refusal: `Bitte für die Sperre des Hauptplaneten ${MAIN_LOCK_DAYS.min} bis ${MAIN_LOCK_DAYS.max} ganze Tage angeben.`,
+  },
+] as const satisfies readonly RoundSetting[];
 
 /** Whether `p` can be the main planet of `uid`: an own planet, never a moon. */
 export const canBeMain = (

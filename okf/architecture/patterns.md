@@ -399,6 +399,20 @@ choice of the patterns to the assistant's recommendation below
   attack folders. A fleet of an unknown mission throws and `tick` removes
   it; the database allows only the five missions. No `f.mission ===` is
   left outside the mission folders.
+* **[E]** Built with #55, within the decisions of #116: the seventh folder
+  `hold` (Wache stellen, 70) with the new target kind `ally`, a foreign
+  planet whose owner must be an ally: `suits` treats it as `foreign`, the
+  noob protection keeps it as a foreign target, the own planet gets
+  `notAlly`, and the mission's `canSend` asks the server's `ally` and
+  `holding` of `SendTarget` (both optional, asked only by it). Every
+  rules.ts exports the new typed field `holds`; the fleet state `hold`
+  sits between `out` and `back`, and the server's clock ends it
+  (`dueAt` of `src/core/holding.ts`).
+* **[V]** Changed with #228 (owner, 2026-11-16, D2: the thresholds of the
+  Auspex-Lehre apply to every foreign fleet): the field `visible` is gone
+  from `MissionRules` and every `rules.ts`; the view of a foreign fleet
+  asks `seenShips()` of `src/core/fleet-recognition.ts` instead (see
+  [Espionage defense](/features/espionage-defense.md)).
 * **[E]** Built with #45, within the decisions of #116: the sixth folder
   `harvest` (Bergung, 60) with the target kind `debris` beside own,
   foreign, any and free. `SendTarget` carries `debris` (a Trümmerfeld lies
@@ -424,7 +438,7 @@ choice of the patterns to the assistant's recommendation below
   another (dependency-cruiser): `fight`, `battleReports` with what a
   mission adds to each side's report, `flyHome`, and `rebuild` and
   `plunder`, which the attack folder re-exports; the attack runs them in
-  the same order and with the same draws as before. Migration `20261116T2054-moonbreak` allows `moonbreak`
+  the same order and with the same draws as before. Migration `20261119T0810-moonbreak` allows `moonbreak`
   in the database (see [Moons](/features/moons.md)).
 
 * **[V]** Built with #54, within the decisions of #116: the folder
@@ -443,6 +457,14 @@ choice of the patterns to the assistant's recommendation below
   moon chance, rebuilding defense, reports.
 * **[E]** No event bus: the order must stay deterministic with the seeded
   `rng`.
+* **[E]** Built with #55: `battleOf(attackers, defenders, rng)` in
+  `src/core/battle.ts` takes any number of parties per side; every unit
+  shoots at a random unit of the other side, whatever its party, and the
+  survivors come back per party. `battle()` is `battleOf` with one party
+  on each side and draws bit for bit as before (the reference test of
+  #114 and a test per seed). The Sturmangriff fights the owner of the
+  planet and every fleet that holds there; the debris step takes every
+  party, each owner of a held fleet gets the defender's report.
 * **[E]** Built with #53: the moon step follows the debris step and comes
   before the rebuilt defense: at a planet without a moon the chance of the
   whole field is rolled once when it is above 0, and a hit draws the
@@ -549,11 +571,15 @@ choice of the patterns to the assistant's recommendation below
   default and its refusal (else the shared range wording `rangeError` of
   the universe settings); the pure checks `roundRefused` and `roundValues`
   are in the core, the server words the refusal. `RoundRules` is derived
-  from the entries' types. A feature adds one entry in its own file and
-  one line to the list; its `order` number, the next free ten above the
-  highest, puts it last in the fixed order of the dialog and the refusals
-  (owner, 2026-11-17; a test refuses a number used twice); `live: true`
-  also puts it into the universe settings (X1). The rules are in
+  from the entries' types. A feature defines its entries in its own file
+  and exports them as `roundSettings`; the list of all of them is
+  generated like the feature index (`src/core/round-settings.gen.ts`,
+  `scripts/gen-features.ts`, #310), so `src/core/round.ts` names no feature
+  and a new feature edits no shared place and no test of another feature;
+  its `order` number, the next free ten above the highest, puts it last in
+  the fixed order of the dialog and the refusals (owner, 2026-11-17; a test
+  refuses a number used twice); `live: true` also puts it into the universe
+  settings (X1). The rules are in
   [Admin](/features/admin.md#the-registry-of-the-round-settings-283).
 
 ## 8. Store: a repository per aggregate
@@ -1020,7 +1046,8 @@ src/client/                state, components (generic), views
   checks for every mission that it has an arrival in `MISSION_SERVERS`,
   turns back from a target that does not fit its kind, flies back only if
   it returns, comes home silently only if silent, shows its ships only if
-  visible and takes cargo only if it carries cargo.
+  visible (since #228: only by the Auspex-Lehre, for every mission) and
+  takes cargo only if it carries cargo.
   `src/server/game/missions-reference.test.ts` compares sending, the
   arrival and the coming home with the code from before #116 on generated
   worlds and fleets: the answer or message, every table and the next random
@@ -1063,4 +1090,4 @@ src/client/                state, components (generic), views
      2026-11-12). Built with #119.
 
 * **[E]** The battle with several parties is no migration step; it is built
-  with #55.
+  with #55. Built: see section 5.

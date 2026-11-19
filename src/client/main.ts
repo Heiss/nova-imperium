@@ -5,13 +5,12 @@
 import { flushSync } from 'svelte';
 import { missionRules } from '../core/missions.ts';
 import { settle, settleR } from '../core/settle.ts';
-import { text } from '../core/text.ts';
-import type { Levels, Planet, Queue } from '../core/types.ts';
-import { abandonActs } from './abandon-actions.ts';
+import type { Planet } from '../core/types.ts';
 import { createAct, placeOf, samePlace } from './logic/act.ts';
 import { LEXICANUM_VIEW, viewUrl } from './logic/address.ts';
 import { CATALOG_VIEWS, catalogKind, orderNote } from './logic/catalog-list.ts';
-import { clearsChat, sameSignIn } from './logic/guild-chat.ts';
+import { sameSignIn } from './logic/guild-chat.ts';
+import * as demolition from './logic/demolition.ts';
 import { endzeitNote } from './logic/endzeit.ts';
 import { moonAt } from './logic/moon.ts';
 import { maxPosition, targetInfo } from './logic/fleet-target.ts';
@@ -28,10 +27,10 @@ import {
   reportFormHTML,
 } from './logic/error-report.ts';
 import {
+  arrivalLine,
   fleetPreview,
   galaxyStep,
   settingsFrom,
-  staysAt,
   type FleetForm,
 } from './logic/game.ts';
 import { headerLine } from './logic/header.ts';
@@ -68,10 +67,10 @@ import {
   type AdminTab,
 } from './views/misc.ts';
 import { disablePush, enablePush } from './push.ts';
-import { optionActs } from './option-actions.ts';
 import { fleetActs } from './fleet-acts.ts';
-import { roundActs } from './round-actions.ts';
+import { featureActs } from './feature-actions.ts';
 import { mountCatalogList } from './views/catalog-list.ts';
+import { timeRow } from './views/fleet.ts';
 import { renderGate } from './views/vacation-lock.ts';
 import {
   adminChatDialog,
@@ -608,29 +607,18 @@ function renderLoggedOut(view: HTMLElement): void {
   view.innerHTML = ui.auth ? auth(ui) : '<div class="notice">Lade …</div>';
 }
 
-function rememberUpgrade(
-  order: Queue | null,
-  levels: Levels,
-  view: string,
-  label: string,
-  now: number,
-): void {
-  if (!order || order.end > now || (levels[order.key] ?? 0) < order.lvl) return;
-  const name = text(order.key)?.n ?? order.key;
-  client.completedMenu.set(view, label);
-  client.completionNotices.add(`${label}: ${name} (Stufe ${order.lvl}).`);
-}
-
 function rememberCompletions(previous: V, next: V): void {
   if (previous.P.id !== next.P.id) return;
-  rememberUpgrade(
+  demolition.rememberUpgrade(
+    client,
     previous.P.bq,
     next.P.b,
     'buildings',
     'Ausbau fertig',
     next.now,
   );
-  rememberUpgrade(
+  demolition.rememberUpgrade(
+    client,
     previous.R.rq,
     next.R.research,
     'research',
@@ -907,7 +895,8 @@ function readFleetForm(): FleetForm {
       kind: val('#t_k') === 'moon' ? 'moon' : 'planet',
     },
     mission: val('#t_m'),
-    hold: clampInt(val('#t_h'), 1, 1e6),
+    hold: Number(val('#t_h')),
+    stay: clampInt(val('#t_stay'), 1, 1e6),
     pct: clampInt(val('#t_v'), 1, 10),
     cargo: {
       m: clampInt(val('#c_m'), 0, 1e15),
@@ -916,10 +905,6 @@ function readFleetForm(): FleetForm {
     },
   };
 }
-
-/** The return time, or none for a mission that stays at its target (deploy, #129). */
-const returnAt = (mission: string, t: number): string =>
-  missionRules(mission)?.returns === false ? '–' : dt(t);
 
 /** „Mond“ in the select of the target only where a moon is (#53). */
 function moonOption(s: GameState): void {
@@ -934,8 +919,8 @@ function moonOption(s: GameState): void {
 function fleetCalc(): void {
   if (!$('#t_g') || !client.view || !client.game) return;
   moonOption(client.game);
+  timeRow(val('#t_m'), client.view);
   const f = readFleetForm();
-  $('#t_hold')!.hidden = !staysAt(f.mission);
   $('#t_info')!.innerHTML = targetInfo(client.game, f);
   const pv = fleetPreview(client.view.P, client.view.R, f, client.game.cfg);
   const set = (id: string, html: string): void =>
@@ -947,8 +932,7 @@ function fleetCalc(): void {
   const now = client.now();
   set('i_dist', fmt(pv.dist));
   set('i_dur', dur(pv.ms));
-  const out = now + pv.ms + pv.stay;
-  set('i_arr', `${dt(out)} / ${returnAt(f.mission, out + pv.ms)}`);
+  set('i_arr', arrivalLine(f.mission, now, pv));
   set(
     'i_fuel',
     `<span class="${pv.fuelShort ? 'bad' : ''}">${fmt(pv.fuel)}</span> Promethium`,
@@ -1054,10 +1038,6 @@ const ACT: Record<string, (d: Data) => unknown> = {
       return act('deleteGuildRank', { rank: d.rank });
   },
   rankDefault: (d) => act('setGuildDefaultRank', { rank: d.rank }),
-  guildChatDelete: (d) => {
-    if (window.confirm('Nachricht löschen?'))
-      return act('deleteGuildChat', { id: Number(d.id) });
-  },
   guildChatAdmin: (d) => openAdminChat(d.id ?? ''),
   achievementClaim: (d) => act('claimAchievement', { id: d.id }),
   dailyClaim: () => act('claimDailyReward'),
@@ -1084,6 +1064,7 @@ const ACT: Record<string, (d: Data) => unknown> = {
   },
   build: (d) => act('build', { key: d.k }),
   cancelBuild: () => act('cancelBuild'),
+  ...demolition.demolitionActs({ act, modal, view: () => client.view }),
   research: (d) => act('research', { key: d.k }),
   cancelResearch: () => act('cancelResearch'),
   maxq: (d) => setInput(`#q_${d.k}`, d.max ?? 0),
@@ -1212,8 +1193,7 @@ const ACT: Record<string, (d: Data) => unknown> = {
     }
   },
   deleteAccount: () => modal(deleteAccountDialog(client.game!.round)),
-  ...optionActs({ act }),
-  ...abandonActs({ act, modal }),
+  ...featureActs({ act, modal }),
   dismissInstall: () => {
     installDismissed = true;
     try {
@@ -1239,7 +1219,6 @@ const ACT: Record<string, (d: Data) => unknown> = {
       toast('Bitte installiere die App über das Browsermenü.', true);
     }
   },
-  ...roundActs({ act, modal }),
   endzeit: () => modal(endzeitDialog(client.game!.admin!.endzeit.minutes)),
   doEndzeit: () => {
     const minutes = val('#endzeit-minutes');
@@ -1470,21 +1449,6 @@ async function submitDissolve(): Promise<void> {
 }
 
 /**
- * The guild chat (#169): the text field empties once the message is in,
- * unless a new draft was typed meanwhile (CodeRabbit on #216).
- */
-async function submitChat(): Promise<void> {
-  const text = val('#chat_text');
-  if (
-    (await act('sendGuildChat', { text })) &&
-    clearsChat(text, $<HTMLInputElement>('#chat_text')?.value)
-  ) {
-    setInput('#chat_text', '');
-    $<HTMLInputElement>('#chat_text')?.focus();
-  }
-}
-
-/**
  * The admin opens the chat of a guild; the server records it (#169, D8). An
  * answer that comes in after a logout, or with another account signed in,
  * opens nothing (CodeRabbit on #216).
@@ -1659,7 +1623,6 @@ document.addEventListener('submit', (e) => {
     ['guildform', submitGuild],
     ['guildtransferform', submitTransfer],
     ['guilddissolveform', submitDissolve],
-    ['guildchatform', submitChat],
     ['codeform', submitLoginCode],
     ['forgotform', submitForgot],
     ['resetform', () => submitPassword(true)],

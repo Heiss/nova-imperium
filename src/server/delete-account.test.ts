@@ -145,8 +145,27 @@ describe('deleteAccount', () => {
     ctx.fleets.save(
       fleet({ id: 'elsewhere', to: 'p1_1_9', toC: { g: 1, s: 1, p: 9 } }),
     );
+    // A fleet that holds there (#55) is home after the time of its flight.
+    ctx.fleets.save(
+      fleet({
+        id: 'hold',
+        mission: 'hold',
+        state: 'hold',
+        dep: now - 900,
+        arr: now - 300,
+        ret: now + 9000,
+        hold: 9000,
+      }),
+    );
 
     deleteAccount(ctx, gone, 'secret1');
+
+    expect(ctx.fleets.get('hold')).toMatchObject({
+      state: 'back',
+      recalled: true,
+      ret: now + 600,
+      to: 'p1_1_9',
+    });
 
     const out = ctx.fleets.get('out')!;
     expect(out).toMatchObject({

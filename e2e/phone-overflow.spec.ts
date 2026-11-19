@@ -11,6 +11,7 @@ const VIEWS = [
   'overview',
   'buildings',
   'resources',
+  'market',
   'research',
   'shipyard',
   'defense',
@@ -19,6 +20,7 @@ const VIEWS = [
   'messages',
   'highscore',
   'guilds',
+  'friends',
   'achievements',
   'news',
   'lexicanum',
@@ -26,13 +28,32 @@ const VIEWS = [
   'admin',
 ];
 
-/** How far the page reaches past the screen, with a pixel for rounding. */
+/**
+ * How far the page reaches past the screen, with a pixel for rounding. A
+ * failure names the elements that reach furthest, so the CI log shows what
+ * made the page wide.
+ */
 async function overflow(page: Page, label: string): Promise<string[]> {
-  const { scroll, client } = await page.evaluate(() => ({
-    scroll: document.documentElement.scrollWidth,
-    client: document.documentElement.clientWidth,
-  }));
-  return scroll > client + 1 ? [`${label}: ${scroll} px > ${client} px`] : [];
+  const { scroll, client, wide } = await page.evaluate(() => {
+    const client = document.documentElement.clientWidth;
+    const wide = [...document.querySelectorAll('body *')]
+      .map((el) => ({ el, right: el.getBoundingClientRect().right }))
+      .filter((x) => x.right > client + 1)
+      .sort((a, b) => b.right - a.right)
+      .slice(0, 3)
+      .map(
+        (x) =>
+          `${x.el.tagName.toLowerCase()}.${x.el.className} to ${Math.round(x.right)} px`,
+      );
+    return {
+      scroll: document.documentElement.scrollWidth,
+      client,
+      wide,
+    };
+  });
+  return scroll > client + 1
+    ? [`${label}: ${scroll} px > ${client} px (${wide.join(', ')})`]
+    : [];
 }
 
 test('no view is wider than a 360 px phone (#189) @phone', async ({ page }) => {
@@ -182,4 +203,44 @@ test('a guild with the longest tag and name stays within a 360 px phone (#274) @
   await other.close();
   expect(w.problems).toEqual([]);
   expect(wo.problems).toEqual([]);
+});
+
+test('the highscore stays within a 360 px phone with the largest numbers, in every category (#78, #189) @phone', async ({
+  page,
+}) => {
+  const w = watch(page);
+  // Wider than any real font could make a normal number: levels and counts
+  // of 40 digits and more as points, and the widest name. The name gives way,
+  // the page never gets wider (CI of #316: a seeded level of 100 made 31
+  // digits and the table pushed the page to 373 px).
+  const name = uniqueName('W'.repeat(14));
+  await register(page, name);
+  seed({
+    name,
+    b: { robot: 150 },
+    research: { carto: 150 },
+    ships: { probe: 1e15 },
+    def: { gauss: 1e15 },
+  });
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.goto('/?view=highscore');
+  await expect(page.locator('.scores tr.me td').nth(1)).toHaveText(name);
+  const found: string[] = [];
+  for (const category of [
+    'Gesamt',
+    'Gebäude',
+    'Forschung',
+    'Flotte',
+    'Verteidigung',
+  ]) {
+    await page.getByRole('button', { name: category }).click();
+    await expect(page.getByRole('button', { name: category })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    await expect(page.locator('.scores tr.me td').nth(3)).not.toHaveText('0');
+    found.push(...(await overflow(page, `highscore ${category}`)));
+  }
+  expect(found).toEqual([]);
+  expect(w.problems).toEqual([]);
 });

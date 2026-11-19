@@ -5,6 +5,8 @@
 // minimum duration of the round (D1, X1) and the end with a new round and
 // its notice (D3).
 import { describe, expect, it } from 'vitest';
+import { ACTIVITY_DEFAULT, MINUTE_MS } from '../../core/activity.ts';
+import { dayOf } from '../../core/market.ts';
 import { settle } from '../../core/settle.ts';
 import { HOUR_MS } from '../../core/vacation.ts';
 import type { AuditEntry } from '../audit.ts';
@@ -17,9 +19,12 @@ import {
   testCtx,
 } from '../test-helpers.ts';
 import { answerOf } from './actions.ts';
+import { recordActivity } from './activity.ts';
 import { tick } from './arrival.ts';
 import { universe } from './context.ts';
 import { ACTIONS, runAction } from './dispatch.ts';
+import { friendState } from './friends.ts';
+import { currentPrices } from './market.ts';
 import { addMoon } from './moons.ts';
 import { roundRules } from './round.ts';
 import { stateFor } from './state.ts';
@@ -363,7 +368,7 @@ describe('an Expedition and the vacation mode (#93, #223)', () => {
       ships: { lc: 1 },
       to: { g: 1, s: 1, p: 16 },
       pct: 10,
-      hold: 1,
+      stay: 1,
     };
   };
 
@@ -394,6 +399,82 @@ describe('an Expedition and the vacation mode (#93, #223)', () => {
     const bert = ctx.players.get('u_Bert')!;
     ctx.players.save({ ...bert, vacation: START });
     expect(act(ctx, 'send', order)).toBe('Flotte unterwegs nach [1:1:16].');
+  });
+});
+
+describe('a Wache stellen and the vacation mode (#55, #223)', () => {
+  /** Anna and Bert in one guild, so they may hold at each other. */
+  const allies = (ctx: TestCtx): TestCtx => {
+    ctx.guilds.create('g1', 'GLD', 'Gilde', '', 'u_Anna');
+    ctx.guilds.apply('u_Bert', 'g1');
+    ctx.guilds.accept('u_Bert');
+    return ctx;
+  };
+  const hold = (to = { g: 1, s: 1, p: 5 }, kind?: string) =>
+    ({ ...attack(to, 'hold', kind), hold: 1 }) as const;
+
+  it('is refused like every action while the sender is in vacation mode, a launch and a recall, and works after the end', () => {
+    const ctx = allies(world());
+    const bert = ctx.players.get('u_Bert')!;
+    expect(act(ctx, 'send', { ...hold(), planet: 'p1_2_6' }, 'u_Bert')).toBe(
+      'Flotte unterwegs nach [1:1:5].',
+    );
+    const flying = ctx.fleets.all()[0]!;
+    ctx.players.save({ ...bert, vacation: START });
+    const before = ctx.fleets.all();
+    const stock = ctx.planets.get('p1_2_6')!.ships;
+    expect(() => act(ctx, 'send', hold(), 'u_Bert')).toThrow(VACATION_REFUSED);
+    expect(() => act(ctx, 'recall', { id: flying.id }, 'u_Bert')).toThrow(
+      VACATION_REFUSED,
+    );
+    expect(ctx.fleets.all()).toEqual(before);
+    expect(ctx.planets.get('p1_2_6')!.ships).toEqual(stock);
+    ctx.players.save({ ...ctx.players.get('u_Bert')!, vacation: null });
+    expect(act(ctx, 'recall', { id: flying.id }, 'u_Bert')).toBe(
+      'Flotte zurückgerufen.',
+    );
+  });
+
+  it('refuses a recall of a fleet that holds while the owner is in vacation mode', () => {
+    const ctx = allies(world());
+    act(ctx, 'send', { ...hold(), planet: 'p1_2_6' }, 'u_Bert');
+    const fleet = ctx.fleets.all()[0]!;
+    ctx.clock.t = fleet.arr;
+    tick(ctx);
+    expect(ctx.fleets.get(fleet.id)).toMatchObject({ state: 'hold' });
+    const bert = ctx.players.get('u_Bert')!;
+    ctx.players.save({ ...bert, vacation: START });
+    expect(() => act(ctx, 'recall', { id: fleet.id }, 'u_Bert')).toThrow(
+      VACATION_REFUSED,
+    );
+    expect(ctx.fleets.get(fleet.id)).toMatchObject({
+      state: 'hold',
+      recalled: false,
+    });
+  });
+
+  it('is refused at a planet or the moon of a player in vacation mode, an ally too, before the noob protection (#55, #223)', () => {
+    const ctx = allies(world());
+    start(ctx);
+    for (const kind of [undefined, 'moon'])
+      expect(
+        () => act(ctx, 'send', hold(undefined, kind), 'u_Bert'),
+        String(kind),
+      ).toThrow('Dieser Spieler ist im Urlaubsmodus.');
+    expect(ctx.fleets.all()).toEqual([]);
+  });
+
+  it('lets a Wache stellen launched before the entry arrive and hold as usual (D2)', () => {
+    const ctx = allies(world());
+    act(ctx, 'send', { ...hold(), planet: 'p1_2_6' }, 'u_Bert');
+    const fleet = ctx.fleets.all()[0]!;
+    start(ctx);
+    ctx.clock.t = fleet.arr;
+    tick(ctx);
+    expect(ctx.fleets.get(fleet.id)).toMatchObject({ state: 'hold' });
+    ctx.clock.t = fleet.arr + HOUR_MS;
+    tick(ctx);
+    expect(ctx.fleets.get(fleet.id)).toMatchObject({ state: 'back' });
   });
 });
 
@@ -596,6 +677,136 @@ describe('the Warp-Tor, giving up a colony and the Auspex-Phalanx (#230, #224, #
   });
 });
 
+describe('the buddy list and the vacation mode (#227, #223)', () => {
+  /** Anna with an incoming request (Dora), an own request (Carl) and a friend (Bert), then in vacation. */
+  function away(): TestCtx {
+    const ctx = world();
+    addUser(ctx, 'Dora');
+    addUser(ctx, 'Eva');
+    act(ctx, 'requestFriend', { name: 'Anna' }, 'u_Dora');
+    act(ctx, 'requestFriend', { name: 'Carl' });
+    act(ctx, 'requestFriend', { name: 'Bert' });
+    act(ctx, 'answerFriend', { uid: 'u_Anna', accept: true }, 'u_Bert');
+    start(ctx);
+    return ctx;
+  }
+
+  it('refuses every own friend action of a player in vacation mode and changes no link', () => {
+    const ctx = away();
+    const links = ctx.friends.links('u_Anna');
+    expect(links).toHaveLength(3);
+    const refused: [string, object][] = [
+      ['requestFriend', { name: 'Eva' }],
+      ['answerFriend', { uid: 'u_Dora', accept: true }],
+      ['answerFriend', { uid: 'u_Dora', accept: false }],
+      ['cancelFriend', { uid: 'u_Carl' }],
+      ['removeFriend', { uid: 'u_Bert' }],
+    ];
+    for (const [type, data] of refused)
+      expect(() => act(ctx, type, data), type).toThrow(VACATION_REFUSED);
+    expect(ctx.friends.links('u_Anna')).toEqual(links);
+    expect(ctx.friends.links('u_Eva')).toEqual([]);
+  });
+
+  it('shows the lock screen nothing of the buddy list, even with requests and friends', () => {
+    const ctx = away();
+    const shown = stateFor(ctx, anna(ctx));
+    expect(shown).not.toHaveProperty('friends');
+    expect(JSON.stringify(shown)).not.toMatch(/u_Dora|u_Carl|u_Bert/);
+  });
+
+  it('lets others still ask him; he sees and answers it after the end', () => {
+    const ctx = away();
+    expect(act(ctx, 'requestFriend', { name: 'anna' }, 'u_Eva')).toBe(
+      'Anfrage gesendet.',
+    );
+    expect(ctx.friends.links('u_Eva')).toEqual([
+      { from: 'u_Eva', to: 'u_Anna', status: 'pending' },
+    ]);
+    expect(stateFor(ctx, anna(ctx))).not.toHaveProperty('friends');
+    ctx.clock.t = START + 48 * HOUR_MS;
+    stop(ctx);
+    const { friends } = stateFor(ctx, anna(ctx)) as {
+      friends: { incoming: string[] };
+    };
+    expect(friends.incoming).toEqual(['u_Dora', 'u_Eva']);
+    expect(act(ctx, 'answerFriend', { uid: 'u_Eva', accept: true })).toBe(
+      'Anfrage angenommen.',
+    );
+  });
+
+  it('shows a friend in vacation mode offline after the threshold: he records no activity', () => {
+    const ctx = world();
+    act(ctx, 'requestFriend', { name: 'Bert' });
+    act(ctx, 'answerFriend', { uid: 'u_Anna', accept: true }, 'u_Bert');
+    const bert = () => ctx.players.get('u_Bert')!;
+    const online = () =>
+      friendState(ctx, 'u_Anna', ACTIVITY_DEFAULT.recent).list;
+    recordActivity(ctx, bert(), 'action');
+    runAction(ctx, 'u_Bert', { type: 'startVacation' });
+    expect(online()).toEqual([{ id: 'u_Bert', online: true }]);
+    ctx.clock.t += ACTIVITY_DEFAULT.recent * MINUTE_MS;
+    expect(online()).toEqual([{ id: 'u_Bert', online: false }]);
+    // His login and his clicks on the lock screen move nothing.
+    recordActivity(ctx, bert(), 'login');
+    recordActivity(ctx, bert(), 'action');
+    expect(online()).toEqual([{ id: 'u_Bert', online: false }]);
+    // After the end the next activity counts again.
+    ctx.clock.t = START + 48 * HOUR_MS;
+    runAction(ctx, 'u_Bert', { type: 'endVacation' });
+    recordActivity(ctx, bert(), 'action');
+    expect(online()).toEqual([{ id: 'u_Bert', online: true }]);
+  });
+});
+
+describe('the marketplace and the vacation mode (#171, #223)', () => {
+  const trade = (ctx: TestCtx, uid = 'u_Anna', planet = 'p1_1_5') =>
+    act(ctx, 'trade', { give: 'm', get: 'c', amount: 1000, planet }, uid);
+  const stock = (ctx: TestCtx, id = 'p1_1_5') => ctx.planets.get(id)!.res;
+
+  /** Anna and Bert each with a Handelsposten and Adamant; Bert has moved the price. */
+  function market(): TestCtx {
+    const ctx = world();
+    for (const id of ['p1_1_5', 'p1_2_6'])
+      ctx.planets.save({
+        ...ctx.planets.get(id)!,
+        b: { ...ctx.planets.get(id)!.b, market: 1, robot: 4 },
+        res: { m: 5000, c: 100, d: 0 },
+      });
+    trade(ctx, 'u_Bert', 'p1_2_6');
+    return ctx;
+  }
+
+  it('refuses `trade` for a player in vacation mode and changes no stock, price or amount; it works again after the end', () => {
+    const ctx = market();
+    const prices = currentPrices(ctx);
+    const used = ctx.market.used('u_Anna', dayOf(ctx.now()));
+    start(ctx);
+    expect(() => trade(ctx)).toThrow(VACATION_REFUSED);
+    expect(stock(ctx)).toEqual({ m: 5000, c: 100, d: 0 });
+    expect(currentPrices(ctx)).toEqual(prices);
+    expect(ctx.market.used('u_Anna', dayOf(ctx.now()))).toEqual(used);
+    // The other player still trades, the vacation is no one else's rule.
+    expect(trade(ctx, 'u_Bert', 'p1_2_6')).toMatch(/getauscht/);
+    ctx.clock.t = START + 48 * HOUR_MS;
+    stop(ctx);
+    expect(trade(ctx)).toMatch(/getauscht/);
+    expect(stock(ctx).m).toBe(4000);
+  });
+
+  it('sends the lock screen no market data, and the full state again after the end', () => {
+    const ctx = market();
+    expect(stateFor(ctx, anna(ctx))).toHaveProperty('market');
+    start(ctx);
+    const shown = stateFor(ctx, anna(ctx));
+    expect(shown).not.toHaveProperty('market');
+    expect(JSON.stringify(shown)).not.toMatch(/"prices"|"used"|"market"/);
+    ctx.clock.t = START + 48 * HOUR_MS;
+    stop(ctx);
+    expect(stateFor(ctx, anna(ctx))).toHaveProperty('market');
+  });
+});
+
 describe('the words and the notice', () => {
   it('says „Im Urlaubsmodus nicht möglich.“ to a refused action', () => {
     expect(VACATION_REFUSED).toBe('Im Urlaubsmodus nicht möglich.');
@@ -675,6 +886,103 @@ describe('the state', () => {
       admin: null,
     });
     expect(shown.round.vacationHours).toBe(48);
+  });
+
+  it('lists every player exactly: `vacation: true` only for the ones in vacation mode, with their scores (#78, #223)', () => {
+    const ctx = world();
+    start(ctx);
+    const shown = (uid: string) =>
+      (stateFor(ctx, ctx.players.get(uid)!) as { players: unknown }).players;
+    const expected = {
+      u_Anna: {
+        name: 'Anna',
+        points: 19,
+        scores: { buildings: 19, research: 0, fleet: 0, defense: 0 },
+        vacation: true,
+      },
+      u_Bert: {
+        name: 'Bert',
+        points: 71,
+        scores: { buildings: 8, research: 0, fleet: 18, defense: 0 },
+      },
+      u_Carl: {
+        name: 'Carl',
+        points: 0,
+        scores: { buildings: 0, research: 0, fleet: 0, defense: 0 },
+      },
+    };
+    // The same list for every player who is not in vacation mode.
+    expect(shown('u_Bert')).toEqual(expected);
+    expect(shown('u_Carl')).toEqual(expected);
+    // After the end nobody is marked.
+    ctx.clock.t = START + 48 * HOUR_MS;
+    stop(ctx);
+    expect(shown('u_Bert')).toEqual({
+      u_Anna: { ...expected.u_Anna, vacation: undefined },
+      u_Bert: expected.u_Bert,
+      u_Carl: expected.u_Carl,
+    });
+    expect(shown('u_Bert')).not.toHaveProperty('u_Anna.vacation');
+  });
+
+  it('keeps the account of a player in vacation mode in the lock screen, whatever was asked for, on every device (#223)', () => {
+    const ctx = world();
+    start(ctx);
+    // An admin with research, a queue, probes and a read mark: none of it shows.
+    for (const uid of ['u_Anna', 'u_Carl']) {
+      const u = ctx.players.get(uid)!;
+      ctx.players.save({
+        ...u,
+        research: { energy: 3 },
+        rq: {
+          key: 'energy',
+          lvl: 4,
+          start: START,
+          end: START + 1,
+          cost: [1, 1, 1],
+        },
+        probes: 7,
+        readAt: 123,
+        explain: 'hidden',
+        vacation: START,
+      });
+    }
+    const locked = (uid: string, selected?: unknown) =>
+      stateFor(ctx, ctx.players.get(uid)!, selected) as Record<string, unknown>;
+    for (const [uid, admin] of [
+      ['u_Anna', false],
+      ['u_Carl', true],
+    ] as const)
+      expect(locked(uid), uid).toEqual({
+        round: roundRules(ctx),
+        now: ctx.now(),
+        cfg: universe(ctx),
+        me: {
+          id: uid,
+          name: uid === 'u_Anna' ? 'Anna' : 'Carl',
+          research: {},
+          rq: null,
+          probes: 1,
+          explain: 'hidden',
+          pushOff: [],
+          readAt: 0,
+          admin,
+          vacation: START,
+        },
+        planet: null,
+        labs: [],
+        fleets: [],
+        reports: [],
+        players: {},
+        galaxy: [],
+        debris: [],
+        admin: null,
+      });
+    // A second device selects a planet, or sends anything: the same lock screen.
+    for (const selected of ['p1_1_5', 'm1_1_5', 5, {}, null])
+      expect(locked('u_Anna', selected), JSON.stringify(selected)).toEqual(
+        locked('u_Anna'),
+      );
   });
 
   it('keeps a player in vacation in the highscore of the others, with the categories (#78, #223)', () => {

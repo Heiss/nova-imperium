@@ -6,7 +6,7 @@
 // components, a research finishes that a rate reads, or a use empties a
 // stock (in accrue). No rule here names a key.
 import { isShip, PRODUCERS } from './catalog.ts';
-import { accrue, readsResearch } from './economy.ts';
+import { accrue, readsResearch, refund } from './economy.ts';
 import type { Levels, Planet, ResearchState, Universe } from './types.ts';
 import { producesUntil } from './vacation.ts';
 
@@ -21,9 +21,11 @@ interface Owner extends ResearchState {
 
 const clone = <T>(o: T): T => structuredClone(o);
 
+/** The build queue at its end: the new level, and what a demolition gives back (#202). */
 function completeBuilding(p: Planet, t: number): void {
   if (p.bq && p.bq.end <= t) {
     p.b[p.bq.key] = p.bq.lvl;
+    if (p.bq.back) refund(p, p.bq.back);
     p.bq = null;
   }
 }

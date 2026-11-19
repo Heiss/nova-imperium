@@ -18,6 +18,7 @@ const FILES: Record<string, string> = {
   phalanx: 'buildings/sensor_phalanx',
   silo: 'buildings/missile_silo',
   jumpgate: 'buildings/jump_gate',
+  market: 'buildings/trading_post',
   energy: 'research/energy_technology',
   laser: 'research/laser_technology',
   comb: 'research/combustion_drive',

@@ -7,13 +7,13 @@ import type {
   TargetKind,
 } from '../../../core/missions.ts';
 
-export const order = 80;
+export const order = 90;
 export const target: TargetKind = 'free';
 export const cargo = false;
 export const returns = true;
-export const visible = false;
 export const silent = true;
 export const alertsGuild = false;
+export const holds = false;
 /** Without level 1 of the research the mission is not available (D2); then only Spähschädel fly. */
 export const canSend = (fleet: SendFleet): SendError | undefined => {
   if (!fleet.research?.carto) return 'surveyLocked';

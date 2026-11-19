@@ -6,20 +6,33 @@
 // (version 1.4.1 on), „Expeditionstechnik“ and the discussion page of
 // „Expedition“; without Dunkle Materie and without the Händler (#171).
 import type { Rng } from './battle.ts';
+import type { RoundGroup, RoundSetting } from './round.ts';
 import { HOUR_MS } from './vacation.ts';
 import type { Coords, Levels, Resources, Universe } from './types.ts';
 
-// ----- slots, holding time and the position (Q3, Q4) -----
+// ----- slots, stay and the position (Q3, Q4) -----
 
-/** Expeditions at the same time: ⌊√level⌋ (owner, 2026-11-16, Q3). */
-export const expeditionSlots = (level: number): number =>
-  Math.floor(Math.sqrt(level));
+/** The research that unlocks expeditions and sets their slots and stay. */
+const RESEARCH = 'expo';
 
-/** The longest stay at the expedition position in hours: the level (Q3). */
-export const maxHoldHours = (level: number): number => level;
+/** The level of the research of expeditions, 0 without it. */
+export const expeditionLevel = (research: Levels | undefined): number =>
+  research?.[RESEARCH] ?? 0;
 
-/** A stay of `hours` hours in milliseconds, in real time. */
-export const holdMs = (hours: number): number => hours * HOUR_MS;
+/**
+ * Expeditions at the same time: ⌊√level⌋ (owner, 2026-11-16, Q3) from level
+ * 1 on, plus the `extra` places the round adds (owner, 2026-11-19); none
+ * without the research.
+ */
+export const expeditionSlots = (level: number, extra = 0): number =>
+  level >= 1 ? Math.floor(Math.sqrt(level)) + extra : 0;
+
+/**
+ * The longest stay at the expedition position in hours: the level times the
+ * hours per level of the round, 1 by default (Q3; owner, 2026-11-19).
+ */
+export const maxStayHours = (level: number, perLevel = 1): number =>
+  level * perLevel;
 
 /**
  * The expedition position of every system: the one right after the last
@@ -40,6 +53,89 @@ export const isExpeditionPlace = (c: Coords, u: Universe): boolean =>
  */
 export const stayOf = (f: { dep: number; arr: number; ret: number }): number =>
   f.arr - f.dep - (f.ret - f.arr);
+
+// ----- the settings of the round (owner, 2026-11-19; #93, #310) -----
+
+/** The range of the extra expedition places: 0 to 10 [V], 0 by default (the classic ⌊√level⌋). */
+export const EXTRA_SLOTS = { min: 0, max: 10, def: 0 } as const;
+
+/** The range of the hours per level: 1 to 24 [V], 1 by default (classic: as many hours as levels). */
+export const HOURS_PER_LEVEL = { min: 1, max: 24, def: 1 } as const;
+
+/** The legend of the three settings in the dialog „Neue Runde“ and in the universe settings. */
+const EXPEDITIONS: RoundGroup = { name: 'expedition', legend: 'Expeditionen' };
+
+/**
+ * The three settings of expeditions as entries of the registry (#283, #310):
+ * number fields of the dialog „Neue Runde“ in one fieldset and, `live`, rows
+ * of the universe settings, changed during the round (X1). The switch is a
+ * number of 1 (yes) and 0 (no), because a switch of the registry cannot be
+ * live (as the marketplace does). The order numbers 300 to 315 lie between
+ * the other features' settings and the marketplace [V]. The export under
+ * this name registers them (src/core/round.ts).
+ */
+export const roundSettings = [
+  {
+    kind: 'number',
+    group: EXPEDITIONS,
+    live: true,
+    key: 'roundExpeditionExtraSlots',
+    name: 'expeditionExtraSlots',
+    label: 'Zusätzliche Expeditionsplätze',
+    order: 300,
+    min: EXTRA_SLOTS.min,
+    max: EXTRA_SLOTS.max,
+    def: EXTRA_SLOTS.def,
+  },
+  {
+    kind: 'number',
+    group: EXPEDITIONS,
+    live: true,
+    key: 'roundExpeditionHours',
+    name: 'expeditionHours',
+    label: 'Haltezeit in Stunden je Stufe',
+    order: 310,
+    min: HOURS_PER_LEVEL.min,
+    max: HOURS_PER_LEVEL.max,
+    def: HOURS_PER_LEVEL.def,
+  },
+  {
+    kind: 'number',
+    group: EXPEDITIONS,
+    live: true,
+    key: 'roundExpeditionSpeed',
+    name: 'expeditionSpeed',
+    label: 'Haltezeit durch das Universums-Tempo teilen',
+    order: 315,
+    min: 0,
+    max: 1,
+    def: 0,
+    choices: [
+      { value: 0, label: 'Nein' },
+      { value: 1, label: 'Ja' },
+    ],
+  },
+] as const satisfies readonly RoundSetting[];
+
+/** The extra expedition places of the universe's round. */
+export const extraSlots = (u: Universe): number =>
+  u[roundSettings[0].key] as number;
+
+/** The hours of stay per level of the research in the universe's round. */
+export const hoursPerLevel = (u: Universe): number =>
+  u[roundSettings[1].key] as number;
+
+/** Whether the universe speed divides the stay of an expedition, as it divides a flight. */
+export const staysByUniverseSpeed = (u: Universe): boolean =>
+  u[roundSettings[2].key] === 1;
+
+/**
+ * The real duration of a stay of `hours` hours in milliseconds: the hours as
+ * they are, or divided by the universe speed like a flight when the round
+ * says so (owner, 2026-11-19).
+ */
+export const stayDuration = (hours: number, u: Universe): number =>
+  Math.round((hours * HOUR_MS) / (staysByUniverseSpeed(u) ? u.speed : 1));
 
 // ----- the size of a find or an attack (owiki: normal 89 %, large 10 %, very large 1 %) -----
 
@@ -270,15 +366,38 @@ export type EventShares = Readonly<Record<EventKind, number>>;
 /** About 84 % of the expeditions bring an event (owner, 2026-11-16, Q2; owiki „Expedition“). */
 export const EVENT_CHANCE = 0.84;
 
+// The shares of the events among the expeditions that bring one (owner,
+// 2026-11-19, issue #93, derived from owiki „Expedition“). Stated as shares
+// of ALL expeditions, pirates and aliens are divided by the event chance:
+//   pirates 6 % and aliens 2.7 % of all expeditions (the French statistic of
+//     22,860 expeditions): 0.06 / 0.84 and 0.027 / 0.84 of the events;
+//   total loss 0.33 % and a find of resources 37.5 % of the events;
+//   [V] (main agent) the rest is shared half to the find of ships and half to
+//     the change of the return time; three quarters of the changes are a
+//     later return, a quarter an earlier one.
+const PIRATES = 0.06 / EVENT_CHANCE;
+const ALIENS = 0.027 / EVENT_CHANCE;
+const LOST = 0.0033;
+const RESOURCES = 0.375;
+const REST = 1 - (PIRATES + ALIENS + LOST + RESOURCES);
+const SHIPS = REST / 2;
+const CHANGE = REST / 2;
+
 /**
- * The share of each event among the 84 %: NOT DECIDED. The owner named „the
- * per-event table of owiki v1.4.1“ (2026-11-17), but the article holds no
- * such table, only parts of it (okf/features/expeditions.md, „Open“). Until
- * the owner decides, this stays null and every expedition returns without an
- * event; the rules of every event above are built and tested with shares
- * handed in. Setting this one constant switches the events on.
+ * The share of each event among the 84 %, summing to 1 (the arithmetic in
+ * okf/features/expeditions.md): resources 0.375, ships about 0.2591,
+ * pirates about 0.0714, aliens about 0.0321, loss 0.0033, earlier return
+ * about 0.0648, later return about 0.1943.
  */
-export const EVENT_SHARES: EventShares | null = null;
+export const EVENT_SHARES: EventShares = {
+  resources: RESOURCES,
+  ships: SHIPS,
+  pirates: PIRATES,
+  aliens: ALIENS,
+  lost: LOST,
+  early: CHANGE / 4,
+  late: (CHANGE * 3) / 4,
+};
 
 /** An event of an expedition: nothing, the loss of the fleet, or a sized event. */
 export type Event =
@@ -288,8 +407,8 @@ export type Event =
 
 /**
  * Draws the event: first whether there is one (84 %), then which by the
- * shares, then its size; the loss of the fleet has no size (owiki). Without
- * shares nothing happens and nothing is drawn.
+ * shares, then its size; the loss of the fleet has no size (owiki). With
+ * `null` shares nothing happens and nothing is drawn.
  */
 export function drawEvent(
   rng: Rng,

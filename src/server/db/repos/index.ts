@@ -5,8 +5,10 @@ import type { Db } from '../database.ts';
 import { SqliteAdmin, type Admin } from './admin.ts';
 import { SqliteDebris, type DebrisFields } from './debris.ts';
 import { SqliteFleets, type Fleets } from './fleets.ts';
+import { SqliteFriends, type Friends } from './friends.ts';
 import { SqliteGuilds, type Guilds } from './guilds.ts';
 import { SqliteInvitations, type Invitations } from './invitations.ts';
+import { SqliteMarket, type MarketStore } from './market.ts';
 import { SqlitePlanets, type Planets } from './planets.ts';
 import { SqlitePlayers, type Players } from './players.ts';
 import { SqliteReports, type Reports } from './reports.ts';
@@ -24,6 +26,10 @@ export interface Repositories {
   debris: DebrisFields;
   /** The values of surveyed free positions (#190). */
   surveys: Surveys;
+  /** The buddy list (#227). */
+  friends: Friends;
+  /** The prices and the daily amounts of the marketplace (#171). */
+  market: MarketStore;
 }
 
 export const repositories = (db: Db): Repositories => ({
@@ -36,4 +42,6 @@ export const repositories = (db: Db): Repositories => ({
   admin: new SqliteAdmin(db),
   debris: new SqliteDebris(db),
   surveys: new SqliteSurveys(db),
+  friends: new SqliteFriends(db),
+  market: new SqliteMarket(db),
 });

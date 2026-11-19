@@ -19,7 +19,9 @@ import { settle } from '../../core/settle.ts';
 import { inUniverse } from '../../core/universe.ts';
 import type { Fleet, Planet } from '../../core/types.ts';
 import { type Ctx, addReport, coords, resLine, universe } from './context.ts';
-import { type MissionServer, type Player, land, turnBack } from './missions.ts';
+import { dueAt } from '../../core/holding.ts';
+import { endHold } from './holding.ts';
+import { type MissionServer, land, playerOf, turnBack } from './missions.ts';
 import { lockedUntil } from './position-lock.ts';
 
 // The formulas of the espionage (src/core/spy.ts, #285) and of the battle
@@ -29,9 +31,7 @@ export { spyScore } from '../../core/spy.ts';
 export { plunder } from '../../features/missions/attack/arrive.server.ts';
 export { rebuild } from './fight.ts';
 
-const UNKNOWN = { name: 'Unbekannt', research: {}, rq: null };
-
-const player = (ctx: Ctx, id: string): Player => ctx.players.get(id) ?? UNKNOWN;
+const player = playerOf;
 
 /** The generated index: every mission's server part, sorted by name. */
 const SERVERS: ReadonlyMap<string, MissionServer> = new Map<
@@ -153,8 +153,10 @@ export function tick(
     try {
       ctx.tx(() => {
         const live = ctx.fleets.get(f.id);
-        if (!live || (live.state === 'out' ? live.arr : live.ret) > now) return;
+        if (!live || dueAt(live) > now) return;
         if (live.state === 'out') arrive(ctx, live);
+        // A Halten flies home at the end of its holding time (#55).
+        else if (live.state === 'hold') endHold(ctx, live);
         else comeHome(ctx, live);
       });
     } catch (e) {

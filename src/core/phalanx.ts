@@ -7,6 +7,7 @@
 // scanned player is not told. The server and the Sternenkarte both ask
 // `scanReach`; the server also `scanError` (patterns, section 7).
 import { afford } from './economy.ts';
+import { holdEnd } from './holding.ts';
 import type {
   Coords,
   Cost,
@@ -117,18 +118,24 @@ export interface ScannedFlight {
   from: string;
   /** The id of the place the flight goes to. */
   to: string;
-  /** When it arrives there. */
+  /** When it arrives there; for a fleet that holds, when its holding ends. */
   arr: number;
+  /** A fleet that holds at `to` (#55, owner, 2026-11-17), not one in flight. */
+  holds?: true;
 }
 
 /**
  * The leg a fleet flies now: out from its start to its target, or back from
- * its target to its start, arriving at its return.
+ * its target to its start, arriving at its return. A fleet that holds shows
+ * as holding at its target until the end of its holding time (#55).
  */
-const leg = (f: Fleet): ScannedFlight =>
-  f.state === 'out'
-    ? { ships: { ...f.ships }, from: f.from, to: f.to, arr: f.arr }
-    : { ships: { ...f.ships }, from: f.to, to: f.from, arr: f.ret };
+function leg(f: Fleet): ScannedFlight {
+  const ships = { ...f.ships };
+  if (f.state === 'out') return { ships, from: f.from, to: f.to, arr: f.arr };
+  if (f.state === 'hold')
+    return { ships, from: f.from, to: f.to, arr: holdEnd(f), holds: true };
+  return { ships, from: f.to, to: f.from, arr: f.ret };
+}
 
 /**
  * Every flight to and from the planet `id`, by arrival: the fleets of every

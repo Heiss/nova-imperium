@@ -1,4 +1,4 @@
-// Upgrade test of migration 20261117T1211-planet-survey (#190): fleets and
+// Upgrade test of migration 20261119T0811-planet-survey (#190): fleets and
 // reports are rebuilt so that they allow the mission Vermessung and its
 // reports; every fleet, ship and report keeps its values, and the table of
 // the surveyed positions starts empty.
@@ -7,7 +7,7 @@ import { databaseAt, migrationsThrough } from '../../../test/migrations.ts';
 import { migrate, type Db } from '../database.ts';
 import migrations from '../migrations/190/migrations.ts';
 
-const ID = '20261117T1211-planet-survey';
+const ID = '20261119T0811-planet-survey';
 const through = migrationsThrough(ID);
 
 type Rows = Record<string, unknown>[];
@@ -71,7 +71,7 @@ describe(`upgrade to migration ${ID}`, () => {
       mission: 'survey',
       gift: 0,
     });
-    // The Mondbruch of #95 (migration 20261116T2054, run before this one)
+    // The Mondbruch of #95 (migration 20261119T0810, run before this one)
     // stays allowed: this rebuild keeps its mission in the CHECK.
     db.exec("UPDATE fleets SET mission = 'moonbreak' WHERE id = 'f4'");
     expect(all(db, 'fleets').find((r) => r.id === 'f4')).toMatchObject({
