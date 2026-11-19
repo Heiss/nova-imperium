@@ -12,6 +12,7 @@ export const cargo = false;
 export const returns = true;
 export const silent = true;
 export const alertsGuild = false;
+export const holds = false;
 /** Only Spähschädel fly to an Auspex-Erkundung. */
 export const canSend = (fleet: SendFleet): SendError | undefined =>
   Object.keys(fleet.ships).some((k) => k !== 'probe')

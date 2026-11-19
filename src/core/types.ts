@@ -83,7 +83,8 @@ export interface ResearchState {
  * from the generated index as a type only (owner, 2026-11-14, #116).
  */
 export type Mission = (typeof MISSIONS)[number][0];
-type FleetState = 'out' | 'back';
+/** On its way out, holding at an ally's planet (#55), or on its way home. */
+type FleetState = 'out' | 'hold' | 'back';
 
 export interface Fleet {
   id: string;
@@ -108,6 +109,12 @@ export interface Fleet {
    * and buildings on arrival. Only set on a gift.
    */
   gift?: true;
+  /**
+   * The holding time of a Wache stellen in milliseconds (#55): the fleet
+   * stays at the target from its arrival for that long. Only set on a Wache
+   * stellen.
+   */
+  hold?: number;
 }
 
 /** The settings of one universe. The admin changes them in the admin panel. */

@@ -65,7 +65,9 @@ code and here in the same pull request.
   fits turns the fleet back with what it carries), `plunder` (up to half of
   each resource), `rebuild` and `debrisOf` (told without their shares, which
   belong to the rule page of the battle in stage 2), `deployFuel` (half of
-  the fuel burnt), `harvest` (the cargo of every ship counts).
+  the fuel burnt), `harvest` (the cargo of every ship counts), `hold`
+  (`HOLD_HOURS` and `HOLD_LIMITS` of `src/core/holding.ts`: the values of
+  the text are filled from them; the decisions of #55 for the rest).
 
 # The texts
 
@@ -378,3 +380,8 @@ code and here in the same pull request.
 
 * **[V]** Mission text: „Am Trümmerfeld lädt die Flotte Adamant und Psikristall ein, bis das Feld leer oder der Laderaum voll ist. Dabei zählt der Laderaum aller Schiffe, nicht nur der Bergungsbarken. War eine andere Flotte schneller, bleibt nur der Rest; ist das Feld ganz fort, kehrt die Flotte um.“
 * **[V]** Keywords: Schrott, Wrack, einsammeln, aufräumen
+
+### Wache stellen (`mission-hold`)
+
+* **[V]** Mission text: „Am Ziel, dem Planeten eines Gildenmitglieds oder Freundes, bleibt die Flotte für die Haltezeit, die du beim Start wählst (von 0 bis 32 Stunden), und verteidigt den Planeten in jedem Kampf zusammen mit seinem Besitzer. Danach fliegt sie heim. Wer halten darf, legt der Admin je Runde fest; den Treibstoff für die Haltezeit zahlst du beim Start. An einem Planeten halten höchstens 4 Spieler mit zusammen höchstens 15 Flotten.“
+* **[V]** Keywords: verteidigen, stationieren, beistehen, Gilde

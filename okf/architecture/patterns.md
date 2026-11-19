@@ -393,6 +393,15 @@ choice of the patterns to the assistant's recommendation below
   attack folders. A fleet of an unknown mission throws and `tick` removes
   it; the database allows only the five missions. No `f.mission ===` is
   left outside the mission folders.
+* **[E]** Built with #55, within the decisions of #116: the seventh folder
+  `hold` (Wache stellen, 70) with the new target kind `ally`, a foreign
+  planet whose owner must be an ally: `suits` treats it as `foreign`, the
+  noob protection keeps it as a foreign target, the own planet gets
+  `notAlly`, and the mission's `canSend` asks the server's `ally` and
+  `holding` of `SendTarget` (both optional, asked only by it). Every
+  rules.ts exports the new typed field `holds`; the fleet state `hold`
+  sits between `out` and `back`, and the server's clock ends it
+  (`dueAt` of `src/core/holding.ts`).
 * **[V]** Changed with #228 (owner, 2026-11-16, D2: the thresholds of the
   Auspex-Lehre apply to every foreign fleet): the field `visible` is gone
   from `MissionRules` and every `rules.ts`; the view of a foreign fleet
@@ -417,6 +426,14 @@ choice of the patterns to the assistant's recommendation below
   moon chance, rebuilding defense, reports.
 * **[E]** No event bus: the order must stay deterministic with the seeded
   `rng`.
+* **[E]** Built with #55: `battleOf(attackers, defenders, rng)` in
+  `src/core/battle.ts` takes any number of parties per side; every unit
+  shoots at a random unit of the other side, whatever its party, and the
+  survivors come back per party. `battle()` is `battleOf` with one party
+  on each side and draws bit for bit as before (the reference test of
+  #114 and a test per seed). The Sturmangriff fights the owner of the
+  planet and every fleet that holds there; the debris step takes every
+  party, each owner of a held fleet gets the defender's report.
 * **[E]** Built with #53: the moon step follows the debris step and comes
   before the rebuilt defense: at a planet without a moon the chance of the
   whole field is rolled once when it is above 0, and a hit draws the
@@ -1042,4 +1059,4 @@ src/client/                state, components (generic), views
      2026-11-12). Built with #119.
 
 * **[E]** The battle with several parties is no migration step; it is built
-  with #55.
+  with #55. Built: see section 5.

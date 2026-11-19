@@ -508,6 +508,17 @@ up nothing, so the table starts empty; other data stay as they were
 (`upgrades/20261117T0540-position-locks.test.ts`). A new round empties it
 with the planets (`planets.deleteAll()`); an ended lock stays until then
 and no longer counts.
+Migration `20261119T0744-holding` (issue #55, see
+[Holding and ACS](/features/holding-acs.md)) rebuilds `fleets` and
+`fleet_ships`, as migration 16 did, for the mission Wache stellen: `mission`
+allows `hold`, `state` allows `hold` (a fleet that holds at its target), and
+the new column `fleets.hold` (INTEGER, 0, at least 0) is the holding time of
+a Halten in milliseconds, written once at the launch, like `gift` only by
+the fleet that has it. Every fleet keeps its id, ships, cargo, times,
+recall, fuel and gift and holds for no time
+(`upgrades/20261119T0744-holding.test.ts`). The upgrade test of migration 20
+runs the later migrations before today's actions land due fleets, since
+`fleets.due` reads the new column.
 
 Migration `20261118T2324-marketplace` (issue #171, see
 [Marketplace](/features/marketplace.md)) adds `market_prices` (`pair` one of

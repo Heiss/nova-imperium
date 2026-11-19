@@ -348,6 +348,7 @@ function usedSection(a: ArticleMeta): Section | null {
 const TARGETS: Readonly<Record<TargetKind, string>> = {
   own: 'eigener Planet',
   foreign: 'fremder Planet',
+  ally: 'Planet eines Gildenmitglieds oder Freundes',
   any: 'jeder Planet',
   free: 'Freie Position',
   debris: 'Trümmerfeld',
@@ -363,7 +364,13 @@ export function missionShips(
   m: string,
 ): { only: boolean; ships: string[] } | null {
   const rules = missionRules(m)!;
-  const target = { planet: null, debris: true, protects: () => false };
+  // The planet of an ally: a Wache stellen asks for its owner (#55).
+  const target = {
+    planet: { id: m, owner: m },
+    debris: true,
+    protects: () => false,
+    ally: () => true,
+  };
   const check = (ships: Record<string, number>) =>
     rules.canSend({ owner: '', from: '', ships }, target);
   const ships = Object.keys(SHIPS).filter((k) => !check({ [k]: 1 }));
