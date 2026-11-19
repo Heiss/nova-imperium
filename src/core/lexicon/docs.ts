@@ -6,6 +6,8 @@
 import { ARTICLES, type ArticleMeta, titleOf } from './articles.ts';
 import { fill, plain } from './links.ts';
 import type { SearchDoc } from './search.ts';
+import { defaultState } from './state.ts';
+import type { Block, LexState, PageDef } from './types.ts';
 
 /** The headings of an article (the texts of the study of #285, [V]). */
 export const HEADINGS = {
@@ -16,9 +18,66 @@ export const HEADINGS = {
   see: 'Siehe auch',
 } as const;
 
+/** One string of a page and what it is, for the review list (#288). */
+export interface PagePart {
+  label: 'Line' | 'Heading' | 'Text' | 'Formula' | 'Table' | 'Facts' | 'Stand';
+  text: string;
+}
+
+/** The words of a block as they read: what the owner checks of a page (#288). */
+function blockParts(b: Block): PagePart[] {
+  switch (b.t) {
+    case 'text':
+      return [{ label: 'Text', text: plain(fill(b.text, b.values), titleOf) }];
+    case 'formula':
+      return b.lines.map((text) => ({ label: 'Formula', text }));
+    case 'stand':
+      return [{ label: 'Stand', text: b.text }];
+    case 'table':
+      return [
+        ...(b.caption ? [{ label: 'Table' as const, text: b.caption }] : []),
+        { label: 'Table', text: b.head.join(' | ') },
+      ];
+    case 'facts':
+      return b.items.map((i) => ({
+        label: 'Facts',
+        text: `${i.label}: ${plain(i.text, titleOf)}`,
+      }));
+    case 'chips':
+      return b.items.map((i) => ({
+        label: 'Facts',
+        text: `${i.label} ${i.text}`,
+      }));
+    case 'links':
+      return [];
+  }
+}
+
+/**
+ * The words of a page as they read for a state: its line, the headings,
+ * the texts, the formulas, the captions and heads of the tables and the
+ * labels of the facts. The review list holds them all (#288).
+ */
+export const pageParts = (
+  p: PageDef,
+  s: LexState = defaultState(),
+): PagePart[] => [
+  { label: 'Line', text: p.line },
+  ...p
+    .sections(s)
+    .flatMap((x) => [
+      { label: 'Heading' as const, text: x.title },
+      ...x.blocks.flatMap(blockParts),
+    ]),
+];
+
 /** The texts of the lexicon part of an entry with their values, as they read. */
 export const partTexts = (a: ArticleMeta): string[] =>
-  (a.lexicon.texts ?? []).map((t) => plain(fill(t.text, t.values), titleOf));
+  a.page
+    ? pageParts(a.page).map((x) => x.text)
+    : (a.lexicon.texts ?? []).map((t) =>
+        plain(fill(t.text, t.values), titleOf),
+      );
 
 /**
  * The first sentence of a text as it reads: up to the first full stop,

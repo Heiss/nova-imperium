@@ -8,7 +8,7 @@ import type { Debris } from './debris.ts';
 import type { Planet } from './types.ts';
 
 /** 1 % moon chance per 100,000 Adamant and Psikristall in the Trümmerfeld. */
-const PER_PERCENT = 100000;
+export const PER_PERCENT = 100000;
 
 /** The moon chance never exceeds 20 %. */
 export const MAX_MOON_CHANCE = 20;

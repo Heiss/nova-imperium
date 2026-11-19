@@ -12,6 +12,8 @@ import { classicIn } from '../../test/naming.ts';
 import { BUILD, DEF, PRODUCTION, RES, SHIPS, STORAGE } from '../catalog.ts';
 import { MISSION } from '../missions.ts';
 import { U } from '../../test/fixtures.ts';
+import { PAGES } from './pages/index.ts';
+import { defaultRound } from './state.ts';
 import {
   ARTICLES,
   article,
@@ -28,9 +30,9 @@ import type { Block, LexState } from './types.ts';
 
 /** States the computed blocks are checked on. */
 const STATES: LexState[] = [
-  { u: U, research: {}, ships: {} },
-  { u: U, research: { spy: 4 }, ships: { probe: 12 } },
-  { u: U, research: { spy: 9 }, ships: { probe: 400 } },
+  { u: U, round: defaultRound(), research: {}, ships: {} },
+  { u: U, round: defaultRound(), research: { spy: 4 }, ships: { probe: 12 } },
+  { u: U, round: defaultRound(), research: { spy: 9 }, ships: { probe: 400 } },
 ];
 
 const blocksOf = (id: string): Block[] =>
@@ -56,7 +58,9 @@ describe('the articles of stage 1 (#285)', () => {
         kind: 'mission',
         key: m,
       });
-    expect(ARTICLES).toHaveLength(keys.length + Object.keys(MISSION).length);
+    expect(ARTICLES).toHaveLength(
+      keys.length + Object.keys(MISSION).length + PAGES.length,
+    );
     expect(new Set(ARTICLES.map((a) => a.id)).size).toBe(ARTICLES.length);
     expect(article('nope')).toBeUndefined();
     expect(titleOf('spy')).toBe('Auspex-Lehre');

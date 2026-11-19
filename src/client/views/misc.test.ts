@@ -1,5 +1,6 @@
 // The highscore names a planet of each player, never a moon (#53).
 import { describe, expect, it } from 'vitest';
+import { article } from '../../core/lexicon/articles.ts';
 import {
   ROUND_SETTINGS,
   type RoundNumber,
@@ -478,7 +479,7 @@ describe('a new setting of the round in both places (#283)', () => {
   });
 });
 
-describe('the option „Stufenübersicht“ in „Hilfe & Optionen“ (#187)', () => {
+describe('the option „Stufenübersicht“ in „Optionen“ (#187)', () => {
   const page = (levelTable?: string): string => {
     const v = levelView({}, {}, [], { levelTable, probes: 1, pushOff: [] });
     v.s.round = roundDefaults() as unknown as GameState['round'];
@@ -514,5 +515,35 @@ describe('the option „Stufenübersicht“ in „Hilfe & Optionen“ (#187)', (
     expect(html.indexOf('Urlaubsmodus')).toBeLessThan(
       html.indexOf('id="own-activity"'),
     );
+  });
+});
+
+describe('„Optionen“ without the box of the rules (#288, B4)', () => {
+  const html = (): string => {
+    const v = levelView({}, {}, [], { probes: 1, pushOff: [] });
+    v.s.round = roundDefaults() as unknown as GameState['round'];
+    v.s.homePlanet = 'p';
+    v.ui = { animations: true, view: 'help' } as unknown as V['ui'];
+    return help(v);
+  };
+
+  it('is called „Optionen“ and has no box „Regeln dieses Universums“', () => {
+    const page = html();
+    expect(page).toContain('<h2>Optionen</h2>');
+    expect(page).not.toContain('Hilfe');
+    expect(page).not.toContain('Regeln dieses Universums');
+    expect(page).not.toContain('class="rules"');
+  });
+
+  it('links „Dieses Universum“ of the Lexicanum, which the Lexicanum opens', () => {
+    const page = html();
+    expect(page).toContain(
+      '<a class="lx-a" href="?view=lexicanum&a=rule-universe"',
+    );
+    expect(page).toContain(
+      'data-act="lex" data-a="rule-universe">Dieses Universum</a>',
+    );
+    // The article exists, so the link does not lead nowhere.
+    expect(article('rule-universe')?.title).toBe('Dieses Universum');
   });
 });

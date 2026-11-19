@@ -1,6 +1,7 @@
 <script lang="ts">
   // The page of the Lexicanum (#285): the path, the search, and the start
-  // page („Nachschlagen“ with the kinds and „Begriffe A–Z“), a list, or an
+  // page (the boxes „Einstieg“, „Regeln“ and „Häufige Fragen“ of #288 and
+  // #289, then „Nachschlagen“ with the kinds and „Begriffe A–Z“), a list, or an
   // article with „Auf dieser Seite“ and the other articles of its kind.
   // The address holds the article (lexicanum-state.svelte.ts), so a link
   // can be shared and „back“ works. Loaded as its own chunk (#242).
@@ -14,6 +15,25 @@
   const v = $derived(client.shown);
   const p = $derived(v && page(lex.article, v));
 </script>
+
+{#snippet items(
+  list: { id: string; title: string; ab?: string; line: string }[],
+)}
+  <ul class="bd lx-list">
+    {#each list as item (item.id)}
+      <li>
+        <a
+          class="lx-a"
+          href={articleHref(item.id)}
+          data-act="lex"
+          data-a={item.id}>{item.title}</a
+        >{#if item.ab}
+          <span class="lx-ab">{item.ab}</span>{/if}
+        {#if item.line}<span class="dim"> · {item.line}</span>{/if}
+      </li>
+    {/each}
+  </ul>
+{/snippet}
 
 {#if v && p}
   <div class="lx">
@@ -30,6 +50,12 @@
       <LexicanumSearch />
     </div>
     {#if p.t === 'start'}
+      {#each p.boxes as box (box.kind)}
+        <div class="box">
+          <h3 class="hd">{box.title}</h3>
+          {@render items(box.items)}
+        </div>
+      {/each}
       <div class="box">
         <h3 class="hd">Nachschlagen</h3>
         <div class="bd lx-cats">
@@ -46,20 +72,7 @@
     {:else if p.t === 'list'}
       <div class="box">
         <h3 class="hd">{p.title}</h3>
-        <ul class="bd lx-list">
-          {#each p.items as item (item.id)}
-            <li>
-              <a
-                class="lx-a"
-                href={articleHref(item.id)}
-                data-act="lex"
-                data-a={item.id}>{item.title}</a
-              >{#if item.ab}
-                <span class="lx-ab">{item.ab}</span>{/if}
-              {#if item.line}<span class="dim"> · {item.line}</span>{/if}
-            </li>
-          {/each}
-        </ul>
+        {@render items(p.items)}
       </div>
     {:else}
       <div class="lx-cols">

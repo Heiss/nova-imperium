@@ -8,6 +8,7 @@ import {
   MAX_RANK_NAME,
   memberPlace,
   MIN_RANK_NAME,
+  RIGHT_TEXT,
   type GuildRight,
 } from '../../core/guild-ranks.ts';
 import { arrivalAt, dt, esc, fmt } from '../logic/format.ts';
@@ -23,19 +24,6 @@ import { box, type V } from './common.ts';
 
 const heading = (guild: Pick<Guild, 'tag' | 'name'>): string =>
   `[${esc(guild.tag)}] ${esc(guild.name)}`;
-
-/** The rights as the guild view names them (#163). */
-const RIGHT_TEXT: Record<GuildRight, string> = {
-  applications: 'Bewerbungen annehmen und ablehnen',
-  remove: 'Mitglieder entfernen',
-  assign: 'Ränge an Mitglieder vergeben',
-  profile: 'Gildenname, Kürzel und Text ändern',
-  ranks: 'Ränge verwalten',
-  // The guild chat (#169, owner, 2026-11-14, D2).
-  'chat-read': 'Chat lesen',
-  'chat-write': 'Chat schreiben',
-  'chat-delete': 'Chatnachrichten löschen',
-};
 
 /** The author of a message who left the guild or deleted the account (owner, D7). */
 const FORMER = 'ehemaliges Mitglied';
