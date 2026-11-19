@@ -1,11 +1,7 @@
 // The list of actions a player can send and how one is run: first all due
 // fleets, then the action, everything in one transaction.
 import type { AuditEntry } from '../audit.ts';
-import {
-  claimAchievement,
-  claimDailyReward,
-  recordAchievementAction,
-} from './achievements.ts';
+import { recordAchievementAction } from './achievements.ts';
 import type { User } from '../db/repos/players.ts';
 import * as A from './actions.ts';
 import { tick } from './arrival.ts';
@@ -76,8 +72,6 @@ const FRAME: Record<string, A.Action> = {
   delrep: A.delrep,
   delall: A.delall,
   ...GUILD,
-  claimAchievement,
-  claimDailyReward,
 };
 
 const tables = assembleActions(FRAME, SERVER_FEATURES);

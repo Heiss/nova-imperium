@@ -17,6 +17,7 @@ import type { Action } from './actions.ts';
 import { fail, universe, type Ctx } from './context.ts';
 
 import { roundRules, roundStart } from './round.ts';
+import type { ServerFeature } from './feature.ts';
 
 const DAY = 86_400_000;
 const dayOf = (ctx: Ctx): number => Math.floor(ctx.now() / DAY);
@@ -211,3 +212,7 @@ export function recordAchievementAction(
     )
     .run(uid, metric);
 }
+
+export const serverFeature = {
+  actions: { claimAchievement, claimDailyReward },
+} satisfies ServerFeature;
