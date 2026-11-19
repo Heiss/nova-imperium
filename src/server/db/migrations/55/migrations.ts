@@ -2,7 +2,7 @@
 // migration is never changed once it is on main and has its upgrade test
 // src/server/db/upgrades/<id>.test.ts.
 //
-// 20261117T1029-holding: the mission Halten. The CHECK of fleets.mission and
+// 20261119T0744-holding: the mission Halten. The CHECK of fleets.mission and
 // fleets.state needs a rebuild of fleets and fleet_ships, as migration 16
 // did; a fleet that holds is in the state 'hold', and `hold` is its holding
 // time in milliseconds (0 for every other fleet). Every fleet keeps its id,
@@ -11,7 +11,7 @@ import type { Migration } from '../../migration-files.ts';
 
 const migrations: Migration[] = [
   {
-    id: '20261117T1029-holding',
+    id: '20261119T0744-holding',
     sql: `
     ALTER TABLE fleet_ships RENAME TO old_fleet_ships;
     ALTER TABLE fleets RENAME TO old_fleets;

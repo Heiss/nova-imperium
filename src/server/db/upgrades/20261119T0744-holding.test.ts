@@ -1,4 +1,4 @@
-// Upgrade test of migration 20261117T1029-holding (#55): the rebuild of
+// Upgrade test of migration 20261119T0744-holding (#55): the rebuild of
 // fleets and fleet_ships for the mission Halten. Every fleet in flight keeps
 // its ships, cargo, times, recall, fuel and gift and holds for no time; the
 // new mission, the state 'hold' and a holding time are accepted.
@@ -8,7 +8,7 @@ import { type Db, migrate } from '../database.ts';
 import migrations from '../migrations/55/migrations.ts';
 import { Store } from '../store.ts';
 
-const ID = '20261117T1029-holding';
+const ID = '20261119T0744-holding';
 const through = migrationsThrough(ID);
 
 type Rows = Record<string, unknown>[];
