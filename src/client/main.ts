@@ -10,7 +10,6 @@ import type { Planet } from '../core/types.ts';
 import { createAct, placeOf, samePlace } from './logic/act.ts';
 import { LEXICANUM_VIEW, viewUrl } from './logic/address.ts';
 import { CATALOG_VIEWS, catalogKind, orderNote } from './logic/catalog-list.ts';
-import { sameSignIn } from './logic/guild-chat.ts';
 import { debrisAt, debrisTip } from './logic/debris.ts';
 import * as demolition from './logic/demolition.ts';
 import { endzeitNote } from './logic/endzeit.ts';
@@ -71,37 +70,17 @@ import {
 import { disablePush, enablePush } from './push.ts';
 import { mountCatalogList } from './views/catalog-list.ts';
 import { renderGate } from './views/vacation-lock.ts';
-import {
-  adminChatDialog,
-  dissolveDialog,
-  transferDialog,
-} from './views/guilds.ts';
 import { mountGalaxy } from './views/galaxy.ts';
 import { mountLexicanum } from './views/lexicanum.ts';
 import { mountOverview } from './views/overview.ts';
 import { mountProducerTable } from './views/producer-table.ts';
 import { addPasskey, signInWithPasskey } from './passkeys.ts';
-import { assembleActs } from './features/assemble.ts';
+import { $, keepChatScroll, val } from './dom.ts';
+import { assembleActs, assembleForms } from './features/assemble.ts';
 import type { ClientCtx } from './features/contract.ts';
 import { CLIENT_FEATURES } from './features/index.gen.ts';
 
 type Data = Record<string, string | undefined>;
-
-const $ = <T extends HTMLElement = HTMLElement>(sel: string): T | null =>
-  document.querySelector<T>(sel);
-const val = (sel: string): string => $<HTMLInputElement>(sel)?.value ?? '';
-/** The value of a field by its id (ids of guild ranks are not CSS-safe). */
-const byId = (id: string): string =>
-  (document.getElementById(id) as HTMLInputElement | null)?.value ?? '';
-const setById = (id: string, value: string): void => {
-  const field = document.getElementById(id) as HTMLInputElement | null;
-  if (field) field.value = value;
-};
-/** The checked rights of a guild rank (#163), the disabled ones included. */
-const rankRights = (rank?: string): string[] =>
-  [...document.querySelectorAll<HTMLInputElement>('input[data-rank-right]')]
-    .filter((box) => box.dataset.rankRight === rank && box.checked)
-    .map((box) => box.value);
 
 let loginChallenge: string | null = null;
 let rememberLogin = false;
@@ -1014,55 +993,6 @@ const FRAME: Record<string, (d: Data) => unknown> = {
   moreOpen: () => $<HTMLDialogElement>('#more')!.showModal(),
   pushEnable: () => togglePush(true),
   pushDisable: () => togglePush(false),
-  guildView: (d) => go('guilds', true, d.id ?? null),
-  guildApply: (d) => act('applyToGuild', { id: d.id }),
-  guildLeave: (d) => {
-    if (!d.confirm || window.confirm(d.confirm)) return act('leaveGuild');
-  },
-  guildReview: (d) =>
-    act('reviewGuildApplication', { uid: d.uid, accept: d.accept === '1' }),
-  guildMember: (d) => {
-    const ranks = client.game?.guilds?.ranks;
-    if (d.transfer === '1' && ranks) {
-      const name = client
-        .game!.guilds!.directory.flatMap((g) => g.members)
-        .find((m) => m.id === d.uid)?.name;
-      modal(transferDialog(ranks, d.uid ?? '', name ?? ''));
-      return $('#transfer_rank')?.focus();
-    }
-    if (window.confirm('Mitglied entfernen?'))
-      return act('manageGuildMember', { uid: d.uid, transfer: false });
-  },
-  guildDissolve: (d) => {
-    const guild = client.game?.guilds?.directory.find((g) => g.id === d.id);
-    if (!guild) return;
-    modal(dissolveDialog(guild));
-    $('#dissolve_tag')?.focus();
-  },
-  guildAssign: (d) =>
-    act('assignGuildRank', { uid: d.uid, rank: byId(`rank_of_${d.uid}`) }),
-  rankCreate: async () => {
-    if (await act('createGuildRank', { name: byId('rank_new') }))
-      setById('rank_new', '');
-  },
-  rankRename: (d) =>
-    act('renameGuildRank', {
-      rank: d.rank,
-      name: byId(`rank_name_${d.rank}`),
-    }),
-  rankRights: (d) =>
-    act('setGuildRankRights', { rank: d.rank, rights: rankRights(d.rank) }),
-  rankMove: (d) => act('moveGuildRank', { rank: d.rank, up: d.up === '1' }),
-  rankDelete: (d) => {
-    if (
-      window.confirm(
-        'Rang löschen? Seine Mitglieder bekommen den Standardrang.',
-      )
-    )
-      return act('deleteGuildRank', { rank: d.rank });
-  },
-  rankDefault: (d) => act('setGuildDefaultRank', { rank: d.rank }),
-  guildChatAdmin: (d) => openAdminChat(d.id ?? ''),
   achievementClaim: (d) => act('claimAchievement', { id: d.id }),
   dailyClaim: () => act('claimDailyReward'),
   logout: async () => {
@@ -1268,6 +1198,8 @@ const ctx: ClientCtx = {
   modal,
   go,
   render,
+  api,
+  toast,
   setInput,
   fleet: { calc: fleetCalc, form: readFleetForm, planet: settledPlanet },
 };
@@ -1455,66 +1387,6 @@ async function submitAccountDeletion(): Promise<void> {
   }
 }
 
-async function submitTransfer(): Promise<void> {
-  const ok = await act('manageGuildMember', {
-    uid: $('#guildtransferform')?.dataset.uid,
-    transfer: true,
-    rank: val('#transfer_rank'),
-  });
-  if (ok) modal('');
-}
-
-async function submitDissolve(): Promise<void> {
-  if (await act('dissolveGuild', { tag: val('#dissolve_tag') })) {
-    modal('');
-    go('guilds');
-  }
-}
-
-/**
- * The admin opens the chat of a guild; the server records it (#169, D8). An
- * answer that comes in after a logout, or with another account signed in,
- * opens nothing (CodeRabbit on #216).
- */
-async function openAdminChat(guild: string): Promise<void> {
-  const admin = client.game?.me.id;
-  try {
-    const read = await api('/api/admin/guild-chat', { guild });
-    if (!sameSignIn(client.game, admin)) return;
-    modal(
-      adminChatDialog(read as unknown as Parameters<typeof adminChatDialog>[0]),
-    );
-    keepChatScroll($('#modalIn')!, true)();
-  } catch (error) {
-    toast((error as Error).message, true);
-  }
-}
-
-/**
- * The chat log keeps its place when the view renders again; at its end it
- * follows the new messages (#169).
- */
-function keepChatScroll(root: ParentNode, end = false): () => void {
-  const log = root.querySelector<HTMLElement>('.chat-log');
-  const atEnd =
-    end || !log || log.scrollTop + log.clientHeight >= log.scrollHeight - 4;
-  const top = log?.scrollTop ?? 0;
-  return () => {
-    const next = root.querySelector<HTMLElement>('.chat-log');
-    if (next) next.scrollTop = atEnd ? next.scrollHeight : top;
-  };
-}
-
-async function submitGuild(): Promise<void> {
-  const edit = $('#guildform')?.dataset.edit === '1';
-  const ok = await act(edit ? 'updateGuild' : 'createGuild', {
-    tag: val('#guild_tag'),
-    name: val('#guild_name'),
-    description: val('#guild_description'),
-  });
-  if (ok && !edit) go('guilds', true, client.game?.guilds?.own?.id ?? null);
-}
-
 async function submitInvite(): Promise<void> {
   const email = val('#inv_email').trim();
   const j = await adminCall('/api/admin/invite', { email });
@@ -1637,25 +1509,26 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && id?.startsWith('g_')) ACT.ggo!({});
   if (e.key === 'Escape') modal('');
 });
+const FORMS = assembleForms(
+  {
+    authform: submitAuth,
+    inviteform: submitInvite,
+    announceform: submitAnnouncement,
+    codeform: submitLoginCode,
+    forgotform: submitForgot,
+    resetform: () => submitPassword(true),
+    passwordform: () => submitPassword(false),
+    passkeyform: submitPasskey,
+    deleteaccountform: submitAccountDeletion,
+    reportform: () => submitReport('reportform'),
+    'reportform-dialog': () => submitReport('reportform-dialog'),
+  },
+  CLIENT_FEATURES,
+  ctx,
+);
 document.addEventListener('submit', (e) => {
   const id = (e.target as HTMLElement).id;
-  const handlers = [
-    ['authform', submitAuth],
-    ['inviteform', submitInvite],
-    ['announceform', submitAnnouncement],
-    ['guildform', submitGuild],
-    ['guildtransferform', submitTransfer],
-    ['guilddissolveform', submitDissolve],
-    ['codeform', submitLoginCode],
-    ['forgotform', submitForgot],
-    ['resetform', () => submitPassword(true)],
-    ['passwordform', () => submitPassword(false)],
-    ['passkeyform', submitPasskey],
-    ['deleteaccountform', submitAccountDeletion],
-    ['reportform', () => submitReport('reportform')],
-    ['reportform-dialog', () => submitReport('reportform-dialog')],
-  ] as const;
-  const handle = handlers.find(([form]) => form === id)?.[1];
+  const handle = Object.hasOwn(FORMS, id) ? FORMS[id] : undefined;
   if (!handle) return;
   e.preventDefault();
   void handle();

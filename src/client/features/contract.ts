@@ -28,6 +28,10 @@ export interface ClientCtx {
   go: (view: string, push?: boolean, guild?: string | null) => void;
   /** Renders the shown view again; `fresh` drops the typed drafts. */
   render: (fresh?: boolean) => void;
+  /** Calls the server; a refusal throws an error with the server's words. */
+  api: (url: string, body?: unknown) => Promise<Record<string, unknown>>;
+  /** Shows a note that goes away by itself; `err` for a refusal. */
+  toast: (msg: string, err?: boolean) => void;
   /** Sets the value of an input, when it is there. */
   setInput: (sel: string, v: string | number) => void;
   /** What the fleet form needs, until the fleet form leaves main.ts. */
@@ -45,4 +49,10 @@ export interface ClientCtx {
 export interface ClientFeature {
   /** The `data-act` handlers of the feature, by name. */
   acts: (ctx: ClientCtx) => Record<string, Handler>;
+  /**
+   * The handlers of the forms of the feature by the id of the form; the
+   * submit is stopped, then the handler runs. A form that clears itself
+   * with its own listener (abandon, market, social) needs none.
+   */
+  forms?: (ctx: ClientCtx) => Record<string, () => unknown>;
 }

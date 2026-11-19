@@ -2,20 +2,10 @@
 // feature and no count: a feature adds its handlers in its own file
 // (`clientFeature`), and each feature tests its own handlers in its own test.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { assembleActs } from './assemble.ts';
-import type { ClientCtx, ClientFeature } from './contract.ts';
+import { assembleActs, assembleForms } from './assemble.ts';
+import type { ClientFeature } from './contract.ts';
 import { CLIENT_FEATURES } from './index.gen.ts';
-
-/** A context whose members do nothing; handlers are not called here. */
-const fakeCtx = (): ClientCtx => ({
-  act: vi.fn(async () => true),
-  actHere: vi.fn(async () => true),
-  modal: vi.fn(),
-  go: vi.fn(),
-  render: vi.fn(),
-  setInput: vi.fn(),
-  fleet: { calc: vi.fn(), form: vi.fn(), planet: vi.fn() },
-});
+import { fakeCtx } from './test-ctx.ts';
 
 const features: readonly (readonly [string, ClientFeature])[] = CLIENT_FEATURES;
 
@@ -47,8 +37,19 @@ describe('the list of the client features', () => {
     }
   });
 
-  it('defines no data-act name twice', () => {
+  it('gives every form handler a plain id and a function', () => {
+    for (const [name, feature] of features)
+      for (const [id, handler] of Object.entries(
+        feature.forms?.(fakeCtx()) ?? {},
+      )) {
+        expect(id, `${name}: ${id}`).toMatch(/^[a-z][a-z0-9-]*$/);
+        expect(typeof handler, `${name}: ${id}`).toBe('function');
+      }
+  });
+
+  it('defines no data-act name and no form id twice', () => {
     expect(() => assembleActs({}, features, fakeCtx())).not.toThrow();
+    expect(() => assembleForms({}, features, fakeCtx())).not.toThrow();
   });
 });
 
@@ -98,6 +99,26 @@ describe('the table of the handlers', () => {
     ).toThrow(
       'data-act "build" is defined in features/one.ts and in features/two.ts.',
     );
+  });
+
+  it('merges the form handlers the same way, and a module may have none', () => {
+    const form = vi.fn();
+    const table = assembleForms(
+      { authform: a },
+      [
+        ['one', { acts: () => ({}), forms: () => ({ guildform: form }) }],
+        ['two', module({ build: b })],
+      ],
+      fakeCtx(),
+    );
+    expect(table).toEqual({ authform: a, guildform: form });
+    expect(() =>
+      assembleForms(
+        { guildform: a },
+        [['one', { acts: () => ({}), forms: () => ({ guildform: form }) }]],
+        fakeCtx(),
+      ),
+    ).toThrow('form "guildform" is defined in main.ts and in features/one.ts.');
   });
 
   it('throws when a module redefines a frame handler, naming both', () => {
