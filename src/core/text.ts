@@ -26,6 +26,8 @@ export interface EntryText {
   plural?: string;
   /** What the energy of one piece is given per in the shipyard, „je …“ (#114). */
   per?: string;
+  /** The name in a message, where the full name is too long (#183): „Die Schiffsschmiede wird ausgebaut.“ */
+  short?: string;
 }
 
 /** The generated index: every text file, sorted by key. */

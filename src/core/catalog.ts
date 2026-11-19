@@ -23,6 +23,7 @@ import type { Consumes } from './components/consumes.ts';
 import type { EnergyThreshold } from './components/energy-threshold.ts';
 import type { Leveled } from './components/leveled.ts';
 import type { Limit } from './components/limit.ts';
+import type { Locks } from './components/locks.ts';
 import {
   DRIVE_BONUS,
   type DriveKey,
@@ -105,6 +106,8 @@ type Entry =
       energyThreshold?: EnergyThreshold;
       /** None for a building that stands on planets only (#53). */
       placement?: Placement;
+      /** A building whose upgrade stops the shipyard or the research (#183). */
+      locks?: Locks;
       /** A building that stores missiles (#54). */
       silo?: Silo;
       def?: BuildingFields;
@@ -247,6 +250,13 @@ export const SILO: Readonly<Record<string, Silo>> = Object.fromEntries(
 export const MISSILE: Readonly<Record<string, Missile>> = Object.fromEntries(
   ofKind('defense').flatMap(([key, e]) =>
     e.missile ? [[key, e.missile] as const] : [],
+  ),
+);
+
+/** The buildings with a `locks` component, by key: their upgrade stops the shipyard or the research (#183). */
+export const LOCKS: Readonly<Record<string, Locks>> = Object.fromEntries(
+  ofKind('building').flatMap(([key, e]) =>
+    e.locks ? [[key, e.locks] as const] : [],
   ),
 );
 

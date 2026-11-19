@@ -38,6 +38,7 @@ import {
   hasYard,
   orderMax,
   siloUse,
+  YARD_HOME,
   YARD_LOCK,
   yardLockedBy,
 } from '../../core/yard.ts';
@@ -538,9 +539,9 @@ function queue(v: V): QueueRow[] {
 
 /** Why the shipyard cannot produce while `key` is upgraded (#48). */
 export const lockNotice = (key: string): string =>
-  key === 'yard'
-    ? 'Die Schiffsschmiede wird gerade ausgebaut und kann nicht produzieren.'
-    : `Die ${YARD_LOCK[key]} wird gerade ausgebaut, die Schiffsschmiede kann nicht produzieren.`;
+  key === YARD_HOME
+    ? `Die ${YARD_LOCK[key]} wird gerade ausgebaut und kann nicht produzieren.`
+    : `Die ${YARD_LOCK[key]} wird gerade ausgebaut, die ${YARD_LOCK[YARD_HOME]} kann nicht produzieren.`;
 
 function yardPage(
   v: V,
