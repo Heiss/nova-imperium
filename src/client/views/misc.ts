@@ -160,9 +160,14 @@ function settingsForm(s: GameState, a: AdminState): string {
   return `<table class="kv">${rows}</table>${gain}<p class="dim">Änderungen wirken sofort. Laufende Bauaufträge und Flüge behalten ihre Endzeit.</p><button data-act="saveSettings">Einstellungen speichern</button>`;
 }
 
+/**
+ * The link of the last invitation is no draft: a refresh that keeps the
+ * inputs would put the link of the invitation before back into the field
+ * (#239), so it is not kept.
+ */
 function invitations(ui: Ui): string {
   const link = ui.lastLink
-    ? `<div class="notice mt">Einladungslink (gilt einmal, nur jetzt sichtbar):<br><input id="inv_link" class="wide" readonly value="${esc(ui.lastLink)}" aria-label="Einladungslink"> <button class="small" data-act="copyLink">Kopieren</button></div>`
+    ? `<div class="notice mt">Einladungslink (gilt einmal, nur jetzt sichtbar):<br><input id="inv_link" class="wide" readonly value="${esc(ui.lastLink)}" aria-label="Einladungslink" data-nokeep> <button class="small" data-act="copyLink">Kopieren</button></div>`
     : '';
   return `<form id="inviteform" class="flex"><label for="inv_email">E-Mail-Adresse</label> <input id="inv_email" type="email" required autocomplete="off" data-nokeep> <button type="submit">Einladen</button></form>${link}<div id="admin-invitations"></div>`;
 }

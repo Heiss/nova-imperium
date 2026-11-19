@@ -356,6 +356,27 @@ describe('„Account löschen“ in a round with or without guilds (#191)', () =
   });
 });
 
+describe('the link of the last invitation (#239)', () => {
+  const view = (lastLink?: string): string =>
+    admin({
+      s: {
+        cfg: {},
+        admin: { specs: [], endzeit: { minutes: 240, done: false } },
+      },
+      ui: { lastLink },
+    } as unknown as V);
+
+  it('shows the link of the server and is not kept over a refresh', () => {
+    expect(view('https://x/#invite=new')).toContain(
+      '<input id="inv_link" class="wide" readonly value="https://x/#invite=new" aria-label="Einladungslink" data-nokeep>',
+    );
+  });
+
+  it('shows no field before the first invitation', () => {
+    expect(view()).not.toContain('inv_link');
+  });
+});
+
 describe('the box „Endzeit“ of the tab „Universum“ (#161, #214)', () => {
   const view = (done: boolean): string =>
     admin({
