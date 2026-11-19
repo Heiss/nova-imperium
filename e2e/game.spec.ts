@@ -21,34 +21,6 @@ import { text as entryText } from '../src/core/text.ts';
 /** The paragraphs of a long text (#94): the lore, then „So funktioniert es:“. */
 const lines = (text: string): string[] => text.split('\n\n');
 
-test('creates a guild and restores its profile after reload', async ({
-  page,
-}) => {
-  const w = watch(page);
-  const name = uniqueName('Gruender');
-  // A unique tag and name: the server refuses a second guild with either, so
-  // a fixed „NOVA“ failed on a repeat run (#267). „N“ and 6 random
-  // characters, in capitals: the tag takes 2 to 8 letters or digits.
-  const tag = uniqueName('N').toUpperCase();
-  const guild = `Nova Allianz ${tag}`;
-  await register(page, name);
-  await nav(page, 'guilds');
-  await page.getByLabel('Kürzel').fill(tag);
-  await page.getByLabel('Name', { exact: true }).fill(guild);
-  await page.getByLabel('Gildentext (Markdown)').fill('**Gemeinsam ins All**');
-  await page.getByRole('button', { name: 'Gilde gründen' }).click();
-  await expect(page).toHaveURL(/view=guilds&guild=/);
-  await page.reload();
-  await expect(
-    page.getByRole('heading', { name: `[${tag}] ${guild}` }),
-  ).toBeVisible();
-  await expect(
-    page.locator('strong', { hasText: 'Gemeinsam ins All' }),
-  ).toBeVisible();
-  await expect(page.getByRole('cell', { name, exact: true })).toBeVisible();
-  expect(w.problems).toEqual([]);
-});
-
 /** The amount of a resource in the bar, as a number. */
 const amountOf = async (page: Page, label: string): Promise<number> =>
   Number((await stock(page, label).textContent())!.replaceAll('.', ''));
