@@ -40,7 +40,7 @@ function chatText(value: unknown): string {
   return text;
 }
 
-export const sendGuildChat: Action = (ctx, user, d) => {
+const sendGuildChat: Action = (ctx, user, d) => {
   const a = actor(ctx, user.id);
   need(a, 'chat-write');
   const text = chatText(d.text);
@@ -79,7 +79,7 @@ const deletable = (
     authorPlace(a, members, m.author),
   );
 
-export const deleteGuildChat: Action = (ctx, user, d) => {
+const deleteGuildChat: Action = (ctx, user, d) => {
   const a = actor(ctx, user.id);
   need(a, 'chat-delete');
   const message = ctx.guilds.chatMessage(int(d.id, 0, Number.MAX_SAFE_INTEGER));
@@ -148,7 +148,7 @@ export function chatState(ctx: Ctx, a: Actor, players: GuildPlayer[]) {
  * message `id` (the red mark, owner, 2026-11-15); never past the newest
  * message of its guild, never back.
  */
-export const seeGuildChat: Action = (ctx, user, d) => {
+const seeGuildChat: Action = (ctx, user, d) => {
   const a = actor(ctx, user.id);
   need(a, 'chat-read');
   const newest = ctx.guilds.chat(a.guild.id).at(-1)?.id ?? 0;

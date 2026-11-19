@@ -67,7 +67,7 @@ export function marketOf(
  * of every pair now and what the player gave today. Its preview computes
  * the exchange with the same function as the server.
  */
-export const marketState = (ctx: Ctx, u: User) => ({
+const marketState = (ctx: Ctx, u: User) => ({
   prices: currentPrices(ctx),
   used: ctx.market.used(u.id, dayOf(ctx.now())),
 });
@@ -79,7 +79,7 @@ export const marketState = (ctx: Ctx, u: User) => ({
  * all. The audit entry records the planet, the pair, both amounts, the fee,
  * whether the storage capped it or the limit of the day cut it, and the price it was made at.
  */
-export const exchange: Action = (ctx, u, d, event) => {
+const exchange: Action = (ctx, u, d, event) => {
   const p = mine(ctx, u, d.planet);
   const round = roundRules(ctx);
   const market = marketOf(ctx, u, p, round);

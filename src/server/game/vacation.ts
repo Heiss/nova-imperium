@@ -68,7 +68,7 @@ const sendGuardsHome = (ctx: Ctx, places: readonly { id: string }[]): void => {
 };
 
 /** Starts the vacation now, once nothing runs (Q1); the production up to now is kept. */
-export const startVacation: Action = (ctx, u, _d, event) => {
+const startVacation: Action = (ctx, u, _d, event) => {
   const now = ctx.now();
   const places = settledPlaces(ctx, u);
   const research = settleR(u, now);
@@ -94,7 +94,7 @@ export const startVacation: Action = (ctx, u, _d, event) => {
 };
 
 /** Ends the vacation once the minimum duration of the round is over; the production goes on from now. */
-export const endVacation: Action = (ctx, u) => {
+const endVacation: Action = (ctx, u) => {
   const hours = roundRules(ctx).vacationHours;
   const error = vacationExitError(u.vacation, hours, ctx.now());
   if (error === 'early')

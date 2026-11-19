@@ -49,14 +49,14 @@ const byId = (ctx: Ctx, uid: unknown): User | null =>
   ctx.players.get(str(uid, 40)) ?? null;
 
 /** Asks the player named `d.name` for a friendship. */
-export const requestFriend: Action = (ctx, u, d) => {
+const requestFriend: Action = (ctx, u, d) => {
   const other = check(ctx, u, 'request', ctx.players.byName(str(d.name, 20)));
   ctx.friends.request(u.id, other.id);
   return 'Anfrage gesendet.';
 };
 
 /** Accepts (`d.accept` true) or refuses the open request of `d.uid`. */
-export const answerFriend: Action = (ctx, u, d) => {
+const answerFriend: Action = (ctx, u, d) => {
   const accept = d.accept === true;
   const other = check(ctx, u, accept ? 'accept' : 'refuse', byId(ctx, d.uid));
   if (!accept) {
@@ -68,14 +68,14 @@ export const answerFriend: Action = (ctx, u, d) => {
 };
 
 /** Takes back the own open request to `d.uid`. */
-export const cancelFriend: Action = (ctx, u, d) => {
+const cancelFriend: Action = (ctx, u, d) => {
   const other = check(ctx, u, 'cancel', byId(ctx, d.uid));
   ctx.friends.remove(u.id, other.id);
   return 'Anfrage zurückgezogen.';
 };
 
 /** Ends the friendship with `d.uid`; either friend may. */
-export const removeFriend: Action = (ctx, u, d) => {
+const removeFriend: Action = (ctx, u, d) => {
   const other = check(ctx, u, 'remove', byId(ctx, d.uid));
   ctx.friends.remove(u.id, other.id);
   return 'Freundschaft beendet.';

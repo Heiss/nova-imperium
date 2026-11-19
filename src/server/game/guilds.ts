@@ -39,7 +39,7 @@ function profile(ctx: Ctx, d: Record<string, unknown>, except = '') {
   return { tag, name, description };
 }
 
-export const createGuild: Action = (ctx, user, d) => {
+const createGuild: Action = (ctx, user, d) => {
   if (ctx.guilds.membership(user.id))
     fail('Du hast bereits eine Gilde oder eine offene Bewerbung.');
   const { tag, name, description } = profile(ctx, d);
@@ -48,7 +48,7 @@ export const createGuild: Action = (ctx, user, d) => {
   return 'Gilde gegründet.';
 };
 
-export const updateGuild: Action = (ctx, user, d) => {
+const updateGuild: Action = (ctx, user, d) => {
   const a = actor(ctx, user.id);
   need(a, 'profile');
   const { tag, name, description } = profile(ctx, d, a.guild.id);
@@ -56,7 +56,7 @@ export const updateGuild: Action = (ctx, user, d) => {
   return 'Gildenprofil gespeichert.';
 };
 
-export const applyToGuild: Action = (ctx, user, d) => {
+const applyToGuild: Action = (ctx, user, d) => {
   if (ctx.guilds.membership(user.id))
     fail('Du hast bereits eine Gilde oder eine offene Bewerbung.');
   const target = guild(ctx, d.id);
@@ -64,7 +64,7 @@ export const applyToGuild: Action = (ctx, user, d) => {
   return 'Bewerbung gesendet.';
 };
 
-export const reviewGuildApplication: Action = (ctx, user, d) => {
+const reviewGuildApplication: Action = (ctx, user, d) => {
   const a = actor(ctx, user.id);
   need(a, 'applications');
   const applicant = ctx.guilds.membership(str(d.uid, 40));
@@ -79,7 +79,7 @@ export const reviewGuildApplication: Action = (ctx, user, d) => {
   return 'Bewerbung abgelehnt.';
 };
 
-export const leaveGuild: Action = (ctx, user) => {
+const leaveGuild: Action = (ctx, user) => {
   const member =
     ctx.guilds.membership(user.id) ?? fail('Du bist in keiner Gilde.');
   const own = guild(ctx, member.guild_id);
@@ -95,7 +95,7 @@ export const leaveGuild: Action = (ctx, user) => {
   return 'Gilde verlassen.';
 };
 
-export const manageGuildMember: Action = (ctx, user, d) => {
+const manageGuildMember: Action = (ctx, user, d) => {
   const a = actor(ctx, user.id);
   const target = memberOf(ctx, a, d.uid);
   if (target.user_id === user.id)

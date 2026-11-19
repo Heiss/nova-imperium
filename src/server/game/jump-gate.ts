@@ -53,7 +53,7 @@ function targetOf(ctx: Ctx, u: User, id: unknown): Planet | null {
  * Jumps the ships `d.ships` from the active moon `d.planet` to the own moon
  * `d.to` (an id such as `m1_2_3`).
  */
-export const jump: Action = (ctx, u, d, event) => {
+const jump: Action = (ctx, u, d, event) => {
   const now = ctx.now();
   const from = mine(ctx, u, d.planet);
   const to = targetOf(ctx, u, d.to);

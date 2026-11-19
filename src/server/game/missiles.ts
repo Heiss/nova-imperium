@@ -62,7 +62,7 @@ function checked(ctx: Ctx, u: User, p: Planet, d: Data) {
   return { dest, to, owner: owner!, n, aim };
 }
 
-export const missile: Action = (ctx, u, d, event) => {
+const missile: Action = (ctx, u, d, event) => {
   const t = ctx.now();
   const p = mine(ctx, u, d.planet);
   const { dest, to, owner, n, aim } = checked(ctx, u, p, d);

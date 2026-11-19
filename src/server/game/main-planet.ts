@@ -70,7 +70,7 @@ export const lockedText = (end: number): string =>
   `Der Hauptplanet ist gesperrt. Wieder änderbar ab ${lockEndText(end)}.`;
 
 /** Makes the own planet `d.main` the main planet; every switch starts the lock (D4, D5). */
-export const chooseMainPlanet: Action = (ctx, u, d) => {
+const chooseMainPlanet: Action = (ctx, u, d) => {
   const main = mainPlanetOf(ctx, u);
   const target = typeof d.main === 'string' ? ctx.planets.get(d.main) : null;
   const error = mainSwitchError({

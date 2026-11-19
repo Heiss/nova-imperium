@@ -153,7 +153,7 @@ function credit(ctx: Ctx, p: Planet, reward: Cost): void {
   ctx.planets.save(p);
 }
 
-export const claimAchievement: Action = (ctx, u, data) => {
+const claimAchievement: Action = (ctx, u, data) => {
   if (!roundRules(ctx).achievements)
     fail('Achievements sind in dieser Runde deaktiviert.');
   const achievement =

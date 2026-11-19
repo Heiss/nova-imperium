@@ -77,7 +77,7 @@ function giveUpTarget(
 }
 
 /** Gives up the own planet `d.target`, founded at `d.created`, with its moon after the password `d.password`. */
-export const abandon: Action = (ctx, u, d, event) => {
+const abandon: Action = (ctx, u, d, event) => {
   confirmPassword(u, d.password);
   const { planet, moon } = giveUpTarget(ctx, u, d.target, d.created);
   const until = positionLockEnd(ctx.now(), roundRules(ctx).abandonLock);

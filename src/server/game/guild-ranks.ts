@@ -129,7 +129,7 @@ function rightsOf(value: unknown): Set<GuildRight> {
   return new Set(list as GuildRight[]);
 }
 
-export const createGuildRank: Action = (ctx, user, d) => {
+const createGuildRank: Action = (ctx, user, d) => {
   const a = actor(ctx, user.id);
   need(a, 'ranks');
   if (a.ranks.length >= MAX_GUILD_RANKS)
@@ -138,13 +138,13 @@ export const createGuildRank: Action = (ctx, user, d) => {
   return 'Rang angelegt.';
 };
 
-export const renameGuildRank: Action = (ctx, user, d) => {
+const renameGuildRank: Action = (ctx, user, d) => {
   const { a, rank } = managed(ctx, user.id, d.rank);
   ctx.guilds.renameRank(rank.id, rankName(a, d.name, rank.id));
   return 'Rang umbenannt.';
 };
 
-export const setGuildRankRights: Action = (ctx, user, d) => {
+const setGuildRankRights: Action = (ctx, user, d) => {
   const { a, rank } = managed(ctx, user.id, d.rank);
   const next = rightsOf(d.rights);
   if (!canChangeRights([...a.rights], rank.rights, [...next])) fail(NO_RIGHT);
@@ -155,7 +155,7 @@ export const setGuildRankRights: Action = (ctx, user, d) => {
   return 'Rechte gespeichert.';
 };
 
-export const moveGuildRank: Action = (ctx, user, d) => {
+const moveGuildRank: Action = (ctx, user, d) => {
   const { a, rank } = managed(ctx, user.id, d.rank);
   const at = a.ranks.indexOf(rank);
   const other =
@@ -166,7 +166,7 @@ export const moveGuildRank: Action = (ctx, user, d) => {
   return 'Rang verschoben.';
 };
 
-export const deleteGuildRank: Action = (ctx, user, d) => {
+const deleteGuildRank: Action = (ctx, user, d) => {
   const { a, rank } = managed(ctx, user.id, d.rank);
   // The Leitung is never deletable (nobody is above it) and never the
   // default, so a guild keeps both and with them at least two ranks.
@@ -189,7 +189,7 @@ export const deleteGuildRank: Action = (ctx, user, d) => {
   return 'Rang gelöscht.';
 };
 
-export const setGuildDefaultRank: Action = (ctx, user, d) => {
+const setGuildDefaultRank: Action = (ctx, user, d) => {
   const a = actor(ctx, user.id);
   leadOnly(a);
   const rank = rankOf(a, d.rank);
@@ -207,7 +207,7 @@ export function memberOf(ctx: Ctx, a: Actor, uid: unknown): Membership {
   return m;
 }
 
-export const assignGuildRank: Action = (ctx, user, d) => {
+const assignGuildRank: Action = (ctx, user, d) => {
   const a = actor(ctx, user.id);
   need(a, 'assign');
   const target = memberOf(ctx, a, d.uid);
@@ -238,7 +238,7 @@ export function handOverRank(a: Actor, id: unknown): Rank {
  * Dissolves the guild with all its members (owner, 2026-11-14): only the
  * Leitung, never a right, confirmed with the tag of the guild.
  */
-export const dissolveGuild: Action = (ctx, user, d) => {
+const dissolveGuild: Action = (ctx, user, d) => {
   const a = actor(ctx, user.id);
   leadOnly(a, 'Nur die Gildenleitung kann die Gilde auflösen.');
   if (str(d.tag, 30).toUpperCase() !== a.guild.tag.toUpperCase())
