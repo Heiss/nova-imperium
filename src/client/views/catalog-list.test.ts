@@ -12,10 +12,10 @@ import type { GameState } from '../logic/types.ts';
 import CatalogList from './CatalogList.svelte';
 import type { Ui, V } from './common.ts';
 
-const view = (name = 'Heimat'): V => ({
+const view = (name = 'Heimat', me: object = {}, openLv?: object): V => ({
   s: {
     cfg: U,
-    me: { id: 'u1', explain: 'icon' },
+    me: { id: 'u1', explain: 'icon', ...me },
     labs: [],
     galaxy: [],
     homePlanet: 'p1_1_5',
@@ -23,7 +23,7 @@ const view = (name = 'Heimat'): V => ({
   P: planet({ name, b: { lab: 1, yard: 1 } }),
   R: { research: {}, rq: null },
   now: 0,
-  ui: { openEx: {} } as unknown as Ui,
+  ui: { openEx: {}, openLv } as unknown as Ui,
 });
 
 function html(kind: CatalogKind, v: V | null = view()): string {
@@ -63,6 +63,47 @@ describe('CatalogList', () => {
     expect(html('research', view('Heimat'))).toContain(
       '<h2>Forschung auf Heimat</h2>',
     );
+  });
+
+  it('puts the ▤ of the level overview beside the „?“ of buildings and research (#187)', () => {
+    const out = html('building');
+    expect(out).toContain(
+      '<button type="button" class="lvq" id="lvq_metal" data-act="levels" data-k="metal" aria-expanded="false" aria-label="Stufenübersicht zu Adamant-Tiefbohrung">▤</button>',
+    );
+    expect(out.match(/class="lvq"/g)).toHaveLength(ENTRIES.building.length);
+    expect(out).not.toContain('class="lvt"');
+    expect(html('research')).toContain('id="lvq_energy"');
+    // The ▤ comes right after the „?“ of the same entry.
+    expect(out.indexOf('id="lvq_metal"')).toBeGreaterThan(
+      out.indexOf('id="exq_metal"'),
+    );
+    // Ships and defense have no levels.
+    expect(html('ship')).not.toContain('lvq');
+    expect(html('defense')).not.toContain('lvq');
+  });
+
+  it('opens the box of an unfolded table and names it by the button (#187)', () => {
+    const out = html('building', view('Heimat', {}, { metal: true }));
+    expect(out).toContain('aria-expanded="true" aria-controls="lv_metal"');
+    expect(out.match(/<div class="lvt" id="lv_metal">/g)).toHaveLength(1);
+    expect(out.match(/class="lvt"/g)).toHaveLength(1);
+    // The other entries stay folded and control nothing.
+    expect(out).toContain(
+      'id="lvq_crystal" data-act="levels" data-k="crystal" aria-expanded="false" aria',
+    );
+    expect(out).not.toContain('aria-controls="lv_crystal"');
+  });
+
+  it('shows every table without a button in „Immer anzeigen“ and nothing in „Ausblenden“ (#187)', () => {
+    const always = html('research', view('Heimat', { levelTable: 'always' }));
+    expect(always).not.toContain('lvq');
+    expect(always.match(/class="lvt"/g)).toHaveLength(ENTRIES.research.length);
+    const hidden = html(
+      'research',
+      view('Heimat', { levelTable: 'hidden' }, { energy: true }),
+    );
+    expect(hidden).not.toContain('lvq');
+    expect(hidden).not.toContain('lvt');
   });
 
   it('escapes what players write', () => {

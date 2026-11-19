@@ -20,6 +20,7 @@ import {
   researchErrors,
 } from '../../core/economy-checks.ts';
 import { type ExplainMode, storedMode } from '../../core/explain.ts';
+import { isLevelMode, type LevelMode } from '../../core/level-overview.ts';
 import {
   energyNeed,
   energyShort,
@@ -331,11 +332,18 @@ export const rename: Action = (ctx, u, d) => {
 const explainMode = (x: unknown): ExplainMode =>
   storedMode(x) ?? fail('Ungültig.');
 
+/** The display option of the level overview (#187), or a refusal. */
+const levelTableMode = (x: unknown): LevelMode =>
+  isLevelMode(x) ? x : fail('Ungültig.');
+
 export const options: Action = (ctx, u, d) => {
   // An older client sends no display option; the stored one stays.
   const explain = d.explain === undefined ? u.explain : explainMode(d.explain);
+  const levelTable =
+    d.levelTable === undefined ? u.levelTable : levelTableMode(d.levelTable);
   u.probes = int(d.probes, 1, 1e6);
   u.explain = explain;
+  u.levelTable = levelTable;
   ctx.players.save(u);
   return 'Gespeichert.';
 };

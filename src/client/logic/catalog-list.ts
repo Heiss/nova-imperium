@@ -53,6 +53,7 @@ import {
   researchState,
 } from './game.ts';
 import { iconURL } from './icons.ts';
+import { levelsRow, type LevelsRow } from './level-mode.ts';
 import { levelRow } from './level-table.ts';
 
 /** The kinds of catalog entries that have a list. */
@@ -129,6 +130,8 @@ export interface CatalogRow {
   lines: string[];
   req: Requirements | undefined;
   explanation: Explanation | null;
+  /** The ▤ and the table of the next levels, for buildings and research (#187). */
+  levels?: LevelsRow | null;
   action: CatalogAction;
   /** A building that can be torn down offers „Zurückbauen“ (#202). */
   demolish?: boolean;
@@ -207,6 +210,10 @@ function entry(
     explanation: explanation(key, t, v.s.me.explain, v.ui.openEx),
   };
 }
+
+/** The ▤ of an entry with levels, by the option „Stufenübersicht“ of the player (#187). */
+const levelsOf = (v: V, key: string): LevelsRow | null =>
+  levelsRow(key, text(key)!.n, v.s.me.levelTable, v.ui.openLv);
 
 const stage = (level: number): string => (level ? `(Stufe ${level})` : '');
 
@@ -303,6 +310,7 @@ function buildingRow(v: V, key: string): CatalogRow {
   const status = buildState(P, R, key, s.cfg);
   return {
     ...entry(v, key, 'ic-b', stage(level)),
+    levels: levelsOf(v, key),
     running: status === 'running',
     cost,
     // As energyShort() counts it: a throttled reactor with its share (#47).
@@ -382,6 +390,7 @@ function researchRow(v: V, key: string): CatalogRow {
   const state = researchState(P, R, key, s.cfg);
   return {
     ...entry(v, key, 'ic-r', stage(level)),
+    levels: levelsOf(v, key),
     running: false,
     cost,
     energy: energyCost(

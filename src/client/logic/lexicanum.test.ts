@@ -237,12 +237,16 @@ describe('an article of a catalog entry', () => {
       'Kosten = Kosten der Stufe 1 · 2^(Stufe − 1)',
     ]);
     const table = of(levels, 'levels')[0]!.table;
-    expect(table.effect).toEqual({ label: 'Flottenslots' });
-    expect(table.rows[0]).toMatchObject({ level: 3, current: true, effect: 4 });
+    expect(table.effects).toEqual([{ label: 'Flottenslots' }]);
+    expect(table.rows[0]).toMatchObject({
+      level: 3,
+      current: true,
+      values: [4],
+    });
     expect(table.rows[1]).toMatchObject({
       level: 4,
       current: false,
-      effect: 5,
+      values: [5],
       cost: lvlCost(RES.computer!, 4),
     });
     // No „Dein Stand“ before the first level.
@@ -255,24 +259,24 @@ describe('an article of a catalog entry', () => {
       'Lagerkapazität = ',
     );
     const t = of(blocks(store, 'levels'), 'levels')[0]!.table;
-    expect(t.effect).toEqual({ label: 'Lagerkapazität' });
-    expect(t.rows[0]).toMatchObject({ level: 2, effect: capOf(2, U) });
+    expect(t.effects).toEqual([{ label: 'Lagerkapazität' }]);
+    expect(t.rows[0]).toMatchObject({ level: 2, values: [capOf(2, U)] });
     // Full share and energy: the rate of the mine, as prod() adds it.
     const P = { b: { metal: 7, solar: 30 }, pct: {} };
     const mine = art('metal', view(P));
     const rows = of(blocks(mine, 'levels'), 'levels')[0]!.table;
     // The rate assumes enough energy; the heading says so (owner, 2026-11-17).
-    expect(rows.effect).toEqual({ label: 'Adamant/h bei voller Energie' });
+    expect(rows.effects).toEqual([{ label: 'Adamant/h bei voller Energie' }]);
     for (const [key, label] of [
       ['crystal', 'Psikristall/h bei voller Energie'],
       ['deut', 'Promethium/h bei voller Energie'],
     ] as const)
       expect(
         of(blocks(art(key, view({ b: { [key]: 1 } })), 'levels'), 'levels')[0]!
-          .table.effect,
-      ).toEqual({ label });
+          .table.effects,
+      ).toEqual([{ label }]);
     const v = view(P);
-    expect(rows.rows[0]!.effect).toBeCloseTo(
+    expect(rows.rows[0]!.values[0]).toBeCloseTo(
       prod(v.P, U).m - prod({ ...v.P, b: { solar: 30 } }, U).m,
       6,
     );
@@ -280,8 +284,8 @@ describe('an article of a catalog entry', () => {
       blocks(art('solar', view({ b: { solar: 1 } })), 'levels'),
       'levels',
     )[0]!.table;
-    expect(solar.effect).toEqual({ label: 'Energie' });
-    expect(solar.rows[0]!.effect).toBeGreaterThan(0);
+    expect(solar.effects).toEqual([{ label: 'Energie' }]);
+    expect(solar.rows[0]!.values[0]).toBeGreaterThan(0);
     // An entry without an effect has no such section.
     expect(section(art('robot'), 'effect')).toBeUndefined();
   });

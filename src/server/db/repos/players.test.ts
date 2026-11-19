@@ -8,6 +8,7 @@ describe('players repository', () => {
       admin: true,
       probes: 4,
       explain: 'hidden',
+      levelTable: 'always',
       readAt: 7,
       research: { energy: 3, laser: 1 },
       rq: {
