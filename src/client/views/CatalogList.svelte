@@ -6,6 +6,16 @@
   // main.ts sends through act(). A new entry needs no new HTML.
   import { type CatalogKind, catalogPage } from '../logic/catalog-list.ts';
   import { fmt } from '../logic/format.ts';
+  import {
+    EMPTY,
+    FILTERS,
+    filterCounts,
+    isTimeLine,
+    rowPhase,
+    SEGMENTS,
+    shortLabel,
+  } from '../logic/phone-build.ts';
+  import { phoneBuild } from '../logic/phone-build.svelte.ts';
   import { client } from '../logic/state.svelte.ts';
   import { costHTML, requirementsHTML } from './common.ts';
 
@@ -13,10 +23,32 @@
 
   const v = $derived(client.shown);
   const page = $derived(v && catalogPage(v, kind));
+  // The units with an order in the queue count as running (#189).
+  const queued = $derived(new Set(v ? v.P.sq.map((q) => q.key) : []));
+  const counts = $derived(
+    page && !page.blocked ? filterCounts(page.rows, queued) : null,
+  );
+
+  // Phone (#189): the details of a row unfold on a tap.
+  const toggle = (key: string): void => {
+    phoneBuild.unfolded[key] = !phoneBuild.unfolded[key];
+  };
 </script>
 
 {#if v && page}
   <h2>{page.title}</h2>
+  <nav class="seg phone-only" aria-label="Bauen">
+    {#each SEGMENTS as seg (seg.view)}
+      {@const on = seg.view === client.ui.view}
+      <a
+        href={`?view=${seg.view}`}
+        data-act="nav"
+        data-v={seg.view}
+        class:on
+        aria-current={on ? 'page' : undefined}>{seg.label}</a
+      >
+    {/each}
+  </nav>
   {#if page.blocked}
     <div class="notice">
       {page.notice}{#each page.places as place (place.id)}{' '}<button
@@ -63,12 +95,32 @@
     {#if page.warn}
       <div class="notice warn">{page.warn}</div>
     {/if}
-    <div class="box">
+    <div class="seg phone-only" role="group" aria-label="Filter">
+      {#each FILTERS as f (f.key)}
+        <button
+          type="button"
+          class:on={phoneBuild.filter === f.key}
+          aria-pressed={phoneBuild.filter === f.key}
+          onclick={() => (phoneBuild.filter = f.key)}>{f.label}</button
+        >
+      {/each}
+    </div>
+    {#if counts && counts[phoneBuild.filter] === 0}
+      <p class="dim phone-only">{EMPTY[phoneBuild.filter]}</p>
+    {/if}
+    <div class="box catalog" data-filter={phoneBuild.filter}>
       {#each page.rows as row (row.key)}
         {@const ex = row.explanation}
         {@const lv = row.levels}
         {@const a = row.action}
-        <div class="item" class:running={row.running}>
+        {@const open = !!phoneBuild.unfolded[row.key] || !!lv?.open}
+        {@const short = a.kind === 'start' ? shortLabel(a.label) : null}
+        <div
+          class="item"
+          class:running={row.running}
+          class:open
+          data-phase={rowPhase(row, queued)}
+        >
           <div class="icon {row.cls}">
             {#if row.icon}<img
                 src={row.icon}
@@ -96,14 +148,20 @@
                   aria-expanded={lv.open}
                   aria-controls={lv.open ? lv.panel : undefined}
                   aria-label={`Stufenübersicht zu ${row.name}`}>▤</button
-                >{/if}
+                >{/if}<button
+                type="button"
+                class="fold phone-only"
+                aria-expanded={open}
+                aria-label={`Details zu ${row.name}`}
+                onclick={() => toggle(row.key)}>{open ? '▴' : '▾'}</button
+              >
             </div>
             {#if row.ds}
               <div class="ds">{row.ds}</div>
             {/if}
             {@html costHTML(row.cost, v.P, 1, row.energy)}
             {#each row.lines as line, i (i)}
-              <div class="dim">{line}</div>
+              <div class="dim" class:tl={isTimeLine(line)}>{line}</div>
             {/each}
             {@html requirementsHTML(v, row.req)}
             {#if lv?.show}
@@ -137,8 +195,15 @@
             {:else if a.kind === 'note'}
               <span class={a.cls}>{a.text}</span>
             {:else if a.kind === 'start'}
-              <button data-act={a.act} data-k={row.key} disabled={a.disabled}
-                >{a.label}</button
+              <button
+                data-act={a.act}
+                data-k={row.key}
+                disabled={a.disabled}
+                aria-label={short ? a.label : undefined}
+                ><span class:lg={!!short}>{a.label}</span>{#if short}<span
+                    class="sh"
+                    aria-hidden="true">{short}</span
+                  >{/if}</button
               >
             {:else}
               <div class="flex center">

@@ -70,7 +70,9 @@ function renderPlanetHeader({ s, P }: Frame): string {
     owned.length > 1
       ? `<select id="planet_select" aria-label="Aktiver Planet">${owned.map((p) => `<option value="${esc(p.id)}" ${p.id === activeId ? 'selected' : ''}>${esc(placeName(p))} ${coords(p)}</option>`).join('')}</select>`
       : `<b>${esc(placeName(P))}</b> ${coords(P)}`;
-  return `${shown} · Kommandant <b>${esc(s.me.name)}</b> · <span class="lnk" data-act="logout">Logout</span>`;
+  // Changed on purpose (#189, D1): the commander is in a span, which the
+  // phone hides (it stands at the top of „Mehr“ there).
+  return `${shown} <span class="cmd">· Kommandant <b>${esc(s.me.name)}</b> ·</span> <span class="lnk" data-act="logout">Logout</span>`;
 }
 
 function menuBadge(hint: string | undefined): string {
@@ -89,6 +91,9 @@ function menuLink(
   return `<a href="${esc(viewUrl(i.view))}" data-act="nav" data-v="${i.view}" class="${ui.view === i.view ? 'on' : ''}"${current}>${inner}${menuBadge(hint)}</a>`;
 }
 
+/** The lists the tab „Bauen“ stands for (#189). */
+const BUILDING_VIEWS = ['buildings', 'research', 'shipyard', 'defense'];
+
 /** Phone: tab bar and the list of the „Mehr“ sheet. */
 function renderPhoneMenu(
   ui: Frame['ui'],
@@ -97,13 +102,18 @@ function renderPhoneMenu(
 ): { tabbar: string; more: string } {
   const { tabs, more } = phoneMenu(items);
   const moreHint = more.some((i) => hints.has(i.view));
-  const moreOn = more.some((i) => i.view === ui.view);
+  // Changed on purpose (#189, D2): „Bauen“ is open in the four lists, and
+  // then „Mehr“ is not.
+  const building = BUILDING_VIEWS.includes(ui.view);
+  const moreOn = !building && more.some((i) => i.view === ui.view);
   return {
     tabbar:
       tabs
         .map((i) =>
           menuLink(
-            ui,
+            building && i.view === 'buildings'
+              ? { ...ui, view: 'buildings' }
+              : ui,
             i,
             hints.get(i.view),
             `${TAB_GLYPHS[i.view]}<span>${esc(i.label)}</span>`,
@@ -347,7 +357,7 @@ const MARKS = [
   'id="planet_select"',
   // #241: the name as text with one own place, the list first with several.
   '</b> [',
-  '</select> · Kommandant',
+  '</select> <span class="cmd">· Kommandant',
   'selected',
   '(Mond)',
   'Kommandant <b>Kain &lt;i>&amp;"\'&lt;/i></b>',

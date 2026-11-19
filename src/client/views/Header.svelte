@@ -3,7 +3,8 @@
   // section 9): from headerLine() of logic/header.ts. „Logout“ carries
   // data-act and the list „Aktiver Planet“ its id; main.ts handles both.
   // The shown place is named once (#241): with one own place as text, with
-  // several only in the list, which comes first.
+  // several only in the list, which comes first. On a phone the commander and
+  // „Logout“ are hidden (#189, D1): both stand at the top of „Mehr“.
   import type { HeaderLine } from '../logic/header.ts';
 
   let { line }: { line: HeaderLine } = $props();
@@ -15,5 +16,5 @@
         selected={place.selected}>{place.label}</option
       >{/each}</select
   >{:else}<b>{line.name}</b> {line.position}{/if}
-· Kommandant <b>{line.commander}</b> ·
+<span class="cmd">· Kommandant <b>{line.commander}</b> ·</span>
 <span class="lnk" data-act="logout">Logout</span>

@@ -13,7 +13,10 @@
   // building that stores missiles shows the places they take, marked
   // below. And one of #187: the ▤ of the level overview next to the „?“,
   // and the box for its table below the entry (the table loads on demand,
-  // so it is not drawn here). Do not change it otherwise.
+  // so it is not drawn here). And one of #189, the phone layer: the switch
+  // between the four lists, the filter, the phase of every row, the fold
+  // button, the time line marked and the short label of a level button; the
+  // CSS shows them on a phone only. Do not change it otherwise.
   import type { Readable } from 'svelte/store';
   import { BUILD, buildable, SILO } from '../../core/catalog.ts';
   import { siloUse } from '../../core/yard.ts';
@@ -57,6 +60,26 @@
     return next.eProd - current.eProd - (next.eUse - current.eUse);
   }
 
+  // #189: how many rows the filter „Baubar“ shows; a row is „open“ unless
+  // its requirements are missing or its upgrade runs.
+  const openRows = $derived(
+    Object.entries(BUILD)
+      .filter(([k]) => buildable(k, $viewState.P.kind))
+      .filter(([key, def]) => {
+        const { P, R, s } = $viewState;
+        const level = P.b[key] ?? 0;
+        const status = buildState(
+          P,
+          R,
+          key,
+          reqMissing(def, P, R).length,
+          fieldsFull(P, s.cfg),
+          energyShort(def, level + 1, P, s.cfg, R.research),
+        );
+        return status !== 'running' && status !== 'missing';
+      }).length,
+  );
+
   /** The energy production a level needs (Weltenschmiede, #51), if any. */
   function energyCost(v: V, key: string, level: number) {
     const need = energyNeed(BUILD[key]!, level);
@@ -66,10 +89,32 @@
 </script>
 
 <h2>Gebäude</h2>
+<nav class="seg phone-only" aria-label="Bauen">
+  <a href="?view=buildings" data-act="nav" data-v="buildings">Gebäude</a><a
+    href="?view=research"
+    data-act="nav"
+    data-v="research">Forschung</a
+  ><a href="?view=shipyard" data-act="nav" data-v="shipyard">Werft</a><a
+    href="?view=defense"
+    data-act="nav"
+    data-v="defense">Abwehr</a
+  >
+</nav>
 <div class="dim" id="fields">
   {fieldsLine($viewState.P, $viewState.s.cfg)}
 </div>
-<div class="box">
+<div class="seg phone-only" role="group" aria-label="Filter">
+  <button type="button" class="on" aria-pressed="true">Baubar</button><button
+    type="button"
+    aria-pressed="false">Alle</button
+  ><button type="button" aria-pressed="false">Läuft</button>
+</div>
+{#if openRows === 0}
+  <p class="dim phone-only">
+    Nichts ist baubar. „Alle“ zeigt auch, was noch fehlt.
+  </p>
+{/if}
+<div class="box catalog" data-filter="open">
   <!-- Only what stands on this place: a planet or a moon (#53). -->
   {#each Object.entries(BUILD).filter( ([k]) => buildable(k, $viewState.P.kind) ) as [key, def] (key)}
     {@const { P, R, now, s } = $viewState}
@@ -84,7 +129,19 @@
     {@const t = text(key)!}
     {@const ex = explanation(key, t, s.me.explain, $viewState.ui.openEx)}
     {@const lv = levelsRow(key, t.n, s.me.levelTable, $viewState.ui.openLv)}
-    <div class="item" class:running={status === 'running'}>
+    {@const phase =
+      status === 'running'
+        ? 'running'
+        : status === 'missing'
+          ? 'locked'
+          : 'open'}
+    {@const open = !!lv?.open}
+    <div
+      class="item"
+      class:running={status === 'running'}
+      class:open
+      data-phase={phase}
+    >
       <div class="icon ic-b">
         {#if image}<img src={image} alt={t.n} />{:else}{t.ab}{/if}
       </div>
@@ -110,7 +167,12 @@
               aria-expanded={lv.open}
               aria-controls={lv.open ? lv.panel : undefined}
               aria-label={`Stufenübersicht zu ${t.n}`}>▤</button
-            >{/if}
+            >{/if}<button
+            type="button"
+            class="fold phone-only"
+            aria-expanded={open}
+            aria-label={`Details zu ${t.n}`}>{open ? '▴' : '▾'}</button
+          >
         </div>
         <div class="ds">{t.ds}</div>
         {@html costHTML(cost, P, 1, energyCost($viewState, key, level + 1))}
@@ -133,7 +195,7 @@
             )} pro Stunde
           </div>
         {/each}
-        <div class="dim">Bauzeit: {dur(buildTime(cost, P, s.cfg))}</div>
+        <div class="dim tl">Bauzeit: {dur(buildTime(cost, P, s.cfg))}</div>
         {@html requirementsHTML($viewState, def.req)}
         {#if lv?.show}<div class="lvt" id={lv.panel}></div>{/if}
       </div>
@@ -163,9 +225,22 @@
         {:else if status === 'noEnergy'}
           <span class="req">Zu wenig Energie: es fehlen {fmt(short)}</span>
         {:else}
-          <button data-act="build" data-k={key} disabled={!afford(P, cost)}>
-            {level ? `Ausbauen auf Stufe ${level + 1}` : 'Bauen'}
-          </button>
+          {#if level}
+            <button
+              data-act="build"
+              data-k={key}
+              disabled={!afford(P, cost)}
+              aria-label={`Ausbauen auf Stufe ${level + 1}`}
+              ><span class="lg">Ausbauen auf Stufe {level + 1}</span><span
+                class="sh"
+                aria-hidden="true">▲ {level + 1}</span
+              ></button
+            >
+          {:else}
+            <button data-act="build" data-k={key} disabled={!afford(P, cost)}
+              ><span>Bauen</span></button
+            >
+          {/if}
         {/if}
         <!-- #202: „Zurückbauen“ on a planet, with a level and a free queue. -->
         {#if P.kind === 'planet' && level > 0 && !P.bq}

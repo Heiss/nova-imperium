@@ -194,4 +194,67 @@ describe('CatalogList', () => {
       `<!--[2--><span class="req">Das Wissen ist noch verschlossen</span>${NONE}`,
     );
   });
+  describe('on a phone (#189)', () => {
+    it('offers the switch between the four lists with the open one marked', () => {
+      const out = html('research');
+      const nav =
+        /<nav class="seg phone-only" aria-label="Bauen">(.*?)<\/nav>/s.exec(
+          out,
+        )![1]!;
+      for (const view of ['buildings', 'research', 'shipyard', 'defense'])
+        expect(nav).toContain(
+          `href="?view=${view}" data-act="nav" data-v="${view}"`,
+        );
+      // The state module holds the open view; the default one is the overview.
+      expect(nav).not.toContain('aria-current');
+      client.ui.view = 'research';
+      try {
+        expect(html('research')).toContain(
+          'aria-current="page" class="on">Forschung</a>',
+        );
+      } finally {
+        client.ui.view = 'overview';
+      }
+    });
+
+    it('starts with the filter „Baubar“ and marks every row with its phase', () => {
+      const out = html('building');
+      expect(out).toContain('<div class="box catalog" data-filter="open">');
+      expect(out).toMatch(/aria-pressed="true"[^>]*>Baubar</);
+      expect(out).toMatch(/aria-pressed="false"[^>]*>Alle</);
+      expect(out).toMatch(/aria-pressed="false"[^>]*>Läuft</);
+      expect(out.match(/data-phase="(open|locked|running)"/g)).toHaveLength(
+        ENTRIES.building.length,
+      );
+      expect(out).toContain('data-phase="locked"');
+    });
+
+    it('gives every row a fold button that names its entry', () => {
+      const out = html('building');
+      expect(out.match(/class="fold phone-only"/g)).toHaveLength(
+        ENTRIES.building.length,
+      );
+      expect(out).toContain(`aria-label="Details zu ${text('metal')!.n}"`);
+      expect(out).toContain('aria-expanded="false"');
+    });
+
+    it('shows „▲ 5“ for a level button and keeps its full name for the reader', () => {
+      const v = view();
+      v.P = planet({ b: { lab: 1, yard: 1, metal: 4 } });
+      v.P.res = { m: 1e9, c: 1e9, d: 1e9 };
+      const out = html('building', v);
+      expect(out).toMatch(
+        /<button data-act="build" data-k="metal"[^>]*aria-label="Ausbauen auf Stufe 5"[^>]*><span class="lg">Ausbauen auf Stufe 5<\/span>(?:<!--[^>]*-->)*<span class="sh" aria-hidden="true">▲ 5<\/span>/,
+      );
+      // A button without a level has no short label and no aria-label.
+      expect(out).toMatch(/data-k="solar"[^>]*><span>Bauen<\/span>/);
+    });
+
+    it('marks the time line, which stays in the folded row', () => {
+      expect(html('building')).toContain('<div class="dim tl">Bauzeit: ');
+      expect(html('research')).toContain(
+        '<div class="dim tl">Forschungszeit: ',
+      );
+    });
+  });
 });

@@ -5,6 +5,7 @@
 // TabBar.svelte and MoreList.svelte only render what this module computes.
 import type { Ui } from '../views/common.ts';
 import { menu, type MenuEntry, phoneMenu } from '../views/index.ts';
+import { catalogKind } from './catalog-list.ts';
 import { unread } from './game.ts';
 import { menuHints } from './menu-hints.ts';
 import { newsHint } from './news.ts';
@@ -30,6 +31,10 @@ export interface Navigation {
   moreOn: boolean;
   /** Whether something under „Mehr“ is new. */
   moreHint: boolean;
+  /** Phone: the bell of the header with the unread messages (#189, D1). */
+  bell: { href: string; unread: number; on: boolean };
+  /** The commander, for „Logout“ under „Mehr“ on a phone (#189). */
+  commander: string;
 }
 
 /**
@@ -58,12 +63,23 @@ export function navigation(
   });
   const items = menu(state.me.admin, state.round);
   const { tabs, more } = phoneMenu(items);
+  // „Bauen“ is open in the four lists, which its switch reaches (#189, D2).
+  const building = !!catalogKind(ui.view);
   return {
     menu: items.map((i) => (i === '-' ? i : link(i))),
-    tabs: tabs.map(link),
+    tabs: tabs.map((i) => {
+      const l = link(i);
+      return i.view === 'buildings' && building ? { ...l, on: true } : l;
+    }),
     more: more.map(link),
-    moreOn: more.some((i) => i.view === ui.view),
+    moreOn: !building && more.some((i) => i.view === ui.view),
     moreHint: more.some((i) => hints.has(i.view)),
+    bell: {
+      href: href('messages'),
+      unread: unread(state.reports, state.me.readAt),
+      on: ui.view === 'messages',
+    },
+    commander: state.me.name,
   };
 }
 
