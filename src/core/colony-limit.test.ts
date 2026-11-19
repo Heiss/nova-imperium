@@ -10,6 +10,7 @@ import {
   arrivalText,
   COLONY_RANGE,
   colonyLevel,
+  colonyPreview,
   type ColonyRules,
   colonyRules,
   limitFor,
@@ -18,6 +19,8 @@ import {
   limitText,
   MOST_PLANETS,
   planetLimit,
+  researchLine,
+  researchNote,
   researchOffered,
   researchRefused,
   roundSettings,
@@ -25,8 +28,10 @@ import {
 import { roundDefaults } from '../test/fixtures.ts';
 import {
   ROUND_SETTINGS,
+  roundPreview,
   roundRefused,
   roundRequest,
+  roundShown,
   roundValues,
   storedValues,
 } from './round.ts';
@@ -370,5 +375,152 @@ describe('the research Kolonialverwaltung in a round', () => {
     expect(researchRefused('spy', { ...EXAMPLE, research: false }, 9)).toBe(
       undefined,
     );
+  });
+});
+
+describe('the preview of the dialog „Neue Runde“ (#237) [V]', () => {
+  it('lists the limits of the owner`s example: 6 / 8 / 10 / 12 / 14', () => {
+    expect(colonyPreview(EXAMPLE)).toBe(
+      'Vorschau: Ohne Forschung: 6 Planeten · Stufe 1: 8 · Stufe 2: 10 · Stufe 3: 12 · Stufe 4: 14.',
+    );
+  });
+
+  it('says „Unbegrenzte Planetenanzahl“ for 0 without the research', () => {
+    expect(colonyPreview({ ...EXAMPLE, base: 0, research: false })).toBe(
+      'Vorschau: Unbegrenzte Planetenanzahl',
+    );
+  });
+
+  it('names only the base limit without the research, in the singular for one planet', () => {
+    expect(colonyPreview({ ...EXAMPLE, research: false })).toBe(
+      'Vorschau: 6 Planeten',
+    );
+    expect(colonyPreview({ ...EXAMPLE, base: 1, research: false })).toBe(
+      'Vorschau: 1 Planet',
+    );
+  });
+
+  it('shows the refusal of the server for the research without a base limit', () => {
+    expect(colonyPreview({ ...EXAMPLE, base: 0 })).toBe(
+      'Mit Kolonieforschung muss die Grundgrenze größer als 0 sein.',
+    );
+  });
+
+  it('stops the levels where 20 planets are reached, also without a highest level', () => {
+    expect(colonyPreview({ ...EXAMPLE, maxLevel: 0 })).toBe(
+      'Vorschau: Ohne Forschung: 6 Planeten · Stufe 1: 8 · Stufe 2: 10 · Stufe 3: 12 · Stufe 4: 14 · Stufe 5: 16 · Stufe 6: 18 · Stufe 7: 20 · keine maximale Forschungsstufe.',
+    );
+    expect(colonyPreview({ ...EXAMPLE, maxLevel: 20 })).toBe(
+      colonyPreview({ ...EXAMPLE, maxLevel: 0 }).replace(
+        ' · keine maximale Forschungsstufe',
+        '',
+      ),
+    );
+  });
+
+  it('writes a level the highest level stops before the cap with its own number', () => {
+    expect(colonyPreview({ ...EXAMPLE, maxLevel: 1 })).toBe(
+      'Vorschau: Ohne Forschung: 6 Planeten · Stufe 1: 8.',
+    );
+  });
+
+  it('is empty while a value is outside its range or not a number', () => {
+    for (const bad of [
+      { base: Number.NaN },
+      { base: 21 },
+      { base: -1 },
+      { perLevel: 0 },
+      { perLevel: 21 },
+      { maxLevel: 21 },
+      { maxLevel: 1.5 },
+    ])
+      expect(colonyPreview({ ...EXAMPLE, ...bad }), JSON.stringify(bad)).toBe(
+        '',
+      );
+  });
+
+  it('is the line the group of the registry writes for the values of its fields', () => {
+    const group = SETTINGS[0]!.group!;
+    const values = {
+      colonyBase: 6,
+      colonyResearch: 1,
+      colonyPerLevel: 2,
+      colonyMaxLevel: 4,
+    };
+    expect(roundPreview(group, values)).toBe(colonyPreview(EXAMPLE));
+    expect(roundPreview(group, { ...values, colonyResearch: 0 })).toBe(
+      'Vorschau: 6 Planeten',
+    );
+  });
+});
+
+describe('the extra fields of the dialog show only with the research on (#237)', () => {
+  const values = (research: number) => ({
+    colonyBase: 6,
+    colonyResearch: research,
+    colonyPerLevel: 2,
+    colonyMaxLevel: 4,
+  });
+
+  it('hides the planets per level and the highest level with the research off, and no other field', () => {
+    expect(SETTINGS.map((s) => roundShown(s, values(0)))).toEqual([
+      true,
+      true,
+      false,
+      false,
+    ]);
+    expect(SETTINGS.map((s) => roundShown(s, values(1)))).toEqual([
+      true,
+      true,
+      true,
+      true,
+    ]);
+  });
+});
+
+describe('the line of the research row (#237)', () => {
+  it('reads „Kolonialverwaltung Stufe 3/4 · +2 Planeten je Stufe · nächste Stufe: maximal 14 Planeten“', () => {
+    expect(researchLine(EXAMPLE, 3)).toBe(
+      'Kolonialverwaltung Stufe 3/4 · +2 Planeten je Stufe · nächste Stufe: maximal 14 Planeten',
+    );
+    expect(researchLine(EXAMPLE, 0)).toBe(
+      'Kolonialverwaltung Stufe 0/4 · +2 Planeten je Stufe · nächste Stufe: maximal 8 Planeten',
+    );
+  });
+
+  it('says „keine maximale Forschungsstufe“ without a highest level', () => {
+    expect(researchLine({ ...EXAMPLE, maxLevel: 0 }, 3)).toBe(
+      'Kolonialverwaltung Stufe 3 · keine maximale Forschungsstufe · +2 Planeten je Stufe · nächste Stufe: maximal 14 Planeten',
+    );
+  });
+
+  it('says that the highest level is reached, and counts one planet in the singular', () => {
+    expect(researchLine(EXAMPLE, 4)).toBe(
+      'Kolonialverwaltung Stufe 4/4 · +2 Planeten je Stufe · höchste Stufe erreicht',
+    );
+    expect(researchLine({ ...EXAMPLE, perLevel: 1 }, 1)).toContain(
+      '+1 Planet je Stufe',
+    );
+  });
+
+  it('never promises more than the 20 planets of the cap', () => {
+    expect(researchLine({ ...EXAMPLE, maxLevel: 0 }, 9)).toContain(
+      'nächste Stufe: maximal 20 Planeten',
+    );
+  });
+
+  it('is a line of the Kolonialverwaltung only, and only in a round that has it', () => {
+    const cfg = (research: number) =>
+      ({
+        ...DEFAULT_UNIVERSE,
+        ...roundDefaults(),
+        roundColonyBase: 6,
+        roundColonyResearch: research,
+        roundColonyPerLevel: 2,
+        roundColonyMaxLevel: 4,
+      }) as Parameters<typeof researchNote>[1];
+    expect(researchNote('colonial', cfg(1), 3)).toBe(researchLine(EXAMPLE, 3));
+    expect(researchNote('colonial', cfg(0), 3)).toBeNull();
+    expect(researchNote('spy', cfg(1), 3)).toBeNull();
   });
 });

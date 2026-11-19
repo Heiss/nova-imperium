@@ -21,6 +21,12 @@ import { ROUND_ENTRIES } from './round-settings.gen.ts';
 export interface RoundGroup {
   name: string;
   legend?: string;
+  /**
+   * A line under the members in the dialog „Neue Runde“ that the browser
+   * writes again whenever a field changes (#237, the preview of the planet
+   * limit). It gets the number of every member of the group by its `name`.
+   */
+  preview?: (values: Readonly<Record<string, number>>) => string;
 }
 
 interface Common<N extends string> {
@@ -37,6 +43,13 @@ interface Common<N extends string> {
    */
   order: number;
   group?: RoundGroup;
+  /**
+   * The entry is shown in the dialog „Neue Runde“ only while the entry
+   * called `name` has `value` (#237: the fields of the colony research only
+   * with the research switched on). Hidden, it keeps its value and is sent
+   * with the others, and it has no effect while the other one disagrees.
+   */
+  shownWhen?: { name: string; value: number };
 }
 
 /** A value of yes or no, a checkbox in the dialog. */
@@ -198,6 +211,27 @@ export function roundRequest(
       };
   }
   return out;
+}
+
+/** Whether the dialog shows an entry for the values in its fields (`shownWhen`). */
+export const roundShown = (
+  s: RoundSetting,
+  values: Readonly<Record<string, number | boolean>>,
+): boolean =>
+  !s.shownWhen || Number(values[s.shownWhen.name]) === s.shownWhen.value;
+
+/** The preview line of a group for the values in its fields; empty for a group without one. */
+export function roundPreview(
+  group: RoundGroup,
+  values: Readonly<Record<string, number | boolean>>,
+  settings: readonly RoundSetting[] = ROUND_SETTINGS,
+): string {
+  const own = Object.fromEntries(
+    settings
+      .filter((s) => s.group === group)
+      .map((s) => [s.name, Number(values[s.name])]),
+  );
+  return group.preview?.(own) ?? '';
 }
 
 /** The id of an entry's field in the dialog: `mainLock` is `round-main-lock`. */

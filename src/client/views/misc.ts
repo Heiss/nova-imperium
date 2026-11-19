@@ -1,8 +1,11 @@
 import {
   ROUND_SETTINGS,
+  type RoundGroup,
   type RoundRules,
   type RoundSetting,
   roundFieldId,
+  roundPreview,
+  roundShown,
 } from '../../core/round.ts';
 import {
   GIFT_MINUTES,
@@ -205,6 +208,34 @@ function roundRow(s: RoundSetting, value: number | boolean): string {
 }
 
 /**
+ * A member of a fieldset with its line break. One that is shown only while
+ * another field has a value (`shownWhen`, #237) is wrapped with its break, so
+ * the browser hides both together when the other field changes.
+ */
+function groupMember(
+  s: RoundSetting,
+  index: number,
+  values: Readonly<Record<string, number | boolean>>,
+): string {
+  const field = roundField(s, values[s.name]!);
+  const lead = index ? '<br>\n    ' : '\n    ';
+  if (!s.shownWhen) return `${lead}${field}`;
+  const hidden = roundShown(s, values) ? '' : ' hidden';
+  return `<span data-round-field="${roundFieldId(s)}"${hidden}>${lead}${field}</span>`;
+}
+
+/** The preview line of a group, written again by the browser whenever a field changes. */
+function groupPreview(
+  group: RoundGroup,
+  values: Readonly<Record<string, number | boolean>>,
+  settings: readonly RoundSetting[],
+): string {
+  if (!group.preview) return '';
+  const text = roundPreview(group, values, settings);
+  return `<p class="dim" id="round-preview-${group.name}" aria-live="polite">${esc(text)}</p>`;
+}
+
+/**
  * The rows of the dialog „Neue Runde“, one per setting of the registry
  * (#283); the members of a group with a legend in one fieldset.
  */
@@ -220,9 +251,9 @@ function roundRows(
     else if (settings[i - 1]?.group !== s.group) {
       const members = settings
         .filter((x) => x.group === s.group)
-        .map((x) => roundField(x, values[x.name]!));
+        .map((x, k) => groupMember(x, k, values));
       rows.push(
-        `<fieldset><legend>${esc(legend)}</legend>\n    ${members.join('<br>\n    ')}\n  </fieldset>`,
+        `<fieldset><legend>${esc(legend)}</legend>${members.join('')}${groupPreview(s.group!, values, settings)}\n  </fieldset>`,
       );
     }
   }

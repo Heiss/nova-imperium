@@ -96,9 +96,31 @@ The pure rules are in `src/core/colony-limit.ts`, the check of a Landnahme in
   settings, `agrees` (`src/core/round.ts`, checked for „Neue Runde“ and for
   the live settings): asked only when every value is in its range, worded by
   the entry's `refusal`. The research switch uses it.
-* **[U]** Not built yet, because they live in the research view that another
-  branch is changing: hiding „Kolonialverwaltung“ in the research list while
-  the round does not have it (the server refuses it meanwhile), the research
-  line „Kolonialverwaltung Stufe 3/4 · +2 Planeten je Stufe · nächste Stufe:
-  maximal 14 Planeten“, and the preview line and the hidden extra fields of
-  the dialog „Neue Runde“.
+* **[V]** The research row (`researchLine`, `researchNote` in
+  `src/core/colony-limit.ts`, shown by `researchRow` in
+  `src/client/logic/catalog-list.ts` above the research time): „Kolonialverwaltung
+  Stufe 3/4 · +2 Planeten je Stufe · nächste Stufe: maximal 14 Planeten“ (the
+  issue's wording); without a highest level „Kolonialverwaltung Stufe 3 · keine
+  maximale Forschungsstufe · +2 Planeten je Stufe · nächste Stufe: maximal 14
+  Planeten“ (the two parts of the issue joined); at the highest level „… ·
+  höchste Stufe erreicht“ instead of the next level; „Planet“ for one. The next
+  level never promises more than the 20 planets of the cap.
+* **[V]** The dialog „Neue Runde“: the fields „Zusätzliche Planeten je
+  Forschungsstufe“ and „Maximale Forschungsstufe“ are shown only while
+  „Kolonieforschung aktivieren“ is „Ja“ (issue: „Hide the extra fields while
+  off“). Built as two optional parts of the registry of the round settings
+  (`src/core/round.ts`): `shownWhen` on an entry (shown only while another entry
+  has a value) and `preview` on a group (a line under its members); the browser
+  (`syncRoundDialog`, `src/client/features/round.ts`) applies both at every
+  change of a field. A hidden field keeps its value and is sent, the server
+  checks it as before, and while the research is off it has no effect. The
+  preview line (`colonyPreview`): „Vorschau: Ohne Forschung: 6 Planeten · Stufe 1:
+  8 · Stufe 2: 10 · Stufe 3: 12 · Stufe 4: 14.“ (the issue's wording, with a
+  full stop), „Vorschau: Unbegrenzte Planetenanzahl“ for 0 without the research
+  (issue), „Vorschau: 6 Planeten“ without the research and a limit [V], the
+  refusal of the server for the research without a base limit [V]; with no
+  highest level the levels stop where 20 planets are reached, followed by „keine
+  maximale Forschungsstufe“ [V]. No line while a value is outside its range.
+* **[U]** Not built: the live settings in the tab „Universum“ keep their rows
+  as they were (the issue describes the hiding and the preview for „Neue Runde“
+  only), and the reset confirmation does not repeat the settings.
