@@ -63,7 +63,6 @@ describe('harvest: the rules', () => {
       target: 'debris',
       cargo: false,
       returns: true,
-      visible: false,
       silent: false,
       alertsGuild: false,
     });

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { settle } from '../../core/settle.ts';
+import { RECOGNITION_DEFAULT } from '../../core/fleet-recognition.ts';
 import { DEFAULT_UNIVERSE, UNIVERSE_SPECS } from '../../core/universe.ts';
 import { addPlanet, addUser, testCtx } from '../test-helpers.ts';
 import { announce, reset, saveSettings } from './admin.ts';
@@ -359,10 +360,13 @@ describe('points and state', () => {
       me: unknown;
     };
     expect(sb.fleets.map((f) => f.id)).toEqual(['f1', 'f2']);
-    expect(sb.fleets[0]).toEqual(foreignView(ctx.fleets.get('f1')!));
-    expect(sb.fleets[0]!.ships).toEqual({});
+    expect(sb.fleets[0]).toEqual(
+      foreignView(ctx.fleets.get('f1')!, 0, RECOGNITION_DEFAULT),
+    );
+    // Below Auspex-Lehre 2 nothing of the ships, attack or not (#228).
+    expect(sb.fleets[0]!.ships).toBeUndefined();
     expect(sb.fleets[0]!.cargo).toBeUndefined();
-    expect(sb.fleets[1]!.ships).toEqual({ lf: 1 });
+    expect(sb.fleets[1]!.ships).toBeUndefined();
     expect(sb.admin.specs.length).toBeGreaterThan(0);
     expect(sb.players).toEqual({
       u_Anna: { name: 'Anna', points: 12 },
@@ -435,5 +439,32 @@ describe('dispatch', () => {
     expect(() => runAction(ctx, 'gone', { type: 'read' })).toThrow(
       'Bitte einloggen.',
     );
+  });
+});
+
+describe('announcements', () => {
+  const LONG = 'Bitte eine Nachricht mit höchstens 500 Zeichen eingeben.';
+
+  it('take a text of at most 500 characters after trimming', () => {
+    const ctx = testCtx();
+    addUser(ctx, 'Anna');
+    for (const input of [42, null, 'x'.repeat(501), ` ${'x'.repeat(501)} `])
+      expect(() => announce(ctx, input)).toThrow(LONG);
+    for (const input of ['', '   '])
+      expect(() => announce(ctx, input)).toThrow(
+        'Bitte eine Nachricht eingeben.',
+      );
+    expect(announce(ctx, ` ${'x'.repeat(500)} `)).toBe(1);
+  });
+
+  it('store the trimmed text in the inbox of every player', () => {
+    const ctx = testCtx();
+    addUser(ctx, 'Anna');
+    addUser(ctx, 'Bert');
+    expect(announce(ctx, '  Wartung um acht  ')).toBe(2);
+    for (const id of ['u_Anna', 'u_Bert'])
+      expect(ctx.reports.ofPlayer(id)).toMatchObject([
+        { type: 'info', title: 'Servernachricht', text: 'Wartung um acht' },
+      ]);
   });
 });

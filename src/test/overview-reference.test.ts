@@ -250,11 +250,14 @@ const state = fc
       cfg: { ...U, extraFields: x.extraFields },
       me: { id: 'u1' },
       // Fleet ids are unique, as the server gives them.
+      // A foreign fleet always carries its ships here: one without them
+      // shows „Zusammensetzung unbekannt“ (#228), which the frozen view did
+      // not know (src/client/logic/overview.test.ts covers it).
       fleets: x.fleets.map((f, i) => ({
         ...f,
         id: `f${i}`,
         to: '',
-        ships: f.ships as Levels,
+        ships: (f.owner === 'u1' ? f.ships : (f.ships ?? {})) as Levels,
       })),
       players: x.players,
       galaxy: [],

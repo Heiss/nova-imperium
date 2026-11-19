@@ -155,8 +155,12 @@ their own.
   equal to the texts in the code.
 * **[E]** The labels the builder chose are confirmed (owner, 2026-11-17):
   the facts of a mission
-  („Ziel“, „Ladung“, „Rückflug“, „Für den Verteidiger sichtbar“, „Eigener
-  Bericht bei der Heimkehr“, „Schiffe“), the effect columns („Flottenslots“,
+  („Ziel“, „Ladung“, „Rückflug“, „Eigener Bericht bei der Heimkehr“, „Schiffe“; the
+  fact „Für den Verteidiger sichtbar“ is gone since #228, because no
+  mission has a `visible` field any more: every foreign fleet follows the
+  Auspex-Lehre of the defender, see
+  [Espionage defense](/features/espionage-defense.md); a replacement
+  line is an open question of the owner [V]), the effect columns („Flottenslots“,
   „Tempo“, „Angriff“, „Schild“, „Struktur“, „Weitere Scholarien“,
   „Reichweite“, „Felder des Mondes“, „Lagerkapazität“, „Adamant/h“ …),
   „Grundwert“ and „Grundtempo“ in the formulas, and „· deine Stufe“ at

@@ -19,7 +19,6 @@ describe('deploy', () => {
       target: 'own',
       cargo: true,
       returns: false,
-      visible: false,
       silent: false,
       alertsGuild: false,
     });

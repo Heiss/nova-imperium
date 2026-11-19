@@ -10,7 +10,6 @@ export const order = 40;
 export const target: TargetKind = 'free';
 export const cargo = true;
 export const returns = true;
-export const visible = false;
 export const silent = false;
 export const alertsGuild = false;
 /** A colony needs a Kolonistenarche in the fleet. */
