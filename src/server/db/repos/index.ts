@@ -5,6 +5,7 @@ import type { Db } from '../database.ts';
 import { SqliteAdmin, type Admin } from './admin.ts';
 import { SqliteDebris, type DebrisFields } from './debris.ts';
 import { SqliteFleets, type Fleets } from './fleets.ts';
+import { SqliteFriends, type Friends } from './friends.ts';
 import { SqliteGuilds, type Guilds } from './guilds.ts';
 import { SqliteInvitations, type Invitations } from './invitations.ts';
 import { SqlitePlanets, type Planets } from './planets.ts';
@@ -21,6 +22,8 @@ export interface Repositories {
   admin: Admin;
   /** The Trümmerfelder (#45), places of their own (#119). */
   debris: DebrisFields;
+  /** The buddy list (#227). */
+  friends: Friends;
 }
 
 export const repositories = (db: Db): Repositories => ({
@@ -32,4 +35,5 @@ export const repositories = (db: Db): Repositories => ({
   invitations: new SqliteInvitations(db),
   admin: new SqliteAdmin(db),
   debris: new SqliteDebris(db),
+  friends: new SqliteFriends(db),
 });
