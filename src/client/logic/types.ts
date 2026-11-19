@@ -44,7 +44,9 @@ export type ClientFleet = Pick<
   Fleet,
   'id' | 'owner' | 'fromC' | 'toC' | 'to' | 'mission' | 'state' | 'arr'
 > &
-  Partial<Pick<Fleet, 'ships' | 'ret' | 'cargo' | 'dep' | 'gift' | 'hold'>> &
+  Partial<
+    Pick<Fleet, 'ships' | 'ret' | 'cargo' | 'dep' | 'gift' | 'hold' | 'union'>
+  > &
   /** Of a foreign fleet the server sends only what the Auspex-Lehre recognizes (#228). */
   Omit<SeenShips, 'ships'>;
 
@@ -125,12 +127,31 @@ export interface GameState {
   guilds?: GuildState | null;
   /** The buddy list (#227): the own friends and requests only. */
   friends?: FriendState;
+  /** The attack unions the player leads, flies in or is invited to (#225). */
+  unions?: UnionState[];
   /**
    * The places the Schnellwahl of the fleet form lists besides the own ones
    * (#292): the main planets of the friends and of the guild members and the
    * last hostile targets, by place id.
    */
   quick?: { friends: string[]; guild: string[]; last: string[] };
+}
+
+/** An attack union as the server sends it to a player in it or invited to it (#225); the ships stay hidden. */
+export interface UnionState {
+  /** The ID of the union, which is the ID of its leader's fleet. */
+  id: string;
+  /** The player who leads it, by id. */
+  leader: string;
+  /** The place the union flies to. */
+  to: string;
+  toC: Coords;
+  /** When all its fleets arrive. */
+  arr: number;
+  /** Its fleets with their owners, the leader's first. */
+  fleets: { id: string; owner: string }[];
+  /** The players invited who have not joined. */
+  invited: string[];
 }
 
 /** The buddy list (#227), every player by id; name and contact come from `players`, `galaxy` and `guilds`. */

@@ -287,8 +287,10 @@ Built on `claude/hold-decisions`; the owner's comment „drei Ergänzungen“ on
   default, and the admin can change them per round. Verified: at most 16
   fleets of at most 5 players; a joining fleet may delay the union by at
   most 30 % of the remaining flight time (owiki „Allianzkampfsystem“).
-* **[U]** Join window: no source gives a cut-off besides the 30 % rule
-  (for example no joining in the last minutes); it is open for the build.
+* **[E]** Join window (owner, 2026-11-17, completing the [U] of
+  2026-11-16): the classic 30 % rule applies; an extra cut-off „no joining in
+  the last N minutes“ is a value per round, **default off**; the values are
+  set in „Neue Runde“ and stay editable in the admin panel (X1).
 * **[E]** Loot (owner, 2026-11-16, Q1): split by free cargo space.
   Classic splits by cargo capacity („Laderaum“, owiki
   „Allianzkampfsystem“), and the source does not say „free“.
@@ -300,6 +302,111 @@ Built on `claude/hold-decisions`; the owner's comment „drei Ergänzungen“ on
   Flottenverband.“, owiki „Rückruf“).
 * **[V]** A participant's recall turns back only that participant's
   fleet (issue #225).
+
+## Built with #225
+
+Built on `claude/acs` after #55 (owner, 2026-11-17: „Build after #55“).
+Everything below is [V] unless it names an owner's decision.
+
+* **No research.** The issue's „their own research“ is each owner's weapons,
+  shield and armour research in the battle, not a new catalog entry: the issue
+  and its two „Geklärt“ comments name no research with costs or requirements,
+  so none was built (values are never invented).
+* **Data.** A fleet of a union carries `fleets.union_id`; the ID of a union is
+  the ID of the fleet that opened it, its leader's Sturmangriff. The table
+  `attack_union_invites` (union, invited player) holds the invitations.
+  Migration `20261120T0900-attack-unions` (`src/server/db/migrations/225/`)
+  adds the column with `ALTER TABLE` (no rebuild; a later rebuild of `fleets`
+  must list `union_id`) and the table, which does not reference `fleets`. The
+  rules are pure in `src/core/union.ts`, the server part is
+  `src/server/game/union.ts` (actions `openUnion` and `inviteUnion`, the
+  state key `unions`, order 210), the battle is the shared one of
+  `src/server/game/fight.ts`, the arrival is the `onArrive` of the attack
+  mission.
+* **Settings (owner, 2026-11-16 D3, 2026-11-17, X1).** Four live number
+  fields in „Neue Runde“ and the universe settings, the classic values as
+  defaults: `roundUnionFleets` „Verbandsangriff: höchstens Flotten“ (16),
+  `roundUnionPlayers` „Verbandsangriff: höchstens Spieler“ (5),
+  `roundUnionDelay` „Verbandsangriff: Verspätung in Prozent der
+  Restflugzeit“ (30), `roundUnionCutoff` „Verbandsangriff: kein Beitritt in
+  den letzten Minuten (0 = aus)“ (0, off), order 200 to 230. The ranges 1 to
+  50, 1 to 20, 0 to 100 and 0 to 1440 are [V]. Who may invite and join is the
+  one value `roundAllies` of holding (D2); its label stays „Halten erlaubt
+  für“ [V], it governs the union too.
+* **Opening.** An own Sturmangriff on its way (not recalled, not arrived, no
+  gift, in no union) opens a union (`openUnion`); the leader invites a player
+  by name (`inviteUnion`): an ally of the leader by the setting, not the
+  owner of the target, not beyond the limit of players (the invited count
+  against it); the invitee gets an info report „Einladung zum Verbandsangriff
+  [g:s:p]“.
+* **Joining.** A join is the action `send` with the field `union`: a
+  Sturmangriff to the target of the union, with every check of an attack
+  (ships, fuel, fleet slots, vacation and noob protection of the target for
+  this attacker). The leader and a player already in the union need no
+  invitation; everyone else needs one and must still be an ally of the
+  leader. The limits of fleets and players are checked; a player in the
+  union may send more fleets. Timing (owner: the 30 % rule): a fleet that is
+  there in time waits and arrives with the union; a later one delays the
+  union by at most `unionDelay` % of the flight time that is left, else it is
+  refused, and then the arrival and the return of every fleet in the union
+  move by the delay; a fleet that joins returns one flight of its own after
+  the arrival. With a cut-off, nobody joins when the time left is at most N
+  minutes (the boundary counts as inside); a union that has arrived is
+  closed.
+* **Recall.** The leader's recall of the fleet that opened the union turns
+  back every fleet of it and ends it (owner, 2026-11-16, Q2); the owner of
+  every other fleet gets an info report „Angriffsverband aufgelöst“. A
+  participant's recall turns back only his own fleet, which leaves the union;
+  the arrival of the union stays as it is (a delay is not taken back).
+* **Arrival and battle.** All fleets of a union are due together. The first
+  to be processed fights for all, in one battle: the leader's fleet leads,
+  the others follow in the order they joined, each with the research of its
+  own owner at the arrival (`battleOf` with several attacking parties, as
+  the held fleets are several defending parties). The fleets leave the union
+  and the invitations go before the battle; the later ones in the same tick
+  find their fleet turned back and change nothing, so nothing is settled
+  twice. A fleet of the owner of the target turns back; a union whose
+  leading fleet is gone arrives as single fleets.
+* **Loot (owner, 2026-11-16, Q1).** One loot as for a single attacker (half
+  of the stock, then the cargo of the held fleets) against the free cargo
+  space of all surviving ships together, split between the fleets in
+  proportion to their free space, rounded down; the units left go one by one
+  to the first fleets that still have room. Each fleet keeps its own cargo and
+  flies home with it; a fleet without survivors is gone with its cargo.
+* **Reports and debris.** Every owner of an attacking fleet gets the same
+  report once (title by the result), with a block per further attacker
+  (`attackers`: name, ships before and after, research, loot) and the loot
+  share of the first (`attLoot`); the defender and the owners of held fleets
+  get the report of the defender, titled „… wird von A, B und C angegriffen“;
+  30 % of what every party lost lies as debris; the audit entry names the
+  other fleets.
+* **Held fleets.** The fleets that hold at the target defend against the
+  whole union, one party each. A fleet that holds at the target and belongs
+  to any player of the union stays out of the battle, as the attacker's own
+  does for a single attack.
+* **Vacation.** A player in vacation can do nothing, so he cannot join; an
+  attack on a player in vacation is refused like every attack, also for a
+  join after the target started it (`sendError`).
+* **Defender.** He sees each fleet as before (#228) and nothing of the
+  union; the state key `unions` lists a union only to its leader, its
+  members and the invited.
+* **Browser.** The fleet view shows the box „Verbandsangriff“ with each union
+  (leader, counts against the limits, fleets per owner, invited), the field
+  for an invitation, the button „Beitreten“, which fills the fleet form with
+  the target and the mission; the fleet form has the row „Verband“ and the
+  arrival line of a joining fleet (with the delay or the reason of a
+  refusal); the same box lists the own Sturmangriffe on their way with the
+  button „Angriffsverband eröffnen“ and says that the recall of the leader's
+  fleet turns back the whole union; the fleet movements show „· Angriffsverband
+  (Anführer)“ or „· im Angriffsverband“ behind an own fleet of a union, and
+  their markup is otherwise unchanged (the reference test of the overview
+  keeps it).
+* **Texts [V].** „Angriffsverband eröffnen“, „Beitreten“, „Einladen“,
+  „Kein Verband“, „Verband“, „Sturmangriff auf …“, the hint on the recall, the
+  refusals of `src/server/game/union.ts` and `joinMessage` of
+  `src/core/union.ts`, the reports above.
+* **Not part of a union:** the Mondbruch, missiles, spying and every other
+  mission.
 
 # Merged with the registry of round settings and #228 (2026-11-19)
 

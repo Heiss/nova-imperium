@@ -221,7 +221,9 @@ describe('the state', () => {
       guild: [],
       last: ['p1_3_6'],
     });
+    // Right after the admin part; the keys of later features (the attack
+    // union, #225) come behind it.
     const keys = Object.keys(state);
-    expect(keys.indexOf('quick')).toBe(keys.length - 1);
+    expect(keys.indexOf('quick')).toBe(keys.indexOf('admin') + 1);
   });
 });

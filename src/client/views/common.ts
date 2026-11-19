@@ -37,6 +37,8 @@ export interface Ui extends PushChoice {
   /** The answer of the last scan of the Auspex-Phalanx (#53), shown from its moon. */
   scan?: Scan | null;
   fm: string;
+  /** The attack union the fleet form joins (#225), by id; none when empty. */
+  union?: string | null;
   openRep: Record<string, boolean>;
   /** Entries whose explanation the player opened with the (?) (issue #63). */
   openEx: Record<string, boolean>;

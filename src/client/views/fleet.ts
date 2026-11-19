@@ -25,6 +25,7 @@ import type { Universe } from '../../core/types.ts';
 import { dur, esc, fmt } from '../logic/format.ts';
 import { fleetRows, type FleetRow } from '../logic/overview.ts';
 import { box, cd, type V } from './common.ts';
+import { unionBox, unionFormRow } from './union.ts';
 
 const fleetText = (row: FleetRow): string =>
   row.parts.map((p) => (p.bold ? `<b>${esc(p.text)}</b>` : p.text)).join('');
@@ -144,7 +145,7 @@ function targetForm(v: V, slotsFull: boolean): string {
   return `<table class="kv">
   <tr><td><label for="t_q">Schnellwahl</label></td><td><select id="t_q"${quick.length ? '' : ' disabled'}>${quickOptions(quick)}</select></td></tr>
   <tr><td>Ziel</td><td><input class="c3" type="number" id="t_g" value="${t.g}" min="1" max="${u.galaxies}" aria-label="Galaxie">:<input class="c3" type="number" id="t_s" value="${t.s}" min="1" max="${u.systems}" aria-label="System">:<input class="c3" type="number" id="t_p" value="${t.p}" min="1" max="${maxPosition(s)}" aria-label="Position"> ${kinds} <span id="t_info" class="dim"></span></td></tr>
-  <tr><td>Auftrag</td><td><select id="t_m" aria-label="Auftrag">${missions}</select> <span id="t_limit" class="dim">${esc(colonyNote(s, selected))}</span></td></tr>
+  <tr><td>Auftrag</td><td><select id="t_m" aria-label="Auftrag">${missions}</select> <span id="t_limit" class="dim">${esc(colonyNote(s, selected))}</span></td></tr>${unionFormRow(v)}
   ${timeRowHtml(selected, v)}
   <tr><td>Geschwindigkeit</td><td><select id="t_v" aria-label="Geschwindigkeit">${speeds}</select></td></tr>
   <tr><td>Ladung (Adamant / Psikristall / Promethium)</td><td>${cargoFields} <span class="lnk" data-act="cmax">alles (gleichmäßig)</span></td></tr>
@@ -202,8 +203,8 @@ export function fleet(v: V): string {
     fleetTable(v),
   );
   if (!rows)
-    return `<h2>Flotte</h2>${head}<div class="notice">Auf diesem Planeten stehen keine Schiffe. Baue welche in der Schiffsschmiede.</div>${jumpBox(v)}`;
+    return `<h2>Flotte</h2>${head}${unionBox(v)}<div class="notice">Auf diesem Planeten stehen keine Schiffe. Baue welche in der Schiffsschmiede.</div>${jumpBox(v)}`;
   const pick = `<table><tr><th>Schiff</th><th class="n">vorhanden</th><th class="n">Tempo</th><th>Anzahl</th></tr>${rows}</table>
   <div class="mt"><span class="lnk" data-act="fall">alle Schiffe</span> · <span class="lnk" data-act="fnone">keine Schiffe</span></div>`;
-  return `<h2>Flotte</h2>${head}${box('1. Schiffe auswählen', pick)}${box('2. Ziel und Auftrag', targetForm(v, used >= slots))}${jumpBox(v)}`;
+  return `<h2>Flotte</h2>${head}${unionBox(v)}${box('1. Schiffe auswählen', pick)}${box('2. Ziel und Auftrag', targetForm(v, used >= slots))}${jumpBox(v)}`;
 }

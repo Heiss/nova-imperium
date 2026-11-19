@@ -12,6 +12,7 @@ import { diameterLine } from './fields.ts';
 import { coords, dt, dur, fmt, resLine } from './format.ts';
 import { fleetEnd, nameOf, ranks, sortFleets } from './game.ts';
 import { planetLook } from './planet.ts';
+import { unionPart } from './union.ts';
 import type { ClientFleet } from './types.ts';
 
 /** A countdown to `end`; `left` is null when it is due. The clock counts it down. */
@@ -135,7 +136,7 @@ function fleetParts(v: V, f: ClientFleet): TextPart[] {
   if (f.state === 'out')
     return [
       part(
-        `Deine Flotte (${ships}) von ${origin} erreicht ${coords(f.toC)} · ${mission}${cargoPart(f)}`,
+        `Deine Flotte (${ships}) von ${origin} erreicht ${coords(f.toC)} · ${mission}${unionPart(f)}${cargoPart(f)}`,
       ),
     ];
   if (f.state === 'hold')

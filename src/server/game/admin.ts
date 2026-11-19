@@ -76,6 +76,7 @@ function newRound(ctx: Ctx, rules: RoundRules): void {
   ctx.market.clear();
   ctx.db.exec(`
     DELETE FROM push_jobs;
+    DELETE FROM attack_union_invites;
     DELETE FROM achievement_progress;
     DELETE FROM achievement_claims;
     DELETE FROM daily_rewards;
