@@ -150,12 +150,16 @@ test.describe('the Vermessung (#190)', () => {
     seed({ name, returnFleet: true });
     await surveyUntilReported(page, name, 5, async () => {
       await page.goto('/?view=fleet');
+      // The form is rebuilt when the state has arrived: fill it after that.
+      await page.waitForLoadState('networkidle');
       await page.getByLabel('Anzahl Spähschädel').fill('5');
       await page.getByLabel('Galaxie', { exact: true }).fill(g!);
       await page.getByLabel('System', { exact: true }).fill(s!);
       await page.getByLabel('Position', { exact: true }).fill(p!);
-      await page.getByLabel('Auftrag').selectOption('survey');
+      // The missions follow the target once it is known (#253): choose after.
       await expect(page.locator('#t_info')).toHaveText('Freie Position');
+      await page.getByLabel('Auftrag').selectOption('survey');
+      await expect(page.getByLabel('Auftrag')).toHaveValue('survey');
       await page.getByRole('button', { name: 'Flotte losschicken' }).click();
     });
     await nav(page, 'messages');

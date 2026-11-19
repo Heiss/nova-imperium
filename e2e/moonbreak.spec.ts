@@ -21,6 +21,17 @@ const lastToast = (page: Page): Locator => page.locator('.toast').last();
 const report = (page: Page, title: string | RegExp): Locator =>
   page.locator('.rep').filter({ has: page.locator('.t', { hasText: title }) });
 
+/** An action as from another device: the refusal of the server. */
+const refusal = (page: Page, data: object): Promise<string | undefined> =>
+  page.evaluate(async (body) => {
+    const r = await fetch('/api/action', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    return ((await r.json()) as { error?: string }).error;
+  }, data);
+
 /** axe (WCAG 2.1 A and AA) as in e2e/a11y.spec.ts: the violations of the page. */
 async function violations(page: Page): Promise<string[]> {
   const results = await new AxeBuilder({ page })
@@ -91,13 +102,30 @@ async function mondbruch(page: Page, base: string): Promise<void> {
   await expect(lastToast(page)).toContainText(
     'Du brauchst einen Weltenbrecher.',
   );
-  // And only against a moon.
+  // And only against a moon: the form offers no Mondbruch at a planet (#253),
+  // and the server refuses it for a form of another device.
   await page.getByLabel('Anzahl Weltenbrecher').fill('7');
   await page.getByLabel('Zielart').selectOption('planet');
-  await page.getByRole('button', { name: 'Flotte losschicken' }).click();
-  await expect(lastToast(page)).toContainText(
-    'Mondbruch nur gegen einen Mond.',
-  );
+  await expect(
+    page.getByLabel('Auftrag').locator('option', { hasText: 'Mondbruch' }),
+  ).toHaveCount(0);
+  const target = await page.evaluate(() => {
+    const value = (id: string): number =>
+      Number((document.querySelector(`#${id}`) as HTMLInputElement).value);
+    return { g: value('t_g'), s: value('t_s'), p: value('t_p') };
+  });
+  const start = /\[(\d+):(\d+):(\d+)\]/.exec(
+    await page.locator('#pinfo').innerText(),
+  )!;
+  expect(
+    await refusal(page, {
+      type: 'send',
+      planet: `p${start[1]}_${start[2]}_${start[3]}`,
+      mission: 'moonbreak',
+      ships: { dstar: 7 },
+      to: { ...target, kind: 'planet' },
+    }),
+  ).toBe('Mondbruch nur gegen einen Mond.');
   await page.getByLabel('Zielart').selectOption('moon');
   await sendMondbruch(page, a);
 

@@ -69,6 +69,8 @@ test.describe('the expedition (#93)', () => {
   test('offers the expedition position, takes the hours of the stay and sends the fleet', async ({
     page,
   }) => {
+    // A long test: it flies and waits for the arrival (about 25 s).
+    test.slow();
     const w = watch(page);
     const name = uniqueName('Entdecker');
     await register(page, name);
