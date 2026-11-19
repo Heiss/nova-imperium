@@ -539,7 +539,18 @@ describe('what the host sees (#55, #228)', () => {
     mission: 'hold',
   };
 
-  it('shows a fleet that holds and one on its way through the same view: only what the Auspex-Lehre recognizes of the ships, 2 / 4 / 8 by default', () => {
+  const FULL = { ships: { bs: 2, lf: 1 } };
+  const holdView = (ctx: TestCtx, extra: Record<string, unknown> = {}) => ({
+    ...BASE,
+    id: 'h1',
+    state: 'hold',
+    arr: ctx.now() - 500,
+    hold: HOUR_MS,
+    ...FULL,
+    ...extra,
+  });
+
+  it('shows a fleet that is holding in full at every Auspex-Lehre; one on its way only what the level recognizes, 2 / 4 / 8 by default (owner, 2026-11-19)', () => {
     const cases: [number, Record<string, unknown>][] = [
       [0, {}],
       [1, {}],
@@ -547,38 +558,53 @@ describe('what the host sees (#55, #228)', () => {
       [3, { total: 3 }],
       [4, { total: 3, types: ['bs', 'lf'] }],
       [7, { total: 3, types: ['bs', 'lf'] }],
-      [8, { total: 3, types: ['bs', 'lf'], ships: { bs: 2, lf: 1 } }],
+      [8, { total: 3, types: ['bs', 'lf'], ...FULL }],
     ];
     for (const [spy, ships] of cases) {
       const ctx = setup();
-      const fleets = seenByBert(spy, ctx);
-      expect(fleets, `Auspex-Lehre ${spy}`).toEqual([
-        {
-          ...BASE,
-          id: 'h1',
-          state: 'hold',
-          arr: ctx.now() - 500,
-          hold: HOUR_MS,
-          ...ships,
-        },
+      expect(seenByBert(spy, ctx), `Auspex-Lehre ${spy}`).toEqual([
+        holdView(ctx),
         { ...BASE, id: 'h2', state: 'out', arr: ctx.now() + 50, ...ships },
       ]);
     }
   });
-  it('follows the thresholds of the round', () => {
-    const ctx = setup();
-    ctx.admin.putSettings([
+  it('follows the thresholds of the round only for a fleet on its way: lower ones show it, higher ones never hide a fleet that holds', () => {
+    const low = setup();
+    low.admin.putSettings([
       ['roundRecognitionTotal', 0],
       ['roundRecognitionTypes', 1],
       ['roundRecognitionCounts', 2],
     ]);
-    const [held] = seenByBert(2, ctx);
-    expect(held).toMatchObject({
-      id: 'h1',
-      total: 3,
-      types: ['bs', 'lf'],
-      ships: { bs: 2, lf: 1 },
-    });
+    expect(seenByBert(2, low)).toEqual([
+      holdView(low),
+      {
+        ...BASE,
+        id: 'h2',
+        state: 'out',
+        arr: low.now() + 50,
+        total: 3,
+        types: ['bs', 'lf'],
+        ...FULL,
+      },
+    ]);
+    const high = setup();
+    high.admin.putSettings([
+      ['roundRecognitionTotal', 100],
+      ['roundRecognitionTypes', 100],
+      ['roundRecognitionCounts', 100],
+    ]);
+    expect(seenByBert(8, high)).toEqual([
+      holdView(high),
+      { ...BASE, id: 'h2', state: 'out', arr: high.now() + 50 },
+    ]);
+  });
+  it('shows a holding time of 0 for a fleet that holds without one', () => {
+    const ctx = setup();
+    ctx.players.save({ ...user(ctx, 'Bert'), research: { spy: 0 } });
+    holding(ctx, 'h1', 'u_Anna', { ships: { bs: 2 }, hold: undefined });
+    const [f] = (stateFor(ctx, user(ctx, 'Bert')) as { fleets: Fleet[] })
+      .fleets;
+    expect(f).toMatchObject({ id: 'h1', hold: 0, ships: { bs: 2 } });
   });
   it('shows the holding time only of a fleet that holds, and no fleet on its way home', () => {
     const fleets = seenByBert(8);
@@ -587,7 +613,7 @@ describe('what the host sees (#55, #228)', () => {
       ['h2', 'out', undefined],
     ]);
   });
-  it('shows the fleets of a planet to nobody but the host: the owner sees her own fleet whole, a third player sees none', () => {
+  it('shows the fleets of a planet to nobody but the host: the owner sees her own fleet whole, a third player sees none, also while a fleet holds', () => {
     const ctx = setup();
     holding(ctx, 'h1', 'u_Anna', { ships: { bs: 2, lf: 1 } });
     const anna = (stateFor(ctx, user(ctx, 'Anna')) as { fleets: Fleet[] })

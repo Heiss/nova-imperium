@@ -41,8 +41,9 @@ export interface ForeignFleet extends SeenShips {
 /**
  * An incoming fleet as an observer with the Auspex-Lehre `level` sees it:
  * of its ships only what the thresholds of the round allow, for every
- * mission (#228, D1, D2). A fleet that holds at the planet goes through the
- * same view as one on its way there (#55) [V] and shows its holding time.
+ * mission (#228, D1, D2). A fleet that is holding at the planet shows all its
+ * ships and its holding time to the host, whatever the level and the
+ * thresholds (owner, 2026-11-19, #55); on its way there it follows them.
  */
 export const foreignView = (
   f: Fleet,
@@ -57,8 +58,9 @@ export const foreignView = (
   mission: f.mission,
   state: f.state,
   arr: f.arr,
-  ...(f.state === 'hold' && { hold: f.hold ?? 0 }),
-  ...seenShips(f.ships, level, recognition),
+  ...(f.state === 'hold'
+    ? { hold: f.hold ?? 0, ships: f.ships }
+    : seenShips(f.ships, level, recognition)),
 });
 
 /** Whether a foreign fleet shows at the shown planet: on its way there, or holding there (#55). */

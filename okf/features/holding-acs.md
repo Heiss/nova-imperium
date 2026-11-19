@@ -110,18 +110,17 @@ The battle with several parties is built with #55
   * The arrival writes no report; the owner sees the fleet in the fleet
     movements („hält bei“), the host under „Gehaltene Flotten“ in the
     overview with the owner, the origin, the ships and the time left.
-  * **[V]** Seen by the host since #228 (merged 2026-11-19): a fleet that
-    holds at the host's planet and one on its way there to hold go through
-    the same view as every foreign fleet (`foreignView` in
-    `src/server/game/state.ts`, [Espionage defense](/features/espionage-defense.md)):
-    of the ships the host sees only what his Auspex-Lehre recognizes against
-    the thresholds of the round (the total, the types, the exact numbers;
-    below the first, „Zusammensetzung unbekannt“); nothing beyond that is
-    sent. The holding time of a fleet that holds is sent beside it, because
-    it is no part of the ships. Before #228 the host saw the ships of a
-    fleet that holds in full and none of one on its way (the flag `visible`
-    of the mission rules, which #228 removed). A third player sees no fleet
-    of the planet in his state; he sees a held fleet only in the
+  * **[E]** Seen by the host (owner, 2026-11-19, #55; the ships of #228):
+    a fleet that **is holding** at the host's planet (state `hold`) shows to
+    the host in full: every ship with its exact number and the holding time,
+    whatever his Auspex-Lehre and whatever the thresholds of the round are.
+    The Auspex-Lehre and the thresholds of #228 count only while the fleet is
+    still **on its way** to hold (state `out`): then it goes through
+    `foreignView` like any foreign fleet flying to the planet, and the host
+    sees of its ships only what his level recognizes (below the first
+    threshold „Zusammensetzung unbekannt“). The condition sits in
+    `foreignView` of `src/server/game/state.ts`. A third player sees no
+    fleet of the planet in his state; he sees a held fleet only in the
     Auspex-Phalanx (owner, 2026-11-17) and, as a defender, in a spy report
     (below).
   * Every fleet that holds is a party of its own in the battle
@@ -143,7 +142,7 @@ The battle with several parties is built with #55
     only when it shows (score 2), apart as „Gehaltene Flotten“ with
     „<name>: <ships>“ per fleet; the chance of the Auspex-Abwehr still
     counts the planet's own ships only. The label says „Auspex-Bericht“
-    (owner, 2026-11-17), the name of #94, so the naming test needs no
+    (owner, 2026-11-18, recorded on #55 on 2026-11-19), the name of #94, so the naming test needs no
     exception. A wrong value in „Neue Runde“ is refused with
     „Bitte für „<label>“ eine ganze Zahl von 0 bis 30 angeben.“ [V]; in
     the universe settings a wrong value of either setting gets the
