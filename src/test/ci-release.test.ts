@@ -158,6 +158,13 @@ describe('Detect changes: the mutation jobs of a pull request (#309)', () => {
     writeFileSync(join(repo, file), text);
   };
 
+  /** The mutation-standard.json of the base of these tests. */
+  const standardText = JSON.stringify({
+    securityTarget: 90,
+    newFile: 80,
+    security: [],
+    floors: { 'src/core/economy.ts': 70, 'src/core/fleet.ts': 80 },
+  });
   /** A repository with the real scripts and one commit; the base. */
   const base = (): string => {
     rmSync(repo, { recursive: true, force: true });
@@ -165,6 +172,7 @@ describe('Detect changes: the mutation jobs of a pull request (#309)', () => {
     vcs('init', '-q', '-b', 'main');
     cpSync('scripts', join(repo, 'scripts'), { recursive: true });
     cpSync('stryker.config.json', join(repo, 'stryker.config.json'));
+    put('mutation-standard.json', standardText);
     put('src/core/economy.ts', 'export const a = 1;\n');
     put('src/core/economy.test.ts', 'export const t = 1;\n');
     put('src/core/fleet.ts', 'export const b = 1;\n');
@@ -202,9 +210,11 @@ describe('Detect changes: the mutation jobs of a pull request (#309)', () => {
     changed: string[],
     env: Record<string, string> = {},
     tag?: string,
+    edit?: () => void,
   ): { code: number; out: string; written: string } => {
     const from = base();
     if (tag) vcs('tag', tag);
+    edit?.();
     const to = head(...changed);
     rmSync(output, { force: true });
     const result = bash(
@@ -252,13 +262,103 @@ describe('Detect changes: the mutation jobs of a pull request (#309)', () => {
   it('runs everything when the mutation configuration changes', () => {
     for (const changed of [
       ['stryker.config.json'],
-      ['src/core/economy.ts', 'mutation-standard.json'],
+      ['src/core/economy.ts', 'vitest.config.ts'],
       ['scripts/mutation-partial.ts'],
     ]) {
       const { written } = detectIn(changed);
       expect(field(written, 'mutation')).toBe('true');
       expect(field(written, 'mutation-files')).toBe('');
     }
+  });
+
+  /** Writes a mutation-standard.json that differs from the base. */
+  const standard =
+    (floors: Record<string, number>, rest: Record<string, unknown> = {}) =>
+    (): void =>
+      put(
+        'mutation-standard.json',
+        JSON.stringify({
+          securityTarget: 90,
+          newFile: 80,
+          security: [],
+          floors,
+          ...rest,
+        }),
+      );
+
+  it('mutates a source file and the file whose floor the pull request raises', () => {
+    const { code, written } = detectIn(
+      ['src/core/economy.ts'],
+      {},
+      undefined,
+      standard({ 'src/core/economy.ts': 75, 'src/core/fleet.ts': 85 }),
+    );
+    expect(code).toBe(0);
+    expect(field(written, 'mutation')).toBe('partial');
+    expect(field(written, 'mutation-files')).toBe(
+      '["src/core/economy.ts","src/core/fleet.ts"]',
+    );
+  });
+
+  it('mutates a source file with its new floor in mutation-standard.json', () => {
+    const { written } = detectIn(
+      ['src/core/economy.ts', 'src/core/moon.ts'],
+      {},
+      undefined,
+      standard({
+        'src/core/economy.ts': 70,
+        'src/core/fleet.ts': 80,
+        'src/core/moon.ts': 90,
+      }),
+    );
+    expect(field(written, 'mutation')).toBe('partial');
+    expect(field(written, 'mutation-files')).toBe(
+      '["src/core/economy.ts","src/core/moon.ts"]',
+    );
+  });
+
+  it('runs everything when mutation-standard.json changes more than the floors', () => {
+    const { written } = detectIn(
+      ['src/core/economy.ts'],
+      {},
+      undefined,
+      standard(
+        { 'src/core/economy.ts': 70, 'src/core/fleet.ts': 80 },
+        { newFile: 70 },
+      ),
+    );
+    expect(field(written, 'mutation')).toBe('true');
+    expect(field(written, 'mutation-files')).toBe('');
+  });
+
+  it('keeps mutation-standard.json a configuration where the complete run decides', () => {
+    // A pull request into a hotfix branch and the release pull request of a
+    // hotfix branch use scripts/mutation-changes.ts: a floor runs everything.
+    const floor = standard({
+      'src/core/economy.ts': 75,
+      'src/core/fleet.ts': 80,
+    });
+    const hotfix = detectIn(
+      ['okf/ops/x.md'],
+      { PR_BASE_REF: 'hotfix/x' },
+      undefined,
+      floor,
+    );
+    expect(field(hotfix.written, 'mutation')).toBe('true');
+    const release = detectIn(
+      ['okf/ops/x.md'],
+      { PR_HEAD_REF: 'release/hotfix/x', PR_BASE_REF: 'hotfix/x' },
+      '26.1.1',
+      floor,
+    );
+    expect(field(release.written, 'mutation')).toBe('true');
+    const main = detectIn(
+      ['okf/ops/x.md'],
+      { PR_HEAD_REF: 'release/main' },
+      undefined,
+      floor,
+    );
+    expect(field(main.written, 'mutation')).toBe('true');
   });
 
   it('keeps the complete run in a release pull request', () => {

@@ -103,6 +103,14 @@ the audit and stay.
 | `setGuildDefaultRank` | core `belowLeitung`; inline the Leitung only | partly | yes: the Leitung, not the first rank, not the default | – | guild |
 | `assignGuildRank` | core `assignError` (codes `lower` and `rights`); inline right `assign` | partly | yes, with core `assignError` (`rankChange`) | – | guild |
 | `dissolveGuild` | inline: the Leitung only, the tag equal without case | no | partly: the button only for the Leitung, the tag `required` | – | guild |
+| `requestFriend` (#227) | core `friendError` (codes `unknown`, `self`, `friends`, `outgoing`, `incoming`) with `relationOf` (`core/friends.ts`); the server words them (`FRIEND_ERROR`, the crossed request with the name, `server/game/friends.ts`); the name parsed by `str` | yes | – (the browser sends nothing without a name, `friendCall`, `client/logic/friends.ts`) | – | friends |
+| `answerFriend` (#227) | core `friendError` (`unknown`, `self`, `noRequest`) | yes | – (buttons only at a request to the player) | – | friends |
+| `cancelFriend` (#227) | core `friendError` (`unknown`, `self`, `noRequest`) | yes | – (button only at an own request) | – | friends |
+| `removeFriend` (#227) | core `friendError` (`unknown`, `self`, `noFriend`) | yes | – (button only at a friend, after the question „Freundschaft beenden?“) | – | friends |
+
+* **[V]** The four actions of the buddy list (#227) came after the audit
+  and follow section 7 from the start; the counts above stay those of the
+  audit.
 
 # Findings: browser and server disagree
 
