@@ -98,7 +98,9 @@ function joined(ctx: TestCtx, union: string, ships = { bs: 4 }): Fleet {
 
 /** Sets the arrival and the return of a fleet: `save` keeps the times a fleet has. */
 const retime = (ctx: TestCtx, id: string, arr: number, ret: number): void => {
-  ctx.db.prepare('UPDATE fleets SET arr = ?, ret = ? WHERE id = ?').run(arr, ret, id);
+  ctx.db
+    .prepare('UPDATE fleets SET arr = ?, ret = ? WHERE id = ?')
+    .run(arr, ret, id);
 };
 
 const refused = (fn: () => unknown): string => {
@@ -120,7 +122,11 @@ describe('opening a union', () => {
   });
   it('refuses another mission, a fleet of somebody else, a fleet that is not out any more, and a second union', () => {
     const ctx = setup();
-    send(ctx, user(ctx, 'Anna'), go('p1_1_5', { bs: 2 }, { mission: 'transport' }));
+    send(
+      ctx,
+      user(ctx, 'Anna'),
+      go('p1_1_5', { bs: 2 }, { mission: 'transport' }),
+    );
     const transport = ctx.fleets.all()[0]!;
     const open = (id: string, uid = 'u_Anna') =>
       refused(() => runAction(ctx, uid, { type: 'openUnion', id }));
@@ -137,15 +143,17 @@ describe('opening a union', () => {
       'Diese Flotte gehört schon zu einem Angriffsverband.',
     );
     ctx.fleets.save({ ...attack, id: 'back', state: 'back' });
-    expect(open('back')).toBe('Diese Flotte ist nicht mehr auf dem Weg zum Ziel.');
+    expect(open('back')).toBe(
+      'Diese Flotte ist nicht mehr auf dem Weg zum Ziel.',
+    );
   });
   it('is refused for a player in vacation like every action', () => {
     const ctx = setup();
     const id = opened(ctx);
     ctx.players.save({ ...user(ctx, 'Anna'), vacation: ctx.now() });
-    expect(refused(() => runAction(ctx, 'u_Anna', { type: 'openUnion', id }))).toBe(
-      'Im Urlaubsmodus nicht möglich.',
-    );
+    expect(
+      refused(() => runAction(ctx, 'u_Anna', { type: 'openUnion', id })),
+    ).toBe('Im Urlaubsmodus nicht möglich.');
   });
 });
 
@@ -178,7 +186,9 @@ describe('inviting', () => {
       'Zum Angriffsverband laden nur Gildenmitglieder und Freunde ein.',
     );
     ctx.admin.putSettings([['roundAllies', 1]]);
-    expect(invite('Cora')).toBe('Zum Angriffsverband laden nur Gildenmitglieder ein.');
+    expect(invite('Cora')).toBe(
+      'Zum Angriffsverband laden nur Gildenmitglieder ein.',
+    );
     ctx.admin.putSettings([['roundAllies', 2]]);
     expect(invite('Bert')).toBe('Zum Angriffsverband laden nur Freunde ein.');
     // A friend is invited under „Freunde“ although he is in no guild.
@@ -193,12 +203,16 @@ describe('inviting', () => {
     ctx.guilds.apply('u_Dirk', 'g1');
     ctx.guilds.accept('u_Dirk');
     const invite = (name: string, uid = 'u_Anna', union = id) =>
-      refused(() => runAction(ctx, uid, { type: 'inviteUnion', id: union, name }));
+      refused(() =>
+        runAction(ctx, uid, { type: 'inviteUnion', id: union, name }),
+      );
     expect(invite('Bert', 'u_Bert')).toBe(
       'Nur der Anführer lädt zum Angriffsverband ein.',
     );
     expect(invite('Anna')).toBe('Das bist du selbst.');
-    expect(invite('Dirk')).toBe('Der Verteidiger kann nicht eingeladen werden.');
+    expect(invite('Dirk')).toBe(
+      'Der Verteidiger kann nicht eingeladen werden.',
+    );
     expect(invite('Nobody')).toBe('Spieler nicht gefunden.');
     expect(invite('Bert', 'u_Anna', 'gone')).toBe(
       'Diesen Angriffsverband gibt es nicht mehr.',
@@ -305,19 +319,34 @@ describe('joining with a fleet', () => {
     const id = opened(ctx);
     ctx.fleets.invite(id, 'u_Bert');
     // One slot, used by another mission of Bert's.
-    send(ctx, user(ctx, 'Bert'), go('p1_2_6', { lf: 1 }, { mission: 'transport', to: CORA }));
+    send(
+      ctx,
+      user(ctx, 'Bert'),
+      go('p1_2_6', { lf: 1 }, { mission: 'transport', to: CORA }),
+    );
     expect(
       refused(() =>
-        runAction(ctx, 'u_Bert', { type: 'send', ...go('p1_2_6', { bs: 1 }, { union: id }) }),
+        runAction(ctx, 'u_Bert', {
+          type: 'send',
+          ...go('p1_2_6', { bs: 1 }, { union: id }),
+        }),
       ),
     ).toBe('Alle Flottenslots belegt.');
     // A fleet of the union takes the slot of its owner like any fleet.
-    ctx.fleets.delete(ctx.fleets.all().find((f) => f.mission === 'transport')!.id);
-    runAction(ctx, 'u_Bert', { type: 'send', ...go('p1_2_6', { bs: 1 }, { union: id }) });
+    ctx.fleets.delete(
+      ctx.fleets.all().find((f) => f.mission === 'transport')!.id,
+    );
+    runAction(ctx, 'u_Bert', {
+      type: 'send',
+      ...go('p1_2_6', { bs: 1 }, { union: id }),
+    });
     expect(ctx.fleets.count('u_Bert')).toBe(1);
     expect(
       refused(() =>
-        runAction(ctx, 'u_Bert', { type: 'send', ...go('p1_2_6', { bs: 1 }, { union: id }) }),
+        runAction(ctx, 'u_Bert', {
+          type: 'send',
+          ...go('p1_2_6', { bs: 1 }, { union: id }),
+        }),
       ),
     ).toBe('Alle Flottenslots belegt.');
     expect(
@@ -338,14 +367,28 @@ describe('joining with a fleet', () => {
     ctx.players.save({ ...user(ctx, 'Bert'), research: { computer: 3 } });
     expect(
       refused(() =>
-        runAction(ctx, 'u_Bert', { type: 'send', ...go('p1_2_6', { bs: 1 }, { union: id }) }),
+        runAction(ctx, 'u_Bert', {
+          type: 'send',
+          ...go('p1_2_6', { bs: 1 }, { union: id }),
+        }),
       ),
     ).toBe('Am Angriffsverband nehmen bereits 2 Flotten teil.');
-    expect(limitsOf(ctx)).toEqual({ fleets: 2, players: 5, delay: 30, cutoff: 0 });
-    ctx.admin.putSettings([['roundUnionFleets', 16], ['roundUnionPlayers', 1]]);
+    expect(limitsOf(ctx)).toEqual({
+      fleets: 2,
+      players: 5,
+      delay: 30,
+      cutoff: 0,
+    });
+    ctx.admin.putSettings([
+      ['roundUnionFleets', 16],
+      ['roundUnionPlayers', 1],
+    ]);
     expect(
       refused(() =>
-        runAction(ctx, 'u_Bert', { type: 'send', ...go('p1_2_6', { bs: 1 }, { union: id }) }),
+        runAction(ctx, 'u_Bert', {
+          type: 'send',
+          ...go('p1_2_6', { bs: 1 }, { union: id }),
+        }),
       ),
     ).toBe('not refused');
     // Bert is one player and the limit 1 counts the leader, but a second fleet of a member needs no place.
@@ -358,7 +401,10 @@ describe('joining with a fleet', () => {
     ctx.fleets.invite(id, 'u_Bert');
     expect(
       refused(() =>
-        runAction(ctx, 'u_Bert', { type: 'send', ...go('p1_2_6', { bs: 1 }, { union: id }) }),
+        runAction(ctx, 'u_Bert', {
+          type: 'send',
+          ...go('p1_2_6', { bs: 1 }, { union: id }),
+        }),
       ),
     ).toBe('Am Angriffsverband nehmen bereits 1 Spieler teil.');
   });
@@ -382,13 +428,22 @@ describe('the arrival of the union when a fleet joins', () => {
     const flight = lead.ret - lead.arr;
     retime(ctx, lead.id, t + left, t + left + flight);
     runAction(ctx, 'u_Anna', { type: 'openUnion', id: lead.id });
-    runAction(ctx, 'u_Anna', { type: 'inviteUnion', id: lead.id, name: 'Bert' });
+    runAction(ctx, 'u_Anna', {
+      type: 'inviteUnion',
+      id: lead.id,
+      name: 'Bert',
+    });
     const join = () =>
       runAction(ctx, 'u_Bert', {
         type: 'send',
         ...go('p1_2_6', { bs: 4 }, { union: lead.id }),
       });
-    return { ctx, lead: { ...lead, arr: t + left, ret: t + left + flight }, join, t };
+    return {
+      ctx,
+      lead: { ...lead, arr: t + left, ret: t + left + flight },
+      join,
+      t,
+    };
   }
   it('delays the leader and the others when the fleet is later, within 30 % of the time left', () => {
     const ms = flightOfBert();
@@ -458,9 +513,9 @@ describe('the recall', () => {
       'Angriffsverband aufgelöst [1:4:8]',
     );
     // The leader needs no report of his own recall.
-    expect(
-      ctx.reports.ofPlayer('u_Anna').map((r) => r.title),
-    ).not.toContain('Angriffsverband aufgelöst [1:4:8]');
+    expect(ctx.reports.ofPlayer('u_Anna').map((r) => r.title)).not.toContain(
+      'Angriffsverband aufgelöst [1:4:8]',
+    );
   });
   it('of a participant turns back only his fleet; the union flies on', () => {
     const ctx = setup();
@@ -469,7 +524,10 @@ describe('the recall', () => {
     const arr = ctx.fleets.get(id)!.arr;
     ctx.clock.t += 1000;
     runAction(ctx, 'u_Bert', { type: 'recall', id: bert.id });
-    expect(ctx.fleets.get(bert.id)).toMatchObject({ state: 'back', recalled: true });
+    expect(ctx.fleets.get(bert.id)).toMatchObject({
+      state: 'back',
+      recalled: true,
+    });
     expect(ctx.fleets.get(bert.id)!.union).toBeUndefined();
     expect(ctx.fleets.get(id)).toMatchObject({ state: 'out', union: id, arr });
     // He is invited still and may join again.
@@ -490,8 +548,13 @@ describe('the recall', () => {
     send(ctx, user(ctx, 'Anna'), go('p1_1_5', { bs: 2 }));
     const f = ctx.fleets.all()[0]!;
     ctx.clock.t += 500;
-    expect(recall(ctx, user(ctx, 'Anna'), { id: f.id })).toBe('Flotte zurückgerufen.');
-    expect(ctx.fleets.get(f.id)).toMatchObject({ state: 'back', ret: ctx.now() + 500 });
+    expect(recall(ctx, user(ctx, 'Anna'), { id: f.id })).toBe(
+      'Flotte zurückgerufen.',
+    );
+    expect(ctx.fleets.get(f.id)).toMatchObject({
+      state: 'back',
+      ret: ctx.now() + 500,
+    });
   });
 });
 
@@ -578,12 +641,16 @@ describe('the battle of the union', () => {
       .prepare("SELECT detail FROM audit_events WHERE action = 'battle'")
       .all();
     expect(battles).toHaveLength(1);
-    expect(JSON.parse((battles[0] as { detail: string }).detail)).toMatchObject({
-      fleet: 'lead',
-      union: ['bert'],
-    });
+    expect(JSON.parse((battles[0] as { detail: string }).detail)).toMatchObject(
+      {
+        fleet: 'lead',
+        union: ['bert'],
+      },
+    );
     for (const name of ['Anna', 'Bert', 'Dirk'])
-      expect(ctx.reports.ofPlayer(`u_${name}`).filter((r) => r.type === 'battle')).toHaveLength(1);
+      expect(
+        ctx.reports.ofPlayer(`u_${name}`).filter((r) => r.type === 'battle'),
+      ).toHaveLength(1);
   });
   it('gives each attacker the same report, titled by the result, and the defender the report of the defender with all names', () => {
     const ctx = setup();
@@ -593,11 +660,46 @@ describe('the battle of the union', () => {
     const bert = ctx.reports.ofPlayer('u_Bert')[0]!;
     const dirk = ctx.reports.ofPlayer('u_Dirk')[0]!;
     expect(bert.title).toBe(anna.title);
-    expect(anna.title).toMatch(/^Kampfbericht \[1:4:8\] – (gewonnen|verloren|unentschieden)$/);
+    expect(anna.title).toMatch(
+      /^Kampfbericht \[1:4:8\] – (gewonnen|verloren|unentschieden)$/,
+    );
     expect(dirk.title).toBe(
       'Feindkontakt! Delta [1:4:8] wird von Anna und Bert angegriffen',
     );
-    expect({ ...bert, id: '', title: '' }).toEqual({ ...anna, id: '', title: '' });
+    expect({ ...bert, id: '', title: '' }).toEqual({
+      ...anna,
+      id: '',
+      title: '',
+    });
+  });
+  it('names every attacker in the report of the defender: a, b und c', () => {
+    const ctx = setup();
+    const { bert } = arrived(ctx, { bs: 6 }, { bs: 4 });
+    ctx.fleets.save({
+      ...bert,
+      id: 'cora',
+      owner: 'u_Cora',
+      from: 'p1_3_7',
+      fromC: CORA,
+      dep: bert.dep + 1,
+    });
+    ctx.fleets.save({
+      ...bert,
+      id: 'bert2',
+      dep: bert.dep + 2,
+      ships: { bs: 1 },
+    });
+    tick(ctx);
+    expect(ctx.reports.ofPlayer('u_Dirk')[0]!.title).toBe(
+      'Feindkontakt! Delta [1:4:8] wird von Anna, Bert und Cora angegriffen',
+    );
+    // A player with two fleets has one report and is named once.
+    expect(
+      ctx.reports.ofPlayer('u_Bert').filter((r) => r.type === 'battle'),
+    ).toHaveLength(1);
+    expect(
+      (ctx.reports.ofPlayer('u_Anna')[0]!.attackers as unknown[]).length,
+    ).toBe(3);
   });
   it('leaves the debris of the ships every side lost', () => {
     const ctx = setup();
@@ -654,7 +756,9 @@ describe('the battle of the union', () => {
       { lc: 3 },
       { m: 0, c: 0, d: capacity({ lc: 1 }) },
     );
-    expect(capacity(lead.ships) - capacity({ lc: 1 })).toBe(capacity(bert.ships));
+    expect(capacity(lead.ships) - capacity({ lc: 1 })).toBe(
+      capacity(bert.ships),
+    );
     tick(ctx);
     const a = ctx.fleets.get(lead.id)!;
     const b = ctx.fleets.get(bert.id)!;
@@ -686,7 +790,9 @@ describe('the battle of the union', () => {
     const b = ctx.fleets.get(bert.id)!;
     expect(carried(a)).toBeLessThanOrEqual(capacity(lead.ships));
     expect(carried(b)).toBeLessThanOrEqual(capacity(bert.ships));
-    expect(carried(a) + carried(b)).toBe(capacity(lead.ships) + capacity(bert.ships));
+    expect(carried(a) + carried(b)).toBe(
+      capacity(lead.ships) + capacity(bert.ships),
+    );
   });
   it('settles once: a second tick and the fleet of the union that comes later change nothing', () => {
     const ctx = setup();
@@ -723,7 +829,12 @@ describe('the battle of the union', () => {
     tick(ctx);
     expect(ctx.fleets.all()).toEqual([]);
     for (const owner of ['u_Anna', 'u_Bert'])
-      expect(ctx.reports.ofPlayer(owner).map((r) => r.type).sort()).toEqual(['battle', 'info']);
+      expect(
+        ctx.reports
+          .ofPlayer(owner)
+          .map((r) => r.type)
+          .sort(),
+      ).toEqual(['battle', 'info']);
   });
   it('lets a fleet whose union is gone attack alone, as a Sturmangriff', () => {
     const ctx = setup();
@@ -734,10 +845,13 @@ describe('the battle of the union', () => {
     ctx.fleets.save({ ...bert, union: 'lead' });
     tick(ctx);
     const r = ctx.reports.ofPlayer('u_Bert')[0]!;
-    expect(r).toMatchObject({ attName: 'Bert', participants: ['u_Bert', 'u_Dirk'] });
+    expect(r).toMatchObject({
+      attName: 'Bert',
+      participants: ['u_Bert', 'u_Dirk'],
+    });
     expect(r.attackers).toBeUndefined();
   });
-  it('turns a fleet of the target\'s own owner back instead of letting him attack himself', () => {
+  it("turns a fleet of the target's own owner back instead of letting him attack himself", () => {
     const ctx = setup();
     arrived(ctx, { bs: 6 }, { bs: 4 });
     ctx.fleets.save({
@@ -749,7 +863,10 @@ describe('the battle of the union', () => {
       union: 'lead',
     });
     tick(ctx);
-    expect(ctx.fleets.get('dirks')).toMatchObject({ state: 'back', ships: { bs: 4 } });
+    expect(ctx.fleets.get('dirks')).toMatchObject({
+      state: 'back',
+      ships: { bs: 4 },
+    });
     expect(ctx.reports.ofPlayer('u_Dirk')[0]).toMatchObject({
       participants: ['u_Anna', 'u_Bert', 'u_Dirk'],
     });
@@ -757,7 +874,11 @@ describe('the battle of the union', () => {
 });
 
 describe('with holding (#55)', () => {
-  const holder = (owner: string, id: string, ships: Record<string, number>): Fleet => ({
+  const holder = (
+    owner: string,
+    id: string,
+    ships: Record<string, number>,
+  ): Fleet => ({
     id,
     owner,
     from: 'p1_3_7',
@@ -795,8 +916,14 @@ describe('with holding (#55)', () => {
     ctx.fleets.save(holder('u_Anna', 'h_anna', { bs: 3 }));
     ctx.fleets.save(holder('u_Bert', 'h_bert', { bs: 2 }));
     tick(ctx);
-    expect(ctx.fleets.get('h_anna')).toMatchObject({ state: 'hold', ships: { bs: 3 } });
-    expect(ctx.fleets.get('h_bert')).toMatchObject({ state: 'hold', ships: { bs: 2 } });
+    expect(ctx.fleets.get('h_anna')).toMatchObject({
+      state: 'hold',
+      ships: { bs: 3 },
+    });
+    expect(ctx.fleets.get('h_bert')).toMatchObject({
+      state: 'hold',
+      ships: { bs: 2 },
+    });
     const r = ctx.reports.ofPlayer('u_Anna')[0]!;
     expect(r.held).toBeUndefined();
     expect(r.participants).toEqual(['u_Anna', 'u_Bert', 'u_Dirk']);
@@ -812,7 +939,10 @@ describe('with vacation (#223) and the noob protection', () => {
     expect(user(ctx, 'Bert').vacation).not.toBeNull();
     expect(
       refused(() =>
-        runAction(ctx, 'u_Bert', { type: 'send', ...go('p1_2_6', { bs: 1 }, { union: id }) }),
+        runAction(ctx, 'u_Bert', {
+          type: 'send',
+          ...go('p1_2_6', { bs: 1 }, { union: id }),
+        }),
       ),
     ).toBe('Im Urlaubsmodus nicht möglich.');
     expect(ctx.fleets.ofUnion(id)).toHaveLength(1);
@@ -825,7 +955,10 @@ describe('with vacation (#223) and the noob protection', () => {
     runAction(ctx, 'u_Dirk', { type: 'startVacation' });
     expect(
       refused(() =>
-        runAction(ctx, 'u_Bert', { type: 'send', ...go('p1_2_6', { bs: 1 }, { union: id }) }),
+        runAction(ctx, 'u_Bert', {
+          type: 'send',
+          ...go('p1_2_6', { bs: 1 }, { union: id }),
+        }),
       ),
     ).toBe('Dieser Spieler ist im Urlaubsmodus.');
     expect(
@@ -845,7 +978,10 @@ describe('with vacation (#223) and the noob protection', () => {
     ctx.planets.save({ ...bertHome, ships: { ...bertHome.ships, bs: 5000 } });
     expect(
       refused(() =>
-        runAction(ctx, 'u_Bert', { type: 'send', ...go('p1_2_6', { bs: 1 }, { union: id }) }),
+        runAction(ctx, 'u_Bert', {
+          type: 'send',
+          ...go('p1_2_6', { bs: 1 }, { union: id }),
+        }),
       ),
     ).toBe('Dieser Spieler steht unter Noobschutz.');
   });
@@ -873,7 +1009,10 @@ describe('the state', () => {
     expect(view('Cora')).toEqual([]);
     // The defender sees every fleet as before and nothing of the union.
     expect(view('Dirk')).toEqual([]);
-    runAction(ctx, 'u_Bert', { type: 'send', ...go('p1_2_6', { bs: 2 }, { union: id }) });
+    runAction(ctx, 'u_Bert', {
+      type: 'send',
+      ...go('p1_2_6', { bs: 2 }, { union: id }),
+    });
     const bert = ctx.fleets.all().find((f) => f.owner === 'u_Bert')!;
     expect(view('Bert')).toEqual([
       {
@@ -893,7 +1032,10 @@ describe('the state', () => {
     const dirk = stateFor(ctx, user(ctx, 'Dirk'), DIRK_ID) as {
       fleets: Record<string, unknown>[];
     };
-    expect(dirk.fleets.map((f) => f.owner).sort()).toEqual(['u_Anna', 'u_Bert']);
+    expect(dirk.fleets.map((f) => f.owner).sort()).toEqual([
+      'u_Anna',
+      'u_Bert',
+    ]);
     for (const f of dirk.fleets) {
       expect(f).not.toHaveProperty('union');
       expect(f).toMatchObject({ mission: 'attack', state: 'out' });
@@ -907,11 +1049,17 @@ describe('the state', () => {
     const id = opened(ctx);
     runAction(ctx, 'u_Anna', { type: 'inviteUnion', id, name: 'Bert' });
     ctx.fleets.delete(id);
+    // The invitation is no union any more: nobody sees it, and joining is refused.
     expect(unionsFor(ctx, 'u_Bert')).toEqual([]);
-    expect(ctx.fleets.invited(id)).toEqual([]);
+    expect(unionsFor(ctx, 'u_Anna')).toEqual([]);
     const next = opened(ctx);
     ctx.fleets.invite(next, 'u_Bert');
-    ctx.fleets.deleteAll();
+    expect(ctx.fleets.invitedTo('u_Bert')).toEqual([id, next]);
+    runAction(ctx, 'u_Ada', {
+      type: 'reset',
+      rewards: { achievements: true, daily: true },
+    });
     expect(ctx.fleets.invitedTo('u_Bert')).toEqual([]);
+    expect(ctx.fleets.all()).toEqual([]);
   });
 });

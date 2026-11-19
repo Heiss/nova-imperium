@@ -51,7 +51,9 @@ describe(`upgrade to migration ${ID}`, () => {
     const fleets = all(db, 'fleets');
     expect(migrate(db, through)).toBe(1);
     expect(tables.map((t) => all(db, t))).toEqual(old);
-    expect(all(db, 'fleets')).toEqual(fleets.map((f) => ({ ...f, union_id: null })));
+    expect(all(db, 'fleets')).toEqual(
+      fleets.map((f) => ({ ...f, union_id: null })),
+    );
     expect(all(db, 'attack_union_invites')).toEqual([]);
     expect(db.pragma('foreign_key_check')).toEqual([]);
     // No rebuild: no leftover table, the index of the owner stays.

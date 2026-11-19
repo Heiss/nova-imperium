@@ -155,6 +155,18 @@ describe('sending, recalling and jumping', () => {
     });
   });
 
+  it('adds the attack union chosen in the form to the order, and forgets the choice once sent (#225)', async () => {
+    fields['#t_u'] = { value: 'f9' };
+    client.ui.union = 'f9';
+    const ctx = fakeCtx();
+    await acts(ctx).send!({});
+    expect(ctx.actHere).toHaveBeenCalledWith(
+      'send',
+      expect.objectContaining({ union: 'f9', mission: 'attack' }),
+    );
+    expect(client.ui.union).toBeNull();
+  });
+
   it('forgets the target and renders anew once the fleet is on its way', async () => {
     const ctx = fakeCtx();
     await acts(ctx).send!({});

@@ -10,12 +10,12 @@
 import { ALLIES } from '../../core/holding.ts';
 import {
   type FoundError,
-  type JoinError,
   type UnionFacts,
   type UnionLimits,
   foundError,
   inviteLimitError,
   joinLimitError,
+  joinMessage,
   joinTiming,
 } from '../../core/union.ts';
 import type { Coords, Fleet } from '../../core/types.ts';
@@ -131,17 +131,6 @@ export interface JoinPlan {
   delay: number;
 }
 
-/** The message of each refusal of a joining fleet [V]. */
-const joinMessage = (error: JoinError, limits: UnionLimits): string =>
-  ({
-    closed: 'Der Angriffsverband ist schon angekommen.',
-    cutoff: `In den letzten ${limits.cutoff} Minuten vor der Ankunft tritt niemand mehr bei.`,
-    delay: `Deine Flotte käme zu spät: Sie würde den Angriffsverband um mehr als ${limits.delay} % der Restflugzeit verzögern.`,
-    fleets: `Am Angriffsverband nehmen bereits ${limits.fleets} Flotten teil.`,
-    players: `Am Angriffsverband nehmen bereits ${limits.players} Spieler teil.`,
-    notInvited: 'Du bist nicht zu diesem Angriffsverband eingeladen.',
-  })[error];
-
 /**
  * The checks of a fleet of `uid` that joins the union `id` with a Sturmangriff
  * to `to` and a flight of `flight` milliseconds, before anything is spent:
@@ -155,21 +144,20 @@ export function joinPlan(
   uid: string,
   id: unknown,
   at: { mission: string; to: string; toC: Coords; flight: number },
-): JoinPlan {
+): JoinPlan | null {
+  // A fleet of no union: the form sends no union, or an empty one.
+  if (id === undefined || id === null || id === '') return null;
   const union = unionOf(ctx, id);
   if (!union) return fail(GONE);
   const { founder } = union;
   if (at.mission !== 'attack')
-    return fail('Einem Angriffsverband schließt man sich mit einem Sturmangriff an.');
+    return fail(
+      'Einem Angriffsverband schließt man sich mit einem Sturmangriff an.',
+    );
   if (at.to !== founder.to)
     return fail(`Der Angriffsverband fliegt nach ${coords(founder.toC)}.`);
-  const facts = factsOf(ctx, union);
   const limits = limitsOf(ctx);
-  const member = facts.owners.includes(uid);
-  if (!member && !isAllyOf(ctx, founder.owner, uid))
-    return fail(notAlly(ctx, 'join'));
-  const refused = joinLimitError(facts, uid, limits);
-  if (refused) return fail(joinMessage(refused, limits));
+  mayJoin(ctx, uid, union, limits);
   const timing = joinTiming({
     now: ctx.now(),
     arr: founder.arr,
@@ -180,8 +168,27 @@ export function joinPlan(
   return { union: union.id, arr: timing.arr, delay: timing.arr - founder.arr };
 }
 
+/**
+ * Refuses a player who may not bring one more fleet: he must be an ally of
+ * the leader unless he is in the union already, and the invitation and the
+ * limits of fleets and players must allow it.
+ */
+function mayJoin(
+  ctx: Ctx,
+  uid: string,
+  union: { id: string; founder: Fleet; fleets: Fleet[] },
+  limits: UnionLimits,
+): void {
+  const facts = factsOf(ctx, union);
+  if (!facts.owners.includes(uid) && !isAllyOf(ctx, facts.leader, uid))
+    fail(notAlly(ctx, 'join'));
+  const refused = joinLimitError(facts, uid, limits);
+  if (refused) fail(joinMessage(refused, limits));
+}
+
 /** Puts the new fleet into the union before it is saved: a later arrival moves the others. */
-export function joinUnion(ctx: Ctx, plan: JoinPlan, fleet: Fleet): void {
+export function joinUnion(ctx: Ctx, plan: JoinPlan | null, fleet: Fleet): void {
+  if (!plan) return;
   if (plan.delay > 0) ctx.fleets.delayUnion(plan.union, plan.delay);
   fleet.union = plan.union;
 }

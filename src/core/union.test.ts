@@ -72,15 +72,20 @@ describe('the settings of the round', () => {
       ['roundUnionCutoff', 0, 1440, 0],
     ]);
     const codes = (input: Record<string, unknown>) =>
-      universeErrors({ ...DEFAULT_UNIVERSE, ...input }, { g: 1, s: 1, p: 1 }).map(
-        (e) => [e.spec.key, e.code],
-      );
+      universeErrors(
+        { ...DEFAULT_UNIVERSE, ...input },
+        { g: 1, s: 1, p: 1 },
+      ).map((e) => [e.spec.key, e.code]);
     expect(DEFAULT_UNIVERSE).toMatchObject({
       roundUnionFleets: 16,
       roundUnionDelay: 30,
     });
     expect(
-      codes({ roundUnionFleets: 50, roundUnionDelay: 0, roundUnionCutoff: 1440 }),
+      codes({
+        roundUnionFleets: 50,
+        roundUnionDelay: 0,
+        roundUnionCutoff: 1440,
+      }),
     ).toEqual([]);
     expect(codes({ roundUnionFleets: 51 })).toEqual([
       ['roundUnionFleets', 'range'],
@@ -94,12 +99,19 @@ describe('the settings of the round', () => {
   });
   it('keep the current value when the admin sends none and refuse a value outside the range', () => {
     const only = roundSettings.map((s) => setting(s.key));
-    const current = { unionFleets: 16, unionPlayers: 5, unionDelay: 30, unionCutoff: 0 };
+    const current = {
+      unionFleets: 16,
+      unionPlayers: 5,
+      unionDelay: 30,
+      unionCutoff: 0,
+    };
     expect(roundValues(current, { unionDelay: 10 }, only)).toEqual({
       ...current,
       unionDelay: 10,
     });
-    expect(roundRefused(current, { unionFleets: UNION_RANGES.fleets.max }, only)).toEqual([]);
+    expect(
+      roundRefused(current, { unionFleets: UNION_RANGES.fleets.max }, only),
+    ).toEqual([]);
     for (const [name, bad] of [
       ['unionFleets', 0],
       ['unionPlayers', 21],
@@ -127,7 +139,9 @@ describe('opening a union', () => {
     expect(foundError({ ...attack, mission: 'transport' }, 0, false)).toBe(
       'notAttack',
     );
-    expect(foundError({ ...attack, mission: 'hold' }, 0, false)).toBe('notAttack');
+    expect(foundError({ ...attack, mission: 'hold' }, 0, false)).toBe(
+      'notAttack',
+    );
     expect(foundError({ ...attack, state: 'back' }, 0, false)).toBe('notOut');
     expect(foundError({ ...attack, state: 'hold' }, 0, false)).toBe('notOut');
     expect(foundError({ ...attack, recalled: true }, 0, false)).toBe('notOut');
@@ -147,7 +161,9 @@ describe('joining a union: the limits', () => {
   });
   it('needs an invitation, except for the leader and the players already in', () => {
     expect(joinLimitError(union(['a', 'b']), 'c', limits)).toBe('notInvited');
-    expect(joinLimitError(union(['a', 'b'], ['c']), 'c', limits)).toBeUndefined();
+    expect(
+      joinLimitError(union(['a', 'b'], ['c']), 'c', limits),
+    ).toBeUndefined();
     expect(joinLimitError(union(['a', 'b']), 'a', limits)).toBeUndefined();
     expect(joinLimitError(union(['a', 'b']), 'b', limits)).toBeUndefined();
   });
@@ -166,8 +182,12 @@ describe('joining a union: the limits', () => {
     expect(joinLimitError(union(five), 'e', limits)).toBeUndefined();
   });
   it('follows the limits of the round', () => {
-    expect(joinLimitError(union(['a', 'b'], ['c']), 'c', { fleets: 2, players: 5 })).toBe('fleets');
-    expect(joinLimitError(union(['a', 'b'], ['c']), 'c', { fleets: 9, players: 2 })).toBe('players');
+    expect(
+      joinLimitError(union(['a', 'b'], ['c']), 'c', { fleets: 2, players: 5 }),
+    ).toBe('fleets');
+    expect(
+      joinLimitError(union(['a', 'b'], ['c']), 'c', { fleets: 9, players: 2 }),
+    ).toBe('players');
   });
 });
 
@@ -176,10 +196,16 @@ describe('inviting', () => {
     const limits = { players: 3 };
     const union = { leader: 'a', owners: ['a', 'b'], invited: [] as string[] };
     expect(inviteLimitError(union, 'c', limits)).toBeUndefined();
-    expect(inviteLimitError({ ...union, invited: ['c'] }, 'd', limits)).toBe('players');
+    expect(inviteLimitError({ ...union, invited: ['c'] }, 'd', limits)).toBe(
+      'players',
+    );
     // An invitation twice, or of a player already in, takes no new place.
-    expect(inviteLimitError({ ...union, invited: ['c'] }, 'c', limits)).toBeUndefined();
-    expect(inviteLimitError({ ...union, invited: ['c'] }, 'b', limits)).toBeUndefined();
+    expect(
+      inviteLimitError({ ...union, invited: ['c'] }, 'c', limits),
+    ).toBeUndefined();
+    expect(
+      inviteLimitError({ ...union, invited: ['c'] }, 'b', limits),
+    ).toBeUndefined();
   });
 });
 
@@ -269,7 +295,9 @@ describe('the split of the loot by free cargo space (Q1)', () => {
     ]);
   });
   it('gives a fleet alone everything', () => {
-    expect(splitLoot({ m: 5, c: 4, d: 3 }, [12])).toEqual([{ m: 5, c: 4, d: 3 }]);
+    expect(splitLoot({ m: 5, c: 4, d: 3 }, [12])).toEqual([
+      { m: 5, c: 4, d: 3 },
+    ]);
   });
   it('gives the units that rounding leaves to the first fleets with room, none above the space', () => {
     // 10 and 10 of space, 15 Adamant: 7 and 7, the odd unit to the first.
@@ -293,7 +321,10 @@ describe('the split of the loot by free cargo space (Q1)', () => {
   it('hands out all of the loot and no fleet more than it carries, when the loot fits the space', () => {
     fc.assert(
       fc.property(
-        fc.array(fc.integer({ min: 0, max: 1e6 }), { minLength: 1, maxLength: 6 }),
+        fc.array(fc.integer({ min: 0, max: 1e6 }), {
+          minLength: 1,
+          maxLength: 6,
+        }),
         fc.tuple(
           fc.integer({ min: 0, max: 1e6 }),
           fc.integer({ min: 0, max: 1e6 }),

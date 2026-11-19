@@ -91,6 +91,9 @@ describe('fleet movements', () => {
         },
       ],
       recall: true,
+      // An attack on its way can open an attack union (#225).
+      canOpenUnion: true,
+      leads: false,
     });
   });
 
@@ -352,6 +355,8 @@ describe('fleet movements', () => {
         },
       ],
       recall: true,
+      canOpenUnion: false,
+      leads: false,
     });
   });
 

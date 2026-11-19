@@ -292,6 +292,23 @@ function chosenStay(
 const launchFuel = (x: Plan, holds: boolean, dist: number): number =>
   fuelFor(x.ships, dist, x.pct) + (holds ? holdFuel(x.ships, x.hours) : 0);
 
+/**
+ * When a fleet arrives and when it is home: with the attack union it joins
+ * (#225) it arrives with it and flies home from there; else it arrives after
+ * its flight and its stay, and comes home after the way back and its holding
+ * time.
+ */
+const timesOf = (
+  joining: { arr: number } | null,
+  t: number,
+  ms: number,
+  hold: number,
+  stay: number,
+): Pick<Fleet, 'arr' | 'ret'> =>
+  joining
+    ? { arr: joining.arr, ret: joining.arr + ms }
+    : { arr: t + ms + stay, ret: t + 2 * ms + hold + stay };
+
 export const send: Action = (ctx, u, d, event) => {
   const t = ctx.now();
   const p = mine(ctx, u, d.planet);
@@ -308,9 +325,12 @@ export const send: Action = (ctx, u, d, event) => {
   const fuel = launchFuel(x, holds, dist);
   const hold = x.hours * HOUR_MS;
   // A fleet that joins an attack union arrives with it (#225).
-  const joining = d.union
-    ? joinPlan(ctx, u.id, d.union, { mission, to, toC: dest, flight: ms })
-    : null;
+  const joining = joinPlan(ctx, u.id, d.union, {
+    mission,
+    to,
+    toC: dest,
+    flight: ms,
+  });
   if (cargo.m + cargo.c + cargo.d > capacity(ships))
     fail('Nicht genug Laderaum.');
   if (p.res.d < fuel + cargo.d)
@@ -327,14 +347,13 @@ export const send: Action = (ctx, u, d, event) => {
     ships,
     cargo,
     dep: t,
-    arr: joining ? joining.arr : t + ms + stay,
-    ret: joining ? joining.arr + ms : t + 2 * ms + hold + stay,
+    ...timesOf(joining, t, ms, hold, stay),
     state: 'out',
     recalled: false,
     fuel,
     ...(holds && { hold }),
   };
-  if (joining) joinUnion(ctx, joining, fleet);
+  joinUnion(ctx, joining, fleet);
   ctx.fleets.save(fleet);
   // The guild of the defender learns of an attack or a Mondbruch at its
   // launch (#169 D3, #95); both fly to a foreign place only, so it has an

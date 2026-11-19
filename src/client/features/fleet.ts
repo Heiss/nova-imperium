@@ -18,6 +18,7 @@ import {
 import { maxPosition, targetInfo } from '../logic/fleet-target.ts';
 import { moonAt } from '../logic/moon.ts';
 import { client } from '../logic/state.svelte.ts';
+import { unionArrivalLine } from '../logic/union.ts';
 import { timeRow } from '../views/fleet.ts';
 import type { GameState } from '../logic/types.ts';
 import type { ClientCtx, ClientFeature, Handler } from './contract.ts';
@@ -45,6 +46,8 @@ function readFleetForm(): FleetForm {
       kind: val('#t_k') === 'moon' ? 'moon' : 'planet',
     },
     mission: val('#t_m'),
+    // The attack union the fleet joins (#225); the row is there only while one concerns the player.
+    ...(val('#t_u') && { union: val('#t_u') }),
     hold: Number(val('#t_h')),
     stay: clampInt(val('#t_stay'), 1, 1e6),
     pct: clampInt(val('#t_v'), 1, 10),
@@ -82,7 +85,11 @@ function fleetCalc(): void {
   const now = client.now();
   set('i_dist', fmt(pv.dist));
   set('i_dur', dur(pv.ms));
-  set('i_arr', arrivalLine(f.mission, now, pv));
+  set(
+    'i_arr',
+    (f.union && unionArrivalLine(client.game, f.union, now, pv.ms)) ||
+      arrivalLine(f.mission, now, pv),
+  );
   set(
     'i_fuel',
     `<span class="${pv.fuelShort ? 'bad' : ''}">${fmt(pv.fuel)}</span> Promethium`,
@@ -136,6 +143,7 @@ const flightActs = ({
   send: async () => {
     if (await actHere('send', readFleetForm())) {
       client.ui.ft = null;
+      client.ui.union = null;
       render(true);
     }
   },

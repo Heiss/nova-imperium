@@ -95,6 +95,8 @@ export interface FleetForm {
   hold?: number;
   /** The hours an expedition stays at its position (#93); only a mission that stays reads it, an hour when missing. */
   stay?: number;
+  /** The attack union the fleet joins (#225); only a Sturmangriff reads it. */
+  union?: string;
 }
 
 /** Whether the mission stays at its target for hours the player chooses (#93): an expedition, not a Halten (`holds`). */

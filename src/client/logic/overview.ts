@@ -11,6 +11,7 @@ import { diameterLine } from './fields.ts';
 import { coords, dt, dur, fmt, resLine } from './format.ts';
 import { fleetEnd, nameOf, ranks, sortFleets } from './game.ts';
 import { planetLook } from './planet.ts';
+import { canOpenUnion, opensUnion, unionPart } from './union.ts';
 import type { ClientFleet } from './types.ts';
 
 /** A countdown to `end`; `left` is null when it is due. The clock counts it down. */
@@ -43,6 +44,10 @@ export interface FleetRow {
    * gift (#161) and missiles (#54) not.
    */
   recall: boolean;
+  /** The own Sturmangriff on its way can open an attack union (#225). */
+  canOpenUnion: boolean;
+  /** The recall turns back the whole attack union: the fleet opened it (#225). */
+  leads: boolean;
 }
 
 /** A foreign fleet that holds at the shown planet (#55): its owner, ships and end. */
@@ -132,7 +137,7 @@ function fleetParts(v: V, f: ClientFleet): TextPart[] {
   if (f.state === 'out')
     return [
       part(
-        `Deine Flotte (${ships}) von ${origin} erreicht ${coords(f.toC)} · ${mission}${cargoPart(f)}`,
+        `Deine Flotte (${ships}) von ${origin} erreicht ${coords(f.toC)} · ${mission}${unionPart(f)}${cargoPart(f)}`,
       ),
     ];
   if (f.state === 'hold')
@@ -156,6 +161,8 @@ function fleetRow(v: V, f: ClientFleet): FleetRow {
     cls: back ? 'fl-back' : `fl-${f.mission}`,
     parts: fleetParts(v, f),
     recall: f.owner === v.s.me.id && !back && isFleet(f),
+    canOpenUnion: canOpenUnion(f, v.s.me.id, v.now),
+    leads: opensUnion(f),
   };
 }
 

@@ -19,7 +19,11 @@ import {
   joinedOf,
   raid,
 } from '../../../server/game/fight.ts';
-import { type Arrival, playerOf, turnBack } from '../../../server/game/missions.ts';
+import {
+  type Arrival,
+  playerOf,
+  turnBack,
+} from '../../../server/game/missions.ts';
 import { arriving } from '../../../server/game/union.ts';
 
 export { plunder } from '../../../server/game/fight.ts';

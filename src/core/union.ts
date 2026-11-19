@@ -110,12 +110,21 @@ export function foundError(
 
 /** Why a fleet cannot join a union (besides the checks of every attack). */
 export type JoinError =
-  | 'closed'
-  | 'cutoff'
-  | 'delay'
-  | 'fleets'
-  | 'players'
-  | 'notInvited';
+  'closed' | 'cutoff' | 'delay' | 'fleets' | 'players' | 'notInvited';
+
+/** The message of each refusal of a joining fleet [V]; the server and the fleet form say the same. */
+export const joinMessage = (
+  error: JoinError,
+  limits: Pick<UnionLimits, 'fleets' | 'players' | 'delay' | 'cutoff'>,
+): string =>
+  ({
+    closed: 'Der Angriffsverband ist schon angekommen.',
+    cutoff: `In den letzten ${limits.cutoff} Minuten vor der Ankunft tritt niemand mehr bei.`,
+    delay: `Deine Flotte käme zu spät: Sie würde den Angriffsverband um mehr als ${limits.delay} % der Restflugzeit verzögern.`,
+    fleets: `Am Angriffsverband nehmen bereits ${limits.fleets} Flotten teil.`,
+    players: `Am Angriffsverband nehmen bereits ${limits.players} Spieler teil.`,
+    notInvited: 'Du bist nicht zu diesem Angriffsverband eingeladen.',
+  })[error];
 
 /** The union a joining fleet meets: its fleets' owners (one per fleet), its leader, its invited. */
 export interface UnionFacts {
@@ -156,7 +165,9 @@ export function inviteLimitError(
   limits: Pick<UnionLimits, 'players'>,
 ): 'players' | undefined {
   const all = new Set([...union.owners, ...union.invited]);
-  return !all.has(invitee) && all.size >= limits.players ? 'players' : undefined;
+  return !all.has(invitee) && all.size >= limits.players
+    ? 'players'
+    : undefined;
 }
 
 /** What a joining fleet makes of the arrival of the union. */
