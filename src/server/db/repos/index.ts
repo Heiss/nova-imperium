@@ -11,6 +11,7 @@ import { SqliteInvitations, type Invitations } from './invitations.ts';
 import { SqliteMarket, type MarketStore } from './market.ts';
 import { SqlitePlanets, type Planets } from './planets.ts';
 import { SqlitePlayers, type Players } from './players.ts';
+import { SqlitePlaytime, type Playtime } from './playtime.ts';
 import { SqliteReports, type Reports } from './reports.ts';
 import { SqliteSurveys, type Surveys } from './surveys.ts';
 
@@ -30,6 +31,8 @@ export interface Repositories {
   friends: Friends;
   /** The prices and the daily amounts of the marketplace (#171). */
   market: MarketStore;
+  /** The accepted intervals of the estimated play time (#232). */
+  playtime: Playtime;
 }
 
 export const repositories = (db: Db): Repositories => ({
@@ -44,4 +47,5 @@ export const repositories = (db: Db): Repositories => ({
   surveys: new SqliteSurveys(db),
   friends: new SqliteFriends(db),
   market: new SqliteMarket(db),
+  playtime: new SqlitePlaytime(db),
 });

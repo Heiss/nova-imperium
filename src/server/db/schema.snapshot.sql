@@ -41,6 +41,10 @@ CREATE INDEX passkeys_owner ON passkeys(user_id);
 
 CREATE INDEX planets_owner ON planets(owner, created);
 
+CREATE INDEX playtime_events_round ON playtime_events (round, user_id);
+
+CREATE INDEX playtime_events_user_start ON playtime_events (user_id, start_ms);
+
 CREATE INDEX push_due ON push_jobs(retry_at);
 
 CREATE INDEX push_subscription_user ON push_subscriptions(user_id);
@@ -305,6 +309,21 @@ CREATE TABLE player_activity (
     active_ms INTEGER NOT NULL,
     PRIMARY KEY (player, day)
   ) STRICT;
+
+CREATE TABLE playtime_events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      round INTEGER NOT NULL,
+      play_session INTEGER NOT NULL,
+      instance TEXT NOT NULL,
+      seq INTEGER NOT NULL,
+      state TEXT NOT NULL CHECK (state IN ('active', 'inactive', 'background')),
+      reason TEXT NOT NULL CHECK (reason IN ('start', 'heartbeat', 'idle', 'background')),
+      start_ms INTEGER NOT NULL,
+      end_ms INTEGER NOT NULL,
+      method INTEGER NOT NULL,
+      UNIQUE (user_id, instance, seq)
+    ) STRICT;
 
 CREATE TABLE position_locks (
       g INTEGER NOT NULL,
