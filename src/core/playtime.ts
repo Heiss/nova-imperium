@@ -24,7 +24,7 @@ export const METHOD_VERSION = 1;
  * focused, but 60 s without an interaction. `background`: hidden or without
  * focus.
  */
-export const STATES = ['active', 'inactive', 'background'] as const;
+const STATES = ['active', 'inactive', 'background'] as const;
 export type PlaytimeState = (typeof STATES)[number];
 
 /** Why an interval was accepted: the start of one, a heartbeat or the end of one. */
@@ -61,24 +61,29 @@ export interface Interval {
 
 /** What the server does with a report. */
 export type Verdict =
-  | { accept: false }
-  | ({ accept: true; reason: Reason } & Interval);
+  { accept: false } | ({ accept: true; reason: Reason } & Interval);
 
 const INSTANCE = /^[A-Za-z0-9_-]{8,36}$/;
 
+const isCount = (n: unknown): n is number =>
+  typeof n === 'number' && Number.isSafeInteger(n) && n >= 0;
+
+/** The duration of a report: null for a start, else milliseconds; undefined for none. */
+function sinceOf(since: unknown): number | null | undefined {
+  if (since === null) return null;
+  const ok = typeof since === 'number' && Number.isFinite(since) && since >= 0;
+  return ok ? since : undefined;
+}
+
 /** The report in a request body, or null for anything that is not one. */
 export function readReport(body: Record<string, unknown>): Report | null {
-  const { instance, seq, state, since } = body;
+  const { instance, seq, state } = body;
+  const since = sinceOf(body.since);
   if (typeof instance !== 'string' || !INSTANCE.test(instance)) return null;
-  if (typeof seq !== 'number' || !Number.isSafeInteger(seq) || seq < 0)
-    return null;
+  if (!isCount(seq) || since === undefined) return null;
   if (!STATES.includes(state as PlaytimeState)) return null;
-  if (since === null) {
-    // Only an active page starts an interval.
-    return state === 'active' ? { instance, seq, state, since: null } : null;
-  }
-  if (typeof since !== 'number' || !Number.isFinite(since) || since < 0)
-    return null;
+  // Only an active page starts an interval.
+  if (since === null && state !== 'active') return null;
   return { instance, seq, state: state as PlaytimeState, since };
 }
 

@@ -37,16 +37,18 @@ export interface Playtime {
   append(e: PlaytimeEvent): boolean;
   /**
    * The intervals of active time that touch [from, to) of one player, of
-   * one round when `round` is given, ordered by start.
+   * one round when `round` is given, ordered by start. Every row's interval
+   * is active time, also the one of a row that ends it (the state is the
+   * one the page moved to); a start has none.
    */
   active(user: string, from: number, to: number, round?: number): Interval[];
   /** The same for every player, as `[user, interval]`, ordered by player and start. */
   activeOfAll(from: number, to: number): [string, Interval][];
   /** The start of the player's first interval of any round, or null. */
   firstStart(user: string): number | null;
-  /** The end of the player's last interval of active time, or null. */
+  /** The end of the player's last interaction (a start or an interval), or null. */
   lastActiveEnd(user: string): number | null;
-  /** The end of the last interval of active time of every player. */
+  /** The end of the last interaction of every player. */
   lastActiveEnds(): Record<string, number>;
 }
 
@@ -105,7 +107,7 @@ export class SqlitePlaytime implements Playtime {
     const rows = this.db
       .prepare(
         `SELECT start_ms AS start, end_ms AS end FROM playtime_events
-         WHERE user_id = @user AND state = 'active' AND end_ms > start_ms
+         WHERE user_id = @user AND end_ms > start_ms
            AND end_ms > @from AND start_ms < @to
            AND (@round IS NULL OR round = @round)
          ORDER BY start_ms`,
@@ -118,7 +120,7 @@ export class SqlitePlaytime implements Playtime {
     const rows = this.db
       .prepare(
         `SELECT user_id AS user, start_ms AS start, end_ms AS end FROM playtime_events
-         WHERE state = 'active' AND end_ms > start_ms AND end_ms > ? AND start_ms < ?
+         WHERE end_ms > start_ms AND end_ms > ? AND start_ms < ?
          ORDER BY user_id, start_ms`,
       )
       .all(from, to) as Row[];
@@ -138,7 +140,7 @@ export class SqlitePlaytime implements Playtime {
     const row = this.db
       .prepare(
         `SELECT MAX(end_ms) AS last FROM playtime_events
-         WHERE user_id = ? AND state = 'active'`,
+         WHERE user_id = ? AND (state = 'active' OR end_ms > start_ms)`,
       )
       .get(user) as { last: number | null };
     return row.last;
@@ -148,7 +150,7 @@ export class SqlitePlaytime implements Playtime {
     const rows = this.db
       .prepare(
         `SELECT user_id AS user, MAX(end_ms) AS last FROM playtime_events
-         WHERE state = 'active' GROUP BY user_id`,
+         WHERE state = 'active' OR end_ms > start_ms GROUP BY user_id`,
       )
       .all() as { user: string; last: number }[];
     return Object.fromEntries(rows.map((r) => [r.user, r.last]));

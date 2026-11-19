@@ -10,7 +10,7 @@ export const OWN_ACTIVITY_HELP =
   'Gezählt wird die geschätzte Zeit mit aktiver Nutzung. Nach 60 Sekunden ohne Eingabe oder Scrollen sowie beim Verlassen des aktiven Fensters pausiert die Erfassung. Kurze Lesepausen zählen mit.';
 
 /** What the box shows while the numbers are on their way and when they fail [V]. */
-export const OWN_ACTIVITY_LOADING = 'Wird geladen …';
+const OWN_ACTIVITY_LOADING = 'Wird geladen …';
 export const OWN_ACTIVITY_FAILED = 'Die Angaben sind gerade nicht erreichbar.';
 
 /** The body of the box in „Hilfe & Optionen“ (#231): the numbers are filled in after the render. */
@@ -39,9 +39,7 @@ export function playtime(ms: number): string {
   const minutes = Math.round(ms / 60000);
   if (minutes < 1) return 'unter 1 Min.';
   const hours = Math.floor(minutes / 60);
-  return hours
-    ? `${hours} Std. ${two(minutes % 60)} Min.`
-    : `${minutes} Min.`;
+  return hours ? `${hours} Std. ${two(minutes % 60)} Min.` : `${minutes} Min.`;
 }
 
 const row = (label: string, value: string): string =>

@@ -6,10 +6,7 @@
 // are no interaction, so they never reach the tracker.
 import type { OwnActivity } from '../../core/playtime.ts';
 import { $ } from '../dom.ts';
-import {
-  OWN_ACTIVITY_FAILED,
-  ownActivityHTML,
-} from '../logic/own-activity.ts';
+import { OWN_ACTIVITY_FAILED, ownActivityHTML } from '../logic/own-activity.ts';
 import { createTracker, type Env, type Tracker } from '../logic/playtime.ts';
 import { client } from '../logic/state.svelte.ts';
 import type { ClientFeature } from './contract.ts';
@@ -77,30 +74,42 @@ const pageEnv: Env = {
 let shown: { at: number; data: OwnActivity } | null = null;
 let loading = false;
 
-/** Fills the box from the last answer and asks again when it is old or `force`. */
-async function showOwnActivity(
-  api: (url: string) => Promise<Record<string, unknown>>,
-  force = false,
-): Promise<void> {
+/** Puts the box's content in the place, when the box is on the page. */
+function paint(html: string): void {
   const box = $('#own-activity');
-  if (!box) return;
-  if (shown) box.innerHTML = ownActivityHTML(shown.data);
-  if (loading || (!force && shown && Date.now() - shown.at < STALE_MS)) return;
+  if (box) box.innerHTML = html;
+}
+
+/** Whether the last answer is recent enough for the box not to ask again. */
+const fresh = (): boolean => !!shown && Date.now() - shown.at < STALE_MS;
+
+type Ask = (url: string) => Promise<Record<string, unknown>>;
+
+/** Asks for the numbers and shows them, or says that they are not reachable. */
+async function loadOwnActivity(api: Ask): Promise<void> {
   loading = true;
   try {
     const data = (await api('/api/own-activity')) as unknown as OwnActivity;
     shown = { at: Date.now(), data };
-    const now = $('#own-activity');
-    if (now) now.innerHTML = ownActivityHTML(data);
+    paint(ownActivityHTML(data));
   } catch {
-    const now = $('#own-activity');
-    if (now && !shown) now.textContent = OWN_ACTIVITY_FAILED;
+    // The numbers of the last answer stay; without one the box says so.
+    const box = $('#own-activity');
+    if (!shown && box) box.textContent = OWN_ACTIVITY_FAILED;
   } finally {
     loading = false;
   }
 }
 
-let ask: ((url: string) => Promise<Record<string, unknown>>) | null = null;
+/** Fills the box from the last answer and asks again when it is old or `force`. */
+async function showOwnActivity(api: Ask, force = false): Promise<void> {
+  if (!$('#own-activity')) return;
+  if (shown) paint(ownActivityHTML(shown.data));
+  if (loading || (!force && fresh())) return;
+  await loadOwnActivity(api);
+}
+
+let ask: Ask | null = null;
 
 export const clientFeature = {
   acts: (ctx) => {

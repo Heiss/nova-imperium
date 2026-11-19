@@ -62,10 +62,13 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   hours or indefinitely, and lift a suspension. Session revocation also
   invalidates pending email login codes. Accounts with admin rights are managed
   by the server operator. Suspensions block sign-in and API access.
-* **[E]** Activity is estimated from interactions in the visible client. Only
-  intervals between samples at most five minutes apart count. Automatic
-  refreshes and idle tabs add no samples. The summary covers today and the
-  six preceding UTC days, with a separate most-recent interaction timestamp.
+* **[E]** Activity is the estimated active play time of
+  [Own activity and play time](/features/own-activity.md) (#232, owner,
+  2026-11-15; before: the gaps between click samples up to five minutes, which
+  overcounted idle time). Automatic refreshes and idle tabs add no time. The
+  summary covers today and the six preceding UTC days, with a separate
+  most-recent interaction timestamp; the sums are those of the player's own
+  view.
 * **[E]** Five rejected password checks on an account within an hour or 30 game
   action requests within a minute surface a review signal for the admin.
 * **[E]** Audit events and activity data start after the update and are kept for

@@ -39,78 +39,102 @@ export interface Tracker {
   state: () => PlaytimeState;
 }
 
-export function createTracker(
+/** The state machine of one page; see the head of the file. */
+class PageTracker implements Tracker {
+  private current: PlaytimeState;
+  private seq = 0;
+  private lastInteraction = 0;
+  private lastReport = 0;
+  private timer: unknown = null;
+  private readonly env: Env;
+  private readonly instance: string;
+
+  constructor(env: Env, instance: string, foreground: boolean) {
+    this.env = env;
+    this.instance = instance;
+    this.current = foreground ? 'inactive' : 'background';
+  }
+
+  state = (): PlaytimeState => this.current;
+
+  private report(to: PlaytimeState, since: number | null): void {
+    this.env.send({
+      instance: this.instance,
+      seq: this.seq++,
+      state: to,
+      since,
+    });
+  }
+
+  private clear(): void {
+    if (this.timer !== null) this.env.clearTimer(this.timer);
+    this.timer = null;
+  }
+
+  private deadline(): number {
+    return this.lastInteraction + IDLE_MS;
+  }
+
+  /** Ends the interval at the moment of the change, never later than the deadline. */
+  private stop(to: PlaytimeState): void {
+    this.clear();
+    const end = Math.min(this.env.now(), this.deadline());
+    this.report(to, Math.max(0, end - this.lastReport));
+    this.current = to === 'background' ? 'background' : 'inactive';
+  }
+
+  private arm(): void {
+    this.clear();
+    const due = Math.min(this.lastReport + HEARTBEAT_MS, this.deadline());
+    this.timer = this.env.setTimer(
+      this.tick,
+      Math.max(0, due - this.env.now()),
+    );
+  }
+
+  private readonly tick = (): void => {
+    this.timer = null;
+    if (this.current !== 'active') return;
+    const now = this.env.now();
+    if (!this.env.enabled()) {
+      // Signed out or in vacation: nothing is sent; the next interaction starts again.
+      this.current = 'inactive';
+      return;
+    }
+    if (now >= this.deadline()) return this.stop('inactive');
+    if (now >= this.lastReport + HEARTBEAT_MS) {
+      this.report('active', now - this.lastReport);
+      this.lastReport = now;
+    }
+    this.arm();
+  };
+
+  interaction = (): void => {
+    if (this.current === 'background' || !this.env.enabled()) return;
+    const now = this.env.now();
+    // A timer that ran late must not stretch an interval over the silence.
+    if (this.current === 'active' && now >= this.deadline())
+      this.stop('inactive');
+    this.lastInteraction = now;
+    if (this.current === 'active') return;
+    this.current = 'active';
+    this.lastReport = now;
+    this.report('active', null);
+    this.arm();
+  };
+
+  foreground = (on: boolean): void => {
+    if (on) {
+      if (this.current === 'background') this.current = 'inactive';
+      return;
+    }
+    if (this.current === 'active') this.stop('background');
+    else this.current = 'background';
+  };
+}
+
+export const createTracker = (
   env: Env,
   instance: string,
   startsInForeground: boolean,
-): Tracker {
-  let state: PlaytimeState = startsInForeground ? 'inactive' : 'background';
-  let seq = 0;
-  let lastInteraction = 0;
-  let lastReport = 0;
-  let timer: unknown = null;
-
-  const report = (to: PlaytimeState, since: number | null): void => {
-    env.send({ instance, seq: seq++, state: to, since });
-  };
-  const clear = (): void => {
-    if (timer !== null) env.clearTimer(timer);
-    timer = null;
-  };
-  const deadline = (): number => lastInteraction + IDLE_MS;
-
-  /** Ends the interval at the moment of the change, never later than the deadline. */
-  const stop = (to: PlaytimeState): void => {
-    clear();
-    const end = Math.min(env.now(), deadline());
-    report(to, Math.max(0, end - lastReport));
-    state = to === 'background' ? 'background' : 'inactive';
-  };
-
-  const arm = (): void => {
-    clear();
-    const due = Math.min(lastReport + HEARTBEAT_MS, deadline());
-    timer = env.setTimer(tick, Math.max(0, due - env.now()));
-  };
-
-  function tick(): void {
-    timer = null;
-    if (state !== 'active') return;
-    const now = env.now();
-    if (!env.enabled()) {
-      // Signed out or in vacation: nothing is sent; the next interaction starts again.
-      state = 'inactive';
-      return;
-    }
-    if (now >= deadline()) return stop('inactive');
-    if (now >= lastReport + HEARTBEAT_MS) {
-      report('active', now - lastReport);
-      lastReport = now;
-    }
-    arm();
-  }
-
-  return {
-    interaction: () => {
-      if (state === 'background' || !env.enabled()) return;
-      const now = env.now();
-      // A timer that ran late must not stretch an interval over the silence.
-      if (state === 'active' && now >= deadline()) stop('inactive');
-      lastInteraction = now;
-      if (state === 'active') return;
-      state = 'active';
-      lastReport = now;
-      report('active', null);
-      arm();
-    },
-    foreground: (on) => {
-      if (on) {
-        if (state === 'background') state = 'inactive';
-        return;
-      }
-      if (state === 'active') stop('background');
-      else state = 'background';
-    },
-    state: () => state,
-  };
-}
+): Tracker => new PageTracker(env, instance, startsInForeground);
