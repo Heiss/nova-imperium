@@ -21,3 +21,102 @@ are [Activity indicators](/features/activity-indicators.md).
   archives (#235); the view shows since when it records („Erfasst seit …“).
 * **[E]** Sessions (owner, 2026-11-16, #232 Q1): a new session starts after
   a pause of 30 minutes.
+* **[E]** Model (owner, 2026-11-15, #232): three states. **Active**: the page
+  is visible and focused and a trusted click, key or scroll happened within
+  the last 60 s. **Inactive**: no such interaction for 60 s. **Background**:
+  hidden or without the focus. Only active counts. A page that is active
+  reports every 30 s and at each change of state; coming back to the
+  foreground does not resume by itself; the 60 s deadline is the last
+  interaction, never a heartbeat. Rendering, countdowns, the state refresh
+  and polling are no interaction. Scroll events are coalesced in the page
+  (they only note the time) and no key, position or scroll offset is sent.
+* **[E]** Source of the totals (owner, 2026-11-16 and 2026-11-17, #231, #232):
+  the accepted intervals are stored as events and every total (day, round,
+  account) is derived from them on read; no statistics table, no counter.
+  They are kept until the admin deletes the round (#235), not by the 30-day
+  purge of the audit log. During a running round the numbers are private; after
+  it they appear in the archive (#235 D2).
+* **[E]** The words (owner, 2026-11-15, #232): the metric is „Geschätzte
+  aktive Spielzeit“; the explanation is „Gezählt wird die geschätzte Zeit mit
+  aktiver Nutzung. Nach 60 Sekunden ohne Eingabe oder Scrollen sowie beim
+  Verlassen des aktiven Fensters pausiert die Erfassung. Kurze Lesepausen
+  zählen mit.“ The view has „Meine Aktivität & Spielzeit“, „Heute (UTC)“,
+  „Letzte 7 Tage (UTC)“, „Spielaktionen“, „Zuletzt aktiv“, „Erfasst seit …“.
+
+# What is built (#232, #231)
+
+* **[V]** The page (`src/client/features/playtime.ts`, the state machine in
+  `src/client/logic/playtime.ts`) sends `POST /api/playtime` with
+  `{ instance, seq, state, since }`: `instance` is a random id of the page
+  (new on every load), `seq` counts the reports of the page, `state` is
+  `active`, `inactive` or `background`, `since` the active milliseconds since
+  the page's previous report on its monotonic clock, up to the change of state,
+  and `null` for the first report of an interval. Reports: one when an
+  interaction makes the page active (the start, `since` null), one every 30 s
+  while active, one at the 60 s deadline (`inactive`) and one when the page is
+  hidden, loses the focus or is left (`background`, with `keepalive`). A
+  failed report is not repeated.
+* **[V]** The rule on the server (`judge` in `src/core/playtime.ts`): a report
+  that is not newer (`seq`) than the page's last one is ignored; the first
+  report of an interval earns nothing; any other credits an interval that
+  ends now and is as long as the claim, at most 30 s and at most the time since
+  the page's last accepted report, so no interval overlaps its predecessor
+  and a claim is never believed beyond the heartbeat. An interval continues
+  only while the page's last report was active and at most 60 s ago (two
+  missed heartbeats, the inactivity timeout); a heartbeat after more than 60 s
+  starts a new interval instead and never bridges the gap, a report that ends
+  an interval without one open is ignored. A lost stop, a closed tab, a
+  restart or a network loss therefore only cost the last unconfirmed part.
+  The state of a page is read from its last stored event, so a restart opens
+  and doubles nothing.
+* **[V]** The totals: the union of the stored intervals of the account
+  intersected with the window (`union`, `activeMs`, `dailyMs`), so two pages
+  or devices count a real second once; the day windows are UTC days (an
+  interval over midnight is split on read).
+* **[V]** Usage sessions (#232 Q1, decided: 30 minutes): the number of the
+  player's session, counting from 1: a new one when 30 minutes or more passed
+  since the player's last interval, or when the round changed.
+* **[V]** An account in vacation mode (#223) records no play time; the page
+  also sends nothing while signed out or in vacation mode.
+* **[V]** A report is no manual action of #229: it sets no public activity and
+  writes no audit entry. The click samples of `POST /api/activity` stay as
+  they were for the public markers; they no longer feed the admin estimate.
+* **[V]** The admin diagnostics use the same sums (`src/server/game/playtime.ts`,
+  `weekMs`, `dayTable`): today and the six preceding UTC days. The old sums of
+  `player_activity` (kept 30 days, no longer written) are not added; only the
+  admin's „last seen“ still takes the later of them and the new last interaction.
+* **[V]** The own view reads `GET /api/own-activity`, the account taken from
+  the session, never from the request. It shows today, the last 7 days, the
+  running round and all rounds as the estimated active time, a table of the 7
+  UTC days with the successful actions of the audit log (kept 30 days),
+  „Zuletzt aktiv“ (the end of the last interaction) and „Erfasst seit“ (the
+  start of the first recorded interval). The method has a version
+  (`METHOD_VERSION`, 1) stored with each interval; the view says that earlier
+  estimates were calculated differently and are not included.
+
+# The table (for the archive, #235)
+
+* **[V]** `playtime_events` (migration `20261119T1815-playtime-events`),
+  append only, one row per accepted report: `id`, `user_id` (goes with the
+  account), `round` (the number of the round, setting `round`),
+  `play_session` (per player, from 1), `instance`, `seq` (unique with the
+  account and the page), `state` (the state the page moved to), `reason`
+  (`start`, `heartbeat`, `idle`, `background`), `start_ms` and `end_ms` (the
+  accepted interval on the server's clock, UTC milliseconds) and `method`.
+  The active time of a row is `end_ms - start_ms` (a start has none), whatever
+  its state; the time of a player in a round is the union of those intervals
+  (`union`, `activeMs` in `src/core/playtime.ts`). Nothing else is stored: the
+  round's `roundStart` is not on the rows; a round is its number.
+* **[V]** Not built: the envelope fields the owner named for all user-triggered
+  game events (`round_id`, `play_session_id` on the audit log) come with #235
+  (owner, 2026-11-17); the admin's deleting of a round, which is to delete
+  these rows with it, does not exist yet.
+
+# Open
+
+* **[U]** A limit on the reports per player and minute, so a script cannot fill
+  the table: the credited time is already bounded by the real time (a page
+  that reports faster is credited with the seconds that passed), but not the
+  number of rows. A value is the owner's to give.
+* **[U]** Whether the player's own view also shows the legacy sums of the
+  first days (#231 allows it „labelled incomplete“); built without.

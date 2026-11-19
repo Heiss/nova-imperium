@@ -50,6 +50,7 @@ import type { User } from '../db/repos/players.ts';
 import { type Action, type Data, mine, researchOf } from './actions.ts';
 import { lockedUntil, positionLockedText } from './position-lock.ts';
 import { type Ctx, coords, fail, int, universe } from './context.ts';
+import { colonyRoom, limitRefusal } from './colony-limit.ts';
 import { attackEvent } from './guild-events.ts';
 import { holdersAt, isAllyOf } from './holding.ts';
 import { joinPlan, joinUnion, recalledWith } from './union.ts';
@@ -95,8 +96,11 @@ export const target = (ctx: Ctx, d: Data): Coords => {
   };
 };
 
-/** A code with a fixed message; a locked position names the end of its lock. */
-type WordedError = Exclude<SendError, 'locked'>;
+/**
+ * A code with a fixed message; a locked position names the end of its lock,
+ * and the limit of planets names the count (#237).
+ */
+type WordedError = Exclude<SendError, 'locked' | 'colonyLimit'>;
 
 /** The message of each code of `sendError`, in German like the interface. */
 const SEND_ERROR: Readonly<Record<WordedError, string>> = {
@@ -184,15 +188,18 @@ function checkDestination(
   },
   mission: Mission,
 ): void {
+  const research = researchOf(ctx, u).research;
   const error = sendError(
     rules,
     {
       owner: u.id,
       from: p.id,
       ships,
-      research: researchOf(ctx, u).research,
+      research,
       running: ctx.fleets.countMission(u.id, mission),
       extraSlots: extraSlots(universe(ctx)),
+      // Asked only by a Landnahme (#237).
+      colonies: () => colonyRoom(ctx, u.id, research),
     },
     {
       planet: occupied,
@@ -209,6 +216,8 @@ function checkDestination(
   );
   // A given-up position names the end of its lock (#224, D2).
   if (error === 'locked') return fail(positionLockedText(at.lockEnd!));
+  // The planets against the limit, as the player sees them (#237).
+  if (error === 'colonyLimit') return fail(limitRefusal(ctx, u.id, research));
   if (error) fail(sendMessage(ctx, error));
 }
 
@@ -309,6 +318,20 @@ const timesOf = (
     ? { arr: joining.arr, ret: joining.arr + ms }
     : { arr: t + ms + stay, ret: t + 2 * ms + hold + stay };
 
+/** The ships, the cargo and the fuel leave the planet with the fleet. */
+function takeOff(
+  p: Planet,
+  ships: Levels,
+  cargo: Resources,
+  fuel: number,
+): void {
+  for (const [k, n] of Object.entries(ships))
+    p.ships[k] = (p.ships[k] ?? 0) - n;
+  p.res.m -= cargo.m;
+  p.res.c -= cargo.c;
+  p.res.d -= cargo.d + fuel;
+}
+
 export const send: Action = (ctx, u, d, event) => {
   const t = ctx.now();
   const p = mine(ctx, u, d.planet);
@@ -335,11 +358,7 @@ export const send: Action = (ctx, u, d, event) => {
     fail('Nicht genug Laderaum.');
   if (p.res.d < fuel + cargo.d)
     fail('Nicht genug Promethium für Treibstoff und Ladung.');
-  for (const [k, n] of Object.entries(ships))
-    p.ships[k] = (p.ships[k] ?? 0) - n;
-  p.res.m -= cargo.m;
-  p.res.c -= cargo.c;
-  p.res.d -= cargo.d + fuel;
+  takeOff(p, ships, cargo, fuel);
   ctx.planets.save(p);
   const fleet: Fleet = {
     ...route(ctx, u, p, to, dest),
@@ -355,6 +374,9 @@ export const send: Action = (ctx, u, d, event) => {
   };
   joinUnion(ctx, joining, fleet);
   ctx.fleets.save(fleet);
+  // A hostile launch is one of the last targets for the Schnellwahl (#292).
+  if (missionRules(mission)!.remembered && targetOwner !== null)
+    ctx.targets.record(u.id, { place: to, owner: targetOwner, at: t });
   // The guild of the defender learns of an attack or a Mondbruch at its
   // launch (#169 D3, #95); both fly to a foreign place only, so it has an
   // owner.

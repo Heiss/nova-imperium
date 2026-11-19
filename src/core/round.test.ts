@@ -106,7 +106,16 @@ describe('the check of a new round', () => {
         s.kind === 'switch' ? [true, false] : [s.min, s.max, s.def];
       for (const value of values) {
         const data = send(s, value);
-        expect(roundRefused(defaults, data), s.key).toEqual([]);
+        // A rule between settings (#237) may refuse a value beside the defaults.
+        const round = Object.fromEntries(
+          settings.map((x) => [x.key, Number(defaults[x.name])]),
+        );
+        round[s.key] = Number(value);
+        const agrees =
+          s.kind !== 'number' || !s.agrees || s.agrees(Number(value), round);
+        expect(names(roundRefused(defaults, data)), s.key).toEqual(
+          agrees ? [] : [s.name],
+        );
         expect(roundValues(defaults, data)[s.name], s.key).toBe(value);
       }
     }

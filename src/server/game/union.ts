@@ -293,7 +293,7 @@ export function unionsFor(ctx: Ctx, uid: string): UnionView[] {
 export const serverFeature = {
   actions: { openUnion, inviteUnion },
   state: {
-    order: 200,
+    order: 210,
     keys: ['unions'],
     build: (ctx, u) => ({ unions: unionsFor(ctx, u.id) }),
   },

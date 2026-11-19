@@ -320,7 +320,7 @@ Everything below is [V] unless it names an owner's decision.
   must list `union_id`) and the table, which does not reference `fleets`. The
   rules are pure in `src/core/union.ts`, the server part is
   `src/server/game/union.ts` (actions `openUnion` and `inviteUnion`, the
-  state key `unions`, order 200), the battle is the shared one of
+  state key `unions`, order 210), the battle is the shared one of
   `src/server/game/fight.ts`, the arrival is the `onArrive` of the attack
   mission.
 * **Settings (owner, 2026-11-16 D3, 2026-11-17, X1).** Four live number

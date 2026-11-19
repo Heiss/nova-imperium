@@ -436,11 +436,32 @@ describe('research', () => {
     expect(page.line).toEqual({ text: 'Scholarium Stufe 1' });
     expect(page.queue).toEqual([]);
     expect(page.warn).toBeNull();
-    expect(page.rows.map((r) => r.key)).toEqual(Object.keys(RES));
+    // Without the Kolonialverwaltung, which only a round with it lists (#237).
+    expect(page.rows.map((r) => r.key)).toEqual(
+      Object.keys(RES).filter((k) => k !== 'colonial'),
+    );
     const moon = view({ P: { kind: 'moon', name: 'Luna', b: { lab: 1 } } });
     expect(opened(catalogPage(moon, 'research')).title).toMatch(
       /^Forschung auf .*Luna/,
     );
+  });
+
+  it('lists the Kolonialverwaltung in a round that has it, after the others (#237)', () => {
+    const v = view(lab);
+    v.s.cfg = {
+      ...U,
+      roundColonyBase: 6,
+      roundColonyResearch: 1,
+      roundColonyPerLevel: 2,
+      roundColonyMaxLevel: 4,
+    };
+    const keys = opened(catalogPage(v, 'research')).rows.map((r) => r.key);
+    expect(keys).toEqual(Object.keys(RES));
+    // A round with a base limit but without the research does not list it.
+    v.s.cfg = { ...v.s.cfg, roundColonyResearch: 0 };
+    expect(
+      opened(catalogPage(v, 'research')).rows.map((r) => r.key),
+    ).not.toContain('colonial');
   });
 
   it('names how many labs the research network links', () => {

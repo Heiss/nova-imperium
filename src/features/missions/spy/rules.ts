@@ -14,6 +14,8 @@ export const returns = true;
 export const silent = true;
 export const alertsGuild = false;
 export const holds = false;
+/** The launch is remembered as one of the player's last hostile targets (#292). */
+export const remembered = true;
 /**
  * Only Spähschädel fly to an Auspex-Erkundung, and only from espionage
  * technology 1 (#175, Q1).

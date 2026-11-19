@@ -1,6 +1,6 @@
 // The HTTP interface: a JSON API under /api, the client files, /healthz.
 import { randomUUID } from 'node:crypto';
-import { activity, audited, record, type AuditEntry } from '../audit.ts';
+import { audited, record, type AuditEntry } from '../audit.ts';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import * as auth from '../auth.ts';
 import * as security from '../account-security.ts';
@@ -28,6 +28,7 @@ import { clientIp, cookies, readJson } from './request.ts';
 import { SECURITY_HEADERS } from './security.ts';
 import { adminRoutes } from './admin.ts';
 import { errorRoutes } from './errors.ts';
+import { playtimeRoutes } from './playtime.ts';
 import { loadStatic } from './static.ts';
 import type { News } from '../news.ts';
 
@@ -461,10 +462,9 @@ function gameRoutes(d: AppDeps, guard: Guard): Record<string, Handler> {
       return { json: d.news ?? { version: null, versions: [] } };
     },
     // An interaction and an action are manual actions in the account (#229).
+    // The play time of #232 has its own route (http/playtime.ts).
     'POST /api/activity': (call) => {
-      const u = sessionUserOf(ctx, call);
-      activity(ctx, u);
-      recordActivity(ctx, u, 'action');
+      recordActivity(ctx, sessionUserOf(ctx, call), 'action');
       return { json: { ok: true } };
     },
     'POST /api/action': (call) => {
@@ -637,6 +637,7 @@ export function createApp(d: AppDeps): {
     ...gameRoutes(d, guard),
     ...pushRoutes(d),
     ...errors.routes,
+    ...playtimeRoutes(d, (call) => sessionUserOf(d.ctx, call)),
   });
   const handle = async (
     req: IncomingMessage,

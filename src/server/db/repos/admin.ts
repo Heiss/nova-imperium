@@ -45,11 +45,11 @@ export interface Admin {
   auditEvents(filter: AuditFilter, limit: number, offset: number): unknown[];
   lastAuditId(): number;
   countAuditEvents(filter: AuditFilter): number;
-  /** The last interaction of a player, on their newest day. */
-  lastActivity(uid: string): { last: number } | undefined;
-  addActiveTime(ms: number, uid: string, day: number): void;
-  touchActivity(uid: string, day: number, now: number, ms: number): void;
-  /** Drops audit events, error events and activity older than `cutoff`. */
+  /**
+   * Drops audit events, error events and the old activity sums (#232: they
+   * are no longer written) older than `cutoff`. The play time of #232 is
+   * kept until the round is deleted and is not touched.
+   */
   purge(cutoff: number, day: number): void;
   suspension(uid: string, now: number): Suspension | undefined;
   suspend(uid: string, reason: string, until: number | null): void;
@@ -154,36 +154,6 @@ export class SqliteAdmin implements Admin {
       )
       .get(filter) as { count: number };
     return count;
-  }
-
-  lastActivity(uid: string): { last: number } | undefined {
-    return this.db
-      .prepare(
-        `
-      SELECT last_seen AS last FROM player_activity WHERE player = ? ORDER BY day DESC LIMIT 1
-    `,
-      )
-      .get(uid) as { last: number } | undefined;
-  }
-
-  addActiveTime(ms: number, uid: string, day: number): void {
-    this.db
-      .prepare(
-        'UPDATE player_activity SET active_ms = active_ms + ? WHERE player = ? AND day = ?',
-      )
-      .run(ms, uid, day);
-  }
-
-  touchActivity(uid: string, day: number, now: number, ms: number): void {
-    this.db
-      .prepare(
-        `
-      INSERT INTO player_activity VALUES (?, ?, ?, ?)
-      ON CONFLICT(player, day) DO UPDATE SET last_seen = excluded.last_seen,
-        active_ms = player_activity.active_ms + excluded.active_ms
-    `,
-      )
-      .run(uid, day, now, ms);
   }
 
   purge(cutoff: number, day: number): void {

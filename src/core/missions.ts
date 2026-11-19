@@ -7,6 +7,7 @@
 // is sent or arrives, and the names in `MISSION`. No other code asks for a
 // mission by its name.
 import { MISSIONS } from '../features/index.gen.ts';
+import type { PlanetCount } from './colony-limit.ts';
 import { missionText } from './text.ts';
 import type { Fleet, Levels, Mission, Planet } from './types.ts';
 import { vacationProtects } from './vacation.ts';
@@ -44,6 +45,7 @@ export type SendError =
   | 'protected'
   | 'vacation'
   | 'noColonyShip'
+  | 'colonyLimit'
   | 'probesOnly'
   | 'noSpyTech'
   | 'noDebris'
@@ -84,6 +86,11 @@ export interface SendFleet {
   running?: number;
   /** The expedition slots the round adds to ⌊√level⌋ (#93); missing: none. */
   extraSlots?: number;
+  /**
+   * The limit of planets of the round and what the owner has against it
+   * (#237); only a Landnahme asks. Missing: no limit.
+   */
+  colonies?(): { limit: number | null; count: PlanetCount };
 }
 
 /** What is at the target position when the fleet is sent. */
@@ -160,6 +167,17 @@ export interface MissionRules {
    * fuel for it, so it is not a holding fleet.
    */
   readonly holds: boolean;
+  /**
+   * Whether the fleet founds a colony at the target, so the server counts it
+   * against the limit of planets (#237): the Landnahme only. Missing: no.
+   */
+  readonly colonizes?: true;
+  /**
+   * Whether the launch is remembered as one of the player's last hostile
+   * targets for the Schnellwahl of the fleet form (#292): the Sturmangriff
+   * and the Auspex-Erkundung. Missing: no.
+   */
+  readonly remembered?: true;
   /**
    * The most hours the fleet stays at the target before it flies home, from
    * the research of its owner and the hours per level of the round, which the
@@ -262,7 +280,7 @@ const FOREIGN: readonly TargetKind[] = ['foreign', 'ally'];
  */
 function shieldError(
   kind: TargetKind,
-  fleet: SendFleet,
+  fleet: FitFleet,
   target: SendTarget,
   t: Pick<Planet, 'owner'>,
 ): SendError | undefined {
@@ -286,7 +304,7 @@ function freeError(target: SendTarget): SendError | undefined {
 /** The generic check of the target kind, in today's order of the messages. */
 function targetError(
   kind: TargetKind,
-  fleet: SendFleet,
+  fleet: FitFleet,
   target: SendTarget,
 ): SendError | undefined {
   const t = target.planet;
@@ -305,27 +323,43 @@ function targetError(
  */
 function placeError(
   kind: TargetKind,
-  fleet: SendFleet,
+  fleet: FitFleet,
   target: SendTarget,
 ): SendError | undefined {
   if (kind !== 'foreignMoon') return targetError(kind, fleet, target);
   return target.moon ? targetError('foreign', fleet, target) : 'notMoon';
 }
 
+/** What of the fleet the check of the target asks: its owner and its origin. */
+export type FitFleet = Pick<SendFleet, 'owner' | 'from'>;
+
+/**
+ * Whether the target fits the target kind of the mission, as a code or
+ * nothing: the first part of `sendError`, which asks nothing of the ships.
+ * The fleet form asks it to offer only the missions that fit the target
+ * (#253), so the browser and the server cannot disagree.
+ */
+export function fitError(
+  rules: MissionRules,
+  fleet: FitFleet,
+  target: SendTarget,
+): SendError | undefined {
+  if (target.moon && NEVER_MOON.includes(rules.target)) return 'moonTarget';
+  return rules.target === 'debris'
+    ? debrisError(target)
+    : placeError(rules.target, fleet, target);
+}
+
 /**
  * Why a fleet of this mission cannot fly to the target: first the target
- * kind, then the mission's own `canSend`; nothing when it may fly. Slots,
- * cargo and fuel are checked by the server for every mission alike.
+ * kind (`fitError`), then the mission's own `canSend`; nothing when it may
+ * fly. Slots, cargo and fuel are checked by the server for every mission
+ * alike.
  */
 export function sendError(
   rules: MissionRules,
   fleet: SendFleet,
   target: SendTarget,
 ): SendError | undefined {
-  if (target.moon && NEVER_MOON.includes(rules.target)) return 'moonTarget';
-  return (
-    (rules.target === 'debris'
-      ? debrisError(target)
-      : placeError(rules.target, fleet, target)) ?? rules.canSend(fleet, target)
-  );
+  return fitError(rules, fleet, target) ?? rules.canSend(fleet, target);
 }

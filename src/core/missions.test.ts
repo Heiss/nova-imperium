@@ -54,6 +54,7 @@ const CODES: SendError[] = [
   'protected',
   'vacation',
   'noColonyShip',
+  'colonyLimit',
   'probesOnly',
   'noSpyTech',
   'noDebris',
@@ -198,6 +199,10 @@ describe('the rules of every mission (contract)', () => {
       ...FIELDS,
       ...(rules.launch === undefined ? [] : ['launch']),
       ...(rules.maxStay === undefined ? [] : ['maxStay']),
+      // `colonizes` is set only by the Landnahme (#237).
+      ...(rules.colonizes === undefined ? [] : ['colonizes']),
+      // `remembered` is set by the attack and the spy only (#292).
+      ...(rules.remembered === undefined ? [] : ['remembered']),
     ];
     expect(Object.keys(rules).sort(), m).toEqual(fields.sort());
     expect(TARGETS, m).toContain(rules.target);

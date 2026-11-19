@@ -48,6 +48,7 @@ describe('colonize', () => {
       returns: true,
       silent: false,
       alertsGuild: false,
+      colonizes: true,
     });
   });
 
@@ -56,6 +57,21 @@ describe('colonize', () => {
     expect(canSend(fleet({ colony: 2, sc: 1 }))).toBeUndefined();
     expect(canSend(fleet({ sc: 1 }))).toBe('noColonyShip');
     expect(canSend(fleet({ colony: 0, sc: 1 }))).toBe('noColonyShip');
+  });
+
+  it('needs room under the limit of planets, planets and Landnahmen on their way counted (#237)', () => {
+    const room = (limit: number | null, owned: number, flying = 0) => ({
+      ...fleet({ colony: 1 }),
+      colonies: () => ({ limit, count: { owned, flying } }),
+    });
+    expect(canSend(room(6, 5))).toBeUndefined();
+    expect(canSend(room(6, 6))).toBe('colonyLimit');
+    expect(canSend(room(6, 5, 1))).toBe('colonyLimit');
+    expect(canSend(room(6, 4, 1))).toBeUndefined();
+    expect(canSend(room(null, 99, 9))).toBeUndefined();
+    // The ark comes first, and a caller without a limit asks nothing.
+    expect(canSend({ ...room(6, 6), ships: { sc: 1 } })).toBe('noColonyShip');
+    expect(canSend(fleet({ colony: 1 }))).toBeUndefined();
   });
 
   it('founds a colony with the cargo; the last ark ends the fleet', () => {

@@ -127,6 +127,12 @@ export interface GameState {
   friends?: FriendState;
   /** The attack unions the player leads, flies in or is invited to (#225). */
   unions?: UnionState[];
+  /**
+   * The places the Schnellwahl of the fleet form lists besides the own ones
+   * (#292): the main planets of the friends and of the guild members and the
+   * last hostile targets, by place id.
+   */
+  quick?: { friends: string[]; guild: string[]; last: string[] };
 }
 
 /** An attack union as the server sends it to a player in it or invited to it (#225); the ships stay hidden. */

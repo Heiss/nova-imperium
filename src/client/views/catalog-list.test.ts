@@ -35,7 +35,8 @@ afterEach(() => (client.shown = null));
 
 const ENTRIES: Record<CatalogKind, string[]> = {
   building: Object.keys(BUILD).filter((k) => buildable(k, 'planet')),
-  research: Object.keys(RES),
+  // The Kolonialverwaltung only in a round that has it (#237, below).
+  research: Object.keys(RES).filter((k) => k !== 'colonial'),
   ship: Object.keys(SHIPS),
   defense: Object.keys(DEF),
 };
@@ -55,6 +56,22 @@ describe('CatalogList', () => {
         expect(out).toContain(`<div class="nm">${text(key)!.n} `);
     },
   );
+
+  it('lists the Kolonialverwaltung in a round that has it (#237)', () => {
+    const v = view();
+    v.s.cfg = {
+      ...U,
+      roundColonyBase: 6,
+      roundColonyResearch: 1,
+      roundColonyPerLevel: 2,
+      roundColonyMaxLevel: 4,
+    };
+    const out = html('research', v);
+    expect(out.match(/<div class="item[ "]/g)).toHaveLength(
+      ENTRIES.research.length + 1,
+    );
+    expect(out).toContain(`<div class="nm">${text('colonial')!.n} `);
+  });
 
   it('follows the view state of the client', () => {
     expect(html('research', view('Kolonie'))).toContain(

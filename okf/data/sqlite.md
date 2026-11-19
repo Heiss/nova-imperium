@@ -628,6 +628,16 @@ stores no time. Existing players start without friends and requests;
 other data stay as they were (`upgrades/20261118T2230-friendships.test.ts`).
 A new round keeps the table (owner, 2026-11-16, D2).
 
+Migration `20261119T1830-last-targets` (issue #292, see
+[Cargo buttons of the fleet form](/features/fleet-cargo.md#the-schnellwahl-with-friends-guild-members-and-last-targets-292))
+adds the table `last_targets`: `user_id` (`REFERENCES users(id) ON DELETE
+CASCADE`), `place` (the id of the target planet or moon), `owner` (who owned
+it when it was aimed at) and `at`, primary key `(user_id, place)`, an index
+on `(user_id, at DESC)`. A Sturmangriff or an Auspex-Erkundung writes or
+renews the row of its target; the repository keeps the newest 20 rows per
+player [V]. A new round deletes the table's rows. Other data stay as they
+were (`upgrades/20261119T1830-last-targets.test.ts`).
+
 Account deletion runs in one transaction. Foreign-key cascades clear owned game,
 session, reward and push data, and the friendships and requests of the
 account in both directions (#227). The deletion also removes led guilds and their
