@@ -193,10 +193,10 @@ Built on `claude/hold-decisions`; the owner's comment „drei Ergänzungen“ on
   the moon's stock when the attacker wins; the fleets that held are then
   destroyed (a won battle leaves no defender). The probes do not plunder.
   Missiles do not fight and stay as they were.
-* **[V]** A detected spying at a planet with neither ships nor defense, but
-  with a fleet that holds there, fights that fleet (the rule of
-  2026-11-17, „a target with neither gives no battle“, counts the held
-  fleets as ships). The chance of the Auspex-Abwehr still counts the
+* **[E]** A detected spying at a planet with neither ships nor defense, but
+  with a fleet that holds there, fights that fleet (owner, 2026-11-19; the
+  rule of 2026-11-17, „a target with neither gives no battle“, counts the
+  held fleets as ships). The chance of the Auspex-Abwehr still counts the
   planet's own ships only (owner, 2026-11-17), and the Auspex-Bericht shows
   the held fleets as they were before the battle.
 * A fleet of the attacker himself that holds at the target stays out in the
@@ -205,12 +205,12 @@ Built on `claude/hold-decisions`; the owner's comment „drei Ergänzungen“ on
   in jedem Kampf“ ([Lexicanum texts](/features/lexicanum-texts.md)); that is
   true now, so no Lexicanum text changed. The article of the Mondbruch says
   nothing about held fleets.
-* Consequence of 1 together with 3 (seen when building): the Mondbruch
-  rolls only after a **won** battle, and a won battle leaves no defender.
-  A foreign fleet that holds at the moon therefore fights and is destroyed
-  whenever the moon can break; the fleet that moves with the broken moon is
-  one that took no part in the battle: the attacker's own fleet that holds
-  there.
+* **[E]** Consequence of 1 together with 3 (seen when building; owner,
+  2026-11-19, kept as built): the Mondbruch rolls only after a **won**
+  battle, and a won battle leaves no defender. A foreign fleet that holds
+  at the moon therefore fights and is destroyed whenever the moon can break;
+  the move to the planet reaches only fleets that took no part in the
+  battle: the attacker's own fleet that holds there.
 
 ## Vacation sends the guards home
 
@@ -221,8 +221,8 @@ Built on `claude/hold-decisions`; the owner's comment „drei Ergänzungen“ on
   the end of holding and sets the return to now plus the flight time there
   (`homeAt` of `src/core/holding.ts`; a fleet whose holding time was over
   already counts from its end). The holding time that is left is dropped,
-  the Promethium of the unused hours is not refunded (as after a recall),
-  `recalled` stays false.
+  `recalled` stays false. **[E]** The Promethium of the unused hours is not
+  refunded, as after a recall (owner, 2026-11-19).
 * **[E]** A Wache stellen that is still on its way when the host's vacation
   starts flies on (launched flights land, #223 D2) and **does not start to
   hold** at its arrival: `onArrive` of the mission
@@ -230,10 +230,16 @@ Built on `claude/hold-decisions`; the owner's comment „drei Ergänzungen“ on
   vacation and turns it home at once, with the same `sendHome` at the
   arrival time. The earlier behaviour, „arrives, holds and flies home“ at
   the end of its time, is gone.
-* **[V]** The owner of a fleet that was sent home gets no notice of its own,
-  as the end of holding gives none; he finds the report „Rückkehr zu …“ when
-  the fleet is home, like after every Wache stellen (the mission is not
-  silent). No new German text was needed.
+* **[E]** The owner of a fleet that was sent home gets an info report, one
+  per fleet, both at the start of the vacation and at the arrival at a host
+  in vacation (owner, 2026-11-19); `sendHome` writes it with
+  `addReport` (type `info`, push topic `fleet`, like „Flotte kehrt um“),
+  time of the report the moment of the send-home. **[V]** The texts, drafted
+  from the owner's wording: title „Wache heimgeschickt [g:s:p]“, text „Deine
+  Wache bei <Ort> [g:s:p] wurde heimgeschickt: Der Gastgeber hat den
+  Urlaubsmodus begonnen.“ (<Ort> is the name of the planet, for a moon
+  „<Name> (Mond)“, as in the battle reports). The report „Rückkehr zu …“
+  follows when the fleet is home, like after every Wache stellen.
 * Unchanged: `vacationEntryError` counts every fleet of the player,
   whatever its state, so a player whose own fleet holds elsewhere cannot
   start the vacation while it is out.
@@ -248,15 +254,17 @@ Built on `claude/hold-decisions`; the owner's comment „drei Ergänzungen“ on
   the same, and holds there until then; it defends the planet in the next
   fight. A fleet that already holds at the planet is untouched. No
   migration: only the target column of the rows changes.
-* **[V]** The limits of the planet (15 fleets, four players besides the
+* **[E]** The limits of the planet (15 fleets, four players besides the
   owner, `HOLD_LIMITS`) are not asked on the move: the fleet moves even if
-  they are exceeded (the owner named no rule). Open point for the owner: the
-  options are in the log entry
-  `okf/log/2026-11-19-holding-three-decisions.md`.
-* **[V]** The owner of such a fleet gets no notice of the move: he is
-  informed of the moon's loss by the battle report of the Mondbruch when his
-  fleet took part, and the fleets that fly to a broken moon get none either.
-  The fleet movements show „hält bei“ the planet.
+  they are exceeded (owner, 2026-11-19).
+* **[E]** The owner of every fleet that held at the moon gets an info
+  report, one per fleet (owner, 2026-11-19), written by `destroyMoon` before
+  the reroute (type `info`, push topic `fleet`, time of the arrival of the
+  Mondbruch). The fleets that fly to the broken moon, the ones coming home
+  from it and the attacker's other fleets get none. **[V]** The texts,
+  drafted from the owner's wording: title „Wache wechselt zum Planeten
+  [g:s:p]“, text „Der Mond [g:s:p] wurde zerstört; deine Wache hält jetzt am
+  Planeten.“ The fleet movements show „hält bei“ the planet.
 
 # Alliance depot (#55, later)
 

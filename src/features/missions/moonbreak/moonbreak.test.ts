@@ -666,9 +666,12 @@ describe('moonbreak: the fleets that hold at the moon (#55, owner, 2026-11-19)',
     guard(ctx, { bs: 1 }, { id: 'mine', owner: 'u_Anna', from: 'p1_1_5' });
     ctx.rng = seeded(95);
     onArrive(ctx, f, at);
-    expect(anna(ctx)).toMatchObject({ winner: 'att', defBefore: {} });
-    expect(anna(ctx)).not.toHaveProperty('held');
-    expect(anna(ctx).participants).toEqual(['u_Anna', 'u_Bert']);
+    const battle = ctx.reports
+      .ofPlayer('u_Anna')
+      .find((r) => r.type === 'battle')!;
+    expect(battle).toMatchObject({ winner: 'att', defBefore: {} });
+    expect(battle).not.toHaveProperty('held');
+    expect(battle.participants).toEqual(['u_Anna', 'u_Bert']);
     expect(ctx.debris.all()).toEqual([]);
   });
 
@@ -686,6 +689,20 @@ describe('moonbreak: the fleets that hold at the moon (#55, owner, 2026-11-19)',
     expect(ctx.fleets.get('mine')).toEqual({ ...h, to: 'p1_2_6' });
     expect(heldAt(ctx, 'p1_2_6').map((x) => x.id)).toEqual(['mine']);
     expect(heldAt(ctx, 'm1_2_6')).toEqual([]);
+    // Its owner, the attacker, is told once that it holds at the planet now
+    // (owner, 2026-11-19) [V]; the owner of the moon gets his battle report only.
+    expect(
+      ctx.reports.ofPlayer('u_Anna').filter((r) => r.type === 'info'),
+    ).toMatchObject([
+      {
+        time: f.arr,
+        title: 'Wache wechselt zum Planeten [1:2:6]',
+        text: 'Der Mond [1:2:6] wurde zerstört; deine Wache hält jetzt am Planeten.',
+      },
+    ]);
+    expect(ctx.reports.ofPlayer('u_Bert').map((r) => r.type)).toEqual([
+      'battle',
+    ]);
   });
 });
 
@@ -766,13 +783,50 @@ describe('moonbreak: a fleet that holds at a moon that breaks (#55, owner, 2026-
     };
     ctx.fleets.save(raider);
     arrive(ctx, raider);
+    // Newest first: the battle, before it the notice of the move.
     expect(ctx.reports.ofPlayer('u_Carl')).toMatchObject([
       {
         type: 'battle',
         held: [{ name: 'Carl', before: { bs: 2 } }],
       },
+      { type: 'info', title: 'Wache wechselt zum Planeten [1:2:6]' },
     ]);
     expect(ctx.fleets.get('att')).toBeNull();
+  });
+
+  it('tells the owner of each fleet that holds at the moon, once per fleet, in the style of an info report (owner, 2026-11-19) [V]', () => {
+    const { ctx, at, holds } = world();
+    holds('h1', 'u_Carl', 'm1_2_6');
+    holds('h2', 'u_Carl', 'm1_2_6');
+    holds('h3', 'u_Dora', 'm1_2_6');
+    // Not guards of the moon: a fleet at the planet, one on its way home from
+    // it, and a fleet of the attacker that flies to it.
+    holds('at', 'u_Dora', 'p1_2_6');
+    const home = holds('home', 'u_Dora', 'm1_2_6');
+    ctx.fleets.save({ ...home, state: 'back' });
+    fleetTo(ctx, { id: 'f9', owner: 'u_Anna', mission: 'transport' });
+    ctx.clock.t += 7;
+    destroyMoon(ctx, at.t);
+    const notice = {
+      time: ctx.now(),
+      type: 'info',
+      title: 'Wache wechselt zum Planeten [1:2:6]',
+      text: 'Der Mond [1:2:6] wurde zerstört; deine Wache hält jetzt am Planeten.',
+    };
+    expect(ctx.reports.ofPlayer('u_Carl')).toMatchObject([notice, notice]);
+    expect(ctx.reports.ofPlayer('u_Dora')).toMatchObject([notice]);
+    expect(ctx.reports.ofPlayer('u_Anna')).toEqual([]);
+    expect(ctx.reports.ofPlayer('u_Bert')).toEqual([]);
+  });
+
+  it('pushes the notice to the owner of the fleet as „fleet“', () => {
+    const { ctx, at, holds } = world();
+    holds('h1', 'u_Carl', 'm1_2_6');
+    subscribePush(ctx, 'u_Carl');
+    destroyMoon(ctx, at.t);
+    expect(queuedPushes(ctx)).toEqual([
+      { user: 'u_Carl', kind: 'messages', topic: 'fleet' },
+    ]);
   });
 
   it('moves it even where the planet is full: 15 fleets already hold there (open point)', () => {

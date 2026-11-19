@@ -5,7 +5,7 @@
 // (src/server/game/arrival.ts). Its arrival writes no report [V]: the host
 // sees it under „Gehaltene Flotten“, the owner in the fleet movements. At a
 // host who is in vacation mode it does not start to hold but turns home at
-// once (owner, 2026-11-19).
+// once (owner, 2026-11-19), and its owner gets an info report.
 import type { Fleet } from '../../../core/types.ts';
 import type { Ctx } from '../../../server/game/context.ts';
 import { sendHome } from '../../../server/game/holding.ts';

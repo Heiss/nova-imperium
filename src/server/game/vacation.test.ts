@@ -42,6 +42,14 @@ import {
 const START = Date.UTC(2026, 10, 17, 12, 0);
 const EMPTY = { m: 0, c: 0, d: 0 };
 
+/** The info report [V] of a guard that the host's vacation sent home (owner, 2026-11-19). */
+const sentHome = (time: number, place: string) => ({
+  time,
+  type: 'info',
+  title: 'Wache heimgeschickt [1:1:5]',
+  text: `Deine Wache bei ${place} [1:1:5] wurde heimgeschickt: Der Gastgeber hat den Urlaubsmodus begonnen.`,
+});
+
 /** Anna with her planet and a moon, Bert with his planet, Carl the admin. */
 function world(ctx: TestCtx = testCtx(START)): TestCtx {
   addUser(ctx, 'Anna');
@@ -434,7 +442,11 @@ describe('a Wache stellen and the vacation mode (#55, #223)', () => {
       recalled: false,
     });
     expect(heldAt(ctx, 'p1_1_5')).toEqual([]);
-    expect(ctx.reports.ofPlayer('u_Bert')).toEqual([]);
+    // The owner is told at the arrival, once; the host gets nothing.
+    expect(ctx.reports.ofPlayer('u_Bert')).toMatchObject([
+      sentHome(fleet.arr, 'Heim'),
+    ]);
+    expect(ctx.reports.ofPlayer('u_Anna')).toEqual([]);
     const ships = ctx.planets.get('p1_2_6')!.ships;
     ctx.clock.t = fleet.arr + flight;
     tick(ctx);
@@ -442,6 +454,7 @@ describe('a Wache stellen and the vacation mode (#55, #223)', () => {
     expect(ctx.planets.get('p1_2_6')!.ships.lf).toBe((ships.lf ?? 0) + 1);
     expect(ctx.reports.ofPlayer('u_Bert').map((r) => r.title)).toEqual([
       'Rückkehr zu Bertheim [1:2:6]',
+      'Wache heimgeschickt [1:1:5]',
     ]);
   });
 
@@ -463,6 +476,9 @@ describe('a Wache stellen and the vacation mode (#55, #223)', () => {
       ret: fleet.arr + (fleet.arr - fleet.dep),
     });
     expect(heldAt(ctx, 'm1_1_5')).toEqual([]);
+    expect(ctx.reports.ofPlayer('u_Bert')).toMatchObject([
+      sentHome(fleet.arr, 'Mond (Mond)'),
+    ]);
   });
 });
 
@@ -514,6 +530,7 @@ describe('a vacation and the fleets that hold at the host (#55, #223, owner, 202
     const other = guard(ctx, 'g0', 'u_Bert', 'p1_3_7');
     expect(start(ctx)).toBe('Urlaubsmodus aktiviert.');
     expect(ctx.fleets.all()).toEqual([other]);
+    expect(ctx.reports.ofPlayer('u_Bert')).toEqual([]);
   });
 
   it('sends the one fleet that holds at the planet home at once: the flight back takes as long as the flight there, the holding time is dropped', () => {
@@ -535,9 +552,14 @@ describe('a vacation and the fleets that hold at the host (#55, #223, owner, 202
     expect(ctx.fleets.get('g1')).toBeNull();
     expect(ctx.planets.get('p1_2_6')!.ships.lf).toBe(12);
     expect(ctx.planets.get('p1_2_6')!.res.m).toBeGreaterThanOrEqual(7);
+    // Told at the start of the vacation, then the report of the return.
     expect(ctx.reports.ofPlayer('u_Bert').map((r) => r.title)).toEqual([
       'Rückkehr zu Bertheim [1:2:6]',
+      'Wache heimgeschickt [1:1:5]',
     ]);
+    expect(ctx.reports.ofPlayer('u_Bert')[1]).toMatchObject(
+      sentHome(START, 'Heim'),
+    );
     // The guard did not come back to the host.
     expect(ctx.reports.ofPlayer('u_Anna')).toEqual([]);
   });
@@ -568,6 +590,15 @@ describe('a vacation and the fleets that hold at the host (#55, #223, owner, 202
     });
     expect(ctx.fleets.get('g3')).toEqual(elsewhere);
     expect(ctx.fleets.get('g4')).toEqual(coming);
+    // One report per sent fleet for its owner, with the place it held at;
+    // none for the fleet that holds elsewhere or still flies, nor for the host.
+    expect(ctx.reports.ofPlayer('u_Bert')).toMatchObject([
+      sentHome(at, 'Heim'),
+    ]);
+    expect(ctx.reports.ofPlayer('u_Cora')).toMatchObject([
+      sentHome(at, 'Mond (Mond)'),
+    ]);
+    expect(ctx.reports.ofPlayer('u_Anna')).toEqual([]);
   });
 
   it('leaves a fleet whose holding time is over as it is due: it left at the end of its time', () => {
