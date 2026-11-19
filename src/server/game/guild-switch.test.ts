@@ -3,6 +3,7 @@
 // refuses every guild action and sends no guild data.
 import { describe, expect, it } from 'vitest';
 import type { AuditEntry } from '../audit.ts';
+import { roundDefaults } from '../../test/fixtures.ts';
 import { addPlanet, addUser, testCtx, type TestCtx } from '../test-helpers.ts';
 import { universe } from './context.ts';
 import { ACTIONS, GUILD_ACTIONS, runAction } from './dispatch.ts';
@@ -115,19 +116,9 @@ describe('the guild switch (#191)', () => {
   it('is on in an existing universe, as before', () => {
     const ctx = testCtx();
     expect(roundRules(ctx)).toEqual({
+      ...roundDefaults(),
       number: 1,
-      achievements: true,
-      daily: true,
       guilds: true,
-      mainLock: 7,
-      abandonLock: 24,
-      activityRecent: 15,
-      activityMinutes: 59,
-      inactiveDays: 7,
-      longInactiveDays: 28,
-      recognitionTotal: 2,
-      recognitionTypes: 4,
-      recognitionCounts: 8,
     });
     expect(guildsOn(ctx)).toBe(true);
     expect(() => requireGuilds(ctx)).not.toThrow();
@@ -156,19 +147,9 @@ describe('the guild switch (#191)', () => {
       'Neue Runde gestartet – alle Spieler haben einen frischen Planeten.',
     );
     expect(roundRules(ctx)).toEqual({
+      ...roundDefaults(),
       number: 2,
-      achievements: true,
-      daily: true,
       guilds: false,
-      mainLock: 7,
-      abandonLock: 24,
-      activityRecent: 15,
-      activityMinutes: 59,
-      inactiveDays: 7,
-      longInactiveDays: 28,
-      recognitionTotal: 2,
-      recognitionTypes: 4,
-      recognitionCounts: 8,
     });
     for (const t of GUILD_TABLES)
       expect(ctx.db.prepare(`SELECT COUNT(*) FROM ${t}`).pluck().get(), t).toBe(
@@ -181,36 +162,8 @@ describe('the guild switch (#191)', () => {
       expect(ctx.planets.home(u.id)).toBeDefined();
     // The round-reset audit entry holds the choice, like the reward boxes.
     expect(event.detail).toEqual({
-      before: {
-        number: 1,
-        achievements: true,
-        daily: true,
-        guilds: true,
-        mainLock: 7,
-        abandonLock: 24,
-        activityRecent: 15,
-        activityMinutes: 59,
-        inactiveDays: 7,
-        longInactiveDays: 28,
-        recognitionTotal: 2,
-        recognitionTypes: 4,
-        recognitionCounts: 8,
-      },
-      after: {
-        number: 2,
-        achievements: true,
-        daily: true,
-        guilds: false,
-        mainLock: 7,
-        abandonLock: 24,
-        activityRecent: 15,
-        activityMinutes: 59,
-        inactiveDays: 7,
-        longInactiveDays: 28,
-        recognitionTotal: 2,
-        recognitionTypes: 4,
-        recognitionCounts: 8,
-      },
+      before: { ...roundDefaults(), number: 1, guilds: true },
+      after: { ...roundDefaults(), number: 2, guilds: false },
     });
   });
 

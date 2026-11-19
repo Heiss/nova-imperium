@@ -222,6 +222,12 @@ describe('the thresholds per round (#228, D1, X1)', () => {
     ).toThrow(
       'Fremde Flotten: Schiffe insgesamt ab Auspex-Lehre: ganze Zahl von 0 bis 100. Fremde Flotten: Anzahl je Schiffstyp ab Auspex-Lehre: ganze Zahl von 0 bis 100.',
     );
+    // An empty group refuses all three at once, in the order of the registry.
+    expect(() =>
+      runAction(ctx, 'u_Anna', { type: 'reset', recognition: {} }),
+    ).toThrow(
+      'Fremde Flotten: Schiffe insgesamt ab Auspex-Lehre: ganze Zahl von 0 bis 100. Fremde Flotten: Schiffstypen ab Auspex-Lehre: ganze Zahl von 0 bis 100. Fremde Flotten: Anzahl je Schiffstyp ab Auspex-Lehre: ganze Zahl von 0 bis 100.',
+    );
     expect(roundRules(ctx)).toMatchObject({ number: 1, ...sent(2, 4, 8) });
   });
 
