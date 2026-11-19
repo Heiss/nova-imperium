@@ -627,6 +627,103 @@ describe('the state', () => {
     expect(shown.round.vacationHours).toBe(48);
   });
 
+  it('lists every player exactly: `vacation: true` only for the ones in vacation mode, with their scores (#78, #223)', () => {
+    const ctx = world();
+    start(ctx);
+    const shown = (uid: string) =>
+      (stateFor(ctx, ctx.players.get(uid)!) as { players: unknown }).players;
+    const expected = {
+      u_Anna: {
+        name: 'Anna',
+        points: 19,
+        scores: { buildings: 19, research: 0, fleet: 0, defense: 0 },
+        vacation: true,
+      },
+      u_Bert: {
+        name: 'Bert',
+        points: 71,
+        scores: { buildings: 8, research: 0, fleet: 18, defense: 0 },
+      },
+      u_Carl: {
+        name: 'Carl',
+        points: 0,
+        scores: { buildings: 0, research: 0, fleet: 0, defense: 0 },
+      },
+    };
+    // The same list for every player who is not in vacation mode.
+    expect(shown('u_Bert')).toEqual(expected);
+    expect(shown('u_Carl')).toEqual(expected);
+    // After the end nobody is marked.
+    ctx.clock.t = START + 48 * HOUR_MS;
+    stop(ctx);
+    expect(shown('u_Bert')).toEqual({
+      u_Anna: { ...expected.u_Anna, vacation: undefined },
+      u_Bert: expected.u_Bert,
+      u_Carl: expected.u_Carl,
+    });
+    expect(shown('u_Bert')).not.toHaveProperty('u_Anna.vacation');
+  });
+
+  it('keeps the account of a player in vacation mode in the lock screen, whatever was asked for, on every device (#223)', () => {
+    const ctx = world();
+    start(ctx);
+    // An admin with research, a queue, probes and a read mark: none of it shows.
+    for (const uid of ['u_Anna', 'u_Carl']) {
+      const u = ctx.players.get(uid)!;
+      ctx.players.save({
+        ...u,
+        research: { energy: 3 },
+        rq: {
+          key: 'energy',
+          lvl: 4,
+          start: START,
+          end: START + 1,
+          cost: [1, 1, 1],
+        },
+        probes: 7,
+        readAt: 123,
+        explain: 'hidden',
+        vacation: START,
+      });
+    }
+    const locked = (uid: string, selected?: unknown) =>
+      stateFor(ctx, ctx.players.get(uid)!, selected) as Record<string, unknown>;
+    for (const [uid, admin] of [
+      ['u_Anna', false],
+      ['u_Carl', true],
+    ] as const)
+      expect(locked(uid), uid).toEqual({
+        round: roundRules(ctx),
+        now: ctx.now(),
+        cfg: universe(ctx),
+        me: {
+          id: uid,
+          name: uid === 'u_Anna' ? 'Anna' : 'Carl',
+          research: {},
+          rq: null,
+          probes: 1,
+          explain: 'hidden',
+          pushOff: [],
+          readAt: 0,
+          admin,
+          vacation: START,
+        },
+        planet: null,
+        labs: [],
+        fleets: [],
+        reports: [],
+        players: {},
+        galaxy: [],
+        debris: [],
+        admin: null,
+      });
+    // A second device selects a planet, or sends anything: the same lock screen.
+    for (const selected of ['p1_1_5', 'm1_1_5', 5, {}, null])
+      expect(locked('u_Anna', selected), JSON.stringify(selected)).toEqual(
+        locked('u_Anna'),
+      );
+  });
+
   it('keeps a player in vacation in the highscore of the others, with the categories (#78, #223)', () => {
     const ctx = world();
     start(ctx);

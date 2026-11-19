@@ -173,11 +173,14 @@ above.
     `src/server/game/fleet-recognition.test.ts` (every level, the round's
     thresholds, nothing hidden in the answer) and
     `src/client/logic/overview.test.ts`.
-  * **[U]** The row of the overview words what is seen with the text of a
-    fleet, so a flight shows „(Schiffe insgesamt: 3 · Orbitalrakete)“ or
-    „(3 Orbitalrakete)“: „Schiffe“ for missiles. The owner decided only
-    that the defender sees them „like a foreign fleet“; a wording of its
-    own („Raketen insgesamt“) is not decided.
+  * **[V]** The row of the overview words what is seen with the text of a
+    fleet (coordinator, 2026-11-19, taken as recommended), so a flight
+    shows „(Schiffe insgesamt: 3 · Orbitalrakete)“ or „(3 Orbitalrakete)“:
+    „Schiffe“ for missiles. The owner decided only that the defender sees
+    them „like a foreign fleet“. Open question for the owner [U]: keep this
+    wording, or a wording of its own for missiles („Raketen insgesamt: 3“,
+    options: 1. keep, 2. „Raketen insgesamt“ for the mission `missile`,
+    3. a text of its own for the whole row, 4. no „Schiffe“ part).
 * **[U]** Not built, open: tearing missiles down for free (issue, owiki
   „Raketensilo“) and the demolition of the Raketenkrypta below the places
   its missiles take, both with #202 (owner, 2026-11-17).
