@@ -215,4 +215,11 @@ export function recordAchievementAction(
 
 export const serverFeature = {
   actions: { claimAchievement, claimDailyReward },
+  state: {
+    order: 130,
+    keys: ['achievements'],
+    build: (ctx, u, view) => ({
+      achievements: achievementState(ctx, u, view.round),
+    }),
+  },
 } satisfies ServerFeature;

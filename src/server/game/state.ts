@@ -20,7 +20,6 @@ import { inactivities, planetActivities } from './activity.ts';
 import { type Ctx, universe } from './context.ts';
 import { endzeitState } from './endzeit.ts';
 import { mainPlanetOf } from './main-planet.ts';
-import { achievementState } from './achievements.ts';
 import { marketState } from './market.ts';
 import { roundRules } from './round.ts';
 import { categoryScores } from './highscore.ts';
@@ -195,9 +194,6 @@ const FRAME: readonly StatePart[] = [
   keyed(70, 'labs', (ctx, u) => ownLabs(ctx, u.id)),
   keyed(90, 'fleets', fleetsOf),
   keyed(100, 'reports', (ctx, u) => ctx.reports.ofPlayer(u.id)),
-  keyed(130, 'achievements', (ctx, u, view) =>
-    achievementState(ctx, u, view.round),
-  ),
   keyed(140, 'players', (ctx, _u, view) =>
     playersOf(ctx, view.pts, view.limits),
   ),
