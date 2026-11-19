@@ -121,6 +121,21 @@ export function toolChainReason(
 }
 
 /**
+ * The files changed from <from> to <to>. Without rename detection a moved
+ * file shows its old and new path; -z keeps paths with unusual characters
+ * unquoted. Also used by scripts/mutation-partial.ts (#309).
+ */
+export function changedFiles(
+  from: string,
+  to: string,
+  git: (args: string[]) => string,
+): string[] {
+  return git(['diff', '--name-only', '-z', '--no-renames', from, to])
+    .split('\0')
+    .filter(Boolean);
+}
+
+/**
  * Every reason the changes from <from> to <to> run the mutation jobs; none
  * means they are skipped. git runs a git command and returns its output.
  */
@@ -130,16 +145,7 @@ export function reasons(
   mutate: readonly string[],
   git: (args: string[]) => string,
 ): string[] {
-  // Without rename detection a moved file shows its old and new path; -z
-  // keeps paths with unusual characters unquoted.
-  const files = git([
-    'diff',
-    '--name-only',
-    '-z',
-    '--no-renames',
-    from,
-    to,
-  ]).split('\0');
+  const files = changedFiles(from, to, git);
   const found = files.flatMap((f) => reason(f, mutate) ?? []);
   const tools = lockfileReason(files, from, to, git);
   if (tools) found.push(tools);
@@ -173,7 +179,8 @@ export function lockfileReason(
 export const readMutate = (): string[] =>
   (JSON.parse(readFileSync(CONFIG, 'utf8')) as { mutate: string[] }).mutate;
 
-const runGit = (args: string[]): string =>
+/** Runs git in the working directory and returns its output. */
+export const runGit = (args: string[]): string =>
   execFileSync('git', args, {
     encoding: 'utf8',
     maxBuffer: 64 * 1024 * 1024,

@@ -53,7 +53,6 @@ describe('transport', () => {
       target: 'any',
       cargo: true,
       returns: true,
-      visible: false,
       silent: false,
       alertsGuild: false,
     });

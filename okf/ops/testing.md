@@ -28,7 +28,8 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   request of `main` only in its full run (#147). This replaces
   the earlier rule of round 1 that the whole suite runs on every pull
   request. The mutation tests run in a pull request only when it changes
-  what they test (#146, below).
+  what they test (#146, below), and then only for the files it changes
+  (#309, below).
 * **[E]** Unit tests with Vitest; tests come first for new logic and check
   behavior, not markup.
 * **[E]** E2E tests with Playwright in the browser against the real server and
@@ -187,6 +188,78 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   ([Incremental, Limitations](https://stryker-mutator.io/docs/stryker-js/incremental/)).
   An incremental run of a dependency update reuses every result and only
   repeats the dry run.
+* **[E]** A pull request mutates only what it changes (owner, 2026-11-18,
+  #309; the measured runs of 2026-11-18 took 54 to 70 minutes for the
+  slowest of the 6 shards, almost the whole CI time, and every merge of
+  `main` made every other pull request run again): in a pull request that
+  is no release pull request (head `release/*`) and goes into no hotfix
+  branch (base `hotfix/*`), the mutation tests run for the files of the
+  `mutate` globs that it changes and for the source of each test file it
+  changes, in one job „Mutation tests (changed files)“ without shards. The
+  complete run in 6 shards stays for pushes to `main` and `hotfix/**`, the
+  release pull requests, the pull requests into a hotfix branch and the
+  nightly run, with their caches, weights and plan state. The owner accepts
+  that a pull request which lowers the score of a file it does not touch is
+  found only at night or in the release pull request; unit tests and E2E
+  stay complete in every pull request. The nightly run opens or updates the
+  issue „Mutation floor missed on main“ when its gate fails, so that such a
+  drop is seen the next morning (below).
+* **[V]** The set of the partial run (`scripts/mutation-partial.ts`, #309,
+  the coordinator's proposal that the build follows): the files of the
+  `mutate` globs changed against the base that still exist, and, for a
+  changed `*.test.ts`, the mutated sources of the same name: without
+  `.test`, without each dotted suffix of the name (`x.property.test.ts`,
+  `x.routes.test.ts`, `x.facade.test.ts` test `x.ts`), also with the ending
+  `.svelte.ts` (`state.test.ts` tests `state.svelte.ts`), and for a test in
+  `src/test/` the script of the same name in `scripts/`
+  (`size-ratchet.test.ts` tests `scripts/size-ratchet.ts`). A test file with
+  no such source adds nothing; neither does a test helper (`src/test/**`
+  that is no `*.test.ts`, `src/server/test-helpers.ts`): the nightly run
+  tests them. A change of the mutation configuration (`stryker.config.json`,
+  `mutation-standard.json`, `vitest.config.ts`, `scripts/mutation-*.ts`,
+  `tsconfig.json`) or of the versions of Stryker, Vitest or TypeScript in
+  the lockfile (the rule of #146) still runs everything in 6 shards; no
+  file in the set means no mutation job. Test files whose source the name
+  does not find (78 of 212 on 2026-11-18: 8 tests of views whose component
+  is not mutated, 23 in `src/test/`, 6 `*-reference` tests, 18 upgrade
+  tests and 23 others such as `fleet.test.ts` or the mission tests) are
+  still open (#309): until the owner decides a rule, their changes are
+  tested by the nightly run.
+* **[V]** The job „Mutation tests (changed files)“ (`mutation-partial` in
+  `ci.yml`, #309): `needs: changes`, runs when the output `mutation` is
+  `partial` and reads the list from the output `mutation-files`. It mutates
+  every mutant of the files of the set with Stryker's incremental file
+  switched off (`scripts/mutation-partial.ts config` writes
+  `reports/stryker-partial.config.json`), restores and saves no cache (the
+  shard caches `stryker-shard…`, the plan state `stryker-state-…`, the
+  merged reports `stryker-report-…` and `stryker-weights-…` stay what the
+  complete runs wrote, so a partial result never reaches a plan or a
+  weight), and then runs `node scripts/mutation-gate.ts --partial`: Stryker
+  ran exactly the files of the set (its `mutate` list in the report, as the
+  merge of the shards checks it) and no other file is in the report, and
+  each file is at or above its floor in `mutation-standard.json`, a file
+  without a floor at 80 % (a new security file 90 %); no total score, which
+  says nothing over a few files. Stryker leaves a file without mutants (a
+  `types.ts`) out of its report, so a file of the set missing in the report
+  is a notice, not a failure (seen on 2026-11-18 with `src/core/types.ts`
+  and `index.ts` in a run of five files: three files in the report). The
+  report is kept as the artifact `mutation-partial-report` for 7 days. The
+  CI Gate requires the job when the output is `partial` and refuses
+  `partial` in a push, a release pull request and a pull request into a
+  hotfix branch. A head that only merged `main` runs the partial job again
+  (no takeover, #167 applies to the complete run only): it is short. Cost:
+  without the incremental file every mutant of a changed file runs, and the
+  dry run of the whole test suite (about 3 minutes on a loaded machine)
+  comes first; a pull request that changes very many files can take longer
+  than the 6 shards did; a limit is still open (#309).
+* **[V]** The nightly issue (#309): `mutation.yml` had no notice of a failed
+  gate (a failed scheduled run mails only the person who last changed the
+  schedule). Its gate job (`issues: write` on that job only, the token of
+  the workflow, `gh`, no new action) opens the issue „Mutation floor missed
+  on main“ with the failures of the gate, or edits the body of the open one,
+  when the step „Total score and no file below its floor“ failed on `main`
+  (not when a shard did, not on a proof run on another branch). It closes
+  nothing; the owner closes it.
 * **[E]** Test files for #146 (owner, 2026-11-13, O12): what Vitest
   runs (`test.include` of `vitest.config.ts`, `src/**/*.test.ts`) and the
   test helpers it imports (`src/test/**`, `src/server/test-helpers.ts`, as
@@ -622,8 +695,9 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   `--force` when the head branch is `release/*`, uploads `mutation-shard-N`), „Mutation tests“ (`mutation`,
   the gate: merge, total, floors). The CI Gate requires all three when the
   output `mutation` of „Detect changes“ is `true`, and accepts their skip
-  only when it is `false` (#146) or `reuse` (#167, below); any other value
-  fails. `mutation.yml` (nightly and „Run
+  only when it is `false` (#146) or `reuse` (#167, below) or `partial`
+  (#309: then „Mutation tests (changed files)“ must succeed instead, and
+  the three jobs stay skipped); any other value fails. `mutation.yml` (nightly and „Run
   workflow“) runs the same three jobs complete and keeps the merged report as the artifact
   `mutation-report` for 30 days.
 * **[V]** Caches: per shard `stryker-shard<N>-<ref>-<sha>` (nightly with
@@ -681,8 +755,13 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   hotfix branch the script compares the release tag below the base
   (`git describe --tags --abbrev=0 --match '[0-9]*.[0-9]*.[0-9]*'`, as
   the migration check does) with the merge commit, and fails without
-  such a tag (decision above); every other pull request compares its
-  base with the merge commit.
+  such a tag (decision above); a pull request into a hotfix branch
+  compares its base with the merge commit. Every other pull request asks
+  `node scripts/mutation-partial.ts plan <base> <merge commit>` (tests in
+  `src/test/mutation-partial.test.ts`, #309): `true` (everything, in 6
+  shards, with the check of #167 for `reuse`), or the JSON list of the
+  files to mutate, which „Detect changes“ writes as `mutation=partial` and
+  `mutation-files=<list>`, `[]` as `mutation=false`.
 * **[V]** `scripts/mutation-reuse.ts` (tests in
   `src/test/mutation-reuse.test.ts`, #167). „Detect changes“ calls
   `decide <base> <tested> <head>` when `mutation-changes.ts` said `true`

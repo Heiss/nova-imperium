@@ -169,7 +169,8 @@ describe('a new entry of the registry (#283)', () => {
     expect(valuesOf(ctx)).toMatchObject({ testHours: 72 });
   });
 
-  it('the lock of a given-up position (#224), the thresholds of the activity markers (#229) and the minimum duration of the vacation mode (#223) are live settings, rows of the universe settings', () => {
+  it('the live settings are the last rows of the universe settings, in the order of the registry: the lock of a given-up position (#224), the thresholds of the activity markers (#229), the thresholds of foreign fleets (#228), then the minimum duration of the vacation mode (#223)', () => {
+    const level = { min: 0, max: 100 };
     const rows = [
       {
         key: 'roundAbandonLock',
@@ -207,6 +208,24 @@ describe('a new entry of the registry (#283)', () => {
         def: 28,
       },
       {
+        key: 'roundRecognitionTotal',
+        label: 'Fremde Flotten: Schiffe insgesamt ab Auspex-Lehre',
+        ...level,
+        def: 2,
+      },
+      {
+        key: 'roundRecognitionTypes',
+        label: 'Fremde Flotten: Schiffstypen ab Auspex-Lehre',
+        ...level,
+        def: 4,
+      },
+      {
+        key: 'roundRecognitionCounts',
+        label: 'Fremde Flotten: Anzahl je Schiffstyp ab Auspex-Lehre',
+        ...level,
+        def: 8,
+      },
+      {
         key: 'roundVacationHours',
         label: 'Mindestdauer des Urlaubsmodus (Stunden)',
         min: 1,
@@ -228,6 +247,7 @@ describe('a new entry of the registry (#283)', () => {
       guilds: 'no',
       mainLock: 0,
       abandonLock: 0,
+      recognition: {},
       vacationHours: 0,
     };
     for (const [name, text] of [
@@ -243,6 +263,10 @@ describe('a new entry of the registry (#283)', () => {
       [
         'abandonLock',
         'Bitte für die Sperre einer aufgegebenen Position 1 bis 720 ganze Stunden angeben.',
+      ],
+      [
+        'recognition',
+        'Fremde Flotten: Schiffe insgesamt ab Auspex-Lehre: ganze Zahl von 0 bis 100. Fremde Flotten: Schiffstypen ab Auspex-Lehre: ganze Zahl von 0 bis 100. Fremde Flotten: Anzahl je Schiffstyp ab Auspex-Lehre: ganze Zahl von 0 bis 100.',
       ],
       [
         'vacationHours',

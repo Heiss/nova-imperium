@@ -168,6 +168,28 @@ describe('fleet movements', () => {
     );
   });
 
+  it('shows of a foreign fleet only what the Auspex-Lehre recognizes (#228)', () => {
+    const lf = text('lf')!.n;
+    const sc = text('sc')!.n;
+    const seen = (o: Partial<ClientFleet>): string => {
+      const f: ClientFleet = { ...fleet({ owner: 'u2' }), ...o };
+      if (!('ships' in o)) delete f.ships;
+      const [row] = fleetRows(view({ fleets: [f] }), true);
+      return row!.parts.at(-1)!.text;
+    };
+    const line = ` [1:1:5] erreicht deinen Planeten [1:2:3] · ${MISSION.attack}`;
+    expect(seen({})).toBe(`${line} (Zusammensetzung unbekannt)`);
+    expect(seen({ total: 1234 })).toBe(`${line} (Schiffe insgesamt: 1.234)`);
+    expect(seen({ total: 7, types: ['lf', 'sc'] })).toBe(
+      `${line} (Schiffe insgesamt: 7 · ${lf}, ${sc})`,
+    );
+    expect(seen({ types: ['lf', 'zz'] })).toBe(`${line} (${lf}, zz)`);
+    expect(
+      seen({ total: 7, types: ['lf', 'sc'], ships: { lf: 5, sc: 2 } }),
+    ).toBe(`${line} (5 ${lf}, 2 ${sc})`);
+    expect(seen({ ships: { lf: 1000 } })).toBe(`${line} (1.000 ${lf})`);
+  });
+
   it('calls an unknown owner „Unbekannt“ and an unknown ship by its key', () => {
     const [row] = fleetRows(
       view({ fleets: [fleet({ owner: 'u9', ships: { zz: 2 } })] }),

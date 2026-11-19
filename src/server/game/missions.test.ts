@@ -1,8 +1,9 @@
 // The contract of every mission on the server (owner, 2026-11-14, #116): each
 // mission in the generated index has its arrival in the server index, and
-// the dispatcher, the return, the coming home, the view of the defender and
-// the cargo follow its typed rules. A new mission is checked here without
-// new test code; its own behaviour is tested in its folder.
+// the dispatcher, the return, the coming home and the cargo follow its typed
+// rules; the defender sees its ships by the Auspex-Lehre (#228). A new
+// mission is checked here without new test code; its own behaviour is
+// tested in its folder.
 import { describe, expect, it } from 'vitest';
 import { MISSION_SERVERS } from '../../features/index.server.gen.ts';
 import { MISSIONS } from '../../features/index.gen.ts';
@@ -20,6 +21,7 @@ import { arrive, comeHome } from './arrival.ts';
 import { send } from './fleet-actions.ts';
 import { addMoon } from './moons.ts';
 import { foreignView } from './state.ts';
+import { RECOGNITION_DEFAULT } from '../../core/fleet-recognition.ts';
 
 const RULES: [Mission, MissionRules][] = MISSIONS.map(([m, r]) => [m, r]);
 
@@ -158,11 +160,12 @@ describe('the server part of every mission (contract)', () => {
   });
 
   it.each(RULES)(
-    '%s: shows the ships to the defender only if visible',
-    (m, r) => {
+    '%s: shows the defender its ships by the Auspex-Lehre only (#228, D2)',
+    (m) => {
       const { ctx } = setup();
       const f = fleetTo(ctx, m, FOREIGN);
-      expect(foreignView(f).ships).toEqual(r.visible ? f.ships : {});
+      expect(foreignView(f, 7, RECOGNITION_DEFAULT).ships, m).toBeUndefined();
+      expect(foreignView(f, 8, RECOGNITION_DEFAULT).ships, m).toEqual(f.ships);
     },
   );
 
@@ -207,13 +210,12 @@ describe('the server part of every mission (contract)', () => {
       expect(f.cargo, m).toEqual({ m: r.cargo ? 5 : 0, c: 0, d: 0 });
   });
 
-  it('treats a fleet of an unknown mission like before: no ships shown, a report at home', () => {
+  it('treats a fleet of an unknown mission like before: a report at home', () => {
     const { ctx } = setup();
     const f = {
       ...fleetTo(ctx, 'transport', FOREIGN),
       mission: 'nope',
     } as unknown as Fleet;
-    expect(foreignView(f).ships).toEqual({});
     comeHome(ctx, { ...f, state: 'back' });
     expect(ctx.reports.ofPlayer('u_Anna').map((x) => x.title)).toEqual([
       'Rückkehr zu Planet u_Anna [1:1:5]',

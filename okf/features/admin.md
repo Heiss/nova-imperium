@@ -96,6 +96,7 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 | Activity with the minutes up to („Aktivität mit Minutenangabe bis (Minuten)“, #229) | 59 (not in version 1), [E] owner 2026-11-16 | 1 to 1,440 [V]; also in „Neue Runde“ (X1) |
 | Inactive from („Inaktiv ab (Tage)“, #229) | 7 (not in version 1), [E] owner 2026-11-16 | 1 to 365 [V]; also in „Neue Runde“ (X1) |
 | Long inactive from („Lange inaktiv ab (Tage)“, #229) | 28 (not in version 1), [E] owner 2026-11-16 | 1 to 365 [V]; also in „Neue Runde“ (X1) |
+| Thresholds of foreign fleets, levels of the Auspex-Lehre („Fremde Flotten: Schiffe insgesamt ab Auspex-Lehre“, „… Schiffstypen …“, „… Anzahl je Schiffstyp …“, #228) | 2 / 4 / 8 (not in version 1), [E] owner 2026-11-16 | 0 to 100, [E] owner 2026-11-18; also in the dialog „Neue Runde“ in a framed group „Fremde Flotten erkennen“, [E] owner 2026-11-17 (X1) and 2026-11-18 |
 
 * **[V]** The ranges above are proposals; the source is
   `src/core/universe.ts`.
@@ -119,7 +120,7 @@ universe settings) and their ranges are not decided yet.
 | Lock after a switch of the [main planet](/features/main-planet.md), in whole days from 1 to 30 [V] | #221 D3 | default 7 days (owner, 2026-11-16); built in the dialog „Neue Runde“ |
 | Who may hold, join an attack union and fight with friends: guild, friends or both ([Holding and ACS](/features/holding-acs.md), [Buddy list](/features/buddy-list.md)) | #55 Q2, #225 D2, #227 D3 | [V] guild and friends, the classic rule for holding |
 | Limits of an attack union ([Holding and ACS](/features/holding-acs.md)) | #225 D3 | classic value: 16 fleets of 5 players, a delay of at most 30 % of the remaining flight time; join window [U] |
-| Thresholds of the recognition of incoming fleets ([Espionage defense](/features/espionage-defense.md)) | #228 D1 | classic value: espionage technology 2 / 4 / 8 (source [U]) |
+| Thresholds of the recognition of incoming fleets ([Espionage defense](/features/espionage-defense.md)), in whole levels from 0 to 100 [E] (owner, 2026-11-18) | #228 D1, X1 | classic value: espionage technology 2 / 4 / 8 (source [U]); built in the dialog „Neue Runde“ and, changeable during the round, in the universe settings (owner, 2026-11-17, X1) |
 | Thresholds of the [activity indicators](/features/activity-indicators.md) | #229 Q1, X1 | classic value: star 15 min, „x min“ up to 59 min, „i“ after 7 days, „I“ after 28 days; built in the dialog „Neue Runde“ and, changeable during the round, in the universe settings (owner, 2026-11-17, X1) |
 | Slots and holding time of [expeditions](/features/expeditions.md) | #93 Q3 | classic value: ⌊√level⌋ slots, at most level hours |
 | Refund factor of a [demolition](/features/demolition.md), −100 % to +100 % | #202 D4, D7 | +50 % [E] |
@@ -175,9 +176,25 @@ universe settings) and their ranges are not decided yet.
   like the other settings (X1, owner, 2026-11-17). The lock of a given-up
   position (#224) and, after it, the four thresholds of the activity
   markers (#229) are the live settings of main, the last rows of the
-  universe settings; the other four entries are not live. The minimum
-  duration of the vacation mode (#223, `VACATION_SETTING` in
-  `src/core/vacation.ts`, `order` 150) is live too and comes after them.
+  universe settings; the other four entries are not live.
+* **[V]** Added with #228: the three thresholds of the recognition of
+  foreign fleets ([Espionage defense](/features/espionage-defense.md)),
+  `RECOGNITION_TOTAL_SETTING`, `RECOGNITION_TYPES_SETTING` and
+  `RECOGNITION_COUNTS_SETTING` in `src/core/fleet-recognition.ts`, with the
+  orders 120, 130 and 140 (60 to 90 are the activity markers of #229, 100 and
+  110 are left to #55), so they stand after them in the dialog „Neue Runde“
+  and, being live, after the activity rows in the universe settings. They are one group
+  `recognition` with the legend „Fremde Flotten erkennen“ ([E] owner,
+  2026-11-18): three number fields from 0 to 100 ([E], 2026-11-18) in one
+  fieldset with the defaults 2, 4 and 8, sent as one object and refused
+  together with the range wording.
+* **[V]** The minimum duration of the vacation mode (#223, `VACATION_SETTING`
+  in `src/core/vacation.ts`, `order` 150) is live too and comes after the
+  recognition rows.
+* **[V]** With the groups of #229 and #228 the dialog „Neue Runde“ is
+  taller than a window of 720 px, so every dialog (`#modal .in` in
+  `src/client/static/style.css`) is at most as high as the window and
+  scrolls inside itself; before, its buttons lay outside the window.
 * **[V]** A feature with a value per round adds one entry in its own file
   (`export const X_SETTING = { … } as const satisfies RoundSetting`) and
   one line to the list `ENTRIES` in `src/core/round.ts`, where the place
