@@ -19,7 +19,10 @@ export interface Fleets {
   due(now: number): Fleet[];
   /** The fleets flying to a place or holding there (#55), by departure. */
   at(place: string): Fleet[];
-  /** The fleets of an attack union (#225), the leader's first, then by departure. */
+  /**
+   * The fleets of an attack union (#225) that are on their way out, the
+   * leader's first, then by departure: one that turned back is no part of it.
+   */
   ofUnion(union: string): Fleet[];
   /** The players invited to an attack union (#225), by invitation. */
   invited(union: string): string[];
@@ -164,7 +167,7 @@ export class SqliteFleets implements Fleets {
   ofUnion(union: string): Fleet[] {
     const rows = this.db
       .prepare(
-        'SELECT * FROM fleets WHERE union_id = ? ORDER BY id != union_id, dep, id',
+        "SELECT * FROM fleets WHERE union_id = ? AND state = 'out' ORDER BY id != union_id, dep, id",
       )
       .all(union) as Row[];
     return rows.map((r) => this.fleetOf(r)!);

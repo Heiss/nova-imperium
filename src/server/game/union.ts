@@ -202,12 +202,13 @@ export function joinUnion(ctx: Ctx, plan: JoinPlan | null, fleet: Fleet): void {
  */
 export function recalledWith(ctx: Ctx, f: Fleet): Fleet[] {
   if (f.union === undefined) return [f];
-  const all = f.union === f.id ? ctx.fleets.ofUnion(f.id) : [f];
+  const leads = f.union === f.id;
+  const all = leads ? ctx.fleets.ofUnion(f.id) : [f];
   for (const m of all) {
     ctx.fleets.setUnion(m.id, null);
     delete m.union;
   }
-  ctx.fleets.dropInvites(f.id);
+  if (leads) ctx.fleets.dropInvites(f.id);
   for (const m of all)
     if (m.owner !== f.owner)
       addReport(
@@ -221,7 +222,7 @@ export function recalledWith(ctx: Ctx, f: Fleet): Fleet[] {
         },
         { topic: 'fleet' },
       );
-  return all.length ? all : [f];
+  return all;
 }
 
 /** What the arrival of a fleet of a union has: the leader's fleet leading the battle and the others. */

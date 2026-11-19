@@ -867,9 +867,12 @@ describe('the battle of the union', () => {
       state: 'back',
       ships: { bs: 4 },
     });
+    // It turned back before the battle and takes no part in it, whichever fleet is due first.
     expect(ctx.reports.ofPlayer('u_Dirk')[0]).toMatchObject({
       participants: ['u_Anna', 'u_Bert', 'u_Dirk'],
+      attackers: [{ name: 'Bert' }],
     });
+    expect(ctx.fleets.ofUnion('lead')).toEqual([]);
   });
 });
 
