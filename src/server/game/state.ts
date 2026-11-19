@@ -10,7 +10,6 @@ import {
   type SeenShips,
   seenShips,
 } from '../../core/fleet-recognition.ts';
-import { UNIVERSE_SPECS } from '../../core/universe.ts';
 import type { Fleet } from '../../core/types.ts';
 import { SERVER_FEATURES } from '../features.gen.ts';
 import type { User } from '../db/repos/players.ts';
@@ -18,7 +17,6 @@ import { pushOff } from '../push-options.ts';
 import { ownLabs, researchOf } from './actions.ts';
 import { inactivities, planetActivities } from './activity.ts';
 import { type Ctx, universe } from './context.ts';
-import { endzeitState } from './endzeit.ts';
 import { mainPlanetOf } from './main-planet.ts';
 import { roundRules } from './round.ts';
 import { categoryScores } from './highscore.ts';
@@ -86,10 +84,6 @@ function galaxyOf(ctx: Ctx, limits: ActivityLimits) {
     ...(shown[x.id] ? { activity: shown[x.id] } : {}),
   }));
 }
-
-/** What only the admin gets: the settings specification and the „Endzeit“. */
-const adminState = (ctx: Ctx, u: User) =>
-  u.admin ? { specs: UNIVERSE_SPECS, endzeit: endzeitState(ctx) } : null;
 
 /** The player's own account: research, options and the push kinds that are off (#192). */
 const meOf = (ctx: Ctx, u: User) => ({
@@ -199,7 +193,6 @@ const FRAME: readonly StatePart[] = [
   keyed(150, 'galaxy', (ctx, _u, view) => galaxyOf(ctx, view.limits)),
   // Every player sees every Trümmerfeld (#45).
   keyed(160, 'debris', (ctx) => ctx.debris.all()),
-  keyed(190, 'admin', (ctx, u) => adminState(ctx, u)),
 ];
 
 /** The parts of the state in the order of their numbers: the frame and every server feature. */
