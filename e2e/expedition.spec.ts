@@ -124,9 +124,14 @@ test.describe('the expedition (#93)', () => {
     await page.goto('/?view=fleet');
     await page.getByLabel('Anzahl Lastbarke').fill('1');
     await page.getByLabel('Position', { exact: true }).fill('16');
-    await page.getByLabel('Auftrag').selectOption('transport');
-    await expect(page.locator('#t_info')).toHaveText('nur für Expeditionen');
-    await expect(page.getByLabel('Haltezeit in Stunden')).toBeHidden();
+    // Since #253 the list offers only the missions that fit the target: the
+    // expedition position is for expeditions only.
+    const missions = page.getByLabel('Auftrag').locator('option');
+    await expect(missions).toHaveCount(1);
+    await expect(page.getByLabel('Auftrag')).toHaveValue('expedition');
+    await expect(
+      page.getByLabel('Auftrag').locator('option[value=transport]'),
+    ).toHaveCount(0);
 
     // The stay ends and the event is drawn: what it is is a chance of the
     // game, so the test asserts what holds for every outcome, one report of
