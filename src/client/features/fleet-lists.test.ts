@@ -37,6 +37,12 @@ function select(value: string, values: string[]): Field {
   return el;
 }
 
+/** The select „Zielart“ with its option „Mond“, whose `disabled` the form sets. */
+function kindSelect(value: string, disabled: boolean): Field {
+  const option = { disabled };
+  return { value, option, querySelector: () => option };
+}
+
 const place = (
   id: string,
   kind: 'planet' | 'moon',
@@ -52,7 +58,7 @@ beforeEach(() => {
     '#t_g': { value: '1' },
     '#t_s': { value: '2' },
     '#t_p': { value: '6' },
-    '#t_k': { value: 'planet', querySelector: () => ({ disabled: false }) },
+    '#t_k': kindSelect('planet', false),
     '#t_info': { innerHTML: '' },
     '#t_hold': { hidden: false },
     '#t_m': select('attack', ['attack', 'transport', 'spy', 'hold']),
@@ -79,6 +85,7 @@ beforeEach(() => {
   });
   client.ui.view = 'fleet';
   client.ui.fm = 'attack';
+  client.ui.fk = undefined;
   client.game = {
     cfg: {
       ...U,
@@ -229,6 +236,68 @@ describe('the list „Auftrag“ after the view is drawn anew', () => {
     fields['#t_p']!.value = '6';
     change();
     expect(fields['#t_m']!.value).toBe('spy');
+  });
+});
+
+/**
+ * The same redraw for „Zielart“: the fresh select is built for the start
+ * planet, where „Mond“ is disabled, so the restore of `keepInputs` leaves
+ * „Planet“ and the form must set the chosen moon again.
+ */
+describe('the select „Zielart“ after the view is drawn anew', () => {
+  const aimAtMoon = (): void => {
+    fields['#t_s']!.value = '3';
+    fields['#t_p']!.value = '7';
+    fields['#t_k']!.value = 'moon';
+    change({ id: 't_k', value: 'moon' });
+    expect(fields['#t_k']!.value).toBe('moon');
+  };
+  const drawAnew = (): void => {
+    fields['#t_k'] = kindSelect('planet', true);
+    fields['#t_m'] = select('', ['attack', 'spy']);
+    clientFeature.afterRender!();
+  };
+  const kind = (): unknown => fields['#t_k']!.value;
+  const moonEnabled = (): unknown => (fields['#t_k']!.option as Field).disabled;
+
+  it('keeps „Mond“ chosen for a place with a moon', () => {
+    aimAtMoon();
+    drawAnew();
+    expect(kind()).toBe('moon');
+    expect(moonEnabled()).toBe(false);
+  });
+
+  it('keeps „Planet“ when the player chose it for a place with a moon', () => {
+    aimAtMoon();
+    fields['#t_k']!.value = 'planet';
+    change({ id: 't_k', value: 'planet' });
+    drawAnew();
+    expect(kind()).toBe('planet');
+  });
+
+  it('goes back to „Planet“ for a place without a moon, and stays there at a place with one', () => {
+    aimAtMoon();
+    fields['#t_s']!.value = '2';
+    fields['#t_p']!.value = '6';
+    drawAnew();
+    expect(kind()).toBe('planet');
+    expect(moonEnabled()).toBe(true);
+    fields['#t_s']!.value = '3';
+    fields['#t_p']!.value = '7';
+    drawAnew();
+    expect(kind()).toBe('planet');
+  });
+
+  it('keeps the moon chosen in the Schnellwahl', () => {
+    change({ id: 't_q', value: 'm1_3_7' });
+    drawAnew();
+    expect(kind()).toBe('moon');
+  });
+
+  it('forgets the choice once the fleet is sent', async () => {
+    aimAtMoon();
+    await clientFeature.acts(fakeCtx()).send!({});
+    expect(client.ui.fk).toBeUndefined();
   });
 });
 

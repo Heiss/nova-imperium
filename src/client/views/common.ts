@@ -37,6 +37,8 @@ export interface Ui extends PushChoice {
   /** The answer of the last scan of the Auspex-Phalanx (#53), shown from its moon. */
   scan?: Scan | null;
   fm: string;
+  /** The kind of target the player chose in the fleet form, kept over a redraw (the „Mond“ option is not there yet then). */
+  fk?: 'planet' | 'moon' | undefined;
   /** The attack union the fleet form joins (#225), by id; none when empty. */
   union?: string | null;
   openRep: Record<string, boolean>;

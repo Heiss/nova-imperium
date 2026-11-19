@@ -65,6 +65,7 @@ const targetActs = ({
   gfleet: (d) => {
     ui.ft = targetOf(d);
     ui.fm = d.m ?? 'attack';
+    ui.fk = ui.ft.kind;
     go('fleet');
   },
   gspy: (d) => {

@@ -107,9 +107,16 @@ branch, so it is built there, not in a Svelte component.
   mission that is not among those options, and the select came back empty.
   `missionList` therefore also keeps the choice in `client.ui.fm` and
   continues from it when the select is empty; a mission that no longer fits
-  still falls back to the first one that fits. Not yet fixed: the same
-  redraw can reset „Mond“ in the target list while the shown target has no
-  moon.
+  still falls back to the first one that fits.
+* **[V]** The same redraw reset „Mond“ in „Zielart“: the fresh select is
+  built for the start planet or `ui.ft`, where „Mond“ is disabled, and
+  `keepInputs` does not restore onto a disabled option, so a fleet went to
+  the planet instead of the moon. The kind the player chose is kept in
+  `client.ui.fk` (set by the select, the Schnellwahl, „Beitreten“ of a union
+  and the shortcut of the Sternenkarte; cleared on „Flotte losschicken“) and
+  `moonOption` sets „Mond“ again once the option is enabled for the typed
+  target; a place without a moon still resets it to „Planet“. What the form
+  shows when the player returns later is unchanged.
 
 # The Schnellwahl with friends, guild members and last targets (#292)
 

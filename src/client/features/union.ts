@@ -22,6 +22,7 @@ function pick({ setInput }: ClientCtx, id: string): void {
   const kind = choice.moon ? 'moon' : 'planet';
   client.ui.ft = { ...choice.to, kind };
   client.ui.fm = 'attack';
+  client.ui.fk = kind;
   setInput('#t_u', choice.id);
   setInput('#t_g', choice.to.g);
   setInput('#t_s', choice.to.s);

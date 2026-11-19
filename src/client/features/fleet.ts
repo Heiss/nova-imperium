@@ -65,14 +65,29 @@ function readFleetForm(): FleetForm {
   };
 }
 
-/** „Mond“ in the select of the target only where a moon is (#53). */
+/** „Mond“ in the select of the target only where a moon is (#53), and the choice of the player kept. */
 function moonOption(s: GameState): void {
   const select = $('#t_k') as HTMLSelectElement | null;
   if (!select) return;
   const to = readFleetForm().to;
   const option = select.querySelector<HTMLOptionElement>('option[value=moon]')!;
   option.disabled = !moonAt(s.galaxy, to);
-  if (option.disabled && select.value === 'moon') select.value = 'planet';
+  const ui = client.ui;
+  if (option.disabled) {
+    if (select.value === 'moon') select.value = 'planet';
+    ui.fk = 'planet';
+  } else if (ui.fk === 'moon') select.value = 'moon';
+  else if (select.value === 'moon') ui.fk = 'moon';
+}
+
+/**
+ * Keeps the kind of target the player chose in `client.ui.fk`: a state
+ * refresh draws the form anew, built for the start planet, where „Mond“ is
+ * disabled and `keepInputs` cannot restore it; `moonOption` sets it again.
+ */
+function rememberKind(field: { id?: string; value?: string } | null): void {
+  if (field?.id === 't_k')
+    client.ui.fk = field.value === 'moon' ? 'moon' : 'planet';
 }
 
 /**
@@ -181,6 +196,7 @@ const flightActs = ({
     if (!form.mission) return;
     if (await actHere('send', form)) {
       client.ui.ft = null;
+      client.ui.fk = undefined;
       client.ui.union = null;
       render(true);
     }
@@ -206,6 +222,7 @@ function quickChoice(ctx: ClientCtx, field: HTMLSelectElement): void {
   ctx.setInput('#t_s', place.s);
   ctx.setInput('#t_p', place.p);
   ctx.setInput('#t_k', place.kind);
+  client.ui.fk = place.kind;
 }
 
 /** The data-act handlers of the fleet; the form is calculated again on every input. */
@@ -214,10 +231,12 @@ export const clientFeature = {
     document.addEventListener('change', (e) => {
       if (client.ui.view !== 'fleet') return;
       const field = (e?.target ?? null) as HTMLSelectElement | null;
+      rememberKind(field);
       if (field?.id === 't_q') quickChoice(ctx, field);
       fleetCalc();
     });
     document.addEventListener('input', (e) => {
+      rememberKind(e.target as HTMLSelectElement | null);
       if (
         client.ui.view === 'fleet' &&
         (e.target as HTMLElement).closest('main')
