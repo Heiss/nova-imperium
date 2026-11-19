@@ -14,6 +14,7 @@ const PLAIN = [
   'build',
   'cancelBuild',
   'cancelFriend',
+  'cancelOrder',
   'cancelResearch',
   'claimAchievement',
   'claimDailyReward',
