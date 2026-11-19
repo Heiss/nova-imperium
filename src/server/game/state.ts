@@ -1,8 +1,8 @@
 // What one player sees: their planet, their and incoming fleets, reports,
 // the players with points, the galaxy. Foreign fleets show only what an
 // observer can see: of the ships what the observer's Auspex-Lehre
-// recognizes (#228). The admin also gets the settings specification and the
-// state of the „Endzeit“ (#161).
+// recognizes (#228). The keys of a feature are a part of its own module
+// (`serverFeature`, feature.ts), put in order by their numbers.
 import { type ActivityLimits, activityLimits } from '../../core/activity.ts';
 import {
   type Recognition,
