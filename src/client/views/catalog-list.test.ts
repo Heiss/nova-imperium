@@ -78,4 +78,33 @@ describe('CatalogList', () => {
     const buildings = html('building');
     expect(buildings).toContain('data-act="build" data-k="metal"');
   });
+
+  it('puts a separator before „Zurückbauen“ only together with the button (#202)', () => {
+    const v = view();
+    v.P = planet({ b: { lab: 1, yard: 1, metal: 2 } });
+    // The cells as rendered, with Svelte's markers: a space between two
+    // blocks of a cell would show here.
+    const cells = [
+      ...html('building', v).matchAll(/<div class="act">(.*?)<\/div>/g),
+    ].map((m) => m[1]!);
+    const BUTTON = (key: string) =>
+      `<!--[0--><br/><button class="small" data-act="demolish" data-k="${key}">Zurückbauen</button><!--]-->`;
+    const NONE = '<!--]--><!--[-1--><!--]-->';
+    // A row with a level: its action, then the separator and the button, no space.
+    const metal = cells.find((c) => c.includes('data-k="metal"'))!;
+    expect(metal).toMatch(/^<!--\[3--><button .*<\/button><!--\]-->/);
+    expect(metal.endsWith(`<!--]-->${BUTTON('metal')}`)).toBe(true);
+    // A refusal of a row with a level keeps no space before the button either.
+    const yard = cells.find((c) => c.includes('data-k="yard"'))!;
+    expect(yard).toBe(
+      `<!--[2--><span class="req">Das Wissen ist noch verschlossen</span><!--]-->${BUTTON('yard')}`,
+    );
+    // A row without a level has nothing after its action: no space, no break.
+    const locked = cells.filter((c) => !c.includes('data-act="demolish"'));
+    expect(locked.length).toBeGreaterThan(3);
+    for (const cell of locked) expect(cell.endsWith(NONE)).toBe(true);
+    expect(locked).toContain(
+      `<!--[2--><span class="req">Das Wissen ist noch verschlossen</span>${NONE}`,
+    );
+  });
 });

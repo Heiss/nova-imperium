@@ -1,0 +1,8 @@
+---
+type: log-entry
+date: 2026-11-17T09:40
+kind: Decision and code
+issues: [202, 222, 51, 161, 214]
+---
+
+#202 built (part of #222) with the owner's answers of 2026-11-16 and 2026-11-17: „Zurückbauen“ tears down one level per order (D1) based on the cost of that level (D2), in a share of its build time from 1 to 200 %, 50 % by default (D3), for a refund factor from −100 % to +100 %, +50 % by default (D4, D7), both set in the dialog „Neue Runde“ and live in the universe settings (X1: `roundDemolitionRefund`, `roundDemolitionTime`); not while the queue runs, the shipyard builds, the lab researches or the fields would overflow (D5); the points drop with the level (D6); a negative factor without enough resources is refused, as for building. [V] The demolition is one entry of the build queue one level down; a negative factor pays at the start, a positive one gives back at the end; „Abbrechen“ gives back what the start paid and keeps the level; shares round down; the refusals use the messages of building, the overflowing fields „Keine freien Felder.“ (#51) [E] (owner, 2026-11-18, confirmed), a moon or a missing level „Ungültig.“; the running order reads „Rückbau auf Stufe N“ and ends with „Rückbau fertig“ [E] (owner, 2026-11-18, confirmed, with the texts of the confirmation); the Endzeit gift (#161) ends a demolition only when it raised that building. The check is `demolitionErrors` in `src/core/demolition.ts`, codes worded by the server and the browser alike (#214). Migration `20261117T0921-demolition` adds what a demolition gives back to the build queue (see [Demolition of buildings](/features/demolition.md)).

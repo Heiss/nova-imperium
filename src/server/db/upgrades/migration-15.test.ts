@@ -109,11 +109,13 @@ describe('upgrade to migration 15', () => {
     const db = oldDatabase();
     migrate(db, throughNumber(15));
     const store = new Store(db);
-    store.savePlanet({
-      ...store.planet('p1_1_5')!,
-      id: 'm1_1_5',
-      kind: 'moon',
-    });
+    // A copy of the planet as a moon, in SQL: the store writes the columns
+    // of the latest schema (#202).
+    db.exec(`
+      CREATE TEMP TABLE moon AS SELECT * FROM planets WHERE id = 'p1_1_5';
+      UPDATE moon SET id = 'm1_1_5', kind = 'moon';
+      INSERT INTO planets SELECT * FROM moon;
+    `);
     expect(store.planet('m1_1_5')).toMatchObject({ kind: 'moon', g: 1, p: 5 });
     expect(() =>
       db.exec(`UPDATE planets SET g = 1, s = 1, p = 5 WHERE id = 'p1_1_6'`),

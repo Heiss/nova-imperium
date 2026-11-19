@@ -233,6 +233,7 @@ describe('buildings', () => {
     expect(row(v, 'building', 'metal').running).toBe(true);
     expect(action(v, 'building', 'metal')).toEqual({
       kind: 'upgrading',
+      down: false,
       level: 3,
       end: 11000,
       left: dur(6000),
@@ -247,6 +248,28 @@ describe('buildings', () => {
       text: 'Bauschleife belegt',
     });
     expect(row(v, 'building', 'crystal').running).toBe(false);
+    // No „Zurückbauen“ while the queue runs (#202).
+    expect(row(v, 'building', 'metal').demolish).toBe(false);
+  });
+
+  it('shows a running demolition as „Rückbau“ and offers „Zurückbauen“ only with a level (#202)', () => {
+    const bq = {
+      key: 'metal',
+      lvl: 1,
+      start: 1000,
+      end: 11000,
+      cost: NONE,
+      back: NONE,
+    };
+    const v = view({ P: { b: { metal: 2 }, bq }, now: 5000 });
+    expect(action(v, 'building', 'metal')).toMatchObject({
+      kind: 'upgrading',
+      down: true,
+      level: 1,
+    });
+    const idle = view({ P: { b: { metal: 2 } } });
+    expect(row(idle, 'building', 'metal').demolish).toBe(true);
+    expect(row(idle, 'building', 'crystal').demolish).toBe(false);
   });
 
   it('names what a building waits for', () => {

@@ -29,7 +29,13 @@ export interface Queue {
   lvl: number;
   start: number;
   end: number;
+  /** What the start paid; a cancel gives it back. */
   cost: Cost;
+  /**
+   * Only on a demolition of the build queue (#202): what its end gives back.
+   * The level `lvl` is then one below the level that stands.
+   */
+  back?: Cost;
 }
 
 interface ShipyardItem {

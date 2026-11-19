@@ -258,6 +258,43 @@ describe('the thresholds of foreign fleets in the dialog „Neue Runde“ (#228,
   });
 });
 
+describe('the demolition in the dialog „Neue Runde“ (#202, X1)', () => {
+  it('are a refund factor from -100 to 100 and a time from 1 to 200, named as in the universe settings, preselected with the current round, in one fieldset with the legend of the owner (2026-11-18)', () => {
+    const html = roundDialog({
+      ...defaults(),
+      demolitionRefund: -40,
+      demolitionTime: 120,
+    });
+    for (const [part, label, min, max, value] of [
+      ['refund', 'Rückbau-Erstattung (%)', -100, 100, -40],
+      ['time', 'Rückbau-Dauer (% der Bauzeit)', 1, 200, 120],
+    ] as const) {
+      expect(html).toContain(
+        `<label for="round-demolition-${part}">${label}</label> <input type="number" id="round-demolition-${part}" min="${min}" max="${max}" step="1" value="${value}" required> <span class="dim">${min} bis ${max}</span>`,
+      );
+      expect(html.indexOf(`id="round-demolition-${part}"`)).toBeLessThan(
+        html.indexOf('data-act="doReset"'),
+      );
+    }
+    const open = '<fieldset><legend>Rückbau</legend>';
+    expect(html.split(open)).toHaveLength(2);
+    const group = html.slice(html.indexOf(open)).split('</fieldset>')[0]!;
+    expect(group.match(/<input /g)).toHaveLength(2);
+    for (const part of ['refund', 'time'])
+      expect(group).toContain(`id="round-demolition-${part}"`);
+  });
+
+  it('are preselected with the defaults +50 % and 50 %', () => {
+    const html = roundDialog(defaults());
+    expect(html).toContain(
+      'id="round-demolition-refund" min="-100" max="100" step="1" value="50"',
+    );
+    expect(html).toContain(
+      'id="round-demolition-time" min="1" max="200" step="1" value="50"',
+    );
+  });
+});
+
 describe('the warning below the box „Gilden (mit Chat)“ (#191)', () => {
   // Every new round clears the chats as well (#169 D6), guilds on or off.
   const WARNING =
