@@ -280,6 +280,9 @@ function compare(
 }
 
 describe('Achievements against the view before #118, bundle 5', () => {
+  // 300 pages of up to some hundred achievements take about 3 s alone and
+  // more under the coverage of the mutation run, whose dry run refused the
+  // default 5 s; the cases and the assertion stay the same.
   it('renders the page as before', () => {
     fc.assert(
       fc.property(state, ({ view, open, folded }) =>
@@ -287,7 +290,7 @@ describe('Achievements against the view before #118, bundle 5', () => {
       ),
       { seed: 118, numRuns: 300 },
     );
-  });
+  }, 60_000);
 
   it('renders the hand-built cases as before', () => {
     for (const [name, v, fold] of HAND_BUILT) compare(v, fold, name);
