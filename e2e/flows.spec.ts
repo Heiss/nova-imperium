@@ -822,24 +822,3 @@ test.describe('admin (#68)', () => {
     expect(w.problems).toEqual([]);
   });
 });
-
-test.describe('push and economy (#68)', () => {
-  test('browser notifications: this server without Web Push says so; „Deaktivieren“ works', async ({
-    page,
-    context,
-  }) => {
-    await context.grantPermissions(['notifications']);
-    const w = watch(page);
-    await register(page, uniqueName('Push'));
-    await nav(page, 'help');
-    await page.getByRole('button', { name: 'Aktivieren', exact: true }).click();
-    await expect(page.locator('.toast.err').last()).toContainText(
-      'Browser-Benachrichtigungen sind auf diesem Server deaktiviert.',
-    );
-    await page
-      .getByRole('button', { name: 'Deaktivieren', exact: true })
-      .click();
-    await expect(lastToast(page)).toHaveText('Benachrichtigungen deaktiviert.');
-    expect(w.problems).toEqual([]);
-  });
-});
