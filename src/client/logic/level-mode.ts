@@ -7,6 +7,7 @@ import {
   type LevelMode,
   levelMode,
 } from '../../core/level-overview.ts';
+import type { Choice } from './explain.ts';
 
 /** Labels of the option „Stufenübersicht“ (#187, [V]). */
 const LABELS: Record<LevelMode, string> = {
@@ -54,8 +55,9 @@ export function levelsRow(
 }
 
 /** The choices of the option, the current mode selected. */
-export const levelOptionsHTML = (mode: unknown): string =>
-  LEVEL_MODES.map(
-    (m) =>
-      `<option value="${m}"${m === levelMode(mode) ? ' selected' : ''}>${LABELS[m]}</option>`,
-  ).join('');
+export const levelChoices = (mode: unknown): Choice[] =>
+  LEVEL_MODES.map((m) => ({
+    value: m,
+    label: LABELS[m],
+    selected: m === levelMode(mode),
+  }));

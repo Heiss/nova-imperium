@@ -9,7 +9,7 @@ import {
   lockLeft,
   lockNote,
   locked,
-  vacationHTML,
+  vacationIntro,
 } from './vacation.ts';
 
 const START = new Date(2026, 10, 17, 12, 0).getTime();
@@ -19,15 +19,15 @@ const state = (vacation: number | null, vacationHours = 48) => ({
 });
 
 describe('the box „Urlaubsmodus“ outside of it', () => {
-  it('explains the mode and what blocks the entry, and offers to start it', () => {
-    expect(vacationHTML(24)).toBe(
-      '<p>Im Urlaubsmodus ruht die Produktion deiner Planeten und Monde, und du kannst nichts bauen, forschen oder Flotten senden. Andere Spieler können keine neuen Flotten zu dir schicken; bereits gestartete kommen noch an. Beenden kannst du ihn frühestens nach 24 Stunden.</p><p>Aktivieren kannst du ihn nur, wenn keine eigenen Flotten unterwegs sind und weder gebaut, geforscht noch in der Schiffsschmiede gearbeitet wird.</p><button data-act="startVacation">Urlaubsmodus aktivieren</button>',
+  it('explains the mode and what blocks the entry', () => {
+    expect(vacationIntro(24)).toBe(
+      'Im Urlaubsmodus ruht die Produktion deiner Planeten und Monde, und du kannst nichts bauen, forschen oder Flotten senden. Andere Spieler können keine neuen Flotten zu dir schicken; bereits gestartete kommen noch an. Beenden kannst du ihn frühestens nach 24 Stunden.',
     );
   });
 
   it('names the minimum duration of the round, one hour too', () => {
-    expect(vacationHTML(48)).toContain('nach 48 Stunden.');
-    expect(vacationHTML(1)).toContain('nach 1 Stunde.');
+    expect(vacationIntro(48)).toContain('nach 48 Stunden.');
+    expect(vacationIntro(1)).toContain('nach 1 Stunde.');
   });
 });
 

@@ -3,7 +3,7 @@
 // preselected, and while the lock holds the date it ends.
 import { describe, expect, it } from 'vitest';
 import { DAY_MS } from '../../core/main-planet.ts';
-import { lockEnd, mainPlanetHTML } from './main-planet.ts';
+import { lockEnd, mainPlanetBox } from './main-planet.ts';
 import type { GameState } from './types.ts';
 
 const NOW = Date.UTC(2026, 10, 16, 12, 0);
@@ -51,56 +51,51 @@ const state = (over: Partial<GameState> = {}) =>
     ...over,
   }) as unknown as GameState;
 
-const options = (html: string): string[] =>
-  [...html.matchAll(/<option[^>]*>[^<]*<\/option>/g)].map((m) => m[0]);
+const options = (s: GameState, now = NOW): string[] =>
+  mainPlanetBox(s, now).options.map(
+    (o) => `${o.id}${o.selected ? ' selected' : ''}: ${o.label}`,
+  );
 
 describe('the box „Hauptplanet“', () => {
   it('offers every own planet, never a moon or a foreign planet', () => {
-    expect(options(mainPlanetHTML(state(), NOW))).toEqual([
-      '<option value="p1_2_3" selected>Heimat [1:2:3] – Heimatplanet</option>',
-      '<option value="p2_5_9">Kolonie [2:5:9]</option>',
-      '<option value="p3_1_1">&lt;b&gt;X&lt;/b&gt; [3:1:1]</option>',
+    expect(options(state())).toEqual([
+      'p1_2_3 selected: Heimat [1:2:3] – Heimatplanet',
+      'p2_5_9: Kolonie [2:5:9]',
+      'p3_1_1: <b>X</b> [3:1:1]',
     ]);
   });
 
   it('preselects the chosen main planet; the first planet keeps its name', () => {
-    expect(
-      options(mainPlanetHTML(state({ mainPlanet: 'p2_5_9' }), NOW)),
-    ).toEqual([
-      '<option value="p1_2_3">Heimat [1:2:3] – Heimatplanet</option>',
-      '<option value="p2_5_9" selected>Kolonie [2:5:9]</option>',
-      '<option value="p3_1_1">&lt;b&gt;X&lt;/b&gt; [3:1:1]</option>',
+    expect(options(state({ mainPlanet: 'p2_5_9' }))).toEqual([
+      'p1_2_3: Heimat [1:2:3] – Heimatplanet',
+      'p2_5_9 selected: Kolonie [2:5:9]',
+      'p3_1_1: <b>X</b> [3:1:1]',
     ]);
   });
 
   it('explains what the main planet does and names the lock of the round', () => {
-    expect(mainPlanetHTML(state(), NOW)).toMatch(
-      /^<p>Der Hauptplanet ist das Ziel von „zum Heimatsystem“ auf der Sternenkarte und der Planet, den das Spiel ohne Auswahl zeigt\. Nach jedem Wechsel ist die Wahl 7 Tage gesperrt\.<\/p><div class="flex"><label for="o_main">Hauptplanet<\/label> <select id="o_main"><option/,
+    expect(mainPlanetBox(state(), NOW).intro).toBe(
+      'Der Hauptplanet ist das Ziel von „zum Heimatsystem“ auf der Sternenkarte und der Planet, den das Spiel ohne Auswahl zeigt. Nach jedem Wechsel ist die Wahl 7 Tage gesperrt.',
     );
     expect(
-      mainPlanetHTML(state({ round: { mainLock: 1 } } as never), NOW),
+      mainPlanetBox(state({ round: { mainLock: 1 } } as never), NOW).intro,
     ).toContain('Nach jedem Wechsel ist die Wahl 1 Tag gesperrt.');
   });
 
   it('can be changed without a lock', () => {
     for (const mainLock of [null, undefined, NOW, NOW - 1]) {
-      const html = mainPlanetHTML(state({ mainLock }), NOW);
-      expect(html).toContain('<select id="o_main"><option');
-      expect(html).toMatch(
-        /<\/select> <button data-act="mainPlanet">Ändern<\/button><\/div>$/,
-      );
-      expect(html).not.toContain('Wieder änderbar');
+      const box = mainPlanetBox(state({ mainLock }), NOW);
+      expect(box.locked).toBe(false);
+      expect(box.note).toBeNull();
     }
   });
 
   it('is disabled while the lock holds and says when it ends', () => {
     const end = NOW + 7 * DAY_MS;
     for (const now of [NOW, end - 1]) {
-      const html = mainPlanetHTML(state({ mainLock: end }), now);
-      expect(html).toContain('<select id="o_main" disabled><option');
-      expect(html).toContain(
-        `<button data-act="mainPlanet" disabled>Ändern</button></div><p id="o_main_lock">Wieder änderbar ab ${lockEnd(end)}</p>`,
-      );
+      const box = mainPlanetBox(state({ mainLock: end }), now);
+      expect(box.locked).toBe(true);
+      expect(box.note).toBe(`Wieder änderbar ab ${lockEnd(end)}`);
     }
   });
 });

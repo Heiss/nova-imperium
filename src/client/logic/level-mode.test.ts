@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { levelOptionsHTML, levelsRow } from './level-mode.ts';
+import { levelChoices, levelsRow } from './level-mode.ts';
 
 describe('the ▤ of an entry per mode of „Stufenübersicht“ (#187 D4, D5)', () => {
   it('„Als ▤-Symbol“: a button that unfolds the table', () => {
@@ -45,23 +45,22 @@ describe('the ▤ of an entry per mode of „Stufenübersicht“ (#187 D4, D5)',
 });
 
 describe('the choices of the option „Stufenübersicht“', () => {
+  const selected = (mode: unknown): string[] =>
+    levelChoices(mode)
+      .filter((c) => c.selected)
+      .map((c) => c.value);
+
   it('list the three modes with the current one selected', () => {
-    expect(levelOptionsHTML('icon')).toBe(
-      '<option value="always">Immer anzeigen</option>' +
-        '<option value="icon" selected>Als ▤-Symbol</option>' +
-        '<option value="hidden">Ausblenden</option>',
-    );
-    expect(levelOptionsHTML('hidden')).toContain(
-      '<option value="hidden" selected>',
-    );
-    expect(levelOptionsHTML('always')).toContain(
-      '<option value="always" selected>',
-    );
+    expect(levelChoices('icon')).toEqual([
+      { value: 'always', label: 'Immer anzeigen', selected: false },
+      { value: 'icon', label: 'Als ▤-Symbol', selected: true },
+      { value: 'hidden', label: 'Ausblenden', selected: false },
+    ]);
+    expect(selected('hidden')).toEqual(['hidden']);
+    expect(selected('always')).toEqual(['always']);
   });
 
   it('select the ▤ for a missing mode', () => {
-    expect(levelOptionsHTML(undefined)).toContain(
-      '<option value="icon" selected>',
-    );
+    expect(selected(undefined)).toEqual(['icon']);
   });
 });

@@ -2,21 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { text } from '../../core/text.ts';
 import {
   explainMode,
-  explainOptionsHTML,
+  explainChoices,
   explanation,
   PANEL_ID,
   paragraphs,
 } from './explain.ts';
 
 const metal = text('metal')!;
-
-/** The attributes of the first element with the given tag. */
-function attributes(html: string, tag: string): Record<string, string> {
-  const element = new RegExp(`<${tag}\\b([^>]*)>`).exec(html);
-  if (!element) throw new Error(`no <${tag}> in ${html}`);
-  const pairs = [...element[1]!.matchAll(/([\w-]+)(?:="([^"]*)")?/g)];
-  return Object.fromEntries(pairs.map((m) => [m[1]!, m[2] ?? '']));
-}
 
 describe('the „?“ of an entry per display mode (#63, #285 B2)', () => {
   it('„Anzeigen“: a „?“ that opens the article in the side panel', () => {
@@ -57,22 +49,18 @@ describe('the „?“ of an entry per display mode (#63, #285 B2)', () => {
   });
 });
 
-describe('the option in „Hilfe & Optionen“ (#285 B2)', () => {
+describe('the option in „Optionen“ (#285 B2)', () => {
   it('offers the two values and selects the current one', () => {
-    const html = explainOptionsHTML('hidden');
-    const options = [...html.matchAll(/<option ([^>]*)>([^<]*)<\/option>/g)];
-    expect(options.map((m) => m[2])).toEqual(['Anzeigen', 'Ausblenden']);
-    expect(html).toBe(options.map((m) => m[0]).join(''));
-    expect(options.map((m) => attributes(m[0], 'option'))).toEqual([
-      { value: 'icon' },
-      { value: 'hidden', selected: '' },
+    expect(explainChoices('hidden')).toEqual([
+      { value: 'icon', label: 'Anzeigen', selected: false },
+      { value: 'hidden', label: 'Ausblenden', selected: true },
     ]);
   });
 
   it('selects „Anzeigen“ for a player without a stored mode or with „Immer anzeigen“', () => {
     for (const mode of [undefined, 'always'])
-      expect(explainOptionsHTML(mode)).toContain(
-        '<option value="icon" selected>',
-      );
+      expect(explainChoices(mode).filter((c) => c.selected)).toEqual([
+        { value: 'icon', label: 'Anzeigen', selected: true },
+      ]);
   });
 });

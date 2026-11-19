@@ -14,17 +14,19 @@ import { roundDefaults } from '../../test/fixtures.ts';
 import { highscoreView } from '../../test/highscore-view.ts';
 import { levelView } from '../../test/level-view.ts';
 import { normalize } from '../../test/markup.ts';
+import { optionsView } from '../../test/options-view.ts';
 import type { GameState } from '../logic/types.ts';
 import type { V } from './common.ts';
 import {
   admin,
   deleteAccountBox,
   deleteAccountDialog,
-  help,
   roundDialog,
 } from './misc.ts';
 
 const highscore = (v: V): string => normalize(highscoreView(v));
+/** „Optionen“ as the component Options renders it (#118, bundle 5). */
+const help = (v: V): string => normalize(optionsView(v));
 
 describe('highscore', () => {
   it('shows the planet of a player, also when its moon comes first (#53)', () => {
@@ -555,7 +557,7 @@ describe('the option „Stufenübersicht“ in „Optionen“ (#187)', () => {
     const html = page('always');
     expect(html).toContain(
       '<label for="o_levels">Stufenübersicht:</label> <select id="o_levels">' +
-        '<option value="always" selected>Immer anzeigen</option>' +
+        '<option selected value="always">Immer anzeigen</option>' +
         '<option value="icon">Als ▤-Symbol</option>' +
         '<option value="hidden">Ausblenden</option></select>',
     );
@@ -568,7 +570,7 @@ describe('the option „Stufenübersicht“ in „Optionen“ (#187)', () => {
   });
 
   it('shows the ▤ for a player without a stored mode (D5)', () => {
-    expect(page()).toContain('<option value="icon" selected>Als ▤-Symbol');
+    expect(page()).toContain('<option selected value="icon">Als ▤-Symbol');
   });
 
   it('has the box „Meine Aktivität & Spielzeit“ after the vacation mode (#231)', () => {
@@ -601,10 +603,7 @@ describe('„Optionen“ without the box of the rules (#288, B4)', () => {
   it('links „Dieses Universum“ of the Lexicanum, which the Lexicanum opens', () => {
     const page = html();
     expect(page).toContain(
-      '<a class="lx-a" href="?view=lexicanum&a=rule-universe"',
-    );
-    expect(page).toContain(
-      'data-act="lex" data-a="rule-universe">Dieses Universum</a>',
+      '<a class="lx-a" data-a="rule-universe" data-act="lex" href="?view=lexicanum&amp;a=rule-universe">Dieses Universum</a>',
     );
     // The article exists, so the link does not lead nowhere.
     expect(article('rule-universe')?.title).toBe('Dieses Universum');

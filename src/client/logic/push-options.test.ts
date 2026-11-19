@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { PUSH_TOPICS } from '../../core/push.ts';
 import type { PushTopic } from '../../core/push.ts';
 import {
+  pushKinds,
   pushKindsHTML,
   pushSaver,
   shownPushOff,
@@ -105,6 +106,36 @@ function slowServer() {
   const settle = () => new Promise((r) => setTimeout(r, 0));
   return { calls, save, settle };
 }
+
+describe('the checkboxes of the push kinds as data (#118, bundle 5)', () => {
+  it('has none on a server without Web Push', () => {
+    expect(pushKinds(false, [], true)).toBeNull();
+    expect(pushKinds(undefined, ['news'], false)).toBeNull();
+  });
+
+  it('lists every kind with the id of its input, on unless the player switched it off', () => {
+    const kinds = pushKinds(true, ['news'], true)!;
+    expect(kinds.map((k) => k.topic)).toEqual([...PUSH_TOPICS]);
+    expect(kinds.find((k) => k.topic === 'fleet')).toEqual({
+      topic: 'fleet',
+      id: 'push_fleet',
+      label: 'Eigene Flotten: Ankunft, Bericht und Rückkehr',
+      checked: true,
+    });
+    expect(kinds.filter((k) => !k.checked).map((k) => k.topic)).toEqual([
+      'news',
+    ]);
+    expect(pushKinds(true, undefined, true)!.every((k) => k.checked)).toBe(
+      true,
+    );
+  });
+
+  it('leaves out the kinds of the guilds while guilds are off', () => {
+    expect(pushKinds(true, [], false)!.map((k) => k.topic)).not.toContain(
+      'guild-chat',
+    );
+  });
+});
 
 describe('saving the push kinds one at a time (CodeRabbit on #204)', () => {
   it('keeps both kinds off after two quick changes; the second waits for the first', async () => {
