@@ -117,5 +117,6 @@ Homeplanet, Terraformer); the owner confirmed them on 2026-11-13.
 
 # Out of scope
 
-* Moon fields (#53). Tearing down buildings is decided with #202 (owner,
+* Moon fields (#53). Tearing down buildings is no longer out of scope: it
+  is built with #202, and a demolished level frees its field (owner,
   2026-11-16, [Demolition](/features/demolition.md)).

@@ -9,6 +9,7 @@ import {
 import type { User } from '../db/repos/players.ts';
 import * as A from './actions.ts';
 import { reset, saveSettings } from './admin.ts';
+import { demolish } from './demolition.ts';
 import { endzeit } from './endzeit.ts';
 import { pushOptions } from '../push-options.ts';
 import { tick } from './arrival.ts';
@@ -74,6 +75,7 @@ export const GUILD_ACTIONS: ReadonlySet<string> = new Set(Object.keys(GUILD));
 export const ACTIONS: Record<string, A.Action> = {
   build: A.build,
   cancelBuild: A.cancelBuild,
+  demolish,
   research: A.research,
   cancelResearch: A.cancelResearch,
   order: A.order,

@@ -16,9 +16,10 @@ import { energyShort } from './research.ts';
 import type { Planet, ResearchState, Universe } from './types.ts';
 import { hasYard, unitRoom, waitsForYard, yardLockedBy } from './yard.ts';
 
-/** The codes whose check holds, in the order of the record. */
-const holding = <T extends string>(checks: Readonly<Record<T, boolean>>): T[] =>
-  (Object.keys(checks) as T[]).filter((code) => checks[code]);
+/** The codes whose check holds, in the order of the record (also of `demolitionErrors`, #202). */
+export const holding = <T extends string>(
+  checks: Readonly<Record<T, boolean>>,
+): T[] => (Object.keys(checks) as T[]).filter((code) => checks[code]);
 
 /**
  * Why the next level of a building cannot start on a place: it cannot stand
