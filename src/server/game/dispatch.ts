@@ -22,26 +22,12 @@ import {
   setGuildDefaultRank,
   setGuildRankRights,
 } from './guild-ranks.ts';
-import {
-  createGuild,
-  updateGuild,
-  applyToGuild,
-  reviewGuildApplication,
-  leaveGuild,
-  manageGuildMember,
-} from './guilds.ts';
 
 /**
  * The guild actions: refused while guilds are off in the round (#191). A
  * new guild action, the chat of #169 included, belongs here.
  */
 const GUILD: Record<string, A.Action> = {
-  createGuild,
-  updateGuild,
-  applyToGuild,
-  reviewGuildApplication,
-  leaveGuild,
-  manageGuildMember,
   createGuildRank,
   renameGuildRank,
   setGuildRankRights,

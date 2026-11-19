@@ -14,6 +14,7 @@ import {
   rankState,
   type Actor,
 } from './guild-ranks.ts';
+import type { ServerFeature } from './feature.ts';
 
 const markdown = new MarkdownIt({ html: false, linkify: false }).disable(
   'image',
@@ -168,3 +169,14 @@ export function guildState(
     chat: inside ? chatState(ctx, inside, players) : null,
   };
 }
+
+export const serverFeature = {
+  guildActions: {
+    createGuild,
+    updateGuild,
+    applyToGuild,
+    reviewGuildApplication,
+    leaveGuild,
+    manageGuildMember,
+  },
+} satisfies ServerFeature;
