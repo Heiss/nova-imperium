@@ -147,6 +147,35 @@ describe('the activity thresholds in the dialog „Neue Runde“ (#229, X1)', ()
   });
 });
 
+describe('the thresholds of foreign fleets in the dialog „Neue Runde“ (#228, X1)', () => {
+  it('are levels from 0 to 100, named as in the universe settings, preselected with the current round, in one fieldset with the legend of the owner (2026-11-18)', () => {
+    const html = roundDialog({
+      ...defaults(),
+      recognitionTotal: 1,
+      recognitionTypes: 5,
+      recognitionCounts: 9,
+    });
+    for (const [part, label, value] of [
+      ['total', 'Fremde Flotten: Schiffe insgesamt ab Auspex-Lehre', 1],
+      ['types', 'Fremde Flotten: Schiffstypen ab Auspex-Lehre', 5],
+      ['counts', 'Fremde Flotten: Anzahl je Schiffstyp ab Auspex-Lehre', 9],
+    ] as const) {
+      expect(html).toContain(
+        `<label for="round-recognition-${part}">${label}</label> <input type="number" id="round-recognition-${part}" min="0" max="100" step="1" value="${value}" required> <span class="dim">0 bis 100</span>`,
+      );
+      expect(html.indexOf(`id="round-recognition-${part}"`)).toBeLessThan(
+        html.indexOf('data-act="doReset"'),
+      );
+    }
+    const open = '<fieldset><legend>Fremde Flotten erkennen</legend>';
+    expect(html.split(open)).toHaveLength(2);
+    const group = html.slice(html.indexOf(open)).split('</fieldset>')[0]!;
+    expect(group.match(/<input /g)).toHaveLength(3);
+    for (const part of ['total', 'types', 'counts'])
+      expect(group).toContain(`id="round-recognition-${part}"`);
+  });
+});
+
 describe('the warning below the box „Gilden (mit Chat)“ (#191)', () => {
   // Every new round clears the chats as well (#169 D6), guilds on or off.
   const WARNING =
