@@ -29,7 +29,13 @@ interface Unit {
   attack: number;
 }
 
-const bonus = (tech: Levels, key: string): number => 1 + 0.1 * (tech[key] ?? 0);
+/** What each level of weapons, shield and armour research adds (#285). */
+export const TECH_BONUS = 0.1;
+
+/** The factor of weapons, shield or armour research at a level. */
+export const techFactor = (level: number): number => 1 + TECH_BONUS * level;
+
+const bonus = (tech: Levels, key: string): number => techFactor(tech[key] ?? 0);
 
 const MAX_ROUNDS = 6;
 

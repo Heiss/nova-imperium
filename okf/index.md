@@ -26,6 +26,8 @@ okf_version: "0.2"
 * [Ionengeschütz, Plasmawerfer and shield domes](/features/defense-ion-plasma-domes.md) - defense of #50, domes once per planet
 * [Ionentechnik, Plasmatechnik, Gravitonforschung and IFN](/features/research-ion-plasma-graviton.md) - new research of #49, energy check of Gravitonforschung, research on any planet with a lab, research network
 * [Explanation texts](/features/explanation-texts.md) - long texts with a display option per player (#63)
+* [Lexicanum](/features/lexicanum.md) - in-game lexicon of stage 1: an article per catalog entry and mission computed from the rules, side panel and page, search, shared level table (#285, #187)
+* [Lexicanum texts](/features/lexicanum-texts.md) - review list of the texts Claude drafted for the Lexicanum: words before the formulas, mission texts, keywords, all [V] until the owner confirms them (#285)
 * [Late-game combat ships](/features/late-game-ships.md) - Schlachtkreuzer, Zerstörer, Bomber, Todesstern of #56, classic values, drive switch
 * [Solarsatellit](/features/solar-satellite.md) - energy satellite of #46, temperature formula, share, battle role
 * [Fusionskraftwerk](/features/fusion-reactor.md) - deuterium-burning power plant of #47, throttling at an empty stock
@@ -48,7 +50,7 @@ okf_version: "0.2"
 * [Holding, alliance depot and attack unions](/features/holding-acs.md) - holding at other players, the depot later, attack unions with classic limits, who may join per round (#55, #225, #227)
 * [Buddy list](/features/buddy-list.md) - mutual friendships, name and contact only, kept across rounds (#227)
 * [Espionage defense and fleet recognition](/features/espionage-defense.md) - detection chance of probes, activity in the Auspex-Bericht, thresholds 2/4/8 for incoming fleets (#175, #228)
-* [Activity indicators](/features/activity-indicators.md) - activity per planet and inactivity per account in the Sternenkarte, classic thresholds (#229)
+* [Activity indicators](/features/activity-indicators.md) - activity per planet and inactivity per account in the Sternenkarte, set by a login and manual actions (v0.77b), classic thresholds per round (#229)
 * [Missiles](/features/missiles.md) - silo, anti-ballistic and interplanetary missiles with classic values (#54)
 * [Expeditions and position 16](/features/expeditions.md) - Expeditionstechnik, outcomes, slots and holding time, debris at position 16 (#93)
 * [Highscore categories](/features/highscore-categories.md) - buildings, research, fleet, defense and total; fleet and research by count (#78)

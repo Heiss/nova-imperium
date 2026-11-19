@@ -268,6 +268,20 @@ tasks).
   (owner, 2026-11-15, #212, [Documentation website](/ops/website.md)): a
   merge of `main` into an open branch no longer conflicts at the top of
   one log file, which saves a push and a CI run per merge.
+* **[E]** The Lexicanum is kept up to date by Claude (owner, 2026-11-17,
+  #285): a pull request that changes a rule or adds a catalog entry or a
+  mission updates its article in the same pull request: the texts and
+  formulas of `src/features/<key>/lexicon.de.ts` (a mission:
+  `src/features/missions/<m>/lexicon.de.ts`), and a rule the article
+  shows moves into `src/core` so the article computes it. The tables
+  follow by themselves; the guards of `src/core/lexicon/articles.test.ts`
+  turn the CI red for an entry or mission without an article or without
+  keywords, a mission without its text, a level effect without words
+  before its formula, a link without a target, a typed number in a text
+  and a formula that disagrees with its rule. A new or changed text is a
+  draft [V] in the review list
+  [Lexicanum texts](/features/lexicanum-texts.md) until the owner confirms
+  it (see [Lexicanum](/features/lexicanum.md)).
 * **[E]** Claude bundles pushes: while the CI of a pull request runs, no
   push of documentation or OKF alone (for example confirmed [V] → [E]); such
   changes go with the next code push, or are pushed before the pull request

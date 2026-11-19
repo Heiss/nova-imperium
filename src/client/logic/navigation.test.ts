@@ -54,6 +54,7 @@ describe('navigation', () => {
       'guilds',
       '-',
       'news',
+      'lexicanum',
       'help',
     ]);
     expect(views(n.tabs)).toEqual([
@@ -71,6 +72,7 @@ describe('navigation', () => {
       'highscore',
       'guilds',
       'news',
+      'lexicanum',
       'help',
     ]);
   });

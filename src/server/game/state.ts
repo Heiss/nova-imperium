@@ -1,13 +1,21 @@
 // What one player sees: their planet, their and incoming fleets, reports,
 // the players with points, the galaxy. Foreign fleets show only what an
-// observer can see. The admin also gets the settings specification and the
+// observer can see: of the ships what the observer's Auspex-Lehre
+// recognizes (#228). The admin also gets the settings specification and the
 // state of the „Endzeit“ (#161).
-import { missionRules } from '../../core/missions.ts';
+import { type ActivityLimits, activityLimits } from '../../core/activity.ts';
+import {
+  type Recognition,
+  recognitionOf,
+  type SeenShips,
+  seenShips,
+} from '../../core/fleet-recognition.ts';
 import { UNIVERSE_SPECS } from '../../core/universe.ts';
 import type { Fleet } from '../../core/types.ts';
 import type { User } from '../db/repos/players.ts';
 import { pushOff } from '../push-options.ts';
-import { ownLabs } from './actions.ts';
+import { ownLabs, researchOf } from './actions.ts';
+import { inactivities, planetActivities } from './activity.ts';
 import { type Ctx, universe } from './context.ts';
 import { endzeitState } from './endzeit.ts';
 import { guildState } from './guilds.ts';
@@ -17,7 +25,7 @@ import { achievementState } from './achievements.ts';
 import { roundRules } from './round.ts';
 import { pointsMap } from './points.ts';
 
-export interface ForeignFleet {
+export interface ForeignFleet extends SeenShips {
   id: string;
   owner: string;
   fromC: Fleet['fromC'];
@@ -26,17 +34,21 @@ export interface ForeignFleet {
   mission: Fleet['mission'];
   state: Fleet['state'];
   arr: number;
-  ships: Fleet['ships'];
   /** The holding time of a fleet that holds at the planet (#55). */
   hold?: number;
 }
 
 /**
- * An incoming fleet: the ships are visible only for a mission that shows
- * them (attack). A fleet that holds at the planet shows its ships and its
- * holding time to the host it defends (#55) [V].
+ * An incoming fleet as an observer with the Auspex-Lehre `level` sees it:
+ * of its ships only what the thresholds of the round allow, for every
+ * mission (#228, D1, D2). A fleet that holds at the planet goes through the
+ * same view as one on its way there (#55) [V] and shows its holding time.
  */
-export const foreignView = (f: Fleet): ForeignFleet => ({
+export const foreignView = (
+  f: Fleet,
+  level: number,
+  recognition: Recognition,
+): ForeignFleet => ({
   id: f.id,
   owner: f.owner,
   fromC: f.fromC,
@@ -45,16 +57,20 @@ export const foreignView = (f: Fleet): ForeignFleet => ({
   mission: f.mission,
   state: f.state,
   arr: f.arr,
-  ships: f.state === 'hold' || missionRules(f.mission)?.visible ? f.ships : {},
   ...(f.state === 'hold' && { hold: f.hold ?? 0 }),
+  ...seenShips(f.ships, level, recognition),
 });
 
 /** Whether a foreign fleet shows at the shown planet: on its way there, or holding there (#55). */
 const atPlanet = (f: Fleet, p: { id: string } | null): boolean =>
   p !== null && f.to === p.id && f.state !== 'back';
 
-/** Every planet and moon (#53) of the universe, for every player. */
-function galaxyOf(ctx: Ctx) {
+/**
+ * Every planet and moon (#53) of the universe, for every player, with its
+ * public activity marker (#229) while it shows one.
+ */
+function galaxyOf(ctx: Ctx, limits: ActivityLimits) {
+  const shown = planetActivities(ctx, limits);
   return ctx.planets.all().map((x) => ({
     id: x.id,
     kind: x.kind,
@@ -64,6 +80,7 @@ function galaxyOf(ctx: Ctx) {
     p: x.p,
     temp: x.temp,
     owner: x.owner,
+    ...(shown[x.id] ? { activity: shown[x.id] } : {}),
   }));
 }
 
@@ -84,6 +101,28 @@ const meOf = (ctx: Ctx, u: User) => ({
   admin: u.admin,
 });
 
+/**
+ * Every player with name and points, and the inactivity of the account
+ * (#229) while it shows one.
+ */
+function playersOf(
+  ctx: Ctx,
+  pts: Readonly<Record<string, number>>,
+  limits: ActivityLimits,
+) {
+  const idle = inactivities(ctx, limits);
+  return Object.fromEntries(
+    ctx.players.all().map((x) => [
+      x.id,
+      {
+        name: x.name,
+        points: pts[x.id] ?? 0,
+        ...(idle[x.id] ? { inactive: idle[x.id] } : {}),
+      },
+    ]),
+  );
+}
+
 export function stateFor(
   ctx: Ctx,
   u: User,
@@ -97,15 +136,14 @@ export function stateFor(
     typeof selected === 'string' ? ctx.planets.get(selected) : null;
   const p = requested?.owner === u.id ? requested : main.planet;
   const pts = pointsMap(ctx);
+  // The settled Auspex-Lehre: a level finished by now counts (#228).
+  const spy = researchOf(ctx, u).research.spy ?? 0;
+  const recognition = recognitionOf(round);
   const fleets = ctx.fleets
     .all()
     .filter((f) => f.owner === u.id || atPlanet(f, p))
-    .map((f) => (f.owner === u.id ? f : foreignView(f)));
-  const players = Object.fromEntries(
-    ctx.players
-      .all()
-      .map((x) => [x.id, { name: x.name, points: pts[x.id] ?? 0 }]),
-  );
+    .map((f) => (f.owner === u.id ? f : foreignView(f, spy, recognition)));
+  const limits = activityLimits(round);
   return {
     round,
     now: ctx.now(),
@@ -122,8 +160,8 @@ export function stateFor(
     // No guild data while guilds are off in the round (#191).
     guilds: round.guilds ? guildState(ctx, u.id, pts) : null,
     achievements: achievementState(ctx, u, round),
-    players,
-    galaxy: galaxyOf(ctx),
+    players: playersOf(ctx, pts, limits),
+    galaxy: galaxyOf(ctx, limits),
     // Every player sees every Trümmerfeld (#45).
     debris: ctx.debris.all(),
     // Every position locked after an abandonment, for the Sternenkarte (#224).

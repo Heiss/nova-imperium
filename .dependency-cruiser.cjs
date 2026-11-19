@@ -39,12 +39,20 @@ module.exports = {
       name: 'core-sees-features-through-index',
       severity: 'error',
       comment:
-        'The core sees the features only through the generated index (scripts/gen-features.ts).',
+        'The core sees the features only through the generated indexes (scripts/gen-features.ts): all features, and the lexicon parts (#285).',
       from: { path: '^src/core/' },
       to: {
         path: '^src/features/',
-        pathNot: '^src/features/index\\.gen\\.ts$',
+        pathNot: '^src/features/(index|lexicon)\\.gen\\.ts$',
       },
+    },
+    {
+      name: 'lexicon-index-in-lexicon',
+      severity: 'error',
+      comment:
+        'Only the Lexicanum (src/core/lexicon/) imports the index of the lexicon parts, so they load with its own chunk and not with the start bundle (#285, #242).',
+      from: { pathNot: '^src/core/lexicon/' },
+      to: { path: '^src/features/lexicon\\.gen\\.ts$' },
     },
     {
       name: 'feature-stays-pure',

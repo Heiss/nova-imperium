@@ -116,29 +116,32 @@ const REWARDS: RoundGroup = {
 const REWARDS_REFUSAL =
   'Bitte beide Belohnungseinstellungen für die neue Runde auswählen.';
 
-/** Achievements in this round, a setting of the round (#283). */
-export const ACHIEVEMENTS_SETTING = {
-  kind: 'switch',
-  key: 'roundAchievements',
-  name: 'achievements',
-  label: 'Achievements aktivieren',
-  order: 10,
-  group: REWARDS,
-  def: true,
-  refusal: REWARDS_REFUSAL,
-} as const satisfies RoundSetting;
-
-/** Daily rewards (#220) in this round, a setting of the round (#283). */
-export const DAILY_SETTING = {
-  kind: 'switch',
-  key: 'roundDaily',
-  name: 'daily',
-  label: 'Tagesbelohnungen aktivieren',
-  order: 20,
-  group: REWARDS,
-  def: true,
-  refusal: REWARDS_REFUSAL,
-} as const satisfies RoundSetting;
+/**
+ * Achievements and daily rewards (#220) in this round, settings of the round
+ * (#283). The export under this name registers them (#310, src/core/round.ts).
+ */
+export const roundSettings = [
+  {
+    kind: 'switch',
+    key: 'roundAchievements',
+    name: 'achievements',
+    label: 'Achievements aktivieren',
+    order: 10,
+    group: REWARDS,
+    def: true,
+    refusal: REWARDS_REFUSAL,
+  },
+  {
+    kind: 'switch',
+    key: 'roundDaily',
+    name: 'daily',
+    label: 'Tagesbelohnungen aktivieren',
+    order: 20,
+    group: REWARDS,
+    def: true,
+    refusal: REWARDS_REFUSAL,
+  },
+] as const satisfies readonly RoundSetting[];
 
 export interface AchievementState {
   progress: Record<string, number>;

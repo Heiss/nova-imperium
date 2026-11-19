@@ -1,9 +1,9 @@
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
-import { ALLIES_SETTING } from './holding.ts';
 import {
   DEFAULT_UNIVERSE,
   inUniverse,
+  liveSpecs,
   UNIVERSE_SPECS,
   universeErrors,
   universeOf,
@@ -13,12 +13,15 @@ const used = { g: 1, s: 10, p: 12 };
 
 const spec = (key: string) => UNIVERSE_SPECS.find((s) => s.key === key)!;
 
+/** The settings of the universe itself; the `live` settings of the round come after them (#283), each feature pins its own. */
+const own = UNIVERSE_SPECS.filter((s) => !s.key.startsWith('round'));
+
 /** The codes of the refused settings, by key (#214). */
 const codes = (input: Record<string, unknown>, at = used) =>
   universeErrors(input, at).map((e) => [e.spec.key, e.code]);
 
 describe('universe settings', () => {
-  it('have the defaults of version 1', () => {
+  it('have the defaults of version 1, then the live settings of the round at their defaults', () => {
     expect(DEFAULT_UNIVERSE).toEqual({
       speed: 5,
       galaxies: 2,
@@ -33,12 +36,7 @@ describe('universe settings', () => {
       extraFields: 0,
       // Added by #161 (owner, 2026-11-14): the gift flies 4 h by default.
       endzeitMinutes: 240,
-      // Added by #224 (owner, 2026-11-16, D2): a given-up position 24 h.
-      roundAbandonLock: 24,
-      // Added by #55 (Q2): guild and friends may hold, the classic rule [V].
-      roundAllies: 3,
-      // Added by #55 (owner, 2026-11-17): held fleets apart from Auspex-Lehre 2.
-      roundHeldSpy: 2,
+      ...Object.fromEntries(liveSpecs().map((s) => [s.key, s.def])),
     });
     for (const s of UNIVERSE_SPECS) {
       expect(s.def).toBeGreaterThanOrEqual(s.min);
@@ -46,7 +44,7 @@ describe('universe settings', () => {
     }
   });
   it('name each setting as the form and the messages show it', () => {
-    expect(UNIVERSE_SPECS.map((s) => [s.key, s.label])).toEqual([
+    expect(own.map((s) => [s.key, s.label])).toEqual([
       ['speed', 'Tempo (Faktor)'],
       ['galaxies', 'Galaxien'],
       ['systems', 'Systeme je Galaxie'],
@@ -58,10 +56,14 @@ describe('universe settings', () => {
       ['startDeuterium', 'Start-Promethium'],
       ['extraFields', 'Zusatzfelder pro Planet'],
       ['endzeitMinutes', 'Flugzeit der Endzeit-Gabe (Minuten)'],
-      ['roundAbandonLock', 'Sperre einer aufgegebenen Position (Stunden)'],
-      ['roundAllies', 'Halten erlaubt für'],
-      ['roundHeldSpy', 'Gehaltene Flotten im Auspex-Bericht ab Auspex-Lehre'],
     ]);
+    // The live settings of the round: the label of the registry.
+    expect(
+      UNIVERSE_SPECS.filter((s) => s.key.startsWith('round')).map((s) => [
+        s.key,
+        s.label,
+      ]),
+    ).toEqual(liveSpecs().map((s) => [s.key, s.label]));
   });
   it('accept valid values given as strings', () => {
     const input = Object.fromEntries(
@@ -111,64 +113,6 @@ describe('universe settings', () => {
       expect(codes({ ...DEFAULT_UNIVERSE, endzeitMinutes })).toEqual([
         ['endzeitMinutes', 'range'],
       ]);
-  });
-  it('take 1 to 720 hours as the lock of a given-up position (#224, X1)', () => {
-    expect(spec('roundAbandonLock')).toEqual({
-      key: 'roundAbandonLock',
-      label: 'Sperre einer aufgegebenen Position (Stunden)',
-      min: 1,
-      max: 720,
-      def: 24,
-    });
-    for (const roundAbandonLock of [1, 720])
-      expect(codes({ ...DEFAULT_UNIVERSE, roundAbandonLock })).toEqual([]);
-    for (const roundAbandonLock of [0, 721, 1.5])
-      expect(codes({ ...DEFAULT_UNIVERSE, roundAbandonLock })).toEqual([
-        ['roundAbandonLock', 'range'],
-      ]);
-  });
-  it('take guild, friends or both as who may hold (#55, Q2, X1)', () => {
-    expect(spec('roundAllies')).toEqual({
-      key: 'roundAllies',
-      label: 'Halten erlaubt für',
-      min: 1,
-      max: 3,
-      def: 3,
-      choices: [
-        { value: 1, label: 'Gilde' },
-        { value: 2, label: 'Freunde' },
-        { value: 3, label: 'Gilde und Freunde' },
-      ],
-    });
-    expect(spec('roundAllies').choices).toBe(ALLIES_SETTING.choices);
-    for (const roundAllies of [1, 2, 3, '2'])
-      expect(codes({ ...DEFAULT_UNIVERSE, roundAllies })).toEqual([]);
-    for (const roundAllies of [0, 4, 1.5])
-      expect(codes({ ...DEFAULT_UNIVERSE, roundAllies })).toEqual([
-        ['roundAllies', 'range'],
-      ]);
-  });
-  it('take the Auspex-Lehre 0 to 30 for held fleets in the spy report, 2 by default (#55)', () => {
-    expect(spec('roundHeldSpy')).toEqual({
-      key: 'roundHeldSpy',
-      label: 'Gehaltene Flotten im Auspex-Bericht ab Auspex-Lehre',
-      min: 0,
-      max: 30,
-      def: 2,
-    });
-    for (const roundHeldSpy of [0, 30])
-      expect(codes({ ...DEFAULT_UNIVERSE, roundHeldSpy })).toEqual([]);
-    for (const roundHeldSpy of [-1, 31, 2.5])
-      expect(codes({ ...DEFAULT_UNIVERSE, roundHeldSpy })).toEqual([
-        ['roundHeldSpy', 'range'],
-      ]);
-  });
-  it('offer only choices inside the range of their setting', () => {
-    for (const s of UNIVERSE_SPECS)
-      for (const c of s.choices ?? []) {
-        expect(c.value, s.key).toBeGreaterThanOrEqual(s.min);
-        expect(c.value, s.key).toBeLessThanOrEqual(s.max);
-      }
   });
   it('report all errors at once, in the order of the specs', () => {
     expect(codes({})).toEqual(UNIVERSE_SPECS.map((s) => [s.key, 'range']));

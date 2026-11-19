@@ -144,6 +144,22 @@ describe('the boundaries of the feature folders (#112)', () => {
     ]);
   });
 
+  it('lets only the Lexicanum import the index of the lexicon parts (#285)', async () => {
+    expect(
+      await violations({
+        'src/features/lexicon.gen.ts': ['src/features/spy/lexicon.de.ts'],
+        'src/features/spy/lexicon.de.ts': ['src/core/spy.ts'],
+        'src/core/spy.ts': [],
+        'src/core/lexicon/articles.ts': ['src/features/lexicon.gen.ts'],
+        'src/core/catalog.ts': ['src/features/lexicon.gen.ts'],
+        'src/client/main.ts': ['src/features/lexicon.gen.ts'],
+      }),
+    ).toEqual([
+      'lexicon-index-in-lexicon: src/client/main.ts -> src/features/lexicon.gen.ts',
+      'lexicon-index-in-lexicon: src/core/catalog.ts -> src/features/lexicon.gen.ts',
+    ]);
+  });
+
   it('keeps the other files of a feature free of server and browser code', async () => {
     expect(
       await violations({

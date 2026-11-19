@@ -5,7 +5,6 @@ export const order = 50;
 export const target: TargetKind = 'own';
 export const cargo = true;
 export const returns = false;
-export const visible = false;
 export const silent = false;
 export const alertsGuild = false;
 export const holds = false;

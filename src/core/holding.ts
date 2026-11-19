@@ -37,32 +37,6 @@ export const ALLIES_RANGE = {
   default: ALLIES.both,
 } as const;
 
-/**
- * Who may hold as a setting of the round (#283): a selection of the dialog
- * „Neue Runde“ and, `live`, a row of the universe settings, changed during
- * the round (X1); existing universes let guild members and friends hold
- * [V]. The order numbers 100 and 110 leave 60 to 90 to the activity
- * indicators (#229), which merge first. The choices are named as the admin panel and „Neue Runde“ show them
- * [V].
- */
-export const ALLIES_SETTING = {
-  kind: 'number',
-  key: 'roundAllies',
-  name: 'allies',
-  label: 'Halten erlaubt für',
-  order: 100,
-  min: ALLIES_RANGE.min,
-  max: ALLIES_RANGE.max,
-  def: ALLIES_RANGE.default,
-  refusal: 'Bitte auswählen, wer in der neuen Runde halten darf.',
-  choices: [
-    { value: ALLIES.guild, label: 'Gilde' },
-    { value: ALLIES.friends, label: 'Freunde' },
-    { value: ALLIES.both, label: 'Gilde und Freunde' },
-  ],
-  live: true,
-} as const satisfies RoundSetting;
-
 /** What makes two players allies, whatever the admin chose. */
 export interface Bond {
   /** Both are members of the same guild, and guilds are on in the round. */
@@ -83,23 +57,45 @@ export const HELD_SPY = { min: 0, max: 30, default: 2 } as const;
 const HELD_SPY_LABEL = 'Gehaltene Flotten im Auspex-Bericht ab Auspex-Lehre';
 
 /**
- * The level of the spy report as a setting of the round (#283): a number
- * field of the dialog „Neue Runde“ and, `live`, a row of the universe
- * settings (X1); existing universes show held fleets apart from
- * Auspex-Lehre 2.
+ * The two settings of holding as entries of the registry of the round
+ * settings (#283, #310): selections and number fields of the dialog „Neue
+ * Runde“ and, `live`, rows of the universe settings, changed during the
+ * round (X1). Existing universes let guild members and friends hold and show
+ * held fleets apart from Auspex-Lehre 2 [V]. The order numbers 100 and 110
+ * follow the 60 to 90 of the activity indicators (#229). The choices are
+ * named as the admin panel and „Neue Runde“ show them [V].
  */
-export const HELD_SPY_SETTING = {
-  kind: 'number',
-  key: 'roundHeldSpy',
-  name: 'heldSpy',
-  label: HELD_SPY_LABEL,
-  order: 110,
-  min: HELD_SPY.min,
-  max: HELD_SPY.max,
-  def: HELD_SPY.default,
-  refusal: `Bitte für „${HELD_SPY_LABEL}“ eine ganze Zahl von ${HELD_SPY.min} bis ${HELD_SPY.max} angeben.`,
-  live: true,
-} as const satisfies RoundSetting;
+export const roundSettings = [
+  {
+    kind: 'number',
+    key: 'roundAllies',
+    name: 'allies',
+    label: 'Halten erlaubt für',
+    order: 100,
+    min: ALLIES_RANGE.min,
+    max: ALLIES_RANGE.max,
+    def: ALLIES_RANGE.default,
+    refusal: 'Bitte auswählen, wer in der neuen Runde halten darf.',
+    choices: [
+      { value: ALLIES.guild, label: 'Gilde' },
+      { value: ALLIES.friends, label: 'Freunde' },
+      { value: ALLIES.both, label: 'Gilde und Freunde' },
+    ],
+    live: true,
+  },
+  {
+    kind: 'number',
+    key: 'roundHeldSpy',
+    name: 'heldSpy',
+    label: HELD_SPY_LABEL,
+    order: 110,
+    min: HELD_SPY.min,
+    max: HELD_SPY.max,
+    def: HELD_SPY.default,
+    refusal: `Bitte für „${HELD_SPY_LABEL}“ eine ganze Zahl von ${HELD_SPY.min} bis ${HELD_SPY.max} angeben.`,
+    live: true,
+  },
+] as const satisfies readonly RoundSetting[];
 
 /** Whether a spy with Auspex-Lehre `spy` sees the held fleets apart. */
 export const showsHeldApart = (spy: number, from: number): boolean =>

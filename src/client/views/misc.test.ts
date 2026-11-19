@@ -5,12 +5,10 @@ import {
   type RoundNumber,
   type RoundRules,
   type RoundSetting,
+  roundFieldId,
 } from '../../core/round.ts';
-import {
-  DEFAULT_UNIVERSE,
-  UNIVERSE_SPECS,
-  liveSpecs,
-} from '../../core/universe.ts';
+import { liveSpecs } from '../../core/universe.ts';
+import { roundDefaults } from '../../test/fixtures.ts';
 import type { GameState } from '../logic/types.ts';
 import type { V } from './common.ts';
 import {
@@ -40,62 +38,56 @@ describe('highscore', () => {
   });
 });
 
+/** The values of a round at their defaults, a feature's test names its own on top. */
+const defaults = (): RoundRules =>
+  ({ number: 1, ...roundDefaults() }) as RoundRules;
+
 describe('the dialog „Neue Runde“', () => {
   const box = (html: string): string =>
     /<label><input type="checkbox" id="round-guilds"[^>]*>[^<]*<\/label>/.exec(
       html,
     )?.[0] ?? '';
-  const rules = {
-    number: 1,
-    achievements: true,
-    daily: true,
-    mainLock: 7,
-    abandonLock: 24,
-    allies: 3,
-    heldSpy: 2,
-  };
 
-  it('shows the fields in the fixed order of main (owner, 2026-11-17)', () => {
-    const html = roundDialog({ ...rules, guilds: true });
-    expect(
-      [...html.matchAll(/ id="(round-[a-z-]+)"/g)].map((m) => m[1]),
-    ).toEqual([
-      'round-achievements',
-      'round-daily',
-      'round-guilds',
-      'round-guilds-note',
-      'round-main-lock',
-      'round-abandon-lock',
-      // Added by #55, last: who may hold and the level of the spy report.
-      'round-allies',
-      'round-held-spy',
-    ]);
+  it('shows one field for every setting of the registry, in the order of its numbers (owner, 2026-11-17)', () => {
+    const html = roundDialog(defaults());
+    // The notes below a field are named after it; they are no fields.
+    const ids = [...html.matchAll(/ id="(round-[a-z-]+)"/g)]
+      .map((m) => m[1])
+      .filter((id) => !id!.endsWith('-note'));
+    expect(ids).toEqual(ROUND_SETTINGS.map(roundFieldId));
+  });
+
+  it('puts the members of a group with a legend in one fieldset of that legend, and every other field outside any', () => {
+    const html = roundDialog(defaults());
+    const legends = ROUND_SETTINGS.flatMap((s) => s.group?.legend ?? []);
+    for (const legend of new Set(legends)) {
+      const open = `<fieldset><legend>${legend}</legend>`;
+      expect(html.split(open), legend).toHaveLength(2);
+      const fieldset = html.slice(html.indexOf(open)).split('</fieldset>')[0]!;
+      const members = ROUND_SETTINGS.filter((s) => s.group?.legend === legend);
+      expect(
+        [...fieldset.matchAll(/ id="(round-[a-z-]+)"/g)].map((m) => m[1]),
+      ).toEqual(members.map(roundFieldId));
+    }
+    const outside = html.replace(/<fieldset>[\s\S]*?<\/fieldset>/g, '');
+    for (const s of ROUND_SETTINGS.filter((x) => !x.group?.legend))
+      expect(outside, s.key).toContain(` id="${roundFieldId(s)}"`);
   });
 
   it('has one box „Gilden (mit Chat)“, preselected with the current round (#191)', () => {
-    const on = box(roundDialog({ ...rules, guilds: true }));
+    const on = box(roundDialog({ ...defaults(), guilds: true }));
     expect(on).toContain('Gilden (mit Chat)');
     expect(on).toMatch(/ checked>/);
-    const off = box(roundDialog({ ...rules, guilds: false }));
+    const off = box(roundDialog({ ...defaults(), guilds: false }));
     expect(off).toContain('Gilden (mit Chat)');
     expect(off).not.toMatch(/checked/);
   });
 });
 
 describe('the lock of the main planet in the dialog „Neue Runde“ (#221)', () => {
-  const rules = {
-    number: 1,
-    achievements: true,
-    daily: true,
-    guilds: true,
-    abandonLock: 24,
-    allies: 3,
-    heldSpy: 2,
-  };
-
   it('is a number of days from 1 to 30, preselected with the current round', () => {
     for (const mainLock of [7, 12]) {
-      const html = roundDialog({ ...rules, mainLock });
+      const html = roundDialog({ ...defaults(), mainLock });
       expect(html).toContain(
         `<label for="round-main-lock">Sperre nach einem Wechsel des Hauptplaneten (Tage)</label> <input type="number" id="round-main-lock" min="1" max="30" step="1" value="${mainLock}" required> <span class="dim">1 bis 30</span>`,
       );
@@ -107,24 +99,11 @@ describe('the lock of the main planet in the dialog „Neue Runde“ (#221)', ()
 });
 
 describe('the lock of a given-up position in the dialog „Neue Runde“ (#224)', () => {
-  const rules = {
-    number: 1,
-    achievements: true,
-    daily: true,
-    guilds: true,
-    mainLock: 7,
-    allies: 3,
-    heldSpy: 2,
-  };
-
   it('is a number of hours from 1 to 720, preselected with the current round', () => {
     for (const abandonLock of [24, 48]) {
-      const html = roundDialog({ ...rules, abandonLock });
+      const html = roundDialog({ ...defaults(), abandonLock });
       expect(html).toContain(
         `<label for="round-abandon-lock">Sperre einer aufgegebenen Position (Stunden)</label> <input type="number" id="round-abandon-lock" min="1" max="720" step="1" value="${abandonLock}" required> <span class="dim">1 bis 720</span>`,
-      );
-      expect(html.indexOf('id="round-main-lock"')).toBeLessThan(
-        html.indexOf('id="round-abandon-lock"'),
       );
       expect(html.indexOf('id="round-abandon-lock"')).toBeLessThan(
         html.indexOf('data-act="doReset"'),
@@ -133,23 +112,78 @@ describe('the lock of a given-up position in the dialog „Neue Runde“ (#224)'
   });
 });
 
+describe('the activity thresholds in the dialog „Neue Runde“ (#229, X1)', () => {
+  it('stand in one fieldset „Aktivität“, named and ranged as in the universe settings, preselected with the current round', () => {
+    const html = roundDialog({
+      ...defaults(),
+      activityRecent: 10,
+      activityMinutes: 45,
+      inactiveDays: 3,
+      longInactiveDays: 21,
+    });
+    const fields = [
+      ['activity-recent', 'Aktivität ohne Minutenangabe (Minuten)', 1, 60, 10],
+      [
+        'activity-minutes',
+        'Aktivität mit Minutenangabe bis (Minuten)',
+        1,
+        1440,
+        45,
+      ],
+      ['inactive-days', 'Inaktiv ab (Tage)', 1, 365, 3],
+      ['long-inactive-days', 'Lange inaktiv ab (Tage)', 1, 365, 21],
+    ] as const;
+    // Owner, 2026-11-18: a framed group with the heading „Aktivität“.
+    const rows = fields.map(
+      ([id, label, min, max, value]) =>
+        `<label for="round-${id}">${label}</label> <input type="number" id="round-${id}" min="${min}" max="${max}" step="1" value="${value}" required> <span class="dim">${min} bis ${max}</span>`,
+    );
+    const group = `<fieldset><legend>Aktivität</legend>\n    ${rows.join('<br>\n    ')}\n  </fieldset>`;
+    expect(html).toContain(group);
+    expect(html.split('<legend>Aktivität</legend>')).toHaveLength(2);
+    expect(html.indexOf(group)).toBeLessThan(
+      html.indexOf('data-act="doReset"'),
+    );
+  });
+});
+
+describe('the thresholds of foreign fleets in the dialog „Neue Runde“ (#228, X1)', () => {
+  it('are levels from 0 to 100, named as in the universe settings, preselected with the current round, in one fieldset with the legend of the owner (2026-11-18)', () => {
+    const html = roundDialog({
+      ...defaults(),
+      recognitionTotal: 1,
+      recognitionTypes: 5,
+      recognitionCounts: 9,
+    });
+    for (const [part, label, value] of [
+      ['total', 'Fremde Flotten: Schiffe insgesamt ab Auspex-Lehre', 1],
+      ['types', 'Fremde Flotten: Schiffstypen ab Auspex-Lehre', 5],
+      ['counts', 'Fremde Flotten: Anzahl je Schiffstyp ab Auspex-Lehre', 9],
+    ] as const) {
+      expect(html).toContain(
+        `<label for="round-recognition-${part}">${label}</label> <input type="number" id="round-recognition-${part}" min="0" max="100" step="1" value="${value}" required> <span class="dim">0 bis 100</span>`,
+      );
+      expect(html.indexOf(`id="round-recognition-${part}"`)).toBeLessThan(
+        html.indexOf('data-act="doReset"'),
+      );
+    }
+    const open = '<fieldset><legend>Fremde Flotten erkennen</legend>';
+    expect(html.split(open)).toHaveLength(2);
+    const group = html.slice(html.indexOf(open)).split('</fieldset>')[0]!;
+    expect(group.match(/<input /g)).toHaveLength(3);
+    for (const part of ['total', 'types', 'counts'])
+      expect(group).toContain(`id="round-recognition-${part}"`);
+  });
+});
+
 describe('the warning below the box „Gilden (mit Chat)“ (#191)', () => {
-  const rules = {
-    number: 1,
-    achievements: true,
-    daily: true,
-    mainLock: 7,
-    abandonLock: 24,
-    allies: 3,
-    heldSpy: 2,
-  };
   // Every new round clears the chats as well (#169 D6), guilds on or off.
   const WARNING =
     'Eine neue Runde leert alle Gilden-Chats. Ohne Gilden werden alle Gilden mit Mitgliedern, Bewerbungen, Rängen und Chat gelöscht.';
 
   it('stands below the box, always, and the box names it as its description', () => {
     for (const guilds of [true, false]) {
-      const html = roundDialog({ ...rules, guilds });
+      const html = roundDialog({ ...defaults(), guilds });
       const box = html.indexOf('id="round-guilds"');
       const note = html.indexOf(
         `<span id="round-guilds-note">${WARNING}</span>`,
@@ -165,17 +199,8 @@ describe('the warning below the box „Gilden (mit Chat)“ (#191)', () => {
 });
 
 describe('„Account löschen“ in a round with or without guilds (#191)', () => {
-  const rules = {
-    number: 1,
-    achievements: true,
-    daily: true,
-    mainLock: 7,
-    abandonLock: 24,
-    allies: 3,
-    heldSpy: 2,
-  };
-  const on = { ...rules, guilds: true };
-  const off = { ...rules, guilds: false };
+  const on = { ...defaults(), guilds: true };
+  const off = { ...defaults(), guilds: false };
 
   it('the box names a led guild only while guilds are on', () => {
     expect(deleteAccountBox(on)).toContain(
@@ -243,7 +268,7 @@ describe('a new setting of the round in both places (#283)', () => {
     key: 'roundTestHours',
     name: 'testHours',
     label: 'Testdauer (Stunden)',
-    order: 120,
+    order: 100,
     min: 1,
     max: 720,
     def: 24,
@@ -254,7 +279,7 @@ describe('a new setting of the round in both places (#283)', () => {
     key: 'roundTestAllies',
     name: 'testAllies',
     label: 'Halten erlaubt für',
-    order: 130,
+    order: 110,
     min: 1,
     max: 3,
     def: 3,
@@ -266,14 +291,7 @@ describe('a new setting of the round in both places (#283)', () => {
   };
   const settings: readonly RoundSetting[] = [...ROUND_SETTINGS, hours, allies];
   const round = {
-    number: 1,
-    achievements: true,
-    daily: true,
-    guilds: true,
-    mainLock: 7,
-    abandonLock: 24,
-    allies: 3,
-    heldSpy: 2,
+    ...defaults(),
     testHours: 48,
     testAllies: 1,
   } as RoundRules;
@@ -286,13 +304,14 @@ describe('a new setting of the round in both places (#283)', () => {
     expect(html).toContain(
       '<p><label for="round-test-allies">Halten erlaubt für</label> <select id="round-test-allies"><option value="1" selected>Gilde</option><option value="3">Gilde und Freunde</option></select></p>',
     );
-    expect(html.indexOf('id="round-main-lock"')).toBeLessThan(
-      html.indexOf('id="round-test-hours"'),
-    );
+    // The new ones have the highest numbers, so they stand after the registry.
+    expect(
+      html.indexOf(` id="${roundFieldId(ROUND_SETTINGS.at(-1)!)}"`),
+    ).toBeLessThan(html.indexOf('id="round-test-hours"'));
     expect(html.indexOf('id="round-test-allies"')).toBeLessThan(
       html.indexOf('data-act="doReset"'),
     );
-    // The settings of main stay as they were.
+    // The settings of the registry stay as they were.
     expect(roundDialog(round)).toBe(roundDialog(round, ROUND_SETTINGS));
     expect(roundDialog(round)).not.toContain('round-test');
   });
@@ -313,99 +332,6 @@ describe('a new setting of the round in both places (#283)', () => {
     );
     expect(html).toContain(
       '<select id="set_roundTestAllies" data-setting="roundTestAllies" data-nokeep><option value="1">Gilde</option><option value="3" selected>Gilde und Freunde</option></select>',
-    );
-  });
-});
-
-describe('who may hold (#55, Q2, X1)', () => {
-  const rules = {
-    number: 1,
-    achievements: true,
-    daily: true,
-    guilds: true,
-    mainLock: 7,
-    abandonLock: 24,
-    heldSpy: 2,
-  };
-  const OPTIONS = [
-    [1, 'Gilde'],
-    [2, 'Freunde'],
-    [3, 'Gilde und Freunde'],
-  ] as const;
-  const options = (selected: number) =>
-    OPTIONS.map(
-      ([v, label]) =>
-        `<option value="${v}"${v === selected ? ' selected' : ''}>${label}</option>`,
-    ).join('');
-
-  it('is chosen in „Neue Runde“, preselected with the current round', () => {
-    for (const allies of [1, 2, 3]) {
-      const html = roundDialog({ ...rules, allies });
-      expect(html).toContain(
-        `<p><label for="round-allies">Halten erlaubt für</label> <select id="round-allies">${options(allies)}</select></p>`,
-      );
-      expect(html.indexOf('id="round-allies"')).toBeLessThan(
-        html.indexOf('data-act="doReset"'),
-      );
-    }
-  });
-
-  it('is a selection in the universe settings, the others stay numbers', () => {
-    const html = admin({
-      s: {
-        cfg: { ...DEFAULT_UNIVERSE, roundAllies: 1 },
-        admin: {
-          specs: UNIVERSE_SPECS,
-          endzeit: { minutes: 240, done: false },
-        },
-      },
-      ui: {},
-    } as unknown as V);
-    expect(html).toContain(
-      `<tr><td><label for="set_roundAllies">Halten erlaubt für</label></td><td><select id="set_roundAllies" data-setting="roundAllies" data-nokeep>${options(1)}</select></td></tr>`,
-    );
-    expect(html).toContain(
-      '<input type="number" id="set_speed" data-setting="speed" min="1" max="100" value="5" data-nokeep>',
-    );
-  });
-});
-
-describe('held fleets in the spy report (#55, owner, 2026-11-17, X1)', () => {
-  const rules = {
-    number: 1,
-    achievements: true,
-    daily: true,
-    guilds: true,
-    mainLock: 7,
-    abandonLock: 24,
-    allies: 3,
-  };
-
-  it('is a level of the Auspex-Lehre in „Neue Runde“, preselected with the current round', () => {
-    for (const heldSpy of [2, 5]) {
-      const html = roundDialog({ ...rules, heldSpy });
-      expect(html).toContain(
-        `<p><label for="round-held-spy">Gehaltene Flotten im Auspex-Bericht ab Auspex-Lehre</label> <input type="number" id="round-held-spy" min="0" max="30" step="1" value="${heldSpy}" required> <span class="dim">0 bis 30</span></p>`,
-      );
-      expect(html.indexOf('id="round-held-spy"')).toBeLessThan(
-        html.indexOf('data-act="doReset"'),
-      );
-    }
-  });
-
-  it('is a number field of the universe settings', () => {
-    const html = admin({
-      s: {
-        cfg: { ...DEFAULT_UNIVERSE, roundHeldSpy: 4 },
-        admin: {
-          specs: UNIVERSE_SPECS,
-          endzeit: { minutes: 240, done: false },
-        },
-      },
-      ui: {},
-    } as unknown as V);
-    expect(html).toContain(
-      '<tr><td><label for="set_roundHeldSpy">Gehaltene Flotten im Auspex-Bericht ab Auspex-Lehre</label></td><td><input type="number" id="set_roundHeldSpy" data-setting="roundHeldSpy" min="0" max="30" value="4" data-nokeep> <span class="dim">0 bis 30</span></td></tr>',
     );
   });
 });

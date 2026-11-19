@@ -402,6 +402,11 @@ choice of the patterns to the assistant's recommendation below
   rules.ts exports the new typed field `holds`; the fleet state `hold`
   sits between `out` and `back`, and the server's clock ends it
   (`dueAt` of `src/core/holding.ts`).
+* **[V]** Changed with #228 (owner, 2026-11-16, D2: the thresholds of the
+  Auspex-Lehre apply to every foreign fleet): the field `visible` is gone
+  from `MissionRules` and every `rules.ts`; the view of a foreign fleet
+  asks `seenShips()` of `src/core/fleet-recognition.ts` instead (see
+  [Espionage defense](/features/espionage-defense.md)).
 * **[E]** Built with #45, within the decisions of #116: the sixth folder
   `harvest` (Bergung, 60) with the target kind `debris` beside own,
   foreign, any and free. `SendTarget` carries `debris` (a Trümmerfeld lies
@@ -535,11 +540,15 @@ choice of the patterns to the assistant's recommendation below
   default and its refusal (else the shared range wording `rangeError` of
   the universe settings); the pure checks `roundRefused` and `roundValues`
   are in the core, the server words the refusal. `RoundRules` is derived
-  from the entries' types. A feature adds one entry in its own file and
-  one line to the list; its `order` number, the next free ten above the
-  highest, puts it last in the fixed order of the dialog and the refusals
-  (owner, 2026-11-17; a test refuses a number used twice); `live: true`
-  also puts it into the universe settings (X1). The rules are in
+  from the entries' types. A feature defines its entries in its own file
+  and exports them as `roundSettings`; the list of all of them is
+  generated like the feature index (`src/core/round-settings.gen.ts`,
+  `scripts/gen-features.ts`, #310), so `src/core/round.ts` names no feature
+  and a new feature edits no shared place and no test of another feature;
+  its `order` number, the next free ten above the highest, puts it last in
+  the fixed order of the dialog and the refusals (owner, 2026-11-17; a test
+  refuses a number used twice); `live: true` also puts it into the universe
+  settings (X1). The rules are in
   [Admin](/features/admin.md#the-registry-of-the-round-settings-283).
 
 ## 8. Store: a repository per aggregate
@@ -872,6 +881,17 @@ src/client/                state, components (generic), views
   `import type`: the cycles it closes (`types.ts` → index →
   `rules.ts` → `missions.ts`) all run through a type-only import, which
   `no-circular` does not count, so the rule passes unchanged.
+* **[V]** Built with #285 (Lexicanum): an entry folder and a mission
+  folder hold a `lexicon.de.ts`, what the entry or mission adds to its
+  article (the guards ask for keywords in every one, owner, 2026-11-17).
+  `gen-features` lists these files in a third index,
+  `src/features/lexicon.gen.ts` (`LEXICON` and `MISSION_LEXICON`, not
+  checked in), which only
+  `src/core/lexicon/` imports (rule `lexicon-index-in-lexicon`), so the
+  parts load with the chunk of the Lexicanum and not with the start bundle
+  (#242). Knip takes it as an entry, Vitest coverage and Stryker leave it
+  out; Stryker leaves the `lexicon.de.ts` files out like the text files
+  (see [Lexicanum](/features/lexicanum.md)).
 
 ## 11. Boundaries
 
@@ -995,7 +1015,8 @@ src/client/                state, components (generic), views
   checks for every mission that it has an arrival in `MISSION_SERVERS`,
   turns back from a target that does not fit its kind, flies back only if
   it returns, comes home silently only if silent, shows its ships only if
-  visible and takes cargo only if it carries cargo.
+  visible (since #228: only by the Auspex-Lehre, for every mission) and
+  takes cargo only if it carries cargo.
   `src/server/game/missions-reference.test.ts` compares sending, the
   arrival and the coming home with the code from before #116 on generated
   worlds and fleets: the answer or message, every table and the next random

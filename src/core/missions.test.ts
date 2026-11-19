@@ -45,7 +45,6 @@ const FIELDS = [
   'returns',
   'silent',
   'target',
-  'visible',
 ];
 const RULES: [string, MissionRules][] = MISSIONS.map(([m, r]) => [m, r]);
 
@@ -120,7 +119,6 @@ describe('the rules of every mission (contract)', () => {
     for (const field of [
       'cargo',
       'returns',
-      'visible',
       'silent',
       'alertsGuild',
       'holds',
@@ -224,7 +222,6 @@ describe('the target kind (#116)', () => {
     target,
     cargo: true,
     returns: true,
-    visible: false,
     silent: false,
     alertsGuild: false,
     holds: false,

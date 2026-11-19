@@ -6,9 +6,7 @@ import { describe, expect, it } from 'vitest';
 import {
   ALLIES,
   ALLIES_RANGE,
-  ALLIES_SETTING,
   HELD_SPY,
-  HELD_SPY_SETTING,
   HOLD_HOURS,
   HOLD_LIMITS,
   HOUR_MS,
@@ -19,6 +17,38 @@ import {
   isAlly,
   isHoldHours,
 } from './holding.ts';
+import {
+  ROUND_SETTINGS,
+  roundFieldId,
+  roundRefused,
+  roundRequest,
+  roundValues,
+  storedValues,
+} from './round.ts';
+import { DEFAULT_UNIVERSE, liveSpecs, universeErrors } from './universe.ts';
+
+/** The two settings of holding, as the registry holds them, by their keys. */
+const setting = (key: string) => ROUND_SETTINGS.find((s) => s.key === key)!;
+const ALLIES_ROW = {
+  key: 'roundAllies',
+  label: 'Halten erlaubt für',
+  min: 1,
+  max: 3,
+  def: 3,
+  choices: [
+    { value: 1, label: 'Gilde' },
+    { value: 2, label: 'Freunde' },
+    { value: 3, label: 'Gilde und Freunde' },
+  ],
+};
+const HELD_SPY_LABEL = 'Gehaltene Flotten im Auspex-Bericht ab Auspex-Lehre';
+const HELD_SPY_ROW = {
+  key: 'roundHeldSpy',
+  label: HELD_SPY_LABEL,
+  min: 0,
+  max: 30,
+  def: 2,
+};
 
 describe('holding times', () => {
   it('are the classic 0, 1, 2, 4, 8, 16 and 32 hours', () => {
@@ -37,8 +67,8 @@ describe('who may hold', () => {
     expect(ALLIES).toEqual({ guild: 1, friends: 2, both: 3 });
     expect(ALLIES_RANGE).toEqual({ min: 1, max: 3, default: 3 });
   });
-  it('is a live setting of the round, a selection, after the settings of main (#283, X1)', () => {
-    expect(ALLIES_SETTING).toEqual({
+  it('is a live selection of the round, order 100, without a group (#283, #310, X1)', () => {
+    expect(setting('roundAllies')).toEqual({
       kind: 'number',
       key: 'roundAllies',
       name: 'allies',
@@ -55,6 +85,44 @@ describe('who may hold', () => {
       ],
       live: true,
     });
+    expect(roundFieldId(setting('roundAllies'))).toBe('round-allies');
+  });
+  it('is a row of the universe settings with its choices, checked there, 3 by default (X1)', () => {
+    expect(liveSpecs().find((s) => s.key === 'roundAllies')).toEqual(
+      ALLIES_ROW,
+    );
+    const codes = (input: Record<string, unknown>) =>
+      universeErrors(
+        { ...DEFAULT_UNIVERSE, ...input },
+        { g: 1, s: 1, p: 1 },
+      ).map((e) => [e.spec.key, e.code]);
+    expect(DEFAULT_UNIVERSE).toMatchObject({ roundAllies: 3 });
+    for (const roundAllies of [1, 2, 3, '2'])
+      expect(codes({ roundAllies })).toEqual([]);
+    for (const roundAllies of [0, 4, 1.5])
+      expect(codes({ roundAllies })).toEqual([['roundAllies', 'range']]);
+  });
+  it('is read from the stored settings, 3 when missing, and sent with its name', () => {
+    expect(storedValues(() => undefined)).toMatchObject({ allies: 3 });
+    expect(
+      storedValues((k) => (k === 'roundAllies' ? 1 : undefined)),
+    ).toMatchObject({ allies: 1 });
+    expect(roundRequest({ allies: 2 }, [setting('roundAllies')])).toEqual({
+      allies: 2,
+    });
+  });
+  it('keeps the current choice when the admin sends none, refuses a value outside 1 to 3 with its own text', () => {
+    const only = [setting('roundAllies')];
+    expect(roundValues({ allies: 2 }, {}, only)).toEqual({ allies: 2 });
+    expect(roundValues({ allies: 2 }, { allies: 1 }, only)).toEqual({
+      allies: 1,
+    });
+    for (const allies of [1, 2, 3])
+      expect(roundRefused({ allies: 3 }, { allies }, only)).toEqual([]);
+    for (const allies of [0, 4, 1.5, '1', null])
+      expect(
+        roundRefused({ allies: 3 }, { allies }, only).map((s) => s.name),
+      ).toEqual(['allies']);
   });
   it('counts a bond only when the setting names it', () => {
     const none = { guild: false, friends: false };
@@ -129,12 +197,12 @@ describe('held fleets in the spy report (#55, owner, 2026-11-17)', () => {
   it('are apart from Auspex-Lehre 2 by default, the admin sets 0 to 30', () => {
     expect(HELD_SPY).toEqual({ min: 0, max: 30, default: 2 });
   });
-  it('is a live setting of the round, a number, last (#283, X1)', () => {
-    expect(HELD_SPY_SETTING).toEqual({
+  it('is a live number field of the round, order 110, without a group (#283, #310, X1)', () => {
+    expect(setting('roundHeldSpy')).toEqual({
       kind: 'number',
       key: 'roundHeldSpy',
       name: 'heldSpy',
-      label: 'Gehaltene Flotten im Auspex-Bericht ab Auspex-Lehre',
+      label: HELD_SPY_LABEL,
       order: 110,
       min: 0,
       max: 30,
@@ -143,5 +211,35 @@ describe('held fleets in the spy report (#55, owner, 2026-11-17)', () => {
         'Bitte für „Gehaltene Flotten im Auspex-Bericht ab Auspex-Lehre“ eine ganze Zahl von 0 bis 30 angeben.',
       live: true,
     });
+    expect(roundFieldId(setting('roundHeldSpy'))).toBe('round-held-spy');
+  });
+  it('is a row of the universe settings, 0 to 30, checked there, 2 by default (X1)', () => {
+    expect(liveSpecs().find((s) => s.key === 'roundHeldSpy')).toEqual(
+      HELD_SPY_ROW,
+    );
+    const codes = (input: Record<string, unknown>) =>
+      universeErrors(
+        { ...DEFAULT_UNIVERSE, ...input },
+        { g: 1, s: 1, p: 1 },
+      ).map((e) => [e.spec.key, e.code]);
+    expect(DEFAULT_UNIVERSE).toMatchObject({ roundHeldSpy: 2 });
+    for (const roundHeldSpy of [0, 30, '5'])
+      expect(codes({ roundHeldSpy })).toEqual([]);
+    for (const roundHeldSpy of [-1, 31, 2.5])
+      expect(codes({ roundHeldSpy })).toEqual([['roundHeldSpy', 'range']]);
+  });
+  it('is read from the stored settings, 2 when missing, and refused outside 0 to 30', () => {
+    expect(storedValues(() => undefined)).toMatchObject({ heldSpy: 2 });
+    expect(
+      storedValues((k) => (k === 'roundHeldSpy' ? 0 : undefined)),
+    ).toMatchObject({ heldSpy: 0 });
+    const only = [setting('roundHeldSpy')];
+    expect(roundValues({ heldSpy: 4 }, {}, only)).toEqual({ heldSpy: 4 });
+    for (const heldSpy of [0, 30])
+      expect(roundRefused({ heldSpy: 2 }, { heldSpy }, only)).toEqual([]);
+    for (const heldSpy of [-1, 31, 2.5, '2', null])
+      expect(
+        roundRefused({ heldSpy: 2 }, { heldSpy }, only).map((s) => s.name),
+      ).toEqual(['heldSpy']);
   });
 });

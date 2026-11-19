@@ -2,11 +2,16 @@
 // a player under the admin's setting of the round (Q2), the fleets that hold
 // at a place, and the end of holding. The rules are in src/core/holding.ts;
 // the mission is src/features/missions/hold/.
-import { type Bond, isAlly } from '../../core/holding.ts';
+import {
+  type Bond,
+  isAlly,
+  shipsOf,
+  showsHeldApart,
+} from '../../core/holding.ts';
 import { missionRules } from '../../core/missions.ts';
-import type { Fleet } from '../../core/types.ts';
+import type { Fleet, Levels, Planet } from '../../core/types.ts';
 import type { Ctx } from './context.ts';
-import { turnBack } from './missions.ts';
+import { playerOf, turnBack } from './missions.ts';
 import { roundRules } from './round.ts';
 
 /** Whether `a` and `b` are members of the same guild while guilds are on (#191). */
@@ -59,4 +64,30 @@ export const holdersAt = (ctx: Ctx, place: string): string[] =>
 /** The holding time is over: the fleet flies home with what it has left. */
 export function endHold(ctx: Ctx, f: Fleet): void {
   turnBack(ctx, f);
+}
+
+/** A fleet that holds at the target as a spy report shows it apart. */
+export interface HeldFleet {
+  name: string;
+  ships: Levels;
+}
+
+/**
+ * The fleet of the target as a spy with Auspex-Lehre `spy` sees it (owner,
+ * 2026-11-17): the fleets that hold there count into the planet's fleet
+ * below the round's level, and show apart under „Gehaltene Flotten“ from it.
+ */
+export function spyFleetSeen(
+  ctx: Ctx,
+  t: Planet,
+  spy: number,
+): { ships: Levels; held?: HeldFleet[] } {
+  const held = heldAt(ctx, t.id);
+  if (!held.length) return { ships: t.ships };
+  if (!showsHeldApart(spy, roundRules(ctx).heldSpy))
+    return { ships: shipsOf([t, ...held]) };
+  return {
+    ships: t.ships,
+    held: held.map((h) => ({ name: playerOf(ctx, h.owner).name, ships: h.ships })),
+  };
 }

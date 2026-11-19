@@ -4,6 +4,7 @@ import { dailyReward } from '../../core/daily-reward.ts';
 import { production } from '../../core/economy.ts';
 import { settle } from '../../core/settle.ts';
 import type { Cost, Planet } from '../../core/types.ts';
+import { roundDefaults } from '../../test/fixtures.ts';
 import { addPlanet, addUser, testCtx } from '../test-helpers.ts';
 import {
   achievementState,
@@ -96,17 +97,12 @@ describe('achievements', () => {
       type: 'reset',
       rewards: { achievements: false, daily: true },
     });
+    // The other settings are not sent and keep their values (here the defaults).
     expect(roundRules(ctx)).toEqual({
+      ...roundDefaults(),
       number: 2,
       achievements: false,
       daily: true,
-      // Without a guild choice the round keeps guilds on (#191).
-      guilds: true,
-      // Without a choice the round keeps the lock of the main planet (#221).
-      mainLock: 7,
-      abandonLock: 24,
-      allies: 3,
-      heldSpy: 2,
     });
     recordAchievementAction(ctx, u.id, 'send');
     const current = ctx.players.get(u.id)!;

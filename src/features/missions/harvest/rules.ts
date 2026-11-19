@@ -10,7 +10,6 @@ export const order = 60;
 export const target: TargetKind = 'debris';
 export const cargo = false;
 export const returns = true;
-export const visible = false;
 export const silent = false;
 export const alertsGuild = false;
 export const holds = false;

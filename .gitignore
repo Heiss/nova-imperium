@@ -21,3 +21,5 @@ website/src/content/docs/contributing/
 website/src/content/docs/operations/
 /src/features/index.gen.ts
 /src/features/index.server.gen.ts
+/src/features/lexicon.gen.ts
+/src/core/round-settings.gen.ts

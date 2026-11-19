@@ -520,6 +520,17 @@ recall, fuel and gift and holds for no time
 runs the later migrations before today's actions land due fleets, since
 `fleets.due` reads the new column.
 
+Migration `20261117T0923-activity-times` (issue #229, see
+[Activity indicators](/features/activity-indicators.md)) adds
+`planets.active_at` (INTEGER, the last activity of a planet or moon, null
+without one) and `users.active_at` (INTEGER, the last login or manual
+action of an account). The repositories write them apart from a save, so
+saving a planet or a player keeps them. Existing planets start without
+activity; an existing account starts with its newest `last_seen` of
+`player_activity`, null without one, and the server then counts from
+`users.created`; other data stay as they were
+(`upgrades/20261117T0923-activity-times.test.ts`).
+
 Account deletion runs in one transaction. Foreign-key cascades clear owned game,
 session, reward and push data. The deletion also removes led guilds and their
 memberships, linked audit and inbox records, invitations for the account address

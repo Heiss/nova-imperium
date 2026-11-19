@@ -92,6 +92,11 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 | Extra fields per planet („Zusatzfelder pro Planet“, #51) | 0 (not in version 1) | 0 to 100, [E] owner 2026-11-13 |
 | Flight time of the „Endzeit“ gift in minutes („Flugzeit der Endzeit-Gabe (Minuten)“, #161) | 240 (not in version 1) | 1 to 4,320 (72 h), [E] owner 2026-11-14 |
 | Lock of a given-up colony's position in hours („Sperre einer aufgegebenen Position (Stunden)“, #224) | 24 (not in version 1), [E] owner 2026-11-16 | 1 to 720 [V]; also in the dialog „Neue Runde“, [E] owner 2026-11-17 (X1) |
+| Activity without the minutes („Aktivität ohne Minutenangabe (Minuten)“, #229) | 15 (not in version 1), [E] owner 2026-11-16 | 1 to 60 [V]; also in the dialog „Neue Runde“, [E] owner 2026-11-17 (X1) |
+| Activity with the minutes up to („Aktivität mit Minutenangabe bis (Minuten)“, #229) | 59 (not in version 1), [E] owner 2026-11-16 | 1 to 1,440 [V]; also in „Neue Runde“ (X1) |
+| Inactive from („Inaktiv ab (Tage)“, #229) | 7 (not in version 1), [E] owner 2026-11-16 | 1 to 365 [V]; also in „Neue Runde“ (X1) |
+| Long inactive from („Lange inaktiv ab (Tage)“, #229) | 28 (not in version 1), [E] owner 2026-11-16 | 1 to 365 [V]; also in „Neue Runde“ (X1) |
+| Thresholds of foreign fleets, levels of the Auspex-Lehre („Fremde Flotten: Schiffe insgesamt ab Auspex-Lehre“, „… Schiffstypen …“, „… Anzahl je Schiffstyp …“, #228) | 2 / 4 / 8 (not in version 1), [E] owner 2026-11-16 | 0 to 100, [E] owner 2026-11-18; also in the dialog „Neue Runde“ in a framed group „Fremde Flotten erkennen“, [E] owner 2026-11-17 (X1) and 2026-11-18 |
 | Who may hold („Halten erlaubt für“, #55) | „Gilde und Freunde“ (3; not in version 1) [V] | a selection: „Gilde“ (1), „Freunde“ (2), „Gilde und Freunde“ (3) [V]; also in the dialog „Neue Runde“, [E] owner 2026-11-17 (X1) |
 | Held fleets apart in the spy report from the spy's Auspex-Lehre („Gehaltene Flotten im Auspex-Bericht ab Auspex-Lehre“, #55) | 2 (not in version 1), [E] owner 2026-11-17 | 0 to 30 [V]; also in the dialog „Neue Runde“, [E] owner 2026-11-17 (X1) |
 
@@ -118,8 +123,8 @@ universe settings) and their ranges are not decided yet.
 | Who may hold, join an attack union and fight with friends: guild, friends or both ([Holding and ACS](/features/holding-acs.md), [Buddy list](/features/buddy-list.md)) | #55 Q2, #225 D2, #227 D3 | [V] guild and friends, the classic rule for holding; built with #55 as „Halten erlaubt für“ (`roundAllies`) in the dialog „Neue Runde“ and the universe settings (X1) |
 | Held fleets in the spy report from the spy's Auspex-Lehre („Gehaltene Flotten im Auspex-Bericht ab Auspex-Lehre“, [Holding and ACS](/features/holding-acs.md)) | #55 (owner, 2026-11-17) | 2; built as `roundHeldSpy` in „Neue Runde“ and the universe settings (X1), 0 to 30 [V] |
 | Limits of an attack union ([Holding and ACS](/features/holding-acs.md)) | #225 D3 | classic value: 16 fleets of 5 players, a delay of at most 30 % of the remaining flight time; join window [U] |
-| Thresholds of the recognition of incoming fleets ([Espionage defense](/features/espionage-defense.md)) | #228 D1 | classic value: espionage technology 2 / 4 / 8 (source [U]) |
-| Thresholds of the [activity indicators](/features/activity-indicators.md) | #229 Q1 | classic value: star 15 min, „x min“ up to 59 min, „i“ after 7 days, „I“ after 28 days |
+| Thresholds of the recognition of incoming fleets ([Espionage defense](/features/espionage-defense.md)), in whole levels from 0 to 100 [E] (owner, 2026-11-18) | #228 D1, X1 | classic value: espionage technology 2 / 4 / 8 (source [U]); built in the dialog „Neue Runde“ and, changeable during the round, in the universe settings (owner, 2026-11-17, X1) |
+| Thresholds of the [activity indicators](/features/activity-indicators.md) | #229 Q1, X1 | classic value: star 15 min, „x min“ up to 59 min, „i“ after 7 days, „I“ after 28 days; built in the dialog „Neue Runde“ and, changeable during the round, in the universe settings (owner, 2026-11-17, X1) |
 | Slots and holding time of [expeditions](/features/expeditions.md) | #93 Q3 | classic value: ⌊√level⌋ slots, at most level hours |
 | Refund factor of a [demolition](/features/demolition.md), −100 % to +100 % | #202 D4, D7 | +50 % [E] |
 | Demolition time as a share of the build time ([Demolition](/features/demolition.md)) | #202 D3 | 50 % [E] |
@@ -145,33 +150,34 @@ universe settings) and their ranges are not decided yet.
   (`src/server/game/round.ts`) all read it. On main it holds the reward
   options „Achievements aktivieren“ and „Tagesbelohnungen aktivieren“ (one
   group `rewards`, one fieldset), the switch „Gilden (mit Chat)“, the lock
-  of the main planet and the lock of a given-up position (#224,
-  `ABANDON_LOCK_SETTING` in `src/core/abandon.ts`); their texts, ranges,
-  defaults, refusals and order are those of before.
-* **[V]** Added with #55, in `src/core/holding.ts`, after the entries of
-  main: `ALLIES_SETTING` (key `roundAllies`, name `allies`, „Halten
-  erlaubt für“, order 100, the choices „Gilde“ 1, „Freunde“ 2 and „Gilde
-  und Freunde“ 3, default 3, refusal „Bitte auswählen, wer in der neuen
-  Runde halten darf.“) and `HELD_SPY_SETTING` (key `roundHeldSpy`, name
-  `heldSpy`, „Gehaltene Flotten im Auspex-Bericht ab Auspex-Lehre“, order
-  110, 0 to 30, default 2, refusal „Bitte für „Gehaltene Flotten im
-  Auspex-Bericht ab Auspex-Lehre“ eine ganze Zahl von 0 bis 30
-  angeben.“). Both are `live` (X1): the admin sets them in „Neue Runde“
-  and changes them during the round in the universe settings, where a
-  wrong value gets the wording of the universe settings. Their labels,
-  ranges, defaults and refusals are those #55 had before the registry;
-  the hand wiring of #55 (`RoundRules`, `roundRules()`,
-  `startRoundRules()`, `UNIVERSE_SPECS`, the dialog and `doReset`) is
-  gone.
+  of the main planet and the lock of a given-up position (#224); their
+  texts, ranges, defaults, refusals and order are those of before.
+* **[V]** #229 added the four thresholds of the
+  [activity indicators](/features/activity-indicators.md#settings) as
+  entries of `src/core/activity.ts`: one group `activity` with the legend
+  „Aktivität“ (owner, 2026-11-18), so they stand in one fieldset of the
+  dialog, are sent as one object and every wrong one is refused at once
+  with the range wording; all four are `live`.
+* **[V]** Added with #55, in the pattern of #310, in
+  `src/core/holding.ts` (`roundSettings`): „Halten erlaubt für“ (key
+  `roundAllies`, name `allies`, order 100, the choices „Gilde“ 1, „Freunde“
+  2 and „Gilde und Freunde“ 3, default 3, refusal „Bitte auswählen, wer in
+  der neuen Runde halten darf.“) and „Gehaltene Flotten im Auspex-Bericht
+  ab Auspex-Lehre“ (key `roundHeldSpy`, name `heldSpy`, order 110, 0 to 30,
+  default 2, refusal „Bitte für „Gehaltene Flotten im Auspex-Bericht ab
+  Auspex-Lehre“ eine ganze Zahl von 0 bis 30 angeben.“). Both are `live`
+  (X1): the admin sets them in „Neue Runde“ and changes them during the
+  round in the universe settings, where a wrong value gets the wording of
+  the universe settings. They are no group: two fields without a fieldset.
 * **[E]** The registry keeps a fixed order, so #283 changes nothing
   visible (owner, 2026-11-17): every entry has an explicit number `order`,
   like the catalog entries, and the dialog „Neue Runde“ and the order of
   the refusals follow it. The order is that of main before #283: the
   reward options (10, 20), the guild switch (30), the lock of the main
   planet (40), the lock of a given-up position (50, last). A new feature
-  appends at the end with its own number: #55 took 100 (who may hold)
-  and 110 (the level of the spy report), above the 60 to 90 of the
-  activity indicators (#229), which merge first.
+  appends at the end with its own number: the thresholds of the activity
+  markers (#229) took 60, 70, 80 and 90, and #55 took 100 (who may hold) and 110 (the level
+  of the spy report).
 * **[V]** An entry has its stored `key` (`round…`), its `name` in
   `RoundRules` and in the request, its German `label`, and is either a
   switch (`kind: 'switch'`, default yes or no, a `refusal`, an optional
@@ -187,20 +193,61 @@ universe settings) and their ranges are not decided yet.
 * **[V]** `live: true` makes a number entry also a row of the universe
   settings under the same key, changed during the round and checked there
   like the other settings (X1, owner, 2026-11-17). The lock of a given-up
-  position (#224) was the one live setting of main, the last row of the
-  universe settings as before; the two settings of #55 follow it there,
-  in the order of their numbers. The other four are not live.
-* **[V]** A feature with a value per round adds one entry in its own file
-  (`export const X_SETTING = { … } as const satisfies RoundSetting`) and
-  one line to the list `ENTRIES` in `src/core/round.ts`, where the place
-  of the line means nothing; `RoundRules` gets the typed value from the
-  entry by itself. The feature picks its `order` number as the next free
-  ten above the highest number of the registry (120 after the 110 of #55),
-  so it stands last in the dialog and among the refusals; the members of
-  a group take neighbouring numbers. A test refuses a number used twice,
-  so two parallel features that picked the same one see it after the
-  merge, and the later one takes the next ten. The field id is `round-`
-  and the name in kebab case (`mainLock` is `round-main-lock`).
+  position (#224) and, after it, the four thresholds of the activity
+  markers (#229) are the live settings of main, the last rows of the
+  universe settings, followed by the two settings of #55; the other four
+  entries are not live.
+* **[V]** Added with #228 in the pattern of #310: the three thresholds of
+  the recognition of foreign fleets
+  ([Espionage defense](/features/espionage-defense.md)) are the entries of
+  `src/core/fleet-recognition.ts`, with the orders 120, 130 and 140 (60 to
+  90 are the activity markers of #229, 100 and 110 are left to #55), so they
+  stand after them in the dialog „Neue Runde“ and, being live, after the
+  activity rows in the universe settings. They are one group `recognition`
+  with the legend „Fremde Flotten erkennen“ ([E] owner, 2026-11-18): three
+  number fields from 0 to 100 ([E], 2026-11-18) in one fieldset with the
+  defaults 2, 4 and 8, sent as one object and refused together with the
+  range wording.
+* **[V]** With the groups of #229 and #228 the dialog „Neue Runde“ is
+  taller than a window of 720 px, so every dialog (`#modal .in` in
+  `src/client/static/style.css`) is at most as high as the window and
+  scrolls inside itself; before, its buttons lay outside the window.
+* **[V]** A feature registers its settings itself (#310; the owner asked
+  for a design pattern against the conflicts of parallel feature branches,
+  2026-11-18). It defines its entries in its own file of `src/core` and
+  exports them under one fixed name:
+  `export const roundSettings = [ { … } ] as const satisfies readonly RoundSetting[];`.
+  Nothing else is edited: `scripts/gen-features.ts` lists every file of
+  `src/core` with this export in `src/core/round-settings.gen.ts`
+  (`ROUND_ENTRIES`, not checked in, like the feature index; every `pnpm`
+  script that builds, checks or tests runs the generator first), and
+  `src/core/round.ts` builds `ROUND_SETTINGS` from that list and names no
+  feature. `RoundRules` gets the typed value from the entry by itself. The
+  feature picks its `order` number as the next free ten above the highest
+  number of the registry, so it stands last in the dialog and among the
+  refusals; the members of a group take neighbouring numbers and share one
+  group object. The field id is `round-` and the name in kebab case
+  (`mainLock` is `round-main-lock`). Where an entry lives is the feature's
+  choice: the reward options in `src/core/achievements.ts`, the guild switch
+  in `src/core/guild-chat.ts`, the lock of the main planet in
+  `src/core/main-planet.ts`, the lock of a given-up position in
+  `src/core/abandon.ts`, the activity thresholds in `src/core/activity.ts`,
+  who may hold and the level of the spy report in `src/core/holding.ts`, the
+  thresholds of the recognition of foreign fleets in
+  `src/core/fleet-recognition.ts`.
+* **[V]** The tests follow the same split (#310). One test,
+  `src/core/round-registry.test.ts`, checks the rules for all entries and
+  names no feature and no count: unique keys, names and field ids, unique
+  `order` numbers in ascending order (a number used twice by two parallel
+  features is seen after the merge, and the later one takes the next ten),
+  the members of a group together with one legend or none, a default and
+  every choice in the range, and every `live` entry a row of the universe
+  settings. Every feature tests its own entries in its own test, selected
+  from `ROUND_SETTINGS` by key or group (label, range, default, order,
+  legend, refusal, `live`, field id), and no test lists another feature's
+  settings, counts all fieldsets or rows, or picks one by position. A test
+  that needs a full set of round values takes it from `roundDefaults()`
+  (`src/test/fixtures.ts`) and names the values of its own feature on top.
 
 # Round rewards and menu hints
 
