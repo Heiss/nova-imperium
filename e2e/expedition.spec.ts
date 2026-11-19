@@ -7,6 +7,7 @@
 // of the expedition with the words of its subject, and the fleet that flies
 // home or is gone as the subject says.
 import { expect, test, type Locator, type Page } from '@playwright/test';
+import { shipCount } from './fleet-helpers.ts';
 import { nav, ownArea, register, seed, uniqueName, watch } from './helpers.ts';
 
 const lastToast = (page: Page): Locator => page.locator('.toast').last();
@@ -14,7 +15,7 @@ const lastToast = (page: Page): Locator => page.locator('.toast').last();
 /**
  * Every outcome of the draw (src/features/missions/expedition/arrive.server.ts):
  * the subject in the title of the report, the words of its body, and whether
- * a fleet flies home afterwards (null: the battle ends in a draw, and the
+ * the fleet is home again afterwards (null: the battle ends in a draw, and the
  * fleet is gone only if it lost every ship).
  */
 const OUTCOMES: {
@@ -142,9 +143,18 @@ test.describe('the expedition (#93)', () => {
     const outcome = OUTCOMES.find((o) => o.title.test(title));
     expect(outcome, `the title of the report: ${title}`).toBeDefined();
     await expect(report).toContainText(outcome!.body);
-    await nav(page, 'overview');
-    if (outcome!.home !== null)
-      await expect(page.locator('.fl-back')).toHaveCount(outcome!.home ? 1 : 0);
+    // The fleet: lost for good, or home again (the flight home is short, so
+    // it is brought home now and its Lastbarken counted: 3 stayed, 2 flew).
+    if (outcome!.home !== null) {
+      seed({ name, returnFleet: true });
+      await nav(page, 'fleet');
+      const barks = shipCount(page, 'Lastbarke');
+      if (outcome!.home) {
+        await expect
+          .poll(async () => Number((await barks.innerText()).replace('.', '')))
+          .toBeGreaterThanOrEqual(5);
+      } else await expect(barks).toHaveText('3');
+    }
     expect(w.problems).toEqual([]);
   });
 });
