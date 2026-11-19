@@ -44,6 +44,15 @@
                         >{:else}<span class="dim">gleich …</span
                         >{/if}{:else}{order.each}{/if}</td
                   >
+                  <td class="n"
+                    ><button
+                      class="small red"
+                      data-act="cancelOrder"
+                      data-pos={i}
+                      data-k={order.key}
+                      aria-label={`Abbrechen: ${order.label}`}>Abbrechen</button
+                    ></td
+                  >
                 </tr>
               {/each}
             </tbody>

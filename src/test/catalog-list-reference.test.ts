@@ -202,6 +202,8 @@ function research(v: V): string {
 
 // ----- frozen: src/client/views/yard.ts before #118 -----
 
+// One change on purpose (#258): every order of the list has a button
+// „Abbrechen“ in a cell of its own, named by position and unit.
 function queue(v: V): string {
   const { P, now } = v;
   if (!P.sq.length) return '';
@@ -211,7 +213,8 @@ function queue(v: V): string {
         i === 0
           ? 'nächste fertig in ' + cd((P.sqT ?? now) + q.unit, now)
           : 'je ' + dur(q.unit);
-      return `<tr><td>${fmt(q.n)}× ${text(q.key)?.n}</td><td class="n">${when}</td></tr>`;
+      const label = `${fmt(q.n)}× ${text(q.key)?.n}`;
+      return `<tr><td>${label}</td><td class="n">${when}</td><td class="n"><button class="small red" data-act="cancelOrder" data-pos="${i}" data-k="${q.key}" aria-label="Abbrechen: ${esc(label)}">Abbrechen</button></td></tr>`;
     })
     .join('');
   return `<div class="box"><div class="hd">Bauauftrag der Schiffsschmiede</div><div class="bd"><table>${rows}</table></div></div>`;

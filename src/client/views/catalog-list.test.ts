@@ -106,6 +106,35 @@ describe('CatalogList', () => {
     expect(hidden).not.toContain('lvt');
   });
 
+  it('gives every order of the shipyard a button „Abbrechen“ with its position and unit (#258)', () => {
+    const v = view();
+    v.P = planet({
+      b: { yard: 1 },
+      sq: [
+        { key: 'rl', n: 2, unit: 5000 },
+        { key: 'rl', n: 1, unit: 5000 },
+        { key: 'll', n: 7, unit: 9000 },
+      ],
+      sqT: 0,
+    });
+    for (const kind of ['ship', 'defense'] as const) {
+      const out = html(kind, v);
+      const buttons = [
+        ...out.matchAll(
+          /<button class="small red" data-act="cancelOrder"[^>]*>/g,
+        ),
+      ].map((m) => m[0]);
+      expect(buttons).toEqual([
+        '<button class="small red" data-act="cancelOrder" data-pos="0" data-k="rl" aria-label="Abbrechen: 2× Raketenbatterie">',
+        '<button class="small red" data-act="cancelOrder" data-pos="1" data-k="rl" aria-label="Abbrechen: 1× Raketenbatterie">',
+        '<button class="small red" data-act="cancelOrder" data-pos="2" data-k="ll" aria-label="Abbrechen: 7× Lichtlanze">',
+      ]);
+      expect(out.match(/>Abbrechen<\/button>/g)).toHaveLength(3);
+    }
+    // Without orders there is no list and no button.
+    expect(html('defense')).not.toContain('cancelOrder');
+  });
+
   it('escapes what players write', () => {
     const out = html('research', view('<img src=x onerror=alert(1)>'));
     expect(out).not.toContain('<img src=x');

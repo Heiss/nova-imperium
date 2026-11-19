@@ -19,6 +19,7 @@ import {
   type ResearchError,
   researchErrors,
 } from '../../core/economy-checks.ts';
+import { cancelOrder as takeOutOrder } from '../../core/cancel-order.ts';
 import { type ExplainMode, storedMode } from '../../core/explain.ts';
 import { isLevelMode, type LevelMode } from '../../core/level-overview.ts';
 import {
@@ -305,6 +306,31 @@ export const order: Action = (ctx, u, d, event) => {
   if (event) event.detail = { planet: p.id, key: k, units: n };
   scheduleShipyard(ctx, p);
   return `${fmt(n)}× ${text(k)!.n} in Auftrag gegeben.`;
+};
+
+/**
+ * Cancels the order at position `pos` of the shipyard list of the selected
+ * own planet when it still holds the unit `key` (#258, owner, 2026-11-16):
+ * the rule is `cancelOrder()` of the core, which refunds the whole rest of
+ * the order in full and lets the next order start now when the first one
+ * went. An order that finished meanwhile, so that the position is empty or
+ * holds another unit, is no error: nothing happens, like `cancelBuild`
+ * without an upgrade. It is allowed while an upgrade locks the shipyard. The
+ * push „Schiffsschmiede fertig“ moves to the new end of the list, or goes
+ * when the list is empty.
+ */
+export const cancelOrder: Action = (ctx, u, d) => {
+  const asked = d.pos;
+  const pos =
+    typeof asked === 'number' && Number.isInteger(asked) && asked >= 0
+      ? asked
+      : fail('Ungültig.');
+  const p = mine(ctx, u, d.planet);
+  if (!takeOutOrder(p, pos, String(d.key), ctx.now())) return null;
+  ctx.planets.save(p);
+  if (p.sq.length) scheduleShipyard(ctx, p);
+  else cancelScheduledPush(ctx, u.id, 'shipyard', `${p.id}:*`);
+  return null;
 };
 
 export const pct: Action = (ctx, u, d) => {

@@ -26,6 +26,7 @@ okf_version: "0.2"
 * [Ionengeschütz, Plasmawerfer and shield domes](/features/defense-ion-plasma-domes.md) - defense of #50, domes once per planet
 * [Ionentechnik, Plasmatechnik, Gravitonforschung and IFN](/features/research-ion-plasma-graviton.md) - new research of #49, energy check of Gravitonforschung, research on any planet with a lab, research network
 * [Explanation texts](/features/explanation-texts.md) - long texts with a display option per player (#63)
+* [Cancelling a shipyard order](/features/shipyard-cancel.md) - every order of the shipyard list can be cancelled, units not done yet are refunded in full, units done stay (#258)
 * [Level overview](/features/level-overview.md) - a ▤ next to the „?“ unfolds the next levels of a building or research with cost, time, effect and the difference to today, an option per player (#187)
 * [Lexicanum](/features/lexicanum.md) - in-game lexicon of stage 1: an article per catalog entry and mission computed from the rules, side panel and page, search, shared level table (#285, #187)
 * [Lexicanum texts](/features/lexicanum-texts.md) - review list of the texts Claude drafted for the Lexicanum: words before the formulas, mission texts, keywords, all [V] until the owner confirms them (#285)

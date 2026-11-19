@@ -140,6 +140,8 @@ export interface CatalogRow {
 
 /** A row of the order queue of the shipyard. */
 interface QueueRow {
+  /** The catalog key of the unit; with the position it names the order a cancel takes back (#258). */
+  key: string;
   label: string;
   /** The first order: when its next unit is done; null when it is due. */
   next: { end: number; left: string | null } | null;
@@ -530,6 +532,7 @@ function queue(v: V): QueueRow[] {
   return P.sq.map((q, i) => {
     const end = (P.sqT ?? now) + q.unit;
     return {
+      key: q.key,
       label: `${fmt(q.n)}× ${text(q.key)!.n}`,
       next: i === 0 ? { end, left: end > now ? dur(end - now) : null } : null,
       each: `je ${dur(q.unit)}`,

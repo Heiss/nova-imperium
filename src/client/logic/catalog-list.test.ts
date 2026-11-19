@@ -775,11 +775,13 @@ describe('shipyard and defense', () => {
       opened(catalogPage(yard({ sq, sqT }, { now }), 'defense')).queue;
     expect(queue(2000)).toEqual([
       {
+        key: 'lf',
         label: `2× ${text('lf')!.n}`,
         next: { end: 6000, left: dur(4000) },
         each: `je ${dur(5000)}`,
       },
       {
+        key: 'sc',
         label: `1.200× ${text('sc')!.n}`,
         next: null,
         each: `je ${dur(3000)}`,
