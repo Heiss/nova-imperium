@@ -69,6 +69,27 @@ are [Activity indicators](/features/activity-indicators.md).
   restart or a network loss therefore only cost the last unconfirmed part.
   The state of a page is read from its last stored event, so a restart opens
   and doubles nothing.
+* **[V]** The limit in `judge` (`src/core/playtime.ts`), so that no honest
+  sequence loses time. A heartbeat (an `active` report that continues an open
+  interval) is stored while the interval holds no more heartbeats than whole
+  heartbeat intervals have passed since its start row (`beatsTooSoon`): the
+  count is of the interval, so a heartbeat that arrives up to a whole interval
+  early or late is still stored, and a page that beats every 30 s stores every
+  beat for hours. A start (`since` null, or an `active` report that cannot
+  continue an interval) is ignored while the page's last report is an `active`
+  one younger than a heartbeat (`startsTooSoon`); after a stop it is always
+  stored, so a start, a stop 3 s later and a second start 2 s after that are
+  stored as before. The report that ends an interval (`inactive` at the
+  deadline, `background` when the page is hidden) is never limited, and an
+  interval has one (a second one finds no open interval and is ignored, as
+  before). A dropped report changes nothing: the next one is judged against the
+  same last report. The state is read from the rows: `lastOfInstance` also gives
+  `opened` (the end of the interval's latest start row) and `beats` (the rows
+  after it), so a restart changes nothing. A flood of 100 reports in one second
+  from one page stores a start and one heartbeat, and a flood of starts one
+  row. A start within a heartbeat of an active report (a lost stop followed by a
+  new start) is now ignored instead of opening a second interval; the page's
+  heartbeats then continue the open interval, so the credit is the same.
 * **[V]** The totals: the union of the stored intervals of the account
   intersected with the window (`union`, `activeMs`, `dailyMs`), so two pages
   or devices count a real second once; the day windows are UTC days (an
@@ -107,16 +128,31 @@ are [Activity indicators](/features/activity-indicators.md).
   its state; the time of a player in a round is the union of those intervals
   (`union`, `activeMs` in `src/core/playtime.ts`). Nothing else is stored: the
   round's `roundStart` is not on the rows; a round is its number.
-* **[V]** Not built: the envelope fields the owner named for all user-triggered
-  game events (`round_id`, `play_session_id` on the audit log) come with #235
-  (owner, 2026-11-17); the admin's deleting of a round, which is to delete
-  these rows with it, does not exist yet.
+* **[V]** The archive (#235): at the close of a round the intervals of every
+  participant go into the archive as events (`player.playtime`, see
+  [Round archive](/features/round-archive.md)); `playtime_events` keeps its rows
+  and the admin's „Runde löschen“ deletes the rows of that round (`deleteRound`
+  of `ctx.playtime`), as the retention of #231 and #232 says. The envelope
+  fields the owner named for all user-triggered game events (`round_id`,
+  `play_session_id` on the audit log) are not built.
 
 # Open
 
-* **[U]** A limit on the reports per player and minute, so a script cannot fill
-  the table: the credited time is already bounded by the real time (a page
-  that reports faster is credited with the seconds that passed), but not the
-  number of rows. A value is the owner's to give.
+* **[U]** What the limit does not bound, for the owner (no number invented):
+  (1) the number of pages: a page is a random id the browser makes up, so a
+  script that sends every report from a new `instance` stores one row per
+  report; (2) alternating start and stop reports from one page: each stop
+  closes an interval and is never limited, each start after a stop is stored.
+  The credited time stays bounded by the real time in both cases (a row is
+  worth the time that passed), only the number of rows is not. Options: (a) at
+  most N rows per player per minute over all pages (needs N); (b) at most N
+  pages per player in the last 60 s, the oldest ignored (needs N); (c) a page id
+  the server hands out at login and checks (no number, a change to the
+  session); (d) coalesce the rows of an interval on read or by a nightly job
+  (no number, a second write path). Not decided.
+* **[E]** The limit of the reports (owner, 2026-11-19, „Geklärt“ on #232): a
+  page (`instance`) stores at most one row per heartbeat interval (30 s, the
+  existing constant, no new number); a report that comes faster is dropped, not
+  stored and not credited later twice.
 * **[U]** Whether the player's own view also shows the legacy sums of the
   first days (#231 allows it „labelled incomplete“); built without.

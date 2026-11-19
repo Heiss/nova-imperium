@@ -8,9 +8,11 @@ import type { NavLink, Navigation } from '../logic/navigation.ts';
 import type { ResourceBar as Bar } from '../logic/resource-bar.ts';
 import { planet } from '../../test/fixtures.ts';
 import { normalize } from '../../test/markup.ts';
+import Bell from './Bell.svelte';
 import Header from './Header.svelte';
 import Menu from './Menu.svelte';
 import MoreList from './MoreList.svelte';
+import MoreUser from './MoreUser.svelte';
 import ResourceBar from './ResourceBar.svelte';
 import TabBar from './TabBar.svelte';
 
@@ -36,6 +38,8 @@ const nav = (over: Partial<Navigation> = {}): Navigation => ({
   more: [link('galaxy', { hint: 'Neu <b>"x"</b>' })],
   moreOn: false,
   moreHint: false,
+  bell: { href: '/?view=messages', unread: 0, on: false },
+  commander: 'Cmd <i>',
   ...over,
 });
 
@@ -53,7 +57,7 @@ describe('Header', () => {
   it('names the one place as text, then the commander and „Logout“ (#241)', () => {
     const out = render(Header, { props: { line: line() } }).body;
     expect(normalize(out)).toBe(
-      '<b>&lt;img src=x onerror=alert(1)></b> [1:2:3] · Kommandant <b>&lt;script>x&lt;/script></b> · <span class="lnk" data-act="logout">Logout</span>',
+      '<b>&lt;img src=x onerror=alert(1)></b> [1:2:3] <span class="cmd">· Kommandant <b>&lt;script>x&lt;/script></b> ·</span> <span class="lnk" data-act="logout">Logout</span>',
     );
   });
 
@@ -77,7 +81,7 @@ describe('Header', () => {
     expect(out).not.toContain('onerror');
     expect(out).not.toContain('[1:2:3]');
     expect(normalize(out)).toBe(
-      '<select aria-label="Aktiver Planet" id="planet_select"><option value="p1">Heimat [1:1:1]</option><option selected value="p&quot;2">K &lt;i> [1:1:2]</option></select> · Kommandant <b>&lt;script>x&lt;/script></b> · <span class="lnk" data-act="logout">Logout</span>',
+      '<select aria-label="Aktiver Planet" id="planet_select"><option value="p1">Heimat [1:1:1]</option><option selected value="p&quot;2">K &lt;i> [1:1:2]</option></select> <span class="cmd">· Kommandant <b>&lt;script>x&lt;/script></b> ·</span> <span class="lnk" data-act="logout">Logout</span>',
     );
   });
 });
@@ -112,6 +116,42 @@ describe('the navigation', () => {
     expect(open).toContain(
       '<span class="dot" role="img" aria-label="Neues unter Mehr"></span>',
     );
+  });
+});
+
+describe('the bell and the commander of the phone (#189, D1)', () => {
+  const bell = (unread: number, on = false) =>
+    render(Bell, {
+      props: {
+        nav: nav({ bell: { href: '/?view=messages', unread, on } }),
+      },
+    }).body;
+
+  it('links to the messages and names the unread ones for a reader', () => {
+    const out = bell(3);
+    expect(out).toContain(
+      '<a href="/?view=messages" data-act="nav" data-v="messages" aria-label="Nachrichten, 3 ungelesen">',
+    );
+    expect(out).toContain('<span class="badge">3</span>');
+    expect(out).toContain('aria-hidden="true"');
+  });
+
+  it('has no count without unread messages, and marks the open view', () => {
+    const none = bell(0);
+    expect(none).toContain('aria-label="Nachrichten"');
+    expect(none).not.toContain('badge');
+    expect(none).not.toContain('aria-current');
+    expect(bell(1, true)).toContain('aria-current="page"');
+  });
+
+  it('shows a number above 99 as 99+', () => {
+    expect(bell(250)).toContain('<span class="badge">99+</span>');
+  });
+
+  it('shows the escaped commander and „Logout“ for „Mehr“', () => {
+    const out = render(MoreUser, { props: { nav: nav() } }).body;
+    expect(out).toContain('Kommandant <b>Cmd &lt;i></b>');
+    expect(out).toMatch(/<button type="button" data-act="logout"[^>]*>Logout</);
   });
 });
 

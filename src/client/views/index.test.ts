@@ -6,14 +6,14 @@ const round = { achievements: true, daily: false, guilds: true } as Parameters<
 >[1];
 
 describe('phone menu', () => {
-  it('puts four destinations in the tab bar and the rest under „Mehr“', () => {
+  it('puts four destinations in the tab bar and the rest under „Mehr“ (#189, D1)', () => {
     const { tabs, more } = phoneMenu(menu(false, round));
     expect(tabs.map((t) => t.view)).toEqual([...TAB_VIEWS]);
     expect(tabs.map((t) => t.label)).toEqual([
       'Übersicht',
-      'Gebäude',
+      'Bauen',
       'Flotte',
-      'Nachrichten',
+      'Sternenkarte',
     ]);
     expect(more.map((t) => t.view)).toEqual([
       'resources',
@@ -21,7 +21,7 @@ describe('phone menu', () => {
       'research',
       'shipyard',
       'defense',
-      'galaxy',
+      'messages',
       'highscore',
       'guilds',
       'friends',
@@ -46,7 +46,7 @@ describe('phone menu', () => {
       'research',
       'shipyard',
       'defense',
-      'galaxy',
+      'messages',
       'highscore',
       'friends',
       'achievements',
@@ -60,7 +60,7 @@ describe('phone menu', () => {
     expect(more.at(-1)).toEqual({ view: 'admin', label: 'Admin' });
   });
   it('has a glyph for every tab and for „Mehr“', () => {
-    for (const v of [...TAB_VIEWS, 'more', 'chevron'])
+    for (const v of [...TAB_VIEWS, 'more', 'chevron', 'bell'])
       expect(TAB_GLYPHS[v]).toMatch(/^<svg [^>]*aria-hidden="true"/);
   });
 });

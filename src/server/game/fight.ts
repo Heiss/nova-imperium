@@ -14,6 +14,7 @@ import { DEF, SHIPS, fights } from '../../core/catalog.ts';
 import { type Debris, debrisOf, isEmpty } from '../../core/debris.ts';
 import { capacity, countUnits } from '../../core/flight.ts';
 import { cargoOf } from '../../core/holding.ts';
+import { cutLoot, plunder, rebuild } from '../../core/loot.ts';
 import { placeName } from '../../core/moon.ts';
 import { splitLoot } from '../../core/union.ts';
 import type { Fleet, Levels, Planet, Resources } from '../../core/types.ts';
@@ -30,55 +31,9 @@ import {
 } from './missions.ts';
 import { type MoonRoll, rollMoon } from './moons.ts';
 
-/** 70 % of the destroyed defense is rebuilt: by chance below 50 units, else rounded. */
-export function rebuild(lost: number, rng: () => number): number {
-  if (lost <= 0) return 0;
-  if (lost >= 50) return Math.round(lost * 0.7);
-  let n = 0;
-  for (let i = 0; i < lost; i++) if (rng() < 0.7) n++;
-  return n;
-}
-
-/**
- * Fills `free` cargo space from `avail` in the order of the classic loot:
- * a third Adamant, half of the rest Psikristall, the rest Promethium, then
- * what is left over, Adamant first.
- */
-function fill(avail: Resources, free: number): Resources {
-  let cap = free;
-  const loot = { m: 0, c: 0, d: 0 };
-  const take = (k: keyof Resources, limit: number): void => {
-    const v = Math.max(0, Math.floor(Math.min(avail[k] - loot[k], limit)));
-    loot[k] += v;
-    cap -= v;
-  };
-  take('m', cap / 3);
-  take('c', cap / 2);
-  take('d', cap);
-  take('m', cap / 2);
-  take('c', cap);
-  take('m', cap);
-  return loot;
-}
-
-/**
- * The winner takes up to half of each resource, as much as the holds carry;
- * of the cargo of the fleets that held at the planet all of it (`share` 1,
- * #55).
- */
-export const plunder = (
-  stock: Resources,
-  free: number,
-  share = 0.5,
-): Resources =>
-  fill({ m: stock.m * share, c: stock.c * share, d: stock.d * share }, free);
-
-/**
- * Loot cut to the holds that are left (#95; owner, 2026-11-16): what no
- * longer fits is lost, in the order of the loot.
- */
-export const cutLoot = (loot: Resources, free: number): Resources =>
-  fill(loot, free);
+// The loot and the rebuilt defense are rules of the core (#288); the
+// missions and their tests keep asking for them here.
+export { cutLoot, plunder, rebuild };
 
 /** The defense that fights: every one but the missiles (#54). */
 const fighting = (def: Levels): Levels =>

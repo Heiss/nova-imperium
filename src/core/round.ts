@@ -21,6 +21,12 @@ import { ROUND_ENTRIES } from './round-settings.gen.ts';
 export interface RoundGroup {
   name: string;
   legend?: string;
+  /**
+   * A line under the members in the dialog „Neue Runde“ that the browser
+   * writes again whenever a field changes (#237, the preview of the planet
+   * limit). It gets the number of every member of the group by its `name`.
+   */
+  preview?: (values: Readonly<Record<string, number>>) => string;
 }
 
 interface Common<N extends string> {
@@ -37,6 +43,13 @@ interface Common<N extends string> {
    */
   order: number;
   group?: RoundGroup;
+  /**
+   * The entry is shown in the dialog „Neue Runde“ only while the entry
+   * called `name` has `value` (#237: the fields of the colony research only
+   * with the research switched on). Hidden, it keeps its value and is sent
+   * with the others, and it has no effect while the other one disagrees.
+   */
+  shownWhen?: { name: string; value: number };
 }
 
 /** A value of yes or no, a checkbox in the dialog. */
@@ -55,6 +68,14 @@ export interface RoundNumber<N extends string = string> extends Common<N> {
   min: number;
   max: number;
   def: number;
+  /**
+   * The value of a running round that has none stored: a database from before
+   * the setting existed keeps today's game (#237: the planet limit stays
+   * unlimited in the round that runs). `def` is then what a new round takes
+   * when nothing is sent and what the dialog offers; without `unstored` a
+   * missing value is `def` everywhere.
+   */
+  unstored?: number;
   /** The refusal; without it the range wording of the universe settings. */
   refusal?: string;
   /** Named values instead of a number field (each lies in the range). */
@@ -96,7 +117,10 @@ export type RoundRules = { number: number } & RoundValues;
 /** A value of the round by name, for the generic code. */
 type Values = Record<string, number | boolean>;
 
-/** The values as stored: a missing setting is the default, a switch is 0 or 1. */
+/**
+ * The values of the running round: a missing setting is the default (the
+ * `unstored` value of an entry that has one), a switch is 0 or 1.
+ */
 export function storedValues(
   stored: (key: string) => number | undefined,
   settings: readonly RoundSetting[] = ROUND_SETTINGS,
@@ -104,10 +128,32 @@ export function storedValues(
   const out: Values = {};
   for (const s of settings) {
     const value = stored(s.key);
-    out[s.name] =
-      value === undefined ? s.def : s.kind === 'switch' ? value !== 0 : value;
+    if (value === undefined)
+      out[s.name] = s.kind === 'number' ? (s.unstored ?? s.def) : s.def;
+    else out[s.name] = s.kind === 'switch' ? value !== 0 : value;
   }
   return out;
+}
+
+/**
+ * What a new round takes instead of the value of the running round, where
+ * that round has none stored (`unstored`): the default. Only those entries;
+ * the dialog offers them and a request that does not send them gets them
+ * (#237). Once a round was started, every value is stored and this is empty.
+ */
+export function freshValues(
+  stored: (key: string) => number | undefined,
+  settings: readonly RoundSetting[] = ROUND_SETTINGS,
+): Record<string, number> {
+  return Object.fromEntries(
+    settings.flatMap((s) =>
+      s.kind === 'number' &&
+      s.unstored !== undefined &&
+      stored(s.key) === undefined
+        ? [[s.name, s.def]]
+        : [],
+    ),
+  );
 }
 
 /**
@@ -198,6 +244,27 @@ export function roundRequest(
       };
   }
   return out;
+}
+
+/** Whether the dialog shows an entry for the values in its fields (`shownWhen`). */
+export const roundShown = (
+  s: RoundSetting,
+  values: Readonly<Record<string, number | boolean>>,
+): boolean =>
+  !s.shownWhen || Number(values[s.shownWhen.name]) === s.shownWhen.value;
+
+/** The preview line of a group for the values in its fields; empty for a group without one. */
+export function roundPreview(
+  group: RoundGroup,
+  values: Readonly<Record<string, number | boolean>>,
+  settings: readonly RoundSetting[] = ROUND_SETTINGS,
+): string {
+  const own = Object.fromEntries(
+    settings
+      .filter((s) => s.group === group)
+      .map((s) => [s.name, Number(values[s.name])]),
+  );
+  return group.preview?.(own) ?? '';
 }
 
 /** The id of an entry's field in the dialog: `mainLock` is `round-main-lock`. */

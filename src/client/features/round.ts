@@ -6,7 +6,9 @@ import {
   ROUND_SETTINGS,
   type RoundSetting,
   roundFieldId,
+  roundPreview,
   roundRequest,
+  roundShown,
 } from '../../core/round.ts';
 import { client } from '../logic/state.svelte.ts';
 import { roundDialog } from '../views/misc.ts';
@@ -23,23 +25,62 @@ const numberOf = (raw: string | undefined): number =>
   raw ? Number(raw) : Number.NaN;
 
 /** The values of the open dialog: a checkbox yes or no, a field as a number. */
-const dialogValues = (): Record<string, number | boolean> =>
+const dialogValues = (
+  settings: readonly RoundSetting[] = ROUND_SETTINGS,
+): Record<string, number | boolean> =>
   Object.fromEntries(
-    ROUND_SETTINGS.map((s) => [
+    settings.map((s) => [
       s.name,
       s.kind === 'switch' ? !!field(s)?.checked : numberOf(field(s)?.value),
     ]),
   );
 
+/**
+ * Brings the open dialog in line with its fields (#237): an entry that is
+ * shown only while another field has a value is hidden or shown, and the
+ * preview line of a group is written again. A hidden field keeps its value.
+ */
+export function syncRoundDialog(
+  settings: readonly RoundSetting[] = ROUND_SETTINGS,
+): void {
+  const values = dialogValues(settings);
+  for (const s of settings) {
+    const wrap = document.querySelector<HTMLElement>(
+      `[data-round-field="${roundFieldId(s)}"]`,
+    );
+    if (wrap) wrap.hidden = !roundShown(s, values);
+    const group = s.group;
+    const line = group
+      ? document.querySelector<HTMLElement>(`#round-preview-${group.name}`)
+      : null;
+    if (group && line) line.textContent = roundPreview(group, values, settings);
+  }
+}
+
 /** The data-act handlers of „Neue Runde“. */
 export const clientFeature = {
-  acts: ({ act, modal }) => ({
-    reset: () => modal(roundDialog(client.game!.round)),
-    doReset: () => {
-      // Read before the dialog closes with its fields.
-      const data = roundRequest(dialogValues());
-      modal('');
-      return act('reset', data);
-    },
-  }),
+  acts: ({ act, modal }) => {
+    const changed = (e: Event): void => {
+      if ((e.target as HTMLElement | null)?.id?.startsWith('round-'))
+        syncRoundDialog();
+    };
+    document.addEventListener('change', changed);
+    document.addEventListener('input', changed);
+    return {
+      reset: () =>
+        modal(
+          roundDialog(
+            client.game!.round,
+            ROUND_SETTINGS,
+            client.game!.admin?.fresh,
+          ),
+        ),
+      doReset: () => {
+        // Read before the dialog closes with its fields.
+        const data = roundRequest(dialogValues());
+        modal('');
+        return act('reset', data);
+      },
+    };
+  },
 } satisfies ClientFeature;

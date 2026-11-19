@@ -1,6 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import { seeded, sequence } from '../test/fixtures.ts';
-import { battle, battleOf, buildSide, count, hit, rapid } from './battle.ts';
+import {
+  againChance,
+  battle,
+  battleOf,
+  buildSide,
+  count,
+  EXPLODES_BELOW,
+  hit,
+  MAX_ROUNDS,
+  rapid,
+  SHIELD_IGNORED,
+} from './battle.ts';
 import { fights, UNIT } from './catalog.ts';
 
 const unit = (over = {}) => ({
@@ -425,5 +436,28 @@ describe('battle of several parties (#55)', () => {
       def: [{}, {}],
     });
     expect(battleOf([], [side({ rl: 1 })]).winner).toBe('def');
+  });
+});
+
+describe('the numbers of a battle (#288)', () => {
+  it('has the six rounds, the ignored shot and the border of an explosion', () => {
+    expect(MAX_ROUNDS).toBe(6);
+    expect(SHIELD_IGNORED).toBe(0.01);
+    expect(EXPLODES_BELOW).toBe(0.7);
+  });
+
+  it('shoots again at (r - 1) / r', () => {
+    expect(againChance(1)).toBe(0);
+    expect(againChance(2)).toBe(0.5);
+    expect(againChance(5)).toBe(0.8);
+    expect(againChance(10)).toBeCloseTo(0.9, 12);
+  });
+
+  it('lets a battle that nobody wins end after the last round', () => {
+    // Two units that cannot hurt each other: the shield ignores every shot.
+    const tough = { units: { ssd: 1 }, tech: {} };
+    const result = battleOf([tough], [tough], () => 0);
+    expect(result.rounds).toBe(MAX_ROUNDS);
+    expect(result.winner).toBe('draw');
   });
 });

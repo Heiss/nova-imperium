@@ -159,6 +159,92 @@ generated: { by: claude-code/web, at: 2026-11-10T19:00:00Z }
   smaller on the one-line header, Tab down and Shift+Tab up to controls out
   of sight); an earlier draft is on the branch `claude/sticky-header`.
 
+# Lighter phone view (issue #189)
+
+The owner (2026-11-14, „Geklärt“ and „Geklärt, Nachtrag“ on #189) decided
+D1 to D7; D7 (no view wider than 360 px) is built (#207, above). The
+rest is built in parts; this section says what is, and what is still to do.
+Up to 760 px only; the desktop stays as it is (D6).
+
+## Decided
+
+* **[E]** D1: the tab bar is Übersicht · Bauen · Flotte · Karte · Mehr; the
+  messages move to the bell in the header (owner, 2026-11-14).
+* **[E]** D2 and D3: one tab „Bauen“ with a switch Gebäude / Forschung /
+  Schiffsschmiede / Abwehr; each entry is a compact row (picture, name and level,
+  costs, time, „▲ 5“), and a tap unfolds the details (owner, 2026-11-14).
+* **[E]** D4: the default filter is „Baubar“; entries whose requirements
+  are missing show with them under „Alle“ (owner, 2026-11-14).
+* **[E]** D5: the Übersicht is a dashboard with the cards „Läuft“,
+  „Achtung“ and „Bereit“, then the planet facts; the long planet table moves
+  down (owner, 2026-11-14).
+* **[E]** D6: phones only, up to 760 px; D7: built (#207).
+* **[E]** Unchanged from the issue, still [V] (owner, 2026-11-14): the
+  compact header (planet chip, bell, one line of resources, logout in
+  „Mehr“), the Sternenkarte rows with the „⋯“ sheet, the folded long pages,
+  the German texts and touch targets of at least 44 px.
+
+## Built (part 1, #189)
+
+* **[V]** „Bauen“: the tab leads to the list of buildings; at the top of
+  each of the four lists a switch of four links (Gebäude, Forschung, Schiffsschmiede,
+  Abwehr) and a filter of three buttons (Baubar, Alle, Läuft). The tab is
+  marked in all four lists. The lists of research, shipyard and defense stay
+  reachable under „Mehr“, too, since the E2E helper `nav()` uses them there.
+  `CatalogList.svelte`, `logic/phone-build.ts`, `logic/navigation.ts`.
+* **[V]** Phases (`rowPhase()`): „Läuft“ is an upgrade or a research that
+  runs, or a unit of the shipyard or defense with an order in the queue;
+  „locked“ is an entry with the note „Das Wissen ist noch verschlossen“;
+  everything else is „Baubar“, also while it waits for resources, energy,
+  fields or the queue (its note stays in the row). The owner named no rule.
+* **[V]** The filter is CSS on `data-filter` and `data-phase`, so the desktop
+  shows every row. The filter and the unfolded rows live in
+  `logic/phone-build.svelte.ts` for the session; a reload starts with
+  „Baubar“.
+* **[V]** The compact row: picture 48 px, name with level, costs, the time
+  line („Bauzeit“, „Forschungszeit“), and on the right the button; the fold
+  button „▾“ (44 px) is at the end of the name. Unfolded it shows the
+  description, the energy and other lines, the requirements, the „?“ and „▤“
+  and „Zurückbauen“. An entry whose requirements are missing shows them
+  without a tap. A row with a number field (ships, defense) or a note takes
+  the line below the name.
+* **[V]** „▲ 5“: a button that names a level („Ausbauen auf Stufe 5“,
+  „Forschen (Stufe 4)“) shows „▲ 5“ on a phone and keeps its full name as
+  `aria-label`; „Bauen“ stays.
+* **[V]** Empty filter: „Nichts ist baubar. „Alle“ zeigt auch, was noch
+  fehlt.“ and „Es läuft gerade nichts.“.
+* **[V]** The compact header: the logo, the commander and „Logout“ are hidden
+  on a phone; the planet is the list „Aktiver Planet“ as a 44 px chip beside
+  the bell, below it one line of four resources (icon 20 px beside the
+  number). Measured at 360 px: about 90 px instead of 140 px. The commander
+  and „Logout“ stand at the top of the sheet „Mehr“ (`MoreUser.svelte`); the
+  bell (`Bell.svelte`) links to the messages and shows the unread number
+  (99+ above 99); „Mehr“ still marks unread messages.
+* **[V]** The Sternenkarte on a phone is one block per position (the name no
+  longer breaks inside a word); the proposal's „⋯“ bottom sheet is left out,
+  the actions stay in the row.
+* **[V]** Achievements on a phone (`logic/achievement-fold.ts`): „Offen“ shows
+  the next goal of each series (the lowest target not claimed), „Erledigt“
+  only its button; two buttons unfold them („Alle N zeigen“, „Nur die
+  nächsten Ziele zeigen“, „N erledigte zeigen“, „Erledigte ausblenden“).
+  „Einlösbar“ is always open.
+* **[V]** The Übersicht on a phone: the fleet movements and the activities
+  stand above the planet table (CSS `order` only).
+
+## Still to do
+
+* D5: the cards „Läuft“, „Achtung“ and „Bereit“ (what counts as „Achtung“
+  and „Bereit“ is in the proposal: an attack on the way, missing energy,
+  a reward, new reports, an idle build queue on another planet). Not built:
+  the Übersicht was being changed by the ACS work (#225) at the
+  same time.
+* „Hilfe & Optionen“ in sections, the „⋯“ sheet of the Sternenkarte, a
+  filter that remembers itself across a reload, and a check at 44 px of the
+  smallest buttons that existed before (`small`).
+* E2E: the phone tests that click „Logout“, open a locked entry, the „?“ or
+  „▤“ of a row, or read a row of the lists without the filter must unfold or
+  choose „Alle“ first (see the log entry of 2026-11-19).
+
 # Design draft
 
 `docs/design/interface-v2/` holds the mockup, the full icon set and the

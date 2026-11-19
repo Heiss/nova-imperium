@@ -6,6 +6,12 @@ import {
 } from '../../core/achievements.ts';
 import { rewardMinutes } from '../../core/daily-reward.ts';
 import type { Cost } from '../../core/types.ts';
+import {
+  foldLabel,
+  type FoldGroup,
+  laterGoals,
+  unfolded,
+} from '../logic/achievement-fold.ts';
 import { esc, fmt } from '../logic/format.ts';
 import { box, type V } from './common.ts';
 
@@ -32,6 +38,7 @@ function achievementRow(
   item: Achievement,
   state: AchievementState,
   status: Status,
+  later: boolean,
 ): string {
   const label = CATEGORIES[item.category];
   const progress = Math.min(state.progress[item.metric] ?? 0, item.target);
@@ -39,7 +46,7 @@ function achievementRow(
     status === 'ready'
       ? `<button data-act="achievementClaim" data-id="${esc(item.id)}">Abholen</button>`
       : '';
-  return `<article data-achievement data-category="${item.category}" data-status="${status}" data-search="${esc(`${item.title} ${label}`.toLocaleLowerCase('de'))}">
+  return `<article data-achievement${later ? ' data-later' : ''} data-category="${item.category}" data-status="${status}" data-search="${esc(`${item.title} ${label}`.toLocaleLowerCase('de'))}">
   <p><b>${esc(item.title)}</b> · ${label} · ${fmt(progress)} / ${fmt(item.target)}<br>
   <span class="dim">Belohnung: ${rewardText(item.reward)}</span> ${button}</p>
   </article>`;
@@ -55,6 +62,21 @@ function daily(state: AchievementState['daily']): string {
   <p data-daily-reward>Heute: ${rewardText(reward)} ${claimed ? '<b>Abgeholt</b>' : '<button data-act="dailyClaim">Tagesbelohnung abholen</button>'}</p>
   <p>Morgen (${fmt(rewardMinutes(day + 1))} Minuten, bei gleicher Produktion): ${rewardText(next)}</p>`,
   );
+}
+
+/** The groups a phone can unfold: „Offen“ and „Erledigt“. */
+const isFoldable = (key: string): key is FoldGroup =>
+  key === 'open' || key === 'claimed';
+
+function foldAttrs(key: string, count: number): string {
+  if (!isFoldable(key) || !count) return '';
+  return ` data-fold="${key}"${unfolded[key] ? ' data-all' : ''}`;
+}
+
+/** The phone's button to unfold a group; the desktop hides it. */
+function foldButton(key: string, count: number): string {
+  if (!isFoldable(key) || !count) return '';
+  return `<button type="button" class="fold-all phone-only" data-act="achFold" data-g="${key}" aria-expanded="${unfolded[key]}">${foldLabel(key, count)}</button>`;
 }
 
 function filters(): string {
@@ -78,14 +100,20 @@ export function achievements(view: V): string {
   if (!view.s.round.achievements) return '<h2>Belohnungen</h2>' + rewards;
   const claimed = new Set(state.claimed);
   const rows: Record<Status, string[]> = { ready: [], open: [], claimed: [] };
+  // Phone: only the next goal of each series is shown, until unfolded (#189).
+  const later = laterGoals(
+    ACHIEVEMENTS,
+    (item) => item.metric,
+    (item) => claimed.has(item.id),
+  );
   for (const item of ACHIEVEMENTS) {
     const status = statusOf(item, state, claimed);
-    rows[status].push(achievementRow(item, state, status));
+    rows[status].push(achievementRow(item, state, status, later.has(item)));
   }
   const groups = Object.entries(statusLabels)
     .map(([key, title]) => {
-      const content = rows[key as Status].join('');
-      return `<section data-achievement-group>${box(title, content || '<p>Keine Einträge.</p>')}</section>`;
+      const list = rows[key as Status];
+      return `<section data-achievement-group${foldAttrs(key, list.length)}>${box(title, foldButton(key, list.length) + (list.join('') || '<p>Keine Einträge.</p>'))}</section>`;
     })
     .join('');
   return `<h2>Achievements</h2>${rewards}${box('Filtern', filters())}${groups}`;

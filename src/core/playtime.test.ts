@@ -8,6 +8,7 @@ import {
   type Interval,
   type Last,
   type Report,
+  type Verdict,
   activeMs,
   dailyMs,
   judge,
@@ -29,6 +30,8 @@ const last = (over: Partial<Last> = {}): Last => ({
   seq: 0,
   state: 'active',
   end: 1000,
+  opened: 0,
+  beats: 0,
   ...over,
 });
 
@@ -181,10 +184,14 @@ describe('judge', () => {
     ).toMatchObject({ reason: 'start' });
   });
 
-  it('a start that has an interval open closes nothing and opens a new one', () => {
+  it('a start that has an interval open for more than a heartbeat closes nothing and opens a new one (a lost stop)', () => {
     expect(
-      judge(report({ seq: 1, since: null }), last({ end: 1000 }), 2000),
-    ).toMatchObject({ reason: 'start', start: 2000, end: 2000 });
+      judge(
+        report({ seq: 1, since: null }),
+        last({ end: 1000 }),
+        1000 + HEARTBEAT_MS,
+      ),
+    ).toMatchObject({ reason: 'start', start: 31_000, end: 31_000 });
   });
 });
 
@@ -260,13 +267,37 @@ describe('sessionOf', () => {
 
 /** What the server credits for the reports of one page, as the browser sends them. */
 function credited(reports: readonly (readonly [number, Report])[]): Interval[] {
+  return storedRows(reports).map((row) => row.interval);
+}
+
+/** The last report as the table would give it after a row: the interval it opened and the rows since. */
+const after = (
+  prev: Last | null,
+  r: Report,
+  v: Extract<Verdict, { accept: true }>,
+): Last => ({
+  seq: r.seq,
+  state: r.state,
+  end: v.end,
+  opened: v.reason === 'start' ? v.end : prev!.opened,
+  beats: v.reason === 'start' ? 0 : prev!.beats + 1,
+});
+
+/** The rows the server stores for the reports of one page, with the reason of each. */
+function storedRows(
+  reports: readonly (readonly [number, Report])[],
+): { at: number; reason: string; interval: Interval }[] {
   let state: Last | null = null;
-  const out: Interval[] = [];
+  const out: { at: number; reason: string; interval: Interval }[] = [];
   for (const [at, r] of reports) {
     const v = judge(r, state, at);
     if (!v.accept) continue;
-    out.push({ start: v.start, end: v.end });
-    state = { seq: r.seq, state: r.state, end: v.end };
+    out.push({
+      at,
+      reason: v.reason,
+      interval: { start: v.start, end: v.end },
+    });
+    state = after(state, r, v);
   }
   return out;
 }
@@ -373,5 +404,176 @@ describe('the estimate', () => {
       [30_000, second(report({ seq: 1, since: 30_000 }))],
     ]);
     expect(activeMs([...first, ...other], 0, DAY_MS)).toBe(30_000);
+  });
+});
+
+describe('the limit of rows per page (#232, owner, 2026-11-19)', () => {
+  const beat = (seq: number, over: Partial<Report> = {}): Report =>
+    report({ seq, since: HEARTBEAT_MS, ...over });
+
+  it('stores an honest session exactly as before: a start, a heartbeat every 30 s, the stop at the timeout', () => {
+    const all = [
+      [0, report({ seq: 0, since: null })],
+      [30_000, beat(1)],
+      [60_000, beat(2)],
+      [90_000, beat(3)],
+      [120_000, beat(4, { state: 'inactive', since: 30_000 })],
+    ] as const;
+    expect(storedRows(all).map((r) => [r.at, r.reason])).toEqual([
+      [0, 'start'],
+      [30_000, 'heartbeat'],
+      [60_000, 'heartbeat'],
+      [90_000, 'heartbeat'],
+      [120_000, 'idle'],
+    ]);
+    expect(activeMs(credited(all), 0, DAY_MS)).toBe(120_000);
+  });
+
+  it('stores a start and a stop 3 s later, and a second pair 2 s after that, as before', () => {
+    const all = [
+      [0, report({ seq: 0, since: null })],
+      [3000, report({ seq: 1, state: 'background', since: 3000 })],
+      [5000, report({ seq: 2, since: null })],
+      [8000, report({ seq: 3, state: 'background', since: 3000 })],
+    ] as const;
+    const rows = storedRows(all);
+    expect(rows.map((r) => r.reason)).toEqual([
+      'start',
+      'background',
+      'start',
+      'background',
+    ]);
+    expect(activeMs(credited(all), 0, DAY_MS)).toBe(6000);
+  });
+
+  it('loses no honest heartbeat to the jitter of the network: a page that beats every 30 s on its own clock, arrivals up to 5 s early or late', () => {
+    const jitter = [-5000, 5000, -5000, 5000, 0, -4000, 5000, -5000, 3000];
+    const all = [
+      [0, report({ seq: 0, since: null })],
+      ...jitter.map((j, k) => [(k + 1) * 30_000 + j, beat(k + 1)] as const),
+    ] as const;
+    expect(storedRows(all)).toHaveLength(all.length);
+  });
+
+  it('drops a flood: 100 heartbeats in one second store one row beyond the start', () => {
+    const flood = Array.from(
+      { length: 100 },
+      (_, k) => [10_000 + k * 10, beat(k + 1)] as const,
+    );
+    const rows = storedRows([
+      [10_000 - 1, report({ seq: 0, since: null })],
+      ...flood,
+    ]);
+    expect(rows.map((r) => r.reason)).toEqual(['start', 'heartbeat']);
+    // What the dropped reports claim is not credited later either: the credit stays the time that passed.
+    expect(
+      activeMs(
+        rows.map((r) => r.interval),
+        0,
+        DAY_MS,
+      ),
+    ).toBeLessThanOrEqual(1000);
+  });
+
+  it('allows one more row for every heartbeat that passed, and no more', () => {
+    // 100 reports every 10 s for 1000 s: at most one per whole 30 s since the start, plus one.
+    const reports = Array.from(
+      { length: 100 },
+      (_, k) => [(k + 1) * 10_000, beat(k + 1)] as const,
+    );
+    const rows = storedRows([[0, report({ seq: 0, since: null })], ...reports]);
+    expect(rows.length).toBeLessThanOrEqual(
+      1 + 1 + Math.floor(1_000_000 / HEARTBEAT_MS),
+    );
+    expect(rows.length).toBeGreaterThan(30);
+  });
+
+  it('drops a flood of starts: one row, the next only after a heartbeat', () => {
+    const starts = Array.from(
+      { length: 100 },
+      (_, k) => [k * 10, report({ seq: k, since: null })] as const,
+    );
+    expect(storedRows(starts)).toHaveLength(1);
+    expect(
+      storedRows([
+        ...starts,
+        [HEARTBEAT_MS + 990, report({ seq: 100, since: null })],
+      ]),
+    ).toHaveLength(2);
+  });
+
+  it('never limits the report that ends an interval, and an interval has one', () => {
+    const all = [
+      [0, report({ seq: 0, since: null })],
+      [10, beat(1)],
+      [20, beat(2)],
+      [30, report({ seq: 3, state: 'background', since: 30 })],
+      [40, report({ seq: 4, state: 'background', since: 30 })],
+      [50, report({ seq: 5, state: 'inactive', since: 30 })],
+    ] as const;
+    expect(storedRows(all).map((r) => r.reason)).toEqual([
+      'start',
+      'heartbeat',
+      'background',
+    ]);
+  });
+
+  it('drops a report without changing anything, so a later one is judged against the same last report', () => {
+    const l = last({ end: 10_000, opened: 10_000, beats: 1 });
+    expect(judge(beat(2), l, 10_100)).toEqual({ accept: false });
+    expect(judge(beat(3), l, 10_000 + HEARTBEAT_MS)).toMatchObject({
+      accept: true,
+      reason: 'heartbeat',
+      start: 10_000,
+    });
+  });
+
+  it('ties the count to the interval: a new start begins a new count', () => {
+    const l = last({ end: 100_000, opened: 100_000, beats: 0 });
+    expect(judge(beat(2), l, 100_050)).toMatchObject({ accept: true });
+    expect(judge(beat(3), { ...l, beats: 1, end: 100_050 }, 100_100)).toEqual({
+      accept: false,
+    });
+  });
+
+  it('keeps the credit bounded by the real time under any flood and any mix of states', () => {
+    const gen = fc.array(
+      fc.record({
+        at: fc.integer({ min: 0, max: 120_000 }),
+        state: fc.constantFrom('active', 'inactive', 'background' as const),
+        since: fc.option(fc.integer({ min: 0, max: 100_000 }), { nil: null }),
+      }),
+      { maxLength: 80 },
+    );
+    fc.assert(
+      fc.property(gen, (list) => {
+        const sorted = [...list].sort((a, b) => a.at - b.at);
+        const reports = sorted.flatMap((e, seq) => {
+          const r = readReport({
+            instance: PAGE,
+            seq,
+            state: e.state,
+            since: e.since,
+          });
+          return r ? [[e.at, r] as const] : [];
+        });
+        const rows = storedRows(reports);
+        // Rows of a page: at most a start, a heartbeat per whole interval and a stop
+        // per interval; the starts, one per heartbeat interval or one per stop.
+        const starts = rows.filter((r) => r.reason === 'start').length;
+        const stops = rows.filter(
+          (r) => r.reason === 'idle' || r.reason === 'background',
+        ).length;
+        expect(stops).toBeLessThanOrEqual(starts);
+        expect(
+          activeMs(
+            rows.map((r) => r.interval),
+            0,
+            DAY_MS,
+          ),
+        ).toBeLessThanOrEqual((sorted.at(-1)?.at ?? 0) - (sorted[0]?.at ?? 0));
+      }),
+      { numRuns: 200, seed: 2321 },
+    );
   });
 });

@@ -121,15 +121,53 @@ complete, tested and pushed.
   defaults and a mark for a round with a partial history.
 * **Slice 4, the Runden-Rewind:** not built, see below.
 
-# Where the playtime goes
+# The play time in the archive (#235 × #231, #232)
 
-D2 shares playtime and activity curves in the archive after the round ended.
-#231 and #232 are not part of this build: `RoundReport.playtime` (per seat,
-null until recorded) and the line „Spielzeit: in diesem Archiv noch nicht
-erfasst.“ in the report are the place. When playtime is stored per round it
-must be written as events of the round (`round_events`) in the same way, so
-the retention follows the Lifetime decision and a deleted account is
-pseudonymised by seat.
+* **[E]** D2: the report shares the play time, but only in the archive after the
+  round ended; during the round it stays private (#231 unchanged). The sources
+  are events, no stored total (binding architecture revision). #231 and #232 tie
+  their retention to the archive: kept until the admin deletes the round.
+* **[V]** What the close writes: one event `player.playtime` per participant
+  (`seat` set, `version` 1), written with the other events of the close in the
+  same transaction and counted by the completeness check. Payload
+  `{ methods: number[], intervals: [start, end][] }`: the accepted intervals of
+  that participant in that round (`playtime_events.round`), cut at the cutoff
+  and merged with `union` (two pages or devices count a real second once), in
+  UTC milliseconds, and the versions of the method that measured them. No page,
+  sequence number, usage session, account id or name. A participant without
+  play time gets empty lists: a measured zero. A player who held no place at the
+  cutoff is no participant and gets no event.
+* **[V]** The report derives the sum on read (`playtimeMs`, `activeMs`):
+  `RoundReport.playtime` is a map seat to milliseconds, shown as a column
+  „Spielzeit“. Only the sum is sent to the reader, never the intervals.
+* **[E]** Who sees it (D2: „shares everything“): every reader who may open the
+  finished round, that is every participant and the admin, sees the play time of
+  all participants. The earlier [V] of the issue (detailed playtime self/admin
+  only) is superseded by D2. A provisional report of the running round has none
+  (`playtime` null, the line „wird erst nach Rundenende im Archiv geteilt“), also
+  for the admin.
+* **[V]** An archive closed before this change has no such events: `playtime` is
+  null and the line „Spielzeit: in diesem Archiv noch nicht erfasst.“ stays; an
+  unknown value is not shown as zero. A round that was running when the play
+  time measurement began is marked partial already, and the report adds „Die
+  Zeit vor Beginn der Erfassung fehlt.“
+* **[V]** The rows of `playtime_events` are kept at the close (the own view of
+  #231 sums over all rounds and the game goes on after „Runde abschließen“). They
+  are deleted with the round when the admin deletes it (`deleteRound`), as #232
+  says. A deleted account takes its own rows with it (cascade); the archive keeps
+  its copy under the seat, so the value stays under „Gelöschter Spieler“ and
+  nothing links back.
+* **[V]** Size: an event holds about 30 bytes per merged interval. 20 players
+  who play 6 hours a day in 72 stretches of 5 minutes for 14 days: about 1,000
+  intervals each, roughly 600 KB for the round (measured in
+  `src/server/game/round-playtime.test.ts`), against about 22 KB for the rest of
+  the archive. A smaller form (differences instead of absolute times) is
+  possible later under the same `version`.
+* **[V]** The words: the column „Spielzeit“ and „geschätzte aktive Zeit in dieser
+  Runde, gleichzeitig geöffnete Fenster zählen einmal.“; the two lines named
+  above.
+* **[U]** The activity curves (daily bars) of view F need only these intervals
+  and are not built.
 
 # What the Runden-Rewind and the curves still need
 

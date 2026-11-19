@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { unfolded } from '../logic/achievement-fold.ts';
 import { client } from '../logic/state.svelte.ts';
 import { clientFeature } from './achievements.ts';
 import { fakeCtx } from './test-ctx.ts';
@@ -106,5 +107,28 @@ describe('the filter of the list', () => {
     listeners.input!({ target: { id: 'achievement_search' } });
     clientFeature.afterRender();
     expect(shown(items)).toEqual([true, true]);
+  });
+});
+
+describe('the folding on a phone (#189)', () => {
+  afterEach(() => {
+    unfolded.open = false;
+    unfolded.claimed = false;
+  });
+
+  it('unfolds the group of its button and renders the page again', () => {
+    const ctx = fakeCtx();
+    const acts = clientFeature.acts(ctx);
+    acts.achFold({ g: 'claimed' });
+    expect(unfolded).toEqual({ open: false, claimed: true });
+    expect(ctx.render).toHaveBeenCalledTimes(1);
+    acts.achFold({ g: 'claimed' });
+    expect(unfolded.claimed).toBe(false);
+  });
+
+  it('renders again for a group it does not know, and unfolds nothing', () => {
+    const ctx = fakeCtx();
+    clientFeature.acts(ctx).achFold({});
+    expect(unfolded).toEqual({ open: false, claimed: false });
   });
 });

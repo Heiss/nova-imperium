@@ -3,6 +3,7 @@
 // and every group that has nothing left. The markup is in
 // views/achievements.ts.
 import { val } from '../dom.ts';
+import { toggleFold } from '../logic/achievement-fold.ts';
 import { client } from '../logic/state.svelte.ts';
 import type { ClientFeature } from './contract.ts';
 
@@ -28,7 +29,7 @@ function filterAchievements(): void {
 }
 
 export const clientFeature = {
-  acts: ({ act }) => {
+  acts: ({ act, render }) => {
     document.addEventListener('change', () => {
       if (client.ui.view === 'achievements') filterAchievements();
     });
@@ -42,6 +43,11 @@ export const clientFeature = {
     return {
       achievementClaim: (d) => act('claimAchievement', { id: d.id }),
       dailyClaim: () => act('claimDailyReward'),
+      // Phone (#189): unfolds the group „Offen“ or „Erledigt“.
+      achFold: (d) => {
+        toggleFold(d.g ?? '');
+        render();
+      },
     };
   },
   afterRender: () => {

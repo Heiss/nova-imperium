@@ -6,7 +6,7 @@ import type { Cost } from './types.ts';
 const DAY = 86_400_000;
 
 /** From this day of the round on, the reward is 90 minutes of production. */
-const LAST_RISING_DAY = 30;
+export const LAST_RISING_DAY = 30;
 
 /**
  * The day of the round at `now`, from 1 (#220). It changes at 00:00 UTC,

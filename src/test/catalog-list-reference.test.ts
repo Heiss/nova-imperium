@@ -94,6 +94,52 @@ const levelsOf = (v: V, key: string, name: string) =>
     ? levelsRow(key, name, v.s.me.levelTable, v.ui.openLv)
     : null;
 
+// One more change on purpose (#189, the phone layer; the CSS shows it on a
+// phone only): the switch between the four lists below the title, the filter
+// above the box (with its note when „Baubar“ shows nothing), the phase of
+// every row, the fold button after the ▤, the time line marked, and the short
+// label „▲ 5“ of a level button with the full name as `aria-label`.
+const SWITCH =
+  '<nav class="seg phone-only" aria-label="Bauen">' +
+  [
+    ['buildings', 'Gebäude'],
+    ['research', 'Forschung'],
+    ['shipyard', 'Schiffsschmiede'],
+    ['defense', 'Abwehr'],
+  ]
+    .map(
+      ([view, label]) =>
+        `<a href="?view=${view}" data-act="nav" data-v="${view}">${label}</a>`,
+    )
+    .join('') +
+  '</nav>';
+
+const FILTER =
+  '<div class="seg phone-only" role="group" aria-label="Filter"><button type="button" class="on" aria-pressed="true">Baubar</button><button type="button" aria-pressed="false">Alle</button><button type="button" aria-pressed="false">Läuft</button></div>';
+
+const NOTHING_OPEN =
+  '<p class="dim phone-only">Nichts ist baubar. „Alle“ zeigt auch, was noch fehlt.</p>';
+
+/** The filter, its note when `open` rows is 0, and the opening tag of the box. */
+const boxStart = (open: number): string =>
+  `${FILTER}${open ? '' : NOTHING_OPEN}<div class="box catalog" data-filter="open">`;
+
+type Phase = 'running' | 'open' | 'locked';
+
+/** A button that starts an upgrade or a research, with the label a level has on a phone. */
+function startButton(
+  act: string,
+  k: string,
+  label: string,
+  off: boolean,
+): string {
+  const attrs = `data-act="${act}" data-k="${k}" ${off ? 'disabled' : ''}`;
+  const level = /Stufe (\d+)/.exec(label);
+  return level
+    ? `<button ${attrs} aria-label="${label}"><span class="lg">${label}</span><span class="sh" aria-hidden="true">▲ ${level[1]}</span></button>`
+    : `<button ${attrs}><span>${label}</span></button>`;
+}
+
 function itemHTML(
   v: V,
   cls: string,
@@ -101,13 +147,16 @@ function itemHTML(
   level: string,
   body: string,
   action: string,
+  phase: Phase,
 ): string {
   const d = text(key)!;
   const src = iconURL(key);
   const icon = src ? `<img src="${src}" alt="${esc(d.n)}">` : d.ab;
   const ds = d.ds ? `<div class="ds">${d.ds}</div>` : '';
   const ex = explanation(key, d, v.s.me.explain, v.ui.openEx);
-  return `<div class="item"><div class="icon ${cls}">${icon}</div><div><div class="nm">${d.n} <span class="lv">${level}</span>${explainButtonHTML(ex)}${levelsButtonHTML(v, key, d.n)}</div>${ds}${body}${levelsBoxHTML(v, key, d.n)}</div><div class="act">${action}</div></div>`;
+  const open = !!levelsOf(v, key, d.n)?.open;
+  const fold = `<button type="button" class="fold phone-only" aria-expanded="${open}" aria-label="Details zu ${esc(d.n)}">${open ? '▴' : '▾'}</button>`;
+  return `<div class="item${open ? ' open' : ''}" data-phase="${phase}"><div class="icon ${cls}">${icon}</div><div><div class="nm">${d.n} <span class="lv">${level}</span>${explainButtonHTML(ex)}${levelsButtonHTML(v, key, d.n)}${fold}</div>${ds}${body}${levelsBoxHTML(v, key, d.n)}</div><div class="act">${action}</div></div>`;
 }
 
 // ----- frozen: src/client/views/economy.ts before #118 -----
@@ -139,7 +188,12 @@ function researchAction(
     return '<span class="dim">Scholarium wird ausgebaut</span>';
   if (state === 'noEnergy')
     return `<span class="req">Zu wenig Energie: es fehlen ${fmt(short)}</span>`;
-  return `<button data-act="research" data-k="${k}" ${afford(P, c) ? '' : 'disabled'}>Forschen${level ? ` (Stufe ${level + 1})` : ''}</button>`;
+  return startButton(
+    'research',
+    k,
+    `Forschen${level ? ` (Stufe ${level + 1})` : ''}`,
+    !afford(P, c),
+  );
 }
 
 /** Without a lab here: the own planets that have one (#49). */
@@ -155,7 +209,7 @@ function noLab(v: V): string {
   const text = others.length
     ? 'Auf diesem Planeten gibt es kein Scholarium. Geforscht wird auf einem deiner Planeten mit Scholarium.'
     : 'Für Forschung brauchst du ein Scholarium.';
-  return `<h2>Forschung</h2><div class="notice">${text}${others.join('')}</div>`;
+  return `<h2>Forschung</h2>${SWITCH}<div class="notice">${text}${others.join('')}</div>`;
 }
 
 /** The lab of this planet and how many others the IFN may link. */
@@ -167,7 +221,11 @@ function labLine(v: V): string {
   return `<div class="dim">Scholarium Stufe ${v.P.b.lab ?? 0}${net}</div>`;
 }
 
-function researchItem(v: V, k: string, d: ResearchDef): string {
+function researchItem(
+  v: V,
+  k: string,
+  d: ResearchDef,
+): { html: string; phase: Phase } {
   const { P, R, s } = v;
   const level = R.research[k] ?? 0;
   const c = lvlCost(d, level + 1);
@@ -181,16 +239,24 @@ function researchItem(v: V, k: string, d: ResearchDef): string {
   };
   const body =
     costHTML(c, P, 1, energy) +
-    `<div class="dim">Forschungszeit: ${dur(researchTime(c, { b: { lab } }, s.cfg))}${linked}</div>` +
+    `<div class="dim tl">Forschungszeit: ${dur(researchTime(c, { b: { lab } }, s.cfg))}${linked}</div>` +
     requirementsHTML(v, d.req);
-  return itemHTML(
-    v,
-    'ic-r',
-    k,
-    level ? `(Stufe ${level})` : '',
-    body,
-    researchAction(v, k, level, reqMissing(d, P, R).length, short),
-  );
+  const miss = reqMissing(d, P, R).length;
+  const state = researchState(P, R, k, miss, short);
+  const phase: Phase =
+    state === 'running' ? 'running' : state === 'missing' ? 'locked' : 'open';
+  return {
+    html: itemHTML(
+      v,
+      'ic-r',
+      k,
+      level ? `(Stufe ${level})` : '',
+      body,
+      researchAction(v, k, level, miss, short),
+      phase,
+    ),
+    phase,
+  };
 }
 
 /** Research starts on the shown planet when it has a lab (#49). */
@@ -201,7 +267,8 @@ function research(v: V): string {
   const items = Object.entries(RES)
     .filter(([k]) => k !== 'colonial')
     .map(([k, d]) => researchItem(v, k, d));
-  return `<h2>Forschung auf ${esc(placeName(v.P))}</h2>${labLine(v)}<div class="box">${items.join('')}</div>`;
+  const open = items.filter((i) => i.phase === 'open').length;
+  return `<h2>Forschung auf ${esc(placeName(v.P))}</h2>${SWITCH}${labLine(v)}${boxStart(open)}${items.map((i) => i.html).join('')}</div>`;
 }
 
 // ----- frozen: src/client/views/yard.ts before #118 -----
@@ -262,7 +329,7 @@ function yard(
 ): string {
   const { P, R, s } = v;
   if (!((P.b.yard ?? 0) > 0))
-    return `<h2>${title}</h2><div class="notice">Dafür brauchst du eine Orbitale Schiffsschmiede.</div>`;
+    return `<h2>${title}</h2>${SWITCH}<div class="notice">Dafür brauchst du eine Orbitale Schiffsschmiede.</div>`;
   const lock = yardLockedBy(P);
   const items = Object.entries(defs).map(([k, d]) => {
     const miss = reqMissing(d, P, R);
@@ -272,19 +339,30 @@ function yard(
     const body =
       costHTML(d.cost, P) +
       stats(v, k, d) +
-      `<div class="dim">Bauzeit: ${dur(unitTime(d, P, s.cfg))} je Einheit</div>` +
+      `<div class="dim tl">Bauzeit: ${dur(unitTime(d, P, s.cfg))} je Einheit</div>` +
       requirementsHTML(v, d.req);
-    return itemHTML(
-      v,
-      cls,
-      k,
-      `(vorhanden: ${fmt(have[k] ?? 0)}${DEF[k]?.once ? ' · max. 1' : ''})`,
-      body,
-      action,
-    );
+    // A unit with an order in the queue is running, one with missing requirements locked.
+    const phase: Phase = miss.length
+      ? 'locked'
+      : P.sq.some((q) => q.key === k)
+        ? 'running'
+        : 'open';
+    return {
+      html: itemHTML(
+        v,
+        cls,
+        k,
+        `(vorhanden: ${fmt(have[k] ?? 0)}${DEF[k]?.once ? ' · max. 1' : ''})`,
+        body,
+        action,
+        phase,
+      ),
+      phase,
+    };
   });
   const warn = lock ? `<div class="notice warn">${lockNotice(lock)}</div>` : '';
-  return `<h2>${title}</h2>${queue(v)}${warn}<div class="box">${items.join('')}</div>`;
+  const open = items.filter((i) => i.phase === 'open').length;
+  return `<h2>${title}</h2>${SWITCH}${queue(v)}${warn}${boxStart(open)}${items.map((i) => i.html).join('')}</div>`;
 }
 
 const lockNotice = (key: string): string =>

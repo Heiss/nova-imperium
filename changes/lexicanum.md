@@ -2,4 +2,4 @@
 art: neu
 ---
 
-Lexicanum: zu jedem Gebäude, jeder Forschung, jedem Schiff, jeder Verteidigung und jeder Mission ein Artikel mit Stufentabelle, Voraussetzungen und Suche. Das (?) öffnet ihn am Rechner in einer Seitenleiste, am Handy als Seite; die Option heißt jetzt „(?)-Symbol“.
+Lexicanum: ein Artikel zu jedem Eintrag und jeder Mission, dazu Regelseiten mit den Werten dieser Runde, häufige Fragen, Anleitungen für den Einstieg und „Deine nächsten Ziele“ aus deinem Stand. Das (?) öffnet den Artikel am Rechner in der Seitenleiste. „Hilfe & Optionen“ heißt jetzt „Optionen“.

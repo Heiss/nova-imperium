@@ -79,6 +79,8 @@ describe('a new entry of the registry (#283)', () => {
     // The settings of the registry that were not sent keep their values.
     expect(valuesOf(ctx)).toMatchObject({
       ...roundDefaults(),
+      // The first new round took the default of the planet limit: 6, not the unlimited of the round before (#237).
+      colonyBase: 6,
       number: 3,
       testHours: 48,
       testChoice: 1,

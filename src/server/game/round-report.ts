@@ -11,6 +11,8 @@ import {
   type HistoryEntry,
   type PlayerFinal,
   placeCounts,
+  type PlayerPlaytime,
+  playtimeMs,
   rankRows,
   type ReportRow,
   type RoundEntry,
@@ -34,8 +36,23 @@ export const ARCHIVE_LIMIT = 100;
 
 const UNAVAILABLE = 'Dieser Rundenbericht ist nicht verfügbar.';
 
-/** The playtime of a round per seat (D2): not recorded yet, see `RoundReport.playtime`. */
-const playtimeOf = (): RoundReport['playtime'] => null;
+/**
+ * The play time of a finished round per seat, derived from its archived
+ * events (D2: shared with every reader of the finished round, the sum only,
+ * never the intervals). Null while the round runs (it stays private) and for a
+ * round archived before the play time was written: that is unknown, not zero.
+ */
+function playtimeOf(ctx: Ctx, round: RoundRow): RoundReport['playtime'] {
+  if (round.status !== 'closed') return null;
+  const events = ctx.rounds.events(round.number, ROUND_EVENT.playtime);
+  if (!events.length) return null;
+  return Object.fromEntries(
+    events.map((e) => [
+      e.seat!,
+      playtimeMs(e.payload as unknown as PlayerPlaytime),
+    ]),
+  );
+}
 
 /** Whether `u` may open the report of `round`: the admin any, a player a finished one they took part in. */
 function may(ctx: Ctx, u: User, round: RoundRow | null): round is RoundRow {
@@ -154,7 +171,7 @@ function reportOf(ctx: Ctx, u: User, number: number): RoundReport {
     you: you ? standingOf(ranked, you.seat) : null,
     rows: ranked,
     guilds: guildLines(ranked, guilds),
-    playtime: playtimeOf(),
+    playtime: playtimeOf(ctx, round),
   };
 }
 

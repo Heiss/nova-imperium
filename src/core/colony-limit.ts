@@ -18,15 +18,30 @@ const RESEARCH = 'colonial';
  */
 export const MOST_PLANETS = 20;
 
-/** The ranges of the three values [V], within the owner's 20 planets in total. */
+/**
+ * The ranges of the three values [V], within the owner's 20 planets in total,
+ * and the default of the base limit (owner, 2026-11-19): a new round starts
+ * with 6 (and 2 more per level), a round that runs without a stored value
+ * stays unlimited (`unstored`).
+ */
 export const COLONY_RANGE = {
-  base: { min: 0, max: MOST_PLANETS, def: 0 },
+  base: { min: 0, max: MOST_PLANETS, def: 6, unstored: 0 },
   perLevel: { min: 1, max: MOST_PLANETS, def: 2 },
   maxLevel: { min: 0, max: MOST_PLANETS, def: 4 },
 } as const;
 
-/** The legend of the settings in the dialog „Neue Runde“ and in the universe settings. */
-const COLONIES: RoundGroup = { name: 'colonies', legend: 'Planetengrenze' };
+/** The legend of the settings in the dialog „Neue Runde“ and in the universe settings; the preview line is written again at every change of a field. */
+const COLONIES: RoundGroup = {
+  name: 'colonies',
+  legend: 'Planetengrenze',
+  preview: (v) =>
+    colonyPreview({
+      base: v.colonyBase!,
+      research: v.colonyResearch === 1,
+      perLevel: v.colonyPerLevel!,
+      maxLevel: v.colonyMaxLevel!,
+    }),
+};
 
 /** The words of the one rule between the settings: research needs a base limit (issue #237). */
 const NEEDS_BASE =
@@ -54,6 +69,7 @@ export const roundSettings = [
     min: COLONY_RANGE.base.min,
     max: COLONY_RANGE.base.max,
     def: COLONY_RANGE.base.def,
+    unstored: COLONY_RANGE.base.unstored,
   },
   {
     kind: 'number',
@@ -81,6 +97,7 @@ export const roundSettings = [
     name: 'colonyPerLevel',
     label: 'Zusätzliche Planeten je Forschungsstufe',
     order: 460,
+    shownWhen: { name: 'colonyResearch', value: 1 },
     min: COLONY_RANGE.perLevel.min,
     max: COLONY_RANGE.perLevel.max,
     def: COLONY_RANGE.perLevel.def,
@@ -93,6 +110,7 @@ export const roundSettings = [
     name: 'colonyMaxLevel',
     label: 'Maximale Forschungsstufe (0 = unbegrenzt erforschbar)',
     order: 470,
+    shownWhen: { name: 'colonyResearch', value: 1 },
     min: COLONY_RANGE.maxLevel.min,
     max: COLONY_RANGE.maxLevel.max,
     def: COLONY_RANGE.maxLevel.def,
@@ -197,6 +215,83 @@ export function limitLine(
   const research = rules.research ? ` · Kolonialverwaltung Stufe ${level}` : '';
   return `Planeten: ${owned} / ${limit}${research}`;
 }
+
+const planetsText = (n: number): string =>
+  `${n} ${n === 1 ? 'Planet' : 'Planeten'}`;
+
+const inRange = (n: number, r: { min: number; max: number }): boolean =>
+  Number.isInteger(n) && n >= r.min && n <= r.max;
+
+const rangesOk = (rules: ColonyRules): boolean =>
+  inRange(rules.base, COLONY_RANGE.base) &&
+  inRange(rules.perLevel, COLONY_RANGE.perLevel) &&
+  inRange(rules.maxLevel, COLONY_RANGE.maxLevel);
+
+/**
+ * The preview line of the dialog „Neue Runde“ (issue #237, [V] wording):
+ * „Vorschau: Ohne Forschung: 6 Planeten · Stufe 1: 8 · Stufe 2: 10 · Stufe 3:
+ * 12 · Stufe 4: 14.“; without a limit „Vorschau: Unbegrenzte Planetenanzahl“;
+ * with the research and no base limit the refusal of the server. The levels
+ * stop at the one that reaches the most planets (20), whichever highest level
+ * is set. Empty while a value is outside its range.
+ */
+export function colonyPreview(rules: ColonyRules): string {
+  if (!rangesOk(rules)) return '';
+  if (rules.base === 0)
+    return rules.research ? NEEDS_BASE : 'Vorschau: Unbegrenzte Planetenanzahl';
+  if (!rules.research) return `Vorschau: ${planetsText(rules.base)}`;
+  const open = rules.maxLevel === 0 ? ['keine maximale Forschungsstufe'] : [];
+  return `Vorschau: Ohne Forschung: ${planetsText(rules.base)} · ${[...levelSteps(rules), ...open].join(' · ')}.`;
+}
+
+/** The levels of the preview, „Stufe 1: 8“, up to the highest level or the one that reaches the most planets. */
+function levelSteps(rules: ColonyRules): string[] {
+  const steps: string[] = [];
+  const last = rules.maxLevel > 0 ? rules.maxLevel : MOST_PLANETS;
+  for (let level = 1; level <= last; level++) {
+    const limit = planetLimit(rules, level)!;
+    steps.push(`Stufe ${level}: ${limit}`);
+    if (limit === MOST_PLANETS) break;
+  }
+  return steps;
+}
+
+/**
+ * The line of the research „Kolonialverwaltung“ in the research list (issue
+ * #237, [V] wording of the parts the issue does not give): „Kolonialverwaltung
+ * Stufe 3/4 · +2 Planeten je Stufe · nächste Stufe: maximal 14 Planeten“, or
+ * „Kolonialverwaltung Stufe 3 · keine maximale Forschungsstufe · +2 Planeten
+ * je Stufe · nächste Stufe: maximal 14 Planeten“ without a highest level, and
+ * „höchste Stufe erreicht“ at the highest level.
+ */
+export function researchLine(rules: ColonyRules, level: number): string {
+  const capped = rules.maxLevel > 0;
+  const next = planetLimit(rules, level + 1);
+  const parts = [
+    `Kolonialverwaltung Stufe ${level}${capped ? `/${rules.maxLevel}` : ''}`,
+    ...(capped ? [] : ['keine maximale Forschungsstufe']),
+    `+${planetsText(rules.perLevel)} je Stufe`,
+    capped && level >= rules.maxLevel
+      ? 'höchste Stufe erreicht'
+      : `nächste Stufe: maximal ${planetsText(next ?? MOST_PLANETS)}`,
+  ];
+  return parts.join(' · ');
+}
+
+/**
+ * The line a research row adds to its texts: only the Kolonialverwaltung in a
+ * round that has it has one.
+ */
+export const researchNote = (
+  key: string,
+  u: Universe,
+  level: number,
+): string | null => {
+  const rules = colonyRules(u);
+  return key === RESEARCH && researchOffered(rules)
+    ? researchLine(rules, level)
+    : null;
+};
 
 /**
  * Whether the research „Kolonialverwaltung“ exists in the round: only with

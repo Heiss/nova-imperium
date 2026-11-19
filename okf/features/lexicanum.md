@@ -1,7 +1,7 @@
 ---
 type: feature
 title: Lexicanum
-description: The in-game lexicon of stage 1 (issue #285) - an article per catalog entry and mission computed from the rules of the game, opened by the „?“ of the lists (side panel on a desktop, page on a phone), with a search, links and the shared level table of #187.
+description: The in-game lexicon (issues #285, #288, #289) - an article per catalog entry and mission computed from the rules of the game, rule pages, questions and guides, opened by the „?“ of the lists (side panel on a desktop, page on a phone), with a search, links and the shared level table of #187.
 ---
 
 # Lexicanum
@@ -129,6 +129,98 @@ their own.
   and the ships the mission takes,
   found by its own `canSend` („nur Spähschädel“, „braucht
   Kolonistenarche“); a ship links the missions that need it.
+
+# Stage 2: rule pages and questions (#288)
+
+* **[E]** Stage 2 of three, its own issue, built on the article data, page,
+  search and guards of stage 1; all rules as pages and questions, in
+  everyday language, first how something scales, then the formula; every
+  value and table from the rules (owner, 2026-11-17, „Geklärt“ of #288).
+* **[V]** Taken as recommended (owner, 2026-11-17): the list of rule pages
+  and the first six questions of the issue; the box „Regeln dieses
+  Universums“ is replaced by a link to „Dieses Universum“, and „Hilfe &
+  Optionen“ becomes „Optionen“ (B4, B9).
+* **[E]** The agents draft the missing texts from the decided rules and the
+  existing game terms as [V]; they ship with the update and the owner checks
+  them afterwards (owner, 2026-11-19, #222).
+* **[V]** Rule pages (`rule-<name>`): Kampf, Auspex-Erkundung, Flug und
+  Treibstoff, Trümmerfelder und Bergung, Monde, Planeten und Felder (with
+  the demolition of #202), Kolonien und Planetengrenze (#237, #224, #221),
+  Produktion Energie und Lager, Bauen Forschen und Schiffsschmiede (#258),
+  Schutz der Schwachen, Urlaubsmodus (#223), Sichtbarkeit und Aktivität
+  (#228, #229, the play time of #231 and #232), Tagesbelohnung und Erfolge,
+  Highscore (#78), Marktplatz (#171), Gilden (with friends), Endzeit and
+  Dieses Universum. The first and the last five of the issue's eleven, the
+  rest are the features that had no article, folded into pages by topic.
+  The missions of the holding (#55), the missiles (#54), the survey (#190)
+  and the expeditions (#93) keep their mission articles, which state their
+  rules, and their per-round values are rows of „Dieses Universum“.
+* **[V]** Questions (`faq-<name>`): the six of the issue (Gegner, Angriff,
+  Flottenslots, Schlacht, Kolonie, Mine) and two more, „Wie komme ich an
+  mehr Rohstoffe?“ and „Wie schütze ich mich vor Angriffen?“. Each has a
+  short answer, steps or reasons as facts, a computed block where it helps
+  and „Dein Stand“ with the player's numbers.
+* **[V]** The start page shows the boxes „Regeln“ and „Häufige Fragen“
+  before „Nachschlagen“ (a kind without a page is not shown); the search
+  and „Begriffe A–Z“ cover the new pages. A word in a title counts above
+  a keyword, so the question „Wie bekomme ich mehr Flottenslots?“ is found
+  before the Kogitator-Doktrin for „Flottenslot“.
+* **[V]** Code: a page is a `PageDef` in its own file under
+  `src/core/lexicon/pages/` (id, kind, title, one line, keywords, links,
+  `sections(state)`), listed in `pages/index.ts` (a guard checks the folder);
+  the builders are in `src/core/lexicon/say.ts` (`say`, `formulas`, `table`,
+  `facts`, `steps`), `state.ts` holds the default state of the review list.
+  A text block carries its values (`values`), so its words hold no digit and
+  the numbers come from the rules and the round (`LexState` has the round
+  and, for „Dein Stand“, `own`, see `src/client/logic/lexicanum-own.ts`); a
+  formula block carries its `Formula`s, which the guard compares with the
+  rule; a table cell may be a link. The rules the pages read moved into
+  `src/core` as exported numbers and functions (#214): `MAX_ROUNDS`,
+  `SHIELD_IGNORED`, `EXPLODES_BELOW`, `againChance` (battle.ts), `loot.ts`
+  (loot share, rebuilt defense, `plunder`, `cutLoot`, `rebuild`; the server
+  imports them), `points.ts`, `PROTECTION_RATIO` and `unprotectedFrom`,
+  `harvest` (debris.ts), `PER_PERCENT`, `LEVEL_REWARD`, `UNIT_REWARD`,
+  `REWARD_CAP`, `LAST_RISING_DAY`, `MAX_SHIPYARD_ORDERS`, `RIGHT_TEXT`.
+* **[V]** The guards (`src/core/lexicon/pages.test.ts`): every file of the
+  folder is listed; no digit in a text, heading or line, every value filled
+  for two very different states; every link has a target; every formula
+  agrees with its rule; every setting of the universe and of the round has
+  its row in „Dieses Universum“; no classic name. The review list holds
+  every string of every page.
+* **[V]** „Optionen“ has a line below its boxes with a link to „Dieses
+  Universum“; the old box and its CSS are gone.
+
+# Stage 3: guides and personal hints (#289)
+
+* **[V]** The three open decisions of the issue were not answered; taken as
+  recommended and consistent with the long texts of #94: D1 – Claude drafts
+  the guides as [V] and the owner confirms each; D2 – the personal page is
+  computed from rules only; D3 – „Erste Schritte“, the colony, the fleet and
+  the defense. The owner can change any of them.
+* **[V]** Guides (`guide-<name>`, kind „Einstieg“, the first box of the
+  start page): „Erste Schritte“, „Deine erste Kolonie“, „Deine erste Flotte“,
+  „Dich verteidigen“ and „Deine nächsten Ziele“. A guide is a list of steps
+  (`steps` in `say.ts`: one fact per step, „Schritt 1“ and so on), each with
+  its links and the numbers of the catalog, the universe and the round (the
+  first costs, the requirements, the missions with their targets, the
+  defense with its values).
+* **[V]** „Deine nächsten Ziele“ is computed by `hintsOf` in
+  `src/core/lexicon/hints.ts` from the state the browser holds (`own` in
+  the state of a page: the shown planet, the planets, the fleets, the
+  points; `src/client/logic/lexicanum-own.ts`): no new part of the server.
+  Every hint is one rule of the game, never an opinion: energy that is short
+  (the energy factor below one), a store that is full, no free field (on a
+  planet or a moon), every fleet slot in use, the limit of planets reached
+  and the research that raises it where the round has it, an entry whose only
+  missing requirement is one level away (at most three, and not a building
+  the shown place cannot hold), and a planet without a mine, where only the
+  base income comes in. At most six hints are shown, in this order; when none
+  applies the page says so.
+* **[V]** The texts of the hints are templates with `{values}` and links, so
+  no number is typed into them; the review list shows the page in states that
+  together hold every hint (`review` of the page).
+* **[V]** Tests: `hints.test.ts` tests every hint at its border; the guards
+  of `pages.test.ts` run on the states of the review list too.
 
 # Texts
 

@@ -13,6 +13,7 @@ import {
   KIND_TITLES,
   KINDS,
   missionArticle,
+  PAGE_KINDS,
   requirementsOf,
   titleOf,
   usedFor,
@@ -25,6 +26,7 @@ import {
   type SearchDoc,
 } from '../../core/lexicon/search.ts';
 import { fill, type Segment, segments } from '../../core/lexicon/links.ts';
+import { TARGET_NAMES } from '../../core/lexicon/targets.ts';
 import { costFormula, storageFormula } from '../../core/lexicon/parts.ts';
 import type {
   ArticleKind,
@@ -33,12 +35,13 @@ import type {
   Formula,
   LexState,
 } from '../../core/lexicon/types.ts';
-import { MISSION, missionRules, type TargetKind } from '../../core/missions.ts';
+import { MISSION, missionRules } from '../../core/missions.ts';
 import type { Cost } from '../../core/types.ts';
 import type { V } from '../views/common.ts';
 import { unitLines } from './catalog-list.ts';
 import { fmt } from './format.ts';
 import { iconURL } from './icons.ts';
+import { ownState } from './lexicanum-own.ts';
 import { producerEffect, storageEffect } from './level-effects.ts';
 import {
   effectText,
@@ -106,6 +109,12 @@ export interface ArticleView {
 export type Page =
   | {
       t: 'start';
+      /** The boxes of the pages that are written: „Einstieg“, „Regeln“, „Häufige Fragen“ (#288, #289). */
+      boxes: {
+        kind: ArticleKind;
+        title: string;
+        items: { id: string; title: string; line: string }[];
+      }[];
       tiles: { id: string; title: string; note: string }[];
     }
   | {
@@ -130,18 +139,25 @@ const ICON_CLASS: Readonly<Record<ArticleKind, string>> = {
   ship: 'ic-s',
   defense: 'ic-d',
   mission: 'ic-m',
+  rule: 'ic-m',
+  question: 'ic-m',
+  guide: 'ic-m',
 };
 
 const textParts = (text: string): Segment[] => segments(text, titleOf);
 
 const cell = (c: Cell): ViewCell =>
-  typeof c === 'number' ? { text: fmt(c), num: true } : { text: c };
+  typeof c === 'number'
+    ? { text: fmt(c), num: true }
+    : typeof c === 'string'
+      ? { text: c }
+      : c;
 
 /** A block of the data as the components draw it. */
 export function viewBlock(b: Block): ViewBlock {
   switch (b.t) {
     case 'text':
-      return { t: 'text', parts: textParts(b.text) };
+      return { t: 'text', parts: textParts(fill(b.text, b.values)) };
     case 'facts':
       return {
         t: 'facts',
@@ -190,8 +206,10 @@ const formula = (f: Formula): ViewBlock => ({
 /** What the player has, for the computed blocks of an entry. */
 const lexState = (v: V): LexState => ({
   u: v.s.cfg,
+  round: v.s.round,
   research: v.R.research,
   ships: v.P.ships,
+  own: ownState(v),
 });
 
 /** The effect of a level: the entry's own, a store's capacity, a producer's rate. */
@@ -305,18 +323,6 @@ function usedSection(a: ArticleMeta): Section | null {
 
 // ----- missions -----
 
-/** The target of a mission, as the fleet view names it. */
-const TARGETS: Readonly<Record<TargetKind, string>> = {
-  own: 'eigener Planet',
-  foreign: 'fremder Planet',
-  ally: 'Planet eines Gildenmitglieds oder Freundes',
-  any: 'jeder Planet',
-  free: 'Freie Position',
-  debris: 'Trümmerfeld',
-  foreignMoon: 'fremder Mond',
-  expedition: 'Expeditionsposition',
-};
-
 const yes = (b: boolean): string => (b ? 'ja' : 'nein');
 
 /**
@@ -355,7 +361,7 @@ function missionFacts(m: string): ViewBlock {
   const r = missionRules(m)!;
   const ships = missionShips(m);
   const items: { label: string; text: string }[] = [
-    { label: 'Ziel', text: TARGETS[r.target] },
+    { label: 'Ziel', text: TARGET_NAMES[r.target] },
     { label: 'Ladung', text: yes(r.cargo) },
     { label: 'Rückflug', text: yes(r.returns) },
     { label: 'Eigener Bericht bei der Heimkehr', text: yes(!r.silent) },
@@ -399,6 +405,17 @@ function own(v: V, a: ArticleMeta): string | null {
 /** The article of an id with the player's state; null for an unknown id. */
 /** The sections of an article, the empty ones left out. */
 function sections(v: V, a: ArticleMeta): Section[] {
+  // A rule, a question or a guide is written; its sections are computed from
+  // the rules for this player (#288, #289).
+  if (a.page)
+    return [
+      ...a.page.sections(lexState(v)).map((x) => ({
+        id: x.id,
+        title: x.title,
+        blocks: x.blocks.map(viewBlock),
+      })),
+      seeSection(a),
+    ].filter((s): s is Section => !!s);
   // A mission has the name of a research (`spy`): its text, facts and links.
   const all =
     a.kind === 'mission'
@@ -435,7 +452,7 @@ export function articleView(id: string, v: V): ArticleView | null {
     kind: a.kind,
     kindTitle: KIND_TITLES[a.kind],
     title: a.title,
-    icon: a.kind === 'mission' ? null : iconURL(a.key),
+    icon: a.kind === 'mission' || a.page ? null : iconURL(a.key),
     cls: ICON_CLASS[a.kind],
     own: own(v, a),
     intro: a.lt ? a.lt.split('\n\n').map((p) => p.trim()) : [],
@@ -457,7 +474,7 @@ const plural = (n: number): string =>
 
 /** The page of an address: the start, a list, „Begriffe A–Z“ or an article. */
 export function page(id: string, v: V): Page {
-  const kind = KINDS.find((k) => listId(k) === id);
+  const kind = [...KINDS, ...PAGE_KINDS].find((k) => listId(k) === id);
   if (kind)
     return {
       t: 'list',
@@ -478,6 +495,14 @@ export function page(id: string, v: V): Page {
   if (view) return { t: 'article', article: view };
   return {
     t: 'start',
+    boxes: PAGE_KINDS.flatMap((k) => {
+      const items = ARTICLES.filter((a) => a.kind === k).map((a) => ({
+        id: a.id,
+        title: a.title,
+        line: a.ds ?? '',
+      }));
+      return items.length ? [{ kind: k, title: KIND_TITLES[k], items }] : [];
+    }),
     tiles: [
       ...KINDS.map((k) => ({
         id: listId(k),

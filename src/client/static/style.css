@@ -1348,10 +1348,6 @@ textarea:focus-visible {
 .ml {
   margin-left: 10px;
 }
-.rules {
-  margin: 0;
-  padding-left: 18px;
-}
 .auth {
   max-width: 460px;
   margin: 30px auto;
@@ -1875,5 +1871,373 @@ table.lx-t {
   }
   .lx-facts dd {
     margin-bottom: 6px;
+  }
+}
+
+/* ---------- Phone view of the lists (#189, D2 to D4, owner 2026-11-14) ----------
+   Up to 760 px a list of buildings, research, shipyard or defense is a switch
+   between the four lists, a filter „Baubar“ / „Alle“ / „Läuft“ and compact rows:
+   picture, name and level, costs, time and the short button „▲ 5“. A tap on
+   „▾“ unfolds the description, the effect, the energy, the requirements and
+   the „?“ and „▤“. The filter and the folding are CSS on data attributes of
+   CatalogList.svelte; the desktop (D6) shows every row as before. */
+.phone-only {
+  display: none;
+}
+@media (max-width: 760px) {
+  nav.seg.phone-only,
+  div.seg.phone-only {
+    display: flex;
+  }
+  p.phone-only {
+    display: block;
+  }
+  .fold.phone-only {
+    display: inline-grid;
+  }
+  .sh {
+    display: inline;
+  }
+  .lg {
+    display: none;
+  }
+  .seg {
+    margin: 0 0 10px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    overflow: hidden;
+    background: var(--box);
+  }
+  .seg > a,
+  .seg > button {
+    flex: 1 1 0;
+    display: grid;
+    place-items: center;
+    min-height: 44px;
+    padding: 0 4px;
+    color: var(--dim);
+    font: 600 13px var(--head);
+    letter-spacing: 0.02em;
+    text-align: center;
+    background: none;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  .seg > a + a,
+  .seg > button + button {
+    border-left: 1px solid var(--line);
+  }
+  .seg > a:hover {
+    text-decoration: none;
+  }
+  .seg > .on {
+    color: var(--gold-hi);
+    background: var(--box-2);
+    box-shadow: inset 0 -3px 0 var(--gold);
+    outline: 0;
+  }
+  /* The filter. */
+  .catalog[data-filter='open'] > .item[data-phase='locked'],
+  .catalog[data-filter='running'] > .item:not([data-phase='running']) {
+    display: none;
+  }
+  /* A compact row: picture, name with the fold, costs and time, the action. */
+  .catalog > .item {
+    grid-template-columns: 48px minmax(0, 1fr) auto;
+    gap: 4px 10px;
+    padding: 8px 10px;
+    align-items: start;
+  }
+  .item .icon {
+    width: 48px;
+    height: 48px;
+    font-size: 13px;
+  }
+  .item .act {
+    grid-column: auto;
+    max-width: 132px;
+    font-size: 14px;
+    line-height: 1.25;
+  }
+  .item .act button {
+    width: 100%;
+    min-height: 44px;
+  }
+  .item .act button.small {
+    min-height: 44px;
+  }
+  .item .act input {
+    width: 100%;
+    min-height: 40px;
+  }
+  .item .nm {
+    position: relative;
+    padding-right: 36px;
+    font-size: 15px;
+    line-height: 1.25;
+  }
+  .item .lv {
+    font-size: 13px;
+  }
+  button.fold {
+    position: absolute;
+    top: -9px;
+    right: -9px;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    margin: 0;
+    padding: 0;
+    color: var(--gold-hi);
+    font-size: 16px;
+    background: none;
+    border: 0;
+    box-shadow: none;
+  }
+  .item .cost {
+    gap: 2px 10px;
+    font-size: 14px;
+  }
+  .item .dim.tl {
+    font-size: 13px;
+  }
+  /* Folded: only what the compact row names. */
+  .item:not(.open) .ds,
+  .item:not(.open) > div:nth-child(2) > .dim:not(.tl),
+  .item:not(.open) .lvt,
+  .item:not(.open) .exq,
+  .item:not(.open) .lvq,
+  .item:not(.open) .act br:has(+ [data-act='demolish']),
+  .item:not(.open) .act [data-act='demolish'],
+  .item:not(.open):not([data-phase='locked']) .needs {
+    display: none;
+  }
+  /* An entry whose requirements are missing shows them without a tap, and
+     its note („Das Wissen ist noch verschlossen“) under the name. */
+  .catalog > .item[data-phase='locked'] {
+    grid-template-columns: 48px minmax(0, 1fr);
+  }
+  /* A note, or the number and „Bauen“ of an order, take the row below the
+     name instead of a narrow column beside it. */
+  .item .act:is(:has(> input, > .flex), :has(> span.req, > span.dim)) {
+    grid-column: 2 / -1;
+    max-width: none;
+    text-align: left;
+  }
+  .item .act:has(> .flex) {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .item .act > .flex {
+    flex: 1 1 0;
+    min-width: 0;
+    flex-wrap: wrap;
+    gap: 2px 8px;
+  }
+  .item .act:has(> .flex) button {
+    flex: 0 0 40%;
+    width: auto;
+    margin-top: 0;
+  }
+}
+
+/* ---------- Phone: the compact header and the bell (#189, D1, owner 2026-11-14) ----------
+   The header is the planet as a chip with the list „Aktiver Planet“, the bell
+   with the unread messages and one line with the four resources; the logo,
+   the commander and „Logout“ are gone from it (the commander and „Logout“
+   stand at the end of „Mehr“). The desktop keeps its header (D6). */
+.bell {
+  display: none;
+}
+#more-user {
+  display: none;
+}
+@media (max-width: 760px) {
+  header {
+    gap: 6px 8px;
+    padding: calc(6px + env(safe-area-inset-top)) 12px 6px;
+  }
+  header .logo,
+  .pinfo .cmd,
+  .pinfo [data-act='logout'] {
+    display: none;
+  }
+  .pinfo {
+    flex: 1 1 0;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .pinfo select {
+    width: 100%;
+    min-height: 44px;
+  }
+  .bell {
+    display: block;
+    flex: none;
+  }
+  .bell a {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    color: var(--gold-hi);
+    background: var(--box);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+  }
+  .bell a:hover {
+    text-decoration: none;
+  }
+  .bell a.on {
+    border-color: var(--gold);
+  }
+  .bell svg {
+    width: 24px;
+    height: 24px;
+  }
+  .bell .badge {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    margin: 0;
+  }
+  /* One line of resources: the picture beside the number. */
+  .resbar {
+    gap: 4px;
+  }
+  .res {
+    flex-direction: row;
+    justify-content: center;
+    gap: 3px;
+    padding: 3px 2px;
+  }
+  .res .ri {
+    width: 20px;
+    height: 20px;
+    flex: none;
+  }
+  .res > div {
+    min-width: 0;
+  }
+  .res .v {
+    font-size: 12px;
+    letter-spacing: -0.02em;
+  }
+  #pwa-offer:not([hidden]) {
+    width: 100%;
+  }
+  #more-user {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 2px 8px 6px;
+    color: var(--dim);
+    border-bottom: 1px solid var(--line);
+  }
+  #more-user b {
+    color: var(--gold-hi);
+    font-weight: 600;
+  }
+  #more-user button {
+    min-height: 44px;
+    padding: 0 16px;
+  }
+}
+
+/* ---------- Phone: the achievements folded (#189) ----------
+   „Offen“ shows the next goal of each series and „Erledigt“ only its button,
+   until the player unfolds the group (data-all, set from logic/achievement-fold.ts). */
+@media (max-width: 760px) {
+  button.fold-all.phone-only {
+    display: block;
+    width: 100%;
+    min-height: 44px;
+    margin: 0 0 8px;
+  }
+  [data-achievement-group][data-fold='open']:not([data-all])
+    [data-achievement][data-later],
+  [data-achievement-group][data-fold='claimed']:not([data-all])
+    [data-achievement] {
+    display: none;
+  }
+}
+
+/* ---------- Phone: the Sternenkarte as rows (#189, [V] unchanged by the owner) ----------
+   One block per position instead of four columns that broke the names: the
+   position, the planet with its picture and name, below it the owner in small
+   letters and the actions; an empty position is a thin row. The head row is
+   not needed then. (The proposal's „⋯“ sheet for the actions is left out: the
+   actions stay in the row.) */
+@media (max-width: 760px) {
+  .gal,
+  .gal tbody {
+    display: block;
+  }
+  .gal tr {
+    display: grid;
+    grid-template-columns: 2.4em minmax(0, 1fr);
+    align-items: start;
+    border-bottom: 1px solid var(--line);
+  }
+  .gal tr:first-child {
+    display: none;
+  }
+  .gal tr:last-child {
+    border-bottom: 0;
+  }
+  .gal th,
+  .gal td {
+    border-bottom: 0;
+    padding: 4px 4px;
+  }
+  .gal td:empty {
+    display: none;
+  }
+  .gal td:nth-child(1) {
+    grid-column: 1;
+    grid-row: 1 / span 3;
+  }
+  .gal td:nth-child(2) {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .gal td:nth-child(3):not(:last-child) {
+    grid-column: 2;
+    grid-row: 2;
+    padding-top: 0;
+    font-size: 14px;
+  }
+  .gal td:last-child {
+    grid-column: 2;
+    grid-row: 3;
+  }
+  .gal td:nth-child(3):last-child {
+    grid-row: 2;
+  }
+  .gal tr.moon-row td:nth-child(2) {
+    padding-left: 14px;
+  }
+  .gal td button.small {
+    min-height: 44px;
+    margin: 2px 0;
+  }
+}
+
+/* ---------- Phone: the overview, what runs first (#189, D5, CSS only) ----------
+   The fleet movements and the activities stand above the long table of the
+   planet, which moves down. Only the overview has a box with the picture of
+   the planet (.ov). The dashboard cards „Läuft“, „Achtung“ and „Bereit“ are
+   not built yet. */
+@media (max-width: 760px) {
+  main:has(> .box > .bd.ov) {
+    display: flex;
+    flex-direction: column;
+  }
+  main:has(> .box > .bd.ov) > .box:has(> .bd.ov) {
+    order: 1;
   }
 }
