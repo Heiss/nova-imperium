@@ -74,8 +74,20 @@ describe('the search of the Lexicanum (#285, B6)', () => {
     expect(first('Auspex-Lehre')).toBe('spy');
     expect(first('AU')).toBe('spy');
     expect(first('ausspähen')).toBe('spy');
-    expect(first('Gegner')).toBe('spy');
-    expect(first('Flottenslot')).toBe('computer');
+    // The questions of #288 hold these words in their title, which counts
+    // above a keyword or a word of a text: the question comes first, the
+    // Auspex-Lehre and the Kogitator-Doktrin follow.
+    expect(first('Gegner')).toBe('faq-intel');
+    expect(first('Flottenslot')).toBe('faq-slots');
+    const ids = (q: string) =>
+      search(q, docs).flatMap((g) => g.hits.map((h) => h.id));
+    expect(ids('Gegner')).toContain('spy');
+    expect(ids('Flottenslot')).toContain('computer');
     expect(first('Sturmangriff')).toBe('mission-attack');
+    // The rule pages and the questions are found by title and by keyword.
+    expect(first('Noobschutz')).toBe('rule-protection');
+    expect(first('Urlaubsmodus')).toBe('rule-vacation');
+    expect(first('Trümmerfelder')).toBe('rule-debris');
+    expect(ids('Wie gründe ich eine Kolonie')).toContain('faq-colony');
   });
 });

@@ -12,7 +12,7 @@ import {
   GIFT_RESOURCES,
   GIFT_SHIPS_EACH,
 } from '../../core/endzeit.ts';
-import type { Universe } from '../../core/types.ts';
+import { articleHref } from '../logic/address.ts';
 import { ENDZEIT_NOTE } from '../logic/endzeit.ts';
 import { reportFormHTML } from '../logic/error-report.ts';
 import { explainOptionsHTML } from '../logic/explain.ts';
@@ -49,16 +49,6 @@ export function highscore(v: V): string {
   });
   return `<h2 id="highscore-h">Highscore</h2>${highscoreButtonsHTML(cat)}<div class="box"><table class="scores"><tr><th class="n">Platz</th><th>Spieler</th><th>Heimatplanet</th><th class="n">Punkte</th></tr>${rows.join('')}</table></div><div class="dim">${highscoreNote(cat)}</div>`;
 }
-
-const rules = (u: Universe): string => `<ul class="rules">
- <li>Speed-Universum <b>x${u.speed}</b>: Produktion, Bauzeiten und Flüge laufen ${u.speed}× so schnell wie im Original.</li>
- <li>${u.galaxies} Galaxien × ${u.systems} Systeme × ${u.positions} Positionen. Jeder Spieler hat einen Heimatplaneten.</li>
- <li>Eine Bauschleife für Gebäude, eine Forschung gleichzeitig. Die Schiffsschmiede arbeitet Aufträge nacheinander ab.</li>
- <li>Kampf wie damals: bis zu 6 Runden, Schilde laden jede Runde neu, Schnellfeuer, 70 % der zerstörten Verteidigung wird wiederaufgebaut.</li>
- <li>Gewinnt der Angreifer, nimmt er bis zu 50 % der Rohstoffe mit, so viel in die Laderäume passt.</li>
- <li>Noobschutz: Wer weniger als ein Fünftel deiner Punkte hat, ist vor deinen Angriffen und Auspex-Erkundungen geschützt (auf der Sternenkarte mit (n) markiert).</li>
- <li>Flottenslots: 1 + Stufe der Kogitator-Doktrin. Der Server rechnet rund um die Uhr – auch wenn du offline bist.</li>
- <li>Kein Premium, keine Dunkle Materie – nur Rohstoffe und Geduld.</li></ul>`;
 
 const passwordMinimum = (ui: Ui): string =>
   ui.passwordMinLength === undefined
@@ -101,7 +91,10 @@ export const notificationBoxes = (
   `${pushKindsBox(s, ui)}
  ${box('Browser-Benachrichtigungen', '<p>Meldungen zu Aufträgen, Flotten und neuen Nachrichten auf diesem Gerät.</p><button data-act="pushEnable">Aktivieren</button> <button data-act="pushDisable">Deaktivieren</button>')}`;
 
-export const help = (v: V): string => `<h2>Hilfe &amp; Optionen</h2>
+/** The article of the Lexicanum that replaced the box „Regeln dieses Universums“ (#288, B4). */
+const UNIVERSE_ARTICLE = 'rule-universe';
+
+export const help = (v: V): string => `<h2>Optionen</h2>
  ${box('Optionen', `<div class="flex">Spähschädel pro Auspex-Erkundung von der Sternenkarte: <input type="number" id="o_probes" min="1" value="${v.s.me.probes || 1}" aria-label="Spähschädel pro Auspex-Erkundung"></div><div class="flex mt"><label for="o_explain">(?)-Symbol:</label> <select id="o_explain">${explainOptionsHTML(v.s.me.explain)}</select></div><div class="flex mt"><label for="o_levels">Stufenübersicht:</label> <select id="o_levels">${levelOptionsHTML(v.s.me.levelTable)}</select></div><p><button data-act="saveopt">Speichern</button></p>`)}
  ${box('Hauptplanet', mainPlanetHTML(v.s, v.now))}
  ${box('Urlaubsmodus', vacationHTML(v.s.round.vacationHours))}
@@ -122,7 +115,7 @@ export const help = (v: V): string => `<h2>Hilfe &amp; Optionen</h2>
    }),
  )}
  ${deleteAccountBox(v.s.round)}
- ${box('Regeln dieses Universums', rules(v.s.cfg))}`;
+ <p>Tempo, Größe und alle Einstellungen dieser Runde stehen im Lexicanum: <a class="lx-a" href="${articleHref(UNIVERSE_ARTICLE)}" data-act="lex" data-a="${UNIVERSE_ARTICLE}">Dieses Universum</a>.</p>`;
 
 /** A sentence about guilds, only in a round with guilds (#191). */
 const guildNote = (round: RoundRules, sentence: string): string =>

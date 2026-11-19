@@ -2,7 +2,7 @@
 // Trümmerfeld and flies home (#45, owner, 2026-11-13). The dispatcher sends
 // a fleet that finds no field any more back with its own report; the first
 // fleet to arrive takes the debris, a later one what is left.
-import { type Debris, isEmpty } from '../../../core/debris.ts';
+import { harvest, isEmpty } from '../../../core/debris.ts';
 import { capacity } from '../../../core/flight.ts';
 import type { Fleet } from '../../../core/types.ts';
 import {
@@ -13,21 +13,8 @@ import {
 } from '../../../server/game/context.ts';
 import { turnBack } from '../../../server/game/missions.ts';
 
-/**
- * What a fleet with `free` cargo space takes from a field: both resources
- * evenly until the smaller one is used up, then the rest of the other
- * (classic). The cargo of every ship counts, not only the Bergungsbarken.
- */
-export function harvest(field: Debris, free: number): Debris {
-  const room = Math.max(0, free);
-  const half = room / 2;
-  if (field.m <= field.c) {
-    const m = Math.min(field.m, half);
-    return { m, c: Math.min(field.c, room - m) };
-  }
-  const c = Math.min(field.c, half);
-  return { m: Math.min(field.m, room - c), c };
-}
+// The rule is in the core, where the Lexicanum reads it too (#288).
+export { harvest };
 
 export function onArrive(ctx: Ctx, f: Fleet): void {
   // The dispatcher checked that the field is there (target kind `debris`).

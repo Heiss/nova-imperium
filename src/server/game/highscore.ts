@@ -3,6 +3,7 @@
 // 1 per ship and 1 per research level, as in classic (Q1, owiki
 // „Statistik“). The total stays `pointsMap` of points.ts.
 import { BUILD, FIGHTERS, RES, SHIPS, UNIT } from '../../core/catalog.ts';
+import { pointsOf } from '../../core/points.ts';
 import { settle, settleR } from '../../core/settle.ts';
 import type { Levels } from '../../core/types.ts';
 import { type Ctx, universe } from './context.ts';
@@ -55,8 +56,8 @@ export function categoryScores(ctx: Ctx): Record<string, CategoryScores> {
   for (const f of ctx.fleets.all())
     raw[f.owner]!.fleet += count(f.ships, SHIPS);
   for (const c of Object.values(raw)) {
-    c.buildings = Math.floor(c.buildings / 1000);
-    c.defense = Math.floor(c.defense / 1000);
+    c.buildings = pointsOf(c.buildings);
+    c.defense = pointsOf(c.defense);
   }
   return raw;
 }

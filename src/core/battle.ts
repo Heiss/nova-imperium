@@ -37,7 +37,17 @@ export const techFactor = (level: number): number => 1 + TECH_BONUS * level;
 
 const bonus = (tech: Levels, key: string): number => techFactor(tech[key] ?? 0);
 
-const MAX_ROUNDS = 6;
+/** A battle lasts at most this many rounds (#288). */
+export const MAX_ROUNDS = 6;
+
+/** A shot below this share of the target's shield has no effect (#288). */
+export const SHIELD_IGNORED = 0.01;
+
+/**
+ * A unit whose hull is below this share of its full hull may explode: the
+ * lower the hull, the likelier (#288).
+ */
+export const EXPLODES_BELOW = 0.7;
 
 export function buildSide(side: Side): Unit[] {
   const out: Unit[] = [];
@@ -71,15 +81,19 @@ const fighter = (key: string) =>
 
 export function hit(target: Unit, dmg: number, rng: Rng): void {
   if (target.hull <= 0) return;
-  if (dmg < 0.01 * target.shield) return;
+  if (dmg < SHIELD_IGNORED * target.shield) return;
   if (target.shield >= dmg) target.shield -= dmg;
   else {
     target.hull -= dmg - target.shield;
     target.shield = 0;
   }
-  const damaged = target.hull > 0 && target.hull < 0.7 * target.maxHull;
+  const damaged =
+    target.hull > 0 && target.hull < EXPLODES_BELOW * target.maxHull;
   if (damaged && rng() > target.hull / target.maxHull) target.hull = 0;
 }
+
+/** The chance to shoot again with rapid fire `r`: (r - 1) / r (#288). */
+export const againChance = (r: number): number => (r - 1) / r;
 
 function fire(shooters: Unit[], targets: Unit[], rng: Rng): void {
   const n = targets.length;
@@ -90,7 +104,7 @@ function fire(shooters: Unit[], targets: Unit[], rng: Rng): void {
       const t = targets[Math.floor(rng() * n)]!;
       hit(t, s.attack, rng);
       const r = rapid(s.key, t.key);
-      again = r > 1 && rng() < (r - 1) / r;
+      again = r > 1 && rng() < againChance(r);
     }
   }
 }

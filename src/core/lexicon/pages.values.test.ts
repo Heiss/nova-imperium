@@ -1,0 +1,284 @@
+// What the rule pages and the questions say for a state (#288): the numbers
+// come from the rules and the round, so a changed setting changes the page.
+// The guards of `pages.test.ts` check that nothing is typed; these tests check
+// that the right values arrive.
+import { describe, expect, it } from 'vitest';
+import { planet } from '../../test/fixtures.ts';
+import { STATES } from '../../test/lexicon-states.ts';
+import { GUILD_RIGHTS } from '../guild-ranks.ts';
+import { pageParts } from './docs.ts';
+import { PAGES } from './pages/index.ts';
+import { defaultState } from './state.ts';
+import type { LexState, Own } from './types.ts';
+
+const page = (id: string) => PAGES.find((p) => p.id === id)!;
+
+/** The words of a page for a state, one string. */
+const words = (id: string, s: LexState = defaultState()): string =>
+  pageParts(page(id), s)
+    .map((x) => x.text)
+    .join('\n');
+
+/** The default state with other values of the round. */
+const withRound = (over: Record<string, number | boolean>): LexState => {
+  const s = defaultState();
+  return { ...s, round: { ...s.round, ...over } };
+};
+
+/** The same, for a setting that is also a row of the universe settings (`live`, under its stored key). */
+const withLive = (
+  over: Record<string, number>,
+  stored: Record<string, number>,
+): LexState => {
+  const s = withRound(over);
+  return { ...s, u: { ...s.u, ...stored } };
+};
+
+/** The rows of the table with this caption, as strings. */
+function rowsOf(id: string, caption: string, s = defaultState()): string[][] {
+  const t = page(id)
+    .sections(s)
+    .flatMap((x) => x.blocks)
+    .find((b) => b.t === 'table' && b.caption === caption);
+  if (t?.t !== 'table') throw new Error(`no table ${caption}`);
+  return t.rows.map((r) =>
+    r.cells.map((c) => (typeof c === 'object' ? c.text : String(c))),
+  );
+}
+
+const own = (over: Partial<Own> = {}): Own => ({
+  planet: planet(),
+  planets: 3,
+  fleets: 0,
+  points: { own: 1000, top: 5000 },
+  now: 0,
+  ...over,
+});
+
+describe('the rule pages say the values of the rules', () => {
+  it('Kampf: the rounds, the research bonus, the loot and the rebuilt defense', () => {
+    const text = words('rule-battle');
+    expect(text).toContain('höchstens 6 Runden');
+    expect(text).toContain('schwächer ist als 1 % des Schilds');
+    expect(text).toContain('unter 70 % ihres Höchstwerts');
+    expect(text).toContain('Jede Stufe legt 10 % des Grundwerts obendrauf');
+    expect(text).toContain('70 % je Art');
+    expect(text).toContain('ab 50 Stück wird der Anteil gerundet');
+    expect(text).toContain('lädt er bis zu 50 % jedes Rohstoffs');
+    // 200,000 Adamant and the free hold of 10,000: a third Adamant first.
+    expect(
+      rowsOf(
+        'rule-battle',
+        words('rule-battle').match(/Beute bei[^\n]*/)![0],
+      )[0],
+    ).toEqual(['10000', '3333', '3333', '3334']);
+  });
+
+  it('Kampf: the table of units has every fighter, the rapid fire only those that have it', () => {
+    const units = rowsOf('rule-battle', 'Werte der Einheiten ohne Forschung');
+    expect(units.length).toBeGreaterThanOrEqual(22);
+    expect(units.find((r) => r[0] === 'Fregatte')).toBeDefined();
+    const rapid = rowsOf('rule-battle', 'Schnellfeuer der Einheiten');
+    expect(rapid.length).toBeGreaterThan(5);
+    for (const [, against] of rapid) expect(against).toMatch(/ \d/);
+  });
+
+  it('Flug: the universe speed divides the time and the slots follow the research', () => {
+    const d = STATES[0]!;
+    const other = STATES[1]!;
+    expect(words('rule-flight', d)).toContain(
+      'laufen alle Flüge 5-mal so schnell',
+    );
+    expect(words('rule-flight', other)).toContain(
+      'laufen alle Flüge 40-mal so schnell',
+    );
+    expect(words('rule-flight', other)).toContain(
+      'Dein Stand: Stufe 6 der Kogitator-Doktrin, 7 Flottenslots.',
+    );
+    const row = (s: LexState) =>
+      rowsOf(
+        'rule-flight',
+        'Tempo und Flugzeit der Schiffe bei vollem Tempo',
+        s,
+      )[0]!;
+    expect(row(d)[0]).toBe('Frachtläufer');
+    // A faster universe is faster, and the research raises the speed.
+    expect(row(other)[2]).not.toBe(row(d)[2]);
+    expect(Number(row(other)[1]!.replace('.', ''))).toBeGreaterThan(
+      Number(row(d)[1]!.replace('.', '')),
+    );
+  });
+
+  it('Planeten: the home planet, the fields by position and the demolition of the round', () => {
+    expect(words('rule-planets')).toContain(
+      'Dein Heimatplanet hat immer 163 Felder',
+    );
+    const rows = rowsOf(
+      'rule-planets',
+      'Felder, Temperatur und Typ einer neuen Kolonie nach Position',
+    );
+    expect(rows).toHaveLength(15);
+    expect(rows[0]).toEqual([
+      '1',
+      '96 bis 172',
+      '120 bis 140 °C',
+      'Trockener Planet',
+      'Wüstenplanet',
+    ]);
+    expect(rows[14]![1]).toBe('90 bis 164');
+    expect(
+      words(
+        'rule-planets',
+        withLive({ demolitionRefund: -20 }, { roundDemolitionRefund: -20 }),
+      ),
+    ).toContain('der Faktor -20 %');
+  });
+
+  it('Marktplatz: the fee and the limit of the round, and the ratios', () => {
+    const text = words(
+      'rule-market',
+      withRound({ marketFee: 25, marketFeeStep: 5, marketLimit: 0 }),
+    );
+    expect(text).toContain('auf Stufe eins 25 %');
+    expect(text).toContain('um 5 Prozentpunkte');
+    expect(text).toContain('in dieser Runde gibt es kein Limit');
+    expect(
+      rowsOf(
+        'rule-market',
+        'Gebühr nach Stufe des Handelspostens',
+        withRound({ marketFee: 25, marketFeeStep: 10 }),
+      ).slice(0, 4),
+    ).toEqual([
+      ['1', '25 %'],
+      ['2', '15 %'],
+      ['3', '5 %'],
+      ['5', '0 %'],
+    ]);
+    expect(rowsOf('rule-market', 'Verhältnisse dieser Runde')[0]).toEqual([
+      'Adamant',
+      'Psikristall',
+      '500',
+    ]);
+  });
+
+  it('Kolonien: the limit by research only where the round has both', () => {
+    const none = words('rule-colonies');
+    expect(none).toContain('Grundgrenze in dieser Runde: keine Grenze');
+    expect(none).not.toContain('Planetengrenze nach der Kolonialverwaltung');
+    const limited = withRound({ colonyBase: 6, colonyResearch: 1 });
+    const text = words('rule-colonies', {
+      ...limited,
+      u: { ...limited.u, ...{ roundColonyBase: 6, roundColonyResearch: 1 } },
+    });
+    expect(text).toContain('Planetengrenze nach der Kolonialverwaltung');
+    expect(text).toContain('Grundgrenze in dieser Runde: 6');
+  });
+
+  it('Sichtbarkeit und Rewards: thresholds and days of the round', () => {
+    const text = words(
+      'rule-vision',
+      withRound({ recognitionTotal: 1, inactiveDays: 3 }),
+    );
+    expect(text).toContain('Ab Stufe 1 siehst du die Zahl der Schiffe');
+    expect(text).toContain('Wer 3 Tage nichts getan hat, gilt als inaktiv');
+    const days = rowsOf(
+      'rule-rewards',
+      words('rule-rewards').match(/Belohnung bei[^\n]*/)![0],
+    );
+    expect(days[0]!.slice(0, 2)).toEqual(['1', '30']);
+    expect(days.find((r) => r[0] === '30')![1]).toBe('90');
+    expect(days.find((r) => r[0] === '60')![1]).toBe('90');
+  });
+
+  it('Gilden, Urlaub, Endzeit und Schutz: rights, hours, levels and the border', () => {
+    expect(rowsOf('rule-guilds', 'Die Rechte eines Rangs')).toHaveLength(
+      GUILD_RIGHTS.length,
+    );
+    expect(words('rule-vacation', withRound({ vacationHours: 96 }))).toContain(
+      'in dieser Runde 96 Stunden',
+    );
+    const levels = rowsOf('rule-endzeit', 'Gebäude des Heimatplaneten');
+    expect(levels.find((r) => r[0] === 'Scholarium')![1]).toBe('20');
+    expect(rowsOf('rule-protection', 'Wer vor dir geschützt ist')[1]).toEqual([
+      '1000',
+      '200',
+    ]);
+  });
+});
+
+describe('the questions show the own state', () => {
+  it('faq-attack: the points of the player and the border below which others are protected', () => {
+    const s = {
+      ...defaultState(),
+      own: own({ points: { own: 1000, top: 9 } }),
+    };
+    expect(words('faq-attack', s)).toContain(
+      'Dein Stand: Du hast 1.000 Punkte. Spieler mit weniger als 200 Punkten sind vor dir geschützt.',
+    );
+    expect(words('faq-attack')).not.toContain('Dein Stand');
+  });
+
+  it('faq-mine: the energy of the shown planet and the full stores', () => {
+    const p = planet({
+      b: { metal: 10, solar: 1 },
+      res: { m: 1e9, c: 0, d: 0 },
+    });
+    const text = words('faq-mine', {
+      ...defaultState(),
+      own: own({ planet: p }),
+    });
+    expect(text).toMatch(
+      /Dein Stand auf diesem Planeten: Die Energie reicht für [\d,]+ %/,
+    );
+    expect(text).toContain('Voll ist das Lager von Adamant');
+  });
+
+  it('faq-colony: the limit of planets as the planet list shows it', () => {
+    expect(
+      words('faq-colony', { ...defaultState(), own: own({ planets: 4 }) }),
+    ).toContain('Dein Stand: Planeten: 4 · unbegrenzt');
+  });
+});
+
+describe('the guides', () => {
+  it('„Deine nächsten Ziele“ says that nothing stands out, and waits for a planet', () => {
+    const text = words('guide-next');
+    expect(text).toContain('Im Moment hebt keine Regel etwas hervor');
+    expect(text).toContain(
+      'Dein Stand steht hier, sobald du einen Planeten hast.',
+    );
+  });
+
+  it('„Dich verteidigen“ takes the limits of seeing from the round and the values from the catalog', () => {
+    const text = words(
+      'guide-defense',
+      withRound({
+        recognitionTotal: 1,
+        recognitionTypes: 3,
+        recognitionCounts: 9,
+      }),
+    );
+    expect(text).toContain(
+      'Ab Stufe 1 der Auspex-Lehre siehst du, wie viele Schiffe',
+    );
+    expect(text).toContain('ab Stufe 9 die genaue Zahl');
+    expect(
+      rowsOf(
+        'guide-defense',
+        'Kosten und Werte der Verteidigungsanlagen',
+      )[0]![0],
+    ).toBe('Raketenbatterie');
+  });
+
+  it('„Erste Schritte“ starts with the resources of the universe', () => {
+    const s = defaultState();
+    expect(words('guide-start', s)).toContain(
+      'mit 500 Adamant und 500 Psikristall',
+    );
+    const rich = {
+      ...s,
+      u: { ...s.u, startMetal: 0, startCrystal: 0, startDeuterium: 9 },
+    };
+    expect(words('guide-start', rich)).toContain('mit 9 Promethium');
+  });
+});

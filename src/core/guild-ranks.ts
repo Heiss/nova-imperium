@@ -23,6 +23,19 @@ export const GUILD_RIGHTS = [
 
 export type GuildRight = (typeof GUILD_RIGHTS)[number];
 
+/** The rights as the guild view and the Lexicanum name them (#163, #288). */
+export const RIGHT_TEXT: Readonly<Record<GuildRight, string>> = {
+  applications: 'Bewerbungen annehmen und ablehnen',
+  remove: 'Mitglieder entfernen',
+  assign: 'Ränge an Mitglieder vergeben',
+  profile: 'Gildenname, Kürzel und Text ändern',
+  ranks: 'Ränge verwalten',
+  // The guild chat (#169, owner, 2026-11-14, D2).
+  'chat-read': 'Chat lesen',
+  'chat-write': 'Chat schreiben',
+  'chat-delete': 'Chatnachrichten löschen',
+};
+
 export const isGuildRight = (v: unknown): v is GuildRight =>
   (GUILD_RIGHTS as readonly unknown[]).includes(v);
 

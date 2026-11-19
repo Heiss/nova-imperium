@@ -8,7 +8,7 @@ import { ARTICLES } from '../../core/lexicon/articles.ts';
 import { MISSION } from '../../core/missions.ts';
 import { text } from '../../core/text.ts';
 import type { Levels, Planet } from '../../core/types.ts';
-import { planet, U } from '../../test/fixtures.ts';
+import { planet, roundDefaults, U } from '../../test/fixtures.ts';
 import type { Ui, V } from '../views/common.ts';
 import { unitLines } from './catalog-list.ts';
 import {
@@ -34,8 +34,11 @@ function view(P: Partial<Planet> = {}, research: Levels = {}): V {
   return {
     s: {
       cfg: U,
+      round: { number: 1, ...roundDefaults() },
       me: { id: 'u1', explain: 'icon' },
       labs: [],
+      players: {},
+      fleets: [],
       galaxy: [],
       mainPlanet: 'p',
     } as unknown as GameState,
@@ -470,10 +473,13 @@ describe('an article of a mission', () => {
     expect(flatHits(searchHits('plündern')).map((h) => h.id)).toEqual([
       'mission-attack',
     ]);
+    // The rule page and the question of #288 have the word too, after them.
     expect(flatHits(searchHits('ausspähen')).map((h) => h.id)).toEqual([
       'spy',
       'probe',
       'mission-spy',
+      'rule-spy',
+      'faq-intel',
     ]);
   });
 });
@@ -541,5 +547,198 @@ describe('the blocks and the search', () => {
     expect(moveMark(1, 3, 'ArrowUp')).toBe(0);
     expect(moveMark(1, 3, 'x')).toBe(1);
     expect(moveMark(1, 0, 'ArrowDown')).toBe(-1);
+  });
+});
+
+describe('the rule pages, the questions and the start page of #288', () => {
+  const rule = (id: string, v = view()): ArticleView => art(id, v);
+
+  it('shows the boxes „Einstieg“, „Regeln“ and „Häufige Fragen“ on the start page, none of them empty', () => {
+    const p = page('', view());
+    if (p.t !== 'start') throw new Error(p.t);
+    expect(p.boxes.map((b) => [b.kind, b.title])).toEqual([
+      ['guide', 'Einstieg'],
+      ['rule', 'Regeln'],
+      ['question', 'Häufige Fragen'],
+    ]);
+    expect(p.boxes[0]!.items.map((i) => i.id)).toEqual([
+      'guide-start',
+      'guide-colony',
+      'guide-fleet',
+      'guide-defense',
+      'guide-next',
+    ]);
+    const rules = p.boxes.find((b) => b.kind === 'rule')!;
+    expect(rules.title).toBe('Regeln');
+    expect(rules.items.map((i) => i.id)).toEqual(
+      ARTICLES.filter((a) => a.kind === 'rule').map((a) => a.id),
+    );
+    expect(rules.items[0]).toEqual({
+      id: 'rule-battle',
+      title: 'Kampf',
+      line: expect.stringMatching(/^Wie ein Kampf abläuft/) as string,
+    });
+    for (const box of p.boxes) expect(box.items.length).toBeGreaterThan(0);
+  });
+
+  it('lists the rule pages and the questions, and finds them in „Begriffe A–Z“', () => {
+    const list = page(listId('question'), view());
+    if (list.t !== 'list') throw new Error(list.t);
+    expect(list.title).toBe('Häufige Fragen');
+    expect(list.items.map((i) => i.id)).toContain('faq-intel');
+    const az = page(AZ, view());
+    if (az.t !== 'list') throw new Error(az.t);
+    expect(az.items.map((i) => i.id)).toContain('rule-universe');
+  });
+
+  it('draws a rule page from the rules and the round of the state', () => {
+    const a = rule('rule-vacation');
+    expect(a).toMatchObject({
+      kind: 'rule',
+      kindTitle: 'Regeln',
+      title: 'Urlaubsmodus',
+      icon: null,
+      own: null,
+      intro: [],
+    });
+    expect(a.ds).toMatch(/^Wie du das Spiel pausierst/);
+    const end = of(blocks(a, 'end'), 'text')[0]!;
+    expect(end.parts.map((x) => x.text).join('')).toContain(
+      'in dieser Runde 48 Stunden',
+    );
+    // The admin changes the minimum duration: the page follows.
+    const v = view();
+    v.s.round = { ...v.s.round, vacationHours: 72 };
+    const changed = of(blocks(rule('rule-vacation', v), 'end'), 'text')[0]!;
+    expect(changed.parts.map((x) => x.text).join('')).toContain(
+      'in dieser Runde 72 Stunden',
+    );
+  });
+
+  it('draws formulas, links in tables and the list of „Siehe auch“', () => {
+    const a = rule('rule-battle');
+    expect(blocks(a, 'rapid').map((b) => b.t)).toEqual([
+      'text',
+      'formula',
+      'text',
+      'table',
+    ]);
+    const table = of(blocks(a, 'rapid'), 'table')[0]!;
+    expect(table.rows[0]!.cells[0]).toMatchObject({ link: expect.any(String) });
+    expect(of(blocks(a, 'rapid'), 'formula')[0]!.lines).toEqual([
+      'Chance auf einen weiteren Schuss = (Schnellfeuer − 1) ÷ Schnellfeuer',
+    ]);
+    const see = of(blocks(a, 'see'), 'links')[0]!;
+    expect(see.items.map((i) => i.id)).toContain('mission-attack');
+    expect(see.items[0]).toEqual({ id: 'weapons', text: 'Waffensegnung' });
+  });
+
+  it('has a path through its kind and the other pages of the kind at its side', () => {
+    const p = page('faq-slots', view());
+    if (p.t !== 'article') throw new Error(p.t);
+    expect(crumbs(p)).toEqual([
+      { id: '', text: 'Lexicanum' },
+      { id: 'list-question', text: 'Häufige Fragen' },
+      { id: null, text: 'Wie bekomme ich mehr Flottenslots?' },
+    ]);
+    expect(p.article.siblings.map((s) => s.id)).toContain('faq-intel');
+    expect(p.article.sections.map((s) => s.id)).toEqual([
+      'answer',
+      'steps',
+      'values',
+      'see',
+    ]);
+  });
+
+  it('shows the own state in a question: slots, Auspex-Lehre and Spähschädel', () => {
+    const v = view({ ships: { probe: 12 } }, { computer: 3, spy: 4 });
+    const slots = of(blocks(rule('faq-slots', v), 'values'), 'stand')[0]!;
+    expect(slots.text).toBe(
+      'Dein Stand: Stufe 3 der Kogitator-Doktrin, 4 Flottenslots.',
+    );
+    const intel = of(blocks(rule('faq-intel', v), 'values'), 'stand')[0]!;
+    expect(intel.text).toContain('Stufe 4 der Auspex-Lehre und 12 Spähschädel');
+  });
+});
+
+describe('the guides and the personal hints of #289', () => {
+  it('computes „Deine nächsten Ziele“ from the shown planet and the research', () => {
+    // Ten levels of a mine and no power: energy is short, and the Scholarium is near.
+    const v = view({ b: { metal: 10, lab: 2 }, res: { m: 1, c: 1, d: 0 } });
+    const a = art('guide-next', v);
+    expect(a).toMatchObject({
+      kind: 'guide',
+      kindTitle: 'Einstieg',
+      own: null,
+    });
+    const texts = of(blocks(a, 'now'), 'text').map((t) =>
+      t.parts.map((x) => x.text).join(''),
+    );
+    expect(texts[1]).toMatch(
+      /^Dir fehlt Energie: .* nur mit [\d,]+ % ihrer Leistung/,
+    );
+    expect(texts.join(' ')).toContain(
+      'Auspex-Lehre zu bekommen: Scholarium steht auf Stufe 2',
+    );
+    expect(of(blocks(a, 'stand'), 'stand')[0]!.text).toBe(
+      'Dein Stand: Planeten: 0 · Flotten unterwegs: 0 · Punkte: 0',
+    );
+    // A hint links its words to articles of the Lexicanum.
+    const links = of(blocks(a, 'now'), 'text')[1]!.parts.filter(
+      (x) => 'link' in x,
+    );
+    expect(links.map((x) => 'link' in x && x.link)).toContain('solar');
+  });
+
+  it('names a requirement that is one level away, for a planet in order', () => {
+    const v = view(
+      {
+        b: { metal: 2, crystal: 1, solar: 8, lab: 10 },
+        res: { m: 10, c: 10, d: 0 },
+      },
+      { computer: 20 },
+    );
+    const text = of(blocks(art('guide-next', v), 'now'), 'text').map((t) =>
+      t.parts.map((x) => x.text).join(''),
+    );
+    expect(
+      text.slice(1).every((t) => t.startsWith('Dir fehlt noch eine Stufe')),
+    ).toBe(true);
+  });
+
+  it('draws a guide with its steps, its numbers from the catalog and the universe', () => {
+    const a = art('guide-start');
+    const begin = of(blocks(a, 'begin'), 'text')[0]!;
+    expect(begin.parts.map((x) => x.text).join('')).toContain(
+      'mit 500 Adamant und 500 Psikristall',
+    );
+    const steps = of(blocks(a, 'steps'), 'facts')[0]!;
+    expect(steps.items.map((i) => i.label)).toEqual(
+      steps.items.map((_, i) => `Schritt ${i + 1}`),
+    );
+    expect(steps.items[0]!.parts.map((x) => x.text).join('')).toContain(
+      'Die erste Stufe kostet 60 Adamant und 15 Psikristall beziehungsweise 48 Adamant und 24 Psikristall',
+    );
+    // A guide links the others of the Einstieg.
+    const links = steps.items
+      .flatMap((i) => i.parts)
+      .filter((x) => 'link' in x);
+    expect(links.map((x) => 'link' in x && x.link)).toEqual(
+      expect.arrayContaining(['guide-fleet', 'guide-colony', 'guide-next']),
+    );
+  });
+
+  it('lists the missions of the fleet form with their targets, and no missile', () => {
+    const table = of(blocks(art('guide-fleet'), 'missions'), 'table')[0]!;
+    expect(table.rows).toHaveLength(Object.keys(MISSION).length - 1);
+    const attack = table.rows.find(
+      (r) => r.cells[0]!.link === 'mission-attack',
+    )!;
+    expect(attack.cells.map((c) => c.text)).toEqual([
+      'Sturmangriff',
+      'fremder Planet',
+      'ja',
+      'ja',
+    ]);
   });
 });

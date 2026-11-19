@@ -1348,10 +1348,6 @@ textarea:focus-visible {
 .ml {
   margin-left: 10px;
 }
-.rules {
-  margin: 0;
-  padding-left: 18px;
-}
 .auth {
   max-width: 460px;
   margin: 30px auto;

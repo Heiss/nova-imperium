@@ -168,6 +168,6 @@
     </tbody>
   </table>
   <div class="bd dim">
-    {`Auspex-Erkundung schickt ${page.probes} Spähschädel – einstellbar unter „Hilfe & Optionen“.`}
+    {`Auspex-Erkundung schickt ${page.probes} Spähschädel – einstellbar unter „Optionen“.`}
   </div>
 </div>

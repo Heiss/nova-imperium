@@ -94,7 +94,7 @@
     href="?view=research"
     data-act="nav"
     data-v="research">Forschung</a
-  ><a href="?view=shipyard" data-act="nav" data-v="shipyard">Werft</a><a
+  ><a href="?view=shipyard" data-act="nav" data-v="shipyard">Schiffsschmiede</a><a
     href="?view=defense"
     data-act="nav"
     data-v="defense">Abwehr</a

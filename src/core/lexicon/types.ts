@@ -3,11 +3,18 @@
 // panel draw them with the same Svelte components (#118). Texts hold links
 // as [[id]] or [[id|text]] (B7) and values as {name}, filled from the rules,
 // so no number is typed into a text (#285, „Texts“).
-import type { Levels, Universe } from '../types.ts';
+import type { RoundRules } from '../round.ts';
+import type { Levels, Planet, Universe } from '../types.ts';
 
 /** The kinds of articles of stage 1: the catalog entries and the missions. */
-export type ArticleKind =
+export type EntryKind =
   'building' | 'research' | 'ship' | 'defense' | 'mission';
+
+/** The kinds of the pages that are written, not generated (#288, #289). */
+export type PageKind = 'rule' | 'question' | 'guide';
+
+/** The kinds of articles: stage 1 and the pages of stages 2 and 3. */
+export type ArticleKind = EntryKind | PageKind;
 
 /** A formula: its text (numbers allowed) and its function, checked against the rule (B8). */
 export interface Formula {
@@ -23,8 +30,8 @@ export interface Formula {
   samples: readonly (readonly number[])[];
 }
 
-/** A cell of a table: a text, or a number shown with the German format. */
-export type Cell = string | number;
+/** A cell of a table: a text, a number shown with the German format, or a link. */
+export type Cell = string | number | { text: string; link: string };
 
 /** One row of a computed table; `mark` is the row that applies to the player (B5). */
 interface Row {
@@ -34,8 +41,8 @@ interface Row {
 
 /** The blocks an article is made of. */
 export type Block =
-  | { t: 'text'; text: string }
-  | { t: 'formula'; lines: string[] }
+  | { t: 'text'; text: string; values?: Readonly<Record<string, string>> }
+  | { t: 'formula'; lines: string[]; of?: readonly Formula[] }
   | { t: 'chips'; items: { label: string; text: string }[] }
   | { t: 'table'; caption?: string; head: string[]; rows: Row[] }
   | { t: 'facts'; items: { label: string; text: string }[] }
@@ -46,10 +53,60 @@ export type Block =
 export interface LexState {
   /** The universe of the round. */
   u: Universe;
+  /** The rules of the round: every setting the admin gives per round. */
+  round: RoundRules;
   /** The player's research. */
   research: Levels;
   /** The ships on the shown planet. */
   ships: Levels;
+  /** What the player has on the shown planet, for the personal hints (#289). */
+  own?: Own;
+}
+
+/** The player's own state, as far as the personal hints read it (#289). */
+export interface Own {
+  /** The shown planet or moon. */
+  planet: Planet;
+  /** The planets the player owns, moons not counted. */
+  planets: number;
+  /** The fleets in flight. */
+  fleets: number;
+  /** The own points and those of the best player. */
+  points: { own: number; top: number };
+  /** The time the state is from. */
+  now: number;
+}
+
+/** A section of a page: its heading and its blocks. */
+export interface PageSection {
+  id: string;
+  title: string;
+  blocks: Block[];
+}
+
+/**
+ * A page that is written, not generated: a rule page (#288), a question
+ * (#288) or a guide (#289). Its sections are computed from the rules for a
+ * state, so a value the admin changes per round changes the page.
+ */
+export interface PageDef {
+  /** The address, `rule-…`, `faq-…` or `guide-…`. */
+  id: string;
+  kind: PageKind;
+  title: string;
+  /** One line below the title, in the lists and below a hit of the search. */
+  line: string;
+  /** Words in everyday language that find the page, not shown (B6). */
+  keywords: readonly string[];
+  /** Further articles for „Siehe auch“. */
+  seeAlso?: readonly string[];
+  /**
+   * The states the review list shows the page in, where the page changes
+   * with the player's own state (#289): together they show every text the
+   * page can hold. Without them the default state of a new player.
+   */
+  review?: readonly LexState[];
+  sections: (s: LexState) => PageSection[];
 }
 
 /** The effect of one level of an entry, for its level table and „Dein Stand“. */

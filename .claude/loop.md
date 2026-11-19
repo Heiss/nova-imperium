@@ -183,7 +183,8 @@ interface is German.
    its feature: what the admin can now do),
    OKF and docs, the article in the Lexicanum when it changes a rule or
    adds a catalog entry or a mission (`src/features/<key>/lexicon.de.ts`,
-   #285), and the log entry as a new file
+   #285), the rule page or question that states the rule
+   (`src/core/lexicon/pages/`, #288), and the log entry as a new file
    `okf/log/<date>-<short-name>.md` with the UTC time in `date` (never an
    edit of another entry; the format is in `okf/ops/website.md`). Run the cheap local checks above
    before the push after which you mark it ready, and after a merge of

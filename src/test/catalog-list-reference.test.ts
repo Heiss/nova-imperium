@@ -104,7 +104,7 @@ const SWITCH =
   [
     ['buildings', 'Gebäude'],
     ['research', 'Forschung'],
-    ['shipyard', 'Werft'],
+    ['shipyard', 'Schiffsschmiede'],
     ['defense', 'Abwehr'],
   ]
     .map(

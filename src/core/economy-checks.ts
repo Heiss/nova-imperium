@@ -107,7 +107,7 @@ export function researchErrors(
 }
 
 /** The orders the list of the shipyard holds at most. */
-const MAX_SHIPYARD_ORDERS = 20;
+export const MAX_SHIPYARD_ORDERS = 20;
 
 /**
  * Why an order of `n` units cannot start: the place has no shipyard, an
