@@ -16,6 +16,11 @@ CREATE INDEX error_events_time ON error_events(time);
 
 CREATE INDEX fleets_owner ON fleets(owner);
 
+CREATE INDEX friendships_addressee ON friendships (addressee);
+
+CREATE UNIQUE INDEX friendships_pair
+      ON friendships (min(requester, addressee), max(requester, addressee));
+
 CREATE INDEX guild_chat_attacker ON guild_chat(attacker);
 
 CREATE INDEX guild_chat_author ON guild_chat(author);
@@ -140,6 +145,14 @@ CREATE TABLE fleets (
     fuel INTEGER NOT NULL DEFAULT 0
   , gift INTEGER NOT NULL DEFAULT 0
     CHECK (gift IN (0, 1))) STRICT;
+
+CREATE TABLE friendships (
+      requester TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      addressee TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      status TEXT NOT NULL CHECK (status IN ('pending', 'friend')),
+      PRIMARY KEY (requester, addressee),
+      CHECK (requester != addressee)
+    ) STRICT;
 
 CREATE TABLE guild_chat (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
