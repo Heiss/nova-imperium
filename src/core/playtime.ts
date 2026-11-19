@@ -68,11 +68,15 @@ const INSTANCE = /^[A-Za-z0-9_-]{8,36}$/;
 const isCount = (n: unknown): n is number =>
   typeof n === 'number' && Number.isSafeInteger(n) && n >= 0;
 
-/** The duration of a report: null for a start, else milliseconds; undefined for none. */
+/**
+ * The duration of a report: null for a start, else whole milliseconds;
+ * undefined for none. A page measures with `performance.now()`, which has
+ * fractions, and the table stores whole milliseconds.
+ */
 function sinceOf(since: unknown): number | null | undefined {
   if (since === null) return null;
   const ok = typeof since === 'number' && Number.isFinite(since) && since >= 0;
-  return ok ? since : undefined;
+  return ok ? Math.round(since) : undefined;
 }
 
 /** The report in a request body, or null for anything that is not one. */
