@@ -16,6 +16,7 @@ describe('repositories', () => {
       'invitations',
       'admin',
       'debris',
+      'friends',
       'market',
     ]);
     db.exec(

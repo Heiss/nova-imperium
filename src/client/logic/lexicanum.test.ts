@@ -102,6 +102,7 @@ describe('the pages of the Lexicanum', () => {
     ]);
     const az = page(AZ, view());
     if (az.t !== 'list') throw new Error(az.t);
+    expect(az.title).toBe('Begriffe A–Z');
     expect(az.items).toHaveLength(ARTICLES.length);
     const titles = az.items.map((i) => i.title);
     expect(titles).toEqual(
@@ -112,6 +113,12 @@ describe('the pages of the Lexicanum', () => {
       title: 'Auspex-Erkundung',
       line: '',
     });
+  });
+
+  it('gives every kind of article its own icon class', () => {
+    expect(
+      ['metal', 'spy', 'sc', 'll', 'mission-spy'].map((id) => art(id).cls),
+    ).toEqual(['ic-b', 'ic-r', 'ic-s', 'ic-d', 'ic-m']);
   });
 
   it('shows an article with its path', () => {
@@ -356,11 +363,10 @@ describe('an article of a mission', () => {
       ['Ziel', 'fremder Planet'],
       ['Ladung', 'nein'],
       ['Rückflug', 'ja'],
-      ['Für den Verteidiger sichtbar', 'nein'],
       ['Eigener Bericht bei der Heimkehr', 'nein'],
       ['Schiffe', 'nur Spähschädel'],
     ]);
-    expect(facts[5]!.parts[1]).toEqual({ text: 'Spähschädel', link: 'probe' });
+    expect(facts[4]!.parts[1]).toEqual({ text: 'Spähschädel', link: 'probe' });
     const attack = of(blocks(art('mission-attack'), 'mission'), 'facts')[0]!;
     expect(attack.items.map((f) => f.label)).not.toContain('Schiffe');
     const deploy = of(blocks(art('mission-deploy'), 'mission'), 'facts')[0]!;
@@ -370,6 +376,40 @@ describe('an article of a mission', () => {
       'nein',
     ]);
     expect(section(art('mission-attack'), 'see')).toBeUndefined();
+  });
+
+  it('names the target, cargo, return, report and ships of every mission', () => {
+    const facts = (m: string): [string, string][] =>
+      of(blocks(art(`mission-${m}`), 'mission'), 'facts')[0]!.items.map((f) => [
+        f.label,
+        f.parts.map((p) => p.text).join(''),
+      ]);
+    const common = (
+      target: string,
+      cargo: string,
+      back: string,
+      report: string,
+    ): [string, string][] => [
+      ['Ziel', target],
+      ['Ladung', cargo],
+      ['Rückflug', back],
+      ['Eigener Bericht bei der Heimkehr', report],
+    ];
+    expect(facts('attack')).toEqual(common('fremder Planet', 'ja', 'ja', 'ja'));
+    expect(facts('deploy')).toEqual(
+      common('eigener Planet', 'ja', 'nein', 'ja'),
+    );
+    expect(facts('transport')).toEqual(
+      common('jeder Planet', 'ja', 'ja', 'ja'),
+    );
+    expect(facts('colonize')).toEqual([
+      ...common('Freie Position', 'ja', 'ja', 'ja'),
+      ['Schiffe', 'braucht Kolonistenarche'],
+    ]);
+    expect(facts('harvest')).toEqual([
+      ...common('Trümmerfeld', 'nein', 'ja', 'ja'),
+      ['Schiffe', 'braucht Bergungsbarke'],
+    ]);
   });
 
   it('says what happens on arrival before the facts, with its links', () => {

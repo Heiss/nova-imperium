@@ -135,3 +135,18 @@ it('sees the chat on the page of the own guild only (#169; owner, 2026-11-15)', 
     chatToSee({ guilds: null } as unknown as GameState, 'guilds', 'g1'),
   ).toBeNull();
 });
+
+it('marks „Freunde“ while requests to the player are open (#227)', () => {
+  const state = (incoming: string[]) =>
+    ({
+      me: { id: 'player' },
+      planet: {},
+      round: { achievements: false, daily: false, guilds: false },
+      fleets: [],
+      friends: { list: [], incoming, outgoing: ['u_Cora'] },
+    }) as unknown as GameState;
+  expect(menuHints(state(['u_Bert']), new Map(), 0).get('friends')).toBe(
+    'Offene Freundschaftsanfragen',
+  );
+  expect(menuHints(state([]), new Map(), 0).has('friends')).toBe(false);
+});

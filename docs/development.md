@@ -57,7 +57,15 @@ mutation configuration (`stryker.config.json`, `mutation-standard.json`,
 `vitest.config.ts`, `scripts/mutation-*.ts`, `tsconfig.json`) or the
 versions of `@stryker-mutator/*`, `vitest` or `typescript` in
 `pnpm-lock.yaml`; `node scripts/mutation-changes.ts $(git merge-base origin/main HEAD)` tells
-whether a branch does. The gate job "CI Gate" must be green before a pull request goes to
+whether a branch does. A pull request that is no release pull request and
+goes into no hotfix branch then mutates only the files it changes and the
+sources of the test files it changes and the files whose floor in
+`mutation-standard.json` it adds, changes or removes, in one job; a change of
+the mutation configuration (`mutation-standard.json` beyond its floors
+included) or the test tool chain, a release pull request, a push and the
+nightly run mutate everything in 6 shards. `node scripts/mutation-partial.ts
+plan $(git merge-base origin/main HEAD)` prints `true` (everything) or the
+list of files. The gate job "CI Gate" must be green before a pull request goes to
 review.
 
 ```bash

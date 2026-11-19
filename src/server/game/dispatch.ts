@@ -22,6 +22,12 @@ import { chooseMainPlanet } from './main-planet.ts';
 import { abandon } from './abandon.ts';
 import { exchange } from './market.ts';
 import {
+  answerFriend,
+  cancelFriend,
+  removeFriend,
+  requestFriend,
+} from './friends.ts';
+import {
   assignGuildRank,
   createGuildRank,
   deleteGuildRank,
@@ -90,6 +96,11 @@ export const ACTIONS: Record<string, A.Action> = {
   reset,
   endzeit,
   ...GUILD,
+  // The buddy list (#227); not a guild action, so it works with guilds off.
+  requestFriend,
+  answerFriend,
+  cancelFriend,
+  removeFriend,
   claimAchievement,
   claimDailyReward,
 };

@@ -24,6 +24,7 @@ describe('phone menu', () => {
       'galaxy',
       'highscore',
       'guilds',
+      'friends',
       'achievements',
       'news',
       'lexicanum',
@@ -37,6 +38,8 @@ describe('phone menu', () => {
     expect(views(menu(false, round))).toContain('guilds');
     expect(views(menu(false, off))).not.toContain('guilds');
     expect(views(menu(true, off))).not.toContain('guilds');
+    // The buddy list stays with guilds off (#227).
+    expect(views(menu(false, off))).toContain('friends');
     expect(phoneMenu(menu(false, off)).more.map((t) => t.view)).toEqual([
       'resources',
       'market',
@@ -45,6 +48,7 @@ describe('phone menu', () => {
       'defense',
       'galaxy',
       'highscore',
+      'friends',
       'achievements',
       'news',
       'lexicanum',

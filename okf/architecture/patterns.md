@@ -393,6 +393,11 @@ choice of the patterns to the assistant's recommendation below
   attack folders. A fleet of an unknown mission throws and `tick` removes
   it; the database allows only the five missions. No `f.mission ===` is
   left outside the mission folders.
+* **[V]** Changed with #228 (owner, 2026-11-16, D2: the thresholds of the
+  Auspex-Lehre apply to every foreign fleet): the field `visible` is gone
+  from `MissionRules` and every `rules.ts`; the view of a foreign fleet
+  asks `seenShips()` of `src/core/fleet-recognition.ts` instead (see
+  [Espionage defense](/features/espionage-defense.md)).
 * **[E]** Built with #45, within the decisions of #116: the sixth folder
   `harvest` (Bergung, 60) with the target kind `debris` beside own,
   foreign, any and free. `SendTarget` carries `debris` (a Trümmerfeld lies
@@ -993,7 +998,8 @@ src/client/                state, components (generic), views
   checks for every mission that it has an arrival in `MISSION_SERVERS`,
   turns back from a target that does not fit its kind, flies back only if
   it returns, comes home silently only if silent, shows its ships only if
-  visible and takes cargo only if it carries cargo.
+  visible (since #228: only by the Auspex-Lehre, for every mission) and
+  takes cargo only if it carries cargo.
   `src/server/game/missions-reference.test.ts` compares sending, the
   arrival and the coming home with the code from before #116 on generated
   worlds and fleets: the answer or message, every table and the next random

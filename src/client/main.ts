@@ -11,7 +11,7 @@ import type { Levels, Planet, Queue } from '../core/types.ts';
 import { createAct, placeOf, samePlace } from './logic/act.ts';
 import { LEXICANUM_VIEW, viewUrl } from './logic/address.ts';
 import { CATALOG_VIEWS, catalogKind, orderNote } from './logic/catalog-list.ts';
-import { clearsChat, sameSignIn } from './logic/guild-chat.ts';
+import { sameSignIn } from './logic/guild-chat.ts';
 import { debrisAt, debrisTip } from './logic/debris.ts';
 import { endzeitNote } from './logic/endzeit.ts';
 import { moonAt, moonTarget } from './logic/moon.ts';
@@ -1092,10 +1092,6 @@ const ACT: Record<string, (d: Data) => unknown> = {
       return act('deleteGuildRank', { rank: d.rank });
   },
   rankDefault: (d) => act('setGuildDefaultRank', { rank: d.rank }),
-  guildChatDelete: (d) => {
-    if (window.confirm('Nachricht löschen?'))
-      return act('deleteGuildChat', { id: Number(d.id) });
-  },
   guildChatAdmin: (d) => openAdminChat(d.id ?? ''),
   achievementClaim: (d) => act('claimAchievement', { id: d.id }),
   dailyClaim: () => act('claimDailyReward'),
@@ -1507,21 +1503,6 @@ async function submitDissolve(): Promise<void> {
 }
 
 /**
- * The guild chat (#169): the text field empties once the message is in,
- * unless a new draft was typed meanwhile (CodeRabbit on #216).
- */
-async function submitChat(): Promise<void> {
-  const text = val('#chat_text');
-  if (
-    (await act('sendGuildChat', { text })) &&
-    clearsChat(text, $<HTMLInputElement>('#chat_text')?.value)
-  ) {
-    setInput('#chat_text', '');
-    $<HTMLInputElement>('#chat_text')?.focus();
-  }
-}
-
-/**
  * The admin opens the chat of a guild; the server records it (#169, D8). An
  * answer that comes in after a logout, or with another account signed in,
  * opens nothing (CodeRabbit on #216).
@@ -1696,7 +1677,6 @@ document.addEventListener('submit', (e) => {
     ['guildform', submitGuild],
     ['guildtransferform', submitTransfer],
     ['guilddissolveform', submitDissolve],
-    ['guildchatform', submitChat],
     ['codeform', submitLoginCode],
     ['forgotform', submitForgot],
     ['resetform', () => submitPassword(true)],

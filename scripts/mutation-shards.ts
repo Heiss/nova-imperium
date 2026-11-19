@@ -84,7 +84,7 @@ export interface Report {
   [key: string]: unknown;
 }
 
-interface StrykerConfig {
+export interface StrykerConfig {
   mutate: string[];
   thresholds: { high: number; low: number; break: number | null };
   [key: string]: unknown;

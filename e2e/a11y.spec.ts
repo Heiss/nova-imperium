@@ -41,6 +41,7 @@ const VIEWS = [
   'galaxy',
   'messages',
   'highscore',
+  'friends',
   'news',
   'lexicanum',
   'help',

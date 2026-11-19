@@ -20,6 +20,7 @@ const VIEWS = [
   'messages',
   'highscore',
   'guilds',
+  'friends',
   'achievements',
   'news',
   'lexicanum',

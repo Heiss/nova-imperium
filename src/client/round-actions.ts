@@ -20,12 +20,19 @@ interface Deps {
 const field = (s: RoundSetting): HTMLInputElement | null =>
   document.querySelector<HTMLInputElement>(`#${roundFieldId(s)}`);
 
+/**
+ * A number field as a number; an empty one as no number, which the request
+ * sends as null, so the server refuses it also where 0 is allowed (#228).
+ */
+const numberOf = (raw: string | undefined): number =>
+  raw ? Number(raw) : Number.NaN;
+
 /** The values of the open dialog: a checkbox yes or no, a field as a number. */
 const dialogValues = (): Record<string, number | boolean> =>
   Object.fromEntries(
     ROUND_SETTINGS.map((s) => [
       s.name,
-      s.kind === 'switch' ? !!field(s)?.checked : Number(field(s)?.value ?? ''),
+      s.kind === 'switch' ? !!field(s)?.checked : numberOf(field(s)?.value),
     ]),
   );
 

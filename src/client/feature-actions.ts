@@ -5,6 +5,10 @@
 import { abandonActs } from './abandon-actions.ts';
 import { marketActs } from './market-actions.ts';
 import { roundActs } from './round-actions.ts';
+import { socialActs } from './social-actions.ts';
+
+/** The data of the element a handler was called for. */
+type Data = Record<string, string | undefined>;
 
 /** What the actions need from main.ts. */
 interface Deps {
@@ -12,9 +16,12 @@ interface Deps {
   modal: (html: string) => void;
 }
 
-/** The handlers of „Kolonie aufgeben“, „Neue Runde“ and the marketplace. */
-export const featureActs = (deps: Deps): Record<string, () => void> => ({
+/** The handlers of „Kolonie aufgeben“, „Neue Runde“, the marketplace and the buddy list. */
+export const featureActs = (
+  deps: Deps,
+): Record<string, (d: Data) => unknown> => ({
   ...abandonActs(deps),
   ...roundActs(deps),
   ...marketActs(deps),
+  ...socialActs(deps),
 });
