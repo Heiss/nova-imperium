@@ -147,8 +147,9 @@ describe('problem reports', () => {
     const sweep = vi.spyOn(RateLimiter.prototype, 'sweep');
     const { app } = await player();
     app.sweep();
-    // The login limit and the three windows of the error log.
-    expect(sweep).toHaveBeenCalledTimes(4);
+    // The login limit, the limit of actions per account (#328) and the
+    // three windows of the error log.
+    expect(sweep).toHaveBeenCalledTimes(5);
     sweep.mockRestore();
   });
 

@@ -42,7 +42,7 @@ until [ "$(status "$GAME/healthz")" = "200" ] || [ $i -ge 60 ]; do i=$((i+1)); s
 if [ "$step" = before ]; then
   link="$(docker compose exec -T app nova invite "$who@example.org" | grep '#invite=')"
   token="${link##*#invite=}"
-  reg="$(curl -s -X POST -H 'content-type: application/json' \
+  reg="$(curl -s -X POST -H 'content-type: application/json' -H "origin: $GAME" \
     -d "{\"token\":\"$token\",\"name\":\"$who\",\"password\":\"$pass\",\"gal\":1}" "$GAME/api/register")"
   case "$reg" in *'"ok":true'*) ok "registered with the last release" ;; *) bad "registration: $reg" ;; esac
   docker compose exec -T app nova admin "$who" > /dev/null && ok "made admin" || bad "admin command"
@@ -53,7 +53,7 @@ else
   to="$(schema)"
   want="$(expected || true)"
   echo "schema version: $from -> $to (image: $want)"
-  login="$(curl -s -X POST -H 'content-type: application/json' -d "{\"name\":\"$who\",\"password\":\"$pass\"}" "$GAME/api/login")"
+  login="$(curl -s -X POST -H 'content-type: application/json' -H "origin: $GAME" -d "{\"name\":\"$who\",\"password\":\"$pass\"}" "$GAME/api/login")"
   case "$login" in *'"admin":true'*) ok "player and admin right survive the upgrade" ;; *) bad "login after the upgrade: $login" ;; esac
   if [ -z "$want" ] || [ "$to" -ne "$want" ]; then
     bad "schema version $to, the image expects $want"

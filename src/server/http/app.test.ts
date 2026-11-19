@@ -573,37 +573,62 @@ describe('http', () => {
 
   it('detects cross-site requests', () => {
     const cfg = testConfig();
+    const json = 'application/json';
     const req = (method: string, headers: Record<string, string>) =>
       ({ method, headers }) as never;
+    const own = { 'content-type': json, origin: 'http://localhost:8080' };
     expect(crossSite(req('GET', {}), cfg)).toBe(false);
+    expect(crossSite(req('HEAD', {}), cfg)).toBe(false);
+    // Own origin: accepted, whatever the case or parameters of the type.
+    expect(crossSite(req('POST', own), cfg)).toBe(false);
     expect(
       crossSite(
-        req('POST', { 'content-type': 'application/json; charset=utf-8' }),
+        req('POST', { ...own, 'content-type': `${json}; charset=utf-8` }),
         cfg,
       ),
     ).toBe(false);
     expect(
-      crossSite(req('POST', { 'content-type': 'Application/JSON' }), cfg),
+      crossSite(
+        req('POST', { ...own, 'content-type': 'Application/JSON' }),
+        cfg,
+      ),
     ).toBe(false);
+    // No Origin (#328): refused like a foreign one.
+    expect(crossSite(req('POST', { 'content-type': json }), cfg)).toBe(true);
     expect(crossSite(req('POST', {}), cfg)).toBe(true);
-    expect(crossSite(req('POST', { 'content-type': 'text/plain' }), cfg)).toBe(
-      true,
-    );
     expect(
-      crossSite(
-        req('POST', {
-          'content-type': 'application/json',
-          origin: 'http://localhost:8080',
-        }),
-        cfg,
-      ),
-    ).toBe(false);
-    expect(
-      crossSite(
-        req('POST', { 'content-type': 'application/json', origin: 'null' }),
-        cfg,
-      ),
+      crossSite(req('POST', { ...own, 'content-type': 'text/plain' }), cfg),
     ).toBe(true);
+    expect(crossSite(req('POST', { ...own, origin: 'null' }), cfg)).toBe(true);
+    expect(
+      crossSite(req('POST', { ...own, origin: 'https://evil.example' }), cfg),
+    ).toBe(true);
+  });
+
+  it('refuses a POST without Origin like one from a foreign origin (#328)', async () => {
+    const { ctx, call } = await start();
+    addUser(ctx, 'Anna');
+    const login = { name: 'Anna', password: 'secret1' };
+    const foreign = await call('POST', '/api/login', login, {
+      origin: 'https://evil.example',
+    });
+    const none = await call('POST', '/api/login', login, { origin: null });
+    expect(foreign).toMatchObject({
+      status: 403,
+      json: { error: 'Anfrage abgelehnt.' },
+    });
+    expect(none.status).toBe(foreign.status);
+    expect(none.json).toEqual(foreign.json);
+    expect(none.set).toBeNull();
+    // Own origin (the default of the helper): accepted.
+    expect((await call('POST', '/api/login', login)).status).toBe(200);
+    // GET carries no Origin and is not affected.
+    expect(
+      (await call('GET', '/healthz', undefined, { origin: null })).status,
+    ).toBe(200);
+    expect(
+      (await call('GET', '/api/state', undefined, { origin: null })).status,
+    ).toBe(200);
   });
 });
 

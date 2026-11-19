@@ -36,7 +36,8 @@ them, are in [Design patterns](/architecture/patterns.md) (owner,
 1. **[E]** Caddy receives the request from the operator's proxy, sets the
    security headers and `X-Real-IP`, forwards to `app:8080`.
 2. **[V]** The server refuses cross-site posts (JSON only, `Origin` must be
-   `NOVA_PUBLIC_URL`), reads the session cookie, runs the handler.
+   `NOVA_PUBLIC_URL`; a post without `Origin` is refused too, **[E]** #328),
+   reads the session cookie, runs the handler.
 3. **[E]** An action runs in one SQLite transaction: first all fleets that are
    due (in time order), then the action. All or nothing.
 4. The answer carries the new state of the player.

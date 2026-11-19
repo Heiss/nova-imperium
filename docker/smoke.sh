@@ -24,6 +24,7 @@ case "$headers" in *"content-security-policy: default-src 'none'; script-src 'se
 case "$headers" in *"x-frame-options: deny"*) ok "frame protection" ;; *) bad "X-Frame-Options missing" ;; esac
 case "$headers" in *"server: "*|*"via: "*) bad "Server or Via header shown" ;; *) ok "no Server or Via header" ;; esac
 check "cross-site post refused" 403 "$(status -X POST -H 'content-type: text/plain' -d x "$GAME/api/login")"
+check "post without Origin refused" 403 "$(status -X POST -H 'content-type: application/json' -d '{}' "$GAME/api/login")"
 
 # The data folder belongs to the user of the game, not root.
 check "game runs as uid 1000" 1000 "$(docker compose exec -T app id -u)"
@@ -37,7 +38,7 @@ until curl -s "$MAIL/api/v1/messages" | grep -q "$who@example.org" || [ $i -ge 1
 curl -s "$MAIL/api/v1/messages" | grep -q 'Einladung zu Nova Imperium' && ok "invitation mail sent" || bad "no invitation mail"
 
 token="${link##*#invite=}"
-reg="$(curl -s -X POST -H 'content-type: application/json' \
+reg="$(curl -s -X POST -H 'content-type: application/json' -H "origin: $GAME" \
   -d "{\"token\":\"$token\",\"name\":\"$who\",\"password\":\"smoke-test-passphrase\",\"gal\":1}" "$GAME/api/register")"
 case "$reg" in *'"ok":true'*) ok "registered with the invitation" ;; *) bad "registration: $reg" ;; esac
 docker compose exec -T app nova admin "$who" > /dev/null && ok "made admin through the CLI" || bad "admin command"
@@ -46,7 +47,7 @@ docker compose exec -T app nova admin "$who" > /dev/null && ok "made admin throu
 docker compose restart app > /dev/null
 i=0
 until [ "$(status "$GAME/healthz")" = "200" ] || [ $i -ge 30 ]; do i=$((i+1)); sleep 2; done
-login="$(curl -s -X POST -H 'content-type: application/json' -d "{\"name\":\"$who\",\"password\":\"smoke-test-passphrase\"}" "$GAME/api/login")"
+login="$(curl -s -X POST -H 'content-type: application/json' -H "origin: $GAME" -d "{\"name\":\"$who\",\"password\":\"smoke-test-passphrase\"}" "$GAME/api/login")"
 case "$login" in *'"admin":true'*) ok "player and admin right survive a restart" ;; *) bad "login after restart: $login" ;; esac
 
 # Maintenance by the operator: players get 503 „Wartung“, the health check stays good.

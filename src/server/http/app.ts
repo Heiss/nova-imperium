@@ -23,6 +23,7 @@ import {
   savePushSubscription,
   vapidKeys,
 } from '../web-push.ts';
+import { actionLimit, type ActionLimit } from './action-limit.ts';
 import { RateLimiter } from './rate-limit.ts';
 import { clientIp, cookies, readJson } from './request.ts';
 import { SECURITY_HEADERS } from './security.ts';
@@ -102,13 +103,17 @@ export function sessionCookie(
   return `${COOKIE}=${token ?? ''}; HttpOnly; Path=/; SameSite=Lax${age}${secure}`;
 }
 
-/** Cross-site requests are refused: JSON only, and the Origin must be ours. */
+/**
+ * Cross-site requests are refused: JSON only, and the Origin must be ours. A
+ * POST without `Origin` is refused like a foreign one (#328, owner,
+ * 2026-11-19): a browser sends the header on every fetch POST, so only a
+ * script outside the page leaves it out. GET and HEAD are not checked.
+ */
 export function crossSite(req: IncomingMessage, cfg: Config): boolean {
   if (req.method !== 'POST') return false;
   const type = String(req.headers['content-type'] ?? '');
   if (!type.toLowerCase().startsWith('application/json')) return true;
-  const origin = req.headers.origin;
-  return origin !== undefined && origin !== cfg.publicUrl;
+  return req.headers.origin !== cfg.publicUrl;
 }
 
 class Unauthorized extends Error {}
@@ -445,7 +450,11 @@ function actionReply(ctx: Ctx, u: User, call: Call): Reply {
 const PASSWORD_ACTIONS: ReadonlySet<string> = new Set(['abandon']);
 
 /** The game and the admin functions; all need a session. */
-function gameRoutes(d: AppDeps, guard: Guard): Record<string, Handler> {
+function gameRoutes(
+  d: AppDeps,
+  guard: Guard,
+  actions: ActionLimit,
+): Record<string, Handler> {
   const { ctx } = d;
   return {
     'GET /api/state': (call) => ({
@@ -470,7 +479,10 @@ function gameRoutes(d: AppDeps, guard: Guard): Record<string, Handler> {
     'POST /api/action': (call) => {
       // String() like runAction, so `["abandon"]` is limited too.
       if (PASSWORD_ACTIONS.has(String(call.body.type))) guard(call.req);
-      return actionReply(ctx, sessionUserOf(ctx, call), call);
+      // Per account; every action counts, refused ones too (#328).
+      const user = sessionUserOf(ctx, call);
+      actions.check(user, call.requestId);
+      return actionReply(ctx, user, call);
     },
     ...adminRoutes(
       d,
@@ -621,28 +633,12 @@ function recordFault(
   );
 }
 
-export function createApp(d: AppDeps): {
-  handle: (req: IncomingMessage, res: ServerResponse) => Promise<void>;
-  sweep: () => void;
-} {
-  const limiter = new RateLimiter(
-    d.cfg.rateLimitAttempts,
-    d.cfg.rateLimitMinutes * 60000,
-    d.ctx.now,
-  );
-  const guard = limitGuard(limiter, d.cfg);
-  const errors = errorRoutes(d, (call) => sessionUserOf(d.ctx, call));
-  const table = Object.entries({
-    ...accountRoutes(d, guard),
-    ...gameRoutes(d, guard),
-    ...pushRoutes(d),
-    ...errors.routes,
-    ...playtimeRoutes(d, (call) => sessionUserOf(d.ctx, call)),
-  });
-  const handle = async (
-    req: IncomingMessage,
-    res: ServerResponse,
-  ): Promise<void> => {
+/** The handler of one request: the API table, else the static files. */
+function requestHandler(
+  d: AppDeps,
+  table: readonly [string, Handler][],
+): (req: IncomingMessage, res: ServerResponse) => Promise<void> {
+  return async (req: IncomingMessage, res: ServerResponse): Promise<void> => {
     const path = (req.url ?? '/').split('?')[0]!;
     const requestId = randomUUID();
     try {
@@ -660,10 +656,50 @@ export function createApp(d: AppDeps): {
       fault(d, req, res, e, { requestId, path });
     }
   };
+}
+
+/**
+ * The play time routes. A report counts against the same limit per account
+ * as an action, one shared counter (#328, #232, owner, 2026-11-19); the
+ * limit sits here, the play time code is unchanged.
+ */
+function countedPlaytime(
+  d: AppDeps,
+  actions: ActionLimit,
+): Record<string, Handler> {
+  const routes = playtimeRoutes(d, (call) => sessionUserOf(d.ctx, call));
+  const report = routes['POST /api/playtime']!;
+  routes['POST /api/playtime'] = (call) => {
+    actions.check(sessionUserOf(d.ctx, call), call.requestId);
+    return report(call);
+  };
+  return routes;
+}
+
+export function createApp(d: AppDeps): {
+  handle: (req: IncomingMessage, res: ServerResponse) => Promise<void>;
+  sweep: () => void;
+} {
+  const limiter = new RateLimiter(
+    d.cfg.rateLimitAttempts,
+    d.cfg.rateLimitMinutes * 60000,
+    d.ctx.now,
+  );
+  const guard = limitGuard(limiter, d.cfg);
+  const actions = actionLimit(d.ctx);
+  const errors = errorRoutes(d, (call) => sessionUserOf(d.ctx, call));
+  const table = Object.entries({
+    ...accountRoutes(d, guard),
+    ...gameRoutes(d, guard, actions),
+    ...pushRoutes(d),
+    ...errors.routes,
+    ...countedPlaytime(d, actions),
+  });
   return {
-    handle,
+    handle: requestHandler(d, table),
     sweep: () => {
       limiter.sweep();
+      actions.sweep();
       errors.sweep();
       security.purgeAccountTokens(d.ctx);
       passkeys.purgePasskeyChallenges(d.ctx);

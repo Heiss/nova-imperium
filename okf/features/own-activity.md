@@ -138,21 +138,19 @@ are [Activity indicators](/features/activity-indicators.md).
 
 # Open
 
-* **[U]** What the limit does not bound, for the owner (no number invented):
-  (1) the number of pages: a page is a random id the browser makes up, so a
-  script that sends every report from a new `instance` stores one row per
-  report; (2) alternating start and stop reports from one page: each stop
-  closes an interval and is never limited, each start after a stop is stored.
-  The credited time stays bounded by the real time in both cases (a row is
-  worth the time that passed), only the number of rows is not. Options: (a) at
-  most N rows per player per minute over all pages (needs N); (b) at most N
-  pages per player in the last 60 s, the oldest ignored (needs N); (c) a page id
-  the server hands out at login and checks (no number, a change to the
-  session); (d) coalesce the rows of an interval on read or by a nightly job
-  (no number, a second write path). Not decided.
 * **[E]** The limit of the reports (owner, 2026-11-19, „Geklärt“ on #232): a
   page (`instance`) stores at most one row per heartbeat interval (30 s, the
   existing constant, no new number); a report that comes faster is dropped, not
   stored and not credited later twice.
+* **[E]** The number of reports is bounded by the limit per account of #328
+  (owner, 2026-11-19, #232): `POST /api/playtime` and `POST /api/action` share
+  one counter of 120 per account and minute, so a script cannot fill the
+  table. A report over the limit is refused like an action (HTTP 400,
+  „Zu viele Aktionen in kurzer Zeit. Bitte warte einen Moment.“, the same
+  audit entry per account and hour); the tracker of the page drops it as it
+  drops any lost report and does not retry. The limit sits in the HTTP layer
+  (`src/server/http/app.ts`, `action-limit.ts`); the play time code and its
+  limit per page are unchanged. An honest page needs about 2 reports a
+  minute. The credited time stays bounded by the real time.
 * **[U]** Whether the player's own view also shows the legacy sums of the
   first days (#231 allows it „labelled incomplete“); built without.
