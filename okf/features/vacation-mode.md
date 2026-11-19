@@ -55,7 +55,8 @@ owiki.de „Urlaubsmodus“
   moons fly home at once. A Wache stellen still on its way at that moment
   flies on and, at its arrival, does not hold but turns home. Unchanged:
   whoever has a fleet of his own out, one that holds elsewhere included,
-  cannot start the vacation. Details and tests in
+  cannot start the vacation. The owner of each guard sent home gets an info
+  report (owner, 2026-11-19; the texts are [V]). Details and tests in
   [Holding and ACS](/features/holding-acs.md#vacation-sends-the-guards-home).
 * **[E]** The German texts of the build are confirmed (owner, 2026-11-17).
 * **[E]** After the build (owner, 2026-11-18), replacing the allow list of

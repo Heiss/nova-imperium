@@ -76,5 +76,5 @@ export function onArrive(ctx: Ctx, f: Fleet, at: Arrival): void {
     target: at.t.owner,
     detail: { fleet: f.id, moon: at.t.id, ...r },
   });
-  if (r.broken) destroyMoon(ctx, at.t);
+  if (r.broken) destroyMoon(ctx, at.t, f.arr);
 }
