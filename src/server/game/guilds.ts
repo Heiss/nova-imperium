@@ -179,4 +179,12 @@ export const serverFeature = {
     leaveGuild,
     manageGuildMember,
   },
+  state: {
+    order: 110,
+    keys: ['guilds'],
+    // No guild data while guilds are off in the round (#191).
+    build: (ctx, u, view) => ({
+      guilds: view.round.guilds ? guildState(ctx, u.id, view.pts) : null,
+    }),
+  },
 } satisfies ServerFeature;
