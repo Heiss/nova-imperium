@@ -385,7 +385,13 @@ describe('Overview against the view before #118', () => {
   it('keeps the list of fleets of the fleet view', () => {
     fc.assert(
       fc.property(state, (v) => {
-        expect(normalize(fleet(v)).startsWith(normalize(fleetHead(v)))).toBe(
+        // The title counts the expeditions once the research is there (#93,
+        // tested in src/client/views/fleet.test.ts): without it, as before.
+        const old = {
+          ...v,
+          R: { ...v.R, research: { ...v.R.research, expo: 0 } },
+        };
+        expect(normalize(fleet(old)).startsWith(normalize(fleetHead(v)))).toBe(
           true,
         );
       }),

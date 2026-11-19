@@ -133,6 +133,10 @@ Orbitalrakete, Gildenarsenal, Wacht halten;
 Expeditionstechnik → Kreuzzugs-Kartografie (package order);
 Handelsposten ([E] for #171, owner, 2026-11-17, abbreviation „HP“ [V]; no classic name, [Marketplace](/features/marketplace.md)).
 
+**[V]** Built with #93 ([Expeditions](/features/expeditions.md)): Kreuzzugs-Kartografie
+(`expo`, classic Expeditionstechnik, abbreviation `KK`) and the mission „Expedition“
+(the classic name kept).
+
 **[V]** Built with #54 ([Missiles](/features/missiles.md)): Raketenkrypta
 (`RK`, classic Raketensilo), Abfangrakete (`AR`, the classic name kept),
 Orbitalrakete (`OR`, classic Interplanetarrakete) and the mission

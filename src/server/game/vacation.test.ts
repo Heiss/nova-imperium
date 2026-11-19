@@ -354,6 +354,56 @@ describe('a Vermessung and the vacation mode (#190, #223)', () => {
   });
 });
 
+describe('an Expedition and the vacation mode (#93, #223)', () => {
+  /** Anna with Kreuzzugs-Kartografie and ships; the expedition position of the system 1:1. */
+  const expo = (ctx: TestCtx) => {
+    const a = anna(ctx);
+    ctx.players.save({ ...a, research: { ...a.research, expo: 4 } });
+    ctx.planets.save({
+      ...home(ctx),
+      ships: { lc: 5 },
+      res: { m: 0, c: 0, d: 100000 },
+    });
+    return {
+      planet: 'p1_1_5',
+      mission: 'expedition',
+      ships: { lc: 1 },
+      to: { g: 1, s: 1, p: 16 },
+      pct: 10,
+      stay: 1,
+    };
+  };
+
+  it('is refused like every action while the sender is in vacation mode, and flies after the end', () => {
+    const ctx = world();
+    const order = expo(ctx);
+    start(ctx);
+    expect(() => act(ctx, 'send', order)).toThrow(VACATION_REFUSED);
+    expect(ctx.fleets.all()).toEqual([]);
+    expect(home(ctx).ships).toEqual({ lc: 5 });
+    ctx.clock.t = START + 50 * HOUR_MS;
+    stop(ctx);
+    expect(act(ctx, 'send', order)).toBe('Flotte unterwegs nach [1:1:16].');
+    expect(ctx.fleets.all()[0]).toMatchObject({ mission: 'expedition' });
+  });
+
+  it('keeps the vacation from starting while an expedition flies', () => {
+    const ctx = world();
+    act(ctx, 'send', expo(ctx));
+    expect(() => start(ctx)).toThrow(VACATION_ENTRY_ERROR.fleets);
+    expect(anna(ctx).vacation).toBeNull();
+  });
+
+  it('needs no protection of a target: no player is there, so a player in vacation is not asked', () => {
+    const ctx = world();
+    const order = expo(ctx);
+    // Bert in vacation mode does not matter to an expedition of Anna.
+    const bert = ctx.players.get('u_Bert')!;
+    ctx.players.save({ ...bert, vacation: START });
+    expect(act(ctx, 'send', order)).toBe('Flotte unterwegs nach [1:1:16].');
+  });
+});
+
 describe('a Wache stellen and the vacation mode (#55, #223)', () => {
   /** Anna and Bert in one guild, so they may hold at each other. */
   const allies = (ctx: TestCtx): TestCtx => {

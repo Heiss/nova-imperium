@@ -29,6 +29,13 @@ import {
   SILO_MISSIONS,
   sendError,
 } from '../../core/missions.ts';
+import {
+  expeditionPosition,
+  extraSlots,
+  hoursPerLevel,
+  isExpeditionPlace,
+  stayDuration,
+} from '../../core/expedition.ts';
 import { placeId } from '../../core/place.ts';
 import type {
   Coords,
@@ -81,7 +88,8 @@ export const target = (ctx: Ctx, d: Data): Coords => {
   return {
     g: int(to.g, 1, u.galaxies),
     s: int(to.s, 1, u.systems),
-    p: int(to.p, 1, u.positions),
+    // The expedition position after the last planet position (#93, Q4).
+    p: int(to.p, 1, expeditionPosition(u)),
   };
 };
 
@@ -108,6 +116,11 @@ const SEND_ERROR: Readonly<Record<WordedError, string>> = {
   noWorldbreaker: 'Du brauchst einen Weltenbrecher.',
   surveyLocked: 'Vermessung erst mit Auspex-Kartographie.',
   surveyProbesOnly: 'Vermessung nur mit Spähschädeln.',
+  // [V], okf/features/expeditions.md.
+  expeditionLocked: 'Expeditionen erst mit Kreuzzugs-Kartografie.',
+  expeditionSlots: 'Alle Expeditionsplätze belegt.',
+  notExpedition: 'Expeditionen fliegen nur zur Expeditionsposition.',
+  expeditionSpace: 'Die Expeditionsposition kann nicht besiedelt werden.',
   // #55 [V]: worded like the other missions, by the setting of the round.
   notAlly: 'Wache stellen nur bei Gildenmitgliedern und Freunden.',
   holdFleets: `An diesem Planeten halten bereits ${HOLD_LIMITS.fleets} Flotten.`,
@@ -150,6 +163,8 @@ interface Plan {
   pct: number;
   /** The holding time of a Halten in hours (#55); 0 for every other mission. */
   hours: number;
+  /** How long an expedition stays at the target in milliseconds (#93); 0 for a mission that does not stay. */
+  stay: number;
 }
 
 function checkDestination(
@@ -159,7 +174,13 @@ function checkDestination(
   rules: MissionRules,
   occupied: Planet | null,
   ships: Levels,
-  at: { debris: boolean; moon: boolean; lockEnd: number | null },
+  at: {
+    debris: boolean;
+    moon: boolean;
+    lockEnd: number | null;
+    expedition: boolean;
+  },
+  mission: Mission,
 ): void {
   const error = sendError(
     rules,
@@ -168,12 +189,15 @@ function checkDestination(
       from: p.id,
       ships,
       research: researchOf(ctx, u).research,
+      running: ctx.fleets.countMission(u.id, mission),
+      extraSlots: extraSlots(universe(ctx)),
     },
     {
       planet: occupied,
       debris: at.debris,
       moon: at.moon,
       locked: at.lockEnd !== null,
+      expedition: at.expedition,
       protects: (owner) => isProtected(u.id, owner, pointsMap(ctx)),
       vacation: inVacation(ctx),
       ally: (owner) => isAllyOf(ctx, u.id, owner),
@@ -204,11 +228,21 @@ function plan(ctx: Ctx, u: User, p: Planet, d: Data): Plan {
   // A Bergung flies to the Trümmerfeld, a place of its own (#45, #119).
   const field = placeId({ ...dest, kind: 'debris' });
   const toField = rules.target === 'debris';
-  checkDestination(ctx, u, p, rules, occupied, ships, {
-    debris: !!ctx.debris.get(field),
-    moon,
-    lockEnd: lockedUntil(ctx, dest, ctx.now()),
-  });
+  checkDestination(
+    ctx,
+    u,
+    p,
+    rules,
+    occupied,
+    ships,
+    {
+      debris: !!ctx.debris.get(field),
+      moon,
+      lockEnd: lockedUntil(ctx, dest, ctx.now()),
+      expedition: isExpeditionPlace(dest, universe(ctx)),
+    },
+    mission,
+  );
   return {
     mission,
     ships,
@@ -218,6 +252,7 @@ function plan(ctx: Ctx, u: User, p: Planet, d: Data): Plan {
     cargo: loadCargo(p, rules, d.cargo),
     pct: int(d.pct, 1, 10),
     hours: holdHours(rules, d.hold),
+    stay: chosenStay(ctx, u, rules, d.stay),
   };
 }
 
@@ -225,6 +260,30 @@ function plan(ctx: Ctx, u: User, p: Planet, d: Data): Plan {
 function holdHours(rules: MissionRules, raw: unknown): number {
   if (!rules.holds) return 0;
   return isHoldHours(raw) ? raw : fail('Bitte eine Haltezeit auswählen.');
+}
+
+/**
+ * How long an expedition stays at the target, from the hours the player
+ * chose (at least 1) up to what the research and the hours per level of the
+ * round allow (#93, Q3), divided by the universe speed when the round says
+ * so; 0 for a mission that does not stay. The message names the hours the
+ * player enters, whatever the speed does to them.
+ */
+function chosenStay(
+  ctx: Ctx,
+  u: User,
+  rules: MissionRules,
+  hours: unknown,
+): number {
+  if (!rules.maxStay) return 0;
+  const world = universe(ctx);
+  const most = rules.maxStay(researchOf(ctx, u).research, hoursPerLevel(world));
+  const chosen = int(hours, 1, Number.MAX_SAFE_INTEGER);
+  if (chosen > most)
+    fail(
+      `Die Haltezeit beträgt höchstens ${most} ${most === 1 ? 'Stunde' : 'Stunden'}.`,
+    );
+  return stayDuration(chosen, world);
 }
 
 /** The fuel of the launch: the flight, and the holding time of a Halten (#55, D2). */
@@ -235,7 +294,7 @@ export const send: Action = (ctx, u, d, event) => {
   const t = ctx.now();
   const p = mine(ctx, u, d.planet);
   const x = plan(ctx, u, p, d);
-  const { mission, ships, dest, to, targetOwner, cargo, pct } = x;
+  const { mission, ships, dest, to, targetOwner, cargo, pct, stay } = x;
   const holds = missionRules(mission)!.holds;
   const dist = distance(p, dest);
   const ms = flightMs(
@@ -262,8 +321,8 @@ export const send: Action = (ctx, u, d, event) => {
     ships,
     cargo,
     dep: t,
-    arr: t + ms,
-    ret: t + 2 * ms + hold,
+    arr: t + ms + stay,
+    ret: t + 2 * ms + hold + stay,
     state: 'out',
     recalled: false,
     fuel,
@@ -318,10 +377,14 @@ const recallable = (f: Fleet, t: number): boolean =>
 
 /**
  * When a recalled fleet is home: it flies back as long as it flew out, and a
- * fleet that holds as long as its flight to the target took (#55).
+ * fleet that holds as long as its flight to the target took (#55). An
+ * expedition that already stays at its position (#93) is there, so it flies
+ * back as long as its flight out, not as long as its flight and stay so far:
+ * `ret - arr` is that flight (for every other mission it is at least the
+ * time flown so far, so the old rule stays).
  */
 const recalledAt = (f: Fleet, t: number): number =>
-  t + (f.state === 'hold' ? f.arr - f.dep : t - f.dep);
+  t + (f.state === 'hold' ? f.arr - f.dep : Math.min(t - f.dep, f.ret - f.arr));
 
 export const recall: Action = (ctx, u, d, event) => {
   const f = ctx.fleets.get(String(d.id));

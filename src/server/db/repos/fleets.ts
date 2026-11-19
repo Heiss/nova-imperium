@@ -13,6 +13,8 @@ export interface Fleets {
    * (#161) and none of the `missions` given, the missiles (#54).
    */
   count(owner: string, without?: readonly string[]): number;
+  /** How many fleets of a player fly one mission, out or back (#93, the expedition slots). */
+  countMission(owner: string, mission: string): number;
   /** Fleets whose next event (arrival, end of holding or return) is due, the earliest first. */
   due(now: number): Fleet[];
   /** The fleets flying to a place or holding there (#55), by departure. */
@@ -98,6 +100,15 @@ export class SqliteFleets implements Fleets {
          AND mission NOT IN (SELECT value FROM json_each(?))`,
       )
       .get(owner, JSON.stringify(without)) as Row;
+    return r.n as number;
+  }
+
+  countMission(owner: string, mission: string): number {
+    const r = this.db
+      .prepare(
+        'SELECT COUNT(*) AS n FROM fleets WHERE owner = ? AND mission = ?',
+      )
+      .get(owner, mission) as Row;
     return r.n as number;
   }
 
