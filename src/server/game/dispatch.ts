@@ -17,12 +17,6 @@ import { deleteGuildChat, seeGuildChat, sendGuildChat } from './guild-chat.ts';
 import { vacationRefuses } from '../../core/vacation.ts';
 import { VACATION_REFUSED } from './vacation.ts';
 import {
-  answerFriend,
-  cancelFriend,
-  removeFriend,
-  requestFriend,
-} from './friends.ts';
-import {
   assignGuildRank,
   createGuildRank,
   deleteGuildRank,
@@ -82,11 +76,6 @@ const FRAME: Record<string, A.Action> = {
   delrep: A.delrep,
   delall: A.delall,
   ...GUILD,
-  // The buddy list (#227); not a guild action, so it works with guilds off.
-  requestFriend,
-  answerFriend,
-  cancelFriend,
-  removeFriend,
   claimAchievement,
   claimDailyReward,
 };

@@ -14,6 +14,7 @@ import {
 import type { User } from '../db/repos/players.ts';
 import type { Action } from './actions.ts';
 import { type Ctx, fail, str } from './context.ts';
+import type { ServerFeature } from './feature.ts';
 
 /** The German message of each refusal [V]; a crossed request names who asked first. */
 export const FRIEND_ERROR: Readonly<
@@ -122,3 +123,8 @@ export function friendState(
     outgoing: ids((from) => from === uid),
   };
 }
+
+export const serverFeature = {
+  // Not guild actions: the buddy list (#227) works with guilds off.
+  actions: { requestFriend, answerFriend, cancelFriend, removeFriend },
+} satisfies ServerFeature;
