@@ -224,7 +224,7 @@ test.describe('playing', () => {
     const hdrive = await time(/^\s*Warp-Antrieb/);
     seed({ name, research: { ...research, ifn: 1 } });
     await page.reload();
-    await expect(page.locator('h2 + .dim')).toContainText(
+    await expect(page.locator('h2 ~ .dim').first()).toContainText(
       'Sternennetz der Gelehrten: bis zu 1 weiteres Scholarium',
     );
     // Labs 10 and 6 research Schildtechnik like lab 16: 11/17 of the time.

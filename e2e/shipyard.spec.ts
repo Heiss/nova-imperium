@@ -38,10 +38,34 @@ test.describe('playing', () => {
     await nav(page, 'fleet');
     await page.fill('#f_sc', '1');
     await expect(page.locator('#i_cap')).toContainText('5.000');
-    await page.click('[data-act=send]');
-    await expect(page.locator('.toast.err').last()).toContainText(
-      'dein eigener Planet',
-    );
+    // The form starts at the own planet: since #253 no mission fits and
+    // sending is blocked; the server still refuses it for another device.
+    await expect(page.getByLabel('Auftrag')).toHaveValue('');
+    await expect(page.locator('#t_send')).toBeDisabled();
+    const own = /\[(\d+):(\d+):(\d+)\]/.exec(
+      await page.locator('#pinfo').innerText(),
+    )!;
+    const error = await page.evaluate(async (at) => {
+      const response = await fetch('/api/action', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          type: 'send',
+          planet: `p${at[1]}_${at[2]}_${at[3]}`,
+          ships: { sc: 1 },
+          to: {
+            g: Number(at[1]),
+            s: Number(at[2]),
+            p: Number(at[3]),
+            kind: 'planet',
+          },
+          mission: 'transport',
+          cargo: { m: 0, c: 0, d: 0 },
+        }),
+      });
+      return ((await response.json()) as { error?: string }).error;
+    }, own);
+    expect(error).toContain('dein eigener Planet');
     await nav(page, 'highscore');
     const target = page.locator('tr', { hasText: b }).locator('[data-act=gto]');
     await target.click();
