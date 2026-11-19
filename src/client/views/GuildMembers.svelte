@@ -31,8 +31,8 @@
                 data-uid={row.id}
                 data-transfer="1">Leitung übergeben</button
               >
-            {/if}
-            {#if controls.assign}
+            {/if}{#if controls.assign}
+              {#if controls.transfer}{' '}{/if}
               <select
                 id="rank_of_{row.id}"
                 class="rank-select"
@@ -47,8 +47,8 @@
               <button class="small" data-act="guildAssign" data-uid={row.id}
                 >Rang ändern</button
               >
-            {/if}
-            {#if controls.remove}
+            {/if}{#if controls.remove}
+              {#if controls.transfer || controls.assign}{' '}{/if}
               <button class="small red" data-act="guildMember" data-uid={row.id}
                 >Entfernen</button
               >

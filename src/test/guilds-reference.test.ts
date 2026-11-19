@@ -42,7 +42,7 @@ import {
   guildsView,
   transferDialogView,
 } from './guilds-view.ts';
-import { normalize } from './markup.ts';
+import { normalize, textContents } from './markup.ts';
 
 // ----- frozen: the guild views before #118, bundle 6 -----
 
@@ -853,6 +853,25 @@ describe('the guild pages against the view before #118, bundle 6', () => {
   it('renders the hand-built cases as before', () => {
     for (const [name, v] of HAND_BUILT)
       expect(normalize(guildsView(v)), name).toBe(normalize(guilds(v)));
+  });
+
+  // normalize() drops the white space next to a block tag; a chat line that
+  // gained a space at its end passed it (the E2E suite of #169 reads the text
+  // of an <li> with a pattern that ends in $). The old „Aktionen“ cell joined
+  // its three buttons with spaces even where two were missing, so it is read
+  // trimmed.
+  const texts = (html: string): string[] =>
+    textContents(html).map((t) => (t.startsWith('td:') ? t.trim() : t));
+
+  it('keeps the text of every line, cell and button as before', () => {
+    fc.assert(
+      fc.property(state, (v) => {
+        expect(texts(guildsView(v))).toEqual(texts(guilds(v)));
+      }),
+      { seed: 118, numRuns: 300 },
+    );
+    for (const [name, v] of HAND_BUILT)
+      expect(texts(guildsView(v)), name).toEqual(texts(guilds(v)));
   });
 
   it('reaches the pages the sample is meant to compare', () => {

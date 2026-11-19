@@ -25,8 +25,7 @@
             <span class="dim">{line.time}</span><br /><span class="chat-text"
               >{line.text}</span
             >
-          {/if}
-          {#if line.deletable}
+          {/if}{#if line.deletable}{' '}
             <button
               class="small red"
               data-act="guildChatDelete"
