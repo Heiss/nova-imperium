@@ -3,6 +3,7 @@
 // its own in this folder and exports it as `clientFeature`; the list of all of
 // them is generated (scripts/gen-features.ts), so src/client/main.ts names no
 // feature and a new one edits no shared place.
+import type { Dialog } from '../modal.ts';
 
 /** The data attributes of the element a handler was called for. */
 export type Data = Record<string, string | undefined>;
@@ -20,8 +21,8 @@ export interface ClientCtx {
   act: (type: string, data?: object) => Promise<boolean>;
   /** Sends an action; true when it went through on the place still shown. */
   actHere: (type: string, data?: object) => Promise<boolean>;
-  /** Shows the HTML in the dialog; the empty string closes it. */
-  modal: (html: string) => void;
+  /** Shows the HTML or the component in the dialog; the empty string closes it. */
+  modal: (content: string | Dialog) => void;
   /** Shows a view with its address and renders it. */
   go: (view: string, push?: boolean, guild?: string | null) => void;
   /** Renders the shown view again; `fresh` drops the typed drafts. */

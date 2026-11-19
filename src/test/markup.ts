@@ -26,7 +26,7 @@ const value = (raw: string): string =>
  * bundle 5).
  */
 const BOOLEAN =
-  /^(disabled|hidden|selected|data-nokeep|data-achievement|data-achievement-group|data-later|data-all|data-daily-reward)$/;
+  /^(disabled|hidden|selected|required|checked|data-nokeep|data-achievement|data-achievement-group|data-later|data-all|data-daily-reward)$/;
 
 /**
  * The attributes of a tag in order, a boolean one and `data-nokeep` (which
@@ -76,7 +76,7 @@ export function normalize(html: string): string {
     )
     .replace(/\s+/g, ' ')
     .replace(
-      / ?(<\/?(?:div|p|ul|li|h2|table|tr|td|br)\b(?:"[^"]*"|[^">])*>) ?/g,
+      / ?(<\/?(?:div|p|ul|li|h2|h3|form|table|tr|td|br)\b(?:"[^"]*"|[^">])*>) ?/g,
       '$1',
     );
   // Only entities that cannot start a tag or another entity are decoded.
