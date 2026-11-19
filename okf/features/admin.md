@@ -345,3 +345,14 @@ universe settings) and their ranges are not decided yet.
   characters. It is stored in each current player's inbox. Subscribed devices
   receive the text via Web Push when enabled for the instance. The audit log
   records the sender and the recipient count.
+* **[V]** What the admin typed into the settings of the tab „Universum“ and
+  has not saved survives a redraw of the page (the list of the round archive
+  of #235 draws the admin page again once it has been read, and so does every
+  new state), until the settings are saved; a refused save keeps it. Before,
+  the fields showed the server's values after every redraw, so a draft was
+  lost without a message and a save then sent the old values (found by the
+  full E2E run of 2026-11-19: „Zusatzfelder pro Planet“ and „Marktplatz“, on
+  a slower machine than the one the specs were written on). The client
+  remembers the edits (`logic/settings-draft.ts`, `features/admin.ts`) and
+  puts them back after the redraw; a field set back to the server's value is
+  no draft, so a later change of the server shows.

@@ -103,6 +103,76 @@ const decodeEntities = (text: string): string =>
 /** The elements that hold others in blocks: the white space between them is layout. */
 const BLOCK = /^(div|p|ul|ol|li|table|tr|td|th|h[1-6]|form|section|fieldset)$/;
 
+type Token =
+  | { kind: 'text'; text: string }
+  | { kind: 'open'; tag: string; closed: boolean }
+  | { kind: 'close'; tag: string }
+  | { kind: 'skip' };
+
+/** A tag without its brackets: an end tag, a start tag, or what is no element (`<!>`). */
+function tagToken(raw: string): Token {
+  if (raw.startsWith('/'))
+    return { kind: 'close', tag: raw.slice(1).trim().toLowerCase() };
+  const tag = /^[a-z][a-z0-9]*/i.exec(raw)?.[0]?.toLowerCase();
+  if (tag === undefined) return { kind: 'skip' };
+  return { kind: 'open', tag, closed: VOID.has(tag) || raw.endsWith('/') };
+}
+
+/** The token at `from` and where the next one starts; a comment gives none. */
+function tokenAt(html: string, from: number): [Token | null, number] {
+  if (html[from] !== '<') {
+    const lt = html.indexOf('<', from);
+    const stop = lt < 0 ? html.length : lt;
+    return [{ kind: 'text', text: html.slice(from, stop) }, stop];
+  }
+  if (html.startsWith('<!--', from)) {
+    const comment = html.indexOf('-->', from);
+    return [null, comment < 0 ? html.length : comment + 3];
+  }
+  const end = tagEnd(html, from);
+  return [tagToken(html.slice(from + 1, end)), end + 1];
+}
+
+/** The text and the tags of the markup in order; a comment is dropped. */
+function tokens(html: string): Token[] {
+  const found: Token[] = [];
+  for (let i = 0; i < html.length;) {
+    const [token, next] = tokenAt(html, i);
+    if (token) found.push(token);
+    i = next;
+  }
+  return found;
+}
+
+interface Element {
+  tag: string;
+  text: string;
+  leaf: boolean;
+}
+
+/** The elements of the markup in order, with those still open. */
+class Elements {
+  readonly all: Element[] = [];
+  private readonly open: Element[] = [];
+
+  text(raw: string): void {
+    const text = decodeEntities(raw).replace(/\s+/g, ' ');
+    for (const o of this.open) o.text += text;
+  }
+
+  close(tag: string): void {
+    const from = this.open.map((o) => o.tag).lastIndexOf(tag);
+    if (from >= 0) this.open.length = from;
+  }
+
+  start(tag: string, closed: boolean): void {
+    if (BLOCK.test(tag)) for (const o of this.open) o.leaf = false;
+    const element = { tag, text: '', leaf: true };
+    this.all.push(element);
+    if (!closed) this.open.push(element);
+  }
+}
+
 /**
  * What a script that reads `textContent` sees (#118, bundles 1 to 6): one
  * entry `tag: text` per element in document order, the text of the element
@@ -115,40 +185,13 @@ const BLOCK = /^(div|p|ul|ol|li|table|tr|td|th|h[1-6]|form|section|fieldset)$/;
  * elements. A `<br>` adds nothing, as in the DOM.
  */
 export function textContents(html: string): string[] {
-  const entries: { tag: string; text: string; leaf: boolean }[] = [];
-  const open: { tag: string; at: number }[] = [];
-  const addText = (text: string): void => {
-    for (const o of open) entries[o.at]!.text += text;
-  };
-  let i = 0;
-  while (i < html.length) {
-    const lt = html.indexOf('<', i);
-    const text = html.slice(i, lt < 0 ? html.length : lt);
-    if (text) addText(decodeEntities(text).replace(/\s+/g, ' '));
-    if (lt < 0) break;
-    if (html.startsWith('<!--', lt)) {
-      const end = html.indexOf('-->', lt);
-      i = end < 0 ? html.length : end + 3;
-      continue;
-    }
-    const end = tagEnd(html, lt);
-    const raw = html.slice(lt + 1, end);
-    i = end + 1;
-    if (raw.startsWith('!')) continue; // the empty marker `<!>`
-    if (raw.startsWith('/')) {
-      const tag = raw.slice(1).trim().toLowerCase();
-      const from = open.map((o) => o.tag).lastIndexOf(tag);
-      if (from >= 0) open.length = from;
-      continue;
-    }
-    const tag = /^[a-z][a-z0-9]*/i.exec(raw)?.[0]?.toLowerCase();
-    if (tag === undefined) continue;
-    if (BLOCK.test(tag)) for (const o of open) entries[o.at]!.leaf = false;
-    entries.push({ tag, text: '', leaf: true });
-    if (!VOID.has(tag) && !raw.endsWith('/'))
-      open.push({ tag, at: entries.length - 1 });
+  const elements = new Elements();
+  for (const token of tokens(html)) {
+    if (token.kind === 'text') elements.text(token.text);
+    else if (token.kind === 'close') elements.close(token.tag);
+    else if (token.kind === 'open') elements.start(token.tag, token.closed);
   }
-  return entries.filter((e) => e.leaf).map((e) => `${e.tag}: ${e.text}`);
+  return elements.all.filter((e) => e.leaf).map((e) => `${e.tag}: ${e.text}`);
 }
 
 /** The markup as a browser shows it. */

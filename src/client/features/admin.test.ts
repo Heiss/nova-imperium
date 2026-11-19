@@ -10,13 +10,21 @@ vi.mock('../views/misc.ts', () => ({
 }));
 
 let fields: Record<string, { value: string; select?: () => void }>;
+let listeners: Record<string, ((e: Event) => void)[]>;
 
 beforeEach(() => {
   fields = {};
+  listeners = {};
   vi.stubGlobal('document', {
     querySelector: (sel: string) => fields[sel] ?? null,
+    getElementById: (id: string) => fields[`#${id}`] ?? null,
+    addEventListener: (type: string, listener: (e: Event) => void) =>
+      (listeners[type] ??= []).push(listener),
   });
   client.game = {
+    me: { id: 'u_a' },
+    round: { number: 1 },
+    cfg: { speed: 5, systems: 40 },
     admin: {
       endzeit: { minutes: 90, done: false },
       specs: [{ key: 'speed' }, { key: 'systems' }],
@@ -80,6 +88,88 @@ describe('the settings of the universe', () => {
     expect(ctx.act).toHaveBeenCalledWith('settings', {
       settings: { speed: '5', systems: '40' },
     });
+  });
+});
+
+describe('the draft of the settings over a redraw', () => {
+  /** The admin types `value` into the field of `key`; the field then shows it. */
+  const type = (key: string, value: string, event = 'input'): void => {
+    fields[`#set_${key}`] = { value };
+    const target = { dataset: { setting: key }, value };
+    for (const l of listeners[event] ?? []) l({ target } as unknown as Event);
+  };
+  /** The page is drawn again: the fields show the server's values. */
+  const redraw = (): void => {
+    fields['#set_speed'] = { value: '5' };
+    fields['#set_systems'] = { value: '40' };
+    clientFeature.afterRender();
+  };
+
+  it('puts what was typed back into the field after a redraw', () => {
+    acts();
+    type('speed', '7');
+    redraw();
+    expect(fields['#set_speed']!.value).toBe('7');
+    expect(fields['#set_systems']!.value).toBe('40');
+  });
+
+  it('keeps the choice of a select, which reports a change', () => {
+    acts();
+    type('systems', '1', 'change');
+    redraw();
+    expect(fields['#set_systems']!.value).toBe('1');
+  });
+
+  it('is no draft when the field is set back to the value of the server', () => {
+    acts();
+    type('speed', '7');
+    type('speed', '5');
+    redraw();
+    expect(fields['#set_speed']!.value).toBe('5');
+  });
+
+  it('ignores a field that is no setting', () => {
+    acts();
+    for (const l of listeners.input ?? []) {
+      l({ target: { value: '7', dataset: {} } } as unknown as Event);
+      l({ target: null } as unknown as Event);
+    }
+    redraw();
+    expect(fields['#set_speed']!.value).toBe('5');
+  });
+
+  it('keeps the draft when the server refuses the settings', async () => {
+    const handlers = acts(fakeCtx({ act: vi.fn(async () => false) }));
+    type('speed', '101');
+    expect(await handlers.saveSettings()).toBe(false);
+    redraw();
+    expect(fields['#set_speed']!.value).toBe('101');
+  });
+
+  it('shows the values of the server again once they are saved', async () => {
+    const handlers = acts();
+    type('speed', '7');
+    expect(await handlers.saveSettings()).toBe(true);
+    redraw();
+    expect(fields['#set_speed']!.value).toBe('5');
+  });
+
+  it('drops the draft of another account or round', () => {
+    acts();
+    type('speed', '7');
+    client.game!.round.number = 2;
+    redraw();
+    expect(fields['#set_speed']!.value).toBe('5');
+  });
+
+  it('does nothing outside the admin page', () => {
+    acts();
+    type('speed', '7');
+    client.game!.admin = null;
+    redraw();
+    expect(fields['#set_speed']!.value).toBe('5');
+    client.game = null;
+    expect(() => clientFeature.afterRender()).not.toThrow();
   });
 });
 
