@@ -23,7 +23,6 @@ import {
   describeError,
   ERRORS_URL,
   failedCall,
-  reportFormHTML,
 } from './logic/error-report.ts';
 import {
   arrivalLine,
@@ -304,34 +303,6 @@ function reportOffer(msg: string): HTMLButtonElement {
     request: ui.lastRequestId ?? '',
   });
   return button;
-}
-
-/** The form „Problem melden“ in a dialog, filled from the error message. */
-function openReport(d: Data): void {
-  modal(
-    reportFormHTML('reportform-dialog', {
-      source: 'toast',
-      page: d.page ?? ui.view,
-      version: ui.news?.version ?? '',
-      requestId: d.request || null,
-      message: d.message,
-    }) + '<button type="button" data-act="closeModal">Abbrechen</button>',
-  );
-  $('#reportform-dialog-text')?.focus();
-}
-
-async function submitReport(id: string): Promise<void> {
-  const form = $<HTMLFormElement>(`#${id}`);
-  if (!form) return;
-  try {
-    const j = await api('/api/report', Object.fromEntries(new FormData(form)));
-    form.reset();
-    // Close the dialog only if it is still this one, not one opened since.
-    if (id === 'reportform-dialog' && form.isConnected) modal('');
-    toast(String(j.msg));
-  } catch (e) {
-    toast((e as Error).message, true);
-  }
 }
 
 // ----- error log (issue #126) -----
@@ -1057,7 +1028,6 @@ const FRAME: Record<string, (d: Data) => unknown> = {
     if (d.tab && Object.hasOwn(ADMIN_TABS, d.tab))
       openAdminTab(d.tab as AdminTab);
   },
-  reportProblem: openReport,
   passkeyLogin: loginByPasskey,
   deleteAccount: () => modal(deleteAccountDialog(client.game!.round)),
   dismissInstall: () => {
@@ -1410,8 +1380,6 @@ const FORMS = assembleForms(
     resetform: () => submitPassword(true),
     passwordform: () => submitPassword(false),
     deleteaccountform: submitAccountDeletion,
-    reportform: () => submitReport('reportform'),
-    'reportform-dialog': () => submitReport('reportform-dialog'),
   },
   CLIENT_FEATURES,
   ctx,
