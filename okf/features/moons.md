@@ -494,6 +494,10 @@ owiki.de „Mond“ (section Zerstörung, formula images). Built after the moons
 * **[E]** What is lost with a destroyed moon (owner, 2026-11-16, „Geklärt,
   Nachtrag“): everything on it, its stock, buildings, defense and queues.
   Fleets flying to it land at its planet.
+* **[E]** Held fleets (owner, 2026-11-19, #55): the fleets that hold at the
+  moon defend it in the battle of the Mondbruch like any defender; one that
+  holds at a moon that breaks moves to its planet and holds on there until
+  its time ends. See [Holding and ACS](/features/holding-acs.md).
 * **[E]** Loot (owner, 2026-11-16): after a won battle the fleet plunders as
   in an attack.
 * **[E]** The mission needs a migration (owner, 2026-11-16): the CHECK of
@@ -534,7 +538,8 @@ owiki.de „Mond“ (section Zerstörung, formula images). Built after the moons
   broken moon is removed with its buildings, units, production and queues
   and the pushes of its queues (`destroyMoon` in
   `src/server/game/moons.ts`, `planets.delete`); the fleets flying to it
-  fly to its planet, the fleets whose home it is come home there
+  fly to its planet, the fleets that hold there move to its planet and hold on,
+  the fleets whose home it is come home there
   (`fleets.reroute`), but not the missiles of #54: they keep the moon as their target and are lost at the arrival [V]. Neither leaves a Trümmerfeld. The rolls go into the
   audit log (`system` / `moonbreak`: fleet, moon, both chances and
   outcomes).

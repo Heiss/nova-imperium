@@ -128,8 +128,16 @@ function galaxy(v: V): string {
 
 // ----- the comparison -----
 
-const renderNew = (v: V): string =>
-  render(Galaxy, { props: { page: galaxyPage(v) } }).body;
+/**
+ * The rows of the planet positions: the row of the expedition position
+ * after them (#93) is new and tested in src/client/logic/galaxy.test.ts.
+ */
+const renderNew = (v: V): string => {
+  const page = galaxyPage(v);
+  return render(Galaxy, {
+    props: { page: { ...page, rows: page.rows.slice(0, v.s.cfg.positions) } },
+  }).body;
+};
 
 /**
  * Names with markup and quotes; the last becomes an attribute boundary when

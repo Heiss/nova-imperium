@@ -1,7 +1,9 @@
 // A Mondbruch (#95, okf/features/moons.md; owner, 2026-11-13 and
 // 2026-11-16) fights at the moon like a Sturmangriff: battle, Trümmerfeld of
 // the battle, rebuilt defense, loot after a won battle, both battle reports
-// (the steps are shared in src/server/game/fight.ts).
+// (the steps are shared in src/server/game/fight.ts). The fleets that hold at
+// the moon (#55) defend it with its owner (owner, 2026-11-19); when the moon
+// breaks, the survivors move to its planet and hold on there (destroyMoon).
 // Only after a won battle (an undefended moon is one) and with Weltenbrecher
 // left, two independent rolls follow: the moon breaks, and the Weltenbrecher
 // are torn apart by their own shot; the other ships stay and bring home
@@ -18,6 +20,7 @@ import {
   addResources,
   attackReports,
   cutLoot,
+  defenders,
   flyHome,
   raid,
   total,
@@ -60,7 +63,7 @@ function homeward(f: Fleet, x: Raid, r: Moonbreak | null): Homeward {
 }
 
 export function onArrive(ctx: Ctx, f: Fleet, at: Arrival): void {
-  const x = raid(ctx, f, at);
+  const x = raid(ctx, f, at, defenders(ctx, f, at.t));
   const r = roll(ctx, at, x);
   attackReports(ctx, f, at, x, extra(r));
   const home = homeward(f, x, r);
@@ -73,5 +76,5 @@ export function onArrive(ctx: Ctx, f: Fleet, at: Arrival): void {
     target: at.t.owner,
     detail: { fleet: f.id, moon: at.t.id, ...r },
   });
-  if (r.broken) destroyMoon(ctx, at.t);
+  if (r.broken) destroyMoon(ctx, at.t, f.arr);
 }

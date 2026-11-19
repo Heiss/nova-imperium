@@ -13,6 +13,8 @@ export interface Fleets {
    * (#161) and none of the `missions` given, the missiles (#54).
    */
   count(owner: string, without?: readonly string[]): number;
+  /** How many fleets of a player fly one mission, out or back (#93, the expedition slots). */
+  countMission(owner: string, mission: string): number;
   /** Fleets whose next event (arrival, end of holding or return) is due, the earliest first. */
   due(now: number): Fleet[];
   /** The fleets flying to a place or holding there (#55), by departure. */
@@ -22,7 +24,9 @@ export interface Fleets {
   deleteAll(): void;
   /**
    * A place is gone (a destroyed moon, #95): the fleets flying to it fly to
-   * `to` instead, and the fleets whose home it is come home to `to`. The
+   * `to` instead, the fleets that hold there move to `to` and hold on (same
+   * end time; owner, 2026-11-19), and the fleets whose home it is come home
+   * to `to`. The
    * flights of the missions in `keep` keep their target: missiles whose
    * target is gone are lost at the arrival, they do not hit another place
    * (#54).
@@ -96,6 +100,15 @@ export class SqliteFleets implements Fleets {
          AND mission NOT IN (SELECT value FROM json_each(?))`,
       )
       .get(owner, JSON.stringify(without)) as Row;
+    return r.n as number;
+  }
+
+  countMission(owner: string, mission: string): number {
+    const r = this.db
+      .prepare(
+        'SELECT COUNT(*) AS n FROM fleets WHERE owner = ? AND mission = ?',
+      )
+      .get(owner, mission) as Row;
     return r.n as number;
   }
 
@@ -177,7 +190,7 @@ export class SqliteFleets implements Fleets {
   reroute(from: string, to: string, keep: readonly string[] = []): void {
     this.db
       .prepare(
-        `UPDATE fleets SET to_planet = ? WHERE to_planet = ? AND state = 'out'
+        `UPDATE fleets SET to_planet = ? WHERE to_planet = ? AND state IN ('out', 'hold')
          AND mission NOT IN (SELECT value FROM json_each(?))`,
       )
       .run(to, from, JSON.stringify(keep));

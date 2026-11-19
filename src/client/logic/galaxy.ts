@@ -6,6 +6,8 @@
 // and of the inactivity of its owner (#229) and the actions, and the number of
 // Spähschädel of a spying. The symbols of a moon and a Trümmerfeld and the
 // button „Bergung“ keep their HTML of logic/moon.ts and logic/debris.ts.
+import { canFly } from '../../core/catalog.ts';
+import { expeditionLevel } from '../../core/expedition.ts';
 import { MISSION } from '../../core/missions.ts';
 import { placeName } from '../../core/moon.ts';
 import { placeId } from '../../core/place.ts';
@@ -238,6 +240,19 @@ const survey = (v: V, c: Coords): GalaxyAction[] =>
       ]
     : [];
 
+/**
+ * „Expedition“ at the expedition position (#93): with level 1 of the
+ * research and a ship on the shown planet that flies.
+ */
+const expedition = (v: V, c: Coords): GalaxyAction[] =>
+  expeditionLevel(v.R.research) >= 1 &&
+  Object.entries(v.P.ships).some(([k, n]) => n > 0 && canFly(k))
+    ? [fleetTo('button', 'expedition', MISSION.expedition, at(c, false))]
+    : [];
+
+/** The note of the expedition position, in place of a free one. */
+const EXPEDITION_NOTE = 'Expeditionsposition';
+
 /** The row of position `p` of the shown system. */
 function galaxyRow(v: V, p: number, rk: Record<string, number>): GalaxyRow {
   const { s, ui } = v;
@@ -254,6 +269,17 @@ function galaxyRow(v: V, p: number, rk: Record<string, number>): GalaxyRow {
   const harvest: GalaxyAction[] = field
     ? [{ kind: 'html', html: harvestButton(c) }]
     : [];
+  // The position after the last planet position: no planet, only expeditions
+  // and the Bergung of its Trümmerfeld (#93).
+  if (p > s.cfg.positions)
+    return {
+      position: p,
+      planet: null,
+      marks,
+      actions: [...expedition(v, c), ...harvest],
+      note: EXPEDITION_NOTE,
+      moon: null,
+    };
   if (!pl) {
     // A position locked after an abandonment says until when (#224).
     const free = freePosition(s.locks, c, v.now);
@@ -308,7 +334,7 @@ export function galaxyPage(v: V): GalaxyPage {
     galaxies: s.cfg.galaxies,
     systems: s.cfg.systems,
     scan: scanPanel(v),
-    rows: Array.from({ length: s.cfg.positions }, (_, i) =>
+    rows: Array.from({ length: s.cfg.positions + 1 }, (_, i) =>
       galaxyRow(v, i + 1, rk),
     ),
     probes: fmt(s.me.probes || 1),

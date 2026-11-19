@@ -354,6 +354,7 @@ const TARGETS: Readonly<Record<TargetKind, string>> = {
   free: 'Freie Position',
   debris: 'Trümmerfeld',
   foreignMoon: 'fremder Mond',
+  expedition: 'Expeditionsposition',
 };
 
 const yes = (b: boolean): string => (b ? 'ja' : 'nein');

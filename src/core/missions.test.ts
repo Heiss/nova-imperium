@@ -42,6 +42,8 @@ const KINDS: TargetKind[] = [
   'foreignMoon',
   'ally',
 ];
+/** Every target kind: the six above and the expedition position (#93). */
+const TARGETS: TargetKind[] = [...KINDS, 'expedition'];
 const CODES: SendError[] = [
   'occupied',
   'locked',
@@ -65,6 +67,10 @@ const CODES: SendError[] = [
   'notAlly',
   'holdFleets',
   'holdPlayers',
+  'expeditionLocked',
+  'expeditionSlots',
+  'notExpedition',
+  'expeditionSpace',
 ];
 const FIELDS = [
   'alertsGuild',
@@ -94,6 +100,7 @@ describe('mission names', () => {
       'moonbreak',
       'survey',
       'missile',
+      'expedition',
     ]);
   });
 
@@ -146,6 +153,7 @@ describe('the rules of every mission (contract)', () => {
       'attack',
       'colonize',
       'deploy',
+      'expedition',
       'harvest',
       'hold',
       'missile',
@@ -184,10 +192,15 @@ describe('the rules of every mission (contract)', () => {
   });
 
   it.each(RULES)('%s: has exactly the typed fields', (m, rules) => {
-    // `launch` is only set where a mission does not start as a fleet (#54).
-    const fields = rules.launch === undefined ? FIELDS : [...FIELDS, 'launch'];
+    // `launch` is only set where a mission does not start as a fleet (#54),
+    // `maxStay` where it stays at its target (#93).
+    const fields = [
+      ...FIELDS,
+      ...(rules.launch === undefined ? [] : ['launch']),
+      ...(rules.maxStay === undefined ? [] : ['maxStay']),
+    ];
     expect(Object.keys(rules).sort(), m).toEqual(fields.sort());
-    expect(KINDS, m).toContain(rules.target);
+    expect(TARGETS, m).toContain(rules.target);
     for (const field of [
       'cargo',
       'returns',
@@ -587,5 +600,118 @@ describe('the target kind (#116)', () => {
     expect(sendError(own, fleet, at(home))).toBe('samePlanet');
     expect(sendError(own, fleet, at(foreign, true))).toBe('protected');
     expect(sendError(own, fleet, at(foreign))).toBe('probesOnly');
+  });
+});
+
+describe('the expedition position (#93)', () => {
+  const fleet: SendFleet = { owner: 'a', from: 'p1', ships: { lc: 1 } };
+  const rules = (
+    target: TargetKind,
+    canSend: MissionRules['canSend'] = () => undefined,
+  ): MissionRules => ({
+    order: 10,
+    target,
+    cargo: false,
+    returns: true,
+    silent: false,
+    alertsGuild: false,
+    holds: false,
+    canSend,
+  });
+  const nothing: SendTarget = {
+    planet: null,
+    debris: false,
+    protects: () => false,
+    vacation: () => false,
+  };
+  const there: SendTarget = { ...nothing, expedition: true };
+
+  it('suits an empty place only, never a planet', () => {
+    const planet = { owner: 'a' };
+    expect(suits('expedition', 'a', null)).toBe(true);
+    expect(suits('expedition', 'a', planet)).toBe(false);
+    expect(suits('expedition', 'a', { owner: 'b' })).toBe(false);
+    // Whatever lies there, a Trümmerfeld does not make it a planet.
+    expect(suits('expedition', 'a', null, true)).toBe(true);
+  });
+
+  it('flies to the expedition position of a system and to no other position', () => {
+    expect(sendError(rules('expedition'), fleet, there)).toBeUndefined();
+    expect(sendError(rules('expedition'), fleet, nothing)).toBe(
+      'notExpedition',
+    );
+    expect(
+      sendError(rules('expedition'), fleet, { ...nothing, expedition: false }),
+    ).toBe('notExpedition');
+    // A Trümmerfeld at a planet position or a locked one is no expedition target.
+    expect(
+      sendError(rules('expedition'), fleet, {
+        ...nothing,
+        debris: true,
+        locked: true,
+      }),
+    ).toBe('notExpedition');
+  });
+
+  it('runs the check of the mission after the position, and a moon is never the target', () => {
+    const slots = rules('expedition', () => 'expeditionSlots');
+    expect(sendError(slots, fleet, there)).toBe('expeditionSlots');
+    expect(sendError(slots, fleet, nothing)).toBe('notExpedition');
+    expect(
+      sendError(rules('expedition'), fleet, { ...there, moon: true }),
+    ).toBe('moonTarget');
+    expect(sendError(slots, fleet, { ...there, moon: true })).toBe(
+      'moonTarget',
+    );
+  });
+
+  it('cannot be colonized or surveyed: a free-position mission is refused there before everything else', () => {
+    expect(sendError(rules('free'), fleet, there)).toBe('expeditionSpace');
+    expect(sendError(rules('free'), fleet, { ...there, locked: true })).toBe(
+      'expeditionSpace',
+    );
+    expect(
+      sendError(rules('free'), fleet, {
+        ...there,
+        planet: { id: 'p2', owner: 'b' },
+      }),
+    ).toBe('expeditionSpace');
+    // At a planet position nothing changes.
+    expect(sendError(rules('free'), fleet, nothing)).toBeUndefined();
+    expect(sendError(rules('free'), fleet, { ...nothing, locked: true })).toBe(
+      'locked',
+    );
+  });
+
+  it('leaves the planet missions as they were: no planet at the position', () => {
+    for (const k of ['own', 'foreign', 'any'] as const)
+      expect(sendError(rules(k), fleet, there), k).toBe('noPlanet');
+    expect(sendError(rules('foreignMoon'), fleet, there)).toBe('notMoon');
+    // The Bergung of the Trümmerfeld there is allowed (Q5).
+    expect(
+      sendError(rules('debris'), fleet, { ...there, debris: true }),
+    ).toBeUndefined();
+    expect(sendError(rules('debris'), fleet, there)).toBe('noDebris');
+  });
+
+  it('is the expedition rule of the folder: only it stays at its target, and it is no Halten', () => {
+    expect(missionRules('expedition')).toMatchObject({
+      order: 110,
+      target: 'expedition',
+      cargo: false,
+      returns: true,
+      silent: false,
+      alertsGuild: false,
+      holds: false,
+    });
+    const rule = missionRules('expedition')!;
+    expect(rule.maxStay!({ expo: 4 }, 1)).toBe(4);
+    // The hours per level of the round scale it (owner, 2026-11-19).
+    expect(rule.maxStay!({ expo: 4 }, 6)).toBe(24);
+    for (const [m, r] of RULES) {
+      expect(r.maxStay !== undefined, m).toBe(m === 'expedition');
+      // `holds` is the Halten only, a stay is not one.
+      expect(r.holds, m).toBe(m === 'hold');
+    }
   });
 });

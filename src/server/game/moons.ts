@@ -15,7 +15,8 @@ import {
 import type { Coords, Planet } from '../../core/types.ts';
 import type { AuditEntry } from '../audit.ts';
 import { cancelScheduledPush } from '../push-store.ts';
-import { type Ctx, fail, str } from './context.ts';
+import { type Ctx, addReport, coords, fail, str } from './context.ts';
+import { heldAt } from './holding.ts';
 
 /** The name a new moon starts with; it is renamed like a planet. */
 export const MOON_NAME = 'Mond';
@@ -120,12 +121,34 @@ export function createMoon(
  * A broken moon (#95; owner, 2026-11-13 and 2026-11-16): everything on it
  * is lost, its stock, buildings, ships, defense and queues, with the pushes
  * of its queues; it leaves no Trümmerfeld. Fleets flying to it land at its
- * planet, and fleets whose home it is come home to its planet [V]. Missiles
+ * planet, fleets that hold at it move to its planet and hold on there until
+ * their time ends, even above the limits of the planet (owner, 2026-11-19),
+ * their owners get an info report each, and fleets whose home it is come home to its planet [V]. Missiles
  * flying to it are not rerouted: with their target gone they are lost at the
  * arrival, as the missiles decide (#54) [V].
  */
-export function destroyMoon(ctx: Ctx, moon: Planet): void {
+export function destroyMoon(
+  ctx: Ctx,
+  moon: Planet,
+  time: number = ctx.now(),
+): void {
   const planet = placeId({ g: moon.g, s: moon.s, p: moon.p, kind: 'planet' });
+  // The owner of every fleet that holds at the moon is told once per fleet
+  // that it holds at the planet from now on [V] (owner, 2026-11-19).
+  for (const f of heldAt(ctx, moon.id)) {
+    const where = coords({ g: moon.g, s: moon.s, p: moon.p });
+    addReport(
+      ctx,
+      f.owner,
+      {
+        time,
+        type: 'info',
+        title: `Wache wechselt zum Planeten ${where}`,
+        text: `Der Mond ${where} wurde zerstört; deine Wache hält jetzt am Planeten.`,
+      },
+      { topic: 'fleet' },
+    );
+  }
   ctx.fleets.reroute(moon.id, planet, SILO_MISSIONS);
   ctx.planets.delete(moon.id);
   for (const kind of ['buildings', 'shipyard'] as const)

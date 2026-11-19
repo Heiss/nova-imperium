@@ -5,9 +5,10 @@
 // (#95) share it; each mission words its own reports and moves its fleet. The
 // Sturmangriff and the Mondbruch also share the loot, the two battle reports
 // and the flight home (`raid`, `attackReports`, `flyHome`). The fleets that
-// hold at a planet (#55) defend it in the Sturmangriff only, as it was built:
-// the Sturmangriff passes them (`defenders`), the Mondbruch and the detected
-// Auspex-Erkundung fight without them.
+// hold at a planet (#55) defend it in all three fights (owner, 2026-11-19):
+// each mission passes them (`defenders`), and the fight lets them take part,
+// leaves their debris and reports to every owner of one. Missiles do not
+// fight.
 import { type BattleResult, battleOf } from '../../core/battle.ts';
 import { DEF, SHIPS, fights } from '../../core/catalog.ts';
 import { type Debris, debrisOf, isEmpty } from '../../core/debris.ts';
@@ -16,7 +17,7 @@ import { cargoOf } from '../../core/holding.ts';
 import { placeName } from '../../core/moon.ts';
 import type { Fleet, Levels, Planet, Resources } from '../../core/types.ts';
 import { record } from '../audit.ts';
-import { type Ctx, addReport, coords } from './context.ts';
+import { type Ctx, type ReportInput, addReport, coords } from './context.ts';
 import { heldAt } from './holding.ts';
 import {
   type Arrival,
@@ -316,7 +317,7 @@ function lootOf(t: Planet, held: readonly Held[], free: number): Resources {
 }
 
 /** The fleets that held keep their survivors and hold on; one without any is gone. */
-function afterHeld(ctx: Ctx, held: readonly HeldFight[]): void {
+export function afterHeld(ctx: Ctx, held: readonly HeldFight[]): void {
   for (const h of held) {
     if (!countUnits(h.after)) ctx.fleets.delete(h.f.id);
     else ctx.fleets.save({ ...h.f, ships: h.after });
@@ -369,20 +370,23 @@ export function attackReports(
     { topic: 'fleet' },
   );
   const hit = `Feindkontakt! ${placeName(t)} ${coords(f.toC)} wird von ${att.name} angegriffen`;
-  addReport(
-    ctx,
-    t.owner,
-    { ...report, ...extra.def, title: hit },
-    { topic: 'attacked' },
-  );
-  // The owner of every fleet that held gets the report of the defender (#55).
+  const defender = { ...report, ...extra.def, title: hit };
+  addReport(ctx, t.owner, defender, { topic: 'attacked' });
+  reportHeldOwners(ctx, x, defender, 'attacked');
+}
+
+/**
+ * The owner of every fleet that held gets the report of the defender (#55),
+ * once for all his fleets.
+ */
+export function reportHeldOwners(
+  ctx: Ctx,
+  x: Fight,
+  report: ReportInput,
+  topic: 'attacked' | 'spied',
+): void {
   for (const owner of heldOwners(x.held))
-    addReport(
-      ctx,
-      owner,
-      { ...report, ...extra.def, title: hit },
-      { topic: 'attacked' },
-    );
+    addReport(ctx, owner, report, { topic });
 }
 
 /** The amount of a stock, all three resources. */

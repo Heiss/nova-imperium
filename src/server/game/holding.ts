@@ -5,13 +5,15 @@
 import { relationOf } from '../../core/friends.ts';
 import {
   type Bond,
+  homeAt,
   isAlly,
   shipsOf,
   showsHeldApart,
 } from '../../core/holding.ts';
 import { missionRules } from '../../core/missions.ts';
+import { placeName } from '../../core/moon.ts';
 import type { Fleet, Levels, Planet } from '../../core/types.ts';
-import type { Ctx } from './context.ts';
+import { type Ctx, addReport, coords } from './context.ts';
 import { playerOf, turnBack } from './missions.ts';
 import { roundRules } from './round.ts';
 
@@ -64,6 +66,31 @@ export const holdersAt = (ctx: Ctx, place: string): string[] =>
 /** The holding time is over: the fleet flies home with what it has left. */
 export function endHold(ctx: Ctx, f: Fleet): void {
   turnBack(ctx, f);
+}
+
+/**
+ * A fleet that holds, or arrives to hold, flies home at once (owner,
+ * 2026-11-19: the host starts the vacation mode): the same flight home as at
+ * the end of its holding time, without the rest of it. The fuel of the
+ * unused hours is not refunded, as after a recall. Its owner gets one info
+ * report [V] (owner, 2026-11-19: both at the start of the vacation and at
+ * the arrival at a host in vacation).
+ */
+export function sendHome(ctx: Ctx, f: Fleet, at: number = ctx.now()): void {
+  turnBack(ctx, f, { ret: homeAt(f, at) });
+  const host = ctx.planets.get(f.to);
+  const where = host ? `${placeName(host)} ${coords(f.toC)}` : coords(f.toC);
+  addReport(
+    ctx,
+    f.owner,
+    {
+      time: at,
+      type: 'info',
+      title: `Wache heimgeschickt ${coords(f.toC)}`,
+      text: `Deine Wache bei ${where} wurde heimgeschickt: Der Gastgeber hat den Urlaubsmodus begonnen.`,
+    },
+    { topic: 'fleet' },
+  );
 }
 
 /** A fleet that holds at the target as a spy report shows it apart. */

@@ -148,6 +148,8 @@ describe('sending, recalling and jumping', () => {
       to: { g: 2, s: 30, p: 4, kind: 'moon' },
       mission: 'attack',
       hold: 0,
+      // The stay of an expedition (#93); the field is absent here, so 1.
+      stay: 1,
       pct: 5,
       cargo: { m: 10, c: 0, d: 3 },
     });

@@ -36,6 +36,8 @@ const FILES: Record<string, string> = {
   ifn: 'research/intergalactic_research_network',
   // #190: the picture of the Auspex-Lehre with its own name until one is drawn [V].
   carto: 'research/auspex_cartography',
+  // #93: the picture of the Auspex-Lehre with its own name until one is drawn [V].
+  expo: 'research/expedition_technology',
   sc: 'ships/small_cargo',
   lc: 'ships/large_cargo',
   colony: 'ships/colony_ship',

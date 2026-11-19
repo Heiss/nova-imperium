@@ -45,6 +45,13 @@ export function pointsMap(ctx: Ctx): Record<string, number> {
   return pts;
 }
 
+/**
+ * The points of the best player: the size of the finds of an expedition
+ * scales with them (#93, owner, 2026-11-17). 0 without a player.
+ */
+export const topPoints = (ctx: Ctx): number =>
+  Math.max(0, ...Object.values(pointsMap(ctx)));
+
 /** Noob protection: a player with less than a fifth of your points. */
 export const isProtected = (
   me: string,
