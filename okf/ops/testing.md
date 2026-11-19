@@ -118,9 +118,12 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 * **[V]** The order of the tests must not matter (acceptance of #302). Run
   the suite shuffled with `--fully-parallel --shuffle=<seed>` (Playwright
   1.65; one worker stays): `E2E_PORT=4410 E2E_RUN=s1 playwright test
-  --fully-parallel --shuffle=1`. The seed reproduces the order; the three
-  orders of the build (1, 2, 3) passed. The CI could run one fixed seed
-  next to the normal run; that costs another run of the suite.
+  --fully-parallel --shuffle=1`. The seed reproduces the order, and the
+  phone and desktop tests are shuffled together. A test that fails only in
+  some orders shares data with another: the audit log and the highscore are
+  the shared places found so far (a test reads its own row). The CI could
+  run one fixed seed next to the normal run; that costs another run of the
+  suite.
 * **[E]** Property-based upgrade tests of every migration on generated data
   (fast-check), and an own upgrade test for every migration that changes
   existing tables or data; see [SQLite storage](/data/sqlite.md).
