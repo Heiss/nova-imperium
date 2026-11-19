@@ -121,3 +121,10 @@ points were answered on 2026-11-16.
   Auspex-Lehre 0 to 8 with the answer of `/api/state`, and the admin on the
   mail server with the dialog and the universe settings; the group „Fremde Flotten erkennen“ with its three fields in
   the dialog; axe on the overview, the dialog and the settings.
+
+* **[E]** Held fleets (#55, owner, 2026-11-19): a fleet that is holding at
+  the planet of the observer (state `hold`) shows to him in full, with its
+  holding time, whatever his Auspex-Lehre and the thresholds. The thresholds
+  count only for a fleet still on its way to hold (state `out`), which goes
+  through `foreignView` like every other foreign fleet
+  ([Holding and ACS](/features/holding-acs.md)).

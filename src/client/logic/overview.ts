@@ -35,11 +35,22 @@ export interface FleetRow {
   id: string;
   /** When it arrives, or when it is back home. */
   due: Countdown;
-  /** `fl-<mission>` on its way out, `fl-back` on its way home. */
+  /** `fl-<mission>` on its way out or holding, `fl-back` on its way home. */
   cls: string;
   parts: TextPart[];
-  /** An own fleet on its way out can be called back, the gift not (#161). */
+  /**
+   * An own fleet on its way out or holding (#55) can be called back, the
+   * gift not (#161).
+   */
   recall: boolean;
+}
+
+/** A foreign fleet that holds at the shown planet (#55): its owner, ships and end. */
+export interface HeldRow {
+  id: string;
+  /** When it flies home. */
+  due: Countdown;
+  parts: TextPart[];
 }
 
 /** A queue of the shown planet that is working. */
@@ -54,6 +65,8 @@ interface ActivityRow {
 export interface OverviewPage {
   title: string;
   fleets: FleetRow[];
+  /** „Gehaltene Flotten“: the foreign fleets that hold at the planet (#55). */
+  held: HeldRow[];
   /** A moon shows its picture, a planet its layers (#53). */
   moon: boolean;
   /** „Planet“ or „Mond“. */
@@ -122,6 +135,12 @@ function fleetParts(v: V, f: ClientFleet): TextPart[] {
         `Deine Flotte (${ships}) von ${origin} erreicht ${coords(f.toC)} · ${mission}${cargoPart(f)}`,
       ),
     ];
+  if (f.state === 'hold')
+    return [
+      part(
+        `Deine Flotte (${ships}) hält bei ${coords(f.toC)} · ${mission}${cargoPart(f)}`,
+      ),
+    ];
   return [
     part(
       `Deine Flotte (${ships}) kehrt von ${coords(f.toC)} nach ${coords(f.fromC)} zurück${cargoPart(f)}`,
@@ -130,21 +149,42 @@ function fleetParts(v: V, f: ClientFleet): TextPart[] {
 }
 
 function fleetRow(v: V, f: ClientFleet): FleetRow {
-  const out = f.state === 'out';
+  const back = f.state === 'back';
   return {
     id: f.id,
     due: countdown(fleetEnd(f), v.now),
-    cls: out ? `fl-${f.mission}` : 'fl-back',
+    cls: back ? 'fl-back' : `fl-${f.mission}`,
     parts: fleetParts(v, f),
-    recall: f.owner === v.s.me.id && out && !f.gift,
+    recall: f.owner === v.s.me.id && !back && !f.gift,
   };
 }
 
-/** The fleets of the player, and on request the foreign ones coming, by when they are due. */
+const own = (v: V, f: ClientFleet): boolean => f.owner === v.s.me.id;
+
+/** A foreign fleet that holds at the planet: shown under „Gehaltene Flotten“ (#55). */
+const heldHere = (v: V, f: ClientFleet): boolean =>
+  !own(v, f) && f.state === 'hold';
+
+/**
+ * The fleets of the player, and on request the foreign ones coming, by when
+ * they are due; foreign fleets that hold are no movement (#55).
+ */
 export const fleetRows = (v: V, includeIncoming: boolean): FleetRow[] =>
   sortFleets(
-    v.s.fleets.filter((f) => f.owner === v.s.me.id || includeIncoming),
+    v.s.fleets.filter((f) => own(v, f) || (includeIncoming && !heldHere(v, f))),
   ).map((f) => fleetRow(v, f));
+
+/** The foreign fleets that hold at the shown planet, by when they fly home (#55). */
+export const heldRows = (v: V): HeldRow[] =>
+  sortFleets(v.s.fleets.filter((f) => heldHere(v, f))).map((f) => ({
+    id: f.id,
+    due: countdown(fleetEnd(f), v.now),
+    parts: [
+      part('Flotte von '),
+      part(nameOf(v.s.players, f.owner), true),
+      part(` ${coords(f.fromC)} (${foreignShips(f)})`),
+    ],
+  }));
 
 /** What the shown planet builds, researches and orders. */
 export function activityRows(v: V): ActivityRow[] {
@@ -183,6 +223,7 @@ export function overviewPage(v: V): OverviewPage {
   return {
     title: `Übersicht – ${name} ${coords(P)}`,
     fleets: fleetRows(v, true),
+    held: heldRows(v),
     moon,
     label: moon ? 'Mond' : 'Planet',
     name,

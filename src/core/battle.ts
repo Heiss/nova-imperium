@@ -95,7 +95,8 @@ function fire(shooters: Unit[], targets: Unit[], rng: Rng): void {
   }
 }
 
-const alive = (units: Unit[]): Unit[] => units.filter((u) => u.hull > 0);
+const alive = <T extends Unit>(units: T[]): T[] =>
+  units.filter((u) => u.hull > 0);
 
 const recharge = (units: Unit[]): void => {
   for (const u of units) u.shield = u.maxShield;
@@ -113,13 +114,42 @@ function winnerOf(a: Unit[], d: Unit[]): BattleResult['winner'] {
   return 'draw';
 }
 
-export function battle(
-  attacker: Side,
-  defender: Side,
+/** The result of a battle of several parties: the survivors of each, in the order given. */
+export interface PartiesResult {
+  winner: BattleResult['winner'];
+  rounds: number;
+  att: Levels[];
+  def: Levels[];
+}
+
+/** A unit and the party it fights for. */
+type Fighter = Unit & { party: number };
+
+/** The units of all parties of one side, each marked with its party. */
+const sideOf = (sides: readonly Side[]): Fighter[] =>
+  sides.flatMap((side, party) =>
+    buildSide(side).map((u) => Object.assign(u, { party })),
+  );
+
+/** The survivors of each party of a side. */
+const survivors = (units: Fighter[], parties: number): Levels[] =>
+  Array.from({ length: parties }, (_, i) =>
+    count(units.filter((u) => u.party === i)),
+  );
+
+/**
+ * A battle of several parties on each side (#55, patterns, section 5): every
+ * unit shoots at a random unit of the other side, whatever party it belongs
+ * to; the losses come back per party. With one party on each side it draws
+ * exactly as `battle`.
+ */
+export function battleOf(
+  attackers: readonly Side[],
+  defenders: readonly Side[],
   rng: Rng = Math.random,
-): BattleResult {
-  let a = buildSide(attacker);
-  let d = buildSide(defender);
+): PartiesResult {
+  let a = sideOf(attackers);
+  let d = sideOf(defenders);
   let rounds = 0;
   for (let r = 1; r <= MAX_ROUNDS && a.length && d.length; r++) {
     rounds = r;
@@ -130,5 +160,25 @@ export function battle(
     a = alive(a);
     d = alive(d);
   }
-  return { winner: winnerOf(a, d), rounds, att: count(a), def: count(d) };
+  return {
+    winner: winnerOf(a, d),
+    rounds,
+    att: survivors(a, attackers.length),
+    def: survivors(d, defenders.length),
+  };
+}
+
+/** The battle of one attacker and one defender. */
+export function battle(
+  attacker: Side,
+  defender: Side,
+  rng: Rng = Math.random,
+): BattleResult {
+  const res = battleOf([attacker], [defender], rng);
+  return {
+    winner: res.winner,
+    rounds: res.rounds,
+    att: res.att[0]!,
+    def: res.def[0]!,
+  };
 }

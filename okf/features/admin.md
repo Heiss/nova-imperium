@@ -97,6 +97,8 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 | Inactive from („Inaktiv ab (Tage)“, #229) | 7 (not in version 1), [E] owner 2026-11-16 | 1 to 365 [V]; also in „Neue Runde“ (X1) |
 | Long inactive from („Lange inaktiv ab (Tage)“, #229) | 28 (not in version 1), [E] owner 2026-11-16 | 1 to 365 [V]; also in „Neue Runde“ (X1) |
 | Thresholds of foreign fleets, levels of the Auspex-Lehre („Fremde Flotten: Schiffe insgesamt ab Auspex-Lehre“, „… Schiffstypen …“, „… Anzahl je Schiffstyp …“, #228) | 2 / 4 / 8 (not in version 1), [E] owner 2026-11-16 | 0 to 100, [E] owner 2026-11-18; also in the dialog „Neue Runde“ in a framed group „Fremde Flotten erkennen“, [E] owner 2026-11-17 (X1) and 2026-11-18 |
+| Who may hold („Halten erlaubt für“, #55) | „Gilde und Freunde“ (3; not in version 1) [V] | a selection: „Gilde“ (1), „Freunde“ (2), „Gilde und Freunde“ (3) [V]; also in the dialog „Neue Runde“, [E] owner 2026-11-17 (X1) |
+| Held fleets apart in the spy report from the spy's Auspex-Lehre („Gehaltene Flotten im Auspex-Bericht ab Auspex-Lehre“, #55) | 2 (not in version 1), [E] owner 2026-11-17 | 0 to 30 [V]; also in the dialog „Neue Runde“, [E] owner 2026-11-17 (X1) |
 | Marketplace („Marktplatz“, #171): twelve live settings in one fieldset „Marktplatz“, orders 320 to 430: on (1/0), six ratios per pair, price step, drift hours, limit per day (0 = none), fee at level 1 in percent, points the fee falls per level | 1 / 500, 250, 2000, 500, 4000, 2000 [E] owner 2026-11-19 / 5 / 24 / 100,000 [V] / 10 / 1 [E] | 0 to 1, 1 to 100,000, 1 to 1,000, 1 to 720, 0 to 10,000,000, 0 to 100, 0 to 100 [V]; also in „Neue Runde“ (X1); see [Marketplace](/features/marketplace.md) |
 | Refund factor of a demolition („Rückbau-Erstattung (%)“, #202) | +50 (not in version 1) | −100 to +100, [E] owner 2026-11-16; also in the dialog „Neue Runde“, [E] owner 2026-11-17 (X1) |
 | Time of a demolition („Rückbau-Dauer (% der Bauzeit)“, #202) | 50 (not in version 1) | 1 to 200, [E] owner 2026-11-17; also in the dialog „Neue Runde“, [E] owner 2026-11-17 (X1) |
@@ -121,7 +123,8 @@ universe settings) and their ranges are not decided yet.
 | Minimum duration of the [vacation mode](/features/vacation-mode.md) | #223 D1 | default 24 h (owner, 2026-11-16) |
 | Lock of a [given-up colony's](/features/abandon-colony.md) position, in whole hours from 1 to 720 [V] | #224 D2, X1 | default 24 h (owner, 2026-11-16); built in the dialog „Neue Runde“ and, changeable during the round, in the universe settings (owner, 2026-11-17, X1) |
 | Lock after a switch of the [main planet](/features/main-planet.md), in whole days from 1 to 30 [V] | #221 D3 | default 7 days (owner, 2026-11-16); built in the dialog „Neue Runde“ |
-| Who may hold, join an attack union and fight with friends: guild, friends or both ([Holding and ACS](/features/holding-acs.md), [Buddy list](/features/buddy-list.md)) | #55 Q2, #225 D2, #227 D3 | [V] guild and friends, the classic rule for holding |
+| Who may hold, join an attack union and fight with friends: guild, friends or both ([Holding and ACS](/features/holding-acs.md), [Buddy list](/features/buddy-list.md)) | #55 Q2, #225 D2, #227 D3 | [V] guild and friends, the classic rule for holding; built with #55 as „Halten erlaubt für“ (`roundAllies`) in the dialog „Neue Runde“ and the universe settings (X1) |
+| Held fleets in the spy report from the spy's Auspex-Lehre („Gehaltene Flotten im Auspex-Bericht ab Auspex-Lehre“, [Holding and ACS](/features/holding-acs.md)) | #55 (owner, 2026-11-17) | 2; built as `roundHeldSpy` in „Neue Runde“ and the universe settings (X1), 0 to 30 [V] |
 | Limits of an attack union ([Holding and ACS](/features/holding-acs.md)) | #225 D3 | classic value: 16 fleets of 5 players, a delay of at most 30 % of the remaining flight time; join window [U] |
 | Thresholds of the recognition of incoming fleets ([Espionage defense](/features/espionage-defense.md)), in whole levels from 0 to 100 [E] (owner, 2026-11-18) | #228 D1, X1 | classic value: espionage technology 2 / 4 / 8 (source [U]); built in the dialog „Neue Runde“ and, changeable during the round, in the universe settings (owner, 2026-11-17, X1) |
 | Thresholds of the [activity indicators](/features/activity-indicators.md) | #229 Q1, X1 | classic value: star 15 min, „x min“ up to 59 min, „i“ after 7 days, „I“ after 28 days; built in the dialog „Neue Runde“ and, changeable during the round, in the universe settings (owner, 2026-11-17, X1) |
@@ -132,6 +135,13 @@ universe settings) and their ranges are not decided yet.
 * **[E]** Each of these is set by the admin per round (owner, 2026-11-16).
   The classic defaults are decided where the table says „classic value“,
   with the sources in the linked files.
+* **[E]** The values per round are set in the dialog „Neue Runde“ and stay
+  editable in the admin panel during the round (owner, 2026-11-17, X1).
+  **[V]** Built with #55 on the registry of #283 (below): each of its two
+  values is an entry with `live: true`, so it is a row of `UNIVERSE_SPECS`
+  under the key the round stores it, and the tab „Universum“ changes it
+  live; a setting with named choices (`choices`) shows a selection there
+  instead of a number.
 
 ## The registry of the round settings (#283)
 
@@ -151,6 +161,17 @@ universe settings) and their ranges are not decided yet.
   „Aktivität“ (owner, 2026-11-18), so they stand in one fieldset of the
   dialog, are sent as one object and every wrong one is refused at once
   with the range wording; all four are `live`.
+* **[V]** Added with #55, in the pattern of #310, in
+  `src/core/holding.ts` (`roundSettings`): „Halten erlaubt für“ (key
+  `roundAllies`, name `allies`, order 100, the choices „Gilde“ 1, „Freunde“
+  2 and „Gilde und Freunde“ 3, default 3, refusal „Bitte auswählen, wer in
+  der neuen Runde halten darf.“) and „Gehaltene Flotten im Auspex-Bericht
+  ab Auspex-Lehre“ (key `roundHeldSpy`, name `heldSpy`, order 110, 0 to 30,
+  default 2, refusal „Bitte für „Gehaltene Flotten im Auspex-Bericht ab
+  Auspex-Lehre“ eine ganze Zahl von 0 bis 30 angeben.“). Both are `live`
+  (X1): the admin sets them in „Neue Runde“ and changes them during the
+  round in the universe settings, where a wrong value gets the wording of
+  the universe settings. They are no group: two fields without a fieldset.
 * **[E]** The registry keeps a fixed order, so #283 changes nothing
   visible (owner, 2026-11-17): every entry has an explicit number `order`,
   like the catalog entries, and the dialog „Neue Runde“ and the order of
@@ -158,7 +179,8 @@ universe settings) and their ranges are not decided yet.
   reward options (10, 20), the guild switch (30), the lock of the main
   planet (40), the lock of a given-up position (50, last). A new feature
   appends at the end with its own number: the thresholds of the activity
-  markers (#229) took 60, 70, 80 and 90.
+  markers (#229) took 60, 70, 80 and 90, and #55 took 100 (who may hold) and 110 (the level
+  of the spy report).
 * **[V]** An entry has its stored `key` (`round…`), its `name` in
   `RoundRules` and in the request, its German `label`, and is either a
   switch (`kind: 'switch'`, default yes or no, a `refusal`, an optional
@@ -176,7 +198,8 @@ universe settings) and their ranges are not decided yet.
   like the other settings (X1, owner, 2026-11-17). The lock of a given-up
   position (#224) and, after it, the four thresholds of the activity
   markers (#229) are the live settings of main, the last rows of the
-  universe settings; the other four entries are not live.
+  universe settings, followed by the two settings of #55; the other four
+  entries are not live.
 * **[V]** Added with #228 in the pattern of #310: the three thresholds of
   the recognition of foreign fleets
   ([Espionage defense](/features/espionage-defense.md)) are the entries of
@@ -221,7 +244,8 @@ universe settings) and their ranges are not decided yet.
   in `src/core/guild-chat.ts`, the lock of the main planet in
   `src/core/main-planet.ts`, the lock of a given-up position in
   `src/core/abandon.ts`, the activity thresholds in `src/core/activity.ts`,
-  the thresholds of the recognition of foreign fleets in
+  who may hold and the level of the spy report in `src/core/holding.ts`, the
+  thresholds of the recognition of foreign fleets in
   `src/core/fleet-recognition.ts`.
 * **[V]** The marketplace (#171) is the first group of live numbers with a
   legend of its own „Marktplatz“: twelve entries in `src/core/market.ts`, orders

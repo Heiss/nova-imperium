@@ -1,6 +1,7 @@
 import { SHIPS, canFly } from '../../core/catalog.ts';
 import { fleetSlots, shipSpeed } from '../../core/flight.ts';
-import { MISSION } from '../../core/missions.ts';
+import { HOLD_HOURS } from '../../core/holding.ts';
+import { MISSION, missionRules } from '../../core/missions.ts';
 import { jumpPanel } from '../logic/jump-gate.ts';
 import { moonAt } from '../logic/moon.ts';
 import { text } from '../../core/text.ts';
@@ -37,6 +38,22 @@ function shipRows(v: V): string {
     .join('');
 }
 
+/** „1 Stunde“, „2 Stunden“. */
+const hours = (h: number): string => (h === 1 ? '1 Stunde' : `${h} Stunden`);
+
+/**
+ * The row „Haltezeit“ (#55): the classic holding times, 1 hour preselected
+ * [V]; shown only while the chosen mission holds (main.ts switches it).
+ */
+export function holdRow(mission: string): string {
+  const options = HOLD_HOURS.map(
+    (h) =>
+      `<option value="${h}"${h === 1 ? ' selected' : ''}>${hours(h)}</option>`,
+  ).join('');
+  const hidden = missionRules(mission)?.holds ? '' : ' hidden';
+  return `<tr id="t_hold"${hidden}><td><label for="t_h">Haltezeit</label></td><td><select id="t_h">${options}</select></td></tr>`;
+}
+
 const CARGO = [
   ['m', 'Adamant'],
   ['c', 'Psikristall'],
@@ -69,6 +86,7 @@ function targetForm(v: V, slotsFull: boolean): string {
   return `<table class="kv">
   <tr><td>Ziel</td><td><input class="c3" type="number" id="t_g" value="${t.g}" min="1" max="${u.galaxies}" aria-label="Galaxie">:<input class="c3" type="number" id="t_s" value="${t.s}" min="1" max="${u.systems}" aria-label="System">:<input class="c3" type="number" id="t_p" value="${t.p}" min="1" max="${u.positions}" aria-label="Position"> ${kinds} <span id="t_info" class="dim"></span></td></tr>
   <tr><td>Auftrag</td><td><select id="t_m" aria-label="Auftrag">${missions}</select></td></tr>
+  ${holdRow(ui.fm ?? Object.keys(MISSION)[0]!)}
   <tr><td>Geschwindigkeit</td><td><select id="t_v" aria-label="Geschwindigkeit">${speeds}</select></td></tr>
   <tr><td>Ladung (Adamant / Psikristall / Promethium)</td><td>${cargoFields} <span class="lnk" data-act="cmax">alles (gleichmäßig)</span></td></tr>
   <tr><td>Entfernung</td><td id="i_dist">-</td></tr><tr><td>Flugdauer (eine Richtung)</td><td id="i_dur">-</td></tr>

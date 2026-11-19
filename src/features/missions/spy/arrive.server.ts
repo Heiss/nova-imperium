@@ -1,11 +1,13 @@
 // An Auspex-Erkundung reports the target to its owner, warns the defender,
 // and may be shot down; else it flies back. Its formulas are in
-// src/core/spy.ts, which the Lexicanum reads too (#285).
+// src/core/spy.ts, which the Lexicanum reads too (#285). The fleets that hold
+// at the target (#55) show in the fleet of the report.
 import { countUnits } from '../../../core/flight.ts';
 import { placeName } from '../../../core/moon.ts';
 import { counterChance, spyParts, spyScore } from '../../../core/spy.ts';
 import type { Fleet } from '../../../core/types.ts';
 import { type Ctx, addReport, coords } from '../../../server/game/context.ts';
+import { withHeldFleets } from '../../../server/game/holding.ts';
 import {
   type Arrival,
   researchAt,
@@ -20,7 +22,8 @@ export function onArrive(ctx: Ctx, f: Fleet, at: Arrival): void {
   const chance = counterChance(countUnits(t.ships), diff);
   const lost = ctx.rng() * 100 < chance;
   const details = { ships: t.ships, def: t.def, b: t.b, r: defR };
-  const shown = Object.fromEntries(spyParts(score).map((k) => [k, details[k]]));
+  const parts = Object.fromEntries(spyParts(score).map((k) => [k, details[k]]));
+  const shown = withHeldFleets(ctx, t, attR.spy ?? 0, parts);
   addReport(
     ctx,
     f.owner,

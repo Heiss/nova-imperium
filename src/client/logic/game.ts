@@ -13,7 +13,10 @@ import {
   fleetSpeed,
   flightMs,
   fuelFor,
+  holdFuel,
 } from '../../core/flight.ts';
+import { HOUR_MS, dueAt } from '../../core/holding.ts';
+import { missionRules } from '../../core/missions.ts';
 import { isProtected as protects } from '../../core/protection.ts';
 import type {
   Coords,
@@ -23,6 +26,7 @@ import type {
   Resources,
   Universe,
 } from '../../core/types.ts';
+import { dt } from './format.ts';
 import type { ClientFleet, Players, Report } from './types.ts';
 
 export function ranks(players: Players): Record<string, number> {
@@ -42,8 +46,9 @@ export const isProtected = (
 export const nameOf = (players: Players, id: string): string =>
   players[id]?.name ?? 'Unbekannt';
 
+/** When a fleet is due: its arrival, the end of its holding (#55) or its return. */
 export const fleetEnd = (f: ClientFleet): number =>
-  f.state === 'out' ? f.arr : (f.ret ?? f.arr);
+  dueAt({ ...f, ret: f.ret ?? f.arr });
 
 export const sortFleets = (list: ClientFleet[]): ClientFleet[] =>
   list.slice().sort((a, b) => fleetEnd(a) - fleetEnd(b));
@@ -85,17 +90,42 @@ export interface FleetForm {
   mission: string;
   pct: number;
   cargo: Resources;
+  /** The holding time of a Halten in hours (#55). */
+  hold?: number;
 }
 
 export interface FleetPreview {
   dist: number;
   ms: number;
+  /** How long a Halten holds, in milliseconds (#55); 0 for the others. */
+  hold: number;
   fuel: number;
   cap: number;
   load: number;
   fuelShort: boolean;
   overload: boolean;
 }
+
+/** Whether the fleet of the form holds at its target (#55). */
+const holdsFor = (f: FleetForm): boolean =>
+  missionRules(f.mission)?.holds === true;
+
+/** The fuel of the form: the flight, and the holding time of a Halten (#55, D2). */
+const formFuel = (f: FleetForm, dist: number): number =>
+  fuelFor(f.ships, dist, f.pct) +
+  (holdsFor(f) ? holdFuel(f.ships, f.hold ?? 0) : 0);
+
+/**
+ * „Ankunft / Rückkehr“ of the form: a mission that stays at its target
+ * (deploy, #129) has no return, a Halten comes back after its holding time
+ * (#55).
+ */
+export const arrivalLine = (
+  mission: string,
+  now: number,
+  pv: Pick<FleetPreview, 'ms' | 'hold'>,
+): string =>
+  `${dt(now + pv.ms)} / ${missionRules(mission)?.returns === false ? '–' : dt(now + 2 * pv.ms + pv.hold)}`;
 
 export function fleetPreview(
   p: Planet,
@@ -105,12 +135,13 @@ export function fleetPreview(
 ): FleetPreview | null {
   if (!countUnits(f.ships)) return null;
   const dist = distance(p, f.to);
-  const fuel = fuelFor(f.ships, dist, f.pct);
+  const fuel = formFuel(f, dist);
   const cap = capacity(f.ships);
   const load = f.cargo.m + f.cargo.c + f.cargo.d;
   return {
     dist,
     ms: flightMs(dist, fleetSpeed(f.ships, r), f.pct, u),
+    hold: holdsFor(f) ? (f.hold ?? 0) * HOUR_MS : 0,
     fuel,
     cap,
     load,
@@ -126,7 +157,8 @@ export const CARGO: CargoKey[] = ['m', 'c', 'd'];
 /** What a flight can load: whole units, Promethium after the fuel. */
 function loadable(p: Planet, f: FleetForm): Resources {
   // Without ships the holds are empty, whatever the fuel.
-  const fuel = fuelFor(f.ships, distance(p, f.to), f.pct);
+  // The fuel of a Wache stellen includes its holding time (#55, D2).
+  const fuel = formFuel(f, distance(p, f.to));
   return {
     m: Math.floor(p.res.m),
     c: Math.floor(p.res.c),

@@ -30,6 +30,23 @@ const WINNER: Record<string, string> = {
 
 const lv = (x: unknown): Levels => (x as Levels | undefined) ?? {};
 
+/** A fleet that held at the planet and defended it (#55). */
+interface HeldSide {
+  name: string;
+  before: Levels;
+  after: Levels;
+  tech: Levels;
+}
+
+/** Each fleet that held fights as a defender of its own (#55). */
+const heldSides = (r: Report): string =>
+  ((r.held as HeldSide[] | undefined) ?? [])
+    .map(
+      (h) =>
+        `<div><b class="good">Verteidiger ${esc(h.name)}</b><div class="dim">${techLine(lv(h.tech))}</div>${unitTable(lv(h.before), lv(h.after), Object.keys(SHIPS))}</div>`,
+    )
+    .join('');
+
 function battleBody(r: Report): string {
   const rebuilt = lv(r.rebuilt);
   const loot = r.loot as Resources | undefined;
@@ -49,17 +66,37 @@ function battleBody(r: Report): string {
     .join('');
   return `<div>Schlacht bei ${esc(r.name)} ${coords(r.coords as Coords)} · ${esc(r.rounds)} Runde(n)</div>
   <div class="cols mt"><div><b class="fl-attack">Angreifer ${esc(r.attName)}</b><div class="dim">${techLine(lv(r.attTech))}</div>${unitTable(lv(r.attBefore), lv(r.attAfter), Object.keys(SHIPS))}</div>
-  <div><b class="good">Verteidiger ${esc(r.defName)}</b><div class="dim">${techLine(lv(r.defTech))}</div>${unitTable(lv(r.defBefore), lv(r.defAfter), Object.keys(UNIT))}${rb}</div></div>
+  <div><b class="good">Verteidiger ${esc(r.defName)}</b><div class="dim">${techLine(lv(r.defTech))}</div>${unitTable(lv(r.defBefore), lv(r.defAfter), Object.keys(UNIT))}${rb}</div>${heldSides(r)}</div>
   <p><b>${WINNER[String(r.winner)] ?? ''}</b>${lootLine}${debrisHTML}</p>`;
 }
 
 function section(title: string, o: unknown, keys: string[]): string {
   if (!o) return '';
-  const list = keys
-    .filter((k) => (lv(o)[k] ?? 0) > 0)
-    .map((k) => `${text(k)?.n}: ${fmt(lv(o)[k])}`)
-    .join(' · ');
+  const list = unitList(lv(o), keys);
   return `<div class="mt"><b>${title}</b><br>${list || '<span class="dim">keine</span>'}</div>`;
+}
+
+/** The ships of a section, „Name: n · …“, or none. */
+const unitList = (o: Levels, keys: string[]): string =>
+  keys
+    .filter((k) => (o[k] ?? 0) > 0)
+    .map((k) => `${text(k)?.n}: ${fmt(o[k])}`)
+    .join(' · ');
+
+/**
+ * The fleets that hold at the planet, apart from its fleet, when the spy's
+ * Auspex-Lehre reaches the round's level (#55, owner, 2026-11-17).
+ */
+function heldSection(r: Report): string {
+  const held = r.held as { name: string; ships: Levels }[] | undefined;
+  if (!held?.length) return '';
+  const rows = held
+    .map(
+      (h) =>
+        `${esc(h.name)}: ${unitList(lv(h.ships), Object.keys(SHIPS)) || '<span class="dim">keine</span>'}`,
+    )
+    .join('<br>');
+  return `<div class="mt"><b>Gehaltene Flotten</b><br>${rows}</div>`;
 }
 
 function spyBody(r: Report): string {
@@ -71,7 +108,7 @@ function spyBody(r: Report): string {
       ? ' · Mehr Spähschädel oder Auspex-Lehre zeigen mehr Details.'
       : '';
   return `<div>Rohstoffe auf ${esc(r.name)} ${coords(r.coords as Coords)} (Spieler ${esc(r.defName)}):<br><b>${resLine(r.res as Resources)}</b></div>
-   ${section('Flotte', r.ships, Object.keys(SHIPS))}${section('Verteidigung', r.def, Object.keys(DEF))}${section('Gebäude', r.b, Object.keys(BUILD))}${section('Forschung', r.r, Object.keys(RES))}
+   ${section('Flotte', r.ships, Object.keys(SHIPS))}${heldSection(r)}${section('Verteidigung', r.def, Object.keys(DEF))}${section('Gebäude', r.b, Object.keys(BUILD))}${section('Forschung', r.r, Object.keys(RES))}
    <div class="dim mt">Chance auf Auspex-Abwehr: ${esc(r.counter)} %${lost}${hint}</div>`;
 }
 

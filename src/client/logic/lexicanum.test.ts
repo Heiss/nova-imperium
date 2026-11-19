@@ -343,6 +343,8 @@ describe('an article of a mission', () => {
       ships: ['recycler'],
     });
     expect(missionShips('attack')).toBeNull();
+    // A Wache stellen takes every ship, though its own check asks for an ally (#55).
+    expect(missionShips('hold')).toBeNull();
   });
 
   it('shows the facts of its rules and links its ships', () => {
@@ -410,6 +412,22 @@ describe('an article of a mission', () => {
       ...common('Trümmerfeld', 'nein', 'ja', 'ja'),
       ['Schiffe', 'braucht Bergungsbarke'],
     ]);
+    // [V]: the target kind of #55 is named after the refusal of the mission.
+    expect(facts('hold')).toEqual(
+      common('Planet eines Gildenmitglieds oder Freundes', 'ja', 'ja', 'ja'),
+    );
+  });
+
+  it('finds a Wache stellen by its keywords, with the first sentence of its text below the hit (#55)', () => {
+    for (const word of ['verteidigen', 'stationieren', 'beistehen'])
+      expect(flatHits(searchHits(word)).map((h) => h.id)).toContain(
+        'mission-hold',
+      );
+    const hit = flatHits(searchHits('Wache stellen'))[0]!;
+    expect(hit).toMatchObject({ id: 'mission-hold' });
+    expect(hit.line).toBe(
+      'Am Ziel, dem Planeten eines Gildenmitglieds oder Freundes, bleibt die Flotte für die Haltezeit, die du beim Start wählst (von 0 bis 32 Stunden), und verteidigt den Planeten in jedem Kampf zusammen mit seinem Besitzer.',
+    );
   });
 
   it('says what happens on arrival before the facts, with its links', () => {

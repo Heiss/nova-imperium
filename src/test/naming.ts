@@ -131,6 +131,8 @@ export const MISSIONS = {
   colonize: { classic: 'Kolonisieren', name: 'Landnahme' },
   deploy: { classic: 'Stationieren', name: 'Verlegung' },
   harvest: { classic: 'Abbauen', name: 'Bergung' },
+  // #55: „Wache stellen“ (owner, 2026-11-17), not „Wacht halten“ of #94.
+  hold: { classic: 'Halten', name: 'Wache stellen' },
 } as const;
 
 /**

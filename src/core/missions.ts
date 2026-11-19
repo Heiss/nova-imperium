@@ -11,11 +11,13 @@ import { missionText } from './text.ts';
 import type { Levels, Mission, Planet } from './types.ts';
 
 /**
- * What a mission flies to: an own planet, a foreign one, any planet, a
- * free position without a planet, or a Trümmerfeld (#45), which is a place
- * of its own beside a planet at the same position (#119).
+ * What a mission flies to: an own planet, a foreign one, the planet of an
+ * ally (#55), any planet, a free position without a planet, or a
+ * Trümmerfeld (#45), which is a place of its own beside a planet at the same
+ * position (#119). The planet of an ally is a foreign planet; whether its
+ * owner is an ally is the mission's own check.
  */
-export type TargetKind = 'own' | 'foreign' | 'any' | 'free' | 'debris';
+export type TargetKind = 'own' | 'foreign' | 'ally' | 'any' | 'free' | 'debris';
 
 /**
  * Why a fleet cannot be sent, as a code; the server turns it into today's
@@ -34,7 +36,10 @@ export type SendError =
   | 'noDebris'
   | 'noRecycler'
   | 'noMoon'
-  | 'moonTarget';
+  | 'moonTarget'
+  | 'notAlly'
+  | 'holdFleets'
+  | 'holdPlayers';
 
 /** The fleet a player wants to send: its owner, its origin and its ships. */
 export interface SendFleet {
@@ -66,6 +71,16 @@ export interface SendTarget {
    * asked: after the other checks of a foreign target.
    */
   protects(owner: string): boolean;
+  /**
+   * Whether `owner` is an ally of the sender under the admin's setting of
+   * the round (#55, Q2). The server determines it; only a Halten asks.
+   */
+  ally?(owner: string): boolean;
+  /**
+   * The owners of the fleets that hold at the planet or fly there to hold,
+   * one per fleet (#55); only a Halten asks.
+   */
+  holding?(): readonly string[];
 }
 
 /** The typed data and the send check of one mission (its rules.ts). */
@@ -84,6 +99,11 @@ export interface MissionRules {
    * of that guild (#169 D3, „Nur beim Start“): the attack only.
    */
   readonly alertsGuild: boolean;
+  /**
+   * Whether the fleet stays at the target for a holding time the player
+   * chooses, burning fuel for it, and defends it (#55): the Halten only.
+   */
+  readonly holds: boolean;
   /** The check of the mission itself, after the target kind; a code or nothing. */
   canSend(fleet: SendFleet, target: SendTarget): SendError | undefined;
 }
@@ -119,6 +139,7 @@ export function suits(
   if (kind === 'free') return !planet;
   if (!planet) return false;
   if (kind === 'any') return true;
+  // The planet of an ally is a foreign planet (#55).
   return (planet.owner === owner) === (kind === 'own');
 }
 
@@ -136,6 +157,14 @@ const NEVER_MOON: readonly TargetKind[] = ['free', 'debris'];
 const nothing = (target: SendTarget): SendError =>
   target.moon ? 'noMoon' : 'noPlanet';
 
+/** The code of a planet that does not suit the kind; a foreign kind gets `ownTarget`. */
+const OTHER: Partial<Record<TargetKind, SendError>> = {
+  own: 'notOwn',
+  ally: 'notAlly',
+};
+
+/** The kinds that fly to a foreign planet, which the noob protection keeps. */
+const FOREIGN: readonly TargetKind[] = ['foreign', 'ally'];
 /** A free position: no planet there, and no lock after an abandonment (#224, D2). */
 function freeError(target: SendTarget): SendError | undefined {
   if (target.planet) return 'occupied';
@@ -152,10 +181,10 @@ function targetError(
   if (kind === 'free') return freeError(target);
   if (!t) return nothing(target);
   if (t.id === fleet.from) return 'samePlanet';
-  if (!suits(kind, fleet.owner, t))
-    return kind === 'own' ? 'notOwn' : 'ownTarget';
-  // Asked last, and only here: the server needs every player's points.
-  return kind === 'foreign' && target.protects(t.owner)
+  if (!suits(kind, fleet.owner, t)) return OTHER[kind] ?? 'ownTarget';
+  // Asked last, and only here: the server needs every player's points. No
+  // fleet holds at a player in the noob protection either (#55 [V]).
+  return FOREIGN.includes(kind) && target.protects(t.owner)
     ? 'protected'
     : undefined;
 }

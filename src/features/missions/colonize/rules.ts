@@ -12,6 +12,7 @@ export const cargo = true;
 export const returns = true;
 export const silent = false;
 export const alertsGuild = false;
+export const holds = false;
 /** A colony needs a Kolonistenarche in the fleet. */
 export const canSend = (fleet: SendFleet): SendError | undefined =>
   fleet.ships.colony ? undefined : 'noColonyShip';

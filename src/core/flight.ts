@@ -75,6 +75,20 @@ export function fuelFor(ships: Levels, dist: number, pct: number): number {
   return Math.round(f) + 1;
 }
 
+/**
+ * The fuel of holding (#55, owner, 2026-11-16, D2, classic): a tenth of the
+ * base consumption per ship and hour, max(⌊Σ ships × base consumption ×
+ * hours / 10⌋, 1), paid at the launch with the flight fuel.
+ */
+export function holdFuel(ships: Levels, hours: number): number {
+  let f = 0;
+  for (const [k, n] of Object.entries(ships)) {
+    const m = mobileOf(k);
+    if (m && n > 0) f += m.fuel * n;
+  }
+  return Math.max(Math.floor((f * hours) / 10), 1);
+}
+
 /** What a deploy unloads of the fuel it burnt: half, rounded down (#129). */
 export const deployFuel = (fuel: number): number => Math.floor(fuel / 2);
 

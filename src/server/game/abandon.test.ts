@@ -286,6 +286,41 @@ describe('the refusals', () => {
     expect(ctx.fleets.all()).toHaveLength(1);
   });
 
+  it('counts a fleet that holds as a flight: at the planet or its moon, or from it to another planet (#55, D1)', () => {
+    const holds = { mission: 'hold', state: 'hold', hold: HOUR_MS } as const;
+    for (const f of [
+      fleet({ ...holds }),
+      fleet({ ...holds, to: MOON }),
+      fleet({
+        ...holds,
+        owner: 'u_Anna',
+        from: COLONY,
+        fromC: AT,
+        to: 'p1_2_5',
+        toC: { g: 1, s: 2, p: 5 },
+      }),
+      fleet({
+        ...holds,
+        owner: 'u_Anna',
+        from: MOON,
+        fromC: AT,
+        to: 'p1_2_5',
+        toC: { g: 1, s: 2, p: 5 },
+      }),
+    ]) {
+      const ctx = world();
+      ctx.fleets.save(f);
+      refused(ctx, ABANDON_ERROR.flights);
+    }
+    // A fleet that holds at an unrelated planet does not stop it.
+    const ctx = world();
+    ctx.fleets.save(
+      fleet({ ...holds, to: 'p1_1_5', toC: { g: 1, s: 1, p: 5 } }),
+    );
+    giveUp(ctx);
+    expect(ctx.planets.get(COLONY)).toBeNull();
+  });
+
   it('refuses while research runs on the planet or its moon (D1)', () => {
     const queue = { key: 'energy', lvl: 1, start: START, end: START + 1e6 };
     for (const planet of [COLONY, MOON]) {
