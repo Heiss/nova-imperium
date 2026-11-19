@@ -54,3 +54,49 @@ Psikristall, then Promethium without the fuel, up to the capacity
   under its field.
 * E2E in `e2e/fleet-cargo.spec.ts` (desktop and phone, axe on the form);
   the fleet-form flow of `e2e/flows.spec.ts` uses the even fill.
+
+# Missions that fit the target, and the Schnellwahl (#253)
+
+Issue #253 with three „Geklärt“ comments (owner, 2026-11-16 and 2026-11-17).
+The fleet form is still the string view `src/client/views/fleet.ts` on this
+branch, so it is built there, not in a Svelte component.
+
+* **[E]** The list „Auftrag“ shows only the missions that fit the target at
+  the entered coordinates; the others are hidden, not disabled. When the
+  chosen mission no longer fits after the coordinates change, the list
+  switches to the first one that fits, in today's order.
+* **[E]** The filter is a pure function in `src/core` (`missionsFor`,
+  `src/core/mission-fit.ts`) on the target kind of each mission's rules; a
+  moon target is decided by the kind of the moon. **[V]** It is built on the
+  server's own check: `sendError` of `src/core/missions.ts` is now
+  `fitError` (the target kind, which asks nothing of the ships) and then the
+  mission's `canSend`, so the browser and the server cannot disagree. The
+  ships a player picked do not change the list (a Landnahme stays listed
+  before an ark is picked).
+* **[E]** A Trümmerfeld adds „Bergung“ to the missions that fit the planet or
+  the free position there. **[E]** While the target is the start planet
+  itself no mission is offered.
+* **[V]** What the browser cannot know stays offered, and the server refuses
+  it as today: the noob protection of another player, his vacation mode
+  (#223), and who is an ally for „Wache stellen“ (#55). The browser knows a
+  lock after an abandonment (#224) from the state and keeps the free missions
+  out of a locked position, as the server does.
+* **[V]** While no mission fits (the start planet as the target, a moon that
+  is not there, a locked position without a Trümmerfeld) the list shows one
+  disabled entry „Kein Auftrag passt zum Ziel“ and „Flotte losschicken“ is
+  blocked; the form starts at the start planet, so it is blocked until the
+  coordinates change. **[E]** „Ziel wird geprüft …“ shows only once a real
+  lookup exists: the browser has every planet of the universe in its state,
+  so there is no lookup and the text is not built.
+* **[E]** The form gets a select labelled „Schnellwahl“ with the player's
+  other planets and moons; choosing one enters its coordinates (and
+  planet or moon) as the target, and the mission list follows. Entries read
+  „Name [g:s:p]“, a moon „Name (Mond) [g:s:p]“ as on the Sternenkarte; the
+  first entry is „– wählen –“. **[V]** Entries by position, a planet before
+  its moon; after choosing, the select goes back to „– wählen –“; it is
+  disabled without another own place.
+* Code: `src/core/mission-fit.ts`; `fitTarget`, `offeredMissions`,
+  `missionOptions`, `ownQuickTargets`, `quickOptions` in
+  `src/client/logic/fleet-target.ts`; the lists and their update in
+  `src/client/views/fleet.ts` and `src/client/features/fleet.ts`
+  (`missionList`, `quickChoice`).
