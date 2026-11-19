@@ -80,6 +80,10 @@ describe('the registry of the round settings', () => {
         expect(s.refusal?.length, s.key).toBeGreaterThan(0);
   });
 
+  /** The value of a running round without a stored one: `unstored`, else the default (#237). */
+  const unstoredOr = (s: { def: number; unstored?: number }): number =>
+    s.unstored ?? s.def;
+
   it('makes every live entry a row of the universe settings, after the others and in the registry order (X1)', () => {
     const live = settings.filter(isLive);
     expect(liveSpecs().map((s) => s.key)).toEqual(live.map((s) => s.key));
@@ -87,9 +91,14 @@ describe('the registry of the round settings', () => {
       expect(
         UNIVERSE_SPECS.find((u) => u.key === s.key),
         s.key,
-      ).toMatchObject({ label: s.label, min: s.min, max: s.max, def: s.def });
+      ).toMatchObject({
+        label: s.label,
+        min: s.min,
+        max: s.max,
+        def: unstoredOr(s),
+      });
       expect(DEFAULT_UNIVERSE[s.key as keyof typeof DEFAULT_UNIVERSE]).toBe(
-        s.def,
+        unstoredOr(s),
       );
     }
     const rows = UNIVERSE_SPECS.filter((u) => u.key.startsWith('round'));

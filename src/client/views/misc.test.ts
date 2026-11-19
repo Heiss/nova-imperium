@@ -111,10 +111,13 @@ describe('the dialog „Neue Runde“', () => {
 
   it('shows one field for every setting of the registry, in the order of its numbers (owner, 2026-11-17)', () => {
     const html = roundDialog(defaults());
-    // The notes below a field are named after it; they are no fields.
+    // The notes below a field are named after it and the preview line of a
+    // group is a line (#237); they are no fields.
     const ids = [...html.matchAll(/ id="(round-[a-z-]+)"/g)]
       .map((m) => m[1])
-      .filter((id) => !id!.endsWith('-note'));
+      .filter(
+        (id) => !id!.endsWith('-note') && !id!.startsWith('round-preview-'),
+      );
     expect(ids).toEqual(ROUND_SETTINGS.map(roundFieldId));
   });
 
@@ -127,12 +130,62 @@ describe('the dialog „Neue Runde“', () => {
       const fieldset = html.slice(html.indexOf(open)).split('</fieldset>')[0]!;
       const members = ROUND_SETTINGS.filter((s) => s.group?.legend === legend);
       expect(
-        [...fieldset.matchAll(/ id="(round-[a-z-]+)"/g)].map((m) => m[1]),
+        [...fieldset.matchAll(/ id="(round-[a-z-]+)"/g)]
+          .map((m) => m[1])
+          .filter((id) => !id!.startsWith('round-preview-')),
       ).toEqual(members.map(roundFieldId));
     }
     const outside = html.replace(/<fieldset>[\s\S]*?<\/fieldset>/g, '');
     for (const s of ROUND_SETTINGS.filter((x) => !x.group?.legend))
       expect(outside, s.key).toContain(` id="${roundFieldId(s)}"`);
+  });
+
+  it('hides the planets per level and the highest level while the colony research is off, with the break before each (#237)', () => {
+    const off = roundDialog({ ...defaults(), colonyResearch: 0 });
+    const hiddenIds = [
+      ...off.matchAll(/<span data-round-field="([a-z-]+)" hidden>/g),
+    ].map((m) => m[1]);
+    expect(hiddenIds).toEqual([
+      'round-colony-per-level',
+      'round-colony-max-level',
+    ]);
+    const on = roundDialog({ ...defaults(), colonyResearch: 1 });
+    expect(on).toContain('<span data-round-field="round-colony-per-level">');
+    expect(on).not.toMatch(/data-round-field="[a-z-]+" hidden/);
+    // Hidden, the field stays in the page and keeps its value, so it is sent.
+    expect(off).toContain(' id="round-colony-per-level"');
+  });
+
+  it('shows the preview line of the planet limit below its fields, for the current round (#237)', () => {
+    const html = roundDialog({
+      ...defaults(),
+      colonyBase: 6,
+      colonyResearch: 1,
+      colonyPerLevel: 2,
+      colonyMaxLevel: 4,
+    });
+    const fieldset = html
+      .slice(html.indexOf('<legend>Planetengrenze</legend>'))
+      .split('</fieldset>')[0]!;
+    expect(fieldset).toContain(
+      '<p class="dim" id="round-preview-colonies" aria-live="polite">Vorschau: Ohne Forschung: 6 Planeten · Stufe 1: 8 · Stufe 2: 10 · Stufe 3: 12 · Stufe 4: 14.</p>',
+    );
+    // A group without a preview gets no line.
+    expect(html.match(/id="round-preview-/g)).toHaveLength(1);
+  });
+
+  it('preselects the planet limit with what a new round starts with where the running round has no value of its own (#237)', () => {
+    const base = (html: string): string =>
+      /<input type="number" id="round-colony-base"[^>]*>/.exec(html)?.[0] ?? '';
+    const running = { ...defaults(), colonyBase: 0 };
+    expect(base(roundDialog(running))).toContain('value="0"');
+    expect(
+      base(roundDialog(running, ROUND_SETTINGS, { colonyBase: 6 })),
+    ).toContain('value="6"');
+    // The preview line follows what is preselected.
+    expect(roundDialog(running, ROUND_SETTINGS, { colonyBase: 6 })).toContain(
+      'Vorschau: 6 Planeten',
+    );
   });
 
   it('has one box „Gilden (mit Chat)“, preselected with the current round (#191)', () => {

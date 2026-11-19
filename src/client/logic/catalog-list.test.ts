@@ -464,6 +464,25 @@ describe('research', () => {
     ).not.toContain('colonial');
   });
 
+  it('adds the line „Kolonialverwaltung Stufe 3/4 · …“ above the time to the row of the research (#237)', () => {
+    const v = view({ ...lab, research: { colonial: 3 } });
+    v.s.cfg = {
+      ...U,
+      roundColonyBase: 6,
+      roundColonyResearch: 1,
+      roundColonyPerLevel: 2,
+      roundColonyMaxLevel: 4,
+    };
+    const lines = row(v, 'research', 'colonial').lines;
+    expect(lines).toHaveLength(2);
+    expect(lines[0]).toBe(
+      'Kolonialverwaltung Stufe 3/4 · +2 Planeten je Stufe · nächste Stufe: maximal 14 Planeten',
+    );
+    expect(lines[1]).toMatch(/^Forschungszeit: /);
+    // No other research gets one.
+    expect(row(v, 'research', 'energy').lines).toHaveLength(1);
+  });
+
   it('names how many labs the research network links', () => {
     const line = (ifn: number) =>
       opened(catalogPage(view({ ...lab, research: { ifn } }), 'research')).line

@@ -5,6 +5,7 @@
 // them (src/client/logic/round-archive.ts). Everything is a fact of the
 // cutoff or derived from facts on read; nothing here is stored as a total
 // (owner, 2026-11-16: no stored statistics).
+import { activeMs, type Interval, union } from './playtime.ts';
 import type { Levels, Resources } from './types.ts';
 
 export type RoundStatus = 'active' | 'closed';
@@ -59,6 +60,49 @@ export interface RoundClosed {
   cutoff: number;
   participants: number;
 }
+
+/**
+ * The payload of the event `player.playtime` (#235 × #232, D2): the accepted
+ * intervals of active time of one participant in the round, merged where they
+ * touch or overlap (so two pages count once), as `[start, end]` pairs in UTC
+ * milliseconds up to the cutoff, and the versions of the method that measured
+ * them. No page, no sequence number, no session: the report derives the sum
+ * on read (`playtimeMs`); the intervals are no stored total.
+ */
+export interface PlayerPlaytime {
+  methods: number[];
+  intervals: [number, number][];
+}
+
+/** An accepted interval as the table stores it: with the method that measured it. */
+export type MeasuredInterval = Interval & { method: number };
+
+/**
+ * The payload of one participant from the stored intervals of the round:
+ * what lies after the cutoff is cut off (a closed round is frozen), the rest
+ * merged. A participant without active time gets empty lists, which is
+ * a measured zero, not an unknown value.
+ */
+export function playtimePayload(
+  rows: readonly MeasuredInterval[],
+  cutoff: number,
+): PlayerPlaytime {
+  const kept = rows
+    .filter((r) => r.start < cutoff && r.end > r.start)
+    .map((r) => ({ ...r, end: Math.min(r.end, cutoff) }));
+  return {
+    methods: [...new Set(kept.map((r) => r.method))].sort((a, b) => a - b),
+    intervals: union(kept).map((i): [number, number] => [i.start, i.end]),
+  };
+}
+
+/** The active time of an archived payload in milliseconds, each real second once. */
+export const playtimeMs = (p: PlayerPlaytime): number =>
+  activeMs(
+    p.intervals.map(([start, end]) => ({ start, end })),
+    0,
+    Number.MAX_SAFE_INTEGER,
+  );
 
 /** One row of the participant overview of a report. */
 export interface ReportRow {
@@ -151,8 +195,10 @@ export interface RoundReport {
   rows: ReportRow[];
   guilds: { tag: string; name: string; members: number; points: number }[];
   /**
-   * The estimated playtime per seat, shared after the round ended (D2). Null
-   * until #231 and #232 record it: this is the place where the report shows it.
+   * The estimated active play time in milliseconds per seat, derived on read
+   * from the events `player.playtime` and shared with every reader of a
+   * finished round (D2). Null for a provisional report (during the round the
+   * time stays private) and for a round closed before it was archived.
    */
   playtime: Record<number, number> | null;
 }

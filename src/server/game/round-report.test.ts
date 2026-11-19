@@ -83,9 +83,9 @@ describe('the report of a finished round', () => {
     expect(r.round.rules).toMatchObject({ number: 1 });
   });
 
-  it('keeps the playtime slot for #231 and #232: not recorded yet', () => {
+  it('shows the play time of the archived round: a measured zero without recorded time', () => {
     const ctx = twoRounds();
-    expect(report(ctx, 'Anna', 1).playtime).toBeNull();
+    expect(report(ctx, 'Anna', 1).playtime).toEqual({ 1: 0, 2: 0, 3: 0 });
   });
 
   it('leaves out the ids of the other players', () => {

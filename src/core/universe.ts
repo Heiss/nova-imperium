@@ -40,7 +40,7 @@ export const liveSpecs = (
             label: s.label,
             min: s.min,
             max: s.max,
-            def: s.def,
+            def: s.unstored ?? s.def,
             ...(s.choices ? { choices: s.choices } : {}),
             ...(s.agrees ? { agrees: s.agrees, refusal: s.refusal } : {}),
           },

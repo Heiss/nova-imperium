@@ -24,7 +24,7 @@ import {
 import { isDemolition } from '../../core/demolition.ts';
 import { type OrderError, orderErrors } from '../../core/economy-checks.ts';
 import { activeDrive, shipSpeed } from '../../core/flight.ts';
-import { researchListed } from '../../core/colony-limit.ts';
+import { researchListed, researchNote } from '../../core/colony-limit.ts';
 import { hasLab } from '../../core/lab.ts';
 import { placeName } from '../../core/moon.ts';
 import {
@@ -392,6 +392,7 @@ function researchRow(v: V, key: string): CatalogRow {
     lab === (P.b.lab ?? 0) ? '' : ` (Scholarien zusammen Stufe ${lab})`;
   const short = energyShort(def, level + 1, P, s.cfg, R.research);
   const state = researchState(P, R, key, s.cfg);
+  const note = researchNote(key, s.cfg, level);
   return {
     ...entry(v, key, 'ic-r', stage(level)),
     levels: levelsOf(v, key),
@@ -401,7 +402,7 @@ function researchRow(v: V, key: string): CatalogRow {
       energyNeed(def, level + 1),
       () => production(P, s.cfg, R.research).eProd,
     ),
-    lines: [`Forschungszeit: ${dur(time)}${linked}`],
+    lines: [...(note ? [note] : []), `Forschungszeit: ${dur(time)}${linked}`],
     req: def.req,
     action: researchAction(v, state, level, short),
   };

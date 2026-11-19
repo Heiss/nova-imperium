@@ -7,6 +7,7 @@ import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import { roundDefaults } from '../test/fixtures.ts';
 import {
+  freshValues,
   ROUND_SETTINGS,
   type RoundSetting,
   roundRefused,
@@ -54,8 +55,14 @@ const isValid = (s: RoundSetting, value: unknown): boolean =>
 
 describe('the values stored by a round', () => {
   it('are the default when missing, yes or no for a switch (0 is no, any other number yes), the number as stored', () => {
+    // A running round without a stored value has the `unstored` value of an entry that has one (#237).
     expect(storedValues(() => undefined)).toEqual(
-      Object.fromEntries(settings.map((s) => [s.name, s.def])),
+      Object.fromEntries(
+        settings.map((s) => [
+          s.name,
+          s.kind === 'number' ? (s.unstored ?? s.def) : s.def,
+        ]),
+      ),
     );
     const stored = Object.fromEntries(
       settings.map((s) => [
@@ -196,5 +203,46 @@ describe('the check of a new round', () => {
         );
       }),
     );
+  });
+});
+
+describe('the default of a new round where the running round has no value (#237)', () => {
+  const entry = (over: Partial<RoundSetting> = {}): RoundSetting =>
+    ({
+      kind: 'number',
+      key: 'roundLimit',
+      name: 'limit',
+      label: 'Grenze',
+      order: 1,
+      min: 0,
+      max: 20,
+      def: 6,
+      unstored: 0,
+      ...over,
+    }) as RoundSetting;
+
+  it('reads the `unstored` value in the running round and `def` for an entry without one', () => {
+    const plain = entry({
+      key: 'roundPlain',
+      name: 'plain',
+      unstored: undefined,
+    });
+    expect(storedValues(() => undefined, [entry(), plain])).toEqual({
+      limit: 0,
+      plain: 6,
+    });
+  });
+
+  it('names only the entries with an `unstored` value and no stored one, with their default', () => {
+    const plain = entry({
+      key: 'roundPlain',
+      name: 'plain',
+      unstored: undefined,
+    });
+    expect(freshValues(() => undefined, [entry(), plain])).toEqual({
+      limit: 6,
+    });
+    expect(freshValues(() => 0, [entry(), plain])).toEqual({});
+    expect(freshValues(() => 3, [entry(), plain])).toEqual({});
   });
 });

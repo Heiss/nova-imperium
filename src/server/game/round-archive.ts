@@ -12,6 +12,9 @@
 import { production } from '../../core/economy.ts';
 import {
   type FinalPlace,
+  type MeasuredInterval,
+  type PlayerPlaytime,
+  playtimePayload,
   type GuildFinal,
   type PlayerFinal,
   type Valuation,
@@ -31,6 +34,8 @@ export const ROUND_EVENT = {
   started: 'round.started',
   player: 'player.final',
   guild: 'guild.final',
+  /** The accepted play time of one participant in the round (#232, D2): merged intervals, no total. */
+  playtime: 'player.playtime',
   closed: 'round.closed',
   /** An admin intervention the history must annotate (issue #235, section 3): the settings and the Endzeit. */
   settings: 'admin.settings',
@@ -173,6 +178,27 @@ export function openRound(ctx: Ctx): void {
 }
 
 /**
+ * The play time of #232 as events of the round, so the archive's lifetime
+ * and the pseudonym apply to it: per participant the merged intervals of the
+ * round, frozen at the cutoff. The rows of `playtime_events` stay (they go
+ * when the admin deletes the round).
+ */
+function playtimeEvents(
+  ctx: Ctx,
+  round: number,
+  cutoff: number,
+  facts: RoundFacts,
+): [number, PlayerPlaytime][] {
+  const measured = new Map<string, MeasuredInterval[]>();
+  for (const [user, interval] of ctx.playtime.activeInRound(round, cutoff))
+    measured.set(user, [...(measured.get(user) ?? []), interval]);
+  return facts.players.map((p) => [
+    p.seat,
+    playtimePayload(measured.get(p.user.id) ?? [], cutoff),
+  ]);
+}
+
+/**
  * Closes the running round and writes its archive; a round that is closed
  * already stays as it is. Everything or nothing: a check that fails throws,
  * and the transaction of the caller rolls back.
@@ -199,6 +225,8 @@ export function closeActiveRound(ctx: Ctx): RoundRow {
     });
     emit(ROUND_EVENT.player, p.seat, p.final);
   }
+  for (const [seat, payload] of playtimeEvents(ctx, number, cutoff, facts))
+    emit(ROUND_EVENT.playtime, seat, payload);
   for (const g of facts.guilds)
     emit(ROUND_EVENT.guild, null, { tag: g.tag, name: g.name, seats: g.seats });
   emit(ROUND_EVENT.closed, null, {
@@ -211,6 +239,8 @@ export function closeActiveRound(ctx: Ctx): RoundRow {
   const complete =
     ctx.rounds.participants(number).length === facts.players.length &&
     finals.length === facts.players.length &&
+    ctx.rounds.events(number, ROUND_EVENT.playtime).length ===
+      facts.players.length &&
     ctx.rounds.countEvents(number) === before + written;
   if (!complete)
     fail('Das Archiv der Runde ist unvollständig. Es wurde nichts geändert.');
