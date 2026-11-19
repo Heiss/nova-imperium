@@ -223,7 +223,7 @@ function rankChange(me: Inside, id: string, name: string): string {
         `<option value="${esc(r.id)}"${r.id === me.ranks.members[id] ? ' selected' : ''}>${esc(r.name)}</option>`,
     )
     .join('');
-  return `<select id="rank_of_${esc(id)}" aria-label="Neuer Rang für ${esc(name)}">${options}</select>
+  return `<select id="rank_of_${esc(id)}" class="rank-select" aria-label="Neuer Rang für ${esc(name)}">${options}</select>
       <button class="small" data-act="guildAssign" data-uid="${esc(id)}">Rang ändern</button>`;
 }
 

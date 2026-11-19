@@ -17,6 +17,7 @@ import {
   MAX_GUILD_RANKS,
   MAX_RANK_NAME,
   memberPlace,
+  MIN_RANK_NAME,
   rankNameError,
   type GuildRight,
 } from '../../core/guild-ranks.ts';
@@ -112,7 +113,7 @@ function managed(ctx: Ctx, uid: string, id: unknown) {
 }
 
 const NAME_ERROR = {
-  length: 'Der Rangname braucht 2 bis 67 Zeichen.',
+  length: `Der Rangname braucht ${MIN_RANK_NAME} bis ${MAX_RANK_NAME} Zeichen.`,
   taken: 'Diesen Rangnamen gibt es in der Gilde schon.',
 };
 

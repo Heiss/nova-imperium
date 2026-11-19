@@ -276,3 +276,64 @@ describe('the admin reads a guild chat (#169, D8)', () => {
     ).toContain('Noch keine Nachrichten.');
   });
 });
+
+describe('rank names in the guild view (#277)', () => {
+  /** The Leitung's page; Ada holds a rank whose name is older than the limit. */
+  function leader(oldName: string): string {
+    const rights: GuildRight[] = ['ranks', 'assign', 'remove'];
+    const state = {
+      directory: [
+        {
+          id: 'g1',
+          tag: 'OR',
+          name: 'Outer Rim',
+          html: '',
+          members: [
+            { id: 'u_Lea', name: 'Lea', points: 10 },
+            { id: 'u_Ada', name: 'Ada', points: 5 },
+          ],
+          score: 15,
+          average: 7,
+        },
+      ],
+      own: { id: 'g1', status: 'member' },
+      management: { id: 'g1', description: '', pending: [] },
+      ranks: {
+        lead: 'u_Lea',
+        rank: 'r0',
+        rights,
+        default: 'r1',
+        list: [
+          { id: 'r0', name: 'Leitung', rights },
+          { id: 'r1', name: oldName, rights: [] },
+        ],
+        members: { u_Lea: 'r0', u_Ada: 'r1' },
+      },
+      chat: null,
+    } as unknown as GuildState;
+    const s = {
+      me: { id: 'u_Lea' },
+      guilds: state,
+      admin: null,
+    } as unknown as GameState;
+    return guilds({ s, ui: { guild: 'g1' } } as unknown as V);
+  }
+
+  it('limits the inputs to 24 characters and still shows an older, longer name in full', () => {
+    const old = 'Ehrenwerter Großadmiral der Äußeren Randwelten und Kolonien';
+    expect(old.length).toBeGreaterThan(24);
+    const html = leader(old);
+    expect(html).toContain('id="rank_new" minlength="2" maxlength="24"');
+    expect(html).toContain('minlength="2" maxlength="24" value="Ehrenwerter');
+    expect(html).toContain(`value="${old}"`);
+    expect(html).toContain(`<legend>${old} · Standardrang</legend>`);
+    expect(html).toContain(`<td class="rank">${old}</td>`);
+    expect(html).toContain(`>${old}</option>`);
+  });
+
+  it('marks the „Rang ändern“ list so that a long name does not widen the page', () => {
+    expect(leader('Mitglied')).toContain(
+      '<select id="rank_of_u_Ada" class="rank-select"',
+    );
+  });
+});

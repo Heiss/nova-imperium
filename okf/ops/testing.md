@@ -555,6 +555,15 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   change (owner, 2026-11-11): actionlint (syntax, expressions, shell) and
   zizmor (security). Every action is pinned to a commit hash with the version
   as a comment; Renovate updates both (`helpers:pinGitHubActionDigests`).
+  **[V]** The comment names the exact release (`# v7.0.1`), never a moving
+  major tag (`# v7`): when upstream moved such a tag, zizmor reported that
+  hash and comment no longer match and „Workflow lint“ failed on every pull
+  request (2026-11-18, `actions/create-github-app-token`, set to `# v3.3.0`
+  by #299; #303). The owner has not chosen among the options of #303; this
+  is option 1 and follows #299. **[U]** That Renovate writes the exact
+  version into the comment when it updates such a pin (otherwise the
+  preset `helpers:pinGitHubActionDigestsToSemver` is the option 2) is not
+  verified.
   Checkouts keep no credentials, except where a job pushes with the release
   App's token: `tag.yml` (`scripts/release.sh` pushes the tag),
   `release-pr.yml` (`scripts/release-pr.sh` pushes `release/<branch>`) and

@@ -256,7 +256,7 @@ and F10 in that pull request.]
 * **F17** (rule) Rank names: `views/guilds.ts:219` and `:245` carry
   `minlength`, but the inputs sit in no form and `main.ts` calls no
   `checkValidity`, so only `maxlength` holds; the server refuses with „Der
-  Rangname braucht 2 bis 67 Zeichen.“ (`guild-ranks.ts:110`).
+  Rangname braucht 2 bis 24 Zeichen.“ (`guild-ranks.ts:110`; 67 until #277).
 
 Checks only the server makes, besides those of „What counts“: the 20 orders
 of the shipyard (`actions.ts:52` and `:256-257`; the browser leaves „Bauen“
@@ -267,7 +267,7 @@ taken, and every rule of `claimDailyReward` beyond the state.
 Notes, no disagreement:
 
 * Numbers written into messages beside their constant in `src/core`:
-  „2 bis 67“ (`guild-ranks.ts:110`, `MIN_RANK_NAME`, `MAX_RANK_NAME`),
+  „2 bis 24“ (`guild-ranks.ts:110`, `MIN_RANK_NAME`, `MAX_RANK_NAME`),
   „25“ (`guild-ranks.ts:131`, `MAX_GUILD_RANKS`), „1 bis 4.320“
   (`endzeit.ts:55`, `GIFT_MINUTES`).
 * `actions.ts:253` „Diesen Schutzdom gibt es nur einmal pro Planet.“ is the

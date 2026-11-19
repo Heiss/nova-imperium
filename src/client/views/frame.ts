@@ -2,6 +2,7 @@ import { type Component, mount, unmount } from 'svelte';
 import type { HeaderLine } from '../logic/header.ts';
 import type { Navigation } from '../logic/navigation.ts';
 import type { ResourceBar as Bar } from '../logic/resource-bar.ts';
+import { keepHeaderInView } from '../logic/sticky-header.ts';
 import Header from './Header.svelte';
 import Menu from './Menu.svelte';
 import MoreList from './MoreList.svelte';
@@ -40,8 +41,10 @@ function show<Props extends Record<string, unknown>>(
 }
 
 /** The header line of the shown place. */
-export const showHeader = (line: HeaderLine): void =>
+export function showHeader(line: HeaderLine): void {
+  watchHeader();
   show('pinfo', Header, { line });
+}
 
 /** The menu, the tab bar and the list of „Mehr“. */
 export function showNavigation(nav: Navigation): void {
@@ -57,4 +60,28 @@ export const showResourceBar = (bar: Bar): void =>
 /** Signed out: the frame is empty. */
 export function clearFrame(): void {
   for (const place of PLACES) empty(place);
+}
+
+let watching = false;
+
+// The header and the side menu stay in view while the page scrolls (#193):
+// the CSS gets the lengths of the header from keepHeaderInView() of
+// logic/sticky-header.ts, measured at the first header shown and whenever the
+// header or the resource bar changes size. Started here, not when the module
+// loads, so a test can import the frame without a page.
+function watchHeader(): void {
+  if (watching) return;
+  watching = true;
+  keepHeaderInView({
+    header: document.querySelector('header')!,
+    logo: document.querySelector<HTMLElement>('header .logo')!,
+    resources: document.getElementById('resbar')!,
+    setProperty: (name, value) =>
+      document.documentElement.style.setProperty(name, value),
+    observe: (target, measure) => new ResizeObserver(measure).observe(target),
+    toggle: (name, on) => document.documentElement.classList.toggle(name, on),
+    scrolled: () => window.scrollY > 0,
+    onScroll: (listener) =>
+      window.addEventListener('scroll', listener, { passive: true }),
+  });
 }
