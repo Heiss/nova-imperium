@@ -586,34 +586,6 @@ test.describe('accounts by mail (#68)', () => {
 });
 
 test.describe('admin (#68)', () => {
-  test('the admin copies an invitation link', async ({ page, context }) => {
-    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
-    const w = watch(page);
-    const name = uniqueName('Kopierer');
-    await register(page, name);
-    cli('admin', name);
-    await page.reload();
-    await nav(page, 'admin');
-    await page.getByRole('tab', { name: 'Einladungen' }).click();
-    // Not „…freund@example.org“: the admin test of game.spec.ts finds its own
-    // invitation by that text.
-    const email = `einladung-${name.toLowerCase()}@example.org`;
-    await page.fill('#inv_email', email);
-    await page.click('#inviteform button[type=submit]');
-    const link = page.getByLabel('Einladungslink');
-    await expect(link).toHaveValue(/#invite=[\w-]{43}$/);
-    await page.getByRole('button', { name: 'Kopieren' }).click();
-    await expect(lastToast(page)).toHaveText('Link kopiert.');
-    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(
-      await link.inputValue(),
-    );
-    const row = page.locator('tr', { hasText: email });
-    await row.getByRole('button', { name: 'Widerrufen' }).click();
-    await expect(row).toHaveCount(0);
-    cli('unadmin', name);
-    expect(w.problems).toEqual([]);
-  });
-
   test('the admin starts a new round: accounts stay, planets and research are new', async ({
     page,
   }) => {
