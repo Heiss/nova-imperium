@@ -134,7 +134,7 @@ The battle with several parties is built with #55
     attacker wins. 1 hour is preselected in the form.
   * „alles“ of the fleet form (#240) leaves the fuel of the holding time
     on the planet too, as the flight fuel.
-  * The spy report (`spyFleetSeen` in `src/server/game/holding.ts`, one
+  * The spy report (`withHeldFleets` in `src/server/game/holding.ts`, one
     call of the arrival of the Auspex-Erkundung): the setting is
     `roundHeldSpy`, range 0 to 30 [V], the second entry of `roundSettings`
     in `src/core/holding.ts` (#283, #310), order number 110, and `live` (X1): a
