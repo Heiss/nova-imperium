@@ -516,6 +516,8 @@ describe('CatalogList against the views before #118', () => {
     );
   });
 
+  // 300 runs: a new catalog entry (#171) changes the generated states, and
+  // 150 no longer reached every notice with the seed.
   it('reaches every action and notice', () => {
     const seen = new Set<string>();
     fc.assert(
@@ -525,7 +527,7 @@ describe('CatalogList against the views before #118', () => {
           for (const mark of MARKS) if (html.includes(mark)) seen.add(mark);
         }
       }),
-      { seed: 118, numRuns: 150 },
+      { seed: 118, numRuns: 300 },
     );
     expect([...seen].sort()).toEqual([...MARKS].sort());
   });

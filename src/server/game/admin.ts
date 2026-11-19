@@ -57,6 +57,8 @@ function newRound(ctx: Ctx, rules: RoundRules): void {
   ctx.guilds.clearChats();
   ctx.fleets.deleteAll();
   ctx.debris.deleteAll();
+  // The prices and the amounts of the day start over (#171).
+  ctx.market.clear();
   ctx.db.exec(`
     DELETE FROM push_jobs;
     DELETE FROM achievement_progress;

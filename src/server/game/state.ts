@@ -23,6 +23,7 @@ import { guildState } from './guilds.ts';
 import { gateState } from './jump-gate.ts';
 import { mainPlanetOf, mainPlanetView } from './main-planet.ts';
 import { achievementState } from './achievements.ts';
+import { marketState } from './market.ts';
 import { roundRules } from './round.ts';
 import { pointsMap } from './points.ts';
 
@@ -171,6 +172,8 @@ export function stateFor(
     debris: ctx.debris.all(),
     // Every position locked after an abandonment, for the Sternenkarte (#224).
     locks: ctx.planets.locks(ctx.now()),
+    // The prices of the marketplace and what the player gave today (#171).
+    market: marketState(ctx, u),
     admin: adminState(ctx, u),
   };
 }

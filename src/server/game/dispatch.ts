@@ -21,6 +21,7 @@ import { scan } from './phalanx.ts';
 import { jump } from './jump-gate.ts';
 import { chooseMainPlanet } from './main-planet.ts';
 import { abandon } from './abandon.ts';
+import { exchange } from './market.ts';
 import {
   answerFriend,
   cancelFriend,
@@ -84,6 +85,7 @@ export const ACTIONS: Record<string, A.Action> = {
   options: A.options,
   mainPlanet: chooseMainPlanet,
   abandon,
+  trade: exchange,
   pushOptions,
   read: A.read,
   delrep: A.delrep,
