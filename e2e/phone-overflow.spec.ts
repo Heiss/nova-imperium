@@ -27,13 +27,32 @@ const VIEWS = [
   'admin',
 ];
 
-/** How far the page reaches past the screen, with a pixel for rounding. */
+/**
+ * How far the page reaches past the screen, with a pixel for rounding. A
+ * failure names the elements that reach furthest, so the CI log shows what
+ * made the page wide.
+ */
 async function overflow(page: Page, label: string): Promise<string[]> {
-  const { scroll, client } = await page.evaluate(() => ({
-    scroll: document.documentElement.scrollWidth,
-    client: document.documentElement.clientWidth,
-  }));
-  return scroll > client + 1 ? [`${label}: ${scroll} px > ${client} px`] : [];
+  const { scroll, client, wide } = await page.evaluate(() => {
+    const client = document.documentElement.clientWidth;
+    const wide = [...document.querySelectorAll('body *')]
+      .map((el) => ({ el, right: el.getBoundingClientRect().right }))
+      .filter((x) => x.right > client + 1)
+      .sort((a, b) => b.right - a.right)
+      .slice(0, 3)
+      .map(
+        (x) =>
+          `${x.el.tagName.toLowerCase()}.${x.el.className} to ${Math.round(x.right)} px`,
+      );
+    return {
+      scroll: document.documentElement.scrollWidth,
+      client,
+      wide,
+    };
+  });
+  return scroll > client + 1
+    ? [`${label}: ${scroll} px > ${client} px (${wide.join(', ')})`]
+    : [];
 }
 
 test('no view is wider than a 360 px phone (#189) @phone', async ({ page }) => {
