@@ -10,11 +10,16 @@
 //     a source with the ending ".svelte.ts" (state.test.ts tests
 //     state.svelte.ts), and in src/test/ the script of the same name in
 //     scripts/ (size-ratchet.test.ts tests scripts/size-ratchet.ts).
+//   - the files whose floor in mutation-standard.json was added, changed or
+//     removed, when only the floors changed (a pull request that raises or
+//     adds a floor proves it in its own run; a removed floor is checked
+//     against the new-file minimum); any other change of that file runs
+//     everything (#309, the coordinator, 2026-11-18).
 // A test file with no such source adds nothing, and neither does a test
 // helper (src/test/** and src/server/test-helpers.ts that are no *.test.ts):
 // the nightly complete run (mutation.yml) tests them. A change of the
-// mutation configuration (as scripts/mutation-changes.ts, #146) or of the
-// versions of Stryker, Vitest or TypeScript in the lockfile still runs
+// mutation configuration (as scripts/mutation-changes.ts, #146, but
+// mutation-standard.json counts only as above) or of the versions of Stryker, Vitest or TypeScript in the lockfile still runs
 // everything, in the 6 shards.
 //
 //   node scripts/mutation-partial.ts plan <from> [<to>]
@@ -83,11 +88,79 @@ export function partialSet(
   return [...set].sort();
 }
 
+const STANDARD = 'mutation-standard.json';
+/** The keys of mutation-standard.json (scripts/mutation-gate.ts, Standard). */
+const STANDARD_KEYS = ['floors', 'newFile', 'security', 'securityTarget'];
+
+/** A plain JSON object, or undefined for text that is none. */
+function objectOf(
+  text: string | undefined,
+): Record<string, unknown> | undefined {
+  let value: unknown;
+  try {
+    value = JSON.parse(text ?? '');
+  } catch {
+    return undefined;
+  }
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : undefined;
+}
+
+/** The floors of a parsed mutation-standard.json: a plain object of numbers. */
+function floorsOf(
+  standard: Record<string, unknown>,
+): Record<string, number> | undefined {
+  const floors = standard.floors;
+  return typeof floors === 'object' &&
+    floors !== null &&
+    !Array.isArray(floors) &&
+    Object.values(floors).every((v) => typeof v === 'number')
+    ? (floors as Record<string, number>)
+    : undefined;
+}
+
+/**
+ * What a change of mutation-standard.json from <before> to <after> (the
+ * texts of the file) runs: the files whose floor was added, changed or
+ * removed when ONLY floors changed, else the reason to run everything. Only
+ * floors changed when both texts are JSON objects with exactly the keys
+ * floors, newFile, security and securityTarget, each floor is a number, and
+ * newFile, security and securityTarget are equal on both sides (compared as
+ * JSON, so a changed order of "security" counts as a change). A file that is
+ * missing or no such object on either side runs everything.
+ */
+export function floorChanges(
+  before: string | undefined,
+  after: string | undefined,
+): { files: string[] } | { reason: string } {
+  const old = objectOf(before);
+  const now = objectOf(after);
+  const known = (o: Record<string, unknown> | undefined): boolean =>
+    o !== undefined &&
+    Object.keys(o).sort().join() === STANDARD_KEYS.join() &&
+    floorsOf(o) !== undefined;
+  if (!old || !now || !known(old) || !known(now))
+    return { reason: `${STANDARD} is not of the form this script knows` };
+  const other = STANDARD_KEYS.filter(
+    (k) => k !== 'floors' && JSON.stringify(old[k]) !== JSON.stringify(now[k]),
+  );
+  if (other.length)
+    return {
+      reason: `${STANDARD} changes more than the floors: ${other.join(', ')}`,
+    };
+  const was = floorsOf(old)!;
+  const is = floorsOf(now)!;
+  const files = new Set([...Object.keys(was), ...Object.keys(is)]);
+  return { files: [...files].filter((f) => was[f] !== is[f]).sort() };
+}
+
 /**
  * What the changes from <from> to <to> run: reasons to run everything (the
- * mutation configuration or the test tool chain changed), else the files of
- * the partial run. git runs a git command and returns its output; exists
- * tells whether a file is in the checked-out tree.
+ * mutation configuration or the test tool chain changed, or more than the
+ * floors of mutation-standard.json), else the files of the partial run. git
+ * runs a git command and returns its output; exists tells whether a file is
+ * in the checked-out tree.
  */
 export function plan(
   from: string,
@@ -97,14 +170,32 @@ export function plan(
   exists: (file: string) => boolean,
 ): { reasons: string[]; files: string[] } {
   const changed = changedFiles(from, to, git);
+  // mutation-standard.json is a mutation configuration for the complete
+  // runs (scripts/mutation-changes.ts), but here only its floors count.
+  const config = MUTATION_CONFIG.filter((p) => p !== STANDARD);
   const reasons = changed
-    .filter((f) => matchesAny(f, MUTATION_CONFIG))
+    .filter((f) => matchesAny(f, config))
     .map((f) => `${f} configures the mutation run`);
   const tools = lockfileReason(changed, from, to, git);
   if (tools) reasons.push(tools);
+  let floors: string[] = [];
+  if (changed.includes(STANDARD)) {
+    const show = (rev: string): string | undefined => {
+      try {
+        return git(['show', `${rev}:${STANDARD}`]);
+      } catch {
+        return undefined;
+      }
+    };
+    const found = floorChanges(show(from), show(to));
+    if ('reason' in found) reasons.push(found.reason);
+    else floors = found.files;
+  }
   return {
     reasons,
-    files: reasons.length ? [] : partialSet(changed, mutate, exists),
+    files: reasons.length
+      ? []
+      : partialSet([...changed, ...floors], mutate, exists),
   };
 }
 
