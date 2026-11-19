@@ -984,6 +984,12 @@ textarea:focus-visible {
   .scores td:nth-child(2) {
     overflow-wrap: anywhere;
   }
+  /* The points keep their width as long as the row has room (the name gives
+     way first); a number wider than the row breaks instead of pushing the
+     page wider (CI of #316: a seeded level of 100 gave 31 digits). */
+  .scores td.n {
+    overflow-wrap: anywhere;
+  }
   .scores th:nth-child(3),
   .scores .home {
     display: none;

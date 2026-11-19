@@ -58,7 +58,9 @@ test.describe('the Vermessung (#190)', () => {
       0,
     );
 
-    seed({ name, research: { carto: 100 } });
+    // Level 5 gives a score of 11 with one probe, the full report; a level
+    // of 100 would put 31 digits of points on the highscore of every test.
+    seed({ name, research: { carto: 5 } });
     await page.reload();
     await homeSystem(page);
     const button = page.getByRole('button', { name: 'Vermessen' }).first();
