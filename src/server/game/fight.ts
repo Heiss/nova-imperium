@@ -124,7 +124,7 @@ export interface Held {
 }
 
 /** A fleet that held and fought: what is left of it. */
-export interface HeldFight extends Held {
+interface HeldFight extends Held {
   after: Levels;
 }
 

@@ -20,13 +20,7 @@ import { vacationProtects } from './vacation.ts';
  * mission's own check.
  */
 export type TargetKind =
-  | 'own'
-  | 'foreign'
-  | 'ally'
-  | 'any'
-  | 'free'
-  | 'debris'
-  | 'foreignMoon';
+  'own' | 'foreign' | 'ally' | 'any' | 'free' | 'debris' | 'foreignMoon';
 
 /**
  * Why a fleet cannot be sent, as a code; the server turns it into today's
