@@ -164,7 +164,6 @@ describe('the rules of every mission (contract)', () => {
       target: 'foreign',
       cargo: false,
       returns: false,
-      visible: true,
       alertsGuild: false,
     });
     expect(missile.canSend(fleet0, target0)).toBeUndefined();

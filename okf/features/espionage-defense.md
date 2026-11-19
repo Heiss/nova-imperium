@@ -135,6 +135,16 @@ points were answered on 2026-11-16.
 * **[V]** D2 replaces the rule of #116 that only the attack shows its
   ships: the field `visible` of the missions' `rules.ts` is gone, and every
   foreign fleet follows the thresholds.
+* **[V]** The missions that came after #228 (bundle 2 of the Classic
+  features, merged 2026-11-19) follow the same model, taken as recommended
+  from D2 and the notes of the features, none needs a rule of its own: the
+  Mondbruch (#95) flies at a foreign moon and is shown to its owner like
+  an attack (the old `visible: true`); a Raketenangriff (#54) is shown like
+  a foreign fleet, its missiles counting as its ships ([Missiles](/features/missiles.md));
+  a Vermessung (#190) flies to a free position, where no defender
+  exists, so nobody sees it (the old `visible: false`; the filter of
+  `stateFor()` lists only flights to the shown planet of the observer).
+  The fields `visible` of the three rules are gone.
 * **[V]** The thresholds are three entries of the registry of the round
   settings (#283, see
   [Admin](/features/admin.md#the-registry-of-the-round-settings-283)),

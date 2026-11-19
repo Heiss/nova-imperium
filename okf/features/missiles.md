@@ -102,7 +102,7 @@ above.
   intercepted when they stand on the target itself).
 * **[E]** Flight as the mission `missile` (patterns, section 4): the
   folder `src/features/missions/missile/` with `rules.ts` (order 90: the Mondbruch has 70 and the Vermessung 80 in the bundle, each order once; target
-  `foreign`, no cargo, no return, visible to the defender, no guild alert),
+  `foreign`, no cargo, no return, no guild alert),
   `texts.de.ts` („Raketenangriff“) and `arrive.server.ts` (the impact).
   `MissionRules` has the optional field `launch` (`'fleet'` by default,
   `'missiles'` for this mission, `launchOf()`): the fleet form offers only
@@ -162,13 +162,22 @@ above.
     only after the last defense (now [E], above);
   * the places of the silo count the missiles in the shipyard queue too;
   * the defender sees the missiles coming in the overview (now [E],
-    above): built through `visible` of the mission and `foreignView` of
-    `src/server/game/state.ts`, the path of every foreign fleet. #228 is
-    not on `main` yet (2026-11-17); its thresholds of the Auspex-Lehre
-    (`src/core/fleet-recognition.ts` on `claude/incoming-fleets`) apply to
-    every foreign fleet, so they reach the missiles at that one place.
-    TODO for #228: check that `foreignView` applies them to the mission
-    `missile` too.
+    above): built through `foreignView` of `src/server/game/state.ts`, the
+    path of every foreign fleet. #228 is on `main` and the thresholds of
+    the Auspex-Lehre (`src/core/fleet-recognition.ts`) apply to the
+    flight like to a fleet: the missiles of the flight are its ships, so
+    `seenShips()` gives their total number from the first threshold, their
+    type from the second and the exact number from the third; the main
+    target (`aim`) and the start never leave the server. The mission has no
+    field `visible` any more (#228). Pinned in
+    `src/server/game/fleet-recognition.test.ts` (every level, the round's
+    thresholds, nothing hidden in the answer) and
+    `src/client/logic/overview.test.ts`.
+  * **[U]** The row of the overview words what is seen with the text of a
+    fleet, so a flight shows „(Schiffe insgesamt: 3 · Orbitalrakete)“ or
+    „(3 Orbitalrakete)“: „Schiffe“ for missiles. The owner decided only
+    that the defender sees them „like a foreign fleet“; a wording of its
+    own („Raketen insgesamt“) is not decided.
 * **[U]** Not built, open: tearing missiles down for free (issue, owiki
   „Raketensilo“) and the demolition of the Raketenkrypta below the places
   its missiles take, both with #202 (owner, 2026-11-17).

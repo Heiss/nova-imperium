@@ -83,7 +83,6 @@ describe('survey', () => {
       target: 'free',
       cargo: false,
       returns: true,
-      visible: false,
       silent: true,
       alertsGuild: false,
     });

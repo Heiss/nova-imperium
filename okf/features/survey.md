@@ -79,7 +79,8 @@ extension of this game.
 
 * The mission „Vermessung“ (**[E]** the name, confirmed 2026-11-17) is the folder
   `src/features/missions/survey/` (order 70, target `free`, no cargo,
-  returns, not visible, silent like the Auspex-Erkundung). `canSend`
+  returns, silent like the Auspex-Erkundung; it has no field `visible` since
+  #228). `canSend`
   returns `surveyLocked` without level 1 of the research, then
   `surveyProbesOnly` for any ship other than a Spähschädel; `SendFleet`
   carries the research of the owner for it. The server words them

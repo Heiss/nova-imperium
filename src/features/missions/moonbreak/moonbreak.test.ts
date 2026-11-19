@@ -106,7 +106,6 @@ describe('moonbreak: the rules', () => {
       target: 'foreignMoon',
       cargo: true,
       returns: true,
-      visible: true,
       silent: false,
       alertsGuild: true,
     });

@@ -577,7 +577,8 @@ owiki.de „Mond“ (section Zerstörung, formula images). Built after the moons
     einem eigenen Planeten.“) and „Du brauchst einen Weltenbrecher.“ (after
     „Du brauchst eine Kolonistenarche.“);
   * the rules data of the Sturmangriff: cargo, return, the ships visible to
-    the defender;
+    the defender (the field `visible` is gone since #228: the Mondbruch
+    follows the thresholds like the attack);
   * fleets on their way home whose target was the moon keep it as their
     target (only their leg back is shown), only outbound fleets fly to the
     planet;

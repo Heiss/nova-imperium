@@ -12,7 +12,6 @@ export const order = 70;
 export const target: TargetKind = 'foreignMoon';
 export const cargo = true;
 export const returns = true;
-export const visible = true;
 export const silent = false;
 /** A launch at a member alerts the guild like an attack (owner, 2026-11-16). */
 export const alertsGuild = true;

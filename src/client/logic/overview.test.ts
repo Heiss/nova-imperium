@@ -3,6 +3,7 @@
 // what is being built, researched or ordered; the fleet movements are also
 // the list of the fleet view.
 import { describe, expect, it } from 'vitest';
+import { STRIKER } from '../../core/missiles.ts';
 import { MISSION } from '../../core/missions.ts';
 import { text } from '../../core/text.ts';
 import type { Planet, ResearchQueue } from '../../core/types.ts';
@@ -188,6 +189,26 @@ describe('fleet movements', () => {
       seen({ total: 7, types: ['lf', 'sc'], ships: { lf: 5, sc: 2 } }),
     ).toBe(`${line} (5 ${lf}, 2 ${sc})`);
     expect(seen({ ships: { lf: 1000 } })).toBe(`${line} (1.000 ${lf})`);
+  });
+
+  it('shows an incoming missile flight like a foreign fleet, by the same recognition (#54, #228)', () => {
+    const missiles = text(STRIKER)!.n;
+    const seen = (o: Partial<ClientFleet>): string => {
+      const f: ClientFleet = {
+        ...fleet({ owner: 'u2', mission: 'missile' }),
+        ...o,
+      };
+      if (!('ships' in o)) delete f.ships;
+      const [row] = fleetRows(view({ fleets: [f] }), true);
+      expect(row!.recall).toBe(false);
+      return row!.parts.at(-1)!.text;
+    };
+    const line = ` [1:1:5] erreicht deinen Planeten [1:2:3] · ${MISSION.missile}`;
+    expect(seen({})).toBe(`${line} (Zusammensetzung unbekannt)`);
+    expect(seen({ total: 3, types: [STRIKER] })).toBe(
+      `${line} (Schiffe insgesamt: 3 · ${missiles})`,
+    );
+    expect(seen({ ships: { [STRIKER]: 3 } })).toBe(`${line} (3 ${missiles})`);
   });
 
   it('calls an unknown owner „Unbekannt“ and an unknown ship by its key', () => {

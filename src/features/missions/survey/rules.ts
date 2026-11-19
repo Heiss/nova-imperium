@@ -11,7 +11,6 @@ export const order = 80;
 export const target: TargetKind = 'free';
 export const cargo = false;
 export const returns = true;
-export const visible = false;
 export const silent = true;
 export const alertsGuild = false;
 /** Without level 1 of the research the mission is not available (D2); then only Spähschädel fly. */
