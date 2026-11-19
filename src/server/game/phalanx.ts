@@ -14,6 +14,7 @@ import {
 import { parsePlaceId, placeId } from '../../core/place.ts';
 import { type Action, mine } from './actions.ts';
 import { fail } from './context.ts';
+import type { ServerFeature } from './feature.ts';
 
 /** The German message of each refusal [V]. */
 export const SCAN_ERROR: Readonly<Record<ScanError, string>> = {
@@ -47,3 +48,7 @@ export const scan: Action = (ctx, u, d, event) => {
     event.detail = { planet: moon.id, target, flights: flights.length };
   return { msg: null, data: { scan: { by: moon.id, target, flights } } };
 };
+
+export const serverFeature = {
+  actions: { scan },
+} satisfies ServerFeature;
