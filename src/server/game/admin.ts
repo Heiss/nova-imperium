@@ -60,6 +60,8 @@ function newRound(ctx: Ctx, rules: RoundRules): void {
   ctx.debris.deleteAll();
   // The values of surveyed positions belong to the round (#190).
   ctx.surveys.deleteAll();
+  // The prices and the amounts of the day start over (#171).
+  ctx.market.clear();
   ctx.db.exec(`
     DELETE FROM push_jobs;
     DELETE FROM achievement_progress;

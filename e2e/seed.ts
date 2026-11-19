@@ -16,7 +16,8 @@
 //   time, issue #161), colonyMoon? (the fields of `moon`: the moon of the colony, made or
 //   changed, with `colony`, issue #230), activeAgo? (ms: the account and every place of the
 //   player were last active that long ago, issue #229), vacationAgo? (ms: the vacation mode
-//   started that long ago, issue #223) }
+//   started that long ago, issue #223), marketReset? (true: every price of the marketplace
+//   is back at the base and nobody has given anything today, issue #171) }
 import { openDatabase } from '../src/server/db/database.ts';
 import { Store } from '../src/server/db/store.ts';
 import { recordServerError } from '../src/server/error-log.ts';
@@ -195,6 +196,7 @@ function addAround(p: Planet): void {
   if (d.moon) moonOf(p, d.moon);
   if (d.gift) addGift(p, d.gift);
   if (d.activeAgo !== undefined) activeAgo(u!.id, d.activeAgo);
+  if (d.marketReset) store.repos.market.clear();
 }
 
 store.tx(() => {

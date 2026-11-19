@@ -130,7 +130,8 @@ Gartenwelt, Ozeanwelt, Dschungelwelt, Ödwelt, Wüstenwelt, Eiswelt, Gasriese,
 Mondfeste (replaced by „Mondzitadelle“; Mondzitadelle, Auspex-Phalanx and
 Warp-Tor [E] for #53, owner 2026-11-13, [Moons](/features/moons.md)), Raketenkrypta, Abfangrakete,
 Orbitalrakete, Gildenarsenal, Wacht halten;
-Expeditionstechnik → Kreuzzugs-Kartografie (package order).
+Expeditionstechnik → Kreuzzugs-Kartografie (package order);
+Handelsposten ([E] for #171, owner, 2026-11-17, abbreviation „HP“ [V]; no classic name, [Marketplace](/features/marketplace.md)).
 
 **[V]** Built with #54 ([Missiles](/features/missiles.md)): Raketenkrypta
 (`RK`, classic Raketensilo), Abfangrakete (`AR`, the classic name kept),

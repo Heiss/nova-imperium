@@ -8,7 +8,7 @@ import type { Leveled } from '../../core/components/leveled.ts';
 import type { Silo } from '../../core/components/silo.ts';
 
 export const kind = 'building';
-export const order = 170;
+export const order = 180;
 export const leveled: Required<Leveled> = {
   cost: [20000, 20000, 1000],
   f: 2,

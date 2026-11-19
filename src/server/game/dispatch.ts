@@ -24,6 +24,7 @@ import { chooseMainPlanet } from './main-planet.ts';
 import { vacationRefuses } from '../../core/vacation.ts';
 import { endVacation, startVacation, VACATION_REFUSED } from './vacation.ts';
 import { abandon } from './abandon.ts';
+import { exchange } from './market.ts';
 import {
   answerFriend,
   cancelFriend,
@@ -89,6 +90,7 @@ export const ACTIONS: Record<string, A.Action> = {
   startVacation,
   endVacation,
   abandon,
+  trade: exchange,
   pushOptions,
   read: A.read,
   delrep: A.delrep,

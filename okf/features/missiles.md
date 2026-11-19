@@ -76,8 +76,8 @@ Built on the branch `claude/missiles` (2026-11-17), within the decisions
 above.
 
 * **[E]** Catalog (patterns, sections 1 and 10): three feature folders,
-  `silo` (Raketenkrypta, building, order 170, after the buildings of the
-  moon; planets only, as every building without `placement`), `abm`
+  `silo` (Raketenkrypta, building, order 180, after the buildings of the
+  moon and the Handelsposten; planets only, as every building without `placement`), `abm`
   (Abfangrakete, defense, order 90) and `ipm` (Orbitalrakete, defense,
   order 100), with the values above. Two new components with one rule
   module, `src/core/components/silo.ts`: `silo: { slots }` on a building
@@ -206,4 +206,6 @@ above.
   Abfangrakete and the Orbitalrakete have keywords only, the mission
   Raketenangriff has a text of what happens on arrival, all as drafts in
   [Lexicanum texts](/features/lexicanum-texts.md); the Raketenkrypta has the
-  order 170 because the Warp-Tor (#230) has 160 (taken as recommended).
+  order 180: the Warp-Tor (#230) has 160 and the Handelsposten (#171, on
+  main) took 170 first, so the Raketenkrypta moved to the next free number
+  (taken as recommended).

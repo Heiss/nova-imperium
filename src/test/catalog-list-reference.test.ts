@@ -516,6 +516,8 @@ describe('CatalogList against the views before #118', () => {
     );
   });
 
+  // 300 runs: a new catalog entry (#171) changes the generated states, and
+  // 150 no longer reached every notice with the seed.
   it('reaches every action and notice', () => {
     // 300 runs: a new catalog entry (#190) moved the seeded sample so that
     // 150 runs no longer reached „Zu wenig Energie“.

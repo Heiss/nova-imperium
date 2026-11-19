@@ -11,6 +11,7 @@ const VIEWS = [
   'overview',
   'buildings',
   'resources',
+  'market',
   'research',
   'shipyard',
   'defense',

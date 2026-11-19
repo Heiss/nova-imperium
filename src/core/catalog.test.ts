@@ -102,6 +102,7 @@ describe('catalog', () => {
       moonbase: values(C.BUILD).moonbase,
       phalanx: values(C.BUILD).phalanx,
       jumpgate: values(C.BUILD).jumpgate,
+      market: values(C.BUILD).market,
       silo: values(C.BUILD).silo,
     });
     expect(values(C.RES)).toEqual({
@@ -304,9 +305,11 @@ describe('catalog', () => {
       lt: LT,
       req: { b: { moonbase: 1 }, r: { hyper: 7 } },
     });
-    // After the Auspex-Phalanx; the Raketenkrypta of #54 comes after it.
-    expect(Object.keys(C.BUILD).at(-2)).toBe('jumpgate');
-    expect(Object.keys(C.BUILD).at(-3)).toBe('phalanx');
+    // After the Auspex-Phalanx; the Handelsposten (#171) and then the
+    // Raketenkrypta (#54) come later.
+    expect(Object.keys(C.BUILD).at(-3)).toBe('jumpgate');
+    expect(Object.keys(C.BUILD).at(-4)).toBe('phalanx');
+    expect(Object.keys(C.BUILD).at(-2)).toBe('market');
     expect(Object.keys(C.BUILD).at(-1)).toBe('silo');
     expect(C.BUILD.jumpgate!.fields).toBeUndefined();
     expect(C.buildable('jumpgate', 'moon')).toBe(true);
@@ -708,6 +711,7 @@ describe('catalog from the entry folders', () => {
       'moonbase',
       'phalanx',
       'jumpgate',
+      'market',
       'silo',
     ]);
     expect(Object.keys(C.RES)).toEqual([
@@ -768,7 +772,7 @@ describe('catalog from the entry folders', () => {
   });
 
   it('has one folder per entry, each with its kind and its own order', () => {
-    expect(ENTRIES).toHaveLength(57);
+    expect(ENTRIES).toHaveLength(58);
     const kinds = {
       building: C.BUILD,
       research: C.RES,
