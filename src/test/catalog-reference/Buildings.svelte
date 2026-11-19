@@ -94,11 +94,8 @@
     href="?view=research"
     data-act="nav"
     data-v="research">Forschung</a
-  ><a href="?view=shipyard" data-act="nav" data-v="shipyard">Schiffsschmiede</a><a
-    href="?view=defense"
-    data-act="nav"
-    data-v="defense">Abwehr</a
-  >
+  ><a href="?view=shipyard" data-act="nav" data-v="shipyard">Schiffsschmiede</a
+  ><a href="?view=defense" data-act="nav" data-v="defense">Abwehr</a>
 </nav>
 <div class="dim" id="fields">
   {fieldsLine($viewState.P, $viewState.s.cfg)}
