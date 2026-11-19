@@ -32,6 +32,9 @@ export const ROUND_EVENT = {
   player: 'player.final',
   guild: 'guild.final',
   closed: 'round.closed',
+  /** An admin intervention the history must annotate (issue #235, section 3): the settings and the Endzeit. */
+  settings: 'admin.settings',
+  endzeit: 'admin.endzeit',
 } as const;
 
 /** What a round holds at one moment: its participants and guilds, by seat. */
@@ -134,6 +137,23 @@ export function ensureRound(ctx: Ctx): RoundRow {
     rules: roundRules(ctx),
   });
   return ctx.rounds.get(number)!;
+}
+
+/**
+ * Writes an event into the history of the running round, in the transaction of
+ * the change it records. A round that is closed is frozen at its cutoff: the
+ * game goes on, its later events are not part of the archive.
+ */
+export function recordRoundEvent(
+  ctx: Ctx,
+  kind: string,
+  payload: object,
+  seat: number | null = null,
+): void {
+  const round = ensureRound(ctx);
+  if (round.status !== 'active') return;
+  const at = ctx.now();
+  ctx.rounds.addEvent(round.number, at, { at, kind, seat, payload });
 }
 
 /** Starts the archive of the round that `startRoundRules` just began. */

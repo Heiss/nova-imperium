@@ -443,3 +443,62 @@ describe('the size of an archive', () => {
     expect(bytes).toBeGreaterThan(5_000);
   });
 });
+
+describe('the interventions of the admin in the history', () => {
+  it('writes the Endzeit and a change of the settings into the running round', () => {
+    const ctx = setup();
+    ctx.clock.t += 1000;
+    send(ctx, 'Ada', { type: 'endzeit', minutes: 60 });
+    ctx.clock.t += 1000;
+    send(ctx, 'Ada', {
+      type: 'settings',
+      settings: { ...universe(ctx), speed: 7 },
+    });
+    const events = ctx.rounds
+      .events(1)
+      .map((e) => [e.kind, e.at, e.recorded, e.seat]);
+    expect(events).toEqual([
+      ['admin.endzeit', 1_001_000, 1_001_000, null],
+      ['admin.settings', 1_002_000, 1_002_000, null],
+    ]);
+    expect(ctx.rounds.events(1, 'admin.endzeit')[0]!.payload).toEqual({
+      minutes: 60,
+      recipients: 3,
+      due: 1_001_000 + 60 * 60000,
+    });
+    const saved = ctx.rounds.events(1, 'admin.settings')[0]!.payload as {
+      settings: { speed: number };
+    };
+    expect(saved.settings.speed).toBe(7);
+  });
+
+  it('counts them in the archive of the close', () => {
+    const ctx = setup();
+    send(ctx, 'Ada', { type: 'endzeit', minutes: 60 });
+    send(ctx, 'Ada', { type: 'closeRound' });
+    // 1 Endzeit + 3 participants + the close; no guilds.
+    expect(ctx.rounds.get(1)!.events).toBe(5);
+    expect(ctx.rounds.countEvents(1)).toBe(5);
+  });
+
+  it('does not write into a round that is closed, and Endzeit alone does not close a round', () => {
+    const ctx = setup();
+    send(ctx, 'Ada', { type: 'endzeit', minutes: 60 });
+    expect(ctx.rounds.get(1)!.status).toBe('active');
+    send(ctx, 'Ada', { type: 'closeRound' });
+    const count = ctx.rounds.countEvents(1);
+    send(ctx, 'Ada', {
+      type: 'settings',
+      settings: { ...universe(ctx), speed: 3 },
+    });
+    expect(ctx.rounds.countEvents(1)).toBe(count);
+  });
+
+  it('writes a refused change of the settings nowhere', () => {
+    const ctx = setup();
+    expect(() =>
+      send(ctx, 'Ada', { type: 'settings', settings: {} }),
+    ).toThrow();
+    expect(ctx.rounds.countEvents(1)).toBe(0);
+  });
+});
