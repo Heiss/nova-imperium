@@ -384,7 +384,6 @@ function missionFacts(m: string): ViewBlock {
     { label: 'Ziel', text: TARGETS[r.target] },
     { label: 'Ladung', text: yes(r.cargo) },
     { label: 'Rückflug', text: yes(r.returns) },
-    { label: 'Für den Verteidiger sichtbar', text: yes(r.visible) },
     { label: 'Eigener Bericht bei der Heimkehr', text: yes(!r.silent) },
   ];
   if (ships)

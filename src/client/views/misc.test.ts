@@ -51,6 +51,9 @@ describe('the dialog „Neue Runde“', () => {
     activityMinutes: 59,
     inactiveDays: 7,
     longInactiveDays: 28,
+    recognitionTotal: 2,
+    recognitionTypes: 4,
+    recognitionCounts: 8,
   };
 
   it('shows the fields in the fixed order of main (owner, 2026-11-17)', () => {
@@ -68,6 +71,9 @@ describe('the dialog „Neue Runde“', () => {
       'round-activity-minutes',
       'round-inactive-days',
       'round-long-inactive-days',
+      'round-recognition-total',
+      'round-recognition-types',
+      'round-recognition-counts',
     ]);
   });
 
@@ -92,6 +98,9 @@ describe('the lock of the main planet in the dialog „Neue Runde“ (#221)', ()
     activityMinutes: 59,
     inactiveDays: 7,
     longInactiveDays: 28,
+    recognitionTotal: 2,
+    recognitionTypes: 4,
+    recognitionCounts: 8,
   };
 
   it('is a number of days from 1 to 30, preselected with the current round', () => {
@@ -118,6 +127,9 @@ describe('the lock of a given-up position in the dialog „Neue Runde“ (#224)'
     activityMinutes: 59,
     inactiveDays: 7,
     longInactiveDays: 28,
+    recognitionTotal: 2,
+    recognitionTypes: 4,
+    recognitionCounts: 8,
   };
 
   it('is a number of hours from 1 to 720, preselected with the current round', () => {
@@ -144,6 +156,9 @@ describe('the activity thresholds in the dialog „Neue Runde“ (#229, X1)', ()
     guilds: true,
     mainLock: 7,
     abandonLock: 24,
+    recognitionTotal: 2,
+    recognitionTypes: 4,
+    recognitionCounts: 8,
   };
 
   it('stand in one fieldset „Aktivität“, named and ranged as in the universe settings, preselected with the current round, last in the dialog', () => {
@@ -180,6 +195,58 @@ describe('the activity thresholds in the dialog „Neue Runde“ (#229, X1)', ()
   });
 });
 
+describe('the thresholds of foreign fleets in the dialog „Neue Runde“ (#228, X1)', () => {
+  const rules = {
+    number: 1,
+    achievements: true,
+    daily: true,
+    guilds: true,
+    mainLock: 7,
+    abandonLock: 24,
+    activityRecent: 15,
+    activityMinutes: 59,
+    inactiveDays: 7,
+    longInactiveDays: 28,
+  };
+
+  it('are levels from 0 to 100, named as in the universe settings, preselected with the current round', () => {
+    const html = roundDialog({
+      ...rules,
+      recognitionTotal: 1,
+      recognitionTypes: 5,
+      recognitionCounts: 9,
+    });
+    for (const [part, label, value] of [
+      ['total', 'Fremde Flotten: Schiffe insgesamt ab Auspex-Lehre', 1],
+      ['types', 'Fremde Flotten: Schiffstypen ab Auspex-Lehre', 5],
+      ['counts', 'Fremde Flotten: Anzahl je Schiffstyp ab Auspex-Lehre', 9],
+    ] as const) {
+      expect(html).toContain(
+        `<label for="round-recognition-${part}">${label}</label> <input type="number" id="round-recognition-${part}" min="0" max="100" step="1" value="${value}" required> <span class="dim">0 bis 100</span>`,
+      );
+      expect(html.indexOf(`id="round-recognition-${part}"`)).toBeGreaterThan(
+        html.indexOf('id="round-abandon-lock"'),
+      );
+      expect(html.indexOf(`id="round-recognition-${part}"`)).toBeLessThan(
+        html.indexOf('data-act="doReset"'),
+      );
+    }
+    // The three stand in one fieldset with the legend of the owner (2026-11-18).
+    const fieldsets = [...html.matchAll(/<fieldset>[\s\S]*?<\/fieldset>/g)].map(
+      (m) => m[0],
+    );
+    expect(fieldsets).toHaveLength(3);
+    const group = fieldsets.find((f) => f.includes('round-recognition-total'))!;
+    expect(group).toMatch(
+      /^<fieldset><legend>Fremde Flotten erkennen<\/legend>/,
+    );
+    expect(group.match(/<input /g)).toHaveLength(3);
+    for (const part of ['total', 'types', 'counts'])
+      expect(group).toContain(`id="round-recognition-${part}"`);
+    expect(group).not.toContain('round-abandon-lock');
+  });
+});
+
 describe('the warning below the box „Gilden (mit Chat)“ (#191)', () => {
   const rules = {
     number: 1,
@@ -191,6 +258,9 @@ describe('the warning below the box „Gilden (mit Chat)“ (#191)', () => {
     activityMinutes: 59,
     inactiveDays: 7,
     longInactiveDays: 28,
+    recognitionTotal: 2,
+    recognitionTypes: 4,
+    recognitionCounts: 8,
   };
   // Every new round clears the chats as well (#169 D6), guilds on or off.
   const WARNING =
@@ -224,6 +294,9 @@ describe('„Account löschen“ in a round with or without guilds (#191)', () =
     activityMinutes: 59,
     inactiveDays: 7,
     longInactiveDays: 28,
+    recognitionTotal: 2,
+    recognitionTypes: 4,
+    recognitionCounts: 8,
   };
   const on = { ...rules, guilds: true };
   const off = { ...rules, guilds: false };
@@ -327,6 +400,9 @@ describe('a new setting of the round in both places (#283)', () => {
     activityMinutes: 59,
     inactiveDays: 7,
     longInactiveDays: 28,
+    recognitionTotal: 2,
+    recognitionTypes: 4,
+    recognitionCounts: 8,
     testHours: 48,
     testAllies: 1,
   } as RoundRules;
