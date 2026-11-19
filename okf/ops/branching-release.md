@@ -222,6 +222,14 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   2026-11-12: „so lassen, alle sofort“). Renovate has no matcher for the
   severity; Dependabot's own security updates are off, so no hole gets two
   pull requests.
+* **[E]** Renovate merges its ordinary patch updates only at night, from
+  02:00 to 04:59 UTC (`automergeSchedule`), and does so itself instead of
+  through GitHub's auto-merge (`platformAutomerge: false`), which knows no
+  time window. Security updates still merge at any time. Reason: every
+  merge into main puts all open pull requests behind main, and each then
+  needs a new run of the CI; on 2026-11-18 and 2026-11-19 two patch
+  updates (#311, #315) cost four pull requests an hour each (owner,
+  2026-11-19).
 * **[E]** Renovate's ordinary minor updates do not merge themselves; the
   release loop merges them between features and before it makes the
   release pull request ready (owner, 2026-11-16 and 2026-11-18): patch and
