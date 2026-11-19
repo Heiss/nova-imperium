@@ -95,7 +95,9 @@ describe('the recognition of a foreign fleet (#228)', () => {
 
 describe('the thresholds as settings of the round (#228, D1, X1; #283)', () => {
   /** The three thresholds, as the registry holds them (the group `recognition`). */
-  const SETTINGS = ROUND_SETTINGS.filter((s) => s.group?.name === 'recognition');
+  const SETTINGS = ROUND_SETTINGS.filter(
+    (s) => s.group?.name === 'recognition',
+  );
   const current = {
     recognitionTotal: 3,
     recognitionTypes: 5,
@@ -149,7 +151,11 @@ describe('the thresholds as settings of the round (#228, D1, X1; #283)', () => {
         'Fremde Flotten: Schiffe insgesamt ab Auspex-Lehre',
         2,
       ],
-      ['roundRecognitionTypes', 'Fremde Flotten: Schiffstypen ab Auspex-Lehre', 4],
+      [
+        'roundRecognitionTypes',
+        'Fremde Flotten: Schiffstypen ab Auspex-Lehre',
+        4,
+      ],
       [
         'roundRecognitionCounts',
         'Fremde Flotten: Anzahl je Schiffstyp ab Auspex-Lehre',
@@ -167,8 +173,7 @@ describe('the thresholds as settings of the round (#228, D1, X1; #283)', () => {
       ).map((e) => [e.spec.key, e.code]);
     for (const [key, , def] of rows) {
       expect(DEFAULT_UNIVERSE).toMatchObject({ [key]: def });
-      for (const value of [0, 100])
-        expect(codes({ [key]: value })).toEqual([]);
+      for (const value of [0, 100]) expect(codes({ [key]: value })).toEqual([]);
       for (const value of [-1, 101, 1.5])
         expect(codes({ [key]: value })).toEqual([[key, 'range']]);
     }
