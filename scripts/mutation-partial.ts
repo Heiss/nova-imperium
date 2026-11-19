@@ -17,7 +17,9 @@
 //     everything (#309, the coordinator, 2026-11-18).
 // A test file with no such source adds nothing, and neither does a test
 // helper (src/test/** and src/server/test-helpers.ts that are no *.test.ts):
-// the nightly complete run (mutation.yml) tests them. A change of the
+// the nightly complete run (mutation.yml) tests them. A set of more than
+// PARTIAL_LIMIT files runs everything too: one job is slower than the shards
+// for it (#309). A change of the
 // mutation configuration (as scripts/mutation-changes.ts, #146, but
 // mutation-standard.json counts only as above) or of the versions of Stryker, Vitest or TypeScript in the lockfile still runs
 // everything, in the 6 shards.
@@ -88,6 +90,18 @@ export function partialSet(
   return [...set].sort();
 }
 
+/**
+ * The most files one partial job mutates; a set above it runs the complete
+ * run in 6 shards (the coordinator, 2026-11-19, #309). One job has no cache
+ * and no parallel jobs, so its time grows with the number of files while the
+ * complete run takes about 60 minutes whatever the set. Measured on
+ * 2026-11-19: the partial run of #281 (11 files, among them `types.ts` and
+ * `index.ts` without mutants) took 9 minutes, that of #318 (33 files) more
+ * than 60 without an end. 12 is the first number above the largest set seen
+ * to be fast; it is a count, not a weight [V]: a few big files such as
+ * `catalog.ts` can be slower than many small ones.
+ */
+export const PARTIAL_LIMIT = 12;
 const STANDARD = 'mutation-standard.json';
 /** The keys of mutation-standard.json (scripts/mutation-gate.ts, Standard). */
 const STANDARD_KEYS = ['floors', 'newFile', 'security', 'securityTarget'];
@@ -191,12 +205,17 @@ export function plan(
     if ('reason' in found) reasons.push(found.reason);
     else floors = found.files;
   }
-  return {
-    reasons,
-    files: reasons.length
-      ? []
-      : partialSet([...changed, ...floors], mutate, exists),
-  };
+  const files = reasons.length
+    ? []
+    : partialSet([...changed, ...floors], mutate, exists);
+  if (files.length > PARTIAL_LIMIT)
+    return {
+      reasons: [
+        `${files.length} changed files are more than the limit of ${PARTIAL_LIMIT} for one job`,
+      ],
+      files: [],
+    };
+  return { reasons, files };
 }
 
 /** The files of the JSON list in MUTATION_FILES; a missing or empty one fails. */

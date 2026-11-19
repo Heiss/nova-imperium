@@ -278,8 +278,25 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   (no takeover, #167 applies to the complete run only): it is short. Cost:
   without the incremental file every mutant of a changed file runs, and the
   dry run of the whole test suite (about 3 minutes on a loaded machine)
-  comes first; a pull request that changes very many files can take longer
-  than the 6 shards did; a limit is still open (#309).
+  comes first.
+* **[V]** The limit of one job (the coordinator, 2026-11-19, #309): a
+  partial set of more than `PARTIAL_LIMIT` = 12 files (`scripts/mutation-partial.ts`,
+  counted after the sources of tests and the files of the floors are added,
+  so deleted files, documentation and tests without a source do not count)
+  gives the output `true`, the complete run in 6 shards with the check of
+  #167 for `reuse`, exactly as a change of the configuration does; the reason
+  is on stderr („N changed files are more than the limit of 12 for one job“).
+  Measured on 2026-11-19: the partial run of #281 (11 files, two of them
+  without mutants) took 9 minutes, that of #318 (33 files) ran more than 60
+  minutes without an end, and a bundle pull request of about 100 files would
+  be in the same job; the complete run takes about 60 minutes whatever the
+  set. 12 is the first number above the largest set known to be fast. It is
+  a count: a few big files (`catalog.ts` alone weighs a sixth of the whole
+  run) can be slower than many small ones. A limit by weight would need the
+  weights of the last complete run (the cache `stryker-state-…` or
+  `stryker-weights-…`, restored by the plan job, not in the repository) in
+  „Detect changes“, which today needs no cache and no dependencies; it is not
+  built.
 * **[V]** The nightly issue (#309): `mutation.yml` had no notice of a failed
   gate (a failed scheduled run mails only the person who last changed the
   schedule). Its gate job (`issues: write` on that job only, the token of

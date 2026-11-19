@@ -12,7 +12,8 @@ name: CI
 # tests it changes, in one job (#309); the complete run in 6 shards stays for
 # the release pull requests, the pushes, the nightly run and a change of the
 # mutation configuration or the test tool chain; a change of the floors alone
-# in mutation-standard.json adds those files to the partial run.
+# in mutation-standard.json adds those files to the partial run, and a set of
+# more than 12 files (PARTIAL_LIMIT) runs the complete run too.
 # The release pull request of main is a draft after every rebuild: its run
 # is the cheap one (the checks that run for every change and the changelog
 # check), and its CI Gate fails on purpose, so neither a merge nor a
@@ -145,8 +146,9 @@ jobs:
           # configuration (stryker.config.json, vitest.config.ts,
           # tsconfig.json, scripts/mutation-*.ts), of anything in
           # mutation-standard.json but the floors, or of the test tool chain
-          # still runs everything ("true"); no such file means no mutation
-          # job ("false").
+          # still runs everything ("true"), and so does a set of more than
+          # PARTIAL_LIMIT (12) files; no such file means no mutation job
+          # ("false").
           mutation_files=
           case "$PR_HEAD_REF" in
             release/hotfix/*)
