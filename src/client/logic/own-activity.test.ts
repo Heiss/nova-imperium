@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import type { OwnActivity } from '../../core/playtime.ts';
 import {
   OWN_ACTIVITY_HELP,
-  OWN_ACTIVITY_PLACEHOLDER,
+  OWN_ACTIVITY_LOADING,
+  OWN_ACTIVITY_FAILED,
   ownActivityHTML,
   playtime,
   utcDate,
@@ -89,8 +90,10 @@ describe('the box of the options', () => {
     expect(html).toContain('<td>Heute (UTC)</td><td>0 Min.</td>');
   });
 
-  it('has a place for the numbers and a button to ask again', () => {
-    expect(OWN_ACTIVITY_PLACEHOLDER).toContain('id="own-activity"');
-    expect(OWN_ACTIVITY_PLACEHOLDER).toContain('data-act="reloadOwnActivity"');
+  it('says that the numbers are on their way, and when they fail', () => {
+    expect(OWN_ACTIVITY_LOADING).toBe('Wird geladen …');
+    expect(OWN_ACTIVITY_FAILED).toBe(
+      'Die Angaben sind gerade nicht erreichbar.',
+    );
   });
 });

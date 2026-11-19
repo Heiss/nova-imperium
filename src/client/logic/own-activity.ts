@@ -9,12 +9,14 @@ import { esc } from './format.ts';
 export const OWN_ACTIVITY_HELP =
   'Gezählt wird die geschätzte Zeit mit aktiver Nutzung. Nach 60 Sekunden ohne Eingabe oder Scrollen sowie beim Verlassen des aktiven Fensters pausiert die Erfassung. Kurze Lesepausen zählen mit.';
 
-/** What the box shows while the numbers are on their way and when they fail [V]. */
-const OWN_ACTIVITY_LOADING = 'Wird geladen …';
+/**
+ * What the box shows while the numbers are on their way and when they fail
+ * [V]. The component Options (#118, bundle 5) holds the box with its
+ * `#own-activity` as a plain element, which features/playtime.ts fills after
+ * the render.
+ */
+export const OWN_ACTIVITY_LOADING = 'Wird geladen …';
 export const OWN_ACTIVITY_FAILED = 'Die Angaben sind gerade nicht erreichbar.';
-
-/** The body of the box in „Hilfe & Optionen“ (#231): the numbers are filled in after the render. */
-export const OWN_ACTIVITY_PLACEHOLDER = `<div id="own-activity" aria-live="polite">${OWN_ACTIVITY_LOADING}</div><p><button type="button" data-act="reloadOwnActivity">Aktualisieren</button></p>`;
 
 const two = (n: number): string => String(n).padStart(2, '0');
 

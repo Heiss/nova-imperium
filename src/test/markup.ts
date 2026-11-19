@@ -12,11 +12,12 @@ const ENTITY: Record<string, string> = {
   '&gt;': '>',
   '&quot;': '"',
   '&#39;': "'",
+  '&amp;': '&',
 };
 
-/** A value of an attribute with > and ' decoded; an escaped " stays. */
+/** A value of an attribute with >, ' and & decoded (a link may hold a raw &); an escaped " stays. */
 const value = (raw: string): string =>
-  raw.replace(/&(?:gt|#39);/g, (e) => ENTITY[e]!);
+  raw.replace(/&(?:gt|#39|amp);/g, (e) => ENTITY[e]!);
 
 /**
  * The attributes that count by their presence: the boolean ones, `data-nokeep`
@@ -26,7 +27,7 @@ const value = (raw: string): string =>
  * bundle 5).
  */
 const BOOLEAN =
-  /^(disabled|hidden|selected|data-nokeep|data-achievement|data-achievement-group|data-later|data-all|data-daily-reward)$/;
+  /^(disabled|hidden|selected|checked|required|data-nokeep|data-achievement|data-achievement-group|data-later|data-all|data-daily-reward)$/;
 
 /**
  * The attributes of a tag in order, a boolean one and `data-nokeep` (which
@@ -76,7 +77,7 @@ export function normalize(html: string): string {
     )
     .replace(/\s+/g, ' ')
     .replace(
-      / ?(<\/?(?:div|p|ul|li|h2|table|tr|td|br)\b(?:"[^"]*"|[^">])*>) ?/g,
+      / ?(<\/?(?:div|p|ul|li|h2|table|tr|td|br|form|fieldset|legend)\b(?:"[^"]*"|[^">])*>) ?/g,
       '$1',
     );
   // Only entities that cannot start a tag or another entity are decoded.

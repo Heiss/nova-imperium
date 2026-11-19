@@ -795,9 +795,11 @@ choice of the patterns to the assistant's recommendation below
   `client.ui.openRep` and `client.ui.news`, which stay there. Bundle 5
   (Highscore, Achievements) moved none either: the old views kept
   `client.ui.highscore` and the folds of #189 (`unfolded` of
-  `logic/achievement-fold.ts`), which stay there. Still rendered as HTML:
-  the views Gilden, Hilfe & Optionen and Admin (and Marktplatz and Freunde,
-  which came after the bundles were proposed).
+  `logic/achievement-fold.ts`), which stay there. Bundle 5, second part
+  (Optionen) moved none either: the old view kept the input of its fields
+  in the DOM, which `keepInputs()` of `main.ts` still carries over a
+  render. Still rendered as HTML: the views Gilden and Admin (and Marktplatz
+  and Freunde, which came after the bundles were proposed).
 * **[E]** Bundle 3 after bundle 2 (owner, 2026-11-15 and 2026-11-16: the
   order of the bundles of #118 „Geklärt, Nachtrag 3“, unchanged by
   „Nachtrag 4“): Flotte, which the earlier work paused (the branch
@@ -886,6 +888,38 @@ choice of the patterns to the assistant's recommendation below
   `unfolded`. `highscoreButtonsHTML()` and the two HTML functions are gone;
   `homeCell()` of `views/common.ts` stays for the buddy list. `main.ts`
   stays at 1,191 lines: neither view had code in it. No visible change.
+* **[V]** Built with #118, bundle 5, second part („Optionen“, formerly
+  „Hilfe & Optionen“, view `help`): `Options.svelte`, mounted by
+  `mountOptions()` of `views/options.ts`, renders `optionsPage(v)` of the
+  new `logic/options.ts`, in its boxes: the choices (probes per Auspex
+  exploration, the „(?)-Symbol“, the „Stufenübersicht“ of #187), „Hauptplanet“
+  (#221, `mainPlanetBox()`), „Urlaubsmodus“ (#223), „Meine Aktivität &
+  Spielzeit“ (#231), „Rundenarchiv“ (#235), „Darstellung“, „Passwort ändern“,
+  „Passkeys“, „App installieren“, „Benachrichtigungen“ (the push kinds of
+  #192, `pushKinds()`, only on a server with Web Push) and „Browser-
+  Benachrichtigungen“, „Problem melden“, „Account löschen“ and the link to
+  „Dieses Universum“ of the Lexicanum (#288). The frame of a box is the new
+  `Box.svelte`. The ids and the `data-act`s are those that the features
+  read (`options.ts`, `playtime.ts`, `passkeys.ts`, `install.ts`, `push.ts`,
+  `report-problem.ts`, `round-archive.ts`) and `main.ts` (the forms
+  `passwordform`, `o_anim`, `data-chg="push"`). What a feature fills after
+  the render stays a plain element of the component: `#own-activity` (filled
+  by `playtime.ts` from `GET /api/own-activity`), `#passkey-list` and the
+  hidden button `#pwa-install` (shown by `install.ts`). The view leaves
+  `VIEWS`, is added to `views/mount.ts` (`help`) and mounted anew on every
+  render (`ANEW`), as its HTML was; the rendering of the archive comes from
+  `archiveHTML()` of `logic/round-archive.ts` as markup (`{@html}`),
+  because the admin box „Rundenberichte“ shares its report, list and history
+  and stays HTML until the Admin bundle. The boxes of the lock screen of the
+  vacation mode (`passwordBox()`, `passkeysBox()`, `notificationBoxes()`,
+  `deleteAccountBox()` of `views/misc.ts`) are still HTML, so they stay
+  there; they share the sentence of „Account löschen“ with the component
+  (`deleteAccountText()`) and the push kinds (`pushKinds()`, from which
+  `pushKindsHTML()` is built). `help()` and the HTML of the options of
+  `explain.ts`, `level-mode.ts`, `main-planet.ts`, `vacation.ts` and
+  `own-activity.ts` are gone. `main.ts` stays at 1,191 lines: the view had
+  no code in it; its handlers (`o_anim`, `passwordform`) go to the
+  component with package 8. No visible change.
 * **[E]** Bundle 2 after bundle 1 (owner, 2026-11-15 and 2026-11-16: the
   order of the bundles of #118 „Geklärt, Nachtrag 3“, unchanged by
   „Nachtrag 4“): the Sternenkarte, which the phone view #189 builds on
@@ -1347,7 +1381,7 @@ src/client/                state, components (generic), views
      `Overview` (section 9); bundle 1 the header line, the navigation and
      the resource bar (section 9); bundle 2 the Sternenkarte and bundle 3
      the fleet view (section 9); bundle 4 Nachrichten and Neuigkeiten
-     (section 9); bundle 5, first part, Highscore and Achievements
+     (section 9); bundle 5 Highscore, Achievements and Optionen
      (section 9); the other views follow.
   8. Places (O11), its own pull request before #45 and #53 (owner,
      2026-11-12). Built with #119.
