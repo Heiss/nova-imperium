@@ -21,7 +21,6 @@ import { type Ctx, universe } from './context.ts';
 import { endzeitState } from './endzeit.ts';
 import { friendState } from './friends.ts';
 import { guildState } from './guilds.ts';
-import { gateState } from './jump-gate.ts';
 import { mainPlanetOf } from './main-planet.ts';
 import { achievementState } from './achievements.ts';
 import { marketState } from './market.ts';
@@ -196,8 +195,6 @@ const FRAME: readonly StatePart[] = [
   keyed(40, 'me', (ctx, u) => meOf(ctx, u)),
   keyed(50, 'planet', (_ctx, _u, view) => view.planet),
   keyed(70, 'labs', (ctx, u) => ownLabs(ctx, u.id)),
-  // The own Warp-Tore with their readiness (#230).
-  keyed(80, 'gates', (ctx, u) => gateState(ctx, u.id)),
   keyed(90, 'fleets', fleetsOf),
   keyed(100, 'reports', (ctx, u) => ctx.reports.ofPlayer(u.id)),
   // No guild data while guilds are off in the round (#191).

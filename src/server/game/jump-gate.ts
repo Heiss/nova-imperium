@@ -89,4 +89,10 @@ export const gateState = (ctx: Ctx, uid: string): GateView[] =>
 
 export const serverFeature = {
   actions: { jump },
+  // The own Warp-Tore with their readiness (#230).
+  state: {
+    order: 80,
+    keys: ['gates'],
+    build: (ctx, u) => ({ gates: gateState(ctx, u.id) }),
+  },
 } satisfies ServerFeature;
