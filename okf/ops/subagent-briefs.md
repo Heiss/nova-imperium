@@ -81,6 +81,46 @@ when the second built on the first.
 | An E2E test failed about once in 20 runs with an error toast nobody caused. | The client sent an action by itself, and the server refused it because the player had just lost the right. | Found by logging the requests of the page in the failing test; such actions are sent `quiet` (#301). |
 | About ten files conflicted in every feature branch and at every merge of main (#228, #202, #223, #55, #175). | The registry of the round settings was one hand-written list, and tests listed the whole registry, counted its fieldsets or took „the last four“ by position, so every new setting changed the tests of the others. | Every feature tests its own entries and one test checks the rules for all (#310); a feature registers its settings in its own file. |
 | Agents waited minutes for each other's E2E run. | All runs used the same three ports. | `E2E_PORT` moves them; every brief gives an own value. |
+| A pull request of a feature ran the complete mutation run although #312 had made it partial. | It changed `mutation-standard.json`, and every change of the mutation setup forced the complete run. | A change of floors only adds the files of those floors to the partial run (#313); the main agent checks in the review what triggers the complete run. |
+| The partial mutation job took 62 minutes for 33 files. | One job without a cache, and no limit on the number of files. | More than 12 changed files run the six shards (#321). |
+| A merged floor was below the one on main. | The brief said „take the lower floor“ for a conflict in `mutation-standard.json`. | For a file both sides changed: the value of main or the higher one, never a value below main's. |
+| A reference test that draws 300 random cases failed after a merge. | A rare mark was no longer among the drawn cases. | Rare cases are built by hand next to the sample; `numRuns` is not raised. |
+| The phone E2E test of the highscore overflowed after another spec changed. | The specs share one database (#302): one spec seeded a research level that gave a 31-digit score. | Related specs run in one invocation; seeds stay small; the cause is searched with a diagnostic in the test, not guessed. |
+| An E2E test became flaky after its seed was made realistic. | It depended on a 5 % chance of the game (probes lost). | No E2E test depends on a chance of the game: it repeats the step or seeds the outcome. |
+| An agent invented game values that were not in the issue. | The brief named the feature but not the values. | The brief lists the decided values with their source; the others are asked from the owner before the build. |
+
+## How the work is split (owner, 2026-11-18 and 2026-11-19)
+
+* **[E]** At most two subagents run at a time.
+* **[E]** A subagent runs only the cheap checks: type check, lint, format,
+  dead code, duplicates, dependencies, the size ratchet, the checks of the
+  OKF log and of the changelog, and the tests of the files it touched. It
+  runs no full unit test run, no E2E and no Stryker; the CI does that
+  while the subagent builds the next thing, and the main agent brings the
+  findings of the CI to the subagent.
+* **[E]** No floor is recorded from a local mutation run: under load a
+  timeout counts as a killed mutant. A local run of single named files
+  only lists survivors.
+* **[E]** Finished features are bundled into one pull request; at most four
+  own pull requests are open, and the queue is drained before new work
+  starts.
+* **[E]** A pull request runs the mutation tests of its changed files only;
+  the complete run stays in the nightly run and in the release pull
+  request (#309). Unit tests and E2E stay complete in every pull request.
+* **[E]** When failures of one kind repeat (the same files conflict in
+  every branch, one file grows with every feature), the main agent proposes
+  a design pattern instead of fixing each case (#310, #317).
+* **[V]** Order of merges: every merge puts the other pull requests behind
+  main. The pull request whose rerun costs most (it changes the mutation
+  setup, so it always runs completely) merges first when it is green.
+* **[V]** After a merge the main agent resolves the small conflicts of the
+  other branches itself (`size-ratchet.json`, the header of `e2e/seed.ts`,
+  notes in `okf/`); a merge that touches game logic of two features goes
+  to a subagent with a brief that names the interactions to check.
+* **[V]** The folder `website/` has its own Prettier: `pnpm format:check`
+  is run inside it when it is touched.
+* **[V]** Tasks are tracked in issues, not in the memory of the session: a
+  restart or a usage limit ends an agent without warning.
 
 ## Open
 
