@@ -26,7 +26,7 @@ export const DEFAULT_FILTER: BuildFilter = 'open';
 export const SEGMENTS: readonly { view: string; label: string }[] = [
   { view: 'buildings', label: 'Gebäude' },
   { view: 'research', label: 'Forschung' },
-  { view: 'shipyard', label: 'Werft' },
+  { view: 'shipyard', label: 'Schiffsschmiede' },
   { view: 'defense', label: 'Abwehr' },
 ];
 

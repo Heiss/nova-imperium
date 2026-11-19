@@ -146,7 +146,7 @@ describe('the choices of the phone view (#189)', () => {
     expect(SEGMENTS.map((s) => s.label)).toEqual([
       'Gebäude',
       'Forschung',
-      'Werft',
+      'Schiffsschmiede',
       'Abwehr',
     ]);
     expect(SEGMENTS.map((s) => s.view)).toEqual(Object.keys(CATALOG_VIEWS));

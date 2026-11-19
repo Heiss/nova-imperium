@@ -171,7 +171,7 @@ Up to 760 px only; the desktop stays as it is (D6).
 * **[E]** D1: the tab bar is Übersicht · Bauen · Flotte · Karte · Mehr; the
   messages move to the bell in the header (owner, 2026-11-14).
 * **[E]** D2 and D3: one tab „Bauen“ with a switch Gebäude / Forschung /
-  Werft / Abwehr; each entry is a compact row (picture, name and level,
+  Schiffsschmiede / Abwehr; each entry is a compact row (picture, name and level,
   costs, time, „▲ 5“), and a tap unfolds the details (owner, 2026-11-14).
 * **[E]** D4: the default filter is „Baubar“; entries whose requirements
   are missing show with them under „Alle“ (owner, 2026-11-14).
@@ -187,7 +187,7 @@ Up to 760 px only; the desktop stays as it is (D6).
 ## Built (part 1, #189)
 
 * **[V]** „Bauen“: the tab leads to the list of buildings; at the top of
-  each of the four lists a switch of four links (Gebäude, Forschung, Werft,
+  each of the four lists a switch of four links (Gebäude, Forschung, Schiffsschmiede,
   Abwehr) and a filter of three buttons (Baubar, Alle, Läuft). The tab is
   marked in all four lists. The lists of research, shipyard and defense stay
   reachable under „Mehr“, too, since the E2E helper `nav()` uses them there.
