@@ -12,6 +12,7 @@ import { openDatabase } from '../src/server/db/database.ts';
 import { Store } from '../src/server/db/store.ts';
 import { databaseFile } from '../src/server/server.ts';
 import { loadConfig } from '../src/server/config.ts';
+import { AREA_SYSTEMS, inArea, readLedger } from './ledger.ts';
 import {
   HOME_SAVED_AT,
   type SeedData,
@@ -36,12 +37,34 @@ if ('errors' in config) throw new Error(config.errors.join('\n'));
 const store = new Store(openDatabase(databaseFile(config.config)));
 const d: SeedData = JSON.parse(process.argv[2] ?? '{}');
 
-const known = new Set(['name', ...parts.flatMap((p) => p.fields)]);
+const known = new Set(['name', 'area', ...parts.flatMap((p) => p.fields)]);
 for (const field of Object.keys(d))
   if (!known.has(field))
     throw new Error(
       `no part of e2e/seed/ handles the field "${field}" (known: ${[...known].sort().join(', ')})`,
     );
+
+// What the helpers handed out (e2e/own-data.ts, #302): the player must be
+// one of theirs, and the planets of the player must lie in the area of the
+// test, which the helper `seed` names in `area`.
+const ledger = readLedger();
+if (!ledger.some((e) => e.kind === 'name' && e.name === d.name))
+  throw new Error(
+    `The player "${d.name}" was not handed out by uniqueName() (e2e/own-data.ts): every test makes its own players.`,
+  );
+const area = d.area
+  ? ledger.find(
+      (e) =>
+        e.kind === 'area' &&
+        e.n === d.area.n &&
+        e.g === d.area.g &&
+        e.s === d.area.s,
+    )
+  : undefined;
+if (d.area && !area)
+  throw new Error(
+    `The area ${JSON.stringify(d.area)} was not handed out by ownArea() (e2e/own-data.ts).`,
+  );
 
 const user = store.userByName(d.name);
 if (!user) throw new Error(`no player ${d.name}`);
@@ -58,5 +81,10 @@ store.tx(() => {
     part.apply(s);
   }
   if (!saved) store.savePlanet(s.home);
+  for (const p of area ? store.repos.planets.ofOwner(user.id) : [])
+    if (area?.kind === 'area' && !inArea(area, p))
+      throw new Error(
+        `The ${p.kind} "${p.name}" of ${d.name} lies at [${p.g}:${p.s}:${p.p}], outside the area of this test, the systems ${area.s} to ${area.s + AREA_SYSTEMS - 1} of galaxy ${area.g}: take positions from ownArea() (e2e/own-data.ts), and register players with register() so that they start in it.`,
+      );
 });
 store.db.close();

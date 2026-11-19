@@ -18,6 +18,7 @@ import {
 import {
   cli,
   galaxyRow,
+  guildTag,
   nav,
   register,
   seed,
@@ -105,7 +106,7 @@ interface Guild {
 async function guild(page: Page, browser: Browser): Promise<Guild> {
   const leadName = uniqueName('Kanzler');
   const memberName = uniqueName('Bote');
-  const tag = `C${Date.now() % 1000000}`;
+  const tag = guildTag('C');
   const title = `[${tag}] Chat ${tag}`;
   const problems = [watch(page)];
   await register(page, leadName);

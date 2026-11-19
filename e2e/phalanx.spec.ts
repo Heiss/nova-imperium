@@ -57,8 +57,7 @@ const panel = (page: Page): Locator => page.locator('#scan');
 /**
  * A scanner with a moon and a phalanx of level 1 and a target player with a
  * colony at position `at` of the scanner's home system. The colony's name
- * („Spähziel“ and 6 random characters) is unique: two tests can share a home
- * system, and a fixed name matched both rows (#252).
+ * („Spähziel“ and 6 random characters) is unique, as every name is (#302).
  */
 async function setup(
   page: Page,

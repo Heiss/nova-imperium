@@ -5,8 +5,8 @@
 // the guild chat are hidden in the options while guilds are off (#169,
 // owner, 2026-11-15). Desktop and phone.
 // On the mail server (#68): its own universe, so the new rounds reset no
-// planet of the other tests; flows.spec.ts, the other user of new rounds
-// there, runs before this file. The dialog also shows the lock of the main
+// planet of the other tests (every test registers its own players there, so
+// a round that ran earlier resets only finished ones). The dialog also shows the lock of the main
 // planet (#221).
 import AxeBuilder from '@axe-core/playwright';
 import {
@@ -17,6 +17,7 @@ import {
   type Page,
 } from '@playwright/test';
 import {
+  guildTag,
   loginByCode,
   mailCli,
   nav,
@@ -137,7 +138,7 @@ async function startRound(page: Page): Promise<void> {
 async function switchFlow(page: Page, browser: Browser): Promise<void> {
   const admin = uniqueName('Schalter');
   const member = uniqueName('Gildner');
-  const tag = `S${Date.now() % 1000000}`;
+  const tag = guildTag('S');
   const title = `[${tag}] Schalter ${tag}`;
   const problems = [watch(page)];
   const found: string[] = [];
@@ -177,13 +178,18 @@ async function switchFlow(page: Page, browser: Browser): Promise<void> {
   await startRound(page);
 
   // The guilds are gone, nobody sees „Gilden“, the server refuses.
+  const another = guildTag('N');
   for (const p of [page, pm]) {
     await p.goto(`${E2E_MAIL_URL}/?view=guilds`);
     await expect(p.locator('h2')).toContainText('Übersicht');
     await expect(guildEntry(p)).toHaveCount(0);
     expect(await guildData(p)).toBeNull();
     expect(
-      await refusal(p, { type: 'createGuild', name: 'Neu', tag: 'NEU' }),
+      await refusal(p, {
+        type: 'createGuild',
+        name: `Neu ${another}`,
+        tag: another,
+      }),
     ).toBe(OFF);
     expect(await refusal(p, { type: 'leaveGuild' })).toBe(OFF);
   }

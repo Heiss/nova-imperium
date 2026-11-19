@@ -1,10 +1,12 @@
 // The admin: inspecting a player with the audit of the data access, the
 // admin panel, and copying an invitation link.
 import { expect, test } from '@playwright/test';
+import { E2E_UNIVERSE } from './env.ts';
 import {
   cli,
   lastToast,
   nav,
+  ownArea,
   register,
   seed,
   uniqueName,
@@ -87,8 +89,11 @@ test.describe('admin', () => {
 
     await page.getByRole('tab', { name: 'Universum' }).click();
     // Settings: live, but the universe never shrinks below a planet. The
-    // planet in galaxy 2 comes from this test, not from an earlier one.
-    seed({ name, colony: { g: 2, s: 1, p: 15, name: 'Außenposten' } });
+    // planet comes from this test, not from an earlier one: it lies in the
+    // galaxy of the area of this test. The message names the largest galaxy
+    // any planet of the run lies in, which is this one or a larger one.
+    const { g } = ownArea();
+    seed({ name, colony: { name: 'Außenposten' } });
     await page.fill('#set_speed', '7');
     await page.click('[data-act=saveSettings]');
     await expect(page.locator('#unisub')).toHaveText(
@@ -96,10 +101,13 @@ test.describe('admin', () => {
     );
     await page.fill('#set_galaxies', '1');
     await page.click('[data-act=saveSettings]');
-    await expect(page.locator('.toast.err').last()).toContainText(
-      'Galaxien: mindestens 2',
-    );
-    await page.fill('#set_galaxies', '2');
+    const refused = page.locator('.toast.err').last();
+    await expect(refused).toContainText(/Galaxien: mindestens \d+/);
+    const [, least] = /Galaxien: mindestens (\d+)/.exec(
+      (await refused.textContent())!,
+    )!;
+    expect(Number(least)).toBeGreaterThanOrEqual(g);
+    await page.fill('#set_galaxies', String(E2E_UNIVERSE.galaxies));
     await page.fill('#set_speed', '5');
     await page.click('[data-act=saveSettings]');
     await expect(page.locator('#unisub')).toHaveText(

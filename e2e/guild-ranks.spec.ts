@@ -9,7 +9,7 @@ import {
   type Locator,
   type Page,
 } from '@playwright/test';
-import { nav, register, uniqueName, watch } from './helpers.ts';
+import { guildTag, nav, register, uniqueName, watch } from './helpers.ts';
 
 const lastToast = (page: Page): Locator => page.locator('.toast').last();
 const member = (p: Page, name: string): Locator =>
@@ -24,7 +24,7 @@ async function rankFlow(page: Page, browser: Browser): Promise<void> {
   const plain = uniqueName('Gefolge');
   const first = uniqueName('Anwaerter');
   const second = uniqueName('Zweiter');
-  const tag = `R${Date.now() % 1000000}`;
+  const tag = guildTag('R');
   const title = `[${tag}] Ränge ${tag}`;
   const problems: { problems: string[] }[] = [watch(page)];
   await register(page, lead);
@@ -165,7 +165,7 @@ async function handOverAndDissolve(
 ): Promise<void> {
   const lead = uniqueName('Gruender');
   const heir = uniqueName('Erbin');
-  const tag = `D${Date.now() % 1000000}`;
+  const tag = guildTag('D');
   const problems: { problems: string[] }[] = [watch(page)];
   const ph = await guildWithMember(page, browser, lead, heir, tag, problems);
   const modal = page.locator('#modal');
@@ -290,7 +290,7 @@ test.describe('guild ranks (#163)', () => {
   }) => {
     const lead = uniqueName('Leiterin');
     const officer = uniqueName('Hauptmann');
-    const tag = `K${Date.now() % 1000000}`;
+    const tag = guildTag('K');
     const problems: { problems: string[] }[] = [watch(page)];
     const po = await guildWithMember(
       page,

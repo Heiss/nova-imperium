@@ -8,6 +8,7 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import {
   galaxyRow,
+  guildTag,
   nav,
   register,
   seed,
@@ -53,7 +54,7 @@ for (const phone of ['', ' @phone'])
     const host = uniqueName('Wirt');
     const guard = uniqueName('Wache');
     const raider = uniqueName('Raeuber');
-    const tag = `H${Date.now() % 1000000}`;
+    const tag = guildTag('H');
     const title = `[${tag}] Gilde ${tag}`;
     const w = watch(page);
 

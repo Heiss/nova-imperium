@@ -1,8 +1,10 @@
 // The Sternenkarte (#68): stepping through galaxies and systems, a typed
 // system, „zum Heimatsystem“ and „Wechseln“.
 import { expect, test } from '@playwright/test';
+import { E2E_UNIVERSE } from './env.ts';
 import {
   expectShownPlace,
+  ownArea,
   register,
   seed,
   shownPlace,
@@ -18,9 +20,11 @@ test.describe('galaxy, shipyard and options (#68)', () => {
     const name = uniqueName('Karte');
     await register(page, name);
     seed({ name, colony: {} });
-    // A second colony far away shows that Enter loads the typed system.
+    // A second colony in another system of the area shows that Enter loads
+    // the typed system.
     const far = uniqueName('Fern');
-    seed({ name, colony: { g: 2, s: 7, p: 15, name: far } });
+    const place = ownArea().system(2);
+    seed({ name, colony: { ...place, p: 15, name: far } });
     const farRow = page.locator('table.gal tr', { hasText: far });
     await page.goto('/?view=galaxy');
     await expect(shownPlace(page)).toHaveText(/\[\d+:\d+:\d+\]$/);
@@ -41,14 +45,15 @@ test.describe('galaxy, shipyard and options (#68)', () => {
     await page.getByRole('button', { name: 'nächste Galaxie' }).click();
     await expect(gal).toHaveValue('2');
     await page.getByRole('button', { name: 'voriges System' }).click();
-    await expect(sys).toHaveValue('50');
+    await expect(sys).toHaveValue(String(E2E_UNIVERSE.systems));
     await page.getByRole('button', { name: 'nächstes System' }).click();
     await expect(sys).toHaveValue('1');
-    await sys.fill('7');
+    await gal.fill(String(place.g));
+    await sys.fill(String(place.s));
     await expect(farRow).toHaveCount(0);
     await sys.press('Enter');
-    await expect(sys).toHaveValue('7');
-    await expect(gal).toHaveValue('2');
+    await expect(sys).toHaveValue(String(place.s));
+    await expect(gal).toHaveValue(String(place.g));
     await expect(farRow).toContainText(name);
     await expect(farRow.locator('td.n')).toHaveText('15');
     await page.getByText('zum Heimatsystem').click();

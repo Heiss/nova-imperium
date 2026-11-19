@@ -115,7 +115,7 @@ test.describe('moons (#53)', () => {
     await page.getByLabel('Zielart').selectOption('planet');
     await expect(page.locator('#t_info')).toHaveText(`Heimatplanet (${pilot})`);
     // „Mond“ only where a moon is.
-    // Players start on 4 to 12 and colonies of the tests lie on 15: 2 is free.
+    // In the system of this test the homes lie on 4 to 12: 2 is free.
     const position = page.getByLabel('Position', { exact: true });
     const at = await position.inputValue();
     await position.fill('2');

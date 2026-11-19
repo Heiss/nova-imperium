@@ -1,5 +1,13 @@
 import { expect, test, type Page } from '@playwright/test';
-import { cli, register, seed, uniqueName, watch } from './helpers.ts';
+import {
+  cli,
+  guildTag,
+  onlyOwnPlayers,
+  register,
+  seed,
+  uniqueName,
+  watch,
+} from './helpers.ts';
 import { ADMIN_TABS } from '../src/client/views/misc.ts';
 
 // No view is wider than a small phone (#189, D7): at 360 px the page must not
@@ -60,6 +68,8 @@ test('no view is wider than a 360 px phone (#189) @phone', async ({ page }) => {
   const w = watch(page);
   // The longest name a player may have (20 characters), as on the highscore.
   const name = uniqueName('Schmalbildschi');
+  // The highscore shows this test's player only, whatever other tests seeded.
+  await onlyOwnPlayers(page);
   await register(page, name);
   cli('admin', name);
   // Every kind of producer, a throttled one with its note, and large numbers:
@@ -114,8 +124,10 @@ test('a name of 20 wide letters stays left of the points on the highscore (#189)
   page,
 }) => {
   const w = watch(page);
-  // The widest name a player may have: 20 characters, each a W.
-  const name = 'W'.repeat(20);
+  // The widest name a player may have: 20 characters of the widest capitals
+  // (W and M), the last six drawn so that the name is this test's own.
+  const name = uniqueName('W'.repeat(14), 'WM');
+  await onlyOwnPlayers(page);
   await register(page, name);
   seed({ name, b: { metal: 30, crystal: 28, solar: 30 } });
   await page.setViewportSize({ width: 360, height: 800 });
@@ -149,7 +161,7 @@ test('a guild with the longest tag and name stays within a 360 px phone (#274) @
   const w = watch(page);
   // The longest tag (8) and name (32) a guild may have, without a space, of
   // wide letters; unique, as the server refuses a second guild with either.
-  const tag = uniqueName('WW').toUpperCase();
+  const tag = guildTag('WW');
   const guild = `${'W'.repeat(26)}${tag.slice(2)}`;
   const heading = `[${tag}] ${guild}`;
   // The longest name a player may have (20 characters), of wide letters.
@@ -214,6 +226,7 @@ test('the highscore stays within a 360 px phone with the largest numbers, in eve
   // the page never gets wider (CI of #316: a seeded level of 100 made 31
   // digits and the table pushed the page to 373 px).
   const name = uniqueName('W'.repeat(14));
+  await onlyOwnPlayers(page);
   await register(page, name);
   seed({
     name,

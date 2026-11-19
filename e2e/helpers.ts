@@ -1,8 +1,12 @@
 import { execFileSync } from 'node:child_process';
-import { randomInt } from 'node:crypto';
 import { expect, type Locator, type Page } from '@playwright/test';
 import { E2E_ENV, E2E_MAILBOX, E2E_MAIL_ENV, E2E_MAIL_URL } from './env.ts';
 import { mailsTo } from './mail.ts';
+import { isOwnName, nextHome, ownArea, ownNames } from './own-data.ts';
+
+// What the specs get from one place (#302): their own players, area and guild
+// tags. A spec asks for nothing of this by a fixed value.
+export { guildTag, ownArea, uniqueName } from './own-data.ts';
 
 const run = (
   script: string,
@@ -18,8 +22,18 @@ const run = (
 export const cli = (...args: string[]): string =>
   run('src/server/cli.ts', args);
 
-export const seed = (data: object): string =>
-  run('e2e/seed.ts', [JSON.stringify(data)]);
+/**
+ * Changes the data of a player of the running test (e2e/seed.ts). The call
+ * names the area of the test, and the seed command refuses planets outside it.
+ */
+export function seed(data: { name: string; [field: string]: unknown }): string {
+  if (!isOwnName(data.name))
+    throw new Error(
+      `seed({ name: "${data.name}" }): the player was not handed out to this test by uniqueName() (e2e/own-data.ts); every test makes its own players.`,
+    );
+  const { n, g, s } = ownArea();
+  return run('e2e/seed.ts', [JSON.stringify({ ...data, area: { n, g, s } })]);
+}
 
 /** `cli` and `seed` against the second server, the one that sends mails (#68). */
 export const mailCli = (...args: string[]): string =>
@@ -81,16 +95,9 @@ export function watch(page: Page): { problems: string[] } {
 }
 
 /**
- * A player name no other test uses: the base (at most 14 characters) and 6
- * random base-36 characters, at most 20 in all. A counter and the clock
- * repeated across Playwright workers, which each start the counter anew
- * (#68: a repeat run invited an address that already existed).
+ * Registers the player with an invitation and puts the home planet in the
+ * area of the running test. The name comes from `uniqueName()`.
  */
-export const uniqueName = (base: string): string =>
-  `${base.slice(0, 14)}${randomInt(36 ** 6)
-    .toString(36)
-    .padStart(6, '0')}`;
-
 export async function register(
   page: Page,
   name: string,
@@ -102,6 +109,18 @@ export async function register(
   await page.fill('#a_name', name);
   await page.fill('#a_pw', password);
   await page.click('button[type=submit]');
+  await expect(page.locator('h2')).toContainText('Übersicht');
+  await moveHome(page, name);
+}
+
+/**
+ * The registration puts a new home planet on a random position of galaxy 1,
+ * where two tests could meet. The next free home slot of the home system of
+ * the test's own area takes it over, and the page shows the new position.
+ */
+async function moveHome(page: Page, name: string): Promise<void> {
+  seed({ name, moveHome: nextHome() });
+  await page.reload();
   await expect(page.locator('h2')).toContainText('Übersicht');
 }
 
@@ -247,3 +266,24 @@ export const seconds = (text: string): number =>
   );
 
 export const lastToast = (page: Page): Locator => page.locator('.toast').last();
+
+/**
+ * The highscore lists every player of the run, and the table is as wide as
+ * the largest number any test seeded. A test of the layout with numbers must
+ * not depend on what other tests did, so its page gets the state with the
+ * players of this test only; everything else is the real answer of the server
+ * (#302).
+ */
+export async function onlyOwnPlayers(page: Page): Promise<void> {
+  const mine = new Set(ownNames());
+  await page.route('**/api/state**', async (route) => {
+    const response = await route.fetch();
+    const state = (await response.json()) as {
+      players?: Record<string, { name: string }>;
+    };
+    const players = Object.fromEntries(
+      Object.entries(state.players ?? {}).filter(([, p]) => mine.has(p.name)),
+    );
+    await route.fulfill({ response, json: { ...state, players } });
+  });
+}

@@ -71,6 +71,56 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   views, with a self-test that proves the check finds problems
   (`e2e/a11y.spec.ts`). A look with a screen reader and the keyboard is still
   open.
+* **[E]** One E2E spec per feature (owner, 2026-11-19, #317, #324): a
+  feature brings its own file `e2e/<feature>.spec.ts` and appends to no
+  collecting file (`game.spec.ts` and `flows.spec.ts` with 3,500 lines were
+  split into 32 files of one feature each, the titles unchanged). Helpers
+  that two specs share go to `e2e/helpers.ts` or a module of their own
+  (`e2e/fleet-helpers.ts`), never copied. `e2e/seed.ts` is a frame: it reads
+  the call, loads every file of `e2e/seed/` and runs the parts by their
+  `order` in one transaction. A part handles and lists its own fields
+  (`e2e/seed/colony.ts` has `colony`), a feature that needs a new field adds
+  a file there, and a field no part lists is refused. The call
+  `node e2e/seed.ts '<json>'` and the helper `seed()` did not change.
+* **[E]** Tests own their data (owner, 2026-11-19, #302, #324). All specs
+  run against one server and one database, so a test meets what an earlier
+  one left. Three things are shared and each has a rule:
+  * **Positions.** `register()` of `e2e/helpers.ts` puts the home planet of
+    each new player into the area of the running test: a block of 4
+    systems (`ownArea()`, `e2e/own-data.ts`) that no other test gets, from a
+    counter in a ledger file (`e2e/ledger.ts`, next to the data folder).
+    Home planets lie on slots 4 to 12 of the home system, colonies on the
+    slots 1 to 3 and 13 to 15 (`colony: {}` is slot 15), further systems
+    are `ownArea().system(1)` to `(3)`. Galaxy 1 holds no area: the
+    registration form puts the planet there first, on a random position.
+    A spec never writes a galaxy or system by hand.
+  * **Names.** `uniqueName()` hands out player and planet names and
+    `guildTag()` guild tags; both go to the ledger.
+  * **The highscore** lists every player of the run. A test that checks the
+    layout with large numbers calls `onlyOwnPlayers(page)`, so its page gets
+    the state with its own players only.
+* **[V]** The guard has two parts. At run time the seed command refuses a
+  player the ledger does not know, an area nobody was handed, and any planet
+  or moon of the player outside the area of the test; `seed()` also refuses
+  a player of another test. The unit test `src/test/e2e-own-data.test.ts`
+  reads every spec and refuses a literal galaxy or system in a place, a
+  literal position „[g:s:p]“, a guild tag or an account written by hand, and
+  `Date.now()` inside a text. A slot inside the own system (`p: 15`) is
+  allowed: the system is the test's.
+* **[V]** The universe of the E2E server is set when it starts
+  (`e2e/env.ts`, `E2E_UNIVERSE`, written by `e2e/start-server.ts`): 9
+  galaxies of 499 systems, because the default 2 × 50 has no room for one
+  system per test (173 tests and growing); 8 × 124 = 992 areas. The
+  database is not reset between the desktop and the phone project: every test
+  has its area, so it does not need to be. A test that reads the size
+  takes it from `E2E_UNIVERSE`, not from a number. Game defaults in `src/`
+  are not touched.
+* **[V]** The order of the tests must not matter (acceptance of #302). Run
+  the suite shuffled with `--fully-parallel --shuffle=<seed>` (Playwright
+  1.65; one worker stays): `E2E_PORT=4410 E2E_RUN=s1 playwright test
+  --fully-parallel --shuffle=1`. The seed reproduces the order; the three
+  orders of the build (1, 2, 3) passed. The CI could run one fixed seed
+  next to the normal run; that costs another run of the suite.
 * **[E]** Property-based upgrade tests of every migration on generated data
   (fast-check), and an own upgrade test for every migration that changes
   existing tables or data; see [SQLite storage](/data/sqlite.md).
@@ -646,7 +696,7 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 | Migration files | `src/server/db/migration-files.test.ts`, `src/server/db/legacy-migrations.test.ts`, `src/server/db/upgrade-tests.test.ts`, `src/test/new-migration.test.ts` | The loader of the migration folder (order across folders, stray files, an ID used twice, the forms of the files), the ID, number and SHA-256 of the SQL of each legacy file, an upgrade test that imports its file statically for every migration of an issue (owner, 2026-11-16, „Upgrade-Test Pflicht“), the skeletons of the script, the next free ID and its refusal before the last release, and the migrations of a git ref in its three layouts (#213). |
 | Migration IDs | `src/server/db/migration-ids.test.ts`, `src/server/db/migration-history.test.ts` | The order of the IDs (also as a property on random IDs), the record in `schema_migrations` started from `user_version` (every version from before #213, a database of version 20 with generated data written as the released server wrote it), repeated runs, an unreleased migration older than one a database of `main` ran, two pull requests merged in either order, no new migration on a hotfix branch (O19), and two connections migrating the same file at once (#213). |
 | Sync | `src/server/docs.test.ts`, `src/server/http/security.test.ts`, `src/test/okf-log.test.ts` | Every setting is in the docs, `.env.example` and `compose.yaml`; links resolve; the Caddyfile sends the same security headers as the server; every entry of the update log in `okf/log/` is well-formed and `okf/log.md` is gone (#212, [Documentation website](/ops/website.md)). |
-| E2E | `e2e/game.spec.ts`, `e2e/flows.spec.ts`, `e2e/error-log.spec.ts`, `e2e/guild-ranks.spec.ts`, `e2e/guild-switch.spec.ts`, `e2e/guild-chat.spec.ts`, `e2e/phalanx.spec.ts`, `e2e/fleet-cargo.spec.ts`, `e2e/moonbreak.spec.ts`, `e2e/missiles.spec.ts` | Invitation, single use, login, building, production share, renaming, shipyard, fleet form, espionage with report, admin panel (invite, copy link, revoke, live settings, grow-only), phone layout, the push kinds in the options (#192); the flows of #68 in `flows.spec.ts`: attack with battle report, loot and the defender's report, transport arriving, „Rückruf“, the max and „alles“ buttons, too little Promethium, all fleet slots used, noob protection, galaxy navigation and „Wechseln“, the shipyard max button and its queue, deleting reports, probes per spying, guild membership, login code and „Passwort vergessen“ by mail, copying an invitation link, a new round, push on a server without Web Push, full storage and energy shortage; the error log and problem reports in `error-log.spec.ts`; the guild ranks of #163 in `guild-ranks.spec.ts` (desktop and phone); guilds off for a round (#191) in `guild-switch.spec.ts` (desktop and phone, on the mail server); the guild chat of #169 in `guild-chat.spec.ts` (desktop and phone: two members chat, plain text, the limits, deleting, leaving, outsiders, the rights of a rank, the admin's read in the audit log, the events of the server, the notice and the red mark on „Gilden“); the Auspex-Phalanx of #53 with its scan panel in `phalanx.spec.ts` (desktop and phone, axe on the panel); the cargo buttons of #240 in `fleet-cargo.spec.ts` (desktop and phone: the even „alles (gleichmäßig)“, the „alles“ under each field, Promethium after the fuel, axe on the form); the Mondbruch of #95 in `moonbreak.spec.ts` (desktop and phone: the refusals without a Weltenbrecher and at a planet, a Mondbruch from the fleet form with the rolls and the loot in the battle report, the owner's line „Dein Mond bei … wurde zerstört.“ and the moon gone from his planet list, axe on the reports); the missiles of #54 in `missiles.spec.ts` (the places of the Raketenkrypta and its limit of the order, the Raketenangriff from the Sternenkarte with its dialog, interception and report; no button out of range on the phone). |
+| E2E | one `e2e/<feature>.spec.ts` per feature (#324: `accounts`, `buildings`, `research`, `energy`, `fields`, `shipyard`, `defense`, `explanations`, `push-kinds`, `admin` and the rest), `e2e/error-log.spec.ts`, `e2e/guild-ranks.spec.ts`, `e2e/guild-switch.spec.ts`, `e2e/guild-chat.spec.ts`, `e2e/phalanx.spec.ts`, `e2e/fleet-cargo.spec.ts`, `e2e/moonbreak.spec.ts`, `e2e/missiles.spec.ts` | Invitation, single use, login, building, production share, renaming, shipyard, fleet form, espionage with report, admin panel (invite, copy link, revoke, live settings, grow-only), phone layout, the push kinds in the options (#192); the flows of #68 in `battle`, `debris`, `fleet-transport`, `fleet-send`, `espionage`, `galaxy-navigation`, `shipyard`, `guilds`, `mail-accounts`, `admin`, `new-round`, `endzeit`, `event-log`, `push-kinds` and `energy` (`.spec.ts`): attack with battle report, loot and the defender's report, transport arriving, „Rückruf“, the max and „alles“ buttons, too little Promethium, all fleet slots used, noob protection, galaxy navigation and „Wechseln“, the shipyard max button and its queue, deleting reports, probes per spying, guild membership, login code and „Passwort vergessen“ by mail, copying an invitation link, a new round, push on a server without Web Push, full storage and energy shortage; the error log and problem reports in `error-log.spec.ts`; the guild ranks of #163 in `guild-ranks.spec.ts` (desktop and phone); guilds off for a round (#191) in `guild-switch.spec.ts` (desktop and phone, on the mail server); the guild chat of #169 in `guild-chat.spec.ts` (desktop and phone: two members chat, plain text, the limits, deleting, leaving, outsiders, the rights of a rank, the admin's read in the audit log, the events of the server, the notice and the red mark on „Gilden“); the Auspex-Phalanx of #53 with its scan panel in `phalanx.spec.ts` (desktop and phone, axe on the panel); the cargo buttons of #240 in `fleet-cargo.spec.ts` (desktop and phone: the even „alles (gleichmäßig)“, the „alles“ under each field, Promethium after the fuel, axe on the form); the Mondbruch of #95 in `moonbreak.spec.ts` (desktop and phone: the refusals without a Weltenbrecher and at a planet, a Mondbruch from the fleet form with the rolls and the loot in the battle report, the owner's line „Dein Mond bei … wurde zerstört.“ and the moon gone from his planet list, axe on the reports); the missiles of #54 in `missiles.spec.ts` (the places of the Raketenkrypta and its limit of the order, the Raketenangriff from the Sternenkarte with its dialog, interception and report; no button out of range on the phone). |
 | Accessibility | `e2e/a11y.spec.ts` | axe on every view. |
 | Upgrade | `docker/upgrade.sh` in the same job | The last release writes data, the new image starts on the same volume: the data survive, a migration leaves a backup (fail closed, see [SQLite storage](/data/sqlite.md)), and the database records every migration ID of the image as run (#213). |
 | Stack | `docker/smoke.sh` in the CI job "Docker image and Compose stack" | Headers through Caddy, uid 1000, invitation mail in Mailpit, registration with its link, admin by command, data after a restart, maintenance by `nova maintenance on\|off` and the Caddy maintenance page with the game stopped; plus: image without compiler, package manager or tests; a wrong setting stops the start; Trivy. |
@@ -900,7 +950,8 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 
 # E2E inventory (2026-11-13, #68)
 
-* 78 E2E tests in four files (67 desktop, 11 phone): `game.spec.ts` 50,
+* 78 E2E tests in four files (67 desktop, 11 phone; `game.spec.ts` and
+  `flows.spec.ts` are split into one spec per feature since #324): `game.spec.ts` 50,
   `flows.spec.ts` 15, `error-log.spec.ts` 8, `a11y.spec.ts` 5. Locally the
   suite took 3.2 minutes before #68 and 4.6 minutes after it; in the CI it
   took 2.8 minutes on `main` before.

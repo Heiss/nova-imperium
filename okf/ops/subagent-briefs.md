@@ -63,6 +63,18 @@ when the second built on the first.
   values uses `roundDefaults()` (`src/test/fixtures.ts`) and never lists
   another feature's settings (#310).
 * Stop after two failed attempts at the same problem and report.
+* A new E2E test goes into the spec of its feature, `e2e/<feature>.spec.ts`
+  (a new file for a new feature), never into a collecting file; new seed
+  fields go into a part of their own in `e2e/seed/`. The test owns its data
+  (#302, #324): players from `uniqueName()`, guild tags from `guildTag()`,
+  `register()` of `e2e/helpers.ts` for every player (it puts the home planet
+  into the area of the test), other systems from `ownArea().system(i)`, no
+  galaxy, system, tag or account written by hand (`src/test/e2e-own-data.test.ts`
+  fails on it, and the seed command refuses planets outside the area). A test
+  that checks the layout with large numbers uses `onlyOwnPlayers(page)`. No
+  E2E test depends on a chance of the game or on the order of the tests;
+  before the push run the new spec shuffled as well: `playwright test
+  --fully-parallel --shuffle=<seed>` (see [Testing](/ops/testing.md)).
 
 ## What went wrong, and what the brief says since
 

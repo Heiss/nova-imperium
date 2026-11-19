@@ -4,6 +4,7 @@ import {
   cli,
   expectShownPlace,
   galaxyRow,
+  guildTag,
   nav,
   register,
   seed,
@@ -119,7 +120,7 @@ test.describe('accessibility (axe)', () => {
     const found: string[] = [];
     await nav(page, 'galaxy');
     await page.getByText('zum Heimatsystem').click();
-    // Only this player's row: another test may leave a field in the system.
+    // This player's row: the Trümmerfeld lies at the home planet.
     const row = galaxyRow(page, name);
     const mark = row.getByRole('img', {
       name: 'Trümmerfeld: 1.800 Adamant, 600 Psikristall',
@@ -138,7 +139,7 @@ test.describe('accessibility (axe)', () => {
     page,
   }) => {
     const name = uniqueName('AxeMond');
-    // A unique moon name: two runs of this test can share a home system (#252).
+    // A unique moon name, as the guard of #302 hands out every name.
     const moon = uniqueName('Axe');
     await register(page, name);
     seed({ name, moon: { name: moon }, ships: { sc: 1 } });
@@ -373,7 +374,7 @@ test.describe('accessibility (axe)', () => {
     browser,
   }) => {
     const lead = uniqueName('AxeGilde');
-    const tag = `A${Date.now() % 1000000}`;
+    const tag = guildTag('A');
     const title = `[${tag}] Axe ${tag}`;
     await register(page, lead);
     const found: string[] = [];
@@ -428,7 +429,7 @@ test.describe('accessibility (axe)', () => {
     browser,
   }) => {
     const lead = uniqueName('AxeChat');
-    const tag = `K${Date.now() % 1000000}`;
+    const tag = guildTag('K');
     const title = `[${tag}] Axe ${tag}`;
     await register(page, lead);
     cli('admin', lead);

@@ -1,7 +1,14 @@
 // Guilds: founding one with its profile, applying, declining, accepting,
 // handing over the lead, leaving and removing a member (#68).
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { lastToast, nav, register, uniqueName, watch } from './helpers.ts';
+import {
+  guildTag,
+  lastToast,
+  nav,
+  register,
+  uniqueName,
+  watch,
+} from './helpers.ts';
 
 test('creates a guild and restores its profile after reload', async ({
   page,
@@ -11,7 +18,7 @@ test('creates a guild and restores its profile after reload', async ({
   // A unique tag and name: the server refuses a second guild with either, so
   // a fixed „NOVA“ failed on a repeat run (#267). „N“ and 6 random
   // characters, in capitals: the tag takes 2 to 8 letters or digits.
-  const tag = uniqueName('N').toUpperCase();
+  const tag = guildTag('N');
   const guild = `Nova Allianz ${tag}`;
   await register(page, name);
   await nav(page, 'guilds');
@@ -39,7 +46,7 @@ test.describe('guilds (#68)', () => {
     const founder = uniqueName('Leiter');
     const a = uniqueName('Erbe');
     const b = uniqueName('Gast');
-    const tag = `G${Date.now() % 1000000}`;
+    const tag = guildTag('G');
     const title = `[${tag}] Gilde ${tag}`;
     const w = watch(page);
     await register(page, founder);

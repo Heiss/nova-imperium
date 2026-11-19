@@ -13,7 +13,19 @@ export const E2E_DATA = path.join(
   `nova-e2e-${process.env.E2E_RUN ?? 'run'}`,
 );
 
+// What the helpers hand out in a run (e2e/ledger.ts, #302), next to the data
+// folder; the start of a server removes it with the data.
+export const E2E_LEDGER = `${E2E_DATA}-ledger.jsonl`;
+
+// The universe of the servers under test, set when a server starts: one
+// system of its own for every test needs more than the 100 of the default
+// (2 galaxies of 50 systems; #302, e2e/ledger.ts). Galaxy 1 stays for the
+// random home planets of registration, the others hold the areas of the
+// tests: 8 galaxies of 124 areas of 4 systems each.
+export const E2E_UNIVERSE = { galaxies: 9, systems: 499 };
+
 export const E2E_ENV: Record<string, string> = {
+  E2E_UNIVERSE_JSON: JSON.stringify(E2E_UNIVERSE),
   NOVA_PUBLIC_URL: `http://localhost:${E2E_PORT}`,
   NOVA_PORT: String(E2E_PORT),
   NOVA_HOST: '127.0.0.1',
