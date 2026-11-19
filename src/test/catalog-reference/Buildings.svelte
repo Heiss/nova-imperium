@@ -11,7 +11,9 @@
   // Lexicanum, so no text unfolds below the entry and the „?“ shows in
   // every mode but „Ausblenden“. And one with the Raketenkrypta (#54): a
   // building that stores missiles shows the places they take, marked
-  // below. Do not change it otherwise.
+  // below. And one of #187: the ▤ of the level overview next to the „?“,
+  // and the box for its table below the entry (the table loads on demand,
+  // so it is not drawn here). Do not change it otherwise.
   import type { Readable } from 'svelte/store';
   import { BUILD, buildable, SILO } from '../../core/catalog.ts';
   import { siloUse } from '../../core/yard.ts';
@@ -30,6 +32,7 @@
   import { explanation } from '../../client/logic/explain.ts';
   import { fieldsLine } from '../../client/logic/fields.ts';
   import { iconURL } from '../../client/logic/icons.ts';
+  import { levelsRow } from '../../client/logic/level-mode.ts';
   import { dur, fmt } from '../../client/logic/format.ts';
   import { buildState } from './states.ts';
   import {
@@ -80,6 +83,7 @@
     {@const image = iconURL(key)}
     {@const t = text(key)!}
     {@const ex = explanation(key, t, s.me.explain, $viewState.ui.openEx)}
+    {@const lv = levelsRow(key, t.n, s.me.levelTable, $viewState.ui.openLv)}
     <div class="item" class:running={status === 'running'}>
       <div class="icon ic-b">
         {#if image}<img src={image} alt={t.n} />{:else}{t.ab}{/if}
@@ -97,6 +101,15 @@
               aria-expanded={ex.open}
               aria-controls={ex.open ? ex.panel : undefined}
               aria-label={`Erklärung zu ${t.n}`}>?</button
+            >{/if}{#if lv?.button}<button
+              type="button"
+              class="lvq"
+              id={lv.button}
+              data-act="levels"
+              data-k={key}
+              aria-expanded={lv.open}
+              aria-controls={lv.open ? lv.panel : undefined}
+              aria-label={`Stufenübersicht zu ${t.n}`}>▤</button
             >{/if}
         </div>
         <div class="ds">{t.ds}</div>
@@ -122,6 +135,7 @@
         {/each}
         <div class="dim">Bauzeit: {dur(buildTime(cost, P, s.cfg))}</div>
         {@html requirementsHTML($viewState, def.req)}
+        {#if lv?.show}<div class="lvt" id={lv.panel}></div>{/if}
       </div>
       <div class="act">
         {#if status === 'running' && P.bq}

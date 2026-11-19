@@ -2,6 +2,7 @@
 // test moves, a seeded random generator and readable ids.
 import { seeded } from '../test/fixtures.ts';
 import { DEFAULT_EXPLAIN } from '../core/explain.ts';
+import { DEFAULT_LEVEL_MODE } from '../core/level-overview.ts';
 import type { Planet } from '../core/types.ts';
 import { hashPassword } from './auth.ts';
 import type { Config } from './config.ts';
@@ -69,6 +70,7 @@ export function addUser(
     admin: false,
     probes: 1,
     explain: DEFAULT_EXPLAIN,
+    levelTable: DEFAULT_LEVEL_MODE,
     readAt: 0,
     created: ctx.now(),
     research: {},

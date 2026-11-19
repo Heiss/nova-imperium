@@ -38,7 +38,9 @@ interface Setup {
   research?: Levels;
   rq?: ResearchQueue | null;
   explain?: string;
+  levelTable?: string;
   openEx?: Record<string, boolean>;
+  openLv?: Record<string, boolean>;
   labs?: GameState['labs'];
   galaxy?: Partial<GameState['galaxy'][number]>[];
   mainPlanet?: string | null;
@@ -52,7 +54,7 @@ function view(o: Setup = {}): V {
   const P = planet({ res: { m: 500, c: 500, d: 0 }, ...o.P });
   const s = {
     cfg: U,
-    me: { id: 'u1', explain: o.explain ?? 'icon' },
+    me: { id: 'u1', explain: o.explain ?? 'icon', levelTable: o.levelTable },
     labs: o.labs ?? [],
     galaxy: o.galaxy ?? [],
     // The first planet; research from before #49 counts as the main planet's (#221).
@@ -64,7 +66,7 @@ function view(o: Setup = {}): V {
     P,
     R: { research: o.research ?? {}, rq: o.rq ?? null },
     now: o.now ?? 0,
-    ui: { openEx: o.openEx ?? {} } as unknown as Ui,
+    ui: { openEx: o.openEx ?? {}, openLv: o.openLv } as unknown as Ui,
   };
 }
 
@@ -126,6 +128,50 @@ describe('every row', () => {
       row(view({ ...lab, explain: 'always' }), 'research', 'energy').explanation
         ?.key,
     ).toBe('energy');
+  });
+
+  it('shows the ▤ of the level overview on buildings and research only (#187)', () => {
+    const v = view({ P: { b: { yard: 1, lab: 1 } } });
+    const t = text('metal')!;
+    expect(row(v, 'building', 'metal').levels).toEqual({
+      key: 'metal',
+      button: 'lvq_metal',
+      panel: 'lv_metal',
+      name: t.n,
+      open: false,
+      show: false,
+    });
+    expect(row(v, 'research', 'energy').levels).toMatchObject({
+      key: 'energy',
+      button: 'lvq_energy',
+    });
+    expect(row(v, 'ship', 'lf').levels).toBeUndefined();
+    expect(row(v, 'defense', 'rl').levels).toBeUndefined();
+  });
+
+  it('unfolds the table of the entries whose ▤ was pressed, always shows it in „Immer anzeigen“ and drops it in „Ausblenden“ (#187)', () => {
+    const lab = { P: { b: { lab: 1 } } };
+    const pressed = view({ ...lab, openLv: { metal: true } });
+    expect(row(pressed, 'building', 'metal').levels).toMatchObject({
+      open: true,
+      show: true,
+    });
+    expect(row(pressed, 'building', 'crystal').levels).toMatchObject({
+      open: false,
+      show: false,
+    });
+    const always = view({ ...lab, levelTable: 'always' });
+    expect(row(always, 'building', 'metal').levels).toMatchObject({
+      button: null,
+      show: true,
+    });
+    const hidden = view({
+      ...lab,
+      levelTable: 'hidden',
+      openLv: { metal: true },
+    });
+    expect(row(hidden, 'building', 'metal').levels).toBeNull();
+    expect(row(hidden, 'research', 'energy').levels).toBeNull();
   });
 
   it('gives each kind its icon class', () => {
@@ -729,11 +775,13 @@ describe('shipyard and defense', () => {
       opened(catalogPage(yard({ sq, sqT }, { now }), 'defense')).queue;
     expect(queue(2000)).toEqual([
       {
+        key: 'lf',
         label: `2× ${text('lf')!.n}`,
         next: { end: 6000, left: dur(4000) },
         each: `je ${dur(5000)}`,
       },
       {
+        key: 'sc',
         label: `1.200× ${text('sc')!.n}`,
         next: null,
         each: `je ${dur(3000)}`,

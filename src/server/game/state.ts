@@ -93,6 +93,7 @@ const meOf = (ctx: Ctx, u: User) => ({
   rq: u.rq,
   probes: u.probes,
   explain: u.explain,
+  levelTable: u.levelTable,
   pushOff: pushOff(ctx, u.id),
   readAt: u.readAt,
   admin: u.admin,

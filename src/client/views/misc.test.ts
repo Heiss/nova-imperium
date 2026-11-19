@@ -9,12 +9,14 @@ import {
 } from '../../core/round.ts';
 import { liveSpecs } from '../../core/universe.ts';
 import { roundDefaults } from '../../test/fixtures.ts';
+import { levelView } from '../../test/level-view.ts';
 import type { GameState } from '../logic/types.ts';
 import type { V } from './common.ts';
 import {
   admin,
   deleteAccountBox,
   deleteAccountDialog,
+  help,
   highscore,
   roundDialog,
 } from './misc.ts';
@@ -473,5 +475,35 @@ describe('a new setting of the round in both places (#283)', () => {
     expect(html).toContain(
       '<select id="set_roundTestAllies" data-setting="roundTestAllies" data-nokeep><option value="1">Gilde</option><option value="3" selected>Gilde und Freunde</option></select>',
     );
+  });
+});
+
+describe('the option „Stufenübersicht“ in „Hilfe & Optionen“ (#187)', () => {
+  const page = (levelTable?: string): string => {
+    const v = levelView({}, {}, [], { levelTable, probes: 1, pushOff: [] });
+    v.s.round = roundDefaults() as unknown as GameState['round'];
+    v.s.homePlanet = 'p';
+    v.ui = { animations: true, view: 'help' } as unknown as V['ui'];
+    return help(v);
+  };
+
+  it('is a choice of the three modes beside the one of the „?“', () => {
+    const html = page('always');
+    expect(html).toContain(
+      '<label for="o_levels">Stufenübersicht:</label> <select id="o_levels">' +
+        '<option value="always" selected>Immer anzeigen</option>' +
+        '<option value="icon">Als ▤-Symbol</option>' +
+        '<option value="hidden">Ausblenden</option></select>',
+    );
+    expect(html.indexOf('id="o_explain"')).toBeLessThan(
+      html.indexOf('id="o_levels"'),
+    );
+    expect(html.indexOf('id="o_levels"')).toBeLessThan(
+      html.indexOf('data-act="saveopt"'),
+    );
+  });
+
+  it('shows the ▤ for a player without a stored mode (D5)', () => {
+    expect(page()).toContain('<option value="icon" selected>Als ▤-Symbol');
   });
 });

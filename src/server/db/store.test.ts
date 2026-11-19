@@ -58,6 +58,16 @@ describe('store', () => {
     }
   });
 
+  it('saves the display option of the level overview (#187)', () => {
+    const ctx = testCtx();
+    const u = addUser(ctx, 'Anna');
+    expect(ctx.store.user(u.id)!.levelTable).toBe('icon');
+    for (const mode of ['always', 'hidden', 'icon'] as const) {
+      ctx.store.saveUser({ ...u, levelTable: mode });
+      expect(ctx.store.user(u.id)!.levelTable).toBe(mode);
+    }
+  });
+
   it('reads a stored „Immer anzeigen“ of #63 as the „?“ (#285 B2)', () => {
     const ctx = testCtx();
     const u = addUser(ctx, 'Anna', { explain: 'hidden' });
@@ -75,6 +85,7 @@ describe('store', () => {
       )
       .run();
     expect(ctx.store.user('u1')!.explain).toBe('icon');
+    expect(ctx.store.user('u1')!.levelTable).toBe('icon');
   });
 
   it('refuses a second user with the same name in other case', () => {

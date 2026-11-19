@@ -1,5 +1,6 @@
 import type { BuildingFields } from '../../core/catalog.ts';
 import type { Leveled } from '../../core/components/leveled.ts';
+import type { Locks } from '../../core/components/locks.ts';
 import type { Placement } from '../../core/components/placement.ts';
 
 export const kind = 'building';
@@ -17,3 +18,5 @@ export const def: BuildingFields = {
 };
 /** On planets and moons (#53; owner, 2026-11-13). */
 export const placement: Placement = ['planet', 'moon'];
+/** An upgrade stops the shipyard, and waits until it has no orders (#48, #183). */
+export const locks: Locks = { stops: 'shipyard', home: true };

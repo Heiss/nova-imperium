@@ -13,6 +13,7 @@ import type { Universe } from '../../core/types.ts';
 import { ENDZEIT_NOTE } from '../logic/endzeit.ts';
 import { reportFormHTML } from '../logic/error-report.ts';
 import { explainOptionsHTML } from '../logic/explain.ts';
+import { levelOptionsHTML } from '../logic/level-mode.ts';
 import { homePlanetOf } from '../logic/friends.ts';
 import { mainPlanetHTML } from '../logic/main-planet.ts';
 import {
@@ -92,7 +93,7 @@ export const notificationBoxes = (
  ${box('Browser-Benachrichtigungen', '<p>Meldungen zu Aufträgen, Flotten und neuen Nachrichten auf diesem Gerät.</p><button data-act="pushEnable">Aktivieren</button> <button data-act="pushDisable">Deaktivieren</button>')}`;
 
 export const help = (v: V): string => `<h2>Hilfe &amp; Optionen</h2>
- ${box('Optionen', `<div class="flex">Spähschädel pro Auspex-Erkundung von der Sternenkarte: <input type="number" id="o_probes" min="1" value="${v.s.me.probes || 1}" aria-label="Spähschädel pro Auspex-Erkundung"></div><div class="flex mt"><label for="o_explain">(?)-Symbol:</label> <select id="o_explain">${explainOptionsHTML(v.s.me.explain)}</select></div><p><button data-act="saveopt">Speichern</button></p>`)}
+ ${box('Optionen', `<div class="flex">Spähschädel pro Auspex-Erkundung von der Sternenkarte: <input type="number" id="o_probes" min="1" value="${v.s.me.probes || 1}" aria-label="Spähschädel pro Auspex-Erkundung"></div><div class="flex mt"><label for="o_explain">(?)-Symbol:</label> <select id="o_explain">${explainOptionsHTML(v.s.me.explain)}</select></div><div class="flex mt"><label for="o_levels">Stufenübersicht:</label> <select id="o_levels">${levelOptionsHTML(v.s.me.levelTable)}</select></div><p><button data-act="saveopt">Speichern</button></p>`)}
  ${box('Hauptplanet', mainPlanetHTML(v.s, v.now))}
  ${box('Urlaubsmodus', vacationHTML(v.s.round.vacationHours))}
  ${box('Darstellung', `<label class="switch"><input type="checkbox" id="o_anim" ${v.ui.animations ? 'checked' : ''}> Animationen</label><p class="dim">Planeten drehen sich, Wolken ziehen. Gilt für dieses Gerät; ist im System „Bewegung reduzieren“ eingestellt, bleibt alles ruhig.</p>`)}

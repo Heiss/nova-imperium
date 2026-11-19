@@ -225,6 +225,27 @@ choice of the patterns to the assistant's recommendation below
   `src/core/components/silo.ts`, and its contract test; `catalog.ts`
   derives `SILO` and `MISSILE`, and `FIGHTERS` leaves the missiles out
   (`fights(key)`); `yard.ts` asks the module for the room of the silo.
+* **[V]** Built with #183 (lab lock and shipyard lock without catalog
+  keys; the owner left open whether they become a component, how the lab
+  lock fits the rule of two entries and the release, 2026-11-14; the
+  recommendation was taken, no behaviour changes): the component `locks`,
+  `{ stops: 'shipyard' | 'research', home?: true }`, on buildings only. An
+  upgrade of such a building stops what it names while it runs, and waits
+  until that is idle; `home` marks the building that is the place of it (the
+  Schiffsschmiede for the shipyard, the Scholarium for the research), exactly
+  one per kind. Three entries share it (Schiffsschmiede, Machina-Schwarmhalle,
+  Scholarium), so the rule of two entries holds, with two kinds of lock. The
+  rule module is `src/core/components/locks.ts` (`stops`, `stoppers`,
+  `homeOf`) with its contract test; `catalog.ts` derives `LOCKS`; `lab.ts`
+  and `yard.ts` keep their exports (`hasLab`, `labUpgrading`, `waitsForLab`,
+  `hasYard`, `yardLockedBy`, `waitsForYard`, `YARD_LOCK`) and read the
+  component, `hasLab` and `hasYard` the level of the `home` building
+  (`YARD_HOME`). The name of a lock in a message is the short text `short`
+  of the entry (the Schiffsschmiede, whose name is „Orbitale Schiffsschmiede“),
+  else its name; `YARD_LOCK` is derived from them with today's values, and
+  `lockNotice()` compares with `YARD_HOME`. `src/core/locks-reference.test.ts`
+  compares every rule with its form before, for every key of the catalog and
+  inherited names.
 
 ## 2. Texts apart from rules
 
@@ -1010,10 +1031,10 @@ src/client/                state, components (generic), views
   file, and the test fails when the real number is higher (a new
   comparison) and when it is lower (the count must be lowered), so the
   counts only fall and an entry goes when it reaches 0 (owner,
-  2026-11-14). The entries: `core/lab.ts` `lab` 2 and
-  `client/logic/catalog-list.ts` `yard` 1 (in `client/views/yard.ts`
-  until #118), the lab and shipyard locks (#183, „Lab
-  lock and shipyard lock without catalog keys“). The generic events of
+  2026-11-14). The entries `core/lab.ts` `lab` 2 and
+  `client/logic/catalog-list.ts` `yard` 1, the lab and shipyard locks
+  (#183, „Lab lock and shipyard lock without catalog keys“), went with the
+  component `locks`. The generic events of
   #115 removed the comparisons in `core/settle.ts` (`sat` 1 and `energy` 1)
   and `server/game/actions.ts` (`energy` 1 and `fusion` 1). The mission registry of #116 removed the comparisons in
   `server/game/fleet-actions.ts` and `server/game/arrival.ts` (`probe` 1,

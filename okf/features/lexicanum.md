@@ -105,6 +105,11 @@ their own.
   (marked) and then the levels of #187 D1. Rows above 20: the next 3 and the
   next multiple of 5; for 17 to 19 the steps up to 20 are empty, so the
   next multiple of 5 above them follows, as above 20.
+* **[V]** Since #187 the same table is drawn in the lists behind the ▤
+  ([Level overview](/features/level-overview.md)): `levelTable()` takes any
+  number of effect columns, the producer and the store effect moved to
+  `src/client/logic/level-effects.ts`, `levelSteps` to the core
+  (`src/core/level-overview.ts`); the article is unchanged.
 * **[V]** `src/client/logic/lexicanum.ts` builds the pages and the article
   with the player's state (`articleView`, `page`, `crumbs`, the search
   helpers); `src/client/logic/address.ts` the addresses (also `viewUrl`,

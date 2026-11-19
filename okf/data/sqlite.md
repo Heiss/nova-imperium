@@ -367,6 +367,13 @@ Migration 10 adds the display option of the explanation texts per player,
 Existing players get „(?)-Symbol“; their other data stay as they were
 (`upgrades/migration-10.test.ts`).
 
+Migration `20261119T1733-level-table` (issue #187, in the folder layout,
+`migrations/187/migrations.ts`, see [Level overview](/features/level-overview.md))
+adds the display option of the level overview per player, `users.level_table`
+(`always`, `icon` or `hidden`, CHECK, `NOT NULL DEFAULT 'icon'`). Existing
+players get the icon; their other data stay as they were
+(`upgrades/20261119T1733-level-table.test.ts`).
+
 Migration 11 stores the planet where the running research started
 (`users.rq_planet`, issue #49), so a cancel refunds that planet. Research
 started before has no planet and is refunded to the home planet

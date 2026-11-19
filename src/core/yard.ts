@@ -1,12 +1,14 @@
-// The shipyard lock, used by the server and the client. A building of
-// YARD_LOCK stops the shipyard while it is upgraded, and its upgrade waits
-// until the shipyard has no orders (classic rule; Nanitenfabrik: #48, D1).
+// The shipyard lock, used by the server and the client. A building with the
+// component `locks` for the shipyard (#183) stops the shipyard while it is
+// upgraded, and its upgrade waits until the shipyard has no orders (classic
+// rule; Nanitenfabrik: #48, D1).
 // Also the limit of units a planet may have, the shield domes (#50), read
 // through the rule module of the component `limit` (#114), and the room of
 // the silos for the missiles (#54), read through the rule module of the
 // components `silo` and `missile`.
-import { LIMIT, MISSILE, SILO, UNIT } from './catalog.ts';
+import { LIMIT, LOCKS, MISSILE, SILO, UNIT } from './catalog.ts';
 import { type Limit, room } from './components/limit.ts';
+import { homeOf, stoppers, stops } from './components/locks.ts';
 import {
   fits,
   type Missile,
@@ -14,18 +16,28 @@ import {
   siloPlaces,
 } from './components/silo.ts';
 import { maxAfford } from './economy.ts';
+import { text } from './text.ts';
 import type { Levels, Planet } from './types.ts';
 
-/** The buildings that lock the shipyard, with the short name for messages. */
-export const YARD_LOCK: Readonly<Record<string, string>> = {
-  yard: 'Schiffsschmiede',
-  nanite: 'Machina-Schwarmhalle',
+/** The building that is the shipyard itself: the one whose levels ships and defense need. */
+export const YARD_HOME = homeOf(LOCKS, 'shipyard')!;
+
+/** The name of a building in a message: its short name, else its name. */
+const messageName = (key: string): string => {
+  const t = text(key);
+  return t?.short ?? t?.n ?? key;
 };
 
-const locks = (key: string): boolean => Object.hasOwn(YARD_LOCK, key);
+/** The buildings that lock the shipyard, with the short name for messages. */
+export const YARD_LOCK: Readonly<Record<string, string>> = Object.fromEntries(
+  stoppers(LOCKS, 'shipyard').map((key) => [key, messageName(key)]),
+);
+
+const locks = (key: string): boolean => stops(LOCKS, key, 'shipyard');
 
 /** Whether the place has a shipyard, which ships and defense need. */
-export const hasYard = (p: Pick<Planet, 'b'>): boolean => (p.b.yard ?? 0) > 0;
+export const hasYard = (p: Pick<Planet, 'b'>): boolean =>
+  (p.b[YARD_HOME] ?? 0) > 0;
 
 /** The building whose upgrade stops the shipyard now, or null. */
 export const yardLockedBy = (p: Pick<Planet, 'bq'>): string | null =>

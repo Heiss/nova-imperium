@@ -6,6 +6,7 @@ import type { DebrisField } from '../../core/debris.ts';
 import type { GateView } from '../../core/jump-gate.ts';
 import type { LabSite } from '../../core/research.ts';
 import type { ExplainMode } from '../../core/explain.ts';
+import type { LevelMode } from '../../core/level-overview.ts';
 import type { SeenShips } from '../../core/fleet-recognition.ts';
 import type { GuildRight } from '../../core/guild-ranks.ts';
 import type { ChatEventKind } from '../../core/guild-chat.ts';
@@ -29,6 +30,8 @@ interface Me {
   probes: number;
   /** Display option of the explanation texts (issue #63). */
   explain: ExplainMode;
+  /** Display option of the level overview (#187). */
+  levelTable: LevelMode;
   /** The push kinds the player switched off, for all devices (#192). */
   pushOff: PushTopic[];
   readAt: number;

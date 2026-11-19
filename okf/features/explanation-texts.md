@@ -41,6 +41,9 @@ characters (see [Grimdark naming](/features/naming.md)).
   the article. See [Lexicanum](/features/lexicanum.md); the rest of this
   page describes the state before #285 where it differs.
 
+The second icon next to the „?“, the ▤ of the level overview with its own
+option, is described in [Level overview](/features/level-overview.md) (#187).
+
 # Code, interface and tests
 
 * Option: column `users.explain_mode` (`always`, `icon`, `hidden`, default

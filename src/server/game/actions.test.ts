@@ -871,6 +871,34 @@ describe('planet settings', () => {
     A.options(ctx, u, { probes: 4 });
     expect(me()).toMatchObject({ probes: 4, explain: 'hidden' });
   });
+  it('save the display option of the level overview (#187)', () => {
+    const { ctx, u, me } = setup();
+    expect(me().levelTable).toBe('icon');
+    for (const levelTable of ['always', 'hidden', 'icon']) {
+      expect(A.options(ctx, u, { probes: 2, levelTable })).toBe('Gespeichert.');
+      expect(me()).toMatchObject({ probes: 2, levelTable });
+    }
+    // An older client sends none: the stored one stays, as the explain option.
+    A.options(ctx, u, { probes: 2, levelTable: 'always', explain: 'hidden' });
+    A.options(ctx, u, { probes: 5 });
+    expect(me()).toMatchObject({
+      probes: 5,
+      levelTable: 'always',
+      explain: 'hidden',
+    });
+  });
+  it('refuse an unknown level overview option and change nothing', () => {
+    const { ctx, u, me } = setup({}, { probes: 3, levelTable: 'always' });
+    for (const levelTable of ['', 'never', 'ICON', null, 1, ['icon']])
+      expect(() =>
+        A.options(ctx, { ...u }, { probes: 9, explain: 'icon', levelTable }),
+      ).toThrow('Ungültig.');
+    expect(me()).toMatchObject({
+      probes: 3,
+      explain: 'icon',
+      levelTable: 'always',
+    });
+  });
   it('refuse an unknown display option and change nothing', () => {
     const { ctx, u, me } = setup({}, { probes: 3, explain: 'hidden' });
     for (const explain of ['', 'never', 'ICON', null, 1, ['icon']])

@@ -7,6 +7,7 @@ import {
   timingSafeEqual,
 } from 'node:crypto';
 import { DEFAULT_EXPLAIN } from '../core/explain.ts';
+import { DEFAULT_LEVEL_MODE } from '../core/level-overview.ts';
 import { type Config, MAX_PASSWORD, NUMBERS } from './config.ts';
 import type { Invitation } from './db/repos/invitations.ts';
 import type { User } from './db/repos/players.ts';
@@ -145,6 +146,7 @@ export function register(
     admin: false,
     probes: 1,
     explain: DEFAULT_EXPLAIN,
+    levelTable: DEFAULT_LEVEL_MODE,
     readAt: ctx.now(),
     created: ctx.now(),
     research: {},

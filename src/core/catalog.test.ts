@@ -31,7 +31,7 @@ const require = createRequire(import.meta.url);
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const O: any = require('../test/legacy/game.cjs');
 
-const DISPLAY = ['n', 'ab', 'ds', 'lt', 'plural', 'per'] as const;
+const DISPLAY = ['n', 'ab', 'ds', 'lt', 'plural', 'per', 'short'] as const;
 
 /** The game values of the entries: everything but the display texts. */
 const values = <T extends object>(
@@ -94,6 +94,14 @@ const withNewNames = (ds: string): string =>
   );
 
 describe('catalog', () => {
+  it('has the locks of the shipyard and of the research (#183)', () => {
+    expect(C.LOCKS).toEqual({
+      nanite: { stops: 'shipyard' },
+      yard: { stops: 'shipyard', home: true },
+      lab: { stops: 'research', home: true },
+    });
+  });
+
   it('has the game values of version 1', () => {
     expect(values(C.BUILD)).toEqual({
       ...values(O.BUILD),
