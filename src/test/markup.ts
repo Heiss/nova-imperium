@@ -76,7 +76,7 @@ export function normalize(html: string): string {
     )
     .replace(/\s+/g, ' ')
     .replace(
-      / ?(<\/?(?:div|p|ul|li|h2|table|tr|td|br|form|fieldset|legend)\b(?:"[^"]*"|[^">])*>) ?/g,
+      / ?(<\/?(?:div|p|ul|li|h2|h3|table|tr|td|br|form|fieldset|legend)\b(?:"[^"]*"|[^">])*>) ?/g,
       '$1',
     );
   // Only entities that cannot start a tag or another entity are decoded.

@@ -798,8 +798,11 @@ choice of the patterns to the assistant's recommendation below
   `logic/achievement-fold.ts`), which stay there. Bundle 5, second part
   (Optionen) moved none either: the old view kept the input of its fields
   in the DOM, which `keepInputs()` of `main.ts` still carries over a
-  render. Still rendered as HTML: the views Gilden and Admin (and Marktplatz
-  and Freunde, which came after the bundles were proposed).
+  render. Bundle 6 (Gilden) moved none either: the old view kept
+  `client.ui.guild`, which stays there; the dialog function `modal()` moved
+  from `main.ts` to `src/client/modal.ts`. Still rendered as HTML: the view
+  Admin (and Marktplatz and Freunde, which came after the bundles were
+  proposed).
 * **[E]** Bundle 3 after bundle 2 (owner, 2026-11-15 and 2026-11-16: the
   order of the bundles of #118 „Geklärt, Nachtrag 3“, unchanged by
   „Nachtrag 4“): Flotte, which the earlier work paused (the branch
@@ -920,6 +923,36 @@ choice of the patterns to the assistant's recommendation below
   `own-activity.ts` are gone. `main.ts` stays at 1,191 lines: the view had
   no code in it; its handlers (`o_anim`, `passwordform`) go to the
   component with package 8. No visible change.
+* **[E]** Bundle 6 after bundle 5 (owner, 2026-11-15 and 2026-11-16: the
+  order of the bundles of #118 „Geklärt, Nachtrag 3“, unchanged by
+  „Nachtrag 4“): Gilden, after #169.
+* **[V]** Built with #118, bundle 6: `Guilds.svelte`, mounted by
+  `mountGuilds()` of `views/guilds.ts`, renders `guildsPage(v)` of the new
+  `logic/guilds.ts`: the directory with the form to found a guild, or the
+  page of one guild: profile, points, members (`GuildMembers.svelte`: the
+  rank and, by the own rank, „Leitung übergeben“, „Rang ändern“ with the
+  class `rank-select` of #277, „Entfernen"), the chat box (`GuildChat.svelte`
+  with `ChatLog.svelte`, #169), „Bewerben“ / „Gilde verlassen“ / „Gilde
+  auflösen“, the admin's „Chat lesen“, and for the own guild the
+  applications, the ranks (`GuildRanks.svelte`, #163: editor, rights as
+  checkboxes with `data-rank-right`, the order, default and deleting) and the
+  profile form (`GuildProfileForm.svelte`). Every decision of the old view
+  (what the own rank may see and do, by `core/guild-ranks.ts`) is made in
+  `logic/guilds.ts`; the components only render. The three dialogs
+  (`GuildDialogs.svelte`: hand-over, dissolving, the admin's chat) are
+  components too: `modal()` (now `src/client/modal.ts`, out of `main.ts`)
+  takes HTML or a `Dialog` (a function that mounts into `#modalIn` and
+  returns how to unmount) and takes the earlier one down whenever it shows
+  anything, so `modal('')` still closes. The view is mounted anew on every
+  render (`ANEW`), as its HTML was: `keepInputs` (inputs by id, the ticked
+  rights by `data-rank-right`, `data-nokeep` of the dissolve field),
+  `keepChatScroll` (`.chat-log`) and the draft of the chat work on the new
+  markup as before; the ids, `data-act`, form ids and `data-*` hooks are those
+  of the HTML view (pinned in `src/test/guilds-reference.test.ts`). A field
+  now gets its value as a property, not as the attribute `value`; nothing
+  reads the attribute. `box()` of `common.ts` stays for the other HTML views;
+  `Box.svelte` is its component. `main.ts` 1,191 to 1,186 lines. No visible
+  change.
 * **[E]** Bundle 2 after bundle 1 (owner, 2026-11-15 and 2026-11-16: the
   order of the bundles of #118 „Geklärt, Nachtrag 3“, unchanged by
   „Nachtrag 4“): the Sternenkarte, which the phone view #189 builds on
