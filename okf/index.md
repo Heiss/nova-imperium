@@ -55,6 +55,7 @@ okf_version: "0.2"
 * [Expeditions and position 16](/features/expeditions.md) - Expeditionstechnik, outcomes, slots and holding time, debris at position 16 (#93)
 * [Highscore categories](/features/highscore-categories.md) - buildings, research, fleet, defense and total; fleet and research by count (#78)
 * [Demolition of buildings](/features/demolition.md) - one level per order, refund factor −100 % to +100 % and time share per round (#202)
+* [Marketplace](/features/marketplace.md) - exchange resources at ratios per pair with moving prices, the Handelsposten lowers the fee, cap by the free storage, limit per player per day (#171)
 
 * [Invitations](/features/invitations.md) - registration only by invitation, mail or copied link
 * [Admin](/features/admin.md) - operator roles, diagnostics, audit log, moderation and live universe settings

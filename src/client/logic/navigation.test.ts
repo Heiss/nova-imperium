@@ -43,6 +43,7 @@ describe('navigation', () => {
       'overview',
       'buildings',
       'resources',
+      'market',
       'research',
       'shipyard',
       'defense',
@@ -66,6 +67,7 @@ describe('navigation', () => {
     ]);
     expect(views(n.more)).toEqual([
       'resources',
+      'market',
       'research',
       'shipyard',
       'defense',
@@ -106,7 +108,7 @@ describe('navigation', () => {
     const s = state({ reports: [{ time: 100 }, { time: 101 }] });
     const n = nav(s, 'overview', new Map([['research', 'Forschung fertig']]));
     expect(n.tabs[3]!.hint).toBe('1 ungelesene Nachrichten');
-    expect(n.more[1]!.hint).toBe('Forschung fertig');
+    expect(n.more[2]!.hint).toBe('Forschung fertig');
     expect(n.moreHint).toBe(true);
     expect(nav(state({ reports: [{ time: 100 }] })).tabs[3]!.hint).toBe(
       undefined,

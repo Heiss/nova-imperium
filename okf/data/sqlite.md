@@ -509,6 +509,17 @@ up nothing, so the table starts empty; other data stay as they were
 with the planets (`planets.deleteAll()`); an ended lock stays until then
 and no longer counts.
 
+Migration `20261118T2324-marketplace` (issue #171, see
+[Marketplace](/features/marketplace.md)) adds `market_prices` (`pair` one of
+`mc`, `md`, `cm`, `cd`, `dm`, `dc` by a CHECK, as the primary key; `price`
+INTEGER in millionths of the base; `changed` the time of the last exchange of
+the pair) and `market_usage` (`user_id` with ON DELETE CASCADE, `day` the UTC
+day number, `amount` what the player gave that day; primary key `user_id`,
+`day`). A pair without a row is at the base price. Both start empty; other
+data stay as they were (`upgrades/20261118T2324-marketplace.test.ts`). The
+repository `ctx.market` reads and writes them; `addUsed` forgets every
+earlier day, and a new round clears both tables.
+
 Migration `20261117T0923-activity-times` (issue #229, see
 [Activity indicators](/features/activity-indicators.md)) adds
 `planets.active_at` (INTEGER, the last activity of a planet or moon, null

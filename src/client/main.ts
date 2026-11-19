@@ -7,8 +7,6 @@ import { missionRules } from '../core/missions.ts';
 import { placeId } from '../core/place.ts';
 import { settle, settleR } from '../core/settle.ts';
 import type { Planet } from '../core/types.ts';
-import { abandonActs } from './abandon-actions.ts';
-import { socialActs } from './social-actions.ts';
 import { createAct, placeOf, samePlace } from './logic/act.ts';
 import { LEXICANUM_VIEW, viewUrl } from './logic/address.ts';
 import { CATALOG_VIEWS, catalogKind, orderNote } from './logic/catalog-list.ts';
@@ -70,7 +68,7 @@ import {
 } from './views/misc.ts';
 import { disablePush, enablePush } from './push.ts';
 import { fleetActs } from './fleet-acts.ts';
-import { roundActs } from './round-actions.ts';
+import { featureActs } from './feature-actions.ts';
 import { mountCatalogList } from './views/catalog-list.ts';
 import {
   adminChatDialog,
@@ -1239,8 +1237,7 @@ const ACT: Record<string, (d: Data) => unknown> = {
     }
   },
   deleteAccount: () => modal(deleteAccountDialog(client.game!.round)),
-  ...abandonActs({ act, modal }),
-  ...socialActs({ act }),
+  ...featureActs({ act, modal }),
   dismissInstall: () => {
     installDismissed = true;
     try {
@@ -1266,7 +1263,6 @@ const ACT: Record<string, (d: Data) => unknown> = {
       toast('Bitte installiere die App über das Browsermenü.', true);
     }
   },
-  ...roundActs({ act, modal }),
   endzeit: () => modal(endzeitDialog(client.game!.admin!.endzeit.minutes)),
   doEndzeit: () => {
     const minutes = val('#endzeit-minutes');

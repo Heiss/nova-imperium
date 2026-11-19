@@ -15,6 +15,7 @@ import { reportFormHTML } from '../logic/error-report.ts';
 import { explainOptionsHTML } from '../logic/explain.ts';
 import { homePlanetOf } from '../logic/friends.ts';
 import { mainPlanetHTML } from '../logic/main-planet.ts';
+import { gainWarning } from '../logic/market.ts';
 import { pushKindsHTML, shownPushOff } from '../logic/push-options.ts';
 import { esc, fmt } from '../logic/format.ts';
 import type { AdminState, GameState } from '../logic/types.ts';
@@ -126,7 +127,11 @@ function settingsForm(s: GameState, a: AdminState): string {
       return `<tr><td><label for="set_${x.key}">${esc(x.label)}</label></td><td>${field}</td></tr>`;
     })
     .join('');
-  return `<table class="kv">${rows}</table><p class="dim">Änderungen wirken sofort. Laufende Bauaufträge und Flüge behalten ihre Endzeit.</p><button data-act="saveSettings">Einstellungen speichern</button>`;
+  const warning = gainWarning(s.cfg);
+  const gain = warning
+    ? `<p class="notice" role="alert">${esc(warning)}</p>`
+    : '';
+  return `<table class="kv">${rows}</table>${gain}<p class="dim">Änderungen wirken sofort. Laufende Bauaufträge und Flüge behalten ihre Endzeit.</p><button data-act="saveSettings">Einstellungen speichern</button>`;
 }
 
 function invitations(ui: Ui): string {
