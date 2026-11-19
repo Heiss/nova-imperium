@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   placeCounts,
+  playtimeMs,
+  playtimePayload,
   rankRows,
   type ReportRow,
   resourceSum,
@@ -73,5 +75,50 @@ describe('the small helpers', () => {
       placeCounts([{ kind: 'planet' }, { kind: 'moon' }, { kind: 'planet' }]),
     ).toEqual({ planets: 2, moons: 1 });
     expect(placeCounts([])).toEqual({ planets: 0, moons: 0 });
+  });
+});
+
+describe('the play time payload of the archive (#235 × #232)', () => {
+  const at = (start: number, end: number, method = 1) => ({
+    start,
+    end,
+    method,
+  });
+
+  it('merges overlapping and touching intervals, so two pages count once', () => {
+    const p = playtimePayload(
+      [at(0, 100), at(50, 150), at(150, 200), at(300, 400)],
+      1000,
+    );
+    expect(p.intervals).toEqual([
+      [0, 200],
+      [300, 400],
+    ]);
+    expect(playtimeMs(p)).toBe(300);
+  });
+
+  it('orders the intervals and names each method once', () => {
+    const p = playtimePayload(
+      [at(300, 400, 2), at(0, 100, 1), at(500, 600, 2)],
+      1000,
+    );
+    expect(p.intervals.map(([a]) => a)).toEqual([0, 300, 500]);
+    expect(p.methods).toEqual([1, 2]);
+  });
+
+  it('cuts at the cutoff and drops what starts after it or lasts no time', () => {
+    const p = playtimePayload(
+      [at(0, 100), at(900, 1200), at(1000, 1100), at(1500, 1600), at(50, 50)],
+      1000,
+    );
+    expect(p.intervals).toEqual([
+      [0, 100],
+      [900, 1000],
+    ]);
+  });
+
+  it('is a measured zero without time: empty lists', () => {
+    expect(playtimePayload([], 1000)).toEqual({ methods: [], intervals: [] });
+    expect(playtimeMs({ methods: [], intervals: [] })).toBe(0);
   });
 });

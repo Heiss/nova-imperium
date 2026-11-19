@@ -31,6 +31,8 @@ const deleteRound: Action = (ctx, u, d, event) => {
   if (round.status !== 'closed')
     return fail('Nur eine abgeschlossene Runde lässt sich löschen.');
   ctx.rounds.delete(number);
+  // The accepted intervals of #232 are kept until the admin deletes the round.
+  ctx.playtime.deleteRound(number);
   if (event) event.detail = { round: number };
   return `Runde ${number} aus dem Archiv gelöscht.`;
 };

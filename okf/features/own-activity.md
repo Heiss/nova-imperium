@@ -107,10 +107,13 @@ are [Activity indicators](/features/activity-indicators.md).
   its state; the time of a player in a round is the union of those intervals
   (`union`, `activeMs` in `src/core/playtime.ts`). Nothing else is stored: the
   round's `roundStart` is not on the rows; a round is its number.
-* **[V]** Not built: the envelope fields the owner named for all user-triggered
-  game events (`round_id`, `play_session_id` on the audit log) come with #235
-  (owner, 2026-11-17); the admin's deleting of a round, which is to delete
-  these rows with it, does not exist yet.
+* **[V]** The archive (#235): at the close of a round the intervals of every
+  participant go into the archive as events (`player.playtime`, see
+  [Round archive](/features/round-archive.md)); `playtime_events` keeps its rows
+  and the admin's „Runde löschen“ deletes the rows of that round (`deleteRound`
+  of `ctx.playtime`), as the retention of #231 and #232 says. The envelope
+  fields the owner named for all user-triggered game events (`round_id`,
+  `play_session_id` on the audit log) are not built.
 
 # Open
 

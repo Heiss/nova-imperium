@@ -172,7 +172,7 @@ describe('„Runde abschließen“ (D1)', () => {
     expect(closed[0]!.payload).toEqual({ cutoff: ctx.now(), participants: 3 });
     // The count the close expects is the count of the events the round holds.
     expect(round.events).toBe(ctx.rounds.countEvents(1));
-    expect(round.events).toBe(4);
+    expect(round.events).toBe(7);
   });
 
   it('keeps the world: planets stay and the game goes on until „Neue Runde“', () => {
@@ -476,9 +476,9 @@ describe('the interventions of the admin in the history', () => {
     const ctx = setup();
     send(ctx, 'Ada', { type: 'endzeit', minutes: 60 });
     send(ctx, 'Ada', { type: 'closeRound' });
-    // 1 Endzeit + 3 participants + the close; no guilds.
-    expect(ctx.rounds.get(1)!.events).toBe(5);
-    expect(ctx.rounds.countEvents(1)).toBe(5);
+    // 1 Endzeit + 3 participants + 3 play times + the close; no guilds.
+    expect(ctx.rounds.get(1)!.events).toBe(8);
+    expect(ctx.rounds.countEvents(1)).toBe(8);
   });
 
   it('does not write into a round that is closed, and Endzeit alone does not close a round', () => {

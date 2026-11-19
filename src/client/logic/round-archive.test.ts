@@ -214,9 +214,35 @@ describe('the report of a round', () => {
     expect(html).toContain('Spielzeit: in diesem Archiv noch nicht erfasst.');
   });
 
-  it('shows the playtime line no more once there is playtime', () => {
-    const r = { ...report(), playtime: { 1: 3600000 } };
-    expect(reportHTML(r, 'total')).not.toContain('Spielzeit');
+  it('shows the playtime as a column once there is playtime, 0 Min. as a measured zero, - for a seat without a value', () => {
+    const r = { ...report(), playtime: { 1: 3600000 + 5 * 60000, 2: 0 } };
+    const html = reportHTML(r, 'total');
+    expect(html).not.toContain('noch nicht erfasst');
+    expect(html).toContain('<th class="n">Spielzeit</th>');
+    expect(html).toContain('<td class="n">1 Std. 05 Min.</td>');
+    expect(html).toContain('<td class="n">0 Min.</td>');
+    expect(html).toContain('<td class="n">-</td><td>-</td>');
+    expect(html).toContain('gleichzeitig geöffnete Fenster zählen einmal.');
+    expect(html).not.toContain('Die Zeit vor Beginn der Erfassung fehlt.');
+  });
+
+  it('says that the time before the measurement is missing in a partly covered round', () => {
+    const r = report({ coverage: 'partial' });
+    expect(
+      reportHTML({ ...r, playtime: { 1: 0, 2: 0, 3: 0 } }, 'total'),
+    ).toContain('Die Zeit vor Beginn der Erfassung fehlt.');
+  });
+
+  it('says that a provisional report shares no play time, and shows no line for a round without participants', () => {
+    const provisional = report({ provisional: true });
+    const html = reportHTML(provisional, 'total');
+    expect(html).toContain(
+      'Spielzeit: wird erst nach Rundenende im Archiv geteilt.',
+    );
+    expect(html).not.toContain('<th class="n">Spielzeit</th>');
+    expect(reportHTML({ ...report(), rows: [] }, 'total')).not.toContain(
+      'Spielzeit',
+    );
   });
 
   it('lists the settings that differed', () => {

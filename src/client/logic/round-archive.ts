@@ -13,6 +13,7 @@ import {
   type RoundReport,
 } from '../../core/round-report.ts';
 import { esc, fmt } from './format.ts';
+import { playtime as playtimeText } from './own-activity.ts';
 import {
   HIGHSCORE_CATEGORIES,
   type HighscoreCategory,
@@ -155,9 +156,33 @@ const listHTML = (entries: readonly RoundEntry[], admin: boolean): string =>
 
 const economy = (r: ReportRow): string => fmt(resourceSum(r.economy));
 
-function rowHTML(r: ReportRow, i: number, cat: HighscoreCategory): string {
+function rowHTML(
+  r: ReportRow,
+  i: number,
+  cat: HighscoreCategory,
+  time: RoundReport['playtime'],
+): string {
   const guild = r.guild ? `[${esc(r.guild.tag)}] ${esc(r.guild.name)}` : '-';
-  return `<tr class="${r.you ? 'me' : ''}"><td class="n">${i + 1}</td><td>${esc(r.name)}${r.you ? ' (du)' : ''}</td><td class="n">${fmt(r.valuation[cat])}</td><td class="n">${economy(r)}</td><td class="n">${r.planets}</td><td class="n">${r.moons}</td><td>${guild}</td></tr>`;
+  const ms = time?.[r.seat];
+  const played =
+    time === null
+      ? ''
+      : `<td class="n">${ms === undefined ? '-' : playtimeText(ms)}</td>`;
+  return `<tr class="${r.you ? 'me' : ''}"><td class="n">${i + 1}</td><td>${esc(r.name)}${r.you ? ' (du)' : ''}</td><td class="n">${fmt(r.valuation[cat])}</td><td class="n">${economy(r)}</td><td class="n">${r.planets}</td><td class="n">${r.moons}</td>${played}<td>${guild}</td></tr>`;
+}
+
+/**
+ * What the report says about the play time (#235 × #232, D2) [V]: a column of
+ * the table once the round is archived with it, else the reason it is missing.
+ */
+function playtimeNote(report: RoundReport): string {
+  if (report.playtime !== null)
+    return `<div class="dim">Spielzeit: geschätzte aktive Zeit in dieser Runde, gleichzeitig geöffnete Fenster zählen einmal.${report.round.coverage === 'partial' ? ' Die Zeit vor Beginn der Erfassung fehlt.' : ''}</div>`;
+  if (report.round.provisional)
+    return '<p class="dim">Spielzeit: wird erst nach Rundenende im Archiv geteilt.</p>';
+  return report.rows.length
+    ? '<p class="dim">Spielzeit: in diesem Archiv noch nicht erfasst.</p>'
+    : '';
 }
 
 function guildsHTML(guilds: RoundReport['guilds']): string {
@@ -199,15 +224,17 @@ export function reportHTML(
     ? `<tr><td>Dein Platz</td><td>${place(report.you)} · ${fmt(report.you.points)} Punkte</td></tr>`
     : '';
   const ranked = rankRows(report.rows, cat);
-  const rows = ranked.map((x, i) => rowHTML(x, i, cat)).join('');
+  const rows = ranked
+    .map((x, i) => rowHTML(x, i, cat, report.playtime))
+    .join('');
   return `<p><button class="small" data-act="roundBack">Zurück zum Archiv</button></p>
 <h3 id="round-report-h" tabindex="-1">Runde ${r.number}${r.provisional ? ' (vorläufig)' : ''}</h3>${banner}
 <table class="kv"><tr><td>Zeitraum</td><td>${day(r.started)} bis ${day(r.asOf)} · ${daysText(r.days)}</td></tr><tr><td>Teilnehmer</td><td>${report.rows.length}</td></tr><tr><td>Erfassung</td><td>${COVERAGE[r.coverage]}</td></tr>${mine}</table>
 ${categoryButtons(cat)}
-<table class="scores"><tr><th class="n">Platz</th><th>Spieler</th><th class="n">${HIGHSCORE_CATEGORIES[cat]}</th><th class="n">Wirtschaft/h</th><th class="n">Planeten</th><th class="n">Monde</th><th>Gilde</th></tr>${rows}</table>
+<table class="scores"><tr><th class="n">Platz</th><th>Spieler</th><th class="n">${HIGHSCORE_CATEGORIES[cat]}</th><th class="n">Wirtschaft/h</th><th class="n">Planeten</th><th class="n">Monde</th>${report.playtime === null ? '' : '<th class="n">Spielzeit</th>'}<th>Gilde</th></tr>${rows}</table>
 <div class="dim">${highscoreNote(cat)} Wirtschaft/h: Summe aus Adamant, Psikristall und Promethium je Stunde am Rundenende, ungewichtet. Planeten und Monde am Rundenende.</div>
-${guildsHTML(report.guilds)}${rulesHTML(r.rules)}
-${report.playtime === null ? '<p class="dim">Spielzeit: in diesem Archiv noch nicht erfasst.</p>' : ''}`;
+${playtimeNote(report)}
+${guildsHTML(report.guilds)}${rulesHTML(r.rules)}`;
 }
 
 /** One row of the history across rounds. */

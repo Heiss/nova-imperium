@@ -1,6 +1,7 @@
 // The accepted intervals of the estimated active play time (#232): the table
 // `playtime_events` of migration 20261119T1815-playtime-events. Append only;
 // a total is derived from the rows by src/core/playtime.ts, never stored.
+import type { MeasuredInterval } from '../../../core/round-report.ts';
 import type {
   Interval,
   Last,
@@ -44,6 +45,14 @@ export interface Playtime {
   active(user: string, from: number, to: number, round?: number): Interval[];
   /** The same for every player, as `[user, interval]`, ordered by player and start. */
   activeOfAll(from: number, to: number): [string, Interval][];
+  /**
+   * The intervals of active time of every player in one round that start
+   * before `to`, with their method, as `[user, interval]` ordered by player and
+   * start: what the close of the round archives (#235).
+   */
+  activeInRound(round: number, to: number): [string, MeasuredInterval][];
+  /** Deletes the rows of a round with its archive (#232, #235: kept until the admin deletes the round). */
+  deleteRound(round: number): number;
   /** The start of the player's first interval of any round, or null. */
   firstStart(user: string): number | null;
   /** The end of the player's last interaction (a start or an interval), or null. */
@@ -52,7 +61,12 @@ export interface Playtime {
   lastActiveEnds(): Record<string, number>;
 }
 
-type Row = { start: number; end: number; user?: string };
+type Row = {
+  start: number;
+  end: number;
+  user?: string;
+  method?: number;
+};
 
 export class SqlitePlaytime implements Playtime {
   private readonly db: Db;
@@ -125,6 +139,27 @@ export class SqlitePlaytime implements Playtime {
       )
       .all(from, to) as Row[];
     return rows.map((r) => [r.user!, { start: r.start, end: r.end }]);
+  }
+
+  activeInRound(round: number, to: number): [string, MeasuredInterval][] {
+    const rows = this.db
+      .prepare(
+        `SELECT user_id AS user, start_ms AS start, end_ms AS end, method
+         FROM playtime_events
+         WHERE round = ? AND end_ms > start_ms AND start_ms < ?
+         ORDER BY user_id, start_ms`,
+      )
+      .all(round, to) as Row[];
+    return rows.map((r) => [
+      r.user!,
+      { start: r.start, end: r.end, method: r.method! },
+    ]);
+  }
+
+  deleteRound(round: number): number {
+    return this.db
+      .prepare('DELETE FROM playtime_events WHERE round = ?')
+      .run(round).changes;
   }
 
   firstStart(user: string): number | null {
