@@ -1117,6 +1117,51 @@ src/client/                state, components (generic), views
   news and the maintenance banner, the admin panel and the click and key
   dispatch. Each move lowers `size-ratchet.json`.
 
+## 14. Server features register themselves (#326, part 2 of #317)
+
+* **[E]** Decided by the owner (2026-11-19, #317): the action table of
+  `src/server/game/dispatch.ts` and the state of `src/server/game/state.ts`
+  stop being edited by every feature; a feature registers itself like a round
+  setting (#310) and a client feature (#322). No change of the game, of a
+  text, of an action name or of the JSON the client receives.
+* **[V]** Contract (main agent's proposal, the owner decided only that the
+  pattern comes): a server module that adds actions or a part of the state
+  exports under the fixed name `serverFeature`, `export const serverFeature =
+  { actions, guildActions, adminActions, state } satisfies ServerFeature;`,
+  all four members optional. `ServerFeature` and `StatePart` are in
+  `src/server/game/feature.ts`. The module lives next to the server code of
+  the feature (`src/server/game/<feature>.ts`, as the round settings live in
+  `src/core`), not in a new folder.
+  * `actions` maps an action name to its `Action`; `guildActions` the same for
+    the actions that are refused while guilds are off in the round (#191);
+    `adminActions` the same for the actions of the admin, which are audited as
+    `admin.write` and not as `game`. A name is in exactly one of the three.
+  * `state` is one `StatePart`: `order` (a number, the next free ten above the
+    highest; it fixes the place of the keys in the JSON object, so every
+    snapshot stays), `keys` (the keys it adds, so a key defined twice is
+    found at the start) and `build(ctx, user, view)`, which returns an object
+    with exactly these keys. `view` holds what `stateFor` computes once for
+    all parts (the round rules, the main planet, the shown planet, the
+    points, the activity limits).
+* **[V]** The list is generated: `scripts/gen-features.ts` writes
+  `src/server/features.gen.ts` (`SERVER_FEATURES`, `[name, serverFeature]`
+  pairs sorted by path), not checked in (`.gitignore`), from every file of
+  `src/server` that exports `serverFeature` (same detection as for
+  `roundSettings`). It is not in `src/server/game/` because
+  `src/server/push-options.ts` registers too. Only `src/server` imports it:
+  `client-not-server`, `core-stays-pure` and `feature-stays-pure` forbid every
+  other part of the code to reach `src/server`, so the browser bundle cannot
+  contain it. Knip takes it as an entry; Vitest coverage and Stryker leave it
+  out.
+* **[V]** `dispatch.ts` and `state.ts` keep their frame: the general gates of
+  `runAction` (vacation, guilds, admin audit category, achievements) and the
+  actions and state keys of the core game. The functions of
+  `src/server/game/assemble.ts` build `ACTIONS`, `GUILD_ACTIONS` and
+  `ADMIN_ACTIONS` from the frame and the list and the ordered parts of the
+  state; a name, a key or an order number that exists twice stops the start
+  with both files named. The guard test `src/server/game/registry.test.ts`
+  checks the rules for every listed module.
+
 # Migration
 
 * **[E]** The running release (milestone `next release`) is built as
