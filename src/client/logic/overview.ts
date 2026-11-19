@@ -182,7 +182,7 @@ export const heldRows = (v: V): HeldRow[] =>
     parts: [
       part('Flotte von '),
       part(nameOf(v.s.players, f.owner), true),
-      part(` ${coords(f.fromC)} (${shipList(f)})`),
+      part(` ${coords(f.fromC)} (${foreignShips(f)})`),
     ],
   }));
 

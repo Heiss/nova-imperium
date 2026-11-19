@@ -272,6 +272,19 @@ describe('holding', () => {
       'Rückkehr zu Planet u_Anna [1:1:5]',
     ]);
   });
+  it('sets no activity of the host, of the origin or of the owner: fleets set none (#229, owner, 2026-11-17)', () => {
+    const ctx = setup();
+    send(ctx, user(ctx, 'Anna'), hold({ hold: 1 }));
+    const accounts = ctx.players.lastActive();
+    const f = ctx.fleets.all()[0]!;
+    for (const t of [f.arr, f.arr + HOUR_MS, f.ret]) {
+      ctx.clock.t = t;
+      tick(ctx);
+    }
+    expect(ctx.fleets.all()).toEqual([]);
+    expect(ctx.planets.activeTimes()).toEqual({});
+    expect(ctx.players.lastActive()).toEqual(accounts);
+  });
   it('holds for no time at 0 hours and flies home at the next beat', () => {
     const ctx = setup();
     send(ctx, user(ctx, 'Anna'), hold({ hold: 0 }));
@@ -505,20 +518,86 @@ describe('a spy report of a planet where fleets hold (#55, owner, 2026-11-17)', 
   });
 });
 
-describe('what the host sees', () => {
-  it('shows a fleet that holds with its ships and holding time; one on its way without ships', () => {
-    const ctx = setup();
-    holding(ctx, 'h1', 'u_Anna', { ships: { bs: 2 } });
-    holding(ctx, 'h2', 'u_Anna', { state: 'out', arr: ctx.now() + 50 });
+describe('what the host sees (#55, #228)', () => {
+  /** The fleets Bert sees at his planet, with his Auspex-Lehre `spy`. */
+  function seenByBert(spy: number, ctx = setup()): Record<string, unknown>[] {
+    ctx.players.save({ ...user(ctx, 'Bert'), research: { spy } });
+    holding(ctx, 'h1', 'u_Anna', { ships: { bs: 2, lf: 1 } });
+    holding(ctx, 'h2', 'u_Anna', {
+      state: 'out',
+      arr: ctx.now() + 50,
+      ships: { bs: 2, lf: 1 },
+    });
     holding(ctx, 'h3', 'u_Anna', { state: 'back' });
-    const fleets = stateFor(ctx, user(ctx, 'Bert')).fleets as Record<
-      string,
-      unknown
-    >[];
-    expect(fleets.map((f) => [f.id, f.state, f.ships, f.hold])).toEqual([
-      ['h1', 'hold', { bs: 2 }, HOUR_MS],
-      ['h2', 'out', {}, undefined],
+    return (stateFor(ctx, user(ctx, 'Bert')) as { fleets: [] }).fleets;
+  }
+  const BASE = {
+    owner: 'u_Anna',
+    fromC: ANNA,
+    toC: BERT,
+    to: 'p1_2_6',
+    mission: 'hold',
+  };
+
+  it('shows a fleet that holds and one on its way through the same view: only what the Auspex-Lehre recognizes of the ships, 2 / 4 / 8 by default', () => {
+    const cases: [number, Record<string, unknown>][] = [
+      [0, {}],
+      [1, {}],
+      [2, { total: 3 }],
+      [3, { total: 3 }],
+      [4, { total: 3, types: ['bs', 'lf'] }],
+      [7, { total: 3, types: ['bs', 'lf'] }],
+      [8, { total: 3, types: ['bs', 'lf'], ships: { bs: 2, lf: 1 } }],
+    ];
+    for (const [spy, ships] of cases) {
+      const ctx = setup();
+      const fleets = seenByBert(spy, ctx);
+      expect(fleets, `Auspex-Lehre ${spy}`).toEqual([
+        {
+          ...BASE,
+          id: 'h1',
+          state: 'hold',
+          arr: ctx.now() - 500,
+          hold: HOUR_MS,
+          ...ships,
+        },
+        { ...BASE, id: 'h2', state: 'out', arr: ctx.now() + 50, ...ships },
+      ]);
+    }
+  });
+  it('follows the thresholds of the round', () => {
+    const ctx = setup();
+    ctx.admin.putSettings([
+      ['roundRecognitionTotal', 0],
+      ['roundRecognitionTypes', 1],
+      ['roundRecognitionCounts', 2],
     ]);
+    const [held] = seenByBert(2, ctx);
+    expect(held).toMatchObject({
+      id: 'h1',
+      total: 3,
+      types: ['bs', 'lf'],
+      ships: { bs: 2, lf: 1 },
+    });
+  });
+  it('shows the holding time only of a fleet that holds, and no fleet on its way home', () => {
+    const fleets = seenByBert(8);
+    expect(fleets.map((f) => [f.id, f.state, f.hold])).toEqual([
+      ['h1', 'hold', HOUR_MS],
+      ['h2', 'out', undefined],
+    ]);
+  });
+  it('shows the fleets of a planet to nobody but the host: the owner sees her own fleet whole, a third player sees none', () => {
+    const ctx = setup();
+    holding(ctx, 'h1', 'u_Anna', { ships: { bs: 2, lf: 1 } });
+    const anna = (stateFor(ctx, user(ctx, 'Anna')) as { fleets: Fleet[] })
+      .fleets;
+    expect(anna.map((f) => [f.id, f.ships, f.hold])).toEqual([
+      ['h1', { bs: 2, lf: 1 }, HOUR_MS],
+    ]);
+    const cora = (stateFor(ctx, user(ctx, 'Cora')) as { fleets: Fleet[] })
+      .fleets;
+    expect(cora).toEqual([]);
   });
 });
 

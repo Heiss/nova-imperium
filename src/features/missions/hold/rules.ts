@@ -15,7 +15,6 @@ export const order = 70;
 export const target: TargetKind = 'ally';
 export const cargo = true;
 export const returns = true;
-export const visible = false;
 export const silent = false;
 export const alertsGuild = false;
 export const holds = true;

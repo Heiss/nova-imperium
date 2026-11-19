@@ -359,6 +359,17 @@ describe('fleets that hold at the planet (#55)', () => {
     expect(overviewPage(v).held).toEqual(heldRows(v));
   });
 
+  it('show only what the Auspex-Lehre recognizes of the ships, as a fleet on its way (#228)', () => {
+    const ships = (o: Partial<ClientFleet>) =>
+      heldRows(view({ fleets: [held({ ships: undefined, ...o })] }))[0]!
+        .parts[2]!.text;
+    expect(ships({ total: 3, types: ['bs', 'lf'] })).toBe(
+      ` [1:1:5] (Schiffe insgesamt: 3 · ${text('bs')!.n}, ${text('lf')!.n})`,
+    );
+    expect(ships({ total: 3 })).toBe(' [1:1:5] (Schiffe insgesamt: 3)');
+    expect(ships({})).toBe(' [1:1:5] (Zusammensetzung unbekannt)');
+  });
+
   it('leave out the own fleets that hold elsewhere', () => {
     expect(heldRows(view({ fleets: [held({ owner: 'u1' })] }))).toEqual([]);
   });
