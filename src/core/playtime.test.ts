@@ -51,6 +51,10 @@ describe('readReport', () => {
     expect(
       readReport({ instance: PAGE, seq: 4, state: 'background', since: 0 }),
     ).toMatchObject({ state: 'background', since: 0 });
+    // A page measures with performance.now(): the fraction is rounded away.
+    expect(
+      readReport({ instance: PAGE, seq: 5, state: 'active', since: 1234.567 }),
+    ).toMatchObject({ since: 1235 });
   });
 
   it.each([

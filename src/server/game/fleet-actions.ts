@@ -53,6 +53,7 @@ import { type Ctx, coords, fail, int, universe } from './context.ts';
 import { colonyRoom, limitRefusal } from './colony-limit.ts';
 import { attackEvent } from './guild-events.ts';
 import { holdersAt, isAllyOf } from './holding.ts';
+import { joinPlan, joinUnion, recalledWith } from './union.ts';
 import { isProtected, pointsMap } from './points.ts';
 import { roundRules } from './round.ts';
 import { inVacation } from './vacation.ts';
@@ -300,6 +301,37 @@ function chosenStay(
 const launchFuel = (x: Plan, holds: boolean, dist: number): number =>
   fuelFor(x.ships, dist, x.pct) + (holds ? holdFuel(x.ships, x.hours) : 0);
 
+/**
+ * When a fleet arrives and when it is home: with the attack union it joins
+ * (#225) it arrives with it and flies home from there; else it arrives after
+ * its flight and its stay, and comes home after the way back and its holding
+ * time.
+ */
+const timesOf = (
+  joining: { arr: number } | null,
+  t: number,
+  ms: number,
+  hold: number,
+  stay: number,
+): Pick<Fleet, 'arr' | 'ret'> =>
+  joining
+    ? { arr: joining.arr, ret: joining.arr + ms }
+    : { arr: t + ms + stay, ret: t + 2 * ms + hold + stay };
+
+/** The ships, the cargo and the fuel leave the planet with the fleet. */
+function takeOff(
+  p: Planet,
+  ships: Levels,
+  cargo: Resources,
+  fuel: number,
+): void {
+  for (const [k, n] of Object.entries(ships))
+    p.ships[k] = (p.ships[k] ?? 0) - n;
+  p.res.m -= cargo.m;
+  p.res.c -= cargo.c;
+  p.res.d -= cargo.d + fuel;
+}
+
 export const send: Action = (ctx, u, d, event) => {
   const t = ctx.now();
   const p = mine(ctx, u, d.planet);
@@ -315,15 +347,18 @@ export const send: Action = (ctx, u, d, event) => {
   );
   const fuel = launchFuel(x, holds, dist);
   const hold = x.hours * HOUR_MS;
+  // A fleet that joins an attack union arrives with it (#225).
+  const joining = joinPlan(ctx, u.id, d.union, {
+    mission,
+    to,
+    toC: dest,
+    flight: ms,
+  });
   if (cargo.m + cargo.c + cargo.d > capacity(ships))
     fail('Nicht genug Laderaum.');
   if (p.res.d < fuel + cargo.d)
     fail('Nicht genug Promethium für Treibstoff und Ladung.');
-  for (const [k, n] of Object.entries(ships))
-    p.ships[k] = (p.ships[k] ?? 0) - n;
-  p.res.m -= cargo.m;
-  p.res.c -= cargo.c;
-  p.res.d -= cargo.d + fuel;
+  takeOff(p, ships, cargo, fuel);
   ctx.planets.save(p);
   const fleet: Fleet = {
     ...route(ctx, u, p, to, dest),
@@ -331,13 +366,13 @@ export const send: Action = (ctx, u, d, event) => {
     ships,
     cargo,
     dep: t,
-    arr: t + ms + stay,
-    ret: t + 2 * ms + hold + stay,
+    ...timesOf(joining, t, ms, hold, stay),
     state: 'out',
     recalled: false,
     fuel,
     ...(holds && { hold }),
   };
+  joinUnion(ctx, joining, fleet);
   ctx.fleets.save(fleet);
   // A hostile launch is one of the last targets for the Schnellwahl (#292).
   if (missionRules(mission)!.remembered && targetOwner !== null)
@@ -410,12 +445,16 @@ export const recall: Action = (ctx, u, d, event) => {
   // Missiles do not come back (#54).
   if (!isFleet(f!)) fail('Rückruf nicht mehr möglich.');
   const fleet = f!;
-  fleet.ret = recalledAt(fleet, t);
-  fleet.state = 'back';
-  fleet.recalled = true;
-  ctx.fleets.save(fleet);
-  if (event)
-    event.detail = { fleet: fleet.id, planet: fleet.from, due: fleet.ret };
+  const due = recalledAt(fleet, t);
+  // The leader's recall of the fleet that opened an attack union turns back
+  // every fleet of it; a participant's recall only his own (#225).
+  for (const m of recalledWith(ctx, fleet)) {
+    m.ret = recalledAt(m, t);
+    m.state = 'back';
+    m.recalled = true;
+    ctx.fleets.save(m);
+  }
+  if (event) event.detail = { fleet: fleet.id, planet: fleet.from, due };
   return 'Flotte zurückgerufen.';
 };
 

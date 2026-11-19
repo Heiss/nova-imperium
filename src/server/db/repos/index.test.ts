@@ -21,6 +21,7 @@ describe('repositories', () => {
       'market',
       'targets',
       'playtime',
+      'rounds',
     ]);
     db.exec(
       "INSERT INTO users (id, name, salt, pw_hash, created) VALUES ('u1', 'Alt', 's', 'h', 1)",

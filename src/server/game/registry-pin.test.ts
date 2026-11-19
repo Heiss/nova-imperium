@@ -22,9 +22,11 @@ const PLAIN = [
   'delrep',
   'demolish',
   'endVacation',
+  'inviteUnion',
   'jump',
   'mainPlanet',
   'missile',
+  'openUnion',
   'options',
   'order',
   'pct',
@@ -35,6 +37,9 @@ const PLAIN = [
   'rename',
   'requestFriend',
   'research',
+  'roundArchive',
+  'roundHistory',
+  'roundReport',
   'scan',
   'send',
   'startVacation',
@@ -59,7 +64,7 @@ const GUILD = [
   'setGuildRankRights',
   'updateGuild',
 ];
-const ADMIN = ['endzeit', 'reset', 'settings'];
+const ADMIN = ['closeRound', 'deleteRound', 'endzeit', 'reset', 'settings'];
 
 const FULL_KEYS = [
   'round',
@@ -84,6 +89,7 @@ const FULL_KEYS = [
   'market',
   'admin',
   'quick',
+  'unions',
 ];
 // The lock screen of the vacation mode (#223) has its own, shorter shape.
 const LOCKED_KEYS = [
