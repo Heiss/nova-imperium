@@ -25,6 +25,7 @@ import type { User } from '../db/repos/players.ts';
 import { type Action, mine } from './actions.ts';
 import { type Ctx, fail, universe } from './context.ts';
 import { roundRules } from './round.ts';
+import type { ServerFeature } from './feature.ts';
 
 /** The price of every pair now, after the drift (millionths of the base). */
 export function currentPrices(
@@ -109,3 +110,7 @@ export const exchange: Action = (ctx, u, d, event) => {
     };
   return tradeDone(q);
 };
+
+export const serverFeature = {
+  actions: { trade: exchange },
+} satisfies ServerFeature;

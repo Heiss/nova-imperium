@@ -18,7 +18,6 @@ import { deleteGuildChat, seeGuildChat, sendGuildChat } from './guild-chat.ts';
 import { recall, send } from './fleet-actions.ts';
 import { vacationRefuses } from '../../core/vacation.ts';
 import { VACATION_REFUSED } from './vacation.ts';
-import { exchange } from './market.ts';
 import {
   answerFriend,
   cancelFriend,
@@ -81,7 +80,6 @@ const FRAME: Record<string, A.Action> = {
   pct: A.pct,
   rename: A.rename,
   options: A.options,
-  trade: exchange,
   pushOptions,
   read: A.read,
   delrep: A.delrep,
