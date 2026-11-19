@@ -893,11 +893,15 @@ function world(w: World): { ctx: TestCtx; anna: User } {
   return { ctx, anna };
 }
 
-/** Every table of the database, row by row. */
+/**
+ * Every table of the database, row by row, but the last targets of #292: a
+ * send writes them now, the frozen code before does not (they are tested
+ * with the Schnellwahl, src/server/game/quick-targets.test.ts).
+ */
 function dump(ctx: Ctx): Record<string, unknown[]> {
   const tables = ctx.db
     .prepare(
-      "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name",
+      "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name != 'last_targets' ORDER BY name",
     )
     .all() as { name: string }[];
   return Object.fromEntries(
