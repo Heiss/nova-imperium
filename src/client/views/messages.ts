@@ -1,153 +1,17 @@
-import { BUILD, DEF, RES, SHIPS, UNIT } from '../../core/catalog.ts';
-import { countUnits } from '../../core/flight.ts';
-import { text } from '../../core/text.ts';
-import type { Coords, Levels, Resources } from '../../core/types.ts';
-import type { Debris } from '../../core/debris.ts';
-import type { PlanetActivity } from '../../core/activity.ts';
-import { spyActivityText } from '../logic/activity.ts';
-import { debrisLine } from '../logic/debris.ts';
-import { moonLines } from '../logic/moon.ts';
-import { moonbreakLines } from '../logic/moonbreak.ts';
-import { coords, dt, esc, fmt, resLine, techLine } from '../logic/format.ts';
-import { newestFirst } from '../logic/game.ts';
-import { updateMessageHTML } from '../logic/news.ts';
-import { surveyBody } from '../logic/survey.ts';
-import type { Report } from '../logic/types.ts';
+import { mount, unmount } from 'svelte';
+import { messagesPage } from '../logic/messages.ts';
 import type { V } from './common.ts';
-
-function unitTable(before: Levels, after: Levels, keys: string[]): string {
-  const ks = keys.filter((k) => (before[k] ?? 0) > 0);
-  if (!ks.length) return '<span class="dim">keine Einheiten</span>';
-  const rows = ks.map((k) => {
-    const b = before[k]!;
-    const a = after[k] ?? 0;
-    return `<tr><td>${text(k)?.n}</td><td class="n">${fmt(b)}</td><td class="n">${fmt(a)}</td><td class="n ${b - a > 0 ? 'bad' : ''}">${fmt(b - a)}</td></tr>`;
-  });
-  return `<table class="mini"><tr><th>Einheit</th><th class="n">vorher</th><th class="n">nachher</th><th class="n">Verlust</th></tr>${rows.join('')}</table>`;
-}
-
-const WINNER: Record<string, string> = {
-  att: 'Der Angreifer hat die Schlacht gewonnen!',
-  def: 'Der Verteidiger hat die Schlacht gewonnen!',
-  draw: 'Die Schlacht endet unentschieden.',
-};
-
-const lv = (x: unknown): Levels => (x as Levels | undefined) ?? {};
-
-/** A fleet that held at the planet and defended it (#55). */
-interface HeldSide {
-  name: string;
-  before: Levels;
-  after: Levels;
-  tech: Levels;
-}
-
-/** Each fleet that held fights as a defender of its own (#55). */
-const heldSides = (r: Report): string =>
-  ((r.held as HeldSide[] | undefined) ?? [])
-    .map(
-      (h) =>
-        `<div><b class="good">Verteidiger ${esc(h.name)}</b><div class="dim">${techLine(lv(h.tech))}</div>${unitTable(lv(h.before), lv(h.after), Object.keys(SHIPS))}</div>`,
-    )
-    .join('');
-
-function battleBody(r: Report): string {
-  const rebuilt = lv(r.rebuilt);
-  const loot = r.loot as Resources | undefined;
-  const rb = countUnits(rebuilt)
-    ? `<div class="dim">Wiederhergestellte Verteidigung: ${Object.entries(
-        rebuilt,
-      )
-        .map(([k, n]) => `${fmt(n)} ${text(k)?.n}`)
-        .join(', ')}</div>`
-    : '';
-  const lootLine =
-    loot && loot.m + loot.c + loot.d ? `<br>Erbeutet: ${resLine(loot)}` : '';
-  const debris = debrisLine(r.debris as Debris | undefined);
-  const debrisHTML = [debris, ...moonLines(r), ...moonbreakLines(r)]
-    .filter(Boolean)
-    .map((line) => `<br>${line}`)
-    .join('');
-  return `<div>Schlacht bei ${esc(r.name)} ${coords(r.coords as Coords)} · ${esc(r.rounds)} Runde(n)</div>
-  <div class="cols mt"><div><b class="fl-attack">Angreifer ${esc(r.attName)}</b><div class="dim">${techLine(lv(r.attTech))}</div>${unitTable(lv(r.attBefore), lv(r.attAfter), Object.keys(SHIPS))}</div>
-  <div><b class="good">Verteidiger ${esc(r.defName)}</b><div class="dim">${techLine(lv(r.defTech))}</div>${unitTable(lv(r.defBefore), lv(r.defAfter), Object.keys(UNIT))}${rb}</div>${heldSides(r)}</div>
-  <p><b>${WINNER[String(r.winner)] ?? ''}</b>${lootLine}${debrisHTML}</p>`;
-}
-
-function section(title: string, o: unknown, keys: string[]): string {
-  if (!o) return '';
-  const list = unitList(lv(o), keys);
-  return `<div class="mt"><b>${title}</b><br>${list || '<span class="dim">keine</span>'}</div>`;
-}
-
-/** The activity of the target, in reports since #175. */
-function spyActivity(r: Report): string {
-  const words = spyActivityText(
-    r.activity as PlanetActivity | null | undefined,
-  );
-  return words === null
-    ? ''
-    : `<div class="mt"><b>Aktivität</b><br>${esc(words)}</div>`;
-}
-
-/** The ships of a section, „Name: n · …“, or none. */
-const unitList = (o: Levels, keys: string[]): string =>
-  keys
-    .filter((k) => (o[k] ?? 0) > 0)
-    .map((k) => `${text(k)?.n}: ${fmt(o[k])}`)
-    .join(' · ');
+import Messages from './Messages.svelte';
 
 /**
- * The fleets that hold at the planet, apart from its fleet, when the spy's
- * Auspex-Lehre reaches the round's level (#55, owner, 2026-11-17).
+ * „Nachrichten“ (#118, bundle 4), its data as a property. It is mounted anew
+ * on every render, as the HTML view was rendered anew: a report the player
+ * opened stays open (`client.ui.openRep`), and the focus returns by id.
  */
-function heldSection(r: Report): string {
-  const held = r.held as { name: string; ships: Levels }[] | undefined;
-  if (!held?.length) return '';
-  const rows = held
-    .map(
-      (h) =>
-        `${esc(h.name)}: ${unitList(lv(h.ships), Object.keys(SHIPS)) || '<span class="dim">keine</span>'}`,
-    )
-    .join('<br>');
-  return `<div class="mt"><b>Gehaltene Flotten</b><br>${rows}</div>`;
-}
-
-function spyBody(r: Report): string {
-  const lost = r.lost
-    ? ' – <span class="bad">deine Spähschädel wurden zerstört!</span>'
-    : '';
-  const hint =
-    !r.ships && !r.lost
-      ? ' · Mehr Spähschädel oder Auspex-Lehre zeigen mehr Details.'
-      : '';
-  return `<div>Rohstoffe auf ${esc(r.name)} ${coords(r.coords as Coords)} (Spieler ${esc(r.defName)}):<br><b>${resLine(r.res as Resources)}</b></div>
-   ${spyActivity(r)}${section('Flotte', r.ships, Object.keys(SHIPS))}${heldSection(r)}${section('Verteidigung', r.def, Object.keys(DEF))}${section('Gebäude', r.b, Object.keys(BUILD))}${section('Forschung', r.r, Object.keys(RES))}
-   <div class="dim mt">Chance auf Auspex-Abwehr: ${esc(r.counter)} %${lost}${hint}</div>`;
-}
-
-function reportBody(r: Report): string {
-  if (r.type === 'battle') return battleBody(r);
-  if (r.type === 'spy') return spyBody(r);
-  if (r.type === 'survey') return surveyBody(r);
-  if (typeof r.news === 'string')
-    return updateMessageHTML(String(r.text ?? ''), '?view=news');
-  return `<div>${esc(r.text)}</div>`;
-}
-
-function reportHTML(v: V, r: Report, readAt: number): string {
-  const cls = `rep ${r.time > readAt ? 'new' : ''} ${v.ui.openRep[r.id] ? 'open' : ''}`;
-  return `<div class="${cls}" id="rep_${esc(r.id)}"><div class="t" data-act="toggleRep" data-id="${esc(r.id)}"><b>${esc(r.title)}</b><span class="dim">${dt(r.time)} <span class="lnk" data-act="delrep" data-id="${esc(r.id)}">löschen</span></span></div><div class="b">${reportBody(r)}</div></div>`;
-}
-
-export function messages(v: V): string {
-  const readAt = v.s.me.readAt || 0;
-  const list = newestFirst(v.s.reports);
-  const del = list.length
-    ? '<button class="small red" data-act="delall">Alle löschen</button>'
-    : '';
-  const body = list.length
-    ? list.map((r) => reportHTML(v, r, readAt)).join('')
-    : '<div class="bd dim">Keine Nachrichten.</div>';
-  return `<h2>Nachrichten</h2><div class="box"><div class="hd flex between">Berichte (${list.length}) ${del}</div>${body}</div>`;
+export function mountMessages(target: HTMLElement, v: V) {
+  const component = mount(Messages, {
+    target,
+    props: { page: messagesPage(v) },
+  });
+  return { destroy: () => void unmount(component) };
 }

@@ -9,6 +9,7 @@
   import { client } from '../logic/state.svelte.ts';
   import { planetHTML } from './common.ts';
   import Due from './Due.svelte';
+  import FleetMoves from './FleetMoves.svelte';
   import FleetText from './FleetText.svelte';
 
   const v = $derived(client.shown);
@@ -19,29 +20,7 @@
   <h2>{page.title}</h2>
   <div class="box">
     <div class="hd">Flottenbewegungen</div>
-    <div class="bd">
-      {#if page.fleets.length}
-        <table>
-          <tbody>
-            {#each page.fleets as fleet (fleet.id)}
-              <tr>
-                <td class="n w110"><Due due={fleet.due} /></td>
-                <td class={fleet.cls}><FleetText parts={fleet.parts} /></td>
-                <td class="w80"
-                  >{#if fleet.recall}<button
-                      class="small"
-                      data-act="recall"
-                      data-id={fleet.id}>Rückruf</button
-                    >{/if}</td
-                >
-              </tr>
-            {/each}
-          </tbody>
-        </table>
-      {:else}
-        <span class="dim">Keine Flottenbewegungen.</span>
-      {/if}
-    </div>
+    <div class="bd"><FleetMoves fleets={page.fleets} /></div>
   </div>
   {#if page.held.length}
     <div class="box">

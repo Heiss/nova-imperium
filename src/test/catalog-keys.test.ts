@@ -43,7 +43,7 @@ interface Allowed {
 const ALLOWED: readonly Allowed[] = [
   // Not a catalog key but an equal word: the report type „spy“.
   {
-    file: 'client/views/messages.ts',
+    file: 'client/logic/report-body.ts',
     key: 'spy',
     count: 1,
     issue: 'permanent',

@@ -1,6 +1,6 @@
 // The fleet form beside the target (out of main.ts, ratchet #242): what the
 // target position is, the expedition position and the stay of an expedition
-// (#93). The markup of the form is in views/fleet.ts.
+// (#93). The form itself is the component Fleet (logic/fleet.ts).
 import {
   expeditionPosition,
   isExpeditionPlace,
@@ -185,10 +185,3 @@ export function quickTargets(s: GameState, from: string): QuickTarget[] {
     ),
   ];
 }
-
-/** The options of the list „Schnellwahl“: „– wählen –“ and the entries, escaped. */
-export const quickOptions = (list: readonly QuickTarget[]): string =>
-  [
-    `<option value="">${QUICK_FIRST}</option>`,
-    ...list.map((q) => `<option value="${esc(q.id)}">${esc(q.label)}</option>`),
-  ].join('');

@@ -496,6 +496,42 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   „zum Heimatsystem“, the textures of the planets, „Wechseln“ at a
   colony and, on a phone, no scrolling to the side; it fails when the
   view is not mounted anew.
+* **[V]** The fleet view of #118, bundle 3: the property test
+  `src/test/fleet-reference.test.ts` keeps `Fleet` equal to the HTML
+  before (frozen there: `fleet()` of `src/client/views/fleet.ts` with its
+  helpers, `unionBox()` and `unionFormRow()` of `views/union.ts`,
+  `quickOptions()`, and `box()` and `cd()` of `views/common.ts`, as #93,
+  #225, #230, #253 and #292 left them) on 300 generated states (fast-check
+  seed 118: ships of every kind or none or only ones that cannot fly,
+  research for the slots and the stay of an expedition, up to six fleets of
+  four owners and three states with the gift, unions with leaders, invited
+  and fleets, own moons with a Warp-Tor, friends, guild members and last
+  targets for the list „Schnellwahl“, the target of the Sternenkarte or
+  none as planet or moon, a chosen mission or an unknown one, a universe
+  speed of 1 or 4), with the shared normalizer of `src/test/markup.ts`
+  (which now also drops the empty marker `<!>` that Svelte writes for
+  `{@html}` in a select); hand-built cases reach the Bergung with a
+  Trümmerfeld, the button „Angriffsverband eröffnen“ and the hidden row of
+  the holding time, which the sample reaches rarely, and a test checks that
+  they reach them alone. The pure logic has its tests in
+  `src/client/logic/fleet.test.ts`; the tests of the HTML view
+  (`views/fleet*.test.ts`, `holding.test.ts`, `union.test.ts`) run on the
+  component through `src/test/fleet-view.ts`, and
+  `overview-reference.test.ts` checks the list of fleets of the fleet view
+  on the component.
+* **[V]** „Nachrichten“ and „Neuigkeiten“ of #118, bundle 4: the property
+  tests `src/test/messages-reference.test.ts` and
+  `src/test/news-reference.test.ts` keep the components equal to the HTML
+  before (frozen there: `messages()`, `reportHTML()`, the plain body and
+  `updateMessageHTML()`, and `newsHTML()`) on 300 generated states each
+  (fast-check seed 118: reports of four types with texts that hold markup
+  and line breaks, read and new, opened or not; news of up to three
+  versions with entries of the three kinds), with hand-built cases for the
+  empty states; the bodies of battle and espionage reports are the same
+  functions on both sides (`logic/report-body.ts`), so only their wrapper is
+  compared. The tests of the reports of holding (`holding.test.ts`) run on
+  the component through `src/test/messages-view.ts`; the allow list of
+  `catalog-keys.test.ts` names the new file of the report type „spy“.
 * **[E]** No comparison with a catalog key outside `src/features/` (#114,
   owner, 2026-11-14): `src/test/catalog-keys.test.ts` reads `src` with the
   TypeScript and Svelte parsers, as `src/test/naming.test.ts` does, and

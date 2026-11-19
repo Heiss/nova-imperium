@@ -4,8 +4,8 @@
 import { describe, expect, it } from 'vitest';
 import { planet, U } from '../../test/fixtures.ts';
 import type { GameState } from '../logic/types.ts';
+import { fleetView as fleet } from '../../test/fleet-view.ts';
 import type { Ui, V } from './common.ts';
-import { fleet } from './fleet.ts';
 
 const place = (
   id: string,
@@ -133,9 +133,18 @@ describe('the list „Schnellwahl“ of the fleet form (#253)', () => {
     expect(html).toContain('<label for="t_q">Schnellwahl</label>');
     const list = /<select id="t_q"[^>]*>(.*?)<\/select>/.exec(html)![1]!;
     expect(list).toBe(
-      '<option value="">– wählen –</option><option value="p1_3_7">Kolonie &lt;i&gt; [1:3:7]</option><option value="m1_3_7">Mond (Mond) [1:3:7]</option>',
+      '<option value="">– wählen –</option><option value="p1_3_7">Kolonie &lt;i> [1:3:7]</option><option value="m1_3_7">Mond (Mond) [1:3:7]</option>',
     );
     expect(/<select id="t_q"[^>]*>/.exec(html)![0]).not.toContain('disabled');
+  });
+
+  it('escapes the names of players in the options', () => {
+    const v = view({ g: 1, s: 2, p: 6 });
+    v.s.players.u2 = { name: 'Bert <b>', points: 1 };
+    v.s.quick = { friends: ['p1_2_6'], guild: [], last: [] };
+    const html = fleet(v);
+    expect(html).toContain('Freund: Bert &lt;b> [1:2:6]');
+    expect(html).not.toContain('<b>');
   });
 
   it('is disabled without another own place of the player', () => {
