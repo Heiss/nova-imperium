@@ -1049,12 +1049,6 @@ const FRAME: Record<string, (d: Data) => unknown> = {
     }
   },
   recall: (d) => act('recall', { id: d.id }),
-  toggleRep: (d) => {
-    ui.openRep[d.id!] = !ui.openRep[d.id!];
-    document.getElementById(`rep_${d.id}`)?.classList.toggle('open');
-  },
-  delrep: (d) => act('delrep', { id: d.id }),
-  delall: () => act('delall'),
   highscore: (d) => {
     ui.highscore = highscoreCategory(d.cat);
     render();
