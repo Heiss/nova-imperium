@@ -50,8 +50,11 @@ test.describe('admin', () => {
     await page.getByLabel('Spieler', { exact: true }).selectOption('');
     await page.getByLabel('Aktion', { exact: true }).fill('player');
     await page.getByRole('button', { name: 'Anzeigen', exact: true }).click();
-    const audit = page.getByRole('row', { name: /admin.read \/ player/ });
-    await expect(audit).toContainText(name);
+    // The audit log is shared: other tests have read player records too, so
+    // the row is the one of this test's admin.
+    const audit = page
+      .getByRole('row', { name: /admin.read \/ player/ })
+      .filter({ hasText: name });
     await expect(audit).toContainText(pilot);
     await other.close();
   });

@@ -74,7 +74,7 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 * **[E]** One E2E spec per feature (owner, 2026-11-19, #317, #324): a
   feature brings its own file `e2e/<feature>.spec.ts` and appends to no
   collecting file (`game.spec.ts` and `flows.spec.ts` with 3,500 lines were
-  split into 32 files of one feature each, the titles unchanged). Helpers
+  split into 31 files of one feature each, the titles unchanged). Helpers
   that two specs share go to `e2e/helpers.ts` or a module of their own
   (`e2e/fleet-helpers.ts`), never copied. `e2e/seed.ts` is a frame: it reads
   the call, loads every file of `e2e/seed/` and runs the parts by their
