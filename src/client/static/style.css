@@ -2151,3 +2151,97 @@ table.lx-t {
     padding: 0 16px;
   }
 }
+
+/* ---------- Phone: the achievements folded (#189) ----------
+   „Offen“ shows the next goal of each series and „Erledigt“ only its button,
+   until the player unfolds the group (data-all, set from logic/achievement-fold.ts). */
+@media (max-width: 760px) {
+  button.fold-all.phone-only {
+    display: block;
+    width: 100%;
+    min-height: 44px;
+    margin: 0 0 8px;
+  }
+  [data-achievement-group][data-fold='open']:not([data-all])
+    [data-achievement][data-later],
+  [data-achievement-group][data-fold='claimed']:not([data-all])
+    [data-achievement] {
+    display: none;
+  }
+}
+
+/* ---------- Phone: the Sternenkarte as rows (#189, [V] unchanged by the owner) ----------
+   One block per position instead of four columns that broke the names: the
+   position, the planet with its picture and name, below it the owner in small
+   letters and the actions; an empty position is a thin row. The head row is
+   not needed then. (The proposal's „⋯“ sheet for the actions is left out: the
+   actions stay in the row.) */
+@media (max-width: 760px) {
+  .gal,
+  .gal tbody {
+    display: block;
+  }
+  .gal tr {
+    display: grid;
+    grid-template-columns: 2.4em minmax(0, 1fr);
+    align-items: start;
+    border-bottom: 1px solid var(--line);
+  }
+  .gal tr:first-child {
+    display: none;
+  }
+  .gal tr:last-child {
+    border-bottom: 0;
+  }
+  .gal th,
+  .gal td {
+    border-bottom: 0;
+    padding: 4px 4px;
+  }
+  .gal td:empty {
+    display: none;
+  }
+  .gal td:nth-child(1) {
+    grid-column: 1;
+    grid-row: 1 / span 3;
+  }
+  .gal td:nth-child(2) {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .gal td:nth-child(3):not(:last-child) {
+    grid-column: 2;
+    grid-row: 2;
+    padding-top: 0;
+    font-size: 14px;
+  }
+  .gal td:last-child {
+    grid-column: 2;
+    grid-row: 3;
+  }
+  .gal td:nth-child(3):last-child {
+    grid-row: 2;
+  }
+  .gal tr.moon-row td:nth-child(2) {
+    padding-left: 14px;
+  }
+  .gal td button.small {
+    min-height: 44px;
+    margin: 2px 0;
+  }
+}
+
+/* ---------- Phone: the overview, what runs first (#189, D5, CSS only) ----------
+   The fleet movements and the activities stand above the long table of the
+   planet, which moves down. Only the overview has a box with the picture of
+   the planet (.ov). The dashboard cards „Läuft“, „Achtung“ and „Bereit“ are
+   not built yet. */
+@media (max-width: 760px) {
+  main:has(> .box > .bd.ov) {
+    display: flex;
+    flex-direction: column;
+  }
+  main:has(> .box > .bd.ov) > .box:has(> .bd.ov) {
+    order: 1;
+  }
+}
