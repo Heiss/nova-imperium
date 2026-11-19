@@ -88,6 +88,7 @@ describe(`upgrade to migration ${ID}`, () => {
       'colonize',
       'deploy',
       'harvest',
+      'hold',
       'moonbreak',
       'survey',
       'missile',

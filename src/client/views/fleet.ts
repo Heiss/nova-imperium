@@ -76,13 +76,13 @@ export function holdRow(mission: string): string {
  * its own with its own field `t_stay`, apart from the Halten (`t_hold`,
  * `t_h`): only one of the two is in the form, so no label exists twice.
  */
-export function stayRow(mission: string, v: Pick<V, 'R' | 's'>): string {
+function stayRow(mission: string, v: Pick<V, 'R' | 's'>): string {
   const most = Math.max(1, maxStay(mission, v.R.research, v.s.cfg));
   return `<tr id="t_stay_row"><td>Haltezeit</td><td><input class="c3" type="number" id="t_stay" min="1" max="${most}" value="1" aria-label="Haltezeit in Stunden"> Stunden am Ziel <span id="t_real" class="dim"></span></td></tr>`;
 }
 
 /** The row of the time at the target for the mission: the stay of an expedition or the holding time of a Halten (hidden for the others). */
-export const timeRowHtml = (mission: string, v: Pick<V, 'R' | 's'>): string =>
+const timeRowHtml = (mission: string, v: Pick<V, 'R' | 's'>): string =>
   staysAt(mission) ? stayRow(mission, v) : holdRow(mission);
 
 /**
@@ -104,7 +104,7 @@ export function timeRow(mission: string, v: Pick<V, 'R' | 's'>): void {
 }
 
 /** The real time of a stay of `hours` when the universe speed divides it (#93, owner, 2026-11-19) [V]; nothing otherwise. */
-const realStay = (hours: number, u: Universe): string =>
+export const realStay = (hours: number, u: Universe): string =>
   staysByUniverseSpeed(u) && hours >= 1
     ? `entspricht ${dur(stayDuration(hours, u))} (durch Tempo ${u.speed} geteilt)`
     : '';

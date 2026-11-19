@@ -519,7 +519,7 @@ describe('the event of an expedition (owner, 2026-11-16 and 2026-11-17)', () => 
     expect(drawEvent(queue(), null)).toEqual({ kind: 'nothing' });
   });
 
-  it('has shares that sum to 1, from the owner\'s numbers divided by the 84 % (owner, 2026-11-19)', () => {
+  it("has shares that sum to 1, from the owner's numbers divided by the 84 % (owner, 2026-11-19)", () => {
     const sum = EVENT_KINDS.reduce((total, k) => total + EVENT_SHARES[k], 0);
     expect(sum).toBeCloseTo(1, 12);
     // Stated for all expeditions, pirates 6 % and aliens 2.7 % (French statistic).
@@ -571,7 +571,9 @@ describe('the event of an expedition (owner, 2026-11-16 and 2026-11-17)', () => 
       }
       // Just above its lower edge, the first kind from 0.
       if (i === 0)
-        expect(drawEvent(queue(0.5, 0, 0.5)).kind, 'first kind at 0').toBe(kind);
+        expect(drawEvent(queue(0.5, 0, 0.5)).kind, 'first kind at 0').toBe(
+          kind,
+        );
     });
   });
 
@@ -586,9 +588,9 @@ describe('the event of an expedition (owner, 2026-11-16 and 2026-11-17)', () => 
       (sum, k) => sum + EVENT_SHARES[k],
       0,
     );
-    expect(
-      drawEvent(queue(0, edge + EVENT_SHARES.lost / 2 - 1e-12)),
-    ).toEqual({ kind: 'lost' });
+    expect(drawEvent(queue(0, edge + EVENT_SHARES.lost / 2 - 1e-12))).toEqual({
+      kind: 'lost',
+    });
   });
 
   it('brings an event below 0.84 and none from 0.84 on', () => {

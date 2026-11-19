@@ -2,8 +2,8 @@
 // Kreuzzugs-Kartografie fly to the expedition position of a system, stay the
 // hours the player chose, and meet an event: nothing, a find of resources or
 // of ships, a battle, the loss of the fleet or a change of the return time.
-// The draw of the event is not decided yet (EVENT_SHARES is null), so these
-// tests hand each event in.
+// The events are on with the shares of the owner (2026-11-19, EVENT_SHARES),
+// so no test lets chance decide: each hands the event or the generator in.
 import { describe, expect, it } from 'vitest';
 import { battle } from '../../../core/battle.ts';
 import {
@@ -12,12 +12,23 @@ import {
   flightMs,
   fuelFor,
 } from '../../../core/flight.ts';
-import { raidFleet, raiderTech, stayOf } from '../../../core/expedition.ts';
+import {
+  EVENT_KINDS,
+  EVENT_SHARES,
+  type EventKind,
+  earlyReturn,
+  lateReturn,
+  raidFleet,
+  raiderTech,
+  stayOf,
+} from '../../../core/expedition.ts';
 import { MISSION, sendError } from '../../../core/missions.ts';
 import { seeded } from '../../../test/fixtures.ts';
 import type { Coords, Fleet, Levels } from '../../../core/types.ts';
 import { universe } from '../../../server/game/context.ts';
-import { arrive, comeHome } from '../../../server/game/arrival.ts';
+import { arrive, comeHome, tick } from '../../../server/game/arrival.ts';
+import { heldAt, holdersAt } from '../../../server/game/holding.ts';
+import { dueAt } from '../../../core/holding.ts';
 import { ABANDON_ERROR } from '../../../server/game/abandon.ts';
 import { runAction } from '../../../server/game/dispatch.ts';
 import { recall, send } from '../../../server/game/fleet-actions.ts';
@@ -59,7 +70,7 @@ function world(level = 4, ships: Levels = { lc: 100, sc: 10, probe: 5 }) {
   return { ctx, anna };
 }
 
-/** What the player sends: `hold` hours to the expedition position, or `to`. */
+/** What the player sends: `stay` hours to the expedition position, or `to`. */
 const order = (over: Record<string, unknown> = {}) => ({
   planet: 'p1_1_5',
   mission: 'expedition',
@@ -111,15 +122,15 @@ const audit = (ctx: TestCtx) =>
     .all();
 
 describe('the rules of the mission', () => {
-  it('flies to the expedition position without cargo, comes home with a report and is not visible', () => {
+  it('flies to the expedition position without cargo, comes home with a report and holds nothing', () => {
     expect(rules).toMatchObject({
-      order: 100,
+      order: 110,
       target: 'expedition',
       cargo: false,
       returns: true,
-      visible: false,
       silent: false,
       alertsGuild: false,
+      holds: false,
     });
     expect(MISSION.expedition).toBe('Expedition');
   });
@@ -196,7 +207,7 @@ describe('the rules of the mission', () => {
 describe('sending an expedition', () => {
   it('flies to the position after the last planet position and stays the chosen hours', () => {
     const { ctx } = world();
-    expect(go(ctx, { hold: 3 })).toBe('Flotte unterwegs nach [1:2:16].');
+    expect(go(ctx, { stay: 3 })).toBe('Flotte unterwegs nach [1:2:16].');
     const dist = distance(HOME, SPOT);
     const ms = flightMs(
       dist,
@@ -229,32 +240,117 @@ describe('sending an expedition', () => {
   });
 
   it('stays an hour when no time is given, and a whole number of hours at least 1', () => {
-    for (const hold of [undefined, 0, -3, 'x', null, 1.9, 0.2]) {
+    for (const stay of [undefined, 0, -3, 'x', null, 1.9, 0.2]) {
       const { ctx } = world();
-      go(ctx, { hold });
-      expect(stayOf(ctx.fleets.all()[0]!), String(hold)).toBe(HOUR);
+      go(ctx, { stay });
+      expect(stayOf(ctx.fleets.all()[0]!), String(stay)).toBe(HOUR);
     }
     const { ctx } = world();
-    go(ctx, { hold: '3' });
+    go(ctx, { stay: '3' });
     expect(stayOf(ctx.fleets.all()[0]!)).toBe(3 * HOUR);
   });
 
   it('refuses a stay longer than the level and names the most', () => {
     const { ctx } = world(4);
-    expect(() => go(ctx, { hold: 5 })).toThrow(
+    expect(() => go(ctx, { stay: 5 })).toThrow(
       'Die Haltezeit beträgt höchstens 4 Stunden.',
     );
-    expect(() => go(ctx, { hold: 1e9 })).toThrow(
+    expect(() => go(ctx, { stay: 1e9 })).toThrow(
       'Die Haltezeit beträgt höchstens 4 Stunden.',
     );
     expect(ctx.fleets.all()).toEqual([]);
     expect(ctx.planets.get('p1_1_5')!.ships.lc).toBe(100);
-    go(ctx, { hold: 4 });
+    go(ctx, { stay: 4 });
     expect(stayOf(ctx.fleets.all()[0]!)).toBe(4 * HOUR);
     const one = world(1);
-    expect(() => go(one.ctx, { hold: 2 })).toThrow(
+    expect(() => go(one.ctx, { stay: 2 })).toThrow(
       'Die Haltezeit beträgt höchstens 1 Stunde.',
     );
+  });
+
+  /** The values of the round the admin changed (owner, 2026-11-19), as the universe settings store them. */
+  const setRound = (ctx: TestCtx, over: Record<string, number>): void =>
+    ctx.admin.saveUniverse({ ...universe(ctx), ...over });
+
+  it('stays at most level times the hours per level of the round, and names that most', () => {
+    const { ctx } = world(4);
+    setRound(ctx, { roundExpeditionHours: 6 });
+    expect(() => go(ctx, { stay: 25 })).toThrow(
+      'Die Haltezeit beträgt höchstens 24 Stunden.',
+    );
+    expect(ctx.fleets.all()).toEqual([]);
+    go(ctx, { stay: 24 });
+    expect(stayOf(ctx.fleets.all()[0]!)).toBe(24 * HOUR);
+    // At the highest setting a level 1 expedition stays 24 hours.
+    const one = world(1);
+    setRound(one.ctx, { roundExpeditionHours: 24 });
+    expect(() => go(one.ctx, { stay: 25 })).toThrow(
+      'Die Haltezeit beträgt höchstens 24 Stunden.',
+    );
+    go(one.ctx, { stay: 24 });
+    expect(stayOf(one.ctx.fleets.all()[0]!)).toBe(24 * HOUR);
+  });
+
+  it('allows the extra places of the round on top of the root of the level, not without the research', () => {
+    const { ctx, anna } = world(4);
+    setRound(ctx, { roundExpeditionExtraSlots: 2 });
+    // Level 4: two places and two more; the fleet slots limit too (Kogitator-Doktrin 3: four).
+    for (let i = 0; i < 4; i++) go(ctx);
+    expect(() => go(ctx)).toThrow('Alle Flottenslots belegt.');
+    ctx.players.save({ ...anna, research: { expo: 4, computer: 9 } });
+    expect(() => go(ctx)).toThrow('Alle Expeditionsplätze belegt.');
+    // Without the research no extra place helps.
+    ctx.players.save({ ...anna, research: { computer: 9 } });
+    expect(() => go(ctx)).toThrow(
+      'Expeditionen erst mit Kreuzzugs-Kartografie.',
+    );
+  });
+
+  it('divides the stay by the universe speed only when the round says so, and keeps the flights as they are', () => {
+    const real = world(5);
+    go(real.ctx, { stay: 5 });
+    const off = real.ctx.fleets.all()[0]!;
+    expect(stayOf(off)).toBe(5 * HOUR);
+    const fast = world(5);
+    setRound(fast.ctx, { roundExpeditionSpeed: 1 });
+    const speed = universe(fast.ctx).speed;
+    go(fast.ctx, { stay: 5 });
+    const on = fast.ctx.fleets.all()[0]!;
+    expect(stayOf(on)).toBe(Math.round((5 * HOUR) / speed));
+    // The flight out and home are the same in both rounds.
+    expect(on.ret - on.arr).toBe(off.ret - off.arr);
+    expect(on.arr - on.dep - (on.ret - on.arr)).toBe(stayOf(on));
+    // The limit is in the hours the player enters, not in the divided time.
+    const limit = world(4);
+    setRound(limit.ctx, { roundExpeditionSpeed: 1 });
+    expect(() => go(limit.ctx, { stay: 5 })).toThrow(
+      'Die Haltezeit beträgt höchstens 4 Stunden.',
+    );
+  });
+
+  it('changes the return after an event from the real stay, divided or not', () => {
+    const { ctx } = world(5);
+    setRound(ctx, { roundExpeditionSpeed: 1 });
+    go(ctx, { stay: 5 });
+    const f = ctx.fleets.all()[0]!;
+    const stay = stayOf(f);
+    const flight = f.ret - f.arr;
+    ctx.clock.t = f.arr;
+    // A normal later return: the flight home takes the real stay times 2 longer.
+    ctx.rng = queue(
+      0.1,
+      EVENT_SHARES.resources +
+        EVENT_SHARES.ships +
+        EVENT_SHARES.pirates +
+        EVENT_SHARES.aliens +
+        EVENT_SHARES.lost +
+        EVENT_SHARES.early +
+        0.01,
+      0.5,
+    );
+    const expected = f.arr + flight + 2 * stay;
+    arrive(ctx, f);
+    expect(ctx.fleets.get(f.id)!.ret).toBe(expected);
   });
 
   it('needs the research', () => {
@@ -393,7 +489,7 @@ describe('sending an expedition', () => {
 describe('recalling an expedition', () => {
   it('flies home as long as it has flown while it is on its way out', () => {
     const { ctx } = world();
-    go(ctx, { hold: 2 });
+    go(ctx, { stay: 2 });
     const f = ctx.fleets.all()[0]!;
     const ms = (f.ret - f.arr) as number;
     ctx.clock.t = START + Math.floor(ms / 2);
@@ -407,7 +503,7 @@ describe('recalling an expedition', () => {
 
   it('flies home in one flight when it already stays at the position', () => {
     const { ctx } = world();
-    go(ctx, { hold: 2 });
+    go(ctx, { stay: 2 });
     const f = ctx.fleets.all()[0]!;
     const flight = f.ret - f.arr;
     // Halfway through the stay: the way back is the way out, not the time so far.
@@ -476,19 +572,82 @@ describe('what an expedition meets', () => {
     ]);
   });
 
-  it('draws no event while the table is not decided: every expedition finds nothing', () => {
+  it('draws the event with the shares of the game: nothing for 16 % of the expeditions, and no draw after it', () => {
+    for (const first of [0.84, 0.9, 0.9999]) {
+      const { ctx } = world();
+      ctx.rng = queue(first);
+      onArrive(ctx, stayed(ctx, { lc: 10 }));
+      expect(reports(ctx).map(([title]) => title)).toEqual([
+        'Expedition [1:2:16] – nichts entdeckt',
+      ]);
+      expect(ctx.fleets.get('f1')!.state).toBe('back');
+    }
+  });
+
+  /** The draw of the kind that lies in the middle of the range of `kind` among the shares of the game. */
+  const middleOf = (kind: EventKind): number => {
+    let upTo = 0;
+    for (const k of EVENT_KINDS) {
+      if (k === kind) return upTo + EVENT_SHARES[k] / 2;
+      upTo += EVENT_SHARES[k];
+    }
+    throw new Error(kind);
+  };
+
+  it('loses the fleet when the draw falls to the total loss: no report of a find, the fleet is gone', () => {
     const { ctx } = world();
-    ctx.rng = queue();
-    const f = stayed(ctx, { lc: 10 });
-    onArrive(ctx, f);
+    ctx.rng = queue(0.1, middleOf('lost'));
+    onArrive(ctx, stayed(ctx, { lc: 10 }));
+    expect(ctx.fleets.get('f1')).toBeNull();
     expect(reports(ctx).map(([title]) => title)).toEqual([
-      'Expedition [1:2:16] – nichts entdeckt',
+      'Expedition [1:2:16] – Flotte verloren',
     ]);
-    expect(ctx.fleets.get('f1')!.state).toBe('back');
+  });
+
+  it('brings a later or an earlier return when the draw falls there, from the stay', () => {
+    const late = world();
+    late.ctx.rng = queue(0.1, middleOf('late'), 0.5);
+    const f = stayed(late.ctx, { lc: 10 });
+    // The fleet object is changed by the arrival: the expected time comes first.
+    const lateAt = lateReturn(f.arr, f.ret - f.arr, stayOf(f), 'normal');
+    onArrive(late.ctx, f);
+    expect(late.ctx.fleets.get('f1')).toMatchObject({
+      state: 'back',
+      ret: lateAt,
+    });
+    expect(reports(late.ctx)[0]![0]).toBe(
+      'Expedition [1:2:16] – Rückkehr später',
+    );
+    const early = world();
+    early.ctx.rng = queue(0.1, middleOf('early'), 0.5);
+    const g = stayed(early.ctx, { lc: 10 });
+    const earlyAt = earlyReturn(g.arr, g.ret - g.arr, stayOf(g), 'normal');
+    onArrive(early.ctx, g);
+    expect(early.ctx.fleets.get('f1')).toMatchObject({
+      state: 'back',
+      ret: earlyAt,
+    });
+    expect(reports(early.ctx)[0]![0]).toBe(
+      'Expedition [1:2:16] – Rückkehr früher',
+    );
+  });
+
+  it('draws the size of the event after its kind, as 89, 10 and 1 %', () => {
+    const sizes = ['normal', 'large', 'huge'] as const;
+    const pick = [0.5, 0.95, 0.995];
+    pick.forEach((r, i) => {
+      const { ctx } = world();
+      ctx.rng = queue(0.1, middleOf('late'), r);
+      const f = stayed(ctx, { lc: 10 });
+      const expected = lateReturn(f.arr, f.ret - f.arr, stayOf(f), sizes[i]!);
+      onArrive(ctx, f);
+      expect(ctx.fleets.get('f1')!.ret, sizes[i]).toBe(expected);
+    });
   });
 
   it('arrives through the dispatcher at the expedition position, and turns back from any other', () => {
     const { ctx } = world();
+    ctx.rng = queue(0.99);
     arrive(ctx, stayed(ctx, { lc: 10 }));
     expect(ctx.fleets.get('f1')!.state).toBe('back');
     expect(reports(ctx)[0]![0]).toBe('Expedition [1:2:16] – nichts entdeckt');
@@ -981,7 +1140,7 @@ describe('an expedition and the other rules of the game', () => {
       ships: { recycler: 5, lc: 20 },
     });
     expect(() =>
-      go(ctx, { mission: 'harvest', ships: { recycler: 5 }, hold: undefined }),
+      go(ctx, { mission: 'harvest', ships: { recycler: 5 }, stay: undefined }),
     ).toThrow('An dieser Position gibt es kein Trümmerfeld.');
     ctx.debris.add(SPOT, { m: 1000, c: 500 });
     go(ctx, { mission: 'harvest', ships: { recycler: 5 } });
@@ -1004,9 +1163,60 @@ describe('an expedition and the other rules of the game', () => {
       mission: 'transport',
       to: { g: 1, s: 2, p: 6 },
       ships: { lc: 1 },
-      hold: 4,
+      stay: 4,
     });
     expect(stayOf(ctx.fleets.all()[0]!)).toBe(0);
+  });
+
+  it('does not take the holding time of a Halten for the stay: only `stay` counts', () => {
+    const { ctx } = world();
+    go(ctx, { stay: undefined, hold: 4 });
+    expect(stayOf(ctx.fleets.all()[0]!)).toBe(HOUR);
+    // The expedition is no Halten: it keeps no holding time and burns no fuel for the stay.
+    const f = ctx.fleets.all()[0]!;
+    expect(f.hold).toBeUndefined();
+    expect(f.fuel).toBe(fuelFor({ lc: 10 }, distance(HOME, SPOT), 10));
+  });
+
+  it('is no fleet that holds: no holder or defender at its position, no holding time, never the state hold (#55)', () => {
+    const { ctx } = world();
+    go(ctx, { stay: 3 });
+    const f = ctx.fleets.all()[0]!;
+    // It is a flight to the position, as any other.
+    expect(ctx.fleets.at('p1_2_16').map((x) => x.id)).toEqual([f.id]);
+    expect(heldAt(ctx, 'p1_2_16')).toEqual([]);
+    expect(holdersAt(ctx, 'p1_2_16')).toEqual([]);
+    // It does not defend the planet at the neighbouring position either.
+    expect(heldAt(ctx, 'p1_2_6')).toEqual([]);
+    expect(holdersAt(ctx, 'p1_2_6')).toEqual([]);
+    expect(f.hold).toBeUndefined();
+    // Staying at the position it is still out; at the end of the stay it flies home, it does not hold.
+    ctx.clock.t = f.arr - 1;
+    expect(ctx.fleets.get(f.id)).toMatchObject({ state: 'out' });
+    ctx.rng = queue(0.99);
+    ctx.clock.t = f.arr;
+    tick(ctx);
+    expect(ctx.fleets.get(f.id)).toMatchObject({ state: 'back' });
+    expect(heldAt(ctx, 'p1_2_16')).toEqual([]);
+  });
+
+  it('does not end through the end of a holding time: the tick takes its arrival at the end of the stay and its return at the end of the flight home', () => {
+    const { ctx } = world();
+    go(ctx, { stay: 2 });
+    const f = ctx.fleets.all()[0]!;
+    const [arr, ret] = [f.arr, f.ret];
+    expect(dueAt(f)).toBe(arr);
+    ctx.clock.t = arr - 1;
+    expect(tick(ctx)).toBe(0);
+    ctx.rng = queue(0.99);
+    ctx.clock.t = arr;
+    expect(tick(ctx)).toBe(1);
+    const back = ctx.fleets.get(f.id)!;
+    expect(dueAt(back)).toBe(ret);
+    ctx.clock.t = ret;
+    expect(tick(ctx)).toBe(1);
+    expect(ctx.fleets.get(f.id)).toBeNull();
+    expect(ctx.planets.get('p1_1_5')!.ships.lc).toBe(100);
   });
 
   it('refuses to give up a colony an expedition started from while it flies', () => {
@@ -1053,6 +1263,8 @@ describe('an expedition and the other rules of the game', () => {
       to: 'p1_2_16',
     });
     ctx.clock.t = f.arr;
+    // No event: the generator is handed in.
+    ctx.rng = queue(0.99);
     arrive(ctx, ctx.fleets.get(f.id)!);
     const back = ctx.fleets.get(f.id)!;
     ctx.clock.t = back.ret;

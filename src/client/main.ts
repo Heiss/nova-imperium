@@ -3,7 +3,6 @@
 // functions (views/) or Svelte components; the logic is tested (logic/); this
 // file is run by the E2E suite.
 import { flushSync } from 'svelte';
-import { missionRules } from '../core/missions.ts';
 import { settle, settleR } from '../core/settle.ts';
 import type { Planet } from '../core/types.ts';
 import { createAct, placeOf, samePlace } from './logic/act.ts';

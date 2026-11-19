@@ -354,6 +354,32 @@ describe('fleet movements', () => {
       recall: true,
     });
   });
+
+  it('shows an own expedition at its position as a flight that is due when its stay ends, no Halten, with a recall (#93)', () => {
+    // The stay is what lies between the times; the fleet is out until its end (state out, no holding time).
+    const [row] = fleetRows(
+      view({
+        fleets: [fleet({ mission: 'expedition', state: 'out', arr: 9000 })],
+      }),
+      false,
+    );
+    expect(row).toMatchObject({
+      id: 'f1',
+      due: countdown(9000, 1000),
+      cls: 'fl-expedition',
+      recall: true,
+    });
+    expect(row!.parts[0]!.text).toContain(MISSION.expedition);
+    expect(row!.parts[0]!.text).not.toContain('hält bei');
+  });
+
+  it('keeps an expedition of another player out of „Gehaltene Flotten“ and off the planet it never flies to', () => {
+    const v = view({
+      fleets: [fleet({ owner: 'u2', mission: 'expedition', state: 'out' })],
+    });
+    expect(heldRows(v)).toEqual([]);
+    expect(fleetRows(v, false)).toEqual([]);
+  });
 });
 
 describe('fleets that hold at the planet (#55)', () => {

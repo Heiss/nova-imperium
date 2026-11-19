@@ -1,7 +1,7 @@
 ---
 type: feature
 title: Expeditions and position 16
-description: The mission „Expedition“ to the position after the last planet position with the research Kreuzzugs-Kartografie (classic Expeditionstechnik), its outcomes, slots and holding time, and debris from its battles (issue #93).
+description: The mission „Expedition“ to the position after the last planet position with the research Kreuzzugs-Kartografie (classic Expeditionstechnik), its outcomes with their shares, slots, stay and settings per round, and debris from its battles (issue #93).
 ---
 
 # Expeditions and position 16
@@ -60,14 +60,35 @@ Expeditions came with v0.78 on 20 November 2007.
   Redesign“).
 * **[E]** Per-round values (owner, 2026-11-17, X1): in the dialog „Neue
   Runde“ and, changeable during the round, in the admin panel.
+* **[E]** Share of each event (owner, 2026-11-19, the former open point 1):
+  derived from owiki, the raids by the French statistic: pirates 6 % and
+  aliens 2.7 % **of all expeditions**; a total loss 0.33 % and a find of
+  resources 37.5 % **of the events**; about 84 % of the expeditions bring an
+  event. **[V]** (main agent) for the rest: the find of ships and the change
+  of the return time share what is left half and half, and three quarters of
+  the changes are a later return, a quarter an earlier one. The arithmetic
+  is below, „Shares of the events“. The sizes stay 89 / 10 / 1 %; the trader
+  and Dunkle Materie stay out.
+* **[E]** Settings per round (owner, 2026-11-19, the former open point 2):
+  „Zusätzliche Expeditionsplätze“ (default 0, added to ⌊√level⌋) and
+  „Haltezeit in Stunden je Stufe“ (default 1), in the dialog „Neue Runde“ and
+  in the admin panel. **[V]** (main agent) the ranges 0 to 10 and 1 to 24.
+* **[E]** Stay and universe speed (owner, 2026-11-19, the former open point
+  3): one setting per round decides whether the stay is divided by the
+  universe speed. **[V]** (main agent) default off: real hours, as built;
+  label „Haltezeit durch das Universums-Tempo teilen“.
+* **[E]** Texts (owner, 2026-11-19, fast-build rule): the German texts that
+  are not decided are drafts, marked **[V]** here with their wording; they
+  ship with the update and the owner checks them afterwards.
 * **[V]** Name of the research from [Grimdark naming](/features/naming.md):
   Kreuzzugs-Kartografie (package order). The mission keeps the name of the
   issue, „Expedition“.
 
 # Built
 
-Mission folder `src/features/missions/expedition/` (order 100, target kind
-`expedition`, no cargo, returns, not visible, not silent), research folder
+Mission folder `src/features/missions/expedition/` (order 110, after the
+Raketenangriff at 100; target kind `expedition`, no cargo, returns, not
+silent, `holds` false), research folder
 `src/features/expo/` (key `expo`, order 170), rules in `src/core/expedition.ts`
 (pure, every draw takes the generator it is given) and `src/core/expedition-ships.ts`
 (expedition points and the find of ships, apart because they read the
@@ -86,20 +107,41 @@ catalog).
   fleet back („Flotte kehrt um“) when the position is no longer the expedition
   position, e.g. after the admin enlarged the universe.
 * **Slots.** `canSend` refuses without level 1 (`expeditionLocked`) and with
-  all ⌊√level⌋ places taken (`expeditionSlots`); the places count the
-  expeditions out and on their way home (`SendFleet.running`,
-  `fleets.countMission`). The fleet slot is checked as for every mission.
-* **Stay.** The player chooses whole hours from 1 to the level
-  (`MissionRules.maxHold`); the server refuses more with „Die Haltezeit
-  beträgt höchstens N Stunden.“. The fleet arrives when the stay ends:
-  `arr = start + flight + stay`, `ret = arr + flight`. No column holds the
-  stay; it is what lies between `dep`, `arr` and `ret` (`stayOf`). The
-  stay is in real hours, not divided by the universe speed (open point 3).
+  all ⌊√level⌋ places plus the extra places of the round taken
+  (`expeditionSlots(level, extra)`, `expeditionSlots` as code); the places
+  count the expeditions out and on their way home (`SendFleet.running`,
+  `fleets.countMission`), the extra places come from `SendFleet.extraSlots`
+  (`extraSlots(universe)`). The fleet slot is checked as for every mission.
+* **Stay.** The player chooses whole hours from 1 to level times the hours
+  per level of the round (`MissionRules.maxStay(research, hoursPerLevel)`);
+  the server refuses more with „Die Haltezeit beträgt höchstens N Stunden.“,
+  N being hours, whatever the speed does to them. The real stay is
+  `stayDuration(hours, universe)`: the hours in milliseconds, or divided by
+  the universe speed, rounded to a millisecond, when the switch of the round
+  is on. The fleet arrives when the stay ends: `arr = start + flight + stay`,
+  `ret = arr + flight`. No column holds the stay; it is what lies between
+  `dep`, `arr` and `ret` (`stayOf`), so the changed return times below work
+  from the real stay. The payload key is `stay` (hours); `hold` is the
+  holding time of a Wache stellen and is ignored by an expedition.
+* **An expedition is not a Halten.** `MissionRules.maxStay` (the stay of an
+  expedition) and `holds` (a Wache stellen, #55: defends the planet, burns
+  fuel for its time, state `hold`, column `hold`) are different things. An
+  expedition stays in the state `out` until its stay ends, keeps no holding
+  time, burns no fuel for the stay and is never counted by `heldAt` or
+  `holdersAt` (both ask `holds`); the recall rule of the overview (own, not
+  on its way home, a fleet of the form) lets the player call a staying
+  expedition back, as built before, and the server recalls it by the stay
+  rule below. The fleet form keeps the two in rows and fields of their own:
+  the holding time `t_hold` / `t_h` (a selection) and the stay `t_stay_row`
+  / `t_stay` (a number), only one of the two is in the page, so no label
+  exists twice.
 * **Recall.** An expedition can be recalled until its stay ends. The way
   home takes `min(time flown so far, flight out)`, so a fleet that already
   stays at the position returns in one flight; for every other mission this
-  is the old rule.
-* **Events** (`arrive.server.ts`, `drawEvent`): one draw per arrival, a
+  is the old rule (`recalledAt` in `fleet-actions.ts`, which keeps the rule
+  of a Halten: as long as its flight to the target took).
+* **Events** (`arrive.server.ts`, `drawEvent`, on since 2026-11-19 with the
+  shares below): one draw per arrival, a
   report with the owner, an audit entry (`system`, `expedition`, detail
   fleet, kind, size) and the flight home:
   * *nothing*, *loss* (the fleet is deleted, no debris);
@@ -133,12 +175,43 @@ catalog).
 * **Sternenkarte.** The row after the last planet position („Expeditionsposition“,
   position 16 or 21) with the button „Expedition“ (research level 1 and a ship
   that flies on the shown planet), the Trümmerfeld there and its „Bergung“.
-  The fleet form takes the position, shows the row „Haltezeit“ for a mission
-  that stays, the title counts „Expeditionen (n / m)“.
-* **Database.** Migration `20261118T2319-expeditions`
+  The fleet form takes the position, shows the row „Haltezeit“ (a number of
+  hours, the real time beside it when the universe speed divides the stay)
+  for an expedition, the title counts „Expeditionen (n / m)“ with the extra
+  places.
+* **Shares of the events** (`EVENT_SHARES`, `src/core/expedition.ts`):
+  among the expeditions that bring an event (84 %). Pirates 6 % and aliens
+  2.7 % of all expeditions are divided by 0.84: pirates 0.06 / 0.84 =
+  0.0714286, aliens 0.027 / 0.84 = 0.0321429. Total loss 0.0033, resources
+  0.375 (both of the events, as the owner gave them). What is left is
+  1 − (0.375 + 0.0033 + 0.0714286 + 0.0321429) = 0.5181286 **[V]**: half to
+  the find of ships, 0.2590643, and half to the change of the return time,
+  0.2590643, of which three quarters are later, 0.1942982, and a quarter
+  earlier, 0.0647661. In the order of the draw: resources, ships, pirates,
+  aliens, loss, earlier, later; they sum to 1 (a test checks it, and each
+  outcome and each boundary of the draw). Over all expeditions that is:
+  nothing 16 %, resources 31.5 %, ships 21.76 %, pirates 6 %, aliens 2.7 %,
+  loss 0.28 %, earlier 5.44 %, later 16.32 %. The constants are named with
+  their source in the code.
+* **Settings per round** (`roundSettings`, `src/core/expedition.ts`, one
+  fieldset „Expeditionen“, all `live`, so rows of the universe settings
+  too): `roundExpeditionExtraSlots` „Zusätzliche Expeditionsplätze“ (order
+  300, 0 to 10, default 0), `roundExpeditionHours` „Haltezeit in Stunden je
+  Stufe“ (order 310, 1 to 24, default 1) and `roundExpeditionSpeed`
+  „Haltezeit durch das Universums-Tempo teilen“ (order 315, a choice Nein /
+  Ja, default Nein). **[V]** The switch is a number of 0 and 1 with choices,
+  because a switch of the registry cannot be live (as the marketplace does);
+  the order numbers 300, 310 and 315 are free ones between the other
+  features' and the marketplace (320 to 430); the ranges and the defaults
+  are in the decisions above. No central list is edited; the registry is
+  generated.
+* **Database.** Migration `20261119T1700-expeditions`
   (`src/server/db/migrations/93/migrations.ts`) rebuilds `fleets` and
-  `fleet_ships` for the mission in the CHECK; it lists every mission and
-  keeps every column ([SQLite storage](/data/sqlite.md)).
+  `fleet_ships` for the mission in the CHECK; it runs after the rebuilds of
+  Wache stellen (`20261119T0744-holding`), the Mondbruch, the survey and the
+  missiles, lists every mission and every state (`out`, `hold`, `back`) and
+  keeps every column, `hold` and `aim` among them ([SQLite
+  storage](/data/sqlite.md)). It is unreleased, so its ID moved once.
 * **Vacation.** An expedition is sent through `send`, which the general gate
   refuses for a player in vacation mode; the vacation does not start while
   an expedition flies (all own fleets count). No player is the target, so
@@ -185,63 +258,48 @@ owner confirms or changes them.
 * Interface: the mission „Expedition“, the row „Haltezeit“ („Stunden am
   Ziel“), the note „Expeditionsposition“, „nur für Expeditionen“, the
   title „Expeditionen (n / m)“.
+* New with the settings (2026-11-19, **[V]**): beside the stay, only when
+  the universe speed divides it, „entspricht 1h 00m 00s (durch Tempo 5
+  geteilt)“ (the real time, the speed of the universe); the choices of the
+  switch „Nein“ and „Ja“; the legend of the fieldset „Expeditionen“. The
+  labels of the three settings are the owner's, the first two verbatim from
+  the comment, the third from the main agent. The refusal of a stay names
+  hours („Die Haltezeit beträgt höchstens N Stunde | Stunden.“) as the
+  player enters them; the report texts above name no duration, so they stay
+  true with the switch on.
+* New in the Lexicanum (**[V]**, drafts in [Lexicanum
+  texts](/features/lexicanum-texts.md)): the article of the research adds
+  „der Admin kann für die Runde zusätzliche Plätze dazugeben“ and that the
+  admin sets the hours per level and can have the universe speed divide the
+  stay; the mission article says the same in short.
 
 # Open
 
-1. **[U] The share of each event among the expeditions that bring one is not
-   decided, so the events are off.** The owner named „the per-event table of
-   owiki v1.4.1“ (2026-11-17), but the article has none (the cited revision
-   and the discussion page were read). It states only: about 84 % bring an
-   event; of 3,000 expeditions with an event the simulation assumes 300 raids
-   (pirates twice as often as aliens: 200 and 100, each 90 / 9 / 1 %
-   normal, large, very large) and 10 total losses; metal finds 18 to 20 %
-   (so resources about 36 to 40 %); three quarters of the changes of the
-   return time are delays; a French statistic of 22,860 expeditions gives
-   pirates 6 % and aliens 2.7 % of all; the statistics page of the source
-   (cogame.timestorm.de) cannot be reached. The shares of ships,
-   delay and early return are not stated, and Dunkle Materie and the Händler,
-   which are left out, took their share of the 84 %. `EVENT_SHARES` in
-   `src/core/expedition.ts` is `null`: every expedition finds nothing and
-   comes home; one constant switches the events on, all rules above are
-   built and tested with handed-in shares. Options: (a) the owner gives the
-   table; (b) Claude derives the raids and the loss from the numbers above
-   (pirates 6.7 %, aliens 3.3 %, loss 0.33 % of the events), takes resources
-   37.5 % (the middle of 36 to 40) and leaves about 52 % for ships and the
-   change of the return time, three quarters of the latter later; the split
-   between ships and the return time is a proposal, [V] until confirmed; (c) as (b) but with the French statistic for the raids; (d) all
-   seven events equally likely (not classic); (e) only finds, nothing and the
-   change of the return time first, the battles and the loss with a later pull
-   request.
-2. **[U] The setting per round (Q3, X1) has no form yet**, so it is not built:
-   the slots and the stay are the classic formulas (`expeditionSlots`,
-   `maxHoldHours`), fixed. Options for the form, always in the dialog „Neue
-   Runde“ and live in the admin panel, one array of settings from order 300
-   in `src/core/expedition.ts`: (a) two whole numbers „in percent of
-   classic“ (slots and stay, 100 = classic, 10 to 1,000); (b) „zusätzliche
-   Expeditionsplätze“ (default 0) and „Haltezeit in Stunden je Stufe“
-   (default 1); (c) a highest number of slots and of hours, default none; (d)
-   a switch between the classic formula and „as many slots as levels“; (e)
-   one setting „Haltezeit“ only, the slots stay classic.
-3. **[U] Stay and universe speed.** Built in real hours, as the owner's
-   decision says („level hours“). owiki divides the stay by the universe
-   speed in its text (and notes a hotfix that did not); this game's flights
-   are divided by it (default 5). Options: (a) real hours as built; (b)
-   divided by the speed like a flight; (c) a setting.
-4. **[V] Sizes of finds.** The rule of the article with its four tiers of
+The three open points of 2026-11-17 (the share of each event, the form of
+the setting per round, stay and universe speed) were decided by the owner
+on 2026-11-19 and are in „Decisions“ above, with the [V] parts marked.
+
+1. **[V] Sizes of finds.** The rule of the article with its four tiers of
    rank 1 (the 8-tier table of version 5.7.5 is not used); a tier edge belongs
    to the lower tier (up to and including 1,000,000 and 5,000,000, 100,000 to
    the second). The owner's „earliest sourced, v0.83“ is not on the cited
    page, so which version's caps are meant is not verified. The „points of
    rank 1“ are the points of the total highscore.
-5. **[V] Ships found.** The article leaves open how often the draw repeats;
+2. **[V] Ships found.** The article leaves open how often the draw repeats;
    built: it stops at the first drawn ship that is heavier than what is left.
-6. **[V] Return time.** The factors 2, 3 and 5 follow the sizes 89 / 10 / 1 %
-   (owiki: „sehr häufig“, „selten“, „sehr selten“); the share of early returns
-   (a quarter) belongs to the table of point 1.
-7. **[V] Places and slots.** The expeditions on their way home still hold a
+3. **[V] Return time.** The factors 2, 3 and 5 follow the sizes 89 / 10 / 1 %
+   (owiki: „sehr häufig“, „selten“, „sehr selten“); the split of the shares
+   between ships and the return time and the quarter of early returns are the
+   main agent's [V] of 2026-11-19.
+4. **[V] Places and slots.** The expeditions on their way home still hold a
    place; the position is „positions + 1“ at each arrival (see above).
-8. **[V]** The mission takes no cargo; the recall rule above; texts above;
+5. **[V]** The mission takes no cargo; the recall rule above; texts above;
    abbreviation „KK“ and the picture of the research.
-9. Not built, not decided: the load of a position by many expeditions
+6. **[V] The statistics of owiki** (cogame.timestorm.de) could not be
+   reached; the shares rest on the numbers of the article and the French
+   statistic the owner named. Dunkle Materie and the Händler, which are left
+   out, took a share of the 84 % in the source; it is spread over the other
+   events here.
+7. Not built, not decided: the load of a position by many expeditions
    (owiki: fewer events at often visited positions), the Spähschädel hint
    about it, the Astrophysik colony limit (owner: classic Expeditionstechnik).

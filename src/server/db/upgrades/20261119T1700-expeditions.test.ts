@@ -92,7 +92,9 @@ describe(`upgrade to migration ${ID}`, () => {
       .prepare("SELECT name FROM pragma_table_info('fleets')")
       .pluck()
       .all();
-    expect(columns).toEqual(expect.arrayContaining(['gift', 'aim', 'fuel', 'hold']));
+    expect(columns).toEqual(
+      expect.arrayContaining(['gift', 'aim', 'fuel', 'hold']),
+    );
     const ids = Object.keys(MISSION);
     expect(ids).toContain('expedition');
     for (const mission of ids)

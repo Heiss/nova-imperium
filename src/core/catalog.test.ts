@@ -790,7 +790,7 @@ describe('catalog from the entry folders', () => {
   });
 
   it('has one folder per entry, each with its kind and its own order', () => {
-    expect(ENTRIES).toHaveLength(58);
+    expect(ENTRIES).toHaveLength(59);
     const kinds = {
       building: C.BUILD,
       research: C.RES,
