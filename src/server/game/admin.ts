@@ -12,6 +12,12 @@ import type { Action } from './actions.ts';
 import { addReport, type Ctx, fail, str, universe } from './context.ts';
 import { rangeError, roundRules, startRoundRules } from './round.ts';
 import { placePlanet } from './planets.ts';
+import {
+  closeActiveRound,
+  openRound,
+  recordRoundEvent,
+  ROUND_EVENT,
+} from './round-archive.ts';
 import { vacationNotice } from './vacation.ts';
 import type { ServerFeature } from './feature.ts';
 
@@ -49,6 +55,7 @@ export const saveSettings: Action = (ctx, u, d) => {
   for (const p of ctx.planets.all())
     ctx.planets.save(settle(p, t, old, ctx.players.get(p.owner)));
   ctx.admin.saveUniverse(universeOf(input));
+  recordRoundEvent(ctx, ROUND_EVENT.settings, { settings: universe(ctx) });
   return 'Einstellungen gespeichert.';
 };
 
@@ -100,7 +107,11 @@ function newRound(ctx: Ctx, rules: RoundRules): void {
 export const reset: Action = (ctx, u, data, event) => {
   requireAdmin(u);
   const before = roundRules(ctx);
+  // The running round is archived first, in this transaction (#235, D1): a
+  // refused archive refuses the reset, so no round is lost.
+  closeActiveRound(ctx);
   const after = startRoundRules(ctx, data);
+  openRound(ctx);
   newRound(ctx, after);
   if (event) event.detail = { before, after };
   return 'Neue Runde gestartet – alle Spieler haben einen frischen Planeten.';
