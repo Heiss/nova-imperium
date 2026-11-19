@@ -19,6 +19,7 @@ import { type Ctx, coords, fail, fmt, int, universe } from './context.ts';
 import { route, target } from './fleet-actions.ts';
 import { isProtected, pointsMap } from './points.ts';
 import { inVacation } from './vacation.ts';
+import type { ServerFeature } from './feature.ts';
 
 /** The German message of each refusal: the fleet's where they say the same, else [V]. */
 const LAUNCH_ERROR: Readonly<Record<LaunchError, string>> = {
@@ -95,3 +96,7 @@ export const missile: Action = (ctx, u, d, event) => {
   }
   return `${fmt(n)} Orbitalraketen unterwegs nach ${coords(dest)}.`;
 };
+
+export const serverFeature = {
+  actions: { missile },
+} satisfies ServerFeature;
