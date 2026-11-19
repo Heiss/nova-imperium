@@ -1,15 +1,22 @@
 import { DAY } from '../audit.ts';
 import type { Ctx } from './context.ts';
 import { suspension } from './moderation.ts';
+import { dayTable, weekMs } from './playtime.ts';
 
+/**
+ * The players for the admin: the estimated active time of the last seven UTC
+ * days is the one of the players' own view (#232, game/playtime.ts); the old
+ * sums of `player_activity` (kept 30 days, no longer written) only give an
+ * older last sighting.
+ */
 export function playerStats(ctx: Ctx) {
   const now = ctx.now();
   const since = Math.floor(now / DAY) * DAY - 6 * DAY;
-  return ctx.db
+  const rows = ctx.db
     .prepare(
       `
     WITH activity AS (
-      SELECT player, SUM(CASE WHEN day >= ? THEN active_ms ELSE 0 END) AS activeMs, MAX(last_seen) AS lastSeen
+      SELECT player, MAX(last_seen) AS lastSeen
       FROM player_activity GROUP BY player
     ), actions AS (
       SELECT actor, SUM(category = 'game' AND outcome = 'ok') AS actions,
@@ -17,14 +24,24 @@ export function playerStats(ctx: Ctx) {
         SUM(category = 'game' AND time >= ?) AS recentActions
       FROM audit_events WHERE time >= ? GROUP BY actor
     )
-    SELECT u.id, u.name, u.admin, a.lastSeen, COALESCE(a.activeMs, 0) AS activeMs,
+    SELECT u.id, u.name, u.admin, a.lastSeen,
       COALESCE(x.actions, 0) AS actions, COALESCE(x.failedLogins, 0) AS failedLogins,
       COALESCE(x.recentActions, 0) AS recentActions
     FROM users u LEFT JOIN activity a ON a.player = u.id
     LEFT JOIN actions x ON x.actor = u.id ORDER BY u.name
   `,
     )
-    .all(since, now - 3600000, now - 60000, since);
+    .all(now - 3600000, now - 60000, since) as {
+    id: string;
+    lastSeen: number | null;
+  }[];
+  const week = weekMs(ctx);
+  const ends = ctx.playtime.lastActiveEnds();
+  return rows.map((r) => ({
+    ...r,
+    lastSeen: Math.max(r.lastSeen ?? 0, ends[r.id] ?? 0) || null,
+    activeMs: week.get(r.id) ?? 0,
+  }));
 }
 
 /**
@@ -52,27 +69,8 @@ export function playerDetail(ctx: Ctx, uid: string) {
   return {
     suspension: suspension(ctx, uid) ?? null,
     planets: planetsOf(ctx, uid),
-    days: ctx.db
-      .prepare(
-        `
-      WITH days AS (
-        SELECT day FROM player_activity WHERE player = @uid AND day >= @since
-        UNION
-        SELECT time - time % @day FROM audit_events
-        WHERE actor = @uid AND category = 'game' AND outcome = 'ok' AND time >= @since
-      )
-      SELECT d.day, COALESCE(a.active_ms, 0) AS activeMs,
-        (SELECT COUNT(*) FROM audit_events WHERE actor = @uid AND category = 'game'
-         AND outcome = 'ok' AND time >= d.day AND time < d.day + @day) AS actions
-      FROM days d LEFT JOIN player_activity a ON a.player = @uid AND a.day = d.day
-      ORDER BY d.day DESC
-    `,
-      )
-      .all({
-        uid,
-        day: DAY,
-        since: Math.floor(ctx.now() / DAY) * DAY - 6 * DAY,
-      }),
+    // The days with active time or an action: the sums of the player's own view.
+    days: dayTable(ctx, uid).filter((d) => d.activeMs > 0 || d.actions > 0),
   };
 }
 

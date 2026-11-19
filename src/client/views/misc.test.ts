@@ -506,4 +506,13 @@ describe('the option „Stufenübersicht“ in „Hilfe & Optionen“ (#187)', (
   it('shows the ▤ for a player without a stored mode (D5)', () => {
     expect(page()).toContain('<option value="icon" selected>Als ▤-Symbol');
   });
+
+  it('has the box „Meine Aktivität & Spielzeit“ after the vacation mode (#231)', () => {
+    const html = page();
+    expect(html).toContain('Meine Aktivität &amp; Spielzeit');
+    expect(html).toContain('id="own-activity"');
+    expect(html.indexOf('Urlaubsmodus')).toBeLessThan(
+      html.indexOf('id="own-activity"'),
+    );
+  });
 });

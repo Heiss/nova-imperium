@@ -12,6 +12,7 @@ import { SqliteLastTargets, type LastTargets } from './last-targets.ts';
 import { SqliteMarket, type MarketStore } from './market.ts';
 import { SqlitePlanets, type Planets } from './planets.ts';
 import { SqlitePlayers, type Players } from './players.ts';
+import { SqlitePlaytime, type Playtime } from './playtime.ts';
 import { SqliteReports, type Reports } from './reports.ts';
 import { SqliteSurveys, type Surveys } from './surveys.ts';
 
@@ -33,6 +34,8 @@ export interface Repositories {
   market: MarketStore;
   /** The last hostile targets of a player (#292). */
   targets: LastTargets;
+  /** The accepted intervals of the estimated play time (#232). */
+  playtime: Playtime;
 }
 
 export const repositories = (db: Db): Repositories => ({
@@ -48,4 +51,5 @@ export const repositories = (db: Db): Repositories => ({
   friends: new SqliteFriends(db),
   market: new SqliteMarket(db),
   targets: new SqliteLastTargets(db),
+  playtime: new SqlitePlaytime(db),
 });
