@@ -12,7 +12,6 @@ import { LEXICANUM_VIEW, viewUrl } from './logic/address.ts';
 import { CATALOG_VIEWS, catalogKind, orderNote } from './logic/catalog-list.ts';
 import { debrisAt, debrisTip } from './logic/debris.ts';
 import * as demolition from './logic/demolition.ts';
-import { endzeitNote } from './logic/endzeit.ts';
 import { moonAt, moonTarget } from './logic/moon.ts';
 import { scanOf } from './logic/phalanx.ts';
 import { clampInt, coords, dur, esc, fmt } from './logic/format.ts';
@@ -28,7 +27,6 @@ import {
   arrivalLine,
   fleetPreview,
   nameOf,
-  settingsFrom,
   type FleetForm,
 } from './logic/game.ts';
 import { headerLine } from './logic/header.ts';
@@ -61,7 +59,6 @@ import {
   auth,
   deleteAccountDialog,
   diagnosticTab,
-  endzeitDialog,
   type AdminTab,
 } from './views/misc.ts';
 import { disablePush, enablePush } from './push.ts';
@@ -1055,34 +1052,9 @@ const FRAME: Record<string, (d: Data) => unknown> = {
       toast('Bitte installiere die App über das Browsermenü.', true);
     }
   },
-  endzeit: () => modal(endzeitDialog(client.game!.admin!.endzeit.minutes)),
-  doEndzeit: () => {
-    const minutes = val('#endzeit-minutes');
-    // The check of the server (F15, #214): a refusal without a request.
-    const note = endzeitNote(client.game!.admin!.endzeit.done, minutes);
-    modal('');
-    return note ? toast(note, true) : act('endzeit', { minutes });
-  },
-  saveSettings: () => {
-    const keys = client.game!.admin!.specs.map((x) => x.key);
-    return act('settings', {
-      settings: settingsFrom(keys, (k) => val(`#set_${k}`)),
-    });
-  },
   revoke: async (d) => {
     if (await adminCall('/api/admin/revoke', { id: d.id }))
       refreshInvitations();
-  },
-  copyLink: async () => {
-    const input = $<HTMLInputElement>('#inv_link');
-    if (!input) return;
-    input.select();
-    try {
-      await navigator.clipboard.writeText(input.value);
-      toast('Link kopiert.');
-    } catch {
-      toast('Bitte den markierten Link selbst kopieren.', true);
-    }
   },
 };
 
