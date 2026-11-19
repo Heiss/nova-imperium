@@ -552,7 +552,19 @@ fieldset.rank legend {
    phone (#274, as #189 for the highscore). */
 .guild-title,
 .guild-list td:first-child,
-.guild-members td:first-child {
+.guild-members td:first-child,
+.guild-members td.rank,
+fieldset.rank legend {
+  overflow-wrap: anywhere;
+}
+/* Rank names are at most 24 characters when they are made (#277), but an
+   older name may be up to 67: the closed „Rang ändern“ list may cut a long
+   name off, the open list shows it in full. */
+select.rank-select {
+  max-width: 7rem;
+}
+/* The title of the admin's guild chat dialog holds the guild's tag and name. */
+#dialog-title {
   overflow-wrap: anywhere;
 }
 fieldset.rank .rights {
