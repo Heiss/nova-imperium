@@ -22,10 +22,10 @@ import {
   offeredMissions,
   targetInfo,
 } from '../logic/fleet-target.ts';
+import { timeRow } from '../logic/fleet-time.ts';
 import { moonAt } from '../logic/moon.ts';
 import { client } from '../logic/state.svelte.ts';
 import { unionArrivalLine } from '../logic/union.ts';
-import { timeRow } from '../views/fleet.ts';
 import type { GameState } from '../logic/types.ts';
 import type { ClientCtx, ClientFeature, Handler } from './contract.ts';
 

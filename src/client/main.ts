@@ -6,8 +6,8 @@ import { flushSync } from 'svelte';
 import { settle, settleR } from '../core/settle.ts';
 import type { Planet } from '../core/types.ts';
 import { createAct, placeOf, samePlace } from './logic/act.ts';
-import { LEXICANUM_VIEW, viewUrl } from './logic/address.ts';
-import { CATALOG_VIEWS, catalogKind } from './logic/catalog-list.ts';
+import { viewUrl } from './logic/address.ts';
+import { catalogKind } from './logic/catalog-list.ts';
 import * as demolition from './logic/demolition.ts';
 import { scanOf } from './logic/phalanx.ts';
 import { coords, dur } from './logic/format.ts';
@@ -50,12 +50,8 @@ import {
   type AdminTab,
 } from './views/misc.ts';
 import { disablePush } from './push.ts';
-import { mountCatalogList } from './views/catalog-list.ts';
 import { renderGate } from './views/vacation-lock.ts';
-import { mountGalaxy } from './views/galaxy.ts';
-import { mountLexicanum } from './views/lexicanum.ts';
-import { mountOverview } from './views/overview.ts';
-import { mountProducerTable } from './views/producer-table.ts';
+import { ANEW, type Mounted, MOUNTED, mountView } from './views/mount.ts';
 import { signInWithPasskey } from './passkeys.ts';
 import { $, keepChatScroll, val } from './dom.ts';
 import {
@@ -71,22 +67,8 @@ type Data = Record<string, string | undefined>;
 let loginChallenge: string | null = null;
 let rememberLogin = false;
 let resetToken: string | null = null;
-/** The views that are Svelte components (#114, #118). */
-const MOUNTED = new Set([
-  'overview',
-  'galaxy',
-  'resources',
-  LEXICANUM_VIEW,
-  ...Object.keys(CATALOG_VIEWS),
-]);
-/** The Svelte views mounted anew on every render (#118). */
-const ANEW = new Set(['overview', 'galaxy']);
 /** The mounted Svelte view and its name. */
-let mounted: {
-  view: string;
-  update?: (v: V) => void;
-  destroy: () => void;
-} | null = null;
+let mounted: Mounted | null = null;
 let adminPanel: {
   diagnostics: HTMLElement;
   invitations: HTMLElement;
@@ -557,26 +539,13 @@ function unmountViews(): void {
 /** Whether a list is mounted: it shows the clock's view state (#118). */
 const listMounted = (): boolean => !!mounted && !!catalogKind(mounted.view);
 
-/** Mounts the Svelte component of the view; any other view gets the overview. */
-function mountView(target: HTMLElement, view: V): NonNullable<typeof mounted> {
-  const kind = catalogKind(ui.view);
-  if (kind) return { view: ui.view, ...mountCatalogList(target, kind) };
-  if (ui.view === 'resources')
-    return { view: ui.view, ...mountProducerTable(target, view) };
-  if (ui.view === 'galaxy')
-    return { view: ui.view, ...mountGalaxy(target, view) };
-  if (ui.view === LEXICANUM_VIEW)
-    return { view: ui.view, ...mountLexicanum(target) };
-  return { view: 'overview', ...mountOverview(target) };
-}
-
 /**
  * Mounts the view of a Svelte component, or updates the mounted one. A
  * fresh render mounts a list again, as the HTML views render anew: no
- * number typed into the shipyard stays on another planet. The overview and
- * the Sternenkarte are mounted anew on every render, as their HTML views
- * were rendered (#118): the clock counts their countdowns down and marks
- * the ones that fired.
+ * number typed into the shipyard stays on another planet. The overview, the
+ * Sternenkarte and the fleet view are mounted anew on every render, as their
+ * HTML views were rendered (#118): the clock counts their countdowns down
+ * and marks the ones that fired.
  */
 function renderMounted(target: HTMLElement, view: V, fresh: boolean): void {
   const kind = catalogKind(ui.view);
@@ -587,7 +556,7 @@ function renderMounted(target: HTMLElement, view: V, fresh: boolean): void {
   }
   unmountViews();
   target.replaceChildren();
-  mounted = mountView(target, view);
+  mounted = mountView(ui.view, target, view);
   flushSync();
 }
 

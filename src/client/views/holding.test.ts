@@ -6,10 +6,10 @@ import type { RoundRules } from '../../core/round.ts';
 import { text } from '../../core/text.ts';
 import { DEFAULT_UNIVERSE, UNIVERSE_SPECS } from '../../core/universe.ts';
 import { roundDefaults } from '../../test/fixtures.ts';
+import { messagesView as messages } from '../../test/messages-view.ts';
 import type { Report } from '../logic/types.ts';
 import type { V } from './common.ts';
-import { holdRow } from './fleet.ts';
-import { messages } from './messages.ts';
+import { holdRow } from '../logic/fleet-time.ts';
 import { admin, roundDialog } from './misc.ts';
 
 /** The values of a round at their defaults, the settings of holding on top. */

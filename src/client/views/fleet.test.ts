@@ -4,7 +4,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { planet, U } from '../../test/fixtures.ts';
 import type { ClientFleet, GameState } from '../logic/types.ts';
-import { fleet, realStay, timeRow } from './fleet.ts';
+import { fleetView as fleet } from '../../test/fleet-view.ts';
+import { realStay, timeRow } from '../logic/fleet-time.ts';
 import type { Ui, V } from './common.ts';
 
 const out = (

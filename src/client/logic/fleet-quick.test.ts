@@ -3,7 +3,7 @@
 // guild members and the last targets, each foreign entry with its word.
 import { describe, expect, it } from 'vitest';
 import { U } from '../../test/fixtures.ts';
-import { quickOptions, quickTargets } from './fleet-target.ts';
+import { quickTargets } from './fleet-target.ts';
 import type { GameState } from './types.ts';
 
 const place = (
@@ -63,16 +63,5 @@ describe('the list „Schnellwahl“ of friends, guild and last targets', () => 
   it('leaves out a place the galaxy does not list', () => {
     const s = state({ friends: ['p9_9_9'], guild: [], last: ['p9_9_8'] });
     expect(quickTargets(s, 'p1_1_5').map((q) => q.id)).toEqual(['p1_1_9']);
-  });
-
-  it('escapes the names of players in the options', () => {
-    const html = quickOptions(
-      quickTargets(
-        state({ friends: ['p1_2_6'], guild: [], last: [] }),
-        'p1_1_5',
-      ),
-    );
-    expect(html).toContain('Freund: Bert &lt;b&gt; [1:2:6]');
-    expect(html).not.toContain('<b>');
   });
 });

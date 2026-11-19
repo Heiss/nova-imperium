@@ -1,0 +1,281 @@
+<script lang="ts">
+  // The fleet view (#118, bundle 3; okf/architecture/patterns.md,
+  // section 9), from fleetPage() of logic/fleet.ts. Its buttons and links
+  // carry data-act, which main.ts handles; features/fleet.ts reads the form
+  // and writes the target, the list „Auftrag“, the row of the time at the
+  // target and the preview of the flight into their places while the player
+  // types. Those two lists of options and that row are HTML (`{@html}`) so
+  // that the form writes them with the same functions.
+  import { QUICK_FIRST } from '../logic/fleet-target.ts';
+  import {
+    CARGO_FIELDS,
+    type FleetPage,
+    SPEEDS,
+    UNION_HINT,
+  } from '../logic/fleet.ts';
+  import Due from './Due.svelte';
+  import FleetMoves from './FleetMoves.svelte';
+
+  let { page }: { page: FleetPage } = $props();
+  const form = $derived(page.form);
+  const target = $derived(form.target);
+</script>
+
+<h2>Flotte</h2>
+<div class="box">
+  <div class="hd">{page.heading}</div>
+  <div class="bd"><FleetMoves fleets={page.fleets} /></div>
+</div>
+{#if page.unions}
+  <div class="box">
+    <div class="hd">Verbandsangriff</div>
+    <div class="bd">
+      {#each page.unions.unions as union (union.id)}
+        <div class="union" id="un_{union.id}">
+          <b>{union.title}</b> · Anführer {union.leader} · Ankunft in
+          <Due due={union.due} />
+          <div class="dim">{union.counts}</div>
+          <div>Flotten: {union.fleets}</div>
+          {#if union.invited}<div class="dim">
+              Eingeladen: {union.invited}
+            </div>{/if}
+          {#if union.leads}<div class="mt">
+              <input
+                type="text"
+                id="un_name_{union.id}"
+                maxlength="20"
+                placeholder="Spielername"
+                aria-label="Spieler zum Angriffsverband einladen"
+              />
+              <button class="small" data-act="inviteUnion" data-id={union.id}
+                >Einladen</button
+              >
+            </div>{/if}
+          <div class="mt">
+            <button class="small" data-act="joinUnion" data-id={union.id}
+              >Beitreten</button
+            >
+          </div>
+        </div>
+      {/each}
+      {#if page.unions.open.length}
+        <table class="mt">
+          <tbody>
+            {#each page.unions.open as attack (attack.id)}
+              <tr>
+                <td>Sturmangriff auf {attack.target}</td>
+                <td class="n w110"><Due due={attack.due} /></td>
+                <td
+                  ><button
+                    class="small"
+                    data-act="openUnion"
+                    data-id={attack.id}>Angriffsverband eröffnen</button
+                  ></td
+                >
+              </tr>
+            {/each}
+          </tbody>
+        </table>
+      {/if}
+      {#if page.unions.unions.length}<div class="dim mt">{UNION_HINT}</div>{/if}
+    </div>
+  </div>
+{/if}
+{#if page.ships.length}
+  <div class="box">
+    <div class="hd">1. Schiffe auswählen</div>
+    <div class="bd">
+      <table>
+        <tbody>
+          <tr
+            ><th>Schiff</th><th class="n">vorhanden</th><th class="n">Tempo</th
+            ><th>Anzahl</th></tr
+          >
+          {#each page.ships as ship (ship.key)}
+            <tr>
+              <td>{ship.name}</td>
+              <td class="n">{ship.have}</td>
+              <td class="n">{ship.speed}</td>
+              <td
+                ><input
+                  type="number"
+                  min="0"
+                  class="fs"
+                  id="f_{ship.key}"
+                  data-k={ship.key}
+                  placeholder="0"
+                  aria-label="Anzahl {ship.name}"
+                />
+                <span class="lnk" data-act="fmax" data-k={ship.key}>max</span
+                ></td
+              >
+            </tr>
+          {/each}
+        </tbody>
+      </table>
+      <div class="mt">
+        <span class="lnk" data-act="fall">alle Schiffe</span> ·
+        <span class="lnk" data-act="fnone">keine Schiffe</span>
+      </div>
+    </div>
+  </div>
+  <div class="box">
+    <div class="hd">2. Ziel und Auftrag</div>
+    <div class="bd">
+      <table class="kv">
+        <tbody>
+          <tr>
+            <td><label for="t_q">Schnellwahl</label></td>
+            <td
+              ><select id="t_q" disabled={!form.quick.length}
+                ><option value="">{QUICK_FIRST}</option
+                >{#each form.quick as place (place.id)}<option value={place.id}
+                    >{place.label}</option
+                  >{/each}</select
+              ></td
+            >
+          </tr>
+          <tr>
+            <td>Ziel</td>
+            <td
+              ><input
+                class="c3"
+                type="number"
+                id="t_g"
+                value={target.g}
+                min="1"
+                max={target.galaxies}
+                aria-label="Galaxie"
+              />:<input
+                class="c3"
+                type="number"
+                id="t_s"
+                value={target.s}
+                min="1"
+                max={target.systems}
+                aria-label="System"
+              />:<input
+                class="c3"
+                type="number"
+                id="t_p"
+                value={target.p}
+                min="1"
+                max={target.positions}
+                aria-label="Position"
+              />
+              <select id="t_k" aria-label="Zielart"
+                ><option value="planet">Planet</option><option
+                  value="moon"
+                  disabled={!target.moon}
+                  selected={target.toMoon}>Mond</option
+                ></select
+              >
+              <span id="t_info" class="dim"></span></td
+            >
+          </tr>
+          <tr>
+            <td>Auftrag</td>
+            <td
+              ><select id="t_m" aria-label="Auftrag"
+                >{@html form.missions}</select
+              >
+              <span id="t_limit" class="dim">{form.limit}</span></td
+            >
+          </tr>
+          {#if form.unions.length}
+            <tr id="t_union_row">
+              <td><label for="t_u">Verband</label></td>
+              <td
+                ><select id="t_u"
+                  ><option value="">Kein Verband</option
+                  >{#each form.unions as union (union.value)}<option
+                      value={union.value}
+                      selected={union.selected}>{union.label}</option
+                    >{/each}</select
+                ></td
+              >
+            </tr>
+          {/if}
+          {@html form.time}
+          <tr>
+            <td>Geschwindigkeit</td>
+            <td
+              ><select id="t_v" aria-label="Geschwindigkeit"
+                >{#each SPEEDS as speed (speed.value)}<option
+                    value={speed.value}>{speed.label}</option
+                  >{/each}</select
+              ></td
+            >
+          </tr>
+          <tr>
+            <td>Ladung (Adamant / Psikristall / Promethium)</td>
+            <td
+              >{#each CARGO_FIELDS as field, i (field.key)}{#if i}{' '}{/if}<span
+                  class="cargo"
+                  ><input
+                    type="number"
+                    id="c_{field.key}"
+                    min="0"
+                    placeholder="0"
+                    aria-label={field.name}
+                  /><button
+                    type="button"
+                    id="cone_{field.key}"
+                    class="small"
+                    data-act="cone"
+                    data-k={field.key}
+                    aria-label="Alles {field.name}">alles</button
+                  ></span
+                >{/each}
+              <span class="lnk" data-act="cmax">alles (gleichmäßig)</span></td
+            >
+          </tr>
+          <tr><td>Entfernung</td><td id="i_dist">-</td></tr>
+          <tr><td>Flugdauer (eine Richtung)</td><td id="i_dur">-</td></tr>
+          <tr><td>Ankunft / Rückkehr</td><td id="i_arr">-</td></tr>
+          <tr><td>Treibstoff</td><td id="i_fuel">-</td></tr>
+          <tr><td>Laderaum</td><td id="i_cap">-</td></tr>
+        </tbody>
+      </table>
+      <div class="mt10">
+        <button
+          id="t_send"
+          data-act="send"
+          data-full={form.full ? '1' : ''}
+          disabled={form.full || !form.mission}>Flotte losschicken</button
+        >
+        {#if form.full}<span class="bad"
+            >Alle Flottenslots belegt (Kogitator-Doktrin erhöht die Anzahl).</span
+          >{/if}
+      </div>
+    </div>
+  </div>
+{:else}
+  <div class="notice">
+    Auf diesem Planeten stehen keine Schiffe. Baue welche in der
+    Schiffsschmiede.
+  </div>
+{/if}
+{#if page.jump}
+  <div class="box">
+    <div class="hd">Warp-Tor</div>
+    <div class="bd">
+      <div>
+        <label for="jg_to">Zielmond</label>
+        <select id="jg_to" class="jump-to" disabled={!page.jump.targets.length}>
+          {#each page.jump.targets as place (place.value)}<option
+              value={place.value}
+              disabled={place.disabled}>{place.label}</option
+            >{/each}
+        </select>
+      </div>
+      <div class="mt10">
+        <button data-act="jump" disabled={!page.jump.canJump}>Springen</button
+        >{#if page.jump.cooling}
+          <span class="dim"
+            >Wieder bereit in <Due due={page.jump.cooling} /></span
+          >{/if}
+      </div>
+    </div>
+  </div>
+{/if}
