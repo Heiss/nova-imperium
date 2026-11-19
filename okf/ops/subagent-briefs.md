@@ -69,6 +69,16 @@ when the second built on the first.
   with the fake context of `src/client/features/test-ctx.ts`; a handler name
   or a form id that exists twice stops the start, and the guard test
   `src/client/features/registry.test.ts` checks the rules for all (#322).
+* A server action and a part of the state are added in the feature's own
+  server module, exported as `serverFeature` (`actions`, `guildActions`,
+  `adminActions`, `state`); nothing else is edited (the list
+  `src/server/features.gen.ts` is generated, and `dispatch.ts` and
+  `state.ts` name no feature). A part of the state has its own `order`
+  number, the next free ten above the highest, and the brief names the
+  numbers other open branches already took; an action name, a state key or a
+  number that exists twice stops the start, and the guard test
+  `src/server/game/registry.test.ts` checks the rules for all. A new action
+  or key is also written into `registry-pin.test.ts` (#326).
 * Stop after two failed attempts at the same problem and report.
 
 ## What went wrong, and what the brief says since

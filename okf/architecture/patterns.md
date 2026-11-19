@@ -1161,6 +1161,32 @@ src/client/                state, components (generic), views
   state; a name, a key or an order number that exists twice stops the start
   with both files named. The guard test `src/server/game/registry.test.ts`
   checks the rules for every listed module.
+* **[V]** Built: these modules register `actions`, `guildActions` or
+  `adminActions` (`demolition`, `endzeit`, `admin`, `phalanx`, `missiles`,
+  `jump-gate`, `main-planet`, `vacation`, `abandon`, `market`,
+  `fleet-actions`, `push-options`, `friends`, `achievements`, `guilds`,
+  `guild-ranks`, `guild-chat`) and these a part of the state (`main-planet`
+  60, `jump-gate` 80, `guilds` 110, `friends` 120, `achievements` 130,
+  `abandon` 170 for the locks, `market` 180, and `admin-state` 190, a module
+  of its own because the Endzeit imports `admin.ts`). The frame keys of
+  `state.ts` have numbers too (10 to 160, ten apart, with the gaps the
+  features use), so the JSON keys stay in their old order; a new part takes
+  the next free ten above the highest. Left in the frame on purpose: the
+  actions `build`, `cancelBuild`, `research`, `cancelResearch`, `order`,
+  `pct`, `rename`, `options`, `read`, `delrep` and `delall` of
+  `actions.ts` (the core game and the account; `actions.test.ts` calls them
+  directly), the general gates of `runAction`, `lockedState` (the lock screen
+  of the vacation mode has its own, shorter shape), `meOf` (the account, with
+  its push kinds and its vacation) and the keys `round`, `now`, `cfg`, `me`,
+  `planet`, `labs`, `fleets`, `reports`, `players`, `galaxy` and `debris`.
+  `src/server/game/registry-pin.test.ts` writes out every action with its
+  group and the key order of the state for the refactoring; it is edited on
+  purpose when an action or a key is added.
+* **[V]** The state type of the browser (`GameState` in
+  `src/client/logic/types.ts`) is not composed from per-feature types: the
+  types of the parts live in the client, `client-not-server` forbids a type
+  import from the server too, so it would mean moving them into `src/core`,
+  which is not mechanical. It stays one hand-written interface.
 
 # Migration
 
