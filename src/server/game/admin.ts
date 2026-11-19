@@ -13,6 +13,7 @@ import { addReport, type Ctx, fail, str, universe } from './context.ts';
 import { rangeError, roundRules, startRoundRules } from './round.ts';
 import { placePlanet } from './planets.ts';
 import { vacationNotice } from './vacation.ts';
+import type { ServerFeature } from './feature.ts';
 
 export const requireAdmin = (u: { admin: boolean }): void => {
   if (!u.admin) fail('Nur der Admin darf das.');
@@ -118,3 +119,7 @@ export function announce(ctx: Ctx, input: unknown): number {
   }
   return players.length;
 }
+
+export const serverFeature = {
+  adminActions: { settings: saveSettings, reset },
+} satisfies ServerFeature;
