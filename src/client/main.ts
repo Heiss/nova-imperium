@@ -98,14 +98,6 @@ let adminPanel: {
 } | null = null;
 let lastActivity = -Infinity;
 
-interface InstallPrompt extends Event {
-  prompt: () => Promise<unknown>;
-}
-let installPrompt: InstallPrompt | null = null;
-let installedHere = false;
-const INSTALL_DISMISSED_KEY = 'nova.pwa.install-dismissed';
-let installDismissed = readInstallDismissal();
-
 function readNewsSeen(): string | null {
   try {
     return localStorage.getItem(NEWS_SEEN_KEY);
@@ -144,43 +136,6 @@ async function loadNews(): Promise<void> {
     newsLoading = false;
   }
 }
-
-function readInstallDismissal(): boolean {
-  try {
-    return localStorage.getItem(INSTALL_DISMISSED_KEY) === '1';
-  } catch {
-    return false;
-  }
-}
-const mobileInstall = matchMedia('(max-width: 800px) and (pointer: coarse)');
-const standalone = matchMedia('(display-mode: standalone)');
-
-function isInstalled(): boolean {
-  const platform = navigator as Navigator & { standalone?: boolean };
-  return installedHere || standalone.matches || platform.standalone === true;
-}
-
-function updateInstallButton(): void {
-  const button = $('#pwa-install');
-  if (button) button.hidden = !installPrompt || isInstalled();
-  const offer = $('#pwa-offer');
-  if (offer)
-    offer.hidden = !mobileInstall.matches || isInstalled() || installDismissed;
-}
-window.addEventListener('beforeinstallprompt', (event) => {
-  event.preventDefault();
-  installPrompt = event as InstallPrompt;
-  updateInstallButton();
-});
-window.addEventListener('appinstalled', () => {
-  installedHere = true;
-  installPrompt = null;
-  updateInstallButton();
-});
-
-mobileInstall.addEventListener('change', updateInstallButton);
-standalone.addEventListener('change', updateInstallButton);
-updateInstallButton();
 
 function gameView(view: string | null): string {
   if (!view || (!MOUNTED.has(view) && !Object.hasOwn(VIEWS, view)))
@@ -733,7 +688,6 @@ function render(fresh = false): void {
   updateBar();
   showHeader(headerLine(client.game, client.view.P));
   renderView(view, client.view, fresh);
-  if (ui.view === 'help') updateInstallButton();
   renderCompletions(view);
   paintPlanets(view);
   restore();
@@ -848,31 +802,6 @@ const FRAME: Record<string, (d: Data) => unknown> = {
   },
   passkeyLogin: loginByPasskey,
   deleteAccount: () => modal(deleteAccountDialog(client.game!.round)),
-  dismissInstall: () => {
-    installDismissed = true;
-    try {
-      localStorage.setItem(INSTALL_DISMISSED_KEY, '1');
-    } catch {
-      // The offer still stays hidden in this tab when storage is unavailable.
-    }
-    updateInstallButton();
-  },
-  installApp: async () => {
-    const prompt = installPrompt;
-    if (!prompt) {
-      modal(
-        '<p>Öffne das Browsermenü und wähle „App installieren“ oder „Zum Startbildschirm hinzufügen“.</p><p>Auf iPhone und iPad in Safari: „Teilen“ → „Zum Home-Bildschirm“ → „Als Web-App öffnen“.</p><p>Zum Spielen brauchst du eine Internetverbindung.</p><button type="button" data-act="closeModal">Schließen</button>',
-      );
-      return;
-    }
-    installPrompt = null;
-    updateInstallButton();
-    try {
-      await prompt.prompt();
-    } catch {
-      toast('Bitte installiere die App über das Browsermenü.', true);
-    }
-  },
   revoke: async (d) => {
     if (await adminCall('/api/admin/revoke', { id: d.id }))
       refreshInvitations();

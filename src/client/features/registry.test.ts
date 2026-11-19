@@ -9,9 +9,20 @@ import { fakeCtx } from './test-ctx.ts';
 
 const features: readonly (readonly [string, ClientFeature])[] = CLIENT_FEATURES;
 
-// A feature may listen to the document for its forms when it is built.
+// A feature may listen to the page, ask the browser and read the document
+// when it is built.
 beforeEach(() => {
-  vi.stubGlobal('document', { addEventListener: vi.fn() });
+  vi.stubGlobal('document', {
+    addEventListener: vi.fn(),
+    querySelector: () => null,
+  });
+  vi.stubGlobal('window', { addEventListener: vi.fn() });
+  vi.stubGlobal('matchMedia', () => ({
+    matches: false,
+    addEventListener: vi.fn(),
+  }));
+  vi.stubGlobal('localStorage', { getItem: () => null });
+  vi.stubGlobal('navigator', {});
 });
 afterEach(() => {
   vi.unstubAllGlobals();
