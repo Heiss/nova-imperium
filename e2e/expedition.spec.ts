@@ -23,38 +23,38 @@ const OUTCOMES: {
   home: boolean | null;
 }[] = [
   {
-    title: / – nichts entdeckt$/,
+    title: / – nichts entdeckt/,
     body: 'Die Expedition hat nichts Besonderes gefunden und kehrt heim.',
     home: true,
   },
   {
-    title: / – Rohstofffund$/,
+    title: / – Rohstofffund/,
     body: /Rohstofffund gemacht: [\d.]+ (Adamant|Psikristall|Promethium) kommen mit der Flotte heim\.|Laderäume sind zu klein/,
     home: true,
   },
   {
-    title: / – Schiffsfund$/,
+    title: / – Schiffsfund/,
     body: /Schiffsfund gemacht, die Schiffe schließen sich der Flotte an: |keine gefunden, die sich der Flotte anschließen/,
     home: true,
   },
   {
-    title: / – Flotte verloren$/,
+    title: / – Flotte verloren/,
     body: 'Von der Expedition kam nur noch ein abgerissener Funkspruch. Die Flotte ist verloren.',
     home: false,
   },
   {
-    title: / – Rückkehr früher$/,
+    title: / – Rückkehr früher/,
     body: 'Die Expedition hat einen kürzeren Weg gefunden und kehrt früher als geplant zurück.',
     home: true,
   },
   {
-    title: / – Rückkehr später$/,
+    title: / – Rückkehr später/,
     body: 'Die Expedition hat sich verirrt und kehrt später als geplant zurück.',
     home: true,
   },
-  { title: /^Kampfbericht .* – gewonnen$/, body: 'Runde(n)', home: true },
-  { title: /^Kampfbericht .* – verloren$/, body: 'Runde(n)', home: false },
-  { title: /^Kampfbericht .* – unentschieden$/, body: 'Runde(n)', home: null },
+  { title: /^Kampfbericht .* – gewonnen/, body: 'Runde(n)', home: true },
+  { title: /^Kampfbericht .* – verloren/, body: 'Runde(n)', home: false },
+  { title: /^Kampfbericht .* – unentschieden/, body: 'Runde(n)', home: null },
 ];
 
 async function homeSystem(page: Page): Promise<void> {
