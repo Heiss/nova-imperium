@@ -104,11 +104,20 @@ export const unionPart = (f: ClientFleet): string =>
       ? ' · Angriffsverband (Anführer)'
       : ' · im Angriffsverband';
 
-/**
- * The fleet that opened a union is the leader's: its recall turns back every
- * fleet of the union (owner, 2026-11-16, Q2).
- */
-export const opensUnion = (f: ClientFleet): boolean => f.union === f.id;
+/** An own Sturmangriff that can open a union: its target and its arrival. */
+export interface OpenRow {
+  id: string;
+  /** „[1:4:8]“. */
+  target: string;
+  arr: number;
+}
+
+/** The own fleets that can open an attack union now, by arrival. */
+export const openRows = (v: Pick<V, 's' | 'now'>): OpenRow[] =>
+  v.s.fleets
+    .filter((f) => canOpenUnion(f, v.s.me.id, v.now))
+    .sort((a, b) => a.arr - b.arr)
+    .map((f) => ({ id: f.id, target: coords(f.toC), arr: f.arr }));
 
 /** A union the fleet form can join: its ID, its label and its target. */
 export interface JoinChoice {

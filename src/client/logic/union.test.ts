@@ -9,7 +9,7 @@ import {
   canOpenUnion,
   joinChoices,
   limitsOf,
-  opensUnion,
+  openRows,
   unionArrivalLine,
   unionPart,
   unionRows,
@@ -141,25 +141,22 @@ describe('opening a union', () => {
     expect(canOpenUnion(fleet({ gift: true }), 'u1', 10_000)).toBe(false);
     expect(canOpenUnion(fleet({ union: 'f1' }), 'u1', 10_000)).toBe(false);
   });
-  it('is in the rows of the fleet movements, with the recall that ends the union for the fleet that opened it', () => {
-    const rows = (fleets: ClientFleet[]) =>
-      fleetRows(
-        { ...view([union()]), s: { ...view([union()]).s, fleets } } as V,
-        false,
-      );
-    expect(rows([fleet()])[0]).toMatchObject({
-      canOpenUnion: true,
-      leads: false,
-    });
-    expect(rows([fleet({ union: 'f1' })])[0]).toMatchObject({
-      canOpenUnion: false,
-      leads: true,
-      recall: true,
-    });
-    expect(rows([fleet({ id: 'f2', union: 'f1' })])[0]).toMatchObject({
-      canOpenUnion: false,
-      leads: false,
-    });
+  it('lists the own fleets that can open one, by arrival, with their target', () => {
+    const rows = (fleets: ClientFleet[], now = 10_000) =>
+      openRows({ ...view([]), s: { ...view([]).s, fleets }, now } as V);
+    expect(
+      rows([
+        fleet({ id: 'late', arr: 300_000 }),
+        fleet({ id: 'soon', arr: 200_000, toC: { g: 2, s: 3, p: 4 } }),
+        fleet({ id: 'union', union: 'union' }),
+        fleet({ id: 'foreign', owner: 'u2' }),
+        fleet({ id: 'back', state: 'back' }),
+      ]),
+    ).toEqual([
+      { id: 'soon', target: '[2:3:4]', arr: 200_000 },
+      { id: 'late', target: '[1:4:8]', arr: 300_000 },
+    ]);
+    expect(rows([fleet()], 100_000)).toEqual([]);
   });
   it('is told in the line of an own fleet of a union', () => {
     expect(unionPart(fleet())).toBe('');
@@ -169,9 +166,6 @@ describe('opening a union', () => {
     expect(unionPart(fleet({ id: 'f2', union: 'f1' }))).toBe(
       ' · im Angriffsverband',
     );
-    expect(opensUnion(fleet({ union: 'f1' }))).toBe(true);
-    expect(opensUnion(fleet({ id: 'f2', union: 'f1' }))).toBe(false);
-    expect(opensUnion(fleet())).toBe(false);
     const [row] = fleetRows(
       {
         ...view([]),

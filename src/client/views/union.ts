@@ -3,13 +3,31 @@
 // the row „Verband“ of the fleet form. What it shows is worked out in
 // logic/union.ts.
 import { esc } from '../logic/format.ts';
-import { joinChoices, unionRows } from '../logic/union.ts';
+import { joinChoices, openRows, unionRows } from '../logic/union.ts';
 import { box, cd, type V } from './common.ts';
 
-/** The box „Verbandsangriff“; nothing while no union concerns the player. */
+/**
+ * The own Sturmangriffe on their way that can open a union, each with its
+ * button; the recall of the fleet that opened a union turns back the whole
+ * union (owner, 2026-11-16, Q2), a participant's only his own.
+ */
+function openList(v: V): string {
+  const rows = openRows(v);
+  if (!rows.length) return '';
+  const list = rows
+    .map(
+      (f) =>
+        `<tr><td>Sturmangriff auf ${esc(f.target)}</td><td class="n w110">${cd(f.arr, v.now)}</td><td><button class="small" data-act="openUnion" data-id="${esc(f.id)}">Angriffsverband eröffnen</button></td></tr>`,
+    )
+    .join('');
+  return `<table class="mt">${list}</table>`;
+}
+
+/** The box „Verbandsangriff“; nothing while no union concerns the player and no attack can open one. */
 export function unionBox(v: V): string {
   const rows = unionRows(v);
-  if (!rows.length) return '';
+  const open = openList(v);
+  if (!rows.length && !open) return '';
   const list = rows.map((u) => {
     const id = esc(u.id);
     const invite = u.leads
@@ -22,7 +40,10 @@ export function unionBox(v: V): string {
 <div class="dim">${esc(u.counts)}</div><div>Flotten: ${esc(u.fleets)}</div>${invited}${invite}
 <div class="mt"><button class="small" data-act="joinUnion" data-id="${id}">Beitreten</button></div></div>`;
   });
-  return box('Verbandsangriff', list.join(''));
+  const hint = rows.length
+    ? '<div class="dim mt">Ruft der Anführer seine Flotte zurück, kehren alle Flotten des Verbands um; ein Beteiligter ruft nur seine eigene zurück.</div>'
+    : '';
+  return box('Verbandsangriff', list.join('') + open + hint);
 }
 
 /** The row „Verband“ of the fleet form: the unions the fleet can join, none preselected unless chosen. */

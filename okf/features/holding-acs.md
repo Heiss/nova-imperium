@@ -395,11 +395,14 @@ Everything below is [V] unless it names an owner's decision.
   for an invitation, the button „Beitreten“, which fills the fleet form with
   the target and the mission; the fleet form has the row „Verband“ and the
   arrival line of a joining fleet (with the delay or the reason of a
-  refusal); an own Sturmangriff on its way has the button „Angriffsverband
-  eröffnen“, the recall of the fleet that opened a union says it turns back
-  the whole union.
+  refusal); the same box lists the own Sturmangriffe on their way with the
+  button „Angriffsverband eröffnen“ and says that the recall of the leader's
+  fleet turns back the whole union; the fleet movements show „· Angriffsverband
+  (Anführer)“ or „· im Angriffsverband“ behind an own fleet of a union, and
+  their markup is otherwise unchanged (the reference test of the overview
+  keeps it).
 * **Texts [V].** „Angriffsverband eröffnen“, „Beitreten“, „Einladen“,
-  „Kein Verband“, „Verband“, „Ruft den ganzen Angriffsverband zurück“, the
+  „Kein Verband“, „Verband“, „Sturmangriff auf …“, the hint on the recall, the
   refusals of `src/server/game/union.ts` and `joinMessage` of
   `src/core/union.ts`, the reports above.
 * **Not part of a union:** the Mondbruch, missiles, spying and every other

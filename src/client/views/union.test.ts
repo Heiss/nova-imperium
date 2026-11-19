@@ -109,26 +109,34 @@ describe('the row „Verband“ of the fleet form', () => {
   });
 });
 
-describe('the buttons of the fleet movements', () => {
-  const html = (f: ClientFleet) => fleet(view([], 'u1', {}, [f]));
-  it('offers „Angriffsverband eröffnen“ beside the recall for an own Sturmangriff on its way', () => {
+describe('opening a union from an own Sturmangriff', () => {
+  const html = (f: ClientFleet, unions: UnionState[] = []) =>
+    unionBox(view(unions, 'u1', {}, [f]));
+  it('offers „Angriffsverband eröffnen“ for an own Sturmangriff on its way, in the box, with its target and arrival', () => {
     const page = html(own);
+    expect(page).toContain('<div class="hd">Verbandsangriff</div>');
+    expect(page).toContain('Sturmangriff auf [1:4:8]');
+    expect(page).toContain('class="cd" data-end="100000"');
     expect(page).toContain(
       'data-act="openUnion" data-id="f1">Angriffsverband eröffnen</button>',
     );
+    expect(fleet(view([], 'u1', {}, [own]))).toContain('openUnion');
+  });
+  it('keeps the fleet movements as they were: no button beside the recall', () => {
+    const page = fleet(view([], 'u1', {}, [own]));
     expect(page).toContain('data-act="recall" data-id="f1">Rückruf</button>');
+    expect(page).not.toContain('Rückruf</button> <button');
   });
   it('offers it for no other fleet and not twice', () => {
-    expect(html({ ...own, mission: 'transport' })).not.toContain('openUnion');
-    expect(html({ ...own, union: 'f1' })).not.toContain('openUnion');
-    expect(html({ ...own, state: 'back' })).not.toContain('openUnion');
+    expect(html({ ...own, mission: 'transport' })).toBe('');
+    expect(html({ ...own, union: 'f1' })).toBe('');
+    expect(html({ ...own, state: 'back' })).toBe('');
+    expect(html({ ...own, owner: 'u2' })).toBe('');
   });
-  it('says on the recall of the fleet that opened the union that it turns back the union', () => {
-    expect(html({ ...own, union: 'f1' })).toContain(
-      'data-act="recall" data-id="f1" title="Ruft den ganzen Angriffsverband zurück">Rückruf</button>',
+  it('says with a union what a recall does', () => {
+    expect(html({ ...own, union: 'f1' }, [union])).toContain(
+      'Ruft der Anführer seine Flotte zurück, kehren alle Flotten des Verbands um',
     );
-    expect(html({ ...own, id: 'f2', union: 'f1' })).not.toContain(
-      'title="Ruft',
-    );
+    expect(unionBox(view([union]))).toContain('Ruft der Anführer');
   });
 });
