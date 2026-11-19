@@ -24,6 +24,7 @@ import {
 import { isDemolition } from '../../core/demolition.ts';
 import { type OrderError, orderErrors } from '../../core/economy-checks.ts';
 import { activeDrive, shipSpeed } from '../../core/flight.ts';
+import { researchListed } from '../../core/colony-limit.ts';
 import { hasLab } from '../../core/lab.ts';
 import { placeName } from '../../core/moon.ts';
 import {
@@ -581,7 +582,10 @@ const PAGES: Readonly<Record<CatalogKind, (v: V) => CatalogPage>> = {
           line: { text: labLine(v) },
           queue: [],
           warn: null,
-          rows: Object.keys(RES).map((k) => researchRow(v, k)),
+          // The Kolonialverwaltung is listed only in a round that has it (#237).
+          rows: Object.keys(RES)
+            .filter((k) => researchListed(k, v.s.cfg))
+            .map((k) => researchRow(v, k)),
         }
       : noLab(v),
   ship: (v) => yardPage(v, 'Schiffsschmiede', SHIPS, 'ic-s', v.P.ships),

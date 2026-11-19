@@ -251,6 +251,11 @@ code and here in the same pull request.
 * **[V]** Prose (#93): „Die Stufe bestimmt, wie viele Expeditionen gleichzeitig unterwegs sein dürfen: die Wurzel der Stufe, abgerundet; der Admin kann für die Runde zusätzliche Plätze dazugeben. Jede Expedition belegt dazu einen gewöhnlichen Flottenslot. Außerdem darf eine Expedition höchstens so viele Stunden an der Expeditionsposition bleiben, wie die Stufe hoch ist; auch die Stunden je Stufe legt der Admin für die Runde fest, und er kann bestimmen, dass das Tempo des Universums die Haltezeit teilt. Mit Stufe 9 sind es in einer Runde ohne diese Änderungen 3 Expeditionen und bis zu 9 Stunden.“ The sentences about the admin are new with the settings of 2026-11-19. The formula (the root of the level, rounded down) and the table column of the expeditions at once come from `expeditionSlots`. Its short and its long text are [V] of the entry, not drafts of this list.
 * **[V]** Keywords: Expedition, erkunden, entdecken, Rand
 
+### Kolonialverwaltung (`colonial`)
+
+* Prose: none; the article has no effect of a level (the limit depends on the settings of the round, #237). Its short and its long text are [V] of the entry, not drafts of this list.
+* **[V]** Keywords: Planetengrenze, Kolonie, Planeten, Limit
+
 ## Schiffe
 
 ### Frachtläufer (`sc`)

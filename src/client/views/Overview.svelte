@@ -79,6 +79,7 @@
           <tr><td>Temperatur</td><td>{page.temperature}</td></tr>
           <tr><td>Durchmesser</td><td>{page.diameter}</td></tr>
           <tr><td>Punkte</td><td>{page.points}</td></tr>
+          <tr><td>Planetengrenze</td><td>{page.planets}</td></tr>
           <tr><td>Serverzeit</td><td>{page.time}</td></tr>
         </tbody>
       </table>

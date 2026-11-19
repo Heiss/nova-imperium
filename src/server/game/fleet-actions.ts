@@ -50,6 +50,7 @@ import type { User } from '../db/repos/players.ts';
 import { type Action, type Data, mine, researchOf } from './actions.ts';
 import { lockedUntil, positionLockedText } from './position-lock.ts';
 import { type Ctx, coords, fail, int, universe } from './context.ts';
+import { colonyRoom, limitRefusal } from './colony-limit.ts';
 import { attackEvent } from './guild-events.ts';
 import { holdersAt, isAllyOf } from './holding.ts';
 import { isProtected, pointsMap } from './points.ts';
@@ -94,8 +95,11 @@ export const target = (ctx: Ctx, d: Data): Coords => {
   };
 };
 
-/** A code with a fixed message; a locked position names the end of its lock. */
-type WordedError = Exclude<SendError, 'locked'>;
+/**
+ * A code with a fixed message; a locked position names the end of its lock,
+ * and the limit of planets names the count (#237).
+ */
+type WordedError = Exclude<SendError, 'locked' | 'colonyLimit'>;
 
 /** The message of each code of `sendError`, in German like the interface. */
 const SEND_ERROR: Readonly<Record<WordedError, string>> = {
@@ -183,15 +187,18 @@ function checkDestination(
   },
   mission: Mission,
 ): void {
+  const research = researchOf(ctx, u).research;
   const error = sendError(
     rules,
     {
       owner: u.id,
       from: p.id,
       ships,
-      research: researchOf(ctx, u).research,
+      research,
       running: ctx.fleets.countMission(u.id, mission),
       extraSlots: extraSlots(universe(ctx)),
+      // Asked only by a Landnahme (#237).
+      colonies: () => colonyRoom(ctx, u.id, research),
     },
     {
       planet: occupied,
@@ -208,6 +215,8 @@ function checkDestination(
   );
   // A given-up position names the end of its lock (#224, D2).
   if (error === 'locked') return fail(positionLockedText(at.lockEnd!));
+  // The planets against the limit, as the player sees them (#237).
+  if (error === 'colonyLimit') return fail(limitRefusal(ctx, u.id, research));
   if (error) fail(sendMessage(ctx, error));
 }
 

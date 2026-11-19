@@ -114,6 +114,7 @@ describe('catalog', () => {
       ifn: values(C.RES).ifn,
       carto: values(C.RES).carto,
       expo: values(C.RES).expo,
+      colonial: values(C.RES).colonial,
     });
     const ships = values(C.SHIPS);
     const added = {
@@ -749,6 +750,7 @@ describe('catalog from the entry folders', () => {
       'ifn',
       'carto',
       'expo',
+      'colonial',
     ]);
     const ships = [
       'sc',
@@ -790,7 +792,7 @@ describe('catalog from the entry folders', () => {
   });
 
   it('has one folder per entry, each with its kind and its own order', () => {
-    expect(ENTRIES).toHaveLength(59);
+    expect(ENTRIES).toHaveLength(60);
     const kinds = {
       building: C.BUILD,
       research: C.RES,

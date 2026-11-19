@@ -38,6 +38,8 @@ const FILES: Record<string, string> = {
   carto: 'research/auspex_cartography',
   // #93: the picture of the Auspex-Lehre with its own name until one is drawn [V].
   expo: 'research/expedition_technology',
+  // #237: the picture of the Kreuzzugs-Kartografie with its own name until one is drawn [V].
+  colonial: 'research/colonial_administration',
   sc: 'ships/small_cargo',
   lc: 'ships/large_cargo',
   colony: 'ships/colony_ship',

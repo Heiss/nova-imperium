@@ -26,6 +26,8 @@ const SETTINGS_ERROR: Readonly<
   range: rangeError,
   used: (s, used) =>
     `${s.label}: mindestens ${used[s.size!]}, dort liegen schon Planeten.`,
+  // A rule between settings has its own wording (#237).
+  conflict: (s) => s.refusal!,
 };
 
 /**

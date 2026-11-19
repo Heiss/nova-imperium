@@ -175,7 +175,11 @@ function researchItem(v: V, k: string, d: ResearchDef): string {
 /** Research starts on the shown planet when it has a lab (#49). */
 function research(v: V): string {
   if (!((v.P.b.lab ?? 0) > 0)) return noLab(v);
-  const items = Object.entries(RES).map(([k, d]) => researchItem(v, k, d));
+  // The Kolonialverwaltung (#237) is listed only in a round with it, and the
+  // states here have none.
+  const items = Object.entries(RES)
+    .filter(([k]) => k !== 'colonial')
+    .map(([k, d]) => researchItem(v, k, d));
   return `<h2>Forschung auf ${esc(placeName(v.P))}</h2>${labLine(v)}<div class="box">${items.join('')}</div>`;
 }
 

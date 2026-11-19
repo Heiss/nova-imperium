@@ -159,6 +159,26 @@ describe('researchErrors', () => {
     ).toEqual([]);
   });
 
+  it('has the Kolonialverwaltung only in a round with it, and not past its highest level (#237)', () => {
+    const ready = { research: { spy: 4, impulse: 3 }, rq: null };
+    const here = lab({ b: { lab: 3 } });
+    expect(researchErrors(here, ready, 'colonial', U)).toEqual(['off']);
+    const on = {
+      ...U,
+      roundColonyBase: 6,
+      roundColonyResearch: 1,
+      roundColonyPerLevel: 2,
+      roundColonyMaxLevel: 2,
+    };
+    expect(researchErrors(here, ready, 'colonial', on)).toEqual([]);
+    const second = { research: { ...ready.research, colonial: 1 }, rq: null };
+    expect(researchErrors(here, second, 'colonial', on)).toEqual([]);
+    const last = { research: { ...ready.research, colonial: 2 }, rq: null };
+    expect(researchErrors(here, last, 'colonial', on)).toEqual(['maxLevel']);
+    // Another research does not ask the round.
+    expect(researchErrors(lab(), idle, 'energy', U)).toEqual([]);
+  });
+
   it('refuses a level whose energy production is short (#49)', () => {
     const big = lab({ b: { lab: 12, solar: 58 } });
     expect(researchErrors(big, idle, 'graviton', U)).toEqual(['noEnergy']);
@@ -323,6 +343,8 @@ describe('the order of the codes', () => {
     'cost',
   ];
   const RESEARCH_ORDER: readonly ResearchError[] = [
+    'off',
+    'maxLevel',
     'noLab',
     'locked',
     'busy',

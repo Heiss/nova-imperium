@@ -207,6 +207,9 @@ export const cancelBuild: Action = (ctx, u, d) => {
 const RESEARCH_ERROR: Readonly<
   Record<Exclude<ResearchError, 'noEnergy'>, string>
 > = {
+  // The Kolonialverwaltung of a round without it, or at its highest level (#237) [V].
+  off: 'Diese Forschung gibt es in dieser Runde nicht.',
+  maxLevel: 'Die höchste Stufe dieser Forschung ist erreicht.',
   noLab: 'Du brauchst ein Scholarium.',
   locked: LOCKED,
   busy: 'Es wird bereits geforscht.',

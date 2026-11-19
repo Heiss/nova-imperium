@@ -61,6 +61,13 @@ export interface RoundNumber<N extends string = string> extends Common<N> {
   choices?: readonly { value: number; label: string }[];
   /** Also a row of the universe settings, changed during the round (X1). */
   live?: true;
+  /**
+   * Whether the value agrees with the other values of the round, a rule
+   * between settings (#237); asked only once every value is in its range.
+   * `round` holds every value by its stored key. The entry's `refusal` words
+   * a disagreement, in the dialog and in the universe settings alike.
+   */
+  agrees?: (value: number, round: Readonly<Record<string, number>>) => boolean;
 }
 
 export type RoundSetting = RoundSwitch | RoundNumber;
@@ -131,16 +138,33 @@ function chosen(
   return value === undefined ? current[s.name] : value;
 }
 
+/** The entries whose value disagrees with the other values of the round (#237). */
+function disagreeing(
+  current: Readonly<Values>,
+  data: Record<string, unknown>,
+  settings: readonly RoundSetting[],
+): RoundSetting[] {
+  const round = Object.fromEntries(
+    settings.map((s) => [s.key, Number(chosen(s, current, data))]),
+  );
+  return settings.filter(
+    (s) => s.kind === 'number' && s.agrees && !s.agrees(round[s.key]!, round),
+  );
+}
+
 /**
  * The entries refused in a new round, or none: the first refused entry in
- * the order of the registry, with the other refused members of its group.
+ * the order of the registry, with the other refused members of its group. A
+ * value out of its range comes first; a rule between settings (`agrees`) is
+ * asked only when every value is in its range.
  */
 export function roundRefused(
   current: Readonly<Values>,
   data: Record<string, unknown>,
   settings: readonly RoundSetting[] = ROUND_SETTINGS,
 ): RoundSetting[] {
-  const wrong = settings.filter((s) => !valid(s, chosen(s, current, data)));
+  const outside = settings.filter((s) => !valid(s, chosen(s, current, data)));
+  const wrong = outside.length ? outside : disagreeing(current, data, settings);
   const first = wrong[0];
   if (!first?.group) return wrong.slice(0, 1);
   return wrong.filter((s) => s.group === first.group);

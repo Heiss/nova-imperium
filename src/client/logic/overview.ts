@@ -6,6 +6,7 @@ import { isFleet, MISSION } from '../../core/missions.ts';
 import { placeName } from '../../core/moon.ts';
 import { text } from '../../core/text.ts';
 import type { V } from '../views/common.ts';
+import { planetsLine } from './colony-limit.ts';
 import { abandonOffered } from './abandon.ts';
 import { diameterLine } from './fields.ts';
 import { coords, dt, dur, fmt, resLine } from './format.ts';
@@ -84,6 +85,8 @@ export interface OverviewPage {
   activities: ActivityRow[];
   /** Whether „Kolonie aufgeben“ is offered (#224): not on a moon or the main planet. */
   abandon: boolean;
+  /** The planets against the limit of the round (#237). */
+  planets: string;
 }
 
 const part = (text: string, bold = false): TextPart => ({ text, bold });
@@ -235,5 +238,6 @@ export function overviewPage(v: V): OverviewPage {
     time: dt(v.now),
     activities: activityRows(v),
     abandon: abandonOffered(P, s),
+    planets: planetsLine(s),
   };
 }
