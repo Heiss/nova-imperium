@@ -120,6 +120,12 @@ export interface Fleet {
    * stellen.
    */
   hold?: number;
+  /**
+   * The attack union the fleet belongs to (#225): the ID of the fleet that
+   * opened it, which is also the ID of its leader's own fleet. Only set on
+   * a Sturmangriff of a union that has not arrived yet.
+   */
+  union?: string;
 }
 
 /** The settings of one universe. The admin changes them in the admin panel. */

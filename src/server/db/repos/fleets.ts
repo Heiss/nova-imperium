@@ -19,6 +19,20 @@ export interface Fleets {
   due(now: number): Fleet[];
   /** The fleets flying to a place or holding there (#55), by departure. */
   at(place: string): Fleet[];
+  /** The fleets of an attack union (#225), the leader's first, then by departure. */
+  ofUnion(union: string): Fleet[];
+  /** The players invited to an attack union (#225), by invitation. */
+  invited(union: string): string[];
+  /** The attack unions a player is invited to and has not joined (#225). */
+  invitedTo(uid: string): string[];
+  /** Invites a player to an attack union; inviting twice changes nothing. */
+  invite(union: string, uid: string): void;
+  /** Deletes the invitations of an attack union that is over. */
+  dropInvites(union: string): void;
+  /** Puts a fleet into an attack union, or takes it out with `null` (#225). */
+  setUnion(id: string, union: string | null): void;
+  /** Moves the arrival and the return of every fleet of an attack union by `ms` (#225). */
+  delayUnion(union: string, ms: number): void;
   save(f: Fleet): void;
   delete(id: string): void;
   deleteAll(): void;
@@ -73,6 +87,7 @@ export class SqliteFleets implements Fleets {
       fuel: r.fuel as number,
       ...(r.gift === 1 && { gift: true as const }),
       ...(typeof r.aim === 'string' && { aim: r.aim }),
+      ...(typeof r.union_id === 'string' && { union: r.union_id }),
       // Only a fleet that holds has a holding time (#55).
       ...(missionRules(r.mission as string)?.holds && {
         hold: r.hold as number,
@@ -131,6 +146,61 @@ export class SqliteFleets implements Fleets {
     return rows.map((r) => this.fleetOf(r)!);
   }
 
+  ofUnion(union: string): Fleet[] {
+    const rows = this.db
+      .prepare(
+        'SELECT * FROM fleets WHERE union_id = ? ORDER BY id != union_id, dep, id',
+      )
+      .all(union) as Row[];
+    return rows.map((r) => this.fleetOf(r)!);
+  }
+
+  invited(union: string): string[] {
+    const rows = this.db
+      .prepare(
+        'SELECT user_id FROM attack_union_invites WHERE union_id = ? ORDER BY rowid',
+      )
+      .all(union) as Row[];
+    return rows.map((r) => r.user_id as string);
+  }
+
+  invitedTo(uid: string): string[] {
+    const rows = this.db
+      .prepare(
+        'SELECT union_id FROM attack_union_invites WHERE user_id = ? ORDER BY rowid',
+      )
+      .all(uid) as Row[];
+    return rows.map((r) => r.union_id as string);
+  }
+
+  invite(union: string, uid: string): void {
+    this.db
+      .prepare(
+        'INSERT OR IGNORE INTO attack_union_invites (union_id, user_id) VALUES (?, ?)',
+      )
+      .run(union, uid);
+  }
+
+  dropInvites(union: string): void {
+    this.db
+      .prepare('DELETE FROM attack_union_invites WHERE union_id = ?')
+      .run(union);
+  }
+
+  setUnion(id: string, union: string | null): void {
+    this.db
+      .prepare('UPDATE fleets SET union_id = ? WHERE id = ?')
+      .run(union, id);
+  }
+
+  delayUnion(union: string, ms: number): void {
+    this.db
+      .prepare(
+        'UPDATE fleets SET arr = arr + ?, ret = ret + ? WHERE union_id = ?',
+      )
+      .run(ms, ms, union);
+  }
+
   save(f: Fleet): void {
     // Only a gift writes `gift` (#161): every other fleet keeps the default
     // 0, and a fleet never changes whether it is a gift. Likewise only
@@ -140,12 +210,15 @@ export class SqliteFleets implements Fleets {
     const aim = f.aim === undefined ? ['', ''] : [', aim', ', @aim'];
     // Only a Halten writes `hold` (#55), set once at the launch.
     const hold = f.hold === undefined ? ['', ''] : [', hold', ', @hold'];
+    // Only a fleet of an attack union writes `union_id` (#225), so the
+    // upgrade tests of the migrations before it still save fleets.
+    const union = f.union === undefined ? ['', ''] : [', union_id', ', @union'];
     this.db
       .prepare(
         `INSERT INTO fleets (id, owner, from_planet, from_g, from_s, from_p, to_planet, to_g, to_s, to_p,
-           mission, cargo_m, cargo_c, cargo_d, dep, arr, ret, state, recalled, fuel${hold[0]}${gift[0]}${aim[0]})
+           mission, cargo_m, cargo_c, cargo_d, dep, arr, ret, state, recalled, fuel${hold[0]}${gift[0]}${aim[0]}${union[0]})
          VALUES (@id, @owner, @from, @from_g, @from_s, @from_p, @to, @to_g, @to_s, @to_p,
-           @mission, @cargo_m, @cargo_c, @cargo_d, @dep, @arr, @ret, @state, @recalled, @fuel${hold[1]}${gift[1]}${aim[1]})
+           @mission, @cargo_m, @cargo_c, @cargo_d, @dep, @arr, @ret, @state, @recalled, @fuel${hold[1]}${gift[1]}${aim[1]}${union[1]})
          ON CONFLICT(id) DO UPDATE SET cargo_m = excluded.cargo_m, cargo_c = excluded.cargo_c,
            cargo_d = excluded.cargo_d, ret = excluded.ret, state = excluded.state, recalled = excluded.recalled`,
       )
@@ -172,6 +245,7 @@ export class SqliteFleets implements Fleets {
         fuel: f.fuel,
         ...(f.aim !== undefined && { aim: f.aim }),
         ...(f.hold !== undefined && { hold: f.hold }),
+        ...(f.union !== undefined && { union: f.union }),
       });
     this.db.prepare('DELETE FROM fleet_ships WHERE fleet_id = ?').run(f.id);
     const put = this.db.prepare('INSERT INTO fleet_ships VALUES (?, ?, ?)');
@@ -181,10 +255,13 @@ export class SqliteFleets implements Fleets {
 
   delete(id: string): void {
     this.db.prepare('DELETE FROM fleets WHERE id = ?').run(id);
+    // A union lives as long as the fleet that opened it (#225).
+    this.dropInvites(id);
   }
 
   deleteAll(): void {
     this.db.prepare('DELETE FROM fleets').run();
+    this.db.prepare('DELETE FROM attack_union_invites').run();
   }
 
   reroute(from: string, to: string, keep: readonly string[] = []): void {

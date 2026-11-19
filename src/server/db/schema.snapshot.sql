@@ -4,6 +4,8 @@ CREATE INDEX account_tokens_expiry ON account_tokens(expires);
 
 CREATE INDEX account_tokens_user ON account_tokens(user_id, purpose, expires);
 
+CREATE INDEX attack_union_invites_user ON attack_union_invites(user_id);
+
 CREATE INDEX audit_actor ON audit_events(actor, id);
 
 CREATE INDEX audit_target ON audit_events(target, id);
@@ -70,6 +72,12 @@ CREATE TABLE achievement_progress (
     value INTEGER NOT NULL,
     PRIMARY KEY (user_id, metric)
   ) STRICT;
+
+CREATE TABLE attack_union_invites (
+      union_id TEXT NOT NULL,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      PRIMARY KEY (union_id, user_id)
+    ) STRICT;
 
 CREATE TABLE audit_events (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -148,7 +156,7 @@ CREATE TABLE fleets (
       gift INTEGER NOT NULL DEFAULT 0 CHECK (gift IN (0, 1)),
       hold INTEGER NOT NULL DEFAULT 0 CHECK (hold >= 0),
       aim TEXT
-    ) STRICT;
+    , union_id TEXT) STRICT;
 
 CREATE TABLE friendships (
       requester TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,

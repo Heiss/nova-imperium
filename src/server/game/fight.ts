@@ -15,6 +15,7 @@ import { type Debris, debrisOf, isEmpty } from '../../core/debris.ts';
 import { capacity, countUnits } from '../../core/flight.ts';
 import { cargoOf } from '../../core/holding.ts';
 import { placeName } from '../../core/moon.ts';
+import { splitLoot } from '../../core/union.ts';
 import type { Fleet, Levels, Planet, Resources } from '../../core/types.ts';
 import { record } from '../audit.ts';
 import { type Ctx, type ReportInput, addReport, coords } from './context.ts';
@@ -131,19 +132,57 @@ interface HeldFight extends Held {
 
 /**
  * The fleets that hold at the planet and defend it (#55); a fleet of the
- * attacker himself that holds there stays out of the battle [V].
+ * attacker himself that holds there stays out of the battle [V], and so does
+ * one of every player who attacks with him in a union (#225) [V].
  */
-export const defenders = (ctx: Ctx, f: Fleet, t: Planet): Held[] =>
+export const defenders = (
+  ctx: Ctx,
+  f: Fleet,
+  t: Planet,
+  attackers: readonly string[] = [f.owner],
+): Held[] =>
   heldAt(ctx, t.id)
-    .filter((h) => h.owner !== f.owner)
+    .filter((h) => !attackers.includes(h.owner))
     .map((h) => {
       const player = playerOf(ctx, h.owner);
       return { f: h, player, tech: techAt(player, f.arr) };
     });
 
+/**
+ * A fleet that attacks together with the fleet of the battle, in an attack
+ * union (#225): a party of its own on the attacker's side with its owner's
+ * research.
+ */
+export interface Joined {
+  f: Fleet;
+  player: Player;
+  tech: Levels;
+}
+
+/** A fleet that joined and fought: what is left of it. */
+export interface JoinedFight extends Joined {
+  after: Levels;
+}
+
+/** The fleets of an attack union besides the one that leads the battle, with their owners' research at the arrival (#225). */
+export const joinedOf = (
+  ctx: Ctx,
+  fleets: readonly Fleet[],
+  arr: number,
+): Joined[] =>
+  fleets.map((f) => {
+    const player = playerOf(ctx, f.owner);
+    return { f, player, tech: techAt(player, arr) };
+  });
+
 /** The owners of the fleets that held, each once, in the order of their fleets. */
 const heldOwners = (held: readonly Held[]): string[] => [
   ...new Set(held.map((h) => h.f.owner)),
+];
+
+/** The owners of the attacking fleets, each once, the leading fleet's owner first. */
+const attackOwners = (f: Fleet, joined: readonly Joined[]): string[] => [
+  ...new Set([f.owner, ...joined.map((j) => j.f.owner)]),
 ];
 
 /**
@@ -156,9 +195,11 @@ function leaveDebris(
   defBefore: Levels,
   res: BattleResult,
   held: readonly HeldFight[],
+  joined: readonly JoinedFight[],
 ): Debris {
   const debris = debrisOf([
     { before: f.ships, after: res.att },
+    ...joined.map((j) => ({ before: j.f.ships, after: j.after })),
     { before: defBefore, after: res.def },
     ...held.map((h) => ({ before: h.f.ships, after: h.after })),
   ]);
@@ -169,11 +210,13 @@ function leaveDebris(
 /**
  * A battle at a planet and what followed it. `res` is the battle of the
  * attacker and the owner; every fleet that held fought as a party of its own
- * (#55) and has its `after` in `held`.
+ * (#55) and has its `after` in `held`; so does every fleet that attacked
+ * with the first one in an attack union (#225), in `joined`.
  */
 export interface Fight {
   res: BattleResult;
   held: HeldFight[];
+  joined: JoinedFight[];
   defBefore: Levels;
   rebuilt: Levels;
   debris: Debris;
@@ -193,13 +236,17 @@ export function fight(
   f: Fleet,
   at: Arrival,
   held: readonly Held[] = [],
+  joined: readonly Joined[] = [],
 ): Fight {
   const { t } = at;
   const { attR, defR } = researchAt(at, f.arr);
   // Missiles do not fight: they are neither in the battle nor in its report (#54).
   const defBefore = { ...t.ships, ...fighting(t.def) };
   const parties = battleOf(
-    [{ units: f.ships, tech: attR }],
+    [
+      { units: f.ships, tech: attR },
+      ...joined.map((j) => ({ units: j.f.ships, tech: j.tech })),
+    ],
     [
       { units: defBefore, tech: defR },
       ...held.map((h) => ({ units: h.f.ships, tech: h.tech })),
@@ -213,7 +260,8 @@ export function fight(
     def: parties.def[0]!,
   };
   const fought = held.map((h, i) => ({ ...h, after: parties.def[i + 1]! }));
-  const debris = leaveDebris(ctx, f, defBefore, res, fought);
+  const together = joined.map((j, i) => ({ ...j, after: parties.att[i + 1]! }));
+  const debris = leaveDebris(ctx, f, defBefore, res, fought, together);
   const moon = rollMoon(ctx, t, f.arr);
   const after = afterBattle(ctx, t, res.def);
   t.ships = after.ships;
@@ -223,6 +271,7 @@ export function fight(
   return {
     res,
     held: fought,
+    joined: together,
     defBefore,
     rebuilt: after.rebuilt,
     debris,
@@ -244,6 +293,8 @@ export const recordBattle = (ctx: Ctx, f: Fleet, t: Planet, x: Fight): void =>
       planet: t.id,
       winner: x.res.winner,
       scheduled: f.arr,
+      // The other fleets of an attack union (#225).
+      ...(x.joined.length > 0 && { union: x.joined.map((j) => j.f.id) }),
     },
   });
 
@@ -253,12 +304,19 @@ export function battleReport(
   at: Arrival,
   x: Fight,
   loot?: Resources,
+  shares?: readonly Resources[],
 ) {
   const { t } = at;
   return {
     time: f.arr,
     type: 'battle' as const,
-    participants: [f.owner, t.owner, ...heldOwners(x.held)],
+    participants: [
+      ...new Set([
+        ...attackOwners(f, x.joined),
+        t.owner,
+        ...heldOwners(x.held),
+      ]),
+    ],
     name: placeName(t),
     coords: f.toC,
     attName: at.att.name,
@@ -279,6 +337,19 @@ export function battleReport(
         tech: tech(h.tech),
       })),
     }),
+    // Every fleet that attacked with the first one fights as an attacker
+    // of its own (#225), with its own share of the loot; a battle without
+    // one reports as before.
+    ...(x.joined.length > 0 && {
+      attackers: x.joined.map((j, i) => ({
+        name: j.player.name,
+        before: j.f.ships,
+        after: j.after,
+        tech: tech(j.tech),
+        ...(shares && { loot: shares[i + 1] }),
+      })),
+      ...(shares && { attLoot: shares[0] }),
+    }),
     rebuilt: x.rebuilt,
     ...(loot && { loot }),
     debris: x.debris,
@@ -298,7 +369,14 @@ export const WON = {
 
 /** A battle with the loot of the winner, the target saved and the audit entry written. */
 export interface Raid extends Fight {
+  /** The whole loot. */
   loot: Resources;
+  /**
+   * The share of each attacking fleet, the leading one first (#225): the
+   * loot split by free cargo space (owner, 2026-11-16, Q1). A fleet that
+   * attacks alone has the whole loot.
+   */
+  shares: Resources[];
 }
 
 /**
@@ -334,17 +412,27 @@ export function raid(
   f: Fleet,
   at: Arrival,
   held: readonly Held[] = [],
+  joined: readonly Joined[] = [],
 ): Raid {
   const { t } = at;
-  const x = fight(ctx, f, at, held);
-  const free = capacity(x.res.att) - total(f.cargo);
+  const x = fight(ctx, f, at, held, joined);
+  // The holds of all attacking fleets together carry the loot (#225).
+  const spaces = [
+    freeSpace(f, x.res.att),
+    ...x.joined.map((j) => freeSpace(j.f, j.after)),
+  ];
+  const free = spaces.reduce((sum, n) => sum + n, 0);
   const loot =
     x.res.winner === 'att' ? lootOf(t, held, free) : { m: 0, c: 0, d: 0 };
   ctx.planets.save(t);
   afterHeld(ctx, x.held);
   recordBattle(ctx, f, t, x);
-  return { ...x, loot };
+  return { ...x, loot, shares: x.joined.length ? splitLoot(loot, spaces) : [loot] };
 }
+
+/** The cargo space a fleet has left with the ships that survived. */
+const freeSpace = (f: Fleet, ships: Levels): number =>
+  Math.max(0, capacity(ships) - total(f.cargo));
 
 /** What a mission adds to the battle report of each side (#95). */
 export interface ReportExtra {
@@ -361,15 +449,18 @@ export function attackReports(
   extra: ReportExtra = {},
 ): void {
   const { t, att } = at;
-  const report = battleReport(f, at, x, x.loot);
+  const report = battleReport(f, at, x, x.loot, x.joined.length ? x.shares : undefined);
   const won = `Kampfbericht ${coords(f.toC)} – ${WON[x.res.winner]}`;
-  addReport(
-    ctx,
-    f.owner,
-    { ...report, ...extra.att, title: won },
-    { topic: 'fleet' },
-  );
-  const hit = `Feindkontakt! ${placeName(t)} ${coords(f.toC)} wird von ${att.name} angegriffen`;
+  // The owner of every attacking fleet gets the report once (#225).
+  for (const owner of attackOwners(f, x.joined))
+    addReport(
+      ctx,
+      owner,
+      { ...report, ...extra.att, title: won },
+      { topic: 'fleet' },
+    );
+  const names = namesLine([att.name, ...x.joined.map((j) => j.player.name)]);
+  const hit = `Feindkontakt! ${placeName(t)} ${coords(f.toC)} wird von ${names} angegriffen`;
   const defender = { ...report, ...extra.def, title: hit };
   addReport(ctx, t.owner, defender, { topic: 'attacked' });
   reportHeldOwners(ctx, x, defender, 'attacked');
@@ -387,6 +478,14 @@ export function reportHeldOwners(
 ): void {
   for (const owner of heldOwners(x.held))
     addReport(ctx, owner, report, { topic });
+}
+
+/** „A“, „A und B“, „A, B und C“: the names once each (#225). */
+export function namesLine(names: readonly string[]): string {
+  const once = [...new Set(names)];
+  return once.length < 2
+    ? (once[0] ?? '')
+    : `${once.slice(0, -1).join(', ')} und ${once[once.length - 1]}`;
 }
 
 /** The amount of a stock, all three resources. */
@@ -408,8 +507,26 @@ export function flyHome(
   f: Fleet,
   x: Raid,
   ships: Levels = x.res.att,
-  cargo: Resources = addResources(f.cargo, x.loot),
+  cargo: Resources = addResources(f.cargo, x.shares[0]!),
 ): void {
   if (!countUnits(ships)) return ctx.fleets.delete(f.id);
   turnBack(ctx, f, { ships, cargo });
+}
+
+/**
+ * Every fleet of an attack union flies home with its own survivors and its
+ * own share of the loot (#225); a fleet without survivors is gone, with its
+ * cargo.
+ */
+export function flyHomeUnion(ctx: Ctx, f: Fleet, x: Raid): void {
+  flyHome(ctx, f, x);
+  x.joined.forEach((j, i) =>
+    flyHome(
+      ctx,
+      j.f,
+      x,
+      j.after,
+      addResources(j.f.cargo, x.shares[i + 1]!),
+    ),
+  );
 }

@@ -22,9 +22,11 @@ const PLAIN = [
   'delrep',
   'demolish',
   'endVacation',
+  'inviteUnion',
   'jump',
   'mainPlanet',
   'missile',
+  'openUnion',
   'options',
   'order',
   'pct',
@@ -83,6 +85,7 @@ const FULL_KEYS = [
   'locks',
   'market',
   'admin',
+  'unions',
 ];
 // The lock screen of the vacation mode (#223) has its own, shorter shape.
 const LOCKED_KEYS = [

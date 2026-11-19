@@ -52,6 +52,7 @@ import { lockedUntil, positionLockedText } from './position-lock.ts';
 import { type Ctx, coords, fail, int, universe } from './context.ts';
 import { attackEvent } from './guild-events.ts';
 import { holdersAt, isAllyOf } from './holding.ts';
+import { joinPlan, joinUnion, recalledWith } from './union.ts';
 import { isProtected, pointsMap } from './points.ts';
 import { roundRules } from './round.ts';
 import { inVacation } from './vacation.ts';
@@ -306,6 +307,10 @@ export const send: Action = (ctx, u, d, event) => {
   );
   const fuel = launchFuel(x, holds, dist);
   const hold = x.hours * HOUR_MS;
+  // A fleet that joins an attack union arrives with it (#225).
+  const joining = d.union
+    ? joinPlan(ctx, u.id, d.union, { mission, to, toC: dest, flight: ms })
+    : null;
   if (cargo.m + cargo.c + cargo.d > capacity(ships))
     fail('Nicht genug Laderaum.');
   if (p.res.d < fuel + cargo.d)
@@ -322,13 +327,14 @@ export const send: Action = (ctx, u, d, event) => {
     ships,
     cargo,
     dep: t,
-    arr: t + ms + stay,
-    ret: t + 2 * ms + hold + stay,
+    arr: joining ? joining.arr : t + ms + stay,
+    ret: joining ? joining.arr + ms : t + 2 * ms + hold + stay,
     state: 'out',
     recalled: false,
     fuel,
     ...(holds && { hold }),
   };
+  if (joining) joinUnion(ctx, joining, fleet);
   ctx.fleets.save(fleet);
   // The guild of the defender learns of an attack or a Mondbruch at its
   // launch (#169 D3, #95); both fly to a foreign place only, so it has an
@@ -398,12 +404,16 @@ export const recall: Action = (ctx, u, d, event) => {
   // Missiles do not come back (#54).
   if (!isFleet(f!)) fail('Rückruf nicht mehr möglich.');
   const fleet = f!;
-  fleet.ret = recalledAt(fleet, t);
-  fleet.state = 'back';
-  fleet.recalled = true;
-  ctx.fleets.save(fleet);
-  if (event)
-    event.detail = { fleet: fleet.id, planet: fleet.from, due: fleet.ret };
+  const due = recalledAt(fleet, t);
+  // The leader's recall of the fleet that opened an attack union turns back
+  // every fleet of it; a participant's recall only his own (#225).
+  for (const m of recalledWith(ctx, fleet)) {
+    m.ret = recalledAt(m, t);
+    m.state = 'back';
+    m.recalled = true;
+    ctx.fleets.save(m);
+  }
+  if (event) event.detail = { fleet: fleet.id, planet: fleet.from, due };
   return 'Flotte zurückgerufen.';
 };
 
