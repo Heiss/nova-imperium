@@ -18,7 +18,12 @@ import {
   inactivity,
   planetActivity,
 } from './activity.ts';
-import { ROUND_SETTINGS, roundRefused, roundValues } from './round.ts';
+import {
+  ROUND_SETTINGS,
+  type RoundSetting,
+  roundRefused,
+  roundValues,
+} from './round.ts';
 import { liveSpecs } from './universe.ts';
 
 const NOW = 1_763_300_000_000;
@@ -53,7 +58,7 @@ describe('the thresholds of a round', () => {
     });
   });
 
-  it('are four settings of the round, live in the universe settings, last in the order (#283, X1)', () => {
+  it('are four settings of the round, live in the universe settings (#283, X1)', () => {
     const group = { name: 'activity', legend: 'Aktivität' };
     const common = { kind: 'number', group, live: true };
     expect(SETTINGS).toEqual([
@@ -100,11 +105,15 @@ describe('the thresholds of a round', () => {
     ]);
     // One group, so they are sent and refused together.
     for (const s of SETTINGS) expect(s.group).toBe(SETTINGS[0]!.group);
-    // The registry holds them at its end, in this order.
-    expect(ROUND_SETTINGS.slice(-4)).toEqual(SETTINGS);
+    // The registry holds them in this order, picked by their group, so a
+    // later feature after them (#228: 120 to 140) does not matter.
+    expect(
+      ROUND_SETTINGS.filter((s: RoundSetting) => s.group?.name === 'activity'),
+    ).toEqual(SETTINGS);
+    const keys = new Set<string>(SETTINGS.map((s) => s.key));
     expect(
       liveSpecs()
-        .slice(-4)
+        .filter((s) => keys.has(s.key))
         .map((s) => s.key),
     ).toEqual(SETTINGS.map((s) => s.key));
   });

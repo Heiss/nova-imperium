@@ -6,6 +6,7 @@ import type { DebrisField } from '../../core/debris.ts';
 import type { GateView } from '../../core/jump-gate.ts';
 import type { LabSite } from '../../core/research.ts';
 import type { ExplainMode } from '../../core/explain.ts';
+import type { SeenShips } from '../../core/fleet-recognition.ts';
 import type { GuildRight } from '../../core/guild-ranks.ts';
 import type { ChatEventKind } from '../../core/guild-chat.ts';
 import type { PushTopic } from '../../core/push.ts';
@@ -35,17 +36,11 @@ interface Me {
 
 export type ClientFleet = Pick<
   Fleet,
-  | 'id'
-  | 'owner'
-  | 'fromC'
-  | 'toC'
-  | 'to'
-  | 'mission'
-  | 'state'
-  | 'arr'
-  | 'ships'
+  'id' | 'owner' | 'fromC' | 'toC' | 'to' | 'mission' | 'state' | 'arr'
 > &
-  Partial<Pick<Fleet, 'ret' | 'cargo' | 'dep' | 'gift'>>;
+  Partial<Pick<Fleet, 'ships' | 'ret' | 'cargo' | 'dep' | 'gift'>> &
+  /** Of a foreign fleet the server sends only what the Auspex-Lehre recognizes (#228). */
+  Omit<SeenShips, 'ships'>;
 
 export interface Report {
   id: string;
