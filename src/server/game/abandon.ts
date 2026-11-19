@@ -18,6 +18,7 @@ import { type Ctx, coords, fail } from './context.ts';
 import { mainPlanet } from './main-planet.ts';
 import { moonAt } from './moons.ts';
 import { roundRules } from './round.ts';
+import type { ServerFeature } from './feature.ts';
 
 /** The German message of each refusal [V]. */
 export const ABANDON_ERROR: Readonly<Record<AbandonError, string>> = {
@@ -87,3 +88,7 @@ export const abandon: Action = (ctx, u, d, event) => {
     event.detail = { planet: planet.id, moon: moon?.id ?? null, until };
   return `Die Kolonie ${planet.name} ${coords(planet)} wurde aufgegeben.`;
 };
+
+export const serverFeature = {
+  actions: { abandon },
+} satisfies ServerFeature;
