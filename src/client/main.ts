@@ -20,7 +20,6 @@ import {
   failedCall,
 } from './logic/error-report.ts';
 import { headerLine } from './logic/header.ts';
-import { highscoreCategory } from './logic/highscore.ts';
 import { keeps, viewDue } from './logic/jump-gate.ts';
 import { chatToSee, finishedYardOrders } from './logic/menu-hints.ts';
 import { gameIsBack, maintenanceNotice } from './logic/maintenance.ts';
@@ -885,10 +884,6 @@ const FRAME: Record<string, (d: Data) => unknown> = {
   closeModal: () => modal(''),
   selectPlanet: (d) => {
     if (d.id) return selectPlanet(d.id);
-  },
-  highscore: (d) => {
-    ui.highscore = highscoreCategory(d.cat);
-    render();
   },
   adminTab: (d) => {
     if (d.tab && Object.hasOwn(ADMIN_TABS, d.tab))
