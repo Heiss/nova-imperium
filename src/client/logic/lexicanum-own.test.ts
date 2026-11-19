@@ -27,6 +27,7 @@ const view = (): V => {
         { id: 'f1', owner: 'u1', mission: 'attack' },
         { id: 'f2', owner: 'u1', mission: 'deploy', gift: true },
         { id: 'f3', owner: 'u2', mission: 'attack' },
+        { id: 'f4', owner: 'u1', mission: 'missile' },
       ],
     } as unknown as GameState,
     P: here,
@@ -37,7 +38,7 @@ const view = (): V => {
 };
 
 describe('the own state of the Lexicanum', () => {
-  it('counts the own planets without moons, the own fleets without the gift and the points', () => {
+  it('counts the own planets without moons, the own fleets that take a slot and the points', () => {
     const own = ownState(view());
     expect(own.planet.id).toBe('p1_1_5');
     expect(own.planets).toBe(2);

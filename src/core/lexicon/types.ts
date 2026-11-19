@@ -100,6 +100,12 @@ export interface PageDef {
   keywords: readonly string[];
   /** Further articles for „Siehe auch“. */
   seeAlso?: readonly string[];
+  /**
+   * The states the review list shows the page in, where the page changes
+   * with the player's own state (#289): together they show every text the
+   * page can hold. Without them the default state of a new player.
+   */
+  review?: readonly LexState[];
   sections: (s: LexState) => PageSection[];
 }
 

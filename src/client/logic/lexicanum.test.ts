@@ -553,13 +553,21 @@ describe('the blocks and the search', () => {
 describe('the rule pages, the questions and the start page of #288', () => {
   const rule = (id: string, v = view()): ArticleView => art(id, v);
 
-  it('shows the boxes „Regeln“ and „Häufige Fragen“ on the start page, not empty ones', () => {
+  it('shows the boxes „Einstieg“, „Regeln“ and „Häufige Fragen“ on the start page, none of them empty', () => {
     const p = page('', view());
     if (p.t !== 'start') throw new Error(p.t);
-    // Guides come with #289; a kind without a page is not shown (#285).
-    const kinds = p.boxes.map((b) => b.kind);
-    expect(kinds).toContain('rule');
-    expect(kinds).toContain('question');
+    expect(p.boxes.map((b) => [b.kind, b.title])).toEqual([
+      ['guide', 'Einstieg'],
+      ['rule', 'Regeln'],
+      ['question', 'Häufige Fragen'],
+    ]);
+    expect(p.boxes[0]!.items.map((i) => i.id)).toEqual([
+      'guide-start',
+      'guide-colony',
+      'guide-fleet',
+      'guide-defense',
+      'guide-next',
+    ]);
     const rules = p.boxes.find((b) => b.kind === 'rule')!;
     expect(rules.title).toBe('Regeln');
     expect(rules.items.map((i) => i.id)).toEqual(
@@ -650,5 +658,87 @@ describe('the rule pages, the questions and the start page of #288', () => {
     );
     const intel = of(blocks(rule('faq-intel', v), 'values'), 'stand')[0]!;
     expect(intel.text).toContain('Stufe 4 der Auspex-Lehre und 12 Spähschädel');
+  });
+});
+
+describe('the guides and the personal hints of #289', () => {
+  it('computes „Deine nächsten Ziele“ from the shown planet and the research', () => {
+    // Ten levels of a mine and no power: energy is short, and the Scholarium is near.
+    const v = view({ b: { metal: 10, lab: 2 }, res: { m: 1, c: 1, d: 0 } });
+    const a = art('guide-next', v);
+    expect(a).toMatchObject({
+      kind: 'guide',
+      kindTitle: 'Einstieg',
+      own: null,
+    });
+    const texts = of(blocks(a, 'now'), 'text').map((t) =>
+      t.parts.map((x) => x.text).join(''),
+    );
+    expect(texts[1]).toMatch(
+      /^Dir fehlt Energie: .* nur mit [\d,]+ % ihrer Leistung/,
+    );
+    expect(texts.join(' ')).toContain(
+      'Auspex-Lehre zu bekommen: Scholarium steht auf Stufe 2',
+    );
+    expect(of(blocks(a, 'stand'), 'stand')[0]!.text).toBe(
+      'Dein Stand: Planeten: 0 · Flotten unterwegs: 0 · Punkte: 0',
+    );
+    // A hint links its words to articles of the Lexicanum.
+    const links = of(blocks(a, 'now'), 'text')[1]!.parts.filter(
+      (x) => 'link' in x,
+    );
+    expect(links.map((x) => 'link' in x && x.link)).toContain('solar');
+  });
+
+  it('names a requirement that is one level away, for a planet in order', () => {
+    const v = view(
+      {
+        b: { metal: 2, crystal: 1, solar: 8, lab: 10 },
+        res: { m: 10, c: 10, d: 0 },
+      },
+      { computer: 20 },
+    );
+    const text = of(blocks(art('guide-next', v), 'now'), 'text').map((t) =>
+      t.parts.map((x) => x.text).join(''),
+    );
+    expect(
+      text.slice(1).every((t) => t.startsWith('Dir fehlt noch eine Stufe')),
+    ).toBe(true);
+  });
+
+  it('draws a guide with its steps, its numbers from the catalog and the universe', () => {
+    const a = art('guide-start');
+    const begin = of(blocks(a, 'begin'), 'text')[0]!;
+    expect(begin.parts.map((x) => x.text).join('')).toContain(
+      'mit 500 Adamant und 500 Psikristall',
+    );
+    const steps = of(blocks(a, 'steps'), 'facts')[0]!;
+    expect(steps.items.map((i) => i.label)).toEqual(
+      steps.items.map((_, i) => `Schritt ${i + 1}`),
+    );
+    expect(steps.items[0]!.parts.map((x) => x.text).join('')).toContain(
+      'Die erste Stufe kostet 60 Adamant und 15 Psikristall beziehungsweise 48 Adamant und 24 Psikristall',
+    );
+    // A guide links the others of the Einstieg.
+    const links = steps.items
+      .flatMap((i) => i.parts)
+      .filter((x) => 'link' in x);
+    expect(links.map((x) => 'link' in x && x.link)).toEqual(
+      expect.arrayContaining(['guide-fleet', 'guide-colony', 'guide-next']),
+    );
+  });
+
+  it('lists the missions of the fleet form with their targets, and no missile', () => {
+    const table = of(blocks(art('guide-fleet'), 'missions'), 'table')[0]!;
+    expect(table.rows).toHaveLength(Object.keys(MISSION).length - 1);
+    const attack = table.rows.find(
+      (r) => r.cells[0]!.link === 'mission-attack',
+    )!;
+    expect(attack.cells.map((c) => c.text)).toEqual([
+      'Sturmangriff',
+      'fremder Planet',
+      'ja',
+      'ja',
+    ]);
   });
 });

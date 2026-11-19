@@ -20,14 +20,16 @@ const blocksOf = (p: PageDef, s: LexState): Block[] =>
   p.sections(s).flatMap((x) => x.blocks);
 
 /** Every (page, state) pair the guards run on. */
-const CASES = PAGES.flatMap((p) => STATES.map((s) => ({ p, s })));
+const CASES = PAGES.flatMap((p) =>
+  [...STATES, ...(p.review ?? [])].map((s) => ({ p, s })),
+);
 
 const cellLinks = (c: Cell): string[] =>
   typeof c === 'object' ? [c.link] : [];
 
 /** The articles a block links to. */
 function targetsOf(b: Block): string[] {
-  if (b.t === 'text') return linkTargets(b.text);
+  if (b.t === 'text') return linkTargets(fill(b.text, b.values));
   if (b.t === 'links') return b.items.map((i) => i.id);
   if (b.t === 'table') return b.rows.flatMap((r) => r.cells.flatMap(cellLinks));
   return [];

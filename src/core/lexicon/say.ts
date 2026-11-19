@@ -94,3 +94,17 @@ export const requires = (key: string): string => {
     ...Object.entries(req?.r ?? {}).map(([id, l]) => link(id, l)),
   ].join(', ');
 };
+
+const COST_NAMES = ['Adamant', 'Psikristall', 'Promethium'] as const;
+
+/** Words as a German list: „a“, „a und b“, „a, b und c“. */
+const listOf = (items: readonly string[]): string =>
+  items.length < 2
+    ? (items[0] ?? '')
+    : `${items.slice(0, -1).join(', ')} und ${items[items.length - 1]}`;
+
+/** A cost as words: „60 Adamant und 15 Psikristall“; what is 0 is left out. */
+export const costText = (cost: readonly [number, number, number]): string =>
+  listOf(
+    cost.flatMap((x, i) => (x > 0 ? [`${number(x)} ${COST_NAMES[i]}`] : [])),
+  );

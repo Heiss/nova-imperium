@@ -26,6 +26,7 @@ import {
   type SearchDoc,
 } from '../../core/lexicon/search.ts';
 import { fill, type Segment, segments } from '../../core/lexicon/links.ts';
+import { TARGET_NAMES } from '../../core/lexicon/targets.ts';
 import { costFormula, storageFormula } from '../../core/lexicon/parts.ts';
 import type {
   ArticleKind,
@@ -34,7 +35,7 @@ import type {
   Formula,
   LexState,
 } from '../../core/lexicon/types.ts';
-import { MISSION, missionRules, type TargetKind } from '../../core/missions.ts';
+import { MISSION, missionRules } from '../../core/missions.ts';
 import type { Cost } from '../../core/types.ts';
 import type { V } from '../views/common.ts';
 import { unitLines } from './catalog-list.ts';
@@ -322,18 +323,6 @@ function usedSection(a: ArticleMeta): Section | null {
 
 // ----- missions -----
 
-/** The target of a mission, as the fleet view names it. */
-const TARGETS: Readonly<Record<TargetKind, string>> = {
-  own: 'eigener Planet',
-  foreign: 'fremder Planet',
-  ally: 'Planet eines Gildenmitglieds oder Freundes',
-  any: 'jeder Planet',
-  free: 'Freie Position',
-  debris: 'Trümmerfeld',
-  foreignMoon: 'fremder Mond',
-  expedition: 'Expeditionsposition',
-};
-
 const yes = (b: boolean): string => (b ? 'ja' : 'nein');
 
 /**
@@ -372,7 +361,7 @@ function missionFacts(m: string): ViewBlock {
   const r = missionRules(m)!;
   const ships = missionShips(m);
   const items: { label: string; text: string }[] = [
-    { label: 'Ziel', text: TARGETS[r.target] },
+    { label: 'Ziel', text: TARGET_NAMES[r.target] },
     { label: 'Ladung', text: yes(r.cargo) },
     { label: 'Rückflug', text: yes(r.returns) },
     { label: 'Eigener Bericht bei der Heimkehr', text: yes(!r.silent) },

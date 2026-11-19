@@ -53,15 +53,8 @@ function blockParts(b: Block): PagePart[] {
   }
 }
 
-/**
- * The words of a page as they read for a state: its line, the headings,
- * the texts, the formulas, the captions and heads of the tables and the
- * labels of the facts. The review list holds them all (#288).
- */
-export const pageParts = (
-  p: PageDef,
-  s: LexState = defaultState(),
-): PagePart[] => [
+/** The parts of a page for one state: its line, the headings and the words of its blocks. */
+const partsFor = (p: PageDef, s: LexState): PagePart[] => [
   { label: 'Line', text: p.line },
   ...p
     .sections(s)
@@ -70,6 +63,24 @@ export const pageParts = (
       ...x.blocks.flatMap(blockParts),
     ]),
 ];
+
+/**
+ * The words of a page as they read for a state: its line, the headings,
+ * the texts, the formulas, the captions and heads of the tables and the
+ * labels of the facts. Without a state the review list's: the default state,
+ * or for a page that changes with the player's own state (#289) the states it
+ * names, each adding what the ones before did not show.
+ */
+export function pageParts(p: PageDef, s?: LexState): PagePart[] {
+  if (s) return partsFor(p, s);
+  const [first = defaultState(), ...more] = p.review ?? [];
+  const parts = partsFor(p, first);
+  for (const state of more)
+    for (const part of partsFor(p, state))
+      if (!parts.some((x) => x.label === part.label && x.text === part.text))
+        parts.push(part);
+  return parts;
+}
 
 /** The texts of the lexicon part of an entry with their values, as they read. */
 export const partTexts = (a: ArticleMeta): string[] =>

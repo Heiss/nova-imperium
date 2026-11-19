@@ -16,6 +16,11 @@ import { page as faqResources } from './faq-resources.ts';
 import { page as faqSlots } from './faq-slots.ts';
 import { page as flight } from './flight.ts';
 import { page as guilds } from './guilds.ts';
+import { page as guideColony } from './guide-colony.ts';
+import { page as guideDefense } from './guide-defense.ts';
+import { page as guideFleet } from './guide-fleet.ts';
+import { page as guideNext } from './guide-next.ts';
+import { page as guideStart } from './guide-start.ts';
 import { page as highscore } from './highscore.ts';
 import { page as market } from './market.ts';
 import { page as moons } from './moons.ts';
@@ -58,4 +63,10 @@ export const PAGES: readonly PageDef[] = [
   faqMine,
   faqResources,
   faqDefend,
+  // The guides (#289).
+  guideStart,
+  guideColony,
+  guideFleet,
+  guideDefense,
+  guideNext,
 ];

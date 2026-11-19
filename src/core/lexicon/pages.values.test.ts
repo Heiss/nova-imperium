@@ -239,3 +239,46 @@ describe('the questions show the own state', () => {
     ).toContain('Dein Stand: Planeten: 4 · unbegrenzt');
   });
 });
+
+describe('the guides', () => {
+  it('„Deine nächsten Ziele“ says that nothing stands out, and waits for a planet', () => {
+    const text = words('guide-next');
+    expect(text).toContain('Im Moment hebt keine Regel etwas hervor');
+    expect(text).toContain(
+      'Dein Stand steht hier, sobald du einen Planeten hast.',
+    );
+  });
+
+  it('„Dich verteidigen“ takes the limits of seeing from the round and the values from the catalog', () => {
+    const text = words(
+      'guide-defense',
+      withRound({
+        recognitionTotal: 1,
+        recognitionTypes: 3,
+        recognitionCounts: 9,
+      }),
+    );
+    expect(text).toContain(
+      'Ab Stufe 1 der Auspex-Lehre siehst du, wie viele Schiffe',
+    );
+    expect(text).toContain('ab Stufe 9 die genaue Zahl');
+    expect(
+      rowsOf(
+        'guide-defense',
+        'Kosten und Werte der Verteidigungsanlagen',
+      )[0]![0],
+    ).toBe('Raketenbatterie');
+  });
+
+  it('„Erste Schritte“ starts with the resources of the universe', () => {
+    const s = defaultState();
+    expect(words('guide-start', s)).toContain(
+      'mit 500 Adamant und 500 Psikristall',
+    );
+    const rich = {
+      ...s,
+      u: { ...s.u, startMetal: 0, startCrystal: 0, startDeuterium: 9 },
+    };
+    expect(words('guide-start', rich)).toContain('mit 9 Promethium');
+  });
+});

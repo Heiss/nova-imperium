@@ -3,6 +3,7 @@
 // points. The browser has all of it already, so the personal hints need no
 // request of their own; this stays a small pure function.
 import type { Own } from '../../core/lexicon/types.ts';
+import { isFleet } from '../../core/missions.ts';
 import type { V } from '../views/common.ts';
 
 /** The own state the personal parts of a page are computed from. */
@@ -14,7 +15,8 @@ export function ownState(v: V): Own {
     // A moon is no planet of the limit; every planet has an owner.
     planets: v.s.galaxy.filter((p) => p.owner === me && p.kind === 'planet')
       .length,
-    fleets: v.s.fleets.filter((f) => f.owner === me && !f.gift).length,
+    // A fleet that takes a slot: no gift of the Endzeit, no missiles.
+    fleets: v.s.fleets.filter((f) => f.owner === me && isFleet(f)).length,
     points: {
       own: v.s.players[me]?.points ?? 0,
       top: Math.max(0, ...points),

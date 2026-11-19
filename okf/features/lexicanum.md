@@ -190,6 +190,38 @@ their own.
 * **[V]** „Optionen“ has a line below its boxes with a link to „Dieses
   Universum“; the old box and its CSS are gone.
 
+# Stage 3: guides and personal hints (#289)
+
+* **[V]** The three open decisions of the issue were not answered; taken as
+  recommended and consistent with the long texts of #94: D1 – Claude drafts
+  the guides as [V] and the owner confirms each; D2 – the personal page is
+  computed from rules only; D3 – „Erste Schritte“, the colony, the fleet and
+  the defense. The owner can change any of them.
+* **[V]** Guides (`guide-<name>`, kind „Einstieg“, the first box of the
+  start page): „Erste Schritte“, „Deine erste Kolonie“, „Deine erste Flotte“,
+  „Dich verteidigen“ and „Deine nächsten Ziele“. A guide is a list of steps
+  (`steps` in `say.ts`: one fact per step, „Schritt 1“ and so on), each with
+  its links and the numbers of the catalog, the universe and the round (the
+  first costs, the requirements, the missions with their targets, the
+  defense with its values).
+* **[V]** „Deine nächsten Ziele“ is computed by `hintsOf` in
+  `src/core/lexicon/hints.ts` from the state the browser holds (`own` in
+  the state of a page: the shown planet, the planets, the fleets, the
+  points; `src/client/logic/lexicanum-own.ts`): no new part of the server.
+  Every hint is one rule of the game, never an opinion: energy that is short
+  (the energy factor below one), a store that is full, no free field (on a
+  planet or a moon), every fleet slot in use, the limit of planets reached
+  and the research that raises it where the round has it, an entry whose only
+  missing requirement is one level away (at most three, and not a building
+  the shown place cannot hold), and a planet without a mine, where only the
+  base income comes in. At most six hints are shown, in this order; when none
+  applies the page says so.
+* **[V]** The texts of the hints are templates with `{values}` and links, so
+  no number is typed into them; the review list shows the page in states that
+  together hold every hint (`review` of the page).
+* **[V]** Tests: `hints.test.ts` tests every hint at its border; the guards
+  of `pages.test.ts` run on the states of the review list too.
+
 # Texts
 
 * **[V]** The texts of the article of the Auspex-Lehre are those of the

@@ -22,6 +22,9 @@ code and here in the same pull request.
   Auspex-Phalanx, Mondzitadelle, Warp-Tor, the stores, the producers), a short text
   per mission (what happens on arrival), and keywords in everyday words for
   every article.
+* **[E]** The guides of stage 3 (#289) under „Einstieg“ are listed the same
+  way; „Deine nächsten Ziele“ is shown in the states of its `review`, which
+  together hold every hint, so its list has the texts of all of them.
 * **[E]** The pages of stage 2 (#288) are drafts of Claude from the decided
   rules and the existing game terms, [V] for the owner to check
   afterwards (owner, 2026-11-19, #222). Under „Regeln“ and „Häufige Fragen“
@@ -892,4 +895,87 @@ code and here in the same pull request.
 * **[V]** Facts: „Raketen: Abfangraketen halten anfliegende Orbitalraketen auf, eine je Rakete (Abfangrakete).“
 * **[V]** Facts: „Schutz: Wer weniger als 20 % der Punkte eines anderen hat, ist vor ihm geschützt; im Urlaubsmodus bist du vor allen geschützt (Schutz der Schwachen).“
 * **[V]** Keywords: verteidigen, schützen, Schutz, Abwehr, Angriffe
+
+## Einstieg
+
+### Erste Schritte (`guide-start`)
+
+* **[V]** Line: „Die ersten Tage in Schritten: Förderung, Energie, Forschung, Lager und die erste Flotte.“
+* **[V]** Heading: „Womit du beginnst“
+* **[V]** Text: „Du beginnst mit einem Heimatplaneten, der 163 Felder hat, und mit 500 Adamant und 500 Psikristall. In diesem Universum läuft alles 5-mal so schnell wie im Original. Der Heimatplanet fördert von Anfang an eine Grundmenge, auch ohne Gebäude (Produktion, Energie und Lager).“
+* **[V]** Heading: „Die ersten Tage in Schritten“
+* **[V]** Facts: „Schritt 1: Baue die Adamant-Tiefbohrung und den Psikristall-Steinbruch. Die erste Stufe kostet 60 Adamant und 15 Psikristall beziehungsweise 48 Adamant und 24 Psikristall. Ohne Förderstätten kommt nur die Grundmenge herein.“
+* **[V]** Facts: „Schritt 2: Baue die Sonnenkathedrale (erste Stufe: 75 Adamant und 30 Psikristall). Die Förderstätten brauchen Energie, und fehlt sie, fördern sie weniger (Produktion, Energie und Lager).“
+* **[V]** Facts: „Schritt 3: Baue das Scholarium (erste Stufe: 200 Adamant, 400 Psikristall und 200 Promethium), denn ohne es lässt sich nichts erforschen. Die Auspex-Lehre etwa braucht Scholarium Stufe 3.“
+* **[V]** Facts: „Schritt 4: Baue die Servitorenschmiede: Sie verkürzt jede Bauzeit. Es läuft immer nur ein Bauauftrag je Planet, und eine Forschung zugleich (Bauen, Forschen und Schiffsschmiede).“
+* **[V]** Facts: „Schritt 5: Sobald ein Lager voll ist, hört seine Förderung auf. Baue dann das Lager aus: Adamant-Gewölbe, Psikristall-Reliquiar oder Promethium-Zisterne.“
+* **[V]** Facts: „Schritt 6: Baue die Orbitale Schiffsschmiede, sie braucht Servitorenschmiede Stufe 2, und danach dein erstes Schiff, etwa einen Frachtläufer (2.000 Adamant und 2.000 Psikristall).“
+* **[V]** Facts: „Schritt 7: Schicke deine erste Flotte (Deine erste Flotte) und gründe deine erste Kolonie (Deine erste Kolonie). Was dich im Spiel schützt, steht unter Dich verteidigen.“
+* **[V]** Facts: „Schritt 8: Sieh unter Deine nächsten Ziele nach, was dein Stand als Nächstes nahelegt.“
+* **[V]** Keywords: Anfang, Einstieg, beginnen, Neuling, Tutorial
+
+### Deine erste Kolonie (`guide-colony`)
+
+* **[V]** Line: „Von der Kolonistenarche bis zu den ersten Gebäuden der neuen Kolonie.“
+* **[V]** Heading: „Wozu eine Kolonie“
+* **[V]** Text: „Eine Kolonie ist ein weiterer Planet. Sie hat eigene Felder für Gebäude, fördert eigene Rohstoffe und hat ein eigenes Lager. Deine Forschung und deine Flottenslots gelten für alle Planeten zusammen. Wie viele Planeten du haben darfst, kann der Admin für die Runde begrenzen (Kolonien und Planetengrenze).“
+* **[V]** Heading: „Von der Arche zur Kolonie“
+* **[V]** Facts: „Schritt 1: Prüfe die Planetengrenze dieser Runde und gib, wenn sie erreicht ist, eine Kolonie auf oder erforsche, was sie hebt (Kolonien und Planetengrenze).“
+* **[V]** Facts: „Schritt 2: Baue eine Kolonistenarche in der Orbitalen Schiffsschmiede. Sie braucht Orbitale Schiffsschmiede Stufe 4, Plasma-Impulsantrieb Stufe 3.“
+* **[V]** Facts: „Schritt 3: Suche auf der Sternenkarte eine freie Position. Wie viele Felder die Kolonie bekommt und wie warm sie wird, hängt von der Position ab (Planeten und Felder); eine Vermessung mit Spähschädeln zeigt es vorher.“
+* **[V]** Facts: „Schritt 4: Schicke die Arche mit der Landnahme zu dieser Position. Wie lange der Flug dauert und was er an Promethium kostet, nennt das Flottenformular (Flug und Treibstoff).“
+* **[V]** Facts: „Schritt 5: Gib der Kolonie Förderstätten und Energie wie dem Heimatplaneten, und baue ihre Lager aus, wenn sie voll werden (Erste Schritte).“
+* **[V]** Keywords: Kolonie, Planet, besiedeln, erweitern, Arche
+
+### Deine erste Flotte (`guide-fleet`)
+
+* **[V]** Line: „Vom ersten Schiff bis zum Bericht, und welcher Auftrag zu welchem Ziel passt.“
+* **[V]** Heading: „Von Schiff zu Bericht“
+* **[V]** Facts: „Schritt 1: Baue Schiffe in der Orbitalen Schiffsschmiede. Welche, hängt vom Auftrag ab: Die Tabelle unten nennt zu jedem Auftrag sein Ziel.“
+* **[V]** Facts: „Schritt 2: Prüfe die Flottenslots: Jede Flotte belegt einen, bis sie wieder da ist (Wie bekomme ich mehr Flottenslots?).“
+* **[V]** Facts: „Schritt 3: Wähle im Flottenformular die Schiffe, das Ziel und den Auftrag. Die Ladung ist durch den Laderaum der Schiffe begrenzt, und das Promethium für den Flug zahlst du beim Start (Flug und Treibstoff).“
+* **[V]** Facts: „Schritt 4: Wähle das Tempo. Langsamer zu fliegen spart Promethium und kostet Zeit; die Flotte ist so schnell wie ihr langsamstes Schiff (Flug und Treibstoff).“
+* **[V]** Facts: „Schritt 5: Warte auf den Bericht in den Nachrichten. Bei einem Angriff erfährst du, was der Kampf gebracht hat (Was bleibt nach einer Schlacht übrig?).“
+* **[V]** Heading: „Welcher Auftrag für welches Ziel“
+* **[V]** Table: „Die Aufträge der Flotte und ihre Ziele“
+* **[V]** Table: „Auftrag | Ziel | Ladung | Rückflug“
+* **[V]** Text: „Eine Erkundung zeigt vorher, was am Ziel steht (Wie bekomme ich mehr Informationen über den Gegner?). Warum ein Auftrag nicht geht, steht unter Warum kann ich diesen Spieler nicht angreifen?.“
+* **[V]** Keywords: Flotte, Schiffe, starten, schicken, Auftrag
+
+### Dich verteidigen (`guide-defense`)
+
+* **[V]** Line: „Was dich schützt und wie du dich auf einen Angriff vorbereitest.“
+* **[V]** Heading: „In dieser Reihenfolge“
+* **[V]** Facts: „Schritt 1: Erkenne, wer kommt: Ab Stufe 2 der Auspex-Lehre siehst du, wie viele Schiffe auf dich zufliegen, ab Stufe 4 welche Arten und ab Stufe 8 die genaue Zahl (Sichtbarkeit und Aktivität).“
+* **[V]** Facts: „Schritt 2: Baue Verteidigungsanlagen in der Orbitalen Schiffsschmiede; die Tabelle unten nennt Kosten und Werte. Nach einem Kampf wird ein Teil der zerstörten Verteidigung wieder aufgebaut (Kampf).“
+* **[V]** Facts: „Schritt 3: Erforsche die Waffensegnung, die Refraktionsfelder und die Adamant-Panzerung: Jede Stufe hebt Angriff, Schild oder Struktur aller deiner Einheiten um 10 % des Grundwerts.“
+* **[V]** Facts: „Schritt 4: Bitte Gildenmitglieder und Freunde, bei dir Wache zu stellen: Ihre Flotten kämpfen dann mit dir (Gilden).“
+* **[V]** Facts: „Schritt 5: Halte Abfangraketen in der Raketenkrypta bereit: Jede Abfangrakete hält eine anfliegende Orbitalrakete auf.“
+* **[V]** Facts: „Schritt 6: Denke an den Schutz: Wer viel weniger Punkte hat als der Angreifer, steht unter Noobschutz, und im Urlaubsmodus ist alles geschützt (Schutz der Schwachen).“
+* **[V]** Heading: „Die Verteidigungsanlagen“
+* **[V]** Table: „Kosten und Werte der Verteidigungsanlagen“
+* **[V]** Table: „Anlage | Kosten | Angriff | Schild | Struktur“
+* **[V]** Keywords: verteidigen, Abwehr, Angriff, Verteidigung, sichern
+
+### Deine nächsten Ziele (`guide-next`)
+
+* **[V]** Line: „Was deine Planeten, deine Forschung und deine Flotten nach den Regeln als Nächstes nahelegen.“
+* **[V]** Heading: „Was die Regeln gerade nahelegen“
+* **[V]** Text: „Diese Seite rechnet aus deinem Stand, was die Regeln hervorheben: Energie, die fehlt, ein volles Lager, kein freies Feld, belegte Flottenslots, die Planetengrenze oder eine Voraussetzung, die nur noch eine Stufe entfernt ist. Es sind keine Ratschläge zum Spielstil, nur Folgen der Regeln.“
+* **[V]** Text: „Dir fehlt Energie: Die Förderstätten dieses Planeten laufen nur mit 8,48 % ihrer Leistung. Die Sonnenkathedrale, das Fusionssanktum und die Sonnenreliquiare liefern Energie (Produktion, Energie und Lager).“
+* **[V]** Text: „Das Lager für Adamant ist voll, und die Förderung steht dort still. Baue Adamant-Gewölbe aus oder gib Rohstoffe aus (Produktion, Energie und Lager).“
+* **[V]** Text: „Auf diesem Planeten sind alle Felder belegt (Felder: 1), und keine weitere Gebäudestufe lässt sich bauen. Die Weltenschmiede schafft Felder, oder gründe eine Kolonie (Wie gründe ich eine Kolonie?).“
+* **[V]** Text: „Alle Flottenslots sind belegt (Flottenslots: 1). Die Kogitator-Doktrin bringt mit jeder Stufe einen weiteren (Wie bekomme ich mehr Flottenslots?).“
+* **[V]** Text: „Du hast die Planetengrenze dieser Runde erreicht (Planeten: 3 von 3). Eine neue Kolonie braucht einen freien Platz: Gib eine Kolonie auf (Kolonien und Planetengrenze).“
+* **[V]** Text: „Die Forschung Kolonialverwaltung hebt die Planetengrenze an (deine Stufe: 0, Planetengrenze: 3).“
+* **[V]** Heading: „Dein Stand“
+* **[V]** Stand: „Dein Stand: Planeten: 3 · Flotten unterwegs: 1 · Punkte: 0“
+* **[V]** Text: „Dir fehlt noch eine Stufe, um Machina-Energetik zu bekommen: Scholarium steht auf Stufe 0 und müsste Stufe 1 haben.“
+* **[V]** Text: „Dir fehlt noch eine Stufe, um Kogitator-Doktrin zu bekommen: Scholarium steht auf Stufe 0 und müsste Stufe 1 haben.“
+* **[V]** Text: „Ohne Förderstätten kommt auf diesem Planeten nur die Grundmenge herein, 100 Adamant und 50 Psikristall je Stunde. Die Adamant-Tiefbohrung und der Psikristall-Steinbruch fördern mehr (Produktion, Energie und Lager).“
+* **[V]** Stand: „Dein Stand: Planeten: 1 · Flotten unterwegs: 0 · Punkte: 0“
+* **[V]** Text: „Auf diesem Mond sind alle Felder belegt (Felder: 1). Die Mondzitadelle schafft weitere Felder (Monde).“
+* **[V]** Text: „Dir fehlt noch eine Stufe, um Orbitale Schiffsschmiede zu bekommen: Servitorenschmiede steht auf Stufe 1 und müsste Stufe 2 haben.“
+* **[V]** Text: „Dir fehlt noch eine Stufe, um Auspex-Phalanx zu bekommen: Mondzitadelle steht auf Stufe 0 und müsste Stufe 1 haben.“
+* **[V]** Keywords: Ziele, nächste, Ratschlag, Hinweis, Empfehlung
 
