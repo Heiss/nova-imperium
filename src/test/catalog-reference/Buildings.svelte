@@ -223,11 +223,7 @@
           <span class="req">Zu wenig Energie: es fehlen {fmt(short)}</span>
         {:else}
           {#if level}
-            <button
-              data-act="build"
-              data-k={key}
-              disabled={!afford(P, cost)}
-              aria-label={`Ausbauen auf Stufe ${level + 1}`}
+            <button data-act="build" data-k={key} disabled={!afford(P, cost)}
               ><span class="lg">Ausbauen auf Stufe {level + 1}</span><span
                 class="sh"
                 aria-hidden="true">▲ {level + 1}</span

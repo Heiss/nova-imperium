@@ -4,7 +4,7 @@
 // sends its reports. The page is only listened to: no key, no position and
 // no scroll offset is read. Rendering, the state refresh and the countdowns
 // are no interaction, so they never reach the tracker.
-import type { OwnActivity } from '../../core/playtime.ts';
+import type { OwnActivity, Report } from '../../core/playtime.ts';
 import { $ } from '../dom.ts';
 import { OWN_ACTIVITY_FAILED, ownActivityHTML } from '../logic/own-activity.ts';
 import { createTracker, type Env, type Tracker } from '../logic/playtime.ts';
@@ -51,21 +51,39 @@ export function attach(doc: PageDoc, win: PageWin, tracker: Tracker): void {
   win.addEventListener('pagehide', () => tracker.foreground(false));
 }
 
+/**
+ * Sends a report and reads the answer to its end. `keepalive` lets the last
+ * report of a closing page still leave; a lost one only shortens the
+ * estimate, so nothing is retried. The body is read because a response whose
+ * body nobody reads keeps its request open in the browser (until a garbage
+ * collection): every heartbeat then stood as a request that never ends, and a
+ * test that waits for „networkidle“ waited for ever.
+ */
+export function sendReport(
+  doFetch: (url: string, init: RequestInit) => Promise<Response>,
+  report: Report,
+): Promise<void> {
+  return doFetch('/api/playtime', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(report),
+    credentials: 'same-origin',
+    keepalive: true,
+  })
+    .then((response) => response.text())
+    .then(
+      () => undefined,
+      () => undefined,
+    );
+}
+
 /** The environment of the real page; the report goes out without waiting for the answer. */
 const pageEnv: Env = {
   now: () => performance.now(),
   setTimer: (fn, ms) => setTimeout(fn, ms),
   clearTimer: (handle) => clearTimeout(handle as ReturnType<typeof setTimeout>),
   send: (report) => {
-    // `keepalive` lets the last report of a closing page still leave; a lost
-    // one only shortens the estimate, so nothing is retried.
-    void fetch('/api/playtime', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(report),
-      credentials: 'same-origin',
-      keepalive: true,
-    }).catch(() => undefined);
+    void sendReport((url, init) => fetch(url, init), report);
   },
   // Signed out, and in vacation mode, where nothing is recorded (#223).
   enabled: () => !!client.game && client.game.me.vacation === null,

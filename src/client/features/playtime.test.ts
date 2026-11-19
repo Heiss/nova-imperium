@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { OwnActivity } from '../../core/playtime.ts';
 import { OWN_ACTIVITY_FAILED } from '../logic/own-activity.ts';
 import type { Tracker } from '../logic/playtime.ts';
-import { attach, type PageDoc, type PageWin } from './playtime.ts';
+import { attach, type PageDoc, type PageWin, sendReport } from './playtime.ts';
 import { fakeCtx } from './test-ctx.ts';
 
 type Listener = (e: Event) => void;
@@ -165,5 +165,37 @@ describe('the box „Meine Aktivität & Spielzeit“', () => {
     const feature = clientFeature.acts(fakeCtx({ api }));
     await feature.reloadOwnActivity!();
     expect(box.textContent).toBe(OWN_ACTIVITY_FAILED);
+  });
+});
+
+describe('sending a report', () => {
+  const report = {
+    instance: 'a',
+    seq: 3,
+    state: 'active',
+    since: 1000,
+  } as const;
+
+  it('posts the report as JSON with keepalive and reads the answer to its end', async () => {
+    const text = vi.fn(async () => '{"ok":true}');
+    const doFetch = vi.fn(async () => ({ text }) as unknown as Response);
+    await sendReport(doFetch, report);
+    expect(doFetch).toHaveBeenCalledWith('/api/playtime', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(report),
+      credentials: 'same-origin',
+      keepalive: true,
+    });
+    expect(text).toHaveBeenCalledTimes(1);
+  });
+
+  it('swallows a lost report and a body that cannot be read', async () => {
+    await expect(
+      sendReport(async () => Promise.reject(new Error('offline')), report),
+    ).resolves.toBeUndefined();
+    const broken = async () =>
+      ({ text: () => Promise.reject(new Error('cut')) }) as unknown as Response;
+    await expect(sendReport(broken, report)).resolves.toBeUndefined();
   });
 });

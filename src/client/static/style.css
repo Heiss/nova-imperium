@@ -1207,14 +1207,19 @@ textarea:focus-visible {
   nav#menu {
     display: none;
   }
+  /* Flex, not a grid of four equal columns: a column cannot be narrower
+     than its number, so large stocks pushed the page past 360 px. The
+     entries share the line by their content and the last one wraps to a
+     second line when four do not fit. */
   .resbar {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    display: flex;
+    flex-wrap: wrap;
     gap: 4px;
     width: 100%;
     margin-left: 0;
   }
   .res {
+    flex: 1 1 auto;
     flex-direction: column;
     gap: 0;
     min-width: 0;
@@ -1240,7 +1245,7 @@ textarea:focus-visible {
     inset: auto 0 0;
     z-index: 20;
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     padding: 4px 4px env(safe-area-inset-bottom);
     background: linear-gradient(#1c130d, #0d0a08);
     border-top: 1px solid var(--gold);
@@ -1319,6 +1324,22 @@ textarea:focus-visible {
   }
   .ov {
     justify-content: center;
+  }
+  /* A list with a long option („Schnellwahl“ of the fleet form) is as wide as
+     its longest option and pushed the table, and with it the page, past the
+     screen; the phone then zooms out and the fixed tab bar no longer sits
+     where it is drawn (E2E: holding.spec.ts). Fixed columns, and fields that
+     fit their cell. */
+  table.kv {
+    table-layout: fixed;
+    width: 100%;
+  }
+  .kv td {
+    overflow-wrap: anywhere;
+  }
+  .kv select,
+  .kv input {
+    max-width: 100%;
   }
 }
 
@@ -1884,6 +1905,11 @@ table.lx-t {
 .phone-only {
   display: none;
 }
+/* The short label „▲ 5“ of a level button (#189) is for the eye on a phone
+   only; the desktop shows the full text. */
+.sh {
+  display: none;
+}
 @media (max-width: 760px) {
   nav.seg.phone-only,
   div.seg.phone-only {
@@ -1898,8 +1924,18 @@ table.lx-t {
   .sh {
     display: inline;
   }
+  /* The full name stays the text of the button for a screen reader and for
+     voice control (WCAG 2.5.3): it is only taken out of sight. */
   .lg {
-    display: none;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .item .act button:has(.sh) {
+    position: relative;
   }
   .seg {
     margin: 0 0 10px;
@@ -1910,7 +1946,8 @@ table.lx-t {
   }
   .seg > a,
   .seg > button {
-    flex: 1 1 0;
+    flex: 1 1 auto;
+    min-width: 0;
     display: grid;
     place-items: center;
     min-height: 44px;

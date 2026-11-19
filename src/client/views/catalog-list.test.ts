@@ -238,15 +238,16 @@ describe('CatalogList', () => {
       expect(out).toContain('aria-expanded="false"');
     });
 
-    it('shows „▲ 5“ for a level button and keeps its full name for the reader', () => {
+    it('shows „▲ 5“ for a level button and keeps its full name as the text of the button, without an aria-label', () => {
       const v = view();
       v.P = planet({ b: { lab: 1, yard: 1, metal: 4 } });
       v.P.res = { m: 1e9, c: 1e9, d: 1e9 };
       const out = html('building', v);
       expect(out).toMatch(
-        /<button data-act="build" data-k="metal"[^>]*aria-label="Ausbauen auf Stufe 5"[^>]*><span class="lg">Ausbauen auf Stufe 5<\/span>(?:<!--[^>]*-->)*<span class="sh" aria-hidden="true">▲ 5<\/span>/,
+        /<button data-act="build" data-k="metal"[^>]*><span class="lg">Ausbauen auf Stufe 5<\/span>(?:<!--[^>]*-->)*<span class="sh" aria-hidden="true">▲ 5<\/span>/,
       );
-      // A button without a level has no short label and no aria-label.
+      expect(out).not.toMatch(/<button data-act="build"[^>]*aria-label/);
+      // A button without a level has no short label.
       expect(out).toMatch(/data-k="solar"[^>]*><span>Bauen<\/span>/);
     });
 
