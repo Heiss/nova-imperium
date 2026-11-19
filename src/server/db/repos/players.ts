@@ -8,6 +8,7 @@ import {
   type ExplainMode,
   storedMode,
 } from '../../../core/explain.ts';
+import { levelMode, type LevelMode } from '../../../core/level-overview.ts';
 import type { Db } from '../database.ts';
 import { levels, queueParams, researchQueueOf, type Row } from './rows.ts';
 
@@ -21,6 +22,8 @@ export interface User {
   probes: number;
   /** Display option of the explanation texts (issue #63). */
   explain: ExplainMode;
+  /** Display option of the level overview (#187). */
+  levelTable: LevelMode;
   readAt: number;
   created: number;
   research: Levels;
@@ -78,6 +81,7 @@ export class SqlitePlayers implements Players {
       probes: r.probes as number,
       // A stored „Immer anzeigen“ of #63 reads as the „?“ (#285 B2).
       explain: storedMode(r.explain_mode) ?? DEFAULT_EXPLAIN,
+      levelTable: levelMode(r.level_table),
       readAt: r.read_at as number,
       created: r.created as number,
       research: levels(research, 'key', 'level'),
@@ -116,13 +120,13 @@ export class SqlitePlayers implements Players {
   save(u: User): void {
     this.db
       .prepare(
-        `INSERT INTO users (id, name, email, salt, pw_hash, admin, probes, explain_mode, read_at, created,
+        `INSERT INTO users (id, name, email, salt, pw_hash, admin, probes, explain_mode, level_table, read_at, created,
            rq_key, rq_lvl, rq_start, rq_end, rq_cost_m, rq_cost_c, rq_cost_d, rq_planet, main_planet, main_switched, vacation)
-         VALUES (@id, @name, @email, @salt, @pw, @admin, @probes, @explain, @readAt, @created,
+         VALUES (@id, @name, @email, @salt, @pw, @admin, @probes, @explain, @levelTable, @readAt, @created,
            @rq_key, @rq_lvl, @rq_start, @rq_end, @rq_cost_m, @rq_cost_c, @rq_cost_d, @rq_planet, @mainPlanet, @mainSwitched, @vacation)
          ON CONFLICT(id) DO UPDATE SET name = excluded.name, email = excluded.email,
            salt = excluded.salt, pw_hash = excluded.pw_hash, admin = excluded.admin,
-           probes = excluded.probes, explain_mode = excluded.explain_mode, read_at = excluded.read_at, rq_key = excluded.rq_key,
+           probes = excluded.probes, explain_mode = excluded.explain_mode, level_table = excluded.level_table, read_at = excluded.read_at, rq_key = excluded.rq_key,
            rq_lvl = excluded.rq_lvl, rq_start = excluded.rq_start, rq_end = excluded.rq_end,
            rq_cost_m = excluded.rq_cost_m, rq_cost_c = excluded.rq_cost_c, rq_cost_d = excluded.rq_cost_d,
            rq_planet = excluded.rq_planet, main_planet = excluded.main_planet,

@@ -368,6 +368,47 @@ button.exq {
   line-height: 22px;
   vertical-align: 2px;
 }
+/* The level overview (#187): the ▤ next to the (?), the table below the entry. */
+button.lvq {
+  width: 24px;
+  height: 24px;
+  margin-left: 6px;
+  padding: 0;
+  border-radius: 4px;
+  font-size: 13px;
+  line-height: 22px;
+  vertical-align: 2px;
+}
+button.lvq[aria-expanded='true'] {
+  outline: 2px solid var(--gold-hi);
+  outline-offset: 1px;
+}
+.item > div {
+  min-width: 0;
+}
+.lvt {
+  margin: 8px 0 2px;
+  padding-left: 10px;
+  border-left: 2px solid var(--line);
+}
+.lvt .lx-scroll {
+  margin: 0 0 4px;
+}
+.lvt .lx-note {
+  font-size: 13px;
+  margin-top: 2px;
+}
+.lx-t tr.lx-sep td {
+  padding: 4px 10px;
+  font: 600 11px var(--head);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dim);
+  background: var(--th);
+}
+.lx-t tr.lx-big td {
+  color: var(--dim);
+}
 button.exq[aria-expanded='true'],
 button[aria-pressed='true'] {
   outline: 2px solid var(--gold-hi);

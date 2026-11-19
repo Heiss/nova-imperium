@@ -41,6 +41,17 @@ describe('the buttons of the queues', () => {
     ]);
   });
 
+  it('cancels an order of the shipyard by its position and unit (#258)', () => {
+    const ctx = fakeCtx();
+    const acts = clientFeature.acts(ctx);
+    acts.cancelOrder({ pos: '2', k: 'fighter' });
+    acts.cancelOrder({ pos: '0', k: 'rl' });
+    expect(vi.mocked(ctx.act).mock.calls).toEqual([
+      ['cancelOrder', { pos: 2, key: 'fighter' }],
+      ['cancelOrder', { pos: 0, key: 'rl' }],
+    ]);
+  });
+
   it('fills the count field with the most that can be built, or 0', () => {
     const ctx = fakeCtx();
     const acts = clientFeature.acts(ctx);

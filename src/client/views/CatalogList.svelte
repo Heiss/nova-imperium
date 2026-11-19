@@ -44,6 +44,15 @@
                         >{:else}<span class="dim">gleich …</span
                         >{/if}{:else}{order.each}{/if}</td
                   >
+                  <td class="n"
+                    ><button
+                      class="small red"
+                      data-act="cancelOrder"
+                      data-pos={i}
+                      data-k={order.key}
+                      aria-label={`Abbrechen: ${order.label}`}>Abbrechen</button
+                    ></td
+                  >
                 </tr>
               {/each}
             </tbody>
@@ -57,6 +66,7 @@
     <div class="box">
       {#each page.rows as row (row.key)}
         {@const ex = row.explanation}
+        {@const lv = row.levels}
         {@const a = row.action}
         <div class="item" class:running={row.running}>
           <div class="icon {row.cls}">
@@ -77,6 +87,15 @@
                   aria-expanded={ex.open}
                   aria-controls={ex.open ? ex.panel : undefined}
                   aria-label={`Erklärung zu ${row.name}`}>?</button
+                >{/if}{#if lv?.button}<button
+                  type="button"
+                  class="lvq"
+                  id={lv.button}
+                  data-act="levels"
+                  data-k={row.key}
+                  aria-expanded={lv.open}
+                  aria-controls={lv.open ? lv.panel : undefined}
+                  aria-label={`Stufenübersicht zu ${row.name}`}>▤</button
                 >{/if}
             </div>
             {#if row.ds}
@@ -87,6 +106,13 @@
               <div class="dim">{line}</div>
             {/each}
             {@html requirementsHTML(v, row.req)}
+            {#if lv?.show}
+              <div class="lvt" id={lv.panel}>
+                {#await import('./LevelOverview.svelte') then m}
+                  <m.default {v} key={row.key} />
+                {/await}
+              </div>
+            {/if}
           </div>
           <div class="act">
             {#if a.kind === 'upgrading'}

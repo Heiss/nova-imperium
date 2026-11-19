@@ -8,6 +8,8 @@ import {
   siloUse,
   unitRoom,
   waitsForYard,
+  YARD_HOME,
+  YARD_LOCK,
   yardLockedBy,
 } from './yard.ts';
 
@@ -28,6 +30,20 @@ describe('shipyard lock', () => {
     expect(waitsForYard(busy, 'nanite')).toBe(true);
     expect(waitsForYard(busy, 'robot')).toBe(false);
     expect(waitsForYard(planet(), 'nanite')).toBe(false);
+  });
+});
+
+describe('the buildings of the shipyard lock (#183)', () => {
+  it('are the Werft and the Nanitenfabrik, named short in a message', () => {
+    expect(YARD_LOCK).toEqual({
+      yard: 'Schiffsschmiede',
+      nanite: 'Machina-Schwarmhalle',
+    });
+    expect(YARD_HOME).toBe('yard');
+  });
+  it('make the building that is the shipyard the one ships and defense need', () => {
+    expect(hasYard(planet({ b: { yard: 1 } }))).toBe(true);
+    expect(hasYard(planet({ b: { nanite: 4 } }))).toBe(false);
   });
 });
 

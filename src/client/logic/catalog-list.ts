@@ -39,6 +39,7 @@ import {
   hasYard,
   orderMax,
   siloUse,
+  YARD_HOME,
   YARD_LOCK,
   yardLockedBy,
 } from '../../core/yard.ts';
@@ -54,6 +55,7 @@ import {
   researchState,
 } from './game.ts';
 import { iconURL } from './icons.ts';
+import { levelsRow, type LevelsRow } from './level-mode.ts';
 import { levelRow } from './level-table.ts';
 
 /** The kinds of catalog entries that have a list. */
@@ -130,6 +132,8 @@ export interface CatalogRow {
   lines: string[];
   req: Requirements | undefined;
   explanation: Explanation | null;
+  /** The ▤ and the table of the next levels, for buildings and research (#187). */
+  levels?: LevelsRow | null;
   action: CatalogAction;
   /** A building that can be torn down offers „Zurückbauen“ (#202). */
   demolish?: boolean;
@@ -137,6 +141,8 @@ export interface CatalogRow {
 
 /** A row of the order queue of the shipyard. */
 interface QueueRow {
+  /** The catalog key of the unit; with the position it names the order a cancel takes back (#258). */
+  key: string;
   label: string;
   /** The first order: when its next unit is done; null when it is due. */
   next: { end: number; left: string | null } | null;
@@ -208,6 +214,10 @@ function entry(
     explanation: explanation(key, t, v.s.me.explain, v.ui.openEx),
   };
 }
+
+/** The ▤ of an entry with levels, by the option „Stufenübersicht“ of the player (#187). */
+const levelsOf = (v: V, key: string): LevelsRow | null =>
+  levelsRow(key, text(key)!.n, v.s.me.levelTable, v.ui.openLv);
 
 const stage = (level: number): string => (level ? `(Stufe ${level})` : '');
 
@@ -304,6 +314,7 @@ function buildingRow(v: V, key: string): CatalogRow {
   const status = buildState(P, R, key, s.cfg);
   return {
     ...entry(v, key, 'ic-b', stage(level)),
+    levels: levelsOf(v, key),
     running: status === 'running',
     cost,
     // As energyShort() counts it: a throttled reactor with its share (#47).
@@ -383,6 +394,7 @@ function researchRow(v: V, key: string): CatalogRow {
   const state = researchState(P, R, key, s.cfg);
   return {
     ...entry(v, key, 'ic-r', stage(level)),
+    levels: levelsOf(v, key),
     running: false,
     cost,
     energy: energyCost(
@@ -521,6 +533,7 @@ function queue(v: V): QueueRow[] {
   return P.sq.map((q, i) => {
     const end = (P.sqT ?? now) + q.unit;
     return {
+      key: q.key,
       label: `${fmt(q.n)}× ${text(q.key)!.n}`,
       next: i === 0 ? { end, left: end > now ? dur(end - now) : null } : null,
       each: `je ${dur(q.unit)}`,
@@ -530,9 +543,9 @@ function queue(v: V): QueueRow[] {
 
 /** Why the shipyard cannot produce while `key` is upgraded (#48). */
 export const lockNotice = (key: string): string =>
-  key === 'yard'
-    ? 'Die Schiffsschmiede wird gerade ausgebaut und kann nicht produzieren.'
-    : `Die ${YARD_LOCK[key]} wird gerade ausgebaut, die Schiffsschmiede kann nicht produzieren.`;
+  key === YARD_HOME
+    ? `Die ${YARD_LOCK[key]} wird gerade ausgebaut und kann nicht produzieren.`
+    : `Die ${YARD_LOCK[key]} wird gerade ausgebaut, die ${YARD_LOCK[YARD_HOME]} kann nicht produzieren.`;
 
 function yardPage(
   v: V,

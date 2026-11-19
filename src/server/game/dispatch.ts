@@ -24,6 +24,7 @@ const FRAME: Record<string, A.Action> = {
   research: A.research,
   cancelResearch: A.cancelResearch,
   order: A.order,
+  cancelOrder: A.cancelOrder,
   pct: A.pct,
   rename: A.rename,
   options: A.options,

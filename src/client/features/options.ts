@@ -20,6 +20,7 @@ export const clientFeature = {
       act('options', {
         probes: clampInt(value('#o_probes'), 1, 1e6),
         explain: value('#o_explain'),
+        levelTable: value('#o_levels'),
       }),
     mainPlanet: () => act('mainPlanet', { main: value('#o_main') }),
     startVacation: () =>
