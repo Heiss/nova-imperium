@@ -204,8 +204,12 @@ describe('the demolition in the dialog „Neue Runde“ (#202, X1)', () => {
 
   it('are preselected with the defaults +50 % and 50 %', () => {
     const html = roundDialog(defaults());
-    expect(html).toContain('id="round-demolition-refund" min="-100" max="100" step="1" value="50"');
-    expect(html).toContain('id="round-demolition-time" min="1" max="200" step="1" value="50"');
+    expect(html).toContain(
+      'id="round-demolition-refund" min="-100" max="100" step="1" value="50"',
+    );
+    expect(html).toContain(
+      'id="round-demolition-time" min="1" max="200" step="1" value="50"',
+    );
   });
 });
 
