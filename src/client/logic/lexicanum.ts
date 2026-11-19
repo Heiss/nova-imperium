@@ -364,13 +364,12 @@ export function missionShips(
   m: string,
 ): { only: boolean; ships: string[] } | null {
   const rules = missionRules(m)!;
-  // A Wache stellen asks for the planet of an ally and for room there (#55).
+  // The planet of an ally: a Wache stellen asks for its owner (#55).
   const target = {
-    planet: rules.target === 'ally' ? { id: '', owner: '' } : null,
+    planet: { id: m, owner: m },
     debris: true,
     protects: () => false,
     ally: () => true,
-    holding: () => [],
   };
   const check = (ships: Record<string, number>) =>
     rules.canSend({ owner: '', from: '', ships }, target);

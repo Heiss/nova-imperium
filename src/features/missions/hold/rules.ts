@@ -28,5 +28,6 @@ export function canSend(
 ): SendError | undefined {
   const owner = to.planet?.owner;
   if (owner === undefined || !to.ally?.(owner)) return 'notAlly';
-  return holdLimitError(fleet.owner, to.holding?.() ?? []);
+  const held = to.holding?.();
+  return held ? holdLimitError(fleet.owner, held) : undefined;
 }
