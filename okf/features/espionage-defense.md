@@ -40,7 +40,9 @@ points were answered on 2026-11-16.
 * **[E]** Detected spying (owner, 2026-11-17): probes that survive the
   battle still deliver the Auspex-Bericht, and both sides get combat
   reports. A target with no ships and no defense means no battle: the
-  probes survive and report.
+  probes survive and report. The fleets that hold at the target (#55) count
+  as its ships for this rule and fight with it (owner, 2026-11-19, [V] for
+  the rule; [Holding and ACS](/features/holding-acs.md)).
 
 ## Built (#175)
 
@@ -58,7 +60,10 @@ points were answered on 2026-11-16.
 * Detected at a target with ships or defense, the probes fight with the
   battle of the Sturmangriff, shared in `src/server/game/fight.ts`
   (`fight`, `battleReport`, `recordBattle`): debris of the destroyed probes
-  (#45), the moon roll (#53), the rebuilt defense, the audit entry; no loot.
+  (#45) and of the held fleets' losses, the moon roll (#53), the rebuilt
+  defense, the audit entry; no loot. The fleets that hold at the target
+  defend it too (`defenders`, owner, 2026-11-19): each owner gets the
+  battle report of the defender.
   Survivors deliver the report and fly back; without survivors the fleet is
   gone and the spy gets no Auspex-Bericht (D3).
 * **[E]** Texts confirmed (owner, 2026-11-18, #175): „Keine Aktivität in

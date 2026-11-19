@@ -7,15 +7,10 @@ import {
   type RoundSetting,
   roundFieldId,
   roundRequest,
-} from '../core/round.ts';
-import { client } from './logic/state.svelte.ts';
-import { roundDialog } from './views/misc.ts';
-
-/** What the actions need from main.ts. */
-interface Deps {
-  act: (type: string, data?: object) => Promise<boolean>;
-  modal: (html: string) => void;
-}
+} from '../../core/round.ts';
+import { client } from '../logic/state.svelte.ts';
+import { roundDialog } from '../views/misc.ts';
+import type { ClientFeature } from './contract.ts';
 
 const field = (s: RoundSetting): HTMLInputElement | null =>
   document.querySelector<HTMLInputElement>(`#${roundFieldId(s)}`);
@@ -37,12 +32,14 @@ const dialogValues = (): Record<string, number | boolean> =>
   );
 
 /** The data-act handlers of „Neue Runde“. */
-export const roundActs = ({ act, modal }: Deps) => ({
-  reset: () => modal(roundDialog(client.game!.round)),
-  doReset: () => {
-    // Read before the dialog closes with its fields.
-    const data = roundRequest(dialogValues());
-    modal('');
-    return act('reset', data);
-  },
-});
+export const clientFeature = {
+  acts: ({ act, modal }) => ({
+    reset: () => modal(roundDialog(client.game!.round)),
+    doReset: () => {
+      // Read before the dialog closes with its fields.
+      const data = roundRequest(dialogValues());
+      modal('');
+      return act('reset', data);
+    },
+  }),
+} satisfies ClientFeature;

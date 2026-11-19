@@ -130,8 +130,9 @@ describe('galaxyPage', () => {
     expect(page.sys).toBe(7);
     expect(page.galaxies).toBe(U.galaxies);
     expect(page.systems).toBe(U.systems);
+    // The positions of the system and the expedition position after them (#93).
     expect(page.rows.map((r) => r.position)).toEqual(
-      Array.from({ length: U.positions }, (_, i) => i + 1),
+      Array.from({ length: U.positions + 1 }, (_, i) => i + 1),
     );
     expect(page.scan).toBeNull();
   });
@@ -140,6 +141,94 @@ describe('galaxyPage', () => {
     expect(galaxyPage(view({ probes: 0 })).probes).toBe('1');
     expect(galaxyPage(view({ probes: 3 })).probes).toBe('3');
     expect(galaxyPage(view({ probes: 1500 })).probes).toBe('1.500');
+  });
+});
+
+describe('the expedition position (#93)', () => {
+  const last = U.positions + 1;
+  const level1 = { expo: 1 };
+  const ships = { lc: 3 };
+
+  it('is the row after the last planet position, with no planet and its own note', () => {
+    const row = rowAt(view(), last);
+    expect(row).toMatchObject({
+      position: 16,
+      planet: null,
+      marks: [],
+      actions: [],
+      note: 'Expeditionsposition',
+      moon: null,
+    });
+    // The planet positions keep the dash of a free position.
+    expect(rowAt(view(), U.positions).note).toBe('–');
+  });
+
+  it('offers „Expedition“ with the research and a ship that flies', () => {
+    const button = [
+      {
+        kind: 'button',
+        label: 'Expedition',
+        attrs: { 'data-act': 'gfleet', 'data-m': 'expedition', ...at(last) },
+      },
+    ];
+    expect(
+      rowAt(view({ research: level1, P: { ships } }), last).actions,
+    ).toEqual(button);
+    expect(
+      rowAt(view({ research: { expo: 9 }, P: { ships: { probe: 1 } } }), last)
+        .actions,
+    ).toEqual(button);
+    // Without the research, without a ship, with ships that cannot fly or none left.
+    expect(rowAt(view({ P: { ships } }), last).actions).toEqual([]);
+    expect(
+      rowAt(view({ research: { expo: 0 }, P: { ships } }), last).actions,
+    ).toEqual([]);
+    expect(rowAt(view({ research: level1 }), last).actions).toEqual([]);
+    expect(
+      rowAt(view({ research: level1, P: { ships: { sat: 4, lc: 0 } } }), last)
+        .actions,
+    ).toEqual([]);
+  });
+
+  it('shows the Trümmerfeld there with its Bergung, after the expedition', () => {
+    const v = view({
+      research: level1,
+      P: { ships },
+      debris: [field(last, 500, 200)],
+    });
+    const row = rowAt(v, last);
+    expect(row.marks).toEqual([debrisMark(field(last, 500, 200))]);
+    expect(row.actions.map((a) => a.kind)).toEqual(['button', 'html']);
+    expect(row.actions[1]).toEqual({
+      kind: 'html',
+      html: harvestButton({ g: 1, s: 2, p: last }),
+    });
+  });
+
+  it('offers neither the Landnahme nor the Vermessung there', () => {
+    const v = view({
+      research: { carto: 1, expo: 1 },
+      P: { ships: { colony: 1, probe: 2 } },
+    });
+    expect(rowAt(v, last).actions.map((a) => 'label' in a && a.label)).toEqual([
+      'Expedition',
+    ]);
+    expect(rowAt(v, 9).actions.map((a) => 'label' in a && a.label)).toEqual([
+      'Landnahme',
+      'Vermessen',
+    ]);
+  });
+
+  it('follows the size of the universe: 21 with 20 positions', () => {
+    const v = view();
+    v.s.cfg = { ...U, positions: 20 };
+    const page = galaxyPage(v);
+    expect(page.rows).toHaveLength(21);
+    expect(page.rows[20]).toMatchObject({
+      position: 21,
+      note: 'Expeditionsposition',
+    });
+    expect(page.rows[19]!.note).toBe('–');
   });
 });
 

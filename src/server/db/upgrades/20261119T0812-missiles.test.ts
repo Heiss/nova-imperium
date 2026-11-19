@@ -8,7 +8,6 @@ import { databaseAt, migrationsThrough } from '../../../test/migrations.ts';
 import { migrate, type Db } from '../database.ts';
 import migrations from '../migrations/54/migrations.ts';
 import { Store } from '../store.ts';
-import { MISSION } from '../../../core/missions.ts';
 import type { Fleet } from '../../../core/types.ts';
 
 const ID = '20261119T0812-missiles';
@@ -72,19 +71,28 @@ describe(`upgrade to migration ${ID}`, () => {
     db.close();
   });
 
-  it('allows every mission of the game after the rebuilds of the Mondbruch, the Vermessung and the missiles, and keeps the columns (#95, #190, #54)', () => {
+  it('allows every mission of the game up to the missiles after the rebuilds of the Mondbruch, the Vermessung and the missiles, and keeps the columns (#95, #190, #54)', () => {
     const db = runningRound();
     migrate(db, through);
-    // The last rebuild lists all missions of the code; `aim` and `gift` stay.
+    // This rebuild lists the missions up to the Raketenangriff, the later
+    // Expedition (#93) has its own rebuild; `aim` and `gift` stay.
     const columns = db
       .prepare("SELECT name FROM pragma_table_info('fleets')")
       .pluck()
       .all();
     expect(columns).toEqual(expect.arrayContaining(['gift', 'aim', 'fuel']));
-    const ids = Object.keys(MISSION);
-    expect(ids).toEqual(
-      expect.arrayContaining(['moonbreak', 'survey', 'missile']),
-    );
+    const ids = [
+      'attack',
+      'transport',
+      'spy',
+      'colonize',
+      'deploy',
+      'harvest',
+      'hold',
+      'moonbreak',
+      'survey',
+      'missile',
+    ];
     for (const mission of ids)
       db.prepare(
         `INSERT INTO fleets (id, owner, from_planet, from_g, from_s, from_p, to_planet, to_g, to_s, to_p,
@@ -97,7 +105,7 @@ describe(`upgrade to migration ${ID}`, () => {
         .pluck()
         .get(),
     ).toBe(ids.length);
-    // The CHECK lists exactly the missions of the code.
+    // The CHECK lists exactly these missions.
     const sql = db
       .prepare("SELECT sql FROM sqlite_master WHERE name = 'fleets'")
       .pluck()

@@ -1,4 +1,11 @@
 import { SHIPS, canFly } from '../../core/catalog.ts';
+import {
+  expeditionLevel,
+  expeditionSlots,
+  extraSlots,
+  stayDuration,
+  staysByUniverseSpeed,
+} from '../../core/expedition.ts';
 import { fleetSlots, shipSpeed } from '../../core/flight.ts';
 import { HOLD_HOURS } from '../../core/holding.ts';
 import {
@@ -7,10 +14,13 @@ import {
   MISSION,
   missionRules,
 } from '../../core/missions.ts';
+import { maxPosition } from '../logic/fleet-target.ts';
+import { maxStay, staysAt } from '../logic/game.ts';
 import { jumpPanel } from '../logic/jump-gate.ts';
 import { moonAt } from '../logic/moon.ts';
 import { text } from '../../core/text.ts';
-import { esc, fmt } from '../logic/format.ts';
+import type { Universe } from '../../core/types.ts';
+import { dur, esc, fmt } from '../logic/format.ts';
 import { fleetRows, type FleetRow } from '../logic/overview.ts';
 import { box, cd, type V } from './common.ts';
 
@@ -59,6 +69,46 @@ export function holdRow(mission: string): string {
   return `<tr id="t_hold"${hidden}><td><label for="t_h">Haltezeit</label></td><td><select id="t_h">${options}</select></td></tr>`;
 }
 
+/**
+ * The row „Haltezeit“ of an expedition (#93): whole hours from 1 to the most
+ * the research and the round allow, at the target. With the universe speed
+ * dividing the stay, `timeRow` adds the real time beside it. It is a row of
+ * its own with its own field `t_stay`, apart from the Halten (`t_hold`,
+ * `t_h`): only one of the two is in the form, so no label exists twice.
+ */
+function stayRow(mission: string, v: Pick<V, 'R' | 's'>): string {
+  const most = Math.max(1, maxStay(mission, v.R.research, v.s.cfg));
+  return `<tr id="t_stay_row"><td>Haltezeit</td><td><input class="c3" type="number" id="t_stay" min="1" max="${most}" value="1" aria-label="Haltezeit in Stunden"> Stunden am Ziel <span id="t_real" class="dim"></span></td></tr>`;
+}
+
+/** The row of the time at the target for the mission: the stay of an expedition or the holding time of a Halten (hidden for the others). */
+const timeRowHtml = (mission: string, v: Pick<V, 'R' | 's'>): string =>
+  staysAt(mission) ? stayRow(mission, v) : holdRow(mission);
+
+/**
+ * Brings the row of the time at the target in line with the chosen mission
+ * (main.ts calls it on every change of the form): the row is replaced when
+ * the mission changes from a stay to a holding time or back, else it is only
+ * shown or hidden; the real duration of a stay is written beside it (#93).
+ */
+export function timeRow(mission: string, v: Pick<V, 'R' | 's'>): void {
+  const row = document.querySelector<HTMLElement>('#t_hold, #t_stay_row');
+  if (!row) return;
+  if ((row.id === 't_stay_row') !== staysAt(mission))
+    row.outerHTML = timeRowHtml(mission, v);
+  else row.hidden = !staysAt(mission) && !missionRules(mission)?.holds;
+  const real = document.getElementById('t_real');
+  if (!real) return;
+  const field = document.getElementById('t_stay') as HTMLInputElement;
+  real.textContent = realStay(Number(field.value), v.s.cfg);
+}
+
+/** The real time of a stay of `hours` when the universe speed divides it (#93, owner, 2026-11-19) [V]; nothing otherwise. */
+export const realStay = (hours: number, u: Universe): string =>
+  staysByUniverseSpeed(u) && hours >= 1
+    ? `entspricht ${dur(stayDuration(hours, u))} (durch Tempo ${u.speed} geteilt)`
+    : '';
+
 const CARGO = [
   ['m', 'Adamant'],
   ['c', 'Psikristall'],
@@ -88,9 +138,9 @@ function targetForm(v: V, slotsFull: boolean): string {
     .map((x) => `<option value="${x}">${x * 10} %</option>`)
     .join('');
   return `<table class="kv">
-  <tr><td>Ziel</td><td><input class="c3" type="number" id="t_g" value="${t.g}" min="1" max="${u.galaxies}" aria-label="Galaxie">:<input class="c3" type="number" id="t_s" value="${t.s}" min="1" max="${u.systems}" aria-label="System">:<input class="c3" type="number" id="t_p" value="${t.p}" min="1" max="${u.positions}" aria-label="Position"> ${kinds} <span id="t_info" class="dim"></span></td></tr>
+  <tr><td>Ziel</td><td><input class="c3" type="number" id="t_g" value="${t.g}" min="1" max="${u.galaxies}" aria-label="Galaxie">:<input class="c3" type="number" id="t_s" value="${t.s}" min="1" max="${u.systems}" aria-label="System">:<input class="c3" type="number" id="t_p" value="${t.p}" min="1" max="${maxPosition(s)}" aria-label="Position"> ${kinds} <span id="t_info" class="dim"></span></td></tr>
   <tr><td>Auftrag</td><td><select id="t_m" aria-label="Auftrag">${missions}</select></td></tr>
-  ${holdRow(ui.fm ?? Object.keys(MISSION)[0]!)}
+  ${timeRowHtml(ui.fm ?? Object.keys(MISSION)[0]!, v)}
   <tr><td>Geschwindigkeit</td><td><select id="t_v" aria-label="Geschwindigkeit">${speeds}</select></td></tr>
   <tr><td>Ladung (Adamant / Psikristall / Promethium)</td><td>${cargoFields} <span class="lnk" data-act="cmax">alles (gleichmäßig)</span></td></tr>
   <tr><td>Entfernung</td><td id="i_dist">-</td></tr><tr><td>Flugdauer (eine Richtung)</td><td id="i_dur">-</td></tr>
@@ -122,6 +172,19 @@ function jumpBox(v: V): string {
   );
 }
 
+/**
+ * „ · Expeditionen (n / m)“ once the research is there (#93): the own fleets
+ * of a mission that stays against the slots the level allows.
+ */
+function expeditionTitle(v: V): string {
+  const level = expeditionLevel(v.R.research);
+  if (level < 1) return '';
+  const used = v.s.fleets.filter(
+    (f) => f.owner === v.s.me.id && staysAt(f.mission),
+  ).length;
+  return ` · Expeditionen (${used} / ${expeditionSlots(level, extraSlots(v.s.cfg))})`;
+}
+
 export function fleet(v: V): string {
   const slots = fleetSlots(v.R);
   // The gift of the „Endzeit“ (#161) and missiles (#54) take no slot.
@@ -130,7 +193,7 @@ export function fleet(v: V): string {
   ).length;
   const rows = shipRows(v);
   const head = box(
-    `Flotten unterwegs (${used} / ${slots} Slots)`,
+    `Flotten unterwegs (${used} / ${slots} Slots)${expeditionTitle(v)}`,
     fleetTable(v),
   );
   if (!rows)

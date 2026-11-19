@@ -3,7 +3,7 @@
 // preview from the same function the server uses, „max“ fills the field with
 // the most that can be given, and „Tauschen“ sends the action trade. The
 // markup is in views/market.ts.
-import type { Res } from '../core/market.ts';
+import type { Res } from '../../core/market.ts';
 import {
   amountOf,
   draft,
@@ -11,14 +11,10 @@ import {
   marketOf,
   maxAmount,
   preview,
-} from './logic/market.ts';
-import { client } from './logic/state.svelte.ts';
-import { previewHTML, targetOptions } from './views/market.ts';
-
-/** What the actions need from main.ts. */
-interface Deps {
-  act: (type: string, data?: object) => Promise<boolean>;
-}
+} from '../logic/market.ts';
+import { client } from '../logic/state.svelte.ts';
+import { previewHTML, targetOptions } from '../views/market.ts';
+import type { ClientFeature } from './contract.ts';
 
 const field = <T extends HTMLElement>(id: string): T | null =>
   document.getElementById(id) as T | null;
@@ -47,34 +43,36 @@ function read(): void {
 }
 
 /** The data-act handlers of the marketplace; its form is handled here too. */
-export function marketActs({ act }: Deps): Record<string, () => void> {
-  document.addEventListener('input', (e) => {
-    if (!(e.target as HTMLElement).closest('#marketform')) return;
-    read();
-    paint();
-  });
-  document.addEventListener('submit', (e) => {
-    if ((e.target as HTMLFormElement).id !== 'marketform') return;
-    e.preventDefault();
-    read();
-    const d = fixed(draft);
-    void act('trade', {
-      give: d.give,
-      get: d.get,
-      amount: amountOf(d.amount),
-    }).then((done) => {
-      if (!done) return;
-      draft.amount = '';
+export const clientFeature = {
+  acts: ({ act }) => {
+    document.addEventListener('input', (e) => {
+      if (!(e.target as HTMLElement).closest('#marketform')) return;
+      read();
       paint();
     });
-  });
-  return {
-    marketMax: () => {
-      const m = current();
-      if (!m) return;
+    document.addEventListener('submit', (e) => {
+      if ((e.target as HTMLFormElement).id !== 'marketform') return;
+      e.preventDefault();
       read();
-      draft.amount = maxAmount(m, fixed(draft));
-      paint();
-    },
-  };
-}
+      const d = fixed(draft);
+      void act('trade', {
+        give: d.give,
+        get: d.get,
+        amount: amountOf(d.amount),
+      }).then((done) => {
+        if (!done) return;
+        draft.amount = '';
+        paint();
+      });
+    });
+    return {
+      marketMax: () => {
+        const m = current();
+        if (!m) return;
+        read();
+        draft.amount = maxAmount(m, fixed(draft));
+        paint();
+      },
+    };
+  },
+} satisfies ClientFeature;

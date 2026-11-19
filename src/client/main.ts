@@ -3,21 +3,14 @@
 // functions (views/) or Svelte components; the logic is tested (logic/); this
 // file is run by the E2E suite.
 import { flushSync } from 'svelte';
-import { missionRules } from '../core/missions.ts';
-import { placeId } from '../core/place.ts';
 import { settle, settleR } from '../core/settle.ts';
 import type { Planet } from '../core/types.ts';
 import { createAct, placeOf, samePlace } from './logic/act.ts';
 import { LEXICANUM_VIEW, viewUrl } from './logic/address.ts';
-import { CATALOG_VIEWS, catalogKind, orderNote } from './logic/catalog-list.ts';
-import { sameSignIn } from './logic/guild-chat.ts';
-import { debrisAt, debrisTip } from './logic/debris.ts';
+import { CATALOG_VIEWS, catalogKind } from './logic/catalog-list.ts';
 import * as demolition from './logic/demolition.ts';
-import { endzeitNote } from './logic/endzeit.ts';
-import { moonAt, moonTarget } from './logic/moon.ts';
 import { scanOf } from './logic/phalanx.ts';
-import { targetOf } from './logic/galaxy.ts';
-import { clampInt, coords, dt, dur, esc, fmt } from './logic/format.ts';
+import { coords, dur } from './logic/format.ts';
 import {
   apiFailure,
   type ClientError,
@@ -25,25 +18,14 @@ import {
   describeError,
   ERRORS_URL,
   failedCall,
-  reportFormHTML,
 } from './logic/error-report.ts';
-import {
-  arrivalLine,
-  fleetPreview,
-  galaxyStep,
-  nameOf,
-  settingsFrom,
-  type FleetForm,
-} from './logic/game.ts';
 import { headerLine } from './logic/header.ts';
-import { highscoreCategory } from './logic/highscore.ts';
 import { keeps, viewDue } from './logic/jump-gate.ts';
 import { chatToSee, finishedYardOrders } from './logic/menu-hints.ts';
 import { gameIsBack, maintenanceNotice } from './logic/maintenance.ts';
 import { latestNews, NEWS_SEEN_KEY, type NewsData } from './logic/news.ts';
 import { hiddenView, navigation } from './logic/navigation.ts';
 import { ANIMATION_KEY, animationsOn } from './logic/planet.ts';
-import { pushSaver } from './logic/push-options.ts';
 import { client } from './logic/state.svelte.ts';
 import { resourceBar } from './logic/resource-bar.ts';
 import type { GameState } from './logic/types.ts';
@@ -65,43 +47,26 @@ import {
   auth,
   deleteAccountDialog,
   diagnosticTab,
-  endzeitDialog,
   type AdminTab,
 } from './views/misc.ts';
-import { disablePush, enablePush } from './push.ts';
-import { fleetActs } from './fleet-acts.ts';
-import { featureActs } from './feature-actions.ts';
+import { disablePush } from './push.ts';
 import { mountCatalogList } from './views/catalog-list.ts';
 import { renderGate } from './views/vacation-lock.ts';
-import {
-  adminChatDialog,
-  dissolveDialog,
-  transferDialog,
-} from './views/guilds.ts';
 import { mountGalaxy } from './views/galaxy.ts';
-import { lexicanumActions, mountLexicanum } from './views/lexicanum.ts';
+import { mountLexicanum } from './views/lexicanum.ts';
 import { mountOverview } from './views/overview.ts';
 import { mountProducerTable } from './views/producer-table.ts';
-import { missileActs } from './views/missiles.ts';
-import { addPasskey, signInWithPasskey } from './passkeys.ts';
+import { signInWithPasskey } from './passkeys.ts';
+import { $, keepChatScroll, val } from './dom.ts';
+import {
+  assembleActs,
+  assembleForms,
+  runAfterRender,
+} from './features/assemble.ts';
+import type { ClientCtx } from './features/contract.ts';
+import { CLIENT_FEATURES } from './features/index.gen.ts';
 
 type Data = Record<string, string | undefined>;
-
-const $ = <T extends HTMLElement = HTMLElement>(sel: string): T | null =>
-  document.querySelector<T>(sel);
-const val = (sel: string): string => $<HTMLInputElement>(sel)?.value ?? '';
-/** The value of a field by its id (ids of guild ranks are not CSS-safe). */
-const byId = (id: string): string =>
-  (document.getElementById(id) as HTMLInputElement | null)?.value ?? '';
-const setById = (id: string, value: string): void => {
-  const field = document.getElementById(id) as HTMLInputElement | null;
-  if (field) field.value = value;
-};
-/** The checked rights of a guild rank (#163), the disabled ones included. */
-const rankRights = (rank?: string): string[] =>
-  [...document.querySelectorAll<HTMLInputElement>('input[data-rank-right]')]
-    .filter((box) => box.dataset.rankRight === rank && box.checked)
-    .map((box) => box.value);
 
 let loginChallenge: string | null = null;
 let rememberLogin = false;
@@ -132,14 +97,6 @@ let adminPanel: {
   errorPanel: ReturnType<typeof mountAdminErrors>;
 } | null = null;
 let lastActivity = -Infinity;
-
-interface InstallPrompt extends Event {
-  prompt: () => Promise<unknown>;
-}
-let installPrompt: InstallPrompt | null = null;
-let installedHere = false;
-const INSTALL_DISMISSED_KEY = 'nova.pwa.install-dismissed';
-let installDismissed = readInstallDismissal();
 
 function readNewsSeen(): string | null {
   try {
@@ -179,43 +136,6 @@ async function loadNews(): Promise<void> {
     newsLoading = false;
   }
 }
-
-function readInstallDismissal(): boolean {
-  try {
-    return localStorage.getItem(INSTALL_DISMISSED_KEY) === '1';
-  } catch {
-    return false;
-  }
-}
-const mobileInstall = matchMedia('(max-width: 800px) and (pointer: coarse)');
-const standalone = matchMedia('(display-mode: standalone)');
-
-function isInstalled(): boolean {
-  const platform = navigator as Navigator & { standalone?: boolean };
-  return installedHere || standalone.matches || platform.standalone === true;
-}
-
-function updateInstallButton(): void {
-  const button = $('#pwa-install');
-  if (button) button.hidden = !installPrompt || isInstalled();
-  const offer = $('#pwa-offer');
-  if (offer)
-    offer.hidden = !mobileInstall.matches || isInstalled() || installDismissed;
-}
-window.addEventListener('beforeinstallprompt', (event) => {
-  event.preventDefault();
-  installPrompt = event as InstallPrompt;
-  updateInstallButton();
-});
-window.addEventListener('appinstalled', () => {
-  installedHere = true;
-  installPrompt = null;
-  updateInstallButton();
-});
-
-mobileInstall.addEventListener('change', updateInstallButton);
-standalone.addEventListener('change', updateInstallButton);
-updateInstallButton();
 
 function gameView(view: string | null): string {
   if (!view || (!MOUNTED.has(view) && !Object.hasOwn(VIEWS, view)))
@@ -327,34 +247,6 @@ function reportOffer(msg: string): HTMLButtonElement {
     request: ui.lastRequestId ?? '',
   });
   return button;
-}
-
-/** The form „Problem melden“ in a dialog, filled from the error message. */
-function openReport(d: Data): void {
-  modal(
-    reportFormHTML('reportform-dialog', {
-      source: 'toast',
-      page: d.page ?? ui.view,
-      version: ui.news?.version ?? '',
-      requestId: d.request || null,
-      message: d.message,
-    }) + '<button type="button" data-act="closeModal">Abbrechen</button>',
-  );
-  $('#reportform-dialog-text')?.focus();
-}
-
-async function submitReport(id: string): Promise<void> {
-  const form = $<HTMLFormElement>(`#${id}`);
-  if (!form) return;
-  try {
-    const j = await api('/api/report', Object.fromEntries(new FormData(form)));
-    form.reset();
-    // Close the dialog only if it is still this one, not one opened since.
-    if (id === 'reportform-dialog' && form.isConnected) modal('');
-    toast(String(j.msg));
-  } catch (e) {
-    toast((e as Error).message, true);
-  }
 }
 
 // ----- error log (issue #126) -----
@@ -554,9 +446,6 @@ async function refresh(): Promise<void> {
     if (client.game) console.warn(e);
   }
 }
-
-/** The push kinds (#192): one save at a time, the newest choice wins. */
-const savePush = pushSaver(ui, (off) => act('pushOptions', { off }));
 
 // ----- rendering -----
 
@@ -799,36 +688,13 @@ function render(fresh = false): void {
   updateBar();
   showHeader(headerLine(client.game, client.view.P));
   renderView(view, client.view, fresh);
-  if (ui.view === 'help') updateInstallButton();
   renderCompletions(view);
   paintPlanets(view);
   restore();
   chatScroll();
-  if (ui.view === 'fleet') fleetCalc();
-  if (ui.view === 'achievements') filterAchievements();
+  runAfterRender(CLIENT_FEATURES);
   if (ui.view === 'messages') markRead();
   seeChat();
-}
-
-function filterAchievements(): void {
-  const query = val('#achievement_search').trim().toLocaleLowerCase('de');
-  const category = val('#achievement_category');
-  const status = val('#achievement_status');
-  document
-    .querySelectorAll<HTMLElement>('[data-achievement]')
-    .forEach((item) => {
-      item.hidden =
-        (!!category && item.dataset.category !== category) ||
-        (!!status && item.dataset.status !== status) ||
-        !item.dataset.search!.includes(query);
-    });
-  document
-    .querySelectorAll<HTMLElement>('[data-achievement-group]')
-    .forEach((group) => {
-      group.hidden =
-        !!group.querySelector('[data-achievement]') &&
-        !group.querySelector('[data-achievement]:not([hidden])');
-    });
 }
 
 function renderMenu(): void {
@@ -872,100 +738,6 @@ function seeChat(): void {
   }, 600);
 }
 
-// ----- fleet form -----
-/** The shown planet with its stock of this moment, for the cargo buttons. */
-const settledPlanet = (): Planet =>
-  settle(client.game!.planet!, client.now(), client.game!.cfg, client.game!.me);
-
-function readFleetForm(): FleetForm {
-  const ships: Record<string, number> = {};
-  const P = client.view!.P;
-  const u = client.game!.cfg;
-  document.querySelectorAll<HTMLInputElement>('.fs').forEach((i) => {
-    const k = i.dataset.k!;
-    const n = clampInt(i.value, 0, P.ships[k] ?? 0);
-    if (n > 0) ships[k] = n;
-  });
-  return {
-    ships,
-    to: {
-      g: clampInt(val('#t_g'), 1, u.galaxies),
-      s: clampInt(val('#t_s'), 1, u.systems),
-      p: clampInt(val('#t_p'), 1, u.positions),
-      // The planet or its moon (#53).
-      kind: val('#t_k') === 'moon' ? 'moon' : 'planet',
-    },
-    mission: val('#t_m'),
-    hold: Number(val('#t_h')),
-    pct: clampInt(val('#t_v'), 1, 10),
-    cargo: {
-      m: clampInt(val('#c_m'), 0, 1e15),
-      c: clampInt(val('#c_c'), 0, 1e15),
-      d: clampInt(val('#c_d'), 0, 1e15),
-    },
-  };
-}
-
-/**
- * Beside the target: its planet and owner, a free position, or none; for a
- * Bergung the Trümmerfeld there, or none (#45).
- */
-function targetInfo(s: GameState, f: FleetForm): string {
-  if (missionRules(f.mission)?.target === 'debris') {
-    const field = debrisAt(s.debris, f.to);
-    return field
-      ? debrisTip(field)
-      : '<span class="bad">kein Trümmerfeld</span>';
-  }
-  if (f.to.kind === 'moon')
-    return moonTarget(moonAt(s.galaxy, f.to), (id) => nameOf(s.players, id));
-  const target = s.galaxy.find(
-    (p) => p.id === placeId({ ...f.to, kind: 'planet' }),
-  );
-  if (target)
-    return `${esc(target.name)} (${esc(nameOf(s.players, target.owner))})`;
-  return missionRules(f.mission)?.target === 'free'
-    ? 'Freie Position'
-    : '<span class="bad">kein Planet</span>';
-}
-
-/** „Mond“ in the select of the target only where a moon is (#53). */
-function moonOption(s: GameState): void {
-  const select = $('#t_k') as HTMLSelectElement | null;
-  if (!select) return;
-  const to = readFleetForm().to;
-  const option = select.querySelector<HTMLOptionElement>('option[value=moon]')!;
-  option.disabled = !moonAt(s.galaxy, to);
-  if (option.disabled && select.value === 'moon') select.value = 'planet';
-}
-
-function fleetCalc(): void {
-  if (!$('#t_g') || !client.view || !client.game) return;
-  moonOption(client.game);
-  const f = readFleetForm();
-  $('#t_info')!.innerHTML = targetInfo(client.game, f);
-  $('#t_hold')!.hidden = !missionRules(f.mission)?.holds;
-  const pv = fleetPreview(client.view.P, client.view.R, f, client.game.cfg);
-  const set = (id: string, html: string): void =>
-    void ($(`#${id}`)!.innerHTML = html);
-  if (!pv)
-    return ['i_dist', 'i_dur', 'i_arr', 'i_fuel', 'i_cap'].forEach((id) =>
-      set(id, '-'),
-    );
-  const now = client.now();
-  set('i_dist', fmt(pv.dist));
-  set('i_dur', dur(pv.ms));
-  set('i_arr', arrivalLine(f.mission, now, pv));
-  set(
-    'i_fuel',
-    `<span class="${pv.fuelShort ? 'bad' : ''}">${fmt(pv.fuel)}</span> Promethium`,
-  );
-  set(
-    'i_cap',
-    `<span class="${pv.overload ? 'bad' : ''}">${fmt(pv.load)}</span> / ${fmt(pv.cap)}`,
-  );
-}
-
 const setInput = (sel: string, v: string | number): void => {
   const el = $<HTMLInputElement>(sel);
   if (el) el.value = String(v);
@@ -991,79 +763,14 @@ const go = (
   window.scrollTo(0, 0);
 };
 
-async function togglePush(enabled: boolean): Promise<void> {
-  try {
-    await (enabled ? enablePush : disablePush)(api);
-    toast(
-      enabled
-        ? 'Benachrichtigungen aktiviert.'
-        : 'Benachrichtigungen deaktiviert.',
-    );
-  } catch (e) {
-    toast((e as Error).message, true);
-  }
-}
-
 function closeMore(): void {
   const more = $<HTMLDialogElement>('#more');
   if (more?.open) more.close();
 }
 
-const ACT: Record<string, (d: Data) => unknown> = {
+/** The handlers of the frame; the features add theirs (features/). */
+const FRAME: Record<string, (d: Data) => unknown> = {
   moreOpen: () => $<HTMLDialogElement>('#more')!.showModal(),
-  pushEnable: () => togglePush(true),
-  pushDisable: () => togglePush(false),
-  guildView: (d) => go('guilds', true, d.id ?? null),
-  guildApply: (d) => act('applyToGuild', { id: d.id }),
-  guildLeave: (d) => {
-    if (!d.confirm || window.confirm(d.confirm)) return act('leaveGuild');
-  },
-  guildReview: (d) =>
-    act('reviewGuildApplication', { uid: d.uid, accept: d.accept === '1' }),
-  guildMember: (d) => {
-    const ranks = client.game?.guilds?.ranks;
-    if (d.transfer === '1' && ranks) {
-      const name = client
-        .game!.guilds!.directory.flatMap((g) => g.members)
-        .find((m) => m.id === d.uid)?.name;
-      modal(transferDialog(ranks, d.uid ?? '', name ?? ''));
-      return $('#transfer_rank')?.focus();
-    }
-    if (window.confirm('Mitglied entfernen?'))
-      return act('manageGuildMember', { uid: d.uid, transfer: false });
-  },
-  guildDissolve: (d) => {
-    const guild = client.game?.guilds?.directory.find((g) => g.id === d.id);
-    if (!guild) return;
-    modal(dissolveDialog(guild));
-    $('#dissolve_tag')?.focus();
-  },
-  guildAssign: (d) =>
-    act('assignGuildRank', { uid: d.uid, rank: byId(`rank_of_${d.uid}`) }),
-  rankCreate: async () => {
-    if (await act('createGuildRank', { name: byId('rank_new') }))
-      setById('rank_new', '');
-  },
-  rankRename: (d) =>
-    act('renameGuildRank', {
-      rank: d.rank,
-      name: byId(`rank_name_${d.rank}`),
-    }),
-  rankRights: (d) =>
-    act('setGuildRankRights', { rank: d.rank, rights: rankRights(d.rank) }),
-  rankMove: (d) => act('moveGuildRank', { rank: d.rank, up: d.up === '1' }),
-  rankDelete: (d) => {
-    if (
-      window.confirm(
-        'Rang löschen? Seine Mitglieder bekommen den Standardrang.',
-      )
-    )
-      return act('deleteGuildRank', { rank: d.rank });
-  },
-  rankDefault: (d) => act('setGuildDefaultRank', { rank: d.rank }),
-  guildChatAdmin: (d) => openAdminChat(d.id ?? ''),
-  achievementClaim: (d) => act('claimAchievement', { id: d.id }),
-  dailyClaim: () => act('claimDailyReward'),
   logout: async () => {
     await disablePush(api).catch(() => null);
     await api('/api/logout', {}).catch(() => null);
@@ -1085,193 +792,34 @@ const ACT: Record<string, (d: Data) => unknown> = {
     ui.auth = ui.auth === 'register' ? 'login' : 'register';
     render(true);
   },
-  build: (d) => act('build', { key: d.k }),
-  cancelBuild: () => act('cancelBuild'),
-  ...demolition.demolitionActs({ act, modal, view: () => client.view }),
-  research: (d) => act('research', { key: d.k }),
-  cancelResearch: () => act('cancelResearch'),
-  maxq: (d) => setInput(`#q_${d.k}`, d.max ?? 0),
-  order: async (d) => {
-    const n = clampInt(val(`#q_${d.k}`), 0, 1e9);
-    const note = orderNote(client.view!, d.k!, n);
-    if (note) return toast(note, true);
-    if (await actHere('order', { key: d.k, n })) setInput(`#q_${d.k}`, '');
-  },
-  rename: () =>
-    modal(
-      `<p><b>${client.view!.P.kind === 'moon' ? 'Mond' : 'Planet'} umbenennen</b></p><input id="rn" maxlength="20" value="${esc(client.view!.P.name)}" aria-label="Neuer Name"> <button data-act="doRename">OK</button> <button data-act="closeModal">Abbrechen</button>`,
-    ),
-  doRename: () => {
-    const n = val('#rn').trim();
-    modal('');
-    if (n) void act('rename', { name: n });
-  },
   closeModal: () => modal(''),
-  gnav: (d) => {
-    Object.assign(ui, galaxyStep(ui.gal, ui.sys, d.d ?? '', client.game!.cfg));
-    render(true);
-  },
-  ggo: () => {
-    ui.gal = clampInt(val('#g_g'), 1, client.game!.cfg.galaxies);
-    ui.sys = clampInt(val('#g_s'), 1, client.game!.cfg.systems);
-    render(true);
-  },
   selectPlanet: (d) => {
     if (d.id) return selectPlanet(d.id);
-  },
-  ghome: () => {
-    const home =
-      client.game!.galaxy.find((p) => p.id === client.game!.mainPlanet) ??
-      client.view!.P;
-    ui.gal = home.g;
-    ui.sys = home.s;
-    render(true);
-  },
-  gto: (d) => {
-    ui.gal = Number(d.g);
-    ui.sys = Number(d.s);
-    go('galaxy');
-  },
-  gmoon: (d) => {
-    ui.gmoon = ui.gmoon === d.id ? null : (d.id ?? null);
-    render(true);
-  },
-  gscan: async (d) => {
-    if (!(await actHere('scan', { target: d.id }))) return;
-    render(true);
-    $('#scan-h')?.focus();
-  },
-  ...missileActs(modal, actHere),
-  gscanClose: () => {
-    const target = ui.scan?.target;
-    ui.scan = null;
-    render(true);
-    // The focus goes back to the scan of the planet, while it is shown.
-    if (target) $(`[data-act=gscan][data-id="${CSS.escape(target)}"]`)?.focus();
-  },
-  gfleet: (d) => {
-    ui.ft = targetOf(d);
-    ui.fm = d.m ?? 'attack';
-    go('fleet');
-  },
-  gspy: (d) => {
-    const n = Math.min(
-      client.view!.P.ships.probe ?? 0,
-      client.game!.me.probes || 1,
-    );
-    if (!n) return toast('Keine Spähschädel auf dem Planeten.', true);
-    return act('send', {
-      ships: { probe: n },
-      to: targetOf(d),
-      mission: d.m ?? 'spy',
-      pct: 10,
-      cargo: { m: 0, c: 0, d: 0 },
-    });
-  },
-  fmax: (d) => {
-    setInput(`#f_${d.k}`, client.view!.P.ships[d.k!] ?? 0);
-    fleetCalc();
-  },
-  ...fleetActs({
-    actHere,
-    calc: fleetCalc,
-    form: readFleetForm,
-    planet: settledPlanet,
-    setInput,
-    render,
-  }),
-  send: async () => {
-    if (await actHere('send', readFleetForm())) {
-      ui.ft = null;
-      render(true);
-    }
-  },
-  recall: (d) => act('recall', { id: d.id }),
-  toggleRep: (d) => {
-    ui.openRep[d.id!] = !ui.openRep[d.id!];
-    document.getElementById(`rep_${d.id}`)?.classList.toggle('open');
-  },
-  delrep: (d) => act('delrep', { id: d.id }),
-  delall: () => act('delall'),
-  // nav, explain and the links of the Lexicanum (#285).
-  ...lexicanumActions(go),
-  highscore: (d) => {
-    ui.highscore = highscoreCategory(d.cat);
-    render();
   },
   adminTab: (d) => {
     if (d.tab && Object.hasOwn(ADMIN_TABS, d.tab))
       openAdminTab(d.tab as AdminTab);
   },
-  listPasskeys: showPasskeys,
-  reportProblem: openReport,
   passkeyLogin: loginByPasskey,
-  removePasskey: async (d) => {
-    if (!window.confirm('Diesen Passkey entfernen?')) return;
-    try {
-      await api('/api/passkeys/remove', { id: d.id });
-      await showPasskeys();
-    } catch (error) {
-      toast((error as Error).message, true);
-    }
-  },
   deleteAccount: () => modal(deleteAccountDialog(client.game!.round)),
-  ...featureActs({ act, modal }),
-  dismissInstall: () => {
-    installDismissed = true;
-    try {
-      localStorage.setItem(INSTALL_DISMISSED_KEY, '1');
-    } catch {
-      // The offer still stays hidden in this tab when storage is unavailable.
-    }
-    updateInstallButton();
-  },
-  installApp: async () => {
-    const prompt = installPrompt;
-    if (!prompt) {
-      modal(
-        '<p>Öffne das Browsermenü und wähle „App installieren“ oder „Zum Startbildschirm hinzufügen“.</p><p>Auf iPhone und iPad in Safari: „Teilen“ → „Zum Home-Bildschirm“ → „Als Web-App öffnen“.</p><p>Zum Spielen brauchst du eine Internetverbindung.</p><button type="button" data-act="closeModal">Schließen</button>',
-      );
-      return;
-    }
-    installPrompt = null;
-    updateInstallButton();
-    try {
-      await prompt.prompt();
-    } catch {
-      toast('Bitte installiere die App über das Browsermenü.', true);
-    }
-  },
-  endzeit: () => modal(endzeitDialog(client.game!.admin!.endzeit.minutes)),
-  doEndzeit: () => {
-    const minutes = val('#endzeit-minutes');
-    // The check of the server (F15, #214): a refusal without a request.
-    const note = endzeitNote(client.game!.admin!.endzeit.done, minutes);
-    modal('');
-    return note ? toast(note, true) : act('endzeit', { minutes });
-  },
-  saveSettings: () => {
-    const keys = client.game!.admin!.specs.map((x) => x.key);
-    return act('settings', {
-      settings: settingsFrom(keys, (k) => val(`#set_${k}`)),
-    });
-  },
   revoke: async (d) => {
     if (await adminCall('/api/admin/revoke', { id: d.id }))
       refreshInvitations();
   },
-  copyLink: async () => {
-    const input = $<HTMLInputElement>('#inv_link');
-    if (!input) return;
-    input.select();
-    try {
-      await navigator.clipboard.writeText(input.value);
-      toast('Link kopiert.');
-    } catch {
-      toast('Bitte den markierten Link selbst kopieren.', true);
-    }
-  },
 };
+
+/** What the features need from this file (features/contract.ts). */
+const ctx: ClientCtx = {
+  act,
+  actHere,
+  modal,
+  go,
+  render,
+  api,
+  toast,
+  setInput,
+};
+const ACT = assembleActs(FRAME, CLIENT_FEATURES, ctx);
 
 async function adminCall(
   url: string,
@@ -1341,38 +889,6 @@ async function loginByPasskey(): Promise<void> {
     apply(j.state as GameState);
     homeSystem();
     render(true);
-  } catch (error) {
-    toast((error as Error).message, true);
-  }
-}
-
-async function submitPasskey(): Promise<void> {
-  try {
-    await addPasskey(api, val('#passkey-password'));
-    setInput('#passkey-password', '');
-    toast('Passkey gespeichert.');
-    await showPasskeys();
-  } catch (error) {
-    toast((error as Error).message, true);
-  }
-}
-
-async function showPasskeys(): Promise<void> {
-  try {
-    const j = await api('/api/passkeys/list', {});
-    const keys = j.keys as { id: string; created: number }[];
-    const list = $('#passkey-list');
-    if (!list) return;
-    list.innerHTML = keys.length
-      ? '<ul>' +
-        keys
-          .map(
-            (key) =>
-              `<li>Erstellt am ${dt(key.created)} <button type="button" data-act="removePasskey" data-id="${esc(key.id)}">Entfernen</button></li>`,
-          )
-          .join('') +
-        '</ul>'
-      : '<p>Keine Passkeys gespeichert.</p>';
   } catch (error) {
     toast((error as Error).message, true);
   }
@@ -1455,66 +971,6 @@ async function submitAccountDeletion(): Promise<void> {
   }
 }
 
-async function submitTransfer(): Promise<void> {
-  const ok = await act('manageGuildMember', {
-    uid: $('#guildtransferform')?.dataset.uid,
-    transfer: true,
-    rank: val('#transfer_rank'),
-  });
-  if (ok) modal('');
-}
-
-async function submitDissolve(): Promise<void> {
-  if (await act('dissolveGuild', { tag: val('#dissolve_tag') })) {
-    modal('');
-    go('guilds');
-  }
-}
-
-/**
- * The admin opens the chat of a guild; the server records it (#169, D8). An
- * answer that comes in after a logout, or with another account signed in,
- * opens nothing (CodeRabbit on #216).
- */
-async function openAdminChat(guild: string): Promise<void> {
-  const admin = client.game?.me.id;
-  try {
-    const read = await api('/api/admin/guild-chat', { guild });
-    if (!sameSignIn(client.game, admin)) return;
-    modal(
-      adminChatDialog(read as unknown as Parameters<typeof adminChatDialog>[0]),
-    );
-    keepChatScroll($('#modalIn')!, true)();
-  } catch (error) {
-    toast((error as Error).message, true);
-  }
-}
-
-/**
- * The chat log keeps its place when the view renders again; at its end it
- * follows the new messages (#169).
- */
-function keepChatScroll(root: ParentNode, end = false): () => void {
-  const log = root.querySelector<HTMLElement>('.chat-log');
-  const atEnd =
-    end || !log || log.scrollTop + log.clientHeight >= log.scrollHeight - 4;
-  const top = log?.scrollTop ?? 0;
-  return () => {
-    const next = root.querySelector<HTMLElement>('.chat-log');
-    if (next) next.scrollTop = atEnd ? next.scrollHeight : top;
-  };
-}
-
-async function submitGuild(): Promise<void> {
-  const edit = $('#guildform')?.dataset.edit === '1';
-  const ok = await act(edit ? 'updateGuild' : 'createGuild', {
-    tag: val('#guild_tag'),
-    name: val('#guild_name'),
-    description: val('#guild_description'),
-  });
-  if (ok && !edit) go('guilds', true, client.game?.guilds?.own?.id ?? null);
-}
-
 async function submitInvite(): Promise<void> {
   const email = val('#inv_email').trim();
   const j = await adminCall('/api/admin/invite', { email });
@@ -1594,23 +1050,6 @@ document.addEventListener('change', (e) => {
     setAnimations((el as unknown as HTMLInputElement).checked);
   if (el.dataset?.chg === 'pct')
     void act('pct', { key: el.dataset.k, v: el.value });
-  if (el.dataset?.chg === 'push' && client.game)
-    void savePush(
-      client.game.me.pushOff,
-      el.dataset.k,
-      (el as unknown as HTMLInputElement).checked,
-    ).then(() => render());
-  if (ui.view === 'fleet') fleetCalc();
-  if (ui.view === 'achievements') filterAchievements();
-});
-document.addEventListener('input', (e) => {
-  if (
-    ui.view === 'achievements' &&
-    (e.target as HTMLElement).id === 'achievement_search'
-  )
-    filterAchievements();
-  if (ui.view === 'fleet' && (e.target as HTMLElement).closest('main'))
-    fleetCalc();
 });
 function adminTabKey(event: KeyboardEvent): void {
   const selected = (event.target as HTMLElement).closest(
@@ -1633,29 +1072,25 @@ function adminTabKey(event: KeyboardEvent): void {
 }
 document.addEventListener('keydown', adminTabKey);
 document.addEventListener('keydown', (e) => {
-  const id = (e.target as HTMLElement).id;
-  if (e.key === 'Enter' && id?.startsWith('g_')) ACT.ggo!({});
   if (e.key === 'Escape') modal('');
 });
+const FORMS = assembleForms(
+  {
+    authform: submitAuth,
+    inviteform: submitInvite,
+    announceform: submitAnnouncement,
+    codeform: submitLoginCode,
+    forgotform: submitForgot,
+    resetform: () => submitPassword(true),
+    passwordform: () => submitPassword(false),
+    deleteaccountform: submitAccountDeletion,
+  },
+  CLIENT_FEATURES,
+  ctx,
+);
 document.addEventListener('submit', (e) => {
   const id = (e.target as HTMLElement).id;
-  const handlers = [
-    ['authform', submitAuth],
-    ['inviteform', submitInvite],
-    ['announceform', submitAnnouncement],
-    ['guildform', submitGuild],
-    ['guildtransferform', submitTransfer],
-    ['guilddissolveform', submitDissolve],
-    ['codeform', submitLoginCode],
-    ['forgotform', submitForgot],
-    ['resetform', () => submitPassword(true)],
-    ['passwordform', () => submitPassword(false)],
-    ['passkeyform', submitPasskey],
-    ['deleteaccountform', submitAccountDeletion],
-    ['reportform', () => submitReport('reportform')],
-    ['reportform-dialog', () => submitReport('reportform-dialog')],
-  ] as const;
-  const handle = handlers.find(([form]) => form === id)?.[1];
+  const handle = Object.hasOwn(FORMS, id) ? FORMS[id] : undefined;
   if (!handle) return;
   e.preventDefault();
   void handle();

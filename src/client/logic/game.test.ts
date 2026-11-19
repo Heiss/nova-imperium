@@ -10,12 +10,15 @@ import {
   fleetPreview,
   galaxyStep,
   isProtected,
+  maxStay,
   nameOf,
   newestFirst,
   ranks,
   researchState,
   settingsFrom,
   sortFleets,
+  stayMs,
+  staysAt,
   unread,
 } from './game.ts';
 import type { ClientFleet, Report } from './types.ts';
@@ -166,6 +169,80 @@ describe('fleet form', () => {
     pct: 10,
     cargo: { m: 1000, c: 0, d: 50 },
   };
+  /** The universe of a round with the switch for the speed and the hours per level. */
+  const world = (speed: 0 | 1, hours = 1, tempo = 5) => ({
+    ...U,
+    speed: tempo,
+    roundExpeditionHours: hours,
+    roundExpeditionSpeed: speed,
+  });
+  it('knows which mission stays at its target and for how long (#93)', () => {
+    expect(staysAt('expedition')).toBe(true);
+    // A Halten holds, but it does not stay in this sense: no stay, no `maxStay`.
+    for (const m of [
+      'attack',
+      'transport',
+      'harvest',
+      'colonize',
+      'hold',
+      'nope',
+      '',
+    ])
+      expect(staysAt(m), m).toBe(false);
+    const hours = (mission: string, stay?: number) =>
+      stayMs({ mission, ...(stay === undefined ? {} : { stay }) }, U);
+    expect(hours('expedition', 3)).toBe(3 * 3_600_000);
+    expect(hours('expedition', 1)).toBe(3_600_000);
+    // An hour when the form gives none, nothing for a mission that does not stay.
+    expect(hours('expedition')).toBe(3_600_000);
+    expect(hours('transport', 3)).toBe(0);
+    expect(hours('hold', 3)).toBe(0);
+    expect(maxStay('expedition', { expo: 5 }, U)).toBe(5);
+    expect(maxStay('expedition', {}, U)).toBe(0);
+    expect(maxStay('transport', { expo: 5 }, U)).toBe(0);
+    expect(maxStay('hold', { expo: 5 }, U)).toBe(0);
+    expect(maxStay('nope', { expo: 5 }, U)).toBe(0);
+  });
+  it('takes the hours per level and the universe speed of the round into the stay (owner, 2026-11-19)', () => {
+    expect(maxStay('expedition', { expo: 5 }, world(0, 4))).toBe(20);
+    // The hours the form asks for are whole hours; the speed divides the real stay only when the round says so.
+    expect(stayMs({ mission: 'expedition', stay: 5 }, world(0))).toBe(
+      5 * 3_600_000,
+    );
+    expect(stayMs({ mission: 'expedition', stay: 5 }, world(1, 1, 5))).toBe(
+      3_600_000,
+    );
+    expect(stayMs({ mission: 'expedition', stay: 3 }, world(1, 1, 100))).toBe(
+      108_000,
+    );
+    expect(stayMs({ mission: 'transport', stay: 3 }, world(1))).toBe(0);
+  });
+  it('adds the stay of an expedition to the preview, divided by the speed when the round says so', () => {
+    const exp = { ...form, mission: 'expedition', stay: 3 };
+    const r = { research: {}, rq: null };
+    const pv = fleetPreview(p, r, exp, U)!;
+    expect(pv.stay).toBe(3 * 3_600_000);
+    expect(pv.hold).toBe(0);
+    expect(pv.ms).toBe(fleetPreview(p, r, form, U)!.ms);
+    expect(fleetPreview(p, r, exp, world(1, 1, 3))!.stay).toBe(3_600_000);
+    expect(fleetPreview(p, r, { ...exp, mission: 'transport' }, U)!.stay).toBe(
+      0,
+    );
+    // The hours of a Halten are no stay and the stay is no holding time.
+    expect(
+      fleetPreview(p, r, { ...exp, mission: 'expedition', hold: 4 }, U)!.hold,
+    ).toBe(0);
+  });
+  it('shows an expedition arriving when its stay ends and flying home from there (#93)', () => {
+    const pv = { ms: 60_000, hold: 0, stay: 3_600_000 };
+    expect(arrivalLine('expedition', 1000, pv)).toBe(
+      `${dt(1000 + 60_000 + 3_600_000)} / ${dt(1000 + 120_000 + 3_600_000)}`,
+    );
+    // A Halten arrives at once and comes back after its holding time.
+    expect(
+      arrivalLine('hold', 1000, { ms: 60_000, hold: 3_600_000, stay: 0 }),
+    ).toBe(`${dt(61_000)} / ${dt(1000 + 120_000 + 3_600_000)}`);
+  });
   it('previews distance, time, fuel and cargo', () => {
     expect(
       fleetPreview(p, { research: {}, rq: null }, { ...form, ships: {} }, U),
@@ -174,6 +251,7 @@ describe('fleet form', () => {
       dist: 1020,
       ms: Math.round(((3500 * Math.sqrt(10200 / 5000) + 10) / 5) * 1000),
       hold: 0,
+      stay: 0,
       fuel: 3,
       cap: 10000,
       load: 1050,

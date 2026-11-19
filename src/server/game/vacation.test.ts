@@ -8,6 +8,7 @@ import { describe, expect, it } from 'vitest';
 import { ACTIVITY_DEFAULT, MINUTE_MS } from '../../core/activity.ts';
 import { dayOf } from '../../core/market.ts';
 import { settle } from '../../core/settle.ts';
+import type { Fleet } from '../../core/types.ts';
 import { HOUR_MS } from '../../core/vacation.ts';
 import type { AuditEntry } from '../audit.ts';
 import { openDatabase } from '../db/database.ts';
@@ -24,6 +25,7 @@ import { tick } from './arrival.ts';
 import { universe } from './context.ts';
 import { ACTIONS, runAction } from './dispatch.ts';
 import { friendState } from './friends.ts';
+import { heldAt } from './holding.ts';
 import { currentPrices } from './market.ts';
 import { addMoon } from './moons.ts';
 import { roundRules } from './round.ts';
@@ -39,6 +41,14 @@ import {
 // 2026-11-17 12:00 UTC.
 const START = Date.UTC(2026, 10, 17, 12, 0);
 const EMPTY = { m: 0, c: 0, d: 0 };
+
+/** The info report [V] of a guard that the host's vacation sent home (owner, 2026-11-19). */
+const sentHome = (time: number, place: string) => ({
+  time,
+  type: 'info',
+  title: 'Wache heimgeschickt [1:1:5]',
+  text: `Deine Wache bei ${place} [1:1:5] wurde heimgeschickt: Der Gastgeber hat den Urlaubsmodus begonnen.`,
+});
 
 /** Anna with her planet and a moon, Bert with his planet, Carl the admin. */
 function world(ctx: TestCtx = testCtx(START)): TestCtx {
@@ -352,6 +362,56 @@ describe('a Vermessung and the vacation mode (#190, #223)', () => {
   });
 });
 
+describe('an Expedition and the vacation mode (#93, #223)', () => {
+  /** Anna with Kreuzzugs-Kartografie and ships; the expedition position of the system 1:1. */
+  const expo = (ctx: TestCtx) => {
+    const a = anna(ctx);
+    ctx.players.save({ ...a, research: { ...a.research, expo: 4 } });
+    ctx.planets.save({
+      ...home(ctx),
+      ships: { lc: 5 },
+      res: { m: 0, c: 0, d: 100000 },
+    });
+    return {
+      planet: 'p1_1_5',
+      mission: 'expedition',
+      ships: { lc: 1 },
+      to: { g: 1, s: 1, p: 16 },
+      pct: 10,
+      stay: 1,
+    };
+  };
+
+  it('is refused like every action while the sender is in vacation mode, and flies after the end', () => {
+    const ctx = world();
+    const order = expo(ctx);
+    start(ctx);
+    expect(() => act(ctx, 'send', order)).toThrow(VACATION_REFUSED);
+    expect(ctx.fleets.all()).toEqual([]);
+    expect(home(ctx).ships).toEqual({ lc: 5 });
+    ctx.clock.t = START + 50 * HOUR_MS;
+    stop(ctx);
+    expect(act(ctx, 'send', order)).toBe('Flotte unterwegs nach [1:1:16].');
+    expect(ctx.fleets.all()[0]).toMatchObject({ mission: 'expedition' });
+  });
+
+  it('keeps the vacation from starting while an expedition flies', () => {
+    const ctx = world();
+    act(ctx, 'send', expo(ctx));
+    expect(() => start(ctx)).toThrow(VACATION_ENTRY_ERROR.fleets);
+    expect(anna(ctx).vacation).toBeNull();
+  });
+
+  it('needs no protection of a target: no player is there, so a player in vacation is not asked', () => {
+    const ctx = world();
+    const order = expo(ctx);
+    // Bert in vacation mode does not matter to an expedition of Anna.
+    const bert = ctx.players.get('u_Bert')!;
+    ctx.players.save({ ...bert, vacation: START });
+    expect(act(ctx, 'send', order)).toBe('Flotte unterwegs nach [1:1:16].');
+  });
+});
+
 describe('a Wache stellen and the vacation mode (#55, #223)', () => {
   /** Anna and Bert in one guild, so they may hold at each other. */
   const allies = (ctx: TestCtx): TestCtx => {
@@ -414,17 +474,217 @@ describe('a Wache stellen and the vacation mode (#55, #223)', () => {
     expect(ctx.fleets.all()).toEqual([]);
   });
 
-  it('lets a Wache stellen launched before the entry arrive and hold as usual (D2)', () => {
+  it('turns a Wache stellen launched before the entry home at its arrival instead of holding (owner, 2026-11-19)', () => {
     const ctx = allies(world());
     act(ctx, 'send', { ...hold(), planet: 'p1_2_6' }, 'u_Bert');
     const fleet = ctx.fleets.all()[0]!;
     start(ctx);
+    // On its way it flies on, as every launched flight does (D2).
+    expect(ctx.fleets.get(fleet.id)).toMatchObject({ state: 'out' });
     ctx.clock.t = fleet.arr;
     tick(ctx);
-    expect(ctx.fleets.get(fleet.id)).toMatchObject({ state: 'hold' });
-    ctx.clock.t = fleet.arr + HOUR_MS;
+    // It does not hold: it flies home for as long as it flew there, without
+    // the holding time, and is no guard of the planet.
+    const flight = fleet.arr - fleet.dep;
+    expect(ctx.fleets.get(fleet.id)).toMatchObject({
+      state: 'back',
+      ret: fleet.arr + flight,
+      recalled: false,
+    });
+    expect(heldAt(ctx, 'p1_1_5')).toEqual([]);
+    // The owner is told at the arrival, once; the host gets nothing.
+    expect(ctx.reports.ofPlayer('u_Bert')).toMatchObject([
+      sentHome(fleet.arr, 'Heim'),
+    ]);
+    expect(ctx.reports.ofPlayer('u_Anna')).toEqual([]);
+    const ships = ctx.planets.get('p1_2_6')!.ships;
+    ctx.clock.t = fleet.arr + flight;
     tick(ctx);
-    expect(ctx.fleets.get(fleet.id)).toMatchObject({ state: 'back' });
+    expect(ctx.fleets.get(fleet.id)).toBeNull();
+    expect(ctx.planets.get('p1_2_6')!.ships.lf).toBe((ships.lf ?? 0) + 1);
+    expect(ctx.reports.ofPlayer('u_Bert').map((r) => r.title)).toEqual([
+      'Rückkehr zu Bertheim [1:2:6]',
+      'Wache heimgeschickt [1:1:5]',
+    ]);
+  });
+
+  it('turns a Wache stellen to the moon of the host home at its arrival too (owner, 2026-11-19)', () => {
+    const ctx = allies(world());
+    act(
+      ctx,
+      'send',
+      { ...hold(undefined, 'moon'), planet: 'p1_2_6' },
+      'u_Bert',
+    );
+    const fleet = ctx.fleets.all()[0]!;
+    expect(fleet).toMatchObject({ to: 'm1_1_5', state: 'out' });
+    start(ctx);
+    ctx.clock.t = fleet.arr;
+    tick(ctx);
+    expect(ctx.fleets.get(fleet.id)).toMatchObject({
+      state: 'back',
+      ret: fleet.arr + (fleet.arr - fleet.dep),
+    });
+    expect(heldAt(ctx, 'm1_1_5')).toEqual([]);
+    expect(ctx.reports.ofPlayer('u_Bert')).toMatchObject([
+      sentHome(fleet.arr, 'Mond (Mond)'),
+    ]);
+  });
+});
+
+describe('a vacation and the fleets that hold at the host (#55, #223, owner, 2026-11-19)', () => {
+  /** Anna (planet and moon) in a guild with Bert; Cora, a third player, has a planet. */
+  function guards(): TestCtx {
+    const ctx = world();
+    addUser(ctx, 'Cora');
+    addPlanet(ctx, 'u_Cora', { g: 1, s: 3, p: 7, name: 'Coraheim' });
+    return ctx;
+  }
+
+  /** A fleet of `owner` that holds at `to` since an hour ago, for 8 hours, with a flight of an hour. */
+  function guard(
+    ctx: TestCtx,
+    id: string,
+    owner: string,
+    to: string,
+    over: Partial<Fleet> = {},
+  ): Fleet {
+    const home = ctx.planets.home(owner)!;
+    const target = ctx.planets.get(to)!;
+    const f: Fleet = {
+      id,
+      owner,
+      from: home.id,
+      fromC: { g: home.g, s: home.s, p: home.p },
+      to,
+      toC: { g: target.g, s: target.s, p: target.p },
+      mission: 'hold',
+      ships: { lf: 2 },
+      cargo: { m: 7, c: 0, d: 0 },
+      dep: START - 2 * HOUR_MS,
+      arr: START - HOUR_MS,
+      ret: START + 8 * HOUR_MS,
+      state: 'hold',
+      recalled: false,
+      fuel: 3,
+      hold: 8 * HOUR_MS,
+      ...over,
+    };
+    ctx.fleets.save(f);
+    return f;
+  }
+
+  it('starts as before with no fleet holding at the host: nothing flies home', () => {
+    const ctx = guards();
+    // Bert's guard at Cora's planet is nobody's business of Anna's vacation.
+    const other = guard(ctx, 'g0', 'u_Bert', 'p1_3_7');
+    expect(start(ctx)).toBe('Urlaubsmodus aktiviert.');
+    expect(ctx.fleets.all()).toEqual([other]);
+    expect(ctx.reports.ofPlayer('u_Bert')).toEqual([]);
+  });
+
+  it('sends the one fleet that holds at the planet home at once: the flight back takes as long as the flight there, the holding time is dropped', () => {
+    const ctx = guards();
+    const g = guard(ctx, 'g1', 'u_Bert', 'p1_1_5');
+    expect(start(ctx)).toBe('Urlaubsmodus aktiviert.');
+    expect(ctx.fleets.get('g1')).toEqual({
+      ...g,
+      state: 'back',
+      ret: START + HOUR_MS,
+    });
+    expect(heldAt(ctx, 'p1_1_5')).toEqual([]);
+    // Due at its return, not at the end of its holding time: it comes home
+    // with its cargo and the owner finds the report of a return.
+    ctx.clock.t = START + HOUR_MS - 1;
+    expect(tick(ctx)).toBe(0);
+    ctx.clock.t = START + HOUR_MS;
+    expect(tick(ctx)).toBe(1);
+    expect(ctx.fleets.get('g1')).toBeNull();
+    expect(ctx.planets.get('p1_2_6')!.ships.lf).toBe(12);
+    expect(ctx.planets.get('p1_2_6')!.res.m).toBeGreaterThanOrEqual(7);
+    // Told at the start of the vacation, then the report of the return.
+    expect(ctx.reports.ofPlayer('u_Bert').map((r) => r.title)).toEqual([
+      'Rückkehr zu Bertheim [1:2:6]',
+      'Wache heimgeschickt [1:1:5]',
+    ]);
+    expect(ctx.reports.ofPlayer('u_Bert')[1]).toMatchObject(
+      sentHome(START, 'Heim'),
+    );
+    // The guard did not come back to the host.
+    expect(ctx.reports.ofPlayer('u_Anna')).toEqual([]);
+  });
+
+  it('sends two fleets of different owners home, one holding at the planet and one at the moon, and keeps a guard that holds at another host', () => {
+    const ctx = guards();
+    const atPlanet = guard(ctx, 'g1', 'u_Bert', 'p1_1_5');
+    const atMoon = guard(ctx, 'g2', 'u_Cora', 'm1_1_5');
+    const elsewhere = guard(ctx, 'g3', 'u_Cora', 'p1_2_6');
+    // A fleet still on its way is not a guard yet: it flies on until its arrival.
+    const coming = guard(ctx, 'g4', 'u_Bert', 'p1_1_5', {
+      state: 'out',
+      arr: START + 2 * HOUR_MS,
+      ret: START + 11 * HOUR_MS,
+    });
+    ctx.clock.t += HOUR_MS;
+    const at = ctx.now();
+    start(ctx);
+    expect(ctx.fleets.get('g1')).toEqual({
+      ...atPlanet,
+      state: 'back',
+      ret: at + HOUR_MS,
+    });
+    expect(ctx.fleets.get('g2')).toEqual({
+      ...atMoon,
+      state: 'back',
+      ret: at + HOUR_MS,
+    });
+    expect(ctx.fleets.get('g3')).toEqual(elsewhere);
+    expect(ctx.fleets.get('g4')).toEqual(coming);
+    // One report per sent fleet for its owner, with the place it held at;
+    // none for the fleet that holds elsewhere or still flies, nor for the host.
+    expect(ctx.reports.ofPlayer('u_Bert')).toMatchObject([
+      sentHome(at, 'Heim'),
+    ]);
+    expect(ctx.reports.ofPlayer('u_Cora')).toMatchObject([
+      sentHome(at, 'Mond (Mond)'),
+    ]);
+    expect(ctx.reports.ofPlayer('u_Anna')).toEqual([]);
+  });
+
+  it('leaves a fleet whose holding time is over as it is due: it left at the end of its time', () => {
+    const ctx = guards();
+    const g = guard(ctx, 'g1', 'u_Bert', 'p1_1_5');
+    // The 8 hours ended 30 minutes ago; the tick has not run yet.
+    ctx.clock.t = g.arr + 8 * HOUR_MS + HOUR_MS / 2;
+    start(ctx);
+    expect(ctx.fleets.get('g1')).toMatchObject({
+      state: 'back',
+      ret: g.arr + 8 * HOUR_MS + HOUR_MS,
+    });
+  });
+
+  it('does not start while the player has a fleet that holds at another host: it is his own fleet out (unchanged)', () => {
+    const ctx = guards();
+    const mine = guard(ctx, 'm1', 'u_Anna', 'p1_2_6');
+    guard(ctx, 'g1', 'u_Bert', 'p1_1_5');
+    expect(() => start(ctx)).toThrow(VACATION_ENTRY_ERROR.fleets);
+    expect(anna(ctx).vacation).toBeNull();
+    // Nothing was sent home by the refused entry.
+    expect(ctx.fleets.get('g1')).toMatchObject({ state: 'hold' });
+    expect(ctx.fleets.get('m1')).toEqual(mine);
+  });
+
+  it('lets a host who ended the vacation hold again: new guards are welcome', () => {
+    const ctx = guards();
+    ctx.guilds.create('g1', 'GLD', 'Gilde', '', 'u_Anna');
+    ctx.guilds.apply('u_Bert', 'g1');
+    ctx.guilds.accept('u_Bert');
+    start(ctx);
+    ctx.clock.t = START + 50 * HOUR_MS;
+    stop(ctx);
+    expect(
+      act(ctx, 'send', { ...attack(undefined, 'hold'), hold: 1 }, 'u_Bert'),
+    ).toContain('unterwegs');
   });
 });
 

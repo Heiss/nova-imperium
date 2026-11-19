@@ -23,3 +23,4 @@ website/src/content/docs/operations/
 /src/features/index.server.gen.ts
 /src/features/lexicon.gen.ts
 /src/core/round-settings.gen.ts
+/src/client/features/index.gen.ts

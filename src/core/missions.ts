@@ -15,12 +15,20 @@ import { vacationProtects } from './vacation.ts';
  * What a mission flies to: an own planet, a foreign one, the planet of an
  * ally (#55), any planet, a free position without a planet, a Trümmerfeld
  * (#45), which is a place of its own beside a planet at the same position
- * (#119), or a foreign moon and nothing else (the Mondbruch, #95). The
- * planet of an ally is a foreign planet; whether its owner is an ally is the
- * mission's own check.
+ * (#119), a foreign moon and nothing else (the Mondbruch, #95), or the
+ * expedition position of a system, which is never a planet position (#93).
+ * The planet of an ally is a foreign planet; whether its owner is an ally is
+ * the mission's own check.
  */
 export type TargetKind =
-  'own' | 'foreign' | 'ally' | 'any' | 'free' | 'debris' | 'foreignMoon';
+  | 'own'
+  | 'foreign'
+  | 'ally'
+  | 'any'
+  | 'free'
+  | 'debris'
+  | 'foreignMoon'
+  | 'expedition';
 
 /**
  * Why a fleet cannot be sent, as a code; the server turns it into today's
@@ -48,7 +56,11 @@ export type SendError =
   | 'surveyProbesOnly'
   | 'notAlly'
   | 'holdFleets'
-  | 'holdPlayers';
+  | 'holdPlayers'
+  | 'expeditionLocked'
+  | 'expeditionSlots'
+  | 'notExpedition'
+  | 'expeditionSpace';
 
 /**
  * How a mission starts: as a fleet from the fleet form, or as missiles from
@@ -63,8 +75,15 @@ export interface SendFleet {
   /** The id of the planet it starts from. */
   from: string;
   ships: Levels;
-  /** The research of the owner at the start; missing: none (the espionage technology of #175, Q1, and the Vermessung of #190). */
+  /** The research of the owner at the start; missing: none (the espionage technology of #175, Q1, the Vermessung of #190 and the Expedition of #93). */
   research?: Levels;
+  /**
+   * How many fleets of the owner fly this very mission now, out or back; a
+   * mission with a limit (the expeditions, #93) reads it. Missing: none.
+   */
+  running?: number;
+  /** The expedition slots the round adds to ⌊√level⌋ (#93); missing: none. */
+  extraSlots?: number;
 }
 
 /** What is at the target position when the fleet is sent. */
@@ -83,6 +102,12 @@ export interface SendTarget {
    * (#224, D2): no colonization until the lock ends. Missing: not locked.
    */
   locked?: boolean;
+  /**
+   * Whether the position is the expedition position of its system (#93):
+   * the one after the last planet position, where no planet ever is.
+   * Missing: it is not.
+   */
+  expedition?: boolean;
   /**
    * Whether the noob protection keeps `owner` from this player. The server
    * determines it (it needs the points of every player), and only when it is
@@ -131,8 +156,17 @@ export interface MissionRules {
   /**
    * Whether the fleet stays at the target for a holding time the player
    * chooses, burning fuel for it, and defends it (#55): the Halten only.
+   * An expedition stays too (`maxHold`), but it does not defend and burns no
+   * fuel for it, so it is not a holding fleet.
    */
   readonly holds: boolean;
+  /**
+   * The most hours the fleet stays at the target before it flies home, from
+   * the research of its owner and the hours per level of the round, which the
+   * player chooses at the send (the expeditions, #93). Without it the fleet
+   * does not stay this way.
+   */
+  readonly maxStay?: (research: Levels, hoursPerLevel: number) => number;
   /** The check of the mission itself, after the target kind; a code or nothing. */
   canSend(fleet: SendFleet, target: SendTarget): SendError | undefined;
 }
@@ -188,7 +222,7 @@ export function suits(
   debris = false,
 ): boolean {
   if (kind === 'debris') return debris;
-  if (kind === 'free') return !planet;
+  if (kind === 'free' || kind === 'expedition') return !planet;
   if (!planet) return false;
   if (kind === 'any') return true;
   if (kind === 'foreignMoon')
@@ -205,7 +239,7 @@ const debrisError = (target: SendTarget): SendError | undefined =>
  * A free position and a Trümmerfeld are never a moon: colonization and
  * Bergung never target one (#53; owner, 2026-11-13).
  */
-const NEVER_MOON: readonly TargetKind[] = ['free', 'debris'];
+const NEVER_MOON: readonly TargetKind[] = ['free', 'debris', 'expedition'];
 
 /** Nothing at the target: no planet, or no moon when the fleet flies to one. */
 const nothing = (target: SendTarget): SendError =>
@@ -239,8 +273,12 @@ function shieldError(
     : undefined;
 }
 
-/** A free position: no planet there, and no lock after an abandonment (#224, D2). */
+/**
+ * A free position: no planet there, and no lock after an abandonment (#224,
+ * D2); the expedition position is never one to settle (#93, Q4).
+ */
 function freeError(target: SendTarget): SendError | undefined {
+  if (target.expedition) return 'expeditionSpace';
   if (target.planet) return 'occupied';
   return target.locked ? 'locked' : undefined;
 }
@@ -252,6 +290,8 @@ function targetError(
   target: SendTarget,
 ): SendError | undefined {
   const t = target.planet;
+  if (kind === 'expedition')
+    return target.expedition ? undefined : 'notExpedition';
   if (kind === 'free') return freeError(target);
   if (!t) return nothing(target);
   if (t.id === fleet.from) return 'samePlanet';

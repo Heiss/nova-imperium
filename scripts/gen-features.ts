@@ -26,6 +26,11 @@
 // (`ROUND_ENTRIES`), which only src/core/round.ts imports, so a feature adds
 // its settings in its own file and no shared list names it.
 //
+// The client features (#322): every file of src/client/features that exports
+// `clientFeature` is listed in src/client/features/index.gen.ts
+// (`CLIENT_FEATURES`), which only src/client/main.ts imports, so a feature
+// adds its handlers in its own file and main.ts names none.
+//
 //   node scripts/gen-features.ts
 //        writes the indexes when they changed; package.json chains it
 //        before start, test, typecheck, build and check (D2): no pre*
@@ -50,6 +55,11 @@ export const CORE_DIR = 'src/core';
 export const ROUND_SETTINGS_FILE = 'round-settings.gen.ts';
 /** The fixed name under which a file exports its settings of a round. */
 const ROUND_EXPORT = /^export const roundSettings\b/m;
+/** Where the client features are (#322), and the list of them. */
+export const CLIENT_DIR = 'src/client/features';
+export const CLIENT_FEATURES_FILE = 'index.gen.ts';
+/** The fixed name under which a file exports a client feature. */
+const CLIENT_EXPORT = /^export const clientFeature\b/m;
 /** The optional part of an entry folder for the Lexicanum (#285). */
 const LEXICON_FILE = 'lexicon.de.ts';
 const MISSIONS = 'missions';
@@ -195,11 +205,19 @@ export function generateLexicon(dir: string): boolean {
   return write(join(dir, LEXICON_INDEX_FILE), renderLexicon(dir, scan(dir)));
 }
 
+/** The files of a core folder that export `roundSettings` (#310). */
+export const scanRoundSettings = (dir: string): string[] =>
+  scanExporting(dir, ROUND_EXPORT);
+
+/** The files of the client folder that export `clientFeature` (#322). */
+export const scanClientFeatures = (dir: string): string[] =>
+  scanExporting(dir, CLIENT_EXPORT);
+
 /**
- * The files of a core folder that export `roundSettings` (#310), sorted,
- * with `/` in the path: not a test, not a generated file.
+ * The files of a folder that export a fixed name (`pattern`), sorted, with
+ * `/` in the path: not a test, not a generated file.
  */
-export function scanRoundSettings(dir: string): string[] {
+function scanExporting(dir: string, pattern: RegExp): string[] {
   if (!existsSync(dir)) return [];
   return readdirSync(dir, { recursive: true, withFileTypes: true })
     .filter(
@@ -210,7 +228,7 @@ export function scanRoundSettings(dir: string): string[] {
         !e.name.endsWith('.gen.ts'),
     )
     .map((e) => relative(dir, join(e.parentPath, e.name)).split(sep).join('/'))
-    .filter((file) => ROUND_EXPORT.test(readFileSync(join(dir, file), 'utf8')))
+    .filter((file) => pattern.test(readFileSync(join(dir, file), 'utf8')))
     .sort();
 }
 
@@ -239,6 +257,36 @@ export function generateRoundSettings(dir: string): boolean {
   );
 }
 
+/**
+ * The source of the list of the client features: one import per file and one
+ * `[name, feature]` pair, sorted by file name; the name is the path without
+ * `.ts`.
+ */
+export function renderClientFeatures(files: string[]): string {
+  const bare = (file: string) => file.replace(/\.ts$/, '');
+  const name = (file: string) =>
+    `feature_${bare(file).replace(/[^a-zA-Z0-9]/g, '_')}`;
+  const imports = files
+    .map((f) => `import { clientFeature as ${name(f)} } from './${f}';\n`)
+    .join('');
+  const rows = files.map((f) => `  ['${bare(f)}', ${name(f)}],\n`).join('');
+  return [
+    HEADER,
+    ...(imports ? [imports] : []),
+    files.length === 0
+      ? 'export const CLIENT_FEATURES = [] as const;\n'
+      : `export const CLIENT_FEATURES = [\n${rows}] as const;\n`,
+  ].join('\n');
+}
+
+/** Writes the list of the client features when it changed; true if it did. */
+export function generateClientFeatures(dir: string): boolean {
+  return write(
+    join(dir, CLIENT_FEATURES_FILE),
+    renderClientFeatures(scanClientFeatures(dir)),
+  );
+}
+
 function write(file: string, source: string): boolean {
   const dir = dirname(file);
   if (existsSync(file) && readFileSync(file, 'utf8') === source) return false;
@@ -256,5 +304,6 @@ if (import.meta.main)
     generateServer(FEATURES_DIR);
     generateLexicon(FEATURES_DIR);
     generateRoundSettings(CORE_DIR);
+    generateClientFeatures(CLIENT_DIR);
     return 0;
   });

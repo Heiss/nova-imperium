@@ -2,15 +2,11 @@
 // of main.ts (ratchet #242): the buttons and forms of both send their
 // action and empty their field once it went through. Which action a button
 // sends is decided in logic/friends.ts and logic/guild-chat.ts.
-import { friendCall } from './logic/friends.ts';
-import { clearsChat } from './logic/guild-chat.ts';
+import { friendCall } from '../logic/friends.ts';
+import { clearsChat } from '../logic/guild-chat.ts';
+import type { ClientCtx, ClientFeature, Data } from './contract.ts';
 
-/** What the actions need from main.ts. */
-interface Deps {
-  act: (type: string, data?: object) => Promise<boolean>;
-}
-
-type Data = Record<string, string | undefined>;
+type Act = ClientCtx['act'];
 
 const field = (sel: string): HTMLInputElement | null =>
   document.querySelector<HTMLInputElement>(sel);
@@ -19,7 +15,7 @@ const field = (sel: string): HTMLInputElement | null =>
  * The guild chat: the text field empties once the message is in, unless a
  * new draft was typed meanwhile (CodeRabbit on #216).
  */
-async function submitChat(act: Deps['act']): Promise<void> {
+async function submitChat(act: Act): Promise<void> {
   const text = field('#chat_text')?.value ?? '';
   if (
     (await act('sendGuildChat', { text })) &&
@@ -32,7 +28,7 @@ async function submitChat(act: Deps['act']): Promise<void> {
 }
 
 /** The buddy list: a request empties the name once it is sent. */
-async function friend(act: Deps['act'], d: Data): Promise<void> {
+async function friend(act: Act, d: Data): Promise<void> {
   const call = friendCall(d, field('#friend_name')?.value ?? '', (q) =>
     window.confirm(q),
   );
@@ -42,24 +38,24 @@ async function friend(act: Deps['act'], d: Data): Promise<void> {
 }
 
 /** The data-act handlers of both; their forms are handled here too. */
-export function socialActs({
-  act,
-}: Deps): Record<string, (d: Data) => unknown> {
-  document.addEventListener('submit', (e) => {
-    const id = (e.target as HTMLElement).id;
-    if (id === 'guildchatform') {
-      e.preventDefault();
-      void submitChat(act);
-    } else if (id === 'friendform') {
-      e.preventDefault();
-      void friend(act, { op: 'request' });
-    }
-  });
-  return {
-    guildChatDelete: (d) => {
-      if (window.confirm('Nachricht löschen?'))
-        return act('deleteGuildChat', { id: Number(d.id) });
-    },
-    friend: (d) => friend(act, d),
-  };
-}
+export const clientFeature = {
+  acts: ({ act }) => {
+    document.addEventListener('submit', (e) => {
+      const id = (e.target as HTMLElement).id;
+      if (id === 'guildchatform') {
+        e.preventDefault();
+        void submitChat(act);
+      } else if (id === 'friendform') {
+        e.preventDefault();
+        void friend(act, { op: 'request' });
+      }
+    });
+    return {
+      guildChatDelete: (d) => {
+        if (window.confirm('Nachricht löschen?'))
+          return act('deleteGuildChat', { id: Number(d.id) });
+      },
+      friend: (d) => friend(act, d),
+    };
+  },
+} satisfies ClientFeature;

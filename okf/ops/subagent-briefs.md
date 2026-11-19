@@ -62,6 +62,13 @@ when the second built on the first.
   entries, selected by key or group; a test that needs a full set of round
   values uses `roundDefaults()` (`src/test/fixtures.ts`) and never lists
   another feature's settings (#310).
+* A client feature adds its `data-act` handlers (and form handlers) in its
+  own module `src/client/features/<name>.ts` and exports it as
+  `clientFeature`; nothing else is edited (the list is generated, and
+  `src/client/main.ts` names no feature). The module tests its own handlers
+  with the fake context of `src/client/features/test-ctx.ts`; a handler name
+  or a form id that exists twice stops the start, and the guard test
+  `src/client/features/registry.test.ts` checks the rules for all (#322).
 * Stop after two failed attempts at the same problem and report.
 * A new E2E test goes into the spec of its feature, `e2e/<feature>.spec.ts`
   (a new file for a new feature), never into a collecting file; new seed
