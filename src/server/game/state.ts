@@ -37,12 +37,16 @@ export interface ForeignFleet extends SeenShips {
   mission: Fleet['mission'];
   state: Fleet['state'];
   arr: number;
+  /** The holding time of a fleet that holds at the planet (#55). */
+  hold?: number;
 }
 
 /**
  * An incoming fleet as an observer with the Auspex-Lehre `level` sees it:
  * of its ships only what the thresholds of the round allow, for every
- * mission (#228, D1, D2).
+ * mission (#228, D1, D2). A fleet that is holding at the planet shows all its
+ * ships and its holding time to the host, whatever the level and the
+ * thresholds (owner, 2026-11-19, #55); on its way there it follows them.
  */
 export const foreignView = (
   f: Fleet,
@@ -57,8 +61,14 @@ export const foreignView = (
   mission: f.mission,
   state: f.state,
   arr: f.arr,
-  ...seenShips(f.ships, level, recognition),
+  ...(f.state === 'hold'
+    ? { hold: f.hold ?? 0, ships: f.ships }
+    : seenShips(f.ships, level, recognition)),
 });
+
+/** Whether a foreign fleet shows at the shown planet: on its way there, or holding there (#55). */
+const atPlanet = (f: Fleet, p: { id: string } | null): boolean =>
+  p !== null && f.to === p.id && f.state !== 'back';
 
 /**
  * Every planet and moon (#53) of the universe, for every player, with its
@@ -169,10 +179,7 @@ export function stateFor(
   const recognition = recognitionOf(round);
   const fleets = ctx.fleets
     .all()
-    .filter(
-      (f) =>
-        f.owner === u.id || (p !== null && f.state === 'out' && f.to === p.id),
-    )
+    .filter((f) => f.owner === u.id || atPlanet(f, p))
     .map((f) => (f.owner === u.id ? f : foreignView(f, spy, recognition)));
   const limits = activityLimits(round);
   return {

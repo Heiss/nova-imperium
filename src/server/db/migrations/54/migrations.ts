@@ -2,17 +2,19 @@
 // migration is never changed once it is on main and has its upgrade test
 // src/server/db/upgrades/<id>.test.ts.
 //
-// 20261118T2235-missiles: the mission Raketenangriff (`missile`) and the
+// 20261119T0812-missiles: the mission Raketenangriff (`missile`) and the
 // main target of its missiles (`aim`, a defense key or NULL). The CHECK of
 // fleets.mission needs a rebuild of fleets and fleet_ships, as in 16; every
 // fleet in flight keeps its values, its gift and its ships, and has no main
-// target. The Orbitalraketen and Abfangraketen are rows of planet_units, the
+// target. It runs after 20261119T0744-holding (#55) and the rebuilds of the
+// Mondbruch and the survey, and keeps the column `hold` and the state 'hold'
+// of the holding. The Orbitalraketen and Abfangraketen are rows of planet_units, the
 // Raketenkrypta a row of planet_buildings, which need no change.
 import type { Migration } from '../../migration-files.ts';
 
 const migrations: Migration[] = [
   {
-    id: '20261118T2235-missiles',
+    id: '20261119T0812-missiles',
     sql: `
     ALTER TABLE fleet_ships RENAME TO old_fleet_ships;
     ALTER TABLE fleets RENAME TO old_fleets;
@@ -29,17 +31,18 @@ const migrations: Migration[] = [
       to_g INTEGER NOT NULL,
       to_s INTEGER NOT NULL,
       to_p INTEGER NOT NULL,
-      mission TEXT NOT NULL CHECK (mission IN ('attack', 'transport', 'spy', 'colonize', 'deploy', 'harvest', 'moonbreak', 'survey', 'missile')),
+      mission TEXT NOT NULL CHECK (mission IN ('attack', 'transport', 'spy', 'colonize', 'deploy', 'harvest', 'hold', 'moonbreak', 'survey', 'missile')),
       cargo_m REAL NOT NULL,
       cargo_c REAL NOT NULL,
       cargo_d REAL NOT NULL,
       dep INTEGER NOT NULL,
       arr INTEGER NOT NULL,
       ret INTEGER NOT NULL,
-      state TEXT NOT NULL CHECK (state IN ('out', 'back')),
+      state TEXT NOT NULL CHECK (state IN ('out', 'hold', 'back')),
       recalled INTEGER NOT NULL DEFAULT 0,
       fuel INTEGER NOT NULL DEFAULT 0,
       gift INTEGER NOT NULL DEFAULT 0 CHECK (gift IN (0, 1)),
+      hold INTEGER NOT NULL DEFAULT 0 CHECK (hold >= 0),
       aim TEXT
     ) STRICT;
     CREATE INDEX fleets_owner ON fleets(owner);
@@ -53,10 +56,10 @@ const migrations: Migration[] = [
 
     INSERT INTO fleets (id, owner, from_planet, from_g, from_s, from_p, to_planet,
       to_g, to_s, to_p, mission, cargo_m, cargo_c, cargo_d, dep, arr, ret, state,
-      recalled, fuel, gift)
+      recalled, fuel, gift, hold)
     SELECT id, owner, from_planet, from_g, from_s, from_p, to_planet,
       to_g, to_s, to_p, mission, cargo_m, cargo_c, cargo_d, dep, arr, ret, state,
-      recalled, fuel, gift
+      recalled, fuel, gift, hold
     FROM old_fleets;
     INSERT INTO fleet_ships (fleet_id, key, count)
       SELECT fleet_id, key, count FROM old_fleet_ships;

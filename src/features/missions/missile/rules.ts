@@ -9,12 +9,13 @@
 // The checks of the launch are `launchError` of src/core/missiles.ts.
 import type { Launch, SendError, TargetKind } from '../../../core/missions.ts';
 
-export const order = 90;
+export const order = 100;
 export const target: TargetKind = 'foreign';
 export const cargo = false;
 export const returns = false;
 export const silent = false;
 export const alertsGuild = false;
+export const holds = false;
 export const launch: Launch = 'missiles';
 /** Never sent as a fleet: the launch checks its missiles itself. */
 export const canSend = (): SendError | undefined => undefined;

@@ -101,7 +101,7 @@ above.
   rest on through the stored missiles, without the Abfangraketen that
   intercepted when they stand on the target itself).
 * **[E]** Flight as the mission `missile` (patterns, section 4): the
-  folder `src/features/missions/missile/` with `rules.ts` (order 90: the Mondbruch has 70 and the Vermessung 80 in the bundle, each order once; target
+  folder `src/features/missions/missile/` with `rules.ts` (order 100: the Wache stellen has 70, the Mondbruch 80 and the Vermessung 90, each order once; target
   `foreign`, no cargo, no return, no guild alert),
   `texts.de.ts` („Raketenangriff“) and `arrive.server.ts` (the impact).
   `MissionRules` has the optional field `launch` (`'fleet'` by default,

@@ -264,6 +264,19 @@ describe('what a scan shows', () => {
     ]);
   });
 
+  it('shows a fleet that holds at the planet as holding there until its holding ends (#55)', () => {
+    const held = fleet({ mission: 'hold', state: 'hold', hold: 3000 });
+    expect(scanFlights([held], AT)).toEqual([
+      {
+        ships: { lc: 10, sc: 2 },
+        from: 'p1_9_3',
+        to: AT,
+        arr: 8000,
+        holds: true,
+      },
+    ]);
+  });
+
   it('shows a recalled fleet from where it turned back, its target, arriving home', () => {
     // Sent from the planet to p1_9_3 and recalled on the way: a fleet has no
     // position between two places, so its leg starts at the target it

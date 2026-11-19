@@ -140,6 +140,8 @@ export const MISSIONS = {
   colonize: { classic: 'Kolonisieren', name: 'Landnahme' },
   deploy: { classic: 'Stationieren', name: 'Verlegung' },
   harvest: { classic: 'Abbauen', name: 'Bergung' },
+  // #55: „Wache stellen“ (owner, 2026-11-17), not „Wacht halten“ of #94.
+  hold: { classic: 'Halten', name: 'Wache stellen' },
   moonbreak: { classic: 'Zerstören', name: 'Mondbruch' },
   // #190: the name proposed in the issue [V]; no classic mission.
   survey: { classic: null, name: 'Vermessung' },

@@ -513,7 +513,7 @@ owiki.de „Mond“ (section Zerstörung, formula images). Built after the moons
   chance / 100 (as `formsMoon`). The decided formulas only: no lower bound,
   which no diameter of the formula of #53 reaches (at most 8,944 km).
 * Mission `src/features/missions/moonbreak/` (key `moonbreak`, „Mondbruch“,
-  `order` 70): the new target kind `foreignMoon` (a foreign moon only, see
+  `order` 80, after the Wache stellen with 70): the new target kind `foreignMoon` (a foreign moon only, see
   [Design patterns](/architecture/patterns.md), section 4); `canSend`
   refuses a fleet without a Weltenbrecher (`noWorldbreaker`), the target
   kind a target that is no moon (`notMoon`); a foreign moon is then checked

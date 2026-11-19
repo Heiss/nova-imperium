@@ -15,9 +15,10 @@
 //   gift? (minutes: a gift fleet of the „Endzeit“ to the home planet that arrives in that
 //   time, issue #161), colonyMoon? (the fields of `moon`: the moon of the colony, made or
 //   changed, with `colony`, issue #230), activeAgo? (ms: the account and every place of the
-//   player were last active that long ago, issue #229), vacationAgo? (ms: the vacation mode
-//   started that long ago, issue #223), marketReset? (true: every price of the marketplace
-//   is back at the base and nobody has given anything today, issue #171) }
+//   player were last active that long ago, issue #229), endHold? (the player's fleets that hold
+//   end their holding time now, issue #55), vacationAgo? (ms: the vacation mode started that
+//   long ago, issue #223), marketReset? (true: every price of the marketplace is back at the
+//   base and nobody has given anything today, issue #171) }
 import { openDatabase } from '../src/server/db/database.ts';
 import { Store } from '../src/server/db/store.ts';
 import { recordServerError } from '../src/server/error-log.ts';
@@ -42,6 +43,15 @@ function landFleet(id: string, mission: string): void {
       "UPDATE fleets SET arr = ? WHERE owner = ? AND mission = ? AND state = 'out'",
     )
     .run(Date.now(), id, mission);
+}
+
+/** Ends the holding time of the player's fleets that hold now (#55). */
+function endHold(id: string): void {
+  store.db
+    .prepare(
+      "UPDATE fleets SET hold = MAX(0, ? - arr) WHERE owner = ? AND state = 'hold'",
+    )
+    .run(Date.now(), id);
 }
 
 /** Lets the player's returning fleets come home now. */
@@ -190,6 +200,14 @@ function startVacation(id: string): void {
     .run(Date.now() - d.vacationAgo, id);
 }
 
+/** The fleets of the player moved forward: arrived, holding ended, come home. */
+function moveFleets(id: string): void {
+  if (d.landColonyFleet) landFleet(id, 'colonize');
+  if (d.landFleet) landFleet(id, d.landFleet);
+  if (d.returnFleet) returnFleet(id);
+  if (d.endHold) endHold(id);
+}
+
 /** What lies at the home planet or goes with the player: a Trümmerfeld, the moon, a gift, the activity. */
 function addAround(p: Planet): void {
   if (d.debris) store.repos.debris.add(p, d.debris);
@@ -200,9 +218,7 @@ function addAround(p: Planet): void {
 }
 
 store.tx(() => {
-  if (d.landColonyFleet) landFleet(u.id, 'colonize');
-  if (d.landFleet) landFleet(u.id, d.landFleet);
-  if (d.returnFleet) returnFleet(u.id);
+  moveFleets(u.id);
   if (d.research) store.saveUser({ ...u, research: d.research });
   startVacation(u.id);
   const p = store.planetOfUser(u.id)!;

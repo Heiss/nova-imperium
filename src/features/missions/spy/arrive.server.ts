@@ -3,7 +3,9 @@
 // the probes may be detected: then they fight the target's ships and
 // defense, and only probes that survive deliver the report; else they fly
 // back. What a report shows is in src/core/spy.ts, which the Lexicanum
-// reads too (#285).
+// reads too (#285). The fleets that hold at the target (#55) show in the
+// fleet of the report, and defend it against detected probes with the
+// target (fight).
 import {
   counterChance as drawnChance,
   counterMax,
@@ -17,6 +19,7 @@ import type { Fleet, Levels, Planet } from '../../../core/types.ts';
 import { activityLimits } from '../../../core/activity.ts';
 import { placeActivity } from '../../../server/game/activity.ts';
 import { type Ctx, addReport, coords } from '../../../server/game/context.ts';
+import { withHeldFleets } from '../../../server/game/holding.ts';
 import {
   type Fight,
   WON,
@@ -95,7 +98,8 @@ export function onArrive(ctx: Ctx, f: Fleet, at: Arrival): void {
   const chance = chanceAt(ctx, f, t, attR, defR);
   const seen = detected(chance, ctx.rng);
   const details = { ships: t.ships, def: t.def, b: t.b, r: defR };
-  const shown = Object.fromEntries(spyParts(score).map((k) => [k, details[k]]));
+  const parts = Object.fromEntries(spyParts(score).map((k) => [k, details[k]]));
+  const shown = withHeldFleets(ctx, t, attR.spy ?? 0, parts);
   const fought = seen ? spyBattle(ctx, f, at) : null;
   // Only probes that survive deliver the report (D3; owner, 2026-11-17).
   const lost = fought !== null && !countUnits(fought.res.att);

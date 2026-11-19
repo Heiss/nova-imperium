@@ -1,0 +1,8 @@
+---
+type: log-entry
+date: 2026-11-19T08:00
+kind: Code
+issues: [55, 310, 228, 229, 230, 224, 291, 227]
+---
+
+#55 (holding, shown as „Wache stellen“) merged with the registry of round settings (#310) and brought up to date with #228, #229, #230, #224 and #291: its two settings are the `roundSettings` of `src/core/holding.ts` (orders 100 and 110, both `live`), the tests of the registry pin them by key, and the hand wiring is gone. Held fleets and #228: the host sees a fleet that is holding at his planet in full, with its holding time, whatever his Auspex-Lehre and the thresholds, and a fleet still on its way to hold only as far as his Auspex-Lehre recognizes it, like any foreign fleet (owner, 2026-11-19, [E]; the condition sits in `foreignView`). The spy arrival has one call into `src/server/game/holding.ts` for the held fleets. The mission has an article in the Lexicanum, a draft [V] (text and keywords in [Lexicanum texts](/features/lexicanum-texts.md), the target „Planet eines Gildenmitglieds oder Freundes“). Planets with held fleets cannot be given up, a jump through the Warp-Tor moves no ship that another player holds there, and arrival and end of holding set no activity: a test each. The migration was renamed to `20261119T0744-holding` because it sorted before the newest of main. With the buddy list (#227) merged, an accepted friendship counts as an ally under the settings „Freunde“ and „Gilde und Freunde“ (`areFriends` asks `relationOf`; an open request or an ended friendship does not); the client has no per-planet check, the server's refusal answers (see [Holding and ACS](/features/holding-acs.md)).

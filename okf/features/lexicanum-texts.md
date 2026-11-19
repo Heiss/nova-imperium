@@ -66,7 +66,9 @@ code and here in the same pull request.
   fits turns the fleet back with what it carries), `plunder` (up to half of
   each resource), `rebuild` and `debrisOf` (told without their shares, which
   belong to the rule page of the battle in stage 2), `deployFuel` (half of
-  the fuel burnt), `harvest` (the cargo of every ship counts).
+  the fuel burnt), `harvest` (the cargo of every ship counts), `hold`
+  (`HOLD_HOURS` and `HOLD_LIMITS` of `src/core/holding.ts`: the values of
+  the text are filled from them; the decisions of #55 for the rest).
 
 # The texts
 
@@ -414,3 +416,8 @@ code and here in the same pull request.
 
 * **[V]** Mission text: „Am Ziel hält jede Abfangrakete des Verteidigers eine anfliegende Orbitalrakete auf. Die übrigen treffen nur Verteidigung, die kämpft: zuerst das Hauptziel, dann alles andere der Reihe nach; Schilde zählen dabei nicht. Ist keine Verteidigung mehr übrig, zerstört der Rest der Wucht die gelagerten Raketen der Raketenkrypta. Zerstörte Verteidigung wird nicht wieder aufgebaut und hinterlässt kein Trümmerfeld. Ist das Ziel inzwischen verschwunden, sind die Raketen verloren; beide Seiten erhalten einen Bericht.“
 * **[V]** Keywords: Raketen, beschießen, Fernangriff, Verteidigung
+
+### Wache stellen (`mission-hold`)
+
+* **[V]** Mission text: „Am Ziel, dem Planeten eines Gildenmitglieds oder Freundes, bleibt die Flotte für die Haltezeit, die du beim Start wählst (von 0 bis 32 Stunden), und verteidigt den Planeten in jedem Kampf zusammen mit seinem Besitzer. Danach fliegt sie heim. Wer halten darf, legt der Admin je Runde fest; den Treibstoff für die Haltezeit zahlst du beim Start. An einem Planeten halten höchstens 4 Spieler mit zusammen höchstens 15 Flotten.“
+* **[V]** Keywords: verteidigen, stationieren, beistehen, Gilde

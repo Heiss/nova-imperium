@@ -8,13 +8,14 @@ import type {
   TargetKind,
 } from '../../../core/missions.ts';
 
-export const order = 70;
+export const order = 80;
 export const target: TargetKind = 'foreignMoon';
 export const cargo = true;
 export const returns = true;
 export const silent = false;
 /** A launch at a member alerts the guild like an attack (owner, 2026-11-16). */
 export const alertsGuild = true;
+export const holds = false;
 /** A Mondbruch needs a Weltenbrecher in the fleet. */
 export const canSend = (fleet: SendFleet): SendError | undefined =>
   fleet.ships.dstar ? undefined : 'noWorldbreaker';

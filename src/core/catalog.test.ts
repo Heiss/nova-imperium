@@ -185,6 +185,7 @@ describe('catalog', () => {
       'colonize',
       'deploy',
       'harvest',
+      'hold',
       'moonbreak',
       'survey',
       'missile',

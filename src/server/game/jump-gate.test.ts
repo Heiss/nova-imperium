@@ -5,10 +5,11 @@
 // changes nothing.
 import { describe, expect, it } from 'vitest';
 import { gateCooldownMs } from '../../core/jump-gate.ts';
-import type { Planet } from '../../core/types.ts';
+import type { Fleet, Planet } from '../../core/types.ts';
 import type { AuditEntry } from '../audit.ts';
 import { addPlanet, addUser, testCtx } from '../test-helpers.ts';
 import { ACTIONS, runAction } from './dispatch.ts';
+import { heldAt } from './holding.ts';
 import { JUMP_ERROR, gateState } from './jump-gate.ts';
 import { addMoon, destroyMoon } from './moons.ts';
 import { stateFor } from './state.ts';
@@ -122,6 +123,36 @@ describe('the jump through the Warp-Tor', () => {
     ctx.clock.t += 1;
     expect(jump(ctx, { ships: { lc: 1 } })).toBeNull();
     expect(ships(ctx, TO)).toEqual({ lc: 6 });
+  });
+
+  it('moves no ship that another player holds at the moon: the fleets that hold stay and keep defending (#55)', () => {
+    const { ctx } = world();
+    const held: Fleet = {
+      id: 'h1',
+      owner: 'u_Bert',
+      from: 'm1_7_7',
+      fromC: { g: 1, s: 7, p: 7 },
+      to: FROM,
+      toC: { g: 1, s: 2, p: 3 },
+      mission: 'hold',
+      ships: { lc: 50, bs: 7 },
+      cargo: { m: 0, c: 0, d: 0 },
+      dep: ctx.now() - 1000,
+      arr: ctx.now() - 500,
+      ret: ctx.now() + 3_600_000,
+      state: 'hold',
+      recalled: false,
+      fuel: 1,
+      hold: 3_600_000,
+    };
+    ctx.fleets.save(held);
+    // More than the moon has: only the moon's own ships move.
+    expect(jump(ctx, { ships: { lc: 99, bs: 99 } })).toBeNull();
+    expect(ships(ctx, FROM)).toEqual({ sat: 5 });
+    expect(ships(ctx, TO)).toEqual({ lc: 11, bs: 2 });
+    expect(ctx.fleets.all()).toEqual([held]);
+    expect(heldAt(ctx, FROM)).toEqual([held]);
+    expect(heldAt(ctx, TO)).toEqual([]);
   });
 
   it('refuses a target whose gate cools down', () => {

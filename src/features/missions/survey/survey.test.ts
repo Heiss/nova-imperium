@@ -79,7 +79,7 @@ const keep = (ctx: TestCtx): void => {
 describe('survey', () => {
   it('flies to a free position with Spähschädel only, without cargo, and comes home silently', () => {
     expect(rules).toMatchObject({
-      order: 80,
+      order: 90,
       target: 'free',
       cargo: false,
       returns: true,

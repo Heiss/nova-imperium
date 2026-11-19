@@ -102,7 +102,7 @@ const count = (ctx: ReturnType<typeof testCtx>, table: string): number =>
 describe('moonbreak: the rules', () => {
   it('has its place, a foreign moon as target, cargo, return and reports', () => {
     expect(rules).toMatchObject({
-      order: 70,
+      order: 80,
       target: 'foreignMoon',
       cargo: true,
       returns: true,

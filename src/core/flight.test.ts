@@ -10,6 +10,7 @@ import {
   fleetSpeed,
   flightMs,
   fuelFor,
+  holdFuel,
   shipSpeed,
 } from './flight.ts';
 
@@ -154,5 +155,19 @@ describe('flights', () => {
     expect(countUnits({ a: 2, b: 3 })).toBe(5);
     expect(countUnits(null)).toBe(0);
     expect(countUnits(undefined)).toBe(0);
+  });
+  it('burn a tenth of the base consumption per ship and hour while holding, at least 1 (#55, D2)', () => {
+    // Lichter Jäger 20, Kleiner Transporter 10: (3 × 20 + 2 × 10) × 4 / 10.
+    expect(holdFuel({ lf: 3, sc: 2 }, 4)).toBe(32);
+    // Rounded down: 20 × 1 / 10 = 2, 10 × 1 / 10 = 1, 10 × 3 / 10 = 3.
+    expect(holdFuel({ lf: 1 }, 1)).toBe(2);
+    expect(holdFuel({ sc: 1 }, 3)).toBe(3);
+    expect(holdFuel({ sc: 1, lf: 0 }, 32)).toBe(32);
+    // At least 1: no hours, a fraction, or ships that burn nothing.
+    expect(holdFuel({ lf: 5 }, 0)).toBe(1);
+    expect(holdFuel({ sc: 1 }, 0.5)).toBe(1);
+    expect(holdFuel({ rl: 3, nope: 2 }, 8)).toBe(1);
+    // A number below 0 counts as no ship: 10 × 10 / 10 = 10.
+    expect(holdFuel({ lf: -3, sc: 1 }, 10)).toBe(10);
   });
 });

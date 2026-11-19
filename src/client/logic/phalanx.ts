@@ -71,7 +71,8 @@ export const scanRows = (scan: Scan): ScanRow[] =>
   scan.flights.map((f) => ({
     ships: shipsText(f.ships),
     from: placeText(f.from),
-    to: placeText(f.to),
+    // A fleet that holds there shows so, until its holding ends (#55).
+    to: f.holds ? `hält bei ${placeText(f.to)}` : placeText(f.to),
     arr: f.arr,
   }));
 

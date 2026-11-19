@@ -1,4 +1,4 @@
-// Upgrade test of migration 20261118T2235-missiles (#54): fleets and
+// Upgrade test of migration 20261119T0812-missiles (#54): fleets and
 // fleet_ships are rebuilt for the mission Raketenangriff and the main target
 // of its missiles. Every fleet in flight keeps its values, its gift and its
 // ships and has no main target; the other tables stay; the new mission and
@@ -11,7 +11,7 @@ import { Store } from '../store.ts';
 import { MISSION } from '../../../core/missions.ts';
 import type { Fleet } from '../../../core/types.ts';
 
-const ID = '20261118T2235-missiles';
+const ID = '20261119T0812-missiles';
 const through = migrationsThrough(ID);
 
 type Rows = Record<string, unknown>[];

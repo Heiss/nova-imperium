@@ -28,7 +28,15 @@ export interface MissionServer {
   onArrive(ctx: Ctx, f: Fleet, at: Arrival | null): void;
 }
 
-const techAt = (p: Player, t: number): Levels => settleR(p, t).research;
+/** A player whose account is gone: no research (as before). */
+const UNKNOWN: Player = { name: 'Unbekannt', research: {}, rq: null };
+
+/** A player as an arrival sees them; an unknown owner has no research. */
+export const playerOf = (ctx: Ctx, id: string): Player =>
+  ctx.players.get(id) ?? UNKNOWN;
+
+/** The research of a player at a time. */
+export const techAt = (p: Player, t: number): Levels => settleR(p, t).research;
 
 /** The research of the attacker and of the defender at a time. */
 export const researchAt = (

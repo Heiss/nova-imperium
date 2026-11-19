@@ -41,7 +41,7 @@ export type ClientFleet = Pick<
   Fleet,
   'id' | 'owner' | 'fromC' | 'toC' | 'to' | 'mission' | 'state' | 'arr'
 > &
-  Partial<Pick<Fleet, 'ships' | 'ret' | 'cargo' | 'dep' | 'gift'>> &
+  Partial<Pick<Fleet, 'ships' | 'ret' | 'cargo' | 'dep' | 'gift' | 'hold'>> &
   /** Of a foreign fleet the server sends only what the Auspex-Lehre recognizes (#228). */
   Omit<SeenShips, 'ships'>;
 

@@ -78,7 +78,7 @@ extension of this game.
 ## Built
 
 * The mission „Vermessung“ (**[E]** the name, confirmed 2026-11-17) is the folder
-  `src/features/missions/survey/` (order 80: the Mondbruch has 70 and the Raketenangriff 90, each order once; target `free`, no cargo,
+  `src/features/missions/survey/` (order 90: the Wache stellen has 70, the Mondbruch 80 and the Raketenangriff 100, each order once; target `free`, no cargo,
   returns, silent like the Auspex-Erkundung; it has no field `visible` since
   #228). `canSend`
   returns `surveyLocked` without level 1 of the research, then
