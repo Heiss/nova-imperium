@@ -791,9 +791,11 @@ choice of the patterns to the assistant's recommendation below
   `mounted` now also holds the Sternenkarte. Bundle 3 (Flotte) moved none
   either: the old view kept its state in `client.ui` (`ft`, `fm`,
   `union`), which stays there; `mounted` now also holds the fleet view.
-  Still rendered as HTML: the views Nachrichten, Highscore, Gilden,
-  Achievements, Neuigkeiten, Hilfe & Optionen and Admin (and Marktplatz and
-  Freunde, which came after the bundles were proposed).
+  Bundle 4 (Nachrichten, Neuigkeiten) moved none either: the old views kept
+  `client.ui.openRep` and `client.ui.news`, which stay there. Still
+  rendered as HTML: the views Highscore, Gilden, Achievements, Hilfe &
+  Optionen and Admin (and Marktplatz and Freunde, which came after the
+  bundles were proposed).
 * **[E]** Bundle 3 after bundle 2 (owner, 2026-11-15 and 2026-11-16: the
   order of the bundles of #118 „Geklärt, Nachtrag 3“, unchanged by
   „Nachtrag 4“): Flotte, which the earlier work paused (the branch
@@ -835,6 +837,26 @@ choice of the patterns to the assistant's recommendation below
   `mountView()`) is `src/client/views/mount.ts`, so a view that moves to a
   component is added there, not in `main.ts` (1,222 to 1,191 lines). No
   visible change.
+* **[E]** Bundle 4 after bundle 3 (owner, 2026-11-15 and 2026-11-16: the
+  order of the bundles of #118 „Geklärt, Nachtrag 3“, unchanged by
+  „Nachtrag 4“): Nachrichten and Neuigkeiten.
+* **[V]** Built with #118, bundle 4: `Messages.svelte`, mounted by
+  `mountMessages()` of `views/messages.ts`, renders the list of reports
+  from `messagesPage(v)` of the new `logic/messages.ts`: the count, „Alle
+  löschen“, each report newest first with its title, time, the marks `new`
+  and `open`, and its body, which is a text, an update message (its lines
+  and the link to „Neuigkeiten“) or HTML. The bodies of battle, espionage
+  and survey reports stay HTML for now: the functions moved unchanged from
+  `views/messages.ts` to `logic/report-body.ts` (`reportBodyHTML()`), and
+  the component renders them with `{@html}`; they become components of
+  their own in a later step. `News.svelte`, mounted by `mountNews()` of
+  `views/news.ts`, renders „Neuigkeiten“ from `newsPage()` of
+  `logic/news.ts` (`newsHTML()` and `updateMessageHTML()` are gone; the
+  link of the update message is `UPDATE_LINK`). Both views leave `VIEWS` of
+  `views/index.ts`, are added to `views/mount.ts` and are mounted anew on
+  every render (`ANEW`), as their HTML was rendered anew: an opened report
+  stays open (`client.ui.openRep`, toggled by `features/reports.ts`) and
+  the news render again once they have loaded. No visible change.
 * **[E]** Bundle 2 after bundle 1 (owner, 2026-11-15 and 2026-11-16: the
   order of the bundles of #118 „Geklärt, Nachtrag 3“, unchanged by
   „Nachtrag 4“): the Sternenkarte, which the phone view #189 builds on
@@ -1295,7 +1317,8 @@ src/client/                state, components (generic), views
      through `CatalogList` (section 9); the second the Übersicht through
      `Overview` (section 9); bundle 1 the header line, the navigation and
      the resource bar (section 9); bundle 2 the Sternenkarte and bundle 3
-     the fleet view (section 9); the other views follow.
+     the fleet view (section 9); bundle 4 Nachrichten and Neuigkeiten
+     (section 9); the other views follow.
   8. Places (O11), its own pull request before #45 and #53 (owner,
      2026-11-12). Built with #119.
 

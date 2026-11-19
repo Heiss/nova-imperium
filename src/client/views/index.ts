@@ -3,19 +3,15 @@ import { achievements } from './achievements.ts';
 import type { V } from './common.ts';
 import { friends } from './friends.ts';
 import { guilds } from './guilds.ts';
-import { newsHTML } from '../logic/news.ts';
 import { market } from './market.ts';
-import { messages } from './messages.ts';
 import { admin, help, highscore } from './misc.ts';
 
 export const VIEWS: Record<string, (v: V) => string> = {
   market,
   guilds,
   friends,
-  messages,
   highscore,
   achievements,
-  news: (v) => `<h2>Neuigkeiten</h2>${newsHTML(v.ui.news)}`,
   help,
   admin,
 };

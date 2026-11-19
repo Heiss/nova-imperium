@@ -8,6 +8,8 @@ import { mountCatalogList } from './catalog-list.ts';
 import { mountFleet } from './fleet.ts';
 import { mountGalaxy } from './galaxy.ts';
 import { mountLexicanum } from './lexicanum.ts';
+import { mountMessages } from './messages.ts';
+import { mountNews } from './news.ts';
 import { mountOverview } from './overview.ts';
 import { mountProducerTable } from './producer-table.ts';
 
@@ -27,6 +29,8 @@ const MOUNT: Record<
   resources: mountProducerTable,
   galaxy: mountGalaxy,
   fleet: mountFleet,
+  news: mountNews,
+  messages: mountMessages,
   [LEXICANUM_VIEW]: mountLexicanum,
 };
 
@@ -41,6 +45,8 @@ export const ANEW: ReadonlySet<string> = new Set([
   'overview',
   'galaxy',
   'fleet',
+  'news',
+  'messages',
 ]);
 
 /** Mounts the component of the view; any other view gets the overview. */
