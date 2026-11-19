@@ -12,6 +12,7 @@ import { SqliteMarket, type MarketStore } from './market.ts';
 import { SqlitePlanets, type Planets } from './planets.ts';
 import { SqlitePlayers, type Players } from './players.ts';
 import { SqliteReports, type Reports } from './reports.ts';
+import { SqliteRounds, type RoundArchive } from './rounds.ts';
 import { SqliteSurveys, type Surveys } from './surveys.ts';
 
 export interface Repositories {
@@ -30,6 +31,8 @@ export interface Repositories {
   friends: Friends;
   /** The prices and the daily amounts of the marketplace (#171). */
   market: MarketStore;
+  /** The archive of the rounds and their event history (#235). */
+  rounds: RoundArchive;
 }
 
 export const repositories = (db: Db): Repositories => ({
@@ -44,4 +47,5 @@ export const repositories = (db: Db): Repositories => ({
   surveys: new SqliteSurveys(db),
   friends: new SqliteFriends(db),
   market: new SqliteMarket(db),
+  rounds: new SqliteRounds(db),
 });
