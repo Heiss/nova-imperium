@@ -1053,6 +1053,53 @@ src/client/                state, components (generic), views
   worlds and fleets: the answer or message, every table and the next random
   number.
 
+## 13. Client features register themselves (#322, part 1 of #317)
+
+* **[E]** Decided by the owner (2026-11-19, #317): `src/client/main.ts`
+  stops growing; a client feature registers itself like a round setting
+  (#310). No change of the game, of a text or of the behaviour.
+* **[V]** The contract (main agent, 2026-11-19): a feature has one module
+  `src/client/features/<name>.ts` that exports under the fixed name
+  `clientFeature`, `export const clientFeature = { acts: (ctx) => ({ ... }) }
+  satisfies ClientFeature;`. `acts` returns the `data-act` handlers of the
+  feature: a name from the markup (`data-act="build"`) to a function that
+  gets the `data-*` attributes of the element. `ClientFeature` and the
+  context `ClientCtx` are in `src/client/features/contract.ts`.
+* **[V]** `ClientCtx` holds only what the moved code really needs from
+  `main.ts` (not the state: a module imports `client` from
+  `logic/state.svelte.ts`, which also holds `client.ui`): `act` and `actHere`
+  (send an action), `modal`, `go`, `render`, `setInput`, later `toast` and
+  `api` as the moved code needs them. `main.ts` builds one object and hands
+  it to every module. A member is added when a module needs it, not before.
+* **[V]** Further members of `ClientFeature` come only with the first module
+  that needs them (form handlers by form id, a start hook, a hook after the
+  render); each is optional and is merged like `acts`.
+* **[V]** The list of the modules is generated: `scripts/gen-features.ts`
+  writes `src/client/features/index.gen.ts` (`CLIENT_FEATURES`, `[name,
+  clientFeature]` pairs sorted by file name), not checked in (`.gitignore`),
+  from every file of the folder that exports `clientFeature` (same detection
+  and write-if-changed as for `roundSettings`; not a test, not a generated
+  file). Knip takes it as an entry. `main.ts` imports only this list and names
+  no feature: it builds its table `ACT` from its own frame handlers (start,
+  login, navigation, planet choice, the click and key dispatch) and the
+  handlers of all modules through `assembleActs`.
+* **[V]** The rules for all modules are checked in two places. The pure
+  function `assembleActs` (`src/client/features/assemble.ts`) throws when a
+  handler name is defined twice, between two modules or between a module and
+  a frame handler, so there is no silent overwrite by spread order and the
+  page fails at start, not in one click. `src/client/features/registry.test.ts`
+  checks every listed module (exports `clientFeature` with `acts`, no name
+  twice, every name a plain word) and the function itself. Each module tests
+  its own handlers with a fake `ctx` (what a handler sends through `ctx.act`
+  and what it shows), without DOM snapshots.
+* **[V]** Order of the work: first the handlers that already lived outside
+  `main.ts` (`abandon`, `round`, `market`, `social`, `options`, `fleet`,
+  `missiles`, `lexicanum`, `demolition`; the collecting file
+  `feature-actions.ts` is gone), then the features of `main.ts` one by one,
+  each with its helper functions and its tests; `size-ratchet.json` goes down
+  with each. What stays in `main.ts` is the frame: start, the API call, the
+  state, the rendering, the click and key dispatch.
+
 # Migration
 
 * **[E]** The running release (milestone `next release`) is built as
