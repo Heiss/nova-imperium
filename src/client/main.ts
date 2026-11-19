@@ -26,7 +26,6 @@ import { gameIsBack, maintenanceNotice } from './logic/maintenance.ts';
 import { latestNews, NEWS_SEEN_KEY, type NewsData } from './logic/news.ts';
 import { hiddenView, navigation } from './logic/navigation.ts';
 import { ANIMATION_KEY, animationsOn } from './logic/planet.ts';
-import { pushSaver } from './logic/push-options.ts';
 import { client } from './logic/state.svelte.ts';
 import { resourceBar } from './logic/resource-bar.ts';
 import type { GameState } from './logic/types.ts';
@@ -50,7 +49,7 @@ import {
   diagnosticTab,
   type AdminTab,
 } from './views/misc.ts';
-import { disablePush, enablePush } from './push.ts';
+import { disablePush } from './push.ts';
 import { mountCatalogList } from './views/catalog-list.ts';
 import { renderGate } from './views/vacation-lock.ts';
 import { mountGalaxy } from './views/galaxy.ts';
@@ -493,9 +492,6 @@ async function refresh(): Promise<void> {
   }
 }
 
-/** The push kinds (#192): one save at a time, the newest choice wins. */
-const savePush = pushSaver(ui, (off) => act('pushOptions', { off }));
-
 // ----- rendering -----
 
 /** Sets the planet textures from data-surface/data-clouds (CSSOM is allowed by the CSP, style="" is not). */
@@ -813,19 +809,6 @@ const go = (
   window.scrollTo(0, 0);
 };
 
-async function togglePush(enabled: boolean): Promise<void> {
-  try {
-    await (enabled ? enablePush : disablePush)(api);
-    toast(
-      enabled
-        ? 'Benachrichtigungen aktiviert.'
-        : 'Benachrichtigungen deaktiviert.',
-    );
-  } catch (e) {
-    toast((e as Error).message, true);
-  }
-}
-
 function closeMore(): void {
   const more = $<HTMLDialogElement>('#more');
   if (more?.open) more.close();
@@ -834,8 +817,6 @@ function closeMore(): void {
 /** The handlers of the frame; the features add theirs (features/). */
 const FRAME: Record<string, (d: Data) => unknown> = {
   moreOpen: () => $<HTMLDialogElement>('#more')!.showModal(),
-  pushEnable: () => togglePush(true),
-  pushDisable: () => togglePush(false),
   logout: async () => {
     await disablePush(api).catch(() => null);
     await api('/api/logout', {}).catch(() => null);
@@ -1140,12 +1121,6 @@ document.addEventListener('change', (e) => {
     setAnimations((el as unknown as HTMLInputElement).checked);
   if (el.dataset?.chg === 'pct')
     void act('pct', { key: el.dataset.k, v: el.value });
-  if (el.dataset?.chg === 'push' && client.game)
-    void savePush(
-      client.game.me.pushOff,
-      el.dataset.k,
-      (el as unknown as HTMLInputElement).checked,
-    ).then(() => render());
 });
 function adminTabKey(event: KeyboardEvent): void {
   const selected = (event.target as HTMLElement).closest(
