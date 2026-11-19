@@ -82,8 +82,8 @@ owiki.de „Urlaubsmodus“
 
 * **[V]** The minimum duration is an entry of the registry of the round
   settings (#283, [Admin](/features/admin.md#the-registry-of-the-round-settings-283)):
-  `VACATION_SETTING` in `src/core/vacation.ts`, listed in `ROUND_SETTINGS`
-  (`src/core/round.ts`), stored under `roundVacationHours`, named
+  `roundSettings` in `src/core/vacation.ts` (#310; the generated list
+  registers it in `ROUND_SETTINGS`), stored under `roundVacationHours`, named
   `vacationHours` in `RoundRules` and in the request „reset“, in whole
   hours from 1 to 720 (30 days, the range of the abandon lock of #224),
   default 48 (also without the setting), `order` 150 (the numbers 60 to 90

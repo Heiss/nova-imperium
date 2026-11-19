@@ -5,7 +5,6 @@ import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import {
   ABANDON_LOCK_HOURS,
-  ABANDON_LOCK_SETTING,
   type AbandonCheck,
   HOUR_MS,
   abandonError,
@@ -13,10 +12,15 @@ import {
   positionLockEnd,
   positionLocked,
 } from './abandon.ts';
-import { roundRefused } from './round.ts';
+import { ROUND_SETTINGS, roundFieldId, roundRefused } from './round.ts';
+import { DEFAULT_UNIVERSE, liveSpecs, universeErrors } from './universe.ts';
 import type { Queue } from './types.ts';
 
 const NOW = 1_763_300_000_000;
+/** The entry of the lock, as the registry holds it. */
+const abandonLockSetting = ROUND_SETTINGS.filter(
+  (s) => s.key === 'roundAbandonLock',
+);
 const colony = {
   id: 'p2_5_9',
   owner: 'u_Anna',
@@ -50,7 +54,7 @@ describe('the lock length of a round', () => {
     expect(ABANDON_LOCK_HOURS).toEqual({ min: 1, max: 720, default: 24 });
     expect(HOUR_MS).toBe(60 * 60 * 1000);
     const refused = (abandonLock: unknown) =>
-      roundRefused({ abandonLock: 24 }, { abandonLock }, [ABANDON_LOCK_SETTING])
+      roundRefused({ abandonLock: 24 }, { abandonLock }, abandonLockSetting)
         .length;
     for (const hours of [1, 24, 720]) expect(refused(hours)).toBe(0);
     for (const hours of [0, 721, -1, 1.5, '24', null, Number.NaN])
@@ -58,19 +62,44 @@ describe('the lock length of a round', () => {
   });
 
   it('is one entry of the registry, set in „Neue Runde“ and live (#283, X1)', () => {
-    expect(ABANDON_LOCK_SETTING).toEqual({
-      kind: 'number',
+    expect(abandonLockSetting).toEqual([
+      {
+        kind: 'number',
+        key: 'roundAbandonLock',
+        name: 'abandonLock',
+        label: 'Sperre einer aufgegebenen Position (Stunden)',
+        order: 50,
+        min: 1,
+        max: 720,
+        def: 24,
+        refusal:
+          'Bitte für die Sperre einer aufgegebenen Position 1 bis 720 ganze Stunden angeben.',
+        live: true,
+      },
+    ]);
+    expect(abandonLockSetting.map(roundFieldId)).toEqual([
+      'round-abandon-lock',
+    ]);
+  });
+
+  it('is a row of the universe settings, 1 to 720 hours, 24 by default, checked there (#224, X1)', () => {
+    const row = {
       key: 'roundAbandonLock',
-      name: 'abandonLock',
       label: 'Sperre einer aufgegebenen Position (Stunden)',
-      order: 50,
       min: 1,
       max: 720,
       def: 24,
-      refusal:
-        'Bitte für die Sperre einer aufgegebenen Position 1 bis 720 ganze Stunden angeben.',
-      live: true,
-    });
+    };
+    expect(liveSpecs().filter((s) => s.key === row.key)).toEqual([row]);
+    expect(DEFAULT_UNIVERSE).toMatchObject({ roundAbandonLock: 24 });
+    const codes = (roundAbandonLock: unknown) =>
+      universeErrors(
+        { ...DEFAULT_UNIVERSE, roundAbandonLock },
+        { g: 1, s: 1, p: 1 },
+      ).map((e) => [e.spec.key, e.code]);
+    for (const hours of [1, 720]) expect(codes(hours)).toEqual([]);
+    for (const hours of [0, 721, 1.5])
+      expect(codes(hours)).toEqual([['roundAbandonLock', 'range']]);
   });
 });
 

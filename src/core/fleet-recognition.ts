@@ -41,52 +41,45 @@ const RECOGNITION: RoundGroup = {
   legend: 'Fremde Flotten erkennen',
 };
 
-/** One threshold as a setting of the round (#283), `live` by X1. */
-const threshold = <N extends string, K extends `round${string}`>(
-  key: K,
-  name: N,
-  label: string,
-  order: number,
-  def: number,
-) =>
-  ({
-    kind: 'number',
-    key,
-    name,
-    label,
-    order,
-    group: RECOGNITION,
-    ...RECOGNITION_LEVELS,
-    def,
-    live: true,
-  }) as const satisfies RoundSetting;
+/** What the three thresholds share as settings of the round. */
+const threshold = {
+  kind: 'number',
+  group: RECOGNITION,
+  ...RECOGNITION_LEVELS,
+  live: true,
+} as const;
 
-/** The total number of ships, a setting of the round (#283). */
-export const RECOGNITION_TOTAL_SETTING = threshold(
-  'roundRecognitionTotal',
-  'recognitionTotal',
-  'Fremde Flotten: Schiffe insgesamt ab Auspex-Lehre',
-  120,
-  RECOGNITION_DEFAULT.total,
-);
-
-/** The ship types, a setting of the round (#283). */
-export const RECOGNITION_TYPES_SETTING = threshold(
-  'roundRecognitionTypes',
-  'recognitionTypes',
-  'Fremde Flotten: Schiffstypen ab Auspex-Lehre',
-  130,
-  RECOGNITION_DEFAULT.types,
-);
-
-/** The exact number per type, a setting of the round (#283). */
-export const RECOGNITION_COUNTS_SETTING = threshold(
-  'roundRecognitionCounts',
-  'recognitionCounts',
-  'Fremde Flotten: Anzahl je Schiffstyp ab Auspex-Lehre',
-  140,
-  RECOGNITION_DEFAULT.counts,
-);
+/**
+ * The three thresholds as settings of the round (#283): number fields of the
+ * dialog „Neue Runde“ and, `live` by X1, rows of the universe settings. The
+ * export under this name registers them (#310, src/core/round.ts).
+ */
+export const roundSettings = [
+  {
+    ...threshold,
+    key: 'roundRecognitionTotal',
+    name: 'recognitionTotal',
+    label: 'Fremde Flotten: Schiffe insgesamt ab Auspex-Lehre',
+    order: 120,
+    def: RECOGNITION_DEFAULT.total,
+  },
+  {
+    ...threshold,
+    key: 'roundRecognitionTypes',
+    name: 'recognitionTypes',
+    label: 'Fremde Flotten: Schiffstypen ab Auspex-Lehre',
+    order: 130,
+    def: RECOGNITION_DEFAULT.types,
+  },
+  {
+    ...threshold,
+    key: 'roundRecognitionCounts',
+    name: 'recognitionCounts',
+    label: 'Fremde Flotten: Anzahl je Schiffstyp ab Auspex-Lehre',
+    order: 140,
+    def: RECOGNITION_DEFAULT.counts,
+  },
+] as const satisfies readonly RoundSetting[];
 
 /** The thresholds among the rules of a round. */
 export const recognitionOf = (round: {

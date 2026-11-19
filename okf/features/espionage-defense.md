@@ -148,9 +148,9 @@ points were answered on 2026-11-16.
 * **[V]** The thresholds are three entries of the registry of the round
   settings (#283, see
   [Admin](/features/admin.md#the-registry-of-the-round-settings-283)),
-  defined in `src/core/fleet-recognition.ts`: `RECOGNITION_TOTAL_SETTING`
-  (order 120), `RECOGNITION_TYPES_SETTING` (130) and
-  `RECOGNITION_COUNTS_SETTING` (140); the orders 60 to 90 are the
+  defined in `src/core/fleet-recognition.ts` as its `roundSettings` (#310):
+  `roundRecognitionTotal` (order 120), `roundRecognitionTypes` (130) and
+  `roundRecognitionCounts` (140); the orders 60 to 90 are the
   activity markers of #229 and 100 and 110 are left to #55. They are stored as `roundRecognitionTotal`,
   `roundRecognitionTypes` and `roundRecognitionCounts` (2, 4 and 8 without
   a setting, so existing universes need no migration) and are named

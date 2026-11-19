@@ -74,39 +74,39 @@ const limit = <P extends LimitPart>(part: P) =>
  * The thresholds as settings of the round (#283): number fields of the
  * dialog „Neue Runde“ and, `live`, rows of the universe settings, changed
  * during the round (X1); existing universes start with the classic values.
- * Refused with the range wording of the universe settings.
+ * Refused with the range wording of the universe settings. The export under
+ * this name registers them (#310, src/core/round.ts).
  */
-export const ACTIVITY_RECENT_SETTING = {
-  ...limit('recent'),
-  key: 'roundActivityRecent',
-  name: 'activityRecent',
-  label: 'Aktivität ohne Minutenangabe (Minuten)',
-  order: 60,
-} as const satisfies RoundSetting;
-
-export const ACTIVITY_MINUTES_SETTING = {
-  ...limit('minutes'),
-  key: 'roundActivityMinutes',
-  name: 'activityMinutes',
-  label: 'Aktivität mit Minutenangabe bis (Minuten)',
-  order: 70,
-} as const satisfies RoundSetting;
-
-export const INACTIVE_DAYS_SETTING = {
-  ...limit('inactive'),
-  key: 'roundInactiveDays',
-  name: 'inactiveDays',
-  label: 'Inaktiv ab (Tage)',
-  order: 80,
-} as const satisfies RoundSetting;
-
-export const LONG_INACTIVE_DAYS_SETTING = {
-  ...limit('longInactive'),
-  key: 'roundLongInactiveDays',
-  name: 'longInactiveDays',
-  label: 'Lange inaktiv ab (Tage)',
-  order: 90,
-} as const satisfies RoundSetting;
+export const roundSettings = [
+  {
+    ...limit('recent'),
+    key: 'roundActivityRecent',
+    name: 'activityRecent',
+    label: 'Aktivität ohne Minutenangabe (Minuten)',
+    order: 60,
+  },
+  {
+    ...limit('minutes'),
+    key: 'roundActivityMinutes',
+    name: 'activityMinutes',
+    label: 'Aktivität mit Minutenangabe bis (Minuten)',
+    order: 70,
+  },
+  {
+    ...limit('inactive'),
+    key: 'roundInactiveDays',
+    name: 'inactiveDays',
+    label: 'Inaktiv ab (Tage)',
+    order: 80,
+  },
+  {
+    ...limit('longInactive'),
+    key: 'roundLongInactiveDays',
+    name: 'longInactiveDays',
+    label: 'Lange inaktiv ab (Tage)',
+    order: 90,
+  },
+] as const satisfies readonly RoundSetting[];
 
 /** The four values of the round the thresholds are read from. */
 export interface ActivityRound {

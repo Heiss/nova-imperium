@@ -6,17 +6,19 @@ import {
   DAY_MS,
   MAIN_LOCK_DAYS,
   type MainSwitch,
-  MAIN_LOCK_SETTING,
   canBeMain,
   mainLockEnd,
   mainLocked,
   mainOf,
   mainSwitchError,
 } from './main-planet.ts';
-import { roundRefused } from './round.ts';
+import { ROUND_SETTINGS, roundFieldId, roundRefused } from './round.ts';
+import { liveSpecs } from './universe.ts';
 import type { Planet } from './types.ts';
 
 const NOW = 1_763_300_000_000;
+/** The entry of the lock, as the registry holds it. */
+const mainLockSetting = ROUND_SETTINGS.filter((s) => s.key === 'roundMainLock');
 type Place = Pick<Planet, 'id' | 'owner' | 'kind'>;
 const home: Place = { id: 'p1_2_3', owner: 'u_Anna', kind: 'planet' };
 const colony: Place = { id: 'p2_5_9', owner: 'u_Anna', kind: 'planet' };
@@ -37,10 +39,29 @@ describe('the lock length of a round', () => {
     expect(MAIN_LOCK_DAYS).toEqual({ min: 1, max: 30, default: 7 });
     expect(DAY_MS).toBe(24 * 60 * 60 * 1000);
     const refused = (mainLock: unknown) =>
-      roundRefused({ mainLock: 7 }, { mainLock }, [MAIN_LOCK_SETTING]).length;
+      roundRefused({ mainLock: 7 }, { mainLock }, mainLockSetting).length;
     for (const days of [1, 7, 30]) expect(refused(days)).toBe(0);
-    for (const days of [0, 31, -1, 1.5, '7', null, Number.NaN])
+    for (const days of [0, 31, -1, 1.5, '7', null, Number.NaN, true])
       expect(refused(days)).toBe(1);
+  });
+
+  it('is one entry of the registry, a number field of „Neue Runde“ only, not live (#283)', () => {
+    expect(mainLockSetting).toEqual([
+      {
+        kind: 'number',
+        key: 'roundMainLock',
+        name: 'mainLock',
+        label: 'Sperre nach einem Wechsel des Hauptplaneten (Tage)',
+        order: 40,
+        min: 1,
+        max: 30,
+        def: 7,
+        refusal:
+          'Bitte für die Sperre des Hauptplaneten 1 bis 30 ganze Tage angeben.',
+      },
+    ]);
+    expect(mainLockSetting.map(roundFieldId)).toEqual(['round-main-lock']);
+    expect(liveSpecs().map((s) => s.key)).not.toContain('roundMainLock');
   });
 });
 

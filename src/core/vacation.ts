@@ -22,20 +22,23 @@ export const VACATION_HOURS = { min: 1, max: 720, default: 48 } as const;
  * The minimum duration as a setting of the round (#283): a number field of
  * the dialog „Neue Runde“ and, `live`, a row of the universe settings,
  * changed during the round (X1, owner, 2026-11-17); existing universes keep
- * a vacation for the default 48 hours at least.
+ * a vacation for the default 48 hours at least. The export under this name
+ * registers it (#310, src/core/round.ts).
  */
-export const VACATION_SETTING = {
-  kind: 'number',
-  key: 'roundVacationHours',
-  name: 'vacationHours',
-  label: 'Mindestdauer des Urlaubsmodus (Stunden)',
-  order: 150,
-  min: VACATION_HOURS.min,
-  max: VACATION_HOURS.max,
-  def: VACATION_HOURS.default,
-  refusal: `Bitte für die Mindestdauer des Urlaubsmodus ${VACATION_HOURS.min} bis ${VACATION_HOURS.max} ganze Stunden angeben.`,
-  live: true,
-} as const satisfies RoundSetting;
+export const roundSettings = [
+  {
+    kind: 'number',
+    key: 'roundVacationHours',
+    name: 'vacationHours',
+    label: 'Mindestdauer des Urlaubsmodus (Stunden)',
+    order: 150,
+    min: VACATION_HOURS.min,
+    max: VACATION_HOURS.max,
+    def: VACATION_HOURS.default,
+    refusal: `Bitte für die Mindestdauer des Urlaubsmodus ${VACATION_HOURS.min} bis ${VACATION_HOURS.max} ganze Stunden angeben.`,
+    live: true,
+  },
+] as const satisfies readonly RoundSetting[];
 
 /** When a vacation that started at `start` can end at the earliest. */
 export const vacationEnd = (start: number, hours: number): number =>

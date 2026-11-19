@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_UNIVERSE,
   inUniverse,
+  liveSpecs,
   UNIVERSE_SPECS,
   universeErrors,
   universeOf,
@@ -12,12 +13,15 @@ const used = { g: 1, s: 10, p: 12 };
 
 const spec = (key: string) => UNIVERSE_SPECS.find((s) => s.key === key)!;
 
+/** The settings of the universe itself; the `live` settings of the round come after them (#283), each feature pins its own. */
+const own = UNIVERSE_SPECS.filter((s) => !s.key.startsWith('round'));
+
 /** The codes of the refused settings, by key (#214). */
 const codes = (input: Record<string, unknown>, at = used) =>
   universeErrors(input, at).map((e) => [e.spec.key, e.code]);
 
 describe('universe settings', () => {
-  it('have the defaults of version 1', () => {
+  it('have the defaults of version 1, then the live settings of the round at their defaults', () => {
     expect(DEFAULT_UNIVERSE).toEqual({
       speed: 5,
       galaxies: 2,
@@ -32,19 +36,7 @@ describe('universe settings', () => {
       extraFields: 0,
       // Added by #161 (owner, 2026-11-14): the gift flies 4 h by default.
       endzeitMinutes: 240,
-      // Added by #224 (owner, 2026-11-16, D2): a given-up position 24 h.
-      roundAbandonLock: 24,
-      // Added by #229 (owner, 2026-11-16, Q1): the classic thresholds.
-      roundActivityRecent: 15,
-      roundActivityMinutes: 59,
-      roundInactiveDays: 7,
-      roundLongInactiveDays: 28,
-      // Added by #228 (owner, 2026-11-16, D1): classic 2 / 4 / 8.
-      roundRecognitionTotal: 2,
-      roundRecognitionTypes: 4,
-      roundRecognitionCounts: 8,
-      // Added by #223 (owner, 2026-11-16, D1; 48 h since 2026-11-18).
-      roundVacationHours: 48,
+      ...Object.fromEntries(liveSpecs().map((s) => [s.key, s.def])),
     });
     for (const s of UNIVERSE_SPECS) {
       expect(s.def).toBeGreaterThanOrEqual(s.min);
@@ -52,7 +44,7 @@ describe('universe settings', () => {
     }
   });
   it('name each setting as the form and the messages show it', () => {
-    expect(UNIVERSE_SPECS.map((s) => [s.key, s.label])).toEqual([
+    expect(own.map((s) => [s.key, s.label])).toEqual([
       ['speed', 'Tempo (Faktor)'],
       ['galaxies', 'Galaxien'],
       ['systems', 'Systeme je Galaxie'],
@@ -64,22 +56,14 @@ describe('universe settings', () => {
       ['startDeuterium', 'Start-Promethium'],
       ['extraFields', 'Zusatzfelder pro Planet'],
       ['endzeitMinutes', 'Flugzeit der Endzeit-Gabe (Minuten)'],
-      ['roundAbandonLock', 'Sperre einer aufgegebenen Position (Stunden)'],
-      ['roundActivityRecent', 'Aktivität ohne Minutenangabe (Minuten)'],
-      ['roundActivityMinutes', 'Aktivität mit Minutenangabe bis (Minuten)'],
-      ['roundInactiveDays', 'Inaktiv ab (Tage)'],
-      ['roundLongInactiveDays', 'Lange inaktiv ab (Tage)'],
-      [
-        'roundRecognitionTotal',
-        'Fremde Flotten: Schiffe insgesamt ab Auspex-Lehre',
-      ],
-      ['roundRecognitionTypes', 'Fremde Flotten: Schiffstypen ab Auspex-Lehre'],
-      [
-        'roundRecognitionCounts',
-        'Fremde Flotten: Anzahl je Schiffstyp ab Auspex-Lehre',
-      ],
-      ['roundVacationHours', 'Mindestdauer des Urlaubsmodus (Stunden)'],
     ]);
+    // The live settings of the round: the label of the registry.
+    expect(
+      UNIVERSE_SPECS.filter((s) => s.key.startsWith('round')).map((s) => [
+        s.key,
+        s.label,
+      ]),
+    ).toEqual(liveSpecs().map((s) => [s.key, s.label]));
   });
   it('accept valid values given as strings', () => {
     const input = Object.fromEntries(
@@ -98,15 +82,6 @@ describe('universe settings', () => {
     for (const speed of [101, 2.5, 'x'])
       expect(codes({ ...DEFAULT_UNIVERSE, speed })).toEqual([
         ['speed', 'range'],
-      ]);
-  });
-  it('take a minimum duration of the vacation mode of 1 to 720 hours (#223, X1)', () => {
-    expect(spec('roundVacationHours')).toMatchObject({ min: 1, max: 720 });
-    for (const roundVacationHours of [1, 720])
-      expect(codes({ ...DEFAULT_UNIVERSE, roundVacationHours })).toEqual([]);
-    for (const roundVacationHours of [0, 721, 1.5])
-      expect(codes({ ...DEFAULT_UNIVERSE, roundVacationHours })).toEqual([
-        ['roundVacationHours', 'range'],
       ]);
   });
   it('take 0 to 100 extra fields per planet (#51, D4)', () => {
@@ -138,58 +113,6 @@ describe('universe settings', () => {
       expect(codes({ ...DEFAULT_UNIVERSE, endzeitMinutes })).toEqual([
         ['endzeitMinutes', 'range'],
       ]);
-  });
-  it('take 1 to 720 hours as the lock of a given-up position (#224, X1)', () => {
-    expect(spec('roundAbandonLock')).toEqual({
-      key: 'roundAbandonLock',
-      label: 'Sperre einer aufgegebenen Position (Stunden)',
-      min: 1,
-      max: 720,
-      def: 24,
-    });
-    for (const roundAbandonLock of [1, 720])
-      expect(codes({ ...DEFAULT_UNIVERSE, roundAbandonLock })).toEqual([]);
-    for (const roundAbandonLock of [0, 721, 1.5])
-      expect(codes({ ...DEFAULT_UNIVERSE, roundAbandonLock })).toEqual([
-        ['roundAbandonLock', 'range'],
-      ]);
-  });
-  it('take the ranges of the activity thresholds (#229, X1)', () => {
-    for (const [key, min, max, def] of [
-      ['roundActivityRecent', 1, 60, 15],
-      ['roundActivityMinutes', 1, 1440, 59],
-      ['roundInactiveDays', 1, 365, 7],
-      ['roundLongInactiveDays', 1, 365, 28],
-    ] as const) {
-      expect(spec(key)).toMatchObject({ key, min, max, def });
-      for (const value of [min, max])
-        expect(codes({ ...DEFAULT_UNIVERSE, [key]: value })).toEqual([]);
-      for (const value of [min - 1, max + 1, 1.5])
-        expect(codes({ ...DEFAULT_UNIVERSE, [key]: value })).toEqual([
-          [key, 'range'],
-        ]);
-    }
-  });
-  it('take levels 0 to 100 as the thresholds of foreign fleets (#228, X1)', () => {
-    for (const [key, def] of [
-      ['roundRecognitionTotal', 2],
-      ['roundRecognitionTypes', 4],
-      ['roundRecognitionCounts', 8],
-    ] as const) {
-      expect(spec(key)).toEqual({
-        key,
-        label: spec(key).label,
-        min: 0,
-        max: 100,
-        def,
-      });
-      for (const value of [0, 100])
-        expect(codes({ ...DEFAULT_UNIVERSE, [key]: value })).toEqual([]);
-      for (const value of [-1, 101, 1.5])
-        expect(codes({ ...DEFAULT_UNIVERSE, [key]: value })).toEqual([
-          [key, 'range'],
-        ]);
-    }
   });
   it('report all errors at once, in the order of the specs', () => {
     expect(codes({})).toEqual(UNIVERSE_SPECS.map((s) => [s.key, 'range']));
