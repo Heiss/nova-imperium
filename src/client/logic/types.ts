@@ -90,6 +90,8 @@ export interface AdminState {
   specs: UniverseSpec[];
   /** The „Endzeit“ (#161): the saved flight time and whether it is used up this round. */
   endzeit: { minutes: number; done: boolean };
+  /** What a new round starts with where the running round has no value of its own (#237), by name. */
+  fresh: Record<string, number>;
 }
 
 export interface GameState {

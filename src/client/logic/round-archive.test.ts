@@ -122,7 +122,12 @@ describe('the settings that differ from the default', () => {
       [],
     );
     expect(rulesDiff({}, SETTINGS)).toEqual([]);
-    expect(rulesDiff(roundDefaults())).toEqual([]);
+    // A round that ran on the values of a database from before the planet limit
+    // (unlimited) differs from the default of a new round, 6 (#237).
+    expect(rulesDiff({ ...roundDefaults(), colonyBase: 6 })).toEqual([]);
+    expect(rulesDiff(roundDefaults())).toEqual([
+      'Maximale Planeten ohne Forschung (0 = unbegrenzt, der Heimatplanet zählt mit): 0',
+    ]);
   });
 
   it('names a changed switch, a changed number and the label of a named choice', () => {

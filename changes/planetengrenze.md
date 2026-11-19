@@ -2,4 +2,4 @@
 art: neu
 ---
 
-Planetengrenze: Der Admin legt pro Runde fest, wie viele Planeten jeder Spieler besitzen darf (0 = unbegrenzt), und kann die Forschung Kolonialverwaltung aktivieren, die mehr Planeten erlaubt. Bei Erreichen der Grenze scheitert die Landnahme.
+Planetengrenze: Neue Runden starten mit 6 Planeten je Spieler (+2 je Forschungsstufe), laufende Runden bleiben unbegrenzt. Der Admin stellt es pro Runde ein (0 = unbegrenzt) und kann die Forschung Kolonialverwaltung aktivieren; „Neue Runde“ zeigt eine Vorschau. Am Limit scheitert die Landnahme.

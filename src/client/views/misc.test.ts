@@ -174,6 +174,20 @@ describe('the dialog „Neue Runde“', () => {
     expect(html.match(/id="round-preview-/g)).toHaveLength(1);
   });
 
+  it('preselects the planet limit with what a new round starts with where the running round has no value of its own (#237)', () => {
+    const base = (html: string): string =>
+      /<input type="number" id="round-colony-base"[^>]*>/.exec(html)?.[0] ?? '';
+    const running = { ...defaults(), colonyBase: 0 };
+    expect(base(roundDialog(running))).toContain('value="0"');
+    expect(
+      base(roundDialog(running, ROUND_SETTINGS, { colonyBase: 6 })),
+    ).toContain('value="6"');
+    // The preview line follows what is preselected.
+    expect(roundDialog(running, ROUND_SETTINGS, { colonyBase: 6 })).toContain(
+      'Vorschau: 6 Planeten',
+    );
+  });
+
   it('has one box „Gilden (mit Chat)“, preselected with the current round (#191)', () => {
     const on = box(roundDialog({ ...defaults(), guilds: true }));
     expect(on).toContain('Gilden (mit Chat)');

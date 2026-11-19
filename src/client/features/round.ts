@@ -67,7 +67,14 @@ export const clientFeature = {
     document.addEventListener('change', changed);
     document.addEventListener('input', changed);
     return {
-      reset: () => modal(roundDialog(client.game!.round)),
+      reset: () =>
+        modal(
+          roundDialog(
+            client.game!.round,
+            ROUND_SETTINGS,
+            client.game!.admin?.fresh,
+          ),
+        ),
       doReset: () => {
         // Read before the dialog closes with its fields.
         const data = roundRequest(dialogValues());

@@ -82,12 +82,14 @@ describe('the settings of the planet limit in the registry', () => {
     expect(
       SETTINGS.map((s) => (s.kind === 'number' ? [s.min, s.max, s.def] : [])),
     ).toEqual([
-      [0, 20, 0],
+      [0, 20, 6],
       [0, 1, 0],
       [1, 20, 2],
       [0, 20, 4],
     ]);
-    expect(COLONY_RANGE.base.def).toBe(0);
+    // A new round starts with 6, a round that runs without a stored value stays unlimited (owner, 2026-11-19).
+    expect(COLONY_RANGE.base.def).toBe(6);
+    expect(COLONY_RANGE.base.unstored).toBe(0);
     expect(RESEARCH!.kind === 'number' && RESEARCH!.choices).toEqual([
       { value: 0, label: 'Nein' },
       { value: 1, label: 'Ja' },

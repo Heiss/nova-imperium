@@ -18,9 +18,14 @@ const RESEARCH = 'colonial';
  */
 export const MOST_PLANETS = 20;
 
-/** The ranges of the three values [V], within the owner's 20 planets in total. */
+/**
+ * The ranges of the three values [V], within the owner's 20 planets in total,
+ * and the default of the base limit (owner, 2026-11-19): a new round starts
+ * with 6 (and 2 more per level), a round that runs without a stored value
+ * stays unlimited (`unstored`).
+ */
 export const COLONY_RANGE = {
-  base: { min: 0, max: MOST_PLANETS, def: 0 },
+  base: { min: 0, max: MOST_PLANETS, def: 6, unstored: 0 },
   perLevel: { min: 1, max: MOST_PLANETS, def: 2 },
   maxLevel: { min: 0, max: MOST_PLANETS, def: 4 },
 } as const;
@@ -64,6 +69,7 @@ export const roundSettings = [
     min: COLONY_RANGE.base.min,
     max: COLONY_RANGE.base.max,
     def: COLONY_RANGE.base.def,
+    unstored: COLONY_RANGE.base.unstored,
   },
   {
     kind: 'number',

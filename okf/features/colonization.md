@@ -44,13 +44,13 @@ The pure rules are in `src/core/colony-limit.ts`, the check of a Landnahme in
   (X1, `live`). Lowering the limit removes no planet; while a player is over
   it, new colonies are refused.
 * **[E]** D2: the research is a separate one, „Kolonialverwaltung“ (key
-  `colonial`, `src/features/colonial/`). **[V]** Cost and requirements are
-  the builder's proposal for the owner to confirm: the same as the
-  Kreuzzugs-Kartografie (4,000 Adamant, 8,000 Psikristall, 4,000 Promethium,
-  factor 2 as for every research; Forschungslabor 3, Spionagetechnik 4,
-  Impulstriebwerk 3). **[V]** Name abbreviation „KV“, the texts of its entry
-  and of its article, and its picture (the one of the
-  Kreuzzugs-Kartografie with its own name until one is drawn).
+  `colonial`, `src/features/colonial/`). **[E]** Cost and requirements as built
+  (owner, 2026-11-19, „Geklärt“ on #237): the same as the Kreuzzugs-Kartografie,
+  4,000 Adamant, 8,000 Psikristall, 4,000 Promethium, factor 2 as for every
+  research; Scholarium 3, Spionagetechnik 4, Impulstriebwerk 3 (the
+  Forschungslabor of the code). **[V]** Name abbreviation „KV“, the texts of its
+  entry and of its article, and its picture (the one of the Kreuzzugs-Kartografie
+  with its own name until one is drawn).
 * **[E]** D3: an outgoing Landnahme reserves a slot at the launch (planets
   owned plus Landnahmen on their way out must stay below the limit) and is
   checked again at the arrival, with the research the player has then
@@ -65,13 +65,22 @@ The pure rules are in `src/core/colony-limit.ts`, the check of a Landnahme in
   **[V]** Read as: no limit can exceed 20 planets (`MOST_PLANETS`), also with
   a highest level of 0 (the research brings nothing past that number); the
   base is 0 to 20, the planets per level 1 to 20 (a research that unlocks
-  nothing is refused), the highest level 0 to 20. **[V]** The default of a
-  round without the settings keeps today's game: no limit, research off,
-  2 planets per level and a highest level of 4 (the issue's example) for the
-  moment the admin switches it on. The values 6 and +2 of D6 are then what
-  the admin types in „Neue Runde“ (the dialog is prefilled from the previous
-  round); to start new rounds at 6 instead, the default of `roundColonyBase`
-  is the one place to change.
+  nothing is refused), the highest level 0 to 20.
+* **[E]** The default (owner, 2026-11-19, „Geklärt“ on #237): new rounds start
+  with the base limit 6 (and +2 per level); running rounds stay unlimited. Built
+  with two values on the entry of the registry (`src/core/round.ts`): `def` 6
+  is what a new round takes when nothing is sent and what the dialog „Neue
+  Runde“ offers; `unstored` 0 is what a running round without a stored value
+  reads, in the rules and in the universe settings (a database from before the
+  setting, and the first round of a new installation). No migration: nothing is
+  written for the running round, so a round that runs keeps today's game, and
+  the first new round stores all its values, after which they are carried from
+  round to round as for every setting. The admin state names the values a new
+  round starts with where the running one has none (`fresh`, only for the
+  admin), and the dialog preselects them. A value the admin stored (also by
+  the live settings, also 0) is not replaced. The defaults of the other three
+  values are unchanged (research off, 2 per level, highest level 4). The
+  rule „base above 0 with the research“ holds for both.
 * **[V]** The research cannot be started when the round does not have it
   (`off`) or when its highest level is reached (`maxLevel`), as codes of
   `researchErrors`: „Diese Forschung gibt es in dieser Runde nicht.“ and

@@ -7,6 +7,7 @@ import {
   type RoundRules,
   type RoundSetting,
   roundRefused,
+  freshValues,
   roundValues,
   storedValues,
 } from '../../core/round.ts';
@@ -72,11 +73,16 @@ export function startRoundRules(
   data: Record<string, unknown>,
   settings: readonly RoundSetting[] = ROUND_SETTINGS,
 ): RoundRules {
-  const current = roundRules(ctx, settings);
+  const running = roundRules(ctx, settings);
+  // Where the running round has no value of its own, a value that is not sent is the default (#237).
+  const current = {
+    ...running,
+    ...freshValues((key) => ctx.admin.setting(key), settings),
+  };
   const wrong = roundRefused(current, data, settings);
   if (wrong.length) fail(refusal(wrong));
   const next = {
-    number: current.number + 1,
+    number: running.number + 1,
     ...roundValues(current, data, settings),
   } as RoundRules;
   const values = next as unknown as Record<string, number | boolean>;

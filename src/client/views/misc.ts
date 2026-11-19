@@ -242,8 +242,12 @@ function groupPreview(
 function roundRows(
   round: RoundRules,
   settings: readonly RoundSetting[],
+  fresh: Readonly<Record<string, number>>,
 ): string[] {
-  const values = round as unknown as Record<string, number | boolean>;
+  const values = { ...round, ...fresh } as unknown as Record<
+    string,
+    number | boolean
+  >;
   const rows: string[] = [];
   for (const [i, s] of settings.entries()) {
     const legend = s.group?.legend;
@@ -260,13 +264,19 @@ function roundRows(
   return rows;
 }
 
+/**
+ * The dialog „Neue Runde“, preselected with the values of the running round;
+ * where it has none of its own, with what a new round starts with (`fresh`,
+ * #237).
+ */
 export function roundDialog(
   round: RoundRules,
   settings: readonly RoundSetting[] = ROUND_SETTINGS,
+  fresh: Readonly<Record<string, number>> = {},
 ): string {
   return `<p><b>Wirklich eine neue Runde starten?</b><br>
   Die laufende Runde wird vorher im Rundenarchiv gespeichert. Planeten, Flotten, Forschung, Nachrichten und Belohnungsfortschritt werden zurückgesetzt. Das kann nicht rückgängig gemacht werden.</p>
-  ${roundRows(round, settings).join('\n  ')}
+  ${roundRows(round, settings, fresh).join('\n  ')}
   <p><button class="red" data-act="doReset">Ja, neue Runde</button> <button data-act="closeModal">Abbrechen</button></p>`;
 }
 
