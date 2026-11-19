@@ -234,6 +234,8 @@ describe('the actions during the vacation mode', () => {
     'startVacation',
     'abandon',
     'jump',
+    // The marketplace (#171) is no part of the allow list.
+    'trade',
     'anyNewAction',
   ];
   // Owner, 2026-11-18: nothing but the end and the push settings.

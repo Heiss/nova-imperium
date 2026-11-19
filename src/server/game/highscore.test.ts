@@ -53,6 +53,32 @@ describe('the categories of the highscore (#78)', () => {
     expect(c.defense).toBe(0);
   });
 
+  it('count the Handelsposten and the Raketenkrypta in the buildings like every building (#171, #54)', () => {
+    const ctx = testCtx();
+    addUser(ctx, 'Anna');
+    addUser(ctx, 'Bert');
+    // Handelsposten 5,000 + 10,000 + 5,000 = 20,000 on level 1, 40,000 more
+    // on level 2 (factor 2); Raketenkrypta 20,000 + 20,000 + 1,000 = 41,000.
+    addPlanet(ctx, 'u_Anna', { b: { market: 2 } });
+    addPlanet(ctx, 'u_Bert', { g: 1, s: 1, p: 6, b: { silo: 1 } });
+    const c = categoryScores(ctx);
+    expect(c.u_Anna).toEqual({
+      buildings: 60,
+      research: 0,
+      fleet: 0,
+      defense: 0,
+    });
+    expect(c.u_Bert).toEqual({
+      buildings: 41,
+      research: 0,
+      fleet: 0,
+      defense: 0,
+    });
+    // The total counts the same cost (1 point per 1,000 resources).
+    expect(pointsMap(ctx).u_Anna).toBe(60);
+    expect(pointsMap(ctx).u_Bert).toBe(41);
+  });
+
   it('count research by its levels, not by its cost (Q1)', () => {
     const ctx = testCtx();
     addUser(ctx, 'Anna', { research: { energy: 3, graviton: 1, laser: 2 } });

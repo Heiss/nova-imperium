@@ -6,6 +6,7 @@
 // its notice (D3).
 import { describe, expect, it } from 'vitest';
 import { ACTIVITY_DEFAULT, MINUTE_MS } from '../../core/activity.ts';
+import { dayOf } from '../../core/market.ts';
 import { settle } from '../../core/settle.ts';
 import { HOUR_MS } from '../../core/vacation.ts';
 import type { AuditEntry } from '../audit.ts';
@@ -23,6 +24,7 @@ import { tick } from './arrival.ts';
 import { universe } from './context.ts';
 import { ACTIONS, runAction } from './dispatch.ts';
 import { friendState } from './friends.ts';
+import { currentPrices } from './market.ts';
 import { addMoon } from './moons.ts';
 import { roundRules } from './round.ts';
 import { stateFor } from './state.ts';
@@ -628,6 +630,54 @@ describe('the buddy list and the vacation mode (#227, #223)', () => {
     runAction(ctx, 'u_Bert', { type: 'endVacation' });
     recordActivity(ctx, bert(), 'action');
     expect(online()).toEqual([{ id: 'u_Bert', online: true }]);
+  });
+});
+
+describe('the marketplace and the vacation mode (#171, #223)', () => {
+  const trade = (ctx: TestCtx, uid = 'u_Anna', planet = 'p1_1_5') =>
+    act(ctx, 'trade', { give: 'm', get: 'c', amount: 1000, planet }, uid);
+  const stock = (ctx: TestCtx, id = 'p1_1_5') => ctx.planets.get(id)!.res;
+
+  /** Anna and Bert each with a Handelsposten and Adamant; Bert has moved the price. */
+  function market(): TestCtx {
+    const ctx = world();
+    for (const id of ['p1_1_5', 'p1_2_6'])
+      ctx.planets.save({
+        ...ctx.planets.get(id)!,
+        b: { ...ctx.planets.get(id)!.b, market: 1, robot: 4 },
+        res: { m: 5000, c: 100, d: 0 },
+      });
+    trade(ctx, 'u_Bert', 'p1_2_6');
+    return ctx;
+  }
+
+  it('refuses `trade` for a player in vacation mode and changes no stock, price or amount; it works again after the end', () => {
+    const ctx = market();
+    const prices = currentPrices(ctx);
+    const used = ctx.market.used('u_Anna', dayOf(ctx.now()));
+    start(ctx);
+    expect(() => trade(ctx)).toThrow(VACATION_REFUSED);
+    expect(stock(ctx)).toEqual({ m: 5000, c: 100, d: 0 });
+    expect(currentPrices(ctx)).toEqual(prices);
+    expect(ctx.market.used('u_Anna', dayOf(ctx.now()))).toEqual(used);
+    // The other player still trades, the vacation is no one else's rule.
+    expect(trade(ctx, 'u_Bert', 'p1_2_6')).toMatch(/getauscht/);
+    ctx.clock.t = START + 48 * HOUR_MS;
+    stop(ctx);
+    expect(trade(ctx)).toMatch(/getauscht/);
+    expect(stock(ctx).m).toBe(4000);
+  });
+
+  it('sends the lock screen no market data, and the full state again after the end', () => {
+    const ctx = market();
+    expect(stateFor(ctx, anna(ctx))).toHaveProperty('market');
+    start(ctx);
+    const shown = stateFor(ctx, anna(ctx));
+    expect(shown).not.toHaveProperty('market');
+    expect(JSON.stringify(shown)).not.toMatch(/"prices"|"used"|"market"/);
+    ctx.clock.t = START + 48 * HOUR_MS;
+    stop(ctx);
+    expect(stateFor(ctx, anna(ctx))).toHaveProperty('market');
   });
 });
 

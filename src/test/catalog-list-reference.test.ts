@@ -654,6 +654,25 @@ describe('CatalogList against the views before #118', () => {
     );
   });
 
+  it('lists the Handelsposten and the Raketenkrypta, each with its own marks, as before (#171, #54)', () => {
+    const v = handBuilt({
+      b: { lab: 3, yard: 2, robot: 4, market: 1, silo: 2 },
+    });
+    const html = normalize(renderNew(v, 'building'));
+    expect(html).toBe(normalize(OLD.building(v)));
+    const at = (name: string): number => html.indexOf(`${name} <span`);
+    // In the order of the catalog: the Handelsposten (170), then the Raketenkrypta (180).
+    expect(at('Handelsposten')).toBeGreaterThan(-1);
+    expect(at('Raketenkrypta')).toBeGreaterThan(at('Handelsposten'));
+    expect(html).toContain('Handelsposten <span class="lv">(Stufe 1)</span>');
+    expect(html).toContain('Raketenkrypta <span class="lv">(Stufe 2)</span>');
+    // The places of the missiles show at the Raketenkrypta only.
+    expect(html.match(/Belegt: /g)).toHaveLength(1);
+    expect(html.indexOf('Belegt: 0 / 20 Plätze')).toBeGreaterThan(
+      at('Raketenkrypta'),
+    );
+  });
+
   it('renders the hand-built cases as before', () => {
     for (const [name, v] of HAND_BUILT)
       for (const kind of KINDS)
