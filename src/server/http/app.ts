@@ -102,13 +102,17 @@ export function sessionCookie(
   return `${COOKIE}=${token ?? ''}; HttpOnly; Path=/; SameSite=Lax${age}${secure}`;
 }
 
-/** Cross-site requests are refused: JSON only, and the Origin must be ours. */
+/**
+ * Cross-site requests are refused: JSON only, and the Origin must be ours. A
+ * POST without `Origin` is refused like a foreign one (#328, owner,
+ * 2026-11-19): a browser sends the header on every fetch POST, so only a
+ * script outside the page leaves it out. GET and HEAD are not checked.
+ */
 export function crossSite(req: IncomingMessage, cfg: Config): boolean {
   if (req.method !== 'POST') return false;
   const type = String(req.headers['content-type'] ?? '');
   if (!type.toLowerCase().startsWith('application/json')) return true;
-  const origin = req.headers.origin;
-  return origin !== undefined && origin !== cfg.publicUrl;
+  return req.headers.origin !== cfg.publicUrl;
 }
 
 class Unauthorized extends Error {}

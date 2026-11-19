@@ -51,7 +51,7 @@ export async function start(
   servers.push(server);
   await new Promise<void>((r) => server.listen(0, '127.0.0.1', r));
   const port = (server.address() as { port: number }).port;
-  const client = fetcher(`http://127.0.0.1:${port}`);
+  const client = fetcher(`http://127.0.0.1:${port}`, cfg.publicUrl);
   return { ctx, cfg, app, ...client };
 }
 
@@ -66,22 +66,32 @@ export async function asAdmin(over: Parameters<typeof start>[0] = {}) {
   return s;
 }
 
-/** Calls with JSON bodies; keeps the session cookie the server sets. */
-function fetcher(base: string) {
+/**
+ * Calls with JSON bodies; keeps the session cookie the server sets. A POST
+ * carries the `Origin` of the game like a browser does (#328); a header given
+ * as `null` is left out, so a test can send a POST without one.
+ */
+function fetcher(base: string, origin: string) {
   let cookie = '';
   const call = async (
     method: string,
     url: string,
     body?: unknown,
-    headers: Record<string, string> = {},
+    headers: Record<string, string | null> = {},
   ) => {
+    const sent: Record<string, string | null> = {
+      ...(body !== undefined ? { 'content-type': 'application/json' } : {}),
+      ...(method === 'POST' ? { origin } : {}),
+      ...(cookie ? { cookie } : {}),
+      ...headers,
+    };
     const res = await fetch(base + url, {
       method,
-      headers: {
-        ...(body !== undefined ? { 'content-type': 'application/json' } : {}),
-        ...(cookie ? { cookie } : {}),
-        ...headers,
-      },
+      headers: Object.fromEntries(
+        Object.entries(sent).filter(
+          (e): e is [string, string] => e[1] !== null,
+        ),
+      ),
       body:
         body === undefined
           ? undefined
