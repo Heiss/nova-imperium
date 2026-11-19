@@ -7,6 +7,10 @@
 // (owner, 2026-11-16: no stored statistics).
 import type { Levels, Resources } from './types.ts';
 
+export type RoundStatus = 'active' | 'closed';
+/** „partial“: the round ran before the archive existed, its early history is missing. */
+export type RoundCoverage = 'complete' | 'partial';
+
 /** The pseudonym of an account deleted after the round (#235, D4, [V]). */
 export const DELETED_PLAYER = 'Gelöschter Spieler';
 
@@ -115,3 +119,56 @@ export const placeCounts = (
   planets: places.filter((p) => p.kind === 'planet').length,
   moons: places.filter((p) => p.kind === 'moon').length,
 });
+
+/** One line of the list of rounds. */
+export interface RoundEntry {
+  number: number;
+  status: RoundStatus;
+  started: number;
+  closed: number | null;
+  coverage: RoundCoverage;
+  /** The running round: for a player only the lock, for the admin a provisional report. */
+  locked: boolean;
+  participants: number | null;
+  you: Standing | null;
+}
+
+/** The report of one round. */
+export interface RoundReport {
+  round: {
+    number: number;
+    provisional: boolean;
+    /** The cutoff of a finished round, the time of reading for a provisional one. */
+    asOf: number;
+    started: number;
+    closed: number | null;
+    days: number;
+    coverage: RoundCoverage;
+    rules: Record<string, unknown>;
+  };
+  you: Standing | null;
+  /** Every participant by the total points, best first. */
+  rows: ReportRow[];
+  guilds: { tag: string; name: string; members: number; points: number }[];
+  /**
+   * The estimated playtime per seat, shared after the round ended (D2). Null
+   * until #231 and #232 record it: this is the place where the report shows it.
+   */
+  playtime: Record<number, number> | null;
+}
+
+/** One round in the history across rounds. */
+export interface HistoryEntry {
+  number: number;
+  started: number;
+  closed: number;
+  days: number;
+  coverage: RoundCoverage;
+  rules: Record<string, unknown>;
+  participants: number;
+  winner: { name: string; points: number } | null;
+  you:
+    | (Standing &
+        Pick<ReportRow, 'valuation' | 'economy' | 'planets' | 'moons'>)
+    | null;
+}

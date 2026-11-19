@@ -1,18 +1,17 @@
 // The reports of the archive (#235): who may open which round, what a report
 // holds, the history across rounds and the audit of the admin's reads.
 import { describe, expect, it } from 'vitest';
-import { DELETED_PLAYER } from '../../core/round-report.ts';
+import {
+  DELETED_PLAYER,
+  type HistoryEntry,
+  type RoundEntry,
+  type RoundReport,
+} from '../../core/round-report.ts';
 import { deleteAccount } from '../delete-account.ts';
 import { addPlanet, addUser, testCtx, type TestCtx } from '../test-helpers.ts';
 import type { Answer } from './actions.ts';
 import { runAction } from './dispatch.ts';
-import {
-  ARCHIVE_LIMIT,
-  HISTORY_LIMIT,
-  type HistoryEntry,
-  type RoundEntry,
-  type RoundReport,
-} from './round-report.ts';
+import { ARCHIVE_LIMIT, HISTORY_LIMIT } from './round-report.ts';
 
 const DAY = 86400000;
 const REFUSED = 'Dieser Rundenbericht ist nicht verfügbar.';

@@ -22,6 +22,11 @@ import {
   highscoreNote,
   highscoreRanking,
 } from '../logic/highscore.ts';
+import {
+  adminArchiveHTML,
+  archiveHTML,
+  shownArchive,
+} from '../logic/round-archive.ts';
 import { vacationHTML } from '../logic/vacation.ts';
 import { gainWarning } from '../logic/market.ts';
 import { pushKindsHTML, shownPushOff } from '../logic/push-options.ts';
@@ -96,6 +101,7 @@ export const help = (v: V): string => `<h2>Hilfe &amp; Optionen</h2>
  ${box('Optionen', `<div class="flex">Spähschädel pro Auspex-Erkundung von der Sternenkarte: <input type="number" id="o_probes" min="1" value="${v.s.me.probes || 1}" aria-label="Spähschädel pro Auspex-Erkundung"></div><div class="flex mt"><label for="o_explain">(?)-Symbol:</label> <select id="o_explain">${explainOptionsHTML(v.s.me.explain)}</select></div><div class="flex mt"><label for="o_levels">Stufenübersicht:</label> <select id="o_levels">${levelOptionsHTML(v.s.me.levelTable)}</select></div><p><button data-act="saveopt">Speichern</button></p>`)}
  ${box('Hauptplanet', mainPlanetHTML(v.s, v.now))}
  ${box('Urlaubsmodus', vacationHTML(v.s.round.vacationHours))}
+ ${box('Rundenarchiv', archiveHTML(shownArchive(v.s)))}
  ${box('Darstellung', `<label class="switch"><input type="checkbox" id="o_anim" ${v.ui.animations ? 'checked' : ''}> Animationen</label><p class="dim">Planeten drehen sich, Wolken ziehen. Gilt für dieses Gerät; ist im System „Bewegung reduzieren“ eingestellt, bleibt alles ruhig.</p>`)}
  ${passwordBox(v.ui)}
  ${passkeysBox()}
@@ -226,7 +232,7 @@ export function roundDialog(
   settings: readonly RoundSetting[] = ROUND_SETTINGS,
 ): string {
   return `<p><b>Wirklich eine neue Runde starten?</b><br>
-  Planeten, Flotten, Forschung, Nachrichten und Belohnungsfortschritt werden zurückgesetzt. Das kann nicht rückgängig gemacht werden.</p>
+  Die laufende Runde wird vorher im Rundenarchiv gespeichert. Planeten, Flotten, Forschung, Nachrichten und Belohnungsfortschritt werden zurückgesetzt. Das kann nicht rückgängig gemacht werden.</p>
   ${roundRows(round, settings).join('\n  ')}
   <p><button class="red" data-act="doReset">Ja, neue Runde</button> <button data-act="closeModal">Abbrechen</button></p>`;
 }
@@ -281,6 +287,7 @@ export function admin(v: V): string {
     <section id="admin-panel-universe" role="tabpanel" aria-labelledby="admin-tab-universe" hidden>
       ${box('Universum', settingsForm(v.s, a))}
       ${endzeitBox(a)}
+      ${box('Rundenberichte', adminArchiveHTML(shownArchive(v.s)))}
       ${box('Neue Runde', 'Alle Spieler behalten ihr Konto und bekommen einen frischen Planeten. <button class="red" data-act="reset">Neue Runde starten</button>')}
     </section>
     <section id="admin-panel-announce" role="tabpanel" aria-labelledby="admin-tab-announce" hidden>${box(

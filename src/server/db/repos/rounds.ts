@@ -2,12 +2,9 @@
 // who took part, and its durable event history. The rules of what is written
 // when are in src/server/game/round-archive.ts, the reading in
 // src/server/game/round-report.ts.
+import type { RoundCoverage, RoundStatus } from '../../../core/round-report.ts';
 import type { Db } from '../database.ts';
 import type { Row } from './rows.ts';
-
-type RoundStatus = 'active' | 'closed';
-/** „partial“: the round ran before the archive existed, its early history is missing. */
-type RoundCoverage = 'complete' | 'partial';
 
 export interface RoundRow {
   number: number;

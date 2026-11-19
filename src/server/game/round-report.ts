@@ -8,12 +8,14 @@
 import {
   type FinalPlace,
   type GuildFinal,
+  type HistoryEntry,
   type PlayerFinal,
   placeCounts,
   rankRows,
   type ReportRow,
+  type RoundEntry,
+  type RoundReport,
   roundDays,
-  type Standing,
   standingOf,
 } from '../../core/round-report.ts';
 import { record } from '../audit.ts';
@@ -31,59 +33,6 @@ export const HISTORY_LIMIT = 50;
 export const ARCHIVE_LIMIT = 100;
 
 const UNAVAILABLE = 'Dieser Rundenbericht ist nicht verfügbar.';
-
-/** One line of the list of rounds. */
-export interface RoundEntry {
-  number: number;
-  status: RoundRow['status'];
-  started: number;
-  closed: number | null;
-  coverage: RoundRow['coverage'];
-  /** The running round: for a player only the lock, for the admin a provisional report. */
-  locked: boolean;
-  participants: number | null;
-  you: Standing | null;
-}
-
-/** The report of one round. */
-export interface RoundReport {
-  round: {
-    number: number;
-    provisional: boolean;
-    /** The cutoff of a finished round, the time of reading for a provisional one. */
-    asOf: number;
-    started: number;
-    closed: number | null;
-    days: number;
-    coverage: RoundRow['coverage'];
-    rules: Record<string, unknown>;
-  };
-  you: Standing | null;
-  /** Every participant by the total points, best first. */
-  rows: ReportRow[];
-  guilds: { tag: string; name: string; members: number; points: number }[];
-  /**
-   * The estimated playtime per seat, shared after the round ended (D2). Null
-   * until #231 and #232 record it: this is the place where the report shows it.
-   */
-  playtime: Record<number, number> | null;
-}
-
-/** One round in the history across rounds. */
-export interface HistoryEntry {
-  number: number;
-  started: number;
-  closed: number;
-  days: number;
-  coverage: RoundRow['coverage'];
-  rules: Record<string, unknown>;
-  participants: number;
-  winner: { name: string; points: number } | null;
-  you:
-    | (Standing &
-        Pick<ReportRow, 'valuation' | 'economy' | 'planets' | 'moons'>)
-    | null;
-}
 
 /** The playtime of a round per seat (D2): not recorded yet, see `RoundReport.playtime`. */
 const playtimeOf = (): RoundReport['playtime'] => null;

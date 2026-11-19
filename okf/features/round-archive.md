@@ -102,4 +102,48 @@ complete, tested and pushed.
   `src/server/db/upgrades/20261120T0900-round-archive.test.ts`. Size of the
   archive of a round with 20 players of three fully built places each:
   about 22 KB (measured in the test).
-* **Slices 2 to 4:** see the sections below as they are built.
+* **Slice 2, the report of one round (2026-11-19):** the server action
+  `roundReport` (`src/server/game/round-report.ts`) answers a participant for
+  a finished round with the ranking by the categories of #78, the economy per
+  hour (the unweighted sum of the three resources), planets and moons, the
+  guilds and the settings of the round; the admin also gets the running round
+  as a provisional report (reading writes nothing; every admin read is an
+  `admin.read` entry). The action `roundArchive` lists the rounds a reader may
+  see (a player: their finished rounds and the lock line of the running one).
+  The browser shows it in the box „Rundenarchiv“ of „Hilfe & Optionen“ and, for
+  the admin, in the box „Rundenberichte“ of the tab „Universum“ with „Runde
+  abschließen“ and „Löschen“ (`src/client/features/round-archive.ts`,
+  `src/client/logic/round-archive.ts`).
+* **Slice 3, the history across rounds (2026-11-19):** the action
+  `roundHistory` and the table „Rundenvergleich“ below the list: per finished
+  round the length in days, the participants, the winner, the reader's own
+  place, points, economy and planets, the settings that differed from the
+  defaults and a mark for a round with a partial history.
+* **Slice 4, the Runden-Rewind:** not built, see below.
+
+# Where the playtime goes
+
+D2 shares playtime and activity curves in the archive after the round ended.
+#231 and #232 are not part of this build: `RoundReport.playtime` (per seat,
+null until recorded) and the line „Spielzeit: in diesem Archiv noch nicht
+erfasst.“ in the report are the place. When playtime is stored per round it
+must be written as events of the round (`round_events`) in the same way, so
+the retention follows the Lifetime decision and a deleted account is
+pseudonymised by seat.
+
+# What the Runden-Rewind and the curves still need
+
+The report of this build holds the state at the cutoff only. The Rewind (view
+G) and the point curves, the chronicle (view E) and the comparison over time
+(view D) need the in-round events of the issue's audit table, none of which
+exist yet (the table `round_events` and its writer
+`ctx.rounds.addEvent` are ready for them, no second migration is needed):
+`participant.joined` and the baseline, completed build/research/order events
+with the paid cost and the logical time, fleet arrivals and returns, the
+enriched battle event (losses, loot, debris), colony and moon creation and
+removal, accrued production and external deliveries, the Endzeit
+deliveries and admin gifts, and the activity intervals of #232. Each is
+written in the same transaction as the domain change, with a stable causal id
+(`round_events.version` is the schema version of the payload). The daily
+points are then derived on read (D3). Without them a Rewind could only show
+the final standing (cards 1 and 8), so it is left out [V].
