@@ -22,7 +22,7 @@ import { endzeitState } from './endzeit.ts';
 import { friendState } from './friends.ts';
 import { guildState } from './guilds.ts';
 import { gateState } from './jump-gate.ts';
-import { mainPlanetOf, mainPlanetView } from './main-planet.ts';
+import { mainPlanetOf } from './main-planet.ts';
 import { achievementState } from './achievements.ts';
 import { marketState } from './market.ts';
 import { roundRules } from './round.ts';
@@ -195,14 +195,6 @@ const FRAME: readonly StatePart[] = [
   keyed(30, 'cfg', (ctx) => universe(ctx)),
   keyed(40, 'me', (ctx, u) => meOf(ctx, u)),
   keyed(50, 'planet', (_ctx, _u, view) => view.planet),
-  {
-    order: 60,
-    keys: ['homePlanet', 'mainPlanet', 'mainLock'],
-    build: (ctx, u, view) => ({
-      homePlanet: ctx.planets.home(u.id)?.id ?? null,
-      ...mainPlanetView(view.main, ctx.now()),
-    }),
-  },
   keyed(70, 'labs', (ctx, u) => ownLabs(ctx, u.id)),
   // The own Warp-Tore with their readiness (#230).
   keyed(80, 'gates', (ctx, u) => gateState(ctx, u.id)),

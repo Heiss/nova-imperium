@@ -90,4 +90,13 @@ export const chooseMainPlanet: Action = (ctx, u, d) => {
 
 export const serverFeature = {
   actions: { mainPlanet: chooseMainPlanet },
+  // The id of the main planet and the end of its lock beside the home planet (#221).
+  state: {
+    order: 60,
+    keys: ['homePlanet', 'mainPlanet', 'mainLock'],
+    build: (ctx, u, view) => ({
+      homePlanet: ctx.planets.home(u.id)?.id ?? null,
+      ...mainPlanetView(view.main, ctx.now()),
+    }),
+  },
 } satisfies ServerFeature;
