@@ -209,8 +209,21 @@ Up to 760 px only; the desktop stays as it is (D6).
   without a tap. A row with a number field (ships, defense) or a note takes
   the line below the name.
 * **[V]** „▲ 5“: a button that names a level („Ausbauen auf Stufe 5“,
-  „Forschen (Stufe 4)“) shows „▲ 5“ on a phone and keeps its full name as
-  `aria-label`; „Bauen“ stays.
+  „Forschen (Stufe 4)“) shows „▲ 5“ on a phone; „Bauen“ stays. The button
+  has no `aria-label`: its full name stays its text, which the CSS takes out
+  of sight on a phone (clipped, not `display: none`) and shows in full on the
+  desktop; the short label is `aria-hidden`. So the name a reader or voice
+  control hears is the full one on both, and axe (`label-content-name-mismatch`,
+  WCAG 2.5.3) has no label to compare with the visible text. An earlier draft
+  had an `aria-label` and showed both texts on the desktop; axe rejected it.
+* **[V]** Layout rules found by the E2E tests (2026-11-19): the tab bar and
+  the switch of the four lists share their width by content and never reach
+  past 360 px; the four resources of the header are a flex line that wraps
+  when four large stocks do not fit (a column of a grid cannot be narrower
+  than its number); the tables `kv` (the fleet form) have fixed columns and
+  their fields fit the cell, since a „Schnellwahl“ with long options made the
+  page wider than the screen, the phone zoomed out, and the fixed tab bar was
+  no longer where Playwright clicked.
 * **[V]** Empty filter: „Nichts ist baubar. „Alle“ zeigt auch, was noch
   fehlt.“ and „Es läuft gerade nichts.“.
 * **[V]** The compact header: the logo, the commander and „Logout“ are hidden

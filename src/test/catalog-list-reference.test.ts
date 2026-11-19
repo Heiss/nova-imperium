@@ -98,7 +98,9 @@ const levelsOf = (v: V, key: string, name: string) =>
 // phone only): the switch between the four lists below the title, the filter
 // above the box (with its note when „Baubar“ shows nothing), the phase of
 // every row, the fold button after the ▤, the time line marked, and the short
-// label „▲ 5“ of a level button with the full name as `aria-label`.
+// label „▲ 5“ of a level button; its full name stays as the text of the
+// button (the CSS hides it from the eye on a phone only), without an
+// `aria-label`, which axe holds against the visible text (WCAG 2.5.3).
 const SWITCH =
   '<nav class="seg phone-only" aria-label="Bauen">' +
   [
@@ -136,7 +138,7 @@ function startButton(
   const attrs = `data-act="${act}" data-k="${k}" ${off ? 'disabled' : ''}`;
   const level = /Stufe (\d+)/.exec(label);
   return level
-    ? `<button ${attrs} aria-label="${label}"><span class="lg">${label}</span><span class="sh" aria-hidden="true">▲ ${level[1]}</span></button>`
+    ? `<button ${attrs}><span class="lg">${label}</span><span class="sh" aria-hidden="true">▲ ${level[1]}</span></button>`
     : `<button ${attrs}><span>${label}</span></button>`;
 }
 

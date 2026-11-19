@@ -195,11 +195,7 @@
             {:else if a.kind === 'note'}
               <span class={a.cls}>{a.text}</span>
             {:else if a.kind === 'start'}
-              <button
-                data-act={a.act}
-                data-k={row.key}
-                disabled={a.disabled}
-                aria-label={short ? a.label : undefined}
+              <button data-act={a.act} data-k={row.key} disabled={a.disabled}
                 ><span class:lg={!!short}>{a.label}</span>{#if short}<span
                     class="sh"
                     aria-hidden="true">{short}</span
