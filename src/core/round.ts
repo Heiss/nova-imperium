@@ -21,6 +21,11 @@ import {
   DEMOLITION_REFUND_SETTING,
   DEMOLITION_TIME_SETTING,
 } from './demolition.ts';
+import {
+  RECOGNITION_COUNTS_SETTING,
+  RECOGNITION_TOTAL_SETTING,
+  RECOGNITION_TYPES_SETTING,
+} from './fleet-recognition.ts';
 import { GUILDS_SETTING } from './guild-chat.ts';
 import { MAIN_LOCK_SETTING } from './main-planet.ts';
 
@@ -89,6 +94,9 @@ const ENTRIES = [
   ACTIVITY_MINUTES_SETTING,
   INACTIVE_DAYS_SETTING,
   LONG_INACTIVE_DAYS_SETTING,
+  RECOGNITION_COUNTS_SETTING,
+  RECOGNITION_TOTAL_SETTING,
+  RECOGNITION_TYPES_SETTING,
 ] as const satisfies readonly RoundSetting[];
 
 /** The settings by their `order` number, the fixed order (owner, 2026-11-17). */

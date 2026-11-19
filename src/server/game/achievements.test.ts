@@ -109,6 +109,9 @@ describe('achievements', () => {
       activityMinutes: 59,
       inactiveDays: 7,
       longInactiveDays: 28,
+      recognitionTotal: 2,
+      recognitionTypes: 4,
+      recognitionCounts: 8,
       demolitionRefund: 50,
       demolitionTime: 50,
     });

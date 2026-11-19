@@ -39,6 +39,10 @@ describe('universe settings', () => {
       roundActivityMinutes: 59,
       roundInactiveDays: 7,
       roundLongInactiveDays: 28,
+      // Added by #228 (owner, 2026-11-16, D1): classic 2 / 4 / 8.
+      roundRecognitionTotal: 2,
+      roundRecognitionTypes: 4,
+      roundRecognitionCounts: 8,
       // Added by #202 (owner, 2026-11-16, D3, D7): +50 % back in 50 % of the build time.
       roundDemolitionRefund: 50,
       roundDemolitionTime: 50,
@@ -66,6 +70,15 @@ describe('universe settings', () => {
       ['roundActivityMinutes', 'Aktivität mit Minutenangabe bis (Minuten)'],
       ['roundInactiveDays', 'Inaktiv ab (Tage)'],
       ['roundLongInactiveDays', 'Lange inaktiv ab (Tage)'],
+      [
+        'roundRecognitionTotal',
+        'Fremde Flotten: Schiffe insgesamt ab Auspex-Lehre',
+      ],
+      ['roundRecognitionTypes', 'Fremde Flotten: Schiffstypen ab Auspex-Lehre'],
+      [
+        'roundRecognitionCounts',
+        'Fremde Flotten: Anzahl je Schiffstyp ab Auspex-Lehre',
+      ],
       ['roundDemolitionRefund', 'Rückbau-Erstattung (%)'],
       ['roundDemolitionTime', 'Rückbau-Dauer (% der Bauzeit)'],
     ]);
@@ -134,7 +147,6 @@ describe('universe settings', () => {
         ['roundAbandonLock', 'range'],
       ]);
   });
-
   it('take the ranges of the activity thresholds (#229, X1)', () => {
     for (const [key, min, max, def] of [
       ['roundActivityRecent', 1, 60, 15],
@@ -146,6 +158,27 @@ describe('universe settings', () => {
       for (const value of [min, max])
         expect(codes({ ...DEFAULT_UNIVERSE, [key]: value })).toEqual([]);
       for (const value of [min - 1, max + 1, 1.5])
+        expect(codes({ ...DEFAULT_UNIVERSE, [key]: value })).toEqual([
+          [key, 'range'],
+        ]);
+    }
+  });
+  it('take levels 0 to 100 as the thresholds of foreign fleets (#228, X1)', () => {
+    for (const [key, def] of [
+      ['roundRecognitionTotal', 2],
+      ['roundRecognitionTypes', 4],
+      ['roundRecognitionCounts', 8],
+    ] as const) {
+      expect(spec(key)).toEqual({
+        key,
+        label: spec(key).label,
+        min: 0,
+        max: 100,
+        def,
+      });
+      for (const value of [0, 100])
+        expect(codes({ ...DEFAULT_UNIVERSE, [key]: value })).toEqual([]);
+      for (const value of [-1, 101, 1.5])
         expect(codes({ ...DEFAULT_UNIVERSE, [key]: value })).toEqual([
           [key, 'range'],
         ]);

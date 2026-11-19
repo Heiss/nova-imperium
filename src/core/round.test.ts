@@ -21,7 +21,15 @@ const activity = {
   inactiveDays: 7,
   longInactiveDays: 28,
 };
+
+/** The thresholds of foreign fleets (#228) at their defaults. */
+const RECOGNITION = {
+  recognitionTotal: 2,
+  recognitionTypes: 4,
+  recognitionCounts: 8,
+};
 const current = {
+  ...RECOGNITION,
   abandonLock: 24,
   achievements: true,
   daily: false,
@@ -60,6 +68,11 @@ describe('the registry of the round settings', () => {
       [70, 'roundActivityMinutes', 'activityMinutes'],
       [80, 'roundInactiveDays', 'inactiveDays'],
       [90, 'roundLongInactiveDays', 'longInactiveDays'],
+
+      // #228: 100 and 110 are left to #55.
+      [120, 'roundRecognitionTotal', 'recognitionTotal'],
+      [130, 'roundRecognitionTypes', 'recognitionTypes'],
+      [140, 'roundRecognitionCounts', 'recognitionCounts'],
       [180, 'roundDemolitionRefund', 'demolitionRefund'],
       [190, 'roundDemolitionTime', 'demolitionTime'],
     ]);
@@ -100,6 +113,10 @@ describe('the registry of the round settings', () => {
       'round-activity-minutes',
       'round-inactive-days',
       'round-long-inactive-days',
+
+      'round-recognition-total',
+      'round-recognition-types',
+      'round-recognition-counts',
       'round-demolition-refund',
       'round-demolition-time',
     ]);
@@ -108,6 +125,7 @@ describe('the registry of the round settings', () => {
   it('reads the stored values: a missing one is the default, a switch 0 or 1', () => {
     const none = storedValues(() => undefined);
     expect(none).toEqual({
+      ...RECOGNITION,
       abandonLock: 24,
       achievements: true,
       daily: true,
@@ -127,6 +145,7 @@ describe('the registry of the round settings', () => {
       roundInactiveDays: 3,
     };
     expect(storedValues((k) => stored[k])).toEqual({
+      ...RECOGNITION,
       abandonLock: 48,
       achievements: false,
       daily: true,
@@ -141,6 +160,7 @@ describe('the registry of the round settings', () => {
 
   it('builds the request with a group as one object', () => {
     expect(roundRequest(current)).toEqual({
+      recognition: RECOGNITION,
       abandonLock: 24,
       demolition: { demolitionRefund: 50, demolitionTime: 50 },
       rewards: { achievements: true, daily: false },
@@ -159,6 +179,7 @@ describe('the check of a new round', () => {
           const data = { rewards: { achievements, daily }, guilds };
           expect(roundRefused(current, data)).toEqual([]);
           expect(roundValues(current, data)).toEqual({
+            ...RECOGNITION,
             abandonLock: 24,
             achievements,
             daily,

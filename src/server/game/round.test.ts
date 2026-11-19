@@ -169,7 +169,8 @@ describe('a new entry of the registry (#283)', () => {
     expect(valuesOf(ctx)).toMatchObject({ testHours: 72 });
   });
 
-  it('the locks (#224), the thresholds of the activity markers (#229) and the demolition (#202) are live settings of main, rows of the universe settings', () => {
+  it('the live settings are rows of the universe settings, in the order of the registry: the lock of a given-up position (#224), the thresholds of the activity markers (#229), the thresholds of foreign fleets (#228), then the demolition (#202)', () => {
+    const level = { min: 0, max: 100 };
     const rows = [
       {
         key: 'roundAbandonLock',
@@ -207,6 +208,24 @@ describe('a new entry of the registry (#283)', () => {
         def: 28,
       },
       {
+        key: 'roundRecognitionTotal',
+        label: 'Fremde Flotten: Schiffe insgesamt ab Auspex-Lehre',
+        ...level,
+        def: 2,
+      },
+      {
+        key: 'roundRecognitionTypes',
+        label: 'Fremde Flotten: Schiffstypen ab Auspex-Lehre',
+        ...level,
+        def: 4,
+      },
+      {
+        key: 'roundRecognitionCounts',
+        label: 'Fremde Flotten: Anzahl je Schiffstyp ab Auspex-Lehre',
+        ...level,
+        def: 8,
+      },
+      {
         key: 'roundDemolitionRefund',
         label: 'Rückbau-Erstattung (%)',
         min: -100,
@@ -235,6 +254,7 @@ describe('a new entry of the registry (#283)', () => {
       guilds: 'no',
       mainLock: 0,
       abandonLock: 0,
+      recognition: {},
     };
     for (const [name, text] of [
       [
@@ -249,6 +269,10 @@ describe('a new entry of the registry (#283)', () => {
       [
         'abandonLock',
         'Bitte für die Sperre einer aufgegebenen Position 1 bis 720 ganze Stunden angeben.',
+      ],
+      [
+        'recognition',
+        'Fremde Flotten: Schiffe insgesamt ab Auspex-Lehre: ganze Zahl von 0 bis 100. Fremde Flotten: Schiffstypen ab Auspex-Lehre: ganze Zahl von 0 bis 100. Fremde Flotten: Anzahl je Schiffstyp ab Auspex-Lehre: ganze Zahl von 0 bis 100.',
       ],
     ] as const) {
       expect(() => startRoundRules(ctx, wrong)).toThrow(new Error(text));
