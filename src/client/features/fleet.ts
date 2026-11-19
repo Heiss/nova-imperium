@@ -3,37 +3,16 @@
 // Schiffe“ and „keine Schiffe“ fill the selection, „alles“ fills the cargo
 // (#240), „Springen“ jumps the picked ships to the „Zielmond“. The markup is
 // in views/fleet.ts, the box of the Warp-Tor from logic/jump-gate.ts.
-import type { Planet, Resources } from '../core/types.ts';
-import { CARGO, cargoMax, cargoOne, type FleetForm } from './logic/game.ts';
-import { client } from './logic/state.svelte.ts';
-
-/** What the handlers need from main.ts. */
-interface Deps {
-  /** Sends an action; true when it went through on the place still shown. */
-  actHere: (type: string, data?: object) => Promise<boolean>;
-  /** Updates the preview of the fleet form. */
-  calc: () => void;
-  /** The fleet form as it is filled in. */
-  form: () => FleetForm;
-  /** The shown planet with its stock of this moment. */
-  planet: () => Planet;
-  /** Sets the value of an input, when it is there. */
-  setInput: (sel: string, v: string | number) => void;
-  render: (fresh?: boolean) => void;
-}
+import type { Resources } from '../../core/types.ts';
+import { CARGO, cargoMax, cargoOne } from '../logic/game.ts';
+import { client } from '../logic/state.svelte.ts';
+import type { ClientFeature } from './contract.ts';
 
 const shipInputs = () => document.querySelectorAll<HTMLInputElement>('.fs');
 
 /** The data-act handlers of the ship selection, the cargo and „Springen“. */
-export function fleetActs({
-  actHere,
-  calc,
-  form,
-  planet,
-  setInput,
-  render,
-}: Deps): Record<string, (d: Record<string, string | undefined>) => unknown> {
-  return {
+export const clientFeature = {
+  acts: ({ actHere, setInput, render, fleet: { calc, form, planet } }) => ({
     fall: () => {
       shipInputs().forEach(
         (i) => (i.value = String(client.view!.P.ships[i.dataset.k!] ?? 0)),
@@ -58,5 +37,5 @@ export function fleetActs({
       const to = document.querySelector<HTMLSelectElement>('#jg_to')?.value;
       if (await actHere('jump', { to, ships: form().ships })) render(true);
     },
-  };
-}
+  }),
+} satisfies ClientFeature;

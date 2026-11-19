@@ -69,8 +69,6 @@ import {
   type AdminTab,
 } from './views/misc.ts';
 import { disablePush, enablePush } from './push.ts';
-import { fleetActs } from './fleet-acts.ts';
-import { featureActs } from './feature-actions.ts';
 import { mountCatalogList } from './views/catalog-list.ts';
 import { renderGate } from './views/vacation-lock.ts';
 import {
@@ -79,11 +77,13 @@ import {
   transferDialog,
 } from './views/guilds.ts';
 import { mountGalaxy } from './views/galaxy.ts';
-import { lexicanumActions, mountLexicanum } from './views/lexicanum.ts';
+import { mountLexicanum } from './views/lexicanum.ts';
 import { mountOverview } from './views/overview.ts';
 import { mountProducerTable } from './views/producer-table.ts';
-import { missileActs } from './views/missiles.ts';
 import { addPasskey, signInWithPasskey } from './passkeys.ts';
+import { assembleActs } from './features/assemble.ts';
+import type { ClientCtx } from './features/contract.ts';
+import { CLIENT_FEATURES } from './features/index.gen.ts';
 
 type Data = Record<string, string | undefined>;
 
@@ -1009,7 +1009,8 @@ function closeMore(): void {
   if (more?.open) more.close();
 }
 
-const ACT: Record<string, (d: Data) => unknown> = {
+/** The handlers of the frame; the features add theirs (features/). */
+const FRAME: Record<string, (d: Data) => unknown> = {
   moreOpen: () => $<HTMLDialogElement>('#more')!.showModal(),
   pushEnable: () => togglePush(true),
   pushDisable: () => togglePush(false),
@@ -1087,7 +1088,6 @@ const ACT: Record<string, (d: Data) => unknown> = {
   },
   build: (d) => act('build', { key: d.k }),
   cancelBuild: () => act('cancelBuild'),
-  ...demolition.demolitionActs({ act, modal, view: () => client.view }),
   research: (d) => act('research', { key: d.k }),
   cancelResearch: () => act('cancelResearch'),
   maxq: (d) => setInput(`#q_${d.k}`, d.max ?? 0),
@@ -1141,7 +1141,6 @@ const ACT: Record<string, (d: Data) => unknown> = {
     render(true);
     $('#scan-h')?.focus();
   },
-  ...missileActs(modal, actHere),
   gscanClose: () => {
     const target = ui.scan?.target;
     ui.scan = null;
@@ -1172,14 +1171,6 @@ const ACT: Record<string, (d: Data) => unknown> = {
     setInput(`#f_${d.k}`, client.view!.P.ships[d.k!] ?? 0);
     fleetCalc();
   },
-  ...fleetActs({
-    actHere,
-    calc: fleetCalc,
-    form: readFleetForm,
-    planet: settledPlanet,
-    setInput,
-    render,
-  }),
   send: async () => {
     if (await actHere('send', readFleetForm())) {
       ui.ft = null;
@@ -1193,8 +1184,6 @@ const ACT: Record<string, (d: Data) => unknown> = {
   },
   delrep: (d) => act('delrep', { id: d.id }),
   delall: () => act('delall'),
-  // nav, explain and the links of the Lexicanum (#285).
-  ...lexicanumActions(go),
   highscore: (d) => {
     ui.highscore = highscoreCategory(d.cat);
     render();
@@ -1216,7 +1205,6 @@ const ACT: Record<string, (d: Data) => unknown> = {
     }
   },
   deleteAccount: () => modal(deleteAccountDialog(client.game!.round)),
-  ...featureActs({ act, modal }),
   dismissInstall: () => {
     installDismissed = true;
     try {
@@ -1272,6 +1260,18 @@ const ACT: Record<string, (d: Data) => unknown> = {
     }
   },
 };
+
+/** What the features need from this file (features/contract.ts). */
+const ctx: ClientCtx = {
+  act,
+  actHere,
+  modal,
+  go,
+  render,
+  setInput,
+  fleet: { calc: fleetCalc, form: readFleetForm, planet: settledPlanet },
+};
+const ACT = assembleActs(FRAME, CLIENT_FEATURES, ctx);
 
 async function adminCall(
   url: string,
