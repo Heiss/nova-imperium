@@ -23,6 +23,7 @@ import { requireAdmin } from './admin.ts';
 import { type Ctx, addReport, fail, universe } from './context.ts';
 import { land } from './missions.ts';
 import { roundRules } from './round.ts';
+import type { ServerFeature } from './feature.ts';
 
 /** The setting with the round of the last „Endzeit“. */
 export const ENDZEIT_ROUND = 'endzeitRound';
@@ -200,3 +201,7 @@ export function giftArrive(ctx: Ctx, f: Fleet, t: Planet): void {
   );
   ctx.fleets.delete(f.id);
 }
+
+export const serverFeature = {
+  adminActions: { endzeit },
+} satisfies ServerFeature;

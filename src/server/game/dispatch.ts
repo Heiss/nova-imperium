@@ -9,7 +9,6 @@ import {
 import type { User } from '../db/repos/players.ts';
 import * as A from './actions.ts';
 import { reset, saveSettings } from './admin.ts';
-import { endzeit } from './endzeit.ts';
 import { pushOptions } from '../push-options.ts';
 import { tick } from './arrival.ts';
 import { assembleActions } from './assemble.ts';
@@ -104,7 +103,6 @@ const FRAME: Record<string, A.Action> = {
   jump,
   settings: saveSettings,
   reset,
-  endzeit,
   ...GUILD,
   // The buddy list (#227); not a guild action, so it works with guilds off.
   requestFriend,
@@ -128,7 +126,6 @@ export const GUILD_ACTIONS: ReadonlySet<string> = new Set([
 export const ADMIN_ACTIONS: ReadonlySet<string> = new Set([
   'settings',
   'reset',
-  'endzeit',
   ...tables.admin,
 ]);
 
