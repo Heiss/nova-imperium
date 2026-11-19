@@ -163,7 +163,10 @@ flowchart LR
   the plans, the weights or the cached results of the shards, and
   `scripts/mutation-gate.ts --partial` checks each file against its floor
   (80 % without one), with no total score. A test without such a source and
-  a test helper add nothing; the nightly run tests them.
+  a test helper add nothing; the nightly run tests them. More than 12 files
+  (`PARTIAL_LIMIT`) run the complete 6 shards instead: one job without a cache
+  is slower than the shards for a large set (11 files took 9 minutes, 33 more
+  than 60).
 - **Complete runs.** Every night (`mutation.yml`, 02:23 UTC, 6 shards
   like the CI) and in a release pull request. When the nightly gate fails
   on `main`, the run opens the issue „Mutation floor missed on main“ with the
