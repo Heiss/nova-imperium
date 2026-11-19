@@ -15,7 +15,7 @@ import * as demolition from './logic/demolition.ts';
 import { endzeitNote } from './logic/endzeit.ts';
 import { moonAt, moonTarget } from './logic/moon.ts';
 import { scanOf } from './logic/phalanx.ts';
-import { clampInt, coords, dt, dur, esc, fmt } from './logic/format.ts';
+import { clampInt, coords, dur, esc, fmt } from './logic/format.ts';
 import {
   apiFailure,
   type ClientError,
@@ -72,7 +72,7 @@ import { mountGalaxy } from './views/galaxy.ts';
 import { mountLexicanum } from './views/lexicanum.ts';
 import { mountOverview } from './views/overview.ts';
 import { mountProducerTable } from './views/producer-table.ts';
-import { addPasskey, signInWithPasskey } from './passkeys.ts';
+import { signInWithPasskey } from './passkeys.ts';
 import { $, keepChatScroll, val } from './dom.ts';
 import { assembleActs, assembleForms } from './features/assemble.ts';
 import type { ClientCtx } from './features/contract.ts';
@@ -1057,18 +1057,8 @@ const FRAME: Record<string, (d: Data) => unknown> = {
     if (d.tab && Object.hasOwn(ADMIN_TABS, d.tab))
       openAdminTab(d.tab as AdminTab);
   },
-  listPasskeys: showPasskeys,
   reportProblem: openReport,
   passkeyLogin: loginByPasskey,
-  removePasskey: async (d) => {
-    if (!window.confirm('Diesen Passkey entfernen?')) return;
-    try {
-      await api('/api/passkeys/remove', { id: d.id });
-      await showPasskeys();
-    } catch (error) {
-      toast((error as Error).message, true);
-    }
-  },
   deleteAccount: () => modal(deleteAccountDialog(client.game!.round)),
   dismissInstall: () => {
     installDismissed = true;
@@ -1208,38 +1198,6 @@ async function loginByPasskey(): Promise<void> {
     apply(j.state as GameState);
     homeSystem();
     render(true);
-  } catch (error) {
-    toast((error as Error).message, true);
-  }
-}
-
-async function submitPasskey(): Promise<void> {
-  try {
-    await addPasskey(api, val('#passkey-password'));
-    setInput('#passkey-password', '');
-    toast('Passkey gespeichert.');
-    await showPasskeys();
-  } catch (error) {
-    toast((error as Error).message, true);
-  }
-}
-
-async function showPasskeys(): Promise<void> {
-  try {
-    const j = await api('/api/passkeys/list', {});
-    const keys = j.keys as { id: string; created: number }[];
-    const list = $('#passkey-list');
-    if (!list) return;
-    list.innerHTML = keys.length
-      ? '<ul>' +
-        keys
-          .map(
-            (key) =>
-              `<li>Erstellt am ${dt(key.created)} <button type="button" data-act="removePasskey" data-id="${esc(key.id)}">Entfernen</button></li>`,
-          )
-          .join('') +
-        '</ul>'
-      : '<p>Keine Passkeys gespeichert.</p>';
   } catch (error) {
     toast((error as Error).message, true);
   }
@@ -1451,7 +1409,6 @@ const FORMS = assembleForms(
     forgotform: submitForgot,
     resetform: () => submitPassword(true),
     passwordform: () => submitPassword(false),
-    passkeyform: submitPasskey,
     deleteaccountform: submitAccountDeletion,
     reportform: () => submitReport('reportform'),
     'reportform-dialog': () => submitReport('reportform-dialog'),
