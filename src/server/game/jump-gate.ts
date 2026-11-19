@@ -22,6 +22,7 @@ import type { User } from '../db/repos/players.ts';
 import { type Action, mine } from './actions.ts';
 import { type Ctx, fail, universe } from './context.ts';
 import { pickedShips } from './fleet-actions.ts';
+import type { ServerFeature } from './feature.ts';
 
 /** The German message of each refusal [E] (owner, 2026-11-17). */
 export const JUMP_ERROR: Readonly<Record<JumpError, string>> = {
@@ -85,3 +86,7 @@ export const gateState = (ctx: Ctx, uid: string): GateView[] =>
       level: gateLevel(p),
       ready: ctx.planets.gateReady(p.id),
     }));
+
+export const serverFeature = {
+  actions: { jump },
+} satisfies ServerFeature;

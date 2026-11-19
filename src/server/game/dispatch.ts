@@ -16,7 +16,6 @@ import { type Ctx, fail } from './context.ts';
 import { requireGuilds } from './round.ts';
 import { deleteGuildChat, seeGuildChat, sendGuildChat } from './guild-chat.ts';
 import { recall, send } from './fleet-actions.ts';
-import { jump } from './jump-gate.ts';
 import { chooseMainPlanet } from './main-planet.ts';
 import { vacationRefuses } from '../../core/vacation.ts';
 import { endVacation, startVacation, VACATION_REFUSED } from './vacation.ts';
@@ -95,7 +94,6 @@ const FRAME: Record<string, A.Action> = {
   delall: A.delall,
   send,
   recall,
-  jump,
   ...GUILD,
   // The buddy list (#227); not a guild action, so it works with guilds off.
   requestFriend,
