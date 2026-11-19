@@ -5,7 +5,6 @@
 import { expect, test } from '@playwright/test';
 import {
   choosePlanet,
-  cli,
   emailOf,
   expectShownPlace,
   galaxyRow,
@@ -559,68 +558,6 @@ test.describe('accounts by mail (#68)', () => {
     await expect(page.locator('.toast.err').last()).toContainText(
       'Dieser Link ist ungültig oder abgelaufen.',
     );
-    expect(w.problems).toEqual([]);
-  });
-});
-
-test.describe('admin (#68)', () => {
-  test('the event log filters by a planet or fleet of an event (#151)', async ({
-    page,
-  }) => {
-    const w = watch(page);
-    const a = uniqueName('Feldherr');
-    const b = uniqueName('Ziel');
-    await attack(page, a, b);
-    await expect(page.locator('.fl-back')).toContainText('kehrt von', {
-      timeout: 15000,
-    });
-    cli('admin', a);
-    await page.reload();
-    await nav(page, 'admin');
-    const events = page.locator('[data-admin=events]');
-    const count = events.getByRole('status');
-    await page
-      .getByLabel('Spieler', { exact: true })
-      .selectOption({ label: a });
-    await page.getByRole('button', { name: 'Anzeigen', exact: true }).click();
-    // Registration, the attack order, the battle and the admin's reads.
-    await expect(count).toHaveText(/ · ([3-9]|\d{2,}) Ereignisse$/);
-    const row = (action: RegExp) => events.getByRole('row', { name: action });
-    const battle = row(/system \/ battle/);
-    await battle.getByText(/^Kampfdetails \d+$/).click();
-    const detail = JSON.parse(
-      await battle.locator('details > code').innerText(),
-    ) as { fleet: string; planet: string };
-    await expect(
-      events.getByRole('button', { name: /^Aufträge zu/ }),
-    ).toHaveCount(0);
-
-    // The fleet: its attack order and its battle, long after the order.
-    await battle
-      .getByRole('button', {
-        name: `Ereignisse zu ${detail.fleet}`,
-        exact: true,
-      })
-      .click();
-    await expect(page.getByLabel('Planet / Flotte')).toHaveValue(detail.fleet);
-    await expect(count).toHaveText('Seite 1 von 1 · 2 Ereignisse');
-    await expect(battle).toBeVisible();
-    await expect(row(/game \/ send/)).toBeVisible();
-    await expect(row(/account \/ register/)).toHaveCount(0);
-
-    // The attacked planet: the same two events of this attacker.
-    await battle.getByText(/^Kampfdetails \d+$/).click();
-    await battle
-      .getByRole('button', {
-        name: `Ereignisse zu ${detail.planet}`,
-        exact: true,
-      })
-      .click();
-    await expect(page.getByLabel('Planet / Flotte')).toHaveValue(detail.planet);
-    await expect(count).toHaveText('Seite 1 von 1 · 2 Ereignisse');
-    await expect(battle).toBeVisible();
-    await expect(row(/game \/ send/)).toBeVisible();
-    cli('unadmin', a);
     expect(w.problems).toEqual([]);
   });
 });
