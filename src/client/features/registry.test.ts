@@ -2,7 +2,7 @@
 // feature and no count: a feature adds its handlers in its own file
 // (`clientFeature`), and each feature tests its own handlers in its own test.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { assembleActs, assembleForms } from './assemble.ts';
+import { assembleActs, assembleForms, runAfterRender } from './assemble.ts';
 import type { ClientFeature } from './contract.ts';
 import { CLIENT_FEATURES } from './index.gen.ts';
 import { fakeCtx } from './test-ctx.ts';
@@ -125,5 +125,17 @@ describe('the table of the handlers', () => {
     expect(() =>
       assembleActs({ build: a }, [['one', module({ build: b })]], fakeCtx()),
     ).toThrow('data-act "build" is defined in main.ts and in features/one.ts.');
+  });
+});
+
+describe('the hook after a render', () => {
+  it('runs for every module that has one, in the order of the list', () => {
+    const seen: string[] = [];
+    runAfterRender([
+      ['one', { acts: () => ({}), afterRender: () => seen.push('one') }],
+      ['two', { acts: () => ({}) }],
+      ['three', { acts: () => ({}), afterRender: () => seen.push('three') }],
+    ]);
+    expect(seen).toEqual(['one', 'three']);
   });
 });

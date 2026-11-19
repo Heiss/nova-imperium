@@ -1,5 +1,6 @@
 // The tables of main.ts (#322): its own frame handlers plus those of every
-// listed feature, for the `data-act` names and for the ids of the forms. A
+// listed feature, for the `data-act` names and for the ids of the forms, and
+// the hook after a render. A
 // name defined twice stops the start with the two places named, so no feature
 // silently replaces another's handler by the order of a spread.
 import type { ClientCtx, ClientFeature, Handler } from './contract.ts';
@@ -51,4 +52,9 @@ export function assembleForms(
     frame,
     features.map(([file, feature]) => [file, feature.forms?.(ctx) ?? {}]),
   );
+}
+
+/** Runs the `afterRender` of every module, in the order of the list. */
+export function runAfterRender(features: Listed): void {
+  for (const [, feature] of features) feature.afterRender?.();
 }

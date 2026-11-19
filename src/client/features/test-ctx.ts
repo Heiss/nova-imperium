@@ -13,6 +13,5 @@ export const fakeCtx = (over: Partial<ClientCtx> = {}): ClientCtx => ({
   api: vi.fn(async () => ({})),
   toast: vi.fn(),
   setInput: vi.fn(),
-  fleet: { calc: vi.fn(), form: vi.fn(), planet: vi.fn() },
   ...over,
 });
