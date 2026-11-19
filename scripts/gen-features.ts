@@ -21,6 +21,11 @@
 // `MISSION_LEXICON`), which
 // only the Lexicanum imports, so they load with its own chunk (#285, #242).
 //
+// The settings of a round (#283, #310): every file of src/core that exports
+// `roundSettings` is listed in src/core/round-settings.gen.ts
+// (`ROUND_ENTRIES`), which only src/core/round.ts imports, so a feature adds
+// its settings in its own file and no shared list names it.
+//
 //   node scripts/gen-features.ts
 //        writes the indexes when they changed; package.json chains it
 //        before start, test, typecheck, build and check (D2): no pre*
@@ -33,13 +38,18 @@ import {
   renameSync,
   writeFileSync,
 } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { dirname, join, relative, sep } from 'node:path';
 import { runCli } from './cli.ts';
 
 export const FEATURES_DIR = 'src/features';
 export const INDEX_FILE = 'index.gen.ts';
 export const SERVER_INDEX_FILE = 'index.server.gen.ts';
 export const LEXICON_INDEX_FILE = 'lexicon.gen.ts';
+/** Where the settings of a round are (#310), and the list of them. */
+export const CORE_DIR = 'src/core';
+export const ROUND_SETTINGS_FILE = 'round-settings.gen.ts';
+/** The fixed name under which a file exports its settings of a round. */
+const ROUND_EXPORT = /^export const roundSettings\b/m;
 /** The optional part of an entry folder for the Lexicanum (#285). */
 const LEXICON_FILE = 'lexicon.de.ts';
 const MISSIONS = 'missions';
@@ -185,6 +195,50 @@ export function generateLexicon(dir: string): boolean {
   return write(join(dir, LEXICON_INDEX_FILE), renderLexicon(dir, scan(dir)));
 }
 
+/**
+ * The files of a core folder that export `roundSettings` (#310), sorted,
+ * with `/` in the path: not a test, not a generated file.
+ */
+export function scanRoundSettings(dir: string): string[] {
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir, { recursive: true, withFileTypes: true })
+    .filter(
+      (e) =>
+        e.isFile() &&
+        e.name.endsWith('.ts') &&
+        !e.name.endsWith('.test.ts') &&
+        !e.name.endsWith('.gen.ts'),
+    )
+    .map((e) => relative(dir, join(e.parentPath, e.name)).split(sep).join('/'))
+    .filter((file) => ROUND_EXPORT.test(readFileSync(join(dir, file), 'utf8')))
+    .sort();
+}
+
+/** The source of the list of the settings: one import and one spread per file. */
+export function renderRoundSettings(files: string[]): string {
+  const name = (file: string) =>
+    `settings_${file.replace(/\.ts$/, '').replace(/[^a-zA-Z0-9]/g, '_')}`;
+  const imports = files
+    .map((f) => `import { roundSettings as ${name(f)} } from './${f}';\n`)
+    .join('');
+  const rows = files.map((f) => `  ...${name(f)},\n`).join('');
+  return [
+    HEADER,
+    ...(imports ? [imports] : []),
+    files.length === 0
+      ? 'export const ROUND_ENTRIES = [] as const;\n'
+      : `export const ROUND_ENTRIES = [\n${rows}] as const;\n`,
+  ].join('\n');
+}
+
+/** Writes the list of the settings of a round when it changed; true if it did. */
+export function generateRoundSettings(dir: string): boolean {
+  return write(
+    join(dir, ROUND_SETTINGS_FILE),
+    renderRoundSettings(scanRoundSettings(dir)),
+  );
+}
+
 function write(file: string, source: string): boolean {
   const dir = dirname(file);
   if (existsSync(file) && readFileSync(file, 'utf8') === source) return false;
@@ -201,5 +255,6 @@ if (import.meta.main)
     generate(FEATURES_DIR);
     generateServer(FEATURES_DIR);
     generateLexicon(FEATURES_DIR);
+    generateRoundSettings(CORE_DIR);
     return 0;
   });
