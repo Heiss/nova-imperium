@@ -17,7 +17,7 @@ import { requireGuilds } from './round.ts';
 import { deleteGuildChat, seeGuildChat, sendGuildChat } from './guild-chat.ts';
 import { recall, send } from './fleet-actions.ts';
 import { vacationRefuses } from '../../core/vacation.ts';
-import { endVacation, startVacation, VACATION_REFUSED } from './vacation.ts';
+import { VACATION_REFUSED } from './vacation.ts';
 import { abandon } from './abandon.ts';
 import { exchange } from './market.ts';
 import {
@@ -82,8 +82,6 @@ const FRAME: Record<string, A.Action> = {
   pct: A.pct,
   rename: A.rename,
   options: A.options,
-  startVacation,
-  endVacation,
   abandon,
   trade: exchange,
   pushOptions,

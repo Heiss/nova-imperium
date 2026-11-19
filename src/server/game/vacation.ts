@@ -17,6 +17,7 @@ import type { Action } from './actions.ts';
 import { addReport, type Ctx, fail, universe } from './context.ts';
 import { lockEndText } from './main-planet.ts';
 import { roundRules } from './round.ts';
+import type { ServerFeature } from './feature.ts';
 
 /** The refusal of an own game action during the vacation mode (Q2) [V]. */
 export const VACATION_REFUSED = 'Im Urlaubsmodus nicht möglich.';
@@ -103,3 +104,7 @@ export function vacationNotice(ctx: Ctx, uid: string): void {
     { topic: 'announcement' },
   );
 }
+
+export const serverFeature = {
+  actions: { startVacation, endVacation },
+} satisfies ServerFeature;
