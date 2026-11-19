@@ -252,6 +252,10 @@ describe('the actions during the vacation mode', () => {
     'sendGuildChat',
     'seeGuildChat',
     'dissolveGuild',
+    'requestFriend',
+    'answerFriend',
+    'cancelFriend',
+    'removeFriend',
   ];
 
   it('refuses every game action, a new one too', () => {
@@ -264,7 +268,7 @@ describe('the actions during the vacation mode', () => {
       expect(vacationRefuses(action, NOW), action).toBe(false);
   });
 
-  it('refuses the options, the messages, renaming, the main planet, the guilds and the admin', () => {
+  it('refuses the options, the messages, renaming, the main planet, the guilds, the friend requests and the admin', () => {
     for (const action of LOCKED)
       expect(vacationRefuses(action, NOW), action).toBe(true);
   });

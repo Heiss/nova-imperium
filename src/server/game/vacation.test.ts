@@ -5,6 +5,7 @@
 // minimum duration of the round (D1, X1) and the end with a new round and
 // its notice (D3).
 import { describe, expect, it } from 'vitest';
+import { ACTIVITY_DEFAULT, MINUTE_MS } from '../../core/activity.ts';
 import { settle } from '../../core/settle.ts';
 import { HOUR_MS } from '../../core/vacation.ts';
 import type { AuditEntry } from '../audit.ts';
@@ -17,9 +18,11 @@ import {
   testCtx,
 } from '../test-helpers.ts';
 import { answerOf } from './actions.ts';
+import { recordActivity } from './activity.ts';
 import { tick } from './arrival.ts';
 import { universe } from './context.ts';
 import { ACTIONS, runAction } from './dispatch.ts';
+import { friendState } from './friends.ts';
 import { addMoon } from './moons.ts';
 import { roundRules } from './round.ts';
 import { stateFor } from './state.ts';
@@ -543,6 +546,88 @@ describe('the Warp-Tor, giving up a colony and the Auspex-Phalanx (#230, #224, #
     expect(() =>
       act(ctx, 'scan', { planet: HOME_MOON, target: 'p1_2_6' }),
     ).toThrow(VACATION_REFUSED);
+  });
+});
+
+describe('the buddy list and the vacation mode (#227, #223)', () => {
+  /** Anna with an incoming request (Dora), an own request (Carl) and a friend (Bert), then in vacation. */
+  function away(): TestCtx {
+    const ctx = world();
+    addUser(ctx, 'Dora');
+    addUser(ctx, 'Eva');
+    act(ctx, 'requestFriend', { name: 'Anna' }, 'u_Dora');
+    act(ctx, 'requestFriend', { name: 'Carl' });
+    act(ctx, 'requestFriend', { name: 'Bert' });
+    act(ctx, 'answerFriend', { uid: 'u_Anna', accept: true }, 'u_Bert');
+    start(ctx);
+    return ctx;
+  }
+
+  it('refuses every own friend action of a player in vacation mode and changes no link', () => {
+    const ctx = away();
+    const links = ctx.friends.links('u_Anna');
+    expect(links).toHaveLength(3);
+    const refused: [string, object][] = [
+      ['requestFriend', { name: 'Eva' }],
+      ['answerFriend', { uid: 'u_Dora', accept: true }],
+      ['answerFriend', { uid: 'u_Dora', accept: false }],
+      ['cancelFriend', { uid: 'u_Carl' }],
+      ['removeFriend', { uid: 'u_Bert' }],
+    ];
+    for (const [type, data] of refused)
+      expect(() => act(ctx, type, data), type).toThrow(VACATION_REFUSED);
+    expect(ctx.friends.links('u_Anna')).toEqual(links);
+    expect(ctx.friends.links('u_Eva')).toEqual([]);
+  });
+
+  it('shows the lock screen nothing of the buddy list, even with requests and friends', () => {
+    const ctx = away();
+    const shown = stateFor(ctx, anna(ctx));
+    expect(shown).not.toHaveProperty('friends');
+    expect(JSON.stringify(shown)).not.toMatch(/u_Dora|u_Carl|u_Bert/);
+  });
+
+  it('lets others still ask him; he sees and answers it after the end', () => {
+    const ctx = away();
+    expect(act(ctx, 'requestFriend', { name: 'anna' }, 'u_Eva')).toBe(
+      'Anfrage gesendet.',
+    );
+    expect(ctx.friends.links('u_Eva')).toEqual([
+      { from: 'u_Eva', to: 'u_Anna', status: 'pending' },
+    ]);
+    expect(stateFor(ctx, anna(ctx))).not.toHaveProperty('friends');
+    ctx.clock.t = START + 48 * HOUR_MS;
+    stop(ctx);
+    const { friends } = stateFor(ctx, anna(ctx)) as {
+      friends: { incoming: string[] };
+    };
+    expect(friends.incoming).toEqual(['u_Dora', 'u_Eva']);
+    expect(act(ctx, 'answerFriend', { uid: 'u_Eva', accept: true })).toBe(
+      'Anfrage angenommen.',
+    );
+  });
+
+  it('shows a friend in vacation mode offline after the threshold: he records no activity', () => {
+    const ctx = world();
+    act(ctx, 'requestFriend', { name: 'Bert' });
+    act(ctx, 'answerFriend', { uid: 'u_Anna', accept: true }, 'u_Bert');
+    const bert = () => ctx.players.get('u_Bert')!;
+    const online = () =>
+      friendState(ctx, 'u_Anna', ACTIVITY_DEFAULT.recent).list;
+    recordActivity(ctx, bert(), 'action');
+    runAction(ctx, 'u_Bert', { type: 'startVacation' });
+    expect(online()).toEqual([{ id: 'u_Bert', online: true }]);
+    ctx.clock.t += ACTIVITY_DEFAULT.recent * MINUTE_MS;
+    expect(online()).toEqual([{ id: 'u_Bert', online: false }]);
+    // His login and his clicks on the lock screen move nothing.
+    recordActivity(ctx, bert(), 'login');
+    recordActivity(ctx, bert(), 'action');
+    expect(online()).toEqual([{ id: 'u_Bert', online: false }]);
+    // After the end the next activity counts again.
+    ctx.clock.t = START + 48 * HOUR_MS;
+    runAction(ctx, 'u_Bert', { type: 'endVacation' });
+    recordActivity(ctx, bert(), 'action');
+    expect(online()).toEqual([{ id: 'u_Bert', online: true }]);
   });
 });
 

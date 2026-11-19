@@ -67,6 +67,9 @@ describe('the lock screen', () => {
       'Spähschädel',
       'Problem melden',
       'Regeln dieses Universums',
+      'Freunde',
+      'data-act="friend"',
+      'requestFriend',
       'data-act="nav"',
     ])
       expect(html, part).not.toContain(part);
