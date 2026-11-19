@@ -10,7 +10,7 @@ import { LEXICANUM_VIEW, viewUrl } from './logic/address.ts';
 import { CATALOG_VIEWS, catalogKind } from './logic/catalog-list.ts';
 import * as demolition from './logic/demolition.ts';
 import { scanOf } from './logic/phalanx.ts';
-import { coords, dur, esc } from './logic/format.ts';
+import { coords, dur } from './logic/format.ts';
 import {
   apiFailure,
   type ClientError,
@@ -881,15 +881,6 @@ const FRAME: Record<string, (d: Data) => unknown> = {
   authswitch: () => {
     ui.auth = ui.auth === 'register' ? 'login' : 'register';
     render(true);
-  },
-  rename: () =>
-    modal(
-      `<p><b>${client.view!.P.kind === 'moon' ? 'Mond' : 'Planet'} umbenennen</b></p><input id="rn" maxlength="20" value="${esc(client.view!.P.name)}" aria-label="Neuer Name"> <button data-act="doRename">OK</button> <button data-act="closeModal">Abbrechen</button>`,
-    ),
-  doRename: () => {
-    const n = val('#rn').trim();
-    modal('');
-    if (n) void act('rename', { name: n });
   },
   closeModal: () => modal(''),
   selectPlanet: (d) => {
