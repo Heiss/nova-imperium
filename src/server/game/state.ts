@@ -19,7 +19,6 @@ import { ownLabs, researchOf } from './actions.ts';
 import { inactivities, planetActivities } from './activity.ts';
 import { type Ctx, universe } from './context.ts';
 import { endzeitState } from './endzeit.ts';
-import { friendState } from './friends.ts';
 import { mainPlanetOf } from './main-planet.ts';
 import { achievementState } from './achievements.ts';
 import { marketState } from './market.ts';
@@ -196,10 +195,6 @@ const FRAME: readonly StatePart[] = [
   keyed(70, 'labs', (ctx, u) => ownLabs(ctx, u.id)),
   keyed(90, 'fleets', fleetsOf),
   keyed(100, 'reports', (ctx, u) => ctx.reports.ofPlayer(u.id)),
-  // The buddy list (#227): only the player's own friends and requests.
-  keyed(120, 'friends', (ctx, u, view) =>
-    friendState(ctx, u.id, view.limits.recent),
-  ),
   keyed(130, 'achievements', (ctx, u, view) =>
     achievementState(ctx, u, view.round),
   ),

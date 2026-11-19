@@ -127,4 +127,12 @@ export function friendState(
 export const serverFeature = {
   // Not guild actions: the buddy list (#227) works with guilds off.
   actions: { requestFriend, answerFriend, cancelFriend, removeFriend },
+  state: {
+    order: 120,
+    keys: ['friends'],
+    // The buddy list (#227): only the player's own friends and requests.
+    build: (ctx, u, view) => ({
+      friends: friendState(ctx, u.id, view.limits.recent),
+    }),
+  },
 } satisfies ServerFeature;
