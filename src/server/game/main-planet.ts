@@ -17,6 +17,7 @@ import type { User } from '../db/repos/players.ts';
 import type { Action } from './actions.ts';
 import { type Ctx, fail } from './context.ts';
 import { roundRules } from './round.ts';
+import type { ServerFeature } from './feature.ts';
 
 /** The main planet of `u` and the end of the lock of the last switch. */
 export const mainPlanetOf = (
@@ -86,3 +87,7 @@ export const chooseMainPlanet: Action = (ctx, u, d) => {
   ctx.players.save(u);
   return `${target!.name} ist jetzt dein Hauptplanet.`;
 };
+
+export const serverFeature = {
+  actions: { mainPlanet: chooseMainPlanet },
+} satisfies ServerFeature;

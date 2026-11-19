@@ -16,7 +16,6 @@ import { type Ctx, fail } from './context.ts';
 import { requireGuilds } from './round.ts';
 import { deleteGuildChat, seeGuildChat, sendGuildChat } from './guild-chat.ts';
 import { recall, send } from './fleet-actions.ts';
-import { chooseMainPlanet } from './main-planet.ts';
 import { vacationRefuses } from '../../core/vacation.ts';
 import { endVacation, startVacation, VACATION_REFUSED } from './vacation.ts';
 import { abandon } from './abandon.ts';
@@ -83,7 +82,6 @@ const FRAME: Record<string, A.Action> = {
   pct: A.pct,
   rename: A.rename,
   options: A.options,
-  mainPlanet: chooseMainPlanet,
   startVacation,
   endVacation,
   abandon,
