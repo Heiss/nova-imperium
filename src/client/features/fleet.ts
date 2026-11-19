@@ -80,16 +80,23 @@ function moonOption(s: GameState): void {
  * it, the chosen one kept while it fits, else the first; when none fits the
  * list says so and „Flotte losschicken“ is blocked. The line beside it names
  * the planets against the limit for a Landnahme (#237).
+ *
+ * The choice is also kept in `client.ui.fm`: a state refresh draws the view
+ * anew with the options of the shown target, and the restore of the typed
+ * values (`keepInputs`) cannot set a mission that is not among them, so the
+ * select comes back empty. The list then goes on from the remembered one.
  */
 function missionList(s: GameState, from: string): void {
   const list = $<HTMLSelectElement>('#t_m')!;
   const offered = offeredMissions(s, from, readFleetForm().to, client.now());
+  const { html, selected } = missionOptions(
+    offered,
+    list.value || client.ui.fm,
+  );
   const shown = Array.from(list.options, (o) => o.value).join();
-  if (shown !== offered.join()) {
-    const { html, selected } = missionOptions(offered, list.value);
-    list.innerHTML = html;
-    list.value = selected;
-  }
+  if (shown !== offered.join()) list.innerHTML = html;
+  list.value = selected;
+  if (selected) client.ui.fm = selected;
   const send = $<HTMLButtonElement>('#t_send');
   if (send) send.disabled = send.dataset.full === '1' || !list.value;
   const limit = $('#t_limit');

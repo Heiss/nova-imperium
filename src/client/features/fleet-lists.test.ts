@@ -78,6 +78,7 @@ beforeEach(() => {
     },
   });
   client.ui.view = 'fleet';
+  client.ui.fm = 'attack';
   client.game = {
     cfg: {
       ...U,
@@ -171,6 +172,63 @@ describe('the list „Auftrag“ follows the target', () => {
     fields['#t_p']!.value = '6';
     change();
     expect(fields['#t_limit']!.textContent).toBe('');
+  });
+});
+
+/**
+ * A state refresh draws the fleet view anew (Fleet.svelte, mounted on every
+ * render): the list „Auftrag“ comes back with the options of the shown target,
+ * `keepInputs` of main.ts restores the typed values, and `afterRender` calls
+ * the form again. A mission that is not among the fresh options is lost by
+ * the restore (the select is empty), so the form must remember the choice.
+ */
+describe('the list „Auftrag“ after the view is drawn anew', () => {
+  /** What the fresh view and the restore of `keepInputs` leave: the options of the start planet's target, the saved mission not among them. */
+  const drawAnew = (restored: string): void => {
+    fields['#t_m'] = select(restored, ['attack', 'spy']);
+    clientFeature.afterRender!();
+  };
+
+  it('keeps a mission chosen for a free position that the fresh options do not hold', () => {
+    fields['#t_p']!.value = '8';
+    change();
+    fields['#t_m']!.value = 'survey';
+    change({ id: 't_m', value: 'survey' });
+    drawAnew('');
+    expect(options()).toEqual(['colonize', 'survey']);
+    expect(fields['#t_m']!.value).toBe('survey');
+  });
+
+  it('keeps the mission chosen after a restore that fit', () => {
+    fields['#t_m']!.value = 'spy';
+    change();
+    drawAnew('spy');
+    expect(fields['#t_m']!.value).toBe('spy');
+  });
+
+  it('falls back to the first mission that fits when the chosen one does not fit the target any more', () => {
+    fields['#t_p']!.value = '8';
+    change();
+    fields['#t_m']!.value = 'survey';
+    change();
+    fields['#t_s']!.value = '3';
+    fields['#t_p']!.value = '7';
+    drawAnew('');
+    expect(options()).toEqual(['transport', 'deploy']);
+    expect(fields['#t_m']!.value).toBe('transport');
+  });
+
+  it('chooses again the remembered mission when the target fits it once more', () => {
+    fields['#t_m']!.value = 'spy';
+    change();
+    fields['#t_s']!.value = '1';
+    fields['#t_p']!.value = '5';
+    change();
+    expect(fields['#t_m']!.value).toBe('');
+    fields['#t_s']!.value = '2';
+    fields['#t_p']!.value = '6';
+    change();
+    expect(fields['#t_m']!.value).toBe('spy');
   });
 });
 

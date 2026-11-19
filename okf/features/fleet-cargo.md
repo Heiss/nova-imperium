@@ -100,6 +100,16 @@ branch, so it is built there, not in a Svelte component.
   `src/client/logic/fleet-target.ts`; the lists and their update in
   `src/client/views/fleet.ts` and `src/client/features/fleet.ts`
   (`missionList`, `quickChoice`).
+* **[V]** The chosen mission survives a redraw of the view (found by
+  `e2e/survey.spec.ts`, 2026-11-19). The fleet view is a component mounted
+  anew on every render (#118) with the options of the shown target;
+  `keepInputs` restores the typed mission by id, which does not work for a
+  mission that is not among those options, and the select came back empty.
+  `missionList` therefore also keeps the choice in `client.ui.fm` and
+  continues from it when the select is empty; a mission that no longer fits
+  still falls back to the first one that fits. Not yet fixed: the same
+  redraw can reset „Mond“ in the target list while the shown target has no
+  moon.
 
 # The Schnellwahl with friends, guild members and last targets (#292)
 
