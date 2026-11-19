@@ -603,7 +603,7 @@ describe('„Optionen“ without the box of the rules (#288, B4)', () => {
   it('links „Dieses Universum“ of the Lexicanum, which the Lexicanum opens', () => {
     const page = html();
     expect(page).toContain(
-      '<a class="lx-a" data-a="rule-universe" data-act="lex" href="?view=lexicanum&a=rule-universe">Dieses Universum</a>',
+      '<a class="lx-a" data-a="rule-universe" data-act="lex" href="?view=lexicanum&amp;a=rule-universe">Dieses Universum</a>',
     );
     // The article exists, so the link does not lead nowhere.
     expect(article('rule-universe')?.title).toBe('Dieses Universum');

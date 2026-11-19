@@ -171,6 +171,8 @@ const deleteAccountBox = (round: RoundRules): string =>
     `<p>Dein Konto und deine Spielstände werden dauerhaft gelöscht.${guildNote(round, 'Leitest du eine Gilde, wird sie aufgelöst.')}</p><button type="button" class="red" data-act="deleteAccount">Account löschen</button>`,
   );
 
+// The link is frozen with its & written as &amp; (the HTML view wrote it raw):
+// a browser reads both as the same address; Svelte writes the escaped one.
 const UNIVERSE_ARTICLE = 'rule-universe';
 
 const help = (v: V): string => `<h2>Optionen</h2>
@@ -194,7 +196,7 @@ const help = (v: V): string => `<h2>Optionen</h2>
    }),
  )}
  ${deleteAccountBox(v.s.round)}
- <p>Tempo, Größe und alle Einstellungen dieser Runde stehen im Lexicanum: <a class="lx-a" href="${articleHref(UNIVERSE_ARTICLE)}" data-act="lex" data-a="${UNIVERSE_ARTICLE}">Dieses Universum</a>.</p>`;
+ <p>Tempo, Größe und alle Einstellungen dieser Runde stehen im Lexicanum: <a class="lx-a" href="${esc(articleHref(UNIVERSE_ARTICLE))}" data-act="lex" data-a="${UNIVERSE_ARTICLE}">Dieses Universum</a>.</p>`;
 
 // ----- the comparison -----
 

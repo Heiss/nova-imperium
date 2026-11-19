@@ -12,12 +12,11 @@ const ENTITY: Record<string, string> = {
   '&gt;': '>',
   '&quot;': '"',
   '&#39;': "'",
-  '&amp;': '&',
 };
 
-/** A value of an attribute with >, ' and & decoded (a link may hold a raw &); an escaped " stays. */
+/** A value of an attribute with > and ' decoded; an escaped " stays. */
 const value = (raw: string): string =>
-  raw.replace(/&(?:gt|#39|amp);/g, (e) => ENTITY[e]!);
+  raw.replace(/&(?:gt|#39);/g, (e) => ENTITY[e]!);
 
 /**
  * The attributes that count by their presence: the boolean ones, `data-nokeep`

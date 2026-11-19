@@ -569,9 +569,10 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   push choice, an archive after an error and with rounds); one test pins
   the ids, `data-act`s and classes that the features, `main.ts` and
   `style.css` read. `normalize()` of `src/test/markup.ts` now also reads
-  `checked` and `required` without their empty value, a raw & of an
-  attribute value (a link) as `&amp;`, and puts no white space next to
-  `form`, `fieldset` and `legend`, which Svelte trims. The tests of the
+  `checked` and `required` without their empty value and puts no white
+  space next to `form`, `fieldset` and `legend`, which Svelte trims. The
+  frozen link to the Lexicanum writes its `&` as `&amp;`, as Svelte does.
+  The tests of the
   view (`misc.test.ts`) run on the component through
   `src/test/options-view.ts`; the pure page has its tests in
   `logic/options.test.ts`.
