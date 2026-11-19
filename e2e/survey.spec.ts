@@ -150,8 +150,6 @@ test.describe('the Vermessung (#190)', () => {
     seed({ name, returnFleet: true });
     await surveyUntilReported(page, name, 5, async () => {
       await page.goto('/?view=fleet');
-      // The form is rebuilt when the state has arrived: fill it after that.
-      await page.waitForLoadState('networkidle');
       await page.getByLabel('Anzahl Spähschädel').fill('5');
       await page.getByLabel('Galaxie', { exact: true }).fill(g!);
       await page.getByLabel('System', { exact: true }).fill(s!);

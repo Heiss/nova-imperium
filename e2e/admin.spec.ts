@@ -4,6 +4,7 @@ import { expect, test } from '@playwright/test';
 import { E2E_UNIVERSE } from './env.ts';
 import {
   cli,
+  emailOf,
   lastToast,
   nav,
   ownArea,
@@ -71,24 +72,24 @@ test.describe('admin', () => {
     await nav(page, 'admin');
     await expect(page.locator('h2')).toHaveText('Admin');
 
+    // An address of this test's own: invitations are shared by all tests.
+    const friend = emailOf(uniqueName('Freund'));
     await page.getByRole('tab', { name: 'Einladungen' }).click();
     // Invitation without SMTP: the link is shown for copying.
-    await page.fill('#inv_email', 'freund@example.org');
+    await page.fill('#inv_email', friend);
     await page.click('#inviteform button[type=submit]');
     await expect(page.locator('.toast.err').last()).toContainText(
       'Kein SMTP eingerichtet',
     );
     await expect(page.locator('#inv_link')).toHaveValue(/#invite=[\w-]{43}$/);
     await expect(page.locator('#admin-invitations table.mini')).toContainText(
-      'freund@example.org',
+      friend,
     );
     await page
-      .locator('tr', { hasText: 'freund@example.org' })
+      .locator('tr', { hasText: friend })
       .locator('[data-act=revoke]')
       .click();
-    await expect(
-      page.locator('tr', { hasText: 'freund@example.org' }),
-    ).toHaveCount(0);
+    await expect(page.locator('tr', { hasText: friend })).toHaveCount(0);
 
     await page.getByRole('tab', { name: 'Universum' }).click();
     // Settings: live, but the universe never shrinks below a planet. The
@@ -131,8 +132,6 @@ test.describe('admin (#68)', () => {
     await page.reload();
     await nav(page, 'admin');
     await page.getByRole('tab', { name: 'Einladungen' }).click();
-    // Not „…freund@example.org“: the admin test of game.spec.ts finds its own
-    // invitation by that text.
     const email = `einladung-${name.toLowerCase()}@example.org`;
     await page.fill('#inv_email', email);
     await page.click('#inviteform button[type=submit]');
