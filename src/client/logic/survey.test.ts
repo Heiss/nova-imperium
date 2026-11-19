@@ -1,5 +1,6 @@
 // The Vermessung in the interface (#190): the words of the report per tier
 // and when the Sternenkarte offers it.
+import { parse } from 'svelte/compiler';
 import { describe, expect, it } from 'vitest';
 import { CENTRED, type SurveyTier, surveyFindings } from '../../core/survey.ts';
 import type { Coords } from '../../core/types.ts';
@@ -35,12 +36,37 @@ const report = (
   ),
 });
 
-/** The text of the HTML, with its cells apart. */
+/** The nodes of the Svelte syntax tree the report needs: text and elements. */
+interface Tree {
+  type: string;
+  data?: string;
+  name?: string;
+  fragment?: { nodes: Tree[] };
+}
+
+/**
+ * The text of a node, read by the Svelte parser (as the naming test reads
+ * markup, no regular expression takes tags out): the cells of a row apart by
+ * „: “, each row closed by „ | “.
+ */
+function textOf(node: Tree): string {
+  if (node.type === 'Text') return node.data!;
+  const children = node.fragment?.nodes ?? [];
+  if (node.name === 'tr')
+    return (
+      children
+        .filter((n) => n.name === 'td')
+        .map(textOf)
+        .join(': ') + ' | '
+    );
+  return children.map(textOf).join('');
+}
+
+/** The text of the HTML, with its cells apart and its white space collapsed. */
 const plain = (html: string): string =>
-  html
-    .replace(/<\/td><td>/g, ': ')
-    .replace(/<\/tr>/g, ' | ')
-    .replace(/<[^>]+>/g, '')
+  parse(html, { modern: true })
+    .fragment.nodes.map((n) => textOf(n as Tree))
+    .join('')
     .replace(/\s+/g, ' ')
     .trim();
 
