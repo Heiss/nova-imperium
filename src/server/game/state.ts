@@ -200,8 +200,6 @@ const FRAME: readonly StatePart[] = [
   keyed(150, 'galaxy', (ctx, _u, view) => galaxyOf(ctx, view.limits)),
   // Every player sees every Trümmerfeld (#45).
   keyed(160, 'debris', (ctx) => ctx.debris.all()),
-  // Every position locked after an abandonment, for the Sternenkarte (#224).
-  keyed(170, 'locks', (ctx) => ctx.planets.locks(ctx.now())),
   // The prices of the marketplace and what the player gave today (#171).
   keyed(180, 'market', (ctx, u) => marketState(ctx, u)),
   keyed(190, 'admin', (ctx, u) => adminState(ctx, u)),

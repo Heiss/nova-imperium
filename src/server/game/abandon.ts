@@ -91,4 +91,10 @@ export const abandon: Action = (ctx, u, d, event) => {
 
 export const serverFeature = {
   actions: { abandon },
+  state: {
+    order: 170,
+    keys: ['locks'],
+    // Every position locked after an abandonment, for the Sternenkarte (#224).
+    build: (ctx) => ({ locks: ctx.planets.locks(ctx.now()) }),
+  },
 } satisfies ServerFeature;
