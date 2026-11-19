@@ -44,6 +44,8 @@ export interface Admin {
   addAuditEvent(e: AuditEvent): void;
   auditEvents(filter: AuditFilter, limit: number, offset: number): unknown[];
   lastAuditId(): number;
+  /** The time of the newest audit event of `actor` with `action`, if any. */
+  lastAuditTime(actor: string, action: string): number | undefined;
   countAuditEvents(filter: AuditFilter): number;
   /**
    * Drops audit events, error events and the old activity sums (#232: they
@@ -143,6 +145,15 @@ export class SqliteAdmin implements Admin {
       .prepare('SELECT COALESCE(MAX(id), 0) AS id FROM audit_events')
       .get() as { id: number };
     return last.id;
+  }
+
+  lastAuditTime(actor: string, action: string): number | undefined {
+    const row = this.db
+      .prepare(
+        'SELECT MAX(time) AS time FROM audit_events WHERE actor = ? AND action = ?',
+      )
+      .get(actor, action) as { time: number | null };
+    return row.time ?? undefined;
   }
 
   countAuditEvents(filter: AuditFilter): number {

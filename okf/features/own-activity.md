@@ -114,9 +114,15 @@ are [Activity indicators](/features/activity-indicators.md).
 
 # Open
 
-* **[U]** A limit on the reports per player and minute, so a script cannot fill
-  the table: the credited time is already bounded by the real time (a page
-  that reports faster is credited with the seconds that passed), but not the
-  number of rows. A value is the owner's to give.
+* **[E]** The number of reports is bounded by the limit per account of #328
+  (owner, 2026-11-19, #232): `POST /api/playtime` and `POST /api/action` share
+  one counter of 120 per account and minute, so a script cannot fill the
+  table. A report over the limit is refused like an action (HTTP 400,
+  „Zu viele Aktionen in kurzer Zeit. Bitte warte einen Moment.“, the same
+  audit entry per account and hour); the tracker of the page drops it as it
+  drops any lost report and does not retry. The limit sits in the HTTP layer
+  (`src/server/http/app.ts`, `action-limit.ts`); the play time code and its
+  limit per page are unchanged. An honest page needs about 2 reports a
+  minute. The credited time stays bounded by the real time.
 * **[U]** Whether the player's own view also shows the legacy sums of the
   first days (#231 allows it „labelled incomplete“); built without.
