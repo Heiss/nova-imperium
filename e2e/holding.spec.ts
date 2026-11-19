@@ -123,7 +123,17 @@ for (const phone of ['', ' @phone'])
     await nav(page, 'overview');
     const held = page.locator('.box', { hasText: 'Gehaltene Flotten' });
     await expect(held).toContainText(`Flotte von ${guard}`, { timeout: 15000 });
-    await expect(held).toContainText('2 Kathedralschiff');
+    // The host sees the ships of a held fleet as those of any foreign fleet
+    // (#228, #55 [V]): nothing of them at Auspex-Lehre 0, the exact ships
+    // from the third threshold, 8 by default.
+    await expect(held).toContainText('Zusammensetzung unbekannt');
+    await expect(held).not.toContainText('Kathedralschiff');
+    seed({ name: host, research: { spy: 8 } });
+    await page.reload();
+    await nav(page, 'overview');
+    await expect(
+      page.locator('.box', { hasText: 'Gehaltene Flotten' }),
+    ).toContainText('2 Kathedralschiff');
 
     // The raider's Auspex-Erkundung shows the held fleet apart (owner,
     // 2026-11-17: from Auspex-Lehre 2 by default).

@@ -7,7 +7,7 @@ import { placeName } from '../../../core/moon.ts';
 import { counterChance, spyParts, spyScore } from '../../../core/spy.ts';
 import type { Fleet } from '../../../core/types.ts';
 import { type Ctx, addReport, coords } from '../../../server/game/context.ts';
-import { spyFleetSeen } from '../../../server/game/holding.ts';
+import { withHeldFleets } from '../../../server/game/holding.ts';
 import {
   type Arrival,
   researchAt,
@@ -21,12 +21,9 @@ export function onArrive(ctx: Ctx, f: Fleet, at: Arrival): void {
   const score = spyScore(f.ships.probe ?? 0, diff);
   const chance = counterChance(countUnits(t.ships), diff);
   const lost = ctx.rng() * 100 < chance;
-  const seen = spyFleetSeen(ctx, t, attR.spy ?? 0);
-  const details = { ships: seen.ships, def: t.def, b: t.b, r: defR };
-  const shown: Record<string, unknown> = Object.fromEntries(
-    spyParts(score).map((k) => [k, details[k]]),
-  );
-  if (shown.ships && seen.held) shown.held = seen.held;
+  const details = { ships: t.ships, def: t.def, b: t.b, r: defR };
+  const parts = Object.fromEntries(spyParts(score).map((k) => [k, details[k]]));
+  const shown = withHeldFleets(ctx, t, attR.spy ?? 0, parts);
   addReport(
     ctx,
     f.owner,

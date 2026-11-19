@@ -85,10 +85,10 @@ The battle with several parties is built with #55
   `src/core/flight.ts`; the server part in `src/server/game/holding.ts`.
 * The admin's setting is `roundAllies`, „Halten erlaubt für“ with the
   choices „Gilde“, „Freunde“ and „Gilde und Freunde“ [V] (1, 2, 3;
-  default 3): the entry `ALLIES_SETTING` of the registry of the round
-  settings (#283, [Admin](/features/admin.md#the-registry-of-the-round-settings-283)),
-  defined in `src/core/holding.ts` with the order number 100 and `live`
-  (X1). So the dialog „Neue Runde“ offers the choice, kept without a
+  default 3): the first entry of `roundSettings` in `src/core/holding.ts`,
+  the registry of the round settings (#283, #310: the feature registers its
+  settings itself, [Admin](/features/admin.md#the-registry-of-the-round-settings-283)),
+  with the order number 100 and `live` (X1). So the dialog „Neue Runde“ offers the choice, kept without a
   choice like the lock of the main planet, and the universe settings
   show the same selection during the round.
   A guild member counts only while guilds are on in the round
@@ -109,8 +109,21 @@ The battle with several parties is built with #55
     source names a refund).
   * The arrival writes no report; the owner sees the fleet in the fleet
     movements („hält bei“), the host under „Gehaltene Flotten“ in the
-    overview with the owner, the origin, the ships and the time left. The
-    host sees the ships of a fleet that holds, not of one on its way.
+    overview with the owner, the origin, the ships and the time left.
+  * **[V]** Seen by the host since #228 (merged 2026-11-19): a fleet that
+    holds at the host's planet and one on its way there to hold go through
+    the same view as every foreign fleet (`foreignView` in
+    `src/server/game/state.ts`, [Espionage defense](/features/espionage-defense.md)):
+    of the ships the host sees only what his Auspex-Lehre recognizes against
+    the thresholds of the round (the total, the types, the exact numbers;
+    below the first, „Zusammensetzung unbekannt“); nothing beyond that is
+    sent. The holding time of a fleet that holds is sent beside it, because
+    it is no part of the ships. Before #228 the host saw the ships of a
+    fleet that holds in full and none of one on its way (the flag `visible`
+    of the mission rules, which #228 removed). A third player sees no fleet
+    of the planet in his state; he sees a held fleet only in the
+    Auspex-Phalanx (owner, 2026-11-17) and, as a defender, in a spy report
+    (below).
   * Every fleet that holds is a party of its own in the battle
     (`battleOf` of `src/core/battle.ts`); each of its owners gets the
     report of the defender once, with each fleet as „Verteidiger <name>“
@@ -121,9 +134,10 @@ The battle with several parties is built with #55
     attacker wins. 1 hour is preselected in the form.
   * „alles“ of the fleet form (#240) leaves the fuel of the holding time
     on the planet too, as the flight fuel.
-  * The spy report: the setting is `roundHeldSpy`, range 0 to 30 [V], the
-    entry `HELD_SPY_SETTING` of the registry (#283) in
-    `src/core/holding.ts`, order number 110, the last, and `live` (X1): a
+  * The spy report (`spyFleetSeen` in `src/server/game/holding.ts`, one
+    call of the arrival of the Auspex-Erkundung): the setting is
+    `roundHeldSpy`, range 0 to 30 [V], the second entry of `roundSettings`
+    in `src/core/holding.ts` (#283, #310), order number 110, and `live` (X1): a
     number field in „Neue Runde“ and a row of the universe settings; the
     held fleets follow the section „Flotte“ and show
     only when it shows (score 2), apart as „Gehaltene Flotten“ with
@@ -179,3 +193,24 @@ The battle with several parties is built with #55
   Flottenverband.“, owiki „Rückruf“).
 * **[V]** A participant's recall turns back only that participant's
   fleet (issue #225).
+
+# Merged with the registry of round settings and #228 (2026-11-19)
+
+* **[V]** Interactions checked after the merge, each with a test: a planet
+  with a fleet that holds there, or from which a fleet holds elsewhere,
+  cannot be given up ([Abandon colony](/features/abandon-colony.md); the
+  flight check of `abandonError` counts every row of `fleets`, whatever its
+  state); a jump through the Warp-Tor moves only the ships standing on the
+  moon, and a fleet of another player that holds there stays and keeps
+  defending ([Moons](/features/moons.md)); arrival and end of holding set
+  no activity ([Activity indicators](/features/activity-indicators.md),
+  „Fleets … set none“).
+* **[V]** The article of the mission in the Lexicanum
+  ([Lexicanum texts](/features/lexicanum-texts.md), „Wache stellen“): its
+  text and keywords are a draft for the owner; the target of the mission
+  reads „Planet eines Gildenmitglieds oder Freundes“ there.
+* **[U]** Friends are nobody until #227: `areFriends` in
+  `src/server/game/holding.ts` answers false, so under the setting
+  „Freunde“ nobody can hold, and with guilds off the default „Gilde und
+  Freunde“ lets nobody hold either. #227 supplies the answer; #225 (attack
+  union) reads the same value `allies`.

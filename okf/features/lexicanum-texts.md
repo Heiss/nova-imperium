@@ -65,7 +65,9 @@ code and here in the same pull request.
   fits turns the fleet back with what it carries), `plunder` (up to half of
   each resource), `rebuild` and `debrisOf` (told without their shares, which
   belong to the rule page of the battle in stage 2), `deployFuel` (half of
-  the fuel burnt), `harvest` (the cargo of every ship counts).
+  the fuel burnt), `harvest` (the cargo of every ship counts), `hold`
+  (`HOLD_HOURS` and `HOLD_LIMITS` of `src/core/holding.ts`: the values of
+  the text are filled from them; the decisions of #55 for the rest).
 
 # The texts
 

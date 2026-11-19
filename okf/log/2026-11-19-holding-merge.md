@@ -1,0 +1,8 @@
+---
+type: log-entry
+date: 2026-11-19T08:00
+kind: Code
+issues: [55, 310, 228, 229, 230, 224, 291, 227]
+---
+
+#55 (holding, shown as „Wache stellen“) merged with the registry of round settings (#310) and brought up to date with #228, #229, #230, #224 and #291: its two settings are the `roundSettings` of `src/core/holding.ts` (orders 100 and 110, both `live`), the tests of the registry pin them by key, and the hand wiring is gone. Held fleets go through the view of foreign fleets of #228: the host sees of a fleet that holds, as of one on its way, only what his Auspex-Lehre recognizes, plus the holding time (a [V]; the ships of a fleet that holds were shown in full before). The spy arrival has one call into `src/server/game/holding.ts` for the held fleets. The mission has an article in the Lexicanum, a draft [V] (text and keywords in [Lexicanum texts](/features/lexicanum-texts.md), the target „Planet eines Gildenmitglieds oder Freundes“). Planets with held fleets cannot be given up, a jump through the Warp-Tor moves no ship that another player holds there, and arrival and end of holding set no activity: a test each. The migration was renamed to `20261119T0744-holding` because it sorted before the newest of main. Friends stay nobody until #227 (see [Holding and ACS](/features/holding-acs.md)).

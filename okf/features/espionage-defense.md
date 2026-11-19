@@ -121,3 +121,9 @@ points were answered on 2026-11-16.
   Auspex-Lehre 0 to 8 with the answer of `/api/state`, and the admin on the
   mail server with the dialog and the universe settings; the group „Fremde Flotten erkennen“ with its three fields in
   the dialog; axe on the overview, the dialog and the settings.
+
+* **[V]** Held fleets (#55, merged 2026-11-19): a fleet that holds at the
+  planet of the observer and one flying there to hold are foreign fleets
+  like every other and go through `foreignView`: the ships follow the
+  thresholds, and the holding time of a fleet that holds is sent beside
+  them ([Holding and ACS](/features/holding-acs.md)).

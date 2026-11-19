@@ -67,27 +67,30 @@ export function endHold(ctx: Ctx, f: Fleet): void {
 }
 
 /** A fleet that holds at the target as a spy report shows it apart. */
-export interface HeldFleet {
+interface HeldFleet {
   name: string;
   ships: Levels;
 }
 
 /**
- * The fleet of the target as a spy with Auspex-Lehre `spy` sees it (owner,
- * 2026-11-17): the fleets that hold there count into the planet's fleet
- * below the round's level, and show apart under „Gehaltene Flotten“ from it.
+ * The parts `shown` of a spy report with the fleets that hold at the target
+ * (owner, 2026-11-17), when the report shows the fleet: below the round's
+ * level of the spy's Auspex-Lehre `spy` they count into the planet's fleet,
+ * from it on they show apart under „Gehaltene Flotten“.
  */
-export function spyFleetSeen(
+export function withHeldFleets(
   ctx: Ctx,
   t: Planet,
   spy: number,
-): { ships: Levels; held?: HeldFleet[] } {
+  shown: Record<string, unknown>,
+): Record<string, unknown> {
   const held = heldAt(ctx, t.id);
-  if (!held.length) return { ships: t.ships };
+  if (!held.length || !shown.ships) return shown;
   if (!showsHeldApart(spy, roundRules(ctx).heldSpy))
-    return { ships: shipsOf([t, ...held]) };
-  return {
-    ships: t.ships,
-    held: held.map((h) => ({ name: playerOf(ctx, h.owner).name, ships: h.ships })),
-  };
+    return { ...shown, ships: shipsOf([t, ...held]) };
+  const apart: HeldFleet[] = held.map((h) => ({
+    name: playerOf(ctx, h.owner).name,
+    ships: h.ships,
+  }));
+  return { ...shown, held: apart };
 }

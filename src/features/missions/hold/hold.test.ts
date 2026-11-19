@@ -36,7 +36,6 @@ describe('hold', () => {
       target: 'ally',
       cargo: true,
       returns: true,
-      visible: false,
       silent: false,
       alertsGuild: false,
       holds: true,
