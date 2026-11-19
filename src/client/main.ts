@@ -743,30 +743,8 @@ function render(fresh = false): void {
   restore();
   chatScroll();
   runAfterRender(CLIENT_FEATURES);
-  if (ui.view === 'achievements') filterAchievements();
   if (ui.view === 'messages') markRead();
   seeChat();
-}
-
-function filterAchievements(): void {
-  const query = val('#achievement_search').trim().toLocaleLowerCase('de');
-  const category = val('#achievement_category');
-  const status = val('#achievement_status');
-  document
-    .querySelectorAll<HTMLElement>('[data-achievement]')
-    .forEach((item) => {
-      item.hidden =
-        (!!category && item.dataset.category !== category) ||
-        (!!status && item.dataset.status !== status) ||
-        !item.dataset.search!.includes(query);
-    });
-  document
-    .querySelectorAll<HTMLElement>('[data-achievement-group]')
-    .forEach((group) => {
-      group.hidden =
-        !!group.querySelector('[data-achievement]') &&
-        !group.querySelector('[data-achievement]:not([hidden])');
-    });
 }
 
 function renderMenu(): void {
@@ -858,8 +836,6 @@ const FRAME: Record<string, (d: Data) => unknown> = {
   moreOpen: () => $<HTMLDialogElement>('#more')!.showModal(),
   pushEnable: () => togglePush(true),
   pushDisable: () => togglePush(false),
-  achievementClaim: (d) => act('claimAchievement', { id: d.id }),
-  dailyClaim: () => act('claimDailyReward'),
   logout: async () => {
     await disablePush(api).catch(() => null);
     await api('/api/logout', {}).catch(() => null);
@@ -1170,14 +1146,6 @@ document.addEventListener('change', (e) => {
       el.dataset.k,
       (el as unknown as HTMLInputElement).checked,
     ).then(() => render());
-  if (ui.view === 'achievements') filterAchievements();
-});
-document.addEventListener('input', (e) => {
-  if (
-    ui.view === 'achievements' &&
-    (e.target as HTMLElement).id === 'achievement_search'
-  )
-    filterAchievements();
 });
 function adminTabKey(event: KeyboardEvent): void {
   const selected = (event.target as HTMLElement).closest(
