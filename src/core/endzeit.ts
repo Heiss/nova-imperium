@@ -118,9 +118,15 @@ export const giftCargo = (): Resources => ({
 /**
  * Whether a running build or research of `key` to `level` ends with the
  * gift: its level is not above the level the gift gives (owner,
- * 2026-11-14). It is cancelled and refunded on arrival.
+ * 2026-11-14). It is cancelled and refunded on arrival. A demolition
+ * (#202), one level below the level that stood, ends only when the gift
+ * raised that building [V].
  */
 export const overtaken = (
-  queue: { key: string; lvl: number } | null | undefined,
+  queue: { key: string; lvl: number; back?: unknown } | null | undefined,
   levels: Levels,
-): boolean => !!queue && queue.lvl <= (levels[queue.key] ?? 0);
+): boolean => {
+  if (!queue) return false;
+  const have = levels[queue.key] ?? 0;
+  return queue.back ? have > queue.lvl + 1 : queue.lvl <= have;
+};

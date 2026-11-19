@@ -99,6 +99,8 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 | Thresholds of foreign fleets, levels of the Auspex-Lehre („Fremde Flotten: Schiffe insgesamt ab Auspex-Lehre“, „… Schiffstypen …“, „… Anzahl je Schiffstyp …“, #228) | 2 / 4 / 8 (not in version 1), [E] owner 2026-11-16 | 0 to 100, [E] owner 2026-11-18; also in the dialog „Neue Runde“ in a framed group „Fremde Flotten erkennen“, [E] owner 2026-11-17 (X1) and 2026-11-18 |
 | Who may hold („Halten erlaubt für“, #55) | „Gilde und Freunde“ (3; not in version 1) [V] | a selection: „Gilde“ (1), „Freunde“ (2), „Gilde und Freunde“ (3) [V]; also in the dialog „Neue Runde“, [E] owner 2026-11-17 (X1) |
 | Held fleets apart in the spy report from the spy's Auspex-Lehre („Gehaltene Flotten im Auspex-Bericht ab Auspex-Lehre“, #55) | 2 (not in version 1), [E] owner 2026-11-17 | 0 to 30 [V]; also in the dialog „Neue Runde“, [E] owner 2026-11-17 (X1) |
+| Refund factor of a demolition („Rückbau-Erstattung (%)“, #202) | +50 (not in version 1) | −100 to +100, [E] owner 2026-11-16; also in the dialog „Neue Runde“, [E] owner 2026-11-17 (X1) |
+| Time of a demolition („Rückbau-Dauer (% der Bauzeit)“, #202) | 50 (not in version 1) | 1 to 200, [E] owner 2026-11-17; also in the dialog „Neue Runde“, [E] owner 2026-11-17 (X1) |
 
 * **[V]** The ranges above are proposals; the source is
   `src/core/universe.ts`.
@@ -126,8 +128,8 @@ universe settings) and their ranges are not decided yet.
 | Thresholds of the recognition of incoming fleets ([Espionage defense](/features/espionage-defense.md)), in whole levels from 0 to 100 [E] (owner, 2026-11-18) | #228 D1, X1 | classic value: espionage technology 2 / 4 / 8 (source [U]); built in the dialog „Neue Runde“ and, changeable during the round, in the universe settings (owner, 2026-11-17, X1) |
 | Thresholds of the [activity indicators](/features/activity-indicators.md) | #229 Q1, X1 | classic value: star 15 min, „x min“ up to 59 min, „i“ after 7 days, „I“ after 28 days; built in the dialog „Neue Runde“ and, changeable during the round, in the universe settings (owner, 2026-11-17, X1) |
 | Slots and holding time of [expeditions](/features/expeditions.md) | #93 Q3 | classic value: ⌊√level⌋ slots, at most level hours |
-| Refund factor of a [demolition](/features/demolition.md), −100 % to +100 % | #202 D4, D7 | +50 % [E] |
-| Demolition time as a share of the build time ([Demolition](/features/demolition.md)) | #202 D3 | 50 % [E] |
+| Refund factor of a [demolition](/features/demolition.md), −100 % to +100 % („Rückbau-Erstattung (%)“) | #202 D4, D7 | +50 % [E]; built as the first entry of `roundSettings` in `src/core/demolition.ts` (order 180), in the dialog „Neue Runde“ and the universe settings (X1) |
+| Demolition time as a share of the build time, 1 to 200 % („Rückbau-Dauer (% der Bauzeit)“, [Demolition](/features/demolition.md)) | #202 D3 | 50 % [E]; built as the second entry of `roundSettings` in `src/core/demolition.ts` (order 190), in the dialog „Neue Runde“ and the universe settings (X1) |
 
 * **[E]** Each of these is set by the admin per round (owner, 2026-11-16).
   The classic defaults are decided where the table says „classic value“,
@@ -208,6 +210,15 @@ universe settings) and their ranges are not decided yet.
   number fields from 0 to 100 ([E], 2026-11-18) in one fieldset with the
   defaults 2, 4 and 8, sent as one object and refused together with the
   range wording.
+* **[V]** Added with #202 in the pattern of #310: the refund factor and the
+  time of a [demolition](/features/demolition.md) are the two entries of
+  `src/core/demolition.ts` (`roundSettings`), with the orders 180
+  („Rückbau-Erstattung (%)“, −100 to 100, default 50) and 190
+  („Rückbau-Dauer (% der Bauzeit)“, 1 to 200, default 50), both `live`. They are one group `demolition` with the
+  legend „Rückbau“ (owner, 2026-11-18): one fieldset in the dialog „Neue
+  Runde“, sent as one object and refused together with the range wording;
+  as `live` entries they are also rows of the universe settings, after the
+  rows of the recognition.
 * **[V]** With the groups of #229 and #228 the dialog „Neue Runde“ is
   taller than a window of 720 px, so every dialog (`#modal .in` in
   `src/client/static/style.css`) is at most as high as the window and
