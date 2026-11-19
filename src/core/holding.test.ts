@@ -14,6 +14,7 @@ import {
   dueAt,
   holdEnd,
   holdLimitError,
+  homeAt,
   isAlly,
   isHoldHours,
 } from './holding.ts';
@@ -176,6 +177,38 @@ describe('the next event of a fleet', () => {
         fc.integer({ min: 0, max: 1e12 }),
         fc.constantFrom(...HOLD_HOURS),
         (arr, h) => holdEnd({ arr, hold: h * HOUR_MS }) === arr + h * HOUR_MS,
+      ),
+    );
+  });
+});
+
+describe('the return of a fleet that turns home (#55, owner, 2026-11-19)', () => {
+  // A flight of 60 there, then 50 of holding.
+  const f = { dep: 40, arr: 100, hold: 50 };
+  it('is home after a flight as long as the flight there, counted from the turn', () => {
+    expect(homeAt(f, 120)).toBe(180);
+    expect(homeAt(f, 100)).toBe(160);
+    expect(homeAt({ dep: 40, arr: 100 }, 100)).toBe(160);
+  });
+  it('counts from the end of the holding time when that is over already', () => {
+    expect(homeAt(f, 150)).toBe(210);
+    expect(homeAt(f, 999)).toBe(210);
+    // The same time the end of holding gives a fleet that was sent home on schedule.
+    expect(homeAt(f, 999)).toBe(holdEnd(f) + (f.arr - f.dep));
+  });
+  it('is never earlier than a flight back after the arrival and never later than the planned return', () => {
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 0, max: 1e9 }),
+        fc.integer({ min: 1, max: 1e6 }),
+        fc.constantFrom(...HOLD_HOURS),
+        fc.integer({ min: 0, max: 1e12 }),
+        (dep, flight, h, t) => {
+          const x = { dep, arr: dep + flight, hold: h * HOUR_MS };
+          const planned = holdEnd(x) + flight;
+          const home = homeAt(x, Math.max(t, x.arr));
+          return home >= x.arr + flight && home <= planned;
+        },
       ),
     );
   });

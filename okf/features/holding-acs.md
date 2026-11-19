@@ -70,6 +70,16 @@ The battle with several parties is built with #55
 * **[E]** Auspex-Phalanx (owner, 2026-11-17): a held fleet shows as holding
   („hält bei [g:s:p]“ with the end of the holding time), not as its return
   flight.
+* **[E]** Battles (owner, 2026-11-19, #55, „drei Ergänzungen“ 1): held fleets
+  defend in all three fights: the Sturmangriff, the Mondbruch and the fight
+  of detected Auspex probes. Missiles do not fight.
+* **[E]** Vacation (owner, 2026-11-19, #55 / #223, 2): when the host starts
+  the vacation mode, the fleets that hold at his planets and moons fly home
+  at once. Unchanged: whoever holds with a fleet of his own cannot start
+  the vacation while it is out.
+* **[E]** Mondbruch (owner, 2026-11-19, #55 / #95, 3): a fleet that holds at
+  a moon moves to the moon's planet when the moon breaks and holds there
+  on.
 
 ## Built with #55
 
@@ -98,7 +108,9 @@ The battle with several parties is built with #55
   `relationOf` of `src/core/friends.ts` for „friends“; an open request in
   either direction and an ended friendship are none.
 * The vacation mode (#223) protects a target of every mission in its own
-  check of the target kind, so it covers holding once it is merged.
+  check of the target kind, so it covers holding once it is merged; what it
+  does to fleets that already hold or are on their way is in „The three
+  decisions of 2026-11-19“ below.
 * **[V]** Taken as recommended when building #55:
   * The holding time runs in real time, not divided by the speed of the
     universe, like the vacation and the main planet lock.
@@ -126,10 +138,12 @@ The battle with several parties is built with #55
     Auspex-Phalanx (owner, 2026-11-17) and, as a defender, in a spy report
     (below).
   * Every fleet that holds is a party of its own in the battle
-    (`battleOf` of `src/core/battle.ts`); each of its owners gets the
-    report of the defender once, with each fleet as „Verteidiger <name>“
-    and its losses; a fleet without survivors is gone. A fleet of the
-    attacker himself that holds there stays out of the battle.
+    (`battleOf` of `src/core/battle.ts`), in all three fights (owner,
+    2026-11-19, see „The three decisions of 2026-11-19“ below); each of its
+    owners gets the report of the defender once, with each fleet as
+    „Verteidiger <name>“ and its losses; a fleet without survivors is gone.
+    A fleet of the attacker himself that holds there stays out of the
+    battle.
   * The cargo of the held fleets is taken whole (not half) with the room
     left; the rest is lost with the fleets, which are destroyed when the
     attacker wins. 1 hour is preselected in the form.
@@ -159,6 +173,90 @@ The battle with several parties is built with #55
     Haltezeit auswählen.“ and „Bitte auswählen, wer in der neuen Runde
     halten darf.“; a holding planet of a player in noob protection keeps
     „Dieser Spieler steht unter Noobschutz.“.
+
+# The three decisions of 2026-11-19 (#55)
+
+Built on `claude/hold-decisions`; the owner's comment „drei Ergänzungen“ on
+#55 (see above).
+
+## Held fleets defend in all three fights
+
+* **[E]** The Sturmangriff, the Mondbruch and the fight of detected Auspex
+  probes each ask `defenders(ctx, f, t)` of `src/server/game/fight.ts` and
+  pass the result to the one shared battle (`raid` for the first two,
+  `fight` for the probes): one party per held fleet, its losses, its share
+  of the debris (30 % of what every party lost lies at the position), the
+  report of the defender for the owner of every held fleet, once, with the
+  title and the push kind of the defender („attacked“, in the probes'
+  fight „spied“). Reports and loot of the Sturmangriff are as before. The
+  Mondbruch plunders like a Sturmangriff, so the held cargo is taken after
+  the moon's stock when the attacker wins; the fleets that held are then
+  destroyed (a won battle leaves no defender). The probes do not plunder.
+  Missiles do not fight and stay as they were.
+* **[V]** A detected spying at a planet with neither ships nor defense, but
+  with a fleet that holds there, fights that fleet (the rule of
+  2026-11-17, „a target with neither gives no battle“, counts the held
+  fleets as ships). The chance of the Auspex-Abwehr still counts the
+  planet's own ships only (owner, 2026-11-17), and the Auspex-Bericht shows
+  the held fleets as they were before the battle.
+* A fleet of the attacker himself that holds at the target stays out in the
+  Mondbruch and the fight of the probes too.
+* The Lexicanum draft of the mission says the fleet „verteidigt den Planeten
+  in jedem Kampf“ ([Lexicanum texts](/features/lexicanum-texts.md)); that is
+  true now, so no Lexicanum text changed. The article of the Mondbruch says
+  nothing about held fleets.
+* Consequence of 1 together with 3 (seen when building): the Mondbruch
+  rolls only after a **won** battle, and a won battle leaves no defender.
+  A foreign fleet that holds at the moon therefore fights and is destroyed
+  whenever the moon can break; the fleet that moves with the broken moon is
+  one that took no part in the battle: the attacker's own fleet that holds
+  there.
+
+## Vacation sends the guards home
+
+* **[E]** At `startVacation` (`src/server/game/vacation.ts`), after the
+  entry checks and the saving of the planets, every fleet in state `hold`
+  at a planet or moon of the player (`heldAt`) flies home at once:
+  `sendHome` of `src/server/game/holding.ts`, which uses `turnBack` like
+  the end of holding and sets the return to now plus the flight time there
+  (`homeAt` of `src/core/holding.ts`; a fleet whose holding time was over
+  already counts from its end). The holding time that is left is dropped,
+  the Promethium of the unused hours is not refunded (as after a recall),
+  `recalled` stays false.
+* **[E]** A Wache stellen that is still on its way when the host's vacation
+  starts flies on (launched flights land, #223 D2) and **does not start to
+  hold** at its arrival: `onArrive` of the mission
+  (`src/features/missions/hold/arrive.server.ts`) sees that the host is in
+  vacation and turns it home at once, with the same `sendHome` at the
+  arrival time. The earlier behaviour, „arrives, holds and flies home“ at
+  the end of its time, is gone.
+* **[V]** The owner of a fleet that was sent home gets no notice of its own,
+  as the end of holding gives none; he finds the report „Rückkehr zu …“ when
+  the fleet is home, like after every Wache stellen (the mission is not
+  silent). No new German text was needed.
+* Unchanged: `vacationEntryError` counts every fleet of the player,
+  whatever its state, so a player whose own fleet holds elsewhere cannot
+  start the vacation while it is out.
+
+## Mondbruch moves a held fleet to the planet
+
+* **[E]** `destroyMoon` (`src/server/game/moons.ts`) reroutes with
+  `fleets.reroute`; its `UPDATE` now takes the fleets in state `out` **and**
+  `hold` (`src/server/db/repos/fleets.ts`; the missiles keep their target).
+  A held fleet at the destroyed moon gets the planet as its place, keeps
+  its ships, its cargo, its arrival and its holding time, so its end time is
+  the same, and holds there until then; it defends the planet in the next
+  fight. A fleet that already holds at the planet is untouched. No
+  migration: only the target column of the rows changes.
+* **[V]** The limits of the planet (15 fleets, four players besides the
+  owner, `HOLD_LIMITS`) are not asked on the move: the fleet moves even if
+  they are exceeded (the owner named no rule). Open point for the owner: the
+  options are in the log entry
+  `okf/log/2026-11-19-holding-three-decisions.md`.
+* **[V]** The owner of such a fleet gets no notice of the move: he is
+  informed of the moon's loss by the battle report of the Mondbruch when his
+  fleet took part, and the fleets that fly to a broken moon get none either.
+  The fleet movements show „hält bei“ the planet.
 
 # Alliance depot (#55, later)
 

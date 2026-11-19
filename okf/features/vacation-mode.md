@@ -44,10 +44,19 @@ owiki.de „Urlaubsmodus“
 * **[E]** After the build (owner, 2026-11-17): every new mission of
   another player against someone in vacation mode is refused, peaceful
   ones included (transport, espionage, holding, missiles). Fleets launched
-  before the vacation still arrive; the recovery of a Trümmerfeld at the
-  position stays allowed.
+  before the vacation still arrive, except that a Wache stellen does not
+  start to hold at a host in vacation mode but turns home (owner,
+  2026-11-19); the recovery of a Trümmerfeld at the position stays
+  allowed.
 * **[E]** The Auspex-Phalanx may scan a planet whose owner is in vacation
   mode (owner, 2026-11-17).
+* **[E]** Guards (owner, 2026-11-19, #55 „drei Ergänzungen“ 2): when the
+  host starts the vacation mode, the fleets that hold at his planets and
+  moons fly home at once. A Wache stellen still on its way at that moment
+  flies on and, at its arrival, does not hold but turns home. Unchanged:
+  whoever has a fleet of his own out, one that holds elsewhere included,
+  cannot start the vacation. Details and tests in
+  [Holding and ACS](/features/holding-acs.md#vacation-sends-the-guards-home).
 * **[E]** The German texts of the build are confirmed (owner, 2026-11-17).
 * **[E]** After the build (owner, 2026-11-18), replacing the allow list of
   the build: nothing is allowed in vacation mode. The server refuses every
@@ -184,7 +193,10 @@ owiki.de „Urlaubsmodus“
   the noob protection), peaceful ones too: the classic text continues only
   „bereits gestartete … friedliche Flottenaktionen“. A Bergung at the
   position stays, the Trümmerfeld is no place of the player. Flights
-  launched before the entry land as usual (the arrival does not ask).
+  launched before the entry land as usual (the arrival does not ask), but
+  a Wache stellen turns home at its arrival instead of holding (owner,
+  2026-11-19), and the guards that already hold at the player fly home when
+  he starts the vacation (`startVacation` calls `sendGuardsHome`).
   `vacationProtects` in `src/core/vacation.ts` is the one check of a
   target; holding and ACS (#55, #225), missiles (#54) and the moon
   destruction (#95) call it when they are built.
@@ -215,6 +227,9 @@ owiki.de „Urlaubsmodus“
   `src/client/logic/galaxy.test.ts` and `src/client/views/galaxy.test.ts` (the mark „(u)“),
   `src/client/views/misc.test.ts` (the field of the dialog).
 * Server: `src/server/game/vacation.test.ts` (the entry and each refusal,
+  the guards: none, one and two fleets of different owners at planet and
+  moon sent home at once, a Wache stellen on its way turned home at its
+  arrival, the own fleet that holds elsewhere blocks the entry,
   no production also after a restart, the refused actions, the refused
   missions and the landing of a launched attack, the end before and after
   the minimum duration, the live change, the round setting, the new round

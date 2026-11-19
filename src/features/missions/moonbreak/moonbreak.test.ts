@@ -642,7 +642,9 @@ describe('moonbreak: the fleets that hold at the moon (#55, owner, 2026-11-19)',
     ctx.rng = seeded(95);
     onArrive(ctx, f, at);
     // Half of the moon's 900 / 600 / 300, then the held Adamant.
-    expect(anna(ctx)).toMatchObject({ loot: { m: 450 + 1000, c: 300, d: 150 } });
+    expect(anna(ctx)).toMatchObject({
+      loot: { m: 450 + 1000, c: 300, d: 150 },
+    });
   });
 
   it('keeps a moon whose fleet that holds wins: nothing rolls, the fleet holds on with its survivors', () => {
@@ -673,7 +675,11 @@ describe('moonbreak: the fleets that hold at the moon (#55, owner, 2026-11-19)',
   it('moves the fleet that holds at the moon to its planet when the moon breaks, with the same end time, and it holds on there', () => {
     // The fleet of the attacker himself stays out of the battle and survives.
     const { ctx, f, at } = setup({ dstar: 7 });
-    const h = guard(ctx, { bs: 1 }, { id: 'mine', owner: 'u_Anna', from: 'p1_1_5' });
+    const h = guard(
+      ctx,
+      { bs: 1 },
+      { id: 'mine', owner: 'u_Anna', from: 'p1_1_5' },
+    );
     ctx.rng = seeded(95);
     onArrive(ctx, f, at);
     expect(ctx.planets.get('m1_2_6')).toBeNull();

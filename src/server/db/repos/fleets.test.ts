@@ -132,6 +132,22 @@ describe('fleets repository', () => {
     expect(ctx.fleets.get('to')).toEqual(fleet({ id: 'to', to: 'p1' }));
   });
 
+  it('moves the fleets that hold at a place that is gone and keeps their time (#55, owner, 2026-11-19)', () => {
+    const ctx = testCtx();
+    addUser(ctx, 'Anna');
+    const hold = { mission: 'hold' as const, arr: 50, ret: 500, hold: 300 };
+    ctx.fleets.save(fleet({ id: 'h1', to: 'm1', state: 'hold', ...hold }));
+    ctx.fleets.save(fleet({ id: 'h2', to: 'p1', state: 'hold', ...hold }));
+    ctx.fleets.save(fleet({ id: 'h3', to: 'x', state: 'hold', ...hold }));
+    ctx.fleets.reroute('m1', 'p1');
+    expect(ctx.fleets.get('h1')).toEqual(
+      fleet({ id: 'h1', to: 'p1', state: 'hold', ...hold }),
+    );
+    expect(ctx.fleets.get('h2')!.to).toBe('p1');
+    expect(ctx.fleets.get('h3')!.to).toBe('x');
+    expect(ctx.fleets.get('h1')!.state).toBe('hold');
+  });
+
   it('keeps the target of the missions it is told to keep, the missiles of #54', () => {
     const ctx = testCtx();
     addUser(ctx, 'Anna');
