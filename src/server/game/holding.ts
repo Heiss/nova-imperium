@@ -5,6 +5,7 @@
 import { relationOf } from '../../core/friends.ts';
 import {
   type Bond,
+  homeAt,
   isAlly,
   shipsOf,
   showsHeldApart,
@@ -64,6 +65,16 @@ export const holdersAt = (ctx: Ctx, place: string): string[] =>
 /** The holding time is over: the fleet flies home with what it has left. */
 export function endHold(ctx: Ctx, f: Fleet): void {
   turnBack(ctx, f);
+}
+
+/**
+ * A fleet that holds, or arrives to hold, flies home at once (owner,
+ * 2026-11-19: the host starts the vacation mode): the same flight home as at
+ * the end of its holding time, without the rest of it. The fuel of the
+ * unused hours is not refunded, as after a recall.
+ */
+export function sendHome(ctx: Ctx, f: Fleet, at: number = ctx.now()): void {
+  turnBack(ctx, f, { ret: homeAt(f, at) });
 }
 
 /** A fleet that holds at the target as a spy report shows it apart. */

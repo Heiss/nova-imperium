@@ -15,6 +15,7 @@ import {
 import type { User } from '../db/repos/players.ts';
 import type { Action } from './actions.ts';
 import { addReport, type Ctx, fail, universe } from './context.ts';
+import { heldAt, sendHome } from './holding.ts';
 import { lockEndText } from './main-planet.ts';
 import { roundRules } from './round.ts';
 
@@ -55,6 +56,16 @@ export const inVacation =
 const settledPlaces = (ctx: Ctx, u: User) =>
   ctx.planets.ofOwner(u.id).map((p) => settle(p, ctx.now(), universe(ctx), u));
 
+/**
+ * The fleets of other players that hold at a planet or moon of `u` fly home
+ * at once (owner, 2026-11-19), the same flight home as at the end of their
+ * holding time. Fleets still on their way are turned home at their arrival
+ * (the arrival of a Wache stellen).
+ */
+const sendGuardsHome = (ctx: Ctx, places: readonly { id: string }[]): void => {
+  for (const p of places) for (const f of heldAt(ctx, p.id)) sendHome(ctx, f);
+};
+
 /** Starts the vacation now, once nothing runs (Q1); the production up to now is kept. */
 export const startVacation: Action = (ctx, u, _d, event) => {
   const now = ctx.now();
@@ -72,6 +83,7 @@ export const startVacation: Action = (ctx, u, _d, event) => {
   u.rq = null;
   u.vacation = now;
   ctx.players.save(u);
+  sendGuardsHome(ctx, places);
   if (event)
     event.detail = {
       since: now,
