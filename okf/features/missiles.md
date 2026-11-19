@@ -115,7 +115,7 @@ above.
   the missiles leave the planet's defense; the audit event `game` /
   `missile`, the impact `system` / `missile`. Missiles in flight count for
   the points until their impact (owiki).
-* **[E]** Migration `20261118T2235-missiles` rebuilds `fleets` and
+* **[E]** Migration `20261119T0812-missiles` rebuilds `fleets` and
   `fleet_ships` for the mission `missile` and adds `fleets.aim` (TEXT, the
   main target, NULL without one); the fleet repository writes `aim` only
   for missiles with a main target, as it writes `gift` only for a gift.

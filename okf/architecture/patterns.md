@@ -438,7 +438,7 @@ choice of the patterns to the assistant's recommendation below
   another (dependency-cruiser): `fight`, `battleReports` with what a
   mission adds to each side's report, `flyHome`, and `rebuild` and
   `plunder`, which the attack folder re-exports; the attack runs them in
-  the same order and with the same draws as before. Migration `20261116T2054-moonbreak` allows `moonbreak`
+  the same order and with the same draws as before. Migration `20261119T0810-moonbreak` allows `moonbreak`
   in the database (see [Moons](/features/moons.md)).
 
 * **[V]** Built with #54, within the decisions of #116: the folder

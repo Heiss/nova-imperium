@@ -352,6 +352,82 @@ describe('a Vermessung and the vacation mode (#190, #223)', () => {
   });
 });
 
+describe('a Wache stellen and the vacation mode (#55, #223)', () => {
+  /** Anna and Bert in one guild, so they may hold at each other. */
+  const allies = (ctx: TestCtx): TestCtx => {
+    ctx.guilds.create('g1', 'GLD', 'Gilde', '', 'u_Anna');
+    ctx.guilds.apply('u_Bert', 'g1');
+    ctx.guilds.accept('u_Bert');
+    return ctx;
+  };
+  const hold = (to = { g: 1, s: 1, p: 5 }, kind?: string) =>
+    ({ ...attack(to, 'hold', kind), hold: 1 }) as const;
+
+  it('is refused like every action while the sender is in vacation mode, a launch and a recall, and works after the end', () => {
+    const ctx = allies(world());
+    const bert = ctx.players.get('u_Bert')!;
+    expect(act(ctx, 'send', { ...hold(), planet: 'p1_2_6' }, 'u_Bert')).toBe(
+      'Flotte unterwegs nach [1:1:5].',
+    );
+    const flying = ctx.fleets.all()[0]!;
+    ctx.players.save({ ...bert, vacation: START });
+    const before = ctx.fleets.all();
+    const stock = ctx.planets.get('p1_2_6')!.ships;
+    expect(() => act(ctx, 'send', hold(), 'u_Bert')).toThrow(VACATION_REFUSED);
+    expect(() => act(ctx, 'recall', { id: flying.id }, 'u_Bert')).toThrow(
+      VACATION_REFUSED,
+    );
+    expect(ctx.fleets.all()).toEqual(before);
+    expect(ctx.planets.get('p1_2_6')!.ships).toEqual(stock);
+    ctx.players.save({ ...ctx.players.get('u_Bert')!, vacation: null });
+    expect(act(ctx, 'recall', { id: flying.id }, 'u_Bert')).toBe(
+      'Flotte zurückgerufen.',
+    );
+  });
+
+  it('refuses a recall of a fleet that holds while the owner is in vacation mode', () => {
+    const ctx = allies(world());
+    act(ctx, 'send', { ...hold(), planet: 'p1_2_6' }, 'u_Bert');
+    const fleet = ctx.fleets.all()[0]!;
+    ctx.clock.t = fleet.arr;
+    tick(ctx);
+    expect(ctx.fleets.get(fleet.id)).toMatchObject({ state: 'hold' });
+    const bert = ctx.players.get('u_Bert')!;
+    ctx.players.save({ ...bert, vacation: START });
+    expect(() => act(ctx, 'recall', { id: fleet.id }, 'u_Bert')).toThrow(
+      VACATION_REFUSED,
+    );
+    expect(ctx.fleets.get(fleet.id)).toMatchObject({
+      state: 'hold',
+      recalled: false,
+    });
+  });
+
+  it('is refused at a planet or the moon of a player in vacation mode, an ally too, before the noob protection (#55, #223)', () => {
+    const ctx = allies(world());
+    start(ctx);
+    for (const kind of [undefined, 'moon'])
+      expect(
+        () => act(ctx, 'send', hold(undefined, kind), 'u_Bert'),
+        String(kind),
+      ).toThrow('Dieser Spieler ist im Urlaubsmodus.');
+    expect(ctx.fleets.all()).toEqual([]);
+  });
+
+  it('lets a Wache stellen launched before the entry arrive and hold as usual (D2)', () => {
+    const ctx = allies(world());
+    act(ctx, 'send', { ...hold(), planet: 'p1_2_6' }, 'u_Bert');
+    const fleet = ctx.fleets.all()[0]!;
+    start(ctx);
+    ctx.clock.t = fleet.arr;
+    tick(ctx);
+    expect(ctx.fleets.get(fleet.id)).toMatchObject({ state: 'hold' });
+    ctx.clock.t = fleet.arr + HOUR_MS;
+    tick(ctx);
+    expect(ctx.fleets.get(fleet.id)).toMatchObject({ state: 'back' });
+  });
+});
+
 describe('ending the vacation mode', () => {
   it('is refused before the minimum duration with the earliest end', () => {
     const ctx = world();

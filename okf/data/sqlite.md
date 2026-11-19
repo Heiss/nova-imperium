@@ -519,6 +519,14 @@ recall, fuel and gift and holds for no time
 (`upgrades/20261119T0744-holding.test.ts`). The upgrade test of migration 20
 runs the later migrations before today's actions land due fleets, since
 `fleets.due` reads the new column.
+The three other rebuilds of `fleets` (Mondbruch `20261119T0810-moonbreak`,
+Vermessung `20261119T0811-planet-survey`, Raketenangriff
+`20261119T0812-missiles`) were given IDs after `20261119T0744-holding` when
+the bundle met it: the holding migration is on main and rebuilds `fleets`
+from the schema before them, so run before it they would have lost `aim`
+and their missions. They keep the column `hold`, the state `hold` and the
+mission `hold` in their CHECKs (the IDs of unreleased migrations may change;
+the bundle was not on main).
 
 Migration `20261118T2324-marketplace` (issue #171, see
 [Marketplace](/features/marketplace.md)) adds `market_prices` (`pair` one of
@@ -541,14 +549,14 @@ activity; an existing account starts with its newest `last_seen` of
 `player_activity`, null without one, and the server then counts from
 `users.created`; other data stay as they were
 (`upgrades/20261117T0923-activity-times.test.ts`).
-Migration `20261118T2235-missiles` (issue #54, see
+Migration `20261119T0812-missiles` (issue #54, see
 [Missiles](/features/missiles.md)) rebuilds `fleets` and `fleet_ships`, as
 16 did, for the mission `missile` in the CHECK of `fleets.mission`, and
 adds `fleets.aim` (TEXT, the main target of a Raketenangriff, NULL
 without one). Every fleet in flight keeps its values, its gift and its
 ships; the Raketenkrypta and the missiles are rows of `planet_buildings`
 and `planet_units` and need no change
-(`upgrades/20261118T2235-missiles.test.ts`). The fleet repository writes
+(`upgrades/20261119T0812-missiles.test.ts`). The fleet repository writes
 `aim` only for missiles with a main target, so the upgrade tests of
 earlier migrations still save fleets.
 
@@ -559,7 +567,7 @@ Existing players get null: nobody is in vacation mode, the production goes
 on and every target stays open; other data stay as they were
 (`upgrades/20261117T1000-vacation-mode.test.ts`).
 
-Migration `20261116T2054-moonbreak` (issue #95, in the folder
+Migration `20261119T0810-moonbreak` (issue #95, in the folder
 layout, `migrations/95/migrations.ts`, see [Moons](/features/moons.md))
 rebuilds `fleets` and `fleet_ships` like migration 16 for the mission
 `moonbreak` (Mondbruch) in the CHECK of `fleets.mission`. Every column
@@ -567,12 +575,12 @@ stays, `gift` of migration 18 included (now in the column list with its
 CHECK instead of appended), with the index `fleets_owner`, the foreign key
 to `users` and both cascades; a Mondbruch flies to a moon (`to_planet`
 `m<g>_<s>_<p>`), which needs no column. Its upgrade test
-(`upgrades/20261116T2054-moonbreak.test.ts`) writes fleets of the version
+(`upgrades/20261119T0810-moonbreak.test.ts`) writes fleets of the version
 before, a gift and fleets from and to a moon among them, checks that every
 row and ship stays, that a gift still takes no fleet slot, that a Mondbruch
 is saved with its ships, the CHECKs of `mission` and `gift`, the index and
 the cascades.
-The later migration `20261117T1211-planet-survey` (issue #190) rebuilds
+The later migration `20261119T0811-planet-survey` (issue #190) rebuilds
 `fleets` again for the mission `survey` and lists `moonbreak` in its CHECK
 too, since it runs after this one (its upgrade test checks that both
 missions are allowed).

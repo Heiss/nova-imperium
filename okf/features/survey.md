@@ -118,7 +118,7 @@ extension of this game.
   30 days with every survey report that names them (`reports.deleteSurveys`).
   Reports of a position that was colonized stay. **[V]** A new round deletes
   the surveys too.
-* Database: migration `20261117T1211-planet-survey`
+* Database: migration `20261119T0811-planet-survey`
   (`src/server/db/migrations/190/`) rebuilds `fleets` and `fleet_ships` for
   the mission and `reports` for the type `survey`, every row unchanged, and
   adds `surveys (id, g, s, p, temp, diameter, created, UNIQUE (g, s, p))`.

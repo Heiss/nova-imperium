@@ -546,7 +546,7 @@ owiki.de „Mond“ (section Zerstörung, formula images). Built after the moons
   Mond bei [g:s:p] wurde zerstört.“ (`src/client/logic/moonbreak.ts`, in
   the lines of the battle report after the moon chance). They go with the
   push kinds of every battle report (`fleet`, `attacked`).
-* Migration `20261116T2054-moonbreak` (`src/server/db/migrations/95/`, see
+* Migration `20261119T0810-moonbreak` (`src/server/db/migrations/95/`, see
   [SQLite storage](/data/sqlite.md)).
 * **[E]** The owner's answers to the proposals of the pull request (owner,
   2026-11-16):

@@ -402,6 +402,11 @@ code and here in the same pull request.
 * **[V]** Mission text: „Am Trümmerfeld lädt die Flotte Adamant und Psikristall ein, bis das Feld leer oder der Laderaum voll ist. Dabei zählt der Laderaum aller Schiffe, nicht nur der Bergungsbarken. War eine andere Flotte schneller, bleibt nur der Rest; ist das Feld ganz fort, kehrt die Flotte um.“
 * **[V]** Keywords: Schrott, Wrack, einsammeln, aufräumen
 
+### Wache stellen (`mission-hold`)
+
+* **[V]** Mission text: „Am Ziel, dem Planeten eines Gildenmitglieds oder Freundes, bleibt die Flotte für die Haltezeit, die du beim Start wählst (von 0 bis 32 Stunden), und verteidigt den Planeten in jedem Kampf zusammen mit seinem Besitzer. Danach fliegt sie heim. Wer halten darf, legt der Admin je Runde fest; den Treibstoff für die Haltezeit zahlst du beim Start. An einem Planeten halten höchstens 4 Spieler mit zusammen höchstens 15 Flotten.“
+* **[V]** Keywords: verteidigen, stationieren, beistehen, Gilde
+
 ### Mondbruch (`mission-moonbreak`)
 
 * **[V]** Mission text: „Am Ziel, dem Mond eines anderen Spielers, kämpft die Flotte wie beim Sturmangriff gegen die Schiffe und die Verteidigung des Mondes; die anderen Schiffe fliegen mit und kämpfen mit. Nur nach einem gewonnenen Kampf oder gegen einen unverteidigten Mond, und nur mit Weltenbrechern, die den Kampf überstanden haben, folgen zwei voneinander unabhängige Würfe: ob der Mond zerbricht und ob die Weltenbrecher vom eigenen Schuss zerrissen werden. Je größer der Mond, desto seltener zerbricht er und desto eher gehen die Weltenbrecher verloren; je mehr Weltenbrecher, desto eher zerbricht er. Ein zerbrochener Mond ist mit allem, was auf ihm war, verloren und hinterlässt kein Trümmerfeld; Flotten, die ihn anfliegen, landen auf seinem Planeten. Ladung und Beute werden auf den Laderaum der Schiffe gekürzt, die übrig sind. Beide Seiten erhalten einen Kampfbericht.“
@@ -416,8 +421,3 @@ code and here in the same pull request.
 
 * **[V]** Mission text: „Am Ziel hält jede Abfangrakete des Verteidigers eine anfliegende Orbitalrakete auf. Die übrigen treffen nur Verteidigung, die kämpft: zuerst das Hauptziel, dann alles andere der Reihe nach; Schilde zählen dabei nicht. Ist keine Verteidigung mehr übrig, zerstört der Rest der Wucht die gelagerten Raketen der Raketenkrypta. Zerstörte Verteidigung wird nicht wieder aufgebaut und hinterlässt kein Trümmerfeld. Ist das Ziel inzwischen verschwunden, sind die Raketen verloren; beide Seiten erhalten einen Bericht.“
 * **[V]** Keywords: Raketen, beschießen, Fernangriff, Verteidigung
-
-### Wache stellen (`mission-hold`)
-
-* **[V]** Mission text: „Am Ziel, dem Planeten eines Gildenmitglieds oder Freundes, bleibt die Flotte für die Haltezeit, die du beim Start wählst (von 0 bis 32 Stunden), und verteidigt den Planeten in jedem Kampf zusammen mit seinem Besitzer. Danach fliegt sie heim. Wer halten darf, legt der Admin je Runde fest; den Treibstoff für die Haltezeit zahlst du beim Start. An einem Planeten halten höchstens 4 Spieler mit zusammen höchstens 15 Flotten.“
-* **[V]** Keywords: verteidigen, stationieren, beistehen, Gilde
