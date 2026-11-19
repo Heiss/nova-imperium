@@ -168,7 +168,7 @@ export type CatalogPage =
       rows: CatalogRow[];
     };
 
-const LOCKED: Note = {
+export const LOCKED: Note = {
   kind: 'note',
   cls: 'req',
   text: 'Das Wissen ist noch verschlossen',

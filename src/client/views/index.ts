@@ -62,13 +62,16 @@ export function menu(admin: boolean, round: RoundRules): (MenuEntry | '-')[] {
   return items;
 }
 
-/** Phone: four destinations in the bottom tab bar, the rest under „Mehr“ (issue #61). */
-export const TAB_VIEWS = [
-  'overview',
-  'buildings',
-  'fleet',
-  'messages',
-] as const;
+/**
+ * Phone: four destinations in the bottom tab bar, the rest under „Mehr“
+ * (issue #61). #189 (D1, owner 2026-11-14): Übersicht, Bauen, Flotte and Karte;
+ * the messages move to the bell of the header, and „Bauen“ is the list of
+ * buildings with a switch to the other three lists.
+ */
+export const TAB_VIEWS = ['overview', 'buildings', 'fleet', 'galaxy'] as const;
+
+/** The labels of the tab bar where they differ from the menu. */
+const TAB_LABELS: Readonly<Record<string, string>> = { buildings: 'Bauen' };
 
 export function phoneMenu(items: (MenuEntry | '-')[]): {
   tabs: MenuEntry[];
@@ -78,7 +81,10 @@ export function phoneMenu(items: (MenuEntry | '-')[]): {
   const isTab = (i: MenuEntry): boolean =>
     (TAB_VIEWS as readonly string[]).includes(i.view);
   return {
-    tabs: TAB_VIEWS.map((v) => entries.find((i) => i.view === v)!),
+    tabs: TAB_VIEWS.map((v) => {
+      const entry = entries.find((i) => i.view === v)!;
+      return { ...entry, label: TAB_LABELS[v] ?? entry.label };
+    }),
     more: entries.filter((i) => !isTab(i)),
   };
 }
@@ -99,6 +105,12 @@ export const TAB_GLYPHS: Record<string, string> = {
   ),
   messages: glyph(
     '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.5 6l8.5 7 8.5-7"/>',
+  ),
+  galaxy: glyph(
+    '<path d="M12 3l2.2 5.3 5.8.5-4.4 3.8 1.4 5.6L12 15l-5 3.2 1.4-5.6L4 8.8l5.8-.5z"/>',
+  ),
+  bell: glyph(
+    '<path d="M6 16V11a6 6 0 0112 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 004 0"/>',
   ),
   more: glyph(
     '<circle cx="5" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="19" cy="12" r="1.4"/>',

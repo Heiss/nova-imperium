@@ -3,9 +3,11 @@ import type { HeaderLine } from '../logic/header.ts';
 import type { Navigation } from '../logic/navigation.ts';
 import type { ResourceBar as Bar } from '../logic/resource-bar.ts';
 import { keepHeaderInView } from '../logic/sticky-header.ts';
+import Bell from './Bell.svelte';
 import Header from './Header.svelte';
 import Menu from './Menu.svelte';
 import MoreList from './MoreList.svelte';
+import MoreUser from './MoreUser.svelte';
 import ResourceBar from './ResourceBar.svelte';
 import TabBar from './TabBar.svelte';
 
@@ -17,7 +19,15 @@ import TabBar from './TabBar.svelte';
 // its focus on a render as before, and the bar is mounted anew every second.
 
 /** The places of the frame in index.html, by id. */
-const PLACES = ['pinfo', 'menu', 'tabbar', 'more-list', 'resbar'] as const;
+const PLACES = [
+  'pinfo',
+  'bell',
+  'menu',
+  'tabbar',
+  'more-list',
+  'more-user',
+  'resbar',
+] as const;
 type Place = (typeof PLACES)[number];
 
 /** The component mounted in each place. */
@@ -46,11 +56,13 @@ export function showHeader(line: HeaderLine): void {
   show('pinfo', Header, { line });
 }
 
-/** The menu, the tab bar and the list of „Mehr“. */
+/** The menu, the tab bar, the bell and the list of „Mehr“. */
 export function showNavigation(nav: Navigation): void {
+  show('bell', Bell, { nav });
   show('menu', Menu, { nav });
   show('tabbar', TabBar, { nav });
   show('more-list', MoreList, { nav });
+  show('more-user', MoreUser, { nav });
 }
 
 /** The resource bar. */

@@ -1877,3 +1877,277 @@ table.lx-t {
     margin-bottom: 6px;
   }
 }
+
+/* ---------- Phone view of the lists (#189, D2 to D4, owner 2026-11-14) ----------
+   Up to 760 px a list of buildings, research, shipyard or defense is a switch
+   between the four lists, a filter „Baubar“ / „Alle“ / „Läuft“ and compact rows:
+   picture, name and level, costs, time and the short button „▲ 5“. A tap on
+   „▾“ unfolds the description, the effect, the energy, the requirements and
+   the „?“ and „▤“. The filter and the folding are CSS on data attributes of
+   CatalogList.svelte; the desktop (D6) shows every row as before. */
+.phone-only {
+  display: none;
+}
+@media (max-width: 760px) {
+  nav.seg.phone-only,
+  div.seg.phone-only {
+    display: flex;
+  }
+  p.phone-only {
+    display: block;
+  }
+  .fold.phone-only {
+    display: inline-grid;
+  }
+  .sh {
+    display: inline;
+  }
+  .lg {
+    display: none;
+  }
+  .seg {
+    margin: 0 0 10px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    overflow: hidden;
+    background: var(--box);
+  }
+  .seg > a,
+  .seg > button {
+    flex: 1 1 0;
+    display: grid;
+    place-items: center;
+    min-height: 44px;
+    padding: 0 4px;
+    color: var(--dim);
+    font: 600 13px var(--head);
+    letter-spacing: 0.02em;
+    text-align: center;
+    background: none;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  .seg > a + a,
+  .seg > button + button {
+    border-left: 1px solid var(--line);
+  }
+  .seg > a:hover {
+    text-decoration: none;
+  }
+  .seg > .on {
+    color: var(--gold-hi);
+    background: var(--box-2);
+    box-shadow: inset 0 -3px 0 var(--gold);
+    outline: 0;
+  }
+  /* The filter. */
+  .catalog[data-filter='open'] > .item[data-phase='locked'],
+  .catalog[data-filter='running'] > .item:not([data-phase='running']) {
+    display: none;
+  }
+  /* A compact row: picture, name with the fold, costs and time, the action. */
+  .catalog > .item {
+    grid-template-columns: 48px minmax(0, 1fr) auto;
+    gap: 4px 10px;
+    padding: 8px 10px;
+    align-items: start;
+  }
+  .item .icon {
+    width: 48px;
+    height: 48px;
+    font-size: 13px;
+  }
+  .item .act {
+    grid-column: auto;
+    max-width: 132px;
+    font-size: 14px;
+    line-height: 1.25;
+  }
+  .item .act button {
+    width: 100%;
+    min-height: 44px;
+  }
+  .item .act button.small {
+    min-height: 44px;
+  }
+  .item .act input {
+    width: 100%;
+    min-height: 40px;
+  }
+  .item .nm {
+    position: relative;
+    padding-right: 36px;
+    font-size: 15px;
+    line-height: 1.25;
+  }
+  .item .lv {
+    font-size: 13px;
+  }
+  button.fold {
+    position: absolute;
+    top: -9px;
+    right: -9px;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    margin: 0;
+    padding: 0;
+    color: var(--gold-hi);
+    font-size: 16px;
+    background: none;
+    border: 0;
+    box-shadow: none;
+  }
+  .item .cost {
+    gap: 2px 10px;
+    font-size: 14px;
+  }
+  .item .dim.tl {
+    font-size: 13px;
+  }
+  /* Folded: only what the compact row names. */
+  .item:not(.open) .ds,
+  .item:not(.open) > div:nth-child(2) > .dim:not(.tl),
+  .item:not(.open) .lvt,
+  .item:not(.open) .exq,
+  .item:not(.open) .lvq,
+  .item:not(.open) .act br:has(+ [data-act='demolish']),
+  .item:not(.open) .act [data-act='demolish'],
+  .item:not(.open):not([data-phase='locked']) .needs {
+    display: none;
+  }
+  /* An entry whose requirements are missing shows them without a tap, and
+     its note („Das Wissen ist noch verschlossen“) under the name. */
+  .catalog > .item[data-phase='locked'] {
+    grid-template-columns: 48px minmax(0, 1fr);
+  }
+  /* A note, or the number and „Bauen“ of an order, take the row below the
+     name instead of a narrow column beside it. */
+  .item .act:is(:has(> input, > .flex), :has(> span.req, > span.dim)) {
+    grid-column: 2 / -1;
+    max-width: none;
+    text-align: left;
+  }
+  .item .act:has(> .flex) {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .item .act > .flex {
+    flex: 1 1 0;
+    min-width: 0;
+    flex-wrap: wrap;
+    gap: 2px 8px;
+  }
+  .item .act:has(> .flex) button {
+    flex: 0 0 40%;
+    width: auto;
+    margin-top: 0;
+  }
+}
+
+/* ---------- Phone: the compact header and the bell (#189, D1, owner 2026-11-14) ----------
+   The header is the planet as a chip with the list „Aktiver Planet“, the bell
+   with the unread messages and one line with the four resources; the logo,
+   the commander and „Logout“ are gone from it (the commander and „Logout“
+   stand at the end of „Mehr“). The desktop keeps its header (D6). */
+.bell {
+  display: none;
+}
+#more-user {
+  display: none;
+}
+@media (max-width: 760px) {
+  header {
+    gap: 6px 8px;
+    padding: calc(6px + env(safe-area-inset-top)) 12px 6px;
+  }
+  header .logo,
+  .pinfo .cmd,
+  .pinfo [data-act='logout'] {
+    display: none;
+  }
+  .pinfo {
+    flex: 1 1 0;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .pinfo select {
+    width: 100%;
+    min-height: 44px;
+  }
+  .bell {
+    display: block;
+    flex: none;
+  }
+  .bell a {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    color: var(--gold-hi);
+    background: var(--box);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+  }
+  .bell a:hover {
+    text-decoration: none;
+  }
+  .bell a.on {
+    border-color: var(--gold);
+  }
+  .bell svg {
+    width: 24px;
+    height: 24px;
+  }
+  .bell .badge {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    margin: 0;
+  }
+  /* One line of resources: the picture beside the number. */
+  .resbar {
+    gap: 4px;
+  }
+  .res {
+    flex-direction: row;
+    justify-content: center;
+    gap: 3px;
+    padding: 3px 2px;
+  }
+  .res .ri {
+    width: 20px;
+    height: 20px;
+    flex: none;
+  }
+  .res > div {
+    min-width: 0;
+  }
+  .res .v {
+    font-size: 12px;
+    letter-spacing: -0.02em;
+  }
+  #pwa-offer:not([hidden]) {
+    width: 100%;
+  }
+  #more-user {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 2px 8px 6px;
+    color: var(--dim);
+    border-bottom: 1px solid var(--line);
+  }
+  #more-user b {
+    color: var(--gold-hi);
+    font-weight: 600;
+  }
+  #more-user button {
+    min-height: 44px;
+    padding: 0 16px;
+  }
+}
