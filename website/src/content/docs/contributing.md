@@ -50,7 +50,7 @@ draft to the squash merge. The pull request brings:
   test; logic the browser cannot reach in reasonable time is set up with
   `e2e/seed.ts`. No test is skipped or disabled to get green
   ([Test strategy](/okf/ops/testing.md)).
-- **Mutation floors**: no file below its floor in `mutation-standard.json`;
+- **Mutation floors**: no file below its floor in `mutation-floors.txt`;
   a new file needs 80 %, a security file 90 %.
 - **A changelog fragment or the label** – see below.
 - **OKF and docs**: decisions go into the OKF bundle and an entry into

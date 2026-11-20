@@ -8,10 +8,14 @@
 // stryker.config.json: the shards of the CI run Stryker without it and
 // check the merged report here (#131).
 // Security files aim for "securityTarget"; their floor rises with each test.
+// The floors are in mutation-floors.txt (one line per file), the rest of the
+// standard in mutation-standard.json (#317 part 4). The floors are written
+// from the merged report of a complete CI run only (#304, owner, 2026-11-19):
+// scripts/mutation-floors.ts, not this script.
 // Run after Stryker:
 //   node scripts/mutation-gate.ts            check
-//   node scripts/mutation-gate.ts --update   raise the floors to the current
-//                                            scores (never lowers one)
+//   node scripts/mutation-gate.ts --update   refused: a local report is no
+//                                            source of floors (#304)
 //   --report <path>                          another report than
 //                                            reports/mutation/mutation.json
 //                                            (the merged report of the shards)
@@ -25,7 +29,9 @@
 //                                            over a few files. Stryker leaves
 //                                            a file without mutants out of
 //                                            its report: a notice, no failure
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
+import { runCli } from './cli.ts';
+import { FLOORS_FILE, parseFloors } from './mutation-floorfile.ts';
 import { filesOf } from './mutation-partial.ts';
 
 export interface Standard {
@@ -46,7 +52,7 @@ interface Report {
 }
 
 const REPORT = 'reports/mutation/mutation.json';
-const STANDARD = 'mutation-standard.json';
+export const STANDARD = 'mutation-standard.json';
 const CONFIG = 'stryker.config.json';
 const KILLED = new Set(['Killed', 'Timeout']);
 const COUNTED = new Set(['Killed', 'Timeout', 'Survived', 'NoCoverage']);
@@ -87,28 +93,25 @@ export function check(
 }
 
 /**
- * Raises every floor to the current score. A file missing from the report
- * keeps its floor (a run of some files only must not erase the others);
- * a file that no longer exists loses it.
+ * The standard from the texts of mutation-standard.json (newFile, security,
+ * securityTarget) and of the floors file. The floors have left the JSON file
+ * (#317 part 4): a "floors" key there is refused, so a merge that brings it
+ * back is not read as the floors.
  */
-export function update(
-  scores: Record<string, number>,
-  standard: Standard,
-  exists: (file: string) => boolean = existsSync,
-): Standard {
-  const floors: Record<string, number> = {};
-  const files = new Set([
-    ...Object.keys(standard.floors),
-    ...Object.keys(scores),
-  ]);
-  for (const file of [...files].sort()) {
-    const was = standard.floors[file];
-    const now = scores[file];
-    if (now !== undefined) floors[file] = Math.max(was ?? 0, now);
-    else if (was !== undefined && exists(file)) floors[file] = was;
-  }
-  return { ...standard, floors };
+export function parseStandard(config: string, floors: string): Standard {
+  const rest = JSON.parse(config) as Omit<Standard, 'floors'> & {
+    floors?: unknown;
+  };
+  if (rest.floors !== undefined)
+    throw new Error(
+      `${STANDARD}: the floors are in ${FLOORS_FILE}, one line per file; remove "floors" here.`,
+    );
+  return { ...rest, floors: parseFloors(floors) };
 }
+
+/** What --update says: floors come from the merged report of the CI only. */
+export const UPDATE_REFUSED =
+  '--update is gone (#304): floors come only from the merged report of a complete CI run. Download it (gh run download <run-id> -n mutation-report) and run: node scripts/mutation-floors.ts <report.json>';
 
 export function scoresOf(report: Report): Record<string, number> {
   const out: Record<string, number> = {};
@@ -230,17 +233,15 @@ function notices(scores: Record<string, number>, standard: Standard): void {
   }
 }
 
-function main(): void {
+function main(): number {
   const args = process.argv.slice(2);
+  if (args.includes('--update')) throw new Error(UPDATE_REFUSED);
   const report = JSON.parse(readFileSync(reportPath(args), 'utf8')) as Report;
   const scores = scoresOf(report);
-  const standard = JSON.parse(readFileSync(STANDARD, 'utf8')) as Standard;
-  if (args.includes('--update')) {
-    const next = update(scores, standard);
-    writeFileSync(STANDARD, `${JSON.stringify(next, null, 2)}\n`);
-    console.log(`Floors of ${Object.keys(scores).length} files written.`);
-    return;
-  }
+  const standard = parseStandard(
+    readFileSync(STANDARD, 'utf8'),
+    readFileSync(FLOORS_FILE, 'utf8'),
+  );
   for (const line of table(report)) console.log(line);
   notices(scores, standard);
   const partial = args.includes('--partial')
@@ -258,10 +259,11 @@ function main(): void {
   };
   const found = failures(report, standard, thresholds.break, partial);
   for (const f of found) console.log(f);
-  if (found.length) process.exit(1);
+  if (found.length) return 1;
   console.log(
     `All ${Object.keys(scores).length} files at or above their floor.`,
   );
+  return 0;
 }
 
-if (import.meta.main) main();
+if (import.meta.main) runCli(main);

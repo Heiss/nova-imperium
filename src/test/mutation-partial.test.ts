@@ -11,6 +11,7 @@ import {
   sources,
 } from '../../scripts/mutation-partial.ts';
 import { isMutated } from '../../scripts/mutation-changes.ts';
+import { formatFloors } from '../../scripts/mutation-floorfile.ts';
 import { type StrykerConfig } from '../../scripts/mutation-shards.ts';
 
 const stryker = JSON.parse(
@@ -310,28 +311,19 @@ describe('partial mutation run: the plan', () => {
   });
 });
 
-/** The text of a mutation-standard.json with these floors. */
-const standardOf = (
-  floors: Record<string, unknown>,
-  rest: Record<string, unknown> = {},
-): string =>
-  JSON.stringify({
-    securityTarget: 90,
-    newFile: 80,
-    security: ['src/server/auth.ts'],
-    floors,
-    ...rest,
-  });
+/** The text of a mutation-floors.txt with these floors. */
+const floorsOf = (floors: Record<string, number>): string =>
+  formatFloors(floors);
 
-describe('partial mutation run: the floors of mutation-standard.json', () => {
-  const before = standardOf({
+describe('partial mutation run: the floors of mutation-floors.txt', () => {
+  const before = floorsOf({
     'src/core/a.ts': 70,
     'src/core/b.ts': 80,
     'src/core/gone.ts': 90,
   });
 
   it('is every file whose floor was added, raised, lowered or removed', () => {
-    const after = standardOf({
+    const after = floorsOf({
       'src/core/a.ts': 75.5,
       'src/core/b.ts': 80,
       'src/core/new.ts': 85,
@@ -339,7 +331,7 @@ describe('partial mutation run: the floors of mutation-standard.json', () => {
     expect(floorChanges(before, after)).toEqual({
       files: ['src/core/a.ts', 'src/core/gone.ts', 'src/core/new.ts'],
     });
-    const lowered = standardOf({
+    const lowered = floorsOf({
       'src/core/a.ts': 60,
       'src/core/b.ts': 80,
       'src/core/gone.ts': 90,
@@ -349,95 +341,70 @@ describe('partial mutation run: the floors of mutation-standard.json', () => {
     });
   });
 
-  it('is no file when the floors are the same, however they are written', () => {
-    const spaced = JSON.stringify(JSON.parse(before), null, 4);
-    expect(floorChanges(before, spaced)).toEqual({ files: [] });
-    const reordered = standardOf({
-      'src/core/gone.ts': 90,
-      'src/core/b.ts': 80,
-      'src/core/a.ts': 70,
-    });
+  it('is no file when the floors are the same, however the lines are ordered', () => {
+    const reordered =
+      'src/core/gone.ts 90\nsrc/core/b.ts 80\nsrc/core/a.ts 70\n';
     expect(floorChanges(before, reordered)).toEqual({ files: [] });
+    expect(floorChanges(before, before.trimEnd())).toEqual({ files: [] });
+    expect(floorChanges('', '')).toEqual({ files: [] });
   });
 
   it('lists the files sorted', () => {
-    expect(
-      floorChanges(
-        standardOf({}),
-        standardOf({ 'z.ts': 1, 'a.ts': 1, 'm.ts': 1 }),
-      ),
-    ).toEqual({ files: ['a.ts', 'm.ts', 'z.ts'] });
+    expect(floorChanges('', 'z.ts 1\na.ts 1\nm.ts 1\n')).toEqual({
+      files: ['a.ts', 'm.ts', 'z.ts'],
+    });
   });
 
-  it('runs everything when another key changed', () => {
-    const more = 'changes more than the floors';
-    for (const [rest, keys] of [
-      [{ newFile: 70 }, 'newFile'],
-      [{ securityTarget: 95 }, 'securityTarget'],
-      [{ security: ['src/server/auth.ts', 'src/server/audit.ts'] }, 'security'],
-      [{ security: [] }, 'security'],
-      [{ newFile: 70, securityTarget: 95 }, 'newFile, securityTarget'],
-    ] as const) {
-      const after = standardOf(JSON.parse(before).floors, rest);
-      expect(floorChanges(before, after)).toEqual({
-        reason: `mutation-standard.json ${more}: ${keys}`,
-      });
-    }
-    // The order of the security files counts as a change.
-    const swapped = (a: string[]) => standardOf({}, { security: a });
-    expect(floorChanges(swapped(['a', 'b']), swapped(['b', 'a']))).toEqual({
-      reason: `mutation-standard.json ${more}: security`,
+  it('is the one file of two branches that each added another: git merges the lines', () => {
+    // Different lines, no conflict: the merged file lists both new files.
+    const merged = floorsOf({
+      'src/core/a.ts': 70,
+      'src/core/b.ts': 80,
+      'src/core/gone.ts': 90,
+      'src/core/x.ts': 81,
+      'src/core/y.ts': 82,
+    });
+    expect(floorChanges(before, merged)).toEqual({
+      files: ['src/core/x.ts', 'src/core/y.ts'],
     });
   });
 
   it('runs everything when the file is of a form the script does not know', () => {
-    const unknown = {
-      reason: 'mutation-standard.json is not of the form this script knows',
-    };
-    const extra = standardOf({}, { total: 80 });
-    const missing = JSON.stringify({ securityTarget: 90, newFile: 80 });
-    const noFloors = JSON.stringify({
-      securityTarget: 90,
-      newFile: 80,
-      security: [],
-      floors: [],
+    const form = 'mutation-floors.txt is not of the form this script knows: ';
+    expect(floorChanges(undefined, before)).toEqual({
+      reason: `${form}mutation-floors.txt is not there on both sides`,
     });
-    const nullFloors = standardOf(null as never);
-    const text = standardOf({ 'src/core/a.ts': '70' });
-    for (const bad of [
-      extra,
-      missing,
-      noFloors,
-      nullFloors,
-      text,
-      '[]',
-      'null',
-      '7',
-      '{',
-      '',
-      undefined,
-    ]) {
-      expect(floorChanges(before, bad)).toEqual(unknown);
-      expect(floorChanges(bad, before)).toEqual(unknown);
-    }
-    expect(floorChanges(undefined, undefined)).toEqual(unknown);
+    expect(floorChanges(before, undefined)).toEqual({
+      reason: `${form}mutation-floors.txt is not there on both sides`,
+    });
+    expect(floorChanges(before, 'src/core/a.ts\n')).toEqual({
+      reason: `${form}mutation-floors.txt, line 1: "src/core/a.ts" is not "<file> <floor>".`,
+    });
+    expect(floorChanges('{"floors":{}}', before)).toEqual({
+      reason: `${form}mutation-floors.txt, line 1: "{"floors":{}}" is not "<file> <floor>".`,
+    });
+    // Two lines for a file: no answer, so the complete run (and the gate) decide.
+    const twice = floorChanges(before, `${before}src/core/a.ts 71\n`);
+    expect(twice).toEqual({
+      reason: expect.stringContaining(
+        'src/core/a.ts has two floors (70 and 71)',
+      ),
+    });
   });
 });
 
 describe('partial mutation run: the plan with a change of the floors', () => {
-  const standard = (floors: Record<string, unknown>, rest = {}): string =>
-    standardOf(floors, rest);
-  const old = standard({ 'src/core/economy.ts': 70, 'src/core/fleet.ts': 80 });
+  const old = floorsOf({ 'src/core/economy.ts': 70, 'src/core/fleet.ts': 80 });
   const git =
     (files: string[], after: string, before: string | null = old) =>
     (args: string[]): string => {
       const call = args.join(' ');
       if (call === diff) return `${files.join('\0')}\0`;
-      if (call === 'show base:mutation-standard.json') {
+      if (call === 'show base:mutation-floors.txt') {
         if (before === null) throw new Error(call);
         return before;
       }
-      if (call === 'show head:mutation-standard.json') return after;
+      if (call === 'show head:mutation-floors.txt') return after;
       throw new Error(`git ${call}`);
     };
   const tree = has(
@@ -446,9 +413,10 @@ describe('partial mutation run: the plan with a change of the floors', () => {
     'src/core/moon.ts',
     'src/server/main.ts',
   );
+  const FLOORS = 'mutation-floors.txt';
 
   it('proves a floor added for a changed source file in the run of that file', () => {
-    const after = standard({
+    const after = floorsOf({
       'src/core/economy.ts': 70,
       'src/core/fleet.ts': 80,
       'src/core/moon.ts': 85,
@@ -458,14 +426,14 @@ describe('partial mutation run: the plan with a change of the floors', () => {
         'base',
         'head',
         mutate,
-        git(['mutation-standard.json', 'src/core/moon.ts'], after),
+        git([FLOORS, 'src/core/moon.ts'], after),
         tree,
       ),
     ).toEqual({ reasons: [], files: ['src/core/moon.ts'] });
   });
 
   it('adds a file whose floor was raised, though the pull request does not touch it', () => {
-    const after = standard({
+    const after = floorsOf({
       'src/core/economy.ts': 70,
       'src/core/fleet.ts': 90,
     });
@@ -474,7 +442,7 @@ describe('partial mutation run: the plan with a change of the floors', () => {
         'base',
         'head',
         mutate,
-        git(['mutation-standard.json', 'src/core/economy.ts'], after),
+        git([FLOORS, 'src/core/economy.ts'], after),
         tree,
       ),
     ).toEqual({
@@ -484,109 +452,108 @@ describe('partial mutation run: the plan with a change of the floors', () => {
   });
 
   it('adds a file whose floor was removed (checked against the new-file minimum)', () => {
-    const after = standard({ 'src/core/economy.ts': 70 });
-    expect(
-      plan(
-        'base',
-        'head',
-        mutate,
-        git(['mutation-standard.json'], after),
-        tree,
-      ),
-    ).toEqual({ reasons: [], files: ['src/core/fleet.ts'] });
+    const after = floorsOf({ 'src/core/economy.ts': 70 });
+    expect(plan('base', 'head', mutate, git([FLOORS], after), tree)).toEqual({
+      reasons: [],
+      files: ['src/core/fleet.ts'],
+    });
   });
 
   it('adds a file whose floor was lowered; nothing refuses it here', () => {
-    const after = standard({
+    const after = floorsOf({
       'src/core/economy.ts': 50,
       'src/core/fleet.ts': 80,
     });
-    expect(
-      plan(
-        'base',
-        'head',
-        mutate,
-        git(['mutation-standard.json'], after),
-        tree,
-      ),
-    ).toEqual({ reasons: [], files: ['src/core/economy.ts'] });
+    expect(plan('base', 'head', mutate, git([FLOORS], after), tree)).toEqual({
+      reasons: [],
+      files: ['src/core/economy.ts'],
+    });
   });
 
   it('leaves out a file of the floors that is not mutated or not there any more', () => {
-    const after = standard({
+    const after = floorsOf({
       'src/core/economy.ts': 70,
       'src/core/fleet.ts': 80,
       'src/core/deleted.ts': 90,
       'src/server/main.ts': 90,
       'src/client/views/galaxy.ts': 90,
     });
+    expect(plan('base', 'head', mutate, git([FLOORS], after), tree)).toEqual({
+      reasons: [],
+      files: [],
+    });
+  });
+
+  it('is empty when only the order of the lines changed', () => {
+    const after = 'src/core/fleet.ts 80\nsrc/core/economy.ts 70\n';
+    expect(plan('base', 'head', mutate, git([FLOORS], after), tree)).toEqual({
+      reasons: [],
+      files: [],
+    });
+  });
+
+  it('runs everything when mutation-standard.json changes, whatever it changes', () => {
+    // newFile, security and securityTarget are no floors: the complete run.
     expect(
       plan(
         'base',
         'head',
         mutate,
-        git(['mutation-standard.json'], after),
+        git(['mutation-standard.json', 'src/core/moon.ts'], old),
         tree,
       ),
-    ).toEqual({ reasons: [], files: [] });
+    ).toEqual({
+      reasons: ['mutation-standard.json configures the mutation run'],
+      files: [],
+    });
   });
 
-  it('is empty when only the formatting of the floors changed', () => {
-    const after = JSON.stringify(JSON.parse(old), null, 2);
+  it('runs everything for the change that introduces the file, once', () => {
+    // The base has no mutation-floors.txt (the floors were in
+    // mutation-standard.json): the format change runs everything once.
+    const form = 'mutation-floors.txt is not of the form this script knows: ';
     expect(
       plan(
         'base',
         'head',
         mutate,
-        git(['mutation-standard.json'], after),
+        git([FLOORS, 'mutation-standard.json'], old, null),
+        tree,
+      ).reasons,
+    ).toEqual([
+      'mutation-standard.json configures the mutation run',
+      `${form}mutation-floors.txt is not there on both sides`,
+    ]);
+    // The next change has the file on both sides: a partial run again.
+    expect(
+      plan(
+        'base',
+        'head',
+        mutate,
+        git(
+          [FLOORS],
+          floorsOf({ 'src/core/economy.ts': 71, 'src/core/fleet.ts': 80 }),
+        ),
         tree,
       ),
-    ).toEqual({ reasons: [], files: [] });
+    ).toEqual({ reasons: [], files: ['src/core/economy.ts'] });
   });
 
-  it('runs everything when more than the floors changed', () => {
-    const after = standard(
-      { 'src/core/economy.ts': 70, 'src/core/fleet.ts': 80 },
-      { newFile: 70 },
+  it('runs everything when the file has a line of another form on either side', () => {
+    const form = 'mutation-floors.txt is not of the form this script knows: ';
+    const bad = 'src/core/economy.ts 70\nnot a floor\n';
+    const line = `${form}mutation-floors.txt, line 2: "not a floor" is not "<file> <floor>".`;
+    expect(plan('base', 'head', mutate, git([FLOORS], bad), tree)).toEqual({
+      reasons: [line],
+      files: [],
+    });
+    expect(plan('base', 'head', mutate, git([FLOORS], old, bad), tree)).toEqual(
+      { reasons: [line], files: [] },
     );
-    expect(
-      plan(
-        'base',
-        'head',
-        mutate,
-        git(['mutation-standard.json', 'src/core/moon.ts'], after),
-        tree,
-      ),
-    ).toEqual({
-      reasons: ['mutation-standard.json changes more than the floors: newFile'],
-      files: [],
-    });
-  });
-
-  it('runs everything when the file cannot be read on either side', () => {
-    const unknown =
-      'mutation-standard.json is not of the form this script knows';
-    const files = ['mutation-standard.json', 'src/core/moon.ts'];
-    expect(plan('base', 'head', mutate, git(files, old, null), tree)).toEqual({
-      reasons: [unknown],
-      files: [],
-    });
-    expect(
-      plan('base', 'head', mutate, git(files, '{ not json'), tree),
-    ).toEqual({
-      reasons: [unknown],
-      files: [],
-    });
-    expect(
-      plan('base', 'head', mutate, git(files, old, '{ not json'), tree),
-    ).toEqual({
-      reasons: [unknown],
-      files: [],
-    });
   });
 
   it('runs everything when a floor and another configuration file changed', () => {
-    const after = standard({
+    const after = floorsOf({
       'src/core/economy.ts': 75,
       'src/core/fleet.ts': 80,
     });
@@ -595,15 +562,10 @@ describe('partial mutation run: the plan with a change of the floors', () => {
       'vitest.config.ts',
       'tsconfig.json',
       'scripts/mutation-gate.ts',
+      'scripts/mutation-floors.ts',
     ])
       expect(
-        plan(
-          'base',
-          'head',
-          mutate,
-          git(['mutation-standard.json', other], after),
-          tree,
-        ),
+        plan('base', 'head', mutate, git([FLOORS, other], after), tree),
       ).toEqual({
         reasons: [`${other} configures the mutation run`],
         files: [],
@@ -611,25 +573,24 @@ describe('partial mutation run: the plan with a change of the floors', () => {
   });
 
   it('lists the reasons of the configuration and of the floors together', () => {
-    const after = standard({}, { newFile: 70 });
     expect(
       plan(
         'base',
         'head',
         mutate,
-        git(['stryker.config.json', 'mutation-standard.json'], after),
+        git(['stryker.config.json', FLOORS], 'not a floor\n'),
         tree,
       ).reasons,
     ).toEqual([
       'stryker.config.json configures the mutation run',
-      'mutation-standard.json changes more than the floors: newFile',
+      'mutation-floors.txt is not of the form this script knows: mutation-floors.txt, line 1: "not a floor" is not "<file> <floor>".',
     ]);
   });
 
   it('runs everything when the lockfile changes the tool chain, whatever the floors', () => {
     const lockGit = (args: string[]): string => {
       const call = args.join(' ');
-      if (call === diff) return 'mutation-standard.json\0pnpm-lock.yaml\0';
+      if (call === diff) return 'mutation-floors.txt\0pnpm-lock.yaml\0';
       if (call === 'show base:pnpm-lock.yaml') return lockfile('5.1.0');
       if (call === 'show head:pnpm-lock.yaml') return lockfile('5.2.0');
       return git([], old)(args);
@@ -683,14 +644,14 @@ describe('partial mutation run: the limit of one job', () => {
 
   it('counts the files of a change of the floors too', () => {
     const floors = (n: number): string =>
-      standardOf(Object.fromEntries(names(n).map((f) => [f, 70])));
+      floorsOf(Object.fromEntries(names(n).map((f) => [f, 70])));
     const git =
       (n: number) =>
       (args: string[]): string => {
         const call = args.join(' ');
-        if (call === diff) return 'mutation-standard.json\0';
-        if (call === 'show base:mutation-standard.json') return standardOf({});
-        if (call === 'show head:mutation-standard.json') return floors(n);
+        if (call === diff) return 'mutation-floors.txt\0';
+        if (call === 'show base:mutation-floors.txt') return '';
+        if (call === 'show head:mutation-floors.txt') return floors(n);
         throw new Error(`git ${call}`);
       };
     expect(
@@ -705,7 +666,7 @@ describe('partial mutation run: the limit of one job', () => {
     // Files from the changes and from the floors are one set.
     const both = (args: string[]): string =>
       args.join(' ') === diff
-        ? `mutation-standard.json\0${names(PARTIAL_LIMIT).join('\0')}\0`
+        ? `mutation-floors.txt\0${names(PARTIAL_LIMIT).join('\0')}\0`
         : git(PARTIAL_LIMIT)(args);
     expect(plan('base', 'head', mutate, both, every).files).toHaveLength(12);
   });

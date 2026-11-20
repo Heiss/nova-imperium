@@ -16,6 +16,7 @@ import {
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
+import { formatFloors } from '../../scripts/mutation-floorfile.ts';
 
 const CI = readFileSync('.github/workflows/ci.yml', 'utf8');
 const READY = readFileSync('.github/workflows/release-ready.yml', 'utf8');
@@ -163,8 +164,9 @@ describe('Detect changes: the mutation jobs of a pull request (#309)', () => {
     securityTarget: 90,
     newFile: 80,
     security: [],
-    floors: { 'src/core/economy.ts': 70, 'src/core/fleet.ts': 80 },
   });
+  /** The mutation-floors.txt of the base of these tests. */
+  const floorsText = 'src/core/economy.ts 70\nsrc/core/fleet.ts 80\n';
   /** A repository with the real scripts and one commit; the base. */
   const base = (): string => {
     rmSync(repo, { recursive: true, force: true });
@@ -173,6 +175,7 @@ describe('Detect changes: the mutation jobs of a pull request (#309)', () => {
     cpSync('scripts', join(repo, 'scripts'), { recursive: true });
     cpSync('stryker.config.json', join(repo, 'stryker.config.json'));
     put('mutation-standard.json', standardText);
+    put('mutation-floors.txt', floorsText);
     put('src/core/economy.ts', 'export const a = 1;\n');
     put('src/core/economy.test.ts', 'export const t = 1;\n');
     put('src/core/fleet.ts', 'export const b = 1;\n');
@@ -271,27 +274,28 @@ describe('Detect changes: the mutation jobs of a pull request (#309)', () => {
     }
   });
 
+  /** Writes a mutation-floors.txt that differs from the base. */
+  const floors = (changed: Record<string, number>) => (): void =>
+    put('mutation-floors.txt', formatFloors(changed));
+
   /** Writes a mutation-standard.json that differs from the base. */
-  const standard =
-    (floors: Record<string, number>, rest: Record<string, unknown> = {}) =>
-    (): void =>
-      put(
-        'mutation-standard.json',
-        JSON.stringify({
-          securityTarget: 90,
-          newFile: 80,
-          security: [],
-          floors,
-          ...rest,
-        }),
-      );
+  const standard = (rest: Record<string, unknown>) => (): void =>
+    put(
+      'mutation-standard.json',
+      JSON.stringify({
+        securityTarget: 90,
+        newFile: 80,
+        security: [],
+        ...rest,
+      }),
+    );
 
   it('mutates a source file and the file whose floor the pull request raises', () => {
     const { code, written } = detectIn(
       ['src/core/economy.ts'],
       {},
       undefined,
-      standard({ 'src/core/economy.ts': 75, 'src/core/fleet.ts': 85 }),
+      floors({ 'src/core/economy.ts': 75, 'src/core/fleet.ts': 85 }),
     );
     expect(code).toBe(0);
     expect(field(written, 'mutation')).toBe('partial');
@@ -300,12 +304,12 @@ describe('Detect changes: the mutation jobs of a pull request (#309)', () => {
     );
   });
 
-  it('mutates a source file with its new floor in mutation-standard.json', () => {
+  it('mutates a source file with its new floor in mutation-floors.txt', () => {
     const { written } = detectIn(
       ['src/core/economy.ts', 'src/core/moon.ts'],
       {},
       undefined,
-      standard({
+      floors({
         'src/core/economy.ts': 70,
         'src/core/fleet.ts': 80,
         'src/core/moon.ts': 90,
@@ -317,24 +321,26 @@ describe('Detect changes: the mutation jobs of a pull request (#309)', () => {
     );
   });
 
-  it('runs everything when mutation-standard.json changes more than the floors', () => {
+  it('runs everything when mutation-standard.json changes (newFile, security), and once for the change that moves the floors out of it', () => {
     const { written } = detectIn(
       ['src/core/economy.ts'],
       {},
       undefined,
-      standard(
-        { 'src/core/economy.ts': 70, 'src/core/fleet.ts': 80 },
-        { newFile: 70 },
-      ),
+      standard({ newFile: 70 }),
     );
     expect(field(written, 'mutation')).toBe('true');
     expect(field(written, 'mutation-files')).toBe('');
+    // The file missing on one side (the change that introduces it): everything.
+    const first = detectIn(['src/core/economy.ts'], {}, undefined, () =>
+      rmSync(join(repo, 'mutation-floors.txt')),
+    );
+    expect(field(first.written, 'mutation')).toBe('true');
   });
 
-  it('keeps mutation-standard.json a configuration where the complete run decides', () => {
+  it('keeps mutation-floors.txt a configuration where the complete run decides', () => {
     // A pull request into a hotfix branch and the release pull request of a
     // hotfix branch use scripts/mutation-changes.ts: a floor runs everything.
-    const floor = standard({
+    const floor = floors({
       'src/core/economy.ts': 75,
       'src/core/fleet.ts': 80,
     });
@@ -751,7 +757,11 @@ describe('Nightly mutation run: the issue for a file below its floor (#309)', ()
     rmSync(work, { recursive: true, force: true });
     mkdirSync(join(work, 'reports/mutation'), { recursive: true });
     cpSync('scripts', join(work, 'scripts'), { recursive: true });
-    for (const file of ['stryker.config.json', 'mutation-standard.json'])
+    for (const file of [
+      'stryker.config.json',
+      'mutation-standard.json',
+      'mutation-floors.txt',
+    ])
       cpSync(file, join(work, file));
     writeFileSync(
       join(work, 'reports/mutation/mutation.json'),

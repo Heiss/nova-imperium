@@ -21,7 +21,7 @@ check of `main`. The rules behind it are in
 | E2E tests (browser)                          | Playwright in Chromium against the real server: the game flows on desktop and phone size, accessibility with axe; the report is kept 7 days when it fails.                                                                                                                                                                             | When the code changes.                                                        |
 | Mutation plan                                | Splits the files Stryker mutates into 6 shards by their estimated run time, every file on its shard of the last plan (`scripts/mutation-shards.ts plan`); the plan is the job's output.                                                                                                                                                | Push, release or hotfix pull request, or a changed mutation configuration.    |
 | Mutation tests (shard N of 6)                | Stryker on the files of one shard (matrix 1 to 6, `fail-fast: false`), incremental with the shard's own cache, complete (`--force`) in a release pull request; uploads the shard's report.                                                                                                                                             | Push, release or hotfix pull request, or a changed mutation configuration.    |
-| Mutation tests                               | Merges the six reports and checks them as one run: every shard ran once with exactly its files, the total score is at least 80 % (`stryker.config.json`), no file is below its floor (`mutation-standard.json`, `scripts/mutation-gate.ts`).                                                                                           | Push, release or hotfix pull request, or a changed mutation configuration.    |
+| Mutation tests                               | Merges the six reports and checks them as one run: every shard ran once with exactly its files, the total score is at least 80 % (`stryker.config.json`), no file is below its floor (`mutation-floors.txt`, `scripts/mutation-gate.ts`); keeps the merged report as the artifact `mutation-report`.                                                                                           | Push, release or hotfix pull request, or a changed mutation configuration.    |
 | Mutation tests (changed files)               | In a pull request that is no release pull request and goes into no hotfix branch: Stryker on the changed files of the `mutate` globs and the source of each changed test file (`scripts/mutation-partial.ts`), in one job, without any cache; every file at or above its floor, no total score (`scripts/mutation-gate.ts --partial`). | When the pull request changes such a file and not the mutation configuration. |
 | Docker image and Compose stack               | `compose.yaml` is valid and requires `NOVA_PUBLIC_URL`; the last release writes data, the image built from the `Dockerfile` starts on the same volume and the data survive (`docker/upgrade.sh`); Trivy; no compiler, package manager or tests in the image; a wrong setting stops the start; the smoke test (`docker/smoke.sh`).      | When **image** is true (see below).                                           |
 | Secrets and dependencies                     | gitleaks over the whole history (exceptions in `.gitleaksignore`); `pnpm audit --prod --audit-level high`.                                                                                                                                                                                                                             | Always.                                                                       |
@@ -72,7 +72,7 @@ The gate runs with `if: always()` and fails unless:
    when it is false, they may be skipped („Documentation-only change“);
    the mutation jobs follow the output **mutation**: `true` (a push, a
    release pull request, a pull request into a hotfix branch, or a change of
-   the mutation configuration, more than the floors of `mutation-standard.json`
+   the mutation configuration, `mutation-standard.json` included,
    or the test tool chain): „Mutation plan“, every
    shard of „Mutation tests (shard N of 6)“ and the gate „Mutation tests“
    succeeded; `partial` (every other pull request that changes a mutated file
@@ -155,9 +155,8 @@ flowchart LR
   the source of each changed test file (the same name without `.test`, also
   without a dotted suffix such as `.property`, with the ending `.svelte.ts`,
   and in `src/test/` the script of the same name), and every file whose
-  floor in `mutation-standard.json` the pull request adds, changes or
-  removes (when only the floors of that file changed; any other change of
-  it runs everything). The job „Mutation tests
+  floor in `mutation-floors.txt` the pull request adds, changes or
+  removes (a change of `mutation-standard.json` runs everything). The job „Mutation tests
   (changed files)“ mutates every mutant of those files without the
   incremental file and without any cache, so a partial result never reaches
   the plans, the weights or the cached results of the shards, and
@@ -178,11 +177,14 @@ flowchart LR
   helpers and the display texts of `src/core/texts.ts` and
   `src/features/<key>/texts.de.ts`
   (`stryker.config.json`).
-- **Per-file floors** (`mutation-standard.json`): no file may fall below its
+- **Per-file floors** (`mutation-floors.txt`, one line per file; the rest of
+  the standard in `mutation-standard.json`): no file may fall below its
   recorded floor; a new file needs 80 %, a security file (authentication,
   sessions, passkeys, admin rights, moderation, account deletion, audit,
-  request limits, the error log) 90 %. `node scripts/mutation-gate.ts
---update` raises the floors to the current scores; it never lowers one.
+  request limits, the error log) 90 %. The floors come from the merged report of
+  a complete CI run only (the artifact `mutation-report`): `node
+  scripts/mutation-floors.ts <report.json>` raises them to the measured
+  scores and never lowers one; local Stryker runs only find survivors.
 
 ## Trivy
 
