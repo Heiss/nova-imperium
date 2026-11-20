@@ -1,10 +1,11 @@
 <script lang="ts">
   // „Admin“ (#118, bundle 7; okf/architecture/patterns.md, section 9), from
   // adminPage() of logic/admin.ts: the tabs and their panels. The panels
-  // „Diagnose und Protokoll“, „Fehler“ and the list of the invitations are
-  // plain elements (`#admin-diagnostics`, `#admin-errors`,
-  // `#admin-invitations`): views/admin-panel.ts mounts them after the render,
-  // keeps them over a redraw and shows the tab (`aria-selected`, `hidden`).
+  // „Diagnose und Protokoll“ (AdminDiagnostics), „Fehler“ (AdminErrors) and
+  // the list of the invitations (AdminInvitations) fill themselves from the
+  // server; what they loaded, the filters and the tab that is shown are the
+  // state of logic/admin-panels.svelte.ts, which stays over a render of the
+  // page (it is mounted anew on every render).
   // The ids, `data-act`s and form ids are those of features/admin.ts and
   // features/round-archive.ts; the address of the invitation is kept over a
   // redraw (the poll of the state redraws the page when another player
@@ -13,11 +14,19 @@
   // settings fields are `data-nokeep` because
   // a kept value could not tell a draft from a value the server changed
   // (logic/settings-draft.ts).
-  import type { AdminPage } from '../logic/admin.ts';
+  import { diagnosticTab, type AdminPage } from '../logic/admin.ts';
+  import { panels } from '../logic/admin-panels.svelte.ts';
+  import AdminDiagnostics from './AdminDiagnostics.svelte';
+  import AdminErrors from './AdminErrors.svelte';
+  import AdminInvitations from './AdminInvitations.svelte';
   import Box from './Box.svelte';
   import RoundArchive from './RoundArchive.svelte';
 
   let { page }: { page: AdminPage | null } = $props();
+  /** The panel the tab shows. */
+  const shown = $derived(
+    diagnosticTab(panels.tab) ? 'diagnostics' : panels.tab,
+  );
 </script>
 
 <h2>Admin</h2>
@@ -30,33 +39,44 @@
         id="admin-tab-{tab.key}"
         type="button"
         role="tab"
-        aria-selected="false"
+        aria-selected={panels.tab === tab.key}
         aria-controls="admin-panel-{tab.panel}"
-        tabindex="-1"
+        tabindex={panels.tab === tab.key ? 0 : -1}
         data-act="adminTab"
         data-tab={tab.key}>{tab.label}</button
       >
     {/each}
   </div>
   <!-- svelte-ignore a11y_no_noninteractive_element_to_interactive_role -->
-  <section id="admin-panel-diagnostics" role="tabpanel" hidden>
-    <Box title="Diagnose und Protokoll"><div id="admin-diagnostics"></div></Box>
+  <section
+    id="admin-panel-diagnostics"
+    role="tabpanel"
+    aria-labelledby={shown === 'diagnostics'
+      ? `admin-tab-${panels.tab}`
+      : undefined}
+    hidden={shown !== 'diagnostics'}
+  >
+    <Box title="Diagnose und Protokoll"
+      ><div id="admin-diagnostics">
+        <AdminDiagnostics players={page.players} />
+      </div></Box
+    >
   </section>
   <!-- svelte-ignore a11y_no_noninteractive_element_to_interactive_role -->
   <section
     id="admin-panel-errors"
     role="tabpanel"
     aria-labelledby="admin-tab-errors"
-    hidden
+    hidden={shown !== 'errors'}
   >
-    <Box title="Fehler"><div id="admin-errors"></div></Box>
+    <Box title="Fehler"><div id="admin-errors"><AdminErrors /></div></Box>
   </section>
   <!-- svelte-ignore a11y_no_noninteractive_element_to_interactive_role -->
   <section
     id="admin-panel-invitations"
     role="tabpanel"
     aria-labelledby="admin-tab-invitations"
-    hidden
+    hidden={shown !== 'invitations'}
   >
     <Box title="Einladungen">
       <form id="inviteform" class="flex">
@@ -77,7 +97,7 @@
           <button class="small" data-act="copyLink">Kopieren</button>
         </div>
       {/if}
-      <div id="admin-invitations"></div>
+      <AdminInvitations />
     </Box>
   </section>
   <!-- svelte-ignore a11y_no_noninteractive_element_to_interactive_role -->
@@ -85,7 +105,7 @@
     id="admin-panel-universe"
     role="tabpanel"
     aria-labelledby="admin-tab-universe"
-    hidden
+    hidden={shown !== 'universe'}
   >
     <Box title="Universum">
       <table class="kv">
@@ -150,7 +170,7 @@
     id="admin-panel-announce"
     role="tabpanel"
     aria-labelledby="admin-tab-announce"
-    hidden
+    hidden={shown !== 'announce'}
   >
     <Box title="Servernachricht">
       <p>

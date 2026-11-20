@@ -9,7 +9,7 @@ vi.mock('../views/admin.ts', () => ({
   endzeitDialog: (minutes: number) => `endzeit:${minutes}`,
 }));
 
-// The panels of the page fill themselves from the server (views/admin-panel.ts).
+// The panels of the page fill themselves from the server (logic/admin-panels.svelte.ts).
 const panel = vi.hoisted(() => ({
   adminTabKey: vi.fn(),
   bindAdminPanel: vi.fn(),
@@ -17,7 +17,11 @@ const panel = vi.hoisted(() => ({
   openAdminTab: vi.fn(),
   refreshInvitations: vi.fn(),
 }));
-vi.mock('../views/admin-panel.ts', () => panel);
+vi.mock('../logic/admin-panels.svelte.ts', () => panel);
+
+// The saving of the ZIP is tested with download.ts.
+const saved = vi.hoisted(() => ({ downloadErrors: vi.fn() }));
+vi.mock('../download.ts', () => saved);
 
 let fields: Record<string, { value: string; select?: () => void }>;
 let listeners: Record<string, ((e: Event) => void)[]>;
@@ -233,8 +237,23 @@ describe('the tabs and the invitations', () => {
   it('gives the panels the calls of the frame and listens for the arrow keys', () => {
     const ctx = fakeCtx();
     acts(ctx);
-    expect(panel.bindAdminPanel).toHaveBeenCalledWith(ctx);
+    expect(panel.bindAdminPanel).toHaveBeenCalledWith({
+      api: ctx.api,
+      signedOut: ctx.signedOut,
+      download: expect.any(Function),
+    });
     expect(listeners.keydown).toContain(panel.adminTabKey);
+  });
+
+  it('lets the panels save the ZIP of the errors, a lost session leading back to the login', async () => {
+    const ctx = fakeCtx();
+    acts(ctx);
+    const { download } = panel.bindAdminPanel.mock.calls[0]![0];
+    await download({ since: 1, until: 2 });
+    expect(saved.downloadErrors).toHaveBeenCalledWith(
+      { since: 1, until: 2 },
+      ctx.signedOut,
+    );
   });
 
   it('loads the list of the invitations again after revoking one', async () => {
