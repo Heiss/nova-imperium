@@ -169,19 +169,111 @@ complete, tested and pushed.
 * **[U]** The activity curves (daily bars) of view F need only these intervals
   and are not built.
 
+# The events of a running round (#235, owner 2026-11-20)
+
+* **[E]** Owner, 2026-11-20 (comment on #235): from the update of 2026-11-22 the
+  events of a running round are written as round events, so that the next round
+  gets the full Rewind and the curves; a thin Rewind (cards 1, 6, 8) ships now.
+* **[E]** Owner, 2026-11-20 (change of the build): the capture is **central at
+  the two entry points**, not one hook per feature. `runAction` (`dispatch.ts`)
+  writes one event per game action, `tick` (`arrival.ts`) one per fleet
+  arrival, end of holding and return. No feature file is edited; a new action
+  or mission is recorded as it is.
+* **[V]** Where: `src/server/game/journal.ts` (writing, causes),
+  `journal-input.ts` (the allow-list of the input), `round-events.ts`
+  (the seat and the writer of an event of the running round),
+  `src/core/round-events.ts` (kinds and payload types for the Rewind). The
+  events are rows of `round_events` (no new table: the table has the fields
+  the journal needs, `kind`, `at` logical, `recorded`, `seat`, `version`; the
+  volume is a few hundred bytes a row, see below, which SQLite takes easily; the
+  round reset keeps the table on purpose, so it needs no `roundReset` entry).
+* **[V]** Events written while the round runs, all in the transaction of the
+  change they record (an event cannot be lost or doubled), none in a closed
+  round or without an active `rounds` row, none for a read of the archive that
+  changes nothing beyond what the action itself is:
+  * `participant.joined` (seat): the first place of a player, `entry` `home`
+    (a new home planet: registration, „Neue Runde“) with the placed planet as
+    the baseline, or `present` (a player who was playing when the history
+    began) with the state the server knew at its first event; earlier history
+    is missing, nothing is invented backwards. The seat is given at joining and
+    kept by the close (the close gives a seat only to a player who has none).
+  * `journal.action` (seat of the actor): `{ cause: action name, input, ok,
+    msg?, prod?, reports? }`. A refused action rolls its transaction back and is
+    written in a transaction of its own with `ok: false` and the refusal the
+    player saw; an unknown action and a request of an unknown account are not
+    recorded.
+  * `journal.arrival`, `journal.hold`, `journal.return` (seat of the owner of
+    the fleet, `at` the logical time `arr`, end of holding or `ret`, `recorded`
+    when the tick processed it): `{ cause, mission, fleet, from, to, target
+    (seat of the owner of the target), ships, cargo, fate, battle?, prod?,
+    reports? }`. `reports` lists the ids, kinds and receiving seats of the
+    reports written by that arrival; `battle` copies the numbers of the battle
+    report once (rounds, winner, ships before and after of both sides, rebuilt
+    defense, loot, debris), so the attacker's and the defender's report count
+    one battle. No name or text is copied.
+  * `prod` (in an action, an arrival or a return): what the places saved by that
+    cause produced. It is derived where the game commits it, at the save of a
+    place that advances it in time: the stored state is settled once more to the
+    saved time with the same pure function (`settle`), so every span is recorded
+    once, at the save that advanced the place, whatever settled it before; a
+    read that settles and saves nothing records nothing. Entry `{ place, owner
+    (seat), from, to, m, c, d (credited, two decimals, after storage limits and
+    the use of consumers, a demolition's refund included), f (energy factor at
+    `from`), built? (key, level, logical end, cost paid), units? (finished by
+    key) }`.
+* **[V]** The settle path: the issue asked to route the roughly ten `settle`
+  calls through one function. They are not changed: most of them settle a copy
+  and save it later or never (a read), so recording at the call would count a
+  span twice. Recording at the save of the place is the one central point and
+  keeps every result identical (characterization test
+  `journal-cost.test.ts`: the same 150 actions and arrivals end in the same
+  places, fleets, reports and accounts with and without the journal). The
+  repositories of the places and the reports are wrapped in `createCtx`
+  (`context.ts`); only their `save` and `add` note what they commit.
+* **[V]** Input fields: an allow-list per action and field
+  (`journal-input.ts`): `keep` (ids, keys, numbers, places; strings up to 64
+  characters, objects up to 400 characters of JSON, else their size), `length`
+  (free texts: planet names, guild tag, name and description, rank names, chat
+  text, union name: only the number of characters), `seat` (an account id: the
+  seat), `seatByName` (a friend request or a union invitation by name: the seat).
+  Not stored: the password of the abandon action (#224), the guild tag typed to
+  dissolve a guild, and every field nobody classified. The guard test
+  `journal.test.ts` fails when an action has no entry and when a module of the
+  actions reads a field of its input that no entry lists. A refusal never quotes
+  what the player typed in an unstored field.
+* **[V]** Size: about 180 bytes of payload per action and 250 bytes per arrival
+  (measured in `src/server/game/journal-cost.test.ts`, 20 players: 1000
+  actions 181 KB, 1000 arrivals 245 KB, 20 `participant.joined` 3.5 KB), so a
+  estimated day of 20 players at 300 actions and 100 fleet movements each is
+  6,000 actions and 2,000 arrivals, about 1.6 MB of payload (the numbers of
+  actions and movements are an estimate, the bytes per row are measured), a round
+  of 30 days about 50 MB, in rows of a table
+  with an index on `(round, kind, at)`. Cost: about 0.5 ms more per action and
+  0.7 ms more per arrival (1000 actions 1.0 s without, 1.5 s with; 1000
+  arrivals 2.6 s without, 3.3 s with).
+* **[V]** What this does not hold: gross production (only what the game
+  credited), a ledger of the market and the gifts of the Endzeit as their own
+  events (they are the `trade` and `endzeit` actions and the arrival of the gift
+  fleet with their `prod` and `reports`, not typed deliveries), the colony and
+  moon created or removed as their own event (the arrival of the colonize
+  mission and its `fate`, the `moonbreak` arrival, the `abandon` action and the
+  admin actions are recorded as causes, the new place is not named), the
+  research that finished (a research finishes in the player row, not in a
+  place: it is not in `prod`), and a play session id. A report is deleted with
+  the reset or when the player deletes it, so its id then points nowhere; the
+  numbers of a battle are copied into the event for that reason.
+* **[V]** An account that holds no place (an admin without a planet) has no seat:
+  its actions are recorded with `seat` null.
+
 # What the Runden-Rewind and the curves still need
 
-The report of this build holds the state at the cutoff only. The Rewind (view
-G) and the point curves, the chronicle (view E) and the comparison over time
-(view D) need the in-round events of the issue's audit table, none of which
-exist yet (the table `round_events` and its writer
-`ctx.rounds.addEvent` are ready for them, no second migration is needed):
-`participant.joined` and the baseline, completed build/research/order events
-with the paid cost and the logical time, fleet arrivals and returns, the
-enriched battle event (losses, loot, debris), colony and moon creation and
-removal, accrued production and external deliveries, the Endzeit
-deliveries and admin gifts, and the activity intervals of #232. Each is
-written in the same transaction as the domain change, with a stable causal id
-(`round_events.version` is the schema version of the payload). The daily
-points are then derived on read (D3). Without them a Rewind could only show
-the final standing (cards 1 and 8), so it is left out [V].
+The cards 1, 6 and 8 need the close only (built). The others read the events
+above: card 2 (production) and the point curves read `prod` and the `build` /
+`order` actions with the `built` and `units` of their completion; card 4
+(a loss) the `battle` of `journal.arrival`; card 5 (recovery) the points curve;
+card 7 (Endzeit) the `endzeit` action and the arrival of the gift fleet. Not
+there yet: the research that finished as its own fact (it is read from the
+`research` action and the player's row), the colony and moon as their own
+events, the activity intervals of #232 as events of the round (they are in the
+close as `player.playtime`), and the curves themselves (a reader that derives
+the daily points from the events, D3).

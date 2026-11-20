@@ -8,6 +8,7 @@ import { rollTemp } from '../../core/survey.ts';
 import type { Coords, Planet, Resources } from '../../core/types.ts';
 import { lockedUntil } from './position-lock.ts';
 import { type Ctx, fail, universe } from './context.ts';
+import { joinRound } from './round-events.ts';
 
 const TRIES = 300;
 
@@ -53,7 +54,7 @@ export function placePlanet(
     firstSpot(ctx, free) ??
     fail('Das Universum ist voll.');
   const u = universe(ctx);
-  return createPlanet(
+  const home = createPlanet(
     ctx,
     owner,
     name,
@@ -62,6 +63,9 @@ export function placePlanet(
     { m: u.startMetal, c: u.startCrystal, d: u.startDeuterium },
     HOME_DIAMETER,
   );
+  // The first place of a player in the round: the seat and the baseline (#235).
+  joinRound(ctx, owner, 'home', [home]);
+  return home;
 }
 
 export function createPlanet(
