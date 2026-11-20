@@ -17,6 +17,7 @@ import {
   type Page,
 } from '@playwright/test';
 import {
+  galaxyAction,
   galaxyRow,
   lastToast,
   nav,
@@ -92,7 +93,9 @@ async function sturmangriff(
   ships: number,
 ): Promise<void> {
   await openSystemOf(p.page, target.name);
-  await galaxyRow(p.page, target.name).getByText('Sturmangriff').click();
+  await (
+    await galaxyAction(p.page, galaxyRow(p.page, target.name), 'Sturmangriff')
+  ).click();
   await expect(p.page.getByLabel('Auftrag')).toHaveValue('attack');
   await p.page.getByLabel('Anzahl Abfangjäger').fill(String(ships));
   await p.page.getByRole('button', { name: 'Flotte losschicken' }).click();
@@ -167,9 +170,13 @@ test.describe('the attack union (#225)', () => {
       '',
     );
     await openSystemOf(outsider.page, target.name);
-    await galaxyRow(outsider.page, target.name)
-      .getByText('Sturmangriff')
-      .click();
+    await (
+      await galaxyAction(
+        outsider.page,
+        galaxyRow(outsider.page, target.name),
+        'Sturmangriff',
+      )
+    ).click();
     await expect(
       outsider.page.getByLabel('Verband', { exact: true }),
     ).toHaveCount(0);
