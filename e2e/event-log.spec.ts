@@ -52,8 +52,9 @@ test.describe('admin (#68)', () => {
     await expect(row(/game \/ send/)).toBeVisible();
     await expect(row(/account \/ register/)).toHaveCount(0);
 
-    // The attacked planet: the same two events of this attacker.
-    await battle.getByText(/^Kampfdetails \d+$/).click();
+    // The attacked planet: the same two events of this attacker. The details
+    // the admin opened stay open over the new page of the log.
+    await expect(battle.locator('details')).toHaveAttribute('open', '');
     await battle
       .getByRole('button', {
         name: `Ereignisse zu ${detail.planet}`,
