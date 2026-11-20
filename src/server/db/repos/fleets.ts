@@ -74,6 +74,10 @@ const extraColumns = (f: Fleet): Record<string, string | number> => ({
   ...(f.union !== undefined && { union_id: f.union }),
 });
 
+/** A list for `json_each(?)`; without one, `json_each(NULL)` has no rows. */
+const jsonOf = (list?: readonly string[]): string | null =>
+  list ? JSON.stringify(list) : null;
+
 class SqliteFleets implements Fleets {
   private readonly db: Db;
   constructor(db: Db) {
@@ -128,13 +132,13 @@ class SqliteFleets implements Fleets {
     return rows.map((r) => this.fleetOf(r)!);
   }
 
-  count(owner: string, without: readonly string[] = []): number {
+  count(owner: string, without?: readonly string[]): number {
     const r = this.db
       .prepare(
         `SELECT COUNT(*) AS n FROM fleets WHERE owner = ? AND gift = 0
          AND mission NOT IN (SELECT value FROM json_each(?))`,
       )
-      .get(owner, JSON.stringify(without)) as Row;
+      .get(owner, jsonOf(without)) as Row;
     return r.n as number;
   }
 
@@ -270,13 +274,13 @@ class SqliteFleets implements Fleets {
     this.db.prepare('DELETE FROM fleets').run();
   }
 
-  reroute(from: string, to: string, keep: readonly string[] = []): void {
+  reroute(from: string, to: string, keep?: readonly string[]): void {
     this.db
       .prepare(
         `UPDATE fleets SET to_planet = ? WHERE to_planet = ? AND state IN ('out', 'hold')
          AND mission NOT IN (SELECT value FROM json_each(?))`,
       )
-      .run(to, from, JSON.stringify(keep));
+      .run(to, from, jsonOf(keep));
     this.db
       .prepare('UPDATE fleets SET from_planet = ? WHERE from_planet = ?')
       .run(to, from);

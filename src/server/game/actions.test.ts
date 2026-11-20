@@ -2,7 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { RES } from '../../core/catalog.ts';
 import { lvlCost, prod, researchTime } from '../../core/economy.ts';
 import { settle } from '../../core/settle.ts';
-import { addPlanet, addUser, testCtx, type TestCtx } from '../test-helpers.ts';
+import {
+  addPlanet,
+  addUser,
+  subscribePush,
+  testCtx,
+  type TestCtx,
+} from '../test-helpers.ts';
 import type { AuditEntry } from '../audit.ts';
 import * as A from './actions.ts';
 import { addMoon } from './moons.ts';
@@ -344,6 +350,41 @@ describe('research on any own planet with a lab (#49)', () => {
   });
 });
 
+describe('the pushes of the queues', () => {
+  const jobs = (ctx: TestCtx) =>
+    ctx.db.prepare('SELECT kind, event_key, due FROM push_jobs').all();
+
+  it('queues the push of a building under the planet and its start, and takes it back with the cancel', () => {
+    const { ctx, u, p } = setup({ res: { m: 1000, c: 1000, d: 0 } });
+    subscribePush(ctx, u.id);
+    A.build(ctx, u, { key: 'metal' });
+    expect(jobs(ctx)).toEqual([
+      {
+        kind: 'buildings',
+        event_key: `${p().id}:${ctx.now()}`,
+        due: p().bq!.end,
+      },
+    ]);
+    A.cancelBuild(ctx, u, {});
+    expect(jobs(ctx)).toEqual([]);
+  });
+
+  it('takes the push of a research back with the cancel and leaves the other kinds', () => {
+    const { ctx, u, me } = setup({ b: { lab: 1 } });
+    subscribePush(ctx, u.id);
+    A.research(ctx, u, { key: 'energy' });
+    A.build(ctx, me(), { key: 'metal' });
+    expect(jobs(ctx).map((j) => (j as { kind: string }).kind)).toEqual([
+      'research',
+      'buildings',
+    ]);
+    A.cancelResearch(ctx, me(), {});
+    expect(jobs(ctx).map((j) => (j as { kind: string }).kind)).toEqual([
+      'buildings',
+    ]);
+  });
+});
+
 describe('Fusionskraftwerk and Energietechnik (#47)', () => {
   const H = 3600000;
   const energyDone = (ctx: TestCtx) => ({
@@ -395,6 +436,18 @@ describe('Fusionskraftwerk and Energietechnik (#47)', () => {
       rq: null,
     });
     expect(late.res.m).toBeGreaterThan(want.res.m);
+  });
+
+  it('settles them at the very second Energietechnik ends, not only after it', () => {
+    const ctx = testCtx();
+    const u = addUser(ctx, 'Anna', energyDone(ctx));
+    addPlanet(ctx, u.id, { b: { lab: 1 } });
+    const col = addPlanet(ctx, u.id, { s: 2, ...reactor });
+    ctx.clock.t += H;
+    const want = settle(col, ctx.now(), ctx.admin.universe(), u);
+    expect(A.research(ctx, u, { key: 'laser' })).toBeNull();
+    expect(ctx.planets.get(col.id)!.t).toBe(ctx.now());
+    expect(ctx.planets.get(col.id)).toEqual(want);
   });
 
   it('leaves the planets alone while Energietechnik runs or other research ends', () => {

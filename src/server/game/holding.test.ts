@@ -112,6 +112,14 @@ describe('who may hold (#55, Q2)', () => {
     expect(heldAt(ctx, 'p1_2_6')).toEqual([]);
     expect(holdersAt(ctx, 'p1_2_6')).toEqual(['u_Anna']);
   });
+  it('counts a fleet of another mission as no holder', () => {
+    const ctx = setup();
+    holding(ctx, 'f_att', 'u_Anna', { mission: 'attack', hold: undefined });
+    expect(heldAt(ctx, 'p1_2_6')).toEqual([]);
+    expect(holdersAt(ctx, 'p1_2_6')).toEqual([]);
+    holding(ctx, 'f_hold', 'u_Bert');
+    expect(holdersAt(ctx, 'p1_2_6')).toEqual(['u_Bert']);
+  });
   it('follows the setting of the round: friends only leaves the guild out', () => {
     const ctx = setup();
     ctx.admin.putSettings([['roundAllies', 1]]);

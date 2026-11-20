@@ -323,11 +323,9 @@ export const order: Action = (ctx, u, d, event) => {
  * when the list is empty.
  */
 export const cancelOrder: Action = (ctx, u, d) => {
-  const asked = d.pos;
-  const pos =
-    typeof asked === 'number' && Number.isInteger(asked) && asked >= 0
-      ? asked
-      : fail('Ungültig.');
+  // `Number.isInteger` refuses everything that is no number.
+  const asked = Number.isInteger(d.pos) ? (d.pos as number) : -1;
+  const pos = asked >= 0 ? asked : fail('Ungültig.');
   const p = mine(ctx, u, d.planet);
   if (!takeOutOrder(p, pos, String(d.key), ctx.now())) return null;
   ctx.planets.save(p);

@@ -95,6 +95,33 @@ describe('fleets repository', () => {
     expect(ctx.fleets.count('u_Anna', ['missile', 'attack'])).toBe(0);
   });
 
+  it('writes every extra column a fleet has at once: holding time, gift, main target and union', () => {
+    const ctx = testCtx();
+    addUser(ctx, 'Anna');
+    const all = fleet({
+      id: 'f1',
+      mission: 'hold',
+      hold: 3_600_000,
+      gift: true,
+      aim: 'gauss',
+      union: 'f1',
+    });
+    ctx.fleets.save(all);
+    expect(ctx.fleets.get('f1')).toEqual(all);
+  });
+
+  it('counts and reroutes without a list as with an empty one', () => {
+    const ctx = testCtx();
+    addUser(ctx, 'Anna');
+    ctx.fleets.save(fleet({ id: 'f1', mission: 'missile', ships: { ipm: 1 } }));
+    ctx.fleets.save(fleet({ id: 'f2', to: 'gone' }));
+    expect(ctx.fleets.count('u_Anna')).toBe(2);
+    ctx.fleets.reroute('gone', 'moved');
+    expect(ctx.fleets.get('f2')!.to).toBe('moved');
+    ctx.fleets.reroute('b', 'moved', ['missile']);
+    expect(ctx.fleets.get('f1')!.to).toBe('b');
+  });
+
   it('deletes one fleet or all', () => {
     const ctx = testCtx();
     addUser(ctx, 'Anna');

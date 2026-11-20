@@ -16,6 +16,7 @@ import {
   addPlanet,
   addUser,
   queuedPushes,
+  subscribePush,
   type TestCtx,
   testCtx,
 } from '../test-helpers.ts';
@@ -505,6 +506,20 @@ describe('a Wache stellen and the vacation mode (#55, #223)', () => {
     expect(ctx.reports.ofPlayer('u_Bert').map((r) => r.title)).toEqual([
       'Rückkehr zu Bertheim [1:2:6]',
       'Wache heimgeschickt [1:1:5]',
+    ]);
+  });
+
+  it('pushes the info report of the guard that was sent home to its owner under „Flotte“', () => {
+    const ctx = allies(world());
+    subscribePush(ctx, 'u_Bert');
+    act(ctx, 'send', { ...hold(), planet: 'p1_2_6' }, 'u_Bert');
+    const fleet = ctx.fleets.all()[0]!;
+    start(ctx);
+    expect(queuedPushes(ctx)).toEqual([]);
+    ctx.clock.t = fleet.arr;
+    tick(ctx);
+    expect(queuedPushes(ctx)).toEqual([
+      { user: 'u_Bert', kind: 'messages', topic: 'fleet' },
     ]);
   });
 

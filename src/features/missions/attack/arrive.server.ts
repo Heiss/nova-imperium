@@ -39,8 +39,11 @@ export function onArrive(ctx: Ctx, f: Fleet, at: Arrival): void {
   // target would attack himself and turns back instead [V].
   const { lead } = union;
   const own = (m: Fleet): boolean => m.owner === at.t.owner;
-  for (const m of union.rest.filter(own)) turnBack(ctx, m);
-  const rest = union.rest.filter((m) => !own(m));
+  const rest: Fleet[] = [];
+  for (const m of union.rest) {
+    if (own(m)) turnBack(ctx, m);
+    else rest.push(m);
+  }
   const owners = [lead, ...rest].map((m) => m.owner);
   const led = { ...at, att: playerOf(ctx, lead.owner) };
   const x = raid(

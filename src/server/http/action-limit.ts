@@ -41,8 +41,9 @@ export function actionLimit(ctx: Ctx): ActionLimit {
   };
   const note = (u: User, requestId: string): void => {
     const t = ctx.now();
-    const last = lastNote(u.id);
-    if (last !== undefined && t - last < AUDIT_EVERY_MS) return;
+    // Never noted: infinitely long ago.
+    const last = lastNote(u.id) ?? -Infinity;
+    if (t - last < AUDIT_EVERY_MS) return;
     try {
       record(
         ctx,

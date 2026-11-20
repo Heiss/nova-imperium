@@ -46,8 +46,8 @@ const bondOf = (ctx: Ctx, a: string, b: string): Bond => ({
 export const isAllyOf = (ctx: Ctx, uid: string, owner: string): boolean =>
   isAlly(roundRules(ctx).allies, bondOf(ctx, uid, owner));
 
-/** Whether a fleet is a Halten, by the rules of its mission. */
-const holds = (f: Fleet): boolean => missionRules(f.mission)?.holds === true;
+/** Whether a fleet is a Halten, by the rules of its mission (the table of the fleets allows no other). */
+const holds = (f: Fleet): boolean => missionRules(f.mission)!.holds === true;
 
 /** The fleets that hold at a place now (#55): they defend it. */
 export const heldAt = (ctx: Ctx, place: string): Fleet[] =>

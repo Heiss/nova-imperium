@@ -300,4 +300,75 @@ describe('the audit entry of the limit (#328)', () => {
     expect(hits(limit, 'Anna', 1)).toBe(true);
     expect(written()).toBe(1);
   });
+
+  /** How often the limiter asked the audit log for the last note of an account. */
+  function counted(ctx: ReturnType<typeof setup>['ctx']): () => number {
+    let n = 0;
+    const ask = ctx.admin.lastAuditTime.bind(ctx.admin);
+    ctx.admin.lastAuditTime = (id, action) => {
+      n++;
+      return ask(id, action);
+    };
+    return () => n;
+  }
+
+  it('asks the audit log once for an account while the hour holds, also after a restart', () => {
+    const { ctx, make, hits } = setup();
+    const asked = counted(ctx);
+    const limit = make();
+    expect(hits(limit, 'Anna', 121)).toBe(true);
+    expect(asked()).toBe(1);
+    expect(hits(limit, 'Anna', 5)).toBe(true);
+    expect(asked()).toBe(1);
+    ctx.clock.t = START + MINUTE;
+    const restarted = make();
+    expect(hits(restarted, 'Anna', 121)).toBe(true);
+    expect(asked()).toBe(2);
+    expect(hits(restarted, 'Anna', 5)).toBe(true);
+    expect(asked()).toBe(2);
+  });
+
+  it('asks the audit log again at every refusal as long as no note is known', () => {
+    const { ctx, make, hits } = setup();
+    const asked = counted(ctx);
+    const busy = new Database.SqliteError('database is locked', 'SQLITE_BUSY');
+    ctx.admin.addAuditEvent = () => {
+      throw busy;
+    };
+    const limit = make();
+    expect(hits(limit, 'Anna', 121)).toBe(true);
+    expect(asked()).toBe(1);
+    expect(hits(limit, 'Anna', 2)).toBe(true);
+    expect(asked()).toBe(3);
+  });
+
+  it('forgets the note of an account in a sweep an hour after it, not before', () => {
+    const { ctx, make, hits, written } = setup();
+    const asked = counted(ctx);
+    const limit = make();
+    expect(hits(limit, 'Anna', 121)).toBe(true);
+    expect(asked()).toBe(1);
+    for (const at of [30 * MINUTE, HOUR - 1]) {
+      ctx.clock.t = START + at;
+      limit.sweep();
+      expect(hits(limit, 'Anna', 121)).toBe(true);
+      expect(asked()).toBe(1);
+    }
+    ctx.clock.t = START + HOUR;
+    limit.sweep();
+    expect(hits(limit, 'Anna', 121)).toBe(true);
+    expect(asked()).toBe(2);
+    expect(written()).toBe(2);
+  });
+
+  it('lets an error of the audit log that is no busy log through', () => {
+    const { ctx, make } = setup();
+    const limit = make();
+    ctx.admin.addAuditEvent = () => {
+      throw new Error('disk full');
+    };
+    const anna = ctx.players.byName('Anna')!;
+    for (let i = 0; i < 120; i++) limit.check(anna, `req${i}`);
+    expect(() => limit.check(anna, 'req120')).toThrow('disk full');
+  });
 });

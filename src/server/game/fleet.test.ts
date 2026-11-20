@@ -3,7 +3,7 @@ import { fieldsOf } from '../../core/fields.ts';
 import { settle } from '../../core/settle.ts';
 import type { AuditEntry } from '../audit.ts';
 import { type TestCtx, addPlanet, addUser, testCtx } from '../test-helpers.ts';
-import { recall, send } from './fleet-actions.ts';
+import { pickedShips, recall, send } from './fleet-actions.ts';
 import { tick } from './arrival.ts';
 import { runAction } from './dispatch.ts';
 import { addMoon } from './moons.ts';
@@ -43,6 +43,15 @@ describe('sending fleets', () => {
     );
     send(ctx, a, go({ ships: { lf: 2, sc: 0, sat: 0, bs: 4 } }));
     expect(ctx.fleets.all()[0]!.ships).toEqual({ lf: 2 });
+  });
+  it('picks no more than the planet holds and leaves out what is no ship, also when the planet has some of it', () => {
+    const { ctx } = setup();
+    const home = ctx.planets.get('p1_1_5')!;
+    home.ships.rl = 3;
+    expect(pickedShips(home, { lf: 20, rl: 3, metal: 1, sc: 1 })).toEqual({
+      lf: 10,
+      sc: 1,
+    });
   });
   it('takes ships, fuel and cargo and starts the flight', () => {
     const { ctx, a } = setup();

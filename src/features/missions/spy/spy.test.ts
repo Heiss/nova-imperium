@@ -420,3 +420,50 @@ describe('spy: detected probes at a planet where fleets hold (#55, owner, 2026-1
     expect(ctx.fleets.get('mine')).toMatchObject({ state: 'hold' });
   });
 });
+
+describe('spy: the battle of detected probes leaves its traces', () => {
+  /** Detected, then every draw 0.9: a shot at the last unit that explodes a damaged one. */
+  const detected = (ctx: ReturnType<typeof testCtx>): void => {
+    const first = [0.5, 0];
+    ctx.rng = () => first.shift() ?? 0.9;
+  };
+
+  it('keeps the probes that survived: 8 probes against one Leichter Jäger lose 6 in 6 rounds', () => {
+    const { ctx, f, at } = setup(8, { ships: { lf: 1 }, defSpy: 5 });
+    detected(ctx);
+    onArrive(ctx, f, at);
+    expect(ctx.reports.ofPlayer('u_Anna')[1]).toMatchObject({
+      attBefore: { probe: 8 },
+      attAfter: { probe: 2 },
+    });
+    expect(ctx.fleets.get('f1')).toMatchObject({
+      state: 'back',
+      ships: { probe: 2 },
+    });
+  });
+
+  it('saves the target as the arrival left it and records the battle for the admin', () => {
+    const { ctx, f, at } = setup(4, { ships: { lc: 100 }, defSpy: 5 });
+    detected(ctx);
+    at.t.res = { m: 500, c: 600, d: 700 };
+    onArrive(ctx, f, at);
+    expect(ctx.planets.get(at.t.id)!.res).toEqual({ m: 500, c: 600, d: 700 });
+    const events = ctx.db
+      .prepare(
+        "SELECT actor, target, detail FROM audit_events WHERE action = 'battle'",
+      )
+      .all();
+    expect(events).toEqual([
+      {
+        actor: 'u_Anna',
+        target: 'u_Bert',
+        detail: JSON.stringify({
+          fleet: 'f1',
+          planet: at.t.id,
+          winner: 'def',
+          scheduled: f.arr,
+        }),
+      },
+    ]);
+  });
+});

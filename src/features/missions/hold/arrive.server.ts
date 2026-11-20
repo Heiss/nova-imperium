@@ -13,9 +13,8 @@ import { inVacation } from '../../../server/game/vacation.ts';
 
 export function onArrive(ctx: Ctx, f: Fleet): void {
   // The host's vacation began after the launch (D2): the fleet is welcome no more.
-  const host = ctx.planets.get(f.to)?.owner;
-  if (host !== undefined && inVacation(ctx)(host))
-    return sendHome(ctx, f, f.arr);
+  const host = ctx.planets.get(f.to);
+  if (host && inVacation(ctx)(host.owner)) return sendHome(ctx, f, f.arr);
   f.state = 'hold';
   ctx.fleets.save(f);
 }

@@ -97,4 +97,33 @@ describe('hold', () => {
     expect(ctx.reports.ofPlayer('u_Anna')).toEqual([]);
     expect(ctx.reports.ofPlayer('u_Bert')).toEqual([]);
   });
+
+  it('starts holding at a place that has no planet any more, there is no host in vacation to ask', () => {
+    const ctx = testCtx();
+    addUser(ctx, 'Anna');
+    addPlanet(ctx, 'u_Anna', { g: 1, s: 1, p: 5 });
+    const f: Fleet = {
+      id: 'f1',
+      owner: 'u_Anna',
+      from: 'p1_1_5',
+      fromC: { g: 1, s: 1, p: 5 },
+      to: 'p1_9_9',
+      toC: { g: 1, s: 9, p: 9 },
+      mission: 'hold',
+      ships: { lf: 3 },
+      cargo: { m: 0, c: 0, d: 0 },
+      dep: ctx.now() - 10,
+      arr: ctx.now(),
+      ret: ctx.now() + 3_600_010,
+      state: 'out',
+      recalled: false,
+      fuel: 4,
+      hold: 3_600_000,
+    };
+    ctx.fleets.save(f);
+    expect(ctx.planets.get('p1_9_9')).toBeNull();
+    onArrive(ctx, f);
+    expect(ctx.fleets.get('f1')).toEqual({ ...f, state: 'hold' });
+    expect(ctx.reports.ofPlayer('u_Anna')).toEqual([]);
+  });
 });
