@@ -11,10 +11,5 @@ export const isProtected = (myPoints: number, theirPoints: number): boolean =>
  * The fewest points a player may have and not be protected from a player
  * with `mine` points: those with fewer are protected (#288).
  */
-export function unprotectedFrom(mine: number): number {
-  // Start near the answer and settle on the exact boundary of `isProtected`.
-  let theirs = Math.max(0, Math.ceil(mine / PROTECTION_RATIO) - 1);
-  while (isProtected(mine, theirs)) theirs++;
-  while (theirs > 0 && !isProtected(mine, theirs - 1)) theirs--;
-  return theirs;
-}
+export const unprotectedFrom = (mine: number): number =>
+  Math.max(0, Math.ceil(mine / PROTECTION_RATIO));

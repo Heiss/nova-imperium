@@ -60,6 +60,9 @@ interface RoundSwitch<N extends string = string> extends Common<N> {
   refusal: string;
   /** A sentence below the checkbox, which the checkbox names as its description. */
   note?: string;
+  /** Only a number has a rule between settings or an `unstored` value; the code reads both on any entry. */
+  agrees?: never;
+  unstored?: never;
 }
 
 /** A whole number from `min` to `max`, a number field or a selection. */
@@ -147,9 +150,7 @@ export function freshValues(
 ): Record<string, number> {
   return Object.fromEntries(
     settings.flatMap((s) =>
-      s.kind === 'number' &&
-      s.unstored !== undefined &&
-      stored(s.key) === undefined
+      s.unstored !== undefined && stored(s.key) === undefined
         ? [[s.name, s.def]]
         : [],
     ),
@@ -193,9 +194,7 @@ function disagreeing(
   const round = Object.fromEntries(
     settings.map((s) => [s.key, Number(chosen(s, current, data))]),
   );
-  return settings.filter(
-    (s) => s.kind === 'number' && s.agrees && !s.agrees(round[s.key]!, round),
-  );
+  return settings.filter((s) => s.agrees && !s.agrees(round[s.key]!, round));
 }
 
 /**
