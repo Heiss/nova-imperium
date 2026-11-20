@@ -11,18 +11,9 @@ import { catalogKind } from './logic/catalog-list.ts';
 import * as demolition from './logic/demolition.ts';
 import { scanOf } from './logic/phalanx.ts';
 import { dur } from './logic/format.ts';
-import {
-  apiFailure,
-  type ClientError,
-  createReporter,
-  describeError,
-  ERRORS_URL,
-  failedCall,
-} from './logic/error-report.ts';
 import { headerLine } from './logic/header.ts';
 import { keeps, viewDue } from './logic/jump-gate.ts';
 import { chatToSee, finishedYardOrders } from './logic/menu-hints.ts';
-import { gameIsBack, maintenanceNotice } from './logic/maintenance.ts';
 import { latestNews, NEWS_SEEN_KEY, type NewsData } from './logic/news.ts';
 import { hiddenView, navigation } from './logic/navigation.ts';
 import { ANIMATION_KEY, animationsOn } from './logic/planet.ts';
@@ -44,7 +35,12 @@ import { deleteAccountDialog } from './views/misc.ts';
 import { disablePush } from './push.ts';
 import { renderGate } from './views/vacation-lock.ts';
 import { ANEW, type Mounted, MOUNTED, mountView } from './views/mount.ts';
+import { api } from './api.ts';
 import { $, keepChatScroll, val } from './dom.ts';
+import { watchErrors } from './error-log.ts';
+import { whenBack } from './maintenance.ts';
+import { session, signedOut, whenSignedOut } from './session.ts';
+import { toast } from './toast.ts';
 import { modal } from './modal.ts';
 import {
   assembleActs,
@@ -128,191 +124,6 @@ function setAnimations(on: boolean): void {
   } catch {
     // Without storage the choice lasts until the page is reloaded.
   }
-}
-
-// ----- maintenance (issue #80) -----
-
-const MAINTENANCE_POLL_MS = 15000;
-let maintenance: string | null = null;
-
-/** A banner over the game while the server is in maintenance; checks back. */
-function showMaintenance(text: string): void {
-  let banner = $('#maintenance');
-  if (!banner) {
-    banner = document.createElement('div');
-    banner.id = 'maintenance';
-    banner.className = 'maintenance';
-    banner.setAttribute('role', 'status');
-    document.body.prepend(banner);
-  }
-  banner.textContent = `Wartung – ${text}`;
-  if (maintenance === null) setTimeout(checkBack, MAINTENANCE_POLL_MS);
-  maintenance = text;
-}
-
-async function checkBack(): Promise<void> {
-  try {
-    const r = await fetch('/healthz', { cache: 'no-store' });
-    const body = (await r.json().catch(() => ({}))) as Record<string, unknown>;
-    if (gameIsBack(r.status, body)) {
-      maintenance = null;
-      $('#maintenance')?.remove();
-      // An update may have brought a new version: load its news again.
-      ui.news = null;
-      newsLoading = false;
-      newsLoad++;
-      // Maintenance during the first load left no state: load from scratch.
-      void (client.game ? refresh() : boot());
-      return;
-    }
-  } catch {
-    // still down
-  }
-  setTimeout(checkBack, MAINTENANCE_POLL_MS);
-}
-
-/** Shows the banner and ends the request when the server is in maintenance. */
-function stopOnMaintenance(r: Response, body: Record<string, unknown>): void {
-  const notice = maintenanceNotice(
-    r.status,
-    r.headers.get('nova-maintenance'),
-    body,
-  );
-  if (!notice) return;
-  showMaintenance(notice);
-  throw new Error(notice);
-}
-
-function toast(msg: string, err = false): void {
-  // The banner already says it.
-  if (msg === maintenance) return;
-  const t = document.createElement('div');
-  t.className = 'toast' + (err ? ' err' : '');
-  t.setAttribute('role', err ? 'alert' : 'status');
-  t.textContent = msg;
-  // Signed-in players can report every error message (issue #126).
-  const offer = err && client.game !== null;
-  if (offer) t.append(reportOffer(msg));
-  document.body.appendChild(t);
-  setTimeout(() => t.remove(), offer ? 8000 : 3500);
-}
-
-function reportOffer(msg: string): HTMLButtonElement {
-  const button = document.createElement('button');
-  button.type = 'button';
-  button.className = 'small';
-  button.textContent = 'Problem melden';
-  Object.assign(button.dataset, {
-    act: 'reportProblem',
-    message: msg,
-    page: ui.view,
-    request: ui.lastRequestId ?? '',
-  });
-  return button;
-}
-
-// ----- error log (issue #126) -----
-
-/** Sends script errors and failed calls; never through api(), so no loop. */
-const reportError: (error: ClientError) => void = createReporter({
-  send: (body) =>
-    fetch(ERRORS_URL, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(body),
-      credentials: 'same-origin',
-    }),
-  context: () => ({
-    signedIn: client.game !== null,
-    page: ui.view,
-    version: ui.news?.version ?? '',
-    browser: navigator.userAgent,
-  }),
-  now: Date.now,
-});
-window.addEventListener('error', (event) =>
-  reportError({
-    kind: 'error',
-    ...describeError(event.error ?? event.message),
-  }),
-);
-window.addEventListener('unhandledrejection', (event) =>
-  reportError({ kind: 'rejection', ...describeError(event.reason) }),
-);
-
-// ----- server -----
-
-class AuthError extends Error {}
-
-/**
- * True until boot() knows what to show. A 401 meanwhile renders nothing:
- * boot() renders the login, or the registration of an invitation link once
- * the server has checked it. The login rendered before would take the
- * player's input, and the registration would replace it empty (#272).
- */
-let booting = true;
-
-/** The session is gone (401): back to the login, then stop the caller. */
-function signedOut(error: unknown): never {
-  client.game = null;
-  ui.auth ??= 'login';
-  if (!booting) render(true);
-  throw new AuthError(String(error ?? 'Bitte einloggen.'));
-}
-
-async function api(
-  url: string,
-  body?: unknown,
-  retryBusy = true,
-): Promise<Record<string, unknown>> {
-  const r = await request(url, body);
-  ui.lastRequestId = r.headers.get('x-request-id') ?? ui.lastRequestId;
-  const j = (await r
-    .json()
-    .catch(() => ({ error: 'Keine Antwort vom Server.' }))) as Record<
-    string,
-    unknown
-  >;
-  stopOnMaintenance(r, j);
-  if (r.status === 401) signedOut(j.error);
-  if (isRetryableAction(r, j, retryBusy)) {
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    return api(url, body, false);
-  }
-  if (!r.ok) {
-    if (failedCall(r.status))
-      reportError(apiFailure(url, r.status, r.headers.get('x-request-id')));
-    throw apiError(r, j.error);
-  }
-  return j;
-}
-
-async function request(url: string, body?: unknown): Promise<Response> {
-  try {
-    return await fetch(url, {
-      method: body ? 'POST' : 'GET',
-      headers: body ? { 'content-type': 'application/json' } : {},
-      body: body ? JSON.stringify(body) : undefined,
-      credentials: 'same-origin',
-    });
-  } catch (error) {
-    reportError(apiFailure(url, null));
-    throw error;
-  }
-}
-
-function isRetryableAction(
-  response: Response,
-  body: Record<string, unknown>,
-  retry: boolean,
-): boolean {
-  return retry && response.status === 503 && body.code === 'ACTION_DB_BUSY';
-}
-
-function apiError(response: Response, error: unknown): Error {
-  const id =
-    response.status >= 500 ? response.headers.get('x-request-id') : null;
-  return new Error(String(error ?? 'Fehler') + (id ? ` Vorgang: ${id}` : ''));
 }
 
 function apply(st: GameState | undefined, fresh = false): void {
@@ -868,7 +679,7 @@ async function boot(): Promise<void> {
   const policy = loadPasswordPolicy();
   if (openReset()) {
     await policy;
-    booting = false;
+    session.booting = false;
     render();
     return;
   }
@@ -881,8 +692,18 @@ async function boot(): Promise<void> {
     if (invite) await openInvite(invite);
     ui.auth ??= 'login';
   }
-  booting = false;
+  session.booting = false;
   render(true);
 }
 
+watchErrors();
+whenSignedOut(() => render(true));
+whenBack(() => {
+  // An update may have brought a new version: load its news again.
+  ui.news = null;
+  newsLoading = false;
+  newsLoad++;
+  // Maintenance during the first load left no state: load from scratch.
+  void (client.game ? refresh() : boot());
+});
 void boot();
