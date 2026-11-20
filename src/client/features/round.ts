@@ -6,6 +6,7 @@ import {
   ROUND_SETTINGS,
   type RoundSetting,
   roundFieldId,
+  roundConfirm,
   roundPreview,
   roundRequest,
   roundShown,
@@ -35,6 +36,12 @@ const dialogValues = (
     ]),
   );
 
+/** Writes a line of the dialog again; a dialog without it keeps nothing. */
+const write = (selector: string, text: string): void => {
+  const line = document.querySelector<HTMLElement>(selector);
+  if (line) line.textContent = text;
+};
+
 /**
  * Brings the open dialog in line with its fields (#237): an entry that is
  * shown only while another field has a value is hidden or shown, and the
@@ -50,10 +57,16 @@ export function syncRoundDialog(
     );
     if (wrap) wrap.hidden = !roundShown(s, values);
     const group = s.group;
-    const line = group
-      ? document.querySelector<HTMLElement>(`#round-preview-${group.name}`)
-      : null;
-    if (group && line) line.textContent = roundPreview(group, values, settings);
+    if (group) {
+      write(
+        `#round-preview-${group.name}`,
+        roundPreview(group, values, settings),
+      );
+      write(
+        `#round-confirm-${group.name}`,
+        roundConfirm(group, values, settings),
+      );
+    }
   }
 }
 

@@ -93,7 +93,7 @@ The battle with several parties is built with #55
 * The rules live in `src/core/holding.ts` (holding times, limits, who is
   an ally, when a fleet is due); the fuel `holdFuel` in
   `src/core/flight.ts`; the server part in `src/server/game/holding.ts`.
-* The admin's setting is `roundAllies`, „Halten erlaubt für“ with the
+* The admin's setting is `roundAllies`, „Verbündete für Halten und Verband“ with the
   choices „Gilde“, „Freunde“ and „Gilde und Freunde“ [V] (1, 2, 3;
   default 3): the first entry of `roundSettings` in `src/core/holding.ts`,
   the registry of the round settings (#283, #310: the feature registers its
@@ -331,8 +331,8 @@ Everything below is [V] unless it names an owner's decision.
   Restflugzeit“ (30), `roundUnionCutoff` „Verbandsangriff: kein Beitritt in
   den letzten Minuten (0 = aus)“ (0, off), order 200 to 230. The ranges 1 to
   50, 1 to 20, 0 to 100 and 0 to 1440 are [V]. Who may invite and join is the
-  one value `roundAllies` of holding (D2); its label stays „Halten erlaubt
-  für“ [V], it governs the union too.
+  one value `roundAllies` of holding (D2); its label is „Verbündete für Halten und Verband“ (owner, [E]
+  2026-11-20, #225), it governs the union too.
 * **Opening.** An own Sturmangriff on its way (not recalled, not arrived, no
   gift, in no union) opens a union (`openUnion`); the leader invites a player
   by name (`inviteUnion`): an ally of the leader by the setting, not the
@@ -439,3 +439,13 @@ Everything below is [V] unless it names an owner's decision.
   server is the answer („Wache stellen nur bei Gildenmitgliedern und
   Freunden.“, or the words of the setting). #225 (attack union) reads the
   same value `allies`.
+
+## Label of the ally setting (#225, 2026-11-20)
+
+* **[E]** (owner, 2026-11-20, #225) `roundAllies` is labelled „Verbündete für
+  Halten und Verband“ everywhere it is shown (registry entry, „Neue Runde“,
+  live admin settings, Lexicanum „Dieses Universum“), because it governs
+  holding and the attack union.
+* **[V]** The fragment `changes/wacht-halten.md` names friends too („zum
+  Planeten eines Gildenmitglieds oder Freundes“), as friends may hold (#55,
+  #227).

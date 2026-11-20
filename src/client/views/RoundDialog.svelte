@@ -81,6 +81,13 @@
     </fieldset>
   {/if}
 {/each}
+{#each page.rows as row, i (i)}
+  {#if row.kind === 'group' && row.confirm}
+    <p id="round-confirm-{row.confirm.name}" aria-live="polite">
+      {row.confirm.text}
+    </p>
+  {/if}
+{/each}
 <p>
   <button class="red" data-act="doReset">Ja, neue Runde</button>
   <button data-act="closeModal">Abbrechen</button>

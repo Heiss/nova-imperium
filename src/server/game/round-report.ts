@@ -9,6 +9,7 @@ import {
   type FinalPlace,
   type GuildFinal,
   type HistoryEntry,
+  type ParticipantReport,
   type PlayerFinal,
   placeCounts,
   type PlayerPlaytime,
@@ -282,11 +283,75 @@ const roundRewind: Action = (ctx, u, d): Answer => {
   return { msg: null, data: { rewind } };
 };
 
+/**
+ * One participant of a round for the admin (#235, view H): what the report
+ * reduces to a row, in full. Admin only; a player, an unknown round and an
+ * unknown seat answer like a round that does not exist. Reading writes nothing
+ * but the entry of the log.
+ */
+function participantOf(ctx: Ctx, u: User, number: number, seat: number) {
+  if (!u.admin) return fail(UNAVAILABLE);
+  ensureRound(ctx);
+  const round = ctx.rounds.get(number);
+  if (!may(ctx, u, round)) return fail(UNAVAILABLE);
+  const provisional = round.status === 'active';
+  const found = provisional
+    ? provisionalParticipant(ctx, seat)
+    : archivedParticipant(ctx, number, seat);
+  if (!found) return fail(UNAVAILABLE);
+  const playtime = playtimeOf(ctx, round)?.[seat] ?? null;
+  const guild = found.guilds.find((g) => g.seats.includes(seat));
+  const result: ParticipantReport = {
+    round: { number, provisional, asOf: round.closed ?? ctx.now() },
+    seat,
+    name: found.name,
+    guild: guild ? { tag: guild.tag, name: guild.name } : null,
+    ...found.final,
+    playtime,
+  };
+  return result;
+}
+
+/** A participant of the running round: the facts of now. */
+function provisionalParticipant(ctx: Ctx, seat: number) {
+  const facts = roundFacts(ctx);
+  const p = facts.players.find((x) => x.seat === seat);
+  return p ? { name: p.user.name, final: p.final, guilds: facts.guilds } : null;
+}
+
+/** A participant of a finished round: their archived final state; a deleted account has the pseudonym. */
+function archivedParticipant(ctx: Ctx, number: number, seat: number) {
+  const person = ctx.rounds.participants(number).find((p) => p.seat === seat);
+  const final = ctx.rounds
+    .events(number, ROUND_EVENT.player)
+    .find((e) => e.seat === seat)?.payload as unknown as
+    PlayerFinal | undefined;
+  if (!person || !final) return null;
+  const guilds = ctx.rounds
+    .events(number, ROUND_EVENT.guild)
+    .map((e) => e.payload as unknown as GuildFinal);
+  return { name: person.name, final, guilds };
+}
+
+const roundParticipant: Action = (ctx, u, d): Answer => {
+  const number = int(d.round, 0, Number.MAX_SAFE_INTEGER);
+  const seat = int(d.seat, 0, Number.MAX_SAFE_INTEGER);
+  const participant = participantOf(ctx, u, number, seat);
+  audit(ctx, u, 'roundParticipant', { round: number, seat });
+  return { msg: null, data: { participant } };
+};
+
 const roundHistory: Action = (ctx, u): Answer => {
   audit(ctx, u, 'roundHistory', {});
   return { msg: null, data: { history: historyOf(ctx, u) } };
 };
 
 export const serverFeature = {
-  actions: { roundArchive, roundReport, roundRewind, roundHistory },
+  actions: {
+    roundArchive,
+    roundReport,
+    roundParticipant,
+    roundRewind,
+    roundHistory,
+  },
 } satisfies ServerFeature;
