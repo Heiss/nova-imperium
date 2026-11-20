@@ -1,6 +1,7 @@
 // Test setup for the server: a real SQLite database in memory, a clock the
 // test moves, a seeded random generator and readable ids.
 import Database from 'better-sqlite3';
+import { onTestFinished } from 'vitest';
 import { seeded } from '../test/fixtures.ts';
 import {
   statementCache,
@@ -36,6 +37,15 @@ function memoryDatabase(): Db {
   db.pragma('synchronous = NORMAL');
   db.pragma('foreign_keys = ON');
   db.pragma('busy_timeout = 5000');
+  try {
+    // Nothing else closes it: the memory of an open in-memory database is not
+    // returned to the system while a long-lived Stryker worker runs.
+    onTestFinished(() => {
+      if (db.open) db.close();
+    });
+  } catch {
+    // Made outside a test (a `beforeAll`, the top of a file): it lives on.
+  }
   return db;
 }
 
@@ -56,14 +66,16 @@ export function caseDatabase(): CaseDb {
   let db: Db | undefined;
   let open = false;
   const rewind = (): void => {
-    if (!db || !open) return;
+    if (!db?.open || !open) return;
     db.exec('ROLLBACK TO SAVEPOINT test_case; RELEASE SAVEPOINT test_case');
     open = false;
   };
   return {
     open() {
-      if (!db) {
+      // A test that ended closed the database of an earlier test.
+      if (!db?.open) {
         db = memoryDatabase();
+        open = false;
         statementCache(db).on();
       }
       rewind();
