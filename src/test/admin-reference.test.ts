@@ -11,11 +11,20 @@
 // normalize() cannot); hand-built cases reach the rare marks, and a test
 // checks the ids, `data-act`s and classes that features/ and style.css read.
 //
+// The panels that fill themselves (#118, after bundle 7) are components in
+// the page now: the old page left three empty elements for them and the DOM
+// modules of views/admin-panel.ts filled them and painted the tab
+// (`aria-selected`, `tabindex`, `hidden`, `aria-labelledby`) after the
+// mount. The frozen `admin()` puts in what the browser showed then, from the
+// frozen panels of admin-panels-frozen.ts, on the tab „Ereignisprotokoll“ or
+// the one the test shows. The reference of the panels themselves is
+// admin-panels-reference.test.ts.
+//
 // Where the old template put white space for its indentation (inside a
 // fieldset of the dialog and around a conditional field), the text of the
 // container is compared trimmed: it is no text a person sees.
 import fc from 'fast-check';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   GIFT_MINUTES,
   GIFT_RESOURCES,
@@ -32,6 +41,8 @@ import {
 } from '../core/round.ts';
 import { DEFAULT_UNIVERSE, UNIVERSE_SPECS } from '../core/universe.ts';
 import { ENDZEIT_NOTE } from '../client/logic/endzeit.ts';
+import { errorRange, EVENT_FIELDS } from '../client/logic/admin-panels.ts';
+import { panels } from '../client/logic/admin-panels.svelte.ts';
 import { esc, fmt } from '../client/logic/format.ts';
 import { gainWarning } from '../client/logic/market.ts';
 import {
@@ -43,6 +54,7 @@ import type { AdminState, GameState } from '../client/logic/types.ts';
 import { box, type Ui, type V } from '../client/views/common.ts';
 import { adminArchiveHTML } from './archive-frozen.ts';
 import { adminView, endzeitDialogView, roundDialogView } from './admin-view.ts';
+import { diagnosticsPanel, errorsPanel } from './admin-panels-frozen.ts';
 import { roundDefaults } from './fixtures.ts';
 import { normalize, textContents } from './markup.ts';
 
@@ -221,28 +233,59 @@ export const diagnosticTab = (
 ): tab is 'events' | 'players' | 'orders' =>
   tab === 'events' || tab === 'players' || tab === 'orders';
 
+/** The page as a browser reads it: Svelte writes a valueless attribute as an empty one. */
+const pageView = (v: V): string =>
+  adminView(v).replaceAll(' data-errors-list=""', ' data-errors-list');
+
+/** The tab the browser showed: the old panel painted it after the mount. */
+let painted: AdminTab = 'events';
+const NOW = 1.7e12;
+
+/** The panels as they stand before anything is read: the new state with its defaults. */
+function resetPanels(tab: AdminTab = 'events'): void {
+  painted = tab;
+  Object.assign(panels, {
+    tab,
+    fields: { ...EVENT_FIELDS },
+    notice: null,
+    events: null,
+    stats: null,
+    record: null,
+    orders: null,
+    errorFields: { kind: '', limit: '10' },
+    range: errorRange(NOW),
+    errorNotice: null,
+    errors: null,
+    invitations: null,
+  });
+}
+
 export function admin(v: V): string {
   const a = v.s.admin;
   if (!a) return '<h2>Admin</h2><div class="notice">Nur für den Admin.</div>';
+  const shown = diagnosticTab(painted) ? 'diagnostics' : painted;
+  const hide = (panel: string): string => (panel === shown ? '' : ' hidden');
+  const labelled = (panel: string): string =>
+    panel === shown ? ` aria-labelledby="admin-tab-${painted}"` : '';
   return `<h2>Admin</h2>
     <div role="tablist" aria-label="Admin-Bereiche" class="flex">${Object.entries(
       ADMIN_TABS,
     )
       .map(
         ([key, label]) =>
-          `<button id="admin-tab-${key}" type="button" role="tab" aria-selected="false" aria-controls="admin-panel-${diagnosticTab(key) ? 'diagnostics' : key}" tabindex="-1" data-act="adminTab" data-tab="${key}">${label}</button>`,
+          `<button id="admin-tab-${key}" type="button" role="tab" aria-selected="${key === painted}" aria-controls="admin-panel-${diagnosticTab(key) ? 'diagnostics' : key}" tabindex="${key === painted ? 0 : -1}" data-act="adminTab" data-tab="${key}">${label}</button>`,
       )
       .join('')}</div>
-    <section id="admin-panel-diagnostics" role="tabpanel" hidden>${box('Diagnose und Protokoll', '<div id="admin-diagnostics"></div>')}</section>
-    <section id="admin-panel-errors" role="tabpanel" aria-labelledby="admin-tab-errors" hidden>${box('Fehler', '<div id="admin-errors"></div>')}</section>
-    <section id="admin-panel-invitations" role="tabpanel" aria-labelledby="admin-tab-invitations" hidden>${box('Einladungen', invitations(v.ui))}</section>
-    <section id="admin-panel-universe" role="tabpanel" aria-labelledby="admin-tab-universe" hidden>
+    <section id="admin-panel-diagnostics" role="tabpanel"${labelled('diagnostics')}${hide('diagnostics')}>${box('Diagnose und Protokoll', `<div id="admin-diagnostics">${diagnosticsPanel(v.s.players, { tab: diagnosticTab(painted) ? painted : ('none' as never) })}</div>`)}</section>
+    <section id="admin-panel-errors" role="tabpanel" aria-labelledby="admin-tab-errors"${hide('errors')}>${box('Fehler', `<div id="admin-errors">${errorsPanel(NOW)}</div>`)}</section>
+    <section id="admin-panel-invitations" role="tabpanel" aria-labelledby="admin-tab-invitations"${hide('invitations')}>${box('Einladungen', invitations(v.ui))}</section>
+    <section id="admin-panel-universe" role="tabpanel" aria-labelledby="admin-tab-universe"${hide('universe')}>
       ${box('Universum', settingsForm(v.s, a))}
       ${endzeitBox(a)}
       ${box('Rundenberichte', adminArchiveHTML(shownArchive(v.s)))}
       ${box('Neue Runde', 'Alle Spieler behalten ihr Konto und bekommen einen frischen Planeten. <button class="red" data-act="reset">Neue Runde starten</button>')}
     </section>
-    <section id="admin-panel-announce" role="tabpanel" aria-labelledby="admin-tab-announce" hidden>${box(
+    <section id="admin-panel-announce" role="tabpanel" aria-labelledby="admin-tab-announce"${hide('announce')}>${box(
       'Servernachricht',
       '<p>Die Nachricht geht an alle Spieler und per Push an Geräte mit aktivierten Benachrichtigungen.</p><form id="announceform"><label for="announce-text">Nachricht</label><br><textarea id="announce-text" maxlength="500" rows="4" required></textarea><p><button type="submit">An alle senden</button></p></form>',
     )}</section>`;
@@ -251,6 +294,8 @@ export function admin(v: V): string {
 // ----- the comparison -----
 
 const SPECS = UNIVERSE_SPECS;
+
+const PLAYERS = { u1: { name: 'Sturm' }, u2: { name: 'a<b>&"c\'' } };
 
 /** The setting values of a universe: every spec at a value inside its range. */
 const universe = fc
@@ -291,6 +336,7 @@ const adminState = fc
     v: {
       s: {
         me: { id: 'u_me' },
+        players: PLAYERS,
         round: { number: 4 },
         cfg: { ...DEFAULT_UNIVERSE, ...x.cfg, ...x.market },
         admin: x.admin
@@ -317,12 +363,15 @@ function readArchive(kind: 'list' | 'error' | 'loading'): void {
   });
 }
 
+beforeEach(() => resetPanels());
 afterEach(() => forgetArchive());
 
 /** The text of every line, cell and button, the white space of the old template trimmed where it holds containers. */
 const texts = (html: string): string[] =>
   textContents(html).map((t) =>
-    /^(fieldset|span|label|p|div):/.test(t) ? t.replace(/ +$/, '') : t,
+    /^(fieldset|span|label|p|div|form):/.test(t)
+      ? t.replace(/ +$/, '').replace(/^(div|form): +/, '$1: ')
+      : t,
   );
 
 /**
@@ -341,6 +390,7 @@ const base = (over: Partial<AdminState> = {}, ui: Partial<Ui> = {}): V =>
   ({
     s: {
       me: { id: 'u_me' },
+      players: PLAYERS,
       round: { number: 4 },
       cfg: { ...DEFAULT_UNIVERSE },
       admin: {
@@ -390,7 +440,7 @@ describe('Admin against the view before #118, bundle 7', () => {
     fc.assert(
       fc.property(adminState, ({ v, archived }) => {
         readArchive(archived ? 'list' : 'loading');
-        expect(normalize(adminView(v))).toBe(normalize(admin(v)));
+        expect(normalize(pageView(v))).toBe(normalize(admin(v)));
       }),
       { seed: 118, numRuns: 300 },
     );
@@ -400,7 +450,7 @@ describe('Admin against the view before #118, bundle 7', () => {
     fc.assert(
       fc.property(adminState, ({ v, archived }) => {
         readArchive(archived ? 'error' : 'loading');
-        expect(texts(adminView(v))).toEqual(texts(admin(v)));
+        expect(texts(pageView(v))).toEqual(texts(admin(v)));
       }),
       { seed: 118, numRuns: 300 },
     );
@@ -410,13 +460,13 @@ describe('Admin against the view before #118, bundle 7', () => {
     for (const [name, make] of HAND_BUILT) {
       forgetArchive();
       const v = make();
-      expect(normalize(adminView(v)), name).toBe(normalize(admin(v)));
-      expect(texts(adminView(v)), name).toEqual(texts(admin(v)));
+      expect(normalize(pageView(v)), name).toBe(normalize(admin(v)));
+      expect(texts(pageView(v)), name).toEqual(texts(admin(v)));
     }
   });
 
   it('keeps the ids, marks and classes that features/ and the panel read', () => {
-    const html = adminView(base({}, { lastLink: 'https://x/#invite=a' }));
+    const html = pageView(base({}, { lastLink: 'https://x/#invite=a' }));
     for (const mark of [
       'role="tablist"',
       'id="admin-tab-events"',
@@ -448,11 +498,22 @@ describe('Admin against the view before #118, bundle 7', () => {
     // click on „Einladen“ finds an empty required field and sends nothing.
     expect(html).toMatch(/id="inv_email"/);
     expect(html).not.toMatch(/id="inv_email"[^>]*data-nokeep/);
-    // The tabs are all there, one per name, none selected until the panel shows one.
+    // The tabs are all there, one per name, the first one selected.
     expect(html.match(/role="tab"/g)).toHaveLength(
       Object.keys(ADMIN_TABS).length,
     );
-    expect(html).not.toContain('aria-selected="true"');
+    expect(html.match(/aria-selected="true"/g)).toHaveLength(1);
+    expect(html).toMatch(/id="admin-tab-events"[^>]*aria-selected="true"/);
+  });
+
+  it('shows the panel of the tab, as the panel painted it before', () => {
+    for (const tab of Object.keys(ADMIN_TABS) as AdminTab[]) {
+      resetPanels(tab);
+      const v = base({}, { lastLink: 'https://x/#invite=a' });
+      expect(normalize(pageView(v)), tab).toBe(normalize(admin(v)));
+      const html = pageView(v);
+      expect(html.match(/aria-selected="true"/g), tab).toHaveLength(1);
+    }
   });
 });
 

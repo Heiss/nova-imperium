@@ -304,11 +304,13 @@ description: 'The client as generic Svelte components with a state module, the c
   current) and „Endzeit einläuten“ (`EndzeitDialog.svelte`) are `Dialog`s of
   `modal()`. The login and registration are `Auth.svelte` (`authPage()` of
   `logic/auth.ts`), mounted by `renderLoggedOut`. The panels that load from
-  the server (`admin-diagnostics.ts`, `admin-errors.ts`, the list of the
-  invitations) stay DOM modules; `views/admin-panel.ts` keeps them over a
-  render (the page is mounted anew each time, the panels of the same admin
-  replace the empty ones before `keepInputs` runs), paints the tab and handles
-  the arrow keys. `features/admin.ts` holds the handlers (`adminTab`, `revoke`,
+  the server are components too (after bundle 7): `AdminDiagnostics.svelte`,
+  `AdminErrors.svelte` and `AdminInvitations.svelte`, with `AdminTable.svelte`
+  and `AdminPager.svelte`, from the pure `logic/admin-panels.ts`. What they
+  loaded, what was typed into their filters and the tab that is shown are the
+  state of `logic/admin-panels.svelte.ts`, which also holds the calls and the
+  arrow keys; it stays over a render (the page is mounted anew each time) for
+  the same admin. `features/admin.ts` holds the handlers (`adminTab`, `revoke`,
   the forms `inviteform` and `announceform`), `features/login.ts` the steps of
   the login with their state `login` of `logic/login.ts` (`resetToken` is read
   by `apply()` in `main.ts`). `ClientCtx` gained `apply` and `signedOut`. The view registers itself with `clientViews` in `views/admin.ts` (menu order 180, shown to an admin), so `mount.ts` and `VIEWS` name it no more. The

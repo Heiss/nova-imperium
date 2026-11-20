@@ -29,7 +29,7 @@ import {
   archivePage,
   shownArchive,
 } from './round-archive.ts';
-import type { AdminState, GameState } from './types.ts';
+import type { AdminState, GameState, Players } from './types.ts';
 
 export const ADMIN_TABS = {
   events: 'Ereignisprotokoll',
@@ -95,6 +95,8 @@ export interface AdminPage {
   /** The note of a used-up Endzeit; null while the button is there. */
   endzeitDone: string | null;
   archive: ArchivePage;
+  /** The players, by id, for the names in the diagnostics. */
+  players: Players;
 }
 
 /** The page at the view state `v`; null for a state without the admin's data. */
@@ -116,6 +118,7 @@ export function adminPage(v: V): AdminPage | null {
     link: v.ui.lastLink || null,
     endzeitDone: a.endzeit.done ? ENDZEIT_NOTE.done : null,
     archive: archivePage(shownArchive(v.s), true),
+    players: v.s.players,
   };
 }
 
