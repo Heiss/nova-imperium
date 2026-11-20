@@ -94,3 +94,23 @@ test('the open fleet form with a long Schnellwahl entry stays within a 360 px ph
   expect(box!.x + box!.width).toBeLessThanOrEqual(widths.client);
   expect(w.problems).toEqual([]);
 });
+
+test('the ship table of the fleet form with Spähschädel (nine digits of speed) stays within a 360 px phone @phone', async ({
+  page,
+}) => {
+  const w = watch(page);
+  const name = uniqueName('PhoneSonde');
+  await register(page, name);
+  seed({ name, ships: { probe: 2, sc: 1 }, res: { m: 0, c: 0, d: 10000 } });
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.goto('/?view=fleet');
+  const row = page.locator('tr', { hasText: 'Spähschädel' }).first();
+  await expect(row.locator('td.n').nth(1)).toHaveText('100.000.000');
+  const widths = await page.evaluate(() => ({
+    scroll: document.documentElement.scrollWidth,
+    client: document.documentElement.clientWidth,
+  }));
+  expect(widths.client).toBe(360);
+  expect(widths.scroll).toBeLessThanOrEqual(widths.client + 1);
+  expect(w.problems).toEqual([]);
+});
