@@ -803,6 +803,6 @@ describe('who may hold in the round (#55, X1)', () => {
         type: 'settings',
         settings: { ...ctx.admin.universe(), roundAllies: 4 },
       }),
-    ).toThrow('Halten erlaubt für');
+    ).toThrow('Verbündete für Halten und Verband');
   });
 });

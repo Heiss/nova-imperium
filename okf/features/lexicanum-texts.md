@@ -741,7 +741,7 @@ code and here in the same pull request.
 * **[V]** Line: „Wer an einem fremden Planeten Wache halten darf, was die Wache tut und wie mehrere Spieler gemeinsam angreifen.“
 * **[V]** Heading: „Wache stellen: wer, wo und wie lange“
 * **[V]** Text: „Mit Wache stellen fliegt eine Flotte zum Planeten oder Mond eines Verbündeten, bleibt dort die Haltezeit, die du beim Start wählst, und verteidigt ihn in jedem Kampf zusammen mit seinem Besitzer; danach fliegt sie heim. Wer Verbündeter ist, legt der Admin für die Runde fest. Eine Gilde zählt nur, solange es in der Runde Gilden gibt (Gilden). Bei einem Spieler im Urlaubsmodus oder unter dem Schutz der Schwachen kann niemand Wache stellen.“
-* **[V]** Facts: „Halten erlaubt für: Gilde und Freunde“
+* **[V]** Facts: „Verbündete für Halten und Verband: Gilde und Freunde“
 * **[V]** Facts: „Gehaltene Flotten im Auspex-Bericht ab Auspex-Lehre: 2 (von 0 bis 30)“
 * **[V]** Text: „Die Haltezeit beträgt 0, 1, 2, 4, 8, 16 oder 32 Stunden. Sie läuft in Echtzeit, das Tempo des Universums teilt sie nicht. Den Treibstoff für die Haltezeit zahlst du beim Start zusammen mit dem für den Flug: ein Zehntel des Grundverbrauchs der Flotte je Stunde, mindestens 1 Promethium. An einem Planeten halten höchstens 4 verschiedene Spieler mit zusammen höchstens 15 Flotten, die eigene Flotte des Besitzers nicht mitgerechnet; gezählt werden auch Flotten, die noch unterwegs sind. Solange eine Flotte Wache hält, kannst du sie zurückrufen; sie ist dann nach so langer Zeit zu Hause, wie ihr Hinflug gedauert hat.“
 * **[V]** Formula: „Treibstoff der Haltezeit = ⌊Summe aller Schiffe (Anzahl · Grundverbrauch) · Stunden ÷ 10⌋, mindestens 1“

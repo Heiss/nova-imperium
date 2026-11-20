@@ -42,7 +42,7 @@ const LEFT = [10 * MINUTE, 60 * MINUTE, 6 * 60 * MINUTE];
 const value = (u: Universe, key: string): number =>
   (u as unknown as Record<string, number>)[key] ?? 0;
 
-/** The words of the setting „Halten erlaubt für“ for its value. */
+/** The words of the setting „Verbündete für Halten und Verband“ for its value. */
 const alliesWords = (u: Universe): string => {
   const [allies] = holdSettings;
   const v = value(u, allies.key);

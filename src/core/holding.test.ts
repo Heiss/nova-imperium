@@ -32,7 +32,7 @@ import { DEFAULT_UNIVERSE, liveSpecs, universeErrors } from './universe.ts';
 const setting = (key: string) => ROUND_SETTINGS.find((s) => s.key === key)!;
 const ALLIES_ROW = {
   key: 'roundAllies',
-  label: 'Halten erlaubt für',
+  label: 'Verbündete für Halten und Verband',
   min: 1,
   max: 3,
   def: 3,
@@ -73,7 +73,7 @@ describe('who may hold', () => {
       kind: 'number',
       key: 'roundAllies',
       name: 'allies',
-      label: 'Halten erlaubt für',
+      label: 'Verbündete für Halten und Verband',
       order: 100,
       min: 1,
       max: 3,

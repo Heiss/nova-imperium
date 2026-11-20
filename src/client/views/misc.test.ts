@@ -509,7 +509,7 @@ describe('a new setting of the round in both places (#283)', () => {
     kind: 'number',
     key: 'roundTestAllies',
     name: 'testAllies',
-    label: 'Halten erlaubt für',
+    label: 'Verbündete für Halten und Verband',
     order: 110,
     min: 1,
     max: 3,
@@ -536,7 +536,7 @@ describe('a new setting of the round in both places (#283)', () => {
     );
     expect(html).toContain(
       normalize(
-        '<p><label for="round-test-allies">Halten erlaubt für</label> <select id="round-test-allies"><option value="1" selected>Gilde</option><option value="3">Gilde und Freunde</option></select></p>',
+        '<p><label for="round-test-allies">Verbündete für Halten und Verband</label> <select id="round-test-allies"><option value="1" selected>Gilde</option><option value="3">Gilde und Freunde</option></select></p>',
       ),
     );
     // The new ones have the highest numbers, so they stand after the registry.
