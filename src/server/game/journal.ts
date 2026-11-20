@@ -90,8 +90,8 @@ function added(before: Levels, now: Levels): Levels {
 /** The building that finished between the stored state and the settled one, if any. */
 function finishedBuilding(prev: Planet, s: Planet): Produced['built'] {
   const q = prev.bq;
-  if (!q || (s.bq && s.bq.start === q.start && s.bq.key === q.key))
-    return undefined;
+  // The settlement only ever ends a queue: one that is still there has not finished.
+  if (!q || s.bq) return undefined;
   return { key: q.key, lvl: q.lvl, end: q.end, cost: q.cost };
 }
 

@@ -124,74 +124,76 @@ describe('what a saved place produced', () => {
     );
   });
 
+  /** Anna's place with `over`, saved `ms` later in a cause that ended with a read; the prod of that event. */
+  function spanOf(over: object, ms: number): JournalAction['prod'] {
+    const ctx = setup();
+    const planet = addPlanet(ctx, 'u_Anna', {
+      res: { m: 0, c: 0, d: 0 },
+      ...over,
+    });
+    ctx.clock.t += ms;
+    beginCause();
+    ctx.planets.save({ ...planet, t: ctx.now() });
+    journalAction(ctx, ctx.players.get('u_Anna')!, 'read', {});
+    return (payloads(ctx)[0] as unknown as JournalAction).prod;
+  }
+  const mines = { metal: 0, crystal: 0, deut: 0, solar: 30 };
+
   it('records a span that credited only one resource', () => {
-    for (const only of ['m', 'c', 'd'] as const) {
-      const ctx = setup();
-      const pct: Record<string, number> = { metal: 0, crystal: 0, deut: 0 };
-      pct[{ m: 'metal', c: 'crystal', d: 'deut' }[only]] = 100;
-      const { later } = advanced(ctx, { pct });
-      beginCause();
-      ctx.planets.save(later);
-      journalAction(ctx, ctx.players.get('u_Anna')!, 'read', {});
-      const made = (payloads(ctx)[0] as unknown as JournalAction).prod?.[0];
-      expect(made, only).toBeDefined();
+    // 100 ms: the base income of metal and crystal rounds to 0.00 and only the mine counts.
+    for (const [only, key] of [
+      ['m', 'metal'],
+      ['c', 'crystal'],
+      ['d', 'deut'],
+    ] as const) {
+      const made = spanOf({ b: { ...mines, [key]: 30 } }, 100)?.[0];
+      expect(made, only).toMatchObject({
+        m: 0,
+        c: 0,
+        d: 0,
+        ...{ [only]: made?.[only] },
+      });
       expect(made![only], only).toBeGreaterThan(0);
+      for (const other of (['m', 'c', 'd'] as const).filter((x) => x !== only))
+        expect(made![other], only).toBe(0);
     }
   });
 
-  it('records nothing when nothing was produced, finished or built', () => {
-    const ctx = setup();
-    const { later } = advanced(ctx, {
-      b: {},
-      res: { m: 0, c: 0, d: 0 },
-      pct: { metal: 0, crystal: 0, deut: 0 },
-    });
-    const err = vi.spyOn(console, 'error').mockImplementation(() => undefined);
-    beginCause();
-    ctx.planets.save(later);
-    journalAction(ctx, ctx.players.get('u_Anna')!, 'read', {});
-    // Without buildings the base income of the place still counts; what must hold is the shape.
-    const p = payloads(ctx)[0] as unknown as JournalAction;
-    for (const made of p.prod ?? []) expect(made).not.toBeNull();
-    expect(err).not.toHaveBeenCalled();
+  it('records nothing when a span produced, finished and built nothing', () => {
+    expect(spanOf({ b: {} }, 1)).toBeUndefined();
   });
 
   it('records a finished building when nothing else changed, and not a running one', () => {
-    const ctx = setup();
-    const pct = { metal: 0, crystal: 0, deut: 0 };
-    const cost: [number, number, number] = [10, 20, 30];
-    const start = ctx.now();
-    const { planet } = advanced(
-      ctx,
-      {
-        b: {},
-        pct,
-        res: { m: 0, c: 0, d: 0 },
-        bq: { key: 'metal', lvl: 1, start, end: start + HOUR, cost },
-      },
-      0,
-    );
-    // Half way: the queue runs, the span is not a finished building.
-    ctx.clock.t = start + HOUR / 2;
-    beginCause();
-    ctx.planets.save({ ...planet, t: ctx.now() });
-    journalAction(ctx, ctx.players.get('u_Anna')!, 'read', {});
-    const half = payloads(ctx)[0] as unknown as JournalAction;
-    for (const made of half.prod ?? [])
-      expect(made).not.toHaveProperty('built');
-    // After its end: the building is recorded with the cost it had.
-    ctx.clock.t = start + 2 * HOUR;
-    beginCause();
-    ctx.planets.save({ ...planet, t: ctx.now() });
-    journalAction(ctx, ctx.players.get('u_Anna')!, 'read', {});
-    const done = payloads(ctx)[1] as unknown as JournalAction;
-    expect(done.prod).toHaveLength(1);
-    expect(done.prod![0]!.built).toEqual({
+    const queue = (end: number) => ({
       key: 'metal',
       lvl: 1,
-      end: start + HOUR,
-      cost,
+      start: 0,
+      end,
+      cost: [10, 20, 30],
     });
+    const t0 = testCtx().now();
+    expect(spanOf({ b: {}, bq: queue(t0 + HOUR) }, 1)).toBeUndefined();
+    const made = spanOf({ b: {}, bq: queue(t0 + 1) }, 1)?.[0];
+    expect(made).toMatchObject({ m: 0, c: 0, d: 0 });
+    expect(made!.built).toEqual({
+      key: 'metal',
+      lvl: 1,
+      end: t0 + 1,
+      cost: [10, 20, 30],
+    });
+  });
+
+  it('records the units a shipyard finished when nothing else changed', () => {
+    const made = spanOf(
+      {
+        b: { yard: 1 },
+        sq: [{ key: 'rl', n: 1, unit: 1 }],
+        sqT: testCtx().now(),
+      },
+      5,
+    )?.[0];
+    expect(made).toMatchObject({ m: 0, c: 0, d: 0, units: { rl: 1 } });
+    expect(made).not.toHaveProperty('built');
   });
 
   it('records only the units that were added, per ships and defense', () => {
@@ -216,6 +218,24 @@ describe('what a saved place produced', () => {
     journalAction(ctx, ctx.players.get('u_Anna')!, 'read', {});
     const made = (payloads(ctx)[0] as unknown as JournalAction).prod![0]!;
     expect(made.units).toEqual({ rl: 2 });
+  });
+
+  it('records a finished building once: a second save at the same or an earlier time adds nothing', () => {
+    const ctx = setup();
+    const t0 = ctx.now();
+    const planet = addPlanet(ctx, 'u_Anna', {
+      b: {},
+      bq: { key: 'metal', lvl: 1, start: 0, end: t0 + 1, cost: [1, 2, 3] },
+    });
+    const at = (t: number) => ({ ...planet, t });
+    beginCause();
+    ctx.planets.save(at(t0 + HOUR));
+    ctx.planets.save(at(t0 + HOUR));
+    ctx.planets.save(at(t0 + HOUR / 2));
+    journalAction(ctx, ctx.players.get('u_Anna')!, 'read', {});
+    const made = (payloads(ctx)[0] as unknown as JournalAction).prod;
+    expect(made).toHaveLength(1);
+    expect(made![0]!.built).toMatchObject({ key: 'metal', lvl: 1 });
   });
 
   it('notes nothing for a save that does not advance the place, for a new place, and outside a cause', () => {

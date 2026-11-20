@@ -348,6 +348,17 @@ describe('the texts a refusal must not quote', () => {
     ]);
   });
 
+  it('leaves out a value that is no text although it has a length', () => {
+    expect(
+      hiddenTexts('rename', {
+        type: 'rename',
+        list: [1, 2, 3],
+        object: { length: 5 },
+        text: 'abc',
+      }),
+    ).toEqual(['abc']);
+  });
+
   it('hides a text under a field name that only another action keeps', () => {
     expect(hiddenTexts('rename', { type: 'rename', key: 'secret' })).toEqual([
       'secret',

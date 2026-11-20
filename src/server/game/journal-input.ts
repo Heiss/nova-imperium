@@ -175,15 +175,20 @@ export function hiddenTexts(
   d: Readonly<Record<string, unknown>>,
 ): string[] {
   const spec = specOf(type);
-  const keeps = (field: string): boolean =>
-    spec !== 'scalars' && Object.hasOwn(spec, field) && spec[field] === 'keep';
+  // The rules of a round (`'scalars'`) list no field: the entries of that
+  // string are its characters, none of which is `'keep'`.
+  const kept = new Set(
+    Object.entries(spec)
+      .filter(([, how]) => how === 'keep')
+      .map(([field]) => field),
+  );
   return Object.entries(d)
     .filter(
       ([field, value]) =>
         field !== 'type' &&
         typeof value === 'string' &&
         value.length >= 2 &&
-        !keeps(field),
+        !kept.has(field),
     )
     .map(([, value]) => value as string);
 }
