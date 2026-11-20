@@ -483,7 +483,7 @@ describe('no fuel back for unused holding hours (#55, owner, 2026-11-19)', () =>
     home(ctx, ctx.fleets.get(f.id)!);
     expect(ctx.planets.home('u_Anna')!.res.d).toBe(30000 - FUEL(32));
   });
-  it('refunds nothing when the host\'s vacation sends the guard home', () => {
+  it("refunds nothing when the host's vacation sends the guard home", () => {
     const { ctx, f } = launched();
     ctx.clock.t = f.arr;
     tick(ctx);
