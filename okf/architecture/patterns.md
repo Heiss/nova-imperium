@@ -1371,9 +1371,10 @@ src/client/                state, components (generic), views
   of the vacation mode has its own, shorter shape), `meOf` (the account, with
   its push kinds and its vacation) and the keys `round`, `now`, `cfg`, `me`,
   `planet`, `labs`, `fleets`, `reports`, `players`, `galaxy` and `debris`.
-  `src/server/game/registry-pin.test.ts` writes out every action with its
-  group and the key order of the state for the refactoring; it is edited on
-  purpose when an action or a key is added.
+  `src/server/game/registry-pin.test.ts` wrote out every action with its
+  group and the key order of the state once for the refactoring; it is
+  deleted (#317), the guard `registry.test.ts` keeps the rules and no list
+  has to be edited when an action or a key is added.
 * **[V]** The state type of the browser (`GameState` in
   `src/client/logic/types.ts`) is not composed from per-feature types: the
   types of the parts live in the client, `client-not-server` forbids a type

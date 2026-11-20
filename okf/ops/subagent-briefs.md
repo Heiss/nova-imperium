@@ -77,8 +77,9 @@ when the second built on the first.
   number, the next free ten above the highest, and the brief names the
   numbers other open branches already took; an action name, a state key or a
   number that exists twice stops the start, and the guard test
-  `src/server/game/registry.test.ts` checks the rules for all. A new action
-  or key is also written into `registry-pin.test.ts` (#326).
+  `src/server/game/registry.test.ts` checks the rules for all. No list of
+  action names or keys is kept anywhere else (`registry-pin.test.ts` is
+  deleted, #317).
 * Stop after two failed attempts at the same problem and report.
 * A new E2E test goes into the spec of its feature, `e2e/<feature>.spec.ts`
   (a new file for a new feature), never into a collecting file; new seed
