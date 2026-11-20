@@ -43,13 +43,13 @@ description: 'A pull request mutates only what it changes: when the jobs start, 
 
 * **[E]** A pull request mutates only what it changes (owner, 2026-11-18,
   #309; the measured runs of 2026-11-18 took 54 to 70 minutes for the
-  slowest of the 6 shards, almost the whole CI time, and every merge of
+  slowest of the 6 shards of that time, almost the whole CI time, and every merge of
   `main` made every other pull request run again): in a pull request that
   is no release pull request (head `release/*`) and goes into no hotfix
   branch (base `hotfix/*`), the mutation tests run for the files of the
   `mutate` globs that it changes and for the source of each test file it
   changes, in one job „Mutation tests (changed files)“ without shards. The
-  complete run in 6 shards stays for pushes to `main` and `hotfix/**`, the
+  complete run in 12 shards (6 until 2026-11-20) stays for pushes to `main` and `hotfix/**`, the
   release pull requests, the pull requests into a hotfix branch and the
   nightly run, with their caches, weights and plan state. The owner accepts
   that a pull request which lowers the score of a file it does not touch is
@@ -72,7 +72,7 @@ description: 'A pull request mutates only what it changes: when the jobs start, 
   tests them. A change of the mutation configuration (`stryker.config.json`,
   `vitest.config.ts`, `scripts/mutation-*.ts`, `tsconfig.json`) or of the
   versions of Stryker, Vitest or TypeScript in the lockfile (the rule of
-  #146) still runs everything in 6 shards; no file in the set means no
+  #146) still runs everything in the shards; no file in the set means no
   mutation job. A change of `mutation-floors.txt` is no reason to run
   everything (see the next paragraph); a change of `mutation-standard.json`
   is. Test files whose source the name
@@ -85,7 +85,7 @@ description: 'A pull request mutates only what it changes: when the jobs start, 
 * **[V]** Floors in the partial run (the coordinator, 2026-11-18, #309,
   form of 2026-11-19, #317 part 4): almost every feature pull request
   raised or added a floor, and the first three pull requests after #312
-  (#300, #306, #281) all ran the complete 6 shards because the file of the
+  (#300, #306, #281) all ran the complete 6 shards of that time because the file of the
   floors counted as mutation configuration in #146, which defeated the
   partial run. Now, when `mutation-floors.txt` changes,
   `scripts/mutation-partial.ts` reads it at the base and at the head
@@ -97,7 +97,7 @@ description: 'A pull request mutates only what it changes: when the jobs start, 
   nothing but floors (the format below), so every change of it is a change
   of floors. A line that is not `<file> <floor>`, a file with two lines, or
   a file that is missing at either side (the change that introduces it, so
-  once) runs everything in 6 shards, as does another file of the mutation
+  once) runs everything in the shards, as does another file of the mutation
   configuration changed at the same time, `mutation-standard.json`
   (`newFile`, `security`, `securityTarget`) included. `mutation-floors.txt`
   stays a mutation configuration for the complete runs: the pull request
@@ -205,7 +205,7 @@ description: 'A pull request mutates only what it changes: when the jobs start, 
   partial set of more than `PARTIAL_LIMIT` = 12 files (`scripts/mutation-partial.ts`,
   counted after the sources of tests and the files of the floors are added,
   so deleted files, documentation and tests without a source do not count)
-  gives the output `true`, the complete run in 6 shards with the check of
+  gives the output `true`, the complete run in the shards with the check of
   #167 for `reuse`, exactly as a change of the configuration does; the reason
   is on stderr („N changed files are more than the limit of 12 for one job“).
   Measured on 2026-11-19: the partial run of #281 (11 files, two of them

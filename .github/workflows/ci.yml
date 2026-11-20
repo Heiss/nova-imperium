@@ -9,7 +9,7 @@ name: CI
 # green result of the previous head when the newest head only merged main
 # (#167). A pull request that is no release pull request and goes into no
 # hotfix branch mutates only the files it changes and the sources of the
-# tests it changes, in one job (#309); the complete run in 6 shards stays for
+# tests it changes, in one job (#309); the complete run in 12 shards stays for
 # the release pull requests, the pushes, the nightly run and a change of the
 # mutation configuration or the test tool chain; a change of the floors alone
 # in mutation-floors.txt adds those files to the partial run, and a set of
@@ -271,12 +271,14 @@ jobs:
           path: playwright-report
           retention-days: 7
 
-  # Mutation tests in 6 parallel shards (owner, 2026-11-12 and 2026-11-13,
+  # Mutation tests in 12 parallel shards (SHARDS in scripts/mutation-shards.ts,
+  # 6 until 2026-11-20; owner, 2026-11-12, 2026-11-13 and 2026-11-20,
   # #131). The plan splits the files Stryker mutates once for all shards, by
   # the test time of their mutants in the weights of the last run, else in
   # the last complete run, else in the last merged report, else by their
-  # lines; every file stays on the shard of the last plan unless a shard is
-  # above 1.5 times the mean (#141, scripts/mutation-shards.ts). A pull
+  # lines; a file without a weight costs as much as the mean file with one;
+  # every file stays on the shard of the last plan unless a shard is above
+  # 1.5 times the mean (#141, scripts/mutation-shards.ts). A pull
   # request runs them only when it changes what they test (output mutation,
   # #146), and skips them when it takes over the result of the head before
   # (#167); a push to main or hotfix/** always runs them. They run in a pull
@@ -291,6 +293,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       plan: ${{ steps.plan.outputs.plan }}
+      shards: ${{ steps.plan.outputs.shards }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -329,11 +332,15 @@ jobs:
             stryker-weights-refs/heads/main-
             stryker-report-${{ github.ref }}-
             stryker-report-refs/heads/main-
-      - name: Split the mutated files into 6 shards
+      # The number of shards is SHARDS in scripts/mutation-shards.ts; the
+      # matrix of the shard jobs is the list of their numbers (#141, 2026-11-20).
+      - name: Split the mutated files into shards
         id: plan
         run: |
           plan=$(node scripts/mutation-shards.ts plan)
           echo "plan=$plan" >> "$GITHUB_OUTPUT"
+          shards=$(MUTATION_PLAN="$plan" node scripts/mutation-shards.ts numbers)
+          echo "shards=$shards" >> "$GITHUB_OUTPUT"
       # The new plan and the weights it used, for the gate job.
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -349,14 +356,16 @@ jobs:
   # the nightly run (mutation.yml) test every mutant. A shard runs without
   # Stryker's break threshold; the gate below checks the merged report.
   mutation-shard:
-    name: Mutation tests (shard ${{ matrix.shard }} of 6)
+    name: Mutation tests (shard ${{ matrix.shard }} of ${{ strategy.job-total }})
     needs: [changes, mutation-plan]
     if: needs.changes.outputs.mutation == 'true'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4, 5, 6]
+        # Empty when the plan job is skipped (the jobs are skipped too); the
+        # fallback only keeps the expression valid.
+        shard: ${{ fromJSON(needs.mutation-plan.outputs.shards || '[1]') }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -402,7 +411,7 @@ jobs:
           overwrite: true
           retention-days: 7
 
-  # Merges the 6 shard reports (every shard once, with exactly its files)
+  # Merges the shard reports (every shard once, with exactly its files)
   # and checks them as one run: a total mutation score below 80 % fails
   # (break threshold of stryker.config.json), a file below its floor fails
   # too (mutation-floors.txt, mutation-standard.json).

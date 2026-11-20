@@ -1,25 +1,34 @@
 // Sharded mutation runs (owner, 2026-11-12 and 2026-11-13, #131). Stryker
-// runs in 6 parallel jobs; this script splits the files it mutates between them and
-// merges their reports again for the gate (scripts/mutation-gate.ts).
+// runs in SHARDS parallel jobs (12 since 2026-11-20); this script splits the
+// files it mutates between them and merges their reports again for the gate
+// (scripts/mutation-gate.ts). SHARDS is the only place that holds the number:
+// the matrix and the names of the jobs in the workflows follow the plan.
 //
 //   node scripts/mutation-shards.ts plan
-//        prints the plan, a JSON list of 6 lists of "mutate" entries: the
+//        prints the plan, a JSON list of SHARDS lists of "mutate" entries: the
 //        files of the "mutate" globs in stryker.config.json, weighed by the
 //        test time of their mutants in the weights of the state
 //        (reports/mutation-state.json), else in the last report
-//        (reports/mutation/mutation.json), else by their lines; a file
+//        (reports/mutation/mutation.json), else by their lines; a file the
+//        weights do not know costs as much as the mean file they know
+//        (owner, 2026-11-20); a file
 //        heavier than half a shard is cut into line ranges between its
 //        top-level statements ("file:from-to") (owner, 2026-11-13, #131).
 //        Every file and range stays on its shard of the plan in the state;
 //        new ones go onto the lightest shard, and a shard above 1.5 times
 //        the mean gives entries to the lightest (owner, 2026-11-13, #141).
 //        It writes the state again with the new plan for the gate job.
+//   node scripts/mutation-shards.ts numbers
+//        prints the shard numbers of the plan in MUTATION_PLAN as a JSON
+//        list, 1 to the number of shards: the matrix of the shard jobs
 //   node scripts/mutation-shards.ts weights <state> <report>
 //        takes the test time of every mutant the merged report ran into the
 //        weights of the state; a mutant without a time (a result Stryker
-//        took over) keeps its old one (owner, 2026-11-13, #141)
+//        took over) keeps its old one (owner, 2026-11-13, #141); a file of
+//        the plan that the report leaves out has no mutants and weighs 0
+//        from then on
 //   node scripts/mutation-shards.ts config <n>
-//        writes the Stryker configuration of shard n (1 to 6) of the plan in
+//        writes the Stryker configuration of shard n (1 to SHARDS) of the plan in
 //        MUTATION_PLAN to reports/stryker-shard.config.json: the same
 //        configuration with only its files and without the break threshold,
 //        which the gate checks on the merged report; the incremental file
@@ -47,7 +56,8 @@ import { dirname, matchesGlob } from 'node:path';
 import type * as TS from 'typescript';
 import { runCli } from './cli.ts';
 
-export const SHARDS = 6;
+/** The number of shards of a complete run (owner, 2026-11-20: 12, was 6). */
+export const SHARDS = 12;
 /**
  * A shard may weigh up to this times the mean of all shards before the
  * plan moves entries away from it (#141).
@@ -115,8 +125,8 @@ export function mutatedFiles(
  * The cost of a mutant in the last report: the milliseconds Stryker spent
  * on it. A mutant without a time costs the mean of its kind (static or
  * not); a report without any time counts each mutant as 1, as before. A
- * line of a file the report does not know costs as much as a mutant that
- * is not static (about one mutant a line).
+ * line costs as much as a mutant that is not static (about one mutant a
+ * line): the weight of a file without any other weight to go by (weigh).
  */
 export function costs(report: Report | undefined): {
   mutant: (m: Mutant) => number;
@@ -142,7 +152,22 @@ export function costs(report: Report | undefined): {
   };
 }
 
-/** Weight of each file: the cost of its mutants in the last report, else of its lines. */
+/**
+ * Weight of each file: the cost of its mutants in the last report. A file
+ * the report does not know (new since that run) costs as much as the mean
+ * of the files that have a weight; only without any such file it costs its
+ * lines (owner, 2026-11-20).
+ *
+ * Measured on the complete report of 2026-11-14 (132 files, 6069 mutants,
+ * 0.3 to 0.5 of the files made unknown at random, 600 draws, 6 and 12
+ * shards): of eleven estimates (lines, bytes, imports, syntactic mutant
+ * counts, a fit on them, the mean of files with the same name, the median)
+ * none beat the mean file: the highest planned shard was 1.14 (6 shards) and
+ * 1.28 (12) times the ideal one, against 1.20 and 1.39 for the lines times
+ * the mean mutant. The time of a file hardly follows its size: Pearson 0.34 for
+ * the lines, 0.35 for the real number of mutants, 0.42 for the imports,
+ * because static mutants cost up to the whole test suite each.
+ */
 export function weigh(
   files: readonly string[],
   report: Report | undefined,
@@ -150,12 +175,18 @@ export function weigh(
 ): Record<string, number> {
   const cost = costs(report);
   const weights: Record<string, number> = {};
+  const unknown: string[] = [];
   for (const file of files) {
     const known = report?.files[file];
-    weights[file] = known
-      ? known.mutants.reduce((t, m) => t + cost.mutant(m), 0)
-      : lines(file) * cost.line;
+    if (known)
+      weights[file] = known.mutants.reduce((t, m) => t + cost.mutant(m), 0);
+    else unknown.push(file);
   }
+  const weighed = Object.values(weights).filter((w) => w > 0);
+  const mean = weighed.length
+    ? weighed.reduce((t, w) => t + w, 0) / weighed.length
+    : undefined;
+  for (const file of unknown) weights[file] = mean ?? lines(file) * cost.line;
   return weights;
 }
 
@@ -478,9 +509,16 @@ function carry(now: readonly Mutant[], old: readonly Mutant[]): Mutant[] {
  * merged report, every mutant with its time in this run; a mutant the run
  * took over from an earlier one has no time in the report (StrykerJS
  * copies only status, statusReason and testsCompleted) and keeps its old
- * time. No smoothing: the latest time counts.
+ * time. No smoothing: the latest time counts. A file of the plan that the
+ * report leaves out has no mutants (Stryker reports no file without any,
+ * a `types.ts`), so it is known with an empty list and weighs 0, instead of
+ * being a new file in every plan (owner, 2026-11-20).
  */
-export function reweigh(previous: Report | undefined, run: Report): Report {
+export function reweigh(
+  previous: Report | undefined,
+  run: Report,
+  planned: readonly string[] = [],
+): Report {
   const files: Report['files'] = {};
   for (const [file, f] of Object.entries(run.files))
     files[file] = {
@@ -488,6 +526,10 @@ export function reweigh(previous: Report | undefined, run: Report): Report {
         slimmed,
       ),
     };
+  for (const entry of planned) {
+    const { file } = entryOf(entry);
+    files[file] ??= { mutants: [] };
+  }
   return { files };
 }
 
@@ -815,10 +857,31 @@ function lastState(): State | undefined {
 
 function source(state: State | undefined, report: Report | undefined): string {
   if (state)
-    return 'the test time of their mutants in the weights of the last run, else their lines';
+    return 'the test time of their mutants in the weights of the last run, else the mean file';
   return report
-    ? 'the test time of their mutants in the last report, else their lines (no state)'
+    ? 'the test time of their mutants in the last report, else the mean file (no state)'
     : 'their lines (no state and no last report)';
+}
+
+/**
+ * The plan of a run: the files weighed (a file without a weight as the mean
+ * file with one), the heavy ones cut, every unit on its shard of the previous
+ * plan or on the lightest, overfull shards relieved, the pieces joined. Every
+ * file is in exactly one shard (or its pieces are); the same input gives the
+ * same plan.
+ */
+export function planOf(
+  files: readonly string[],
+  report: Report | undefined,
+  previous: readonly (readonly string[])[] | undefined,
+  lines: (file: string) => number,
+  source: (file: string) => string,
+  shards = SHARDS,
+): { whole: Record<string, number>; settled: Settled; plan: string[][] } {
+  const whole = weigh(files, report, lines);
+  const weights = units(whole, report, source, shards);
+  const settled = settle(weights, previous, shards);
+  return { whole, settled, plan: join(settled.plan) };
 }
 
 function plan(): number {
@@ -826,11 +889,22 @@ function plan(): number {
   const state = lastState();
   const report = state?.weights ?? lastReport();
   const files = mutatedFiles(config.mutate);
-  const weights = units(weigh(files, report, lineCount), report, read);
-  const settled = settle(weights, state?.plan);
-  const shards = join(settled.plan);
+  const { settled, plan: shards } = planOf(
+    files,
+    report,
+    state?.plan,
+    lineCount,
+    read,
+  );
   writeJson(STATE, { plan: shards, weights: slim(report) } satisfies State);
-  console.error(`${files.length} files, weighed by ${source(state, report)}:`);
+  console.error(
+    `${files.length} files, ${shards.length} shards, weighed by ${source(state, report)}:`,
+  );
+  const unweighed = files.filter((f) => !report?.files[f]);
+  if (unweighed.length)
+    console.error(
+      `${unweighed.length} files without a weight cost as much as the mean file with a weight (their lines, when no file has one)`,
+    );
   shards.forEach((s, i) => {
     const cut = s.filter((e) => entryOf(e).from !== undefined);
     console.error(
@@ -847,6 +921,11 @@ function plan(): number {
   return 0;
 }
 
+/** The numbers of the shards of a plan, 1 to its length (the matrix of the jobs). */
+export function shardNumbers(plan: readonly unknown[]): number[] {
+  return plan.map((_, i) => i + 1);
+}
+
 function updateWeights(
   file: string | undefined,
   run: string | undefined,
@@ -857,7 +936,11 @@ function updateWeights(
   }
   const state = stateOf(readJson<unknown>(file));
   if (!state) throw new Error(`${file} is no plan state.`);
-  const weights = reweigh(state.weights, readJson<Report>(run));
+  const weights = reweigh(
+    state.weights,
+    readJson<Report>(run),
+    state.plan.flat(),
+  );
   writeJson(file, { ...state, weights } satisfies State);
   const all = Object.values(weights.files).flatMap((f) => f.mutants);
   const timed = all.filter((m) => typeof m.duration === 'number').length;
@@ -929,12 +1012,16 @@ function main(): number {
   if (command === 'config') return config(args[0]);
   if (command === 'merge') return mergeReports(args[0], args.slice(1));
   if (command === 'weights') return updateWeights(args[0], args[1]);
+  if (command === 'numbers') {
+    console.log(JSON.stringify(shardNumbers(readPlan())));
+    return 0;
+  }
   if (command === 'drop-static') {
     console.log(dropStatic());
     return 0;
   }
   console.error(
-    'Usage: mutation-shards.ts plan | config <n> | merge <out> <report>... | weights <state> <report> | drop-static',
+    'Usage: mutation-shards.ts plan | numbers | config <n> | merge <out> <report>... | weights <state> <report> | drop-static',
   );
   return 1;
 }
