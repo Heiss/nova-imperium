@@ -3,6 +3,7 @@ import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import {
   changesExisting,
+  checkUpgrade,
   plansBefore,
   upgrade,
   type Plan,
@@ -45,7 +46,7 @@ function consistentUpgrade(
 ): void {
   fc.assert(
     fc.property(plansBefore(n, migrations), (plan) => {
-      const result = upgrade(n, plan, migrations);
+      const result = checkUpgrade(n, plan, migrations);
       expect(result.integrity).toBe('ok');
       expect(result.foreignKeys).toEqual([]);
     }),
