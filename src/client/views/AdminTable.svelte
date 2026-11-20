@@ -8,6 +8,7 @@
   import {
     filterByReference,
     openAdminTab,
+    panels,
     setMoon,
   } from '../logic/admin-panels.svelte.ts';
 
@@ -59,7 +60,11 @@
                   {@render reference(cell.id, cell.id)}
                 {:else if cell.kind === 'event'}
                   {@const e = cell.detail}
-                  <details>
+                  <details
+                    open={panels.isOpen(`event:${e.id}`)}
+                    ontoggle={(ev) =>
+                      panels.setOpen(`event:${e.id}`, ev.currentTarget.open)}
+                  >
                     <summary>{e.title} {e.id}</summary>{#if e.request}<div>
                         Vorgang <code>{e.request}</code>
                       </div>{/if}<code>{e.raw}</code>
@@ -72,7 +77,11 @@
                   </details>
                 {:else if cell.kind === 'error'}
                   {@const e = cell.detail}
-                  <details>
+                  <details
+                    open={panels.isOpen(`error:${e.id}`)}
+                    ontoggle={(ev) =>
+                      panels.setOpen(`error:${e.id}`, ev.currentTarget.open)}
+                  >
                     <summary>Eintrag {e.id}</summary>
                     {#if e.request}<div>
                         Vorgang <code>{e.request}</code>

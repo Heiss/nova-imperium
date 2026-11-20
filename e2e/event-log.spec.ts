@@ -28,6 +28,10 @@ test.describe('admin (#68)', () => {
     const row = (action: RegExp) => events.getByRole('row', { name: action });
     const battle = row(/system \/ battle/);
     await battle.getByText(/^Kampfdetails \d+$/).click();
+    // The poll of the state draws the page anew; the opened details stay open
+    // (logic/admin-panels.svelte.ts), so wait for them instead of reading at once.
+    await expect(battle.locator('details')).toHaveAttribute('open', '');
+    await expect(battle.locator('details > code')).toContainText('"fleet"');
     const detail = JSON.parse(
       await battle.locator('details > code').innerText(),
     ) as { fleet: string; planet: string };
