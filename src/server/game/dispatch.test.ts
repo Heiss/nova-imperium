@@ -31,4 +31,19 @@ describe('runAction', () => {
     expect(ctx.fleets.get('f1')).toBeNull();
     expect(ctx.planets.get('p1_1_5')!.ships.lf).toBe(3);
   });
+
+  it('counts an order of the shipyard for the achievements, one for each action', () => {
+    const ctx = testCtx();
+    addUser(ctx, 'Anna', { research: { comb: 1 } });
+    addPlanet(ctx, 'u_Anna', {
+      b: { yard: 1 },
+      res: { m: 1e6, c: 1e6, d: 1e6 },
+    });
+    const progress = () =>
+      ctx.db.prepare('SELECT metric, value FROM achievement_progress').all();
+    expect(progress()).toEqual([]);
+    runAction(ctx, 'u_Anna', { type: 'order', key: 'lf', n: 1 });
+    runAction(ctx, 'u_Anna', { type: 'order', key: 'lf', n: 1 });
+    expect(progress()).toEqual([{ metric: 'yard:order', value: 2 }]);
+  });
 });

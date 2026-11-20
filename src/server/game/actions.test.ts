@@ -1076,3 +1076,19 @@ describe('moons and the Mondzitadelle (#53)', () => {
     expect(A.mine(ctx, u, m().id).res).toEqual(before);
   });
 });
+
+describe('orders of missiles', () => {
+  it('are refused with the words of the Raketenkrypta when its places are full', () => {
+    const { ctx, u } = setup({
+      b: { yard: 1, silo: 2 },
+      res: { m: 1e9, c: 1e9, d: 1e9 },
+    });
+    // Two levels hold 20 places, an Abfangrakete takes one.
+    expect(() => A.order(ctx, u, { key: 'abm', n: 21 })).toThrow(
+      'Nicht genug Platz in der Raketenkrypta.',
+    );
+    expect(A.order(ctx, u, { key: 'abm', n: 20 })).toBe(
+      '20× Abfangrakete in Auftrag gegeben.',
+    );
+  });
+});
