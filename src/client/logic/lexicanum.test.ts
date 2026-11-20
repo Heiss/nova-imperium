@@ -1,7 +1,7 @@
 // What the Lexicanum shows (#285): the pages, the articles with the
 // player's state, the missions, and the helpers of the search.
 import { describe, expect, it } from 'vitest';
-import { RES, SHIPS } from '../../core/catalog.ts';
+import { DEF, RES, SHIPS } from '../../core/catalog.ts';
 import { capOf } from '../../core/components/storage.ts';
 import { lvlCost, prod } from '../../core/economy.ts';
 import { ARTICLES } from '../../core/lexicon/articles.ts';
@@ -740,5 +740,92 @@ describe('the guides and the personal hints of #289', () => {
       'ja',
       'ja',
     ]);
+  });
+});
+
+describe('what an article holds and what it leaves out', () => {
+  const kinds = (a: ArticleView, id: string): string[] =>
+    blocks(a, id).map((b) => b.t);
+
+  it('has the blocks of „Was die Stufen bringen“ and nothing else, with and without a level', () => {
+    expect(kinds(art('computer'), 'effect')).toEqual(['text', 'formula']);
+    expect(kinds(art('computer', view({}, { computer: 3 })), 'effect')).toEqual(
+      ['text', 'formula', 'stand'],
+    );
+    // A store has its capacity as a formula of its own.
+    expect(kinds(art('smetal', view({ b: { smetal: 2 } })), 'effect')).toEqual([
+      'text',
+      'formula',
+      'stand',
+    ]);
+  });
+
+  it('has no column of effects for an entry without an effect, and no section of effects', () => {
+    const a = art('robot');
+    expect(section(a, 'effect')).toBeUndefined();
+    expect(of(blocks(a, 'levels'), 'levels')[0]!.table.effects).toEqual([]);
+  });
+
+  it('has no „Wird gebraucht für“ for an entry nothing needs', () => {
+    expect(section(art('phalanx'), 'used')).toBeUndefined();
+    expect(section(art('metal'), 'used')).toBeUndefined();
+    expect(section(art('spy'), 'used')).toBeDefined();
+  });
+
+  it('shows the own level of a building and of a research, the own number of a unit', () => {
+    expect(art('metal', view({ b: { metal: 4 } })).own).toBe('deine Stufe 4');
+    expect(art('spy', view({}, { spy: 2 })).own).toBe('deine Stufe 2');
+    expect(art('sc', view({ ships: { sc: 3 } })).own).toBe('vorhanden: 3');
+    expect(art('rl', view({ def: { rl: 5 } })).own).toBe('vorhanden: 5');
+    expect(art('mission-spy').own).toBeNull();
+    expect(art('rule-flight').own).toBeNull();
+  });
+
+  it('shows the cost of a ship and of a defense, and of nothing else', () => {
+    expect(art('sc').cost).toEqual(SHIPS.sc!.cost);
+    expect(art('rl').cost).toEqual(DEF.rl!.cost);
+    expect(art('metal')).not.toHaveProperty('cost');
+    expect(art('spy')).not.toHaveProperty('cost');
+    expect(art('mission-spy')).not.toHaveProperty('cost');
+  });
+
+  it('has the abbreviation and the short text only where the entry has them', () => {
+    const spy = art('spy');
+    expect(spy.ab).toBe('AU');
+    expect(spy.ds).toBe(text('spy')!.ds);
+    const mission = art('mission-spy');
+    expect(mission).not.toHaveProperty('ab');
+    expect(mission).not.toHaveProperty('ds');
+    const list = page(listId('mission'), view());
+    if (list.t !== 'list') throw new Error(list.t);
+    for (const item of list.items) expect(item).not.toHaveProperty('ab');
+  });
+
+  it('draws a mission without a heading, and a rule, a question and a guide like a mission', () => {
+    expect(section(art('mission-spy'), 'mission')!.title).toBe('');
+    expect(
+      ['rule-flight', 'faq-intel', 'guide-start'].map((id) => art(id).cls),
+    ).toEqual(['ic-m', 'ic-m', 'ic-m']);
+  });
+
+  it('leaves out the note of a link without one and the caption of a table without one', () => {
+    const links = viewBlock({ t: 'links', items: [{ id: 'spy' }] });
+    expect(links).toStrictEqual({
+      t: 'links',
+      items: [{ id: 'spy', text: 'Auspex-Lehre' }],
+    });
+    const table = viewBlock({
+      t: 'table',
+      head: ['a'],
+      rows: [{ cells: ['x'] }],
+    });
+    expect(table).toStrictEqual({
+      t: 'table',
+      head: ['a'],
+      rows: [{ cells: [{ text: 'x' }] }],
+    });
+    expect(
+      viewBlock({ t: 'table', caption: 'C', head: [], rows: [] }),
+    ).toMatchObject({ caption: 'C' });
   });
 });

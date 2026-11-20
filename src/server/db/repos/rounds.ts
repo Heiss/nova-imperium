@@ -64,6 +64,12 @@ export interface RoundArchive {
   /** Deletes a round with its participants and events. */
   delete(number: number): boolean;
   addParticipant(p: Participant): void;
+  /** Whether the round exists and still runs: the cheap check before an event is written. */
+  isActive(number: number): boolean;
+  /** The seat of an account in a round, or null if it has none. */
+  seatOf(round: number, player: string): number | null;
+  /** The next free seat of a round: one above the highest. */
+  nextSeat(round: number): number;
   participants(round: number): Participant[];
   /** The numbers of the rounds the account took part in. */
   roundsOf(player: string): number[];
@@ -154,6 +160,35 @@ class SqliteRounds implements RoundArchive {
         'INSERT INTO round_participants (round, seat, player, name) VALUES (?, ?, ?, ?)',
       )
       .run(p.round, p.seat, p.player, p.name);
+  }
+
+  isActive(number: number): boolean {
+    return (
+      this.db
+        .prepare("SELECT 1 FROM rounds WHERE number = ? AND status = 'active'")
+        .pluck()
+        .get(number) !== undefined
+    );
+  }
+
+  seatOf(round: number, player: string): number | null {
+    return (
+      (this.db
+        .prepare(
+          'SELECT seat FROM round_participants WHERE round = ? AND player = ?',
+        )
+        .pluck()
+        .get(round, player) as number | undefined) ?? null
+    );
+  }
+
+  nextSeat(round: number): number {
+    return (
+      ((this.db
+        .prepare('SELECT MAX(seat) FROM round_participants WHERE round = ?')
+        .pluck()
+        .get(round) as number | null) ?? 0) + 1
+    );
   }
 
   participants(round: number): Participant[] {

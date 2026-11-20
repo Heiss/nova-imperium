@@ -106,17 +106,25 @@ export function roundFacts(ctx: Ctx): RoundFacts {
   const total = pointsMap(ctx);
   const scores = categoryScores(ctx);
   const planets = ctx.planets.all();
+  // A player keeps the seat they got when they joined (`participant.joined`);
+  // one who has none yet (a round without those events) gets the next free one.
+  const seated = ctx.rounds.participants(roundRules(ctx).number);
+  const known = new Map(
+    seated.filter((p) => p.player).map((p) => [p.player!, p.seat]),
+  );
+  let free = Math.max(0, ...seated.map((p) => p.seat)) + 1;
   const players: RoundFacts['players'] = [];
   for (const user of ctx.players.all()) {
     const own = planets.filter((p) => p.owner === user.id);
     if (!own.length) continue;
     const valuation = { total: total[user.id] ?? 0, ...scores[user.id]! };
     players.push({
-      seat: players.length + 1,
+      seat: known.get(user.id) ?? free++,
       user,
       final: finalOf(ctx, user, own, valuation),
     });
   }
+  players.sort((a, b) => a.seat - b.seat);
   const seatOf = new Map(players.map((p) => [p.user.id, p.seat]));
   const members = ctx.guilds.players().filter((m) => m.status === 'member');
   const guilds = ctx.guilds.all().map((g) => ({
@@ -217,12 +225,14 @@ export function closeActiveRound(ctx: Ctx): RoundRow {
     written++;
   };
   for (const p of facts.players) {
-    ctx.rounds.addParticipant({
-      round: number,
-      seat: p.seat,
-      player: p.user.id,
-      name: p.user.name,
-    });
+    // A player who joined while the round ran has their seat already.
+    if (ctx.rounds.seatOf(number, p.user.id) === null)
+      ctx.rounds.addParticipant({
+        round: number,
+        seat: p.seat,
+        player: p.user.id,
+        name: p.user.name,
+      });
     emit(ROUND_EVENT.player, p.seat, p.final);
   }
   for (const [seat, payload] of playtimeEvents(ctx, number, cutoff, facts))
@@ -236,8 +246,11 @@ export function closeActiveRound(ctx: Ctx): RoundRow {
   // The archive is complete only when every participant has a seat and a
   // final event and every event is there; else the reset must not go on.
   const finals = ctx.rounds.events(number, ROUND_EVENT.player);
+  const seated = ctx.rounds.participants(number);
   const complete =
-    ctx.rounds.participants(number).length === facts.players.length &&
+    facts.players.every((p) =>
+      seated.some((s) => s.seat === p.seat && s.player === p.user.id),
+    ) &&
     finals.length === facts.players.length &&
     ctx.rounds.events(number, ROUND_EVENT.playtime).length ===
       facts.players.length &&

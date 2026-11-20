@@ -77,7 +77,7 @@ describe('mutation reuse: the earlier result', () => {
   it('counts only the job "Mutation tests" of GitHub Actions', () => {
     const none = `p1 has no check run "${CHECK}"`;
     expect(notGreen('p1', [])).toBe(none);
-    expect(notGreen('p1', [run({ name: `${CHECK} (shard 1 of 6)` })])).toBe(
+    expect(notGreen('p1', [run({ name: `${CHECK} (shard 1 of 12)` })])).toBe(
       none,
     );
     expect(notGreen('p1', [run({ name: `${CHECK} (complete)` })])).toBe(none);

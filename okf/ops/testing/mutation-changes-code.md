@@ -27,7 +27,7 @@ description: 'The scripts that choose what a pull request mutates and reuse a gr
   such a tag (decision above); a pull request into a hotfix branch
   compares its base with the merge commit. Every other pull request asks
   `node scripts/mutation-partial.ts plan <base> <merge commit>` (tests in
-  `src/test/mutation-partial.test.ts`, #309): `true` (everything, in 6
+  `src/test/mutation-partial.test.ts`, #309): `true` (everything, in the
   shards, with the check of #167 for `reuse`), or the JSON list of the
   files to mutate, which „Detect changes“ writes as `mutation=partial` and
   `mutation-files=<list>`, `[]` as `mutation=false`.

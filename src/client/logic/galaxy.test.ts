@@ -10,6 +10,7 @@ import type { Planet } from '../../core/types.ts';
 import { planet, U } from '../../test/fixtures.ts';
 import type { Ui, V } from '../views/common.ts';
 import { debrisMark, harvestButton } from './debris.ts';
+import { distance, fleetSpeed, flightMs } from '../../core/flight.ts';
 import { dur } from './format.ts';
 import {
   type GalaxyAction,
@@ -241,6 +242,7 @@ describe('a free position', () => {
       actions: [],
       note: '–',
       moon: null,
+      sheet: null,
     });
   });
 
@@ -361,11 +363,18 @@ describe('a foreign planet', () => {
         protected: false,
         vacation: false,
         actions: foreign(6),
+        sheet: {
+          id: 'p1_2_6',
+          title: 'Welt 6 [1:2:6]',
+          flight: null,
+          actions: foreign(6),
+        },
       },
       marks: [],
       actions: [],
       note: '',
       moon: null,
+      sheet: null,
     });
   });
 
@@ -513,6 +522,12 @@ describe('moons (#53)', () => {
       protected: true,
       vacation: false,
       actions: foreign(6, true),
+      sheet: {
+        id: 'm1_2_6',
+        title: 'Mond (Mond) [1:2:6]',
+        flight: null,
+        actions: foreign(6, true),
+      },
     });
     // The planet keeps its own actions.
     expect(r.planet!.actions).toEqual(foreign(6));
@@ -662,5 +677,108 @@ describe('the Raketenangriff (#54)', () => {
     expect(rowAt(armed(0), 6).planet!.actions).toEqual(foreign(6));
     expect(rowAt(armed(2, 0), 6).planet!.actions).toEqual(foreign(6));
     expect(rowAt(armed(2, 1, 7), 6).planet!.actions).toEqual(foreign(6));
+  });
+});
+
+describe('the sheet „⋯“ of a position on a phone (#189)', () => {
+  it('has the actions of the row, without the dim name of the active place', () => {
+    const v = view({
+      galaxy: [place('planet', 5, 'u1'), place('planet', 6, 'u3')],
+    });
+    // [1:2:5] is the shown planet: only its name, so no sheet.
+    expect(rowAt(v, 5).planet!.actions.map((a) => a.kind)).toEqual(['active']);
+    expect(rowAt(v, 5).planet!.sheet).toBeNull();
+    expect(rowAt(v, 6).planet!.sheet!.actions).toEqual(foreign(6));
+  });
+
+  it('offers the actions of an own planet that is not shown, with its title', () => {
+    const v = view({ galaxy: [place('planet', 7, 'u1', 'Kolonie')] });
+    expect(rowAt(v, 7).planet!.sheet).toEqual({
+      id: 'p1_2_7',
+      title: 'Kolonie [1:2:7]',
+      flight: null,
+      actions: own('p1_2_7', 7),
+    });
+  });
+
+  it('holds the Bergung of a field with the actions of the planet and of a free position', () => {
+    const v = view({
+      galaxy: [place('planet', 6, 'u3')],
+      debris: [field(6), field(9)],
+    });
+    expect(rowAt(v, 6).planet!.sheet!.actions.at(-1)).toMatchObject({
+      kind: 'html',
+    });
+    expect(rowAt(v, 9).sheet).toMatchObject({
+      id: 'free-9',
+      title: 'Position [1:2:9]',
+      actions: [{ kind: 'html' }],
+    });
+  });
+
+  it('has no sheet at a free position without an action, and one at the expedition position with one', () => {
+    expect(rowAt(view(), 9).sheet).toBeNull();
+    const v = view({ research: { expo: 1 }, P: { ships: { lc: 3 } } });
+    expect(rowAt(v, U.positions + 1).sheet).toMatchObject({
+      id: `free-${U.positions + 1}`,
+      title: 'Expeditionsposition [1:2:16]',
+    });
+  });
+
+  it('gives a moon its own sheet', () => {
+    const v = view({
+      galaxy: [place('planet', 6, 'u3'), place('moon', 6, 'u3', 'Luna')],
+      ui: { gmoon: 'm1_2_6' },
+    });
+    expect(rowAt(v, 6).moon!.sheet).toMatchObject({
+      id: 'm1_2_6',
+      title: 'Luna (Mond) [1:2:6]',
+    });
+  });
+
+  it('names the flight time of all ships that fly, at full speed', () => {
+    const v = view({
+      galaxy: [place('planet', 6, 'u3')],
+      P: { ships: { lc: 2, probe: 1, sat: 5 } },
+    });
+    // The slowest ship that flies sets the speed: the satellite does not fly.
+    const ms = flightMs(
+      distance({ g: 1, s: 2, p: 5 }, { g: 1, s: 2, p: 6 }),
+      fleetSpeed({ lc: 2, probe: 1 }, v.R),
+      10,
+      U,
+    );
+    expect(rowAt(v, 6).planet!.sheet!.flight).toBe(
+      `Flugzeit mit allen Schiffen: ${dur(ms)}`,
+    );
+  });
+
+  it('names no flight time without a ship that flies', () => {
+    const v = view({
+      galaxy: [place('planet', 6, 'u3')],
+      P: { ships: { sat: 5, lc: 0 } },
+    });
+    expect(rowAt(v, 6).planet!.sheet!.flight).toBeNull();
+  });
+
+  it('opens the sheet that ui.gsheet names, while its place is on the page', () => {
+    const base = { galaxy: [place('planet', 6, 'u3')] };
+    expect(galaxyPage(view(base)).sheet).toBeNull();
+    expect(
+      galaxyPage(view({ ...base, ui: { gsheet: 'p1_2_6' } })).sheet?.id,
+    ).toBe('p1_2_6');
+    // Another system, an unknown id or none.
+    expect(
+      galaxyPage(view({ ...base, ui: { gsheet: 'p1_3_6' } })).sheet,
+    ).toBeNull();
+    expect(
+      galaxyPage(view({ ...base, ui: { gsheet: null } })).sheet,
+    ).toBeNull();
+    expect(
+      galaxyPage(view({ ...base, ui: { gsheet: 'free-9' } })).sheet,
+    ).toBeNull();
+    // A free position and a moon.
+    const free = view({ debris: [field(9)], ui: { gsheet: 'free-9' } });
+    expect(galaxyPage(free).sheet?.id).toBe('free-9');
   });
 });

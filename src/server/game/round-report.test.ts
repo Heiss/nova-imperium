@@ -154,7 +154,12 @@ describe('who may open a report (#235, access contract)', () => {
   it('gives the admin the running round as a provisional report and writes nothing', () => {
     const ctx = twoRounds();
     ctx.clock.t += DAY;
-    const events = ctx.rounds.countEvents(2);
+    // Not counted: the journal writes the read itself as an action of the admin.
+    const events = () =>
+      ctx.rounds.events(2).filter((e) => !e.kind.startsWith('journal.'));
+    const before = events();
+    // The seats of the round were given when the players joined (#235 events).
+    const seats = ctx.rounds.participants(2);
     const r = report(ctx, 'Ada', 2);
     expect(r.round).toMatchObject({
       provisional: true,
@@ -166,8 +171,8 @@ describe('who may open a report (#235, access contract)', () => {
       ['Ada', 'Anna', 'Bert', 'Dora'].sort(),
     );
     expect(ctx.rounds.get(2)!.status).toBe('active');
-    expect(ctx.rounds.countEvents(2)).toBe(events);
-    expect(ctx.rounds.participants(2)).toEqual([]);
+    expect(events()).toEqual(before);
+    expect(ctx.rounds.participants(2)).toEqual(seats);
     // Reading again changes nothing either.
     expect(report(ctx, 'Ada', 2)).toEqual(r);
   });

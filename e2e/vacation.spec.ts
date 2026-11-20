@@ -10,8 +10,10 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import {
+  galaxyAction,
   galaxyRow,
   nav,
+  optionsSection,
   register,
   seed,
   uniqueName,
@@ -48,6 +50,7 @@ const endButton = (page: Page): Locator =>
 /** The away player starts the vacation mode in the options. */
 async function startVacation(page: Page): Promise<void> {
   await nav(page, 'help');
+  await optionsSection(page, 'Runde');
   await expect(
     page.getByText(
       'Aktivieren kannst du ihn nur, wenn keine eigenen Flotten unterwegs sind und weder gebaut, geforscht noch in der Schiffsschmiede gearbeitet wird.',
@@ -113,7 +116,7 @@ async function visit(page: Page, away: string): Promise<void> {
     .click();
   const row = galaxyRow(page, away);
   await expect(row.getByTitle('Urlaubsmodus')).toHaveText('(u)');
-  await row.getByText('Sturmangriff').click();
+  await (await galaxyAction(page, row, 'Sturmangriff')).click();
   await page.getByLabel('Anzahl Abfangjäger').fill('1');
   await page.getByRole('button', { name: 'Flotte losschicken' }).click();
   await expect(lastToast(page)).toContainText(
@@ -151,6 +154,7 @@ async function vacationFlow(page: Page): Promise<void> {
   await expect(lastToast(page)).toContainText('Urlaubsmodus beendet.');
   await expect(page.locator('h2')).toContainText('Übersicht');
   await nav(page, 'help');
+  await optionsSection(page, 'Runde');
   await expect(startButton(page)).toBeVisible();
   expect(problems).toEqual([]);
 }

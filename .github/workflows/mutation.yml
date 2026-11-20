@@ -1,10 +1,12 @@
 name: Mutation tests (nightly)
 
-# Complete Stryker run every night on main, in 6 shards like the CI (owner,
-# 2026-11-12, #131). It also refreshes the cached result of every shard, the
-# merged report and the weights of every mutant (#141) that the incremental
-# runs of the pull requests start from. "Run workflow" on another branch runs the same complete sharded run
-# there: the proof run of #131 (gh workflow run mutation.yml --ref <branch>).
+# Complete Stryker run every night on main, in the shards of the CI (12 since
+# 2026-11-20, SHARDS in scripts/mutation-shards.ts; owner, 2026-11-12, #131).
+# It also refreshes the cached result of every shard, the merged report and
+# the weights of every mutant (#141) that the incremental runs of the pull
+# requests start from. "Run workflow" on another branch runs the same
+# complete sharded run there: the proof run of #131
+# (gh workflow run mutation.yml --ref <branch>).
 on:
   schedule:
     - cron: '23 2 * * *'
@@ -19,6 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       plan: ${{ steps.plan.outputs.plan }}
+      shards: ${{ steps.plan.outputs.shards }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -56,11 +59,15 @@ jobs:
             stryker-weights-refs/heads/main-
             stryker-report-${{ github.ref }}-
             stryker-report-refs/heads/main-
-      - name: Split the mutated files into 6 shards
+      # The number of shards is SHARDS in scripts/mutation-shards.ts; the
+      # matrix of the shard jobs is the list of their numbers (#141, 2026-11-20).
+      - name: Split the mutated files into shards
         id: plan
         run: |
           plan=$(node scripts/mutation-shards.ts plan)
           echo "plan=$plan" >> "$GITHUB_OUTPUT"
+          shards=$(MUTATION_PLAN="$plan" node scripts/mutation-shards.ts numbers)
+          echo "shards=$shards" >> "$GITHUB_OUTPUT"
       # The new plan and the weights it used, for the gate job.
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -71,13 +78,13 @@ jobs:
           retention-days: 7
 
   mutation-shard:
-    name: Mutation tests (complete, shard ${{ matrix.shard }} of 6)
+    name: Mutation tests (complete, shard ${{ matrix.shard }} of ${{ strategy.job-total }})
     needs: mutation-plan
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4, 5, 6]
+        shard: ${{ fromJSON(needs.mutation-plan.outputs.shards) }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

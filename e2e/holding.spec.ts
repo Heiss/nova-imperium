@@ -7,6 +7,7 @@
 // Desktop and phone.
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import {
+  galaxyAction,
   galaxyRow,
   guildTag,
   nav,
@@ -38,7 +39,9 @@ async function aimAt(
   ships: Record<string, string>,
 ): Promise<void> {
   await openSystemOf(page, host);
-  await galaxyRow(page, host).getByText('Versorgungsflug').click();
+  await (
+    await galaxyAction(page, galaxyRow(page, host), 'Versorgungsflug')
+  ).click();
   for (const [label, n] of Object.entries(ships))
     await page.getByLabel(`Anzahl ${label}`).fill(n);
 }

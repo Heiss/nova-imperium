@@ -29,6 +29,7 @@ import {
   type V,
 } from '../client/views/common.ts';
 import Overview from '../client/views/Overview.svelte';
+import OverviewCards from '../client/views/OverviewCards.svelte';
 import { planet, U } from './fixtures.ts';
 import { fleetView } from './fleet-view.ts';
 import { normalize } from './markup.ts';
@@ -144,6 +145,23 @@ function renderNew(v: V): string {
   }
 }
 
+// One change on purpose (#189, D5, the phone layer; the CSS shows it up to
+// 760 px only): the cards „Läuft“, „Achtung“ and „Bereit“ right after the
+// title. The frozen view gets them from the component itself; what they
+// show is tested in src/client/logic/overview-cards.test.ts and
+// src/client/views/overview-cards.test.ts.
+function withCards(old: string, v: V): string {
+  client.shown = v;
+  try {
+    return old.replace(
+      '</h2>',
+      `</h2>${render(OverviewCards, { props: { v } }).body}`,
+    );
+  } finally {
+    client.shown = null;
+  }
+}
+
 /** The head of the fleet view before #118, with the frozen list of fleets. */
 function fleetHead(v: V): string {
   const slots = fleetSlots(v.R);
@@ -240,7 +258,9 @@ interface Parts {
 function view(x: Parts): V {
   const s = {
     cfg: { ...U, extraFields: x.extraFields },
-    me: { id: 'u1' },
+    me: { id: 'u1', readAt: 0 },
+    // The cards of the phone (#189) read the messages.
+    reports: [],
     // Fleet ids are unique, as the server gives them.
     // A foreign fleet always carries its ships here: one without them
     // shows „Zusammensetzung unbekannt“ (#228), which the frozen view did
@@ -378,7 +398,9 @@ describe('Overview against the view before #118', () => {
   it('renders the overview as before', () => {
     fc.assert(
       fc.property(state, (v) => {
-        expect(normalize(renderNew(v))).toBe(normalize(overview(v)));
+        expect(normalize(renderNew(v))).toBe(
+          normalize(withCards(overview(v), v)),
+        );
       }),
       { seed: 118, numRuns: 300 },
     );
@@ -403,7 +425,9 @@ describe('Overview against the view before #118', () => {
 
   it('renders the hand-built cases as before', () => {
     for (const [name, v] of HAND_BUILT)
-      expect(normalize(renderNew(v)), name).toBe(normalize(overview(v)));
+      expect(normalize(renderNew(v)), name).toBe(
+        normalize(withCards(overview(v), v)),
+      );
   });
 
   // The generated states reach the rare branches by chance only: the sample

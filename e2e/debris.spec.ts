@@ -2,6 +2,7 @@
 // Sternenkarte on a phone.
 import { expect, test } from '@playwright/test';
 import {
+  galaxyAction,
   galaxyRow,
   lastToast,
   login,
@@ -123,12 +124,14 @@ test.describe('fleet and battle (#68)', () => {
         name: 'Trümmerfeld: 1.800 Adamant, 600 Psikristall',
       }),
     ).toBeVisible();
-    await expect(row.getByRole('button', { name: 'Bergung' })).toBeVisible();
+    // The actions of a row are behind its „⋯“ on a phone (#189): the sheet.
+    const harvest = await galaxyAction(page, row, 'Bergung');
+    await expect(harvest).toBeVisible();
     // Against the device width: a too wide table also widens innerWidth.
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth),
     ).toBeLessThanOrEqual(page.viewportSize()!.width);
-    await row.getByRole('button', { name: 'Bergung' }).click();
+    await harvest.click();
     await expect(page.getByLabel('Auftrag')).toHaveValue('harvest');
     expect(w.problems).toEqual([]);
   });

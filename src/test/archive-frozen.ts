@@ -19,13 +19,8 @@ import {
   type HighscoreCategory,
   highscoreNote,
 } from '../client/logic/highscore.ts';
-import {
-  type ArchiveState,
-  COVERAGE,
-  day,
-  daysText,
-  rulesDiff,
-} from '../client/logic/round-archive.ts';
+import { type ArchiveState, rulesDiff } from '../client/logic/round-archive.ts';
+import { COVERAGE, day, daysText } from '../client/logic/round-words.ts';
 
 const rulesHTML = (rules: Record<string, unknown>): string => {
   const diff = rulesDiff(rules);
@@ -59,6 +54,9 @@ function entryRow(e: RoundEntry, admin: boolean): string {
       ? `Platz ${place(e.you)} · ${fmt(e.you.points)} Punkte`
       : `${e.participants ?? 0} Teilnehmer`;
     action = openButton(e.number);
+    // The Rewind of the thin Rewind (#235, view G): for a finished round the reader took part in.
+    if (e.you)
+      action += ` <button class="small" data-act="rewindOpen" data-round="${e.number}">Rewind ansehen</button>`;
     if (admin)
       action += ` <button class="small red" data-act="roundDelete" data-round="${e.number}">Löschen</button>`;
   }
