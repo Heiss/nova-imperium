@@ -346,7 +346,9 @@ describe('Wache stellen und Verbandsangriff say what the rules do', () => {
 
   it('the guard: who may hold, the times, the limits and the fuel', () => {
     const text = words('rule-allies');
-    expect(text).toContain('Halten erlaubt für: Gilde und Freunde');
+    expect(text).toContain(
+      'Verbündete für Halten und Verband: Gilde und Freunde',
+    );
     expect(text).toContain(
       'Die Haltezeit beträgt 0, 1, 2, 4, 8, 16 oder 32 Stunden.',
     );
@@ -359,7 +361,7 @@ describe('Wache stellen und Verbandsangriff say what the rules do', () => {
     );
     expect(
       words('rule-allies', live({ roundAllies: 1, roundHeldSpy: 5 })),
-    ).toContain('Halten erlaubt für: Gilde');
+    ).toContain('Verbündete für Halten und Verband: Gilde');
     // A tenth of the base consumption per ship and hour: 10 Frachtläufer for 8 hours.
     expect(holdFuel({ sc: 10 }, 8)).toBe(
       Math.floor((10 * MOBILE.sc!.fuel * 8) / 10),

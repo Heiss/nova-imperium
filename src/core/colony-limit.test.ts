@@ -10,6 +10,7 @@ import {
   arrivalText,
   COLONY_RANGE,
   colonyLevel,
+  colonyConfirm,
   colonyPreview,
   type ColonyRules,
   colonyRules,
@@ -524,5 +525,34 @@ describe('the line of the research row (#237)', () => {
     expect(researchNote('colonial', cfg(1), 3)).toBe(researchLine(EXAMPLE, 3));
     expect(researchNote('colonial', cfg(0), 3)).toBeNull();
     expect(researchNote('spy', cfg(1), 3)).toBeNull();
+  });
+});
+
+describe('the confirmation of „Neue Runde“ repeats the settings (#237) [V]', () => {
+  it('repeats all four values of the owner`s example', () => {
+    expect(colonyConfirm(EXAMPLE)).toBe(
+      'Die neue Runde startet mit: Maximale Planeten ohne Forschung: 6 · Kolonieforschung: aktiviert · Zusätzliche Planeten je Forschungsstufe: 2 · Maximale Forschungsstufe: 4.',
+    );
+  });
+
+  it('reads 0 as unlimited, for the base limit and for the highest level', () => {
+    expect(colonyConfirm({ ...EXAMPLE, base: 0, research: false })).toBe(
+      'Die neue Runde startet mit: Maximale Planeten ohne Forschung: unbegrenzt · Kolonieforschung: nicht aktiviert.',
+    );
+    expect(colonyConfirm({ ...EXAMPLE, maxLevel: 0 })).toContain(
+      'Maximale Forschungsstufe: unbegrenzt erforschbar.',
+    );
+  });
+
+  it('does not name the hidden values while the research is off', () => {
+    expect(colonyConfirm({ ...EXAMPLE, research: false })).toBe(
+      'Die neue Runde startet mit: Maximale Planeten ohne Forschung: 6 · Kolonieforschung: nicht aktiviert.',
+    );
+  });
+
+  it('is empty outside the ranges and for the research without a base limit', () => {
+    expect(colonyConfirm({ ...EXAMPLE, base: 21 })).toBe('');
+    expect(colonyConfirm({ ...EXAMPLE, base: Number.NaN })).toBe('');
+    expect(colonyConfirm({ ...EXAMPLE, base: 0 })).toBe('');
   });
 });

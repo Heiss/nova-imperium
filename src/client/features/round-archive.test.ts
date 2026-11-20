@@ -83,6 +83,78 @@ describe('opening a report', () => {
   });
 });
 
+describe('the provisional report and the drilldown of the admin (#235, view H)', () => {
+  const PERSON = { seat: 4, name: 'Anna', round: { number: 3 } };
+
+  it('reads the running round again, keeps the category, renders and says so', async () => {
+    const fresh = { round: { number: 3, provisional: true }, rows: [1] };
+    const ctx = fakeCtx({
+      api: api({ roundReport: () => ({ ok: true, data: { report: fresh } }) }),
+    });
+    archive.report = REPORT as never;
+    archive.category = 'fleet';
+    await clientFeature.acts(ctx).roundRefresh!({ round: '3' });
+    expect(ctx.api).toHaveBeenCalledWith('/api/action', {
+      type: 'roundReport',
+      round: 3,
+    });
+    expect(archive.report).toEqual(fresh);
+    expect(archive.category).toBe('fleet');
+    expect(ctx.render).toHaveBeenCalled();
+    expect(ctx.toast).toHaveBeenCalledWith('Vorschau aktualisiert.');
+  });
+
+  it('keeps the old report and shows the refusal when the refresh fails', async () => {
+    const ctx = fakeCtx({
+      api: vi.fn(async () => {
+        throw new Error('Dieser Rundenbericht ist nicht verfügbar.');
+      }),
+    });
+    archive.report = REPORT as never;
+    await clientFeature.acts(ctx).roundRefresh!({ round: '3' });
+    expect(archive.report).toEqual(REPORT);
+    expect(ctx.toast).toHaveBeenCalledWith(
+      'Dieser Rundenbericht ist nicht verfügbar.',
+      true,
+    );
+  });
+
+  it('reads one participant by round and seat, and goes back to the report', async () => {
+    const ctx = fakeCtx({
+      api: api({
+        roundParticipant: () => ({ ok: true, data: { participant: PERSON } }),
+      }),
+    });
+    const acts = clientFeature.acts(ctx);
+    archive.report = REPORT as never;
+    await acts.roundPerson!({ round: '3', seat: '4' });
+    expect(ctx.api).toHaveBeenCalledWith('/api/action', {
+      type: 'roundParticipant',
+      round: 3,
+      seat: 4,
+    });
+    expect(archive.participant).toEqual(PERSON);
+    acts.roundPersonBack!();
+    expect(archive.participant).toBeNull();
+    expect(archive.report).toEqual(REPORT);
+  });
+
+  it('shows the refusal of the server for a participant and keeps the report', async () => {
+    const ctx = fakeCtx({
+      api: vi.fn(async () => {
+        throw new Error('Dieser Rundenbericht ist nicht verfügbar.');
+      }),
+    });
+    archive.report = REPORT as never;
+    await clientFeature.acts(ctx).roundPerson!({ round: '3', seat: '4' });
+    expect(archive.participant).toBeNull();
+    expect(ctx.toast).toHaveBeenCalledWith(
+      'Dieser Rundenbericht ist nicht verfügbar.',
+      true,
+    );
+  });
+});
+
 describe('opening the Rewind', () => {
   const REWIND = { round: 2, cards: [{ kind: 'identity' }] };
   const focus = vi.fn();

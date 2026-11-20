@@ -4,8 +4,9 @@ import { describe, expect, it } from 'vitest';
 import { DAY_MS } from '../../core/activity.ts';
 import { METHOD_VERSION, type Report } from '../../core/playtime.ts';
 import { record } from '../audit.ts';
-import { addUser, testCtx, type TestCtx } from '../test-helpers.ts';
+import { addPlanet, addUser, testCtx, type TestCtx } from '../test-helpers.ts';
 import { GameError } from './context.ts';
+import { runAction } from './dispatch.ts';
 import { playerDetail, playerStats } from './diagnostics.ts';
 import { ownActivity, recordPlaytime } from './playtime.ts';
 
@@ -236,7 +237,7 @@ describe('the own statistics', () => {
     );
   });
 
-  it('counts the successful actions per day from the audit log', () => {
+  it('counts the successful actions of the days from before the journal from the audit log', () => {
     const ctx = testCtx(10 * DAY_MS + 1000);
     const u = addUser(ctx, 'Anna');
     record(ctx, { category: 'game', action: 'build', actor: u.id });
@@ -254,6 +255,7 @@ describe('the own statistics', () => {
       requestId: null,
       detail: '{}',
     });
+    // The journal has recorded nothing yet: the audit log is the only source.
     expect(ownActivity(ctx, u).days.slice(0, 2)).toMatchObject([
       { actions: 1 },
       { actions: 1 },
@@ -336,6 +338,92 @@ describe('the own statistics', () => {
     activeFor(ctx, u, 60);
     ctx.db.prepare('DELETE FROM users WHERE id = ?').run(u.id);
     expect(rows(ctx)).toEqual([]);
+  });
+});
+
+describe('the play actions from the round journal (#231, #235)', () => {
+  /** A player with a place, who therefore has a seat, and an admin with one. */
+  function world() {
+    const ctx = testCtx(10 * DAY_MS + 3600_000);
+    const u = addUser(ctx, 'Anna');
+    const admin = addUser(ctx, 'Ada', { admin: true });
+    addPlanet(ctx, u.id, { g: 1, s: 1, p: 1 });
+    addPlanet(ctx, admin.id, { g: 1, s: 1, p: 2 });
+    return { ctx, u, admin };
+  }
+  const today = (ctx: TestCtx, u: ReturnType<typeof addUser>): number =>
+    ownActivity(ctx, u).days[0]!.actions;
+  const play = (ctx: TestCtx, u: ReturnType<typeof addUser>, n = 1): void => {
+    for (let i = 0; i < n; i++) runAction(ctx, u.id, { type: 'roundArchive' });
+  };
+
+  it('counts every succeeded action of the account, a read too, as the audit count did', () => {
+    const { ctx, u } = world();
+    play(ctx, u, 3);
+    expect(today(ctx, u)).toBe(3);
+  });
+
+  it('does not count a refused action, an unknown one or an admin action of the account', () => {
+    const { ctx, admin } = world();
+    play(ctx, admin, 2);
+    expect(() => runAction(ctx, admin.id, { type: 'nothing' })).toThrow();
+    expect(() =>
+      runAction(ctx, admin.id, { type: 'build', planet: 'x' }),
+    ).toThrow();
+    runAction(ctx, admin.id, { type: 'closeRound' });
+    expect(today(ctx, admin)).toBe(2);
+  });
+
+  it('counts per UTC day and per account, not those of another seat', () => {
+    const { ctx, u, admin } = world();
+    play(ctx, u, 2);
+    play(ctx, admin, 5);
+    ctx.clock.t += DAY_MS;
+    play(ctx, u, 1);
+    const days = ownActivity(ctx, u).days;
+    expect(days.slice(0, 2).map((d) => d.actions)).toEqual([1, 2]);
+  });
+
+  it('is not removed by the 30-day purge of the audit log', () => {
+    const { ctx, u } = world();
+    for (let i = 0; i < 2; i++)
+      record(ctx, { category: 'game', action: 'roundArchive', actor: u.id });
+    play(ctx, u, 2);
+    ctx.admin.purge(ctx.now() + 1, DAY_MS);
+    expect(
+      ctx.db
+        .prepare('SELECT COUNT(*) AS n FROM audit_events WHERE actor = ?')
+        .get(u.id),
+    ).toEqual({ n: 0 });
+    expect(today(ctx, u)).toBe(2);
+  });
+
+  it('takes a day from before the journal from the audit log and does not show it as zero', () => {
+    const { ctx, u } = world();
+    // Three actions the audit log knew two days before the journal began.
+    for (let i = 0; i < 3; i++)
+      record(ctx, { category: 'game', action: 'build', actor: u.id });
+    ctx.db.prepare('UPDATE audit_events SET time = ?').run(8 * DAY_MS + 5);
+    play(ctx, u, 2);
+    const days = ownActivity(ctx, u).days;
+    expect(days.map((d) => [d.day / DAY_MS, d.actions])).toEqual([
+      [10, 2],
+      [9, 0],
+      [8, 3],
+      [7, 0],
+      [6, 0],
+      [5, 0],
+      [4, 0],
+    ]);
+  });
+
+  it('keeps the count of a round that ended, for the same account', () => {
+    const { ctx, u, admin } = world();
+    play(ctx, u, 2);
+    runAction(ctx, admin.id, { type: 'reset' });
+    // The reset gives the player a place in the new round; the old seat still is theirs.
+    play(ctx, u, 1);
+    expect(today(ctx, u)).toBe(3);
   });
 });
 

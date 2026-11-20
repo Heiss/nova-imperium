@@ -27,6 +27,13 @@ export interface RoundGroup {
    * limit). It gets the number of every member of the group by its `name`.
    */
   preview?: (values: Readonly<Record<string, number>>) => string;
+  /**
+   * The settings of the group chosen, repeated word for word above the
+   * button of the dialog „Neue Runde“, so the admin confirms what they chose
+   * (#237). Written again whenever a field changes; gets the numbers like
+   * `preview`.
+   */
+  confirm?: (values: Readonly<Record<string, number>>) => string;
 }
 
 interface Common<N extends string> {
@@ -251,19 +258,31 @@ export const roundShown = (
 ): boolean =>
   !s.shownWhen || Number(values[s.shownWhen.name]) === s.shownWhen.value;
 
-/** The preview line of a group for the values in its fields; empty for a group without one. */
-export function roundPreview(
+/** The numbers of the members of `group` by their `name`, as its lines are written from them. */
+const membersOf = (
   group: RoundGroup,
   values: Readonly<Record<string, number | boolean>>,
-  settings: readonly RoundSetting[] = ROUND_SETTINGS,
-): string {
-  const own = Object.fromEntries(
+  settings: readonly RoundSetting[],
+): Record<string, number> =>
+  Object.fromEntries(
     settings
       .filter((s) => s.group === group)
       .map((s) => [s.name, Number(values[s.name])]),
   );
-  return group.preview?.(own) ?? '';
-}
+
+/** The confirmation line of a group for the values in its fields; empty for a group without one (#237). */
+export const roundConfirm = (
+  group: RoundGroup,
+  values: Readonly<Record<string, number | boolean>>,
+  settings: readonly RoundSetting[] = ROUND_SETTINGS,
+): string => group.confirm?.(membersOf(group, values, settings)) ?? '';
+
+/** The preview line of a group for the values in its fields; empty for a group without one. */
+export const roundPreview = (
+  group: RoundGroup,
+  values: Readonly<Record<string, number | boolean>>,
+  settings: readonly RoundSetting[] = ROUND_SETTINGS,
+): string => group.preview?.(membersOf(group, values, settings)) ?? '';
 
 /** The id of an entry's field in the dialog: `mainLock` is `round-main-lock`. */
 export const roundFieldId = (s: RoundSetting): string =>

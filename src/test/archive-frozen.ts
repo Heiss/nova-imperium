@@ -75,6 +75,7 @@ function rowHTML(
   i: number,
   cat: HighscoreCategory,
   time: RoundReport['playtime'],
+  detail: string,
 ): string {
   const guild = r.guild ? `[${esc(r.guild.tag)}] ${esc(r.guild.name)}` : '-';
   const ms = time?.[r.seat];
@@ -82,7 +83,7 @@ function rowHTML(
     time === null
       ? ''
       : `<td class="n">${ms === undefined ? '-' : playtimeText(ms)}</td>`;
-  return `<tr class="${r.you ? 'me' : ''}"><td class="n">${i + 1}</td><td>${esc(r.name)}${r.you ? ' (du)' : ''}</td><td class="n">${fmt(r.valuation[cat])}</td><td class="n">${economy(r)}</td><td class="n">${r.planets}</td><td class="n">${r.moons}</td>${played}<td>${guild}</td></tr>`;
+  return `<tr class="${r.you ? 'me' : ''}"><td class="n">${i + 1}</td><td>${esc(r.name)}${r.you ? ' (du)' : ''}</td><td class="n">${fmt(r.valuation[cat])}</td><td class="n">${economy(r)}</td><td class="n">${r.planets}</td><td class="n">${r.moons}</td>${played}<td>${guild}</td>${detail}</tr>`;
 }
 
 /**
@@ -126,7 +127,11 @@ const categoryButtons = (cat: HighscoreCategory): string =>
  * own place, the ranking by a category of the highscore, the guilds and the
  * settings. A provisional report of the admin is marked as such.
  */
-function reportHTML(report: RoundReport, cat: HighscoreCategory): string {
+function reportHTML(
+  report: RoundReport,
+  cat: HighscoreCategory,
+  admin = false,
+): string {
   const r = report.round;
   const banner = r.provisional
     ? `<div class="notice">VORLÄUFIG · nur Spielleitung. Stand ${new Date(r.asOf).toLocaleString('de-DE')}: die Runde läuft noch, der Bericht ist nicht veröffentlicht.</div>`
@@ -136,13 +141,28 @@ function reportHTML(report: RoundReport, cat: HighscoreCategory): string {
     : '';
   const ranked = rankRows(report.rows, cat);
   const rows = ranked
-    .map((x, i) => rowHTML(x, i, cat, report.playtime))
+    .map((x, i) =>
+      rowHTML(
+        x,
+        i,
+        cat,
+        report.playtime,
+        // The drilldown of the admin (#235, view H).
+        admin
+          ? `<td><button class="small" data-act="roundPerson" data-round="${r.number}" data-seat="${x.seat}">Einblick</button></td>`
+          : '',
+      ),
+    )
     .join('');
-  return `<p><button class="small" data-act="roundBack">Zurück zum Archiv</button></p>
+  // „Vorschau aktualisieren“ of the provisional report (#235, view H).
+  const refresh = r.provisional
+    ? ` <button class="small" data-act="roundRefresh" data-round="${r.number}">Vorschau aktualisieren</button>`
+    : '';
+  return `<p><button class="small" data-act="roundBack">Zurück zum Archiv</button>${refresh}</p>
 <h3 id="round-report-h" tabindex="-1">Runde ${r.number}${r.provisional ? ' (vorläufig)' : ''}</h3>${banner}
 <table class="kv"><tr><td>Zeitraum</td><td>${day(r.started)} bis ${day(r.asOf)} · ${daysText(r.days)}</td></tr><tr><td>Teilnehmer</td><td>${report.rows.length}</td></tr><tr><td>Erfassung</td><td>${COVERAGE[r.coverage]}</td></tr>${mine}</table>
 ${categoryButtons(cat)}
-<table class="scores"><tr><th class="n">Platz</th><th>Spieler</th><th class="n">${HIGHSCORE_CATEGORIES[cat]}</th><th class="n">Wirtschaft/h</th><th class="n">Planeten</th><th class="n">Monde</th>${report.playtime === null ? '' : '<th class="n">Spielzeit</th>'}<th>Gilde</th></tr>${rows}</table>
+<table class="scores"><tr><th class="n">Platz</th><th>Spieler</th><th class="n">${HIGHSCORE_CATEGORIES[cat]}</th><th class="n">Wirtschaft/h</th><th class="n">Planeten</th><th class="n">Monde</th>${report.playtime === null ? '' : '<th class="n">Spielzeit</th>'}<th>Gilde</th>${admin ? '<th></th>' : ''}</tr>${rows}</table>
 <div class="dim">${highscoreNote(cat)} Wirtschaft/h: Summe aus Adamant, Psikristall und Promethium je Stunde am Rundenende, ungewichtet. Planeten und Monde am Rundenende.</div>
 ${playtimeNote(report)}
 ${guildsHTML(report.guilds)}${rulesHTML(r.rules)}`;
@@ -175,7 +195,7 @@ export function archiveHTML(a: ArchiveState): string {
 export function adminArchiveHTML(a: ArchiveState): string {
   const close =
     '<p>„Runde abschließen“ speichert die laufende Runde im Archiv. Das Spiel läuft danach weiter, bis du eine neue Runde startest; „Neue Runde“ schließt eine noch laufende Runde selbst ab. Die Endzeit schließt keine Runde ab.</p><p><button class="red" data-act="roundClose">Runde abschließen</button></p>';
-  if (a.report) return reportHTML(a.report, a.category);
+  if (a.report) return reportHTML(a.report, a.category, true);
   if (a.error) return `${close}<p class="notice">${esc(a.error)}</p>`;
   if (a.entries === null)
     return `${close}<p class="dim">Das Archiv wird geladen …</p>`;

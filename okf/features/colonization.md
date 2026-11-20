@@ -132,4 +132,12 @@ The pure rules are in `src/core/colony-limit.ts`, the check of a Landnahme in
   maximale Forschungsstufe“ [V]. No line while a value is outside its range.
 * **[U]** Not built: the live settings in the tab „Universum“ keep their rows
   as they were (the issue describes the hiding and the preview for „Neue Runde“
-  only), and the reset confirmation does not repeat the settings.
+  only).
+* **[E]** „The reset confirmation repeats the exact settings“ (issue #237). Built
+  (2026-11-20) as `confirm` on the group (`roundConfirm`, `colonyConfirm`),
+  a line above the buttons of „Neue Runde“ that follows the fields, [V]
+  wording: „Die neue Runde startet mit: Maximale Planeten ohne Forschung: 6 ·
+  Kolonieforschung: aktiviert · Zusätzliche Planeten je Forschungsstufe: 2 ·
+  Maximale Forschungsstufe: 4.“ A base of 0 reads „unbegrenzt“, a highest level
+  of 0 „unbegrenzt erforschbar“; without the research „Kolonieforschung: nicht
+  aktiviert.“ and no hidden values. Empty outside the ranges.

@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import {
   DELETED_PLAYER,
   type HistoryEntry,
+  type ParticipantReport,
   type RoundEntry,
   type RoundReport,
 } from '../../core/round-report.ts';
@@ -41,6 +42,15 @@ const answer = (ctx: TestCtx, who: string, d: Record<string, unknown>) =>
 
 const report = (ctx: TestCtx, who: string, round: number): RoundReport =>
   answer(ctx, who, { type: 'roundReport', round }).data!.report as RoundReport;
+
+const person = (
+  ctx: TestCtx,
+  who: string,
+  round: number,
+  seat: number,
+): ParticipantReport =>
+  answer(ctx, who, { type: 'roundParticipant', round, seat }).data!
+    .participant as ParticipantReport;
 
 const list = (ctx: TestCtx, who: string): RoundEntry[] =>
   answer(ctx, who, { type: 'roundArchive' }).data!.rounds as RoundEntry[];
@@ -349,5 +359,95 @@ describe('the audit of the reads of the admin', () => {
     report(ctx, 'Anna', 1);
     history(ctx, 'Anna');
     expect(entries(ctx)).toEqual([]);
+  });
+});
+
+describe('the drilldown per participant for the admin (#235, view H)', () => {
+  const seatOf = (ctx: TestCtx, who: string, round: number): number =>
+    report(ctx, 'Ada', round).rows.find((r) => r.name === who)!.seat;
+
+  it('gives the admin one participant of a finished round in full: points, economy, research, places, ships', () => {
+    const ctx = twoRounds();
+    const seat = seatOf(ctx, 'Anna', 1);
+    const p = person(ctx, 'Ada', 1, seat);
+    expect(p).toMatchObject({
+      seat,
+      name: 'Anna',
+      guild: null,
+      vacation: false,
+      round: { number: 1, provisional: false },
+      playtime: 0,
+    });
+    expect(p.valuation.total).toBe(
+      report(ctx, 'Ada', 1).rows.find((r) => r.seat === seat)!.valuation.total,
+    );
+    expect(p.places).toHaveLength(1);
+    expect(p.places[0]).toMatchObject({
+      kind: 'planet',
+      g: 1,
+      s: 1,
+      p: 2,
+      b: { metal: 12, crystal: 8 },
+      ships: { lc: 8 },
+    });
+    expect(p.economy.m).toBeGreaterThan(0);
+  });
+
+  it('gives the admin a participant of the running round as of now and names the report as provisional', () => {
+    const ctx = twoRounds();
+    const dora = seatOf(ctx, 'Dora', 2);
+    const p = person(ctx, 'Ada', 2, dora);
+    expect(p).toMatchObject({
+      name: 'Dora',
+      round: { number: 2, provisional: true, asOf: ctx.now() },
+      playtime: null,
+    });
+    expect(p.places[0]!.b).toEqual({ metal: 3 });
+  });
+
+  it('names the guild of the participant and the pseudonym of a deleted account', () => {
+    const ctx = setup();
+    ctx.guilds.create('g1', 'ABC', 'Die Alten', '', 'u_Anna');
+    runAction(ctx, 'u_Ada', { type: 'reset' });
+    const anna = seatOf(ctx, 'Anna', 1);
+    expect(person(ctx, 'Ada', 1, anna).guild).toEqual({
+      tag: 'ABC',
+      name: 'Die Alten',
+    });
+    deleteAccount(ctx, ctx.players.get('u_Anna')!, 'secret1');
+    expect(person(ctx, 'Ada', 1, anna).name).toBe(DELETED_PLAYER);
+  });
+
+  it('refuses a player, also for their own round and own seat, and sends no account id', () => {
+    const ctx = twoRounds();
+    const bert = seatOf(ctx, 'Bert', 1);
+    expect(() =>
+      answer(ctx, 'Bert', { type: 'roundParticipant', round: 1, seat: bert }),
+    ).toThrow(REFUSED);
+    expect(JSON.stringify(person(ctx, 'Ada', 1, bert))).not.toContain('u_');
+  });
+
+  it('refuses a seat that took no part and a round that does not exist', () => {
+    const ctx = twoRounds();
+    expect(() =>
+      answer(ctx, 'Ada', { type: 'roundParticipant', round: 1, seat: 99 }),
+    ).toThrow(REFUSED);
+    expect(() =>
+      answer(ctx, 'Ada', { type: 'roundParticipant', round: 9, seat: 1 }),
+    ).toThrow(REFUSED);
+  });
+
+  it('is an entry of the log for the admin', () => {
+    const ctx = twoRounds();
+    const seat = seatOf(ctx, 'Anna', 1);
+    person(ctx, 'Ada', 1, seat);
+    const rows = ctx.db
+      .prepare(
+        "SELECT actor, action, detail FROM audit_events WHERE action = 'roundParticipant'",
+      )
+      .all() as { actor: string; action: string; detail: string }[];
+    expect(rows.map((e) => [e.actor, JSON.parse(e.detail)])).toEqual([
+      ['u_Ada', { round: 1, seat }],
+    ]);
   });
 });

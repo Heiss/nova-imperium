@@ -109,7 +109,8 @@ are [Activity indicators](/features/activity-indicators.md).
 * **[V]** The own view reads `GET /api/own-activity`, the account taken from
   the session, never from the request. It shows today, the last 7 days, the
   running round and all rounds as the estimated active time, a table of the 7
-  UTC days with the successful actions of the audit log (kept 30 days),
+  UTC days with the successful actions of the round journal (#231, see
+  „The play actions from the journal“),
   „Zuletzt aktiv“ (the end of the last interaction) and „Erfasst seit“ (the
   start of the first recorded interval). The method has a version
   (`METHOD_VERSION`, 1) stored with each interval; the view says that earlier
@@ -154,3 +155,31 @@ are [Activity indicators](/features/activity-indicators.md).
   minute. The credited time stays bounded by the real time.
 * **[U]** Whether the player's own view also shows the legacy sums of the
   first days (#231 allows it „labelled incomplete“); built without.
+
+# The play actions from the journal (#231, #235, 2026-11-20)
+
+* **[E]** The retention of #231 follows the round archive: kept until the admin
+  deletes the round (owner, 2026-11-17). The count of „Spielaktionen“ came from
+  `audit_events`, which the 30-day purge deletes; it now comes from the central
+  round journal (`round_events`, `journal.action`, `src/server/game/journal.ts`),
+  `journalActions` in `src/server/game/playtime.ts`.
+* **[V]** The definition is the one of the audit count, matched: an event counts
+  when the action succeeded (`ok` true: a refused action, one stopped by the
+  rate limit and an unknown action do not, as `outcome = 'ok'` did not) and the
+  action is not an admin action (`ADMIN_ACTIONS`, audited as `admin.write`, not
+  as `game`); reads count as before. The account is found by its seat in the
+  rounds (`round_participants`), the day by the time of recording, in UTC.
+* **[V]** Differences that remain: an account without a seat (it holds no place;
+  an admin without a planet) has no attributable events in the journal, the audit
+  count named it by its account; and the journal starts with the update of
+  2026-11-22: it holds no action before it.
+* **[V]** Days before the journal: a day up to and including the one the first
+  journal event fell on shows the larger of the journal and the audit log (kept
+  30 days, the only source of those days), so the box does not show zero for
+  actions that were made; from the day after, the journal alone counts. The
+  fallback ends by itself when those days have left the seven shown. Without
+  the fallback the days before the update would read 0 (one-line change in
+  `dayTable`).
+* **[V]** The admin diagnostics read the same function (`dayTable`) for the
+  daily table of a player and so follow the change; their counters of the
+  last 7 days (`recentActions`, `actions`) still read the audit log.

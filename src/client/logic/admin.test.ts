@@ -13,6 +13,7 @@ const group: RoundGroup = {
   name: 'limit',
   legend: 'Grenze',
   preview: (values) => `${values.cap} von ${values.base}`,
+  confirm: (values) => `Start mit ${values.cap}`,
 };
 const settings: RoundSetting[] = [
   make({
@@ -127,6 +128,7 @@ describe('the dialog „Neue Runde“', () => {
           },
         ],
         preview: { name: 'limit', text: '6 von 5' },
+        confirm: { name: 'limit', text: 'Start mit 6' },
       },
       {
         kind: 'field',
@@ -165,7 +167,10 @@ describe('the dialog „Neue Runde“', () => {
 
   it('takes what a new round starts with where the running round has no value', () => {
     const { rows } = roundDialogPage(round, settings, { cap: 0, days: 14 });
-    expect(rows[2]).toMatchObject({ preview: { text: '0 von 5' } });
+    expect(rows[2]).toMatchObject({
+      preview: { text: '0 von 5' },
+      confirm: { text: 'Start mit 0' },
+    });
     expect(rows[4]).toMatchObject({ field: { value: 14 } });
   });
 
@@ -206,6 +211,6 @@ describe('the dialog „Neue Runde“', () => {
     } as unknown as RoundRules;
     const { rows } = roundDialogPage(values, list);
     expect(rows.map((r) => r.kind)).toEqual(['group', 'field', 'field']);
-    expect(rows[0]).toMatchObject({ preview: null });
+    expect(rows[0]).toMatchObject({ preview: null, confirm: null });
   });
 });
