@@ -144,6 +144,9 @@ describe('the body of a battle report', () => {
     );
     expect(battle({ loot: { m: 1, c: 0, d: 0 } })).toContain('Erbeutet');
     expect(battle({ loot: { m: 0, c: 3, d: 0 } })).toContain('Erbeutet');
+    // Resources do not cancel out.
+    expect(battle({ loot: { m: 1, c: 1, d: 0 } })).toContain('Erbeutet');
+    expect(battle({ loot: { m: 1, c: 0, d: 1 } })).toContain('Erbeutet');
   });
 
   it('shows the rebuilt defense only when something was rebuilt', () => {

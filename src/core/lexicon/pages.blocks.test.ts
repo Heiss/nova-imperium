@@ -242,6 +242,16 @@ describe('Sichtbarkeit und Aktivität: the markers of a planet and of an account
     ]);
   });
 
+  it('lists no negative day, whatever the thresholds are', () => {
+    expect(
+      cellsOf(
+        'rule-vision',
+        INACTIVITY,
+        state({ inactiveDays: 0, longInactiveDays: 0 }),
+      ).map(([day]) => day),
+    ).toEqual([0]);
+  });
+
   it('lists each day once, when the thresholds lie close', () => {
     expect(
       cellsOf(
@@ -579,5 +589,49 @@ describe('Wie bekomme ich mehr Informationen über den Gegner?', () => {
       t: 'stand',
       text: 'Dein Stand: Stufe 12 der Auspex-Lehre und 1.000 Spähschädel. Gegen ein Ziel mit gleicher Auspex-Lehre zeigt dein Bericht: Rohstoffe, Flotte, Verteidigung, Gebäude, Forschung.',
     });
+  });
+});
+
+describe('the tables that mark the level of the player', () => {
+  const marked = (id: string, caption: string, s: LexState): number[] =>
+    tableOf(id, caption, s).rows.flatMap((r, i) => (r.mark ? [i] : []));
+
+  it('Raketen: the row of the Plasma-Impulsantrieb, and the stand with its range', () => {
+    const caption = 'Reichweite nach dem Plasma-Impulsantrieb';
+    const at = (impulse: number) => state({}, {}, { research: { impulse } });
+    expect(marked('rule-missiles', caption, at(3))).toEqual([2]);
+    expect(marked('rule-missiles', caption, at(10))).toEqual([5]);
+    expect(marked('rule-missiles', caption, at(4))).toEqual([]);
+    expect(marked('rule-missiles', caption, defaultState())).toEqual([]);
+    const stand = (s: LexState) =>
+      blocks('rule-missiles', 'launch', s).find((b) => b.t === 'stand');
+    expect(stand(at(3))).toEqual({
+      t: 'stand',
+      text: 'Dein Stand: Stufe 3 des Plasma-Impulsantriebs, Reichweite 14 Systeme.',
+    });
+    expect(stand(defaultState())).toEqual({
+      t: 'stand',
+      text: 'Dein Stand: Stufe 0 des Plasma-Impulsantriebs, Reichweite keine.',
+    });
+  });
+
+  it('Raketen: a place or places, as the rules have it', () => {
+    const text = blocks('rule-missiles', 'silo')
+      .filter((b) => b.t === 'text')
+      .map((b) => (b.t === 'text' ? b.text : ''))
+      .join('');
+    expect(text).toContain('{interceptor}');
+    const values = blocks('rule-missiles', 'silo').find((b) => b.t === 'text');
+    if (values?.t !== 'text') throw new Error('no text');
+    expect(values.values!.interceptor).toMatch(/^\d+ Pl(atz|ätze)$/);
+    expect(values.values!.striker).toMatch(/^\d+ Pl(atz|ätze)$/);
+  });
+
+  it('Expeditionen: the row of the Kreuzzugs-Kartografie', () => {
+    const caption = 'Plätze und Haltezeit nach der Stufe in dieser Runde';
+    const at = (expo: number) => state({}, {}, { research: { expo } });
+    expect(marked('rule-expeditions', caption, at(1))).toEqual([0]);
+    expect(marked('rule-expeditions', caption, at(5))).toEqual([3]);
+    expect(marked('rule-expeditions', caption, at(3))).toEqual([]);
   });
 });
