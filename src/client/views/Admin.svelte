@@ -6,7 +6,11 @@
   // `#admin-invitations`): views/admin-panel.ts mounts them after the render,
   // keeps them over a redraw and shows the tab (`aria-selected`, `hidden`).
   // The ids, `data-act`s and form ids are those of features/admin.ts and
-  // features/round-archive.ts; the settings fields are `data-nokeep` because
+  // features/round-archive.ts; the address of the invitation is kept over a
+  // redraw (the poll of the state redraws the page when another player
+  // registers, and an emptied required field would swallow the click on
+  // „Einladen“); a sent invitation clears it by the fresh render. The
+  // settings fields are `data-nokeep` because
   // a kept value could not tell a draft from a value the server changed
   // (logic/settings-draft.ts).
   import type { AdminPage } from '../logic/admin.ts';
@@ -57,13 +61,7 @@
     <Box title="Einladungen">
       <form id="inviteform" class="flex">
         <label for="inv_email">E-Mail-Adresse</label>
-        <input
-          id="inv_email"
-          type="email"
-          required
-          autocomplete="off"
-          data-nokeep
-        />
+        <input id="inv_email" type="email" required autocomplete="off" />
         <button type="submit">Einladen</button>
       </form>
       {#if page.link}

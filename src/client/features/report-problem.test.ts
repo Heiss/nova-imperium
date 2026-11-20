@@ -107,6 +107,24 @@ describe('the forms that send a report', () => {
     expect(ctx.toast).toHaveBeenCalledWith('Danke.');
   });
 
+  it('empties the form that stands on the page when the answer comes, not the one that was sent', async () => {
+    // The poll of the state redraws the page while the report is on its way:
+    // the redraw puts the typed text back into the new form (keepInputs), and
+    // the old, detached form is no longer the one the player sees.
+    const sent = form({ isConnected: false });
+    forms.reportform = sent;
+    const redrawn = form();
+    const ctx = fakeCtx({
+      api: vi.fn(async () => {
+        forms.reportform = redrawn;
+        return { msg: 'Danke.' };
+      }),
+    });
+    await clientFeature.forms(ctx).reportform();
+    expect(redrawn.reset).toHaveBeenCalled();
+    expect(ctx.toast).toHaveBeenCalledWith('Danke.');
+  });
+
   it('does nothing when the form is not on the page', async () => {
     const ctx = fakeCtx();
     await clientFeature.forms(ctx).reportform();

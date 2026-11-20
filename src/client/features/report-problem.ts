@@ -17,7 +17,9 @@ async function submitReport(
   if (!form) return;
   try {
     const j = await api('/api/report', Object.fromEntries(new FormData(form)));
-    form.reset();
+    // A redraw while the report was on its way (the poll of the state) put
+    // the typed text into a new form: empty the one the player sees.
+    ($<HTMLFormElement>(`#${id}`) ?? form).reset();
     // Close the dialog only if it is still this one, not one opened since.
     if (id === 'reportform-dialog' && form.isConnected) modal('');
     toast(String(j.msg));

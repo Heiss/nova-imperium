@@ -179,7 +179,14 @@ test.describe('playing', () => {
     await choosePlanet(page, 'Heimatplanet');
     await expect(stock(page, 'Psikristall')).toHaveText(/^50\.\d{3}$/);
     await nav(page, 'overview');
-    await expect(page.getByText('Machina-Energetik (Stufe 1)')).toBeVisible();
+    // The activity of the overview table. The phone card „Läuft“ (#189) names
+    // it too, hidden on the desktop, so the cell is asked for, not any text.
+    await expect(
+      page.getByRole('cell', {
+        name: 'Machina-Energetik (Stufe 1)',
+        exact: true,
+      }),
+    ).toBeVisible();
     await choosePlanet(page, 'Kolonie');
     await nav(page, 'research');
     await energy.locator('[data-act=cancelResearch]').click();
