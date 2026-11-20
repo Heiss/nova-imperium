@@ -1,6 +1,6 @@
 // The share of a producer on the overview (#118, package 8; formerly in
 // main.ts): choosing a percentage in the table sends it at once. The select
-// is `data-nokeep`: after the answer it shows the state of the server.
+// has no field draft: after the answer it shows the state of the server.
 import { client } from '../logic/state.svelte.ts';
 import type { ClientFeature } from './contract.ts';
 

@@ -8,9 +8,9 @@ import Friends from '../client/views/Friends.svelte';
 import { stripComments } from './markup.ts';
 
 /** The server side writes `value=""` for a field that shows an empty draft; no browser shows it. */
-const NOKEEP_EMPTY = 'data-nokeep="" value=""';
+const EMPTY_DRAFT = 'autocomplete="off" value=""';
 
 export const friendsView = (v: V): string =>
   stripComments(
     render(Friends, { props: { page: friendsPage(v) } }).body,
-  ).replace(NOKEEP_EMPTY, 'data-nokeep=""');
+  ).replace(EMPTY_DRAFT, 'autocomplete="off"');

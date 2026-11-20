@@ -81,7 +81,7 @@ description: 'A client feature exports its handlers as clientFeature from its ow
   (`maintenance.ts`), the toasts with „Problem melden“ (`toast.ts`) and the
   error log (`error-log.ts`) are modules of their own. The state and the
   render are `sync.ts` (apply, act, refresh), `render.ts`, `completions.ts`,
-  `keep-inputs.ts`, `news.ts`, `routing.ts`, `view-address.ts`, `dispatch.ts`
+  `field-drafts.ts`, `news.ts`, `routing.ts`, `view-address.ts`, `dispatch.ts`
   (the click and submit dispatch with the context of the features),
   `clock.ts`, `boot.ts` and `ui-init.ts`. The frame handlers (sheet „Mehr“,
   dialog, planet choice, logout), the share of a producer, the animations,
@@ -92,15 +92,21 @@ description: 'A client feature exports its handlers as clientFeature from its ow
 * **[V]** Forms own their input: „Account löschen“ is a component
   (`views/DeleteAccountDialog.svelte`) with its own password and busy state;
   the message of the guild chat and the name of a new buddy show a draft of
-  `logic/drafts.svelte.ts`, which a redraw of the page does not touch (both
-  fields are `data-nokeep`, so `keepInputs` no longer restores them); a fresh
-  render drops the drafts, as it dropped the typed fields before. The
-  dialogs „Leitung übergeben“ and „Gilde auflösen“ stand in the modal, which
-  a redraw does not replace, and still read their fields by id. The other
-  fields of the views that are mounted anew on every render (fleet, market,
-  options, the guild forms, the profile of a guild and others) still depend
-  on `keepInputs` (`keep-inputs.ts`).
-
+  `logic/drafts.svelte.ts`.
+* **[E]** Owner, 2026-11-20 („all now“): `keepInputs` is gone and so is every
+  `data-nokeep`. **[V]** Every other field of a view with an id has a draft
+  (`logic/field-drafts.ts`, `field-drafts.ts`): the change of a field is
+  recorded when it happens (input and change), a button or feature that fills
+  a field writes it through `writeField` (also `setInput`, `setById`), and a
+  view that is drawn anew gets the drafts back (`restoreFields` in `render.ts`;
+  not onto a disabled option, ticks of the rank boxes, not a disabled box). The
+  drafts are dropped where the typed fields were dropped before: a fresh render
+  and a logout. Fields without a draft show the state of the server: the
+  settings of the universe (`logic/settings-draft.ts` keeps their draft), the
+  link of the invitation, the position of the Sternenkarte and the
+  confirmation of a dissolving; chat and buddy name have their own drafts.
+  `normalize()` of `src/test/markup.ts` ignores `data-nokeep`, so the frozen
+  HTML of the reference tests stays as it was. E2E: `e2e/redraw-drafts.spec.ts`.
 * **[E]** Owner, 2026-11-20: `acts()` and `forms()` are free of side effects.
   A feature registers its page listeners (change, input, keydown, submit,
   window events) in the optional hook `listen(ctx)`, which the assembly calls

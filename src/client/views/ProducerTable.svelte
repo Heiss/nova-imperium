@@ -65,12 +65,7 @@
 
 {#snippet share(row: ProducerRow, set: number)}
   <td data-label={SHARE}
-    ><select
-      data-chg="pct"
-      data-k={row.key}
-      data-nokeep
-      aria-label={name(row.key)}
-    >
+    ><select data-chg="pct" data-k={row.key} aria-label={name(row.key)}>
       {#each SHARES as x (x)}
         <option selected={set === x}>{x}</option>
       {/each}

@@ -1,5 +1,6 @@
 // Small reads and writes of the page that main.ts and the client features
 // share (#322).
+import { writeField } from './field-drafts.ts';
 
 /** The first element that matches. */
 export const $ = <T extends HTMLElement = HTMLElement>(sel: string): T | null =>
@@ -16,7 +17,7 @@ export const byId = (id: string): string =>
 /** Sets the value of a field by its id, when it is there. */
 export const setById = (id: string, value: string): void => {
   const field = document.getElementById(id) as HTMLInputElement | null;
-  if (field) field.value = value;
+  if (field) writeField(field, value);
 };
 
 /**
