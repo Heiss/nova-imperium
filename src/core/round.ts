@@ -131,8 +131,7 @@ export function storedValues(
   const out: Values = {};
   for (const s of settings) {
     const value = stored(s.key);
-    if (value === undefined)
-      out[s.name] = s.unstored ?? s.def;
+    if (value === undefined) out[s.name] = s.unstored ?? s.def;
     else out[s.name] = s.kind === 'switch' ? value !== 0 : value;
   }
   return out;

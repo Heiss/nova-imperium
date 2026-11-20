@@ -16,7 +16,6 @@ export const REBUILD_DRAWN_BELOW = 50;
 
 /** 70 % of the destroyed defense is rebuilt: by chance below 50 units, else rounded. */
 export function rebuild(lost: number, rng: () => number): number {
-  if (lost <= 0) return 0;
   if (lost >= REBUILD_DRAWN_BELOW) return Math.round(lost * REBUILD_SHARE);
   let n = 0;
   for (let i = 0; i < lost; i++) if (rng() < REBUILD_SHARE) n++;
