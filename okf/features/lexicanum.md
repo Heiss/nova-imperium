@@ -235,9 +235,10 @@ their own.
   recall; and the arrival of the alliance depot, which is not built.
 
 * **[V]** „Warp-Tor und Auspex-Phalanx“ (`rule-gates`, #53, #230): the jump
-  (what moves, where, the order of the checks), the cooldown by the level of
+  (what moves, where, the order of the checks), the waiting time by the level of
   the starting gate divided by the universe speed (`gateCooldown`,
-  `gateCooldownMs`; the table up to level 20) and the scan of the
+  `gateCooldownMs`; the table up to level 20; its formula is `gateFormula` of
+  `parts.ts`, shared with the article of the Warp-Tor) and the scan of the
   Auspex-Phalanx (what it shows, its price, what it refuses); the range table
   stays on „Monde“. The classic name of the phalanx is not used, the page is
   titled with the game's own term. No constant moved.

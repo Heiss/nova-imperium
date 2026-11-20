@@ -4,7 +4,7 @@
 // #230); the text and the keywords are drafts ([V],
 // okf/features/lexicanum-texts.md).
 import { gateCooldown, gateCooldownMs } from '../../core/jump-gate.ts';
-import { number } from '../../core/lexicon/parts.ts';
+import { gateFormula, number } from '../../core/lexicon/parts.ts';
 import type {
   Block,
   EntryLexicon,
@@ -58,20 +58,6 @@ export const lexicon: EntryLexicon = {
       },
     },
   ],
-  formulas: [
-    {
-      text: 'Wartezeit in Minuten = Minuten der Tabelle für die Stufe des Starttors ÷ Geschwindigkeit des Universums',
-      fn: (level, speed) => gateCooldown(level!) / speed!,
-      rule: (level, speed) =>
-        gateCooldownMs(level!, { speed: speed! }) / 60_000,
-      samples: [
-        [1, 1],
-        [5, 2],
-        [10, 5],
-        [15, 10],
-        [20, 1],
-      ],
-    },
-  ],
+  formulas: [gateFormula()],
   blocks,
 };

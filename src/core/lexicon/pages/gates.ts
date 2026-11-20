@@ -4,6 +4,7 @@
 // `phalanx.ts`; the words are a draft of Claude for the owner to check ([V],
 // #288). The table of the range by level is on the page „Monde“.
 import { gateCooldown, gateCooldownMs } from '../../jump-gate.ts';
+import { gateFormula } from '../parts.ts';
 import { phalanxRange, SCAN_COST } from '../../phalanx.ts';
 import { duration, formulas, number, say, section, table } from '../say.ts';
 import type { LexState, PageDef, PageSection } from '../types.ts';
@@ -22,30 +23,16 @@ const jumpSection = (): PageSection =>
     ),
   );
 
-const coolFormula = () =>
-  formulas({
-    text: 'Abkühlzeit in Minuten = Minuten der Tabelle für die Stufe des Starttors ÷ Tempo des Universums',
-    fn: (level, speed) => gateCooldown(level!) / speed!,
-    rule: (level, speed) => gateCooldownMs(level!, { speed: speed! }) / 60_000,
-    samples: [
-      [1, 1],
-      [5, 5],
-      [10, 10],
-      [15, 2],
-      [20, 5],
-    ],
-  });
-
 const cooldownSection = (s: LexState): PageSection =>
   section(
     'cooldown',
-    'Abkühlzeit',
+    'Wartezeit nach dem Sprung',
     say(
       'Nach einem Sprung kühlen beide Tore ab, das Starttor und das Zieltor, und zwar so lange, wie die Stufe des Starttors es verlangt; die Stufe des Zieltors ändert nichts daran. Die Zeit sinkt mit der Stufe, aber nicht gleichmäßig, und ab einer Stufe nicht mehr. Die Minuten der Tabelle teilt das Universum durch sein Tempo; ein schnelleres kühlt die Tore also schneller ab. Solange ein Tor abkühlt, kann es weder starten noch Ziel eines Sprungs sein.',
     ),
-    coolFormula(),
+    formulas(gateFormula()),
     table(
-      'Abkühlzeit nach der Stufe des Starttors',
+      'Wartezeit nach der Stufe des Starttors',
       ['Stufe', 'Minuten', 'Zeit in diesem Universum'],
       LEVELS.map((l) => [l, gateCooldown(l), duration(gateCooldownMs(l, s.u))]),
     ),
@@ -75,7 +62,7 @@ export const page: PageDef = {
   kind: 'rule',
   title: 'Warp-Tor und Auspex-Phalanx',
   line: 'Wie Schiffe zwischen eigenen Monden springen, wie lange die Tore danach abkühlen und was ein Scan der Auspex-Phalanx zeigt.',
-  keywords: ['Warp', 'springen', 'Scan', 'Abkühlzeit', 'Phalanx'],
+  keywords: ['Warp', 'springen', 'Scan', 'Wartezeit', 'Phalanx'],
   seeAlso: ['jumpgate', 'phalanx', 'moonbase', 'rule-moons', 'rule-allies'],
   sections: (s) => [jumpSection(), cooldownSection(s), scanSection()],
 };

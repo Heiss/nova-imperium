@@ -292,10 +292,7 @@ describe('Warp-Tor und Auspex-Phalanx say what the rules do', () => {
   });
 
   it('the cooldown is the minutes of the table divided by the speed of the universe', () => {
-    const rows = rowsOf(
-      'rule-gates',
-      'Abkühlzeit nach der Stufe des Starttors',
-    );
+    const rows = rowsOf('rule-gates', 'Wartezeit nach der Stufe des Starttors');
     expect(rows[0]).toEqual(['1', '60', '12 Min. 0 Sek.']);
     expect(rows[9]).toEqual(['10', '17', '3 Min. 24 Sek.']);
     // From level 15 on the time stays the same.
@@ -303,7 +300,7 @@ describe('Warp-Tor und Auspex-Phalanx say what the rules do', () => {
     expect(rows[15]).toEqual(['20', '10', '2 Min. 0 Sek.']);
     const fast = rowsOf(
       'rule-gates',
-      'Abkühlzeit nach der Stufe des Starttors',
+      'Wartezeit nach der Stufe des Starttors',
       withLive({}, { speed: 40 }),
     );
     expect(fast[0]).toEqual(['1', '60', '1 Min. 30 Sek.']);
