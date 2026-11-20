@@ -2,7 +2,7 @@
   // The chat of the own guild (#169): the messages with „Chat lesen“, the text
   // field with „Chat schreiben“. The form is sent by features/social.ts. The
   // field shows the draft of logic/drafts.svelte.ts, which the redraw of the
-  // page does not touch, until the message went through (`data-nokeep`).
+  // page does not touch, until the message went through (`chat_text` has no field draft).
   import { drafts, GUILD_CHAT } from '../logic/drafts.svelte.ts';
   import type { ChatBoxModel } from '../logic/guilds.ts';
   import Box from './Box.svelte';
@@ -22,7 +22,6 @@
         maxlength={chat.max}
         required
         autocomplete="off"
-        data-nokeep
         value={drafts.get(GUILD_CHAT)}
         oninput={(e) => drafts.set(GUILD_CHAT, e.currentTarget.value)}
       />

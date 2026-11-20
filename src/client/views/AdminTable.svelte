@@ -8,10 +8,23 @@
   import {
     filterByReference,
     openAdminTab,
+    panels,
     setMoon,
   } from '../logic/admin-panels.svelte.ts';
 
   let { table }: { table: TablePage } = $props();
+
+  /**
+   * The click on a summary is recorded at once, not with the `toggle` event
+   * that follows a task later: a redraw by the poll in between would mount
+   * the details closed again. The store opens or closes them; the click's
+   * own toggle is stopped, or it would undo that.
+   */
+  function flip(event: MouseEvent, key: string): void {
+    event.preventDefault();
+    const details = (event.currentTarget as HTMLElement).parentElement;
+    panels.setOpen(key, !(details as HTMLDetailsElement).open);
+  }
 
   function moon(event: SubmitEvent, planet: string): void {
     event.preventDefault();
@@ -59,8 +72,14 @@
                   {@render reference(cell.id, cell.id)}
                 {:else if cell.kind === 'event'}
                   {@const e = cell.detail}
-                  <details>
-                    <summary>{e.title} {e.id}</summary>{#if e.request}<div>
+                  <details
+                    open={panels.isOpen(`event:${e.id}`)}
+                    ontoggle={(ev) =>
+                      panels.setOpen(`event:${e.id}`, ev.currentTarget.open)}
+                  >
+                    <summary onclick={(ev) => flip(ev, `event:${e.id}`)}
+                      >{e.title} {e.id}</summary
+                    >{#if e.request}<div>
                         Vorgang <code>{e.request}</code>
                       </div>{/if}<code>{e.raw}</code>
                     <div class="flex">
@@ -72,8 +91,14 @@
                   </details>
                 {:else if cell.kind === 'error'}
                   {@const e = cell.detail}
-                  <details>
-                    <summary>Eintrag {e.id}</summary>
+                  <details
+                    open={panels.isOpen(`error:${e.id}`)}
+                    ontoggle={(ev) =>
+                      panels.setOpen(`error:${e.id}`, ev.currentTarget.open)}
+                  >
+                    <summary onclick={(ev) => flip(ev, `error:${e.id}`)}
+                      >Eintrag {e.id}</summary
+                    >
                     {#if e.request}<div>
                         Vorgang <code>{e.request}</code>
                       </div>{/if}

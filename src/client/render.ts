@@ -27,7 +27,7 @@ import { renderGate } from './views/vacation-lock.ts';
 import { ANEW, type Mounted, MOUNTED, mountView } from './views/mount.ts';
 import { $, keepChatScroll } from './dom.ts';
 import { rememberCompletions, renderCompletions } from './completions.ts';
-import { keepInputs } from './keep-inputs.ts';
+import { forgetFields, restoreFields } from './field-drafts.ts';
 import { seeNews } from './news-seen.ts';
 import { urlOf } from './view-address.ts';
 import { runAfterRender } from './features/assemble.ts';
@@ -107,12 +107,17 @@ export function render(fresh = false): void {
   const view = $('#view')!;
   if (!client.game) {
     forgetAdminPanel();
+    drafts.reset();
+    forgetFields();
     return renderLoggedOut(view);
   }
   if (renderGate(view, client.game, ui, unmountViews)) return;
   // A fresh render drops what was typed, as it dropped the typed fields.
-  if (fresh) drafts.reset();
-  const restore = keepInputs(view, fresh);
+  if (fresh) {
+    drafts.reset();
+    forgetFields();
+  }
+  const focus = document.activeElement?.id;
   const chatScroll = keepChatScroll(view);
   const now = client.now();
   const previous = client.view;
@@ -124,7 +129,8 @@ export function render(fresh = false): void {
   renderView(view, client.view, fresh);
   renderCompletions(view);
   paintPlanets(view);
-  restore();
+  restoreFields(view);
+  if (focus) document.getElementById(focus)?.focus();
   chatScroll();
   runAfterRender(CLIENT_FEATURES);
 }

@@ -27,23 +27,23 @@ function setAnimations(on: boolean): void {
 }
 
 export const clientFeature = {
-  acts: ({ act }) => {
+  listen: () => {
     document.addEventListener('change', (e) => {
       const el = e.target as HTMLInputElement;
       if (el.id === 'o_anim') setAnimations(el.checked);
     });
-    return {
-      saveopt: () =>
-        act('options', {
-          probes: clampInt(value('#o_probes'), 1, 1e6),
-          explain: value('#o_explain'),
-          levelTable: value('#o_levels'),
-        }),
-      mainPlanet: () => act('mainPlanet', { main: value('#o_main') }),
-      startVacation: () =>
-        window.confirm(confirmText(client.game!.round.vacationHours)) &&
-        act('startVacation'),
-      endVacation: () => act('endVacation'),
-    };
   },
+  acts: ({ act }) => ({
+    saveopt: () =>
+      act('options', {
+        probes: clampInt(value('#o_probes'), 1, 1e6),
+        explain: value('#o_explain'),
+        levelTable: value('#o_levels'),
+      }),
+    mainPlanet: () => act('mainPlanet', { main: value('#o_main') }),
+    startVacation: () =>
+      window.confirm(confirmText(client.game!.round.vacationHours)) &&
+      act('startVacation'),
+    endVacation: () => act('endVacation'),
+  }),
 } satisfies ClientFeature;

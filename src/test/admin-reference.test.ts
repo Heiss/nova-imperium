@@ -511,14 +511,15 @@ describe('Admin against the view before #118, bundle 7', () => {
       'id="announce-text"',
     ])
       expect(html, mark).toContain(mark);
-    // The fields of the settings and of the invitation are not kept by a redraw.
-    expect(html).toMatch(/id="set_speed"[^>]*data-nokeep/);
-    expect(html).toMatch(/id="inv_link"[^>]*data-nokeep/);
+    // The fields of the settings and of the invitation link have no field draft
+    // (logic/field-drafts.ts); the page carries no `data-nokeep` any more.
+    expect(html).toMatch(/id="set_speed"/);
+    expect(html).toMatch(/id="inv_link"/);
+    expect(html).not.toContain('data-nokeep');
     // The address typed into the invitation form is a draft: a redraw by the
     // poll of the state (another player registered) must not empty it, or the
     // click on „Einladen“ finds an empty required field and sends nothing.
     expect(html).toMatch(/id="inv_email"/);
-    expect(html).not.toMatch(/id="inv_email"[^>]*data-nokeep/);
     // The tabs are all there, one per name, the first one selected.
     expect(html.match(/role="tab"/g)).toHaveLength(
       Object.keys(ADMIN_TABS).length,

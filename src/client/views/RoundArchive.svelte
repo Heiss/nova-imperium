@@ -5,6 +5,7 @@
   // „Rundenberichte“. The `data-act`s are those of features/round-archive.ts;
   // the classes of the tables (`scores`, `kv`, `n`, `me`) those of style.css.
   import type { ArchivePage } from '../logic/round-archive.ts';
+  import { panels } from '../logic/admin-panels.svelte.ts';
   import RoundRewind from './RoundRewind.svelte';
 
   let { page }: { page: ArchivePage } = $props();
@@ -129,7 +130,11 @@
       </tbody>
     </table>
   {/if}
-  <details>
+  <details
+    open={panels.isOpen(`rules:${report.heading}`)}
+    ontoggle={(ev) =>
+      panels.setOpen(`rules:${report.heading}`, ev.currentTarget.open)}
+  >
     <summary>Einstellungen dieser Runde</summary>
     {#if report.rules.length}
       <ul>

@@ -36,20 +36,20 @@ function pick({ setInput }: ClientCtx, id: string): void {
 
 /** The data-act handlers of the attack union; the choice in the fleet form is listened to here. */
 export const clientFeature = {
-  acts: (ctx) => {
+  listen: (ctx) => {
     document.addEventListener('change', (e) => {
       const field = e.target as HTMLSelectElement;
       if (field.id === 't_u') pick(ctx, field.value);
     });
-    return {
-      openUnion: (d) => ctx.act('openUnion', { id: d.id }),
-      inviteUnion: async (d) => {
-        const field = `un_name_${d.id}`;
-        const name = byId(field).trim();
-        if (name && (await ctx.act('inviteUnion', { id: d.id, name })))
-          setById(field, '');
-      },
-      joinUnion: (d) => pick(ctx, d.id ?? ''),
-    };
   },
+  acts: (ctx) => ({
+    openUnion: (d) => ctx.act('openUnion', { id: d.id }),
+    inviteUnion: async (d) => {
+      const field = `un_name_${d.id}`;
+      const name = byId(field).trim();
+      if (name && (await ctx.act('inviteUnion', { id: d.id, name })))
+        setById(field, '');
+    },
+    joinUnion: (d) => pick(ctx, d.id ?? ''),
+  }),
 } satisfies ClientFeature;

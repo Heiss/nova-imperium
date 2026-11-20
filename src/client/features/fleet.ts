@@ -6,6 +6,7 @@
 import { settle } from '../../core/settle.ts';
 import type { Planet, Resources } from '../../core/types.ts';
 import { $, val } from '../dom.ts';
+import { writeField } from '../field-drafts.ts';
 import { clampInt, dur, fmt } from '../logic/format.ts';
 import {
   arrivalLine,
@@ -74,9 +75,9 @@ function moonOption(s: GameState): void {
   option.disabled = !moonAt(s.galaxy, to);
   const ui = client.ui;
   if (option.disabled) {
-    if (select.value === 'moon') select.value = 'planet';
+    if (select.value === 'moon') writeField(select, 'planet');
     ui.fk = 'planet';
-  } else if (ui.fk === 'moon') select.value = 'moon';
+  } else if (ui.fk === 'moon') writeField(select, 'moon');
   else if (select.value === 'moon') ui.fk = 'moon';
 }
 
@@ -110,7 +111,7 @@ function missionList(s: GameState, from: string): void {
   );
   const shown = Array.from(list.options, (o) => o.value).join();
   if (shown !== offered.join()) list.innerHTML = html;
-  list.value = selected;
+  writeField(list, selected);
   if (selected) client.ui.fm = selected;
   const send = $<HTMLButtonElement>('#t_send');
   if (send) send.disabled = send.dataset.full === '1' || !list.value;
@@ -155,13 +156,13 @@ const shipInputs = () => document.querySelectorAll<HTMLInputElement>('.fs');
 /** The ship selection: all, none, the most of one kind. */
 const selectionActs = ({ setInput }: ClientCtx): Record<string, Handler> => ({
   fall: () => {
-    shipInputs().forEach(
-      (i) => (i.value = String(client.view!.P.ships[i.dataset.k!] ?? 0)),
+    shipInputs().forEach((i) =>
+      writeField(i, String(client.view!.P.ships[i.dataset.k!] ?? 0)),
     );
     fleetCalc();
   },
   fnone: () => {
-    shipInputs().forEach((i) => (i.value = ''));
+    shipInputs().forEach((i) => writeField(i, ''));
     fleetCalc();
   },
   fmax: (d) => {
@@ -216,7 +217,7 @@ const flightActs = ({
  */
 function quickChoice(ctx: ClientCtx, field: HTMLSelectElement): void {
   const place = client.game?.galaxy.find((p) => p.id === field.value);
-  field.value = '';
+  writeField(field, '');
   if (!place) return;
   ctx.setInput('#t_g', place.g);
   ctx.setInput('#t_s', place.s);
@@ -227,7 +228,7 @@ function quickChoice(ctx: ClientCtx, field: HTMLSelectElement): void {
 
 /** The data-act handlers of the fleet; the form is calculated again on every input. */
 export const clientFeature = {
-  acts: (ctx) => {
+  listen: (ctx) => {
     document.addEventListener('change', (e) => {
       if (client.ui.view !== 'fleet') return;
       const field = (e?.target ?? null) as HTMLSelectElement | null;
@@ -243,8 +244,12 @@ export const clientFeature = {
       )
         fleetCalc();
     });
-    return { ...selectionActs(ctx), ...cargoActs(ctx), ...flightActs(ctx) };
   },
+  acts: (ctx) => ({
+    ...selectionActs(ctx),
+    ...cargoActs(ctx),
+    ...flightActs(ctx),
+  }),
   afterRender: () => {
     if (client.ui.view === 'fleet') fleetCalc();
   },

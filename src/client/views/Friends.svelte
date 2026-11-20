@@ -91,7 +91,6 @@
       maxlength="20"
       required
       autocomplete="off"
-      data-nokeep
       value={drafts.get(FRIEND_NAME)}
       oninput={(e) => drafts.set(FRIEND_NAME, e.currentTarget.value)}
     />

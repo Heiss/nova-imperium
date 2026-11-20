@@ -11,7 +11,7 @@
   // redraw (the poll of the state redraws the page when another player
   // registers, and an emptied required field would swallow the click on
   // „Einladen“); a sent invitation clears it by the fresh render. The
-  // settings fields are `data-nokeep` because
+  // settings fields have no field draft (logic/field-drafts.ts) because
   // a kept value could not tell a draft from a value the server changed
   // (logic/settings-draft.ts).
   import { diagnosticTab, type AdminPage } from '../logic/admin.ts';
@@ -92,7 +92,6 @@
             readonly
             value={page.link}
             aria-label="Einladungslink"
-            data-nokeep
           />
           <button class="small" data-act="copyLink">Kopieren</button>
         </div>
@@ -115,7 +114,7 @@
               <td><label for="set_{row.key}">{row.label}</label></td>
               <td>
                 {#if row.choices}
-                  <select id="set_{row.key}" data-setting={row.key} data-nokeep>
+                  <select id="set_{row.key}" data-setting={row.key}>
                     {#each row.choices as choice (choice.value)}
                       <option value={choice.value} selected={choice.selected}
                         >{choice.label}</option
@@ -130,7 +129,6 @@
                     min={row.min}
                     max={row.max}
                     value={row.value}
-                    data-nokeep
                   />
                   <span class="dim">{row.range}</span>
                 {/if}

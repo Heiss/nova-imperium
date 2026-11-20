@@ -7,7 +7,7 @@ import type { ClientFeature } from './contract.ts';
 const EVERY_MS = 10000;
 
 export const clientFeature = {
-  acts: () => {
+  listen: () => {
     let last = -Infinity;
     const note = (event: Event): void => {
       if (!client.game) {
@@ -27,6 +27,6 @@ export const clientFeature = {
     };
     document.addEventListener('click', note, { capture: true });
     document.addEventListener('keydown', note, { capture: true });
-    return {};
   },
+  acts: () => ({}),
 } satisfies ClientFeature;

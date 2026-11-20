@@ -75,8 +75,15 @@ function createInstall() {
 let install: ReturnType<typeof createInstall> | null = null;
 
 export const clientFeature = {
+  listen: () => {
+    install = createInstall();
+  },
   acts: ({ modal, toast }) => {
-    const state = (install = createInstall());
+    const state = {
+      dismiss: () => install?.dismiss(),
+      prompt: () => install?.prompt() ?? null,
+      used: () => install?.used(),
+    };
     return {
       dismissInstall: () => state.dismiss(),
       installApp: async () => {

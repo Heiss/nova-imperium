@@ -48,7 +48,7 @@ beforeEach(() => {
     },
   });
   client.ui.view = 'achievements';
-  clientFeature.acts(fakeCtx());
+  clientFeature.listen!();
 });
 afterEach(() => vi.unstubAllGlobals());
 

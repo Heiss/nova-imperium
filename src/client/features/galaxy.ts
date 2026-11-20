@@ -103,12 +103,12 @@ const targetActs = ({
 
 /** The data-act handlers of the Sternenkarte; „Enter“ in a field of the position goes there. */
 export const clientFeature = {
-  acts: (ctx) => {
+  listen: (ctx) => {
     const moves = moveActs(ctx);
     document.addEventListener('keydown', (e) => {
       const id = (e.target as HTMLElement).id;
       if (e.key === 'Enter' && id?.startsWith('g_')) moves.ggo!({});
     });
-    return { ...moves, ...targetActs(ctx) };
   },
+  acts: (ctx) => ({ ...moveActs(ctx), ...targetActs(ctx) }),
 } satisfies ClientFeature;
