@@ -65,7 +65,7 @@ export function marketPage(v: V): MarketPage {
   if (m.level < 1)
     return {
       kind: 'notice',
-      text: `${tradeNote('noPost', m, 'm')} Baue ihn unter „Gebäude“.`,
+      text: `${tradeNote('noPost', m, undefined)} Baue ihn unter „Gebäude“.`,
     };
   const d = fixed(draft);
   const p = preview(m, d);
