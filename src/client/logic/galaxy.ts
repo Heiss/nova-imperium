@@ -309,6 +309,26 @@ const expedition = (v: V, c: Coords): GalaxyAction[] =>
 /** The note of the expedition position, in place of a free one. */
 const EXPEDITION_NOTE = 'Expeditionsposition';
 
+/** A row without a planet: its note, actions and marks, and the sheet of its actions (#189). */
+function emptyRow(
+  v: V,
+  c: Coords,
+  marks: string[],
+  actions: GalaxyAction[],
+  note: string,
+  title: string,
+): GalaxyRow {
+  return {
+    position: c.p,
+    planet: null,
+    marks,
+    actions,
+    note,
+    moon: null,
+    sheet: sheetOf(v, `free-${c.p}`, `${title} ${coords(c)}`, c, actions),
+  };
+}
+
 /** The row of position `p` of the shown system. */
 function galaxyRow(v: V, p: number, rk: Record<string, number>): GalaxyRow {
   const { s, ui } = v;
@@ -327,42 +347,29 @@ function galaxyRow(v: V, p: number, rk: Record<string, number>): GalaxyRow {
     : [];
   // The position after the last planet position: no planet, only expeditions
   // and the Bergung of its Trümmerfeld (#93).
-  if (p > s.cfg.positions) {
-    const actions = [...expedition(v, c), ...harvest];
-    return {
-      position: p,
-      planet: null,
+  if (p > s.cfg.positions)
+    return emptyRow(
+      v,
+      c,
       marks,
-      actions,
-      note: EXPEDITION_NOTE,
-      moon: null,
-      sheet: sheetOf(
-        v,
-        `free-${p}`,
-        `${EXPEDITION_NOTE} ${coords(c)}`,
-        c,
-        actions,
-      ),
-    };
-  }
+      [...expedition(v, c), ...harvest],
+      EXPEDITION_NOTE,
+      EXPEDITION_NOTE,
+    );
   if (!pl) {
     // A position locked after an abandonment says until when (#224).
     const free = freePosition(s.locks, c, v.now);
-    const actions = [
-      // A locked position offers neither the Landnahme nor the
-      // Vermessen (owner, 2026-11-18, #190); the Bergung stays.
-      ...(free.colonize ? [...colonize(v, c), ...survey(v, c)] : []),
-      ...harvest,
-    ];
-    return {
-      position: p,
-      planet: null,
+    // A locked position offers neither the Landnahme nor the Vermessen
+    // (owner, 2026-11-18, #190); the Bergung stays.
+    const offered = free.colonize ? [...colonize(v, c), ...survey(v, c)] : [];
+    return emptyRow(
+      v,
+      c,
       marks,
-      actions,
-      note: free.note,
-      moon: null,
-      sheet: sheetOf(v, `free-${p}`, `Position ${coords(c)}`, c, actions),
-    };
+      [...offered, ...harvest],
+      free.note,
+      'Position',
+    );
   }
   const planet = place(v, pl, pl.name, rk, harvest);
   return {

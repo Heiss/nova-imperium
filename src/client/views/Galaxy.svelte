@@ -32,14 +32,18 @@
   const opener = (id: string): HTMLElement | null =>
     document.getElementById(`gsheet-${id}`);
 
-  /** A tap on an action closes the sheet and leaves the click to main.ts; the backdrop and „Schließen“ close it and return the focus to the „⋯“. */
-  function tap(e: MouseEvent, sheet: GalaxySheet): void {
+  // Whether the sheet was closed by a tap on one of its actions: that action
+  // goes on (a form, a toast), so the focus is not taken back to the „⋯“.
+  let acted = false;
+
+  /** A tap on an action closes the sheet and leaves the click to main.ts; the backdrop and „Schließen“ close it, and the focus goes back to the „⋯“. */
+  function tap(e: MouseEvent): void {
     const el = e.target as HTMLElement;
-    const act = el.closest('[data-act]');
+    const act = !!el.closest('[data-act]');
     if (!act && el !== dialog && !el.closest('.sheet-close')) return;
+    acted = act;
     client.ui.gsheet = null;
     dialog?.close();
-    if (!act) opener(sheet.id)?.focus();
   }
 </script>
 
@@ -218,10 +222,10 @@
     bind:this={dialog}
     class="sheet gal-sheet"
     aria-labelledby="gsheet-title"
-    onclick={(e) => tap(e, sheet)}
+    onclick={tap}
     onclose={() => {
       client.ui.gsheet = null;
-      if (document.activeElement === document.body) opener(sheet.id)?.focus();
+      if (!acted) opener(sheet.id)?.focus();
     }}
   >
     <div class="sheet-handle" aria-hidden="true"></div>

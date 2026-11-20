@@ -38,6 +38,19 @@ const moveActs = ({ go, render }: ClientCtx): Record<string, Handler> => ({
   },
 });
 
+/**
+ * The focus goes back to the scan button of the planet, while it is shown; on
+ * a phone that button is in the sheet, so it goes to the „⋯“ of the planet
+ * (#189).
+ */
+function focusScanButton(target: string): void {
+  const button = $(`[data-act=gscan][data-id="${CSS.escape(target)}"]`);
+  (button?.offsetParent === null
+    ? $(`#gsheet-${CSS.escape(target)}`)
+    : button
+  )?.focus();
+}
+
 /** What a planet of the map offers: its moon, a scan, the fleet form, a probe. */
 const targetActs = ({
   act,
@@ -59,14 +72,7 @@ const targetActs = ({
     const target = ui.scan?.target;
     ui.scan = null;
     render(true);
-    // The focus goes back to the scan of the planet, while it is shown; on a
-    // phone its button is in the sheet, so the focus goes to the „⋯“ (#189).
-    if (!target) return;
-    const button = $(`[data-act=gscan][data-id="${CSS.escape(target)}"]`);
-    (button?.offsetParent === null
-      ? $(`#gsheet-${CSS.escape(target)}`)
-      : button
-    )?.focus();
+    if (target) focusScanButton(target);
   },
   // The „⋯“ of a position on a phone opens the bottom sheet of its actions (#189).
   gsheet: (d) => {

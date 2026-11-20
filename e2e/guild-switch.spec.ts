@@ -110,12 +110,15 @@ async function accountDeletion(
   ).toBeVisible();
   await expect(page.getByText(LED.box)).toHaveCount(count);
   // The push kinds of the guild chat only in a round with guilds; the
-  // other kinds stay (owner, 2026-11-15).
+  // other kinds stay (owner, 2026-11-15). On a phone they are in the section
+  // „Gerät“ (#189).
+  await optionsSection(page, 'Gerät');
   await expect(page.getByLabel('Neue Version')).toBeVisible();
   for (const kind of GUILD_PUSH)
     await expect(page.getByLabel(kind, { exact: true })).toHaveCount(count);
   if (!guilds)
     found.push(...(await violations(page, 'options without guilds')));
+  await optionsSection(page, 'Konto');
   await page
     .getByRole('button', { name: 'Account löschen', exact: true })
     .click();
