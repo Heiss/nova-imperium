@@ -1,5 +1,6 @@
 // Test setup for the server: a real SQLite database in memory, a clock the
 // test moves, a seeded random generator and readable ids.
+import Database from 'better-sqlite3';
 import { seeded } from '../test/fixtures.ts';
 import { DEFAULT_EXPLAIN } from '../core/explain.ts';
 import { DEFAULT_LEVEL_MODE } from '../core/level-overview.ts';
@@ -17,10 +18,26 @@ export interface TestCtx extends Ctx {
   store: Store;
 }
 
+let template: Buffer | undefined;
+
+/**
+ * A new migrated in-memory database. The migrations run once per test file;
+ * every further database is a copy of that result with the pragmas of
+ * `openDatabase` (about 1 ms instead of about 40 ms).
+ */
+function memoryDatabase(): Db {
+  template ??= openDatabase(':memory:').serialize();
+  const db = new Database(template);
+  db.pragma('synchronous = NORMAL');
+  db.pragma('foreign_keys = ON');
+  db.pragma('busy_timeout = 5000');
+  return db;
+}
+
 export function testCtx(
   start = 1_000_000,
   seed = 42,
-  db: Db = openDatabase(':memory:'),
+  db: Db = memoryDatabase(),
 ): TestCtx {
   const clock = { t: start };
   let n = 0;
