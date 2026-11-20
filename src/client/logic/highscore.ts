@@ -3,8 +3,8 @@
 // ranking, the buttons and the note come from here, as the page the component
 // Highscore renders (#118, bundle 5).
 import type { V } from '../views/common.ts';
-import { coords, fmt } from './format.ts';
-import { homePlanetOf } from './friends.ts';
+import { fmt } from './format.ts';
+import { type HomeLink, homeLink, homePlanetOf } from './friends.ts';
 import type { Players } from './types.ts';
 
 /** The categories in the order of the buttons; „Gesamt“ first. */
@@ -50,14 +50,6 @@ interface HighscoreButton {
   pressed: boolean;
 }
 
-/** A planet with the link to its system on the Sternenkarte: its name and place. */
-interface HighscoreHome {
-  name: string;
-  g: number;
-  s: number;
-  at: string;
-}
-
 /** One line of the table: the place, the player, the home planet and the points. */
 interface HighscoreRow {
   id: string;
@@ -66,7 +58,7 @@ interface HighscoreRow {
   me: boolean;
   name: string;
   /** A planet, never a moon (#53); none until the player has one. */
-  home: HighscoreHome | null;
+  home: HomeLink | null;
   points: string;
 }
 
@@ -107,12 +99,7 @@ export function highscorePage(v: V): HighscorePage {
         rank: i + 1,
         me: id === v.s.me.id,
         name: x.name,
-        home: home && {
-          name: home.name,
-          g: home.g,
-          s: home.s,
-          at: coords(home),
-        },
+        home: homeLink(home),
         points: fmt(x.points),
       };
     }),
