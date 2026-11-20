@@ -10,7 +10,7 @@ import { viewUrl } from './logic/address.ts';
 import { catalogKind } from './logic/catalog-list.ts';
 import * as demolition from './logic/demolition.ts';
 import { scanOf } from './logic/phalanx.ts';
-import { coords, dur } from './logic/format.ts';
+import { dur } from './logic/format.ts';
 import {
   apiFailure,
   type ClientError,
@@ -26,6 +26,7 @@ import { gameIsBack, maintenanceNotice } from './logic/maintenance.ts';
 import { latestNews, NEWS_SEEN_KEY, type NewsData } from './logic/news.ts';
 import { hiddenView, navigation } from './logic/navigation.ts';
 import { ANIMATION_KEY, animationsOn } from './logic/planet.ts';
+import { homeSystem, login } from './logic/login.ts';
 import { client } from './logic/state.svelte.ts';
 import { resourceBar } from './logic/resource-bar.ts';
 import type { GameState } from './logic/types.ts';
@@ -43,7 +44,6 @@ import { deleteAccountDialog } from './views/misc.ts';
 import { disablePush } from './push.ts';
 import { renderGate } from './views/vacation-lock.ts';
 import { ANEW, type Mounted, MOUNTED, mountView } from './views/mount.ts';
-import { signInWithPasskey } from './passkeys.ts';
 import { $, keepChatScroll, val } from './dom.ts';
 import { modal } from './modal.ts';
 import {
@@ -56,9 +56,6 @@ import { CLIENT_FEATURES } from './features/index.gen.ts';
 
 type Data = Record<string, string | undefined>;
 
-let loginChallenge: string | null = null;
-let rememberLogin = false;
-let resetToken: string | null = null;
 /** The mounted Svelte view and its name. */
 let mounted: Mounted | null = null;
 let lastActivity = -Infinity;
@@ -319,7 +316,7 @@ function apiError(response: Response, error: unknown): Error {
 }
 
 function apply(st: GameState | undefined, fresh = false): void {
-  if (!st || resetToken) return;
+  if (!st || login.resetToken) return;
   const key = JSON.stringify({ ...st, now: 0 });
   const same = key === client.lastKey;
   client.lastKey = key;
@@ -660,25 +657,10 @@ const FRAME: Record<string, (d: Data) => unknown> = {
     ui.auth = 'login';
     render(true);
   },
-  forgot: () => {
-    ui.auth = 'forgot';
-    render(true);
-  },
-  authback: () => {
-    loginChallenge = null;
-    resetToken = null;
-    ui.auth = 'login';
-    render(true);
-  },
-  authswitch: () => {
-    ui.auth = ui.auth === 'register' ? 'login' : 'register';
-    render(true);
-  },
   closeModal: () => modal(''),
   selectPlanet: (d) => {
     if (d.id) return selectPlanet(d.id);
   },
-  passkeyLogin: loginByPasskey,
   deleteAccount: () => modal(deleteAccountDialog(client.game!.round)),
 };
 
@@ -699,117 +681,6 @@ const ACT = assembleActs(FRAME, CLIENT_FEATURES, ctx);
 
 // ----- forms -----
 
-function continueLogin(reply: Record<string, unknown>): boolean {
-  if (!reply.loginRequired && typeof reply.challenge !== 'string') return false;
-  loginChallenge = typeof reply.challenge === 'string' ? reply.challenge : null;
-  ui.auth = loginChallenge ? 'code' : 'login';
-  ui.invite = null;
-  render(true);
-  if (reply.loginRequired) toast('Konto erstellt. Melde dich jetzt an.');
-  return true;
-}
-
-async function submitAuth(): Promise<void> {
-  const reg = ui.auth === 'register' && ui.invite;
-  rememberLogin = Boolean($<HTMLInputElement>('#remember-login')?.checked);
-  const body: Record<string, unknown> = {
-    name: val('#a_name'),
-    password: val('#a_pw'),
-    remember: rememberLogin,
-  };
-  if (reg)
-    Object.assign(body, {
-      token: ui.invite!.token,
-      planet: val('#a_planet'),
-      gal: val('#a_gal'),
-    });
-  try {
-    const j = await api(reg ? '/api/register' : '/api/login', body);
-    if (continueLogin(j)) return;
-    ui.auth = null;
-    ui.invite = null;
-    apply(j.state as GameState);
-    homeSystem();
-    if (reg && client.game?.planet)
-      toast(
-        `Willkommen, ${client.game.me.name}! Dein Planet liegt bei ${coords(client.game.planet)}.`,
-      );
-    render(true);
-  } catch (e) {
-    toast((e as Error).message, true);
-  }
-}
-
-async function loginByPasskey(): Promise<void> {
-  try {
-    const j = await signInWithPasskey(
-      api,
-      Boolean($<HTMLInputElement>('#remember-login')?.checked),
-    );
-    ui.auth = null;
-    apply(j.state as GameState);
-    homeSystem();
-    render(true);
-  } catch (error) {
-    toast((error as Error).message, true);
-  }
-}
-
-async function submitLoginCode(): Promise<void> {
-  try {
-    const j = await api('/api/login/code', {
-      challenge: loginChallenge,
-      code: val('#login_code'),
-      remember: rememberLogin,
-    });
-    loginChallenge = null;
-    ui.auth = null;
-    apply(j.state as GameState);
-    homeSystem();
-    render(true);
-  } catch (e) {
-    toast((e as Error).message, true);
-  }
-}
-
-async function submitForgot(): Promise<void> {
-  try {
-    await api('/api/password/forgot', { email: val('#recovery_email') });
-    ui.auth = 'login';
-    render(true);
-    toast(
-      'Falls die Adresse hinterlegt ist, erhältst du einen Link per E-Mail.',
-    );
-  } catch (e) {
-    toast((e as Error).message, true);
-  }
-}
-
-async function submitPassword(reset: boolean): Promise<void> {
-  const password = val('#pw_next');
-  const confirmation = val('#pw_confirm');
-  if (!reset && password !== confirmation) {
-    toast('Die neuen Passwörter stimmen nicht überein.', true);
-    $('#pw_confirm')?.focus();
-    return;
-  }
-  try {
-    await api(reset ? '/api/password/reset' : '/api/password/change', {
-      password,
-      ...(reset
-        ? { token: resetToken }
-        : { current: val('#pw_current'), confirmation }),
-    });
-    client.game = null;
-    resetToken = null;
-    ui.auth = 'login';
-    render(true);
-    toast('Passwort gespeichert. Melde dich mit deinem neuen Passwort an.');
-  } catch (e) {
-    toast((e as Error).message, true);
-  }
-}
-
 async function submitAccountDeletion(): Promise<void> {
   const button = $<HTMLButtonElement>(
     '#deleteaccountform button[type=submit]',
@@ -829,13 +700,6 @@ async function submitAccountDeletion(): Promise<void> {
   } catch (error) {
     toast((error as Error).message, true);
     button.disabled = false;
-  }
-}
-
-function homeSystem(): void {
-  if (client.game?.planet) {
-    ui.gal = client.game.planet.g;
-    ui.sys = client.game.planet.s;
   }
 }
 
@@ -885,11 +749,6 @@ document.addEventListener('keydown', (e) => {
 });
 const FORMS = assembleForms(
   {
-    authform: submitAuth,
-    codeform: submitLoginCode,
-    forgotform: submitForgot,
-    resetform: () => submitPassword(true),
-    passwordform: () => submitPassword(false),
     deleteaccountform: submitAccountDeletion,
   },
   CLIENT_FEATURES,
@@ -969,8 +828,8 @@ function openReset(): boolean {
   const token = /^#reset=([\w-]{43})$/.exec(location.hash)?.[1];
   if (!token) return false;
   history.replaceState(null, '', location.pathname + location.search);
-  resetToken = token;
-  loginChallenge = null;
+  login.resetToken = token;
+  login.challenge = null;
   client.game = null;
   ui.auth = 'reset';
   render(true);
@@ -1017,7 +876,7 @@ async function boot(): Promise<void> {
   const invite = inviteToken();
   try {
     apply((await api('/api/state')) as unknown as GameState);
-    homeSystem();
+    homeSystem(ui, client.game);
   } catch {
     if (invite) await openInvite(invite);
     ui.auth ??= 'login';
