@@ -20,6 +20,7 @@ import { pushKindsHTML, shownPushOff } from '../logic/push-options.ts';
 import { esc, fmt } from '../logic/format.ts';
 import type { AdminState, GameState } from '../logic/types.ts';
 import { box, type Ui, type V } from './common.ts';
+import type { ClientView } from './contract.ts';
 
 const passwordMinimum = (ui: Ui): string =>
   ui.passwordMinLength === undefined
@@ -344,3 +345,11 @@ export function auth(ui: Ui): string {
  ${reg ? registerRows(ui) : '<tr><td colspan="2"><label><input id="remember-login" type="checkbox"> Login auf diesem Gerät speichern</label></td></tr>'}
  </table><p><button type="submit">${reg ? 'Imperium gründen' : 'Einloggen'}</button> ${back}</p>${note}</form></div></div>`;
 }
+
+export const clientViews = [
+  {
+    key: 'admin',
+    html: admin,
+    menu: { order: 180, label: 'Admin', show: (_round, isAdmin) => isAdmin },
+  },
+] satisfies readonly ClientView[];

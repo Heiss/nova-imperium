@@ -1,20 +1,19 @@
-// The tables of mount.ts and index.ts (#317): the views of their own frame (the
-// views that are not moved into a module of their own yet) plus those of every
-// listed module. A view key, a menu number or a tab number defined twice stops
-// the start with both places named, so no view silently replaces another.
+// The tables of mount.ts and index.ts (#317): the views of every listed module.
+// A view key, a menu number, a tab number or a glyph defined twice stops the
+// start with both files named, so no view silently replaces another.
 import type { V } from './common.ts';
 import type { ClientView, MenuItem, Mount, Tab } from './contract.ts';
 
 /** The modules as the generated list gives them: `[name in this folder, clientViews]`. */
 export type Listed = readonly (readonly [string, readonly ClientView[]])[];
 
-/** A value with the place that defines it, for the message of a clash. */
+/** A value with the file that defines it, for the message of a clash. */
 interface Owned<T> {
   file: string;
   value: T;
 }
 
-/** Everything of one kind, each key once; with a key twice both places are named. */
+/** Everything of one kind, each key once; with a key twice both files are named. */
 function collect<T>(
   kind: string,
   entries: readonly (readonly [string, string, T])[],
@@ -30,9 +29,6 @@ function collect<T>(
   }
   return table;
 }
-
-const values = <T>(table: Map<string, Owned<T>>): T[] =>
-  [...table.values()].map((owned) => owned.value);
 
 const record = <T>(table: Map<string, Owned<T>>): Record<string, T> =>
   Object.fromEntries([...table].map(([key, owned]) => [key, owned.value]));
@@ -57,89 +53,67 @@ function declared<K extends keyof ClientView>(
   );
 }
 
-const MOUNT_FILE = 'src/client/views/mount.ts';
-const INDEX_FILE = 'src/client/views/index.ts';
-
-/** The Svelte views of the frame and of all modules by key, and the keys that mount anew. */
-export function assembleMounts(
-  frame: Readonly<Record<string, Mount>>,
-  frameAnew: readonly string[],
-  listed: Listed,
-): { mount: Record<string, Mount>; anew: ReadonlySet<string> } {
-  const table = collect('view', [
-    ...Object.entries(frame).map(([k, m]) => [k, MOUNT_FILE, m] as const),
-    ...declared(listed, 'mount').map(
-      (d) => [d.view.key, d.file, d.value] as const,
-    ),
-  ]);
+/** The Svelte views of all modules by key, and the keys that mount anew. */
+export function assembleMounts(listed: Listed): {
+  mount: Record<string, Mount>;
+  anew: ReadonlySet<string>;
+} {
+  const table = collect(
+    'view',
+    declared(listed, 'mount').map((d) => [d.view.key, d.file, d.value]),
+  );
   const anew = declared(listed, 'anew')
     .filter((d) => d.value)
     .map((d) => d.view.key);
-  return { mount: record(table), anew: new Set([...frameAnew, ...anew]) };
+  return { mount: record(table), anew: new Set(anew) };
 }
 
-/** The HTML views of the frame and of all modules by key. */
-export function assembleHtml(
-  frame: Readonly<Record<string, (v: V) => string>>,
+/** The HTML views of all modules by key. */
+export const assembleHtml = (
   listed: Listed,
-): Record<string, (v: V) => string> {
-  return record(
-    collect('view', [
-      ...Object.entries(frame).map(([k, h]) => [k, INDEX_FILE, h] as const),
-      ...declared(listed, 'html').map(
-        (d) => [d.view.key, d.file, d.value] as const,
-      ),
-    ]),
+): Record<string, (v: V) => string> =>
+  record(
+    collect(
+      'view',
+      declared(listed, 'html').map((d) => [d.view.key, d.file, d.value]),
+    ),
   );
-}
 
 /** An entry with the key of its view. */
 export type Placed<T> = T & { view: string };
 
-/** Entries by ascending number, each number once: the frame's and those of all modules. */
+/** The entries of all modules by ascending number, each number once. */
 function ordered<T extends MenuItem | Tab>(
   kind: string,
-  frame: readonly Placed<T>[],
   listed: Listed,
   member: 'menu' | 'tab',
 ): readonly Placed<T>[] {
-  const table = collect(kind, [
-    ...frame.map((e) => [String(e.order), INDEX_FILE, e] as const),
-    ...declared(listed, member).map(
-      (d) =>
-        [
-          String(d.value.order),
-          d.file,
-          { ...(d.value as T), view: d.view.key },
-        ] as const,
-    ),
-  ]);
-  return values(table).sort((a, b) => a.order - b.order);
-}
-
-/** The menu entries of the frame and of all modules by ascending number. */
-export const assembleMenu = (
-  frame: readonly Placed<MenuItem>[],
-  listed: Listed,
-): readonly Placed<MenuItem>[] => ordered('menu number', frame, listed, 'menu');
-
-/** The tabs of the frame and of all modules by ascending number. */
-export const assembleTabs = (
-  frame: readonly Placed<Tab>[],
-  listed: Listed,
-): readonly Placed<Tab>[] => ordered('tab number', frame, listed, 'tab');
-
-/** The glyphs of the frame and of all modules by view key. */
-export function assembleGlyphs(
-  frame: Readonly<Record<string, string>>,
-  listed: Listed,
-): Record<string, string> {
-  return record(
-    collect('glyph', [
-      ...Object.entries(frame).map(([k, g]) => [k, INDEX_FILE, g] as const),
-      ...declared(listed, 'glyph').map(
-        (d) => [d.view.key, d.file, d.value] as const,
-      ),
+  const table = collect(
+    kind,
+    declared(listed, member).map((d) => [
+      String(d.value.order),
+      d.file,
+      { ...(d.value as T), view: d.view.key },
     ]),
   );
+  return [...table.values()]
+    .map((owned) => owned.value)
+    .sort((a, b) => a.order - b.order);
 }
+
+/** The menu entries of all modules by ascending number. */
+export const assembleMenu = (listed: Listed): readonly Placed<MenuItem>[] =>
+  ordered('menu number', listed, 'menu');
+
+/** The tabs of all modules by ascending number. */
+export const assembleTabs = (listed: Listed): readonly Placed<Tab>[] =>
+  ordered('tab number', listed, 'tab');
+
+/** The glyphs of all modules by view key. */
+export const assembleGlyphs = (listed: Listed): Record<string, string> =>
+  record(
+    collect(
+      'glyph',
+      declared(listed, 'glyph').map((d) => [d.view.key, d.file, d.value]),
+    ),
+  );

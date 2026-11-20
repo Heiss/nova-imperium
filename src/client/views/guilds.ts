@@ -9,6 +9,7 @@ import type { Dialog } from '../modal.ts';
 import type { V } from './common.ts';
 import GuildDialogs from './GuildDialogs.svelte';
 import Guilds from './Guilds.svelte';
+import type { ClientView } from './contract.ts';
 
 /**
  * „Gilden“ (#118, bundle 6), its data as a property. It is mounted anew on
@@ -16,7 +17,7 @@ import Guilds from './Guilds.svelte';
  * place (`keepChatScroll`) and the ticked rights of a rank are kept by main.ts
  * on the page, as before.
  */
-export function mountGuilds(target: HTMLElement, v: V) {
+function mountGuilds(target: HTMLElement, v: V) {
   const component = mount(Guilds, { target, props: { page: guildsPage(v) } });
   return { destroy: () => void unmount(component) };
 }
@@ -43,3 +44,12 @@ export const dissolveDialog = (
 export const adminChatDialog = (
   ...args: Parameters<typeof adminChatPage>
 ): Dialog => dialog({ dialog: { kind: 'chat', ...adminChatPage(...args) } });
+
+export const clientViews = [
+  {
+    key: 'guilds',
+    mount: mountGuilds,
+    anew: true,
+    menu: { order: 120, label: 'Gilden', show: (round) => round.guilds },
+  },
+] satisfies readonly ClientView[];

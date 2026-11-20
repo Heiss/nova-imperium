@@ -1458,11 +1458,18 @@ src/client/                state, components (generic), views
   view still drawn as a string), `anew` (mounted anew on every render),
   `menu` (`order`, `label`, `show`, `divider`), `glyph` and `tab`. The
   menu order of today is data: the entries stand at 10 to 180 (see `MenuItem`
-  in `contract.ts`). The list is the git-ignored `views.gen.ts`
-  (`CLIENT_VIEWS`); `assemble.ts` puts the frame (what is not moved yet) and
-  the modules together and throws when a key, a menu number or a tab number
-  exists twice, naming both files; the guard is
-  `src/client/views/registry.test.ts`. `main.ts` is not edited.
+  in `contract.ts`), the tabs of a phone at 10 to 40. The list is the
+  git-ignored `views.gen.ts` (`CLIENT_VIEWS`); `assemble.ts` puts the modules
+  together (`MOUNTED`, `ANEW`, `VIEWS`, the menu, the tabs and the glyphs are
+  derived from it) and throws when a key, a menu number, a tab number or a
+  glyph exists twice, naming both files; the guard is
+  `src/client/views/registry.test.ts`. `mount.ts` and `index.ts` name no view
+  and `main.ts` is not edited. Moved with #317: Übersicht, Gebäude, Rohstoffe,
+  Marktplatz, Forschung, Schiffsschmiede, Verteidigung, Flotte, Sternenkarte,
+  Nachrichten, Highscore, Gilden, Freunde, Achievements, Neuigkeiten,
+  Lexicanum, Optionen and Admin; the four lists share `catalog-list.ts`, the
+  glyph helper is `glyph.ts`. The menu, the labels, the glyphs and the tabs
+  stay as they were (`index.test.ts` and `frame-reference.test.ts` check it).
 
 # Migration
 
