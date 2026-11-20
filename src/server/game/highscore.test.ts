@@ -123,6 +123,14 @@ describe('the categories of the highscore (#78)', () => {
     expect(categoryScores(ctx).u_Anna!.defense).toBe(102);
   });
 
+  it('leave missiles out of the defense and count only what fights (#54)', () => {
+    const ctx = testCtx();
+    addUser(ctx, 'Anna');
+    // The orbital missile costs 25,000; a ship in the defense column is no defense either.
+    addPlanet(ctx, 'u_Anna', { def: { rl: 1, ipm: 3, sc: 4 } });
+    expect(categoryScores(ctx).u_Anna!.defense).toBe(2);
+  });
+
   it('round each category down', () => {
     const ctx = testCtx();
     addUser(ctx, 'Anna');
