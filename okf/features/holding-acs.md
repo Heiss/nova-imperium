@@ -379,7 +379,14 @@ Everything below is [V] unless it names an owner's decision.
   share of the first (`attLoot`); the defender and the owners of held fleets
   get the report of the defender, titled „… wird von A, B und C angegriffen“;
   30 % of what every party lost lies as debris; the audit entry names the
-  other fleets.
+  other fleets. **[V]** The browser shows the blocks (found by the E2E spec
+  `e2e/union.spec.ts`, 2026-11-20: it had drawn the leader alone):
+  `attackerSides` of `src/client/logic/report-body.ts` draws „Angreifer
+  <Name>“ with the research and the table of losses for the first attacker
+  and for each further one, in the order they joined and before the
+  defender, and under each block „Erbeutet: …“ with its share when it took
+  any (the existing words of the report; the whole loot stays in the line
+  under the result).
 * **Held fleets.** The fleets that hold at the target defend against the
   whole union, one party each. A fleet that holds at the target and belongs
   to any player of the union stays out of the battle, as the attacker's own
