@@ -8,8 +8,9 @@
 // the test ends it as a browser does when the player leaves the tab: the page
 // becomes hidden (the state and the event of the browser, set by the test),
 // and the page reports its active time up to then.
+import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { nav, register, uniqueName, watch } from './helpers.ts';
+import { nav, optionsSection, register, uniqueName, watch } from './helpers.ts';
 
 /** The box of the play time in „Hilfe & Optionen“. */
 const box = (page: Page): Locator =>
@@ -115,5 +116,40 @@ test.describe('the play time (#231, #232)', () => {
     expect(answers.own.totalMs).toBe(0);
     expect(answers.adminStatus).toBe(400);
     expect([...w.problems, ...wo.problems]).toEqual([]);
+  });
+
+  /** The box with its sums and its table of the days, on any screen. */
+  async function viewBox(page: Page): Promise<void> {
+    const w = watch(page);
+    const name = uniqueName('SpielzeitAxe');
+    await register(page, name);
+    await nav(page, 'help');
+    await optionsSection(page, 'Runde');
+    await expect(sum(page, 'Heute (UTC)')).toBeVisible();
+    await expect(box(page)).toContainText(/Erfasst seit/);
+    // The table of the days fits the screen, and axe finds nothing in the box.
+    expect(
+      await page.evaluate(
+        () =>
+          document.documentElement.scrollWidth -
+          document.documentElement.clientWidth,
+      ),
+    ).toBeLessThanOrEqual(1);
+    const results = await new AxeBuilder({ page })
+      .include('.opt')
+      .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+      .analyze();
+    expect(results.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+    expect(w.problems).toEqual([]);
+  }
+
+  test('the box of the play time has no axe violations', async ({ page }) => {
+    await viewBox(page);
+  });
+
+  test('the box of the play time fits a phone and has no axe violations (#231) @phone', async ({
+    page,
+  }) => {
+    await viewBox(page);
   });
 });

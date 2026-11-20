@@ -6,9 +6,18 @@
 // hook fixes it), so the test checks what holds for every outcome: a report
 // of the expedition with the words of its subject, and the fleet that flies
 // home or is gone as the subject says.
+import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { shipCount } from './fleet-helpers.ts';
-import { nav, ownArea, register, seed, uniqueName, watch } from './helpers.ts';
+import {
+  galaxyAction,
+  nav,
+  ownArea,
+  register,
+  seed,
+  uniqueName,
+  watch,
+} from './helpers.ts';
 
 const lastToast = (page: Page): Locator => page.locator('.toast').last();
 
@@ -165,5 +174,59 @@ test.describe('the expedition (#93)', () => {
           .toBeGreaterThanOrEqual(outcome!.home === 'won' ? 4 : 5);
     }
     expect(w.problems).toEqual([]);
+  });
+
+  /** The Sternenkarte with the expedition position and the form, on any screen. */
+  async function screens(page: Page): Promise<void> {
+    const w = watch(page);
+    const name = uniqueName('EntdeckerAxe');
+    await register(page, name);
+    seed({
+      name,
+      ships: { lc: 5 },
+      research: { expo: 4 },
+      res: { m: 100000, c: 100000, d: 100000 },
+    });
+    await page.reload();
+    const found: string[] = [];
+    const check = async (label: string): Promise<void> => {
+      const reach = await page.evaluate(
+        () =>
+          document.documentElement.scrollWidth -
+          document.documentElement.clientWidth,
+      );
+      if (reach > 1) found.push(`${label}: ${reach} px too wide`);
+      const results = await new AxeBuilder({ page })
+        .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+        .analyze();
+      found.push(
+        ...results.violations.map((v) => `${label}: ${v.id}: ${v.help}`),
+      );
+    };
+    await homeSystem(page);
+    const row = page.locator('table.gal tr', {
+      hasText: 'Expeditionsposition',
+    });
+    await expect(row).toHaveCount(1);
+    await check('Sternenkarte with the expedition position');
+    await (await galaxyAction(page, row, /^Expedition$/)).click();
+    await expect(page.getByLabel('Auftrag')).toHaveValue('expedition');
+    await expect(page.getByLabel('Haltezeit in Stunden')).toBeVisible();
+    await page.getByLabel('Anzahl Lastbarke').fill('2');
+    await check('fleet form of the expedition');
+    expect(found).toEqual([]);
+    expect(w.problems).toEqual([]);
+  }
+
+  test('the expedition position and its fleet form have no axe violations', async ({
+    page,
+  }) => {
+    await screens(page);
+  });
+
+  test('the expedition position and its fleet form fit a phone and have no axe violations (#93) @phone', async ({
+    page,
+  }) => {
+    await screens(page);
   });
 });
