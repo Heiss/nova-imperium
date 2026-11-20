@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { addPlanet, addUser, testCtx } from '../test-helpers.ts';
 import { ACTIONS, runAction } from './dispatch.ts';
+import { causePending } from './journal.ts';
 
 describe('runAction', () => {
   it('lets the fleets that are due arrive before the action runs', () => {
@@ -64,9 +65,12 @@ describe('runAction', () => {
       delete ACTIONS.broken;
     }
     expect(events()).toBe(0);
+    // The failed transaction leaves no cause behind in memory (#235).
+    expect(causePending()).toBe(false);
     expect(() =>
       runAction(ctx, 'u_Anna', { type: 'build', key: 'x' }),
     ).toThrow();
+    expect(causePending()).toBe(false);
     expect(events()).toBeGreaterThan(0);
   });
 });

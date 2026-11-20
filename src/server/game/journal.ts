@@ -50,6 +50,13 @@ export function dropCause(): void {
   active = null;
 }
 
+/**
+ * Whether a cause is still collecting: after an action or an arrival has
+ * ended, written or failed, none may be left, or what a failed transaction
+ * noted would hang on in memory (read by the guard tests).
+ */
+export const causePending = (): boolean => active !== null;
+
 const take = (): Cause => {
   const c = active ?? { prod: [], reports: [] };
   active = null;
