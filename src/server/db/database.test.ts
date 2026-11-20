@@ -13,6 +13,7 @@ import Database from 'better-sqlite3';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import fc from 'fast-check';
 import {
+  databaseAt,
   describeSchema,
   plansBefore,
   populate,
@@ -290,8 +291,11 @@ describe('upgrade of real data with backup and restore', () => {
       })) {
         rmSync(file, { force: true });
         for (const f of readdirSync(dir)) rmSync(path.join(dir, f));
-        const old = openDatabase(file, MIGRATIONS.slice(0, from));
+        // The old database is the kept migrated one of that version, filled
+        // with the generated data and written as the file of an old server.
+        const old = databaseAt(from);
         populate(old, describeSchema(old), plan);
+        writeFileSync(file, old.serialize());
         old.close();
         const before = snapshotOf(file);
 
