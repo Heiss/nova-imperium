@@ -56,6 +56,8 @@ describe('the lock screen', () => {
     expect(lockLeft(state(START), START + 100 * HOUR_MS)).toBe(0);
     expect(lockLeft(state(START, 2), START + HOUR_MS)).toBe(HOUR_MS);
     expect(lockLeft(state(null), START)).toBe(0);
+    // Without a start there is nothing to wait for, whatever the clock says.
+    expect(lockLeft(state(null), 0)).toBe(0);
   });
 
   it('names the time left in the duration format of the client', () => {

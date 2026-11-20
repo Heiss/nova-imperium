@@ -123,7 +123,7 @@ export interface ReportContext {
  * an error message writes it as markup (`reportContextLine`).
  */
 export function reportContextText(
-  c: ReportContext,
+  c: Omit<ReportContext, 'source'>,
   mark: (text: string) => string = (text) => text,
 ): string {
   const parts = [

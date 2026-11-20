@@ -85,7 +85,6 @@ export function optionsPage(v: V): OptionsPage {
       version,
       requestId: requestId ?? '',
       context: reportContextText({
-        source: 'form',
         page: ui.view,
         version,
         requestId,

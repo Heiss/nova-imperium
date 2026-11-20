@@ -204,11 +204,13 @@ function roundRows(
     number | boolean
   >;
   const rows: RoundRow[] = [];
-  for (const [i, s] of settings.entries()) {
+  const drawn = new Set<RoundGroup>();
+  for (const s of settings) {
     const group = s.group;
     if (!group?.legend)
       rows.push({ kind: 'field', field: roundField(s, values[s.name]!) });
-    else if (settings[i - 1]?.group !== group)
+    else if (!drawn.has(group)) {
+      drawn.add(group);
       rows.push({
         kind: 'group',
         legend: group.legend,
@@ -217,6 +219,7 @@ function roundRows(
           .map((x, k) => member(x, k, values)),
         preview: previewOf(group, values, settings),
       });
+    }
   }
   return rows;
 }
