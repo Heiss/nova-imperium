@@ -244,13 +244,40 @@ Up to 760 px only; the desktop stays as it is (D6).
 * **[V]** The Übersicht on a phone: the fleet movements and the activities
   stand above the planet table (CSS `order` only).
 
+## Built (part 2, #189): the cards of the Übersicht
+
+* **[E]** D5: the cards „Läuft“, „Achtung“ and „Bereit“, then the planet
+  facts (owner, 2026-11-14). What counts as „Achtung“ and „Bereit“ is the
+  proposal of the issue; the rest is **[V]**.
+* **[V]** Where: `logic/overview-cards.ts` (pure, tests next to it),
+  `views/OverviewCards.svelte`, mounted by `Overview.svelte` right after the
+  title. The section is `phone-only` (hidden above 760 px, like the filter of
+  the lists); the fleet movements, the planet and the activities below it are
+  unchanged, so the desktop is as before.
+* **[V]** „Läuft“ (always shown): the activities of the shown place, each
+  with its countdown (the clock counts it down) and a bar: building and
+  research over their whole length, the shipyard over the unit that is being
+  built. Empty: „Es läuft gerade nichts.“.
+* **[V]** „Achtung“ (shown only with a line): a hostile fleet on its way to
+  the shown place (Sturmangriff, Mondbruch, missiles; no spy, transport,
+  deployment or holding fleet) as „<Mission> von <Name> [g:s:p]“ with its
+  countdown, the soonest first, at most 3, then „und N weitere Flotten“ with
+  the link „Zur Flotte“; and missing energy as „Zu wenig Energie: es fehlen N“
+  with the link „Zu den Gebäuden“ (the wording of the lists).
+* **[V]** „Bereit“ (shown only with a line): „Erfolg abholbar“, „Tagesbelohnung
+  abholbar“ or both (the wording of the mark on „Achievements“, link
+  „Abholen“) and „N ungelesene Nachrichten“ (singular „1 ungelesene
+  Nachricht“, link „Lesen“). Links are 44 px high.
+* **[V]** Not built: „idle build queue on another planet“ of the proposal. The
+  client knows the queues of the shown place only; the state the server sends
+  has none of the other planets. It needs a small server part of the state
+  (`idle`: the own places without a running building), see the open point in
+  the log entry.
+
 ## Still to do
 
-* D5: the cards „Läuft“, „Achtung“ and „Bereit“ (what counts as „Achtung“
-  and „Bereit“ is in the proposal: an attack on the way, missing energy,
-  a reward, new reports, an idle build queue on another planet). Not built:
-  the Übersicht was being changed by the ACS work (#225) at the
-  same time.
+* D5: the line „Bereit“ for an idle build queue on another planet (needs the
+  server to send the queues of the other places, see above).
 * „Hilfe & Optionen“ in sections, the „⋯“ sheet of the Sternenkarte, a
   filter that remembers itself across a reload, and a check at 44 px of the
   smallest buttons that existed before (`small`).
