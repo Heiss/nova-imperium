@@ -14,6 +14,18 @@
 
   let { table }: { table: TablePage } = $props();
 
+  /**
+   * The click on a summary is recorded at once, not with the `toggle` event
+   * that follows a task later: a redraw by the poll in between would mount
+   * the details closed again. The store opens or closes them; the click's
+   * own toggle is stopped, or it would undo that.
+   */
+  function flip(event: MouseEvent, key: string): void {
+    event.preventDefault();
+    const details = (event.currentTarget as HTMLElement).parentElement;
+    panels.setOpen(key, !(details as HTMLDetailsElement).open);
+  }
+
   function moon(event: SubmitEvent, planet: string): void {
     event.preventDefault();
     const chance = Number(
@@ -65,7 +77,9 @@
                     ontoggle={(ev) =>
                       panels.setOpen(`event:${e.id}`, ev.currentTarget.open)}
                   >
-                    <summary>{e.title} {e.id}</summary>{#if e.request}<div>
+                    <summary onclick={(ev) => flip(ev, `event:${e.id}`)}
+                      >{e.title} {e.id}</summary
+                    >{#if e.request}<div>
                         Vorgang <code>{e.request}</code>
                       </div>{/if}<code>{e.raw}</code>
                     <div class="flex">
@@ -82,7 +96,9 @@
                     ontoggle={(ev) =>
                       panels.setOpen(`error:${e.id}`, ev.currentTarget.open)}
                   >
-                    <summary>Eintrag {e.id}</summary>
+                    <summary onclick={(ev) => flip(ev, `error:${e.id}`)}
+                      >Eintrag {e.id}</summary
+                    >
                     {#if e.request}<div>
                         Vorgang <code>{e.request}</code>
                       </div>{/if}
