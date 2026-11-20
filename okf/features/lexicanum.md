@@ -190,6 +190,22 @@ their own.
 * **[V]** „Optionen“ has a line below its boxes with a link to „Dieses
   Universum“; the old box and its CSS are gone.
 
+# Stage 2, second part: the rules the first part left out (#288)
+
+* **[E]** The rule pages of the missions, the holding, the survey, the
+  expeditions and the moon buildings were left out of the first part and
+  are added by the same pattern, one page per commit (owner's brief,
+  2026-11-20): a page states only what the code does, every number comes
+  from the code or the round at render time, a statement the code and its
+  tests cannot back is left out and reported; the texts are drafts [V]
+  (owner, 2026-11-19, #222) in [Lexicanum texts](/features/lexicanum-texts.md),
+  and the missions and buildings link to the page in „Siehe auch“.
+* **[V]** „Raketen“ (`rule-missiles`, #54): the places of the Raketenkrypta,
+  the launch, the range and flight time of `src/core/missiles.ts`, the
+  impact (Abfangraketen, damage and its order, stored missiles).
+  `hullOf` of `missiles.ts` is exported for the table of structures; no
+  rule changed.
+
 # Stage 3: guides and personal hints (#289)
 
 * **[V]** The three open decisions of the issue were not answered; taken as

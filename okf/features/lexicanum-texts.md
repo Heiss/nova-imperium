@@ -614,6 +614,29 @@ code and here in the same pull request.
 * **[V]** Text: „Der Hauptplanet ist der Planet, den du in den Optionen wählst; ohne Wahl ist es dein erster Planet. Er bestimmt nur, wohin die Navigation springt und wo geforscht wird. Wechselst du, sperrt das den nächsten Wechsel für 7 Tage; der Admin legt das für die Runde fest. Verlierst du den gewählten Planeten, wird der älteste Planet, den du noch hast, zum Hauptplaneten, ohne Sperre. Die Sperre kann der Admin auf 1 bis 30 Tage einstellen.“
 * **[V]** Keywords: Kolonie, Planetengrenze, gründen, aufgeben, Hauptplanet
 
+### Raketen (`rule-missiles`)
+
+* **[V]** Line: „Wo Raketen lagern, wie weit und wie schnell sie fliegen und was sie am Ziel zerstören.“
+* **[V]** Heading: „Raketenkrypta und Raketen“
+* **[V]** Text: „Raketen lagert die Raketenkrypta, und zwar nur auf Planeten, nicht auf einem Mond. Jede Stufe schafft 10 Plätze. Eine Abfangrakete belegt 1 Platz, eine Orbitalrakete 2 Plätze; ein Auftrag, für den der Platz nicht reicht, wird abgelehnt. Gezählt werden die Raketen, die schon lagern, und die, die in der Schiffsschmiede in Auftrag sind. Raketen kämpfen in keinem Kampf mit und zählen nur für die Gesamtpunkte; sie werden gebaut wie Verteidigung.“
+* **[V]** Formula: „Platz für Raketen = 10 · Stufe der Raketenkrypta“
+* **[V]** Heading: „Abschuss, Reichweite und Flugzeit“
+* **[V]** Text: „Orbitalraketen startest du in der Sternenkarte, von einem Planeten, auf dem sie lagern, auf einen fremden Planeten oder Mond in derselben Galaxie. Sie brauchen keinen Flottenslot und lassen sich nicht zurückrufen. Die Reichweite hängt von deinem Plasma-Impulsantrieb ab und zählt in Systemen; ohne den Antrieb ist kein Ziel in Reichweite. Der Abschuss wird verweigert, wenn dort kein Planet oder Mond steht, wenn er dir gehört, wenn er außer Reichweite liegt, wenn sein Besitzer im Urlaubsmodus ist oder unter dem Schutz der Schwachen steht. Die Raketen verlassen die Verteidigung des Startplaneten schon beim Abschuss.“
+* **[V]** Formula: „Reichweite in Systemen = 5 · Stufe des Plasma-Impulsantriebs − 1“
+* **[V]** Formula: „Flugzeit in Sekunden = (30 + 60 · Systeme) ÷ Tempo des Universums“
+* **[V]** Table: „Reichweite nach dem Plasma-Impulsantrieb“
+* **[V]** Table: „Stufe | Reichweite in Systemen“
+* **[V]** Table: „Flugzeit nach der Entfernung in diesem Universum“
+* **[V]** Table: „Systeme | Flugzeit“
+* **[V]** Stand: „Dein Stand: Stufe 0 des Plasma-Impulsantriebs, Reichweite keine.“
+* **[V]** Heading: „Der Einschlag“
+* **[V]** Text: „Am Ziel hält jede Abfangrakete des Verteidigers eine Orbitalrakete auf, an einem Mond die Abfangraketen seines Planeten. Die übrigen Raketen richten Schaden an, und zwar nur an Verteidigung, die im Kampf mitkämpft; Schilde zählen nicht. Der Schaden geht zuerst auf das Hauptziel, wenn du beim Abschuss eines wählst, danach auf alle Arten der Reihe nach: Raketenbatterie, Lichtlanze, Schwere Lichtlanze, Massebeschleuniger, Ionenlanze, Plasmabatterie, Kleiner Schutzdom, Großer Schutzdom. Ein Stück ist zerstört, wenn der Schaden seine ganze Struktur deckt; was für ein weiteres Stück nicht reicht, geht an die nächste Art. Angriff und Struktur steigen mit der Forschung: Waffensegnung beim Angreifer, Adamant-Panzerung beim Verteidiger, je 10 % des Grundwerts je Stufe.“
+* **[V]** Formula: „Zerstörte Stücke der Hauptziel-Art = ⌊(Raketen − abgefangene) · 12.000 · (1 + 0,1 · Stufe der Waffensegnung) ÷ (Struktur · (1 + 0,1 · Stufe der Adamant-Panzerung))⌋, höchstens so viele, wie da sind“
+* **[V]** Table: „Struktur und Zerstörung als Hauptziel, ohne Forschung und ohne Abfangraketen“
+* **[V]** Table: „Verteidigung | Struktur | 1 Orbitalrakete | 5 Orbitalraketen | 10 Orbitalraketen | 25 Orbitalraketen“
+* **[V]** Text: „Ist keine Verteidigung mehr übrig, geht der Rest des Schadens auf die Raketen, die in der Raketenkrypta des Ziels lagern, in der Reihenfolge des Katalogs (Abfangrakete, Orbitalrakete); Abfangraketen, die schon eine Orbitalrakete aufgehalten haben, sind dabei nicht mehr da. Zerstörte Verteidigung wird nicht wieder aufgebaut und hinterlässt kein Trümmerfeld. Beide Seiten bekommen einen Bericht. Steht bei der Ankunft kein fremder Planet oder Mond mehr an der Position, sind die Raketen verloren.“
+* **[V]** Keywords: Raketen, Raketenkrypta, Abfangraketen, Reichweite, Schaden
+
 ### Produktion, Energie und Lager (`rule-production`)
 
 * **[V]** Line: „Was ein Planet fördert, warum eine Mine weniger bringt als angegeben und wo die Förderung endet.“

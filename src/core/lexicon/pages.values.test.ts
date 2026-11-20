@@ -5,6 +5,7 @@
 import { describe, expect, it } from 'vitest';
 import { planet } from '../../test/fixtures.ts';
 import { STATES } from '../../test/lexicon-states.ts';
+import { buildable } from '../catalog.ts';
 import { GUILD_RIGHTS } from '../guild-ranks.ts';
 import { pageParts } from './docs.ts';
 import { PAGES } from './pages/index.ts';
@@ -203,6 +204,56 @@ describe('the rule pages say the values of the rules', () => {
       '1000',
       '200',
     ]);
+  });
+});
+
+describe('the rule pages of the missions say the values of the rules', () => {
+  it('Raketen: places, range, flight time and the damage as the rules have them', () => {
+    const text = words('rule-missiles');
+    expect(text).toContain('Jede Stufe schafft 10 Plätze.');
+    expect(text).toContain(
+      'Eine Abfangrakete belegt 1 Platz, eine Orbitalrakete 2 Plätze',
+    );
+    // The Raketenkrypta stands on planets only, as the page says.
+    expect(buildable('silo', 'moon')).toBe(false);
+    expect(buildable('silo', 'planet')).toBe(true);
+    expect(
+      rowsOf('rule-missiles', 'Reichweite nach dem Plasma-Impulsantrieb'),
+    ).toEqual([
+      ['1', '4'],
+      ['2', '9'],
+      ['3', '14'],
+      ['5', '24'],
+      ['8', '39'],
+      ['10', '49'],
+    ]);
+    // (30 + 60 × 2) / speed 5 = 30 s; at speed 40 it is 3.75 s, shown as 4 s.
+    const flight = (s: LexState) =>
+      rowsOf(
+        'rule-missiles',
+        'Flugzeit nach der Entfernung in diesem Universum',
+        s,
+      );
+    expect(flight(STATES[0]!)[1]).toEqual(['2', '30 Sek.']);
+    expect(flight(STATES[1]!)[1]).toEqual(['2', '4 Sek.']);
+    expect(words('rule-missiles', STATES[1]!)).toContain(
+      'Dein Stand: Stufe 9 des Plasma-Impulsantriebs, Reichweite 44 Systeme.',
+    );
+    expect(words('rule-missiles')).toContain('Reichweite keine.');
+    // 12,000 attack against 200 structure of a Raketenbatterie: 60 pieces per missile.
+    const hits = rowsOf(
+      'rule-missiles',
+      'Struktur und Zerstörung als Hauptziel, ohne Forschung und ohne Abfangraketen',
+    );
+    expect(hits[0]).toEqual([
+      'Raketenbatterie',
+      '200',
+      '60',
+      '300',
+      '600',
+      '1500',
+    ]);
+    expect(hits).toHaveLength(8);
   });
 });
 

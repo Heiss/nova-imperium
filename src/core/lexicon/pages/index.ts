@@ -23,6 +23,7 @@ import { page as guideNext } from './guide-next.ts';
 import { page as guideStart } from './guide-start.ts';
 import { page as highscore } from './highscore.ts';
 import { page as market } from './market.ts';
+import { page as missiles } from './missiles.ts';
 import { page as moons } from './moons.ts';
 import { page as planets } from './planets.ts';
 import { page as production } from './production.ts';
@@ -43,6 +44,7 @@ export const PAGES: readonly PageDef[] = [
   moons,
   planets,
   colonies,
+  missiles,
   production,
   queues,
   protection,
