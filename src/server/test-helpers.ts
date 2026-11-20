@@ -35,16 +35,34 @@ function memoryDatabase(): Db {
 }
 
 /**
+ * Keeps the prepared statements of a database by their SQL text for as long
+ * as it is `on`: the code under test prepares its statements per call, and
+ * `better-sqlite3` would compile the same text again and again. Do not call
+ * `pluck()`, `raw()` or `safeIntegers()` on a statement of a database with
+ * the cache on: the statement is shared by its text. A test that measures
+ * what the production code costs leaves the cache off while it measures.
+ */
+export function statementCache(db: Db): { on(): void; off(): void } {
+  const kept = new Map<string, unknown>();
+  const real = db.prepare;
+  const cached = (sql: string): unknown => {
+    let statement = kept.get(sql);
+    if (!statement) kept.set(sql, (statement = real.call(db, sql)));
+    return statement;
+  };
+  return {
+    on: () => void ((db as { prepare: unknown }).prepare = cached),
+    off: () => void ((db as { prepare: unknown }).prepare = real),
+  };
+}
+
+/**
  * One migrated in-memory database for a property test that builds a world per
- * generated case. `open()` hands out the database as it was migrated and
- * `rewind()` takes every change of the case back (a savepoint, so the
- * database, its statements and its pragmas stay): a case then costs its own
- * rows, not a new database. The code under test prepares its statements per
- * call; they are kept by their SQL text, as `better-sqlite3` would otherwise
- * compile the same text for every call of every case. Do not call `pluck()`,
- * `raw()` or `safeIntegers()` on a statement of this database: the statement
- * is shared by its text. A case that ends in an error is rewound by the next
- * `open()`.
+ * generated case. `open()` hands out the database as it was migrated, with
+ * the statement cache on, and `rewind()` takes every change of the case back
+ * (a savepoint, so the database, its statements and its pragmas stay): a case
+ * then costs its own rows, not a new database. A case that ends in an error
+ * is rewound by the next `open()`.
  */
 export interface CaseDb {
   open(): Db;
@@ -62,15 +80,8 @@ export function caseDatabase(): CaseDb {
   return {
     open() {
       if (!db) {
-        const d = memoryDatabase();
-        const kept = new Map<string, unknown>();
-        const prepare = d.prepare.bind(d) as (sql: string) => unknown;
-        (d as { prepare: unknown }).prepare = (sql: string) => {
-          let statement = kept.get(sql);
-          if (!statement) kept.set(sql, (statement = prepare(sql)));
-          return statement;
-        };
-        db = d;
+        db = memoryDatabase();
+        statementCache(db).on();
       }
       rewind();
       db.exec('SAVEPOINT test_case');
