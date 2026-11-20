@@ -39,8 +39,12 @@ function targetsOf(b: Block): string[] {
 function checkFormula(id: string, f: Formula, line: string | undefined): void {
   expect(line, id).toBe(fill(f.text, f.values));
   expect(line, id).not.toMatch(/\{\w+\}/);
-  for (const x of f.samples)
+  // At least one sample, each with at least a value for every parameter of the function.
+  expect(f.samples.length, `${id}: ${f.text}`).toBeGreaterThan(0);
+  for (const x of f.samples) {
+    expect(x.length, `${id}: ${f.text}`).toBeGreaterThanOrEqual(f.fn.length);
     expect(f.fn(...x), `${id}: ${f.text} at ${x}`).toBeCloseTo(f.rule(...x), 9);
+  }
 }
 
 /** A text block holds no digit, and its values fill every placeholder. */
@@ -50,6 +54,33 @@ function checkText(id: string, b: Block): void {
   for (const name of valueNames(b.text))
     expect(b.values?.[name], `${id}: {${name}}`).toBeDefined();
   expect(fill(b.text, b.values), id).not.toMatch(/\{\w+\}/);
+}
+
+/** The words of a block that a player reads, each one apart. */
+function wordsOf(b: Block): string[] {
+  switch (b.t) {
+    case 'text':
+      return [fill(b.text, b.values)];
+    case 'formula':
+      return b.lines;
+    case 'stand':
+      return [b.text];
+    case 'chips':
+    case 'facts':
+      return b.items.flatMap((i) => [i.label, i.text]);
+    case 'table':
+      return [
+        ...(b.caption === undefined ? [] : [b.caption]),
+        ...b.head,
+        ...b.rows.flatMap((r) =>
+          r.cells.flatMap((c) =>
+            typeof c === 'number' ? [] : [typeof c === 'string' ? c : c.text],
+          ),
+        ),
+      ];
+    case 'links':
+      return [];
+  }
 }
 
 const rank = (kind: PageDef['kind']): number =>
@@ -78,6 +109,24 @@ describe('the written pages of the Lexicanum (#288, #289)', () => {
       for (const x of p.sections(s)) expect(x.title, p.id).not.toMatch(/\d/);
       for (const b of blocksOf(p, s)) checkText(p.id, b);
     }
+  });
+
+  it('has no empty word: every page, section, section address, heading, caption, label and cell says something', () => {
+    for (const p of PAGES) {
+      for (const text of [p.id, p.title, p.line])
+        expect(text.trim(), p.id).not.toBe('');
+      expect(p.keywords.length, p.id).toBeGreaterThan(0);
+      for (const k of p.keywords) expect(k.trim(), p.id).not.toBe('');
+    }
+    for (const { p, s } of CASES)
+      for (const x of p.sections(s)) {
+        expect(x.id.trim(), p.id).not.toBe('');
+        expect(x.title.trim(), p.id).not.toBe('');
+        expect(x.blocks.length, `${p.id}: ${x.id}`).toBeGreaterThan(0);
+        for (const b of x.blocks)
+          for (const w of wordsOf(b))
+            expect(w.trim(), `${p.id}: ${x.id}`).not.toBe('');
+      }
   });
 
   it('links only to articles that exist', () => {
