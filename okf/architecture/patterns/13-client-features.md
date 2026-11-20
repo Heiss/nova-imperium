@@ -103,8 +103,10 @@ description: 'A client feature exports its handlers as clientFeature from its ow
   drafts are dropped where the typed fields were dropped before: a fresh render
   and a logout. Fields without a draft show the state of the server: the
   settings of the universe (`logic/settings-draft.ts` keeps their draft), the
-  link of the invitation, the position of the Sternenkarte and the
-  confirmation of a dissolving; chat and buddy name have their own drafts.
+  link of the invitation and the confirmation of a dissolving (a modal outside
+  `#view`); chat and buddy name have their own drafts. The position of the
+  Sternenkarte (`g_g`, `g_s`) has a draft, kept until Enter, an arrow or
+  „zum Heimatsystem“ draws the page anew (a fresh render drops it).
   `normalize()` of `src/test/markup.ts` ignores `data-nokeep`, so the frozen
   HTML of the reference tests stays as it was. E2E: `e2e/redraw-drafts.spec.ts`.
 * **[E]** Owner, 2026-11-20: `acts()` and `forms()` are free of side effects.

@@ -96,4 +96,26 @@ test.describe('a redraw by the poll keeps the draft of a form', () => {
     );
     expect(w.problems).toEqual([]);
   });
+  test('the position of the Sternenkarte keeps what was typed until Enter', async ({
+    page,
+  }) => {
+    const w = watch(page);
+    const name = uniqueName('EntwurfKarte');
+    await register(page, name);
+    await page.goto('/?view=galaxy');
+    const gal = page.getByLabel('Galaxie', { exact: true });
+    const sys = page.getByLabel('System', { exact: true });
+    await expect(gal).toHaveValue(/^\d+$/);
+    await gal.fill('1');
+    await sys.fill('1');
+
+    await waitForRedraw(page, 'g_g', () =>
+      seed({ name, res: { m: 0, c: 0, d: 10003 } }),
+    );
+    await expect(gal).toHaveValue('1');
+    await expect(sys).toHaveValue('1');
+    await sys.press('Enter');
+    await expect(sys).toHaveValue('1');
+    expect(w.problems).toEqual([]);
+  });
 });

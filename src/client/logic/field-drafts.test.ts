@@ -12,8 +12,6 @@ describe('the fields that have a draft', () => {
     for (const id of [
       'set_speed',
       'inv_link',
-      'g_g',
-      'g_s',
       'dissolve_tag',
       'chat_text',
       'friend_name',
@@ -22,6 +20,8 @@ describe('the fields that have a draft', () => {
     for (const id of [
       'inv_email',
       't_g',
+      'g_g',
+      'g_s',
       'market-amount',
       'o_probes',
       'guild_tag',
@@ -31,6 +31,16 @@ describe('the fields that have a draft', () => {
 });
 
 describe('the drafts of the fields', () => {
+  it('keeps the typed position of the Sternenkarte over a redraw until a fresh render', () => {
+    const drafts = new FieldDrafts();
+    drafts.record(f('g_g', '1'));
+    drafts.record(f('g_s', '1'));
+    expect(drafts.restore(f('g_g', '9'))).toEqual({ value: '1' });
+    expect(drafts.restore(f('g_s', '4'))).toEqual({ value: '1' });
+    drafts.reset();
+    expect(drafts.restore(f('g_g', '9'))).toEqual({});
+  });
+
   it('gives back what was typed after a redraw put the value of the state', () => {
     const drafts = new FieldDrafts();
     drafts.record(f('t_g', '7'));
