@@ -10,7 +10,7 @@ description: 'The job that checks the workflows and the tests of the shell of th
   change (owner, 2026-11-11): actionlint (syntax, expressions, shell) and
   zizmor (security). Every action is pinned to a commit hash with the version
   as a comment; Renovate updates both (`helpers:pinGitHubActionDigests`).
-  **[V]** The comment names the exact release (`# v7.0.1`), never a moving
+  **[E]** (owner, 2026-11-20, #303 option 1) The comment names the exact release (`# v7.0.1`), never a moving
   major tag (`# v7`): when upstream moved such a tag, zizmor reported that
   hash and comment no longer match and „Workflow lint“ failed on every pull
   request (2026-11-18, `actions/create-github-app-token`, set to `# v3.3.0`

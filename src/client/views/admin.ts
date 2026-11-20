@@ -4,25 +4,26 @@ import {
   endzeitDialogPage,
   roundDialogPage,
 } from '../logic/admin.ts';
+import { enterAdminPanels } from '../logic/admin-panels.svelte.ts';
 import type { Dialog } from '../modal.ts';
 import type { V } from './common.ts';
 import type { ClientView } from './contract.ts';
 import Admin from './Admin.svelte';
-import { attachAdminPanel } from './admin-panel.ts';
 import EndzeitDialog from './EndzeitDialog.svelte';
 import RoundDialog from './RoundDialog.svelte';
 
 /**
  * „Admin“ (#118, bundle 7), its data as a property. It is mounted anew on
  * every render, as the HTML view was rendered anew; the panels that fill
- * themselves are put into the new page at once (views/admin-panel.ts), before
- * `keepInputs` of main.ts puts back what was typed.
+ * themselves keep what they loaded and what was typed over it
+ * (logic/admin-panels.svelte.ts), and start for an admin they were not shown
+ * to before.
  */
 function mountAdmin(target: HTMLElement, v: V) {
   const page = adminPage(v);
+  if (page) enterAdminPanels(v.s.me.id, Date.now());
   const component = mount(Admin, { target, props: { page } });
   flushSync();
-  if (page) attachAdminPanel(target, v);
   return { destroy: () => void unmount(component) };
 }
 

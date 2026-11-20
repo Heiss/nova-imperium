@@ -115,8 +115,9 @@ them to Claude for analysis.
   listens to `error` and `unhandledrejection`, reports failed calls from
   `api()` and sends with a plain `fetch`, so a failed report is never
   reported again; nothing is sent while nobody is signed in. The tab
-  „Fehler“ is `src/client/views/admin-errors.ts` with the pager of the event
-  log.
+  „Fehler“ is the component `src/client/views/AdminErrors.svelte`
+  (`errorsPage()` of `logic/admin-panels.ts`, the pager of the event log in
+  `AdminPager.svelte`); the ZIP is saved by `src/client/download.ts`.
 * Tests: `src/server/error-log.test.ts` (scrubbing, limits of the fields,
   merging, list, retention, account deletion), `error-export.test.ts`
   (unzipped JSON lines), `http/errors.test.ts` (sign-in, 20/200 and 5 per

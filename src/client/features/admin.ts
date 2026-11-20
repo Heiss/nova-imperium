@@ -1,10 +1,17 @@
 // The handlers of the admin page: the tabs, the invitations (inviting,
 // copying the link, revoking), the servermessage, the Endzeit (F15, #214) and
 // the settings of the universe. The panels that fill themselves from the
-// server are in views/admin-panel.ts; the page is views/admin.ts (#118,
-// bundle 7).
+// server are components with their state in logic/admin-panels.svelte.ts; the
+// page is views/admin.ts (#118, bundle 7).
 import { $, val } from '../dom.ts';
 import { ADMIN_TABS, type AdminTab } from '../logic/admin.ts';
+import {
+  adminTabKey,
+  bindAdminPanel,
+  forgetAdminPanel,
+  openAdminTab,
+  refreshInvitations,
+} from '../logic/admin-panels.svelte.ts';
 import { endzeitNote } from '../logic/endzeit.ts';
 import { settingsFrom } from '../logic/game.ts';
 import {
@@ -15,14 +22,8 @@ import {
 } from '../logic/settings-draft.ts';
 import { client } from '../logic/state.svelte.ts';
 import type { GameState } from '../logic/types.ts';
+import { downloadErrors } from '../download.ts';
 import { endzeitDialog } from '../views/admin.ts';
-import {
-  adminTabKey,
-  bindAdminPanel,
-  forgetAdminPanel,
-  openAdminTab,
-  refreshInvitations,
-} from '../views/admin-panel.ts';
 import type { ClientCtx, ClientFeature } from './contract.ts';
 
 const draft = newDraft();
@@ -119,7 +120,11 @@ export const clientFeature = {
   forms: adminForms,
   acts: (ctx) => {
     const { act, modal, toast } = ctx;
-    bindAdminPanel(ctx);
+    bindAdminPanel({
+      api: ctx.api,
+      signedOut: ctx.signedOut,
+      download: (body) => downloadErrors(body, ctx.signedOut),
+    });
     document.addEventListener('keydown', adminTabKey);
     watchDrafts();
     return {

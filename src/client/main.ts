@@ -38,7 +38,7 @@ import {
   showNavigation,
   showResourceBar,
 } from './views/frame.ts';
-import { forgetAdminPanel } from './views/admin-panel.ts';
+import { forgetAdminPanel } from './logic/admin-panels.svelte.ts';
 import { mountAuth } from './views/auth.ts';
 import { deleteAccountDialog } from './views/misc.ts';
 import { disablePush } from './push.ts';
