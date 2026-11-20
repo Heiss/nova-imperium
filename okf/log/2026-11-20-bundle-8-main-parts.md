@@ -2,7 +2,7 @@
 type: log-entry
 date: 2026-11-20T20:00
 kind: Code
-issues: [118, 242]
+issues: [118]
 ---
 
 #118, package 8 (owner, 2026-11-19: after the update of 2026-11-22; built on `claude/client-package-8`): `src/client/main.ts` is only the entry point, 30 lines instead of 888. The transport (`api()`, `request()`, the retry of a busy action, the 401 and the maintenance answer) is `logic/transport.ts`, tested first (`transport.test.ts`: session gone, maintenance, retry, errors), and wired to the page in `api.ts`; the session, the banner of a maintenance, the toasts with „Problem melden“ and the error log have modules of their own (`session.ts`, `maintenance.ts`, `toast.ts`, `error-log.ts`). The click actions of the frame (sheet „Mehr“, dialog, planet choice, logout), the share of a producer, the animations, the activity sample and the marks „gelesen“ moved into the features `frame`, `producers`, `options`, `session-activity` and `reading`; no central table is left. The state and the render are `sync.ts`, `render.ts`, `completions.ts`, `keep-inputs.ts`, `news.ts`, `routing.ts`, `dispatch.ts`, `clock.ts` and `boot.ts` [V]. Forms: „Account löschen“ is a component that owns its password; the guild chat message and the name of a buddy request show drafts of `logic/drafts.svelte.ts` (`data-nokeep`), so the poll of the state cannot reset them; a fresh render drops them as before. `keepInputs` stays for the other fields of the views that are mounted anew on every render, see [Client features](/architecture/patterns/13-client-features.md). No game rule and no German text changed; no changelog fragment (the label `kein-changelog`).
