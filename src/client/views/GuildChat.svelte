@@ -3,7 +3,7 @@
   // field with „Chat schreiben“. The form is sent by features/social.ts. The
   // field shows the draft of logic/drafts.svelte.ts, which the redraw of the
   // page does not touch, until the message went through (`chat_text` has no field draft).
-  import { drafts, GUILD_CHAT } from '../logic/drafts.svelte.ts';
+  import { drafts } from '../logic/drafts.svelte.ts';
   import type { ChatBoxModel } from '../logic/guilds.ts';
   import Box from './Box.svelte';
   import ChatLog from './ChatLog.svelte';
@@ -22,8 +22,8 @@
         maxlength={chat.max}
         required
         autocomplete="off"
-        value={drafts.get(GUILD_CHAT)}
-        oninput={(e) => drafts.set(GUILD_CHAT, e.currentTarget.value)}
+        value={drafts.get('guildChat')}
+        oninput={(e) => drafts.set('guildChat', e.currentTarget.value)}
       />
       <button type="submit">Senden</button>
     </form>{/if}

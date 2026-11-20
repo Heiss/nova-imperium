@@ -5,27 +5,24 @@
 // drops the drafts, as it dropped the typed fields before.
 import { SvelteMap } from 'svelte/reactivity';
 
-/** The field for the message of the guild chat (#169). */
-export const GUILD_CHAT = 'guildChat';
-/** The field for the name of a new buddy (#227). */
-export const FRIEND_NAME = 'friendName';
+/** The fields with a draft: the message of the guild chat (#169) and the name of a new buddy (#227). */
+type DraftField = 'guildChat' | 'friendName';
 
 class Drafts {
-  readonly #text = new SvelteMap<string, string>();
+  readonly #text = new SvelteMap<DraftField, string>();
 
   /** The draft of the field, or the empty string. */
-  get(field: string): string {
+  get(field: DraftField): string {
     return this.#text.get(field) ?? '';
   }
 
-  /** The player typed `text`; an empty text is no draft. */
-  set(field: string, text: string): void {
-    if (text === '') this.#text.delete(field);
-    else this.#text.set(field, text);
+  /** The player typed `text`; an empty text reads like no draft. */
+  set(field: DraftField, text: string): void {
+    this.#text.set(field, text);
   }
 
   /** Drops the draft of one field, e.g. once its message went through. */
-  clear(field: string): void {
+  clear(field: DraftField): void {
     this.#text.delete(field);
   }
 

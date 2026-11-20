@@ -29,6 +29,7 @@ import {
 import { roundDefaults } from '../test/fixtures.ts';
 import {
   ROUND_SETTINGS,
+  roundConfirm,
   roundPreview,
   roundRefused,
   roundRequest,
@@ -554,5 +555,18 @@ describe('the confirmation of „Neue Runde“ repeats the settings (#237) [V]',
     expect(colonyConfirm({ ...EXAMPLE, base: 21 })).toBe('');
     expect(colonyConfirm({ ...EXAMPLE, base: Number.NaN })).toBe('');
     expect(colonyConfirm({ ...EXAMPLE, base: 0 })).toBe('');
+  });
+
+  it('is the line the group of the registry writes; a group without one writes nothing', () => {
+    const group = SETTINGS[0]!.group!;
+    const values = {
+      colonyBase: 6,
+      colonyResearch: 1,
+      colonyPerLevel: 2,
+      colonyMaxLevel: 4,
+    };
+    expect(roundConfirm(group, values)).toBe(colonyConfirm(EXAMPLE));
+    expect(roundConfirm({ name: 'plain' }, values)).toBe('');
+    expect(roundPreview({ name: 'plain' }, values)).toBe('');
   });
 });

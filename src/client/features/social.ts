@@ -2,7 +2,7 @@
 // of main.ts (ratchet #242): the buttons and forms of both send their
 // action and empty their field once it went through. Which action a button
 // sends is decided in logic/friends.ts and logic/guild-chat.ts.
-import { drafts, FRIEND_NAME, GUILD_CHAT } from '../logic/drafts.svelte.ts';
+import { drafts } from '../logic/drafts.svelte.ts';
 import { friendCall, type FriendCall } from '../logic/friends.ts';
 import { clearsChat } from '../logic/guild-chat.ts';
 import type { ClientCtx, ClientFeature, Data } from './contract.ts';
@@ -18,12 +18,12 @@ const field = (sel: string): HTMLInputElement | null =>
  * logic/drafts.svelte.ts, so a redraw never takes what is typed.
  */
 async function submitChat(act: Act): Promise<void> {
-  const text = drafts.get(GUILD_CHAT);
+  const text = drafts.get('guildChat');
   if (
     (await act('sendGuildChat', { text })) &&
-    clearsChat(text, drafts.get(GUILD_CHAT))
+    clearsChat(text, drafts.get('guildChat'))
   ) {
-    drafts.clear(GUILD_CHAT);
+    drafts.clear('guildChat');
     field('#chat_text')?.focus();
   }
 }
@@ -42,9 +42,11 @@ function sendFriend(act: Act, call: FriendCall): Promise<boolean> {
 
 /** The buddy list: a request empties the name once it is sent. */
 async function friend(act: Act, d: Data): Promise<void> {
-  const call = friendCall(d, drafts.get(FRIEND_NAME), (q) => window.confirm(q));
+  const call = friendCall(d, drafts.get('friendName'), (q) =>
+    window.confirm(q),
+  );
   if (!call || !(await sendFriend(act, call)) || d.op !== 'request') return;
-  drafts.clear(FRIEND_NAME);
+  drafts.clear('friendName');
 }
 
 /** The data-act handlers of both; their forms are handled here too. */

@@ -28,7 +28,7 @@ export function viewUrl(
   if (view === LEXICANUM_VIEW && article)
     url.searchParams.set(ARTICLE_PARAM, article);
   else url.searchParams.delete(ARTICLE_PARAM);
-  url.hash = '';
+  // The hash is left out: only the path and the query are returned.
   return url.pathname + url.search;
 }
 

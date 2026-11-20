@@ -2,7 +2,7 @@
 // action each sends, when the draft goes and when the question is asked. The
 // fields show the drafts of logic/drafts.svelte.ts (#118, package 8).
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { drafts, FRIEND_NAME, GUILD_CHAT } from '../logic/drafts.svelte.ts';
+import { drafts } from '../logic/drafts.svelte.ts';
 import { clientFeature } from './social.ts';
 import { fakeCtx } from './test-ctx.ts';
 
@@ -46,37 +46,37 @@ describe('the guild chat form', () => {
     const ctx = fakeCtx();
     acts(ctx);
     fields['#chat_text'] = field();
-    drafts.set(GUILD_CHAT, 'Hallo');
+    drafts.set('guildChat', 'Hallo');
     expect(send('guildchatform')).toBe(true);
     await settle();
     expect(ctx.act).toHaveBeenCalledWith('sendGuildChat', { text: 'Hallo' });
-    expect(drafts.get(GUILD_CHAT)).toBe('');
+    expect(drafts.get('guildChat')).toBe('');
     expect(fields['#chat_text']!.focus).toHaveBeenCalledOnce();
   });
   it('keeps the field when the message did not go through', async () => {
     const ctx = fakeCtx({ act: vi.fn(async () => false) });
     acts(ctx);
     fields['#chat_text'] = field();
-    drafts.set(GUILD_CHAT, 'Hallo');
+    drafts.set('guildChat', 'Hallo');
     send('guildchatform');
     await settle();
-    expect(drafts.get(GUILD_CHAT)).toBe('Hallo');
+    expect(drafts.get('guildChat')).toBe('Hallo');
     expect(fields['#chat_text']!.focus).not.toHaveBeenCalled();
   });
   it('keeps a new draft typed while the message was on its way', async () => {
     const input = field();
     fields['#chat_text'] = input;
-    drafts.set(GUILD_CHAT, 'Hallo');
+    drafts.set('guildChat', 'Hallo');
     const ctx = fakeCtx({
       act: vi.fn(async () => {
-        drafts.set(GUILD_CHAT, 'Neuer Entwurf');
+        drafts.set('guildChat', 'Neuer Entwurf');
         return true;
       }),
     });
     acts(ctx);
     send('guildchatform');
     await settle();
-    expect(drafts.get(GUILD_CHAT)).toBe('Neuer Entwurf');
+    expect(drafts.get('guildChat')).toBe('Neuer Entwurf');
     expect(input.focus).not.toHaveBeenCalled();
   });
   it('ignores the submit of any other form', async () => {
@@ -107,29 +107,29 @@ describe('the buddy list', () => {
   it('sends a request with the trimmed name from the form and empties the field', async () => {
     const ctx = fakeCtx();
     acts(ctx);
-    drafts.set(FRIEND_NAME, '  Ada ');
+    drafts.set('friendName', '  Ada ');
     expect(send('friendform')).toBe(true);
     await settle();
     expect(ctx.act).toHaveBeenCalledWith('requestFriend', { name: 'Ada' });
-    expect(drafts.get(FRIEND_NAME)).toBe('');
+    expect(drafts.get('friendName')).toBe('');
   });
   it('sends nothing without a typed name and keeps the field', async () => {
     const ctx = fakeCtx();
     const a = acts(ctx);
-    drafts.set(FRIEND_NAME, '   ');
+    drafts.set('friendName', '   ');
     await a.friend!({ op: 'request' });
     expect(ctx.act).not.toHaveBeenCalled();
-    expect(drafts.get(FRIEND_NAME)).toBe('   ');
+    expect(drafts.get('friendName')).toBe('   ');
   });
   it('keeps the name when the request was refused', async () => {
     const ctx = fakeCtx({ act: vi.fn(async () => false) });
-    drafts.set(FRIEND_NAME, 'Ada');
+    drafts.set('friendName', 'Ada');
     await acts(ctx).friend!({ op: 'request' });
-    expect(drafts.get(FRIEND_NAME)).toBe('Ada');
+    expect(drafts.get('friendName')).toBe('Ada');
   });
   it('answers, refuses and cancels without a question and without touching the name field', async () => {
     const ctx = fakeCtx();
-    drafts.set(FRIEND_NAME, 'Ada');
+    drafts.set('friendName', 'Ada');
     const a = acts(ctx);
     await a.friend!({ op: 'accept', uid: 'u1' });
     await a.friend!({ op: 'refuse', uid: 'u2' });
@@ -144,7 +144,7 @@ describe('the buddy list', () => {
     });
     expect(ctx.act).toHaveBeenNthCalledWith(3, 'cancelFriend', { uid: 'u3' });
     expect(confirm).not.toHaveBeenCalled();
-    expect(drafts.get(FRIEND_NAME)).toBe('Ada');
+    expect(drafts.get('friendName')).toBe('Ada');
   });
   it('removes a friend only after the question is confirmed', async () => {
     const ctx = fakeCtx();

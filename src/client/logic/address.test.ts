@@ -3,6 +3,7 @@ import {
   articleHref,
   articleParam,
   LEXICANUM_VIEW,
+  stateUrl,
   viewUrl,
 } from './address.ts';
 
@@ -37,5 +38,13 @@ describe('the address of a view (#163, #285)', () => {
     expect(articleParam('?view=lexicanum&a=spy')).toBe('spy');
     expect(articleParam('?view=lexicanum')).toBe('');
     expect(articleParam('')).toBe('');
+  });
+});
+
+describe('the address of the state', () => {
+  it('names the planet, and none for the main planet', () => {
+    expect(stateUrl()).toBe('/api/state');
+    expect(stateUrl('')).toBe('/api/state');
+    expect(stateUrl('p 1&x')).toBe('/api/state?planet=p%201%26x');
   });
 });
