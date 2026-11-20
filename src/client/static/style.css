@@ -1341,6 +1341,12 @@ textarea:focus-visible {
   .kv input {
     max-width: 100%;
   }
+  /* The ship table of the fleet form has four columns and the count field was
+     90 px wide: with two kinds of ship the table reached 383 px on a 360 px
+     phone and the page scrolled sideways (E2E: phone-lists.spec.ts). */
+  input.fs {
+    width: 52px;
+  }
 }
 
 /* Classes for what were inline styles in version 1 (the CSP allows no style="") */
