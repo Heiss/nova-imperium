@@ -45,14 +45,14 @@ function memoryDatabase(): Db {
  * statement of their own. A test that measures what the production code
  * costs turns it `off` while it measures.
  */
-export interface StatementCache {
+interface StatementCache {
   on(): void;
   off(): void;
 }
 
 const CHANGING = ['pluck', 'raw', 'expand', 'safeIntegers', 'bind'] as const;
 
-export function statementCache(db: Db): StatementCache {
+function statementCache(db: Db): StatementCache {
   const kept = new Map<string, unknown>();
   const real = Object.getPrototypeOf(db).prepare as (sql: string) => unknown;
   const set = (prepare: unknown): void => {

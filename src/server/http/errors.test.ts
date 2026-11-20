@@ -5,6 +5,14 @@ import { unzipLines } from '../../test/zip.ts';
 import { DAY } from '../audit.ts';
 import { addPlanet, addUser } from '../test-helpers.ts';
 
+// The password check is the cost of every login here; the result of the same
+// password and salt is computed once (src/test/scrypt-memo.ts).
+vi.mock('node:crypto', async (original) =>
+  (await import('../../test/scrypt-memo.ts')).memoScrypt(
+    await original<typeof import('node:crypto')>(),
+  ),
+);
+
 const NEWS = { version: '26.11.21', versions: [] };
 const BODY = { kind: 'error', message: 'TypeError: x', page: 'fleet' };
 

@@ -1,8 +1,16 @@
 // The routes of the estimated play time (#232, #231): reports and the
 // player's own statistics.
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { start } from '../../test/http.ts';
 import { addPlanet, addUser } from '../test-helpers.ts';
+
+// The password check is the cost of every login here; the result of the same
+// password and salt is computed once (src/test/scrypt-memo.ts).
+vi.mock('node:crypto', async (original) =>
+  (await import('../../test/scrypt-memo.ts')).memoScrypt(
+    await original<typeof import('node:crypto')>(),
+  ),
+);
 
 const report = (seq: number, since: number | null, state = 'active') => ({
   instance: 'page-0001',
