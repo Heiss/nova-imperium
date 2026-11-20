@@ -8,12 +8,11 @@ import {
 } from './assemble.ts';
 import type { V } from './common.ts';
 import type { MenuItem, Tab } from './contract.ts';
-import { admin } from './misc.ts';
 import { CLIENT_VIEWS } from './views.gen.ts';
 
 /** The views drawn as HTML: the frame (not moved into a module yet) and the modules. */
 export const VIEWS: Record<string, (v: V) => string> = assembleHtml(
-  { admin },
+  {},
   CLIENT_VIEWS,
 );
 
@@ -58,7 +57,6 @@ const FRAME_MENU: readonly Placed<MenuItem>[] = [
   // The Lexicanum before „Optionen“; on a phone under „Mehr“ (#285 B9, #288).
   { view: 'lexicanum', order: 160, label: 'Lexicanum' },
   { view: 'help', order: 170, label: 'Optionen' },
-  { view: 'admin', order: 180, label: 'Admin', show: (_, admin) => admin },
 ];
 
 /** The frame and the modules in the order of their numbers. */

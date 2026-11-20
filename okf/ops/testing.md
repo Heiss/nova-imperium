@@ -692,6 +692,24 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   view (`misc.test.ts`) run on the component through
   `src/test/options-view.ts`; the pure page has its tests in
   `logic/options.test.ts`.
+* **[V]** „Admin“, the login and the round archive of #118, bundle 7:
+  `src/test/admin-reference.test.ts` keeps `Admin`, `RoundDialog` and
+  `EndzeitDialog` equal to the HTML before (frozen there: `admin()`,
+  `settingsForm()`, `invitations()`, `roundDialog()`, `endzeitDialog()`),
+  `src/test/auth-reference.test.ts` the login screens (`auth()`) and
+  `src/test/round-archive-reference.test.ts` `RoundArchive` (frozen in
+  `src/test/archive-frozen.ts`, which `options-reference.test.ts` uses too),
+  each on 300 generated states (seed 118) with `normalize()` and
+  `textContents()` and hand-built cases (a used-up Endzeit, a round trip that
+  gains, a hidden conditional field, a custom registry with a note, group
+  preview and selection, every kind of round and report, every screen of the
+  login). The text of a fieldset, a paragraph or a wrapper of the dialog is
+  compared without spaces (the old template put its indentation there);
+  every label, field and note is compared exactly. `textContents()` now
+  leaves out `<tbody>` and `normalize()` reads `readonly` as a boolean. The
+  tests of the dialog and the panel (`views/misc.test.ts`, `holding.test.ts`,
+  `market.test.ts`) run on the components through `src/test/admin-view.ts`;
+  the handlers have `features/admin.test.ts` and `features/login.test.ts`.
 * **[V]** „Gilden“ of #118, bundle 6: the property test
   `src/test/guilds-reference.test.ts` keeps the components equal to the HTML
   before (frozen there: `guilds()` with its helpers, `transferDialog()`,
