@@ -6,6 +6,7 @@ import { page as battle } from './battle.ts';
 import { page as colonies } from './colonies.ts';
 import { page as debris } from './debris.ts';
 import { page as endzeit } from './endzeit.ts';
+import { page as expeditions } from './expeditions.ts';
 import { page as faqAftermath } from './faq-aftermath.ts';
 import { page as faqAttack } from './faq-attack.ts';
 import { page as faqColony } from './faq-colony.ts';
@@ -47,6 +48,7 @@ export const PAGES: readonly PageDef[] = [
   colonies,
   missiles,
   survey,
+  expeditions,
   production,
   queues,
   protection,

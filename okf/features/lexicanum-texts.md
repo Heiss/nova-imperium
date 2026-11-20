@@ -667,6 +667,58 @@ code and here in the same pull request.
 * **[V]** Table: „Systeme entfernt | Stufe 1 | Stufe 2 | Stufe 3 | Stufe 5“
 * **[V]** Keywords: Vermessung, vermessen, Position, Kartographie, Bericht
 
+### Expeditionen (`rule-expeditions`)
+
+* **[V]** Line: „Wohin eine Expedition fliegt, wie lange sie bleibt und was sie finden, erleben oder verlieren kann.“
+* **[V]** Heading: „Ziel, Plätze und Haltezeit“
+* **[V]** Text: „Eine Expedition fliegt zur Expeditionsposition am Rand jedes Systems, der Position 16 in diesem Universum, gleich hinter der letzten Planetenposition. Dort lässt sich nichts besiedeln. Der Auftrag braucht die Kreuzzugs-Kartografie, mindestens die erste Stufe, und belegt einen Flottenslot und einen Expeditionsplatz. Die Plätze zählen auch die Expeditionen, die schon auf dem Heimweg sind. Die Haltezeit wählst du beim Start in ganzen Stunden bis zum Höchstwert; erst wenn sie um ist, wird das Ergebnis der Expedition ausgelost, und die Flotte fliegt heim. Die Haltezeit kostet keinen Treibstoff.“
+* **[V]** Formula: „Expeditionsplätze = ⌊√Stufe der Kreuzzugs-Kartografie⌋ + zusätzliche Plätze der Runde“
+* **[V]** Formula: „Höchste Haltezeit in Stunden = Stufe · Stunden je Stufe der Runde“
+* **[V]** Table: „Plätze und Haltezeit nach der Stufe in dieser Runde“
+* **[V]** Table: „Stufe | Expeditionsplätze | Höchste Haltezeit | Dauer in diesem Universum“
+* **[V]** Stand: „Dein Stand: Stufe 0 der Kreuzzugs-Kartografie, 0 Expeditionsplätze, höchste Haltezeit 0 Std.“
+* **[V]** Heading: „Was geschehen kann“
+* **[V]** Text: „Nach der Haltezeit wird einmal ausgelost: In etwa 84 % der Expeditionen bringen ein Ereignis, die anderen kehren ohne etwas heim. Welches Ereignis es ist, folgt den Anteilen der Tabelle; außer dem Verlust der Flotte hat jedes eine Größe. Das Ergebnis steht im Bericht, und was von der Flotte übrig ist, fliegt heim.“
+* **[V]** Table: „Anteil der Ereignisse“
+* **[V]** Table: „Ereignis | Anteil an allen Expeditionen | Anteil an den Ereignissen“
+* **[V]** Table: „Anteil der Größen unter den Ereignissen mit Größe“
+* **[V]** Table: „Größe | Anteil“
+* **[V]** Heading: „Rohstofffund“
+* **[V]** Text: „Ein Rohstofffund beginnt mit einer Grundzahl, die mit der Größe des Ereignisses wächst. Dann wird die Sorte ausgelost. Die Grundzahl wird durch den Teiler der Sorte geteilt und mit einem Faktor malgenommen, der aus den Expeditionspunkten deiner Flotte folgt: Sie zählen aus den Kosten ihrer Schiffe in Adamant und Psikristall, mindestens so viel wie angegeben und höchstens bis zur Obergrenze, die mit den Punkten des Ersten der Rangliste steigt. Mitgenommen wird nur, was die Laderäume fassen; die Hälfte des verbrauchten Treibstoffs belegt dort schon Platz.“
+* **[V]** Formula: „Fund = ⌊Grundzahl ÷ Teiler der Sorte · Faktor⌋, höchstens der freie Laderaum; Faktor = Expeditionspunkte, mindestens 200 und höchstens die Obergrenze“
+* **[V]** Formula: „Expeditionspunkte = Summe über alle Schiffe (Anzahl · (Adamant + Psikristall des Schiffs)) · 5 ÷ 1.000“
+* **[V]** Table: „Grundzahl, Teiler und Anteil je Sorte“
+* **[V]** Table: „Sorte | Teiler | Anteil an den Funden“
+* **[V]** Table: „Grundzahl eines Rohstofffunds nach Größe“
+* **[V]** Table: „Größe | Grundzahl“
+* **[V]** Table: „Obergrenze der Punkte nach den Punkten des Ersten der Rangliste“
+* **[V]** Table: „Punkte des Ersten | Rohstofffund | Schiffsfund“
+* **[V]** Heading: „Schiffsfund“
+* **[V]** Text: „Bei einem Schiffsfund haben die gefundenen Schiffe zusammen so viele Strukturpunkte, wie die Grundzahl der Größe mal die Expeditionspunkte der Flotte ergibt, mindestens aber 10.000. Dann wird immer wieder ein Schiff ausgelost, alle gleich wahrscheinlich, und davon eine Anzahl gefunden, bis die Punkte aufgebraucht sind oder das ausgeloste Schiff nicht mehr hineinpasst; dort endet der Fund. Gefunden werden kann, was bis zu einem Schritt schwerer ist als das schwerste Schiff der Flotte. Die Schiffe schließen sich der Flotte an. Die Kolonistenarche, die Bergungsbarke und der Weltenbrecher finden nichts und werden nie gefunden; eine Flotte nur aus ihnen findet keine Schiffe.“
+* **[V]** Table: „Grundzahl eines Schiffsfunds nach Größe“
+* **[V]** Table: „Größe | Grundzahl“
+* **[V]** Table: „Was eine Flotte finden kann, nach ihrem schwersten Schiff“
+* **[V]** Table: „Schwerstes Schiff der Flotte | Findbare Schiffe“
+* **[V]** Heading: „Piraten und Aliens“
+* **[V]** Text: „Bei einem Kampf gegen Piraten oder Aliens greifen sie an, und deine Flotte verteidigt sich. Von jeder Schiffsart deiner Flotte kommt ein Anteil als Angreifer, der um ein Zehntel nach oben oder unten streut, dazu einige Schiffe einer festen Art. Waffen, Schilde und Panzerung der Angreifer richten sich nach deiner Forschung. Gekämpft wird nach den Regeln des Kampfes (Kampf). Die zerstörten Schiffe beider Seiten hinterlassen ein Trümmerfeld an der Expeditionsposition, das eine Bergung einsammeln kann (Trümmerfelder und Bergung). Was von deiner Flotte übrig ist, fliegt heim; ist nichts mehr übrig, ist die Flotte verloren. Der Bericht ist ein Kampfbericht.“
+* **[V]** Formula: „Angreifer einer Art = Schiffe der Art in deiner Flotte · Anteil · (1 − 0,1 + 2 · 0,1 · Zufall von 0 bis 1), bei Piraten abgerundet, bei Aliens aufgerundet; dazu die zusätzlichen Schiffe“
+* **[V]** Formula: „Stufe der Piraten = Stufe deiner Forschung − 3, mindestens 0“
+* **[V]** Formula: „Stufe der Aliens = Stufe deiner Forschung + 3“
+* **[V]** Table: „Die Angreifer nach Größe“
+* **[V]** Table: „Angreifer | Größe | Anteil je Schiffsart | Zusätzliche Schiffe“
+* **[V]** Heading: „Frühere und spätere Rückkehr, Verlust“
+* **[V]** Text: „Eine Expedition kann sich verirren oder eine Abkürzung finden, und die Zeit des Heimflugs ändert sich dann wirklich. Bei einer späteren Rückkehr dauert der Heimflug um die Haltezeit mal den Faktor der Größe länger. Bei einer früheren wird er um ein Drittel der Haltezeit mal den Faktor kürzer, mindestens 1 Sek. lang bleibt er aber. Beim Verlust der Flotte kommt nichts zurück, und es bleibt kein Trümmerfeld.“
+* **[V]** Formula: „Spätere Rückkehr: Heimflug = Flugzeit + Haltezeit · Faktor“
+* **[V]** Formula: „Frühere Rückkehr: Heimflug = Flugzeit − Haltezeit ÷ 3 · Faktor, mindestens 1 Sek.“
+* **[V]** Table: „Der Faktor nach Größe“
+* **[V]** Table: „Größe | Faktor“
+* **[V]** Heading: „Einstellungen dieser Runde“
+* **[V]** Text: „Der Admin legt drei Dinge für die Runde fest und kann sie während der Runde ändern. Die Liste nennt ihre Werte jetzt und die Grenzen, in denen sie liegen dürfen.“
+* **[V]** Facts: „Zusätzliche Expeditionsplätze: 0 (von 0 bis 10)“
+* **[V]** Facts: „Haltezeit in Stunden je Stufe: 1 (von 1 bis 24)“
+* **[V]** Facts: „Haltezeit durch das Universums-Tempo teilen: nein“
+* **[V]** Keywords: Expedition, erkunden, Fund, Piraten, Haltezeit
+
 ### Produktion, Energie und Lager (`rule-production`)
 
 * **[V]** Line: „Was ein Planet fördert, warum eine Mine weniger bringt als angegeben und wo die Förderung endet.“

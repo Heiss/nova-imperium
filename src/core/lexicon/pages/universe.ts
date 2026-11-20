@@ -79,6 +79,12 @@ export const page: PageDef = {
   title: 'Dieses Universum',
   line: 'Die Einstellungen dieses Universums und dieser Runde, wie der Admin sie gewählt hat.',
   keywords: ['Universum', 'Einstellungen', 'Runde', 'Tempo', 'Größe'],
-  seeAlso: ['rule-flight', 'rule-planets', 'rule-endzeit', 'rule-rewards'],
+  seeAlso: [
+    'rule-flight',
+    'rule-planets',
+    'rule-expeditions',
+    'rule-endzeit',
+    'rule-rewards',
+  ],
   sections: (s) => [sizeSection(s), settingsSection(s)],
 };

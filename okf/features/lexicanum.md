@@ -214,6 +214,16 @@ their own.
   (the window of ± 20 % and ± 10 °C was typed in `surveyFindings`); no rule
   changed.
 
+* **[V]** „Expeditionen“ (`rule-expeditions`, #93): the position, the places
+  and the stay (with the round's settings, from the universe `u` like the
+  other live settings), the shares of the events and of the sizes, the
+  find of resources and of ships, the raiders, the change of the return time
+  and the settings of the round, which „Dieses Universum“ links to. `LARGE_FROM`,
+  `HUGE_FROM`, `MIN_RESOURCE_POINTS`, `DIVISOR`, `resourceBase`, `RAIDS`,
+  `SPREAD` of `expedition.ts` and `MIN_SHIP_FIND`, `shipBase` of
+  `expedition-ships.ts` are exported; no rule changed. Left out, since the
+  page would need more code to back it: the recall of an expedition.
+
 # Stage 3: guides and personal hints (#289)
 
 * **[V]** The three open decisions of the issue were not answered; taken as

@@ -6,12 +6,19 @@ import { describe, expect, it } from 'vitest';
 import { planet } from '../../test/fixtures.ts';
 import { STATES } from '../../test/lexicon-states.ts';
 import { buildable } from '../catalog.ts';
+import { drawEvent, drawSize, EVENT_KINDS, raidFleet } from '../expedition.ts';
 import { CENTRED, surveyFindings, surveyTier, TIERS } from '../survey.ts';
 import { GUILD_RIGHTS } from '../guild-ranks.ts';
 import { pageParts } from './docs.ts';
 import { PAGES } from './pages/index.ts';
 import { defaultState } from './state.ts';
 import type { LexState, Own } from './types.ts';
+
+/** A generator that gives these numbers in turn, then 0. */
+const draws =
+  (...values: number[]) =>
+  () =>
+    values.shift() ?? 0;
 
 const page = (id: string) => PAGES.find((p) => p.id === id)!;
 
@@ -255,6 +262,116 @@ describe('the rule pages of the missions say the values of the rules', () => {
       '1500',
     ]);
     expect(hits).toHaveLength(8);
+  });
+});
+
+describe('Expeditionen say what the expedition does', () => {
+  const table = (caption: string, s = defaultState()) =>
+    rowsOf('rule-expeditions', caption, s);
+  const percentOf = (text: string): number =>
+    Number(text.replace(' %', '').replace(',', '.')) / 100;
+
+  it('the shares of the events and of the sizes are those the draw gives', () => {
+    // Count the draw over an even grid: first the chance of an event, then its kind.
+    const grid = 20_000;
+    const counts = new Map<string, number>();
+    for (let i = 0; i < grid; i++) {
+      const r = (i + 0.5) / grid;
+      // The first draw is below 0.84 for an event; the second picks the kind.
+      const kind = drawEvent(draws(0.1, r, 0.5)).kind;
+      counts.set(kind, (counts.get(kind) ?? 0) + 1);
+    }
+    const rows = table('Anteil der Ereignisse');
+    expect(rows[0]).toEqual(['Nichts', '16 %', '–']);
+    EVENT_KINDS.forEach((kind, i) =>
+      expect(percentOf(rows[i + 1]![2]!)).toBeCloseTo(
+        (counts.get(kind) ?? 0) / grid,
+        3,
+      ),
+    );
+    expect(drawEvent(draws(0.84)).kind).toBe('nothing');
+    expect(rows[1]).toEqual(['Rohstofffund', '31,5 %', '37,5 %']);
+    const sizes = new Map<string, number>();
+    for (let i = 0; i < grid; i++) {
+      const size = drawSize(draws((i + 0.5) / grid));
+      sizes.set(size, (sizes.get(size) ?? 0) + 1);
+    }
+    expect(table('Anteil der Größen unter den Ereignissen mit Größe')).toEqual([
+      ['normal', '89 %'],
+      ['groß', '10 %'],
+      ['sehr groß', '1 %'],
+    ]);
+    expect((sizes.get('normal') ?? 0) / grid).toBeCloseTo(0.89, 3);
+    expect((sizes.get('huge') ?? 0) / grid).toBeCloseTo(0.01, 3);
+  });
+
+  it('the places and the stay follow the research and the settings of the round', () => {
+    const s = {
+      ...withLive(
+        {},
+        {
+          roundExpeditionExtraSlots: 2,
+          roundExpeditionHours: 3,
+          roundExpeditionSpeed: 1,
+        },
+      ),
+      research: { expo: 9 },
+    };
+    // Level 9: 3 places and 2 extra; 27 hours, divided by the speed 5: 5 h 24 min.
+    expect(
+      table('Plätze und Haltezeit nach der Stufe in dieser Runde', s)[4],
+    ).toEqual(['9', '5', '27 Std.', '5 Std. 24 Min.']);
+    expect(words('rule-expeditions', s)).toContain(
+      'Dein Stand: Stufe 9 der Kreuzzugs-Kartografie, 5 Expeditionsplätze, höchste Haltezeit 27 Std.',
+    );
+    expect(words('rule-expeditions', s)).toContain(
+      'Haltezeit durch das Universums-Tempo teilen: ja',
+    );
+    expect(words('rule-expeditions')).toContain('der Position 16');
+  });
+
+  it('the finds, the raiders and the changes of the return say what the rules do', () => {
+    expect(table('Grundzahl, Teiler und Anteil je Sorte')).toEqual([
+      ['Adamant', '1', '50 %'],
+      ['Psikristall', '2', '33,33 %'],
+      ['Promethium', '3', '16,67 %'],
+    ]);
+    expect(table('Grundzahl eines Rohstofffunds nach Größe')[2]).toEqual([
+      'sehr groß',
+      '100 bis 200',
+    ]);
+    expect(table('Grundzahl eines Schiffsfunds nach Größe')[1]).toEqual([
+      'groß',
+      '52 bis 100',
+    ]);
+    const finds = table(
+      'Was eine Flotte finden kann, nach ihrem schwersten Schiff',
+    );
+    expect(finds.find((r) => r[0] === 'Spähschädel')![1]).toBe(
+      'Spähschädel, Frachtläufer',
+    );
+    expect(finds.find((r) => r[0] === 'Kolonistenarche')![1]).toBe('keine');
+    expect(table('Die Angreifer nach Größe')[0]).toEqual([
+      'Piraten',
+      'normal',
+      '30 %',
+      '5 × Abfangjäger',
+    ]);
+    // Ten ships at the mean: pirates round down (3 of 10 at 30 %), aliens up (4 of 10 at 40 %, 6 of 10 at 60 %).
+    expect(raidFleet(() => 0.5, 'pirates', 'normal', { probe: 10 }).probe).toBe(
+      3,
+    );
+    expect(raidFleet(() => 0.5, 'aliens', 'large', { probe: 11 }).probe).toBe(
+      7,
+    );
+    expect(table('Der Faktor nach Größe')).toEqual([
+      ['normal', '2'],
+      ['groß', '3'],
+      ['sehr groß', '5'],
+    ]);
+    expect(words('rule-expeditions')).toContain(
+      'mindestens 1 Sek. lang bleibt er aber',
+    );
   });
 });
 

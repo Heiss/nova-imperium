@@ -50,10 +50,10 @@ const structure = (key: string): number =>
   SHIPS[key]!.cost[0] + SHIPS[key]!.cost[1];
 
 /** The most structure points of a find of ships: at least 10,000 (owiki „Größe von Flottenfunden“). */
-const MIN_SHIP_FIND = 10_000;
+export const MIN_SHIP_FIND = 10_000;
 
 /** The base number of a find of ships: any number 10 to 50, an even one 52 to 100 or 102 to 200. */
-const shipBase = (rng: Rng, size: Size): number => {
+export const shipBase = (rng: Rng, size: Size): number => {
   if (size === 'normal') return between(rng, 10, 50);
   return size === 'large'
     ? evenBetween(rng, 52, 100)
