@@ -1,7 +1,7 @@
 // The frame of every action (#326): the due fleets first, then the action.
 import { describe, expect, it } from 'vitest';
 import { addPlanet, addUser, testCtx } from '../test-helpers.ts';
-import { runAction } from './dispatch.ts';
+import { ACTIONS, runAction } from './dispatch.ts';
 
 describe('runAction', () => {
   it('lets the fleets that are due arrive before the action runs', () => {
@@ -45,5 +45,28 @@ describe('runAction', () => {
     runAction(ctx, 'u_Anna', { type: 'order', key: 'lf', n: 1 });
     runAction(ctx, 'u_Anna', { type: 'order', key: 'lf', n: 1 });
     expect(progress()).toEqual([{ metric: 'yard:order', value: 2 }]);
+  });
+
+  it('journals the refusal of a game rule but not a failure of the server, which goes on', () => {
+    const ctx = testCtx();
+    addUser(ctx, 'Anna');
+    addPlanet(ctx, 'u_Anna', { g: 1, s: 1, p: 5 });
+    const events = () =>
+      ctx.db.prepare('SELECT COUNT(*) FROM round_events').pluck().get();
+    ACTIONS.broken = () => {
+      throw new Error('disk full');
+    };
+    try {
+      expect(() => runAction(ctx, 'u_Anna', { type: 'broken' })).toThrow(
+        'disk full',
+      );
+    } finally {
+      delete ACTIONS.broken;
+    }
+    expect(events()).toBe(0);
+    expect(() =>
+      runAction(ctx, 'u_Anna', { type: 'build', key: 'x' }),
+    ).toThrow();
+    expect(events()).toBeGreaterThan(0);
   });
 });
