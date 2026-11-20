@@ -7,9 +7,12 @@ import {
   buddyList,
   friendCall,
   friendsHint,
+  friendsPage,
+  homeLink,
   homePlanetOf,
 } from './friends.ts';
 import type { GalaxyPlanet, GameState } from './types.ts';
+import type { V } from '../views/common.ts';
 
 const at = (owner: string, kind: 'planet' | 'moon', p: number) =>
   ({
@@ -92,6 +95,47 @@ describe('the buddy list', () => {
   it('names a planet of a player, never a moon, as the Highscore does', () => {
     expect(homePlanetOf(galaxy, 'u_Bert')).toBe(galaxy[1]);
     expect(homePlanetOf(galaxy, 'u_Anna')).toBeNull();
+  });
+});
+
+describe('the page „Freunde“', () => {
+  const page = (over: Partial<GameState> = {}) =>
+    friendsPage({ s: state(over) } as V);
+
+  it('shows the tag in brackets or a dash, the link to the planet and the status', () => {
+    expect(page().rows).toEqual([
+      {
+        id: 'u_Bert',
+        name: 'Bert',
+        tag: '[ABC]',
+        home: { name: 'u_Bert planet', g: 1, s: 2, at: '[1:2:4]' },
+        online: true,
+      },
+      { id: 'u_Cora', name: 'Cora', tag: '-', home: null, online: false },
+    ]);
+  });
+
+  it('carries the open requests both ways, names as they are', () => {
+    expect(page().incoming).toEqual([{ id: 'u_Dora', name: '<b>Dora</b>' }]);
+    expect(page().outgoing).toEqual([{ id: 'u_Cora', name: 'Cora' }]);
+  });
+
+  it('is empty without the buddy list in the state', () => {
+    expect(page({ friends: undefined })).toEqual({
+      rows: [],
+      incoming: [],
+      outgoing: [],
+    });
+  });
+
+  it('has no link for a player without a planet', () => {
+    expect(homeLink(null)).toBeNull();
+    expect(homeLink(galaxy[1]!)).toEqual({
+      name: 'u_Bert planet',
+      g: 1,
+      s: 2,
+      at: '[1:2:4]',
+    });
   });
 });
 

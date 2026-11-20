@@ -7,7 +7,7 @@ import type {
   Requirements,
   ResearchState,
 } from '../../core/types.ts';
-import { coords, dur, esc, fmt } from '../logic/format.ts';
+import { dur, esc, fmt } from '../logic/format.ts';
 import { type ResourceKey, resourceIconURL } from '../logic/icons.ts';
 import { planetLook } from '../logic/planet.ts';
 import {
@@ -21,7 +21,7 @@ import { production } from '../../core/economy.ts';
 import type { Scan } from '../logic/phalanx.ts';
 import type { HighscoreCategory } from '../logic/highscore.ts';
 import type { PushChoice } from '../logic/push-options.ts';
-import type { GalaxyPlanet, GameState } from '../logic/types.ts';
+import type { GameState } from '../logic/types.ts';
 
 export interface Ui extends PushChoice {
   passwordMinLength?: number;
@@ -116,12 +116,6 @@ export function costHTML(
     );
   return `<div class="cost">${parts.join('')}</div>`;
 }
-
-/** A planet with the link to its system on the Sternenkarte, or „-“ (the Highscore, the buddy list of #227). */
-export const homeCell = (pl: GalaxyPlanet | null): string =>
-  pl
-    ? `<span class="home">${esc(pl.name)}</span> <span class="lnk" data-act="gto" data-g="${pl.g}" data-s="${pl.s}">${coords(pl)}</span>`
-    : '-';
 
 export const box = (title: string, body: string, cls = ''): string =>
   `<div class="box${cls ? ' ' + cls : ''}"><div class="hd">${title}</div><div class="bd">${body}</div></div>`;
