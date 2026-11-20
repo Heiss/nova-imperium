@@ -1349,6 +1349,13 @@ dialog.sheet::backdrop {
   input.fs {
     width: 52px;
   }
+  /* A Spähschädel flies at 100.000.000: with its nine digits the same table
+     was 377 px wide on a 360 px phone (E2E: fleet-quick-targets.spec.ts), so
+     its cells take 4 px of padding on each side instead of 8 px. */
+  table:has(input.fs) th,
+  table:has(input.fs) td {
+    padding-inline: 4px;
+  }
 }
 
 /* Classes for what were inline styles in version 1 (the CSP allows no style="") */

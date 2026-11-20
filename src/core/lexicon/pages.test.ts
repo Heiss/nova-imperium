@@ -6,11 +6,12 @@
 // CI red.
 import { readdirSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
+import { LEXICON, MISSION_LEXICON } from '../../features/lexicon.gen.ts';
 import { STATES } from '../../test/lexicon-states.ts';
 import { classicIn } from '../../test/naming.ts';
 import { ROUND_SETTINGS } from '../round.ts';
 import { UNIVERSE_SPECS } from '../universe.ts';
-import { article, ARTICLES } from './articles.ts';
+import { article, ARTICLES, missionArticle } from './articles.ts';
 import { pageParts } from './docs.ts';
 import { fill, linkTargets, valueNames } from './links.ts';
 import { PAGES } from './pages/index.ts';
@@ -231,5 +232,24 @@ describe('„Dieses Universum“ lists every setting (#288)', () => {
     expect(after(a, 'Achievements aktivieren', 1)).toBe('ja');
     expect(after(b, 'Achievements aktivieren', 1)).toBe('nein');
     expect(after(b, 'Achievements aktivieren', 2)).toBe('ja');
+  });
+});
+
+describe('every rule registered for the Lexicanum is used by an article (#288 [V])', () => {
+  // What an entry or a mission registers is its lexicon part in its own
+  // folder (the generated index); a part whose key names no article, or an
+  // article that does not carry it, would be dead text.
+  it('carries every lexicon part of an entry in the article of its key', () => {
+    expect(LEXICON.length).toBeGreaterThan(30);
+    for (const [key, part] of LEXICON)
+      expect(article(key)?.lexicon, key).toBe(part.lexicon);
+  });
+  it('carries every lexicon part of a mission in the article of the mission', () => {
+    expect(MISSION_LEXICON.length).toBeGreaterThan(5);
+    for (const [key, part] of MISSION_LEXICON)
+      expect(article(missionArticle(key))?.lexicon, key).toBe(part.lexicon);
+  });
+  it('lists every written page as an article that carries its page', () => {
+    for (const p of PAGES) expect(article(p.id)?.page, p.id).toBe(p);
   });
 });

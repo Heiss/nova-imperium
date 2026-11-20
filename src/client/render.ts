@@ -21,7 +21,7 @@ import {
   showNavigation,
   showResourceBar,
 } from './views/frame.ts';
-import { forgetAdminPanel } from './views/admin-panel.ts';
+import { forgetAdminPanel } from './logic/admin-panels.svelte.ts';
 import { mountAuth } from './views/auth.ts';
 import { renderGate } from './views/vacation-lock.ts';
 import { ANEW, type Mounted, MOUNTED, mountView } from './views/mount.ts';

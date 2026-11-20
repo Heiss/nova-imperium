@@ -7,6 +7,7 @@
 import { ROUND_SETTINGS, type RoundSetting } from '../../core/round.ts';
 import {
   type HistoryEntry,
+  type ParticipantReport,
   rankRows,
   type ReportRow,
   resourceSum,
@@ -14,7 +15,9 @@ import {
   type RoundReport,
 } from '../../core/round-report.ts';
 import type { Rewind } from '../../core/round-rewind.ts';
-import { fmt } from './format.ts';
+import { text } from '../../core/text.ts';
+import type { Levels } from '../../core/types.ts';
+import { fmt, resLine } from './format.ts';
 import { rewindPage, type RewindPage } from './round-rewind.ts';
 import { COVERAGE, day, daysText } from './round-words.ts';
 import { playtime as playtimeText } from './own-activity.ts';
@@ -31,6 +34,8 @@ export interface ArchiveState {
   entries: RoundEntry[] | null;
   history: HistoryEntry[] | null;
   report: RoundReport | null;
+  /** One participant of the open report, for the admin (view H). */
+  participant: ParticipantReport | null;
   /** The Rewind that is open (#235, view G), a story of its own in place of the list. */
   rewind: Rewind | null;
   category: HighscoreCategory;
@@ -44,6 +49,7 @@ const empty = (): ArchiveState => ({
   entries: null,
   history: null,
   report: null,
+  participant: null,
   rewind: null,
   category: 'total',
   loading: false,
@@ -151,6 +157,8 @@ function roundRow(e: RoundEntry, admin: boolean): RoundRow {
 /** One row of the ranking of a report. */
 interface ReportRowPage {
   me: boolean;
+  /** The seat the admin opens the drilldown with (view H). */
+  seat: number;
   place: number;
   name: string;
   points: string;
@@ -171,6 +179,7 @@ function reportRow(
   const ms = time?.[r.seat];
   return {
     me: r.you,
+    seat: r.seat,
     place: i + 1,
     name: `${r.name}${r.you ? ' (du)' : ''}`,
     points: fmt(r.valuation[cat]),
@@ -211,8 +220,14 @@ function playtimeNote(report: RoundReport): ReportNote | null {
 /** The report of one round (#235, views B and H) as the component shows it. */
 export interface ReportPage {
   heading: string;
+  /** The number of the round, for the buttons of the page. */
+  round: number;
   /** The line of a provisional report of the admin. */
   banner: string | null;
+  /** „Vorschau aktualisieren“ of a provisional report: the round it reads again (view H). */
+  refresh: number | null;
+  /** Whether the rows open the drilldown of a participant: the admin only (view H). */
+  detail: boolean;
   /** The facts of the round as „Name“ and „Wert“. */
   facts: [string, string][];
   categories: { key: HighscoreCategory; label: string; pressed: boolean }[];
@@ -236,6 +251,7 @@ export interface ReportPage {
 export function reportPage(
   report: RoundReport,
   cat: HighscoreCategory,
+  admin = false,
 ): ReportPage {
   const r = report.round;
   const facts: [string, string][] = [
@@ -250,9 +266,12 @@ export function reportPage(
     ]);
   return {
     heading: `Runde ${r.number}${r.provisional ? ' (vorläufig)' : ''}`,
+    round: r.number,
     banner: r.provisional
       ? `VORLÄUFIG · nur Spielleitung. Stand ${new Date(r.asOf).toLocaleString('de-DE')}: die Runde läuft noch, der Bericht ist nicht veröffentlicht.`
       : null,
+    refresh: r.provisional ? r.number : null,
+    detail: admin,
     facts,
     categories: Object.entries(HIGHSCORE_CATEGORIES).map(([key, label]) => ({
       key: key as HighscoreCategory,
@@ -272,6 +291,71 @@ export function reportPage(
       points: fmt(g.points),
     })),
     rules: rulesDiff(r.rules),
+  };
+}
+
+const name = (key: string): string => text(key)?.n ?? key;
+
+/** „Name Stufe 3, Name 5“ for the levels or numbers of a list; „-“ for none. */
+const levelsText = (levels: Levels, unit: string): string => {
+  const list = Object.entries(levels).filter(([, n]) => n > 0);
+  return list.length
+    ? list.map(([key, n]) => `${name(key)} ${unit}${fmt(n)}`).join(', ')
+    : '-';
+};
+
+/** One place of a participant in the drilldown. */
+interface PlaceLine {
+  where: string;
+  buildings: string;
+  ships: string;
+  defense: string;
+}
+
+/**
+ * One participant of a report for the admin (#235, view H, the drilldown) as
+ * the component shows it: the facts of the cutoff, or of the moment of reading
+ * for the running round, in full. The words are drafts of Claude [V].
+ */
+export interface ParticipantPage {
+  heading: string;
+  banner: string | null;
+  facts: [string, string][];
+  places: PlaceLine[];
+}
+
+export function participantPage(p: ParticipantReport): ParticipantPage {
+  const v = p.valuation;
+  const facts: [string, string][] = [
+    ['Gilde', p.guild ? `[${p.guild.tag}] ${p.guild.name}` : '-'],
+    ['Punkte gesamt', fmt(v.total)],
+    ['Gebäude', fmt(v.buildings)],
+    ['Forschung', fmt(v.research)],
+    ['Flotte', fmt(v.fleet)],
+    ['Verteidigung', fmt(v.defense)],
+    ['Wirtschaft/h', resLine(p.economy)],
+    ['Forschungsstufen', levelsText(p.research, 'Stufe ')],
+    ['Flotten unterwegs', levelsText(p.flying, '')],
+    ['Urlaubsmodus', p.vacation ? 'ja' : 'nein'],
+    [
+      'Spielzeit',
+      p.playtime === null
+        ? 'wird erst nach Rundenende im Archiv geteilt'
+        : playtimeText(p.playtime),
+    ],
+  ];
+  return {
+    heading: `Runde ${p.round.number} · ${p.name}${p.round.provisional ? ' (vorläufig)' : ''}`,
+    banner: p.round.provisional
+      ? `VORLÄUFIG · nur Spielleitung. Stand ${new Date(p.round.asOf).toLocaleString('de-DE')}.`
+      : null,
+    facts,
+    places: p.places.map((x) => ({
+      where: `${x.kind === 'moon' ? 'Mond' : 'Planet'} ${x.g}:${x.s}:${x.p}`,
+      buildings: levelsText(x.b, 'Stufe '),
+      ships: levelsText(x.ships, ''),
+      defense: levelsText(x.def, ''),
+    })),
   };
 }
 
@@ -308,6 +392,7 @@ function historyRow(h: HistoryEntry): HistoryRow {
 /** What the box shows: a report, a refusal, the wait for the list, or the list with the history. */
 type ArchiveBody =
   | { kind: 'report'; report: ReportPage }
+  | { kind: 'participant'; participant: ParticipantPage }
   | { kind: 'rewind'; rewind: RewindPage }
   | { kind: 'error'; message: string }
   | { kind: 'loading' }
@@ -323,8 +408,13 @@ export interface ArchivePage {
 }
 
 function archiveBody(a: ArchiveState, admin: boolean): ArchiveBody {
+  if (a.participant)
+    return { kind: 'participant', participant: participantPage(a.participant) };
   if (a.report)
-    return { kind: 'report', report: reportPage(a.report, a.category) };
+    return {
+      kind: 'report',
+      report: reportPage(a.report, a.category, admin),
+    };
   if (a.rewind) return { kind: 'rewind', rewind: rewindPage(a.rewind) };
   if (a.error) return { kind: 'error', message: a.error };
   if (a.entries === null) return { kind: 'loading' };
@@ -339,7 +429,11 @@ function archiveBody(a: ArchiveState, admin: boolean): ArchiveBody {
 export function archivePage(a: ArchiveState, admin = false): ArchivePage {
   const body = archiveBody(a, admin);
   return {
-    close: admin && body.kind !== 'report' && body.kind !== 'rewind',
+    close:
+      admin &&
+      body.kind !== 'report' &&
+      body.kind !== 'participant' &&
+      body.kind !== 'rewind',
     intro: !admin && body.kind === 'list',
     body,
   };

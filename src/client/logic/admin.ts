@@ -17,6 +17,7 @@ import {
   type RoundRules,
   type RoundSetting,
   roundFieldId,
+  roundConfirm,
   roundPreview,
   roundShown,
 } from '../../core/round.ts';
@@ -29,7 +30,7 @@ import {
   archivePage,
   shownArchive,
 } from './round-archive.ts';
-import type { AdminState, GameState } from './types.ts';
+import type { AdminState, GameState, Players } from './types.ts';
 
 export const ADMIN_TABS = {
   events: 'Ereignisprotokoll',
@@ -95,6 +96,8 @@ export interface AdminPage {
   /** The note of a used-up Endzeit; null while the button is there. */
   endzeitDone: string | null;
   archive: ArchivePage;
+  /** The players, by id, for the names in the diagnostics. */
+  players: Players;
 }
 
 /** The page at the view state `v`; null for a state without the admin's data. */
@@ -116,6 +119,7 @@ export function adminPage(v: V): AdminPage | null {
     link: v.ui.lastLink || null,
     endzeitDone: a.endzeit.done ? ENDZEIT_NOTE.done : null,
     archive: archivePage(shownArchive(v.s), true),
+    players: v.s.players,
   };
 }
 
@@ -167,6 +171,8 @@ export type RoundRow =
       members: RoundMember[];
       /** The preview line of the group, written again by the browser whenever a field changes. */
       preview: { name: string; text: string } | null;
+      /** The confirmation line of the group above the button, written again by the browser whenever a field changes (#237). */
+      confirm: { name: string; text: string } | null;
     };
 
 type Values = Readonly<Record<string, number | boolean>>;
@@ -188,6 +194,15 @@ const previewOf = (
 ): { name: string; text: string } | null =>
   group.preview
     ? { name: group.name, text: roundPreview(group, values, settings) }
+    : null;
+
+const confirmOf = (
+  group: RoundGroup,
+  values: Values,
+  settings: readonly RoundSetting[],
+): { name: string; text: string } | null =>
+  group.confirm
+    ? { name: group.name, text: roundConfirm(group, values, settings) }
     : null;
 
 /**
@@ -218,6 +233,7 @@ function roundRows(
           .filter((x) => x.group === group)
           .map((x, k) => member(x, k, values)),
         preview: previewOf(group, values, settings),
+        confirm: confirmOf(group, values, settings),
       });
     }
   }

@@ -3,6 +3,7 @@
 // intervals, and every total is derived from the intervals on read. A
 // player reads only their own; the admin diagnostics use the same sums.
 import { DAY_MS } from '../../core/activity.ts';
+import { EVENT_KIND } from '../../core/round-events.ts';
 import {
   METHOD_VERSION,
   activeMs,
@@ -17,6 +18,7 @@ import {
 } from '../../core/playtime.ts';
 import type { User } from '../db/repos/players.ts';
 import { type Ctx, fail } from './context.ts';
+import { ADMIN_ACTIONS } from './dispatch.ts';
 
 /** The days the view and the admin show: today and the six before, in UTC. */
 const DAYS_SHOWN = 7;
@@ -67,9 +69,76 @@ export function recordPlaytime(
 }
 
 /**
+ * The play actions of an account per UTC day since `from`, from the central
+ * round journal (#231, #235): the events `journal.action` that succeeded, by
+ * the seats the account held in the rounds, kept until the admin deletes the
+ * round (the 30-day purge of the audit log does not reach them). What counts
+ * is what the audit count counted: a succeeded request to an action that is
+ * not an admin action, reads included; a refused action (`ok` false), a limited
+ * one and an unknown one do not.
+ */
+function journalActions(
+  ctx: Ctx,
+  uid: string,
+  from: number,
+): Map<number, number> {
+  const rows = ctx.db
+    .prepare(
+      `SELECT e.recorded - e.recorded % ? AS day,
+         json_extract(e.payload, '$.cause') AS cause, COUNT(*) AS actions
+       FROM round_events e
+       JOIN round_participants p ON p.round = e.round AND p.seat = e.seat
+       WHERE p.player = ? AND e.kind = ? AND e.recorded >= ?
+         AND json_extract(e.payload, '$.ok') = 1
+       GROUP BY day, cause`,
+    )
+    .all(DAY_MS, uid, EVENT_KIND.action, from) as {
+    day: number;
+    cause: string;
+    actions: number;
+  }[];
+  const days = new Map<number, number>();
+  for (const r of rows)
+    if (!ADMIN_ACTIONS.has(r.cause))
+      days.set(r.day, (days.get(r.day) ?? 0) + r.actions);
+  return days;
+}
+
+/**
+ * The successful actions of the audit log per UTC day since `from`: only for
+ * the days from before the journal existed, which has no count of them. The
+ * audit log keeps 30 days.
+ */
+function auditActions(
+  ctx: Ctx,
+  uid: string,
+  from: number,
+): Map<number, number> {
+  const rows = ctx.db
+    .prepare(
+      `SELECT time - time % ? AS day, COUNT(*) AS actions FROM audit_events
+       WHERE actor = ? AND category = 'game' AND outcome = 'ok' AND time >= ?
+       GROUP BY day`,
+    )
+    .all(DAY_MS, uid, from) as { day: number; actions: number }[];
+  return new Map(rows.map((r) => [r.day, r.actions]));
+}
+
+/** The first moment the journal recorded an action, null before the first one. */
+const journalStart = (ctx: Ctx): number | null =>
+  (
+    ctx.db
+      .prepare('SELECT MIN(recorded) AS t FROM round_events WHERE kind = ?')
+      .get(EVENT_KIND.action) as { t: number | null }
+  ).t;
+
+/**
  * The last seven UTC days of a player, today first: the active time out of
- * the accepted intervals and the successful game actions of the audit log
- * (kept 30 days, so a week is complete).
+ * the accepted intervals and the successful game actions out of the round
+ * journal (#231). The journal starts with the update that introduced it; a day
+ * up to and including the one it started on takes the larger of the journal and
+ * the audit log (kept 30 days), the only source of the actions before, so a
+ * day from before the journal is not shown as zero.
  */
 export function dayTable(ctx: Ctx, uid: string): DayRow[] {
   const now = ctx.now();
@@ -79,18 +148,20 @@ export function dayTable(ctx: Ctx, uid: string): DayRow[] {
     now,
     DAYS_SHOWN,
   );
-  const counted = ctx.db
-    .prepare(
-      `SELECT time - time % ? AS day, COUNT(*) AS actions FROM audit_events
-       WHERE actor = ? AND category = 'game' AND outcome = 'ok' AND time >= ?
-       GROUP BY day`,
-    )
-    .all(DAY_MS, uid, oldest) as { day: number; actions: number }[];
-  const actions = new Map(counted.map((r) => [r.day, r.actions]));
+  const journal = journalActions(ctx, uid, oldest);
+  const since = journalStart(ctx);
+  const before = since === null ? FOREVER : utcDay(since);
+  const audit =
+    since === null || before >= oldest
+      ? auditActions(ctx, uid, oldest)
+      : new Map<number, number>();
   return days.map((d) => ({
     day: d.day,
     activeMs: d.ms,
-    actions: actions.get(d.day) ?? 0,
+    actions:
+      d.day <= before
+        ? Math.max(journal.get(d.day) ?? 0, audit.get(d.day) ?? 0)
+        : (journal.get(d.day) ?? 0),
   }));
 }
 

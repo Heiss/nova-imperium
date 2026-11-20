@@ -11,6 +11,16 @@
   const body = $derived(page.body);
 </script>
 
+{#snippet facts(list: [string, string][])}
+  <table class="kv">
+    <tbody>
+      {#each list as [name, value] (name)}
+        <tr><td>{name}</td><td>{value}</td></tr>
+      {/each}
+    </tbody>
+  </table>
+{/snippet}
+
 {#if page.close}
   <p>
     „Runde abschließen“ speichert die laufende Runde im Archiv. Das Spiel läuft
@@ -19,18 +29,39 @@
   </p>
   <p><button class="red" data-act="roundClose">Runde abschließen</button></p>
 {/if}
-{#if body.kind === 'report'}
-  {@const report = body.report}
-  <p><button class="small" data-act="roundBack">Zurück zum Archiv</button></p>
-  <h3 id="round-report-h" tabindex="-1">{report.heading}</h3>
-  {#if report.banner}<div class="notice">{report.banner}</div>{/if}
-  <table class="kv">
+{#if body.kind === 'participant'}
+  {@const who = body.participant}
+  <p>
+    <button class="small" data-act="roundPersonBack">Zurück zum Bericht</button>
+  </p>
+  <h3 id="round-participant-h" tabindex="-1">{who.heading}</h3>
+  {#if who.banner}<div class="notice">{who.banner}</div>{/if}
+  {@render facts(who.facts)}
+  <h4>Planeten und Monde</h4>
+  <table class="scores">
     <tbody>
-      {#each report.facts as [name, value] (name)}
-        <tr><td>{name}</td><td>{value}</td></tr>
+      <tr><th>Ort</th><th>Gebäude</th><th>Schiffe</th><th>Verteidigung</th></tr>
+      {#each who.places as place (place.where)}
+        <tr
+          ><td>{place.where}</td><td>{place.buildings}</td><td>{place.ships}</td
+          ><td>{place.defense}</td></tr
+        >
       {/each}
     </tbody>
   </table>
+{:else if body.kind === 'report'}
+  {@const report = body.report}
+  <p>
+    <button class="small" data-act="roundBack">Zurück zum Archiv</button
+    >{#if report.refresh !== null}{' '}<button
+        class="small"
+        data-act="roundRefresh"
+        data-round={report.refresh}>Vorschau aktualisieren</button
+      >{/if}
+  </p>
+  <h3 id="round-report-h" tabindex="-1">{report.heading}</h3>
+  {#if report.banner}<div class="notice">{report.banner}</div>{/if}
+  {@render facts(report.facts)}
   <div class="flex" role="group" aria-labelledby="round-report-h">
     {#each report.categories as category (category.key)}
       <button
@@ -48,7 +79,8 @@
           >{report.column}</th
         ><th class="n">Wirtschaft/h</th><th class="n">Planeten</th><th class="n"
           >Monde</th
-        >{#if report.playtime}<th class="n">Spielzeit</th>{/if}<th>Gilde</th>
+        >{#if report.playtime}<th class="n">Spielzeit</th>{/if}<th>Gilde</th
+        >{#if report.detail}<th></th>{/if}
       </tr>
       {#each report.rows as row (row.place)}
         <tr class={row.me ? 'me' : ''}>
@@ -58,7 +90,14 @@
             class="n">{row.moons}</td
           >{#if row.played !== null}<td class="n">{row.played}</td>{/if}<td
             >{row.guild}</td
-          >
+          >{#if report.detail}<td
+              ><button
+                class="small"
+                data-act="roundPerson"
+                data-round={report.round}
+                data-seat={row.seat}>Einblick</button
+              ></td
+            >{/if}
         </tr>
       {/each}
     </tbody>

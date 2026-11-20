@@ -257,3 +257,139 @@ test('the highscore stays within a 360 px phone with the largest numbers, in eve
   expect(found).toEqual([]);
   expect(w.problems).toEqual([]);
 });
+
+test('a rank name of 24 wide letters fits a 360 px phone: select, legend and chat title (#277) @phone', async ({
+  page,
+  browser,
+}) => {
+  // Three players register, each a second or so (#302).
+  test.slow();
+  const w = watch(page);
+  const tag = guildTag('WW');
+  const guild = `${'W'.repeat(26)}${tag.slice(2)}`;
+  const heading = `[${tag}] ${guild}`;
+  // The longest name a rank may have (owner, 2026-11-17), of the widest letter.
+  const rankName = 'W'.repeat(24);
+  const lead = uniqueName('W'.repeat(14));
+  const member = uniqueName('M'.repeat(14));
+  const adminName = uniqueName('Aufsichtbreit');
+  await page.setViewportSize({ width: 360, height: 800 });
+  await register(page, lead);
+  await page.goto('/?view=guilds');
+  await page.getByLabel('Kürzel').fill(tag);
+  await page.getByLabel('Name', { exact: true }).fill(guild);
+  await page.getByRole('button', { name: 'Gilde gründen' }).click();
+  await expect(page).toHaveURL(/view=guilds&guild=/);
+  const url = page.url();
+  const other = await browser.newPage({
+    viewport: { width: 360, height: 800 },
+  });
+  const wo = watch(other);
+  await register(other, member);
+  await other.goto(url);
+  await other.getByRole('button', { name: 'Bewerben' }).click();
+  await expect(other.getByText('Deine Bewerbung ist offen.')).toBeVisible();
+  await page.goto(url);
+  await page
+    .locator('p', { hasText: member })
+    .getByRole('button', { name: 'Annehmen' })
+    .click();
+  await expect(page.getByRole('cell', { name: member })).toBeVisible();
+
+  // Create the rank with 24 characters and give it to the member.
+  await page.getByLabel('Name des neuen Rangs').fill(rankName);
+  await page.getByRole('button', { name: 'Rang anlegen' }).click();
+  await expect(page.locator('.toast').last()).toContainText('Rang angelegt.');
+  const row = page.locator('tr').filter({
+    has: page.getByRole('cell', { name: member, exact: true }),
+  });
+  await row
+    .getByLabel(`Neuer Rang für ${member}`)
+    .selectOption({ label: rankName });
+  await row.getByRole('button', { name: 'Rang ändern' }).click();
+  await expect(page.locator('.toast').last()).toContainText('Rang vergeben.');
+  await expect(row.locator('td.rank')).toHaveText(rankName);
+
+  const found: string[] = [];
+  const within = async (label: string, selector: string): Promise<void> => {
+    const bad = await page.evaluate((sel) => {
+      const client = document.documentElement.clientWidth;
+      return [...document.querySelectorAll(sel)]
+        .map((el) => el.getBoundingClientRect())
+        .filter((r) => r.left < -1 || r.right > client + 1)
+        .map((r) => `${Math.round(r.left)}..${Math.round(r.right)}`);
+    }, selector);
+    if (bad.length > 0) found.push(`${label}: ${bad.join(', ')}`);
+  };
+  await expect(page.locator('fieldset.rank legend').first()).toBeVisible();
+  found.push(...(await overflow(page, 'guild with the 24-character rank')));
+  await within('rank select', '.rank-select');
+  await within('rank cell', 'td.rank');
+  await within('rank legend', 'fieldset.rank legend');
+  expect(found).toEqual([]);
+  // The legend of the new rank shows the whole name, wrapped.
+  await expect(
+    page.locator('fieldset.rank legend', { hasText: rankName }),
+  ).toBeVisible();
+
+  // A rename to 24 characters passes, one of 25 is refused (the field's
+  // maxlength does not stop a script; the server checks).
+  const fieldset = page
+    .locator('fieldset.rank')
+    .filter({ has: page.locator('legend', { hasText: rankName }) });
+  const id = await fieldset
+    .getByRole('button', { name: 'Umbenennen' })
+    .getAttribute('data-rank');
+  const input = page.locator(`#rank_name_${id}`);
+  const rename = page.locator(`[data-act=rankRename][data-rank="${id}"]`);
+  await input.fill('M'.repeat(24));
+  await rename.click();
+  await expect(page.locator('.toast').last()).toContainText('Rang umbenannt.');
+  await expect(row.locator('td.rank')).toHaveText('M'.repeat(24));
+  // fill() obeys the maxlength of the field, so a script sets the value.
+  await expect(input).toHaveAttribute('maxlength', '24');
+  await input.evaluate((el: HTMLInputElement) => {
+    el.value = 'M'.repeat(25);
+  });
+  await rename.click();
+  await expect(page.locator('.toast').last()).toContainText(
+    'Der Rangname braucht 2 bis 24 Zeichen.',
+  );
+  await page.reload();
+  await expect(page.getByRole('heading', { name: heading })).toBeVisible();
+  await page.waitForLoadState('networkidle');
+  expect(await overflow(page, 'guild after the rename')).toEqual([]);
+
+  // The admin's chat dialog: the title with tag and the long name wraps.
+  const admin = await browser.newPage({
+    viewport: { width: 360, height: 800 },
+  });
+  const wa = watch(admin);
+  await register(admin, adminName);
+  cli('admin', adminName);
+  await admin.goto(url);
+  await admin.getByRole('button', { name: 'Chat lesen' }).click();
+  const dialog = admin.locator('#modal');
+  const title = dialog.getByRole('heading', { name: `Chat ${heading}` });
+  await expect(title).toBeVisible();
+  const box = await dialog.evaluate((d) => {
+    const h = d.querySelector('#dialog-title')!;
+    return {
+      titleScroll: h.scrollWidth,
+      titleWidth: h.clientWidth,
+      dialogRight: d.getBoundingClientRect().right,
+      titleRight: h.getBoundingClientRect().right,
+      client: document.documentElement.clientWidth,
+    };
+  });
+  expect(box.titleScroll).toBeLessThanOrEqual(box.titleWidth + 1);
+  expect(box.titleRight).toBeLessThanOrEqual(box.dialogRight + 1);
+  expect(box.dialogRight).toBeLessThanOrEqual(box.client + 1);
+  expect(await overflow(admin, 'admin chat dialog')).toEqual([]);
+
+  await other.close();
+  await admin.close();
+  expect(w.problems).toEqual([]);
+  expect(wo.problems).toEqual([]);
+  expect(wa.problems).toEqual([]);
+});

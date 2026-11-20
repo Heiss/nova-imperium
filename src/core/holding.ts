@@ -70,7 +70,7 @@ export const roundSettings = [
     kind: 'number',
     key: 'roundAllies',
     name: 'allies',
-    label: 'Halten erlaubt für',
+    label: 'Verbündete für Halten und Verband',
     order: 100,
     min: ALLIES_RANGE.min,
     max: ALLIES_RANGE.max,

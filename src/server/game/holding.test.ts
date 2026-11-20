@@ -449,6 +449,62 @@ describe('holding', () => {
   });
 });
 
+describe('no fuel back for unused holding hours (#55, owner, 2026-11-19)', () => {
+  const FUEL = (h: number) =>
+    fuelFor({ lf: 2 }, distance(ANNA, BERT), 10) + holdFuel({ lf: 2 }, h);
+
+  /** Anna launches to hold 32 h; returns the context and the fleet. */
+  function launched(): { ctx: TestCtx; f: Fleet } {
+    const ctx = setup();
+    send(ctx, user(ctx, 'Anna'), hold({ hold: 32 }));
+    return { ctx, f: ctx.fleets.all()[0]! };
+  }
+  /** The flight is over: the fleet is home, the ships are back. */
+  function home(ctx: TestCtx, f: Fleet): void {
+    ctx.clock.t = f.ret;
+    tick(ctx);
+    expect(ctx.fleets.get(f.id)).toBeNull();
+    expect(ctx.planets.home('u_Anna')!.ships.lf).toBe(20);
+  }
+
+  it('refunds nothing after a recall while the fleet holds', () => {
+    const { ctx, f } = launched();
+    ctx.clock.t = f.arr;
+    tick(ctx);
+    expect(ctx.fleets.get(f.id)!.state).toBe('hold');
+    recall(ctx, user(ctx, 'Anna'), { id: f.id });
+    home(ctx, ctx.fleets.get(f.id)!);
+    expect(ctx.planets.home('u_Anna')!.res.d).toBe(30000 - FUEL(32));
+  });
+  it('refunds nothing for a fleet that is called back on its way out', () => {
+    const { ctx, f } = launched();
+    ctx.clock.t += 100;
+    recall(ctx, user(ctx, 'Anna'), { id: f.id });
+    home(ctx, ctx.fleets.get(f.id)!);
+    expect(ctx.planets.home('u_Anna')!.res.d).toBe(30000 - FUEL(32));
+  });
+  it("refunds nothing when the host's vacation sends the guard home", () => {
+    const { ctx, f } = launched();
+    ctx.clock.t = f.arr;
+    tick(ctx);
+    runAction(ctx, 'u_Bert', { type: 'startVacation' });
+    const back = ctx.fleets.get(f.id)!;
+    expect(back.state).toBe('back');
+    home(ctx, back);
+    expect(ctx.planets.home('u_Anna')!.res.d).toBe(30000 - FUEL(32));
+  });
+  it('refunds nothing for a guard on its way that turns home at a host in vacation', () => {
+    const { ctx, f } = launched();
+    runAction(ctx, 'u_Bert', { type: 'startVacation' });
+    ctx.clock.t = f.arr;
+    tick(ctx);
+    const back = ctx.fleets.get(f.id)!;
+    expect(back.state).toBe('back');
+    home(ctx, back);
+    expect(ctx.planets.home('u_Anna')!.res.d).toBe(30000 - FUEL(32));
+  });
+});
+
 /** Cora attacks Bert's planet now with `ships`. */
 function attack(ctx: TestCtx, ships: Fleet['ships']): Fleet {
   const f: Fleet = {
@@ -803,6 +859,6 @@ describe('who may hold in the round (#55, X1)', () => {
         type: 'settings',
         settings: { ...ctx.admin.universe(), roundAllies: 4 },
       }),
-    ).toThrow('Halten erlaubt für');
+    ).toThrow('Verbündete für Halten und Verband');
   });
 });

@@ -41,6 +41,13 @@ const COLONIES: RoundGroup = {
       perLevel: v.colonyPerLevel!,
       maxLevel: v.colonyMaxLevel!,
     }),
+  confirm: (v) =>
+    colonyConfirm({
+      base: v.colonyBase!,
+      research: v.colonyResearch === 1,
+      perLevel: v.colonyPerLevel!,
+      maxLevel: v.colonyMaxLevel!,
+    }),
 };
 
 /** The words of the one rule between the settings: research needs a base limit (issue #237). */
@@ -242,6 +249,29 @@ export function colonyPreview(rules: ColonyRules): string {
   if (!rules.research) return `Vorschau: ${planetsText(rules.base)}`;
   const open = rules.maxLevel === 0 ? ['keine maximale Forschungsstufe'] : [];
   return `Vorschau: Ohne Forschung: ${planetsText(rules.base)} · ${[...levelSteps(rules), ...open].join(' · ')}.`;
+}
+
+/**
+ * The line above the button of „Neue Runde“ (issue #237: the reset
+ * confirmation repeats the exact settings; the wording is [V], the names are
+ * those of the fields): „Die neue Runde startet mit: Maximale Planeten ohne
+ * Forschung: 6 · Kolonieforschung: aktiviert · Zusätzliche Planeten je
+ * Forschungsstufe: 2 · Maximale Forschungsstufe: 4.“ A base of 0 reads
+ * „unbegrenzt“, a highest level of 0 „unbegrenzt erforschbar“. Empty while a
+ * value is outside its range or the research has no base limit (the server
+ * refuses that).
+ */
+export function colonyConfirm(rules: ColonyRules): string {
+  if (!rangesOk(rules) || (rules.research && rules.base === 0)) return '';
+  const base = `Maximale Planeten ohne Forschung: ${rules.base === 0 ? 'unbegrenzt' : rules.base}`;
+  const research = rules.research
+    ? [
+        'Kolonieforschung: aktiviert',
+        `Zusätzliche Planeten je Forschungsstufe: ${rules.perLevel}`,
+        `Maximale Forschungsstufe: ${rules.maxLevel === 0 ? 'unbegrenzt erforschbar' : rules.maxLevel}`,
+      ]
+    : ['Kolonieforschung: nicht aktiviert'];
+  return `Die neue Runde startet mit: ${[base, ...research].join(' · ')}.`;
 }
 
 /** The levels of the preview, „Stufe 1: 8“, up to the highest level or the one that reaches the most planets. */

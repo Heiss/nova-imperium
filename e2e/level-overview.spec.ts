@@ -7,6 +7,7 @@
 // every table without the icon, „Ausblenden“ neither, and the choice stays
 // over a reload. The words of the columns are drafts [V]; the checks hold the
 // button name the issue gives and the levels. Desktop and phone.
+import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import {
   nav,
@@ -114,3 +115,73 @@ test('the option „Stufenübersicht“ shows every table, none or the icon, and
   await expect(icon(page)).toBeVisible();
   expect(w.problems).toEqual([]);
 });
+
+/** axe (WCAG 2.1 A and AA) on the page with the tables unfolded. */
+async function axeViolations(page: Page, label: string): Promise<string[]> {
+  const results = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+    .analyze();
+  return results.violations.map((v) => `${label}: ${v.id}: ${v.help}`);
+}
+
+for (const phone of ['', ' @phone'])
+  test(`the research has its ▤ table, and the page with a table unfolded has no axe violations${phone}`, async ({
+    page,
+  }) => {
+    const w = watch(page);
+    const name = uniqueName('Stufenforsch');
+    await register(page, name);
+    // Research on level 3 (rows 4, 5, 6, 10, 15, 20) with a lab to start it.
+    seed({
+      name,
+      b: { metal: 3, lab: 3 },
+      research: { energy: 3 },
+      res: { m: 50000, c: 50000, d: 50000 },
+    });
+    await page.reload();
+    const found: string[] = [];
+
+    // Buildings: the table of the Adamant-Tiefbohrung unfolded.
+    await nav(page, 'buildings');
+    await openAllRows(page);
+    await icon(page).click();
+    await expect(levels(page)).toHaveText(['4', '5', '6', '10', '15', '20']);
+    found.push(...(await axeViolations(page, 'buildings')));
+
+    // Research: D2 names buildings and research; the same rows by level.
+    await nav(page, 'research');
+    await openAllRows(page);
+    const rIcon = page.getByRole('button', {
+      name: 'Stufenübersicht zu Machina-Energetik',
+      exact: true,
+    });
+    await expect(rIcon).toHaveAttribute('aria-expanded', 'false');
+    await rIcon.click();
+    await expect(rIcon).toHaveAttribute('aria-expanded', 'true');
+    const rTable = page.locator('#lv_energy');
+    await expect(rTable.locator('tbody th')).toHaveText([
+      '4',
+      '5',
+      '6',
+      '10',
+      '15',
+      '20',
+    ]);
+    await expect(
+      rTable.getByRole('region', { name: 'Stufen' }),
+    ).toHaveAttribute('tabindex', '0');
+    // The table scrolls inside its entry and never widens the page.
+    expect(
+      await page.evaluate(
+        () =>
+          document.documentElement.scrollWidth -
+          document.documentElement.clientWidth,
+      ),
+    ).toBeLessThanOrEqual(1);
+    found.push(...(await axeViolations(page, 'research')));
+    // The ships and the defense have no ▤ (D2).
+    await nav(page, 'shipyard');
+    await expect(page.locator('#view .lvq')).toHaveCount(0);
+    expect(found).toEqual([]);
+    expect(w.problems).toEqual([]);
+  });

@@ -14,6 +14,7 @@ import {
   mailCli,
   mailSeed,
   nav,
+  openAllRows,
   registerByMail,
   uniqueName,
   watch,
@@ -129,6 +130,90 @@ test.describe('the planet limit (#237)', () => {
     await page.locator('#set_roundColonyBase').fill('0');
     await page.getByRole('button', { name: 'Einstellungen speichern' }).click();
     await expect(page.locator('#set_roundColonyBase')).toHaveValue('0');
+    mailCli('unadmin', name);
+    expect(w.problems).toEqual([]);
+  });
+
+  test('base 6 with +2 per level and 4 levels gives the limits 6, 8, 10, 12 and 14; the highest level cannot be raised; unlimited says so', async ({
+    page,
+  }) => {
+    test.setTimeout(90_000);
+    const w = watch(page);
+    const name = uniqueName('Stufenfolge');
+    await registerByMail(page, name);
+    mailCli('admin', name);
+    await loginByCode(page, name);
+
+    await nav(page, 'admin');
+    await page.getByRole('tab', { name: 'Universum' }).click();
+    await page.getByRole('button', { name: 'Neue Runde starten' }).click();
+    await expect(
+      page.getByText('Wirklich eine neue Runde starten?'),
+    ).toBeVisible();
+    // The dialog offers the value the running round has stored (the other
+    // test of this file leaves 0); the example of the issue is typed in.
+    await baseField(page).fill('6');
+    await researchSwitch(page).selectOption({ label: 'Ja' });
+    await dialog(page)
+      .getByLabel('Zusätzliche Planeten je Forschungsstufe')
+      .fill('2');
+    await dialog(page)
+      .getByLabel(/^Maximale Forschungsstufe/)
+      .fill('4');
+    await expect(preview(page)).toHaveText(
+      'Vorschau: Ohne Forschung: 6 Planeten · Stufe 1: 8 · Stufe 2: 10 · Stufe 3: 12 · Stufe 4: 14.',
+    );
+    await page.getByRole('button', { name: 'Ja, neue Runde' }).click();
+    await expect(lastToast(page)).toContainText('Neue Runde gestartet');
+
+    // Each level of the research raises the limit by two, up to 14.
+    mailSeed({ name, b: { lab: 3 } });
+    for (const [level, limit] of [
+      [0, 6],
+      [1, 8],
+      [2, 10],
+      [3, 12],
+      [4, 14],
+    ] as const) {
+      mailSeed({ name, research: { colonial: level } });
+      await page.reload();
+      await nav(page, 'overview');
+      await expect(
+        page.locator('.kv tr', { hasText: 'Planetengrenze' }),
+      ).toContainText(
+        `Planeten: 1 / ${limit} · Kolonialverwaltung Stufe ${level}`,
+      );
+    }
+
+    // At level 4 of 4 the research says so and offers no further level.
+    await nav(page, 'research');
+    await openAllRows(page);
+    const research = page.locator('.item').filter({
+      has: page.locator('.nm', { hasText: /^\s*Kolonialverwaltung/ }),
+    });
+    await expect(research).toContainText(
+      'Kolonialverwaltung Stufe 4/4 · +2 Planeten je Stufe · höchste Stufe erreicht',
+    );
+    // Level 5 cannot be started: the server refuses it with the reason.
+    await research.locator('[data-act=research]').click();
+    await expect(page.locator('.toast.err').last()).toContainText(
+      'Die höchste Stufe dieser Forschung ist erreicht.',
+    );
+    await expect(research).toContainText('höchste Stufe erreicht');
+
+    // Unlimited again (and for the other specs): the overview says so.
+    await nav(page, 'admin');
+    await page.getByRole('tab', { name: 'Universum' }).click();
+    await page
+      .locator('#set_roundColonyResearch')
+      .selectOption({ label: 'Nein' });
+    await page.locator('#set_roundColonyBase').fill('0');
+    await page.getByRole('button', { name: 'Einstellungen speichern' }).click();
+    await expect(page.locator('#set_roundColonyBase')).toHaveValue('0');
+    await nav(page, 'overview');
+    await expect(
+      page.locator('.kv tr', { hasText: 'Planetengrenze' }),
+    ).toContainText('Planeten: 1 · unbegrenzt');
     mailCli('unadmin', name);
     expect(w.problems).toEqual([]);
   });
