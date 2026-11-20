@@ -674,8 +674,9 @@ choice of the patterns to the assistant's recommendation below
 * **[E]** One state module with Svelte 5 runes (`.svelte.ts`) replaces the
   module variables of `src/client/main.ts`; one component per view.
 * **[E]** `main.ts` must not grow: a CI ratchet keeps its line count at or
-  below the limit in `size-ratchet.json`, and every #118 pull request
-  lowers the limit as it shrinks `main.ts` (#242, see
+  below its count on the base branch, and a pull request that shrinks
+  `main.ts` lowers the limit for the next ones by being merged; no file
+  holds the number (#242, #317 part 4, see
   [Test strategy](/ops/testing.md)).
 * **[E]** Generic components render from the catalog: `CatalogList`
   (buildings, research, shipyard, defense) and `ProducerTable` (resources).
@@ -1306,7 +1307,8 @@ src/client/                state, components (generic), views
   `achievements`, `push` and `install`. What stays in `main.ts` is the frame:
   start, the API call, the state, the rendering, the login and its forms, the
   news and the maintenance banner, the admin panel and the click and key
-  dispatch. Each move lowers `size-ratchet.json`.
+  dispatch. Each move lowers the line count of `main.ts`, which is the limit
+  of the next change (`size-ratchet.json` is gone, #317 part 4).
 
 ## 14. Server features register themselves (#326, part 2 of #317)
 

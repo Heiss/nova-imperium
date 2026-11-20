@@ -1,3 +1,4 @@
+import { spawnSync } from 'node:child_process';
 import { describe, expect, it } from 'vitest';
 import {
   check,
@@ -10,8 +11,9 @@ import {
   scoresOf,
   type Standard,
   table,
+  parseStandard,
   totalOf,
-  update,
+  UPDATE_REFUSED,
   withoutMutants,
 } from '../../scripts/mutation-gate.ts';
 
@@ -67,35 +69,51 @@ describe('mutation gate', () => {
     ]);
   });
 
-  it('raises floors, never lowers them, and drops files that no longer exist', () => {
-    const next = update(
-      {
-        'src/server/auth.ts': 91,
-        'src/core/a.ts': 60,
-        'src/core/c.ts': 85,
-      },
-      standard,
-    );
-    expect(next.floors).toEqual({
-      'src/server/auth.ts': 91,
-      'src/core/a.ts': 70,
-      'src/core/c.ts': 85,
+  it('reads the standard from mutation-standard.json and the floors file', () => {
+    const config = JSON.stringify({
+      securityTarget: 90,
+      newFile: 80,
+      security: ['src/server/auth.ts'],
     });
-    expect(Object.keys(next.floors)).toEqual(
-      [...Object.keys(next.floors)].sort(),
-    );
-    expect(next.security).toEqual(standard.security);
-    const exists = (file: string) => file !== 'src/core/a.ts';
     expect(
-      update({ 'src/server/auth.ts': 80 }, standard, exists).floors,
-    ).toEqual({ 'src/server/auth.ts': 83.75 });
-    expect(standard.floors['src/server/auth.ts']).toBe(83.75);
+      parseStandard(config, 'src/core/a.ts 70\nsrc/server/auth.ts 83.75\n'),
+    ).toEqual({
+      securityTarget: 90,
+      newFile: 80,
+      security: ['src/server/auth.ts'],
+      floors: { 'src/server/auth.ts': 83.75, 'src/core/a.ts': 70 },
+    });
+    expect(parseStandard(config, '').floors).toEqual({});
   });
 
-  it('keeps the floor of a file left out of a partial run', () => {
-    expect(
-      update({ 'src/server/auth.ts': 85 }, standard, () => true).floors,
-    ).toEqual({ 'src/server/auth.ts': 85, 'src/core/a.ts': 70 });
+  it('refuses floors in mutation-standard.json and a file with two floors', () => {
+    const old = JSON.stringify({
+      securityTarget: 90,
+      newFile: 80,
+      security: [],
+      floors: { 'src/core/a.ts': 70 },
+    });
+    expect(() => parseStandard(old, '')).toThrow(
+      'mutation-standard.json: the floors are in mutation-floors.txt, one line per file; remove "floors" here.',
+    );
+    expect(() =>
+      parseStandard(
+        '{"securityTarget":90,"newFile":80,"security":[]}',
+        'src/core/a.ts 70\nsrc/core/a.ts 75\n',
+      ),
+    ).toThrow('src/core/a.ts has two floors (70 and 75)');
+  });
+
+  it('refuses --update from a local report and points to the CI report', () => {
+    expect(UPDATE_REFUSED).toContain('gh run download');
+    expect(UPDATE_REFUSED).toContain('node scripts/mutation-floors.ts');
+    const result = spawnSync(
+      'node',
+      ['scripts/mutation-gate.ts', '--update', '--report', 'none.json'],
+      { encoding: 'utf8' },
+    );
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('--update is gone (#304)');
   });
 
   it('skips files without counted mutants', () => {
