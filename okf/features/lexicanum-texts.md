@@ -637,6 +637,36 @@ code and here in the same pull request.
 * **[V]** Text: „Ist keine Verteidigung mehr übrig, geht der Rest des Schadens auf die Raketen, die in der Raketenkrypta des Ziels lagern, in der Reihenfolge des Katalogs (Abfangrakete, Orbitalrakete); Abfangraketen, die schon eine Orbitalrakete aufgehalten haben, sind dabei nicht mehr da. Zerstörte Verteidigung wird nicht wieder aufgebaut und hinterlässt kein Trümmerfeld. Beide Seiten bekommen einen Bericht. Steht bei der Ankunft kein fremder Planet oder Mond mehr an der Position, sind die Raketen verloren.“
 * **[V]** Keywords: Raketen, Raketenkrypta, Abfangraketen, Reichweite, Schaden
 
+### Vermessung (`rule-survey`)
+
+* **[V]** Line: „Wie du eine freie Position vermisst, was der Bericht je nach Auspex-Wert zeigt und wann Spähschädel verloren gehen.“
+* **[V]** Heading: „Was eine Vermessung ist“
+* **[V]** Text: „Mit einer Vermessung erfährst du vor der Landnahme, was an einer freien Position auf dich wartet. Dafür fliegen nur Spähschädel, und der Auftrag braucht die Auspex-Kartographie, mindestens die erste Stufe; ohne sie ist er nicht zu haben. Die Flotte belegt wie jede Flotte einen Flottenslot und fliegt nach der Messung heim. Ist die Position bei der Ankunft nicht mehr frei oder nach einer aufgegebenen Kolonie noch gesperrt, kehrt sie um.“
+* **[V]** Text: „Die Werte der Position, ihren Durchmesser und ihre Temperatur, bekommt sie bei der ersten Vermessung, die einen Bericht bringt, nach denselben Regeln wie eine neue Kolonie (Planeten und Felder). Sie bleiben 30 Tage erhalten, gezählt ab dieser ersten Vermessung; eine weitere Vermessung beginnt die Zeit nicht neu. Wird die Position in dieser Zeit besiedelt, bekommt die Kolonie genau diese Werte. Sonst werden Werte und Berichte danach gelöscht, und eine neue Vermessung würfelt neue. Gehen die Spähschädel verloren, gibt es keinen Bericht und die Position bekommt keine Werte.“
+* **[V]** Heading: „Auspex-Wert und Bericht“
+* **[V]** Text: „Wie viel der Bericht zeigt, hängt vom Auspex-Wert der Vermessung ab. Jeder Spähschädel zählt einmal, jede Stufe der Auspex-Kartographie doppelt. Je höher der Auspex-Wert, desto mehr steht im Bericht; die Liste nennt, was ab welchem Wert dazukommt. Gezählt werden die Spähschädel, die ankommen, und die Stufe bei der Ankunft.“
+* **[V]** Formula: „Auspex-Wert = Spähschädel + 2 · Stufe der Auspex-Kartographie“
+* **[V]** Table: „Auspex-Wert nach Spähschädeln und Stufe der Auspex-Kartographie“
+* **[V]** Table: „Spähschädel | Stufe 1 | Stufe 2 | Stufe 3 | Stufe 5“
+* **[V]** Facts: „Unter 4: Nur, was sich von der Position erraten lässt: der Planetentyp, die Spanne der Felder an dieser Position, die Temperatur um einen Mittelwert, die Bahn und eine Größe mit dem Zusatz vermutlich. Der Bericht ist als ungenau markiert.“
+* **[V]** Facts: „Ab 4: Dazu die Felder des Planeten, um 20 % nach oben und unten, und seine höchste Temperatur, um 10 °C nach oben und unten. Das Fenster behält seine Breite, liegt aber zufällig verschoben; der wahre Wert liegt immer darin.“
+* **[V]** Facts: „Ab 7: Die Felder und die höchste Temperatur des Planeten genau.“
+* **[V]** Facts: „Ab 10: Alles, was über den Planeten bekannt ist: Temperatur, Durchmesser, Felder im Vergleich mit dem Durchschnitt der Position, Planetentyp, Promethium-Faktor, Energie eines Sonnenreliquiars und Vor- und Nachteile als Stichworte.“
+* **[V]** Heading: „Was der grobe Bericht von der Position sagt“
+* **[V]** Text: „Der grobe Bericht nennt die Bahn und damit die Temperatur der Position und schätzt die Größe. Die Bahn ergibt sich aus der Position im System: ein Fünftel der Positionen liegt innen, drei Fünftel in der Mitte, ein Fünftel außen. Die Größe richtet sich nach dem Durchschnitt der Felder an der Position, in drei gleich breiten Teilen der Spanne aller Positionen.“
+* **[V]** Table: „Bahn nach der Position in diesem Universum“
+* **[V]** Table: „Positionen | Bahn“
+* **[V]** Table: „Größe nach dem Durchschnitt der Felder der Position“
+* **[V]** Table: „Felder im Durchschnitt | Größe“
+* **[V]** Heading: „Verlust der Spähschädel“
+* **[V]** Text: „Beim Eintreffen können die Spähschädel verloren gehen. Dabei wird zuerst eine Verlustchance zwischen null und dem Höchstwert ausgelost und dann einmal gewürfelt, ob die ganze Flotte verloren ist; dann gibt es keinen Bericht. Mehr Spähschädel erhöhen den Höchstwert, ein weiter Weg auch, jede Stufe der Auspex-Kartographie senkt beides. Die Entfernung wird gemessen wie bei jedem Flug (Flug und Treibstoff), vom Startplaneten aus.“
+* **[V]** Formula: „Höchste Verlustchance in % = Spähschädel · 5 ÷ Stufe + 6 · (Entfernung ÷ 1.000)^0,8 ÷ (1 + 0,4 · Stufe), höchstens 60 %“
+* **[V]** Table: „Höchste Verlustchance bei einem Weg von 5 Systemen“
+* **[V]** Table: „Spähschädel | Stufe 1 | Stufe 2 | Stufe 3 | Stufe 5“
+* **[V]** Table: „Höchste Verlustchance mit 4 Spähschädeln nach Entfernung“
+* **[V]** Table: „Systeme entfernt | Stufe 1 | Stufe 2 | Stufe 3 | Stufe 5“
+* **[V]** Keywords: Vermessung, vermessen, Position, Kartographie, Bericht
+
 ### Produktion, Energie und Lager (`rule-production`)
 
 * **[V]** Line: „Was ein Planet fördert, warum eine Mine weniger bringt als angegeben und wo die Förderung endet.“

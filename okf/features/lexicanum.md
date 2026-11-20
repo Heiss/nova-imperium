@@ -206,6 +206,14 @@ their own.
   `hullOf` of `missiles.ts` is exported for the table of structures; no
   rule changed.
 
+* **[V]** „Vermessung“ (`rule-survey`, #190): the conditions of the mission,
+  the Auspex-Wert (`surveyScore`) and the four tiers of the report with what
+  each shows, the bands of the orbit and the size of the rough report, the
+  highest loss chance (`maxLoss`) and how long the values of a position are
+  kept. `TIERS`, `NEAR_FIELDS` and `NEAR_TEMP` of `survey.ts` are exported
+  (the window of ± 20 % and ± 10 °C was typed in `surveyFindings`); no rule
+  changed.
+
 # Stage 3: guides and personal hints (#289)
 
 * **[V]** The three open decisions of the issue were not answered; taken as

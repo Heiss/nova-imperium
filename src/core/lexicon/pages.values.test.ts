@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { planet } from '../../test/fixtures.ts';
 import { STATES } from '../../test/lexicon-states.ts';
 import { buildable } from '../catalog.ts';
+import { CENTRED, surveyFindings, surveyTier, TIERS } from '../survey.ts';
 import { GUILD_RIGHTS } from '../guild-ranks.ts';
 import { pageParts } from './docs.ts';
 import { PAGES } from './pages/index.ts';
@@ -254,6 +255,96 @@ describe('the rule pages of the missions say the values of the rules', () => {
       '1500',
     ]);
     expect(hits).toHaveLength(8);
+  });
+});
+
+describe('Vermessung says what the survey does', () => {
+  it('the score, the tiers and what each tier shows agree with the findings', () => {
+    expect(TIERS.map(([min]) => min)).toEqual([10, 7, 4]);
+    expect(
+      rowsOf(
+        'rule-survey',
+        'Auspex-Wert nach Spähschädeln und Stufe der Auspex-Kartographie',
+      )[0],
+    ).toEqual(['1', '3', '5', '7', '11']);
+    const text = words('rule-survey');
+    expect(text).toContain(
+      'Unter 4: Nur, was sich von der Position erraten lässt',
+    );
+    expect(text).toContain(
+      'Ab 4: Dazu die Felder des Planeten, um 20 % nach oben und unten, und seine höchste Temperatur, um 10 °C',
+    );
+    expect(text).toContain('Sie bleiben 30 Tage erhalten');
+    // The words of a tier match what the findings hold: nothing, windows, exact values, the full report.
+    const at = (score: number) =>
+      surveyFindings(
+        { s: 1, p: 9, positions: 15 },
+        { temp: 70, diameter: 12000 },
+        surveyTier(score),
+        { fields: 0, temp: 1 },
+      );
+    expect(at(3)).not.toHaveProperty('fields');
+    expect(at(3)).not.toHaveProperty('temp');
+    // 144 fields, a window of ± 20 % is 57.6 wide each way: shifted to its lower end it runs from 144 to 202.
+    expect(at(4).fields).toEqual({ min: 144, max: 202 });
+    expect(at(4).temp).toEqual({ min: 70 - 20, max: 70 });
+    expect(at(7).fields).toEqual({ min: 144, max: 144 });
+    expect(at(7).temp).toEqual({ min: 70, max: 70 });
+    expect(at(7)).not.toHaveProperty('full');
+    expect(at(10).full).toMatchObject({
+      fields: 144,
+      temp: 70,
+      diameter: 12000,
+    });
+    expect(
+      surveyFindings(
+        { s: 1, p: 9, positions: 15 },
+        { temp: 70, diameter: 12000 },
+        'near',
+        CENTRED,
+      ).fields,
+    ).toEqual({ min: 115, max: 173 });
+  });
+
+  it('the bands of the orbit follow the positions of the universe, the sizes the field range', () => {
+    expect(
+      rowsOf('rule-survey', 'Bahn nach der Position in diesem Universum'),
+    ).toEqual([
+      ['1 bis 3', 'innere Bahn, heiß'],
+      ['4 bis 12', 'mittlere Bahn, gemäßigt'],
+      ['13 bis 15', 'äußere Bahn, kalt'],
+    ]);
+    const wide = withLive({}, { positions: 20 });
+    expect(
+      rowsOf('rule-survey', 'Bahn nach der Position in diesem Universum', wide),
+    ).toEqual([
+      ['1 bis 4', 'innere Bahn, heiß'],
+      ['5 bis 16', 'mittlere Bahn, gemäßigt'],
+      ['17 bis 20', 'äußere Bahn, kalt'],
+    ]);
+    expect(
+      rowsOf(
+        'rule-survey',
+        'Größe nach dem Durchschnitt der Felder der Position',
+      ),
+    ).toEqual([
+      ['96 bis 147', 'klein'],
+      ['148 bis 199', 'mittelgroß'],
+      ['200 bis 252', 'groß'],
+    ]);
+  });
+
+  it('the loss chance is the formula, capped, and falls with the level', () => {
+    const near = rowsOf(
+      'rule-survey',
+      'Höchste Verlustchance bei einem Weg von 5 Systemen',
+    );
+    // One probe, level 1, 5 systems (distance 3175): 5 % + 6 % · 3,175^0,8 / 1,4.
+    expect(near[0]![1]).toBe('15,8 %');
+    expect(near[3]![1]).toBe('60 %');
+    expect(
+      Number(near[0]![4]!.replace(' %', '').replace(',', '.')),
+    ).toBeLessThan(Number(near[0]![1]!.replace(' %', '').replace(',', '.')));
   });
 });
 

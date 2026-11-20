@@ -5,5 +5,5 @@ import type { EntryLexicon } from '../../core/lexicon/types.ts';
 
 export const lexicon: EntryLexicon = {
   keywords: ['vermessen', 'Position', 'Planet', 'Kolonie'],
-  seeAlso: ['mission-survey'],
+  seeAlso: ['mission-survey', 'rule-survey'],
 };

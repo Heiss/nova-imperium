@@ -31,6 +31,7 @@ import { page as protection } from './protection.ts';
 import { page as queues } from './queues.ts';
 import { page as rewards } from './rewards.ts';
 import { page as spy } from './spy.ts';
+import { page as survey } from './survey.ts';
 import { page as universe } from './universe.ts';
 import { page as vacation } from './vacation.ts';
 import { page as vision } from './vision.ts';
@@ -45,6 +46,7 @@ export const PAGES: readonly PageDef[] = [
   planets,
   colonies,
   missiles,
+  survey,
   production,
   queues,
   protection,
