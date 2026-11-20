@@ -57,11 +57,17 @@ test('the controls the phone view made for the finger are at least 44 px (#189) 
   await page.reload();
   const found: string[] = [];
   const check = async (label: string, selector: string): Promise<void> => {
-    const boxes = await page.locator(selector).evaluateAll((els) =>
-      els
-        .map((el) => el.getBoundingClientRect())
-        .filter((r) => r.width > 0 && r.height > 0)
-        .map((r) => `${Math.round(r.width)}x${Math.round(r.height)}`),
+    // Found and measured in one step inside the page: `locator.evaluateAll`
+    // finds the elements first and measures them in a second step, and a
+    // redraw between the two (the frame is mounted anew by every render)
+    // leaves elements that are off the page, with a box of 0 x 0.
+    const boxes = await page.evaluate(
+      (css) =>
+        [...document.querySelectorAll(css)]
+          .map((el) => el.getBoundingClientRect())
+          .filter((r) => r.width > 0 && r.height > 0)
+          .map((r) => `${Math.round(r.width)}x${Math.round(r.height)}`),
+      selector,
     );
     expect(boxes.length, `${label} is on the page`).toBeGreaterThan(0);
     for (const box of boxes) {
