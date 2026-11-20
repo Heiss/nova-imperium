@@ -12,10 +12,12 @@ import type { Mount, Mounted } from './contract.ts';
 import { CLIENT_VIEWS } from './views.gen.ts';
 import { mountCatalogList } from './catalog-list.ts';
 import { mountFleet } from './fleet.ts';
+import { mountFriends } from './friends.ts';
 import { mountGalaxy } from './galaxy.ts';
 import { mountGuilds } from './guilds.ts';
 import { mountHighscore } from './highscore.ts';
 import { mountLexicanum } from './lexicanum.ts';
+import { mountMarket } from './market.ts';
 import { mountMessages } from './messages.ts';
 import { mountNews } from './news.ts';
 import { mountOptions } from './options.ts';
@@ -36,6 +38,8 @@ const FRAME: Record<string, Mount> = {
   achievements: mountAchievements,
   help: mountOptions,
   guilds: mountGuilds,
+  market: mountMarket,
+  friends: mountFriends,
   [LEXICANUM_VIEW]: mountLexicanum,
 };
 
@@ -52,6 +56,8 @@ const VIEWS = assembleMounts(
     'achievements',
     'help',
     'guilds',
+    'market',
+    'friends',
   ],
   CLIENT_VIEWS,
 );

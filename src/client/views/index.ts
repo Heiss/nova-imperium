@@ -8,14 +8,12 @@ import {
 } from './assemble.ts';
 import type { V } from './common.ts';
 import type { MenuItem, Tab } from './contract.ts';
-import { friends } from './friends.ts';
-import { market } from './market.ts';
 import { admin } from './misc.ts';
 import { CLIENT_VIEWS } from './views.gen.ts';
 
 /** The views drawn as HTML: the frame (not moved into a module yet) and the modules. */
 export const VIEWS: Record<string, (v: V) => string> = assembleHtml(
-  { market, friends, admin } as Record<string, (v: V) => string>,
+  { admin },
   CLIENT_VIEWS,
 );
 

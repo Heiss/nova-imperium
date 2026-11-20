@@ -4,6 +4,8 @@
 // 2026-11-16, D1); the open requests both ways; the mark on „Freunde“; and
 // which action each button sends. The server checks every action
 // (src/core/friends.ts).
+import type { V } from '../views/common.ts';
+import { coords } from './format.ts';
 import type { GalaxyPlanet, GameState } from './types.ts';
 
 /** A player of the list: id and name. */
@@ -27,6 +29,18 @@ export const homePlanetOf = (
   owner: string,
 ): GalaxyPlanet | null =>
   galaxy.find((p) => p.owner === owner && p.kind === 'planet') ?? null;
+
+/** A planet with the link to its system on the Sternenkarte: its name, the system and the place as text. */
+export interface HomeLink {
+  name: string;
+  g: number;
+  s: number;
+  at: string;
+}
+
+/** The link a planet shows (the Highscore, the buddy list), or null without a planet. */
+export const homeLink = (pl: GalaxyPlanet | null): HomeLink | null =>
+  pl && { name: pl.name, g: pl.g, s: pl.s, at: coords(pl) };
 
 /** The friends and the open requests of the state, with names. */
 export function buddyList(s: GameState): {
@@ -85,4 +99,34 @@ export function friendCall(
     default:
       return null;
   }
+}
+
+/** One line of the table of friends: `tag` is „[tag]“ or „-“. */
+interface FriendRow extends Named {
+  tag: string;
+  home: HomeLink | null;
+  online: boolean;
+}
+
+/** What the page shows: the friends, the requests to the player and the own ones. */
+export interface FriendsPage {
+  rows: FriendRow[];
+  incoming: Named[];
+  outgoing: Named[];
+}
+
+/** The page „Freunde“ (#227) of the view state, as the component Friends renders it (#118). */
+export function friendsPage(v: V): FriendsPage {
+  const { list, incoming, outgoing } = buddyList(v.s);
+  return {
+    rows: list.map((f) => ({
+      id: f.id,
+      name: f.name,
+      tag: f.tag === null ? '-' : `[${f.tag}]`,
+      home: homeLink(f.home),
+      online: f.online,
+    })),
+    incoming,
+    outgoing,
+  };
 }

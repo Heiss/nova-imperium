@@ -801,8 +801,8 @@ choice of the patterns to the assistant's recommendation below
   render. Bundle 6 (Gilden) moved none either: the old view kept
   `client.ui.guild`, which stays there; the dialog function `modal()` moved
   from `main.ts` to `src/client/modal.ts`. Still rendered as HTML: the view
-  Admin (and Marktplatz and Freunde, which came after the bundles were
-  proposed).
+  Admin (Marktplatz and Freunde, which came after the bundles were proposed,
+  are components since the bullet below; they moved none either).
 * **[E]** Bundle 3 after bundle 2 (owner, 2026-11-15 and 2026-11-16: the
   order of the bundles of #118 „Geklärt, Nachtrag 3“, unchanged by
   „Nachtrag 4“): Flotte, which the earlier work paused (the branch
@@ -889,7 +889,7 @@ choice of the patterns to the assistant's recommendation below
   every render (`ANEW`), as their HTML was rendered anew: the filter is
   applied again after each render (`afterRender`), and the folds stay in
   `unfolded`. `highscoreButtonsHTML()` and the two HTML functions are gone;
-  `homeCell()` of `views/common.ts` stays for the buddy list. `main.ts`
+  `homeCell()` of `views/common.ts` went with the buddy list (below). `main.ts`
   stays at 1,191 lines: neither view had code in it. No visible change.
 * **[V]** Built with #118, bundle 5, second part („Optionen“, formerly
   „Hilfe & Optionen“, view `help`): `Options.svelte`, mounted by
@@ -953,6 +953,34 @@ choice of the patterns to the assistant's recommendation below
   reads the attribute. `box()` of `common.ts` stays for the other HTML views;
   `Box.svelte` is its component. `main.ts` 1,191 to 1,186 lines. No visible
   change.
+* **[E]** Marktplatz (#171) and Freunde (#227) are part of the update of
+  2026-11-22 (owner, 2026-11-19, „Geklärt“ on #118): both views become
+  components, with no change of a game rule, a text or the look.
+* **[V]** Built with #118, bundle 7, second part (Marktplatz, Freunde):
+  `Market.svelte`, mounted by `mountMarket()` of `views/market.ts`, renders
+  `marketPage(v)` of the new `logic/market-page.ts`: the notice while the
+  market is off for the round, no prices came, or the planet has no
+  Handelsposten, else the form (what to give, what to get, the amount with
+  „max“, the preview, „Tauschen“). The draft stays `draft` of
+  `logic/market.ts` and the typed values stay with `keepInputs()` of
+  `main.ts` (by id), as before; `features/market.ts` still reads the form by
+  its ids and writes the list of what to get and the preview into
+  their places while the player types, so those two lists and the preview
+  are HTML in the model (`targetOptions()`, `previewHTML()`, moved from
+  `views/market.ts` to `logic/market-page.ts`) and `{@html}` in the
+  component, as the target and the preview of the fleet form are.
+  `gainWarning()` of `logic/market.ts`, which the admin settings use too,
+  is untouched. `Friends.svelte`, mounted by `mountFriends()` of
+  `views/friends.ts`, renders `friendsPage(v)` of `logic/friends.ts`: the
+  table `.friends` (name, guild tag, home planet with its link, online or
+  offline, „Freundschaft beenden“), the requests both ways and the form
+  „Freundschaft anfragen“; the buttons carry `data-act="friend"` with
+  `data-op` and `data-uid`, which `features/social.ts` reads. The link to a
+  planet is `HomeCell.svelte` (from `homeLink()` of `logic/friends.ts`),
+  which `Highscore.svelte` uses too instead of its own copy; `homeCell()` of
+  `views/common.ts` is gone. Both views leave `VIEWS` (only the admin
+  remains there) and are mounted anew on every render (`ANEW`), as their
+  HTML was. `main.ts` stays at 1,186 lines. No visible change.
 * **[E]** Bundle 2 after bundle 1 (owner, 2026-11-15 and 2026-11-16: the
   order of the bundles of #118 „Geklärt, Nachtrag 3“, unchanged by
   „Nachtrag 4“): the Sternenkarte, which the phone view #189 builds on
