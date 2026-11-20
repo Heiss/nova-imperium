@@ -1,11 +1,13 @@
 // The cards of the overview on a phone (#189, D5; okf/features/interface.md):
 // „Läuft“ (what builds, researches and orders on the shown place, with the
 // time left and a bar), „Achtung“ (an attack on the way, too little energy)
-// and „Bereit“ (a reward to claim, new messages). Pure, so the component
+// and „Bereit“ (a reward to claim, new messages, an empty build queue on
+// another place). Pure, so the component
 // OverviewCards.svelte only renders what this module computes. What counts as
 // „Achtung“ and „Bereit“ is the proposal of the issue (all [V]).
 import { production } from '../../core/economy.ts';
 import { MISSION } from '../../core/missions.ts';
+import { placeName } from '../../core/moon.ts';
 import type { Mission } from '../../core/types.ts';
 import type { V } from '../views/common.ts';
 import { coords, fmt } from './format.ts';
@@ -39,12 +41,17 @@ export interface RunningItem {
   next: boolean;
 }
 
+/** The most places with an empty build queue the card names; the rest is counted. */
+export const MOST_IDLE = 3;
+
 /** A line of „Achtung“ or „Bereit“; a link opens the view that fixes it. */
 export interface CardItem {
   text: string;
   /** The countdown of an attack. */
   due?: Countdown;
   link?: { view: string; label: string };
+  /** A button that makes this place the shown one (data-act `selectPlanet`). */
+  select?: { id: string; label: string };
 }
 
 export interface OverviewCards {
@@ -102,7 +109,26 @@ export function attentionItems(v: V): CardItem[] {
   return items;
 }
 
-/** „Bereit“: a reward to claim, new messages. */
+/**
+ * „Bauschleife leer“ for the other own places the server named (`idle`),
+ * worded from the galaxy; a place the galaxy does not list is left out. At
+ * most `MOST_IDLE` lines, then „und N weitere“.
+ */
+function idleItems({ s }: V): CardItem[] {
+  const places = (s.idle ?? []).flatMap((id) => {
+    const p = s.galaxy.find((x) => x.id === id);
+    return p ? [{ id, text: `${placeName(p)} ${coords(p)}` }] : [];
+  });
+  const items: CardItem[] = places.slice(0, MOST_IDLE).map((p) => ({
+    text: `Bauschleife leer: ${p.text}`,
+    select: { id: p.id, label: 'Wechseln' },
+  }));
+  if (places.length > MOST_IDLE)
+    items.push({ text: `und ${places.length - MOST_IDLE} weitere` });
+  return items;
+}
+
+/** „Bereit“: a reward to claim, new messages, an empty build queue elsewhere. */
 export function readyItems(v: V): CardItem[] {
   const { s } = v;
   const items: CardItem[] = [];
@@ -121,7 +147,7 @@ export function readyItems(v: V): CardItem[] {
           : `${fresh} ungelesene Nachrichten`,
       link: { view: 'messages', label: 'Lesen' },
     });
-  return items;
+  return [...items, ...idleItems(v)];
 }
 
 /** The three cards of the shown place. */

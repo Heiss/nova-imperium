@@ -11,6 +11,7 @@ import {
   attentionItems,
   MOST_ATTACKS,
   overviewCards,
+  MOST_IDLE,
   readyItems,
   runningItems,
 } from './overview-cards.ts';
@@ -24,6 +25,8 @@ interface Setup {
   readAt?: number;
   achievements?: GameState['achievements'];
   round?: Partial<GameState['round']>;
+  idle?: string[];
+  galaxy?: GameState['galaxy'];
   now?: number;
 }
 
@@ -33,7 +36,8 @@ function view(o: Setup = {}): V {
     me: { id: 'u1', readAt: o.readAt ?? 0 },
     round: { achievements: true, daily: true, ...o.round },
     planet: {},
-    galaxy: [],
+    galaxy: o.galaxy ?? [],
+    idle: o.idle,
     fleets: o.fleets ?? [],
     reports: o.reports ?? [],
     achievements: o.achievements,
@@ -304,6 +308,96 @@ describe('Bereit', () => {
     expect(items.map((i) => i.link?.view)).toEqual([
       'achievements',
       'messages',
+    ]);
+  });
+});
+
+describe('Bereit: an empty build queue on another place', () => {
+  const place = (
+    p: number,
+    name: string,
+    kind: 'planet' | 'moon' = 'planet',
+  ): GameState['galaxy'][number] =>
+    ({
+      id: `${kind === 'moon' ? 'm' : 'p'}1_2_${p}`,
+      kind,
+      name,
+      g: 1,
+      s: 2,
+      p,
+    }) as GameState['galaxy'][number];
+  const galaxy = [
+    place(3, 'Kolonie'),
+    place(4, 'Luna', 'moon'),
+    place(5, 'Dritte'),
+    place(6, 'Vierte'),
+    place(7, 'Fünfte'),
+  ];
+  const lines = (idle: string[]) =>
+    readyItems(view({ galaxy, idle })).map((i) => i.text);
+
+  it('is not there without the key of the server or with no place in it', () => {
+    expect(readyItems(view({ galaxy }))).toEqual([]);
+    expect(readyItems(view({ galaxy, idle: [] }))).toEqual([]);
+  });
+
+  it('names a place with its position and a button that selects it', () => {
+    expect(readyItems(view({ galaxy, idle: ['p1_2_3'] }))).toEqual([
+      {
+        text: 'Bauschleife leer: Kolonie [1:2:3]',
+        select: { id: 'p1_2_3', label: 'Wechseln' },
+      },
+    ]);
+  });
+
+  it('words a moon with „(Mond)“', () => {
+    expect(lines(['m1_2_4'])).toEqual([
+      'Bauschleife leer: Luna (Mond) [1:2:4]',
+    ]);
+  });
+
+  it('names at most the most places and counts the rest', () => {
+    expect(MOST_IDLE).toBe(3);
+    expect(lines(['p1_2_3', 'm1_2_4', 'p1_2_5'])).toHaveLength(3);
+    const four = readyItems(
+      view({ galaxy, idle: ['p1_2_3', 'm1_2_4', 'p1_2_5', 'p1_2_6'] }),
+    );
+    expect(four.map((i) => i.text)).toEqual([
+      'Bauschleife leer: Kolonie [1:2:3]',
+      'Bauschleife leer: Luna (Mond) [1:2:4]',
+      'Bauschleife leer: Dritte [1:2:5]',
+      'und 1 weitere',
+    ]);
+    // The rest line has no button.
+    expect(four[3]!.select).toBeUndefined();
+    expect(
+      lines(['p1_2_3', 'm1_2_4', 'p1_2_5', 'p1_2_6', 'p1_2_7']).at(-1),
+    ).toBe('und 2 weitere');
+  });
+
+  it('leaves out a place the galaxy does not list, and counts only the listed ones', () => {
+    expect(lines(['p9_9_9', 'p1_2_3'])).toEqual([
+      'Bauschleife leer: Kolonie [1:2:3]',
+    ]);
+  });
+
+  it('comes after the reward and the messages', () => {
+    const items = readyItems(
+      view({
+        galaxy,
+        idle: ['p1_2_3'],
+        reports: [report('a', 100)],
+        achievements: {
+          progress: {},
+          claimed: [],
+          daily: { claimed: false } as never,
+        },
+      }),
+    );
+    expect(items.map((i) => i.link?.view ?? i.select?.id)).toEqual([
+      'achievements',
+      'messages',
+      'p1_2_3',
     ]);
   });
 });
