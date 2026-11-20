@@ -6,7 +6,11 @@ import type { Handler } from './contract.ts';
 import { clientFeature } from './galaxy.ts';
 import { fakeCtx } from './test-ctx.ts';
 
-type Field = { value?: string; focus?: () => void };
+type Field = {
+  value?: string;
+  focus?: () => void;
+  offsetParent?: null;
+};
 let fields: Record<string, Field>;
 let keydown: (e: { key: string; target: { id: string } }) => void;
 
@@ -141,6 +145,27 @@ describe('what a planet of the map offers', () => {
     expect(client.ui.scan).toBeNull();
     expect(ctx.render).toHaveBeenCalledWith(true);
     expect(focus).toHaveBeenCalled();
+  });
+
+  it('focuses the „⋯“ of the planet when the scan button is out of sight on a phone (#189)', () => {
+    const focus = vi.fn();
+    client.ui.scan = { target: 'p1' } as never;
+    fields['[data-act=gscan][data-id="p1"]'] = {
+      focus: vi.fn(),
+      offsetParent: null,
+    };
+    fields['#gsheet-p1'] = { focus };
+    acts().gscanClose!({});
+    expect(focus).toHaveBeenCalled();
+  });
+
+  it('opens the sheet of a position and renders anew (#189)', () => {
+    const ctx = fakeCtx();
+    acts(ctx).gsheet!({ id: 'p1_2_3' });
+    expect(client.ui.gsheet).toBe('p1_2_3');
+    expect(ctx.render).toHaveBeenCalledWith(true);
+    acts(ctx).gsheet!({});
+    expect(client.ui.gsheet).toBeNull();
   });
 
   it('closes a scan that has no target without a focus', () => {

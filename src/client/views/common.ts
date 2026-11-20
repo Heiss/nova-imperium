@@ -34,6 +34,8 @@ export interface Ui extends PushChoice {
   ft: { g: number; s: number; p: number; kind?: 'planet' | 'moon' } | null;
   /** The moon whose actions the Sternenkarte shows (#53), by its id. */
   gmoon?: string | null;
+  /** The place whose actions the bottom sheet „⋯“ of the Sternenkarte shows on a phone (#189), by its id. */
+  gsheet?: string | null;
   /** The answer of the last scan of the Auspex-Phalanx (#53), shown from its moon. */
   scan?: Scan | null;
   fm: string;
