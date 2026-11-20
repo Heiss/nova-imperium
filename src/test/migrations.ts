@@ -22,14 +22,29 @@ export type Table = { name: string; columns: Column[] };
 /** Per table, the generated rows; a foreign key holds an index into the parent rows. */
 export type Plan = Record<string, Record<string, Value>[]>;
 
+// The migrated empty database per list of migrations and version: the
+// property tests ask for the same version for every generated case, and
+// migrating from nothing each time makes the cost grow with the version.
+const emptyAt = new WeakMap<readonly Migration[], Map<number, Buffer>>();
+
 /** An empty database with foreign keys on, at schema version `version`. */
 export function databaseAt(
   version: number,
   migrations: readonly Migration[] = MIGRATIONS,
 ): Db {
-  const db = new Database(':memory:');
+  const versions = emptyAt.get(migrations) ?? new Map<number, Buffer>();
+  emptyAt.set(migrations, versions);
+  let kept = versions.get(version);
+  if (!kept) {
+    const fresh = new Database(':memory:');
+    fresh.pragma('foreign_keys = ON');
+    migrate(fresh, migrations.slice(0, version));
+    kept = fresh.serialize();
+    fresh.close();
+    versions.set(version, kept);
+  }
+  const db = new Database(kept);
   db.pragma('foreign_keys = ON');
-  migrate(db, migrations.slice(0, version));
   return db;
 }
 

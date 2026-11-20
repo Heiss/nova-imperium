@@ -1,6 +1,6 @@
 // The rate limit per account for game actions (#328).
 import Database from 'better-sqlite3';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { asAdmin, start } from '../../test/http.ts';
 import { GameError } from '../game/context.ts';
 import { addPlanet, addUser, testCtx } from '../test-helpers.ts';
@@ -9,6 +9,14 @@ import {
   actionLimit,
   type ActionLimit,
 } from './action-limit.ts';
+
+// The password check is the cost of every login here; the result of the same
+// password and salt is computed once (src/test/scrypt-memo.ts).
+vi.mock('node:crypto', async (original) =>
+  (await import('../../test/scrypt-memo.ts')).memoScrypt(
+    await original<typeof import('node:crypto')>(),
+  ),
+);
 
 const START = 1_000_000;
 const MINUTE = 60000;

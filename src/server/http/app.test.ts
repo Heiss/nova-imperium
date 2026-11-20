@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { openDatabase } from '../db/database.ts';
 import path from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { startSession } from '../auth.ts';
 import type { Mail } from '../mail.ts';
 import {
@@ -17,6 +17,14 @@ import { CSP } from './security.ts';
 import { addMoon } from '../game/moons.ts';
 
 import { asAdmin, close, start } from '../../test/http.ts';
+
+// The password check is the cost of every login here; the result of the same
+// password and salt is computed once (src/test/scrypt-memo.ts).
+vi.mock('node:crypto', async (original) =>
+  (await import('../../test/scrypt-memo.ts')).memoScrypt(
+    await original<typeof import('node:crypto')>(),
+  ),
+);
 
 describe('http', () => {
   it('retries a blocked build without a stale snapshot or a duplicate charge', async () => {
