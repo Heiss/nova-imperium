@@ -8,6 +8,7 @@ import type { EntryLexicon } from '../../../core/lexicon/types.ts';
 
 export const lexicon: EntryLexicon = {
   keywords: ['verteidigen', 'stationieren', 'beistehen', 'Gilde'],
+  seeAlso: ['rule-allies'],
   texts: [
     {
       text: 'Am Ziel, dem Planeten eines Gildenmitglieds oder Freundes, bleibt die Flotte für die Haltezeit, die du beim Start wählst (von {least} bis {most} Stunden), und verteidigt den Planeten in jedem Kampf zusammen mit seinem Besitzer. Danach fliegt sie heim. Wer halten darf, legt der Admin je Runde fest; den Treibstoff für die Haltezeit zahlst du beim Start. An einem Planeten halten höchstens {players} Spieler mit zusammen höchstens {fleets} Flotten.',

@@ -10,6 +10,7 @@ import { FIGHTERS } from '../catalog.ts';
 import { lvlCost } from '../components/leveled.ts';
 import { DRIVE_BONUS, type DriveKey, speed } from '../components/mobile.ts';
 import { capOf } from '../components/storage.ts';
+import { gateCooldown, gateCooldownMs } from '../jump-gate.ts';
 import { growth } from '../rates.ts';
 import type { Universe } from '../types.ts';
 import type { EntryLexicon, Formula } from './types.ts';
@@ -169,5 +170,21 @@ export function storageFormula(u: Universe): Formula {
     fn: (level) => u.baseStore + 50000 * (Math.ceil(1.6 ** level!) - 1),
     rule: (level) => capOf(level!, u),
     samples: [[0], [1], [5], [12]],
+  };
+}
+
+/** The waiting time after a jump through the Warp-Tor: the minutes of the rule divided by the speed of the universe. */
+export function gateFormula(): Formula {
+  return {
+    text: 'Wartezeit in Minuten = Minuten der Tabelle für die Stufe des Starttors ÷ Geschwindigkeit des Universums',
+    fn: (level, speed) => gateCooldown(level!) / speed!,
+    rule: (level, speed) => gateCooldownMs(level!, { speed: speed! }) / 60_000,
+    samples: [
+      [1, 1],
+      [5, 2],
+      [10, 5],
+      [15, 10],
+      [20, 1],
+    ],
   };
 }

@@ -143,8 +143,8 @@ export const stayDuration = (hours: number, u: Universe): number =>
 export type Size = 'normal' | 'large' | 'huge';
 
 /** The chance of a large event; a very large one is 1 % (owiki „Expedition“). */
-const LARGE_FROM = 0.89;
-const HUGE_FROM = 0.99;
+export const LARGE_FROM = 0.89;
+export const HUGE_FROM = 0.99;
 
 /** Draws the size: normal 89 %, large 10 %, very large 1 %. */
 export function drawSize(rng: Rng): Size {
@@ -186,10 +186,10 @@ export function capsOf(rank1: number): Caps {
 // ----- a find of resources -----
 
 /** The lowest multiplier of expedition points for a find of resources. */
-const MIN_RESOURCE_POINTS = 200;
+export const MIN_RESOURCE_POINTS = 200;
 
 /** How the three resources divide the base number of a find: Adamant whole, Psikristall half, Promethium a third. */
-const DIVISOR: Readonly<Record<keyof Resources, number>> = {
+export const DIVISOR: Readonly<Record<keyof Resources, number>> = {
   m: 1,
   c: 2,
   d: 3,
@@ -209,7 +209,7 @@ export interface ResourceFind {
 }
 
 /** The base number of a find of resources: an even number, 10 to 50, 50 to 100 or 100 to 200. */
-const resourceBase = (rng: Rng, size: Size): number => {
+export const resourceBase = (rng: Rng, size: Size): number => {
   if (size === 'normal') return evenBetween(rng, 10, 50);
   return size === 'large'
     ? evenBetween(rng, 50, 100)
@@ -246,27 +246,28 @@ export function resourceFind(
 export type Raider = 'pirates' | 'aliens';
 
 /** How strong an attack is by its size: the share of every ship type of the fleet and the ships added. */
-interface RaidSpec {
+export interface RaidSpec {
   share: number;
   ship: string;
   extra: number;
 }
 
-const RAIDS: Readonly<Record<Raider, Readonly<Record<Size, RaidSpec>>>> = {
-  pirates: {
-    normal: { share: 0.3, ship: 'lf', extra: 5 },
-    large: { share: 0.5, ship: 'cr', extra: 3 },
-    huge: { share: 0.8, ship: 'bs', extra: 2 },
-  },
-  aliens: {
-    normal: { share: 0.4, ship: 'hf', extra: 5 },
-    large: { share: 0.6, ship: 'bc', extra: 3 },
-    huge: { share: 0.9, ship: 'dr', extra: 2 },
-  },
-};
+export const RAIDS: Readonly<Record<Raider, Readonly<Record<Size, RaidSpec>>>> =
+  {
+    pirates: {
+      normal: { share: 0.3, ship: 'lf', extra: 5 },
+      large: { share: 0.5, ship: 'cr', extra: 3 },
+      huge: { share: 0.8, ship: 'bs', extra: 2 },
+    },
+    aliens: {
+      normal: { share: 0.4, ship: 'hf', extra: 5 },
+      large: { share: 0.6, ship: 'bc', extra: 3 },
+      huge: { share: 0.9, ship: 'dr', extra: 2 },
+    },
+  };
 
 /** How far the share of a ship type may differ from the mean: a tenth of it, up or down. */
-const SPREAD = 0.1;
+export const SPREAD = 0.1;
 
 /**
  * The attackers: for every ship type of the fleet its share, drawn within a
