@@ -21,6 +21,7 @@ import {
   loginByCode,
   mailCli,
   nav,
+  optionsSection,
   registerByMail,
   uniqueName,
   watch,
@@ -101,6 +102,7 @@ async function accountDeletion(
 ): Promise<void> {
   const count = guilds ? 1 : 0;
   await nav(page, 'help');
+  await optionsSection(page, 'Konto');
   await expect(
     page.getByText(
       'Dein Konto und deine Spielstände werden dauerhaft gelöscht.',

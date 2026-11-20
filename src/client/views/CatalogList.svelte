@@ -15,7 +15,7 @@
     SEGMENTS,
     shortLabel,
   } from '../logic/phone-build.ts';
-  import { phoneBuild } from '../logic/phone-build.svelte.ts';
+  import { chooseFilter, phoneBuild } from '../logic/phone-build.svelte.ts';
   import { client } from '../logic/state.svelte.ts';
   import { costHTML, requirementsHTML } from './common.ts';
 
@@ -101,7 +101,7 @@
           type="button"
           class:on={phoneBuild.filter === f.key}
           aria-pressed={phoneBuild.filter === f.key}
-          onclick={() => (phoneBuild.filter = f.key)}>{f.label}</button
+          onclick={() => chooseFilter(f.key)}>{f.label}</button
         >
       {/each}
     </div>

@@ -14,6 +14,8 @@ import {
   DEFAULT_FILTER,
   EMPTY,
   filterCounts,
+  filterFrom,
+  FILTER_KEY,
   FILTERS,
   isTimeLine,
   rowPhase,
@@ -173,5 +175,18 @@ describe('the choices of the phone view (#189)', () => {
     expect(isTimeLine('Energie auf Stufe 13: 72,18 mehr Verbrauch')).toBe(
       false,
     );
+  });
+});
+
+describe('the filter kept on this device (#189)', () => {
+  it('reads the choices it knows and falls back to „Baubar“ for anything else', () => {
+    for (const f of FILTERS) expect(filterFrom(f.key)).toBe(f.key);
+    for (const raw of [null, '', 'ALL', 'locked', ' all', 'open '])
+      expect(filterFrom(raw)).toBe(DEFAULT_FILTER);
+    expect(DEFAULT_FILTER).toBe('open');
+  });
+
+  it('has a key of its own, next to the other per-device choices', () => {
+    expect(FILTER_KEY).toBe('nova.build.filter');
   });
 });

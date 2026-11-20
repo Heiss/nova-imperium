@@ -199,8 +199,8 @@ Up to 760 px only; the desktop stays as it is (D6).
   fields or the queue (its note stays in the row). The owner named no rule.
 * **[V]** The filter is CSS on `data-filter` and `data-phase`, so the desktop
   shows every row. The filter and the unfolded rows live in
-  `logic/phone-build.svelte.ts` for the session; a reload starts with
-  „Baubar“.
+  `logic/phone-build.svelte.ts`; the filter is kept across a reload since
+  part 4 (below), the unfolded rows are not.
 * **[V]** The compact row: picture 48 px, name with level, costs, the time
   line („Bauzeit“, „Forschungszeit“), and on the right the button; the fold
   button „▾“ (44 px) is at the end of the name. Unfolded it shows the
@@ -234,8 +234,8 @@ Up to 760 px only; the desktop stays as it is (D6).
   bell (`Bell.svelte`) links to the messages and shows the unread number
   (99+ above 99); „Mehr“ still marks unread messages.
 * **[V]** The Sternenkarte on a phone is one block per position (the name no
-  longer breaks inside a word); the proposal's „⋯“ bottom sheet is left out,
-  the actions stay in the row.
+  longer breaks inside a word); the actions are behind the „⋯“ sheet (part 3,
+  below).
 * **[V]** Achievements on a phone (`logic/achievement-fold.ts`): „Offen“ shows
   the next goal of each series (the lowest target not claimed), „Erledigt“
   only its button; two buttons unfold them („Alle N zeigen“, „Nur die
@@ -274,16 +274,73 @@ Up to 760 px only; the desktop stays as it is (D6).
   (`idle`: the own places without a running building), see the open point in
   the log entry.
 
+## Built (part 3, #189): the „⋯“ sheet of the Sternenkarte
+
+* **[E]** The Sternenkarte rows with a „⋯“ that opens a bottom sheet with the
+  actions and the flight time; an empty position is a thin row (proposal of
+  the issue, kept by the owner as [V], 2026-11-14).
+* **[V]** Up to 760 px a position that has an action has a „⋯“ button (44 px,
+  `aria-label` „Aktionen für <Name> [g:s:p]“, `aria-haspopup="dialog"`) at the
+  right of its row; the actions of the row (`.gal-acts`) are hidden there and
+  shown as before above 760 px. A row with only the dim „Aktiver Planet“ has
+  none. A free position with a Landnahme, a Vermessen, an expedition or a
+  Bergung has one, a free position without an action stays a thin row.
+* **[V]** The sheet is a modal `<dialog>` like „Mehr“ (`dialog.sheet` shares
+  its CSS): the title „<Name> [g:s:p]“ (a free position „Position [g:s:p]“,
+  the expedition position „Expeditionsposition [g:s:p]“), the line „Flugzeit
+  mit allen Schiffen: <time>“ (all ships of the shown place that fly, at full
+  speed; left out without such a ship), each action as a 48 px button with the
+  same `data-act` and data attributes as in the row, and „Schließen“. A tap on
+  an action, on the backdrop or Escape closes it; the focus returns to the
+  „⋯“ when it is dismissed. The open sheet is `ui.gsheet` (the id of the
+  place, `free-<position>` for a position), so a render keeps it open; the
+  handler `gsheet` is in `features/galaxy.ts`, the model in `logic/galaxy.ts`
+  (`GalaxySheet`), the markup in `Galaxy.svelte`.
+* **[V]** After „Schließen“ of a Phalanx scan the focus goes to the „⋯“ when
+  the scan button is not in sight (on a phone).
+* E2E: the specs that click an action of a row on a phone open the sheet first
+  (`galaxyAction()` of `e2e/helpers.ts`).
+
+## Built (part 4, #189): „Optionen“ in sections and a filter that is kept
+
+* **[E]** „Hilfe & Optionen“ in sections (proposal of the issue, kept by the
+  owner as [V], 2026-11-14). The page is called „Optionen“ since the rules
+  moved to the Lexicanum (#288), so no section is called „Hilfe“.
+* **[V]** Up to 760 px a switch of five buttons („Spiel“, „Runde“, „Konto“,
+  „Gerät“, „Weiteres“; `div.seg.phone-only`, `aria-pressed`) shows one section
+  of the page; „Spiel“ is the first. Spiel: the box „Optionen“ and
+  „Hauptplanet“; Runde: „Urlaubsmodus“, „Meine Aktivität & Spielzeit“ and
+  „Rundenarchiv“; Konto: „Passwort ändern“, „Passkeys“ and „Account löschen“;
+  Gerät: „Darstellung“, „App installieren“, „Benachrichtigungen“ and
+  „Browser-Benachrichtigungen“; Weiteres: „Problem melden“ and the line with
+  the link „Dieses Universum“. Above 760 px every box shows as before.
+* **[V]** How: `Box.svelte` takes an optional `section` and writes
+  `data-sec`; the boxes stand in one `div.opt[data-section]`; the CSS hides
+  the boxes of the other sections on a phone (`logic/phone-options.ts`, the
+  section lives in `logic/phone-options.svelte.ts` for the session; a reload
+  starts with „Spiel“). Every id, `data-act` and form stays in the page
+  whichever section is shown, so a feature that fills `#own-activity` or
+  `#passkey-list`, `#pwa-install` and the forms work as before
+  (`views/options.test.ts` lists them for every section). The archive box
+  stays one box of the section „Runde“, so the component of bundle 7 replaces
+  it there.
+* **[V]** The filter „Baubar“ / „Alle“ / „Läuft“ of the four lists is kept per
+  device: `localStorage` key `nova.build.filter` (like `nova.animations`),
+  read once when the module loads and written on every choice, both in
+  try/catch; with no stored value, a value that is no filter, or a blocked
+  storage it is „Baubar“ (D4). The unfolded rows are not kept. The `Läuft`
+  filter is kept too, so a reload shows it again (the owner named no rule).
+  `logic/phone-build.svelte.ts`, `phone-build.ts` (`filterFrom`).
+
 ## Still to do
 
 * D5: the line „Bereit“ for an idle build queue on another planet (needs the
-  server to send the queues of the other places, see above).
-* „Hilfe & Optionen“ in sections, the „⋯“ sheet of the Sternenkarte, a
-  filter that remembers itself across a reload, and a check at 44 px of the
-  smallest buttons that existed before (`small`).
+  server to send the queues of the other places, see part 2).
+* A check at 44 px of the smallest buttons that existed before (`small`).
 * E2E: the phone tests that click „Logout“, open a locked entry, the „?“ or
   „▤“ of a row, or read a row of the lists without the filter must unfold or
-  choose „Alle“ first (see the log entry of 2026-11-19).
+  choose „Alle“ first (see the log entry of 2026-11-19); the ones that use the
+  boxes of „Optionen“ choose the section first.
 
 # Design draft
 

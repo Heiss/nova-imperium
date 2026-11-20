@@ -22,6 +22,16 @@ export const FILTERS: readonly { key: BuildFilter; label: string }[] = [
 
 export const DEFAULT_FILTER: BuildFilter = 'open';
 
+/** Where this device keeps the filter (`localStorage`, like the animations switch). */
+export const FILTER_KEY = 'nova.build.filter';
+
+/**
+ * The filter this device kept: what `raw` names, else „Baubar“ (D4), also for
+ * a value the storage holds that is no filter and for no storage at all.
+ */
+export const filterFrom = (raw: string | null): BuildFilter =>
+  FILTERS.find((f) => f.key === raw)?.key ?? DEFAULT_FILTER;
+
 /** The switch between the four lists, by view (D2). */
 export const SEGMENTS: readonly { view: string; label: string }[] = [
   { view: 'buildings', label: 'Gebäude' },

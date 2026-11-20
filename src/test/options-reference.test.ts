@@ -43,6 +43,33 @@ import { optionsView } from './options-view.ts';
 
 // ----- frozen: „Hilfe & Optionen“ before #118, bundle 5, second part -----
 
+// One change on purpose (#189, the phone layer; the CSS shows it up to 760 px
+// only): a switch of five sections above the boxes, the boxes in one
+// container that names the shown section, and each box (and the closing
+// paragraph) with its section. The switch and the sections are tested in
+// src/client/views/options.test.ts.
+const sbox = (section: string, title: string, body: string): string =>
+  box(title, body).replace(
+    '<div class="box">',
+    `<div class="box" data-sec="${section}">`,
+  );
+
+const SWITCH =
+  '<div class="seg phone-only" role="group" aria-label="Bereich">' +
+  [
+    ['Spiel', true],
+    ['Runde', false],
+    ['Konto', false],
+    ['Gerät', false],
+    ['Weiteres', false],
+  ]
+    .map(
+      ([label, on]) =>
+        `<button type="button"${on ? ' class="on"' : ''} aria-pressed="${on}">${label}</button>`,
+    )
+    .join('') +
+  '</div>';
+
 const EXPLAIN_LABELS: Record<string, string> = {
   icon: 'Anzeigen',
   hidden: 'Ausblenden',
@@ -141,10 +168,11 @@ const pushKindsBox = (s: Pick<GameState, 'me' | 'round'>, ui: Ui): string => {
     shownPushOff(ui, s.me.pushOff),
     s.round.guilds,
   );
-  return kinds ? box('Benachrichtigungen', kinds) : '';
+  return kinds ? sbox('device', 'Benachrichtigungen', kinds) : '';
 };
 const passwordBox = (ui: Ui): string =>
-  box(
+  sbox(
+    'account',
     'Passwort ändern',
     `<form id="passwordform" class="flex">
  <label for="pw_current">Bisheriges Passwort</label> <input id="pw_current" type="password" autocomplete="current-password" required>
@@ -153,7 +181,8 @@ const passwordBox = (ui: Ui): string =>
  <button type="submit">Passwort ändern</button></form>`,
   );
 const passkeysBox = (): string =>
-  box(
+  sbox(
+    'account',
     'Passkeys',
     '<p>Auf unterstützten Geräten kannst du dich mit einem Passkey anmelden.</p><form id="passkeyform" class="flex"><label for="passkey-password">Passwort für neuen Passkey</label><input id="passkey-password" type="password" autocomplete="current-password" required><button type="submit">Passkey hinzufügen</button></form><p><button type="button" data-act="listPasskeys">Gespeicherte Passkeys anzeigen</button></p><div id="passkey-list"></div>',
   );
@@ -162,11 +191,12 @@ const notificationBoxes = (
   ui: Ui,
 ): string =>
   `${pushKindsBox(s, ui)}
- ${box('Browser-Benachrichtigungen', '<p>Meldungen zu Aufträgen, Flotten und neuen Nachrichten auf diesem Gerät.</p><button data-act="pushEnable">Aktivieren</button> <button data-act="pushDisable">Deaktivieren</button>')}`;
+ ${sbox('device', 'Browser-Benachrichtigungen', '<p>Meldungen zu Aufträgen, Flotten und neuen Nachrichten auf diesem Gerät.</p><button data-act="pushEnable">Aktivieren</button> <button data-act="pushDisable">Deaktivieren</button>')}`;
 const guildNote = (round: RoundRules, sentence: string): string =>
   round.guilds ? ` ${sentence}` : '';
 const deleteAccountBox = (round: RoundRules): string =>
-  box(
+  sbox(
+    'account',
     'Account löschen',
     `<p>Dein Konto und deine Spielstände werden dauerhaft gelöscht.${guildNote(round, 'Leitest du eine Gilde, wird sie aufgelöst.')}</p><button type="button" class="red" data-act="deleteAccount">Account löschen</button>`,
   );
@@ -175,18 +205,21 @@ const deleteAccountBox = (round: RoundRules): string =>
 // a browser reads both as the same address; Svelte writes the escaped one.
 const UNIVERSE_ARTICLE = 'rule-universe';
 
-const help = (v: V): string => `<h2>Optionen</h2>
- ${box('Optionen', `<div class="flex">Spähschädel pro Auspex-Erkundung von der Sternenkarte: <input type="number" id="o_probes" min="1" value="${v.s.me.probes || 1}" aria-label="Spähschädel pro Auspex-Erkundung"></div><div class="flex mt"><label for="o_explain">(?)-Symbol:</label> <select id="o_explain">${explainOptionsHTML(v.s.me.explain)}</select></div><div class="flex mt"><label for="o_levels">Stufenübersicht:</label> <select id="o_levels">${levelOptionsHTML(v.s.me.levelTable)}</select></div><p><button data-act="saveopt">Speichern</button></p>`)}
- ${box('Hauptplanet', mainPlanetHTML(v.s, v.now))}
- ${box('Urlaubsmodus', vacationHTML(v.s.round.vacationHours))}
- ${box('Meine Aktivität &amp; Spielzeit', OWN_ACTIVITY_PLACEHOLDER)}
- ${box('Rundenarchiv', archiveHTML(shownArchive(v.s)))}
- ${box('Darstellung', `<label class="switch"><input type="checkbox" id="o_anim" ${v.ui.animations ? 'checked' : ''}> Animationen</label><p class="dim">Planeten drehen sich, Wolken ziehen. Gilt für dieses Gerät; ist im System „Bewegung reduzieren“ eingestellt, bleibt alles ruhig.</p>`)}
+const help = (
+  v: V,
+): string => `<h2>Optionen</h2>${SWITCH}<div class="opt" data-section="game">
+ ${sbox('game', 'Optionen', `<div class="flex">Spähschädel pro Auspex-Erkundung von der Sternenkarte: <input type="number" id="o_probes" min="1" value="${v.s.me.probes || 1}" aria-label="Spähschädel pro Auspex-Erkundung"></div><div class="flex mt"><label for="o_explain">(?)-Symbol:</label> <select id="o_explain">${explainOptionsHTML(v.s.me.explain)}</select></div><div class="flex mt"><label for="o_levels">Stufenübersicht:</label> <select id="o_levels">${levelOptionsHTML(v.s.me.levelTable)}</select></div><p><button data-act="saveopt">Speichern</button></p>`)}
+ ${sbox('game', 'Hauptplanet', mainPlanetHTML(v.s, v.now))}
+ ${sbox('round', 'Urlaubsmodus', vacationHTML(v.s.round.vacationHours))}
+ ${sbox('round', 'Meine Aktivität &amp; Spielzeit', OWN_ACTIVITY_PLACEHOLDER)}
+ ${sbox('round', 'Rundenarchiv', archiveHTML(shownArchive(v.s)))}
+ ${sbox('device', 'Darstellung', `<label class="switch"><input type="checkbox" id="o_anim" ${v.ui.animations ? 'checked' : ''}> Animationen</label><p class="dim">Planeten drehen sich, Wolken ziehen. Gilt für dieses Gerät; ist im System „Bewegung reduzieren“ eingestellt, bleibt alles ruhig.</p>`)}
  ${passwordBox(v.ui)}
  ${passkeysBox()}
- ${box('App installieren', '<p>Öffne das Browsermenü und wähle „App installieren“ oder „Zum Startbildschirm hinzufügen“. Auf iPhone und iPad öffne Nova Imperium in Safari, tippe auf „Teilen“ und wähle „Zum Home-Bildschirm“ und „Als Web-App öffnen“. Zum Spielen brauchst du eine Internetverbindung.</p><button data-act="installApp" id="pwa-install" hidden>App installieren</button>')}
+ ${sbox('device', 'App installieren', '<p>Öffne das Browsermenü und wähle „App installieren“ oder „Zum Startbildschirm hinzufügen“. Auf iPhone und iPad öffne Nova Imperium in Safari, tippe auf „Teilen“ und wähle „Zum Home-Bildschirm“ und „Als Web-App öffnen“. Zum Spielen brauchst du eine Internetverbindung.</p><button data-act="installApp" id="pwa-install" hidden>App installieren</button>')}
  ${notificationBoxes(v.s, v.ui)}
- ${box(
+ ${sbox(
+   'other',
    'Problem melden',
    reportFormHTML('reportform', {
      source: 'form',
@@ -196,7 +229,7 @@ const help = (v: V): string => `<h2>Optionen</h2>
    }),
  )}
  ${deleteAccountBox(v.s.round)}
- <p>Tempo, Größe und alle Einstellungen dieser Runde stehen im Lexicanum: <a class="lx-a" href="${esc(articleHref(UNIVERSE_ARTICLE))}" data-act="lex" data-a="${UNIVERSE_ARTICLE}">Dieses Universum</a>.</p>`;
+ <p data-sec="other">Tempo, Größe und alle Einstellungen dieser Runde stehen im Lexicanum: <a class="lx-a" href="${esc(articleHref(UNIVERSE_ARTICLE))}" data-act="lex" data-a="${UNIVERSE_ARTICLE}">Dieses Universum</a>.</p></div>`;
 
 // ----- the comparison -----
 
