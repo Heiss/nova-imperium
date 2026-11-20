@@ -18,7 +18,7 @@ import RoundDialog from './RoundDialog.svelte';
  * themselves are put into the new page at once (views/admin-panel.ts), before
  * `keepInputs` of main.ts puts back what was typed.
  */
-export function mountAdmin(target: HTMLElement, v: V) {
+function mountAdmin(target: HTMLElement, v: V) {
   const page = adminPage(v);
   const component = mount(Admin, { target, props: { page } });
   flushSync();
