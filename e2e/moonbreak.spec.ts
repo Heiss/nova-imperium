@@ -8,6 +8,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import {
+  galaxyAction,
   galaxyRow,
   login,
   logout,
@@ -75,7 +76,9 @@ async function toTheMoon(page: Page, a: string, b: string): Promise<void> {
   await openSystemOf(page, b);
   const row = galaxyRow(page, b);
   await row.getByRole('button', { name: 'Mond (Mond)' }).click();
-  await page.locator('tr.moon-row').getByText('Sturmangriff').click();
+  await (
+    await galaxyAction(page, page.locator('tr.moon-row'), 'Sturmangriff')
+  ).click();
   await expect(page.getByLabel('Zielart')).toHaveValue('moon');
 }
 

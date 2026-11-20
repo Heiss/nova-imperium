@@ -5,17 +5,46 @@
   // countdowns of the scan down. A place shows the words of its activity
   // after its name, its owner those of the inactivity (#229), before the
   // noob protection. The symbols of a moon and a Trümmerfeld,
-  // the button „Bergung“ and the pictures keep their HTML.
+  // the button „Bergung“ and the pictures keep their HTML. On a phone (#189)
+  // the actions of a position are behind a „⋯“, which opens them in a bottom
+  // sheet (a modal <dialog>, like „Mehr“); the actions stay in the row, which
+  // the CSS hides there, so the desktop is as before.
   import type {
     GalaxyAction,
     GalaxyPage,
     GalaxyPlace,
+    GalaxySheet,
   } from '../logic/galaxy.ts';
   import { moonPicture } from '../logic/moon.ts';
+  import { client } from '../logic/state.svelte.ts';
   import { planetHTML } from './common.ts';
   import Due from './Due.svelte';
 
   let { page }: { page: GalaxyPage } = $props();
+  let dialog: HTMLDialogElement | undefined = $state();
+
+  // The sheet is for a phone: where the page is wide, it stays closed.
+  $effect(() => {
+    if (dialog && !dialog.open && matchMedia('(max-width: 760px)').matches)
+      dialog.showModal();
+  });
+
+  const opener = (id: string): HTMLElement | null =>
+    document.getElementById(`gsheet-${id}`);
+
+  // Whether the sheet was closed by a tap on one of its actions: that action
+  // goes on (a form, a toast), so the focus is not taken back to the „⋯“.
+  let acted = false;
+
+  /** A tap on an action closes the sheet and leaves the click to main.ts; the backdrop and „Schließen“ close it, and the focus goes back to the „⋯“. */
+  function tap(e: MouseEvent): void {
+    const el = e.target as HTMLElement;
+    const act = !!el.closest('[data-act]');
+    if (!act && el !== dialog && !el.closest('.sheet-close')) return;
+    acted = act;
+    client.ui.gsheet = null;
+    dialog?.close();
+  }
 </script>
 
 {#snippet actions(
@@ -27,6 +56,20 @@
         {...a.attrs}>{a.label}</span
       >{:else}<button class="small" {...a.attrs}>{a.label}</button
       >{/if}{/each}{/snippet}
+
+{#snippet cell(list: GalaxyAction[], sheet: GalaxySheet | null)}<td
+    class={sheet ? 'has-sheet' : ''}
+    >{#if list.length}<span class="gal-acts">{@render actions(list)}</span
+      >{/if}{#if sheet}<button
+        type="button"
+        class="small more phone-only"
+        id="gsheet-{sheet.id}"
+        data-act="gsheet"
+        data-id={sheet.id}
+        aria-haspopup="dialog"
+        aria-label="Aktionen für {sheet.title}">⋯</button
+      >{/if}</td
+  >{/snippet}
 
 {#snippet marks(
   list: string[],
@@ -140,7 +183,7 @@
               ></td
             >
             {@render owner(row.planet)}
-            <td>{@render actions(row.planet.actions)}</td>
+            {@render cell(row.planet.actions, row.planet.sheet)}
           </tr>
           {#if row.moon}
             <tr class="moon-row {row.moon.mine ? 'me' : ''}">
@@ -152,7 +195,7 @@
                 ></td
               >
               {@render owner(row.moon)}
-              <td>{@render actions(row.moon.actions)}</td>
+              {@render cell(row.moon.actions, row.moon.sheet)}
             </tr>
           {/if}
         {:else}
@@ -161,7 +204,7 @@
             <td colspan="2"
               ><span class="dim">{row.note}</span>{@render marks(row.marks)}</td
             >
-            <td>{@render actions(row.actions)}</td>
+            {@render cell(row.actions, row.sheet)}
           </tr>
         {/if}
       {/each}
@@ -171,3 +214,31 @@
     {`Auspex-Erkundung schickt ${page.probes} Spähschädel – einstellbar unter „Optionen“.`}
   </div>
 </div>
+
+{#if page.sheet}
+  {@const sheet = page.sheet}
+  <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
+  <dialog
+    bind:this={dialog}
+    class="sheet gal-sheet"
+    aria-labelledby="gsheet-title"
+    onclick={tap}
+    onclose={() => {
+      client.ui.gsheet = null;
+      if (!acted) opener(sheet.id)?.focus();
+    }}
+  >
+    <div class="sheet-handle" aria-hidden="true"></div>
+    <p id="gsheet-title" class="sheet-title">{sheet.title}</p>
+    {#if sheet.flight}<p class="dim sheet-note">{sheet.flight}</p>{/if}
+    <div class="sheet-actions">
+      {#each sheet.actions as a, i (i)}
+        {#if a.kind === 'html'}{@html a.html}{:else if a.kind === 'link' || a.kind === 'button'}<button
+            type="button"
+            {...a.attrs}>{a.label}</button
+          >{/if}
+      {/each}
+    </div>
+    <button type="button" class="sheet-close">Schließen</button>
+  </dialog>
+{/if}

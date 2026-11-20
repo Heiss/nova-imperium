@@ -6,6 +6,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import {
+  galaxyAction,
   cli,
   expectShownPlace,
   logout,
@@ -297,12 +298,18 @@ test.describe('moons (#53)', () => {
     await logout(page);
     await register(page, a);
     await openSystemOf(page, b);
+    // Exact: the „⋯“ of the open moon row is named „Aktionen für Selene (Mond) …“ (#189).
     const mark = galaxyRow(page, b).getByRole('button', {
       name: 'Selene (Mond)',
+      exact: true,
     });
     await mark.tap();
     await expect(moonRow(page)).toContainText('Selene (Mond)');
-    await expect(moonRow(page).getByText('Sturmangriff')).toBeVisible();
+    // On a phone the actions of the moon are in the sheet of its „⋯“ (#189).
+    await expect(
+      await galaxyAction(page, moonRow(page), 'Sturmangriff'),
+    ).toBeVisible();
+    await page.keyboard.press('Escape');
     // Against the device width: a too wide table also widens innerWidth.
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth),
