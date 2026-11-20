@@ -34,6 +34,53 @@ function memoryDatabase(): Db {
   return db;
 }
 
+/**
+ * One migrated in-memory database for a property test that builds a world per
+ * generated case. `open()` hands out the database as it was migrated and
+ * `rewind()` takes every change of the case back (a savepoint, so the
+ * database, its statements and its pragmas stay): a case then costs its own
+ * rows, not a new database. The code under test prepares its statements per
+ * call; they are kept by their SQL text, as `better-sqlite3` would otherwise
+ * compile the same text for every call of every case. Do not call `pluck()`,
+ * `raw()` or `safeIntegers()` on a statement of this database: the statement
+ * is shared by its text. A case that ends in an error is rewound by the next
+ * `open()`.
+ */
+export interface CaseDb {
+  open(): Db;
+  rewind(): void;
+}
+
+export function caseDatabase(): CaseDb {
+  let db: Db | undefined;
+  let open = false;
+  const rewind = (): void => {
+    if (!db || !open) return;
+    db.exec('ROLLBACK TO SAVEPOINT test_case; RELEASE SAVEPOINT test_case');
+    open = false;
+  };
+  return {
+    open() {
+      if (!db) {
+        const d = memoryDatabase();
+        const kept = new Map<string, unknown>();
+        const prepare = d.prepare.bind(d) as (sql: string) => unknown;
+        (d as { prepare: unknown }).prepare = (sql: string) => {
+          let statement = kept.get(sql);
+          if (!statement) kept.set(sql, (statement = prepare(sql)));
+          return statement;
+        };
+        db = d;
+      }
+      rewind();
+      db.exec('SAVEPOINT test_case');
+      open = true;
+      return db;
+    },
+    rewind,
+  };
+}
+
 export function testCtx(
   start = 1_000_000,
   seed = 42,
