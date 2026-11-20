@@ -10,7 +10,9 @@ import {
 } from '../../../core/explain.ts';
 import { levelMode, type LevelMode } from '../../../core/level-overview.ts';
 import type { Db } from '../database.ts';
+import type { RepositoryModule } from './contract.ts';
 import { levels, queueParams, researchQueueOf, type Row } from './rows.ts';
+import type { RoundReset } from '../round-reset.ts';
 
 export interface User {
   id: string;
@@ -60,7 +62,7 @@ export interface Players {
   lastActive(): Record<string, number>;
 }
 
-export class SqlitePlayers implements Players {
+class SqlitePlayers implements Players {
   private readonly db: Db;
   constructor(db: Db) {
     this.db = db;
@@ -193,3 +195,14 @@ export class SqlitePlayers implements Players {
     return levels(rows, 'id', 'at');
   }
 }
+
+/** The `players` repository on `Ctx`. */
+export const repository = {
+  key: 'players',
+  make: (db: Db): Players => new SqlitePlayers(db),
+} as const satisfies RepositoryModule;
+
+/** The accounts and their sessions live through the rounds. */
+export const roundReset = [
+  { keeps: ['users', 'sessions'] },
+] satisfies readonly RoundReset[];

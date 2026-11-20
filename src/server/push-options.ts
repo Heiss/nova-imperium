@@ -5,6 +5,7 @@ import { isPushTopic, PUSH_TOPICS, type PushTopic } from '../core/push.ts';
 import type { Action } from './game/actions.ts';
 import { type Ctx, fail } from './game/context.ts';
 import type { ServerFeature } from './game/feature.ts';
+import type { RoundReset } from './db/round-reset.ts';
 
 /** The kinds the player switched off, in the order of the options. */
 export function pushOff(ctx: Ctx, uid: string): PushTopic[] {
@@ -33,3 +34,7 @@ export const pushOptions: Action = (ctx, u, d) => {
 export const serverFeature = {
   actions: { pushOptions },
 } satisfies ServerFeature;
+
+export const roundReset = [
+  { keeps: ['push_off'] },
+] satisfies readonly RoundReset[];

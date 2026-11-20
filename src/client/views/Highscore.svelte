@@ -5,6 +5,7 @@
   // below. The classes of the table are those of the phone layout in
   // style.css (`.scores`).
   import type { HighscorePage } from '../logic/highscore.ts';
+  import HomeCell from './HomeCell.svelte';
 
   let { page }: { page: HighscorePage } = $props();
 </script>
@@ -31,13 +32,7 @@
       {#each page.rows as row (row.id)}
         <tr class={row.me ? 'me' : ''}>
           <td class="n">{row.rank}</td><td>{row.name}</td><td
-            >{#if row.home}<span class="home">{row.home.name}</span>
-              <span
-                class="lnk"
-                data-act="gto"
-                data-g={row.home.g}
-                data-s={row.home.s}>{row.home.at}</span
-              >{:else}-{/if}</td
+            ><HomeCell home={row.home} /></td
           ><td class="n">{row.points}</td>
         </tr>
       {/each}

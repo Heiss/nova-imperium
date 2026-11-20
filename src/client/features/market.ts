@@ -2,7 +2,8 @@
 // the form keeps its draft in logic/market.ts, every input repaints the
 // preview from the same function the server uses, „max“ fills the field with
 // the most that can be given, and „Tauschen“ sends the action trade. The
-// markup is in views/market.ts.
+// form is views/Market.svelte; the preview and the options it is painted
+// with are in logic/market-page.ts.
 import type { Res } from '../../core/market.ts';
 import {
   amountOf,
@@ -12,8 +13,8 @@ import {
   maxAmount,
   preview,
 } from '../logic/market.ts';
+import { previewHTML, targetOptions } from '../logic/market-page.ts';
 import { client } from '../logic/state.svelte.ts';
-import { previewHTML, targetOptions } from '../views/market.ts';
 import type { ClientFeature } from './contract.ts';
 
 const field = <T extends HTMLElement>(id: string): T | null =>

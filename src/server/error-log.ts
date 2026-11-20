@@ -7,6 +7,7 @@ import { CLIENT_ERROR_KINDS, ERROR_FIELDS as MAX } from '../core/error-log.ts';
 import { DAY, pageWindow } from './audit.ts';
 import type { User } from './db/repos/players.ts';
 import { type Ctx, fail, int } from './game/context.ts';
+import type { RoundReset } from './db/round-reset.ts';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 // A value after a name that hints at a secret: password=…, "token": "…".
@@ -246,3 +247,7 @@ export function errorPage(ctx: Ctx, body: Record<string, unknown>) {
     result: { errors, page, pages, count, limit, before: filter.before },
   };
 }
+
+export const roundReset = [
+  { keeps: ['error_events'] },
+] satisfies readonly RoundReset[];

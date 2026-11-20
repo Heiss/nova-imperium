@@ -18,6 +18,7 @@ import { fail, universe, type Ctx } from './context.ts';
 
 import { roundRules, roundStart } from './round.ts';
 import type { ServerFeature } from './feature.ts';
+import type { RoundReset } from '../db/round-reset.ts';
 
 const DAY = 86_400_000;
 const dayOf = (ctx: Ctx): number => Math.floor(ctx.now() / DAY);
@@ -223,3 +224,11 @@ export const serverFeature = {
     }),
   },
 } satisfies ServerFeature;
+
+/** The progress, the claims and the daily rewards start over with the round. */
+export const roundReset = [
+  {
+    order: 110,
+    clears: ['achievement_progress', 'achievement_claims', 'daily_rewards'],
+  },
+] satisfies readonly RoundReset[];

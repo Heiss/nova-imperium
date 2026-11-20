@@ -1,19 +1,24 @@
-// The view „Marktplatz“ (#171): the closed notice, the missing Handelsposten,
-// the form with its preview, the menu entry, and the places of the settings
-// in the dialog „Neue Runde“ and the admin panel.
+// The view „Marktplatz“ (#171), as the component Market renders it (#118,
+// bundle 7): the closed notice, the missing Handelsposten, the form with its
+// preview, the menu entry, and the places of the settings in the dialog
+// „Neue Runde“ and the admin panel.
 import { afterEach, describe, expect, it } from 'vitest';
 import { DEFAULT_UNIVERSE } from '../../core/universe.ts';
 import { planet, roundDefaults } from '../../test/fixtures.ts';
+import { marketView } from '../../test/market-view.ts';
+import { normalize } from '../../test/markup.ts';
 import { draft, newDraft, preview } from '../logic/market.ts';
+import { previewHTML, targetOptions } from '../logic/market-page.ts';
 import type { GameState } from '../logic/types.ts';
 import type { V } from './common.ts';
-import { menu, VIEWS } from './index.ts';
-import { market, previewHTML, targetOptions } from './market.ts';
+import { menu } from './index.ts';
 import {
   adminMarkup as admin,
   roundDialogMarkup as roundDialog,
 } from '../../test/admin-view.ts';
-import { normalize } from '../../test/markup.ts';
+import { ANEW, MOUNTED } from './mount.ts';
+
+const market = (v: V): string => normalize(marketView(v));
 
 const BASE = 1_000_000;
 const PRICES = { mc: BASE, md: BASE, cm: BASE, cd: BASE, dm: BASE, dc: BASE };
@@ -36,8 +41,9 @@ function view(
 afterEach(() => Object.assign(draft, newDraft()));
 
 describe('the view „Marktplatz“', () => {
-  it('is registered as a view and in the menu after „Rohstoffe“', () => {
-    expect(VIEWS.market).toBe(market);
+  it('is a mounted view, mounted anew on every render, and in the menu after „Rohstoffe“', () => {
+    expect(MOUNTED.has('market')).toBe(true);
+    expect(ANEW.has('market')).toBe(true);
     const items = menu(false, view().s.round);
     const labels = items.flatMap((i) => (i === '-' ? [] : [i.label]));
     expect(labels[labels.indexOf('Rohstoffe') + 1]).toBe('Marktplatz');
@@ -69,28 +75,28 @@ describe('the view „Marktplatz“', () => {
     );
     expect(html).toContain('<form id="marketform">');
     expect(html).toContain(
-      '<label for="market-give">Du gibst</label> <select id="market-give"><option value="m" selected>Adamant</option><option value="c">Psikristall</option><option value="d">Promethium</option></select>',
+      '<label for="market-give">Du gibst</label> <select id="market-give"><option selected value="m">Adamant</option><option value="c">Psikristall</option><option value="d">Promethium</option></select>',
     );
     expect(html).toContain(
-      '<label for="market-get">Du erhältst</label> <select id="market-get"><option value="c" selected>Psikristall</option><option value="d">Promethium</option></select>',
+      '<label for="market-get">Du erhältst</label> <select id="market-get"><option selected value="c">Psikristall</option><option value="d">Promethium</option></select>',
     );
     expect(html).toContain(
-      '<label for="market-amount">Menge</label> <input type="number" id="market-amount" min="1" step="1" inputmode="numeric" autocomplete="off" value=""> <button type="button" data-act="marketMax">max</button>',
+      '<label for="market-amount">Menge</label> <input autocomplete="off" id="market-amount" inputmode="numeric" min="1" step="1" type="number" value=""> <button data-act="marketMax" type="button">max</button>',
     );
     expect(html).toContain('<div id="market-preview" role="status">');
     expect(html).toContain(
-      '<button type="submit" id="market-trade" disabled>Tauschen</button>',
+      '<button disabled id="market-trade" type="submit">Tauschen</button>',
     );
   });
 
   it('shows the draft: the choice, the amount, the preview of it and an offered „Tauschen“', () => {
     Object.assign(draft, { give: 'm', get: 'd', amount: '1000' });
     const html = market(view());
-    expect(html).toContain('<option value="d" selected>Promethium</option>');
+    expect(html).toContain('<option selected value="d">Promethium</option>');
     expect(html).toContain('value="1000"');
     expect(html).toContain('<td>Du erhältst</td><td>225 Promethium</td>');
     expect(html).toContain(
-      '<button type="submit" id="market-trade">Tauschen</button>',
+      '<button id="market-trade" type="submit">Tauschen</button>',
     );
   });
 
@@ -98,9 +104,9 @@ describe('the view „Marktplatz“', () => {
     Object.assign(draft, { give: 'c', get: 'c', amount: '"><b>' });
     const html = market(view());
     expect(html).toContain(
-      '<select id="market-get"><option value="m" selected>Adamant</option><option value="d">Promethium</option></select>',
+      '<select id="market-get"><option selected value="m">Adamant</option><option value="d">Promethium</option></select>',
     );
-    expect(html).toContain('value="&quot;&gt;&lt;b&gt;"');
+    expect(html).toContain('value="&quot;>&lt;b>"');
     expect(html).not.toContain('<b>');
   });
 

@@ -6,6 +6,7 @@ import {
 } from '../logic/admin.ts';
 import type { Dialog } from '../modal.ts';
 import type { V } from './common.ts';
+import type { ClientView } from './contract.ts';
 import Admin from './Admin.svelte';
 import { attachAdminPanel } from './admin-panel.ts';
 import EndzeitDialog from './EndzeitDialog.svelte';
@@ -46,3 +47,13 @@ export const endzeitDialog =
     });
     return () => void unmount(component);
   };
+
+/** The page „Admin“, mounted anew on every render; its entry stands last in the menu and is shown to an admin only. */
+export const clientViews = [
+  {
+    key: 'admin',
+    mount: mountAdmin,
+    anew: true,
+    menu: { order: 180, label: 'Admin', show: (_, admin) => admin },
+  },
+] satisfies readonly ClientView[];

@@ -666,6 +666,26 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   to `form` and `h3`. The tests of the chat box (`views/guilds.test.ts`) run
   on the components through `src/test/guilds-view.ts`; the pages have their
   tests in `logic/guilds.test.ts`, the dialog in `src/client/modal.test.ts`.
+* **[V]** „Marktplatz“ and „Freunde“ of #118, bundle 7, second part: the
+  property tests `src/test/market-reference.test.ts` and
+  `src/test/friends-reference.test.ts` keep the components equal to the HTML
+  before (frozen there: `market()` with its options and preview, and
+  `friends()` with `homeCell()` and `box()`) on 300 generated states each
+  (fast-check seed 118: the market on or off, with or without prices, levels
+  of the Handelsposten 0 to 6, limit and use of the day, fee and fee step,
+  prices down to 0, stock and storage, every draft with amounts that hold
+  markup or no number; players with markup in their names and tags, friends,
+  requests both ways, planets and moons, guilds on or off), compared by
+  `normalize()` and by `textContents()` of `src/test/markup.ts`, with
+  hand-built cases for the rare marks (the market off for the round, no
+  Handelsposten, the limit of the day reached and cutting an amount, the fee
+  per level, a price at its lowest, an empty stock, a full storage; no
+  friends, open requests both ways, a friend in vacation, the friend with the
+  longest name, a player the state does not know). Each test pins the ids and
+  hooks the handlers read. The tests of the views (`market.test.ts`,
+  `friends.test.ts`) run on the components through `src/test/market-view.ts`
+  and `src/test/friends-view.ts`; the pages have their tests in
+  `logic/market-page.test.ts` and `logic/friends.test.ts`.
 * **[E]** No comparison with a catalog key outside `src/features/` (#114,
   owner, 2026-11-14): `src/test/catalog-keys.test.ts` reads `src` with the
   TypeScript and Svelte parsers, as `src/test/naming.test.ts` does, and

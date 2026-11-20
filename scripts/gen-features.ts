@@ -37,6 +37,22 @@
 // adds its actions and its part of the state in its own file and neither
 // names it.
 //
+// The repositories (#317): every file of src/server/db/repos that exports
+// `repository` is listed in src/server/db/repos/repositories.gen.ts
+// (`REPOSITORIES`), which only repos/index.ts imports, so a repository
+// registers itself and no shared list names it; the type `Repositories` is
+// derived from the list.
+//
+// The client views (#317): every file of src/client/views that exports
+// `clientViews` is listed in src/client/views/views.gen.ts (`CLIENT_VIEWS`),
+// which only views/mount.ts and views/index.ts import, so a view registers
+// itself (key, mount function, menu entry) and no shared list names it.
+//
+// The round reset (#317): every file of src/server that exports `roundReset`
+// (what a new round empties and what it keeps) is listed in
+// src/server/round-reset.gen.ts (`ROUND_RESETS`), which only
+// src/server/game/admin.ts imports.
+//
 //   node scripts/gen-features.ts
 //        writes the indexes when they changed; package.json chains it
 //        before start, test, typecheck, build and check (D2): no pre*
@@ -71,6 +87,20 @@ export const SERVER_DIR = 'src/server';
 export const SERVER_FEATURES_FILE = 'features.gen.ts';
 /** The fixed name under which a file exports a server feature. */
 const SERVER_EXPORT = /^export const serverFeature\b/m;
+/** Where the repositories are (#317), and the list of them. */
+export const REPOS_DIR = 'src/server/db/repos';
+export const REPOSITORIES_FILE = 'repositories.gen.ts';
+/** The fixed name under which a file exports its repository. */
+const REPOSITORY_EXPORT = /^export const repository\b/m;
+/** Where the client views are (#317), and the list of them. */
+export const VIEWS_DIR = 'src/client/views';
+export const CLIENT_VIEWS_FILE = 'views.gen.ts';
+/** The fixed name under which a file exports its views. */
+const VIEWS_EXPORT = /^export const clientViews\b/m;
+/** The list of the round resets (#317) is in the server folder, next to the server features. */
+export const ROUND_RESET_FILE = 'round-reset.gen.ts';
+/** The fixed name under which a file exports what a new round empties or keeps. */
+const ROUND_RESET_EXPORT = /^export const roundReset\b/m;
 /** The optional part of an entry folder for the Lexicanum (#285). */
 const LEXICON_FILE = 'lexicon.de.ts';
 const MISSIONS = 'missions';
@@ -322,6 +352,54 @@ export function generateServerFeatures(dir: string): boolean {
   );
 }
 
+/** The files of the repository folder that export `repository` (#317). */
+export const scanRepositories = (dir: string): string[] =>
+  scanExporting(dir, REPOSITORY_EXPORT);
+
+/** The source of the list of the repositories (#317). */
+export const renderRepositories = (files: string[]): string =>
+  renderFeatureList(files, 'repository', 'REPOSITORIES');
+
+/** Writes the list of the repositories when it changed; true if it did. */
+export function generateRepositories(dir: string): boolean {
+  return write(
+    join(dir, REPOSITORIES_FILE),
+    renderRepositories(scanRepositories(dir)),
+  );
+}
+
+/** The files of the views folder that export `clientViews` (#317). */
+export const scanClientViews = (dir: string): string[] =>
+  scanExporting(dir, VIEWS_EXPORT);
+
+/** The source of the list of the client views (#317). */
+export const renderClientViews = (files: string[]): string =>
+  renderFeatureList(files, 'clientViews', 'CLIENT_VIEWS');
+
+/** Writes the list of the client views when it changed; true if it did. */
+export function generateClientViews(dir: string): boolean {
+  return write(
+    join(dir, CLIENT_VIEWS_FILE),
+    renderClientViews(scanClientViews(dir)),
+  );
+}
+
+/** The files of the server folder that export `roundReset` (#317). */
+export const scanRoundResets = (dir: string): string[] =>
+  scanExporting(dir, ROUND_RESET_EXPORT);
+
+/** The source of the list of the round resets (#317). */
+export const renderRoundResets = (files: string[]): string =>
+  renderFeatureList(files, 'roundReset', 'ROUND_RESETS');
+
+/** Writes the list of the round resets when it changed; true if it did. */
+export function generateRoundResets(dir: string): boolean {
+  return write(
+    join(dir, ROUND_RESET_FILE),
+    renderRoundResets(scanRoundResets(dir)),
+  );
+}
+
 function write(file: string, source: string): boolean {
   const dir = dirname(file);
   if (existsSync(file) && readFileSync(file, 'utf8') === source) return false;
@@ -341,5 +419,8 @@ if (import.meta.main)
     generateRoundSettings(CORE_DIR);
     generateClientFeatures(CLIENT_DIR);
     generateServerFeatures(SERVER_DIR);
+    generateRepositories(REPOS_DIR);
+    generateRoundResets(SERVER_DIR);
+    generateClientViews(VIEWS_DIR);
     return 0;
   });

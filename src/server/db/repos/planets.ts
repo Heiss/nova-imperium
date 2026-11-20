@@ -4,10 +4,12 @@ import type { Coords, Levels, Planet } from '../../../core/types.ts';
 import { isShip } from '../../../core/catalog.ts';
 import type { UsedSize } from '../../../core/universe.ts';
 import type { Db } from '../database.ts';
+import type { RepositoryModule } from './contract.ts';
 import { buildQueueOf, buildQueueParams, levels, type Row } from './rows.ts';
+import type { RoundReset } from '../round-reset.ts';
 
 /** A position locked after its colony was given up, until `until` (#224, D2). */
-export interface PositionLock extends Coords {
+interface PositionLock extends Coords {
   until: number;
 }
 
@@ -47,7 +49,7 @@ export interface Planets {
   activeAt(id: string): number | null;
 }
 
-export class SqlitePlanets implements Planets {
+class SqlitePlanets implements Planets {
   private readonly db: Db;
   constructor(db: Db) {
     this.db = db;
@@ -279,3 +281,14 @@ export class SqlitePlanets implements Planets {
     };
   }
 }
+
+/** The `planets` repository on `Ctx`. */
+export const repository = {
+  key: 'planets',
+  make: (db: Db): Planets => new SqlitePlanets(db),
+} as const satisfies RepositoryModule;
+
+/** A new round starts without planets and without the locks of their places. */
+export const roundReset = [
+  { order: 10, clears: ['planets', 'position_locks'] },
+] satisfies readonly RoundReset[];
