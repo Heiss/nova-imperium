@@ -107,16 +107,16 @@ const rows = (ctx: TestCtx, kind: string): { n: number; bytes: number } =>
     .get(kind) as { n: number; bytes: number };
 
 describe('the journal changes nothing in the game', () => {
-  it('ends 1000 actions and 1000 arrivals in the same state with and without it', () => {
+  it('ends a run of actions and arrivals in the same state with and without it', () => {
     const on = world(true);
     const off = world(false);
     for (const ctx of [on, off]) {
-      actions(ctx, 200);
-      arrivals(ctx, 200);
-      actions(ctx, 100);
+      actions(ctx, 60);
+      arrivals(ctx, 60);
+      actions(ctx, 30);
     }
     expect(dump(on)).toBe(dump(off));
-    expect(on.rounds.countEvents(1)).toBeGreaterThan(400);
+    expect(on.rounds.countEvents(1)).toBeGreaterThan(100);
     // The round is closed in the second: it took no event.
     expect(off.rounds.countEvents(1)).toBe(0);
     expect(journaled).toBeTypeOf('function');

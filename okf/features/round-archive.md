@@ -226,7 +226,7 @@ complete, tested and pushed.
   and save it later or never (a read), so recording at the call would count a
   span twice. Recording at the save of the place is the one central point and
   keeps every result identical (characterization test
-  `journal-cost.test.ts`: the same 500 actions and arrivals end in the same
+  `journal-cost.test.ts`: the same 150 actions and arrivals end in the same
   places, fleets, reports and accounts with and without the journal). The
   repositories of the places and the reports are wrapped in `createCtx`
   (`context.ts`); only their `save` and `add` note what they commit.
