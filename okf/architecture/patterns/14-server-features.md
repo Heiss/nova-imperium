@@ -71,8 +71,49 @@ description: 'A server module exports its actions and its part of the state as s
   group and the key order of the state once for the refactoring; it is
   deleted (#317), the guard `registry.test.ts` keeps the rules and no list
   has to be edited when an action or a key is added.
-* **[V]** The state type of the browser (`GameState` in
-  `src/client/logic/types.ts`) is not composed from per-feature types: the
-  types of the parts live in the client, `client-not-server` forbids a type
-  import from the server too, so it would mean moving them into `src/core`,
-  which is not mechanical. It stays one hand-written interface.
+* **[E]** Decided by the owner (2026-11-20, #317, #118, „jetzt komplett“): the
+  boundary between the browser and the server is checked by the compiler, for
+  the actions and for the state. No game rule, text, value or wire format
+  changes; the validation of the server stays as it is (types do not replace
+  it: the input arrives as JSON and every handler still checks what it reads).
+* **[V]** The actions: `src/core/actions/<feature>.ts` declares the input of
+  each action, `export const actionInputs = { name: input<{ ... }>() }`
+  (`input` and `Attr`, the type of a `data-*` attribute, are in
+  `src/core/action-input.ts`). The files are listed in the git-ignored
+  `src/core/actions.gen.ts` (`scripts/gen-features.ts`, the same detection as
+  for `roundSettings`), so a new action edits no shared list; `src/core/
+  actions.ts` merges them into the type `ActionMap` and offers `ActionName`
+  and `Wire<K>`, the input plus the `planet` the browser's transport adds to
+  every call. A field the browser reads from a `data-*` attribute is `Attr`
+  (a text or nothing); a field the server accepts leaves out (`cargo`, `pct`
+  of `send`) is optional, because the map says what the server accepts and
+  the browser's form is a subtype of it.
+* **[V]** The server side: a handler is declared `Handler<'name'>`
+  (`src/server/game/actions.ts`), so its `d` is the input of the map, and the
+  members `actions`, `guildActions`, `adminActions` of `ServerFeature` are
+  `Handlers`, a mapped type over the names of the map: a name the map does not
+  know, or a handler of another action, is a compile error. The table of
+  `dispatch.ts` erases the type in `assembleActions` (one cast, there). The
+  guard `src/server/game/action-contract.test.ts` checks at run time that the
+  names the server registers are exactly the names the map declares, each
+  once, and at compile time that every handler declares exactly the input of
+  its name (a handler typed with the wide `Data` fails there). Tests that send
+  junk on purpose use `loose<'name'>(...)` of `test-helpers.ts`.
+* **[V]** The state: `src/core/state/<part>.ts` exports `type StateShape`, the
+  keys one part holds and their types (the frame of `state.ts` in `frame.ts`);
+  the files are listed in `src/core/state.gen.ts` (`FullState`, the
+  intersection), and `src/core/state.ts` derives `GameState` from it: the keys
+  of the lock screen of the vacation mode (`LockedState`) always, every key of
+  a feature as optional, as the lock screen does not send them. A feature
+  declares `state: { ... } satisfies StatePart<StateShape>`, a key of the frame
+  goes through `keyed` of `state.ts`, which takes the type from `frame.ts`; so
+  what the server builds is checked against the type the browser reads, and
+  `src/server/game/state-contract.test.ts` checks that every key of a feature
+  has a shape and every shape a sender. `client/logic/types.ts` only
+  re-exports.
+* **[V]** Where the hand-written `GameState` differed from what the server
+  sends: `GuildChatMessage.arrival` is `number | null` (the column is
+  nullable; only an attack carries it), the browser treated it as `number |
+  undefined` and would have shown 1970 for an attack row without a time;
+  `logic/guilds.ts` now treats `null` like a missing time. `AdminState.specs`
+  is `readonly`. Nothing else differed.

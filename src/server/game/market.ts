@@ -25,7 +25,8 @@ import type { User } from '../db/repos/players.ts';
 import { type Handler, mine } from './actions.ts';
 import { type Ctx, fail, universe } from './context.ts';
 import { roundRules } from './round.ts';
-import type { ServerFeature } from './feature.ts';
+import type { ServerFeature, StatePart } from './feature.ts';
+import type { StateShape } from '../../core/state/market.ts';
 
 /** The price of every pair now, after the drift (millionths of the base). */
 export function currentPrices(
@@ -118,5 +119,5 @@ export const serverFeature = {
     keys: ['market'],
     // The prices of the marketplace and what the player gave today (#171).
     build: (ctx, u) => ({ market: marketState(ctx, u) }),
-  },
+  } satisfies StatePart<StateShape>,
 } satisfies ServerFeature;

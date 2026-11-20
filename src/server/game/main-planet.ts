@@ -17,7 +17,8 @@ import type { User } from '../db/repos/players.ts';
 import type { Handler } from './actions.ts';
 import { type Ctx, fail } from './context.ts';
 import { roundRules } from './round.ts';
-import type { ServerFeature } from './feature.ts';
+import type { ServerFeature, StatePart } from './feature.ts';
+import type { StateShape } from '../../core/state/main-planet.ts';
 
 /** The main planet of `u` and the end of the lock of the last switch. */
 export const mainPlanetOf = (
@@ -98,5 +99,5 @@ export const serverFeature = {
       homePlanet: ctx.planets.home(u.id)?.id ?? null,
       ...mainPlanetView(view.main, ctx.now()),
     }),
-  },
+  } satisfies StatePart<StateShape>,
 } satisfies ServerFeature;

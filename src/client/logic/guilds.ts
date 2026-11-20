@@ -65,7 +65,11 @@ function chatLine(
   del: boolean,
 ): ChatLineModel {
   const event = m.kind !== 'message';
-  const arrival = m.arrival === undefined ? '' : arrivalAt(m.arrival, m.time);
+  // The server sends `arrival` for an attack only; a row without one shows none.
+  const arrival =
+    m.arrival === undefined || m.arrival === null
+      ? ''
+      : arrivalAt(m.arrival, m.time);
   return {
     id: m.id,
     event,

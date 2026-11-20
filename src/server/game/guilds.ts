@@ -15,7 +15,8 @@ import {
   rankState,
   type Actor,
 } from './guild-ranks.ts';
-import type { ServerFeature } from './feature.ts';
+import type { ServerFeature, StatePart } from './feature.ts';
+import type { StateShape } from '../../core/state/guilds.ts';
 
 const markdown = new MarkdownIt({ html: false, linkify: false }).disable(
   'image',
@@ -195,5 +196,5 @@ export const serverFeature = {
     build: (ctx, u, view) => ({
       guilds: view.round.guilds ? guildState(ctx, u.id, view.pts) : null,
     }),
-  },
+  } satisfies StatePart<StateShape>,
 } satisfies ServerFeature;

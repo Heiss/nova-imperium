@@ -26,6 +26,7 @@ export default defineConfig({
         'src/features/lexicon.gen.ts',
         'src/core/round-settings.gen.ts',
         'src/core/actions.gen.ts',
+        'src/core/state.gen.ts',
         'src/server/features.gen.ts',
         'src/server/round-reset.gen.ts',
         'src/server/db/repos/repositories.gen.ts',

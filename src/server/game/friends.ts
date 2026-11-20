@@ -14,7 +14,8 @@ import {
 import type { User } from '../db/repos/players.ts';
 import type { Handler } from './actions.ts';
 import { type Ctx, fail, str } from './context.ts';
-import type { ServerFeature } from './feature.ts';
+import type { ServerFeature, StatePart } from './feature.ts';
+import type { StateShape } from '../../core/state/friends.ts';
 
 /** The German message of each refusal [V]; a crossed request names who asked first. */
 export const FRIEND_ERROR: Readonly<
@@ -134,5 +135,5 @@ export const serverFeature = {
     build: (ctx, u, view) => ({
       friends: friendState(ctx, u.id, view.limits.recent),
     }),
-  },
+  } satisfies StatePart<StateShape>,
 } satisfies ServerFeature;

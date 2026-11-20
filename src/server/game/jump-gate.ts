@@ -22,7 +22,8 @@ import type { User } from '../db/repos/players.ts';
 import { type Handler, mine } from './actions.ts';
 import { type Ctx, fail, universe } from './context.ts';
 import { pickedShips } from './fleet-actions.ts';
-import type { ServerFeature } from './feature.ts';
+import type { ServerFeature, StatePart } from './feature.ts';
+import type { StateShape } from '../../core/state/jump-gate.ts';
 
 /** The German message of each refusal [E] (owner, 2026-11-17). */
 export const JUMP_ERROR: Readonly<Record<JumpError, string>> = {
@@ -94,5 +95,5 @@ export const serverFeature = {
     order: 80,
     keys: ['gates'],
     build: (ctx, u) => ({ gates: gateState(ctx, u.id) }),
-  },
+  } satisfies StatePart<StateShape>,
 } satisfies ServerFeature;

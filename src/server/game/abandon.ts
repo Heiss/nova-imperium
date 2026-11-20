@@ -18,7 +18,8 @@ import { type Ctx, coords, fail } from './context.ts';
 import { mainPlanet } from './main-planet.ts';
 import { moonAt } from './moons.ts';
 import { roundRules } from './round.ts';
-import type { ServerFeature } from './feature.ts';
+import type { ServerFeature, StatePart } from './feature.ts';
+import type { StateShape } from '../../core/state/abandon.ts';
 
 /** The German message of each refusal [V]. */
 export const ABANDON_ERROR: Readonly<Record<AbandonError, string>> = {
@@ -96,5 +97,5 @@ export const serverFeature = {
     keys: ['locks'],
     // Every position locked after an abandonment, for the Sternenkarte (#224).
     build: (ctx) => ({ locks: ctx.planets.locks(ctx.now()) }),
-  },
+  } satisfies StatePart<StateShape>,
 } satisfies ServerFeature;

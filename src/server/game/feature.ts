@@ -24,8 +24,14 @@ export interface StateView {
   limits: ActivityLimits;
 }
 
-/** The place and the content of some keys of the state a player gets. */
-export interface StatePart {
+/**
+ * The place and the content of some keys of the state a player gets. `S` is
+ * the shape of the part (`src/core/state/<part>.ts`, #317): `build` returns
+ * it, so the compiler checks what is sent against the type the browser reads.
+ */
+export interface StatePart<
+  S extends Record<string, unknown> = Record<string, unknown>,
+> {
   /**
    * The place of the keys in the JSON object: parts run by ascending number,
    * so the order of the keys does not depend on a list. A number is used once
@@ -33,9 +39,9 @@ export interface StatePart {
    */
   order: number;
   /** The keys `build` returns, so a key defined twice is found at the start. */
-  keys: readonly string[];
+  keys: readonly (keyof S & string)[];
   /** The value of each key of `keys`, for the player `u`. */
-  build: (ctx: Ctx, u: User, view: StateView) => Record<string, unknown>;
+  build: (ctx: Ctx, u: User, view: StateView) => S;
 }
 
 /**

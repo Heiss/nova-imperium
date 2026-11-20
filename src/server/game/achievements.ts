@@ -17,7 +17,8 @@ import type { Handler } from './actions.ts';
 import { fail, universe, type Ctx } from './context.ts';
 
 import { roundRules, roundStart } from './round.ts';
-import type { ServerFeature } from './feature.ts';
+import type { ServerFeature, StatePart } from './feature.ts';
+import type { StateShape } from '../../core/state/achievements.ts';
 import type { RoundReset } from '../db/round-reset.ts';
 
 const DAY = 86_400_000;
@@ -222,7 +223,7 @@ export const serverFeature = {
     build: (ctx, u, view) => ({
       achievements: achievementState(ctx, u, view.round),
     }),
-  },
+  } satisfies StatePart<StateShape>,
 } satisfies ServerFeature;
 
 /** The progress, the claims and the daily rewards start over with the round. */

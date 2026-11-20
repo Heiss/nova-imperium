@@ -4,7 +4,8 @@
 // the places only; the browser words them from the galaxy and the players.
 import type { User } from '../db/repos/players.ts';
 import type { Ctx } from './context.ts';
-import type { ServerFeature } from './feature.ts';
+import type { ServerFeature, StatePart } from './feature.ts';
+import type { StateShape } from '../../core/state/quick-targets.ts';
 import { mainPlanetOf } from './main-planet.ts';
 import type { RoundRules } from '../../core/round.ts';
 
@@ -97,5 +98,5 @@ export const serverFeature = {
     order: 200,
     keys: ['quick'],
     build: (ctx, u, view) => ({ quick: quickState(ctx, u, view.round) }),
-  },
+  } satisfies StatePart<StateShape>,
 } satisfies ServerFeature;

@@ -6,7 +6,8 @@ import { UNIVERSE_SPECS } from '../../core/universe.ts';
 import type { User } from '../db/repos/players.ts';
 import type { Ctx } from './context.ts';
 import { endzeitState } from './endzeit.ts';
-import type { ServerFeature } from './feature.ts';
+import type { ServerFeature, StatePart } from './feature.ts';
+import type { StateShape } from '../../core/state/admin.ts';
 
 /**
  * What only the admin gets: the settings specification, the „Endzeit“ and the
@@ -27,5 +28,5 @@ export const serverFeature = {
     order: 190,
     keys: ['admin'],
     build: (ctx, u) => ({ admin: adminStateOf(ctx, u) }),
-  },
+  } satisfies StatePart<StateShape>,
 } satisfies ServerFeature;

@@ -23,7 +23,8 @@ import type { Handler } from './actions.ts';
 import { addReport, coords, fail, str, type Ctx } from './context.ts';
 import { isAllyOf } from './holding.ts';
 import { roundRules } from './round.ts';
-import type { ServerFeature } from './feature.ts';
+import type { ServerFeature, StatePart } from './feature.ts';
+import type { StateShape } from '../../core/state/union.ts';
 
 /** The limits and the timing rules of the round (owner, 2026-11-16, D3; 2026-11-17). */
 export const limitsOf = (ctx: Ctx): UnionLimits => {
@@ -296,5 +297,5 @@ export const serverFeature = {
     order: 210,
     keys: ['unions'],
     build: (ctx, u) => ({ unions: unionsFor(ctx, u.id) }),
-  },
+  } satisfies StatePart<StateShape>,
 } satisfies ServerFeature;
