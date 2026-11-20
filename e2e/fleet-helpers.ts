@@ -2,6 +2,7 @@
 // reading the reports of both sides.
 import { expect, type Locator, type Page } from '@playwright/test';
 import {
+  galaxyAction,
   galaxyRow,
   lastToast,
   logout,
@@ -68,7 +69,7 @@ export async function attack(page: Page, a: string, b: string): Promise<void> {
   });
   await openSystemOf(page, b);
   await expect(galaxyRow(page, b)).not.toContainText('(n)');
-  await galaxyRow(page, b).getByText('Sturmangriff').click();
+  await (await galaxyAction(page, galaxyRow(page, b), 'Sturmangriff')).click();
   await expect(page.getByLabel('Auftrag')).toHaveValue('attack');
   await page.getByLabel('Anzahl Abfangjäger').fill('5');
   await page.getByLabel('Anzahl Frachtläufer').fill('2');

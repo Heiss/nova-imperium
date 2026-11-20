@@ -172,16 +172,35 @@ describe('mutation shards: the stable plan', () => {
     expect(join(settled.plan)).toEqual([['x.ts'], ['cat.ts']]);
   });
 
-  it('uses 6 shards and a tolerance of 1.5 times the mean by default', () => {
+  it('uses 12 shards and a tolerance of 1.5 times the mean by default', () => {
     expect(TOLERANCE).toBe(1.5);
-    const w = { a: 10, b: 10, c: 10, d: 10, e: 10, f: 10 };
-    const previous6 = [['a', 'b'], ['c'], ['d'], ['e'], ['f'], []];
+    const names = 'abcdefghijkl'.split('');
+    const w = Object.fromEntries(names.map((f) => [f, 10]));
+    const previous12 = [['a', 'b'], ...names.slice(2).map((f) => [f]), []];
     // 20 is 2 times the mean of 10: a goes to the empty shard
-    expect(settle(w, previous6).moved).toEqual(['a']);
+    expect(settle(w, previous12).moved).toEqual(['a']);
     const within = { ...w, a: 5, b: 5 };
-    // 10 is 1.2 times the mean of 50 / 6
-    expect(settle(within, previous6).moved).toEqual([]);
-    expect(settle(w, previous6).plan).toHaveLength(SHARDS);
+    // 10 is 1.1 times the mean of 110 / 12
+    expect(settle(within, previous12).moved).toEqual([]);
+    expect(settle(w, previous12).plan).toHaveLength(SHARDS);
+  });
+
+  it('starts again from the weights when the previous plan has another number of shards', () => {
+    const names = 'abcdefghijkl'.split('');
+    const w = Object.fromEntries(names.map((f) => [f, 10]));
+    // the plan of the six shards before 2026-11-20 is no plan of 12 shards
+    const previous6 = [
+      ['a', 'b'],
+      ['c', 'd'],
+      ['e', 'f'],
+      ['g', 'h'],
+      ['i', 'j'],
+      ['k', 'l'],
+    ];
+    const settled = settle(w, previous6);
+    expect(settled.added).toEqual(names);
+    expect(settled.moved).toEqual([]);
+    expect(settled.plan).toEqual(names.map((f) => [f]));
   });
 });
 

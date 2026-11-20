@@ -269,11 +269,46 @@ export async function openAllRows(page: Page): Promise<void> {
       await fold.click();
 }
 
+/**
+ * „Optionen“ is in sections on a phone (#189): this chooses one of „Spiel“,
+ * „Runde“, „Konto“, „Gerät“ and „Weiteres“, so its boxes are in sight. It does
+ * nothing on a desktop, which shows them all.
+ */
+export async function optionsSection(
+  page: Page,
+  section: 'Spiel' | 'Runde' | 'Konto' | 'Gerät' | 'Weiteres',
+): Promise<void> {
+  if ((page.viewportSize()?.width ?? 1280) > 760) return;
+  await page
+    .getByRole('group', { name: 'Bereich' })
+    .getByRole('button', { name: section, exact: true })
+    .click();
+}
+
 /** The row of a player's planet on the galaxy page. */
 export const galaxyRow = (page: Page, player: string): Locator =>
   page.locator('tr').filter({
     has: page.locator('td', { hasText: new RegExp(`^${player} \\(Platz`) }),
   });
+
+/**
+ * The action of a row of the Sternenkarte: on a desktop in the row itself, on
+ * a phone (#189) behind the „⋯“ of the row, which opens the bottom sheet with
+ * the actions; this opens it (once) and returns the action in the sheet.
+ */
+export async function galaxyAction(
+  page: Page,
+  row: Locator,
+  name: string | RegExp,
+): Promise<Locator> {
+  if ((page.viewportSize()?.width ?? 1280) > 760)
+    return row.getByRole('button', { name }).or(row.getByText(name));
+  const sheet = page.locator('dialog.gal-sheet');
+  if (!(await sheet.isVisible()))
+    await row.getByRole('button', { name: /^Aktionen für / }).click();
+  await expect(sheet).toBeVisible();
+  return sheet.getByRole('button', { name });
+}
 
 /**
  * The servers under test run without Web Push, which needs an HTTPS address.

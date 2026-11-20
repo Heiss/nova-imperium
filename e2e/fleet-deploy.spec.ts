@@ -2,6 +2,7 @@
 // colony for good, from the fleet form and from the galaxy on a phone.
 import { expect, test } from '@playwright/test';
 import {
+  galaxyAction,
   choosePlanet,
   nav,
   register,
@@ -75,12 +76,14 @@ test.describe('playing', () => {
     await page.goto('/?view=galaxy');
     await page.getByText('zum Heimatsystem').click();
     const row = page.locator('tr', { hasText: outpost });
-    await expect(row.getByRole('button', { name: 'Verlegung' })).toBeVisible();
+    // On a phone the actions of a row are in the sheet of its „⋯“ (#189).
+    const deploy = await galaxyAction(page, row, 'Verlegung');
+    await expect(deploy).toBeVisible();
     // Against the device width: a too wide table also widens innerWidth.
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth),
     ).toBeLessThanOrEqual(page.viewportSize()!.width);
-    await row.getByRole('button', { name: 'Verlegung' }).click();
+    await deploy.click();
     await expect(page.getByLabel('Auftrag')).toHaveValue('deploy');
     await expect(page.getByLabel('Position', { exact: true })).toHaveValue(
       '13',

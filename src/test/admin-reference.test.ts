@@ -90,7 +90,7 @@ function invitations(ui: Ui): string {
   const link = ui.lastLink
     ? `<div class="notice mt">Einladungslink (gilt einmal, nur jetzt sichtbar):<br><input id="inv_link" class="wide" readonly value="${esc(ui.lastLink)}" aria-label="Einladungslink" data-nokeep> <button class="small" data-act="copyLink">Kopieren</button></div>`
     : '';
-  return `<form id="inviteform" class="flex"><label for="inv_email">E-Mail-Adresse</label> <input id="inv_email" type="email" required autocomplete="off" data-nokeep> <button type="submit">Einladen</button></form>${link}<div id="admin-invitations"></div>`;
+  return `<form id="inviteform" class="flex"><label for="inv_email">E-Mail-Adresse</label> <input id="inv_email" type="email" required autocomplete="off"> <button type="submit">Einladen</button></form>${link}<div id="admin-invitations"></div>`;
 }
 
 /** The field of one setting of the round (#283), preselected with `value`. */
@@ -443,6 +443,11 @@ describe('Admin against the view before #118, bundle 7', () => {
     // The fields of the settings and of the invitation are not kept by a redraw.
     expect(html).toMatch(/id="set_speed"[^>]*data-nokeep/);
     expect(html).toMatch(/id="inv_link"[^>]*data-nokeep/);
+    // The address typed into the invitation form is a draft: a redraw by the
+    // poll of the state (another player registered) must not empty it, or the
+    // click on „Einladen“ finds an empty required field and sends nothing.
+    expect(html).toMatch(/id="inv_email"/);
+    expect(html).not.toMatch(/id="inv_email"[^>]*data-nokeep/);
     // The tabs are all there, one per name, none selected until the panel shows one.
     expect(html.match(/role="tab"/g)).toHaveLength(
       Object.keys(ADMIN_TABS).length,

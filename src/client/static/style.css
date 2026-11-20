@@ -994,7 +994,8 @@ textarea:focus-visible {
 #tabbar {
   display: none;
 }
-#more {
+#more,
+dialog.sheet {
   width: 100%;
   max-width: 560px;
   max-height: 80vh;
@@ -1006,7 +1007,8 @@ textarea:focus-visible {
   border-top: 1px solid var(--gold);
   border-radius: 14px 14px 0 0;
 }
-#more::backdrop {
+#more::backdrop,
+dialog.sheet::backdrop {
   background: rgb(0 0 0 / 0.6);
 }
 .sheet-title {
@@ -1340,6 +1342,12 @@ textarea:focus-visible {
   .kv select,
   .kv input {
     max-width: 100%;
+  }
+  /* The ship table of the fleet form has four columns and the count field was
+     90 px wide: with two kinds of ship the table reached 383 px on a 360 px
+     phone and the page scrolled sideways (E2E: phone-lists.spec.ts). */
+  input.fs {
+    width: 52px;
   }
 }
 
@@ -1974,6 +1982,18 @@ table.lx-t {
     box-shadow: inset 0 -3px 0 var(--gold);
     outline: 0;
   }
+  /* „Optionen“ in sections (Options.svelte): the switch shows the boxes of one
+     section; a box with no section is not part of the switch. */
+  .opt > [data-sec] {
+    display: none;
+  }
+  .opt[data-section='game'] > [data-sec='game'],
+  .opt[data-section='round'] > [data-sec='round'],
+  .opt[data-section='account'] > [data-sec='account'],
+  .opt[data-section='device'] > [data-sec='device'],
+  .opt[data-section='other'] > [data-sec='other'] {
+    display: block;
+  }
   /* The filter. */
   .catalog[data-filter='open'] > .item[data-phase='locked'],
   .catalog[data-filter='running'] > .item:not([data-phase='running']) {
@@ -2206,9 +2226,11 @@ table.lx-t {
 /* ---------- Phone: the Sternenkarte as rows (#189, [V] unchanged by the owner) ----------
    One block per position instead of four columns that broke the names: the
    position, the planet with its picture and name, below it the owner in small
-   letters and the actions; an empty position is a thin row. The head row is
-   not needed then. (The proposal's „⋯“ sheet for the actions is left out: the
-   actions stay in the row.) */
+   letters; an empty position is a thin row. The head row is not needed then.
+   The actions of a position are behind a „⋯“ at the right of its row, which
+   opens them in a bottom sheet (Galaxy.svelte, #189): the row's own actions
+   (.gal-acts) are hidden then, the desktop shows them as before. A row
+   without an action but its own name keeps the name. */
 @media (max-width: 760px) {
   .gal,
   .gal tbody {
@@ -2262,14 +2284,142 @@ table.lx-t {
     min-height: 44px;
     margin: 2px 0;
   }
+  .gal td.has-sheet .gal-acts {
+    display: none;
+  }
+  button.more.phone-only {
+    display: inline-grid;
+    place-items: center;
+    min-width: 44px;
+    min-height: 44px;
+    margin: 0;
+    font-size: 20px;
+    line-height: 1;
+  }
+  .gal tr:has(> td.has-sheet) {
+    grid-template-columns: 2.4em minmax(0, 1fr) auto;
+  }
+  .gal tr:has(> td.has-sheet) > td:nth-child(1) {
+    grid-row: 1 / span 2;
+  }
+  .gal tr:has(> td.has-sheet) > td.has-sheet {
+    grid-column: 3;
+    grid-row: 1 / span 2;
+    align-self: center;
+    padding: 0;
+  }
+  /* The sheet: the actions one under the other, as the list of „Mehr“. */
+  .sheet-note {
+    margin: 0 4px 6px;
+  }
+  .sheet-actions button,
+  .sheet-close {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-height: 48px;
+    margin: 0;
+    padding: 0 8px;
+    text-align: left;
+    background: none;
+    border: 0;
+    border-bottom: 1px solid var(--line);
+    border-radius: 0;
+    box-shadow: none;
+    color: var(--txt);
+    font: 600 14px var(--head);
+    letter-spacing: 0.04em;
+  }
+  .sheet-close {
+    border-bottom: 0;
+    color: var(--dim);
+  }
 }
 
 /* ---------- Phone: the overview, what runs first (#189, D5, CSS only) ----------
    The fleet movements and the activities stand above the long table of the
    planet, which moves down. Only the overview has a box with the picture of
-   the planet (.ov). The dashboard cards „Läuft“, „Achtung“ and „Bereit“ are
-   not built yet. */
+   the planet (.ov). The dashboard cards „Läuft“, „Achtung“ and „Bereit“ (the
+   component OverviewCards.svelte) come right after the title and show on a
+   phone only. */
 @media (max-width: 760px) {
+  section.cards.phone-only {
+    display: grid;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .cards .card {
+    padding: 10px 12px;
+    background: var(--box);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+  }
+  .cards .card.warn {
+    border-color: var(--red);
+  }
+  .cards .card.go {
+    border-color: var(--green);
+  }
+  .cards h3 {
+    margin: 0 0 6px;
+    font: 600 14px var(--head);
+    letter-spacing: 0.08em;
+    color: var(--gold);
+  }
+  .cards ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .cards li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 2px 12px;
+    padding: 4px 0;
+  }
+  .cards li + li {
+    border-top: 1px solid var(--line);
+  }
+  .cards .what {
+    flex: 1 1 8em;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .cards .when {
+    font-variant-numeric: tabular-nums;
+    color: var(--ember);
+  }
+  .cards li progress {
+    flex: 1 0 100%;
+    height: 6px;
+    margin: 2px 0 4px;
+    appearance: none;
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    background: #0d0a08;
+    overflow: hidden;
+  }
+  .cards li progress::-webkit-progress-bar {
+    background: #0d0a08;
+  }
+  .cards li progress::-webkit-progress-value {
+    background: linear-gradient(90deg, #7b4c17, var(--ember), var(--gold-hi));
+  }
+  .cards li progress::-moz-progress-bar {
+    background: linear-gradient(90deg, #7b4c17, var(--ember), var(--gold-hi));
+  }
+  .cards li a,
+  .cards li button {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 8px;
+  }
+  .cards p {
+    margin: 0;
+  }
+
   main:has(> .box > .bd.ov) {
     display: flex;
     flex-direction: column;

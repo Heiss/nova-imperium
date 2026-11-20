@@ -4,6 +4,7 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 import {
   lastToast,
   nav,
+  optionsSection,
   register,
   uniqueName,
   watch,
@@ -47,6 +48,7 @@ test.describe('push kinds (#192)', () => {
     await expect(page.locator('.toast').last()).toContainText('Gespeichert.');
     await page.reload();
     await nav(page, 'help');
+    await optionsSection(page, 'Gerät');
   }
 
   test('the box is hidden on a server without Web Push (owner, 2026-11-14)', async ({
@@ -55,6 +57,7 @@ test.describe('push kinds (#192)', () => {
     const w = watch(page);
     await register(page, uniqueName('Stumm'));
     await nav(page, 'help');
+    await optionsSection(page, 'Gerät');
     const titles = page.locator('.box .hd');
     await expect(
       titles.getByText('Browser-Benachrichtigungen', { exact: true }),
@@ -74,6 +77,7 @@ test.describe('push kinds (#192)', () => {
     await withWebPush(page);
     await register(page, uniqueName('Glocke'));
     await nav(page, 'help');
+    await optionsSection(page, 'Gerät');
     await expect(
       page.locator('.box .hd').getByText('Benachrichtigungen', { exact: true }),
     ).toBeVisible();
@@ -96,6 +100,7 @@ test.describe('push kinds (#192)', () => {
     await expect(attacked).toBeFocused();
     await page.reload();
     await nav(page, 'help');
+    await optionsSection(page, 'Gerät');
     expect(await states(page)).toEqual(KINDS.map((n) => [n, true]));
     expect(w.problems).toEqual([]);
   });
@@ -124,6 +129,7 @@ test.describe('push kinds (#192)', () => {
     });
     await register(page, uniqueName('Eilig'));
     await nav(page, 'help');
+    await optionsSection(page, 'Gerät');
     await kind(page, 'Neue Version').click();
     await kind(page, 'Servernachrichten').click();
     await expect(kind(page, 'Neue Version')).not.toBeChecked();
@@ -131,6 +137,7 @@ test.describe('push kinds (#192)', () => {
     await expect.poll(() => answered).toBe(2);
     await page.reload();
     await nav(page, 'help');
+    await optionsSection(page, 'Gerät');
     expect(await states(page)).toEqual(
       KINDS.map((n) => [n, n !== 'Neue Version' && n !== 'Servernachrichten']),
     );
@@ -144,6 +151,7 @@ test.describe('push kinds (#192)', () => {
     await withWebPush(page);
     await register(page, uniqueName('Klingel'));
     await nav(page, 'help');
+    await optionsSection(page, 'Gerät');
     expect(await states(page)).toEqual(KINDS.map((n) => [n, true]));
     await switchKind(page, 'Nachrichten im Gilden-Chat', (box) => box.tap());
     expect(await states(page)).toEqual(
@@ -169,6 +177,7 @@ test.describe('push and economy (#68)', () => {
     const w = watch(page);
     await register(page, uniqueName('Push'));
     await nav(page, 'help');
+    await optionsSection(page, 'Gerät');
     await page.getByRole('button', { name: 'Aktivieren', exact: true }).click();
     await expect(page.locator('.toast.err').last()).toContainText(
       'Browser-Benachrichtigungen sind auf diesem Server deaktiviert.',

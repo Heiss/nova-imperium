@@ -11,7 +11,9 @@ import Overview from './Overview.svelte';
 const view = (name = 'Heimat', fleets: ClientFleet[] = []): V => ({
   s: {
     cfg: U,
-    me: { id: 'u1' },
+    me: { id: 'u1', readAt: 0 },
+    // The cards of the phone (#189) read the messages.
+    reports: [],
     galaxy: [],
     fleets,
     players: { u1: { name: 'Ich', points: 10 } },

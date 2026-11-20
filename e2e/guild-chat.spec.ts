@@ -17,6 +17,7 @@ import {
 } from '@playwright/test';
 import {
   cli,
+  galaxyAction,
   galaxyRow,
   guildTag,
   logout,
@@ -425,7 +426,9 @@ async function eventsFlow(page: Page, browser: Browser): Promise<void> {
     .locator('[data-act=gto]')
     .click();
   await expect(vex.locator('h2')).toHaveText('Sternenkarte');
-  await galaxyRow(vex, g.memberName).getByText('Sturmangriff').click();
+  await (
+    await galaxyAction(vex, galaxyRow(vex, g.memberName), 'Sturmangriff')
+  ).click();
   await expect(vex.getByLabel('Auftrag')).toHaveValue('attack');
   await vex.getByLabel('Anzahl Abfangjäger').fill('1');
   await vex.getByRole('button', { name: 'Flotte losschicken' }).click();
