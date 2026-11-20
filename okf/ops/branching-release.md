@@ -71,7 +71,7 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   request opened with `GITHUB_TOKEN` starts no CI.
 * **[E]** The release pull request runs every check in its full run:
   complete mutation run
-  (in 6 parallel shards, merged by a gate job, see
+  (in 12 parallel shards, merged by a gate job, see
   [Test strategy](/ops/testing.md), #131; the one of a hotfix branch only
   when the hotfix changes what the mutation tests test, see Hotfix),
   Docker image, Trivy, Compose stack, upgrade test with the data of the last

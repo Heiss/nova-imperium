@@ -1,7 +1,7 @@
 // The partial mutation run of a pull request (owner, 2026-11-18, #309). A
 // pull request that is no release pull request and goes into no hotfix
 // branch mutates only what it changes, in one job, instead of every file in
-// 6 shards (about an hour). The set holds
+// the shards (about an hour with 6, 12 since 2026-11-20). The set holds
 //   - the files of the "mutate" globs of stryker.config.json that the pull
 //     request changed (a deleted file is gone, so it is not in the set), and
 //   - for a changed test file the source file it tests, when that file is
@@ -23,7 +23,7 @@
 // for it (#309). A change of the mutation configuration (as
 // scripts/mutation-changes.ts, #146, but mutation-floors.txt counts only as
 // above) or of the versions of Stryker, Vitest or TypeScript in the lockfile
-// still runs everything, in the 6 shards.
+// still runs everything, in the shards.
 //
 //   node scripts/mutation-partial.ts plan <from> [<to>]
 //        prints "true" when everything runs, else the JSON list of the
@@ -94,7 +94,7 @@ export function partialSet(
 
 /**
  * The most files one partial job mutates; a set above it runs the complete
- * run in 6 shards (the coordinator, 2026-11-19, #309). One job has no cache
+ * run in the shards (the coordinator, 2026-11-19, #309). One job has no cache
  * and no parallel jobs, so its time grows with the number of files while the
  * complete run takes about 60 minutes whatever the set. Measured on
  * 2026-11-19: the partial run of #281 (11 files, among them `types.ts` and

@@ -1,6 +1,6 @@
 // The browser side of the round archive (#235): reading the list, the report
 // and the history from the server (actions `roundArchive`, `roundReport`,
-// `roundHistory`), opening and closing a report, the category of its ranking,
+// `roundHistory`), opening and closing a report or the Rewind (`roundRewind`), the category of its ranking,
 // and the admin's „Runde abschließen“ and „Löschen“. The server decides what
 // a reader may see; nothing is kept in the state of the game (a locked round
 // is never sent). The boxes are in logic/round-archive.ts.
@@ -12,8 +12,9 @@ import {
   needsLoad,
 } from '../logic/round-archive.ts';
 import { highscoreCategory } from '../logic/highscore.ts';
+import { resetRewind } from '../logic/round-rewind.svelte.ts';
 import { client } from '../logic/state.svelte.ts';
-import type { ClientCtx, ClientFeature } from './contract.ts';
+import type { ClientCtx, ClientFeature, Data } from './contract.ts';
 
 /** The views that show the archive. */
 const VIEWS: readonly string[] = ['help', 'admin'];
@@ -55,6 +56,25 @@ async function reload(ctx: ClientCtx): Promise<void> {
   await load(ctx);
 }
 
+/** The thin Rewind (#235, view G): read from the server like a report, so a round the reader may not open is refused there. */
+const rewindActs = (ctx: ClientCtx) => ({
+  rewindOpen: async (d: Data) => {
+    try {
+      const data = await call(ctx, 'roundRewind', { round: Number(d.round) });
+      archive.rewind = data.rewind as typeof archive.rewind;
+      resetRewind();
+      ctx.render();
+      document.getElementById('round-rewind-card-h')?.focus();
+    } catch (e) {
+      ctx.toast((e as Error).message, true);
+    }
+  },
+  rewindBack: () => {
+    archive.rewind = null;
+    ctx.render();
+  },
+});
+
 let bound: ClientCtx | null = null;
 
 export const clientFeature = {
@@ -67,6 +87,7 @@ export const clientFeature = {
             round: Number(d.round),
           });
           archive.report = data.report as typeof archive.report;
+          archive.rewind = null;
           archive.category = 'total';
           ctx.render();
           document.getElementById('round-report-h')?.focus();
@@ -78,6 +99,7 @@ export const clientFeature = {
         archive.report = null;
         ctx.render();
       },
+      ...rewindActs(ctx),
       roundCat: (d) => {
         archive.category = highscoreCategory(d.cat);
         ctx.render();

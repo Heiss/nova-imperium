@@ -23,6 +23,8 @@ import { dueAt } from '../../core/holding.ts';
 import { endHold } from './holding.ts';
 import { type MissionServer, land, playerOf, turnBack } from './missions.ts';
 import { lockedUntil } from './position-lock.ts';
+import { beginCause, dropCause, fleetBefore, journalFleet } from './journal.ts';
+import { EVENT_KIND } from '../../core/round-events.ts';
 
 // The formulas of the espionage (src/core/spy.ts, #285) and of the battle
 // (with its mission and the shared battle of #175) are exported here as
@@ -154,12 +156,23 @@ export function tick(
       ctx.tx(() => {
         const live = ctx.fleets.get(f.id);
         if (!live || dueAt(live) > now) return;
+        // The journal of the round: one event per arrival, end of holding and return (#235).
+        beginCause();
+        const before = fleetBefore(ctx, live);
+        const at = dueAt(live);
+        const kind = {
+          out: EVENT_KIND.arrival,
+          hold: EVENT_KIND.hold,
+          back: EVENT_KIND.return,
+        }[live.state];
         if (live.state === 'out') arrive(ctx, live);
         // A Halten flies home at the end of its holding time (#55).
         else if (live.state === 'hold') endHold(ctx, live);
         else comeHome(ctx, live);
+        journalFleet(ctx, kind, live, at, before);
       });
     } catch (e) {
+      dropCause();
       // Leave the fleet in place for the next tick when another writer holds the lock.
       if (isDatabaseBusy(e)) break;
       log(`Fleet ${f.id} failed and was removed`, e);

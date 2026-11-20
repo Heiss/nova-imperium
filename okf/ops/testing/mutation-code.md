@@ -20,8 +20,9 @@ description: 'The scripts and jobs of the sharded mutation runs (#131): plan, ga
     that run the reported times matched the wall time of every shard
     (factor 0.35 to 0.41). A mutant without a time costs
     the mean of its kind (static or not), a report without times counts
-    mutants, a file the report does not know costs its lines times the mean
-    of a mutant that is not static. A TypeScript file heavier than half a
+    mutants, a file the report does not know costs as much as the mean of
+    the files that have a weight above 0, else its lines (2026-11-20, see
+    [Mutation tests and shards](/ops/testing/mutation-tests.md)). A TypeScript file heavier than half a
     shard is cut after each top-level statement that the next one does not
     share (TypeScript parser, so the plan job installs the dependencies);
     each piece weighs its mutants by their start line, and a piece without
@@ -34,8 +35,8 @@ description: 'The scripts and jobs of the sharded mutation runs (#131): plan, ga
     the shard of the whole file, a cut file that is whole again goes to the
     shard of its line 1. The others are new and go onto the lightest shard
     (the first of equal ones), heaviest first (equal weights by name);
-    without a state of 6 shards every entry is new, which is the greedy
-    split of #131. Then each shard above 1.5 times the mean weight gives
+    without a state of as many shards as `SHARDS` (12; 6 until 2026-11-20)
+    every entry is new, which is the greedy split of #131. Then each shard above 1.5 times the mean weight gives
     entries to the lightest shard, as long as one fits there without
     lifting it above that limit: the lightest entry that brings the shard
     within the limit alone, else the heaviest that fits, and again; an entry
@@ -52,7 +53,13 @@ description: 'The scripts and jobs of the sharded mutation runs (#131): plan, ga
     at the same place with the same mutator and replacement, else, when its
     lines moved, the next old one of the same mutator, replacement and kind
     (static or not) that no new mutant has at its place, in order. A file
-    that is gone drops out. No smoothing.
+    that is gone drops out. No smoothing. A file of the plan in the state
+    that the report leaves out (no mutants) is kept with an empty list, so
+    it weighs 0 and is not new in the next plan (2026-11-20).
+  * `numbers` prints the numbers 1 to N of the plan in `MUTATION_PLAN` as a
+    JSON list: the plan job writes it as its output `shards`, the matrix of
+    the shard jobs (2026-11-20). `planOf` is the plan as a function (weigh,
+    cut, settle, join) that `plan` calls and the tests use.
   * `config <n>` writes `reports/stryker-shard.config.json`: the
     configuration of `stryker.config.json` with only the files of shard n
     and `thresholds.break: null`, and prunes the shard's incremental file to
@@ -90,8 +97,9 @@ description: 'The scripts and jobs of the sharded mutation runs (#131): plan, ga
   file with its counts and the total, so two runs can be compared.
 
 * **[V]** Jobs in `ci.yml`: „Mutation plan“ (`mutation-plan`, once, the plan
-  as job output), „Mutation tests (shard N of 6)“ (`mutation-shard`, matrix
-  1 to 6, `fail-fast: false`, incremental after `drop-static` (#201),
+  as job output), „Mutation tests (shard N of 12)“ (`mutation-shard`, matrix
+  1 to N from the output `shards` of the plan, N = `SHARDS`, the name takes it
+  from `strategy.job-total`, `fail-fast: false`, incremental after `drop-static` (#201),
   `--force` when the head branch is `release/*`, uploads `mutation-shard-N`), „Mutation tests“ (`mutation`,
   the gate: merge, total, floors). The CI Gate requires all three when the
   output `mutation` of „Detect changes“ is `true`, and accepts their skip

@@ -6,7 +6,15 @@
 // to arrive now with e2e/seed.ts. The target is a colony of another player
 // in the attacker's home system, so the impulse drive 1 (4 systems) reaches it.
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { logout, nav, register, seed, uniqueName, watch } from './helpers.ts';
+import {
+  galaxyAction,
+  logout,
+  nav,
+  register,
+  seed,
+  uniqueName,
+  watch,
+} from './helpers.ts';
 
 const RICH = { m: 1e7, c: 1e7, d: 1e7 };
 
@@ -151,8 +159,9 @@ test.describe('missiles (#54)', () => {
     const { colony } = await setup(page, 0);
     await homeSystem(page);
     await expect(planetRow(page, colony)).toBeVisible();
+    // On a phone the actions are in the sheet of the row (#189).
     await expect(
-      planetRow(page, colony).getByRole('button', { name: /Raketenangriff/ }),
+      await galaxyAction(page, planetRow(page, colony), /Raketenangriff/),
     ).toHaveCount(0);
     expect(w.problems).toEqual([]);
   });

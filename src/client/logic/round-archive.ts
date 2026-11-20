@@ -13,7 +13,10 @@ import {
   type RoundEntry,
   type RoundReport,
 } from '../../core/round-report.ts';
+import type { Rewind } from '../../core/round-rewind.ts';
 import { fmt } from './format.ts';
+import { rewindPage, type RewindPage } from './round-rewind.ts';
+import { COVERAGE, day, daysText } from './round-words.ts';
 import { playtime as playtimeText } from './own-activity.ts';
 import {
   HIGHSCORE_CATEGORIES,
@@ -28,6 +31,8 @@ export interface ArchiveState {
   entries: RoundEntry[] | null;
   history: HistoryEntry[] | null;
   report: RoundReport | null;
+  /** The Rewind that is open (#235, view G), a story of its own in place of the list. */
+  rewind: Rewind | null;
   category: HighscoreCategory;
   loading: boolean;
   error: string | null;
@@ -39,6 +44,7 @@ const empty = (): ArchiveState => ({
   entries: null,
   history: null,
   report: null,
+  rewind: null,
   category: 'total',
   loading: false,
   error: null,
@@ -80,19 +86,6 @@ export function needsLoad(user: string, round: number): boolean {
   return archive.entries === null;
 }
 
-/** A date as the archive shows it. */
-export const day = (t: number): string =>
-  new Date(t).toLocaleDateString('de-DE');
-
-export const daysText = (n: number): string =>
-  `${n} ${n === 1 ? 'Tag' : 'Tage'}`;
-
-export const COVERAGE = {
-  complete: 'vollständig ab Rundenbeginn',
-  partial:
-    'Die Runde lief schon, als das Archiv eingeführt wurde: ihr früher Verlauf fehlt.',
-} as const;
-
 /** The value of a setting as the list shows it. */
 function valueText(s: RoundSetting, value: unknown): string {
   if (s.kind === 'switch') return value ? 'an' : 'aus';
@@ -126,6 +119,8 @@ interface RoundRow {
   status: string;
   /** „Bericht öffnen“. */
   open: boolean;
+  /** „Rewind ansehen“, for a finished round the reader took part in. */
+  rewind: boolean;
   /** „Löschen“, only for the admin and a finished round. */
   remove: boolean;
 }
@@ -136,7 +131,13 @@ function roundRow(e: RoundEntry, admin: boolean): RoundRow {
     e.closed === null
       ? `seit ${day(e.started)}`
       : `${day(e.started)} bis ${day(e.closed)}`;
-  const row = { number: e.number, span, open: true, remove: false };
+  const row = {
+    number: e.number,
+    span,
+    open: true,
+    rewind: false,
+    remove: false,
+  };
   if (e.locked)
     return { ...row, status: 'Nach Rundenende verfügbar', open: false };
   if (e.status === 'active')
@@ -144,7 +145,7 @@ function roundRow(e: RoundEntry, admin: boolean): RoundRow {
   const status = e.you
     ? `Platz ${place(e.you)} · ${fmt(e.you.points)} Punkte`
     : `${e.participants ?? 0} Teilnehmer`;
-  return { ...row, status, remove: admin };
+  return { ...row, status, rewind: e.you !== null, remove: admin };
 }
 
 /** One row of the ranking of a report. */
@@ -307,6 +308,7 @@ function historyRow(h: HistoryEntry): HistoryRow {
 /** What the box shows: a report, a refusal, the wait for the list, or the list with the history. */
 type ArchiveBody =
   | { kind: 'report'; report: ReportPage }
+  | { kind: 'rewind'; rewind: RewindPage }
   | { kind: 'error'; message: string }
   | { kind: 'loading' }
   | { kind: 'list'; rounds: RoundRow[]; history: HistoryRow[] };
@@ -323,6 +325,7 @@ export interface ArchivePage {
 function archiveBody(a: ArchiveState, admin: boolean): ArchiveBody {
   if (a.report)
     return { kind: 'report', report: reportPage(a.report, a.category) };
+  if (a.rewind) return { kind: 'rewind', rewind: rewindPage(a.rewind) };
   if (a.error) return { kind: 'error', message: a.error };
   if (a.entries === null) return { kind: 'loading' };
   return {
@@ -336,7 +339,7 @@ function archiveBody(a: ArchiveState, admin: boolean): ArchiveBody {
 export function archivePage(a: ArchiveState, admin = false): ArchivePage {
   const body = archiveBody(a, admin);
   return {
-    close: admin && body.kind !== 'report',
+    close: admin && body.kind !== 'report' && body.kind !== 'rewind',
     intro: !admin && body.kind === 'list',
     body,
   };

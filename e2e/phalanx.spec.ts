@@ -9,6 +9,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import {
   expectShownPlace,
+  galaxyAction,
   galaxyRow,
   logout,
   nav,
@@ -223,16 +224,17 @@ test.describe('the Auspex-Phalanx (#53)', () => {
     await chooseMoon(page);
     await homeSystem(page);
     const target = planetRow(page, colony);
-    await target.getByText('Versorgungsflug').tap();
+    // On a phone the actions of a row are in the sheet of its „⋯“ (#189).
+    await (await galaxyAction(page, target, 'Versorgungsflug')).tap();
     await page.getByLabel('Anzahl Frachtläufer').fill('1');
     await page.getByRole('button', { name: 'Flotte losschicken' }).tap();
     await expect(page.locator('.toast').last()).toContainText(
       'Flotte unterwegs nach',
     );
     await homeSystem(page);
-    await target
-      .getByRole('button', { name: `Phalanx-Scan von ${colony}` })
-      .tap();
+    await (
+      await galaxyAction(page, target, `Phalanx-Scan von ${colony}`)
+    ).tap();
     await expect(panel(page).locator('table.scan tr')).toHaveCount(2);
     await expect(panel(page)).toContainText('1 Frachtläufer');
     // Against the device width: a too wide panel also widens innerWidth.

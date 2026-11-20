@@ -1,7 +1,7 @@
 ---
 type: feature
 title: Round archive, reports and history
-description: The archive of an ended round, written when the round is closed in the same transaction as the reset; the report of one archived round, the history across rounds and the plan for the Runden-Rewind (issue #235).
+description: The archive of an ended round, written when the round is closed in the same transaction as the reset; the report of one archived round, the history across rounds and the thin Runden-Rewind (issue #235).
 ---
 
 # Round archive
@@ -119,7 +119,9 @@ complete, tested and pushed.
   round the length in days, the participants, the winner, the reader's own
   place, points, economy and planets, the settings that differed from the
   defaults and a mark for a round with a partial history.
-* **Slice 4, the Runden-Rewind:** not built, see below.
+* **Slice 4, the thin Runden-Rewind (2026-11-20):** built with the cards 1, 6
+  and 8 only, see „The thin Runden-Rewind“ below. The cards 2 to 5 and 7 are
+  not built.
 
 # The play time in the archive (#235 × #231, #232)
 
@@ -169,6 +171,189 @@ complete, tested and pushed.
 * **[U]** The activity curves (daily bars) of view F need only these intervals
   and are not built.
 
+# The events of a running round (#235, owner 2026-11-20)
+
+* **[E]** Owner, 2026-11-20 (comment on #235): from the update of 2026-11-22 the
+  events of a running round are written as round events, so that the next round
+  gets the full Rewind and the curves; a thin Rewind (cards 1, 6, 8) ships now.
+* **[E]** Owner, 2026-11-20 (change of the build): the capture is **central at
+  the two entry points**, not one hook per feature. `runAction` (`dispatch.ts`)
+  writes one event per game action, `tick` (`arrival.ts`) one per fleet
+  arrival, end of holding and return. No feature file is edited; a new action
+  or mission is recorded as it is.
+* **[V]** Where: `src/server/game/journal.ts` (writing, causes),
+  `journal-input.ts` (the allow-list of the input), `round-events.ts`
+  (the seat and the writer of an event of the running round),
+  `src/core/round-events.ts` (kinds and payload types for the Rewind). The
+  events are rows of `round_events` (no new table: the table has the fields
+  the journal needs, `kind`, `at` logical, `recorded`, `seat`, `version`; the
+  volume is a few hundred bytes a row, see below, which SQLite takes easily; the
+  round reset keeps the table on purpose, so it needs no `roundReset` entry).
+* **[V]** Events written while the round runs, all in the transaction of the
+  change they record (an event cannot be lost or doubled), none in a closed
+  round or without an active `rounds` row, none for a read of the archive that
+  changes nothing beyond what the action itself is:
+  * `participant.joined` (seat): the first place of a player, `entry` `home`
+    (a new home planet: registration, „Neue Runde“) with the placed planet as
+    the baseline, or `present` (a player who was playing when the history
+    began) with the state the server knew at its first event; earlier history
+    is missing, nothing is invented backwards. The seat is given at joining and
+    kept by the close (the close gives a seat only to a player who has none).
+  * `journal.action` (seat of the actor): `{ cause: action name, input, ok,
+    msg?, prod?, reports? }`. A refused action rolls its transaction back and is
+    written in a transaction of its own with `ok: false` and the refusal the
+    player saw; an unknown action and a request of an unknown account are not
+    recorded.
+  * `journal.arrival`, `journal.hold`, `journal.return` (seat of the owner of
+    the fleet, `at` the logical time `arr`, end of holding or `ret`, `recorded`
+    when the tick processed it): `{ cause, mission, fleet, from, to, target
+    (seat of the owner of the target), ships, cargo, fate, battle?, prod?,
+    reports? }`. `reports` lists the ids, kinds and receiving seats of the
+    reports written by that arrival; `battle` copies the numbers of the battle
+    report once (rounds, winner, ships before and after of both sides, rebuilt
+    defense, loot, debris), so the attacker's and the defender's report count
+    one battle. No name or text is copied.
+  * `prod` (in an action, an arrival or a return): what the places saved by that
+    cause produced. It is derived where the game commits it, at the save of a
+    place that advances it in time: the stored state is settled once more to the
+    saved time with the same pure function (`settle`), so every span is recorded
+    once, at the save that advanced the place, whatever settled it before; a
+    read that settles and saves nothing records nothing. Entry `{ place, owner
+    (seat), from, to, m, c, d (credited, two decimals, after storage limits and
+    the use of consumers, a demolition's refund included), f (energy factor at
+    `from`), built? (key, level, logical end, cost paid), units? (finished by
+    key) }`.
+* **[V]** The settle path: the issue asked to route the roughly ten `settle`
+  calls through one function. They are not changed: most of them settle a copy
+  and save it later or never (a read), so recording at the call would count a
+  span twice. Recording at the save of the place is the one central point and
+  keeps every result identical (characterization test
+  `journal-cost.test.ts`: the same 150 actions and arrivals end in the same
+  places, fleets, reports and accounts with and without the journal). The
+  repositories of the places and the reports are wrapped in `createCtx`
+  (`context.ts`); only their `save` and `add` note what they commit.
+* **[V]** Input fields: an allow-list per action and field
+  (`journal-input.ts`): `keep` (ids, keys, numbers, places; strings up to 64
+  characters, objects up to 400 characters of JSON, else their size), `length`
+  (free texts: planet names, guild tag, name and description, rank names, chat
+  text, union name: only the number of characters), `seat` (an account id: the
+  seat), `seatByName` (a friend request or a union invitation by name: the seat).
+  Not stored: the password of the abandon action (#224), the guild tag typed to
+  dissolve a guild, and every field nobody classified. The guard test
+  `journal.test.ts` fails when an action has no entry and when a module of the
+  actions reads a field of its input that no entry lists. A refusal never quotes
+  what the player typed in an unstored field.
+* **[V]** Size: about 180 bytes of payload per action and 250 bytes per arrival
+  (measured in `src/server/game/journal-cost.test.ts`, 20 players: 1000
+  actions 181 KB, 1000 arrivals 245 KB, 20 `participant.joined` 3.5 KB), so a
+  estimated day of 20 players at 300 actions and 100 fleet movements each is
+  6,000 actions and 2,000 arrivals, about 1.6 MB of payload (the numbers of
+  actions and movements are an estimate, the bytes per row are measured), a round
+  of 30 days about 50 MB, in rows of a table
+  with an index on `(round, kind, at)`. Cost: about 0.5 ms more per action and
+  0.7 ms more per arrival (1000 actions 1.0 s without, 1.5 s with; 1000
+  arrivals 2.6 s without, 3.3 s with).
+* **[V]** What this does not hold: gross production (only what the game
+  credited), a ledger of the market and the gifts of the Endzeit as their own
+  events (they are the `trade` and `endzeit` actions and the arrival of the gift
+  fleet with their `prod` and `reports`, not typed deliveries), the colony and
+  moon created or removed as their own event (the arrival of the colonize
+  mission and its `fate`, the `moonbreak` arrival, the `abandon` action and the
+  admin actions are recorded as causes, the new place is not named), the
+  research that finished (a research finishes in the player row, not in a
+  place: it is not in `prod`), and a play session id. A report is deleted with
+  the reset or when the player deletes it, so its id then points nowhere; the
+  numbers of a battle are copied into the event for that reason.
+* **[V]** An account that holds no place (an admin without a planet) has no seat:
+  its actions are recorded with `seat` null.
+
+# What the Runden-Rewind and the curves still need
+
+The cards 1, 6 and 8 need the close only (built). The others read the events
+above: card 2 (production) and the point curves read `prod` and the `build` /
+`order` actions with the `built` and `units` of their completion; card 4
+(a loss) the `battle` of `journal.arrival`; card 5 (recovery) the points curve;
+card 7 (Endzeit) the `endzeit` action and the arrival of the gift fleet. Not
+there yet: the research that finished as its own fact (it is read from the
+`research` action and the player's row), the colony and moon as their own
+events, the activity intervals of #232 as events of the round (they are in the
+close as `player.playtime`), and the curves themselves (a reader that derives
+the daily points from the events, D3).
+
+# The thin Runden-Rewind (issue #235, view G)
+
+* **[E]** The owner decided on 2026-11-20 (replacing „no Rewind in this
+  update“ of 2026-11-19): a thin Rewind comes into the update of 2026-11-22
+  with the cards **1** (round identity and participation), **6** (estimated
+  private active time, with the method) and **8** (actual final rank and the
+  link to the full report), by the rule of the issue „sparse history gets a
+  shorter honest rewind“. From this update the events of the round are written
+  as round events so that the next round gets the full Rewind and the curves.
+* **[E]** The issue (view G): only verifiable conditional facts, no invented
+  „top 1 %“, personality type or causal strategy label; full-width cards in the
+  existing frame (`style.css`, `.box`, gold buttons, Cinzel and EB Garamond), no
+  new product identity; manual previous and next, arrow keys, swipe, progress
+  segments, optional autoplay with a pause and a replay, a reduced-motion
+  fallback, no sound; the assistive output reads the stable value. The access
+  is that of the report: a player only a finished round they took part in,
+  checked on the server on every request.
+* **[E]** The example headlines and numbers of the issue are used as given:
+  „Dein Runden-Rewind“ / „30 Tage“ (card 1), „Du warst nicht ständig hier.“ /
+  „12 h 40“ (card 6), „Dein Platz in der Chronik.“ / „2 von 3“ (card 8).
+* **[V]** The facts are derived on read, nothing is stored: `rewindOf(report,
+  seat)` (`src/core/round-rewind.ts`) turns the report of the archive and the
+  reader's seat into the cards that have facts. Card 1: number, start, cutoff,
+  days, participants, coverage. Card 6: the play time of that seat, only if the
+  round archived play time for it (a round from before the play time archive,
+  or a seat without an event, gets cards 1 and 8; a measured zero is shown as
+  „0 Min.“). Card 8: the rank by the total points as in the report (equal
+  points keep the order of the seats; `tied` says so), the points, the winner
+  (a deleted account is „Gelöschter Spieler“). No card for the running round,
+  not even for the admin, and none for a reader without a seat (an admin who
+  took no part): the Rewind is a personal story.
+* **[V]** The cards 2 to 5 and 7 are one entry each in `CARDS` of
+  `src/core/round-rewind.ts` (slot number of the issue's table, a card
+  variant, a builder that returns null while its events are missing) and a
+  function in `src/client/logic/round-rewind.ts` for the words; the server and
+  the component need no change.
+* **[V]** The server action `roundRewind` (`src/server/game/round-report.ts`,
+  `{ round }`, answers `{ rewind }`) uses the report and its access check; an
+  unavailable round, a running round and a reader without a seat answer
+  „Dieser Rundenbericht ist nicht verfügbar.“. An admin's read is an
+  `admin.read` entry.
+* **[V]** The client: the button „Rewind ansehen“ beside „Bericht öffnen“ in
+  the row of a finished round the reader took part in (the issue's wording of
+  view A); the component `RoundRewind.svelte` is a panel in the place of the list
+  of `RoundArchive.svelte` (Options and the admin box „Rundenberichte“), no view
+  of its own. „Zurück“ and „Weiter“, the arrow keys (also with focus on a
+  button), a swipe of at least 48 px (touch and pen, not the mouse), progress
+  segments, the card heading takes the focus when the player turns a card or
+  opens the Rewind, a hidden `aria-live` line tells „Karte 2 von 3“ and, while
+  the play runs, the card with its stable value. The automatic play is off
+  until „Automatisch abspielen“; a card stays 7 seconds; a turn by the player
+  pauses it; it stops on the last card and offers „Noch einmal abspielen“. The
+  place of the card and the play are kept in `round-rewind.svelte.ts` because
+  the page is mounted anew on every render.
+* **[V]** Motion: a card fades in (0.45 s), but not under
+  `prefers-reduced-motion: reduce` and not when the player switched the
+  animations off in „Optionen“ (the existing setting, `no-anim`): then the
+  component carries `data-still="true"`. No separate animation switch: the
+  existing one applies, the autoplay is the only timed part and has the pause.
+* **[V]** The texts (all drafts of Claude): card 1 „Runde 3: 1.10.2026 bis
+  31.10.2026.“, „Du warst einer von 3 Teilnehmern.“ (one: „Du warst der
+  einzige Teilnehmer.“), a round with a partial history adds the coverage line of
+  the report; card 6 „Deine geschätzte aktive Zeit in dieser Runde.“ and
+  „Methode: <the explanation of „Meine Aktivität“> Gleichzeitig geöffnete Fenster
+  zählen einmal.“, partial: „Die Zeit vor Beginn der Erfassung fehlt.“; card 8
+  „Endplatz nach Punkten: 8.400 Punkte.“, „Sieger: Lea mit 9.100 Punkten.“ (the
+  winner: „Du hast die Runde gewonnen.“), a tie: „Ein anderer Spieler hat genauso
+  viele Punkte; bei Gleichstand ordnet der Bericht nach der Nummer des Platzes.“,
+  the button „Vollständigen Bericht öffnen“; controls „Zurück zum Archiv“,
+  „Zurück“, „Weiter“, „Automatisch abspielen“, „Pause“, „Noch einmal abspielen“.
+* **[U]** The headline of card 6 states „Du warst nicht ständig hier.“ for every
+  player as the issue gives it; a player who was active nearly all the time
+  would read it as odd. The issue names no threshold, none is invented.
+
 # What the Runden-Rewind and the curves still need
 
 The report of this build holds the state at the cutoff only. The Rewind (view
@@ -184,4 +369,5 @@ deliveries and admin gifts, and the activity intervals of #232. Each is
 written in the same transaction as the domain change, with a stable causal id
 (`round_events.version` is the schema version of the payload). The daily
 points are then derived on read (D3). Without them a Rewind could only show
-the final standing (cards 1 and 8), so it is left out [V].
+the final standing and the play time (cards 1, 6 and 8): that is the thin
+Rewind below, the full one comes with these events.

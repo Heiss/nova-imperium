@@ -294,6 +294,7 @@ describe('the list of rounds', () => {
         span: expect.stringMatching(/^seit /),
         status: 'Nach Rundenende verfügbar',
         open: false,
+        rewind: false,
         remove: false,
       },
     ]);
@@ -307,6 +308,7 @@ describe('the list of rounds', () => {
         span: '1.10.2026 bis 31.10.2026',
         status: 'Platz 2 von 3 · 8.400 Punkte',
         open: true,
+        rewind: true,
         remove: false,
       },
     ]);
@@ -375,6 +377,35 @@ describe('the box of the admin', () => {
     });
     expect(rounds.filter((x) => x.open)).toHaveLength(2);
     expect(rounds.filter((x) => x.remove).map((x) => x.number)).toEqual([4]);
+  });
+
+  it('offers the Rewind only for a finished round the reader took part in', () => {
+    archive.entries = [
+      entry({
+        number: 6,
+        status: 'active',
+        closed: null,
+        locked: true,
+        you: null,
+      }),
+      entry({ number: 5, status: 'active', closed: null, you: null }),
+      entry({ number: 4, you: null }),
+      entry({ number: 3 }),
+    ];
+    const body = archivePage({ ...archive }, true).body;
+    const rounds = body.kind === 'list' ? body.rounds : [];
+    expect(rounds.filter((x) => x.rewind).map((x) => x.number)).toEqual([3]);
+  });
+
+  it('shows the Rewind in the place of the list, before nothing else, and a report before it', () => {
+    archive.entries = [entry({ number: 3 })];
+    archive.rewind = { round: 3, cards: [] };
+    const shown = archivePage({ ...archive }, true);
+    expect(shown.body).toMatchObject({ kind: 'rewind', rewind: { round: 3 } });
+    expect(shown.close).toBe(false);
+    expect(shown.intro).toBe(false);
+    archive.report = report();
+    expect(archivePage({ ...archive }).body.kind).toBe('report');
   });
 
   it('names the participants of a round the admin did not play', () => {
