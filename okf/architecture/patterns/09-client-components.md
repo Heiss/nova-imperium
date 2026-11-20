@@ -289,6 +289,39 @@ description: 'The client as generic Svelte components with a state module, the c
   reads the attribute. `box()` of `common.ts` stays for the other HTML views;
   `Box.svelte` is its component. `main.ts` 1,191 to 1,186 lines. No visible
   change.
+* **[E]** Bundle 7 (owner, 2026-11-19, #118 „Geklärt“: in the update of
+  2026-11-22; package 8 follows): Admin, with the login and the install state.
+* **[V]** Built with #118, bundle 7: `Admin.svelte`, mounted by `mountAdmin()`
+  of `views/admin.ts`, renders `adminPage()` of the new `logic/admin.ts`: the
+  tabs, the settings of the universe (the live settings of the round among
+  them, `settingRow()`), the invitation with its link, the box „Endzeit“,
+  „Rundenberichte“, „Neue Runde“ and „Servernachricht“. The round archive is
+  `RoundArchive.svelte` (`archivePage(state, admin)` of `logic/round-archive.ts`),
+  used by „Optionen“ and the admin, so `{@html}` is gone. The dialogs
+  „Neue Runde“ (`RoundDialog.svelte`, `roundDialogPage()`; the field of each
+  setting of the registry, a fieldset per group, the wrapper
+  `[data-round-field]` and the preview line that `features/round.ts` keeps
+  current) and „Endzeit einläuten“ (`EndzeitDialog.svelte`) are `Dialog`s of
+  `modal()`. The login and registration are `Auth.svelte` (`authPage()` of
+  `logic/auth.ts`), mounted by `renderLoggedOut`. The panels that load from
+  the server (`admin-diagnostics.ts`, `admin-errors.ts`, the list of the
+  invitations) stay DOM modules; `views/admin-panel.ts` keeps them over a
+  render (the page is mounted anew each time, the panels of the same admin
+  replace the empty ones before `keepInputs` runs), paints the tab and handles
+  the arrow keys. `features/admin.ts` holds the handlers (`adminTab`, `revoke`,
+  the forms `inviteform` and `announceform`), `features/login.ts` the steps of
+  the login with their state `login` of `logic/login.ts` (`resetToken` is read
+  by `apply()` in `main.ts`). `ClientCtx` gained `apply` and `signedOut`. The view registers itself with `clientViews` in `views/admin.ts` (menu order 180, shown to an admin), so `mount.ts` and `VIEWS` name it no more. The
+  fields of the settings stay `data-nokeep`; the draft of what the admin typed
+  (`logic/settings-draft.ts`) is put back by `afterRender` as before. The ids,
+  `data-act`s, form ids and `data-*` hooks are those of the HTML (pinned in
+  `src/test/admin-reference.test.ts`, `auth-reference.test.ts` and
+  `round-archive-reference.test.ts`). The install state was already in
+  `features/install.ts`. `ADMIN_TABS` is still exported by `views/misc.ts`
+  because `e2e/phone-overflow.spec.ts` imports it there. `main.ts` 1,186 to
+  888 lines. Package 8 still has: transport, maintenance, toasts, „Problem
+  melden“, the click table and the remaining forms (account deletion, chat,
+  etc.). No visible change.
 * **[E]** Marktplatz (#171) and Freunde (#227) are part of the update of
   2026-11-22 (owner, 2026-11-19, „Geklärt“ on #118): both views become
   components, with no change of a game rule, a text or the look.

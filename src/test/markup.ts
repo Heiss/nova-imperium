@@ -26,7 +26,7 @@ const value = (raw: string): string =>
  * bundle 5).
  */
 const BOOLEAN =
-  /^(disabled|hidden|selected|checked|required|data-nokeep|data-achievement|data-achievement-group|data-later|data-all|data-daily-reward)$/;
+  /^(disabled|hidden|selected|checked|required|readonly|data-nokeep|data-achievement|data-achievement-group|data-later|data-all|data-daily-reward)$/;
 
 /**
  * The attributes of a tag in order, a boolean one and `data-nokeep` (which
@@ -182,11 +182,14 @@ class Elements {
  * space at the end of an `<li>` or a `<td>`; this does. Only elements without
  * a block below them are listed (a text field, a cell, a line, a heading,
  * a button): what lies between two blocks is layout, and a test reads the
- * elements. A `<br>` adds nothing, as in the DOM.
+ * elements. A `<br>` adds nothing, as in the DOM, and the `<tbody>` of a
+ * table is left out as normalize() leaves it out.
  */
 export function textContents(html: string): string[] {
   const elements = new Elements();
   for (const token of tokens(html)) {
+    // The <tbody> a table gets anyway is no element of the text (as in normalize()).
+    if ('tag' in token && token.tag === 'tbody') continue;
     if (token.kind === 'text') elements.text(token.text);
     else if (token.kind === 'close') elements.close(token.tag);
     else if (token.kind === 'open') elements.start(token.tag, token.closed);
