@@ -111,13 +111,16 @@ describe('the written pages of the Lexicanum (#288, #289)', () => {
     }
   });
 
-  it('has no empty word: every page, section, section address, heading, caption, label and cell says something', () => {
+  it('has no empty name: every page has an address, a title, a line and keywords', () => {
     for (const p of PAGES) {
       for (const text of [p.id, p.title, p.line])
         expect(text.trim(), p.id).not.toBe('');
       expect(p.keywords.length, p.id).toBeGreaterThan(0);
       for (const k of p.keywords) expect(k.trim(), p.id).not.toBe('');
     }
+  });
+
+  it('has no empty word: every section, section address, heading, caption, label and cell says something', () => {
     for (const { p, s } of CASES)
       for (const x of p.sections(s)) {
         expect(x.id.trim(), p.id).not.toBe('');

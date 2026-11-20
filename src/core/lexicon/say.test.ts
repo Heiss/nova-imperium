@@ -222,10 +222,10 @@ describe('what an entry needs, as a link list', () => {
 
   it('reads the requirements of a building, a research and a defense', () => {
     expect(requires('nanite')).toBe(
-      `${link('robot', BUILD.nanite!.req.b!.robot!)}, ${link('computer', BUILD.nanite!.req.r!.computer!)}`,
+      `${link('robot', BUILD.nanite!.req!.b!.robot!)}, ${link('computer', BUILD.nanite!.req!.r!.computer!)}`,
     );
-    expect(requires('spy')).toBe(link('lab', RES.spy!.req.b!.lab!));
-    expect(requires('rl')).toBe(link('yard', DEF.rl!.req.b!.yard!));
+    expect(requires('spy')).toBe(link('lab', RES.spy!.req!.b!.lab!));
+    expect(requires('rl')).toBe(link('yard', DEF.rl!.req!.b!.yard!));
   });
 
   it('is empty for an entry without requirements and for an unknown key', () => {
