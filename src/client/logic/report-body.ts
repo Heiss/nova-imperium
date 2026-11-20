@@ -50,6 +50,40 @@ const heldSides = (r: Report): string =>
     )
     .join('');
 
+/** A further fleet of an attack union that fought along (#225), with its share of the loot. */
+interface JoinedSide extends HeldSide {
+  loot?: Resources;
+}
+
+/** The share of the loot of one attacking fleet, when it took any. */
+const share = (loot: Resources | undefined): string =>
+  loot && loot.m + loot.c + loot.d
+    ? `<div class="dim">Erbeutet: ${resLine(loot)}</div>`
+    : '';
+
+/** The block of the first attacker, then one of each further attacker of the union (#225). */
+function attackerSides(r: Report): string {
+  const block = (
+    name: unknown,
+    tech: unknown,
+    before: unknown,
+    after: unknown,
+    loot?: Resources,
+  ): string =>
+    `<div><b class="fl-attack">Angreifer ${esc(name)}</b><div class="dim">${techLine(lv(tech))}</div>${unitTable(lv(before), lv(after), Object.keys(SHIPS))}${share(loot)}</div>`;
+  const joined = (r.attackers as JoinedSide[] | undefined) ?? [];
+  return [
+    block(
+      r.attName,
+      r.attTech,
+      r.attBefore,
+      r.attAfter,
+      r.attLoot as Resources | undefined,
+    ),
+    ...joined.map((j) => block(j.name, j.tech, j.before, j.after, j.loot)),
+  ].join('');
+}
+
 function battleBody(r: Report): string {
   const rebuilt = lv(r.rebuilt);
   const loot = r.loot as Resources | undefined;
@@ -68,7 +102,7 @@ function battleBody(r: Report): string {
     .map((line) => `<br>${line}`)
     .join('');
   return `<div>Schlacht bei ${esc(r.name)} ${coords(r.coords as Coords)} · ${esc(r.rounds)} Runde(n)</div>
-  <div class="cols mt"><div><b class="fl-attack">Angreifer ${esc(r.attName)}</b><div class="dim">${techLine(lv(r.attTech))}</div>${unitTable(lv(r.attBefore), lv(r.attAfter), Object.keys(SHIPS))}</div>
+  <div class="cols mt">${attackerSides(r)}
   <div><b class="good">Verteidiger ${esc(r.defName)}</b><div class="dim">${techLine(lv(r.defTech))}</div>${unitTable(lv(r.defBefore), lv(r.defAfter), Object.keys(UNIT))}${rb}</div>${heldSides(r)}</div>
   <p><b>${WINNER[String(r.winner)] ?? ''}</b>${lootLine}${debrisHTML}</p>`;
 }

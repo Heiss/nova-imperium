@@ -223,7 +223,10 @@ Up to 760 px only; the desktop stays as it is (D6).
   than its number); the tables `kv` (the fleet form) have fixed columns and
   their fields fit the cell, since a „Schnellwahl“ with long options made the
   page wider than the screen, the phone zoomed out, and the fixed tab bar was
-  no longer where Playwright clicked.
+  no longer where Playwright clicked. The ship table of the fleet form (four
+  columns) reached 383 px with two kinds of ship and a count field of 90 px:
+  the field is 52 px on a phone (`input.fs`, found by
+  `e2e/phone-lists.spec.ts`, pinned by `src/test/phone-css.test.ts`).
 * **[V]** Empty filter: „Nichts ist baubar. „Alle“ zeigt auch, was noch
   fehlt.“ and „Es läuft gerade nichts.“.
 * **[V]** The compact header: the logo, the commander and „Logout“ are hidden
