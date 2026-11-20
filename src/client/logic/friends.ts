@@ -4,6 +4,7 @@
 // 2026-11-16, D1); the open requests both ways; the mark on „Freunde“; and
 // which action each button sends. The server checks every action
 // (src/core/friends.ts).
+import type { ActionInput } from '../../core/actions.ts';
 import type { V } from '../views/common.ts';
 import { coords } from './format.ts';
 import type { GalaxyPlanet, GameState } from './types.ts';
@@ -75,6 +76,14 @@ export const friendsHint = (s: GameState): string =>
 /** The question before a friendship ends [V]. */
 export const FRIEND_END = 'Freundschaft beenden?';
 
+/** An action of the buddy list with its input: the name picks the type of the data. */
+export type FriendCall = {
+  [K in 'requestFriend' | 'answerFriend' | 'cancelFriend' | 'removeFriend']: [
+    type: K,
+    data: ActionInput<K>,
+  ];
+}['requestFriend' | 'answerFriend' | 'cancelFriend' | 'removeFriend'];
+
 /**
  * The action a button of the list sends (`op`, the player `uid`), or null:
  * nothing without a typed name, an unanswered question, an unknown button.
@@ -83,7 +92,7 @@ export function friendCall(
   d: { op?: string; uid?: string },
   name: string,
   confirm: (question: string) => boolean,
-): [type: string, data: object] | null {
+): FriendCall | null {
   switch (d.op) {
     case 'request': {
       const typed = name.trim();

@@ -3,5 +3,5 @@ import { input } from '../action-input.ts';
 import type { Res } from '../market.ts';
 
 export const actionInputs = {
-  trade: input<{ give: Res; get: Res; amount: number }>(),
+  trade: input<{ give: Res; get: Res; amount: number | null }>(),
 };

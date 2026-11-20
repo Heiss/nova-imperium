@@ -1,5 +1,6 @@
 // The one way of the client to send a game action (#118, okf/architecture/
 // patterns.md, section 9): every button of the views ends here.
+import type { ActionArgs, ActionName } from '../../core/actions.ts';
 import type { GameState } from './types.ts';
 
 /** The player and the planet a state shows. */
@@ -41,13 +42,19 @@ type ActResult = 'done' | 'stale' | 'failed';
 
 export interface Sync {
   /** Sends an action for the shown planet; its answer is applied only there. */
-  send: (type: string, data?: object) => Promise<ActResult>;
+  send: <K extends ActionName>(
+    type: K,
+    ...data: ActionArgs<K>
+  ) => Promise<ActResult>;
   /**
    * Sends an action the client starts by itself (the chat was seen, #169).
    * The server may refuse it when the player lost a right meanwhile; that
    * refusal is no message for the player (#301).
    */
-  quiet: (type: string, data?: object) => Promise<ActResult>;
+  quiet: <K extends ActionName>(
+    type: K,
+    ...data: ActionArgs<K>
+  ) => Promise<ActResult>;
   /**
    * Starts a refresh and answers whether its state may still be applied:
    * only for the newest refresh, and only when no action was on its way or
@@ -109,8 +116,9 @@ export function createAct(deps: ActDeps): Sync {
     const idle = running === 0;
     return () => idle && ticket === lastRefresh && at === lastAction;
   };
-  const send: Sync['send'] = (type, data = {}) =>
-    run(type, data, (message) => deps.toast(message, true));
-  const quiet: Sync['quiet'] = (type, data = {}) => run(type, data, () => {});
+  const send: Sync['send'] = (type, ...[data]) =>
+    run(type, data ?? {}, (message) => deps.toast(message, true));
+  const quiet: Sync['quiet'] = (type, ...[data]) =>
+    run(type, data ?? {}, () => {});
   return { send, quiet, refresh };
 }

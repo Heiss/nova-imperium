@@ -3,14 +3,14 @@ import { type Attr, input, type None } from '../action-input.ts';
 
 export const actionInputs = {
   build: input<{
-    key: string;
+    key: Attr;
     /** An alias of the planet the envelope carries; the browser does not send it. */
     at?: string;
   }>(),
   cancelBuild: input<None>(),
-  research: input<{ key: string }>(),
+  research: input<{ key: Attr }>(),
   cancelResearch: input<None>(),
-  order: input<{ key: string; n: number }>(),
+  order: input<{ key: Attr; n: number }>(),
   cancelOrder: input<{ pos: number; key: Attr }>(),
   pct: input<{ key: Attr; v: string | number }>(),
   rename: input<{ name: string }>(),

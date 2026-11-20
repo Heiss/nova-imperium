@@ -3,7 +3,14 @@
 // refresh never applies a state older than an action's answer (review of
 // #209).
 import { describe, expect, it, vi } from 'vitest';
-import { type ActDeps, createAct, placeOf, samePlace } from './act.ts';
+import type { ActionName } from '../../core/actions.ts';
+import {
+  type ActDeps,
+  createAct,
+  placeOf,
+  samePlace,
+  type Sync,
+} from './act.ts';
 import type { GameState } from './types.ts';
 
 const state = (player: string, planet: string | null): GameState =>
@@ -12,6 +19,9 @@ const state = (player: string, planet: string | null): GameState =>
     planet: planet === null ? null : { id: planet },
   }) as unknown as GameState;
 
+/** The transport as the tests use it: any action name, with or without data (the contract is checked where the views call it). */
+type Send = (type: ActionName, data?: object) => ReturnType<Sync['send']>;
+
 function setup(answer: () => Promise<Record<string, unknown>>) {
   let current: GameState | null = state('u1', 'p1');
   const api = vi.fn<ActDeps['api']>(() => answer());
@@ -19,8 +29,8 @@ function setup(answer: () => Promise<Record<string, unknown>>) {
   const toast = vi.fn();
   const sync = createAct({ api, state: () => current, apply, toast });
   return {
-    act: sync.send,
-    quiet: sync.quiet,
+    act: sync.send as unknown as Send,
+    quiet: sync.quiet as unknown as Send,
     refresh: sync.refresh,
     api,
     apply,
@@ -66,7 +76,7 @@ describe('the data of an answer (#53)', () => {
       toast: vi.fn(),
       answer,
     });
-    expect(await sync.send('scan')).toBe('done');
+    expect(await sync.send('scan', { target: 'p2' })).toBe('done');
     expect(answer).toHaveBeenCalledWith(data);
     expect(order).toEqual(['answer', 'apply']);
     // Not after the player switched planets, not without data.
@@ -81,7 +91,7 @@ describe('the data of an answer (#53)', () => {
       toast: vi.fn(),
       answer,
     });
-    expect(await late.send('scan')).toBe('stale');
+    expect(await late.send('scan', { target: 'p2' })).toBe('stale');
     current = state('u1', 'p1');
     for (const nothing of [null, undefined, 'Text', 3]) {
       const none = createAct({
@@ -91,7 +101,7 @@ describe('the data of an answer (#53)', () => {
         toast: vi.fn(),
         answer,
       });
-      expect(await none.send('scan')).toBe('done');
+      expect(await none.send('scan', { target: 'p2' })).toBe('done');
     }
     expect(answer).not.toHaveBeenCalled();
   });

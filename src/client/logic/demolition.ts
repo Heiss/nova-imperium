@@ -13,6 +13,7 @@ import {
 } from '../../core/demolition.ts';
 import { text } from '../../core/text.ts';
 import type { Cost, Levels, Queue } from '../../core/types.ts';
+import type { ClientCtx } from '../features/contract.ts';
 import type { V } from '../views/common.ts';
 import { dur, esc, fmt } from './format.ts';
 
@@ -123,7 +124,7 @@ export function rememberUpgrade(
 
 /** What the actions of „Zurückbauen“ need from main.ts. */
 interface Deps {
-  act: (type: string, data?: object) => Promise<boolean>;
+  act: ClientCtx['act'];
   modal: (html: string) => void;
   /** The view state shown now. */
   view: () => V | null;

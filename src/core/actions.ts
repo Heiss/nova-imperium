@@ -19,7 +19,13 @@ type ActionMap = Merge<(typeof ACTION_INPUTS)[number][1]>;
 export type ActionName = keyof ActionMap & string;
 
 /** The input of the action `K`. */
-type ActionInput<K extends ActionName> = ActionMap[K]['input'];
+export type ActionInput<K extends ActionName> = ActionMap[K]['input'];
+
+/** The arguments after the name: the input, optional where it may be left out. */
+export type ActionArgs<K extends ActionName> =
+  Record<never, never> extends ActionInput<K>
+    ? [data?: ActionInput<K>]
+    : [data: ActionInput<K>];
 
 /** What the browser adds to every action it sends: the planet shown (`logic/act.ts`). */
 interface Envelope {

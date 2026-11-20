@@ -100,3 +100,25 @@ description: 'A client feature exports its handlers as clientFeature from its ow
   fields of the views that are mounted anew on every render (fleet, market,
   options, the guild forms, the profile of a guild and others) still depend
   on `keepInputs` (`keep-inputs.ts`).
+
+## The actions are typed (#317, #118; owner, 2026-11-20)
+
+* **[E]** Decided by the owner (2026-11-20, „jetzt komplett“): the call of an
+  action is checked by the compiler against the input the server declares
+  (`okf/architecture/patterns/14-server-features.md`, the map in
+  `src/core/actions/`).
+* **[V]** `act`, `actHere` and `quiet` of `ClientCtx` (and `Sync.send` and
+  `Sync.quiet` of `logic/act.ts`) are `<K extends ActionName>(type: K,
+  ...data: ActionArgs<K>)`: the name picks the type of the data, and the data
+  may be left out only where every field of the input is optional. A name or
+  a field that does not exist is a compile error at the call. The reads of the
+  archive (`features/round-archive.ts`), which went through `ctx.api` by
+  hand, use the same types. `data-act` names of the markup are the names of
+  the handlers of the features, not action names, and stay strings. The
+  handlers of the buddy list return a typed call (`FriendCall`), sent by
+  `sendFriend` of `features/social.ts`, as a union of tuples cannot be spread
+  into a generic call.
+* **[V]** The state is typed the same way: `GameState` of `logic/types.ts` is
+  derived from the shapes of the parts in `src/core/state/` and no longer
+  written by hand; `logic/types.ts` re-exports the names the views use.
+

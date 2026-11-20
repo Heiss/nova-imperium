@@ -4,6 +4,7 @@
 // (logic/act.ts, #118).
 import { api } from './api.ts';
 import { $ } from './dom.ts';
+import type { ClientCtx } from './features/contract.ts';
 import { createAct, placeOf, samePlace } from './logic/act.ts';
 import { stateUrl } from './logic/address.ts';
 import { login } from './logic/login.ts';
@@ -52,19 +53,19 @@ const sync = createAct({
 });
 
 /** Whether the action went through, wherever the player is now. */
-export const act = async (type: string, data?: object): Promise<boolean> =>
-  (await sync.send(type, data)) !== 'failed';
+export const act: ClientCtx['act'] = async (type, ...data) =>
+  (await sync.send(type, ...data)) !== 'failed';
 
 /**
  * Whether the action went through on the planet still shown, so its form
  * may be cleared; not when the player switched planets meanwhile (#209).
  */
-export const actHere = async (type: string, data?: object): Promise<boolean> =>
-  (await sync.send(type, data)) === 'done';
+export const actHere: ClientCtx['actHere'] = async (type, ...data) =>
+  (await sync.send(type, ...data)) === 'done';
 
 /** An action the client starts by itself; a refusal is no message (#301). */
-export const quiet = async (type: string, data?: object): Promise<boolean> =>
-  (await sync.quiet(type, data)) !== 'failed';
+export const quiet: ClientCtx['quiet'] = async (type, ...data) =>
+  (await sync.quiet(type, ...data)) !== 'failed';
 
 /** Loads the state of the shown place again. */
 export async function refresh(): Promise<void> {

@@ -4,6 +4,7 @@
 // and the admin's „Runde abschließen“ and „Löschen“. The server decides what
 // a reader may see; nothing is kept in the state of the game (a locked round
 // is never sent). The boxes are in logic/round-archive.ts.
+import type { ActionArgs, ActionName } from '../../core/actions.ts';
 import {
   archive,
   closeText,
@@ -23,8 +24,11 @@ const VIEWS: readonly string[] = ['help', 'admin'];
 const dataOf = (answer: Record<string, unknown>): Record<string, unknown> =>
   (answer.data ?? {}) as Record<string, unknown>;
 
-const call = (ctx: ClientCtx, type: string, extra: object = {}) =>
-  ctx.api('/api/action', { type, ...extra }).then(dataOf);
+const call = <K extends ActionName>(
+  ctx: ClientCtx,
+  type: K,
+  ...[extra]: ActionArgs<K>
+) => ctx.api('/api/action', { type, ...extra }).then(dataOf);
 
 /** Reads the list and the history; a refusal shows as the note of the box and stops the loading. */
 async function load(ctx: ClientCtx): Promise<void> {
