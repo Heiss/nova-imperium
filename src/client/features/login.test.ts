@@ -94,7 +94,7 @@ describe('the login', () => {
 
   it('logs in by passkey with the chosen wish and shows the game', async () => {
     const ctx = fakeCtx({ apply: vi.fn() });
-    await acts(ctx).passkeyLogin!({});
+    await acts(ctx).passkeyLogin!();
     expect(client.ui.auth).toBeNull();
     expect(ctx.apply).toHaveBeenCalledWith({ me: { name: 'Pass' } });
     expect(ctx.render).toHaveBeenCalledWith(true);
@@ -148,12 +148,12 @@ describe('the registration', () => {
 describe('the screens', () => {
   it('goes to „Passwort vergessen“, switches between login and registration, and back', () => {
     const ctx = fakeCtx();
-    acts(ctx).forgot!({});
+    acts(ctx).forgot!();
     expect(client.ui.auth).toBe('forgot');
     client.ui.auth = 'login';
-    acts(ctx).authswitch!({});
+    acts(ctx).authswitch!();
     expect(client.ui.auth).toBe('register');
-    acts(ctx).authswitch!({});
+    acts(ctx).authswitch!();
     expect(client.ui.auth).toBe('login');
     expect(ctx.render).toHaveBeenCalledTimes(3);
   });
@@ -161,7 +161,7 @@ describe('the screens', () => {
   it('forgets the challenge and the reset link when going back to the login', () => {
     Object.assign(login, { challenge: 'c', resetToken: 't' });
     client.ui.auth = 'reset';
-    acts().authback!({});
+    acts().authback!();
     expect(login).toMatchObject({ challenge: null, resetToken: null });
     expect(client.ui.auth).toBe('login');
   });

@@ -80,11 +80,14 @@ export function needsLoad(user: string, round: number): boolean {
   return archive.entries === null;
 }
 
-const day = (t: number): string => new Date(t).toLocaleDateString('de-DE');
+/** A date as the archive shows it. */
+export const day = (t: number): string =>
+  new Date(t).toLocaleDateString('de-DE');
 
-const daysText = (n: number): string => `${n} ${n === 1 ? 'Tag' : 'Tage'}`;
+export const daysText = (n: number): string =>
+  `${n} ${n === 1 ? 'Tag' : 'Tage'}`;
 
-const COVERAGE = {
+export const COVERAGE = {
   complete: 'vollständig ab Rundenbeginn',
   partial:
     'Die Runde lief schon, als das Archiv eingeführt wurde: ihr früher Verlauf fehlt.',
@@ -117,7 +120,7 @@ const place = (s: { rank: number; of: number }): string =>
   `${s.rank} von ${s.of}`;
 
 /** One row of the list of rounds: its words and the buttons it offers. */
-export interface RoundRow {
+interface RoundRow {
   number: number;
   span: string;
   status: string;
@@ -145,7 +148,7 @@ function roundRow(e: RoundEntry, admin: boolean): RoundRow {
 }
 
 /** One row of the ranking of a report. */
-export interface ReportRowPage {
+interface ReportRowPage {
   me: boolean;
   place: number;
   name: string;
@@ -272,7 +275,7 @@ export function reportPage(
 }
 
 /** One row of the history across rounds. */
-export interface HistoryRow {
+interface HistoryRow {
   number: number;
   days: number;
   participants: number;
@@ -302,7 +305,7 @@ function historyRow(h: HistoryEntry): HistoryRow {
 }
 
 /** What the box shows: a report, a refusal, the wait for the list, or the list with the history. */
-export type ArchiveBody =
+type ArchiveBody =
   | { kind: 'report'; report: ReportPage }
   | { kind: 'error'; message: string }
   | { kind: 'loading' }

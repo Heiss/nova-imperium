@@ -50,7 +50,7 @@ export const diagnosticTab = (
   tab === 'events' || tab === 'players' || tab === 'orders';
 
 /** One value of a setting with named choices, the current one marked. */
-export interface Choice {
+interface Choice {
   value: number;
   label: string;
   selected: boolean;
@@ -63,7 +63,7 @@ const choicesOf = (
 ): Choice[] => choices.map((c) => ({ ...c, selected: c.value === current }));
 
 /** One row of the settings of the universe: a field with its name, a number or a choice. */
-export type SettingRow = { key: string; label: string } & (
+type SettingRow = { key: string; label: string } & (
   | { choices: Choice[] }
   | { choices: null; min: number; max: number; value: string; range: string }
 );
@@ -150,7 +150,7 @@ function roundField(s: RoundSetting, value: number | boolean): RoundField {
  * value (`shownWhen`, #237) is wrapped, so the browser hides it together with
  * its line break when the other field changes (features/round.ts).
  */
-export interface RoundMember {
+interface RoundMember {
   field: RoundField;
   /** Whether a line break stands before the field: every member but the first. */
   lead: boolean;

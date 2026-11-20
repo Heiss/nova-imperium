@@ -19,17 +19,13 @@ import {
   type HighscoreCategory,
   highscoreNote,
 } from '../client/logic/highscore.ts';
-import { type ArchiveState, rulesDiff } from '../client/logic/round-archive.ts';
-
-const day = (t: number): string => new Date(t).toLocaleDateString('de-DE');
-
-const daysText = (n: number): string => `${n} ${n === 1 ? 'Tag' : 'Tage'}`;
-
-const COVERAGE = {
-  complete: 'vollständig ab Rundenbeginn',
-  partial:
-    'Die Runde lief schon, als das Archiv eingeführt wurde: ihr früher Verlauf fehlt.',
-} as const;
+import {
+  type ArchiveState,
+  COVERAGE,
+  day,
+  daysText,
+  rulesDiff,
+} from '../client/logic/round-archive.ts';
 
 const rulesHTML = (rules: Record<string, unknown>): string => {
   const diff = rulesDiff(rules);
@@ -132,10 +128,7 @@ const categoryButtons = (cat: HighscoreCategory): string =>
  * own place, the ranking by a category of the highscore, the guilds and the
  * settings. A provisional report of the admin is marked as such.
  */
-export function reportHTML(
-  report: RoundReport,
-  cat: HighscoreCategory,
-): string {
+function reportHTML(report: RoundReport, cat: HighscoreCategory): string {
   const r = report.round;
   const banner = r.provisional
     ? `<div class="notice">VORLÄUFIG · nur Spielleitung. Stand ${new Date(r.asOf).toLocaleString('de-DE')}: die Runde läuft noch, der Bericht ist nicht veröffentlicht.</div>`
@@ -165,7 +158,7 @@ function historyRow(h: HistoryEntry): string {
 }
 
 /** The history across rounds (slice 3): the rounds side by side, with what differs between them. */
-export function historyHTML(history: readonly HistoryEntry[]): string {
+function historyHTML(history: readonly HistoryEntry[]): string {
   if (!history.length) return '';
   return `<h3>Rundenvergleich</h3><table class="scores"><tr><th class="n">Runde</th><th class="n">Tage</th><th class="n">Teilnehmer</th><th>Sieger (Punkte)</th><th class="n">Dein Platz</th><th class="n">Deine Punkte</th><th class="n">Wirtschaft/h</th><th class="n">Planeten</th><th>Einstellungen</th></tr>${history.map(historyRow).join('')}</table>`;
 }
