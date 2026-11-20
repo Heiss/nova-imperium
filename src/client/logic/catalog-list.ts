@@ -353,6 +353,8 @@ const RESEARCH_WAITS: Partial<Record<ResearchUiState, Note>> = {
   locked: LOCKED,
   busy: note('dim', 'Es wird bereits geforscht'),
   labUpgrading: note('dim', 'Scholarium wird ausgebaut'),
+  // The configured highest level (Kolonialverwaltung, #237): no next level to start.
+  maxLevel: note('dim', 'höchste Stufe erreicht'),
 };
 
 function researchAction(

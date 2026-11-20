@@ -1,43 +1,45 @@
-// Touch targets of at least 44 px on a phone (#189, owner 2026-11-14; the
-// check of the former `small` buttons is „Still to do“ in
-// okf/features/interface.md). The first test measures the controls the phone
-// view of #189 made for the finger and passes. The second measures every
-// interactive element of the phone views against the decided 44 px and is
-// marked `test.fail()`: it states the rule, and it fails today for the
-// elements named in its message (the plain buttons of 30 px, the `small`
-// buttons of 23 px, the „?“ and „▤“ of 24 px, the fields of 31 px and the
-// links of the Lexicanum), which the owner has to decide to restyle. The day
-// they are fixed it starts to pass, and Playwright then reports it, so the
-// marker is removed and the rule is kept for good.
+// Touch targets of at least 44 px on a phone (#189, owner 2026-11-14 and
+// 2026-11-20). The first test measures the controls the phone view of #189
+// made for the finger; the second measures every interactive element (button,
+// link, field, list; a check box and a radio button count through their label)
+// of the phone views against the 44 px. The rule is in the last block of
+// style.css.
 import { expect, test, type Page } from '@playwright/test';
-import { nav, openAllRows, register, seed, uniqueName } from './helpers.ts';
+import { ADMIN_TABS } from '../src/client/views/misc.ts';
+import {
+  cli,
+  guildTag,
+  nav,
+  openAllRows,
+  register,
+  seed,
+  uniqueName,
+} from './helpers.ts';
 
 const MIN = 44;
 
 /** What the page holds of interactive elements below `MIN` px, by kind. */
-async function small(page: Page, within = 'body'): Promise<string[]> {
-  return page.evaluate(
-    ([root, min]) => {
-      const selector =
-        'button, a[href], select, textarea, summary, [role=button], [role=tab], input:not([type=hidden]):not([type=checkbox]):not([type=radio])';
-      const found = new Map<string, number>();
-      for (const el of document
-        .querySelector(root!)!
-        .querySelectorAll(selector)) {
-        const box = el.getBoundingClientRect();
-        const hidden =
-          box.width === 0 ||
-          box.height === 0 ||
-          getComputedStyle(el).visibility === 'hidden';
-        if (hidden || (box.width >= +min! && box.height >= +min!)) continue;
-        const act = (el as HTMLElement).dataset.act;
-        const key = `${el.tagName.toLowerCase()}${el.className ? `.${String(el.className).replace(/\s+/g, '.')}` : ''}${act ? `[${act}]` : ''} ${Math.round(box.width)}x${Math.round(box.height)}`;
-        found.set(key, (found.get(key) ?? 0) + 1);
-      }
-      return [...found].map(([k, n]) => `${k} (${n}x)`);
-    },
-    [within, String(MIN)] as const,
-  );
+async function small(page: Page): Promise<string[]> {
+  return page.evaluate((min) => {
+    const selector =
+      'button, a[href], select, textarea, summary, [role=button], [role=tab], input:not([type=hidden]):not([type=checkbox]):not([type=radio])';
+    // Not drawn, or a link inside a sentence (WCAG 2.5.8, inline).
+    const skipped = (el: Element, box: DOMRect): boolean =>
+      box.width === 0 ||
+      box.height === 0 ||
+      getComputedStyle(el).visibility === 'hidden' ||
+      (el.tagName === 'A' && el.closest('p') !== null);
+    const name = (el: Element): string =>
+      `${el.tagName.toLowerCase()}${String(el.className).replace(/\s*(\S+)/g, '.$1')}[${(el as HTMLElement).dataset.act ?? ''}]`;
+    const found = new Map<string, number>();
+    for (const el of document.querySelectorAll(selector)) {
+      const box = el.getBoundingClientRect();
+      if (skipped(el, box) || (box.width >= min && box.height >= min)) continue;
+      const key = `${name(el)} ${Math.round(box.width)}x${Math.round(box.height)}`;
+      found.set(key, (found.get(key) ?? 0) + 1);
+    }
+    return [...found].map(([k, n]) => `${k} (${n}x)`);
+  }, MIN);
 }
 
 test('the controls the phone view made for the finger are at least 44 px (#189) @phone', async ({
@@ -68,6 +70,8 @@ test('the controls the phone view made for the finger are at least 44 px (#189) 
     }
   };
   // The overview with its cards, the header and the tab bar.
+  await expect(page.locator('#tabbar')).toBeVisible();
+  await expect(page.locator('section.cards')).toBeVisible();
   await check('tab bar', '#tabbar a, #tabbar button');
   await check('planet list', '#planet_select');
   await check('card links and buttons', '.cards li a, .cards li button');
@@ -90,15 +94,13 @@ test('the controls the phone view made for the finger are at least 44 px (#189) 
   expect(found).toEqual([]);
 });
 
-test('every interactive element of the phone views is at least 44 px (#189, decided 2026-11-14) @phone', async ({
+test('every interactive element of the phone views is at least 44 px (#189) @phone', async ({
   page,
 }) => {
-  // Known to fail until the owner has the plain buttons, the `small` buttons,
-  // the icons and the fields restyled for the phone; see the head of the file.
-  test.fail();
   test.slow();
   const name = uniqueName('Fingerbreit');
   await register(page, name);
+  cli('admin', name);
   seed({
     name,
     b: { metal: 6, crystal: 4, lab: 2, yard: 3, robot: 2 },
@@ -134,5 +136,32 @@ test('every interactive element of the phone views is at least 44 px (#189, deci
       await openAllRows(page);
     found.push(...(await small(page)).map((s) => `${view}: ${s}`));
   }
+  // A guild with its ranks, an article, the admin's tabs, „Mehr“.
+  const tag = guildTag('TT');
+  await page.goto('/?view=guilds');
+  await page.getByLabel('Kürzel').fill(tag);
+  await page.getByLabel('Name', { exact: true }).fill(`Finger ${tag}`);
+  await page.getByRole('button', { name: 'Gilde gründen' }).click();
+  await expect(page).toHaveURL(/view=guilds&guild=/);
+  await expect(page.locator('fieldset.rank').first()).toBeVisible();
+  found.push(...(await small(page)).map((s) => `guild: ${s}`));
+  await page.goto('/?view=lexicanum&a=spy');
+  await expect(page.locator('#view .lx-title')).toBeVisible();
+  found.push(...(await small(page)).map((s) => `article: ${s}`));
+  await page.goto('/?view=admin');
+  for (const [tab, label] of Object.entries(ADMIN_TABS)) {
+    await page.click(`[data-act=adminTab][data-tab=${tab}]`);
+    await expect(page.getByRole('tab', { name: label })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    // The tables of the tab load after the click.
+    await page.waitForTimeout(500);
+    found.push(...(await small(page)).map((s) => `admin ${tab}: ${s}`));
+  }
+  await page.goto('/?view=overview');
+  await page.click('#tabbar [data-act=moreOpen]');
+  await expect(page.locator('#more')).toBeVisible();
+  found.push(...(await small(page)).map((s) => `Mehr: ${s}`));
   expect(found).toEqual([]);
 });

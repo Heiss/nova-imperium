@@ -347,7 +347,12 @@ Up to 760 px only; the desktop stays as it is (D6).
 
 ## Still to do
 
-* A check at 44 px of the smallest buttons that existed before (`small`).
+* Done (**[E]** owner, 2026-11-20): every button (the former `small` ones,
+  „?“, „▤“, the arrows of the Sternenkarte), field, list and the list links of
+  the Lexicanum are at least 44 px high on a phone, short ones 44 px wide too;
+  a link inside a sentence and a check box or radio button (reached through
+  its label) are exempt. The rule is the last block of `style.css`; E2E:
+  `e2e/touch-targets.spec.ts`.
 * E2E: the phone tests that click „Logout“, open a locked entry, the „?“ or
   „▤“ of a row, or read a row of the lists without the filter must unfold or
   choose „Alle“ first (see the log entry of 2026-11-19); the ones that use the

@@ -194,12 +194,12 @@ test.describe('the planet limit (#237)', () => {
     await expect(research).toContainText(
       'Kolonialverwaltung Stufe 4/4 · +2 Planeten je Stufe · höchste Stufe erreicht',
     );
-    // Level 5 cannot be started: the server refuses it with the reason.
-    await research.locator('[data-act=research]').click();
-    await expect(page.locator('.toast.err').last()).toContainText(
-      'Die höchste Stufe dieser Forschung ist erreicht.',
+    // Level 5 cannot be started: no button, the note instead (the server
+    // refusal is unit tested).
+    await expect(research.locator('[data-act=research]')).toHaveCount(0);
+    await expect(research.locator('.act')).toContainText(
+      'höchste Stufe erreicht',
     );
-    await expect(research).toContainText('höchste Stufe erreicht');
 
     // Unlimited again (and for the other specs): the overview says so.
     await nav(page, 'admin');
