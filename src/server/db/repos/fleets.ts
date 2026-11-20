@@ -2,7 +2,9 @@
 import { missionRules } from '../../../core/missions.ts';
 import type { Coords, Fleet } from '../../../core/types.ts';
 import type { Db } from '../database.ts';
+import type { RepositoryModule } from './contract.ts';
 import { levels, type Row } from './rows.ts';
+import type { RoundReset } from '../round-reset.ts';
 
 export interface Fleets {
   get(id: string): Fleet | null;
@@ -72,7 +74,7 @@ const extraColumns = (f: Fleet): Record<string, string | number> => ({
   ...(f.union !== undefined && { union_id: f.union }),
 });
 
-export class SqliteFleets implements Fleets {
+class SqliteFleets implements Fleets {
   private readonly db: Db;
   constructor(db: Db) {
     this.db = db;
@@ -280,3 +282,15 @@ export class SqliteFleets implements Fleets {
       .run(to, from);
   }
 }
+
+/** The `fleets` repository on `Ctx`. */
+export const repository = {
+  key: 'fleets',
+  make: (db: Db): Fleets => new SqliteFleets(db),
+} as const satisfies RepositoryModule;
+
+/** The fleets go with the round; so do the invitations to an attack union. */
+export const roundReset = [
+  { order: 40, clears: ['fleets'] },
+  { order: 100, clears: ['attack_union_invites'] },
+] satisfies readonly RoundReset[];

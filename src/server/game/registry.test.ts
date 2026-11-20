@@ -95,6 +95,24 @@ describe('the list of the server features', () => {
     expect(Object.keys(stateFor(ctx, anna))).toEqual(declared);
     expect(Object.keys(stateFor(ctx, admin))).toEqual(declared);
   });
+
+  it('builds the same keys for a player without a planet', () => {
+    const ctx = testCtx();
+    const declared = STATE_PARTS.flatMap((part) => part.keys);
+    expect(Object.keys(stateFor(ctx, addUser(ctx, 'Cora')))).toEqual(declared);
+  });
+
+  it('keeps the lock screen of the vacation mode to declared keys, in their order', () => {
+    const ctx = testCtx();
+    const vac = addUser(ctx, 'Vera', { vacation: 5 });
+    addPlanet(ctx, vac.id);
+    const declared = STATE_PARTS.flatMap((part) => part.keys);
+    const locked = Object.keys(stateFor(ctx, vac));
+    expect(locked.length).toBeGreaterThan(0);
+    expect(locked.length).toBeLessThan(declared.length);
+    // A subsequence: every key of the lock screen is declared, none moves.
+    expect(declared.filter((key) => locked.includes(key))).toEqual(locked);
+  });
 });
 
 describe('the table of the actions', () => {

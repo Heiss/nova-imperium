@@ -6,7 +6,9 @@ import type { Debris, DebrisField } from '../../../core/debris.ts';
 import { placeId } from '../../../core/place.ts';
 import type { Coords } from '../../../core/types.ts';
 import type { Db } from '../database.ts';
+import type { RepositoryModule } from './contract.ts';
 import type { Row } from './rows.ts';
+import type { RoundReset } from '../round-reset.ts';
 
 export interface DebrisFields {
   /** The field of a place id (`d<g>_<s>_<p>`), or null. */
@@ -30,7 +32,7 @@ const fieldOf = (r: Row): DebrisField => ({
   c: r.res_c as number,
 });
 
-export class SqliteDebris implements DebrisFields {
+class SqliteDebris implements DebrisFields {
   private readonly db: Db;
   constructor(db: Db) {
     this.db = db;
@@ -74,3 +76,13 @@ export class SqliteDebris implements DebrisFields {
     this.db.prepare('DELETE FROM debris').run();
   }
 }
+
+/** The Trümmerfelder (#45), places of their own (#119). */
+export const repository = {
+  key: 'debris',
+  make: (db: Db): DebrisFields => new SqliteDebris(db),
+} as const satisfies RepositoryModule;
+
+export const roundReset = [
+  { order: 50, clears: ['debris'] },
+] satisfies readonly RoundReset[];

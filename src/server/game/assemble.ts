@@ -2,6 +2,7 @@
 // the state of the frame plus those of every listed server feature. A name, a
 // key or an order number defined twice stops the start with both files named,
 // so no feature silently replaces another by the order of a spread.
+import { claim } from '../claim.ts';
 import type { Action } from './actions.ts';
 import type { ServerFeature, StatePart } from './feature.ts';
 
@@ -12,19 +13,6 @@ const FRAME_ACTIONS = 'src/server/game/dispatch.ts';
 const FRAME_STATE = 'src/server/game/state.ts';
 
 const fileOf = (name: string): string => `src/server/${name}.ts`;
-
-/** Records that `file` defines `name`, or throws when another file did. */
-function claim(
-  kind: string,
-  owners: Map<string, string>,
-  name: string,
-  file: string,
-): void {
-  const first = owners.get(name);
-  if (first !== undefined)
-    throw new Error(`${kind} "${name}" is defined in ${first} and in ${file}.`);
-  owners.set(name, file);
-}
 
 /** All actions with the names of the guild actions and of the admin actions. */
 export interface ActionTables {

@@ -8,6 +8,8 @@ import {
   universeErrors,
   universeOf,
 } from '../../core/universe.ts';
+import { clearRound } from '../db/round-reset.ts';
+import { ROUND_RESETS } from '../round-reset.gen.ts';
 import type { Action } from './actions.ts';
 import { addReport, type Ctx, fail, str, universe } from './context.ts';
 import { rangeError, roundRules, startRoundRules } from './round.ts';
@@ -60,27 +62,9 @@ export const saveSettings: Action = (ctx, u, d) => {
 };
 
 function newRound(ctx: Ctx, rules: RoundRules): void {
-  ctx.planets.deleteAll();
-  // A round with guilds off starts without any guild (#191); with guilds on
-  // they stay, as before.
-  if (!rules.guilds) ctx.guilds.deleteAll();
-  // Every new round deletes all guild chats, guilds on or off (#169, D6).
-  ctx.guilds.clearChats();
-  ctx.fleets.deleteAll();
-  ctx.debris.deleteAll();
-  // The last targets name places of the old round (#292).
-  ctx.targets.deleteAll();
-  // The values of surveyed positions belong to the round (#190).
-  ctx.surveys.deleteAll();
-  // The prices and the amounts of the day start over (#171).
-  ctx.market.clear();
-  ctx.db.exec(`
-    DELETE FROM push_jobs;
-    DELETE FROM attack_union_invites;
-    DELETE FROM achievement_progress;
-    DELETE FROM achievement_claims;
-    DELETE FROM daily_rewards;
-  `);
+  // The tables of the round are emptied by what their owners declare
+  // (`roundReset`, db/round-reset.ts); this function names none.
+  clearRound(ctx.db, rules, ROUND_RESETS);
   const u = universe(ctx);
   for (const x of ctx.players.all()) {
     x.research = {};
