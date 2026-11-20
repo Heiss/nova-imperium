@@ -2,10 +2,13 @@
 // test moves, a seeded random generator and readable ids.
 import Database from 'better-sqlite3';
 import { seeded } from '../test/fixtures.ts';
+import {
+  statementCache,
+  type StatementCache,
+} from '../test/statement-cache.ts';
 import { DEFAULT_EXPLAIN } from '../core/explain.ts';
 import { DEFAULT_LEVEL_MODE } from '../core/level-overview.ts';
 import type { Planet } from '../core/types.ts';
-import { hashPassword } from './auth.ts';
 import type { Config } from './config.ts';
 import { openDatabase, type Db } from './db/database.ts';
 import type { User } from './db/repos/players.ts';
@@ -16,6 +19,8 @@ export interface TestCtx extends Ctx {
   clock: { t: number };
   /** The facade over the same repositories, for the store tests (#117). */
   store: Store;
+  /** The statement cache of the database: on for a database of `testCtx`. */
+  statements: StatementCache;
 }
 
 let template: Buffer | undefined;
@@ -34,13 +39,49 @@ function memoryDatabase(): Db {
   return db;
 }
 
-export function testCtx(
-  start = 1_000_000,
-  seed = 42,
-  db: Db = memoryDatabase(),
-): TestCtx {
+/**
+ * One migrated in-memory database for a property test that builds a world per
+ * generated case. `open()` hands out the database as it was migrated, with
+ * the statement cache on, and `rewind()` takes every change of the case back
+ * (a savepoint, so the database, its statements and its pragmas stay): a case
+ * then costs its own rows, not a new database. A case that ends in an error
+ * is rewound by the next `open()`.
+ */
+export interface CaseDb {
+  open(): Db;
+  rewind(): void;
+}
+
+export function caseDatabase(): CaseDb {
+  let db: Db | undefined;
+  let open = false;
+  const rewind = (): void => {
+    if (!db || !open) return;
+    db.exec('ROLLBACK TO SAVEPOINT test_case; RELEASE SAVEPOINT test_case');
+    open = false;
+  };
+  return {
+    open() {
+      if (!db) {
+        db = memoryDatabase();
+        statementCache(db).on();
+      }
+      rewind();
+      db.exec('SAVEPOINT test_case');
+      open = true;
+      return db;
+    },
+    rewind,
+  };
+}
+
+export function testCtx(start = 1_000_000, seed = 42, db?: Db): TestCtx {
   const clock = { t: start };
   let n = 0;
+  const own = db === undefined;
+  db ??= memoryDatabase();
+  const statements = statementCache(db);
+  if (own) statements.on();
   const store = new Store(db);
   return {
     ...createCtx(store, {
@@ -50,6 +91,7 @@ export function testCtx(
     }),
     store,
     clock,
+    statements,
   };
 }
 
@@ -71,7 +113,13 @@ export const testConfig = (over: Partial<Config> = {}): Config => ({
   ...over,
 });
 
-const testPassword = hashPassword('secret1', 'salt');
+/**
+ * `hashPassword('secret1', 'salt')`, written out: computing it costs about
+ * 0.2 s, in every test file that adds a user. test-helpers.test.ts fails when
+ * the scrypt profile changes and this value has to be written again.
+ */
+export const TEST_PASSWORD_HASH =
+  'scrypt-v2:33b01be12e07578cf2d18c7cff640cc80aae13f705d21234572a4c3d4dabea1af9254006ba8bb28bb969fda9a88d38935aa7e768a859756eaee41ad1cabf3090';
 
 export function addUser(
   ctx: Ctx,
@@ -83,7 +131,7 @@ export function addUser(
     name,
     email: `${name.toLowerCase()}@example.org`,
     salt: 'salt',
-    pw: testPassword,
+    pw: TEST_PASSWORD_HASH,
     admin: false,
     probes: 1,
     explain: DEFAULT_EXPLAIN,

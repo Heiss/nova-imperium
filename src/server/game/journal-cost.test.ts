@@ -17,6 +17,8 @@ const MINUTE = 60000;
 /** 20 players with a planet each; `withJournal` false closes the round and takes the plain repositories. */
 function world(withJournal: boolean): TestCtx {
   const ctx = testCtx(1_000_000_000);
+  // The server prepares its statements per call: the measurement does too.
+  ctx.statements.off();
   for (let i = 1; i <= PLAYERS; i++) {
     addUser(ctx, `P${i}`);
     addPlanet(ctx, `u_P${i}`, {

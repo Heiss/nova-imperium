@@ -19,7 +19,6 @@
 // `refActivity`, `refSpyBattle`, and the refusal below Auspex-Lehre 1), so
 // that it compares the new chance, the battle of detected probes and the
 // activity in the report too.
-import Database from 'better-sqlite3';
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import { battle } from '../../core/battle.ts';
@@ -53,10 +52,15 @@ import type {
   Resources,
 } from '../../core/types.ts';
 import { type AuditEntry, record } from '../audit.ts';
-import { openDatabase } from '../db/database.ts';
 import type { User } from '../db/repos/players.ts';
 import { queuePush } from '../push-store.ts';
-import { addPlanet, addUser, testCtx, type TestCtx } from '../test-helpers.ts';
+import {
+  addPlanet,
+  addUser,
+  caseDatabase,
+  testCtx,
+  type TestCtx,
+} from '../test-helpers.ts';
 import { type Action, type Data, mine, researchOf } from './actions.ts';
 import * as N from './arrival.ts';
 import {
@@ -827,7 +831,7 @@ function logLaunch(
 
 // ---- the property test ----
 
-const TEMPLATE = openDatabase(':memory:').serialize();
+const caseDb = caseDatabase();
 const NOW = 1_000_000;
 /**
  * The missions the reference knows: those before #45. The Bergung of #45
@@ -877,9 +881,7 @@ const TARGETS = {
 type Target = keyof typeof TARGETS;
 
 function world(w: World): { ctx: TestCtx; anna: User } {
-  const db = new Database(TEMPLATE);
-  db.pragma('foreign_keys = ON');
-  const ctx = testCtx(NOW, w.seed, db);
+  const ctx = testCtx(NOW, w.seed, caseDb.open());
   const anna = addUser(ctx, 'Anna', { research: w.annaTech });
   addUser(ctx, 'Bert', { research: w.defTech });
   addUser(ctx, 'Cora', { research: w.defTech });
@@ -1011,7 +1013,7 @@ function fly(w: World, x: Flight, arrive: Arrive, comeHome: Arrive) {
     step(() => comeHome(ctx, back));
   }
   const next = ctx.rng();
-  ctx.db.close();
+  caseDb.rewind();
   return { steps, next };
 }
 
@@ -1086,7 +1088,7 @@ function order(w: World, o: Order, act: Action) {
     answer = `error: ${(e as Error).message}`;
   }
   const result = { answer, event, db: dump(ctx), next: ctx.rng() };
-  ctx.db.close();
+  caseDb.rewind();
   return result;
 }
 
@@ -1175,9 +1177,10 @@ function checkMoon(r: ReturnType<typeof fly>): {
   return { rolled: true, formed: b.moon === true };
 }
 
-// Every case closes its database: 1600 open in-memory databases filled the
-// memory of a mutation shard with four test runners. About 3 s per case on
-// a laptop, slower with coverage: the default limit of 5 s is too short.
+// Every case rewinds its database (`caseDatabase`): 1600 open in-memory
+// databases filled the memory of a mutation shard with four test runners.
+// About 3 s per test on a laptop, slower with coverage: the default limit of
+// 5 s is too short.
 describe(
   'missions as strategies (#116) against the code before',
   { timeout: 60_000 },
@@ -1249,7 +1252,7 @@ describe(
           N.arrive(ctx, f);
           for (const r of ctx.reports.ofPlayer('u_Anna'))
             titles.add(r.title.replace(/ .*/, ''));
-          ctx.db.close();
+          caseDb.rewind();
         }),
         { seed: 116, numRuns: 400 },
       );

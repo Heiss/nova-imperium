@@ -8,6 +8,7 @@ import fc from 'fast-check';
 import ts from 'typescript';
 import { migrate, type Db } from '../server/db/database.ts';
 import { MIGRATIONS, type Migration } from '../server/db/schema.ts';
+import { statementCache } from './statement-cache.ts';
 
 type Value = string | number | Uint8Array | null;
 type Ref = { table: string; column: string };
@@ -208,17 +209,16 @@ function isConstraintError(error: unknown): boolean {
 
 /** Replaces foreign key indexes by the key of an inserted parent row. */
 function resolve(
-  db: Db,
+  keysOf: (c: Ref) => Statement,
   t: Table,
   row: Record<string, Value>,
 ): Record<string, Value> | null {
   const out = { ...row };
   for (const c of t.columns) {
     if (!c.ref || out[c.name] === null) continue;
-    const keys = db
-      .prepare(`SELECT "${c.ref.column}" FROM "${c.ref.table}" ORDER BY rowid`)
-      .pluck()
-      .all() as Value[];
+    const keys = (keysOf(c.ref).all() as Record<string, Value>[]).map(
+      (r) => r.key!,
+    );
     if (keys.length === 0) {
       if (c.notNull) return null;
       out[c.name] = null;
@@ -237,14 +237,24 @@ function tryInsert(insert: Statement, values: Record<string, Value>): void {
 
 /** Inserts the plan; rows that SQLite rejects are skipped. */
 export function populate(db: Db, tables: Table[], plan: Plan): void {
+  // The keys of a parent table are read again for every row, with one statement.
+  const selects = new Map<string, Statement>();
+  const keysOf = (ref: Ref): Statement => {
+    const sql = `SELECT "${ref.column}" AS key FROM "${ref.table}" ORDER BY rowid`;
+    let select = selects.get(sql);
+    if (!select) selects.set(sql, (select = db.prepare(sql)));
+    return select;
+  };
   for (const t of tables) {
+    const rows = plan[t.name] ?? [];
+    if (rows.length === 0) continue;
     const names = t.columns.map((c) => `"${c.name}"`).join(', ');
     const params = t.columns.map((c) => `@${c.name}`).join(', ');
     const insert = db.prepare(
       `INSERT INTO "${t.name}" (${names}) VALUES (${params})`,
     );
-    for (const row of plan[t.name] ?? []) {
-      const values = resolve(db, t, row);
+    for (const row of rows) {
+      const values = resolve(keysOf, t, row);
       if (values) tryInsert(insert, values);
     }
   }
@@ -279,26 +289,86 @@ export function changesExisting(
   return false;
 }
 
+// A database per list of migrations and version, kept open for the cases of a
+// property test: a case writes its data and runs the migration inside a
+// savepoint and takes everything back, so the next case finds the database
+// as the migrations left it, with its prepared statements (the migration is
+// one transaction anyway, and none of them changes `foreign_keys`).
+const borrowed = new WeakMap<readonly Migration[], Map<number, Db>>();
+
+/** The database at `version` for one case, and the call that takes the case back. */
+function borrow(
+  version: number,
+  migrations: readonly Migration[],
+): { db: Db; release: () => void } {
+  const versions = borrowed.get(migrations) ?? new Map<number, Db>();
+  borrowed.set(migrations, versions);
+  let db = versions.get(version);
+  if (!db) {
+    db = databaseAt(version, migrations);
+    statementCache(db).on();
+    versions.set(version, db);
+  }
+  const kept = db;
+  kept.exec('SAVEPOINT upgrade_case');
+  return {
+    db: kept,
+    release: () =>
+      kept.exec(
+        'ROLLBACK TO SAVEPOINT upgrade_case; RELEASE SAVEPOINT upgrade_case',
+      ),
+  };
+}
+
+/** Migration n on the generated data; `take` records the state before and after. */
+function upgradeWith<S>(
+  n: number,
+  plan: Plan,
+  migrations: readonly Migration[],
+  take: (db: Db) => S,
+) {
+  const { db, release } = borrow(n - 1, migrations);
+  try {
+    populate(db, describeSchema(db), plan);
+    const before = take(db);
+    migrate(db, migrations.slice(0, n));
+    return {
+      before,
+      after: take(db),
+      integrity: db.pragma('integrity_check', { simple: true }),
+      foreignKeys: db.pragma('foreign_key_check'),
+    };
+  } finally {
+    release();
+  }
+}
+
 /** Migration n on the generated data, with the state around it. */
 export function upgrade(
   n: number,
   plan: Plan,
   migrations: readonly Migration[] = MIGRATIONS,
 ) {
-  const db = databaseAt(n - 1, migrations);
-  try {
-    populate(db, describeSchema(db), plan);
-    const before = snapshot(db);
-    migrate(db, migrations.slice(0, n));
-    return {
-      before,
-      after: snapshot(db),
-      integrity: db.pragma('integrity_check', { simple: true }),
-      foreignKeys: db.pragma('foreign_key_check'),
-    };
-  } finally {
-    db.close();
-  }
+  return upgradeWith(n, plan, migrations, snapshot);
+}
+
+/**
+ * Migration n on the generated data, for a property that only reads the
+ * integrity and the foreign key check: no snapshot of every table before
+ * and after.
+ */
+export function checkUpgrade(
+  n: number,
+  plan: Plan,
+  migrations: readonly Migration[] = MIGRATIONS,
+) {
+  const { integrity, foreignKeys } = upgradeWith(
+    n,
+    plan,
+    migrations,
+    () => null,
+  );
+  return { integrity, foreignKeys };
 }
 
 /** Generated data for the schema before migration n. */
