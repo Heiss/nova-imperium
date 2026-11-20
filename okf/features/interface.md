@@ -268,11 +268,21 @@ Up to 760 px only; the desktop stays as it is (D6).
   abholbar“ or both (the wording of the mark on „Achievements“, link
   „Abholen“) and „N ungelesene Nachrichten“ (singular „1 ungelesene
   Nachricht“, link „Lesen“). Links are 44 px high.
-* **[V]** Not built: „idle build queue on another planet“ of the proposal. The
-  client knows the queues of the shown place only; the state the server sends
-  has none of the other planets. It needs a small server part of the state
-  (`idle`: the own places without a running building), see the open point in
-  the log entry.
+* **[E]** The line „idle build queue on another planet“ of „Bereit“ is built
+  with a small server part of the state (owner, 2026-11-20, option (a) on
+  #189, „Geklärt“).
+* **[V]** The state part: `src/server/game/idle-queues.ts`, key `idle`, order
+  220 (200 `quick` and 210 unions are taken). The value is an array of ids
+  (strings) of the player's own planets and moons but the shown place whose
+  build queue is empty at the time of the request (no queue, or one that has
+  ended); nothing else of those places is sent. It is a filter over the
+  planets of the player, built for every state request, no settling. The
+  vacation lock screen does not carry it. The client (`GameState.idle`,
+  optional) words each id from `galaxy`.
+* **[V]** The line: „Bauschleife leer: <Name> [g:s:p]“ (a moon „<Name> (Mond)“)
+  with a button „Wechseln“ (`data-act="selectPlanet"`), after the reward and
+  the messages; at most 3 lines, then „und N weitere“ without a button
+  (`MOST_IDLE`). A place the galaxy does not list is left out.
 
 ## Built (part 3, #189): the „⋯“ sheet of the Sternenkarte
 
@@ -334,8 +344,6 @@ Up to 760 px only; the desktop stays as it is (D6).
 
 ## Still to do
 
-* D5: the line „Bereit“ for an idle build queue on another planet (needs the
-  server to send the queues of the other places, see part 2).
 * A check at 44 px of the smallest buttons that existed before (`small`).
 * E2E: the phone tests that click „Logout“, open a locked entry, the „?“ or
   „▤“ of a row, or read a row of the lists without the filter must unfold or

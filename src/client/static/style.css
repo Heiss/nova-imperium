@@ -2403,7 +2403,8 @@ table.lx-t {
   .cards li progress::-moz-progress-bar {
     background: linear-gradient(90deg, #7b4c17, var(--ember), var(--gold-hi));
   }
-  .cards li a {
+  .cards li a,
+  .cards li button {
     display: inline-flex;
     align-items: center;
     min-height: 44px;

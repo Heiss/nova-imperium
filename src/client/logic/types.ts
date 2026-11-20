@@ -119,6 +119,11 @@ export interface GameState {
   gates?: GateView[];
   /** The positions locked after an abandonment, with the end of the lock (#224). */
   locks?: (Coords & { until: number })[];
+  /**
+   * The ids of the other own planets and moons without a running building
+   * (#189, D5), for the card „Bereit“; the browser words them from `galaxy`.
+   */
+  idle?: string[];
   /** The prices of the marketplace now and what the player gave today (#171). */
   market?: { prices: Record<Pair, number>; used: number };
   admin: AdminState | null;

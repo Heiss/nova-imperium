@@ -92,3 +92,19 @@ it('shows the cards „Achtung“ and „Bereit“ with links the navigation han
   }
   expect(out).toContain('data-act="nav"');
 });
+
+it('shows an empty build queue with a button that selects the place (#189)', () => {
+  const v = view({}, {
+    idle: ['p1_2_3'],
+    galaxy: [
+      { id: 'p1_2_3', kind: 'planet', name: 'Kolonie <b>', g: 1, s: 2, p: 3 },
+    ],
+  } as unknown as Partial<GameState>);
+  const out = html(v);
+  expect(out).toContain('<h3>Bereit</h3>');
+  // A name of a place is text, never markup.
+  expect(out).toContain('Bauschleife leer: Kolonie &lt;b> [1:2:3]');
+  expect(out).toContain(
+    '<button class="small" data-act="selectPlanet" data-id="p1_2_3" type="button">Wechseln</button>',
+  );
+});

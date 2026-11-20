@@ -64,6 +64,12 @@
           <li>
             <span class="what">{item.text}</span>
             {@render link(item.link)}
+            {#if item.select}<button
+                type="button"
+                class="small"
+                data-act="selectPlanet"
+                data-id={item.select.id}>{item.select.label}</button
+              >{/if}
           </li>
         {/each}
       </ul>
