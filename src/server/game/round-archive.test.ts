@@ -51,6 +51,14 @@ function setup(): TestCtx {
 const send = (ctx: TestCtx, who: string, d: Record<string, unknown>) =>
   runAction(ctx, `u_${who}`, d);
 
+/** The events the archive and the admin write, without the journal of actions and the joining (#235). */
+const archiveOnly = (ctx: TestCtx) =>
+  ctx.rounds
+    .events(1)
+    .filter(
+      (e) => !e.kind.startsWith('journal.') && e.kind !== EVENT_KIND.joined,
+    );
+
 const finals = (ctx: TestCtx, round: number) =>
   ctx.rounds.events(round, ROUND_EVENT.player);
 
@@ -241,6 +249,8 @@ describe('„Neue Runde“ closes the old round first (D1)', () => {
     expect(ctx.rounds.events(2).map((e) => e.kind)).toEqual([
       ROUND_EVENT.started,
       ...Array(4).fill(EVENT_KIND.joined),
+      // The reset itself is an action of the admin in the new round (the journal).
+      EVENT_KIND.action,
     ]);
     // The reset itself still happened.
     expect(ctx.planets.home('u_Anna')!.b).toEqual({});
@@ -324,7 +334,7 @@ describe('„Neue Runde“ closes the old round first (D1)', () => {
     expect(ctx.rounds.get(1)!.status).toBe('active');
     expect(roundRules(ctx).number).toBe(1);
     expect(ctx.planets.all()).toHaveLength(4);
-    expect(ctx.rounds.countEvents(1)).toBe(0);
+    expect(archiveOnly(ctx)).toEqual([]);
   });
 
   it('refuses the reset without archiving when its rules are refused', () => {
@@ -333,7 +343,7 @@ describe('„Neue Runde“ closes the old round first (D1)', () => {
       send(ctx, 'Ada', { type: 'reset', vacationHours: 'x' }),
     ).toThrow();
     expect(ctx.rounds.get(1)!.status).toBe('active');
-    expect(ctx.rounds.countEvents(1)).toBe(0);
+    expect(archiveOnly(ctx)).toEqual([]);
   });
 });
 
@@ -460,6 +470,7 @@ describe('the interventions of the admin in the history', () => {
     });
     const events = ctx.rounds
       .events(1)
+      .filter((e) => e.kind.startsWith('admin.'))
       .map((e) => [e.kind, e.at, e.recorded, e.seat]);
     expect(events).toEqual([
       ['admin.endzeit', 1_001_000, 1_001_000, null],
@@ -481,8 +492,9 @@ describe('the interventions of the admin in the history', () => {
     send(ctx, 'Ada', { type: 'endzeit', minutes: 60 });
     send(ctx, 'Ada', { type: 'closeRound' });
     // 1 Endzeit + 3 participants + 3 play times + the close; no guilds.
-    expect(ctx.rounds.get(1)!.events).toBe(8);
-    expect(ctx.rounds.countEvents(1)).toBe(8);
+    expect(archiveOnly(ctx)).toHaveLength(8);
+    // The expected count is the count of every event of the round, the journal's included.
+    expect(ctx.rounds.get(1)!.events).toBe(ctx.rounds.countEvents(1));
   });
 
   it('does not write into a round that is closed, and Endzeit alone does not close a round', () => {
@@ -503,6 +515,6 @@ describe('the interventions of the admin in the history', () => {
     expect(() =>
       send(ctx, 'Ada', { type: 'settings', settings: {} }),
     ).toThrow();
-    expect(ctx.rounds.countEvents(1)).toBe(0);
+    expect(archiveOnly(ctx)).toEqual([]);
   });
 });

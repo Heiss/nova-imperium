@@ -79,7 +79,8 @@ export function joinRound(
   const known = ctx.rounds.seatOf(round, userId);
   if (known !== null) return known;
   const user = ctx.players.get(userId);
-  if (!user) return null;
+  // An account that holds no place (an admin without a planet) is no participant.
+  if (!user || !places.length) return null;
   const seat = ctx.rounds.nextSeat(round);
   ctx.rounds.addParticipant({ round, seat, player: userId, name: user.name });
   writeRoundEvent(ctx, EVENT_KIND.joined, seat, {

@@ -9,6 +9,7 @@ import type { Repositories } from '../db/repos/index.ts';
 import type { Report } from '../db/repos/reports.ts';
 import type { Store } from '../db/store.ts';
 import { queuePush, type PushJob } from '../push-store.ts';
+import { journaled } from './journal.ts';
 
 export interface Ctx extends Repositories {
   /** The unit of work: one immediate SQLite transaction. Repositories never open one. */
@@ -26,7 +27,7 @@ export function createCtx(
   store: Store,
   over: Partial<Pick<Ctx, 'now' | 'rng' | 'id'>> = {},
 ): Ctx {
-  return {
+  const ctx: Ctx = {
     ...store.repos,
     db: store.db,
     tx: (fn) => store.tx(fn),
@@ -35,6 +36,8 @@ export function createCtx(
     id: randomId,
     ...over,
   };
+  // The places and reports note what they commit for the journal of the round (#235).
+  return Object.assign(ctx, journaled(ctx, store.repos));
 }
 
 /** A mistake of the player: the message is shown to them. */

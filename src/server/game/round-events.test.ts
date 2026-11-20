@@ -128,6 +128,8 @@ describe('participant.joined: the first place of a player', () => {
       ROUND_EVENT.started,
       EVENT_KIND.joined,
       EVENT_KIND.joined,
+      // The reset is the first action of the new round (the journal).
+      EVENT_KIND.action,
     ]);
     expect(ctx.rounds.participants(2).map((p) => [p.seat, p.player])).toEqual([
       [1, 'u_Ada'],
