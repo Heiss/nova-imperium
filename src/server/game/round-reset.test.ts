@@ -4,8 +4,11 @@
 // row is gone or it is not. A table a feature adds is seeded and checked
 // without a line here: it has to be cleared or kept on purpose.
 import { describe, expect, it } from 'vitest';
+import type { RoundRules } from '../../core/round.ts';
 import type { Db } from '../db/database.ts';
 import { addPlanet, addUser, testCtx, type TestCtx } from '../test-helpers.ts';
+import { clearsOf, keptBy } from '../db/round-reset.ts';
+import { ROUND_RESETS } from '../round-reset.gen.ts';
 import { reset } from './admin.ts';
 
 /** The rowid of the marked row of every table. */
@@ -169,45 +172,37 @@ function deletes(db: Db, run: () => void): string[] {
   return seen;
 }
 
-// The tables that live through a new round, with the guilds on (the default).
-// Written out once for the clean-up: it proves that moving the DELETE lines to
-// the features changes nothing; the declarations of the features replace it.
-const KEPT_ALWAYS = [
-  'account_tokens',
-  'audit_events',
-  'error_events',
-  'friendships',
-  'invitations',
-  'passkey_challenges',
-  'passkeys',
-  'player_activity',
-  'playtime_events',
-  'push_keys',
-  'push_off',
-  'push_subscriptions',
-  'round_events',
-  'round_participants',
-  'rounds',
-  'sessions',
-  'settings',
-  'suspensions',
-];
-const GUILD_TABLES = [
-  'guild_members',
-  'guild_rank_rights',
-  'guild_ranks',
-  'guilds',
-];
+const rulesOf = (guilds: boolean) => ({ guilds }) as RoundRules;
+
+/** The tables the declarations of the modules keep in a round; the players are the parents of the seed and not seeded. */
+const declaredKept = (guilds: boolean): string[] =>
+  keptBy(ROUND_RESETS, rulesOf(guilds)).filter((t) => t !== 'users');
+
+/** The tables the declarations empty with `DELETE FROM`, in the order of their numbers. */
+const declaredCleared = (guilds: boolean): string[] =>
+  clearsOf(ROUND_RESETS)
+    .filter((step) => step.when?.(rulesOf(guilds)) ?? true)
+    .flatMap((step) => [...step.clears]);
 
 describe('what a new round clears (#317)', () => {
-  it('keeps the accounts, the settings and the round archive, clears everything else', () => {
+  // The tables a new round left, and the order of its DELETE statements, were
+  // written out before the DELETE lines moved to the modules and passed
+  // unchanged after it; now the modules' declarations are checked against the
+  // schema, so a new table needs no line here.
+  it('keeps what the modules declare as kept and clears every other table of the schema', () => {
     const { ctx, admin } = world();
     reset(ctx, admin, {});
-    const kept = [...KEPT_ALWAYS, ...GUILD_TABLES].sort();
-    expect(survivors(ctx.db)).toEqual(kept);
+    expect(survivors(ctx.db)).toEqual(declaredKept(true));
     // The players stay, with fresh research, no main planet and no vacation.
     expect(ctx.players.all().map((u) => u.id)).toEqual(['u_Anna', 'u_Bob']);
     expect(ctx.players.get('u_Bob')!.vacation).toBeNull();
+  });
+
+  it('keeps the accounts, the settings and the round archive of every round', () => {
+    const { ctx, admin } = world();
+    reset(ctx, admin, {});
+    for (const table of ['sessions', 'settings', 'rounds', 'friendships'])
+      expect(survivors(ctx.db), table).toContain(table);
   });
 
   it('clears the reports of a player before the notice of his vacation', () => {
@@ -220,38 +215,25 @@ describe('what a new round clears (#317)', () => {
   it('clears the guilds too when the round starts with guilds off (#191)', () => {
     const { ctx, admin } = world();
     reset(ctx, admin, { guilds: false });
-    expect(survivors(ctx.db)).toEqual([...KEPT_ALWAYS].sort());
+    expect(survivors(ctx.db)).toEqual(declaredKept(false));
+    expect(survivors(ctx.db)).not.toContain('guilds');
   });
 
-  it('empties the tables in this order', () => {
+  it('empties the declared tables in the order of the numbers', () => {
     const { ctx, admin } = world();
-    expect(deletes(ctx.db, () => reset(ctx, admin, {}))).toEqual([
-      // closeActiveRound and openRound do not delete.
-      'planets',
-      'position_locks',
-      'guild_chat',
-      'fleets',
-      'debris',
-      'last_targets',
-      'surveys',
-      'market_prices',
-      'market_usage',
-      'push_jobs',
-      'attack_union_invites',
-      'achievement_progress',
-      'achievement_claims',
-      'daily_rewards',
-    ]);
+    expect(deletes(ctx.db, () => reset(ctx, admin, {}))).toEqual(
+      declaredCleared(true),
+    );
+    const off = world();
+    expect(
+      deletes(off.ctx.db, () => reset(off.ctx, off.admin, { guilds: false })),
+    ).toEqual(declaredCleared(false));
   });
 
-  it('puts the guilds before their chats when the guilds are off', () => {
+  it('empties the guilds before their chats when the guilds are off', () => {
     const { ctx, admin } = world();
     const order = deletes(ctx.db, () => reset(ctx, admin, { guilds: false }));
-    expect(order.slice(0, 4)).toEqual([
-      'planets',
-      'position_locks',
-      'guilds',
-      'guild_chat',
-    ]);
+    expect(order.indexOf('guilds')).toBeGreaterThan(-1);
+    expect(order.indexOf('guilds')).toBeLessThan(order.indexOf('guild_chat'));
   });
 });

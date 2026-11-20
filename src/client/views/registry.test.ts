@@ -95,63 +95,51 @@ describe('the tables of the views', () => {
     list,
   ];
 
-  it('holds the frame and the views of every module, each in its table', () => {
-    const { mount: table, anew } = assembleMounts(
-      { old: mount },
-      ['old'],
-      [
-        one('a', { key: 'fresh', mount, anew: true }, { key: 'plain', mount }),
-        one('b', { key: 'page', html }),
-      ],
-    );
-    expect(Object.keys(table)).toEqual(['old', 'fresh', 'plain']);
-    expect([...anew]).toEqual(['old', 'fresh']);
-    expect(
-      Object.keys(
-        assembleHtml({ older: html }, [one('b', { key: 'page', html })]),
-      ),
-    ).toEqual(['older', 'page']);
+  it('holds the views of every module, each in its table', () => {
+    const modules = [
+      one('a', { key: 'fresh', mount, anew: true }, { key: 'plain', mount }),
+      one('b', { key: 'page', html }),
+    ];
+    const { mount: table, anew } = assembleMounts(modules);
+    expect(Object.keys(table)).toEqual(['fresh', 'plain']);
+    expect([...anew]).toEqual(['fresh']);
+    expect(Object.keys(assembleHtml(modules))).toEqual(['page']);
   });
 
   it('throws when two modules define one view, naming both files', () => {
     expect(() =>
-      assembleMounts(
-        {},
-        [],
-        [one('a', { key: 'x', mount }), one('b', { key: 'x', mount })],
-      ),
+      assembleMounts([
+        one('a', { key: 'x', mount }),
+        one('b', { key: 'x', mount }),
+      ]),
     ).toThrow(
       'view "x" is defined in src/client/views/a.ts and in src/client/views/b.ts.',
     );
     expect(() =>
-      assembleMounts({ x: mount }, [], [one('b', { key: 'x', mount })]),
+      assembleHtml([
+        one('a', { key: 'x', html }),
+        one('b', { key: 'x', html }),
+      ]),
     ).toThrow(
-      'view "x" is defined in src/client/views/mount.ts and in src/client/views/b.ts.',
-    );
-    expect(() =>
-      assembleHtml({ x: html }, [one('b', { key: 'x', html })]),
-    ).toThrow(
-      'view "x" is defined in src/client/views/index.ts and in src/client/views/b.ts.',
+      'view "x" is defined in src/client/views/a.ts and in src/client/views/b.ts.',
     );
   });
 
   it('puts the menu entries and the tabs in the order of their numbers', () => {
-    const items = assembleMenu(
-      [{ view: 'last', order: 30, label: 'L' }],
-      [
-        one('a', { key: 'first', html, menu: { order: 10, label: 'F' } }),
-        one('b', {
-          key: 'mid',
-          html,
-          menu: { order: 20, label: 'M', divider: true },
-        }),
-      ],
-    );
+    const items = assembleMenu([
+      one('a', { key: 'last', html, menu: { order: 30, label: 'L' } }),
+      one('b', { key: 'first', html, menu: { order: 10, label: 'F' } }),
+      one('c', {
+        key: 'mid',
+        html,
+        menu: { order: 20, label: 'M', divider: true },
+      }),
+    ]);
     expect(items.map((i) => i.view)).toEqual(['first', 'mid', 'last']);
-    const tabs = assembleTabs(
-      [{ view: 'b', order: 20 }],
-      [one('a', { key: 'a', html, tab: { order: 10, label: 'A' } })],
-    );
+    const tabs = assembleTabs([
+      one('a', { key: 'b', html, tab: { order: 20 } }),
+      one('b', { key: 'a', html, tab: { order: 10, label: 'A' } }),
+    ]);
     expect(tabs.map((t) => [t.view, t.label])).toEqual([
       ['a', 'A'],
       ['b', undefined],
@@ -160,38 +148,34 @@ describe('the tables of the views', () => {
 
   it('throws when a menu number or a tab number exists twice, naming both files', () => {
     expect(() =>
-      assembleMenu(
-        [{ view: 'x', order: 10, label: 'X' }],
-        [one('a', { key: 'y', html, menu: { order: 10, label: 'Y' } })],
-      ),
+      assembleMenu([
+        one('a', { key: 'x', html, menu: { order: 10, label: 'X' } }),
+        one('b', { key: 'y', html, menu: { order: 10, label: 'Y' } }),
+      ]),
     ).toThrow(
-      'menu number "10" is defined in src/client/views/index.ts and in src/client/views/a.ts.',
+      'menu number "10" is defined in src/client/views/a.ts and in src/client/views/b.ts.',
     );
     expect(() =>
-      assembleTabs(
-        [],
-        [
-          one('a', { key: 'x', html, tab: { order: 5 } }),
-          one('b', { key: 'y', html, tab: { order: 5 } }),
-        ],
-      ),
+      assembleTabs([
+        one('a', { key: 'x', html, tab: { order: 5 } }),
+        one('b', { key: 'y', html, tab: { order: 5 } }),
+      ]),
     ).toThrow(
       'tab number "5" is defined in src/client/views/a.ts and in src/client/views/b.ts.',
     );
   });
 
-  it('takes the glyphs of the frame and of the modules, each once', () => {
+  it('takes the glyphs of the modules, each once', () => {
     expect(
-      assembleGlyphs({ a: '<svg/>' }, [
-        one('b', { key: 'b', html, glyph: '<svg x/>' }),
-      ]),
-    ).toEqual({ a: '<svg/>', b: '<svg x/>' });
+      assembleGlyphs([one('b', { key: 'b', html, glyph: '<svg x/>' })]),
+    ).toEqual({ b: '<svg x/>' });
     expect(() =>
-      assembleGlyphs({ a: '<svg/>' }, [
+      assembleGlyphs([
+        one('a', { key: 'a', html, glyph: '<svg/>' }),
         one('b', { key: 'a', html, glyph: '<svg x/>' }),
       ]),
     ).toThrow(
-      'glyph "a" is defined in src/client/views/index.ts and in src/client/views/b.ts.',
+      'glyph "a" is defined in src/client/views/a.ts and in src/client/views/b.ts.',
     );
   });
 });

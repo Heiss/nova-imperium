@@ -2,6 +2,7 @@ import { mount, unmount } from 'svelte';
 import { marketPage } from '../logic/market-page.ts';
 import type { V } from './common.ts';
 import Market from './Market.svelte';
+import type { ClientView } from './contract.ts';
 
 /**
  * „Marktplatz“ (#118, bundle 7), its data as a property. It is mounted anew
@@ -10,10 +11,19 @@ import Market from './Market.svelte';
  * the focus by id, fill the fields, and features/market.ts repaints the
  * preview while the player types.
  */
-export function mountMarket(target: HTMLElement, v: V) {
+function mountMarket(target: HTMLElement, v: V) {
   const component = mount(Market, {
     target,
     props: { page: marketPage(v) },
   });
   return { destroy: () => void unmount(component) };
 }
+
+export const clientViews = [
+  {
+    key: 'market',
+    mount: mountMarket,
+    anew: true,
+    menu: { order: 40, label: 'Marktplatz' },
+  },
+] satisfies readonly ClientView[];
