@@ -34,8 +34,8 @@ export interface ClientCtx {
   toast: (msg: string, err?: boolean) => void;
   /** Sets the value of an input, when it is there. */
   setInput: (sel: string, v: string | number) => void;
-  /** Takes over the state an answer of the server brought; the views render when it changed. */
-  apply: (state: GameState) => void;
+  /** Takes over the state an answer of the server brought; the views render when it changed, or at once when `fresh`. */
+  apply: (state: GameState, fresh?: boolean) => void;
   /** The session is gone: back to the login, then stops the caller with an error. */
   signedOut: (error: unknown) => never;
 }

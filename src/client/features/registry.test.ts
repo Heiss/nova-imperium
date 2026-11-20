@@ -40,7 +40,8 @@ describe('the list of the client features', () => {
     for (const [name, feature] of features) {
       expect(typeof feature.acts, name).toBe('function');
       const acts = feature.acts(fakeCtx());
-      expect(Object.keys(acts).length, name).toBeGreaterThan(0);
+      // A feature that only listens to the page (the share of a producer, the
+      // activity sample) returns no handlers.
       for (const [act, handler] of Object.entries(acts)) {
         expect(act, `${name}: ${act}`).toMatch(/^[a-zA-Z][a-zA-Z0-9]*$/);
         expect(typeof handler, `${name}: ${act}`).toBe('function');

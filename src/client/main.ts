@@ -6,7 +6,7 @@ import { flushSync } from 'svelte';
 import { settle, settleR } from '../core/settle.ts';
 import type { Planet } from '../core/types.ts';
 import { createAct, placeOf, samePlace } from './logic/act.ts';
-import { viewUrl } from './logic/address.ts';
+import { stateUrl, viewUrl } from './logic/address.ts';
 import { catalogKind } from './logic/catalog-list.ts';
 import * as demolition from './logic/demolition.ts';
 import { scanOf } from './logic/phalanx.ts';
@@ -31,11 +31,10 @@ import {
 } from './views/frame.ts';
 import { forgetAdminPanel } from './views/admin-panel.ts';
 import { mountAuth } from './views/auth.ts';
-import { disablePush } from './push.ts';
 import { renderGate } from './views/vacation-lock.ts';
 import { ANEW, type Mounted, MOUNTED, mountView } from './views/mount.ts';
 import { api } from './api.ts';
-import { $, keepChatScroll } from './dom.ts';
+import { $, closeMore, keepChatScroll } from './dom.ts';
 import { watchErrors } from './error-log.ts';
 import { whenBack } from './maintenance.ts';
 import { session, signedOut, whenSignedOut } from './session.ts';
@@ -49,11 +48,8 @@ import {
 import type { ClientCtx } from './features/contract.ts';
 import { CLIENT_FEATURES } from './features/index.gen.ts';
 
-type Data = Record<string, string | undefined>;
-
 /** The mounted Svelte view and its name. */
 let mounted: Mounted | null = null;
-let lastActivity = -Infinity;
 
 function readNewsSeen(): string | null {
   try {
@@ -114,17 +110,6 @@ const ui: Ui = Object.assign(client.ui, {
 });
 document.documentElement.classList.toggle('no-anim', !ui.animations);
 
-/** Planet animations on or off for this viewer (issue #61, D9). */
-function setAnimations(on: boolean): void {
-  ui.animations = on;
-  document.documentElement.classList.toggle('no-anim', !on);
-  try {
-    localStorage.setItem(ANIMATION_KEY, on ? 'on' : 'off');
-  } catch {
-    // Without storage the choice lasts until the page is reloaded.
-  }
-}
-
 function apply(st: GameState | undefined, fresh = false): void {
   if (!st || login.resetToken) return;
   const key = JSON.stringify({ ...st, now: 0 });
@@ -146,33 +131,6 @@ function apply(st: GameState | undefined, fresh = false): void {
   }
   $('#unisub')!.textContent = `Classic Universum · Speed x${st.cfg.speed}`;
   if (!same || fresh) render(fresh);
-}
-
-function stateUrl(planet?: string): string {
-  return planet
-    ? `/api/state?planet=${encodeURIComponent(planet)}`
-    : '/api/state';
-}
-
-let planetRequest = 0;
-
-async function selectPlanet(id: string): Promise<void> {
-  const request = ++planetRequest;
-  const player = client.game?.me.id;
-  try {
-    const state = (await api(stateUrl(id))) as unknown as GameState;
-    if (
-      request !== planetRequest ||
-      !player ||
-      client.game?.me.id !== player ||
-      state.planet?.id !== id
-    )
-      return;
-    client.forget();
-    apply(state, true);
-  } catch (e) {
-    toast((e as Error).message, true);
-  }
 }
 
 /** Every game action of the views goes through here (#118). */
@@ -363,7 +321,6 @@ function render(fresh = false): void {
   const view = $('#view')!;
   if (!client.game) {
     forgetAdminPanel();
-    lastActivity = -Infinity;
     return renderLoggedOut(view);
   }
   if (renderGate(view, client.game, ui, unmountViews)) return;
@@ -452,27 +409,6 @@ const go = (
   window.scrollTo(0, 0);
 };
 
-function closeMore(): void {
-  const more = $<HTMLDialogElement>('#more');
-  if (more?.open) more.close();
-}
-
-/** The handlers of the frame; the features add theirs (features/). */
-const FRAME: Record<string, (d: Data) => unknown> = {
-  moreOpen: () => $<HTMLDialogElement>('#more')!.showModal(),
-  logout: async () => {
-    await disablePush(api).catch(() => null);
-    await api('/api/logout', {}).catch(() => null);
-    client.game = null;
-    ui.auth = 'login';
-    render(true);
-  },
-  closeModal: () => modal(''),
-  selectPlanet: (d) => {
-    if (d.id) return selectPlanet(d.id);
-  },
-};
-
 /** What the features need from this file (features/contract.ts). */
 const ctx: ClientCtx = {
   act,
@@ -483,34 +419,12 @@ const ctx: ClientCtx = {
   api,
   toast,
   setInput,
-  apply: (state) => apply(state),
+  apply,
   signedOut,
 };
-const ACT = assembleActs(FRAME, CLIENT_FEATURES, ctx);
+const ACT = assembleActs({}, CLIENT_FEATURES, ctx);
 
 // ----- events -----
-
-function noteActivity(event: Event): void {
-  if (
-    !client.game ||
-    !event.isTrusted ||
-    document.visibilityState !== 'visible'
-  )
-    return;
-  const now = performance.now();
-  if (now - lastActivity < 10000) return;
-  lastActivity = now;
-  // An activity sample must not change the session UI or block the interaction.
-  void fetch('/api/activity', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: '{}',
-    credentials: 'same-origin',
-  }).catch(() => undefined);
-}
-
-document.addEventListener('click', noteActivity, { capture: true });
-document.addEventListener('keydown', noteActivity, { capture: true });
 
 document.addEventListener('click', (e) => {
   const el = (e.target as HTMLElement).closest<HTMLElement>('[data-act]');
@@ -521,17 +435,6 @@ document.addEventListener('click', (e) => {
   e.preventDefault();
   void fn({ ...el.dataset });
 });
-document.addEventListener('change', (e) => {
-  const el = e.target as HTMLSelectElement;
-  if (el.id === 'planet_select') void selectPlanet(el.value);
-  if (el.id === 'o_anim')
-    setAnimations((el as unknown as HTMLInputElement).checked);
-  if (el.dataset?.chg === 'pct')
-    void act('pct', { key: el.dataset.k, v: el.value });
-});
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') modal('');
-});
 const FORMS = assembleForms({}, CLIENT_FEATURES, ctx);
 document.addEventListener('submit', (e) => {
   const id = (e.target as HTMLElement).id;
@@ -540,14 +443,6 @@ document.addEventListener('submit', (e) => {
   e.preventDefault();
   void handle();
 });
-// The „Mehr“ sheet closes on a tap beside it (on the backdrop).
-$('#more')!.addEventListener('click', (e) => {
-  if (e.target === e.currentTarget) closeMore();
-});
-$('#modal')!.addEventListener('click', (e) => {
-  if ((e.target as HTMLElement).id === 'modal') modal('');
-});
-
 // ----- clock -----
 
 setInterval(() => {

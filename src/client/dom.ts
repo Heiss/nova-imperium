@@ -33,3 +33,9 @@ export function keepChatScroll(root: ParentNode, end = false): () => void {
     if (next) next.scrollTop = atEnd ? next.scrollHeight : top;
   };
 }
+
+/** Closes the sheet „Mehr“ when it is open. */
+export function closeMore(): void {
+  const more = $<HTMLDialogElement>('#more');
+  if (more?.open) more.close();
+}

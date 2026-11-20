@@ -10,6 +10,7 @@ beforeEach(() => {
   fields['#o_levels'] = { value: 'always' };
   vi.stubGlobal('document', {
     querySelector: (sel: string) => fields[sel] ?? null,
+    addEventListener: vi.fn(),
   });
 });
 afterEach(() => {

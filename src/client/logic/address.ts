@@ -35,3 +35,7 @@ export function viewUrl(
 /** The relative address of an article, for the links of the Lexicanum. */
 export const articleHref = (id: string): string =>
   `?view=${LEXICANUM_VIEW}${id ? `&${ARTICLE_PARAM}=${encodeURIComponent(id)}` : ''}`;
+
+/** The state URL of the planet, or of the main planet when none is named. */
+export const stateUrl = (planet?: string): string =>
+  planet ? `/api/state?planet=${encodeURIComponent(planet)}` : '/api/state';
