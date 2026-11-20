@@ -1,9 +1,12 @@
-// The view „Freunde“ (#227): the friends with their contact and status, the
-// requests both ways, the form; every name escaped.
+// The view „Freunde“ (#227), as the component Friends renders it (#118, bundle
+// 7): the friends with their contact and status, the requests both ways, the
+// form; every name escaped.
 import { describe, expect, it } from 'vitest';
+import { friendsView } from '../../test/friends-view.ts';
+import { normalize } from '../../test/markup.ts';
 import type { GameState } from '../logic/types.ts';
 import type { V } from './common.ts';
-import { friends } from './friends.ts';
+import { ANEW, MOUNTED } from './mount.ts';
 
 const at = { g: 1, s: 2, p: 4, temp: 20, kind: 'planet' };
 
@@ -22,10 +25,15 @@ function view(friendState: GameState['friends']): string {
     },
     friends: friendState,
   } as unknown as GameState;
-  return friends({ s } as V);
+  return normalize(friendsView({ s } as V));
 }
 
 describe('the view „Freunde“', () => {
+  it('is a mounted view, mounted anew on every render', () => {
+    expect(MOUNTED.has('friends')).toBe(true);
+    expect(ANEW.has('friends')).toBe(true);
+  });
+
   it('lists each friend with name, guild tag, planet link, status and „Freundschaft beenden“', () => {
     const html = view({
       list: [
@@ -39,11 +47,11 @@ describe('the view „Freunde“', () => {
       '<table class="friends"><tr><th>Spieler</th><th>Gilde</th><th>Heimatplanet</th><th>Status</th><th></th>',
     );
     expect(html).toContain(
-      '<tr><td>Bert</td><td>[&lt;A&gt;]</td><td><span class="home">&lt;b&gt;Bertheim&lt;/b&gt;</span> <span class="lnk" data-act="gto" data-g="1" data-s="2">[1:2:4]</span></td>',
+      '<tr><td>Bert</td><td>[&lt;A>]</td><td><span class="home">&lt;b>Bertheim&lt;/b></span> <span class="lnk" data-act="gto" data-g="1" data-s="2">[1:2:4]</span></td>',
     );
     expect(html).toContain('<td><span class="good">online</span></td>');
     expect(html).toContain(
-      '<tr><td>Cora</td><td>-</td><td>-</td>\n  <td><span class="dim">offline</span></td>',
+      '<tr><td>Cora</td><td>-</td><td>-</td><td><span class="dim">offline</span></td>',
     );
     expect(html).toContain(
       '<button class="small red" data-act="friend" data-op="remove" data-uid="u_Cora">Freundschaft beenden</button>',
@@ -59,7 +67,7 @@ describe('the view „Freunde“', () => {
     });
     expect(html).toContain('<p>Du hast noch keine Freunde.</p>');
     expect(html).toContain(
-      '<div class="hd">Anfragen</div><div class="bd"><p>&lt;i&gt;Dora&lt;/i&gt; <button class="small" data-act="friend" data-op="accept" data-uid="u_Dora">Annehmen</button> <button class="small" data-act="friend" data-op="refuse" data-uid="u_Dora">Ablehnen</button></p>',
+      '<div class="hd">Anfragen</div><div class="bd"><p>&lt;i>Dora&lt;/i> <button class="small" data-act="friend" data-op="accept" data-uid="u_Dora">Annehmen</button> <button class="small" data-act="friend" data-op="refuse" data-uid="u_Dora">Ablehnen</button></p>',
     );
     expect(html).toContain(
       '<div class="hd">Deine Anfragen</div><div class="bd"><p>Cora <button class="small" data-act="friend" data-op="cancel" data-uid="u_Cora">Anfrage zurückziehen</button></p>',
@@ -78,7 +86,7 @@ describe('the view „Freunde“', () => {
     const html = view(undefined);
     expect(html).toContain('<h2>Freunde</h2>');
     expect(html).toContain(
-      '<form id="friendform" class="flex"><label for="friend_name">Name</label> <input id="friend_name" maxlength="20" required autocomplete="off"> <button type="submit">Freundschaft anfragen</button></form>',
+      '<form class="flex" id="friendform"><label for="friend_name">Name</label> <input autocomplete="off" id="friend_name" maxlength="20" required> <button type="submit">Freundschaft anfragen</button></form>',
     );
   });
 });

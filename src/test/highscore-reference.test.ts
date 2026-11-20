@@ -2,7 +2,7 @@
 // issue; each migration step changes no behaviour, owner, 2026-11-13). The
 // old view is frozen here: highscore() of src/client/views/misc.ts with
 // highscoreButtonsHTML() of logic/highscore.ts and homeCell() of
-// views/common.ts (which the buddy list still uses). On generated states
+// views/common.ts (removed with the buddy list, bundle 7). On generated states
 // (fixed fast-check seed 118) both render the same markup, up to what a
 // browser does not show (normalize() of markup.ts); hand-built cases reach
 // the rare marks. The markup stays the one the phone layout of style.css
