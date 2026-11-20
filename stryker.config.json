@@ -35,6 +35,6 @@
   "thresholds": { "high": 90, "low": 80, "break": 80 },
   "timeoutMS": 10000,
   "dryRunTimeoutMinutes": 15,
-  "concurrency": 4,
+  "concurrency": 2,
   "tempDirName": ".stryker-tmp"
 }
