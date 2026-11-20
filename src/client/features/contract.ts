@@ -3,6 +3,7 @@
 // its own in this folder and exports it as `clientFeature`; the list of all of
 // them is generated (scripts/gen-features.ts), so src/client/main.ts names no
 // feature and a new one edits no shared place.
+import type { GameState } from '../logic/types.ts';
 import type { Dialog } from '../modal.ts';
 
 /** The data attributes of the element a handler was called for. */
@@ -33,6 +34,10 @@ export interface ClientCtx {
   toast: (msg: string, err?: boolean) => void;
   /** Sets the value of an input, when it is there. */
   setInput: (sel: string, v: string | number) => void;
+  /** Takes over the state an answer of the server brought; the views render when it changed. */
+  apply: (state: GameState) => void;
+  /** The session is gone: back to the login, then stops the caller with an error. */
+  signedOut: (error: unknown) => never;
 }
 
 /** What a client feature exports as `clientFeature`. */

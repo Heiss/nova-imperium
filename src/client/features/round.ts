@@ -11,7 +11,7 @@ import {
   roundShown,
 } from '../../core/round.ts';
 import { client } from '../logic/state.svelte.ts';
-import { roundDialog } from '../views/misc.ts';
+import { roundDialog } from '../views/admin.ts';
 import type { ClientFeature } from './contract.ts';
 
 const field = (s: RoundSetting): HTMLInputElement | null =>

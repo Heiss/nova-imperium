@@ -1,0 +1,7 @@
+# One line per file, sorted (scripts/mutation-floorfile.ts): two branches that
+# add a floor at the same place keep both lines. A file that both branches
+# changed then has two lines; every reader refuses that by name, and the
+# order is fixed with `node scripts/mutation-floors.ts --format`. GitHub's own
+# merge ignores this line: a pull request whose floors conflict is merged
+# with main on the command line (okf/ops/testing.md).
+mutation-floors.txt merge=union

@@ -258,7 +258,7 @@ tasks).
   can read its usage other than from a notice is not checked].
 * **[E]** Local Stryker runs before a push only for changed logic files whose
   score is less than about 2 points above their floor in
-  `mutation-standard.json` (for example `economy.ts`, `settle.ts`,
+  `mutation-floors.txt` (for example `economy.ts`, `settle.ts`,
   `actions.ts`); data and interface files such as `catalog.ts` or
   `icons.ts` are left to the CI mutation job. A local run does not speed up
   the CI, which keeps its own incremental cache; it only saves a red run

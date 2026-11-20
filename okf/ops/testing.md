@@ -210,8 +210,8 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 * **[E]** A pull request runs the mutation jobs only when it changes what
   they test (owner, 2026-11-13, #146): a file of the `mutate` globs of
   `stryker.config.json`, a test file, or one of `stryker.config.json`,
-  `mutation-standard.json`, `vitest.config.ts`, `scripts/mutation-*.ts`
-  and `tsconfig.json`; or when its lockfile diff changes a version of
+  `mutation-standard.json`, `mutation-floors.txt`, `vitest.config.ts`,
+  `scripts/mutation-*.ts` and `tsconfig.json`; or when its lockfile diff changes a version of
   `@stryker-mutator/*`, `vitest` or `typescript`. Other dependency updates
   (Renovate, the fix of a security hotfix) and the `Dockerfile` skip them:
   the mutants and the tests stay the same, and lint, types, unit tests,
@@ -272,40 +272,103 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   `vitest.config.ts`, `scripts/mutation-*.ts`, `tsconfig.json`) or of the
   versions of Stryker, Vitest or TypeScript in the lockfile (the rule of
   #146) still runs everything in 6 shards; no file in the set means no
-  mutation job. A change of `mutation-standard.json` is no reason to run
-  everything while only its floors changed (see the next paragraph). Test files whose source the name
+  mutation job. A change of `mutation-floors.txt` is no reason to run
+  everything (see the next paragraph); a change of `mutation-standard.json`
+  is. Test files whose source the name
   does not find (78 of 212 on 2026-11-18: 8 tests of views whose component
   is not mutated, 23 in `src/test/`, 6 `*-reference` tests, 18 upgrade
   tests and 23 others such as `fleet.test.ts` or the mission tests) are
   still open (#309): until the owner decides a rule, their changes are
   tested by the nightly run.
-* **[V]** Floors in the partial run (the coordinator, 2026-11-18, #309):
-  almost every feature pull request adds or raises a floor in
-  `mutation-standard.json`, and the first three pull requests after #312
-  (#300, #306, #281) all ran the complete 6 shards because that file counts
-  as mutation configuration in #146, which defeated the partial run. Now,
-  when `mutation-standard.json` changes, `scripts/mutation-partial.ts`
-  reads it at the base and at the head (`git show <sha>:mutation-standard.json`)
-  and adds every file whose floor was added, changed (raised or lowered) or
-  removed to the set, when the file is in the `mutate` globs and exists at
-  the head: a pull request proves a new or raised floor in its own run, and a
-  file whose floor entry was removed is checked against the new-file minimum.
-  „Only the floors changed“ means exactly: both texts are JSON objects with
-  exactly the keys `floors`, `newFile`, `security` and `securityTarget`
-  (`Standard` of `scripts/mutation-gate.ts`), every floor is a number, and
-  `newFile`, `security` (compared as JSON, so a changed order counts) and
-  `securityTarget` are equal on both sides. Anything else in the file (another
-  value of those keys, another key, a missing key, a floor that is no
-  number), a file that is missing or not parsable at either side, or another
-  file of the mutation configuration changed at the same time runs
-  everything in 6 shards. `mutation-standard.json` stays a mutation
-  configuration for the complete runs: the pull request into a hotfix
-  branch, the release pull request of a hotfix branch and the takeover of
-  #167 (`reason` of `scripts/mutation-changes.ts`) run as before. A lowered
-  floor is not refused by anything today (the gate and `--update` only
-  never lower one when they write; the file itself is checked by no test):
-  it joins the partial set and is checked against its new, lower value.
-  Nothing was built against it.
+* **[V]** Floors in the partial run (the coordinator, 2026-11-18, #309,
+  form of 2026-11-19, #317 part 4): almost every feature pull request
+  raised or added a floor, and the first three pull requests after #312
+  (#300, #306, #281) all ran the complete 6 shards because the file of the
+  floors counted as mutation configuration in #146, which defeated the
+  partial run. Now, when `mutation-floors.txt` changes,
+  `scripts/mutation-partial.ts` reads it at the base and at the head
+  (`git show <sha>:mutation-floors.txt`) and adds every file whose floor
+  was added, changed (raised or lowered) or removed to the set, when the
+  file is in the `mutate` globs and exists at the head: a pull request
+  proves a new or raised floor in its own run, and a file whose floor
+  entry was removed is checked against the new-file minimum. The file holds
+  nothing but floors (the format below), so every change of it is a change
+  of floors. A line that is not `<file> <floor>`, a file with two lines, or
+  a file that is missing at either side (the change that introduces it, so
+  once) runs everything in 6 shards, as does another file of the mutation
+  configuration changed at the same time, `mutation-standard.json`
+  (`newFile`, `security`, `securityTarget`) included. `mutation-floors.txt`
+  stays a mutation configuration for the complete runs: the pull request
+  into a hotfix branch, the release pull request of a hotfix branch and the
+  takeover of #167 (`reason` of `scripts/mutation-changes.ts`) run as
+  before. A lowered floor is not refused by anything today (the file is
+  checked by `src/test/mutation-floorfile.test.ts` for its form only, and
+  the people who write floors never lower one): it joins the partial set
+  and is checked against its new, lower value. Nothing was built against it.
+* **[V]** The floors in `mutation-floors.txt`, not in `mutation-standard.json`
+  (#317 part 4; the owner's line is „one line per file, merged by union“,
+  2026-11-19; the exact form is the builder's [V]): one line per file, `<path> <floor>`
+  with a single space, sorted by path (plain code-unit order, as `sort()`),
+  nothing else, a newline at the end, a floor as the shortest number
+  (`93.4`, not `93.40`). `mutation-standard.json` keeps `securityTarget`,
+  `newFile` and `security` and refuses a `floors` key. Two branches that add
+  or change floors of different files change different lines, and git merges
+  them without a conflict, unless both insert at the same place or at the
+  end of the file; `.gitattributes` has `mutation-floors.txt merge=union`
+  for that case: the merge keeps the lines of both sides, so two new files
+  at one place are both there, and a file that both sides changed (or whose
+  line lay next to a line the other side added) has two lines. That is
+  never silently resolved: `scripts/mutation-floorfile.ts` refuses a file
+  with two lines by its name and both floors, the gate, the partial plan,
+  `scripts/mutation-floors.ts` and a unit test of the real file all read it
+  through that function, and the same test fails a file that is not sorted
+  (two new lines at one place come out in the order of the two branches).
+  After a merge that touched the file run `node scripts/mutation-floors.ts
+  --format`: it sorts the file, or names the file with two lines; keep the
+  line of main or the higher one, never a value below main's, and delete
+  the other. Where one side changed a floor and the other removed it, the
+  merge keeps the changed line; a floor of a file that is gone is harmless
+  (nothing is checked against it) and is dropped by the next run of
+  `scripts/mutation-floors.ts`. GitHub's own merge ignores
+  `.gitattributes`, so a pull request whose floors conflict is brought up
+  to date with a local `git merge main`. A branch does not write floors
+  (next paragraph), so it does not conflict here in practice.
+* **[E]** Floors come from the merged report of a complete CI run only
+  (owner, 2026-11-19, #304, option 1): the report of the shards after
+  `scripts/mutation-shards.ts merge`, kept as the artifact `mutation-report`
+  (30 days) by the nightly run (`mutation.yml`) and by the complete run of a
+  pull request or a push (`ci.yml`, job „Mutation tests“). A local Stryker
+  run, a partial run and an incremental one are no source of floors: the
+  load of the machine bends them (a timeout counts as killed), and the
+  report of one Stryker run has `config` and `testFiles`, which the script
+  refuses. The main agent writes the floors:
+  `gh run list --workflow mutation.yml --branch <branch> --limit 5`,
+  `gh run download <run-id> -n mutation-report -D reports/ci`, a checkout of
+  the commit of that run (`gh run view <run-id> --json headSha`), then
+  `node scripts/mutation-floors.ts reports/ci/mutation.json` (`--dry-run`
+  first to read the changes). A session whose proxy does not open the
+  storage host of the artifacts (`productionresultssa<N>.blob.core.windows.net`,
+  seen on 2026-11-20 for the artifacts of the run 44619270864; the job logs
+  come from `api.github.com` and work) takes the numbers from the log of the
+  gate step, which prints every file of the merged report with its score:
+  `gh run view <run-id> --json jobs --jq '.jobs[] | select(.name ==
+  "Mutation tests (complete)") | .databaseId'`, `gh api
+  repos/<owner>/<repo>/actions/jobs/<job-id>/logs > reports/ci/gate.log`
+  (the job is „Mutation tests“ in a complete run of `ci.yml`), then `node
+  scripts/mutation-floors.ts --log reports/ci/gate.log`. The log of a
+  partial run or of no gate step is refused. The script adds the measured score of a file
+  without a floor (rounded down to two decimals, as the gate counts it),
+  raises the floor of a file whose score is higher, and drops the floor of
+  a file that no longer exists; it keeps the floor of a file the report
+  leaves out. A file below its floor, or below the minimum of a new file
+  (80 %) or a new security file (90 %), stops it: it lists those files and
+  writes nothing, because a floor never goes down and the tests are to be
+  raised, not the report ignored. The floors of a complete run are then
+  committed in their own commit; the pull request proves them in its run
+  (the partial rule above, a complete run above 12 files). A builder
+  records no floor and adds no line for a new file. `node
+  scripts/mutation-gate.ts --update` is gone (it stops with this rule);
+  the gate only checks.
 * **[V]** The job „Mutation tests (changed files)“ (`mutation-partial` in
   `ci.yml`, #309): `needs: changes`, runs when the output `mutation` is
   `partial` and reads the list from the output `mutation-files`. It mutates
@@ -318,7 +381,7 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   weight), and then runs `node scripts/mutation-gate.ts --partial`: Stryker
   ran exactly the files of the set (its `mutate` list in the report, as the
   merge of the shards checks it) and no other file is in the report, and
-  each file is at or above its floor in `mutation-standard.json`, a file
+  each file is at or above its floor in `mutation-floors.txt`, a file
   without a floor at 80 % (a new security file 90 %); no total score, which
   says nothing over a few files. Stryker leaves a file without mutants (a
   `types.ts`) out of its report, so a file of the set missing in the report
@@ -409,7 +472,7 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
 * **[E]** Display texts are not mutation-tested (owner, 2026-11-12, #131):
   the names, abbreviations, short and long texts of the catalog and the
   mission names live in `src/core/texts.ts`, which Stryker leaves out
-  (`stryker.config.json`); it has no floor in `mutation-standard.json`.
+  (`stryker.config.json`); it has no floor in `mutation-floors.txt`.
   Since #113 the texts of each catalog entry live in
   `src/features/<key>/texts.de.ts`, which Stryker leaves out the same way
   (owner, 2026-11-13); `src/core/texts.ts` keeps the mission names, and the
@@ -629,6 +692,24 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   view (`misc.test.ts`) run on the component through
   `src/test/options-view.ts`; the pure page has its tests in
   `logic/options.test.ts`.
+* **[V]** „Admin“, the login and the round archive of #118, bundle 7:
+  `src/test/admin-reference.test.ts` keeps `Admin`, `RoundDialog` and
+  `EndzeitDialog` equal to the HTML before (frozen there: `admin()`,
+  `settingsForm()`, `invitations()`, `roundDialog()`, `endzeitDialog()`),
+  `src/test/auth-reference.test.ts` the login screens (`auth()`) and
+  `src/test/round-archive-reference.test.ts` `RoundArchive` (frozen in
+  `src/test/archive-frozen.ts`, which `options-reference.test.ts` uses too),
+  each on 300 generated states (seed 118) with `normalize()` and
+  `textContents()` and hand-built cases (a used-up Endzeit, a round trip that
+  gains, a hidden conditional field, a custom registry with a note, group
+  preview and selection, every kind of round and report, every screen of the
+  login). The text of a fieldset, a paragraph or a wrapper of the dialog is
+  compared without spaces (the old template put its indentation there);
+  every label, field and note is compared exactly. `textContents()` now
+  leaves out `<tbody>` and `normalize()` reads `readonly` as a boolean. The
+  tests of the dialog and the panel (`views/misc.test.ts`, `holding.test.ts`,
+  `market.test.ts`) run on the components through `src/test/admin-view.ts`;
+  the handlers have `features/admin.test.ts` and `features/login.test.ts`.
 * **[V]** „Gilden“ of #118, bundle 6: the property test
   `src/test/guilds-reference.test.ts` keeps the components equal to the HTML
   before (frozen there: `guilds()` with its helpers, `transferDialog()`,
@@ -712,12 +793,15 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   it compares everything bit for bit and checks that the generated battles
   roll chances and form moons (owner, 2026-11-14, #53).
 * **[E]** Mutation standard per file (owner, 2026-11-11,
-  `mutation-standard.json`, `scripts/mutation-gate.ts`): no file may fall
-  below its recorded floor; a new file needs 80 %, a new security file 90 %.
-  Security files (authentication, sessions, passkeys, admin rights,
-  moderation, account deletion, audit, request limits) aim for 90 %; the
-  pull request that adds tests raises the floors with
-  `node scripts/mutation-gate.ts --update`. Floors never go down.
+  `mutation-standard.json`, `mutation-floors.txt`,
+  `scripts/mutation-gate.ts`): no file may fall below its recorded floor; a
+  new file needs 80 %, a new security file 90 %. Security files
+  (authentication, sessions, passkeys, admin rights, moderation, account
+  deletion, audit, request limits) aim for 90 %. The floors are raised from
+  the merged report of a complete CI run with
+  `node scripts/mutation-floors.ts` (owner, 2026-11-19, #304; before, the
+  pull request that added tests raised them with
+  `mutation-gate.ts --update` from a local run). Floors never go down.
 * **[E]** Coverage blocks below 90 % of the lines and 85 % of the branches.
 * **[E]** ESLint blocks: cyclomatic complexity ≤ 10, cognitive complexity
   (sonarjs) ≤ 10, nesting ≤ 4, functions ≤ 50 lines (tests are free of the
@@ -802,20 +886,38 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   snapshot (`src/server/db/schema.snapshot.sql`) shows the resulting schema in
   the review. See [SQLite storage](/data/sqlite.md).
 * **[E]** Size ratchet of `src/client/main.ts` (#242, owner,
-  2026-11-16): `main.ts` must not grow while #118 takes it apart. Its
-  allowed line count is stored in `size-ratchet.json`, and only goes down.
+  2026-11-16; form of 2026-11-19, #317 part 4: „lowered on main only“):
+  `main.ts` must not grow while #118 takes it apart. It must not have more
+  lines than it has on its base, the branch it goes into: no file holds a
+  limit any more (`size-ratchet.json` is deleted), so no branch edits a
+  number and two branches that shrink `main.ts` do not conflict for it.
   `scripts/size-ratchet.ts` (`pnpm lint:size`, part of `pnpm check` and of
   the CI job „Lint, types, unit tests with coverage, build“, so of the CI
-  Gate) fails when `main.ts` has more lines than the limit („move the code
-  into a module or component (#118)“), and also when it has fewer and the
-  limit was not lowered to the new count („Lower the limit in
-  size-ratchet.json to N“): whoever shrinks `main.ts`, every #118 pull
-  request included, lowers the limit in the same change, and the freed
-  lines never come back. A feature that needs client code puts it into its
-  own module, not into `main.ts`. Only `main.ts` has a limit. Lines are
-  counted as `wc -l` counts them, after Prettier, since `format:check` runs
-  anyway [V]; the starting limit is the count on `main` when the pull
-  request of #242 was created.
+  Gate) counts the lines of the working tree file and of the file on the
+  base and fails when the file has more („move the code into a module or
+  component (#118)“); fewer is fine and needs nothing. The base is
+  `HEAD^1` in the CI (the job checks out two commits): the first parent is
+  main for the merge commit that a pull request is tested as, so the
+  check measures what this pull request changes and does not blame it for
+  what main shrank after the branch started; for a push it is the commit
+  before. Locally (`pnpm lint:size` without an argument) it is the merge
+  base with `origin/main`, and the check is skipped when `origin/main` is
+  not fetched; `node scripts/size-ratchet.ts <commit>` takes another base.
+  The limit goes down by merge: the pull request that shrinks `main.ts`
+  merges, `main` has the smaller file, and every later change is measured
+  against it, so the freed lines never come back. What a branch does: keep
+  `main.ts` at or below its length at the fork point (a feature puts its
+  code into its own module); if it moves code out, it just commits the
+  smaller `main.ts`, with no number to set. A feature that needs client
+  code puts it into its own module, not into `main.ts`. Only `main.ts` is
+  limited. Lines are counted as `wc -l` counts them, after Prettier, since
+  `format:check` runs anyway [V]. Two pull requests whose changes of
+  `main.ts` do not conflict in git cannot add up to growth: each is at or
+  below its base, so the sum of their changes is at most zero. The change
+  of #317 part 4 removed the exact-equality rule (a smaller `main.ts` no
+  longer fails until the limit is lowered): that rule needed the file with
+  the number, and its job, to keep the freed lines from coming back, is
+  done by the base moving down.
 
 # Kinds of tests in this project
 

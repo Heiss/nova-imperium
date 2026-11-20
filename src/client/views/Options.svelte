@@ -13,6 +13,7 @@
   import { OPTION_SECTIONS } from '../logic/phone-options.ts';
   import { phoneOptions } from '../logic/phone-options.svelte.ts';
   import Box from './Box.svelte';
+  import RoundArchive from './RoundArchive.svelte';
 
   let { page }: { page: OptionsPage } = $props();
 </script>
@@ -91,7 +92,9 @@
       <button type="button" data-act="reloadOwnActivity">Aktualisieren</button>
     </p>
   </Box>
-  <Box title="Rundenarchiv" section="round">{@html page.archive}</Box>
+  <Box title="Rundenarchiv" section="round"
+    ><RoundArchive page={page.archive} /></Box
+  >
   <Box title="Darstellung" section="device">
     <label class="switch"
       ><input type="checkbox" id="o_anim" checked={page.animations} /> Animationen</label

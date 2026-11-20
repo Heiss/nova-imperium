@@ -106,6 +106,7 @@ describe('mutation changes: the files', () => {
     for (const file of [
       'stryker.config.json',
       'mutation-standard.json',
+      'mutation-floors.txt',
       'vitest.config.ts',
       'scripts/mutation-gate.ts',
       'scripts/mutation-shards.ts',
@@ -145,7 +146,7 @@ describe('mutation changes: the files', () => {
 
   it('counts every mutation script as configuration', () => {
     const scripts = globSync('scripts/mutation-*.ts');
-    expect(scripts.length).toBe(5);
+    expect(scripts.length).toBe(7);
     for (const file of scripts.map((f) => f.split('\\').join('/')))
       expect(reason(file, mutate)).toBe(`${file} configures the mutation run`);
     expect(MUTATION_CONFIG).toContain('scripts/mutation-*.ts');

@@ -26,7 +26,7 @@ import type { Coords } from './types.ts';
 export type SurveyTier = 'rough' | 'near' | 'exact' | 'full';
 
 /** The lowest score of each tier above the rough report, highest first. */
-const TIERS: readonly (readonly [number, SurveyTier])[] = [
+export const TIERS: readonly (readonly [number, SurveyTier])[] = [
   [10, 'full'],
   [7, 'exact'],
   [4, 'near'],
@@ -219,6 +219,12 @@ export const CENTRED: NearShift = { fields: 0.5, temp: 0.5 };
 export const nearShift = (tier: SurveyTier, rng: Rng): NearShift =>
   tier === 'near' ? { fields: rng(), temp: rng() } : CENTRED;
 
+/** The half width of the window of the fields at tier `near`, as a share of them (D2). */
+export const NEAR_FIELDS = 0.2;
+
+/** The half width of the window of the temperature at tier `near`, in °C (D2). */
+export const NEAR_TEMP = 10;
+
 /**
  * The exact value, or at tier `near` a window of the width 2 · `by` with
  * the share `shift` of it below the value. The value is a whole number, so
@@ -263,8 +269,8 @@ export function surveyFindings(
   };
   if (tier === 'rough') return out;
   const fields = fieldsOf(v.diameter);
-  out.fields = span(tier, fields, fields * 0.2, shift.fields);
-  out.temp = span(tier, v.temp, 10, shift.temp);
+  out.fields = span(tier, fields, fields * NEAR_FIELDS, shift.fields);
+  out.temp = span(tier, v.temp, NEAR_TEMP, shift.temp);
   if (tier !== 'full') return out;
   const cmp = compare(fields, average);
   out.full = {

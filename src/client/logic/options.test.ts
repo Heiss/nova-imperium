@@ -48,21 +48,21 @@ describe('the page „Optionen“', () => {
   });
 
   it('shows the archive that was read for this account and round only', () => {
-    expect(optionsPage(view()).archive).toBe(
-      '<p class="dim">Das Archiv wird geladen …</p>',
-    );
+    expect(optionsPage(view()).archive.body).toEqual({ kind: 'loading' });
     Object.assign(archive, {
       user: 'u_me',
       round: 2,
       entries: [],
       history: [],
     });
-    expect(optionsPage(view()).archive).toContain(
-      'Noch keine Runde im Archiv.',
-    );
+    expect(optionsPage(view()).archive.body).toEqual({
+      kind: 'list',
+      rounds: [],
+      history: [],
+    });
     const other = view();
     other.s.me.id = 'u_other';
-    expect(optionsPage(other).archive).toContain('Das Archiv wird geladen');
+    expect(optionsPage(other).archive.body).toEqual({ kind: 'loading' });
   });
 
   it('shows the push kinds on a server with Web Push only, the pending choice first', () => {

@@ -201,7 +201,7 @@ export function strike(
 const STORED: readonly string[] = Object.keys(MISSILE);
 
 /** The structure of one piece: (Adamant + Psikristall) / 10, as in a battle. */
-const hullOf = (key: string): number =>
+export const hullOf = (key: string): number =>
   strength({
     kind: 'defense',
     unit: { cost: DEF[key]!.cost },

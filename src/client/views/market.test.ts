@@ -12,7 +12,10 @@ import { previewHTML, targetOptions } from '../logic/market-page.ts';
 import type { GameState } from '../logic/types.ts';
 import type { V } from './common.ts';
 import { menu } from './index.ts';
-import { admin, roundDialog } from './misc.ts';
+import {
+  adminMarkup as admin,
+  roundDialogMarkup as roundDialog,
+} from '../../test/admin-view.ts';
 import { ANEW, MOUNTED } from './mount.ts';
 
 const market = (v: V): string => normalize(marketView(v));
@@ -170,21 +173,31 @@ describe('the settings of the marketplace in the dialog and the admin panel', ()
       marketMc: 700,
       marketOn: 0,
     } as never);
-    expect(html).toContain('<fieldset><legend>Marktplatz</legend>');
+    expect(html).toContain(normalize('<fieldset><legend>Marktplatz</legend>'));
     expect(html).toContain(
-      '<label for="round-market-on">Marktplatz aktiv</label> <select id="round-market-on"><option value="1">Ja</option><option value="0" selected>Nein</option></select>',
+      normalize(
+        '<label for="round-market-on">Marktplatz aktiv</label> <select id="round-market-on"><option value="1">Ja</option><option value="0" selected>Nein</option></select>',
+      ),
     );
     expect(html).toContain(
-      '<label for="round-market-fee">Marktplatz Gebühr auf Stufe 1 des Handelspostens (Prozent)</label> <input type="number" id="round-market-fee" min="0" max="100" step="1" value="10" required> <span class="dim">0 bis 100</span>',
+      normalize(
+        '<label for="round-market-fee">Marktplatz Gebühr auf Stufe 1 des Handelspostens (Prozent)</label> <input type="number" id="round-market-fee" min="0" max="100" step="1" value="10" required> <span class="dim">0 bis 100</span>',
+      ),
     );
     expect(html).toContain(
-      'id="round-market-fee-step" min="0" max="100" step="1" value="1"',
+      normalize(
+        '<input type="number" id="round-market-fee-step" min="0" max="100" step="1" value="1" required>',
+      ),
     );
     expect(html).toContain(
-      '<label for="round-market-mc">Marktplatz Adamant → Psikristall (Psikristall je 1.000 Adamant)</label> <input type="number" id="round-market-mc" min="1" max="100000" step="1" value="700" required> <span class="dim">1 bis 100000</span>',
+      normalize(
+        '<label for="round-market-mc">Marktplatz Adamant → Psikristall (Psikristall je 1.000 Adamant)</label> <input type="number" id="round-market-mc" min="1" max="100000" step="1" value="700" required> <span class="dim">1 bis 100000</span>',
+      ),
     );
     expect(html).toContain(
-      'id="round-market-limit" min="0" max="10000000" step="1" value="100000"',
+      normalize(
+        '<input type="number" id="round-market-limit" min="0" max="10000000" step="1" value="100000" required>',
+      ),
     );
   });
 

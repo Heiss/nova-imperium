@@ -16,7 +16,11 @@ import { levelChoices } from './level-mode.ts';
 import { type MainPlanetBox, mainPlanetBox } from './main-planet.ts';
 import { type PushKind, pushKinds, shownPushOff } from './push-options.ts';
 import { reportContextText } from './error-report.ts';
-import { archiveHTML, shownArchive } from './round-archive.ts';
+import {
+  type ArchivePage,
+  archivePage,
+  shownArchive,
+} from './round-archive.ts';
 import { vacationIntro } from './vacation.ts';
 
 /** The article of the Lexicanum that replaced the box „Regeln dieses Universums“ (#288, B4). */
@@ -45,8 +49,8 @@ export interface OptionsPage {
   main: MainPlanetBox;
   /** The first paragraph of the box „Urlaubsmodus“. */
   vacation: string;
-  /** The content of the box „Rundenarchiv“ as markup (logic/round-archive.ts, shared with the admin). */
-  archive: string;
+  /** The content of the box „Rundenarchiv“ (logic/round-archive.ts, shared with the admin). */
+  archive: ArchivePage;
   animations: boolean;
   /** The shortest password the server takes, once it has said so. */
   passwordMinLength: number | undefined;
@@ -68,7 +72,7 @@ export function optionsPage(v: V): OptionsPage {
     levels: levelChoices(s.me.levelTable),
     main: mainPlanetBox(s, v.now),
     vacation: vacationIntro(s.round.vacationHours),
-    archive: archiveHTML(shownArchive(s)),
+    archive: archivePage(shownArchive(s)),
     animations: !!ui.animations,
     passwordMinLength: ui.passwordMinLength,
     pushKinds: pushKinds(

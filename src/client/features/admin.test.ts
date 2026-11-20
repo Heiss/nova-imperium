@@ -5,9 +5,19 @@ import { clientFeature } from './admin.ts';
 import { fakeCtx } from './test-ctx.ts';
 
 // The markup of the dialog is tested with the views.
-vi.mock('../views/misc.ts', () => ({
+vi.mock('../views/admin.ts', () => ({
   endzeitDialog: (minutes: number) => `endzeit:${minutes}`,
 }));
+
+// The panels of the page fill themselves from the server (views/admin-panel.ts).
+const panel = vi.hoisted(() => ({
+  adminTabKey: vi.fn(),
+  bindAdminPanel: vi.fn(),
+  forgetAdminPanel: vi.fn(),
+  openAdminTab: vi.fn(),
+  refreshInvitations: vi.fn(),
+}));
+vi.mock('../views/admin-panel.ts', () => panel);
 
 let fields: Record<string, { value: string; select?: () => void }>;
 let listeners: Record<string, ((e: Event) => void)[]>;
@@ -206,5 +216,156 @@ describe('copying the invitation link', () => {
     await acts(ctx).copyLink();
     expect(writeText).not.toHaveBeenCalled();
     expect(ctx.toast).not.toHaveBeenCalled();
+  });
+});
+
+describe('the tabs and the invitations', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('opens a tab of the page and ignores a name that is none', () => {
+    acts().adminTab!({ tab: 'errors' });
+    expect(panel.openAdminTab).toHaveBeenCalledWith('errors');
+    acts().adminTab!({ tab: 'nope' });
+    acts().adminTab!({});
+    expect(panel.openAdminTab).toHaveBeenCalledTimes(1);
+  });
+
+  it('gives the panels the calls of the frame and listens for the arrow keys', () => {
+    const ctx = fakeCtx();
+    acts(ctx);
+    expect(panel.bindAdminPanel).toHaveBeenCalledWith(ctx);
+    expect(listeners.keydown).toContain(panel.adminTabKey);
+  });
+
+  it('loads the list of the invitations again after revoking one', async () => {
+    const ctx = fakeCtx({
+      api: vi.fn(async () => ({ state: { me: { id: 'u_a' } } })),
+    });
+    await acts(ctx).revoke!({ id: 'i1' });
+    expect(ctx.api).toHaveBeenCalledWith('/api/admin/revoke', { id: 'i1' });
+    expect(ctx.apply).toHaveBeenCalledWith({ me: { id: 'u_a' } });
+    expect(panel.refreshInvitations).toHaveBeenCalled();
+  });
+
+  it('shows a refusal of revoking as a note and loads nothing', async () => {
+    const ctx = fakeCtx({
+      api: vi.fn(async () => {
+        throw new Error('Nicht gefunden.');
+      }),
+    });
+    await acts(ctx).revoke!({ id: 'i1' });
+    expect(ctx.toast).toHaveBeenCalledWith('Nicht gefunden.', true);
+    expect(panel.refreshInvitations).not.toHaveBeenCalled();
+  });
+
+  it('invites, shows the link once and says whether the mail went out', async () => {
+    fields['#inv_email'] = { value: ' a@b.de ' };
+    const ctx = fakeCtx({
+      api: vi.fn(async () => ({
+        state: { me: { id: 'u_a' } },
+        link: 'https://x/#invite=n',
+        msg: 'Einladung erstellt, die Mail ging nicht raus.',
+        mailed: false,
+      })),
+    });
+    await clientFeature.forms(ctx).inviteform!();
+    expect(ctx.api).toHaveBeenCalledWith('/api/admin/invite', {
+      email: 'a@b.de',
+    });
+    expect(ctx.toast).toHaveBeenCalledWith(
+      'Einladung erstellt, die Mail ging nicht raus.',
+      true,
+    );
+    expect(client.ui.lastLink).toBe('https://x/#invite=n');
+    expect(ctx.render).toHaveBeenCalledWith(true);
+    expect(panel.refreshInvitations).toHaveBeenCalled();
+  });
+
+  it('shows no link after a refusal', async () => {
+    client.ui.lastLink = null;
+    fields['#inv_email'] = { value: 'a@b.de' };
+    const ctx = fakeCtx({
+      api: vi.fn(async () => {
+        throw new Error('Schon eingeladen.');
+      }),
+    });
+    await clientFeature.forms(ctx).inviteform!();
+    expect(ctx.toast).toHaveBeenCalledWith('Schon eingeladen.', true);
+    expect(client.ui.lastLink).toBeNull();
+    expect(ctx.render).not.toHaveBeenCalled();
+  });
+});
+
+describe('the message to all players', () => {
+  beforeEach(() => vi.clearAllMocks());
+  const confirm = vi.fn();
+  beforeEach(() => {
+    confirm.mockReset();
+    vi.stubGlobal('window', { confirm });
+    fields['#announce-text'] = { value: 'Wartung um 22 Uhr' };
+  });
+
+  it('sends nothing unless the admin confirms', async () => {
+    confirm.mockReturnValue(false);
+    const ctx = fakeCtx();
+    await clientFeature.forms(ctx).announceform!();
+    expect(ctx.api).not.toHaveBeenCalled();
+  });
+
+  it('sends the text, clears the field and names the number of players', async () => {
+    confirm.mockReturnValue(true);
+    const ctx = fakeCtx({ api: vi.fn(async () => ({ recipients: 4 })) });
+    await clientFeature.forms(ctx).announceform!();
+    expect(ctx.api).toHaveBeenCalledWith('/api/admin/announce', {
+      message: 'Wartung um 22 Uhr',
+    });
+    expect(ctx.setInput).toHaveBeenCalledWith('#announce-text', '');
+    expect(ctx.toast).toHaveBeenCalledWith(
+      'Servernachricht für 4 Spieler veröffentlicht.',
+    );
+  });
+
+  it('keeps the text after a refusal and sends again later', async () => {
+    confirm.mockReturnValue(true);
+    const failing = fakeCtx({
+      api: vi.fn(async () => {
+        throw new Error('Zu lang.');
+      }),
+    });
+    await clientFeature.forms(failing).announceform!();
+    expect(failing.toast).toHaveBeenCalledWith('Zu lang.', true);
+    expect(failing.setInput).not.toHaveBeenCalled();
+    const again = fakeCtx({ api: vi.fn(async () => ({ recipients: 1 })) });
+    await clientFeature.forms(again).announceform!();
+    expect(again.api).toHaveBeenCalled();
+  });
+
+  it('does not send a second time while the first one is on its way', async () => {
+    confirm.mockReturnValue(true);
+    let finish!: (r: Record<string, unknown>) => void;
+    const slow = fakeCtx({
+      api: vi.fn(
+        () => new Promise<Record<string, unknown>>((r) => (finish = r)),
+      ),
+    });
+    const first = clientFeature.forms(slow).announceform!();
+    await clientFeature.forms(slow).announceform!();
+    expect(slow.api).toHaveBeenCalledTimes(1);
+    finish({ recipients: 2 });
+    await first;
+  });
+});
+
+describe('the panels of the page', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('are kept while the admin stays on the page and dropped when the page is left', () => {
+    client.game!.me = { id: 'u_a', admin: true } as GameState['me'];
+    client.ui.view = 'admin';
+    clientFeature.afterRender();
+    expect(panel.forgetAdminPanel).not.toHaveBeenCalled();
+    client.ui.view = 'overview';
+    clientFeature.afterRender();
+    expect(panel.forgetAdminPanel).toHaveBeenCalledTimes(1);
   });
 });

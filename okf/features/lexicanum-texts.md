@@ -579,6 +579,23 @@ code and here in the same pull request.
 * **[V]** Table: „Durchmesser in km | Verlust“
 * **[V]** Keywords: Mond, Trabant, Zitadelle, Phalanx, zerbrechen
 
+### Warp-Tor und Auspex-Phalanx (`rule-gates`)
+
+* **[V]** Line: „Wie Schiffe zwischen eigenen Monden springen, wie lange die Tore danach abkühlen und was ein Scan der Auspex-Phalanx zeigt.“
+* **[V]** Heading: „Der Sprung“
+* **[V]** Text: „Das Warp-Tor steht nur auf einem Mond. Ein Sprung geht vom Tor des Mondes, auf dem du gerade bist, zu einem anderen eigenen Mond, auf dem ein Warp-Tor bereit ist. Er verlegt Schiffe sofort und ohne Treibstoff; Rohstoffe bleiben zurück. Es springen nur Schiffe, die fliegen können, also keine Sonnenreliquiare, und du wählst sie aus, höchstens so viele, wie auf dem Mond stehen. Flotten anderer Spieler, die dort Wache halten, bleiben und verteidigen weiter (Wache stellen und Verbandsangriff).“
+* **[V]** Text: „Geprüft wird in dieser Reihenfolge: zuerst das Starttor (ein Mond, ein Tor darauf, nicht in Abkühlung), dann das Ziel (ein anderer eigener Mond mit einem Tor, das nicht in Abkühlung ist), dann die Schiffe (mindestens eines, alle fliegend).“
+* **[V]** Heading: „Wartezeit nach dem Sprung“
+* **[V]** Text: „Nach einem Sprung kühlen beide Tore ab, das Starttor und das Zieltor, und zwar so lange, wie die Stufe des Starttors es verlangt; die Stufe des Zieltors ändert nichts daran. Die Zeit sinkt mit der Stufe, aber nicht gleichmäßig, und ab einer Stufe nicht mehr. Die Minuten der Tabelle teilt das Universum durch sein Tempo; ein schnelleres kühlt die Tore also schneller ab. Solange ein Tor abkühlt, kann es weder starten noch Ziel eines Sprungs sein.“
+* **[V]** Formula: „Wartezeit in Minuten = Minuten der Tabelle für die Stufe des Starttors ÷ Geschwindigkeit des Universums“
+* **[V]** Table: „Wartezeit nach der Stufe des Starttors“
+* **[V]** Table: „Stufe | Minuten | Zeit in diesem Universum“
+* **[V]** Heading: „Der Scan der Auspex-Phalanx“
+* **[V]** Text: „Die Auspex-Phalanx steht nur auf einem Mond. Von dort scannst du einen fremden Planeten in Reichweite: Sie zeigt alle Flüge von und zu diesem Planeten, von jedem Spieler, nach Ankunft geordnet, mit Schiffen, Herkunft, Ziel und Ankunft, aber ohne Ladung, Besitzer, Auftrag und Treibstoff. Eine Flotte, die dort Wache hält, zeigt sich als haltend, mit dem Ende ihrer Haltezeit. Flüge des Mondes dieses Planeten gehören nicht dazu. Ein Scan kostet 5.000 Promethium auf dem Mond, auch wenn gerade nichts fliegt. Der gescannte Spieler bekommt keinen Bericht und erfährt nichts davon.“
+* **[V]** Text: „Die Reichweite zählt in Systemen, nur in der Galaxie des Mondes und ohne Umlauf um ihr Ende; die Tabelle dazu steht unter Monde. Nicht scannen lassen sich Monde, eigene Planeten und freie Positionen. Auch diese Ablehnungen und ein Ziel außer Reichweite kosten nichts.“
+* **[V]** Formula: „Reichweite in Systemen = Stufe² − 1“
+* **[V]** Keywords: Warp, springen, Scan, Wartezeit, Phalanx
+
 ### Planeten und Felder (`rule-planets`)
 
 * **[V]** Line: „Wie viele Gebäudestufen ein Planet fasst, wie groß und warm eine neue Kolonie wird und wie du eine Stufe zurückbaust.“
@@ -604,7 +621,7 @@ code and here in the same pull request.
 * **[V]** Heading: „Eine Kolonie gründen“
 * **[V]** Text: „Eine Kolonie gründest du mit einer Kolonistenarche und dem Auftrag Landnahme. Das Ziel muss eine freie Position sein: Eine Position, an der eine Kolonie aufgegeben wurde, bleibt für jede Landnahme eine Zeit lang gesperrt, und die Expeditionsposition am Rand jedes Systems lässt sich nie besiedeln. Ist die Position bei der Ankunft nicht mehr frei, kehrt die Flotte mit ihrer Ladung um. Die Arche bleibt in der neuen Kolonie, und die Ladung der Flotte wird ihr erster Vorrat. Größe und Temperatur der Kolonie stehen unter Planeten und Felder; eine Vermessung zeigt sie vorher und hält sie 30 Tage fest.“
 * **[V]** Heading: „Die Planetengrenze“
-* **[V]** Text: „Der Admin kann für die Runde festlegen, wie viele Planeten ein Spieler besitzen darf, der Heimatplanet eingerechnet. Monde zählen nicht mit, und eine Landnahme, die noch unterwegs ist, belegt ihren Platz schon beim Start. Kommt eine Flotte an, wenn die Grenze erreicht ist, kehrt sie mit der Arche und ihrer Ladung zurück. Auf Wunsch des Admins gibt es die Forschung Kolonialverwaltung, die die Grenze um einige Planeten je Stufe anhebt, nie über 20 Planeten insgesamt. Ohne diese Einstellung gibt es keine Grenze.“
+* **[V]** Text: „Der Admin kann für die Runde festlegen, wie viele Planeten ein Spieler besitzen darf, der Heimatplanet eingerechnet. Monde zählen nicht mit. Beim Start einer Landnahme zählen deine Planeten und die Landnahmen, die schon unterwegs sind, zusammen; ist die Grenze damit erreicht, wird der Start abgelehnt. Bei der Ankunft zählen nur die Planeten, die du hast: Ist die Grenze dann erreicht, kehrt die Flotte mit der Arche und ihrer Ladung zurück. Auf Wunsch des Admins gibt es die Forschung Kolonialverwaltung, die die Grenze um einige Planeten je Stufe anhebt, nie über 20 Planeten insgesamt; sie gibt es nur in einer Runde mit Grundgrenze und lässt sich nur bis zur höchsten Stufe erforschen, die der Admin festlegt. Eine höhere Stufe zählt wie diese. Ohne Grundgrenze gibt es keine Grenze.“
 * **[V]** Facts: „Grundgrenze in dieser Runde: keine Grenze“
 * **[V]** Facts: „Kolonialverwaltung in dieser Runde: nein“
 * **[V]** Heading: „Eine Kolonie aufgeben“
@@ -613,6 +630,143 @@ code and here in the same pull request.
 * **[V]** Heading: „Der Hauptplanet“
 * **[V]** Text: „Der Hauptplanet ist der Planet, den du in den Optionen wählst; ohne Wahl ist es dein erster Planet. Er bestimmt nur, wohin die Navigation springt und wo geforscht wird. Wechselst du, sperrt das den nächsten Wechsel für 7 Tage; der Admin legt das für die Runde fest. Verlierst du den gewählten Planeten, wird der älteste Planet, den du noch hast, zum Hauptplaneten, ohne Sperre. Die Sperre kann der Admin auf 1 bis 30 Tage einstellen.“
 * **[V]** Keywords: Kolonie, Planetengrenze, gründen, aufgeben, Hauptplanet
+
+### Raketen (`rule-missiles`)
+
+* **[V]** Line: „Wo Raketen lagern, wie weit und wie schnell sie fliegen und was sie am Ziel zerstören.“
+* **[V]** Heading: „Raketenkrypta und Raketen“
+* **[V]** Text: „Raketen lagert die Raketenkrypta, und zwar nur auf Planeten, nicht auf einem Mond. Jede Stufe schafft 10 Plätze. Eine Abfangrakete belegt 1 Platz, eine Orbitalrakete 2 Plätze; ein Auftrag, für den der Platz nicht reicht, wird abgelehnt. Gezählt werden die Raketen, die schon lagern, und die, die in der Schiffsschmiede in Auftrag sind. Raketen kämpfen in keinem Kampf mit und zählen nur für die Gesamtpunkte; sie werden gebaut wie Verteidigung.“
+* **[V]** Formula: „Platz für Raketen = 10 · Stufe der Raketenkrypta“
+* **[V]** Heading: „Abschuss, Reichweite und Flugzeit“
+* **[V]** Text: „Orbitalraketen startest du in der Sternenkarte, von einem Planeten, auf dem sie lagern, auf einen fremden Planeten oder Mond in derselben Galaxie. Sie brauchen keinen Flottenslot und lassen sich nicht zurückrufen. Die Reichweite hängt von deinem Plasma-Impulsantrieb ab und zählt in Systemen; ohne den Antrieb ist kein Ziel in Reichweite. Der Abschuss wird verweigert, wenn dort kein Planet oder Mond steht, wenn er dir gehört, wenn er außer Reichweite liegt, wenn sein Besitzer im Urlaubsmodus ist oder unter dem Schutz der Schwachen steht. Die Raketen verlassen die Verteidigung des Startplaneten schon beim Abschuss.“
+* **[V]** Formula: „Reichweite in Systemen = 5 · Stufe des Plasma-Impulsantriebs − 1“
+* **[V]** Formula: „Flugzeit in Sekunden = (30 + 60 · Systeme) ÷ Tempo des Universums“
+* **[V]** Table: „Reichweite nach dem Plasma-Impulsantrieb“
+* **[V]** Table: „Stufe | Reichweite in Systemen“
+* **[V]** Table: „Flugzeit nach der Entfernung in diesem Universum“
+* **[V]** Table: „Systeme | Flugzeit“
+* **[V]** Stand: „Dein Stand: Stufe 0 des Plasma-Impulsantriebs, Reichweite keine.“
+* **[V]** Heading: „Der Einschlag“
+* **[V]** Text: „Am Ziel hält jede Abfangrakete des Verteidigers eine Orbitalrakete auf, an einem Mond die Abfangraketen seines Planeten. Die übrigen Raketen richten Schaden an, und zwar nur an Verteidigung, die im Kampf mitkämpft; Schilde zählen nicht. Der Schaden geht zuerst auf das Hauptziel, wenn du beim Abschuss eines wählst, danach auf alle Arten der Reihe nach: Raketenbatterie, Lichtlanze, Schwere Lichtlanze, Massebeschleuniger, Ionenlanze, Plasmabatterie, Kleiner Schutzdom, Großer Schutzdom. Ein Stück ist zerstört, wenn der Schaden seine ganze Struktur deckt; was für ein weiteres Stück nicht reicht, geht an die nächste Art. Angriff und Struktur steigen mit der Forschung: Waffensegnung beim Angreifer, Adamant-Panzerung beim Verteidiger, je 10 % des Grundwerts je Stufe.“
+* **[V]** Formula: „Zerstörte Stücke der Hauptziel-Art = ⌊(Raketen − abgefangene) · 12.000 · (1 + 0,1 · Stufe der Waffensegnung) ÷ (Struktur · (1 + 0,1 · Stufe der Adamant-Panzerung))⌋, höchstens so viele, wie da sind“
+* **[V]** Table: „Struktur und Zerstörung als Hauptziel, ohne Forschung und ohne Abfangraketen“
+* **[V]** Table: „Verteidigung | Struktur | 1 Orbitalrakete | 5 Orbitalraketen | 10 Orbitalraketen | 25 Orbitalraketen“
+* **[V]** Text: „Ist keine Verteidigung mehr übrig, geht der Rest des Schadens auf die Raketen, die in der Raketenkrypta des Ziels lagern, in der Reihenfolge des Katalogs (Abfangrakete, Orbitalrakete); Abfangraketen, die schon eine Orbitalrakete aufgehalten haben, sind dabei nicht mehr da. Zerstörte Verteidigung wird nicht wieder aufgebaut und hinterlässt kein Trümmerfeld. Beide Seiten bekommen einen Bericht. Steht bei der Ankunft kein fremder Planet oder Mond mehr an der Position, sind die Raketen verloren.“
+* **[V]** Keywords: Raketen, Raketenkrypta, Abfangraketen, Reichweite, Schaden
+
+### Vermessung (`rule-survey`)
+
+* **[V]** Line: „Wie du eine freie Position vermisst, was der Bericht je nach Auspex-Wert zeigt und wann Spähschädel verloren gehen.“
+* **[V]** Heading: „Was eine Vermessung ist“
+* **[V]** Text: „Mit einer Vermessung erfährst du vor der Landnahme, was an einer freien Position auf dich wartet. Dafür fliegen nur Spähschädel, und der Auftrag braucht die Auspex-Kartographie, mindestens die erste Stufe; ohne sie ist er nicht zu haben. Die Flotte belegt wie jede Flotte einen Flottenslot und fliegt nach der Messung heim. Ist die Position bei der Ankunft nicht mehr frei oder nach einer aufgegebenen Kolonie noch gesperrt, kehrt sie um.“
+* **[V]** Text: „Die Werte der Position, ihren Durchmesser und ihre Temperatur, bekommt sie bei der ersten Vermessung, die einen Bericht bringt, nach denselben Regeln wie eine neue Kolonie (Planeten und Felder). Sie bleiben 30 Tage erhalten, gezählt ab dieser ersten Vermessung; eine weitere Vermessung beginnt die Zeit nicht neu. Wird die Position in dieser Zeit besiedelt, bekommt die Kolonie genau diese Werte. Sonst werden Werte und Berichte danach gelöscht, und eine neue Vermessung würfelt neue. Gehen die Spähschädel verloren, gibt es keinen Bericht und die Position bekommt keine Werte.“
+* **[V]** Heading: „Auspex-Wert und Bericht“
+* **[V]** Text: „Wie viel der Bericht zeigt, hängt vom Auspex-Wert der Vermessung ab. Jeder Spähschädel zählt einmal, jede Stufe der Auspex-Kartographie doppelt. Je höher der Auspex-Wert, desto mehr steht im Bericht; die Liste nennt, was ab welchem Wert dazukommt. Gezählt werden die Spähschädel, die ankommen, und die Stufe bei der Ankunft.“
+* **[V]** Formula: „Auspex-Wert = Spähschädel + 2 · Stufe der Auspex-Kartographie“
+* **[V]** Table: „Auspex-Wert nach Spähschädeln und Stufe der Auspex-Kartographie“
+* **[V]** Table: „Spähschädel | Stufe 1 | Stufe 2 | Stufe 3 | Stufe 5“
+* **[V]** Facts: „Unter 4: Nur, was sich von der Position erraten lässt: der Planetentyp, die Spanne der Felder an dieser Position, die Temperatur um einen Mittelwert, die Bahn und eine Größe mit dem Zusatz vermutlich. Der Bericht ist als ungenau markiert.“
+* **[V]** Facts: „Ab 4: Dazu die Felder des Planeten, um 20 % nach oben und unten, und seine höchste Temperatur, um 10 °C nach oben und unten. Das Fenster behält seine Breite, liegt aber zufällig verschoben; der wahre Wert liegt immer darin.“
+* **[V]** Facts: „Ab 7: Die Felder und die höchste Temperatur des Planeten genau.“
+* **[V]** Facts: „Ab 10: Alles, was über den Planeten bekannt ist: Temperatur, Durchmesser, Felder im Vergleich mit dem Durchschnitt der Position, Planetentyp, Promethium-Faktor, Energie eines Sonnenreliquiars und Vor- und Nachteile als Stichworte.“
+* **[V]** Heading: „Was der grobe Bericht von der Position sagt“
+* **[V]** Text: „Der grobe Bericht nennt die Bahn und damit die Temperatur der Position und schätzt die Größe. Die Bahn ergibt sich aus der Position im System: ein Fünftel der Positionen liegt innen, drei Fünftel in der Mitte, ein Fünftel außen. Die Größe richtet sich nach dem Durchschnitt der Felder an der Position, in drei gleich breiten Teilen der Spanne aller Positionen.“
+* **[V]** Table: „Bahn nach der Position in diesem Universum“
+* **[V]** Table: „Positionen | Bahn“
+* **[V]** Table: „Größe nach dem Durchschnitt der Felder der Position“
+* **[V]** Table: „Felder im Durchschnitt | Größe“
+* **[V]** Heading: „Verlust der Spähschädel“
+* **[V]** Text: „Beim Eintreffen können die Spähschädel verloren gehen. Dabei wird zuerst eine Verlustchance zwischen null und dem Höchstwert ausgelost und dann einmal gewürfelt, ob die ganze Flotte verloren ist; dann gibt es keinen Bericht. Mehr Spähschädel erhöhen den Höchstwert, ein weiter Weg auch, jede Stufe der Auspex-Kartographie senkt beides. Die Entfernung wird gemessen wie bei jedem Flug (Flug und Treibstoff), vom Startplaneten aus.“
+* **[V]** Formula: „Höchste Verlustchance in % = Spähschädel · 5 ÷ Stufe + 6 · (Entfernung ÷ 1.000)^0,8 ÷ (1 + 0,4 · Stufe), höchstens 60 %“
+* **[V]** Table: „Höchste Verlustchance bei einem Weg von 5 Systemen“
+* **[V]** Table: „Spähschädel | Stufe 1 | Stufe 2 | Stufe 3 | Stufe 5“
+* **[V]** Table: „Höchste Verlustchance mit 4 Spähschädeln nach Entfernung“
+* **[V]** Table: „Systeme entfernt | Stufe 1 | Stufe 2 | Stufe 3 | Stufe 5“
+* **[V]** Keywords: Vermessung, vermessen, Position, Kartographie, Bericht
+
+### Expeditionen (`rule-expeditions`)
+
+* **[V]** Line: „Wohin eine Expedition fliegt, wie lange sie bleibt und was sie finden, erleben oder verlieren kann.“
+* **[V]** Heading: „Ziel, Plätze und Haltezeit“
+* **[V]** Text: „Eine Expedition fliegt zur Expeditionsposition am Rand jedes Systems, der Position 16 in diesem Universum, gleich hinter der letzten Planetenposition. Dort lässt sich nichts besiedeln. Der Auftrag braucht die Kreuzzugs-Kartografie, mindestens die erste Stufe, und belegt einen Flottenslot und einen Expeditionsplatz. Die Plätze zählen auch die Expeditionen, die schon auf dem Heimweg sind. Die Haltezeit wählst du beim Start in ganzen Stunden bis zum Höchstwert; erst wenn sie um ist, wird das Ergebnis der Expedition ausgelost, und die Flotte fliegt heim. Die Haltezeit kostet keinen Treibstoff.“
+* **[V]** Formula: „Expeditionsplätze = ⌊√Stufe der Kreuzzugs-Kartografie⌋ + zusätzliche Plätze der Runde“
+* **[V]** Formula: „Höchste Haltezeit in Stunden = Stufe · Stunden je Stufe der Runde“
+* **[V]** Table: „Plätze und Haltezeit nach der Stufe in dieser Runde“
+* **[V]** Table: „Stufe | Expeditionsplätze | Höchste Haltezeit | Dauer in diesem Universum“
+* **[V]** Stand: „Dein Stand: Stufe 0 der Kreuzzugs-Kartografie, 0 Expeditionsplätze, höchste Haltezeit 0 Std.“
+* **[V]** Heading: „Was geschehen kann“
+* **[V]** Text: „Nach der Haltezeit wird einmal ausgelost: In etwa 84 % der Expeditionen bringen ein Ereignis, die anderen kehren ohne etwas heim. Welches Ereignis es ist, folgt den Anteilen der Tabelle; außer dem Verlust der Flotte hat jedes eine Größe. Das Ergebnis steht im Bericht, und was von der Flotte übrig ist, fliegt heim.“
+* **[V]** Table: „Anteil der Ereignisse“
+* **[V]** Table: „Ereignis | Anteil an allen Expeditionen | Anteil an den Ereignissen“
+* **[V]** Table: „Anteil der Größen unter den Ereignissen mit Größe“
+* **[V]** Table: „Größe | Anteil“
+* **[V]** Heading: „Rohstofffund“
+* **[V]** Text: „Ein Rohstofffund beginnt mit einer Grundzahl, die mit der Größe des Ereignisses wächst. Dann wird die Sorte ausgelost. Die Grundzahl wird durch den Teiler der Sorte geteilt und mit einem Faktor malgenommen, der aus den Expeditionspunkten deiner Flotte folgt: Sie zählen aus den Kosten ihrer Schiffe in Adamant und Psikristall, mindestens so viel wie angegeben und höchstens bis zur Obergrenze, die mit den Punkten des Ersten der Rangliste steigt. Mitgenommen wird nur, was die Laderäume fassen; die Hälfte des verbrauchten Treibstoffs belegt dort schon Platz.“
+* **[V]** Formula: „Fund = ⌊Grundzahl ÷ Teiler der Sorte · Faktor⌋, höchstens der freie Laderaum; Faktor = Expeditionspunkte, mindestens 200 und höchstens die Obergrenze“
+* **[V]** Formula: „Expeditionspunkte = Summe über alle Schiffe (Anzahl · (Adamant + Psikristall des Schiffs)) · 5 ÷ 1.000“
+* **[V]** Table: „Grundzahl, Teiler und Anteil je Sorte“
+* **[V]** Table: „Sorte | Teiler | Anteil an den Funden“
+* **[V]** Table: „Grundzahl eines Rohstofffunds nach Größe“
+* **[V]** Table: „Größe | Grundzahl“
+* **[V]** Table: „Obergrenze der Punkte nach den Punkten des Ersten der Rangliste“
+* **[V]** Table: „Punkte des Ersten | Rohstofffund | Schiffsfund“
+* **[V]** Heading: „Schiffsfund“
+* **[V]** Text: „Bei einem Schiffsfund haben die gefundenen Schiffe zusammen so viele Strukturpunkte, wie die Grundzahl der Größe mal die Expeditionspunkte der Flotte ergibt, mindestens aber 10.000. Dann wird immer wieder ein Schiff ausgelost, alle gleich wahrscheinlich, und davon eine Anzahl gefunden, bis die Punkte aufgebraucht sind oder das ausgeloste Schiff nicht mehr hineinpasst; dort endet der Fund. Gefunden werden kann, was bis zu einem Schritt schwerer ist als das schwerste Schiff der Flotte. Die Schiffe schließen sich der Flotte an. Die Kolonistenarche, die Bergungsbarke und der Weltenbrecher finden nichts und werden nie gefunden; eine Flotte nur aus ihnen findet keine Schiffe.“
+* **[V]** Table: „Grundzahl eines Schiffsfunds nach Größe“
+* **[V]** Table: „Größe | Grundzahl“
+* **[V]** Table: „Was eine Flotte finden kann, nach ihrem schwersten Schiff“
+* **[V]** Table: „Schwerstes Schiff der Flotte | Findbare Schiffe“
+* **[V]** Heading: „Piraten und Aliens“
+* **[V]** Text: „Bei einem Kampf gegen Piraten oder Aliens greifen sie an, und deine Flotte verteidigt sich. Von jeder Schiffsart deiner Flotte kommt ein Anteil als Angreifer, der um ein Zehntel nach oben oder unten streut, dazu einige Schiffe einer festen Art. Waffen, Schilde und Panzerung der Angreifer richten sich nach deiner Forschung. Gekämpft wird nach den Regeln des Kampfes (Kampf). Die zerstörten Schiffe beider Seiten hinterlassen ein Trümmerfeld an der Expeditionsposition, das eine Bergung einsammeln kann (Trümmerfelder und Bergung). Was von deiner Flotte übrig ist, fliegt heim; ist nichts mehr übrig, ist die Flotte verloren. Der Bericht ist ein Kampfbericht.“
+* **[V]** Formula: „Angreifer einer Art = Schiffe der Art in deiner Flotte · Anteil · (1 − 0,1 + 2 · 0,1 · Zufall von 0 bis 1), bei Piraten abgerundet, bei Aliens aufgerundet; dazu die zusätzlichen Schiffe“
+* **[V]** Formula: „Stufe der Piraten = Stufe deiner Forschung − 3, mindestens 0“
+* **[V]** Formula: „Stufe der Aliens = Stufe deiner Forschung + 3“
+* **[V]** Table: „Die Angreifer nach Größe“
+* **[V]** Table: „Angreifer | Größe | Anteil je Schiffsart | Zusätzliche Schiffe“
+* **[V]** Heading: „Frühere und spätere Rückkehr, Verlust“
+* **[V]** Text: „Eine Expedition kann sich verirren oder eine Abkürzung finden, und die Zeit des Heimflugs ändert sich dann wirklich. Bei einer späteren Rückkehr dauert der Heimflug um die Haltezeit mal den Faktor der Größe länger. Bei einer früheren wird er um ein Drittel der Haltezeit mal den Faktor kürzer, mindestens 1 Sek. lang bleibt er aber. Beim Verlust der Flotte kommt nichts zurück, und es bleibt kein Trümmerfeld.“
+* **[V]** Formula: „Spätere Rückkehr: Heimflug = Flugzeit + Haltezeit · Faktor“
+* **[V]** Formula: „Frühere Rückkehr: Heimflug = Flugzeit − Haltezeit ÷ 3 · Faktor, mindestens 1 Sek.“
+* **[V]** Table: „Der Faktor nach Größe“
+* **[V]** Table: „Größe | Faktor“
+* **[V]** Heading: „Einstellungen dieser Runde“
+* **[V]** Text: „Der Admin legt drei Dinge für die Runde fest und kann sie während der Runde ändern. Die Liste nennt ihre Werte jetzt und die Grenzen, in denen sie liegen dürfen.“
+* **[V]** Facts: „Zusätzliche Expeditionsplätze: 0 (von 0 bis 10)“
+* **[V]** Facts: „Haltezeit in Stunden je Stufe: 1 (von 1 bis 24)“
+* **[V]** Facts: „Haltezeit durch das Universums-Tempo teilen: nein“
+* **[V]** Keywords: Expedition, erkunden, Fund, Piraten, Haltezeit
+
+### Wache stellen und Verbandsangriff (`rule-allies`)
+
+* **[V]** Line: „Wer an einem fremden Planeten Wache halten darf, was die Wache tut und wie mehrere Spieler gemeinsam angreifen.“
+* **[V]** Heading: „Wache stellen: wer, wo und wie lange“
+* **[V]** Text: „Mit Wache stellen fliegt eine Flotte zum Planeten oder Mond eines Verbündeten, bleibt dort die Haltezeit, die du beim Start wählst, und verteidigt ihn in jedem Kampf zusammen mit seinem Besitzer; danach fliegt sie heim. Wer Verbündeter ist, legt der Admin für die Runde fest. Eine Gilde zählt nur, solange es in der Runde Gilden gibt (Gilden). Bei einem Spieler im Urlaubsmodus oder unter dem Schutz der Schwachen kann niemand Wache stellen.“
+* **[V]** Facts: „Halten erlaubt für: Gilde und Freunde“
+* **[V]** Facts: „Gehaltene Flotten im Auspex-Bericht ab Auspex-Lehre: 2 (von 0 bis 30)“
+* **[V]** Text: „Die Haltezeit beträgt 0, 1, 2, 4, 8, 16 oder 32 Stunden. Sie läuft in Echtzeit, das Tempo des Universums teilt sie nicht. Den Treibstoff für die Haltezeit zahlst du beim Start zusammen mit dem für den Flug: ein Zehntel des Grundverbrauchs der Flotte je Stunde, mindestens 1 Promethium. An einem Planeten halten höchstens 4 verschiedene Spieler mit zusammen höchstens 15 Flotten, die eigene Flotte des Besitzers nicht mitgerechnet; gezählt werden auch Flotten, die noch unterwegs sind. Solange eine Flotte Wache hält, kannst du sie zurückrufen; sie ist dann nach so langer Zeit zu Hause, wie ihr Hinflug gedauert hat.“
+* **[V]** Formula: „Treibstoff der Haltezeit = ⌊Summe aller Schiffe (Anzahl · Grundverbrauch) · Stunden ÷ 10⌋, mindestens 1“
+* **[V]** Heading: „Was eine Wache tut“
+* **[V]** Text: „Eine Flotte, die Wache hält, kämpft als eigene Partei mit der Forschung ihres Besitzers, und zwar in allen drei Kämpfen an diesem Ort: beim Sturmangriff, beim Mondbruch und im Kampf gegen entdeckte Spähschädel der Auspex-Erkundung. Raketen kämpfen nicht mit. Jeder Besitzer bekommt den Bericht des Verteidigers, und was die Wache verliert, liegt zum Teil im Trümmerfeld (Trümmerfelder und Bergung). Eine Flotte des Angreifers selbst, die dort Wache hält, bleibt aus dem Kampf. Gewinnt der Angreifer, nimmt er zuerst seinen Anteil vom Vorrat des Planeten und dann die ganze Ladung der Flotten, die Wache gehalten haben, soweit sein Laderaum reicht; diese Flotten sind dann zerstört (Kampf).“
+* **[V]** Text: „Der Gastgeber sieht eine Flotte, die Wache hält, mit allen Schiffen und ihrer Haltezeit. Im Auspex-Bericht zählt sie zur Flotte des Planeten, bis die Auspex-Lehre des Spähers die Stufe der Runde erreicht; ab dann steht sie getrennt unter Gehaltene Flotten. In der Auspex-Phalanx zeigt sie sich als haltend, mit dem Ende ihrer Haltezeit.“
+* **[V]** Heading: „Urlaubsmodus und Mondbruch“
+* **[V]** Text: „Beginnt der Gastgeber den Urlaubsmodus, fliegen alle Flotten, die bei ihm Wache halten, sofort heim, und ihre Besitzer bekommen einen Bericht. Eine Flotte, die noch unterwegs ist, hält bei der Ankunft nicht mehr, sondern kehrt gleich um. Wer selbst mit einer Flotte Wache hält, kann den Urlaubsmodus nicht beginnen, solange sie draußen ist (Urlaubsmodus).“
+* **[V]** Text: „Zerbricht ein Mond (Monde), wechseln die Flotten, die dort Wache halten und am Kampf nicht beteiligt waren, zum Planeten des Mondes und halten dort bis zum Ende ihrer Zeit weiter; die Grenzen des Planeten werden dabei nicht geprüft, und ihre Besitzer bekommen einen Bericht. Da ein Mond nur nach einem gewonnenen Kampf zerbricht und dieser keinen Verteidiger übrig lässt, betrifft das nur die eigene Flotte des Angreifers.“
+* **[V]** Heading: „Verbandsangriff: eröffnen, einladen, beitreten“
+* **[V]** Text: „Einen Angriffsverband eröffnest du aus einem eigenen Sturmangriff, der noch unterwegs ist: nicht zurückgerufen, noch nicht angekommen und in keinem Verband. Dieser Angriff führt den Verband an. Der Anführer lädt Verbündete mit Namen ein, nicht den Besitzer des Ziels; die Eingeladenen zählen schon gegen die Grenze der Spieler. Wer Verbündeter ist, bestimmt dieselbe Einstellung wie bei der Wache. Beitreten heißt, einen Sturmangriff auf dasselbe Ziel zu schicken, mit allen Prüfungen eines Angriffs: Schiffe, Treibstoff, Flottenslots, Urlaubsmodus und Schutz des Ziels. Der Anführer und wer schon im Verband ist, braucht keine Einladung, alle anderen schon; ein Spieler darf mehrere Flotten schicken. Ein Spieler im Urlaubsmodus kann nicht beitreten.“
+* **[V]** Heading: „Ankunft, Verspätung und Grenzen“
+* **[V]** Text: „Alle Flotten eines Verbands kommen gemeinsam an und kämpfen in einem Kampf als mehrere Angreifer, jede mit der Forschung ihres Besitzers; die Flotte des Anführers führt. Eine Flotte, die früh genug da wäre, wartet und kommt mit den anderen an. Eine, die später käme, verzögert den Verband, aber höchstens um 30 % der Restflugzeit; dann verschieben sich Ankunft und Rückkehr aller Flotten im Verband um die Verspätung. Eine Flotte, die den Verband stärker verzögern würde, wird abgelehnt. Eine Sperre kurz vor der Ankunft gibt es in dieser Runde nicht. Ein Verband, der angekommen ist, ist geschlossen. Eine beigetretene Flotte kehrt nach der Dauer ihres eigenen Flugs zurück.“
+* **[V]** Formula: „Eine Flotte darf den Verband verzögern, wenn (ihre Ankunft − Ankunft des Verbands) · 100 ≤ Verspätung in Prozent · Restflugzeit“
+* **[V]** Table: „Die größte Verspätung nach der Restflugzeit“
+* **[V]** Table: „Restflugzeit | Größte Verspätung“
+* **[V]** Facts: „Verbandsangriff: höchstens Flotten: 16 (von 1 bis 50)“
+* **[V]** Facts: „Verbandsangriff: höchstens Spieler: 5 (von 1 bis 20)“
+* **[V]** Facts: „Verbandsangriff: Verspätung in Prozent der Restflugzeit: 30 (von 0 bis 100)“
+* **[V]** Facts: „Verbandsangriff: kein Beitritt in den letzten Minuten (0 = aus): 0 (von 0 bis 1.440)“
+* **[V]** Heading: „Beute und Rückruf“
+* **[V]** Text: „Es gibt eine einzige Beute wie bei einem einzelnen Angreifer; sie reicht höchstens so weit, wie der freie Laderaum aller überlebenden Schiffe zusammen. Sie wird nach dem freien Laderaum auf die Flotten verteilt; keine Flotte bekommt mehr, als sie tragen kann, und was nirgends Platz findet, wird nicht ausgegeben. Jede Flotte behält ihre eigene Ladung und fliegt damit heim; eine Flotte ohne Überlebende ist verloren.“
+* **[V]** Formula: „Anteil einer Flotte an der Beute = ⌊Beute · freier Laderaum der Flotte ÷ freier Laderaum aller Flotten⌋, die übrigen Einheiten gehen der Reihe nach an die ersten Flotten, die noch Platz haben“
+* **[V]** Text: „Ruft der Anführer seine Flotte zurück, ist der Angriff für alle aufgelöst und alle Flotten kehren um; die anderen Besitzer bekommen einen Bericht. Ruft ein Teilnehmer seine Flotte zurück, kehrt nur sie um und verlässt den Verband, die Ankunft des Verbands bleibt. Gegen den ganzen Verband verteidigen auch die Flotten, die am Ziel Wache halten, jede als eigene Partei; eine eigene Flotte eines Spielers des Verbands, die dort Wache hält, bleibt aus dem Kampf. Der Mondbruch, die Raketen und die Auspex-Erkundung kennen keinen Verband. Der Verteidiger sieht jede Flotte wie sonst auch, aber nichts vom Verband.“
+* **[V]** Keywords: Wache, verteidigen, Verband, gemeinsam, Beute
 
 ### Produktion, Energie und Lager (`rule-production`)
 

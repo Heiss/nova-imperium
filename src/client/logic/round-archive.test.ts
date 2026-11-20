@@ -8,15 +8,13 @@ import type {
 } from '../../core/round-report.ts';
 import { roundDefaults } from '../../test/fixtures.ts';
 import {
-  adminArchiveHTML,
   archive,
-  archiveHTML,
+  archivePage,
   closeText,
   deleteText,
   forgetArchive,
-  historyHTML,
   needsLoad,
-  reportHTML,
+  reportPage,
   rulesDiff,
   shownArchive,
 } from './round-archive.ts';
@@ -145,123 +143,141 @@ describe('the settings that differ from the default', () => {
 
 describe('the report of a round', () => {
   it('shows the span, the participants, the coverage and the own place', () => {
-    const html = reportHTML(report(), 'total');
-    expect(html).toContain('Runde 3');
-    expect(html).toContain('1.11.2026 bis 20.11.2026 · 19 Tage');
-    expect(html).toContain('<td>Teilnehmer</td><td>3</td>');
-    expect(html).toContain('vollständig ab Rundenbeginn');
-    expect(html).toContain(
-      '<td>Dein Platz</td><td>2 von 3 · 8.400 Punkte</td>',
-    );
-    expect(html).not.toContain('VORLÄUFIG');
+    const page = reportPage(report(), 'total');
+    expect(page.heading).toBe('Runde 3');
+    expect(page.facts).toEqual([
+      ['Zeitraum', '1.11.2026 bis 20.11.2026 · 19 Tage'],
+      ['Teilnehmer', '3'],
+      ['Erfassung', 'vollständig ab Rundenbeginn'],
+      ['Dein Platz', '2 von 3 · 8.400 Punkte'],
+    ]);
+    expect(page.banner).toBeNull();
+  });
+
+  it('names one day in the singular and leaves out the own place of a spectator', () => {
+    const r = { ...report({ days: 1 }), you: null };
+    const page = reportPage(r, 'total');
+    expect(page.facts[0]![1]).toContain('· 1 Tag');
+    expect(page.facts.map(([name]) => name)).not.toContain('Dein Platz');
   });
 
   it('marks the own row and lists the players best first', () => {
-    const html = reportHTML(report(), 'total');
-    expect(html).toContain(
-      '<tr class="me"><td class="n">2</td><td>Vex (du)</td>',
-    );
-    expect(html.indexOf('Lea')).toBeLessThan(html.indexOf('Vex'));
-    expect(html.indexOf('Vex')).toBeLessThan(html.indexOf('Nox'));
+    const rows = reportPage(report(), 'total').rows;
+    expect(rows.map((x) => [x.place, x.name, x.me])).toEqual([
+      [1, 'Lea', false],
+      [2, 'Vex (du)', true],
+      [3, 'Nox', false],
+    ]);
   });
 
   it('ranks by the chosen category and names it in the header', () => {
-    const html = reportHTML(report(), 'buildings');
-    expect(html.indexOf('Nox')).toBeLessThan(html.indexOf('Vex'));
-    expect(html.indexOf('Vex')).toBeLessThan(html.indexOf('Lea'));
-    expect(html).toContain('<th class="n">Gebäude</th>');
-    expect(html).toContain(
-      'data-act="roundCat" data-cat="buildings" aria-pressed="true"',
-    );
-    expect(html).toContain(
-      'data-act="roundCat" data-cat="total" aria-pressed="false"',
-    );
+    const page = reportPage(report(), 'buildings');
+    expect(page.rows.map((x) => x.name)).toEqual(['Nox', 'Vex (du)', 'Lea']);
+    expect(page.column).toBe('Gebäude');
+    expect(page.categories.filter((c) => c.pressed).map((c) => c.key)).toEqual([
+      'buildings',
+    ]);
+    expect(page.categories).toHaveLength(5);
   });
 
   it('shows the economy as an unweighted sum and says so', () => {
-    const html = reportHTML(report(), 'total');
-    expect(html).toContain('<td class="n">1.750</td>');
-    expect(html).toContain('ungewichtet');
+    const page = reportPage(report(), 'total');
+    expect(page.rows[0]!.economy).toBe('1.750');
+    expect(page.note).toContain('ungewichtet');
   });
 
   it('marks the provisional report of the admin and its time', () => {
-    const html = reportHTML(
+    const page = reportPage(
       report({ provisional: true, closed: null }),
       'total',
     );
-    expect(html).toContain('VORLÄUFIG · nur Spielleitung');
-    expect(html).toContain('Runde 3 (vorläufig)');
-    expect(html).toContain('nicht veröffentlicht');
+    expect(page.banner).toContain('VORLÄUFIG · nur Spielleitung');
+    expect(page.banner).toContain('nicht veröffentlicht');
+    expect(page.heading).toBe('Runde 3 (vorläufig)');
   });
 
   it('says that the early course is missing for a partial round', () => {
-    expect(reportHTML(report({ coverage: 'partial' }), 'total')).toContain(
-      'ihr früher Verlauf fehlt',
-    );
+    expect(
+      reportPage(report({ coverage: 'partial' }), 'total').facts[2]![1],
+    ).toContain('ihr früher Verlauf fehlt');
   });
 
-  it('escapes names and guilds', () => {
+  it('shows the guild of a player and the table of the guilds, as plain text for the component to escape', () => {
     const r = report();
     r.rows[0] = row(1, '<img src=x>', 5, {
       guild: { tag: '<b>', name: '"x"' },
     });
     r.guilds = [{ tag: '<b>', name: '<i>', members: 1, points: 5 }];
-    const html = reportHTML(r, 'total');
-    expect(html).not.toContain('<img');
-    expect(html).not.toContain('<b>]');
-    expect(html).toContain('&lt;img src=x&gt;');
-    expect(html).toContain('<h4>Gilden</h4>');
+    const page = reportPage(r, 'total');
+    expect(page.rows.map((x) => x.name)).toContain('<img src=x>');
+    expect(page.rows.map((x) => x.guild)).toContain('[<b>] "x"');
+    expect(page.guilds).toEqual([
+      { name: '[<b>] <i>', members: '1', points: '5' },
+    ]);
   });
 
   it('leaves out the guild table without guilds and names the missing playtime', () => {
-    const html = reportHTML(report(), 'total');
-    expect(html).not.toContain('<h4>Gilden</h4>');
-    expect(html).toContain('Spielzeit: in diesem Archiv noch nicht erfasst.');
+    const page = reportPage(report(), 'total');
+    expect(page.guilds).toEqual([]);
+    expect(page.playtime).toBe(false);
+    expect(page.playtimeNote).toEqual({
+      block: 'p',
+      text: 'Spielzeit: in diesem Archiv noch nicht erfasst.',
+    });
+    expect(page.rows.every((x) => x.played === null)).toBe(true);
   });
 
   it('shows the playtime as a column once there is playtime, 0 Min. as a measured zero, - for a seat without a value', () => {
     const r = { ...report(), playtime: { 1: 3600000 + 5 * 60000, 2: 0 } };
-    const html = reportHTML(r, 'total');
-    expect(html).not.toContain('noch nicht erfasst');
-    expect(html).toContain('<th class="n">Spielzeit</th>');
-    expect(html).toContain('<td class="n">1 Std. 05 Min.</td>');
-    expect(html).toContain('<td class="n">0 Min.</td>');
-    expect(html).toContain('<td class="n">-</td><td>-</td>');
-    expect(html).toContain('gleichzeitig geöffnete Fenster zählen einmal.');
-    expect(html).not.toContain('Die Zeit vor Beginn der Erfassung fehlt.');
+    const page = reportPage(r, 'total');
+    expect(page.playtime).toBe(true);
+    expect(page.rows.map((x) => x.played)).toEqual([
+      '1 Std. 05 Min.',
+      '0 Min.',
+      '-',
+    ]);
+    expect(page.playtimeNote).toEqual({
+      block: 'div',
+      text: 'Spielzeit: geschätzte aktive Zeit in dieser Runde, gleichzeitig geöffnete Fenster zählen einmal.',
+    });
   });
 
   it('says that the time before the measurement is missing in a partly covered round', () => {
     const r = report({ coverage: 'partial' });
     expect(
-      reportHTML({ ...r, playtime: { 1: 0, 2: 0, 3: 0 } }, 'total'),
+      reportPage({ ...r, playtime: { 1: 0, 2: 0, 3: 0 } }, 'total').playtimeNote
+        ?.text,
     ).toContain('Die Zeit vor Beginn der Erfassung fehlt.');
   });
 
   it('says that a provisional report shares no play time, and shows no line for a round without participants', () => {
-    const provisional = report({ provisional: true });
-    const html = reportHTML(provisional, 'total');
-    expect(html).toContain(
+    const page = reportPage(report({ provisional: true }), 'total');
+    expect(page.playtimeNote?.text).toBe(
       'Spielzeit: wird erst nach Rundenende im Archiv geteilt.',
     );
-    expect(html).not.toContain('<th class="n">Spielzeit</th>');
-    expect(reportHTML({ ...report(), rows: [] }, 'total')).not.toContain(
-      'Spielzeit',
+    expect(page.playtime).toBe(false);
+    expect(reportPage({ ...report(), rows: [] }, 'total').playtimeNote).toBe(
+      null,
     );
   });
 
   it('lists the settings that differed', () => {
     const sw = ROUND_SETTINGS.find((s) => s.kind === 'switch')!;
-    const html = reportHTML(
+    const page = reportPage(
       report({ rules: { [sw.name]: sw.kind === 'switch' ? !sw.def : 0 } }),
       'total',
     );
-    expect(html).toContain(`<li>${sw.label}:`);
-    expect(reportHTML(report(), 'total')).toContain('Voreinstellung');
+    expect(page.rules).toEqual([expect.stringContaining(`${sw.label}:`)]);
+    expect(reportPage(report(), 'total').rules).toEqual([]);
   });
 });
 
 describe('the list of rounds', () => {
+  const list = (admin = false) => {
+    const page = archivePage({ ...archive }, admin);
+    return page.body.kind === 'list' ? page.body.rounds : null;
+  };
+
   it('shows the lock of the running round with no button', () => {
     archive.entries = [
       entry({
@@ -272,57 +288,71 @@ describe('the list of rounds', () => {
         you: null,
       }),
     ];
-    const html = archiveHTML({ ...archive });
-    expect(html).toContain('Nach Rundenende verfügbar');
-    expect(html).not.toContain('data-act="roundOpen"');
+    expect(list()).toEqual([
+      {
+        number: 4,
+        span: expect.stringMatching(/^seit /),
+        status: 'Nach Rundenende verfügbar',
+        open: false,
+        remove: false,
+      },
+    ]);
   });
 
   it('opens a finished round with its place', () => {
     archive.entries = [entry({ number: 3 })];
-    const html = archiveHTML({ ...archive });
-    expect(html).toContain('Platz 2 von 3 · 8.400 Punkte');
-    expect(html).toContain('data-act="roundOpen" data-round="3"');
-    expect(html).not.toContain('roundDelete');
+    expect(list()).toEqual([
+      {
+        number: 3,
+        span: '1.10.2026 bis 31.10.2026',
+        status: 'Platz 2 von 3 · 8.400 Punkte',
+        open: true,
+        remove: false,
+      },
+    ]);
   });
 
   it('says so for an empty archive and while it loads', () => {
-    expect(archiveHTML({ ...archive })).toContain('wird geladen');
+    expect(archivePage({ ...archive }).body).toEqual({ kind: 'loading' });
     archive.entries = [];
-    expect(archiveHTML({ ...archive })).toContain(
-      'Noch keine Runde im Archiv.',
-    );
+    expect(list()).toEqual([]);
   });
 
   it('shows a refusal in place of the list', () => {
     archive.entries = [];
     archive.error = 'Nicht <da>';
-    const html = archiveHTML({ ...archive });
-    expect(html).toContain('Nicht &lt;da&gt;');
-    expect(html).not.toContain('Noch keine Runde');
+    const page = archivePage({ ...archive });
+    expect(page.body).toEqual({ kind: 'error', message: 'Nicht <da>' });
+    expect(page.intro).toBe(false);
   });
 
   it('shows the open report instead of the list', () => {
     archive.entries = [entry({})];
     archive.report = report();
-    const html = archiveHTML({ ...archive });
-    expect(html).toContain('roundBack');
-    expect(html).not.toContain('Nach Rundenende');
+    const page = archivePage({ ...archive });
+    expect(page.body.kind).toBe('report');
+    expect(page.intro).toBe(false);
   });
 
   it('shows the history below the list', () => {
     archive.entries = [entry({})];
     archive.history = [];
-    expect(archiveHTML({ ...archive })).not.toContain('Rundenvergleich');
+    const page = archivePage({ ...archive });
+    expect(page.body).toMatchObject({ kind: 'list', history: [] });
+    expect(page.intro).toBe(true);
   });
 });
 
 describe('the box of the admin', () => {
-  it('has „Runde abschließen“ at any time', () => {
-    expect(adminArchiveHTML({ ...archive })).toContain('data-act="roundClose"');
+  it('has „Runde abschließen“ at any time except above a report', () => {
+    expect(archivePage({ ...archive }, true).close).toBe(true);
     archive.entries = [];
-    expect(adminArchiveHTML({ ...archive })).toContain('data-act="roundClose"');
+    expect(archivePage({ ...archive }, true).close).toBe(true);
     archive.error = 'x';
-    expect(adminArchiveHTML({ ...archive })).toContain('data-act="roundClose"');
+    expect(archivePage({ ...archive }, true).close).toBe(true);
+    archive.report = report();
+    expect(archivePage({ ...archive }, true).close).toBe(false);
+    expect(archivePage({ ...archive }).close).toBe(false);
   });
 
   it('offers the provisional report of the running round and „Löschen“ only for a finished one', () => {
@@ -336,21 +366,26 @@ describe('the box of the admin', () => {
       }),
       entry({ number: 4 }),
     ];
-    const html = adminArchiveHTML({ ...archive });
-    expect(html).toContain('läuft · VORLÄUFIG · nur Spielleitung');
-    expect(html.match(/data-act="roundOpen"/g)).toHaveLength(2);
-    expect(html.match(/data-act="roundDelete"/g)).toHaveLength(1);
-    expect(html).toContain('data-act="roundDelete" data-round="4"');
+    const body = archivePage({ ...archive }, true).body;
+    const rounds = body.kind === 'list' ? body.rounds : [];
+    expect(rounds[0]).toMatchObject({
+      status: 'läuft · VORLÄUFIG · nur Spielleitung',
+      open: true,
+      remove: false,
+    });
+    expect(rounds.filter((x) => x.open)).toHaveLength(2);
+    expect(rounds.filter((x) => x.remove).map((x) => x.number)).toEqual([4]);
   });
 
   it('names the participants of a round the admin did not play', () => {
     archive.entries = [entry({ you: null, participants: 7 })];
-    expect(adminArchiveHTML({ ...archive })).toContain('7 Teilnehmer');
+    const body = archivePage({ ...archive }, true).body;
+    expect(body.kind === 'list' && body.rounds[0]!.status).toBe('7 Teilnehmer');
   });
 
   it('shows the open report', () => {
     archive.report = report();
-    expect(adminArchiveHTML({ ...archive })).toContain('roundBack');
+    expect(archivePage({ ...archive }, true).body.kind).toBe('report');
   });
 });
 
@@ -381,36 +416,55 @@ describe('the history across rounds', () => {
     },
     ...over,
   });
+  const rows = (...history: HistoryEntry[]) => {
+    archive.entries = [];
+    archive.history = history;
+    const body = archivePage({ ...archive }).body;
+    return body.kind === 'list' ? body.history : [];
+  };
 
   it('is empty without a round', () => {
-    expect(historyHTML([])).toBe('');
+    expect(rows()).toEqual([]);
   });
 
   it('puts the rounds side by side with length, winner and the own values', () => {
-    const html = historyHTML([h()]);
-    expect(html).toContain(
-      '<td class="n">2</td><td class="n">12</td><td class="n">5</td><td>Lea (9.100)</td><td class="n">2 von 5</td><td class="n">8.400</td><td class="n">6</td><td class="n">4</td>',
-    );
-    expect(html).toContain('Voreinstellung');
+    expect(rows(h())).toEqual([
+      {
+        number: 2,
+        days: 12,
+        participants: 5,
+        winner: 'Lea (9.100)',
+        place: '2 von 5',
+        points: '8.400',
+        economy: '6',
+        planets: '4',
+        settings: 'Voreinstellung',
+      },
+    ]);
   });
 
   it('shows a dash for a round without own values or winner and marks a partial one', () => {
-    const html = historyHTML([
-      h({ you: null, winner: null, coverage: 'partial' }),
+    expect(
+      rows(h({ you: null, winner: null, coverage: 'partial' })),
+    ).toMatchObject([
+      {
+        winner: '-',
+        place: '-',
+        points: '-',
+        economy: '-',
+        planets: '-',
+        settings: 'Voreinstellung · Verlauf lückenhaft',
+      },
     ]);
-    expect(html).toContain(
-      '<td>-</td><td class="n">-</td><td class="n">-</td><td class="n">-</td><td class="n">-</td>',
-    );
-    expect(html).toContain('Verlauf lückenhaft');
   });
 
   it('names a setting that differed', () => {
     const sw = ROUND_SETTINGS.find((s) => s.kind === 'switch')!;
-    const html = historyHTML([
+    const [first] = rows(
       h({ rules: { [sw.name]: sw.kind === 'switch' ? !sw.def : 0 } }),
-    ]);
-    expect(html).toContain(sw.label);
-    expect(html).not.toContain('>Voreinstellung<');
+    );
+    expect(first!.settings).toContain(sw.label);
+    expect(first!.settings).not.toContain('Voreinstellung');
   });
 });
 

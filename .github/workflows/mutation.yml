@@ -109,8 +109,11 @@ jobs:
           retention-days: 7
 
   # The same gate as in the CI: total score (80 %) and every file floor on
-  # the merged report. The merged report is kept as an artifact, so a run can
-  # be compared with an earlier one.
+  # the merged report. The merged report is kept as the artifact
+  # "mutation-report": the source of the floors (#304, `gh run download
+  # <run-id> -n mutation-report`, then `node scripts/mutation-floors.ts
+  # <report>`; okf/ops/testing.md) and a way to compare a run with an
+  # earlier one.
   mutation:
     name: Mutation tests (complete)
     needs: [mutation-plan, mutation-shard]
@@ -149,7 +152,7 @@ jobs:
         with:
           path: reports/mutation-state.json
           key: stryker-state-${{ github.ref }}-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
-      - name: Total score and no file below its floor (mutation-standard.json)
+      - name: Total score and no file below its floor (mutation-floors.txt)
         id: gate
         run: node scripts/mutation-gate.ts --report reports/mutation/mutation.json
       - name: Keep the merged report as the weights of the next plans
@@ -185,7 +188,7 @@ jobs:
             sed -n 's/^::error:://p' | sed 's/^/- /' > failures.txt || true
           [ -s failures.txt ] || echo "- (none named: see the log of the run)" > failures.txt
           {
-            printf 'The complete mutation run of main (%s) found a file below its floor in mutation-standard.json, or a total below the break threshold:\n\n' "$RUN"
+            printf 'The complete mutation run of main (%s) found a file below its floor in mutation-floors.txt, or a total below the break threshold:\n\n' "$RUN"
             cat failures.txt
             printf '\nA pull request mutates only the files it changes, so a drop in a file it did not change is found by this run. Raise the tests of the file, or revert the change that lowered it. Updated every night until the run is green; close this issue when it is.\n'
           } > body.md
