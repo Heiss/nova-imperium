@@ -173,7 +173,7 @@ are [Activity indicators](/features/activity-indicators.md).
   an admin without a planet) has no attributable events in the journal, the audit
   count named it by its account; and the journal starts with the update of
   2026-11-22: it holds no action before it.
-* **[V]** Days before the journal: a day up to and including the one the first
+* **[E]** (owner, 2026-11-20) Days before the journal: a day up to and including the one the first
   journal event fell on shows the larger of the journal and the audit log (kept
   30 days, the only source of those days), so the box does not show zero for
   actions that were made; from the day after, the journal alone counts. The
