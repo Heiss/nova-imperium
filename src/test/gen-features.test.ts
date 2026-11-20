@@ -17,6 +17,9 @@ import {
   generate,
   generateClientFeatures,
   generateLexicon,
+  ACTION_INPUTS_FILE,
+  ACTIONS_DIR,
+  generateActionInputs,
   generateClientViews,
   generateRepositories,
   generateRoundResets,
@@ -24,8 +27,10 @@ import {
   generateServerFeatures,
   generateServer,
   INDEX_FILE,
+  renderActionInputs,
   renderClientViews,
   REPOS_DIR,
+  scanActionInputs,
   scanClientViews,
   VIEWS_DIR,
   CLIENT_VIEWS_FILE,
@@ -337,6 +342,9 @@ describe('the feature index (#112)', () => {
     expect(readFileSync(path.join(VIEWS_DIR, CLIENT_VIEWS_FILE), 'utf8')).toBe(
       renderClientViews(scanClientViews(VIEWS_DIR)),
     );
+    expect(
+      readFileSync(path.join(ACTIONS_DIR, ACTION_INPUTS_FILE), 'utf8'),
+    ).toBe(renderActionInputs(scanActionInputs(ACTIONS_DIR)));
   });
 });
 
@@ -367,6 +375,15 @@ describe.each([
     scanIt: scanClientViews,
     generateIt: generateClientViews,
     renderIt: renderClientViews,
+  },
+  {
+    what: 'inputs of the actions',
+    name: 'actionInputs',
+    list: 'ACTION_INPUTS',
+    file: ACTION_INPUTS_FILE,
+    scanIt: scanActionInputs,
+    generateIt: generateActionInputs,
+    renderIt: renderActionInputs,
   },
 ])('the list of the $what (#317)', (c) => {
   const write = (file: string, source = `export const ${c.name} = {};\n`) => {

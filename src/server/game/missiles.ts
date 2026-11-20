@@ -14,7 +14,8 @@ import {
 import { placeId } from '../../core/place.ts';
 import type { Fleet, Planet } from '../../core/types.ts';
 import type { User } from '../db/repos/players.ts';
-import { type Action, type Data, mine, researchOf } from './actions.ts';
+import type { Wire } from '../../core/actions.ts';
+import { type Handler, mine, researchOf } from './actions.ts';
 import { type Ctx, coords, fail, fmt, int, universe } from './context.ts';
 import { route, target } from './fleet-actions.ts';
 import { isProtected, pointsMap } from './points.ts';
@@ -35,11 +36,11 @@ const LAUNCH_ERROR: Readonly<Record<LaunchError, string>> = {
 };
 
 /** The main target: a key, or null when none is chosen. */
-const aimOf = (d: Data): string | null =>
+const aimOf = (d: { readonly aim?: unknown }): string | null =>
   d.aim === undefined || d.aim === null || d.aim === '' ? null : String(d.aim);
 
 /** The launch the player asks for, checked; it fails with the message of a refusal. */
-function checked(ctx: Ctx, u: User, p: Planet, d: Data) {
+function checked(ctx: Ctx, u: User, p: Planet, d: Wire<'missile'>) {
   const dest = target(ctx, d);
   const kind =
     (d.to as { kind?: unknown } | null)?.kind === 'moon' ? 'moon' : 'planet';
@@ -62,7 +63,7 @@ function checked(ctx: Ctx, u: User, p: Planet, d: Data) {
   return { dest, to, owner: owner!, n, aim };
 }
 
-const missile: Action = (ctx, u, d, event) => {
+const missile: Handler<'missile'> = (ctx, u, d, event) => {
   const t = ctx.now();
   const p = mine(ctx, u, d.planet);
   const { dest, to, owner, n, aim } = checked(ctx, u, p, d);

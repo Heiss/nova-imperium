@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { settle } from '../../core/settle.ts';
 import { RECOGNITION_DEFAULT } from '../../core/fleet-recognition.ts';
 import { DEFAULT_UNIVERSE, UNIVERSE_SPECS } from '../../core/universe.ts';
-import { addPlanet, addUser, testCtx } from '../test-helpers.ts';
+import { addPlanet, addUser, loose, testCtx } from '../test-helpers.ts';
 import { announce, reset, saveSettings } from './admin.ts';
 import { runAction } from './dispatch.ts';
 import { placePlanet } from './planets.ts';
@@ -59,7 +59,7 @@ describe('admin', () => {
     ).toThrow(
       'Tempo (Faktor): ganze Zahl von 1 bis 100. Galaxien: mindestens 2, dort liegen schon Planeten.',
     );
-    expect(() => saveSettings(ctx, u, {})).toThrow('Tempo');
+    expect(() => saveSettings(ctx, u, loose<'settings'>({}))).toThrow('Tempo');
     expect(ctx.admin.universe()).toEqual(DEFAULT_UNIVERSE);
   });
 
@@ -153,7 +153,7 @@ describe('the messages of refused settings (#214)', () => {
     const u = addUser(ctx, 'Anna', { admin: true });
     addPlanet(ctx, u.id, at);
     try {
-      saveSettings(ctx, u, { settings });
+      saveSettings(ctx, u, loose<'settings'>({ settings }));
       return null;
     } catch (e) {
       expect(ctx.admin.universe()).toEqual(DEFAULT_UNIVERSE);

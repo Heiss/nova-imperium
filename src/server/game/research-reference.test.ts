@@ -38,7 +38,13 @@ import type { User } from '../db/repos/players.ts';
 import { orderPush, queuePush } from '../push-store.ts';
 import { addPlanet, addUser, caseDatabase, testCtx } from '../test-helpers.ts';
 import * as A from './actions.ts';
-import { type Action, mine, ownLabs, researchOf } from './actions.ts';
+import {
+  type Action,
+  type Handler,
+  mine,
+  ownLabs,
+  researchOf,
+} from './actions.ts';
 import { type Ctx, fail, fmt, universe } from './context.ts';
 
 // ---- reference: the research action of actions.ts before #115 ----
@@ -213,7 +219,7 @@ function dump(ctx: Ctx): Record<string, unknown[]> {
 }
 
 /** Anna starts the research `c.key` on one of her planets: the answer and every table. */
-function start(c: Case, act: Action) {
+function start(c: Case, act: Action | Handler<'research'>) {
   const ctx = testCtx(NOW, 115, caseDb.open());
   const anna = addUser(ctx, 'Anna', {
     research: c.research,

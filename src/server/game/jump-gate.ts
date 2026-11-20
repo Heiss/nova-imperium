@@ -19,7 +19,7 @@ import { parsePlaceId, placeId } from '../../core/place.ts';
 import { settle } from '../../core/settle.ts';
 import type { Planet } from '../../core/types.ts';
 import type { User } from '../db/repos/players.ts';
-import { type Action, mine } from './actions.ts';
+import { type Handler, mine } from './actions.ts';
 import { type Ctx, fail, universe } from './context.ts';
 import { pickedShips } from './fleet-actions.ts';
 import type { ServerFeature } from './feature.ts';
@@ -53,7 +53,7 @@ function targetOf(ctx: Ctx, u: User, id: unknown): Planet | null {
  * Jumps the ships `d.ships` from the active moon `d.planet` to the own moon
  * `d.to` (an id such as `m1_2_3`).
  */
-const jump: Action = (ctx, u, d, event) => {
+const jump: Handler<'jump'> = (ctx, u, d, event) => {
   const now = ctx.now();
   const from = mine(ctx, u, d.planet);
   const to = targetOf(ctx, u, d.to);

@@ -8,6 +8,7 @@ import {
 } from '../test/statement-cache.ts';
 import { DEFAULT_EXPLAIN } from '../core/explain.ts';
 import { DEFAULT_LEVEL_MODE } from '../core/level-overview.ts';
+import type { ActionName, Wire } from '../core/actions.ts';
 import type { Planet } from '../core/types.ts';
 import type { Config } from './config.ts';
 import { openDatabase, type Db } from './db/database.ts';
@@ -74,6 +75,10 @@ export function caseDatabase(): CaseDb {
     rewind,
   };
 }
+
+/** The input of a test that is on purpose not the declared one: junk a validation test must see refused. */
+export const loose = <K extends ActionName>(input: object): Wire<K> =>
+  input as Wire<K>;
 
 export function testCtx(start = 1_000_000, seed = 42, db?: Db): TestCtx {
   const clock = { t: start };

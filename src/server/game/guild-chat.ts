@@ -17,7 +17,7 @@ import {
 } from '../../core/guild-chat.ts';
 import { memberPlace } from '../../core/guild-ranks.ts';
 import type { ChatMessage, GuildPlayer } from '../db/repos/guilds.ts';
-import type { Action } from './actions.ts';
+import type { Handler } from './actions.ts';
 import { clean, fail, int, type Ctx } from './context.ts';
 import { membersOf, notify } from './guild-events.ts';
 import { actor, asRule, need, type Actor } from './guild-ranks.ts';
@@ -40,7 +40,7 @@ function chatText(value: unknown): string {
   return text;
 }
 
-const sendGuildChat: Action = (ctx, user, d) => {
+const sendGuildChat: Handler<'sendGuildChat'> = (ctx, user, d) => {
   const a = actor(ctx, user.id);
   need(a, 'chat-write');
   const text = chatText(d.text);
@@ -79,7 +79,7 @@ const deletable = (
     authorPlace(a, members, m.author),
   );
 
-const deleteGuildChat: Action = (ctx, user, d) => {
+const deleteGuildChat: Handler<'deleteGuildChat'> = (ctx, user, d) => {
   const a = actor(ctx, user.id);
   need(a, 'chat-delete');
   const message = ctx.guilds.chatMessage(int(d.id, 0, Number.MAX_SAFE_INTEGER));
@@ -148,7 +148,7 @@ export function chatState(ctx: Ctx, a: Actor, players: GuildPlayer[]) {
  * message `id` (the red mark, owner, 2026-11-15); never past the newest
  * message of its guild, never back.
  */
-const seeGuildChat: Action = (ctx, user, d) => {
+const seeGuildChat: Handler<'seeGuildChat'> = (ctx, user, d) => {
   const a = actor(ctx, user.id);
   need(a, 'chat-read');
   const newest = ctx.guilds.chat(a.guild.id).at(-1)?.id ?? 0;

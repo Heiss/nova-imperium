@@ -6,6 +6,7 @@ import type { User } from '../db/repos/players.ts';
 import * as A from './actions.ts';
 import { tick } from './arrival.ts';
 import { assembleActions } from './assemble.ts';
+import type { Handlers } from './feature.ts';
 import { SERVER_FEATURES } from '../features.gen.ts';
 import { type Ctx, fail, GameError } from './context.ts';
 import {
@@ -24,7 +25,7 @@ import { VACATION_REFUSED } from './vacation.ts';
  * its module as `serverFeature`, with its group (guild, admin), and added
  * here by `assembleActions` (#326, okf/architecture/patterns.md, section 14).
  */
-const FRAME: Record<string, A.Action> = {
+const FRAME = {
   build: A.build,
   cancelBuild: A.cancelBuild,
   research: A.research,
@@ -37,7 +38,7 @@ const FRAME: Record<string, A.Action> = {
   read: A.read,
   delrep: A.delrep,
   delall: A.delall,
-};
+} satisfies Handlers;
 
 const tables = assembleActions(FRAME, SERVER_FEATURES);
 

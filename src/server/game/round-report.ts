@@ -25,7 +25,7 @@ import { type Rewind, rewindOf } from '../../core/round-rewind.ts';
 import { record } from '../audit.ts';
 import type { User } from '../db/repos/players.ts';
 import type { RoundRow } from '../db/repos/rounds.ts';
-import type { Action, Answer } from './actions.ts';
+import type { Handler, Answer } from './actions.ts';
 import { type Ctx, fail, int } from './context.ts';
 import type { ServerFeature } from './feature.ts';
 import { ensureRound, ROUND_EVENT, roundFacts } from './round-archive.ts';
@@ -247,12 +247,12 @@ const audit = (ctx: Ctx, u: User, action: string, detail: object): void => {
     record(ctx, { category: 'admin.read', action, actor: u.id, detail });
 };
 
-const roundArchive: Action = (ctx, u): Answer => ({
+const roundArchive: Handler<'roundArchive'> = (ctx, u): Answer => ({
   msg: null,
   data: { rounds: archiveOf(ctx, u), admin: u.admin },
 });
 
-const roundReport: Action = (ctx, u, d): Answer => {
+const roundReport: Handler<'roundReport'> = (ctx, u, d): Answer => {
   const number = int(d.round, 0, Number.MAX_SAFE_INTEGER);
   const report = reportOf(ctx, u, number);
   audit(ctx, u, 'roundReport', {
@@ -276,7 +276,7 @@ function rewindFor(ctx: Ctx, u: User, number: number): Rewind {
   return rewind?.cards.length ? rewind : fail(UNAVAILABLE);
 }
 
-const roundRewind: Action = (ctx, u, d): Answer => {
+const roundRewind: Handler<'roundRewind'> = (ctx, u, d): Answer => {
   const number = int(d.round, 0, Number.MAX_SAFE_INTEGER);
   const rewind = rewindFor(ctx, u, number);
   audit(ctx, u, 'roundRewind', { round: number });
@@ -333,7 +333,7 @@ function archivedParticipant(ctx: Ctx, number: number, seat: number) {
   return { name: person.name, final, guilds };
 }
 
-const roundParticipant: Action = (ctx, u, d): Answer => {
+const roundParticipant: Handler<'roundParticipant'> = (ctx, u, d): Answer => {
   const number = int(d.round, 0, Number.MAX_SAFE_INTEGER);
   const seat = int(d.seat, 0, Number.MAX_SAFE_INTEGER);
   const participant = participantOf(ctx, u, number, seat);
@@ -341,7 +341,7 @@ const roundParticipant: Action = (ctx, u, d): Answer => {
   return { msg: null, data: { participant } };
 };
 
-const roundHistory: Action = (ctx, u): Answer => {
+const roundHistory: Handler<'roundHistory'> = (ctx, u): Answer => {
   audit(ctx, u, 'roundHistory', {});
   return { msg: null, data: { history: historyOf(ctx, u) } };
 };

@@ -8,7 +8,8 @@ import type { Main } from '../../core/main-planet.ts';
 import type { RoundRules } from '../../core/round.ts';
 import type { Planet } from '../../core/types.ts';
 import type { User } from '../db/repos/players.ts';
-import type { Action } from './actions.ts';
+import type { ActionName } from '../../core/actions.ts';
+import type { Handler } from './actions.ts';
 import type { Ctx } from './context.ts';
 
 /** What `stateFor` works out once for all parts of the state. */
@@ -37,14 +38,21 @@ export interface StatePart {
   build: (ctx: Ctx, u: User, view: StateView) => Record<string, unknown>;
 }
 
+/**
+ * The actions of a group by name: a name the map of `src/core/actions/` does
+ * not know is refused by the compiler, and so is a handler whose input is not
+ * the one of the map (#317).
+ */
+export type Handlers = { readonly [K in ActionName]?: Handler<K> };
+
 /** What a server module exports as `serverFeature`; every member is optional. */
 export interface ServerFeature {
   /** The actions of the feature by name. */
-  actions?: Record<string, Action>;
+  actions?: Handlers;
   /** The actions refused while guilds are off in the round (#191). */
-  guildActions?: Record<string, Action>;
+  guildActions?: Handlers;
   /** The actions of the admin: audited as `admin.write`, not as `game`. */
-  adminActions?: Record<string, Action>;
+  adminActions?: Handlers;
   /** The keys the feature adds to the state. */
   state?: StatePart;
 }

@@ -13,7 +13,7 @@ import {
   vacationExitError,
 } from '../../core/vacation.ts';
 import type { User } from '../db/repos/players.ts';
-import type { Action } from './actions.ts';
+import type { Handler } from './actions.ts';
 import { addReport, type Ctx, fail, universe } from './context.ts';
 import { heldAt, sendHome } from './holding.ts';
 import { lockEndText } from './main-planet.ts';
@@ -68,7 +68,7 @@ const sendGuardsHome = (ctx: Ctx, places: readonly { id: string }[]): void => {
 };
 
 /** Starts the vacation now, once nothing runs (Q1); the production up to now is kept. */
-const startVacation: Action = (ctx, u, _d, event) => {
+const startVacation: Handler<'startVacation'> = (ctx, u, _d, event) => {
   const now = ctx.now();
   const places = settledPlaces(ctx, u);
   const research = settleR(u, now);
@@ -94,7 +94,7 @@ const startVacation: Action = (ctx, u, _d, event) => {
 };
 
 /** Ends the vacation once the minimum duration of the round is over; the production goes on from now. */
-const endVacation: Action = (ctx, u) => {
+const endVacation: Handler<'endVacation'> = (ctx, u) => {
   const hours = roundRules(ctx).vacationHours;
   const error = vacationExitError(u.vacation, hours, ctx.now());
   if (error === 'early')

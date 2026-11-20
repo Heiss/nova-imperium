@@ -13,7 +13,7 @@ import { production } from '../../core/economy.ts';
 import { settle, settleR } from '../../core/settle.ts';
 import type { Cost, Levels, Planet } from '../../core/types.ts';
 import type { User } from '../db/repos/players.ts';
-import type { Action } from './actions.ts';
+import type { Handler } from './actions.ts';
 import { fail, universe, type Ctx } from './context.ts';
 
 import { roundRules, roundStart } from './round.ts';
@@ -154,7 +154,7 @@ function credit(ctx: Ctx, p: Planet, reward: Cost): void {
   ctx.planets.save(p);
 }
 
-const claimAchievement: Action = (ctx, u, data) => {
+const claimAchievement: Handler<'claimAchievement'> = (ctx, u, data) => {
   if (!roundRules(ctx).achievements)
     fail('Achievements sind in dieser Runde deaktiviert.');
   const achievement =
@@ -172,7 +172,7 @@ const claimAchievement: Action = (ctx, u, data) => {
   return 'Achievement-Belohnung abgeholt.';
 };
 
-export const claimDailyReward: Action = (live, u) => {
+export const claimDailyReward: Handler<'claimDailyReward'> = (live, u) => {
   // One timestamp for the claimed day and the reward, so a claim at UTC
   // midnight does not record one day and credit the next one's reward.
   const at = live.now();

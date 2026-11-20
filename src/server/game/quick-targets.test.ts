@@ -2,6 +2,7 @@
 // the main planet of each friend and of each guild member, and the last
 // hostile targets, kept per player in their own table.
 import { describe, expect, it } from 'vitest';
+import type { Levels } from '../../core/types.ts';
 import { type TestCtx, addPlanet, addUser, testCtx } from '../test-helpers.ts';
 import { runAction } from './dispatch.ts';
 import { send } from './fleet-actions.ts';
@@ -30,7 +31,7 @@ function world() {
 
 const ids = (ctx: TestCtx) =>
   quickState(ctx, ctx.players.get('u_Anna')!, roundRules(ctx));
-const go = (mission: string, s: number, ships: object = { lf: 1 }) => ({
+const go = (mission: string, s: number, ships: Levels = { lf: 1 }) => ({
   mission,
   ships,
   to: { g: 1, s, p: 6 },
