@@ -146,8 +146,18 @@ export function describeSchema(db: Db): Table[] {
          AND name <> 'schema_migrations' ORDER BY name`,
     )
     .all() as { name: string; sql: string }[];
-  return byDependencies(rows.map((r) => describeTable(db, r.name, r.sql)));
+  // The description follows from the CREATE statements alone, and the
+  // property tests ask for the same schema for every generated case.
+  const key = JSON.stringify(rows);
+  let tables = described.get(key);
+  if (!tables) {
+    tables = byDependencies(rows.map((r) => describeTable(db, r.name, r.sql)));
+    described.set(key, tables);
+  }
+  return tables;
 }
+
+const described = new Map<string, Table[]>();
 
 // Values chosen to collide (NOCASE, empty, prefixes) and to stress the data.
 const TEXTS = ['', 'a', 'A', 'Anna', 'anna', 'p1_1_5', 'x:y', "o'k", 'Ä', '💫'];
