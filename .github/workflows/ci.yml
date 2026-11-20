@@ -12,7 +12,7 @@ name: CI
 # tests it changes, in one job (#309); the complete run in 6 shards stays for
 # the release pull requests, the pushes, the nightly run and a change of the
 # mutation configuration or the test tool chain; a change of the floors alone
-# in mutation-standard.json adds those files to the partial run, and a set of
+# in mutation-floors.txt adds those files to the partial run, and a set of
 # more than 12 files (PARTIAL_LIMIT) runs the complete run too.
 # The release pull request of main is a draft after every rebuild: its run
 # is the cheap one (the checks that run for every change and the changelog
@@ -141,12 +141,12 @@ jobs:
           # them for the changed files only (output "partial", scripts/
           # mutation-partial.ts, owner, 2026-11-18, #309): the files of the
           # mutate globs it changes and the source of each test file it
-          # changes, plus every file whose floor in mutation-standard.json it
+          # changes, plus every file whose floor in mutation-floors.txt it
           # adds, changes or removes, in one job. A change of the mutation
           # configuration (stryker.config.json, vitest.config.ts,
-          # tsconfig.json, scripts/mutation-*.ts), of anything in
-          # mutation-standard.json but the floors, or of the test tool chain
-          # still runs everything ("true"), and so does a set of more than
+          # tsconfig.json, scripts/mutation-*.ts, mutation-standard.json) or
+          # of the test tool chain still runs everything ("true"), and so
+          # does a set of more than
           # PARTIAL_LIMIT (12) files; no such file means no mutation job
           # ("false").
           mutation_files=
@@ -221,6 +221,8 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          # Two commits: HEAD^1, the base of the size ratchet below.
+          fetch-depth: 2
           persist-credentials: false
       - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -233,11 +235,11 @@ jobs:
       - run: pnpm lint:dead
       - run: pnpm lint:dupes
       - run: pnpm lint:deps
-      # src/client/main.ts must not grow; whoever shrinks it lowers the
-      # limit in size-ratchet.json (scripts/size-ratchet.ts, #242). The
-      # limit is compared with the one on main, so it cannot be raised.
-      - run: git fetch --no-tags --depth=1 origin main:refs/remotes/origin/main
-      - run: pnpm lint:size
+      # src/client/main.ts must not have more lines than on its base
+      # (scripts/size-ratchet.ts, #242, #317): HEAD^1 is main for the merge
+      # commit of a pull request, and the commit before for a push. No file
+      # holds the limit, so no pull request edits one for it.
+      - run: pnpm lint:size HEAD^1
       - run: pnpm format:check
       - run: pnpm typecheck
       # Blocks below 90 % lines and 85 % branches (vitest.config.ts).
@@ -403,7 +405,7 @@ jobs:
   # Merges the 6 shard reports (every shard once, with exactly its files)
   # and checks them as one run: a total mutation score below 80 % fails
   # (break threshold of stryker.config.json), a file below its floor fails
-  # too (mutation-standard.json).
+  # too (mutation-floors.txt, mutation-standard.json).
   mutation:
     name: Mutation tests
     needs: [changes, mutation-plan, mutation-shard]
@@ -440,7 +442,7 @@ jobs:
         with:
           path: reports/mutation-state.json
           key: stryker-state-${{ github.ref }}-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
-      - name: Total score and no file below its floor (mutation-standard.json)
+      - name: Total score and no file below its floor (mutation-floors.txt)
         run: node scripts/mutation-gate.ts --report reports/mutation/mutation.json
       - name: Keep the merged report for the next plan
         if: always() && steps.merge.outcome == 'success'
@@ -448,6 +450,16 @@ jobs:
         with:
           path: reports/mutation/mutation.json
           key: stryker-report-${{ github.ref }}-${{ github.sha }}
+      # The complete run is where the floors come from (#304): `gh run
+      # download <run-id> -n mutation-report`, then
+      # `node scripts/mutation-floors.ts <report>` (okf/ops/testing.md).
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always() && steps.merge.outcome == 'success'
+        with:
+          name: mutation-report
+          path: reports/mutation/mutation.json
+          overwrite: true
+          retention-days: 30
       # A release pull request tests every mutant: its report is a complete
       # one and serves as the weights too.
       - name: Keep a complete report as the weights of the next plans
@@ -498,7 +510,7 @@ jobs:
           if-no-files-found: ignore
           overwrite: true
           retention-days: 7
-      - name: Every changed file at or above its floor (mutation-standard.json)
+      - name: Every changed file at or above its floor (mutation-floors.txt)
         run: node scripts/mutation-gate.ts --partial
 
   compose:
