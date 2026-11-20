@@ -23,23 +23,22 @@ test.describe('admin (#68)', () => {
       .getByLabel('Spieler', { exact: true })
       .selectOption({ label: a });
     await page.getByRole('button', { name: 'Anzeigen', exact: true }).click();
-    // Registration, the attack order, the battle and the admin's reads.
-    await expect(count).toHaveText(/ · ([3-9]|\d{2,}) Ereignisse$/);
+    // Registration, the attack order, the battle and the admin's reads. The
+    // list of the tab (all players) is on screen first and the answer of the
+    // filter replaces it, with the reads of the admin on top: every row moves
+    // down. A click on a row before that answer lands on whatever row the
+    // answer puts there (the load-dependent failure of this test), so wait for
+    // the first read of the admin, which only the answer of the filter holds.
     const row = (action: RegExp) => events.getByRole('row', { name: action });
+    await expect(row(/admin\.read \/ events/)).toBeVisible();
+    await expect(count).toHaveText(/ · ([3-9]|\d{2,}) Ereignisse$/);
     const battle = row(/system \/ battle/);
-    // The log is drawn anew by the poll of the state and by the answer of the
-    // filter; the details the admin opened stay open (logic/admin-panels.svelte.ts).
-    // Open them only while they are closed, so a redraw between the read of the
-    // state and the click cannot close them again, and wait for the code.
+    // The opened details stay open over the redraws of the poll and over the
+    // new page of the log (logic/admin-panels.svelte.ts; e2e/redraw-drafts.spec.ts).
     const details = battle.locator('details');
-    await expect(async () => {
-      if ((await details.getAttribute('open')) === null)
-        await battle.getByText(/^Kampfdetails \d+$/).click();
-      await expect(details).toHaveAttribute('open', '', { timeout: 1000 });
-      await expect(battle.locator('details > code')).toContainText('"fleet"', {
-        timeout: 1000,
-      });
-    }).toPass({ timeout: 15000 });
+    await battle.getByText(/^Kampfdetails \d+$/).click();
+    await expect(details).toHaveAttribute('open', '');
+    await expect(battle.locator('details > code')).toContainText('"fleet"');
     const detail = JSON.parse(
       await battle.locator('details > code').innerText(),
     ) as { fleet: string; planet: string };

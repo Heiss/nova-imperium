@@ -5,7 +5,15 @@
 // differs from the last one, so each test changes the state of its own
 // player and waits until the node of a field it marked is replaced.
 import { expect, test, type Page } from '@playwright/test';
-import { guildTag, nav, register, seed, uniqueName, watch } from './helpers.ts';
+import {
+  cli,
+  guildTag,
+  nav,
+  register,
+  seed,
+  uniqueName,
+  watch,
+} from './helpers.ts';
 
 async function waitForRedraw(
   page: Page,
@@ -117,5 +125,75 @@ test.describe('a redraw by the poll keeps the draft of a form', () => {
     await sys.press('Enter');
     await expect(sys).toHaveValue('1');
     expect(w.problems).toEqual([]);
+  });
+  test('the opened details of the event log stay open with their code over a redraw', async ({
+    page,
+  }) => {
+    const w = watch(page);
+    const name = uniqueName('EntwurfLog');
+    await register(page, name);
+    cli('admin', name);
+    await page.reload();
+    await nav(page, 'admin');
+    const events = page.locator('[data-admin=events]');
+    await expect(events.getByRole('status')).toHaveText(/ Ereignisse$/);
+    const row = events
+      .getByRole('row')
+      .filter({ hasText: name })
+      .filter({ hasText: 'account / register' });
+    await row.locator('summary').click();
+    await expect(row.locator('details')).toHaveAttribute('open', '');
+    const code = row.locator('details > code');
+    await expect(code).toContainText('{');
+
+    await waitForRedraw(page, 'admin-tab-events', () =>
+      seed({ name, res: { m: 0, c: 0, d: 10004 } }),
+    );
+    await expect(row.locator('details')).toHaveAttribute('open', '');
+    JSON.parse(await code.innerText());
+    cli('unadmin', name);
+    expect(w.problems).toEqual([]);
+  });
+
+  test('the opened details of the error log stay open over a redraw', async ({
+    page,
+  }) => {
+    // No watch(page): the failed build is a 500 the browser logs on purpose.
+    const name = uniqueName('EntwurfFehler');
+    await register(page, name);
+    const request = '1a2b3c4d-1c3d-4e5f-8a9b-0c1d2e3f4a5b';
+    await page.route(
+      '**/api/action',
+      (route) =>
+        route.fulfill({
+          status: 500,
+          headers: { 'x-request-id': request },
+          json: { error: 'Serverfehler.' },
+        }),
+      { times: 1 },
+    );
+    const reported = page.waitForResponse('**/api/errors');
+    await nav(page, 'buildings');
+    await page.click('[data-act=build][data-k=metal]');
+    expect((await reported).status()).toBe(200);
+    cli('admin', name);
+    await page.reload();
+    await nav(page, 'admin');
+    await page.getByRole('tab', { name: 'Fehler' }).click();
+    const tab = page.locator('#admin-errors');
+    const row = tab.getByRole('row', { name: /HTTP 500: \/api\/action/ });
+    await row
+      .first()
+      .getByText(/^Eintrag \d+$/)
+      .click();
+    await expect(row.first().locator('details')).toHaveAttribute('open', '');
+    await expect(row.first()).toContainText(`Vorgang ${request}`);
+
+    await waitForRedraw(page, 'admin-tab-errors', () =>
+      seed({ name, res: { m: 0, c: 0, d: 10005 } }),
+    );
+    await expect(row.first().locator('details')).toHaveAttribute('open', '');
+    await expect(row.first()).toContainText(`Vorgang ${request}`);
+    cli('unadmin', name);
   });
 });
