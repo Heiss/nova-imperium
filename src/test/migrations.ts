@@ -8,6 +8,7 @@ import fc from 'fast-check';
 import ts from 'typescript';
 import { migrate, type Db } from '../server/db/database.ts';
 import { MIGRATIONS, type Migration } from '../server/db/schema.ts';
+import { statementCache } from './statement-cache.ts';
 
 type Value = string | number | Uint8Array | null;
 type Ref = { table: string; column: string };
@@ -215,7 +216,9 @@ function resolve(
   const out = { ...row };
   for (const c of t.columns) {
     if (!c.ref || out[c.name] === null) continue;
-    const keys = keysOf(c.ref).all() as Value[];
+    const keys = (keysOf(c.ref).all() as Record<string, Value>[]).map(
+      (r) => r.key!,
+    );
     if (keys.length === 0) {
       if (c.notNull) return null;
       out[c.name] = null;
@@ -237,9 +240,9 @@ export function populate(db: Db, tables: Table[], plan: Plan): void {
   // The keys of a parent table are read again for every row, with one statement.
   const selects = new Map<string, Statement>();
   const keysOf = (ref: Ref): Statement => {
-    const sql = `SELECT "${ref.column}" FROM "${ref.table}" ORDER BY rowid`;
+    const sql = `SELECT "${ref.column}" AS key FROM "${ref.table}" ORDER BY rowid`;
     let select = selects.get(sql);
-    if (!select) selects.set(sql, (select = db.prepare(sql).pluck()));
+    if (!select) selects.set(sql, (select = db.prepare(sql)));
     return select;
   };
   for (const t of tables) {
@@ -286,6 +289,37 @@ export function changesExisting(
   return false;
 }
 
+// A database per list of migrations and version, kept open for the cases of a
+// property test: a case writes its data and runs the migration inside a
+// savepoint and takes everything back, so the next case finds the database
+// as the migrations left it, with its prepared statements (the migration is
+// one transaction anyway, and none of them changes `foreign_keys`).
+const borrowed = new WeakMap<readonly Migration[], Map<number, Db>>();
+
+/** The database at `version` for one case, and the call that takes the case back. */
+function borrow(
+  version: number,
+  migrations: readonly Migration[],
+): { db: Db; release: () => void } {
+  const versions = borrowed.get(migrations) ?? new Map<number, Db>();
+  borrowed.set(migrations, versions);
+  let db = versions.get(version);
+  if (!db) {
+    db = databaseAt(version, migrations);
+    statementCache(db).on();
+    versions.set(version, db);
+  }
+  const kept = db;
+  kept.exec('SAVEPOINT upgrade_case');
+  return {
+    db: kept,
+    release: () =>
+      kept.exec(
+        'ROLLBACK TO SAVEPOINT upgrade_case; RELEASE SAVEPOINT upgrade_case',
+      ),
+  };
+}
+
 /** Migration n on the generated data; `take` records the state before and after. */
 function upgradeWith<S>(
   n: number,
@@ -293,7 +327,7 @@ function upgradeWith<S>(
   migrations: readonly Migration[],
   take: (db: Db) => S,
 ) {
-  const db = databaseAt(n - 1, migrations);
+  const { db, release } = borrow(n - 1, migrations);
   try {
     populate(db, describeSchema(db), plan);
     const before = take(db);
@@ -305,7 +339,7 @@ function upgradeWith<S>(
       foreignKeys: db.pragma('foreign_key_check'),
     };
   } finally {
-    db.close();
+    release();
   }
 }
 

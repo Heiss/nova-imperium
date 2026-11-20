@@ -2,10 +2,13 @@
 // test moves, a seeded random generator and readable ids.
 import Database from 'better-sqlite3';
 import { seeded } from '../test/fixtures.ts';
+import {
+  statementCache,
+  type StatementCache,
+} from '../test/statement-cache.ts';
 import { DEFAULT_EXPLAIN } from '../core/explain.ts';
 import { DEFAULT_LEVEL_MODE } from '../core/level-overview.ts';
 import type { Planet } from '../core/types.ts';
-import { hashPassword } from './auth.ts';
 import type { Config } from './config.ts';
 import { openDatabase, type Db } from './db/database.ts';
 import type { User } from './db/repos/players.ts';
@@ -34,48 +37,6 @@ function memoryDatabase(): Db {
   db.pragma('foreign_keys = ON');
   db.pragma('busy_timeout = 5000');
   return db;
-}
-
-/**
- * Keeps the prepared statements of a database by their SQL text for as long
- * as it is `on`: the code under test prepares its statements per call, and
- * `better-sqlite3` would compile the same text again and again (about half of
- * the time of a route test). A statement is shared by its text, so the calls
- * that change one (`pluck`, `raw`, `expand`, `safeIntegers`, `bind`) answer a
- * statement of their own. A test that measures what the production code
- * costs turns it `off` while it measures.
- */
-interface StatementCache {
-  on(): void;
-  off(): void;
-}
-
-const CHANGING = ['pluck', 'raw', 'expand', 'safeIntegers', 'bind'] as const;
-
-function statementCache(db: Db): StatementCache {
-  const kept = new Map<string, unknown>();
-  const real = Object.getPrototypeOf(db).prepare as (sql: string) => unknown;
-  const set = (prepare: unknown): void => {
-    (db as { prepare: unknown }).prepare = prepare;
-  };
-  const cached = (sql: string): unknown => {
-    // A closed database answers with its own error.
-    if (!db.open) return real.call(db, sql);
-    let statement = kept.get(sql);
-    if (!statement) {
-      const made = real.call(db, sql) as Record<string, unknown>;
-      for (const method of CHANGING)
-        made[method] = (...args: unknown[]) =>
-          (
-            (real.call(db, sql) as Record<string, unknown>)[method] as (
-              ...a: unknown[]
-            ) => unknown
-          )(...args);
-      kept.set(sql, (statement = made));
-    }
-    return statement;
-  };
-  return { on: () => set(cached), off: () => set(real) };
 }
 
 /**
@@ -152,7 +113,13 @@ export const testConfig = (over: Partial<Config> = {}): Config => ({
   ...over,
 });
 
-const testPassword = hashPassword('secret1', 'salt');
+/**
+ * `hashPassword('secret1', 'salt')`, written out: computing it costs about
+ * 0.2 s, in every test file that adds a user. test-helpers.test.ts fails when
+ * the scrypt profile changes and this value has to be written again.
+ */
+export const TEST_PASSWORD_HASH =
+  'scrypt-v2:33b01be12e07578cf2d18c7cff640cc80aae13f705d21234572a4c3d4dabea1af9254006ba8bb28bb969fda9a88d38935aa7e768a859756eaee41ad1cabf3090';
 
 export function addUser(
   ctx: Ctx,
@@ -164,7 +131,7 @@ export function addUser(
     name,
     email: `${name.toLowerCase()}@example.org`,
     salt: 'salt',
-    pw: testPassword,
+    pw: TEST_PASSWORD_HASH,
     admin: false,
     probes: 1,
     explain: DEFAULT_EXPLAIN,
