@@ -21,7 +21,7 @@ import { normalize } from '../../test/markup.ts';
 import { optionsView } from '../../test/options-view.ts';
 import type { GameState } from '../logic/types.ts';
 import type { V } from './common.ts';
-import { deleteAccountBox, deleteAccountDialog } from './misc.ts';
+import { deleteAccountBox } from './misc.ts';
 
 const highscore = (v: V): string => normalize(highscoreView(v));
 /** „Optionen“ as the component Options renders it (#118, bundle 5). */
@@ -404,7 +404,7 @@ describe('the warning below the box „Gilden (mit Chat)“ (#191)', () => {
   });
 });
 
-describe('„Account löschen“ in a round with or without guilds (#191)', () => {
+describe('the box „Account löschen“ in a round with or without guilds (#191)', () => {
   const on = { ...defaults(), guilds: true };
   const off = { ...defaults(), guilds: false };
 
@@ -420,26 +420,6 @@ describe('„Account löschen“ in a round with or without guilds (#191)', () =
       expect(deleteAccountBox(r)).toContain(
         '<button type="button" class="red" data-act="deleteAccount">Account löschen</button>',
       );
-  });
-
-  it('the dialog names a led guild only while guilds are on', () => {
-    expect(deleteAccountDialog(on)).toContain(
-      '<p>Dein Konto und deine Spielstände werden unwiderruflich gelöscht. Eine von dir geleitete Gilde wird aufgelöst.</p>',
-    );
-    expect(deleteAccountDialog(off)).toContain(
-      '<p>Dein Konto und deine Spielstände werden unwiderruflich gelöscht.</p>',
-    );
-    expect(deleteAccountDialog(off)).not.toContain('Gilde');
-    for (const r of [on, off]) {
-      const html = deleteAccountDialog(r);
-      expect(html).toMatch(/^<form id="deleteaccountform">/);
-      expect(html).toContain(
-        '<label for="delete-account-password">Passwort zur Bestätigung</label> <input id="delete-account-password" type="password" autocomplete="current-password" required>',
-      );
-      expect(html).toContain(
-        '<button class="red" type="submit">Account endgültig löschen</button> <button type="button" data-act="closeModal">Abbrechen</button></form>',
-      );
-    }
   });
 });
 

@@ -5,7 +5,11 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { ERROR_FIELDS } from '../../core/error-log.ts';
 import type { RoundRules } from '../../core/round.ts';
 import type { V } from '../views/common.ts';
-import { deleteAccountText, optionsPage } from './options.ts';
+import {
+  deleteAccountDialogText,
+  deleteAccountText,
+  optionsPage,
+} from './options.ts';
 import { archive, forgetArchive } from './round-archive.ts';
 
 const NOW = Date.UTC(2026, 10, 19, 12, 0);
@@ -122,6 +126,17 @@ describe('the sentence of „Account löschen“ (#191)', () => {
     );
     expect(deleteAccountText({ guilds: false } as RoundRules)).toBe(
       'Dein Konto und deine Spielstände werden dauerhaft gelöscht.',
+    );
+  });
+});
+
+describe('the sentence of the confirmation of „Account löschen“ (#191)', () => {
+  it('names a led guild only in a round with guilds', () => {
+    expect(deleteAccountDialogText({ guilds: true })).toBe(
+      'Dein Konto und deine Spielstände werden unwiderruflich gelöscht. Eine von dir geleitete Gilde wird aufgelöst.',
+    );
+    expect(deleteAccountDialogText({ guilds: false })).toBe(
+      'Dein Konto und deine Spielstände werden unwiderruflich gelöscht.',
     );
   });
 });

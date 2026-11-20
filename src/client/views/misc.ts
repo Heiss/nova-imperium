@@ -51,16 +51,9 @@ export const notificationBoxes = (
  ${box('Browser-Benachrichtigungen', '<p>Meldungen zu Aufträgen, Flotten und neuen Nachrichten auf diesem Gerät.</p><button data-act="pushEnable">Aktivieren</button> <button data-act="pushDisable">Deaktivieren</button>')}`;
 
 /** A sentence about guilds, only in a round with guilds (#191). */
-const guildNote = (round: RoundRules, sentence: string): string =>
-  round.guilds ? ` ${sentence}` : '';
-
 /** The box „Account löschen“ of the options. */
 export const deleteAccountBox = (round: RoundRules): string =>
   box(
     'Account löschen',
     `<p>${deleteAccountText(round)}</p><button type="button" class="red" data-act="deleteAccount">Account löschen</button>`,
   );
-
-/** The confirmation of „Account löschen“ with the password. */
-export const deleteAccountDialog = (round: RoundRules): string =>
-  `<form id="deleteaccountform"><p>Dein Konto und deine Spielstände werden unwiderruflich gelöscht.${guildNote(round, 'Eine von dir geleitete Gilde wird aufgelöst.')}</p><p><label for="delete-account-password">Passwort zur Bestätigung</label> <input id="delete-account-password" type="password" autocomplete="current-password" required></p><button class="red" type="submit">Account endgültig löschen</button> <button type="button" data-act="closeModal">Abbrechen</button></form>`;

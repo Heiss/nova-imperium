@@ -31,12 +31,11 @@ import {
 } from './views/frame.ts';
 import { forgetAdminPanel } from './views/admin-panel.ts';
 import { mountAuth } from './views/auth.ts';
-import { deleteAccountDialog } from './views/misc.ts';
 import { disablePush } from './push.ts';
 import { renderGate } from './views/vacation-lock.ts';
 import { ANEW, type Mounted, MOUNTED, mountView } from './views/mount.ts';
 import { api } from './api.ts';
-import { $, keepChatScroll, val } from './dom.ts';
+import { $, keepChatScroll } from './dom.ts';
 import { watchErrors } from './error-log.ts';
 import { whenBack } from './maintenance.ts';
 import { session, signedOut, whenSignedOut } from './session.ts';
@@ -472,7 +471,6 @@ const FRAME: Record<string, (d: Data) => unknown> = {
   selectPlanet: (d) => {
     if (d.id) return selectPlanet(d.id);
   },
-  deleteAccount: () => modal(deleteAccountDialog(client.game!.round)),
 };
 
 /** What the features need from this file (features/contract.ts). */
@@ -489,30 +487,6 @@ const ctx: ClientCtx = {
   signedOut,
 };
 const ACT = assembleActs(FRAME, CLIENT_FEATURES, ctx);
-
-// ----- forms -----
-
-async function submitAccountDeletion(): Promise<void> {
-  const button = $<HTMLButtonElement>(
-    '#deleteaccountform button[type=submit]',
-  )!;
-  if (button.disabled) return;
-  button.disabled = true;
-  try {
-    await api('/api/account/delete', {
-      password: val('#delete-account-password'),
-    });
-    await disablePush(async () => ({})).catch(() => null);
-    modal('');
-    client.game = null;
-    ui.auth = 'login';
-    render(true);
-    toast('Dein Account wurde gelöscht.');
-  } catch (error) {
-    toast((error as Error).message, true);
-    button.disabled = false;
-  }
-}
 
 // ----- events -----
 
@@ -558,13 +532,7 @@ document.addEventListener('change', (e) => {
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') modal('');
 });
-const FORMS = assembleForms(
-  {
-    deleteaccountform: submitAccountDeletion,
-  },
-  CLIENT_FEATURES,
-  ctx,
-);
+const FORMS = assembleForms({}, CLIENT_FEATURES, ctx);
 document.addEventListener('submit', (e) => {
   const id = (e.target as HTMLElement).id;
   const handle = Object.hasOwn(FORMS, id) ? FORMS[id] : undefined;
