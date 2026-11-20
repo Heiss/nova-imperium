@@ -13,5 +13,9 @@ export const fakeCtx = (over: Partial<ClientCtx> = {}): ClientCtx => ({
   api: vi.fn(async () => ({})),
   toast: vi.fn(),
   setInput: vi.fn(),
+  apply: vi.fn(),
+  signedOut: vi.fn((error: unknown): never => {
+    throw new Error(String(error));
+  }),
   ...over,
 });

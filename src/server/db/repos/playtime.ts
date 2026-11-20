@@ -9,6 +9,8 @@ import type {
   Reason,
 } from '../../../core/playtime.ts';
 import type { Db } from '../database.ts';
+import type { RepositoryModule } from './contract.ts';
+import type { RoundReset } from '../round-reset.ts';
 
 /** A row to append. */
 export interface PlaytimeEvent extends Interval {
@@ -23,7 +25,7 @@ export interface PlaytimeEvent extends Interval {
 }
 
 /** The last interval of a player, whichever page reported it. */
-export interface LastOfPlayer {
+interface LastOfPlayer {
   session: number;
   end: number;
   round: number;
@@ -68,7 +70,7 @@ type Row = {
   method?: number;
 };
 
-export class SqlitePlaytime implements Playtime {
+class SqlitePlaytime implements Playtime {
   private readonly db: Db;
   constructor(db: Db) {
     this.db = db;
@@ -204,3 +206,14 @@ export class SqlitePlaytime implements Playtime {
     return Object.fromEntries(rows.map((r) => [r.user, r.last]));
   }
 }
+
+/** The accepted intervals of the estimated play time (#232). */
+export const repository = {
+  key: 'playtime',
+  make: (db: Db): Playtime => new SqlitePlaytime(db),
+} as const satisfies RepositoryModule;
+
+/** The intervals carry their round; the archive reads them (#235). */
+export const roundReset = [
+  { keeps: ['playtime_events'] },
+] satisfies readonly RoundReset[];

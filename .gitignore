@@ -25,3 +25,6 @@ website/src/content/docs/operations/
 /src/core/round-settings.gen.ts
 /src/client/features/index.gen.ts
 /src/server/features.gen.ts
+/src/server/round-reset.gen.ts
+/src/server/db/repos/repositories.gen.ts
+/src/client/views/views.gen.ts

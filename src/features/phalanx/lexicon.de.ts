@@ -10,6 +10,7 @@ const [FIRST, MIDDLE, HIGH] = [1, 3, 5] as const;
 
 export const lexicon: EntryLexicon = {
   keywords: ['Mond', 'scannen', 'Radar', 'beobachten'],
+  seeAlso: ['rule-gates'],
   effect: { label: 'Reichweite', at: phalanxRange, unit: 'Systeme' },
   texts: [
     {

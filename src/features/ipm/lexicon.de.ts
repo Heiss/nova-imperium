@@ -5,4 +5,5 @@ import type { EntryLexicon } from '../../core/lexicon/types.ts';
 
 export const lexicon: EntryLexicon = {
   keywords: ['Raketen', 'Angriff', 'beschießen', 'Fernkampf'],
+  seeAlso: ['rule-missiles'],
 };

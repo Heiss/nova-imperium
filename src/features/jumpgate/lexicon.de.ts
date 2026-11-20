@@ -4,7 +4,7 @@
 // #230); the text and the keywords are drafts ([V],
 // okf/features/lexicanum-texts.md).
 import { gateCooldown, gateCooldownMs } from '../../core/jump-gate.ts';
-import { number } from '../../core/lexicon/parts.ts';
+import { gateFormula, number } from '../../core/lexicon/parts.ts';
 import type {
   Block,
   EntryLexicon,
@@ -43,6 +43,7 @@ function blocks(s: LexState): Block[] {
 
 export const lexicon: EntryLexicon = {
   keywords: ['Tor', 'springen', 'Teleport', 'Flotte', 'Mond'],
+  seeAlso: ['rule-gates'],
   texts: [
     {
       text: 'Die Wartezeit nach einem Sprung hängt von der Stufe des Starttors ab und sinkt, aber nicht gleichmäßig: Stufe {first} wartet {atFirst} Minuten, Stufe {middle} {atMiddle}, Stufe {high} nur {atHigh}. Ab Stufe {cap} wird sie nicht mehr kürzer. Diese Minuten teilt das Universum durch seine Geschwindigkeit, ein schnelleres kühlt die Tore also schneller ab; die Tabelle zeigt die Zeit in deinem Universum. Beide Tore warten gleich lang, und zwar nach dem Starttor – die Stufe des Zieltors ändert nichts daran. Der Sprung selbst geschieht sofort und kostet keinen Treibstoff; nur Schiffe springen, die Rohstoffe bleiben zurück.',
@@ -57,20 +58,6 @@ export const lexicon: EntryLexicon = {
       },
     },
   ],
-  formulas: [
-    {
-      text: 'Wartezeit in Minuten = Minuten der Tabelle für die Stufe des Starttors ÷ Geschwindigkeit des Universums',
-      fn: (level, speed) => gateCooldown(level!) / speed!,
-      rule: (level, speed) =>
-        gateCooldownMs(level!, { speed: speed! }) / 60_000,
-      samples: [
-        [1, 1],
-        [5, 2],
-        [10, 5],
-        [15, 10],
-        [20, 1],
-      ],
-    },
-  ],
+  formulas: [gateFormula()],
   blocks,
 };

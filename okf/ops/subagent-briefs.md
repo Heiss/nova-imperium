@@ -47,14 +47,22 @@ when the second built on the first.
   new local name and push with `git push origin HEAD:<branch>`.
 * Never force push, never amend a pushed commit, never use `--no-verify`,
   never push to main, open no pull request.
-* Never lower a mutation floor, never weaken or skip a test.
+* Never lower a mutation floor, never weaken or skip a test. A branch does
+  not touch `mutation-floors.txt` at all and records no floor of a new file:
+  the floors are written by the main agent from the merged report of a
+  complete CI run (`node scripts/mutation-floors.ts`, #304, #317). A local
+  Stryker run of single named files only lists survivors.
 * `PW_CHROMIUM_PATH=/opt/pw-browsers/chromium-1243/chrome-linux64/chrome`
   for Playwright, never `playwright install`, `--trace off`, a unique
   `E2E_RUN` value for the data folder and an own `E2E_PORT` above 1024
   (three ports from it downwards), so runs of two agents do not wait for
   each other.
-* `size-ratchet.json` equals the real line count of `src/client/main.ts`
-  and is never above the limit on main.
+* `src/client/main.ts` has no more lines than on main (`pnpm lint:size`
+  compares with the merge base; there is no file to edit and no number to
+  keep: a branch that moves code out of `main.ts` just commits the smaller
+  file). `size-ratchet.json` no longer exists (#317 part 4): a branch that
+  still edits it conflicts, and the conflict is resolved by deleting the
+  file.
 * A new per-round setting is defined in the feature's own file of
   `src/core` and exported as `roundSettings`; nothing else is edited (the
   list is generated). It has its own `order` number, and the brief names
@@ -77,8 +85,31 @@ when the second built on the first.
   number, the next free ten above the highest, and the brief names the
   numbers other open branches already took; an action name, a state key or a
   number that exists twice stops the start, and the guard test
-  `src/server/game/registry.test.ts` checks the rules for all. A new action
-  or key is also written into `registry-pin.test.ts` (#326).
+  `src/server/game/registry.test.ts` checks the rules for all. No list of
+  action names or keys is kept anywhere else (`registry-pin.test.ts` is
+  deleted, #317).
+* A new repository is a file in `src/server/db/repos/` that exports
+  `repository = { key: 'market', make: (db): MarketStore => ... } as const
+  satisfies RepositoryModule`; `ctx.market` is typed by what `make`
+  returns, so write the interface as the return type. Nothing else is edited
+  (`repos/index.ts` names no repository; the list `repositories.gen.ts` is
+  generated; a key that exists twice stops the start). A table that a new
+  round empties is declared in the file of its owner (a repository, or any
+  other file of `src/server`) as `roundReset = [{ order: 120, clears:
+  ['my_table'] }]`, with the next free ten above the highest (`grep -rn
+  "order:" src/server | grep clears`); a table that must survive a new round
+  is declared as `{ keeps: ['my_table'] }`. `newRound` in `game/admin.ts`
+  names no table. `src/server/game/round-reset.test.ts` seeds a row into
+  every table of the schema and fails when a table is neither emptied nor
+  declared as kept (#317).
+* A new view is `export const clientViews = [{ key: 'market', mount, anew:
+  true, menu: { order: 40, label: 'Marktplatz' }, tab?, glyph? }] satisfies
+  readonly ClientView[]` in a file of `src/client/views/` (contract:
+  `contract.ts`; a view still drawn as HTML gives `html` instead of
+  `mount`). `mount.ts`, `index.ts` and `main.ts` are not edited; the list
+  `views.gen.ts` is generated, a view key, a menu number or a tab number that
+  exists twice stops the start, and `src/client/views/registry.test.ts`
+  checks the rules for all (#317).
 * Stop after two failed attempts at the same problem and report.
 * A new E2E test goes into the spec of its feature, `e2e/<feature>.spec.ts`
   (a new file for a new feature), never into a collecting file; new seed
@@ -113,6 +144,7 @@ when the second built on the first.
 | A pull request of a feature ran the complete mutation run although #312 had made it partial. | It changed `mutation-standard.json`, and every change of the mutation setup forced the complete run. | A change of floors only adds the files of those floors to the partial run (#313); the main agent checks in the review what triggers the complete run. |
 | The partial mutation job took 62 minutes for 33 files. | One job without a cache, and no limit on the number of files. | More than 12 changed files run the six shards (#321). |
 | A merged floor was below the one on main. | The brief said „take the lower floor“ for a conflict in `mutation-standard.json`. | For a file both sides changed: the value of main or the higher one, never a value below main's. |
+| Every branch that touched a floor conflicted in `mutation-standard.json`, and every branch that changed `src/client/main.ts` in `size-ratchet.json` (#317 part 4). | Both were files with one entry per branch, in one JSON object (a comma on the last line) and one number everybody had to set to the same value. | The floors are one line per file, sorted, in `mutation-floors.txt` (`merge=union`), and a branch does not write them; the size of `main.ts` is compared with the base by git and no file holds it. |
 | A reference test that draws 300 random cases failed after a merge. | A rare mark was no longer among the drawn cases. | Rare cases are built by hand next to the sample; `numRuns` is not raised. |
 | The phone E2E test of the highscore overflowed after another spec changed. | The specs share one database (#302): one spec seeded a research level that gave a 31-digit score. | Related specs run in one invocation; seeds stay small; the cause is searched with a diagnostic in the test, not guessed. |
 | An E2E test became flaky after its seed was made realistic. | It depended on a 5 % chance of the game (probes lost). | No E2E test depends on a chance of the game: it repeats the step or seeds the outcome. |
@@ -129,7 +161,12 @@ when the second built on the first.
   findings of the CI to the subagent.
 * **[E]** No floor is recorded from a local mutation run: under load a
   timeout counts as a killed mutant. A local run of single named files
-  only lists survivors.
+  only lists survivors. The floors come from the merged report of a
+  complete CI run only (owner, 2026-11-19, #304 option 1): the artifact
+  `mutation-report` of the nightly run or of a complete run in a pull
+  request, turned into floors by `node scripts/mutation-floors.ts
+  <report.json>`, which never lowers a floor (`okf/ops/testing.md`).
+  `node scripts/mutation-gate.ts --update` is gone.
 * **[E]** Finished features are bundled into one pull request; at most four
   own pull requests are open, and the queue is drained before new work
   starts.
@@ -143,8 +180,9 @@ when the second built on the first.
   main. The pull request whose rerun costs most (it changes the mutation
   setup, so it always runs completely) merges first when it is green.
 * **[V]** After a merge the main agent resolves the small conflicts of the
-  other branches itself (`size-ratchet.json`, the header of `e2e/seed.ts`,
-  notes in `okf/`); a merge that touches game logic of two features goes
+  other branches itself (`mutation-floors.txt` after a merge: `node
+  scripts/mutation-floors.ts --format` sorts it and names a file with two
+  lines; the header of `e2e/seed.ts`, notes in `okf/`); a merge that touches game logic of two features goes
   to a subagent with a brief that names the interactions to check.
 * **[V]** The folder `website/` has its own Prettier: `pnpm format:check`
   is run inside it when it is touched.

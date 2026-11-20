@@ -1,5 +1,6 @@
-// The size ratchet of src/client/main.ts (#242): the stored limit in
-// size-ratchet.json only goes down; the check fails above it and below it.
+// The size ratchet of src/client/main.ts (#242, #317 part 4): the file must
+// not have more lines than on the base; there is no stored limit.
+import { execFileSync, spawnSync } from 'node:child_process';
 import {
   mkdirSync,
   mkdtempSync,
@@ -9,35 +10,60 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { afterAll, describe, expect, it } from 'vitest';
 import {
-  baseLimit,
-  check,
+  baseLines,
+  baseOf,
   countLines,
-  LIMIT_FILE,
-  parseLimit,
-  raised,
+  LIMITED_FILE,
   run,
   verdict,
 } from '../../scripts/size-ratchet.ts';
-import { execFileSync } from 'node:child_process';
 
-const root = path.resolve(import.meta.dirname, '../..');
-const MAIN = 'src/client/main.ts';
+const made: string[] = [];
+afterAll(() => {
+  for (const dir of made) rmSync(dir, { recursive: true, force: true });
+});
 
-/** A folder with the limit file and a main.ts of the given line count. */
-const repo = (limit: number | undefined, lines: number | undefined) => {
+/** A git repository; git runs a git command in it. */
+const repo = () => {
   const dir = mkdtempSync(path.join(tmpdir(), 'size-ratchet-'));
-  if (limit !== undefined)
-    writeFileSync(
-      path.join(dir, LIMIT_FILE),
-      JSON.stringify({ file: MAIN, lines: limit }),
-    );
-  if (lines !== undefined) {
+  made.push(dir);
+  const git = (...args: string[]): string =>
+    execFileSync('git', args, {
+      cwd: dir,
+      encoding: 'utf8',
+      stdio: 'pipe',
+      env: {
+        PATH: process.env.PATH,
+        GIT_CONFIG_GLOBAL: '/dev/null',
+        GIT_CONFIG_SYSTEM: '/dev/null',
+        GIT_AUTHOR_NAME: 'x',
+        GIT_AUTHOR_EMAIL: 'x@example.org',
+        GIT_COMMITTER_NAME: 'x',
+        GIT_COMMITTER_EMAIL: 'x@example.org',
+      },
+    }).trim();
+  git('init', '-q', '-b', 'main');
+  /**
+   * Writes main.ts with the lines l<from> to l<to> and commits it (nothing
+   * for undefined: another file); the commit.
+   */
+  const commit = (to: number | undefined, from = 1): string => {
     mkdirSync(path.join(dir, 'src/client'), { recursive: true });
-    writeFileSync(path.join(dir, MAIN), 'x;\n'.repeat(lines));
-  }
-  return dir;
+    if (to === undefined) writeFileSync(path.join(dir, 'other.txt'), 'x\n');
+    else
+      writeFileSync(
+        path.join(dir, LIMITED_FILE),
+        Array.from({ length: to - from + 1 }, (_, i) => `l${from + i};\n`).join(
+          '',
+        ),
+      );
+    git('add', '-A');
+    git('commit', '-qm', 'c', '--allow-empty');
+    return git('rev-parse', 'HEAD');
+  };
+  return { dir, git, commit };
 };
 
 describe('size ratchet', () => {
@@ -49,135 +75,224 @@ describe('size ratchet', () => {
     expect(countLines('a\r\n\n')).toBe(2);
   });
 
-  it('passes a file at its limit', () => {
-    expect(check(repo(3, 3))).toEqual({
-      error: undefined,
-      limit: { file: MAIN, lines: 3 },
-      lines: 3,
+  it('lets the file stay or shrink, and says to move the code out when it grows', () => {
+    expect(verdict(LIMITED_FILE, 5, 5)).toBeUndefined();
+    expect(verdict(LIMITED_FILE, 4, 5)).toBeUndefined();
+    expect(verdict(LIMITED_FILE, 0, 0)).toBeUndefined();
+    expect(verdict(LIMITED_FILE, 6, 5)).toBe(
+      `${LIMITED_FILE} has 6 lines, 1 more than on its base (5). It must not grow: move the code into a module or component (#118).`,
+    );
+  });
+
+  it('reads the lines of the file on a base, none while it was not there', () => {
+    const { dir, commit } = repo();
+    const base = commit(3);
+    const none = commit(undefined);
+    expect(baseLines(dir, base)).toBe(3);
+    // The same file, unchanged, in the later commit.
+    expect(baseLines(dir, none)).toBe(3);
+    expect(baseLines(dir, `${base}~1`)).toBeUndefined();
+  });
+
+  describe('against the base commit the CI passes', () => {
+    it('passes a file at the lines of the base or below', () => {
+      const { dir, commit } = repo();
+      const base = commit(5);
+      expect(run(dir, true, base)).toEqual({
+        code: 0,
+        text: `${LIMITED_FILE}: 5 lines, 5 on the base.`,
+      });
+      commit(4);
+      expect(run(dir, true, base)).toEqual({
+        code: 0,
+        text: `${LIMITED_FILE}: 4 lines, 5 on the base.`,
+      });
     });
-  });
 
-  it('fails above the limit and says to move the code out', () => {
-    expect(check(repo(3, 4)).error).toBe(
-      `${MAIN} has 4 lines, the limit in size-ratchet.json is 3. It must not grow: move the code into a module or component (#118).`,
-    );
-  });
-
-  it('fails below the limit when the limit was not lowered', () => {
-    expect(check(repo(3, 2)).error).toBe(
-      `${MAIN} has 2 lines, the limit in size-ratchet.json is 3. Lower the limit in size-ratchet.json to 2 in the same change; the freed lines never come back.`,
-    );
-  });
-
-  it('passes below the old limit once the limit is lowered', () => {
-    expect(check(repo(2, 2)).error).toBeUndefined();
-  });
-
-  it('fails on a missing limit file or a missing limited file', () => {
-    expect(() => check(repo(undefined, 2))).toThrow(
-      'size-ratchet.json is missing.',
-    );
-    expect(() => check(repo(2, undefined))).toThrow(`${MAIN} is missing.`);
-  });
-
-  it('refuses a malformed limit', () => {
-    expect(parseLimit('{"file":"a.ts","lines":0}')).toEqual({
-      file: 'a.ts',
-      lines: 0,
+    it('fails a file that grew over the base, without anything stored to edit', () => {
+      const { dir, commit } = repo();
+      const base = commit(5);
+      commit(6);
+      expect(run(dir, true, base)).toEqual({
+        code: 1,
+        text: `${LIMITED_FILE} has 6 lines, 1 more than on its base (5). It must not grow: move the code into a module or component (#118).`,
+      });
     });
-    for (const bad of [
-      '{"lines":3}',
-      '{"file":"","lines":3}',
-      '{"file":3,"lines":3}',
-    ])
-      expect(() => parseLimit(bad)).toThrow(
-        'size-ratchet.json: "file" must name the limited file',
+
+    it('measures the working tree, not only the commits', () => {
+      const { dir, commit } = repo();
+      const base = commit(5);
+      writeFileSync(path.join(dir, LIMITED_FILE), 'x;\n'.repeat(7));
+      expect(run(dir, true, base).code).toBe(1);
+    });
+
+    it('does not blame a branch for what main shrank after it forked', () => {
+      // The merge commit the CI tests has main as its first parent: a branch
+      // that leaves main.ts alone is at the lines of main, not above.
+      const { dir, git, commit } = repo();
+      const fork = commit(10);
+      git('checkout', '-q', '-b', 'topic');
+      writeFileSync(path.join(dir, 'topic.txt'), 'x\n');
+      git('add', '-A');
+      git('commit', '-qm', 'topic');
+      git('checkout', '-q', 'main');
+      const main = commit(10, 5);
+      git('merge', '-q', '--no-ff', '-m', 'merge', 'topic');
+      expect(run(dir, true, main).code).toBe(0);
+      // Measured against the old fork point, the same tree has shrunk too.
+      expect(run(dir, true, fork).code).toBe(0);
+    });
+
+    it('fails a branch that grows the file after main shrank it', () => {
+      const { dir, git, commit } = repo();
+      commit(10);
+      git('checkout', '-q', '-b', 'topic');
+      commit(11);
+      git('checkout', '-q', 'main');
+      const main = commit(10, 5);
+      git('merge', '-q', '--no-ff', '-m', 'merge', 'topic');
+      // The 6 lines of main plus the line of the branch: 7 > 6.
+      expect(
+        countLines(readFileSync(path.join(dir, LIMITED_FILE), 'utf8')),
+      ).toBe(7);
+      expect(run(dir, true, main).code).toBe(1);
+    });
+
+    it('passes a change that adds the file, and a push that creates a branch', () => {
+      const { dir, commit } = repo();
+      const base = commit(undefined);
+      commit(8);
+      expect(run(dir, true, base)).toEqual({
+        code: 0,
+        text: `${LIMITED_FILE}: 8 lines, not on the base yet.`,
+      });
+      expect(run(dir, true, '0'.repeat(40))).toEqual({
+        code: 0,
+        text: `${LIMITED_FILE}: 8 lines, no base to compare with (skipped).`,
+      });
+    });
+
+    it('fails on a base that is not fetched, and without the file', () => {
+      const { dir, commit } = repo();
+      commit(2);
+      expect(() => run(dir, true, 'f'.repeat(40))).toThrow(
+        `The base ${'f'.repeat(40)} is missing; fetch it before the check.`,
       );
-    for (const bad of [
-      '{"file":"a.ts"}',
-      '{"file":"a.ts","lines":"3"}',
-      '{"file":"a.ts","lines":2.5}',
-      '{"file":"a.ts","lines":-1}',
-    ])
-      expect(() => parseLimit(bad)).toThrow(
-        'size-ratchet.json: "lines" must be a whole number',
+      rmSync(path.join(dir, LIMITED_FILE));
+      expect(() => run(dir, true, 'HEAD')).toThrow(
+        `${LIMITED_FILE} is missing.`,
       );
+    });
   });
 
-  it('gives no verdict at the limit', () => {
-    expect(verdict({ file: 'a.ts', lines: 5 }, 5)).toBeUndefined();
+  describe('without a base commit', () => {
+    it('takes the merge base with origin/main, and fails a branch that grows the file', () => {
+      const { dir, git, commit } = repo();
+      commit(5);
+      git('update-ref', 'refs/remotes/origin/main', 'HEAD');
+      expect(run(dir, false)).toEqual({
+        code: 0,
+        text: `${LIMITED_FILE}: 5 lines, 5 on the base.`,
+      });
+      commit(6);
+      expect(run(dir, false).code).toBe(1);
+      commit(4);
+      expect(run(dir, false).code).toBe(0);
+    });
+
+    it('measures from the fork point, not from the newest main', () => {
+      const { dir, git, commit } = repo();
+      commit(10);
+      git('checkout', '-q', '-b', 'topic');
+      commit(undefined);
+      git('checkout', '-q', 'main');
+      commit(10, 5);
+      git('update-ref', 'refs/remotes/origin/main', 'HEAD');
+      git('checkout', '-q', 'topic');
+      // main shrank to 6 after the fork: the branch at 10 has not grown.
+      expect(run(dir, false).code).toBe(0);
+    });
+
+    it('is skipped locally without origin/main, an error in the CI', () => {
+      const { dir, commit } = repo();
+      commit(5);
+      expect(baseOf(dir, undefined, false)).toBeUndefined();
+      expect(run(dir, false)).toEqual({
+        code: 0,
+        text: `${LIMITED_FILE}: 5 lines, no base to compare with (skipped).`,
+      });
+      expect(() => run(dir, true)).toThrow(
+        'The CI passes the base commit: size-ratchet.ts <base>.',
+      );
+    });
   });
 
-  it('limits only src/client/main.ts, and the repository is at its limit', () => {
-    const result = check(root);
-    expect(result.limit.file).toBe(MAIN);
-    // Stryker's sandbox puts „// @ts-nocheck“ above every source file, so
-    // there main.ts has one line more than in the repository.
-    const sandbox = root.split(path.sep).includes('.stryker-tmp');
-    expect(result.lines).toBe(result.limit.lines + (sandbox ? 1 : 0));
-    if (!sandbox) expect(result.error).toBeUndefined();
-  });
-
-  it('refuses a limit raised above the one on the base branch', () => {
-    const limit = { file: MAIN, lines: 1890 };
-    expect(raised(limit, 1889)).toBe(
-      `The limit in ${LIMIT_FILE} was raised from 1889 to 1890; it only goes down (#242).`,
+  describe('as a command', () => {
+    const script = path.resolve(
+      import.meta.dirname,
+      '../../scripts/size-ratchet.ts',
     );
-    expect(raised(limit, 1890)).toBeUndefined();
-    expect(raised({ file: MAIN, lines: 1880 }, 1889)).toBeUndefined();
-    expect(raised(limit, undefined)).toBeUndefined();
-    // main.ts and the limit raised together: refused before the equality.
-    expect(check(repo(4, 4), 3).error).toBe(
-      `The limit in ${LIMIT_FILE} was raised from 3 to 4; it only goes down (#242).`,
+    const cli = (dir: string, args: string[], env: Record<string, string>) =>
+      spawnSync('node', [script, ...args], {
+        cwd: dir,
+        encoding: 'utf8',
+        env: { PATH: process.env.PATH, ...env },
+      });
+
+    it('prints the result and exits 0 within the lines of the base', () => {
+      const { dir, commit } = repo();
+      const base = commit(5);
+      const result = cli(dir, [base], { CI: 'true' });
+      expect(result.status).toBe(0);
+      expect(result.stdout).toBe(`${LIMITED_FILE}: 5 lines, 5 on the base.\n`);
+    });
+
+    it('prints the message to stderr and exits 1 above the lines of the base', () => {
+      const { dir, commit } = repo();
+      const base = commit(5);
+      commit(6);
+      const result = cli(dir, [base], {});
+      expect(result.status).toBe(1);
+      expect(result.stdout).toBe('');
+      expect(result.stderr).toContain(`${LIMITED_FILE} has 6 lines, 1 more`);
+    });
+
+    it('needs the base in the CI, and skips the check locally without origin/main', () => {
+      const { dir, commit } = repo();
+      commit(5);
+      const ci = cli(dir, [], { CI: 'true' });
+      expect(ci.status).toBe(1);
+      expect(ci.stderr).toBe(
+        'The CI passes the base commit: size-ratchet.ts <base>.\n',
+      );
+      for (const env of [{}, { CI: '' }, { CI: 'false' }] as Record<
+        string,
+        string
+      >[]) {
+        const local = cli(dir, [], env);
+        expect(local.status).toBe(0);
+        expect(local.stdout).toBe(
+          `${LIMITED_FILE}: 5 lines, no base to compare with (skipped).\n`,
+        );
+      }
+    });
+  });
+
+  it('knows a base only when git finds its commit', () => {
+    const { dir, commit } = repo();
+    commit(1);
+    // Names that look like the all-zero commit of a new branch, but are not.
+    for (const name of ['10', '01', 'a0', '0a', '00x0'])
+      expect(() => baseOf(dir, name, false)).toThrow(
+        `The base ${name} is missing; fetch it before the check.`,
+      );
+    // git cannot even start in a folder that is not there.
+    expect(() => baseOf(path.join(dir, 'nowhere'), 'HEAD', false)).toThrow(
+      'The base HEAD is missing',
     );
-    expect(check(repo(3, 3), 3).error).toBeUndefined();
   });
 
-  it('reads the limit of the base branch, or none without it', () => {
-    const dir = repo(3, 3);
-    // Not a repository: no base branch; locally skipped, in the CI an error.
-    expect(baseLimit(dir, false)).toBeUndefined();
-    expect(() => baseLimit(dir, true)).toThrow('origin/main is missing');
-  });
-
-  /** A git repository whose origin/main holds the given limit file, if any. */
-  const gitRepo = (base: number | undefined, limit: number, lines: number) => {
-    const dir = repo(limit, lines);
-    const git = (...args: string[]) =>
-      execFileSync('git', args, { cwd: dir, stdio: 'pipe' });
-    git('init', '-q');
-    git('config', 'user.email', 't@example.invalid');
-    git('config', 'user.name', 't');
-    const own = path.join(dir, LIMIT_FILE);
-    const mine = readFileSync(own, 'utf8');
-    if (base === undefined) rmSync(own);
-    else writeFileSync(own, JSON.stringify({ file: MAIN, lines: base }));
-    git('add', '-A');
-    git('commit', '-qm', 'base');
-    git('update-ref', 'refs/remotes/origin/main', 'HEAD');
-    writeFileSync(own, mine);
-    return dir;
-  };
-
-  it('compares the limit with the one on origin/main', () => {
-    expect(baseLimit(gitRepo(5, 5, 5), true)).toBe(5);
-    expect(run(gitRepo(5, 5, 5), true)).toEqual({
-      code: 0,
-      text: `${MAIN}: 5 lines, at its limit.`,
-    });
-    expect(run(gitRepo(5, 6, 6), true)).toEqual({
-      code: 1,
-      text: `The limit in ${LIMIT_FILE} was raised from 5 to 6; it only goes down (#242).`,
-    });
-    expect(run(gitRepo(5, 4, 4), false).code).toBe(0);
-  });
-
-  it('skips the base comparison while origin/main has no limit file', () => {
-    expect(baseLimit(gitRepo(undefined, 5, 5), true)).toBeUndefined();
-    expect(run(gitRepo(undefined, 6, 6), true).code).toBe(0);
-    expect(run(gitRepo(undefined, 6, 7), true)).toEqual({
-      code: 1,
-      text: `${MAIN} has 7 lines, the limit in ${LIMIT_FILE} is 6. It must not grow: move the code into a module or component (#118).`,
-    });
+  it('limits only src/client/main.ts', () => {
+    expect(LIMITED_FILE).toBe('src/client/main.ts');
   });
 });

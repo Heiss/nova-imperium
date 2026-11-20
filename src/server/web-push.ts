@@ -8,6 +8,7 @@ import {
   scheduleShipyard,
   type PushKind,
 } from './push-store.ts';
+import type { RoundReset } from './db/round-reset.ts';
 
 const TITLES: Record<PushKind, string> = {
   buildings: 'Das Werk ist vollbracht',
@@ -269,3 +270,8 @@ export function startPushDelivery(
     await pending;
   };
 }
+
+/** The keys of the server and the subscriptions of the browsers live through the rounds. */
+export const roundReset = [
+  { keeps: ['push_keys', 'push_subscriptions'] },
+] satisfies readonly RoundReset[];

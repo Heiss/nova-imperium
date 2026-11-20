@@ -11,7 +11,7 @@ const EXAMPLE = 9;
 
 export const lexicon: EntryLexicon = {
   keywords: ['Expedition', 'erkunden', 'entdecken', 'Rand'],
-  seeAlso: ['mission-expedition'],
+  seeAlso: ['mission-expedition', 'rule-expeditions'],
   effect: { label: 'Expeditionen gleichzeitig', at: expeditionSlots },
   texts: [
     {

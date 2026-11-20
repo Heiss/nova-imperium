@@ -4,7 +4,9 @@
 // src/server/game/round-report.ts.
 import type { RoundCoverage, RoundStatus } from '../../../core/round-report.ts';
 import type { Db } from '../database.ts';
+import type { RepositoryModule } from './contract.ts';
 import type { Row } from './rows.ts';
+import type { RoundReset } from '../round-reset.ts';
 
 export interface RoundRow {
   number: number;
@@ -19,7 +21,7 @@ export interface RoundRow {
   events: number | null;
 }
 
-export interface Participant {
+interface Participant {
   round: number;
   /** The place in the round: stable, and the only reference events make to a player. */
   seat: number;
@@ -28,7 +30,7 @@ export interface Participant {
   name: string;
 }
 
-export interface RoundEvent {
+interface RoundEvent {
   id: number;
   round: number;
   /** When the fact took effect, and when it was written. */
@@ -41,7 +43,7 @@ export interface RoundEvent {
 }
 
 /** An event to write; the round and the time of writing are given with it. */
-export interface NewRoundEvent {
+interface NewRoundEvent {
   at: number;
   kind: string;
   seat?: number | null;
@@ -98,7 +100,7 @@ const eventOf = (r: Row): RoundEvent => ({
   payload: JSON.parse(r.payload as string) as Record<string, unknown>,
 });
 
-export class SqliteRounds implements RoundArchive {
+class SqliteRounds implements RoundArchive {
   private readonly db: Db;
   constructor(db: Db) {
     this.db = db;
@@ -208,3 +210,14 @@ export class SqliteRounds implements RoundArchive {
       .get(round) as number;
   }
 }
+
+/** The archive of the rounds and their event history (#235). */
+export const repository = {
+  key: 'rounds',
+  make: (db: Db): RoundArchive => new SqliteRounds(db),
+} as const satisfies RepositoryModule;
+
+/** The archive of the rounds is kept on purpose until the admin deletes a round (#235). */
+export const roundReset = [
+  { keeps: ['rounds', 'round_events', 'round_participants'] },
+] satisfies readonly RoundReset[];

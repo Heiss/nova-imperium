@@ -1,111 +1,119 @@
-// The size ratchet of src/client/main.ts (#242, owner, 2026-11-16): the
-// allowed line count is stored in size-ratchet.json and only goes down.
-// The check fails above the limit, and below it too, so whoever shrinks
-// main.ts lowers the limit in the same change and the freed lines never
-// come back. Lines are counted as `wc -l` counts them; `format:check`
-// keeps the file in Prettier's form.
+// The size ratchet of src/client/main.ts (#242, owner, 2026-11-16; #317 part
+// 4, 2026-11-19): the file must not have more lines than it has on the base,
+// the branch it goes into. There is no stored limit to edit: main.ts is the
+// limit. Whoever shrinks it lowers the limit for everyone once the change is
+// on main, and the freed lines never come back, because the next change is
+// measured against the smaller file. Two branches that shrink main.ts, or
+// that leave it alone, no longer conflict in a file for the number. Lines are
+// counted as `wc -l` counts them.
 //
-//   node scripts/size-ratchet.ts   (pnpm lint:size, part of pnpm check)
+// The base is the commit the change is measured against:
+//   node scripts/size-ratchet.ts <base>   the commit or branch <base>; the CI
+//        passes the base of the pull request (the first parent of the merge
+//        commit it tests) or, for a push, the commit before it
+//   node scripts/size-ratchet.ts          the merge base with origin/main
+//        (pnpm lint:size, part of pnpm check); skipped when origin/main is not
+//        fetched
 import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { runCli } from './cli.ts';
 
-export const LIMIT_FILE = 'size-ratchet.json';
+/** The limited file. */
+export const LIMITED_FILE = 'src/client/main.ts';
 
-export interface Limit {
-  file: string;
-  lines: number;
-}
+/** The branch a local check compares with. */
+export const MAIN = 'origin/main';
 
 /** Physical lines as `wc -l` counts them: the newline characters. */
 export function countLines(text: string): number {
   return text.split('\n').length - 1;
 }
 
-/** The stored limit; throws with the reason when it is malformed. */
-export function parseLimit(text: string): Limit {
-  const limit = JSON.parse(text) as Partial<Limit>;
-  if (typeof limit.file !== 'string' || limit.file === '')
-    throw new Error(`${LIMIT_FILE}: "file" must name the limited file`);
-  if (!Number.isInteger(limit.lines) || limit.lines! < 0)
-    throw new Error(`${LIMIT_FILE}: "lines" must be a whole number`);
-  return { file: limit.file, lines: limit.lines! };
-}
-
-/** The base branch the stored limit is compared with (as the migrations gate). */
-export const BASE = 'origin/main';
-
-/** Undefined unless the stored limit is above the one on the base branch. */
-export function raised(
-  limit: Limit,
-  base: number | undefined,
+/** Undefined while the file has no more lines than on the base; else what to do. */
+export function verdict(
+  file: string,
+  lines: number,
+  base: number,
 ): string | undefined {
-  if (base === undefined || limit.lines <= base) return undefined;
-  return `The limit in ${LIMIT_FILE} was raised from ${base} to ${limit.lines}; it only goes down (#242).`;
+  if (lines <= base) return undefined;
+  return `${file} has ${lines} lines, ${lines - base} more than on its base (${base}). It must not grow: move the code into a module or component (#118).`;
 }
 
-/** Undefined when the file has exactly its limit; else what to do. */
-export function verdict(limit: Limit, lines: number): string | undefined {
-  const status = `${limit.file} has ${lines} lines, the limit in ${LIMIT_FILE} is ${limit.lines}.`;
-  if (lines > limit.lines)
-    return `${status} It must not grow: move the code into a module or component (#118).`;
-  if (lines < limit.lines)
-    return `${status} Lower the limit in ${LIMIT_FILE} to ${lines} in the same change; the freed lines never come back.`;
-  return undefined;
+function git(root: string, args: string[]): { status: number; out: string } {
+  const result = spawnSync('git', args, { cwd: root, encoding: 'utf8' });
+  return { status: result.status ?? 1, out: result.stdout };
 }
 
-/** Reads the limit and its file below root; the error, or undefined. */
-export function check(
+/** The commit the check measures against, or undefined when there is none. */
+export function baseOf(
   root: string,
-  base?: number,
-): {
-  error?: string;
-  limit: Limit;
-  lines: number;
-} {
-  const read = (file: string): string => {
-    try {
-      return readFileSync(path.join(root, file), 'utf8');
-    } catch {
-      throw new Error(`${file} is missing.`);
-    }
-  };
-  const limit = parseLimit(read(LIMIT_FILE));
-  const lines = countLines(read(limit.file));
-  return {
-    error: raised(limit, base) ?? verdict(limit, lines),
-    limit,
-    lines,
-  };
+  arg: string | undefined,
+  ci: boolean,
+): string | undefined {
+  if (arg !== undefined) {
+    // The all-zero commit of a push that creates a branch: nothing before it.
+    if (/^0+$/.test(arg)) return undefined;
+    if (
+      git(root, ['rev-parse', '--verify', '--quiet', `${arg}^{commit}`]).status
+    )
+      throw new Error(`The base ${arg} is missing; fetch it before the check.`);
+    return arg;
+  }
+  if (ci)
+    throw new Error('The CI passes the base commit: size-ratchet.ts <base>.');
+  const found = git(root, ['merge-base', 'HEAD', MAIN]);
+  return found.status === 0 ? found.out.trim() : undefined;
 }
 
 /**
- * The limit stored on the base branch, or undefined while the file is not
- * there yet. Without the base branch the check fails in the CI, where it
- * must be fetched, and is skipped locally.
+ * The lines of the limited file on the base, or undefined while the file was
+ * not there (a change that adds it has no base to grow from).
  */
-export function baseLimit(root: string, ci: boolean): number | undefined {
-  const git = spawnSync('git', ['show', `${BASE}:${LIMIT_FILE}`], {
-    cwd: root,
-    encoding: 'utf8',
-  });
-  if (git.status === 0) return parseLimit(git.stdout).lines;
-  if (/does not exist|exists on disk, but not in/.test(git.stderr))
-    return undefined;
-  if (ci) throw new Error(`${BASE} is missing; fetch it before the check.`);
-  return undefined;
+export function baseLines(root: string, base: string): number | undefined {
+  const shown = git(root, ['cat-file', 'blob', `${base}:${LIMITED_FILE}`]);
+  return shown.status === 0 ? countLines(shown.out) : undefined;
 }
 
 /** The check of the repository at root: its exit code and its message. */
-export function run(root: string, ci: boolean): { code: number; text: string } {
-  const { error, limit, lines } = check(root, baseLimit(root, ci));
+export function run(
+  root: string,
+  ci: boolean,
+  arg?: string,
+): { code: number; text: string } {
+  let text: string;
+  try {
+    text = readFileSync(path.join(root, LIMITED_FILE), 'utf8');
+  } catch {
+    throw new Error(`${LIMITED_FILE} is missing.`);
+  }
+  const lines = countLines(text);
+  const base = baseOf(root, arg, ci);
+  if (base === undefined)
+    return {
+      code: 0,
+      text: `${LIMITED_FILE}: ${lines} lines, no base to compare with (skipped).`,
+    };
+  const before = baseLines(root, base);
+  if (before === undefined)
+    return {
+      code: 0,
+      text: `${LIMITED_FILE}: ${lines} lines, not on the base yet.`,
+    };
+  const error = verdict(LIMITED_FILE, lines, before);
   if (error) return { code: 1, text: error };
-  return { code: 0, text: `${limit.file}: ${lines} lines, at its limit.` };
+  return {
+    code: 0,
+    text: `${LIMITED_FILE}: ${lines} lines, ${before} on the base.`,
+  };
 }
 
 function main(): number {
-  const { code, text } = run(process.cwd(), process.env.CI === 'true');
+  const { code, text } = run(
+    process.cwd(),
+    process.env.CI === 'true',
+    process.argv[2],
+  );
   (code ? console.error : console.log)(text);
   return code;
 }

@@ -190,6 +190,68 @@ their own.
 * **[V]** „Optionen“ has a line below its boxes with a link to „Dieses
   Universum“; the old box and its CSS are gone.
 
+# Stage 2, second part: the rules the first part left out (#288)
+
+* **[E]** The rule pages of the missions, the holding, the survey, the
+  expeditions and the moon buildings were left out of the first part and
+  are added by the same pattern, one page per commit (owner's brief,
+  2026-11-20): a page states only what the code does, every number comes
+  from the code or the round at render time, a statement the code and its
+  tests cannot back is left out and reported; the texts are drafts [V]
+  (owner, 2026-11-19, #222) in [Lexicanum texts](/features/lexicanum-texts.md),
+  and the missions and buildings link to the page in „Siehe auch“.
+* **[V]** „Raketen“ (`rule-missiles`, #54): the places of the Raketenkrypta,
+  the launch, the range and flight time of `src/core/missiles.ts`, the
+  impact (Abfangraketen, damage and its order, stored missiles).
+  `hullOf` of `missiles.ts` is exported for the table of structures; no
+  rule changed.
+
+* **[V]** „Vermessung“ (`rule-survey`, #190): the conditions of the mission,
+  the Auspex-Wert (`surveyScore`) and the four tiers of the report with what
+  each shows, the bands of the orbit and the size of the rough report, the
+  highest loss chance (`maxLoss`) and how long the values of a position are
+  kept. `TIERS`, `NEAR_FIELDS` and `NEAR_TEMP` of `survey.ts` are exported
+  (the window of ± 20 % and ± 10 °C was typed in `surveyFindings`); no rule
+  changed.
+
+* **[V]** „Expeditionen“ (`rule-expeditions`, #93): the position, the places
+  and the stay (with the round's settings, from the universe `u` like the
+  other live settings), the shares of the events and of the sizes, the
+  find of resources and of ships, the raiders, the change of the return time
+  and the settings of the round, which „Dieses Universum“ links to. `LARGE_FROM`,
+  `HUGE_FROM`, `MIN_RESOURCE_POINTS`, `DIVISOR`, `resourceBase`, `RAIDS`,
+  `SPREAD` of `expedition.ts` and `MIN_SHIP_FIND`, `shipBase` of
+  `expedition-ships.ts` are exported; no rule changed. Left out, since the
+  page would need more code to back it: the recall of an expedition.
+
+* **[V]** „Wache stellen und Verbandsangriff“ (`rule-allies`, #55, #225): who
+  may hold (the round's `allies`, read from the universe `u` like the other
+  live settings), the holding times, fuel and limits of `holding.ts`, what a
+  guard does in the three fights and with vacation and Mondbruch (the three
+  decisions of 2026-11-19), and the union: opening, inviting, joining, the
+  delay (`joinTiming`), the four limits of the round, the split of the loot
+  (`splitLoot`) and the recall. No constant moved. Left out, because no test
+  backs it: that the fuel of the unused holding hours is not refunded after a
+  recall; and the arrival of the alliance depot, which is not built.
+
+* **[V]** „Warp-Tor und Auspex-Phalanx“ (`rule-gates`, #53, #230): the jump
+  (what moves, where, the order of the checks), the waiting time by the level of
+  the starting gate divided by the universe speed (`gateCooldown`,
+  `gateCooldownMs`; the table up to level 20; its formula is `gateFormula` of
+  `parts.ts`, shared with the article of the Warp-Tor) and the scan of the
+  Auspex-Phalanx (what it shows, its price, what it refuses); the range table
+  stays on „Monde“. The classic name of the phalanx is not used, the page is
+  titled with the game's own term. No constant moved.
+
+* **[V]** „Planetengrenze und Kolonialverwaltung“ are already the page „Kolonien
+  und Planetengrenze“ (`rule-colonies`): base limit, the research and its
+  levels, the formula, the table, „Dein Stand“. Extended instead of a new
+  page by what it missed: the launch counts the planets and the Landnahmen on
+  their way (`limitReached`), the arrival only the planets (`arrivalBlocked`),
+  the research exists only in a round with a base limit and only up to the
+  highest level of the round, and a higher level counts as that one
+  (`planetLimit`).
+
 # Stage 3: guides and personal hints (#289)
 
 * **[V]** The three open decisions of the issue were not answered; taken as

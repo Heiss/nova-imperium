@@ -1,7 +1,10 @@
-// Buttons of the admin page that need nothing of its panel: the Endzeit
-// (F15, #214), the settings of the universe and copying the invitation link.
-// The panel with its tabs and the invitations is part of the frame (main.ts).
+// The handlers of the admin page: the tabs, the invitations (inviting,
+// copying the link, revoking), the servermessage, the Endzeit (F15, #214) and
+// the settings of the universe. The panels that fill themselves from the
+// server are in views/admin-panel.ts; the page is views/admin.ts (#118,
+// bundle 7).
 import { $, val } from '../dom.ts';
+import { ADMIN_TABS, type AdminTab } from '../logic/admin.ts';
 import { endzeitNote } from '../logic/endzeit.ts';
 import { settingsFrom } from '../logic/game.ts';
 import {
@@ -11,8 +14,16 @@ import {
   typed,
 } from '../logic/settings-draft.ts';
 import { client } from '../logic/state.svelte.ts';
-import { endzeitDialog } from '../views/misc.ts';
-import type { ClientFeature } from './contract.ts';
+import type { GameState } from '../logic/types.ts';
+import { endzeitDialog } from '../views/admin.ts';
+import {
+  adminTabKey,
+  bindAdminPanel,
+  forgetAdminPanel,
+  openAdminTab,
+  refreshInvitations,
+} from '../views/admin-panel.ts';
+import type { ClientCtx, ClientFeature } from './contract.ts';
 
 const draft = newDraft();
 
@@ -30,22 +41,96 @@ function settingOf(
   return { key, saved: String(saved) };
 }
 
+/**
+ * An admin call of the page: the state it answers with is taken over, its
+ * message shown (an error when the mail did not go out). Null after a refusal,
+ * which is shown as a note.
+ */
+async function adminCall(
+  { api, apply, toast }: ClientCtx,
+  url: string,
+  body: object,
+): Promise<Record<string, unknown> | null> {
+  try {
+    const j = await api(url, body);
+    apply(j.state as GameState);
+    if (j.msg) toast(String(j.msg), j.mailed === false);
+    return j;
+  } catch (e) {
+    toast((e as Error).message, true);
+    return null;
+  }
+}
+
+let announcementPending = false;
+
+/** The forms of the page: inviting someone and the message to all players. */
+const adminForms = (ctx: ClientCtx): Record<string, () => unknown> => ({
+  inviteform: async () => {
+    const j = await adminCall(ctx, '/api/admin/invite', {
+      email: val('#inv_email').trim(),
+    });
+    if (!j) return;
+    client.ui.lastLink = String(j.link);
+    ctx.render(true);
+    refreshInvitations();
+  },
+  announceform: async () => {
+    if (
+      announcementPending ||
+      !window.confirm('Servernachricht an alle Spieler senden?')
+    )
+      return;
+    announcementPending = true;
+    try {
+      const result = await ctx.api('/api/admin/announce', {
+        message: val('#announce-text'),
+      });
+      ctx.setInput('#announce-text', '');
+      ctx.toast(
+        `Servernachricht für ${Number(result.recipients)} Spieler veröffentlicht.`,
+      );
+    } catch (error) {
+      ctx.toast((error as Error).message, true);
+    } finally {
+      announcementPending = false;
+    }
+  },
+});
+
+/** What the admin types into the settings is remembered over a redraw. */
+function watchDrafts(): void {
+  const edited = (e: Event): void => {
+    const field = settingOf(e.target);
+    if (field)
+      typed(
+        draft,
+        ownerOf(),
+        field.key,
+        (e.target as HTMLInputElement).value,
+        field.saved,
+      );
+  };
+  document.addEventListener('input', edited);
+  document.addEventListener('change', edited);
+}
+
 export const clientFeature = {
-  acts: ({ act, modal, toast }) => {
-    const edited = (e: Event): void => {
-      const field = settingOf(e.target);
-      if (field)
-        typed(
-          draft,
-          ownerOf(),
-          field.key,
-          (e.target as HTMLInputElement).value,
-          field.saved,
-        );
-    };
-    document.addEventListener('input', edited);
-    document.addEventListener('change', edited);
+  forms: adminForms,
+  acts: (ctx) => {
+    const { act, modal, toast } = ctx;
+    bindAdminPanel(ctx);
+    document.addEventListener('keydown', adminTabKey);
+    watchDrafts();
     return {
+      adminTab: (d) => {
+        if (d.tab && Object.hasOwn(ADMIN_TABS, d.tab))
+          openAdminTab(d.tab as AdminTab);
+      },
+      revoke: async (d) => {
+        if (await adminCall(ctx, '/api/admin/revoke', { id: d.id }))
+          refreshInvitations();
+      },
       endzeit: () => modal(endzeitDialog(client.game!.admin!.endzeit.minutes)),
       doEndzeit: () => {
         const minutes = val('#endzeit-minutes');
@@ -79,6 +164,9 @@ export const clientFeature = {
   // The fields do not keep their value over a redraw; what the admin typed
   // and has not saved goes back into them (logic/settings-draft.ts).
   afterRender: () => {
+    // The panels are kept only while the admin stays on the page.
+    if (client.ui.view !== 'admin' || !client.game?.me.admin)
+      forgetAdminPanel();
     if (!client.game?.admin) return;
     for (const [key, value] of draftsOf(draft, ownerOf())) {
       const field = document.getElementById(`set_${key}`);

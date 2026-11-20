@@ -4,7 +4,9 @@
 import type { SurveyValues } from '../../../core/survey.ts';
 import type { Coords } from '../../../core/types.ts';
 import type { Db } from '../database.ts';
+import type { RepositoryModule } from './contract.ts';
 import type { Row } from './rows.ts';
+import type { RoundReset } from '../round-reset.ts';
 
 /** The stored values of a position, with the id its reports name. */
 export interface Survey extends Coords, SurveyValues {
@@ -34,7 +36,7 @@ const surveyOf = (r: Row): Survey => ({
   created: r.created as number,
 });
 
-export class SqliteSurveys implements Surveys {
+class SqliteSurveys implements Surveys {
   private readonly db: Db;
   constructor(db: Db) {
     this.db = db;
@@ -72,3 +74,14 @@ export class SqliteSurveys implements Surveys {
     this.db.prepare('DELETE FROM surveys').run();
   }
 }
+
+/** The values of surveyed free positions (#190). */
+export const repository = {
+  key: 'surveys',
+  make: (db: Db): Surveys => new SqliteSurveys(db),
+} as const satisfies RepositoryModule;
+
+/** The values of surveyed positions belong to the round (#190). */
+export const roundReset = [
+  { order: 70, clears: ['surveys'] },
+] satisfies readonly RoundReset[];

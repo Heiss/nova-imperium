@@ -674,8 +674,9 @@ choice of the patterns to the assistant's recommendation below
 * **[E]** One state module with Svelte 5 runes (`.svelte.ts`) replaces the
   module variables of `src/client/main.ts`; one component per view.
 * **[E]** `main.ts` must not grow: a CI ratchet keeps its line count at or
-  below the limit in `size-ratchet.json`, and every #118 pull request
-  lowers the limit as it shrinks `main.ts` (#242, see
+  below its count on the base branch, and a pull request that shrinks
+  `main.ts` lowers the limit for the next ones by being merged; no file
+  holds the number (#242, #317 part 4, see
   [Test strategy](/ops/testing.md)).
 * **[E]** Generic components render from the catalog: `CatalogList`
   (buildings, research, shipyard, defense) and `ProducerTable` (resources).
@@ -953,6 +954,39 @@ choice of the patterns to the assistant's recommendation below
   reads the attribute. `box()` of `common.ts` stays for the other HTML views;
   `Box.svelte` is its component. `main.ts` 1,191 to 1,186 lines. No visible
   change.
+* **[E]** Bundle 7 (owner, 2026-11-19, #118 „Geklärt“: in the update of
+  2026-11-22; package 8 follows): Admin, with the login and the install state.
+* **[V]** Built with #118, bundle 7: `Admin.svelte`, mounted by `mountAdmin()`
+  of `views/admin.ts`, renders `adminPage()` of the new `logic/admin.ts`: the
+  tabs, the settings of the universe (the live settings of the round among
+  them, `settingRow()`), the invitation with its link, the box „Endzeit“,
+  „Rundenberichte“, „Neue Runde“ and „Servernachricht“. The round archive is
+  `RoundArchive.svelte` (`archivePage(state, admin)` of `logic/round-archive.ts`),
+  used by „Optionen“ and the admin, so `{@html}` is gone. The dialogs
+  „Neue Runde“ (`RoundDialog.svelte`, `roundDialogPage()`; the field of each
+  setting of the registry, a fieldset per group, the wrapper
+  `[data-round-field]` and the preview line that `features/round.ts` keeps
+  current) and „Endzeit einläuten“ (`EndzeitDialog.svelte`) are `Dialog`s of
+  `modal()`. The login and registration are `Auth.svelte` (`authPage()` of
+  `logic/auth.ts`), mounted by `renderLoggedOut`. The panels that load from
+  the server (`admin-diagnostics.ts`, `admin-errors.ts`, the list of the
+  invitations) stay DOM modules; `views/admin-panel.ts` keeps them over a
+  render (the page is mounted anew each time, the panels of the same admin
+  replace the empty ones before `keepInputs` runs), paints the tab and handles
+  the arrow keys. `features/admin.ts` holds the handlers (`adminTab`, `revoke`,
+  the forms `inviteform` and `announceform`), `features/login.ts` the steps of
+  the login with their state `login` of `logic/login.ts` (`resetToken` is read
+  by `apply()` in `main.ts`). `ClientCtx` gained `apply` and `signedOut`. The view registers itself with `clientViews` in `views/admin.ts` (menu order 180, shown to an admin), so `mount.ts` and `VIEWS` name it no more. The
+  fields of the settings stay `data-nokeep`; the draft of what the admin typed
+  (`logic/settings-draft.ts`) is put back by `afterRender` as before. The ids,
+  `data-act`s, form ids and `data-*` hooks are those of the HTML (pinned in
+  `src/test/admin-reference.test.ts`, `auth-reference.test.ts` and
+  `round-archive-reference.test.ts`). The install state was already in
+  `features/install.ts`. `ADMIN_TABS` is still exported by `views/misc.ts`
+  because `e2e/phone-overflow.spec.ts` imports it there. `main.ts` 1,186 to
+  888 lines. Package 8 still has: transport, maintenance, toasts, „Problem
+  melden“, the click table and the remaining forms (account deletion, chat,
+  etc.). No visible change.
 * **[E]** Marktplatz (#171) and Freunde (#227) are part of the update of
   2026-11-22 (owner, 2026-11-19, „Geklärt“ on #118): both views become
   components, with no change of a game rule, a text or the look.
@@ -1334,7 +1368,8 @@ src/client/                state, components (generic), views
   `achievements`, `push` and `install`. What stays in `main.ts` is the frame:
   start, the API call, the state, the rendering, the login and its forms, the
   news and the maintenance banner, the admin panel and the click and key
-  dispatch. Each move lowers `size-ratchet.json`.
+  dispatch. Each move lowers the line count of `main.ts`, which is the limit
+  of the next change (`size-ratchet.json` is gone, #317 part 4).
 
 ## 14. Server features register themselves (#326, part 2 of #317)
 
@@ -1399,14 +1434,70 @@ src/client/                state, components (generic), views
   of the vacation mode has its own, shorter shape), `meOf` (the account, with
   its push kinds and its vacation) and the keys `round`, `now`, `cfg`, `me`,
   `planet`, `labs`, `fleets`, `reports`, `players`, `galaxy` and `debris`.
-  `src/server/game/registry-pin.test.ts` writes out every action with its
-  group and the key order of the state for the refactoring; it is edited on
-  purpose when an action or a key is added.
+  `src/server/game/registry-pin.test.ts` wrote out every action with its
+  group and the key order of the state once for the refactoring; it is
+  deleted (#317), the guard `registry.test.ts` keeps the rules and no list
+  has to be edited when an action or a key is added.
 * **[V]** The state type of the browser (`GameState` in
   `src/client/logic/types.ts`) is not composed from per-feature types: the
   types of the parts live in the client, `client-not-server` forbids a type
   import from the server too, so it would mean moving them into `src/core`,
   which is not mechanical. It stays one hand-written interface.
+
+## 15. Repositories and the round reset register themselves (#317)
+
+* **[E]** Decided by the owner (2026-11-20, #317): `src/server/db/repos/index.ts`,
+  its test and the `DELETE` lines of `newRound` in `src/server/game/admin.ts`
+  name no feature any more.
+* **[V]** Repositories (main agent's proposal): a module in
+  `src/server/db/repos/` exports `repository = { key, make } as const
+  satisfies RepositoryModule` (`contract.ts`). `key` is the name on `Ctx`
+  (`ctx.market`), `make(db)` builds the repository and its return type is the
+  type of `ctx.<key>`: the interface, not the class (the classes are no longer
+  exported). `scripts/gen-features.ts` writes the git-ignored
+  `repositories.gen.ts` (`REPOSITORIES`, `[file, repository]` pairs); the type
+  `Repositories` is derived from it, so every repository keeps its type
+  without a line in a shared file. `assembleRepositories` (`index.ts`) throws
+  when a key exists twice, naming both files; the guard is
+  `src/server/db/repos/index.test.ts`.
+* **[V]** The round reset: a file of `src/server` that owns tables exports
+  `roundReset`, a list of steps (`src/server/db/round-reset.ts`):
+  `{ order, clears: [tables], when? }` empties the tables with `DELETE FROM`
+  in the order of the numbers (a table whose parent deletes it by cascade
+  needs no entry; the referring table comes first where there is no cascade),
+  and `{ keeps: [tables], when? }` says that a new round leaves them on
+  purpose (accounts, settings, the round archive, the buddy list, the
+  playtime). `when` takes the rules of the new round (the guilds are emptied
+  only in a round with guilds off). The list is `src/server/round-reset.gen.ts`
+  (`ROUND_RESETS`); `newRound` calls `clearRound(ctx.db, rules, ROUND_RESETS)`
+  and keeps only what is not a table of a feature: the player loop (research,
+  main planet, vacation, reports of the player, the new home planet).
+  `src/server/db/round-reset.test.ts` checks the rules (a number or a table
+  twice, a name that is no table of the schema);
+  `src/server/game/round-reset.test.ts` writes one marked row into every table
+  of the schema and runs a reset: the row of a table that is neither emptied
+  nor declared as kept survives and fails the test, so a new table cannot be
+  forgotten and no list has to be edited.
+* **[V]** The orders are the ones of the old code, ten apart: planets 10,
+  guilds 20 (guilds off) and their chats 30, fleets 40, debris 50, last
+  targets 60, surveys 70, market 80, push jobs 90, attack union invites 100,
+  achievements 110.
+
+## 16. Svelte views register themselves (#317)
+
+* **[E]** Decided by the owner (2026-11-20, #317): `MOUNT` and `ANEW` of
+  `src/client/views/mount.ts` and `VIEWS` and the menu of
+  `src/client/views/index.ts` stop being edited by every view.
+* **[V]** A module in `src/client/views/` exports `clientViews`, a list of
+  `ClientView` (`contract.ts`): `key`, `mount` (a Svelte view) or `html` (a
+  view still drawn as a string), `anew` (mounted anew on every render),
+  `menu` (`order`, `label`, `show`, `divider`), `glyph` and `tab`. The
+  menu order of today is data: the entries stand at 10 to 180 (see `MenuItem`
+  in `contract.ts`). The list is the git-ignored `views.gen.ts`
+  (`CLIENT_VIEWS`); `assemble.ts` puts the frame (what is not moved yet) and
+  the modules together and throws when a key, a menu number or a tab number
+  exists twice, naming both files; the guard is
+  `src/client/views/registry.test.ts`. `main.ts` is not edited.
 
 # Migration
 

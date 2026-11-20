@@ -9,6 +9,9 @@ import {
   type GuildRight,
 } from '../../../core/guild-ranks.ts';
 import type { Db } from '../database.ts';
+import type { RepositoryModule } from './contract.ts';
+import type { RoundRules } from '../../../core/round.ts';
+import type { RoundReset } from '../round-reset.ts';
 
 export interface Guild {
   id: string;
@@ -158,7 +161,7 @@ interface RankRow {
 const order = (a: GuildRight, b: GuildRight): number =>
   GUILD_RIGHTS.indexOf(a) - GUILD_RIGHTS.indexOf(b);
 
-export class SqliteGuilds implements Guilds {
+class SqliteGuilds implements Guilds {
   private readonly db: Db;
   constructor(db: Db) {
     this.db = db;
@@ -449,3 +452,23 @@ export class SqliteGuilds implements Guilds {
     this.db.prepare('DELETE FROM guild_chat').run();
   }
 }
+
+/** The `guilds` repository on `Ctx`. */
+export const repository = {
+  key: 'guilds',
+  make: (db: Db): Guilds => new SqliteGuilds(db),
+} as const satisfies RepositoryModule;
+
+/**
+ * A round with guilds off starts without any guild (#191); with guilds on they
+ * stay, with their members, ranks and rights. Every new round deletes all guild
+ * chats, guilds on or off (#169, D6).
+ */
+export const roundReset = [
+  { order: 20, clears: ['guilds'], when: (rules: RoundRules) => !rules.guilds },
+  { order: 30, clears: ['guild_chat'] },
+  {
+    keeps: ['guilds', 'guild_members', 'guild_ranks', 'guild_rank_rights'],
+    when: (rules: RoundRules) => rules.guilds,
+  },
+] satisfies readonly RoundReset[];

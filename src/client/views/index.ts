@@ -1,49 +1,77 @@
 import type { RoundRules } from '../../core/round.ts';
+import {
+  assembleGlyphs,
+  assembleHtml,
+  assembleMenu,
+  assembleTabs,
+  type Placed,
+} from './assemble.ts';
 import type { V } from './common.ts';
-import { admin } from './misc.ts';
+import type { MenuItem, Tab } from './contract.ts';
+import { CLIENT_VIEWS } from './views.gen.ts';
 
-export const VIEWS: Record<string, (v: V) => string> = {
-  admin,
-};
+/** The views drawn as HTML: the frame (not moved into a module yet) and the modules. */
+export const VIEWS: Record<string, (v: V) => string> = assembleHtml(
+  {},
+  CLIENT_VIEWS,
+);
 
 export interface MenuEntry {
   view: string;
   label: string;
 }
 
-export function menu(admin: boolean, round: RoundRules): (MenuEntry | '-')[] {
-  const items: (MenuEntry | '-')[] = [
-    { view: 'overview', label: 'Übersicht' },
-    { view: 'buildings', label: 'Gebäude' },
-    { view: 'resources', label: 'Rohstoffe' },
-    { view: 'market', label: 'Marktplatz' },
-    { view: 'research', label: 'Forschung' },
-    { view: 'shipyard', label: 'Schiffsschmiede' },
-    { view: 'defense', label: 'Verteidigung' },
-    '-',
-    { view: 'fleet', label: 'Flotte' },
-    { view: 'galaxy', label: 'Sternenkarte' },
-    { view: 'messages', label: 'Nachrichten' },
-    { view: 'highscore', label: 'Highscore' },
-  ];
+/**
+ * The entries of the menu that are not moved into a module of their own yet
+ * (#317): a new view gives its entry in `clientViews` (contract.ts), and the
+ * numbers say where it stands among these.
+ */
+const FRAME_MENU: readonly Placed<MenuItem>[] = [
+  { view: 'overview', order: 10, label: 'Übersicht' },
+  { view: 'buildings', order: 20, label: 'Gebäude' },
+  { view: 'resources', order: 30, label: 'Rohstoffe' },
+  { view: 'market', order: 40, label: 'Marktplatz' },
+  { view: 'research', order: 50, label: 'Forschung' },
+  { view: 'shipyard', order: 60, label: 'Schiffsschmiede' },
+  { view: 'defense', order: 70, label: 'Verteidigung' },
+  { view: 'fleet', order: 80, label: 'Flotte', divider: true },
+  { view: 'galaxy', order: 90, label: 'Sternenkarte' },
+  { view: 'messages', order: 100, label: 'Nachrichten' },
+  { view: 'highscore', order: 110, label: 'Highscore' },
   // No „Gilden“ in a round with guilds off (#191).
-  if (round.guilds) items.push({ view: 'guilds', label: 'Gilden' });
+  {
+    view: 'guilds',
+    order: 120,
+    label: 'Gilden',
+    show: (round) => round.guilds,
+  },
   // The buddy list (#227), with guilds on or off.
-  items.push({ view: 'friends', label: 'Freunde' });
-  if (round.achievements || round.daily)
-    items.push({
-      view: 'achievements',
-      label: round.achievements ? 'Achievements' : 'Tagesbelohnung',
-    });
-  items.push(
-    '-',
-    { view: 'news', label: 'Neuigkeiten' },
-    // The Lexicanum before „Optionen“; on a phone under „Mehr“ (#285 B9, #288).
-    { view: 'lexicanum', label: 'Lexicanum' },
-    { view: 'help', label: 'Optionen' },
+  { view: 'friends', order: 130, label: 'Freunde' },
+  {
+    view: 'achievements',
+    order: 140,
+    label: (round) => (round.achievements ? 'Achievements' : 'Tagesbelohnung'),
+    show: (round) => round.achievements || round.daily,
+  },
+  { view: 'news', order: 150, label: 'Neuigkeiten', divider: true },
+  // The Lexicanum before „Optionen“; on a phone under „Mehr“ (#285 B9, #288).
+  { view: 'lexicanum', order: 160, label: 'Lexicanum' },
+  { view: 'help', order: 170, label: 'Optionen' },
+];
+
+/** The frame and the modules in the order of their numbers. */
+const MENU = assembleMenu(FRAME_MENU, CLIENT_VIEWS);
+
+const labelOf = (item: MenuItem, round: RoundRules): string =>
+  typeof item.label === 'function' ? item.label(round) : item.label;
+
+export function menu(admin: boolean, round: RoundRules): (MenuEntry | '-')[] {
+  return MENU.filter((item) => item.show?.(round, admin) ?? true).flatMap(
+    (item) => [
+      ...(item.divider ? (['-'] as const) : []),
+      { view: item.view, label: labelOf(item, round) },
+    ],
   );
-  if (admin) items.push({ view: 'admin', label: 'Admin' });
-  return items;
 }
 
 /**
@@ -52,22 +80,27 @@ export function menu(admin: boolean, round: RoundRules): (MenuEntry | '-')[] {
  * the messages move to the bell of the header, and „Bauen“ is the list of
  * buildings with a switch to the other three lists.
  */
-export const TAB_VIEWS = ['overview', 'buildings', 'fleet', 'galaxy'] as const;
+const FRAME_TABS: readonly Placed<Tab>[] = [
+  { view: 'overview', order: 10 },
+  // The labels of the tab bar where they differ from the menu.
+  { view: 'buildings', order: 20, label: 'Bauen' },
+  { view: 'fleet', order: 30 },
+  { view: 'galaxy', order: 40 },
+];
+const TABS = assembleTabs(FRAME_TABS, CLIENT_VIEWS);
 
-/** The labels of the tab bar where they differ from the menu. */
-const TAB_LABELS: Readonly<Record<string, string>> = { buildings: 'Bauen' };
+export const TAB_VIEWS: readonly string[] = TABS.map((tab) => tab.view);
 
 export function phoneMenu(items: (MenuEntry | '-')[]): {
   tabs: MenuEntry[];
   more: MenuEntry[];
 } {
   const entries = items.filter((i): i is MenuEntry => i !== '-');
-  const isTab = (i: MenuEntry): boolean =>
-    (TAB_VIEWS as readonly string[]).includes(i.view);
+  const isTab = (i: MenuEntry): boolean => TAB_VIEWS.includes(i.view);
   return {
-    tabs: TAB_VIEWS.map((v) => {
-      const entry = entries.find((i) => i.view === v)!;
-      return { ...entry, label: TAB_LABELS[v] ?? entry.label };
+    tabs: TABS.map((tab) => {
+      const entry = entries.find((i) => i.view === tab.view)!;
+      return { ...entry, label: tab.label ?? entry.label };
     }),
     more: entries.filter((i) => !isTab(i)),
   };
@@ -76,8 +109,8 @@ export function phoneMenu(items: (MenuEntry | '-')[]): {
 const glyph = (paths: string): string =>
   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${paths}</svg>`;
 
-/** Line icons of the tab bar; they follow the text colour. */
-export const TAB_GLYPHS: Record<string, string> = {
+/** Line icons of the tab bar; they follow the text colour. A view's own is in its `clientViews`. */
+const FRAME_GLYPHS: Record<string, string> = {
   overview: glyph(
     '<circle cx="12" cy="12" r="6"/><ellipse cx="12" cy="12" rx="11" ry="3.6" transform="rotate(-20 12 12)"/>',
   ),
@@ -101,3 +134,8 @@ export const TAB_GLYPHS: Record<string, string> = {
   ),
   chevron: glyph('<path d="M9 5l7 7-7 7"/>'),
 };
+
+export const TAB_GLYPHS: Record<string, string> = assembleGlyphs(
+  FRAME_GLYPHS,
+  CLIENT_VIEWS,
+);

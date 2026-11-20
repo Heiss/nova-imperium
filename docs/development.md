@@ -54,15 +54,15 @@ image – and always in a release pull request and in a pull request into
 file Stryker mutates (the `mutate` globs of `stryker.config.json`), a test
 file (`src/**/*.test.ts`, `src/test/`, `src/server/test-helpers.ts`), the
 mutation configuration (`stryker.config.json`, `mutation-standard.json`,
-`vitest.config.ts`, `scripts/mutation-*.ts`, `tsconfig.json`) or the
+`mutation-floors.txt`, `vitest.config.ts`, `scripts/mutation-*.ts`, `tsconfig.json`) or the
 versions of `@stryker-mutator/*`, `vitest` or `typescript` in
 `pnpm-lock.yaml`; `node scripts/mutation-changes.ts $(git merge-base origin/main HEAD)` tells
 whether a branch does. A pull request that is no release pull request and
 goes into no hotfix branch then mutates only the files it changes and the
 sources of the test files it changes and the files whose floor in
-`mutation-standard.json` it adds, changes or removes, in one job; more
+`mutation-floors.txt` it adds, changes or removes, in one job; more
 than 12 such files, a change of the mutation configuration
-(`mutation-standard.json` beyond its floors included) or the test tool chain,
+(`mutation-standard.json` included) or the test tool chain,
 a release pull request, a push and the nightly run mutate everything in 6
 shards. `node scripts/mutation-partial.ts
 plan $(git merge-base origin/main HEAD)` prints `true` (everything) or the
@@ -78,7 +78,9 @@ pnpm format:check    # Prettier
 pnpm typecheck       # svelte-check (TypeScript and Svelte)
 pnpm test:coverage   # Vitest; blocks below 90 % lines / 85 % branches
 pnpm test:mutation   # Stryker; blocks below a mutation score of 80 %
-node scripts/mutation-gate.ts   # after Stryker: no file below its floor (--update raises the floors)
+node scripts/mutation-gate.ts   # after Stryker: no file below its floor
+node scripts/mutation-floors.ts reports/ci/mutation.json   # the floors from the merged report of a complete CI run (gh run download <run-id> -n mutation-report; --log <gate.log> reads the log of its gate step instead)
+pnpm lint:size       # src/client/main.ts has no more lines than on its base (merge base with origin/main)
 pnpm build && pnpm test:e2e   # Playwright, desktop and phone
 docker compose up -d --build && docker/smoke.sh   # the stack (after docker/init-env.sh --demo)
 pnpm check:migrations   # no migration of origin/main changed (part of pnpm check)
