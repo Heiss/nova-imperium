@@ -254,11 +254,10 @@ their own.
 
 # Stage 3: guides and personal hints (#289)
 
-* **[V]** The three open decisions of the issue were not answered; taken as
-  recommended and consistent with the long texts of #94: D1 – Claude drafts
-  the guides as [V] and the owner confirms each; D2 – the personal page is
-  computed from rules only; D3 – „Erste Schritte“, the colony, the fleet and
-  the defense. The owner can change any of them.
+* **[E]** The three decisions of the issue (owner, 2026-11-20, „Geklärt“ on
+  #289): D1 – Claude drafts the guides as [V] and the owner confirms each;
+  D2 – the personal page is computed from rules only; D3 – „Erste Schritte“,
+  the colony, the fleet and the defense.
 * **[V]** Guides (`guide-<name>`, kind „Einstieg“, the first box of the
   start page): „Erste Schritte“, „Deine erste Kolonie“, „Deine erste Flotte“,
   „Dich verteidigen“ and „Deine nächsten Ziele“. A guide is a list of steps
