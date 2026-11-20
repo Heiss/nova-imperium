@@ -22,6 +22,8 @@ export interface ClientCtx {
   act: (type: string, data?: object) => Promise<boolean>;
   /** Sends an action; true when it went through on the place still shown. */
   actHere: (type: string, data?: object) => Promise<boolean>;
+  /** Sends an action the client starts by itself; a refusal is no message (#301). */
+  quiet: (type: string, data?: object) => Promise<boolean>;
   /** Shows the HTML or the component in the dialog; the empty string closes it. */
   modal: (content: string | Dialog) => void;
   /** Shows a view with its address and renders it. */

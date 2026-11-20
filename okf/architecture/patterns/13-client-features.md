@@ -68,3 +68,35 @@ description: 'A client feature exports its handlers as clientFeature from its ow
   news and the maintenance banner, the admin panel and the click and key
   dispatch. Each move lowers the line count of `main.ts`, which is the limit
   of the next change (`size-ratchet.json` is gone, #317 part 4).
+
+## Package 8 of #118: what is left of `main.ts` (owner, 2026-11-19)
+
+* **[E]** Decided by the owner (#118, Nachtrag 4, 2026-11-16, and the
+  comment of 2026-11-19): `main.ts` is only the entry point, and the parts
+  that are not views have modules of their own; behaviour that lived only in
+  `main.ts` survives.
+* **[V]** Built: the transport is `logic/transport.ts` (`createApi`, with its
+  tests: 401, maintenance, the retry of a busy action, errors) wired to the
+  page in `api.ts`; the session (`session.ts`), the banner of a maintenance
+  (`maintenance.ts`), the toasts with „Problem melden“ (`toast.ts`) and the
+  error log (`error-log.ts`) are modules of their own. The state and the
+  render are `sync.ts` (apply, act, refresh), `render.ts`, `completions.ts`,
+  `keep-inputs.ts`, `news.ts`, `routing.ts`, `view-address.ts`, `dispatch.ts`
+  (the click and submit dispatch with the context of the features),
+  `clock.ts`, `boot.ts` and `ui-init.ts`. The frame handlers (sheet „Mehr“,
+  dialog, planet choice, logout), the share of a producer, the animations,
+  the activity sample and the marks „gelesen“ are the features `frame`,
+  `producers`, `options`, `session-activity` and `reading`; a feature that
+  only listens to the page returns no handlers (`registry.test.ts`).
+  `ClientCtx` got `quiet` and `apply(state, fresh)`.
+* **[V]** Forms own their input: „Account löschen“ is a component
+  (`views/DeleteAccountDialog.svelte`) with its own password and busy state;
+  the message of the guild chat and the name of a new buddy show a draft of
+  `logic/drafts.svelte.ts`, which a redraw of the page does not touch (both
+  fields are `data-nokeep`, so `keepInputs` no longer restores them); a fresh
+  render drops the drafts, as it dropped the typed fields before. The
+  dialogs „Leitung übergeben“ and „Gilde auflösen“ stand in the modal, which
+  a redraw does not replace, and still read their fields by id. The other
+  fields of the views that are mounted anew on every render (fleet, market,
+  options, the guild forms, the profile of a guild and others) still depend
+  on `keepInputs` (`keep-inputs.ts`).

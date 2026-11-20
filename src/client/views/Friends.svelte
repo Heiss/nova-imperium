@@ -6,6 +6,7 @@
   // carry data-act="friend" with the action in `data-op` and the player in
   // `data-uid`, the form its id (features/social.ts). The class `friends`
   // is the one the phone layout of style.css reads.
+  import { drafts, FRIEND_NAME } from '../logic/drafts.svelte.ts';
   import type { FriendsPage } from '../logic/friends.ts';
   import Box from './Box.svelte';
   import HomeCell from './HomeCell.svelte';
@@ -85,7 +86,15 @@
 <Box title="Freundschaft anfragen">
   <form id="friendform" class="flex">
     <label for="friend_name">Name</label>
-    <input id="friend_name" maxlength="20" required autocomplete="off" />
+    <input
+      id="friend_name"
+      maxlength="20"
+      required
+      autocomplete="off"
+      data-nokeep
+      value={drafts.get(FRIEND_NAME)}
+      oninput={(e) => drafts.set(FRIEND_NAME, e.currentTarget.value)}
+    />
     <button type="submit">Freundschaft anfragen</button>
   </form>
 </Box>

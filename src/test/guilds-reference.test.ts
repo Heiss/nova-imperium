@@ -100,7 +100,7 @@ function chatBox(chat: GuildChat): string {
       )
     : '';
   const form = chat.write
-    ? `<form id="guildchatform" class="flex"><label for="chat_text">Nachricht</label> <input id="chat_text" class="wide" maxlength="${MAX_CHAT_TEXT}" required autocomplete="off"> <button type="submit">Senden</button></form>`
+    ? `<form id="guildchatform" class="flex"><label for="chat_text">Nachricht</label> <input id="chat_text" class="wide" maxlength="${MAX_CHAT_TEXT}" required autocomplete="off" data-nokeep> <button type="submit">Senden</button></form>`
     : '';
   // The admin reads every chat (D8); the owner's notice (2026-11-15).
   const notice = '<p class="dim">Die Spielleitung kann diesen Chat lesen.</p>';

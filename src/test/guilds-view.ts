@@ -14,8 +14,13 @@ import GuildDialogs from '../client/views/GuildDialogs.svelte';
 import Guilds from '../client/views/Guilds.svelte';
 import { stripComments } from './markup.ts';
 
+/** The server side writes `value=""` for a field that shows an empty draft; no browser shows it. */
+const NOKEEP_EMPTY = 'data-nokeep="" value=""';
+
 export const guildsView = (v: V): string =>
-  stripComments(render(Guilds, { props: { page: guildsPage(v) } }).body);
+  stripComments(
+    render(Guilds, { props: { page: guildsPage(v) } }).body,
+  ).replace(NOKEEP_EMPTY, 'data-nokeep=""');
 
 const dialog = (props: ComponentProps<typeof GuildDialogs>): string =>
   stripComments(render(GuildDialogs, { props }).body);

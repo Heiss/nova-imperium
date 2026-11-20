@@ -64,7 +64,7 @@ function friends(v: V): string {
   ${own ? box('Deine Anfragen', own) : ''}
   ${box(
     'Freundschaft anfragen',
-    `<form id="friendform" class="flex"><label for="friend_name">Name</label> <input id="friend_name" maxlength="20" required autocomplete="off"> <button type="submit">Freundschaft anfragen</button></form>`,
+    `<form id="friendform" class="flex"><label for="friend_name">Name</label> <input id="friend_name" maxlength="20" required autocomplete="off" data-nokeep> <button type="submit">Freundschaft anfragen</button></form>`,
   )}`;
 }
 

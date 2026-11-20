@@ -7,5 +7,10 @@ import type { V } from '../client/views/common.ts';
 import Friends from '../client/views/Friends.svelte';
 import { stripComments } from './markup.ts';
 
+/** The server side writes `value=""` for a field that shows an empty draft; no browser shows it. */
+const NOKEEP_EMPTY = 'data-nokeep="" value=""';
+
 export const friendsView = (v: V): string =>
-  stripComments(render(Friends, { props: { page: friendsPage(v) } }).body);
+  stripComments(
+    render(Friends, { props: { page: friendsPage(v) } }).body,
+  ).replace(NOKEEP_EMPTY, 'data-nokeep=""');
