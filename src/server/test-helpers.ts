@@ -16,6 +16,8 @@ export interface TestCtx extends Ctx {
   clock: { t: number };
   /** The facade over the same repositories, for the store tests (#117). */
   store: Store;
+  /** The statement cache of the database: on for a database of `testCtx`. */
+  statements: StatementCache;
 }
 
 let template: Buffer | undefined;
@@ -37,23 +39,43 @@ function memoryDatabase(): Db {
 /**
  * Keeps the prepared statements of a database by their SQL text for as long
  * as it is `on`: the code under test prepares its statements per call, and
- * `better-sqlite3` would compile the same text again and again. Do not call
- * `pluck()`, `raw()` or `safeIntegers()` on a statement of a database with
- * the cache on: the statement is shared by its text. A test that measures
- * what the production code costs leaves the cache off while it measures.
+ * `better-sqlite3` would compile the same text again and again (about half of
+ * the time of a route test). A statement is shared by its text, so the calls
+ * that change one (`pluck`, `raw`, `expand`, `safeIntegers`, `bind`) answer a
+ * statement of their own. A test that measures what the production code
+ * costs turns it `off` while it measures.
  */
-export function statementCache(db: Db): { on(): void; off(): void } {
+export interface StatementCache {
+  on(): void;
+  off(): void;
+}
+
+const CHANGING = ['pluck', 'raw', 'expand', 'safeIntegers', 'bind'] as const;
+
+export function statementCache(db: Db): StatementCache {
   const kept = new Map<string, unknown>();
-  const real = db.prepare;
+  const real = Object.getPrototypeOf(db).prepare as (sql: string) => unknown;
+  const set = (prepare: unknown): void => {
+    (db as { prepare: unknown }).prepare = prepare;
+  };
   const cached = (sql: string): unknown => {
+    // A closed database answers with its own error.
+    if (!db.open) return real.call(db, sql);
     let statement = kept.get(sql);
-    if (!statement) kept.set(sql, (statement = real.call(db, sql)));
+    if (!statement) {
+      const made = real.call(db, sql) as Record<string, unknown>;
+      for (const method of CHANGING)
+        made[method] = (...args: unknown[]) =>
+          (
+            (real.call(db, sql) as Record<string, unknown>)[method] as (
+              ...a: unknown[]
+            ) => unknown
+          )(...args);
+      kept.set(sql, (statement = made));
+    }
     return statement;
   };
-  return {
-    on: () => void ((db as { prepare: unknown }).prepare = cached),
-    off: () => void ((db as { prepare: unknown }).prepare = real),
-  };
+  return { on: () => set(cached), off: () => set(real) };
 }
 
 /**
@@ -92,13 +114,13 @@ export function caseDatabase(): CaseDb {
   };
 }
 
-export function testCtx(
-  start = 1_000_000,
-  seed = 42,
-  db: Db = memoryDatabase(),
-): TestCtx {
+export function testCtx(start = 1_000_000, seed = 42, db?: Db): TestCtx {
   const clock = { t: start };
   let n = 0;
+  const own = db === undefined;
+  db ??= memoryDatabase();
+  const statements = statementCache(db);
+  if (own) statements.on();
   const store = new Store(db);
   return {
     ...createCtx(store, {
@@ -108,6 +130,7 @@ export function testCtx(
     }),
     store,
     clock,
+    statements,
   };
 }
 
