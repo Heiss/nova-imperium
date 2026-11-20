@@ -22,10 +22,10 @@ import type { Levels, Planet } from './types.ts';
 /** The building that is the shipyard itself: the one whose levels ships and defense need. */
 export const YARD_HOME = homeOf(LOCKS, 'shipyard')!;
 
-/** The name of a building in a message: its short name, else its name. */
+/** The name of a building in a message: its short name, else its name (every lock is a catalog entry, so it has a text). */
 const messageName = (key: string): string => {
-  const t = text(key);
-  return t?.short ?? t?.n ?? key;
+  const t = text(key)!;
+  return t.short ?? t.n;
 };
 
 /** The buildings that lock the shipyard, with the short name for messages. */
