@@ -121,7 +121,10 @@ describe('the limit of game actions per account (#328)', () => {
       expect((await s.call('POST', '/api/activity', {})).status).toBe(200);
     }
     await fill(s, 120);
-  });
+    // 380 real HTTP requests (260 of them the whole state or a write): about
+    // 2 s alone and over the default 5 s while the other test files load the
+    // machine; the cases and the assertions are the ones that must be kept.
+  }, 60_000);
 
   it('does not count a request without a session', async () => {
     const s = await twoPlayers();
