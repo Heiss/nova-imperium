@@ -29,7 +29,10 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-const acts = (ctx = fakeCtx()) => clientFeature.acts(ctx);
+const acts = (ctx = fakeCtx()) => {
+  clientFeature.listen!(ctx);
+  return clientFeature.acts(ctx);
+};
 /** Submits the form with `id`; true when the browser's own submit was stopped. */
 const send = (id: string): boolean => {
   const preventDefault = vi.fn();

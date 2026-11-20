@@ -23,7 +23,7 @@ afterEach(() => {
 describe('marking the reports as read', () => {
   it('tells the server after a moment, once, when a newer report is on the page', async () => {
     const ctx = fakeCtx();
-    clientFeature.acts(ctx);
+    clientFeature.listen(ctx);
     client.game = game(5, [{ time: 9 }]);
     clientFeature.afterRender();
     clientFeature.afterRender();
@@ -39,7 +39,7 @@ describe('marking the reports as read', () => {
 
   it('says nothing when everything is read or the page is another', async () => {
     const ctx = fakeCtx();
-    clientFeature.acts(ctx);
+    clientFeature.listen(ctx);
     client.game = game(9, [{ time: 9 }]);
     clientFeature.afterRender();
     client.game = game(0, [{ time: 9 }]);
@@ -51,7 +51,7 @@ describe('marking the reports as read', () => {
 
   it('does nothing without a game', async () => {
     const ctx = fakeCtx();
-    clientFeature.acts(ctx);
+    clientFeature.listen(ctx);
     client.game = null;
     expect(() => clientFeature.afterRender()).not.toThrow();
     expect(ctx.act).not.toHaveBeenCalled();

@@ -3,10 +3,15 @@
 // handler of the form by its id. The handlers are the ones of the features
 // (features/); each name once.
 import { api } from './api.ts';
-import { assembleActs, assembleForms } from './features/assemble.ts';
+import {
+  assembleActs,
+  assembleForms,
+  startListeners,
+} from './features/assemble.ts';
 import type { ClientCtx } from './features/contract.ts';
 import { CLIENT_FEATURES } from './features/index.gen.ts';
 import { $ } from './dom.ts';
+import { trackFields, writeField } from './field-drafts.ts';
 import { modal } from './modal.ts';
 import { render } from './render.ts';
 import { go } from './routing.ts';
@@ -16,7 +21,7 @@ import { toast } from './toast.ts';
 
 const setInput = (sel: string, v: string | number): void => {
   const el = $<HTMLInputElement>(sel);
-  if (el) el.value = String(v);
+  if (el) writeField(el, String(v));
 };
 
 /** What the features need (features/contract.ts). */
@@ -36,6 +41,8 @@ const ctx: ClientCtx = {
 
 /** Puts the features on the page and listens to the clicks and forms. */
 export function startDispatch(): void {
+  trackFields();
+  startListeners(CLIENT_FEATURES, ctx);
   const acts = assembleActs({}, CLIENT_FEATURES, ctx);
   document.addEventListener('click', (e) => {
     const el = (e.target as HTMLElement).closest<HTMLElement>('[data-act]');

@@ -123,7 +123,9 @@ describe('the box „Meine Aktivität & Spielzeit“', () => {
 
   it("asks the server for the player's own numbers and shows them", async () => {
     const api = vi.fn(async () => sample as unknown as Record<string, unknown>);
-    const feature = clientFeature.acts(fakeCtx({ api }));
+    const ctx = fakeCtx({ api });
+    clientFeature.listen!(ctx);
+    const feature = clientFeature.acts(ctx);
     await feature.reloadOwnActivity!();
     expect(api).toHaveBeenCalledWith('/api/own-activity');
     expect(box.innerHTML).toContain('Geschätzte aktive Spielzeit');
@@ -134,7 +136,9 @@ describe('the box „Meine Aktivität & Spielzeit“', () => {
     vi.useFakeTimers();
     vi.setSystemTime(1_000_000);
     const api = vi.fn(async () => sample as unknown as Record<string, unknown>);
-    const feature = clientFeature.acts(fakeCtx({ api }));
+    const ctx = fakeCtx({ api });
+    clientFeature.listen!(ctx);
+    const feature = clientFeature.acts(ctx);
     await feature.reloadOwnActivity!();
     api.mockClear();
     box.innerHTML = '';
@@ -148,7 +152,9 @@ describe('the box „Meine Aktivität & Spielzeit“', () => {
 
   it('does nothing outside the options, and without the box', async () => {
     const api = vi.fn(async () => sample as unknown as Record<string, unknown>);
-    const feature = clientFeature.acts(fakeCtx({ api }));
+    const ctx = fakeCtx({ api });
+    clientFeature.listen!(ctx);
+    const feature = clientFeature.acts(ctx);
     client.ui.view = 'overview';
     clientFeature.afterRender();
     present = false;
@@ -162,7 +168,9 @@ describe('the box „Meine Aktivität & Spielzeit“', () => {
     const api = vi.fn(async () => {
       throw new Error('offline');
     });
-    const feature = clientFeature.acts(fakeCtx({ api }));
+    const ctx = fakeCtx({ api });
+    clientFeature.listen!(ctx);
+    const feature = clientFeature.acts(ctx);
     await feature.reloadOwnActivity!();
     expect(box.textContent).toBe(OWN_ACTIVITY_FAILED);
   });

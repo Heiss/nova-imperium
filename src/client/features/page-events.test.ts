@@ -40,7 +40,7 @@ afterEach(() => {
 describe('the share of a producer', () => {
   it('sends the chosen percentage of that producer', () => {
     const ctx = fakeCtx();
-    producers.acts(ctx);
+    producers.listen!(ctx);
     fire('change', {
       target: { dataset: { chg: 'pct', k: 'metal' }, value: '90' },
     });
@@ -49,7 +49,7 @@ describe('the share of a producer', () => {
 
   it('ignores other changes and a signed-out page', () => {
     const ctx = fakeCtx();
-    producers.acts(ctx);
+    producers.listen!(ctx);
     fire('change', { target: { dataset: { chg: 'push' }, value: '1' } });
     client.game = null;
     fire('change', { target: { dataset: { chg: 'pct', k: 'm' }, value: '1' } });
@@ -59,7 +59,7 @@ describe('the share of a producer', () => {
 
 describe('the animations of the options', () => {
   it('switches the planets and remembers the choice on this device', () => {
-    options.acts(fakeCtx());
+    options.listen!();
     fire('change', { target: { id: 'o_anim', checked: false } });
     expect(client.ui.animations).toBe(false);
     expect(localStorage.getItem('nova.animations')).toBe('off');
@@ -74,7 +74,7 @@ describe('the animations of the options', () => {
         throw new Error('blocked');
       },
     });
-    options.acts(fakeCtx());
+    options.listen!();
     fire('change', { target: { id: 'o_anim', checked: false } });
     expect(client.ui.animations).toBe(false);
     client.ui.animations = true;
@@ -87,7 +87,7 @@ describe('the activity sample', () => {
   it('tells the server at most every 10 seconds', () => {
     let now = 1000;
     vi.stubGlobal('performance', { now: () => now });
-    activity.acts();
+    activity.listen!();
     fire('click', click);
     now += 9000;
     fire('keydown', click);
@@ -98,7 +98,7 @@ describe('the activity sample', () => {
   });
 
   it('ignores scripted events, hidden pages and signed-out players', () => {
-    activity.acts();
+    activity.listen!();
     fire('click', { isTrusted: false });
     (document as { visibilityState: string }).visibilityState = 'hidden';
     fire('click', click);
@@ -110,7 +110,7 @@ describe('the activity sample', () => {
 
   it('samples at once after a sign-out and a new sign-in', () => {
     vi.stubGlobal('performance', { now: () => 5000 });
-    activity.acts();
+    activity.listen!();
     fire('click', click);
     client.game = null;
     fire('click', click);
@@ -124,7 +124,7 @@ describe('the activity sample', () => {
       'fetch',
       vi.fn(async () => Promise.reject(new Error('x'))),
     );
-    activity.acts();
+    activity.listen!();
     expect(() => fire('click', click)).not.toThrow();
   });
 });

@@ -102,7 +102,6 @@
       class="c3"
       type="number"
       id="g_g"
-      data-nokeep
       value={page.gal}
       min="1"
       max={page.galaxies}
@@ -123,7 +122,6 @@
       class="c3"
       type="number"
       id="g_s"
-      data-nokeep
       value={page.sys}
       min="1"
       max={page.systems}

@@ -27,7 +27,19 @@ test.describe('admin (#68)', () => {
     await expect(count).toHaveText(/ · ([3-9]|\d{2,}) Ereignisse$/);
     const row = (action: RegExp) => events.getByRole('row', { name: action });
     const battle = row(/system \/ battle/);
-    await battle.getByText(/^Kampfdetails \d+$/).click();
+    // The log is drawn anew by the poll of the state and by the answer of the
+    // filter; the details the admin opened stay open (logic/admin-panels.svelte.ts).
+    // Open them only while they are closed, so a redraw between the read of the
+    // state and the click cannot close them again, and wait for the code.
+    const details = battle.locator('details');
+    await expect(async () => {
+      if ((await details.getAttribute('open')) === null)
+        await battle.getByText(/^Kampfdetails \d+$/).click();
+      await expect(details).toHaveAttribute('open', '', { timeout: 1000 });
+      await expect(battle.locator('details > code')).toContainText('"fleet"', {
+        timeout: 1000,
+      });
+    }).toPass({ timeout: 15000 });
     const detail = JSON.parse(
       await battle.locator('details > code').innerText(),
     ) as { fleet: string; planet: string };
@@ -48,8 +60,9 @@ test.describe('admin (#68)', () => {
     await expect(row(/game \/ send/)).toBeVisible();
     await expect(row(/account \/ register/)).toHaveCount(0);
 
-    // The attacked planet: the same two events of this attacker.
-    await battle.getByText(/^Kampfdetails \d+$/).click();
+    // The attacked planet: the same two events of this attacker. The details
+    // the admin opened stay open over the new page of the log.
+    await expect(battle.locator('details')).toHaveAttribute('open', '');
     await battle
       .getByRole('button', {
         name: `Ereignisse zu ${detail.planet}`,

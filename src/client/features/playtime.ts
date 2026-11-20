@@ -130,7 +130,7 @@ async function showOwnActivity(api: Ask, force = false): Promise<void> {
 let ask: Ask | null = null;
 
 export const clientFeature = {
-  acts: (ctx) => {
+  listen: (ctx) => {
     ask = (url) => ctx.api(url);
     attach(
       document,
@@ -141,8 +141,10 @@ export const clientFeature = {
         document.visibilityState === 'visible' && document.hasFocus(),
       ),
     );
-    return { reloadOwnActivity: () => showOwnActivity(ask!, true) };
   },
+  acts: ({ api }) => ({
+    reloadOwnActivity: () => showOwnActivity((url) => api(url), true),
+  }),
   afterRender: () => {
     if (client.ui.view === 'help' && ask) void showOwnActivity(ask);
   },

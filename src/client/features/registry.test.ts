@@ -2,7 +2,12 @@
 // feature and no count: a feature adds its handlers in its own file
 // (`clientFeature`), and each feature tests its own handlers in its own test.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { assembleActs, assembleForms, runAfterRender } from './assemble.ts';
+import {
+  assembleActs,
+  assembleForms,
+  runAfterRender,
+  startListeners,
+} from './assemble.ts';
 import type { ClientFeature } from './contract.ts';
 import { CLIENT_FEATURES } from './index.gen.ts';
 import { fakeCtx } from './test-ctx.ts';
@@ -40,13 +45,40 @@ describe('the list of the client features', () => {
     for (const [name, feature] of features) {
       expect(typeof feature.acts, name).toBe('function');
       const acts = feature.acts(fakeCtx());
-      // A feature that only listens to the page (the share of a producer, the
-      // activity sample) returns no handlers.
       for (const [act, handler] of Object.entries(acts)) {
         expect(act, `${name}: ${act}`).toMatch(/^[a-zA-Z][a-zA-Z0-9]*$/);
         expect(typeof handler, `${name}: ${act}`).toBe('function');
       }
     }
+  });
+
+  it('lets every module contribute something: acts, forms, afterRender or listen', () => {
+    for (const [name, feature] of features) {
+      const parts = [
+        Object.keys(feature.acts(fakeCtx())).length > 0,
+        Object.keys(feature.forms?.(fakeCtx()) ?? {}).length > 0,
+        feature.afterRender !== undefined,
+        feature.listen !== undefined,
+      ];
+      expect(parts.some(Boolean), name).toBe(true);
+    }
+  });
+
+  it('builds acts and forms without a side effect: no listener is added', () => {
+    const doc = document.addEventListener as ReturnType<typeof vi.fn>;
+    const win = window.addEventListener as ReturnType<typeof vi.fn>;
+    for (const [name, feature] of features) {
+      feature.acts(fakeCtx());
+      feature.forms?.(fakeCtx());
+      expect(doc, name).not.toHaveBeenCalled();
+      expect(win, name).not.toHaveBeenCalled();
+    }
+  });
+
+  it('registers the listeners in listen, once per call', () => {
+    const doc = document.addEventListener as ReturnType<typeof vi.fn>;
+    startListeners(features, fakeCtx());
+    expect(doc).toHaveBeenCalled();
   });
 
   it('gives every form handler a plain id and a function', () => {
@@ -62,6 +94,24 @@ describe('the list of the client features', () => {
   it('defines no data-act name and no form id twice', () => {
     expect(() => assembleActs({}, features, fakeCtx())).not.toThrow();
     expect(() => assembleForms({}, features, fakeCtx())).not.toThrow();
+  });
+});
+
+describe('the listeners of the modules', () => {
+  it('calls the listen of each module once with the context', () => {
+    const ctx = fakeCtx();
+    const one = vi.fn();
+    const two = vi.fn();
+    startListeners(
+      [
+        ['one', { acts: () => ({}), listen: one }],
+        ['two', { acts: () => ({ a: vi.fn() }) }],
+        ['three', { acts: () => ({}), listen: two }],
+      ],
+      ctx,
+    );
+    expect(one).toHaveBeenCalledExactlyOnceWith(ctx);
+    expect(two).toHaveBeenCalledExactlyOnceWith(ctx);
   });
 });
 

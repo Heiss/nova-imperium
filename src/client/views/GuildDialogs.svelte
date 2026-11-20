@@ -45,7 +45,7 @@
     <p>
       <label for="dissolve_tag"
         >Gib zur Bestätigung das Kürzel {dialog.tag} ein</label
-      ><br /><input id="dissolve_tag" required autocomplete="off" data-nokeep />
+      ><br /><input id="dissolve_tag" required autocomplete="off" />
     </p>
     <p>
       <button type="submit" class="red">Gilde endgültig auflösen</button>

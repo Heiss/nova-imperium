@@ -11,7 +11,7 @@ const value = (sel: string): string =>
 
 /** The data-act handlers of „Kolonie aufgeben“; its form is handled here too. */
 export const clientFeature = {
-  acts: ({ act, modal }) => {
+  listen: ({ act, modal }) => {
     document.addEventListener('submit', (e) => {
       const form = e.target as HTMLFormElement;
       if (form.id !== 'abandonform') return;
@@ -23,8 +23,8 @@ export const clientFeature = {
       };
       void act('abandon', data).then((done) => done && modal(''));
     });
-    return {
-      abandon: () => modal(abandonDialog(client.view!.P, client.game!)),
-    };
   },
+  acts: ({ modal }) => ({
+    abandon: () => modal(abandonDialog(client.view!.P, client.game!)),
+  }),
 } satisfies ClientFeature;

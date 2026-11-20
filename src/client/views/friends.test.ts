@@ -86,7 +86,7 @@ describe('the view „Freunde“', () => {
     const html = view(undefined);
     expect(html).toContain('<h2>Freunde</h2>');
     expect(html).toContain(
-      '<form class="flex" id="friendform"><label for="friend_name">Name</label> <input autocomplete="off" data-nokeep id="friend_name" maxlength="20" required> <button type="submit">Freundschaft anfragen</button></form>',
+      '<form class="flex" id="friendform"><label for="friend_name">Name</label> <input autocomplete="off" id="friend_name" maxlength="20" required> <button type="submit">Freundschaft anfragen</button></form>',
     );
   });
 });

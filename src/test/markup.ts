@@ -19,23 +19,24 @@ const value = (raw: string): string =>
   raw.replace(/&(?:gt|#39);/g, (e) => ENTITY[e]!);
 
 /**
- * The attributes that count by their presence: the boolean ones, `data-nokeep`
- * (which main.ts reads) and the marks of the achievements (features/
+ * The attributes that count by their presence: the boolean ones and the marks of the achievements (features/
  * achievements.ts and the phone layout of style.css select them), written
  * without a value in the HTML views and with an empty one by Svelte (#118,
  * bundle 5).
  */
 const BOOLEAN =
-  /^(disabled|hidden|selected|checked|required|readonly|data-nokeep|data-achievement|data-achievement-group|data-later|data-all|data-daily-reward)$/;
+  /^(disabled|hidden|selected|checked|required|readonly|data-achievement|data-achievement-group|data-later|data-all|data-daily-reward)$/;
 
 /**
- * The attributes of a tag in order, a boolean one and `data-nokeep` (which
- * main.ts reads by its presence) without their empty value, and without an
+ * The attributes of a tag in order, a boolean one without its empty value, no `data-nokeep` (the attribute is gone from the page), and without an
  * empty `class`, which Svelte leaves out (#118, bundles 1 and 2).
  */
 function attributes(raw: string): string {
   const list = [...raw.matchAll(/([^\s=]+)(?:="([^"]*)")?/g)]
-    .filter(([, name, quoted]) => !(name === 'class' && quoted === ''))
+    .filter(
+      ([, name, quoted]) =>
+        !(name === 'class' && quoted === '') && name !== 'data-nokeep',
+    )
     .map(([, name, quoted]) =>
       quoted === undefined || (quoted === '' && BOOLEAN.test(name!))
         ? name!

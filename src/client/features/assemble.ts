@@ -54,6 +54,11 @@ export function assembleForms(
   );
 }
 
+/** Lets every module register its page listeners, once at start. */
+export function startListeners(features: Listed, ctx: ClientCtx): void {
+  for (const [, feature] of features) feature.listen?.(ctx);
+}
+
 /** Runs the `afterRender` of every module, in the order of the list. */
 export function runAfterRender(features: Listed): void {
   for (const [, feature] of features) feature.afterRender?.();

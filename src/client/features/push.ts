@@ -23,7 +23,7 @@ async function togglePush(
 }
 
 export const clientFeature = {
-  acts: (ctx) => {
+  listen: (ctx) => {
     /** The push kinds (#192): one save at a time, the newest choice wins. */
     const savePush = pushSaver(client.ui, (off) =>
       ctx.act('pushOptions', { off }),
@@ -37,9 +37,9 @@ export const clientFeature = {
           (el as unknown as HTMLInputElement).checked,
         ).then(() => ctx.render());
     });
-    return {
-      pushEnable: () => togglePush(ctx, true),
-      pushDisable: () => togglePush(ctx, false),
-    };
   },
+  acts: (ctx) => ({
+    pushEnable: () => togglePush(ctx, true),
+    pushDisable: () => togglePush(ctx, false),
+  }),
 } satisfies ClientFeature;

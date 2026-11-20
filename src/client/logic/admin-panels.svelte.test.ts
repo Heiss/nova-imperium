@@ -100,6 +100,21 @@ describe('a new admin', () => {
     expect(panels.range.until).toBe('2023-11-14');
   });
 
+  it('keeps the opened details of an event while the same admin renders again, and closes them for another admin', async () => {
+    enterAdminPanels('u_a', 1.7e12);
+    await settle();
+    panels.setOpen('event:42', true);
+    panels.setOpen('error:7', true);
+    panels.setOpen('error:7', false);
+    enterAdminPanels('u_a', 1.8e12);
+    expect(panels.isOpen('event:42')).toBe(true);
+    expect(panels.isOpen('error:7')).toBe(false);
+    expect(panels.isOpen('event:43')).toBe(false);
+    enterAdminPanels('u_b', 1.8e12);
+    await settle();
+    expect(panels.isOpen('event:42')).toBe(false);
+  });
+
   it('starts again for another admin and after the page was left', async () => {
     enterAdminPanels('u_a', 1.7e12);
     await settle();

@@ -78,8 +78,10 @@ afterEach(() => {
   client.view = null;
 });
 
-const acts = (ctx = fakeCtx()): Record<string, Handler> =>
-  clientFeature.acts(ctx);
+const acts = (ctx = fakeCtx()): Record<string, Handler> => {
+  clientFeature.listen!(ctx);
+  return clientFeature.acts(ctx);
+};
 
 describe('the ship selection', () => {
   it('fills every field with the ships of its kind on the planet, and calculates', () => {

@@ -50,7 +50,10 @@ afterEach(() => {
   client.game = null;
 });
 
-const acts = (ctx = fakeCtx()) => clientFeature.acts(ctx);
+const acts = (ctx = fakeCtx()) => {
+  clientFeature.listen!(ctx);
+  return clientFeature.acts(ctx);
+};
 
 describe('the Endzeit', () => {
   it('opens the dialog with the flight time of the round', () => {

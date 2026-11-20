@@ -6,6 +6,7 @@
 // into their filters lives here, as long as it is the same admin; the
 // components AdminDiagnostics, AdminErrors and AdminInvitations read it. This
 // module also holds the tab that is shown and loads what the tab needs.
+import { SvelteSet } from 'svelte/reactivity';
 import { ADMIN_TABS, type AdminTab, diagnosticTab } from './admin.ts';
 import {
   dayQuery,
@@ -70,6 +71,23 @@ class AdminPanels {
   invitations = $state.raw<{ list: Invitation[] } | { error: string } | null>(
     null,
   );
+
+  /** The `<details>` the admin opened (an event, an error, the rules of a round), by key. */
+  readonly #open = new SvelteSet<string>();
+
+  isOpen(key: string): boolean {
+    return this.#open.has(key);
+  }
+
+  /** The admin opened or closed the details; a poll that mounts the page anew keeps it. */
+  setOpen(key: string, open: boolean): void {
+    if (open) this.#open.add(key);
+    else this.#open.delete(key);
+  }
+
+  closeAll(): void {
+    this.#open.clear();
+  }
 }
 
 export const panels = new AdminPanels();
@@ -101,6 +119,7 @@ function reset(user: string, now: number): void {
   panels.range = errorRange(now);
   panels.errorNotice = panels.errors = null;
   panels.invitations = null;
+  panels.closeAll();
   query = {};
   before = errorBefore = 0;
   selected = '';

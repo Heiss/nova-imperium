@@ -13,6 +13,7 @@ import {
   maxAmount,
   preview,
 } from '../logic/market.ts';
+import { writeField } from '../field-drafts.ts';
 import { previewHTML, targetOptions } from '../logic/market-page.ts';
 import { client } from '../logic/state.svelte.ts';
 import type { ClientFeature } from './contract.ts';
@@ -30,7 +31,7 @@ function paint(): void {
   if (!m || !field('marketform')) return;
   const d = fixed(draft);
   field<HTMLSelectElement>('market-get')!.innerHTML = targetOptions(d);
-  field<HTMLInputElement>('market-amount')!.value = d.amount;
+  writeField(field<HTMLInputElement>('market-amount')!, d.amount);
   const p = preview(m, d);
   field('market-preview')!.innerHTML = previewHTML(p);
   field<HTMLButtonElement>('market-trade')!.disabled = !p.ok;
@@ -45,7 +46,7 @@ function read(): void {
 
 /** The data-act handlers of the marketplace; its form is handled here too. */
 export const clientFeature = {
-  acts: ({ act }) => {
+  listen: ({ act }) => {
     document.addEventListener('input', (e) => {
       if (!(e.target as HTMLElement).closest('#marketform')) return;
       read();
@@ -66,14 +67,14 @@ export const clientFeature = {
         paint();
       });
     });
-    return {
-      marketMax: () => {
-        const m = current();
-        if (!m) return;
-        read();
-        draft.amount = maxAmount(m, fixed(draft));
-        paint();
-      },
-    };
   },
+  acts: () => ({
+    marketMax: () => {
+      const m = current();
+      if (!m) return;
+      read();
+      draft.amount = maxAmount(m, fixed(draft));
+      paint();
+    },
+  }),
 } satisfies ClientFeature;

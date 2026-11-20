@@ -44,7 +44,7 @@ export async function logout({ api, render }: ClientCtx): Promise<void> {
 }
 
 export const clientFeature = {
-  acts: (ctx) => {
+  listen: (ctx) => {
     document.addEventListener('change', (e) => {
       const el = e.target as HTMLSelectElement;
       if (el.id === 'planet_select') void selectPlanet(ctx, el.value);
@@ -59,13 +59,13 @@ export const clientFeature = {
     $('#modal')?.addEventListener('click', (e) => {
       if ((e.target as HTMLElement).id === 'modal') ctx.modal('');
     });
-    return {
-      moreOpen: () => $<HTMLDialogElement>('#more')!.showModal(),
-      logout: () => logout(ctx),
-      closeModal: () => ctx.modal(''),
-      selectPlanet: (d) => {
-        if (d.id) return selectPlanet(ctx, d.id);
-      },
-    };
   },
+  acts: (ctx) => ({
+    moreOpen: () => $<HTMLDialogElement>('#more')!.showModal(),
+    logout: () => logout(ctx),
+    closeModal: () => ctx.modal(''),
+    selectPlanet: (d) => {
+      if (d.id) return selectPlanet(ctx, d.id);
+    },
+  }),
 } satisfies ClientFeature;

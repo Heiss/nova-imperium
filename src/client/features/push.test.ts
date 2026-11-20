@@ -63,7 +63,7 @@ describe('the checkbox of a kind', () => {
 
   it('saves the kinds switched off and renders once the save is over', async () => {
     const ctx = fakeCtx();
-    clientFeature.acts(ctx);
+    clientFeature.listen(ctx);
     change(box({}));
     await vi.waitFor(() => expect(ctx.render).toHaveBeenCalledTimes(1));
     expect(ctx.act).toHaveBeenCalledWith('pushOptions', { off: ['buildings'] });
@@ -71,7 +71,7 @@ describe('the checkbox of a kind', () => {
 
   it('ignores other fields and a signed-out page', () => {
     const ctx = fakeCtx();
-    clientFeature.acts(ctx);
+    clientFeature.listen(ctx);
     change(box({ dataset: { chg: 'pct' } }));
     change({ target: {} });
     client.game = null;
