@@ -107,6 +107,17 @@ description: 'A client feature exports its handlers as clientFeature from its ow
   `#view`); chat and buddy name have their own drafts. The position of the
   Sternenkarte (`g_g`, `g_s`) has a draft, kept until Enter, an arrow or
   „zum Heimatsystem“ draws the page anew (a fresh render drops it).
+  **[E]** Owner, 2026-11-20: no client code sets the value, tick or chosen
+  option of a field except through `writeField` (or `setInput`/`setById`,
+  which use it): a write that goes round it is not recorded, and the next poll
+  redraw puts the older draft back over it. The guard
+  `src/test/field-writes.test.ts` reads the syntax trees of `src/client`
+  (TypeScript and Svelte, tests excluded) and fails on `.value =`, `.checked =`,
+  `.selectedIndex =`, `.selected =` (also `+=`, `++`, `["value"] =`) and
+  `setAttribute('value', …)`. Allow-list: `field-drafts.ts` (it implements
+  `writeField` and `restoreFields`). A Svelte `bind:` or `value={…}` is no
+  write. The scan found one bypass, the settings of the universe put back by
+  `features/admin.ts`, now written with `setById`.
   `normalize()` of `src/test/markup.ts` ignores `data-nokeep`, so the frozen
   HTML of the reference tests stays as it was. E2E: `e2e/redraw-drafts.spec.ts`.
 * **[E]** Owner, 2026-11-20: `acts()` and `forms()` are free of side effects.

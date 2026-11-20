@@ -3,7 +3,7 @@
 // the settings of the universe. The panels that fill themselves from the
 // server are components with their state in logic/admin-panels.svelte.ts; the
 // page is views/admin.ts (#118, bundle 7).
-import { $, val } from '../dom.ts';
+import { $, setById, val } from '../dom.ts';
 import { ADMIN_TABS, type AdminTab } from '../logic/admin.ts';
 import {
   adminTabKey,
@@ -176,8 +176,7 @@ export const clientFeature = {
       forgetAdminPanel();
     if (!client.game?.admin) return;
     for (const [key, value] of draftsOf(draft, ownerOf())) {
-      const field = document.getElementById(`set_${key}`);
-      if (field) (field as HTMLInputElement).value = value;
+      setById(`set_${key}`, value);
     }
   },
 } satisfies ClientFeature;

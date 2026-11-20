@@ -65,6 +65,17 @@ describe('the drafts of the page', () => {
     expect(redrawn.value).toBe('6');
   });
 
+  it('records what setById writes, as writeField does (the settings of the admin page use it)', async () => {
+    const field = new Input('t_g');
+    vi.stubGlobal('document', { getElementById: () => field });
+    const { setById } = await import('./dom.ts');
+    setById('t_g', '8');
+    expect(field.value).toBe('8');
+    page = [new Input('t_g', '1')];
+    mod.restoreFields(view());
+    expect(page[0]!.value).toBe('8');
+  });
+
   it('ignores a field outside the view, one without an id and one without a draft', () => {
     mod.trackFields();
     const outside = new Input('planet_select', '2');
