@@ -79,7 +79,8 @@ describe('the dialog follows its fields (#237)', () => {
   });
 
   it('repeats the exact settings in the confirmation and writes it again at every change (#237)', () => {
-    const confirm = (): string => nodes['#round-confirm-colonies']!.textContent!;
+    const confirm = (): string =>
+      nodes['#round-confirm-colonies']!.textContent!;
     dialog({
       colonyResearch: '1',
       colonyBase: '6',

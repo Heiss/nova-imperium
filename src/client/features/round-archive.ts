@@ -75,6 +75,43 @@ const rewindActs = (ctx: ClientCtx) => ({
   },
 });
 
+/** View H, the admin's provisional report and the drilldown of a participant (#235). */
+const adminActs = (ctx: ClientCtx) => ({
+  // View H, the admin's provisional report: read the running round again;
+  // the page says so, no ranking moves unasked.
+  roundRefresh: async (d: Data) => {
+    try {
+      const data = await call(ctx, 'roundReport', {
+        round: Number(d.round),
+      });
+      archive.report = data.report as typeof archive.report;
+      ctx.render();
+      ctx.toast('Vorschau aktualisiert.');
+    } catch (e) {
+      ctx.toast((e as Error).message, true);
+    }
+  },
+  // The drilldown of one participant, for the admin; the server refuses a player.
+  roundPerson: async (d: Data) => {
+    try {
+      const data = await call(ctx, 'roundParticipant', {
+        round: Number(d.round),
+        seat: Number(d.seat),
+      });
+      archive.participant = data.participant as typeof archive.participant;
+      ctx.render();
+      document.getElementById('round-participant-h')?.focus();
+    } catch (e) {
+      ctx.toast((e as Error).message, true);
+    }
+  },
+  roundPersonBack: () => {
+    archive.participant = null;
+    ctx.render();
+    document.getElementById('round-report-h')?.focus();
+  },
+});
+
 let bound: ClientCtx | null = null;
 
 export const clientFeature = {
@@ -97,8 +134,10 @@ export const clientFeature = {
       },
       roundBack: () => {
         archive.report = null;
+        archive.participant = null;
         ctx.render();
       },
+      ...adminActs(ctx),
       ...rewindActs(ctx),
       roundCat: (d) => {
         archive.category = highscoreCategory(d.cat);

@@ -123,6 +123,42 @@ complete, tested and pushed.
   and 8 only, see „The thin Runden-Rewind“ below. The cards 2 to 5 and 7 are
   not built.
 
+* **Slice 5, view H of the admin (2026-11-20):** „Vorschau aktualisieren“ and
+  the drilldown per participant, see „View H“ below.
+
+# View H: the provisional report and the drilldown (#235)
+
+* **[E]** The issue (view H): „Admin → Rundenberichte“ with the active round
+  labelled „VORLÄUFIG · nur Spielleitung“, the participant drilldown and the
+  update timestamp, the button „Vorschau aktualisieren“; the preview never
+  publishes the report or triggers Endzeit or reset; „refresh feedback only“, no
+  moving rankings. Access stays admin only; opening is audited as before
+  (`admin.read`). The owner approved these proposals on 2026-11-20.
+* **[V]** „Vorschau aktualisieren“ stands beside „Zurück zum Archiv“ in a
+  provisional report (never in a finished one; a player gets no provisional
+  report). It reads `roundReport` of the running round again (every read is an
+  `admin.read` entry as before), keeps the chosen category and says „Vorschau
+  aktualisiert.“ in a toast; the timestamp is the „Stand“ of the banner, which
+  the new answer carries. Nothing moves unasked.
+* **[V]** The drilldown: the server action `roundParticipant` (`{ round, seat }`,
+  `src/server/game/round-report.ts`) answers `ParticipantReport`
+  (`src/core/round-report.ts`) for an admin only; a player, an unknown round and
+  an unknown seat answer „Dieser Rundenbericht ist nicht verfügbar.“. It shows in
+  full what the ranking reduces to a row, from the same facts: the points by all
+  categories, the economy per hour, the research levels, every place with its
+  buildings, ships and defense, the ships on their way, the vacation mode, the
+  guild and, for a finished round, the play time. A deleted account keeps
+  „Gelöschter Spieler“; no account id is sent. Reading writes only the audit
+  entry `roundParticipant` (`round`, `seat`).
+* **[V]** The button „Einblick“ in each row of the report (a column only for
+  the admin) opens it; „Zurück zum Bericht“ returns. The words of the page
+  („Planeten und Monde“, „Forschungsstufen“, „Flotten unterwegs“,
+  „Urlaubsmodus“) are drafts. The play time of the running round stays private
+  here too (D2): „wird erst nach Rundenende im Archiv geteilt“.
+* **[U]** Not built from view H: the close flow is the existing „Runde
+  abschließen“ with its own confirmation (slice 1); no column „cutoff“ in the
+  list of rounds.
+
 # The play time in the archive (#235 × #231, #232)
 
 * **[E]** D2: the report shares the play time, but only in the archive after the

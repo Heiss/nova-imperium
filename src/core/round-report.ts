@@ -203,6 +203,27 @@ export interface RoundReport {
   playtime: Record<number, number> | null;
 }
 
+/**
+ * One participant of a round as the admin inspects them (#235, view H, the
+ * drilldown): the facts of the cutoff, or of the moment of reading for the
+ * running round, that the report's ranking reduces to a row. No account id.
+ */
+export interface ParticipantReport {
+  round: { number: number; provisional: boolean; asOf: number };
+  seat: number;
+  name: string;
+  guild: { tag: string; name: string } | null;
+  valuation: Valuation;
+  economy: Resources;
+  research: Levels;
+  places: FinalPlace[];
+  /** The ships on their way, all fleets together. */
+  flying: Levels;
+  vacation: boolean;
+  /** The estimated active time in milliseconds; null for the running round and for an archive without it. */
+  playtime: number | null;
+}
+
 /** One round in the history across rounds. */
 export interface HistoryEntry {
   number: number;

@@ -2,11 +2,13 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { ROUND_SETTINGS, type RoundSetting } from '../../core/round.ts';
 import type {
   HistoryEntry,
+  ParticipantReport,
   ReportRow,
   RoundEntry,
   RoundReport,
 } from '../../core/round-report.ts';
 import { roundDefaults } from '../../test/fixtures.ts';
+import { fmt } from './format.ts';
 import {
   archive,
   archivePage,
@@ -14,6 +16,7 @@ import {
   deleteText,
   forgetArchive,
   needsLoad,
+  participantPage,
   reportPage,
   rulesDiff,
   shownArchive,
@@ -544,5 +547,106 @@ describe('the questions', () => {
     expect(closeText(4)).toContain('Runde 4 jetzt abschließen?');
     expect(deleteText('2')).toContain('Runde 2 mit allen Berichten');
     expect(deleteText(undefined)).toContain('Runde  mit');
+  });
+});
+
+describe('view H: the provisional report and the drilldown of the admin (#235)', () => {
+  const provisional = report({ provisional: true, closed: null });
+
+  it('offers „Vorschau aktualisieren“ for a provisional report only', () => {
+    expect(reportPage(provisional, 'total', true).refresh).toBe(3);
+    expect(reportPage(report(), 'total', true).refresh).toBeNull();
+  });
+
+  it('offers the drilldown to the admin only, with the seat of each row', () => {
+    const admin = reportPage(report(), 'total', true);
+    expect(admin.detail).toBe(true);
+    expect(admin.rows.map((r) => r.seat)).toEqual([1, 2, 3]);
+    expect(reportPage(report(), 'total').detail).toBe(false);
+    expect(reportPage(report(), 'total', false).detail).toBe(false);
+  });
+
+  const person = (
+    over: Partial<ParticipantReport> = {},
+  ): ParticipantReport => ({
+    round: { number: 3, provisional: false, asOf: Date.UTC(2026, 10, 20, 12) },
+    seat: 2,
+    name: 'Vex',
+    guild: { tag: 'ABC', name: 'Die Alten' },
+    valuation: {
+      total: 8400,
+      buildings: 5000,
+      research: 1000,
+      fleet: 2000,
+      defense: 400,
+    },
+    economy: { m: 1000, c: 500, d: 250 },
+    research: { energy: 3, laser: 0 },
+    places: [
+      {
+        kind: 'planet',
+        g: 1,
+        s: 2,
+        p: 3,
+        b: { metal: 12 },
+        ships: { lc: 8 },
+        def: {},
+      },
+      { kind: 'moon', g: 1, s: 2, p: 3, b: {}, ships: {}, def: { rocket: 20 } },
+    ],
+    flying: { lc: 2 },
+    vacation: false,
+    playtime: 3600000,
+    ...over,
+  });
+
+  it('shows all facts of one participant and each place with what stood there', () => {
+    const page = participantPage(person());
+    expect(page.heading).toBe('Runde 3 · Vex');
+    expect(page.banner).toBeNull();
+    const facts = Object.fromEntries(page.facts);
+    expect(facts['Gilde']).toBe('[ABC] Die Alten');
+    expect(facts['Punkte gesamt']).toBe(fmt(8400));
+    expect(facts['Wirtschaft/h']).toBe(
+      'Adamant 1.000 · Psikristall 500 · Promethium 250',
+    );
+    expect(facts['Urlaubsmodus']).toBe('nein');
+    expect(facts['Spielzeit']).toBe('1 Std. 00 Min.');
+    // A research without a level is not listed.
+    expect(facts['Forschungsstufen']).not.toContain('0');
+    expect(page.places.map((x) => x.where)).toEqual([
+      'Planet 1:2:3',
+      'Mond 1:2:3',
+    ]);
+    expect(page.places[1]).toMatchObject({ buildings: '-', ships: '-' });
+    expect(page.places[1]!.defense).toContain('20');
+  });
+
+  it('marks a participant of the running round as provisional and says that the play time is not shared yet', () => {
+    const page = participantPage(
+      person({
+        round: {
+          number: 3,
+          provisional: true,
+          asOf: Date.UTC(2026, 10, 20, 12),
+        },
+        playtime: null,
+      }),
+    );
+    expect(page.heading).toBe('Runde 3 · Vex (vorläufig)');
+    expect(page.banner).toContain('VORLÄUFIG · nur Spielleitung');
+    expect(Object.fromEntries(page.facts)['Spielzeit']).toBe(
+      'wird erst nach Rundenende im Archiv geteilt',
+    );
+  });
+
+  it('shows the drilldown instead of the report, without the button to close the round', () => {
+    forgetArchive();
+    archive.report = provisional;
+    archive.participant = person();
+    const body = archivePage(archive, true);
+    expect(body.body.kind).toBe('participant');
+    expect(body.close).toBe(false);
+    forgetArchive();
   });
 });

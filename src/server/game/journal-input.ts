@@ -91,6 +91,7 @@ export const INPUT: Readonly<Record<string, Spec>> = {
   // The round archive.
   roundArchive: {},
   roundHistory: {},
+  roundParticipant: { round: 'keep', seat: 'keep' },
   roundReport: { round: 'keep' },
   roundRewind: { round: 'keep' },
   // The admin.

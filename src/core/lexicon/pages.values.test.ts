@@ -346,7 +346,9 @@ describe('Wache stellen und Verbandsangriff say what the rules do', () => {
 
   it('the guard: who may hold, the times, the limits and the fuel', () => {
     const text = words('rule-allies');
-    expect(text).toContain('Verbündete für Halten und Verband: Gilde und Freunde');
+    expect(text).toContain(
+      'Verbündete für Halten und Verband: Gilde und Freunde',
+    );
     expect(text).toContain(
       'Die Haltezeit beträgt 0, 1, 2, 4, 8, 16 oder 32 Stunden.',
     );

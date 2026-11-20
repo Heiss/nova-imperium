@@ -305,6 +305,7 @@ const at = (over: Partial<ArchiveState>): ArchiveState => ({
   entries: null,
   history: null,
   report: null,
+  participant: null,
   rewind: null,
   category: 'total',
   loading: false,
@@ -412,5 +413,59 @@ describe('the round archive against the HTML before #118, bundle 7', () => {
       'class="me"',
     ])
       expect(open, mark).toContain(mark);
+  });
+
+  it('shows „Vorschau aktualisieren“ on a provisional report and the drilldown buttons to the admin only (#235, view H)', () => {
+    const provisional = HAND_BUILT.find(
+      ([name]) => name === 'a provisional report in a category',
+    )![1];
+    const admin = archiveView(provisional, true);
+    expect(admin).toContain('data-act="roundRefresh" data-round="3"');
+    expect(admin).toContain('>Vorschau aktualisieren<');
+    expect(admin).toContain(
+      'data-act="roundPerson" data-round="3" data-seat="',
+    );
+    // A player's page offers neither, and a finished report no refresh.
+    const player = archiveView(provisional);
+    expect(player).not.toContain('roundPerson');
+    expect(archiveView(HAND_BUILT[4]![1], true)).not.toContain('roundRefresh');
+  });
+
+  it('draws the drilldown of a participant with the way back', () => {
+    const open = HAND_BUILT.find(
+      ([name]) => name === 'a provisional report in a category',
+    )![1];
+    const html = archiveView(
+      {
+        ...open,
+        participant: {
+          round: { number: 1, provisional: true, asOf: START },
+          seat: 1,
+          name: 'Vex <b>',
+          guild: null,
+          valuation: {
+            total: 5,
+            buildings: 1,
+            research: 1,
+            fleet: 2,
+            defense: 1,
+          },
+          economy: { m: 1, c: 2, d: 3 },
+          research: {},
+          places: [
+            { kind: 'planet', g: 1, s: 1, p: 1, b: {}, ships: {}, def: {} },
+          ],
+          flying: {},
+          vacation: true,
+          playtime: null,
+        },
+      },
+      true,
+    );
+    expect(html).toContain('data-act="roundPersonBack"');
+    expect(html).toContain('id="round-participant-h"');
+    expect(html).toContain('Vex &lt;b>');
+    expect(html).not.toContain('<b>');
+    expect(html).not.toContain('roundClose');
   });
 });
