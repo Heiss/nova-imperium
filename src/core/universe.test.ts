@@ -141,6 +141,7 @@ describe('universe settings', () => {
     ).toEqual([['galaxies', 'range']]);
   });
   it('refuse exactly the values outside the range (property)', () => {
+    const none = { g: 0, s: 0, p: 0 };
     fc.assert(
       fc.property(
         fc.constantFrom(...UNIVERSE_SPECS),
@@ -148,13 +149,26 @@ describe('universe settings', () => {
         (s, value) => {
           const ok =
             Number.isInteger(value) && value >= s.min && value <= s.max;
-          const none = { g: 0, s: 0, p: 0 };
-          expect(codes({ ...DEFAULT_UNIVERSE, [s.key]: value }, none)).toEqual(
-            ok ? [] : [[s.key, 'range']],
+          // A value inside its range can still disagree with another setting
+          // of the round (#237): those are refused as a conflict, nothing else.
+          const round: Record<string, number> = {
+            ...DEFAULT_UNIVERSE,
+            [s.key]: value,
+          };
+          const conflicts = UNIVERSE_SPECS.filter(
+            (o) => o.agrees && !o.agrees(round[o.key]!, round),
+          ).map((o) => [o.key, 'conflict']);
+          expect(codes(round, none)).toEqual(
+            ok ? conflicts : [[s.key, 'range']],
           );
         },
       ),
+      // The case a random run met in the CI: the research without a base limit.
+      { examples: [[spec('roundColonyResearch'), 1]] },
     );
+    expect(
+      codes({ ...DEFAULT_UNIVERSE, roundColonyResearch: 1 }, none),
+    ).toEqual([['roundColonyResearch', 'conflict']]);
   });
 });
 
