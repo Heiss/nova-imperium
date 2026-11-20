@@ -4,9 +4,9 @@
 // src/client/views/misc.ts with the HTML of its boxes (the choices of the
 // options, the main planet, the vacation mode, the place of the play time,
 // the push kinds, the account boxes) as the views and the logic left them.
-// The box „Rundenarchiv“ and the form „Problem melden“ call the code that is
-// still shared (archiveHTML() of logic/round-archive.ts, which the box of the
-// admin uses too, and reportFormHTML() of logic/error-report.ts, which the
+// The box „Rundenarchiv“ is the archive frozen in src/test/archive-frozen.ts
+// (it has its own reference test since bundle 7), and the form „Problem
+// melden“ calls the code that is still shared (reportFormHTML() of logic/error-report.ts, which the
 // dialog behind an error message uses). On generated states (fixed
 // fast-check seed 118) both render the same markup, up to what a browser
 // does not show (normalize() of markup.ts); hand-built cases reach the rare
@@ -31,13 +31,13 @@ import { lockEnd } from '../client/logic/main-planet.ts';
 import { levelMode } from '../core/level-overview.ts';
 import {
   archive,
-  archiveHTML,
   forgetArchive,
   shownArchive,
 } from '../client/logic/round-archive.ts';
 import { shownPushOff } from '../client/logic/push-options.ts';
 import type { GameState } from '../client/logic/types.ts';
 import { box, type Ui, type V } from '../client/views/common.ts';
+import { archiveHTML } from './archive-frozen.ts';
 import { normalize } from './markup.ts';
 import { optionsView } from './options-view.ts';
 

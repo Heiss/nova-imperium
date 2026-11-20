@@ -9,6 +9,7 @@
   import { OWN_ACTIVITY_LOADING } from '../logic/own-activity.ts';
   import type { OptionsPage } from '../logic/options.ts';
   import Box from './Box.svelte';
+  import RoundArchive from './RoundArchive.svelte';
 
   let { page }: { page: OptionsPage } = $props();
 </script>
@@ -76,7 +77,7 @@
     <button type="button" data-act="reloadOwnActivity">Aktualisieren</button>
   </p>
 </Box>
-<Box title="Rundenarchiv">{@html page.archive}</Box>
+<Box title="Rundenarchiv"><RoundArchive page={page.archive} /></Box>
 <Box title="Darstellung">
   <label class="switch"
     ><input type="checkbox" id="o_anim" checked={page.animations} /> Animationen</label

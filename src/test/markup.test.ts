@@ -33,4 +33,11 @@ describe('textContents', () => {
   it('closes an element at its end tag', () => {
     expect(textContents('<li><b>a</b>b</li>c')).toEqual(['li: ab', 'b: a']);
   });
+
+  it('leaves out the <tbody> of a table, written or not', () => {
+    expect(
+      textContents('<table><tbody><tr><td>a</td></tr></tbody></table>'),
+    ).toEqual(textContents('<table><tr><td>a</td></tr></table>'));
+    expect(textContents('<table><tbody></tbody></table>')).toEqual(['table: ']);
+  });
 });

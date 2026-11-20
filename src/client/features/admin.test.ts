@@ -5,7 +5,7 @@ import { clientFeature } from './admin.ts';
 import { fakeCtx } from './test-ctx.ts';
 
 // The markup of the dialog is tested with the views.
-vi.mock('../views/misc.ts', () => ({
+vi.mock('../views/admin.ts', () => ({
   endzeitDialog: (minutes: number) => `endzeit:${minutes}`,
 }));
 

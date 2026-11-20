@@ -4,6 +4,7 @@
 import { CATALOG_VIEWS, catalogKind } from '../logic/catalog-list.ts';
 import { LEXICANUM_VIEW } from '../logic/address.ts';
 import { mountAchievements } from './achievements.ts';
+import { mountAdmin } from './admin.ts';
 import type { V } from './common.ts';
 import { mountCatalogList } from './catalog-list.ts';
 import { mountFleet } from './fleet.ts';
@@ -39,6 +40,7 @@ const MOUNT: Record<
   achievements: mountAchievements,
   help: mountOptions,
   guilds: mountGuilds,
+  admin: mountAdmin,
   [LEXICANUM_VIEW]: mountLexicanum,
 };
 
@@ -59,6 +61,7 @@ export const ANEW: ReadonlySet<string> = new Set([
   'achievements',
   'help',
   'guilds',
+  'admin',
 ]);
 
 /** Mounts the component of the view; any other view gets the overview. */

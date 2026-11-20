@@ -37,18 +37,9 @@ import {
   showNavigation,
   showResourceBar,
 } from './views/frame.ts';
-import {
-  loadInvitations,
-  mountAdminDiagnostics,
-} from './views/admin-diagnostics.ts';
-import { downloadErrors, mountAdminErrors } from './views/admin-errors.ts';
-import {
-  ADMIN_TABS,
-  auth,
-  deleteAccountDialog,
-  diagnosticTab,
-  type AdminTab,
-} from './views/misc.ts';
+import { forgetAdminPanel } from './views/admin-panel.ts';
+import { mountAuth } from './views/auth.ts';
+import { deleteAccountDialog } from './views/misc.ts';
 import { disablePush } from './push.ts';
 import { renderGate } from './views/vacation-lock.ts';
 import { ANEW, type Mounted, MOUNTED, mountView } from './views/mount.ts';
@@ -70,15 +61,6 @@ let rememberLogin = false;
 let resetToken: string | null = null;
 /** The mounted Svelte view and its name. */
 let mounted: Mounted | null = null;
-let adminPanel: {
-  diagnostics: HTMLElement;
-  invitations: HTMLElement;
-  errors: HTMLElement;
-  user: string;
-  tab: AdminTab;
-  panel: ReturnType<typeof mountAdminDiagnostics>;
-  errorPanel: ReturnType<typeof mountAdminErrors>;
-} | null = null;
 let lastActivity = -Infinity;
 
 function readNewsSeen(): string | null {
@@ -471,7 +453,9 @@ function renderLoggedOut(view: HTMLElement): void {
   client.forget();
   unmountViews();
   clearFrame();
-  view.innerHTML = ui.auth ? auth(ui) : '<div class="notice">Lade …</div>';
+  view.replaceChildren();
+  if (ui.auth) mounted = { view: 'auth', ...mountAuth(view, ui) };
+  else view.innerHTML = '<div class="notice">Lade …</div>';
 }
 
 function rememberCompletions(previous: V, next: V): void {
@@ -556,76 +540,10 @@ function renderMounted(target: HTMLElement, view: V, fresh: boolean): void {
 }
 
 function renderView(target: HTMLElement, view: V, fresh: boolean): void {
-  if (ui.view !== 'admin' || !view.s.me.admin) adminPanel = null;
   const show = Object.entries(VIEWS).find(([name]) => name === ui.view)?.[1];
   if (MOUNTED.has(ui.view) || !show) return renderMounted(target, view, fresh);
   unmountViews();
   target.innerHTML = show(view);
-  if (ui.view === 'admin' && view.s.me.admin) renderAdminPanel(target, view);
-}
-
-function renderAdminPanel(target: HTMLElement, view: V): void {
-  const diagnostics = target.querySelector<HTMLElement>('#admin-diagnostics')!;
-  const invitations = target.querySelector<HTMLElement>('#admin-invitations')!;
-  const errors = target.querySelector<HTMLElement>('#admin-errors')!;
-  if (adminPanel?.user === view.s.me.id) {
-    diagnostics.replaceWith(adminPanel.diagnostics);
-    invitations.replaceWith(adminPanel.invitations);
-    errors.replaceWith(adminPanel.errors);
-    paintAdminTab(adminPanel.tab);
-    return;
-  }
-  const panel = mountAdminDiagnostics(
-    diagnostics,
-    api,
-    view.s.players,
-    openAdminTab,
-  );
-  adminPanel = {
-    diagnostics,
-    invitations,
-    errors,
-    user: view.s.me.id,
-    tab: 'events',
-    panel,
-    errorPanel: mountAdminErrors(
-      errors,
-      api,
-      (body) => downloadErrors(body, signedOut),
-      Date.now(),
-    ),
-  };
-  openAdminTab('events');
-}
-
-function paintAdminTab(tab: AdminTab): void {
-  const selected = diagnosticTab(tab) ? 'diagnostics' : tab;
-  const panel = $(`#admin-panel-${selected}`)!;
-  for (const item of document.querySelectorAll<HTMLElement>(
-    '#view [role=tabpanel]',
-  ))
-    item.hidden = item !== panel;
-  for (const button of document.querySelectorAll<HTMLButtonElement>(
-    '#view [role=tab]',
-  )) {
-    const active = button.dataset.tab === tab;
-    button.setAttribute('aria-selected', String(active));
-    button.tabIndex = active ? 0 : -1;
-  }
-  panel.setAttribute('aria-labelledby', `admin-tab-${tab}`);
-}
-
-function openAdminTab(tab: AdminTab, value?: string): void {
-  if (!adminPanel) return;
-  adminPanel.tab = tab;
-  paintAdminTab(tab);
-  if (diagnosticTab(tab)) void adminPanel.panel.open(tab, value);
-  if (tab === 'invitations') refreshInvitations();
-  if (tab === 'errors') void adminPanel.errorPanel.open();
-}
-
-function refreshInvitations(): void {
-  if (adminPanel) void loadInvitations(adminPanel.invitations, api);
 }
 
 /** The view state moved to now. */
@@ -637,7 +555,7 @@ function viewAt(state: GameState, planet: Planet, now: number): V {
 function render(fresh = false): void {
   const view = $('#view')!;
   if (!client.game) {
-    adminPanel = null;
+    forgetAdminPanel();
     lastActivity = -Infinity;
     return renderLoggedOut(view);
   }
@@ -760,16 +678,8 @@ const FRAME: Record<string, (d: Data) => unknown> = {
   selectPlanet: (d) => {
     if (d.id) return selectPlanet(d.id);
   },
-  adminTab: (d) => {
-    if (d.tab && Object.hasOwn(ADMIN_TABS, d.tab))
-      openAdminTab(d.tab as AdminTab);
-  },
   passkeyLogin: loginByPasskey,
   deleteAccount: () => modal(deleteAccountDialog(client.game!.round)),
-  revoke: async (d) => {
-    if (await adminCall('/api/admin/revoke', { id: d.id }))
-      refreshInvitations();
-  },
 };
 
 /** What the features need from this file (features/contract.ts). */
@@ -782,23 +692,10 @@ const ctx: ClientCtx = {
   api,
   toast,
   setInput,
+  apply: (state) => apply(state),
+  signedOut,
 };
 const ACT = assembleActs(FRAME, CLIENT_FEATURES, ctx);
-
-async function adminCall(
-  url: string,
-  body: object,
-): Promise<Record<string, unknown> | null> {
-  try {
-    const j = await api(url, body);
-    apply(j.state as GameState);
-    if (j.msg) toast(String(j.msg), j.mailed === false);
-    return j;
-  } catch (e) {
-    toast((e as Error).message, true);
-    return null;
-  }
-}
 
 // ----- forms -----
 
@@ -935,38 +832,6 @@ async function submitAccountDeletion(): Promise<void> {
   }
 }
 
-async function submitInvite(): Promise<void> {
-  const email = val('#inv_email').trim();
-  const j = await adminCall('/api/admin/invite', { email });
-  if (!j) return;
-  ui.lastLink = String(j.link);
-  render(true);
-  refreshInvitations();
-}
-
-let announcementPending = false;
-async function submitAnnouncement(): Promise<void> {
-  if (
-    announcementPending ||
-    !window.confirm('Servernachricht an alle Spieler senden?')
-  )
-    return;
-  announcementPending = true;
-  try {
-    const result = await api('/api/admin/announce', {
-      message: val('#announce-text'),
-    });
-    setInput('#announce-text', '');
-    toast(
-      `Servernachricht für ${Number(result.recipients)} Spieler veröffentlicht.`,
-    );
-  } catch (error) {
-    toast((error as Error).message, true);
-  } finally {
-    announcementPending = false;
-  }
-}
-
 function homeSystem(): void {
   if (client.game?.planet) {
     ui.gal = client.game.planet.g;
@@ -1015,34 +880,12 @@ document.addEventListener('change', (e) => {
   if (el.dataset?.chg === 'pct')
     void act('pct', { key: el.dataset.k, v: el.value });
 });
-function adminTabKey(event: KeyboardEvent): void {
-  const selected = (event.target as HTMLElement).closest(
-    '[role=tab][data-tab]',
-  );
-  if (!selected) return;
-  const tabs = Object.keys(ADMIN_TABS) as AdminTab[];
-  const index = tabs.indexOf(adminPanel?.tab ?? 'events');
-  const moves: Record<string, number> = {
-    ArrowLeft: index - 1,
-    ArrowRight: index + 1,
-    Home: 0,
-    End: tabs.length - 1,
-  };
-  if (!Object.hasOwn(moves, event.key)) return;
-  event.preventDefault();
-  const tab = tabs[(moves[event.key]! + tabs.length) % tabs.length]!;
-  openAdminTab(tab);
-  $(`#admin-tab-${tab}`)?.focus();
-}
-document.addEventListener('keydown', adminTabKey);
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') modal('');
 });
 const FORMS = assembleForms(
   {
     authform: submitAuth,
-    inviteform: submitInvite,
-    announceform: submitAnnouncement,
     codeform: submitLoginCode,
     forgotform: submitForgot,
     resetform: () => submitPassword(true),
