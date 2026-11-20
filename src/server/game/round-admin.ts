@@ -6,7 +6,7 @@ import type { Action } from './actions.ts';
 import { requireAdmin } from './admin.ts';
 import { fail, int } from './context.ts';
 import type { ServerFeature } from './feature.ts';
-import { closeActiveRound, ensureRound } from './round-archive.ts';
+import { closeActiveRound, ensureRound, ROUND_EVENT } from './round-archive.ts';
 
 /** „Runde abschließen“ (D1): archives the running round now; the game goes on until „Neue Runde“. */
 const closeRound: Action = (ctx, u, _d, event) => {
@@ -17,7 +17,7 @@ const closeRound: Action = (ctx, u, _d, event) => {
   if (event)
     event.detail = {
       round: round.number,
-      participants: ctx.rounds.participants(round.number).length,
+      participants: ctx.rounds.events(round.number, ROUND_EVENT.player).length,
     };
   return `Runde ${round.number} abgeschlossen: ihr Bericht steht den Teilnehmern im Rundenarchiv bereit.`;
 };

@@ -3,6 +3,7 @@
 // pseudonym of a deleted account.
 import { describe, expect, it, vi } from 'vitest';
 import { production } from '../../core/economy.ts';
+import { EVENT_KIND } from '../../core/round-events.ts';
 import { DELETED_PLAYER, type PlayerFinal } from '../../core/round-report.ts';
 import { settle, settleR } from '../../core/settle.ts';
 import { deleteAccount } from '../delete-account.ts';
@@ -236,8 +237,10 @@ describe('„Neue Runde“ closes the old round first (D1)', () => {
     });
     expect(ctx.rounds.get(2)!.rules).toEqual(roundRules(ctx));
     expect(roundRules(ctx).number).toBe(2);
+    // The new round starts with its own start and the joining of every player (#235).
     expect(ctx.rounds.events(2).map((e) => e.kind)).toEqual([
       ROUND_EVENT.started,
+      ...Array(4).fill(EVENT_KIND.joined),
     ]);
     // The reset itself still happened.
     expect(ctx.planets.home('u_Anna')!.b).toEqual({});
@@ -281,8 +284,9 @@ describe('„Neue Runde“ closes the old round first (D1)', () => {
       [1, 'closed'],
     ]);
     // Cora got a planet from the reset of round 1, so she is in round 2 and not in round 1.
-    expect(ctx.rounds.roundsOf('u_Cora')).toEqual([2]);
-    expect(ctx.rounds.roundsOf('u_Anna')).toEqual([2, 1]);
+    // The running round 3 holds a seat for everyone already (their joining event).
+    expect(ctx.rounds.roundsOf('u_Cora')).toEqual([3, 2]);
+    expect(ctx.rounds.roundsOf('u_Anna')).toEqual([3, 2, 1]);
   });
 
   it('refuses the reset, and loses nothing, when an event cannot be written', () => {
