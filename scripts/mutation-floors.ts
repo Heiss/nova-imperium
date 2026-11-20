@@ -15,6 +15,13 @@
 //        these files and nothing is written; a floor never goes down. Scores
 //        are the ones of scripts/mutation-gate.ts, rounded down to two
 //        decimals. --dry-run prints the changes and writes nothing.
+//   node scripts/mutation-floors.ts --log <gate.log> [--dry-run]
+//        the same from the log of the step "Total score and no file below its
+//        floor" of a complete run: it prints every file of the merged report
+//        with its score ("<file>: 93.44 % (killed ..."), also when the gate
+//        fails. For a session that cannot download the artifact (the storage
+//        host of the artifacts is not open to every proxy), the log comes
+//        from the API: gh api repos/<owner>/<repo>/actions/jobs/<job-id>/logs
 //   node scripts/mutation-floors.ts --format
 //        writes mutation-floors.txt again in its form (sorted, one line per
 //        file), e.g. after a merge by union; refuses a file with two lines
@@ -23,6 +30,8 @@
 //   gh run list --workflow mutation.yml --branch <branch> --limit 5
 //   gh run download <run-id> -n mutation-report -D reports/ci
 //   node scripts/mutation-floors.ts reports/ci/mutation.json
+//   gh run view <run-id> --json jobs --jq '.jobs[] | select(.name ==
+//     "Mutation tests (complete)") | .databaseId'    the job of the log
 // Check out the commit of that run first (gh run view <run-id> --json
 // headSha), or later changes of tests can make the floors higher than the
 // code has.
@@ -76,6 +85,38 @@ export function reportProblem(report: unknown): string | undefined {
   if (r.config !== undefined || r.testFiles !== undefined)
     return 'The report is the one of a single Stryker run (it has "config" or "testFiles"), not the merged report of a complete CI run. Floors come from the artifact "mutation-report" only (#304).';
   return undefined;
+}
+
+const SCORE_LINE =
+  /(\S+): (\d+(?:\.\d+)?) % \(killed \d+, timeout \d+, survived \d+, no coverage \d+, errors \d+\)\s*$/;
+
+/**
+ * The scores of a file in the log of the gate step of a complete run (the
+ * table that scripts/mutation-gate.ts prints before it checks anything; a
+ * line may start with the time stamp of the workflow log). Throws for a log
+ * of a partial run or of no gate step, and for a file with two scores.
+ */
+export function logScores(text: string): Record<string, number> {
+  const scores: Record<string, number> = {};
+  let total = false;
+  for (const line of text.split('\n')) {
+    if (line.includes('Partial run of '))
+      throw new Error(
+        'The log is the one of a partial run: floors come from a complete run only (#304).',
+      );
+    total ||= line.includes('Total mutation score: ');
+    const found = SCORE_LINE.exec(line);
+    if (!found) continue;
+    const [, file, value] = found as unknown as [string, string, string];
+    if (scores[file] !== undefined && scores[file] !== Number(value))
+      throw new Error(`The log has two scores for ${file}.`);
+    scores[file] = Number(value);
+  }
+  if (!total || Object.keys(scores).length === 0)
+    throw new Error(
+      'The log is no log of the gate step of a complete run (no "Total mutation score" and no file scores).',
+    );
+  return scores;
 }
 
 /**
@@ -171,14 +212,26 @@ const real: Deps = {
   log: (line) => console.log(line),
 };
 
-const USAGE = 'Usage: mutation-floors.ts <report.json> [--dry-run] | --format';
+const USAGE =
+  'Usage: mutation-floors.ts <report.json> [--dry-run] | --log <gate.log> [--dry-run] | --format';
 
-/** The floors of the report at <path> into the floors file. */
-function fromReport(path: string, dryRun: boolean, d: Deps): number {
+/** The scores of the report at <path>, or of the gate log with --log. */
+function scoresAt(path: string, log: boolean, d: Deps): Record<string, number> {
+  if (log) return logScores(d.read(path));
   const report: unknown = JSON.parse(d.read(path));
   const problem = reportProblem(report);
   if (problem) throw new Error(problem);
-  const scores = scoresOf(report as Parameters<typeof scoresOf>[0]);
+  return scoresOf(report as Parameters<typeof scoresOf>[0]);
+}
+
+/** The floors of the scores at <path> into the floors file. */
+function fromScores(
+  path: string,
+  options: { dryRun: boolean; log: boolean },
+  d: Deps,
+): number {
+  const { dryRun, log } = options;
+  const scores = scoresAt(path, log, d);
   const standard = parseStandard(d.read(STANDARD), d.read(FLOORS_FILE));
   const found = raise(scores, standard, d.exists);
   if (found.below.length) {
@@ -212,12 +265,18 @@ export function main(
     return 0;
   }
   const paths = args.filter((a) => !a.startsWith('--'));
-  const unknown = args.filter((a) => a.startsWith('--') && a !== '--dry-run');
+  const unknown = args.filter(
+    (a) => a.startsWith('--') && !['--dry-run', '--log'].includes(a),
+  );
   if (paths.length !== 1 || unknown.length) {
     console.error(USAGE);
     return 1;
   }
-  return fromReport(paths[0]!, args.includes('--dry-run'), d);
+  const options = {
+    dryRun: args.includes('--dry-run'),
+    log: args.includes('--log'),
+  };
+  return fromScores(paths[0]!, options, d);
 }
 
 if (import.meta.main) runCli(() => main());

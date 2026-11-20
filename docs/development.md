@@ -79,7 +79,7 @@ pnpm typecheck       # svelte-check (TypeScript and Svelte)
 pnpm test:coverage   # Vitest; blocks below 90 % lines / 85 % branches
 pnpm test:mutation   # Stryker; blocks below a mutation score of 80 %
 node scripts/mutation-gate.ts   # after Stryker: no file below its floor
-node scripts/mutation-floors.ts reports/ci/mutation.json   # the floors from the merged report of a complete CI run (gh run download <run-id> -n mutation-report)
+node scripts/mutation-floors.ts reports/ci/mutation.json   # the floors from the merged report of a complete CI run (gh run download <run-id> -n mutation-report; --log <gate.log> reads the log of its gate step instead)
 pnpm lint:size       # src/client/main.ts has no more lines than on its base (merge base with origin/main)
 pnpm build && pnpm test:e2e   # Playwright, desktop and phone
 docker compose up -d --build && docker/smoke.sh   # the stack (after docker/init-env.sh --demo)

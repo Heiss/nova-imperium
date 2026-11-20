@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { formatFloors } from '../../scripts/mutation-floorfile.ts';
 import type { Standard } from '../../scripts/mutation-gate.ts';
 import {
+  logScores,
   main,
   raise,
   reportProblem,
@@ -47,6 +48,55 @@ describe('the report the floors come from', () => {
       expect(reportProblem(bad)).toBe(
         'The file is no mutation report (no "files").',
       );
+  });
+});
+
+describe('the scores in the log of the gate step', () => {
+  const stamp = '2026-11-19T22:51:32.6528902Z ';
+  const line = (file: string, score: string) =>
+    `${stamp}${file}: ${score} % (killed 9, timeout 1, survived 2, no coverage 0, errors 3)`;
+  const log = [
+    `${stamp}##[group]Run node scripts/mutation-gate.ts --report reports/mutation/mutation.json`,
+    line('src/core/a.ts', '93.44'),
+    line('src/core/b.ts', '100'),
+    `${stamp}::notice file=src/server/auth.ts::src/server/auth.ts: 85 % of the 90 % target for security files`,
+    `${stamp}Total mutation score: 91.2 %`,
+    `${stamp}::error::Mutation score below the floor: src/core/c.ts: 69 % < 70 % (recorded floor)`,
+  ].join('\n');
+
+  it('are read from the table with its time stamps, whatever the gate said after it', () => {
+    expect(logScores(log)).toEqual({
+      'src/core/a.ts': 93.44,
+      'src/core/b.ts': 100,
+    });
+    // A line without a time stamp, and the CRLF of a downloaded log.
+    expect(
+      logScores(
+        'src/core/a.ts: 50 % (killed 1, timeout 0, survived 1, no coverage 0, errors 0)\r\nTotal mutation score: 50 %\r\n',
+      ),
+    ).toEqual({ 'src/core/a.ts': 50 });
+  });
+
+  it('are refused from a partial run, a log without the table and two scores for a file', () => {
+    expect(() =>
+      logScores(
+        `${log}\n${stamp}Partial run of 3 files: no total score, every file against its floor.`,
+      ),
+    ).toThrow('the one of a partial run');
+    expect(() => logScores('nothing\nTotal mutation score: 5 %')).toThrow(
+      'no log of the gate step of a complete run',
+    );
+    expect(() => logScores(line('src/core/a.ts', '50'))).toThrow(
+      'no log of the gate step of a complete run',
+    );
+    expect(() =>
+      logScores(`${log}\n${line('src/core/a.ts', '93.45')}`),
+    ).toThrow('The log has two scores for src/core/a.ts.');
+    // The same score twice is the same log twice, no problem.
+    expect(logScores(`${log}\n${line('src/core/a.ts', '93.44')}`)).toEqual({
+      'src/core/a.ts': 93.44,
+      'src/core/b.ts': 100,
+    });
   });
 });
 
@@ -290,6 +340,32 @@ describe('mutation-floors.ts', () => {
     );
   });
 
+  it('writes the floors of a gate log with --log, with the same rules', () => {
+    const log = [
+      'src/core/a.ts: 75 % (killed 3, timeout 0, survived 1, no coverage 0, errors 0)',
+      'src/core/c.ts: 83.33 % (killed 5, timeout 0, survived 1, no coverage 0, errors 0)',
+      'Total mutation score: 80 %',
+    ].join('\n');
+    const { deps, writes, out } = world({}, log);
+    expect(main(['--log', 'report.json'], deps)).toBe(0);
+    expect(writes).toEqual({
+      'mutation-floors.txt':
+        'src/core/a.ts 75\nsrc/core/b.ts 85\nsrc/core/c.ts 83.33\n',
+    });
+    expect(out).toContain('added   src/core/c.ts: 83.33 %');
+    const low = world({}, log.replace('75 %', '60 %'));
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      expect(main(['--log', 'report.json'], low.deps)).toBe(1);
+    } finally {
+      error.mockRestore();
+    }
+    expect(low.writes).toEqual({});
+    expect(() =>
+      main(['--log', 'report.json'], world({}, '{"files":{}}').deps),
+    ).toThrow('no log of the gate step');
+  });
+
   it('refuses the report of a single Stryker run', () => {
     const { deps, writes } = world(
       {},
@@ -345,7 +421,7 @@ describe('mutation-floors.ts', () => {
       for (const args of [[], ['a.json', 'b.json'], ['a.json', '--update']])
         expect(main(args, world().deps)).toBe(1);
       expect(error).toHaveBeenCalledWith(
-        'Usage: mutation-floors.ts <report.json> [--dry-run] | --format',
+        'Usage: mutation-floors.ts <report.json> [--dry-run] | --log <gate.log> [--dry-run] | --format',
       );
     } finally {
       error.mockRestore();

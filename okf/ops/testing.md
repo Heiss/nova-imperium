@@ -346,7 +346,17 @@ generated: { by: claude-code/web, at: 2026-11-06T21:00:00Z }
   `gh run download <run-id> -n mutation-report -D reports/ci`, a checkout of
   the commit of that run (`gh run view <run-id> --json headSha`), then
   `node scripts/mutation-floors.ts reports/ci/mutation.json` (`--dry-run`
-  first to read the changes). The script adds the measured score of a file
+  first to read the changes). A session whose proxy does not open the
+  storage host of the artifacts (`productionresultssa<N>.blob.core.windows.net`,
+  seen on 2026-11-20 for the artifacts of the run 44619270864; the job logs
+  come from `api.github.com` and work) takes the numbers from the log of the
+  gate step, which prints every file of the merged report with its score:
+  `gh run view <run-id> --json jobs --jq '.jobs[] | select(.name ==
+  "Mutation tests (complete)") | .databaseId'`, `gh api
+  repos/<owner>/<repo>/actions/jobs/<job-id>/logs > reports/ci/gate.log`
+  (the job is „Mutation tests“ in a complete run of `ci.yml`), then `node
+  scripts/mutation-floors.ts --log reports/ci/gate.log`. The log of a
+  partial run or of no gate step is refused. The script adds the measured score of a file
   without a floor (rounded down to two decimals, as the gate counts it),
   raises the floor of a file whose score is higher, and drops the floor of
   a file that no longer exists; it keeps the floor of a file the report
