@@ -16,7 +16,8 @@ export function finishedYardOrders(planet: Planet, now: number): Set<string> {
   return views;
 }
 
-function rewardHint(state: GameState): string | undefined {
+/** The mark on „Erfolge“ and the line „Bereit“ of the phone overview (#189): what can be claimed. */
+export function rewardHint(state: GameState): string | undefined {
   const rewards = state.achievements;
   if (!rewards || !state.planet) return;
   const claimed = new Set(rewards.claimed);

@@ -9,6 +9,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Locator, type Page, test } from '@playwright/test';
 import {
+  galaxyAction,
   galaxyRow,
   login,
   loginByCode,
@@ -68,7 +69,7 @@ async function sendAttack(page: Page, a: string, b: string): Promise<void> {
     .filter({ has: page.getByRole('cell', { name: b, exact: true }) })
     .locator('[data-act=gto]')
     .click();
-  await galaxyRow(page, b).getByText('Sturmangriff').click();
+  await (await galaxyAction(page, galaxyRow(page, b), 'Sturmangriff')).click();
   await page.getByLabel('Anzahl Abfangjäger').fill('5');
   await page.getByLabel('Anzahl Frachtläufer').fill('2');
   await page.getByRole('button', { name: 'Flotte losschicken' }).click();

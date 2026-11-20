@@ -8,6 +8,8 @@ import { mount, unmount } from 'svelte';
 import { articleParam } from '../logic/address.ts';
 import { closePanel, markOpen, openArticle } from './lexicanum-nav.ts';
 import { lex } from './lexicanum-state.svelte.ts';
+import type { ClientView } from './contract.ts';
+import { LEXICANUM_VIEW } from '../logic/address.ts';
 
 /** Below this width the „?“ opens the page instead of the side panel. */
 const PHONE = '(max-width: 760px)';
@@ -45,7 +47,7 @@ export function openEntry(key: string): void {
 }
 
 /** The page of the Lexicanum as a view; it follows the address. */
-export function mountLexicanum(target: HTMLElement) {
+function mountLexicanum(target: HTMLElement) {
   lex.article = articleParam(location.search);
   target.innerHTML = LOADING;
   let component: ReturnType<typeof mount> | null = null;
@@ -65,3 +67,11 @@ export function mountLexicanum(target: HTMLElement) {
     },
   };
 }
+
+export const clientViews = [
+  {
+    key: LEXICANUM_VIEW,
+    mount: mountLexicanum,
+    menu: { order: 160, label: 'Lexicanum' },
+  },
+] satisfies readonly ClientView[];

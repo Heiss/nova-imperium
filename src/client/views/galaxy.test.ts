@@ -443,3 +443,46 @@ describe('activity and inactivity on the Sternenkarte (#229)', () => {
     );
   });
 });
+
+describe('the actions of a position behind „⋯“ on a phone (#189)', () => {
+  it('puts a „⋯“ after the actions of a row, which the CSS shows on a phone only', () => {
+    const r = row(galaxy(view([])), 6);
+    expect(r).toContain('<td class="has-sheet"><span class="gal-acts">');
+    expect(r).toContain(
+      '<button type="button" class="small more phone-only" id="gsheet-p1_2_6" data-act="gsheet" data-id="p1_2_6" aria-haspopup="dialog" aria-label="Aktionen für Beta [1:2:6]">⋯</button>',
+    );
+    // The shown planet has only its name, and a free position nothing.
+    expect(row(galaxy(view([])), 5)).not.toContain('gsheet');
+    expect(row(galaxy(view([])), 9)).not.toContain('gsheet');
+  });
+
+  it('renders no sheet while none is open', () => {
+    expect(galaxy(view([]))).not.toContain('<dialog');
+  });
+
+  it('renders the open sheet as a dialog with the title, the flight time, the actions and „Schließen“', () => {
+    const v = view([field(6, 1800, 600)], { lc: 2 });
+    v.ui.gsheet = 'p1_2_6';
+    const html = galaxy(v);
+    expect(html).toContain('<dialog');
+    expect(html).toContain('aria-labelledby="gsheet-title"');
+    expect(html).toContain(
+      '<p id="gsheet-title" class="sheet-title">Beta [1:2:6]</p>',
+    );
+    expect(html).toContain('Flugzeit mit allen Schiffen: ');
+    const sheet = html.slice(html.indexOf('<dialog'));
+    // Every action of the row is a button of the sheet, with its data-act.
+    for (const label of ['Auspex-Erkundung', 'Sturmangriff', 'Versorgungsflug'])
+      expect(sheet).toMatch(
+        new RegExp(`<button[^>]*data-act="[^"]+"[^>]*>${label}</button>`),
+      );
+    expect(sheet).toContain('>Bergung</button>');
+    expect(sheet).toContain('class="sheet-close">Schließen</button>');
+  });
+
+  it('shows no flight time without a ship that flies', () => {
+    const v = view([]);
+    v.ui.gsheet = 'p1_2_6';
+    expect(galaxy(v)).not.toContain('Flugzeit');
+  });
+});

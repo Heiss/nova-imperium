@@ -1,7 +1,15 @@
 import { readFileSync } from 'node:fs';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { strFromU8, unzipSync } from 'fflate';
-import { cli, nav, register, seed, uniqueName, watch } from './helpers.ts';
+import {
+  cli,
+  nav,
+  optionsSection,
+  register,
+  seed,
+  uniqueName,
+  watch,
+} from './helpers.ts';
 
 // Error log and problem reports (issue #126): the form in „Hilfe &
 // Optionen“, „Problem melden“ behind every error message, the admin tab
@@ -301,6 +309,7 @@ test.describe('error log and problem reports (#126)', () => {
     const name = uniqueName('Handy');
     await register(page, name);
     await nav(page, 'help');
+    await optionsSection(page, 'Weiteres');
     await sendReport(
       page,
       page.locator('#reportform'),

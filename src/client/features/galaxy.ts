@@ -1,7 +1,7 @@
 // The handlers of the Sternenkarte (#45, #53, #54): stepping through the
 // galaxies and systems, going to a position, the moon of a planet, the scan
 // of the Phalanx (#69) and the shortcuts to the fleet form and to a spy
-// probe. The markup is in views/galaxy.ts and the Svelte components; the
+// probe, and the bottom sheet of a position on a phone (#189). The markup is in views/galaxy.ts and the Svelte components; the
 // Raketenangriff is in features/missiles.ts.
 import { $, val } from '../dom.ts';
 import { clampInt } from '../logic/format.ts';
@@ -38,6 +38,19 @@ const moveActs = ({ go, render }: ClientCtx): Record<string, Handler> => ({
   },
 });
 
+/**
+ * The focus goes back to the scan button of the planet, while it is shown; on
+ * a phone that button is in the sheet, so it goes to the „⋯“ of the planet
+ * (#189).
+ */
+function focusScanButton(target: string): void {
+  const button = $(`[data-act=gscan][data-id="${CSS.escape(target)}"]`);
+  (button?.offsetParent === null
+    ? $(`#gsheet-${CSS.escape(target)}`)
+    : button
+  )?.focus();
+}
+
 /** What a planet of the map offers: its moon, a scan, the fleet form, a probe. */
 const targetActs = ({
   act,
@@ -59,8 +72,12 @@ const targetActs = ({
     const target = ui.scan?.target;
     ui.scan = null;
     render(true);
-    // The focus goes back to the scan of the planet, while it is shown.
-    if (target) $(`[data-act=gscan][data-id="${CSS.escape(target)}"]`)?.focus();
+    if (target) focusScanButton(target);
+  },
+  // The „⋯“ of a position on a phone opens the bottom sheet of its actions (#189).
+  gsheet: (d) => {
+    ui.gsheet = d.id ?? null;
+    render(true);
   },
   gfleet: (d) => {
     ui.ft = targetOf(d);
