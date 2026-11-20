@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { planet } from '../../test/fixtures.ts';
 import { STATES } from '../../test/lexicon-states.ts';
 import { buildable, MOBILE } from '../catalog.ts';
+import { arrivalBlocked, limitReached, planetLimit } from '../colony-limit.ts';
 import { drawEvent, drawSize, EVENT_KINDS, raidFleet } from '../expedition.ts';
 import { holdFuel } from '../flight.ts';
 import { type Gate, jumpError } from '../jump-gate.ts';
@@ -184,6 +185,18 @@ describe('the rule pages say the values of the rules', () => {
     });
     expect(text).toContain('Planetengrenze nach der Kolonialverwaltung');
     expect(text).toContain('Grundgrenze in dieser Runde: 6');
+    expect(text).toContain(
+      'ist die Grenze damit erreicht, wird der Start abgelehnt',
+    );
+    // At the launch the planets and the Landnahmen on their way count, at the arrival only the planets.
+    const rules = { base: 6, research: true, perLevel: 2, maxLevel: 4 };
+    expect(limitReached(planetLimit(rules, 0), { owned: 5, flying: 1 })).toBe(
+      true,
+    );
+    expect(arrivalBlocked(planetLimit(rules, 0), 5)).toBe(false);
+    expect(arrivalBlocked(planetLimit(rules, 0), 6)).toBe(true);
+    // A level above the highest level counts as the highest.
+    expect(planetLimit(rules, 9)).toBe(planetLimit(rules, 4));
   });
 
   it('Sichtbarkeit und Rewards: thresholds and days of the round', () => {

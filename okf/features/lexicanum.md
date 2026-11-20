@@ -242,6 +242,15 @@ their own.
   stays on „Monde“. The classic name of the phalanx is not used, the page is
   titled with the game's own term. No constant moved.
 
+* **[V]** „Planetengrenze und Kolonialverwaltung“ are already the page „Kolonien
+  und Planetengrenze“ (`rule-colonies`): base limit, the research and its
+  levels, the formula, the table, „Dein Stand“. Extended instead of a new
+  page by what it missed: the launch counts the planets and the Landnahmen on
+  their way (`limitReached`), the arrival only the planets (`arrivalBlocked`),
+  the research exists only in a round with a base limit and only up to the
+  highest level of the round, and a higher level counts as that one
+  (`planetLimit`).
+
 # Stage 3: guides and personal hints (#289)
 
 * **[V]** The three open decisions of the issue were not answered; taken as

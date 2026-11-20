@@ -89,7 +89,7 @@ const limitSection = (s: LexState): PageSection => {
     'limit',
     'Die Planetengrenze',
     say(
-      'Der Admin kann für die Runde festlegen, wie viele Planeten ein Spieler besitzen darf, der Heimatplanet eingerechnet. Monde zählen nicht mit, und eine Landnahme, die noch unterwegs ist, belegt ihren Platz schon beim Start. Kommt eine Flotte an, wenn die Grenze erreicht ist, kehrt sie mit der Arche und ihrer Ladung zurück. Auf Wunsch des Admins gibt es die Forschung [[colonial|Kolonialverwaltung]], die die Grenze um einige Planeten je Stufe anhebt, nie über {most} Planeten insgesamt. Ohne diese Einstellung gibt es keine Grenze.',
+      'Der Admin kann für die Runde festlegen, wie viele Planeten ein Spieler besitzen darf, der Heimatplanet eingerechnet. Monde zählen nicht mit. Beim Start einer Landnahme zählen deine Planeten und die Landnahmen, die schon unterwegs sind, zusammen; ist die Grenze damit erreicht, wird der Start abgelehnt. Bei der Ankunft zählen nur die Planeten, die du hast: Ist die Grenze dann erreicht, kehrt die Flotte mit der Arche und ihrer Ladung zurück. Auf Wunsch des Admins gibt es die Forschung [[colonial|Kolonialverwaltung]], die die Grenze um einige Planeten je Stufe anhebt, nie über {most} Planeten insgesamt; sie gibt es nur in einer Runde mit Grundgrenze und lässt sich nur bis zur höchsten Stufe erforschen, die der Admin festlegt. Eine höhere Stufe zählt wie diese. Ohne Grundgrenze gibt es keine Grenze.',
       { most: number(MOST_PLANETS) },
     ),
     limitFacts(rules),
