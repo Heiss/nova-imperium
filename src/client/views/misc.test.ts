@@ -128,7 +128,10 @@ describe('the dialog „Neue Runde“', () => {
     const ids = [...html.matchAll(/ id="(round-[a-z-]+)"/g)]
       .map((m) => m[1])
       .filter(
-        (id) => !id!.endsWith('-note') && !id!.startsWith('round-preview-'),
+        (id) =>
+          !id!.endsWith('-note') &&
+          !id!.startsWith('round-preview-') &&
+          !id!.startsWith('round-confirm-'),
       );
     expect(ids).toEqual(ROUND_SETTINGS.map(roundFieldId));
   });
@@ -188,6 +191,23 @@ describe('the dialog „Neue Runde“', () => {
     );
     // A group without a preview gets no line.
     expect(html.match(/id="round-preview-/g)).toHaveLength(1);
+  });
+
+  it('repeats the exact planet-limit settings above the button of the reset (#237)', () => {
+    const html = roundDialog({
+      ...defaults(),
+      colonyBase: 6,
+      colonyResearch: 1,
+      colonyPerLevel: 2,
+      colonyMaxLevel: 4,
+    });
+    const line = normalize(
+      '<p id="round-confirm-colonies" aria-live="polite">Die neue Runde startet mit: Maximale Planeten ohne Forschung: 6 · Kolonieforschung: aktiviert · Zusätzliche Planeten je Forschungsstufe: 2 · Maximale Forschungsstufe: 4.</p>',
+    );
+    expect(html).toContain(line);
+    // Outside the fieldset, between the fields and the buttons.
+    expect(html.indexOf(line)).toBeGreaterThan(html.lastIndexOf('</fieldset>'));
+    expect(html.indexOf(line)).toBeLessThan(html.indexOf('data-act="doReset"'));
   });
 
   it('preselects the planet limit with what a new round starts with where the running round has no value of its own (#237)', () => {

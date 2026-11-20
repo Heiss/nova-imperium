@@ -6,6 +6,7 @@ import {
   ROUND_SETTINGS,
   type RoundSetting,
   roundFieldId,
+  roundConfirm,
   roundPreview,
   roundRequest,
   roundShown,
@@ -54,6 +55,10 @@ export function syncRoundDialog(
       ? document.querySelector<HTMLElement>(`#round-preview-${group.name}`)
       : null;
     if (group && line) line.textContent = roundPreview(group, values, settings);
+    const sure = group
+      ? document.querySelector<HTMLElement>(`#round-confirm-${group.name}`)
+      : null;
+    if (group && sure) sure.textContent = roundConfirm(group, values, settings);
   }
 }
 

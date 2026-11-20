@@ -27,6 +27,13 @@ export interface RoundGroup {
    * limit). It gets the number of every member of the group by its `name`.
    */
   preview?: (values: Readonly<Record<string, number>>) => string;
+  /**
+   * The settings of the group chosen, repeated word for word above the
+   * button of the dialog „Neue Runde“, so the admin confirms what they chose
+   * (#237). Written again whenever a field changes; gets the numbers like
+   * `preview`.
+   */
+  confirm?: (values: Readonly<Record<string, number>>) => string;
 }
 
 interface Common<N extends string> {
@@ -250,6 +257,20 @@ export const roundShown = (
   values: Readonly<Record<string, number | boolean>>,
 ): boolean =>
   !s.shownWhen || Number(values[s.shownWhen.name]) === s.shownWhen.value;
+
+/** The confirmation line of a group for the values in its fields; empty for a group without one (#237). */
+export function roundConfirm(
+  group: RoundGroup,
+  values: Readonly<Record<string, number | boolean>>,
+  settings: readonly RoundSetting[] = ROUND_SETTINGS,
+): string {
+  const own = Object.fromEntries(
+    settings
+      .filter((s) => s.group === group)
+      .map((s) => [s.name, Number(values[s.name])]),
+  );
+  return group.confirm?.(own) ?? '';
+}
 
 /** The preview line of a group for the values in its fields; empty for a group without one. */
 export function roundPreview(

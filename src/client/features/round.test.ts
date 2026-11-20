@@ -27,6 +27,7 @@ function dialog(over: Record<string, string> = {}): void {
     nodes[`[data-round-field="${id}"]`] = { hidden: false };
   }
   nodes['#round-preview-colonies'] = { textContent: '' };
+  nodes['#round-confirm-colonies'] = { textContent: '' };
 }
 
 beforeEach(() => {
@@ -75,5 +76,27 @@ describe('the dialog follows its fields (#237)', () => {
     nodes[`#${fieldOf('colonyBase')}`]!.value = '';
     syncRoundDialog();
     expect(preview()).toBe('');
+  });
+
+  it('repeats the exact settings in the confirmation and writes it again at every change (#237)', () => {
+    const confirm = (): string => nodes['#round-confirm-colonies']!.textContent!;
+    dialog({
+      colonyResearch: '1',
+      colonyBase: '6',
+      colonyPerLevel: '2',
+      colonyMaxLevel: '4',
+    });
+    syncRoundDialog();
+    expect(confirm()).toBe(
+      'Die neue Runde startet mit: Maximale Planeten ohne Forschung: 6 · Kolonieforschung: aktiviert · Zusätzliche Planeten je Forschungsstufe: 2 · Maximale Forschungsstufe: 4.',
+    );
+    nodes[`#${fieldOf('colonyPerLevel')}`]!.value = '3';
+    syncRoundDialog();
+    expect(confirm()).toContain('je Forschungsstufe: 3 ·');
+    nodes[`#${fieldOf('colonyResearch')}`]!.value = '0';
+    syncRoundDialog();
+    expect(confirm()).toBe(
+      'Die neue Runde startet mit: Maximale Planeten ohne Forschung: 6 · Kolonieforschung: nicht aktiviert.',
+    );
   });
 });
