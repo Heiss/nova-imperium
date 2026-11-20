@@ -6,7 +6,6 @@ import type { EntryLexicon } from '../../../core/lexicon/types.ts';
 
 export const lexicon: EntryLexicon = {
   keywords: ['angreifen', 'überfallen', 'plündern', 'Kampf', 'Krieg', 'Beute'],
-  seeAlso: ['rule-battle', 'rule-allies'],
   texts: [
     {
       text: 'Am Ziel kämpft die Flotte gegen die Schiffe und die Verteidigung des Planeten. Gewinnt sie, lädt sie bis zur Hälfte jedes Rohstoffs ein, soweit der Laderaum reicht. Was den Kampf übersteht, fliegt heim. Zerstörte Schiffe beider Seiten hinterlassen ein Trümmerfeld, ein Teil der zerstörten Verteidigung wird wieder aufgebaut. Beide Seiten erhalten einen Kampfbericht.',
