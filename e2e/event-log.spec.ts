@@ -27,11 +27,19 @@ test.describe('admin (#68)', () => {
     await expect(count).toHaveText(/ · ([3-9]|\d{2,}) Ereignisse$/);
     const row = (action: RegExp) => events.getByRole('row', { name: action });
     const battle = row(/system \/ battle/);
-    await battle.getByText(/^Kampfdetails \d+$/).click();
-    // The poll of the state draws the page anew; the opened details stay open
-    // (logic/admin-panels.svelte.ts), so wait for them instead of reading at once.
-    await expect(battle.locator('details')).toHaveAttribute('open', '');
-    await expect(battle.locator('details > code')).toContainText('"fleet"');
+    // The log is drawn anew by the poll of the state and by the answer of the
+    // filter; the details the admin opened stay open (logic/admin-panels.svelte.ts).
+    // Open them only while they are closed, so a redraw between the read of the
+    // state and the click cannot close them again, and wait for the code.
+    const details = battle.locator('details');
+    await expect(async () => {
+      if ((await details.getAttribute('open')) === null)
+        await battle.getByText(/^Kampfdetails \d+$/).click();
+      await expect(details).toHaveAttribute('open', '', { timeout: 1000 });
+      await expect(battle.locator('details > code')).toContainText('"fleet"', {
+        timeout: 1000,
+      });
+    }).toPass({ timeout: 15000 });
     const detail = JSON.parse(
       await battle.locator('details > code').innerText(),
     ) as { fleet: string; planet: string };
