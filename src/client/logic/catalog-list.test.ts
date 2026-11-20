@@ -483,6 +483,37 @@ describe('research', () => {
     expect(row(v, 'research', 'energy').lines).toHaveLength(1);
   });
 
+  it('offers no next level of the Kolonialverwaltung at its highest level, but a note (#237)', () => {
+    const cfg = {
+      ...U,
+      roundColonyBase: 6,
+      roundColonyResearch: 1,
+      roundColonyPerLevel: 2,
+      roundColonyMaxLevel: 4,
+    };
+    const at = (level: number) => {
+      const v = view({
+        P: { b: { lab: 3 } },
+        research: { colonial: level, spy: 4, impulse: 3 },
+      });
+      v.s.cfg = cfg;
+      return row(v, 'research', 'colonial').action;
+    };
+    expect(at(3)).toMatchObject({ kind: 'start', label: 'Forschen (Stufe 4)' });
+    expect(at(4)).toEqual({
+      kind: 'note',
+      cls: 'dim',
+      text: 'höchste Stufe erreicht',
+    });
+    // No highest level (0): the research goes on.
+    const open = view({
+      P: { b: { lab: 3 } },
+      research: { colonial: 9, spy: 4, impulse: 3 },
+    });
+    open.s.cfg = { ...cfg, roundColonyMaxLevel: 0 };
+    expect(row(open, 'research', 'colonial').action.kind).not.toBe('note');
+  });
+
   it('names how many labs the research network links', () => {
     const line = (ifn: number) =>
       opened(catalogPage(view({ ...lab, research: { ifn } }), 'research')).line
