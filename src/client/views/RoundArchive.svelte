@@ -5,6 +5,7 @@
   // „Rundenberichte“. The `data-act`s are those of features/round-archive.ts;
   // the classes of the tables (`scores`, `kv`, `n`, `me`) those of style.css.
   import type { ArchivePage } from '../logic/round-archive.ts';
+  import RoundRewind from './RoundRewind.svelte';
 
   let { page }: { page: ArchivePage } = $props();
   const body = $derived(page.body);
@@ -99,6 +100,8 @@
       <p class="dim">Alle Einstellungen standen auf der Voreinstellung.</p>
     {/if}
   </details>
+{:else if body.kind === 'rewind'}
+  <RoundRewind page={body.rewind} />
 {:else if body.kind === 'error'}
   <p class="notice">{body.message}</p>
 {:else if body.kind === 'loading'}
@@ -124,6 +127,10 @@
                   class="small"
                   data-act="roundOpen"
                   data-round={round.number}>Bericht öffnen</button
+                >{/if}{#if round.rewind}{' '}<button
+                  class="small"
+                  data-act="rewindOpen"
+                  data-round={round.number}>Rewind ansehen</button
                 >{/if}{#if round.remove}{' '}<button
                   class="small red"
                   data-act="roundDelete"

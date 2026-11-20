@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { archive, forgetArchive } from '../logic/round-archive.ts';
+import { resetRewind, rewindUi } from '../logic/round-rewind.svelte.ts';
 import { client } from '../logic/state.svelte.ts';
 import type { GameState } from '../logic/types.ts';
 import { clientFeature } from './round-archive.ts';
@@ -79,6 +80,68 @@ describe('opening a report', () => {
     acts.roundBack!();
     expect(archive.report).toBeNull();
     expect(ctx.render).toHaveBeenCalledTimes(3);
+  });
+});
+
+describe('opening the Rewind', () => {
+  const REWIND = { round: 2, cards: [{ kind: 'identity' }] };
+  const focus = vi.fn();
+
+  beforeEach(() => {
+    focus.mockClear();
+    resetRewind();
+    vi.stubGlobal('document', {
+      getElementById: (id: string) =>
+        id === 'round-rewind-card-h' ? { focus } : null,
+    });
+  });
+
+  it('reads it from the server, starts on the first card standing still, renders and focuses the heading', async () => {
+    const ctx = fakeCtx({
+      api: api({ roundRewind: () => ({ ok: true, data: { rewind: REWIND } }) }),
+    });
+    rewindUi.index = 2;
+    rewindUi.playing = true;
+    await clientFeature.acts(ctx).rewindOpen!({ round: '2' });
+    expect(ctx.api).toHaveBeenCalledWith('/api/action', {
+      type: 'roundRewind',
+      round: 2,
+    });
+    expect(archive.rewind).toEqual(REWIND);
+    expect(rewindUi).toEqual({ index: 0, playing: false });
+    expect(ctx.render).toHaveBeenCalled();
+    expect(focus).toHaveBeenCalled();
+  });
+
+  it('shows the refusal of the server and keeps the list', async () => {
+    const ctx = fakeCtx({
+      api: vi.fn(async () => {
+        throw new Error('Dieser Rundenbericht ist nicht verfügbar.');
+      }),
+    });
+    await clientFeature.acts(ctx).rewindOpen!({ round: '9' });
+    expect(ctx.toast).toHaveBeenCalledWith(
+      'Dieser Rundenbericht ist nicht verfügbar.',
+      true,
+    );
+    expect(archive.rewind).toBeNull();
+    expect(ctx.render).not.toHaveBeenCalled();
+  });
+
+  it('goes back to the list', () => {
+    const ctx = fakeCtx();
+    archive.rewind = REWIND as never;
+    clientFeature.acts(ctx).rewindBack!();
+    expect(archive.rewind).toBeNull();
+    expect(ctx.render).toHaveBeenCalledTimes(1);
+  });
+
+  it('leaves the Rewind for the full report of card 8', async () => {
+    const ctx = fakeCtx({ api: api() });
+    archive.rewind = REWIND as never;
+    await clientFeature.acts(ctx).roundOpen!({ round: '2' });
+    expect(archive.rewind).toBeNull();
+    expect(archive.report).toEqual(REPORT);
   });
 });
 

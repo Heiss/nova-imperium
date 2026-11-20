@@ -1,7 +1,7 @@
 ---
 type: feature
 title: Round archive, reports and history
-description: The archive of an ended round, written when the round is closed in the same transaction as the reset; the report of one archived round, the history across rounds and the plan for the Runden-Rewind (issue #235).
+description: The archive of an ended round, written when the round is closed in the same transaction as the reset; the report of one archived round, the history across rounds and the thin Runden-Rewind (issue #235).
 ---
 
 # Round archive
@@ -119,7 +119,9 @@ complete, tested and pushed.
   round the length in days, the participants, the winner, the reader's own
   place, points, economy and planets, the settings that differed from the
   defaults and a mark for a round with a partial history.
-* **Slice 4, the Runden-Rewind:** not built, see below.
+* **Slice 4, the thin Runden-Rewind (2026-11-20):** built with the cards 1, 6
+  and 8 only, see „The thin Runden-Rewind“ below. The cards 2 to 5 and 7 are
+  not built.
 
 # The play time in the archive (#235 × #231, #232)
 
@@ -169,6 +171,80 @@ complete, tested and pushed.
 * **[U]** The activity curves (daily bars) of view F need only these intervals
   and are not built.
 
+# The thin Runden-Rewind (issue #235, view G)
+
+* **[E]** The owner decided on 2026-11-20 (replacing „no Rewind in this
+  update“ of 2026-11-19): a thin Rewind comes into the update of 2026-11-22
+  with the cards **1** (round identity and participation), **6** (estimated
+  private active time, with the method) and **8** (actual final rank and the
+  link to the full report), by the rule of the issue „sparse history gets a
+  shorter honest rewind“. From this update the events of the round are written
+  as round events so that the next round gets the full Rewind and the curves.
+* **[E]** The issue (view G): only verifiable conditional facts, no invented
+  „top 1 %“, personality type or causal strategy label; full-width cards in the
+  existing frame (`style.css`, `.box`, gold buttons, Cinzel and EB Garamond), no
+  new product identity; manual previous and next, arrow keys, swipe, progress
+  segments, optional autoplay with a pause and a replay, a reduced-motion
+  fallback, no sound; the assistive output reads the stable value. The access
+  is that of the report: a player only a finished round they took part in,
+  checked on the server on every request.
+* **[E]** The example headlines and numbers of the issue are used as given:
+  „Dein Runden-Rewind“ / „30 Tage“ (card 1), „Du warst nicht ständig hier.“ /
+  „12 h 40“ (card 6), „Dein Platz in der Chronik.“ / „2 von 3“ (card 8).
+* **[V]** The facts are derived on read, nothing is stored: `rewindOf(report,
+  seat)` (`src/core/round-rewind.ts`) turns the report of the archive and the
+  reader's seat into the cards that have facts. Card 1: number, start, cutoff,
+  days, participants, coverage. Card 6: the play time of that seat, only if the
+  round archived play time for it (a round from before the play time archive,
+  or a seat without an event, gets cards 1 and 8; a measured zero is shown as
+  „0 Min.“). Card 8: the rank by the total points as in the report (equal
+  points keep the order of the seats; `tied` says so), the points, the winner
+  (a deleted account is „Gelöschter Spieler“). No card for the running round,
+  not even for the admin, and none for a reader without a seat (an admin who
+  took no part): the Rewind is a personal story.
+* **[V]** The cards 2 to 5 and 7 are one entry each in `CARDS` of
+  `src/core/round-rewind.ts` (slot number of the issue's table, a card
+  variant, a builder that returns null while its events are missing) and a
+  function in `src/client/logic/round-rewind.ts` for the words; the server and
+  the component need no change.
+* **[V]** The server action `roundRewind` (`src/server/game/round-report.ts`,
+  `{ round }`, answers `{ rewind }`) uses the report and its access check; an
+  unavailable round, a running round and a reader without a seat answer
+  „Dieser Rundenbericht ist nicht verfügbar.“. An admin's read is an
+  `admin.read` entry.
+* **[V]** The client: the button „Rewind ansehen“ beside „Bericht öffnen“ in
+  the row of a finished round the reader took part in (the issue's wording of
+  view A); the component `RoundRewind.svelte` is a panel in the place of the list
+  of `RoundArchive.svelte` (Options and the admin box „Rundenberichte“), no view
+  of its own. „Zurück“ and „Weiter“, the arrow keys (also with focus on a
+  button), a swipe of at least 48 px (touch and pen, not the mouse), progress
+  segments, the card heading takes the focus when the player turns a card or
+  opens the Rewind, a hidden `aria-live` line tells „Karte 2 von 3“ and, while
+  the play runs, the card with its stable value. The automatic play is off
+  until „Automatisch abspielen“; a card stays 7 seconds; a turn by the player
+  pauses it; it stops on the last card and offers „Noch einmal abspielen“. The
+  place of the card and the play are kept in `round-rewind.svelte.ts` because
+  the page is mounted anew on every render.
+* **[V]** Motion: a card fades in (0.45 s), but not under
+  `prefers-reduced-motion: reduce` and not when the player switched the
+  animations off in „Optionen“ (the existing setting, `no-anim`): then the
+  component carries `data-still="true"`. No separate animation switch: the
+  existing one applies, the autoplay is the only timed part and has the pause.
+* **[V]** The texts (all drafts of Claude): card 1 „Runde 3: 1.10.2026 bis
+  31.10.2026.“, „Du warst einer von 3 Teilnehmern.“ (one: „Du warst der
+  einzige Teilnehmer.“), a round with a partial history adds the coverage line of
+  the report; card 6 „Deine geschätzte aktive Zeit in dieser Runde.“ and
+  „Methode: <the explanation of „Meine Aktivität“> Gleichzeitig geöffnete Fenster
+  zählen einmal.“, partial: „Die Zeit vor Beginn der Erfassung fehlt.“; card 8
+  „Endplatz nach Punkten: 8.400 Punkte.“, „Sieger: Lea mit 9.100 Punkten.“ (the
+  winner: „Du hast die Runde gewonnen.“), a tie: „Ein anderer Spieler hat genauso
+  viele Punkte; bei Gleichstand ordnet der Bericht nach der Nummer des Platzes.“,
+  the button „Vollständigen Bericht öffnen“; controls „Zurück zum Archiv“,
+  „Zurück“, „Weiter“, „Automatisch abspielen“, „Pause“, „Noch einmal abspielen“.
+* **[U]** The headline of card 6 states „Du warst nicht ständig hier.“ for every
+  player as the issue gives it; a player who was active nearly all the time
+  would read it as odd. The issue names no threshold, none is invented.
+
 # What the Runden-Rewind and the curves still need
 
 The report of this build holds the state at the cutoff only. The Rewind (view
@@ -184,4 +260,5 @@ deliveries and admin gifts, and the activity intervals of #232. Each is
 written in the same transaction as the domain change, with a stable causal id
 (`round_events.version` is the schema version of the payload). The daily
 points are then derived on read (D3). Without them a Rewind could only show
-the final standing (cards 1 and 8), so it is left out [V].
+the final standing and the play time (cards 1, 6 and 8): that is the thin
+Rewind below, the full one comes with these events.
