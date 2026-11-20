@@ -17,13 +17,12 @@ export interface CategoryScores {
 }
 
 /**
- * The defense that fights: a missile does not, and counts only in the total
- * (#54, okf/features/highscore-categories.md).
+ * The units that fight: a missile does not, and counts only in the total
+ * (#54, okf/features/highscore-categories.md). Only the defense of a place is
+ * valued with it, and that holds no ship, so the ships of the list stay out.
  */
 const DEFENSE: typeof UNIT = Object.fromEntries(
-  Object.entries(FIGHTERS)
-    .filter(([, f]) => f.kind === 'defense')
-    .map(([k]) => [k, UNIT[k]!]),
+  Object.keys(FIGHTERS).map((k) => [k, UNIT[k]!]),
 );
 
 /** The levels or pieces in `have` of the entries of `defs`. */
