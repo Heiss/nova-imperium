@@ -2,6 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { draftsOf, forgetDrafts, newDraft, typed } from './settings-draft.ts';
 
 describe('the draft of the settings', () => {
+  it('starts empty and belongs to no account', () => {
+    expect(newDraft()).toEqual({ owner: '', values: new Map() });
+  });
+
   it('holds what was typed, by the key of the setting', () => {
     const draft = newDraft();
     typed(draft, 'u_a/1', 'speed', '7', '5');

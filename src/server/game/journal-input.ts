@@ -92,6 +92,7 @@ export const INPUT: Readonly<Record<string, Spec>> = {
   roundArchive: {},
   roundHistory: {},
   roundReport: { round: 'keep' },
+  roundRewind: { round: 'keep' },
   // The admin.
   settings: { settings: 'keep' },
   reset: 'scalars',

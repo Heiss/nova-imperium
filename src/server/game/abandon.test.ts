@@ -3,7 +3,7 @@
 // the moon (Q1), the lock of the position per round (D2) on the way of a
 // colonization and a new home planet, and a colony founded again at the
 // same coordinates without any old reference.
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { HOUR_MS } from '../../core/abandon.ts';
 import type { Fleet } from '../../core/types.ts';
 import { DEFAULT_UNIVERSE } from '../../core/universe.ts';
@@ -17,6 +17,14 @@ import { placePlanet } from './planets.ts';
 import { lockedUntil, positionLockedText } from './position-lock.ts';
 import { roundRules } from './round.ts';
 import { stateFor } from './state.ts';
+
+// The password check is the cost of every giving up here; the result of the
+// same password and salt is computed once (src/test/scrypt-memo.ts).
+vi.mock('node:crypto', async (original) =>
+  (await import('../../test/scrypt-memo.ts')).memoScrypt(
+    await original<typeof import('node:crypto')>(),
+  ),
+);
 
 // 2026-11-17 12:00 UTC.
 const START = Date.UTC(2026, 10, 17, 12, 0);

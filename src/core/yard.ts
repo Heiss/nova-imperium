@@ -100,10 +100,8 @@ export function siloRoom(
   p: Pick<Planet, 'b' | 'def' | 'sq'>,
   key: string,
 ): number {
-  const missile = missileOf(key);
-  if (!missile) return Infinity;
   const { used, places } = siloUse(p);
-  return fits(missile, places - used);
+  return fits(missileOf(key), places - used);
 }
 
 /** How many more units of `key` the planet may order: its limit and its silo room. */

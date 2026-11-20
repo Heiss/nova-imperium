@@ -23,6 +23,8 @@ describe('the border of the noob protection (#288)', () => {
     expect(unprotectedFrom(6)).toBe(2);
     expect(unprotectedFrom(1000)).toBe(200);
     expect(unprotectedFrom(1001)).toBe(201);
+    expect(unprotectedFrom(4.5)).toBe(1);
+    expect(unprotectedFrom(-5)).toBe(0);
     for (const mine of [0, 1, 4, 5, 6, 99, 1000, 123457]) {
       const border = unprotectedFrom(mine);
       expect(isProtected(mine, border)).toBe(false);

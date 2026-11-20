@@ -190,12 +190,11 @@ export function joinTiming(x: {
 }): Timing {
   const left = x.arr - x.now;
   if (left <= 0) return { error: 'closed' };
-  if (x.limits.cutoff > 0 && left <= x.limits.cutoff * MINUTE_MS)
-    return { error: 'cutoff' };
-  const own = x.now + x.flight;
-  if (own <= x.arr) return { arr: x.arr };
-  return (own - x.arr) * 100 <= x.limits.delay * left
-    ? { arr: own }
+  if (left <= x.limits.cutoff * MINUTE_MS) return { error: 'cutoff' };
+  // The union never arrives earlier than it did; a later fleet delays it.
+  const arr = Math.max(x.arr, x.now + x.flight);
+  return (arr - x.arr) * 100 <= x.limits.delay * left
+    ? { arr }
     : { error: 'delay' };
 }
 
@@ -223,7 +222,8 @@ export function splitLoot(
   const used = (i: number): number =>
     shares[i]!.m + shares[i]!.c + shares[i]!.d;
   const keys = ['m', 'c', 'd'] as const;
-  const rest = { m: 0, c: 0, d: 0 };
+  // Every key is set by the first loop below.
+  const rest = {} as Resources;
   for (const k of keys) {
     let given = 0;
     free.forEach((n, i) => {
@@ -234,12 +234,10 @@ export function splitLoot(
     rest[k] = Math.floor(loot[k]) - given;
   }
   for (const k of keys)
-    for (let i = 0; rest[k] > 0 && i < shares.length; i++) {
-      const add = Math.min(rest[k], room[i]! - used(i));
-      if (add > 0) {
-        shares[i]![k] += add;
-        rest[k] -= add;
-      }
+    for (const [i, share] of shares.entries()) {
+      const add = Math.max(0, Math.min(rest[k], room[i]! - used(i)));
+      share[k] += add;
+      rest[k] -= add;
     }
   return shares;
 }
