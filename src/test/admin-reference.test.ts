@@ -27,6 +27,7 @@ import {
   type RoundRules,
   type RoundSetting,
   roundFieldId,
+  roundConfirm,
   roundPreview,
   roundShown,
 } from '../core/round.ts';
@@ -144,6 +145,26 @@ function groupPreview(
   return `<p class="dim" id="round-preview-${group.name}" aria-live="polite">${esc(text)}</p>`;
 }
 
+/** The confirmation lines of the groups, above the buttons (#237): the settings chosen, repeated. */
+function confirmLines(
+  round: RoundRules,
+  settings: readonly RoundSetting[],
+  fresh: Readonly<Record<string, number>>,
+): string {
+  const values = { ...round, ...fresh } as unknown as Record<
+    string,
+    number | boolean
+  >;
+  const groups = new Set(settings.flatMap((s) => (s.group ? [s.group] : [])));
+  return [...groups]
+    .filter((g) => g.legend && g.confirm)
+    .map(
+      (g) =>
+        `\n  <p id="round-confirm-${g.name}" aria-live="polite">${esc(roundConfirm(g, values, settings))}</p>`,
+    )
+    .join('');
+}
+
 /**
  * The rows of the dialog „Neue Runde“, one per setting of the registry
  * (#283); the members of a group with a legend in one fieldset.
@@ -185,7 +206,7 @@ export function roundDialog(
 ): string {
   return `<p><b>Wirklich eine neue Runde starten?</b><br>
   Die laufende Runde wird vorher im Rundenarchiv gespeichert. Planeten, Flotten, Forschung, Nachrichten und Belohnungsfortschritt werden zurückgesetzt. Das kann nicht rückgängig gemacht werden.</p>
-  ${roundRows(round, settings, fresh).join('\n  ')}
+  ${roundRows(round, settings, fresh).join('\n  ')}${confirmLines(round, settings, fresh)}
   <p><button class="red" data-act="doReset">Ja, neue Runde</button> <button data-act="closeModal">Abbrechen</button></p>`;
 }
 
@@ -623,6 +644,7 @@ describe('the dialog „Neue Runde“ against the HTML before #118, bundle 7', (
       'data-act="closeModal"',
       'data-round-field="round-colony-per-level"',
       'id="round-preview-colonies"',
+      'id="round-confirm-colonies"',
       'aria-live="polite"',
       'id="round-guilds-note"',
       'aria-describedby="round-guilds-note"',
