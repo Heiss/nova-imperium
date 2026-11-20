@@ -579,6 +579,23 @@ code and here in the same pull request.
 * **[V]** Table: „Durchmesser in km | Verlust“
 * **[V]** Keywords: Mond, Trabant, Zitadelle, Phalanx, zerbrechen
 
+### Warp-Tor und Auspex-Phalanx (`rule-gates`)
+
+* **[V]** Line: „Wie Schiffe zwischen eigenen Monden springen, wie lange die Tore danach abkühlen und was ein Scan der Auspex-Phalanx zeigt.“
+* **[V]** Heading: „Der Sprung“
+* **[V]** Text: „Das Warp-Tor steht nur auf einem Mond. Ein Sprung geht vom Tor des Mondes, auf dem du gerade bist, zu einem anderen eigenen Mond, auf dem ein Warp-Tor bereit ist. Er verlegt Schiffe sofort und ohne Treibstoff; Rohstoffe bleiben zurück. Es springen nur Schiffe, die fliegen können, also keine Sonnenreliquiare, und du wählst sie aus, höchstens so viele, wie auf dem Mond stehen. Flotten anderer Spieler, die dort Wache halten, bleiben und verteidigen weiter (Wache stellen und Verbandsangriff).“
+* **[V]** Text: „Geprüft wird in dieser Reihenfolge: zuerst das Starttor (ein Mond, ein Tor darauf, nicht in Abkühlung), dann das Ziel (ein anderer eigener Mond mit einem Tor, das nicht in Abkühlung ist), dann die Schiffe (mindestens eines, alle fliegend).“
+* **[V]** Heading: „Abkühlzeit“
+* **[V]** Text: „Nach einem Sprung kühlen beide Tore ab, das Starttor und das Zieltor, und zwar so lange, wie die Stufe des Starttors es verlangt; die Stufe des Zieltors ändert nichts daran. Die Zeit sinkt mit der Stufe, aber nicht gleichmäßig, und ab einer Stufe nicht mehr. Die Minuten der Tabelle teilt das Universum durch sein Tempo; ein schnelleres kühlt die Tore also schneller ab. Solange ein Tor abkühlt, kann es weder starten noch Ziel eines Sprungs sein.“
+* **[V]** Formula: „Abkühlzeit in Minuten = Minuten der Tabelle für die Stufe des Starttors ÷ Tempo des Universums“
+* **[V]** Table: „Abkühlzeit nach der Stufe des Starttors“
+* **[V]** Table: „Stufe | Minuten | Zeit in diesem Universum“
+* **[V]** Heading: „Der Scan der Auspex-Phalanx“
+* **[V]** Text: „Die Auspex-Phalanx steht nur auf einem Mond. Von dort scannst du einen fremden Planeten in Reichweite: Sie zeigt alle Flüge von und zu diesem Planeten, von jedem Spieler, nach Ankunft geordnet, mit Schiffen, Herkunft, Ziel und Ankunft, aber ohne Ladung, Besitzer, Auftrag und Treibstoff. Eine Flotte, die dort Wache hält, zeigt sich als haltend, mit dem Ende ihrer Haltezeit. Flüge des Mondes dieses Planeten gehören nicht dazu. Ein Scan kostet 5.000 Promethium auf dem Mond, auch wenn gerade nichts fliegt. Der gescannte Spieler bekommt keinen Bericht und erfährt nichts davon.“
+* **[V]** Text: „Die Reichweite zählt in Systemen, nur in der Galaxie des Mondes und ohne Umlauf um ihr Ende; die Tabelle dazu steht unter Monde. Nicht scannen lassen sich Monde, eigene Planeten und freie Positionen. Auch diese Ablehnungen und ein Ziel außer Reichweite kosten nichts.“
+* **[V]** Formula: „Reichweite in Systemen = Stufe² − 1“
+* **[V]** Keywords: Warp, springen, Scan, Abkühlzeit, Phalanx
+
 ### Planeten und Felder (`rule-planets`)
 
 * **[V]** Line: „Wie viele Gebäudestufen ein Planet fasst, wie groß und warm eine neue Kolonie wird und wie du eine Stufe zurückbaust.“

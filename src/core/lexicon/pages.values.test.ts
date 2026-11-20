@@ -8,6 +8,7 @@ import { STATES } from '../../test/lexicon-states.ts';
 import { buildable, MOBILE } from '../catalog.ts';
 import { drawEvent, drawSize, EVENT_KINDS, raidFleet } from '../expedition.ts';
 import { holdFuel } from '../flight.ts';
+import { type Gate, jumpError } from '../jump-gate.ts';
 import { joinTiming } from '../union.ts';
 import { CENTRED, surveyFindings, surveyTier, TIERS } from '../survey.ts';
 import { GUILD_RIGHTS } from '../guild-ranks.ts';
@@ -264,6 +265,69 @@ describe('the rule pages of the missions say the values of the rules', () => {
       '1500',
     ]);
     expect(hits).toHaveLength(8);
+  });
+});
+
+describe('Warp-Tor und Auspex-Phalanx say what the rules do', () => {
+  const gate = (id: string, level: number, over: Partial<Gate> = {}): Gate => ({
+    id,
+    kind: 'moon',
+    owner: 'u_a',
+    b: level ? { jumpgate: level } : {},
+    ready: 0,
+    ...over,
+  });
+
+  it('the cooldown is the minutes of the table divided by the speed of the universe', () => {
+    const rows = rowsOf(
+      'rule-gates',
+      'Abkühlzeit nach der Stufe des Starttors',
+    );
+    expect(rows[0]).toEqual(['1', '60', '12 Min. 0 Sek.']);
+    expect(rows[9]).toEqual(['10', '17', '3 Min. 24 Sek.']);
+    // From level 15 on the time stays the same.
+    expect(rows[14]).toEqual(['15', '10', '2 Min. 0 Sek.']);
+    expect(rows[15]).toEqual(['20', '10', '2 Min. 0 Sek.']);
+    const fast = rowsOf(
+      'rule-gates',
+      'Abkühlzeit nach der Stufe des Starttors',
+      withLive({}, { speed: 40 }),
+    );
+    expect(fast[0]).toEqual(['1', '60', '1 Min. 30 Sek.']);
+  });
+
+  it('checks the starting gate first, then the target, then the ships, as the page says', () => {
+    const from = gate('m1', 3);
+    const to = gate('m2', 1);
+    const ships = { sc: 1 };
+    expect(jumpError({ ...from, kind: 'planet' }, to, ships, 100)).toBe(
+      'notMoon',
+    );
+    expect(jumpError(gate('m1', 0), null, {}, 100)).toBe('noGate');
+    expect(jumpError(gate('m1', 3, { ready: 200 }), null, {}, 100)).toBe(
+      'cooling',
+    );
+    expect(jumpError(from, null, {}, 100)).toBe('noTarget');
+    expect(jumpError(from, gate('m2', 1, { owner: 'u_b' }), ships, 100)).toBe(
+      'noTarget',
+    );
+    expect(jumpError(from, from, ships, 100)).toBe('sameMoon');
+    expect(jumpError(from, gate('m2', 0), ships, 100)).toBe('targetNoGate');
+    expect(jumpError(from, gate('m2', 1, { ready: 200 }), ships, 100)).toBe(
+      'targetCooling',
+    );
+    expect(jumpError(from, to, {}, 100)).toBe('noShips');
+    expect(jumpError(from, to, { sat: 1 }, 100)).toBe('stationary');
+    expect(jumpError(from, to, ships, 100)).toBeNull();
+  });
+
+  it('the scan costs the Promethium of the rules and the range is the same formula as on the page Monde', () => {
+    expect(words('rule-gates')).toContain(
+      'Ein Scan kostet 5.000 Promethium auf dem Mond',
+    );
+    expect(words('rule-gates')).toContain(
+      'Reichweite in Systemen = Stufe² − 1',
+    );
   });
 });
 

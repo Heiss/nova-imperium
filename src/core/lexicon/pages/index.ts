@@ -17,6 +17,7 @@ import { page as faqMine } from './faq-mine.ts';
 import { page as faqResources } from './faq-resources.ts';
 import { page as faqSlots } from './faq-slots.ts';
 import { page as flight } from './flight.ts';
+import { page as gates } from './gates.ts';
 import { page as guilds } from './guilds.ts';
 import { page as guideColony } from './guide-colony.ts';
 import { page as guideDefense } from './guide-defense.ts';
@@ -45,6 +46,7 @@ export const PAGES: readonly PageDef[] = [
   flight,
   debris,
   moons,
+  gates,
   planets,
   colonies,
   missiles,
