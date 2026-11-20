@@ -305,6 +305,7 @@ const at = (over: Partial<ArchiveState>): ArchiveState => ({
   entries: null,
   history: null,
   report: null,
+  rewind: null,
   category: 'total',
   loading: false,
   error: null,

@@ -2428,3 +2428,100 @@ table.lx-t {
     order: 1;
   }
 }
+
+/* ---------- Runden-Rewind (#235, view G) ---------- */
+/* Full-width story cards in the frame of the archive: the colours, the frames
+   and the fonts of the game (Cinzel for the number, EB Garamond for the text),
+   a few original stars as the only motif. */
+.rw h3 {
+  margin: 0 0 8px;
+}
+.rw-bar {
+  display: flex;
+  gap: 4px;
+  margin: 0 0 8px;
+  padding: 0;
+  list-style: none;
+}
+.rw-bar li {
+  flex: 1;
+  height: 4px;
+  background: var(--line);
+  border-radius: 2px;
+}
+.rw-bar li.done {
+  background: var(--gold);
+}
+.rw-bar li.on {
+  background: var(--gold-hi);
+}
+.rw-card {
+  min-height: 300px;
+  padding: 28px 16px;
+  text-align: center;
+  touch-action: pan-y;
+  background:
+    radial-gradient(1px 1px at 12% 22%, var(--gold-hi), transparent),
+    radial-gradient(1px 1px at 83% 14%, var(--gold-hi), transparent),
+    radial-gradient(1.5px 1.5px at 66% 78%, var(--gold), transparent),
+    radial-gradient(1px 1px at 24% 84%, var(--gold), transparent),
+    radial-gradient(1px 1px at 91% 55%, var(--gold-hi), transparent),
+    var(--box-2);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+.rw-kicker {
+  margin: 0;
+  font: 600 12px var(--head);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+.rw-head {
+  margin: 8px 0;
+  font: 600 24px/1.25 var(--body);
+  color: var(--txt);
+}
+.rw-head:focus-visible {
+  outline: 2px solid var(--gold-hi);
+  outline-offset: 4px;
+}
+.rw-figure {
+  margin: 8px 0 16px;
+  font: 600 clamp(36px, 11vw, 64px)/1.1 var(--head);
+  letter-spacing: 0.04em;
+  color: var(--gold-hi);
+}
+.rw-line {
+  max-width: 34em;
+  margin: 8px auto;
+}
+.rw-controls {
+  margin-top: 12px;
+}
+/* Read by a screen reader only: the card that is shown now. */
+.rw-live {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+@keyframes rw-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+.rw:not(.still) .rw-in {
+  animation: rw-in 0.45s ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .rw .rw-in {
+    animation: none;
+  }
+}
+.no-anim .rw .rw-in {
+  animation: none;
+}

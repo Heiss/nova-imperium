@@ -20,6 +20,7 @@ import {
   roundDays,
   standingOf,
 } from '../../core/round-report.ts';
+import { type Rewind, rewindOf } from '../../core/round-rewind.ts';
 import { record } from '../audit.ts';
 import type { User } from '../db/repos/players.ts';
 import type { RoundRow } from '../db/repos/rounds.ts';
@@ -260,11 +261,32 @@ const roundReport: Action = (ctx, u, d): Answer => {
   return { msg: null, data: { report } };
 };
 
+/**
+ * The thin Rewind of the reader in a finished round (#235, view G): the cards
+ * come from the same report and the same access check as `roundReport`, so a
+ * round the reader may not open answers like one that does not exist. The
+ * running round has none (not even for the admin), and neither has a reader
+ * who held no place in the round (an admin who did not play).
+ */
+function rewindFor(ctx: Ctx, u: User, number: number): Rewind {
+  const report = reportOf(ctx, u, number);
+  const seat = report.rows.find((r) => r.you)?.seat;
+  const rewind = seat === undefined ? null : rewindOf(report, seat);
+  return rewind?.cards.length ? rewind : fail(UNAVAILABLE);
+}
+
+const roundRewind: Action = (ctx, u, d): Answer => {
+  const number = int(d.round, 0, Number.MAX_SAFE_INTEGER);
+  const rewind = rewindFor(ctx, u, number);
+  audit(ctx, u, 'roundRewind', { round: number });
+  return { msg: null, data: { rewind } };
+};
+
 const roundHistory: Action = (ctx, u): Answer => {
   audit(ctx, u, 'roundHistory', {});
   return { msg: null, data: { history: historyOf(ctx, u) } };
 };
 
 export const serverFeature = {
-  actions: { roundArchive, roundReport, roundHistory },
+  actions: { roundArchive, roundReport, roundRewind, roundHistory },
 } satisfies ServerFeature;
