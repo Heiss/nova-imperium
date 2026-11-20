@@ -4,7 +4,9 @@
 import { UNIVERSE_SPECS } from '../../../core/universe.ts';
 import type { Universe } from '../../../core/types.ts';
 import type { Db } from '../database.ts';
+import type { RepositoryModule } from './contract.ts';
 import { levels, type Row } from './rows.ts';
+import type { RoundReset } from '../round-reset.ts';
 
 /** The filter of the audit list (built by `auditFilter` in audit.ts). */
 export interface AuditFilter {
@@ -29,7 +31,7 @@ export interface AuditEvent {
   detail: string;
 }
 
-export interface Suspension {
+interface Suspension {
   reason: string;
   until: number | null;
 }
@@ -69,7 +71,7 @@ const EVENT_WHERE = `
       AND (@outcome = '' OR e.outcome = @outcome)
 `;
 
-export class SqliteAdmin implements Admin {
+class SqliteAdmin implements Admin {
   private readonly db: Db;
   constructor(db: Db) {
     this.db = db;
@@ -199,3 +201,16 @@ export class SqliteAdmin implements Admin {
     this.db.prepare('DELETE FROM suspensions WHERE player = ?').run(uid);
   }
 }
+
+/** The `admin` repository on `Ctx`. */
+export const repository = {
+  key: 'admin',
+  make: (db: Db): Admin => new SqliteAdmin(db),
+} as const satisfies RepositoryModule;
+
+/** The settings, the audit, the suspensions and the activity are not bound to a round. */
+export const roundReset = [
+  {
+    keeps: ['settings', 'audit_events', 'suspensions', 'player_activity'],
+  },
+] satisfies readonly RoundReset[];

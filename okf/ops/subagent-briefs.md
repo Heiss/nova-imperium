@@ -80,6 +80,28 @@ when the second built on the first.
   `src/server/game/registry.test.ts` checks the rules for all. No list of
   action names or keys is kept anywhere else (`registry-pin.test.ts` is
   deleted, #317).
+* A new repository is a file in `src/server/db/repos/` that exports
+  `repository = { key: 'market', make: (db): MarketStore => ... } as const
+  satisfies RepositoryModule`; `ctx.market` is typed by what `make`
+  returns, so write the interface as the return type. Nothing else is edited
+  (`repos/index.ts` names no repository; the list `repositories.gen.ts` is
+  generated; a key that exists twice stops the start). A table that a new
+  round empties is declared in the file of its owner (a repository, or any
+  other file of `src/server`) as `roundReset = [{ order: 120, clears:
+  ['my_table'] }]`, with the next free ten above the highest (`grep -rn
+  "order:" src/server | grep clears`); a table that must survive a new round
+  is declared as `{ keeps: ['my_table'] }`. `newRound` in `game/admin.ts`
+  names no table. `src/server/game/round-reset.test.ts` seeds a row into
+  every table of the schema and fails when a table is neither emptied nor
+  declared as kept (#317).
+* A new view is `export const clientViews = [{ key: 'market', mount, anew:
+  true, menu: { order: 40, label: 'Marktplatz' }, tab?, glyph? }] satisfies
+  readonly ClientView[]` in a file of `src/client/views/` (contract:
+  `contract.ts`; a view still drawn as HTML gives `html` instead of
+  `mount`). `mount.ts`, `index.ts` and `main.ts` are not edited; the list
+  `views.gen.ts` is generated, a view key, a menu number or a tab number that
+  exists twice stops the start, and `src/client/views/registry.test.ts`
+  checks the rules for all (#317).
 * Stop after two failed attempts at the same problem and report.
 * A new E2E test goes into the spec of its feature, `e2e/<feature>.spec.ts`
   (a new file for a new feature), never into a collecting file; new seed

@@ -10,6 +10,7 @@ import { hashToken, newToken, passwordMatches } from './auth.ts';
 import type { Config } from './config.ts';
 import type { User } from './db/repos/players.ts';
 import { type Ctx, fail } from './game/context.ts';
+import type { RoundReset } from './db/round-reset.ts';
 
 const TTL = 5 * 60000;
 const INVALID =
@@ -190,3 +191,7 @@ export function removePasskey(ctx: Ctx, user: User, id: unknown): void {
   )
     fail('Passkey nicht gefunden.');
 }
+
+export const roundReset = [
+  { keeps: ['passkeys', 'passkey_challenges'] },
+] satisfies readonly RoundReset[];

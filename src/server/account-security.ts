@@ -9,6 +9,7 @@ import {
 import { NUMBERS } from './config.ts';
 import type { User } from './db/repos/players.ts';
 import { fail, type Ctx } from './game/context.ts';
+import type { RoundReset } from './db/round-reset.ts';
 
 const RESET_LIFE = 30 * 60_000;
 const CODE_LIFE = 10 * 60_000;
@@ -173,3 +174,7 @@ export function purgeAccountTokens(ctx: Ctx): void {
     .prepare('DELETE FROM account_tokens WHERE expires <= ?')
     .run(ctx.now());
 }
+
+export const roundReset = [
+  { keeps: ['account_tokens'] },
+] satisfies readonly RoundReset[];

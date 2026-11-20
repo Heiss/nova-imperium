@@ -1,5 +1,6 @@
 // Reports (#117): the messages of a player, kept up to a limit.
 import type { Db } from '../database.ts';
+import type { RepositoryModule } from './contract.ts';
 import type { Row } from './rows.ts';
 
 export interface Report {
@@ -21,7 +22,7 @@ export interface Reports {
   deleteSurveys(surveys: readonly string[]): void;
 }
 
-export class SqliteReports implements Reports {
+class SqliteReports implements Reports {
   private readonly db: Db;
   constructor(db: Db) {
     this.db = db;
@@ -77,3 +78,9 @@ export class SqliteReports implements Reports {
     for (const id of surveys) del.run(id);
   }
 }
+
+/** The `reports` repository on `Ctx`. */
+export const repository = {
+  key: 'reports',
+  make: (db: Db): Reports => new SqliteReports(db),
+} as const satisfies RepositoryModule;

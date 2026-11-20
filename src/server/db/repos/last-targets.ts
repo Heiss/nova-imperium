@@ -1,13 +1,15 @@
 // The last hostile targets of a player (#292): the table `last_targets` of
 // migration 20261119T1830-last-targets, one row per player and target place.
 import type { Db } from '../database.ts';
+import type { RepositoryModule } from './contract.ts';
 import type { Row } from './rows.ts';
+import type { RoundReset } from '../round-reset.ts';
 
 /** How many targets are kept per player [V]; the list shows five, the rest fills it up when one drops out. */
 export const KEPT_TARGETS = 20;
 
 /** A remembered target: the place, the owner it had then and when it was aimed at. */
-export interface LastTarget {
+interface LastTarget {
   place: string;
   owner: string;
   at: number;
@@ -21,7 +23,7 @@ export interface LastTargets {
   deleteAll(): void;
 }
 
-export class SqliteLastTargets implements LastTargets {
+class SqliteLastTargets implements LastTargets {
   private readonly db: Db;
   constructor(db: Db) {
     this.db = db;
@@ -60,3 +62,14 @@ export class SqliteLastTargets implements LastTargets {
     this.db.exec('DELETE FROM last_targets');
   }
 }
+
+/** The last hostile targets of a player (#292). */
+export const repository = {
+  key: 'targets',
+  make: (db: Db): LastTargets => new SqliteLastTargets(db),
+} as const satisfies RepositoryModule;
+
+/** The last targets name places of the old round (#292). */
+export const roundReset = [
+  { order: 60, clears: ['last_targets'] },
+] satisfies readonly RoundReset[];
