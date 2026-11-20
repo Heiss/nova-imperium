@@ -10,6 +10,7 @@ import {
   queuedPushes,
   subscribePush,
   testCtx,
+  loose,
 } from '../test-helpers.ts';
 import * as A from './actions.ts';
 import { universe } from './context.ts';
@@ -167,7 +168,7 @@ describe('cancelling a shipyard order', () => {
       true,
     ])
       expect(
-        () => A.cancelOrder(ctx, u, { pos, key: 'rl' }),
+        () => A.cancelOrder(ctx, u, loose<'cancelOrder'>({ pos, key: 'rl' })),
         String(pos),
       ).toThrow('Ungültig.');
     expect(p()).toEqual(before);
@@ -178,7 +179,9 @@ describe('cancelling a shipyard order', () => {
     A.order(ctx, u, { key: 'rl', n: 1 });
     const before = structuredClone(p());
     for (const key of [undefined, null, '', 'x', 'metal', 'toString', 1])
-      expect(A.cancelOrder(ctx, u, { pos: 0, key })).toBeNull();
+      expect(
+        A.cancelOrder(ctx, u, loose<'cancelOrder'>({ pos: 0, key })),
+      ).toBeNull();
     expect(p()).toEqual(before);
   });
 

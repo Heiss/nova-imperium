@@ -23,6 +23,8 @@ import { categoryScores } from './highscore.ts';
 import { pointsMap } from './points.ts';
 import { assembleState } from './assemble.ts';
 import type { StatePart, StateView } from './feature.ts';
+import type { LockedState } from '../../core/state.ts';
+import type { StateShape as Frame } from '../../core/state/frame.ts';
 
 export interface ForeignFleet extends SeenShips {
   id: string;
@@ -136,7 +138,7 @@ function playersOf(
  * its vacation (`me.vacation`, from which and the minimum duration of the
  * round the browser knows the earliest end) and its push settings.
  */
-function lockedState(ctx: Ctx, u: User): Record<string, unknown> {
+function lockedState(ctx: Ctx, u: User): LockedState {
   return {
     round: roundRules(ctx),
     now: ctx.now(),
@@ -154,17 +156,28 @@ function lockedState(ctx: Ctx, u: User): Record<string, unknown> {
 }
 
 /** The value of one key of the frame; `view` is what `stateFor` works out once. */
-type Build = (ctx: Ctx, u: User, view: StateView) => unknown;
+type Build<K extends keyof Frame> = (
+  ctx: Ctx,
+  u: User,
+  view: StateView,
+) => Frame[K];
 
-/** A part of the frame with one key; its number fixes the place in the JSON object. */
-const keyed = (order: number, key: string, build: Build): StatePart => ({
+/**
+ * A part of the frame with one key; its number fixes the place in the JSON
+ * object, its type is the one of the key in `src/core/state/frame.ts` (#317).
+ */
+const keyed = <K extends keyof Frame>(
+  order: number,
+  key: K,
+  build: Build<K>,
+): StatePart => ({
   order,
   keys: [key],
   build: (ctx, u, view) => ({ [key]: build(ctx, u, view) }),
 });
 
 /** The own fleets in full, the foreign ones that come to the shown planet as the Auspex-Lehre sees them. */
-const fleetsOf: Build = (ctx, u, view) => {
+const fleetsOf: Build<'fleets'> = (ctx, u, view) => {
   // The settled Auspex-Lehre: a level finished by now counts (#228).
   const spy = researchOf(ctx, u).research.spy ?? 0;
   const recognition = recognitionOf(view.round);

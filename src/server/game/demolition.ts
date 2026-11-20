@@ -13,7 +13,7 @@ import {
 } from '../../core/demolition.ts';
 import { BUILD } from '../../core/catalog.ts';
 import { orderPush, queuePush } from '../push-store.ts';
-import { type Action, mine, researchOf } from './actions.ts';
+import { type Handler, mine, researchOf } from './actions.ts';
 import { fail, universe } from './context.ts';
 import type { ServerFeature } from './feature.ts';
 
@@ -34,7 +34,7 @@ export const DEMOLITION_ERROR: Readonly<Record<DemolitionError, string>> = {
 };
 
 /** Starts tearing down one level of a building on the selected own planet (D1). */
-export const demolish: Action = (ctx, u, d, event) => {
+export const demolish: Handler<'demolish'> = (ctx, u, d, event) => {
   const key = String(d.key);
   if (!Object.hasOwn(BUILD, key)) fail('Unbekanntes Gebäude.');
   const p = mine(ctx, u, d.planet);

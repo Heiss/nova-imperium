@@ -4,7 +4,7 @@
 // so no feature silently replaces another by the order of a spread.
 import { claim } from '../claim.ts';
 import type { Action } from './actions.ts';
-import type { ServerFeature, StatePart } from './feature.ts';
+import type { Handlers, ServerFeature, StatePart } from './feature.ts';
 
 /** The modules as the generated list gives them: `[path in src/server, serverFeature]`. */
 export type Listed = readonly (readonly [string, ServerFeature])[];
@@ -23,10 +23,10 @@ export interface ActionTables {
 
 /** The actions of the frame and of all `features`, each name once. */
 export function assembleActions(
-  frame: Readonly<Record<string, Action>>,
+  frame: Handlers,
   features: Listed,
 ): ActionTables {
-  const actions: Record<string, Action> = { ...frame };
+  const actions = { ...frame } as unknown as Record<string, Action>;
   const owners = new Map(
     Object.keys(frame).map((name) => [name, FRAME_ACTIONS]),
   );
@@ -41,7 +41,9 @@ export function assembleActions(
     for (const [table, group] of groups)
       for (const [type, action] of Object.entries(table ?? {})) {
         claim('action', owners, type, fileOf(name));
-        actions[type] = action;
+        // The table is by name: the input of each handler was checked against
+        // the map of its name (feature.ts), here the type is erased.
+        actions[type] = action as unknown as Action;
         group?.add(type);
       }
   }

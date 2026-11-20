@@ -6,7 +6,8 @@
 // places' own state is sent.
 import type { User } from '../db/repos/players.ts';
 import type { Ctx } from './context.ts';
-import type { ServerFeature } from './feature.ts';
+import type { ServerFeature, StatePart } from './feature.ts';
+import type { StateShape } from '../../core/state/idle-queues.ts';
 
 /**
  * The ids of the player's places but the shown one that have no building
@@ -32,5 +33,5 @@ export const serverFeature = {
     build: (ctx, u: User, view) => ({
       idle: idleQueues(ctx, u.id, view.planet),
     }),
-  },
+  } satisfies StatePart<StateShape>,
 } satisfies ServerFeature;

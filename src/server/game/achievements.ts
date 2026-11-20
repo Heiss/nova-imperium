@@ -13,11 +13,12 @@ import { production } from '../../core/economy.ts';
 import { settle, settleR } from '../../core/settle.ts';
 import type { Cost, Levels, Planet } from '../../core/types.ts';
 import type { User } from '../db/repos/players.ts';
-import type { Action } from './actions.ts';
+import type { Handler } from './actions.ts';
 import { fail, universe, type Ctx } from './context.ts';
 
 import { roundRules, roundStart } from './round.ts';
-import type { ServerFeature } from './feature.ts';
+import type { ServerFeature, StatePart } from './feature.ts';
+import type { StateShape } from '../../core/state/achievements.ts';
 import type { RoundReset } from '../db/round-reset.ts';
 
 const DAY = 86_400_000;
@@ -154,7 +155,7 @@ function credit(ctx: Ctx, p: Planet, reward: Cost): void {
   ctx.planets.save(p);
 }
 
-const claimAchievement: Action = (ctx, u, data) => {
+const claimAchievement: Handler<'claimAchievement'> = (ctx, u, data) => {
   if (!roundRules(ctx).achievements)
     fail('Achievements sind in dieser Runde deaktiviert.');
   const achievement =
@@ -172,7 +173,7 @@ const claimAchievement: Action = (ctx, u, data) => {
   return 'Achievement-Belohnung abgeholt.';
 };
 
-export const claimDailyReward: Action = (live, u) => {
+export const claimDailyReward: Handler<'claimDailyReward'> = (live, u) => {
   // One timestamp for the claimed day and the reward, so a claim at UTC
   // midnight does not record one day and credit the next one's reward.
   const at = live.now();
@@ -222,7 +223,7 @@ export const serverFeature = {
     build: (ctx, u, view) => ({
       achievements: achievementState(ctx, u, view.round),
     }),
-  },
+  } satisfies StatePart<StateShape>,
 } satisfies ServerFeature;
 
 /** The progress, the claims and the daily rewards start over with the round. */

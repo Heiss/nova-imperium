@@ -5,7 +5,6 @@
 import { describe, expect, it } from 'vitest';
 import { SERVER_FEATURES } from '../features.gen.ts';
 import { addPlanet, addUser, testCtx } from '../test-helpers.ts';
-import type { Action } from './actions.ts';
 import { assembleActions, assembleState, type Listed } from './assemble.ts';
 import { ACTIONS, ADMIN_ACTIONS, GUILD_ACTIONS } from './dispatch.ts';
 import type { ServerFeature, StatePart } from './feature.ts';
@@ -116,9 +115,9 @@ describe('the list of the server features', () => {
 });
 
 describe('the table of the actions', () => {
-  const a: Action = () => 'a';
-  const b: Action = () => 'b';
-  const c: Action = () => 'c';
+  const a = () => 'a';
+  const b = () => 'b';
+  const c = () => 'c';
   const feature = (f: ServerFeature): Listed[number] => ['game/one', f];
 
   it('holds the frame and the actions of every module, each in its group', () => {

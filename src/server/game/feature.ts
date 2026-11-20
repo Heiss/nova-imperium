@@ -8,7 +8,8 @@ import type { Main } from '../../core/main-planet.ts';
 import type { RoundRules } from '../../core/round.ts';
 import type { Planet } from '../../core/types.ts';
 import type { User } from '../db/repos/players.ts';
-import type { Action } from './actions.ts';
+import type { ActionName } from '../../core/actions.ts';
+import type { Handler } from './actions.ts';
 import type { Ctx } from './context.ts';
 
 /** What `stateFor` works out once for all parts of the state. */
@@ -23,8 +24,14 @@ export interface StateView {
   limits: ActivityLimits;
 }
 
-/** The place and the content of some keys of the state a player gets. */
-export interface StatePart {
+/**
+ * The place and the content of some keys of the state a player gets. `S` is
+ * the shape of the part (`src/core/state/<part>.ts`, #317): `build` returns
+ * it, so the compiler checks what is sent against the type the browser reads.
+ */
+export interface StatePart<
+  S extends Record<string, unknown> = Record<string, unknown>,
+> {
   /**
    * The place of the keys in the JSON object: parts run by ascending number,
    * so the order of the keys does not depend on a list. A number is used once
@@ -32,19 +39,26 @@ export interface StatePart {
    */
   order: number;
   /** The keys `build` returns, so a key defined twice is found at the start. */
-  keys: readonly string[];
+  keys: readonly (keyof S & string)[];
   /** The value of each key of `keys`, for the player `u`. */
-  build: (ctx: Ctx, u: User, view: StateView) => Record<string, unknown>;
+  build: (ctx: Ctx, u: User, view: StateView) => S;
 }
+
+/**
+ * The actions of a group by name: a name the map of `src/core/actions/` does
+ * not know is refused by the compiler, and so is a handler whose input is not
+ * the one of the map (#317).
+ */
+export type Handlers = { readonly [K in ActionName]?: Handler<K> };
 
 /** What a server module exports as `serverFeature`; every member is optional. */
 export interface ServerFeature {
   /** The actions of the feature by name. */
-  actions?: Record<string, Action>;
+  actions?: Handlers;
   /** The actions refused while guilds are off in the round (#191). */
-  guildActions?: Record<string, Action>;
+  guildActions?: Handlers;
   /** The actions of the admin: audited as `admin.write`, not as `game`. */
-  adminActions?: Record<string, Action>;
+  adminActions?: Handlers;
   /** The keys the feature adds to the state. */
   state?: StatePart;
 }

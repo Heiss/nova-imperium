@@ -2,6 +2,7 @@
 // are the pure `sendError` of src/core/missions.ts (#116); the server
 // determines the noob protection, turns the codes into the messages, and
 // checks the slots, the cargo and the fuel for every mission alike.
+import type { Wire } from '../../core/actions.ts';
 import { canFly, isShip } from '../../core/catalog.ts';
 import {
   capacity,
@@ -47,7 +48,7 @@ import type {
 } from '../../core/types.ts';
 import type { AuditEntry } from '../audit.ts';
 import type { User } from '../db/repos/players.ts';
-import { type Action, type Data, mine, researchOf } from './actions.ts';
+import { type Handler, mine, researchOf } from './actions.ts';
 import { lockedUntil, positionLockedText } from './position-lock.ts';
 import { type Ctx, coords, fail, int, universe } from './context.ts';
 import { colonyRoom, limitRefusal } from './colony-limit.ts';
@@ -80,12 +81,17 @@ const pickShips = (p: Planet, wanted: unknown): Levels => {
   return ships;
 };
 
+/** What an action that aims at a position reads: `to`, unchecked. */
+export interface Aimed {
+  readonly to?: unknown;
+}
+
 /** Whether the player aims at the moon of the position (#53). */
-const toMoon = (d: Data): boolean =>
+const toMoon = (d: Aimed): boolean =>
   (d.to as { kind?: unknown } | null)?.kind === 'moon';
 
 /** The coordinates `d.to` asks for, inside the universe; also of missiles (#54). */
-export const target = (ctx: Ctx, d: Data): Coords => {
+export const target = (ctx: Ctx, d: Aimed): Coords => {
   const u = universe(ctx);
   const to = (d.to as Partial<Coords> | null) ?? {};
   return {
@@ -221,7 +227,7 @@ function checkDestination(
   if (error) fail(sendMessage(ctx, error));
 }
 
-function plan(ctx: Ctx, u: User, p: Planet, d: Data): Plan {
+function plan(ctx: Ctx, u: User, p: Planet, d: Wire<'send'>): Plan {
   const mission = String(d.mission) as Mission;
   const known = missionRules(mission);
   // Missiles start from the silo in the Sternenkarte, never as a fleet (#54).
@@ -332,7 +338,7 @@ function takeOff(
   p.res.d -= cargo.d + fuel;
 }
 
-export const send: Action = (ctx, u, d, event) => {
+export const send: Handler<'send'> = (ctx, u, d, event) => {
   const t = ctx.now();
   const p = mine(ctx, u, d.planet);
   const x = plan(ctx, u, p, d);
@@ -435,7 +441,7 @@ const recallable = (f: Fleet, t: number): boolean =>
 const recalledAt = (f: Fleet, t: number): number =>
   t + (f.state === 'hold' ? f.arr - f.dep : Math.min(t - f.dep, f.ret - f.arr));
 
-export const recall: Action = (ctx, u, d, event) => {
+export const recall: Handler<'recall'> = (ctx, u, d, event) => {
   const f = ctx.fleets.get(String(d.id));
   const t = ctx.now();
   if (!f || f.owner !== u.id || !recallable(f, t))

@@ -61,7 +61,13 @@ import {
   testCtx,
   type TestCtx,
 } from '../test-helpers.ts';
-import { type Action, type Data, mine, researchOf } from './actions.ts';
+import {
+  type Action,
+  type Data,
+  type Handler,
+  mine,
+  researchOf,
+} from './actions.ts';
 import * as N from './arrival.ts';
 import {
   type Ctx,
@@ -1052,7 +1058,7 @@ const orders: fc.Arbitrary<Order> = fc
   );
 
 /** One order to send a fleet: the answer or the message, the event, the database. */
-function order(w: World, o: Order, act: Action) {
+function order(w: World, o: Order, act: Action | Handler<'send'>) {
   const { ctx, anna } = world(w);
   for (let i = 0; i < o.busy; i++)
     ctx.fleets.save({

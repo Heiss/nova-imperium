@@ -27,7 +27,7 @@ import type {
   Membership,
   Rank,
 } from '../db/repos/guilds.ts';
-import type { Action } from './actions.ts';
+import type { Handler } from './actions.ts';
 import { fail, str, type Ctx } from './context.ts';
 import { rankEvent } from './guild-events.ts';
 import type { ServerFeature } from './feature.ts';
@@ -130,7 +130,7 @@ function rightsOf(value: unknown): Set<GuildRight> {
   return new Set(list as GuildRight[]);
 }
 
-const createGuildRank: Action = (ctx, user, d) => {
+const createGuildRank: Handler<'createGuildRank'> = (ctx, user, d) => {
   const a = actor(ctx, user.id);
   need(a, 'ranks');
   if (a.ranks.length >= MAX_GUILD_RANKS)
@@ -139,13 +139,13 @@ const createGuildRank: Action = (ctx, user, d) => {
   return 'Rang angelegt.';
 };
 
-const renameGuildRank: Action = (ctx, user, d) => {
+const renameGuildRank: Handler<'renameGuildRank'> = (ctx, user, d) => {
   const { a, rank } = managed(ctx, user.id, d.rank);
   ctx.guilds.renameRank(rank.id, rankName(a, d.name, rank.id));
   return 'Rang umbenannt.';
 };
 
-const setGuildRankRights: Action = (ctx, user, d) => {
+const setGuildRankRights: Handler<'setGuildRankRights'> = (ctx, user, d) => {
   const { a, rank } = managed(ctx, user.id, d.rank);
   const next = rightsOf(d.rights);
   if (!canChangeRights([...a.rights], rank.rights, [...next])) fail(NO_RIGHT);
@@ -156,7 +156,7 @@ const setGuildRankRights: Action = (ctx, user, d) => {
   return 'Rechte gespeichert.';
 };
 
-const moveGuildRank: Action = (ctx, user, d) => {
+const moveGuildRank: Handler<'moveGuildRank'> = (ctx, user, d) => {
   const { a, rank } = managed(ctx, user.id, d.rank);
   const at = a.ranks.indexOf(rank);
   const other =
@@ -167,7 +167,7 @@ const moveGuildRank: Action = (ctx, user, d) => {
   return 'Rang verschoben.';
 };
 
-const deleteGuildRank: Action = (ctx, user, d) => {
+const deleteGuildRank: Handler<'deleteGuildRank'> = (ctx, user, d) => {
   const { a, rank } = managed(ctx, user.id, d.rank);
   // The Leitung is never deletable (nobody is above it) and never the
   // default, so a guild keeps both and with them at least two ranks.
@@ -190,7 +190,7 @@ const deleteGuildRank: Action = (ctx, user, d) => {
   return 'Rang gelöscht.';
 };
 
-const setGuildDefaultRank: Action = (ctx, user, d) => {
+const setGuildDefaultRank: Handler<'setGuildDefaultRank'> = (ctx, user, d) => {
   const a = actor(ctx, user.id);
   leadOnly(a);
   const rank = rankOf(a, d.rank);
@@ -208,7 +208,7 @@ export function memberOf(ctx: Ctx, a: Actor, uid: unknown): Membership {
   return m;
 }
 
-const assignGuildRank: Action = (ctx, user, d) => {
+const assignGuildRank: Handler<'assignGuildRank'> = (ctx, user, d) => {
   const a = actor(ctx, user.id);
   need(a, 'assign');
   const target = memberOf(ctx, a, d.uid);
@@ -239,7 +239,7 @@ export function handOverRank(a: Actor, id: unknown): Rank {
  * Dissolves the guild with all its members (owner, 2026-11-14): only the
  * Leitung, never a right, confirmed with the tag of the guild.
  */
-const dissolveGuild: Action = (ctx, user, d) => {
+const dissolveGuild: Handler<'dissolveGuild'> = (ctx, user, d) => {
   const a = actor(ctx, user.id);
   leadOnly(a, 'Nur die Gildenleitung kann die Gilde auflösen.');
   if (str(d.tag, 30).toUpperCase() !== a.guild.tag.toUpperCase())

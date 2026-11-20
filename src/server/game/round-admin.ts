@@ -2,14 +2,14 @@
 // „Runde löschen“ (Lifetime: an archive stays until the admin deletes it). The
 // close itself is `closeActiveRound` in round-archive.ts, which „Neue Runde“
 // uses too.
-import type { Action } from './actions.ts';
+import type { Handler } from './actions.ts';
 import { requireAdmin } from './admin.ts';
 import { fail, int } from './context.ts';
 import type { ServerFeature } from './feature.ts';
 import { closeActiveRound, ensureRound, ROUND_EVENT } from './round-archive.ts';
 
 /** „Runde abschließen“ (D1): archives the running round now; the game goes on until „Neue Runde“. */
-const closeRound: Action = (ctx, u, _d, event) => {
+const closeRound: Handler<'closeRound'> = (ctx, u, _d, event) => {
   requireAdmin(u);
   if (ensureRound(ctx).status === 'closed')
     return fail('Diese Runde ist schon abgeschlossen.');
@@ -23,7 +23,7 @@ const closeRound: Action = (ctx, u, _d, event) => {
 };
 
 /** „Runde löschen“: the archive of a closed round stays until the admin deletes it (Lifetime). */
-const deleteRound: Action = (ctx, u, d, event) => {
+const deleteRound: Handler<'deleteRound'> = (ctx, u, d, event) => {
   requireAdmin(u);
   const number = int(d.round, 0, Number.MAX_SAFE_INTEGER);
   const round = ctx.rounds.get(number);

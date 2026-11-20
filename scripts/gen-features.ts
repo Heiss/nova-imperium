@@ -53,6 +53,17 @@
 // src/server/round-reset.gen.ts (`ROUND_RESETS`), which only
 // src/server/game/admin.ts imports.
 //
+// The inputs of the actions (#317): every file of src/core/actions that exports
+// `actionInputs` is listed in src/core/actions.gen.ts (`ACTION_INPUTS`), which
+// only src/core/action-types.ts imports; the type `ActionMap` is derived from
+// the list, so the browser and the server check every action against it.
+//
+// The shapes of the state (#317): every file of src/core/state that exports the
+// type `StateShape` (the keys one part of the state holds and their types) is
+// listed in src/core/state.gen.ts, which only src/core/state.ts imports; the
+// type of the state the browser gets is derived from it, and the server checks
+// what each part builds against its shape.
+//
 //   node scripts/gen-features.ts
 //        writes the indexes when they changed; package.json chains it
 //        before start, test, typecheck, build and check (D2): no pre*
@@ -101,6 +112,15 @@ const VIEWS_EXPORT = /^export const clientViews\b/m;
 export const ROUND_RESET_FILE = 'round-reset.gen.ts';
 /** The fixed name under which a file exports what a new round empties or keeps. */
 const ROUND_RESET_EXPORT = /^export const roundReset\b/m;
+/** Where the inputs of the actions are (#317), and the list of them. */
+export const ACTIONS_DIR = 'src/core';
+export const ACTION_INPUTS_FILE = 'actions.gen.ts';
+/** The fixed name under which a file declares the inputs of its actions. */
+const ACTION_INPUTS_EXPORT = /^export const actionInputs\b/m;
+/** The list of the shapes of the state (#317) is in the core folder, next to the inputs of the actions. */
+export const STATE_SHAPES_FILE = 'state.gen.ts';
+/** The fixed name under which a file declares the shape of its part of the state. */
+const STATE_SHAPE_EXPORT = /^export type StateShape\b/m;
 /** The optional part of an entry folder for the Lexicanum (#285). */
 const LEXICON_FILE = 'lexicon.de.ts';
 const MISSIONS = 'missions';
@@ -400,6 +420,48 @@ export function generateRoundResets(dir: string): boolean {
   );
 }
 
+/** The files of the core folder that export `actionInputs` (#317). */
+export const scanActionInputs = (dir: string): string[] =>
+  scanExporting(dir, ACTION_INPUTS_EXPORT);
+
+/** The source of the list of the inputs of the actions (#317). */
+export const renderActionInputs = (files: string[]): string =>
+  renderFeatureList(files, 'actionInputs', 'ACTION_INPUTS');
+
+/** Writes the list of the inputs of the actions when it changed; true if it did. */
+export function generateActionInputs(dir: string): boolean {
+  return write(
+    join(dir, ACTION_INPUTS_FILE),
+    renderActionInputs(scanActionInputs(dir)),
+  );
+}
+
+/** The files of the core folder that export the type `StateShape` (#317). */
+export const scanStateShapes = (dir: string): string[] =>
+  scanExporting(dir, STATE_SHAPE_EXPORT);
+
+/** The source of the type of the whole state: the shapes of all parts together (#317). */
+export function renderStateShapes(files: string[]): string {
+  const name = (file: string) =>
+    `shape_${file.replace(/\.ts$/, '').replace(/[^a-zA-Z0-9]/g, '_')}`;
+  const imports = files
+    .map((f) => `import type { StateShape as ${name(f)} } from './${f}';\n`)
+    .join('');
+  return [
+    HEADER,
+    ...(imports ? [imports] : []),
+    `export type FullState = ${files.length ? files.map(name).join(' & ') : 'unknown'};\n`,
+  ].join('\n');
+}
+
+/** Writes the type of the whole state when it changed; true if it did. */
+export function generateStateShapes(dir: string): boolean {
+  return write(
+    join(dir, STATE_SHAPES_FILE),
+    renderStateShapes(scanStateShapes(dir)),
+  );
+}
+
 function write(file: string, source: string): boolean {
   const dir = dirname(file);
   if (existsSync(file) && readFileSync(file, 'utf8') === source) return false;
@@ -422,5 +484,7 @@ if (import.meta.main)
     generateRepositories(REPOS_DIR);
     generateRoundResets(SERVER_DIR);
     generateClientViews(VIEWS_DIR);
+    generateActionInputs(ACTIONS_DIR);
+    generateStateShapes(ACTIONS_DIR);
     return 0;
   });

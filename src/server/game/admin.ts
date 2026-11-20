@@ -10,7 +10,7 @@ import {
 } from '../../core/universe.ts';
 import { clearRound } from '../db/round-reset.ts';
 import { ROUND_RESETS } from '../round-reset.gen.ts';
-import type { Action } from './actions.ts';
+import type { Handler } from './actions.ts';
 import { addReport, type Ctx, fail, str, universe } from './context.ts';
 import { rangeError, roundRules, startRoundRules } from './round.ts';
 import { placePlanet } from './planets.ts';
@@ -43,7 +43,7 @@ const SETTINGS_ERROR: Readonly<
  * settings first, so the time before the change keeps the old speed. Running
  * buildings and flights keep their end time.
  */
-export const saveSettings: Action = (ctx, u, d) => {
+export const saveSettings: Handler<'settings'> = (ctx, u, d) => {
   requireAdmin(u);
   const input = (d.settings as Record<string, unknown> | null) ?? {};
   const used = ctx.planets.usedSize();
@@ -89,7 +89,7 @@ function newRound(ctx: Ctx, rules: RoundRules): void {
   }
 }
 
-export const reset: Action = (ctx, u, data, event) => {
+export const reset: Handler<'reset'> = (ctx, u, data, event) => {
   requireAdmin(u);
   const before = roundRules(ctx);
   // The running round is archived first, in this transaction (#235, D1): a

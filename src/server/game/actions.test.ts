@@ -8,6 +8,7 @@ import {
   subscribePush,
   testCtx,
   type TestCtx,
+  loose,
 } from '../test-helpers.ts';
 import type { AuditEntry } from '../audit.ts';
 import * as A from './actions.ts';
@@ -714,7 +715,9 @@ describe('shipyard', () => {
   });
   it('refuses wrong orders', () => {
     const { ctx, u } = setup();
-    expect(() => A.order(ctx, u, { key: 'x' })).toThrow('Unbekannte Einheit.');
+    expect(() => A.order(ctx, u, loose<'order'>({ key: 'x' }))).toThrow(
+      'Unbekannte Einheit.',
+    );
     expect(() => A.order(ctx, u, { key: 'rl', n: 1 })).toThrow(
       'Orbitale Schiffsschmiede',
     );
@@ -869,9 +872,10 @@ describe('one answer with the browser (#214, O18 (c))', () => {
   it('asks for a count before the price (F10)', () => {
     const { ctx, u, p } = setup({ b: { yard: 1 }, res: { m: 0, c: 0, d: 0 } });
     for (const n of [0, -3, undefined, 'x'])
-      expect(() => A.order(ctx, u, { key: 'rl', n }), String(n)).toThrow(
-        'Bitte eine Anzahl eingeben.',
-      );
+      expect(
+        () => A.order(ctx, u, loose<'order'>({ key: 'rl', n })),
+        String(n),
+      ).toThrow('Bitte eine Anzahl eingeben.');
     expect(() => A.order(ctx, u, { key: 'rl', n: 1 })).toThrow(
       'Der Zehnte reicht nicht aus.',
     );
@@ -944,7 +948,11 @@ describe('planet settings', () => {
     const { ctx, u, me } = setup({}, { probes: 3, levelTable: 'always' });
     for (const levelTable of ['', 'never', 'ICON', null, 1, ['icon']])
       expect(() =>
-        A.options(ctx, { ...u }, { probes: 9, explain: 'icon', levelTable }),
+        A.options(
+          ctx,
+          { ...u },
+          loose<'options'>({ probes: 9, explain: 'icon', levelTable }),
+        ),
       ).toThrow('Ungültig.');
     expect(me()).toMatchObject({
       probes: 3,
@@ -955,9 +963,9 @@ describe('planet settings', () => {
   it('refuse an unknown display option and change nothing', () => {
     const { ctx, u, me } = setup({}, { probes: 3, explain: 'hidden' });
     for (const explain of ['', 'never', 'ICON', null, 1, ['icon']])
-      expect(() => A.options(ctx, { ...u }, { probes: 9, explain })).toThrow(
-        'Ungültig.',
-      );
+      expect(() =>
+        A.options(ctx, { ...u }, loose<'options'>({ probes: 9, explain })),
+      ).toThrow('Ungültig.');
     expect(me()).toMatchObject({ probes: 3, explain: 'hidden' });
   });
 });

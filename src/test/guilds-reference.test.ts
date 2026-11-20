@@ -67,7 +67,11 @@ type ChatLine = Pick<
 function chatLine(m: ChatLine): string {
   const time = `<span class="dim">${dt(m.time)}</span>`;
   if (m.kind !== 'message') {
-    const arrival = m.arrival === undefined ? '' : arrivalAt(m.arrival, m.time);
+    // The server sends `arrival` for an attack only; a row without one shows none.
+    const arrival =
+      m.arrival === undefined || m.arrival === null
+        ? ''
+        : arrivalAt(m.arrival, m.time);
     return `${time}<br><span class="chat-text chat-event">${esc(chatEventText({ ...m, kind: m.kind }, arrival))}</span>`;
   }
   const who = m.name === null ? `<i>${FORMER}</i>` : `<b>${esc(m.name)}</b>`;

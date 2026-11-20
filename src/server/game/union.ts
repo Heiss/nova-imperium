@@ -19,11 +19,12 @@ import {
   joinTiming,
 } from '../../core/union.ts';
 import type { Coords, Fleet } from '../../core/types.ts';
-import type { Action } from './actions.ts';
+import type { Handler } from './actions.ts';
 import { addReport, coords, fail, str, type Ctx } from './context.ts';
 import { isAllyOf } from './holding.ts';
 import { roundRules } from './round.ts';
-import type { ServerFeature } from './feature.ts';
+import type { ServerFeature, StatePart } from './feature.ts';
+import type { StateShape } from '../../core/state/union.ts';
 
 /** The limits and the timing rules of the round (owner, 2026-11-16, D3; 2026-11-17). */
 export const limitsOf = (ctx: Ctx): UnionLimits => {
@@ -81,7 +82,7 @@ function notAlly(ctx: Ctx, what: 'invite' | 'join'): string {
 }
 
 /** Opens an attack union with the own Sturmangriff `d.id` on its way. */
-const openUnion: Action = (ctx, u, d) => {
+const openUnion: Handler<'openUnion'> = (ctx, u, d) => {
   const f = ctx.fleets.get(String(d.id));
   if (!f || f.owner !== u.id) return fail('Diese Flotte gibt es nicht.');
   const error = foundError(f, ctx.now(), f.union !== undefined);
@@ -91,7 +92,7 @@ const openUnion: Action = (ctx, u, d) => {
 };
 
 /** The leader invites the player `d.name` to the union `d.id`. */
-const inviteUnion: Action = (ctx, u, d) => {
+const inviteUnion: Handler<'inviteUnion'> = (ctx, u, d) => {
   const union = unionOf(ctx, d.id);
   if (!union) return fail(GONE);
   const { founder } = union;
@@ -296,5 +297,5 @@ export const serverFeature = {
     order: 210,
     keys: ['unions'],
     build: (ctx, u) => ({ unions: unionsFor(ctx, u.id) }),
-  },
+  } satisfies StatePart<StateShape>,
 } satisfies ServerFeature;

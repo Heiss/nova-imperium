@@ -16,7 +16,7 @@ import {
 } from '../../core/missions.ts';
 import { placeId } from '../../core/place.ts';
 import type { Coords, Fleet, Mission } from '../../core/types.ts';
-import { addPlanet, addUser, testCtx } from '../test-helpers.ts';
+import { addPlanet, addUser, loose, testCtx } from '../test-helpers.ts';
 import { arrive, comeHome } from './arrival.ts';
 import { send } from './fleet-actions.ts';
 import { addMoon } from './moons.ts';
@@ -208,15 +208,19 @@ describe('the server part of every mission (contract)', () => {
     ]) {
       const { ctx, anna } = setup();
       try {
-        send(ctx, anna, {
-          planet: id(HOME),
-          ships,
-          to: { ...FITS[r.target], kind: KIND[r.target] ?? 'planet' },
-          mission: m,
-          cargo: { m: 5, c: 0, d: 0 },
-          pct: 10,
-          hold: 1,
-        });
+        send(
+          ctx,
+          anna,
+          loose<'send'>({
+            planet: id(HOME),
+            ships,
+            to: { ...FITS[r.target], kind: KIND[r.target] ?? 'planet' },
+            mission: m,
+            cargo: { m: 5, c: 0, d: 0 },
+            pct: 10,
+            hold: 1,
+          }),
+        );
       } catch {
         continue;
       }

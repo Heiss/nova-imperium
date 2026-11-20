@@ -3,6 +3,7 @@
 // its own in this folder and exports it as `clientFeature`; the list of all of
 // them is generated (scripts/gen-features.ts), so src/client/main.ts names no
 // feature and a new one edits no shared place.
+import type { ActionArgs, ActionName } from '../../core/actions.ts';
 import type { GameState } from '../logic/types.ts';
 import type { Dialog } from '../modal.ts';
 
@@ -19,11 +20,20 @@ export type Handler = (d: Data) => unknown;
  */
 export interface ClientCtx {
   /** Sends an action; true when it went through, wherever the player is now. */
-  act: (type: string, data?: object) => Promise<boolean>;
+  act: <K extends ActionName>(
+    type: K,
+    ...data: ActionArgs<K>
+  ) => Promise<boolean>;
   /** Sends an action; true when it went through on the place still shown. */
-  actHere: (type: string, data?: object) => Promise<boolean>;
+  actHere: <K extends ActionName>(
+    type: K,
+    ...data: ActionArgs<K>
+  ) => Promise<boolean>;
   /** Sends an action the client starts by itself; a refusal is no message (#301). */
-  quiet: (type: string, data?: object) => Promise<boolean>;
+  quiet: <K extends ActionName>(
+    type: K,
+    ...data: ActionArgs<K>
+  ) => Promise<boolean>;
   /** Shows the HTML or the component in the dialog; the empty string closes it. */
   modal: (content: string | Dialog) => void;
   /** Shows a view with its address and renders it. */

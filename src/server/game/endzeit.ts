@@ -18,7 +18,7 @@ import { settle, settleR } from '../../core/settle.ts';
 import type { Fleet, Levels, Planet } from '../../core/types.ts';
 import type { User } from '../db/repos/players.ts';
 import { cancelScheduledPush } from '../push-store.ts';
-import type { Action } from './actions.ts';
+import type { Handler } from './actions.ts';
 import { requireAdmin } from './admin.ts';
 import { type Ctx, addReport, fail, universe } from './context.ts';
 import { land } from './missions.ts';
@@ -95,7 +95,7 @@ export function giftFleet(
  * of the universe, and applies to this trigger only: the default of the
  * universe settings stays.
  */
-export const endzeit: Action = (ctx, u, d, event) => {
+export const endzeit: Handler<'endzeit'> = (ctx, u, d, event) => {
   requireAdmin(u);
   const round = roundRules(ctx).number;
   const done = ctx.admin.setting(ENDZEIT_ROUND) === round;
