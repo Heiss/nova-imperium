@@ -719,6 +719,38 @@ code and here in the same pull request.
 * **[V]** Facts: „Haltezeit durch das Universums-Tempo teilen: nein“
 * **[V]** Keywords: Expedition, erkunden, Fund, Piraten, Haltezeit
 
+### Wache stellen und Verbandsangriff (`rule-allies`)
+
+* **[V]** Line: „Wer an einem fremden Planeten Wache halten darf, was die Wache tut und wie mehrere Spieler gemeinsam angreifen.“
+* **[V]** Heading: „Wache stellen: wer, wo und wie lange“
+* **[V]** Text: „Mit Wache stellen fliegt eine Flotte zum Planeten oder Mond eines Verbündeten, bleibt dort die Haltezeit, die du beim Start wählst, und verteidigt ihn in jedem Kampf zusammen mit seinem Besitzer; danach fliegt sie heim. Wer Verbündeter ist, legt der Admin für die Runde fest. Eine Gilde zählt nur, solange es in der Runde Gilden gibt (Gilden). Bei einem Spieler im Urlaubsmodus oder unter dem Schutz der Schwachen kann niemand Wache stellen.“
+* **[V]** Facts: „Halten erlaubt für: Gilde und Freunde“
+* **[V]** Facts: „Gehaltene Flotten im Auspex-Bericht ab Auspex-Lehre: 2 (von 0 bis 30)“
+* **[V]** Text: „Die Haltezeit beträgt 0, 1, 2, 4, 8, 16 oder 32 Stunden. Sie läuft in Echtzeit, das Tempo des Universums teilt sie nicht. Den Treibstoff für die Haltezeit zahlst du beim Start zusammen mit dem für den Flug: ein Zehntel des Grundverbrauchs der Flotte je Stunde, mindestens 1 Promethium. An einem Planeten halten höchstens 4 verschiedene Spieler mit zusammen höchstens 15 Flotten, die eigene Flotte des Besitzers nicht mitgerechnet; gezählt werden auch Flotten, die noch unterwegs sind. Solange eine Flotte Wache hält, kannst du sie zurückrufen; sie ist dann nach so langer Zeit zu Hause, wie ihr Hinflug gedauert hat.“
+* **[V]** Formula: „Treibstoff der Haltezeit = ⌊Summe aller Schiffe (Anzahl · Grundverbrauch) · Stunden ÷ 10⌋, mindestens 1“
+* **[V]** Heading: „Was eine Wache tut“
+* **[V]** Text: „Eine Flotte, die Wache hält, kämpft als eigene Partei mit der Forschung ihres Besitzers, und zwar in allen drei Kämpfen an diesem Ort: beim Sturmangriff, beim Mondbruch und im Kampf gegen entdeckte Spähschädel der Auspex-Erkundung. Raketen kämpfen nicht mit. Jeder Besitzer bekommt den Bericht des Verteidigers, und was die Wache verliert, liegt zum Teil im Trümmerfeld (Trümmerfelder und Bergung). Eine Flotte des Angreifers selbst, die dort Wache hält, bleibt aus dem Kampf. Gewinnt der Angreifer, nimmt er zuerst seinen Anteil vom Vorrat des Planeten und dann die ganze Ladung der Flotten, die Wache gehalten haben, soweit sein Laderaum reicht; diese Flotten sind dann zerstört (Kampf).“
+* **[V]** Text: „Der Gastgeber sieht eine Flotte, die Wache hält, mit allen Schiffen und ihrer Haltezeit. Im Auspex-Bericht zählt sie zur Flotte des Planeten, bis die Auspex-Lehre des Spähers die Stufe der Runde erreicht; ab dann steht sie getrennt unter Gehaltene Flotten. In der Auspex-Phalanx zeigt sie sich als haltend, mit dem Ende ihrer Haltezeit.“
+* **[V]** Heading: „Urlaubsmodus und Mondbruch“
+* **[V]** Text: „Beginnt der Gastgeber den Urlaubsmodus, fliegen alle Flotten, die bei ihm Wache halten, sofort heim, und ihre Besitzer bekommen einen Bericht. Eine Flotte, die noch unterwegs ist, hält bei der Ankunft nicht mehr, sondern kehrt gleich um. Wer selbst mit einer Flotte Wache hält, kann den Urlaubsmodus nicht beginnen, solange sie draußen ist (Urlaubsmodus).“
+* **[V]** Text: „Zerbricht ein Mond (Monde), wechseln die Flotten, die dort Wache halten und am Kampf nicht beteiligt waren, zum Planeten des Mondes und halten dort bis zum Ende ihrer Zeit weiter; die Grenzen des Planeten werden dabei nicht geprüft, und ihre Besitzer bekommen einen Bericht. Da ein Mond nur nach einem gewonnenen Kampf zerbricht und dieser keinen Verteidiger übrig lässt, betrifft das nur die eigene Flotte des Angreifers.“
+* **[V]** Heading: „Verbandsangriff: eröffnen, einladen, beitreten“
+* **[V]** Text: „Einen Angriffsverband eröffnest du aus einem eigenen Sturmangriff, der noch unterwegs ist: nicht zurückgerufen, noch nicht angekommen und in keinem Verband. Dieser Angriff führt den Verband an. Der Anführer lädt Verbündete mit Namen ein, nicht den Besitzer des Ziels; die Eingeladenen zählen schon gegen die Grenze der Spieler. Wer Verbündeter ist, bestimmt dieselbe Einstellung wie bei der Wache. Beitreten heißt, einen Sturmangriff auf dasselbe Ziel zu schicken, mit allen Prüfungen eines Angriffs: Schiffe, Treibstoff, Flottenslots, Urlaubsmodus und Schutz des Ziels. Der Anführer und wer schon im Verband ist, braucht keine Einladung, alle anderen schon; ein Spieler darf mehrere Flotten schicken. Ein Spieler im Urlaubsmodus kann nicht beitreten.“
+* **[V]** Heading: „Ankunft, Verspätung und Grenzen“
+* **[V]** Text: „Alle Flotten eines Verbands kommen gemeinsam an und kämpfen in einem Kampf als mehrere Angreifer, jede mit der Forschung ihres Besitzers; die Flotte des Anführers führt. Eine Flotte, die früh genug da wäre, wartet und kommt mit den anderen an. Eine, die später käme, verzögert den Verband, aber höchstens um 30 % der Restflugzeit; dann verschieben sich Ankunft und Rückkehr aller Flotten im Verband um die Verspätung. Eine Flotte, die den Verband stärker verzögern würde, wird abgelehnt. Eine Sperre kurz vor der Ankunft gibt es in dieser Runde nicht. Ein Verband, der angekommen ist, ist geschlossen. Eine beigetretene Flotte kehrt nach der Dauer ihres eigenen Flugs zurück.“
+* **[V]** Formula: „Eine Flotte darf den Verband verzögern, wenn (ihre Ankunft − Ankunft des Verbands) · 100 ≤ Verspätung in Prozent · Restflugzeit“
+* **[V]** Table: „Die größte Verspätung nach der Restflugzeit“
+* **[V]** Table: „Restflugzeit | Größte Verspätung“
+* **[V]** Facts: „Verbandsangriff: höchstens Flotten: 16 (von 1 bis 50)“
+* **[V]** Facts: „Verbandsangriff: höchstens Spieler: 5 (von 1 bis 20)“
+* **[V]** Facts: „Verbandsangriff: Verspätung in Prozent der Restflugzeit: 30 (von 0 bis 100)“
+* **[V]** Facts: „Verbandsangriff: kein Beitritt in den letzten Minuten (0 = aus): 0 (von 0 bis 1.440)“
+* **[V]** Heading: „Beute und Rückruf“
+* **[V]** Text: „Es gibt eine einzige Beute wie bei einem einzelnen Angreifer; sie reicht höchstens so weit, wie der freie Laderaum aller überlebenden Schiffe zusammen. Sie wird nach dem freien Laderaum auf die Flotten verteilt; keine Flotte bekommt mehr, als sie tragen kann, und was nirgends Platz findet, wird nicht ausgegeben. Jede Flotte behält ihre eigene Ladung und fliegt damit heim; eine Flotte ohne Überlebende ist verloren.“
+* **[V]** Formula: „Anteil einer Flotte an der Beute = ⌊Beute · freier Laderaum der Flotte ÷ freier Laderaum aller Flotten⌋, die übrigen Einheiten gehen der Reihe nach an die ersten Flotten, die noch Platz haben“
+* **[V]** Text: „Ruft der Anführer seine Flotte zurück, ist der Angriff für alle aufgelöst und alle Flotten kehren um; die anderen Besitzer bekommen einen Bericht. Ruft ein Teilnehmer seine Flotte zurück, kehrt nur sie um und verlässt den Verband, die Ankunft des Verbands bleibt. Gegen den ganzen Verband verteidigen auch die Flotten, die am Ziel Wache halten, jede als eigene Partei; eine eigene Flotte eines Spielers des Verbands, die dort Wache hält, bleibt aus dem Kampf. Der Mondbruch, die Raketen und die Auspex-Erkundung kennen keinen Verband. Der Verteidiger sieht jede Flotte wie sonst auch, aber nichts vom Verband.“
+* **[V]** Keywords: Wache, verteidigen, Verband, gemeinsam, Beute
+
 ### Produktion, Energie und Lager (`rule-production`)
 
 * **[V]** Line: „Was ein Planet fördert, warum eine Mine weniger bringt als angegeben und wo die Förderung endet.“

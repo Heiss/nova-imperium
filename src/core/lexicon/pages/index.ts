@@ -2,6 +2,7 @@
 // page: the rule pages and the questions of stage 2 (#288) and the guides of
 // stage 3 (#289). A guard checks that every file of this folder is listed.
 import type { PageDef } from '../types.ts';
+import { page as allies } from './allies.ts';
 import { page as battle } from './battle.ts';
 import { page as colonies } from './colonies.ts';
 import { page as debris } from './debris.ts';
@@ -49,6 +50,7 @@ export const PAGES: readonly PageDef[] = [
   missiles,
   survey,
   expeditions,
+  allies,
   production,
   queues,
   protection,

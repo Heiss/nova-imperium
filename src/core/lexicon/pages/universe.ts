@@ -83,6 +83,7 @@ export const page: PageDef = {
     'rule-flight',
     'rule-planets',
     'rule-expeditions',
+    'rule-allies',
     'rule-endzeit',
     'rule-rewards',
   ],

@@ -5,8 +5,10 @@
 import { describe, expect, it } from 'vitest';
 import { planet } from '../../test/fixtures.ts';
 import { STATES } from '../../test/lexicon-states.ts';
-import { buildable } from '../catalog.ts';
+import { buildable, MOBILE } from '../catalog.ts';
 import { drawEvent, drawSize, EVENT_KINDS, raidFleet } from '../expedition.ts';
+import { holdFuel } from '../flight.ts';
+import { joinTiming } from '../union.ts';
 import { CENTRED, surveyFindings, surveyTier, TIERS } from '../survey.ts';
 import { GUILD_RIGHTS } from '../guild-ranks.ts';
 import { pageParts } from './docs.ts';
@@ -262,6 +264,70 @@ describe('the rule pages of the missions say the values of the rules', () => {
       '1500',
     ]);
     expect(hits).toHaveLength(8);
+  });
+});
+
+describe('Wache stellen und Verbandsangriff say what the rules do', () => {
+  const live = (over: Record<string, number>) => withLive({}, over);
+
+  it('the guard: who may hold, the times, the limits and the fuel', () => {
+    const text = words('rule-allies');
+    expect(text).toContain('Halten erlaubt für: Gilde und Freunde');
+    expect(text).toContain(
+      'Die Haltezeit beträgt 0, 1, 2, 4, 8, 16 oder 32 Stunden.',
+    );
+    expect(text).toContain(
+      'höchstens 4 verschiedene Spieler mit zusammen höchstens 15 Flotten',
+    );
+    expect(text).toContain('mindestens 1 Promethium');
+    expect(text).toContain(
+      'Gehaltene Flotten im Auspex-Bericht ab Auspex-Lehre: 2 (von 0 bis 30)',
+    );
+    expect(
+      words('rule-allies', live({ roundAllies: 1, roundHeldSpy: 5 })),
+    ).toContain('Halten erlaubt für: Gilde');
+    // A tenth of the base consumption per ship and hour: 10 Frachtläufer for 8 hours.
+    expect(holdFuel({ sc: 10 }, 8)).toBe(
+      Math.floor((10 * MOBILE.sc!.fuel * 8) / 10),
+    );
+    expect(holdFuel({}, 0)).toBe(1);
+  });
+
+  it('the union: the delay by the percentage of the round, the cut-off only when it is on', () => {
+    const text = words('rule-allies');
+    expect(text).toContain('höchstens um 30 % der Restflugzeit');
+    expect(text).toContain(
+      'Eine Sperre kurz vor der Ankunft gibt es in dieser Runde nicht.',
+    );
+    const custom = live({
+      roundUnionDelay: 50,
+      roundUnionCutoff: 15,
+      roundUnionFleets: 8,
+    });
+    const changed = words('rule-allies', custom);
+    expect(changed).toContain('höchstens um 50 % der Restflugzeit');
+    expect(changed).toContain(
+      'In den letzten 15 Minuten vor der Ankunft tritt niemand mehr bei.',
+    );
+    expect(changed).toContain(
+      'Verbandsangriff: höchstens Flotten: 8 (von 1 bis 50)',
+    );
+    // 30 % of 10 minutes is 3 minutes: a delay of exactly that is accepted, one millisecond more is refused.
+    expect(
+      rowsOf('rule-allies', 'Die größte Verspätung nach der Restflugzeit'),
+    ).toEqual([
+      ['10 Min. 0 Sek.', '3 Min. 0 Sek.'],
+      ['1 Std. 0 Min.', '18 Min. 0 Sek.'],
+      ['6 Std. 0 Min.', '1 Std. 48 Min.'],
+    ]);
+    const limits = { delay: 30, cutoff: 0 };
+    const ten = 600_000;
+    expect(
+      joinTiming({ now: 0, arr: ten, flight: ten + 180_000, limits }),
+    ).toEqual({ arr: ten + 180_000 });
+    expect(
+      joinTiming({ now: 0, arr: ten, flight: ten + 180_001, limits }),
+    ).toEqual({ error: 'delay' });
   });
 });
 

@@ -224,6 +224,16 @@ their own.
   `expedition-ships.ts` are exported; no rule changed. Left out, since the
   page would need more code to back it: the recall of an expedition.
 
+* **[V]** „Wache stellen und Verbandsangriff“ (`rule-allies`, #55, #225): who
+  may hold (the round's `allies`, read from the universe `u` like the other
+  live settings), the holding times, fuel and limits of `holding.ts`, what a
+  guard does in the three fights and with vacation and Mondbruch (the three
+  decisions of 2026-11-19), and the union: opening, inviting, joining, the
+  delay (`joinTiming`), the four limits of the round, the split of the loot
+  (`splitLoot`) and the recall. No constant moved. Left out, because no test
+  backs it: that the fuel of the unused holding hours is not refunded after a
+  recall; and the arrival of the alliance depot, which is not built.
+
 # Stage 3: guides and personal hints (#289)
 
 * **[V]** The three open decisions of the issue were not answered; taken as
