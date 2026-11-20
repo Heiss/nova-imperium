@@ -2033,7 +2033,7 @@ table.lx-t {
   }
   .item .act input {
     width: 100%;
-    min-height: 40px;
+    min-height: 44px;
   }
   .item .nm {
     position: relative;
@@ -2531,4 +2531,41 @@ table.lx-t {
 }
 .no-anim .rw .rw-in {
   animation: none;
+}
+
+/* ---------- Phone: touch targets of at least 44 px (#189, owner 2026-11-20) ----------
+   Every button (the former `small` ones, the „?“ and „▤“ and the arrows of
+   the Sternenkarte included), field, list and the links of the Lexicanum
+   lists are 44 px high on a phone, and a short one 44 px wide too. A check box
+   and a radio button are reached through their label. E2E: touch-targets.spec.ts. */
+@media (max-width: 760px) {
+  button,
+  select,
+  textarea,
+  input:not([type='checkbox'], [type='radio'], [type='hidden']),
+  summary,
+  .lx-list a.lx-a,
+  .lx-links a.lx-a,
+  .lx-crumb a.lx-a,
+  th a.lx-a,
+  .lx-toc a {
+    min-height: 44px;
+  }
+  button,
+  .lx-list a.lx-a,
+  .lx-links a.lx-a,
+  .lx-crumb a.lx-a,
+  th a.lx-a,
+  .lx-toc a {
+    min-width: 44px;
+  }
+  /* A link inside a sentence stays in its line (WCAG 2.5.8: inline links are exempt). */
+  .lx-list a.lx-a,
+  .lx-links a.lx-a,
+  .lx-crumb a.lx-a,
+  th a.lx-a,
+  .lx-toc a {
+    display: inline-flex;
+    align-items: center;
+  }
 }
