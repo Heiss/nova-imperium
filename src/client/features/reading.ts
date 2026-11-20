@@ -36,10 +36,10 @@ function seeChat(): void {
 }
 
 export const clientFeature = {
-  acts: (given) => {
+  listen: (given) => {
     ctx = given;
-    return {};
   },
+  acts: () => ({}),
   afterRender: () => {
     if (!client.game) return;
     if (client.ui.view === 'messages') markRead();

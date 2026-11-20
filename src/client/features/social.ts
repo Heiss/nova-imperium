@@ -37,7 +37,7 @@ async function friend(act: Act, d: Data): Promise<void> {
 
 /** The data-act handlers of both; their forms are handled here too. */
 export const clientFeature = {
-  acts: ({ act }) => {
+  listen: ({ act }) => {
     document.addEventListener('submit', (e) => {
       const id = (e.target as HTMLElement).id;
       if (id === 'guildchatform') {
@@ -48,12 +48,12 @@ export const clientFeature = {
         void friend(act, { op: 'request' });
       }
     });
-    return {
-      guildChatDelete: (d) => {
-        if (window.confirm('Nachricht löschen?'))
-          return act('deleteGuildChat', { id: Number(d.id) });
-      },
-      friend: (d) => friend(act, d),
-    };
   },
+  acts: ({ act }) => ({
+    guildChatDelete: (d) => {
+      if (window.confirm('Nachricht löschen?'))
+        return act('deleteGuildChat', { id: Number(d.id) });
+    },
+    friend: (d) => friend(act, d),
+  }),
 } satisfies ClientFeature;

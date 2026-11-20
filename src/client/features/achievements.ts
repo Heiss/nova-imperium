@@ -29,7 +29,7 @@ function filterAchievements(): void {
 }
 
 export const clientFeature = {
-  acts: ({ act, render }) => {
+  listen: () => {
     document.addEventListener('change', () => {
       if (client.ui.view === 'achievements') filterAchievements();
     });
@@ -40,16 +40,16 @@ export const clientFeature = {
       )
         filterAchievements();
     });
-    return {
-      achievementClaim: (d) => act('claimAchievement', { id: d.id }),
-      dailyClaim: () => act('claimDailyReward'),
-      // Phone (#189): unfolds the group „Offen“ or „Erledigt“.
-      achFold: (d) => {
-        toggleFold(d.g ?? '');
-        render();
-      },
-    };
   },
+  acts: ({ act, render }) => ({
+    achievementClaim: (d) => act('claimAchievement', { id: d.id }),
+    dailyClaim: () => act('claimDailyReward'),
+    // Phone (#189): unfolds the group „Offen“ or „Erledigt“.
+    achFold: (d) => {
+      toggleFold(d.g ?? '');
+      render();
+    },
+  }),
   afterRender: () => {
     if (client.ui.view === 'achievements') filterAchievements();
   },

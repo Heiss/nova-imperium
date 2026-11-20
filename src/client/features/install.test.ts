@@ -15,7 +15,10 @@ let storage: {
 };
 let nav: { standalone?: boolean };
 
-const build = (ctx = fakeCtx()) => clientFeature.acts(ctx);
+const build = (ctx = fakeCtx()) => {
+  clientFeature.listen!();
+  return clientFeature.acts(ctx);
+};
 const offered = (prompt = vi.fn(async () => undefined)) => {
   const event = { preventDefault: vi.fn(), prompt };
   winListeners.beforeinstallprompt!(event);

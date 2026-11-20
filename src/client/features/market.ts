@@ -45,7 +45,7 @@ function read(): void {
 
 /** The data-act handlers of the marketplace; its form is handled here too. */
 export const clientFeature = {
-  acts: ({ act }) => {
+  listen: ({ act }) => {
     document.addEventListener('input', (e) => {
       if (!(e.target as HTMLElement).closest('#marketform')) return;
       read();
@@ -66,14 +66,14 @@ export const clientFeature = {
         paint();
       });
     });
-    return {
-      marketMax: () => {
-        const m = current();
-        if (!m) return;
-        read();
-        draft.amount = maxAmount(m, fixed(draft));
-        paint();
-      },
-    };
   },
+  acts: () => ({
+    marketMax: () => {
+      const m = current();
+      if (!m) return;
+      read();
+      draft.amount = maxAmount(m, fixed(draft));
+      paint();
+    },
+  }),
 } satisfies ClientFeature;

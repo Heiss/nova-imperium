@@ -46,8 +46,10 @@ afterEach(() => {
   client.view = null;
 });
 
-const acts = (ctx = fakeCtx()): Record<string, Handler> =>
-  clientFeature.acts(ctx);
+const acts = (ctx = fakeCtx()): Record<string, Handler> => {
+  clientFeature.listen!(ctx);
+  return clientFeature.acts(ctx);
+};
 
 describe('stepping through the map', () => {
   it('steps by the arrows and renders anew', () => {

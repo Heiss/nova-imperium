@@ -118,8 +118,7 @@ function watchDrafts(): void {
 
 export const clientFeature = {
   forms: adminForms,
-  acts: (ctx) => {
-    const { act, modal, toast } = ctx;
+  listen: (ctx) => {
     bindAdminPanel({
       api: ctx.api,
       signedOut: ctx.signedOut,
@@ -127,6 +126,9 @@ export const clientFeature = {
     });
     document.addEventListener('keydown', adminTabKey);
     watchDrafts();
+  },
+  acts: (ctx) => {
+    const { act, modal, toast } = ctx;
     return {
       adminTab: (d) => {
         if (d.tab && Object.hasOwn(ADMIN_TABS, d.tab))

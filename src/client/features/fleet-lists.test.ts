@@ -107,7 +107,7 @@ beforeEach(() => {
     players: {},
   } as unknown as GameState;
   client.view = { P: { id: 'p1_1_5', ships: {} } } as unknown as V;
-  clientFeature.acts(
+  clientFeature.listen(
     fakeCtx({
       setInput: (sel, v) => {
         fields[sel]!.value = String(v);

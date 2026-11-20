@@ -72,28 +72,28 @@ export function syncRoundDialog(
 
 /** The data-act handlers of „Neue Runde“. */
 export const clientFeature = {
-  acts: ({ act, modal }) => {
+  listen: () => {
     const changed = (e: Event): void => {
       if ((e.target as HTMLElement | null)?.id?.startsWith('round-'))
         syncRoundDialog();
     };
     document.addEventListener('change', changed);
     document.addEventListener('input', changed);
-    return {
-      reset: () =>
-        modal(
-          roundDialog(
-            client.game!.round,
-            ROUND_SETTINGS,
-            client.game!.admin?.fresh,
-          ),
-        ),
-      doReset: () => {
-        // Read before the dialog closes with its fields.
-        const data = roundRequest(dialogValues());
-        modal('');
-        return act('reset', data);
-      },
-    };
   },
+  acts: ({ act, modal }) => ({
+    reset: () =>
+      modal(
+        roundDialog(
+          client.game!.round,
+          ROUND_SETTINGS,
+          client.game!.admin?.fresh,
+        ),
+      ),
+    doReset: () => {
+      // Read before the dialog closes with its fields.
+      const data = roundRequest(dialogValues());
+      modal('');
+      return act('reset', data);
+    },
+  }),
 } satisfies ClientFeature;

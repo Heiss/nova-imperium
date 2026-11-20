@@ -87,7 +87,7 @@ description: 'A client feature exports its handlers as clientFeature from its ow
   dialog, planet choice, logout), the share of a producer, the animations,
   the activity sample and the marks „gelesen“ are the features `frame`,
   `producers`, `options`, `session-activity` and `reading`; a feature that
-  only listens to the page returns no handlers (`registry.test.ts`).
+  only listens to the page returns no handlers.
   `ClientCtx` got `quiet` and `apply(state, fresh)`.
 * **[V]** Forms own their input: „Account löschen“ is a component
   (`views/DeleteAccountDialog.svelte`) with its own password and busy state;
@@ -100,3 +100,11 @@ description: 'A client feature exports its handlers as clientFeature from its ow
   fields of the views that are mounted anew on every render (fleet, market,
   options, the guild forms, the profile of a guild and others) still depend
   on `keepInputs` (`keep-inputs.ts`).
+
+* **[E]** Owner, 2026-11-20: `acts()` and `forms()` are free of side effects.
+  A feature registers its page listeners (change, input, keydown, submit,
+  window events) in the optional hook `listen(ctx)`, which the assembly calls
+  once at start (`startListeners` in `assemble.ts`, called by `dispatch.ts`).
+  `registry.test.ts` checks that every feature contributes something (acts,
+  forms, `afterRender` or `listen`) and that building `acts` and `forms` adds no
+  listener to the document or the window.

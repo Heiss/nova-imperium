@@ -227,7 +227,7 @@ function quickChoice(ctx: ClientCtx, field: HTMLSelectElement): void {
 
 /** The data-act handlers of the fleet; the form is calculated again on every input. */
 export const clientFeature = {
-  acts: (ctx) => {
+  listen: (ctx) => {
     document.addEventListener('change', (e) => {
       if (client.ui.view !== 'fleet') return;
       const field = (e?.target ?? null) as HTMLSelectElement | null;
@@ -243,8 +243,12 @@ export const clientFeature = {
       )
         fleetCalc();
     });
-    return { ...selectionActs(ctx), ...cargoActs(ctx), ...flightActs(ctx) };
   },
+  acts: (ctx) => ({
+    ...selectionActs(ctx),
+    ...cargoActs(ctx),
+    ...flightActs(ctx),
+  }),
   afterRender: () => {
     if (client.ui.view === 'fleet') fleetCalc();
   },

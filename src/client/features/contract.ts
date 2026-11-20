@@ -52,6 +52,12 @@ export interface ClientFeature {
    * with its own listener (abandon, market, social) needs none.
    */
   forms?: (ctx: ClientCtx) => Record<string, () => unknown>;
+  /**
+   * Registers the listeners of the feature on the page (change, input,
+   * keydown, submit, window events); called once at start by the assembly.
+   * `acts` and `forms` stay free of side effects.
+   */
+  listen?: (ctx: ClientCtx) => void;
   /** Runs after each render, once the view is on the page. */
   afterRender?: () => void;
 }
