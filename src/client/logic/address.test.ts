@@ -63,4 +63,9 @@ describe('the address of the state', () => {
     expect(stateUrl(undefined, { pm: 'Bert' })).toBe('/api/state');
     expect(stateUrl(undefined, {})).toBe('/api/state');
   });
+
+  it('names no conversation for a newest message without a name', () => {
+    expect(stateUrl(undefined, { pmAfter: 5 })).toBe('/api/state');
+    expect(stateUrl('p1', { pmAfter: 0 })).toBe('/api/state?planet=p1');
+  });
 });
