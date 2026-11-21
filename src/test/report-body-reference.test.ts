@@ -181,7 +181,7 @@ function spyBody(r: Report): string {
  * (#118, bundle 4: logic/messages.ts, Messages.svelte) renders these bodies
  * with `{@html}` until they are components of their own.
  */
-export function reportBodyHTML(r: Report): string | null {
+function reportBodyHTML(r: Report): string | null {
   if (r.type === 'battle') return battleBody(r);
   if (r.type === 'spy') return spyBody(r);
   if (r.type === 'survey') return surveyBody(r);
