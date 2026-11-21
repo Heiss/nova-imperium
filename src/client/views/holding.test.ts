@@ -6,7 +6,6 @@ import type { RoundRules } from '../../core/round.ts';
 import { text } from '../../core/text.ts';
 import { DEFAULT_UNIVERSE, UNIVERSE_SPECS } from '../../core/universe.ts';
 import { roundDefaults } from '../../test/fixtures.ts';
-import { normalize } from '../../test/markup.ts';
 import { messagesView as messages } from '../../test/messages-view.ts';
 import type { Report } from '../logic/types.ts';
 import type { V } from './common.ts';
