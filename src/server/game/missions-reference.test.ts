@@ -761,10 +761,10 @@ function plan(ctx: Ctx, u: User, p: Planet, d: Data): Plan {
   const mission = String(d.mission) as Mission;
   if (!Object.hasOwn(MISSION, mission)) fail('Unbekannter Auftrag.');
   const ships = pickShips(p, d.ships);
-  // F12 of #214 (owner, 2026-11-21).
+  // F12 of #214 (owner, 2026-11-21) and F19, which follows it.
   if (!countUnits(ships))
     fail(
-      mission === 'spy'
+      mission === 'spy' || mission === 'survey'
         ? 'Keine Spähschädel auf dem Planeten.'
         : 'Keine Schiffe ausgewählt.',
     );

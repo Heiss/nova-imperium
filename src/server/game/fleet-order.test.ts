@@ -101,6 +101,18 @@ describe('send', () => {
     );
   });
 
+  // F19 ([V], follows the owner's decision on F12 of 2026-11-21): the
+  // Vermessung goes through the same button; until then „Keine Schiffe ausgewählt.“
+  it('refuses a Vermessung without probes as the Sternenkarte does', () => {
+    const { ctx, a } = setup();
+    for (const ships of [{}, { probe: 0 }])
+      expect(sent(ctx, a, { mission: 'survey', ships })).toBe(NO_PROBES);
+    fillSlots(ctx, a);
+    expect(sent(ctx, a, { mission: 'survey', ships: {}, to: NOWHERE })).toBe(
+      NO_PROBES,
+    );
+  });
+
   it('then refuses all slots used before the target', () => {
     const { ctx, a } = setup();
     fillSlots(ctx, a);
