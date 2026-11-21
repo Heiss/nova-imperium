@@ -10,11 +10,13 @@
   // features/round-archive.ts; the address of the invitation is kept over a
   // redraw (the poll of the state redraws the page when another player
   // registers, and an emptied required field would swallow the click on
-  // „Einladen“); a sent invitation clears it by the fresh render. The
+  // „Einladen“, #332: logic/admin-form.svelte.ts, as the message to all
+  // players); a sent invitation clears it by the fresh render. The
   // settings fields have no field draft (logic/field-drafts.ts) because
   // a kept value could not tell a draft from a value the server changed
   // (logic/settings-draft.ts).
   import { diagnosticTab, type AdminPage } from '../logic/admin.ts';
+  import { adminForm } from '../logic/admin-form.svelte.ts';
   import { panels } from '../logic/admin-panels.svelte.ts';
   import AdminDiagnostics from './AdminDiagnostics.svelte';
   import AdminErrors from './AdminErrors.svelte';
@@ -81,7 +83,14 @@
     <Box title="Einladungen">
       <form id="inviteform" class="flex">
         <label for="inv_email">E-Mail-Adresse</label>
-        <input id="inv_email" type="email" required autocomplete="off" />
+        <input
+          id="inv_email"
+          type="email"
+          required
+          autocomplete="off"
+          value={adminForm.invite}
+          oninput={(e) => (adminForm.invite = e.currentTarget.value)}
+        />
         <button type="submit">Einladen</button>
       </form>
       {#if page.link}
@@ -180,7 +189,10 @@
           id="announce-text"
           maxlength="500"
           rows="4"
-          required></textarea>
+          required
+          value={adminForm.announce}
+          oninput={(e) => (adminForm.announce = e.currentTarget.value)}
+        ></textarea>
         <p><button type="submit">An alle senden</button></p>
       </form>
     </Box>

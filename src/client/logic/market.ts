@@ -42,9 +42,6 @@ export interface Draft {
 /** The form starts with Adamant for Psikristall and no amount. */
 export const newDraft = (): Draft => ({ give: 'm', get: 'c', amount: '' });
 
-/** The draft of the open form; the view and its handlers share it. */
-export const draft: Draft = newDraft();
-
 /** The market of the shown planet from the state of the server; null before the server sent its prices. */
 export function marketOf(s: GameState, p: Planet): Market | null {
   if (!s.market) return null;

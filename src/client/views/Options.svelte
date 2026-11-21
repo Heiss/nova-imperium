@@ -6,7 +6,11 @@
   // `#own-activity`, `#passkey-list` and `#pwa-install` are plain elements: a
   // feature fills or shows them after each render. On a phone (#189) a
   // switch of five sections shows some of the boxes (`data-sec`); the desktop
-  // shows them all as before.
+  // shows them all as before. The fields keep what the player typed or chose
+  // in logic/options-form.svelte.ts (#332): `value` or `selected` with
+  // `oninput` or `onchange`, so a field nobody touched shows the page.
+  import { isChosen } from '../logic/form-state.svelte.ts';
+  import { optionsForm } from '../logic/options-form.svelte.ts';
   import { PUSH_KINDS_LEGEND, PUSH_KINDS_NOTE } from '../logic/push-options.ts';
   import { OWN_ACTIVITY_LOADING } from '../logic/own-activity.ts';
   import type { OptionsPage } from '../logic/options.ts';
@@ -37,15 +41,21 @@
         type="number"
         id="o_probes"
         min="1"
-        value={page.probes}
+        value={optionsForm.probes ?? page.probes}
+        oninput={(e) => (optionsForm.probes = e.currentTarget.value)}
         aria-label="Spähschädel pro Auspex-Erkundung"
       />
     </div>
     <div class="flex mt">
       <label for="o_explain">(?)-Symbol:</label>
-      <select id="o_explain">
+      <select
+        id="o_explain"
+        onchange={(e) => (optionsForm.explain = e.currentTarget.value)}
+      >
         {#each page.explain as choice (choice.value)}
-          <option value={choice.value} selected={choice.selected}
+          <option
+            value={choice.value}
+            selected={isChosen(optionsForm.explain, choice)}
             >{choice.label}</option
           >
         {/each}
@@ -53,9 +63,14 @@
     </div>
     <div class="flex mt">
       <label for="o_levels">Stufenübersicht:</label>
-      <select id="o_levels">
+      <select
+        id="o_levels"
+        onchange={(e) => (optionsForm.levels = e.currentTarget.value)}
+      >
         {#each page.levels as choice (choice.value)}
-          <option value={choice.value} selected={choice.selected}
+          <option
+            value={choice.value}
+            selected={isChosen(optionsForm.levels, choice)}
             >{choice.label}</option
           >
         {/each}
@@ -67,10 +82,18 @@
     <p>{page.main.intro}</p>
     <div class="flex">
       <label for="o_main">Hauptplanet</label>
-      <select id="o_main" disabled={page.main.locked}>
+      <select
+        id="o_main"
+        disabled={page.main.locked}
+        onchange={(e) => (optionsForm.main = e.currentTarget.value)}
+      >
         {#each page.main.options as option (option.id)}
-          <option value={option.id} selected={option.selected}
-            >{option.label}</option
+          <option
+            value={option.id}
+            selected={isChosen(optionsForm.main, {
+              value: option.id,
+              selected: option.selected,
+            })}>{option.label}</option
           >
         {/each}
       </select>
@@ -110,6 +133,8 @@
       <input
         id="pw_current"
         type="password"
+        value={optionsForm.pwCurrent}
+        oninput={(e) => (optionsForm.pwCurrent = e.currentTarget.value)}
         autocomplete="current-password"
         required
       />
@@ -117,6 +142,8 @@
       <input
         id="pw_next"
         type="password"
+        value={optionsForm.pwNext}
+        oninput={(e) => (optionsForm.pwNext = e.currentTarget.value)}
         autocomplete="new-password"
         minlength={page.passwordMinLength}
         required
@@ -125,6 +152,8 @@
       <input
         id="pw_confirm"
         type="password"
+        value={optionsForm.pwConfirm}
+        oninput={(e) => (optionsForm.pwConfirm = e.currentTarget.value)}
         autocomplete="new-password"
         minlength={page.passwordMinLength}
         required
@@ -138,6 +167,8 @@
       <label for="passkey-password">Passwort für neuen Passkey</label><input
         id="passkey-password"
         type="password"
+        value={optionsForm.passkey}
+        oninput={(e) => (optionsForm.passkey = e.currentTarget.value)}
         autocomplete="current-password"
         required
       /><button type="submit">Passkey hinzufügen</button>
@@ -201,6 +232,8 @@
       <textarea
         id="reportform-text"
         name="text"
+        value={optionsForm.report}
+        oninput={(e) => (optionsForm.report = e.currentTarget.value)}
         maxlength={page.report.max}
         rows="4"
         required></textarea>

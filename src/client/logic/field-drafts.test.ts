@@ -15,51 +15,76 @@ describe('the fields that have a draft', () => {
       'dissolve_tag',
       'chat_text',
       'friend_name',
-    ])
-      expect(isTracked(id), id).toBe(false);
-    for (const id of [
-      'inv_email',
-      't_g',
+      'achievement_search',
+      'achievement_category',
+      'achievement_status',
       'g_g',
       'g_s',
+      'market-give',
+      'market-get',
       'market-amount',
+      'f_fighter',
+      't_g',
+      't_s',
+      't_p',
+      't_v',
+      'c_m',
+      'c_c',
+      'c_d',
+      'un_name_f1',
       'o_probes',
+      'o_explain',
+      'o_levels',
+      'o_main',
+      'pw_current',
+      'pw_next',
+      'pw_confirm',
+      'passkey-password',
+      'reportform-text',
       'guild_tag',
+      'guild_name',
+      'guild_description',
+      'rank_name_r1',
+      'rank_new',
+      'rank_of_u1',
+      'rank_r1_chat',
+      'inv_email',
+      'announce-text',
+      'audit-player',
+      'audit-outcome',
     ])
+      expect(isTracked(id), id).toBe(false);
+    for (const id of ['t_k', 't_m', 't_h', 'jg_to', 'o_anim', 'q_lc', 'td_lc'])
+      expect(isTracked(id), id).toBe(true);
+  });
+
+  it('matches the whole id, not a part of it', () => {
+    for (const id of ['xset_speed', 'inv_link2', 'my_inv_email', 'o_probes_x'])
       expect(isTracked(id), id).toBe(true);
   });
 });
 
 describe('the drafts of the fields', () => {
-  it('keeps the typed position of the Sternenkarte over a redraw until a fresh render', () => {
-    const drafts = new FieldDrafts();
-    drafts.record(f('g_g', '1'));
-    drafts.record(f('g_s', '1'));
-    expect(drafts.restore(f('g_g', '9'))).toEqual({ value: '1' });
-    expect(drafts.restore(f('g_s', '4'))).toEqual({ value: '1' });
-    drafts.reset();
-    expect(drafts.restore(f('g_g', '9'))).toEqual({});
-  });
-
   it('gives back what was typed after a redraw put the value of the state', () => {
     const drafts = new FieldDrafts();
-    drafts.record(f('t_g', '7'));
-    expect(drafts.restore(f('t_g', '1'))).toEqual({ value: '7' });
+    drafts.record(f('q_lc', '7'));
+    expect(drafts.restore(f('q_lc', '1'))).toEqual({ value: '7' });
   });
 
   it('takes the newest value and gives nothing for a field never changed', () => {
     const drafts = new FieldDrafts();
-    drafts.record(f('t_g', '7'));
-    drafts.record(f('t_g', '8'));
-    expect(drafts.restore(f('t_g'))).toEqual({ value: '8' });
-    expect(drafts.restore(f('t_s'))).toEqual({});
+    drafts.record(f('q_lc', '7'));
+    drafts.record(f('q_lc', '8'));
+    expect(drafts.restore(f('q_lc'))).toEqual({ value: '8' });
+    // Strict: not even a key without a value for a field never changed.
+    expect(drafts.restore(f('td_lc'))).toStrictEqual({});
   });
 
   it('keeps an emptied field empty', () => {
     const drafts = new FieldDrafts();
-    drafts.record(f('inv_email', 'a@b.de'));
-    drafts.record(f('inv_email', ''));
-    expect(drafts.restore(f('inv_email', 'old'))).toEqual({ value: '' });
+    drafts.record(f('td_lc', '3'));
+    drafts.record(f('td_lc', ''));
+    expect(drafts.restore(f('td_lc', 'old'))).toEqual({ value: '' });
   });
 
   it('records no field without a draft', () => {
@@ -83,39 +108,20 @@ describe('the drafts of the fields', () => {
     });
   });
 
-  it('keeps a ticked or cleared rank box, but not onto a disabled one (#163)', () => {
+  it('records no rank box: the form of the guild keeps its ticks (#332, the disabled box in views/guild-form.test.ts)', () => {
     const drafts = new FieldDrafts();
-    drafts.record(
-      f('rank_r1_chat', 'chat', { rankRight: true, checked: true }),
-    );
-    drafts.record(f('rank_r1_war', 'war', { rankRight: true, checked: false }));
-    expect(
-      drafts.restore(
-        f('rank_r1_chat', 'chat', { rankRight: true, checked: false }),
-      ),
-    ).toEqual({ checked: true });
-    expect(
-      drafts.restore(
-        f('rank_r1_war', 'war', { rankRight: true, checked: true }),
-      ),
-    ).toEqual({ checked: false });
-    expect(
-      drafts.restore(
-        f('rank_r1_chat', 'chat', { rankRight: true, disabled: true }),
-      ),
-    ).toEqual({});
+    drafts.record(f('rank_r1_chat', 'chat'));
+    drafts.record(f('rank_r1_war', 'war'));
+    expect(drafts.restore(f('rank_r1_chat', 'chat'))).toEqual({});
+    expect(drafts.restore(f('rank_r1_war', 'war'))).toEqual({});
   });
 
   it('drops every draft on reset (a fresh render, a logout)', () => {
     const drafts = new FieldDrafts();
-    drafts.record(f('t_g', '7'));
-    drafts.record(
-      f('rank_r1_chat', 'chat', { rankRight: true, checked: true }),
-    );
+    drafts.record(f('q_lc', '7'));
+    drafts.record(f('td_lc', '3'));
     drafts.reset();
-    expect(drafts.restore(f('t_g', '1'))).toEqual({});
-    expect(drafts.restore(f('rank_r1_chat', '', { rankRight: true }))).toEqual(
-      {},
-    );
+    expect(drafts.restore(f('q_lc', '1'))).toEqual({});
+    expect(drafts.restore(f('td_lc', ''))).toEqual({});
   });
 });

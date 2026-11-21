@@ -38,9 +38,9 @@ const view = () => ({ querySelectorAll: () => page }) as unknown as HTMLElement;
 describe('the drafts of the page', () => {
   it('records a change of a field of the view and puts it back into the redrawn view', () => {
     mod.trackFields();
-    const typed = new Input('t_g', '7');
+    const typed = new Input('q_lc', '7');
     listeners.input!({ target: typed });
-    const redrawn = new Input('t_g', '1');
+    const redrawn = new Input('q_lc', '1');
     page = [redrawn];
     mod.restoreFields(view());
     expect(redrawn.value).toBe('7');
@@ -56,22 +56,22 @@ describe('the drafts of the page', () => {
   });
 
   it('records a field that a button fills, as the player’s', () => {
-    const field = new Input('f_fighter');
+    const field = new Input('q_lc');
     mod.writeField(field as never, '6');
     expect(field.value).toBe('6');
-    const redrawn = new Input('f_fighter');
+    const redrawn = new Input('q_lc');
     page = [redrawn];
     mod.restoreFields(view());
     expect(redrawn.value).toBe('6');
   });
 
   it('records what setById writes, as writeField does (the settings of the admin page use it)', async () => {
-    const field = new Input('t_g');
+    const field = new Input('q_lc');
     vi.stubGlobal('document', { getElementById: () => field });
     const { setById } = await import('./dom.ts');
-    setById('t_g', '8');
+    setById('q_lc', '8');
     expect(field.value).toBe('8');
-    page = [new Input('t_g', '1')];
+    page = [new Input('q_lc', '1')];
     mod.restoreFields(view());
     expect(page[0]!.value).toBe('8');
   });
@@ -91,9 +91,9 @@ describe('the drafts of the page', () => {
 
   it('forgets everything on a fresh render', () => {
     mod.trackFields();
-    listeners.input!({ target: new Input('t_g', '7') });
+    listeners.input!({ target: new Input('q_lc', '7') });
     mod.forgetFields();
-    const redrawn = new Input('t_g', '1');
+    const redrawn = new Input('q_lc', '1');
     page = [redrawn];
     mod.restoreFields(view());
     expect(redrawn.value).toBe('1');

@@ -135,6 +135,25 @@ test.describe('a redraw by the poll keeps the draft of a form', () => {
     await expect(sys).toHaveValue('1');
     expect(w.problems).toEqual([]);
   });
+  test('the filter of the achievements keeps the search, the category and the status', async ({
+    page,
+  }) => {
+    const w = watch(page);
+    const name = uniqueName('EntwurfErfolge');
+    await register(page, name);
+    await nav(page, 'achievements');
+    await page.locator('#achievement_search').fill('flotte');
+    await page.locator('#achievement_category').selectOption('fleet');
+    await page.locator('#achievement_status').selectOption('open');
+
+    await waitForRedraw(page, 'achievement_search', () =>
+      seed({ name, res: { m: 0, c: 0, d: 10008 } }),
+    );
+    await expect(page.locator('#achievement_search')).toHaveValue('flotte');
+    await expect(page.locator('#achievement_category')).toHaveValue('fleet');
+    await expect(page.locator('#achievement_status')).toHaveValue('open');
+    expect(w.problems).toEqual([]);
+  });
   test('the opened details of the event log stay open with their code over a redraw', async ({
     page,
   }) => {
