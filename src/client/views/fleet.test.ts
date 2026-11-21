@@ -6,6 +6,8 @@ import { planet, U } from '../../test/fixtures.ts';
 import type { ClientFleet, GameState } from '../logic/types.ts';
 import { fleetView as fleet } from '../../test/fleet-view.ts';
 import { realStay, timeRow } from '../logic/fleet-time.ts';
+import { fleetForm } from '../logic/fleet-form.svelte.ts';
+import { forgetForms } from '../logic/form-state.svelte.ts';
 import type { Ui, V } from './common.ts';
 
 const out = (
@@ -173,6 +175,41 @@ function page(rowId: 't_hold' | 't_stay_row', hours = '') {
   });
   return { row, real };
 }
+
+describe('the state of the form (#332)', () => {
+  afterEach(forgetForms);
+
+  it('shows the target of the page and no number while nothing was typed', () => {
+    const html = fleet(view({}));
+    expect(html).toMatch(/<input[^>]*id="f_lc"[^>]*>/);
+    expect(/<input[^>]*id="f_lc"[^>]*>/.exec(html)![0]).not.toContain('value');
+    for (const [id, at] of [
+      ['t_g', 1],
+      ['t_s', 2],
+      ['t_p', 6],
+    ] as const)
+      expect(new RegExp(`id="${id}" value="${at}"`).test(html), id).toBe(true);
+    expect(html).not.toMatch(/<select id="t_v"[^]*?selected[^]*?<\/select>/);
+    expect(/<input[^>]*id="c_m"[^>]*>/.exec(html)![0]).not.toContain('value');
+  });
+
+  it('shows what was typed and chosen, an emptied field empty, over a redraw', () => {
+    Object.assign(fleetForm, {
+      ships: { lc: '3' },
+      to: { g: '4', s: null, p: '' },
+      speed: '5',
+      cargo: { m: '20' },
+    });
+    const html = fleet(view({}));
+    expect(/<input[^>]*id="f_lc"[^>]*>/.exec(html)![0]).toContain('value="3"');
+    expect(html).toContain('id="t_g" value="4"');
+    expect(html).toContain('id="t_s" value="2"');
+    expect(html).toContain('id="t_p" value=""');
+    expect(html).toContain('<option value="5" selected="">50 %</option>');
+    expect(html).toContain('<option value="10">100 %</option>');
+    expect(/<input[^>]*id="c_m"[^>]*>/.exec(html)![0]).toContain('value="20"');
+  });
+});
 
 describe('the row of the time at the target follows the mission (#55, #93)', () => {
   afterEach(() => vi.unstubAllGlobals());

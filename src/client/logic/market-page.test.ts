@@ -1,13 +1,12 @@
 // The page „Marktplatz“ (#171) of the view state: the notices, the form with
-// the draft, and the HTML of the options and the preview that the form is
-// painted with.
-import { afterEach, describe, expect, it } from 'vitest';
+// the market of the shown planet, and the HTML of the preview.
+import { describe, expect, it } from 'vitest';
 import { CLOSED } from '../../core/market-text.ts';
 import { DEFAULT_UNIVERSE } from '../../core/universe.ts';
 import { planet, roundDefaults } from '../../test/fixtures.ts';
 import type { V } from '../views/common.ts';
-import { draft, newDraft } from './market.ts';
-import { marketPage, previewHTML, targetOptions } from './market-page.ts';
+import { marketOf } from './market.ts';
+import { marketPage, previewHTML } from './market-page.ts';
 import type { GameState } from './types.ts';
 
 const BASE = 1_000_000;
@@ -28,8 +27,6 @@ function view(
   } as unknown as V;
 }
 
-afterEach(() => Object.assign(draft, newDraft()));
-
 describe('the page of the marketplace', () => {
   it('is the closed notice in a round with the market off, and while no prices came', () => {
     expect(marketPage(view({ marketOn: 0 }))).toEqual({
@@ -49,37 +46,16 @@ describe('the page of the marketplace', () => {
     });
   });
 
-  it('is the form with the draft: both lists, the amount as typed, the preview, and whether „Tauschen“ is offered', () => {
-    const empty = marketPage(view());
-    expect(empty).toMatchObject({
+  it('is the form of the market of the shown planet', () => {
+    const v = view();
+    expect(marketPage(v)).toEqual({
       kind: 'form',
-      amount: '',
-      ok: false,
-      giveOptions:
-        '<option value="m" selected>Adamant</option><option value="c">Psikristall</option><option value="d">Promethium</option>',
-      getOptions:
-        '<option value="c" selected>Psikristall</option><option value="d">Promethium</option>',
+      market: marketOf(v.s, v.P),
     });
-    Object.assign(draft, { give: 'm', get: 'd', amount: '1000' });
-    const page = marketPage(view());
-    expect(page).toMatchObject({ kind: 'form', amount: '1000', ok: true });
-    expect(page.kind === 'form' && page.preview).toContain(
-      '<td>Du erhältst</td><td>225 Promethium</td>',
-    );
+    expect(marketOf(v.s, v.P)).not.toBeNull();
   });
 
-  it('never gets what it gives', () => {
-    Object.assign(draft, { give: 'c', get: 'c' });
-    const page = marketPage(view());
-    expect(page.kind === 'form' && page.getOptions).toBe(
-      '<option value="m" selected>Adamant</option><option value="d">Promethium</option>',
-    );
-  });
-
-  it('writes the options and the preview that the form is painted with', () => {
-    expect(targetOptions({ give: 'd', get: 'm', amount: '' })).toBe(
-      '<option value="m" selected>Adamant</option><option value="c">Psikristall</option>',
-    );
+  it('writes the preview that the form is painted with', () => {
     expect(
       previewHTML({
         lines: [{ label: '<Kurs>', value: 'a & b' }],

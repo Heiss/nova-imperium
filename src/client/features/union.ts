@@ -3,8 +3,11 @@
 // „Beitreten“ and the choice „Verband“ of the fleet form fill the form with
 // the target and the mission of the union. The fleet form itself sends the
 // join (the field `union` of „send“, features/fleet.ts); the markup is in
-// views/union.ts, what it shows in logic/union.ts.
-import { byId, setById } from '../dom.ts';
+// views/union.ts, what it shows in logic/union.ts. The position of the
+// target and the names to invite are the state of the fleet form
+// (logic/fleet-form.svelte.ts, #332).
+import { flushSync } from 'svelte';
+import { fleetForm } from '../logic/fleet-form.svelte.ts';
 import { joinChoices } from '../logic/union.ts';
 import { client } from '../logic/state.svelte.ts';
 import type { ClientCtx, ClientFeature } from './contract.ts';
@@ -24,11 +27,12 @@ function pick({ setInput }: ClientCtx, id: string): void {
   client.ui.fm = 'attack';
   client.ui.fk = kind;
   setInput('#t_u', choice.id);
-  setInput('#t_g', choice.to.g);
-  setInput('#t_s', choice.to.s);
-  setInput('#t_p', choice.to.p);
+  const { g, s, p } = choice.to;
+  fleetForm.to = { g: String(g), s: String(s), p: String(p) };
   setInput('#t_k', kind);
   setInput('#t_m', 'attack');
+  // The position is in the field before the input event reads it.
+  flushSync();
   document
     .getElementById('t_g')
     ?.dispatchEvent(new Event('input', { bubbles: true }));
@@ -45,10 +49,10 @@ export const clientFeature = {
   acts: (ctx) => ({
     openUnion: (d) => ctx.act('openUnion', { id: d.id }),
     inviteUnion: async (d) => {
-      const field = `un_name_${d.id}`;
-      const name = byId(field).trim();
-      if (name && (await ctx.act('inviteUnion', { id: d.id, name })))
-        setById(field, '');
+      const id = d.id ?? '';
+      const name = (fleetForm.invite[id] ?? '').trim();
+      if (name && (await ctx.act('inviteUnion', { id, name })))
+        fleetForm.invite[id] = '';
     },
     joinUnion: (d) => pick(ctx, d.id ?? ''),
   }),

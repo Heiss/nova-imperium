@@ -3,30 +3,46 @@
   // okf/architecture/patterns.md, section 9), from marketPage() of
   // logic/market-page.ts: the notice while the market is closed or the planet
   // has no Handelsposten, else the form: what to give, what to get, the
-  // amount with „max“, the preview and „Tauschen“. features/market.ts reads
-  // the form by its ids and writes the list of what to get and the preview
-  // into their places while the player types. Those two lists and the preview
-  // are HTML (`{@html}`) so that the form writes them with the same
-  // functions.
-  import type { MarketPage } from '../logic/market-page.ts';
+  // amount with „max“, the preview and „Tauschen“. The fields are the state of
+  // logic/market-form.svelte.ts (#332): the form binds them, the preview
+  // follows them, and features/market.ts reads them when „Tauschen“ sends and
+  // writes the amount for „max“. The preview is HTML (`{@html}`), written by
+  // previewHTML() of logic/market-page.ts.
+  import { RES_NAME, TRADED } from '../../core/market.ts';
+  import type { Res } from '../../core/market.ts';
+  import { chooseGive, draft } from '../logic/market-form.svelte.ts';
+  import { previewHTML, type MarketPage } from '../logic/market-page.ts';
+  import { fixed, preview, targets } from '../logic/market.ts';
   import Box from './Box.svelte';
 
   let { page }: { page: MarketPage } = $props();
+  // Never gets what it gives: the first other resource then.
+  const shown = $derived(fixed(draft));
 </script>
 
 <h2>Marktplatz</h2>
 {#if page.kind === 'notice'}
   <div class="notice">{page.text}</div>
 {:else}
+  {@const p = preview(page.market, shown)}
   <Box title="Tauschen">
     <form id="marketform">
       <p>
         <label for="market-give">Du gibst</label>
-        <select id="market-give">{@html page.giveOptions}</select>
+        <select id="market-give" bind:value={() => draft.give, chooseGive}>
+          {#each TRADED as r (r)}<option value={r}>{RES_NAME[r]}</option>{/each}
+        </select>
       </p>
       <p>
         <label for="market-get">Du erhältst</label>
-        <select id="market-get">{@html page.getOptions}</select>
+        <select
+          id="market-get"
+          bind:value={() => shown.get, (r: Res) => (draft.get = r)}
+        >
+          {#each targets(shown.give) as r (r)}<option value={r}
+              >{RES_NAME[r]}</option
+            >{/each}
+        </select>
       </p>
       <p>
         <label for="market-amount">Menge</label>
@@ -37,13 +53,14 @@
           step="1"
           inputmode="numeric"
           autocomplete="off"
-          value={page.amount}
+          value={draft.amount}
+          oninput={(e) => (draft.amount = e.currentTarget.value)}
         />
         <button type="button" data-act="marketMax">max</button>
       </p>
-      <div id="market-preview" role="status">{@html page.preview}</div>
+      <div id="market-preview" role="status">{@html previewHTML(p)}</div>
       <p>
-        <button type="submit" id="market-trade" disabled={!page.ok}
+        <button type="submit" id="market-trade" disabled={!p.ok}
           >Tauschen</button
         >
       </p>

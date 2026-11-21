@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { unfolded } from '../logic/achievement-fold.ts';
+import { achievementFilter } from '../logic/achievement-filter.svelte.ts';
+import { forgetForms } from '../logic/form-state.svelte.ts';
 import { client } from '../logic/state.svelte.ts';
 import { clientFeature } from './achievements.ts';
 import { fakeCtx } from './test-ctx.ts';
@@ -7,7 +9,6 @@ import { fakeCtx } from './test-ctx.ts';
 type Item = { hidden: boolean; dataset: Record<string, string> };
 type Group = { hidden: boolean; items: Item[] };
 
-let fields: Record<string, { value: string }>;
 let items: Item[];
 let groups: Group[];
 let listeners: Record<string, (e: unknown) => void>;
@@ -23,12 +24,11 @@ const group = (...inGroup: Item[]): Group => ({
 const shown = (list: Item[]) => list.map((i) => !i.hidden);
 
 beforeEach(() => {
-  fields = {};
+  forgetForms();
   listeners = {};
   items = [item('erster flug'), item('große flotte', 'b', 'done')];
   groups = [group(items[0]!), group(items[1]!), group()];
   vi.stubGlobal('document', {
-    querySelector: (sel: string) => fields[sel] ?? null,
     querySelectorAll: (sel: string) =>
       sel === '[data-achievement]'
         ? items
@@ -50,7 +50,10 @@ beforeEach(() => {
   client.ui.view = 'achievements';
   clientFeature.listen!();
 });
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  forgetForms();
+});
 
 describe('the claim buttons', () => {
   it('claims an achievement by its id and the daily reward', () => {
@@ -73,33 +76,33 @@ describe('the filter of the list', () => {
   });
 
   it('searches the lower-cased text, trimmed, and hides the group with nothing left', () => {
-    fields['#achievement_search'] = { value: '  FLOTTE ' };
+    achievementFilter.search = '  FLOTTE ';
     clientFeature.afterRender();
     expect(shown(items)).toEqual([false, true]);
     expect(groups.map((g) => g.hidden)).toEqual([true, false, false]);
   });
 
   it('narrows by category and by status', () => {
-    fields['#achievement_category'] = { value: 'b' };
+    achievementFilter.category = 'b';
     clientFeature.afterRender();
     expect(shown(items)).toEqual([false, true]);
-    fields['#achievement_category'] = { value: '' };
-    fields['#achievement_status'] = { value: 'open' };
+    achievementFilter.category = '';
+    achievementFilter.status = 'open';
     clientFeature.afterRender();
     expect(shown(items)).toEqual([true, false]);
   });
 
   it('runs after a render, a change and a typed search in this view', () => {
-    fields['#achievement_search'] = { value: 'flotte' };
+    achievementFilter.search = 'flotte';
     listeners.change!({});
     expect(shown(items)).toEqual([false, true]);
-    fields['#achievement_search'] = { value: 'flug' };
+    achievementFilter.search = 'flug';
     listeners.input!({ target: { id: 'achievement_search' } });
     expect(shown(items)).toEqual([true, false]);
   });
 
   it('does not run for another field, nor in another view', () => {
-    fields['#achievement_search'] = { value: 'flotte' };
+    achievementFilter.search = 'flotte';
     listeners.input!({ target: { id: 'other' } });
     expect(shown(items)).toEqual([true, true]);
     client.ui.view = 'fleet';

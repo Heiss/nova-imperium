@@ -23,7 +23,6 @@ import { DEFAULT_UNIVERSE } from '../core/universe.ts';
 import { esc } from '../client/logic/format.ts';
 import {
   type Draft,
-  draft,
   fixed,
   marketOf,
   newDraft,
@@ -31,6 +30,7 @@ import {
   type Preview,
   targets,
 } from '../client/logic/market.ts';
+import { draft } from '../client/logic/market-form.svelte.ts';
 import type { GameState } from '../client/logic/types.ts';
 import type { V } from '../client/views/common.ts';
 import { planet, roundDefaults } from './fixtures.ts';
