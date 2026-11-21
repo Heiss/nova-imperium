@@ -9,6 +9,7 @@ import {
   cli,
   guildTag,
   nav,
+  openAllRows,
   register,
   seed,
   uniqueName,
@@ -288,6 +289,40 @@ test.describe('a redraw by the poll keeps the draft of a form', () => {
     await expect(size).toHaveValue('50');
     await expect(since).toHaveValue('2026-11-01');
     cli('unadmin', name);
+    expect(w.problems).toEqual([]);
+  });
+
+  // The lists are mounted once and follow the state, so their fields are not
+  // drawn anew (src/client/views/list-fields.test.ts); no draft restores them.
+  test('the amounts of the lists stay in their fields over a redraw', async ({
+    page,
+  }) => {
+    const w = watch(page);
+    const name = uniqueName('EntwurfListen');
+    await register(page, name);
+    seed({
+      name,
+      res: { m: 1000, c: 1000, d: 1000 },
+      b: { yard: 1, silo: 2 },
+      def: { abm: 4 },
+    });
+    await page.reload();
+    await nav(page, 'defense');
+    await openAllRows(page);
+    await page.locator('#q_abm').fill('2');
+    await page.locator('#td_abm').fill('3');
+
+    // Two answers of the state after the change: the second one surely
+    // draws the view with it (the poll runs every 4 s).
+    const answered = () =>
+      page.waitForResponse(
+        (r) => new URL(r.url()).pathname === '/api/state' && r.ok(),
+      );
+    seed({ name, res: { m: 1000, c: 1000, d: 1001 } });
+    await answered();
+    await answered();
+    await expect(page.locator('#q_abm')).toHaveValue('2');
+    await expect(page.locator('#td_abm')).toHaveValue('3');
     expect(w.problems).toEqual([]);
   });
 });
