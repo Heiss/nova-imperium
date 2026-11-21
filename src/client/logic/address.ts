@@ -36,6 +36,21 @@ export function viewUrl(
 export const articleHref = (id: string): string =>
   `?view=${LEXICANUM_VIEW}${id ? `&${ARTICLE_PARAM}=${encodeURIComponent(id)}` : ''}`;
 
-/** The state URL of the planet, or of the main planet when none is named. */
-export const stateUrl = (planet?: string): string =>
-  planet ? `/api/state?planet=${encodeURIComponent(planet)}` : '/api/state';
+/**
+ * The state URL of the planet, or of the main planet when none is named, and
+ * the conversation of the private messages the browser has open, if it names
+ * one: `pm` is the other player's name, `pmAfter` the newest message it holds
+ * (Q32, #226).
+ */
+export const stateUrl = (
+  planet?: string,
+  open: { pm?: string; pmAfter?: number } = {},
+): string => {
+  const query = [
+    ...(planet ? [`planet=${encodeURIComponent(planet)}`] : []),
+    ...(open.pm !== undefined && open.pmAfter !== undefined
+      ? [`pm=${encodeURIComponent(open.pm)}`, `pmAfter=${open.pmAfter}`]
+      : []),
+  ];
+  return query.length ? `/api/state?${query.join('&')}` : '/api/state';
+};

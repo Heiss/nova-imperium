@@ -7,7 +7,7 @@
 // text in the components, never markup.
 import type { ActionInput } from '../../core/actions.ts';
 import { DELETED_PLAYER } from '../../core/round-report.ts';
-import type { PmLine } from '../../core/private-messages.ts';
+import type { PmLine, PmOpen, SentLine } from '../../core/private-messages.ts';
 import type { V } from '../views/common.ts';
 import { dt } from './format.ts';
 import type { GameState } from './types.ts';
@@ -49,7 +49,7 @@ const PM_QUESTIONS = {
   reportPrivateMessage: 'Nachricht der Spielleitung melden?',
 } as const;
 
-/** One conversation of the inbox. */
+/** One conversation of the inbox: the preview the state carries (Q32) and, while it is open, the messages that are new to it. */
 export interface InboxRow {
   /** The name the actions address: empty for the deleted accounts. */
   key: string;
@@ -58,11 +58,14 @@ export interface InboxRow {
   /** Whether the other player is a deleted account: no reply is possible. */
   deleted: boolean;
   unread: number;
-  /** Whether older messages exist than the ones the state carries (Q27). */
+  /** Whether older messages exist than the preview. */
   more: boolean;
   /** The time of the newest message. */
   last: string;
-  lines: MessageLine[];
+  /** The newest message: the preview. */
+  preview: MessageLine;
+  /** The messages of this conversation newer than the browser holds, while it is the open one (Q32). */
+  newer: MessageLine[];
 }
 
 export interface MessageLine {
@@ -85,7 +88,6 @@ export interface SentRow {
 
 export interface PrivatePage {
   inbox: InboxRow[];
-  sent: SentRow[];
   /** The names a message may go to: every other player. */
   names: string[];
   friendsOnly: boolean;
@@ -103,49 +105,122 @@ const lineOf = (m: PmLine): MessageLine => ({
 });
 
 /**
- * The older messages the player loaded into one open conversation (Q27): the
- * state carries the newest page only, so a page asked for is kept next to it.
- * `anchor` is the id of the state's oldest message when it was loaded.
+ * An open conversation as the browser holds it (Q32): the newest page the
+ * action loaded when the player opened it, the older pages the player asked
+ * for, and the newer messages the state brought. `more` says whether older
+ * messages exist than the oldest held.
  */
-export interface Older {
+export interface Thread {
   lines: MessageLine[];
-  anchor: number;
   more: boolean;
 }
 
-/**
- * What an open conversation shows: the older page the player loaded in front
- * of the state's own messages, while the state's window still starts where it
- * did then. If it moved on (newer messages pushed the oldest out of the page,
- * or one was deleted) a gap could open, so the page is dropped and the button
- * loads again from the window's start. `more` says whether still older
- * messages exist.
- */
-export function threadLines(
-  row: Pick<InboxRow, 'lines' | 'more'>,
-  older: Older | null,
-): { lines: MessageLine[]; more: boolean } {
-  const kept = older !== null && older.anchor === (row.lines[0]?.id ?? 0);
-  return kept
-    ? { lines: [...older.lines, ...row.lines], more: older.more }
-    : { lines: row.lines, more: row.more };
-}
-
-/** The loaded older messages after a page `page` came in before the shown lines of `row`. */
-export function withOlder(
-  row: Pick<InboxRow, 'lines' | 'more'>,
-  older: Older | null,
+/** The thread an opened conversation starts with: the page the action answered. */
+export const startThread = (
   page: readonly PmLine[],
   more: boolean,
-): Older {
-  const anchor = row.lines[0]?.id ?? 0;
-  const kept = older !== null && older.anchor === anchor ? older.lines : [];
+): Thread => ({
+  lines: page.map(lineOf),
+  more,
+});
+
+/** The id of the newest message of the thread: what the poll names as `pmAfter`; 0 for none. */
+export const newestId = (t: Thread): number => t.lines.at(-1)?.id ?? 0;
+
+/**
+ * The thread with the messages of `page` (older ones, oldest first) put in
+ * front. A message the thread holds is not added twice, so no duplicate opens;
+ * `more` is the answer's.
+ */
+export function withOlder(
+  t: Thread,
+  page: readonly PmLine[],
+  more: boolean,
+): Thread {
+  const held = new Set(t.lines.map((l) => l.id));
+  const older = page.filter((m) => !held.has(m.id)).map(lineOf);
+  return { lines: [...older, ...t.lines], more };
+}
+
+/**
+ * The thread with the new messages of the state added at the end: only the
+ * ones newer than the newest held (a message that came with an earlier poll is
+ * not added again), in order of their ids.
+ */
+export function withNewer(t: Thread, add: readonly MessageLine[]): Thread {
+  const after = newestId(t);
+  const fresh = add.filter((l) => l.id > after).sort((a, b) => a.id - b.id);
+  return fresh.length ? { ...t, lines: [...t.lines, ...fresh] } : t;
+}
+
+/** The thread without the message `id` (the player deleted it from its own view). */
+export const withoutLine = (t: Thread, id: number): Thread => ({
+  ...t,
+  lines: t.lines.filter((l) => l.id !== id),
+});
+
+/** The thread once the player read it: no message is new any more. */
+export const withRead = (t: Thread): Thread =>
+  t.lines.some((l) => l.fresh)
+    ? { ...t, lines: t.lines.map((l) => ({ ...l, fresh: false })) }
+    : t;
+
+/** The sent messages the tab „Gesendet“ shows, newest first, and whether older ones exist (Q33). */
+export interface SentList {
+  rows: SentRow[];
+  more: boolean;
+}
+
+const sentRow = (m: SentLine): SentRow => ({
+  id: m.id,
+  to: m.to ?? PM_LABELS.deleted,
+  time: dt(m.time),
+  text: m.text,
+});
+
+/** The list the tab starts with: the page the action answered. */
+export const startSent = (
+  page: readonly SentLine[],
+  more: boolean,
+): SentList => ({
+  rows: page.map(sentRow),
+  more,
+});
+
+/** The list with an older page (newest first) added at the end; a message held is not added twice. */
+export function sentWithOlder(
+  list: SentList,
+  page: readonly SentLine[],
+  more: boolean,
+): SentList {
+  const held = new Set(list.rows.map((r) => r.id));
   return {
-    lines: [...page.map(lineOf), ...kept],
-    anchor,
+    rows: [...list.rows, ...page.filter((m) => !held.has(m.id)).map(sentRow)],
     more,
   };
 }
+
+/** The list without the message `id`. */
+export const sentWithout = (list: SentList, id: number): SentList => ({
+  ...list,
+  rows: list.rows.filter((r) => r.id !== id),
+});
+
+/**
+ * The conversation the browser has open and the newest message it holds of
+ * it, set by the open thread and read when the state is asked for (Q32). It is
+ * only a note for the poll: no request is made by it.
+ */
+let watched: PmOpen | null = null;
+
+/** Notes the open conversation (null: none is open). */
+export const watchConversation = (open: PmOpen | null): void => {
+  watched = open;
+};
+
+/** What the poll and an action add to their request to name the open conversation (Q32): nothing while none is loaded. */
+export const openQuery = (): { pm?: string; pmAfter?: number } =>
+  watched ? { pm: watched.name, pmAfter: watched.after } : {};
 
 /** A state without the private messages (an old answer): nothing. */
 const NONE: NonNullable<GameState['privateMessages']> = {
@@ -163,7 +238,7 @@ export const privateUnread = (
     0,
   );
 
-/** What the tabs „Posteingang“ and „Gesendet“ show at the view state `v`. */
+/** What the tab „Posteingang“ shows at the view state `v`; „Gesendet“ loads its own list. */
 export function privatePage(v: Pick<V, 's'>): PrivatePage {
   const own = v.s.privateMessages ?? NONE;
   const inbox = own.conversations.map((c): InboxRow => ({
@@ -172,28 +247,17 @@ export function privatePage(v: Pick<V, 's'>): PrivatePage {
     deleted: c.with === null,
     unread: c.unread,
     more: c.more,
-    last: dt(c.messages.at(-1)!.time),
-    lines: c.messages.map(lineOf),
+    last: dt(c.last.time),
+    preview: lineOf(c.last),
+    newer:
+      own.open && own.open.with === c.with ? own.open.messages.map(lineOf) : [],
   }));
-  const sent = own.conversations
-    .flatMap((c) =>
-      c.messages
-        .filter((m) => m.mine)
-        .map((m): SentRow => ({
-          id: m.id,
-          to: c.with ?? PM_LABELS.deleted,
-          time: dt(m.time),
-          text: m.text,
-        })),
-    )
-    .sort((a, b) => b.id - a.id);
   const names = Object.entries(v.s.players)
     .filter(([id]) => id !== v.s.me.id)
     .map(([, p]) => p.name)
     .sort((a, b) => a.localeCompare(b, 'de'));
   return {
     inbox,
-    sent,
     names,
     friendsOnly: own.friendsOnly,
     blocked: own.blocked,
@@ -211,7 +275,24 @@ export type PmCall =
   | ['blockPlayer', ActionInput<'blockPlayer'>]
   | ['unblockPlayer', ActionInput<'unblockPlayer'>]
   | ['privateMessageOptions', ActionInput<'privateMessageOptions'>]
-  | ['olderPrivateMessages', ActionInput<'olderPrivateMessages'>];
+  | ['olderPrivateMessages', ActionInput<'olderPrivateMessages'>]
+  | ['openPrivateConversation', ActionInput<'openPrivateConversation'>]
+  | ['sentPrivateMessages', ActionInput<'sentPrivateMessages'>];
+
+/** The calls that load messages and change nothing: they answer data, no new state (Q27, Q32, Q33). */
+export type PmLoad = Extract<
+  PmCall,
+  readonly [
+    'olderPrivateMessages' | 'openPrivateConversation' | 'sentPrivateMessages',
+    unknown,
+  ]
+>;
+
+/** Whether the call is a load. */
+export const isLoad = (call: PmCall): call is PmLoad =>
+  call[0] === 'olderPrivateMessages' ||
+  call[0] === 'openPrivateConversation' ||
+  call[0] === 'sentPrivateMessages';
 
 /** The question to ask before the call, if any. */
 export const questionFor = (call: PmCall): string | null =>

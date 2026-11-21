@@ -4,9 +4,11 @@
 // question before a deletion or a report, and answers whether it went
 // through, so a form empties only then. The server checks every action.
 import {
+  isLoad,
   PM_EVENT,
   questionFor,
   type PmCall,
+  type PmLoad,
   type PmRequest,
 } from '../logic/private-messages.ts';
 import type { ClientCtx, ClientFeature } from './contract.ts';
@@ -14,10 +16,7 @@ import type { ClientCtx, ClientFeature } from './contract.ts';
 type Act = ClientCtx['act'];
 
 /** Sends the action a component chose; the name of the call picks the type of its data. */
-function send(
-  act: Act,
-  call: Exclude<PmCall, readonly ['olderPrivateMessages', unknown]>,
-): Promise<boolean> {
+function send(act: Act, call: Exclude<PmCall, PmLoad>): Promise<boolean> {
   switch (call[0]) {
     case 'sendPrivateMessage':
       return act(call[0], call[1]);
@@ -47,8 +46,10 @@ export async function answer(
   const question = questionFor(request.call);
   if (question !== null && !confirm(question)) return request.done(false);
   const call = request.call;
-  // Older messages are read, not changed: the answer's data, no new state.
-  if (call[0] === 'olderPrivateMessages') {
+  // A load reads and changes nothing: the answer's data, no new state. The
+  // components ask for one only from a click (a button, opening a conversation
+  // or the tab), never from a redraw (Q32, Q33).
+  if (isLoad(call)) {
     try {
       const answer = await ctx.api('/api/action', {
         type: call[0],

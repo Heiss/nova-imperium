@@ -288,10 +288,12 @@ describe('paging (Q27, coordinator, 2026-11-21)', () => {
     for (const name of ['Nobody', 'u_Bert', 'x'.repeat(300)])
       expect(() => s.thread('Anna', name), name).toThrow(UNKNOWN);
     for (const name of [42, {}, true])
-      expect(() => s.thread('Anna', name as string)).toThrow(UNKNOWN);
+      expect(() => s.thread('Anna', name as unknown as string)).toThrow(
+        UNKNOWN,
+      );
     // No name at all is the empty name: the deleted accounts, none here.
     for (const name of [null, [], undefined])
-      expect(s.thread('Anna', name as string)).toEqual({
+      expect(s.thread('Anna', name as unknown as string)).toEqual({
         messages: [],
         more: false,
       });

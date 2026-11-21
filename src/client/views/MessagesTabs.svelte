@@ -36,6 +36,13 @@
   );
   // svelte-ignore state_referenced_locally
   let tab = $state<MessageTab>(lock ? 'inbox' : 'reports');
+  let sent = $state<{ reload: () => Promise<void> }>();
+
+  /** Shows a tab; „Gesendet“ loads its newest page when the player opens it (Q33), by a click or a key and never by a redraw. */
+  function select(key: MessageTab): void {
+    tab = key;
+    if (key === 'sent') void sent?.reload();
+  }
 
   /** The arrow keys, Home and End move between the tabs (the pattern of a tab list). */
   function move(event: KeyboardEvent): void {
@@ -47,7 +54,7 @@
     };
     if (!Object.hasOwn(moves, event.key)) return;
     event.preventDefault();
-    tab = tabs[(moves[event.key]! + tabs.length) % tabs.length]!;
+    select(tabs[(moves[event.key]! + tabs.length) % tabs.length]!);
     document.getElementById(`messages-tab-${tab}`)?.focus();
   }
 </script>
@@ -62,7 +69,7 @@
       aria-selected={tab === key}
       aria-controls="messages-panel-{key}"
       tabindex={tab === key ? 0 : -1}
-      onclick={() => (tab = key)}
+      onclick={() => select(key)}
       onkeydown={move}
       >{MESSAGE_TABS[key]}{#if key === 'inbox' && mail.unread}
         ({mail.unread}){/if}</button
@@ -94,5 +101,5 @@
   aria-labelledby="messages-tab-sent"
   hidden={tab !== 'sent'}
 >
-  <PmSent rows={mail.sent} />
+  <PmSent bind:this={sent} />
 </section>

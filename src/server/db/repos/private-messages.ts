@@ -52,7 +52,7 @@ interface ConversationPreview {
 }
 
 /** A page of the sent messages of a player. */
-export interface SentPage {
+interface SentPage {
   /** At most PM_PAGE, newest first. */
   messages: PrivateMessage[];
   /** Whether older sent messages exist. */

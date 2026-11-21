@@ -60,6 +60,57 @@ describe('answer', () => {
     expect(ctx.quiet).not.toHaveBeenCalled();
   });
 
+  it('loads a conversation and the sent messages through the api too, with their data, and changes nothing (Q32, Q33)', async () => {
+    for (const [call, data] of [
+      [
+        ['openPrivateConversation', { name: 'Bert' }],
+        { messages: [], more: false },
+      ],
+      [['openPrivateConversation', { name: '' }], { messages: [], more: true }],
+      [['sentPrivateMessages', {}], { sent: [], more: false }],
+      [
+        ['sentPrivateMessages', { before: 9 }],
+        { sent: [{ id: 1 }], more: true },
+      ],
+    ] as [PmCall, Record<string, unknown>][]) {
+      const api = vi.fn(async () => ({ data }));
+      const ctx = fakeCtx({ api: api as never });
+      const { request: r, done } = request(call);
+      const confirm = vi.fn(() => false);
+      await answer(ctx, r, confirm);
+      expect(api).toHaveBeenCalledExactlyOnceWith('/api/action', {
+        type: call[0],
+        ...call[1],
+      });
+      expect(done).toHaveBeenCalledExactlyOnceWith(true, data);
+      // No question, no state, no message: a load only reads.
+      expect(confirm).not.toHaveBeenCalled();
+      expect(ctx.act).not.toHaveBeenCalled();
+      expect(ctx.quiet).not.toHaveBeenCalled();
+      expect(ctx.toast).not.toHaveBeenCalled();
+    }
+  });
+
+  it('shows the words of a refusal of a load and says it did not go through (Q32, Q33)', async () => {
+    for (const call of [
+      ['openPrivateConversation', { name: 'Nobody' }],
+      ['sentPrivateMessages', { before: 4 }],
+    ] as PmCall[]) {
+      const ctx = fakeCtx({
+        api: vi.fn(async () => {
+          throw new Error('Diese Nachricht gibt es nicht.');
+        }),
+      });
+      const { request: r, done } = request(call);
+      await answer(ctx, r, () => true);
+      expect(ctx.toast).toHaveBeenCalledWith(
+        'Diese Nachricht gibt es nicht.',
+        true,
+      );
+      expect(done).toHaveBeenCalledExactlyOnceWith(false);
+    }
+  });
+
   it('shows the words of a refusal of the older messages and says it did not go through', async () => {
     const ctx = fakeCtx({
       api: vi.fn(async () => {

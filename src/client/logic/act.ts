@@ -24,6 +24,8 @@ export interface ActDeps {
   state: () => GameState | null;
   apply: (state: GameState) => void;
   toast: (msg: string, err?: boolean) => void;
+  /** Fields every action's request carries besides its own: the open conversation of the private messages (Q32). */
+  extra?: () => object;
   /**
    * The data an action answers besides its state (the scan of the
    * Auspex-Phalanx, #53); given before the state, on the planet still shown,
@@ -93,6 +95,7 @@ export function createAct(deps: ActDeps): Sync {
       const j = await deps.api('/api/action', {
         type,
         planet: before.planet,
+        ...deps.extra?.(),
         ...data,
       });
       const here = samePlace(deps.state(), before);

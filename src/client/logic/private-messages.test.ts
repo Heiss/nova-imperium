@@ -6,16 +6,27 @@ import {
   MESSAGE_TABS,
   PM_EVENT,
   PM_LABELS,
+  isLoad,
+  newestId,
+  openQuery,
   pmAsk,
   pmCall,
   privatePage,
   privateUnread,
   questionFor,
-  threadLines,
+  sentWithOlder,
+  sentWithout,
+  startSent,
+  startThread,
+  watchConversation,
+  withNewer,
   withOlder,
+  withoutLine,
+  withRead,
   type MessageLine,
   type PmCall,
   type PmRequest,
+  type Thread,
 } from './private-messages.ts';
 import type { GameState } from './types.ts';
 import type { V } from '../views/common.ts';
@@ -46,18 +57,8 @@ const OWN: NonNullable<GameState['privateMessages']> = {
   friendsOnly: true,
   blocked: ['Cora'],
   conversations: [
-    {
-      with: 'Bert',
-      unread: 2,
-      more: false,
-      messages: [line(5, false, false), line(6, true), line(9, false, false)],
-    },
-    {
-      with: null,
-      unread: 0,
-      more: false,
-      messages: [line(2, false), line(3, true)],
-    },
+    { with: 'Bert', unread: 2, more: true, last: line(9, false, false) },
+    { with: null, unread: 0, more: true, last: line(3, true) },
   ],
 };
 
@@ -89,21 +90,19 @@ describe('the page', () => {
       ],
     );
     expect(page.inbox[0]!.last).toBe(dt(9_000));
-    expect(page.inbox[0]!.lines.map((l) => [l.id, l.mine, l.fresh])).toEqual([
-      [5, false, true],
-      [6, true, false],
-      [9, false, true],
-    ]);
+    // The state carries the newest message only: the preview (Q32).
+    expect(page.inbox[0]!.preview).toEqual({
+      id: 9,
+      mine: false,
+      time: dt(9_000),
+      text: 'm9',
+      fresh: true,
+    });
+    expect(page.inbox.map((r) => r.more)).toEqual([true, true]);
+    expect(page.inbox.map((r) => r.newer)).toEqual([[], []]);
     expect(page.friendsOnly).toBe(true);
     expect(page.blocked).toEqual(['Cora']);
     expect(page.unread).toBe(2);
-  });
-
-  it('lists the sent messages newest first, with the recipient', () => {
-    expect(privatePage(view(OWN)).sent).toEqual([
-      { id: 6, to: 'Bert', time: dt(6_000), text: 'm6' },
-      { id: 3, to: 'Gelöschter Spieler', time: dt(3_000), text: 'm3' },
-    ]);
   });
 
   it('offers every other player as a recipient, sorted', () => {
@@ -120,19 +119,18 @@ describe('the page', () => {
             with: 'Bert',
             unread: 0,
             more: false,
-            messages: [line(1, false, true, '<img src=x onerror=alert(1)>')],
+            last: line(1, false, true, '<img src=x onerror=alert(1)>'),
           },
         ],
       }),
     );
-    expect(page.inbox[0]!.lines[0]!.text).toBe('<img src=x onerror=alert(1)>');
+    expect(page.inbox[0]!.preview.text).toBe('<img src=x onerror=alert(1)>');
   });
 
   it('is empty for a state without the part', () => {
     const page = privatePage(view(undefined));
     expect(page).toMatchObject({
       inbox: [],
-      sent: [],
       friendsOnly: false,
       blocked: [],
       unread: 0,
@@ -148,8 +146,8 @@ describe('the number of unread messages', () => {
         privateMessages: {
           ...OWN,
           conversations: [
-            { with: 'A', unread: 3, more: false, messages: [] },
-            { with: 'B', unread: 4, more: false, messages: [] },
+            { with: 'A', unread: 3, more: false, last: line(1, false) },
+            { with: 'B', unread: 4, more: false, last: line(2, false) },
           ],
         },
       }),
@@ -173,6 +171,9 @@ describe('the questions', () => {
       ['unblockPlayer', { name: 'Bert' }],
       ['privateMessageOptions', { friendsOnly: true }],
       ['olderPrivateMessages', { before: 7 }],
+      ['openPrivateConversation', { name: 'Bert' }],
+      ['sentPrivateMessages', {}],
+      ['sentPrivateMessages', { before: 7 }],
     ];
     expect(calls.map(questionFor)).toEqual([
       null,
@@ -184,7 +185,23 @@ describe('the questions', () => {
       null,
       null,
       null,
+      null,
+      null,
+      null,
     ]);
+  });
+
+  it('knows the three loads, which read and change nothing', () => {
+    expect(isLoad(['olderPrivateMessages', { before: 7 }])).toBe(true);
+    expect(isLoad(['openPrivateConversation', { name: '' }])).toBe(true);
+    expect(isLoad(['sentPrivateMessages', {}])).toBe(true);
+    for (const call of [
+      ['sendPrivateMessage', { name: 'Bert', text: 'x' }],
+      ['readPrivateMessages', { name: 'Bert' }],
+      ['deletePrivateMessage', { id: 1 }],
+      ['blockPlayer', { name: 'Bert' }],
+    ] as PmCall[])
+      expect(isLoad(call), call[0]).toBe(false);
   });
 });
 
@@ -220,70 +237,154 @@ const shown = (...ids: number[]): MessageLine[] =>
     fresh: false,
   }));
 
-describe('older messages of an open conversation (Q27)', () => {
-  const row = (ids: number[], more = true) => ({ lines: shown(...ids), more });
+const thread = (ids: number[], more = true): Thread => ({
+  lines: shown(...ids),
+  more,
+});
 
-  it('shows the state as it is until a page was loaded, with its `more`', () => {
-    expect(threadLines(row([60, 61]), null)).toEqual({
-      lines: shown(60, 61),
-      more: true,
-    });
-    expect(threadLines(row([60], false), null).more).toBe(false);
+describe('an open conversation (Q27, Q32)', () => {
+  it('starts with the page the action loaded, in its order, with its `more`', () => {
+    const t = startThread([line(5, false, false), line(6, true)], true);
+    expect(t.lines).toEqual([
+      { id: 5, mine: false, time: dt(5_000), text: 'm5', fresh: true },
+      { id: 6, mine: true, time: dt(6_000), text: 'm6', fresh: false },
+    ]);
+    expect(t.more).toBe(true);
+    expect(startThread([], false)).toEqual({ lines: [], more: false });
+    expect(newestId(t)).toBe(6);
+    expect(newestId(startThread([], false))).toBe(0);
   });
 
-  it('puts a loaded page in front, in order, and takes its `more`', () => {
-    const older = withOlder(
-      row([60, 61]),
-      null,
+  it('puts an older page in front, in order, and takes its `more`', () => {
+    const t = withOlder(
+      thread([60, 61]),
       [line(58, false), line(59, true)],
       true,
     );
-    const view = threadLines(row([60, 61]), older);
-    expect(view.lines.map((l) => l.id)).toEqual([58, 59, 60, 61]);
-    expect(view.lines[1]).toMatchObject({
-      mine: true,
-      fresh: false,
-      text: 'm59',
-    });
-    expect(view.more).toBe(true);
+    expect(t.lines.map((l) => l.id)).toEqual([58, 59, 60, 61]);
+    expect(t.lines[1]).toMatchObject({ mine: true, fresh: false, text: 'm59' });
+    expect(t.more).toBe(true);
     // The next page goes in front of the first one, with no gap and no duplicate.
-    const again = withOlder(
-      row([60, 61]),
-      older,
-      [line(56, false), line(57, false)],
-      false,
-    );
-    const all = threadLines(row([60, 61]), again);
-    expect(all.lines.map((l) => l.id)).toEqual([56, 57, 58, 59, 60, 61]);
-    expect(all.more).toBe(false);
-  });
-
-  it('follows new messages of the state while its window starts where it did', () => {
-    const older = withOlder(row([60, 61]), null, [line(59, false)], false);
+    const again = withOlder(t, [line(56, false), line(57, false)], false);
+    expect(again.lines.map((l) => l.id)).toEqual([56, 57, 58, 59, 60, 61]);
+    expect(again.more).toBe(false);
+    // A message held already is not added twice.
     expect(
-      threadLines(row([60, 61, 62]), older).lines.map((l) => l.id),
-    ).toEqual([59, 60, 61, 62]);
+      withOlder(again, [line(56, false), line(55, false)], false).lines.map(
+        (l) => l.id,
+      ),
+    ).toEqual([55, 56, 57, 58, 59, 60, 61]);
   });
 
-  it('drops the page once the window moved, so no gap opens; the next load starts at the window', () => {
-    const older = withOlder(
-      row([60, 61]),
-      null,
-      [line(58, false), line(59, false)],
+  it('adds the new messages of the state at the end, only the ones newer than the newest held', () => {
+    const t = thread([60, 61]);
+    const next = withNewer(t, shown(61, 62, 63));
+    expect(next.lines.map((l) => l.id)).toEqual([60, 61, 62, 63]);
+    // The same answer again, or an older poll, changes nothing and is the same thread.
+    expect(withNewer(next, shown(61, 62, 63))).toBe(next);
+    expect(withNewer(next, [])).toBe(next);
+    expect(withNewer(next, shown(10))).toBe(next);
+    // Out of order, they join in order of their ids.
+    expect(withNewer(t, shown(64, 62, 63)).lines.map((l) => l.id)).toEqual([
+      60, 61, 62, 63, 64,
+    ]);
+    // The older part and `more` stay.
+    expect(next.more).toBe(true);
+    // A thread that is empty takes all of them.
+    expect(
+      withNewer({ lines: [], more: false }, shown(3, 4)).lines.map((l) => l.id),
+    ).toEqual([3, 4]);
+  });
+
+  it('keeps an older page while new messages come in: no gap opens (the window does not matter any more)', () => {
+    const t = withNewer(
+      withOlder(thread([60, 61]), [line(58, false), line(59, false)], false),
+      shown(62),
+    );
+    expect(t.lines.map((l) => l.id)).toEqual([58, 59, 60, 61, 62]);
+    expect(t.more).toBe(false);
+  });
+
+  it('drops a message the player deleted, and clears the marks once read', () => {
+    const t = startThread(
+      [line(5, false, false), line(6, false, false)],
       false,
     );
-    // New messages pushed 60 out of the page, or the player deleted 60.
-    expect(threadLines(row([61, 62]), older)).toEqual({
-      lines: shown(61, 62),
+    expect(withoutLine(t, 5).lines.map((l) => l.id)).toEqual([6]);
+    expect(withoutLine(t, 99).lines).toHaveLength(2);
+    const read = withRead(t);
+    expect(read.lines.map((l) => l.fresh)).toEqual([false, false]);
+    expect(withRead(read)).toBe(read);
+  });
+
+  it('notes the open conversation for the poll and the actions, and nothing while none is open', () => {
+    watchConversation(null);
+    expect(openQuery()).toEqual({});
+    watchConversation({ name: 'Bert', after: 12 });
+    expect(openQuery()).toEqual({ pm: 'Bert', pmAfter: 12 });
+    watchConversation({ name: '', after: 0 });
+    expect(openQuery()).toEqual({ pm: '', pmAfter: 0 });
+    watchConversation(null);
+    expect(openQuery()).toEqual({});
+  });
+
+  it('brings the messages of the open conversation to its row only', () => {
+    const own = {
+      ...OWN,
+      open: { with: 'Bert', messages: [line(10, false, false)] },
+    };
+    const page = privatePage(view(own));
+    expect(page.inbox.map((r) => r.newer.map((l) => l.id))).toEqual([[10], []]);
+    expect(page.inbox[0]!.newer[0]).toMatchObject({ fresh: true, text: 'm10' });
+    // The deleted accounts have their own open conversation.
+    const deleted = privatePage(
+      view({ ...OWN, open: { with: null, messages: [line(11, false)] } }),
+    );
+    expect(deleted.inbox.map((r) => r.newer.length)).toEqual([0, 1]);
+  });
+});
+
+describe('the sent messages (Q33)', () => {
+  const sent = (...ids: number[]) =>
+    ids.map((id) => ({
+      id,
+      to: id % 2 ? 'Bert' : null,
+      time: 1_000 * id,
+      text: `s${id}`,
+    }));
+
+  it('lists a page as it came, newest first, the deleted account under its pseudonym', () => {
+    expect(startSent(sent(9, 8), true)).toEqual({
+      rows: [
+        { id: 9, to: 'Bert', time: dt(9_000), text: 's9' },
+        { id: 8, to: 'Gelöschter Spieler', time: dt(8_000), text: 's8' },
+      ],
       more: true,
     });
-    // A page loaded now is the only one in front of the new window.
-    const next = withOlder(row([61, 62]), older, [line(60, false)], true);
-    expect(threadLines(row([61, 62]), next).lines.map((l) => l.id)).toEqual([
-      60, 61, 62,
-    ]);
+    expect(startSent([], false)).toEqual({ rows: [], more: false });
   });
 
+  it('adds an older page at the end, with no duplicate, and takes its `more`', () => {
+    const list = startSent(sent(9, 8), true);
+    const next = sentWithOlder(list, sent(8, 7, 6), false);
+    expect(next.rows.map((r) => r.id)).toEqual([9, 8, 7, 6]);
+    expect(next.more).toBe(false);
+  });
+
+  it('drops a deleted message, and keeps a text as text', () => {
+    const list = startSent(
+      [{ id: 1, to: '<u>x</u>', time: 1, text: '<script>x</script>' }],
+      false,
+    );
+    expect(list.rows[0]).toMatchObject({
+      to: '<u>x</u>',
+      text: '<script>x</script>',
+    });
+    expect(sentWithout(startSent(sent(3, 2), false), 3).rows).toHaveLength(1);
+  });
+});
+
+describe('pmAsk', () => {
   it('passes the data of the answer through pmAsk, and pmCall stays a boolean', async () => {
     const answerWith = (ok: boolean, data?: Record<string, unknown>) => {
       const target = {
@@ -308,18 +409,5 @@ describe('older messages of an open conversation (Q27)', () => {
     await expect(pmCall(answerWith(true, { more: true }), call)).resolves.toBe(
       true,
     );
-  });
-
-  it('marks the conversation with `more` for the button', () => {
-    const page = privatePage(
-      view({
-        friendsOnly: false,
-        blocked: [],
-        conversations: [
-          { with: 'Bert', unread: 0, more: true, messages: [line(9, false)] },
-        ],
-      }),
-    );
-    expect(page.inbox[0]!.more).toBe(true);
   });
 });

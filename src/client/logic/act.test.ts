@@ -63,6 +63,51 @@ describe('placeOf and samePlace', () => {
   });
 });
 
+describe('the extra fields of every request (Q32)', () => {
+  it("adds what `extra` gives to every action, before the action's own fields, and nothing when there is no `extra`", async () => {
+    const api = vi.fn<ActDeps['api']>(async () => ({
+      state: state('u1', 'p1'),
+    }));
+    const open = { pm: 'Bert', pmAfter: 7 };
+    const sync = createAct({
+      api,
+      state: () => state('u1', 'p1'),
+      apply: vi.fn(),
+      toast: vi.fn(),
+      extra: () => open,
+    });
+    await (sync.send as unknown as Send)('readPrivateMessages', {
+      name: 'Bert',
+    });
+    expect(api).toHaveBeenLastCalledWith('/api/action', {
+      type: 'readPrivateMessages',
+      planet: 'p1',
+      pm: 'Bert',
+      pmAfter: 7,
+      name: 'Bert',
+    });
+    // The action's own fields win; the quiet way carries it too.
+    await (sync.quiet as unknown as Send)('read', { pm: 'own' });
+    expect(api).toHaveBeenLastCalledWith('/api/action', {
+      type: 'read',
+      planet: 'p1',
+      pm: 'own',
+      pmAfter: 7,
+    });
+    const plain = createAct({
+      api,
+      state: () => state('u1', 'p1'),
+      apply: vi.fn(),
+      toast: vi.fn(),
+    });
+    await (plain.send as unknown as Send)('read');
+    expect(api).toHaveBeenLastCalledWith('/api/action', {
+      type: 'read',
+      planet: 'p1',
+    });
+  });
+});
+
 describe('the data of an answer (#53)', () => {
   it('goes to `answer` before the state, on the planet still shown', async () => {
     let current: GameState | null = state('u1', 'p1');
