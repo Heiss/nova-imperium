@@ -102,9 +102,12 @@ const groupOf = (file: string): string =>
     .slice(0, file.startsWith(`features${path.sep}`) ? 1 : 2)
     .join('/');
 
-const GROUPS: [string, [string, Kind][]][] = [
-  ...Map.groupBy(SCANNED, ([f]) => groupOf(f)).entries(),
-];
+const GROUPS: [string, [string, Kind][]][] = [];
+for (const entry of SCANNED) {
+  const group = GROUPS.find(([name]) => name === groupOf(entry[0]));
+  if (group) group[1].push(entry);
+  else GROUPS.push([groupOf(entry[0]), [entry]]);
+}
 
 const CATALOG = { ...BUILD, ...RES, ...SHIPS, ...DEF };
 /** The display texts of every catalog entry (#113). */

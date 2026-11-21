@@ -518,9 +518,12 @@ const groupOf = (file: string): string =>
   path.dirname(file).split(path.sep).slice(0, 2).join('/');
 
 /** The source files by group, in the order of the listing. */
-const GROUPS: [string, string[]][] = [
-  ...Map.groupBy(sources(), groupOf).entries(),
-];
+const GROUPS: [string, string[]][] = [];
+for (const f of sources()) {
+  const group = GROUPS.find(([name]) => name === groupOf(f));
+  if (group) group[1].push(f);
+  else GROUPS.push([groupOf(f), [f]]);
+}
 
 describe('no comparison with a catalog key outside src/features (#114)', () => {
   it('reads the keys from the feature folders', () => {
