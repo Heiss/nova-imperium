@@ -9,7 +9,12 @@ import fc from 'fast-check';
 import { render } from 'svelte/server';
 import { describe, expect, it } from 'vitest';
 import { BUILD, DEF, RES, SHIPS } from '../core/catalog.ts';
-import type { Levels, Planet, ResearchState } from '../core/types.ts';
+import type {
+  Levels,
+  Planet,
+  Requirements as Needs,
+  ResearchState,
+} from '../core/types.ts';
 import type { GameState } from '../client/logic/types.ts';
 import type { Ui, V } from '../client/views/common.ts';
 import Cost from '../client/views/Cost.svelte';
@@ -162,8 +167,8 @@ describe('Requirements', () => {
     ...Object.entries(SHIPS),
     ...Object.entries(DEF),
   ]
-    .filter(([, d]) => (d as { req?: unknown }).req)
-    .map(([key, d]) => ({ key, req: (d as { req: never }).req }));
+    .map(([key, d]) => ({ key, req: d.req as Needs | undefined }))
+    .filter(({ req }) => req && Object.keys(req).length > 0);
 
   /** A shown planet and research, as far as the requirements read them. */
   const state = fc.record({
@@ -204,7 +209,7 @@ describe('Requirements', () => {
         end: time,
         cost: fc.constant([0, 0, 0] as [number, number, number]),
       }),
-      { nil: undefined },
+      { nil: null },
     ),
     entry: fc.constantFrom(...ENTRIES),
   });
@@ -295,7 +300,7 @@ describe('Requirements', () => {
           research: Object.fromEntries(
             Object.keys(RES).map((k) => [k, k === 'graviton' ? 0 : lvl]),
           ),
-          rq: undefined,
+          rq: null,
         });
         for (const { req } of ENTRIES) {
           const before = requirementsHTML(v, req);
@@ -319,7 +324,7 @@ describe('Requirements', () => {
         sq: [],
       },
       research: {},
-      rq: undefined,
+      rq: null,
     });
     expect(
       normalize(render(Requirements, { props: { v, req: undefined } }).body),
