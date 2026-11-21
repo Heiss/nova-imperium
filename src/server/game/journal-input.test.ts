@@ -87,6 +87,7 @@ const KINDS: Record<string, Kinds> = {
   blockPlayer: { name: ['name'] },
   unblockPlayer: { name: ['name'] },
   privateMessageOptions: { keep: ['friendsOnly'] },
+  olderPrivateMessages: { keep: ['before'] },
   roundArchive: {},
   roundHistory: {},
   roundParticipant: { keep: ['round', 'seat'] },
