@@ -87,6 +87,16 @@ describe('the cards of a finished round with everything archived', () => {
     });
   });
 
+  it('takes the cutoff of the round as its end, the time of the report only without one', () => {
+    const later = START + 40 * DAY;
+    const closed = report(THREE, {}, { asOf: later });
+    expect(rewindOf(closed, 2).cards[0]).toMatchObject({
+      closed: START + 30 * DAY,
+    });
+    const open = report(THREE, {}, { asOf: later, closed: null });
+    expect(rewindOf(open, 2).cards[0]).toMatchObject({ closed: later });
+  });
+
   it('holds the play time of the reader`s own seat on card 6, not another seat', () => {
     const cards = rewindOf(report(THREE), 2).cards;
     expect(cards[1]).toEqual({

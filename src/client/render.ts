@@ -1,7 +1,7 @@
 // Drawing the page (formerly in main.ts): the logged-out screen, the menu, the
 // resource bar, the header and the view, mounted as a Svelte component or set
-// as HTML. What the player typed survives the redraw (keep-inputs.ts), what
-// finished is shown above the view (completions.ts), and every feature may
+// as HTML. What the player typed survives the redraw as the state of the
+// forms (logic/form-state.svelte.ts), what finished is shown above the view (completions.ts), and every feature may
 // act after a render (features/).
 import { flushSync } from 'svelte';
 import { settle, settleR } from '../core/settle.ts';
@@ -27,7 +27,6 @@ import { forgetLock, renderGate } from './views/vacation-lock.ts';
 import { ANEW, type Mounted, MOUNTED, mountView } from './views/mount.ts';
 import { $, keepChatScroll } from './dom.ts';
 import { rememberCompletions, renderCompletions } from './completions.ts';
-import { forgetFields, restoreFields } from './field-drafts.ts';
 import { forgetForms } from './logic/form-state.svelte.ts';
 import { seeNews } from './news-seen.ts';
 import { urlOf } from './view-address.ts';
@@ -110,7 +109,6 @@ export function render(fresh = false): void {
   if (!client.game) {
     forgetAdminPanel();
     drafts.reset();
-    forgetFields();
     forgetForms();
     return renderLoggedOut(view);
   }
@@ -118,7 +116,6 @@ export function render(fresh = false): void {
   // A fresh render drops what was typed, as it dropped the typed fields.
   if (fresh) {
     drafts.reset();
-    forgetFields();
     forgetForms();
   }
   const focus = document.activeElement?.id;
@@ -133,7 +130,6 @@ export function render(fresh = false): void {
   renderView(view, client.view, fresh);
   renderCompletions(view);
   paintPlanets(view);
-  restoreFields(view);
   if (focus) document.getElementById(focus)?.focus();
   chatScroll();
   runAfterRender(CLIENT_FEATURES);

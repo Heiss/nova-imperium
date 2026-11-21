@@ -9,46 +9,61 @@
 // state.ts); admins read every chat, each read in the audit log. The server
 // writes the event messages (guild-events.ts); nobody deletes them.
 import {
-  canDeleteChat,
-  CHAT_INTERVAL,
-  chatTextError,
   chatUnread,
+  deleteChatError,
   MAX_CHAT_TEXT,
+  seeChatError,
+  sendChatError,
 } from '../../core/guild-chat.ts';
 import { memberPlace } from '../../core/guild-ranks.ts';
 import type { ChatMessage, GuildPlayer } from '../db/repos/guilds.ts';
 import type { Handler } from './actions.ts';
 import { clean, fail, int, type Ctx } from './context.ts';
 import { membersOf, notify } from './guild-events.ts';
-import { actor, asRule, need, type Actor } from './guild-ranks.ts';
+import {
+  actor,
+  asRule,
+  GUILD_ERROR,
+  refuse,
+  type Actor,
+} from './guild-ranks.ts';
 import { requireGuilds } from './round.ts';
 import type { ServerFeature } from './feature.ts';
 
-const TEXT_ERROR = {
+/** The refusals of `sendGuildChat` (#169), by the codes of `sendChatError` (#214). */
+const SEND_ERROR = {
+  right: GUILD_ERROR.right,
   empty: 'Die Nachricht ist leer.',
   length: 'Die Nachricht darf höchstens 1.000 Zeichen haben.',
+  wait: 'Bitte warte kurz vor der nächsten Nachricht.',
 };
 
-/** The text of a message: plain text without control characters, trimmed. */
-function chatText(value: unknown): string {
-  if (typeof value !== 'string') return fail(TEXT_ERROR.empty);
-  // Every character takes at most two code units: longer is too long.
-  if (value.length > 2 * MAX_CHAT_TEXT + 64) return fail(TEXT_ERROR.length);
-  const text = clean(value);
-  const error = chatTextError(text);
-  if (error) fail(TEXT_ERROR[error]);
-  return text;
-}
+/**
+ * The longest body cleaned: every character takes at most two code units,
+ * so a longer body is too long whatever cleaning removes, and the check
+ * refuses it as sent.
+ */
+const MAX_BODY = 2 * MAX_CHAT_TEXT + 64;
+
+/**
+ * The text of a message as the check takes it: a string not too long to
+ * clean, without control characters and trimmed; anything else as sent.
+ */
+const chatText = (value: unknown): unknown =>
+  typeof value === 'string' && value.length <= MAX_BODY ? clean(value) : value;
 
 const sendGuildChat: Handler<'sendGuildChat'> = (ctx, user, d) => {
   const a = actor(ctx, user.id);
-  need(a, 'chat-write');
   const text = chatText(d.text);
   const now = ctx.now();
-  const last = ctx.guilds.lastChat(user.id) ?? -Infinity;
-  if (now - last < CHAT_INTERVAL)
-    fail('Bitte warte kurz vor der nächsten Nachricht.');
-  const id = ctx.guilds.addChat(a.guild.id, user.id, Math.floor(now), text);
+  const last = ctx.guilds.lastChat(user.id);
+  refuse(sendChatError(asRule(a), text, now, last), SEND_ERROR);
+  const id = ctx.guilds.addChat(
+    a.guild.id,
+    user.id,
+    Math.floor(now),
+    text as string,
+  );
   notify(ctx, a.guild, 'guild-chat', id, [user.id]);
   return null;
 };
@@ -67,28 +82,35 @@ function authorPlace(
   return memberPlace(false, a.ranks.find((r) => r.id === rank)?.position);
 }
 
+/** A message as `deleteChatError` sees it. */
+const target = (
+  a: Actor,
+  members: Map<string | null, GuildPlayer>,
+  m: ChatMessage,
+) => ({
+  kind: m.kind,
+  own: m.author === a.uid,
+  author: authorPlace(a, members, m.author),
+});
+
 const deletable = (
   a: Actor,
   members: Map<string | null, GuildPlayer>,
   m: ChatMessage,
-): boolean =>
-  m.kind === 'message' &&
-  canDeleteChat(
-    asRule(a),
-    m.author === a.uid,
-    authorPlace(a, members, m.author),
-  );
+): boolean => deleteChatError(asRule(a), target(a, members, m)) === null;
 
 const deleteGuildChat: Handler<'deleteGuildChat'> = (ctx, user, d) => {
   const a = actor(ctx, user.id);
-  need(a, 'chat-delete');
-  const message = ctx.guilds.chatMessage(int(d.id, 0, Number.MAX_SAFE_INTEGER));
-  if (message?.guild_id !== a.guild.id)
-    return fail('Diese Nachricht gibt es nicht.');
-  if (message.kind !== 'message') fail('Ereignisse lassen sich nicht löschen.');
-  if (!deletable(a, membersOf(a.guild, ctx.guilds.players()), message))
-    fail('Das geht nur bei Rängen unter deinem.');
-  ctx.guilds.deleteChat(message.id);
+  const found = ctx.guilds.chatMessage(int(d.id, 0, Number.MAX_SAFE_INTEGER));
+  const message = found?.guild_id === a.guild.id ? found : undefined;
+  const members = membersOf(a.guild, ctx.guilds.players());
+  refuse(deleteChatError(asRule(a), message && target(a, members, message)), {
+    right: GUILD_ERROR.right,
+    message: 'Diese Nachricht gibt es nicht.',
+    event: 'Ereignisse lassen sich nicht löschen.',
+    lower: GUILD_ERROR.lower,
+  });
+  ctx.guilds.deleteChat(message!.id);
   return 'Nachricht gelöscht.';
 };
 
@@ -150,7 +172,7 @@ export function chatState(ctx: Ctx, a: Actor, players: GuildPlayer[]) {
  */
 const seeGuildChat: Handler<'seeGuildChat'> = (ctx, user, d) => {
   const a = actor(ctx, user.id);
-  need(a, 'chat-read');
+  refuse(seeChatError(asRule(a)), GUILD_ERROR);
   const newest = ctx.guilds.chat(a.guild.id).at(-1)?.id ?? 0;
   ctx.guilds.seeChat(
     user.id,

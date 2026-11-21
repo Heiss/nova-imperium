@@ -12,7 +12,7 @@
   // registers, and an emptied required field would swallow the click on
   // „Einladen“, #332: logic/admin-form.svelte.ts, as the message to all
   // players); a sent invitation clears it by the fresh render. The
-  // settings fields have no field draft (logic/field-drafts.ts) because
+  // settings fields show the server and keep no state of this form, because
   // a kept value could not tell a draft from a value the server changed
   // (logic/settings-draft.ts).
   import { diagnosticTab, type AdminPage } from '../logic/admin.ts';

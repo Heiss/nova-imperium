@@ -184,7 +184,9 @@ The answers of the comment „Geklärt, Nachtrag“ (owner, 2026-11-15) to O15:
   `CHAT_INTERVAL` (2,000 ms), `chatLength`, `chatTextError` and
   `canDeleteChat` (right and order, plain values as the rank rules);
   `CHAT_EVENTS`, `chatEventText` (the sentences of the owner) and
-  `chatUnread` (the red mark).
+  `chatUnread` (the red mark); the check of each action as one function
+  that returns a code (#214): `sendChatError`, `deleteChatError` (also the
+  flag `delete` of each message) and `seeChatError`.
 * `src/server/game/guild-events.ts` (a security file, mutation target
   90 %): `memberEvent`, `rankEvent` and `attackEvent`, called by the guild
   actions (`guilds.ts`), the rank actions (`guild-ranks.ts`) and `send`
@@ -199,7 +201,8 @@ The answers of the comment „Geklärt, Nachtrag“ (owner, 2026-11-15) to O15:
   `dispatch.ts`, so `requireGuilds` refuses them while guilds are off;
   `chatState` (the chat of the state for a member) and `adminGuildChat`
   (the read of the admin). Every action finds the acting member with
-  `actor` of #163 and checks the right of its rank on the server.
+  `actor` of #163 and checks the right of its rank on the server, with the
+  checks of `src/core/guild-chat.ts`, and words their codes.
 * `POST /api/admin/guild-chat` (`src/server/http/admin.ts`): an admin read,
   audited as `admin.read` / `guildChat`.
 * A new round deletes all chats (`guilds.clearChats()` in `newRound`),

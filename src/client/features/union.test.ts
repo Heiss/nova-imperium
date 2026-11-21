@@ -68,7 +68,7 @@ afterEach(() => {
 });
 
 const acts = (ctx = fakeCtx()): Record<string, Handler> => {
-  clientFeature.listen!(ctx);
+  clientFeature.listen!();
   return clientFeature.acts(ctx);
 };
 
@@ -107,20 +107,17 @@ describe('joining', () => {
       fm: 'attack',
     });
     expect(fleetForm.to).toEqual({ g: '1', s: '4', p: '8' });
-    expect(ctx.setInput).toHaveBeenCalledTimes(3);
-    for (const [sel, v] of [
-      ['#t_u', 'f1'],
-      ['#t_k', 'planet'],
-      ['#t_m', 'attack'],
-    ] as const)
-      expect(ctx.setInput).toHaveBeenCalledWith(sel, v);
+    expect(fleetForm.kind).toBe('planet');
+    expect(fleetForm.mission).toBe('attack');
+    expect(fleetForm.union).toBe('f1');
+    expect(ctx.setInput).not.toHaveBeenCalled();
     expect(input).toHaveBeenCalledTimes(1);
   });
   it('aims at the moon of a union that flies to a moon', () => {
     const ctx = fakeCtx();
     acts(ctx).joinUnion!({ id: 'f2' });
     expect(client.ui.ft).toEqual({ g: 1, s: 2, p: 3, kind: 'moon' });
-    expect(ctx.setInput).toHaveBeenCalledWith('#t_k', 'moon');
+    expect(fleetForm.kind).toBe('moon');
   });
   it('does the same when the choice of the form changes', () => {
     const ctx = fakeCtx();
@@ -130,14 +127,17 @@ describe('joining', () => {
     expect(fleetForm.to).toEqual({ g: '1', s: '4', p: '8' });
     listeners.change!({ target: { id: 't_u', value: 'f2' } });
     expect(client.ui.union).toBe('f2');
-    expect(ctx.setInput).toHaveBeenCalledWith('#t_k', 'moon');
+    expect(fleetForm.union).toBe('f2');
+    expect(fleetForm.kind).toBe('moon');
   });
   it('forgets the union when „Kein Verband“ is chosen, and ignores every other field', () => {
     const ctx = fakeCtx();
     acts(ctx);
     client.ui.union = 'f1';
+    fleetForm.union = 'f1';
     listeners.change!({ target: { id: 't_u', value: '' } });
     expect(client.ui.union).toBeNull();
+    expect(fleetForm.union).toBe('');
     client.ui.union = 'f1';
     listeners.change!({ target: { id: 't_m', value: 'transport' } });
     expect(client.ui.union).toBe('f1');
@@ -145,11 +145,14 @@ describe('joining', () => {
   });
   it('forgets a union that is not there any more and writes nothing', () => {
     const ctx = fakeCtx();
+    fleetForm.union = 'f1';
     acts(ctx).joinUnion!({ id: 'gone' });
     expect(client.ui.union).toBeNull();
+    expect(fleetForm.union).toBe('');
     expect(client.ui.ft).toBeNull();
     expect(ctx.setInput).not.toHaveBeenCalled();
     expect(fleetForm.to).toEqual({ g: null, s: null, p: null });
+    expect(fleetForm.kind).toBeNull();
     acts(ctx).joinUnion!({});
     expect(ctx.setInput).not.toHaveBeenCalled();
   });

@@ -19,6 +19,18 @@ export interface FleetDraft {
   cargo: Partial<Record<keyof Resources, string>>;
   /** The name typed to invite into a union, by the id of the union. */
   invite: Record<string, string>;
+  /** The kind of target chosen, or null while the page says it (logic/fleet-choice.ts). */
+  kind: 'planet' | 'moon' | null;
+  /** The mission chosen, or null while the page says it (logic/fleet-choice.ts). */
+  mission: string | null;
+  /** The union chosen (empty for „Kein Verband“), or null while the page says it. */
+  union: string | null;
+  /** The holding time chosen (hours), or null while the first is shown. */
+  hold: string | null;
+  /** The hours of stay typed for an expedition, or null while 1 is shown. */
+  stay: string | null;
+  /** The „Zielmond“ of the Warp-Tor chosen, or null while the first one that is ready is shown. */
+  jump: string | null;
 }
 
 export const fleetForm = formState((): FleetDraft => ({
@@ -27,4 +39,10 @@ export const fleetForm = formState((): FleetDraft => ({
   speed: null,
   cargo: {},
   invite: {},
+  kind: null,
+  mission: null,
+  union: null,
+  hold: null,
+  stay: null,
+  jump: null,
 }));

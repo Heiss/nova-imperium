@@ -4,15 +4,21 @@
 // the small rules of its controls (the arrow keys, the swipe, the motion). The
 // server decides who may see a Rewind and which cards exist; nothing here
 // counts or guesses a fact. The headlines of the cards 1, 6 and 8 are those of
-// the issue; every other text is a draft of Claude [V].
+// the issue (owner 2026-11-21: the headlines of the cards 2, 3, 4, 5 and 7 are
+// the issue's examples too); every other text is a draft of Claude [V].
 import type {
+  EconomyCard,
+  EndzeitCard,
+  FocusCard,
   IdentityCard,
+  LossCard,
   PlaytimeCard,
   RankCard,
+  ReturnCard,
   Rewind,
   RewindCard,
 } from '../../core/round-rewind.ts';
-import { fmt } from './format.ts';
+import { fmt, resLine } from './format.ts';
 import { OWN_ACTIVITY_HELP, playtime } from './own-activity.ts';
 import { COVERAGE, day, daysText } from './round-words.ts';
 
@@ -102,12 +108,125 @@ function rank(c: RankCard): RewindCardPage {
   };
 }
 
+/** A large number as the Rewind tells it: „8,2 Mio.“ from a million, else with the thousands point. */
+export const million = (n: number): string =>
+  n >= 1_000_000
+    ? `${(n / 1_000_000).toFixed(1).replace('.', ',')} Mio.`
+    : fmt(n);
+
+function economy(c: EconomyCard): RewindCardPage {
+  return {
+    key: c.kind,
+    kicker: 'Wirtschaft',
+    headline: 'Du hast eine Wirtschaft aufgebaut.',
+    figure: million(c.total),
+    lines: [
+      `Die Produktion hat deinen Lagern in dieser Runde ${fmt(c.total)} Rohstoffe gutgeschrieben.`,
+      resLine(c),
+      'Gezählt wird nur, was die Lager aufgenommen haben; Beute, Handel und die Gabe des Gottkaisers zählen nicht.',
+    ],
+    report: null,
+  };
+}
+
+/** The word of the focus: „Aufbau“ is the issue's, the others are the categories of the highscore [V]. */
+export const FOCUS_WORD: Record<FocusCard['focus'], string> = {
+  buildings: 'Aufbau',
+  research: 'Forschung',
+  fleet: 'Flotte',
+  defense: 'Verteidigung',
+};
+
+function focus(c: FocusCard): RewindCardPage {
+  return {
+    key: c.kind,
+    kicker: 'Schwerpunkt',
+    headline: `Dein Schwerpunkt: ${FOCUS_WORD[c.focus]}.`,
+    figure: `${c.percent} %`,
+    lines: [
+      `So groß war der Anteil dieser Kategorie an dem, was du in dieser Runde für Fertiggestelltes bezahlt hast.`,
+      'Gezählt werden fertige Gebäude, fertige Forschung, fertige Schiffe und fertige Verteidigung nach ihrem Baupreis.',
+    ],
+    report: null,
+  };
+}
+
+function lossHeadline(c: LossCard): string {
+  if (c.role === 'defender')
+    return c.opponent ? `Dann kam ${c.opponent}.` : 'Dann kam ein Angriff.';
+  return c.opponent
+    ? `Dann traf deine Flotte auf ${c.opponent}.`
+    : 'Dann traf deine Flotte auf einen Gegner.';
+}
+
+/** The line of a loss found in a round that began before the history (Q19, a draft of Claude [V]). */
+const RECORDED_PART = 'Aus dem aufgezeichneten Teil der Runde.';
+
+function loss(c: LossCard): RewindCardPage {
+  const lines = [
+    `Dein größter Verlust an Schiffen in einem einzelnen Kampf, an Tag ${c.day}.`,
+    'Gezählt wird der Baupreis der verlorenen Schiffe geteilt durch 1.000; Verteidigungsanlagen zählen nicht.',
+  ];
+  if (c.recordedOnly) lines.push(RECORDED_PART);
+  return {
+    key: c.kind,
+    kicker: 'Verlust',
+    headline: lossHeadline(c),
+    figure: `\u2212${fmt(c.points)} Flottenpunkte`,
+    lines,
+    report: null,
+  };
+}
+
+function comeback(c: ReturnCard): RewindCardPage {
+  return {
+    key: c.kind,
+    kicker: 'Zurückgekommen',
+    headline: 'Du bist zurückgekommen.',
+    figure: daysText(c.days),
+    lines: [
+      `Nach dem Verlust an Tag ${c.lossDay} dauerte es ${daysText(c.days)}, bis deine Schiffe wieder den Baupreis-Wert von vor dem Verlust erreichten.`,
+      'Gezählt wird der Baupreis der fertigen Schiffe abzüglich der in Kämpfen verlorenen; der erste erfasste Zeitpunkt gilt.',
+    ],
+    report: null,
+  };
+}
+
+function endzeit(c: EndzeitCard): RewindCardPage {
+  const lines = ['Der Gottkaiser hat die Endzeit eingeläutet.'];
+  if (c.gift)
+    lines.push(
+      `Seine Gabe an dich: ${fmt(c.gift.ships)} Schiffe und ${fmt(c.gift.cargo.m + c.gift.cargo.c + c.gift.cargo.d)} Rohstoffe.`,
+      'Die Gabe kommt von der Spielleitung und steht nicht in deiner Wirtschaft und deinem Schwerpunkt.',
+    );
+  return {
+    key: c.kind,
+    kicker: 'Endzeit',
+    headline: 'Und dann: die Endzeit.',
+    figure: `Tag ${c.day}`,
+    lines,
+    report: null,
+  };
+}
+
+/** The words of each card by its kind. */
+const WORDS: {
+  [K in RewindCard['kind']]: (
+    c: Extract<RewindCard, { kind: K }>,
+  ) => RewindCardPage;
+} = {
+  identity,
+  economy,
+  focus,
+  loss,
+  return: comeback,
+  playtime: playtimeCard,
+  endzeit,
+  rank,
+};
+
 const card = (c: RewindCard): RewindCardPage =>
-  c.kind === 'identity'
-    ? identity(c)
-    : c.kind === 'playtime'
-      ? playtimeCard(c)
-      : rank(c);
+  (WORDS[c.kind] as (c: RewindCard) => RewindCardPage)(c);
 
 /** The cards of the Rewind in the order of the server. */
 export const rewindPage = (r: Rewind): RewindPage => ({

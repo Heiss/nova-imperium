@@ -13,9 +13,10 @@ import type { ClientView } from './contract.ts';
 
 /**
  * „Gilden“ (#118, bundle 6), its data as a property. It is mounted anew on
- * every render, as the HTML view was rendered anew: `keepInputs`, the chat's
- * place (`keepChatScroll`) and the ticked rights of a rank are kept by main.ts
- * on the page, as before.
+ * every render, as the HTML view was rendered anew: the fields of its forms
+ * and the ticked rights of a rank keep their state in
+ * `logic/guild-form.svelte.ts` (#332), and the chat's place is kept by
+ * `keepChatScroll` (`features/guilds.ts`).
  */
 function mountGuilds(target: HTMLElement, v: V) {
   const component = mount(Guilds, { target, props: { page: guildsPage(v) } });

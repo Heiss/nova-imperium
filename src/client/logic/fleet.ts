@@ -15,19 +15,12 @@ import { isFleet } from '../../core/missions.ts';
 import { text } from '../../core/text.ts';
 import type { Resources } from '../../core/types.ts';
 import type { V } from '../views/common.ts';
-import { colonyNote } from './colony-limit.ts';
-import {
-  maxPosition,
-  missionOptions,
-  offeredMissions,
-  type QuickTarget,
-  quickTargets,
-} from './fleet-target.ts';
-import { timeRowHtml } from './fleet-time.ts';
+import { type FleetChoice, fleetChoice, fleetTarget } from './fleet-choice.ts';
+import type { FleetDraft } from './fleet-form.svelte.ts';
+import { maxPosition, type QuickTarget, quickTargets } from './fleet-target.ts';
 import { fmt } from './format.ts';
 import { staysAt } from './game.ts';
 import { jumpPanel } from './jump-gate.ts';
-import { moonAt } from './moon.ts';
 import {
   type Countdown,
   countdown,
@@ -99,7 +92,7 @@ interface UnionBox {
   open: OpenBoxRow[];
 }
 
-/** The target of the form: the place, and whether its moon can be chosen. */
+/** The target of the form the page starts with, and the limits of its fields. */
 interface FleetTarget {
   g: number;
   s: number;
@@ -108,10 +101,6 @@ interface FleetTarget {
   systems: number;
   /** The highest position of the field: the expedition position (#93). */
   positions: number;
-  /** A moon is there (#53); else „Mond“ is disabled. */
-  moon: boolean;
-  /** The moon is the chosen target. */
-  toMoon: boolean;
 }
 
 /** The box „Warp-Tor“ on a moon with one (#230). */
@@ -127,16 +116,10 @@ interface JumpBox {
 interface FleetFormPage {
   quick: readonly QuickTarget[];
   target: FleetTarget;
-  /** The options of the list „Auftrag“ as HTML, which the form writes again when the target changes (features/fleet.ts). */
-  missions: string;
-  /** The mission the list ends on, or empty when none fits the target (#253). */
-  mission: string;
-  /** The planets against the limit for a Landnahme (#237). */
-  limit: string;
-  /** The unions the fleet can join (#225), the chosen one selected; empty when none. */
+  /** What the fields of the form show for the state of the form (logic/fleet-choice.ts); the component asks it, so a change of the state shows. */
+  choose: (draft: FleetDraft) => FleetChoice;
+  /** The unions the fleet can join (#225); empty when none. The one chosen is `choose(draft).union`. */
   unions: FleetOption[];
-  /** The row of the time at the target as HTML, which the form writes again when the mission changes (features/fleet.ts). */
-  time: string;
   /** All slots are taken: „Flotte losschicken“ is disabled. */
   full: boolean;
 }
@@ -203,24 +186,9 @@ function jumpBox(v: V): JumpBox | null {
   };
 }
 
-/** The target the form starts with: the one chosen elsewhere (the Sternenkarte, a union), else the shown planet. */
-export const fleetTarget = ({
-  P,
-  ui,
-}: Pick<V, 'P' | 'ui'>): NonNullable<V['ui']['ft']> =>
-  ui.ft ?? { g: P.g, s: P.s, p: P.p };
-
 function formPage(v: V, full: boolean): FleetFormPage {
-  const { P, s, ui } = v;
+  const { P, s } = v;
   const t = fleetTarget(v);
-  // „Mond“ only where one is (#53); the form updates it with the coordinates.
-  const moon = !!moonAt(s.galaxy, t);
-  // Only the missions that fit the target (#253); missiles start in the
-  // Sternenkarte, not here (#54).
-  const { html, selected } = missionOptions(
-    offeredMissions(s, P.id, t, v.now),
-    ui.fm,
-  );
   return {
     quick: quickTargets(s, P.id),
     target: {
@@ -228,18 +196,9 @@ function formPage(v: V, full: boolean): FleetFormPage {
       galaxies: s.cfg.galaxies,
       systems: s.cfg.systems,
       positions: maxPosition(s),
-      moon,
-      toMoon: moon && t.kind === 'moon',
     },
-    missions: html,
-    mission: selected,
-    limit: colonyNote(s, selected),
-    unions: joinChoices(v).map((c) => ({
-      value: c.id,
-      label: c.label,
-      selected: ui.union === c.id,
-    })),
-    time: timeRowHtml(selected, v),
+    choose: (draft) => fleetChoice(v, draft, v.now),
+    unions: joinChoices(v).map((c) => ({ value: c.id, label: c.label })),
     full,
   };
 }

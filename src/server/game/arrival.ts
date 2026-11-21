@@ -157,9 +157,9 @@ export function tick(
         const live = ctx.fleets.get(f.id);
         if (!live || dueAt(live) > now) return;
         // The journal of the round: one event per arrival, end of holding and return (#235).
-        beginCause();
-        const before = fleetBefore(ctx, live);
         const at = dueAt(live);
+        beginCause(at);
+        const before = fleetBefore(ctx, live);
         const kind = {
           out: EVENT_KIND.arrival,
           hold: EVENT_KIND.hold,

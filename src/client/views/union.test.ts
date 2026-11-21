@@ -110,6 +110,32 @@ describe('the row „Verband“ of the fleet form', () => {
   });
 });
 
+describe('the union chosen after a redraw (#332)', () => {
+  afterEach(forgetForms);
+
+  const other = { ...union, id: 'f9' };
+  const selected = (html: string): string[] =>
+    [
+      .../<select id="t_u"[^]*?<\/select>/
+        .exec(html)![0]
+        .matchAll(/<option selected value="([^"]*)">/g),
+    ].map((m) => m[1]!);
+
+  it('shows the union chosen, not the one of the page, and none for the choice of no union', () => {
+    const v = (): V => view([union, other], 'u1', { union: 'un<1>' });
+    expect(selected(fleet(v()))).toEqual(['un&lt;1>']);
+    fleetForm.union = 'f9';
+    expect(selected(fleet(v()))).toEqual(['f9']);
+    fleetForm.union = '';
+    expect(selected(fleet(v()))).toEqual([]);
+  });
+
+  it('shows none for a union the player cannot join any more', () => {
+    fleetForm.union = 'gone';
+    expect(selected(fleet(view([union, other])))).toEqual([]);
+  });
+});
+
 describe('opening a union from an own Sturmangriff', () => {
   const html = (f: ClientFleet, unions: UnionState[] = []) =>
     fleet(view(unions, 'u1', {}, [f]));

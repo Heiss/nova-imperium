@@ -120,8 +120,10 @@ complete, tested and pushed.
   place, points, economy and planets, the settings that differed from the
   defaults and a mark for a round with a partial history.
 * **Slice 4, the thin Runden-Rewind (2026-11-20):** built with the cards 1, 6
-  and 8 only, see „The thin Runden-Rewind“ below. The cards 2 to 5 and 7 are
-  not built.
+  and 8 only, see „The thin Runden-Rewind“ below.
+* **Slice 4b, the rest of the Rewind (2026-11-21):** the cards 2 to 5 and 7 from
+  the version 2 events, see „The rest of the Runden-Rewind“ below. The points
+  curve and `play_session_id` are not built.
 
 * **Slice 5, view H of the admin (2026-11-20):** „Vorschau aktualisieren“ and
   the drilldown per participant, see „View H“ below.
@@ -290,7 +292,8 @@ complete, tested and pushed.
   with an index on `(round, kind, at)`. Cost: about 0.5 ms more per action and
   0.7 ms more per arrival (1000 actions 1.0 s without, 1.5 s with; 1000
   arrivals 2.6 s without, 3.3 s with).
-* **[V]** What this does not hold: gross production (only what the game
+* **[V]** What this does not hold (before version 2, see „The rest of the
+  Runden-Rewind“ for what version 2 added): gross production (only what the game
   credited), a ledger of the market and the gifts of the Endzeit as their own
   events (they are the `trade` and `endzeit` actions and the arrival of the gift
   fleet with their `prod` and `reports`, not typed deliveries), the colony and
@@ -408,3 +411,196 @@ written in the same transaction as the domain change, with a stable causal id
 points are then derived on read (D3). Without them a Rewind could only show
 the final standing and the play time (cards 1, 6 and 8): that is the thin
 Rewind below, the full one comes with these events.
+
+# The rest of the Runden-Rewind (issue #235, owner 2026-11-21)
+
+* **[E]** Card 4 („Dann kam …“, „−N Flottenpunkte“): the single battle with the
+  largest own loss of ship construction value divided by 1000, in any role
+  (attacker or defender), no threshold. Defence losses do not count. No card
+  when there was no loss (owner, 2026-11-21).
+* **[E]** Card 5 („Du bist zurückgekommen.“, „N Tage“): derived from version 2
+  events only. The fleet value is the construction value of the own ships; the
+  card shows only when it came back to its level before the card-4 loss, and
+  the number is the days from that loss to the first event at or above that
+  level. No card when it never came back, and none for a round that holds
+  events of version 1 (owner, 2026-11-21).
+* **[E]** Cards 2 (Wirtschaft: actual production credits), 3 (investment mix)
+  and 7 (Endzeit: admin gifts clearly separated) are built from the version 2
+  events; their headlines are the issue's examples (owner, 2026-11-21).
+* **[E]** The points curve and `play_session_id` are not in this release; they
+  stay open (owner, 2026-11-21).
+* **[E]** A round with events of version 1 says honestly what it lacks: the
+  cards that need version 2 facts are left out and the Rewind keeps the shorter
+  form (owner, 2026-11-21).
+* **[V]** Version 2 of the journal (`EVENT_VERSION` 2, `src/core/round-events.ts`):
+  the events `research.done` (key, level, logical end, cost paid, cause),
+  `place.created` and `place.removed` (a colony or moon, not the first home
+  planet, which is `participant.joined`), `journal.close` (the closing
+  settlement of all places and research up to the cutoff, written by
+  `closeActiveRound` before the facts of the close); `unitsCost` (ships and
+  defense apart) in `Produced`, `back` (the refund of a demolition) in
+  `Produced.built`, `gift` on the arrival of the gift fleet of the Endzeit.
+  `participant.joined`, `journal.*` and the events above carry the version; the
+  facts of the close (`player.final`, `player.playtime`, `round.closed`) and
+  the annotation `admin.endzeit` keep version 1 and are not looked at. An
+  arrival now starts its cause at its due time, so a fact noticed by an arrival
+  has the logical time of the arrival.
+* **[V]** The reader is `src/core/round-rewind-facts.ts` (pure functions over the
+  ordered events; the server hands over `ctx.rounds.events(number)`, nothing is
+  stored). It answers null, and the card is left out, when the facts are
+  missing. **Complete** (`completeFor`): the round holds journal events, none of
+  them of version 1, and the seat has a `participant.joined` with `entry`
+  `home`. A seat that joined as `present` (it was playing when the history
+  began) or has no joining lacks its early history. Cards 2, 3, 5 and 7 need a
+  complete seat. Card 4 needs only battle numbers, which version 1 holds too, so
+  a round with version 1 events keeps card 4 (it tells the largest loss
+  recorded; a round that began before the history may hold a larger one).
+* **[V]** The facts each card reads: card 2 the `prod` entries whose `owner` is
+  the seat, in every `journal.action`, `.arrival`, `.hold`, `.return` and
+  `journal.close`: m, c, d credited (after the storage limit), the refund
+  `built.back` of a demolition taken out; the sum m + c + d (an unweighted sum,
+  not a value); no card for a sum of 0 or less. The cargo of a gift fleet and of
+  a trade is no `prod`, so it is not counted. Card 3 the cost of the finished
+  buildings (`prod[].built.cost`, no demolition), of `research.done` of the
+  seat, and `prod[].unitsCost.ships` and `.def`, each as m + c + d; the category
+  with the strictly largest amount is the focus, its share of all four in whole
+  percent (rounded). Card 4 the `battle` of a fleet event: for the owner of the
+  fleet `attBefore` minus `attAfter`, for the owner of the target (`target`)
+  `defBefore` minus `defAfter`, ships only (the keys of the ship catalog),
+  valued by the raw cost m + c + d, divided by 1000 and rounded down
+  (`pointsOf`). The day is the day of the round (1 is the first, at most the
+  length of the round). Card 5 the fleet value of the seat as a ledger over the
+  events in the order of their logical time: plus `prod[].unitsCost.ships`, plus
+  the ships of the baseline of `participant.joined` and of the arrival of the
+  Endzeit gift of the seat, minus the ships lost in battles (as card 4, every
+  battle, not only the largest). Card 7 the event `admin.endzeit` (written only
+  by a ring-in that went through; its time gives the day) and the arrival of the
+  seat with `gift` (ships and cargo that landed).
+* **[V]** What the fleet value of card 5 does not know, and what the card does
+  about it (Q26, below): ships consumed outside a battle, the fleets that
+  joined or held in a battle (only the leading fleet and the planet are in the
+  numbers of the journal), and ships that finished earlier than the save that
+  noticed them (the time of a finished unit is the logical time of the event
+  that noticed it: „first observed“, as the issue says; the closing settlement
+  notices everything at the latest at the cutoff).
+* **[V]** Rules where nothing was decided, taken from the conditional rule of
+  the issue („no fact, no card“): card 3 has no card when nothing was paid or
+  when two categories share the largest amount; a tie of two equal losses
+  (card 4) takes the earlier battle; card 5 has no card when the value before
+  the loss is smaller than the loss (the events then miss ships), and none when
+  the gift of the Endzeit arrived between the loss and the recovery (a recovery
+  the admin's gift could have caused is not told as one; a gift before the loss
+  counts as own ships); the days of card 5 are whole days, rounded up, at least
+  1, as the length of a round; card 7 has no card without a ring-in event and
+  tells nothing about a gift that did not arrive for the seat.
+* **[V]** Decisions the coordinator took under `AGENTS.md` (2026-11-21; the
+  owner can overturn each of them):
+  * **Q17:** card 5 has no card when the gift of the Endzeit arrives between
+    the loss and the recovery (as built).
+  * **Q18:** card 3 has no card when two categories tie (as built).
+  * **Q19:** card 4 in a round that holds events of version 1 stays, with one
+    more line, only for such a round: „Aus dem aufgezeichneten Teil der
+    Runde.“ (a draft [V]; `LossCard.recordedOnly`, `hasOldVersion`). A round of
+    version 2 has no such line. The loss is then the largest of the recorded
+    part; a round that began before the history may hold a larger one.
+  * **Q20:** card 2 is the unweighted sum m + c + d (as built).
+  * **Q21:** card 7 shows the day of the ring-in (as built).
+  * **Q26, card 5 and what the ledger does not subtract.** The fleet value is a
+    ledger: plus the finished ships and the baseline, minus the ships lost in the
+    recorded battles. Let C(t) be the construction value of the ships that were
+    consumed up to time t without a number in the journal. The ledger equals the
+    real value plus C(t), because the real value lost them and the ledger did
+    not; C only grows. The level before the loss, ledger(t0), holds C(t0). If
+    nothing unrecorded was consumed in the window from the loss to the
+    recovery, C(t) = C(t0), so ledger(t) >= ledger(t0) means real(t) >=
+    real(t0): the real value is back. Consumption before the loss cancels out,
+    since it is in C(t0) as well. Ships found or landed that the ledger does not
+    count (an expedition's find) only make the real value larger, so they do not
+    break the argument. The card can therefore only miss a recovery, never claim
+    a false one. So `recoveryOf` returns no card when the window, from the event
+    of the loss (included) to the event of the recovery (included), holds an
+    event of the seat that consumed ships without a number. Each is recognised
+    from the version 2 journal alone (`consumes` in `round-rewind-facts.ts`,
+    tested on hand-made payloads and on the events of real arrivals in
+    `src/server/game/round-rewind-consumption.test.ts`):
+    * **Colonisation:** a `journal.arrival` of the seat with `mission`
+      `colonize` and a `place.created` of the seat with `kind` `planet` and
+      `cause` `arrival` at the same logical time. (The `send` action only
+      launches the ark; the ship is consumed at the arrival, so the window is
+      read at the arrival. An arrival that founded nothing, because the limit of
+      planets was reached, has no such `place.created`, and the fleet flies
+      home whole.)
+    * **Expedition:** a `journal.arrival` of the seat with `mission`
+      `expedition`, `fate` `gone` and no `battle`: the event „lost“ of the
+      expedition. An expedition that lost ships in a battle with pirates or
+      aliens has the `battle` numbers, with the raiders as `attBefore` and the
+      fleet of the owner as `defBefore`; the reader now takes the own side of
+      that battle from `defBefore` and `defAfter` (before, the raiders' losses
+      were read as the seat's own loss, a fault of cards 4 and 5).
+    * **Joined or held fleet:** a battle event (arrival with `battle`) whose
+      `reports` list holds a `battle` report `to` the seat while the seat is
+      neither the owner of the leading fleet (`seat` of the event) nor the owner
+      of the target (`target`): the seat joined the union or held at the planet.
+      A fleet of the seat that joined a union led by the seat's own fleet (or
+      by another) is also recognised by the `send` action of the seat with
+      `ok` true and `input.union` set: the arrival event of the fleet with that
+      id is a battle with a fleet of the seat whose ships the numbers do not
+      hold. A seat cannot hold at its own planet (only an ally of the owner may).
+    * Three more consumptions are found the same way and treated the same
+      (the argument above needs no other): a `place.removed` of the seat (an
+      abandoned planet or a moon destroyed, with the ships on it), a lost survey
+      (`mission` `survey`, `fate` `gone`), and a Mondbruch arrival of the seat
+      with Weltenbrecher among its ships (they may tear themselves apart, which
+      the battle numbers do not hold). The last one suppresses also when none
+      was torn; it can only miss a recovery. **[V]** All three are kept
+      (coordinator, 2026-11-21, #235 Q31): each is consumption the ledger
+      does not subtract. The Mondbruch case is the coarse one: the journal does
+      not hold the self-destruction of a Weltenbrecher, so a card is missed
+      there whenever a Weltenbrecher flew, torn or not.
+    * The same events before the loss do not suppress the card, and neither do
+      the events of another seat.
+* **[V]** The cards in the issue's order of slots: 1, 2, 3, 4, 5, 6, 7, 8 in
+  `CARDS`; the cards have the kinds `economy`, `focus`, `loss`, `return` and
+  `endzeit`.
+* **[V]** The texts (`src/client/logic/round-rewind.ts`). The headlines and
+  figures of the issue: „Du hast eine Wirtschaft aufgebaut.“ / „8,2 Mio.“;
+  „Dein Schwerpunkt: Aufbau.“ / „58 %“; „Dann kam Karthax.“ / „−420
+  Flottenpunkte“; „Du bist zurückgekommen.“ / „5 Tage“; „Und dann: die
+  Endzeit.“ / „Tag 28“. Drafts of Claude: the focus word of the categories
+  Forschung, Flotte and Verteidigung („Dein Schwerpunkt: Forschung.“ and so
+  on); the headline of card 4 for an attacker („Dann traf deine Flotte auf
+  Karthax.“) and for an unnamed opponent („Dann kam ein Angriff.“, „Dann traf
+  deine Flotte auf einen Gegner.“); the kickers (Wirtschaft, Schwerpunkt,
+  Verlust, Zurückgekommen, Endzeit); and the lines of the cards, listed in the
+  hand-over report. The figure of card 2 is in millions with one decimal and a
+  decimal comma from a million, else with the thousands point.
+* **[V]** The component needs no change: it draws any `RewindCardPage` with the
+  same structure, the `aria-live` line with the stable value and the motion
+  rules of „The thin Runden-Rewind“. The opponent of card 4 is the name of the
+  report row of the other seat (a deleted account: „Gelöschter Spieler“); an
+  opponent without a row stays unnamed.
+* **[V]** Cost of the read, measured 2026-11-21 (a scratch test, not kept):
+  a closed round of 20 players, 30 days, 300 actions and 100 arrivals per player
+  and day (the estimate of `journal-cost.test.ts`), 240,062 rows and 50.6 MB of
+  payload, built from the real payload shapes of that test. `roundRewind` loading
+  the whole round (`ctx.rounds.events`) held +199 MB of heap while the events
+  were in memory (peak about +220 MB in the call, 1.4 s) and kept nothing after
+  it (`process.memoryUsage().heapUsed` after `gc()`, before the call, with the
+  events loaded, after the call). That is too much for a small machine, so the
+  query reads only what the cards of the seat can read (`eventsForSeat` in
+  `src/server/db/repos/rounds.ts`, parameterised SQL): the events of the seat;
+  the events whose `target` is the seat; the battle reports (`reports`) that went
+  to the seat; the events with a place of the seat in their `prod`; the fleet
+  events of a union the seat sent a fleet into (`send` with `ok` true and
+  `input.union`); `admin.endzeit`; and one event of version 1 of the journal if
+  the round holds one (`completeFor` only asks whether there is one). The same
+  round then loads 15,004 events (+14.8 MB of heap, peak about +17 MB, 0.9 s),
+  and the cards are the same: `round-rewind-seat-filter.test.ts` compares the
+  results of every function of the reader on generated rounds, for every seat,
+  with the filtered and the unfiltered events, and
+  `round-rewind-consumption.test.ts` does it for events of real arrivals. The
+  query reads every row of the round once (it opens the JSON of the payload in
+  SQLite); a more selective read would need columns for the target and the
+  owners of the places, which the journal does not have. **[U]** Whether
+  this full read is felt on the server is not known; no schema change for it
+  now (coordinator, 2026-11-21).

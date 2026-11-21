@@ -64,6 +64,15 @@ describe('the words of the cards', () => {
     ]);
   });
 
+  it('puts the small line above the headline of the cards 1, 6 and 8', () => {
+    const page = rewindPage(rewind({ played: 0 }));
+    expect(page.cards.map((c) => c.kicker)).toEqual([
+      'Runde 3',
+      'Spielzeit',
+      'Endplatz',
+    ]);
+  });
+
   it('tells the identity of the round and the number of participants', () => {
     const [first] = rewindPage(rewind()).cards;
     expect(first!.lines).toEqual([
@@ -185,6 +194,29 @@ describe('the motion', () => {
     media(false);
     page(false);
     expect(stillMotion()).toBe(false);
+  });
+
+  it('moves on a page without a root element', () => {
+    media(false);
+    vi.stubGlobal('document', { documentElement: undefined });
+    expect(stillMotion()).toBe(false);
+  });
+
+  it('asks for the class no-anim and no other', () => {
+    media(false);
+    const asked: string[] = [];
+    vi.stubGlobal('document', {
+      documentElement: {
+        classList: {
+          contains: (c: string) => {
+            asked.push(c);
+            return c === 'no-anim';
+          },
+        },
+      },
+    });
+    expect(stillMotion()).toBe(true);
+    expect(asked).toEqual(['no-anim']);
   });
 
   it('stands still under prefers-reduced-motion', () => {

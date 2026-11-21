@@ -7,6 +7,7 @@ import type { RoundRules } from '../../core/round.ts';
 import type { Levels } from '../../core/types.ts';
 import type { Ui, V } from '../views/common.ts';
 import { CARGO_FIELDS, fleetPage, SPEEDS } from './fleet.ts';
+import { fleetForm } from './fleet-form.svelte.ts';
 import type { ClientFleet, GalaxyPlanet, GameState } from './types.ts';
 
 const place = (
@@ -128,8 +129,12 @@ describe('the ships and the form', () => {
       galaxies: U.galaxies,
       systems: U.systems,
       positions: U.positions + 1,
+    });
+    // What the fields show for a form nobody touched (logic/fleet-choice.ts).
+    expect(page.form.choose(fleetForm)).toMatchObject({
+      to: { g: 1, s: 2, p: 5 },
       moon: false,
-      toMoon: false,
+      kind: 'planet',
     });
     const moon = fleetPage(
       view({
@@ -138,23 +143,32 @@ describe('the ships and the form', () => {
         ft: { g: 1, s: 2, p: 6, kind: 'moon' },
       }),
     );
-    expect(moon.form.target).toMatchObject({ p: 6, moon: true, toMoon: true });
+    expect(moon.form.target).toMatchObject({ p: 6 });
+    expect(moon.form.choose(fleetForm)).toMatchObject({
+      moon: true,
+      kind: 'moon',
+    });
   });
 
   it('keeps the chosen mission while it fits the target, else the first that does', () => {
     const at = { ft: { g: 1, s: 2, p: 6 }, ships: { lc: 1 } };
-    expect(fleetPage(view({ ...at, fm: 'spy' })).form.mission).toBe('spy');
-    expect(fleetPage(view({ ...at, fm: 'colonize' })).form.mission).toBe(
-      'attack',
-    );
+    const mission = (fm: string) =>
+      fleetPage(view({ ...at, fm })).form.choose(fleetForm).mission;
+    expect(mission('spy')).toBe('spy');
+    expect(mission('colonize')).toBe('attack');
   });
 
-  it('writes the options of the lists as the form writes them again', () => {
+  it('lists the missions that fit the target and selects the one chosen', () => {
     const form = fleetPage(
       view({ ships: { lc: 1 }, ft: { g: 1, s: 2, p: 6 }, fm: 'spy' }),
     ).form;
-    expect(form.missions).toContain('<option value="spy" selected>');
-    expect(form.time).toContain('id="t_hold"');
+    const { missions } = form.choose(fleetForm);
+    expect(missions.find((m) => m.selected)).toMatchObject({ value: 'spy' });
+    // The row of the time is the holding time, hidden, for a mission that does not hold.
+    expect(form.choose(fleetForm)).toMatchObject({
+      stays: false,
+      holds: false,
+    });
   });
 
   it('offers the speeds from 100 to 10 % and the three cargo fields', () => {
@@ -180,9 +194,14 @@ describe('the ships and the form', () => {
     const page = fleetPage(
       view({ ships: { lc: 1 }, state: { unions }, union: 'f9' }),
     );
-    expect(page.form.unions.map((u) => [u.value, u.selected])).toEqual([
-      ['f9', true],
-    ]);
+    expect(page.form.unions.map((u) => u.value)).toEqual(['f9']);
+    // The one of the page, else the one chosen; none that is gone.
+    expect(page.form.choose(fleetForm).union).toBe('f9');
+    fleetForm.union = '';
+    expect(page.form.choose(fleetForm).union).toBe('');
+    fleetForm.union = 'zz';
+    expect(page.form.choose(fleetForm).union).toBe('');
+    fleetForm.union = null;
     expect(page.unions?.unions.map((u) => u.id)).toEqual(['f9']);
   });
 });

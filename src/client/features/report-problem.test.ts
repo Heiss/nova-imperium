@@ -117,8 +117,9 @@ describe('the forms that send a report', () => {
 
   it('empties the form that stands on the page when the answer comes, not the one that was sent', async () => {
     // The poll of the state redraws the page while the report is on its way:
-    // the redraw puts the typed text back into the new form (keepInputs), and
-    // the old, detached form is no longer the one the player sees.
+    // the redraw mounts a new form that shows the text of the form state
+    // (logic/options-form.svelte.ts, #332), and the old, detached form is no
+    // longer the one the player sees.
     const sent = form({ isConnected: false });
     forms.reportform = sent;
     const redrawn = form();

@@ -9,8 +9,11 @@ import {
   chatLength,
   chatTextError,
   chatUnread,
+  deleteChatError,
   isChatEvent,
   MAX_CHAT_TEXT,
+  seeChatError,
+  sendChatError,
 } from './guild-chat.ts';
 import { GUILD_RIGHTS, type GuildRight } from './guild-ranks.ts';
 import { ROUND_SETTINGS, roundFieldId, roundRefused } from './round.ts';
@@ -54,6 +57,53 @@ describe('limits', () => {
       ),
       { seed: 169, numRuns: 200 },
     );
+  });
+});
+
+describe('the checks of the chat actions (#214)', () => {
+  const rule = (rights: GuildRight[], position = 1) => ({ position, rights });
+  const write = rule(['chat-write']);
+
+  it('sendChatError: the right, a text, then the pause', () => {
+    expect(sendChatError(rule(['chat-read']), 'Hallo', 0, undefined)).toBe(
+      'right',
+    );
+    expect(sendChatError(rule([]), 7, 0, 0)).toBe('right');
+    expect(sendChatError(write, 7, 0, undefined)).toBe('empty');
+    expect(sendChatError(write, undefined, 0, undefined)).toBe('empty');
+    expect(sendChatError(write, '', 0, undefined)).toBe('empty');
+    expect(sendChatError(write, 'a'.repeat(1001), 0, 0)).toBe('length');
+    expect(sendChatError(write, 'Hallo', 0, undefined)).toBeNull();
+    expect(
+      sendChatError(write, 'Hallo', 5000, 5000 - CHAT_INTERVAL),
+    ).toBeNull();
+    expect(sendChatError(write, 'Hallo', 5000, 5000 - CHAT_INTERVAL + 1)).toBe(
+      'wait',
+    );
+    expect(sendChatError(write, 'Hallo', 5000, 5000)).toBe('wait');
+  });
+
+  it('deleteChatError: the right, the message, no event, then canDeleteChat', () => {
+    const del = rule(['chat-delete'], 2);
+    const msg = (kind: string, own: boolean, author: number) => ({
+      kind,
+      own,
+      author,
+    });
+    expect(deleteChatError(rule([], 0), msg('message', true, 3))).toBe('right');
+    expect(deleteChatError(rule(['chat-read'], 0), undefined)).toBe('right');
+    expect(deleteChatError(del, undefined)).toBe('message');
+    expect(deleteChatError(del, msg('join', false, Infinity))).toBe('event');
+    expect(deleteChatError(del, msg('attack', true, 2))).toBe('event');
+    expect(deleteChatError(del, msg('message', false, 1))).toBe('lower');
+    expect(deleteChatError(del, msg('message', false, 2))).toBe('lower');
+    expect(deleteChatError(del, msg('message', false, 3))).toBeNull();
+    expect(deleteChatError(del, msg('message', true, 2))).toBeNull();
+  });
+
+  it('seeChatError: the right „Chat lesen“', () => {
+    expect(seeChatError(rule(['chat-read']))).toBeNull();
+    expect(seeChatError(rule(['chat-write', 'chat-delete']))).toBe('right');
   });
 });
 

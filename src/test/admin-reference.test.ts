@@ -514,8 +514,8 @@ describe('Admin against the view before #118, bundle 7', () => {
       'id="announce-text"',
     ])
       expect(html, mark).toContain(mark);
-    // The fields of the settings and of the invitation link have no field draft
-    // (logic/field-drafts.ts); the page carries no `data-nokeep` any more.
+    // The fields of the settings and of the invitation link show the server, and
+    // the page carries no `data-nokeep` any more.
     expect(html).toMatch(/id="set_speed"/);
     expect(html).toMatch(/id="inv_link"/);
     expect(html).not.toContain('data-nokeep');

@@ -4,7 +4,7 @@
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import type { GateView } from '../../core/jump-gate.ts';
-import { jumpPanel, keeps, viewDue } from './jump-gate.ts';
+import { jumpPanel, viewDue } from './jump-gate.ts';
 import type { Planet } from '../../core/types.ts';
 import type { GalaxyPlanet } from './types.ts';
 
@@ -245,26 +245,5 @@ describe('the clock draws the view again', () => {
     const cooling = gates({}, { ready: NOW + 2000 });
     const planet = shown({ b: { moonbase: 1 } }, cooling);
     expect(viewDue(planet, NOW + 2000)).toBe(false);
-  });
-});
-
-describe('a redraw keeps the picked „Zielmond“', () => {
-  const options = [
-    { value: 'm2_5_9', disabled: true },
-    { value: 'm3_1_1', disabled: false },
-  ];
-
-  it('while its option is enabled, not on a cooling one', () => {
-    expect(keeps({ options }, 'm3_1_1')).toBe(true);
-    expect(keeps({ options }, 'm2_5_9')).toBe(false);
-  });
-
-  it('and every other field as before', () => {
-    // A value without an option changes nothing in a select.
-    expect(keeps({ options }, 'm9_9_9')).toBe(true);
-    expect(keeps({ options: [] }, 'x')).toBe(true);
-    // An input has no options, a datalist field has none set.
-    expect(keeps({}, '12')).toBe(true);
-    expect(keeps({ options: null }, '12')).toBe(true);
   });
 });

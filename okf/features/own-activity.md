@@ -163,16 +163,27 @@ are [Activity indicators](/features/activity-indicators.md).
   `audit_events`, which the 30-day purge deletes; it now comes from the central
   round journal (`round_events`, `journal.action`, `src/server/game/journal.ts`),
   `journalActions` in `src/server/game/playtime.ts`.
-* **[V]** The definition is the one of the audit count, matched: an event counts
-  when the action succeeded (`ok` true: a refused action, one stopped by the
-  rate limit and an unknown action do not, as `outcome = 'ok'` did not) and the
-  action is not an admin action (`ADMIN_ACTIONS`, audited as `admin.write`, not
-  as `game`); reads count as before. **[E]** (owner, 2026-11-21, #335) To
-  change: only the actions that change something count, plus the reads the
-  player starts on purpose by a click (a Phalanx-Scan); a read a view makes by
-  itself (the two archive reads of „Hilfe“) does not. Not built yet: it needs
-  a classification of every action with a guard. The account is found by its seat in the
-  rounds (`round_participants`), the day by the time of recording, in UTC.
+* **[E]** (owner, 2026-11-21, #335) What counts: an event counts when the action
+  succeeded (`ok` true: a refused action, one stopped by the rate limit and an
+  unknown action do not, as `outcome = 'ok'` did not), the action is not an
+  admin action (`ADMIN_ACTIONS`, audited as `admin.write`, not as `game`) and
+  its class counts. „Spielaktionen“ are the actions that change something,
+  plus the reads the player starts on purpose by a click; a read a view makes
+  by itself does not count (the old [V] „reads count too“ is replaced). The
+  table is `ACTION_KIND` in `src/core/action-kind.ts`, typed
+  `Record<ActionName, ActionKind>`, so a new action without a class is a type
+  error, and `src/core/action-kind.test.ts` checks it against the declared
+  actions. The classes: **change** (counted): every action not named below;
+  **click** (counted, a deliberate read): `roundReport`, `roundRewind`,
+  `roundParticipant`, `scan`; **view** (not counted, a read a view makes by
+  itself): `roundArchive`, `roundHistory`. The page also sends two writes by
+  itself, which the owner does not count either: `read` (the reports are
+  marked read after „Nachrichten“ is drawn) and `seeGuildChat` (the mark of the
+  guild chat is cleared). **[V]** They have their own class `auto`, not `view`,
+  because they write and are no reads. `countsAsPlayAction(name)` says whether
+  a name counts; an unknown name never does. The account is found by its seat
+  in the rounds (`round_participants`), the day by the time of recording, in
+  UTC.
 * **[V]** Differences that remain: an account without a seat (it holds no place;
   an admin without a planet) has no attributable events in the journal, the audit
   count named it by its account; and the journal starts with the update of
@@ -183,7 +194,14 @@ are [Activity indicators](/features/activity-indicators.md).
   actions that were made; from the day after, the journal alone counts. The
   fallback ends by itself when those days have left the seven shown. Without
   the fallback the days before the update would read 0 (one-line change in
-  `dayTable`).
+  `dayTable`). **[E]** (owner, 2026-11-21, #335) The same table is applied to
+  the rows of the audit log (`auditActions`: `audit_events.action` holds the
+  action name, `'unknown'` for an unknown name, which does not count; the rows
+  of `rateLimit` are `outcome 'rejected'` and never count), and such a day keeps
+  the larger of the two counts, as before.
 * **[V]** The admin diagnostics read the same function (`dayTable`) for the
   daily table of a player and so follow the change; their counters of the
   last 7 days (`recentActions`, `actions`) still read the audit log.
+  **[V]** (coordinator, 2026-11-21, #335 Q14) These two counters stay raw
+  counts of the audit log: they include every read and measure load, so they
+  are not the same number as the „Spielaktionen“ of the box.

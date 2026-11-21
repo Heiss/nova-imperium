@@ -2,14 +2,16 @@
   // The fleet view (#118, bundle 3; okf/architecture/patterns.md,
   // section 9), from fleetPage() of logic/fleet.ts. Its buttons and links
   // carry data-act, which main.ts handles; features/fleet.ts reads the form
-  // and writes the target, the list „Auftrag“, the row of the time at the
-  // target and the preview of the flight into their places while the player
-  // types. Those two lists of options and that row are HTML (`{@html}`) so
-  // that the form writes them with the same functions. The ships, the
-  // position, the speed, the cargo and the names to invite are the state of
-  // logic/fleet-form.svelte.ts (#332): a field takes `value` with `oninput`,
-  // so a half-typed number is never written over.
+  // and writes the preview of the flight into its places while the player
+  // types. The ships, the position, the kind of target, the mission, the
+  // union, the time at the target, the speed, the cargo, the „Zielmond“ of
+  // the Warp-Tor and the names to invite are the state of logic/fleet-form.svelte.ts (#332): a field takes
+  // `value` with `oninput` (a select `selected` with `onchange`), so a
+  // half-typed number is never written over. What the lists and the row of the
+  // time show for that state is worked out by logic/fleet-choice.ts.
+  import { HOLD_HOURS } from '../../core/holding.ts';
   import { fleetForm } from '../logic/fleet-form.svelte.ts';
+  import { hoursLabel } from '../logic/fleet-time.ts';
   import { QUICK_FIRST } from '../logic/fleet-target.ts';
   import { shown } from '../logic/galaxy-position.svelte.ts';
   import {
@@ -24,6 +26,8 @@
   let { page }: { page: FleetPage } = $props();
   const form = $derived(page.form);
   const target = $derived(form.target);
+  // What the fields show for the state of the form (logic/fleet-choice.ts).
+  const choice = $derived(form.choose(fleetForm));
 </script>
 
 <h2>Flotte</h2>
@@ -177,11 +181,16 @@
                 max={target.positions}
                 aria-label="Position"
               />
-              <select id="t_k" aria-label="Zielart"
+              <select
+                id="t_k"
+                aria-label="Zielart"
+                onchange={(e) =>
+                  (fleetForm.kind =
+                    e.currentTarget.value === 'moon' ? 'moon' : 'planet')}
                 ><option value="planet">Planet</option><option
                   value="moon"
-                  disabled={!target.moon}
-                  selected={target.toMoon}>Mond</option
+                  disabled={!choice.moon}
+                  selected={choice.kind === 'moon'}>Mond</option
                 ></select
               >
               <span id="t_info" class="dim"></span></td
@@ -190,27 +199,70 @@
           <tr>
             <td>Auftrag</td>
             <td
-              ><select id="t_m" aria-label="Auftrag"
-                >{@html form.missions}</select
+              ><select
+                id="t_m"
+                aria-label="Auftrag"
+                onchange={(e) => (fleetForm.mission = e.currentTarget.value)}
+                >{#each choice.missions as option (option.value)}<option
+                    value={option.value}
+                    selected={option.selected}
+                    disabled={option.disabled}>{option.label}</option
+                  >{/each}</select
               >
-              <span id="t_limit" class="dim">{form.limit}</span></td
+              <span id="t_limit" class="dim">{choice.limit}</span></td
             >
           </tr>
           {#if form.unions.length}
             <tr id="t_union_row">
               <td><label for="t_u">Verband</label></td>
               <td
-                ><select id="t_u"
+                ><select
+                  id="t_u"
+                  onchange={(e) => (fleetForm.union = e.currentTarget.value)}
                   ><option value="">Kein Verband</option
                   >{#each form.unions as union (union.value)}<option
                       value={union.value}
-                      selected={union.selected}>{union.label}</option
+                      selected={union.value === choice.union}
+                      >{union.label}</option
                     >{/each}</select
                 ></td
               >
             </tr>
           {/if}
-          {@html form.time}
+          {#if choice.stays}
+            <tr id="t_stay_row">
+              <td>Haltezeit</td>
+              <td
+                ><input
+                  class="c3"
+                  type="number"
+                  id="t_stay"
+                  min="1"
+                  max={choice.stayMost}
+                  value={choice.stay}
+                  oninput={(e) => (fleetForm.stay = e.currentTarget.value)}
+                  aria-label="Haltezeit in Stunden"
+                />
+                Stunden am Ziel
+                <span id="t_real" class="dim">{choice.real}</span></td
+              >
+            </tr>
+          {:else}
+            <tr id="t_hold" hidden={!choice.holds}>
+              <td><label for="t_h">Haltezeit</label></td>
+              <td
+                ><select
+                  id="t_h"
+                  onchange={(e) => (fleetForm.hold = e.currentTarget.value)}
+                  >{#each HOLD_HOURS as hours (hours)}<option
+                      value={String(hours)}
+                      selected={choice.hold === String(hours)}
+                      >{hoursLabel(hours)}</option
+                    >{/each}</select
+                ></td
+              >
+            </tr>
+          {/if}
           <tr>
             <td>Geschwindigkeit</td>
             <td
@@ -264,7 +316,7 @@
           id="t_send"
           data-act="send"
           data-full={form.full ? '1' : ''}
-          disabled={form.full || !form.mission}>Flotte losschicken</button
+          disabled={form.full || !choice.mission}>Flotte losschicken</button
         >
         {#if form.full}<span class="bad"
             >Alle Flottenslots belegt (Kogitator-Doktrin erhöht die Anzahl).</span
@@ -284,10 +336,17 @@
     <div class="bd">
       <div>
         <label for="jg_to">Zielmond</label>
-        <select id="jg_to" class="jump-to" disabled={!page.jump.targets.length}>
+        <select
+          id="jg_to"
+          class="jump-to"
+          disabled={!page.jump.targets.length}
+          onchange={(e) => (fleetForm.jump = e.currentTarget.value)}
+        >
           {#each page.jump.targets as place (place.value)}<option
               value={place.value}
-              disabled={place.disabled}>{place.label}</option
+              disabled={place.disabled}
+              selected={fleetForm.jump === place.value && !place.disabled}
+              >{place.label}</option
             >{/each}
         </select>
       </div>
