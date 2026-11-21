@@ -98,17 +98,17 @@ describe('„Tauschen“', () => {
 describe('„max“', () => {
   it('puts the most that can be given into the amount', () => {
     Object.assign(draft, { give: 'm', get: 'c', amount: '1' });
-    clientFeature.acts(fakeCtx()).marketMax!({});
+    clientFeature.acts().marketMax();
     expect(draft.amount).toBe('5000');
   });
 
   it('empties the amount when nothing can be given, and does nothing without a state', () => {
     Object.assign(draft, { give: 'd', get: 'c', amount: '9' });
-    clientFeature.acts(fakeCtx()).marketMax!({});
+    clientFeature.acts().marketMax();
     expect(draft.amount).toBe('');
     draft.amount = '9';
     client.view = null;
-    clientFeature.acts(fakeCtx()).marketMax!({});
+    clientFeature.acts().marketMax();
     expect(draft.amount).toBe('9');
   });
 });

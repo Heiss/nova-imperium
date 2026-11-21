@@ -110,6 +110,17 @@ describe('the view „Marktplatz“', () => {
     expect(html).toContain('value="&quot;>&lt;b>"');
     expect(html).not.toContain('<b>');
   });
+
+  it('lists every other resource to get, the chosen one selected', () => {
+    Object.assign(draft, { give: 'd', get: 'm' });
+    expect(market(view())).toContain(
+      '<select id="market-get"><option selected value="m">Adamant</option><option value="c">Psikristall</option></select>',
+    );
+    Object.assign(draft, { give: 'm', get: 'd' });
+    expect(market(view())).toContain(
+      '<select id="market-get"><option value="c">Psikristall</option><option selected value="d">Promethium</option></select>',
+    );
+  });
 });
 
 describe('the preview of the view', () => {
