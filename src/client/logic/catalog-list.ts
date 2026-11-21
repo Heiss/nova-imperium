@@ -45,6 +45,7 @@ import {
 } from '../../core/yard.ts';
 import type { V } from '../views/common.ts';
 import { canOfferDemolition } from './demolition.ts';
+import { tearDownMax } from './missiles.ts';
 import { type Explanation, explanation } from './explain.ts';
 import { fieldsLine } from './fields.ts';
 import { dur, fmt } from './format.ts';
@@ -137,6 +138,8 @@ export interface CatalogRow {
   action: CatalogAction;
   /** A building that can be torn down offers „Zurückbauen“ (#202). */
   demolish?: boolean;
+  /** A missile in store can be torn down: the most it offers (#54, 2026-11-21). */
+  tearDown?: number;
 }
 
 /** A row of the order queue of the shipyard. */
@@ -527,6 +530,7 @@ function unitRow(
     lines: unitLines(v, key)!,
     req: d.req,
     action: orderAction(v, key, once),
+    ...(tearDownMax(v.P, key) > 0 && { tearDown: tearDownMax(v.P, key) }),
   };
 }
 

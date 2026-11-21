@@ -18,6 +18,7 @@ import {
   BUILD,
   canFly,
   DEF,
+  MISSILE,
   RES,
   type ResearchDef,
   SHIPS,
@@ -275,6 +276,15 @@ function research(v: V): string {
 
 // ----- frozen: src/client/views/yard.ts before #118 -----
 
+// One change on purpose (#54, owner, 2026-11-21): a missile in store has the
+// number and the button „Verschrotten“ below its order, in a block of its own
+// (not in a row that shows a note).
+function tearDownBox(k: string, have: number): string {
+  if (!Object.hasOwn(MISSILE, k) || have < 1) return '';
+  const name = esc(text(k)!.n);
+  return `<div class="tear"><input type="number" min="1" max="${have}" id="td_${k}" placeholder="0" aria-label="Menge verschrotten: ${name}"> <button class="small red" data-act="tearDown" data-k="${k}" aria-label="Verschrotten: ${name}">Verschrotten</button></div>`;
+}
+
 // One change on purpose (#258): every order of the list has a button
 // „Abbrechen“ in a cell of its own, named by position and unit.
 function queue(v: V): string {
@@ -337,7 +347,7 @@ function yard(
     const miss = reqMissing(d, P, R);
     const action = miss.length
       ? '<span class="req">Das Wissen ist noch verschlossen</span>'
-      : orderBox(k, orderMax(P, k), !!lock);
+      : orderBox(k, orderMax(P, k), !!lock) + tearDownBox(k, have[k] ?? 0);
     const body =
       costHTML(d.cost, P) +
       stats(v, k, d) +
@@ -542,6 +552,7 @@ const MARKS = [
   'data-act="build"',
   'data-act="research"',
   'data-act="order"',
+  'data-act="tearDown"',
   'data-act="selectPlanet"',
   'data-act="explain"',
   'data-act="levels"',

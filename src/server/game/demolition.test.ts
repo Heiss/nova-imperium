@@ -175,6 +175,28 @@ describe('a demolition (#202)', () => {
     expect(after.res).toEqual(rich);
   });
 
+  it('refuses the Raketenkrypta below the places of its missiles, the queue counted, and removes nothing (#54, 2026-11-21)', () => {
+    const { ctx, u, p } = setup({
+      b: { silo: 2, yard: 1 },
+      def: { abm: 6, ipm: 2 },
+      sq: [{ key: 'abm', n: 1, unit: 100 }],
+      res: rich,
+    });
+    // 6 + 4 + 1 = 11 places of the 10 left at level 1.
+    expect(() => demolish(ctx, u, { key: 'silo' })).toThrow(
+      'Die Raketenkrypta lagert zu viele Raketen.',
+    );
+    expect(p().b.silo).toBe(2);
+    expect(p().def).toMatchObject({ abm: 6, ipm: 2 });
+    expect(p().bq).toBeNull();
+    expect(p().res).toEqual(rich);
+    // The queue gone, 10 places are taken: exactly as many as are left.
+    ctx.planets.save({ ...p(), sq: [] });
+    expect(demolish(ctx, u, { key: 'silo' })).toBeNull();
+    expect(p().bq).toMatchObject({ key: 'silo', lvl: 1 });
+    expect(p().def).toMatchObject({ abm: 6, ipm: 2 });
+  });
+
   it('words every code', () => {
     expect(DEMOLITION_ERROR).toEqual({
       place: 'Ungültig.',
@@ -183,6 +205,7 @@ describe('a demolition (#202)', () => {
       busy: 'Es wird bereits gebaut.',
       yardBusy: 'Die Schiffsschmiede arbeitet gerade.',
       labBusy: 'Das Scholarium forscht gerade.',
+      siloBusy: 'Die Raketenkrypta lagert zu viele Raketen.',
       cost: 'Der Zehnte reicht nicht aus.',
     });
   });

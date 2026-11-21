@@ -224,6 +224,25 @@
                 data-k={row.key}
                 disabled={a.disabled}>Bauen</button
               >
+              {#if row.tearDown}
+                <div class="tear">
+                  <input
+                    type="number"
+                    min="1"
+                    max={row.tearDown}
+                    id="td_{row.key}"
+                    placeholder="0"
+                    aria-label={`Menge verschrotten: ${row.name}`}
+                  />
+                  <button
+                    class="small red"
+                    data-act="tearDown"
+                    data-k={row.key}
+                    aria-label={`Verschrotten: ${row.name}`}
+                    >Verschrotten</button
+                  >
+                </div>
+              {/if}
             {/if}{#if row.demolish}
               <br /><button class="small" data-act="demolish" data-k={row.key}
                 >Zurückbauen</button

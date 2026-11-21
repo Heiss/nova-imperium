@@ -8,14 +8,14 @@
 // back when the demolition is done; a negative one costs that share when it
 // starts (owner, 2026-11-16). The check returns codes (patterns, section 7;
 // #214); the server and the browser word them.
-import { BUILD } from './catalog.ts';
+import { BUILD, SILO } from './catalog.ts';
 import { afford, buildTime, lvlCost } from './economy.ts';
 import { holding } from './economy-checks.ts';
 import { maxFields, usedFields } from './fields.ts';
 import { waitsForLab } from './lab.ts';
 import type { RoundGroup, RoundSetting } from './round.ts';
 import type { Cost, Planet, Queue, ResearchState, Universe } from './types.ts';
-import { waitsForYard } from './yard.ts';
+import { siloUse, waitsForYard } from './yard.ts';
 
 /** The refund factor in whole percent (D7): its range and the owner's default. */
 export const DEMOLITION_REFUND = { min: -100, max: 100, default: 50 } as const;
@@ -84,10 +84,20 @@ export const timeOf = (u: Universe): number =>
  * Mondzitadelle never), no level stands, a level without it would leave the
  * planet with more used fields than it has (the Weltenschmiede, D5), the
  * build queue runs, the building is in use (the shipyard builds, the lab
- * researches, D5), or a negative factor costs more than the planet has.
+ * researches, D5), the places left in the Raketenkrypta would be fewer
+ * than its missiles take, the shipyard queue counted as for an order (#54,
+ * owner, 2026-11-21: the player tears missiles down first), or a negative
+ * factor costs more than the planet has.
  */
 export type DemolitionError =
-  'place' | 'none' | 'fields' | 'busy' | 'yardBusy' | 'labBusy' | 'cost';
+  | 'place'
+  | 'none'
+  | 'fields'
+  | 'busy'
+  | 'yardBusy'
+  | 'labBusy'
+  | 'siloBusy'
+  | 'cost';
 
 /** The cost of the level that a demolition of `key` removes (D2). */
 export const demolishedCost = (p: Pick<Planet, 'b'>, key: string): Cost =>
@@ -120,6 +130,17 @@ function overflows(p: Planet, key: string, u: Universe): boolean {
   return max !== null && usedFields(after) > max;
 }
 
+/**
+ * Whether the places of the silos without one level of `key` would be fewer
+ * than the missiles the planet has and has ordered take (#54, 2026-11-21).
+ */
+function siloOverflows(p: Planet, key: string): boolean {
+  if (!Object.hasOwn(SILO, key)) return false;
+  const after = { ...p, b: { ...p.b, [key]: (p.b[key] ?? 0) - 1 } };
+  const { used, places } = siloUse(after);
+  return used > places;
+}
+
 /** Every reason why a level of `key` cannot be torn down on `p`, in the order of the server. */
 export function demolitionErrors(
   p: Planet,
@@ -139,6 +160,7 @@ export function demolitionErrors(
     busy: !!p.bq,
     yardBusy: waitsForYard(p, key),
     labBusy: waitsForLab(r, key),
+    siloBusy: level > 0 && siloOverflows(p, key),
     cost: !afford(p, pay),
   });
 }

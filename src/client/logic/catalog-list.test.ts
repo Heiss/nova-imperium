@@ -690,6 +690,16 @@ describe('shipyard and defense', () => {
     );
   });
 
+  it('offers „Verschrotten“ at a stored missile only, up to its stock (#54, 2026-11-21)', () => {
+    const v = yard({ def: { abm: 4, ipm: 1, rl: 7 } });
+    expect(row(v, 'defense', 'abm').tearDown).toBe(4);
+    expect(row(v, 'defense', 'ipm').tearDown).toBe(1);
+    // No missile in store, or a defense that fights: no control.
+    expect(row(yard(), 'defense', 'abm')).not.toHaveProperty('tearDown');
+    expect(row(v, 'defense', 'rl')).not.toHaveProperty('tearDown');
+    expect(row(v, 'ship', 'lf')).not.toHaveProperty('tearDown');
+  });
+
   it('shows attack, shield and structure with the research', () => {
     const plain = row(yard(), 'defense', 'rl').lines[0];
     const d = DEF.rl!;

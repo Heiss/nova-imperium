@@ -43,7 +43,7 @@ const siloSection = (): PageSection =>
     'silo',
     'Raketenkrypta und Raketen',
     say(
-      'Raketen lagert die [[silo|Raketenkrypta]], und zwar nur auf Planeten, nicht auf einem Mond. Jede Stufe schafft {places} Plätze. Eine [[abm|Abfangrakete]] belegt {interceptor}, eine [[ipm|Orbitalrakete]] {striker}; ein Auftrag, für den der Platz nicht reicht, wird abgelehnt. Gezählt werden die Raketen, die schon lagern, und die, die in der Schiffsschmiede in Auftrag sind. Raketen kämpfen in keinem Kampf mit und zählen nur für die Gesamtpunkte; sie werden gebaut wie Verteidigung.',
+      'Raketen lagert die [[silo|Raketenkrypta]], und zwar nur auf Planeten, nicht auf einem Mond. Jede Stufe schafft {places} Plätze. Eine [[abm|Abfangrakete]] belegt {interceptor}, eine [[ipm|Orbitalrakete]] {striker}; ein Auftrag, für den der Platz nicht reicht, wird abgelehnt. Gezählt werden die Raketen, die schon lagern, und die, die in der Schiffsschmiede in Auftrag sind. Raketen kämpfen in keinem Kampf mit und zählen nur für die Gesamtpunkte; sie werden gebaut wie Verteidigung. Gelagerte Raketen kannst du in der Verteidigungsliste verschrotten, so viele du willst: Sie sind sofort weg, ihre Plätze werden frei, und du bekommst nichts zurück. Die Raketenkrypta lässt sich nur zurückbauen, solange ihre Plätze danach noch für alle Raketen reichen.',
       {
         places: number(SILO[SILO_KEY]!.slots),
         interceptor: count(MISSILE[INTERCEPTOR]!.slots, 'Platz', 'Plätze'),
