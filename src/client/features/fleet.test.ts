@@ -20,6 +20,16 @@ vi.mock('../logic/game.ts', async (importOriginal) => ({
 vi.mock('../../core/settle.ts', () => ({ settle: vi.fn(() => ({ id: 'p' })) }));
 
 type Input = Record<string, unknown>;
+const moon = (g: number, s: number, p: number) => ({
+  id: `m${g}_${s}_${p}`,
+  kind: 'moon',
+  name: 'Mond',
+  g,
+  s,
+  p,
+  temp: 1,
+  owner: 'u2',
+});
 let fields: Record<string, Input>;
 /** The ship fields the view lists, by their kind. */
 let ships: { dataset: Record<string, string> }[];
@@ -34,11 +44,11 @@ beforeEach(() => {
     to: { g: '2', s: '30', p: '4' },
     speed: '5',
     cargo: { m: '10', c: '', d: '3' },
+    kind: 'moon',
   });
   fields = {
     // The form is on the page.
     '#t_g': {},
-    '#t_k': { value: 'moon', querySelector: () => ({ disabled: false }) },
     // The preview writes the target info first: that is one calculation.
     '#t_info': {
       set innerHTML(_html: string) {
@@ -69,7 +79,8 @@ beforeEach(() => {
     cfg: { galaxies: 4, systems: 100, positions: 15 },
     planet: { id: 'p' },
     me: {},
-    galaxy: [],
+    // A moon at the target of the tests (and at the page's, 3:12:9): the kind „Mond“ holds there only.
+    galaxy: [moon(2, 30, 4), moon(3, 12, 9)],
     players: [],
   } as unknown as GameState;
   client.view = {
@@ -140,7 +151,7 @@ describe('the cargo', () => {
 describe('the fields the player did not touch', () => {
   it('send the target of the page, the first speed and no cargo', async () => {
     forgetForms();
-    client.ui.ft = { g: 3, s: 12, p: 9, kind: 'planet' };
+    client.ui.ft = { g: 3, s: 12, p: 9, kind: 'moon' };
     fleetForm.ships = { fighter: '1' };
     const ctx = fakeCtx();
     await acts(ctx).send!({});
@@ -165,7 +176,7 @@ describe('the fields the player did not touch', () => {
     await acts(ctx).send!({});
     expect(ctx.actHere).toHaveBeenCalledWith(
       'send',
-      expect.objectContaining({ to: { g: 2, s: 7, p: 11, kind: 'moon' } }),
+      expect.objectContaining({ to: { g: 2, s: 7, p: 11, kind: 'planet' } }),
     );
   });
 });

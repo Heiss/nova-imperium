@@ -52,12 +52,6 @@ function position(k: 'g' | 's' | 'p', start: string): Field {
   };
 }
 
-/** The select „Zielart“ with its option „Mond“, whose `disabled` the form sets. */
-function kindSelect(value: string, disabled: boolean): Field {
-  const option = { disabled };
-  return { value, option, querySelector: () => option };
-}
-
 const place = (
   id: string,
   kind: 'planet' | 'moon',
@@ -73,7 +67,6 @@ beforeEach(() => {
     '#t_g': position('g', '1'),
     '#t_s': position('s', '2'),
     '#t_p': position('p', '6'),
-    '#t_k': kindSelect('planet', false),
     '#t_info': { innerHTML: '' },
     '#t_hold': { hidden: false },
     '#t_m': select('attack', ['attack', 'transport', 'spy', 'hold']),
@@ -255,58 +248,67 @@ describe('the list „Auftrag“ after the view is drawn anew', () => {
 });
 
 /**
- * The same redraw for „Zielart“: the fresh select is built for the start
- * planet, where „Mond“ is disabled, so the restore of `keepInputs` leaves
- * „Planet“ and the form must set the chosen moon again.
+ * „Zielart“ is the state of the form (#332): the component shows it again
+ * after every redraw, so the form only has to keep it right: „Mond“ only where
+ * a moon is, the choice kept, and remembered in `client.ui.fk` for the next
+ * form of a fresh render.
  */
-describe('the select „Zielart“ after the view is drawn anew', () => {
+describe('the kind of target „Zielart“', () => {
+  /** The player picks „Mond“ at 1:3:7, where a moon is: the select writes the state, the page listener the memory. */
   const aimAtMoon = (): void => {
     fields['#t_s']!.value = '3';
     fields['#t_p']!.value = '7';
-    fields['#t_k']!.value = 'moon';
+    fleetForm.kind = 'moon';
     change({ id: 't_k', value: 'moon' });
-    expect(fields['#t_k']!.value).toBe('moon');
+    expect(fleetForm.kind).toBe('moon');
   };
-  const drawAnew = (): void => {
-    fields['#t_k'] = kindSelect('planet', true);
-    fields['#t_m'] = select('', ['attack', 'spy']);
-    clientFeature.afterRender!();
-  };
-  const kind = (): unknown => fields['#t_k']!.value;
-  const moonEnabled = (): unknown => (fields['#t_k']!.option as Field).disabled;
+  const afterRedraw = (): void => clientFeature.afterRender!();
 
-  it('keeps „Mond“ chosen for a place with a moon', () => {
+  it('keeps „Mond“ chosen for a place with a moon, over a redraw', () => {
     aimAtMoon();
-    drawAnew();
-    expect(kind()).toBe('moon');
-    expect(moonEnabled()).toBe(false);
+    afterRedraw();
+    expect(fleetForm.kind).toBe('moon');
+    expect(client.ui.fk).toBe('moon');
   });
 
   it('keeps „Planet“ when the player chose it for a place with a moon', () => {
     aimAtMoon();
-    fields['#t_k']!.value = 'planet';
+    fleetForm.kind = 'planet';
     change({ id: 't_k', value: 'planet' });
-    drawAnew();
-    expect(kind()).toBe('planet');
+    afterRedraw();
+    expect(fleetForm.kind).toBe('planet');
+    expect(client.ui.fk).toBe('planet');
   });
 
   it('goes back to „Planet“ for a place without a moon, and stays there at a place with one', () => {
     aimAtMoon();
     fields['#t_s']!.value = '2';
     fields['#t_p']!.value = '6';
-    drawAnew();
-    expect(kind()).toBe('planet');
-    expect(moonEnabled()).toBe(true);
+    afterRedraw();
+    expect(fleetForm.kind).toBe('planet');
+    expect(client.ui.fk).toBe('planet');
     fields['#t_s']!.value = '3';
     fields['#t_p']!.value = '7';
-    drawAnew();
-    expect(kind()).toBe('planet');
+    afterRedraw();
+    expect(fleetForm.kind).toBe('planet');
   });
 
   it('keeps the moon chosen in the Schnellwahl', () => {
     change({ id: 't_q', value: 'm1_3_7' });
-    drawAnew();
-    expect(kind()).toBe('moon');
+    afterRedraw();
+    expect(fleetForm.kind).toBe('moon');
+    expect(client.ui.fk).toBe('moon');
+  });
+
+  it('is settled by the first calculation to what the page shows: the moon of the page only where it is', () => {
+    client.ui.ft = { g: 1, s: 3, p: 7, kind: 'moon' };
+    fleetForm.to = { g: null, s: null, p: null };
+    afterRedraw();
+    expect(fleetForm.kind).toBe('moon');
+    client.ui.ft = { g: 1, s: 2, p: 6, kind: 'moon' };
+    forgetForms();
+    afterRedraw();
+    expect(fleetForm.kind).toBe('planet');
   });
 
   it('forgets the choice once the fleet is sent', async () => {
@@ -323,7 +325,7 @@ describe('the list „Schnellwahl“', () => {
     expect(fields['#t_g']!.value).toBe('1');
     expect(fields['#t_s']!.value).toBe('3');
     expect(fields['#t_p']!.value).toBe('7');
-    expect(fields['#t_k']!.value).toBe('moon');
+    expect(fleetForm.kind).toBe('moon');
     expect(quick.value).toBe('');
   });
 

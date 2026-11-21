@@ -19,6 +19,8 @@ export interface FleetDraft {
   cargo: Partial<Record<keyof Resources, string>>;
   /** The name typed to invite into a union, by the id of the union. */
   invite: Record<string, string>;
+  /** The kind of target chosen, or null while the page says it (logic/fleet-choice.ts). */
+  kind: 'planet' | 'moon' | null;
 }
 
 export const fleetForm = formState((): FleetDraft => ({
@@ -27,4 +29,5 @@ export const fleetForm = formState((): FleetDraft => ({
   speed: null,
   cargo: {},
   invite: {},
+  kind: null,
 }));

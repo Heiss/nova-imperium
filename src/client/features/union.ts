@@ -29,7 +29,7 @@ function pick({ setInput }: ClientCtx, id: string): void {
   setInput('#t_u', choice.id);
   const { g, s, p } = choice.to;
   fleetForm.to = { g: String(g), s: String(s), p: String(p) };
-  setInput('#t_k', kind);
+  fleetForm.kind = kind;
   setInput('#t_m', 'attack');
   // The position is in the field before the input event reads it.
   flushSync();

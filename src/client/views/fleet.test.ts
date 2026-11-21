@@ -211,6 +211,54 @@ describe('the state of the form (#332)', () => {
   });
 });
 
+describe('the kind of target after a redraw (#332)', () => {
+  afterEach(forgetForms);
+
+  /** The target 1:2:6 with a moon next to the planet. */
+  const withMoon = (): V => {
+    const v = view({});
+    v.s.galaxy.push({
+      id: 'm1_2_6',
+      kind: 'moon',
+      name: 'Mond',
+      ...FOREIGN_AT,
+      temp: 1,
+      owner: 'u2',
+    } as GameState['galaxy'][number]);
+    return v;
+  };
+  const kinds = (html: string): string =>
+    /<select id="t_k"[^]*?<\/select>/.exec(html)![0];
+
+  it('offers „Mond“ only where a moon is, and selects it only when chosen', () => {
+    expect(kinds(fleet(view({})))).toContain('disabled');
+    const open = kinds(fleet(withMoon()));
+    expect(open).not.toContain('disabled');
+    expect(open).not.toContain('selected');
+    fleetForm.kind = 'moon';
+    expect(kinds(fleet(withMoon()))).toMatch(
+      /<option value="moon" selected="">Mond/,
+    );
+  });
+
+  it('shows the planet for a moon that is not there, whatever was chosen', () => {
+    fleetForm.kind = 'moon';
+    const html = kinds(fleet(view({})));
+    expect(html).toContain('disabled');
+    expect(html).not.toContain('selected');
+  });
+
+  it('shows the moon of the typed position, not the one of the page', () => {
+    fleetForm.kind = 'moon';
+    fleetForm.to = { g: '1', s: '2', p: '6' };
+    const v = withMoon();
+    v.ui.ft = { g: 1, s: 1, p: 1 };
+    expect(kinds(fleet(v))).toContain('selected');
+    fleetForm.to = { g: '1', s: '2', p: '7' };
+    expect(kinds(fleet(v))).not.toContain('selected');
+  });
+});
+
 describe('the row of the time at the target follows the mission (#55, #93)', () => {
   afterEach(() => vi.unstubAllGlobals());
 

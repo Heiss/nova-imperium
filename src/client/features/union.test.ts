@@ -107,10 +107,10 @@ describe('joining', () => {
       fm: 'attack',
     });
     expect(fleetForm.to).toEqual({ g: '1', s: '4', p: '8' });
-    expect(ctx.setInput).toHaveBeenCalledTimes(3);
+    expect(fleetForm.kind).toBe('planet');
+    expect(ctx.setInput).toHaveBeenCalledTimes(2);
     for (const [sel, v] of [
       ['#t_u', 'f1'],
-      ['#t_k', 'planet'],
       ['#t_m', 'attack'],
     ] as const)
       expect(ctx.setInput).toHaveBeenCalledWith(sel, v);
@@ -120,7 +120,7 @@ describe('joining', () => {
     const ctx = fakeCtx();
     acts(ctx).joinUnion!({ id: 'f2' });
     expect(client.ui.ft).toEqual({ g: 1, s: 2, p: 3, kind: 'moon' });
-    expect(ctx.setInput).toHaveBeenCalledWith('#t_k', 'moon');
+    expect(fleetForm.kind).toBe('moon');
   });
   it('does the same when the choice of the form changes', () => {
     const ctx = fakeCtx();
@@ -130,7 +130,7 @@ describe('joining', () => {
     expect(fleetForm.to).toEqual({ g: '1', s: '4', p: '8' });
     listeners.change!({ target: { id: 't_u', value: 'f2' } });
     expect(client.ui.union).toBe('f2');
-    expect(ctx.setInput).toHaveBeenCalledWith('#t_k', 'moon');
+    expect(fleetForm.kind).toBe('moon');
   });
   it('forgets the union when „Kein Verband“ is chosen, and ignores every other field', () => {
     const ctx = fakeCtx();
@@ -150,6 +150,7 @@ describe('joining', () => {
     expect(client.ui.ft).toBeNull();
     expect(ctx.setInput).not.toHaveBeenCalled();
     expect(fleetForm.to).toEqual({ g: null, s: null, p: null });
+    expect(fleetForm.kind).toBeNull();
     acts(ctx).joinUnion!({});
     expect(ctx.setInput).not.toHaveBeenCalled();
   });

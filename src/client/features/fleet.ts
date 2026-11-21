@@ -19,17 +19,15 @@ import {
   fleetPreview,
 } from '../logic/game.ts';
 import { colonyNote } from '../logic/colony-limit.ts';
-import { fleetTarget, SPEEDS } from '../logic/fleet.ts';
+import { SPEEDS } from '../logic/fleet.ts';
+import { type FleetChoice, fleetChoice } from '../logic/fleet-choice.ts';
 import { fleetForm } from '../logic/fleet-form.svelte.ts';
-import { shown } from '../logic/galaxy-position.svelte.ts';
 import {
-  maxPosition,
   missionOptions,
   offeredMissions,
   targetInfo,
 } from '../logic/fleet-target.ts';
 import { timeRow } from '../logic/fleet-time.ts';
-import { moonAt } from '../logic/moon.ts';
 import { client } from '../logic/state.svelte.ts';
 import { unionArrivalLine } from '../logic/union.ts';
 import type { GameState } from '../logic/types.ts';
@@ -39,25 +37,25 @@ import type { ClientCtx, ClientFeature, Handler } from './contract.ts';
 const settledPlanet = (): Planet =>
   settle(client.game!.planet!, client.now(), client.game!.cfg, client.game!.me);
 
+/** What the fields of the form show (logic/fleet-choice.ts), for the state of the game and the shown planet. */
+const choiceOf = (): FleetChoice =>
+  fleetChoice(
+    { s: client.game!, P: client.view!.P, ui: client.view!.ui },
+    fleetForm,
+  );
+
 function readFleetForm(): FleetForm {
   const ships: Record<string, number> = {};
   const P = client.view!.P;
-  const u = client.game!.cfg;
   for (const [k, typed] of Object.entries(fleetForm.ships)) {
     const n = clampInt(typed, 0, P.ships[k] ?? 0);
     if (n > 0) ships[k] = n;
   }
-  const page = fleetTarget(client.view!);
-  const { to } = fleetForm;
+  const { to, kind } = choiceOf();
   return {
     ships,
-    to: {
-      g: clampInt(shown(to.g, page.g), 1, u.galaxies),
-      s: clampInt(shown(to.s, page.s), 1, u.systems),
-      p: clampInt(shown(to.p, page.p), 1, maxPosition(client.game!)),
-      // The planet or its moon (#53).
-      kind: val('#t_k') === 'moon' ? 'moon' : 'planet',
-    },
+    // The planet or its moon (#53).
+    to: { ...to, kind },
     mission: val('#t_m'),
     // The attack union the fleet joins (#225); the row is there only while one concerns the player.
     ...(val('#t_u') && { union: val('#t_u') }),
@@ -72,25 +70,23 @@ function readFleetForm(): FleetForm {
   };
 }
 
-/** „Mond“ in the select of the target only where a moon is (#53), and the choice of the player kept. */
-function moonOption(s: GameState): void {
-  const select = $('#t_k') as HTMLSelectElement | null;
-  if (!select) return;
-  const to = readFleetForm().to;
-  const option = select.querySelector<HTMLOptionElement>('option[value=moon]')!;
-  option.disabled = !moonAt(s.galaxy, to);
-  const ui = client.ui;
-  if (option.disabled) {
-    if (select.value === 'moon') writeField(select, 'planet');
-    ui.fk = 'planet';
-  } else if (ui.fk === 'moon') writeField(select, 'moon');
-  else if (select.value === 'moon') ui.fk = 'moon';
+/**
+ * „Mond“ only where a moon is (#53), and the choice of the player kept: a
+ * kind the place cannot have goes back to the planet (and stays there when
+ * the target changes to a place with a moon again); the kind chosen is also
+ * remembered in `client.ui.fk` for the next fleet form of a fresh render.
+ */
+function settleKind(): void {
+  const { moon, kind } = choiceOf();
+  if (!moon) client.ui.fk = 'planet';
+  else if (kind === 'moon') client.ui.fk = 'moon';
+  fleetForm.kind = kind;
 }
 
 /**
- * Keeps the kind of target the player chose in `client.ui.fk`: a state
- * refresh draws the form anew, built for the start planet, where „Mond“ is
- * disabled and `keepInputs` cannot restore it; `moonOption` sets it again.
+ * Keeps the kind of target the player chose in `client.ui.fk`: a fresh
+ * render forgets the state of the form, and the next form starts with it
+ * (`fleetChoice`).
  */
 function rememberKind(field: { id?: string; value?: string } | null): void {
   if (field?.id === 't_k')
@@ -127,7 +123,7 @@ function missionList(s: GameState, from: string): void {
 
 function fleetCalc(): void {
   if (!$('#t_g') || !client.view || !client.game) return;
-  moonOption(client.game);
+  settleKind();
   missionList(client.game, client.view.P.id);
   timeRow(val('#t_m'), client.view);
   const f = readFleetForm();
@@ -232,7 +228,7 @@ function quickChoice(ctx: ClientCtx, field: HTMLSelectElement): void {
   writeField(field, '');
   if (!place) return;
   fleetForm.to = { g: String(place.g), s: String(place.s), p: String(place.p) };
-  ctx.setInput('#t_k', place.kind);
+  fleetForm.kind = place.kind;
   client.ui.fk = place.kind;
 }
 

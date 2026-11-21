@@ -7,6 +7,7 @@ import type { RoundRules } from '../../core/round.ts';
 import type { Levels } from '../../core/types.ts';
 import type { Ui, V } from '../views/common.ts';
 import { CARGO_FIELDS, fleetPage, SPEEDS } from './fleet.ts';
+import { fleetForm } from './fleet-form.svelte.ts';
 import type { ClientFleet, GalaxyPlanet, GameState } from './types.ts';
 
 const place = (
@@ -128,8 +129,12 @@ describe('the ships and the form', () => {
       galaxies: U.galaxies,
       systems: U.systems,
       positions: U.positions + 1,
+    });
+    // What the fields show for a form nobody touched (logic/fleet-choice.ts).
+    expect(page.form.choose(fleetForm)).toMatchObject({
+      to: { g: 1, s: 2, p: 5 },
       moon: false,
-      toMoon: false,
+      kind: 'planet',
     });
     const moon = fleetPage(
       view({
@@ -138,7 +143,11 @@ describe('the ships and the form', () => {
         ft: { g: 1, s: 2, p: 6, kind: 'moon' },
       }),
     );
-    expect(moon.form.target).toMatchObject({ p: 6, moon: true, toMoon: true });
+    expect(moon.form.target).toMatchObject({ p: 6 });
+    expect(moon.form.choose(fleetForm)).toMatchObject({
+      moon: true,
+      kind: 'moon',
+    });
   });
 
   it('keeps the chosen mission while it fits the target, else the first that does', () => {

@@ -24,6 +24,8 @@
   let { page }: { page: FleetPage } = $props();
   const form = $derived(page.form);
   const target = $derived(form.target);
+  // What the fields show for the state of the form (logic/fleet-choice.ts).
+  const choice = $derived(form.choose(fleetForm));
 </script>
 
 <h2>Flotte</h2>
@@ -177,11 +179,16 @@
                 max={target.positions}
                 aria-label="Position"
               />
-              <select id="t_k" aria-label="Zielart"
+              <select
+                id="t_k"
+                aria-label="Zielart"
+                onchange={(e) =>
+                  (fleetForm.kind =
+                    e.currentTarget.value === 'moon' ? 'moon' : 'planet')}
                 ><option value="planet">Planet</option><option
                   value="moon"
-                  disabled={!target.moon}
-                  selected={target.toMoon}>Mond</option
+                  disabled={!choice.moon}
+                  selected={choice.kind === 'moon'}>Mond</option
                 ></select
               >
               <span id="t_info" class="dim"></span></td
