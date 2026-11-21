@@ -199,22 +199,31 @@ describe('the check of a new round', () => {
       fc.property(fc.constantFrom(...settings), value, (s, v) => {
         // A value not sent keeps the current one; a member of a group is read as null.
         const kept = v === undefined && !s.group;
+        const valid = kept || isValid(s, v);
         // A valid value can still disagree with another setting of the round
-        // (#237): those settings are refused, nothing else.
+        // (#237): those settings are refused, nothing else. Only a valid
+        // value is read as a number: anything else is refused as it is.
         const round = Object.fromEntries(
           settings.map((x) => [x.key, Number(defaults[x.name])]),
         );
-        if (!kept) round[s.key] = Number(v);
+        if (valid && !kept) round[s.key] = Number(v);
         const conflicts = settings.filter(
           (x) =>
             x.kind === 'number' && x.agrees && !x.agrees(round[x.key]!, round),
         );
         expect(names(roundRefused(defaults, send(s, v)))).toEqual(
-          kept || isValid(s, v) ? names(conflicts) : [s.name],
+          valid ? names(conflicts) : [s.name],
         );
       }),
-      // The case a random run met: the research without a base limit.
-      { examples: [[research, 1]] },
+      // The cases random runs met: the research without a base limit, and a
+      // value that cannot be read as a number.
+      {
+        examples: [
+          [research, 1],
+          [settings[0]!, { toString: 0 }],
+          [research, { toString: 0 }],
+        ],
+      },
     );
     expect(names(roundRefused(defaults, send(research, 1)))).toEqual([
       'colonyResearch',
