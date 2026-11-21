@@ -6,6 +6,7 @@ import type { RoundRules } from '../../core/round.ts';
 import { text } from '../../core/text.ts';
 import { DEFAULT_UNIVERSE, UNIVERSE_SPECS } from '../../core/universe.ts';
 import { roundDefaults } from '../../test/fixtures.ts';
+import { normalize } from '../../test/markup.ts';
 import { messagesView as messages } from '../../test/messages-view.ts';
 import type { Report } from '../logic/types.ts';
 import type { V } from './common.ts';
@@ -205,7 +206,8 @@ describe('a spy report of a planet where fleets hold (#55)', () => {
       { name: 'Anna', ships: { lf: 3, bs: 1 } },
       { name: 'Emil', ships: {} },
     ]);
-    expect(html).toContain(
+    // The component writes `<br/>`; normalize() gives the markup a browser shows.
+    expect(normalize(html)).toContain(
       `<div class="mt"><b>Gehaltene Flotten</b><br>Anna: ${text('lf')!.n}: 3 · ${text('bs')!.n}: 1<br>Emil: <span class="dim">keine</span></div>`,
     );
     expect(html.indexOf('<b>Flotte</b>')).toBeLessThan(

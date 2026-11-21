@@ -10,8 +10,8 @@
 
 {#if body.kind === 'battle'}
   <BattleReport {body} />
-{:else if body.kind === 'spy'}
-  <SpyReport {body} />
-{:else}
+{:else if body.kind === 'survey'}
   <SurveyReport {body} />
+{:else}
+  <SpyReport {body} />
 {/if}
