@@ -10,6 +10,7 @@ import {
   galaxyAction,
   logout,
   nav,
+  openAllRows,
   register,
   seed,
   stock,
@@ -245,6 +246,31 @@ test.describe('missiles (#54)', () => {
     await dialog.getByRole('button', { name: 'Zurückbauen' }).click();
     await expect(silo).toContainText('Rückbau auf Stufe 1');
     expect(w.problems).toEqual([]);
+  });
+
+  test('the control to tear missiles down is at least 44 px on a phone (#189, #54) @phone', async ({
+    page,
+  }) => {
+    const name = uniqueName('Fingerkrypta');
+    await register(page, name);
+    seed({
+      name,
+      res: { m: 1000, c: 1000, d: 1000 },
+      b: { yard: 1, silo: 2 },
+      def: { abm: 4 },
+    });
+    await page.reload();
+    await nav(page, 'defense');
+    await openAllRows(page);
+    await expect(page.locator('#td_abm')).toBeVisible();
+    // Found and measured in one step: the page redraws every few seconds.
+    const small = await page.evaluate(() =>
+      [...document.querySelectorAll('.tear input, .tear button')]
+        .map((el) => el.getBoundingClientRect())
+        .filter((box) => box.width < 44 || box.height < 44)
+        .map((box) => `${Math.round(box.width)}x${Math.round(box.height)}`),
+    );
+    expect(small).toEqual([]);
   });
 
   test('offers no Raketenangriff out of range @phone', async ({ page }) => {
