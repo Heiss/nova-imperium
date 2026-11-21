@@ -60,11 +60,25 @@ pull request.
   the base; the reverse pair keeps its price, so movement never creates a
   gain. Step: whole „Promille je 1.000 getauschte Einheiten“, 1 to 1,000,
   default 5 (20,000 given lower the price by about 10 %). The price drifts
-  back in a straight line over „Preiserholung (Stunden)“, 1 to 720, default
+  back in a straight line over „Preiserholung (Stunden)“, 0 to 720, default
   24, rounded so it is never above the line; one drift time after the last
   exchange it is at the base. The stored price is relative to the base, so a
   change of a ratio during the round applies at once, and a change of the
   drift time applies to the stored prices.
+* **[E]** (owner, 2026-11-21, #346) 0 hours mean no recovery: the price of a
+  pair stays where the last exchange left it until the round ends, and
+  nothing else raises it (the reverse pair keeps its own price). The owner
+  knows the consequence: with step 5 a pair is at about 0.7 % of the base
+  after 1,000,000 units given, so the market is a finite stock in such a
+  round. A change from 0 to some hours applies to the stored prices like
+  every change of the drift time (a price whose last exchange is older than
+  the new time is at the base at once). The label of the setting is
+  „Marktplatz Preiserholung (Stunden, 0 = keine Erholung)“; the page of the
+  Lexicanum says at 0, in place of „Danach erholt sich der Preis gleichmäßig
+  bis zum Basispreis, in dieser Runde in …“, „In dieser Runde erholt sich der
+  Preis nicht.“ (`src/core/lexicon/pages/market.ts`; the text for every
+  other value is unchanged). `priceNow` returns the stored price with 0
+  hours: the straight line would put every price at the base at once.
 * **[V]** The price is shared by all players (the classic market); the
   amount of the day is the player's.
 * **[E]** Fee of the Handelsposten (owner, 2026-11-19): the admin sets the fee
@@ -117,7 +131,7 @@ registered in `src/core/market.ts` (`order` 320 to 430, key `roundMarket…`).
 | `roundMarketDm` | … Promethium → Adamant (Adamant je 1.000 Promethium) | 1 to 100,000 | 4000 | 370 |
 | `roundMarketDc` | … Promethium → Psikristall (Psikristall je 1.000 Promethium) | 1 to 100,000 | 2000 | 380 |
 | `roundMarketStep` | Marktplatz Preisschritt (Promille je 1.000 getauschte Einheiten) | 1 to 1,000 | 5 | 390 |
-| `roundMarketDrift` | Marktplatz Preiserholung (Stunden) | 1 to 720 | 24 | 400 |
+| `roundMarketDrift` | Marktplatz Preiserholung (Stunden, 0 = keine Erholung) | 0 to 720 (0: no recovery, #346) | 24 | 400 |
 | `roundMarketLimit` | Marktplatz Tageslimit je Spieler (Einheiten, 0 = unbegrenzt) | 0 to 10,000,000 | 100,000 | 410 |
 | `roundMarketFee` | Marktplatz Gebühr auf Stufe 1 des Handelspostens (Prozent) | 0 to 100 | 10 | 420 |
 | `roundMarketFeeStep` | Marktplatz Gebühr sinkt je weitere Stufe um (Prozentpunkte) | 0 to 100 | 1 | 430 |
