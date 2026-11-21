@@ -57,6 +57,11 @@ describe('the fields that have a draft', () => {
     for (const id of ['t_k', 't_m', 't_h', 'jg_to', 'o_anim', 'q_lc', 'td_lc'])
       expect(isTracked(id), id).toBe(true);
   });
+
+  it('matches the whole id, not a part of it', () => {
+    for (const id of ['xset_speed', 'inv_link2', 'my_inv_email', 'o_probes_x'])
+      expect(isTracked(id), id).toBe(true);
+  });
 });
 
 describe('the drafts of the fields', () => {
@@ -71,7 +76,8 @@ describe('the drafts of the fields', () => {
     drafts.record(f('q_lc', '7'));
     drafts.record(f('q_lc', '8'));
     expect(drafts.restore(f('q_lc'))).toEqual({ value: '8' });
-    expect(drafts.restore(f('td_lc'))).toEqual({});
+    // Strict: not even a key without a value for a field never changed.
+    expect(drafts.restore(f('td_lc'))).toStrictEqual({});
   });
 
   it('keeps an emptied field empty', () => {

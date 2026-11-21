@@ -178,6 +178,20 @@ description: 'A client feature exports its handlers as clientFeature from its ow
   field holds (`set_value`), so a half-typed value stays. A select may use
   `bind:value`.
 
+* **[V]** Taken by the coordinator under the rule of AGENTS.md, consistent
+  with the owner's decision that each form keeps its state in its component
+  (2026-11-21; the owner can overturn them):
+  * the fix of „Problem melden“ (a sent text no longer comes back after the
+    poll redraw) stays, with a changelog fragment, because the issue lists
+    the `form.reset()` case as a defect;
+  * the fleet form, part two: the mission list, the row of holding time and
+    stay and the moon option are derived in `Fleet.svelte` from the state
+    of the component; the frozen reference test is the judge;
+  * the amounts of the four lists (`q_*`, `td_*`) do not depend on the
+    drafts (a poll redraw does not mount them anew; a test shows it), so the
+    drafts are deleted after the fleet form, part two; if the test shows
+    otherwise for a field, the deletion stops.
+
 ### Inventory: the fields that still depend on the drafts (2026-11-21)
 
 A field has a draft only when it has an id and stands inside `#view`
