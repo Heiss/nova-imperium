@@ -79,8 +79,9 @@ description: 'The property and reference tests of the views converted in #118, l
   elsewhere, a scan from here or from another place with up to three
   flights, and 0 to 1,500 Spähschädel), with the shared normalizer of
   `src/test/markup.ts`; a second case checks that the cases reach every
-  branch. The normalizer now also reads `data-nokeep=""` as
-  `data-nokeep`, which `main.ts` reads by its presence; its self-test in
+  branch. The normalizer then also read `data-nokeep=""` as
+  `data-nokeep`, which `main.ts` read by its presence (the attribute is gone
+  since #332; the normalizer now drops it); its self-test in
   `catalog-list-reference.test.ts` has that, and that a missing
   `data-nokeep` or one with a value still differs. Checked by breaking
   the component and its logic (the space before „·“, the space before a

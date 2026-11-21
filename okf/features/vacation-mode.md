@@ -169,7 +169,7 @@ owiki.de „Urlaubsmodus“
   Trümmerfeld, no research and no admin data; only the rules of the round
   and the universe, `me` with the id, the name, the push kinds that are off
   and `vacation` (the start; from it and `round.vacationHours` the browser
-  knows the earliest end). The same state comes after „Urlaubsmodus
+  knows the earliest end), and since Q28 the own `privateMessages`. The same state comes after „Urlaubsmodus
   aktivieren“ and at every refresh, so a second device locks too.
 * **[V]** Nothing but the end, the push settings and, since 2026-11-21 (Q25,
   Q28), the private messages (Q2, owner, 2026-11-18): only `endVacation`,

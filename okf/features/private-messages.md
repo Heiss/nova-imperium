@@ -133,10 +133,10 @@ of 2026-11-21 and the answers to the open points of the same day (owner,
   handler of a click or a key (the conversation's name, the tab, the button
   „Ältere Nachrichten laden“, sending a message to a conversation); the poll
   and any redraw never send one, no `$effect` and no start of a component
-  calls one (a test reads the four components and pins it). The class of the
-  new actions in `src/core/action-kind.ts` (the file does not exist on this
-  branch) is for the main agent: `click` for `openPrivateConversation`,
-  `sentPrivateMessages` and `olderPrivateMessages`.
+  calls one (a test reads the four components and pins it). In
+  `src/core/action-kind.ts` (#335) the three loads have the class `click`:
+  `openPrivateConversation`, `sentPrivateMessages` and `olderPrivateMessages`
+  ([Own activity](/features/own-activity.md)).
 * **[V]** The inbox shows each conversation as the name, the time and the
   preview (the newest message on one line, cut with „…“ by the style
   `.pm-preview`), no text of its own. The open conversation and a reply being

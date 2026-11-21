@@ -232,7 +232,8 @@ above.
   show: a planet whose Schiffsschmiede was demolished while missiles are
   stored cannot tear them down until it has one again; this rare case is
   accepted. **[V]** The amount typed stays like the fields of the order
-  (field draft by the id `td_<key>`).
+  (the field `td_<key>` of the list, which the poll redraws in place without
+  touching it, #332; `src/client/views/list-fields.test.ts`).
 * **[V]** Vacation mode (#223, built into the bundle with #54): the check of
   the target asks it after the range and before the noob protection, as
   for a fleet (`vacationProtects`, `src/core/vacation.ts`): a place of a
