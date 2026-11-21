@@ -117,6 +117,25 @@ const need = fc.oneof(
   }),
 );
 
+const QUEUE = { lvl: 1, start: 0, end: 9, cost: [0, 0, 0] as Cost };
+
+/** The shown planet and the research of a generated place. */
+function placesOf(w: typeof places extends fc.Arbitrary<infer T> ? T : never): {
+  here: Planet;
+  research: ResearchState;
+} {
+  const here = planet({
+    kind: w.kind,
+    diameter: w.diameter,
+    b: w.b,
+    res: w.res,
+    bq: w.bq ? { key: w.bq, ...QUEUE } : null,
+    sq: w.sq ? [{ key: 'lf', n: 1 } as never] : [],
+  });
+  const rq = w.rq ? ({ key: 'spy', ...QUEUE } as never) : null;
+  return { here, research: { research: w.research, rq } };
+}
+
 describe('the list of requirements against the code before (F18)', () => {
   it('names the same reason, the same wait and the same cost', () => {
     const reasons = new Set<string>();
@@ -126,32 +145,7 @@ describe('the list of requirements against the code before (F18)', () => {
         need,
         fc.option(level, { nil: undefined }),
         (w, n, other) => {
-          const here = planet({
-            kind: w.kind,
-            diameter: w.diameter,
-            b: w.b,
-            res: w.res,
-            bq: w.bq && {
-              key: w.bq,
-              lvl: 1,
-              start: 0,
-              end: 9,
-              cost: [0, 0, 0],
-            },
-            sq: w.sq ? [{ key: 'lf', n: 1 } as never] : [],
-          });
-          const research: ResearchState = {
-            research: w.research,
-            rq: w.rq
-              ? ({
-                  key: 'spy',
-                  lvl: 1,
-                  start: 0,
-                  end: 9,
-                  cost: [0, 0, 0],
-                } as never)
-              : null,
-          };
+          const { here, research } = placesOf(w);
           const levels = n.kind === 'b' ? here.b : research.research;
           // The level of the list, or another one as the unit tests give.
           const have = other ?? levels[n.key] ?? 0;
