@@ -279,18 +279,46 @@ function compare(
   expect(normalize(achievementsView(v)), name).toBe(normalize(achievements(v)));
 }
 
-describe('Achievements against the view before #118, bundle 5', () => {
-  // 300 pages of up to some hundred achievements take about 3 s alone and
-  // more under the coverage of the mutation run, whose dry run refused the
-  // default 5 s; the cases and the assertion stay the same.
-  it('renders the page as before', () => {
+const RUNS = 300;
+const SLICE = 50;
+type Sample = { view: V; open: boolean; folded: boolean };
+
+/**
+ * The sample (seed 118, 300 runs), generated once. 300 pages of up to some
+ * hundred achievements take about 2 s alone, so the comparison takes the one
+ * array in slices, one test each.
+ */
+let sample: Sample[] | undefined;
+function SAMPLE(): Sample[] {
+  if (!sample) {
+    const states: Sample[] = [];
     fc.assert(
-      fc.property(state, ({ view, open, folded }) =>
-        compare(view, { open, claimed: folded }),
-      ),
-      { seed: 118, numRuns: 300 },
+      fc.property(state, (x) => {
+        states.push(x);
+      }),
+      { seed: 118, numRuns: RUNS },
     );
-  }, 60_000);
+    sample = states;
+  }
+  return sample;
+}
+const SLICES = Array.from({ length: RUNS / SLICE }, (_, i) => i);
+
+describe('Achievements against the view before #118, bundle 5', () => {
+  it('compares the whole sample, in slices of it', () => {
+    expect(SAMPLE()).toHaveLength(SLICES.length * SLICE);
+    expect(
+      SLICES.flatMap((i) => SAMPLE().slice(i * SLICE, (i + 1) * SLICE)),
+    ).toEqual(SAMPLE());
+  });
+
+  it.each(SLICES)('renders the page as before, slice %i', (i) => {
+    SAMPLE()
+      .slice(i * SLICE, (i + 1) * SLICE)
+      .forEach(({ view, open, folded }, j) => {
+        compare(view, { open, claimed: folded }, `run ${i * SLICE + j}`);
+      });
+  });
 
   it('renders the hand-built cases as before', () => {
     for (const [name, v, fold] of HAND_BUILT) compare(v, fold, name);

@@ -513,6 +513,18 @@ const found = (file: string, code: string): string[] =>
 
 const allowed = (a: Allowed): string => `${a.file}: ${a.key}`;
 
+/** The group of a source file: its folder, down to two levels. */
+const groupOf = (file: string): string =>
+  path.dirname(file).split(path.sep).slice(0, 2).join('/');
+
+/** The source files by group, in the order of the listing. */
+const GROUPS: [string, string[]][] = [];
+for (const f of sources()) {
+  const group = GROUPS.find(([name]) => name === groupOf(f));
+  if (group) group[1].push(f);
+  else GROUPS.push([groupOf(f), [f]]);
+}
+
 describe('no comparison with a catalog key outside src/features (#114)', () => {
   it('reads the keys from the feature folders', () => {
     expect(KEYS.size).toBe(60);
@@ -526,24 +538,38 @@ describe('no comparison with a catalog key outside src/features (#114)', () => {
     expect(KEYS).not.toContain('missions');
   });
 
-  it('finds no comparison with a key but the allowed ones', () => {
+  it('scans every source file, each in exactly one group', () => {
     const files = sources();
-    const hits = files.flatMap((f) =>
-      found(f, readFileSync(path.join(ROOT, f), 'utf8')),
-    );
     expect(files.length).toBeGreaterThan(50);
     expect(files.some((f) => f.endsWith('.svelte'))).toBe(true);
     expect(files.filter((f) => f.startsWith('features'))).toEqual([]);
-    const counts = new Map<string, number>();
-    for (const h of hits) counts.set(h, (counts.get(h) ?? 0) + 1);
-    const names = ALLOWED.map(allowed);
-    expect([...counts.keys()].filter((h) => !names.includes(h))).toEqual([]);
-    // Each allowed comparison as often as its count: more is a new one,
-    // fewer means the count must be lowered.
-    expect(
-      ALLOWED.map((a) => `${allowed(a)} × ${counts.get(allowed(a)) ?? 0}`),
-    ).toEqual(ALLOWED.map((a) => `${allowed(a)} × ${a.count}`));
+    expect(GROUPS.flatMap(([, members]) => members).sort()).toEqual(
+      [...files].sort(),
+    );
+    const names = new Set(GROUPS.map(([name]) => name));
+    for (const a of ALLOWED) expect(names, a.file).toContain(groupOf(a.file));
   });
+
+  // The scan parses every file, which takes seconds on a slow runner: one test
+  // per group of folders, so that each stays far below the limit of a test.
+  it.each(GROUPS)(
+    'finds no comparison with a key but the allowed ones in %s',
+    (name, files) => {
+      const hits = files.flatMap((f) =>
+        found(f, readFileSync(path.join(ROOT, f), 'utf8')),
+      );
+      const counts = new Map<string, number>();
+      for (const h of hits) counts.set(h, (counts.get(h) ?? 0) + 1);
+      const here = ALLOWED.filter((a) => groupOf(a.file) === name);
+      const names = ALLOWED.map(allowed);
+      expect([...counts.keys()].filter((h) => !names.includes(h))).toEqual([]);
+      // Each allowed comparison as often as its count: more is a new one,
+      // fewer means the count must be lowered.
+      expect(
+        here.map((a) => `${allowed(a)} × ${counts.get(allowed(a)) ?? 0}`),
+      ).toEqual(here.map((a) => `${allowed(a)} × ${a.count}`));
+    },
+  );
 
   it('names each allowed comparison once, with its count and issue', () => {
     const names = ALLOWED.map(allowed);
