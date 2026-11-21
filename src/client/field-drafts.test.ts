@@ -48,8 +48,8 @@ describe('the drafts of the page', () => {
 
   it('records the choice of a select by its change', () => {
     mod.trackFields();
-    listeners.change!({ target: new Input('t_m', 'attack') });
-    const redrawn = new Input('t_m', 'spy');
+    listeners.change!({ target: new Input('td_lc', 'attack') });
+    const redrawn = new Input('td_lc', 'spy');
     page = [redrawn];
     mod.restoreFields(view());
     expect(redrawn.value).toBe('attack');

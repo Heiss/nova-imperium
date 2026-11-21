@@ -197,10 +197,17 @@
           <tr>
             <td>Auftrag</td>
             <td
-              ><select id="t_m" aria-label="Auftrag"
-                >{@html form.missions}</select
+              ><select
+                id="t_m"
+                aria-label="Auftrag"
+                onchange={(e) => (fleetForm.mission = e.currentTarget.value)}
+                >{#each choice.missions as option (option.value)}<option
+                    value={option.value}
+                    selected={option.selected}
+                    disabled={option.disabled}>{option.label}</option
+                  >{/each}</select
               >
-              <span id="t_limit" class="dim">{form.limit}</span></td
+              <span id="t_limit" class="dim">{choice.limit}</span></td
             >
           </tr>
           {#if form.unions.length}
@@ -271,7 +278,7 @@
           id="t_send"
           data-act="send"
           data-full={form.full ? '1' : ''}
-          disabled={form.full || !form.mission}>Flotte losschicken</button
+          disabled={form.full || !choice.mission}>Flotte losschicken</button
         >
         {#if form.full}<span class="bad"
             >Alle Flottenslots belegt (Kogitator-Doktrin erhöht die Anzahl).</span

@@ -3,8 +3,9 @@
 // „Zurückrufen“, and „Springen“ of the Warp-Tor. The markup is in
 // views/fleet.ts, the box of the Warp-Tor from logic/jump-gate.ts, the
 // shortcuts to the form are in features/galaxy.ts. The ships, the position,
-// the speed and the cargo are the state of logic/fleet-form.svelte.ts
-// (#332), which the form binds; the handlers read and write it.
+// the speed, the cargo, the kind of target and the mission are the state of
+// logic/fleet-form.svelte.ts (#332), which the form binds; the handlers read
+// and write it, and logic/fleet-choice.ts works out what the form shows.
 import { settle } from '../../core/settle.ts';
 import type { Planet, Resources } from '../../core/types.ts';
 import { $, val } from '../dom.ts';
@@ -18,19 +19,13 @@ import {
   type FleetForm,
   fleetPreview,
 } from '../logic/game.ts';
-import { colonyNote } from '../logic/colony-limit.ts';
 import { SPEEDS } from '../logic/fleet.ts';
 import { type FleetChoice, fleetChoice } from '../logic/fleet-choice.ts';
 import { fleetForm } from '../logic/fleet-form.svelte.ts';
-import {
-  missionOptions,
-  offeredMissions,
-  targetInfo,
-} from '../logic/fleet-target.ts';
+import { targetInfo } from '../logic/fleet-target.ts';
 import { timeRow } from '../logic/fleet-time.ts';
 import { client } from '../logic/state.svelte.ts';
 import { unionArrivalLine } from '../logic/union.ts';
-import type { GameState } from '../logic/types.ts';
 import type { ClientCtx, ClientFeature, Handler } from './contract.ts';
 
 /** The shown planet with its stock of this moment, for the cargo buttons. */
@@ -42,6 +37,7 @@ const choiceOf = (): FleetChoice =>
   fleetChoice(
     { s: client.game!, P: client.view!.P, ui: client.view!.ui },
     fleetForm,
+    client.now(),
   );
 
 function readFleetForm(): FleetForm {
@@ -51,12 +47,12 @@ function readFleetForm(): FleetForm {
     const n = clampInt(typed, 0, P.ships[k] ?? 0);
     if (n > 0) ships[k] = n;
   }
-  const { to, kind } = choiceOf();
+  const { to, kind, mission } = choiceOf();
   return {
     ships,
     // The planet or its moon (#53).
     to: { ...to, kind },
-    mission: val('#t_m'),
+    mission,
     // The attack union the fleet joins (#225); the row is there only while one concerns the player.
     ...(val('#t_u') && { union: val('#t_u') }),
     hold: Number(val('#t_h')),
@@ -94,38 +90,25 @@ function rememberKind(field: { id?: string; value?: string } | null): void {
 }
 
 /**
- * The list „Auftrag“ follows the target (#253): only the missions that fit
- * it, the chosen one kept while it fits, else the first; when none fits the
- * list says so and „Flotte losschicken“ is blocked. The line beside it names
- * the planets against the limit for a Landnahme (#237).
- *
- * The choice is also kept in `client.ui.fm`: a state refresh draws the view
- * anew with the options of the shown target, and the restore of the typed
- * values (`keepInputs`) cannot set a mission that is not among them, so the
- * select comes back empty. The list then goes on from the remembered one.
+ * The list „Auftrag“ follows the target (#253): the component shows only the
+ * missions that fit it (`fleetChoice`), the chosen one kept while it fits,
+ * else the first; when none fits the list says so and „Flotte losschicken“ is
+ * blocked. The mission it ends on is the state of the form again, and is also
+ * kept in `client.ui.fm` for the next fleet form of a fresh render. A target
+ * that no mission fits keeps the choice for when one fits again.
  */
-function missionList(s: GameState, from: string): void {
-  const list = $<HTMLSelectElement>('#t_m')!;
-  const offered = offeredMissions(s, from, readFleetForm().to, client.now());
-  const { html, selected } = missionOptions(
-    offered,
-    list.value || client.ui.fm,
-  );
-  const shown = Array.from(list.options, (o) => o.value).join();
-  if (shown !== offered.join()) list.innerHTML = html;
-  writeField(list, selected);
-  if (selected) client.ui.fm = selected;
-  const send = $<HTMLButtonElement>('#t_send');
-  if (send) send.disabled = send.dataset.full === '1' || !list.value;
-  const limit = $('#t_limit');
-  if (limit) limit.textContent = colonyNote(s, list.value);
+function settleMission(): void {
+  const { mission } = choiceOf();
+  if (!mission) return;
+  fleetForm.mission = mission;
+  client.ui.fm = mission;
 }
 
 function fleetCalc(): void {
   if (!$('#t_g') || !client.view || !client.game) return;
   settleKind();
-  missionList(client.game, client.view.P.id);
-  timeRow(val('#t_m'), client.view);
+  settleMission();
+  timeRow(choiceOf().mission, client.view);
   const f = readFleetForm();
   $('#t_info')!.innerHTML = targetInfo(client.game, f);
   const pv = fleetPreview(client.view.P, client.view.R, f, client.game.cfg);

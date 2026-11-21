@@ -45,6 +45,7 @@ beforeEach(() => {
     speed: '5',
     cargo: { m: '10', c: '', d: '3' },
     kind: 'moon',
+    mission: 'attack',
   });
   fields = {
     // The form is on the page.
@@ -62,8 +63,6 @@ beforeEach(() => {
         { innerHTML: '' },
       ]),
     ),
-    // No mission fits a moon that is not there: the list stays empty, as the stub holds it.
-    '#t_m': { value: 'attack', options: [] },
     '#t_h': { value: '' },
   };
   vi.stubGlobal('document', {
@@ -78,7 +77,9 @@ beforeEach(() => {
   client.game = {
     cfg: { galaxies: 4, systems: 100, positions: 15 },
     planet: { id: 'p' },
-    me: {},
+    me: { id: 'u1', research: {} },
+    fleets: [],
+    debris: [],
     // A moon at the target of the tests (and at the page's, 3:12:9): the kind „Mond“ holds there only.
     galaxy: [moon(2, 30, 4), moon(3, 12, 9)],
     players: [],

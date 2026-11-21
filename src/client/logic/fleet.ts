@@ -15,16 +15,9 @@ import { isFleet } from '../../core/missions.ts';
 import { text } from '../../core/text.ts';
 import type { Resources } from '../../core/types.ts';
 import type { V } from '../views/common.ts';
-import { colonyNote } from './colony-limit.ts';
 import { type FleetChoice, fleetChoice, fleetTarget } from './fleet-choice.ts';
-import type { FleetDraft } from './fleet-form.svelte.ts';
-import {
-  maxPosition,
-  missionOptions,
-  offeredMissions,
-  type QuickTarget,
-  quickTargets,
-} from './fleet-target.ts';
+import { type FleetDraft, fleetForm } from './fleet-form.svelte.ts';
+import { maxPosition, type QuickTarget, quickTargets } from './fleet-target.ts';
 import { timeRowHtml } from './fleet-time.ts';
 import { fmt } from './format.ts';
 import { staysAt } from './game.ts';
@@ -126,12 +119,6 @@ interface FleetFormPage {
   target: FleetTarget;
   /** What the fields of the form show for the state of the form (logic/fleet-choice.ts); the component asks it, so a change of the state shows. */
   choose: (draft: FleetDraft) => FleetChoice;
-  /** The options of the list „Auftrag“ as HTML, which the form writes again when the target changes (features/fleet.ts). */
-  missions: string;
-  /** The mission the list ends on, or empty when none fits the target (#253). */
-  mission: string;
-  /** The planets against the limit for a Landnahme (#237). */
-  limit: string;
   /** The unions the fleet can join (#225), the chosen one selected; empty when none. */
   unions: FleetOption[];
   /** The row of the time at the target as HTML, which the form writes again when the mission changes (features/fleet.ts). */
@@ -205,12 +192,6 @@ function jumpBox(v: V): JumpBox | null {
 function formPage(v: V, full: boolean): FleetFormPage {
   const { P, s, ui } = v;
   const t = fleetTarget(v);
-  // Only the missions that fit the target (#253); missiles start in the
-  // Sternenkarte, not here (#54).
-  const { html, selected } = missionOptions(
-    offeredMissions(s, P.id, t, v.now),
-    ui.fm,
-  );
   return {
     quick: quickTargets(s, P.id),
     target: {
@@ -219,16 +200,13 @@ function formPage(v: V, full: boolean): FleetFormPage {
       systems: s.cfg.systems,
       positions: maxPosition(s),
     },
-    choose: (draft) => fleetChoice(v, draft),
-    missions: html,
-    mission: selected,
-    limit: colonyNote(s, selected),
+    choose: (draft) => fleetChoice(v, draft, v.now),
     unions: joinChoices(v).map((c) => ({
       value: c.id,
       label: c.label,
       selected: ui.union === c.id,
     })),
-    time: timeRowHtml(selected, v),
+    time: timeRowHtml(fleetChoice(v, fleetForm, v.now).mission, v),
     full,
   };
 }

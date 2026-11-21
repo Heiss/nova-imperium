@@ -152,17 +152,18 @@ describe('the ships and the form', () => {
 
   it('keeps the chosen mission while it fits the target, else the first that does', () => {
     const at = { ft: { g: 1, s: 2, p: 6 }, ships: { lc: 1 } };
-    expect(fleetPage(view({ ...at, fm: 'spy' })).form.mission).toBe('spy');
-    expect(fleetPage(view({ ...at, fm: 'colonize' })).form.mission).toBe(
-      'attack',
-    );
+    const mission = (fm: string) =>
+      fleetPage(view({ ...at, fm })).form.choose(fleetForm).mission;
+    expect(mission('spy')).toBe('spy');
+    expect(mission('colonize')).toBe('attack');
   });
 
-  it('writes the options of the lists as the form writes them again', () => {
+  it('lists the missions that fit the target and selects the one chosen', () => {
     const form = fleetPage(
       view({ ships: { lc: 1 }, ft: { g: 1, s: 2, p: 6 }, fm: 'spy' }),
     ).form;
-    expect(form.missions).toContain('<option value="spy" selected>');
+    const { missions } = form.choose(fleetForm);
+    expect(missions.find((m) => m.selected)).toMatchObject({ value: 'spy' });
     expect(form.time).toContain('id="t_hold"');
   });
 

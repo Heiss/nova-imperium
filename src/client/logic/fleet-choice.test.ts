@@ -1,32 +1,53 @@
 // What the fleet form shows for its state (#332): the target kept to the
-// universe, and the kind of target, a moon only where one is.
+// universe, the kind of target (a moon only where one is) and the mission
+// (only one that fits the target).
 import { afterEach, describe, expect, it } from 'vitest';
-import { planet, U } from '../../test/fixtures.ts';
+import type { RoundRules } from '../../core/round.ts';
+import { planet, roundDefaults, U } from '../../test/fixtures.ts';
 import type { Ui } from '../views/common.ts';
 import { fleetChoice, type FleetSeen, fleetTarget } from './fleet-choice.ts';
 import { fleetForm } from './fleet-form.svelte.ts';
 import { forgetForms } from './form-state.svelte.ts';
-import type { GameState } from './types.ts';
+import type { GalaxyPlanet, GameState } from './types.ts';
 
 afterEach(forgetForms);
 
-const moonAt = (g: number, s: number, p: number) => ({
-  id: `m${g}_${s}_${p}`,
-  kind: 'moon' as const,
-  name: 'Mond',
-  g,
+const placeAt = (
+  kind: GalaxyPlanet['kind'],
+  s: number,
+  p: number,
+  owner: string,
+): GalaxyPlanet => ({
+  id: `${kind === 'moon' ? 'm' : 'p'}1_${s}_${p}`,
+  kind,
+  name: 'Welt',
+  g: 1,
   s,
   p,
   temp: 1,
-  owner: 'u2',
+  owner,
 });
 
-/** The planet stands at 1:1:5; a moon is at 1:2:6. */
+const choose = (v: FleetSeen) => fleetChoice(v, fleetForm, 0);
+
+/** The planet stands at 1:1:5; a foreign planet with its moon is at 1:2:6. */
 function seen(ui: Partial<Ui> = {}): FleetSeen {
   return {
-    s: { cfg: U, galaxy: [moonAt(1, 2, 6)] } as unknown as GameState,
-    P: planet({ g: 1, s: 1, p: 5 }),
-    ui: { ft: null, ...ui } as Ui,
+    s: {
+      cfg: U,
+      me: { id: 'u1', research: {} },
+      round: { number: 1, ...roundDefaults() } as RoundRules,
+      players: { u1: { name: 'Anna' }, u2: { name: 'Bert' } },
+      fleets: [],
+      debris: [],
+      galaxy: [
+        placeAt('planet', 1, 5, 'u1'),
+        placeAt('planet', 2, 6, 'u2'),
+        placeAt('moon', 2, 6, 'u2'),
+      ],
+    } as unknown as GameState,
+    P: planet({ id: 'p1_1_5', g: 1, s: 1, p: 5 }),
+    ui: { ft: null, fm: 'attack', ...ui } as Ui,
   };
 }
 
@@ -42,17 +63,17 @@ describe('the target of the form', () => {
 
   it('shows the target of the page for a field nobody typed in, and what was typed for the others', () => {
     const v = seen({ ft: { g: 1, s: 2, p: 6 } });
-    expect(fleetChoice(v, fleetForm).to).toEqual({ g: 1, s: 2, p: 6 });
+    expect(choose(v).to).toEqual({ g: 1, s: 2, p: 6 });
     fleetForm.to = { g: null, s: '1', p: '3' };
-    expect(fleetChoice(v, fleetForm).to).toEqual({ g: 1, s: 1, p: 3 });
+    expect(choose(v).to).toEqual({ g: 1, s: 1, p: 3 });
   });
 
   it('keeps every number to the universe, an empty field to the lowest', () => {
     fleetForm.to = { g: '99', s: '999', p: '' };
-    const { to } = fleetChoice(seen(), fleetForm);
+    const { to } = choose(seen());
     expect(to).toEqual({ g: U.galaxies, s: U.systems, p: 1 });
     fleetForm.to = { g: '1', s: '1', p: '99' };
-    expect(fleetChoice(seen(), fleetForm).to.p).toBe(U.positions + 1);
+    expect(choose(seen()).to.p).toBe(U.positions + 1);
   });
 });
 
@@ -60,31 +81,93 @@ describe('the kind of target', () => {
   const atMoon = { ft: { g: 1, s: 2, p: 6 } };
 
   it('offers the moon only where one is', () => {
-    expect(fleetChoice(seen(atMoon), fleetForm).moon).toBe(true);
-    expect(fleetChoice(seen(), fleetForm).moon).toBe(false);
+    expect(choose(seen(atMoon)).moon).toBe(true);
+    expect(choose(seen()).moon).toBe(false);
   });
 
   it('is the planet while nobody chose the moon, and the moon the page aims at', () => {
-    expect(fleetChoice(seen(atMoon), fleetForm).kind).toBe('planet');
-    expect(
-      fleetChoice(seen({ ft: { g: 1, s: 2, p: 6, kind: 'moon' } }), fleetForm)
-        .kind,
-    ).toBe('moon');
+    expect(choose(seen(atMoon)).kind).toBe('planet');
+    expect(choose(seen({ ft: { g: 1, s: 2, p: 6, kind: 'moon' } })).kind).toBe(
+      'moon',
+    );
   });
 
   it('is the moon the player chose before, where a moon is', () => {
     const v = seen({ ...atMoon, fk: 'moon' });
-    expect(fleetChoice(v, fleetForm).kind).toBe('moon');
+    expect(choose(v).kind).toBe('moon');
     // Not a moon that is not there.
-    expect(fleetChoice(seen({ fk: 'moon' }), fleetForm).kind).toBe('planet');
+    expect(choose(seen({ fk: 'moon' })).kind).toBe('planet');
   });
 
   it('follows the choice of the player before the page', () => {
     fleetForm.kind = 'planet';
     const v = seen({ ft: { g: 1, s: 2, p: 6, kind: 'moon' }, fk: 'moon' });
-    expect(fleetChoice(v, fleetForm).kind).toBe('planet');
+    expect(choose(v).kind).toBe('planet');
     fleetForm.kind = 'moon';
-    expect(fleetChoice(seen(atMoon), fleetForm).kind).toBe('moon');
-    expect(fleetChoice(seen(), fleetForm).kind).toBe('planet');
+    expect(choose(seen(atMoon)).kind).toBe('moon');
+    expect(choose(seen()).kind).toBe('planet');
+  });
+});
+
+describe('the mission', () => {
+  const atForeign = { ft: { g: 1, s: 2, p: 6 } };
+  const values = (v: FleetSeen) => choose(v).missions.map((o) => o.value);
+
+  it('lists the missions that fit the target and selects the one of the page while it fits', () => {
+    const v = seen({ ...atForeign, fm: 'spy' });
+    expect(values(v)).toContain('spy');
+    expect(values(v)).not.toContain('colonize');
+    expect(choose(v).mission).toBe('spy');
+    expect(choose(v).missions.filter((o) => o.selected)).toEqual([
+      {
+        value: 'spy',
+        label: expect.any(String),
+        selected: true,
+        disabled: false,
+      },
+    ]);
+  });
+
+  it('takes the first mission that fits when the one of the page does not', () => {
+    const v = seen({ ...atForeign, fm: 'colonize' });
+    expect(choose(v).mission).toBe(values(v)[0]);
+  });
+
+  it('follows the choice of the player before the page', () => {
+    fleetForm.mission = 'transport';
+    expect(choose(seen({ ...atForeign, fm: 'spy' })).mission).toBe('transport');
+    // An empty choice is none.
+    fleetForm.mission = '';
+    expect(choose(seen({ ...atForeign, fm: 'spy' })).mission).toBe('spy');
+  });
+
+  it('follows the typed target, not the one of the page', () => {
+    const v = seen({ ft: { g: 1, s: 1, p: 5 } });
+    expect(values(v)).toEqual(['']);
+    fleetForm.to = { g: '1', s: '2', p: '6' };
+    expect(values(v)).toContain('attack');
+  });
+
+  it('says that none fits the start planet, with no mission to send', () => {
+    const none = choose(seen());
+    expect(none.mission).toBe('');
+    expect(none.missions).toEqual([
+      {
+        value: '',
+        label: 'Kein Auftrag passt zum Ziel',
+        selected: true,
+        disabled: true,
+      },
+    ]);
+    expect(none.limit).toBe('');
+  });
+
+  it('names the planets against the limit for a Landnahme', () => {
+    fleetForm.mission = 'colonize';
+    fleetForm.to = { g: '1', s: '2', p: '8' };
+    expect(choose(seen()).limit).toMatch(/^Planeten: /);
+    fleetForm.mission = 'spy';
+    fleetForm.to = { g: '1', s: '2', p: '6' };
+    expect(choose(seen()).limit).toBe('');
   });
 });

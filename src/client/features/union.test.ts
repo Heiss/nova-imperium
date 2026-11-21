@@ -108,12 +108,8 @@ describe('joining', () => {
     });
     expect(fleetForm.to).toEqual({ g: '1', s: '4', p: '8' });
     expect(fleetForm.kind).toBe('planet');
-    expect(ctx.setInput).toHaveBeenCalledTimes(2);
-    for (const [sel, v] of [
-      ['#t_u', 'f1'],
-      ['#t_m', 'attack'],
-    ] as const)
-      expect(ctx.setInput).toHaveBeenCalledWith(sel, v);
+    expect(fleetForm.mission).toBe('attack');
+    expect(ctx.setInput).toHaveBeenCalledExactlyOnceWith('#t_u', 'f1');
     expect(input).toHaveBeenCalledTimes(1);
   });
   it('aims at the moon of a union that flies to a moon', () => {

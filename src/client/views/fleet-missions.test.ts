@@ -82,10 +82,10 @@ describe('the list „Auftrag“ of the fleet form (#253)', () => {
 
   it('selects the mission of the map link while it fits, else the first one in today`s order', () => {
     expect(fleet(view({ g: 1, s: 2, p: 6 }, {}, undefined, 'spy'))).toContain(
-      '<option value="spy" selected>',
+      '<option value="spy" selected="">',
     );
     const html = fleet(view({ g: 1, s: 2, p: 6 }, {}, undefined, 'colonize'));
-    expect(html).toContain('<option value="attack" selected>');
+    expect(html).toContain('<option value="attack" selected="">');
     expect(html).not.toContain('value="colonize"');
   });
 
@@ -95,7 +95,7 @@ describe('the list „Auftrag“ of the fleet form (#253)', () => {
       const html = fleet(view(to));
       expect(missions(html)).toEqual(['']);
       expect(html).toContain(
-        '<option value="" selected disabled>Kein Auftrag passt zum Ziel</option>',
+        '<option value="" selected="" disabled="">Kein Auftrag passt zum Ziel</option>',
       );
       expect(/<button id="t_send"[^>]*>/.exec(html)![0]).toContain('disabled');
     }

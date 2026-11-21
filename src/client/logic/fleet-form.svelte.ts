@@ -21,6 +21,8 @@ export interface FleetDraft {
   invite: Record<string, string>;
   /** The kind of target chosen, or null while the page says it (logic/fleet-choice.ts). */
   kind: 'planet' | 'moon' | null;
+  /** The mission chosen, or null while the page says it (logic/fleet-choice.ts). */
+  mission: string | null;
 }
 
 export const fleetForm = formState((): FleetDraft => ({
@@ -30,4 +32,5 @@ export const fleetForm = formState((): FleetDraft => ({
   cargo: {},
   invite: {},
   kind: null,
+  mission: null,
 }));

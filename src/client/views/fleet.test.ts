@@ -75,7 +75,7 @@ describe('the fleet form', () => {
 
   it('offers the mission Expedition', () => {
     expect(fleet(view({ expo: 1 }, [], undefined, EXPEDITION_AT))).toContain(
-      '<option value="expedition" selected>Expedition</option>',
+      '<option value="expedition" selected="">Expedition</option>',
     );
   });
 
@@ -256,6 +256,62 @@ describe('the kind of target after a redraw (#332)', () => {
     expect(kinds(fleet(v))).toContain('selected');
     fleetForm.to = { g: '1', s: '2', p: '7' };
     expect(kinds(fleet(v))).not.toContain('selected');
+  });
+});
+
+describe('the mission after a redraw (#332)', () => {
+  afterEach(forgetForms);
+
+  const list = (html: string): string =>
+    /<select id="t_m"[^]*?<\/select>/.exec(html)![0];
+  const values = (html: string): string[] =>
+    [...list(html).matchAll(/<option value="([^"]*)"/g)].map((m) => m[1]!);
+  const send = (html: string): string =>
+    /<button id="t_send"[^>]*>/.exec(html)![0];
+
+  it('shows the mission chosen, not the one of the page', () => {
+    const v = view({ expo: 4 }, [], 'transport');
+    expect(list(fleet(v))).toContain('<option value="transport" selected="">');
+    fleetForm.mission = 'spy';
+    const html = list(fleet(v));
+    expect(html).toContain('<option value="spy" selected="">');
+    expect(html).not.toContain('<option value="transport" selected');
+  });
+
+  it('shows the list of the typed target, not the one of the page', () => {
+    const v = view({ expo: 4 }, [], 'transport');
+    expect(values(fleet(v))).toContain('attack');
+    fleetForm.to = { g: '1', s: '2', p: '16' };
+    expect(values(fleet(v))).toEqual(['expedition']);
+  });
+
+  it('blocks the button while no mission fits the typed target, and frees it again', () => {
+    const v = view({}, [], 'transport');
+    // The planet the form starts from stands at 1:1:5.
+    v.s.galaxy.push({
+      id: 'p1_1_5',
+      kind: 'planet',
+      name: 'Heimat',
+      g: 1,
+      s: 1,
+      p: 5,
+      temp: 1,
+      owner: 'u1',
+    } as GameState['galaxy'][number]);
+    expect(send(fleet(v))).not.toContain('disabled');
+    fleetForm.to = { g: '1', s: '1', p: '5' };
+    const html = fleet(v);
+    expect(values(html)).toEqual(['']);
+    expect(send(html)).toContain('disabled');
+    fleetForm.to = { g: '1', s: '2', p: '6' };
+    expect(send(fleet(v))).not.toContain('disabled');
+  });
+
+  it('names the planets against the limit for the Landnahme chosen', () => {
+    const v = view({}, [], 'colonize', { g: 1, s: 2, p: 8 });
+    expect(fleet(v)).toMatch(/<span id="t_limit" class="dim">Planeten: /);
+    fleetForm.to = { g: '1', s: '2', p: '6' };
+    expect(fleet(v)).toContain('<span id="t_limit" class="dim"></span>');
   });
 });
 
