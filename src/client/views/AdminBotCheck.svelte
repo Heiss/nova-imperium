@@ -12,6 +12,10 @@
   const check = $derived(
     record?.detail.botCheck ? botCheckBlock(record.detail.botCheck) : null,
   );
+  // The tick the box shows: it follows the confirmed `check.on`, the click
+  // sets it, and after the request it is the confirmed state again, so a
+  // refused switch does not leave the box ticked.
+  let ticked = $derived(check?.on ?? false);
 </script>
 
 {#if record && check}
@@ -21,13 +25,11 @@
       ><input
         type="checkbox"
         id="bot-check"
-        checked={check.on}
+        checked={ticked}
         onchange={async (event) => {
-          const box = event.currentTarget;
-          await switchBotCheck(record.person.id, box.checked);
-          // A refused switch leaves `check.on` as it was, so Svelte does not
-          // redraw the box: set it back to what the server has.
-          if (check) box.checked = check.on;
+          ticked = event.currentTarget.checked;
+          await switchBotCheck(record.person.id, ticked);
+          ticked = check?.on ?? false;
         }}
       /> Automatisierung prüfen</label
     >
