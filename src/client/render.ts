@@ -28,6 +28,7 @@ import { ANEW, type Mounted, MOUNTED, mountView } from './views/mount.ts';
 import { $, keepChatScroll } from './dom.ts';
 import { rememberCompletions, renderCompletions } from './completions.ts';
 import { forgetFields, restoreFields } from './field-drafts.ts';
+import { forgetForms } from './logic/form-state.svelte.ts';
 import { seeNews } from './news-seen.ts';
 import { urlOf } from './view-address.ts';
 import { runAfterRender } from './features/assemble.ts';
@@ -109,6 +110,7 @@ export function render(fresh = false): void {
     forgetAdminPanel();
     drafts.reset();
     forgetFields();
+    forgetForms();
     return renderLoggedOut(view);
   }
   if (renderGate(view, client.game, ui, unmountViews)) return;
@@ -116,6 +118,7 @@ export function render(fresh = false): void {
   if (fresh) {
     drafts.reset();
     forgetFields();
+    forgetForms();
   }
   const focus = document.activeElement?.id;
   const chatScroll = keepChatScroll(view);

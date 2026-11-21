@@ -11,9 +11,6 @@ const SELECTOR = 'input[id],select[id],textarea[id]';
 const fieldOf = (el: Control): Field => ({
   id: el.id,
   value: el.value,
-  checked: el instanceof HTMLInputElement ? el.checked : undefined,
-  disabled: el.disabled,
-  rankRight: el.hasAttribute('data-rank-right'),
   options: el instanceof HTMLSelectElement ? el.options : null,
 });
 
@@ -47,8 +44,6 @@ export function restoreFields(view: HTMLElement): void {
   view.querySelectorAll<Control>(SELECTOR).forEach((el) => {
     const back = fieldDrafts.restore(fieldOf(el));
     if (back.value !== undefined) el.value = back.value;
-    if (back.checked !== undefined && el instanceof HTMLInputElement)
-      el.checked = back.checked;
   });
 }
 

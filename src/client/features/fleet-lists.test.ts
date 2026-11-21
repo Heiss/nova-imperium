@@ -3,6 +3,8 @@
 // target, with a stub of the page.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { U } from '../../test/fixtures.ts';
+import { fleetForm } from '../logic/fleet-form.svelte.ts';
+import { forgetForms } from '../logic/form-state.svelte.ts';
 import { client } from '../logic/state.svelte.ts';
 import type { GameState } from '../logic/types.ts';
 import type { V } from '../views/common.ts';
@@ -37,6 +39,19 @@ function select(value: string, values: string[]): Field {
   return el;
 }
 
+/** A field of the target position: the state of the form (#332), read and written as the field. */
+function position(k: 'g' | 's' | 'p', start: string): Field {
+  fleetForm.to[k] = start;
+  return {
+    get value() {
+      return fleetForm.to[k] ?? '';
+    },
+    set value(typed: string) {
+      fleetForm.to[k] = typed;
+    },
+  };
+}
+
 /** The select „Zielart“ with its option „Mond“, whose `disabled` the form sets. */
 function kindSelect(value: string, disabled: boolean): Field {
   const option = { disabled };
@@ -55,9 +70,9 @@ const place = (
 beforeEach(() => {
   listeners = {};
   fields = {
-    '#t_g': { value: '1' },
-    '#t_s': { value: '2' },
-    '#t_p': { value: '6' },
+    '#t_g': position('g', '1'),
+    '#t_s': position('s', '2'),
+    '#t_p': position('p', '6'),
     '#t_k': kindSelect('planet', false),
     '#t_info': { innerHTML: '' },
     '#t_hold': { hidden: false },
@@ -65,10 +80,6 @@ beforeEach(() => {
     '#t_limit': { textContent: '' },
     '#t_send': { disabled: false, dataset: { full: '' } },
     '#t_h': { value: '' },
-    '#t_v': { value: '10' },
-    '#c_m': { value: '' },
-    '#c_c': { value: '' },
-    '#c_d': { value: '' },
     ...Object.fromEntries(
       ['i_dist', 'i_dur', 'i_arr', 'i_fuel', 'i_cap'].map((id) => [
         `#${id}`,
@@ -106,7 +117,10 @@ beforeEach(() => {
     debris: [],
     players: {},
   } as unknown as GameState;
-  client.view = { P: { id: 'p1_1_5', ships: {} } } as unknown as V;
+  client.view = {
+    P: { id: 'p1_1_5', ships: {} },
+    ui: client.ui,
+  } as unknown as V;
   clientFeature.listen(
     fakeCtx({
       setInput: (sel, v) => {
@@ -117,6 +131,7 @@ beforeEach(() => {
 });
 afterEach(() => {
   vi.unstubAllGlobals();
+  forgetForms();
   client.game = null;
   client.view = null;
 });

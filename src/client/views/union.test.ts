@@ -2,13 +2,15 @@
 // „Verbandsangriff“ with the invitation field for the leader and „Beitreten“
 // for everyone, the row „Verband“ of the fleet form, and the buttons of the
 // fleet movements.
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { roundDefaults } from '../../test/fixtures.ts';
 import { fleetView } from '../../test/fleet-view.ts';
 import { normalize } from '../../test/markup.ts';
 import type { RoundRules } from '../../core/round.ts';
 import type { ClientFleet, GameState, UnionState } from '../logic/types.ts';
 import type { V } from './common.ts';
+import { fleetForm } from '../logic/fleet-form.svelte.ts';
+import { forgetForms } from '../logic/form-state.svelte.ts';
 
 /** The fleet view as a browser shows it. */
 const fleet = (v: V): string => normalize(fleetView(v));
@@ -139,5 +141,19 @@ describe('opening a union from an own Sturmangriff', () => {
       'Ruft der Anführer seine Flotte zurück, kehren alle Flotten des Verbands um',
     );
     expect(fleet(view([union]))).toContain('Ruft der Anführer');
+  });
+});
+
+describe('the name typed to invite (#332)', () => {
+  afterEach(forgetForms);
+
+  it('stays in the field of its union over a redraw, and is empty for another', () => {
+    const other = { ...union, id: 'f9', leader: 'u1' };
+    fleetForm.invite['un<1>'] = 'Bert & Co';
+    const html = fleet(view([union, other]));
+    expect(html).toMatch(/id="un_name_un&lt;1>"[^>]*value="Bert &amp; Co"/);
+    expect(/<input[^>]*id="un_name_f9"[^>]*>/.exec(html)![0]).not.toContain(
+      'value',
+    );
   });
 });

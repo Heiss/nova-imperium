@@ -2,8 +2,10 @@
   // The ranks of the own guild (#163, #277): each rank with its editor for a
   // rank below the own one, else its rights as text. The buttons carry
   // data-act (features/guilds.ts), which reads the fields by their ids and the
-  // checkboxes by `data-rank-right`; main.ts keeps a ticked box over a refresh.
+  // checkboxes by `data-rank-right`. What was typed and ticked is the state of
+  // logic/guild-form.svelte.ts (#332), kept over a refresh.
   import { MAX_RANK_NAME, MIN_RANK_NAME } from '../../core/guild-ranks.ts';
+  import { guildForm, ticked } from '../logic/guild-form.svelte.ts';
   import type { GuildPage } from '../logic/guilds.ts';
   import Box from './Box.svelte';
 
@@ -25,7 +27,9 @@
             required
             minlength={MIN_RANK_NAME}
             maxlength={MAX_RANK_NAME}
-            value={editor.name}
+            value={guildForm.rankNames[rank.id] ?? editor.name}
+            oninput={(e) =>
+              (guildForm.rankNames[rank.id] = e.currentTarget.value)}
           />
           <button class="small" data-act="rankRename" data-rank={rank.id}
             >Umbenennen</button
@@ -39,8 +43,11 @@
                 id="rank_{rank.id}_{box.right}"
                 data-rank-right={rank.id}
                 value={box.right}
-                checked={box.checked}
+                checked={ticked(`rank_${rank.id}_${box.right}`, box)}
                 disabled={box.disabled}
+                onchange={(e) =>
+                  (guildForm.rights[`rank_${rank.id}_${box.right}`] =
+                    e.currentTarget.checked)}
               />
               {box.label}</label
             >
@@ -92,6 +99,8 @@
       <label for="rank_new">Name des neuen Rangs</label>
       <input
         id="rank_new"
+        value={guildForm.rankNew}
+        oninput={(e) => (guildForm.rankNew = e.currentTarget.value)}
         minlength={MIN_RANK_NAME}
         maxlength={MAX_RANK_NAME}
       />
