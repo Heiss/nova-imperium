@@ -9,16 +9,17 @@ import { MISSION } from '../../core/missions.ts';
 import type { Planet } from '../../core/types.ts';
 import { planet, U } from '../../test/fixtures.ts';
 import type { Ui, V } from '../views/common.ts';
-import { debrisMark, harvestButton } from './debris.ts';
+import { debrisTip } from './debris.ts';
 import { distance, fleetSpeed, flightMs } from '../../core/flight.ts';
 import { dur } from './format.ts';
 import {
   type GalaxyAction,
+  type GalaxyMark,
   galaxyPage,
   type GalaxyRow,
   targetOf,
 } from './galaxy.ts';
-import { moonMark } from './moon.ts';
+import { moonMarkId } from './moon.ts';
 import type { GalaxyPlanet, GameState } from './types.ts';
 
 const place = (
@@ -86,6 +87,28 @@ const at = (p: number, moon = false): Record<string, string> => ({
   'data-s': '2',
   'data-p': String(p),
   ...(moon ? { 'data-k': 'moon' } : {}),
+});
+
+/** The button „Bergung“ at a position. */
+const harvest = (p: number): GalaxyAction => ({
+  kind: 'harvest',
+  label: 'Bergung',
+  attrs: { 'data-act': 'gfleet', 'data-m': 'harvest', ...at(p) },
+});
+
+/** The symbol of a Trümmerfeld: its tooltip. */
+const debrisSymbol = (d: DebrisField): GalaxyMark => ({
+  kind: 'debris',
+  tip: debrisTip(d),
+});
+
+/** The symbol of a moon: its button with the id, the name and whether its row is open. */
+const moonSymbol = (moon: GalaxyPlanet, open: boolean): GalaxyMark => ({
+  kind: 'moon',
+  id: moonMarkId(moon.id),
+  moonId: moon.id,
+  name: `${moon.name} (Mond)`,
+  open,
 });
 
 const foreign = (p: number, moon = false): GalaxyAction[] => [
@@ -212,12 +235,9 @@ describe('the expedition position (#93)', () => {
       debris: [field(last, 500, 200)],
     });
     const row = rowAt(v, last);
-    expect(row.marks).toEqual([debrisMark(field(last, 500, 200))]);
-    expect(row.actions.map((a) => a.kind)).toEqual(['button', 'html']);
-    expect(row.actions[1]).toEqual({
-      kind: 'html',
-      html: harvestButton({ g: 1, s: 2, p: last }),
-    });
+    expect(row.marks).toEqual([debrisSymbol(field(last, 500, 200))]);
+    expect(row.actions.map((a) => a.kind)).toEqual(['button', 'harvest']);
+    expect(row.actions[1]).toEqual(harvest(last));
   });
 
   it('offers neither the Landnahme nor the Vermessung there', () => {
@@ -277,12 +297,12 @@ describe('a free position', () => {
       debris: [field(9)],
     });
     const names = (p: number) =>
-      rowAt(v, p).actions.map((a) => ('label' in a ? a.label : a.kind));
+      rowAt(v, p).actions.map((a) => a.label);
     v.s.locks = [{ g: 1, s: 2, p: 9, until: v.now + 60_000 }];
-    expect(names(9)).toEqual(['html']);
+    expect(names(9)).toEqual(['Bergung']);
     // The lock ended: both buttons are back, the Bergung after them.
     v.s.locks = [{ g: 1, s: 2, p: 9, until: v.now }];
-    expect(names(9)).toEqual(['Landnahme', 'Vermessen', 'html']);
+    expect(names(9)).toEqual(['Landnahme', 'Vermessen', 'Bergung']);
     // Another position keeps its buttons while 9 is locked.
     v.s.locks = [{ g: 1, s: 2, p: 9, until: v.now + 60_000 }];
     expect(names(8)).toEqual(['Landnahme', 'Vermessen']);
@@ -312,7 +332,7 @@ describe('a free position', () => {
     expect(rowAt(both, 9).actions.map((a) => a.kind)).toEqual([
       'button',
       'button',
-      'html',
+      'harvest',
     ]);
     expect(rowAt(both, 9).actions[1]).toEqual(vermessen);
     expect(
@@ -340,12 +360,9 @@ describe('a free position', () => {
       view({ P: { ships: { colony: 2 } }, debris: [field(9, 0, 300)] }),
       9,
     );
-    expect(r.marks).toEqual([debrisMark(field(9, 0, 300))]);
-    expect(r.actions.map((a) => a.kind)).toEqual(['button', 'html']);
-    expect(r.actions[1]).toEqual({
-      kind: 'html',
-      html: harvestButton({ g: 1, s: 2, p: 9 }),
-    });
+    expect(r.marks).toEqual([debrisSymbol(field(9, 0, 300))]);
+    expect(r.actions.map((a) => a.kind)).toEqual(['button', 'harvest']);
+    expect(r.actions[1]).toEqual(harvest(9));
     // Only at its own position.
     expect(rowAt(view({ debris: [field(9)] }), 8).marks).toEqual([]);
   });
@@ -353,7 +370,7 @@ describe('a free position', () => {
   it('shows a moon without a planet by its symbol, without its row', () => {
     const luna = place('moon', 9, 'u2');
     const r = rowAt(view({ galaxy: [luna], ui: { gmoon: luna.id } }), 9);
-    expect(r.marks).toEqual([moonMark(luna, true)]);
+    expect(r.marks).toEqual([moonSymbol(luna, true)]);
     expect(r.planet).toBeNull();
     expect(r.moon).toBeNull();
   });
@@ -428,11 +445,8 @@ describe('a foreign planet', () => {
       view({ galaxy: [place('planet', 6, 'u3')], debris: [field(6)] }),
       6,
     );
-    expect(r.planet!.actions).toEqual([
-      ...foreign(6),
-      { kind: 'html', html: harvestButton({ g: 1, s: 2, p: 6 }) },
-    ]);
-    expect(r.marks).toEqual([debrisMark(field(6))]);
+    expect(r.planet!.actions).toEqual([...foreign(6), harvest(6)]);
+    expect(r.marks).toEqual([debrisSymbol(field(6))]);
     expect(r.actions).toEqual([]);
   });
 
@@ -508,21 +522,21 @@ describe('moons (#53)', () => {
 
   it('shows the closed symbol at the planet, without the row', () => {
     const r = rowAt(view({ galaxy: galaxy() }), 6);
-    expect(r.marks).toEqual([moonMark(galaxy()[3]!, false)]);
+    expect(r.marks).toEqual([moonSymbol(galaxy()[3]!, false)]);
     expect(r.moon).toBeNull();
   });
 
   it('puts the symbol of the moon before the one of a field', () => {
     const r = rowAt(view({ galaxy: galaxy(), debris: [field(6)] }), 6);
     expect(r.marks).toEqual([
-      moonMark(galaxy()[3]!, false),
-      debrisMark(field(6)),
+      moonSymbol(galaxy()[3]!, false),
+      debrisSymbol(field(6)),
     ]);
   });
 
   it('opens the row of a foreign moon with its actions at the moon', () => {
     const r = rowAt(view({ galaxy: galaxy(), ui: { gmoon: 'm1_2_6' } }), 6);
-    expect(r.marks).toEqual([moonMark(galaxy()[3]!, true)]);
+    expect(r.marks).toEqual([moonSymbol(galaxy()[3]!, true)]);
     expect(r.moon).toEqual({
       g: 1,
       s: 2,
@@ -720,13 +734,11 @@ describe('the sheet „⋯“ of a position on a phone (#189)', () => {
       galaxy: [place('planet', 6, 'u3')],
       debris: [field(6), field(9)],
     });
-    expect(rowAt(v, 6).planet!.sheet!.actions.at(-1)).toMatchObject({
-      kind: 'html',
-    });
+    expect(rowAt(v, 6).planet!.sheet!.actions.at(-1)).toEqual(harvest(6));
     expect(rowAt(v, 9).sheet).toMatchObject({
       id: 'free-9',
       title: 'Position [1:2:9]',
-      actions: [{ kind: 'html' }],
+      actions: [harvest(9)],
     });
   });
 

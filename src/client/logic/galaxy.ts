@@ -5,7 +5,8 @@
 // moon and the Trümmerfeld (#45, #53), the words of the activity of a place
 // and of the inactivity of its owner (#229) and the actions, and the number of
 // Spähschädel of a spying. The symbols of a moon and a Trümmerfeld and the
-// button „Bergung“ keep their HTML of logic/moon.ts and logic/debris.ts.
+// button „Bergung“ are data (`GalaxyMark`, the action kind `harvest`) that the
+// component draws (#337).
 import { canFly } from '../../core/catalog.ts';
 import { distance, fleetSpeed, flightMs } from '../../core/flight.ts';
 import { expeditionLevel } from '../../core/expedition.ts';
@@ -16,12 +17,12 @@ import type { Coords, Levels } from '../../core/types.ts';
 import type { V } from '../views/common.ts';
 import { freePosition } from './abandon.ts';
 import { activityNote, inactivityNote } from './activity.ts';
-import { debrisAt, debrisMark, harvestButton } from './debris.ts';
+import { debrisAt, debrisTip } from './debris.ts';
 import { offeredMissions } from './fleet-target.ts';
 import { coords, dur, fmt } from './format.ts';
 import { isProtected, nameOf, ranks } from './game.ts';
 import { canLaunch } from './missiles.ts';
-import { moonAt, moonMark } from './moon.ts';
+import { moonAt, moonMarkId } from './moon.ts';
 import { type Countdown, countdown } from './overview.ts';
 import { canScan, scanRows, scanTitle } from './phalanx.ts';
 import { canSurvey } from './survey.ts';
@@ -30,7 +31,7 @@ import type { GalaxyPlanet } from './types.ts';
 /**
  * One action of a row: a link (`span.lnk`) or a small button with its
  * attributes (`data-act` first), the dim name of the active place, or the
- * HTML of the button „Bergung“.
+ * button „Bergung“ (`harvest`), which is a small button in the sheet, too.
  */
 export type GalaxyAction =
   | {
@@ -39,7 +40,24 @@ export type GalaxyAction =
       attrs: Record<string, string>;
     }
   | { kind: 'active'; label: string }
-  | { kind: 'html'; html: string };
+  | { kind: 'harvest'; label: string; attrs: Record<string, string> };
+
+/**
+ * The symbol beside a planet: the moon (a button that opens or closes the
+ * moon's actions, with the stable id that keeps the focus over a new render)
+ * or the Trümmerfeld (a picture with its tooltip).
+ */
+export type GalaxyMark =
+  | {
+      kind: 'moon';
+      /** The id of the button, `moonMarkId()` of the moon. */
+      id: string;
+      moonId: string;
+      /** The moon by its name with „(Mond)“: the title and the picture's alt. */
+      name: string;
+      open: boolean;
+    }
+  | { kind: 'debris'; tip: string };
 
 /**
  * The actions of a position in the bottom sheet of a phone (#189, the „⋯“ of
@@ -82,8 +100,8 @@ export interface GalaxyRow {
   position: number;
   /** The planet there, or null for a free position. */
   planet: GalaxyPlace | null;
-  /** The HTML of the symbols of the moon and the Trümmerfeld, in this order. */
-  marks: string[];
+  /** The symbols of the moon and the Trümmerfeld, in this order. */
+  marks: GalaxyMark[];
   /** The actions at a free position: „Landnahme“, „Vermessen“ (#190) and „Bergung“. */
   actions: GalaxyAction[];
   /** The note of a free position: „–“, or until when it is locked (#224). */
@@ -296,6 +314,13 @@ function place(
   };
 }
 
+/** The button „Bergung“ of the Trümmerfeld at a position. */
+const harvestAction = (c: Coords): GalaxyAction => ({
+  kind: 'harvest',
+  label: MISSION.harvest,
+  attrs: { 'data-act': 'gfleet', 'data-m': 'harvest', ...at(c, false) },
+});
+
 /** „Landnahme“ at a free position, with a colony ship on the shown planet. */
 const colonize = (v: V, c: Coords): GalaxyAction[] =>
   v.P.ships.colony
@@ -331,7 +356,7 @@ const EXPEDITION_NOTE = 'Expeditionsposition';
 function emptyRow(
   v: V,
   c: Coords,
-  marks: string[],
+  marks: GalaxyMark[],
   actions: GalaxyAction[],
   note: string,
   title: string,
@@ -357,12 +382,17 @@ function galaxyRow(v: V, p: number, rk: Record<string, number>): GalaxyRow {
   // A moon for every player, its symbol opens its actions (#53).
   const moon = moonAt(s.galaxy, c);
   const open = !!moon && ui.gmoon === moon.id;
-  const marks: string[] = [];
-  if (moon) marks.push(moonMark(moon, open));
-  if (field) marks.push(debrisMark(field));
-  const harvest: GalaxyAction[] = field
-    ? [{ kind: 'html', html: harvestButton(c) }]
-    : [];
+  const marks: GalaxyMark[] = [];
+  if (moon)
+    marks.push({
+      kind: 'moon',
+      id: moonMarkId(moon.id),
+      moonId: moon.id,
+      name: placeName(moon),
+      open,
+    });
+  if (field) marks.push({ kind: 'debris', tip: debrisTip(field) });
+  const harvest: GalaxyAction[] = field ? [harvestAction(c)] : [];
   // The position after the last planet position: no planet, only expeditions
   // and the Bergung of its Trümmerfeld (#93).
   if (p > s.cfg.positions)

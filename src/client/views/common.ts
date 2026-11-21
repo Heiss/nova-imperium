@@ -1,23 +1,7 @@
 import type { NewsData } from '../logic/news.ts';
 // Pieces shared by the views. Everything that comes from players goes through esc().
-import type {
-  Coords,
-  Cost,
-  Planet,
-  Requirements,
-  ResearchState,
-} from '../../core/types.ts';
-import { dur, esc, fmt } from '../logic/format.ts';
-import { type ResourceKey, resourceIconURL } from '../logic/icons.ts';
-import { planetLook } from '../logic/planet.ts';
-import {
-  type Need,
-  type NeedState,
-  needState,
-  type Places,
-  unmetRequirements,
-} from '../../core/requirements.ts';
-import { production } from '../../core/economy.ts';
+import type { Planet, ResearchState } from '../../core/types.ts';
+import { dur } from '../logic/format.ts';
 import type { Scan } from '../logic/phalanx.ts';
 import type { HighscoreCategory } from '../logic/highscore.ts';
 import type { PushChoice } from '../logic/push-options.ts';
@@ -80,13 +64,3 @@ export const cd = (end: number, now: number): string =>
 
 export const box = (title: string, body: string, cls = ''): string =>
   `<div class="box${cls ? ' ' + cls : ''}"><div class="hd">${title}</div><div class="bd">${body}</div></div>`;
-
-/**
- * A layered planet (issue #61, D7): the surface turns, the clouds drift, the
- * atmosphere breathes. main.ts sets the textures from data-surface and
- * data-clouds (no inline styles under the CSP). `still` is for small planets.
- */
-export function planetHTML(c: Coords, still = false): string {
-  const look = planetLook(c);
-  return `<div class="pl pl-${look.type}${still ? ' pl-still' : ''}" role="img" aria-label="${look.name}" data-surface="${look.surface}" data-clouds="${look.clouds}"><div class="pl-body"><div class="pl-surface"></div><div class="pl-clouds"></div><div class="pl-shade"></div></div></div>`;
-}

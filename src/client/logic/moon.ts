@@ -1,6 +1,7 @@
-// Moons in the interface (#53, owner, 2026-11-13 and 2026-11-14): the
-// symbol on the Sternenkarte that opens the moon's actions, the target of
-// the fleet form, the planet list and the lines of the battle report.
+// Moons in the interface (#53, owner, 2026-11-13 and 2026-11-14): the id of
+// the symbol on the Sternenkarte that opens the moon's actions (drawn by
+// views/Galaxy.svelte, the picture by views/MoonPicture.svelte), the target
+// of the fleet form, the planet list and the lines of the battle report.
 import { placeName } from '../../core/moon.ts';
 import { placeId } from '../../core/place.ts';
 import type { Coords } from '../../core/types.ts';
@@ -16,19 +17,11 @@ export const moonAt = (
   return galaxy.find((x) => x.id === id);
 };
 
-/** The picture of a moon, also the symbol on the Sternenkarte. */
-export const moonPicture = (name: string, size: number): string =>
-  `<img class="moon" src="/icons/moon.svg" alt="${esc(name)}" width="${size}" height="${size}">`;
-
 /**
  * The id of the symbol of a moon: stable over a new render, so the focus
  * stays on it after it opened or closed the moon's actions.
  */
 export const moonMarkId = (id: string): string => `moon-${id}`;
-
-/** The symbol at the planet: a button that opens or closes the moon's actions. */
-export const moonMark = (moon: GalaxyPlanet, open: boolean): string =>
-  `<button type="button" id="${esc(moonMarkId(moon.id))}" class="moon-btn" data-act="gmoon" data-id="${esc(moon.id)}" aria-expanded="${open}" title="${esc(placeName(moon))}">${moonPicture(placeName(moon), 20)}</button>`;
 
 /** The own planets and moons for the planet list: each moon after its planet. */
 export const ownPlaces = (

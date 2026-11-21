@@ -272,43 +272,49 @@ describe('Requirements', () => {
     expect(missing).toEqual([]);
   });
 
+  /** A rich planet with every building and research at `lvl` (Gravitonforschung at 0), with the queue `bq`. */
+  const rich = (lvl: number, bq: Planet['bq']): V =>
+    view({
+      P: {
+        kind: 'planet',
+        diameter: 16000,
+        res: { m: 9_000_000, c: 9_000_000, d: 9_000_000 },
+        b: Object.fromEntries(Object.keys(BUILD).map((k) => [k, lvl])),
+        bq,
+        sq: [],
+      },
+      research: Object.fromEntries(
+        Object.keys(RES).map((k) => [k, k === 'graviton' ? 0 : lvl]),
+      ),
+      rq: null,
+    });
+
+  /** Compares both renderings of every entry on `v` and returns the marks they show. */
+  function compareAll(v: V): Set<string> {
+    const seen = new Set<string>();
+    for (const { req } of ENTRIES) {
+      const before = requirementsHTML(v, req);
+      same(render(Requirements, { props: { v, req } }).body, before);
+      for (const m of MARKS) if (before.includes(m)) seen.add(m);
+    }
+    return seen;
+  }
+
   it('equals requirementsHTML where a start button waits and where an energy cost shows', () => {
     // Rich planets with some levels, once with a running building (the
     // button waits: `disabled`) and once idle; the energy part of a cost line
     // comes from an entry whose next level needs energy production.
+    const running = {
+      key: 'lab',
+      lvl: 2,
+      start: 0,
+      end: 9,
+      cost: [0, 0, 0] as [number, number, number],
+    };
     const seen = new Set<string>();
-    for (const bq of [
-      null,
-      {
-        key: 'lab',
-        lvl: 2,
-        start: 0,
-        end: 9,
-        cost: [0, 0, 0] as [number, number, number],
-      },
-    ]) {
-      for (const lvl of [0, 1, 3, 6, 30]) {
-        const v = view({
-          P: {
-            kind: 'planet',
-            diameter: 16000,
-            res: { m: 9_000_000, c: 9_000_000, d: 9_000_000 },
-            b: Object.fromEntries(Object.keys(BUILD).map((k) => [k, lvl])),
-            bq,
-            sq: [],
-          },
-          research: Object.fromEntries(
-            Object.keys(RES).map((k) => [k, k === 'graviton' ? 0 : lvl]),
-          ),
-          rq: null,
-        });
-        for (const { req } of ENTRIES) {
-          const before = requirementsHTML(v, req);
-          same(render(Requirements, { props: { v, req } }).body, before);
-          for (const m of MARKS) if (before.includes(m)) seen.add(m);
-        }
-      }
-    }
+    for (const bq of [null, running])
+      for (const lvl of [0, 1, 3, 6, 30])
+        compareAll(rich(lvl, bq)).forEach((m) => seen.add(m));
     expect(seen.has('disabled')).toBe(true);
     expect(seen.has('Energieproduktion')).toBe(true);
   });
