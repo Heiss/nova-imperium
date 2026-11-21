@@ -588,9 +588,21 @@ owiki.de „Mond“ (section Zerstörung, formula images). Built after the moons
     target (only their leg back is shown), only outbound fleets fly to the
     planet;
   * the audit entry `moonbreak`.
-* Not built: an action „Mondbruch“ at a foreign moon on the Sternenkarte
-  (with #253, above); the fleet form offers it through „Sturmangriff“ at
-  the moon and the select „Auftrag“.
+* The action „Mondbruch“ at a foreign moon on the Sternenkarte [E] (owner,
+  2026-11-21; earlier „no own button now, it comes with #253“, #95
+  comment of 2026-11-16, and #253 did not deliver it): a link in the row of
+  the moon and in the phone sheet „⋯“, after „Versorgungsflug“, built like
+  „Sturmangriff“ (`fleetTo`, `data-act="gfleet"`, `data-m="moonbreak"`,
+  data-k="moon"); it opens the fleet form with the moon as the target and
+  the Mondbruch chosen. It shows exactly when the list of the fleet form
+  (`offeredMissions` of `src/client/logic/fleet-target.ts`, the rule
+  `missionsFor` of `src/core/mission-fit.ts`) holds the Mondbruch for that
+  target: the moon is a foreign moon. [E] It shows
+  at every foreign moon, with or without a Weltenbrecher on the shown planet
+  (owner, 2026-11-21; the first build asked for one, as „Landnahme“ asks for
+  a colony ship); the fleet form refuses a send without one. [V] No own title or aria-label,
+  like the neighbouring links; the label is the game term „Mondbruch“.
+  Code: `moonbreakLink` in `src/client/logic/galaxy.ts`.
 * Tests: `src/core/moonbreak.test.ts` (the example of the owner, the
   formulas, properties, the draws with a seeded generator),
   `src/core/missions.test.ts` (the kind `foreignMoon`),

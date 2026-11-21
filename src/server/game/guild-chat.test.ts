@@ -227,6 +227,25 @@ describe('deleting messages: the order of the ranks (#163 D4)', () => {
   });
 });
 
+const CHAT_RUNS = 12;
+const CHAT_SLICE = 3;
+const CHAT_SLICES = Array.from({ length: CHAT_RUNS / CHAT_SLICE }, (_, i) => i);
+let lengths: number[] | undefined;
+/** The lengths of the property (seed 169, 12 runs), generated once. */
+function LENGTHS(): number[] {
+  if (!lengths) {
+    const out: number[] = [];
+    fc.assert(
+      fc.property(fc.integer({ min: 0, max: 560 }), (n) => {
+        out.push(n);
+      }),
+      { seed: 169, numRuns: CHAT_RUNS },
+    );
+    lengths = out;
+  }
+  return lengths;
+}
+
 describe('messages (#169)', () => {
   it('stores plain text as written, without control characters, trimmed', () => {
     const s = setup();
@@ -296,12 +315,26 @@ describe('messages (#169)', () => {
     expect(s.texts('Out')).toEqual(['drüben']);
   });
 
-  // Up to 12 runs of 560 real actions: seconds on a loaded machine, so its own
-  // limit instead of the default of five seconds (timed out in the CI of #300).
-  it('never keeps more than 500 messages and always the newest (property)', () => {
-    const caseDb = caseDatabase();
-    fc.assert(
-      fc.property(fc.integer({ min: 0, max: 560 }), (n) => {
+  // Up to 12 runs of 560 real actions: the 12 lengths of the seed 169 are
+  // generated once and taken in slices of three, one test each, so that no
+  // test needs more than a few hundred actions.
+  it('takes the lengths of the property from one sample', () => {
+    expect(LENGTHS()).toHaveLength(CHAT_RUNS);
+    expect(
+      CHAT_SLICES.flatMap((i) =>
+        LENGTHS().slice(i * CHAT_SLICE, (i + 1) * CHAT_SLICE),
+      ),
+    ).toEqual(LENGTHS());
+  });
+
+  it.each(CHAT_SLICES)(
+    'never keeps more than 500 messages and always the newest (property), slice %i',
+    (slice) => {
+      const caseDb = caseDatabase();
+      for (const n of LENGTHS().slice(
+        slice * CHAT_SLICE,
+        (slice + 1) * CHAT_SLICE,
+      )) {
         const ctx = testCtx(1_000_000, 42, caseDb.open());
         addUser(ctx, 'Lea');
         runAction(ctx, 'u_Lea', {
@@ -315,17 +348,16 @@ describe('messages (#169)', () => {
           runAction(ctx, 'u_Lea', { type: 'sendGuildChat', text: `${i}` });
         }
         const kept = ctx.guilds.chat(id).map((m) => Number(m.text));
-        expect(kept).toEqual(
+        expect(kept, `length ${n}`).toEqual(
           Array.from(
             { length: Math.min(n, 500) },
             (_, i) => n - Math.min(n, 500) + i,
           ),
         );
         caseDb.rewind();
-      }),
-      { seed: 169, numRuns: 12 },
-    );
-  }, 60_000);
+      }
+    },
+  );
 });
 
 describe('leaving and deleted accounts (#169, D7)', () => {

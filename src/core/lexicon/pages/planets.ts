@@ -138,7 +138,7 @@ const demolishSection = (s: LexState): PageSection =>
       },
     ),
     say(
-      'Der Faktor reicht von {low} bis {high}. Zurückbauen geht nicht auf einem Mond, nicht ohne Stufe und nicht, solange die Bauschleife des Planeten läuft. Auch nicht, solange das Gebäude gebraucht wird, also nicht, wenn die Schiffsschmiede Aufträge hat oder das Scholarium forscht, und nicht, wenn danach mehr Felder belegt wären, als der Planet hat, wie bei der Weltenschmiede. Die Punkte der Highscore sinken um die Kosten der zurückgebauten Stufe.',
+      'Der Faktor reicht von {low} bis {high}. Zurückbauen geht nicht auf einem Mond, nicht ohne Stufe und nicht, solange die Bauschleife des Planeten läuft. Auch nicht, solange das Gebäude gebraucht wird, also nicht, wenn die Schiffsschmiede Aufträge hat oder das Scholarium forscht, und nicht, wenn danach mehr Felder belegt wären, als der Planet hat, wie bei der Weltenschmiede. Die Raketenkrypta lässt sich nicht zurückbauen, wenn ihre Plätze danach für die Raketen nicht mehr reichen, die Raketen in der Schiffsschmiede mitgezählt; dann baust du erst Raketen ab. Die Punkte der Highscore sinken um die Kosten der zurückgebauten Stufe.',
       {
         low: `${number(DEMOLITION_REFUND.min)} %`,
         high: `${number(DEMOLITION_REFUND.max)} %`,

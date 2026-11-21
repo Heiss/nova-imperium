@@ -217,4 +217,81 @@ test.describe('the planet limit (#237)', () => {
     mailCli('unadmin', name);
     expect(w.problems).toEqual([]);
   });
+
+  test('the confirmation line of „Neue Runde“ repeats the limit settings: for the default, after a change, and with the research on (#237)', async ({
+    page,
+  }) => {
+    test.setTimeout(90_000);
+    const w = watch(page);
+    const name = uniqueName('Bestaetigung');
+    await registerByMail(page, name);
+    mailCli('admin', name);
+    await loginByCode(page, name);
+    await nav(page, 'admin');
+    await page.getByRole('tab', { name: 'Universum' }).click();
+    const confirm = page.locator('#round-confirm-colonies');
+    const perLevel = dialog(page).getByLabel(
+      'Zusätzliche Planeten je Forschungsstufe',
+    );
+    const maxLevel = dialog(page).getByLabel(/^Maximale Forschungsstufe/);
+    const openDialog = async (): Promise<void> => {
+      await page.getByRole('button', { name: 'Neue Runde starten' }).click();
+      await expect(
+        page.getByText('Wirklich eine neue Runde starten?'),
+      ).toBeVisible();
+    };
+
+    // The dialog offers the values of the running round, which an earlier
+    // test may have set: start a round on the defaults (6 planets, 2 more per
+    // level, 4 levels, research off) so the dialog afterwards shows them.
+    await openDialog();
+    await researchSwitch(page).selectOption({ label: 'Ja' });
+    await perLevel.fill('2');
+    await maxLevel.fill('4');
+    await researchSwitch(page).selectOption({ label: 'Nein' });
+    await baseField(page).fill('6');
+    await page.getByRole('button', { name: 'Ja, neue Runde' }).click();
+    await expect(lastToast(page)).toContainText('Neue Runde gestartet');
+
+    // The default: the line above the button names the limit and that the
+    // research is off, and nothing of the hidden values.
+    await openDialog();
+    await expect(confirm).toHaveText(
+      'Die neue Runde startet mit: Maximale Planeten ohne Forschung: 6 · Kolonieforschung: nicht aktiviert.',
+    );
+
+    // A field changes: the line is written again.
+    await baseField(page).fill('9');
+    await expect(confirm).toHaveText(
+      'Die neue Runde startet mit: Maximale Planeten ohne Forschung: 9 · Kolonieforschung: nicht aktiviert.',
+    );
+    await baseField(page).fill('0');
+    await expect(confirm).toHaveText(
+      'Die neue Runde startet mit: Maximale Planeten ohne Forschung: unbegrenzt · Kolonieforschung: nicht aktiviert.',
+    );
+
+    // The research on: the hidden values appear in the line.
+    await baseField(page).fill('9');
+    await researchSwitch(page).selectOption({ label: 'Ja' });
+    await expect(confirm).toHaveText(
+      'Die neue Runde startet mit: Maximale Planeten ohne Forschung: 9 · Kolonieforschung: aktiviert · Zusätzliche Planeten je Forschungsstufe: 2 · Maximale Forschungsstufe: 4.',
+    );
+    await perLevel.fill('3');
+    await maxLevel.fill('0');
+    await expect(confirm).toHaveText(
+      'Die neue Runde startet mit: Maximale Planeten ohne Forschung: 9 · Kolonieforschung: aktiviert · Zusätzliche Planeten je Forschungsstufe: 3 · Maximale Forschungsstufe: unbegrenzt erforschbar.',
+    );
+    // The research without a base limit is refused: no line.
+    await baseField(page).fill('0');
+    await expect(confirm).toHaveText('');
+    await baseField(page).fill('9');
+    await researchSwitch(page).selectOption({ label: 'Nein' });
+    await expect(confirm).toHaveText(
+      'Die neue Runde startet mit: Maximale Planeten ohne Forschung: 9 · Kolonieforschung: nicht aktiviert.',
+    );
+    // Leave the dialog without starting a round.
+    await page.keyboard.press('Escape');
+    mailCli('unadmin', name);
+    expect(w.problems).toEqual([]);
+  });
 });

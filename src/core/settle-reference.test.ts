@@ -363,23 +363,67 @@ const RUNS = 300;
 // Slow under the coverage instrumentation of Stryker: its own time limit.
 const TIMEOUT = 120_000;
 
+let sample: Case[] | undefined;
+/** The generated cases (seed 115), generated once. */
+function CASES(): Case[] {
+  if (!sample) {
+    const out: Case[] = [];
+    fc.assert(
+      fc.property(cases, (c) => {
+        out.push(c);
+      }),
+      { seed: 115, numRuns: RUNS },
+    );
+    sample = out;
+  }
+  return sample;
+}
+const STEP_SLICES = [0, 1];
+
 describe(
   'settling with generic events (#115) against the code before',
   { timeout: TIMEOUT },
   () => {
-    it('settles in one step and in steps bit for bit', () => {
-      fc.assert(
-        fc.property(cases, (c) => {
-          expect(S.settle(c.p, c.until, c.u, c.r)).toStrictEqual(
-            settle(c.p, c.until, c.u, c.r),
+    // The three comparisons of one generated case are three tests over the
+    // same cases (seed 115, 300 runs, generated once), the one in steps in
+    // two slices of the array: each stays far below the limit of a test.
+    it('takes the cases of the three comparisons from one sample', () => {
+      expect(CASES()).toHaveLength(RUNS);
+      expect(
+        STEP_SLICES.flatMap((i) =>
+          CASES().slice(
+            (i * RUNS) / STEP_SLICES.length,
+            ((i + 1) * RUNS) / STEP_SLICES.length,
+          ),
+        ),
+      ).toEqual(CASES());
+    });
+
+    it('settles in one step bit for bit, with the research', () => {
+      CASES().forEach((c, i) => {
+        expect(S.settle(c.p, c.until, c.u, c.r), `case ${i}`).toStrictEqual(
+          settle(c.p, c.until, c.u, c.r),
+        );
+      });
+    });
+
+    it('settles in one step bit for bit, without the research', () => {
+      CASES().forEach((c, i) => {
+        expect(S.settle(c.p, c.until, c.u), `case ${i}`).toStrictEqual(
+          settle(c.p, c.until, c.u),
+        );
+      });
+    });
+
+    it.each(STEP_SLICES)('settles in steps bit for bit, slice %i', (i) => {
+      const size = RUNS / STEP_SLICES.length;
+      CASES()
+        .slice(i * size, (i + 1) * size)
+        .forEach((c, j) => {
+          expect(steps(c, S.settle), `case ${i * size + j}`).toStrictEqual(
+            steps(c, settle),
           );
-          expect(S.settle(c.p, c.until, c.u)).toStrictEqual(
-            settle(c.p, c.until, c.u),
-          );
-          expect(steps(c, S.settle)).toStrictEqual(steps(c, settle));
-        }),
-        { seed: 115, numRuns: RUNS },
-      );
+        });
     });
 
     it('accrues and produces bit for bit, with the throttled share of before', () => {

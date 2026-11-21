@@ -3,7 +3,13 @@
 // Orbitalraketen and the target is in their range (`inMissileRange` of the
 // core, as the server checks it); the form asks for the count and the main
 // target. The server checks the rest (`launchError`).
-import { inMissileRange, STRIKER, TARGETS } from '../../core/missiles.ts';
+import {
+  inMissileRange,
+  STRIKER,
+  type TearDownError,
+  TARGETS,
+  tearDownError,
+} from '../../core/missiles.ts';
 import { text } from '../../core/text.ts';
 import type { Planet, ResearchState } from '../../core/types.ts';
 import type { GalaxyPlanet } from './types.ts';
@@ -48,4 +54,32 @@ export function launchOrder(
     n: Number(n),
     aim: aim === '' ? null : aim,
   };
+}
+
+/**
+ * The note of each refusal of a tear-down, the server's words
+ * (TEAR_DOWN_ERROR, src/test/missile-teardown-texts.test.ts keeps them
+ * equal).
+ */
+export const TEAR_DOWN_NOTE: Readonly<Record<TearDownError, string>> = {
+  unit: 'Ungültig.',
+  count: 'Bitte eine Anzahl eingeben.',
+  stock: 'Nicht so viele Raketen vorhanden.',
+};
+
+/**
+ * How many missiles of `key` the row of the list offers to tear down (#54,
+ * 2026-11-21): the stock of a missile, nothing for any other unit.
+ */
+export const tearDownMax = (here: Pick<Planet, 'def'>, key: string): number =>
+  tearDownError(here, key, 1) ? 0 : (here.def[key] ?? 0);
+
+/** The note before `n` missiles of `key` are torn down, or null: the check of the server. */
+export function tearDownNote(
+  here: Pick<Planet, 'def'>,
+  key: string,
+  n: number,
+): string | null {
+  const error = tearDownError(here, key, n);
+  return error ? TEAR_DOWN_NOTE[error] : null;
 }

@@ -17,6 +17,7 @@ import type { V } from '../views/common.ts';
 import { freePosition } from './abandon.ts';
 import { activityNote, inactivityNote } from './activity.ts';
 import { debrisAt, debrisMark, harvestButton } from './debris.ts';
+import { offeredMissions } from './fleet-target.ts';
 import { coords, dur, fmt } from './format.ts';
 import { isProtected, nameOf, ranks } from './game.ts';
 import { canLaunch } from './missiles.ts';
@@ -173,10 +174,27 @@ function foreignActions(v: V, pl: GalaxyPlanet): GalaxyAction[] {
     },
     fleetTo('link', 'attack', 'Sturmangriff', where),
     fleetTo('link', 'transport', 'Versorgungsflug', where),
+    ...moonbreakLink(v, pl, where),
     ...scanButton(v, pl),
     ...missileButton(v, pl),
   ];
 }
+
+/**
+ * The Mondbruch at a foreign moon (#95; owner, 2026-11-21): offered at every
+ * moon of another player, whatever ships the shown planet has. It asks the
+ * list of the fleet form (`offeredMissions`), so the Sternenkarte offers it
+ * exactly where the form lists it; the form refuses a send without a
+ * Weltenbrecher.
+ */
+const moonbreakLink = (
+  v: V,
+  pl: GalaxyPlanet,
+  where: Record<string, string>,
+): GalaxyAction[] =>
+  offeredMissions(v.s, v.P.id, pl, v.now).includes('moonbreak')
+    ? [fleetTo('link', 'moonbreak', MISSION.moonbreak, where)]
+    : [];
 
 /**
  * The Raketenangriff at a foreign planet or moon (#54): from a planet with

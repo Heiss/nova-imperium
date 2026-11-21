@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import type { Planet } from '../../core/types.ts';
 import type { GalaxyPlanet } from '../logic/types.ts';
 import type { V } from './common.ts';
-import { missileForm } from './missiles.ts';
+import { missileForm, tearDownDialog } from './missiles.ts';
 
 const v = {
   P: { def: { ipm: 1200, abm: 3 } } as unknown as Planet,
@@ -35,6 +35,19 @@ describe('the dialog of the Raketenangriff (#54)', () => {
     );
     expect(html).toContain(
       '<button data-act="doMissile" data-g="1" data-s="3" data-p="6" data-k="moon">Starten</button> <button data-act="closeModal">Abbrechen</button>',
+    );
+  });
+});
+
+describe('the confirmation of „Verschrotten“ (#54, 2026-11-21)', () => {
+  it('names the missile and the amount, says nothing comes back and sends the amount', () => {
+    const html = tearDownDialog('abm', 1200);
+    expect(html).toContain('<b>Abfangrakete</b>: 1.200 verschrotten');
+    expect(html).toContain(
+      'Die Raketen sind sofort weg, ihre Plätze in der Raketenkrypta werden frei. Du erhältst nichts zurück.',
+    );
+    expect(html).toContain(
+      '<button class="red" data-act="doTearDown" data-k="abm" data-n="1200">Verschrotten</button> <button data-act="closeModal">Abbrechen</button>',
     );
   });
 });

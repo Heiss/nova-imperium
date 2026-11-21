@@ -108,7 +108,10 @@ description: 'The client as generic Svelte components with a state module, the c
   changes; `client.shown` is not moved by the clock for it, so
   „Serverzeit“ stays the time of the render. A view that is neither a
   Svelte view nor an HTML view gets the overview, as before.
-* **[U]** Left in `main.ts` for the next pull requests of #118: the login
+* **[E]** Settled by package 8 (2026-11-20, [section 13](13-client-features.md)):
+  `main.ts` is the frame of 30 lines and keeps no state. The rest of this
+  bullet is the history of the earlier pull requests of #118. Left in
+  `main.ts` then: the login
   (`loginChallenge`, `rememberLogin`, `resetToken`), the admin panel
   (`adminPanel`), the mounted Svelte view (`mounted`, a DOM handle),
   `lastActivity`, the install offer (`installPrompt`, `installedHere`,
@@ -192,7 +195,7 @@ description: 'The client as generic Svelte components with a state module, the c
   and survey reports stay HTML for now: the functions moved unchanged from
   `views/messages.ts` to `logic/report-body.ts` (`reportBodyHTML()`), and
   the component renders them with `{@html}`; they become components of
-  their own in a later step. `News.svelte`, mounted by `mountNews()` of
+  their own after the update (#330). `News.svelte`, mounted by `mountNews()` of
   `views/news.ts`, renders „Neuigkeiten“ from `newsPage()` of
   `logic/news.ts` (`newsHTML()` and `updateMessageHTML()` are gone; the
   link of the update message is `UPDATE_LINK`). Both views leave `VIEWS` of

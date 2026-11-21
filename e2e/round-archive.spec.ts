@@ -157,3 +157,92 @@ test.describe('the round archive (#235)', () => {
     await archiveFlow(page, browser);
   });
 });
+
+test.describe('the provisional report of the admin, view H (#235)', () => {
+  test('the admin refreshes the preview of the running round and opens a participant and goes back', async ({
+    page,
+    browser,
+  }) => {
+    test.setTimeout(90_000);
+    const w = watch(page);
+    const boss = uniqueName('Spielleitung');
+    const first = uniqueName('Teilnehmer');
+    const late = uniqueName('Nachzuegler');
+    await registerByMail(page, boss);
+    mailCli('admin', boss);
+    await loginByCode(page, boss);
+    await nav(page, 'admin');
+    await page.getByRole('tab', { name: 'Universum' }).click();
+    await page.getByRole('button', { name: 'Neue Runde starten' }).click();
+    await page.getByRole('button', { name: 'Ja, neue Runde' }).click();
+    await expect(lastToast(page)).toContainText('Neue Runde gestartet');
+
+    const other = await (
+      await browser.newContext({ viewport: page.viewportSize() })
+    ).newPage();
+    const wo = watch(other);
+    await registerByMail(other, first);
+
+    // The running round: a provisional report only the admin opens.
+    const box = page.locator('.box').filter({
+      has: page.locator('.hd', { hasText: 'Rundenberichte' }),
+    });
+    const running = box.getByRole('row').filter({ hasText: 'VORLÄUFIG' });
+    await expect(running).toHaveCount(1);
+    await running.getByRole('button', { name: 'Bericht öffnen' }).click();
+    const heading = box.getByRole('heading', {
+      name: /^Runde \d+ \(vorläufig\)$/,
+    });
+    await expect(heading).toBeFocused();
+    await expect(box.locator('.notice')).toContainText(
+      'VORLÄUFIG · nur Spielleitung. Stand ',
+    );
+    const ranking = box.locator('table.scores').first();
+    await expect(ranking.locator('tr', { hasText: first })).toHaveCount(1);
+    await expect(ranking.locator('tr', { hasText: late })).toHaveCount(0);
+
+    // The preview does not move unasked: a player who joins now is not in it
+    // until the admin asks again (view H: refresh feedback only).
+    await registerByMail(other, late);
+    const refresh = box.getByRole('button', { name: 'Vorschau aktualisieren' });
+    await expect(refresh).toHaveCount(1);
+    // The new player changes the state of the admin, and the poll draws the
+    // page anew; a click that lands while the button is replaced is lost. Wait
+    // for that redraw (the marked button is gone), then click.
+    await refresh.evaluate((b) => {
+      b.dataset.mark = 'old';
+    });
+    await expect(box.locator('[data-act=roundRefresh][data-mark]')).toHaveCount(
+      0,
+      { timeout: 15000 },
+    );
+    await refresh.click();
+    await expect(ranking.locator('tr', { hasText: late })).toHaveCount(1);
+    await expect(lastToast(page)).toContainText('Vorschau aktualisiert.');
+    await expect(heading).toBeVisible();
+
+    // The drilldown of one row, in full, and back to the report.
+    const row = ranking.locator('tr', { hasText: first });
+    await row.getByRole('button', { name: 'Einblick' }).click();
+    const who = box.getByRole('heading', {
+      name: new RegExp(`^Runde \\d+ · ${first} \\(vorläufig\\)$`),
+    });
+    await expect(who).toBeFocused();
+    await expect(
+      box.getByRole('heading', { name: 'Planeten und Monde' }),
+    ).toBeVisible();
+    await expect(box.locator('table.kv')).toContainText('Forschungsstufen');
+    await expect(box.locator('table.kv')).toContainText('Urlaubsmodus');
+    await expect(box.locator('table.kv')).toContainText(
+      'wird erst nach Rundenende im Archiv geteilt',
+    );
+    await expect(box.locator('table.scores')).toContainText('Planet ');
+    await box.getByRole('button', { name: 'Zurück zum Bericht' }).click();
+    await expect(heading).toBeFocused();
+    await expect(ranking.locator('tr', { hasText: first })).toHaveCount(1);
+    await box.getByRole('button', { name: 'Zurück zum Archiv' }).click();
+    await expect(running).toHaveCount(1);
+    mailCli('unadmin', boss);
+    expect([...w.problems, ...wo.problems]).toEqual([]);
+  });
+});

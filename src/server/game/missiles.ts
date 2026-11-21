@@ -10,6 +10,8 @@ import {
   launchError,
   missileFlightMs,
   STRIKER,
+  type TearDownError,
+  tearDownError,
 } from '../../core/missiles.ts';
 import { placeId } from '../../core/place.ts';
 import type { Fleet, Planet } from '../../core/types.ts';
@@ -17,6 +19,7 @@ import type { User } from '../db/repos/players.ts';
 import type { Wire } from '../../core/actions.ts';
 import { type Handler, mine, researchOf } from './actions.ts';
 import { type Ctx, coords, fail, fmt, int, universe } from './context.ts';
+import { text } from '../../core/text.ts';
 import { route, target } from './fleet-actions.ts';
 import { isProtected, pointsMap } from './points.ts';
 import { inVacation } from './vacation.ts';
@@ -98,6 +101,31 @@ const missile: Handler<'missile'> = (ctx, u, d, event) => {
   return `${fmt(n)} Orbitalraketen unterwegs nach ${coords(dest)}.`;
 };
 
+/** The German message of each refusal of a tear-down [V]: the count as for an order. */
+export const TEAR_DOWN_ERROR: Readonly<Record<TearDownError, string>> = {
+  unit: 'Ungültig.',
+  count: 'Bitte eine Anzahl eingeben.',
+  stock: 'Nicht so viele Raketen vorhanden.',
+};
+
+/**
+ * Tears down `d.n` stored missiles of `d.key` on the selected own planet
+ * (#54, owner, 2026-11-21): the missiles are gone at once, so their places
+ * in the Raketenkrypta are free; it costs nothing and gives nothing back.
+ * The check is `tearDownError` of the core; a refusal changes nothing.
+ */
+const tearDownMissiles: Handler<'tearDownMissiles'> = (ctx, u, d, event) => {
+  const key = String(d.key);
+  const p = mine(ctx, u, d.planet);
+  const n = Number(d.n);
+  const error = tearDownError(p, key, n);
+  if (error) fail(TEAR_DOWN_ERROR[error]);
+  p.def[key] = (p.def[key] ?? 0) - n;
+  ctx.planets.save(p);
+  if (event) event.detail = { planet: p.id, key, missiles: n };
+  return `${fmt(n)}× ${text(key)!.n} verschrottet.`;
+};
+
 export const serverFeature = {
-  actions: { missile },
+  actions: { missile, tearDownMissiles },
 } satisfies ServerFeature;

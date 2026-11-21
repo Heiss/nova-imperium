@@ -127,6 +127,25 @@ function targetError(
   return target.protects(owner) ? 'protected' : null;
 }
 
+/** Why stored missiles cannot be torn down, as a code; the server says it in German. */
+export type TearDownError = 'unit' | 'count' | 'stock';
+
+/**
+ * Why `n` missiles of `key` cannot be torn down on `at` (#54, owner,
+ * 2026-11-21): the unit is no missile, the amount is no whole number from 1
+ * on, or more than the planet stores; null when they can. The missiles in
+ * the shipyard queue are no stock yet.
+ */
+export function tearDownError(
+  at: Pick<Planet, 'def'>,
+  key: string,
+  n: number,
+): TearDownError | null {
+  if (!Object.hasOwn(MISSILE, key)) return 'unit';
+  if (!Number.isInteger(n) || n < 1) return 'count';
+  return n > (at.def[key] ?? 0) ? 'stock' : null;
+}
+
 /** What an attack of missiles does at its target. */
 export interface Strike {
   /** The missiles the Abfangraketen stopped. */

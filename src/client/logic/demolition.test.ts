@@ -142,6 +142,21 @@ describe('the confirmation', () => {
     expect(poor).toContain('<p class="req">Der Zehnte reicht nicht aus.</p>');
   });
 
+  it('offers the Raketenkrypta below the places of its missiles and names the refusal in the confirmation (#54)', () => {
+    const full = view({ b: { silo: 2 }, def: { abm: 11 } });
+    expect(canOfferDemolition(full, 'silo')).toBe(true);
+    const dialog = demolitionDialog(full, 'silo');
+    expect(dialog).toContain(
+      '<p class="req">Die Raketenkrypta lagert zu viele Raketen.</p>',
+    );
+    expect(dialog).not.toContain('data-act="doDemolish"');
+    const room = demolitionDialog(
+      view({ b: { silo: 2 }, def: { abm: 10 } }),
+      'silo',
+    );
+    expect(room).toContain('data-act="doDemolish"');
+  });
+
   it('has the words of the server for every refusal', () => {
     expect(Object.keys(DEMOLITION_NOTE)).toEqual([
       'place',
@@ -150,6 +165,7 @@ describe('the confirmation', () => {
       'busy',
       'yardBusy',
       'labBusy',
+      'siloBusy',
       'cost',
     ]);
   });

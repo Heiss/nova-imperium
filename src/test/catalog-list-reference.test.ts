@@ -18,6 +18,7 @@ import {
   BUILD,
   canFly,
   DEF,
+  MISSILE,
   RES,
   type ResearchDef,
   SHIPS,
@@ -275,6 +276,15 @@ function research(v: V): string {
 
 // ----- frozen: src/client/views/yard.ts before #118 -----
 
+// One change on purpose (#54, owner, 2026-11-21): a missile in store has the
+// number and the button „Verschrotten“ below its order, in a block of its own
+// (not in a row that shows a note).
+function tearDownBox(k: string, have: number): string {
+  if (!Object.hasOwn(MISSILE, k) || have < 1) return '';
+  const name = esc(text(k)!.n);
+  return `<div class="tear"><input type="number" min="1" max="${have}" id="td_${k}" placeholder="0" aria-label="Menge verschrotten: ${name}"> <button class="small red" data-act="tearDown" data-k="${k}" aria-label="Verschrotten: ${name}">Verschrotten</button></div>`;
+}
+
 // One change on purpose (#258): every order of the list has a button
 // „Abbrechen“ in a cell of its own, named by position and unit.
 function queue(v: V): string {
@@ -337,7 +347,7 @@ function yard(
     const miss = reqMissing(d, P, R);
     const action = miss.length
       ? '<span class="req">Das Wissen ist noch verschlossen</span>'
-      : orderBox(k, orderMax(P, k), !!lock);
+      : orderBox(k, orderMax(P, k), !!lock) + tearDownBox(k, have[k] ?? 0);
     const body =
       costHTML(d.cost, P) +
       stats(v, k, d) +
@@ -387,13 +397,27 @@ const OLD: Record<CatalogKind, (v: V) => string> = {
   defense,
 };
 
-function renderNew(v: V, kind: CatalogKind): string {
+function renderOnce(v: V, kind: CatalogKind): string {
   client.shown = v;
   try {
     return render(CatalogList, { props: { kind } }).body;
   } finally {
     client.shown = null;
   }
+}
+
+/**
+ * The new list of a state, rendered once: the same state and kind is shown in
+ * several tests of this file (the comparison, the marks), and rendering is
+ * what takes the time. A state is never changed by a rendering.
+ */
+const rendered = new WeakMap<V, Map<CatalogKind, string>>();
+function renderNew(v: V, kind: CatalogKind): string {
+  const byKind = rendered.get(v) ?? new Map<CatalogKind, string>();
+  rendered.set(v, byKind);
+  const html = byKind.get(kind) ?? renderOnce(v, kind);
+  byKind.set(kind, html);
+  return html;
 }
 
 const KINDS: readonly CatalogKind[] = [
@@ -533,6 +557,27 @@ const state = fc
   })
   .map((x): V => view(x));
 
+/**
+ * The sample (seed 118): 300 states of one seeded sequence, generated once.
+ * The comparison uses the first 150 of them, the check of the marks all.
+ */
+const SAMPLE_RUNS = 300;
+const COMPARED_RUNS = 150;
+let sample: V[] | undefined;
+function SAMPLE(): V[] {
+  if (!sample) {
+    const states: V[] = [];
+    fc.assert(
+      fc.property(state, (v) => {
+        states.push(v);
+      }),
+      { seed: 118, numRuns: SAMPLE_RUNS },
+    );
+    sample = states;
+  }
+  return sample;
+}
+
 /** Markup of every branch of the lists, for the check that the cases reach them. */
 const MARKS = [
   'data-act="cancelBuild"',
@@ -542,6 +587,7 @@ const MARKS = [
   'data-act="build"',
   'data-act="research"',
   'data-act="order"',
+  'data-act="tearDown"',
   'data-act="selectPlanet"',
   'data-act="explain"',
   'data-act="levels"',
@@ -768,13 +814,28 @@ describe('CatalogList against the views before #118', () => {
     );
   });
 
-  it.each(KINDS)('renders the %s list as before', (kind) => {
+  it('takes the states of the comparison from the sample of the marks', () => {
+    // The 150 runs of the seed 118 are the first 150 of its 300 runs.
+    const first: V[] = [];
     fc.assert(
       fc.property(state, (v) => {
-        expect(normalize(renderNew(v, kind))).toBe(normalize(OLD[kind](v)));
+        first.push(v);
       }),
-      { seed: 118, numRuns: 150 },
+      { seed: 118, numRuns: COMPARED_RUNS },
     );
+    expect(SAMPLE()).toHaveLength(SAMPLE_RUNS);
+    expect(first).toHaveLength(COMPARED_RUNS);
+    expect(SAMPLE().slice(0, COMPARED_RUNS)).toEqual(first);
+  });
+
+  it.each(KINDS)('renders the %s list as before', (kind) => {
+    SAMPLE()
+      .slice(0, COMPARED_RUNS)
+      .forEach((v, i) => {
+        expect(normalize(renderNew(v, kind)), `run ${i}`).toBe(
+          normalize(OLD[kind](v)),
+        );
+      });
   });
 
   it('lists the Handelsposten and the Raketenkrypta, each with its own marks, as before (#171, #54)', () => {
@@ -822,12 +883,8 @@ describe('CatalogList against the views before #118', () => {
     const seen = new Set<string>();
     for (const [, v] of HAND_BUILT)
       for (const kind of KINDS) collect(renderNew(v, kind), seen);
-    fc.assert(
-      fc.property(state, (v) => {
-        for (const kind of KINDS) collect(renderNew(v, kind), seen);
-      }),
-      { seed: 118, numRuns: 300 },
-    );
+    for (const v of SAMPLE())
+      for (const kind of KINDS) collect(renderNew(v, kind), seen);
     expect([...seen].sort()).toEqual([...MARKS].sort());
   });
 });

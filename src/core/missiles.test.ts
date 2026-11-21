@@ -18,6 +18,7 @@ import {
   STRIKER,
   strike,
   TARGETS,
+  tearDownError,
 } from './missiles.ts';
 
 const NONE = { weapons: 0, armor: 0 };
@@ -325,5 +326,40 @@ describe('missiles: the impact', () => {
       ),
       { seed: 54, numRuns: 300 },
     );
+  });
+});
+
+describe('missiles: the check of a tear-down (#54, owner, 2026-11-21)', () => {
+  const at = { def: { abm: 4, ipm: 2, rl: 9 } };
+
+  it('allows every whole amount from 1 up to the stock, of either missile', () => {
+    expect(tearDownError(at, 'abm', 1)).toBeNull();
+    expect(tearDownError(at, 'abm', 4)).toBeNull();
+    expect(tearDownError(at, 'ipm', 2)).toBeNull();
+  });
+
+  it('refuses an amount above the stock by one', () => {
+    expect(tearDownError(at, 'abm', 5)).toBe('stock');
+    expect(tearDownError(at, 'ipm', 3)).toBe('stock');
+    expect(tearDownError({ def: {} }, 'abm', 1)).toBe('stock');
+  });
+
+  it('refuses 0, a negative amount and what is no whole number', () => {
+    for (const n of [0, -1, 1.5, 0.5, NaN, Infinity, -Infinity])
+      expect(tearDownError(at, 'abm', n), String(n)).toBe('count');
+  });
+
+  it('refuses every unit that is no missile, a defense that fights included', () => {
+    expect(tearDownError(at, 'rl', 1)).toBe('unit');
+    expect(tearDownError(at, 'lf', 1)).toBe('unit');
+    expect(tearDownError(at, 'silo', 1)).toBe('unit');
+    expect(tearDownError(at, 'constructor', 1)).toBe('unit');
+    // The kind comes before the amount.
+    expect(tearDownError(at, 'rl', 0)).toBe('unit');
+  });
+
+  it('checks the kind, then the amount, then the stock', () => {
+    expect(tearDownError(at, 'abm', 0.5)).toBe('count');
+    expect(tearDownError(at, 'abm', 99)).toBe('stock');
   });
 });

@@ -376,6 +376,38 @@ describe('why a level cannot be torn down (D5)', () => {
     ).toEqual(['none']);
   });
 
+  it('not while the places left in the Raketenkrypta would be fewer than its missiles (#54, 2026-11-21)', () => {
+    // A level of the Raketenkrypta holds 10 places: an Abfangrakete takes 1,
+    // an Orbitalrakete 2.
+    const down = (b: number, def: Record<string, number>, sq = []) =>
+      codes({ b: { silo: b }, def, sq }, 'silo');
+    // Level 2 to 1 leaves 10 places: exactly as many as the missiles take.
+    expect(down(2, { abm: 10 })).toEqual([]);
+    expect(down(2, { abm: 5, ipm: 2 })).toEqual([]);
+    expect(down(2, { ipm: 5 })).toEqual([]);
+    // One place more than are left.
+    expect(down(2, { abm: 11 })).toEqual(['siloBusy']);
+    expect(down(2, { abm: 9, ipm: 1 })).toEqual(['siloBusy']);
+    expect(down(2, { ipm: 6 })).toEqual(['siloBusy']);
+    // The last level leaves no place.
+    expect(down(1, {})).toEqual([]);
+    expect(down(1, { abm: 1 })).toEqual(['siloBusy']);
+    // The shipyard queue counts, as for an order; other units do not.
+    expect(
+      down(2, { abm: 6 }, [{ key: 'abm', n: 4, unit: 5 }] as never),
+    ).toEqual([]);
+    expect(
+      down(2, { abm: 6 }, [{ key: 'abm', n: 5, unit: 5 }] as never),
+    ).toEqual(['siloBusy']);
+    expect(
+      down(2, { ipm: 5 }, [{ key: 'lc', n: 50, unit: 5 }] as never),
+    ).toEqual([]);
+    // Without a level there is nothing to tear down, whatever is stored.
+    expect(down(0, { abm: 3 })).toEqual(['none']);
+    // Only the Raketenkrypta: another building is not held back by missiles.
+    expect(codes({ b: { metal: 1 }, def: { abm: 99 } }, 'metal')).toEqual([]);
+  });
+
   it('with a negative factor not without the resources, as for building', () => {
     // −100 % of level 2 of the shipyard: 800 / 400 / 200.
     const u = at(-100);

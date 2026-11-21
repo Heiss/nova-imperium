@@ -104,10 +104,13 @@ points were answered on 2026-11-16.
 * **[E]** The article of the mission „Auspex-Erkundung“ no longer says what
   happens to shot-down probes (owner, 2026-11-18): that sentence is removed
   and nothing replaces it.
-* Not built: the expected chance before sending, next to
-  „Auspex-Erkundung“ (a **[V]** of the issue); an E2E of a detected spying,
-  which the random draws of the server do not allow without a test hook
-  (the unit tests pin it with given draws).
+* **[E]** Dropped (owner, 2026-11-21): the expected chance before sending,
+  next to „Auspex-Erkundung“ (a **[V]** of the issue). It needs the
+  Auspex-Lehre and the ships of the target from an older report and would
+  show a maximum only; the Lexicanum states the formula.
+* Not built: an E2E of a detected spying, which the random draws of the
+  server do not allow without a test hook (the unit tests pin it with given
+  draws).
 
 # Recognition of incoming fleets (#228)
 
