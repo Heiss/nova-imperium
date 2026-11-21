@@ -136,13 +136,25 @@ function overview(v: V): string {
 
 // ----- the comparison -----
 
-function renderNew(v: V): string {
+function renderOnce(v: V): string {
   client.shown = v;
   try {
     return render(Overview).body;
   } finally {
     client.shown = null;
   }
+}
+
+/**
+ * The new overview of a state, rendered once: the comparison and the check of
+ * the marks show the same states, and rendering is what takes the time. A
+ * state is never changed by a rendering.
+ */
+const rendered = new WeakMap<V, string>();
+function renderNew(v: V): string {
+  const html = rendered.get(v) ?? renderOnce(v);
+  rendered.set(v, html);
+  return html;
 }
 
 // One change on purpose (#189, D5, the phone layer; the CSS shows it up to
@@ -311,6 +323,28 @@ const state = fc
   })
   .map((x): V => view(x));
 
+/**
+ * The sample (seed 118, 300 runs), generated once and used by every test that
+ * needs it. The comparison takes it in slices of the one array.
+ */
+const SAMPLE_RUNS = 300;
+const SLICE = 100;
+let sample: V[] | undefined;
+function SAMPLE(): V[] {
+  if (!sample) {
+    const states: V[] = [];
+    fc.assert(
+      fc.property(state, (v) => {
+        states.push(v);
+      }),
+      { seed: 118, numRuns: SAMPLE_RUNS },
+    );
+    sample = states;
+  }
+  return sample;
+}
+const SLICES = Array.from({ length: SAMPLE_RUNS / SLICE }, (_, i) => i);
+
 /** Normalized markup of every branch of the overview, for the check that the cases reach them. */
 const MARKS = [
   'data-act="recall"',
@@ -395,32 +429,36 @@ const HAND_BUILT: readonly (readonly [string, V])[] = [
 ];
 
 describe('Overview against the view before #118', () => {
-  it('renders the overview as before', () => {
-    fc.assert(
-      fc.property(state, (v) => {
-        expect(normalize(renderNew(v))).toBe(
+  it('compares the whole sample, in slices of it', () => {
+    expect(SAMPLE()).toHaveLength(SLICES.length * SLICE);
+    expect(
+      SLICES.flatMap((i) => SAMPLE().slice(i * SLICE, (i + 1) * SLICE)),
+    ).toEqual(SAMPLE());
+  });
+
+  it.each(SLICES)('renders the overview as before, slice %i', (i) => {
+    SAMPLE()
+      .slice(i * SLICE, (i + 1) * SLICE)
+      .forEach((v, j) => {
+        expect(normalize(renderNew(v)), `run ${i * SLICE + j}`).toBe(
           normalize(withCards(overview(v), v)),
         );
-      }),
-      { seed: 118, numRuns: 300 },
-    );
+      });
   });
 
   it('keeps the list of fleets of the fleet view', () => {
-    fc.assert(
-      fc.property(state, (v) => {
-        // The title counts the expeditions once the research is there (#93,
-        // tested in src/client/views/fleet.test.ts): without it, as before.
-        const old = {
-          ...v,
-          R: { ...v.R, research: { ...v.R.research, expo: 0 } },
-        };
-        expect(
-          normalize(fleetView(old)).startsWith(normalize(fleetHead(v))),
-        ).toBe(true);
-      }),
-      { seed: 118, numRuns: 300 },
-    );
+    SAMPLE().forEach((v, i) => {
+      // The title counts the expeditions once the research is there (#93,
+      // tested in src/client/views/fleet.test.ts): without it, as before.
+      const old = {
+        ...v,
+        R: { ...v.R, research: { ...v.R.research, expo: 0 } },
+      };
+      expect(
+        normalize(fleetView(old)).startsWith(normalize(fleetHead(v))),
+        `run ${i}`,
+      ).toBe(true);
+    });
   });
 
   it('renders the hand-built cases as before', () => {
@@ -447,12 +485,7 @@ describe('Overview against the view before #118', () => {
     // The sample (seed 118) and the hand-built cases together.
     const seen = new Set<string>();
     for (const [, v] of HAND_BUILT) collect(normalize(renderNew(v)), seen);
-    fc.assert(
-      fc.property(state, (v) => {
-        collect(normalize(renderNew(v)), seen);
-      }),
-      { seed: 118, numRuns: 300 },
-    );
+    for (const v of SAMPLE()) collect(normalize(renderNew(v)), seen);
     expect([...seen].sort()).toEqual([...MARKS].sort());
   });
 });
