@@ -1,5 +1,20 @@
 # Neuigkeiten
 
+## Version 26.11.24 – 21.11.2026
+
+### Neu
+
+- Persönliche Nachrichten: Schreibe anderen Spielern unter „Nachrichten“ im Posteingang, antworte, blockiere Spieler oder erlaube nur Freunden, dir zu schreiben. Unangemessene Nachrichten kannst du der Spielleitung melden. Im Urlaubsmodus kannst du Nachrichten lesen und beantworten.
+- Runden-Rewind: Für Runden mit vollständiger Aufzeichnung erzählt er mehr: Wirtschaft, Schwerpunkt, größter Verlust, Rückkehr und Endzeit. Runden ohne diese Aufzeichnung behalten den kurzen Rewind.
+
+### Geändert
+
+- Meine Aktivität & Spielzeit: Die Spielaktionen pro Tag zählen nur noch, was du veränderst und was du selbst anklickst, etwa einen Phalanx-Scan; was eine Seite von selbst lädt, zählt nicht mehr.
+
+### Behoben
+
+- Korrektur zu 26.11.23: Anders als angekündigt kehrte der gesendete Text bei „Problem melden“ nach wenigen Sekunden in das Feld „Was ist passiert?“ zurück. Jetzt bleibt das Feld nach dem Absenden leer.
+
 ## Version 26.11.23 – 21.11.2026
 
 ### Neu
