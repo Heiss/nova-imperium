@@ -244,6 +244,21 @@ describe('the input allow-list, action by action', () => {
       }),
     ).toStrictEqual({ speed: 2, open: false, zero: 0 });
   });
+
+  it('never stores the open conversation the browser names in every request (#226)', () => {
+    const { ctx, seat } = setup();
+    expect(
+      inputOf(ctx, seat, 'reset', { type: 'reset', speed: 2, pmAfter: 41 }),
+    ).toStrictEqual({ speed: 2 });
+    expect(
+      inputOf(ctx, seat, 'build', {
+        type: 'build',
+        key: 'metal',
+        pm: 'Anna',
+        pmAfter: 41,
+      }),
+    ).toStrictEqual({ key: 'metal' });
+  });
 });
 
 describe('how a kept value is stored', () => {

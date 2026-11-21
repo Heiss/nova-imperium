@@ -162,6 +162,14 @@ const specOf = (type: string): Spec =>
   Object.hasOwn(INPUT, type) ? INPUT[type]! : {};
 
 /** The input of an action as the journal keeps it; the field `type` is the cause and not part of it. */
+/**
+ * The fields of a request body that are no input of the action: its type, and
+ * the newest message of the open conversation the browser names in every
+ * request (`pmAfter`, Q32, #226), a number the rules of a round would keep.
+ * Its name, `pm`, is a string no rule keeps.
+ */
+const NOT_INPUT: ReadonlySet<string> = new Set(['type', 'pmAfter']);
+
 export function inputOf(
   ctx: Ctx,
   seatOfAccount: (id: string) => number | null,
@@ -176,7 +184,7 @@ export function inputOf(
   };
   const out: Record<string, unknown> = {};
   for (const [field, value] of Object.entries(d)) {
-    const stored = field === 'type' ? undefined : one(field, value);
+    const stored = NOT_INPUT.has(field) ? undefined : one(field, value);
     if (stored !== undefined && stored !== null) out[field] = stored;
   }
   return out;
