@@ -131,18 +131,23 @@ async function expectMessages(page: Page, writer: string): Promise<void> {
   ).toHaveCount(0);
   await expect(page.getByText('Blockierte Spieler')).toHaveCount(0);
   await expect(page.locator('#menu')).toBeEmpty();
-  // Read the conversation and reply.
+  // The inbox shows the newest message as the preview; the conversation
+  // loads when it is opened (Q32). Read it and reply.
+  await expect(page.locator('.pm-list')).toContainText('Hallo in den Urlaub');
+  await expect(page.locator('#pm-thread')).toHaveCount(0);
   await page.getByRole('button', { name: new RegExp(`^${writer}`) }).click();
-  await expect(page.getByText('Hallo in den Urlaub')).toBeVisible();
+  await expect(page.locator('#pm-thread')).toContainText('Hallo in den Urlaub');
   await page.locator('#pm-reply-text').fill('Antwort aus dem Urlaub');
   await page.getByRole('button', { name: 'Antworten', exact: true }).click();
   await expect(page.locator('#pm-thread')).toContainText(
     'Antwort aus dem Urlaub',
   );
+  // „Gesendet“ loads when its tab is opened (Q33), on the lock screen too.
   await page.getByRole('tab', { name: 'Gesendet' }).click();
   await expect(page.locator('#messages-panel-sent')).toContainText(
     'Antwort aus dem Urlaub',
   );
+  await expect(page.locator('#messages-panel-sent')).toContainText(writer);
   // Still locked: the reports and the game stay refused.
   await expect(page.locator('#lock-note')).toBeVisible();
   expect(await refusal(page, { type: 'read' })).toBe(

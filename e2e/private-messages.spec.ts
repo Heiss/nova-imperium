@@ -4,8 +4,11 @@
 // deleted from the own view only, the refusals (oneself, an unknown name, the
 // limits of text and rate), the block list and „nur Freunde“ refuse with the
 // one neutral text, a recipient reports a message and the admin sees only
-// that one in „Gemeldete Nachrichten“. Desktop and phone, with axe on the
-// inbox. The rate limit is one message per sender every 2 s, so a test waits
+// that one in „Gemeldete Nachrichten“. The inbox shows a preview per
+// conversation; a conversation loads when it is opened, „Gesendet“ when its
+// tab is opened, older messages by „Ältere Nachrichten laden“, and a new
+// message comes into the open conversation with the next refresh (Q32, Q33).
+// Desktop and phone, with axe on the inbox. The rate limit is one message per sender every 2 s, so a test waits
 // on the clock (`rested`) before a sender writes again.
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Locator, type Page } from '@playwright/test';
@@ -124,6 +127,9 @@ async function exchangeFlow(
   await openTab(page, 'Gesendet');
   await expect(page.locator('#messages-panel-sent')).toContainText(bert);
   await expect(page.locator('#messages-panel-sent')).toContainText(first);
+  // The inbox shows the newest message as the preview of the conversation.
+  await page.getByRole('tab', { name: /^Posteingang/ }).click();
+  await expect(page.locator('.pm-list')).toContainText(first);
 
   // Bert gets the mark of the menu and the number on the tab, reads the
   // conversation, and the number goes.
@@ -165,6 +171,20 @@ async function exchangeFlow(
   await other.reload();
   await openConversation(other, anna);
   await expect(thread(other)).toContainText(first);
+
+  // Anna keeps the conversation open with a draft in the reply field; Bert
+  // writes once more: it comes into her conversation with the next refresh,
+  // unasked, the draft stays, and the preview in the list shows it.
+  await page.locator('#pm-reply-text').fill('Mein Entwurf');
+  await rested(other);
+  await other.locator('#pm-reply-text').fill('Zweite Antwort');
+  await other.getByRole('button', { name: 'Antworten', exact: true }).click();
+  sentAt.set(other, Date.now());
+  await expect(thread(page)).toContainText('Zweite Antwort', {
+    timeout: 10000,
+  });
+  await expect(page.locator('#pm-reply-text')).toHaveValue('Mein Entwurf');
+  await expect(page.locator('.pm-list')).toContainText('Zweite Antwort');
 
   // The page is no wider than the screen, on a phone too.
   expect(
