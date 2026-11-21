@@ -296,8 +296,7 @@ describe('a free position', () => {
       research: { carto: 1 },
       debris: [field(9)],
     });
-    const names = (p: number) =>
-      rowAt(v, p).actions.map((a) => a.label);
+    const names = (p: number) => rowAt(v, p).actions.map((a) => a.label);
     v.s.locks = [{ g: 1, s: 2, p: 9, until: v.now + 60_000 }];
     expect(names(9)).toEqual(['Bergung']);
     // The lock ended: both buttons are back, the Bergung after them.

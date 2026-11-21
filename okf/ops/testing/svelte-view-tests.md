@@ -147,6 +147,20 @@ description: 'The property and reference tests of the views converted in #118, l
   `report-body.ts`, `report-body-union.test.ts` and `survey.test.ts` assert
   on the values, no longer on markup.
 
+* **[V]** The small components of #337: `src/test/html-pieces-frozen.ts` holds
+  the HTML builders they replaced as they were (`costHTML()`,
+  `requirementsHTML()`, `planetHTML()`, `moonPicture()`, `moonMark()`,
+  `debrisMark()`, `harvestButton()`); the reference tests of the lists, the
+  overview and the Sternenkarte import them from there, so a builder deleted
+  from the code keeps its frozen copy. `src/test/html-pieces-reference.test.ts`
+  keeps `Cost`, `Requirements`, `PlanetPicture` and `MoonPicture` equal to them
+  on generated cases (fast-check seed 337; names with markup stay text) and
+  hand-built ones (a waiting start button, an energy cost);
+  `src/test/cost-views-reference.test.ts` checks that every cost line of
+  `LevelTable` and `LexicanumArticle` equals `costHTML()` of the cost the
+  model holds. A name with `<`, `&` or quotes is text of the component, never
+  markup.
+
 * **[V]** „Highscore“ and „Achievements“ of #118, bundle 5: the property
   tests `src/test/highscore-reference.test.ts` and
   `src/test/achievements-reference.test.ts` keep the components equal to the
