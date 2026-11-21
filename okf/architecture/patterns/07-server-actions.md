@@ -34,6 +34,12 @@ description: 'Server actions as commands, their checks in pure functions of the 
   note of the first in their order. Build and research check in one order
   on both sides, and an order of 0 gets the browser's text on the server
   too (O18 (c): F8, F9, F10).
+* **[E]** The other groups built (#214, 2026-11-21): admin, guild,
+  player, rewards and fleet; every action of the audit follows this
+  section, `send` but for the joining of an attack union (#225). F12 and
+  F15 unified (owner), F18 built: the list of requirements asks
+  `buildErrors` and `researchErrors`
+  ([Checks of the server actions](/architecture/action-checks.md)).
 
 * **[V]** Built with #283 (a refactor without a visible change, in the
   style of #111): the settings of a round are a registry, `ROUND_SETTINGS`

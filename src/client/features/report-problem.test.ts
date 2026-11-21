@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { forgetForms } from '../logic/form-state.svelte.ts';
+import { optionsForm } from '../logic/options-form.svelte.ts';
 import { client } from '../logic/state.svelte.ts';
 import { clientFeature } from './report-problem.ts';
 import { fakeCtx } from './test-ctx.ts';
@@ -35,7 +37,10 @@ beforeEach(() => {
         : (forms[sel.slice(1)] ?? null),
   });
 });
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  forgetForms();
+});
 
 const form = (over: Partial<Form> = {}): Form => ({
   fields: [
@@ -100,17 +105,21 @@ describe('the forms that send a report', () => {
 
   it('leaves the form of the help page where it is and thanks', async () => {
     forms.reportform = form();
+    optionsForm.report = 'Es ging nicht.';
     const ctx = fakeCtx({ api: vi.fn(async () => ({ msg: 'Danke.' })) });
     await clientFeature.forms(ctx).reportform();
     expect(forms.reportform.reset).toHaveBeenCalled();
+    // The text the form keeps is gone too, so a redraw does not bring it back (#332).
+    expect(optionsForm.report).toBe('');
     expect(ctx.modal).not.toHaveBeenCalled();
     expect(ctx.toast).toHaveBeenCalledWith('Danke.');
   });
 
   it('empties the form that stands on the page when the answer comes, not the one that was sent', async () => {
     // The poll of the state redraws the page while the report is on its way:
-    // the redraw puts the typed text back into the new form (keepInputs), and
-    // the old, detached form is no longer the one the player sees.
+    // the redraw mounts a new form that shows the text of the form state
+    // (logic/options-form.svelte.ts, #332), and the old, detached form is no
+    // longer the one the player sees.
     const sent = form({ isConnected: false });
     forms.reportform = sent;
     const redrawn = form();
@@ -138,8 +147,10 @@ describe('the forms that send a report', () => {
         throw new Error('Zu oft.');
       }),
     });
+    optionsForm.report = 'Es ging nicht.';
     await clientFeature.forms(ctx).reportform();
     expect(forms.reportform.reset).not.toHaveBeenCalled();
+    expect(optionsForm.report).toBe('Es ging nicht.');
     expect(ctx.toast).toHaveBeenCalledWith('Zu oft.', true);
   });
 });

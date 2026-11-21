@@ -29,7 +29,7 @@ describe('participant.joined: the first place of a player', () => {
       seat: 1,
       at: 2_000_000,
       recorded: 2_000_000,
-      version: 1,
+      version: 2,
     });
     expect(e!.payload).toEqual({
       entry: 'home',

@@ -6,6 +6,8 @@ import { roundDefaults } from '../../test/fixtures.ts';
 import { levelView } from '../../test/level-view.ts';
 import { optionsView } from '../../test/options-view.ts';
 import { normalize } from '../../test/markup.ts';
+import { forgetForms } from '../logic/form-state.svelte.ts';
+import { optionsForm } from '../logic/options-form.svelte.ts';
 import { DEFAULT_SECTION, OPTION_SECTIONS } from '../logic/phone-options.ts';
 import { phoneOptions } from '../logic/phone-options.svelte.ts';
 import type { GameState } from '../logic/types.ts';
@@ -128,5 +130,48 @@ describe('the sections of „Optionen“', () => {
       ])
         expect(html, `${section}: ${mark}`).toContain(mark);
     }
+  });
+});
+
+describe('the fields keep what was typed and chosen over a redraw (#332)', () => {
+  afterEach(forgetForms);
+
+  /** The options of the select `id`, the selected ones marked by a star. */
+  const choices = (html: string, id: string): string[] =>
+    [
+      ...new RegExp(`<select id="${id}">([^]*?)</select>`)
+        .exec(html)![1]!
+        .matchAll(/<option([^>]*)>/g),
+    ].map(
+      ([, attrs]) =>
+        /value="([^"]*)"/.exec(attrs!)![1]! +
+        (/\bselected\b/.test(attrs!) ? '*' : ''),
+    );
+
+  it('show the page while nobody touched them', () => {
+    const html = page();
+    expect(html).toMatch(/id="o_probes"[^>]*value="1"/);
+    expect(/<input[^>]*id="pw_current"[^>]*>/.exec(html)![0]).not.toContain(
+      'value',
+    );
+    expect(html).toMatch(
+      /<textarea[^>]*id="reportform-text"[^>]*><\/textarea>/,
+    );
+  });
+
+  it('show what was typed and chosen, an emptied field empty', () => {
+    const before = choices(page(), 'o_levels');
+    Object.assign(optionsForm, {
+      probes: '',
+      levels: 'always',
+      pwNext: 'neu & <geheim>',
+      report: 'Es ging <nicht>.',
+    });
+    const html = page();
+    expect(html).toMatch(/id="o_probes"[^>]*value=""/);
+    expect(before).toEqual(['always', 'icon*', 'hidden']);
+    expect(choices(html, 'o_levels')).toEqual(['always*', 'icon', 'hidden']);
+    expect(html).toMatch(/id="pw_next"[^>]*value="neu &amp; &lt;geheim>"/);
+    expect(html).toContain('>Es ging &lt;nicht>.</textarea>');
   });
 });

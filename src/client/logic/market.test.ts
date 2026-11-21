@@ -8,7 +8,6 @@ import { planet } from '../../test/fixtures.ts';
 import { roundDefaults } from '../../test/fixtures.ts';
 import {
   amountOf,
-  draft,
   fixed,
   gainWarning,
   marketOf,
@@ -88,7 +87,6 @@ describe('the market of the shown planet', () => {
 describe('the draft of the form', () => {
   it('starts with Adamant for Psikristall and no amount', () => {
     expect(newDraft()).toEqual({ give: 'm', get: 'c', amount: '' });
-    expect(draft).toEqual(newDraft());
     expect(newDraft()).not.toBe(newDraft());
   });
 

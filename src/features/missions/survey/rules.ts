@@ -14,6 +14,8 @@ export const returns = true;
 export const silent = true;
 export const alertsGuild = false;
 export const holds = false;
+/** Without ships the launch names the probes, as the Sternenkarte does (F19, #214). */
+export const withoutShips = 'noProbes';
 /** Without level 1 of the research the mission is not available (D2); then only Spähschädel fly. */
 export const canSend = (fleet: SendFleet): SendError | undefined => {
   if (!fleet.research?.carto) return 'surveyLocked';

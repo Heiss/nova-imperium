@@ -1025,7 +1025,7 @@ describe('the dialogs against the HTML before #118, bundle 6', () => {
       normalize(transferDialog(one, 'u_b', 'Bert')),
     );
     const html = dissolveDialogView(THE_WIDEST as unknown as Guild);
-    // The field the dissolving is confirmed in has no field draft (logic/field-drafts.ts).
+    // The field the dissolving is confirmed in keeps no state (a dialog outside the view).
     expect(html).toMatch(/<input[^>]*id="dissolve_tag"/);
     expect(html).not.toContain('data-nokeep');
     expect(html).toContain('id="guilddissolveform"');

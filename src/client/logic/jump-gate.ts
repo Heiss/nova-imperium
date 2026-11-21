@@ -5,7 +5,8 @@
 // `jumpError`: a cooling gate shows „Wieder bereit in …“, the start below
 // the button, a target in its option, which is disabled until then. The
 // box is drawn again once when a gate turns ready (`viewDue`), and a redraw
-// keeps the picked „Zielmond“ only while its option is enabled (`keeps`).
+// shows the picked „Zielmond“ only while its option is enabled (the state of
+// the fleet form, views/Fleet.svelte, #332).
 import {
   type Gate,
   type GateView,
@@ -40,11 +41,12 @@ type Seen = Pick<GameState, 'gates' | 'galaxy'>;
 /** An option of „Zielmond“, or null when the gate is no target of `from`. */
 function targetOf(s: Seen, from: Gate, view: GateView, now: number) {
   const place = s.galaxy.find((g) => g.id === view.id);
-  if (!place) return null;
   const gate = { ...place, b: { jumpgate: view.level }, ready: view.ready };
-  const error = targetError(from, gate, now);
+  // A gate whose moon is not in the galaxy has no kind and no owner, so
+  // targetError answers noTarget: past this line the place exists.
+  const error = targetError(from, gate as Gate, now);
   if (error && error !== 'targetCooling') return null;
-  const name = `${placeName(place)} ${coords(place)}`;
+  const name = `${placeName(place!)} ${coords(place!)}`;
   return error
     ? {
         id: view.id,
@@ -111,17 +113,3 @@ const gateDue = (v: Shown, now: number): boolean =>
 /** Whether the clock draws the shown view again at `now`: a finished order or research, or a Warp-Tor that turned ready. */
 export const viewDue = (v: Shown, now: number): boolean =>
   queueDue(v, now) || gateDue(v, now);
-
-/** The options of a select, as a redraw of the view finds them. */
-type Options = ArrayLike<{ value: string; disabled: boolean }>;
-
-/**
- * Whether a redraw restores the saved `value` of a form field: not onto a
- * disabled option of a select, such as a „Zielmond“ that cools down since.
- * The select then keeps the option the redraw picked, the first enabled.
- */
-export function keeps(field: object, value: string): boolean {
-  const { options } = field as { options?: Options | null };
-  const saved = options && Array.from(options).find((o) => o.value === value);
-  return !saved?.disabled;
-}

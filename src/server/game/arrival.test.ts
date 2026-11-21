@@ -17,6 +17,7 @@ import {
   spyScore,
   tick,
 } from './arrival.ts';
+import { causePending } from './journal.ts';
 
 function setup(target = {}) {
   const ctx = testCtx();
@@ -126,6 +127,18 @@ describe('arrival', () => {
     const { ctx } = setup();
     subscribePush(ctx, 'u_Anna');
     arrive(ctx, fleet(ctx, { to: 'p9_9_9' }));
+    expect(queuedPushes(ctx)).toEqual([
+      { user: 'u_Anna', kind: 'messages', topic: 'fleet' },
+    ]);
+  });
+  it('pushes lost missiles as an own fleet like a turned back fleet', () => {
+    const { ctx } = setup();
+    subscribePush(ctx, 'u_Anna');
+    arrive(
+      ctx,
+      fleet(ctx, { mission: 'missile', ships: { ipm: 1 }, to: 'p9_9_9' }),
+    );
+    expect(ctx.fleets.get('f1')).toBeNull();
     expect(queuedPushes(ctx)).toEqual([
       { user: 'u_Anna', kind: 'messages', topic: 'fleet' },
     ]);
@@ -403,6 +416,22 @@ describe('coming home', () => {
       'Deine Flotte ist zurück.',
     );
   });
+  it('names the cargo of a fleet whose first two resources are equal', () => {
+    const { ctx } = setup();
+    comeHome(ctx, fleet(ctx, { state: 'back', cargo: { m: 5, c: 5, d: 0 } }));
+    expect(ctx.reports.ofPlayer('u_Anna')[0]!.text).toBe(
+      'Deine Flotte ist zurück und bringt Adamant 5 · Psikristall 5 · Promethium 0 mit.',
+    );
+  });
+  it('is lost when the home planet now belongs to another player', () => {
+    const { ctx } = setup();
+    const home = ctx.planets.get('p1_1_5')!;
+    ctx.planets.save({ ...home, owner: 'u_Bert' });
+    comeHome(ctx, fleet(ctx, { state: 'back', ships: { lf: 2 } }));
+    expect(ctx.fleets.get('f1')).toBeNull();
+    expect(ctx.planets.get('p1_1_5')!.ships.lf ?? 0).toBe(home.ships.lf ?? 0);
+    expect(ctx.reports.ofPlayer('u_Anna')).toEqual([]);
+  });
   it('is lost when the home planet is gone', () => {
     const { ctx } = setup();
     comeHome(ctx, fleet(ctx, { state: 'back', from: 'p9_9_9' }));
@@ -444,6 +473,22 @@ describe('tick', () => {
     expect(tick(broken, (m) => logged.push(m))).toBe(1);
     expect(logged).toEqual(['Fleet f1 failed and was removed']);
     expect(ctx.fleets.get('f1')).toBeNull();
+  });
+  it('forgets the cause it collected when a fleet fails', () => {
+    const { ctx } = setup();
+    fleet(ctx);
+    const broken = {
+      ...ctx,
+      planets: Object.create(ctx.planets, {
+        get: {
+          value: () => {
+            throw new Error('x');
+          },
+        },
+      }),
+    };
+    tick(broken, () => {});
+    expect(causePending()).toBe(false);
   });
   it('leaves a fleet queued when the database writer is busy', () => {
     const { ctx } = setup();

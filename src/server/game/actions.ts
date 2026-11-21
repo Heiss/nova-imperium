@@ -24,6 +24,11 @@ import { cancelOrder as takeOutOrder } from '../../core/cancel-order.ts';
 import { type ExplainMode, storedMode } from '../../core/explain.ts';
 import { isLevelMode, type LevelMode } from '../../core/level-overview.ts';
 import {
+  MAX_PLANET_NAME,
+  type PlanetNameError,
+  planetNameError,
+} from '../../core/planet-name.ts';
+import {
   energyNeed,
   energyShort,
   type LabSite,
@@ -355,9 +360,15 @@ export const pct: Handler<'pct'> = (ctx, u, d) => {
   return null;
 };
 
+/** The refusals of `planetNameError` (#214). */
+const RENAME_ERROR: Readonly<Record<PlanetNameError, string>> = {
+  empty: 'Bitte einen Namen eingeben.',
+};
+
 export const rename: Handler<'rename'> = (ctx, u, d) => {
-  const n = str(d.name, 20);
-  if (!n) fail('Bitte einen Namen eingeben.');
+  const n = str(d.name, MAX_PLANET_NAME);
+  const error = planetNameError(n);
+  if (error) fail(RENAME_ERROR[error]);
   const p = mine(ctx, u, d.planet);
   p.name = n;
   ctx.planets.save(p);

@@ -179,9 +179,9 @@ describe('„Runde abschließen“ (D1)', () => {
     const closed = ctx.rounds.events(1, ROUND_EVENT.closed);
     expect(closed).toHaveLength(1);
     expect(closed[0]!.payload).toEqual({ cutoff: ctx.now(), participants: 3 });
-    // The count the close expects is the count of the events the round holds.
+    // The count the close expects is the count of the events the round holds (with `journal.close`, version 2).
     expect(round.events).toBe(ctx.rounds.countEvents(1));
-    expect(round.events).toBe(7);
+    expect(round.events).toBe(8);
   });
 
   it('keeps the world: planets stay and the game goes on until „Neue Runde“', () => {

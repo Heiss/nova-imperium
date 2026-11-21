@@ -1,12 +1,11 @@
 // Sending and recalling fleets. The checks of the target and of a mission
 // are the pure `sendError` of src/core/missions.ts (#116); the server
-// determines the noob protection, turns the codes into the messages, and
-// checks the slots, the cargo and the fuel for every mission alike.
+// determines the noob protection and turns the codes into the messages. The
+// mission, the ships, the slots, the holding time, the stay, the cargo, the
+// fuel and the recall are the pure checks of src/core/fleet-checks.ts (#214).
 import type { Wire } from '../../core/actions.ts';
-import { canFly, isShip } from '../../core/catalog.ts';
+import { isShip } from '../../core/catalog.ts';
 import {
-  capacity,
-  countUnits,
   distance,
   fleetSlots,
   fleetSpeed,
@@ -14,16 +13,18 @@ import {
   fuelFor,
   holdFuel,
 } from '../../core/flight.ts';
+import { ALLIES, HOLD_LIMITS, HOUR_MS } from '../../core/holding.ts';
 import {
-  ALLIES,
-  HOLD_LIMITS,
-  HOUR_MS,
-  dueAt,
-  isHoldHours,
-} from '../../core/holding.ts';
+  cargoError,
+  type CargoError,
+  holdTimeError,
+  recallError,
+  type RecallError,
+  startError,
+  type StartError,
+  stayError,
+} from '../../core/fleet-checks.ts';
 import {
-  isFleet,
-  launchOf,
   type MissionRules,
   type SendError,
   missionRules,
@@ -71,13 +72,6 @@ export const pickedShips = (p: Planet, wanted: unknown): Levels => {
     const m = Math.min(int(n, 0, 1e12), p.ships[k] ?? 0);
     if (m > 0) ships[k] = m;
   }
-  return ships;
-};
-
-const pickShips = (p: Planet, wanted: unknown): Levels => {
-  const ships = pickedShips(p, wanted);
-  if (!Object.keys(ships).every(canFly))
-    fail('Sonnenreliquiare können nicht fliegen.');
   return ships;
 };
 
@@ -143,6 +137,28 @@ const SEND_ERROR: Readonly<Record<WordedError, string>> = {
 const NOT_ALLY: Readonly<Record<number, string>> = {
   [ALLIES.guild]: 'Wache stellen nur bei Gildenmitgliedern.',
   [ALLIES.friends]: 'Wache stellen nur bei Freunden.',
+};
+
+/** The messages of the codes of src/core/fleet-checks.ts (#214); a stay names its hours. */
+const FLEET_ERROR: Readonly<
+  Record<StartError | CargoError | RecallError | 'holdTime', string>
+> = {
+  mission: 'Unbekannter Auftrag.',
+  stationary: 'Sonnenreliquiare können nicht fliegen.',
+  noShips: 'Keine Schiffe ausgewählt.',
+  // The text of the Sternenkarte (F12, owner 2026-11-21).
+  noProbes: 'Keine Spähschädel auf dem Planeten.',
+  slots: 'Alle Flottenslots belegt.',
+  holdTime: 'Bitte eine Haltezeit auswählen.',
+  hold: 'Nicht genug Laderaum.',
+  fuel: 'Nicht genug Promethium für Treibstoff und Ladung.',
+  gone: 'Rückruf nicht mehr möglich.',
+  gift: 'Die Gabe des Gottkaisers kann nicht zurückgerufen werden.',
+};
+
+/** Refuses with the message of a code of src/core/fleet-checks.ts, if any. */
+const refuse = (error: keyof typeof FLEET_ERROR | null): void => {
+  if (error) fail(FLEET_ERROR[error]);
 };
 
 /** The message of a code; a Halten names who may hold in this round. */
@@ -229,14 +245,17 @@ function checkDestination(
 
 function plan(ctx: Ctx, u: User, p: Planet, d: Wire<'send'>): Plan {
   const mission = String(d.mission) as Mission;
-  const known = missionRules(mission);
+  const ships = pickedShips(p, d.ships);
   // Missiles start from the silo in the Sternenkarte, never as a fleet (#54).
-  const rules =
-    known && launchOf(known) === 'fleet' ? known : fail('Unbekannter Auftrag.');
-  const ships = pickShips(p, d.ships);
-  if (!countUnits(ships)) fail('Keine Schiffe ausgewählt.');
-  if (usedSlots(ctx, u.id) >= fleetSlots(researchOf(ctx, u)))
-    fail('Alle Flottenslots belegt.');
+  refuse(
+    startError(
+      mission,
+      ships,
+      usedSlots(ctx, u.id),
+      fleetSlots(researchOf(ctx, u)),
+    ),
+  );
+  const rules = missionRules(mission)!;
   const dest = target(ctx, d);
   // The planet of the position, or its moon (#53).
   const moon = toMoon(d);
@@ -275,8 +294,8 @@ function plan(ctx: Ctx, u: User, p: Planet, d: Wire<'send'>): Plan {
 
 /** The holding time a Halten asks for, in hours (#55); none for the others. */
 function holdHours(rules: MissionRules, raw: unknown): number {
-  if (!rules.holds) return 0;
-  return isHoldHours(raw) ? raw : fail('Bitte eine Haltezeit auswählen.');
+  refuse(holdTimeError(rules, raw));
+  return rules.holds ? (raw as number) : 0;
 }
 
 /**
@@ -296,7 +315,7 @@ function chosenStay(
   const world = universe(ctx);
   const most = rules.maxStay(researchOf(ctx, u).research, hoursPerLevel(world));
   const chosen = int(hours, 1, Number.MAX_SAFE_INTEGER);
-  if (chosen > most)
+  if (stayError(chosen, most))
     fail(
       `Die Haltezeit beträgt höchstens ${most} ${most === 1 ? 'Stunde' : 'Stunden'}.`,
     );
@@ -360,10 +379,7 @@ export const send: Handler<'send'> = (ctx, u, d, event) => {
     toC: dest,
     flight: ms,
   });
-  if (cargo.m + cargo.c + cargo.d > capacity(ships))
-    fail('Nicht genug Laderaum.');
-  if (p.res.d < fuel + cargo.d)
-    fail('Nicht genug Promethium für Treibstoff und Ladung.');
+  refuse(cargoError(ships, cargo, p.res.d, fuel));
   takeOff(p, ships, cargo, fuel);
   ctx.planets.save(p);
   const fleet: Fleet = {
@@ -424,13 +440,6 @@ function logLaunch(
 }
 
 /**
- * Whether a fleet can still be called back at `t`: on its way out before its
- * arrival, or while it holds before the end of its holding time (#55).
- */
-const recallable = (f: Fleet, t: number): boolean =>
-  (f.state === 'out' || f.state === 'hold') && dueAt(f) > t;
-
-/**
  * When a recalled fleet is home: it flies back as long as it flew out, and a
  * fleet that holds as long as its flight to the target took (#55). An
  * expedition that already stays at its position (#93) is there, so it flies
@@ -444,13 +453,9 @@ const recalledAt = (f: Fleet, t: number): number =>
 export const recall: Handler<'recall'> = (ctx, u, d, event) => {
   const f = ctx.fleets.get(String(d.id));
   const t = ctx.now();
-  if (!f || f.owner !== u.id || !recallable(f, t))
-    fail('Rückruf nicht mehr möglich.');
-  // The gift of the „Endzeit“ has no origin to return to (#161).
-  if (f!.gift)
-    fail('Die Gabe des Gottkaisers kann nicht zurückgerufen werden.');
-  // Missiles do not come back (#54).
-  if (!isFleet(f!)) fail('Rückruf nicht mehr möglich.');
+  // The gift of the „Endzeit“ has no origin to return to (#161); missiles
+  // do not come back (#54).
+  refuse(recallError(f, u.id, t));
   const fleet = f!;
   const due = recalledAt(fleet, t);
   // The leader's recall of the fleet that opened an attack union turns back

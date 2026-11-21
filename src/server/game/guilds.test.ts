@@ -288,3 +288,85 @@ describe('guild rules (#117: the logic left in guilds.ts)', () => {
     expect(guildState(ctx, d!.id, {}).management).toBeNull();
   });
 });
+
+// The checks of the guild actions are functions of src/core/guild-checks.ts
+// (#214); the server words their codes. The messages are written out here,
+// not imported, so a changed text or another order is noticed.
+describe('the refusals of the guild actions, in their order (#214)', () => {
+  const JOINED = 'Du hast bereits eine Gilde oder eine offene Bewerbung.';
+  const NO_RIGHT = 'Dazu fehlt deinem Rang das Recht.';
+
+  function setup() {
+    const ctx = testCtx();
+    const [a, b, c] = ['Anna', 'Ben', 'Cara'].map((n) => addUser(ctx, n));
+    const run = (uid: string, d: Record<string, unknown>) =>
+      runAction(ctx, uid, d);
+    run(a!.id, { type: 'createGuild', tag: 'OR', name: 'Outer Rim' });
+    const id = guildState(ctx, a!.id, {}).own!.id;
+    run(b!.id, { type: 'applyToGuild', id });
+    run(a!.id, { type: 'reviewGuildApplication', uid: b!.id, accept: true });
+    return { ctx, run, a: a!.id, b: b!.id, c: c!.id, id };
+  }
+
+  it('words every refusal of a profile', () => {
+    const { run, c } = setup();
+    const found = (d: Record<string, unknown>) => () =>
+      run(c, { type: 'createGuild', tag: 'XY', name: 'Other', ...d });
+    expect(found({ tag: 'X' })).toThrow(
+      'Das Kürzel braucht 2 bis 8 Buchstaben oder Ziffern.',
+    );
+    expect(found({ name: 'ab' })).toThrow(
+      'Der Gildenname braucht 3 bis 32 Zeichen.',
+    );
+    expect(found({ description: 'x'.repeat(6001) })).toThrow(
+      'Der Gildentext darf höchstens 6.000 Zeichen haben.',
+    );
+    expect(found({ tag: 'or' })).toThrow(
+      'Das Kürzel oder der Name ist schon vergeben.',
+    );
+    expect(found({ name: 'Outer Rim' })).toThrow(
+      'Das Kürzel oder der Name ist schon vergeben.',
+    );
+  });
+
+  it('refuses a member before its profile, and a missing right before it', () => {
+    const { run, a, b } = setup();
+    expect(() => run(a, { type: 'createGuild', tag: 'X', name: 'ab' })).toThrow(
+      JOINED,
+    );
+    expect(() => run(b, { type: 'updateGuild', tag: 'X', name: 'ab' })).toThrow(
+      NO_RIGHT,
+    );
+    expect(() => run(a, { type: 'applyToGuild', id: 'none' })).toThrow(JOINED);
+    // Its own tag and name are no other guild's.
+    expect(run(a, { type: 'updateGuild', tag: 'or', name: 'Outer Rim' })).toBe(
+      'Gildenprofil gespeichert.',
+    );
+  });
+
+  it('checks the right before the application or the member', () => {
+    const { run, b } = setup();
+    expect(() =>
+      run(b, { type: 'reviewGuildApplication', uid: 'nobody' }),
+    ).toThrow(NO_RIGHT);
+    expect(() => run(b, { type: 'manageGuildMember', uid: 'nobody' })).toThrow(
+      'Dieses Gildenmitglied gibt es nicht.',
+    );
+  });
+
+  it('hands over the Leitung only by the Leitung, with a rank below it', () => {
+    const { ctx, run, a, b, id } = setup();
+    const ranks = ctx.guilds.ranks(id);
+    const hand = (who: string, uid: string, rank: unknown) => () =>
+      run(who, { type: 'manageGuildMember', uid, transfer: true, rank });
+    expect(hand(b, a, 'none')).toThrow('Das darf nur die Gildenleitung.');
+    expect(hand(a, b, 'none')).toThrow('Diesen Rang gibt es nicht.');
+    expect(hand(a, b, ranks[0]!.id)).toThrow(
+      'Wähle für dich einen Rang unter der Leitung.',
+    );
+    expect(hand(a, b, ranks[1]!.id)()).toBe('Gildenleitung übergeben.');
+    expect(() => run(b, { type: 'leaveGuild' })).toThrow(
+      'Übergib zuerst die Gildenleitung.',
+    );
+  });
+});

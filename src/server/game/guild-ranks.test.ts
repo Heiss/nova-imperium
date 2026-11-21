@@ -380,6 +380,22 @@ describe('the order of the ranks (#163)', () => {
     );
   });
 
+  it('places the Leitung first by the guild, whatever rank it holds (#214)', () => {
+    const s = ranked(['remove', 'assign']);
+    // A stored rank below the officer's does not make the Leitung lower.
+    s.ctx.guilds.setRank('u_Lea', s.rank('Mitglied'));
+    expect(() =>
+      s.run('Ada', { type: 'manageGuildMember', uid: 'u_Lea' }),
+    ).toThrow(LOWER);
+    expect(() =>
+      s.run('Ada', {
+        type: 'assignGuildRank',
+        uid: 'u_Lea',
+        rank: s.rank('Mitglied'),
+      }),
+    ).toThrow(LOWER);
+  });
+
   it('gives only ranks below its own', () => {
     const s = ranked(['assign']);
     for (const rank of [s.officer, s.rank('Leitung')])

@@ -45,15 +45,20 @@ export type BuildError =
   | 'noEnergy'
   | 'cost';
 
-/** Every reason why the next level of building `key` cannot start on `p`. */
+/**
+ * Every reason why the next level of building `key` cannot start on `p`;
+ * `have` is the level it starts from (the list of requirements names its
+ * own, F18), else the level on `p`.
+ */
 export function buildErrors(
   p: Planet,
   r: ResearchState,
   key: string,
   u: Universe,
+  have = p.b[key] ?? 0,
 ): BuildError[] {
   const def = BUILD[key]!;
-  const level = (p.b[key] ?? 0) + 1;
+  const level = have + 1;
   return holding<BuildError>({
     place: !buildable(key, p.kind),
     locked: reqMissing(def, p, r).length > 0,
@@ -83,15 +88,18 @@ export type ResearchError =
   | 'noEnergy'
   | 'cost';
 
-/** Every reason why the next level of research `key` cannot start on `p`. */
+/**
+ * Every reason why the next level of research `key` cannot start on `p`;
+ * `have` as for `buildErrors`, else the level researched.
+ */
 export function researchErrors(
   p: Planet,
   r: ResearchState,
   key: string,
   u: Universe,
+  have = r.research[key] ?? 0,
 ): ResearchError[] {
   const def = RES[key]!;
-  const have = r.research[key] ?? 0;
   const level = have + 1;
   const refused = researchRefused(key, colonyRules(u), have);
   return holding<ResearchError>({

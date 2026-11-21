@@ -10,12 +10,20 @@ import {
   MAX_CHAT_TEXT,
 } from '../../core/guild-chat.ts';
 import {
-  assignError,
-  deleteError,
+  type ActorRule,
+  assignRankError,
+  defaultRankError,
+  deleteRankError,
+  managedError,
+  manageMemberError,
+  moveRankError,
+  type RankEntry as RankRule,
+  rankRoomError,
+} from '../../core/guild-checks.ts';
+import {
   GUILD_RIGHTS,
   type GuildRight,
   isBelow,
-  MAX_GUILD_RANKS,
   memberPlace,
   RIGHT_TEXT,
 } from '../../core/guild-ranks.ts';
@@ -231,14 +239,16 @@ function placeOf(me: Inside, id: string): number {
   return memberPlace(id === me.ranks.lead, indexOf(me, me.ranks.members[id]));
 }
 
-/** The own rank as the core rules see it. */
-const asRule = (me: Inside) => ({ position: me.at, rights: me.ranks.rights });
-
-/** A rank as the core rules see it. */
-const rankRule = (rank: GuildRank, at: number) => ({
-  position: at,
-  rights: rank.rights,
+/** The own rank as the core checks see it. */
+const asRule = (me: Inside): ActorRule => ({
+  lead: me.lead,
+  position: me.at,
+  rights: me.ranks.rights,
 });
+
+/** The ranks as the core checks see them: their place is their index. */
+const rankRules = (me: Inside): RankRule[] =>
+  me.ranks.list.map((r, at) => ({ ...r, position: at }));
 
 // ----- the members -----
 
@@ -273,9 +283,10 @@ function rankChange(me: Inside, id: string): RankChange {
   // Only ranks the own rank may give (owner, 2026-11-14): below it and
   // without a right it lacks.
   const place = placeOf(me, id);
+  const ranks = rankRules(me);
   return {
     options: me.ranks.list
-      .filter((r, i) => assignError(asRule(me), place, rankRule(r, i)) === null)
+      .filter((r) => assignRankError(asRule(me), place, ranks, r.id) === null)
       .map((r) => ({
         id: r.id,
         name: r.name,
@@ -286,11 +297,13 @@ function rankChange(me: Inside, id: string): RankChange {
 
 function memberControls(me: Inside, id: string): MemberControls {
   if (id === me.uid) return { transfer: false, assign: null, remove: false };
-  const lower = isBelow(me.at, placeOf(me, id));
+  const place = placeOf(me, id);
   return {
     transfer: me.lead,
-    assign: lower && me.can('assign') ? rankChange(me, id) : null,
-    remove: lower && me.can('remove'),
+    assign:
+      isBelow(me.at, place) && me.can('assign') ? rankChange(me, id) : null,
+    remove:
+      manageMemberError(asRule(me), { place, self: false }, null) === null,
   };
 }
 
@@ -351,7 +364,10 @@ interface RankEntry {
   makeDefault: boolean;
 }
 
-function rankEditor(me: Inside, rank: GuildRank, at: number): RankEditor {
+function rankEditor(me: Inside, rank: GuildRank): RankEditor {
+  const ranks = rankRules(me);
+  const movable = (up: boolean) =>
+    moveRankError(asRule(me), ranks, rank.id, up) === null;
   const fallback = indexOf(me, me.ranks.default);
   const hasMembers = Object.values(me.ranks.members).includes(rank.id);
   return {
@@ -362,33 +378,37 @@ function rankEditor(me: Inside, rank: GuildRank, at: number): RankEditor {
       checked: rank.rights.includes(right),
       disabled: !me.can(right),
     })),
-    up: isBelow(me.at, at - 1),
-    down: at !== me.ranks.list.length - 1,
+    up: movable(true),
+    down: movable(false),
+    // A guild always has its default rank; the page offers no deleting without.
     remove:
-      rank.id !== me.ranks.default &&
       fallback !== undefined &&
-      deleteError(
+      deleteRankError(
         asRule(me),
+        ranks,
+        rank.id,
+        me.ranks.default,
         hasMembers,
-        rankRule(me.ranks.list[fallback]!, fallback),
       ) === null,
   };
 }
 
 function rankEntry(me: Inside, rank: GuildRank, at: number): RankEntry {
   const isDefault = rank.id === me.ranks.default;
-  const edit = me.can('ranks') && isBelow(me.at, at);
+  const ranks = rankRules(me);
+  const edit = managedError(asRule(me), ranks, rank.id) === null;
   return {
     id: rank.id,
     legend: `${rank.name}${isDefault ? ' · Standardrang' : ''}`,
-    editor: edit ? rankEditor(me, rank, at) : null,
+    editor: edit ? rankEditor(me, rank) : null,
     rights:
       at === 0
         ? 'all'
         : rank.rights.length
           ? rank.rights.map((r) => RIGHT_TEXT[r])
           : 'none',
-    makeDefault: me.lead && at > 0 && !isDefault,
+    makeDefault:
+      !isDefault && defaultRankError(asRule(me), ranks, rank.id) === null,
   };
 }
 
@@ -400,7 +420,7 @@ interface RanksModel {
 
 const ranksModel = (me: Inside): RanksModel => ({
   entries: me.ranks.list.map((r, at) => rankEntry(me, r, at)),
-  create: me.can('ranks') && me.ranks.list.length < MAX_GUILD_RANKS,
+  create: rankRoomError(asRule(me), rankRules(me)) === null,
 });
 
 // ----- the page of a guild -----

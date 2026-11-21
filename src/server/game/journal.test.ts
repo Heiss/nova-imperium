@@ -56,7 +56,7 @@ describe('one event per action', () => {
       seat: 1,
       at: ctx.now(),
       recorded: ctx.now(),
-      version: 1,
+      version: 2,
     });
     const p = e!.payload as unknown as JournalAction;
     expect(p).toMatchObject({
