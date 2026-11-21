@@ -2,7 +2,9 @@
 // selection, the cargo, the preview of distance, time and fuel, „Abschicken“,
 // „Zurückrufen“, and „Springen“ of the Warp-Tor. The markup is in
 // views/fleet.ts, the box of the Warp-Tor from logic/jump-gate.ts, the
-// shortcuts to the form are in features/galaxy.ts.
+// shortcuts to the form are in features/galaxy.ts. The ships, the position,
+// the speed and the cargo are the state of logic/fleet-form.svelte.ts
+// (#332), which the form binds; the handlers read and write it.
 import { settle } from '../../core/settle.ts';
 import type { Planet, Resources } from '../../core/types.ts';
 import { $, val } from '../dom.ts';
@@ -17,6 +19,9 @@ import {
   fleetPreview,
 } from '../logic/game.ts';
 import { colonyNote } from '../logic/colony-limit.ts';
+import { fleetTarget, SPEEDS } from '../logic/fleet.ts';
+import { fleetForm } from '../logic/fleet-form.svelte.ts';
+import { shown } from '../logic/galaxy-position.svelte.ts';
 import {
   maxPosition,
   missionOptions,
@@ -38,17 +43,18 @@ function readFleetForm(): FleetForm {
   const ships: Record<string, number> = {};
   const P = client.view!.P;
   const u = client.game!.cfg;
-  document.querySelectorAll<HTMLInputElement>('.fs').forEach((i) => {
-    const k = i.dataset.k!;
-    const n = clampInt(i.value, 0, P.ships[k] ?? 0);
+  for (const [k, typed] of Object.entries(fleetForm.ships)) {
+    const n = clampInt(typed, 0, P.ships[k] ?? 0);
     if (n > 0) ships[k] = n;
-  });
+  }
+  const page = fleetTarget(client.view!);
+  const { to } = fleetForm;
   return {
     ships,
     to: {
-      g: clampInt(val('#t_g'), 1, u.galaxies),
-      s: clampInt(val('#t_s'), 1, u.systems),
-      p: clampInt(val('#t_p'), 1, maxPosition(client.game!)),
+      g: clampInt(shown(to.g, page.g), 1, u.galaxies),
+      s: clampInt(shown(to.s, page.s), 1, u.systems),
+      p: clampInt(shown(to.p, page.p), 1, maxPosition(client.game!)),
       // The planet or its moon (#53).
       kind: val('#t_k') === 'moon' ? 'moon' : 'planet',
     },
@@ -57,11 +63,11 @@ function readFleetForm(): FleetForm {
     ...(val('#t_u') && { union: val('#t_u') }),
     hold: Number(val('#t_h')),
     stay: clampInt(val('#t_stay'), 1, 1e6),
-    pct: clampInt(val('#t_v'), 1, 10),
+    pct: clampInt(fleetForm.speed ?? SPEEDS[0]!.value, 1, 10),
     cargo: {
-      m: clampInt(val('#c_m'), 0, 1e15),
-      c: clampInt(val('#c_c'), 0, 1e15),
-      d: clampInt(val('#c_d'), 0, 1e15),
+      m: clampInt(fleetForm.cargo.m ?? '', 0, 1e15),
+      c: clampInt(fleetForm.cargo.c ?? '', 0, 1e15),
+      d: clampInt(fleetForm.cargo.d ?? '', 0, 1e15),
     },
   };
 }
@@ -151,36 +157,42 @@ function fleetCalc(): void {
   );
 }
 
-const shipInputs = () => document.querySelectorAll<HTMLInputElement>('.fs');
+/** The keys of the ships the form lists. */
+const shipKeys = (): string[] =>
+  Array.from(
+    document.querySelectorAll<HTMLInputElement>('.fs'),
+    (i) => i.dataset.k!,
+  );
+
+/** All of the ship `k` on the shown planet, as the field shows it. */
+const allOf = (k: string): string => String(client.view!.P.ships[k] ?? 0);
 
 /** The ship selection: all, none, the most of one kind. */
-const selectionActs = ({ setInput }: ClientCtx): Record<string, Handler> => ({
+const selectionActs = (): Record<string, Handler> => ({
   fall: () => {
-    shipInputs().forEach((i) =>
-      writeField(i, String(client.view!.P.ships[i.dataset.k!] ?? 0)),
-    );
+    for (const k of shipKeys()) fleetForm.ships[k] = allOf(k);
     fleetCalc();
   },
   fnone: () => {
-    shipInputs().forEach((i) => writeField(i, ''));
+    for (const k of shipKeys()) fleetForm.ships[k] = '';
     fleetCalc();
   },
   fmax: (d) => {
-    setInput(`#f_${d.k}`, client.view!.P.ships[d.k!] ?? 0);
+    fleetForm.ships[d.k!] = allOf(d.k!);
     fleetCalc();
   },
 });
 
 /** The cargo: all of it evenly, all of one resource. */
-const cargoActs = ({ setInput }: ClientCtx): Record<string, Handler> => ({
+const cargoActs = (): Record<string, Handler> => ({
   cmax: () => {
     const c = cargoMax(settledPlanet(), readFleetForm());
-    for (const k of CARGO) setInput(`#c_${k}`, c[k]);
+    for (const k of CARGO) fleetForm.cargo[k] = String(c[k]);
     fleetCalc();
   },
   cone: (d) => {
     const k = d.k as keyof Resources;
-    setInput(`#c_${k}`, cargoOne(settledPlanet(), readFleetForm(), k));
+    fleetForm.cargo[k] = String(cargoOne(settledPlanet(), readFleetForm(), k));
     fleetCalc();
   },
 });
@@ -219,9 +231,7 @@ function quickChoice(ctx: ClientCtx, field: HTMLSelectElement): void {
   const place = client.game?.galaxy.find((p) => p.id === field.value);
   writeField(field, '');
   if (!place) return;
-  ctx.setInput('#t_g', place.g);
-  ctx.setInput('#t_s', place.s);
-  ctx.setInput('#t_p', place.p);
+  fleetForm.to = { g: String(place.g), s: String(place.s), p: String(place.p) };
   ctx.setInput('#t_k', place.kind);
   client.ui.fk = place.kind;
 }
@@ -246,8 +256,8 @@ export const clientFeature = {
     });
   },
   acts: (ctx) => ({
-    ...selectionActs(ctx),
-    ...cargoActs(ctx),
+    ...selectionActs(),
+    ...cargoActs(),
     ...flightActs(ctx),
   }),
   afterRender: () => {

@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { fleetForm } from '../logic/fleet-form.svelte.ts';
+import { forgetForms } from '../logic/form-state.svelte.ts';
 import { client } from '../logic/state.svelte.ts';
 import type { GameState } from '../logic/types.ts';
 import type { V } from '../views/common.ts';
@@ -7,7 +9,8 @@ import { clientFeature } from './fleet.ts';
 import { fakeCtx } from './test-ctx.ts';
 
 // The numbers of the cargo are tested with logic/game.ts; here only what a
-// handler reads from the form and where it writes.
+// handler reads from the form and where it writes. The ships, the position,
+// the speed and the cargo are the state of the form (#332).
 vi.mock('../logic/game.ts', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../logic/game.ts')>()),
   cargoMax: vi.fn(() => ({ m: 1, c: 2, d: 3 })),
@@ -18,7 +21,8 @@ vi.mock('../../core/settle.ts', () => ({ settle: vi.fn(() => ({ id: 'p' })) }));
 
 type Input = Record<string, unknown>;
 let fields: Record<string, Input>;
-let ships: { value: string; dataset?: Record<string, string> }[];
+/** The ship fields the view lists, by their kind. */
+let ships: { dataset: Record<string, string> }[];
 let listeners: Record<string, (e: unknown) => void>;
 const calc = vi.fn();
 
@@ -26,10 +30,14 @@ beforeEach(() => {
   calc.mockClear();
   listeners = {};
   ships = [];
+  Object.assign(fleetForm, {
+    to: { g: '2', s: '30', p: '4' },
+    speed: '5',
+    cargo: { m: '10', c: '', d: '3' },
+  });
   fields = {
-    '#t_g': { value: '2' },
-    '#t_s': { value: '30' },
-    '#t_p': { value: '4' },
+    // The form is on the page.
+    '#t_g': {},
     '#t_k': { value: 'moon', querySelector: () => ({ disabled: false }) },
     // The preview writes the target info first: that is one calculation.
     '#t_info': {
@@ -47,10 +55,6 @@ beforeEach(() => {
     // No mission fits a moon that is not there: the list stays empty, as the stub holds it.
     '#t_m': { value: 'attack', options: [] },
     '#t_h': { value: '' },
-    '#t_v': { value: '5' },
-    '#c_m': { value: '10' },
-    '#c_c': { value: '' },
-    '#c_d': { value: '3' },
   };
   vi.stubGlobal('document', {
     querySelector: (sel: string) => fields[sel] ?? null,
@@ -69,11 +73,13 @@ beforeEach(() => {
     players: [],
   } as unknown as GameState;
   client.view = {
-    P: { id: 'p', ships: { fighter: 6, probe: 2 } },
+    P: { id: 'p', g: 1, s: 1, p: 1, ships: { fighter: 6, probe: 2 } },
+    ui: client.ui,
   } as unknown as V;
 });
 afterEach(() => {
   vi.unstubAllGlobals();
+  forgetForms();
   client.game = null;
   client.view = null;
 });
@@ -86,22 +92,21 @@ const acts = (ctx = fakeCtx()): Record<string, Handler> => {
 describe('the ship selection', () => {
   it('fills every field with the ships of its kind on the planet, and calculates', () => {
     ships = [
-      { value: '', dataset: { k: 'fighter' } },
-      { value: '1', dataset: { k: 'probe' } },
-      { value: '1', dataset: { k: 'frigate' } },
+      { dataset: { k: 'fighter' } },
+      { dataset: { k: 'probe' } },
+      { dataset: { k: 'frigate' } },
     ];
+    fleetForm.ships = { probe: '1', frigate: '1' };
     acts().fall!({});
-    expect(ships.map((i) => i.value)).toEqual(['6', '2', '0']);
+    expect(fleetForm.ships).toEqual({ fighter: '6', probe: '2', frigate: '0' });
     expect(calc).toHaveBeenCalledTimes(1);
   });
 
   it('empties every field, and calculates', () => {
-    ships = [
-      { value: '6', dataset: { k: 'fighter' } },
-      { value: '2', dataset: { k: 'probe' } },
-    ];
+    ships = [{ dataset: { k: 'fighter' } }, { dataset: { k: 'probe' } }];
+    fleetForm.ships = { fighter: '6', probe: '2' };
     acts().fnone!({});
-    expect(ships.map((i) => i.value)).toEqual(['', '']);
+    expect(fleetForm.ships).toEqual({ fighter: '', probe: '' });
     expect(calc).toHaveBeenCalledTimes(1);
   });
 
@@ -109,8 +114,8 @@ describe('the ship selection', () => {
     const ctx = fakeCtx();
     acts(ctx).fmax!({ k: 'fighter' });
     acts(ctx).fmax!({ k: 'frigate' });
-    expect(ctx.setInput).toHaveBeenNthCalledWith(1, '#f_fighter', 6);
-    expect(ctx.setInput).toHaveBeenNthCalledWith(2, '#f_frigate', 0);
+    expect(fleetForm.ships).toEqual({ fighter: '6', frigate: '0' });
+    expect(ctx.setInput).not.toHaveBeenCalled();
     expect(calc).toHaveBeenCalledTimes(2);
   });
 });
@@ -119,28 +124,55 @@ describe('the cargo', () => {
   it('fills every resource field with its share, and calculates', () => {
     const ctx = fakeCtx();
     acts(ctx).cmax!({});
-    expect(ctx.setInput).toHaveBeenCalledTimes(3);
-    expect(ctx.setInput).toHaveBeenCalledWith('#c_m', 1);
-    expect(ctx.setInput).toHaveBeenCalledWith('#c_c', 2);
-    expect(ctx.setInput).toHaveBeenCalledWith('#c_d', 3);
+    expect(fleetForm.cargo).toEqual({ m: '1', c: '2', d: '3' });
+    expect(ctx.setInput).not.toHaveBeenCalled();
     expect(calc).toHaveBeenCalledTimes(1);
   });
 
   it('fills the field of one resource with all it can carry, and calculates', () => {
     const ctx = fakeCtx();
     acts(ctx).cone!({ k: 'c' });
-    expect(ctx.setInput).toHaveBeenCalledExactlyOnceWith('#c_c', 7);
+    expect(fleetForm.cargo).toEqual({ m: '10', c: '7', d: '3' });
     expect(calc).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('the fields the player did not touch', () => {
+  it('send the target of the page, the first speed and no cargo', async () => {
+    forgetForms();
+    client.ui.ft = { g: 3, s: 12, p: 9, kind: 'planet' };
+    fleetForm.ships = { fighter: '1' };
+    const ctx = fakeCtx();
+    await acts(ctx).send!({});
+    expect(ctx.actHere).toHaveBeenCalledWith(
+      'send',
+      expect.objectContaining({
+        to: { g: 3, s: 12, p: 9, kind: 'moon' },
+        pct: 10,
+        cargo: { m: 0, c: 0, d: 0 },
+      }),
+    );
+  });
+
+  it('send the shown planet while no target was chosen elsewhere', async () => {
+    forgetForms();
+    client.ui.ft = null;
+    client.view = {
+      ...client.view!,
+      P: { ...client.view!.P, g: 2, s: 7, p: 11 },
+    } as V;
+    const ctx = fakeCtx();
+    await acts(ctx).send!({});
+    expect(ctx.actHere).toHaveBeenCalledWith(
+      'send',
+      expect.objectContaining({ to: { g: 2, s: 7, p: 11, kind: 'moon' } }),
+    );
   });
 });
 
 describe('sending, recalling and jumping', () => {
   beforeEach(() => {
-    ships = [
-      { value: '4', dataset: { k: 'fighter' } },
-      { value: '9', dataset: { k: 'probe' } },
-      { value: '0', dataset: { k: 'frigate' } },
-    ];
+    fleetForm.ships = { fighter: '4', probe: '9', frigate: '0' };
   });
 
   it('sends the form as it is filled in, kept to the ships and the universe', async () => {

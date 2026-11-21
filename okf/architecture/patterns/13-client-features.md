@@ -146,7 +146,14 @@ description: 'A client feature exports its handlers as clientFeature from its ow
   reads and writes it; a field that leaves the drafts is added to
   `UNTRACKED` of `logic/field-drafts.ts`. Built: the filter of the
   achievements (`logic/achievement-filter.svelte.ts`), the position of the
-  Sternenkarte (`logic/galaxy-position.svelte.ts`) and the marketplace.
+  Sternenkarte (`logic/galaxy-position.svelte.ts`), the marketplace, and the
+  ships, position, speed, cargo and names to invite of the fleet form
+  (`logic/fleet-form.svelte.ts`, read by `readFleetForm`, written by the
+  handlers of `features/fleet.ts` and `features/union.ts`; a field of the
+  position that nobody typed in shows the target of the page, `fleetTarget`
+  of `logic/fleet.ts`). A handler that dispatches an input event after it
+  wrote the state calls `flushSync()` first, else the component's `oninput`
+  would read the old value back from the field.
 * **[V]** A number field whose state is a string takes `value={…}` with
   `oninput`, not `bind:value`. Checked against `bind_value` of Svelte 5.57
   (2026-11-21, with a fake input): `bind:value` stores the field as a number
@@ -168,14 +175,12 @@ drafts. „Written by“ names the code that writes the field through
 `writeField`, `setInput` or `setById`; that write moves to the state with
 the conversion.
 
-* **Flotte** (`Fleet.svelte`, mounted anew; the form is read by id in
-  `features/fleet.ts`, `readFleetForm`):
-  * `f_<ship>`: component, no value; written by „alle Schiffe“, „keine
-    Schiffe“, „max“ (`features/fleet.ts`).
+* **Flotte** (`Fleet.svelte`, mounted anew; the rest of the form is read by
+  id in `features/fleet.ts`, `readFleetForm`). Converted (2026-11-21):
+  `f_<ship>`, `t_g`, `t_s`, `t_p`, `t_v`, `c_m`, `c_c`, `c_d` and
+  `un_name_<union>`. Still on the drafts:
   * `t_q` „Schnellwahl“: component select; set back to „– wählen –“ by
     `quickChoice`.
-  * `t_g`, `t_s`, `t_p`: component, `value={target.*}` of the page; written
-    by `quickChoice` and by the choice of a union (`features/union.ts`).
   * `t_k` „Zielart“: component, `selected={target.toMoon}`, „Mond“ disabled
     where no moon is; also kept in `client.ui.fk`, written by `moonOption`,
     `quickChoice` and `features/union.ts`.
@@ -187,11 +192,6 @@ the conversion.
   * `t_h` (Halten) and `t_stay` (expedition): HTML string of
     `logic/fleet-time.ts` inside `{@html form.time}`, replaced by `timeRow`
     when the mission changes between a stay and a holding time.
-  * `t_v` „Geschwindigkeit“: component select, no selection (first option).
-  * `c_m`, `c_c`, `c_d`: component, no value; written by „alles“ and „alles
-    (gleichmäßig)“.
-  * `un_name_<union>`: component, no value; emptied by `features/union.ts`
-    after an invitation.
   * `jg_to` „Zielmond“: component select with disabled options; the draft
     is kept only while its option is enabled (`keeps` of
     `logic/jump-gate.ts`).

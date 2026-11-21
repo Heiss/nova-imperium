@@ -203,9 +203,16 @@ function jumpBox(v: V): JumpBox | null {
   };
 }
 
+/** The target the form starts with: the one chosen elsewhere (the Sternenkarte, a union), else the shown planet. */
+export const fleetTarget = ({
+  P,
+  ui,
+}: Pick<V, 'P' | 'ui'>): NonNullable<V['ui']['ft']> =>
+  ui.ft ?? { g: P.g, s: P.s, p: P.p };
+
 function formPage(v: V, full: boolean): FleetFormPage {
   const { P, s, ui } = v;
-  const t = ui.ft ?? { g: P.g, s: P.s, p: P.p };
+  const t = fleetTarget(v);
   // „Mond“ only where one is (#53); the form updates it with the coordinates.
   const moon = !!moonAt(s.galaxy, t);
   // Only the missions that fit the target (#253); missiles start in the

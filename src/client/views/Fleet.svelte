@@ -5,8 +5,13 @@
   // and writes the target, the list „Auftrag“, the row of the time at the
   // target and the preview of the flight into their places while the player
   // types. Those two lists of options and that row are HTML (`{@html}`) so
-  // that the form writes them with the same functions.
+  // that the form writes them with the same functions. The ships, the
+  // position, the speed, the cargo and the names to invite are the state of
+  // logic/fleet-form.svelte.ts (#332): a field takes `value` with `oninput`,
+  // so a half-typed number is never written over.
+  import { fleetForm } from '../logic/fleet-form.svelte.ts';
   import { QUICK_FIRST } from '../logic/fleet-target.ts';
+  import { shown } from '../logic/galaxy-position.svelte.ts';
   import {
     CARGO_FIELDS,
     type FleetPage,
@@ -43,6 +48,9 @@
               <input
                 type="text"
                 id="un_name_{union.id}"
+                value={fleetForm.invite[union.id]}
+                oninput={(e) =>
+                  (fleetForm.invite[union.id] = e.currentTarget.value)}
                 maxlength="20"
                 placeholder="Spielername"
                 aria-label="Spieler zum Angriffsverband einladen"
@@ -103,6 +111,9 @@
                   class="fs"
                   id="f_{ship.key}"
                   data-k={ship.key}
+                  value={fleetForm.ships[ship.key]}
+                  oninput={(e) =>
+                    (fleetForm.ships[ship.key] = e.currentTarget.value)}
                   placeholder="0"
                   aria-label="Anzahl {ship.name}"
                 />
@@ -142,7 +153,8 @@
                 class="c3"
                 type="number"
                 id="t_g"
-                value={target.g}
+                value={shown(fleetForm.to.g, target.g)}
+                oninput={(e) => (fleetForm.to.g = e.currentTarget.value)}
                 min="1"
                 max={target.galaxies}
                 aria-label="Galaxie"
@@ -150,7 +162,8 @@
                 class="c3"
                 type="number"
                 id="t_s"
-                value={target.s}
+                value={shown(fleetForm.to.s, target.s)}
+                oninput={(e) => (fleetForm.to.s = e.currentTarget.value)}
                 min="1"
                 max={target.systems}
                 aria-label="System"
@@ -158,7 +171,8 @@
                 class="c3"
                 type="number"
                 id="t_p"
-                value={target.p}
+                value={shown(fleetForm.to.p, target.p)}
+                oninput={(e) => (fleetForm.to.p = e.currentTarget.value)}
                 min="1"
                 max={target.positions}
                 aria-label="Position"
@@ -200,9 +214,14 @@
           <tr>
             <td>Geschwindigkeit</td>
             <td
-              ><select id="t_v" aria-label="Geschwindigkeit"
+              ><select
+                id="t_v"
+                aria-label="Geschwindigkeit"
+                onchange={(e) => (fleetForm.speed = e.currentTarget.value)}
                 >{#each SPEEDS as speed (speed.value)}<option
-                    value={speed.value}>{speed.label}</option
+                    value={speed.value}
+                    selected={fleetForm.speed === speed.value}
+                    >{speed.label}</option
                   >{/each}</select
               ></td
             >
@@ -215,6 +234,9 @@
                   ><input
                     type="number"
                     id="c_{field.key}"
+                    value={fleetForm.cargo[field.key]}
+                    oninput={(e) =>
+                      (fleetForm.cargo[field.key] = e.currentTarget.value)}
                     min="0"
                     placeholder="0"
                     aria-label={field.name}
