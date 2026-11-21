@@ -1,5 +1,68 @@
 # Neuigkeiten
 
+## Version 26.11.23 – 21.11.2026
+
+### Neu
+
+- Spielaktionen sind auf 120 pro Minute begrenzt. Wer mehr schickt, sieht „Zu viele Aktionen in kurzer Zeit. Bitte warte einen Moment.“ und kann gleich danach weiterspielen.
+- Sternenkarte: Planeten zeigen „Aktiv“ oder „Aktivität vor x Minuten“, Spieler „Inaktiv“ und „Lange inaktiv“. Die Grenzen stellt der Admin in „Neue Runde“ und im Tab „Universum“ ein: „Aktivität ohne Minutenangabe“, „Aktivität mit Minutenangabe bis“, „Inaktiv ab“, „Lange inaktiv ab“.
+- Endzeit: Zum Rundenende kann der Admin einmal die Gabe des Gottkaisers senden, Flugzeit wählbar (Standard unter „Universum“). Jeder erhält eine Verlegung zum Heimatplaneten mit je 42 flugfähigen Schiffen jeder Art und je 1.000.000 Rohstoffen; bei Ankunft ist alles außer reinen Mondgebäuden frei.
+- Expeditionen: Mit der Forschung Kreuzzugs-Kartografie schickst du Flotten zur Expeditionsposition am Rand jedes Systems und wählst die Haltezeit. Dort warten Funde und Gefahren; Trümmerfelder dort bergen Bergungsbarken. Der Admin legt Plätze, Haltezeit und Tempo pro Runde fest.
+- Flotte: Unter jedem Ladungsfeld lädt „alles“ nur diesen Rohstoff, so viel in den noch freien Laderaum passt. „alles (gleichmäßig)“ verteilt den Laderaum gleichmäßig auf Adamant, Psikristall und Promethium; was ein Rohstoff nicht füllt, bekommen die anderen.
+- Flotte: Die Liste „Auftrag“ zeigt nur Aufträge, die zum Ziel passen – auf einem fremden Planeten keine Landnahme, auf einem leeren Feld keinen Angriff. Die „Schnellwahl“ trägt eigene Planeten und Monde, Freunde, Gildenmitglieder und die letzten Angriffsziele als Ziel ein.
+- Fremde Flotten: Was du von einer anrückenden Flotte siehst, hängt von deiner Auspex-Lehre ab: ab Stufe 2 die Schiffe insgesamt, ab 4 die Schiffstypen, ab 8 die Anzahl je Typ. Der Admin stellt die Stufen je Runde ein („Fremde Flotten: … ab Auspex-Lehre“).
+- Freunde: Unter „Freunde“ fragst du einen Spieler nach seinem Namen an. Nimmt er an, seid ihr befreundet und seht euch mit Gilde, Heimatplanet und ob ihr online seid. Anfragen kannst du annehmen, ablehnen oder zurückziehen.
+- Gilden-Chat: Jede Gilde hat einen eigenen Chat. Wer ihn lesen, darin schreiben oder Nachrichten löschen darf, legt die Leitung über die Ränge fest. Der Chat meldet Beitritte, Austritte, neue Ränge und Angriffe auf Mitglieder. Jede neue Runde leert ihn. Die Spielleitung kann Gilden-Chats lesen.
+- Der Admin legt beim Start einer neuen Runde fest, ob es in ihr Gilden mit Chat gibt. In einer Runde ohne Gilden fehlt der Menüpunkt „Gilden“, und alle bisherigen Gilden sind mit dem Rundenstart aufgelöst.
+- Gildenränge: Die Gildenleitung legt Ränge an (Name höchstens 24 Zeichen), ordnet sie und gibt ihnen Rechte, etwa Bewerbungen annehmen oder Mitglieder entfernen. Neue Mitglieder bekommen den Standardrang. Ränge sieht nur die eigene Gilde. Die Leitung kann die Gilde auch mit Mitgliedern auflösen.
+- Hauptplanet: In den Optionen wählst du einen deiner Planeten als Hauptplaneten. „zum Heimatsystem“ auf der Sternenkarte führt dorthin, ohne Auswahl zeigt das Spiel ihn. Nach einem Wechsel ist die Wahl gesperrt; die Dauer (1 bis 30 Tage, Standard 7) legt der Admin pro Runde fest.
+- Highscore nach Kategorien: Über der Tabelle wählst du Gesamt, Gebäude, Forschung, Flotte oder Verteidigung, jede mit eigener Rangliste. In der Flotte zählt jedes Schiff einen Punkt, in der Forschung jede Stufe.
+- Kolonie aufgeben: Per Passwort gibst du eine Kolonie samt allem darauf und Mond auf, nicht den Hauptplaneten und nicht bei Flügen, Forschung oder Aufträgen dort. Die Position bleibt standardmäßig 24 Stunden gesperrt; die Dauer ändert der Admin unter „Sperre einer aufgegebenen Position (Stunden)“.
+- Schiffsschmiede und Verteidigung: Auch die klassischen Schiffe und Verteidigungsanlagen, vom Frachtläufer bis zum Massebeschleuniger, zeigen jetzt eine kurze Beschreibung unter ihrem Namen.
+- Lexicanum: ein Artikel zu jedem Eintrag und jeder Mission, dazu Regelseiten mit den Werten dieser Runde, häufige Fragen, Anleitungen für den Einstieg und „Deine nächsten Ziele“ aus deinem Stand. Das (?) öffnet den Artikel am Rechner in der Seitenleiste. „Hilfe & Optionen“ heißt jetzt „Optionen“.
+- Marktplatz: Mit dem neuen Handelsposten tauschst du Adamant, Psikristall und Promethium. Kurse, Gebühr und Tageslimit legt der Admin pro Runde fest, höhere Stufen senken die Gebühr, Preise verschieben sich mit jedem Tausch. Über dem Tageslimit wird nur der Rest getauscht.
+- Mondbruch: Du startest ihn direkt auf der Sternenkarte beim fremden Mond; nötig ist ein Weltenbrecher. Nach einem Sieg kann der Mond samt Inhalt zerbrechen; die Weltenbrecher können vom eigenen Schuss zerrissen werden. Flotten zum Mond landen dann auf seinem Planeten.
+- Monde: Aus einem großen Trümmerfeld kann nach einer Schlacht ein Mond entstehen, ohne Produktion. Die Mondzitadelle schafft dort Felder, die Auspex-Phalanx erfasst gegen Promethium die Flüge fremder Planeten in Reichweite. Der Admin kann im Spielerdatensatz einen Mond anlegen.
+- Planeten haben einen Durchmesser und begrenzte Felder: Jede Gebäudestufe belegt ein Feld, der Heimatplanet hat 163. Die neue Weltenschmiede schafft fünf Felder pro Stufe. Bestehende Planeten bleiben bis zur nächsten Runde unbegrenzt.
+- Planetengrenze: Neue Runden starten mit 6 Planeten je Spieler (+2 je Forschungsstufe), laufende bleiben unbegrenzt. Der Admin stellt es pro Runde ein (0 = unbegrenzt) und aktiviert die Forschung Kolonialverwaltung; „Neue Runde“ zeigt Vorschau und Werte. Am Limit scheitert die Landnahme.
+- Unter „Hilfe & Optionen“ wählst du bei „Benachrichtigungen“, welche Meldungen per Push kommen, zum Beispiel fertige Gebäude, Sturmangriffe auf deine Planeten oder Servernachrichten. Die Auswahl gilt für alle deine Geräte; anfangs ist alles eingeschaltet.
+- Raketen: Die Raketenkrypta lagert Abfangraketen und Orbitalraketen; den Raketenangriff startest du in der Sternenkarte. Gelagerte Raketen verschrottest du kostenlos; die Raketenkrypta lässt sich nur zurückbauen, solange ihre Plätze für alle Raketen reichen.
+- Zurückbauen: Ein Gebäude lässt sich Stufe für Stufe zurückbauen. Je nach Runde gibt es einen Teil der Kosten zurück oder der Rückbau kostet extra. Der Admin stellt „Rückbau-Erstattung (%)“ und „Rückbau-Dauer (% der Bauzeit)“ bei „Neue Runde“ und im Tab „Universum“ ein.
+- Rundenarchiv: Jede Runde wird beim Abschluss gespeichert. In „Hilfe & Optionen“ siehst du Rangliste, Spielzeit, Rundenvergleich und einen kurzen Runden-Rewind. Der Admin schließt und löscht Runden, sieht die laufende Runde vorläufig (aktualisierbar) und jeden Teilnehmer im Detail.
+- Schiffsschmiede: Jeden Auftrag der Bauliste kannst du abbrechen, bei Schiffen und Verteidigung. Die noch nicht fertigen Einheiten werden voll erstattet; schon fertige bleiben auf dem Planeten.
+- Hilfe & Optionen: „Meine Aktivität & Spielzeit“ zeigt deine geschätzte aktive Spielzeit für heute, die letzten 7 Tage, die Runde und alle Runden. Die Spielaktionen pro Tag bleiben bis zum Rundenende erhalten. Nach 60 Sekunden ohne Eingabe pausiert die Erfassung.
+- Stufenübersicht: Neben dem „?“ zeigt ein ▤ bei jedem Gebäude und jeder Forschung Kosten, Zeit und Wirkung der nächsten Stufen. In „Hilfe & Optionen“ stellst du ein, ob die Tabelle immer, als Symbol oder gar nicht erscheint.
+- Bergungsbarke und Trümmerfelder: Zerstörte Schiffe hinterlassen nach einer Schlacht ein Trümmerfeld aus Adamant und Psikristall. Die Sternenkarte zeigt es allen Spielern; mit dem neuen Auftrag „Bergung“ holt eine Flotte mit Bergungsbarke es heim.
+- Urlaubsmodus: In den Optionen pausierst du dein Konto, wenn nichts mehr läuft. Die Produktion ruht, Planeten und Monde sind vor neuen Flotten geschützt; Wachen bei dir fliegen heim. Der Admin legt „Mindestdauer des Urlaubsmodus (Stunden)“ (Standard 48) in „Neue Runde“ fest, ändert sie in der Runde.
+- Verbandsangriff: Wer einen Sturmangriff unterwegs hat, eröffnet einen Angriffsverband und lädt Gildenmitglieder oder Freunde ein. Alle kämpfen gemeinsam in einer Schlacht, die Beute teilt sich nach Laderaum, der Bericht zeigt jeden Angreifer. Grenzen setzt der Admin pro Runde.
+- Vermessung: Mit der Forschung Auspex-Kartographie vermessen Spähschädel freie Positionen vor der Landnahme. Mehr Spähschädel und Stufen zeigen mehr, weite Flüge sind gefährlicher. Eine Kolonie dort erhält die gemessenen Werte; ohne Kolonie verfallen sie nach 30 Tagen.
+- Wache stellen: Schicke eine Flotte für 0 bis 32 Stunden zum Planeten eines Gildenmitglieds oder Freundes; sie verteidigt ihn in jedem Kampf. Der Admin legt fest, wer halten darf („Verbündete für Halten und Verband“) und ab wann der Auspex-Bericht sie getrennt zeigt.
+- Warp-Tor: Das dritte Mondgebäude versetzt in der Flotte ausgewählte Schiffe sofort und ohne Treibstoff zu einem anderen eigenen Mond mit Warp-Tor; Rohstoffe bleiben zurück. Danach kühlen beide Tore ab, kürzer bei höherer Stufe des Starttors.
+
+### Geändert
+
+- Am Computer bleiben die Kopfzeile mit den Rohstoffen und das Menü links beim Scrollen sichtbar. Bricht die Kopfzeile um, verschwindet die Logo-Zeile beim Scrollen; steht das Logo neben den Rohstoffen, wird es kleiner.
+- Kopfzeile: Der aktive Planet steht oben nur noch einmal. Mit mehreren Planeten oder Monden zeigt ihn die Auswahl „Aktiver Planet“, die jetzt vorne steht; mit nur einem Planeten stehen Name und Koordinaten wie bisher als Text da.
+- Flottenbewegungen: In der Übersicht und unter „Flotten unterwegs“ zeigt jede eigene Flotte jetzt auch ihre Ladung, auf dem Hinflug und auf dem Rückflug.
+- Forschung, Schiffsschmiede und Verteidigung: Kosten und die Liste „Benötigt“ zeigen jetzt laufend, was du dir leisten kannst, wie schon bei den Gebäuden. Ein angeklickter Knopf behält dabei den Fokus.
+- Auspex-Erkundung nach klassischen Regeln: erst ab Auspex-Lehre 1. Mehr Spähschädel, mehr Schiffe und eine höhere Auspex-Lehre des Ziels erhöhen die Abwehrchance. Entdeckte Spähschädel kämpfen; ohne Überlebende kein Bericht. Der Bericht zeigt die Aktivität des Ziels.
+- Tägliche Belohnung: Sie wächst mit der Runde. Es gibt die mittlere Stundenproduktion aller Spieler, am ersten Tag der Runde für 30 Minuten, bis zum 30. Tag steigend auf 90 Minuten. Ein verpasster Tag setzt nur die Anmeldeserie zurück, nicht die Belohnung.
+- Telefon-Ansicht schlanker: Unten Übersicht, Bauen, Flotte, Sternenkarte und Mehr, Nachrichten hinter der Glocke. „Bauen“ merkt sich den Filter. Übersicht mit Karten „Läuft“, „Achtung“, „Bereit“ (auch leere Bauschleifen), Sternenkarte mit „⋯“-Menü, Optionen in Abschnitten. Am PC bleibt alles.
+- Telefon: Alle Knöpfe, Felder, Listen und Verweise der Lexicanum-Listen sind jetzt mindestens 44 Pixel hoch und lassen sich leichter treffen. Am PC bleibt alles.
+
+### Behoben
+
+- Was der Admin in die Einstellungen des Universums getippt hat, geht nicht mehr verloren, wenn sich die Seite im Hintergrund neu aufbaut. Bis zum Speichern bleibt der Entwurf stehen, auch nach einer abgelehnten Eingabe.
+- Ein Einladungslink zeigt bei langsamer Verbindung nicht mehr kurz das Login: Name und Passwort, die du dort schon getippt hattest, gingen beim Wechsel zur Registrierung verloren.
+- Gebäude: Die Energieanzeige eines Gebäudes rechnet jetzt wie der Bauknopf mit der gedrosselten Leistung. Sie zeigt also nicht mehr „genug Energie“, während der Bau wegen fehlender Energie gesperrt ist.
+- Flotte: Mit Spähschädeln im Hangar ist die Flottenseite auf dem Handy nicht mehr breiter als der Bildschirm.
+- Die E-Mail-Adresse einer Einladung geht nicht mehr verloren, wenn sich die Seite im Hintergrund neu aufbaut. Das Feld „Was ist passiert?“ bei „Problem melden“ ist nach dem Absenden wieder leer.
+- Gilden: Wer gerade einen Rang ohne Leserecht für den Gilden-Chat bekommen hat, sieht keine Fehlermeldung „Dazu fehlt deinem Rang das Recht.“ mehr, die eine eigene Meldung verdeckte, etwa nach der Übergabe der Gildenleitung.
+- Auf dem Handy passt die Gildenseite auch bei langen Gildennamen, Kürzeln und Spielernamen auf den Bildschirm: ein Name, der nicht in eine Zeile passt, wird umgebrochen.
+- Auf dem Handy passt die Rohstoffseite wieder auf den Bildschirm: jede Zeile steht als eigener Block mit allen Werten und der Leistung untereinander. Im Highscore stehen die Koordinaten des Heimatplaneten auf dem Handy klein unter dem Spielernamen, damit auch lange Namen passen.
+- Korrektur zu 26.11.22: Die beiden Einträge zu den Erklärungstexten beschreiben eine Neuerung: Ein (?) neben Gebäuden, Forschungen, Schiffen und Verteidigungsanlagen klappt eine ausführliche Erklärung auf.
+- Korrektur zu 26.11.22: Der Weltenbrecher ist das stärkste Schiff der Schiffsschmiede, nicht das zweitstärkste nach dem Belagerungsbomber.
+
 ## Version 26.11.22 – 13.11.2026
 
 ### Neu

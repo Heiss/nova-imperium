@@ -594,9 +594,10 @@ owiki.de „Mond“ (section Zerstörung, formula images). Built after the moons
   the moon and in the phone sheet „⋯“, after „Versorgungsflug“, built like
   „Sturmangriff“ (`fleetTo`, `data-act="gfleet"`, `data-m="moonbreak"`,
   data-k="moon"); it opens the fleet form with the moon as the target and
-  the Mondbruch chosen. It shows exactly when `canOffer('moonbreak', …)`
-  of `src/core/mission-fit.ts` holds: the moon is a foreign moon that fits
-  the rules of the mission (`missionsFor`, as the fleet form). [E] It shows
+  the Mondbruch chosen. It shows exactly when the list of the fleet form
+  (`offeredMissions` of `src/client/logic/fleet-target.ts`, the rule
+  `missionsFor` of `src/core/mission-fit.ts`) holds the Mondbruch for that
+  target: the moon is a foreign moon. [E] It shows
   at every foreign moon, with or without a Weltenbrecher on the shown planet
   (owner, 2026-11-21; the first build asked for one, as „Landnahme“ asks for
   a colony ship); the fleet form refuses a send without one. [V] No own title or aria-label,
