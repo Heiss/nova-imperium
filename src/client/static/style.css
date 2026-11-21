@@ -447,6 +447,17 @@ button[aria-pressed='true'] {
 .act {
   text-align: center;
 }
+/* „Verschrotten“ of stored missiles (#54, 2026-11-21): the number and the button. */
+.tear {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+.tear input {
+  width: 4.5em;
+}
 .item.running {
   background: rgb(224 138 42 / 0.08);
   box-shadow: inset 3px 0 0 var(--ember);
@@ -2104,6 +2115,22 @@ table.lx-t {
     flex: 0 0 40%;
     width: auto;
     margin-top: 0;
+  }
+  /* „Verschrotten“ of stored missiles (#54): its own full row below the order. */
+  .item .act:has(> .flex) {
+    flex-wrap: wrap;
+  }
+  .item .act > .tear {
+    flex: 1 1 100%;
+  }
+  .item .act > .tear input {
+    flex: 1 1 0;
+    width: auto;
+    min-width: 0;
+  }
+  .item .act > .tear button {
+    flex: 0 0 40%;
+    width: auto;
   }
 }
 

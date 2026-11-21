@@ -12,6 +12,7 @@ import {
   nav,
   register,
   seed,
+  stock,
   uniqueName,
   watch,
 } from './helpers.ts';
@@ -151,6 +152,98 @@ test.describe('missiles (#54)', () => {
     await expect(hit).toContainText(
       `1 Orbitalraketen trafen ${at}; 1 wurden abgefangen. Zerstört: 3 Massebeschleuniger, 7 Raketenbatterie.`,
     );
+    expect(w.problems).toEqual([]);
+  });
+
+  test('stored missiles are torn down for free: the places are free again and nothing comes back (#54, 2026-11-21)', async ({
+    page,
+  }) => {
+    const w = watch(page);
+    const name = uniqueName('Verschrott');
+    await register(page, name);
+    seed({
+      name,
+      res: { m: 1000, c: 1000, d: 1000 },
+      b: { yard: 1, silo: 2 },
+      def: { abm: 16 },
+    });
+    await page.reload();
+    await nav(page, 'defense');
+    const abm = page.locator('.item', { hasText: 'Abfangrakete' }).first();
+    await expect(abm).toContainText('(vorhanden: 16)');
+    const count = abm.getByLabel('Menge verschrotten: Abfangrakete');
+    const button = abm.getByRole('button', {
+      name: 'Verschrotten: Abfangrakete',
+    });
+    // More than the stock is refused before a dialog opens.
+    await count.fill('17');
+    await button.click();
+    await expect(page.locator('.toast.err').last()).toContainText(
+      'Nicht so viele Raketen vorhanden.',
+    );
+    await expect(page.locator('#modal')).not.toBeVisible();
+    await count.fill('6');
+    await button.click();
+    const dialog = page.locator('#modal');
+    await expect(dialog).toContainText('Abfangrakete: 6 verschrotten');
+    await expect(dialog).toContainText('Du erhältst nichts zurück.');
+    await dialog.getByRole('button', { name: 'Verschrotten' }).click();
+    await expect(dialog).not.toBeVisible();
+    await expect(abm).toContainText('(vorhanden: 10)');
+    await expect(count).toHaveValue('');
+    // Six Abfangraketen cost 48,000 Adamant: none of it came back.
+    const adamant = Number(
+      (await stock(page, 'Adamant').textContent())!.replaceAll('.', ''),
+    );
+    expect(adamant).toBeLessThan(5000);
+    await nav(page, 'buildings');
+    await expect(
+      page.locator('.item', { hasText: 'Raketenkrypta' }),
+    ).toContainText('Belegt: 10 / 20 Plätze');
+    expect(w.problems).toEqual([]);
+  });
+
+  test('the Raketenkrypta is not torn down below the places of its missiles; the player tears missiles down first (#54, #202, 2026-11-21)', async ({
+    page,
+  }) => {
+    const w = watch(page);
+    const name = uniqueName('Rueckkrypta');
+    await register(page, name);
+    seed({
+      name,
+      res: { m: 1000, c: 1000, d: 1000 },
+      b: { yard: 1, silo: 2 },
+      def: { abm: 11 },
+    });
+    await page.reload();
+    await nav(page, 'buildings');
+    const silo = page.locator('.item', { hasText: 'Raketenkrypta' });
+    await silo.getByRole('button', { name: 'Zurückbauen' }).click();
+    const dialog = page.locator('#modal');
+    await expect(dialog).toContainText(
+      'Die Raketenkrypta lagert zu viele Raketen.',
+    );
+    await expect(
+      dialog.getByRole('button', { name: 'Zurückbauen' }),
+    ).toHaveCount(0);
+    await dialog.getByRole('button', { name: 'Abbrechen' }).click();
+    // Nothing was removed.
+    await expect(silo.locator('.lv')).toHaveText('(Stufe 2)');
+    await nav(page, 'defense');
+    const abm = page.locator('.item', { hasText: 'Abfangrakete' }).first();
+    await expect(abm).toContainText('(vorhanden: 11)');
+    await abm.getByLabel('Menge verschrotten: Abfangrakete').fill('1');
+    await abm
+      .getByRole('button', { name: 'Verschrotten: Abfangrakete' })
+      .click();
+    await dialog.getByRole('button', { name: 'Verschrotten' }).click();
+    await expect(abm).toContainText('(vorhanden: 10)');
+    // Exactly as many places as missiles: the demolition is offered now.
+    await nav(page, 'buildings');
+    await silo.getByRole('button', { name: 'Zurückbauen' }).click();
+    await expect(dialog).toContainText('Rückbau auf Stufe 1');
+    await dialog.getByRole('button', { name: 'Zurückbauen' }).click();
+    await expect(silo).toContainText('Rückbau auf Stufe 1');
     expect(w.problems).toEqual([]);
   });
 

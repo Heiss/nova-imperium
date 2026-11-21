@@ -53,6 +53,7 @@ export const INPUT: Readonly<Record<string, Spec>> = {
   },
   recall: { id: 'keep' },
   missile: { planet: 'keep', to: 'keep', n: 'keep', aim: 'keep' },
+  tearDownMissiles: { planet: 'keep', key: 'keep', n: 'keep' },
   jump: { planet: 'keep', ships: 'keep', to: 'keep' },
   scan: { planet: 'keep', target: 'keep' },
   trade: { planet: 'keep', give: 'keep', get: 'keep', amount: 'keep' },

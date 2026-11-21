@@ -46,6 +46,7 @@ const KINDS: Record<string, Kinds> = {
   },
   recall: { keep: ['id'] },
   missile: { keep: ['planet', 'to', 'n', 'aim'] },
+  tearDownMissiles: { keep: ['planet', 'key', 'n'] },
   jump: { keep: ['planet', 'ships', 'to'] },
   scan: { keep: ['planet', 'target'] },
   trade: { keep: ['planet', 'give', 'get', 'amount'] },

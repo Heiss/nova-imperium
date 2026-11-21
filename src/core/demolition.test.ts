@@ -402,6 +402,8 @@ describe('why a level cannot be torn down (D5)', () => {
     expect(
       down(2, { ipm: 5 }, [{ key: 'lc', n: 50, unit: 5 }] as never),
     ).toEqual([]);
+    // Without a level there is nothing to tear down, whatever is stored.
+    expect(down(0, { abm: 3 })).toEqual(['none']);
     // Only the Raketenkrypta: another building is not held back by missiles.
     expect(codes({ b: { metal: 1 }, def: { abm: 99 } }, 'metal')).toEqual([]);
   });

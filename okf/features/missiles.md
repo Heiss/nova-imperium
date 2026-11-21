@@ -50,7 +50,7 @@ Issue #54, part of the Classic features (#222). The owner's answers of
   2026-11-17, #228).
 * **[E]** The German texts of the first pull request (below) are confirmed
   (owner, 2026-11-17). Tearing missiles down for free and the demolition of
-  the Raketenkrypta stay open, with #202.
+  the Raketenkrypta were decided on 2026-11-21 (below, built).
 
 # Proposals
 
@@ -181,9 +181,55 @@ above.
     wording, or a wording of its own for missiles („Raketen insgesamt: 3“,
     options: 1. keep, 2. „Raketen insgesamt“ for the mission `missile`,
     3. a text of its own for the whole row, 4. no „Schiffe“ part).
-* **[U]** Not built, open: tearing missiles down for free (issue, owiki
-  „Raketensilo“) and the demolition of the Raketenkrypta below the places
-  its missiles take, both with #202 (owner, 2026-11-17).
+* **[E]** Tearing missiles down (owner, 2026-11-21): the player removes
+  stored Abfangraketen and Orbitalraketen of a planet. The player chooses
+  the amount; the missiles are gone at once and their places in the
+  Raketenkrypta are free at once; it costs nothing and gives no resources
+  back. Built: the action `tearDownMissiles` (`key`, `n`) of
+  `src/server/game/missiles.ts`, its check the pure `tearDownError` of
+  `src/core/missiles.ts` (codes `unit`: not one of the two missiles, `count`:
+  not a whole number from 1 on, `stock`: more than the planet stores; the
+  missiles in the shipyard queue are no stock yet). The planet is the
+  selected own one (`mine`), so a foreign planet is refused; the lock of
+  the vacation mode holds as for every action (the action is not on the
+  list of the lock screen); the audit entry `game` / `tearDownMissiles` has
+  the planet, the key and the number of missiles; the journal input
+  allow-list has `planet`, `key` and `n` (`src/server/game/journal-input.ts`).
+  In the list „Verteidigung“ (`logic/catalog-list.ts`, `CatalogList.svelte`)
+  a row with missiles in store shows below „Bauen“ a number field and the
+  button „Verschrotten“ (`features/missiles.ts`, `logic/missiles.ts`,
+  `views/missiles.ts`); on a phone the block takes a row of its own with
+  44 px targets (`style.css`).
+* **[E]** The demolition of the Raketenkrypta (owner, 2026-11-21): a level
+  is refused while the places left after it would be fewer than the missiles
+  there, the missiles in the shipyard queue counted as for the order of a
+  missile (the rule of #202, D5: not while the building is in use; the player
+  tears missiles down first, nothing is removed silently). Built as the code
+  `siloBusy` of `demolitionErrors`
+  ([Demolition](/features/demolition.md)).
+* **[V]** Texts of the two (the owner decided the rules, not the words):
+  the button „Verschrotten“ (the naming guard rejects „Abbauen“, the classic
+  word for the harvest of a debris field, `src/test/naming.ts`), the field
+  „Menge verschrotten: <Name>“ (a label without the word „Anzahl“, so the
+  fields of the order are still found by it), the confirmation „<Name>: N
+  verschrotten“, „Die Raketen sind sofort weg, ihre Plätze in der
+  Raketenkrypta werden frei. Du erhältst nichts zurück.“ with the buttons
+  „Verschrotten“ and „Abbrechen“, the answer „N× <Name> verschrottet.“, the
+  refusals „Bitte eine Anzahl eingeben.“ (as the order), „Nicht so viele
+  Raketen vorhanden.“ and „Ungültig.“ (a unit that is no missile, as every
+  request the interface never sends), and for the demolition „Die
+  Raketenkrypta lagert zu viele Raketen.“. The note of the browser is
+  checked before the confirmation opens, with the words of the server
+  (`src/test/missile-teardown-texts.test.ts`).
+* **[V]** A confirmation, as the neighbours that destroy something without
+  a refund have one (the demolition at 0 %, the abandon of a colony); the
+  cancel of a shipyard order (#258) has none, but it refunds in full.
+* **[V]** Highscore (#78): the points are worked out from what stands on the
+  planets, so they fall at once by the cost of the missiles torn down, in
+  the total only (missiles are no category); nothing is stored or booked.
+* **[V]** A missile in store is torn down only in the list „Verteidigung“,
+  which a planet without a Schiffsschmiede does not show; the amount typed
+  stays like the fields of the order (field draft by the id `td_<key>`).
 * **[V]** Vacation mode (#223, built into the bundle with #54): the check of
   the target asks it after the range and before the noob protection, as
   for a fleet (`vacationProtects`, `src/core/vacation.ts`): a place of a

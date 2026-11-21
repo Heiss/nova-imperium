@@ -8,6 +8,9 @@ import {
   canLaunch,
   launchOrder,
   missilesHere,
+  TEAR_DOWN_NOTE,
+  tearDownMax,
+  tearDownNote,
 } from './missiles.ts';
 import type { GalaxyPlanet } from './types.ts';
 
@@ -85,5 +88,29 @@ describe('the Raketenangriff: the form', () => {
         aim: null,
       },
     );
+  });
+});
+
+describe('the tear-down of stored missiles (#54, 2026-11-21)', () => {
+  const planet = { def: { abm: 4, ipm: 0, rl: 9 } };
+
+  it('offers the stock of a missile and nothing else', () => {
+    expect(tearDownMax(planet, 'abm')).toBe(4);
+    expect(tearDownMax(planet, 'ipm')).toBe(0);
+    expect(tearDownMax(planet, 'rl')).toBe(0);
+    expect(tearDownMax({ def: {} }, 'abm')).toBe(0);
+  });
+
+  it('gives the note of the check of the server, or none', () => {
+    expect(tearDownNote(planet, 'abm', 4)).toBeNull();
+    expect(tearDownNote(planet, 'abm', 5)).toBe(
+      'Nicht so viele Raketen vorhanden.',
+    );
+    expect(tearDownNote(planet, 'abm', 0)).toBe('Bitte eine Anzahl eingeben.');
+    expect(tearDownNote(planet, 'abm', 1.5)).toBe(
+      'Bitte eine Anzahl eingeben.',
+    );
+    expect(tearDownNote(planet, 'rl', 1)).toBe('Ungültig.');
+    expect(Object.keys(TEAR_DOWN_NOTE)).toEqual(['unit', 'count', 'stock']);
   });
 });
