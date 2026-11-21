@@ -20,6 +20,8 @@ export default defineConfig(
       '.stryker-tmp/**',
       'data/**',
       'src/test/legacy/**',
+      // Agent worktrees inside the checkout hold other branches.
+      '.claude/worktrees/**',
     ],
   },
   js.configs.recommended,
