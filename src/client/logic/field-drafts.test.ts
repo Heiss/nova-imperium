@@ -33,6 +33,7 @@ describe('the fields that have a draft', () => {
       't_u',
       't_h',
       't_stay',
+      't_q',
       'c_m',
       'c_c',
       'c_d',

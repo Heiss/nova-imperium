@@ -19,7 +19,7 @@ import { keeps } from './jump-gate.ts';
  * invitation, the message to all players and the filters of „Admin“.
  */
 const UNTRACKED =
-  /^(set_.+|inv_link|dissolve_tag|chat_text|friend_name|achievement_(search|category|status)|g_[gs]|market-(give|get|amount)|f_.+|t_([gspvkmu]|h|stay)|c_[mcd]|un_name_.+|o_(probes|explain|levels|main)|pw_(current|next|confirm)|passkey-password|reportform-text|guild_(tag|name|description)|rank_.+|inv_email|announce-text|audit-(player|outcome))$/;
+  /^(set_.+|inv_link|dissolve_tag|chat_text|friend_name|achievement_(search|category|status)|g_[gs]|market-(give|get|amount)|f_.+|t_([gspvkmuqh]|stay)|c_[mcd]|un_name_.+|o_(probes|explain|levels|main)|pw_(current|next|confirm)|passkey-password|reportform-text|guild_(tag|name|description)|rank_.+|inv_email|announce-text|audit-(player|outcome))$/;
 
 /** Whether the field with this id has a draft. */
 export const isTracked = (id: string): boolean => !UNTRACKED.test(id);

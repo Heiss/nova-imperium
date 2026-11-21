@@ -197,6 +197,29 @@ describe('the state of the form (#332)', () => {
   });
 });
 
+describe('the list „Schnellwahl“ after a redraw (#332)', () => {
+  afterEach(forgetForms);
+
+  it('shows „– wählen –“ whatever the form holds: the list enters a target and goes back, it has no state', () => {
+    fleetForm.to = { g: '1', s: '3', p: '7' };
+    fleetForm.kind = 'moon';
+    const v = view({});
+    v.s.galaxy.push({
+      id: 'p1_3_7',
+      kind: 'planet',
+      name: 'Kolonie',
+      g: 1,
+      s: 3,
+      p: 7,
+      temp: 1,
+      owner: 'u1',
+    } as GameState['galaxy'][number]);
+    const list = /<select id="t_q"[^]*?<\/select>/.exec(fleet(v))![0];
+    expect(list).toContain('<option value="p1_3_7">');
+    expect(list).not.toContain('selected');
+  });
+});
+
 describe('the kind of target after a redraw (#332)', () => {
   afterEach(forgetForms);
 
