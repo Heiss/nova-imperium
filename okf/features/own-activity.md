@@ -167,7 +167,11 @@ are [Activity indicators](/features/activity-indicators.md).
   when the action succeeded (`ok` true: a refused action, one stopped by the
   rate limit and an unknown action do not, as `outcome = 'ok'` did not) and the
   action is not an admin action (`ADMIN_ACTIONS`, audited as `admin.write`, not
-  as `game`); reads count as before. The account is found by its seat in the
+  as `game`); reads count as before. **[E]** (owner, 2026-11-21, #335) To
+  change: only the actions that change something count, plus the reads the
+  player starts on purpose by a click (a Phalanx-Scan); a read a view makes by
+  itself (the two archive reads of „Hilfe“) does not. Not built yet: it needs
+  a classification of every action with a guard. The account is found by its seat in the
   rounds (`round_participants`), the day by the time of recording, in UTC.
 * **[V]** Differences that remain: an account without a seat (it holds no place;
   an admin without a planet) has no attributable events in the journal, the audit
