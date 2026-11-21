@@ -12,6 +12,8 @@
 //        prints every mark ("<file>:<line> <mutators>: <reason>") for the
 //        report and the problems; exit code 1 when there is one
 import { readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
+import type * as TS from 'typescript';
 import { runCli } from './cli.ts';
 import { readMutate } from './mutation-changes.ts';
 import { parseStandard, STANDARD } from './mutation-gate.ts';
@@ -26,19 +28,58 @@ export interface Mark {
   text: string;
 }
 
-/** A directive of Stryker in a comment (disable or restore); other text does not count. */
-const COMMENT =
-  /(?:^|\s)(?:\/\/|\/\*+|\*)\s*Stryker\s+((?:disable|restore)\b.*?)\s*(?:\*\/)?$/i;
+/**
+ * A directive of Stryker at the start of a comment line (disable or
+ * restore); other text does not count. Stryker reads the text of a comment
+ * with `^\s?Stryker (disable|restore)` (directive-bookkeeper.js of
+ * @stryker-mutator/instrumenter); this is wider (any case, more space, a
+ * line of a block comment), so the guard misses none.
+ */
+const DIRECTIVE = /^[\s*]*Stryker\s+((?:disable|restore)\b.*?)\s*$/i;
 
 /** The one allowed form: one line, named mutators, a reason. */
 const ALLOWED =
   /^disable next-line ([A-Z][A-Za-z]*(?:,\s*[A-Z][A-Za-z]*)*): (\S.*)$/;
 
+const ts = createRequire(import.meta.url)('typescript') as typeof TS;
+
+/** The comments of the TypeScript text, each with its start, once. */
+function comments(text: string): TS.CommentRange[] {
+  const source = ts.createSourceFile(
+    'mark.ts',
+    text,
+    ts.ScriptTarget.Latest,
+    false,
+    ts.ScriptKind.TS,
+  );
+  const found = new Map<number, TS.CommentRange>();
+  // Every comment is trivia before a token (the end of the file included):
+  // the leading and the trailing comments at the start of each token.
+  const visit = (node: TS.Node): void => {
+    for (const range of [
+      ...(ts.getLeadingCommentRanges(text, node.pos) ?? []),
+      ...(ts.getTrailingCommentRanges(text, node.pos) ?? []),
+    ])
+      found.set(range.pos, range);
+    for (const child of node.getChildren(source)) visit(child);
+  };
+  visit(source);
+  return [...found.values()].sort((a, b) => a.pos - b.pos);
+}
+
 /** Every Stryker comment in the text of <file>, with its line (from 1). */
 export function marksIn(file: string, text: string): Mark[] {
-  return text.split('\n').flatMap((content, index) => {
-    const found = COMMENT.exec(content);
-    return found ? [{ file, line: index + 1, text: found[1]! }] : [];
+  return comments(text).flatMap((range) => {
+    const body = text.slice(range.pos, range.end);
+    const inner =
+      range.kind === ts.SyntaxKind.SingleLineCommentTrivia
+        ? body.slice(2)
+        : body.slice(2, -2);
+    const first = text.slice(0, range.pos).split('\n').length;
+    return inner.split('\n').flatMap((content, index) => {
+      const found = DIRECTIVE.exec(content);
+      return found ? [{ file, line: first + index, text: found[1]! }] : [];
+    });
   });
 }
 

@@ -20,7 +20,9 @@ describe('a mark of a mutant that cannot be killed', () => {
       'if (a) b();',
       '/* Stryker disable next-line StringLiteral: the text is never shown */',
       'call(); // Stryker disable next-line EqualityOperator: both sides are equal',
+      '/*',
       ' * Stryker restore all',
+      ' */',
     ].join('\n');
     expect(marksIn(SENSITIVE, text)).toEqual([
       mark(
@@ -38,7 +40,7 @@ describe('a mark of a mutant that cannot be killed', () => {
         SENSITIVE,
         5,
       ),
-      mark('restore all', SENSITIVE, 6),
+      mark('restore all', SENSITIVE, 7),
     ]);
   });
 
@@ -48,6 +50,37 @@ describe('a mark of a mutant that cannot be killed', () => {
       '// Stryker moves the cached mutants of a changed file to their new lines',
       '// as the docs of Stryker disable say',
       'strykerDisable();',
+    ].join('\n');
+    expect(marksIn(OTHER, text)).toEqual([]);
+  });
+
+  it('is found in a block comment after punctuation, as Stryker reads it', () => {
+    // Stryker honours a directive in any comment before a node (the
+    // leading comments of Babel), also inside an expression.
+    const text = [
+      'const a = 1;',
+      'foo(/* Stryker disable all */ x);',
+      'bar(y, /* Stryker disable next-line StringLiteral: shown nowhere at all */ z);',
+    ].join('\n');
+    const marks = marksIn(OTHER, text);
+    expect(marks).toEqual([
+      mark('disable all', OTHER, 2),
+      mark('disable next-line StringLiteral: shown nowhere at all', OTHER, 3),
+    ]);
+    expect(markProblems(marks, [SENSITIVE])).toEqual([
+      'src/core/a.ts:2: a mark outside the sensitive files of mutation-standard.json ("exact")',
+      'src/core/a.ts:3: a mark outside the sensitive files of mutation-standard.json ("exact")',
+    ]);
+  });
+
+  it('is not the text of a string, a template or a regular expression', () => {
+    const text = [
+      'const s = " // Stryker disable all";',
+      "const t = ' /* Stryker disable all */ ';",
+      'const u = `',
+      '// Stryker disable all',
+      '${s} /* Stryker restore all */`;',
+      'const r = /\\/\\/ Stryker disable all/;',
     ].join('\n');
     expect(marksIn(OTHER, text)).toEqual([]);
   });
