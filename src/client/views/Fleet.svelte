@@ -2,14 +2,16 @@
   // The fleet view (#118, bundle 3; okf/architecture/patterns.md,
   // section 9), from fleetPage() of logic/fleet.ts. Its buttons and links
   // carry data-act, which main.ts handles; features/fleet.ts reads the form
-  // and writes the target, the list „Auftrag“, the row of the time at the
-  // target and the preview of the flight into their places while the player
-  // types. Those two lists of options and that row are HTML (`{@html}`) so
-  // that the form writes them with the same functions. The ships, the
-  // position, the speed, the cargo and the names to invite are the state of
-  // logic/fleet-form.svelte.ts (#332): a field takes `value` with `oninput`,
-  // so a half-typed number is never written over.
+  // and writes the preview of the flight into its places while the player
+  // types. The ships, the position, the kind of target, the mission, the
+  // union, the time at the target, the speed, the cargo and the names to
+  // invite are the state of logic/fleet-form.svelte.ts (#332): a field takes
+  // `value` with `oninput` (a select `selected` with `onchange`), so a
+  // half-typed number is never written over. What the lists and the row of the
+  // time show for that state is worked out by logic/fleet-choice.ts.
+  import { HOLD_HOURS } from '../../core/holding.ts';
   import { fleetForm } from '../logic/fleet-form.svelte.ts';
+  import { hoursLabel } from '../logic/fleet-time.ts';
   import { QUICK_FIRST } from '../logic/fleet-target.ts';
   import { shown } from '../logic/galaxy-position.svelte.ts';
   import {
@@ -227,7 +229,40 @@
               >
             </tr>
           {/if}
-          {@html form.time}
+          {#if choice.stays}
+            <tr id="t_stay_row">
+              <td>Haltezeit</td>
+              <td
+                ><input
+                  class="c3"
+                  type="number"
+                  id="t_stay"
+                  min="1"
+                  max={choice.stayMost}
+                  value={choice.stay}
+                  oninput={(e) => (fleetForm.stay = e.currentTarget.value)}
+                  aria-label="Haltezeit in Stunden"
+                />
+                Stunden am Ziel
+                <span id="t_real" class="dim">{choice.real}</span></td
+              >
+            </tr>
+          {:else}
+            <tr id="t_hold" hidden={!choice.holds}>
+              <td><label for="t_h">Haltezeit</label></td>
+              <td
+                ><select
+                  id="t_h"
+                  onchange={(e) => (fleetForm.hold = e.currentTarget.value)}
+                  >{#each HOLD_HOURS as hours (hours)}<option
+                      value={String(hours)}
+                      selected={choice.hold === String(hours)}
+                      >{hoursLabel(hours)}</option
+                    >{/each}</select
+                ></td
+              >
+            </tr>
+          {/if}
           <tr>
             <td>Geschwindigkeit</td>
             <td

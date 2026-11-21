@@ -46,6 +46,7 @@ beforeEach(() => {
     cargo: { m: '10', c: '', d: '3' },
     kind: 'moon',
     mission: 'attack',
+    hold: '4',
   });
   fields = {
     // The form is on the page.
@@ -56,14 +57,12 @@ beforeEach(() => {
         calc();
       },
     },
-    '#t_hold': { hidden: false },
     ...Object.fromEntries(
       ['i_dist', 'i_dur', 'i_arr', 'i_fuel', 'i_cap'].map((id) => [
         `#${id}`,
         { innerHTML: '' },
       ]),
     ),
-    '#t_h': { value: '' },
   };
   vi.stubGlobal('document', {
     querySelector: (sel: string) => fields[sel] ?? null,
@@ -194,12 +193,31 @@ describe('sending, recalling and jumping', () => {
       ships: { fighter: 4, probe: 2 },
       to: { g: 2, s: 30, p: 4, kind: 'moon' },
       mission: 'attack',
-      hold: 0,
-      // The stay of an expedition (#93); the field is absent here, so 1.
+      // The holding time chosen (#55); no stay for a mission that does not stay.
+      hold: 4,
       stay: 1,
       pct: 5,
       cargo: { m: 10, c: 0, d: 3 },
     });
+  });
+
+  it('sends the stay typed for an expedition (#93) and no holding time', async () => {
+    client.view = {
+      ...client.view!,
+      R: { research: { expo: 4 }, rq: null },
+    } as unknown as V;
+    Object.assign(fleetForm, {
+      to: { g: '2', s: '30', p: '16' },
+      kind: 'planet',
+      mission: 'expedition',
+      stay: '3',
+    });
+    const ctx = fakeCtx();
+    await acts(ctx).send!({});
+    expect(ctx.actHere).toHaveBeenCalledWith(
+      'send',
+      expect.objectContaining({ mission: 'expedition', hold: 0, stay: 3 }),
+    );
   });
 
   it('adds the attack union chosen in the form to the order, and forgets the choice once sent (#225)', async () => {

@@ -1,11 +1,11 @@
 // The fleet form for the expeditions (#93): the position field takes the
 // expedition position, the row „Haltezeit“ shows only for a mission that
 // stays, and the title counts the expeditions against their slots.
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { planet, U } from '../../test/fixtures.ts';
 import type { ClientFleet, GameState } from '../logic/types.ts';
 import { fleetView as fleet } from '../../test/fleet-view.ts';
-import { realStay, timeRow } from '../logic/fleet-time.ts';
+import { realStay } from '../logic/fleet-time.ts';
 import { fleetForm } from '../logic/fleet-form.svelte.ts';
 import { forgetForms } from '../logic/form-state.svelte.ts';
 import type { Ui, V } from './common.ts';
@@ -106,7 +106,7 @@ describe('the fleet form', () => {
 
   it('asks for hours from 1 up to the level, at least 1', () => {
     expect(fleet(view({ expo: 4 }, [], 'expedition'))).toContain(
-      'type="number" id="t_stay" min="1" max="4" value="1" aria-label="Haltezeit in Stunden"> Stunden am Ziel',
+      'type="number" id="t_stay" min="1" max="4" value="1" aria-label="Haltezeit in Stunden"/> Stunden am Ziel',
     );
     expect(fleet(view({ expo: 9 }, [], 'expedition'))).toContain('max="9"');
     expect(fleet(view({}, [], 'expedition'))).toContain(
@@ -161,20 +161,6 @@ describe('the fleet form', () => {
     expect(fleet(view({ expo: 0 }, fleets))).not.toContain('Expeditionen (');
   });
 });
-
-/** The little of the page `timeRow` touches: the row of the time at the target, its field and the note. */
-function page(rowId: 't_hold' | 't_stay_row', hours = '') {
-  const row = { id: rowId, hidden: false, outerHTML: '' };
-  const real = { textContent: '' };
-  const field = { value: hours };
-  vi.stubGlobal('document', {
-    querySelector: (sel: string) =>
-      sel === '#t_hold, #t_stay_row' ? row : null,
-    getElementById: (id: string) =>
-      id === 't_real' ? real : id === 't_stay' ? field : null,
-  });
-  return { row, real };
-}
 
 describe('the state of the form (#332)', () => {
   afterEach(forgetForms);
@@ -315,50 +301,73 @@ describe('the mission after a redraw (#332)', () => {
   });
 });
 
-describe('the row of the time at the target follows the mission (#55, #93)', () => {
-  afterEach(() => vi.unstubAllGlobals());
+describe('the row of the time at the target follows the mission (#55, #93, #332)', () => {
+  afterEach(forgetForms);
 
-  it('replaces the holding time by the stay when an expedition is picked, and back', () => {
-    const v = view({ expo: 4 });
-    const toExpedition = page('t_hold');
-    timeRow('expedition', v);
-    expect(toExpedition.row.outerHTML).toContain('<tr id="t_stay_row">');
-    expect(toExpedition.row.outerHTML).not.toContain('id="t_h"');
-    const toHold = page('t_stay_row');
-    timeRow('hold', v);
-    expect(toHold.row.outerHTML).toContain('<tr id="t_hold">');
-    expect(toHold.row.outerHTML).toContain('id="t_h"');
-    expect(toHold.row.outerHTML).not.toContain('id="t_stay"');
+  const row = (html: string, id: 't_hold' | 't_stay_row'): string =>
+    new RegExp(`<tr[^>]*id="${id}"[^]*?</tr>`).exec(html)?.[0] ?? '';
+  const speedy = (v: V): V => {
+    v.s.cfg = { ...U, speed: 5, roundExpeditionSpeed: 1 };
+    return v;
+  };
+
+  it('replaces the holding time by the stay when an expedition is chosen, and back', () => {
+    const v = view({ expo: 4 }, [], 'hold');
+    expect(row(fleet(v), 't_hold')).not.toContain('hidden');
+    expect(row(fleet(v), 't_stay_row')).toBe('');
+    // An expedition goes to the expedition position; the mission is the state of the form.
+    fleetForm.to = { g: '1', s: '2', p: '16' };
+    fleetForm.mission = 'expedition';
+    const html = fleet(v);
+    expect(row(html, 't_stay_row')).toContain('id="t_stay"');
+    expect(row(html, 't_hold')).toBe('');
+    fleetForm.to = { g: '1', s: '2', p: '6' };
+    fleetForm.mission = 'hold';
+    const back = fleet(v);
+    expect(row(back, 't_hold')).toContain('id="t_h"');
+    expect(row(back, 't_stay_row')).toBe('');
   });
 
-  it('only shows or hides the row that is there: the holding time for a Halten, nothing for the others', () => {
-    const v = view({ expo: 4 });
-    const hold = page('t_hold');
-    hold.row.hidden = true;
-    timeRow('hold', v);
-    expect([hold.row.hidden, hold.row.outerHTML]).toEqual([false, '']);
-    timeRow('transport', v);
-    expect(hold.row.hidden).toBe(true);
-    // The stay stays shown for an expedition.
-    const stay = page('t_stay_row', '2');
-    timeRow('expedition', v);
-    expect([stay.row.hidden, stay.row.outerHTML]).toEqual([false, '']);
+  it('shows the holding time for a Halten, and hides the row for every other mission', () => {
+    for (const mission of ['attack', 'transport']) {
+      fleetForm.mission = mission;
+      expect(row(fleet(view({})), 't_hold'), mission).toContain('hidden');
+    }
+    fleetForm.mission = 'hold';
+    expect(row(fleet(view({})), 't_hold')).not.toContain('hidden');
+  });
+
+  it('offers the classic holding times, 1 hour preselected, and the one chosen after a redraw', () => {
+    const times = (html: string): string =>
+      /<select id="t_h"[^]*?<\/select>/.exec(html)![0];
+    expect(times(fleet(view({})))).toBe(
+      '<select id="t_h"><option value="0">0 Stunden</option><option value="1" selected="">1 Stunde</option><option value="2">2 Stunden</option><option value="4">4 Stunden</option><option value="8">8 Stunden</option><option value="16">16 Stunden</option><option value="32">32 Stunden</option></select>',
+    );
+    fleetForm.hold = '4';
+    const html = times(fleet(view({})));
+    expect(html).toContain('<option value="4" selected="">4 Stunden</option>');
+    expect(html).not.toContain('<option value="1" selected');
+  });
+
+  it('shows the hours typed for a stay, an emptied field empty, over a redraw', () => {
+    const v = view({ expo: 4 }, [], 'expedition');
+    expect(row(fleet(v), 't_stay_row')).toContain('value="1"');
+    fleetForm.stay = '3';
+    expect(row(fleet(v), 't_stay_row')).toContain('value="3"');
+    fleetForm.stay = '';
+    expect(row(fleet(v), 't_stay_row')).toContain('value=""');
   });
 
   it('writes the real time of the stay beside it, only with the speed dividing it', () => {
-    const v = view({ expo: 4 });
-    const real = page('t_stay_row', '5');
-    timeRow('expedition', v);
-    expect(real.real.textContent).toBe('');
-    v.s.cfg = { ...U, speed: 5, roundExpeditionSpeed: 1 };
-    timeRow('expedition', v);
-    expect(real.real.textContent).toBe(
+    const real = (html: string): string =>
+      /<span id="t_real" class="dim">(.*?)<\/span>/.exec(html)![1]!;
+    fleetForm.stay = '5';
+    expect(real(fleet(view({ expo: 4 }, [], 'expedition')))).toBe('');
+    expect(real(fleet(speedy(view({ expo: 4 }, [], 'expedition'))))).toBe(
       'entspricht 1h 00m 00s (durch Tempo 5 geteilt)',
     );
-  });
-
-  it('does nothing without the row', () => {
-    vi.stubGlobal('document', { querySelector: () => null });
-    expect(() => timeRow('expedition', view({ expo: 4 }))).not.toThrow();
+    // No hours, no text.
+    fleetForm.stay = '';
+    expect(real(fleet(speedy(view({ expo: 4 }, [], 'expedition'))))).toBe('');
   });
 });

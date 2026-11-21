@@ -16,9 +16,8 @@ import { text } from '../../core/text.ts';
 import type { Resources } from '../../core/types.ts';
 import type { V } from '../views/common.ts';
 import { type FleetChoice, fleetChoice, fleetTarget } from './fleet-choice.ts';
-import { type FleetDraft, fleetForm } from './fleet-form.svelte.ts';
+import type { FleetDraft } from './fleet-form.svelte.ts';
 import { maxPosition, type QuickTarget, quickTargets } from './fleet-target.ts';
-import { timeRowHtml } from './fleet-time.ts';
 import { fmt } from './format.ts';
 import { staysAt } from './game.ts';
 import { jumpPanel } from './jump-gate.ts';
@@ -121,8 +120,6 @@ interface FleetFormPage {
   choose: (draft: FleetDraft) => FleetChoice;
   /** The unions the fleet can join (#225); empty when none. The one chosen is `choose(draft).union`. */
   unions: FleetOption[];
-  /** The row of the time at the target as HTML, which the form writes again when the mission changes (features/fleet.ts). */
-  time: string;
   /** All slots are taken: „Flotte losschicken“ is disabled. */
   full: boolean;
 }
@@ -202,7 +199,6 @@ function formPage(v: V, full: boolean): FleetFormPage {
     },
     choose: (draft) => fleetChoice(v, draft, v.now),
     unions: joinChoices(v).map((c) => ({ value: c.id, label: c.label })),
-    time: timeRowHtml(fleetChoice(v, fleetForm, v.now).mission, v),
     full,
   };
 }

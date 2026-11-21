@@ -50,8 +50,6 @@ beforeEach(() => {
     '#t_s': position('s', '2'),
     '#t_p': position('p', '6'),
     '#t_info': { innerHTML: '' },
-    '#t_hold': { hidden: false },
-    '#t_h': { value: '' },
     ...Object.fromEntries(
       ['i_dist', 'i_dur', 'i_arr', 'i_fuel', 'i_cap'].map((id) => [
         `#${id}`,
@@ -112,7 +110,7 @@ const change = (target?: unknown): void => listeners.change!({ target });
 /** What the form shows for its state (the component asks the same function). */
 const shows = () =>
   fleetChoice(
-    { s: client.game!, P: client.view!.P, ui: client.ui },
+    { s: client.game!, P: client.view!.P, R: client.view!.R, ui: client.ui },
     fleetForm,
     client.now(),
   );
@@ -365,5 +363,32 @@ describe('sending with the list empty', () => {
     fields['#t_p']!.value = '5';
     await clientFeature.acts(ctx).send!({});
     expect(ctx.actHere).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * The row of the time at the target follows the mission (#55, #93): the
+ * component shows the stay or the holding time, and the other kind starts
+ * again with 1 hour when the mission changes to it.
+ */
+describe('the time at the target', () => {
+  it('forgets the holding time while the mission stays, and the stay while it does not', () => {
+    client.view = {
+      ...client.view!,
+      R: { research: { expo: 4 }, rq: null },
+    } as unknown as V;
+    fleetForm.hold = '8';
+    fleetForm.stay = '3';
+    // A foreign planet: no stay, the holding time is kept.
+    change();
+    expect(fleetForm.hold).toBe('8');
+    expect(fleetForm.stay).toBeNull();
+    // The expedition position: the stay is kept, the holding time starts again.
+    fields['#t_p']!.value = '16';
+    fleetForm.stay = '3';
+    change();
+    expect(shows().stays).toBe(true);
+    expect(fleetForm.stay).toBe('3');
+    expect(fleetForm.hold).toBeNull();
   });
 });

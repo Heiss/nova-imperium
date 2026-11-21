@@ -31,6 +31,8 @@ describe('the fields that have a draft', () => {
       't_k',
       't_m',
       't_u',
+      't_h',
+      't_stay',
       'c_m',
       'c_c',
       'c_d',
@@ -57,7 +59,7 @@ describe('the fields that have a draft', () => {
       'audit-outcome',
     ])
       expect(isTracked(id), id).toBe(false);
-    for (const id of ['t_h', 'jg_to', 'o_anim', 'q_lc', 'td_lc'])
+    for (const id of ['jg_to', 'o_anim', 'q_lc', 'td_lc'])
       expect(isTracked(id), id).toBe(true);
   });
 

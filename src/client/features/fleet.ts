@@ -8,7 +8,7 @@
 // and write it, and logic/fleet-choice.ts works out what the form shows.
 import { settle } from '../../core/settle.ts';
 import type { Planet, Resources } from '../../core/types.ts';
-import { $, val } from '../dom.ts';
+import { $ } from '../dom.ts';
 import { writeField } from '../field-drafts.ts';
 import { clampInt, dur, fmt } from '../logic/format.ts';
 import {
@@ -23,7 +23,6 @@ import { SPEEDS } from '../logic/fleet.ts';
 import { type FleetChoice, fleetChoice } from '../logic/fleet-choice.ts';
 import { fleetForm } from '../logic/fleet-form.svelte.ts';
 import { targetInfo } from '../logic/fleet-target.ts';
-import { timeRow } from '../logic/fleet-time.ts';
 import { client } from '../logic/state.svelte.ts';
 import { unionArrivalLine } from '../logic/union.ts';
 import type { ClientCtx, ClientFeature, Handler } from './contract.ts';
@@ -35,34 +34,48 @@ const settledPlanet = (): Planet =>
 /** What the fields of the form show (logic/fleet-choice.ts), for the state of the game and the shown planet. */
 const choiceOf = (): FleetChoice =>
   fleetChoice(
-    { s: client.game!, P: client.view!.P, ui: client.view!.ui },
+    {
+      s: client.game!,
+      P: client.view!.P,
+      R: client.view!.R,
+      ui: client.view!.ui,
+    },
     fleetForm,
     client.now(),
   );
 
-function readFleetForm(): FleetForm {
+/** The ships typed, kept to the ones the planet has. */
+function shipsOf(): Record<string, number> {
   const ships: Record<string, number> = {};
-  const P = client.view!.P;
+  const have = client.view!.P.ships;
   for (const [k, typed] of Object.entries(fleetForm.ships)) {
-    const n = clampInt(typed, 0, P.ships[k] ?? 0);
+    const n = clampInt(typed, 0, have[k] ?? 0);
     if (n > 0) ships[k] = n;
   }
-  const { to, kind, mission, union } = choiceOf();
+  return ships;
+}
+
+/** The cargo typed, per resource. */
+const cargoOf = (): FleetForm['cargo'] => ({
+  m: clampInt(fleetForm.cargo.m ?? '', 0, 1e15),
+  c: clampInt(fleetForm.cargo.c ?? '', 0, 1e15),
+  d: clampInt(fleetForm.cargo.d ?? '', 0, 1e15),
+});
+
+function readFleetForm(): FleetForm {
+  const { to, kind, mission, union, stays, hold, stay } = choiceOf();
   return {
-    ships,
+    ships: shipsOf(),
     // The planet or its moon (#53).
     to: { ...to, kind },
     mission,
     // The attack union the fleet joins (#225); the row is there only while one concerns the player.
     ...(union && { union }),
-    hold: Number(val('#t_h')),
-    stay: clampInt(val('#t_stay'), 1, 1e6),
+    // The row of the time at the target holds one of the two: the stay of an expedition (#93) or the holding time (#55).
+    hold: stays ? 0 : Number(hold),
+    stay: stays ? clampInt(stay, 1, 1e6) : 1,
     pct: clampInt(fleetForm.speed ?? SPEEDS[0]!.value, 1, 10),
-    cargo: {
-      m: clampInt(fleetForm.cargo.m ?? '', 0, 1e15),
-      c: clampInt(fleetForm.cargo.c ?? '', 0, 1e15),
-      d: clampInt(fleetForm.cargo.d ?? '', 0, 1e15),
-    },
+    cargo: cargoOf(),
   };
 }
 
@@ -104,11 +117,21 @@ function settleMission(): void {
   client.ui.fm = mission;
 }
 
+/**
+ * The row of the time at the target follows the mission (#55, #93): the stay
+ * of an expedition or the holding time of a Halten, and the row of the other
+ * kind starts again with 1 hour when the mission changes to it.
+ */
+function settleTime(): void {
+  if (choiceOf().stays) fleetForm.hold = null;
+  else fleetForm.stay = null;
+}
+
 function fleetCalc(): void {
   if (!$('#t_g') || !client.view || !client.game) return;
   settleKind();
   settleMission();
-  timeRow(choiceOf().mission, client.view);
+  settleTime();
   const f = readFleetForm();
   $('#t_info')!.innerHTML = targetInfo(client.game, f);
   const pv = fleetPreview(client.view.P, client.view.R, f, client.game.cfg);

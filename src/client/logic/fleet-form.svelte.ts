@@ -25,6 +25,10 @@ export interface FleetDraft {
   mission: string | null;
   /** The union chosen (empty for „Kein Verband“), or null while the page says it. */
   union: string | null;
+  /** The holding time chosen (hours), or null while the first is shown. */
+  hold: string | null;
+  /** The hours of stay typed for an expedition, or null while 1 is shown. */
+  stay: string | null;
 }
 
 export const fleetForm = formState((): FleetDraft => ({
@@ -36,4 +40,6 @@ export const fleetForm = formState((): FleetDraft => ({
   kind: null,
   mission: null,
   union: null,
+  hold: null,
+  stay: null,
 }));

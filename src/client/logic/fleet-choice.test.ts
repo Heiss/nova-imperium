@@ -35,7 +35,7 @@ function seen(ui: Partial<Ui> = {}): FleetSeen {
   return {
     s: {
       cfg: U,
-      me: { id: 'u1', research: {} },
+      me: { id: 'u1', research: { expo: 4 } },
       round: { number: 1, ...roundDefaults() } as RoundRules,
       players: { u1: { name: 'Anna' }, u2: { name: 'Bert' } },
       fleets: [],
@@ -47,6 +47,7 @@ function seen(ui: Partial<Ui> = {}): FleetSeen {
       ],
     } as unknown as GameState,
     P: planet({ id: 'p1_1_5', g: 1, s: 1, p: 5 }),
+    R: { research: { expo: 4 }, rq: null },
     ui: { ft: null, fm: 'attack', ...ui } as Ui,
   };
 }
@@ -169,5 +170,59 @@ describe('the mission', () => {
     fleetForm.mission = 'spy';
     fleetForm.to = { g: '1', s: '2', p: '6' };
     expect(choose(seen()).limit).toBe('');
+  });
+});
+
+describe('the time at the target', () => {
+  const atExpedition = { ft: { g: 1, s: 2, p: 16 } };
+  const atForeign = { ft: { g: 1, s: 2, p: 6 } };
+
+  it('is the holding time of a Halten, 1 hour to start with, and no stay', () => {
+    const choice = choose(seen({ ...atForeign, fm: 'hold' }));
+    expect(choice).toMatchObject({
+      stays: false,
+      holds: true,
+      hold: '1',
+      stayMost: 0,
+      real: '',
+    });
+  });
+
+  it('holds only for a Halten, and the row is hidden for the other missions', () => {
+    expect(choose(seen({ ...atForeign, fm: 'attack' })).holds).toBe(false);
+    expect(choose(seen()).holds).toBe(false);
+  });
+
+  it('is the stay of an expedition, 1 hour to start with, up to the level of the research', () => {
+    const choice = choose(seen({ ...atExpedition, fm: 'expedition' }));
+    expect(choice).toMatchObject({
+      stays: true,
+      holds: false,
+      stay: '1',
+      stayMost: 4,
+    });
+    // At least one hour, also without the research.
+    const bare = seen({ ...atExpedition, fm: 'expedition' });
+    bare.R = { research: {}, rq: null };
+    expect(choose(bare).stayMost).toBe(1);
+  });
+
+  it('follows what was chosen and typed', () => {
+    fleetForm.hold = '8';
+    fleetForm.stay = '3';
+    expect(choose(seen({ ...atForeign, fm: 'hold' })).hold).toBe('8');
+    expect(choose(seen({ ...atExpedition, fm: 'expedition' })).stay).toBe('3');
+  });
+
+  it('says the real time of the stay only where the universe speed divides it', () => {
+    fleetForm.stay = '5';
+    const v = seen({ ...atExpedition, fm: 'expedition' });
+    expect(choose(v).real).toBe('');
+    v.s.cfg = { ...U, speed: 5, roundExpeditionSpeed: 1 };
+    expect(choose(v).real).toBe(
+      'entspricht 1h 00m 00s (durch Tempo 5 geteilt)',
+    );
+    fleetForm.stay = '';
+    expect(choose(v).real).toBe('');
   });
 });

@@ -164,7 +164,11 @@ describe('the ships and the form', () => {
     ).form;
     const { missions } = form.choose(fleetForm);
     expect(missions.find((m) => m.selected)).toMatchObject({ value: 'spy' });
-    expect(form.time).toContain('id="t_hold"');
+    // The row of the time is the holding time, hidden, for a mission that does not hold.
+    expect(form.choose(fleetForm)).toMatchObject({
+      stays: false,
+      holds: false,
+    });
   });
 
   it('offers the speeds from 100 to 10 % and the three cargo fields', () => {
