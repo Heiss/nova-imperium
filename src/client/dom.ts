@@ -1,7 +1,5 @@
 // Small reads and writes of the page that main.ts and the client features
 // share (#322).
-import { writeField } from './field-drafts.ts';
-
 /** The first element that matches. */
 export const $ = <T extends HTMLElement = HTMLElement>(sel: string): T | null =>
   document.querySelector<T>(sel);
@@ -14,10 +12,24 @@ export const val = (sel: string): string =>
 export const byId = (id: string): string =>
   (document.getElementById(id) as HTMLInputElement | null)?.value ?? '';
 
+/**
+ * Sets the value of a field of the page from the code (a button fills it): the
+ * one function that writes a field (src/test/field-writes.test.ts). Only for a
+ * field that holds its value in the page, such as the amounts of the lists and
+ * the settings of the universe; a field of a form with state is written
+ * through that state (#332), which the component shows.
+ */
+export function setField(
+  el: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement,
+  value: string,
+): void {
+  el.value = value;
+}
+
 /** Sets the value of a field by its id, when it is there. */
 export const setById = (id: string, value: string): void => {
   const field = document.getElementById(id) as HTMLInputElement | null;
-  if (field) writeField(field, value);
+  if (field) setField(field, value);
 };
 
 /**

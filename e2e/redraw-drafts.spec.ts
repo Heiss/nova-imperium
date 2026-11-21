@@ -1,9 +1,11 @@
 // What the player typed or chose in a form is still there after the poll of
-// the state drew the view anew (#118, package 8: the drafts of
-// src/client/logic/field-drafts.ts replace the restore of the redraw). The
-// client draws the view anew only when the state it polls (every 4 s)
-// differs from the last one, so each test changes the state of its own
-// player and waits until the node of a field it marked is replaced.
+// the state drew the view anew (#118, package 8; #332: each form keeps its
+// fields as the state of its component, src/client/logic/form-state.svelte.ts,
+// and nothing restores them). The client draws the view anew only when the
+// state it polls (every 4 s) differs from the last one, so each test changes
+// the state of its own player and waits until the node of a field it marked
+// is replaced (the lists are redrawn in place: they wait for the answers of
+// the poll).
 import { expect, test, type Page } from '@playwright/test';
 import {
   cli,

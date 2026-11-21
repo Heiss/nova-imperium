@@ -1,13 +1,14 @@
 // The amounts typed into the four lists (`q_<key>` to order, `td_<key>` to tear
-// down) do not depend on the field drafts (#332). The poll redraws the lists in
+// down) need no restore after a redraw (#332). The poll redraws the lists in
 // place: the lists are mounted once and follow `client.shown`, and the two
 // fields carry no value, no binding and no handler of the component, so the
-// redraw never writes them and never replaces their nodes; the drafts had
-// nothing to restore. A fresh render (another view or planet) mounts the list
-// again with empty fields, as it dropped the drafts. There is no DOM in the
-// unit tests, so the proof is the two facts the redraw rests on, read from the
-// registry and from the syntax tree of the component; e2e/redraw-drafts.spec.ts
-// types into the fields, lets the poll redraw and reads them again.
+// redraw never writes them and never replaces their nodes; the field drafts
+// that once restored them had nothing to do and are gone. A fresh render
+// (another view or planet) mounts the list again with empty fields. There is
+// no DOM in the unit tests, so the proof is the two facts the redraw rests on,
+// read from the registry and from the syntax tree of the component;
+// e2e/redraw-drafts.spec.ts types into the fields, lets the poll redraw and
+// reads them again.
 import { readFileSync } from 'node:fs';
 import { parse } from 'svelte/compiler';
 import { describe, expect, it } from 'vitest';

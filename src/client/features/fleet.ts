@@ -8,8 +8,7 @@
 // and write it, and logic/fleet-choice.ts works out what the form shows.
 import { settle } from '../../core/settle.ts';
 import type { Planet, Resources } from '../../core/types.ts';
-import { $ } from '../dom.ts';
-import { writeField } from '../field-drafts.ts';
+import { $, setField } from '../dom.ts';
 import { clampInt, dur, fmt } from '../logic/format.ts';
 import {
   arrivalLine,
@@ -231,7 +230,7 @@ const flightActs = ({
  */
 function quickChoice(ctx: ClientCtx, field: HTMLSelectElement): void {
   const place = client.game?.galaxy.find((p) => p.id === field.value);
-  writeField(field, '');
+  setField(field, '');
   if (!place) return;
   fleetForm.to = { g: String(place.g), s: String(place.s), p: String(place.p) };
   fleetForm.kind = place.kind;

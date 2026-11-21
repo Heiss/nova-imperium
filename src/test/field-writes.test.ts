@@ -1,8 +1,12 @@
-// Guard (#118, package 8): no client code sets the value, the tick or the
-// chosen option of a form field except through `writeField`
-// (src/client/field-drafts.ts). A write that goes round it is not recorded as
-// a draft, so the next poll redraw (every 4 s) would put the older draft back
-// over it. The scan reads the syntax trees (TypeScript, and the Svelte
+// Guard (#118, package 8, made stricter by #332): no client code sets the
+// value, the tick or the chosen option of a form field, except `setField` of
+// src/client/dom.ts, the one function that does. A form keeps its fields as
+// the state of its component and the component shows them; a field written
+// behind the back of that state is overwritten by the next render (the poll
+// redraws every 4 s) and leaves the state wrong. There is no list of files
+// that may write: only a field that holds its value in the page (the amounts
+// of the lists, the settings of the universe) is written, and through
+// `setField`. The scan reads the syntax trees (TypeScript, and the Svelte
 // compiler for components), so comments and strings cannot fool it.
 import { globSync, readFileSync } from 'node:fs';
 import { parse } from 'svelte/compiler';
@@ -20,11 +24,8 @@ const PROPERTIES = new Set([
   'valueAsNumber',
 ]);
 
-/** Files that may write a field directly, and why. Keep this list short. */
-const ALLOWED: Readonly<Record<string, string>> = {
-  'src/client/field-drafts.ts':
-    'implements writeField (it records the write) and restoreFields (it puts the recorded drafts back)',
-};
+/** The one function that may write a field, and the file it is in. */
+const WRITER = { file: 'src/client/dom.ts', name: 'setField' } as const;
 
 const isWrite = (op: ts.SyntaxKind): boolean =>
   op >= ts.SyntaxKind.FirstAssignment && op <= ts.SyntaxKind.LastAssignment;
@@ -68,8 +69,8 @@ const isFieldWrite = (node: ts.Node): boolean =>
   isStep(node) ||
   isAttributeCall(node);
 
-/** The writes to a field in TypeScript code. */
-export function writesInTs(code: string): string[] {
+/** The writes to a field in TypeScript code, apart from those inside the function `except`. */
+export function writesInTs(code: string, except?: string): string[] {
   const out: string[] = [];
   const source = ts.createSourceFile(
     'x.ts',
@@ -78,6 +79,12 @@ export function writesInTs(code: string): string[] {
     true,
   );
   const visit = (node: ts.Node): void => {
+    if (
+      except !== undefined &&
+      ts.isFunctionDeclaration(node) &&
+      node.name?.text === except
+    )
+      return;
     if (isFieldWrite(node))
       out.push(
         `line ${source.getLineAndCharacterOfPosition(node.getStart()).line + 1}: ${node.getText().split('\n')[0]}`,
@@ -138,31 +145,27 @@ const files = (): string[] =>
     .sort();
 
 describe('writes to the fields of the page', () => {
-  it('go through writeField', () => {
+  it('go through setField of dom.ts', () => {
     const found: string[] = [];
     for (const file of files()) {
-      if (file in ALLOWED) continue;
       const code = readFileSync(file, 'utf8');
       const hits = file.endsWith('.svelte')
         ? writesInSvelte(code)
-        : writesInTs(code);
+        : writesInTs(code, file === WRITER.file ? WRITER.name : undefined);
       for (const hit of hits) found.push(`${file} ${hit}`);
     }
     expect(
       found,
-      'set a field through writeField (src/client/field-drafts.ts) so the redraw keeps it; a Svelte bind: needs no write',
+      'set a field of the page through setField (src/client/dom.ts); the field of a form with state is shown by its component (value= with oninput, or bind:), and the handler writes the state',
     ).toEqual([]);
   });
 
-  it('lists only files that still write a field, each with a reason', () => {
-    for (const [file, reason] of Object.entries(ALLOWED)) {
-      expect(reason.length, file).toBeGreaterThan(10);
-      expect(files(), file).toContain(file);
-      expect(
-        writesInTs(readFileSync(file, 'utf8')).length,
-        file,
-      ).toBeGreaterThan(0);
-    }
+  it('has the one writer, and it writes a field', () => {
+    expect(files()).toContain(WRITER.file);
+    const code = readFileSync(WRITER.file, 'utf8');
+    // Only the writer writes a field in its file: take it out and nothing is left.
+    expect(writesInTs(code)).toHaveLength(1);
+    expect(writesInTs(code, WRITER.name)).toEqual([]);
   });
 });
 
@@ -194,6 +197,14 @@ describe('the scan', () => {
       'el.title = "x";',
     ])
       expect(writesInTs(code), code).toEqual([]);
+  });
+
+  it('leaves the function it is told to leave alone, and finds the writes of every other', () => {
+    const code =
+      'function setField(el: X, v: string) { el.value = v; }\nfunction other(el: X) { el.value = "1"; }\nconst arrow = (el: X) => { el.value = "2"; };';
+    expect(writesInTs(code)).toHaveLength(3);
+    expect(writesInTs(code, 'setField')).toHaveLength(2);
+    expect(writesInTs(code, 'other')).toHaveLength(2);
   });
 
   it('finds a write in a component and leaves bind: and value= alone', () => {
