@@ -15,6 +15,7 @@
     GalaxyPlace,
     GalaxySheet,
   } from '../logic/galaxy.ts';
+  import { galaxyPosition, shown } from '../logic/galaxy-position.svelte.ts';
   import { moonPicture } from '../logic/moon.ts';
   import { client } from '../logic/state.svelte.ts';
   import { planetHTML } from './common.ts';
@@ -102,7 +103,10 @@
       class="c3"
       type="number"
       id="g_g"
-      value={page.gal}
+      bind:value={
+        () => shown(galaxyPosition.gal, page.gal),
+        (typed) => (galaxyPosition.gal = String(typed ?? ''))
+      }
       min="1"
       max={page.galaxies}
       aria-label="Galaxie"
@@ -122,7 +126,10 @@
       class="c3"
       type="number"
       id="g_s"
-      value={page.sys}
+      bind:value={
+        () => shown(galaxyPosition.sys, page.sys),
+        (typed) => (galaxyPosition.sys = String(typed ?? ''))
+      }
       min="1"
       max={page.systems}
       aria-label="System"

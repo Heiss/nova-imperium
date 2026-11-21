@@ -12,10 +12,9 @@ import { keeps } from './jump-gate.ts';
  * of the universe (their own draft is logic/settings-draft.ts), the link of
  * the invitation, the confirmation of a dissolving (a modal outside the
  * view), and the two fields with a draft of their own (logic/drafts.svelte.ts).
- * The position of the Sternenkarte has a draft: what is typed stays until
- * Enter or an arrow draws the page anew (a fresh render drops it).
  */
-const UNTRACKED = /^(set_.+|inv_link|dissolve_tag|chat_text|friend_name)$/;
+const UNTRACKED =
+  /^(set_.+|inv_link|dissolve_tag|chat_text|friend_name|achievement_(search|category|status)|g_[gs])$/;
 
 /** Whether the field with this id has a draft. */
 export const isTracked = (id: string): boolean => !UNTRACKED.test(id);
