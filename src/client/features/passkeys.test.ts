@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { forgetForms } from '../logic/form-state.svelte.ts';
+import { optionsForm } from '../logic/options-form.svelte.ts';
 import { addPasskey } from '../passkeys.ts';
 import { clientFeature } from './passkeys.ts';
 import { fakeCtx } from './test-ctx.ts';
@@ -24,7 +26,10 @@ beforeEach(() => {
           : null,
   });
 });
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  forgetForms();
+});
 
 const keys = (...created: number[]) =>
   vi.fn(async () => ({
@@ -96,19 +101,23 @@ describe('removing a passkey', () => {
 
 describe('the form of a new passkey', () => {
   it('adds the passkey with the password, clears the field and lists the keys', async () => {
+    optionsForm.passkey = 'geheim';
     const ctx = fakeCtx({ api: keys(1) });
     await clientFeature.forms(ctx).passkeyform();
     expect(addPasskey).toHaveBeenCalledWith(ctx.api, 'geheim');
-    expect(ctx.setInput).toHaveBeenCalledWith('#passkey-password', '');
+    // The field shows the state of the form (#332).
+    expect(optionsForm.passkey).toBe('');
     expect(ctx.toast).toHaveBeenCalledWith('Passkey gespeichert.');
     expect(ctx.api).toHaveBeenCalledWith('/api/passkeys/list', {});
   });
 
   it('keeps the password and shows the error when the browser refuses', async () => {
     vi.mocked(addPasskey).mockRejectedValueOnce(new Error('Abgebrochen.'));
+    optionsForm.passkey = 'geheim';
     const ctx = fakeCtx();
     await clientFeature.forms(ctx).passkeyform();
     expect(ctx.toast).toHaveBeenCalledWith('Abgebrochen.', true);
+    expect(optionsForm.passkey).toBe('geheim');
     expect(ctx.setInput).not.toHaveBeenCalled();
     expect(ctx.api).not.toHaveBeenCalled();
   });

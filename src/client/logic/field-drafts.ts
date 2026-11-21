@@ -14,7 +14,7 @@ import { keeps } from './jump-gate.ts';
  * view), and the two fields with a draft of their own (logic/drafts.svelte.ts).
  */
 const UNTRACKED =
-  /^(set_.+|inv_link|dissolve_tag|chat_text|friend_name|achievement_(search|category|status)|g_[gs]|market-(give|get|amount)|f_.+|t_[gspv]|c_[mcd]|un_name_.+)$/;
+  /^(set_.+|inv_link|dissolve_tag|chat_text|friend_name|achievement_(search|category|status)|g_[gs]|market-(give|get|amount)|f_.+|t_[gspv]|c_[mcd]|un_name_.+|o_(probes|explain|levels|main)|pw_(current|next|confirm)|passkey-password|reportform-text)$/;
 
 /** Whether the field with this id has a draft. */
 export const isTracked = (id: string): boolean => !UNTRACKED.test(id);

@@ -153,7 +153,13 @@ description: 'A client feature exports its handlers as clientFeature from its ow
   position that nobody typed in shows the target of the page, `fleetTarget`
   of `logic/fleet.ts`). A handler that dispatches an input event after it
   wrote the state calls `flushSync()` first, else the component's `oninput`
-  would read the old value back from the field.
+  would read the old value back from the field. „Optionen“
+  (`logic/options-form.svelte.ts`): the choices, the passwords and the text
+  of „Problem melden“; a select shows the option chosen, else the one of the
+  page (`isChosen`). The handlers still read the fields by id (the login
+  shares `pw_next` and `pw_confirm`), which show the state; „Passkey
+  hinzufügen“ and a sent report empty the state, so a redraw no longer puts
+  the sent text back after `form.reset()`.
 * **[V]** A number field whose state is a string takes `value={…}` with
   `oninput`, not `bind:value`. Checked against `bind_value` of Svelte 5.57
   (2026-11-21, with a fake input): `bind:value` stores the field as a number
@@ -195,15 +201,11 @@ the conversion.
   * `jg_to` „Zielmond“: component select with disabled options; the draft
     is kept only while its option is enabled (`keeps` of
     `logic/jump-gate.ts`).
-* **Optionen** (`Options.svelte`, mounted anew; read by id in
-  `features/options.ts`, `login.ts`, `passkeys.ts`, `report-problem.ts`):
-  `o_probes` (`value={page.probes}`), `o_explain`, `o_levels`, `o_main`
-  (`selected` of the page), `pw_current`, `pw_next`, `pw_confirm`,
-  `passkey-password` (no value; emptied through `setInput` by
-  `features/passkeys.ts`), `reportform-text` (no value; the form is emptied
-  by `form.reset()` in `features/report-problem.ts`, which the guard does not
-  see). `o_anim` and the push boxes are checkboxes (see above) and depend on
-  nothing; `o_anim` is applied at once by `features/options.ts`.
+* **Optionen** (`Options.svelte`): converted (2026-11-21), `o_probes`,
+  `o_explain`, `o_levels`, `o_main`, `pw_current`, `pw_next`, `pw_confirm`,
+  `passkey-password` and `reportform-text`. `o_anim` and the push boxes are
+  checkboxes (see above) and depend on nothing; `o_anim` is applied at once
+  by `features/options.ts`.
 * **Gilden** (`Guilds.svelte` and its parts, mounted anew; read by id in
   `features/guilds.ts`): `guild_tag`, `guild_name`, `guild_description`
   (`GuildProfileForm.svelte`, `value={form.*}`), `rank_name_<rank>`

@@ -32,6 +32,15 @@ describe('the fields that have a draft', () => {
       'c_c',
       'c_d',
       'un_name_f1',
+      'o_probes',
+      'o_explain',
+      'o_levels',
+      'o_main',
+      'pw_current',
+      'pw_next',
+      'pw_confirm',
+      'passkey-password',
+      'reportform-text',
     ])
       expect(isTracked(id), id).toBe(false);
     for (const id of [
@@ -40,7 +49,7 @@ describe('the fields that have a draft', () => {
       't_m',
       't_h',
       'jg_to',
-      'o_probes',
+      'o_anim',
       'guild_tag',
     ])
       expect(isTracked(id), id).toBe(true);
@@ -50,15 +59,15 @@ describe('the fields that have a draft', () => {
 describe('the drafts of the fields', () => {
   it('gives back what was typed after a redraw put the value of the state', () => {
     const drafts = new FieldDrafts();
-    drafts.record(f('o_probes', '7'));
-    expect(drafts.restore(f('o_probes', '1'))).toEqual({ value: '7' });
+    drafts.record(f('guild_tag', '7'));
+    expect(drafts.restore(f('guild_tag', '1'))).toEqual({ value: '7' });
   });
 
   it('takes the newest value and gives nothing for a field never changed', () => {
     const drafts = new FieldDrafts();
-    drafts.record(f('o_probes', '7'));
-    drafts.record(f('o_probes', '8'));
-    expect(drafts.restore(f('o_probes'))).toEqual({ value: '8' });
+    drafts.record(f('guild_tag', '7'));
+    drafts.record(f('guild_tag', '8'));
+    expect(drafts.restore(f('guild_tag'))).toEqual({ value: '8' });
     expect(drafts.restore(f('guild_name'))).toEqual({});
   });
 
@@ -115,12 +124,12 @@ describe('the drafts of the fields', () => {
 
   it('drops every draft on reset (a fresh render, a logout)', () => {
     const drafts = new FieldDrafts();
-    drafts.record(f('o_probes', '7'));
+    drafts.record(f('guild_tag', '7'));
     drafts.record(
       f('rank_r1_chat', 'chat', { rankRight: true, checked: true }),
     );
     drafts.reset();
-    expect(drafts.restore(f('o_probes', '1'))).toEqual({});
+    expect(drafts.restore(f('guild_tag', '1'))).toEqual({});
     expect(drafts.restore(f('rank_r1_chat', '', { rankRight: true }))).toEqual(
       {},
     );
