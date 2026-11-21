@@ -189,15 +189,15 @@ test.describe('the play time (#231, #232)', () => {
       await page.getByRole('button', { name: 'Aktualisieren' }).click();
       await expect(box(page).locator('td[data-mark]')).toHaveCount(0);
     };
-    // The build and the two reads, from the audit log and from the journal.
+    // Only the build counts: the two archive reads of the view do not (#335).
     await refresh();
-    await expect(today).toHaveText('3');
+    await expect(today).toHaveText('1');
 
     // The audit rows are purged (the seed refuses a player without any): the
     // journal of the round still holds the actions (#231, #235).
     seed({ name, auditPurged: true });
     await refresh();
-    await expect(today).toHaveText('3');
+    await expect(today).toHaveText('1');
     expect(w.problems).toEqual([]);
   });
 });
