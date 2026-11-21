@@ -142,6 +142,75 @@ describe('card 7, the Endzeit', () => {
   });
 });
 
+describe('the kickers and the paragraphs of every card', () => {
+  it('names the kicker of each card above its headline', () => {
+    const cards: RewindCard[] = [
+      { kind: 'economy', slot: 2, m: 1, c: 1, d: 1, total: 3 },
+      { kind: 'focus', slot: 3, focus: 'fleet', percent: 40 },
+      {
+        kind: 'loss',
+        slot: 4,
+        day: 2,
+        points: 5,
+        role: 'defender',
+        opponent: null,
+        recordedOnly: false,
+      },
+      { kind: 'return', slot: 5, days: 2, lossDay: 2 },
+      { kind: 'playtime', slot: 6, ms: 0, partial: false },
+      { kind: 'endzeit', slot: 7, day: 1, gift: null },
+    ];
+    expect(
+      rewindPage({ round: 3, cards } as Rewind).cards.map((c) => c.kicker),
+    ).toEqual([
+      'Wirtschaft',
+      'Schwerpunkt',
+      'Verlust',
+      'Zurückgekommen',
+      'Spielzeit',
+      'Endzeit',
+    ]);
+  });
+
+  it('writes the whole text of the focus and of the return', () => {
+    expect(
+      page({ kind: 'focus', slot: 3, focus: 'research', percent: 40 }).lines,
+    ).toEqual([
+      'So groß war der Anteil dieser Kategorie an dem, was du in dieser Runde für Fertiggestelltes bezahlt hast.',
+      'Gezählt werden fertige Gebäude, fertige Forschung, fertige Schiffe und fertige Verteidigung nach ihrem Baupreis.',
+    ]);
+    expect(
+      page({ kind: 'return', slot: 5, days: 5, lossDay: 17 }).lines,
+    ).toEqual([
+      'Nach dem Verlust an Tag 17 dauerte es 5 Tage, bis deine Schiffe wieder den Baupreis-Wert von vor dem Verlust erreichten.',
+      'Gezählt wird der Baupreis der fertigen Schiffe abzüglich der in Kämpfen verlorenen; der erste erfasste Zeitpunkt gilt.',
+    ]);
+  });
+
+  it('writes the whole text of the economy and the loss', () => {
+    const e = page({ kind: 'economy', slot: 2, m: 1, c: 2, d: 3, total: 6 });
+    expect(e.lines[0]).toBe(
+      'Die Produktion hat deinen Lagern in dieser Runde 6 Rohstoffe gutgeschrieben.',
+    );
+    expect(e.lines[2]).toBe(
+      'Gezählt wird nur, was die Lager aufgenommen haben; Beute, Handel und die Gabe des Gottkaisers zählen nicht.',
+    );
+    const l = page({
+      kind: 'loss',
+      slot: 4,
+      day: 9,
+      points: 7,
+      role: 'defender',
+      opponent: null,
+      recordedOnly: false,
+    });
+    expect(l.lines).toEqual([
+      'Dein größter Verlust an Schiffen in einem einzelnen Kampf, an Tag 9.',
+      'Gezählt wird der Baupreis der verlorenen Schiffe geteilt durch 1.000; Verteidigungsanlagen zählen nicht.',
+    ]);
+  });
+});
+
 describe('a whole Rewind', () => {
   it('keeps the kinds in the order of the cards as the key of each', () => {
     const cards: RewindCard[] = [
