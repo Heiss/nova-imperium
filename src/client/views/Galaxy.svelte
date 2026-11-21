@@ -103,10 +103,8 @@
       class="c3"
       type="number"
       id="g_g"
-      bind:value={
-        () => shown(galaxyPosition.gal, page.gal),
-        (typed) => (galaxyPosition.gal = String(typed ?? ''))
-      }
+      value={shown(galaxyPosition.gal, page.gal)}
+      oninput={(e) => (galaxyPosition.gal = e.currentTarget.value)}
       min="1"
       max={page.galaxies}
       aria-label="Galaxie"
@@ -126,10 +124,8 @@
       class="c3"
       type="number"
       id="g_s"
-      bind:value={
-        () => shown(galaxyPosition.sys, page.sys),
-        (typed) => (galaxyPosition.sys = String(typed ?? ''))
-      }
+      value={shown(galaxyPosition.sys, page.sys)}
+      oninput={(e) => (galaxyPosition.sys = e.currentTarget.value)}
       min="1"
       max={page.systems}
       aria-label="System"

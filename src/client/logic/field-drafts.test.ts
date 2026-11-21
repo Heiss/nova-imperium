@@ -20,15 +20,12 @@ describe('the fields that have a draft', () => {
       'achievement_status',
       'g_g',
       'g_s',
+      'market-give',
+      'market-get',
+      'market-amount',
     ])
       expect(isTracked(id), id).toBe(false);
-    for (const id of [
-      'inv_email',
-      't_g',
-      'market-amount',
-      'o_probes',
-      'guild_tag',
-    ])
+    for (const id of ['inv_email', 't_g', 'o_probes', 'guild_tag'])
       expect(isTracked(id), id).toBe(true);
   });
 });
