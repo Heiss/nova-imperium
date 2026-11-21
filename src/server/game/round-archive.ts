@@ -26,6 +26,7 @@ import type { RoundRow } from '../db/repos/rounds.ts';
 import type { User } from '../db/repos/players.ts';
 import { type Ctx, fail, universe } from './context.ts';
 import { categoryScores } from './highscore.ts';
+import { journalClose } from './journal.ts';
 import { pointsMap } from './points.ts';
 import { roundRules, roundStart } from './round.ts';
 
@@ -217,6 +218,8 @@ export function closeActiveRound(ctx: Ctx): RoundRow {
   const number = round.number;
   const cutoff = ctx.now();
   const rules = roundRules(ctx);
+  // The last spans up to the cutoff go into the journal first (version 2).
+  journalClose(ctx, cutoff);
   const facts = roundFacts(ctx);
   const before = ctx.rounds.countEvents(number);
   let written = 0;

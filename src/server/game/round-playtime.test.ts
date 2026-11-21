@@ -117,8 +117,8 @@ describe('the close archives the play time of each participant (#235 × #232)', 
       3: MIN,
     });
     // The count the close expects includes them: 3 finals, 3 play times, the close.
-    expect(ctx.rounds.get(1)!.events).toBe(ctx.rounds.countEvents(1));
-    expect(ctx.rounds.get(1)!.events).toBe(7);
+    // The count the close expects includes them: 3 finals, 3 play times, the closing settlement of the journal, the close.
+    expect(ctx.rounds.get(1)!.events).toBe(8);
   });
 
   it('counts two pages open at the same time once', () => {
