@@ -57,6 +57,10 @@
   </p>
   <Box title="Gildenprofil">
     {#if page.profileHtml}
+      <!-- The one {@html} with data of a player that stays (owner, 2026-11-21,
+      #337 Q41): the guild description as the server renders it with
+      markdown-it (html: false, linkify: false, images disabled,
+      src/server/game/guilds.ts), so a tag typed by a player comes out as text. -->
       {@html page.profileHtml}
     {:else}
       <p>Diese Gilde hat noch keinen Profiltext.</p>

@@ -165,8 +165,8 @@ description: 'The client as generic Svelte components with a state module, the c
   target, the speeds, the cargo fields each with its „alles“ and „alles
   (gleichmäßig)“ (#240), the empty cells of the preview and „Flotte
   losschicken“; and the box „Warp-Tor“ of #230 (`jumpPanel()`). The data
-  come as a property (`page`), as for the Sternenkarte. Two parts are HTML
-  in the component (`{@html}`) because `features/fleet.ts` writes them again
+  come as a property (`page`), as for the Sternenkarte. Two parts were HTML
+  in the component (`{@html}`; gone with #332) because `features/fleet.ts` wrote them again
   while the player types, and both must come from the same function: the
   options of the list „Auftrag“ (`missionOptions()` of `fleet-target.ts`)
   and the row of the time at the target (`timeRowHtml()`, which with
@@ -244,9 +244,11 @@ description: 'The client as generic Svelte components with a state module, the c
   `Fleet.svelte` has no `{@html}` left (#332 removed the two named above).
   What stays: the fixed SVG glyphs `TAB_GLYPHS` of `TabBar.svelte`,
   `MoreList.svelte` and `Bell.svelte` (no player or game data; decided), and
-  the guild profile of `Guilds.svelte`, which is the server's Markdown of a
-  player text rendered with `{@html}` (open: the owner decides how it is
-  shown as components, as that is no conversion of a builder).
+  the guild profile of `Guilds.svelte`, the one exception with data of a
+  player (**[E]** owner, 2026-11-21, #337 Q41; noted next to the code): the
+  server renders the guild description with markdown-it (`html: false`,
+  `linkify: false`, images disabled), so a tag a player types comes out as
+  text; no conversion is planned.
 * **[E]** Bundle 5 after bundle 4 (owner, 2026-11-15 and 2026-11-16: the
   order of the bundles of #118 „Geklärt, Nachtrag 3“, unchanged by
   „Nachtrag 4“): Highscore, Achievements, and Hilfe & Optionen.

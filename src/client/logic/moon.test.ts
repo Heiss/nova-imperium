@@ -2,6 +2,7 @@
 // list, the target of the fleet form and the lines of the battle report.
 import { describe, expect, it } from 'vitest';
 import {
+  byPlace,
   MOON_FORMED,
   moonAt,
   moonLines,
@@ -79,12 +80,34 @@ describe('moons in the interface (#53)', () => {
           .map((x) => x.id)
           .slice(-2),
       ).toEqual(['p1_2_4', 'm1_2_4']);
+    // A long list, as an account with many places has: every moon still
+    // follows its planet, whatever order the engine compares them in.
+    const many = Array.from({ length: 15 }, (_, i) => [
+      place('moon', 15 - i),
+      place('planet', 15 - i),
+    ]).flat();
+    expect(ownPlaces(many, 'u_Anna').map((x) => x.id)).toEqual(
+      Array.from({ length: 15 }, (_, i) => [
+        `p1_2_${i + 1}`,
+        `m1_2_${i + 1}`,
+      ]).flat(),
+    );
     // Planets in the same system by position.
     expect(
       ownPlaces([place('planet', 9), place('planet', 2)], 'u_Anna').map(
         (x) => x.p,
       ),
     ).toEqual([2, 9]);
+  });
+
+  it('orders a moon after its planet, whichever of the two is compared first', () => {
+    const planet = place('planet', 4);
+    const moon = place('moon', 4);
+    expect(byPlace(moon, planet)).toBe(1);
+    expect(byPlace(planet, moon)).toBe(-1);
+    expect(byPlace(planet, place('planet', 4))).toBe(0);
+    expect(byPlace(moon, place('moon', 4))).toBe(0);
+    expect(byPlace(place('moon', 3), planet)).toBeLessThan(0);
   });
 
   it('names a moon target with its owner, or that there is none', () => {

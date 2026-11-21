@@ -23,20 +23,21 @@ export const moonAt = (
  */
 export const moonMarkId = (id: string): string => `moon-${id}`;
 
+/**
+ * The order of the planet list: by galaxy, system and position, a moon after
+ * the planet of its position (negative: `a` first, positive: `b` first).
+ */
+export const byPlace = (a: GalaxyPlanet, b: GalaxyPlanet): number =>
+  a.g - b.g ||
+  a.s - b.s ||
+  a.p - b.p ||
+  Number(a.kind === 'moon') - Number(b.kind === 'moon');
+
 /** The own planets and moons for the planet list: each moon after its planet. */
 export const ownPlaces = (
   galaxy: readonly GalaxyPlanet[],
   me: string,
-): GalaxyPlanet[] =>
-  galaxy
-    .filter((x) => x.owner === me)
-    .sort(
-      (a, b) =>
-        a.g - b.g ||
-        a.s - b.s ||
-        a.p - b.p ||
-        Number(a.kind === 'moon') - Number(b.kind === 'moon'),
-    );
+): GalaxyPlanet[] => galaxy.filter((x) => x.owner === me).sort(byPlace);
 
 /**
  * What the fleet form shows beside a moon as target: the moon and its
