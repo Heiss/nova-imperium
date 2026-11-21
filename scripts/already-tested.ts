@@ -222,6 +222,56 @@ function listOf<T>(answer: unknown, field: string | null, what: string): T[] {
   return list as T[];
 }
 
+/** The green CI runs of the head commit <head> of a pull request. */
+const runsOfHead = (api: Api, repo: string, head: string): WorkflowRun[] =>
+  greenRuns(
+    head,
+    repo,
+    listOf<WorkflowRun>(
+      api(
+        `repos/${repo}/actions/workflows/ci.yml/runs?event=pull_request&head_sha=${head}&per_page=100`,
+      ),
+      'workflow_runs',
+      'workflow runs',
+    ),
+  );
+
+/** The jobs of a run, latest attempt, through the API. */
+const jobsThrough =
+  (api: Api, repo: string) =>
+  (id: number): Job[] =>
+    listOf<Job>(
+      api(`repos/${repo}/actions/runs/${id}/jobs?filter=latest&per_page=100`),
+      'jobs',
+      'jobs',
+    );
+
+/** The proofs for the push of <sha> to <branch>; an error of the API throws. */
+function lookUp(sha: string, branch: string, repo: string, api: Api): Decision {
+  const pull = mergedPull(
+    sha,
+    branch,
+    repo,
+    listOf<Pull>(
+      api(`repos/${repo}/commits/${sha}/pulls?per_page=100`),
+      null,
+      'pull requests',
+    ),
+  );
+  if (typeof pull === 'string') return { proofs: none(), reasons: [pull] };
+  const head = pull.head.sha;
+  const runs = runsOfHead(api, repo, head);
+  if (!runs.length)
+    return {
+      proofs: none(),
+      reasons: [
+        `pull request #${pull.number}: no green CI run of its head ${head}`,
+      ],
+    };
+  const treeOf = treeThrough(api, repo);
+  return proofsOf(treeOf(sha), runs, treeOf, jobsThrough(api, repo));
+}
+
 /**
  * The proofs for the push of <sha> to <branch> of <repo>; every error of the
  * API proves nothing (the push runs everything).
@@ -233,44 +283,7 @@ export function decide(
   api: Api,
 ): Decision {
   try {
-    const pull = mergedPull(
-      sha,
-      branch,
-      repo,
-      listOf<Pull>(
-        api(`repos/${repo}/commits/${sha}/pulls?per_page=100`),
-        null,
-        'pull requests',
-      ),
-    );
-    if (typeof pull === 'string') return { proofs: none(), reasons: [pull] };
-    const head = pull.head.sha;
-    const runs = greenRuns(
-      head,
-      repo,
-      listOf<WorkflowRun>(
-        api(
-          `repos/${repo}/actions/workflows/ci.yml/runs?event=pull_request&head_sha=${head}&per_page=100`,
-        ),
-        'workflow_runs',
-        'workflow runs',
-      ),
-    );
-    if (!runs.length)
-      return {
-        proofs: none(),
-        reasons: [
-          `pull request #${pull.number}: no green CI run of its head ${head}`,
-        ],
-      };
-    const treeOf = treeThrough(api, repo);
-    return proofsOf(treeOf(sha), runs, treeOf, (id) =>
-      listOf<Job>(
-        api(`repos/${repo}/actions/runs/${id}/jobs?filter=latest&per_page=100`),
-        'jobs',
-        'jobs',
-      ),
-    );
+    return lookUp(sha, branch, repo, api);
   } catch (error) {
     return {
       proofs: none(),
@@ -283,36 +296,39 @@ export function decide(
 export const outputLines = (proofs: Record<JobKey, string>): string[] =>
   KEYS.map((k) => `proof-${k}=${proofs[k].replace(/[\r\n]/g, ' ')}`);
 
-const ghApi =
-  (run: (args: string[]) => string): Api =>
-  (path) =>
-    JSON.parse(run(['api', '--method', 'GET', path])) as unknown;
+/** The REST API through the command line tool gh, which reads GH_TOKEN. */
+const gh: Api = (path) =>
+  JSON.parse(
+    execFileSync('gh', ['api', '--method', 'GET', path], {
+      encoding: 'utf8',
+      maxBuffer: 32 << 20,
+      stdio: ['ignore', 'pipe', 'inherit'],
+    }),
+  ) as unknown;
 
-const runner = (args: string[]): string =>
-  execFileSync('gh', args, {
-    encoding: 'utf8',
-    maxBuffer: 64 * 1024 * 1024,
-    stdio: ['ignore', 'pipe', 'inherit'],
-  });
+/** Says on stderr why each job runs or which proof skips it. */
+function report({ proofs, reasons }: Decision): void {
+  for (const r of reasons) console.error(`Runs on this push: ${r}`);
+  for (const k of KEYS)
+    if (proofs[k]) console.error(`Proven, skipped: ${JOBS[k]}: ${proofs[k]}`);
+}
 
 /** decide: prints the output lines, the proofs and the reasons on stderr. */
 export function main(
-  args: readonly string[] = process.argv.slice(2),
-  repo: string | undefined = process.env.GITHUB_REPOSITORY,
-  api: Api = ghApi(runner),
+  api: Api,
+  [command, sha, branch]: readonly string[],
+  repo: string | undefined,
 ): number {
-  const [command, sha, branch] = args;
   if (command !== 'decide' || !sha || !branch) {
     console.error('Usage: already-tested.ts decide <sha> <branch>');
     return 1;
   }
   if (!repo) throw new Error('GITHUB_REPOSITORY names no repository.');
-  const { proofs, reasons } = decide(sha, branch, repo, api);
-  for (const r of reasons) console.error(`Runs on this push: ${r}`);
-  for (const k of KEYS)
-    if (proofs[k]) console.error(`Proven, skipped: ${JOBS[k]}: ${proofs[k]}`);
-  for (const line of outputLines(proofs)) console.log(line);
+  const decision = decide(sha, branch, repo, api);
+  report(decision);
+  for (const line of outputLines(decision.proofs)) console.log(line);
   return 0;
 }
 
-if (import.meta.main) runCli(() => main());
+if (import.meta.main)
+  runCli(() => main(gh, process.argv.slice(2), process.env.GITHUB_REPOSITORY));

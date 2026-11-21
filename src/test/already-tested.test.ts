@@ -390,7 +390,7 @@ describe('the command', () => {
         ),
       },
     };
-    expect(main(['decide', PUSHED, 'main'], REPO, api({ jobs }))).toBe(0);
+    expect(main(api({ jobs }), ['decide', PUSHED, 'main'], REPO)).toBe(0);
     const lines = out.mock.calls.map((c) => String(c[0]));
     expect(lines.map((l) => l.split('=')[0])).toEqual([
       'proof-check',
@@ -415,13 +415,13 @@ describe('the command', () => {
 
   it('refuses a wrong call and needs the repository', () => {
     const err = vi.spyOn(console, 'error').mockImplementation(() => undefined);
-    expect(main(['decide', PUSHED], REPO, api())).toBe(1);
-    expect(main(['verify', PUSHED, 'main'], REPO, api())).toBe(1);
-    expect(main([], REPO, api())).toBe(1);
+    expect(main(api(), ['decide', PUSHED], REPO)).toBe(1);
+    expect(main(api(), ['verify', PUSHED, 'main'], REPO)).toBe(1);
+    expect(main(api(), [], REPO)).toBe(1);
     expect(err).toHaveBeenCalledWith(
       'Usage: already-tested.ts decide <sha> <branch>',
     );
-    expect(() => main(['decide', PUSHED, 'main'], undefined, api())).toThrow(
+    expect(() => main(api(), ['decide', PUSHED, 'main'], undefined)).toThrow(
       'GITHUB_REPOSITORY names no repository.',
     );
   });
