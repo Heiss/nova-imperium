@@ -17,8 +17,10 @@ describe('rename', () => {
   it('refuses an empty name with the old message', () => {
     const { ctx, u, p } = setup();
     const name = p().name;
-    for (const empty of ['', '   ', '\u0007\u001f', undefined, null])
-      expect(() => rename(ctx, u, { name: empty })).toThrow(
+    // A request may carry no name or null, whatever the input type says.
+    const empties: unknown[] = ['', '   ', '\u0007\u001f', undefined, null];
+    for (const empty of empties)
+      expect(() => rename(ctx, u, { name: empty as string })).toThrow(
         /^Bitte einen Namen eingeben\.$/,
       );
     expect(p().name).toBe(name);
