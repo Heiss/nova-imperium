@@ -2,4 +2,4 @@
 art: neu
 ---
 
-Hilfe & Optionen: „Meine Aktivität & Spielzeit“ zeigt deine geschätzte aktive Spielzeit für heute, die letzten 7 Tage, die Runde und alle Runden. Die Spielaktionen pro Tag bleiben bis zum Rundenende erhalten. Nach 60 Sekunden ohne Eingabe pausiert die Erfassung.
+Hilfe & Optionen: „Meine Aktivität & Spielzeit“ zeigt deine geschätzte aktive Spielzeit (heute, 7 Tage, Runde, alle Runden) und deine Spielaktionen pro Tag: was du veränderst und was du selbst anklickst, etwa ein Phalanx-Scan. Nach 60 Sekunden ohne Eingabe pausiert die Erfassung.
