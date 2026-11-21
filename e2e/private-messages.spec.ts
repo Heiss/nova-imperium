@@ -115,7 +115,11 @@ async function exchangeFlow(
     'true',
   );
   await openTab(page, 'Posteingang');
-  await expect(page.getByText('Keine Nachrichten.')).toBeVisible();
+  await expect(
+    page
+      .getByRole('tabpanel', { name: 'Posteingang' })
+      .getByText('Keine Nachrichten.'),
+  ).toBeVisible();
   expect(await violations(page)).toEqual([]);
 
   // Anna writes; markup in the text is shown as text.
@@ -337,7 +341,12 @@ test('a recipient reports a message and the admin sees only that one', async ({
   const { problems } = watch(page);
   const { anna, bert, other, context } = await newPlayers(page, browser);
   const admin = uniqueName('Spielleitung');
-  const adminPage = await context.newPage();
+  // The admin has a browser of their own: `context` is signed in as Bert.
+  const adminContext = await browser.newContext({
+    baseURL: new URL(page.url()).origin,
+    viewport: page.viewportSize(),
+  });
+  const adminPage = await adminContext.newPage();
   await register(adminPage, admin);
   cli('admin', admin);
 
@@ -379,5 +388,6 @@ test('a recipient reports a message and the admin sees only that one', async ({
   );
 
   await context.close();
+  await adminContext.close();
   expect(problems).toEqual([]);
 });

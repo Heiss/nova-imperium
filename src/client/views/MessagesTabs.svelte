@@ -44,6 +44,12 @@
     if (key === 'sent') void sent?.reload();
   }
 
+  /** The label of a tab; „Posteingang“ names its unread messages, as „Posteingang (2)“. */
+  const labelOf = (key: MessageTab): string =>
+    key === 'inbox' && mail.unread
+      ? `${MESSAGE_TABS[key]} (${mail.unread})`
+      : MESSAGE_TABS[key];
+
   /** The arrow keys, Home and End move between the tabs (the pattern of a tab list). */
   function move(event: KeyboardEvent): void {
     const moves: Record<string, number> = {
@@ -70,9 +76,7 @@
       aria-controls="messages-panel-{key}"
       tabindex={tab === key ? 0 : -1}
       onclick={() => select(key)}
-      onkeydown={move}
-      >{MESSAGE_TABS[key]}{#if key === 'inbox' && mail.unread}
-        ({mail.unread}){/if}</button
+      onkeydown={move}>{labelOf(key)}</button
     >
   {/each}
 </div>
