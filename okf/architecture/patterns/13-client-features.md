@@ -165,7 +165,9 @@ description: 'A client feature exports its handlers as clientFeature from its ow
   rights; a disabled box shows the server (`ticked`, #163), and „Rang
   anlegen“ empties the name. `isChosen` (`form-state.svelte.ts`) is the
   option a select shows. With the rank boxes gone from the drafts, the drafts
-  keep values only (no ticks).
+  keep values only (no ticks). „Admin“ (`logic/admin-form.svelte.ts`): the
+  address to invite and the message to all players, which a sent message
+  empties; the filters keep theirs in `logic/admin-panels.svelte.ts`.
 * **[V]** A number field whose state is a string takes `value={…}` with
   `oninput`, not `bind:value`. Checked against `bind_value` of Svelte 5.57
   (2026-11-21, with a fake input): `bind:value` stores the field as a number
@@ -216,13 +218,11 @@ the conversion.
   `guild_description`, `rank_name_<rank>`, `rank_<rank>_<right>`,
   `rank_new` and `rank_of_<member>`. `chat_text` has its own draft
   (`logic/drafts.svelte.ts`).
-* **Admin** (`Admin.svelte`, mounted anew): `inv_email` (no value),
-  `announce-text` (no value; emptied through `setInput` by
-  `features/admin.ts`). `audit-player` and `audit-outcome` of
-  `AdminDiagnostics.svelte` are drafted too, but the filter keeps its own
-  state (`fields`, its `oninput`/`onchange`), so their draft is redundant;
-  the other filter fields have no id. `set_*` (`logic/settings-draft.ts`)
-  and `inv_link` have no draft.
+* **Admin**: converted (2026-11-21), `inv_email` and `announce-text`;
+  `audit-player` and `audit-outcome` of `AdminDiagnostics.svelte` left the
+  drafts, as the filter keeps its own state (`panels.fields` of
+  `logic/admin-panels.svelte.ts`); the other filter fields have no id.
+  `set_*` (`logic/settings-draft.ts`) and `inv_link` have no draft.
 * **Gebäude, Forschung, Schiffsschmiede, Verteidigung**
   (`CatalogList.svelte`): `q_<key>` (written by `features/queue.ts`) and
   `td_<key>` (emptied by `features/missiles.ts`). The lists are not mounted
