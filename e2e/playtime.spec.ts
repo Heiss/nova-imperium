@@ -10,7 +10,14 @@
 // and the page reports its active time up to then.
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { nav, optionsSection, register, uniqueName, watch } from './helpers.ts';
+import {
+  nav,
+  optionsSection,
+  register,
+  seed,
+  uniqueName,
+  watch,
+} from './helpers.ts';
 
 /** The box of the play time in „Hilfe & Optionen“. */
 const box = (page: Page): Locator =>
@@ -151,5 +158,46 @@ test.describe('the play time (#231, #232)', () => {
     page,
   }) => {
     await viewBox(page);
+  });
+
+  test('the play actions of the box stay after the audit rows of the player are purged (#231)', async ({
+    page,
+  }) => {
+    const w = watch(page);
+    const name = uniqueName('Spielaktionen');
+    await register(page, name);
+    await nav(page, 'buildings');
+    await page.click('[data-act=build][data-k=metal]');
+    await expect(page.getByText('Ausbau auf Stufe 1')).toBeVisible();
+    await nav(page, 'help');
+    const today = box(page)
+      .locator('tr')
+      .filter({ has: page.getByRole('cell', { name: 'Heute', exact: true }) })
+      .locator('td')
+      .nth(2);
+    // Opening „Hilfe & Optionen“ reads the round archive (two actions, the
+    // lists of the archive and of the history). Wait until both were answered:
+    // the box of the archive is drawn then, and nothing is counted after it.
+    await expect(
+      page.getByText('Jede beendete Runde, an der du teilgenommen hast'),
+    ).toBeVisible();
+    // The box reads again: the marked cell is replaced by the new answer.
+    const refresh = async (): Promise<void> => {
+      await today.evaluate((cell) => {
+        cell.dataset.mark = 'old';
+      });
+      await page.getByRole('button', { name: 'Aktualisieren' }).click();
+      await expect(box(page).locator('td[data-mark]')).toHaveCount(0);
+    };
+    // The build and the two reads, from the audit log and from the journal.
+    await refresh();
+    await expect(today).toHaveText('3');
+
+    // The audit rows are purged (the seed refuses a player without any): the
+    // journal of the round still holds the actions (#231, #235).
+    seed({ name, auditPurged: true });
+    await refresh();
+    await expect(today).toHaveText('3');
+    expect(w.problems).toEqual([]);
   });
 });
