@@ -119,20 +119,23 @@ of the audit and stay.
 | `endzeit` | core `endzeitError` (codes `done`, then `minutes`: whole minutes within `GIFT_MINUTES`, `core/endzeit.ts`); the server words them (`ENDZEIT_ERROR`, `server/game/endzeit.ts`) (admin pull request of #214) | yes | yes, with core `endzeitError`: no button once done (`endzeitBox`, misc.ts), the dialog sends nothing with a wrong time (`endzeitNote`, `client/logic/endzeit.ts`) | yes (F15 unified) | admin |
 | `claimAchievement` | inline: achievements on, a known id, a home planet, progress at the target; once by SQL | no | yes, written again: `statusOf` (`client/views/achievements.ts`) | – | rewards |
 | `claimDailyReward` | inline: daily rewards on, a home planet; once a day by SQL | no | the flag `claimed` of the state | – | rewards |
-| `createGuild` | inline: no guild or application, `profile()` (tag `[A-Z0-9]{2,8}` after upper case, name 3 to 32, text at most 6,000, tag or name taken; `server/game/guilds.ts`) | no | partly: the form only without a guild, `minlength` and `maxlength` (`client/views/guilds.ts`); not the characters of the tag | no (F16) | guild |
-| `updateGuild` | inline: right `profile` (`need`), `profile()` | no | partly: the form only with the right, the same attributes | no (F16) | guild |
-| `applyToGuild` | inline: no guild or application, the guild exists | no | the button only without a guild | – | guild |
-| `reviewGuildApplication` | inline: right `applications`, the application is open | no | the list only with the right | – | guild |
-| `leaveGuild` | inline: in a guild; the Leitung only without other members („Übergib zuerst die Gildenleitung.“), and then the guild is dissolved | no | the Leitung gets „Gilde auflösen“ instead of „Gilde verlassen“ | – | guild |
-| `manageGuildMember` | core `isBelow`, `memberPlace`, `belowLeitung`; inline right `remove`, the hand-over by the Leitung only, not oneself | partly | yes, with core `isBelow` and `memberPlace` (`memberControls`) | – | guild |
-| `createGuildRank` | core `rankNameError`, `MAX_GUILD_RANKS`; inline right `ranks` | partly | partly: the form only with the right and below 25 ranks; the name only by `maxlength` (F17) | – | guild |
-| `renameGuildRank` | core `rankNameError`, `isBelow`; inline right `ranks` (`managed`) | partly | partly: the editor only with the right and below; the name as F17 | – | guild |
-| `setGuildRankRights` | core `isGuildRight`, `canChangeRights`, `isBelow`; inline right `ranks` | partly | yes, inline: a box of a right the own rank lacks is disabled (`rankEditor`), the rule of `canChangeRights` | – | guild |
-| `moveGuildRank` | core `isBelow`; inline the neighbour exists | partly | yes: up only when `isBelow(me.at, at - 1)`, down not on the last rank; the browser takes the index in the list, the server the stored position, both ordered by position | – | guild |
-| `deleteGuildRank` | core `deleteError`, `isBelow`; inline not the default rank, right `ranks` | partly | yes, with core `deleteError` | – | guild |
-| `setGuildDefaultRank` | core `belowLeitung`; inline the Leitung only | partly | yes: the Leitung, not the first rank, not the default | – | guild |
-| `assignGuildRank` | core `assignError` (codes `lower` and `rights`); inline right `assign` | partly | yes, with core `assignError` (`rankChange`) | – | guild |
-| `dissolveGuild` | inline: the Leitung only, the tag equal without case | no | partly: the button only for the Leitung, the tag `required` | – | guild |
+| `createGuild` | core `createGuildError` (`core/guild-checks.ts`: codes `member`, then `tag`, `name`, `text`, `taken` of `profileError`: tag `[A-Z0-9]{2,8}` after upper case, name 3 to 32, text at most 6,000, tag or name of another guild taken); the server gathers the profile as sent (`str`, upper case, trimmed), whether the player has a guild or an application and whether the tag or name is taken, and words the codes (`JOINED`, `PROFILE_ERROR`, `server/game/guilds.ts`) | yes | partly: the form only without a guild, `minlength` and `maxlength` as literals (`GuildProfileForm.svelte`); not the characters of the tag | no (F16) | guild |
+| `updateGuild` | the actor by `actor()`, then core `updateGuildError` (codes `right` for `profile`, then those of `profileError`; the own tag and name are no other guild's) | yes | partly: the form only with the right, the same attributes | no (F16) | guild |
+| `applyToGuild` | core `applyError` (codes `member`, `guild`); the server words them | yes | the button only without a guild | – | guild |
+| `reviewGuildApplication` | the actor, then core `reviewError` (codes `right` for `applications`, `application`: an open application to the own guild) | yes | the list only with the right | – | guild |
+| `leaveGuild` | core `leaveError` (codes `none`, `handover`: the Leitung only without other members, and then the guild is dissolved) | yes | the Leitung gets „Gilde auflösen“ instead of „Gilde verlassen“ | – | guild |
+| `manageGuildMember` | the actor, then core `manageMemberError` (codes `member`: not a member of the guild or oneself; for the hand-over `lead`, `rank`, `leitung` of `defaultRankError`; else `right` for `remove`, `lower` of `isBelow`) | yes | yes, with core `manageMemberError` for „Entfernen“ and `isBelow`, `memberPlace` (`memberControls`, `client/logic/guilds.ts`) | – | guild |
+| `createGuildRank` | core `createRankError` (codes `right` for `ranks`, `full` at `MAX_GUILD_RANKS`, then `length`, `taken` of `rankNameError`; the first two as `rankRoomError`) | yes | partly: the form with `rankRoomError`; the name only by `maxlength` (F17) | – | guild |
+| `renameGuildRank` | core `renameRankError` (`managedError`: codes `right`, `rank`, `lower`; then `length`, `taken`) | yes | partly: the editor with `managedError`; the name as F17 | – | guild |
+| `setGuildRankRights` | core `rightsError` (`managedError`, then `unknown` for a right that does not exist, then `change` by `canChangeRights`) | yes | yes, inline: a box of a right the own rank lacks is disabled (`rankEditor`), the rule of `canChangeRights` | – | guild |
+| `moveGuildRank` | core `moveRankError` (`managedError`, then `end` without a neighbour, `lower` when the neighbour is not below the actor) | yes | yes, with core `moveRankError` (`up`, `down` of `rankEditor`) | – | guild |
+| `deleteGuildRank` | core `deleteRankError` (`managedError`, then `default`, then `members` by `deleteError` for the default rank that takes the members) | yes | yes, with core `deleteRankError` | – | guild |
+| `setGuildDefaultRank` | core `defaultRankError` (codes `lead`, `rank`, `leitung`) | yes | yes, with core `defaultRankError` (`makeDefault`) | – | guild |
+| `assignGuildRank` | core `assignRankError` (codes `right` for `assign`, `member`, `rank`, then `lower` and `rights` of `assignError`) | yes | yes, with core `assignRankError` (`rankChange`) | – | guild |
+| `dissolveGuild` | core `dissolveError` (codes `lead`, `tag`: equal without case) | yes | partly: the button only for the Leitung, the tag `required` | – | guild |
+| `sendGuildChat` (#169, after the audit) | the actor, then core `sendChatError` (`core/guild-chat.ts`: codes `right` for `chat-write`, `empty`, `length` of `chatTextError` for the text cleaned by `clean`, then `wait` within `CHAT_INTERVAL` of the member's last message); the server words them (`SEND_ERROR`, `server/game/guild-chat.ts`) | yes | partly: `maxlength` of `MAX_CHAT_TEXT`; the box only with the right | – | guild |
+| `deleteGuildChat` (#169, after the audit) | the actor, then core `deleteChatError` (codes `right` for `chat-delete`, `message`: of the own guild, `event`, `lower` by `canDeleteChat`); the server words them | yes | yes, with core `deleteChatError`: the flag `delete` of each message of the state | – | guild |
+| `seeGuildChat` (#169, after the audit) | the actor, then core `seeChatError` (code `right` for `chat-read`) | yes | – (sent only while the chat is open) | – | guild |
 | `requestFriend` (#227) | core `friendError` (codes `unknown`, `self`, `friends`, `outgoing`, `incoming`) with `relationOf` (`core/friends.ts`); the server words them (`FRIEND_ERROR`, the crossed request with the name, `server/game/friends.ts`); the name parsed by `str` | yes | – (the browser sends nothing without a name, `friendCall`, `client/logic/friends.ts`) | – | friends |
 | `answerFriend` (#227) | core `friendError` (`unknown`, `self`, `noRequest`) | yes | – (buttons only at a request to the player) | – | friends |
 | `cancelFriend` (#227) | core `friendError` (`unknown`, `self`, `noRequest`) | yes | – (button only at an own request) | – | friends |
@@ -330,6 +333,20 @@ only.
   returns every code that applies, in the order of the server: the server
   takes the first, the browser the first in its own order. So the findings
   stay as they are, except the ones O18 (c) unifies (owner, 2026-11-15).
+* **[E]** Guild built (2026-11-21, #214): `src/core/guild-checks.ts` with
+  one function per action (`createGuildError`, `updateGuildError`,
+  `applyError`, `reviewError`, `leaveError`, `manageMemberError`,
+  `createRankError`, `renameRankError`, `rightsError`, `moveRankError`,
+  `deleteRankError`, `defaultRankError`, `assignRankError`,
+  `dissolveError`) and `sendChatError`, `deleteChatError`, `seeChatError`
+  in `core/guild-chat.ts`. Each returns the code of its first refusal in the
+  order of the server, or null; finding the actor (`actor()`) and reading
+  the store stay on the server, which words the codes from tables with the
+  messages unchanged (`GUILD_ERROR`, `PROFILE_ERROR`, `SEND_ERROR`). The
+  guild page (`client/logic/guilds.ts`) asks the same checks for its member
+  and rank controls and offers exactly what it did. F16 and F17 stay. The
+  server's words and their order are pinned by
+  `src/server/game/guild-order.test.ts`, written before the move.
 * **[V]** The checks of „What counts“ stay on the server; the table above
   names why.
 * **[E]** Economy built (2026-11-16): `src/core/economy-checks.ts` with
