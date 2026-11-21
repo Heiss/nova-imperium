@@ -22,6 +22,9 @@ const m = (...statuses: string[]) => statuses.map((status) => ({ status }));
 const standard: Standard = {
   securityTarget: 90,
   newFile: 80,
+  // No cap and no list: the rules before #338.
+  cap: 100,
+  exact: [],
   security: ['src/server/auth.ts', 'src/server/new-secret.ts'],
   floors: { 'src/server/auth.ts': 83.75, 'src/core/a.ts': 70 },
 };
@@ -35,6 +38,63 @@ describe('mutation gate', () => {
     expect(score(m('Killed', 'Killed', 'Survived'))).toBe(66.66);
     expect(score(m('CompileError'))).toBeNull();
     expect(score([])).toBeNull();
+  });
+
+  it('demands at most the cap of a recorded floor, except of a sensitive file (#338)', () => {
+    const capped: Standard = {
+      ...standard,
+      cap: 95,
+      exact: ['src/server/auth.ts'],
+      floors: {
+        'src/core/high.ts': 100,
+        'src/core/at.ts': 95,
+        'src/core/low.ts': 90.5,
+        'src/server/auth.ts': 99.47,
+      },
+    };
+    expect(floorOf('src/core/high.ts', capped)).toEqual({
+      min: 95,
+      why: 'recorded floor 100 %, capped (#338)',
+    });
+    expect(floorOf('src/core/at.ts', capped)).toEqual({
+      min: 95,
+      why: 'recorded floor',
+    });
+    expect(floorOf('src/core/low.ts', capped)).toEqual({
+      min: 90.5,
+      why: 'recorded floor',
+    });
+    expect(floorOf('src/server/auth.ts', capped)).toEqual({
+      min: 99.47,
+      why: 'recorded floor',
+    });
+    // One surviving mutant of a file at 100 % no longer fails; a drop below
+    // the cap does, and so does any drop of a sensitive file.
+    expect(
+      check(
+        {
+          'src/core/high.ts': 99.59,
+          'src/core/low.ts': 90.4,
+          'src/server/auth.ts': 99.46,
+        },
+        capped,
+      ),
+    ).toEqual([
+      'src/core/low.ts: 90.4 % < 90.5 % (recorded floor)',
+      'src/server/auth.ts: 99.46 % < 99.47 % (recorded floor)',
+    ]);
+    expect(check({ 'src/core/high.ts': 94.99 }, capped)).toEqual([
+      'src/core/high.ts: 94.99 % < 95 % (recorded floor 100 %, capped (#338))',
+    ]);
+  });
+
+  it('reads the cap and the sensitive files of the standard', () => {
+    expect(
+      parseStandard(
+        '{"securityTarget":90,"newFile":80,"cap":95,"security":[],"exact":["src/server/auth.ts"]}',
+        '',
+      ),
+    ).toMatchObject({ cap: 95, exact: ['src/server/auth.ts'] });
   });
 
   it('takes the recorded floor, else the target of a new file', () => {
@@ -80,6 +140,8 @@ describe('mutation gate', () => {
     ).toEqual({
       securityTarget: 90,
       newFile: 80,
+      cap: 100,
+      exact: [],
       security: ['src/server/auth.ts'],
       floors: { 'src/server/auth.ts': 83.75, 'src/core/a.ts': 70 },
     });

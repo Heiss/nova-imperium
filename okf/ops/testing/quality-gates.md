@@ -15,7 +15,37 @@ description: 'Mutation standard per file, coverage, ESLint complexity and code h
   the merged report of a complete CI run with
   `node scripts/mutation-floors.ts` (owner, 2026-11-19, #304; before, the
   pull request that added tests raised them with
-  `mutation-gate.ts --update` from a local run). Floors never go down.
+  `mutation-gate.ts --update` from a local run). Floors never go down,
+  except to the cap below.
+
+* **[E]** The cap of the floors (owner, 2026-11-21, #338): a floor demands
+  at most 95 % (`cap` in `mutation-standard.json`); a file below it keeps its
+  ratchet up to the cap, above it nothing is demanded („too perfectionist“:
+  one surviving mutant no test can kill no longer fails a file at 100 %).
+  The sensitive files keep their exact floor (`exact`, confirmed by the owner
+  on 2026-11-21): the journal (`src/server/game/journal-input.ts`,
+  `journal.ts`), accounts and sessions (`src/server/auth.ts`,
+  `account-security.ts`, `passkeys.ts`, `delete-account.ts`, `claim.ts`,
+  `src/client/logic/auth.ts`, `login.ts`), limits and the HTTP boundary
+  (`src/server/http/security.ts`, `action-limit.ts`, `rate-limit.ts`,
+  `app.ts`, `request.ts`, `admin.ts`), audit and moderation
+  (`src/server/audit.ts`, `src/server/game/moderation.ts`,
+  `src/server/game/admin.ts`) and, with #226, the module of the private
+  messages and of „Melden“ (`src/server/game/private-messages.ts` [V]). The
+  rule „never lower a floor“ stays for a floor up to the cap and for every
+  floor of the list. **[V]** `scripts/mutation-gate.ts` demands the lower of
+  the recorded floor and the cap of a file outside the list (it says
+  „capped“), so it holds before the floors file is rewritten;
+  `scripts/mutation-floors.ts` writes no floor above the cap for such a file
+  and lowers one above it to the cap („capped“ in its summary). The
+  coordinator rewrites `mutation-floors.txt` once from the report of a
+  complete run with that script, never by hand. A standard without `cap`
+  reads as no cap (100) and no list: the stricter reading. Still open for the
+  owner: who may mark a mutant of a file of the list with
+  `// Stryker disable next-line <mutator>: <reason>` and how a mark is
+  reviewed (none is marked yet), whether a new file still needs 80 % (it
+  does, unchanged), and whether a drop above the cap is shown as a notice
+  (it is not yet).
 
 * **[E]** Coverage blocks below 90 % of the lines and 85 % of the branches.
 
