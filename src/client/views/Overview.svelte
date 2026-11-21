@@ -5,14 +5,14 @@
   // client state module; its buttons carry data-act, which main.ts sends
   // through act(). The clock of main.ts counts its countdowns down. On a
   // phone the cards „Läuft“, „Achtung“ and „Bereit“ stand above it (#189).
-  import { moonPicture } from '../logic/moon.ts';
   import { overviewPage } from '../logic/overview.ts';
   import { client } from '../logic/state.svelte.ts';
-  import { planetHTML } from './common.ts';
   import Due from './Due.svelte';
   import FleetMoves from './FleetMoves.svelte';
   import FleetText from './FleetText.svelte';
+  import MoonPicture from './MoonPicture.svelte';
   import OverviewCards from './OverviewCards.svelte';
+  import PlanetPicture from './PlanetPicture.svelte';
 
   const v = $derived(client.shown);
   const page = $derived(v && overviewPage(v));
@@ -45,8 +45,8 @@
   <div class="box">
     <div class="bd ov">
       {#if page.moon}<span class="moon-big"
-          >{@html moonPicture(page.name, 120)}</span
-        >{:else}{@html planetHTML(v.P)}{/if}
+          ><MoonPicture name={page.name} size={120} /></span
+        >{:else}<PlanetPicture c={v.P} />{/if}
       <table class="kv kv-grow">
         <tbody>
           <tr>
