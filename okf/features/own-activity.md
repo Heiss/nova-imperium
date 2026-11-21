@@ -202,3 +202,6 @@ are [Activity indicators](/features/activity-indicators.md).
 * **[V]** The admin diagnostics read the same function (`dayTable`) for the
   daily table of a player and so follow the change; their counters of the
   last 7 days (`recentActions`, `actions`) still read the audit log.
+  **[V]** (coordinator, 2026-11-21, #335 Q14) These two counters stay raw
+  counts of the audit log: they include every read and measure load, so they
+  are not the same number as the „Spielaktionen“ of the box.
