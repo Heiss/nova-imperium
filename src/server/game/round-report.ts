@@ -179,17 +179,20 @@ function reportOf(ctx: Ctx, u: User, number: number): RoundReport {
 
 /** The line of one round for the reader; a running round carries no data for a player. */
 function entryOf(ctx: Ctx, u: User, r: RoundRow): RoundEntry {
-  const rows =
-    r.status === 'closed' ? archivedRows(ctx, r.number, u.id).rows : [];
-  const you = rows.find((x) => x.you);
-  return {
+  const entry = {
     number: r.number,
     status: r.status,
     started: r.started,
     closed: r.closed,
     coverage: r.coverage,
     locked: r.status === 'active' && !u.admin,
-    participants: r.status === 'closed' ? rows.length : null,
+  };
+  if (r.status !== 'closed') return { ...entry, participants: null, you: null };
+  const rows = archivedRows(ctx, r.number, u.id).rows;
+  const you = rows.find((x) => x.you);
+  return {
+    ...entry,
+    participants: rows.length,
     you: you ? standingOf(rows, you.seat) : null,
   };
 }
@@ -272,14 +275,14 @@ const roundReport: Handler<'roundReport'> = (ctx, u, d): Answer => {
 function rewindFor(ctx: Ctx, u: User, number: number): Rewind {
   const report = reportOf(ctx, u, number);
   const seat = report.rows.find((r) => r.you)?.seat;
+  if (seat === undefined) return fail(UNAVAILABLE);
   // The events of a finished round feed the cards 2 to 5 and 7; the access was checked by `reportOf`.
   // Only the events these cards read for the seat are loaded, not the whole round.
-  const events =
-    report.round.provisional || seat === undefined
-      ? []
-      : ctx.rounds.eventsForSeat(number, seat);
-  const rewind = seat === undefined ? null : rewindOf(report, seat, events);
-  return rewind?.cards.length ? rewind : fail(UNAVAILABLE);
+  const events = report.round.provisional
+    ? []
+    : ctx.rounds.eventsForSeat(number, seat);
+  const rewind = rewindOf(report, seat, events);
+  return rewind.cards.length ? rewind : fail(UNAVAILABLE);
 }
 
 const roundRewind: Handler<'roundRewind'> = (ctx, u, d): Answer => {

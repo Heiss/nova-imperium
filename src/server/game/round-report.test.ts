@@ -1,6 +1,6 @@
 // The reports of the archive (#235): who may open which round, what a report
 // holds, the history across rounds and the audit of the admin's reads.
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   DELETED_PLAYER,
   type HistoryEntry,
@@ -12,7 +12,9 @@ import { deleteAccount } from '../delete-account.ts';
 import { addPlanet, addUser, testCtx, type TestCtx } from '../test-helpers.ts';
 import type { Answer } from './actions.ts';
 import { runAction } from './dispatch.ts';
+import { ROUND_EVENT } from './round-archive.ts';
 import { ARCHIVE_LIMIT, HISTORY_LIMIT } from './round-report.ts';
+import { roundRules } from './round.ts';
 
 const DAY = 86400000;
 const REFUSED = 'Dieser Rundenbericht ist nicht verfügbar.';
@@ -449,5 +451,168 @@ describe('the drilldown per participant for the admin (#235, view H)', () => {
     expect(rows.map((e) => [e.actor, JSON.parse(e.detail)])).toEqual([
       ['u_Ada', { round: 1, seat }],
     ]);
+  });
+});
+
+describe('the guilds of a report, in order', () => {
+  /** Two guilds of the same strength and a stronger one, created in the order Zeta, Alpha, Hoch. */
+  function guilded(): TestCtx {
+    const ctx = testCtx();
+    ctx.db.prepare('UPDATE rounds SET started = ?').run(ctx.now());
+    const ada = addUser(ctx, 'Ada', { admin: true });
+    addPlanet(ctx, ada.id, { g: 1, s: 2, p: 1, b: { metal: 2 } });
+    for (const [name, p, metal] of [
+      ['Zed', 1, 4],
+      ['Alf', 2, 4],
+      ['Gus', 3, 15],
+      ['Mia', 4, 1],
+    ] as const) {
+      const u = addUser(ctx, name);
+      addPlanet(ctx, u.id, { g: 1, s: 1, p, b: { metal } });
+    }
+    ctx.guilds.create('gz', 'ZET', 'Zeta', '', 'u_Zed');
+    ctx.guilds.create('ga', 'ALP', 'Alpha', '', 'u_Alf');
+    ctx.guilds.create('gh', 'HOC', 'Hoch', '', 'u_Gus');
+    return ctx;
+  }
+
+  const lines = (r: RoundReport) =>
+    r.guilds.map((g) => [g.name, g.members, g.points]);
+
+  it('sorts by points, highest first, and equal points by the name of the guild', () => {
+    const ctx = guilded();
+    runAction(ctx, 'u_Ada', { type: 'reset' });
+    const r = report(ctx, 'Ada', 1);
+    const total = (name: string) =>
+      r.rows.find((x) => x.name === name)!.valuation.total;
+    expect(total('Zed')).toBe(total('Alf'));
+    expect(total('Gus')).toBeGreaterThan(total('Zed'));
+    expect(lines(r)).toEqual([
+      ['Hoch', 1, total('Gus')],
+      ['Alpha', 1, total('Alf')],
+      ['Zeta', 1, total('Zed')],
+    ]);
+  });
+
+  it('counts only the points of the members of each guild', () => {
+    const ctx = guilded();
+    ctx.guilds.apply('u_Mia', 'gz');
+    ctx.guilds.accept('u_Mia');
+    runAction(ctx, 'u_Ada', { type: 'reset' });
+    const r = report(ctx, 'Ada', 1);
+    const total = (name: string) =>
+      r.rows.find((x) => x.name === name)!.valuation.total;
+    expect(r.guilds.find((g) => g.name === 'Zeta')).toMatchObject({
+      members: 2,
+      points: total('Zed') + total('Mia'),
+    });
+    expect(r.guilds.find((g) => g.name === 'Alpha')!.points).toBe(total('Alf'));
+  });
+
+  it('lists them the same way in the provisional report, with the own row marked', () => {
+    const ctx = guilded();
+    const r = report(ctx, 'Ada', 1);
+    expect(r.round.provisional).toBe(true);
+    expect(r.guilds.map((g) => g.name)).toEqual(['Hoch', 'Alpha', 'Zeta']);
+    expect(r.guilds.map((g) => g.members)).toEqual([1, 1, 1]);
+    expect(r.rows.find((x) => x.name === 'Zed')!.guild).toEqual({
+      tag: 'ZET',
+      name: 'Zeta',
+    });
+    expect(r.rows.filter((x) => x.you).map((x) => x.name)).toEqual(['Ada']);
+  });
+});
+
+describe('the running round in a report', () => {
+  it('shows the rules of now, not the ones stored when the row was opened', () => {
+    const ctx = setup();
+    ctx.db.prepare('UPDATE rounds SET rules = ?').run('{"stale":true}');
+    const r = report(ctx, 'Ada', 1);
+    expect(r.round.rules).toEqual({ ...roundRules(ctx) });
+    expect(r.round.rules).not.toHaveProperty('stale');
+  });
+
+  it('keeps the play time private even when the events of the round exist', () => {
+    const ctx = setup();
+    ctx.rounds.addEvent(1, ctx.now(), {
+      at: ctx.now(),
+      kind: ROUND_EVENT.playtime,
+      seat: 1,
+      version: 2,
+      payload: { methods: [1], intervals: [[0, 60_000]] },
+    });
+    expect(report(ctx, 'Ada', 1).playtime).toBeNull();
+  });
+
+  it('opens its row for a database that has none, in the report, the list and the drilldown', () => {
+    for (const read of [
+      (c: TestCtx) => report(c, 'Ada', 1).round.number,
+      (c: TestCtx) => list(c, 'Ada').map((e) => e.number),
+      (c: TestCtx) => person(c, 'Ada', 1, 1).seat,
+    ]) {
+      const ctx = setup();
+      ctx.db.prepare('DELETE FROM rounds').run();
+      expect(ctx.rounds.get(1)).toBeNull();
+      expect(read(ctx)).toEqual(expect.anything());
+      expect(ctx.rounds.get(1)).not.toBeNull();
+    }
+  });
+});
+
+describe('the Rewind of the running round', () => {
+  it('has none for the admin who plays and reads no events for it', () => {
+    const ctx = setup();
+    const load = vi.spyOn(ctx.rounds, 'eventsForSeat');
+    expect(() => answer(ctx, 'Ada', { type: 'roundRewind', round: 1 })).toThrow(
+      REFUSED,
+    );
+    expect(load).not.toHaveBeenCalled();
+  });
+
+  it('has none for an admin who held no place in a finished round and reads no events for them', () => {
+    const ctx = twoRounds();
+    addUser(ctx, 'Root', { admin: true });
+    const load = vi.spyOn(ctx.rounds, 'eventsForSeat');
+    expect(() =>
+      answer(ctx, 'Root', { type: 'roundRewind', round: 1 }),
+    ).toThrow(REFUSED);
+    expect(load).not.toHaveBeenCalled();
+  });
+
+  it('records the read of the admin with the round, and no read of a player', () => {
+    const ctx = twoRounds();
+    answer(ctx, 'Ada', { type: 'roundRewind', round: 1 });
+    answer(ctx, 'Anna', { type: 'roundRewind', round: 1 });
+    const rows = ctx.db
+      .prepare('SELECT actor, detail FROM audit_events WHERE action = ?')
+      .all('roundRewind') as { actor: string; detail: string }[];
+    expect(rows.map((e) => [e.actor, JSON.parse(e.detail)])).toEqual([
+      ['u_Ada', { round: 1 }],
+    ]);
+  });
+});
+
+describe('the drilldown of a participant whose archive is incomplete', () => {
+  const seatOf = (ctx: TestCtx, who: string): number =>
+    report(ctx, 'Ada', 1).rows.find((r) => r.name === who)!.seat;
+
+  it('refuses a seat whose final state is missing', () => {
+    const ctx = twoRounds();
+    const seat = seatOf(ctx, 'Anna');
+    ctx.db
+      .prepare('DELETE FROM round_events WHERE kind = ? AND seat = ?')
+      .run(ROUND_EVENT.player, seat);
+    expect(() =>
+      answer(ctx, 'Ada', { type: 'roundParticipant', round: 1, seat }),
+    ).toThrow(REFUSED);
+  });
+
+  it('refuses a seat that has a final state but no participant row', () => {
+    const ctx = twoRounds();
+    const seat = seatOf(ctx, 'Anna');
+    ctx.db.prepare('DELETE FROM round_participants WHERE seat = ?').run(seat);
+    expect(() =>
+      answer(ctx, 'Ada', { type: 'roundParticipant', round: 1, seat }),
+    ).toThrow(REFUSED);
   });
 });
