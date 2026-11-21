@@ -143,3 +143,42 @@ describe('the days of the hints', () => {
     expect(days.every((d) => d.outsidePlay === 0)).toBe(true);
   });
 });
+
+describe('the order of the facts', () => {
+  it('sorts the gaps and the actions of a day, whatever order they come in', () => {
+    // Gaps of 10, 1, 4, 2 and 3 seconds, the actions given in no order.
+    const times = [0, 10, 11, 15, 17, 20].map((s) => D0 + s * 1000);
+    const shuffled = [
+      times[3]!,
+      times[0]!,
+      times[5]!,
+      times[1]!,
+      times[4]!,
+      times[2]!,
+    ];
+    expect(gapsOf(times)).toEqual({
+      shortest: 1,
+      lower: 2,
+      median: 3,
+      upper: 4,
+    });
+    expect(
+      botHints(
+        shuffled.map((t) => act(t)),
+        [],
+        D0,
+        D0 + DAY,
+      )[0]!.gaps,
+    ).toEqual({ shortest: 1, lower: 2, median: 3, upper: 4 });
+  });
+
+  it('counts an action before the start of an interval as outside the play time', () => {
+    const days = botHints(
+      [act(D0 + 1000), act(D0 + 6000), act(D0 + 9500)],
+      [{ start: D0 + 5000, end: D0 + 9000 }],
+      D0,
+      D0 + DAY,
+    );
+    expect(days[0]!.outsidePlay).toBe(2);
+  });
+});
