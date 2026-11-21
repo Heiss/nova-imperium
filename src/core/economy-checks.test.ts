@@ -395,3 +395,39 @@ describe('the order of the codes', () => {
     );
   });
 });
+
+// The list of requirements asks the next level of its own entry (F18, #214).
+describe('the level a check starts from', () => {
+  it('is the level on the planet unless one is given', () => {
+    const p = planet({ b: { robot: 2 }, res: just(lvlCost(BUILD.robot!, 3)) });
+    expect(buildErrors(p, idle, 'robot', U)).toEqual([]);
+    expect(buildErrors(p, idle, 'robot', U, 2)).toEqual([]);
+    expect(buildErrors(p, idle, 'robot', U, 3)).toEqual(['cost']);
+    expect(buildErrors(p, idle, 'robot', U, 0)).toEqual([]);
+    const lean = { ...p, res: short(lvlCost(BUILD.robot!, 3)) };
+    expect(buildErrors(lean, idle, 'robot', U)).toEqual(['cost']);
+    expect(buildErrors(lean, idle, 'robot', U, 1)).toEqual([]);
+  });
+
+  it('is the level researched unless one is given', () => {
+    const r: ResearchState = { research: { energy: 2 }, rq: null };
+    const p = planet({ b: { lab: 1 }, res: just(lvlCost(RES.energy!, 3)) });
+    expect(researchErrors(p, r, 'energy', U)).toEqual([]);
+    expect(researchErrors(p, r, 'energy', U, 2)).toEqual([]);
+    expect(researchErrors(p, r, 'energy', U, 3)).toEqual(['cost']);
+    const lean = { ...p, res: just(lvlCost(RES.energy!, 1)) };
+    expect(researchErrors(lean, r, 'energy', U)).toEqual(['cost']);
+    expect(researchErrors(lean, r, 'energy', U, 0)).toEqual([]);
+  });
+
+  it('costs the level after the one given', () => {
+    fc.assert(
+      fc.property(fc.integer({ min: 0, max: 12 }), (have) => {
+        const p = planet({ res: just(lvlCost(BUILD.metal!, have + 1)) });
+        expect(buildErrors(p, idle, 'metal', U, have)).toEqual([]);
+        const lean = { ...p, res: short(lvlCost(BUILD.metal!, have + 1)) };
+        expect(buildErrors(lean, idle, 'metal', U, have)).toEqual(['cost']);
+      }),
+    );
+  });
+});

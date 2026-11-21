@@ -7,11 +7,14 @@
 // `data-fold` and `data-all` mark (logic/achievement-fold.ts).
 import {
   ACHIEVEMENTS,
-  type Achievement,
   type AchievementState,
   CATEGORIES,
 } from '../../core/achievements.ts';
 import { rewardMinutes } from '../../core/daily-reward.ts';
+import {
+  achievementStatus,
+  type AchievementStatus,
+} from '../../core/reward-checks.ts';
 import type { Cost } from '../../core/types.ts';
 import type { V } from '../views/common.ts';
 import {
@@ -26,8 +29,8 @@ const STATUS_LABELS = {
   ready: 'Einlösbar',
   open: 'Offen',
   claimed: 'Erledigt',
-} as const;
-type Status = keyof typeof STATUS_LABELS;
+} as const satisfies Record<AchievementStatus, string>;
+type Status = AchievementStatus;
 
 const rewardText = ([m, c, d]: Cost): string =>
   `Adamant ${fmt(m)} · Psikristall ${fmt(c)} · Promethium ${fmt(d)}`;
@@ -82,15 +85,6 @@ export interface AchievementsPage {
   list: { filter: AchievementFilter; groups: AchievementGroup[] } | null;
 }
 
-function statusOf(
-  item: Achievement,
-  state: AchievementState,
-  claimed: ReadonlySet<string>,
-): Status {
-  if (claimed.has(item.id)) return 'claimed';
-  return (state.progress[item.metric] ?? 0) >= item.target ? 'ready' : 'open';
-}
-
 function dailyBox(state: AchievementState['daily']): DailyBox | null {
   if (!state) return null;
   const { streak, day, reward, next, claimed } = state;
@@ -143,7 +137,7 @@ export function achievementsPage(view: V): AchievementsPage {
     (item) => claimed.has(item.id),
   );
   for (const item of ACHIEVEMENTS) {
-    const status = statusOf(item, state, claimed);
+    const status = achievementStatus(item, state.progress, claimed);
     const label = CATEGORIES[item.category];
     rows[status].push({
       id: item.id,

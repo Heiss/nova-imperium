@@ -62,6 +62,11 @@ section 7, the four economy actions `build`, `research`, `order` and `pct`
 too; 10 are split and 12 check inline only. Their rows below are the state
 after it; the other rows are the audit of 2026-11-15.
 
+**[E]** Since the admin pull request and the guild, player, rewards and
+fleet groups of #214 (2026-11-21): all 33 actions of the audit follow
+section 7; `send` but for the joining of an attack union (#225, after the
+audit, its row). Their rows below are the state after them.
+
 **[E]** The vacation mode (#223, 2026-11-17) adds `startVacation` and
 `endVacation`, both following section 7, and one gate before every
 action: `runAction` refuses an action with „Im Urlaubsmodus nicht
@@ -100,7 +105,7 @@ of the audit and stay.
 | `order` | core `orderErrors` (codes `noYard`, `yardLocked`, `locked`, `count`, `limit`, `cost`, `queueFull` from `hasYard`, `yardLockedBy`, `reqMissing`, `unitRoom`, `maxAfford` and at most 20 orders); the server only the messages (`ORDER_ERROR`, the lock with `YARD_LOCK`) | yes | partly, with core `orderErrors` in its own order: the requirements first, then the lock, the limit and the price disable „Bauen“ (`orderAction`, catalog-list.ts), the page with core `hasYard` (`yardPage`), a count of 0 by `orderNote` (`order` in `client/main.ts`); not the 20 orders | no (F2, F6, F7) | economy |
 | `cancelOrder` (#258) | inline: the position must be a whole number from 0 (else „Ungültig.“); only the own planet; the rule is core `cancelOrder` (`core/cancel-order.ts`); a position that holds no order or another unit changes nothing and is no refusal, as `cancelBuild` without an upgrade | none | – (a button per order of the list, `cancelOrder` of `client/features/queue.ts`) | – | economy |
 | `pct` | core `isProducer` (a producer of `PRODUCERS` only); the share rounded to tens after `int()`, a clamp, not a refusal | yes | no; the select offers valid shares only (`views/ProducerTable.svelte`) | – | economy |
-| `rename` | inline: a name after `str(…, 20)` | no | yes, silently: trims, sends nothing when empty, `maxlength="20"` (`doRename`, main.ts) | – | player |
+| `rename` | core `planetNameError` (`core/planet-name.ts`: code `empty`) for the name after `str(…, MAX_PLANET_NAME)` (20); the server words it (`RENAME_ERROR`, `server/game/actions.ts`), the planet by `mine()` after the name (player pull request of #214) | yes | yes, silently, with core `planetNameError`: trims, sends nothing while it refuses, `maxlength` of `MAX_PLANET_NAME` (`doRename`, `client/features/rename.ts`) | – | player |
 | `options` | core `isExplainMode`; the probes clamped by `int` | yes | the same clamp, `clampInt` (`client/logic/format.ts`); the select offers the modes | – | player |
 | `pushOptions` | core `isPushTopic` (`server/push-options.ts`) | yes | the boxes offer `PUSH_TOPICS` only (`client/logic/push-options.ts`) | – | player |
 | `abandon` (#224, after the audit) | core `abandonTargetError` (codes `unknown`, `moon`, `main`) and `abandonError` (then `stale`, a confirmation opened for an earlier colony at the same position by its founding time `created` (owner, 2026-11-17), then `flights`, `research`, `orders`, `core/abandon.ts`); the server words them (`ABANDON_ERROR`, `server/game/abandon.ts`); the password before them, inline like the deletion of the account („What counts“: the session), and the address limited | yes | partly, with core `abandonTargetError`: the button „Kolonie aufgeben“ only on an own planet that is not the main planet (`abandonOffered`, `client/logic/abandon.ts`); the references only the server; the Sternenkarte offers no Landnahme at a locked position, with core `positionLocked` (`freePosition`) | – | player |
@@ -109,30 +114,33 @@ of the audit and stay.
 | `read` | – | none | – | – | player |
 | `delrep` | – (deletes only a report of the player) | none | – | – | player |
 | `delall` | – | none | – | – | player |
-| `send` | core `missionRules`, `sendError` (codes, messages `SEND_ERROR` in `server/game/fleet-actions.ts`; after the audit the code `locked` of #224, worded with the end of the lock by `positionLockedText`, `server/game/position-lock.ts`, and since #223 the code `vacation` from `vacationProtects`, `core/vacation.ts`; since #175 the Auspex-Erkundung refuses below Auspex-Lehre 1 with `noSpyTech` of `spyTechError`, `core/espionage.ts`, from the sender's research in `SendFleet`; #190 added `surveyLocked` and `surveyProbesOnly` of the Vermessung, which reads the research of the owner from `SendFleet` and whose position lock is refused too; since #95 the Mondbruch refuses with `notMoon` (target kind `foreignMoon`, asked first) and `noWorldbreaker`, after the same `vacation` and noob protection checks as a foreign target; #93 added the target kind `expedition` (the position after the last planet position, `SendTarget.expedition` from `isExpeditionPlace`) with `notExpedition`, `expeditionLocked` and `expeditionSlots` (the research and the running expeditions from `SendFleet`) and `expeditionSpace` for a free-position mission there, and the stay of a mission with `maxStay` (hours up to level times the hours per level of the round, the real time divided by the universe speed when the round says so), checked inline by `chosenStay`, with the extra places of the round from `SendFleet.extraSlots`), `fleetSlots`, `capacity`, `fuelFor`, `canFly`; inline the unknown mission, a ship that cannot fly, no ships, the slot count (SQL `gift = 0`), cargo and fuel | partly | partly, not `sendError`: slots (`client/views/fleet.ts`), fuel and load marked red (`fleetPreview`, game.ts), hints at the target (`targetInfo`, main.ts), no probes (`gspy`, main.ts); not `noSpyTech` (#175) | no (F11, F12, F13) | fleet |
-| `recall` | inline: own, on the way out, not yet arrived, no gift (`recall`); the way home is `min(flown so far, flight out)` since #93 | no | partly: own, out, no gift (`fleetRow`, `client/logic/overview.ts`); not the arrival | – (F14) | fleet |
+| `send` | core `startError` (`core/fleet-checks.ts`: codes `mission` for a mission that is not one of the fleet form, `stationary` from `canFly`, `noShips`, or `noProbes` for an Auspex-Erkundung or a Vermessung from the field `withoutShips` of its rules (F12, F19), `slots` from `fleetSlots` against the used slots, SQL `gift = 0`), then core `missionRules`, `sendError` (codes, messages `SEND_ERROR` in `server/game/fleet-actions.ts`; after the audit the code `locked` of #224, worded with the end of the lock by `positionLockedText`, `server/game/position-lock.ts`, and since #223 the code `vacation` from `vacationProtects`, `core/vacation.ts`; since #175 the Auspex-Erkundung refuses below Auspex-Lehre 1 with `noSpyTech` of `spyTechError`, `core/espionage.ts`, from the sender's research in `SendFleet`; #190 added `surveyLocked` and `surveyProbesOnly` of the Vermessung, which reads the research of the owner from `SendFleet` and whose position lock is refused too; since #95 the Mondbruch refuses with `notMoon` (target kind `foreignMoon`, asked first) and `noWorldbreaker`, after the same `vacation` and noob protection checks as a foreign target; #93 added the target kind `expedition` (the position after the last planet position, `SendTarget.expedition` from `isExpeditionPlace`) with `notExpedition`, `expeditionLocked` and `expeditionSlots` (the research and the running expeditions from `SendFleet`) and `expeditionSpace` for a free-position mission there, with the extra places of the round from `SendFleet.extraSlots`), then core `holdTimeError` (code `holdTime` of a Halten, #55), `stayError` (code `stay`, the hours of `maxStay`, #93; the server names the hours), and `cargoError` (codes `hold` from `capacity`, `fuel` from `fuelFor` and the Promethium loaded); the server gathers the picked ships, the slots, the cargo cut to the stock and the fuel and words the codes (`FLEET_ERROR`) (fleet pull request of #214). Not part of it: the joining of an attack union (#225, after the audit), checked partly inline by `joinPlan` (`server/game/union.ts`) between the stay and the cargo | yes, but the attack union | partly, not the core checks: slots (`client/views/fleet.ts`), fuel and load marked red (`fleetPreview`, game.ts), hints at the target (`targetInfo`, main.ts), no probes (`gspy`, `client/features/galaxy.ts`); not `noSpyTech` (#175) | no (F11, F13; F12 and F19 unified) | fleet |
+| `recall` | core `recallError` (`core/fleet-checks.ts`: codes `gone` for no own fleet or one that `recallable` no longer takes, then `gift` (#161), then `gone` for missiles by `isFleet`, #54); the server words them (`FLEET_ERROR`) (fleet pull request of #214); the way home is `min(flown so far, flight out)` since #93 | yes | partly: own, out, no gift (`fleetRow`, `client/logic/overview.ts`); not the arrival | – (F14) | fleet |
 | `jump` | core `jumpError` (`core/jump-gate.ts`: codes `notMoon`, `noGate`, `cooling`, `noTarget`, `sameMoon`, `targetNoGate`, `targetCooling`, `noShips`, `stationary` from `gateLevel`, `gateReady`, `targetError` and `canFly`); the server only gathers the two moons, their gate times and the picked ships (`pickedShips` of `fleet-actions.ts`, at most the ships there) and words the codes (`JUMP_ERROR`, `server/game/jump-gate.ts`) | yes | yes, with core `gateReady` and `targetError`: „Springen“ disabled while the own gate cools down or no target is ready, a cooling target disabled in „Zielmond“, foreign and gateless moons not offered (`jumpPanel`, `client/logic/jump-gate.ts`); not the ships, which the server refuses („Keine Schiffe ausgewählt.“) | – | fleet |
 | `missile` | core `launchError` (`core/missiles.ts`: codes `count`, `noMissiles`, `aim`, `noPlanet`, `noMoon`, `ownTarget`, `outOfRange`, `vacation` from `vacationProtects` and `protected` from the noob protection); the server gathers the launcher, the target and its owner and words the codes (`LAUNCH_ERROR`, `server/game/missiles.ts`); a player in vacation mode is refused by the general gate | yes | partly: the button „Raketenangriff“ only with Orbitalraketen and a target in range (`canLaunch`, `client/logic/missiles.ts`); the rest the server refuses | – | fleet |
 | `trade` (#171, after the audit) | core `trade` (`core/market.ts`: codes `closed`, `noPost`, `resource`, `amount`, `poor`, `full`, `limit`, `tiny` from `marketOpen`, `postLevel`, `pairOf`, the whole amount, the stock, `roomFor`, `remaining`, `got`; the fee from `feePercent` with the two settings of the round); the cap by the free storage is applied first, then an amount above what is left of the day is cut to it (`cut`, owner 2026-11-19; only an empty rest refuses with `limit`; a limit of 0 is none); the server gathers the planet, the prices after the drift and the amount of the UTC day (`marketOf`, `server/game/market.ts`) and words the codes with `tradeNote` (`core/market-text.ts`, shared with the browser); one transaction: stock, price of the pair (`market_prices`) and amount of the day (`market_usage`) change together; own planet by `mine()`; not on the vacation allow list (#223) | yes | yes, with core `trade`: `preview` shows the refusal as a note and disables „Tauschen“ (`client/logic/market.ts`), „max“ from `maxGive`; the same words | – | economy |
 | `settings` | core `universeErrors` (codes `range` and `used` per setting, in the order of `UNIVERSE_SPECS`) and `universeOf` (`core/universe.ts`); the server words each code (`SETTINGS_ERROR`, `server/game/admin.ts`), every refused setting at once (admin pull request of #214) | yes | no; the inputs show the range of each setting (`client/views/misc.ts`) | – | admin |
 | `reset` | core `roundRefused` and `roundValues` over the registry `ROUND_SETTINGS` (`core/round.ts`, #283): the first refused setting in the fixed order of the registry (`order`, owner, 2026-11-17: rewards, guilds, main-planet lock, lock of a given-up position, then the entries of later features by their numbers, among them who may hold and the level of the spy report of #55 and the refund factor and time of a demolition of #202), a group (`rewards`) together; the server words it with the entry's `refusal`, else `rangeError` (`server/game/round.ts`) (admin pull request of #214); after the audit the locks of #221 (`core/main-planet.ts`) and #224 (`core/abandon.ts`) and the refund factor and the time of a demolition of #202 (`core/demolition.ts`) are entries of it, each file exporting its entries as `roundSettings` (#310) | yes | – (checkboxes send booleans) | – | admin |
 | `endzeit` | core `endzeitError` (codes `done`, then `minutes`: whole minutes within `GIFT_MINUTES`, `core/endzeit.ts`); the server words them (`ENDZEIT_ERROR`, `server/game/endzeit.ts`) (admin pull request of #214) | yes | yes, with core `endzeitError`: no button once done (`endzeitBox`, misc.ts), the dialog sends nothing with a wrong time (`endzeitNote`, `client/logic/endzeit.ts`) | yes (F15 unified) | admin |
-| `claimAchievement` | inline: achievements on, a known id, a home planet, progress at the target; once by SQL | no | yes, written again: `statusOf` (`client/views/achievements.ts`) | – | rewards |
-| `claimDailyReward` | inline: daily rewards on, a home planet; once a day by SQL | no | the flag `claimed` of the state | – | rewards |
-| `createGuild` | inline: no guild or application, `profile()` (tag `[A-Z0-9]{2,8}` after upper case, name 3 to 32, text at most 6,000, tag or name taken; `server/game/guilds.ts`) | no | partly: the form only without a guild, `minlength` and `maxlength` (`client/views/guilds.ts`); not the characters of the tag | no (F16) | guild |
-| `updateGuild` | inline: right `profile` (`need`), `profile()` | no | partly: the form only with the right, the same attributes | no (F16) | guild |
-| `applyToGuild` | inline: no guild or application, the guild exists | no | the button only without a guild | – | guild |
-| `reviewGuildApplication` | inline: right `applications`, the application is open | no | the list only with the right | – | guild |
-| `leaveGuild` | inline: in a guild; the Leitung only without other members („Übergib zuerst die Gildenleitung.“), and then the guild is dissolved | no | the Leitung gets „Gilde auflösen“ instead of „Gilde verlassen“ | – | guild |
-| `manageGuildMember` | core `isBelow`, `memberPlace`, `belowLeitung`; inline right `remove`, the hand-over by the Leitung only, not oneself | partly | yes, with core `isBelow` and `memberPlace` (`memberControls`) | – | guild |
-| `createGuildRank` | core `rankNameError`, `MAX_GUILD_RANKS`; inline right `ranks` | partly | partly: the form only with the right and below 25 ranks; the name only by `maxlength` (F17) | – | guild |
-| `renameGuildRank` | core `rankNameError`, `isBelow`; inline right `ranks` (`managed`) | partly | partly: the editor only with the right and below; the name as F17 | – | guild |
-| `setGuildRankRights` | core `isGuildRight`, `canChangeRights`, `isBelow`; inline right `ranks` | partly | yes, inline: a box of a right the own rank lacks is disabled (`rankEditor`), the rule of `canChangeRights` | – | guild |
-| `moveGuildRank` | core `isBelow`; inline the neighbour exists | partly | yes: up only when `isBelow(me.at, at - 1)`, down not on the last rank; the browser takes the index in the list, the server the stored position, both ordered by position | – | guild |
-| `deleteGuildRank` | core `deleteError`, `isBelow`; inline not the default rank, right `ranks` | partly | yes, with core `deleteError` | – | guild |
-| `setGuildDefaultRank` | core `belowLeitung`; inline the Leitung only | partly | yes: the Leitung, not the first rank, not the default | – | guild |
-| `assignGuildRank` | core `assignError` (codes `lower` and `rights`); inline right `assign` | partly | yes, with core `assignError` (`rankChange`) | – | guild |
-| `dissolveGuild` | inline: the Leitung only, the tag equal without case | no | partly: the button only for the Leitung, the tag `required` | – | guild |
+| `claimAchievement` | core `claimError` (`core/reward-checks.ts`: codes `off`, `unknown` by `achievementOf`, `planet`, `open` by `reached`); the server gathers the planet and the progress in that order and words the codes (`CLAIM_ERROR`, `server/game/achievements.ts`); once by SQL (rewards pull request of #214) | yes | yes, with core `achievementStatus` (`reached`, the claimed ids): the groups of the page (`client/logic/achievements.ts`) | – | rewards |
+| `claimDailyReward` | core `dailyError` (`core/reward-checks.ts`: codes `off`, `planet`); the server words them (`DAILY_ERROR`); once a day by SQL (rewards pull request of #214) | yes | the flag `claimed` of the state | – | rewards |
+| `createGuild` | core `createGuildError` (`core/guild-checks.ts`: codes `member`, then `tag`, `name`, `text`, `taken` of `profileError`: tag `[A-Z0-9]{2,8}` after upper case, name 3 to 32, text at most 6,000, tag or name of another guild taken); the server gathers the profile as sent (`str`, upper case, trimmed), whether the player has a guild or an application and whether the tag or name is taken, and words the codes (`JOINED`, `PROFILE_ERROR`, `server/game/guilds.ts`) | yes | partly: the form only without a guild, `minlength` and `maxlength` as literals (`GuildProfileForm.svelte`); not the characters of the tag | no (F16) | guild |
+| `updateGuild` | the actor by `actor()`, then core `updateGuildError` (codes `right` for `profile`, then those of `profileError`; the own tag and name are no other guild's) | yes | partly: the form only with the right, the same attributes | no (F16) | guild |
+| `applyToGuild` | core `applyError` (codes `member`, `guild`); the server words them | yes | the button only without a guild | – | guild |
+| `reviewGuildApplication` | the actor, then core `reviewError` (codes `right` for `applications`, `application`: an open application to the own guild) | yes | the list only with the right | – | guild |
+| `leaveGuild` | core `leaveError` (codes `none`, `handover`: the Leitung only without other members, and then the guild is dissolved) | yes | the Leitung gets „Gilde auflösen“ instead of „Gilde verlassen“ | – | guild |
+| `manageGuildMember` | the actor, then core `manageMemberError` (codes `member`: not a member of the guild or oneself; for the hand-over `lead`, `rank`, `leitung` of `defaultRankError`; else `right` for `remove`, `lower` of `isBelow`) | yes | yes, with core `manageMemberError` for „Entfernen“ and `isBelow`, `memberPlace` (`memberControls`, `client/logic/guilds.ts`) | – | guild |
+| `createGuildRank` | core `createRankError` (codes `right` for `ranks`, `full` at `MAX_GUILD_RANKS`, then `length`, `taken` of `rankNameError`; the first two as `rankRoomError`) | yes | partly: the form with `rankRoomError`; the name only by `maxlength` (F17) | – | guild |
+| `renameGuildRank` | core `renameRankError` (`managedError`: codes `right`, `rank`, `lower`; then `length`, `taken`) | yes | partly: the editor with `managedError`; the name as F17 | – | guild |
+| `setGuildRankRights` | core `rightsError` (`managedError`, then `unknown` for a right that does not exist, then `change` by `canChangeRights`) | yes | yes, inline: a box of a right the own rank lacks is disabled (`rankEditor`), the rule of `canChangeRights` | – | guild |
+| `moveGuildRank` | core `moveRankError` (`managedError`, then `end` without a neighbour, `lower` when the neighbour is not below the actor) | yes | yes, with core `moveRankError` (`up`, `down` of `rankEditor`) | – | guild |
+| `deleteGuildRank` | core `deleteRankError` (`managedError`, then `default`, then `members` by `deleteError` for the default rank that takes the members) | yes | yes, with core `deleteRankError` | – | guild |
+| `setGuildDefaultRank` | core `defaultRankError` (codes `lead`, `rank`, `leitung`) | yes | yes, with core `defaultRankError` (`makeDefault`) | – | guild |
+| `assignGuildRank` | core `assignRankError` (codes `right` for `assign`, `member`, `rank`, then `lower` and `rights` of `assignError`) | yes | yes, with core `assignRankError` (`rankChange`) | – | guild |
+| `dissolveGuild` | core `dissolveError` (codes `lead`, `tag`: equal without case) | yes | partly: the button only for the Leitung, the tag `required` | – | guild |
+| `sendGuildChat` (#169, after the audit) | the actor, then core `sendChatError` (`core/guild-chat.ts`: codes `right` for `chat-write`, `empty`, `length` of `chatTextError` for the text cleaned by `clean`, then `wait` within `CHAT_INTERVAL` of the member's last message); the server words them (`SEND_ERROR`, `server/game/guild-chat.ts`) | yes | partly: `maxlength` of `MAX_CHAT_TEXT`; the box only with the right | – | guild |
+| `deleteGuildChat` (#169, after the audit) | the actor, then core `deleteChatError` (codes `right` for `chat-delete`, `message`: of the own guild, `event`, `lower` by `canDeleteChat`); the server words them | yes | yes, with core `deleteChatError`: the flag `delete` of each message of the state | – | guild |
+| `seeGuildChat` (#169, after the audit) | the actor, then core `seeChatError` (code `right` for `chat-read`) | yes | – (sent only while the chat is open) | – | guild |
 | `requestFriend` (#227) | core `friendError` (codes `unknown`, `self`, `friends`, `outgoing`, `incoming`) with `relationOf` (`core/friends.ts`); the server words them (`FRIEND_ERROR`, the crossed request with the name, `server/game/friends.ts`); the name parsed by `str` | yes | – (the browser sends nothing without a name, `friendCall`, `client/logic/friends.ts`) | – | friends |
 | `answerFriend` (#227) | core `friendError` (`unknown`, `self`, `noRequest`) | yes | – (buttons only at a request to the player) | – | friends |
 | `cancelFriend` (#227) | core `friendError` (`unknown`, `self`, `noRequest`) | yes | – (button only at an own request) | – | friends |
@@ -155,7 +163,9 @@ numbers are those of the audit (`8a589eb`).
 
 **[E]** The economy pull request of #214 (2026-11-16) fixed F8, F9 and
 F10, the economy findings among those O18 (c) unifies (owner, 2026-11-15);
-F12 belongs to the fleet group and F15 to the admin group. F1 to F7 stay:
+F12 belongs to the fleet group and F15 to the admin group. **[E]** F15 was
+unified by the admin pull request, F12 by the fleet pull request of #214
+(owner, 2026-11-21, Q2 (a): the browser's text on both sides). F1 to F7 stay:
 the browser keeps its notes and the server its messages, each from a table
 of the codes. [U: O18 says „after the economy pull request“; the task of
 the loop read it as „with the economy checks in place“ and unified F8, F9
@@ -224,6 +234,24 @@ and F10 in that pull request.]
 * **F12** (message) An Auspex-Erkundung from the Sternenkarte without
   probes: `main.ts:1243-1247` „Keine Spähschädel auf dem Planeten.“; the
   server `fleet-actions.ts:124-125` „Keine Schiffe ausgewählt.“
+  **[E]** Unified by the fleet pull request of #214 (owner, 2026-11-21, Q2
+  (a)): browser and server use the browser's text. The code `noProbes` of
+  core `startError` (`core/fleet-checks.ts`), from the field
+  `withoutShips` of the rules of the Auspex-Erkundung
+  (`features/missions/spy/rules.ts`), and the server words it „Keine
+  Spähschädel auf dem Planeten.“; the Sternenkarte keeps its toast
+  (`gspy`, `client/features/galaxy.ts`). The visible text stays; only the
+  server's message changes, for a request the interface never sends (an
+  Auspex-Erkundung with no probes selected).
+* **F19** (message, found in the fleet pull request of #214) A Vermessung
+  from the Sternenkarte without probes goes through the same button
+  (`gspy`, `data-m="survey"`): the browser says „Keine Spähschädel auf dem
+  Planeten.“, the server said „Keine Schiffe ausgewählt.“ **[V]**, follows
+  the owner's decision on F12 of 2026-11-21 (through the coordinator,
+  2026-11-21): unified the same way, the rules of the Vermessung
+  (`features/missions/survey/rules.ts`) set `withoutShips: 'noProbes'`, so
+  both say „Keine Spähschädel auf dem Planeten.“; only the server's message
+  for a request the interface never sends changes.
 * **F13** (message) All slots used: `views/fleet.ts:63` „Alle Flottenslots
   belegt (Kogitator-Doktrin erhöht die Anzahl).“; `fleet-actions.ts:126-127`
   „Alle Flottenslots belegt.“ The rule itself, no slot for the gift of the
@@ -330,6 +358,20 @@ only.
   returns every code that applies, in the order of the server: the server
   takes the first, the browser the first in its own order. So the findings
   stay as they are, except the ones O18 (c) unifies (owner, 2026-11-15).
+* **[E]** Guild built (2026-11-21, #214): `src/core/guild-checks.ts` with
+  one function per action (`createGuildError`, `updateGuildError`,
+  `applyError`, `reviewError`, `leaveError`, `manageMemberError`,
+  `createRankError`, `renameRankError`, `rightsError`, `moveRankError`,
+  `deleteRankError`, `defaultRankError`, `assignRankError`,
+  `dissolveError`) and `sendChatError`, `deleteChatError`, `seeChatError`
+  in `core/guild-chat.ts`. Each returns the code of its first refusal in the
+  order of the server, or null; finding the actor (`actor()`) and reading
+  the store stay on the server, which words the codes from tables with the
+  messages unchanged (`GUILD_ERROR`, `PROFILE_ERROR`, `SEND_ERROR`). The
+  guild page (`client/logic/guilds.ts`) asks the same checks for its member
+  and rank controls and offers exactly what it did. F16 and F17 stay. The
+  server's words and their order are pinned by
+  `src/server/game/guild-order.test.ts`, written before the move.
 * **[V]** The checks of „What counts“ stay on the server; the table above
   names why.
 * **[E]** Economy built (2026-11-16): `src/core/economy-checks.ts` with
@@ -349,3 +391,25 @@ only.
   energy, then the waits) with its own short reasons. It is already pure
   in `src/core`, but does not call `buildErrors` or `researchErrors`; left
   as it is, so its texts and order do not change.
+* **[E]** F18 (owner, 2026-11-16, in #214): `needState` calls
+  `buildErrors` and `researchErrors` and keeps its own texts and order
+  through its own code tables, with no visible change. **[E]** Built
+  (2026-11-21): it takes the codes `place`, `locked`, `full`, then `cost`
+  and `noEnergy` together, then the waits in the order of the codes
+  (`BUILD_WAITS`, `RESEARCH_WAITS`), and leaves out the codes it never
+  showed (`off`, `maxLevel`, `noLab`). Both checks take the level they
+  start from as an optional `have`, as the list costs the next level of its
+  own entry. `src/test/needs-reference.test.ts`, written before, compares
+  it with the old code on 3000 generated places.
+* **[E]** Player, rewards and fleet built (2026-11-21, #214):
+  `planetNameError` (`core/planet-name.ts`) for `rename`; `claimError`,
+  `dailyError`, `achievementOf`, `reached` and `achievementStatus`
+  (`core/reward-checks.ts`) for the rewards, the last shared with the page
+  „Achievements“; `startError`, `holdTimeError`, `stayError`,
+  `cargoError`, `recallable` and `recallError` (`core/fleet-checks.ts`) for
+  `send` and `recall`. Each returns the code of its first refusal in the
+  order of the server, or null; the server gathers the values and words the
+  codes with the messages unchanged, but F12. The SQL guards of the rewards
+  stay („What counts“). The browser of the fleet keeps its hints; F11, F13
+  and F14 stay. Pinned before the move by `src/server/game/rename.test.ts`,
+  `rewards-order.test.ts` and `fleet-order.test.ts`.
