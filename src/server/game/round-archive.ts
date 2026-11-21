@@ -10,6 +10,7 @@
 // per participant, `guild.final` per guild, `round.closed`), no totals: the
 // report derives its numbers on read (okf/features/round-archive.md).
 import { production } from '../../core/economy.ts';
+import { ENDZEIT_EVENT } from '../../core/round-events.ts';
 import {
   type FinalPlace,
   type MeasuredInterval,
@@ -40,7 +41,7 @@ export const ROUND_EVENT = {
   closed: 'round.closed',
   /** An admin intervention the history must annotate (issue #235, section 3): the settings and the Endzeit. */
   settings: 'admin.settings',
-  endzeit: 'admin.endzeit',
+  endzeit: ENDZEIT_EVENT,
 } as const;
 
 /** What a round holds at one moment: its participants and guilds, by seat. */

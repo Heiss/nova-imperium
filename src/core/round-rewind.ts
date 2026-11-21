@@ -7,19 +7,35 @@
 // of the cards are in src/client/logic/round-rewind.ts; the server answers with
 // these facts (src/server/game/round-report.ts, action `roundRewind`).
 //
-// Owner, 2026-11-20: this update has the cards 1 (identity), 6 (play time) and
-// 8 (final place). The cards 2 to 5 and 7 need the in-round events of the
-// issue's audit table (production, investment mix, battles, recovery, Endzeit)
-// that the server does not write yet; each of them is one more entry of
-// `CARDS` below (its own slot number of the issue's table, a `RewindCard`
-// variant, a builder that returns null while its events are missing), so the
-// order of the story stays the order of the slots.
+// Owner, 2026-11-20: the thin update had the cards 1 (identity), 6 (play time)
+// and 8 (final place). Owner, 2026-11-21: the cards 2 (production), 3
+// (investment mix), 4 (largest loss), 5 (recovery) and 7 (Endzeit) are derived
+// on read from the events of the round (round-rewind-facts.ts); each is one
+// entry of `CARDS` below (its own slot number of the issue's table, a
+// `RewindCard` variant, a builder that returns null while its events are
+// missing), so the order of the story stays the order of the slots. A round
+// with events of version 1 keeps the shorter form: the cards that need version
+// 2 are left out.
 import {
   type RoundCoverage,
   type RoundReport,
   rankRows,
   standingOf,
 } from './round-report.ts';
+import {
+  endzeitOf,
+  focusOf,
+  type Focus,
+  investmentOf,
+  largestLoss,
+  type Loss,
+  productionOf,
+  recoveryOf,
+  type RewindEvent,
+} from './round-rewind-facts.ts';
+import type { Resources } from './types.ts';
+
+const DAY = 86_400_000;
 
 /** Card 1: round identity and participation. `slot` is the number of the card in the issue's table of view G. */
 export interface IdentityCard {
@@ -58,7 +74,58 @@ export interface RankCard {
   winner: { name: string; points: number; you: boolean };
 }
 
-export type RewindCard = IdentityCard | PlaytimeCard | RankCard;
+/** Card 2: the resources the game credited to the places of the reader (the sum, and by resource). */
+export interface EconomyCard extends Resources {
+  kind: 'economy';
+  slot: 2;
+  total: number;
+}
+
+/** Card 3: the category with the largest share of what the reader paid for what finished. */
+export interface FocusCard extends Focus {
+  kind: 'focus';
+  slot: 3;
+}
+
+/** Card 4: the battle with the largest own loss of ship construction value. */
+export interface LossCard {
+  kind: 'loss';
+  slot: 4;
+  /** The day of the round (1 is the first day). */
+  day: number;
+  /** The loss in Flottenpunkte: the construction value of the lost ships divided by 1000. */
+  points: number;
+  role: 'attacker' | 'defender';
+  /** The other side; the pseudonym of a deleted account (D4); null when the events name none. */
+  opponent: string | null;
+}
+
+/** Card 5: the days until the fleet value was back at its level before the card-4 loss. */
+export interface ReturnCard {
+  kind: 'return';
+  slot: 5;
+  days: number;
+  /** The day of the round of the loss. */
+  lossDay: number;
+}
+
+/** Card 7: the day of the Endzeit and the gift of the admin, told apart from the own play. */
+export interface EndzeitCard {
+  kind: 'endzeit';
+  slot: 7;
+  day: number;
+  gift: { ships: number; cargo: Resources } | null;
+}
+
+export type RewindCard =
+  | IdentityCard
+  | EconomyCard
+  | FocusCard
+  | LossCard
+  | ReturnCard
+  | PlaytimeCard
+  | EndzeitCard
+  | RankCard;
 
 /** The Rewind of one participant: the cards in the order of the slots. */
 export interface Rewind {
@@ -71,7 +138,16 @@ interface Facts {
   report: RoundReport;
   seat: number;
   ranked: ReturnType<typeof rankRows>;
+  /** The events of the round in the order they were written; empty when none are given. */
+  events: readonly RewindEvent[];
 }
+
+/** The day of the round a time falls on: 1 is the first day, at most the length of the round. */
+const dayOf = (report: RoundReport, at: number): number =>
+  Math.min(
+    report.round.days,
+    Math.max(1, Math.floor((at - report.round.started) / DAY) + 1),
+  );
 
 /** A card of the story: its facts, or null when the events it needs are missing. */
 type Builder = (f: Facts) => RewindCard | null;
@@ -121,21 +197,85 @@ const rank: Builder = ({ report, seat, ranked }) => {
   };
 };
 
-/**
- * The cards of the Rewind in the order of their slots. The cards 2 to 5 and 7
- * of the issue go in here, between these, when their events are written.
- */
-const CARDS: readonly Builder[] = [identity, playtime, rank];
+const economy: Builder = ({ events, seat }) => {
+  const made = productionOf(events, seat);
+  return made && { kind: 'economy', slot: 2, ...made };
+};
+
+const focus: Builder = ({ events, seat }) => {
+  const spent = investmentOf(events, seat);
+  const top = spent && focusOf(spent);
+  return top && { kind: 'focus', slot: 3, ...top };
+};
+
+/** The loss of card 4; card 5 reads the same one. */
+const lossOf = ({ events, seat }: Facts): Loss | null =>
+  largestLoss(events, seat);
+
+const loss: Builder = (f) => {
+  const l = lossOf(f);
+  if (!l) return null;
+  const other =
+    l.opponent === null
+      ? undefined
+      : f.report.rows.find((r) => r.seat === l.opponent);
+  return {
+    kind: 'loss',
+    slot: 4,
+    day: dayOf(f.report, l.at),
+    points: l.points,
+    role: l.role,
+    opponent: other?.name ?? null,
+  };
+};
+
+const comeback: Builder = (f) => {
+  const l = lossOf(f);
+  const back = l && recoveryOf(f.events, f.seat, l);
+  return (
+    back && {
+      kind: 'return',
+      slot: 5,
+      days: back.days,
+      lossDay: dayOf(f.report, l.at),
+    }
+  );
+};
+
+const endzeit: Builder = ({ report, events, seat }) => {
+  const e = endzeitOf(events, seat);
+  return (
+    e && { kind: 'endzeit', slot: 7, day: dayOf(report, e.at), gift: e.gift }
+  );
+};
+
+/** The cards of the Rewind in the order of their slots. */
+const CARDS: readonly Builder[] = [
+  identity,
+  economy,
+  focus,
+  loss,
+  comeback,
+  playtime,
+  endzeit,
+  rank,
+];
 
 /**
  * The Rewind of `seat` in a finished round: only the cards whose facts exist.
  * A provisional report (the running round) and a seat that is not among the
- * participants have no Rewind: the list is empty.
+ * participants have no Rewind: the list is empty. `events` are the events of
+ * the round in the order they were written (cards 2 to 5 and 7); without
+ * them, or with events of version 1, those cards are left out.
  */
-export function rewindOf(report: RoundReport, seat: number): Rewind {
+export function rewindOf(
+  report: RoundReport,
+  seat: number,
+  events: readonly RewindEvent[] = [],
+): Rewind {
   const ranked = rankRows(report.rows);
   const own = ranked.some((r) => r.seat === seat);
-  const facts: Facts = { report, seat, ranked };
+  const facts: Facts = { report, seat, ranked, events };
   const cards =
     report.round.provisional || !own
       ? []

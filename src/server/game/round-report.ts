@@ -263,7 +263,7 @@ const roundReport: Handler<'roundReport'> = (ctx, u, d): Answer => {
 };
 
 /**
- * The thin Rewind of the reader in a finished round (#235, view G): the cards
+ * The Rewind of the reader in a finished round (#235, view G): the cards
  * come from the same report and the same access check as `roundReport`, so a
  * round the reader may not open answers like one that does not exist. The
  * running round has none (not even for the admin), and neither has a reader
@@ -272,7 +272,9 @@ const roundReport: Handler<'roundReport'> = (ctx, u, d): Answer => {
 function rewindFor(ctx: Ctx, u: User, number: number): Rewind {
   const report = reportOf(ctx, u, number);
   const seat = report.rows.find((r) => r.you)?.seat;
-  const rewind = seat === undefined ? null : rewindOf(report, seat);
+  // The events of a finished round feed the cards 2 to 5 and 7; the access was checked by `reportOf`.
+  const events = report.round.provisional ? [] : ctx.rounds.events(number);
+  const rewind = seat === undefined ? null : rewindOf(report, seat, events);
   return rewind?.cards.length ? rewind : fail(UNAVAILABLE);
 }
 

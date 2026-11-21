@@ -31,6 +31,14 @@ export const EVENT_KIND = {
 } as const;
 
 /**
+ * The event of an admin intervention that rang in the Endzeit, written by the
+ * action itself with `{ minutes, recipients, due }` (src/server/game/endzeit.ts).
+ * It is an annotation of the history, not a journal event: it has no version of
+ * the journal below.
+ */
+export const ENDZEIT_EVENT = 'admin.endzeit';
+
+/**
  * The schema version of the payloads below (`round_events.version`). Version
  * 2 (the update after 2026-11-22) adds the events `research.done`,
  * `place.created`, `place.removed` and `journal.close`, `unitsCost` and `back`

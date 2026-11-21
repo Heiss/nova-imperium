@@ -25,7 +25,6 @@ import {
   type JournalReport,
   type PlaceChanged,
   type Produced,
-  type ResearchDone,
   researchFinished,
   unitsPaid,
 } from '../../core/round-events.ts';

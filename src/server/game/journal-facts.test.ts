@@ -303,7 +303,7 @@ describe('the gift of the Endzeit', () => {
 
   it('is marked on the arrival of a gift fleet and on no other', () => {
     const ctx = setup();
-    for (const gift of [true, undefined]) {
+    for (const gift of [true, undefined] as const) {
       const f = fleet({ gift });
       beginCause(5);
       journalFleet(ctx, EVENT_KIND.arrival, f, 5, fleetBefore(ctx, f));
