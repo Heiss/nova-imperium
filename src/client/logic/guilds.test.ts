@@ -513,6 +513,24 @@ describe('the chat', () => {
       '⚔ Angriff auf [1:27:11] (Unbekannt → Lea), Ankunft 16.11., 01:02',
     );
   });
+
+  it('treats an arrival of null like a missing one', () => {
+    const time = new Date(2026, 10, 15, 19, 40).getTime();
+    const attack = {
+      kind: 'attack' as const,
+      text: '[1:27:11]',
+      attacker: 'Vex',
+      time,
+    };
+    const [none, missing] = chatLog([
+      msg({ id: 1, ...attack, arrival: null }),
+      msg({ id: 2, ...attack }),
+    ]).lines;
+    // No time of 1970 for null: both show the line as it is without an arrival.
+    expect(none!.text).toBe(missing!.text);
+    expect(none!.text).not.toContain('1970');
+    expect(none!.text).not.toContain('01.01.');
+  });
 });
 
 describe('the dialogs', () => {
